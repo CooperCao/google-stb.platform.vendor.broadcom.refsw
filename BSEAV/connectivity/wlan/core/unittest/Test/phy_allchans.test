@@ -1,0 +1,45 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for checking to make sure all driver channels have
+# phy support
+# $Id$
+#
+
+package require UTF
+
+package provide UTF::Test::phy_allchans 2.0
+
+UTF::Test phy_allchans {STA args} {
+    UTF::Getopts {
+	{x.arg "" "Exclude list"}
+    }
+
+    $STA wl band auto
+    $STA wl country ALL
+    $STA wl up
+    foreach c [lsearch -all -inline -regexp [$STA allchanspecs] {^\d+$} ] {
+	if {[lsearch $(x) $c] >= 0} {
+	    UTF::Message LOG $STA "Excluded $c"
+	    continue
+	}
+	UTF::Try "Channel $c" {
+	    if {[catch {$STA wl scan -c $c} ret]} {
+		if {[regexp {Not up} $ret]} {
+		    # must have crashed
+		    $STA wl band auto
+		    $STA wl country ALL
+		    $STA wl up
+		    $STA wl scan -c $c
+		} elseif {[regexp {Not Ready} $ret]} {
+		    UTF::Sleep 2
+		    $STA wl scan -c $c
+		} else {
+		    error $ret
+		}
+	    }
+	    UTF::Sleep 0.4
+	}
+    }
+}

@@ -1,0 +1,2 @@
+. setdev
+echo "ttcp -r" > $DEV

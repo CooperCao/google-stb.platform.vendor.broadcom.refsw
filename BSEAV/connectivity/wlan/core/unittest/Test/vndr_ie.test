@@ -1,0 +1,80 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# vndr_ie test
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+
+package provide UTF::Test::vndr_ie 2.0
+
+UTF::Test vndr_ie {AP STA} {
+
+    variable vndr_ie::caught 0
+    variable vndr_ie::beacon 0
+
+    if {[catch {$STA ping $AP}]} {
+	if {[set p [$AP cget -perfchans]] ne ""} {
+	    set c [lindex $p 0]
+	} elseif {[$AP band] eq "a"} {
+	    set c 36
+	} else {
+	    set c 3
+	}
+	ConnectAPSTA $AP $STA -chanspec $c -security open
+    }
+
+    UTF::Try "$AP: Add IE" {
+	set msga [$STA cget -msgactions]
+	set newmsga [lreplace $msga -1 -2 \
+			 {rxpkt \(beacon\)} {
+			     incr UTF::Test::vndr_ie::beacon
+			     return 0
+			 } \
+			 {00904C00112233445566778899} \
+			 [subst {
+                             UTF::Message PASS \$name \$msg
+                             incr UTF::Test::vndr_ie::caught
+                             if {\$UTF::Test::vndr_ie::caught == 1} {
+				 $STA wl msglevel -prpkt
+			     }
+                             return 1
+			 }]]
+
+	$STA configure -msgactions $newmsga
+	$AP wl add_ie 1 13 00:90:4C 00112233445566778899
+	if {![regexp {00 11 22 33 44 55 66 77 88 99} [$AP wl list_ie]]} {
+	    throw FAIL "IP not present"
+	}
+    }
+
+    UTF::Try "$AP: Del IE" {
+	$STA wl msglevel +prpkt
+	UTF::Sleep 0.03
+	$STA wl msglevel -prpkt
+	$AP wl del_ie 1 13 00:90:4C 00112233445566778899
+	if {[regexp {00 11 22 33 44 55 66 77 88 99} [$AP wl list_ie]]} {
+	    throw FAIL "IE not removed"
+	}
+    }
+
+    UTF::Try "$AP: Check Beacons" {
+	if {!$beacon} {
+	    UTF::Sleep 4
+	    if {!$beacon} {
+		throw FAIL "prkt no beacons reported"
+	    } else {
+		throw FAIL "prkt very slow"
+	    }
+	}
+	if {!$caught} {
+	    throw FAIL "IE not detected in beacons"
+	}
+    }
+
+    $STA configure -msgactions $msga
+}

@@ -1,0 +1,127 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for testing Channel regulations per country
+#
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+
+UTF::Test RegChannels {STA args} {
+    UTF::Getopts {
+	{apple "Use Apple CC list"}
+	{csv.arg "" "Save report in named csv file"}
+    }
+
+    if {$(csv) ne ""} {
+	set CSV [open $(csv) w]
+    }
+
+    if {$(apple)} {
+	set cc_list {
+	    # Worldwide FCC
+	    X0 US CA MX PA SV CO PR BR CL CR EC VE PE AR
+	    # Japan
+	    JP
+	    # Worldwide ETSI
+	    X3 AT BE CZ CY DK EE FI FR DE GR HU IT IE LV LT LU MT
+	    NL PL PT SK SI ES SE GB IS LI NO CH BG HR ZA TR IL RO SA
+	    # APAC
+	    X1 AU HK NZ SG PH IN MY VN BN MV
+	    # RoW
+	    X2 CN TW AE RU TH PK LK NP BD ID
+	    # Korea
+	    KR
+	}
+	UTF::decomment cc_list
+    } else {
+	# fetch country list
+	foreach l [split [$STA wl country list] \n] {
+	    # Skip header
+	    if {![regexp {^Supported|^ALL} $l]} {
+		lappend cc_list [lindex $l 0]
+	    }
+	}
+    }
+    # Save current country code
+    set save_cc [lindex [$STA wl country] 0]
+
+    # Make sure STA is down, otherwise country changing in the middle
+    # of a scan could cause asserts.
+    $STA wl down
+
+    try {
+
+	foreach cc $cc_list {
+
+	    $STA wl country $cc
+	    foreach i [split [$STA wl -silent chan_info] \n] {
+		if {![regexp {Channel\s+(\d+)} $i - c]} {
+		    error "Bad chan_info line: $i"
+		}
+		# Record global channel list
+		set channels($c) 1
+		set type ""
+
+# Channels 52 - 140 are RADAR channels, irrespective of country, so no
+# need to report it
+#		if {[regexp {Sensitive} $i]} {
+#		    append type "S"
+#		}
+
+
+# Customer doesn't distinguish between Restricted and Passive
+#		if {[regexp {Restricted} $i]} {
+#		    append type "R"
+#		}
+
+		if {[regexp {Passive} $i]} {
+		    append type "P"
+		}
+		# If nothing is set it is active.
+		if {$type eq ""} {
+		    set type "A"
+		}
+
+		set chan_info($cc,$c) $type
+	    }
+	    #break
+	}
+    } finally {
+	$STA wl country $save_cc
+    }
+
+    set chans [lsort -integer [array names channels]]
+    set line "  "
+    foreach c $chans {
+	append line ",$c"
+    }
+
+    UTF::Message INFO $STA $line
+    if {$(csv) ne ""} {
+	puts $CSV $line
+    }
+
+    foreach cc $cc_list {
+	set line "$cc"
+	foreach c $chans {
+	    if {[info exists chan_info($cc,$c)]} {
+		set type $chan_info($cc,$c)
+	    } else {
+		set type " "
+	    }
+	    append line [format ",%[string length $c]s" $type]
+	}
+	UTF::Message INFO $STA $line
+	if {$(csv) ne ""} {
+	    puts $CSV $line
+	}
+    }
+
+    if {$(csv) ne ""} {
+	close $CSV
+    }
+
+}

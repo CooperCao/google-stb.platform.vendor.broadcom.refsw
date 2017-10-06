@@ -1,0 +1,354 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script for out-of-order frame
+#
+# Written by: Steve Liang Dec 10, 2010
+#
+# $Copyright Broadcom Corporation$
+#
+# Run example:
+# Test/OutofOrderFrame.test -utfconf utfconf/mc21_RAPTOR.tcl -ap AP1-4322-4717 -sta STA-Linux-4325sdio
+
+package require UTF
+package require UTF::utils
+package require UTF::WinBT
+package require UTF::Streams
+package require UTF::Aeroflex
+package require UTF::Test::ConnectBTdevices
+package require UTF::Test::ThruputBT
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+
+UTF::Test OutofOrderFrame {args} {
+    UTF::Getopts {
+        {ap.arg "4704/4318" "AP name"}
+        {sta.arg "STA-Linux-4325sdio" "sta name"}
+        {trx.arg "" "AP trx"}
+        {nosetup "No Setup"}
+        {count.arg 1 "Number of Loops to Try"}
+        {attenuator.arg 172.2.1.32 "Attenuator to Use"}
+        {attenstart.arg 0 "Starting Attenuator Value to Use"}
+        {statag.arg "" "STA release tag"}
+        {tag.arg "" "AP release tag"}
+        {bin.arg "" "STA dongle image"}
+        {date.arg "" "Image date"}
+        {email.arg "" "stliang@broadcom.com"}
+        {noperf "No Performance tests"}
+        {noperf20 "Don't do 20MHz performance tests"}
+        {noperf40 "Don't do 40MHz performance tests"}
+        {noapload "Don't load images"}
+        {nostaload "Don't reload STA drivers"}
+        {nostareload "Don't even reload STA drivers"}
+        {branch.arg "auto" "Branch override"}
+        {logdir.arg "" "Log directory override"}
+        {nocache "Don't update performance cache"}
+        {title.arg "" "Title"}
+        {branch.arg "auto" "Branch override"}
+        {perfonly "Only run subset of performance tests"}
+        {chanspec.arg "" "Chanspec to use for all fixed-channel tests"}
+    }
+
+    # If necessary, override the config file log directory setting.
+    if {$(logdir) != ""} {
+        set UTF::SummaryDir $(logdir)
+        UTF::Message INFO "" "Using logdir: $UTF::SummaryDir"
+    }
+
+    if {$(nocache)} {
+        set ::UTF::ControlChart::readonly 1
+        set ::UTF::MemChart::readonly 1
+    }
+
+    set AP  $(ap)
+    set STA [lindex $(sta) 0]
+
+    # Override default tags
+    if {$(trx) ne ""} {
+        $AP configure -image $(trx) -date {}
+    } elseif {$(tag) ne ""} {
+        $AP configure -tag $(tag) -date {}
+    }
+    if {$(bin) ne ""} {
+        foreach STA $(sta) {
+            $STA configure -image $(bin) -date {}
+        }
+    }
+    if {$(statag) ne ""} {
+        foreach STA $(sta) {
+            $STA configure -tag $(statag) -date {}
+        }
+    }
+
+    if {$(date) ne ""} {
+        set date $(date)
+        foreach S $(sta) {
+            $S configure -date $(date)
+        }
+        unset S
+    } else {
+        set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+        # Clean up whitespace (RH9 compat)
+        regsub -all {\s+} $date {} date
+    }
+
+    if {$(perfonly)} {
+        # Enable perfonly on all STAs
+        foreach S $(sta) {
+            $S configure -perfonly 1
+        }
+    }
+
+    # Compact build list for title
+    set build [UTF::BuildTitle $(sta)]
+
+    if {$(title) eq ""} {
+        if {[$STA hostis WinDHD Cygwin]} {
+            set (title) [$STA host whatami]
+        } elseif {[$STA hostis LMAC DHD]} {
+            set (title) "Linux Dongle"
+        } else {
+            set (title) [$STA hostis]
+        }
+
+        if {[regexp {(\d+sd)} $AP - c]} {
+            append (title) " with $c AP"
+        }
+    }
+    set TITLE "UTF $(title) ($build)"
+    UTF::Message INFO "" $TITLE
+
+    # $build is used in the title.  For private builds this will
+    # indicate special images.
+
+    # (branch) is used for comparison over time.  For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test.
+
+    if {$(branch) eq ""} {
+        if {[regexp {/} $build]} {
+            error "Unable to determine branch name from build.  Please specify -branch"
+        }
+        set (branch) $build
+    }
+    unset build
+
+    # Truncate build name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+
+
+    proc main {AP STA} {
+        # access option array
+        upvar {} {}
+        upvar date date
+
+        set phyname ""
+
+        if {$(branch) eq "auto"} {
+            # Base branch on STA's tag, truncated
+            regsub {_.*} [$STA cget -tag] {} branch
+            if {$branch eq "NIGHTLY"} {
+                set branch "TOT"
+            }
+        } else {
+            set branch $(branch)
+        }
+
+        # Find images
+        if {!$(nostaload)} {
+            UTF::Try "$STA Find STA Image" {
+                UTF::CheckImage $STA $date
+            }
+        }
+        if {!$(nosetup)} {
+            if {$(nostaload)} {
+                if {!$(nostareload)} {
+                    UTF::Try "$STA reload" {
+                        $STA reload
+                    }
+                }
+            } else {
+                UTF::Try "$STA load" {
+                    $STA load
+                    $::bt_dut load
+                    $::bt_ref load
+                }
+            }
+            UTF::Try "$STA defaults" {
+                $STA services stop
+                catch {$STA wl msglevel +error +assoc}
+                catch {$STA wl down}
+                # Enable 40 in 2.4, if available.
+                catch {$STA wl mimo_bw_cap 1}
+                $STA wl up
+                UTF::Sleep 1
+                $STA wl ver
+                $STA whatami
+            }
+
+            if {!$(nostaload) && [set reclaim [$STA reclaim]]} {
+                UTF::Try "$STA: Reclaim" {
+                    # MemChart
+                    memchart $reclaim -key [list $branch $STA reclaim] \
+                        -failonlow
+                }
+            }
+        }
+
+        set 40chan ""
+        if {$(chanspec) ne ""} {
+            # cmdline override
+            set 20chan $(chanspec)
+        } else {
+            # per device defaults
+            set 20chan [$STA cget -chanspec220]
+        }
+
+        if {[catch {
+            if {[regexp {36?l} [$AP wl chanspecs]] &&
+                [regexp {36?l} [$STA wl chanspecs]]} {
+                # 40 MHz channels are available
+                # check if we can use 5GHz band for 40MHz bw tests
+                set 40chan 3l
+                if {[catch {
+                    if {[lsearch [$AP wl bands] "a"] > -1 &&
+                        [lsearch [$STA wl bands] "a"] > -1} {
+                        set 40chan 36l
+                    }
+                } ret]} {
+                    UTF::Try "$STA: check for 5GHz band" {
+                        error $ret
+                    }
+                }
+            }
+        } ret]} {
+            if {![regexp {Unsupported} $ret]} {
+                # If any of these commands are unsupported it's a safe bet
+                # that 40MHz isn't available.
+                UTF::Try "$STA: check for 40MHz channels" {
+                    error $ret
+                }
+            }
+        }
+        if {$40chan eq ""} {
+            UTF::Message INFO "" "No 40MHz testing"
+        } else {
+            UTF::Message INFO "" "Using $40chan for 40MHz testing"
+        }
+
+
+        # Override performance channels (Needs work to avoid redundant
+        # code above)
+        set perfchans [$STA cget -perfchans]
+        if {$perfchans eq ""} {
+            if {$40chan ne "" && !$(noperf40)} {
+                lappend perfchans $40chan
+            }
+            if {!$(noperf20)} {
+                lappend perfchans $20chan
+            }
+        } else {
+            # if perfchans were set, use them for the home channel
+            set 20chan [lindex $perfchans 0]
+        }
+
+        # If performance tests are disabled, clean the channel list
+        if {$(noperf)} {
+            set perfchans ""
+        }
+
+        if {![$STA cget -apmode]} {
+            UTF::Try "$AP: Home Channel $20chan" {
+                APChanspec $AP $20chan
+            }
+        }
+
+        # Start test
+
+        # Open Security
+        catch {APConfigureSecurity  $AP -security open}
+
+        # Loop here
+        for {set i 1} {$i <= $(count)} {incr i} {
+            UTF::Try "$STA: Out-of-Order Frame Test" {
+
+                # Disable IV Trace on STA
+                catch {$STA wl brcmapivtwo 0} IVTrace
+
+                # Connect AP and STA
+                catch {ConnectAPSTA $AP $STA -security aespsk2} connect
+
+                # dump rssi and status
+                catch {$STA wl rssi} rssi
+                catch {$STA wl status} status
+
+                # Record wl counters output to log
+                catch {$STA wl counters} wlcounters
+
+                set BEStrm [::UTF::stream create BE -traffictype BESTEFFORT -protocol udp \
+                -advancedstats off -transmitsta lan0 -receivesta $STA -rate 10M]
+
+                BE start
+                BE stats -clear
+
+                ConnectBTdevices  $::bt_dut $::bt_ref -type SCO -sco_routing TRANSPORT -sco_input_coding Linear -sco_input_data_format {2\'s_complement} -sco_air_coding_format CVSD -sco_sample_size 16-bit -sco_linear_pcm_bit_pos 0 -sco_retransmit_effort 0 -sco_max_latency 0xFFFF -link_policy 4 -sniff_policy 2
+
+                set testOutPut [BE stats -outoforder]
+                BE stop
+
+                # Record wl counters output to log
+                catch {$STA wl counters} wlcounters
+
+                set oooStats [split $testOutPut " "]
+                foreach oooStat $oooStats {
+                   if {$oooStat > 0} {
+                       break
+                   }
+                }
+
+                UTF::Message LOG "$STA" "Iperf server out-of-order stat: $testOutPut"
+
+                # Disassoc
+                catch {$STA wl disassoc}
+
+                # wl down
+                catch {$STA wl down}
+
+                UTF::streamgraph rategraph -title "Rate Stats" -stat "rate" -streams $BEStrm
+                UTF::streamgraph outofordergraph -title "Out-of-Order Frame Stats" -stat "outoforder" -streams $BEStrm
+                set returnval "[outofordergraph plot] [string range [rategraph plot] 5 end]"
+                outofordergraph destroy
+                rategraph destroy
+
+                BE destroy
+
+                if {$oooStat > 0} {
+                   error $returnval
+                }
+                return $returnval
+            }
+        }
+    }
+
+    UTF::WrapSummary $UTF::SummaryDir "Out of Order Frame Test" "" "$(email)" {
+
+        # Ensure Attenuation is set to attenstart
+        UTF::Message LOG "" "Setting attenuator to $(attenstart)"
+        if {[catch {ALL attn $(attenstart)} temp]} {
+            UTF::Message WARN "" "Setting attenuator failed: $temp"
+        }
+
+
+        foreach STA $(sta) {
+            if {[catch {main $(ap) $STA} ret]} {
+                UTF::Try "main loop" {
+                    error $ret
+                }
+            }
+        }
+
+    }
+}

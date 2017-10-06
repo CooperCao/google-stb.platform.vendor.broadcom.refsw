@@ -1,0 +1,23 @@
+#job-ID  prior   name       user         state submit/start at     queue                          #file created on 10 nov 2013
+MAILTO=bkushik@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58      7,19,23 * * *   /home/bkushik/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+10   13      * * *     unittest/cron/launch blr02 Test/P2PQoSNightly.test -utfconf blr02 -title "BLR02 4349 a2 PCIe 9_10_TOB FC15 TCP bi-dir VSDB Long Test APCh=36 P2PCh=36/80" -ap '4360softap' -sta_gc 4349A2-FC15-DUT -sta_go 4349A2-FC15-GO -nos -nod -run_qos -qos_tests "[P2P:TCP:BI:0:300]" -p2p_chan 36/80 -rsdb_mode 0 -noapload -ap_chan 36 -email hnd-utf-list
+
+20   18      * * *     unittest/cron/launch blr02 Test/P2PQoSNightly.test -utfconf blr02 -title "BLR02 4349 a2 PCIe 9_10_TOB FC15 TCP bi-dir Long VSDB Test APCh=36 P2PCh=36l" -ap '4360softap' -sta_gc 4349A2-FC15-DUT -sta_go 4349A2-FC15-GO -nos -nod -run_qos -qos_tests "[P2P:TCP:BI:0:300]" -p2p_chan 36l -rsdb_mode 0 -noapload -ap_chan 36 -email hnd-utf-list
+
+40   18      * * *     unittest/cron/launch blr02 Test/P2PQoSNightly.test -utfconf blr02 -title "BLR02 4349 a2 PCIe 9_10_TOB FC15 TCP bi-dir VSDB Long Test APCh=36 P2PCh=3" -ap '4360softap' -sta_gc 4349A2-FC15-DUT -sta_go 4349A2-FC15-GO -nos -nod -run_qos -qos_tests "[P2P:TCP:BI:0:300]" -p2p_chan 3 -rsdb_mode 0 -noapload -ap_chan 36 -email hnd-utf-list 
+
+59   18      * * *     unittest/cron/launch blr02 Test/P2PQoSNightly.test -utfconf blr02 -title "BLR02 4349 a2 PCIe 9_10_TOB FC15 TCP bi-dir VSDB Long Test APCh=36 P2PCh=36l" -ap '4360softap' -sta_gc 4349A2-FC15-DUT -sta_go 4349A2-FC15-GO -nos -nod -run_qos -qos_tests "[P2P:TCP:BI:0:300]" -p2p_chan 36/80 -rsdb_mode 0 -noapload -ap_chan 3 -email hnd-utf-list
+
+15   19      * * *     unittest/cron/launch blr02 Test/P2PQoSNightly.test -utfconf blr02 -title "BLR02 4349 a2 PCIe 9_10_TOB FC15 TCP bi-dir VSDB Long Test APCh=36 P2PCh=36/80" -ap '4360softap' -sta_gc 4349A2-FC15-DUT -sta_go 4349A2-FC15-GO -nos -nod -run_qos -qos_tests "[WLAN:TCP:BI:0:300][P2P:TCP:BI:0:300]" -p2p_chan 36/80 -rsdb_mode 0 -noapload -ap_chan 36 -email hnd-utf-list
+
+30   19      * * *     unittest/cron/launch blr02 Test/P2PQoSNightly.test -utfconf blr02 -title "BLR02 4349 a2 PCIe 9_10_TOB FC15 TCP bi-dir VSDB Long Test APCh=36 P2PCh=36l" -ap '4360softap' -sta_gc 4349A2-FC15-DUT -sta_go 4349A2-FC15-GO -nos -nod -run_qos -qos_tests "[WLAN:TCP:BI:0:300][P2P:TCP:BI:0:300]" -p2p_chan 36l -rsdb_mode 0 -noapload -ap_chan 36 -email hnd-utf-list
+
+45   19      * * *     unittest/cron/launch blr02 Test/P2PQoSNightly.test -utfconf blr02 -title "BLR02 4349 a2 PCIe 9_10_TOB FC15 TCP bi-dir VSDB Long Test APCh=36 P2PCh=3" -ap '4360softap' -sta_gc 4349A2-FC15-DUT -sta_go 4349A2-FC15-GO -nos -nod -run_qos -qos_tests "[WLAN:TCP:BI:0:300][P2P:TCP:BI:0:300]" -p2p_chan 3 -rsdb_mode 0 -noapload -ap_chan 36 -email hnd-utf-list

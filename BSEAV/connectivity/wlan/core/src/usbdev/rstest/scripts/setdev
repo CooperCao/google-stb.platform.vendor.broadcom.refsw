@@ -1,0 +1,8 @@
+if [ -e /dev/rst0 ]; then
+	DEV=/dev/rst0
+elif [ -e /dev/usb/rstest ]; then
+	DEV=/dev/usb/rstest
+else
+	echo >&2 "Device not found"
+	exit 1
+fi

@@ -1,0 +1,33 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Test to verify that removing the last virtual interface does not
+# remove the physical interface
+#
+# $Id$
+#
+#
+# Usage: PhysRemove PAP VAP STA
+#
+# PAP is a physical interface
+# VAP is a virtual interface using the same Phycical interface
+# STA is a station to scan from
+
+package require UTF
+package require UTF::Test::Mbss::APAddInterface
+package require UTF::Test::Mbss::APRemoveInterface
+package require UTF::Test::Scan
+
+UTF::Test Mbss::PhysRemove {PAP VAP STA} {
+
+    $PAP restore_defaults
+
+    APAddInterface $VAP
+
+    UTF::Test::Scan $PAP $STA
+
+    APRemoveInterface $VAP
+
+    UTF::Test::Scan $PAP $STA
+
+}

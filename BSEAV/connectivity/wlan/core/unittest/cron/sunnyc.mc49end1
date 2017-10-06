@@ -1,0 +1,168 @@
+#
+MAILTO=sunnyc@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58      7,19,23 * * *   /home/sunnyc/src/tools/unittest/cron/update
+
+# Morning tests - high priority items carefully timed for specific build completion
+# TOT Router is last build to arrive, often 2AM or later
+#47 19 * * * src/tools/unittest/cron/launch Sanity utfconf/mc49 Test/Sanity.test -rtrtag NIGHTLY -statag NIGHTLY -email hnd-utf-list -title "'mc49 43236USB F15 43526USB F15 43242USB F15'" -conn0 "'4360_1 43236p2pbmac 43526p2pbmac'" -norvr -nocompat -noqtp -useobjectsasis -rtrdate \"\*\" -stadate \"\*\" 
+
+##49 20 * * * src/tools/unittest/cron/launch Sanity utfconf/mc49 Test/Sanity.test -rtrtag NIGHTLY -statag NIGHTLY -email hnd-utf-list -title "'mc49 43236USB F15 43526USB F15 43242USB F15'" -conn0 "'4360_1 43236p2pbmac 43526p2pbmac 43242p2pbmac'" -norvr -nocompat -noqtp -useobjectsasis -rtrdate \"\*\" -stadate \"\*\"
+
+
+# TOB
+#49 19 * * * src/tools/unittest/cron/launch Sanity2 utfconf/mc49 Test/Sanity.test -email hnd-utf-list -title "'mc49 43236USB BMAC F15 43526USB BMAC F15 43242USB BMAC F15'" -conn0 "'4360_1 43236p2pbmac 43526p2pbmac 43242bmac'" -norvr -nocompat -noqtp -useobjectsasis -rtrdate \"\*\" -stadate \"\*\"
+
+##49 21 * * * src/tools/unittest/cron/launch Sanity2 utfconf/mc49 Test/Sanity.test -email hnd-utf-list -title "'mc49 43236USB BMAC F15 43526USB BMAC F15 43242USB BMAC F15'" -conn0 "'4360_1 43236p2pbmac 43526p2pbmac 43242p2pbmac'" -norvr -nocompat -noqtp -useobjectsasis -rtrdate \"\*\" -stadate \"\*\"
+
+# UDP 43526 test
+##49 22 * * * src/tools/unittest/cron/launch UDP_EXPLORE utfconf/mc49 Test/udp_explore.test -utfconf /home/sunnyc/src/tools/unittest/utfconf/mc49.tcl 4360_1 43526p2pbmac -email hnd-utf-list -reloadap -reloadsta -rtrdate \"\*\" -stadate \"\*\"
+
+# TOB P2P 43242 BMAC dongle, first as GO, then as GC
+#49 22 * * * src/tools/unittest/cron/launch P2P_43242bmac_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43224_6p2p -go_wlan 43242p2pbmac -apconnect GO -title "P2P GO 43242USB BMAC F15" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15
+
+#59 22 * * * src/tools/unittest/cron/launch P2P_43242 utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43242p2pbmac -go_wlan 43224_6p2p -apconnect GC -title "'mc49 P2P GC 43242USB BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15
+
+# TOB P2P 43526 BMAC dongle, first as GC, then as GO, TOT
+#49 23 * * * src/tools/unittest/cron/launch P2P_43526_bmac_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -go_p2p 43526p2pbmac_nightly -gc_p2p 43224_6p2p -gc_wlan 43224_6p2p -go_wlan 43526p2pbmac_nightly -apconnect GO -title "'mc49 P2P GO TOT 43526USB BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+#59 23 * * * src/tools/unittest/cron/launch P2P_43526 utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_p2p 43526p2pbmac_nightly -go_p2p 43224_6p2p -gc_wlan 43526p2pbmac_nightly -go_wlan 43224_6p2p -apconnect GC -title "'mc49 P2P GC TOT 43526USB BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+# TOT P2P 43526 BMAC dongle, first as GC, then as GO, TOB
+#00 00 * * * src/tools/unittest/cron/launch P2P_43526_bmac_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -go_p2p 43526p2pbmac -gc_p2p 43224_6p2p -gc_wlan 43224_6p2p -go_wlan 43526p2pbmac -apconnect GO -title "'mc49 P2P GO TOB 43526USB BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+#01 00 * * * src/tools/unittest/cron/launch P2P_43526 utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_p2p 43526p2pbmac -go_p2p 43224_6p2p -gc_wlan 43526p2pbmac -go_wlan 43224_6p2p -apconnect GC -title "'mc49 P2P GC TOB 43526USB BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+
+# TOB P2P 43242 FULL dongle, first as GO, then as GC
+#00 00 * * * src/tools/unittest/cron/launch 43242_go_full_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43224_6p2p -go_wlan 43242full -apconnect GO -title "'mc49 P2P GO 43242USB FULL F15'" -email hnd-utf-list -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only 
+
+#39 23 * * * src/tools/unittest/cron/launch 43242_gc_full_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43242full -go_wlan 43224_6p2p -apconnect GC -title \"mc49 P2P GC 43242USB FULL F15\" -email hnd-utf-list -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only 
+
+# 43242 & 43224 TDLS ----
+#49 02 * * * src/tools/unittest/cron/launch 43242_43224_TDLS utfconf/mc49 Test/Sanity.test -email hnd-utf-list -title \"mc49 43242USB 43224NIC TDLS F15\" -conn0 \"4360_1 43242p2pbmac 43224_6tdls\" -nocompat -norvr -noqtp -tdls -sta1tag AARDVARK_BRANCH_6_30 -dhdtag AARDVARK_BRANCH_6_30 -rtrdate \"\*\" -stadate \"\*\"
+  
+# 43242 TOB RvR
+#49 02 * * * src/tools/unittest/cron/launch 43242p2pbmac_RvR utfconf/mc49 Test/RvRNightly1.test -sta 43242p2pbmac -ap 4360_1 -va Aflex -nochannels -norestore -nosniffer -nocontrvr -attnstep 1 -cycle5G40AttnRange "'20-70 70-20'" -cycle2G40AttnRange "'20-70 70-20'" -title "'mc49 RvR 43242bmac BISON TOB'" -no5G20 -no2G20 -noapload -nounload -norestore -nosetup -fb1
+
+# 43526 & 43224 TDLS
+##49 03 * * * src/tools/unittest/cron/launch 43526_43224_TDLS utfconf/mc49 Test/Sanity.test -email hnd-utf-list -title \"mc49 43526USB 43224NIC TDLS F15\" -conn0 \"4360_1 43526p2pbmac 43224_2tdls\" -nocompat -norvr -noqtp -tdls -useobjectsasis -rtrdate \"\*\" -stadate \"\*\"
+
+# 43242 TWIG Sanity
+##29 04 * * * src/tools/unittest/cron/launch 43242 utfconf/mc49 Test/Sanity.test -email hnd-utf-list -title \"mc49 43242USB FC15 Sanity\" -conn0 \"4360_1 43242p2pbmac\" -nocompat -norvr -noqtp -tdls -rtrdate \"\*\" -stadate \"\*\"
+
+# 43242 BISON TOB RvR 
+#47 21 * * * src/tools/unittest/cron/launch 43242p2pbmac_RvR utfconf/mc49 Test/RvRNightly1.test -sta 43242p2pbmac -ap 4360_1 -va Aflex -nochannels -norestore -nosniffer -nocontrvr -attnstep 1 -cycle5G40AttnRange "'0-70 70-0'" -cycle2G40AttnRange "'0-70 70-0'" -title "'mc49 RvR 43242bmac BISON TOB'"
+
+# TWIG P2P 43242 BMAC dongle, first as GO, then as GC
+##49 04 * * * src/tools/unittest/cron/launch P2P_43242bmac_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43224_6p2p -go_wlan 43242p2pbmac -apconnect GO -title "mc49 P2P REL GO 43242USB BMAC F15" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -rtrdate \"\*\" -stadate \"\*\"
+
+##59 04 * * * src/tools/unittest/cron/launch P2P_43242 utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43242p2pbmac -go_wlan 43224_6p2p -apconnect GC -title "'mc49 P2P REL GC 43242USB BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -rtrdate \"\*\" -stadate \"\*\"
+
+# TOB 43237 FULL 
+#44 20 * * * /home/sunnyc/src/tools/unittest/cron/launch mc49 /home/sunnyc/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"43237SDIO FULL F9\" -conn0 \"4360_1 43237f9\" -norvr -nocompat -noqtp -rtrdate \"\*\" -stadate \"\*\"
+
+
+# Morning tests - best effort items after above high priority items are done
+# 43242USB FULL
+#49 04 * * * src/tools/unittest/cron/launch 43242USB_FULL utfconf/mc49 Test/Sanity.test -email hnd-utf-list -title \"mc49 43242USB FULL F15\" -conn0 \"4360_1 43242full\" -norvr -nocompat -noqtp -rtrdate \"\*\" -stadate \"\*\" 
+
+# 15 minute test on 43526USB
+#49 05 * * * src/tools/unittest/cron/launch 43526USB utfconf/mc49 Test/Sanity.test -15min -conn0 \"4360_1 43526p2pbmac\" -title \"mc49 15-minute stress tests 43526USB F15\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -norvr -nocompat -noqtp   -useobjectsasis
+
+
+# Evening tests - use builds from earlier in the day
+# preserved build tests
+#00 18 * * * /home/sunnyc/src/tools/unittest/cron/launch mc49 /home/sunnyc/src/tools/unittest/Test/preserved.test -email hnd-utf-list -noaptest -n
+
+# RvR 4360fc15
+#49 20 * * * src/tools/unittest/cron/launch 4360_RvR utfconf/mc49 Test/RvRNightly1.test -sta 4360f15 -ap 4360_1 -va Aflex -nochannels -norestore -nosniffer -nocontrvr -attnstep 1 -cycle5G40AttnRange "'20-70 70-20'" -cycle2G40AttnRange "'20-70 70-20'" -title "'mc49 RvR 4360 BISON TOB'" -no5G20 -no2G20 -noapload -nounload -norestore -nosetup -fb1
+
+###### 43526private test
+#30 21 * * *   src/tools/unittest/cron/launch 43526 utfconf/mc49 Test/StaNightly.test -sta "43526private_nightly" -ap "4360_1" -loop 1 -title "'MC49 43526 private StaNightly'"
+
+######
+
+# RvR 43526USB TOB
+#48 21 * * * src/tools/unittest/cron/launch 43526_RvR utfconf/mc49 Test/RvRNightly1.test -sta 43526p2pbmac -ap 4360_1 -va Aflex -nochannels -norestore -nosniffer -nocontrvr -attnstep 1 -cycle5G40AttnRange "'20-70 70-20'" -cycle2G40AttnRange "'20-90 90-20'" -title "'mc49 RvR 43526 BISON TOB'" -no5G20 -no2G20 -noapload -nounload -norestore -nosetup -fb1
+
+# RvR 43526USB TOT
+#49 21 * * * src/tools/unittest/cron/launch 43526_RvR utfconf/mc49 Test/RvRNightly1.test -sta 43526p2pbmac_nightly -ap 4360_1 -va Aflex -nochannels -norestore -nosniffer -nocontrvr -attnstep 1 -cycle5G40AttnRange "'20-70 70-20'" -cycle2G40AttnRange "'20-90 90-20'" -title "'mc49 RvR 43526 TOT'" -no5G20 -no2G20 -noapload -nounload -norestore -nosetup -fb1
+
+# RvR 43242USB BMAC ----
+#49 07 * * * /home/sunnyc/src/tools/unittest/cron/launch 43242USB_RvR utfconf/mc49 Test/Sanity.test -rtrdate \"\*\" -email hnd-utf-list -title \"mc49 RvR 43242USB BMAC F15\" -conn0 \"4360_1 43242bmac\" -rtrdate \"\*\" -stadate \"\*\" -noembed -nomimo -nocompat -noqtp -nocontrvr -no2G40rvr -no5G20rvr -nosniffer  -nosetup -noping -noperf
+
+# 15 minute test on 43237SDIO AP
+#04 18 * * * /home/sunnyc/src/tools/unittest/cron/launch mc49 /home/sunnyc/src/tools/unittest/Test/Sanity.test -15min -conn0 \"43237ap sniffstbc\" -title \"mc49 15-minute stress tests 43237SDIO AP F9\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -norvr -nocompat -noqtp
+
+# RvR 43237SDIO AP UDP
+# Use sniffer to avoid iperf -S 0xhhhh issue on WinXP
+#05 18 * * * /home/sunnyc/src/tools/unittest/cron/launch mc49 /home/sunnyc/src/tools/unittest/Test/Sanity.test -conn0 \"43237ap sniffstbc\" -title \"RvR 43237SDIO AP UDP F9\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -nomimo -noembed -nocompat -noqtp -nocontrvr -no2G20rvr -no2G40rvr -no5G20rvr -nosniffer -nosetup -noping -noperf -fastrampup -attngrp G3 -udp 25 -udpopt \"-S 0xA0\" -titleap 
+
+# RvR 43242USB FULL F15 TCP
+#07 18 * * * /home/sunnyc/src/tools/unittest/cron/launch mc49 /home/sunnyc/src/tools/unittest/Test/Sanity.test -rtrdate \"\*\" -email hnd-utf-list -title \"RvR 43242USB FULL F15\" -conn0 \"4360_1 43242full\" -rtrdate \"\*\" -stadate \"\*\" -noembed -nomimo -nocompat -noqtp -nocontrvr -no2G40rvr -no5G20rvr -nosniffer -nosetup -noping -noperf -useobjectsasis
+
+# RvR 43526 F15 Interference 
+#09 18 * * * /home/sunnyc/src/tools/unittest/cron/launch mc49 /home/sunnyc/src/tools/unittest/Test/RvRNightly1.test -email hnd-utf-list -title \"RvR 43526USB F15 + Interference ACIM on\"  -ap 4360_1 -sta 43526p2pbmac -nosniffer -intsta 43224_6 -attngrp G3 -intattn2G20 \"ALL 0\" -intattn2G40 \"ALL 0\" -intattn5G20 \"ALL 0\" -intattn5G40 \"ALL 0\" -cycle2G20AttnRange \"25-0\" -cycle2G40AttnRange \"25-0\" -cycle5G20AttnRange \"25-0\" -cycle5G40AttnRange \"25-0\" -downstreamonly -nounload -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30
+
+# TOB P2P 43236 BMAC dongle, first as GO, then as GC
+#49 18 * * * src/tools/unittest/cron/launch 43236_go_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43224_6p2p -go_wlan 43236p2pbmac -apconnect GO -title "'mc49 P2P GO 43236USB F15'" -email hnd-utf-list -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15
+
+#59 18 * * * src/tools/unittest/cron/launch 43236_gc_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43236p2pbmac -go_wlan 43224_6p2p -apconnect GC -title \"mc49 P2P GC 43236USB F15\" -email hnd-utf-list -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15
+
+# RvR 43236USB
+#49 00 * * * src/tools/unittest/cron/launch 43236p2pbmac_RvR utfconf/mc49 Test/RvRNightly1.test -sta 43236p2pbmac -ap 4360_1 -va Aflex -nochannels -norestore -nosniffer -nocontrvr -attnstep 1 -cycle5G40AttnRange "'0-70 70-0'" -cycle2G40AttnRange "'0-70 70-0'" -title "'mc49 RvR 43236bmac BISON TOB'"
+
+#cron/launch 43236USB_RvR utfconf/mc49 Test/Sanity.test -email hnd-utf-list -title \"mc49 RvR 43236USB BMAC F15\" -conn0 \"4360_1 43236p2pbmac\" -noembed -nomimo -nocompat -noqtp -nocontrvr -nosniffer -nosetup -noping -noperf -useobjectsasis
+
+# Nightly run on BISON TOB
+#49     19      * * *   src/tools/unittest/cron/launch 4360_43526 utfconf/mc49 Test/StaNightly.test -sta "'4360f15 43526p2pbmac'" -ap "4360_1" -loop 1 -title "'MC49 4360 43526 BISON TOB Nightly'" -noapload -nounload -norestore -nosetup
+
+# Nightly run on NIGHTLY
+#59     19      * * *   src/tools/unittest/cron/launch 43526_4360 utfconf/mc49 Test/StaNightly.test -sta "'4360f15_nightly 43526p2pbmac_nightly'" -ap "4360_1" -loop 1 -title "'MC49 4360 43526 TOT Nightly'" -noapload -nounload -norestore -nosetup
+
+# TOB P2P 43236_nightly BMAC dongle, first as GO, then as GC
+#49 21 * * * src/tools/unittest/cron/launch 43236_go_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43224_6p2p -go_wlan 43236p2pbmac_nightly -apconnect GO -title "'mc49 P2P GO 43236USB_nightly F15'" -email hnd-utf-list -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15
+
+#59 21 * * * src/tools/unittest/cron/launch 43236_gc_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43236p2pbmac_nightly -go_wlan 43224_6p2p -apconnect GC -title \"mc49 P2P GC 43236USB_nightly F15\" -email hnd-utf-list -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15
+
+
+# TOB P2P 4360, first as GO, then as GC
+#49 04 * * * src/tools/unittest/cron/launch 4360_go_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43224_6p2p -go_wlan 4360f15_p2p -apconnect GO -title "'mc49 P2P GO 4360 F15 BISON'" -email hnd-utf-list -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+#59 04 * * * src/tools/unittest/cron/launch 4360_gc_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 4360f15_p2p -go_wlan 43224_6p2p -apconnect GC -title \"mc49 P2P GC 4360 F15 BISON\" -email hnd-utf-list -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+
+# TOB P2P 43242 BMAC dongle, first as GO, then as GC
+#49 05 * * * src/tools/unittest/cron/launch P2P_43242bmac_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43224_6p2p -go_wlan 43242p2pbmac -apconnect GO -title "'MC49 TOB P2P GO 43242 BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+#59 05 * * * src/tools/unittest/cron/launch P2P_43242 utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43242p2pbmac -go_wlan 43224_6p2p -apconnect GC -title "'mc49 TOB P2P GC 43242 BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+
+# NIGHTLY P2P 43242 BMAC dongle, first as GO, then as GC
+#49 06 * * * src/tools/unittest/cron/launch P2P_43242bmac_dongle utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43224_6p2p -go_wlan 43242p2pbmac_nightly -apconnect GO -title "'MC49 NIGHTLY P2P GO 43242 BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+#59 06 * * * src/tools/unittest/cron/launch P2P_43242 utfconf/mc49 Test/P2PNightly1.test -ap 4360_1 -gc_wlan 43242p2pbmac_nightly -go_wlan 43224_6p2p -apconnect GC -title "'mc49 NIGHTLY P2P GC 43242 BMAC F15'" -email hnd-utf-list -p2pchan "'36l 36'" -apchan "'3l 3'" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa -fb1only -perftime 25 -perfsize 15 -noapload -nounload -norestore -nosetup
+
+# RvR TOB 43242USB
+#49 07 * * * src/tools/unittest/cron/launch 43242p2pbmac_RvR utfconf/mc49 Test/RvRNightly1.test -sta "43242p2pbmac" -ap 4360_1 -va Aflex -nochannels -norestore -nosniffer -nocontrvr -attnstep 1 -cycle5G40AttnRange "'0-70 70-0'" -cycle2G40AttnRange "'0-70 70-0'" -title "'mc49 RvR 43242'" -cycle5G20AttnRange "'0-70 70-0'" -cycle2G20AttnRange "'0-70 70-0'"
+
+# Nightly run BISON TOB 43242
+#49     08      * * *   src/tools/unittest/cron/launch 43242 utfconf/mc49 Test/StaNightly.test -sta "43242p2pbmac" -ap "4360_1" -loop 1 -title "'MC49 ap4360 43242 BISON TOB Nightly'" -noapload -nounload -norestore -nosetup
+
+# RvR 43242USB TOT
+#49 09 * * * src/tools/unittest/cron/launch 43242p2pbmac_RvR utfconf/mc49 Test/RvRNightly1.test -sta "43242p2pbmac_nightly" -ap "4360_1" -va Aflex -nochannels -norestore -nosniffer -nocontrvr -attnstep 1 -cycle5G40AttnRange "'20-70 70-20'" -cycle2G40AttnRange "'20-70 70-20'" -title "'mc49 RvR 43242bmac TOT'" -cycle5G20AttnRange "'0-70 70-0'" -cycle2G20AttnRange "'0-70 70-0'" -no5G20 -no2G20 -noapload -nounload -norestore -nosetup -fb1
+
+# Nightly run TOT 43242
+#49     10      * * *   src/tools/unittest/cron/launch 43242 utfconf/mc49 Test/StaNightly.test -sta "43242p2pbmac_nightly" -ap "4360_1" -loop 1 -title "'MC49 ap4360 43242 StaNightly'" -noapload -nounload -norestore -nosetup
+
+# RvR 43526USB TOB
+#50 10 * * * src/tools/unittest/cron/launch 43526_RvR utfconf/mc49 Test/RvRNightly1.test -sta 43526p2pbmac -ap 4360_1 -va Aflex -nochannels -norestore -nosniffer -nocontrvr -attnstep 1 -cycle5G40AttnRange "'20-70 70-20'" -cycle2G40AttnRange "'20-90 90-20'" -title "'mc49 RvR 43526 BISON TOB'" -no5G20 -no2G20 -noapload -nounload -norestore -nosetup -fb1
+
+# Nightly run TOT 43526
+#51     10      * * *   src/tools/unittest/cron/launch 43526 utfconf/mc49 Test/StaNightly.test -sta "43526p2pbmac_nightly" -ap "4360_1" -loop 1 -title "'MC49 ap4360 43526 TOT StaNightly'" -noapload -nounload -norestore -nosetup
+
+
+

@@ -1,0 +1,4 @@
+Example: to compile rserv for MIPS dongle:
+
+cd src/dongle/rte/wl
+gmake usb-mips-sb-run-noretail-ag-rsock-reclaim-noccx

@@ -1,0 +1,189 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Sample script showing how to create & update report table info.
+
+# $Id$
+# $Copyright Broadcom Corporation$
+
+
+# Define command line options string
+set table_header_getopts {
+    {ap.arg ""                 "AP name"}
+    {bin.arg ""                "STA image, usefull for private build testing"}
+    {email.arg ""              "Email Address, defaults to your email address"}
+    {noapload                  "Don't load images"}
+    {noinit                    "Use the testbed as is, no initialization"}
+    {nostaload                 "Don't load STA drivers"}
+    {rtrdate.arg ""            "Desired AP/Router build date, format: yyyy.mm.dd"}
+    {rtrtag.arg ""             "AP/Router release tag"}
+    {stas.arg ""               "STA name(s)"}
+    {stadate.arg ""            "Desired STA build date, format: yyyy.mm.dd"}
+    {statag.arg ""             "STA release tag"}
+    {title.arg ""              "Report title text"}
+    {trx.arg ""                "AP/Router trx image, usefull for private build testing"}
+}
+
+# Load packages
+package require UTF
+package require UTF::utils
+
+package provide UTF::Test::table_header 2.0
+
+#============== Common procs go here ================================
+
+#============== proc main_table_header ==============================
+# Proc main_rvr_nightly1 does all the STA loading and then runs tests.
+#
+# NB: proc is uniquely named to avoid conflict with other scripts
+# that have a proc main.
+#====================================================================
+proc main_table_header {AP STA} {
+    upvar {} {} ;# gives access to unamed array from getopts
+
+    # If developer STA image was specified, they take precedance over tag & date.
+    if {$(bin) != ""} {
+        $STA configure -image $(bin) -date {}
+    } elseif {$(statag) != ""} {
+        $STA configure -tag $(statag) -date {}
+    } elseif {$(stadate) != ""} {
+        $STA configure -date $(stadate)
+    }
+
+    # NB: There are other developer build files that can be loaded
+    # for selected objects. Look in RvRNightly1.test for stadhd & windhdbin
+
+    # Find STA image if necessary.
+    set id ""
+    if {!$(nostaload) && !$(noinit)} {
+        UTF::Try "$STA Find STA Image" {
+            set catch_resp [catch {$STA findimages} catch_msg]
+            $STA configure -image $catch_msg ;# needed to update title tag numbers
+            if {$catch_resp == 0} {
+                return $catch_msg
+            } else {
+                error $catch_msg
+            }
+        }
+
+        # Collect build info for this specific STA.
+        set id [UTF::get_build_id $catch_msg]
+        set notes [UTF::get_build_notes $catch_msg]
+        set status [UTF::get_build_status $catch_msg $catch_resp]
+
+        # Add a report summary table row for this specific STA.
+        # NB: Not all fields in the table row are populated yet.
+        set ::summaryinfo [UTF::update_report_add $::summaryinfo $STA $(bin) $(statag) $(stadate) $id $notes $status]
+    }
+
+    # Load the STA if requested.
+    if {!$(nostaload) && !$(noinit)} {
+        UTF::Try "$STA STA Load" {
+            # This routine understands remote power control and tries multiple times to load the STA.
+            UTF::load_sta_retry $STA
+        }
+
+        # Update the report header table with actual OS & hw versions.
+        set ::summaryinfo [UTF::update_report_hwinfo $::summaryinfo]
+
+        # Update report title with actual TAG numbers
+        UTF::update_report_title $STA
+    }
+
+    # Your test code goes here
+
+
+
+
+}
+
+
+#============== Main table_header test ===============================
+UTF::Test table_header {args} {
+
+    # Parse the command line options, put into unamed array ""
+    UTF::Getopts "$::table_header_getopts" ""
+
+    # Optional, use if you want testbed summary at end of report.
+    # If this script is nested inside another higher level script,
+    # setup_testbed_info may have already been run. 
+    if {![info exists ::endpoint_device_list]} {
+        UTF::Message INFO "" "running setup_testbed_info"
+        set ::UTF::trailer_info [UTF::setup_testbed_info $(email) ""]
+    }
+
+    # Create empty summary table. If there is a higher level calling script,
+    # UTF will keep the existing summary table & related object and ignore
+    # this script.
+    set ::summaryinfo [UTF::setup_report_table]
+    append ::summaryinfo "</table>"
+
+    set email_subject [UTF::setup_email_subject $(title)]
+    UTF::Message INFO "$::localhost" "email_subject=$email_subject"
+
+    # Main test report web page starts here.
+    UTF::WrapSummary $UTF::SummaryDir $email_subject $::summaryinfo $(email) {
+
+        set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+        # Add a web link to the test.log file
+        UTF::Try "Link to test.log" {
+            return "html: <a href=\"./test.log\">test.log</a>"
+        }
+
+        # If developer AP image was specified, they take precedance over tag & date.
+        if {$(trx) ne ""} {
+            $(ap) configure -image $(trx) -date {}
+        } elseif {$(rtrtag) != ""} {
+            $(ap) configure -tag $(rtrtag) -date {}
+        } elseif {$(rtrdate) != ""} {
+            $(ap) configure -date $(rtrdate)
+        }
+
+        # Load the AP if necessary
+        if {!$(noapload) && !$(noinit)} {
+            set catch_msg ""
+            UTF::Try "$(ap) Find AP Image" {
+                set catch_resp [catch {$(ap) findimages} catch_msg]
+                $(ap) configure -image $catch_msg ;# needed for updating title
+                if {$catch_resp == 0} {
+                    return $catch_msg
+                } else {
+                    error $catch_msg
+                }
+            }
+
+            # Collect build info for the AP.
+            set id [UTF::get_build_id $catch_msg]
+            set notes [UTF::get_build_notes $catch_msg]
+            set status [UTF::get_build_status $catch_msg $catch_resp]
+
+            # Add report summary table row for Router.
+            # NB: Not all fields in the table row are populated yet.
+            set ::summaryinfo [UTF::update_report_add $::summaryinfo $(ap) $(trx) $(rtrtag) $(rtrdate) $id $notes $status]
+
+            UTF::Try "$(ap) Load AP Image" {
+                # This routine understands remote power control and tries multiple times to load the AP.
+                UTF::load_rtr_retry $(ap)
+            }
+
+            # Update the report header table with actual OS & hw versions.
+            set ::summaryinfo [UTF::update_report_hwinfo $::summaryinfo]
+
+            # Update report title with actual TAG numbers
+            UTF::update_report_title $(ap)
+        }
+
+        # Test each STA in list.
+        foreach STA $(stas) {
+            # Call proc main_table_header for each STA
+     	    main_table_header $(ap) $STA
+        }
+
+        # Do optional post test analysis. The "" passes the unnamed options array.
+        UTF::do_post_test_analysis table_header.test ""
+
+        # Update the report header table with end test time.
+        set ::summaryinfo [UTF::update_report_testtime $::summaryinfo]
+    }
+}

@@ -1,0 +1,80 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+package require UTF::Streams
+
+UTF::Test Shaper {args} {
+    UTF::Getopts {
+	{ap.arg "" "AP under test"}
+	{sta.arg "" "STA(s) under test"}
+	{max.arg "800M" ""}
+	{min.arg "10M" ""}
+	{step.arg "10M"}
+	{hold.arg "2" ""}
+	{quantum.arg "10" "shaper quantum"}
+	{udp ""}
+    }
+    UTF::Try "Shaper setup" {
+	if {$(udp)} {
+	    set d [UTF::stream %AUTO% -tx $(ap) -rx $(sta) -rate 1000M -pktsize 1460 -shaperrate $(min) -quantum $(quantum)]
+	    set u [UTF::stream %AUTO% -tx $(sta) -rx $(ap) -rate 1000M -pktsize 1460 -shaperrate $(min) -quantum $(quantum)]
+	    return "UDP"
+	} else {
+	    set d [UTF::stream %AUTO% -tx $(ap) -rx $(sta) -protocol tcp -shaperrate $(min) -quantum $(quantum)]
+	    set u [UTF::stream %AUTO% -tx $(sta) -rx $(ap) -protocol tcp -shaperrate $(min) -quantum $(quantum)]
+	    return "TCP"
+	}
+    }
+    foreach s "$u $d" {
+	UTF::Try "Shaper [$s cget -tx]->[$s cget -rx]" {
+	    UTF::streamgraph g -graphsize 1024,768 -title "AP=$(ap) STA=$(sta) lan=[$(ap) lan]\\nshaper=$(min)-$(max) i=$(step) hold=$(hold)s"
+	    set min [UTF::kexpand $(min)]
+	    set max [UTF::kexpand $(max)]
+	    set step [UTF::kexpand $(step)]
+	    $s clear_shapers
+	    $s start
+	    UTF::Try "linkcheck" {
+		$s linkcheck -now
+	    }
+	    UTF::stream allstreams stats -clear
+	    for {set ix $min} {$ix < $max} {incr ix +$step} {
+		UTF::Sleep $(hold)
+		$s update_shaper_rate $ix
+	    }
+	    set p [g plot]
+	    g destroy
+	    $s stop
+	    return $p
+	}
+    }
+    UTF::Try "Shaper BiDir" {
+	UTF::streamgraph g -yticsynch 1 -graphsize 1024,768 -title "AP=$(ap) STA=$(sta) lan=[$(ap) lan]\\nshaper=$(min)-$(max) i=$(step) hold=$(hold)s"
+	set min [UTF::kexpand $(min)]
+	set max [UTF::kexpand $(max)]
+	set step [UTF::kexpand $(step)]
+	UTF::stream allstreams clear_shapers
+	UTF::stream allstreams start
+	UTF::Try "linkcheck" {
+	    UTF::stream allstreams linkcheck -now
+	}
+	UTF::stream allstreams stats -clear
+	set sumplot [UTF::StreamStatAggregate %AUTO% -period "0.55" -stat "rate" -linetype 3 -range 1]
+	for {set ix $min} {$ix < [expr {int($max * 0.75)}]} {incr ix +$step} {
+	    UTF::Sleep $(hold)
+	    # randomize the shaper config a bit
+	    if {[expr {int(rand() * 2)}]} {
+		$u update_shaper_rate $ix
+		$d update_shaper_rate $ix
+	    } else {
+		$d update_shaper_rate $ix
+		$u update_shaper_rate $ix
+	    }
+	}
+	set p [g plot]
+	append p [string range [$sumplot plot -title "Aggregate" -graphsize 1024,768] 5 end]
+	g destroy
+	UTF::stream allstreams stop
+	return $p
+    }
+    UTF::stream exitstreams
+}

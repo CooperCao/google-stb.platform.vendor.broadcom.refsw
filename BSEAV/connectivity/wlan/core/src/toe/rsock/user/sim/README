@@ -1,0 +1,9 @@
+Compiling in this directory creates the following applications which are
+clients to the rsock library:
+
+	ifconfig
+	ttcp
+
+The hostbus_sim layer is used under rsock.  It uses ordinary Unix
+sockets as a transport to connect to the 'dongle' simulation binary
+which is built in src/dongle/net/sim.

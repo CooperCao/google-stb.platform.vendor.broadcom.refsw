@@ -1,0 +1,98 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# UTF test script for pure WET
+# $Id$
+#
+
+package require UTF
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::Mbss::Connectivity
+package require UTF::Test::controlchart
+
+package provide UTF::Test::WET 2.0
+
+UTF::Test WET {DOWN UP args} {
+
+    UTF::Getopts {
+	{chanspec.arg "3" "Chanspec"}
+	{security.arg "aespsk2" "Security"}
+	{loop.arg "1" "Perf loop"}
+	{history.arg "30" "History"}
+	{nocache "Don't update performance cache"}
+    }
+
+    if {[set WAN [$UP wan]] eq ""} {
+	set WAN [$UP lan]
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    UTF::Record "Configure Upstream" {
+	APChanspec $UP $(chanspec)
+	APConfigureSecurity $UP -security $(security)
+	set uwl [$UP wlname]
+	if {[$UP nvram get ${uwl}_frameburst] ne "on"} {
+	    $UP restart ${uwl}_frameburst=on
+	}
+    }
+
+    UTF::Record "Configure DownStream" {
+	set dwl [$DOWN wlname]
+	$DOWN configure -security {} \
+	    -wepkey [$UP cget -wepkey] -wpakey [$UP cget -wpakey]
+	APChanspec $DOWN $(chanspec) -loose
+	APConfigureSecurity $DOWN -security $(security)
+    }
+
+    try {
+	UTF::Record "Switch Downstream to WET mode" {
+	    # Must disable router functions, otherwise we'll have
+	    # competing DHCP servers and incorrect WAN routing
+	    $DOWN reboot \
+		router_disable=1 \
+		${dwl}_mode=wet \
+		${dwl}_frameburst=on \
+		${dwl}_ssid=[$UP cget -ssid]
+
+	    UTF::Sleep 10 $DOWN "Allow WET to connect Upstream"
+	}
+
+
+	UTF::Record "Verify Connectivity" {
+	    catch {$UP wl keys}
+	    catch {$DOWN wl keys}
+	    catch {$DOWN wl dump wet}
+
+	    # Mark DOWN as uninitialized so that if the LAN fails DHCP
+	    # UTF will safely fall back to apshell to recover for the
+	    # next test.
+	    $DOWN configure -initialized 0
+	    $DOWN lan ifconfig dhcp
+
+	    # update LANs routing table to include both routers
+	    $DOWN lan add_networks $DOWN $UP
+
+	    $DOWN lan ping $WAN -c 70
+	}
+
+	controlchart [list $DOWN $WAN] \
+	    -key [list [$DOWN branchname] WET $(security)] -i 2 \
+	    -window [$DOWN tcpautowindow] -loop $(loop) \
+	    -history $(history)
+
+    } finally {
+	# Put Down back into AP mode
+	$DOWN reboot \
+	    router_disable=0 \
+	    ${dwl}_mode=ap \
+	    ${dwl}_ssid=[$DOWN cget -ssid]
+
+	$DOWN configure -initialized 0
+	$DOWN lanwanreset
+    }
+}
+

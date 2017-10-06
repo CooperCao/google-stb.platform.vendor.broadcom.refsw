@@ -1,0 +1,162 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script to measure the time required for a scan
+#
+# Written by: Robert J. McMahon May 2015
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::ControlChart
+package require UTF::Stressors
+package require UTF::KPI::KeyValue
+
+
+package provide UTF::Test::KPI_Scan 2.0
+
+UTF::Test KPI_Scan {args} {
+    UTF::Getopts {
+	{ap.arg "" "APs under test"}
+	{sta.arg "" "STA under test"}
+	{s.arg "10" "Number of times to loop"}
+	{history.arg "30" "Control Chart history"}
+	{watchdog.arg "30" "Timeout for scan results"}
+	{key.arg "" "Control Chart Key"}
+	{kpidb.arg "" "Parent KPI db"}
+	{stressor.arg "" "Stressor"}
+	{msglevel.arg "+scan" "wl msglevel to apply"}
+	{recover.arg "1" "time in seconds between scans"}
+    }
+
+    set procmsgtag [namespace tail [lindex [info level 0] 0]]
+
+    if {$(stressor) eq ""} {
+	set "TRYTEXT" "Scan time $(sta) ($(msglevel))"
+    } else {
+	set (stressor) [string tolower $(stressor)]
+	set "TRYTEXT" "Scan time $(sta) ($(msglevel))(stressor=$(stressor))"
+    }
+    UTF::Try $TRYTEXT  {
+	set failtry 0
+	catch {$(sta) wl msglevel $(msglevel)}
+	$(sta) wl scansuppress 0
+	if {$(stressor) ne ""} {
+	    set stressor [UTF::Stressor::Traffic %AUTO% -name stressor -ap $(ap) -sta $(sta) -protocol $(stressor) -rate 1G]
+	    $stressor start
+	    $stressor linkcheck -now
+	}
+	set mykey "kpi scan key=$(key) $(sta) $(ap) [$(sta) wl msglevel] stressor=$(stressor)"
+	if {$(stressor) ne ""} {
+	    lappend mykey [$stressor id]
+	}
+	# Take the KPI scan measurements
+	set times {}
+	set failcount 0
+	set successcount 0
+	for {set ix 1} {$ix <= $(s)} {incr ix} {
+	    UTF::Try "Sample ${ix}" {
+		set aid [after [expr {$(watchdog) * 1000}] {}]
+		if {![catch {$(sta) cget -escan} ret] && $ret} {
+		    set asyncid [$(sta) rexec -async -Timeout $(watchdog) wl escanresults]
+		    set start [clock clicks -milliseconds]
+		    if {[catch {$asyncid close} scanresults]} {
+			incr failtry
+			incr failcount
+			set err $scanresults
+			unset scanresults
+			error $err
+		    }
+		} else {
+		    $(sta) wl scan
+		    set start [clock clicks -milliseconds]
+		    while {1} {
+			if {[catch {after info $aid}]} {
+			    incr failtry
+			    incr failcount
+			    error "Scan watchdog triggered"
+			}
+			if {![catch {$(sta) wl scanresults} scanresults]} {
+			    break
+			} else {
+			    unset scanresults
+			}
+		    }
+		}
+		set delta [expr {[clock clicks -milliseconds] - $start}]
+		lappend times $delta
+		UTF::Message STAT $procmsgtag "Sample [llength $times]=$delta milliseconds"
+		catch {after cancel $aid}
+		catch {$(sta) wl dump scantime}
+		if {![catch {$(sta) cget -escan} ret] && $ret} {
+		    UTF::Sleep [expr {2 * $(recover)}]
+		} else {
+		    UTF::Sleep $(recover)
+		}
+		return $delta
+	    }
+	    if {[info exists scanresults]} {
+		UTF::Try "Target (match/networks)" {
+		    set targetssid [$(ap) wl ssid]
+		    set ssidcount 0; set match 0;
+		    foreach line [split $scanresults "\n"] {
+			if {[regexp {SSID:\s+\"(.+)\"} $line - thisssid]} {
+			    incr ssidcount;
+			    UTF::Message INFO $procmsgtag "Found network $thisssid"
+			    if {$thisssid eq $targetssid} {
+				incr successcount
+				set match 1
+			    }
+			}
+		    }
+		    if {$match} {
+			return "${match}/${ssidcount}"
+		    } else {
+			error "${match}/${ssidcount}"
+		    }
+		}
+	    } else {
+		incr failcount
+	    }
+	}
+	UTF::Try "Final success ratio" {
+	    set final "[expr {(1.0 * $successcount / ($failcount + $successcount)) * 100 }]%"
+	    UTF::Message STAT $procmsgtag "Total successes = $successcount"
+	    UTF::Message STAT $procmsgtag "Total fails = $failcount"
+	    UTF::Message STAT $procmsgtag "Final success ratio =  $final"
+	    return $final
+	}
+	if {$(stressor) ne ""} {
+	    if {$(stressor) eq "tcp"} {
+		set stressorgraph [$stressor plot -append -stat rate]
+	    } else {
+		set stressorgraph [$stressor plot -append -stat pktlatency]
+	    }
+	}
+	# Write the results to a control chart
+	if {[llength $times] > 4} {
+	    UTF::Message STATS "$procmsgtag" "KPI scan times= $times"
+	    UTF::ControlChart CC -s $(s) -key  $mykey -history $(history) -title "KPI Scan (stressor=$(stressor))" -units "ms" -norangecheck 1  -format "%.0f"
+	    set boundsresults [CC addsample [UTF::MeanMinMax $times]]
+	    if {[regexp {(HIGH|LOW|WIDE|ZERO)} $boundsresults]} {
+		incr failtry
+	    }
+	    if {$(stressor) ne ""} {
+		set cc "[CC plotcontrolchart $boundsresults] $stressorgraph"
+	    } else {
+		set cc [CC plotcontrolchart $boundsresults]
+	    }
+	    CC destroy
+	} else {
+	    error "Insufficient samples"
+	}
+	if {$failtry || ([llength $times] < $(s))} {
+	    error $cc
+	} else {
+	    return $cc
+	}
+    }
+    catch {$stressor destroy}
+}

@@ -1,0 +1,40 @@
+# Broadcom 802.11abg Networking Device Driver Configuration file
+#
+# Broadcom Proprietary and Confidential. Copyright (C) 2017,
+# All Rights Reserved.
+# 
+# This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
+# the contents of this file may not be disclosed to third parties, copied
+# or duplicated in any form, in whole or in part, without the prior
+# written permission of Broadcom.
+#
+# $Id: wlconfig_win,v 1.34 2010-05-25 16:02:26 $
+#
+# Windows wl driver config file: AP and STA, possible BCMCCX
+
+# get common
+include $(WLCFGDIR)/wl_default
+include $(WLCFGDIR)/wl_hnd
+
+WLNDIS=1
+OSLNDIS=1
+
+include $(WLCFGDIR)/wlconfig_apdef
+APCS=1
+STA=1
+
+BCMSUP_PSK=1
+BCMAUTH_PSK=1
+WLDIAG=1
+WOWL=1
+WL_ASSOC_RECREATE=1
+WLSCANCACHE=1
+
+WL_MONITOR=1
+ND_ALL_PASSIVE=1
+WLEXTLOG=1
+CCA_STATS=1
+WIFI_ACT_FRAME=1
+
+BCM_DCS=1
+BCMECICOEX=1

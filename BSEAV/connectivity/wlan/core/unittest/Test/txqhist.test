@@ -1,0 +1,82 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for reporting txq histograms
+# $Id$
+#
+package require UTF
+
+UTF::Test txqhist {In Out args} {
+
+    UTF::Getopts {
+	{loops.arg "1" "loops"}
+	{blocks.arg "30000" "epi_ttcp Blocks"}
+	{window.arg "524288" "Tcp Window"}
+	{txqhist.arg "0" "txqhist"}
+    }
+
+    set parm(window) $options(window)
+
+    # Fetch first pair of endpoints
+    foreach {SRC SNK} [UTF::Endpoints $In $Out] { break }
+
+    UTF::Message INFO $In "Using path $SRC -> $SNK"
+    set AP [$In cget -host]
+    $SRC open_messages
+    $SNK open_messages
+
+    set SRCIP [$SRC ipaddr]
+    set SNKIP [$SNK ipaddr]
+    $SRC ping $SNKIP
+
+    set STAS {}
+    foreach STA [list $SRC $In $Out $SNK] {
+	if {[lsearch $STAS $STA] < 0} {
+	    if {![catch {$STA wl ver} ret]} {
+		lappend STAS $STA
+	    }
+	}
+    }
+
+    # Query first STA, or the AP if there are no STAs
+    set STA [lindex [concat $STAS $AP] 0]
+
+
+    proc plot_txqhist {STA {terminal "dumb"} {file {}}} {
+	regsub -all {:} [$STA -s wl dump txqhist] {} txqhist
+	set f [open "|gnuplot" w]
+	if {$file ne {}} {
+	    puts $f "set output \"$file\""
+	}
+	puts $f "set terminal $terminal"
+	puts $f {set autoscale yfix}
+	puts $f {plot [-10:] "-" using 1:2 notitle with l}
+	puts $f $txqhist
+	puts $f "e"
+	puts $f {set output}
+	catch {close $f}
+    }
+
+    $SRC tcptune $parm(window)
+    $SNK tcptune $parm(window)
+
+    # Reset txq histogram
+    $STA wl txqhist_reset $options(txqhist)
+
+    set time [expr {$options(blocks)/1000}]
+    set cmd "$SRC iperf -c $SNKIP -t $time"
+
+    # Don't set socket buffer size on Linux,
+    # since it's safer to let tcptune do it.
+    if {$options(window) && \
+	    [$SRC hostis Cygwin]} {
+	lappend cmd -w $options(window)
+    }
+
+    UTF::Every 2 [namespace current]::plot_txqhist $STA
+    for {set i 0} {$i < $options(loops)} {incr i} {
+	UTF::XPASS $AP [eval $cmd] [UTF::ParmStrip parm]
+    }
+    plot_txqhist $STA png "txqhist.png"
+}

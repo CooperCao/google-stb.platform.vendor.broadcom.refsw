@@ -1,0 +1,276 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Dyanmic BW feature test
+#
+# Written by: Robert J. McMahon August 2013
+#
+# $Id$
+#
+
+package require UTF
+package require UTF::FTTR
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+
+package provide UTF::Test::DynamicBW 2.0
+
+UTF::Test DynamicBW {args} {
+    UTF::Getopts {
+	{ap.arg "4708ap" "AP"}
+        {sta.arg "4360lx1" "STA"}
+	{obss_ap.arg "4706ap" "OBSS AP"}
+        {obss_sta.arg "4360lx2" "OBSS STA"}
+	{title.arg "" "Title"}
+	{email.arg "" "Email Address"}
+	{chanspec.arg "36/80" "Chanspec to test"}
+	{obss_chanspec.arg "44l" "Chanspec to test"}
+	{security.arg "open" "Security to configure"}
+	{protocol.arg "udp tcp" "IP protocol to use"}
+	{obss_protocol.arg "" "IP protocol to use"}
+	{roamtrigger.arg "-100" "Roam trigger (default set to -100 for no roaming)"}
+	{ramp.arg "down/up" "ramp type"}
+	{phycaltype.arg "-1" "Override for phy_percal"}
+	{holdtime.arg "2" "Per step hold time"}
+	{w.arg "4M" "Default window size"}
+	{scansuppress "Suppres scans"}
+	{featureonly ""}
+	{steps.arg "-1" ""}
+	{attngrp.arg "" ""}
+	{noload ""}
+	{branch.arg "" "Branch override"}
+	{brand.arg "" "Brand override"}
+ 	{date.arg "" "Image date"}
+	{tag.arg "" "Router release tag"}
+    }
+    if {!$(noload)} {
+	set STAS ""
+	foreach dut [list $(ap) $(obss_ap) $(sta) $(obss_sta)] {
+	    if {![$dut hostis Router] && [lsearch $STAS $dut] == -1} {
+		lappend STAS $dut
+	    }
+	}
+	foreach STA $STAS {
+	    if {$(branch) eq "auto"} {
+		set branch [$STA branchname]
+	    } else {
+		set branch $(branch)
+	    }
+	    UTF::Try "[$STA cget -name]: Find STA Image" {
+		set date [$STA cget -date]
+		if {$date eq ""} {
+		    set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+		}
+		UTF::CheckImage $STA $date unknown
+	    }
+	    UTF::Try "[$STA cget -name]: load" {
+		$STA load
+	    }
+	    UTF::Try "[$STA cget -name]: defaults" {
+		$STA services stop
+		catch {$STA wl msglevel +error +assoc}
+		if {![$STA cget -nomimo_bw_cap]} {
+		    catch {$STA wl down}
+		    # Enable 40 in 2.4, if available.
+		    # Doesn't work for LMAC since LMAC is never "down"
+		    $STA wl -u mimo_bw_cap 1
+		    $STA wl up
+		    UTF::Sleep 1
+		}
+		$STA wl ver
+		set what [$STA whatami]
+		# Pull out chip info and replace whitespace to
+		# make it easier for external parsers.
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		    UTF::Message WARN $STA $ret
+		}
+		set what
+	    }
+	}
+    }
+    UTF::Try "Setup" {
+	if {![$(ap) hostis Router]} {
+	    UTF::Try "Test defaults" {
+		catch {$(sta) rexec iptables -F}
+		catch {$(obss_sta) rexec iptables -F}
+		L4 attn 20
+		L3 attn 3
+		# Use SoftAP for case of STA/STA
+		$(ap) configure -ap 1
+		$(ap) configure -ipaddr 192.168.1.60
+		$(ap) configure -ssid "BSSSoftAP"
+		$(ap) configure -wlinitcmds "ifconfig [$(ap) cget -device] 192.168.1.60"
+		$(obss_ap) configure -ap 1
+		$(obss_ap) configure -ipaddr 192.168.1.70
+		$(obss_ap) configure -ssid "OBSSSoftAP"
+		$(obss_ap) configure -wlinitcmds "ifconfig [$(ap) cget -device] 192.168.1.70 "
+	    }
+	    UTF::Try "AP CH BSS=$(chanspec) OBSS=$(obss_chanspec)" {
+		UTF::Test::APChanspec $(ap) $(chanspec)
+		UTF::Test::APChanspec $(obss_ap) $(obss_chanspec)
+		return "$(chanspec) $(obss_chanspec)"
+	    }
+	    UTF::Try "Config PSTAs" {
+		package require UTF::Test::ConfigBridge
+		UTF::Test::ConfigBridge -ap $(ap) -br $(sta) -chanspec $(chanspec) -security $(security)
+		UTF::Test::ConfigBridge -ap $(obss_ap) -br $(obss_sta) -chanspec $(obss_chanspec) -security $(security)
+	    }
+	    set CHSPECTXT "BSS=$(chanspec) OBSS=$(obss_chanspec)"
+	    return $CHSPECTXT
+	} else {
+	    catch {[$(ap) lan] rexec iptables -F}
+	    catch {[$(obss_ap) lan] rexec iptables -F}
+	    catch {[$(sta) cget -attngrp] attn?}
+	    catch {[$(sta) cget -attngrp] attn 12}
+	    # RJM - fix, shouldn't need this
+	    $(sta) load
+	    UTF::Test::APChanspec $(ap) $(chanspec)
+	    UTF::Test::APChanspec $(obss_ap) $(obss_chanspec)
+	    UTF::Test::ConnectAPSTA $(ap) $(sta)
+	    UTF::Test::ConnectAPSTA $(obss_ap) $(obss_sta)
+	    if {[catch {$(sta) wl roam_trigger $(roamtrigger) all} err]} {
+		UTF::Message ERROR $(sta) "wl roamtrigger: $err"
+	    }
+	    return "BSS CH=$(chanspec) OBSS CH=$(obss_chanspec)"
+	}
+    }
+    UTF::Try "Scans" {
+	foreach dut "$(ap) $(obss_ap) $(sta) $(obss_sta)" {
+	    set results($dut) [$dut wl_escanresults]
+	}
+	foreach dut [array names results] {
+	    UTF::Message INFO $dut "*********** $dut SCANRESULTS BELOW **********"
+	    foreach line [split $results($dut) "\n"] {
+		UTF::Message INFO $dut $line
+	    }
+	}
+	return
+    }
+    if {$(attngrp) eq ""} {
+	if {![$(ap) hostis Router]} {
+	    set (attngrp) [$(ap) cget -attngrp]
+	} else {
+	    set (attngrp) [$(sta) cget -attngrp]
+	}
+    }
+    if {$(steps) eq "-1"} {
+	UTF::Try "Discover beacon range" {
+	    UTF::FTTR BEACON -ap $(ap) -sta $(sta) -chanspec $(chanspec) -security $(security)
+	    set attnsteps [BEACON discover_norxbeacon]
+	}
+    } else {
+	set attnsteps $(steps)
+	UTF::Try "Set beacon range" {
+	    return $attnsteps
+	}
+    }
+    foreach protocol $(protocol) {
+	set protocol [string toupper $protocol]
+	if {$(obss_protocol) ne ""} {
+	    set obss_protocol [string toupper $(obss_protocol)]
+	} else {
+	    set obss_protocol $protocol
+	}
+	set protocol [string toupper $protocol]
+	if {!$(featureonly)} {
+	    UTF::Try "$protocol OBSS=OFF DBW OFF/ON" {
+		set finalresults {}
+		UTF::Try "$protocol OBSS=OFF DBW=OFF" {
+		    $(ap) wl dynamic_bw 0
+		    UTF::FTTR BASE($protocol) -ap $(ap) -sta $(sta) -protocol $protocol -ramp $(ramp) -chanspec $(chanspec) -security $(security) -phycaltype $(phycaltype) -holdtime $(holdtime) -title "BASE RvR $protocol (no obss traffic)" -direction "down" -w $(w) -steps $attnsteps -linetype "-1"
+		    if {$(scansuppress)} {
+			$(sta) wl scansuppress 1
+		    }
+		    set tryresults [BASE($protocol) run]
+		    if {$(scansuppress)} {
+			$(sta) wl scansuppress 0
+		    }
+		    append finalresults " [string range $tryresults 5 end]"
+		    return $tryresults
+		}
+		UTF::Try "$protocol OBSS=OFF DBW=ON" {
+		    $(ap) wl dynamic_bw 1
+		    UTF::FTTR DBW($protocol) -ap $(ap) -sta $(sta) -protocol $protocol -ramp $(ramp) -chanspec $(chanspec) -security $(security) -phycaltype $(phycaltype) -holdtime $(holdtime) -title "DBW RvR $protocol (no obss traffic)" -direction "down" -w $(w) -steps $attnsteps -linetype "1"
+		    if {$(scansuppress)} {
+			$(sta) wl scansuppress 1
+		    }
+		    set tryresults [DBW($protocol) run]
+		    if {$(scansuppress)} {
+			$(sta) wl scansuppress 0
+		    }
+		    append finalresults " [string range $tryresults 5 end]"
+		    return $tryresults
+		}
+		UTF::Try "Diff" {
+		    set tryresults [UTF::FTTR diff -fttrs "DBW($protocol) BASE($protocol)" -title "DBW RvR $protocol (no obss traffic)"]
+		    set finalresults "$tryresults$finalresults"
+		    return $tryresults
+		}
+		return $finalresults
+	    }
+	}
+	UTF::Try "$obss_protocol Start OBSS Traffic" {
+	    UTF::stream obss_traffic -tx $(obss_ap) -rx $(obss_sta) -protocol $obss_protocol -pktsize 1460 -rate 500M -w $(w)
+	    obss_traffic id
+	    obss_traffic start
+	    obss_traffic stats -clear
+	    UTF::Sleep 10.0
+	    return [join [obss_traffic stats -rate -meanminmax -h] /]
+	}
+	UTF::Try "$protocol OBSS= ON DBW OFF/ON" {
+	    set finalresults {}
+	    UTF::Try "$protocol OBSS= ON DBW=OFF" {
+		if {[catch {$(sta) wl bssid} bssid] || $bssid ne [$(ap) macaddr]} {
+		    UTF::Test::ConnectAPSTA $(ap) $(sta)
+		}
+		$(ap) wl dynamic_bw 0
+		if {$(scansuppress)} {
+		    $(sta) wl scansuppress 1
+		}
+		obss_traffic stats -clear
+		UTF::FTTR OFF($protocol) -ap $(ap) -sta $(sta) -protocol $protocol -ramp $(ramp) -steps $attnsteps -chanspec $(chanspec) -security $(security) -phycaltype $(phycaltype) -holdtime $(holdtime) -title "DBW=OFF RvR $protocol (obss traffic)\\n$CHSPECTXT" -direction down -w $(w) -linetype "-1"
+		set tryresults "[OFF($protocol) run] [string range [obss_traffic plot -text "obss [obss_traffic stats -rate -sum -h]"] 5 end] "
+		set finalresults " [string range $tryresults 5 end]"
+		if {$(scansuppress)} {
+		    $(sta) wl scansuppress 0
+		}
+		return $tryresults
+	    }
+	    UTF::Try "$protocol OBSS= ON DBW= ON" {
+		set err 0
+		if {[catch {$(sta) wl bssid} bssid] || $bssid ne [$(ap) macaddr]} {
+		    UTF::Test::ConnectAPSTA $(ap) $(sta)
+		}
+		$(ap) wl dynamic_bw 1
+		if {$(scansuppress)} {
+		    $(sta) wl scansuppress 1
+		}
+		obss_traffic stats -clear
+		UTF::FTTR ON($protocol) -ap $(ap) -sta $(sta) -protocol $protocol -ramp $(ramp) -steps $attnsteps -chanspec $(chanspec) -security $(security) -phycaltype $(phycaltype) -holdtime $(holdtime) -title "DBW=ON RvR $protocol (obss traffic)\\n$CHSPECTXT" -direction down -w $(w) -linetype "1"
+		set tryresults "[ON($protocol) run] [string range [obss_traffic plot -text "obss [obss_traffic stats -rate -sum -h]"] 5 end]"
+		if {$(scansuppress)} {
+		    $(sta) wl scansuppress 0
+		}
+		append finalresults " [string range $tryresults 5 end]"
+		if {$err} {
+		    error $tryresults
+		} else {
+		    return $tryresults
+		}
+	    }
+	    UTF::Try "Diff" {
+		set tryresults [UTF::FTTR diff -fttrs "ON($protocol) OFF($protocol)" -title "DBW RvR $protocol (with obss traffic)\\n$CHSPECTXT"]
+		set finalresults "$tryresults$finalresults"
+		return $tryresults
+	    }
+	    return $finalresults
+	}
+	UTF::Try "Stop OBSS Traffic" {
+	    obss_traffic destroy
+	}
+    }
+    UTF::Try "Exit" {
+	UTF::stream exitstreams
+    }
+}

@@ -1,0 +1,242 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# To get online help, type: Test/ConnectBTdevices.test -h
+
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set ConnectBTdevices_help \
+    "\n\nBasic usage: Test/ConnectBTdevices.test bt_master bt_slave <options>\
+    \n\nThis script connects 2 BlueTooth devices, which are assumed to be already\
+    \nloaded. bt_master & bt_slave are the BT object STA names defined in your config file."
+
+# Command line options string
+set ConnectBTdevices_getopts {
+    {scan_master.arg 3 \
+	 "scan type for bt_master"}
+    {scan_slave.arg 3 \
+	 "scan type for bt_slave"}
+    {type.arg auto \
+	 "packet type for connection"}
+    {sco_routing.arg "TRANSPORT" \
+	 "PCM or TRANSPORT for SCO/ESCO routing"}
+    {sco_input_coding.arg "Linear" \
+	 "Linear, u-law, or A-law for SCO/ESCO input coding"}
+    {sco_input_data_format.arg "2\\'s_complement" \
+	 "1's_complement, 2's_complement, or Sign-magnitude for SCO/ESCO input data format"}
+    {sco_air_coding_format.arg "CVSD" \
+	 "CVSD, u-law, or A-law for SCO/ESCO air coding format"}
+    {sco_sample_size.arg "16-bit" \
+	 "8-bit | 16-bit (only used if INPUT_CONFIG = linear) for SCO/ESCO sample size"}
+    {sco_linear_pcm_bit_pos.arg "0" \
+	 "0-7 (only used if INPUT_CONFIG = Linear) for SCO/ESCO linear pcm bit pos"}
+    {sco_retransmit_effort.arg "0" \
+	 "0=no, 1= at least 1 with optimized pwr, 2= at least 1 with optimized link quality, 0xFF=don't care for SCO/ESCO retransmit effort"}
+    {sco_max_latency.arg "0xFFFF" \
+	 "SCO/ESCO max latency"}
+    {link_policy.arg "4" \
+	 "link policy"}
+    {sniff_policy.arg "2" \
+	 "enable sniff mode=2"}
+}
+
+# Setup online help info.
+UTF::setup_help $ConnectBTdevices_help $ConnectBTdevices_getopts
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+    set ::argv ""
+}
+
+# NB: The UTF package seems to recognize -utfconf option without any
+# additional code in this script.
+
+# Load packages
+package require UTF
+package require UTF::utils
+package require UTF::WinBT
+
+package provide UTF::Test::ConnectBTdevices 2.0
+
+UTF::Test ConnectBTdevices {bt_master bt_slave args} {
+
+    # Basic command line option processing. Options are stored in the
+    # unnamed array $()
+    UTF::Getopts $::ConnectBTdevices_getopts $::ConnectBTdevices_help
+
+    # Check STA's exist and are correct type.
+    UTF::check_sta_type $bt_master WinBT
+    UTF::check_sta_type $bt_slave WinBT
+
+    # Check STAs are different
+    if {$bt_master == $bt_slave} {
+	error "ConnectBTdevices ERROR: bt_master=$bt_master MUST NOT be same as bt_slave=$bt_slave!"
+    }
+
+    # Get both board addresses.
+    set board_addr_master [$bt_master show_board_address]
+    set board_addr_slave [$bt_slave show_board_address]
+
+    # Run the InitScan.pl script on both devices.
+    set bt_comm_master [$bt_master cget -bt_comm]
+    $bt_master run_perl_script common/InitScan.pl $bt_comm_master $(scan_master)
+    UTF::Sleep 2
+    set bt_comm_slave [$bt_slave cget -bt_comm]
+    $bt_slave run_perl_script common/InitScan.pl $bt_comm_slave $(scan_slave)
+
+    # Do inquiry for each device & get RSSI. This checks if the other
+    # device can be heard on the airwaves.
+    UTF::Sleep 2
+    set resp_master [$bt_master run_perl_script common/Inquiry.pl \
+			 $bt_comm_master $board_addr_slave RSSI]
+    set resp_slave [$bt_slave run_perl_script common/Inquiry.pl \
+			$bt_comm_slave $board_addr_master RSSI]
+
+    # Parse out RSSI values
+    # puts "resp_master=$resp_master resp_slave=$resp_slave"
+    if {![regexp -nocase {RSSI\s*=\s*([\-\d]+)} $resp_master - rssi_master]} {
+        set rssi_master ""
+    }
+    if {![regexp -nocase {RSSI\s*=\s*([\-\d]+)} $resp_slave - rssi_slave]} {
+        set rssi_slave ""
+    }
+    UTF::Message LOG $::localhost \
+	"BT_MASTER_RSSI=$rssi_master BT_SLAVE_RSSI=$rssi_slave"
+
+    # Convert packet type to list of excludes / includes to ensure BT uses only
+    # the desired packet type.
+    set packet_type [map_bt_packet_type "AUTO"]
+
+    if {$(type) == "SCO" || $(type) == "ESCO"} {
+
+	# Open Persistent Transports
+	# Keeping the transports open is required for SCO, otherwise
+	# the connection breaks do not do this if only doing ACL
+	# because I saw issues in the bidirectional test.
+	set fd_master [$bt_master run_perl_script \
+			   common/OpenTransportAndWaitForSemaphore.pl \
+			   $bt_comm_master BTMasterPersistentSemaphore -rpopen]
+    	UTF::Sleep 1
+	set fd_slave [$bt_slave run_perl_script \
+			  common/OpenTransportAndWaitForSemaphore.pl \
+			  $bt_comm_slave BTSlavePersistentSemaphore -rpopen]
+	# Collect data from parallel processes.
+	set resp1 ""
+	set resp2 ""
+	UTF::collect_rpopen_data 5 "$bt_slave $fd_slave $bt_master $fd_master" \
+	    resp1 "" resp2
+
+    	set packet_type2 [map_bt_packet_type $(type)]
+
+    	# Write the voice settings
+    	$bt_master run_perl_script common/WriteSCOPCMIntParam.pl \
+	    $bt_comm_master $(sco_routing)
+    	$bt_slave run_perl_script common/WriteSCOPCMIntParam.pl \
+	    $bt_comm_slave $(sco_routing)
+
+        # WriteVoiceSetting.pl port Coding DataFormat CodingFormat SampleSize LinearPCMBitPos
+     	$bt_master run_perl_script common/WriteVoiceSetting.pl \
+	    $bt_comm_master $(sco_input_coding) $(sco_input_data_format) \
+	    $(sco_air_coding_format) $(sco_sample_size) $(sco_linear_pcm_bit_pos)
+	$bt_slave run_perl_script common/WriteVoiceSetting.pl \
+	    $bt_comm_slave $(sco_input_coding) $(sco_input_data_format) \
+	    $(sco_air_coding_format) $(sco_sample_size) $(sco_linear_pcm_bit_pos)
+    }
+
+    # bt_slave will be slave end of connection. Use -rpopen option so
+    # script is launched as a parallel task.
+    set fd_slave [$bt_slave run_perl_script common/CreateConnectionSlave.pl \
+		      $bt_comm_slave $board_addr_master -rpopen]
+    UTF::Sleep 1
+    # bt_master will be the master end of connection. Use -rpopen
+    # option so script is launched as a parallel task.
+    set fd_master [$bt_master run_perl_script common/CreateConnectionMaster.pl \
+		       $bt_comm_master $board_addr_slave $packet_type -rpopen]
+
+    # Collect data from parallel processes.
+    set resp1 ""
+    set resp2 ""
+    UTF::collect_rpopen_data 30 "$bt_slave $fd_slave $bt_master $fd_master" \
+	resp1 "" resp2
+
+    # Extract & save the ACL connection handles.
+    set acl_handle_master \
+	[UTF::parse_rpopen_data $resp1 $bt_master {handle\s*=\s*(\d+)}]
+    $bt_master save_acl_handles $acl_handle_master
+    set acl_handle_slave \
+	[UTF::parse_rpopen_data $resp1 $bt_slave {handle\s*=\s*(\d+)}]
+    $bt_slave save_acl_handles $acl_handle_slave
+
+    # create connection with specific acl packet type is effected on
+    # master side only (tx) need to issue the
+    # change_connection_packet_type command to the remote
+    $bt_slave change_bt_packet_type $acl_handle_slave "AUTO"
+
+    if {$(type) == "SCO" || $(type) == "ESCO"} {
+
+    	UTF::Message LOG $::localhost "$(type) connection"
+
+    	UTF::Sleep 1
+
+	# enable sniff mode
+	$bt_master run_perl_script common/WriteLinkPolicySettings.pl \
+	    $bt_comm_master $acl_handle_master $(link_policy)
+    	$bt_slave run_perl_script common/WriteLinkPolicySettings.pl \
+	    $bt_comm_slave $acl_handle_slave $(link_policy)
+    	$bt_master run_perl_script common/SniffMode_Cell.pl \
+	    $bt_comm_master $acl_handle_master $(sniff_policy)
+
+	# bt_slave will be slave end of connection. Use -rpopen option
+	# so script is launched as a parallel task.
+	if {$(type) == "SCO"} {
+	    set fd_slave2 [$bt_slave run_perl_script \
+			       common/Add$(type)ConnectionSlave.pl \
+			       $bt_comm_slave $board_addr_master -rpopen]
+	    UTF::Sleep 1
+	    set fd_master2 \
+		[$bt_master run_perl_script \
+		     common/Add$(type)ConnectionMaster.pl \
+		     $bt_comm_master $acl_handle_master $packet_type2 -rpopen]
+	} else {
+	    # ESCO
+	    set fd_slave2 \
+		[$bt_slave run_perl_script \
+		     common/Add$(type)ConnectionSlave.pl $bt_comm_slave \
+		     $board_addr_master $packet_type2 $(sco_retransmit_effort) \
+		     $(sco_max_latency) -rpopen]
+	    UTF::Sleep 1
+	    set fd_master2 \
+		[$bt_master run_perl_script \
+		     common/Add$(type)ConnectionMaster.pl $bt_comm_master \
+		     $acl_handle_master $packet_type2 $(sco_retransmit_effort) \
+		     $(sco_max_latency) -rpopen]
+	}
+
+	# Collect data from parallel processes.
+	set resp3 ""
+	set resp4 ""
+	UTF::collect_rpopen_data 30 \
+	    "$bt_slave $fd_slave2 $bt_master $fd_master2" resp3 "" resp4
+
+	# Extract & save the connection handles.
+	set handle_master2 \
+	    [UTF::parse_rpopen_data $resp3 $bt_master {handle\s*=\s*(\d+)}]
+	$bt_master save_sco_handles $handle_master2
+	set handle_slave2 \
+	    [UTF::parse_rpopen_data $resp3 $bt_slave {handle\s*=\s*(\d+)}]
+	$bt_slave save_sco_handles $handle_slave2
+    }
+
+    # Wait for the connection to stabilize
+    UTF::Sleep 5
+
+    # Return RSSI info for use on summary web page.
+    return "BT_MASTER_RSSI=$rssi_master BT_SLAVE_RSSI=$rssi_slave"
+}
+

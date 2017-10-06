@@ -1,0 +1,314 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for dumping channel sounding data.
+# $Id$
+# $Copyright Broadcom Limited$
+
+package require UTF
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::utils
+
+
+# These are minimum options to run the script:
+# /home/cchai/src/tools/unittest/Test/DumpChanSounding.test -utfconf mc99a -attngrp G1 
+#    -ap "4366softap-mutx1" -sta "4366a1x1 4366b1x1 4366c1x1 4366d1x1"
+#
+# NOTE: this dumping script supports memory addresses for Gold3.0 or older releases.
+#
+
+proc DumpAndProcess {AP sta ant} {
+    set rxsf_counter1 0
+    set rxsf_counter2 0
+    set txbf_ret1     ""
+    set txbf_ret2     ""
+
+    UTF::Try "Configure AP" {
+        # Disable dynamic sounding based on traffic.
+        catch {$AP wl ucflags 64 0x4}
+        catch {$AP wl txbf_mutimer 50}
+	UTF::Sleep 5
+
+        # Disable phy watchdog and interference mode.
+        catch {$AP wl phy_watchdog 0}
+        catch {$AP wl interference_override 0}
+        return
+    }
+
+    UTF::Try "Verifiy sounding feedback for $ant" {
+        # Trigger single sounding.
+        catch {$AP wl txbf_mutimer 0}
+        UTF::Sleep 2
+        UTF::Message INFO "" "First call to 'dump txbf'"
+        catch {$AP wl dump txbf} txbf_ret1
+        catch {$AP wl txbf_mutimer -1}
+        UTF::Sleep 5
+        UTF::Message INFO "" "Second call to 'dump txbf'"
+        catch {$AP wl dump txbf} txbf_ret2
+
+        # Extract rxsf counters - try to match "rxsf 86".
+        if {[regexp -line {\s+rxsf\s+(\d+)} $txbf_ret1 - rxsf_counter1]} {
+            if {$rxsf_counter1 > 0} {
+                UTF::Message INFO "" "rxsf_counter1=$rxsf_counter1"
+            } else {
+                error "ERROR: sounding feedback failed: rxsf_counter1=$rxsf_counter1"
+            }
+        }
+        if {[regexp -line {\s+rxsf\s+(\d+)} $txbf_ret2 - rxsf_counter2]} {
+            if {$rxsf_counter2 > 0} {
+                UTF::Message INFO "" "rxsf_counter2=$rxsf_counter2"
+            } else {
+                error "ERROR: sounding feedback failed: rxsf_counter2=$rxsf_counter2"
+            }
+        }
+
+        # Determine if we have correct rxsf counter increment - it should increase by "number of STAs"
+        # between the two "dump txbf" calls above because each STA should send back 1 sounding feedback (rxsf).
+        if {[expr {$rxsf_counter2 - $rxsf_counter1}] == [llength $sta]} {
+            UTF::Message INFO "" "rxsf counter correctly incremented by [llength $sta]"
+        } else {
+            error "ERROR: rxsf counter incremented by [expr {$rxsf_counter2 - $rxsf_counter1}] - NOT OK"
+        }
+	return "rxsf counter incremented by [expr {$rxsf_counter2 - $rxsf_counter1}] - OK"
+    }
+
+    UTF::Try "Match MAC address with bfi_idx for $ant" {
+        # Extract macaddr and bfi_idx - try to match "00:90:4c:74:c2:52" and "bfi_idx: 1".
+        # Since "txbf_ret1" and "txbf_ret2" should contain the same mac-sta pair info, we only need to process one of them. 
+        set mac_list [regexp -all -inline {[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}} $txbf_ret1]
+	
+	# Sometime same macaddr is printed twice in dump txbf. So we need to remove second half of the list. 
+	if {[llength $mac_list] > [llength $sta]} {
+	    for {set i 0} {$i < [llength $sta]} {incr i} {
+		lappend tmp_list [lindex $mac_list $i]
+	    }
+	    set mac_list $tmp_list
+	}
+        UTF::Message INFO "" "mac_list=$mac_list"
+
+        set bfidx_list [regexp -all -inline {bfi_idx:\s\d} $txbf_ret1]
+        foreach i $bfidx_list {
+            regexp -line {bfi_idx:\s(\d)} $i - ret
+            lappend tmp $ret
+        }
+        set bfidx_list $tmp
+        UTF::Message INFO "" "bfidx_list=$bfidx_list"
+
+        return "matched - OK"
+    }
+
+    UTF::Try "Dumping for $ant" {
+	for {set j 0} {$j < [llength $bfidx_list]} {incr j} {
+	    set i [lindex $bfidx_list $j]
+	    if {$i == 0} {
+	    	UTF::Message INFO "" "bfi_idx=[lindex $bfidx_list $j] mac=[lindex $mac_list $j] addr=0x10000"
+		if {$ant == "ant0"} {
+		    catch {$AP wl svmp_mem 0x10000 0x1000 >  $::logdir/sounding00.txt} 
+		    UTF::Sleep 5
+		    catch {$AP wl svmp_mem 0x11000 0x1000 >> $::logdir/sounding00.txt}
+		} else {
+		    catch {$AP wl svmp_mem 0x10000 0x1000 >  $::logdir/sounding01.txt} 
+		    UTF::Sleep 5
+		    catch {$AP wl svmp_mem 0x11000 0x1000 >> $::logdir/sounding01.txt}
+		}
+		UTF::Sleep 5
+	    } elseif {$i == 1} {
+	    	UTF::Message INFO "" "bfi_idx=[lindex $bfidx_list $j] mac=[lindex $mac_list $j] addr=0x12000"
+		if {$ant == "ant0"} {
+		    catch {$AP wl svmp_mem 0x12000 0x1000 >  $::logdir/sounding10.txt} 
+		    UTF::Sleep 5
+		    catch {$AP wl svmp_mem 0x13000 0x1000 >> $::logdir/sounding10.txt} 
+		} else {
+                    catch {$AP wl svmp_mem 0x12000 0x1000 >  $::logdir/sounding11.txt}
+                    UTF::Sleep 5
+                    catch {$AP wl svmp_mem 0x13000 0x1000 >> $::logdir/sounding11.txt}
+	 	}
+		UTF::Sleep 5
+	    } elseif {$i == 2} {
+	    	UTF::Message INFO "" "bfi_idx=[lindex $bfidx_list $j] mac=[lindex $mac_list $j] addr=0x14000"
+		if {$ant == "ant0"} {
+		    catch {$AP wl svmp_mem 0x14000 0x1000 >  $::logdir/sounding20.txt} 
+		    UTF::Sleep 5
+		    catch {$AP wl svmp_mem 0x15000 0x1000 >> $::logdir/sounding20.txt} 
+		} else {
+                    catch {$AP wl svmp_mem 0x14000 0x1000 >  $::logdir/sounding21.txt}
+                    UTF::Sleep 5
+                    catch {$AP wl svmp_mem 0x15000 0x1000 >> $::logdir/sounding21.txt}
+		}
+		UTF::Sleep 5
+	    } elseif {$i == 3} {
+	    	UTF::Message INFO "" "bfi_idx=[lindex $bfidx_list $j] mac=[lindex $mac_list $j] addr=0x16000"
+		if {$ant == "ant0"} {
+		    catch {$AP wl svmp_mem 0x16000 0x1000 >  $::logdir/sounding30.txt} 
+		    UTF::Sleep 5
+		    catch {$AP wl svmp_mem 0x17000 0x1000 >> $::logdir/sounding30.txt} 
+		} else {
+                    catch {$AP wl svmp_mem 0x16000 0x1000 >  $::logdir/sounding31.txt}
+                    UTF::Sleep 5
+                    catch {$AP wl svmp_mem 0x17000 0x1000 >> $::logdir/sounding31.txt}
+		}
+		UTF::Sleep 5
+	    }
+	}
+	return
+    }
+
+    UTF::Try "Check log size for $ant" {
+	if {$ant == "ant0"} {
+	    set loglist "sounding00.txt sounding10.txt sounding20.txt sounding30.txt"
+	} elseif {$ant == "ant1"} {
+	    set loglist "sounding01.txt sounding11.txt sounding21.txt sounding31.txt"
+	} else {
+	    return "ERROR: antenna $ant not supported"
+	}
+
+	foreach log $loglist {
+	    set ret [exec /bin/cat "$::logdir/$log" | wc -l]
+	    if {[$AP hostis Router DSL] && $ret == 2050} {
+	    	UTF::Message INFO "" "$::logdir/$log has $ret lines - OK"
+	    } elseif {$ret == 4096 || $ret == 4098} {
+	    	UTF::Message INFO "" "$::logdir/$log has $ret lines - OK"
+	    } else {
+	    	return "log has $ret lines - NOT OK"
+	    }
+	}
+	return "all logs have $ret lines - OK"
+    }
+}
+
+# Main program
+UTF::Test DumpChanSounding {args} {
+    UTF::Getopts {
+	{ap.arg      ""		"AP name"}
+	{sta.arg     ""		"STA names"}
+	{attngrp.arg ""		"Attenuation group"}
+	{attn.arg    "0"	"Attenuation, default 0"}
+    }
+
+    # Get testrig name.
+    set config_file $UTF::args(utfconf)
+    set testrig [string toupper [file rootname [file tail $config_file]]]
+
+    set AP $(ap)
+    set sta $(sta)
+    set attngrp $(attngrp)
+    set attn $(attn)
+    set TITLE "UTF $testrig DumpChanSounding"
+    set chanspec "36/80"
+
+    # Initialize summary webpage.
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" "" {
+
+	# Make sure we have required options.
+    	if {[llength $AP] != 1} {
+            error "ERROR: must specify 1 and only 1 AP"
+    	}
+    	if {[llength $sta] != 4} {
+            error "ERROR: must specify 4 and only 4 STAs"
+    	}
+    	if {$(attngrp) eq ""} {
+            error "ERROR: missing attenuation group"
+    	}
+
+    	UTF::Message INFO "" "testrig=$testrig"
+    	UTF::Message INFO "" "ap=$AP"
+    	UTF::Message INFO "" "sta=$sta"
+    	UTF::Message INFO "" "attngrp=$attngrp"
+    	UTF::Message INFO "" "attn=$attn"
+
+    	# Setup log dir.
+    	set timestring [clock format [clock seconds] -format {%Y%m%d%H%M%S}]
+    	set ::logdir "/projects/hnd_sig_ext14/$::env(LOGNAME)/chansounding/$timestring"
+	if {![file exists $::logdir]} {      	
+	    catch {exec mkdir -p $::logdir}
+	}
+
+	UTF::Try "Setup testbed" {
+    	    catch {$attngrp attn $attn}
+	    UTF::Sleep 2
+	    return "attenuation set to $attn"
+	}
+
+	UTF::Try "Load AP $AP" {
+    	    catch {$AP load}
+	    return
+	}
+
+	if {[$AP hostis Router DSL]} {
+	    UTF::Try "AP restore defaults" {
+		catch {$AP restore_defaults}
+		return
+	    }
+	}
+
+    	foreach STA $sta {
+	    UTF::Try "Load STA $STA" {
+		catch {$STA load}
+		return
+	    }
+    	}
+
+	# Configure STA to use ant0.
+	UTF::Try "Configure STA to use ant0" {
+	    foreach STA $sta {
+		catch {$STA wl down}
+		catch {$STA wl rxchain 1}
+		catch {$STA wl txchain 1}
+		catch {$STA wl up}
+	    }
+	}
+
+	# Make connections.
+	foreach STA $sta {
+	    UTF::Try "Connect $STA to AP $AP" {
+		ConnectAPSTA $AP $STA -security open -chanspec $chanspec
+		return
+	    }
+	}
+
+	# For ant0.
+	DumpAndProcess $AP $sta "ant0"
+
+	UTF::Try "Disassociate STA" {
+	    foreach STA $sta {
+		catch {$STA wl disassoc}
+	    }
+
+	    UTF::Sleep 5
+
+	    catch {$AP wl assoclist} ret
+	    if {$ret == ""} {
+	    	return "all STAs disassociated - OK"
+	    } else {
+	    	return "NOT OK"
+	    }
+	}
+
+	# Configure STA to use ant1.
+	UTF::Try "Configure STA to use ant1" {
+            foreach STA $sta {
+                catch {$STA wl down}
+                catch {$STA wl rxchain 2}
+                catch {$STA wl txchain 2}
+                catch {$STA wl up}
+            }
+        }
+
+	# Make connections.
+	foreach STA $sta {
+	    UTF::Try "Connect $STA to AP $AP" {
+		ConnectAPSTA $AP $STA -security open -chanspec $chanspec
+		return
+	    }
+	}
+
+        # For ant1.
+        DumpAndProcess $AP $sta "ant1"
+
+	UTF::Try "Log location" {
+            return "$::logdir/"
+    	}
+    }
+}
+

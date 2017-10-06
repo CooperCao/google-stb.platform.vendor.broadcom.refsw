@@ -1,0 +1,158 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Configure Bridging (psta by default)
+#
+# Written by: Robert J. McMahon Feb 2013
+#
+# $Id$
+#
+
+package require UTF
+package require UTF::Streams
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::BridgeCheck
+
+package provide UTF::Test::ConfigBridge 2.0
+
+UTF::Test ConfigBridge {args} {
+    UTF::Getopts {
+	{ap.arg "" "AP"}
+        {br.arg "" "Bridges"}
+	{noproxysta "Don't use proxysta"}
+	{proxysta "Force proxysta"}
+	{chanspec.arg "" "Set the chanspec"}
+	{security.arg "" "Security to configure"}
+	{nostp  "disable spanning tree"}
+	{linkcheck "verify the bridge supports traffic"}
+	{forcejoin "Have the bridge issue a wl join command"}
+	{parse  "parse the state machine"}
+	{phycal "force single phase phycal"}
+    }
+    UTF::Try "Configure Bridging $(chanspec)" {
+	set SSID [$(ap) wl ssid]
+	foreach BRIDGE $(br) {
+	    append testnvram($BRIDGE) "[$BRIDGE wlname]_ssid=$SSID "
+	}
+	# Enable either WET or ProxySTA on the bridges,
+	foreach BRIDGE $(br) {
+	    catch {$BRIDGE wl dump psta} output
+	    if {$(proxysta) || (!$(noproxysta) && [regexp {\npsta mode:} $output])} {
+		append testnvram($BRIDGE) "wl_mode=psta [$BRIDGE wlname]_mode=psta "
+	    } elseif {[$BRIDGE nvram get wl_mode] ne "wet"} {
+		append testnvram($BRIDGE) "wl_mode=wet [$BRIDGE wlname]_mode=wet "
+		set apneedstunnel 1
+	    }
+	}
+	# Enable/disable WET tunnel to forward DHCP, IGMP, etc
+	if {[info exists apneedstunnel] && [$(ap) hostis Router]} {
+	    if {[$(ap) nvram get [$(ap) wlname]_wet_tunnel] ne "1"} {
+		append testnvram($(ap)) "[$(ap) wlname]_wet_tunnel=1 "
+	    }
+	} elseif {[$(ap) hostis Router]} {
+	    append testnvram($(ap)) "[$(ap) wlname]_wet_tunnel=0 "
+	}
+	if {[array exists testnvram]} {
+	    foreach dut [array names testnvram] {
+		UTF::Try "Apply nvram: $dut" {
+		    #RJM FIX and understand why reboot vs restart
+		    #eval [concat $dut restart $testnvram($dut)]
+		    eval [concat $dut reboot $testnvram($dut)]
+		}
+	    }
+	}
+	if {$(phycal)} {
+	    UTF::Try "Single phase phycal" {
+		#-Nitin
+		# Following are the details reagarding wl phy_percal
+		#	0, disable
+		#	1, enable, singlephase cal only,
+		#	2, enable mutliphase cal allowed
+		#	3, manual (testing mode), blocking all driver initiated
+		#          periodical cal, give phy_forcecal the full control
+		foreach BRIDGE $(br) {
+		    $BRIDGE wl -u phy_percal 1
+		    $BRIDGE wl join [$(ap) wl ssid]
+		}
+	    }
+	}
+	if {$(chanspec) ne ""} {
+	    UTF::Try "$(ap) $(chanspec)" {
+		APChanspec $(ap) $(chanspec)
+	    }
+	    foreach BRIDGE $(br) {
+		UTF::Try "$BRIDGE Chanspec $(chanspec)" {
+		    APChanspec $BRIDGE $(chanspec) -loose
+		}
+	    }
+	}
+	if {$(security) ne ""} {
+	    UTF::Try "CFG: Upstream Security=$(security)" {
+		APConfigureSecurity $(ap) -security $(security)
+	    }
+	    foreach BRIDGE $(br) {
+		UTF::Try "CFG: Downstream Security=$(security)" {
+		    $BRIDGE configure -wepkey [$(ap) cget -wepkey] -wpakey [$(ap) cget -wpakey] -wepidx [$(ap) cget -wepidx]
+		    APConfigureSecurity $BRIDGE -security $(security)
+		}
+	    }
+	}
+	if {$(forcejoin)} {
+	    if {$(parse)} {
+		$(ap) configure -prhdrparse 1
+	    }
+	    foreach BRIDGE $(br) {
+		UTF::Try "$BRIDGE join" {
+		    if {$(parse)} {
+			$BRIDGE configure -prhdrparse 1
+		    }
+		    $BRIDGE wl join [$(ap) wl ssid]
+		}
+	    }
+	}
+	if {!$(nostp)} {
+	    UTF::Try "STP on" {
+		foreach BRIDGE $(br) {
+		    catch {$BRIDGE rexec brctl stp [$BRIDGE brname] 1}
+		}
+		if {[$(ap) hostis Router]} {
+		    catch {$(ap) rexec brctl stp [$(ap) brname] 1}
+		}
+		return
+	    }
+	}
+	UTF::Sleep 30
+	UTF::Test::BridgeCheck -ap $(ap) -br $(br) -linkcheck
+	UTF::Try "Bridge Tables" {
+	    $(ap) wl assoclist
+	    set host [$(ap) lan]
+	    set addrs($(ap)) [$(ap) macaddr]
+	    set addrs(${(ap)}/$host) [$host macaddr]
+	    foreach BRIDGE $(br) {
+		set host [$BRIDGE lan]
+		if {![catch {$host macaddr} hwaddr]} {
+		    set addrs(${host}/${BRIDGE}) $hwaddr
+		} else {
+		    UTF::Message WARN $BRIDGE $hwaddr
+		}
+		if {![catch {$BRIDGE macaddr} hwaddr]} {
+		    set addrs($BRIDGE) $hwaddr
+		} else {
+		    UTF::Message WARN $BRIDGE $hwaddr
+		}
+	    }
+	    foreach index [array names addrs] {
+		UTF::Message MAC "ADDR" "$addrs($index) : ${index}"
+	    }
+	    foreach BRIDGE $(br) {
+		catch {$BRIDGE brctl showmacs [$BRIDGE brname]}
+		catch {$BRIDGE wl dump psta}
+	    }
+	}
+    }
+    foreach dut [concat $(ap) $(br)] {
+	catch {$dut wl msglevel -prhdrs}
+    }
+    return
+}

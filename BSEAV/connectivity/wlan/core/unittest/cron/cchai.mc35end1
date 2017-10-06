@@ -1,0 +1,76 @@
+# These cron jobs are epected to be manually installed on mc35end1 for userid cchai.
+# These cron jobs do NOT self update and do NOT update CVS.
+
+# Morning tests - high priority items carefully timed for specific build completion
+# TOT Router is last build to arrive, often 2AM or later
+# TOT 43236, 43236
+15 02 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -rtrtag NIGHTLY -statag NIGHTLY -email hnd-utf-list -title \"43236USB Win7 43236USB F15\" -conn0 \"4717_2gzip 43236bmac 43236win7\" -rtrdate \"\*\" -stadate \"\*\" -norvr -nocompat -noqtp -dvtwl
+
+# 43236BMAC Roaming
+17 02 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/RoamingNightly.test -email hnd-utf-list -src_ap 4717_1 -dst_ap 4717_2 -sta 43236bmac -sniffer sniffer -novoiceroaming -5G40_sniffer_start_attn 33 -5G20_sniffer_start_attn 46 -2G40_sniffer_start_attn 57 -2G20_sniffer_start_attn 57 -title \"MC35 43236USB BMAC F15 Roaming\" -5G40_src_ap_attn \"30-60\" -5G40_dst_ap_attn \"25-15\"
+
+# TOB 43236, 43236
+30 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"43236USB Win7 43236USB F15\" -conn0 \"4717_2 43236bmac 43236win7\" -rtrdate \"\*\" -stadate \"\*\" -norvr -nocompat -noqtp -dvtwl
+
+# UDP WIN7 43236 test
+# 32 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/udp_explore.test -utfconf /home/cchai/src/tools/unittest/utfconf/mc35.tcl 4717_2 43236win7 -email hnd-utf-list -reloadap -reloadsta
+
+# TOB 43362
+34 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"43362 Linux F15\" -conn0 \"4717_2 43362sdio\" -rtrdate \"\*\" -stadate \"\*\" -norvr -noqtp -dvtwl
+
+# TOB 43236 BTAMPQTP only
+# 36 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"43236USB BTAMP QTP\" -conn0 \"4717_2 43236win7\" -rtrdate \"\*\" -stadate \"\*\" -nosetup -noping -noperf -nomimo -noembed -norvr -nocompat -tc sanity
+
+
+
+
+# Morning tests - best effort items after above high priority items are done
+# 15 minute test on 43362SDIO
+45 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -15min20 -conn0 \"4717_2 43362sdio\" -title \"15-minute stress tests 43362SDIO Linux F15\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -norvr -nocompat -noqtp
+
+# 15 minute test on 4319USB
+# 46 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -15min -conn0 \"4717_2 4319win7\" -title \"15-minute stress tests 4319USB Win7\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -norvr -nocompat -noqtp
+
+# AARDVARK TAGGED
+47 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -statag \"AARDVARK_REL_6_30_\?\?\" -email hnd-utf-list -title \"43236USB F15 43236USB Win7\" -conn0 \"4717_2 43236bmac 43236win7\" -rtrdate \"\*\" -stadate \"\*\" -nocache -norvr  -nocompat -noqtp
+
+# FALCON TAGGED
+48 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -statag \"FALCON_REL_5_90_\?\?\?\" -email hnd-utf-list -title \"43362 Linux F15\" -conn0 \"4717_2 43362sdio\" -rtrdate \"\*\" -stadate \"\*\"  -nocache -norvr -noqtp
+
+# AARDVARK TWIG
+49 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -statag \"AARDVARK_TWIG_6_30_\?\?\" -email hnd-utf-list -title \"43236USB F15 43236USB Win7\" -conn0 \"4717_2 43236bmac 43236win7\" -rtrdate \"\*\" -stadate \"\*\" -nocache -norvr  -nocompat -noqtp
+
+# TOB P2P 43236 BMAC dongle, first as GO, then as GC, Sniffer as 3rd device, stop gap fix when PB4A was in trouble
+# 49 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/p2p_coex.test -ap 4717_2 -sta 4322nic -stago 43236p2pbmac -apconnect GO -title \"P2P GO 43236USB BMAC F15\" -email hnd-utf-list -rtrdate \"\*\" -stadate \"\*\" -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa
+# 50 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/p2p_coex.test -ap 4717_2 -sta 43236p2pbmac -stago 4322nic -apconnect GC -title \"P2P GC 43236USB BMAC F15\" -email hnd-utf-list -rtrdate \"\*\" -stadate \"\*\" -p2pchan \"36l 36\" -apchan \"3l 3\" -nodopp -nosopp -nomopp -nodnoa -nosnoa -nomnoa
+
+# 43236 & Sniffer 4322 TDLS, stop gap fix when PB4A was in trouble
+# 51 04 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"43236USB 4322NIC TDLS F15\" -conn0 \"4717_2 43236tdls 4322tdls\" -rtrdate \"\*\" -stadate \"\*\" -nocompat -norvr -noqtp -tdls
+
+
+
+# Evening tests - use builds from earlier in the day
+# preserved build tests
+00 18 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/preserved.test -email hnd-utf-list -noaptest -n
+
+# 15 minute test on 43236USB Win 7
+02 18 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -15min -conn0 \"4717_2 43236win7\" -title \"15-minute stress tests 43236USB Win7\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -nocache -norvr -nocompat -noqtp
+
+# RvR 43236USB Win 7
+04 18 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"RvR 43236USB Win7\" -conn0 \"4717_2 43236win7\" -rtrdate \"\*\" -stadate \"\*\" -noembed -nomimo -nocompat -noqtp -nocontrvr -no2G40rvr -no5G20rvr -nosniffer -nosetup -noping -noperf -fastrampup
+
+# RvR 43236USB F15
+06 18 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"RvR 43236USB F15\" -conn0 \"4717_2 43236bmac\" -rtrdate \"\*\" -stadate \"\*\" -noembed -nomimo -nocompat -noqtp -nocontrvr -no2G40rvr -no5G20rvr -nosniffer -nosetup -noping -noperf -fastrampup
+
+# RvR + Interference 43236USB F15
+08 18 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/RvRNightly1.test -email hnd-utf-list -title \"RvR 43236USB F15 + Interference ACIM on\"  -ap 4717_2 -sta 43236bmac -nosniffer -intsta 43224xp8 -attngrp G3 -intattn2G20 \"ALL 0\" -intattn2G40 \"ALL 0\" -intattn5G20 \"ALL 0\" -intattn5G40 \"ALL 0\" -cycle2G20AttnRange \"25-0\" -cycle2G40AttnRange \"25-0\" -cycle5G20AttnRange \"25-0\" -cycle5G40AttnRange \"25-0\" -downstreamonly -nounload -edithooks -fb1 -trenderrors -nocompositemainpage -intquiet -pathloss 30
+
+# RvR 4319USB
+# 10 18 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"RvR 4319USB Win7\" -conn0 \"4717_2 4319win7\" -rtrdate \"\*\" -stadate \"\*\" -noembed -nomimo -nocompat -noqtp -nocontrvr -no2G20rvr -no5G40rvr -no5G20rvr -nosniffer -nosetup -noping -noperf -fastrampup
+
+# RvR TOB 43362SDIO
+12 18 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -email hnd-utf-list -title \"RvR 43362 F15\" -conn0 \"4717_2 43362sdio\" -rtrdate \"\*\" -stadate \"\*\" -noembed -nomimo -nocompat -noqtp -nocontrvr -no2G40rvr -no5G40rvr -no5G20rvr -nosniffer -nosetup -noping -noperf -fastrampup
+
+# 15 minute test on 43236USB F15
+14 18 * * * /home/cchai/src/tools/unittest/utf_qsub mc35 /home/cchai/src/tools/unittest/Test/Sanity.test -15min -conn0 \"4717_2 43236bmac\" -title \"15-minute stress tests 43236 BMAC F15\" -email hnd-utf-list -nosetup -noping -noperf -rtrdate \"\*\" -stadate \"\*\" -norvr -nocompat -noqtp
+

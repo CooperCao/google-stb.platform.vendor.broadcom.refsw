@@ -1,0 +1,56 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for removing a virtual interface from a router
+# $Id$
+#
+package require UTF
+
+package provide UTF::Test::Mbss::APRemoveInterface 2.0
+
+UTF::Test Mbss::APRemoveInterface {args} {
+
+    foreach AP $args {
+	set h [$AP cget -host]
+	set wlname [$AP wlname]
+	if {[regsub {\.\d+} $wlname {} wlbase]} {
+	    set hwl "$h,$wlbase"
+	    if {![info exists vifs($hwl)]} {
+		set ovifs($hwl) [set vifs($hwl) [$AP nvram get ${wlbase}_vifs]]
+	    }
+	    set i [lsearch $vifs($hwl) $wlname]
+	    if {$i >= 0} {
+		set vifs($hwl) [lreplace $vifs($hwl) $i $i]
+	    }
+	}
+	if {[$AP nvram get ${wlname}_bss_enabled] ne "0"} {
+	    lappend nv($h) "${wlname}_bss_enabled=0"
+	}
+    }
+    foreach hwl [array names vifs] {
+	foreach {h wlbase} [split $hwl ,] {
+	    if {$vifs($hwl) ne $ovifs($hwl)} {
+		lappend nv($h) "${wlbase}_vifs=$vifs($hwl)"
+	    }
+	}
+    }
+    # Only restart once per host
+    foreach h [array names nv] {
+	$h restart {*}$nv($h)
+    }
+    foreach AP $args {
+	if {![catch {$AP wl bss} ret] && ![$AP hostis STBAP]} {
+	    if {[regexp {\.(\d+)} [$AP wlname] - ix]} {
+		# Try bss
+		$AP wl bss -C $ix del
+	    }
+	    # Try interface_remove
+	    catch {$AP wl interface_remove}
+	    if {![catch {$AP wl bss}]} {
+		$AP warn "unable to remove the interface"
+		$AP reboot
+	    }
+	}
+    }
+}

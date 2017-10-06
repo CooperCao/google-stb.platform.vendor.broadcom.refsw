@@ -1,0 +1,14 @@
+#
+# $Id$
+#
+MAILTO=bkushik@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58      7,19,23 * * *   ~/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+40       18       * * *   ~/unittest/cron/launch blr14 Test/StaNightly.test -ap2 4360b_1x1 -sta '4364B2 ' -title 'BLR14 4364B2 StaNightly' -utfconf blr14 -noapload -ap 4360a -email hnd-utf-list

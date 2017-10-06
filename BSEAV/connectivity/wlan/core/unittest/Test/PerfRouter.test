@@ -1,0 +1,533 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# UTF test script for Running performance tests on a Router
+# $Id$
+#
+
+package require UTF
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::Perf-MIMO
+
+package provide UTF::Test::PerfRouter  2.0
+
+UTF::Test PerfRouter {WLAN args} {
+    # STA may be the first element of args for compatibility
+    if {![regexp {^-} [lindex $args 0]]} {
+	set args [lreplace $args -1 -1 -sta]
+    }
+    UTF::Getopts  [subst {
+	{sta.arg "" "STA"}
+	{security.arg "open" "Security"}
+	{stasecurity.arg "" "STA Security (if different from -security)"}
+	{loop.arg "1" "Loop Count"}
+	{noboot "Skip reboot"}
+	{nojoin "Skip join"}
+	{nodown "Skip any settings that need the driver down"}
+	{reloadsta "Reload STA"}
+	{window.arg "auto" "TCP window"}
+	{rate.arg "auto" "rates to test"}
+	{wired "Only test wired paths"}
+	{chanspec.arg "" "Chanspec"}
+	{bandlock.arg "" "Band lock"}
+	{ap_nphy_forcecal "Force nphy recalibration on the AP after join"}
+	{sta_nphy_forcecal "Force nphy recalibration on the STA after join"}
+	{ap_lpphy_fullcal "Force lpphy recalibration on the AP  after join"}
+	{sta_lpphy_fullcal "Force lpphy recalibration on the STA after join"}
+	{roam_trigger.arg "" "Set roam_trigger"}
+	{scansuppress "Suppress scans during test run"}
+	{amsdu.arg "" "AMSDU"}
+	{amsdu_aggbytes.arg "" "amsdu_aggbytes" }
+	{amsdu_aggsf.arg "" "amsdu_aggsf" }
+	{amsdu_lowm.arg "" "amsdu_lowm (hiwm will be +2)"}
+	{ampdu.arg "" "AMPDU"}
+	{test.arg "iperf" "Test type"}
+	{title.arg "" "Title"}
+	{frameburst.arg "1" "Enable framebursting"}
+	{txpwrctrl.arg "" "nphy_txpwrctrl"}
+	{ampdu_rx_factor.arg "" "ampdu_rx_factor"}
+	{dir.arg "tx rx" "Directions"}
+	{PCIArbControl.arg "" "PCIArbControl"}
+	{txfifoBE.arg "" "txfifoBE"}
+	{txfifoBK.arg "" "txfifoBK"}
+	{txfifoVI.arg "" "txfifoVI"}
+	{aptxfifo.arg "" "AP txfifo set {BE BK VI VO BC/MC ATIM}"}
+	{aptxfifo_sz.arg "" "AP txfifo size.  Use aptxfifo_name to pick which"}
+	{aptxfifo_name.arg "" "AP txfifo name.  Use with aptxfifo_sz"}
+	{statxfifo.arg "" "STA txfifo set {BE BK VI VO BC/MC ATIM}"}
+	{statxfifo_sz.arg "" "STA txfifo size.  Use statxfifo_name to pick which"}
+	{statxfifo_name.arg "" "STA txfifo name.  Use with statxfifo_sz"}
+	{nowan "No WAN tests"}
+	{nolan "No LAN tests"}
+	{txmaxpkts.arg "" "txmaxpkts"}
+	{mimo_ss_stf.arg "" "mimo_ss_stf"}
+	{pwr_percent.arg "" "pwr_percent"}
+	{txpwr1.arg "" "txpwr1"}
+	{t.arg "6" "Time in seconds"}
+	{i.arg "2" "Interval in seconds"}
+	{mimo_preamble.arg "" "mimo_preamble"}
+	{PM.arg "" "Power Management"}
+	{ampdu_mpdu.arg "" "ampdu_mpdu"}
+	{rxampdu_mpdu.arg "" "RX ampdu_mpdu"}
+	{dump_ampdu "Dump AMPDU stats"}
+	{dump_amsdu "Dump AMSDU stats"}
+	{mu "Dump MU stats (Dongle)"}
+	{maxsocram.arg "" "maxsocram"}
+	{mw.arg "" "Memory Waste"}
+	{sd_divisor.arg "" "sd_divisor"}
+	{wme.arg "" "WME"}
+	{ro.arg "" "Additional Report only options"}
+	{bpdiv.arg "" "Backplane Divisor"}
+	{txbound.arg "" "txbound"}
+	{rxbound.arg "" "rxbound"}
+	{attngrp.arg "[$WLAN cget -attngrp]" "Attenuator group"}
+	{attn.arg "" "Attenuation"}
+	{queue.arg "BE" "Use different queues: BE BK VI VO"}
+	{stf.arg "" "Specify STF mode"}
+	{N.arg "0" "Use TCP NODELAY"}
+	{l.arg "" "Buffer Length"}
+	{pool.arg "" "Pool size"}
+	{txchain.arg "" "Specify number of tx chains"}
+	{rxchain.arg "" "Specify number of rx chains"}
+	{ack_ratio.arg "" "ack_ratio"}
+	{ack_ratio_depth.arg "" "ack_ratio_depth"}
+	{temp "Record temperature"}
+	{rssi "Record RSSI"}
+	{counters "Record wl counters before and after"}
+	{interrupts "Record /proc/interrupts before and after"}
+	{ifconfig "Record ifconfig before and after"}
+	{iperf.arg "" "iperf command"}
+	{b.arg "0" "UDP rate"}
+	{u "UDP test (equiv -b 1m)"}
+	{pretest "Run one pretest at the start."}
+	{slow_start.arg "" "Discard initial samples"}
+	{rpcdump "Dump RPC info"}
+	{rcvlazy_p.arg "" "rcvlazy packets"}
+	{rcvlazy_u.arg "" "rcvlazy usec"}
+	{symmetric "Apply TX and RX parameters to both devices"}
+	{streams.arg "1" "Multiple iperf streams"}
+	{P.arg "" "Parallel streams inside iperf"}
+	{trim_ends.arg "0" "Discard first and last to WAR alignment issues"}
+	{tlob.arg "" "tcp_limit_output_bytes"}
+	{cpu.arg "" "Measure CPU on arg"}
+	{pps "Report packets per sec"}
+	{txrate "Report UDP txrate"}
+	{e "Report enhanced iperf stats"}
+	{ibss "Use IBSS instead of AP + STA"}
+	{rxinterference_override.arg "" "Interference Override"}
+    }]
+    parray {}
+
+    if {($(rcvlazy_p) ne "") != ($(rcvlazy_u) ne "")} {
+	error "Can't set rcvlazy_p without rcvlazy_u"
+    }
+
+    if {$(nolan)} {
+	set LAN ""
+    } else {
+	set LAN [$WLAN lan]
+	if {$LAN eq "::$WLAN"} {
+	    set LAN $WLAN
+	}
+    }
+    if {$(nowan) || ![$WLAN hostis Router Vx BSDAP]} {
+	set WAN ""
+    } else {
+	set WAN [$WLAN wan]
+    }
+
+    if {$(sta) eq ""} {
+	set (sta) [$WLAN cget -peer]
+    }
+
+    if {$(stasecurity) eq ""} {
+	set (stasecurity) $(security)
+    }
+
+    if {$(aptxfifo) ne ""} {
+	if {[llength $(aptxfifo)] != 6} {
+	    error "bad aptxfifo: $(aptxfifo).  should be {BE BK VI VO BC/MC ATIM}"
+	} else {
+	    set fifo 0
+	    foreach i $(aptxfifo) {
+		incr fifo $i
+	    }
+	    UTF::Message WARN [$WLAN cget -name] "txfifo total: $fifo"
+	}
+    }
+
+    regsub {/} "test_${WLAN}_$(sta).log" {.} UTF::Logfile
+
+    # report-only passthrough options
+    foreach o {PM wme maxsocram bpdiv txfifoBK txfifoVI pool \
+		   aptxfifo aptxfifo_name aptxfifo_sz \
+		   statxfifo statxfifo_name statxfifo_sz \
+		   rxchain txchain mimo_preamble} {
+	if {$($o) ne ""} {
+	    lappend (ro) $o $($o)
+	}
+    }
+    if {[llength $(ro)]} {
+	lappend pass -ro $(ro)
+    }
+
+    # passthrough options
+    foreach o {
+	txpwrctrl txpwr1 t i test rate title frameburst window
+	txmaxpkts pwr_percent ampdu_mpdu rxampdu_mpdu
+	txbound rxbound sd_divisor mw queue attngrp attn stf N l
+	ack_ratio_depth ack_ratio b slow_start
+	rcvlazy_p rcvlazy_u streams P trim_ends tlob cpu iperf
+	amsdu_aggbytes amsdu_aggsf amsdu_lowm rxinterference_override
+    } {
+	if {$($o) ne ""} {
+	    lappend pass "-$o" $($o)
+	}
+    }
+
+    # passthrough boolean options
+    foreach o {
+	dump_ampdu dump_amsdu mu counters temp rssi \
+	    interrupts ifconfig u pretest rpcdump symmetric pps txrate e
+    } {
+	if {$($o)} {
+	    lappend pass "-$o"
+	}
+    }
+
+    set ip 60
+    set wlname [$WLAN wlname]
+
+    # For RvR if attngrp isn't set, see if any of the devices have
+    # nominated an attenuator
+    set (attn) [UTF::Numexpand $(attn)]
+    if {$(attngrp) eq "" && $(attn) ne {{}}} {
+	foreach STA $(sta) {
+	    set (attngrp) [$STA cget -attngrp]
+	    if {$(attngrp) ne ""} {
+		break
+	    }
+	}
+	if {$(attngrp) eq ""} {
+	    error "-attn requires -attngrp"
+	}
+    }
+    # Reset attenuator to initial value before attempting ping
+    if {$(attn) ne {{}}} {
+	$(attngrp) attn [lindex $(attn) 0]
+    }
+
+    if {!$(noboot)} {
+
+	if {[$WLAN hostis Router Vx BSDAP]} {
+	    if {$(frameburst)} {
+		set nv(${wlname}_frameburst) on
+	    } else {
+		set nv(${wlname}_frameburst) off
+	    }
+	    set nv(fw_disable) 1
+	    set nv(router_disable) 0
+#	set nv(wan0_ipaddr) 192.168.254.251
+#	set nv(wan0_proto) static
+
+	    if {![string is true $(wme)]} {
+		set nv(${wlname}_wme) off
+	    }
+
+	    if {$(ampdu) eq "1"} {
+		set nv(${wlname}_ampdu) on
+	    } elseif {$(ampdu) eq "0"} {
+		set nv(${wlname}_ampdu) off
+	    } elseif {$(ampdu) ne ""} {
+		error "ampdu should be 1/0 or empty"
+	    }
+	    if {$(amsdu) eq "1"} {
+		set nv(${wlname}_amsdu) on
+	    } elseif {$(amsdu) eq "0"} {
+		set nv(${wlname}_amsdu) off
+	    } elseif {$(amsdu) ne ""} {
+		error "amsdu should be 1/0 or empty"
+	    }
+
+	    # Vx HACK: copy wl0_* to wl_*
+	    if {[$WLAN hostis Vx]} {
+		foreach n [array names nv] {
+		    if {[regexp {wl\d(?:\.\d)?_(.*)} $n - var]} {
+			set nv(wl_$var) $nv($n)
+		    }
+		}
+	    }
+
+	    set updated 0
+	    foreach n [array names nv] {
+		if {[$WLAN nvram get $n] ne $nv($n)} {
+		    $WLAN nvram set "$n=$nv($n)"
+		    set updated 1
+		}
+	    }
+	    if {$updated} {
+		$WLAN nvram commit
+		$WLAN restart
+		UTF::Sleep 5
+	    }
+
+	} else {
+	    # no nvram
+	    if {$(frameburst)} {
+		$WLAN wl frameburst 1
+	    } else {
+		$WLAN wl -u frameburst 0
+	    }
+	    if {$(ampdu) ne "" || $(amsdu) ne ""} {
+		$WLAN wl down
+		if {$(ampdu) eq "1"} {
+		    $WLAN wl ampdu 1
+		} elseif {$(ampdu) eq "0"} {
+		    $WLAN wl ampdu 0
+		} elseif {$(ampdu) ne ""} {
+		    error "ampdu should be 1/0 or empty"
+		}
+		if {$(amsdu) eq "1"} {
+		    $WLAN wl amsdu 1
+		} elseif {$(amsdu) eq "0"} {
+		    $WLAN wl -u amsdu 0
+		} elseif {$(amsdu) ne ""} {
+		    error "amsdu should be 1/0 or empty"
+		}
+		$WLAN wl up
+	    }
+	}
+
+	if {$(chanspec) eq ""} {
+	    # Find best chanspec
+	    set (chanspec) [lindex [UTF::PerfChans $WLAN {*}$(sta)] 0]
+	}
+
+	if {!$(ibss)} {
+	    APConfigureSecurity $WLAN -security $(security)
+	    APChanspec $WLAN $(chanspec)
+	}
+
+	if {$(ampdu_rx_factor) ne {}} {
+	    $WLAN wl ampdu_rx_factor $(ampdu_rx_factor)
+	}
+
+	if {$(PCIArbControl) ne ""} {
+	    $WLAN epidiag \
+		"setcore 4; set reg(arbcontrol) $(PCIArbControl); dumpregs"
+	}
+    }
+
+    if {$(aptxfifo) ne "" || $(aptxfifo_name) ne ""} {
+	$WLAN wl down
+	if {$(aptxfifo) ne ""} {
+	    for {set i 0} {$i < 6} {incr i} {
+		$WLAN wl txfifo_sz $i [lindex $(aptxfifo) $i]
+	    }
+	}
+	if {$(aptxfifo_name) ne ""} {
+	    $WLAN wl txfifo_sz \
+		[string map {BK 0 BE 1 VI 2 VO 3 BC 4 MC 4 ATIM 5} \
+		     $(aptxfifo_name)] $(aptxfifo_sz)
+	}
+	$WLAN wl up
+    }
+
+    if {$(wired)} {
+	if {$LAN eq "" || $WAN eq ""} {
+	    # Endpoints not available
+	    return
+	}
+	if {![regexp {^auto(x\d+)?$} $(rate)]} {
+	    lappend pass -rate {0x2 autox4 0x2}
+	}
+	foreach d $(dir) {
+	    switch -- $d {
+		rx {
+		    Perf-MIMO [list $WAN $WLAN] $LAN {*}$pass -note LAN<-WAN
+		}
+		tx {
+		    Perf-MIMO [list $LAN $WLAN] $WAN {*}$pass -note LAN->WAN
+		}
+		bx {
+		    Perf-MIMO [list $LAN $WLAN] $WAN {*}$pass -note LAN<>WAN -bi
+		}
+	    }
+	}
+	return
+    }
+    foreach STA $(sta) {
+	if {!$(nojoin)} {
+	    if {$(reloadsta)} {
+		$STA reload
+	    }
+	    $STA services stop
+	    # AP unsupported is ok, it's probably a STA-only device
+	    catch {$STA wl -u ap 0}
+	    $STA wl -u msglevel +assoc
+	    if {$(roam_trigger) ne ""} {
+		$STA wl roam_trigger $(roam_trigger) all
+	    }
+	    $STA wl -u scansuppress 0
+	    if {$(bandlock) ne ""} {
+		$STA wl band $(bandlock)
+	    }
+
+	    if {!$(nodown)} {
+		# These need the driver to be down
+
+		if {$(bpdiv) ne ""} {
+		    $STA configure -nvram_add "bpdiv=$(bpdiv)"
+		    $STA reload
+		}
+
+		$STA wl down
+		if {$(pool) ne ""} {
+		    $STA reload
+		    $STA wl pool $(pool)
+		}
+		if {$(ampdu) eq "1"} {
+		    $STA wl ampdu 1
+		} elseif {$(ampdu) eq "0"} {
+		    $STA wl ampdu 0
+		} elseif {$(ampdu) ne ""} {
+		    error "ampdu should be 1/0 or empty"
+		}
+		if {$(amsdu) eq "1"} {
+		    $STA wl amsdu 1
+		} elseif {$(amsdu) eq "0"} {
+		    $STA wl -u amsdu 0
+		} elseif {$(amsdu) ne ""} {
+		    error "amsdu should be 1/0 or empty"
+		}
+
+		if {$(ampdu_rx_factor) ne {}} {
+		    $STA wl ampdu_rx_factor $(ampdu_rx_factor)
+		}
+		if {$(rxchain) ne {}} {
+		    $STA wl rxchain $(rxchain)
+		}
+		if {$(txchain) ne {}} {
+		    $STA wl txchain $(txchain)
+		}
+		$STA wl -u spect 0
+		if {![$STA cget -nomimo_bw_cap]} {
+		    if {[catch {$STA wl bw_cap 2 -1}]} {
+			$STA wl -u mimo_bw_cap 1
+		    }
+		}
+		if {$(txfifoVI) ne ""} {
+		    $STA wl txfifo_sz 2 $(txfifoVI)
+		}
+		if {$(txfifoBE) ne ""} {
+		    $STA wl txfifo_sz 1 $(txfifoBE)
+		}
+		if {$(txfifoBK) ne ""} {
+		    $STA wl txfifo_sz 0 $(txfifoBK)
+		}
+
+		if {$(statxfifo) ne ""} {
+		    for {set i 0} {$i < 6} {incr i} {
+			$STA wl txfifo_sz $i [lindex $(statxfifo) $i]
+		    }
+		}
+		if {$(statxfifo_name) ne ""} {
+		    $STA wl txfifo_sz \
+			[string map {BK 0 BE 1 VI 2 VO 3 BC 4 MC 4 ATIM 5} \
+			     $(statxfifo_name)] $(statxfifo_sz)
+		}
+
+
+		if {$(mimo_preamble) ne {}} {
+		    $STA wl mimo_preamble $(mimo_preamble)
+		}
+		$STA wl up
+	    }
+
+	    if {$(frameburst)} {
+		$STA wl frameburst 1
+	    } else {
+		$STA wl -u frameburst 0
+	    }
+	    if {$(ibss)} {
+		package require UTF::Test::Join
+		Join $WLAN $(sta) -imode ibss \
+		    -security $(security) -chanspec $(chanspec)
+	    } else {
+		ConnectAPSTA $WLAN $(sta) -stasecurity $(stasecurity)
+	    }
+	}
+    }
+
+    foreach STA $(sta) {
+	if {$(sta_nphy_forcecal)} {
+	    $STA wl nphy_percal 3
+	    $STA wl nphy_forcecal 1
+	}
+	if {$(sta_lpphy_fullcal)} {
+	    $STA lpphy_fullcal
+	}
+	if {$(scansuppress)} {
+	    $STA wl scansuppress 1
+	}
+	# Set PM after join.  WAR for Vista's power management
+	# overrides.
+	if {$(PM) ne ""} {
+	    $STA wl PM $(PM)
+	}
+    }
+
+    if {$(bandlock) ne ""} {
+	$WLAN wl band $(bandlock)
+    }
+    if {$(ap_nphy_forcecal)} {
+	$WLAN wl nphy_forcecal
+    }
+    if {$(ap_lpphy_fullcal)} {
+	$WLAN wl lpphy_fullcal
+    }
+    if {$(mimo_ss_stf) ne ""} {
+	$WLAN wl mimo_ss_stf $(mimo_ss_stf)
+    }
+
+    for {set i $(loop)} {$i > 0 } {incr i -1} {
+	if {$LAN ne ""} {
+	    foreach d $(dir) {
+		switch -- $d {
+		    rx {
+			Perf-MIMO $STA $WLAN {*}$pass -note LAN<-WLAN
+		    }
+		    tx {
+			Perf-MIMO $WLAN $STA {*}$pass -note LAN->WLAN
+		    }
+		    bx {
+			Perf-MIMO $WLAN $STA {*}$pass -note LAN<>WLAN -bi
+		    }
+		    default {
+			error "unexpected direction: $d"
+		    }
+		}
+	    }
+	}
+	if {$WAN ne ""} {
+	    foreach d $(dir) {
+		switch -- $d {
+		    rx {
+			Perf-MIMO $STA [list $WLAN $WAN] {*}$pass -note WAN<-WLAN
+		    }
+		    tx {
+			Perf-MIMO [list $WAN $WLAN] $STA {*}$pass -note WAN->WLAN
+		    }
+		    bx {
+			Perf-MIMO [list $WAN $WLAN] $STA {*}$pass -note WAN<>WLAN -bi
+		    }
+		    default {
+			error "unexpected direction: $d"
+		    }
+		}
+	    }
+	}
+    }
+}

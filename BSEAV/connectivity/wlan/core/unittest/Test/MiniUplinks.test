@@ -1,0 +1,513 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# UTF test script for testing router uplinks using a SoftAP and
+# without going into Bridge mode.
+# $Id$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::Mbss::Connectivity
+package require UTF::Test::Mbss::APAddInterface
+package require UTF::Test::Mbss::APRemoveInterface
+package require UTF::Test::controlchart
+
+package provide UTF::Test::MiniUplinks 2.0
+
+namespace eval UTF::Test::MiniUplinks {
+    proc ParallelPing {LAN if min max DSTIP args} {
+	UTF::Getopts {
+	    {slow "Delay 1 sec between interfaces"}
+	    {up "Bring up each adapter before ping"}
+	}
+	if {[regexp {fc15} [$LAN kernel]]} {
+	    # fc15 doesn't support ping -i ifname
+	    # Use a serialised direct route workaround
+	    set count $min
+	    for {set i $min} {$i < $max} {incr i} {
+		if {$(up)} {
+		    $LAN rexec ip link set $if.$i up
+		}
+		if {$(slow)} {
+		    UTF::Sleep 1
+		}
+		$LAN rexec route add $DSTIP dev $if.$i
+		if {![catch {$LAN rexec -t 32 ping -n -c 1 -w 30 -r $DSTIP}]} {
+		    incr count
+		}
+		$LAN rexec route del $DSTIP dev $if.$i
+	    }
+	} else {
+	    # All other Linux versions can use parallel device ping
+	    for {set i $min} {$i < $max} {incr i} {
+		if {$(up)} {
+		    $LAN rexec ip link set $if.$i up
+		}
+		if {$(slow)} {
+		    UTF::Sleep 1
+		}
+		set p($i) [$LAN rexec -t 32 -async \
+			       ping -n -c 1 -w 30 -r -I $if.$i $DSTIP]
+	    }
+	    set count $min
+	    for {set i $min} {$i < $max} {incr i} {
+		if {![catch {$p($i) close}]} {
+		    incr count
+		}
+	    }
+	}
+	if {$count >= $max} {
+	    return "$count+"
+	} else {
+	    return $count
+	}
+    }
+}
+
+UTF::Test MiniUplinks {DOWN UP args} {
+
+    # If FBDefault is set, and devices support it, enable fb
+    if {[info exists ::UTF::FBDefault] &&
+	![$DOWN cget -noframeburst] && ![$UP cget -noframeburst]} {
+	set fbdefault 1
+    } else {
+	set fbdefault 0
+    }
+
+    if {[$DOWN cget -noaes] || [$UP cget -noaes]} {
+	set defsec open
+    } else {
+	set defsec aespsk2
+    }
+    UTF::Getopts [subst {
+	{maxlinks.arg "14" "Max links to check"}
+	{chanspec.arg "" "Chanspec"}
+	{security.arg "$defsec" "Security"}
+	{loop.arg "" "Deprecated"}
+	{perfcache.parg "" "Performance Cache"}
+	{perfloop.parg 1 "Perf loops"}
+	{history.parg 30 "History"}
+	{nodwds "Skip DWDS test"}
+	{nowet "Skip WET test"}
+	{nopsta "Skip PSTA test"}
+	{dopsr.arg "0" "Do PSR instead of PSTA"}
+	{dodwdsr.arg "0" "Do DWDS Relay instead of DWDS"}
+	{dowetr.arg "0" "Do WET Relay instead of WET"}
+	{pstareboot "Enable PSTA reboot WAR"}
+	{nore "Skip RE test (DEPRECATED)"}
+	{nocache "Don't update performance cache"}
+	{norestore "Leave in bridge mode"}
+	{sta.arg "" "STA for RE tests (DEPRECATED)"}
+	{frameburst.arg "$fbdefault" "Use frameburst"}
+ 	{b.arg "[$DOWN cget -udp]"
+	    "UDP data rate (0 for TCP) defaults to -udp option of dut"}
+	{otherlans.arg "" "Additional lans to disable during this test.  These are ethernet devices on LAN that are not already included in -lanpeer"}
+    }]
+
+    if {$(loop) ne  ""} {
+	set (perfloop) $(loop)
+    }
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    if {![$DOWN wlconf_by_nvram]} {
+	UTF::Message INFO $DOWN \
+	    "MiniUplinks test only supports Router-like devices"
+	return
+    }
+
+    if {$(maxlinks) > 150} {
+	error "maxlinks must be <=150"
+    }
+
+    set setup 0
+    UTF::Try "$DOWN->$UP: Configure Upstream" {
+
+	set uwl [$UP wlname]
+	set dwl [$DOWN wlname]
+
+	set ddefaults [list ${dwl}_mode=ap ${dwl}_wds= ${dwl}_dwds= \
+			   ${dwl}_ssid=[$DOWN nvram get ${dwl}_ssid]]
+
+	set UPIPADDR [$UP cget -ipaddr]
+
+	if {$(chanspec) eq "" &&
+	    [set (chanspec) [lindex [$DOWN cget -perfchans] 0]] eq ""} {
+	    # Pick the best
+	    set (chanspec) [lindex [UTF::PerfChans $DOWN $UP] 0]
+	}
+	set ucap [$UP wl cap]
+	if {[lsearch $ucap "dwds"] < 0} {
+	    UTF::Message INFO $UP "DWDS not supported"
+	    set (nodwds) 1
+	}
+	set dcap [$DOWN wl cap]
+	if {[lsearch $dcap "dwds"] < 0} {
+	    UTF::Message INFO $DOWN "DWDS not supported"
+	    set (nodwds) 1
+	}
+	if {[lsearch $dcap "wet"] < 0} {
+	    UTF::Message INFO $DOWN "WET not supported"
+	    set (nowet) 1
+	}
+	if {[lsearch $dcap "psta"] < 0} {
+	    UTF::Message INFO $DOWN "PSTA not supported"
+	    set (nopsta) 1
+	}
+
+	UTF::Message INFO $DOWN "Disable secondary lan devices"
+	foreach l $(otherlans) {
+	    $l ifconfig down
+	}
+
+	# Add virtual ethernet interfaces
+	set LAN [$DOWN lan]
+
+	set if [$LAN cget -device]
+
+	# Clean up any left over virtual ether interfaces
+	foreach {- vif} [regexp -all -inline "($if\\.\\d+)@$if" \
+			     [$LAN rexec -x "ip addr show|grep '@$if:'"]] {
+	    $LAN ip link del link $if dev $vif
+	}
+
+	set baselinks [llength [$DOWN cget -lanpeer]]
+	for {set i $baselinks} {$i < $(maxlinks)} {incr i} {
+	    set ip [format {192.168.1.%d} [expr {250 - $i}]]
+	    set mac [format {70:70:70:70:70:%02x} $i]
+	    $LAN ip link add link $if name $if.$i address $mac type macvlan
+	    $LAN ip address add $ip/24 dev $if.$i
+	    # Leave the links down so we can enable them slowly for the
+	    # psta test
+	    if {$(nopsta)} {
+		$LAN rexec ip link set $if.$i up
+	    }
+	}
+
+	# Configure UP Router
+	$UP configure -security {}; # clear cache
+	APConfigureSecurity $UP -security $(security)
+	APChanspec $UP $(chanspec)
+
+	# Configure Down Bridge
+	$DOWN configure -security {} \
+	    -wepkey [$UP cget -wepkey] -wpakey [$UP cget -wpakey]
+	APChanspec $DOWN $(chanspec) -loose
+	APConfigureSecurity $DOWN -security $(security)
+	set setup 1
+	set (chanspec)
+    }
+
+    if {!$setup} {
+	# abort
+	return
+    }
+
+    set ccopts [list -i 2 -b $(b) -loop $(perfloop) -perfcache $(perfcache) \
+		    -history $(history)]
+
+    if {!$(nopsta)} {
+	UTF::Try "$DOWN->$UP: PSTA clients" {
+	    if {$(dopsr)} {
+		$DOWN configure -defer_restart true
+		try {
+		    Mbss::APAddInterface -lan ${DOWN}.1
+		    APConfigureSecurity ${DOWN}.1 -security $(security)
+		} finally {
+		    $DOWN configure -defer_restart false
+		}
+		$DOWN restart ${dwl}_mode=psr ${dwl}_wds= \
+		    ${dwl}_ssid=[$UP cget -ssid]
+	    } else {
+		$DOWN restart ${dwl}_mode=psta ${dwl}_wds= \
+		    ${dwl}_ssid=[$UP cget -ssid]
+	    }
+
+	    set cleanup {
+		try {
+		    # Put DOWN back into AP mode
+		    if {$(pstareboot)} {
+			$DOWN reboot {*}$ddefaults
+		    } else {
+			$DOWN restart {*}$ddefaults
+		    }
+		} finally {
+		    # Make sure all links are up for the non-PSTA tests
+		    for {set i $baselinks} {$i < $(maxlinks)} {incr i} {
+			$LAN rexec ip link set $if.$i up
+		    }
+		}
+	    }
+
+	    UTF::Sleep 10 $DOWN "Allow Downstream to connect to Upstream"
+	    $UP ifconfig $UPIPADDR
+
+	    catch {$UP wl keys}
+	    catch {$DOWN wl keys}
+	    catch {$DOWN wl dump psta}
+	    catch {$UP wl assoclist}
+
+	    if {$(frameburst)} {
+		$UP wl frameburst 1
+		$DOWN wl frameburst 1
+	    } else {
+		$UP wl -u frameburst 0
+		$DOWN wl -u frameburst 0
+	    }
+
+	    foreach l [$DOWN cget -lanpeer] {
+		$l ping $UP -c 70
+	    }
+	    ParallelPing $LAN $if $baselinks $(maxlinks) [$UP ipaddr] -slow -up
+	} finally {
+	    catch {$DOWN wl dump psta}
+	    catch {$UP wl assoclist}
+	}
+	UTF::Try "$DOWN->$UP: PSTA" {
+	    controlchart [list $DOWN $UP] \
+		-key [list [$DOWN branchname] PSTA $(security)] \
+		-window [$UP tcpautowindow] {*}$ccopts
+	} finally {
+	    catch {$DOWN wl dump psta}
+	    catch {$UP wl assoclist}
+	}
+	UTF::Try "$DOWN<-$UP: PSTA" {
+	    controlchart [list $UP $DOWN] \
+		-key [list [$DOWN branchname] PSTA $(security)] \
+		-window [$UP tcpautowindow] {*}$ccopts
+	} finally {
+	    catch {$DOWN wl dump psta}
+	    catch {$UP wl assoclist}
+	    if {!$(dopsr)} {
+		eval $cleanup
+	    }
+	}
+
+	if {$(dopsr)} {
+	    UTF::Try "$DOWN: $(sta)->$UP: PSTA" {
+		ConnectAPSTA ${DOWN}.1 $(sta)
+		# routing tables
+		$(sta) add_networks $UP
+		controlchart [list $(sta) $UP] \
+		    -key [list [$DOWN branchname] PSTA $(security) $DOWN] \
+		    -window [$UP tcpautowindow] {*}$ccopts
+	    } finally {
+		catch {$DOWN wl dump psta}
+		catch {$UP wl assoclist}
+	    }
+	    UTF::Try "$DOWN: $(sta)<-$UP: PSTA" {
+		controlchart [list $UP $(sta)] \
+		    -key [list [$DOWN branchname] PSTA $(security) $DOWN] \
+		    -window [$UP tcpautowindow] {*}$ccopts
+	    } finally {
+		catch {$DOWN wl dump psta}
+		catch {$UP wl assoclist}
+		catch {$(sta) wl disassoc}
+		eval $cleanup
+	    }
+	}
+    }
+
+    if {!$(nodwds)} {
+	set host [$UP cget -host]
+	set WDS "[namespace tail $UP]#1"
+	UTF::Try "$DOWN->$UP: DWDS clients" {
+	    # Enable DWDS
+	    $UP wl down
+	    $UP wl dwds 1
+	    APConfigureSecurity $UP -security renew
+
+	    regsub {wl} [$UP wlname] {wds} wdsname
+	    UTF::STA ::$WDS -host $host
+	    if {$(dodwdsr)} {
+		try {
+		    $DOWN configure -defer_restart true
+		    Mbss::APAddInterface -lan ${DOWN}.1
+		    APConfigureSecurity ${DOWN}.1 -security $(security)
+		} finally {
+		    $DOWN configure -defer_restart false
+		}
+	    }
+	    $DOWN restart ${dwl}_mode=sta ${dwl}_wds= ${dwl}_dwds=1 \
+		${dwl}_ssid=[$UP cget -ssid]
+
+	    set cleanup {
+		catch {$(sta) wl disassoc}
+		# Put DOWN back into AP mode
+		$DOWN restart {*}$ddefaults
+		# Disable DWDS
+		$UP wl down
+		$UP wl dwds 0
+		APConfigureSecurity $UP -security renew
+		$WDS destroy
+	    }
+
+	    UTF::Sleep 10 $DOWN "Allow Downstream to connect to Upstream"
+
+	    $UP ifconfig 0.0.0.0
+	    if {![regexp {^\d+: (wds\S+):} [$WDS ip addr show label "wds*"] - dev]} {
+		error "WDS interface not created"
+	    }
+	    $WDS configure -device $dev
+	    $WDS ifconfig $UPIPADDR
+
+	    catch {$UP wl keys}
+	    catch {$DOWN wl keys}
+	    catch {$DOWN wl dwds}
+
+	    foreach l [$DOWN cget -lanpeer] {
+		$l ping $WDS -c 70
+	    }
+
+	    if {$(frameburst)} {
+		$UP wl frameburst 1
+		$DOWN wl frameburst 1
+	    } else {
+		$UP wl -u frameburst 0
+		$DOWN wl -u frameburst 0
+	    }
+
+	    ParallelPing $LAN $if $baselinks $(maxlinks) [$WDS ipaddr]
+	}
+	UTF::Try "$DOWN->$UP: DWDS" {
+	    controlchart [list $DOWN $WDS] \
+		-key [list [$DOWN branchname] DWDS $(security)] \
+		-window [$DOWN tcpautowindow] {*}$ccopts
+	}
+	UTF::Try "$DOWN<-$UP: DWDS" {
+	    controlchart [list $WDS $DOWN] \
+		-key [list [$DOWN branchname] PSTA $(security)] \
+		-window [$UP tcpautowindow] {*}$ccopts
+	} finally {
+	    if {!$(dodwdsr)} {
+		eval $cleanup
+	    }
+	}
+	if {$(dodwdsr)} {
+	    UTF::Try "$DOWN: $(sta)->$UP: DWDS" {
+		ConnectAPSTA ${DOWN}.1 $(sta)
+		# routing tables
+		$(sta) add_networks $UP
+		controlchart [list $(sta) $WDS] \
+		    -key [list [$DOWN branchname] DWDS $(security) $DOWN] \
+		    -window [$UP tcpautowindow] {*}$ccopts
+	    } finally {
+		catch {$DOWN wl dump psta}
+		catch {$UP wl assoclist}
+	    }
+	    UTF::Try "$DOWN: $(sta)<-$UP: DWDS" {
+		controlchart [list $WDS $(sta)] \
+		    -key [list [$DOWN branchname] DWDS $(security) $DOWN] \
+		    -window [$UP tcpautowindow] {*}$ccopts
+	    } finally {
+		eval $cleanup
+	    }
+	}
+    }
+
+    if {!$(nowet)} {
+	UTF::Try "$DOWN->$UP: WET clients" {
+	    if {$(dowetr)} {
+		try {
+		    $DOWN configure -defer_restart true
+		    Mbss::APAddInterface -lan ${DOWN}.1
+		    APConfigureSecurity ${DOWN}.1 -security $(security)
+		} finally {
+		    $DOWN configure -defer_restart false
+		}
+	    }
+	    $DOWN restart ${dwl}_mode=wet ${dwl}_wds= ${dwl}_dwds= \
+		${dwl}_ssid=[$UP cget -ssid]
+
+	    set cleanup {
+		# Put DOWN back into AP mode
+		$DOWN restart {*}$ddefaults
+	    }
+
+	    UTF::Sleep 10 $DOWN "Allow Downstream to connect to Upstream"
+	    $UP ifconfig $UPIPADDR
+
+	    catch {$UP wl keys}
+	    catch {$DOWN wl keys}
+	    catch {$DOWN wl dump wet}
+	    catch {$UP wl assoclist}
+
+	    foreach l [$DOWN cget -lanpeer] {
+		$l ping $UP -c 70
+	    }
+	    if {$(frameburst)} {
+		$UP wl frameburst 1
+		$DOWN wl frameburst 1
+	    } else {
+		$UP wl -u frameburst 0
+		$DOWN wl -u frameburst 0
+	    }
+
+	    ParallelPing $LAN $if $baselinks $(maxlinks) [$UP ipaddr]
+	} finally {
+	    catch {$DOWN wl dump wet}
+	}
+	UTF::Try "$DOWN->$UP: WET" {
+	    controlchart [list $DOWN $UP] \
+		-key [list [$DOWN branchname] WET $(security)] \
+		-window [$UP tcpautowindow] {*}$ccopts
+	} finally {
+	    catch {$DOWN wl dump wet}
+	}
+	UTF::Try "$DOWN<-$UP: WET" {
+	    controlchart [list $UP $DOWN] \
+		-key [list [$DOWN branchname] WET $(security)] \
+		-window [$UP tcpautowindow] {*}$ccopts
+	} finally {
+	    catch {$DOWN wl dump wet}
+	    if {!$(dowetr)} {
+		eval $cleanup
+	    }
+	}
+	if {$(dowetr)} {
+	    UTF::Try "$DOWN: $(sta)->$UP: WET" {
+		ConnectAPSTA ${DOWN}.1 $(sta)
+		# routing tables
+		$(sta) add_networks $UP
+		controlchart [list $(sta) $UP] \
+		    -key [list [$DOWN branchname] WET $(security) $DOWN] \
+		    -window [$UP tcpautowindow] {*}$ccopts
+	    } finally {
+		catch {$DOWN wl dump psta}
+		catch {$UP wl assoclist}
+	    }
+	    UTF::Try "$DOWN: $(sta)<-$UP: WET" {
+		controlchart [list $UP $(sta)] \
+		    -key [list [$DOWN branchname] WET $(security) $DOWN] \
+		    -window [$UP tcpautowindow] {*}$ccopts
+	    } finally {
+		catch {$(sta) wl disassoc}
+		eval $cleanup
+	    }
+	}
+    }
+
+    if {!$(norestore)} {
+	UTF::Record "$DOWN->$UP: Reset" {
+	    # Clean up virtual ethernet interfaces
+	    for {set i $baselinks} {$i < $(maxlinks)} {incr i} {
+		catch {$LAN ip link del link $if dev $if.$i}
+	    }
+	    $UP wl band auto
+	    $UP wl down
+	    $UP wl ap 0
+	    $UP configure -ssid {} -security {}; # clear cache
+
+	    Mbss::APRemoveInterface ${DOWN}.1
+	    UTF::Message INFO $DOWN "Re-enable secondary lan devices"
+	    foreach l $(otherlans) {
+		$l ifconfig [$l cget -ipaddr]
+	    }
+	}
+    }
+}
+

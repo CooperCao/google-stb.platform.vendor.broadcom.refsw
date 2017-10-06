@@ -1,0 +1,26 @@
+#
+MAILTO=ffang@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	/home/ffang/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+05      3      * * *   unittest/cron/launch MD09STA1FC19SOFTAPNIGHTLY Test/StaNightly.test -utfconf md09 -sta 'MD09STA1-APPLREL MD09STA2-APPLREL MD09STA3-APPLREL MD09STA4-APPLREL MD09STA5-APPLREL MD09STA6-APPLREL MD09STA7-APPLREL' -ap 'FC19SOFTAP-TOT' -perfonly -rateonly -loop 1 -title '[MD09:StaNightly:t01 AP date 2016.7.22.0] FC19SOFTAP-TOT <=> ALL STA APPLREL' -apdate 2016.7.22.0
+
+00      15      * * *   unittest/cron/launch MD09STA1FC19SOFTAPRvR Test/RvRNightly1.test -utfconf md09 -ap 'FC19SOFTAP-TOT' -sta 'MD09STA1-APPLREL' -va af -cycle5G80AttnRange '30-95 95-30' -cycle5G40AttnRange '30-95 95-30' -cycle5G20AttnRange '30-95 95-30' -cycle2G40AttnRange '30-95 95-30' -cycle2G20AttnRange '35-95 95-35' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD09:t11R:RvRNightly1:RELEASE VALIDATION Incremental SW milestone AP date 2016.7.22.0] FC19SOFTAP-TOT <=> MD09STA1-APPLREL' -perftime 2.5 -window 3640K -fb1 -rtrdate 2016.7.22.0
+
+05      15      * * *   unittest/cron/launch MD09STA2FC19SOFTAPRvR Test/RvRNightly1.test -utfconf md09 -ap 'FC19SOFTAP-TOT' -sta 'MD09STA2-APPLREL' -va af -cycle5G80AttnRange '30-95 95-30' -cycle5G40AttnRange '30-95 95-30' -cycle5G20AttnRange '30-95 95-30' -cycle2G40AttnRange '30-95 95-30' -cycle2G20AttnRange '35-95 95-35' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD09:t12R:RvRNightly1:RELEASE VALIDATION Incremental SW milestone AP date 2016.7.22.0] FC19SOFTAP-TOT <=> MD09STA2-APPLREL' -perftime 2.5 -window 3640K -fb1 -rtrdate 2016.7.22.0
+
+10      15      * * *   unittest/cron/launch MD09STA3FC19SOFTAPRvR Test/RvRNightly1.test -utfconf md09 -ap 'FC19SOFTAP-TOT' -sta 'MD09STA3-APPLREL' -va af -cycle5G80AttnRange '30-95 95-30' -cycle5G40AttnRange '30-95 95-30' -cycle5G20AttnRange '30-95 95-30' -cycle2G40AttnRange '30-95 95-30' -cycle2G20AttnRange '35-95 95-35' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD09:t13R:RvRNightly1:RELEASE VALIDATION Incremental SW milestone AP date 2016.7.22.0] FC19SOFTAP-TOT <=> MD09STA3-APPLREL' -perftime 2.5 -window 3640K -fb1 -rtrdate 2016.7.22.0
+
+15      15      * * *   unittest/cron/launch MD09STA4FC19SOFTAPRvR Test/RvRNightly1.test -utfconf md09 -ap 'FC19SOFTAP-TOT' -sta 'MD09STA4-APPLREL' -va af -cycle5G80AttnRange '30-95 95-30' -cycle5G40AttnRange '30-95 95-30' -cycle5G20AttnRange '30-95 95-30' -cycle2G40AttnRange '30-95 95-30' -cycle2G20AttnRange '35-95 95-35' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD09:t14R:RvRNightly1:RELEASE VALIDATION Incremental SW milestone AP date 2016.7.22.0] FC19SOFTAP-TOT <=> MD09STA4-APPLREL' -perftime 2.5 -window 3640K -fb1 -rtrdate 2016.7.22.0
+
+20      15      * * *   unittest/cron/launch MD09STA5FC19SOFTAPRvR Test/RvRNightly1.test -utfconf md09 -ap 'FC19SOFTAP-TOT' -sta 'MD09STA5-APPLREL' -va af -cycle5G80AttnRange '30-95 95-30' -cycle5G40AttnRange '30-95 95-30' -cycle5G20AttnRange '30-95 95-30' -cycle2G40AttnRange '30-95 95-30' -cycle2G20AttnRange '35-95 95-35' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD09:t15R:RvRNightly1:RELEASE VALIDATION Incremental SW milestone AP date 2016.7.22.0] FC19SOFTAP-TOT <=> MD09STA5-APPLREL' -perftime 2.5 -window 3640K -fb1 -rtrdate 2016.7.22.0
+
+25      15      * * *   unittest/cron/launch MD09STA6FC19SOFTAPRvR Test/RvRNightly1.test -utfconf md09 -ap 'FC19SOFTAP-TOT' -sta 'MD09STA6-APPLREL' -va af -cycle5G80AttnRange '30-95 95-30' -cycle5G40AttnRange '30-95 95-30' -cycle5G20AttnRange '30-95 95-30' -cycle2G40AttnRange '30-95 95-30' -cycle2G20AttnRange '35-95 95-35' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD09:t16R:RvRNightly1:RELEASE VALIDATION Incremental SW milestone AP date 2016.7.22.0] FC19SOFTAP-TOT <=> MD09STA6-APPLREL' -perftime 2.5 -window 3640K -fb1 -rtrdate 2016.7.22.0
+
+30      15      * * *   unittest/cron/launch MD09STA7FC19SOFTAPRvR Test/RvRNightly1.test -utfconf md09 -ap 'FC19SOFTAP-TOT' -sta 'MD09STA7-APPLREL' -va af -cycle5G80AttnRange '30-95 95-30' -cycle5G40AttnRange '30-95 95-30' -cycle5G20AttnRange '30-95 95-30' -cycle2G40AttnRange '30-95 95-30' -cycle2G20AttnRange '35-95 95-35' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MD09:t17R:RvRNightly1:RELEASE VALIDATION Incremental SW milestone AP date 2016.7.22.0] FC19SOFTAP-TOT <=> MD09STA7-APPLREL' -perftime 2.5 -window 3640K -fb1 -rtrdate 2016.7.22.0
+

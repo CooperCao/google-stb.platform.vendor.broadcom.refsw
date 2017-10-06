@@ -1,0 +1,406 @@
+#!/usr/bin/expect
+#    -*-tcl-*-
+
+# UTF command for sharing and logging serial ports
+# $Id$
+#
+
+set slow 0
+set usestdin 1
+
+if {[catch {package require cmdline}]} {
+    lappend auto_path /tools/linux/local/share
+    package require cmdline
+}
+
+proc bgerror {msg} {
+    global usestdin
+    if {$usestdin} {
+	puts [exec stty sane]
+    }
+    puts stderr $::errorInfo
+    exit 2
+}
+
+proc reader {rfd} {
+    global clients
+    global device
+    global pid
+    if {![eof $rfd]} {
+	if {[catch {read $rfd} msg] && [regexp {error} $msg]} {
+	    puts stderr "$::argv0 $msg"
+	    set device ""
+	    return
+	}
+	# Telnet "negotiation", ignore it
+	regsub -all {\xff.(.)} $msg {} msg
+	foreach c [array names clients] {
+	    catch {puts -nonewline $c $msg}
+	}
+	if {[catch {puts -nonewline $msg} ret]} {
+	    puts stderr "$::argv0 exit: $ret"
+	    if {[info exists pid]} {
+		puts "kill $pid"
+		kill $pid
+	    }
+	    exit
+	}
+    } else {
+#	puts stderr "EOF on device"
+	close $rfd
+	set device ""
+    }
+}
+
+proc writer {rfd} {
+    global clients
+    global device
+    global todevice
+    global escape
+    global slow
+    global usestdin
+
+    if {[catch {read $rfd} msg] || [eof $rfd] || $msg == "\004"} {
+	if {$usestdin && $rfd == "stdin"} {
+	    set msg "\004"
+	} else {
+#	    puts stderr "Removing client $rfd"
+	    close $rfd
+	    unset clients($rfd)
+	    return
+	}
+    }
+    if {$slow} {
+	foreach c [split $msg {}] {
+	    if {[catch {puts -nonewline $todevice $c} ret]} {
+		puts stderr "writer: $ret"
+		set device ""; # signal device reopen
+		return
+	    }
+	    after 1
+	}
+    } else {
+	if {[catch {puts -nonewline $todevice $msg} ret]} {
+	    puts stderr "writer: $ret"
+	    set device ""; # signal device reopen
+	    return
+	}
+    }
+}
+
+proc ender {pid} {
+    global todevice
+    gets stdin
+    if {[eof stdin]} {
+	close $todevice
+	close stdin
+    }
+}
+
+proc Server {channel clientaddr clientport} {
+    global clients
+    global device
+#    puts stderr "$channel connected to $clientaddr $clientport"
+    fconfigure $channel -buffering none -blocking 0 -translation binary
+    fileevent $channel readable [list writer $channel]
+    set clients($channel) 1
+    if {$channel eq $device} {
+	# Device closed and there were no client messages to trigger
+	# write failures and reconnects.  A new client joined and took
+	# the same channel number as the device, preventing write
+	# failure.
+	puts stderr "client == device!"
+	set device ""
+    }
+}
+
+set options {
+    {man "Display manpage"}
+    {format.arg "manpage" "Manpage format: html nroff text latex ..."}
+    {port.arg 0 "TCP port for clients to connect to"}
+    {noserver "Don't listen for clients"}
+    {baud.arg "115200" "Baud rate"}
+    {slow "Type slowly, eg, dongle"}
+    {exec "Exec command line"}
+}
+set usage "\[opts\] /dev/ttyS*
+consolelogger \[opts\] hostname:port
+consolelogger \[opts\] -exec command args ..."
+
+if {[catch {cmdline::typedGetoptions argv $options $usage} ret]} {
+    puts stderr "Bad option [lindex $argv 0]\n$ret"
+    exit 1
+} else {
+    array set pargs $ret
+}
+if {[info exists pargs(exec)]} {
+    if {[info commands infox] == "" && [catch {package require Tclx}]} {
+	error "Sorry, -exec not available without tclx"
+    }
+}
+set vru "/var/run/utf"
+
+if {[info exists pargs(slow)]} {
+    set slow 1
+}
+
+if {[llength $argv] > 0 && ![info exists pargs(man)]} {
+    set dev [lindex $argv 0]
+
+    if {![info exists pargs(noserver)]} {
+	set s [socket -server Server $pargs(port)]
+	if {$pargs(port)} {
+	    set sport $pargs(port)
+	} else {
+	    set sport [lindex [fconfigure $s -sockname] 2]
+	}
+    }
+    fconfigure stdout -buffering none
+    if {[catch {exec test -t 1 >@stdin} ret]} {
+	# stdout isn't a terminal, so we're logging.  Don't try to use stdin.
+	set usestdin 0
+    }
+    if {[info exists pargs(exec)]} {
+	# Execute
+	set cmd [lindex $argv 0]
+	set args [lreplace $argv 0 0]
+
+	pipe device clientstdout
+	pipe clientstdin todevice
+	set pid [fork]
+	if {$pid < 0} {
+	    puts stderr "Fork failed."
+	    exit 1
+	} elseif {$pid == 0} {
+	    close $device
+	    close $todevice
+	    dup $clientstdin stdin
+	    dup $clientstdout stdout
+	    dup $clientstdout stderr
+	    close $clientstdin
+	    close $clientstdout
+	    execl $dev $args
+	    puts stderr "execl failed."
+	    exit
+	}
+	close $clientstdout
+	close $clientstdin
+	if {[info exists sport]} {
+	    puts "$sport connected to $dev"
+	}
+	fconfigure $device \
+	    -buffering none -blocking 0 -translation binary
+	fconfigure $todevice \
+	    -buffering none -blocking 0 -translation binary
+	fileevent $device readable [list reader $device]
+	if {$usestdin} {
+	    fileevent stdin readable [list ender $pid]
+	} else {
+	    close stdin
+	}
+	vwait device
+    } else {
+	# Shortcut for UDP collector
+	if {[regexp -nocase {^UDP(?::(\d*))?$} $dev - port]} {
+	    if {$port == ""} {
+		set port 6666
+	    }
+	    set dev "|nc -d -u -l -k $port"
+	    # UDP collector is receive=only
+	    set usestdin 0
+	}
+	set firsttime 1
+	while {1} {
+	    # Loop, since these may get closed regularly
+	    if {[regexp {^\|(.*)} $dev - cmd]} {
+		if {[info exists spawn_id]} {
+		    close $spawn_id
+		}
+		# Open Collector process
+		eval spawn -noecho $cmd
+		wait -i $spawn_id -nowait
+		set device $spawn_id
+		set todevice $device
+		if {[info exists sport]} {
+		    puts "$sport connected to $dev"
+		}
+		# stdin needs to be open for the spawn to work, but we
+		# should close it now otherwise EOF will peg the CPU
+		if {$firsttime && !$usestdin} {
+		    close stdin
+		}
+	    } elseif {[string match "/dev*" $dev]} {
+		# Open Serial port
+		# Attempt to kill off anyone else trying to use this port
+		catch {exec fuser -k $dev}
+		set device [open $dev r+]
+		set todevice $device
+		if {[info exists sport]} {
+		    puts "$sport connected to $dev"
+		}
+
+		fconfigure $device -mode "$pargs(baud),n,8,1" \
+		    -buffering none -blocking 0 -translation binary
+		if {$firsttime} {
+		    if {$usestdin} {
+			puts [exec stty intr ^@ eof ^@ susp ^@ raw isig -echo]
+		    } else {
+			close stdin
+		    }
+		}
+	    } elseif {[llength $dev] == 1} {
+		# TCP
+		if {![regexp {(.*):(.*)} $dev - host port]} {
+		    set port 23
+		}
+		set device [socket $host $port]
+		set todevice $device
+		if {[info exists sport]} {
+		    puts "$sport connected to $host:$port"
+		}
+		fconfigure $device -buffering none -blocking 0 \
+		    -translation binary
+		if {$firsttime} {
+		    if {$usestdin} {
+			puts [exec stty intr ^@ eof ^@ raw -echo]
+		    } else {
+			close stdin
+		    }
+		}
+	    } else {
+		puts stderr "Unknown device type: $argv"
+		exit 1
+	    }
+	    # Alert apshell
+	    catch {
+		file mkdir $vru
+		set pf [open "$vru/[string map {/ _ : _} $dev]" w]
+		puts $pf $sport
+		close $pf
+	    }
+
+	    if {$firsttime && $usestdin} {
+		fconfigure stdin -buffering none -blocking 0 \
+		    -translation binary
+		fileevent stdin readable [list writer stdin]
+	    }
+	    fileevent $device readable [list reader $device]
+	    vwait device
+	    set firsttime 0
+	    puts stderr "Reopen device..."
+	}
+    }
+    if {$usestdin} {
+	puts [exec stty sane]
+    }
+    exit
+}
+
+# Leave this 'til last to improve performance
+set argv [list -man -format $pargs(format)]
+lappend auto_path . /projects/hnd/tools/linux/share/unittest
+package require UTF::doc
+
+UTF::doc {
+    # [manpage_begin consolelogger n 1.0]
+    # [moddesc {HND Wireless Test Framework}]
+    # [titledesc {serial port server and logger}]
+    # [copyright {2005 Broadcom Corporation}]
+    # [description]
+    # [para]
+
+    # [cmd consolelogger] is a command for recording communications
+    # with an AP, or other device via a serial or telnet console.
+    # [cmd consolelogger] connects to the specified device and records
+    # to stdout all traffic read from the device.  [cmd consolelogger]
+    # also provides a TCP server at the given server port.  One or
+    # more clients may connect to that port (using [cmd telnet] or
+    # any other TCP tool) and send and receive data to the device.
+
+    # [para]
+
+    # Logged data will have carriage-return ^M characters stripped
+    # out.  Data sent to the clients will be preserved intact.
+
+    # [para]
+
+    # There is only one [term session], ie responses to a message from
+    # one client will go to all clients.
+
+    # [list_begin definitions]
+
+    # [call [cmd consolelogger] [lb][option -noserver][rb]
+    # 		[lb][option -port] [arg port][rb] [option -exec]
+    # 			[arg cmd] [lb][arg {args ...}][rb]]
+
+    # [call [cmd consolelogger] [lb][option -noserver][rb]
+    # 		[lb][option -port] [arg port][rb] [arg device]]
+
+    # [call [cmd consolelogger] [lb][option -noserver][rb]
+    # 		[lb][option -port] [arg port][rb]
+    #			[arg address][lb][arg :port][rb]]
+
+    # [list_begin options]
+
+    # [opt_def [option -man]]
+
+    # Display this manpage.
+
+    # [opt_def [option -noserver]]
+
+    # Don't start client listener
+
+    # [opt_def [option -port] [arg port]]
+
+    # Specify port for clients.  If [arg port] is 0 (the default) a
+    # random free port will be found and used.  When a listener is
+    # started, the first message sent to stdout will indicate the TCP
+    # port used.
+
+    # [opt_def [option -exec]]
+
+    # Interpret the following arguments as a command-line to be
+    # executed instead of connecting to a device.
+
+    # [list_end]
+
+    # [list_begin arguments]
+
+    # [arg_def "" {cmd [args ...]}]
+
+    # Command and arguments to launch, eg [cmd linuxsim] [arg -i].
+
+    # [arg_def "" device]
+
+    # The path name of the serial port device to connect to, eg [file
+    # /dev/ttyS0].  [cmd consolelogger] will attempt to kill off any
+    # other processes already using the port.
+
+    # [arg_def "" UDP[lb]:port[rb]]
+
+    # UDP port to listen on.  This is used for [cmd netconsole]
+    # loggin.  [arg port] defaults to 6666.
+
+    # [arg_def "" address[lb]:port[rb]]
+
+    # Hostname or IP address and TCP port to connect to instead of a
+    # serial port.  [arg port] defaults to 23.  TCP port connections
+    # will be automatically restarted if they get closed by the server
+    # so as to mimic a continuous session.
+
+    # [list_end]
+
+    # [list_end]
+
+    # [section WARNING]
+
+    # This tool is [emph extremely] insecure.  It allows unsecured
+    # access to the device from any client on the network.  Do [emph
+    # not] run this on open networks.
+
+    # [manpage_end]
+}
+
+UTF::man
+exit
+

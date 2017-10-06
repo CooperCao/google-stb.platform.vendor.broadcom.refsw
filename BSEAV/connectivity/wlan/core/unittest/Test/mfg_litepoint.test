@@ -1,0 +1,382 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# LitePoint Manufacturing test using Switchboard and Litepoint
+#
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+#puts "argc=($::argc) argv0=($::argv0) argv=($::argv)"
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::controlchart
+package require UTF::MemChart
+package require UTF::Test::memchart
+package require UTF::Test::RebootTestbed
+
+UTF::Test MFGTest {args} {
+
+	UTF::Getopts { \
+		{title.arg ""		"Title description text string for use in the reports, eg: \"Linux 4322USB dongle\""}
+		{pmmode.arg "0" "PM 0 or 1"} \
+		{email.arg "mirabadi" "Email Address"} \
+		{nostaload "Don't reload STA drivers"} \
+		{staloadonly "Don't run the LitePoint test"} \
+	}
+
+	set litepoint_ip [DUTMFG cget -lan_ip]
+
+	# test_enabled test_name test_sec_timeout test_location test
+	set test_sets [list	"$::litepoint0_test_enabled" "Switchboard Control 0"	"$::switchboard_script_sec_timeout" "$::switchboard_location" "$::switchboard_script 0" \
+						"$::litepoint0_test_enabled" "Python Test"				"$::litepoint_script_sec_timeout"   "$::litepoint_location" "$::litepoint0_script" \
+						"$::litepoint1_test_enabled" "Switchboard Control 1"	"$::switchboard_script_sec_timeout" "$::switchboard_location" "$::switchboard_script 1" \
+						"$::litepoint1_test_enabled" "Python Test"				"$::litepoint_script_sec_timeout"   "$::litepoint_location" "$::litepoint1_script" \
+						"$::litepoint2_test_enabled" "Switchboard Control 2"	"$::switchboard_script_sec_timeout" "$::switchboard_location" "$::switchboard_script 2" \
+						"$::litepoint2_test_enabled" "Python Test"				"$::litepoint_script_sec_timeout"   "$::litepoint_location" "$::litepoint2_script" \
+						"$::litepoint3_test_enabled" "Switchboard Control 3"	"$::switchboard_script_sec_timeout" "$::switchboard_location" "$::switchboard_script 3" \
+						"$::litepoint3_test_enabled" "Python Test"				"$::litepoint_script_sec_timeout"   "$::litepoint_location" "$::litepoint3_script" \
+						"$::litepoint4_test_enabled" "Switchboard Control 4"	"$::switchboard_script_sec_timeout" "$::switchboard_location" "$::switchboard_script 4" \
+						"$::litepoint4_test_enabled" "Python Test"				"$::litepoint_script_sec_timeout"   "$::litepoint_location" "$::litepoint4_script" \
+						"$::litepoint5_test_enabled" "Switchboard Control 5"	"$::switchboard_script_sec_timeout" "$::switchboard_location" "$::switchboard_script 5" \
+						"$::litepoint5_test_enabled" "Python Test"				"$::litepoint_script_sec_timeout"   "$::litepoint_location" "$::litepoint5_script" ]
+
+	set STAS [list "$::dut0_obj" "$::dut1_obj" "$::dut2_obj" "$::dut3_obj" "$::dut4_obj" "$::dut5_obj"]
+
+	# Override default tags
+	set date [clock format [clock seconds] -format "%Y.%-m.%-e"]
+
+	set summaryinfo ""
+	
+	if {$(title) eq ""} {
+		set TestTitle "LitePoint Manufacturing Test"
+	} else {
+		set TestTitle "$(title)"
+	}
+	
+	set TITLE "$TestTitle"
+
+    if {$summaryinfo ne ""} {
+	set summaryinfo "<table summary=\"builds\">$summaryinfo</table><p></p>"
+    }
+ 
+	UTF::WrapSummary $UTF::SummaryDir $TITLE $summaryinfo $(email) {
+
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+	# all the test results will be moved to under the UTF Logfile directory
+	
+	set LogLoc $UTF::Logfile
+	# replace the "test.log" from the end with blank
+	set Index [string last "test.log" $LogLoc]
+	if {$Index >= 0} {
+		set LogLoc [string replace $LogLoc $Index end ""]
+	}
+	
+	set test_cnt 0
+	set LP_Num -1
+
+	# Process each test_sets paramters
+	foreach {test_enabled test_name test_sec_timeout test_location test} $test_sets {
+
+		UTF::Message INFO "debug" "test_enabled=$test_enabled test_name=$test_name test_sec_timeout=$test_sec_timeout test_location=$test_location test=$test"
+
+		set test_cnt [expr $test_cnt + 1]
+
+		if {[expr $test_cnt % 2] == 1} {
+			if {$LP_Num == -1} {
+				set LP_Num 0
+			} else {
+				set LP_Num [expr $LP_Num + 1]
+			}
+			
+			UTF::Message INFO "" "Switchboard $LP_Num"
+		}
+		
+		# After switchboard test and before litepoint test, we must load the dut
+		
+		if {[expr $test_cnt % 2] == 0} {
+			
+			# load the dut after running the switchboard
+
+			set STA [lindex $STAS $LP_Num]
+
+			if {$test_enabled == 0} {
+				# do not run this test
+				UTF::Message INFO "debug" "Do not run test $test_name"
+				continue
+			}
+
+			if {[set stabuild [$STA cget -image]] eq ""} {
+				set stabuild [$STA cget -tag]
+			}
+
+			set TITLE "$TestTitle (STA:$stabuild)"
+			UTF::Message INFO "" $TITLE
+
+			set summaryinfo ""
+
+			# Find images
+			if {!$(nostaload)} {
+				UTF::Try "LP$LP_Num\: $STA Find STA Image" {
+					UTF::CheckImage $STA $date
+				}
+			}
+
+			if {!$(nostaload)} {
+
+				for {set retry_cnt 0} {$retry_cnt <= 2} {incr retry_cnt} {
+				
+					set load_failed_flag 0
+					set tmp_str ""
+					
+					if {$retry_cnt > 0} {
+					
+						set tmp_str " (Retry $retry_cnt)"
+					}
+
+					UTF::Try "LP$LP_Num\: $STA load$tmp_str" {
+
+						UTF::Message INFO "" "############# Reset the Power ################"
+						set catch_resp [catch {[exec $UTF::unittest/mfg_run_reset]} catch_msg]
+
+						if {$catch_resp != 0} {
+							if {[regexp {LitePoint Reset Passed} $catch_msg]} {
+								UTF::Message INFO "" "Power Reset passed with catch_resp=$catch_resp"
+								UTF::Message INFO "" "$catch_msg"
+							} else {
+								set load_failed_flag 1
+								UTF::Message ERROR "" "Power Reset failed with '$catch_msg'"
+								error "$catch_msg"
+							}
+						} else {
+							UTF::Message INFO "" "Power Reset passed with catch_resp=$catch_resp"
+							UTF::Message INFO "" "$catch_msg"
+						}
+
+						UTF::Sleep 2
+
+						UTF::Message INFO "" "############# Clean up ################"
+						# kill any existing tcl shell
+						catch {DUTMFG rexec -t 60 -T 60 "taskkill /IM IQ_UI.exe /F"}
+						# remove the files on the DUT that causes driver switching issue
+						#catch {DUTMFG rexec -t 60 -T 60 "rm -rf /cygdrive/c/WINDOWS/system32/wl.exe"}
+						#catch {DUTMFG rexec -t 60 -T 60 "rm -rf /cygdrive/c/WINDOWS/system32/brcm_wlu.dll"}
+						#catch {DUTMFG rexec -t 60 -T 60 "rm -rf /cygdrive/c/WINDOWS/system32/drivers/rtecdc.bin"}
+						#catch {DUTMFG rexec -t 60 -T 60 "rm -rf /cygdrive/c/WINDOWS/system32/drivers/nvram.txt"}
+						#catch {DUTMFG rexec -t 60 -T 60 "rm -rf /cygdrive/c/WINDOWS/system32/drivers/bcmsddhd.SYS"}
+
+						UTF::Message INFO "" "############# Load the STA ################"
+						set catch_resp1 [catch {$STA load} catch_msg1]
+						UTF::Message INFO "" "Load STA catch_resp1=$catch_resp1 catch_msg1=$catch_msg1"
+						if {$catch_resp1 != 0} {
+							set load_failed_flag 1
+							error "$catch_msg1"
+						} else {
+							return "$catch_msg1"
+						}
+					}
+
+					if {$load_failed_flag == 1} {
+
+						if {$::load_failed_reboot_dut == 1} {
+							# reboot the DUT
+							UTF::Try "LP$LP_Num: STA Reboot" {
+								set power_sta [$STA cget -power_sta]
+								$STA power_sta off
+								UTF::Sleep 3 "" "Power-off delay"
+								$STA power_sta on
+								UTF::Sleep 120 "" "Power-on delay for the $STA to come up"
+							}
+						}
+					} else {
+						break
+					}
+				}
+
+				if {$load_failed_flag == 1} {
+
+					# load failed. do not run this test
+					continue
+				}
+			}
+
+			UTF::Try "LP$LP_Num\: $STA setup" {
+				$STA services stop
+				catch {$STA wl msglevel +error +assoc}
+				catch {$STA wl down}
+				# Enable 40 in 2.4, if available.
+				catch {$STA wl mimo_bw_cap 1}
+				catch {$STA wl PM $(pmmode)}
+
+				# copy the wl.exe to windows\system32 and fix permissions
+				#DUTMFG rexec -t 60 -T 60 "cd /cygdrive/c/WINDOWS/system32 ; rm -fr wl.exe"
+				#DUTMFG rexec -t 60 -T 60 "cp -f /cygdrive/c/tools/win32/bin/wl.exe /cygdrive/c/WINDOWS/system32"
+				#catch {DUTMFG rexec -t 60 -T 60 "cd /cygdrive/c/WINDOWS/system32 ; chmod 777 wl.exe"}
+				#catch {DUTMFG rexec -t 60 -T 60 "cd /cygdrive/c/WINDOWS/system32 ; chmod 777 brcm_wlu.dll"}
+
+				$STA wl up
+				UTF::Sleep 2
+				$STA wl ver
+				$STA chipname
+			}
+			
+			if {$(staloadonly)} {
+				# DUT driver load test only. do not run this test
+				continue
+			}
+		}
+
+		if {$test_enabled == 0} {
+			# do not run this test
+			UTF::Message INFO "debug" "Do not run test $test_name"
+			continue
+		} else {
+			if {[expr $test_cnt % 2] == 1} {
+			
+				UTF::Try "LP$LP_Num: STA Check" {
+
+					UTF::Message INFO "" "STA check before Switchboard $LP_Num"
+					set STA [lindex $STAS $LP_Num]
+					set ret_str ""
+
+            		set catch_resp [catch "exec ping $litepoint_ip -c 2" catch_msg]
+					if {$catch_resp != 0} {
+						UTF::Message INFO "" "***Failed. Could not ping $STA. Err: $catch_msg"
+						set power_sta [$STA cget -power_sta]
+                    	$STA power_sta off
+                        UTF::Sleep 3 "" "Power-off delay"
+                    	$STA power_sta on
+                        UTF::Sleep 120 "" "Power-on delay for the $STA to come up"
+                        set ret_str "STA Rebooted"
+					}
+					
+					UTF::Message INFO "" "==========================================================================="
+					UTF::Message INFO "" "Unload previous driver before switching to DUT $LP_Num and card power cycle"
+					# before changing switchboard, clean up by unloading the previous driver
+					catch {$STA unload}
+					UTF::Message INFO "" "==========================================================================="
+					
+					if {$ret_str != ""} {
+						error $ret_str
+					}
+				}				
+			}
+		}
+
+		UTF::Try "LP$LP_Num\: $test_name" {
+
+			catch {
+				# kill any existing tcl shell
+				DUTMFG rexec -t 60 -T 60 "taskkill /IM tclsh.exe /F"
+			}
+
+			# rexec does not work. The Python script was not able to create the log directory			
+			#set catch_resp [catch {[UTFMFG rexec -t $test_sec_timeout -T $test_sec_timeout $UTF::unittest/mfg_run_python $test_location \"$test\"]} catch_msg]
+
+			UTF::Message INFO "" "unittest/mfg_run_python $test_location \"$test\""
+			
+			set catch_resp [catch {[exec $UTF::unittest/mfg_run_python $test_location "$test"]} catch_msg]
+
+			if {$catch_resp != 0} {
+				if {[regexp {Python LitePoint Test Passed} $catch_msg]} {
+					UTF::Message INFO "" "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+					UTF::Message INFO "" "Test passed with catch_resp=$catch_resp"
+					UTF::Message INFO "" "catch_msg=$catch_msg"
+					UTF::Message INFO "" "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+				} else {
+					UTF::Message INFO "" "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+					UTF::Message INFO "" "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+					UTF::Message ERROR "" "Python test failed with '$catch_msg'"
+					UTF::Message INFO "" "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+					UTF::Message INFO "" "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+					error "Python test failed"
+				}
+			} else {
+				UTF::Message INFO "" "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				UTF::Message INFO "" "Test passed with catch_resp=$catch_resp"
+				UTF::Message INFO "" "catch_msg=$catch_msg"
+				UTF::Message INFO "" "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+			}
+		}
+		
+		###########################
+		# CSV file processing
+		###########################
+
+		if {[expr $test_cnt % 2] == 0} {
+
+			# right after running the litepoint test, then we process the csv file
+
+			set catch_resp [catch {
+				# get the csv file name
+				set Index [string last "/" $::litepoint_csv_results]
+				if {$Index >= 0} {
+					set CSVFileName [string replace $::litepoint_csv_results 0 $Index ""]
+					UTF::Message INFO "" "CSVFileName=$CSVFileName"
+				}
+
+				# new csv file name
+				set Index [string last "TestResults" $CSVFileName]
+				if {$Index >= 0} {
+					set NewCSVFileName [string replace $CSVFileName 0 [expr $Index - 1] "LP$LP_Num"]
+					UTF::Message INFO "" "NewCSVFileName=$NewCSVFileName"
+				}
+
+				# move the csv file
+				UTF::Message INFO "" "Moving $::litepoint_csv_results"
+				UTFMFG copyfrom $::litepoint_csv_results "$LogLoc/$NewCSVFileName"
+				# remove the test results from the original location
+				UTF::Message INFO "" "Removing $::litepoint_csv_results"
+				exec chmod -R 777 $::litepoint_csv_results
+				exec rm -rf $::litepoint_csv_results
+			}]
+
+        	if {$catch_resp != 0} {
+        	
+ 				UTF::Try "LP$LP_Num\: CSV Process" {
+
+					error "CSV Process Failed"
+				}	
+	       	} else {
+			
+				set csvFile [open "$LogLoc/$NewCSVFileName"] 
+				set csvLineNum 0
+				set ErrorFlag 0
+
+				while {[gets $csvFile line]>=0} { 
+					incr csvLineNum
+
+					set fields [split $line ","] 
+					set tst_name "[lindex $fields 0]"
+					set tst_value "[lindex $fields 1]"
+					set tst_pass "[lindex $fields 2]"
+
+					UTF::Try "LP$LP_Num\: $tst_name" {
+
+						UTF::Message INFO "debug" "tst_name=$tst_name tst_value=$tst_value tst_pass=$tst_pass"			
+
+						# Create new ControlChart object & graphics file
+						set keys "$STA $tst_name"			
+						set catch_resp [catch {memchart $tst_value -key $keys -format "%.2f" -cachemin -500 -cachemax 900 -units "" -title $tst_name} catch_msg]
+
+						UTF::Message INFO "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+
+						if {[string first " LOW" $catch_msg] != -1 || [string first " HIGH" $catch_msg] != -1 || $tst_pass != "PASS"} {
+							error $catch_msg
+						} else {
+							return $catch_msg
+						}
+					}	
+				}
+
+				close $csvFile 
+			}
+		}
+	}
+
+	# WrapSummary bracket
+	}
+}

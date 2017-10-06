@@ -1,0 +1,185 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# To get online help, type: Test/DisconnectBTdevices.test -h
+
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set DisconnectBTdevices_help "\n\nBasic usage: Test/DisconnectBTdevices.test bt_master bt_slave <options>\
+    \n\nThis script disconnects 2 BlueTooth devices, which are assumed to be already\
+    \nconnected. bt_master & bt_slave are the BT object STA names defined in your config file.\
+    \nThe bt_slave is assumed to be the slave end of the connection."
+
+# Command line options string
+set DisconnectBTdevices_getopts {
+    {handle_acl_master.arg ""  "ACL handle for existing bt_master connection, default is to use handle stored in object"}
+    {handle_acl_slave.arg ""  "ACL handle for existing bt_slave connection, default is to use handle stored in object"}
+    {handle_sco_master.arg "" "SCO/ESCO handle for existing bt_dut connection, default is to use handle stored in object"}
+    {handle_sco_slave.arg "" "SCO/ESCO handle for existing bt_ref connection, default is to use handle stored in object"}
+    {type.arg auto   "packet type for connection"}
+}
+
+# Setup online help info.
+UTF::setup_help $DisconnectBTdevices_help $DisconnectBTdevices_getopts
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+    set ::argv ""
+}
+
+# NB: The UTF package seems to recognize -utfconf option without any 
+# additional code in this script.
+
+# Load packages
+package require UTF
+package require UTF::utils
+package require UTF::WinBT
+
+package provide UTF::Test::DisconnectBTdevices 2.0
+
+UTF::Test DisconnectBTdevices {bt_master bt_slave args} {
+
+    # Basic command line option processing. Options are stored in the
+    # unnamed array $()
+    UTF::Getopts "$::DisconnectBTdevices_getopts" "$::DisconnectBTdevices_help"
+
+	set rc ""
+
+    # Check STA's exist and are correct type.
+    UTF::check_sta_type $bt_master WinBT
+    UTF::check_sta_type $bt_slave WinBT
+
+    # Check STAs are different
+    if {$bt_master == $bt_slave} {
+       error "DisconnectBTdevices ERROR: bt_master=$bt_master MUST NOT be same as\
+           bt_slave=$bt_slave!"
+    }
+
+    set bt_comm_master [$bt_master cget -bt_comm]
+    set bt_comm_slave [$bt_slave cget -bt_comm]
+    
+	if {$(type) == "SCO" || $(type) == "ESCO"} {
+		# If command line handles are null, look in object level variable.
+		set handle_sco_master $(handle_sco_master)
+		if {$handle_sco_master == ""} {
+			set handle_sco_master [lindex [$bt_master show_sco_handles] 0]
+		}
+		set handle_sco_slave $(handle_sco_slave)
+		if {$handle_sco_slave == ""} {
+			set handle_sco_slave [lindex [$bt_slave show_sco_handles] 0]
+		}
+		if {$handle_sco_master == "" || $handle_sco_slave == ""} {
+			error "DisconnectBTdevices ERROR: $(type) handles must not be null,\
+				handle_sco_master=$handle_sco_master handle_sco_slave=$handle_sco_slave"
+		}
+		UTF::Message LOG "$::localhost" "DisconnectBTdevices $(type) handle_sco_master=$handle_sco_master\
+			handle_sco_slave=$handle_sco_slave"
+        
+		set fd_slave [$bt_slave run_perl_script common/DisconnectSlave.pl\
+			$bt_comm_slave -rpopen] ;# no handle needed for slave
+		UTF::Sleep 3
+		set fd_master [$bt_master run_perl_script common/DisconnectMaster.pl\
+			$bt_comm_master $handle_sco_master -rpopen]
+
+		# Collect data from file descriptors.
+		set resp1 ""
+		set resp2 ""
+		UTF::collect_rpopen_data 30 "$bt_slave $fd_slave $bt_master $fd_master" resp1 "" resp2
+
+		# Look for disconnect messages.
+		set catch_msg ""
+		set catch_resp [catch {UTF::parse_rpopen_data "$resp1" "$bt_master" "disconnection complete"} catch_msg]
+		if {$catch_resp != 0} {
+			set rc $catch_resp
+			UTF::Message LOG "$::localhost" "DisconnectBTdevices $(type) catch_resp=$catch_resp	catch_msg=$catch_msg"
+		}
+		set catch_resp [catch {UTF::parse_rpopen_data "$resp1" "$bt_master" "connection terminated by local host"} catch_msg]
+		if {$catch_resp != 0} {
+			set rc $catch_resp
+			UTF::Message LOG "$::localhost" "DisconnectBTdevices $(type) catch_resp=$catch_resp	catch_msg=$catch_msg"
+		}
+		set catch_resp [catch {UTF::parse_rpopen_data "$resp1" "$bt_slave" "disconnection complete"} catch_msg]
+		if {$catch_resp != 0} {
+			set rc $catch_resp
+			UTF::Message LOG "$::localhost" "DisconnectBTdevices $(type) catch_resp=$catch_resp	catch_msg=$catch_msg"
+		}
+		set catch_resp [catch {UTF::parse_rpopen_data "$resp1" "$bt_slave" "remote user terminated connection"} catch_msg]
+		if {$catch_resp != 0} {
+			set rc $catch_resp
+			UTF::Message LOG "$::localhost" "DisconnectBTdevices $(type) catch_resp=$catch_resp	catch_msg=$catch_msg"
+		}
+
+		# Delete the connection handles.
+		$bt_master delete_sco_handles $handle_sco_master
+		$bt_slave delete_sco_handles $handle_sco_slave
+	}
+	
+    # If command line handles are null, look in object level variable.
+    set handle_acl_master $(handle_acl_master)
+    if {$handle_acl_master == ""} {
+        set handle_acl_master [lindex [$bt_master show_acl_handles] 0]
+    }
+    set handle_acl_slave $(handle_acl_slave)
+    if {$handle_acl_slave == ""} {
+        set handle_acl_slave [lindex [$bt_slave show_acl_handles] 0]
+    }
+    if {$handle_acl_master == "" || $handle_acl_slave == ""} {
+        error "DisconnectBTdevices ERROR: handles must not be null,\
+            handle_acl_master=$handle_acl_master handle_acl_slave=$handle_acl_slave"
+    }
+    UTF::Message LOG "$::localhost" "DisconnectBTdevices ACL handle_acl_master=$handle_acl_master\
+        handle_acl_slave=$handle_acl_slave"
+
+    # Close down connection, starting slave / bt_slave end first.
+    set fd_slave [$bt_slave run_perl_script common/DisconnectSlave.pl\
+        $bt_comm_slave -rpopen] ;# no handle needed for slave
+	UTF::Sleep 1
+    set fd_master [$bt_master run_perl_script common/DisconnectMaster.pl\
+        $bt_comm_master $handle_acl_master -rpopen]
+
+    # Collect data from file descriptors.
+    set resp1 ""
+    set resp2 ""
+    UTF::collect_rpopen_data 30 "$bt_slave $fd_slave $bt_master $fd_master" resp1 "" resp2
+
+    # Look for disconnect messages.
+	set catch_msg ""
+    set catch_resp [catch {UTF::parse_rpopen_data "$resp1" "$bt_master" "disconnection complete"} catch_msg]
+	if {$catch_resp != 0} {
+		set rc $catch_resp
+		UTF::Message LOG "$::localhost" "DisconnectBTdevices $(type) catch_resp=$catch_resp	catch_msg=$catch_msg"
+	}
+    set catch_resp [catch {UTF::parse_rpopen_data "$resp1" "$bt_master" "connection terminated by local host"} catch_msg]
+	if {$catch_resp != 0} {
+		set rc $catch_resp
+		UTF::Message LOG "$::localhost" "DisconnectBTdevices $(type) catch_resp=$catch_resp	catch_msg=$catch_msg"
+	}
+    set catch_resp [catch {UTF::parse_rpopen_data "$resp1" "$bt_slave" "disconnection complete"} catch_msg]
+	if {$catch_resp != 0} {
+		set rc $catch_resp
+		UTF::Message LOG "$::localhost" "DisconnectBTdevices $(type) catch_resp=$catch_resp	catch_msg=$catch_msg"
+	}
+    set catch_resp [catch {UTF::parse_rpopen_data "$resp1" "$bt_slave" "remote user terminated connection"} catch_msg]
+	if {$catch_resp != 0} {
+		set rc $catch_resp
+		UTF::Message LOG "$::localhost" "DisconnectBTdevices $(type) catch_resp=$catch_resp	catch_msg=$catch_msg"
+	}
+
+    # Delete the connection handles.
+    $bt_master delete_acl_handles $handle_acl_master
+    $bt_slave delete_acl_handles $handle_acl_slave
+
+	if {$(type) == "SCO" || $(type) == "ESCO"} {
+		# Close Persistent Transports after closing the ACL master/slave connections
+		$bt_master run_perl_script common/ReleaseSemaphore.pl BTMasterPersistentSemaphore
+		$bt_slave run_perl_script common/ReleaseSemaphore.pl BTSlavePersistentSemaphore
+    }
+
+    return $rc
+}

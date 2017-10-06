@@ -1,0 +1,294 @@
+#
+#
+# $Id$
+# SVN: $HeadURL$
+#
+###### NOTE: This runs on the system conventionally called "wlansw-cron".
+###### Temporary test builds may use the hwnbuild crontab on "wlan-sj1-02".
+###### RULES: No cron entries allowed between 2PM and 2:30PM. Any WebACP changes should be rolled-out at 2PM.
+######        + Otherwise, you may see "Permission Denied" errors. Refer to RB:7430.
+######        + Builds that cross-over the 2PM time may get impacted, as a soft rule, try to schedule before 12PM.
+######  Please remember to use 1 space after the minute for the hour, so that sort works
+#
+#
+# min	hour	day-o-month  month  day-o-week
+#=============================================================================
+# CVS/SVN TASKS
+#=============================================================================
+#
+# Verify hwnbuild environment
+45 23      *       *       *       /bin/env > /var/tmp/hnd/hwnbuild_env.log
+# Monitor cron's self health
+0,15,30,45    0,1,2,3,4,5,6,7,8,9,10,11,12      *       *       *       /home/hwnbuild/admin/scripts/cron_check.sh >> /var/tmp/hnd/cron_heartbeat.log 2>&1
+#------------------------------------------------------------------------------
+# Update the svn gallery (SVN trunk workspace) a few times a day
+# The gallery is at /projects/hnd_software/gallery and rsync'd to other sites
+30 *	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/update_gallery_svn.sh > /var/tmp/hnd/svn_gallery_update.log 2>&1
+#------------------------------------------------------------------------------
+# Update the svn source file map text file. This used to be done as part of
+# gallery maintenance but has been broken out since it no longer relies
+# on the gallery and may want a different schedule.
+05 6,11,17,23	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /usr/local/bin/python2.7 /home/hwnbuild/admin/scripts/svn_file_map -o /projects/hnd_software/gallery/src_tree.txt -O /projects/hnd_software/gallery/src_tree.p --retain trunk branches/BISON_BRANCH_7_10 branches/CARIBOU_BRANCH_8_10 &> /var/tmp/hnd/svn_file_map.log
+#------------------------------------------------------------------------------
+# Keep hnd_depot_tools updated
+0 *	*	*	*	/projects/hnd/tools/GUB/bin/svn --non-interactive update /projects/hnd_software/gallery-gclient/hnd_depot_tools > /var/tmp/hnd/hnd_depot_update.log 2>&1; { if [ "$?" != "0" ]; then mailx -s "ERROR: GCLIENT hnd_depot_tools update failed on `date`" hnd-software-scm-list < /var/tmp/hnd/hnd_depot_update.log; echo "ERROR: /projects/hnd_software/gallery-gclient/hnd_depot_tools update failed on `date`"; fi; } >> /var/tmp/hnd/hnd_depot_update.log
+#------------------------------------------------------------------------------
+# Update svn build tools and report errors if any
+55 23	*	*	*	/projects/hnd/tools/GUB/bin/svn --non-interactive update /home/hwnbuild/src/tools > /var/tmp/hnd/svn_update_cron.log 2>&1; { if [ "$?" != "0" ]; then mailx -s "ERROR: SVN update of /home/hwnbuild/src/tools failed on `date`" hnd-software-scm-list < /var/tmp/hnd/svn_update_cron.log; echo "SVN update failed on `date`"; fi; } >> /var/tmp/hnd/svn_update_tot.log
+#------------------------------------------------------------------------------
+# Alert admin users if defunct processes on cron server increase
+0 8,12      *       *       *       { defunct=`ps -eaf | grep "hwnbuild.*defunct" | grep -v grep | wc -l | sed -e 's/[[:space:]]+//g'`; if [ "$defunct" -gt 50 ]; then echo "WARN: Found $defunct defunct hwnbuild processes on cron server. Check /var/tmp/hnd/cron_heartbeat.log file on cron server for more details" | mailx -s "WARN: Found $defunct defunct hwnbuild processes on cron server wlansw-cron" hnd-software-scm-list clinton jdizon; fi } > /var/tmp/hnd/hwnbuild_defunct_processes.log 2>&1
+#------------------------------------------------------------------------------
+# Self update this crontab if svn copy got updated and report errors if any
+# Update history is created as /var/tmp/hnd/cron_history_svn.log by this .sh
+58 23	*	*	*	/home/hwnbuild/admin/scripts/cron_update_svn.sh >> /var/tmp/hnd/cron_update_svn.log 2>&1
+#------------------------------------------------------------------------------
+# Copy logs from cron processes to a network drive periodically
+15 0,3,6,9,12,15,18,21	*	*	*	/tools/bin/rsync -a /var/tmp/hnd/ /projects/hnd/swbuild/build_admin/logs/cron/hwnbuild.crontab >> /var/tmp/hnd/cron_log_backup.log 2>&1
+#------------------------------------------------------------------------------
+# Generate CVSReports
+#5	0,8,14,20	*	*	*	/home/hwnbuild/src/tools/build/cvsrpt -q sj-wlanswbuild -nobranch -timeout 1080 software > /var/tmp/hnd/cvs_software_tag_rpt.log 2>&1
+0,15,30,45	*	*	*	*	/home/hwnbuild/src/tools/build/cvsrpt -q sj-wlanswbuild -notags -timeout 45 software "yesterday 00:00" > /var/tmp/hnd/cvs_software_branch_rpt.log 2>&1
+10 0,8,10,12,14,16,18,20	*	*	*	/home/hwnbuild/src/tools/build/cvsrpt -q sj-wlanswbuild hardware > /var/tmp/hnd/cvs_hardware_rpt.log 2>&1
+#------------------------------------------------------------------------------
+# Precommit build - Automerger path generation
+# 5,10,15,20,25,30,35,40,45,50,55 * * * * /projects/wlansvnroot/production_repository/wlansvn/hooks_custom/pre-commit/precommit_build/preco_am_paths.sh > /var/tmp/hnd/preco_am_paths.log 2>&1
+#------------------------------------------------------------------------------
+# Run GIT maintenance once a week
+0 8	*	*	0	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/git-maint.sh > /var/tmp/hnd/gitmaint.log 2>&1
+#=============================================================================
+# Generate ActiveInfraBranches report:
+# http://confluence.broadcom.com/display/WLAN/ActiveInfraBranches
+#------------------------------------------------------------------------------
+15	*	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild "/usr/local/bin/python2.7 /home/hwnbuild/dashboard/wiki/dashboard.py" > /var/tmp/hnd/activeinfrabranches_status_web.log 2>&1
+#
+# Pre-build lsf node check
+30 9,18	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/admin/scripts/lsf_check.sh > /var/tmp/hnd/lsf_check.log 2>&1
+#
+#=============================================================================
+# MISC TASKS
+#=============================================================================
+# Reset permissions on release dirs
+0 22	*	*	0,3	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild "find /projects/hnd/swbuild/build_linux /projects/hnd/swbuild/build_window -perm +22 -mtime 2 \! -type l -exec chmod go-w {} \;" > /var/tmp/hnd/perm.log 2>&1
+#------------------------------------------------------------------------------
+# clean /home/hwnbuild/.lsbatch and /home/hwnbuild/tmp/lsf dir twice a week
+0 8	*	*	0,3	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/admin/scripts/lsbatch_clean.sh > /var/tmp/hnd/lsbatchclean.log 2>&1
+#------------------------------------------------------------------------------
+# record  /projects/hnd_swbuild/*... contents every other day
+0 9	*	*	0,2,4,6	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/admin/scripts/snapshot_build_brands.sh > /var/tmp/hnd/snapshot_build_brands.log 2>&1
+#------------------------------------------------------------------------------
+# find failed, duplicate disabled builds in /projects/hnd/swbuild and delete them
+0 10	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/find_failed_builds.sh -delete > /var/tmp/hnd/find_failed_builds.log 2>&1
+#------------------------------------------------------------------------------
+# monitor active build disk and move builds if needed.
+0 19	*	*	*	rsh xlinux /home/hwnbuild/admin/scripts/mv_rel_blds.sh > /var/tmp/hnd/mv_rel_blds.log 2>&1
+#------------------------------------------------------------------------------
+# generate sorted list of builds per platform
+15 *	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/admin/scripts/sort_builds.sh > /var/tmp/hnd/gen_sort_build_symlinks.log 2>&1
+#------------------------------------------------------------------------------
+# ensure that /var/tmp/hnd exists for all other cron tasks to store their logs
+0 21	*	*	*	mkdir -p /var/tmp/hnd > /dev/null 2>&1
+#------------------------------------------------------------------------------
+# prune temporay build_linux/prebuild dongle builds older than 3days (default)
+# this also cleans up temporary lsf logs specified in this script
+0 23	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/admin/scripts/prune_prebuild_dirs.sh > /var/tmp/hnd/prebuildprune.log 2>&1
+#------------------------------------------------------------------------------
+# compress older logs to save space
+0 22	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/compress_logs.sh notify verbose > /var/tmp/hnd/compress.log 2>&1
+#------------------------------------------------------------------------------
+# every other day bootstrap build_brands to remove stale/hung sessions (if any)
+15 23	*	*	*   (/home/hwnbuild/src/tools/build/build_brands  -stop; sleep 5; /home/hwnbuild/src/tools/build/build_brands -server linux -server netbsd -server macos -server windows -start) >> /var/tmp/hnd/build_brands_restart.log 2>&1
+#------------------------------------------------------------------------------
+# every 5mins check if build_brands is running and restart it if it is not
+0,5,10,15,20,25,30,35,40,45,50,55	*	*	*	*	/home/hwnbuild/src/tools/build/build_brands -server linux -server netbsd -server macos -server windows -start >> /var/tmp/hnd/build_brands.log 2>&1
+#------------------------------------------------------------------------------
+# Frozen cvs/hndcvs build scripts
+15 22	*	*	*   (/home/hwnbuild/src/tools/build/build_brands_cvs  -stop; sleep 5; /home/hwnbuild/src/tools/build/build_brands_cvs -server linux -server netbsd -server macos -server windows -start) >> /var/tmp/hnd/build_brands_cvs_restart.log 2>&1
+#
+#=============================================================================
+# Coverity TASKS (windows tasks are scheduled on hwnbuild2/hwnbuild3 server)
+#=============================================================================
+# Generate Coverity report for each of above scheduled branches
+0 10	*	*	* /tools/bin/ssh -l hwnbuild wlansw-cov75 /home/hwnbuild/src/tools/build/coverity-report-76.pl >> /var/tmp/hnd/coverity761_report.log 2>&1
+0 22	*	*	* /tools/bin/ssh -l hwnbuild wlansw-cov75 /home/hwnbuild/src/tools/build/coverity-report-76.pl --date=$(date +"\%Y.\%m.\%d:22:00") >> /var/tmp/hnd/coverity761_report.log 2>&1
+#
+#=============================================================================
+# BUILD TASKS
+#=============================================================================
+#=================================== TOT BUILDS ===============================
+#
+# Install nightly DSLCPE CommEngine source from Irvine
+30 23	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/cpewlbld/bin/update_cbt_dev.sh > /var/tmp/hnd/update_cbt_dev.log 2>&1
+#------------------------------------------------------------------------------
+# Submit Coverity 7.5.x Analysis for TOT
+0 0	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_tot_cov761.log 2>&1
+0 12	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_tot_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Submit Coverity 7.5.x Cab MacOS TOT build
+0 6	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -x 8 -b macos-coverity-76-yosemite -c midnight -m hnd-coverity-admin-list" > /var/tmp/hnd/build_macos_tot_cov761.log 2>&1
+0 7	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -x 8 -b macos-coverity-76-yosemite -c midnight -m hnd-coverity-admin-list" > /var/tmp/hnd/build_macos_tot_cov761.log 2>&1
+0 18	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -x 8 -b macos-coverity-76-yosemite -c noon -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_tot_cov761.log 2>&1
+0 19	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -x 8 -b macos-coverity-76-yosemite -c noon -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_tot_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for EAGLE_BRANCH_10_10
+0 3	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r EAGLE_BRANCH_10_10 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_eagle_tob_cov761.log 2>&1
+0 15	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r EAGLE_BRANCH_10_10 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_eagle_tob_cov761.log 2>&1
+#
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BIS120RC4_TWIG_7_15_168
+#0 2	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BIS120RC4_TWIG_7_15_168 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_bis120rc4_twig_7_15_168_cov761.log 2>&1
+#0 14	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BIS120RC4_TWIG_7_15_168 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_bis120rc4_twig_7_15_168_cov761.log 2>&1
+#
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BISON06T_BRANCH_7_45
+0 4	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON06T_BRANCH_7_45 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_BISON06T_BRANCH_7_45_cov761.log 2>&1
+0 16	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON06T_BRANCH_7_45 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_BISON06T_BRANCH_7_45_cov761.log 2>&1
+#
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BISON05T_BRANCH_7_35
+0 0	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON05T_BRANCH_7_35 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_BISON05T_BRANCH_7_35_cov761.log 2>&1
+0 12	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON05T_BRANCH_7_35 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_BISON05T_BRANCH_7_35_cov761.log 2>&1
+#
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BISON04T_BRANCH_7_14
+0 2	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON04T_BRANCH_7_14 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_BISON04T_BRANCH_7_14_cov761.log 2>&1
+0 14	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON04T_BRANCH_7_14 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_BISON04T_BRANCH_7_14_cov761.log 2>&1
+#
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for DHD_BRANCH_1_363
+0 7	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DHD_BRANCH_1_363 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_DHD_BRANCH_1_363_cov761.log 2>&1
+0 19	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DHD_BRANCH_1_363 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_DHD_BRANCH_1_363_cov761.log 2>&1
+#
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for DHD_BRANCH_1_579
+0 7	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DHD_BRANCH_1_579 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_DHD_BRANCH_1_579_cov761.log 2>&1
+0 19	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DHD_BRANCH_1_579 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_DHD_BRANCH_1_579_cov761.log 2>&1
+#
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for DIN2915T250RC1_BRANCH_9_30
+0 5	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DIN2915T250RC1_BRANCH_9_30 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_DIN2915T250RC1_BRANCH_9_30_cov761.log 2>&1
+0 17	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DIN2915T250RC1_BRANCH_9_30 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_DIN2915T250RC1_BRANCH_9_30_cov761.log 2>&1
+#
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BIS747T144RC2_BRANCH_7_64
+0 6	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BIS747T144RC2_BRANCH_7_64 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_BIS747T144RC2_BRANCH_7_64_cov761.log 2>&1
+0 18	*	*	*	/home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BIS747T144RC2_BRANCH_7_64 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_BIS747T144RC2_BRANCH_7_64_cov761.log 2>&1
+#
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BIS715GALA_BRANCH_7_21
+0 2	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-yosemite -c midnight -m hnd-coverity-admin-list" > /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 3	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-yosemite -c midnight -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 4	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-gala -c midnight -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 5	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-gala -c midnight -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 6	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-fuji -c midnight -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 7	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-fuji -c midnight -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 14	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-yosemite -c noon -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 15	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-yosemite -c noon -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 16	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-gala -c noon -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 17	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-gala -c noon -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 18	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-fuji -c noon -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+0 19	*	*	*	/tools/bin/ssh -l hwnbuild hndmacpro1 "/home/hwnbuild/src/tools/build/build_macos.sh -d /tmp -s /projects/hnd/swbuild/build_macos -r BIS715GALA_BRANCH_7_21 -x 8 -b macos-coverity-76-fuji -c noon -m hnd-coverity-admin-list" >> /var/tmp/hnd/build_macos_BIS715GALA_BRANCH_7_21_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BISON04T_TWIG_7_14_131
+0 4     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON04T_TWIG_7_14_131 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_BISON04T_TWIG_7_14_131_cov761.log 2>&1
+0 16    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON04T_TWIG_7_14_131 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_BISON04T_TWIG_7_14_131_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BIS747T144RC2_TWIG_7_64_3
+0 5     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BIS747T144RC2_TWIG_7_64_3 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_BIS747T144RC2_TWIG_7_64_3_cov761.log 2>&1
+0 17    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BIS747T144RC2_TWIG_7_64_3 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_BIS747T144RC2_TWIG_7_64_3_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for EAGLE_TWIG_10_10_69
+0 0     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r EAGLE_TWIG_10_10_69 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_EAGLE_TWIG_10_10_69_cov761.log 2>&1
+0 12    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r EAGLE_TWIG_10_10_69 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_EAGLE_TWIG_10_10_69_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BISON05T_TWIG_7_35_260_64
+0 3     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON05T_TWIG_7_35_260_64 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_BISON05T_TWIG_7_35_260_64_cov761.log 2>&1
+0 15    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON05T_TWIG_7_35_260_64 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_BISON05T_TWIG_7_35_260_64_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for DHD_TWIG_1_363_45_58
+0 4     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DHD_TWIG_1_363_45_58 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_DHD_TWIG_1_363_45_58_cov761.log 2>&1
+0 16    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DHD_TWIG_1_363_45_58 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_DHD_TWIG_1_363_45_58_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for BISON06T_TWIG_7_45_45
+0 2     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON06T_TWIG_7_45_45 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_BISON06T_TWIG_7_45_45_cov761.log 2>&1
+0 14    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r BISON06T_TWIG_7_45_45 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_BISON06T_TWIG_7_45_45_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for IGUANA_BRANCH_13_10
+0 1     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r IGUANA_BRANCH_13_10 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_IGUANA_BRANCH_13_10_cov761.log 2>&1
+0 13    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r IGUANA_BRANCH_13_10 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_IGUANA_BRANCH_13_10_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for IGUANA08T_BRANCH_13_35
+0 1     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r IGUANA08T_BRANCH_13_35 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_IGUANA08T_BRANCH_13_35_cov761.log 2>&1
+0 13    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r IGUANA08T_BRANCH_13_35 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_IGUANA08T_BRANCH_13_35_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for IOTTEST_BRANCH_1_10
+#0 1     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r IOTTEST_BRANCH_1_10 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76-iot -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_IOTTEST_BRANCH_1_10_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for DIN2930R18_BRANCH_9_44
+0 2     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DIN2930R18_BRANCH_9_44 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_DIN2930R18_BRANCH_9_44_cov761.log 2>&1
+0 14    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r DIN2930R18_BRANCH_9_44 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_DIN2930R18_BRANCH_9_44_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for EAGLE_TWIG_10_10_122
+0 1     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r EAGLE_TWIG_10_10_122 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_EAGLE_TWIG_10_10_122_cov761.log 2>&1
+0 13    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r EAGLE_TWIG_10_10_122 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_EAGLE_TWIG_10_10_122_cov761.log 2>&1
+#------------------------------------------------------------------------------
+# Build Coverity 7.5.x Analysis for JAGUAR_BRANCH_14_10
+0 3     *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r JAGUAR_BRANCH_14_10 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c midnight -m hnd-coverity-admin-list > /var/tmp/hnd/build_linux_JAGUAR_BRANCH_14_10_cov761.log 2>&1
+0 15    *       *       *       /home/hwnbuild/src/tools/build/build_task_submit.pl -lsf_queue sj-wlanswbuild /home/hwnbuild/src/tools/build/build_linux.sh -o RHEL60 -r JAGUAR_BRANCH_14_10 -d /projects/hnd/swbuild/build_linux -x 8 -v -b linux-coverity-76 -c noon -m hnd-coverity-admin-list >> /var/tmp/hnd/build_linux_JAGUAR_BRANCH_14_10_cov761.log 2>&1
+#------------------------------------------------------------------------------
+#
+# NFS Monitor - Every 10 Minute
+*/10 * * * * /usr/local/bin/python2.7 /home/hwnbuild/infra-monitor/infra-monitor.py -q >> /var/tmp/hnd/infra-monitor.log 2>&1
+#
+#------------------------------------------------------------------------------
+#
+# Update Google M development Git repositories every day
+30 8	*	*	*   (cd /projects/hnd_swgit/google.M-release && /tools/bin/repo sync -j8) >> /var/tmp/hnd/Google_M_dev_repo_sync.log 2>&1
+#
+#------------------------------------------------------------------------------
+#############################################################################################################################
+# Olympic packaging script
+#############################################################################################################################
+#
+5,15,25,35,45,55 * * * * /usr/bin/perl /projects/hnd_software/gallery/src/tools/build/olympic_mfg_pkg.pl > /var/tmp/hnd/olympic_mfg_pkg.log 2>&1
+#
+#############################################################################################################################
+###################################### GUB BUILDS ###########################################################################
+#############################################################################################################################
+#
+# GUB cron commands have their own invocation style. Please try to continue it:
+#   1. There are no tabs - instead, time fields are zero-padded to keep columns lining up.
+#   2. All commands log to a common file which contains time markers for ease of navigation.
+#   3. Redirections are pushed to the left so parts that differ can be consistently at the right.
+#   4. Everything has some order. If no other ordering is available, use sort order.
+#
+# GUB variable definitions
+#
+GUB_LOG = /var/tmp/hnd/GUB.cron.log
+GUB_CMD = /usr/local/bin/python2.7 /projects/hnd/tools/GUB/bin/gub
+GUB_SET_LOGIN_ENV = 1
+LSMAKE_SLOT_MAX_MIN = 12
+#
+# Put occasional markers in the common log file for ease of navigation.
+00 00 * * * >>$GUB_LOG 2>&1 perl -e 'printf "\n\%s \%s \%s\n\n", "#"x30, scalar(localtime), "#"x30'
+#
+# Keep the published GUB code in sync with subversion state.
+# Use /tools/bin/svn, we prefer not to use the svn wrapper in GUB to update itself.
+57  * * * * >>$GUB_LOG 2>&1 bash -xc "SUBVERSIONVER=1.8.14 /tools/bin/svn update /projects/hnd/tools/GUB"
+#
+# Nightly (midnight-based) brand builds. This single command schedules all nightly
+# builds in LSF with time offsets specified in GUB.yaml.
+#
+01 00 * * * >>$GUB_LOG 2>&1 $GUB_CMD build -r +0 --nightly -b ALL -t ALL
+#
+# Summary reports of nightly builds.
+#
+00 07 * * * >>$GUB_LOG 2>&1 $GUB_CMD --as-of +0 summary -c -m hnd-build-list -t ALL
+#
+# Build cleanup. Four passes: production, USERS, TEST, and TEST/USERS.
+# These use the sj-hnd queue because it has no run-time limit.
+#
+01 07 * * * >>$GUB_LOG 2>&1 $GUB_CMD --var LSF_QUEUE=sj-hnd cleanup -r $(date +\%FT\%T\%z) -t ALL --keep-days 4 --extras -o /projects/hnd/swbuild/build_admin/logs/cron/hwnbuild.crontab/gub.cleanup -m jkoster
+01 08 * * * >>$GUB_LOG 2>&1 $GUB_CMD --var LSF_QUEUE=sj-hnd cleanup -r $(date +\%FT\%T\%z) -t ALL --keep-days 2 --rm-parent-dirs -m jkoster --users
+01 11 * * * >>$GUB_LOG 2>&1 $GUB_CMD --var LSF_QUEUE=sj-hnd -T cleanup -r $(date +\%FT\%T\%z) -t ALL --keep-days 1 --rm-parent-dirs -m jkoster
+31 11 * * * >>$GUB_LOG 2>&1 $GUB_CMD --var LSF_QUEUE=sj-hnd -T cleanup -r $(date +\%FT\%T\%z) -t ALL --keep-days 1 --rm-parent-dirs -m jkoster --users

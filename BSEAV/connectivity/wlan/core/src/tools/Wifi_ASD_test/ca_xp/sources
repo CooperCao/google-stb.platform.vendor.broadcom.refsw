@@ -1,0 +1,12 @@
+# sources: windows build file for wl.exe
+# 
+# Copyright (C) 2005 Broadcom Corporation
+# All Rights Reserved.
+#
+# $Id: sources,v 1.2 2009-05-25 06:23:07 $
+#
+NIC_WL_EXE=wfa_ca
+TARGETPATH=obj
+
+include sources.common
+SOURCES =  wfa_ca.c wfa_ca_win32.c  

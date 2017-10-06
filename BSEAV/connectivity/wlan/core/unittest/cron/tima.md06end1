@@ -1,0 +1,14 @@
+#
+# $Id$
+#
+#
+MAILTO=tima@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+58       7,19,23 * * *   prod/unittest/cron/update
+
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+
+10	3	* * *	prod/unittest/cron/launch md06 Test/StaNightly.test -utfconf md06 -title 'md06: 4357b0' -ap 4366a -ap2 ref2 -sta '4357b0ix 4357b0i 4357b0t 4357b0 4357b0.2'

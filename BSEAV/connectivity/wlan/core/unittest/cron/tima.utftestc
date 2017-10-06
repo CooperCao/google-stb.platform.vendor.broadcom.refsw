@@ -1,0 +1,15 @@
+#
+# $Id$
+#
+MAILTO=tima@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	prod/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+35	4	* * *	prod/unittest/cron/launch ramsey1 Test/StaNightly.test -utfconf ramsey1 -title 'ram1: 4361b0' -ap 4366a -ap2 4366b -sta '4361b0r 4361b0'
+40	4	* * *	prod/unittest/cron/launch ramsey6 Test/StaNightly.test -utfconf ramsey6 -title 'ram6: 4350' -ap 4352 -sta '4350c5x 4350c5'

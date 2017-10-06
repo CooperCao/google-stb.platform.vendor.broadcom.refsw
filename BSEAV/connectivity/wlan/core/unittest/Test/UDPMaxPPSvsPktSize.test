@@ -1,0 +1,282 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+#
+# UTF test script to measure max PPS vs UDP payload size
+#
+# Written by: Robert J. McMahon February 2012
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::MemChart
+package require UTF::wlstats
+
+package provide UTF::Test::UDPMaxPPSvsPktSize 2.0
+
+#
+#  Measure max PPS vs UDP payload size
+#
+UTF::Test UDPMaxPPSvsPktSize {args} {
+    UTF::Getopts {
+	{ap.arg "" "AP under test"}
+	{sta.arg "" "STA under test"}
+	{min.arg "20" "Default Min packet size"}
+	{max.arg "1470" "Default Max packet size"}
+	{incrsize.arg "31" "Default increment size"}
+	{rate.arg "1G" "Default UDP offered rate"}
+	{tos.arg "0x0 0x20 0xc0 0x80" "Default ToS, i.e. ACs"}
+	{pps.arg "" "User provided offered load (units PPS)"}
+	{settletime.arg "0" "Time (s) to wait for iperf to settle"}
+	{holdtime.arg "2" "Hold time (s) for sampling"}
+	{chanspec.arg "6" "Chanspec to use"}
+	{security.arg "open" "Default security"}
+	{ampdu "" "Enable ampdu"}
+	{frameburst ""}
+	{udpwinsize.arg "500000" "Socket buffer size (units pkts)"}
+	{noscansuppress "" "Disable scanning during test"}
+	{nosetup "" "Bypass device setup"}
+	{phycal "" "Schedule phycal before each run"}
+	{randomize "" "Randomize increment steps"}
+	{key.arg "" "Control Chart key"}
+	{history.arg "30" "Control Chart history"}
+	{direction.arg "up" "Traffic direction"}
+	{text.arg "" "Text to add to graphs and try blocks"}
+	{nopktqstats "disable pktqstat polling"}
+	{dumpampdu ""}
+    }
+    set ss [$(sta) wl -u scansuppress]
+    if {!$(nosetup)} {
+	UTF::Try "Connect/AMPDU/SS/FB $(ap) $(sta)" {
+	    if {![$(ap) hostis Router]} {
+		$(ap) configure -ap 1
+		$(ap) configure -ipaddr 192.168.100.60
+		$(ap) configure -ssid "SoftAP"
+		$(sta) configure -ipaddr 192.168.100.61
+		$(ap) configure -wlinitcmds "ifconfig [$(ap) cget -device] 192.168.100.60"
+		$(sta) configure -wlinitcmds "ifconfig [$(sta) cget -device] 192.168.100.61"
+	    }
+	    UTF::Try "Chanspec $(chanspec)" {
+		UTF::Test::APChanspec $(ap) $(chanspec)
+	    }
+	    UTF::Try "Setup $(ap): $(security) security" {
+		UTF::Test::APConfigureSecurity $(ap) -security $(security)
+	    }
+	    UTF::Try "Frameburst" {
+		foreach STA [concat $(sta) $(ap)] {
+		    if {$(frameburst)} {
+			$STA wl frameburst 1
+		    } else {
+			$STA wl frameburst 0
+		    }
+		}
+	    }
+	    UTF::Try "AMPDU" {
+		set ssid [$(ap) wl ssid]
+		foreach STA [concat $(sta) $(ap)] {
+		    if {$(ampdu)} {
+			set ampdu 1
+		    } else {
+			set ampdu 0
+		    }
+		    $STA wl down
+		    $STA wl -u ampdu $ampdu
+		    $STA wl up
+		}
+	    }
+	    UTF::Try "Associate" {
+		$(sta) wl -u scansuppress 0
+		UTF::Test::ConnectAPSTA $(ap) $(sta)
+	    }
+	    UTF::Try "Set/Unset ScanSuppress" {
+		if {$(noscansuppress)} {
+		    $(sta) wl -u scansuppress 0
+		} else {
+		    $(sta) wl -u scansuppress 1
+		}
+	    }
+	    UTF::Try "wl status $(ap) $(sta)" {
+		$(ap) wl -u status
+		$(sta) wl -u status
+		return
+	    }
+	}
+    }
+    #
+    # Instantiate the traffic stream
+    #
+    if {[string toupper $(direction)] ne "UP"} {
+	set RX $(sta)
+	set TX $(ap)
+	set DIRTXT "AP->STA"
+    } else {
+	set TX $(sta)
+	set RX $(ap)
+	set DIRTXT "STA->AP"
+    }
+    UTF::stream traffic -tx $TX -rx $RX -pktsize $(max) -udprx_winpktcnt $(udpwinsize) -udptx_winpktcnt $(udpwinsize) -name [string toupper $(direction)] -reportinterval "0.025"
+    if {!$(nopktqstats)} {
+	$TX wl msglevel +time
+	set skey [traffic id]
+	set pktqstats($TX) [UTF::wlstats::pktqstat %AUTO% -key "ap,$skey" -wlcmd "$TX wl pktq_stats a:[$RX macaddr]" -name $TX]
+	set pktqstats(common,$TX) [UTF::wlstats::pktqstat %AUTO% -key "common ap,$skey" -wlcmd "$TX wl pktq_stats" -name ${TX}-NoAMPDU]
+    }
+
+    #
+    # If user requests a -pps for offered load use it otherwise use the udp rate
+    #
+    if {$(pps) ne ""} {
+	traffic configure -pps $(pps)
+    } else {
+	traffic configure -rate $(rate)
+    }
+    #
+    # Figure out how many samples are of interest per -holdime
+    # Used by lrange of stat lists
+    #
+    set cnt [expr {round($(holdtime) / [traffic cget -reportinterval]) - 2}]
+    set cckeycommon [concat $(key) $(ap) $(sta) $(min) $(max) $(incrsize) $(randomize) $(pps) $(rate) $(udpwinsize) $(frameburst) $(ampdu) $(chanspec) $(security) $(phycal) $(noscansuppress)]
+    foreach TOS $(tos) {
+	switch -exact $TOS {
+	    "0x0" {
+		set ACTXT "BE"
+	    }
+	    "0x20" {
+		set ACTXT "BK"
+	    }
+	    "0xC0" {
+		set ACTXT "VO"
+	    }
+	    "0x80" {
+		set ACTXT "VI"
+	    }
+	    default {
+		set ACTXT $TOS
+	    }
+	}
+	set trytitle "$DIRTXT $ACTXT"
+	UTF::Try "$trytitle $(text)" {
+	    if {$(phycal)} {
+		UTF::Try "PHYCal w/Disable" {
+		    foreach STA [concat $(ap) $(sta)] {
+			$STA wl -u phy_cal_disable 0
+			$STA wl -u glacial_timer 1
+		    }
+		    UTF::Sleep 3.0
+		    foreach STA [concat $(ap) $(sta)] {
+			$STA wl -u glacial_timer 3600
+			$STA wl -u phy_cal_disable 1
+		    }
+		}
+	    }
+	    traffic configure -tos $TOS -name "[string toupper $(direction)]-$TOS"
+	    traffic id
+	    set sizes {}
+	    for {set pktsize $(min)} {$pktsize <= $(max)} {incr pktsize +$(incrsize)} {
+		lappend sizes $pktsize
+	    }
+	    if {$(randomize)} {
+		set tmp {}
+		while {[llength $sizes]} {
+		    set ix [expr {int(rand() * [llength $sizes])}]
+		    lappend tmp [lindex $sizes $ix]
+		    set sizes [lreplace $sizes $ix $ix]
+		}
+		set sizes $tmp
+	    }
+	    UTF::Message INFO "" "sizes=$sizes"
+	    traffic stats -clear
+	    set values {}
+	    set tryerror 0
+	    foreach pktsize $sizes {
+		UTF::Try "UDP payload size=$pktsize" {
+		    traffic configure -pktsize $pktsize
+		    if {$(dumpampdu)} {
+			$(sta) wl -u ampdu_clear_dump
+			$(ap) wl -u ampdu_clear_dump
+		    }
+		    if {[array exists pktqstats]} {
+			foreach queuename [array names pktqstats] {
+			    $pktqstats($queuename) sample
+			}
+		    }
+		    if {[catch {traffic start}]} {
+			catch {traffc stop}
+			set tryerror 1
+			return "start error"
+		    }
+		    set retry 3
+		    while ($retry) {
+			if {![catch {traffic linkcheck -now -loose} msg]} {
+			    break
+			}
+			incr retry -1
+			if {!$retry} {
+			    error $msg
+			}
+		    }
+		    traffic stats -clear
+		    UTF::Sleep [expr {$(settletime) + $(holdtime)}]
+		    set tmp [lindex [UTF::MeanMinMax [lrange [traffic stats -pps] end-$cnt end]] 0]
+		    set pps($pktsize) $tmp
+		    lappend values $tmp
+		    set txpps [lindex [UTF::MeanMinMax [lrange [traffic stats -txpps] end-$cnt end]] 0]
+		    set rxtput($pktsize) [lindex [UTF::MeanMinMax [lrange [traffic stats -rate] end-$cnt end]] 0]
+		    set txtput($pktsize) [lindex [UTF::MeanMinMax [lrange [traffic stats -txrate] end-$cnt end]] 0]
+		    set kpps [format %0.1f [expr {$pps($pktsize) / 1000.0}]]
+		    set txkpps [format %0.1f [expr {$txpps / 1000.0}]]
+		    traffic stop
+		    set latency [traffic stats -pktlatency -meanminmax]
+		    if {[array exists pktqstats]} {
+			foreach queuename [array names pktqstats] {
+			    $pktqstats($queuename) sample
+			}
+		    }
+		    # RJM - shouldn't need this
+		    traffic configure -dstport [expr {[traffic cget -dstport] + 1}]
+#		    catch {$(ap) host mpstat}
+		    if {$(dumpampdu)} {
+			if {![$TX hostis Linux]} {
+			    if {[catch {$RX wl -u dump ampdu}]} {
+				set tryerror 1
+			    }
+			}
+			if {[catch {$TX wl -u dump ampdu}]} {
+			    set tryerror 1
+			}
+		    }
+		    return "${kpps}K/${txkpps}K pps [expr {round($rxtput($pktsize) / 1000000.0)}]/[expr {round($txtput($pktsize) / 1000000.0)}] Mbs (Rx/Tx) $latency (latencies ms)"
+		}
+	    }
+	    set mmm [UTF::MeanMinMax $values]
+	    foreach {mean min max} [UTF::MeanMinMax $values] {}
+	    set mean "[format %0.1f [expr {$mean / 1000}]]K"
+	    set min "[format %0.1f [expr {$min / 1000}]]K"
+	    set max "[format %0.1f [expr {$max / 1000}]]K"
+	    set PPSGraph [UTF::Streamslib::grapharray pps -htmltxt "${max}/${min}" -xlabel "UDP size" -title "PPS vs UDP size\\n$trytitle $(text)"]
+	    set RxTputGraph [UTF::Streamslib::grapharray rxtput -htmltxt "Rx" -xlabel "UDP size" -title "UDP Rx thrupt vs UDP size\\n$trytitle $(text)"]
+	    set TxTputGraph [UTF::Streamslib::grapharray txtput -htmltxt "Tx" -xlabel "UDP size" -title "UDP Tx thruput vs UDP size\\n$trytitle $(text)"]
+	    UTF::MemChart cc -key [concat $TOS $cckeycommon] -history $(history) -perfcache "" -title "PPS" -units "aggregate"
+	    set ppssum 0
+	    foreach index [array names pps] {
+		set ppssum [expr $ppssum + $pps($index)]
+	    }
+	    set boundsresults [cc addsample $ppssum]
+	    set chart [cc plotcontrolchart $boundsresults]
+	    set htmlstring "$PPSGraph [string range $RxTputGraph 5 end] [string range $TxTputGraph 5 end] [string range $chart 5 end]"
+	    cc destroy
+	    if {!$tryerror && ![regexp {(LOW|WIDE|ZERO)} $boundsresults]} {
+		return $htmlstring
+	    } else {
+		error $htmlstring
+	    }
+	}
+    }
+    catch {$(sta) wl -u scansuppress $ss}
+    traffic destroy
+    UTF::stream incrbaseport
+}

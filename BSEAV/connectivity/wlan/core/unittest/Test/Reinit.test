@@ -1,0 +1,110 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Script for duplicating SWWLAN-28196
+# 43224WIN72: BigHammer on 3: Reinit while dozing: assertion "wlc_hw->cca_shm_base != (uint)~0" failed: file "wlc_bmac.c", line 13150
+# 
+# Assumes that the AP is loaded
+#
+# $Id$
+# $Copyright Broadcom Corporation$
+
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::BigHammer
+
+UTF::Test Reinit {AP STA args} {
+    UTF::Getopts {
+	{count.arg 1 "Number of Loops to Try"}
+	{chanspec.arg "3" "Chanspec"}
+	{date.arg "" "Image date"}
+	{email.arg "" "Email to Use"}
+	{noconnect "Don't do ConnectAPSTA"}
+	{nostaload "Don't load the STA"}
+	{nostareload "Don't reload the STA"}
+	{nostaload "Don't reload STA drivers"}
+	{security.arg "open" "Security"}
+	}
+
+    UTF::WrapSummary $UTF::SummaryDir "SWWLAN-28196" "" "$(email)" {
+# Find images
+	if {!$(nostaload)} {
+	    UTF::Try "$STA Find STA Image" {
+		UTF::CheckImage $STA $(date) unknown
+	    }
+	}
+	  if {$(nostaload)} {
+		if {!$(nostareload)} {
+		    UTF::Try "$STA reload" {
+			$STA reload
+		    }
+		}
+	    } else {
+		UTF::Try "$STA load" {
+		    $STA load
+		}
+	    }
+	    UTF::Try "$STA defaults" {
+
+		$STA services stop
+		catch {$STA wl msglevel +error +assoc}
+		if {![$STA cget -nomimo_bw_cap]} {
+		    catch {$STA wl down}
+		    # Enable 40 in 2.4, if available.
+		    # Doesn't work for LMAC since LMAC is never "down"
+		    $STA wl -u mimo_bw_cap 1
+		    $STA wl up
+		    UTF::Sleep 1
+		}
+
+		$STA wl ver
+		set what [$STA whatami]
+		if {!$(nostaload)} {
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		#    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		#	UTF::Message WARN $STA $ret
+		#   }
+		}
+		set what
+	    }
+
+	# Connect AP and STA
+	if {!$(noconnect)} {  
+		catch {ConnectAPSTA $AP $STA -chanspec $(chanspec) -security $(security)} connect
+	}
+   
+        # Put the AP information on web page
+        UTF::Try "Whatami AP $AP" {
+            $AP whatami
+        }
+        UTF::Try "wl ver AP $AP" {
+            $AP wl ver
+        }
+        # Put the STA information on web page
+        UTF::Try "Whatami STA $STA" {
+            $STA whatami
+        }
+        UTF::Try "wl ver STA $STA" {
+            $STA wl ver
+        }
+
+        # Loop here
+        for {set i 1} {$i <= $(count)} {incr i} {
+           UTF::Try "Reinit $i/$(count)" {
+
+		 # BigHammer $AP $STA -msg "BigHammer on $(chanspec) Try $i/$(count)"
+		 
+			$STA wl PM 1
+			$STA wl bcn_timeout 2
+			$STA wl reinit
+	
+
+	     #  return $ret
+
+		    }	        
+		}
+	}
+}

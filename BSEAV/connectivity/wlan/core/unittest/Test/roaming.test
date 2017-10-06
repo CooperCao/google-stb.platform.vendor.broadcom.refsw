@@ -1,0 +1,2171 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for RvR test run
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set ::roaming_help "\n\nBasic usage: Test/roaming.test <options>\
+	\n\nThis script will setup roaming test rig by loading the desired\
+	\nbuilds, making connections between your wireless devices & running roaming\
+	\ntests.\
+	\n\nvalid options are:\
+	\n -utfconf path		Config file to use, default is ~/.utfconf.tcl"
+
+# Command line options string
+set ::roaming_getopts {
+	{src_ap.arg ""			"WLAN router that roaming from"}
+	{dst_ap.arg ""			"WLAN router that roaming to"}
+	{sta.arg ""				"WLAN STA to test"}
+	{chanspec1.arg "36l" 	"AP channel for AP from"}
+	{chanspec2.arg "36l" 	"AP channel for AP to"}
+	{va.arg "Aflex" 		"variable attenuator name"}
+	{sniffer.arg "" 		"sniffer object name"}
+	{email.arg "" 			"Email Address"}
+	{apband.arg "5G" 		"bandwidth that ap supports"}
+	{history.arg 30  		"History size for control charts"}
+	{max.arg 300	 		"Expected maximum througput, -1 means no checks done"}
+	{min.arg 0				"Expected minimum througput, -1 means no checks done"}
+	{summaryloc.arg ""  	"Path to summary.html"}
+	{title.arg "Roaming test" "Title"}
+	{branch.arg "" "Branch override"}
+	{window.arg 512k "Window size for iperf tests, does not impact Mimo/EmbeddedNightly tests"}
+	{failover_roaming "This is a failover roaming test, otherwise is a smooth roaming test"}
+	{voice_test "This is a voice (UDP) test, otherwise is a data (TCP) test"}
+	{estimate_attn "Display the estimated values for the attenuation on the report"}
+	{sniffer_start_attn.arg "" "This is the attenuation level that the sniffer starts collecting data. Keep this as blank since the command line must set this parameter."}
+	{src_ap_attn.arg "" "This is the attenuation range for the source AP that the DUT is orginally connected to. Keep this as blank since the command line must set this parameter."}
+	{dst_ap_attn.arg "" "This is the attenuation range for the dstination AP that the DUT is roaming to. Keep this as blank since the command line must set this parameter."}
+	{roam_trigger_value.arg "" "This is the roam trigger value. Default is blank."}
+}
+
+# Setup online help info.
+UTF::setup_help $::roaming_help $::roaming_getopts
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+	set ::argv ""
+}
+
+package require UTF
+package require UTF::utils
+package require UTF::Linux
+package require UTF::Sniffer
+package require UTF::Test::ConnectAPSTA
+package require UTF::MemChart
+
+namespace eval Roaming {}
+package provide UTF::Test::Roaming 2.0
+
+set ::sniffer_failed_flag 0
+set ::max_attn 63
+
+proc Roaming::control_chart {sample_list cc_keys cc_title cc_units} {
+
+	set ::Roaming::cc_error_flag 0
+
+	set sample_cnt [llength $sample_list]
+
+	# Create control chart	
+	# Control chart needs more than 2 samples
+	if {$sample_cnt > 2} {
+		UTF::ControlChart CC -s $sample_cnt -key $cc_keys -units $cc_units -title $cc_title -history 30
+		
+		# Get the Mean, Min, Max
+		set cc_mmm [UTF::MeanMinMax $sample_list]
+
+		# Add it to control chart
+		set cc_result [CC addsample $cc_mmm]
+	} else {
+		UTF::MemChart CC -key $cc_keys -units $cc_units -title $cc_title -history 30
+		
+		# Add it to control chart
+		set cc_result [CC addsample $sample_list]
+	}
+
+	if {[regexp -nocase {(LOW|HIGH|WIDE)} $cc_result - code]} {
+		UTF::Message ERROR "" "Roaming::control_chart Control chart value is $code"
+		set ::Roaming::cc_error_flag 1
+	}
+	
+	# Get the control chart graphics
+	set chart [CC plotcontrolchart $cc_result]
+	
+	# Delete control chart	
+	CC destroy
+
+	# remove the "html:" from the beginning
+	regsub -nocase {^html:} $chart "" chart
+
+	return "$chart"
+}
+
+proc Roaming::start_wlan_udp_traffic {endpoint1 endpoint2 test_time bidirection_flag} {
+	# access option array
+	upvar {} {}
+	
+	set ids ""
+	
+	UTF::Message LOG "$::localhost" "Roaming::start_wlan_udp_traffic endpoint1=$endpoint1 endpoint2=$endpoint2 test time=$test_time bi-direction flag=$bidirection_flag"
+
+	# check for "iperf -s -u" and not "iperf_timestamps.tcl -s -u"
+	set catch_resp [catch "$endpoint2 rexec ps -ef | grep \"iperf -s -u\"" catch_msg]
+	UTF::Message INFO "$::localhost" "catch_resp=$catch_resp catch_msg=$catch_msg"
+
+	if {$catch_msg == "Timeout"} {
+		UTF::Message ERROR "$::localhost" "***Failed. start_wlan_udp_traffic: $catch_msg"
+		error "$catch_msg"
+	}
+	
+	set tmp [split $catch_msg "\n"]
+
+	foreach line $tmp {
+	
+		#UID		PID  PPID  C STIME TTY		  TIME CMD
+		#root		 1	 0  0 Jan30 ?		00:00:00 /sbin/init
+
+		if {![regexp {grep|python} $line]} {
+			UTF::Message INFO "$::localhost" "$line"
+			# iperf server is running
+			regexp {\s+([0-9]+)\s+} $line match iperf_udp_server_pid
+			UTF::Message INFO "$::localhost" "Iperf UDP server is already ruuning. pid=$iperf_udp_server_pid"
+			
+			UTF::Message INFO "" "$endpoint2 rexec kill $iperf_udp_server_pid"  
+			set catch_resp [catch "$endpoint2 rexec kill $iperf_udp_server_pid" catch_msg]
+			if {$catch_resp != 0} {
+				UTF::Message ERROR "$::localhost" "***Failed. start_wlan_udp_traffic\
+					did not terminate udp_iperf_pid=$iperf_udp_server_pid: $catch_msg"
+				error "Iperf process did not terminate"
+			}
+			
+			UTF::Sleep 1
+		}
+	}
+
+	# endpoint1 -> endpoint2
+	# start the UDP server as background task for endpoint2
+	set fd_rx [$endpoint2 rpopen iperf_timestamps.tcl -s -u -b 10k -l 8k -i 3 -p 1455]
+
+	if {$bidirection_flag == 1} {
+		# endpoint2 -> endpoint1
+		# start the UDP server as background task for endpoint1
+		set fd_rx_2 [$endpoint1 rpopen iperf_timestamps.tcl -s -u -b 10k -l 8k -i 3 -p 1455]
+	}
+	
+	# let background process initialize"
+	UTF::Sleep 1
+
+	# endpoint1 -> endpoint2
+	fconfigure $fd_rx -blocking 0
+	fileevent $fd_rx readable {set ::utils_reading READY}
+
+	if {$bidirection_flag == 1} {
+		# endpoint2 -> endpoint1
+		fconfigure $fd_rx_2 -blocking 0
+		fileevent $fd_rx_2 readable {set ::utils_reading READY}
+	}
+	
+	# endpoint1 -> endpoint2
+	# G711 - payload = 160 Bytes 
+	# Start iperf UDP as background task for endpoint1	
+	set fd_tx [$endpoint1 rpopen iperf_timestamps.tcl -c [$endpoint2 ipaddr] -u -b 10k -l 8k -p 1455 -t $test_time]
+
+	if {$bidirection_flag == 1} {
+		# endpoint2 -> endpoint1
+		# Start iperf UDP as background task for endpoint2	
+		set fd_tx_2 [$endpoint2 rpopen iperf_timestamps.tcl -c [$endpoint1 ipaddr] -u -b 10k -l 8k -p 1455 -t $test_time]
+	}
+	
+	# let background process initialize"
+	UTF::Sleep 1
+	
+	# endpoint1 -> endpoint2
+	fconfigure $fd_tx -blocking 0
+	fileevent $fd_tx readable {set ::utils_reading READY}
+	set ids "$endpoint2 $fd_rx"
+
+	if {$bidirection_flag == 1} {
+		# endpoint2 -> endpoint1
+		fconfigure $fd_tx_2 -blocking 0
+		fileevent $fd_tx_2 readable {set ::utils_reading READY}
+		append ids " $endpoint1 $fd_rx_2"
+	}
+
+	UTF::Message LOG "$::localhost" "Roaming::start_wlan_udp_traffic ids=$ids"
+	
+	return $ids
+}
+
+proc Roaming::start_wlan_tcp_traffic {endpoint1 endpoint2 test_time bidirection_flag} {
+
+	set ids ""
+
+	UTF::Message LOG "$::localhost" "start_wlan_tcp_traffic endpoint1=$endpoint1 endpoint2=$endpoint2 test time=$test_time"
+
+	# Start iperf as background task	
+	# endpoint1 -> endpoint2
+	# Chariot uses interval of 200 ms, but with iperf, min is 500 ms.
+	set fd_tx [$endpoint1 rpopen iperf_timestamps.tcl -c [$endpoint2 ipaddr] -t $test_time -w 1M -fb -i 0.5]
+
+	# let background process initialize
+	UTF::Sleep 1
+
+	fconfigure $fd_tx -blocking 0
+	fileevent $fd_tx readable {set ::utils_reading READY}
+	set ids "$endpoint1 $fd_tx"
+
+	UTF::Message LOG "$::localhost" "start_wlan_tcp_traffic ids=$ids"
+
+	return $ids
+}
+
+proc Roaming::start_wlan_traffic {endpoint1 endpoint2 test_time} {
+	# access option array
+	upvar {} {}
+	upvar iperf_ids iperf_ids	
+	
+	if {$(voice_test)} {
+		set iperf_ids [Roaming::::start_wlan_udp_traffic $endpoint1 $endpoint2 $test_time 0]	
+	} else {
+		set iperf_ids [Roaming::::start_wlan_tcp_traffic $endpoint1 $endpoint2 $test_time 0]
+	}
+
+	UTF::Sleep 0.1
+
+	# iperf rpopen process is on the UTF machine
+	
+	foreach {loc fd} "$iperf_ids" {
+	
+		set catch_resp [catch {set iperf_pid [pid $fd]} catch_msg]
+		UTF::Message INFO "" "set iperf_pid catch_msg=$catch_msg"
+	
+		UTF::Message INFO "" "Roaming::start_wlan_traffic loc=$loc fd=$fd pid=$iperf_pid"  
+
+		set catch_resp [catch "exec ps $iperf_pid" catch_msg]
+		UTF::Message INFO "" "ps $iperf_pid catch_msg=$catch_msg"
+
+		if {![regexp -nocase "iperf" $catch_msg]} {
+			UTF::Message INFO "" "--------------------------------DEBUG----------------------------------"  
+			set catch_resp [catch "exec ps -ef | grep \"iperf\"" catch_msg]
+			UTF::Message INFO "$::localhost" "catch_resp=$catch_resp catch_msg=$catch_msg"
+			UTF::Message INFO "" "-----------------------------------------------------------------------"  
+			
+			UTF::Message ERROR "" "***Failed. Iperf did not start"
+			error "Iperf did not start"
+		}
+		
+		set catch_resp [catch "exec ps -ef | grep \"iperf\"" catch_msg]					
+		UTF::Message INFO "" "ps -ef catch_msg=$catch_msg"		
+	}
+}
+
+proc Roaming::stop_iperf_traffic {} {
+	# access option array
+	upvar {} {}
+	upvar iperf_ids iperf_ids	
+
+	UTF::Message INFO "" "stop_iperf_traffic"  
+
+	# iperf rpopen process is on the UTF machine
+
+	foreach {loc fd} "$iperf_ids" {
+
+		set catch_resp [catch {set iperf_pid [pid $fd]} catch_msg]
+		UTF::Message INFO "" "set iperf_pid catch_msg=$catch_msg"
+
+		if {$catch_resp != 0} {
+			# failed to get pid
+			UTF::Message INFO "" "Roaming::stop_iperf_traffic loc=$loc fd=$fd pid=None (must be exited already)"  
+		} else {	
+			UTF::Message INFO "" "Roaming::stop_iperf_traffic loc=$loc fd=$fd pid=$iperf_pid"  
+
+			UTF::Message INFO "" "exec kill $iperf_pid"  
+			set catch_resp [catch "exec kill $iperf_pid" catch_msg]
+			if {$catch_resp != 0} {
+				UTF::Message ERROR "$::localhost" "stop_iperf_traffic\
+					did not terminate iperf_pid=$iperf_pid: $catch_msg"
+			}
+
+			UTF::Sleep 1
+
+			set catch_resp [catch "$loc rexec ps $iperf_pid" catch_msg]
+			UTF::Message INFO "" "ps $iperf_pid catch_msg=$catch_msg"
+
+			if {[regexp -nocase "iperf" $catch_msg]} {
+				UTF::Message ERROR "" "***Failed. Iperf did not stop"
+				error "Iperf did not stop"
+			}
+		}
+	}
+	
+	set iperf_ids ""
+
+	UTF::Message INFO "" "iperf_ids=$iperf_ids"  
+}
+
+proc cleanup_iperf {server_name} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "$::localhost" "************************Func:cleanup_iperf***************************"
+
+	set tcp_iperf_server_up_flag 0
+	
+	set catch_resp [catch "$server_name rexec ps -ef | grep \"iperf_timestamps\"" catch_msg]
+	UTF::Message INFO "$::localhost" "catch_resp=$catch_resp catch_msg=$catch_msg"
+
+	if {$catch_resp != 0} {
+		return
+	}
+
+	set tmp [split $catch_msg "\n"]
+
+	foreach line $tmp {
+	
+		#UID		PID  PPID  C STIME TTY		  TIME CMD
+		#root		 1	 0  0 Jan30 ?		00:00:00 /sbin/init
+
+		UTF::Message INFO "$::localhost" "$line"
+		if {![regexp {grep} $line]} {
+			regexp {\s+([0-9]+)\s+} $line match iperf_pid
+			UTF::Message INFO "$::localhost" "Kill Iperf pid=$iperf_pid"
+
+			UTF::Message INFO "" "$server_name rexec kill $iperf_pid"  
+			set catch_resp [catch "$server_name rexec kill $iperf_pid" catch_msg]
+			if {$catch_resp != 0} {
+				UTF::Message ERROR "$::localhost" "***Failed. cleanup_iperf\
+					did not terminate Iperf pid=$iperf_pid: $catch_msg"
+			}
+		}
+	}
+}
+
+proc start_tcp_iperf_server {server_name} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "$::localhost" "************************Func:start_tcp_iperf_server***************************"
+
+	set tcp_iperf_server_up_flag 0
+	
+	set catch_resp [catch "$server_name rexec ps -ef | grep \"iperf -s -D\"" catch_msg]
+	UTF::Message INFO "$::localhost" "catch_resp=$catch_resp catch_msg=$catch_msg"
+
+	set tmp [split $catch_msg "\n"]
+
+	foreach line $tmp {
+	
+		#UID		PID  PPID  C STIME TTY		  TIME CMD
+		#root		 1	 0  0 Jan30 ?		00:00:00 /sbin/init
+
+		if {![regexp {grep|python} $line]} {
+			UTF::Message INFO "$::localhost" "$line"
+			# iperf server is running
+			regexp {\s+([0-9]+)\s+} $line match iperf_tcp_server_pid
+			UTF::Message INFO "$::localhost" "Iperf TCP server is already ruuning. pid=$iperf_tcp_server_pid"
+			set tcp_iperf_server_up_flag 1
+			break
+		}
+	}
+	
+	if {$tcp_iperf_server_up_flag == 0} {
+
+		# start iperf server
+		UTF::Message INFO "$::localhost" "Starting iperf server"
+		set fd_iperf_server [$server_name rpopen iperf -s -D]
+
+		# let background process initialize
+		UTF::Sleep 1
+
+		set pid [pid $fd_iperf_server]
+
+		UTF::Message INFO "" "Roaming::start_tcp_iperf_server loc=$server_name fd=$fd_iperf_server pid=$pid"  
+		set catch_resp [catch "$server_name rexec ps $pid" catch_msg]
+		UTF::Message INFO "" "ps $pid catch_msg=$catch_msg"
+
+		if {![regexp -nocase "iperf" $catch_msg]} {
+			UTF::Message ERROR "" "***Failed. Iperf did not start"
+			error "Iperf did not start"
+		}
+	}
+}
+
+proc Roaming::stop_sniffer {} {
+	# access option array
+	upvar {} {}
+	upvar sniffer_file_name sniffer_file_name
+	upvar SummaryLoc SummaryLoc
+	
+	UTF::Message LOG "" "*************************** Stop the sniffer *****************************"
+
+	# stop the sniffer and copy over the snifferfile
+	catch {$(sniffer) stopall}
+	
+	set sniff_ip [$(sniffer) cget -lan_ip]
+
+	UTF::Message LOG "" "scp -Bqr root@$sniff_ip:/root/$sniffer_file_name $SummaryLoc$sniffer_file_name"
+	set catch_resp [catch {exec scp -Bqr root@$sniff_ip:/root/$sniffer_file_name "$SummaryLoc$sniffer_file_name"} catch_msg]
+	UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+
+	if {$catch_resp == 0} {
+		# copied the file, now remove it from the sniffer
+		catch {$(sniffer) rm -f /root/$sniffer_file_name}
+	}
+
+	# clean up sniffer temp files
+	catch {$(sniffer) rm -f /tmp/ether*}
+}
+
+proc Roaming::calculate_attn_values {src_ap dst_ap STA} {
+	# access option array
+	upvar {} {}
+	upvar max_association_tries max_association_tries
+	upvar roam_trigger roam_trigger
+	upvar src_ap_mac src_ap_mac
+	upvar dst_ap_mac dst_ap_mac
+	upvar src_ap_ssid src_ap_ssid
+	upvar dst_ap_ssid dst_ap_ssid
+	upvar src_ap_attn_group src_ap_attn_group
+	upvar src_ap_attn_start src_ap_attn_start
+	upvar src_ap_attn_end src_ap_attn_end
+	upvar dst_ap_attn_group dst_ap_attn_group
+	upvar dst_ap_attn_start dst_ap_attn_start
+	upvar dst_ap_attn_end dst_ap_attn_end
+	upvar dwellTime dwellTime
+	upvar LAN LAN
+	upvar iperf_ids iperf_ids	
+
+	UTF::Try "Calculate Attn Values" {
+		UTF::Message INFO "" "$src_ap $dst_ap $STA"
+
+		$dst_ap_attn_group attn $::max_attn
+		$src_ap_attn_group attn 0
+		UTF::Sleep 5
+
+		###############################################			
+		# Calculate attenuator values for the src_ap (going away)
+		# Find attenuation at roam_trigger - This is src_ap_attn_end value
+		# src_ap_attn_start = src_ap_attn_end - attn cnt roam_delta
+		###############################################			
+
+		for {set j 1} {$j <= $max_association_tries} {incr j} {
+				UTF::Message INFO "" "Associate $src_ap $STA Try: $j"  
+			UTF::Message INFO "" "Disassociate $STA"  
+			catch {$STA wl disassoc}
+			UTF::Sleep 2
+			set catch_resp [catch "UTF::Test::ConnectAPSTA $src_ap $STA" catch_msg]
+			UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+			if {$catch_resp == 0} { 
+				break
+			}
+		}
+
+		set catch_resp [catch "$STA wl bssid" catch_msg]
+
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			if {$src_ap_mac != "" && $src_ap_mac != $catch_msg} {
+				# src_ap_mac is config file did not match the read AP mac address
+				UTF::Message INFO "" "AP Mac Id Mismatch. src_ap_macConfig=$src_ap_mac APMac=$catch_msg"
+			}
+
+			set src_ap_mac $catch_msg
+			UTF::Message INFO "" "src_ap=$src_ap with macaddr=$src_ap_mac from association"  
+		}
+
+		set catch_resp [catch "$src_ap wl ssid" catch_msg]
+
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			if {$src_ap_ssid != "" && $src_ap_ssid != $catch_msg} {
+				# src_ap_ssid is config file did not match the read AP ssid
+				UTF::Message ERROR "" "***Failed. Mismatch. src_ap_ssid=$src_ap_ssid Assoc_APssid=$catch_msg"
+				error "$src_ap SSID mismatch"
+			}
+
+			set src_ap_ssid $catch_msg
+			UTF::Message INFO "" "src_ap=$src_ap with AP ssid=$src_ap_ssid"  
+		}
+
+		set roam_delta ""
+
+		set ap_band [$src_ap band $(chanspec1)]
+		
+		set catch_resp [catch "$STA wl roam_trigger $ap_band" catch_msg]
+		if {$catch_resp != 0} {
+			UTF::Sleep 2
+			set catch_resp [catch "$STA wl roam_trigger $ap_band" catch_msg]
+		}
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			# roam_trigger is 0xffb5(-75)
+			regexp {roam_trigger is .*\((-[0-9]+)\)} $catch_msg match roam_trigger
+			UTF::Message INFO "" "roam_trigger=$roam_trigger"
+		}
+
+		set catch_resp [catch "$STA wl roam_delta $ap_band" catch_msg]
+		if {$catch_resp != 0} {
+			UTF::Sleep 2
+			set catch_resp [catch "$STA wl roam_delta $ap_band" catch_msg]
+		}
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			# roam_delta is 0x0014(20)
+			regexp {roam_delta is .*\(([0-9]+)\)} $catch_msg match roam_delta
+			UTF::Message INFO "" "roam_delta=$roam_delta"
+		}
+
+		# Start downstream iperf traffic
+		UTF::Message INFO "" "A - calculate_attn_values - Start the iperf"
+		Roaming::start_wlan_traffic $LAN $STA 120
+
+		set attn_val 0
+
+		while { 1 } {
+
+			$src_ap_attn_group attn $attn_val
+			UTF::Sleep $dwellTime
+
+			set catch_resp [catch "$STA wl rssi" catch_msg]
+
+			if {$catch_resp != 0} {
+				UTF::Message ERROR "" "***Failed. $catch_msg"
+				error $catch_msg
+			} else {
+				set rssi [expr int($catch_msg)]
+
+				UTF::Message INFO "" "attn_val=$attn_val rssi=$rssi"  
+			}
+
+			if {$attn_val > 100} {
+				break
+			}
+
+			# break if rssi greater than roam_trigger 
+			if {[expr int($rssi)] < [expr int($roam_trigger) + int(-4)]} {
+				break
+			}
+
+			if {$attn_val == 0} {
+				set attn_val [expr int($roam_trigger) - int($rssi)]
+				set attn_val [expr abs(int($attn_val))]
+			} else {
+				set attn_val [expr $attn_val + 2]
+			}
+		}
+
+		set src_ap_roam_trigger_attn [expr $attn_val - 1]
+		UTF::Message INFO "" "1 src_ap_roam_trigger_attn=$src_ap_roam_trigger_attn"
+
+		if {!$(failover_roaming)} {
+			UTF::Message LOG "" "*************************** Smooth Roaming *****************************"
+
+			# roaming does not happen at roam_trigger??? need adjustment
+			set src_ap_roam_trigger_attn [expr $src_ap_roam_trigger_attn + 5]
+			UTF::Message INFO "" "2 src_ap_roam_trigger_attn=$src_ap_roam_trigger_attn"
+
+			# src_ap start = src_ap_roam_trigger_attn - roam_delta(20dB)
+			# src_ap end	= src_ap_roam_trigger_attn
+			set src_ap_attn_start [expr $src_ap_roam_trigger_attn - $roam_delta]
+			if {int($src_ap_attn_start) < 0} {
+				set src_ap_attn_start 0
+			}
+			if {$src_ap_attn_start > $::max_attn} {
+				set src_ap_attn_start $::max_attn
+			}
+			set src_ap_attn_end [expr $src_ap_roam_trigger_attn + 15]
+			if {$src_ap_attn_end > $::max_attn} {
+				set src_ap_attn_end $::max_attn
+			}
+		} else {
+			UTF::Message LOG "" "*************************** Failover Roaming *****************************"
+
+			set src_ap_attn_start [expr $src_ap_roam_trigger_attn - 35]
+			if {$src_ap_attn_start < 0} {
+				set src_ap_attn_start 0
+			}
+			if {$src_ap_attn_start > $::max_attn} {
+				set src_ap_attn_start $::max_attn
+			}
+			set src_ap_attn_end $src_ap_attn_start
+		}
+
+		UTF::Message INFO "" "src_ap Start=$src_ap_attn_start"
+		UTF::Message INFO "" "src_ap End  =$src_ap_attn_end"
+
+		UTF::Message INFO "" "Stop the iperf traffic"
+		Roaming::stop_iperf_traffic
+		
+		###############################################			
+		# Calculate attenuator values for the dst_ap
+		# Find attenuation at (roam_trigger - roam_delta) - This is dst_ap_attn_end value
+		# dst_ap_attn_start = dst_ap_attn_end - attn cnt src ap
+		###############################################			
+
+		UTF::Message INFO "" "Disassociate $STA"  
+		catch {$STA wl disassoc}
+
+		$src_ap_attn_group attn $::max_attn
+		$dst_ap_attn_group attn 0
+		UTF::Sleep 5
+
+		for {set j 1} {$j <= $max_association_tries} {incr j} {
+			UTF::Message INFO "" "Disassociate $STA"  
+			catch {$STA wl disassoc}
+			UTF::Sleep 2
+			UTF::Message INFO "" "Associate $dst_ap $STA Try: $j"  
+			set catch_resp [catch "UTF::Test::ConnectAPSTA $dst_ap $STA" catch_msg]
+			UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+			if {$catch_resp == 0} { 
+				break
+			}
+		}
+
+		set catch_resp [catch "$STA wl bssid" catch_msg]
+
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			if {$dst_ap_mac != "" && $dst_ap_mac != $catch_msg} {
+				# dst_ap_mac is config file did not match the read AP mac address
+				UTF::Message INFO "" "AP Mac Id Mismatch. dst_ap_macConfig=$dst_ap_mac APMac=$catch_msg"
+			}
+
+			set dst_ap_mac $catch_msg
+			UTF::Message INFO "" "dst_ap=$dst_ap with macaddr=$dst_ap_mac from association"  
+		}
+
+		set catch_resp [catch "$dst_ap wl ssid" catch_msg]
+
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			if {$dst_ap_ssid != "" && $dst_ap_ssid != $catch_msg} {
+				# dst_ap_ssid is config file did not match the read AP ssid
+				UTF::Message ERROR "" "***Failed. Mismatch. dst_ap_ssidConfig=$dst_ap_ssid APssid=$catch_msg"
+				error "$dst_ap SSID mismatch"
+			}
+
+			set dst_ap_ssid $catch_msg
+			UTF::Message INFO "" "dst_ap=$dst_ap with AP ssid=$dst_ap_ssid"  
+		}
+
+		# Start downstream iperf traffic
+		UTF::Message INFO "" "B - calculate_attn_values - Start the iperf"
+		Roaming::start_wlan_traffic $LAN $STA 120
+
+		set attn_val 0
+
+		while { 1 } {
+
+			$dst_ap_attn_group attn $attn_val
+			UTF::Sleep $dwellTime
+
+			set catch_resp [catch "$STA wl rssi" catch_msg]
+
+			if {$catch_resp != 0} {
+				UTF::Message ERROR "" "***Failed. $catch_msg"
+				error $catch_msg
+			} else {
+				set rssi [expr int($catch_msg)]
+
+				UTF::Message INFO "" "attn_val=$attn_val rssi=$rssi"  
+			}
+
+			if {$attn_val > 100} {
+				break
+			}
+
+			# break if rssi greater than roam_trigger - roam_delta
+			if {[expr int($rssi)] < [expr int($roam_trigger) + int($roam_delta)]} {
+				break
+			}
+
+			if {$attn_val == 0} {
+				set attn_val [expr [expr int($roam_trigger) - int($rssi)] + int($roam_delta)]
+				set attn_val [expr abs(int($attn_val))]
+			} else {
+				set attn_val [expr $attn_val + 2]
+			}
+		}
+
+		set attn_val [expr $attn_val - 5]
+		if {$attn_val < 0} {
+			set attn_val 0
+		}
+
+		if {!$(failover_roaming)} {
+			UTF::Message LOG "" "*************************** Smooth Roaming *****************************"
+
+			# dst_ap start = roam_trigger
+			# dst_ap end	= roam_trigger_attn - roam_delta(20dB)
+			set dst_ap_attn_start [expr $attn_val + $src_ap_attn_end - $src_ap_attn_start]
+			set dst_ap_attn_end	$attn_val
+			
+			# Optional:
+			# addjust the values, so the destination AP rssi is stronger therefore
+			# roaming happens at -75 dB and not later
+			set dst_ap_attn_start [expr $dst_ap_attn_start - 25]
+			if {$dst_ap_attn_start < 0} {
+				set dst_ap_attn_start 0
+			}
+			if {$dst_ap_attn_start > $::max_attn} {
+				set dst_ap_attn_start $::max_attn
+			}
+			set dst_ap_attn_end [expr $dst_ap_attn_end - 25]
+			if {$dst_ap_attn_end < 0} {
+				set dst_ap_attn_end 0
+			}
+			if {$dst_ap_attn_end > $::max_attn} {
+				set dst_ap_attn_end $::max_attn
+			}
+			
+			set ret_str "Attn: src_ap=$src_ap_attn_start\-$src_ap_attn_end dst_ap=$dst_ap_attn_start\-$dst_ap_attn_end"
+		} else {
+			UTF::Message LOG "" "*************************** Failover Roaming *****************************"
+
+			#set dst_ap_attn_start [expr $attn_val + int($roam_delta) - 10]
+			set dst_ap_attn_start $src_ap_attn_start
+			if {$dst_ap_attn_start < 0} {
+				set dst_ap_attn_start 0
+			}
+			if {$dst_ap_attn_start > $::max_attn} {
+				set dst_ap_attn_start $::max_attn
+			}
+			set dst_ap_attn_end $dst_ap_attn_start
+			set ret_str "Attn: src_ap=$src_ap_attn_start dst_ap=$dst_ap_attn_start"
+		}
+
+		UTF::Message INFO "" "dst_ap Start=$dst_ap_attn_start"
+		UTF::Message INFO "" "dst_ap End  =$dst_ap_attn_end"
+
+		UTF::Message INFO "" "Stop the iperf traffic"
+		Roaming::stop_iperf_traffic
+
+		return $ret_str
+	}
+}
+
+proc Roaming::get_macid_values {src_ap dst_ap STA} {
+	# access option array
+	upvar {} {}
+	upvar max_association_tries max_association_tries
+	upvar roam_trigger roam_trigger
+	upvar src_ap_mac src_ap_mac
+	upvar dst_ap_mac dst_ap_mac
+	upvar src_ap_ssid src_ap_ssid
+	upvar dst_ap_ssid dst_ap_ssid
+	upvar src_ap_attn_group src_ap_attn_group
+	upvar src_ap_attn_start src_ap_attn_start
+	upvar src_ap_attn_end src_ap_attn_end
+	upvar dst_ap_attn_group dst_ap_attn_group
+	upvar dst_ap_attn_start dst_ap_attn_start
+	upvar dst_ap_attn_end dst_ap_attn_end
+
+	UTF::Try "Mac Id Values" {
+		UTF::Message INFO "" "$src_ap $dst_ap $STA"
+
+		UTF::Message INFO "" "--------------------------------src_ap------------------------------------"  
+
+		###############################################			
+		# src_ap
+		###############################################			
+
+		UTF::Message INFO "" "Disassociate $STA"  
+		catch {$STA wl disassoc}
+
+		$dst_ap_attn_group attn $::max_attn
+		$src_ap_attn_group attn 0
+		UTF::Sleep 5
+
+		for {set j 1} {$j <= $max_association_tries} {incr j} {
+			UTF::Message INFO "" "----------------------------------------------------"  
+			UTF::Message INFO "" "Disassociate $STA"  
+			catch {$STA wl disassoc}
+			UTF::Sleep 2
+			UTF::Message INFO "" "Associate $src_ap $STA Try: $j"  
+			set catch_resp [catch "UTF::Test::ConnectAPSTA $src_ap $STA" catch_msg]
+			UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+			if {$catch_resp == 0} { 
+				break
+			}
+		}
+
+		set catch_resp [catch "$STA wl bssid" catch_msg]
+
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			if {$src_ap_mac != "" && $src_ap_mac != $catch_msg} {
+				# src_ap_mac is config file did not match the read AP mac address
+				UTF::Message INFO "" "AP Mac Id Mismatch. src_ap_macConfig=$src_ap_mac APMac=$catch_msg"
+			}
+
+			set src_ap_mac $catch_msg
+			UTF::Message INFO "" "src_ap=$src_ap with macaddr=$src_ap_mac from association"  
+		}
+
+		set catch_resp [catch "$src_ap wl ssid" catch_msg]
+
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			if {$src_ap_ssid != "" && $src_ap_ssid != $catch_msg} {
+				# src_ap_ssid is config file did not match the read AP ssid
+				UTF::Message ERROR "" "***Failed. Mismatch. src_ap_ssid=$src_ap_ssid Assoc_APssid=$catch_msg"
+				error "$src_ap SSID mismatch"
+			}
+
+			set src_ap_ssid $catch_msg
+			UTF::Message INFO "" "src_ap=$src_ap with AP ssid=$src_ap_ssid"  
+		}
+
+		set roam_delta ""
+
+		set ap_band [$src_ap band $(chanspec1)]
+		
+		set catch_resp [catch "$STA wl roam_trigger $ap_band" catch_msg]
+		if {$catch_resp != 0} {
+			UTF::Sleep 2
+			set catch_resp [catch "$STA wl roam_trigger $ap_band" catch_msg]
+		}
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			# roam_trigger is 0xffb5(-75)
+			regexp {roam_trigger is .*\((-[0-9]+)\)} $catch_msg match roam_trigger
+			UTF::Message INFO "" "roam_trigger=$roam_trigger"
+		}
+
+		set catch_resp [catch "$STA wl roam_delta $ap_band" catch_msg]
+		if {$catch_resp != 0} {
+			UTF::Sleep 2
+			set catch_resp [catch "$STA wl roam_delta $ap_band" catch_msg]
+		}
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			# roam_delta is 0x0014(20)
+			regexp {roam_delta is .*\(([0-9]+)\)} $catch_msg match roam_delta
+			UTF::Message INFO "" "roam_delta=$roam_delta"
+		}
+
+		UTF::Message INFO "" "--------------------------------dst_ap------------------------------------"  
+		###############################################			
+		# dst_ap
+		###############################################			
+
+		UTF::Message INFO "" "Disassociate $STA"  
+		catch {$STA wl disassoc}
+
+		$src_ap_attn_group attn $::max_attn
+		$dst_ap_attn_group attn 0
+		UTF::Sleep 5
+
+		for {set j 1} {$j <= $max_association_tries} {incr j} {
+			UTF::Message INFO "" "----------------------------------------------------"  
+			UTF::Message INFO "" "Disassociate $STA"  
+			catch {$STA wl disassoc}
+			UTF::Sleep 2
+			UTF::Message INFO "" "Associate $dst_ap $STA Try: $j"  
+			set catch_resp [catch "UTF::Test::ConnectAPSTA $dst_ap $STA" catch_msg]
+			UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+			if {$catch_resp == 0} { 
+				break
+			}
+		}
+
+		set catch_resp [catch "$STA wl bssid" catch_msg]
+
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			if {$dst_ap_mac != "" && $dst_ap_mac != $catch_msg} {
+				# dst_ap_mac is config file did not match the read AP mac address
+				UTF::Message INFO "" "AP Mac Id Mismatch. dst_ap_macConfig=$dst_ap_mac APMac=$catch_msg"
+			}
+
+			set dst_ap_mac $catch_msg
+			UTF::Message INFO "" "dst_ap=$dst_ap with macaddr=$dst_ap_mac from association"  
+		}
+
+		set catch_resp [catch "$dst_ap wl ssid" catch_msg]
+
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			if {$dst_ap_ssid != "" && $dst_ap_ssid != $catch_msg} {
+				# dst_ap_ssid is config file did not match the read AP ssid
+				UTF::Message ERROR "" "***Failed. Mismatch. dst_ap_ssidConfig=$dst_ap_ssid APssid=$catch_msg"
+				error "$dst_ap SSID mismatch"
+			}
+
+			set dst_ap_ssid $catch_msg
+			UTF::Message INFO "" "dst_ap=$dst_ap with AP ssid=$dst_ap_ssid"  
+		}
+
+		UTF::Message INFO "" "--------------------------------------------------------------------"  
+		
+		if {$src_ap_ssid == $dst_ap_ssid} {
+			UTF::Message INFO "" "The destination AP SSID is the same as soruce AP SSID $src_ap_ssid"  
+		} else {
+			UTF::Message INFO "" "Set the destination AP SSID to be the same as soruce AP SSID"  
+
+			set wlname [$dst_ap wlname]
+
+			catch {$dst_ap nvram set ${wlname}_ssid=$src_ap_ssid}
+			$dst_ap nvram commit
+			$dst_ap restart
+			UTF::Sleep 10
+
+			$dst_ap configure -ssid $src_ap_ssid
+
+			catch {$dst_ap nvram get ${wlname}_ssid} SSID
+			set dst_ap_ssid $SSID
+
+			set catch_resp [catch "$dst_ap wl ssid" catch_msg]
+
+			if {$src_ap_ssid == $catch_msg} {
+				UTF::Message INFO "" "dst_ap=$dst_ap with AP ssid=$dst_ap_ssid is the same as soruce AP SSID"  
+			} else {
+				set dst_ap_ssid $catch_msg
+				UTF::Message ERROR "" "***Failed. Mismatch. src_ap_ssid=$src_ap_ssid dst_ap_ssid=$dst_ap_ssid"
+				error "$dst_ap SSID mismatch"
+			}
+		}
+
+		return ""
+	}
+}
+
+proc Roaming::roaming {src_ap dst_ap STA} {
+	# access option array
+	upvar {} {}
+	upvar roam_trigger roam_trigger
+	upvar roam_delta_value roam_delta_value
+	upvar src_ap_mac src_ap_mac
+	upvar dst_ap_mac dst_ap_mac
+	upvar src_ap_attn_group src_ap_attn_group
+	upvar src_ap_attn_start src_ap_attn_start
+	upvar src_ap_attn_end src_ap_attn_end
+	upvar dst_ap_attn_group dst_ap_attn_group
+	upvar dst_ap_attn_start dst_ap_attn_start
+	upvar dst_ap_attn_end dst_ap_attn_end
+	upvar dwellTime dwellTime
+	upvar noDotBand noDotBand
+	upvar cap cap
+	upvar channel channel
+	upvar totTime totTime
+	upvar snifferPrism snifferPrism
+	upvar SummaryLoc SummaryLoc
+	upvar list_rssi list_rssi
+	upvar roamed_flag roamed_flag
+	upvar LAN LAN
+	upvar destSniffPath destSniffPath
+	upvar iperf_ids iperf_ids
+	upvar sniffer_file_name sniffer_file_name
+
+	# sniffer stages:
+	# 	0 = start
+	# 	1 = started
+	# 	2 = wait
+	# 	3 = stop
+	# 	4 = stopped
+	set sniffer_stage 0
+	
+	set pid_sniffer 0
+
+	UTF::Message INFO "" "$src_ap $dst_ap $STA"
+
+	if {$(roam_trigger_value) != ""} {
+		catch {$STA wl roam_trigger $(roam_trigger_value) all}
+	}
+
+	set sniffer_start_attn $(sniffer_start_attn)
+
+	if {$(failover_roaming)} {
+		set max_loop_cnt 8
+		set totTime [expr $dwellTime * $max_loop_cnt]
+	} else {
+		set max_loop_cnt [expr ($src_ap_attn_end - $src_ap_attn_start) + 1]
+		set totTime [expr $dwellTime * [expr $max_loop_cnt + 3]]
+	}
+
+	# Start the iperf traffic
+	UTF::Message INFO "" "Roaming - Start downstream iperf traffic"
+	Roaming::start_wlan_traffic $LAN $STA $totTime
+
+	# Start attenuation
+
+	set src_ap_attn_val $src_ap_attn_start
+	set dst_ap_attn_val $dst_ap_attn_start
+	set start_time_sec ""
+
+	for {set loop_cnt 0} {$loop_cnt < $max_loop_cnt} {incr loop_cnt} {
+
+		if {!$(failover_roaming)} {
+
+			# set smooth roaming attenuation
+			$src_ap_attn_group attn $src_ap_attn_val
+			$dst_ap_attn_group attn $dst_ap_attn_val
+		} else {
+			# set failover roaming attenuation
+			switch $loop_cnt {
+				0 {
+					$src_ap_attn_group attn $src_ap_attn_val
+					$dst_ap_attn_group attn $::max_attn
+				}
+
+				3 {
+					# from AP goes away suddenly
+					$src_ap_attn_group attn $::max_attn
+					$dst_ap_attn_group attn $dst_ap_attn_val
+				}
+			}
+		}
+
+		set time [$STA date '+%T']
+		set time_sec [clock scan $time]
+		if {$start_time_sec == ""} {
+			set start_time_sec $time_sec
+		}
+		set TimeDiff [expr {$time_sec - $start_time_sec}]
+
+		set catch_resp [catch "$STA wl rssi" catch_msg]
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			set rssi [expr int($catch_msg)]
+		}
+
+		append list_rssi "$TimeDiff "
+		append list_rssi "$rssi "
+
+		set catch_resp [catch "$STA wl bssid" catch_msg]
+
+		if {$catch_resp != 0} {
+			UTF::Message ERROR "" "***Failed. $catch_msg"
+			error $catch_msg
+		} else {
+			set bssid $catch_msg
+		}
+
+		###########################################################################	
+		# Currently the roam happs around -85 dB rssi therefore we wnat to start the
+		# sniffer at about -82 dB
+		# set sniffer_start_rssi to [expr int($roam_trigger) + x] = -82 dB
+		# for 2.4G@20 and 5G@40 and 5G@20
+		# set sniffer_smooth_start_rssi -82
+		# This method does not work for smooth roaming and now sniffer_start_attn
+		#	parameter is used.
+		set sniffer_failover_start_cnt 2
+		###########################################################################		
+
+		if {$roamed_flag == 0 && $bssid == $dst_ap_mac} {
+			UTF::Message LOG "" "***********************************************************************************"
+			UTF::Message LOG "" "************************************ ROAMED ***************************************"
+			UTF::Message LOG "" "***********************************************************************************"
+
+			set roamed_flag 1
+
+			set roam_delta_value [expr abs([expr $rssi - $last_rssi_value])]
+			UTF::Message LOG "" "roam_delta_value = ($rssi) - ($last_rssi_value) = $roam_delta_value"
+
+			if {!$(failover_roaming)} {
+
+				# for smooth roaming only, estimate the sniffer start value
+				
+				set start_val [expr int($src_ap_attn_val) - 3]
+
+				if {$(estimate_attn)} {
+					# 1st time running this test. Give estimates for attenuation
+					UTF::Message LOG "" "*********************** Display estimated attenuation vaules ***********************"
+
+					if {$(voice_test)} {
+						set tmp "_voice"
+					} else {
+						set tmp ""
+					}
+
+					UTF::Message LOG "" "Estimate: Add params -$(apband)$cap\_src_ap$tmp\_attn \"$src_ap_attn_start\-$src_ap_attn_end\" -$(apband)$cap\_dst_ap$tmp\_attn \"$dst_ap_attn_start\-$dst_ap_attn_end\" -$(apband)$cap\_sniffer$tmp\_start_attn $start_val"
+					error "Estimate: Add params -$(apband)$cap\_src_ap$tmp\_attn \"$src_ap_attn_start\-$src_ap_attn_end\" -$(apband)$cap\_dst_ap$tmp\_attn \"$dst_ap_attn_start\-$dst_ap_attn_end\" -$(apband)$cap\_sniffer$tmp\_start_attn $start_val"
+				} else {
+					UTF::Message LOG "" "Estimated sniffer start attenuation value = $start_val"
+					UTF::Message LOG "" "Actual	sniffer start attenuation value = $(sniffer_start_attn)"
+					if {$sniffer_start_attn == ""} {
+						set sniffer_start_attn $start_val
+					}
+				}
+			}
+			
+			if {$sniffer_stage == 0} {
+				UTF::Message ERROR "" "***Failed. Roamed but sniffer is not started."
+				UTF::Message LOG "" "::sniffer_failed_flag=$::sniffer_failed_flag"
+				set ::sniffer_failed_flag 1
+			}
+		}
+
+		if {($(failover_roaming) && $loop_cnt == $sniffer_failover_start_cnt) || ((!$(failover_roaming)) && $sniffer_stage == 0 && $sniffer_start_attn != "" && $src_ap_attn_val >= $sniffer_start_attn)} {
+
+			UTF::Message LOG "" "*************************** Start the sniffer *****************************"
+
+			catch {$(sniffer) stopall}
+			catch {$(sniffer) rm -f /root/$sniffer_file_name}
+			catch {$(sniffer) rm -f /root/bin/$sniffer_file_name}
+			catch {$(sniffer) rm -f /root/bin/$cmdLineFile}
+
+			# sniffer started
+			set sniffer_stage 1
+
+#set sniffer_file_name "/root/bin/Roaming.pcap"
+#set cmdline "tshark -i $snifferPrism -w $sniffer_file_name"
+			set cmdline "tshark -i $snifferPrism -t ad -R \"(wlan.fc.type_subtype == 40 || wlan.fc.type_subtype == 11) && (wlan.bssid == $src_ap_mac || wlan.bssid == $dst_ap_mac)\" -z \"proto,colinfo,wlan.bssid,wlan.bssid\" > $sniffer_file_name"
+			set cmdLineFile "tsharkCmdLine"
+			set gpfCmdLineFile [open "$SummaryLoc/$cmdLineFile" w+]
+			puts $gpfCmdLineFile "$cmdline"
+			close $gpfCmdLineFile
+			UTF::Sleep 1
+			UTF::Message LOG "" "chmod 777 $SummaryLoc/$cmdLineFile"
+			exec chmod 777 $SummaryLoc/$cmdLineFile
+			UTF::Sleep .5
+
+			set sniff_ip [$(sniffer) cget -lan_ip]
+
+			# copy the file to sniffer /root/bin/tsharkCmdLine
+			UTF::Message LOG "" "scp -Bqr $SummaryLoc/$cmdLineFile root@$sniff_ip:/root/bin/$cmdLineFile"
+			set catch_resp [catch {exec scp -Bqr "$SummaryLoc/$cmdLineFile" root@$sniff_ip:/root/bin/$cmdLineFile} catch_msg]
+			UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+			if {$catch_resp != 0} {
+				# failed. create the /root/bin directory since it could be missing
+				UTF::Message LOG "" "$(sniffer) mkdir -p /root/bin"
+				catch {$(sniffer) mkdir -p /root/bin}
+
+				set catch_resp [catch {$(sniffer) mkdir -p /root/bin} catch_msg]
+				UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+				if {$catch_resp != 0} {
+					UTF::Message ERROR "" "***Failed. Could not create /root/bin on Sniffer. Please cleanup /root/bin location."
+					error "Cleanup sniffer /root/bin"
+				} else {
+					UTF::Message LOG "" "scp -Bqr $SummaryLoc/$cmdLineFile root@$sniff_ip:/root/bin/$cmdLineFile"
+					set catch_resp [catch {exec scp -Bqr "$SummaryLoc/$cmdLineFile" root@$sniff_ip:/root/bin/$cmdLineFile} catch_msg]
+					UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+				}
+			}
+
+			set tsharkCmdLine "whatever"
+			set catch_resp [catch {$(sniffer) startRoamCmdline $tsharkCmdLine} catch_msg]
+			if {$catch_resp != 0} {
+				UTF::Message LOG "" "***Failed. Sniffer did not start"
+				set pid_sniffer 0
+				UTF::Message LOG "" "::sniffer_failed_flag=$::sniffer_failed_flag"
+				set ::sniffer_failed_flag 1
+			} else {
+				UTF::Message LOG "" "PASS. Sniffer is started"
+				set pid_sniffer $catch_msg
+			}
+			#set pid_sniffer [$(sniffer) startRoamCmdline $tsharkCmdLine]
+			catch {$(sniffer) ls -la /root/$sniffer_file_name}
+		} else {
+			UTF::Message INFO "" "--------------------------------SNIFFER DEBUG----------------------------------"  
+			if {$pid_sniffer > 0} {
+				if {$sniffer_stage == 1 || $sniffer_stage == 2 || $sniffer_stage == 3} {
+
+					set catch_resp [catch "exec ps -ef | grep \"iperf\"" catch_msg]					
+					UTF::Message INFO "" "ps -ef catch_msg=$catch_msg"
+					
+					#set catch_resp [catch "$(sniffer) rexec ps -ef" catch_msg]
+					#UTF::Message INFO "" "$(sniffer) ps -ef catch_msg=$catch_msg"
+
+					set catch_resp [catch "$(sniffer) rexec ps $pid_sniffer" catch_msg]
+					UTF::Message INFO "" "$(sniffer) ps tshark catch_msg=$catch_msg"
+
+					if {[regexp -nocase "tshark" $catch_msg]} {
+						UTF::Message INFO "" "Sniffer is collecting data"  
+					} else {
+						UTF::Message INFO "" "Sniffer is NOT running"  
+						UTF::Message LOG "" "::sniffer_failed_flag=$::sniffer_failed_flag"
+						set ::sniffer_failed_flag 1
+					}
+
+					catch {$(sniffer) ls -la /root/$sniffer_file_name}
+					
+					$(sniffer) wl ver
+				}
+			}
+			UTF::Message INFO "" "-----------------------------------------------------------------------"  
+
+			# stop the sniffer if it is not already stopped
+			if {$sniffer_stage != 3} {
+
+				# stop the sniffer when we are roamed
+				if {$bssid == $dst_ap_mac} {
+
+					#************************************ ROAMED ***************************************"
+
+					if {$sniffer_stage == 1} {
+						# sniffer wait
+						set sniffer_stage 2
+						UTF::Message LOG "" "******************* sniffer_stage == 2 (Roamed, wait 1 step) *********************"
+					} elseif {$sniffer_stage == 2} {
+						# sniffer wait
+						set sniffer_stage 3
+						UTF::Message LOG "" "******************* sniffer_stage == 3 (Roamed, wait 1 step) *********************"
+					} elseif {$sniffer_stage == 3} {
+						# sniffer stop
+						set sniffer_stage 4
+						Roaming::stop_sniffer
+						UTF::Message LOG "" "******************* sniffer_stage == 4 (Stopped Sniffer) *********************"
+					}
+				}
+			} else {
+				# roaming / sniffer is done
+				# do not break from the loop, otherwise the graphs x-axis will not be right
+			}
+		}
+
+		UTF::Message LOG "" "================== loop_cnt=$loop_cnt src_ap_attn_val=$src_ap_attn_val dst_ap_attn_val=$dst_ap_attn_val rssi=$rssi bssid=$bssid ======================="
+
+		set last_rssi_value $rssi
+
+		if {!$(failover_roaming)} {
+
+			# attenuation changes will only happen for smooth roaming
+
+			if {$src_ap_attn_val < $src_ap_attn_end} {
+				incr src_ap_attn_val
+			}
+			
+			if {$dst_ap_attn_val > $dst_ap_attn_end} {
+				set dst_ap_attn_val [expr $dst_ap_attn_val - 1]
+			}
+			
+			if {$dst_ap_attn_val < 0} {
+				set dst_ap_attn_val 0
+			}
+
+			if {[expr $loop_cnt + 1] == $max_loop_cnt && $roamed_flag == 0} {
+				# still not roamed and this is the end of the loop
+				# rssi values are not exact calculations, therefore increase the loop count
+
+				if {$loop_cnt < 40} {
+					set loop_cnt [expr $loop_cnt + 5]
+				}
+			}
+		}
+
+		UTF::Sleep $dwellTime
+	}
+
+	# stop the sniffer if still running
+	if {$sniffer_stage == 1 || $sniffer_stage == 2 || $sniffer_stage == 3} {
+		UTF::Message LOG "" "******************* exit sniffer *********************"
+		# sniffer stopped
+		set sniffer_stage 4
+		Roaming::stop_sniffer
+		UTF::Message LOG "" "******************* sniffer_stage == 4 (Stopped Sniffer) *********************"
+	}
+}
+
+proc Roaming::process_results {STA LAN} {
+	# access option array
+	upvar {} {}
+	upvar totTime totTime
+	upvar list_rssi list_rssi
+	upvar destSniffPath destSniffPath
+	upvar src_ap_mac src_ap_mac
+	upvar dst_ap_mac dst_ap_mac
+	upvar test_name test_name
+	upvar SummaryLoc SummaryLoc
+	upvar testDir testDir
+	upvar TestAPBand TestAPBand
+	upvar TestAPCapacity TestAPCapacity
+	upvar TestAPChannel TestAPChannel
+	upvar roaming_type roaming_type
+	upvar roaming_type_file roaming_type_file
+	upvar iperf_ids iperf_ids
+
+	# Collect Iperf results data from parallel processes.
+	set resp1 ""
+	set resp2 ""
+	set timeout_sec [expr $totTime + 3]
+	UTF::collect_rpopen_data $timeout_sec "$iperf_ids" resp1 "" resp2
+
+	UTF::Message INFO "" "Stop the iperf traffic"
+	Roaming::stop_iperf_traffic
+	
+	UTF::Message LOG "" "================== Process Iperf Results ======================="
+
+	# skip the header (first 8 lines).
+	set skip_lines 8
+
+	set line_no 0
+	set list_time ""
+	set list_throughput ""
+	set start_time_sec ""
+
+	# get iperf values for the control chart
+	foreach line $resp1 {
+		incr line_no
+
+		if {$line_no < $skip_lines} {continue}
+
+		# Data line format example: 
+		#11:33:39 4329C0-FC9-P2PD 04:34:34 [  3] 29.0-30.0 sec  3309568 Bytes  26476544 bits/sec
+		#-------------------------VVVVVVVV-------------------------------------VVVVVVVV---------
+		if {[regexp {.* (\d+\:\d+:\d+) \[.*Bytes * ([-+]?[0-9]*\.?[0-9]+).*(.)bits/sec} $line match time throughput throughput_scale] == 1} {
+
+			# found iperf throughput value
+
+			# change the scale for non-voice only
+			if {!$(voice_test)} {
+				if {$throughput_scale == " "} {
+					# convert bits/sec to Meg. for the throughput
+					set throughput [expr double($throughput) / 1000000]
+				} elseif {$throughput_scale == "K"} {
+					# convert Kilo to Meg. for the throughput
+					set throughput [expr double($throughput) / 1000]
+				}
+			}
+
+			set throughput [format "%.1f" $throughput]
+
+			catch {
+				regexp {(.*)} $time lmatch lTime
+				set time_sec [clock scan $lTime]
+				if {$start_time_sec == ""} {
+					set start_time_sec $time_sec
+				}
+				set TimeDiff [expr {$time_sec - $start_time_sec}]
+			}
+
+			append list_throughput "$TimeDiff "
+			append list_throughput "$throughput "
+
+			UTF::Message LOG "" "Time: $TimeDiff\tThroughput: $throughput"
+		}
+	}
+
+	UTF::Message LOG "" "RSSI: $list_rssi"
+
+	# delete the last value of Iperf throughput since it is always off
+	set list_throughput [lreplace $list_throughput end end]
+	set list_throughput [lreplace $list_throughput end end]
+	# delete the last value of rssi since it is off in failover roaming
+	set list_rssi [lreplace $list_rssi end end]
+
+
+	UTF::Message LOG "" "===================================================================="
+	UTF::Message LOG "" "Graph the results:"
+
+	set logdir [file dirname $UTF::Logfile]
+	UTF::Message INFO "" "logdir=$logdir"
+
+	######################################################################################
+	# Generate Throughput Graph
+	######################################################################################
+
+	set gpf_throughput $test_name\Throughput
+
+	# genrate the gpf file
+	set gpf_fd [open "${logdir}/${gpf_throughput}.gpf" w]
+
+	foreach {time throughput} $list_throughput {
+		puts $gpf_fd "$time $throughput"
+	}
+	close $gpf_fd
+
+	# genrate the gpc file
+	set gpc_fd [open "${logdir}/${gpf_throughput}.gpc" w]
+	puts $gpc_fd "set output \"${logdir}/${gpf_throughput}.png\""
+	puts $gpc_fd "set title \"$roaming_type Roaming - Throughput Graph ($testDir)\""
+	puts $gpc_fd "set terminal png"
+	puts $gpc_fd "set xlabel \"Time (Secs)\""
+	puts $gpc_fd "set ylabel \"Throughput (Mbps)\""
+	puts $gpc_fd "set ytics nomirror"
+	puts $gpc_fd "set grid"
+	puts $gpc_fd "set border"
+	puts $gpc_fd "set style line 1 lt 1 lw 2 pt 1 ps 0.5"
+	puts $gpc_fd "plot \"${logdir}/${gpf_throughput}.gpf\" title \"$TestAPBand, $TestAPCapacity, $TestAPChannel\" with lines ls 1"
+	close $gpc_fd
+
+	if {[catch "exec /usr/bin/gnuplot ${logdir}/${gpf_throughput}.gpc" result]} {
+		UTF::Message WARN "gnuplot" $result
+	}
+
+	######################################################################################
+	# Generate Sta Rssi Graph
+	######################################################################################
+
+	set gpf_rssi $test_name\StaRssi
+
+	# genrate the gpf file
+	set gpf_fd [open "${logdir}/${gpf_rssi}.gpf" w]
+
+	# build the RSSI gpf file using the throughput xlabel graph, so the graphs
+	# can be compared
+
+	set rssi_index 0
+
+	foreach {time throughput} $list_throughput {
+
+		set this_rssi_value [lindex $list_rssi [expr $rssi_index + 1]]
+		set next_rssi_time  [lindex $list_rssi [expr $rssi_index + 2]]
+		set next_rssi_value [lindex $list_rssi [expr $rssi_index + 3]]
+
+		if {$time < $next_rssi_time} {
+			if {$this_rssi_value == ""} {
+				break
+			}
+			puts $gpf_fd "$time $this_rssi_value"
+		} else {
+			if {$next_rssi_value == ""} {
+				break
+			}
+			puts $gpf_fd "$time $next_rssi_value"
+			set rssi_index [expr $rssi_index + 2]
+		}
+	}
+	close $gpf_fd
+
+	# genrate the gpc file
+	set gpc_fd [open "${logdir}/${gpf_rssi}.gpc" w]
+	puts $gpc_fd "set output \"${logdir}/${gpf_rssi}.png\""
+	puts $gpc_fd "set title \"$roaming_type Roaming - STA RSSI Graph ($testDir)\""
+	puts $gpc_fd "set terminal png"
+	puts $gpc_fd "set xlabel \"Time (Secs)\""
+	puts $gpc_fd "set ylabel \"RSSI (dB)\""
+	puts $gpc_fd "set ytics nomirror"
+	puts $gpc_fd "set grid"
+	puts $gpc_fd "set border"
+	puts $gpc_fd "set style line 1 lt 8 lw 2 pt 1 ps 0.5"
+	puts $gpc_fd "plot \"${logdir}/${gpf_rssi}.gpf\" title \"$TestAPBand, $TestAPCapacity, $TestAPChannel\" with linespoints ls 1"
+	close $gpc_fd
+
+	if {[catch "exec /usr/bin/gnuplot ${logdir}/${gpf_rssi}.gpc" result]} {
+		UTF::Message WARN "gnuplot" $result
+	}
+
+	set htmFile [open ${logdir}/${test_name}.htm w 0600]
+	puts $htmFile "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+	puts $htmFile "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"
+	puts $htmFile "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">"
+	puts $htmFile ""
+	puts $htmFile "<head>"
+	puts $htmFile "<title></title>"
+	puts $htmFile "</head>"
+	puts $htmFile ""
+	puts $htmFile "<img src=\"${gpf_throughput}.png\" alt=\"url\" width=\"500\" border=\"0\">"
+	puts $htmFile "<p><a href=\"${gpf_throughput}.gpf\">Throughput Data</a></p>"
+	puts $htmFile "<img src=\"${gpf_rssi}.png\" alt=\"url\" width=\"500\" border=\"0\">"
+	puts $htmFile "<p><a href=\"${gpf_rssi}.gpf\">RSSI Data</a></p>"
+
+	puts $htmFile "</body>"
+	puts $htmFile ""
+	puts $htmFile "</HTML>"
+	close $htmFile
+
+	# change the permission of the htm file
+	exec chmod 777 ${logdir}/${test_name}.htm
+
+	return "html:<p><a href=\"${logdir}/${test_name}.htm\"><img src=\"${gpf_throughput}.png\" alt=\"${gpf_throughput}.png\" id=\"img_test_result\" height=\"250\" border=\"0\"><img src=\"${gpf_rssi}.png\" alt=\"${gpf_rssi}.png\" id=\"img_test_result\" height=\"250\" border=\"0\"></a></p>"
+}
+
+proc Roaming::dateDifference {smallNum largeNum} {
+
+	set TimeDiff -1
+
+	catch {
+		regexp {(.*)\.(.*)} $smallNum smatch sDate sSec
+		regexp {(.*)\.(.*)} $largeNum lmatch lDate lSec
+
+		set lNumEpoch [clock scan $lDate]
+		set lNumEpoch "$lNumEpoch\.$lSec"
+		set lNumEpoch [format "%.6f" $lNumEpoch]
+		set sNumEpoch [clock scan $sDate]
+		set sNumEpoch "$sNumEpoch\.$sSec"
+		set sNumEpoch [format "%.6f" $sNumEpoch]
+		set TimeDiff [expr {$lNumEpoch - $sNumEpoch}]
+		set TimeDiff [format "%.6f" $TimeDiff]
+		UTF::Message INFO "" "\n$lNumEpoch - $sNumEpoch = $TimeDiff\n"
+	}
+
+	return $TimeDiff
+}
+
+proc Roaming::parseSameChannel {snifferTrace FromIP ToIP FromBssid ToBssid} {
+
+	upvar {} {}
+	upvar roam_time_scale roam_time_scale
+	upvar sniffer_file_name sniffer_file_name
+
+	set BeginRoamTimeStamp ""
+	set EndRoamTimeStamp ""
+	set offset 0
+
+	UTF::Message INFO "" "\nsnifferTrace: $snifferTrace\nFromIP: $FromIP\nToIP: $ToIP\nFromBssid: $FromBssid\nToBssid: $ToBssid\n"
+
+	if {$(voice_test)} {
+		# for voice look for any length message
+		set msg_len 0
+	} else {
+		# for non voice look for a message with at least 1 byte
+		set msg_len 1
+	}
+
+	set fileId [open $snifferTrace]
+
+	# find the Authentication in the trace
+	# FC11 -> 2011-03-30 12:14:01.974201 Epigram_c5:00:34 -> Epigram_a6:00:30 IEEE 802.11 Authentication, SN=202, FN=0, Flags=........[Malformed Packet]  wlan.bssid == 00:90:4c:a6:00:30
+	# FC15 -> 2014-09-29 14:35:01.648222 Broadcom_ee:b4:43 -> Epigram_0d:c0:d3 802.11 88 Authentication, SN=211, FN=0, Flags=........C  wlan.bssid == 00:90:4c:0d:c0:d3
+	UTF::Message LOG "" "***********************************************************************************"
+	UTF::Message LOG "" "************************	Looking for Authentication	**************************"
+	UTF::Message LOG "" "***********************************************************************************"
+	while {[gets $fileId line] >= 0} {
+
+		set authMatch [regexp {.*802.11.*Authentication.*} $line match]
+		if {$authMatch == 1} {
+			UTF::Message INFO "" "(*auth*) $line"
+			set offset [tell $fileId]
+			break
+		}
+	}
+
+	# TCP msg:
+	# 2011-03-30 12:14:01.972717 192.168.1.236 -> 192.168.1.130 TCP 45942 > commplex-link [ACK] Seq=243527537 Ack=1 Win=46 Len=1448 TSV=104038102 TSER=200690171  wlan.bssid == 00:90:4c:a6:00:10
+	# UDP msg:
+	# 2012-02-15 03:29:21.527398 192.168.1.111 -> 192.168.1.220 IP Fragmented IP protocol (proto=UDP 0x11, off=1480)  wlan.bssid == 00:90:4c:02:11:00
+
+	UTF::Message LOG "" "***********************************************************************************"
+	UTF::Message LOG "" "************************	Looking for 'BEGIN' Raoming	**************************"
+	UTF::Message LOG "" "************************	Last downstream msg with $FromIP -> $ToIP  &  AP1 $FromBssid  & msg length of $msg_len or more"
+	UTF::Message LOG "" "***********************************************************************************"
+
+	# start from about 30 lines before the Authentication line 
+	set BiginOffset [expr $offset - 20000]
+	set EndOffset [expr $offset + 5000]
+
+	if {$BiginOffset < 0} {
+		set BiginOffset 0
+	}
+
+	seek $fileId $BiginOffset
+
+	set save_line ""
+	set cnt 0
+
+	while {[gets $fileId line] >= 0} {
+
+		UTF::Message INFO "" "$line"
+		
+		if {$(voice_test)} {
+			set result [regexp {([0-9]+\-[0-9]+\-[0-9]+ [0-9]+\:[0-9]+\:[0-9]+\.[0-9]+) (\d+\.\d+\.\d+\.\d+) -> (\d+\.\d+\.\d+\.\d+).* off=(\d+).*wlan\.bssid == (.*:.*:.*:.*:.*:.*)} $line match dataTime from to len bssid]
+		} else {
+			set result [regexp {([0-9]+\-[0-9]+\-[0-9]+ [0-9]+\:[0-9]+\:[0-9]+\.[0-9]+) (\d+\.\d+\.\d+\.\d+) -> (\d+\.\d+\.\d+\.\d+).* Len=(\d+).*wlan\.bssid == (.*:.*:.*:.*:.*:.*)} $line match dataTime from to len bssid]
+		}
+
+		if {$result == 1} {
+
+			set bssid [string toupper $bssid]
+
+			if {$from == $FromIP && $to == $ToIP && $bssid == $FromBssid && $len >= $msg_len} {  
+				set BeginRoamTimeStamp $dataTime
+				set save_line $line
+				incr cnt
+				UTF::Message INFO "" "Begin Roam Data Count $cnt: $len $from -> $to	$bssid"
+			} else {
+				UTF::Message INFO "" "SKIP: $len $from -> $to	$bssid"
+			}
+		}
+
+		if {[tell $fileId] > $EndOffset} {
+			if {$save_line == ""} {
+				UTF::Message ERROR "" "Begin roam line is not found"
+
+				# Add a web link to the sniffer file
+				UTF::Try "Link to sniffer file $sniffer_file_name" {
+					return "html: <a href=\"./$sniffer_file_name\">$sniffer_file_name</a>"
+				}
+				
+				error "Roam begin time not found"
+			}
+			break
+		}
+	}
+
+	UTF::Message LOG "" "-----------------------------------------------------------------------------------"
+	UTF::Message INFO "" "Begin roam: $save_line"
+	UTF::Message LOG "" "-----------------------------------------------------------------------------------"
+
+	# for voice and non-voice, look for any length message
+	set msg_len 0
+
+	UTF::Message LOG "" "***********************************************************************************"
+	UTF::Message LOG "" "************************	Looking for 'END' Raoming	**************************"
+	UTF::Message LOG "" "************************	1st downstream msg with $FromIP -> $ToIP  &  AP2 $ToBssid  & msg length of $msg_len or more"
+	UTF::Message LOG "" "***********************************************************************************"
+
+	# start from about 10 lines before the Authentication line 
+	set BiginOffset [expr $offset - 5000]
+
+	if {$BiginOffset < 0} {
+		set BiginOffset 0
+	}
+
+	seek $fileId $BiginOffset
+
+	set save_line ""
+	set cnt 0
+	set end_roam_found_flag 0
+
+	while {[gets $fileId line] >= 0} {
+
+		UTF::Message INFO "" "$line"
+		
+		if {$(voice_test)} {
+			set result [regexp {([0-9]+\-[0-9]+\-[0-9]+ [0-9]+\:[0-9]+\:[0-9]+\.[0-9]+) (\d+\.\d+\.\d+\.\d+) -> (\d+\.\d+\.\d+\.\d+).* off=(\d+).*wlan\.bssid == (.*:.*:.*:.*:.*:.*)} $line match dataTime from to len bssid]
+		} else {
+			set result [regexp {([0-9]+\-[0-9]+\-[0-9]+ [0-9]+\:[0-9]+\:[0-9]+\.[0-9]+) (\d+\.\d+\.\d+\.\d+) -> (\d+\.\d+\.\d+\.\d+).* Len=(\d+).*wlan\.bssid == (.*:.*:.*:.*:.*:.*)} $line match dataTime from to len bssid]
+		}
+
+		if {$result == 1} {
+
+			set bssid [string toupper $bssid]
+
+			if {$from == $FromIP && $to == $ToIP && $bssid == $ToBssid && $len >= $msg_len} {  
+				set EndRoamTimeStamp $dataTime
+				set save_line $line
+				incr cnt
+				UTF::Message INFO "" "End Roam Data Count $cnt: $len $from -> $to	$bssid"
+				set end_roam_found_flag 1
+				break
+			} else {
+				UTF::Message INFO "" "SKIP: $len $from -> $to	$bssid"
+			}
+		}
+	}
+
+	if {$end_roam_found_flag == 0} {
+		UTF::Message ERROR "" "End roam line is not found"
+
+		# Add a web link to the sniffer file
+		UTF::Try "Link to sniffer file $sniffer_file_name" {
+			return "html: <a href=\"./$sniffer_file_name\">$sniffer_file_name</a>"
+		}
+
+		error "Roam end time not found"
+	}
+
+	UTF::Message LOG "" "-----------------------------------------------------------------------------------"
+	UTF::Message INFO "" "End roam: $save_line"
+	UTF::Message LOG "" "-----------------------------------------------------------------------------------"
+
+	close $fileId
+
+	UTF::Message INFO "" "\nRoam end at:\t $EndRoamTimeStamp\nRoam begin at:\t $BeginRoamTimeStamp\n"
+	set roam_time [Roaming::dateDifference $BeginRoamTimeStamp $EndRoamTimeStamp]
+
+	if {$roam_time != -1} {
+
+		if {$(failover_roaming)} {
+			set roam_time [expr round($roam_time)]
+			set roam_time_scale "s"
+		} else {
+			set roam_time [expr round($roam_time * 1000)]
+			set roam_time_scale "ms"
+		}
+
+		UTF::Message INFO "" "Roam Time=$roam_time $roam_time_scale"
+	}
+
+	return $roam_time
+}
+
+proc Roaming::getMyNvramValue {parlist parm} {
+	UTF::Message INFO "" "args: $parm \n $parlist"
+
+	set count 0
+	set str ""
+	set val ""
+	set retVal ""
+	set str [lindex $parlist $count]
+	while {$str != ""} {
+		if {[string first $parm $str] != -1} {
+			set val [split $str "="]
+			set retVal [lindex $val 1]
+			break
+		}
+		incr count
+		set str [lindex $parlist $count]
+	}	
+	UTF::Message INFO "" "The returned value is: $retVal"
+	return $retVal
+}
+
+##########################################################################################################
+
+UTF::Test Roaming {args} {
+	# Basic command line option processing. Options are stored in the
+	# unnamed array $()
+	UTF::Getopts "$::roaming_getopts" "$::roaming_help"
+
+	set max_association_tries 3
+	set roam_trigger ""
+	set roam_delta_value -1
+	set src_ap_mac ""
+	set dst_ap_mac ""
+	set src_ap_ssid ""
+	set dst_ap_ssid ""
+	set src_ap_attn_group ""
+	set dst_ap_attn_group ""
+	set src_ap_attn_start 0
+	set src_ap_attn_end 0
+	set dst_ap_attn_start 0
+	set dst_ap_attn_end 0
+	set testDir "Upstream"
+	set noDotBand ""
+	set cap ""
+	set channel ""
+	set totTime ""
+	#set snifferPrism "prism0"
+	set snifferPrism "radiotap0"
+	set SummaryLoc ""
+	set list_rssi ""
+	set roamed_flag 0
+	set LAN ""
+	set destSniffPath ""
+	set test_name ""
+	set TestAPBand ""
+	set TestAPCapacity ""
+	set TestAPChannel ""
+	set iperf_ids ""
+	set err_flag 0
+
+	set src_ap $(src_ap)
+	set dst_ap $(dst_ap)
+	set STA $(sta)
+
+	if {$(failover_roaming)} {
+		if {$(voice_test)} {
+			set roaming_type "Voice Failover"
+			set roaming_type_file "VoiceFailover"
+		} else {
+			set roaming_type "Failover"
+			set roaming_type_file "Failover"
+		}
+		
+		set dwellTime 5
+	} else {
+		if {$(voice_test)} {
+			set roaming_type "Voice Smooth"
+			set roaming_type_file "VoiceSmooth"
+		} else {
+			set roaming_type "Smooth"
+			set roaming_type_file "Smooth"
+		}
+
+		set dwellTime 3
+	}
+	
+	# Here we assume that both roaming APs have the same chanspec; hence we only fix
+	# to one chanspec: chanspec1
+	# TBD: add code to handle chanspec2 as well
+	
+	# check for 80 MHz
+	if {[regexp {.*\/80} $(chanspec1)]} {
+		set band "5"
+		set cap "80"
+		set channel $(chanspec1)
+	} else {
+		if {[regexp {(\d+)([ab]?)([ul])?} $(chanspec1) - channel band bw]} {
+		if {$(apband) == "5G"} {
+			set band "5"
+		} else {
+			set band "2.4"
+		}
+		if {$bw eq "l"} {
+			set cap "40"
+		} elseif {$bw eq "u"} {
+			set cap "40"
+		} else {
+			set cap "20"
+		}
+		} else {
+		error "Bad chanspec: $CHAN"
+		}
+	}
+
+	if {$band == "5"} {
+		set noDotBand "5"
+		set rc_nband 1
+	} else {
+		set noDotBand "24"
+		set rc_nband 2
+	}
+
+	set routerConfig "$noDotBand\G$cap"
+	set TestAPBand "$band Ghz"
+	set TestAPCapacity "$cap"
+	append TestAPCapacity "Mhz"
+	set TestAPChannel "Channel $channel"
+	set description "$testDir $TestAPChannel $TestAPBand $TestAPCapacity Capacity"
+	set test_name "$routerConfig$roaming_type_file\Roaming"
+	set sniffer_file_name "Sniffer$routerConfig$roaming_type_file\Roaming.txt"
+	set src_ap_ssid roaming_test_temp_ssid
+	set dst_ap_ssid roaming_test_temp_ssid
+
+	# get macaddr from AP nvram since the UTF config might be missing it
+	set src_ap_mac [$src_ap nvram get macaddr]
+	set src_ap_mac [string toupper $src_ap_mac]
+	UTF::Message INFO "" "INFO: src_ap=$src_ap with macaddr=$src_ap_mac ssid=$src_ap_ssid" 
+	
+	if {$src_ap_mac == ""} {
+		UTF::Message ERROR "" "***Failed. src_ap_mac=$src_ap_mac. Check config file"
+		error "src_ap_mac=$src_ap_mac. Check config file"
+	}
+	
+	# get macaddr from AP nvram since the UTF config might be missing it
+	set dst_ap_mac [$dst_ap nvram get macaddr]
+	set dst_ap_mac [string toupper $dst_ap_mac]
+	UTF::Message INFO "" "INFO: dst_ap=$dst_ap with macaddr=$dst_ap_mac ssid=$dst_ap_ssid"  
+
+	if {$dst_ap_mac == ""} {
+		UTF::Message ERROR "" "***Failed. dst_ap_mac=$dst_ap_mac. Check config file"
+		error "dst_ap_mac=$dst_ap_mac. Check config file"
+	}
+	
+	# Set control chart keys
+	set stream [UTF::get_stream_name end]
+	set base_keys "$stream FromAP=$src_ap ToAP=$dst_ap FromAPMac=$src_ap_mac ToAPMac=$dst_ap_mac DUT=$STA roaming.test"
+	UTF::Message INFO "" "base_keys stream=$stream"  
+	UTF::Message INFO "" "base_keys=$base_keys"
+
+	# remove ":" from the keys
+	while { 1 } {	
+		set Index [string first ":" $base_keys 0]
+		if {$Index == -1} {
+			break
+		}
+		set base_keys [string replace $base_keys $Index $Index ""]
+	}
+	
+	UTF::Message INFO "" "base_keys=$base_keys"
+	
+	set LAN [$src_ap lan]
+
+	cleanup_iperf $LAN
+	
+	start_tcp_iperf_server $LAN
+	
+	set TITLE $(title)
+	set summaryinfo ""
+
+	UTF::WrapSummary $UTF::SummaryDir $TITLE $summaryinfo $(email) {
+		if {$(summaryloc) == ""} {
+			set LogLoc $UTF::Logfile
+			UTF::Message INFO "" "Logfile Location: $LogLoc"  
+
+			set Index [string last "1.log" $LogLoc]
+			if {$Index < 0} {
+				set Index [string last "test.log" $LogLoc]
+			}
+
+			if {$Index >= 0} {
+				set SummaryLoc [string replace $LogLoc $Index end ""]
+			} else {
+				error "can't set SummaryLoc variable"
+			}
+		} else {
+			set SummaryLoc $(summaryloc)
+		}
+
+		set src_ap_attn_group [$src_ap cget -attngrp]
+		set dst_ap_attn_group [$dst_ap cget -attngrp]
+		UTF::Message LOG "" "src_ap_attn_group=$src_ap_attn_group dst_ap_attn_group=$dst_ap_attn_group"
+
+		if {$src_ap_attn_group == "" || $dst_ap_attn_group == ""} {
+			error "AP attenuation group is missing"
+		}
+		
+		UTF::Try "$routerConfig - $roaming_type Roaming" {
+
+			if { $(estimate_attn) || $(src_ap_attn) == "" || $(dst_ap_attn) == ""} {
+				set catch_resp [catch "Roaming::calculate_attn_values $src_ap $dst_ap $STA" catch_msg]
+				if {$catch_resp != 0} {
+					UTF::Message ERROR "" "***Failed. $catch_msg"
+					set err_flag 1
+					error $catch_msg
+				}
+			} else {
+				set catch_resp [catch "Roaming::get_macid_values $src_ap $dst_ap $STA" catch_msg]
+				if {$catch_resp != 0} {
+					UTF::Message ERROR "" "***Failed. $catch_msg"
+					set err_flag 1
+					error $catch_msg
+				}
+			
+				UTF::Try "Attn Values" {
+					regexp {^(\d+)\-(\d+)$} $(src_ap_attn) - src_ap_attn_start src_ap_attn_end
+					regexp {^(\d+)\-(\d+)$} $(dst_ap_attn) - dst_ap_attn_start dst_ap_attn_end
+					if {$src_ap_attn_start < 0} {
+						set src_ap_attn_start 0
+					}
+					if {$src_ap_attn_start > $::max_attn} {
+						set src_ap_attn_start $::max_attn
+					}
+					if {$src_ap_attn_end < 0} {
+						set src_ap_attn_end 0
+					}
+					if {$src_ap_attn_end > $::max_attn} {
+						set src_ap_attn_end $::max_attn
+					}
+					if {$dst_ap_attn_start < 0} {
+						set dst_ap_attn_start 0
+					}
+					if {$dst_ap_attn_start > $::max_attn} {
+						set dst_ap_attn_start $::max_attn
+					}
+					if {$dst_ap_attn_end < 0} {
+						set dst_ap_attn_end 0
+					}
+					if {$dst_ap_attn_end > $::max_attn} {
+						set dst_ap_attn_end $::max_attn
+					}
+					UTF::Message LOG "" "src_ap_attn_start=$src_ap_attn_start src_ap_attn_end=$src_ap_attn_end"
+					UTF::Message LOG "" "dst_ap_attn_start=$dst_ap_attn_start dst_ap_attn_end=$dst_ap_attn_end"
+					return "Attn: src_ap=$src_ap_attn_start\-$src_ap_attn_end dst_ap=$dst_ap_attn_start\-$dst_ap_attn_end"
+				}
+			}
+
+			UTF::Message INFO "" "Disassociate $STA"  
+			catch {$STA wl disassoc}
+
+			$dst_ap_attn_group attn $::max_attn
+			$src_ap_attn_group attn 0
+			UTF::Sleep 5
+
+			# if mac src_ap=dst_ap then failed
+			if {$src_ap_mac == $dst_ap_mac} {
+				error "$src_ap macid=$dst_ap macid=$dst_ap_mac"
+			}
+
+			# Associate STA to src_ap; allow 3 retries
+			for {set loop_cnt 1} {$loop_cnt <= $max_association_tries} {incr loop_cnt} {
+				UTF::Message INFO "" "Disassociate $STA"  
+				catch {$STA wl disassoc}
+				UTF::Sleep 2
+				UTF::Message INFO "" "Open Connection $src_ap $STA Try: $loop_cnt"  
+				set catch_resp [catch "UTF::Test::ConnectAPSTA $src_ap $STA" catch_msg]
+				UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+				if {$catch_resp == 0} { 
+					break
+				}
+			}
+			if {$loop_cnt >= $max_association_tries} {
+				error "Association failed after $loop_cnt attempts"
+			}
+
+			# Setup sniffer.
+			UTF::Message LOG "" "====================================================="
+			UTF::Message LOG "" "sniffer reload"
+
+			set catch_resp [catch "$(sniffer) reload" catch_msg]
+			UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+			if {$catch_resp != 0} {
+				UTF::Message LOG "" "sniffer load"
+				catch "$(sniffer) load"
+			}
+			
+			UTF::Message LOG "" "sniffer setupSniffer"
+			$(sniffer) setupSniffer $(chanspec1)
+			$(sniffer) wl ver
+			
+			set catch_resp [catch "Roaming::roaming $src_ap $dst_ap $STA" catch_msg]
+			if {$catch_resp != 0} {
+				UTF::Message ERROR "" "***Failed. $catch_msg"
+				set err_flag 1
+				error $catch_msg
+			}
+
+			if {$roamed_flag == 0} {
+				error "Did not roam"
+			}
+			
+			if {$::sniffer_failed_flag == 1} {
+				set ::sniffer_failed_flag 0
+				error "Sniffer failed"
+			}
+		}
+
+		if {$err_flag == 1} {
+			error "Halting tests!"
+		}
+
+		if {$roamed_flag == 0} {
+			error "Did not roam"
+		}
+
+		# parse the sniffer file and calculate roaming time
+
+		UTF::Try "$routerConfig - $roaming_type Roam Time" {
+
+			# do not use "cget -ipaddr" because it could return "dhcp"		
+			set ipSrc [$LAN ipaddr]
+			UTF::Message INFO "" "ipSrc=$ipSrc"
+			set ipDst [$STA ipaddr]
+			UTF::Message INFO "" "ipDst=$ipDst"
+
+			set RoamTime [Roaming::parseSameChannel "$SummaryLoc$sniffer_file_name" $ipSrc $ipDst $src_ap_mac $dst_ap_mac]
+
+			if {$RoamTime == -1} {
+			
+				UTF::Message ERROR "" "Roam time calculation failed"
+				
+				# Add a web link to the sniffer file
+				UTF::Try "Link to sniffer file $sniffer_file_name" {
+					return "html: <a href=\"./$sniffer_file_name\">$sniffer_file_name</a>"
+				}
+				
+				error "Roam time not found"
+			} else {
+				UTF::Message INFO "" "Roam time calculation successfull."
+
+				UTF::Try "Delete sniffer file" {
+					UTF::Message INFO "" "Deleting the sniffer file $SummaryLoc$sniffer_file_name"
+					
+					set catch_resp [catch {exec rm -f $SummaryLoc$sniffer_file_name} catch_msg]
+					UTF::Message LOG "" "catch_resp=$catch_resp catch_msg=$catch_msg"
+
+					if {$catch_resp != 0} {
+						UTF::Message ERROR "" "Delete sniffer file failed"
+						error "Delete sniffer file failed"
+					}
+					
+					return ""
+				}
+			}
+
+			set keys "$(branch) $routerConfig $roaming_type roam_time $base_keys"
+			UTF::Message INFO "" "keys=$keys"
+			
+			# Create new ControlChart object & graphics file
+			set html_results [Roaming::control_chart $RoamTime $keys "Roam Time" $roam_time_scale]
+
+			if {$(failover_roaming)} {
+				if {$RoamTime > 15} {
+					# error
+					set ::Roaming::cc_error_flag 1
+					append html_results " &nbsp;<font color=\"red\"><b>Roam Time > 15 sec</b></font>"
+				}
+			} else {
+				if {$RoamTime > 40} {
+					# error
+					set ::Roaming::cc_error_flag 1
+					append html_results " &nbsp;<font color=\"red\"><b>Roam Time > 40 ms</b></font>"
+				}
+			}
+
+			if {$::Roaming::cc_error_flag == 1} {
+				error "html: $html_results"
+			} else {
+				return "html: $html_results"
+			}
+		}
+		
+		if {!$(failover_roaming)} {
+			
+			UTF::Try "$routerConfig - $roaming_type Roam Delta" {
+
+				set keys "$(branch) $routerConfig $roaming_type roam_delta $base_keys"
+				UTF::Message INFO "" "keys=$keys"
+
+				# Create new ControlChart object & graphics file
+				set html_results [Roaming::control_chart $roam_delta_value $keys "Roam Delta" "dB"]
+
+				if {$::Roaming::cc_error_flag == 1} {
+					error "html: $html_results"
+				} else {
+					return "html: $html_results"
+				}
+			}
+		}
+
+		UTF::Try "$routerConfig - $roaming_type Roaming Graphs" {
+			Roaming::process_results $STA $LAN
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

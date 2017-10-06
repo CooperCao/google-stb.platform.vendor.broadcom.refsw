@@ -1,0 +1,904 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF script to find Maximum Throughput of multiple clients without packet loss
+# zhuj
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Test::TrafficScheduling
+package require UTF::ControlChart
+package provide UTF::Test::ZPLTput 2.0
+
+namespace eval UTF::Test::ZPLTput {
+
+    #set ::csvColNames "NumStas,TOS,AP,ZPLTputMean,ZPLTputMin,ZPLTputMax,ZPLTputMeanMean,ZPLTputLx,ZPLTputUx"
+    set ::csvColNames "numstas, tos, ap, multiplier, zpltputmean, zpltputmin, zpltputmax, zpltputmmean, zpltputmmin, zpltputmmax"
+    set ::gnuplotDataColNames {numstas zpltputmean zpltputmin zpltputmax zpltputmmean zpltputmmin zpltputmmax}
+    proc dump_callback {} {
+	uplevel {
+	    foreach s $stas {
+		if {[$s wl -u isup]} {
+		    $s wl -u status
+		    $s wl -u dump rssi
+		    $s wl -u dump murx
+		    #lappend sta_mac_list $s
+		    #lappend sta_mac_list [$s macaddr]
+		}
+	    }
+	    $AP wl -u atf
+	    $AP wl -u chanspec
+	    $AP wl -u dump rssi
+	    set assoclist [$AP wl -u assoclist]
+	    regsub -all -nocase "assoclist " $assoclist "" assoclist
+	    foreach mac $assoclist {
+		$AP wl -u rssi $mac
+	    }
+	    if {$(mu)} {
+		$AP wl -u dump txbf
+		$AP wl -u dump mutx
+	    }
+	    unset s
+	    unset mac assoclist
+	}
+    }
+
+    proc convert_bps_to_mbps {bps} {
+	set procname [namespace tail [lindex [info level 0] 0]]
+	set mbps ""
+	foreach num [concat $bps] {
+	    if {![string is double $num] && ![string is integer $num]} {
+		error "$procname: Format error - expected integer or double, but got \"$num\" in $bps."
+	    }
+	    append mbps "[format %.2f [expr {$num/1000000.0}]] "
+	}
+	UTF::Message INFO "" "$procname: $bps => $mbps"
+	return $mbps
+    }
+
+    proc find_csv_column {field} {
+	# Get column number for field. Titles are comma separated.
+	regsub -all {\s} $::csvColNames "" titles ;# clean out whitespace
+	set titles [split $titles ","]
+	set i [lsearch -exact $titles $field]
+	if {$i >= 0} {
+	    UTF::Message INFO "" "find_csv_column field=$field i=$i"
+	} else {
+	    UTF::Message ERROR "" "find_csv_column field=$field i=$i\
+		titles=$titles" ;# gives error trace
+	}
+	return $i
+    }
+
+    proc write_line_data {datafile ap tos cols fields} {
+	set procname [namespace tail [lindex [info level 0] 0]]
+	upvar 1 $cols columns
+	set numsamples [llength $columns(numstas)]
+	for {set i 0} {$i < $numsamples} {incr i} {
+	    set line ""
+	    if {[lindex $columns(ap) $i] eq $ap && [lindex $columns(tos) $i] eq $tos} {
+		foreach c $fields {
+		    append line " [lindex $columns($c) $i]"
+		}
+		puts $datafile $line
+	    }
+	}
+	#gnuplot uses 2 blank lines to distinguish different sections
+	puts $datafile ""
+	puts $datafile ""
+    }
+    proc plot_zpltput {csvfile graphsize args} {
+	UTF::Getopts {
+	    {ap.arg "" "To plot graph for this ap only"}
+	    {tos.arg "BE" "To plot graph for this tos only"}
+	    {fields.arg "" "The fields in CSV file to plot"}
+	    {composite "" "Generate one composite graph"}
+	}
+	set procname [namespace tail [lindex [info level 0] 0]]
+	set dir [file nativename [file dir $UTF::Logfile]]
+
+	if {![file exists "$dir/$csvfile"]} {
+	    error "$procname ERROR: file $dir/$csvfile not found"
+	}
+	if {[catch {set csvhandle [open $dir/$csvfile r]} err]} {
+	    error "$procname ERROR: $err"
+	}
+	# Define gnuplopt style values to use. See gnuplot manual for more details of parameters.
+	set lt0 0 ;# line type 0 - dashed grey
+	set lt1 1 ;# line type 1 - solid light red
+	set lt2 2 ;# line type 2 - olid light green
+	set lt3 3 ;# line type 3 - solid light blue
+	set lt4 4 ;# line type 4 - solid light purple
+	set lt5 5 ;# line type 5 - solid aqua
+	set lt6 6 ;# line type 6 - solid brown
+	set lt7 7 ;# line type 7 - solid yellow
+	set lt8 8 ;# line type 8 - solid dark blue
+	set lt9 9 ;# line type 9 - solid gold
+	set lt10 10 ;# line type 10 - solid dark green
+	set lt11 11 ;# line type 11 - solid dark purple
+	set lt12 12 ;# line type 12 - solid dark brown
+	set lt13 13 ;# line type 13 - solid light pink
+	set lt14 14 ;# line type 14 - solid lime green
+	set lt15 15 ;# line type 15 - solid grey blue
+	set lt154 154 ;# line type 154 - solid orange
+
+	set linetypes [list $lt1 $lt2 $lt3 $lt4 $lt5 $lt6 $lt7 $lt8 $lt9 $lt10 $lt11 $lt12 $lt13 $lt14 $lt15 $lt154]
+	set lw1 1 ;# line width 1 point
+	set lw2 2 ;# line width 2 points
+	set pt0 0 ;# point type 0 - none
+	set pt1 1 ;# point type 1 - horizontal bar
+	set pt2 2 ;# point type 2 - x
+	set pt4 4 ;# point type 4 - open square
+	set pt6 6 ;# point type 6 - open circle
+	set pt7 7 ;# point type 7 - solid circle
+	set pt8 8 ;# point type 8 - open triangle
+	set ps0 0 ;# point size 0 - none
+	set ps1 1 ;# point size 1 - smallest
+
+	#reading data from input csv file into lists
+	set xmin 1
+	set xmax 1
+	set ymin 0
+	set ymax 0
+
+	if {$(fields) eq ""} {
+	    set (fields) [regsub -all {\s} $::csvColNames ""]
+	    set (fields) [split $(fields) ","]
+
+	    #set (fields) $::gnuplotDataColNames
+	}
+	foreach f $(fields) {
+	    lappend fieldindexes [find_csv_column $f]
+	}
+
+	while {![eof $csvhandle]} {
+	    set row [split [gets $csvhandle] ","]
+
+	    #skip column name or other lines not started with a number
+	    if {![regexp {^\d+} $row]} {
+		continue
+	    }
+
+	    for {set i 0} {$i < [llength $fieldindexes]} {incr i} {
+		set findex [lindex $fieldindexes $i]
+		if {[lindex $row 0] > $xmax} {
+		    set xmax [lindex $row 0]
+		}
+		lappend cols([lindex $(fields) $i]) [lindex $row $findex]
+	    }
+	}
+	close $csvhandle
+
+	#writing x/y pair into gnuplot data file
+	#x-axis is the number of stas, y-axis is the zpltput
+	set datafilename [file join $dir "zpltput.data"]
+	if {![file exists $datafilename]} {
+	if {[catch {set datafile [open $datafilename w]} err]} {
+	    error "$procname ERROR: $err"
+	}
+
+	#Getting unique ap names and tos bits
+	#Preserving the order using dict keys rather than lsort -unique
+	foreach element $cols(ap) {
+	    dict set tmp $element 1
+	}
+	set uniqueAps [dict keys $tmp]
+	foreach key [dict keys $tmp] {
+	    dict unset tmp $key
+	}
+
+	foreach element $cols(tos) {
+	    dict set tmp $element 1
+	}
+	set uniqueTos [dict keys $tmp]
+	foreach key [dict keys $tmp] {
+	    dict unset tmp $key
+	}
+
+	set lineindex 0
+	set ::linestyles {}
+	set ::linetitles {}
+	set plotindexes {}
+	foreach ap $uniqueAps {
+	    foreach tos $uniqueTos {
+		puts $datafile "#data block AP=$ap TOS=$tos"
+		write_line_data $datafile $ap $tos cols $(fields)
+		lappend ::linestyles "[lindex $linetypes $lineindex]"
+		lappend ::linetitles "$ap:$tos"
+		incr lineindex
+	    }
+	    #data collected from different ap and tos are seperated with 2 blank lines
+	    puts $datafile ""
+	    puts $datafile ""
+	}
+
+	close $datafile
+	}
+
+	#creat
+	set plotprefix "$dir/zpltput"
+	set ix 0
+	while {[file exists ${plotprefix}_$ix.png]} {
+	    incr ix
+	}
+	set plotprefix ${plotprefix}_$ix
+	set gpcname "${plotprefix}.gpc"
+	set tputpng "${plotprefix}.png"
+	set smalltputpng "${plotprefix}_sm.png"
+
+	#set xwidth 4
+	if {[catch {set gpchandle  [open $gpcname w]} err]} {
+	    error "$procname ERROR: could not open $gpcname $err"
+	}
+	# Set gnuplot version specific values.
+	set gpver [UTF::GnuplotVersion]
+
+	# ==================================================================
+	# Create thumbnail sized _sm.png in a separate file. Turn off text labels,
+	# border, tics & legend.
+	puts $gpchandle "reset"
+	puts $gpchandle "set output \"$smalltputpng\""
+	if {$gpver > 4.0} {
+	    puts $gpchandle "set terminal png size 96,39 notransparent"
+	    puts $gpchandle {set tmargin -1; set bmargin -1}
+	    puts $gpchandle {set lmargin -1; set rmargin -1}
+	} else {
+	    puts $gpchandle "set terminal png notransparent"
+	    puts $gpchandle"set size 0.15,0.08"
+	}
+	puts $gpchandle "unset border"
+	puts $gpchandle "unset key"
+	puts $gpchandle "unset title"
+	puts $gpchandle "unset xlabel"
+	puts $gpchandle "unset ylabel"
+	puts $gpchandle "unset xtics"
+	puts $gpchandle "unset ytics"
+	# Setting yrange ensures mogrified graph doesnt magnify issues.
+	puts $gpchandle "set yrange \[$ymin:*\]"
+	puts $gpchandle "unset grid"
+
+	set plottputmean [expr {[lsearch $(fields) zpltputmean] + 1}]
+	set plottputmin [expr {[lsearch $(fields) zpltputmin] + 1}]
+	set plottputmax [expr {[lsearch $(fields) zpltputmax] + 1}]
+	set plottputUx [expr {[lsearch $(fields) zpltputmmax] + 1}]
+	set plottputLx [expr {[lsearch $(fields) zpltputmmin] + 1}]
+	#when it is called with composite, all data in .data file is plotted
+	#by default, only the data matching title $ap:$tos is plotted 
+	if {$(composite)} {
+	    set plotcmd "plot "
+	    for {set i 0} {$i < [llength $::linetitles]} {incr i} {
+		#puts $gpchandle "plot $plot_cmds_sm\n"
+		if {$i > 0} {
+		    append plotcmd ", "
+		}
+		append plotcmd "'$datafilename' index $i using 1:$plottputmean with linespoints"
+		append plotcmd " lt [expr {[lindex $::linestyles $i]+1}] lw $lw1 pt $pt6 ps $ps1"
+	    }
+	} else {
+	    if {$(ap) ne ""} {
+		set index [lsearch $::linetitles "$(ap):$(tos)"]
+		if {$index != -1} {
+		    set plotcmd "plot "
+		    #line for upper control limit
+		    append plotcmd "'$datafilename' index $index using 1:$plottputUx with linespoints"
+		    append plotcmd " lt $lt1 lw $lw1 pt $pt0 ps $ps1, "
+
+		    #line for this test
+		    append plotcmd "'$datafilename' index $index using 1:$plottputmean:$plottputmin:$plottputmax with errorlines"
+		    append plotcmd " lt [expr {[lindex $::linestyles $index]+1}] lw $lw1 pt $pt1 ps $ps1, "
+
+		    #line for lower control limit
+		    append plotcmd "'$datafilename' index $index using 1:$plottputLx with linespoints"
+		    append plotcmd " lt $lt1 lw $lw1 pt $pt0 ps $ps1"
+		}
+	    }
+	}
+	puts $gpchandle $plotcmd
+	puts $gpchandle "set output \"$tputpng\""
+	if {$gpver > 4.0} {
+	    set xwidth 4
+	    puts $gpchandle "set terminal png size $graphsize notransparent medium"
+	    puts $gpchandle {set tmargin -1; set bmargin -1}
+	    puts $gpchandle {set lmargin -1; set rmargin -1}
+	} else {
+	    set xwidth 1.9
+	    puts $gpchandle "set terminal png notransparent"
+	    puts $gpchandle "set size $xwidth,1"
+	}
+	puts $gpchandle "set title 'UDP ZPLTput vs Number of STAs'"
+	puts $gpchandle "set xlabel 'Number of STAs'"
+	puts $gpchandle "set ylabel 'ZPLTput (Mbits/s)'"
+	puts $gpchandle "set key outside below vertical"
+	puts $gpchandle "set border"
+	puts $gpchandle "set grid"
+	puts $gpchandle "set autoscale fix"
+	puts $gpchandle "set xrange \[$xmin:$xmax\]"
+	puts $gpchandle "set yrange \[$ymin:*\]"
+	puts $gpchandle "set xtic 1"
+	puts $gpchandle "set ytic auto"
+	if {$(composite)} {
+	    set plotcmd "plot "
+	    for {set i 0} {$i < [llength $::linetitles]} {incr i} {
+		if {$i > 0} {
+		    append plotcmd ", "
+		}
+		append plotcmd "'$datafilename' index $i using 1:$plottputmean with linespoints"
+		append plotcmd " lt [lindex $::linestyles $i] lw $lw2 pt $pt6 ps $ps1 pi -1 title '[lindex $::linetitles $i]'"
+	    }
+	} else {
+	    if {$(ap) ne ""} {
+		set index [lsearch $::linetitles "$(ap):$(tos)"]
+		if {$index != -1} {
+		    set plotcmd "plot "
+		    #line for upper control limit
+		    append plotcmd "'$datafilename' index $index using 1:$plottputUx with linespoints"
+		    append plotcmd " lt $lt2 lw $lw1 pt $pt0 ps $ps1, "
+		    #line for this test
+		    append plotcmd "'$datafilename' index $index using 1:$plottputmean:$plottputmin:$plottputmax with errorlines"
+		    append plotcmd " lt $lt1 lw $lw1 pt $pt1 ps $ps1 pi -1 title '[lindex $::linetitles $index]', "
+		    #line for lower control limit
+		    append plotcmd "'$datafilename' index $index using 1:$plottputLx with linespoints"
+		    append plotcmd " lt $lt2 lw $lw1 pt $pt0 ps $ps1"
+		}
+	    }
+	}
+	puts $gpchandle $plotcmd
+	close $gpchandle
+	if {[catch {exec $::UTF::Gnuplot "$gpcname"} err]  && ![string match -nocase *warning* $err]\
+		&& ![string match -nocase "*font*" $err]} {
+	    error "$procname ERROR: gnuplot: $err"
+	}
+	if {![file exists "$tputpng"]} {
+	    error "$procname ERROR: $tputpng file not created, $err"
+	}
+	if {![file exists "$smalltputpng"]} {
+	    error "$procname ERROR: $smalltputpng file not created, $err"
+	}
+	# Return the .png file.
+	UTF::Message INFO "" "$procname: created $tputpng smalltputpng"
+	return $smalltputpng
+    }
+}
+UTF::Test ZPLTput { args } {
+
+    UTF::Getopts {
+	{ap.arg "" "AP under test"}
+	{stas.arg "" "STAs under test"}
+	{distances.arg "" "Pairs of attenuation group and value to set"}
+	{trx.arg "" "Router private image"}
+	{bin.arg "" "STA private image"}
+	{date.arg "" "Router Image date"}
+	{stadate.arg "" "STA Image date"}
+	{build.arg "" "build name"}
+	{tag.arg "" "tag override"}
+	{dhd_tag.arg "" "dhd tag override"}
+	{statag.arg "" "statag override"}
+	{title.arg "" "title of report"}
+	{email.arg "" "email alias the report sent to"}
+	{history.arg "30" "Control Chart history"}
+	{nocache "Don't update control chart cache"}
+	{direction.arg "DOWN" "traffic direction: up or down"}
+	{ltosbits.arg "VO VI BE BK" ""}
+	{pktsize.arg "1470" "Packet size for UDP BE/BK/VI"}
+	{vopktsize.arg "200" "Packet size for UDP VO"}
+	{flows.arg "1" "number of traffic flows per sta"}
+	{w.arg "1M" "UDP buffer size"}
+	{rate.arg "1G" "offered traffic rate in baseline test"}
+	{vorate.arg "1G" "offered traffic rate for access class VO"}
+	{holdtime.arg "5" "how much time to send traffic"}
+	{reportinterval.arg ".5" "how often to collect iperf stats"}
+	{chanspec.arg {36/80} "List of chanspec to test"}
+	{minmultiplier.arg "0.01" "minimum multiplier of maximum tput to find zpltput"}
+	{maxmultiplier.arg "1.0" "maximum multiplier of maximum tput to find zpltput"}
+	{step.arg ".01" "the step to change multiplier to find zpltput"}
+	{graphsize.arg "640,480" "PNG graph size"}
+	{noload "not to load AP"}
+	{nostaload "not to load STA"}
+	{norestore "not to call restore_defaults after loading"}
+	{noptp "not to setup ptp"}
+	{atf.arg "1" "enable/disable ATF. By default ATF is enabled in driver."}
+	{fb.arg "1" "enable/disable frameburst"}
+	{modes.arg "" ""}
+	{mu.arg "0" ""}
+	{debug.arg "0" "turn on debug"}
+	{stats2plot.arg "rate lost" "traffic stats to plot"}
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+    if {![regexp -nocase "UP" $(direction)]  && ![regexp -nocase "DOWN" $(direction)] \
+	    && ![regexp -nocase "BIDIR" $(direction)]} {
+	error "Invalid traffic direction $(direction). Expecting UP, DOWN or BIDIR."
+    }
+    foreach t $(ltosbits) {
+	if {![regexp -nocase (BE|BK|VI|VO) $t]} {
+	    error "Invalid tosbits $t. Expecting list of BK,BE,VI and VO."
+	}
+    }
+    #res used to decide whether to exit the script execution
+    set res 0
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+
+    if {$(date) eq ""} {
+	set date $today
+    } else {
+	set date $(date)
+    }
+
+    if {$(trx) ne ""} {
+	$(ap) configure -image $(trx) -date {}
+    } elseif {$(tag) ne ""} {
+	$(ap) configure -tag $(tag) -date {}
+    }
+    if {$(bin) ne ""} {
+	foreach STA $(stas) {
+	    $STA configure -image $(bin) -date {}
+	}
+    } elseif {$(statag) ne ""} {
+	foreach STA $(stas) {
+	    $STA configure -tag $(statag) -date {}
+	}
+    }
+    if {$(dhd_tag) ne ""} {
+	foreach STA "$(ap) $(stas)" {
+	    if {[$STA hostis DHD]} {
+		$STA configure -dhd_tag $(dhd_tag)
+	    }
+	}
+    }
+
+    if {$(date) ne ""} {
+	$(ap) configure -date $(date)
+	if {[$(ap) hostis DHD]} {
+	    $(ap) configure -dhd_date $(date)
+	}
+    }
+    if {$(stadate) ne ""} {
+	set stadate $(stadate)
+	foreach STA $(stas) {
+	    $STA configure -date $(stadate)
+	    if {[$STA hostis DHD]} {
+		$STA configure -dhd_date $(stadate)
+	    }
+	}
+    } else {
+	set stadate $today
+    }
+    # Compact build list for title
+    # Include the WDS list, in case the AP list is empty.  Duplicates
+    # will be removed automatically.
+    set build [UTF::BuildTitle [concat $(ap) $(stas)]]
+    set TITLE "$(title) ($build) (ch=${(chanspec)})"
+    UTF::Message INFO "" $TITLE
+    unset build
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+	#------------------------------
+	#Image Loading
+	#------------------------------
+	if {!$(noload)} {
+	    UTF::Try "[$(ap) cget -name]: Find AP Image" {
+		# Locate image and add report header
+		UTF::CheckImage $(ap) $date unknown
+	    }
+
+	    UTF::Try "[$(ap) cget -name]: Load Image" {
+		if {$(norestore)} {
+		    $(ap) load
+		} else {
+		    if {[$(ap) hostis Router]} {
+			$(ap) load -erase
+		    }
+		}
+	    }
+
+	    # Bail out rather than continue with whatever happens to
+	    # be on the router.
+	    if {[$(ap) cget -_path] eq ""} {
+		UTF::Message ERROR "" "No image found for AP $(ap),exiting."
+		exit 1
+	    }
+	}
+	if {!$(norestore)} {
+	    if {[$(ap) hostis Router]} {
+		UTF::Try "$(ap): Restore Defaults" {
+		    if {$(noload)} {
+			$(ap) restore_defaults
+		    } else {
+			$(ap) restore_defaults -noerase
+		    }
+		    # Collect HW info and update report header + DB
+		    UTF::ReportWhatami $(ap) -role DUT -noload $(noload)
+		}
+	    } else {
+		UTF::Try "$(ap): HW Info" {
+		    UTF::ReportWhatami $(ap) -role DUT -noload $(noload)
+		}
+	    }
+	}
+	foreach STA $(stas) {
+	    if {!$(nostaload)} {
+		UTF::Try "$STA: Find STA Image" {
+		    # Check primary image and start report header
+		    UTF::CheckImage $STA $stadate unknown
+		}
+		UTF::Try "$STA: load" {
+		    $STA load
+		}
+		# Check secondary driver and update report header
+		UTF::ReportDriver $STA $stadate
+	    } elseif {[catch {$STA wl ver}]} {
+		# If there is no driver, exit
+		UTF::Message ERROR "" "No image running for sta $STA, exiting."
+		exit 1
+	    }
+
+	    UTF::Try "$STA: HW Info" {
+		# Collect HW info and update report header + DB
+		UTF::ReportWhatami $STA -role REF -noload $(nostaload)
+	    }
+	}
+	#------------------------
+	#End of Image Loading
+	#------------------------
+
+	UTF::Try "Common Setup" {
+	    UTF::Try "Initial Cleanup" {
+		UTF::Streamslib::force_cleanup [concat $(ap) $(stas)]
+		UTF::stream allstreams destroy
+	    }
+
+	    #for Fedora19, need to setup ptpd2. The proc and array are in config file
+	    #for Fedora22, ptpd2 should be running already
+	    if {[info procs ::enable_ptp] ne "" && !$(noptp)} {
+		UTF::Try "PTP setup" {
+		    if {[array exists ::ptpinterfaces]} {
+			UTF::Message INFO "" "[array get ::ptpinterfaces]"
+			::enable_ptp
+		    }
+		}
+	    }
+
+	    #if ::UTF::SetupTestBed is defined in config file
+	    #run the setup
+	    if {[info exists ::UTF::SetupTestBed]} {
+		UTF::Try "SetupTestBed" {
+		    eval $::UTF::SetupTestBed
+		}
+	    } else {
+		foreach STA $(stas) {
+		    UTF::Try "$STA Disassoc" {
+			catch {$STA wl -u disassoc}
+		    }
+		}
+	    }
+	    if {[$(ap) hostis Router]} {
+		UTF::Try "Turn on the radio on $(ap)" {
+		    set wlname [$(ap) wlname]
+		    regsub {\.\d+} $wlname {} wlbase
+		    if {[$(ap) nvram get ${wlbase}_radio] ne "1"} {
+			lappend nv ${wlbase}_radio=1
+		    }
+
+		    if {[info exists nv]} {
+			UTF::Message INFO "" "nv: $nv"
+			$(ap) restart $nv
+			UTF::Sleep 1
+			unset nv
+		    }
+		}
+	    }
+
+	    UTF::Try "Attenuation Setup" {
+		#all STAs at about the same distance from AP
+		#set AP attn to 0
+		#MBSS has the same attngroup
+		set lattn {}
+		if {$(distances) eq ""} {
+		    foreach STA $(stas) {
+			set attngrp [$STA cget -attngrp]
+			UTF::Message INFO "" "$STA attngrp=$attngrp"
+			if {$attngrp eq ""} {
+			    set attngrp [$(ap) cget -attngrp]
+			} else {
+			    set apattngrp [$(ap) cget -attngrp]
+			    if {$apattngrp ne ""} {
+				$apattngrp attn 0
+			    }
+			    UTF::Message INFO "" "$apattngrp attn?"
+			}
+			if {$attngrp eq ""} {
+			    UTF::Message WARNING "" "Attenuation group not found for $(ap) and $STA"
+			} else {
+			    catch {$attngrp attn $(attn)}
+			}
+			lappend lattn "$STA [$attngrp attn?]"
+		    }
+		} else {
+		    foreach {G V} $(distances) {
+			if {[$G info type] eq "::UTF::STA"} {
+			    set G [$G cget -attngrp]
+			}
+			catch {$G attn $V}
+			lappend lattn "$G [$G attn?]"
+		    }
+		}
+		return $lattn
+	    }
+	}
+
+	set ResultFileName zpltputs.csv
+	set csvId [open [file join $UTF::Logdir $ResultFileName] a]
+	puts $csvId $::csvColNames
+	# On web summary page, add hyperlink to .csv file for easy access.
+	UTF::Try "CSV results file" {
+	    return "html: <a href=\"$ResultFileName\">$ResultFileName</a>"
+	}
+
+	set flows $(flows)
+	set (notaf) 1
+	if {[$(ap) wl -u chanspec] ne $(chanspec)} {
+	    package require UTF::Test::APChanspec
+	    APChanspec $(ap) $(chanspec)
+	}
+
+	set zpltputs {}
+	#UTF::ControlChart supports num of samples upto 25
+	set numccsamples [expr int($(holdtime)/$(reportinterval))]
+	if {$numccsamples > 25} {
+	    set numccsamples 25
+	}
+	foreach tos $(ltosbits) {
+	    #--------------------------------------------------------
+	    #get tput for each individual STA for this Access Class
+	    #this is the baseline and will be used in below test
+	    #--------------------------------------------------------
+	    set errcode 0
+	    array set basetput {}
+	    foreach sta $(stas) {
+		#set tput 0
+		set ts "na"
+		dict set TS $(ap) $ts $sta
+		UTF::Try "Baseline $(chanspec) \{$tos\} $sta $(flows) flows/STA " {
+		    set basetos($sta) $tos
+
+		    #For Access Class VO, if the offered rate is too much, the baseline tput could be
+		    #very low due to heavy oversubscription thus affect subsequence test result
+		    if {[string toupper $tos] eq "VO"} {
+			set rate $(vorate)
+		    } else {
+			set rate $(rate)
+		    }
+
+		    if {[catch {UTF::Test::TrafficScheduling::Scheduler $TS -tos basetos -holdtime $(holdtime)\
+				    -modes $(modes) -flows $(flows) -rate $rate -fb $(fb) -aggregate 1 \
+				    -w $(w) -mu 0 -reportinterval $(reportinterval) -pktsize $(pktsize)\
+				    -vopktsize $(vopktsize) -stats2plot $(stats2plot) -debug $(debug)} lret]} {
+			set errcode 1
+		    }
+
+		    if {!$errcode} {
+			set basemmm [lindex $lret 1]
+			UTF::Message INFO "" "basemmm=$basemmm"
+			UTF::ControlChart BaseCC -key "$tos $(ap) $sta" \
+			    -history $(history) \
+			    -s $numccsamples \
+			    -allowzero true -norangecheck true \
+			    -title "$sta Base Tput" \
+			    -ylabel "Tput" -format "%.2f"
+			set baseccsample [BaseCC addsample [convert_bps_to_mbps $basemmm]]
+			set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+			if {[regexp $FAILMATCH $baseccsample]} {
+			    throw FAIL "[BaseCC plotcontrolchart $baseccsample]"
+			} else {
+			    return "[BaseCC plotcontrolchart $baseccsample]"
+			}
+		    } else {
+			throw FAIL "Failed to get baseline tput for $sta $tos: $lret"
+		    }
+		}
+		dict unset TS $(ap) $ts
+		#skip test on other STAs if there is an error
+		if {$errcode} {
+		    break
+		} else {
+		    #set basetput($sta) $tput
+		    set basetput($sta) [lindex $basemmm 0]
+		}
+	    }
+	    array unset meanminmax
+	    array unset basetos
+	    #skip the test for this Access Class and go to the next one
+	    if {$errcode} {
+		array unset basetput
+		continue
+	    }
+
+	    UTF::Message INFO "" "Baselinetput: [array get basetput]"
+
+	    #---------------------------------------------------------------
+	    #get zpltput for different number of STAs for this Access Class
+	    #---------------------------------------------------------------
+	    for {set numstas 1} {$numstas <= [llength $(stas)]} {incr numstas} {
+		set currentstas [lrange $(stas) 0 [expr {$numstas - 1}]]
+		array set arrtos {}
+		array set arrcurrentrates {}
+		dict set TS $(ap) "na" $currentstas
+		UTF::Try "\{$tos\} \{$currentstas\} zpltput" {
+		    set key "\{$tos\} $(ap) \{$currentstas\}"
+		    set range [format %.2f [expr {$(maxmultiplier) - $(minmultiplier)}]]
+		    set multiplier $(maxmultiplier)
+		    set maxmultiplier $(maxmultiplier)
+		    set minmultiplier $(minmultiplier)
+		    set lasttput 0
+		    set lasttputlret {}
+		    set lasttputmultiplier 0
+		    set connected 0
+		    set disconnect 0
+		    set lastaggrtputmmm {}
+		    while {$range > $(step)} {
+			foreach  sta $currentstas {
+			    set arrtos($sta) $tos
+			    set arrcurrentrates($sta) [expr {int($multiplier * $basetput($sta))}]
+			    set arrtputs($sta) 0
+			}
+			UTF::Message DEBUG "" "connected=$connected"
+			if {[catch {UTF::Test::TrafficScheduling::Scheduler $TS -rates arrcurrentrates \
+					-tos arrtos -warmup 1 -holdtime $(holdtime) -mu $(mu) -aggregate 1 \
+					-connected $connected -disconnect $disconnect\
+					-reportinterval $(reportinterval) -vopktsize $(vopktsize) -pktsize $(pktsize)\
+					-stats2plot $(stats2plot) -debug $(debug)} lret]} {
+			    throw FAIL $lret
+			}
+			UTF::Message INFO "" "$tos $sta lret(0)=[lindex $lret 0] "
+			UTF::Message INFO "" "$tos $sta lret(1)=[lindex $lret 1] "
+			set aggrtputmmm [lindex $lret 1]
+			UTF::Message INFO "" "aggrtputmmm=$aggrtputmmm"
+			set dictret [lindex $lret 0]
+			dict for {sta stats} $dictret {
+			    set ret ok
+			    if {[catch {dict get $stats lost 1} lostcount($sta,1)] || \
+				    [catch {dict get $stats rate 1} meanminmax($sta,1)] || \
+				    $meanminmax($sta,1) eq ""} {
+				set ret error
+				break
+			    }
+			    UTF::Message INFO "" "multiplier=$multiplier"
+			    UTF::Message INFO "" "lostcount($sta,1)=$lostcount($sta,1)"
+			    UTF::Message INFO "" "meanminmax($sta,1)=$meanminmax($sta,1)"
+			    if {[lindex $lostcount($sta,1) 0] > 0} {
+				set ret continue
+				break
+			    } else {
+				set arrtputs($sta) [format %.2f [lindex $meanminmax($sta,1) 0]]
+			    }
+			}
+			if {$ret eq "error"} {
+			    UTF::Message FAIL "" "$ret: Error to get throughput and/or lost count on $sta."
+			    break
+			}
+			if {!$connected} {
+			    set connected 1
+			}
+
+			#In case of 1 STA, it is faster to find zpltput with fixed step search
+			#In case of multiple STAs, it is faster to find zpltput with binary search
+			if {$ret eq "continue"} {
+			    set maxmultiplier $multiplier
+			    if {[llength $currentstas] == 1} {
+				set multiplier [format %.2f [expr {$multiplier - $(step)}]]
+			    } else {
+				set halfrange [format %.2f [expr $range/2]]
+				if {$halfrange >= $(step)} {
+				    set multiplier [format %.2f [expr {$minmultiplier + $halfrange}]]
+				} else {
+				    set multiplier [format %.2f [expr {$minmultiplier + $(step)}]]
+				}
+			    }
+			    set range [format %.2f [expr {$multiplier - $minmultiplier}]]
+			    continue
+			} elseif {$ret eq "ok"} {
+			    set lastaggrtputmmm $aggrtputmmm
+			    UTF::Message INFO "" "lastaggrtputmmm=$lastaggrtputmmm"
+			    array unset arrtputs
+
+			    set lasttputlret $lret
+			    set lasttputmultiplier $multiplier
+			    if {[llength $currentstas] == 1} {
+				break
+			    }
+			    set minmultiplier $multiplier
+			    set halfrange [format %.2f [expr $range/2]]
+			    if {$halfrange >= $(step)} {
+				set multiplier [format %.2f [expr {$maxmultiplier - $halfrange}]]
+			    } else {
+				set multiplier [format %.2f [expr {$maxmultiplier - $(step)}]]
+			    }
+			    set range [format %.2f [expr {$maxmultiplier - $multiplier}]]
+			    continue
+			}
+		    }
+
+
+		    UTF::ControlChart CC -key $key \
+			-history $(history) \
+			-s $numccsamples \
+			-allowzero true -norangecheck true \
+			-title "\{$currentstas\} ZPL Aggregate Tput" \
+			-ylabel "Aggregate Tput" -format "%.2f"
+
+		    if {[lindex  $lasttputmultiplier 0] != 0 && ($ret eq "ok" || $ret eq "continue")} {
+			set ccsample [CC addsample [convert_bps_to_mbps $lastaggrtputmmm]]
+			set newentry "[llength $currentstas] $tos $(ap) $lasttputmultiplier "
+			append newentry " [convert_bps_to_mbps [join $lastaggrtputmmm]]"
+			array set arrccstats {}
+			CC stats arrccstats
+			foreach item " $arrccstats(meanmean) $arrccstats(Lx) $arrccstats(Ux)" {
+			    append newentry " [format %.2f $item]"
+			}
+			array unset arrccstats
+			lappend zpltputs $newentry
+			UTF::Message INFO "newentry=$newentry" ""
+			UTF::Message INFO "" "zpltputs=$zpltputs"
+
+			set FAILMATCH "HIGH|LOW|WIDE|ZERO"
+			if {[regexp $FAILMATCH $ccsample]} {
+			    throw FAIL "[CC plotcontrolchart $ccsample]"
+			} else {
+			    return "[CC plotcontrolchart $ccsample]"
+			}
+		    }
+
+		    throw FAIL [lindex $lret 1]
+		}
+		dict unset TS $(ap) "na"
+		array unset arrtos
+		array unset arrcurrentrates
+	    }
+	    array unset basetput
+	}
+
+	UTF::Message INFO "" "zpltputs=$zpltputs"
+	#writing results into a CSV file
+	foreach record $zpltputs {
+	    puts $csvId [join $record ","]
+	}
+	close $csvId
+
+	foreach tos $(ltosbits) {
+	    UTF::Try "$tos ZPLTputs" {
+		if {[catch {plot_zpltput $ResultFileName $(graphsize) -ap $(ap) -tos $tos}  sm]} {
+		    throw FAIL "Failed to generate zpltput graph: $sm"
+		}
+		set fd [open "$sm"]
+		fconfigure $fd -translation binary
+		set smdata [base64::encode -maxlen 0 [read $fd]]
+		close $fd
+		set res "html:"
+		set src [regsub "_sm" $sm ""]
+		#return "html: <img src=\"$thumbnail\">"
+		#append res "<!--\[if IE\]><a href=\"$sm\"><img src=\"$sm\" alt=\"url\" /></a><a href=\"$src\">$tos ZPLTputs</a><!\[endif\]-->"
+		append res "<!\[if !IE\]><a href=\"$src\"><img src=\"data:image/png;base64,$smdata\" alt=\"data\" /></a><a href=\"$src\">$tos ZPLTputs</a>\<!\[endif\]>"
+		return $res
+	    }
+	}
+	UTF::Try "ZPLTputs Composite Plot" {
+
+	    if {[catch {plot_zpltput $ResultFileName $(graphsize) -composite } sm]} {
+		throw FAIL "Failed to generate zpltput graph: $sm"
+	    }
+	    set fd [open "$sm"]
+	    fconfigure $fd -translation binary
+	    set smdata [base64::encode -maxlen 0 [read $fd]]
+	    close $fd
+	    set res "html:"
+	    set src [regsub "_sm" $sm ""]
+	    #append res "<!--\[if IE\]><a href=\"$sm\"><img src=\"$sm\" alt=\"url\" /></a><a href=\"$src\">Composite ZPLTputs</a><!\[endif\]-->"
+	    append res "<!\[if !IE\]><a href=\"$src\"><img src=\"data:image/png;base64,$smdata\" alt=\"data\" /></a><a href=\"$src\">Composite ZPLTputs</a>\<!\[endif\]>"
+	    return "$res"
+	}
+    }
+}

@@ -1,0 +1,2323 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for nightly run
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::PingTimes
+package require UTF::Test::DataRatePlot
+package require UTF::Test::Fragmentation
+package require UTF::Test::RTS
+package require UTF::Test::Scan
+package require UTF::Test::controlchart
+package require UTF::Test::memchart
+package require UTF::Test::ChannelSweep
+package require UTF::Test::BigHammer
+package require UTF::Test::IBSS
+package require UTF::Test::TDLS
+package require UTF::Test::CalStability
+package require UTF::Test::rssinoise
+package require UTF::Test::BeaconRatio
+package require UTF::Test::Interrupts
+package require UTF::Test::CPU
+package require UTF::Test::chanswitch
+package require UTF::Test::KPPSSweep
+
+package provide UTF::Test::samplewl 2.0
+
+namespace eval UTF::Test::samplewl {
+
+    proc pmperf {BUILD AP STA MSG args} {
+	upvar {} testopts
+	UTF::Getopts {
+	    {PM.arg "0" "Power Management"}
+	    {fb.arg "" "Frameburst"}
+	    {ch.arg "" "Chanspec"}
+	    {security.arg "open" "security"}
+	    {b.arg "0" "UDP"}
+	    {kpps "" "Small packet PPS test"}
+	    {ibss "Use IBSS instead of STA mode"}
+	}
+
+	# test interval
+	set i 2
+
+	if {[$STA cget -apmode]} {
+	    set APROLE $STA
+	    set STAROLE $AP
+	} else {
+	    set APROLE $AP
+	    set STAROLE $STA
+	}
+
+	if {$(fb) eq ""} {
+	    # Frameburst default depends on OS
+	    if {![$STA cget -noframeburst] &&
+		([$STA hostis MacOS] || [$STA cget -perfonly] ||
+		 [info exists UTF::FBDefault])} {
+		set (fb) 1
+		set fbmigrate 1
+	    } else {
+		set (fb) 0
+	    }
+	} else {
+	    # canonicalize
+	    set (fb) [string is true $(fb)]
+	}
+
+	if {$(ch) ne ""} {
+	    append MSG ": $(ch)"
+	}
+	if {$(ibss)} {
+	    append MSG ": IBSS"
+	}
+	if {$(fb)} {
+	    append MSG ": FB"
+	}
+	if {$(PM)} {
+	    append MSG ": PM=$(PM)"
+	}
+	if {$(security) ne "open"} {
+	    append MSG ": $(security)"
+	}
+	if {$(kpps)} {
+	    append MSG ": KPPS"
+	} elseif {$(b) ne "0"} {
+	    append MSG ": UDP"
+	}
+
+	set setup 0
+	UTF::Try "$MSG: WLAN<-LAN" {
+	    # Put STAs into PM mode before association, to make sure
+	    # we can associate in PM mode.
+	    if {![$STA cget -apmode]} {
+		if {[catch {$STA wl PM $(PM)} ret] &&
+		    ([regexp {killed} $ret] ||
+		     ($(PM) && ![regexp {Not STA} $ret]))} {
+		    error $ret
+		}
+	    }
+	    if {[$STA wl frameburst] ne $(fb)} {
+		$STA wl frameburst $(fb)
+		if {[$STA wl frameburst] ne $(fb)} {
+		    if {$(fb)} {
+			error "failed to enable frameburst"
+		    } else {
+			error "failed to disable frameburst"
+		    }
+		}
+	    }
+	    if {$(ibss)} {
+		package require UTF::Test::Join
+		if {$(ch) ne ""} {
+		    APChanspec $AP $(ch) -loose -nobandlock
+		    APChanspec $STA $(ch) -loose -nobandlock
+		}
+		Join $AP $STA -imode ibss
+	    } else {
+		if {$(ch) ne ""} {
+		    APChanspec $APROLE $(ch)
+		}
+		if {$(security) ne [$AP cget -security]} {
+		    ConnectAPSTA $AP $STA -security $(security)
+		} elseif {[catch {$STAROLE wl bssid} ret] || \
+			      $ret eq "00:00:00:00:00:00"} {
+		    ConnectAPSTA $AP $STA
+		}
+	    }
+
+	    # Set frameburst after any AP restarts
+	    $AP wl -u frameburst $(fb)
+
+	    # If we're in SoftAP mode, set PM on the router.  Do this
+	    # after assoc, since WET assoc may restart the router.
+	    if {[$STA cget -apmode]} {
+		$AP wl PM $(PM)
+	    }
+
+	    set k [concat $BUILD $AP $(PM)]
+	    if {$(ch) ne ""} {
+		lappend k "ch=$(ch)"
+	    }
+	    if {$(ibss)} {
+		lappend k "ibss"
+	    }
+	    if {$(fb)} {
+		lappend k "fb=$(fb)"
+	    }
+	    if {$(kpps)} {
+		lappend k "kpps"
+	    }
+
+	    if {[regexp {wep|shared|tkip} $(security)]} {
+		# Deprecated security modes use legacy rates, even if
+		# the rateset offers more.
+		set w 0
+	    } else {
+		# Auto TCP window size setting based on phy rate
+		set w [$STA tcpautowindow]
+	    }
+
+	    if {$(security) ne "open"} {
+		lappend k "$(security)"
+	    }
+	    if {$(kpps)} {
+		lappend k 128
+	    } elseif {$(b) ne "0"} {
+		lappend k "udp"
+	    }
+
+	    set ccopts [list -key $k -i $i -b $(b) -window $w \
+			    -loop $testopts(perfloop) \
+			    -history $testopts(history)]
+
+	    if {[info exists fbmigrate]} {
+		regsub { fb=1} $k {} oldk
+		lappend ccopts -oldkey $oldk
+	    }
+
+	    if {$(PM) eq "1"} {
+		# In powersave, a HIGH throughput may indicate a real
+		# problem
+		lappend ccopts -failonhigh
+	    }
+	    if {$(kpps)} {
+		lappend ccopts -kpps -l 128
+	    }
+	    set setup 1
+	    controlchart [list $AP $STA] {*}$ccopts
+	}
+	if {$setup} {
+	    if {!$testopts(symmetric)} {
+		UTF::Try "$MSG: WLAN->LAN" {
+		    controlchart [list $STA $AP] {*}$ccopts
+		}
+	    }
+	    if {!$testopts(nobx)} {
+		UTF::Try "$MSG: WLAN<>LAN" {
+		    controlchart [list $STA $AP $AP $STA] {*}$ccopts
+		}
+	    }
+	}
+    }
+
+    proc scan {AP STA MSG} {
+	UTF::Try "$MSG: Scan Tests" {
+	    UTF::Try "$MSG: Broadcast Scan" {
+		Scan $AP $STA -cache C
+	    }
+	    UTF::Try "$MSG: Scan directed to SSID" {
+		Scan $AP $STA -ssid -cache C
+	    }
+	    UTF::Try "$MSG: Scan directed to BSSID" {
+		Scan $AP $STA -bssid -cache C
+	    }
+	    UTF::Try "$MSG: Scan directed to SSID and BSSID" {
+		Scan $AP $STA -ssid -bssid -cache C
+	    }
+	    UTF::Try "$MSG: Passive Scan" {
+		Scan $AP $STA -passive -cache C
+	    }
+	    array unset C
+	    return
+	}
+    }
+
+
+    proc main {APS STA} {
+	# access option array
+	upvar {} upopts
+	upvar date date
+
+	# Copy option array and apply per-device overrides
+	array set {} [array get upopts]
+	if {[$STA cget -nochannels]} {
+	    set (nochan) 1
+	}
+	if {[$STA cget -noframeburst]} {
+	    set (noframeburst) 1
+	}
+	if {[$STA cget -nopm1]} {
+	    set (nopm1) 1
+	    set (nobeaconratio) 1
+	    set (nointerrupts) 1
+	}
+	if {[$STA cget -nopm2]} {
+	    set (nopm2) 1
+	}
+	if {[$STA cget -noaes]} {
+	    set (noaes) 1
+	}
+	if {[$STA cget -notkip]} {
+	    set (notkip) 1
+	}
+	if {[$STA cget -nowep]} {
+	    set (nowep) 1
+	}
+	if {[$STA cget -nobighammer]} {
+	    set (nobighammer) 1
+	}
+	if {![$STA cget -docpu]} {
+	    set (nocpu) 1
+	}
+	if {[$STA cget -nointerrupts]} {
+	    set (nointerrupts) 1
+	}
+
+	if {[$STA cget -noibss]} {
+	    set (noibss) 1
+	}
+	if {[$STA cget -nofragmentation]} {
+	    set (nofrag) 1
+	}
+	if {[$STA cget -nocustom]} {
+	    set (nocustom) 1
+	}
+	if {[$STA cget -nocal]} {
+	    set (nocal) 1
+	}
+	if {[$STA cget -udp] eq "0"} {
+	    set (noudp) 1
+	    set (nokpps) 1
+	}
+	if {[$STA cget -nokpps]} {
+	    set (nokpps) 1
+	}
+	if {[$STA cget -perfonly]} {
+	    if {!$(rateonly)} {
+		set (norate) 1
+	    }
+	    if {!$(rvronly)} {
+		set (norvr) 1
+	    }
+	    if {!$(chanonly)} {
+		set (nochan) 1
+	    }
+	    set (nochanswitch) 1
+	    set (notkip) 1
+	    set (nowep) 1
+	    set (noshared) 1
+	    if {!$(pmonly)} {
+		set (nopm1) 1
+		set (nopm2) 1
+	    }
+	    if {!$(bighammeronly)} {
+		set (nobighammer) 1
+	    }
+	    set (nobeaconratio) 1
+	    set (norts) 1
+	    set (nopingtimes) 1
+	    if {!$(fragonly)} {
+		set (nofrag) 1
+	    }
+	    set (nointerrupts) 1
+	    if {!$(customonly)} {
+		set (nocustom) 1
+	    }
+	    if {!$(calonly)} {
+		set (nocal) 1
+	    }
+	    if {!$(scanonly)} {
+		set (noscan) 1
+	    }
+	    if {!$(ibssonly)} {
+		set (noibss) 1
+	    }
+	    if {!$(noframeburst)} {
+		set (nofb0) 1
+	    }
+	}
+
+	set phyname ""
+
+	if {$(branch) eq "auto"} {
+	    set branch [$STA branchname]
+	} else {
+	    set branch $(branch)
+	}
+
+	# Find images
+	if {!$(nostaload)} {
+	    UTF::Try "$STA Find STA Image" {
+		UTF::CheckImage $STA $date unknown
+	    }
+	}
+	if {!$(nosetup)} {
+	    if {$(nostaload)} {
+		if {!$(nostareload)} {
+		    UTF::Try "$STA reload" {
+			$STA reload
+		    }
+		}
+	    } else {
+		UTF::Try "$STA load" {
+		    $STA load
+		}
+		UTF::ReportDriver $STA $date
+	    }
+	    UTF::Try "$STA defaults" {
+
+		$STA services stop
+		catch {$STA wl msglevel +error +assoc +regulatory}
+		if {![$STA cget -nomimo_bw_cap]} {
+		    catch {$STA wl down}
+		    # Enable 40 in 2.4, if available.
+		    # Doesn't work for LMAC since LMAC is never "down"
+		    $STA wl -u mimo_bw_cap 1
+		    $STA wl up
+		    UTF::Sleep 1
+		}
+
+		$STA wl ver
+		set what [$STA whatami]
+		# Pull out chip info and replace whitespace to make it
+		# easier for external parsers.
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {$(nostaload)} {
+		    $UTF::Summary header $STA $w
+		} else {
+		    $UTF::Summary header_update 1 $w
+		}
+		$STA dbrecord DUT
+		set what
+	    }
+
+	    if {![$STA cget -nomaxmem] && [$STA rte_available]} {
+		UTF::Try "$STA: Load Free(K)" {
+		    memchart [$STA freekb] -failonlow \
+			-key [list $branch $STA loadfree] \
+			-history $(history) -units kb -title "Load Free"
+		}
+	    }
+	}
+
+	if {[set perfchans $(chanspec)] eq "" &&
+	    [set perfchans [$STA cget -perfchans]] eq ""} {
+	    UTF::Try "$STA: Channel Selection" {
+		set perfchans [UTF::PerfChans $APS $STA]
+	    }
+	}
+
+	set AP2G [lindex $APS 0]
+	set AP5G [lindex $APS end]
+
+	# Find first and last channels, in case we have to wipe out
+	# perfchans later
+	set initchan [lindex $perfchans 0]
+	set mainchan [lindex $perfchans end]
+
+	# If performance tests are disabled, clean the performance
+	# channel list, but leave the calibration channel list.
+	set calchans $perfchans
+	if {$(noperf)} {
+	    set perfchans ""
+	} else {
+	    # Filter perfchans based on commandline options
+	    if {$(noperf80)} {
+		set perfchans \
+		    [lsearch -inline -all -not -regexp $perfchans {/80$}]
+	    }
+	    if {$(noperf40)} {
+		set perfchans \
+		    [lsearch -inline -all -not -regexp $perfchans {[ul]$}]
+	    }
+	    if {$(noperf20)} {
+		set perfchans \
+		    [lsearch -inline -all -regexp $perfchans {(?:[ul]|/80)$}]
+	    }
+	}
+
+	if {[$AP2G band $initchan] eq "b"} {
+	    set Router $AP2G
+	} else {
+	    set Router $AP5G
+	}
+
+	if {[$STA cget -apmode] && ![$Router hostis Router Vx BSDAP DSL Airport]} {
+	    # If "STA" is in apmode, and "Router" is a SoftAP then
+	    # make sure "Router" is un-bandlocked
+	    UTF::Try "$Router: Home Channel auto" {
+		$Router wl band auto
+	    }
+	}
+
+	if {![$STA cget -nomaxmem] && [$STA rte_available]} {
+	    UTF::Try "$STA: Assoc Free(K)" {
+		ConnectAPSTA $Router $STA -chanspec $initchan -security open
+		memchart [$STA freekb] -failonlow \
+		    -key [list $branch $STA assocfree] \
+		    -history $(history) -units kb -title "Assoc Free"
+	    }
+	} elseif {![$STA cget -apmode]} {
+	    UTF::Try "$Router: Home Channel $initchan" {
+		APChanspec $Router $initchan
+	    }
+	}
+
+	for {set i 0} {$i < $(loop)} {incr i} {
+	    if {![$STA cget -apmode]} {
+		UTF::Try "$Router: Open Security" {
+		    APConfigureSecurity $AP2G -security open
+		    APConfigureSecurity $AP5G -security open
+		}
+	    } else {
+		UTF::Try "$STA: Open Security" {
+		    APConfigureSecurity $STA -security open
+		}
+		if {[$Router cget -hasdhcpd]} {
+		    UTF::Try "$Router: Restart DHCP" {
+			$Router ifconfig [$Router cget -ipaddr]
+			$Router rexec service dhcpd restart
+			return
+		    }
+		}
+	    }
+	    # Scan all channels
+	    if {!$(nochan)} {
+		if {$AP5G eq $AP2G} {
+		    if {[catch {
+			ChannelSweep $AP2G $STA -dut $STA \
+			    -loop $(perfloop) -history $(history) \
+			    -symmetric $(symmetric)
+		    } ret]} {
+			set e $::errorInfo
+			UTF::Try "$STA: Channel Sweep" {
+			    error $ret $e
+			} finally {
+			    # Check for crashes
+			    $STA :
+			}
+		    }
+		} else {
+		    if {[catch {
+			ChannelSweep $AP2G $STA -dut $STA -band b
+		    } ret]} {
+			set e $::errorInfo
+			UTF::Try "$STA: Channel Sweep" {
+			    error $ret $e
+			}
+		    }
+		    if {[catch {
+			ChannelSweep $AP5G $STA -dut $STA -band a
+		    } ret]} {
+			set e $::errorInfo
+			UTF::Try "$STA: Channel Sweep" {
+			    error $ret $e
+			}
+		    }
+		}
+	    }
+	    if {!$(nochanswitch)} {
+		catch {
+		    chanswitch $STA
+		}
+	    }
+	    set donepps 0
+	    # Loop through channels to be tested.
+	    foreach c $perfchans {
+		UTF::Try "$STA: Channel $c" {
+		    if {![$STA cget -apmode]} {
+			# Reset PM.
+			if {[catch {$STA wl PM 3} ret] &&
+			    [regexp {Undefined error} $ret]} {
+			    catch {$STA wl PM 0}
+			}
+		    }
+		    if {[$AP2G band $c] eq "b"} {
+			set Router $AP2G
+		    } else {
+			set Router $AP5G
+		    }
+		    ConnectAPSTA $Router $STA -chanspec $c -security open
+		    rssinoise $Router $STA
+		}
+		if {!$(norate)} {
+		    DataRatePlot $Router $STA -chanspec $c \
+			-loop $(perfloop) -history $(history) \
+			-symmetric $(symmetric)
+		}
+		if {!$(norvr)} {
+		    if {[catch {
+			package require UTF::Test::YART
+			YART $Router $STA -chanspec $c \
+			    -loop $(perfloop) -history $(history) \
+			    -symmetric $(symmetric)
+		    } ret]} {
+			UTF::Message WARN "" $ret
+		    }
+		}
+
+		# If the STA doesn't do frameburst then test UDP without
+		if {[$STA cget -noframeburst]} {
+		    set fb 0
+		} else {
+		    set fb 1
+		}
+		if {$fb ? !$(noframeburst) : !$(nofb0)} {
+		    if {!$(noudp)} {
+			pmperf $branch $Router $STA $STA \
+			    -fb $fb -ch $c -b [$STA cget -udp]
+		    }
+		    if {!$(nokpps) && !$donepps} {
+			set donepps 1
+			pmperf $branch $Router $STA $STA \
+			    -fb $fb -ch $c -b [$STA cget -udp] -kpps
+			KPPSSweep $Router $STA -chanspec $c
+		    }
+		}
+		if {!$(noframeburst) && !$(noopen)} {
+		    pmperf $branch $Router $STA $STA -fb 1 -ch $c
+		}
+		if {!$(nopm2)} {
+		    pmperf $branch $Router $STA $STA -PM 2 -ch $c
+		}
+		if {!$(nopm1)} {
+		    pmperf $branch $Router $STA $STA -PM 1 -ch $c
+		}
+		if {!$(noaes)} {
+		    pmperf $branch $Router $STA $STA -security aespsk2 \
+			-ch $c
+		}
+		# HT is disabled in TKIP and WEP, so no point testing
+		# them in 40MHz or 80MHz - unless this is the only
+		# channel tested.
+		if {[llength $perfchans] == 1 ||
+		    (![regexp {[lu]} $c] && ![regexp {/80} $c])} {
+		    if {!$(notkip)} {
+			pmperf $branch $Router $STA $STA -security tkippsk \
+			    -ch $c
+		    }
+		    if {!$(nowep)} {
+			# use limited wep on some devices.
+			if {[$STA cget -usewep64]} {
+			    set wep wep64
+			} else {
+			    set wep wep
+			}
+			pmperf $branch $Router $STA $STA -security $wep \
+			    -ch $c
+		    }
+		}
+		if {!$(nofb0) && !$(noopen)} {
+		    pmperf $branch $Router $STA $STA -fb 0 -PM 0 \
+			-security open -ch $c
+		}
+		if {!$(noibss) && ![$STA cget -apmode] &&
+		    ![$Router hostis Router Vx DSL BSDAP]} {
+		    if {![catch {$STA wl chan_info $c} ret] &&
+			[regexp "Restricted" $ret]} {
+			UTF::Message INFO $STA \
+			    "Skipping IBSS test on restricted channel $c"
+		    } else {
+			pmperf $branch $Router $STA $STA -ch $c -ibss
+		    }
+		}
+		if {!$(nobighammer)} {
+		    BigHammer $Router $STA -msg "BigHammer on $c"
+		}
+	    }
+	    if {[llength $perfchans]} {
+		# If we did some perf tests, check memory on STA.  If
+		# we're using a Dongle SoftAP, check memory on the AP
+		# too.
+		foreach S [list $STA $Router] {
+		    if {![$S cget -nomaxmem] && [$S rte_available]} {
+			UTF::Try "$S: MaxMem in use" {
+			    memchart [$S maxmem] \
+				-key [list $branch $S maxmem] \
+				-history $(history)
+			}
+		    }
+		}
+	    }
+
+	    if {!$(nocpu)} {
+		CPU $Router $STA -dut $STA
+	    }
+
+	    # Reset home channel and PM.
+	    UTF::Try "$STA: Home Channel $mainchan" {
+		if {[$STA cget -apmode]} {
+		    APChanspec $STA $mainchan
+		    APConfigureSecurity $STA -security open
+		} else {
+		    if {[$AP2G band $mainchan] eq "b"} {
+			set Router $AP2G
+		    } else {
+			set Router $AP5G
+		    }
+		    APChanspec $Router $mainchan
+		    APConfigureSecurity $Router -security open
+		    catch {$STA wl PM 0}
+		    return
+		}
+	    }
+
+	    if {!$(noscan)} {
+		if {![$STA cget -apmode]} {
+		    scan [list $AP2G $AP5G $(ap2)] $STA $STA
+		} else {
+		    # AP and STA are reversed
+		    scan $STA $Router $STA
+		}
+	    }
+	    if {!$(noshared) &&
+		![$STA cget -nowep] && ![$STA cget -nosharedwep]} {
+		# use limited wep on some devices.
+		if {[$STA cget -usewep64]} {
+		    UTF::Try "$STA: SHARED64 association" {
+			ConnectAPSTA $Router $STA -security shared64
+		    } finally {
+			catch {$STA wl disassoc}
+		    }
+		} else {
+		    UTF::Try "$STA: SHARED association" {
+			ConnectAPSTA $Router $STA -security shared
+		    } finally {
+			catch {$STA wl disassoc}
+		    }
+		}
+	    }
+	    if {!$(nobtests)} {
+		if {[$STA cget -apmode]} {
+		    UTF::Try "$STA: Configure open security" {
+			APConfigureSecurity $STA -security open
+		    }
+		} else {
+		    UTF::Try "$Router: Configure open security" {
+			APConfigureSecurity $Router -security open
+		    }
+		}
+	    }
+
+	    if {!$(nobeaconratio) && !$(nopm1)} {
+		UTF::Try "$STA: Beacon Ratio PM=1" {
+		    BeaconRatio $Router $STA -PM 1 -history $(history)
+		}
+	    }
+
+	    if {!$(nopingtimes)} {
+		# Check ping times
+		PingTimes $Router $STA -history $(history)
+	    }
+
+	    if {!$(nointerrupts) && !$(nopm1)} {
+		Interrupts $Router $STA -history $(history)
+	    }
+
+	    if {!$(norts)} {
+		UTF::Try "$STA: RTS" {
+		    RTS $Router $STA
+		}
+	    }
+
+	    if {!$(nofrag)} {
+		UTF::Try "$STA: Fragmentation" {
+		    Fragmentation $Router $STA -dut $STA
+		}
+	    }
+
+	    if {!$(nocustom)} {
+		eval $::UTF::StaNightlyCustom
+	    }
+
+	    if {!$(nocal)} {
+		# CalStability will check phytype itself to determine if
+		# it should run.
+		foreach c $calchans {
+		    CalStability $STA -chanspec $c
+		}
+	    }
+
+	}
+	if {[$STA cget -apmode]} {
+	    # For reverse tests, disassoc AP to avoid lots of roaming
+	    # messages when STA goes away.
+	    catch {$Router wl disassoc}
+	}
+
+	if {$(noibss)} {
+	    set ibsswith ""
+	} else {
+	    set ibsswith [lindex [$STA cget -ibsswith] 0]
+	}
+	if {$(notdls)} {
+	    set tdlswith ""
+	} else {
+	    set tdlswith [$STA cget -tdlswith]
+	}
+
+	if {$ibsswith ne ""} {
+	    UTF::Try "$ibsswith: reload" {
+		$ibsswith reload
+	    }
+	    IBSS $STA {*}[$STA cget -ibsswith]
+	    if {!$(nounload) && $ibsswith ne $tdlswith} {
+		UTF::Try "$ibsswith: unload" {
+		    $ibsswith unload
+		}
+	    }
+	    if {$ibsswith ne $tdlswith} {
+		catch {$ibsswith deinit}
+	    }
+	}
+	if {$tdlswith ne ""} {
+	    if {$ibsswith ne $tdlswith} {
+		UTF::Try "$tdlswith: reload" {
+		    $tdlswith reload
+		}
+	    }
+	    if {[catch {UTF::PerfChans $Router $STA $tdlswith} ret]} {
+		UTF::Message WARN $STA $ret
+		set comchan ""
+	    } else {
+		set comchan [lindex $ret 0]
+		TDLS $Router $STA $tdlswith -chanspec $comchan
+	    }
+	    if {!$(nounload)} {
+		UTF::Try "$tdlswith: unload" {
+		    $tdlswith unload
+		}
+	    }
+	    catch {$tdslwith deinit}
+	}
+	if {!$(nodual) && [set DB [$STA cget -dualband]] ne ""} {
+	    package require UTF::Test::DualBand
+	    # First word of DB is supporting AP, which will need to be
+	    # loaded unless it's already defined as -ap2.  Remainder
+	    # is any additional args
+	    set Router2 [lindex $DB 0]
+	    set STA2 [lindex $DB 1]
+	    set DB [lreplace $DB 0 1]
+	    if {$Router2 ne $(ap2)} {
+		UTF::Try "$Router2 load" {
+		    $Router2 load
+		}
+	    }
+	    DualBand $Router $Router2 $STA $STA2 {*}$DB \
+		-loop $(perfloop) -history $(history)
+	    if {$Router2 ne $(ap2)} {
+		UTF::Try "$Router2: unload" {
+		    $Router2 unload
+		}
+	    }
+	    catch {$Router2 deinit}
+	    catch {$STA2 deinit}
+	}
+
+	# Needs more thought
+	# - reinit counter is not available in all branches
+	# - need to track how many times we call BigHammer ourselves
+	#UTF::Try "$STA: reinits" {
+	#    memchart [$STA wl_counter reinit] -key [list $branch $STA reinit] \
+	#	-units "" -format %.0f -history $(history) \
+	#	-failcriteria NONE
+	#}
+    }
+
+}
+
+UTF::Test StaNightly {args} {
+    UTF::Getopts {
+	{sta.arg "4325sdio" "sta name"}
+	{ap.arg "4704/4318"
+	    "AP name.  For simultaneous dualband routers, use a pair '2g 5g'"}
+	{trx.arg "" "Router trx"}
+	{ap2.arg "" "2nd AP.  May be used for MultiSTA tests, etc"}
+	{tag.arg "" "Router release tag"}
+	{statag.arg "" "STA release tag"}
+	{bin.arg "" "STA dongle image"}
+	{email.arg "" "Email Address"}
+	{noapload "Don't load images"}
+	{nostaload "Don't reload STA drivers"}
+	{nostareload "Don't even reload STA drivers"}
+	{norestore "Don't reset to defaults"}
+	{nojoin "(obsolete)"}
+	{nopm1 "No Slow Power Management tests"}
+	{nopm2 "No Fast Power Management"}
+	{noframeburst "No Framebursting"}
+        {nofb0 "No non-frameburst open tests"}
+	{noperf20 "Don't do 20MHz performance tests"}
+	{noperf40 "Don't do 40MHz performance tests"}
+	{noperf80 "Don't do 80MHz performance tests"}
+	{nochannels "DEPRECATED: use -nochan"}
+	{nosetup "No Setup"}
+	{nobtests "Disable Bangalore tests"}
+	{nopingtimes "Disable PingTimes test"}
+	{norts "Disable RTS tests"}
+	{nobeaconratio "Disable BeaconRatio test"}
+	{date.arg "" "Image date"}
+	{apdate.arg "" "AP Image date"}
+	{ap2date.arg "" "AP2 Image date"}
+        {history.arg 30 "History size for control charts"}
+	{perfloop.arg 1 "Performance test loops"}
+	{loop.arg 1 "Main test loops"}
+	{nounload "Don't unload driver after test"}
+	{nocache "Don't update performance cache"}
+	{nowep "No WEP security"}
+	{noshared "No shared security"}
+	{notkip "No TKIP security"}
+	{noaes "No AES security"}
+	{noopen "No Open security TCP perf tests"}
+	{nobx "No Bidirectional Performance tests"}
+	{symmetric "Don't need to test both directions"}
+	{notdls "No TDLS tests"}
+	{nointerrupts "No Interrupt tests"}
+	{title.arg "" "Title"}
+	{branch.arg "auto" "Branch override"}
+        {logdir.arg "" "Log directory override"}
+	{chanspec.arg "" "Override perfchans"}
+	{nosetuptestbed "Don't run Setup Testbed hooks"}
+	{noposttesthook "Don't run Post Test hooks"}
+	{nocpu "No CPU tests"}
+	{nochanswitch "No Chan Switch Times test"}
+	{paironly "Only run tests involving two STAs"}
+	{dual.nonly "Symmetric Dualband tests"}
+	{chan.nonly "Channelsweep tests"}
+	{custom.nonly "custom tests"}
+	{perf.nonly "Performance tests"}
+	{rate.nonly "Fixed Rate tests"}
+	{rvr.nonly "RvR tests"}
+	{pm.nonly "Power Management tests"}
+	{ibss.nonly "IBSS tests"}
+	{bighammer.nonly "BigHammer tests"}
+	{scan.nonly "scan tests"}
+	{frag.nonly "fragmentation tests"}
+	{cal.nonly "calibration tests"}
+	{udp.nonly "UDP performance tests (UDP may still be used for rates/rvr if configured)"}
+	{kpps.nonly "KPPS tests"}
+    }
+
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+
+    # If necessary, override the config file log directory setting.
+    if {$(logdir) != ""} {
+        set UTF::SummaryDir $(logdir)
+        UTF::Message INFO "" "Using logdir: $UTF::SummaryDir"
+    }
+
+    # Backwards compat
+    if {$(nojoin)} {
+	set noshared 1
+    }
+
+    if {$(nochannels)} {
+	unset (nochannels)
+	set (nochan) 1
+    }
+
+    if {$(nopm)} {
+	set (nopm1) 1
+	set (nopm2) 1
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+	set ::UTF::MemChart::readonly 1
+    }
+
+    if {$(ap) eq "" || [llength $(ap)] > 2} {
+	error "-ap should be one band-selectable device, or a '2g 5g' pair"
+    }
+
+    if {![info exists ::UTF::StaNightlyCustom]} {
+	set (nocustom) 1
+    }
+
+    if {$(chanonly) || $(customonly) || $(dualonly) || $(rvronly) ||
+	$(pmonly) || $(ibssonly) || $(bighammeronly) || $(scanonly) ||
+	$(fragonly) || $(calonly) || $(udponly) || $(kppsonly)} {
+	if {!$(rateonly)} {
+	    set (norate) 1
+	}
+	set (rateonly) 1
+    }
+
+    if {$(rateonly)} {
+	if {!$(bighammeronly)} {
+	    set (nobighammer) 1
+	}
+	if {!$(calonly)} {
+	    set (nocal) 1
+	}
+	set (notdls) 1
+	if {!$(fragonly)} {
+	    set (nofrag) 1
+	}
+	if {!$(ibssonly)} {
+	    set (noibss) 1
+	}
+	if {!$(pmonly)} {
+	    set (nopm1) 1
+	    set (nopm2) 1
+	    set (nopingtimes) 1
+	}
+	set (norts) 1
+	if {!$(scanonly)} {
+	    set (noscan) 1
+	}
+	if {!$(perfonly)} {
+	    if {!$(udponly)} {
+		set (noudp) 1
+	    }
+	    if {!$(kppsonly)} {
+		set (nokpps) 1
+	    }
+	    set (noopen) 1
+	    set (noaes) 1
+	    if {!$(dualonly)} {
+		set (nodual) 1
+	    }
+	}
+	set (notkip) 1
+	set (nowep) 1
+	set (noshared) 1
+	set (nocpu) 1
+	set (nochanswitch) 1
+	if {!$(rvronly)} {
+	    set (norvr) 1
+	}
+	if {!$(customonly)} {
+	    set (nocustom) 1
+	}
+	if {!$(chanonly)} {
+	    set (nochan) 1
+	}
+    }
+
+    if {$(nobtests)} {
+	# Common disable for historical "Bangalore" tests, and others
+	set (nopingtimes) 1
+	set (nobeaconratio) 1
+	set (norate) 1
+	set (norts) 1
+	set (nofrag) 1
+    }
+
+    if {$(paironly)} {
+	set (noscan) 1
+	set (noshared) 1
+	set (noperf) 1
+	set (nochan) 1
+	set (nochanswitch) 1
+	set (nocal) 1
+	set (nopingtimes) 1
+	set (norate) 1
+	set (norts) 1
+	set (nofrag) 1
+	set (nocpu) 1
+	set (nobeaconratio) 1
+	set (nobighammer) 1
+	set (nointerrupts) 1
+	set (norvr) 1
+	set (nocustom) 1
+    }
+
+    set Router [lindex $(ap) 0]
+    set STA [lindex $(sta) 0]
+
+    if {[$Router cget -extsup]} {
+	# We don't yet know how to handle external authentication on
+	# SoftAP
+	set (noaes) 1
+	set (notkip) 1
+    }
+
+    # Override default tags
+    if {$(trx) ne ""} {
+	$Router configure -image $(trx) -date {}
+    } elseif {$(tag) ne ""} {
+	$Router configure -tag $(tag) -date {}
+    }
+    if {$(apdate) ne ""} {
+	set apdate($Router) $(apdate)
+	$Router configure -date $(apdate)
+    } else {
+	set apdate($Router) $today
+    }
+
+    if {$(ap2) ne "" && $(ap2date) ne ""} {
+	set apdate($(ap2)) $(ap2date)
+	$(ap2) configure -date $(ap2date)
+    } else {
+	set apdate($(ap2)) $today
+    }
+
+    if {$(bin) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -image $(bin) -date {}
+	}
+    }
+    if {$(statag) ne ""} {
+	foreach STA $(sta) {
+	    $STA configure -tag $(statag) -date {}
+	}
+    }
+    if {$(date) ne ""} {
+	set date $(date)
+	foreach S $(sta) {
+	    $S configure -date $(date)
+	}
+	unset S
+    } else {
+	set date $today
+    }
+
+    if {$(perfonly)} {
+	# Enable perfonly on all STAs
+	foreach S $(sta) {
+	    $S configure -perfonly 1
+	}
+    }
+
+    # Compact build list for title
+    set build [UTF::BuildTitle $(sta)]
+
+    if {$(title) eq ""} {
+	if {[$STA hostis WinDHD Cygwin]} {
+	    set (title) [$STA host whatami]
+	} elseif {[$STA hostis LMAC DHD]} {
+	    set (title) "Linux Dongle"
+	} else {
+	    set (title) [$STA hostis]
+	}
+
+	if {[regexp {(\d+sd)} $Router - c]} {
+	    append (title) " with $c AP"
+	}
+    }
+    set TITLE "UTF $(title) ($build)"
+    UTF::Message INFO "" $TITLE
+
+    # $build is used in the title.  For private builds this will
+    # indicate special images.
+
+    # (branch) is used for comparison over time.  For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test.
+
+    if {$(branch) eq ""} {
+	if {[regexp {/} $build]} {
+	    error "Unable to determine branch name from build.  Please specify -branch"
+	}
+	set (branch) $build
+    }
+    unset build
+
+    # Truncate build name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+
+
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+	if {!$(nosetuptestbed) && [info exists ::UTF::SetupTestBed]} {
+	    UTF::Try "Setup testbed" {
+		eval $::UTF::SetupTestBed
+	    }
+	}
+
+	foreach AP [concat $Router $(ap2)] {
+	    if {!$(noapload)} {
+		UTF::Try "$AP: Find AP Image" {
+		    UTF::CheckImage $AP $apdate($AP) unknown
+		}
+
+		UTF::Try "$AP: Load Image" {
+		    if {[$AP hostis Router Vx BSDAP DSL Airport]} {
+			if {[catch {$AP lan ifconfig [$AP lan cget -ipaddr]}]} {
+			    $AP lan ifconfig 192.168.1.50
+			}
+		    }
+		    $AP load
+		}
+		UTF::ReportDriver $AP $apdate($AP)
+	    } elseif {[$AP hostis Linux]} {
+		UTF::Try "$AP: reload" {
+		    $AP reload
+		}
+	    }
+	    if {!$(norestore)} {
+		UTF::Try "$AP: Restore Defaults" {
+		    if {[$AP hostis Router Vx BSDAP DSL Airport]} {
+			$AP restore_defaults
+		    } else {
+			$AP services stop
+			if {[info exists ::UTF::Use11h]} {
+			    catch {$AP wl msglevel +error +assoc +regulatory}
+			} else {
+			    catch {$AP wl msglevel +error +assoc}
+			}
+			if {![$AP cget -nomimo_bw_cap]} {
+			    catch {$AP wl down}
+			    # Enable 40 in 2.4, if available.
+			    $AP wl -u mimo_bw_cap 1
+			    $AP wl up
+			    UTF::Sleep 1
+			}
+		    }
+		    set what [$AP whatami]
+		    # Pull out chip info and replace whitespace to make it
+		    # easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {$(noapload)} {
+			$UTF::Summary header $AP $w
+		    } else {
+			$UTF::Summary header_update 1 $w
+		    }
+		    $AP dbrecord REF
+		    set what
+		}
+	    }
+	}
+	foreach STA $(sta) {
+	    if {[catch {main $(ap) $STA} ret]} {
+		set e $::errorInfo
+		UTF::Try "main loop" {
+		    error $ret $e
+		}
+	    }
+	    if {!$(nounload)} {
+		UTF::Try "$STA: unload driver" {
+		    $STA unload
+		}
+	    }
+	    catch {$STA deinit}
+	}
+
+	foreach AP [concat $Router $(ap2)] {
+	    if {!$(nounload) && ![$AP hostis Router Vx BSDAP DSL Airport]} {
+		UTF::Try "$AP: unload driver" {
+		    $AP unload
+		}
+	    }
+
+	    $AP deinit
+	}
+
+	PreservedReport
+
+	if {!$(noposttesthook) && [info exists ::UTF::PostTestHook]} {
+	    UTF::Try "Post Test" {
+		eval $::UTF::PostTestHook
+	    }
+	}
+	
+
+##################################
+
+if {$(custom.nonly)} {
+	
+UTF::Try "2g_rate" {
+
+UTF::Try "2g" {
+	$STA wl 2g_rate
+	$STA wl 2g_rate 6
+    $STA wl 2g_rate
+}
+UTF::Try "auto" {
+	$STA wl 2g_rate auto
+	$STA wl 2g_rate
+}
+}
+
+
+UTF::Try "a_rate" {
+
+UTF::Try "arate" {
+	$STA wl a_rate 9
+	$STA wl a_rate
+}
+
+
+UTF::Try "auto" {
+	$STA wl a_rate auto
+	$STA wl a_rate
+}
+}
+
+UTF::Try "5g_rate" {
+
+UTF::Try "5g" {
+	$STA wl 5g_rate auto 
+	$STA wl 5g_rate
+}	
+
+UTF::Try "VHT" {
+	$STA wl 5g_rate  -l -v 0x1
+	$STA wl 5g_rate 
+	$STA wl 5g_rate -l -v 9x2
+	$STA wl 5g_rate	
+	$STA wl 5g_rate -l -v 9
+	$STA wl 5g_rate
+}
+
+UTF::Try "Bandwidth" {	
+	$STA wl 5g_rate -v 9 -l -b 20
+	$STA wl 5g_rate 
+	$STA wl 5g_rate -v 9 -l -b 40
+	$STA wl 5g_rate 
+	$STA wl 5g_rate -v 9 -l -b 80
+	$STA wl 5g_rate
+}
+
+UTF::Try "stbc" {
+	$STA wl 5g_rate -v 9 -l -b 80 --stbc
+	$STA wl 5g_rate
+}
+
+UTF::Try "sgi" {
+	$STA wl 5g_rate -v 9 -l -b 80 --stbc -g
+	$STA wl 5g_rate
+}
+
+}
+
+UTF::Try "ack_ratio" {
+	$STA wl ack_ratio
+}
+
+UTF::Try "addwep" {
+	$STA wl addwep 0 fidha
+	$STA wl keys
+}
+
+UTF::Try "remwep" {
+	$STA wl rmwep 0 
+	$STA wl keys
+}
+
+UTF::Try "ampdu" {
+	$STA wl  ampdu
+}
+
+UTF::Try "ampdu_clear_dump" {
+	$STA wl  ampdu_clear_ampdu
+}
+
+
+UTF::Try "ampdu_mpdu" {
+	$STA wl ampdu_mpdu 
+}
+
+
+UTF::Try "protocol data unit" {
+	$STA wl dump ampdu
+}
+
+UTF::Try "amsdu" {
+	$STA wl  amsdu
+}
+
+UTF::Try "service data unit" {
+	$STA wl dump amsdu
+}
+
+UTF::Try "antdiv" {
+	$STA wl antdiv
+}
+
+
+UTF::Try "antgain" {
+	$STA  wl down
+	$STA  wl antgain ag0=7 ag1=5
+	$STA  wl antgain
+}
+
+UTF::Try "accesspoint" {
+ $STA  wl ap
+}
+
+UTF::Try "apsta" {
+ $STA  wl apsta
+}
+
+UTF::Try "active state power management" {
+ $STA  wl aspm
+}
+
+UTF::Try "assoc_retry_max" {
+ $STA  wl assoc_retry_max 
+}
+
+UTF::Try "band" {
+	$STA wl band
+}
+
+UTF::Try "band_range" {
+	$STA wl band_range
+}
+
+UTF::Try "bands" {
+	$STA wl bands
+}
+
+UTF::Try "bcnlenhist" {
+ $STA  wl bcnlenhist  
+}
+
+UTF::Try "Beacon Interval" {
+  $STA wl bi
+}
+
+UTF::Try "Boardflags" {
+  $STA wl boardflags
+}
+
+
+UTF::Try "btc_mode" {
+	$STA  wl btc_mode
+}
+
+UTF::Try "btc_params" {
+	$STA  wl btc_params
+}
+
+UTF::Try "bus" {
+ $STA  wl bus  
+}
+
+UTF::Try "bw_cap" {
+	$STA  wl band auto  
+	$STA  wl bw_cap 2g 
+	$STA  wl bw_cap  5g
+}
+
+
+UTF::Try "cap" {
+ $STA  wl cap  
+}
+
+UTF::Try "channel" {
+$STA  wl channel
+}
+
+UTF::Try "channels" {
+ $STA  wl channels
+}
+
+UTF::Try "chanspec" {
+   $STA wl chanspec
+}
+
+UTF::Try "chanspecs" {
+	$STA wl chanspecs
+}
+
+UTF::Try "cisdump" {
+	$STA wl mpc 0
+	$STA wl up
+	$STA wl cisdump
+}
+
+UTF::Try "ciswrite" {
+	$STA wl mpc 0
+	$STA wl up
+	$STA wl ciswrite
+}
+
+
+UTF::Try "$STA clock" {
+  $STA  wl clk
+}
+
+UTF::Try "counters" {
+  $STA  wl counters
+}
+
+UTF::Try "interference_override" {
+ $STA  wl interference_override  
+}
+
+UTF::Try "interference" {
+ $STA  wl interference  
+}
+
+
+UTF::Try "Country" {
+$STA wl country
+}
+
+
+UTF::Try "Country List" {
+$STA wl country list
+}
+
+UTF::Try "crsuprs" {
+$STA wl crsuprs
+}
+
+
+
+UTF::Try "current ethernet address" {
+	$STA wl cur_etheraddr
+}
+
+UTF::Try "current power" {
+		catch {$STA wl mpc 0}
+		catch {$STA wl up}
+		catch {$STA wl isup}
+		catch $STA {wl clk}
+		catch {$STA wl curpower}
+	}
+
+UTF::Try "curppr" {
+	$STA wl curppr
+}
+
+
+UTF::Try "device path" {
+		$STA wl devpath
+}
+
+UTF::Try "disable_percal" {
+		$STA wl disable_percal
+}
+
+UTF::Try "disassoc" {
+		$STA wl dissoc
+}
+
+UTF::Try "down" {
+		$STA wl down
+}
+
+
+UTF::Try "dtim" {
+		$STA wl dtim
+}
+
+UTF::Try "pcieinfo" {
+	$STA wl dump pcieinfo 
+}
+
+UTF::Try "phyaci" {
+	$STA wl dump phyaci 
+}
+
+UTF::Try "phycal" {
+	$STA wl dump phycal  
+}  	
+
+#UTF::Try "phych4rpcal" {
+#	$STA wl dump phych4rpcal    
+#}
+
+UTF::Try "rsdb" {
+$STA wl dump rsdb 
+}
+
+UTF::Try "rssi" {
+	$STA wl dump rssi       
+}
+
+UTF::Try "txbf" {
+	$STA wl dump txbf 
+}
+
+
+UTF::Try "evm" {
+	$STA wl mpc 0
+	$STA wl up
+	$STA wl clk 
+	$STA wl band b
+	$STA wl rate 5.5
+	$STA wl chanspec 11
+	$STA wl evm 11 5.5
+} 
+
+
+
+
+UTF::Try "fast_timer" {
+	$STA wl fast_timer 
+}
+
+
+UTF::Try "fem" {
+	$STA wl fem 
+}
+
+UTF::Try "fqacurcy" {
+	$STA wl fqacurcy
+}
+
+
+UTF::Try "frameburst" {
+	$STA wl frameburst
+}
+
+UTF::Try "getPaParamNameIdPair" {
+	$STA wl getPaParamNameIdPair
+}
+
+UTF::Try "glacial_timer" {
+	$STA wl glacial_timer
+	catch {$STA wl glacial_timer=15000}
+}
+
+UTF::Try "gmode" {
+	$STA wl gmode
+}
+
+UTF::Try "gmodeauto" {
+	$STA wl gmode auto
+}
+
+UTF::Try "hw_rxchain " {
+	$STA wl hw_rxchain 
+}
+
+UTF::Try "hw_txchain " {
+	$STA wl hw_txchain 
+}
+
+UTF::Try "ibss_gmode" {
+	$STA wl ibss_gmode
+}
+
+UTF::Try "iscan_s " {
+	$STA wl iscan_s 
+}
+
+UTF::Try "iscanresults" {
+	$STA wl iscanresults 
+}
+
+UTF::Try "isup" {
+	$STA wl isup 
+}
+
+#UTF::Try "ldpc_cap" {
+#$STA wl ldpc_cap
+#}
+
+UTF::Try "legacylink" {
+	$STA wl legacylink
+}
+
+
+UTF::Try "list" {
+	$STA wl list
+}
+
+UTF::Try "longpkt" {
+	$STA wl mpc 0
+	$STA wl up
+	$STA wl longpkt
+}
+
+UTF::Try "longtrain" {
+	$STA wl longtrain
+}
+
+UTF::Try "lrl" {
+	$STA wl lrl
+}
+
+UTF::Try "manfinfo" {
+	$STA wl manfinfo
+}
+
+UTF::Try "maxpower" {
+	$STA wl maxpower
+}
+
+UTF::Try "mbss" {
+	$STA wl mbss
+}
+ 
+UTF::Try "mimo_bw_cap" {
+	$STA wl mimo_bw_cap 
+}
+
+UTF::Try "mimo_preamble" {
+	$STA wl mimo_preamble  
+}
+
+
+UTF::Try "mimo_ss_stf" {
+	$STA wl mimo_ss_stf
+}
+
+UTF::Try "mimo_txbw" {
+	$STA wl mimo_txbw
+}
+
+UTF::Try "monitor" {
+	$STA wl monitor
+}
+
+UTF::Try "mpc" {
+	$STA wl mpc
+}
+
+UTF::Try "napping_mode" {
+	$STA wl napping_mode
+}
+
+UTF::Try "nmode" {
+	$STA wl nmode
+}
+
+UTF::Try "noise" {
+	$STA wl noise
+}
+
+UTF::Try "nrate" {
+	$STA wl nrate
+}
+
+UTF::Try "nvram_dump" {
+	$STA wl nvram_dump
+}
+
+UTF::Try "nvram_source" {
+	$STA wl nvram_source
+} 
+
+UTF::Try "obss_coex " {
+	$STA wl obss_coex 
+}
+
+UTF::Try "otpdump " {
+	$STA wl otpdump 
+}
+
+UTF::Try "otplock " {
+	$STA wl otplock 
+}
+
+UTF::Try "otpw" {
+	$STA wl otpw 
+}
+
+UTF::Try "out" {
+	$STA wl mpc 0 
+	$STA wl up
+	$STA wl out
+}
+
+UTF::Try "patrim" {
+	$STA wl patrim 
+}
+
+UTF::Try "pavars" {
+	$STA wl pavars
+}
+
+UTF::Try "phy_activecal" {
+	$STA wl phy_activecal
+}
+
+UTF::Try "phy_antsel" {
+	$STA wl phy_antsel 
+}
+
+UTF::Try "phy_bphy_evm " {
+	$STA wl phy_bphy_evm 
+}
+
+UTF::Try "phy_bphy_rfcs " {
+	$STA wl phy_bphy_rfcs 
+}
+
+UTF::Try "phy_est_power" {
+	$STA wl phy_est_power
+}
+
+UTF::Try "phy_fixed_noise" {
+	$STA wl phy_fixed_noise
+}
+
+UTF::Try "phy_forcecal" {
+	$STA wl phy_forcecal
+}
+
+UTF::Try "phy_forceimpbf" {
+	$STA wl phy_forceimpbf
+}
+
+UTF::Try "phy_forcesteer" {
+	$STA wl mpc 0
+	$STA wl up
+	$STA wl phy_forcesteer 1
+	$STA wl phy_forcesteer 
+	$STA wl phy_forcesteer 0
+	$STA wl phy_forcesteer 
+}
+
+UTF::Try "phy_idletssi" {
+	$STA wl mpc 0
+	$STA wl up
+	$STA wl phy_idletssi
+}
+ 
+UTF::Try "phy_percal" {
+	$STA wl phy_percal 3  
+} 
+
+
+UTF::Try "phy_rssi_ant" {
+	$STA wl phy_rssi_ant
+}
+
+UTF::Try "phy_rxant_config" {
+	$STA wl phy_rxant_config
+}
+
+UTF::Try "phy_scraminit" {
+	$STA wl phy_scraminit
+}
+
+UTF::Try "phy_setrptbl" {
+	$STA wl phy_setrptbl
+}
+
+
+UTF::Try "phy_sromtempsense" {
+	$STA wl phy_sromtempsense   
+}
+
+UTF::Try "phy_tempsense" {
+	$STA wl phy_tempsense
+}
+
+UTF::Try "phy_test_idletssi" {
+	$STA wl mpc 0
+	$STA wl up
+	$STA wl phy_test_idletssi 2
+}
+
+
+UTF::Try "phy_test_tssi" {
+	$STA wl mpc 0
+	$STA wl up
+	$STA wl phy_test_tssi 45
+}
+
+UTF::Try "phy_txant_config" {
+	$STA wl phy_txant_config
+}
+
+
+UTF::Try "phy_txpwrctrl" {
+	$STA wl phy_txpwrctrl 
+}
+
+UTF::Try "phy_txpwrindex" {
+	$STA wl phy_txpwrindex 
+}
+
+
+UTF::Try "phy_txrx_chain" {
+	$STA wl phy_txrx_chain 
+}
+
+UTF::Try "phy_watchdog" {
+	$STA wl phy_watchdog
+}
+
+
+UTF::Try "phyreg" {
+	$STA wl band a
+	$STA wl band 
+	$STA wl up
+	$STA wl phyreg 1 a
+	$STA wl band b
+	$STA wl band
+	$STA wl phyreg 1 b  
+}
+
+UTF::Try "phytype" {
+	$STA wl phytype
+}
+
+UTF::Try "pktcnt" {
+	$STA wl phycnt
+}
+
+
+UTF::Try "pkteng_maxlen" {
+	$STA wl pkteng_maxlen
+}
+
+UTF::Try "pkteng_start" {
+	$STA wl pkteng_start
+}
+
+UTF::Try "pkteng_stats" {
+	$STA wl pkteng_stats
+}
+
+UTF::Try "pkteng_stop" {
+	$STA wl up
+	$STA wl pkteng_stop tx
+}
+
+
+UTF::Try "plltest" {
+	$STA wl plltest
+}
+
+
+UTF::Try "pll_config" {
+	$STA wl plltest_config
+}
+
+
+UTF::Try "plltest_delay" {
+	$STA wl plltest_delay
+}
+
+UTF::Try "PM" {
+	$STA wl PM
+} 
+
+UTF::Try "povars" {
+	$STA wl povars
+} 
+
+UTF::Try "primary_key" {
+	$STA wl primary_key 1
+	$STA wl primary_key 
+}
+
+
+
+
+UTF::Try "promisc" {
+	$STA wl promisc
+} 
+
+#UTF::Try "radioreg" {
+
+#	$STA wl mpc 0
+#	$STA wl up
+#	$STA wl band a
+#	$STA wl clk 
+#	$STA wl radioreg 1 cr0
+#}
+
+UTF::Try "rate" {
+	$STA wl rate
+}
+
+UTF::Try "rateset" {
+	$STA wl rateset
+}
+
+UTF::Try "rdvar" {
+	$STA wl rdvar 1
+	$STA wl rdvar 
+}
+
+UTF::Try "restart" {
+	$STA wl restart
+}
+
+UTF::Try "revinfo" {
+	$STA wl revinfo
+}
+
+
+UTF::Try "rpcalvars" {
+	$STA wl rpcalvars
+}
+
+UTF::Try "rsdb_corempc" {
+	$STA wl rsdb_corempc 
+}
+
+
+UTF::Try "rsdb_mode" {
+	$STA wl rsdb_mode 
+}
+
+UTF::Try "rssi" {
+	$STA wl rssi 
+}
+
+UTF::Try "rtsthresh" {
+	$STA wl rtsthresh 
+}
+
+
+UTF::Try "rxchain" {
+	$STA wl rxchain 
+}
+
+UTF::Try "rxstreams" {
+	$STA wl rxstreams	
+}
+
+UTF::Try "scan" {
+	$STA  wl mpc 0
+	$STA  wl up
+	$STA  wl isup
+	$STA wl scan
+}
+
+UTF::Try "scanresults" {
+	$STA wl scanresults	
+}
+
+UTF::Try "scansuppress" {
+	$STA wl scansuppress	
+}
+
+
+UTF::Try "seq_delay " {
+	$STA wl seq_delay
+}
+
+UTF::Try "seq_start" {
+	$STA wl seq_start
+}
+
+UTF::Try "seq_stop" {
+	$STA wl seq_stop
+}
+
+UTF::Try "set_pmk" {
+	$STA wl set_pmk
+}
+
+UTF::Try "sgi_rx" {
+	$STA wl sgi_rx
+}
+
+UTF::Try "sgi_tx" {
+	$STA wl sgi_tx
+}
+
+UTF::Try "shortslot_override" {
+	$STA wl shortslot_override
+}
+
+UTF::Try "slow_timer" {
+	$STA wl slow_timer
+}
+
+
+UTF::Try "snr" {
+	$STA wl snr
+}
+
+UTF::Try "spatial_policy" {
+	$STA wl spatial_policy
+}
+
+UTF::Try "spect" {
+	$STA wl spect
+}
+
+UTF::Try "srcrc" {
+	$STA wl srcrc
+}
+
+
+UTF::Try "srdump" {
+	$STA wl srdump
+}
+
+UTF::Try "srl" {
+	$STA wl srl
+}
+
+UTF::Try "srwrite" {
+	$STA wl srwrite 432 0x1234
+}
+
+UTF::Try "ssid" {
+	$STA wl ssid
+}
+
+UTF::Try "status" {
+	$STA wl status
+}
+
+UTF::Try "stbc_rx" {
+	$STA wl stbc_rx
+}
+
+UTF::Try "stbc_tx" {
+	$STA wl stbc_tx
+}
+
+UTF::Try "stf_ss_auto" {
+	$STA wl stf_ss_auto
+}
+
+UTF::Try "subband_idx" {
+	$STA wl subband_idx
+}
+
+UTF::Try "subband5Gver" {
+	$STA wl subband5Gver
+}
+
+UTF::Try "sup_wpa" {
+	$STA wl sup_wpa
+}
+
+UTF::Try "tempsense_disable" {
+	$STA wl tempsense_disable
+}
+
+UTF::Try "tssi" {
+	$STA wl mpc 0
+	$STA wl up	
+	$STA wl band a	
+	$STA wl tssi
+	$STA wl band b
+	$STA wl tssi
+}
+
+UTF::Try "txant" {
+	$STA wl txant
+}
+
+UTF::Try "txbf" {
+	$STA wl txbf
+}
+
+UTF::Try "txbf_bfe_cap" {
+	$STA wl txbf_bfe_cap
+}
+
+UTF::Try "txbf_bfr_cap" {
+	$STA wl txbf_bfr_cap
+}
+
+UTF::Try "txbf_imp" {
+	$STA wl txbf_imp
+}
+
+UTF::Try "txbf_timer" {
+	$STA wl txbf_timer
+}
+
+UTF::Try "txchain" {
+	$STA wl txchain
+}
+
+UTF::Try "txcore" {
+	$STA wl txcore  
+}
+
+UTF::Try "txinstpwr" {
+	$STA wl txinstpwr  
+}
+
+
+UTF::Try "txpwr1" {
+	$STA wl txpwr1
+}
+
+UTF::Try "txstreams" {
+	$STA wl txstreams
+}
+
+UTF::Try "ulb_mode" {
+	$STA wl ulb_mode
+}
+
+UTF::Try "up" {
+	$STA wl up
+}
+
+
+
+UTF::Try "ver" {
+	$STA wl up
+}
+
+UTF::Try "vht_features" {
+	$STA wl vht_features
+}
+
+UTF::Try "vhtmode" {
+	$STA wl vhtmode
+}
+
+UTF::Try "wd_disable" {
+	$STA wl wd_disable
+}
+
+UTF::Try "wowl" {
+	$STA wl wowl
+}
+
+UTF::Try "wowl_activate" {
+	$STA wl wowl_activate
+}
+
+UTF::Try "wowl_clear" {
+	$STA wl wowl_clear
+}
+
+UTF::Try "wowl_dngldown" {
+	$STA wl wowl_dngldown
+}
+
+UTF::Try "wpa_auth" {
+	$STA wl wpa_auth
+}
+
+UTF::Try "wpa_cap" {
+	$STA wl  wpa_cap
+}
+
+
+UTF::Try "wsec" {
+	$STA wl  wsec
+}
+
+UTF::Try "wsec_test" {
+	$STA wl up
+	$STA wl wsec_test mic_error 0x0001 replay 0x0002 icv_error 0x0004 act_error 0x0008 disassoc_error 0x0010 deauth_error 0x0020
+}
+
+
+
+
+UTF::Try "$STA Channel Test 2g" {
+
+	UTF::Try "$STA Channel 1" {
+	$STA wl chanspec 1
+	}
+	UTF::Try "$STA Channel 2" {
+	$STA wl chanspec 2
+	}
+	UTF::Try "$STA Channel 3" {
+	$STA wl chanspec 3
+	}
+	UTF::Try "$STA Channel 4" {
+	$STA wl chanspec 4
+	}
+	UTF::Try "$STA Channel 5" {
+	$STA wl chanspec 5
+	}
+	UTF::Try "$STA Channel 6" {
+	$STA wl chanspec 6
+	}
+	UTF::Try "$STA Channel 7" {
+	$STA wl chanspec 7
+	}
+	UTF::Try "$STA Channel 8" {
+	$STA wl chanspec 8
+	}
+	UTF::Try "$STA Channel 9" {
+	$STA wl chanspec 9
+	}
+	UTF::Try "$STA Channel 10" {
+	$STA wl chanspec 10
+	}
+	UTF::Try "$STA Channel 11" {
+	$STA wl chanspec 11
+	}
+	
+}
+	
+	
+
+	
+  
+   
+UTF::Try "$STA Channel Test 5g" {
+
+	$STA wl band a
+
+UTF::Try "$STA Channel 36" {
+	$STA wl chanspec 36
+	}
+UTF::Try "$STA Channel 40" {
+	$STA wl chanspec 40
+	}
+UTF::Try "$STA Channel 44" {
+	$STA wl chanspec 44
+	}
+UTF::Try "$STA Channel 48" {
+	$STA wl chanspec 48
+	}
+UTF::Try "$STA Channel 52" {
+	$STA wl chanspec 52
+	}
+UTF::Try "$STA Channel 56" {
+	$STA wl chanspec 56
+	}
+UTF::Try "$STA Channel 60" {
+	$STA wl chanspec 60
+	}
+UTF::Try "$STA Channel 64" {
+	$STA wl chanspec 64
+	}
+UTF::Try "$STA Channel 100" {
+	$STA wl chanspec 100
+	}
+UTF::Try "$STA Channel 104" {
+	$STA wl chanspec 104
+	}
+UTF::Try "$STA Channel 108" {
+	$STA wl chanspec 108
+	}
+UTF::Try "$STA Channel 112" {
+	$STA wl chanspec 112
+	}
+UTF::Try "$STA Channel 116" {
+	$STA wl chanspec 116
+	}
+UTF::Try "$STA Channel 120" {
+	$STA wl chanspec 120
+	}
+UTF::Try "$STA Channel 124" {
+	$STA wl chanspec 124
+	}
+UTF::Try "$STA Channel 128" {
+	$STA wl chanspec 128
+	}
+UTF::Try "$STA Channel 132" {
+	$STA wl chanspec 132
+	}
+UTF::Try "$STA Channel 136" {
+	$STA wl chanspec 136
+	}
+UTF::Try "$STA Channel 140" {
+	$STA wl chanspec 140
+	}
+UTF::Try "$STA Channel 149" {
+	$STA wl chanspec 149
+	}
+UTF::Try "$STA Channel 153" {
+	$STA wl chanspec 153
+	}
+UTF::Try "$STA Channel 157" {
+	$STA wl chanspec 157
+	}
+UTF::Try "$STA Channel 161" {
+	$STA wl chanspec 161
+	}
+UTF::Try "$STA Channel 165" {
+	$STA wl chanspec 165
+	}
+
+}
+}
+
+##########################
+	
+	
+	
+	
+	
+    }
+}

@@ -1,0 +1,20 @@
+#
+# $Id$
+#
+MAILTO=tima@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	prod/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+50	2	* * *	prod/unittest/cron/launch mc40c Test/StaNightly.test -utfconf mc40c -title 'mc40c: 43602' -ap 43602tAP -ap2 _43602 -sta '43602 43602fb14x 43602fb14 43602tfd'
+#50	2	* * *	prod/unittest/cron/launch mc40c Test/StaNightly.test -utfconf mc40c -title 'mc40c: 43602' -ap 43602tAP -ap2 _43602 -sta '43602tdls' -customonly
+
+#50	2	* * *	prod/unittest/cron/launch mc40c Test/Merge.test -utfconf mc40c -title 'mc40c: 43602 (TOT,12_10)' 'StaNightly -ap 43602tAP -ap2 _43602 -sta {43602 43602tfd}' 'StaNightly -ap 43602tAP -ap2 _43602 -sta 43602tdls -customonly'
+50	3	* * *	prod/unittest/cron/launch mc40b Test/StaNightly.test -utfconf mc40b -title 'mc40b: 43570' -ap 4360 -sta '7448/43570fx 7448/43570f 7448/43570n143 7448/43570n'
+20	4	* * *	prod/unittest/cron/launch mc40 Test/StaNightly.test -utfconf mc40 -title 'mc40: 43596' -ap 4352a -ap2 4352b -sta '43596a0x 43596a0 43596a0.2'
+

@@ -1,0 +1,22 @@
+#
+#MAILTO=sunnyc@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58      7,19,23 * * *   /home/sunnyc/src/tools/unittest/cron/update
+
+# Early morning tests - tied to specific build schedules
+
+
+# Morning tests - high priority items carefully timed for specific build completion
+# TOT Router is last build to arrive, often 2AM or later
+
+# UTF TESTS
+
+33      18     * * *   src/tools/unittest/cron/launch 4366-4359-nightly utfconf/mc33 Test/StaNightly.test -sta '4359-1' -ap '4709C0/4366MC' -title "'MC33 4366B1/4359B1 StaNightly'"
+
+
+33      19      * * *   src/tools/unittest/cron/launch 4366-4359-RvR utfconf/mc33 Test/RvRNightly1.test -ap '4709C0/4366MC' -sta '4359-1' -va af -nocontrvr -title "'4366B1/4359B1 RvR'" -nosniffer -perftime 2.5 -fb1
+
+
+

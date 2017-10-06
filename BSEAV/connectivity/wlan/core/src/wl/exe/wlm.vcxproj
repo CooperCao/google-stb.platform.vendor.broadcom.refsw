@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1D2633AB-756F-4ECE-A6B9-356051A1C9BF}</ProjectGuid>
+    <RootNamespace>wlm</RootNamespace>
+    <ProjectName>wlm</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>12.0.21005.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>windows/win7/obj/wlm_dll/Debug\</OutDir>
+    <IntDir>windows/win7/obj/wlm_dll/Debug\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>windows/win7/obj/$(Platform)/mfg_dll/Debug\</OutDir>
+    <IntDir>windows/win7/obj/$(Platform)/mfg_dll/Debug\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>windows\win7\obj\mfg_dll\Release</OutDir>
+    <IntDir>windows\win7\obj\mfg_dll\Release\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>windows/win7/obj/$(Platform)/mfg_dll/Release\</OutDir>
+    <IntDir>windows/win7/obj/$(Platform)/mfg_dll/Release\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../../include;../../../components/shared;../../../components/shared/devctrl_if;../../tools/shared;../../shared/bcmwifi/include;../ppr/include;../../../components/phy/cmn/hal;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;BCMDLL;BCM_INTERNAL;BCMCCX;D11AC_IOTYPES;PPR_API;RWL;RWL_SOCKET;RWL_WIFI;RWL_DONGLE;RWL_SERIAL;WLTEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <AdditionalOptions>/D "WIN7" /D "_WINDOWS" /D "SERDOWNLOAD" /D " RWL_WIFI" /D "PPR_API" /D "_USRDLL" /D "BCMDBG" /D "WLMDLL" /D "WL11ULB" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;wlanapi.lib;advapi32.lib;iphlpapi.lib;cfgmgr32.lib;ws2_32.lib;user32.lib;bcmctrl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)wlm.dll</OutputFile>
+      <AdditionalLibraryDirectories>$(MYWINDOWSDDKDIR)/lib/wlh/i386;../../tools/epictrl/Debugwb/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../../include;../../../components/shared;../../../components/shared/devctrl_if;../../tools/shared;../../shared/bcmwifi/include;../ppr/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;BCMDLL;BCM_INTERNAL;BCMCCX;D11AC_IOTYPES;PPR_API;RWL;RWL_SOCKET;RWL_WIFI;RWL_DONGLE;RWL_SERIAL;WLTEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;wlanapi.lib;advapi32.lib;iphlpapi.lib;cfgmgr32.lib;ws2_32.lib;user32.lib;bcmctrl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)wlm.dll</OutputFile>
+      <AdditionalLibraryDirectories>$(MYWINDOWSDDKDIR)\Lib\wlh\amd64;../../tools/epictrl/$(Platform)/Debugv;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>../../include;../../../components/shared;../../../components/shared/devctrl_if;../../tools/shared;../../shared/bcmwifi/include;../ppr/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;BCMDLL;BCM_INTERNAL;BCMCCX;D11AC_IOTYPES;PPR_API;RWL;RWL_SOCKET;RWL_WIFI;RWL_DONGLE;RWL_SERIAL;WLTEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalOptions>/D "WLMDLL" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;wlanapi.lib;advapi32.lib;iphlpapi.lib;cfgmgr32.lib;ws2_32.lib;user32.lib;bcmctrl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)wlm.dll</OutputFile>
+      <AdditionalLibraryDirectories>$(MYWINDOWSDDKDIR)/lib/wlh/i386;../../tools/epictrl/Releasewb;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>../../include;../../../components/shared;../../../components/shared/devctrl_if;../../tools/shared;../../shared/bcmwifi/include;../ppr/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;BCMDLL;BCM_INTERNAL;BCMCCX;D11AC_IOTYPES;PPR_API;RWL;RWL_SOCKET;RWL_WIFI;RWL_DONGLE;RWL_SERIAL;WLTEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;wlanapi.lib;advapi32.lib;iphlpapi.lib;cfgmgr32.lib;ws2_32.lib;user32.lib;bcmctrl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)wlm.dll</OutputFile>
+      <AdditionalLibraryDirectories>$(MYWINDOWSDDKDIR)\Lib\wlh\amd64;../../tools/epictrl/Releasev;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\shared\bcm_app_utils.c" />
+    <ClCompile Include="..\..\shared\bcmxtlv.c" />
+    <ClCompile Include="..\..\shared\bcmstdlib.c" />
+    <ClCompile Include="wlm.c" />
+    <ClCompile Include="wlu_client_shared.c" />
+    <ClCompile Include="wlu_pipe.c" />
+    <ClCompile Include="wlu_pipe_win32.c" />
+    <ClCompile Include="..\..\shared\bcmutils.c" />
+    <ClCompile Include="..\..\shared\bcmwifi\src\bcmwifi_channels.c" />
+    <ClCompile Include="..\..\tools\epictrl\ir_vista.c" />
+    <ClCompile Include="..\..\shared\miniopt.c" />
+    <ClCompile Include="wlu.c" />
+    <ClCompile Include="wlu_rates_matrix.c" />
+    <ClCompile Include="..\ppr\src\wlc_ppr.c" />
+    <ClCompile Include="wlu_cmd.c" />
+    <ClCompile Include="wlu_common.c" />
+    <ClCompile Include="wluc_phy.c" />
+    <ClCompile Include="wluc_wnm.c" />
+    <ClCompile Include="wluc_cac.c" />
+    <ClCompile Include="wluc_relmcast.c" />
+    <ClCompile Include="wluc_rrm.c" />
+    <ClCompile Include="wluc_wowl.c" />
+    <ClCompile Include="wluc_pkt_filter.c" />
+    <ClCompile Include="wluc_mfp.c" />
+    <ClCompile Include="wluc_ota_test.c" />
+    <ClCompile Include="wluc_bssload.c" />
+    <ClCompile Include="wluc_stf.c" />
+    <ClCompile Include="wluc_offloads.c" />
+    <ClCompile Include="wluc_tpc.c" />
+    <ClCompile Include="wluc_toe.c" />
+    <ClCompile Include="wluc_arpoe.c" />
+    <ClCompile Include="wluc_keep_alive.c" />
+    <ClCompile Include="wluc_ap.c" />
+    <ClCompile Include="wluc_ampdu.c" />
+    <ClCompile Include="wluc_ampdu_cmn.c" />
+    <ClCompile Include="wluc_bmac.c" />
+    <ClCompile Include="wluc_ht.c" />
+    <ClCompile Include="wluc_wds.c" />
+    <ClCompile Include="wluc_keymgmt.c" />
+    <ClCompile Include="wluc_scan.c" />
+    <ClCompile Include="wluc_obss.c" />
+    <ClCompile Include="wluc_prot_obss.c" />
+    <ClCompile Include="wluc_lq.c" />
+    <ClCompile Include="wluc_seq_cmds.c" />
+    <ClCompile Include="wluc_btcx.c" />
+    <ClCompile Include="wluc_led.c" />
+    <ClCompile Include="wluc_interfere.c" />
+    <ClCompile Include="wluc_ltecx.c" />
+    <ClCompile Include="wluc_nan.c" />
+    <ClCompile Include="wluc_extlog.c" />
+    <ClCompile Include="wluc_sdio.c" />
+    <ClCompile Include="wluc_ndoe.c" />
+    <ClCompile Include="wluc_he.c" />
+    <ClCompile Include="wlu_iov.c" />
+    <ClCompile Include="wlu_vista.c" />
+    <ClCompile Include="wlu_vista_client_server.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="wlm.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

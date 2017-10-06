@@ -1,0 +1,12 @@
+[pep8]
+# We prefer 80-char lines because they're true pep8 but
+# the WCC Python style guide allows up to 100 chars.
+# Programs that want to go to 100 can override in a
+# setup.cfg file versioned with the tool.
+#ignore=E501
+max_line_length = 80
+
+# Suppress "module level import not at top of file" because
+# it's too strict. Imports should be near the top but there
+# are good reasons not to force them to be *at* the top.
+ignore = E402

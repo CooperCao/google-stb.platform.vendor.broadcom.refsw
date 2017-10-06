@@ -1,0 +1,16 @@
+192.168.250.202!ca_get_version!DEFAULT
+192.168.250.202!device_get_info!DEFAULT
+192.168.250.202!device_list_interfaces,interfaceType,802.11!INTERFACEID,$1
+192.168.250.202!sta_get_info,interface,$1!DEFAULT
+#192.168.250.202!sta_set_encryption,interface,$1,ssid,wifi,encpType,none!DEFAULT
+192.168.250.202!sta_set_ip_config,interface,$1,dhcp,0,ip,192.168.250.202,mask,255.255.255.0,defaultGateway,192.168.250.1!DEFAULT
+#192.168.250.202!sta_associate,interface,$1,ssid,WLAB-A!DEFAULT
+192.168.250.202!sta_is_connected,interface,$1!DEFAULT
+192.168.250.202!sta_get_ip_config,interface,$1!DEFAULT
+192.168.250.202!traffic_send_ping,destination,192.168.250.195,framesize,1000,frameRate,1,duration,1!STREAMID,$2
+192.168.250.202!traffic_stop_ping,streamID,$2!DEFAULT
+192.168.250.202!traffic_agent_reset!DEFAULT
+192.168.250.202!traffic_agent_reset!DEFAULT
+192.168.250.202!traffic_agent_config,profile,Start_Sync,direction,receive,source,192.168.250.195,sourceport,5005,destinationport,5005!STREAMID,$3
+
+192.168.250.202!traffic_agent_receive_start,streamID,$3!DEFAULT

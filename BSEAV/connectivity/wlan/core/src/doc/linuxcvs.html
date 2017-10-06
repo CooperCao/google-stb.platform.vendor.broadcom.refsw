@@ -1,0 +1,335 @@
+<html>
+
+<!-- Copyright 1999-2011, Broadcom Corporation -->
+
+<!-- $Id: linuxcvs.html,v 1.8 2011-01-11 18:16:44 willfeng Exp $ -->
+
+<head>
+
+	<title>Broadcom Master Linux Source Tree</title>
+
+</head>
+
+
+
+<body bgcolor=white text=black>
+
+
+
+
+<img src="../images/BCMLogo.gif">
+	
+
+<table cellpadding=0 cellspacing=0 border=0>
+
+<tr>
+
+<td valign=top width=700><font face="Geneva, Helvetica, Arial" size=2 >
+
+
+
+<h1>Broadcom Master Linux Source Tree</h1>
+
+
+<br>
+Last modified: 11/01/2001
+
+<br><br>
+
+
+<h2>Introduction</h2>
+
+<p>
+
+<ul>
+
+
+
+
+This page documents the central repository of the Broadcom Linux source tree.  
+You will be able to find out information regarding what the latest kernel that 
+is being used, additions to that kernel, where in the tree you can find BRCM 
+division specific code, how to gain access to the CVS tree, who the gatekeepers
+are for each division, and agreed upon rules of engagement for making modifications
+to the tree.  If you have any questions about this website, please send email to 
+<a href=mailto:rtos-linux-list@broadcom.com>rtos-linux-list@broadcom.com</a>.  This
+email reflector is archived on the Exchange server if you are just getting introduced
+to it.  There is a conference call between all BRCM divisions regarding this source
+tree.  It is held once every two weeks at 10:00am.  Dial x65900 or (877)827-6232 and 
+use conference ID#5483.  Reminders generally go out on the reflector.  If you wish 
+to watch any checkin into src/linux/linux, subscribe to <a href=mailto:hnd-linux-checkins-request@broadcom.com>
+hnd-linux-checkins-request@broadcom.com</a> with "subscribe" in the body of the email.
+
+<br><br>
+
+</ul>
+
+<h2>Contents</h2>
+
+<ul>
+
+	<li>
+
+	<a href=#treecontents>What src was the tree compiled from?</a>
+
+	<li>
+
+	<a href=#treereligion>What is the agreed upon method for making changes to this tree?</a>
+
+	<li>
+
+	<a href=#treeaccess>How do I access the CVS source Tree?</a>
+
+
+
+
+
+</ul>
+
+<a name=treecontents></a>
+
+<h2>Source Tree Contents</h2>
+
+<p>
+
+<ul>
+
+Here is where we got the base kernel source, upgrades to certain components of that
+tree as well as base level source for the toolchain.<BR><BR>
+
+
+<li>
+The bulk of the kernel is based on linux-2.4.5 as modified for MIPS CPU's and 
+maintained at oss.sgi.com. We are currently using a snapshot from the oss tree 
+as of 2001-06-18.<BR>
+
+<li>
+The netfilter code (files in net/ipv4/netfilter) has been updated to newnat-0.7 
+from netfilter.samba.org.  The H323 support has further been enhanced by HNBU.<BR>
+
+<li>
+The MTD support (in drivers mtd) was updated with snapshots from linux-mtd.infradead.org
+on 2001-04-16 and then again on 2001-09-13. HNBU has added the necessary low-level 
+interface to the MTD code in files prefixed with "bcm947xx".<BR>
+
+<li>
+The toolchain (development environment) is assumed to be PC's running Linux RedHat 7.1.
+It is possible that the tools will run on other Linux distributions but has not been 
+tested.<BR>
+
+<li>
+The GNU Compiler Collection (gcc) version 3.0-prerelease is based on a snapshot from 
+anoncvs.cygnus.com as of 2001-04-22 with additional patches from oss.sgi.com as of 
+2001-04-23.  For further docs on the GNU Compiler reference 
+<u><a href="http://gcc.gnu.org/onlinedocs/gcc-3.0/gcc.html">Using and Porting the GNU 
+Compiler Collection </u></a> on GCC's Website.<BR>
+
+<li>
+The GNU Binary Utilities version 2.11.90 are based on a snapshot from anoncvs.cygnus.com
+as of 2001-04-21 as packaged in the file cross-all-20010423 at oss.sgi.com.  For further
+docs on these utils search for 
+<u><a href="http://www.gnu.org/manual/gas-2.9.1/as.html">Using as</u></a>, and 
+<u><a href="http://www.gnu.org/manual/ld-2.9.1/ld.html">Using LD, the GNU linker</u></a>, and 
+<u><a href="http://www.gnu.org/manual/binutils-2.10.1/binutils.html">GNU Binary Utilities</u></a>
+on GNU's Website.<BR>
+
+<li>
+The GNU C library version 2.2.3 is based on a snapshot from anoncvs.cygnus.com as of 
+2001-04-21 with further patches from oss.sgi.com as of 2001-04-23.<BR>
+
+</ul>
+
+<a name=treereligion></a>
+
+<h2>CVS Tree Religion</h2>
+
+<p>
+
+<ul>
+The downside in sharing a common tree is that I check in a file to the kernel, which screws you in the 
+middle of a release to a customer.  To help mitigate that, we have decided upon a limited subset of 
+engineers that are allowed to make modifications to the tree.  <B> If your name is not on this list,
+and you muck with the tree, we will hunt you down and break your fingers so you cannot type anymore.</B><BR><br>
+
+
+<ul>
+Steve Hill - Set Top Box Group<BR>
+Guillermo Loyola/Mark Huang - HNBU<BR>
+Yarran Lui - Comm Engine<BR>
+Chris Novak - MIPS Core Group<BR>
+</ul>
+<br>
+
+We can add other owners for other division as we discover other needs.  We have agreed during con calls 
+to the following::<br><br>
+
+<li>
+Each of the Business Unit owners must review changes from their respective groups before making checkins.<br>
+ 
+<li>
+linux/linux/arch/mips/brcm-boards will contain specific code for different platforms.
+This code will only include global interrupt handlers, exception handlers etc... and not contain drivers.
+All drivers will be contained in /drivers.  I.E. there would be a drivers/settop dir for the stb group.
+Caution note for HNBU, while we have simlinks in cvs back up to our driver sources, these are not necessarily
+the drivers one would use for 4413 and 4210.  Please make sure you continue to rely on HNBU's website for src
+distributions for those products.<BR>
+ 
+<li>
+Under src/linux you will see multiple directories.  The src/linux/linux directory will always contain the
+current tree.  As we move to new kernels, we will retire that directory by adding the extension to it and 
+create a new src/linux/linux with a more modern kernel.<br>  
+
+ 
+<li> 
+We agreed that if common code has to change, it would be done in a runtime fashion.  At the same time
+we are using a #define CONFIG_BCM**** where **** is a chip or platform number.  This has a nice side effect
+to allow us to figure out how to strip source when making customer distributions so we dont pre-announce each
+other's chips.  We keep the #define nomenclature.<br>
+
+<li> 
+src/userland will contain our respective application tarballs.  As HNBU has applications
+already checked into the source tree, it would be pointless to replicate this with a tarball.  Look at 
+src/router for the list of applications as well as src/shared/nvram and src/shared/netconf.<BR>
+
+<li> 
+For source tags, please follow the convention already used.  This make the logs a bit easier to read and if
+you are using any HNBU drivers in your products, those constructs are used to determine driver revision.  
+The tag is parsed as follows:  Blurb_W_X_RCY_Z results in an ethernet, 802.11, or HPNA revision W.X.Y.Z.<BR>
+
+<li> 
+We discuss all braches on the conf call.<BR>
+
+
+</ul>
+
+<a name=treeaccess></a>
+
+<h2>Access to the Broadcom Tree</h2>
+
+<ul>
+
+<li> 
+The CVS repository is kept on the San Jose filers.  Anybody with a login at San
+Jose (i.e. on xserver.sj.broadcom.com) can checkout the code by using the
+command:<br><br>
+	cvs -d /projects/cvsroot checkout linux-src<br><br>
+which will get you a source tree with:<br>
+<ul>
+	src/include     - Our include files<br>
+	src/shared      - Shared code<br>
+	src/il          - iLine drivers<br>
+	components/et  - ethernet drivers<br>
+	src/linux/linux - The Linux kernel<br><BR>
+</ul>
+If you would like to try out our 2.4.20 based tree instead, also check out
+<ul>
+	src/linux/linux-2.4.20
+</ul>
+
+<p>
+	cvs -d /projects/cvsroot checkout gnu-tools<BR><BR>
+will get you a source tree with:<BR>
+<ul>
+	src/gnu         - GNU toolchain and glibc<br><br>
+</ul>
+
+
+<li> 
+You will also need a toolchain to compile the kernel.  You will be able to find
+the latest tarball on  
+<u><a href="http://home.sj.broadcom.com/v.ip/releases.html">HNBU's Software Distribution Website</u></a>.  
+Look for the 3.00 Release<br>
+
+
+Once you have the toolchain installed and the sources checked out,
+you need to do the following:<BR>
+<ul>
+	cd <your-checkout-area>/src/include<BR>
+	make							<= Creates "epivers.h"<BR>
+	cd <your-checkout-area>/src/linux/linux<BR>
+	make menuconfig					<= Configure the kernel<BR>
+	make dep<BR>
+	make<BR>
+</ul>
+A sample configuration file is provided in 3.00 software packages and is what we use for the 4710.
+The last make should build a kernel which includes both il and et drivers if configured.<BR>
+
+<br>
+
+
+
+<li>
+
+To gain access to the CVS repository you need to be authenticated, which means you need to have an 
+account in San Jose's NIS servers. If you can telnet to xserver.sj.broadcom.com and login then you 
+have what's needed. If not you need to get SJ's IT to set it up for you, a message to 
+<a href=mailto:help@broadcom.com>help@broadcom.com</a> 
+should do it, they can generally just copy the id/password from Irvine/Atlanta/whereeverulive. 
+The other thing you need is to make sure your DNS servers are correctly set up for the sj 
+subdomain. If you can "ping frodo.sj.broadcom.com" then you are set.  Once you can do both of 
+the above, you should be able to access the cvs server without having to log into a San Jose 
+machine. What you need to do is have the CVSROOT environment variable set to:<BR><BR>
+  :pserver:yourusername@frodo.sj.broadcom.com:/projects/cvsroot<BR><BR>
+You can do that by setting it as an environment variable:<BR><BR>
+	setenv CVSROOT :pserver:...		(In csh or tcsh, or:)<BR>
+	export CVSROOT=:pserver:...		(In bash or ksh or sh)<BR>
+or if you access more than one cvs repository you can just use a command line option to the cvs command:<BR><BR>
+  cvs -d :pserver:...<BR>
+
+Assuming you have an alias like:<BR><BR>
+ alias cvshnd cvs -d :pserver:yourusername@frodo.sj.broadcom.com:/projects/cvsroot<BR><BR>
+so to do a checkout, you start by issuing the command:<BR><BR>
+  cvshnd login<BR><BR>
+which will ask you to authenticate yourself by providing your password (the same password you would 
+use to log into any San Jose machine like xserver.sj.broadcom.com). Then you can issue:<BR><BR>
+  cvshnd checkout linux-src<BR><BR>
+and you should get a copy of the current top-of-tree sources for our linux kernel.  Once you did a 
+checkout you can go into that tree and do checkins, updates, log, status or any other normal cvs command.
+
+<br><br>
+<li> 
+You can gain access to the CVS tree via a web browser as well.  For example,<br>
+
+<u><a href="http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/">http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/</u></a><br>
+links you to the top level source directory, <br><br>
+
+<u><a href="http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/linux/linux/arch/mips/kernel/head.S?rev=1.4">http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/linux/linux/arch/mips/kernel/head.S?rev=1.4</u></a><br>
+would get you a specific version of a file, <br><br>
+
+<u><a href="http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/linux/linux/arch/mips/kernel/head.S.diff?r1=1.3&r2=1.4">http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/linux/linux/arch/mips/kernel/head.S.diff?r1=1.3&r2=1.4</u></a><br>
+would allow you to see a diff between two specific revisions. <br><br>
+
+<u><a href="http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/il/sys/ilc.c.diff?r1=13.13.2.5%3AILINE10_REL_2_34_RC3&tr1=13.1&r2=13.13.2.4%3AILINE10_REL_2_34_RC2&tr2=13.24&f=u">http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/il/sys/ilc.c.diff?r1=13.13.2.5%3AILINE10_REL_2_34_RC3&tr1=13.1&r2=13.13.2.4%3AILINE10_REL_2_34_RC2&tr2=13.24&f=u</u></a><br>
+This gives a diff on this file between two versions...first a unidiff<br><br>
+
+<u><a href="http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/il/sys/ilc.c.diff?r1=13.13.2.5%3AILINE10_REL_2_34_RC3&tr1=13.1&r2=13.13.2.4%3AILINE10_REL_2_34_RC2&tr2=13.24&f=c">http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/il/sys/ilc.c.diff?r1=13.13.2.5%3AILINE10_REL_2_34_RC3&tr1=13.1&r2=13.13.2.4%3AILINE10_REL_2_34_RC2&tr2=13.24&f=c</u></a><br>
+Next with context diff (notice the last character change)<br><br>
+
+<u><a href="http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/il/sys/ilc.c.diff?r1=13.13.2.5%3AILINE10_REL_2_34_RC3&tr1=13.1&r2=13.13.2.4%3AILINE10_REL_2_34_RC2&tr2=13.24&f=s">http://intranet.sj.broadcom.com/cgi-bin/cvsweb.cgi/src/il/sys/ilc.c.diff?r1=13.13.2.5%3AILINE10_REL_2_34_RC3&tr1=13.1&r2=13.13.2.4%3AILINE10_REL_2_34_RC2&tr2=13.24&f=s</u></a><br>
+And finally with side-by-side<br><br>
+
+And you can easily generate diff between TAGS and provide a link as well.
+
+
+
+</ul>
+
+
+<center><font size=2>
+
+Copyright &#169; 2001-2011 Broadcom Corporation. All rights reserved.
+
+</font></center>
+
+
+
+</td></tr>
+
+</table>
+
+  
+
+</body>
+
+</html>
+

@@ -1,0 +1,514 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for testing throughput when allocating memory in host or in dongle
+# when TS is enabled
+# Designed & written by: Jessica (Yaqin) Zhu 
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::Mbss::APAddInterface
+package require UTF::Test::Mbss::Connectivity
+#package require UTF::Test::Mbss::ParallelConnect
+package require UTF::Streams
+package require UTF::Streamslib
+
+package provide UTF::Test::SCB 2.0
+
+
+
+UTF::Test SCB { args } {
+    UTF::Getopts {
+	{build.arg "" "build name"}
+	{branch.arg "" "branch name"}
+	{title.arg "" "title of report"}
+	{email.arg "" "email alias the report sent to"}
+	{apstapairs.arg "" "AP STA pairs"}
+	{direction.arg "UP" "traffic direction: up or down or bidir"}
+	{protocol.arg "TCP" "traffic stream type can be UDP or TCP"}
+	{pktsize.arg "1470" "Packet size"}
+	{rate.arg "1.5G" "Traffic rate"}
+	{notcprate "Don't specify tcp stream rate"}
+	{fb.arg "1" "enable/disable frameburst"}
+	{security.arg "open" ""}
+	{scansuppress "to turn on scansuppress"}
+	{mode.arg "all" "Collect TPUT for all AP STA pairs on different bridges, or just primary net, or just guest net"} 
+	{chanspecs.arg "1 1l 36 36l 36/80 161/80" "List of chanspecs to test"}
+	{no2g "to exclude 2G channels"}
+	{holdtime.arg "30" "timer to check traffic loss"}
+ 	{reportinterval.arg "0.1" "Desired reportinterval"}
+	{stats.arg "rate" "List of stream stat types to be gathered"}
+	{graphtype.arg "png" "Graph type"}
+	{graphsize.arg "1024,768" "Graph size"}
+	{smoothing.arg "3" ""}
+	{nocleanup "Don't cleanup testbed after test complete"}
+	{norestore "Don't call restore_defaults for router" }
+	{noload "Don't load test rig."}
+	{phychanest "To run PhyChanEst to get MCS info"}
+	{taf "Enable Traffic Scheduler"}
+	{tafscheduler.arg "" "List of {ap scheduler {stas}}"}
+	{attn.arg "15" "attenuation between AP and STA"}
+	{vhtmode.arg "1" "AP vhtmode"}
+	{vht_features.arg "0" "AP vht_feature setting for proprietary rate"}
+	{mlink.arg "1" "number of ether links to use for single sta, normally when tput > 1G"}
+    }
+
+    set APSTAS $(apstapairs)
+    if {![llength $APSTAS] || [expr [llength $APSTAS] % 2]} {
+	error "Invalid number of APSTA arguments\n. The input should be AP STA pairs."
+    }
+
+    set AP [lindex $APSTAS 0]
+    set build [UTF::BuildTitle $AP]
+
+    set TITLE "UTF $(title) ($build)"
+    UTF::Message INFO "" $TITLE
+
+    # $build is used in the title.  For private builds this will
+    # indicate special images.
+
+    # (branch) is used for comparison over time.  For private builds
+    # this should be specified explicitly so the tests know which
+    # branch to test.
+
+    if {$(branch) eq ""} {
+	if {[regexp {/} $build]} {
+	    error "Unable to determine branch name from build.  Please specify -branch"
+	}
+	set (branch) $build
+    }
+    unset build
+
+    # Truncate build name for performance keys
+    regsub {_.*} $(branch) {} (branch)
+
+    if {[regexp -nocase "TCP" $(protocol)] && [regexp -nocase "UDP" $(protocol)]} {
+	error "Invalid protocol $(protocol). It has to be TCP or UDP."
+    }
+    if {[regexp -nocase "UP" $(direction)]  && [regexp -nocase "DOWN" $(direction)] \
+	    && [regexp -nocase "BIDIR" $(direction)]} {
+	error "Invalid traffic direction $(direction). It has to be UP, DOWN or BIDIR."
+    }
+
+    set i 0
+    set LANS {}
+
+    set LAN1S {}
+    set WAN {}
+
+    set today [join [clock format [clock seconds] -format "%Y %N %e"] .]
+
+    UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+	set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+	UTF::Try "Image loading" {
+	    foreach {AP STA} $APSTAS {
+
+		UTF::Try "$STA Find STA Image" {
+		    UTF::CheckImage $STA unknown
+		}
+		if {!$(noload)} {
+		    UTF::Try "Image loading on $STA" {
+			$STA load
+		    }
+		}
+		set what [$STA whatami]
+		# Pull out chip info and replace whitespace to
+		# make it easier for external parsers.
+		regsub -all {\s+} [lreplace $what 0 0] {_} w
+		if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+		    UTF::Message WARN $STA $ret
+		}
+		$STA dbrecord DUT
+		set what
+
+		if {!$i}  {
+		    UTF::Try "$AP Find AP Image" {
+			UTF::CheckImage $AP unknown
+		    }
+		    #only do reload and restore_defaults once
+		    if {!$(noload)} {
+			UTF::Try "Image loading on $AP" {
+			    $AP load
+			}
+		    }
+		    if {[$AP hostis Router] && !$(norestore)} {
+			UTF::Try "restore_defaults on $AP" {
+			    $AP restore_defaults
+			}
+		    }
+		    set what [$AP whatami]
+		    # Pull out chip info and replace whitespace to
+		    # make it easier for external parsers.
+		    regsub -all {\s+} [lreplace $what 0 0] {_} w
+		    if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+			UTF::Message WARN $AP $ret
+		    }
+		    $AP dbrecord DUT
+		    set what
+		}
+
+		incr i
+	    }
+	}
+	UTF::Try "APAddInterface" {
+	    set i 0
+	    foreach {AP STA} $APSTAS {
+
+		# Alternate bridges
+		# BSD supports both bridges, but the firewall doesn't work so
+		# all the connectivity tests will fail. PR#72421
+		if {$i > 1 && ![$AP hostis Vx BSDAP]} {
+		    UTF::Test::Mbss::APAddInterface -lan1 $AP
+		    lappend LAN1S $STA
+		} else {
+		    UTF::Test::Mbss::APAddInterface -lan $AP
+		    lappend LANS $STA
+		}
+		incr i
+	    }
+	    set WAN [$AP wan]
+	    lappend LANS [$AP lan]
+	    UTF::Try "Disable firewall" {
+		if {[string is false [$AP nvram get fw_disable]]} {
+		    $AP restart fw_disable=1
+		}
+	    }
+
+	}
+
+
+	UTF::Try "+" {
+	    set chanspec ""
+	    if {$(no2g)} {
+		set (chanspecs) "36 36l 36/80"
+	    }
+
+	    foreach chanspec $(chanspecs) {
+
+		UTF::Try "AP STA Connection Over $chanspec VHT=$(vhtmode)" {
+
+		    # Associate all STAs
+		    set lrssi {}
+
+		    foreach {AP STA} $APSTAS {
+			#setup attn between AP and STA pair
+			set attngrp [$AP cget -attngrp]
+			if {$attngrp eq ""} {
+			    set attngrp [$STA cget -attngrp]
+			} else {
+			    set staattngrp [$STA cget -attngrp]
+			    if {$staattngrp ne ""} {
+				$staattngrp attn 0
+			    }
+			}
+			if {$attngrp eq ""} {
+			    UTF::Message WARNING "" "Attenuation group not found for $AP and $STA"
+			} else {
+			    catch {$attngrp attn $(attn)}
+			}
+			catch {$STA wl -u disassoc}
+			catch {$STA wl -u frameburst} fb
+			UTF::Message INFO "" "fb=$fb"
+			if {!$(no2g) || $(fb) ne $fb} {
+			    $STA wl -u down
+			    if {!$(no2g)} {
+				#allow 2G to support both 20 and 40MHz
+				$STA wl -u bw_cap 2 0x3
+			    }
+			    if {$(fb) ne $fb} {
+				$STA wl -u frameburst $(fb)
+			    }
+			    $STA wl -u up
+			}
+			if {$(vhtmode) ne [$AP wl -u vhtmode] || $(vht_features) ne  [$AP wl -u vht_features]} {
+			    $AP wl -u down
+			    if {$(vhtmode) ne [$AP wl -u vhtmode]} {
+				$AP wl -u vhtmode $(vhtmode)
+			    }
+			    if {$(vht_features) ne  [$AP wl -u vht_features]} {
+			       $AP wl -u vht_features $(vht_features)
+			    }
+			}
+			if {![$AP wl -u isup]} {
+			    $AP wl -u up
+			}
+			UTF::Message INFO "" "$STA fb=[$STA wl -u frameburst]"
+			UTF::Sleep 10
+
+			#STA can be PSTA as well
+			if {[$STA hostis Router]} {
+			    package require UTF::Test::ConfigBridge
+			    UTF::Test::ConfigBridge -ap $AP -br $STA -chanspec $chanspec -linkcheck -proxysta  -security $(security)
+			} else {
+			    UTF::Test::ConnectAPSTA $AP $STA -chanspec $chanspec -security $(security)
+			}
+			$AP wl -u frameburst
+			lappend lrssi [$STA wl rssi]
+			$AP cget -device
+			$AP wl -u vhtmode
+			$STA wl -u vht_features
+			$AP wl -u vht_features
+			$AP wl -u status
+			$STA wl -u status
+			$STA wl -u bw_cap 2
+			#$AP wl -u bsscfg_class
+			catch {$AP wl -u -i wl0.1 bsscfg_class}
+			$AP wl -u  bsscfg_class
+			$AP wl -u scb_alloc
+			$AP wl -u scb_alloc_class
+			set nvram [$AP rexec nvram show]
+			#UTF::Message INFO "" "nvram= \n $nvram"
+		    }
+
+		    UTF::Test::Mbss::Connectivity $LANS $LAN1S $WAN -firewall off
+		    #Mbss::ParallelConnect $APSTAS
+		    return $lrssi
+		}
+
+		if {$(taf) && [llength $(tafscheduler)]} {
+		    UTF::Try "Traffic Scheduler Configuration" {
+			set tafenabledaps {}
+			foreach {AP Scheduler STAS} $(tafscheduler) {
+			    if {[lsearch $tafenabledaps $AP] == -1} {
+			    #if {[lsearch $tafenabledaps $AP] == -1 && ![$AP wl -u taf enable]}
+				set bssid [$AP wl -u bssid]
+				$AP wl down
+				$AP wl -u taf enable 1
+				$AP wl up
+				lappend tafenabledaps $AP
+				foreach STA $STAS {
+				    $STA wl join [$AP wl -u ssid]
+				    set slowassoc [$STA cget -slowassoc]
+				    set timer [after [expr {$slowassoc * 1000}] {}]
+
+				    set BSSID [$STA wl -u bssid]
+				    while {![catch {after info $timer}]} {
+					UTF::Sleep 1
+					set BSSID [$STA wl -u bssid]
+					if {$BSSID eq $bssid} {
+					    break
+					}
+				    }
+				    if {$BSSID eq "00:00:00:00:00:00"} {
+					UTF::Message DEBUG "$STA" "$AP bssid=$bssid; $STA bssid="
+					UTF::Message FAIL "$STA:" "$STA is not associated with $AP."
+					throw FAIL "STA $STA failed to associate with AP $AP"
+				    } else {
+					catch {after cancel $timer}
+				    }
+				}
+			    }
+			    $AP wl -u taf enable
+			    foreach STA $STAS {
+				set stamac [$STA macaddr]
+				UTF::Message DEBUG $STA "$STA macaddr = $stamac."
+				$AP wl -u taf $stamac $Scheduler
+				$AP wl -u taf $Scheduler
+			    }
+			    catch {$AP wl -u dump taf}
+			}
+		    }
+		}
+		UTF::Try "traffic streams generation" {
+		    if {$(mode) eq "primary"} {
+			set primary 1
+		    } elseif {$(mode) eq "guest"} {
+			set guest 1
+		    }
+
+		    set msg " [string toupper $(protocol)] [string toupper $(direction)] CHAN $chanspec \\n"
+
+		    if {[regexp -nocase "udp" $(protocol)]} {
+			append msg " (per stream tx=$(rate))"
+			append msg " pktsize=$(pktsize) \\n"
+		    }
+		    set graphtitle $msg
+
+		    foreach {AP STA} $APSTAS {
+
+			$STA wl status
+			$STA wl -u rssi
+			$STA wl -u dump rssi
+
+			#set frameburst after any AP restarts
+			if {$(fb) ne [$AP wl -u frameburst]} {
+			    $AP wl -u frameburst $(fb)
+			}
+			if {$(fb) ne [$STA wl -u frameburst]} {
+			    $STA wl -u frameburst $(fb)
+			}
+			UTF::Message INFO "" "$AP fb=[$AP wl -u frameburst] \n $STA fb=[$STA wl -u frameburst]"
+			if {[regexp -nocase "UP" $(direction)]} {
+			    set src $STA
+			    set dst $AP
+			    set lanpeers [$dst cget -lanpeer]
+			    UTF::Message INFO "" "$dst lanpeer: $lanpeers"
+			} else {
+			    set src $AP
+			    set dst $STA
+			    set lanpeers [$src cget -lanpeer]
+			    UTF::Message INFO "" "$src lanpeer: $lanpeers"
+			}
+			if {[info exists guest] && $guest == 1} {
+			    #collecting guest net tput only
+			    set guest 0
+			    continue
+			}
+			if {$(scansuppress)} {
+			    $STA wl scansuppress 1
+			}
+
+			append msg "$src -> $dst \\n"
+
+			#get tcp window size
+			set tcpwindow [$STA cget -tcpwindow]
+			if {$tcpwindow eq ""} {
+			    set tcpwindow 4M
+			}
+			#
+			if {$(mlink) > 1} {
+			    set n [llength $lanpeers]
+			    if {$(mlink) > $n} {
+				set (mlink) $n
+			    }
+			}
+			# UTF::stream will auto increment the destination
+			# port amongst other things.
+			if {[regexp -nocase "tcp" $(protocol)] && $(notcprate)} {
+			    for {set i 1} {$i <= $(mlink)} {incr i} {
+				set traffic [UTF::stream %AUTO% -rx $dst -tx $src  \
+						 -w $tcpwindow -protocol [string tolower $(protocol)] \
+						 -reportinterval $(reportinterval) \
+						 -name ${src}-${dst}-$(protocol)-$(direction)-${i}]
+				$traffic id
+				#UTF::Message INFO "" "stream = $traffic"
+			    }
+			} else {
+			    for {set i 1} {$i <= $(mlink)} {incr i} {
+				set traffic [UTF::stream %AUTO% -rx $dst -tx $src -pktsize $(pktsize) \
+						 -rate $(rate) -protocol [string tolower $(protocol)] \
+						 -reportinterval $(reportinterval) \
+						 -name ${src}-${dst}-$(protocol)-$(direction)-${i}]
+				$traffic id
+				#UTF::Message INFO "" "stream = $traffic"
+			    }
+			}
+			set h $src
+			if {[$src hostis Router]} {
+			    set h [$src cget -relay]
+			}
+			UTF::Message INFO "" "Route on $src: \n [$h rexec netstat -rn]"
+			set h $dst
+			if {[$dst hostis Router]} {
+			    set h [$dst cget -relay]
+			}
+			UTF::Message INFO "" "Route on $dst: \n [$h rexec netstat -rn]"
+			unset h
+
+			if {[info exists guest] && $guest == 0} {
+			    unset guest
+			    UTF::Message INFO "" "TPUT of AP STA on guest net only."
+			    break
+			}
+			if {[info exists primary] && $primary == 1} {
+ 			    unset primary
+			    UTF::Message INFO "" "TPUT of AP STA on primary net only."
+			    break
+			}
+		    }
+		}
+		UTF::Try "Iperf cleans" {
+		    UTF::Streamslib::force_cleanup $APSTAS
+		}
+		if {$(phychanest)} {
+		    UTF::Try "PhyChanEst Test" {
+			package require UTF::Test::PhyChanEst
+			foreach {AP STA} $APSTAS {
+			    $AP wl -u taf enable
+			    UTF::Test::PhyChanEst -ap $AP -sta $STA -chanspec $chanspec -noload -noapload -nosetup
+			}
+		    }
+		}
+		UTF::Try "Throughput Measurement" {
+		    #UTF::stream allstreams stop
+		    #UTF::stream allstreams stats -clear
+		    UTF::stream allstreams start
+		    #UTF::stream allstreams linkcheck loose
+		    #UTF::StreamStatAggregate bytes -range $(smoothing)
+		    UTF::StreamStatAggregate rate -range $(smoothing)
+		    UTF::stream allstreams stats -clear
+		    rate clear
+		    foreach dut $APSTAS {
+			$dut [$dut cget -wl] -u dump_clear ampdu
+		    }
+		    UTF::Sleep $(holdtime)
+		    UTF::stream allstreams stop
+		    #bytes stop
+		    rate stop
+		    foreach dut $APSTAS {
+			$dut [$dut cget -wl] -u dump ampdu
+			$dut [$dut cget -wl] -u ratedump
+			$dut [$dut cget -wl] -u rateset
+			$dut [$dut cget -wl] -u frameburst
+		    }
+
+
+		    foreach STAT $(stats) {
+			set sg($STAT) [UTF::streamgraph %AUTO% -title $graphtitle -stat $STAT -graphsize $(graphsize)]
+		    }
+
+		    set testresults [rate plot -title "Aggregate $msg" -graphsize $(graphsize) -yprecision 1]
+		    foreach STAT $(stats) {
+			set graph($STAT) [$sg($STAT) plot]
+			append testresults " [string range $graph($STAT) 5 end]"
+		    }
+		    if {[string toupper $(protocol)] eq "TCP"} {
+			catch {UTF::streamgraph rtt -stat rtt -yrange "0:*" -reporttext "RTT" -title "RTT" \
+				   -graphsize $(graphsize); rtt plot -composite}
+			catch {UTF::streamgraph cwnd -stat cwnd -yrange "0:*" -reporttext "CWND" -title "CWND" \
+				   -graphsize $(graphsize); cwnd plot -composite}
+			return "$testresults [rtt plot -composite -append] [cwnd plot -composite -append]"
+		    }
+		    if {[string toupper $(protocol)] eq "UDP"} {
+			catch {UTF::streamgraph latency -stat pktlatency -title "UDP Latency" \
+				   -outputtype $(graphtype) -graphsize $(graphsize) \
+				   -reporttext "Latency"}
+			return "$testresults [latency plot -composite -append]"
+		    }
+		}
+		catch {rate destroy;  rtt destroy; cwnd destroy; latency destroy}
+		catch {UTF::stream allstreams destroy}
+	    }
+	} finally {
+	    catch {UTF::stream exitstreams}
+
+	    if {!$(nocleanup)} {
+		foreach {AP STA} $APSTAS {
+		    if {$(scansuppress)} {
+			$STA wl scansuppress 0
+		    }
+		    $STA wl disassoc
+		    $STA unload
+		}
+		if {$(taf) && [llength $(tafscheduler)]} {
+		    UTF::Try "Traffic Scheduler Configuration Removal" {
+			set tafenabledaps {}
+			foreach {AP Scheduler STAS} $(tafscheduler) {
+			    if {[lsearch $tafenabledaps $AP] == -1 } {
+				$AP wl down
+				$AP wl -u taf enable 1
+				$AP wl up
+				lappend tafenabledaps $AP
+			    }
+			}
+		    }
+		}
+		set AP [lindex $APSTAS 0]
+		$AP reboot "wl0.1_bsscfg_class=0"
+	    }
+	}
+    }
+}

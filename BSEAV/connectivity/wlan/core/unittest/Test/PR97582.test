@@ -1,0 +1,72 @@
+#!/bin/env utf
+
+package require UTF
+package require UTF::Streams
+package require UTF::Test::QoSSetup
+
+UTF::Test WMM {args} {
+	UTF::Getopts {
+	{nosetup ""}
+    {ap.arg "47186nr2-aka-tob" "AP to setup"}
+	{sta.arg "43224FC9-rub" "STA to setup"}
+    {channel.arg "36" "AP Control Channel, Use 6 for g"}
+    {security.arg "aespsk2" "Security"}
+    {loop.arg "1" "Repeat custom test"}
+	{notear ""}
+	{email.arg "" ""}
+	}
+
+	if {!$(nosetup)} {
+    	UTF::Test::QoSSetup -ap "$(ap)" -stas "$(sta)" -chanspec "$(channel)" -security "$(security)"
+	}
+
+	set endlan [$(ap) cget -lanpeer]
+
+    UTF::Try "BE" {
+		::UTF::stream create beststream -transmitsta $endlan -receivesta $(sta) 
+		beststream configure -advancedstats on
+		beststream configure -traffictype BESTEFFORT
+		beststream configure -protocol udp
+	}
+
+	UTF::Try "VI" {
+        ::UTF::stream create vistream -transmitsta $endlan -receivesta $(sta) 
+		vistream configure -advancedstats on
+        vistream configure -traffictype HDVIDEO
+    }
+
+	for {set i 0} {$i < $(loop)} {incr i} {
+
+    	UTF::Try "Calibrate BE" {
+        	set offered [beststream calibrate_actualoffered]
+			beststream configure -rate ${offered}M
+			return [beststream stats -rate]
+    	}
+
+		UTF::Try "Calibrate VI" {
+			set offered [vistream calibrate_actualoffered]
+        	vistream configure -rate ${offered}M
+			return [vistream stats -rate]
+		}
+
+		UTF::Try "$endlan->$(sta) $i" {
+			UTF::stream allstreams start
+			UTF::Sleep 50
+			UTF::stream allstreams stop
+		}
+	}
+
+	::UTF::stream allstreams destroy
+    ::UTF::stream exitstreams
+
+	if {!$(notear)} {
+		UTF::Try "$(sta) Disassoc" {
+			$(sta) wl disassoc
+			UTF::Sleep 1
+		}
+
+		UTF::Try "$(sta) Unload" {
+			$(sta) unload
+		}
+	}
+}

@@ -1,0 +1,65 @@
+It is a release note for Bcm/Bcm_Sdio_DriverOnly
+(If the intended use is not SDIO NIC under x86 WinXP,
+	Bcm/Bcm_Sdio_DriverOnly should not be distributed.)
+
+1. General Information
+- It supports SDIO NIC mode only.
+- The support is under x86 WinXP only.
+- The driver runs using PCI-based Arasan host controller driven by 
+	Broadcom's standard SDIO host controller driver.
+- It does not have a companion installer.
+	See Installing Bcm_Sdio_DriverOnly section for details.
+
+2. Installing Bcm_Sdio_DriverOnly
+There is no installer for Bcm_Sdio_DriverOnly. It describes how to install it manually.
+ 
+- If you have used the previous version of the driver, remove it. 
+
+- Uninstall Microsoft SDIO driver. We will be using our own. 
+	Device Manager -> Find entry for Secure Digital IO Bus (or winPCI)->
+	Right click-> Uninstall 
+
+- Uninstall BRCM wl driver. Get rid of any previous BRCM wireless driver. 
+	Device manager - >Networks -> Broadcom driver->Right click/uninstall 
+
+- Edit c:\windows\inf\sdbus.inf: 
+	Search for the section '[Generic]'.
+	Comment out these lines by inserting a semicolon ';' in the first column, like so: 
+[Generic] 
+;PCI\CC_080500.DeviceDesc%=SDHost,PCI\CC_080500 
+;PCI\CC_080501.DeviceDesc%=SDHost,PCI\CC_080501 
+Also comment out these lines: 
+;PCI\CC_080500.DeviceDesc="SDA Standard Compliant SD Host Controller" 
+;PCI\CC_080501.DeviceDesc="SDA Standard Compliant SD Host Controller" 
+
+- Rename sdbus.PNF to sdbus_old.PNF 
+
+- Edit c:\windows\inf\usb.inf. 
+	Search for any line containing '1095' (which is the Arasan/CMD Vendor ID).
+	Comment out these lines by inserting a ';' in the first column. 
+
+- Rename usb.PNF to usb_old.PNF 
+
+- Reboot. 
+
+- Windows should now detect new hardware and pop up a dialog box. 
+
+        Select No to search on the web.
+        Select 'Install from a list or specific location'
+        Select 'Don't search.  I will choose the driver'
+        Choose 'Have Disk'      <- Do this
+        Choose Browse
+        Use bcmwl5.inf
+        Finish
+
+- If you don't get the new hardware pop up dialog, try this: 
+	Go to Device Manager and look under 'Universal Serial Bus controllers' to see
+	if there is an entry for 'Rev 04 CMD USB controller not supported by Microsoft'.
+	If so, uninstall it (right click->uninstall).
+	Now try rescanning (Action->Scan for hardware changes) and
+	follow the instructions above. 
+
+
+3. Known Problems
+- The hot-unplug (aka suprise removal) is not supported. Disable the device through
+	device manager before unplugging.

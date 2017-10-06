@@ -1,0 +1,66 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for testing ControlChart tools using random numbers
+# $Id$
+#
+package require UTF
+package require UTF::MemChart
+
+package provide UTF::Test::memchart 2.0
+
+UTF::Test memchart {data args} {
+
+    UTF::Getopts {
+	{s.arg "2" "sample size"}
+	{key.arg "reclaim" "key"}
+	{oldkey.arg "" "Previous key, used for migration"}
+	{png.arg 1 "Plot png files"}
+	{perfcache.arg "" "Performance Cache"}
+	{history.arg 30 "Performance History"}
+	{nsigma.arg "3" "Control limit scale"}
+	{format.arg "%.0f" "Sprintf report format"}
+	{failonlow "Fail on low memory (default is fail on high memory"}
+	{failonboth "Fail on both low and high"}
+	{cachemin.arg "0" "Lower limit to keep bad values out of cache"}
+	{cachemax.arg "" "Upper limit to keep bad values out of cache"}
+	{units.arg "bytes" "Units"}
+	{title.arg "bytes" "Memory"}
+	{failcriteria.arg "HIGH WIDE ZERO" "Falure criteria list"}
+	{konvert "Convert old bytes cache to kb"}
+    }
+
+    if {$(failonboth)} {
+	set bound "LOW|HIGH"
+    } elseif {$(failonlow)} {
+	set bound "LOW|WIDE|ZERO"
+    } else {
+	set bound [join $(failcriteria) |]
+    }
+
+    UTF::MemChart CC -s $(s) -key $(key) -oldkey $(oldkey) -format $(format) \
+	-perfcache $(perfcache) -history $(history) -nsigma $(nsigma) \
+	-cachemin $(cachemin) -cachemax $(cachemax) \
+	-units $(units) -title $(title) -konvert $(konvert)
+
+    foreach datum $data {
+	set ret [CC addsample $datum]
+	if {[regexp $bound $ret]} {
+	    set lastfail $ret
+	}
+    }
+
+    # Always use latest result, even if lastfail is not last.
+    if {![string is false $(png)]} {
+	set ret [CC plotcontrolchart $ret]
+    }
+
+    if {![info exists lastfail]} {
+	UTF::Message PASS "" [UTF::StripHtml $ret]
+	return $ret
+    } else {
+	UTF::Message FAIL "" [UTF::StripHtml $ret]
+	throw FAIL $ret
+    }
+}

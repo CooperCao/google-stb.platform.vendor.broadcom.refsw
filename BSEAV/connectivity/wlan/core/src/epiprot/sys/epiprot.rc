@@ -1,0 +1,31 @@
+/*
+ * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Epigram, Inc.;
+ * the contents of this file may not be disclosed to third parties, copied or
+ * duplicated in any form, in whole or in part, without the prior written
+ * permission of Epigram, Inc.
+ *
+ * $Id: epiprot.rc,v 1.5 2006-09-27 00:27:33 haim Exp $
+ */
+
+
+#ifdef RC_INVOKED
+#include <winver.h>
+#include "..\..\include\epivers.h"
+#include "..\..\include\vendor.h"
+
+#define VER_INTERNALNAME_STR        RELAY_NT_NAME
+#define VER_FILEDESCRIPTION_STR	    VER_PRODUCTNAME_STR " Proxy Protocol Driver"
+#define VER_FILEFLAGSMASK 0x3fL
+
+#ifdef _DEBUG
+#define VER_FILEFLAGS VS_FF_DEBUG
+#else
+#define VER_FILEFLAGS 0x0L
+#endif
+
+#define VER_FILEOS	VOS_NT
+#define VER_FILETYPE	VFT_DRV
+#define VER_FILESUBTYPE	VFT2_DRV_INSTALLABLE
+
+#include "common.ver"
+#endif

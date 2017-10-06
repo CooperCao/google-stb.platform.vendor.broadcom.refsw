@@ -1,0 +1,49 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# SWWLAN-39031 - UTF: 43242fc15 AARDVARK01T TWIG RvR: ASSERT(p) in wlc_dotxstatus (wlc_high_stubs.c:4651)
+# Test approach is to set up a rx traffic background then rapidly
+# scan.
+#
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Streams
+package require UTF::Test::ConnectAPSTA
+
+UTF::Test SWWLAN-39031 {AP STA args} {
+    UTF::Getopts {
+	{loop.arg 500 "Loop count"}
+    }
+    UTF::Record "Setup" {
+	# Kill off any stale iperf servers - if we kill off daemons
+	# it's ok, they'll get restarted.
+	catch {[$AP lan] pkill -TERM iperf}
+	catch {[$STA lan] pkill -TERM iperf}
+	if {[catch {$STA ping $AP}]} {
+	    ConnectAPSTA $AP $STA -security open
+	}
+	UTF::stream logginglevel ANALYZE; # Not interested in data
+	UTF::stream create T -rx [$STA lan] -tx [$AP lan] \
+	    -protocol tcp -reportinterval 10
+	UTF::stream allstreams start
+    }
+
+    set earlyabort 1; # Flag for early abort of the outer loop
+    # Report in batches of 100 to keep the log files reasonable
+    for {set i 0} {$i < $(loop) && $earlyabort} {incr i 10} {
+	UTF::Try "loop $i" {
+	    for {set j 0} {$j < 10} {incr j} {
+		UTF::Message INFO $STA "loop [expr {$i + $j}]"
+		set earlyabort 0
+		$STA wl_escanresults
+		set earlyabort 1
+	    }
+	}
+    }
+    UTF::Record "Cleanup" {
+	UTF::stream exitstreams
+    }
+}

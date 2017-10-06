@@ -1,0 +1,128 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Script for duplicating PR108771, assumes devices are loaded and 4360s
+# 
+# Assumes that STA and AP are loaded
+#
+# $Id$
+# $Copyright Broadcom Corporation$
+
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Aeroflex
+
+
+UTF::Test PR108771 {AP STA args} {
+    UTF::Getopts {
+	{count.arg 1 "Number of Loops to Try"}
+	{attenuator.arg "" "Attenuator to Use"}
+	{attenstart.arg "0" "Starting Attenuator Value to Use"}
+	{email.arg "" "Email to Use"}
+	{chanspec.arg "36/80" "Channel to Use"}
+	{security.arg "open" "Security to Use"}
+	}
+
+    UTF::WrapSummary $UTF::SummaryDir "PR108771" "" "$(email)" {
+
+        # Ensure Attenuation is set to attenstart
+	UTF::Message LOG "" "Setting attenuator to $(attenstart)"
+	if {[catch {ALL attn $(attenstart)} temp]} {
+    	    UTF::Message WARN "" "Setting attenuator failed: $temp"
+	}
+        # Put the AP information on web page
+        UTF::Try "Whatami AP $AP" {
+            $AP whatami
+        }
+        UTF::Try "WlVer AP $AP" {
+            $AP wl ver
+        }
+        # Put the STA information on web page
+        UTF::Try "Whatami STA $STA" {
+            $STA whatami
+        }
+        UTF::Try "WlVer STA $STA" {
+            $STA wl ver
+        }
+
+        # Put STA message level for scan and assoc
+        $STA wl msglevel +scan +assoc
+        $STA wl down
+        $STA wl up
+
+		# ensure no PM, as currently the STAs are hanging when in PM 2 with dump phycal
+		catch {$STA wl PM 0}
+		
+		# get some info from AP for assoc validation
+		catch {$AP wl ssid} apssid
+		catch {$AP wl bssid} apbssid
+		
+		
+	    # Loop here
+        for {set i 1} {$i <= $(count)} {incr i} {
+            UTF::Try "Try $i/$(count)" {
+
+				# Connect AP and STA
+	   			catch {ConnectAPSTA $AP $STA -chanspec $(chanspec) -security $(security)} connect
+	
+			    # dump rssi and status
+			    catch {$STA wl rssi} starssi
+			    catch {$STA wl status} stastatus
+			    catch {$STA wl ssid} stassid
+			    catch {$STA wl bssid} stabssid
+	
+
+	            
+	            # break of if Not Associated
+                if { $apssid != $stassid || $apbssid != $stabssid } {
+                    set i $(count)
+                    UTF::Message Info "" "STA is not Associated: STATUS = $stastatus, debug that first"
+                    error "STA is not Associated: STATUS = $stastatus"
+                }
+
+                # Get status for determining if we have an issue
+	            catch {$STA wl dump phycal} phycaltable
+	            
+	            # Now manipulate results to made a decision on pass/fail
+	            # One possibility is just to match a failed case and see if this case matches it?
+#	            set x "Tx-IQ/LOFT-Cal:
+#   core-0: a/b: (   0,   0), d: (  0,  0), e: (  0,  0), f: (  0,  0)
+#   core-1: a/b: (   0,   0), d: (  0,  0), e: (  0,  0), f: (  0,  0)
+#   core-2: a/b: (   0,   0), d: (  0,  0), e: (  0,  0), f: (  0,  0)
+#Rx-IQ-Cal:
+#   core-0: a/b = (   0,   0), S = OFF (0)
+#   core-1: a/b = (   0,   0), S = OFF (0)
+#   core-2: a/b = (   0,   0), S = OFF (0)"
+   
+
+	            set x "Tx-IQ/LOFT-Cal:
+   core-0: a/b: (   0,   0), d: (  0,  0), e: (  0,  0), f: (  0,  0)"
+   
+   
+   				set xlength [string length $x]
+   				UTF::Message Info "" "Length of X = $xlength"
+   
+   
+   	            if {[string equal -length $xlength $x $phycaltable] == 1} {
+					# Strings matched, stop here for debugging
+					set i $(count)
+             	UTF::Message Info "" "STA Phycaltable equaled 0s: per: \n$phycaltable"
+             	error "STA Phycaltable equaled 0s: $phycaltable"
+             }
+	            
+	            # Disassoc for next test
+	            catch {$STA wl disassoc}
+	
+	            # wl down
+	            #catch {$STA wl down}
+	            
+	            # return the value of the performance test and rssi
+	            set ret "html: STA = $STA, STATUS = $stassid, $stabssid, \nActual phycal table: $phycaltable"
+	        	
+	            return $ret
+
+		    }	        
+		}
+	}
+}

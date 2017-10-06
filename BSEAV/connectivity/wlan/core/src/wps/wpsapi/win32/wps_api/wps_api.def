@@ -1,0 +1,8 @@
+LIBRARY			WPS_API
+DESCRIPTION		"WPS Enrollee API"
+EXPORTS
+   wps_findAP	@1
+   wps_go	@2
+   wps_init @3
+   
+   

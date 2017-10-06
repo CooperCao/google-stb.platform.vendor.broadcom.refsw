@@ -1,0 +1,15 @@
+#
+# $Id$
+#
+MAILTO=tima@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	prod/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+25	2	* * *	prod/unittest/cron/launch mc15b Test/RouterNightly.test -utfconf mc15b -title 'mc15b: 63138' -aps '63138/4366'
+50	3	* * *	prod/unittest/cron/launch mc15c Test/StaNightly.test -utfconf mc15c -title 'mc15c: X51' -ap 4360 -sta 'X51 X51o'

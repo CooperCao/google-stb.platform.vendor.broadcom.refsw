@@ -1,0 +1,270 @@
+# Broadcom 802.11abg Networking Device Driver Configuration file
+#
+# Broadcom Proprietary and Confidential. Copyright (C) 2017,
+# All Rights Reserved.
+# 
+# This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
+# the contents of this file may not be disclosed to third parties, copied
+# or duplicated in any form, in whole or in part, without the prior
+# written permission of Broadcom.
+#
+# $Id: wlconfig_rte_4347a0_dev 452248 2014-01-29 18:39:20Z $:
+#
+# NOTE:
+# This file is for the 4347a0 full ROM and may not be changed after tapeout.
+#
+
+# basic common code
+WL=1
+
+# Basic modes
+STA=1
+AP=1
+APSTA=1
+
+# Extensible STA
+EXTSTA=1
+NDISFW=1
+
+# WAPI features
+#BCMWAPI_WPI=1
+#BCMWAPI_WAI=1
+
+# promisc mode
+PROMISC=0
+WL_MONITOR=0
+
+ADV_PS_POLL=0
+
+# coex stuff
+#BCMECICOEX=1
+#WLCOEX=1
+
+# bus
+SOCI_AI=1
+BCMIPXOTP=1
+
+#BCMAUTH_PSK=1
+#BCMSUP_PSK=1
+
+WL11AX=1
+WLTWT=1
+HE_MAC_SW_DEV=1
+
+WL11D=0
+WL11N=1
+WLCNT=1
+WME=1
+#BCMCCX=1
+#WLCAC=1
+WLAMPDU=1
+WLAMPDU_UCODE=0
+WLAMPDU_HW=0
+WLAMPDU_AQM=1
+WLAMSDU=1
+WLAMSDU_TX=1
+WLP2P=1
+WLP2P_UCODE_ONLY=1
+# This is by default enabled for APSTA/BTAMP, need not explicitly enable.
+APCS=0
+WLRM=0
+WIFI_ACT_FRAME=0
+PACKET_FILTER=0
+RECEIVE_THROTTLE=0
+DELTASTATS=1
+WLCNTSCB=1
+BCMOTP=1
+#KEEP_ALIVE=1
+NO_BCMINTERNAL=1
+#ap power save feature
+#RADIO_PWRSAVE=1
+
+#PNO=1
+#WLPFN=1
+#MBSS=1
+
+#TOE=1
+
+#WLNDOE=1
+#WLTDLS=1
+#BE_TDLS=1
+
+#ARPOE=1
+WLCQ=0
+WDS=0
+WL11AC=1
+#WLTXBF=1
+PPR_API=1
+
+# For Voice Enterprise(VE)
+WL11K=0
+#WLFBT=1
+#WLWNM=1
+#WLSCANCACHE=1
+
+#WL11H=1
+
+#ifeq ($(MFGTEST),1)
+
+BCMNVRAMW=1
+BCMNVRAMR=0
+
+#else
+#
+#BCMNVRAMW=0
+#BCMNVRAMR=1
+#
+#endif
+
+#WLMCHAN=0
+
+TINY_PKTJOIN=0
+WL_RXEARLYRC=0
+
+#WL_PROXDETECT=1
+#WL_RSSIREFINE=1
+#WL11U=1
+#P2PO=1
+#ANQPO=1
+#L2_FILTER=1
+#WLRXOV=1
+#WL_RELMCAST=1
+#WL_OKC=1
+#DMATXRC=1
+PKTC_DONGLE=1
+WL_LPC=0
+PKTC_TX_DONGLE=1
+
+PROP_TXSTATUS=1
+AMPDU_HOSTREORDER=1
+#BRCMAPIVTW=1
+
+# 11w
+#BCMCCMP=1
+#MFP=1
+
+#WLOVERTHRUSTER=1
+#WLFMC=1
+#WLRCC=1
+WLRSDB=1
+#WL_ASSOC_RECREATE=1
+WL_DUALMAC_RSDB=1
+WL_OBJ_REGISTRY=1
+
+#WLBSSLOAD_REPORT=1
+#EVDATA_BSSINFO=1
+
+#MODESW
+#WL_MODESW=1
+
+#PROT_OBSS
+#WL_PROT_OBSS=1
+
+BCMPHYCORENUM=2
+# LTECX
+#BCMLTECOEX=1
+#WLABT=1
+WL_CNTRY_DEFAULT=1
+#WL_LOCALE_PRIO_2G=1
+#WLSCAN_PS=1
+#WLPM_BCNRX=1
+#WLMCNX=1
+#WLIPFO=1
+#WL_FRWD_REORDER=1
+#WLFCTS=1
+#WLROAMPROF=1
+WLC_DISABLE_DFS_RADAR_SUPPORT=1
+
+# Samsung
+# nan
+#WL_NAN=1
+
+# AIBSS (Oxygen)
+#WLAIBSS=1
+
+# shif (sensor hub)
+#WL_SHIF=1
+#HNDSHIF=1
+
+# tbow (BT over Wifi)
+#WL_TBOW=1
+#WL_BWTE=1
+
+# btcdyn
+#WL_BTCDYN=1
+
+#WL_FTM=1
+
+#WL_AUTH_METHOD_SHARED_OPEN=1
+
+#WLOSEN=1
+#GSCAN=1
+
+# Olympic
+#BCM_LOGTRACE=1
+#SRSCAN=1
+#WLAWDL=1
+#PACKET_FILTER2=1
+#WLFCTS=1
+#WL_MIMOPS=1
+
+# For txpower control
+#WL_EXPORT_CURPOWER=1
+#WL_EXPORT_TXPOWER=1
+#WLWFDS=1
+#WL_SARLIMIT=1
+#WL_LINKSTAT=1
+WL11AC_80P80=0
+#WLTSFSYNC=1
+#WLC_TXCAL=1
+#BCM_SPLITBUF=1
+#BDO=1
+#WLC_SW_DIVERSITY=1
+#WLC_TXPWRCAP=1
+#WL_MPF=1
+#WL_LEAKY_AP_STATS=1
+
+# Common Baseline (Olympic and SS)
+DHDOID=0
+#WL_OIDS=0
+
+#WLCHANIM=1
+#FCC_PWR_LIMIT_2G=1
+
+# For Voice Enterprise(VE)
+BCM_CNTRY_DEFAULT=1
+#SAVERESTORE=0
+#BCMSRPWR=1
+# 11w
+#MFP_TEST=0
+#CCA_STATS=1
+#WL_PWRSTATS=1
+#WL_EXCESS_PMWAKE=1
+#LPAS=1
+#WL_STATS=1
+#WL_MU_RX=1
+
+#code optimization for dual phy
+DUAL_PHY_CHIP=1
+
+#WLWNM_BRCM=1
+#PROPRIETARY_11N_RATES=1
+
+#For Shared-Open Authentication
+#WL_AUTH_SHARED_OPEN=1
+
+#BCM_ECOUNTERS=1
+#WLRSDB_DFS_SCAN=1
+#enable dynamic modeswitch based on PM
+#RSDB_PM_MODESW=1
+
+# Automatically send Neighbor Report Request after association
+#WLASSOC_NBR_REQ=1
+
+# Two dumps we need on by default
+# BCMDBG_AMPDU takes about ~10K so adding to ROM
+BCMDBG_AMPDU=1
+BCMDBG_AMSDU=1
+
+# Enable VASIP
+#WLVASIP=1

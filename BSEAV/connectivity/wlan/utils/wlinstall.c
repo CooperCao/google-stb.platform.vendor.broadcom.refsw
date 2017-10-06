@@ -84,15 +84,19 @@ static struct
     char * board_name;
     int gpio_num;
 }board_info[] = {
-                        {"BCM97271WLAN",(AON_GPIO_OFFSET+21)},
-                        {"BCM97271DV",-1},
-                        {"BCM97271IP",(AON_GPIO_OFFSET+15)},
-                        {"BCM97271T",(AON_GPIO_OFFSET+15)},
-                        {"BCM97271D",(AON_GPIO_OFFSET+21)},
-                        {"BCM97271C",(AON_GPIO_OFFSET+15)},
-                        {"BCM97271IPC",(AON_GPIO_OFFSET+15)},
-                        {NULL,0},
-                    };
+                    /* {"BCM97271SV",-1}, */
+                    {"BCM97271IP",(AON_GPIO_OFFSET+15)},
+                    {"BCM97271IPCQ",(AON_GPIO_OFFSET+15)},
+                    {"BCM97271DV",-1},
+                    {"BCM97271C",(AON_GPIO_OFFSET+15)},
+                    {"BCM97271T",(AON_GPIO_OFFSET+15)},
+                    {"BCM97271WLAN",(AON_GPIO_OFFSET+21)},
+                    {"BCM97271_4L",(AON_GPIO_OFFSET+21)},
+                    {"BCM97271D",(AON_GPIO_OFFSET+21)},
+                    {"BCM97271IPC",(AON_GPIO_OFFSET+15)},
+                    {"BCM97271HB",(AON_GPIO_OFFSET+15)},
+                    {NULL,0},
+                };
 
 static int get_board_name(char *board_name, int size)
 {
@@ -239,21 +243,39 @@ int update_mac_addr(void)
 
 static void usage(void)
 {
-    printf( "Usage: wlinstall <driver name(optional)> <intefacename(optional) <name of nvram file(optional)>\n" );
+    printf( "Usage: wlinstall <driver name(optional, wl.ko will be used )> <intefacename(optional,wlan0 will be used ) <name of nvram file(optional)>\n" );
 } /* usage */
+
+#define BUF_SIZE 1024
+#define COMMAND_BUF_SIZE 2048
+#define DEFAULT_IFACE_NAME "wlan0"
 
 int main(int argc, char **argv)
 {
     int board_index=0,i=0;
-    char buf[256];
+    char *buf=NULL;
+    char *command_buf=NULL;
     char if_name[256];
     int size=0;
+    FILE *fd=NULL;
 
-    if(get_board_name(buf, sizeof(buf)))
+    command_buf = (char *)malloc(COMMAND_BUF_SIZE);
+    if (command_buf == NULL)
     {
-        return -1;
+        printf("***Failed to allocate memory %d***\n ",COMMAND_BUF_SIZE);
+        goto error;
     }
 
+    buf = (char *)malloc(BUF_SIZE);
+    if (buf == NULL)
+    {
+        printf("***Failed to allocate memory %d***\n",BUF_SIZE);
+        goto error;
+    }
+
+    /* check the board and turn on wifi radio */
+    memset((void*)buf,0,BUF_SIZE);
+    get_board_name(buf, BUF_SIZE);
     board_index=0;
     while(board_info[board_index].board_name)
     {
@@ -263,7 +285,6 @@ int main(int argc, char **argv)
             if(wlan_radio_on(board_info[board_index].gpio_num))
             {
                 printf("Failed to turn on radio for %s board on gpio %d\n",board_info[board_index].board_name,board_info[board_index].gpio_num);
-                return -1;
              }
              break;
         }
@@ -271,45 +292,106 @@ int main(int argc, char **argv)
     }
     if(board_info[board_index].board_name == NULL)
     {
-        printf("*** \nPlease add support for %s ***\n",buf);
-        return -1;
+        printf("*** Please add support for %s ***\n",buf);
     }
-    if(argc == 1)
-    {
-        usage();
-        return 0;
-    }
-    /* copy nvram file */
-    memset((void*)if_name,0,sizeof(if_name));
-    size = strlen(board_info[board_index].board_name);
-    for(i=0;i<size;i++)
-        if_name[i] = (char)tolower(board_info[board_index].board_name[i]);
 
+    /* copy nvram file */
+    memset((void*)command_buf,0,COMMAND_BUF_SIZE);
     if(argc == 4)
     {
-        snprintf(buf, sizeof(buf),"cp -vf %s nvram.txt",argv[3]);
+        if(strcmp("nvram.txt", argv[3]) != 0)
+            snprintf(command_buf, COMMAND_BUF_SIZE,"cp -vf %s nvram.txt",argv[3]);
     }
     else
     {
-        snprintf(buf, sizeof(buf),"cp -vf %s.txt nvram.txt",if_name);
+        size = strlen(buf);
+        if(size)
+        {
+            for(i=0;i<size;i++)
+                buf[i] = (char)tolower(buf[i]);
+            snprintf(command_buf, COMMAND_BUF_SIZE,"cp -vf %s.txt nvram.txt",buf);
+        }
     }
-    printf("*** Copy nvram: %s ***\n",buf);
-    system(buf);
-    system("sync");
-    update_mac_addr();
-    snprintf(buf, sizeof(buf),"rmmod %s",argv[1]);
-    printf("*** Uninstall driver: %s ***\n",buf);
+    if (strlen(command_buf))
+    {
+        /* printf("%s\n",command_buf);*/
+        system(command_buf);
+        system("sync");
+    }
+    else
+    {
+        printf("*** No new nvram provided, driver will use nvram.txt file from the local directory  ***\n");
+    }
+
+    /* update_mac_addr(); */
+    /* uninstall driver */
+    memset((void*)buf,0,BUF_SIZE);
+    fd = popen("lsmod | grep -w wlan_plat","r");
+    if(fread(buf, 1, sizeof(buf), fd) > 0) {
+        memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
+        snprintf(command_buf, COMMAND_BUF_SIZE, "rmmod %s", "wlan_plat.ko");
+        printf("*** Uninstall driver: %s ***\n", command_buf);
+        sleep(1);
+        system(command_buf);
+    }
+    else {
+        printf("*** Module wlan_plat is not loaded\n");
+    }
+
+    fd = popen("lsmod | grep -w wl", "r");
+    if(fread(buf, 1, sizeof(buf), fd) > 0) {
+        memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
+        snprintf(command_buf, COMMAND_BUF_SIZE, "rmmod %s", "wl");
+        printf("*** Uninstall driver: %s ***\n", command_buf);
+        sleep(1);
+        system(command_buf);
+    }
+    else {
+        printf("*** Module wl is not loaded\n");
+    }
+
+    memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
+    snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s","wlan_plat.ko");
+    printf("*** Installing driver: %s ***\n",command_buf);
     sleep(1);
-    system(buf);
+    system(command_buf);
 
     memset((void*)if_name,0,sizeof(if_name));
     if(argc>2)
     {
         snprintf(if_name, sizeof(if_name),"intf_name=%s",argv[2]);
     }
-    snprintf(buf, sizeof(buf),"insmod %s %s",argv[1],if_name);
-    printf("*** Installing driver: %s\n",buf);
+    else
+    {
+        snprintf(if_name, sizeof(if_name),"intf_name=%s",DEFAULT_IFACE_NAME);
+    }
+
+    /* install driver */
+    memset((void*)buf,0,BUF_SIZE);
+    if(argc == 1)
+    {
+        snprintf(buf, BUF_SIZE,"%s","wl.ko");
+    }
+    else
+    {
+        snprintf(buf, BUF_SIZE,"%s",argv[1]);
+    }
+    memset((void*)command_buf,0,COMMAND_BUF_SIZE);
+    snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s %s",buf,if_name);
+    printf("*** Installing driver: %s\n",command_buf);
     sleep(1);
-    system(buf);
+    system(command_buf);
+    free(buf);
+    free(command_buf);
     return 0;
+error:
+    if (buf)
+    {
+        free(buf);
+    }
+    if (command_buf)
+    {
+        free(command_buf);
+    }
+    return 1;
 }

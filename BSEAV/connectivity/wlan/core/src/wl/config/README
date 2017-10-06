@@ -1,0 +1,24 @@
+$Id: README,v 1.3 2005-01-11 19:16:13 nn Exp $
+
+Broadcom 802.11 wireless device driver configuration file directory.
+Refer to http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/WlDriverConfig
+
+The wl driver supports a large set of configurable features.
+The wlconfig_* files in this directory, along with wl.mk,
+control which compile-time flags and which source files are used to compile wl.o .
+
+This directory centralizes wl driver configuration policy and mechanism
+allowing us to change the particular compile-time flags and source files
+easily without having to grep and edit dozens of target Makefiles distributed
+all over the source tree.
+
+Each target Makefile does:
+
+	include wlconfig_<application>
+	include wl.mk
+
+- wlconfig_<application> files list the options for a particular application
+- wl.mk translates these options into the list of specific flags and source files
+
+Please refactor the wlconfig_* files mercelessly !
+

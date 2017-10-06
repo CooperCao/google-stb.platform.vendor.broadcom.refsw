@@ -1,0 +1,1491 @@
+#!/usr/local/bin/perl
+#
+#########################################################################
+#
+# Wrapper to magically spin build brands across different platforms
+#
+# Contact: hnd-software-scm-list
+#
+# $Id$
+#
+# SVN: $HeadURL$
+#
+#########################################################################
+
+use strict 'vars';
+
+package Buildserver;
+
+my $VCTOOL;
+my $CVSROOT;
+my $COTOOL;
+
+BEGIN {
+	use Exporter();
+	my @ISA = qw(Exporter);
+	my @EXPORT = qw(WhichToolkit
+			GetVersion
+			QueryCapabilities
+			BuildBrands
+			GetStatus
+			Restart
+			Exit);
+
+	# Export gmake flags as variable for subprocesses
+	if (grep {/COTOOL=gclient/i} @ARGV) {
+		$ENV{'COTOOL'} = $COTOOL = "gclient";
+	}
+}
+
+use Getopt::Long;
+require XMLRPC::Lite;
+use POSIX qw(strftime);
+use Cwd qw(abs_path);
+use File::Basename;
+use Env;
+
+use FindBin;
+use lib $FindBin::Bin;
+
+use BuildUtils;
+
+use constant VERSION => 1.09;
+use constant FALSE => 0;
+use constant TRUE => (!FALSE);
+use constant CLASS => Buildserver;
+use constant CLASS_METHOD => (caller(0))[3];
+use constant WHICHTOOLKIT => WhichToolkit;
+
+use constant LOCALPORT => 60000;
+use constant MBS_SERVER_LOG_BASE => "$ENV{HOME}/tmp/mbs/";
+
+use constant MBS_SERVER_LOG => MBS_SERVER_LOG_BASE . "mbs.log";
+use constant MBS_SERVER_USER => "hwnbuild";
+use constant BUILD_SERVER_DIRECTORY => "/home/" . MBS_SERVER_USER . "/build_server_directory";
+use constant ADMIN_EMAIL => 'hnd-software-scm-list';
+use constant BUILD_SCRIPT_PATH => '';
+use constant DEFAULT_BUILD_TAG => $BuildUtils::TOT;
+use constant SERVER_RESTART_FREQUENCY => 5; # in minutes
+
+my $USER = $ENV{LOGNAME};
+
+my @RestartParms = @ARGV;
+my $MBSCommand = abs_path($0);
+my $HostName = hostname();
+$HostName =~ s/\.*//g;
+my $DomainName = "broadcom.com";
+my $Today = strftime("%Y%m%d", localtime(time));
+my $LastLogTime = time;
+
+# globals
+my $bVerbose = FALSE;
+my $bAllBrands;
+my $bTest;
+
+sub vprint {
+	if ($bVerbose) {
+		print @_;
+	}
+}
+
+#----------------------------(  promptUser  )-----------------------------#
+#                                                                         #
+#  FUNCTION:	promptUser                                                #
+#                                                                         #
+#  PURPOSE:	Prompt the user for some type of input, and return the    #
+#		input back to the calling program.                        #
+#                                                                         #
+#  ARGS:	$promptString - what you want to prompt the user with     #
+#		$defaultValue - (optional) a default value for the prompt #
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+sub promptUser {
+   my ($promptString,$defaultValue) = @_;
+
+   if ($defaultValue) {
+      print $promptString, "[", $defaultValue, "]: ";
+   } else {
+      print $promptString, ": ";
+   }
+
+   $| = 1;               # force a flush after our print
+   $_ = <STDIN>;         # get the input from STDIN (presumably the keyboard)
+
+   chomp;
+
+   if ("$defaultValue") {
+      return $_ ? $_ : $defaultValue;    # return $_ if it has a value
+   } else {
+      return $_;
+   }
+}
+
+
+sub usage {
+	my ($bHelp) = @_;
+
+	print "\n\n" . basename($MBSCommand) . " - Version " . VERSION . qq{
+
+Submit brand builds for any platform
+
+Arguments (all are optional):
+  [-all]
+	build default brands for a tag
+  [-brand brand]*
+	build brand(s) - brand can also be platform:brand to explicitly
+	select a platform
+  [-cutoff cutoff_time|svn-revision]
+	This switch takes either cvs cutoff time or svn revision number
+	Cutoff time (yyyy-mm-dd hh:mm format, or other SCM-supported format)
+	for checking out from tot/tob (default: none)
+	('nightly' refers to midnight;
+	'now' or 'fix' refer to current time)
+  [-directory base_dir]
+	Base directory in which to build.
+	(This is invalid for windows brands, as windows needs to build
+	first in local drive and then copy to network folder)
+  [-failed [platform]]*
+	rebuild currently broken nightly builds for specified platform
+	(default: all) and tag
+  [-flags 'make-flags or overrides']
+	(default: none)
+	pass make-flags down to individual build scripts
+	WARN: specified 'make-flags' get passed to *ALL* platforms
+	WARN: unless '-platform <platform>' is also specified
+	WARN:
+	INFO: Usage Scenarios:
+	   1) For Embedded or High Driver or Bmac builds:
+		* TOB/TOT/TWIG builds need recent (today's) firmware images
+		* TAG builds reuse existing firmwares irrespective of date
+		To force firmware image rebuild for a given brand
+		specify "-flag 'FORCE_HNDRTE_BUILD=1' -b <brand>"
+	   NOTE: Subversion Transition related options:
+	   2) To launch builds with old CVSROOT repository
+	      give "-flags 'CVSROOT=/projects/cvsroot'"
+	   3) To launch builds with gclient builds
+	      give "-flags 'COTOOL=gclient'"
+  [-force]
+	force build of unknown brand(s) - unknown brands must have explicit
+	platorm, i.e. platform:brand
+  [-joblogs [wildcard]]
+	return job log(s) for wildcard match of
+	[user]-[tag]-[buildscript]-[date]-[time]
+	(default: "^$USER-.*-$Today")
+  [-mailto address]*
+	address(es) to email when build jobs complete (submitter is e-mailed
+	automatically)
+  [-noprompt]
+	don't prompt before building
+  [-platform platform]*
+	build platforms(s) - build all default brands for given platforms
+  [-r tag]
+	SVN or CVS tag to use for build (default: TRUNK or TOT)
+	(pseudo tags like TOTUTF or DAILY build can refer to
+	defauly UTF build brand set or daily build set)
+  [-serverdir server_base]
+	where to copy on server (default varies by platform)
+  [-server_status]
+	show status of build servers
+  [-skip brand]*
+	skip these brands from default list of build brands
+	(useful, if you want to build many brands, except for few)
+  [-skipped [platform]]*
+	rebuild builds that are missing or skipped in normal build run
+  [-summary]
+	Send build summary for specified tag (default: TOT) to mailto
+	addresses (default: $USER)
+  [-test]
+	don't actually build - just report what would be built
+  [-verbose]
+	show verbose information (default:none) (except for linux)
+  [-help]
+	show this usage statement
+  };
+
+  my $SeeExamples = $bHelp ?
+      uc(promptUser("\nDO YOU WANT TO SEE EXAMPLES (Yes|No)\a? ","N")) : "N";
+  if ($SeeExamples =~ /^Y/) {
+	print "\n" . basename($MBSCommand) . " - Version " . VERSION . qq{
+
+  Usage Examples:
+  # Build linux-internal-wl and win_mfgtest_wl brands on TRUNK
+    build_brands -brand linux-internal-wl -brand win_mfgtest_wl
+
+  # Respin all currently failing *linux* brands on RUBY branch
+    build_brands -fail linux -r RUBY_BRANCH_6_20
+
+  # Build default *window* build brands for KIRIN branch
+    build_brands -platform windows -r KIRIN_BRANCH_5_100
+
+  # Build missing or skipping linux build brands for AKASHI branch
+    build_brands -skipped linux -r AKASHI_BRANCH_5_110
+
+  # Launch all default brands for ROMTERM_REL_4_218_44
+    build_brands -r ROMTERM_REL_4_218_44 -allbrands
+
+  # Display the job logs for all brands I spun today
+    build_brands -joblogs
+
+  # Force the linux build brand "linux-new-brand" on TOT
+    build_brands -force linux:linux-new-brand
+
+  # Build linux-external-wl usinig gclient tool
+    build_brands -flag "COTOOL=gclient" -b linux-external-wl
+
+  # Build linux-external-wl brand from my private SVN tree:
+  # NOTE: Builds redirected to /projects/hnd_swbuild/build_<platform>/USERS
+    build_brands -flag "REPO_URL=http://svn.sj.broadcom.com/svn/wlansvn/users/prakashd/xxx" -b linux-external-wl
+
+  # Build linux-external-wl on RUBY_BRANCH_6_20 as of timestamp
+    build_brands -cutoff "2011-12-10 15:30:45" -b linux-external-wl -r RUBY_BRANCH_6_20
+
+  # Build linux-external-wl on RUBY_BRANCH_6_20 as of SVN revision r291234
+    build_brands -cutoff "r291234" -b linux-external-wl -r RUBY_BRANCH_6_20
+
+  For more details refer to twiki:
+  http://hwnbu-twiki.sj.broadcom.com/bin/view/Mwgroup/BuildBrands#Examples
+};
+  } # SeeExamples
+
+}
+
+sub method {
+	my ($method) = @_;
+
+	return(CLASS . "." . $method);
+}
+
+sub LogServerInDirectory {
+	my ($Platform,$Url) = @_;
+
+#	open(BS_DIR,">>" . BUILD_SERVER_DIRECTORY);
+#	flock(BS_DIR,LOCK_EX);
+#
+#	printf BS_DIR "%s %s\n", $Platform, $Url;
+#
+#	flock(BS_DIR,LOCK_UN);
+#	close(BS_DIR);
+
+} # LogServerInDirectory()
+
+sub GetServerFromDirectory {
+	my ($Platform) = @_;
+
+#	my $Url="";
+#
+#	open(BS_DIR,"<" . BUILD_SERVER_DIRECTORY);
+#	flock(BS_DIR,LOCK_EX);
+#	while (<BS_DIR>) {
+#		if (/(\S+)\s+(\S+)/) {
+#			if ($1 eq $Platform) {
+#				$Url = $2;
+#			}
+#		}
+#	}
+#	flock(BS_DIR,LOCK_UN);
+#	close(BS_DIR);
+
+	my $ValidHost = BuildUtils::ValidHostsForPlatform($Platform);
+	my $Url = "http://$ValidHost:" . LOCALPORT . "/";
+
+	return ($Url);
+} # GetServerFromDirectory()
+
+use XMLRPC::Lite;
+
+my $FaultCode;
+my $FaultString;
+
+sub CheckError {
+
+	my ($Client,$ErrorObject) = @_;
+
+	if (ref($ErrorObject) eq "XMLRPC::SOM") {
+		if (($ErrorObject->faultcode) && ($ErrorObject->faultcode != 0)) {
+			die "ERROR: call failed " . $ErrorObject->faultcode . " " . $ErrorObject->faultstring . "\n";
+		} else {
+			return $ErrorObject;
+		}
+	} else {
+		if (($Client->transport->proxy->code) && ($Client->transport->proxy->code == 500)) {
+			$FaultCode = 500;
+			$FaultString = $Client->transport->message;
+		} else {
+			$FaultCode = 999;
+			$FaultString = "Unknown Failure";
+		}
+		return undef;
+	}
+}
+
+sub CallRPCMethod {
+
+	my ($rClient,$Method,@aParms) = @_;
+
+	my $ClassMethod = method($Method);
+	vprint "Calling RPC method $ClassMethod\n";
+
+	$FaultCode = 0;
+	$FaultString = "";
+
+	my $ReturnValue = $$rClient -> call($ClassMethod,@aParms);
+
+	if (ref($ReturnValue) eq "XMLRPC::SOM") {
+		return ($ReturnValue->result);
+	} else {
+		return ($ReturnValue);
+	}
+
+}
+
+sub VerifyServerVersion {
+
+	my ($rClient,$rServerURL,$Platform) = @_;
+
+	# trap XMLRPC errors
+	$$rClient = XMLRPC::Lite -> proxy($$rServerURL) -> on_fault(\&CheckError);
+
+	# check server version and restart if not current
+	my $result = CallRPCMethod($rClient,"GetVersion");
+	if (!$result) {
+		if ($FaultCode == 500) {
+			return(FALSE);
+		} else {
+			die "RPC Call Failed with code=$FaultCode, message=$FaultString";
+		}
+	}
+
+	vprint "Current Server Version = $result->{version}\n";
+	if ($result->{version} < VERSION) {
+		my $res = CallRPCMethod($rClient,"Restart");
+		vprint "Restarting (result = $res->{result})\n";
+
+		# give server time to restart
+		sleep(10);
+
+		$$rServerURL = GetServerFromDirectory($Platform);
+		(length($$rServerURL) > 0) or die "ERROR: No build server for platform $Platform\nPlease contact the administrator (" . ADMIN_EMAIL . ")\n";
+
+	} elsif ($result->{version} > VERSION) {
+		die "ERROR: Your version is behind the server's version.\nPlease contact the administrator (" . ADMIN_EMAIL . ")\n";
+	} else {
+		return($result->{version});
+	}
+
+	$$rClient = XMLRPC::Lite -> proxy($$rServerURL) -> on_fault(\&CheckError);
+
+	# check new server version
+	my $nvers = CallRPCMethod($rClient,"GetVersion");
+	if (!$nvers) {
+		if ($FaultCode == 500) {
+			return(FALSE);
+		} else {
+			die "RPC Call Failed with code=$FaultCode, message=$FaultString";
+		}
+	}
+
+	if ($nvers->{version} != VERSION) {
+		die "ERROR: Unable to restart server for platform $Platform at current version " . VERSION . ".\nPlease contact the administrator (" . ADMIN_EMAIL . ")\n";
+	}
+
+	vprint "New Server Version = $nvers->{version}\n";
+
+
+	# let XMLRPC process errors
+	$$rClient = XMLRPC::Lite -> proxy($$rServerURL);
+
+	return($nvers->{version});
+
+} # VerifyServerVersion()
+
+sub StopServers {
+
+	my (@aStopPlatforms) = @_;
+
+	if ((scalar(@aStopPlatforms) == 0) || (length($aStopPlatforms[0]) == 0)) {
+		@aStopPlatforms = @BuildUtils::aDEFAULTPLATFORMS;
+	}
+
+	# stop servers for platform(s)
+	foreach my $Platform (@aStopPlatforms) {
+		my $ServerURL = GetServerFromDirectory($Platform);
+		if (length($ServerURL) == 0) {
+			print STDERR "WARNING: No build server for $Platform\n";
+		} else {
+			my $Client = XMLRPC::Lite -> proxy($ServerURL) -> on_fault(\&CheckError);
+			CallRPCMethod(\$Client,"Exit");
+		}
+	}
+} # StopServers()
+
+# figure out if we are a client or a server
+my $bStartIfNeeded;
+my @aServerPlatforms;
+my $bHelp;
+
+# globals
+my @aTempARGV = @ARGV;
+Getopt::Long::Configure("pass_through");
+GetOptions(
+	"start" => \$bStartIfNeeded,
+	"server=s@" => \@aServerPlatforms,
+	"verbose|v" => \$bVerbose,
+	"help|?" => \$bHelp);
+Getopt::Long::Configure("default");
+
+if ($bStartIfNeeded && ($USER ne MBS_SERVER_USER)) {
+	die "ERROR:\nERROR: Access Denied. Server process can't be stopped or restarted as '$USER' user\nERROR:\n";
+}
+
+if ((scalar(@aServerPlatforms) == 0) || (scalar(@ARGV) > 0)) {
+	vprint "Running as Client\n";
+
+	@ARGV = @aTempARGV;
+
+	my @aRequestedBrands;  # Build these brands
+	my @aSkipBrands;       # Skip these brands from default list
+	my @aMailTos;          # Notify these people (default: current user-id)
+	my @aStopPlatforms;    # Stop servers for these platforms
+	my $Cutoff;            # Cutoff time or revision for checkout
+	my $SvnRev;            # SVN Revision Number
+	my $BaseDir;           # For windows platform, this points to local builddir
+	my $MyTag;             # Build tag to build
+	my @RebuildFailedPlatforms;
+			       # Rebuild failed builds for these platforms
+	my $JobLogs;           # Show job status for a given user/string
+	my $ServerBase;        # Server destination dir
+	my $bForceBuild;       # Force a build, skipping warnings
+	my $bNoPrompt;         # Non-interactive
+	my $bServerStatus;     # Keep server status
+	my $bBuildSummary;     # Generate build summary
+	my $bVersion;          # Client or server version
+	my $bHelp;             # Show help
+	my $GmakeFlags;        # Gmake flags to pass to build scripts
+	my $VCTOOL;            # Flag to indicate CVS or SVN checkout
+	my $COTOOL;            # Flag to indicate gclient checkout
+	my @aRequestedPlatforms;
+			       # Build only brands for this platform
+	my @RebuildSkippedPlatforms;
+			       # If nightly or build script err out and skip
+			       # certain build brands, respin them
+
+	if (!GetOptions(
+		"allbrands"      => \$bAllBrands,
+		"brands=s@"      => \@aRequestedBrands,
+		"cutoff=s"       => \$Cutoff,   # Time or svn rev
+		"cvstime=s"      => \$Cutoff,	# backward compatibility
+		"directory=s"    => \$BaseDir,
+		"failed:s@"      => \@RebuildFailedPlatforms,
+		"flags=s"        => \$GmakeFlags,
+		"force"          => \$bForceBuild,
+		"jobs|joblogs:s" => \$JobLogs,
+		"mailto=s@"      => \@aMailTos,
+		"skipped:s@"     => \@RebuildSkippedPlatforms,
+		"noprompt"       => \$bNoPrompt,
+		"platform=s@"    => \@aRequestedPlatforms,
+		"r=s"            => \$MyTag,
+		"server_status"  => \$bServerStatus,
+		"serverdir=s"    => \$ServerBase,
+		"skip=s@"        => \@aSkipBrands,
+		"stop:s@"        => \@aStopPlatforms,
+		"summary"        => \$bBuildSummary,
+		"test"           => \$bTest,
+		"verbose|v"      => \$bVerbose,
+		"version"        => \$bVersion,
+		"help|?"         => \$bHelp))
+	{
+		usage();
+		die "ERROR: Invalid option\n";
+	}
+
+	foreach my $myBrand (@aRequestedBrands)
+	{
+                my @brandTokens = split( /\s+/, $myBrand);
+                foreach my $token (@brandTokens)
+                {
+			if ($token =~ /android-/i || $token =~ /ubuntu-/i )
+			{
+				die "\nERROR: build_brands doesn't support $token builds; see 'gub help build'\n";
+			}
+		}
+	}
+
+	if ($GmakeFlags =~ /COTOOL=gclient/i) {
+		$ENV{'COTOOL'} = $COTOOL = "gclient";
+	}
+
+	# Catch and bail out on rare cases of user errors
+	# White-space around args passed via -flag
+	if ($GmakeFlags =~ /\s+=|=\s+/i) {
+		die "ERROR:\nERROR: Invalid specification of -flag '$GmakeFlags'\nERROR: Extra white space around variable specification flags\nERROR:\n";
+	}
+
+	# When user missed variable name for url values
+	if ($GmakeFlags =~ /^\s*http:/) {
+		die "ERROR:\nERROR: Invalid specification of -flag '$GmakeFlags'\nERROR: Did you miss REPO_URL or DEPS_URL variable name in it. Please see '$0 -h'\nERROR:\n";
+	}
+
+	if (@aStopPlatforms && ($USER ne MBS_SERVER_USER)) {
+		die "ERROR:\nERROR: Access Denied. Server process can't be stopped or restarted as '$USER' user\nERROR:\n";
+	}
+
+	# Tag validation
+	if ((!$MyTag) || ($MyTag =~ /^(TOT|TRUNK)$/i)) {
+		$MyTag = $BuildUtils::TOT;
+	}
+
+	if (BuildUtils::IsValidTag($MyTag,$GmakeFlags)) {
+		die("ERROR: Invalid tag or branch $MyTag specified\n");
+	}
+
+	if ($Cutoff) {
+		if (BuildUtils::IsTag($MyTag)) {
+			die("ERROR: Cannot specify both cutoff time ($Cutoff) and tag ($MyTag)\n");
+		}
+	} else {
+		if (!BuildUtils::IsTag($MyTag)) {
+			$Cutoff = strftime("\"%Y-%m-%d %H:%M:%S\"",localtime(time));
+		}
+	}
+
+	# Strip out default domainname to limit length of notification list
+	if (@aMailTos) {
+		@aMailTos = map { $_ =~ s/\@$DomainName//gi; $_ } @aMailTos;
+	}
+
+	if ($bHelp) {
+		usage($bHelp);
+		exit;
+	}
+
+	if ($bVersion) {
+		print "$0 version " . VERSION . "\n";
+		exit;
+	}
+
+	if (defined($JobLogs)) {
+		my $JobID = $JobLogs;
+		if (length($JobID) == 0) {
+			$JobID = "^$USER-.*-$Today-";
+		}
+		my $Platform = $BuildUtils::aDEFAULTPLATFORMS[0];
+		my $ServerURL = GetServerFromDirectory($Platform);
+		if (length($ServerURL) == 0) {
+			print STDERR "WARNING: No build server for $Platform\n";
+		} else {
+			my $Client;
+
+			if (!VerifyServerVersion(\$Client,\$ServerURL,$Platform)) {
+				print STDERR "WARNING: Build server for $Platform ($ServerURL) is not responding\n";
+			} else {
+				my $rhResult = CallRPCMethod(\$Client,"GetStatus",$JobID);
+
+				if (scalar(keys(%$rhResult)) == 0) {
+					if ($JobID eq $JobLogs) {
+						print "No jobs found that match $JobLogs\n\n";
+					} else {
+						print "No jobs spun today for user $USER\n\n";
+					}
+				} else {
+					foreach my $JobID (sort(keys(%$rhResult))) {
+						print "******************************************************************\n";
+						print "* Job log for $JobID:\n";
+						print "******************************************************************\n";
+						print $rhResult->{$JobID} . "\n\n";
+					}
+				}
+			}
+		}
+		exit;
+	}
+
+
+	if ($bServerStatus) {
+		my %aServerStatus;
+		# get status of all platforms
+		foreach my $Platform (@BuildUtils::aDEFAULTPLATFORMS) {
+			my $ServerURL = GetServerFromDirectory($Platform);
+			if (length($ServerURL) == 0) {
+				print STDERR "WARNING: No build server for $Platform\n";
+			} else {
+				my $Client = XMLRPC::Lite -> proxy($ServerURL);
+
+				if (my $ServerVersion = VerifyServerVersion(\$Client,\$ServerURL,$Platform)) {
+					print "Server $ServerURL (version $ServerVersion) is handling builds for the $Platform platform\n";
+				} else {
+					$aServerStatus{$Platform}="FAILED";
+					print STDERR "WARNING: Build server for $Platform ($ServerURL) is not responding\n";
+				}
+			}
+		}
+		if (scalar(keys(%aServerStatus)) != 0) {
+			my $bCurrentMinute=strftime("%M", localtime(time));
+			my $bNextRestartTime=SERVER_RESTART_FREQUENCY - $bCurrentMinute;
+			print STDERR "WARNING: Build server processes for non-responsive platforms\n";
+			print STDERR "WARNING: will recover automatically in $bNextRestartTime minutes.\n";
+			print STDERR "WARNING: Until then please use old scripts as per http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/BuildCheatSheet#OLD_STUFF_BELOW twiki\n";
+		}
+		exit;
+	}
+
+	if (@aStopPlatforms) {
+		StopServers(@aStopPlatforms);
+		exit;
+	}
+
+	if ($bBuildSummary) {
+		my $ServerURL = GetServerFromDirectory("linux");
+			if (length($ServerURL) == 0) {
+				print STDERR "WARNING: No build summary server\n";
+			} else {
+				my $Client = XMLRPC::Lite -> proxy($ServerURL);
+
+				if (VerifyServerVersion(\$Client,\$ServerURL,"linux")) {
+					# ask server to generate build summary
+					my $rhResult = CallRPCMethod(\$Client,"BuildSummary",$USER,$MyTag,\@aMailTos,$bTest);
+					if ($rhResult->{success}) {
+						print "Build summary has been queued.\n";
+					}
+				} else {
+					print STDERR "WARNING: server for build summary ($ServerURL) is not responding\n";
+				}
+			}
+		exit;
+	}
+
+	# For Tags and branches, pick default brands from
+	# build config area if none given.
+	# For TOT and TWIGs confirm, as defaults aren't not necessary
+	# always
+	if ($bAllBrands) {
+		# TODO: build_brands needs to query existing builds
+		# TODO: via build_config mechanism and confirm with
+		# TODO: on rebuilds of existing/passed build brands
+
+		my $ForceAllBrands="Y" if ($MyTag =~ /_REL_|_BRANCH_/);
+		print "\nWARNING: No brands given for $MyTag. Picking default brands\n\n";
+		if ($MyTag =~ /^(TOT|TRUNK|NIGHTLY)$/i) {
+			$ForceAllBrands="N";
+			print "\nWARNING:\n";
+			print "WARNING: Launching all TOT builds is not recommended\n";
+			print "WARNING: Launching all builds result in extensive resource usage and may slow down your build set.\n";
+			print "WARNING: To launch ALL failed builds, you should be using '-failed' switch\n";
+			print "WARNING:\n";
+			$ForceAllBrands = uc(promptUser("\nDO YOU WANT TO FORCE ALL DEFAULT BRANDS (list will be shown if you answer yes) (Yes|No)\a? ","N"));
+			#TODO: Implement one time notification instead of
+			#TODO: per build job
+			#push(@aMailTos,ADMIN_EMAIL) if ($ForceAllBrands =~ /^Y/);
+		}
+		if ($MyTag =~ /_TWIG_/i) {
+			$ForceAllBrands="N";
+			print "\nWARNING:";
+			print "\nWARNING: For a TWIG, do not build default brands";
+			print "\nWARNING: For twigs build a specific set of brands";
+			print "\nWARNING:\n";
+			$ForceAllBrands = uc(promptUser("\nDO YOU WANT TO FORCE ALL DEFAULT BRANDS (list will be shown if you answer yes) (Yes|No)\a? ","N"));
+			#TODO: Implement one time notification instead of
+			#TODO: per build job
+			#push(@aMailTos,ADMIN_EMAIL) if ($ForceAllBrands =~ /^Y/);
+		}
+		if ($ForceAllBrands =~ /^Y/) {
+			foreach my $Platform ( @BuildUtils::aDEFAULTPLATFORMS ) {
+				my $PlatformDefaultBrandOutput = BuildUtils::GetBuildConfig($MyTag,$Platform);
+				my @PlatformDefaultBrands = sort(split(" ",$PlatformDefaultBrandOutput));
+				push(@aRequestedBrands,@PlatformDefaultBrands);
+			}
+		} # ForceAllBrands
+	} # bAllBrands
+
+	my @aBrandsToBuild = @aRequestedBrands;
+
+	# If failed build respin is requested, find failed build brands for given platforms or for all
+	if (@RebuildFailedPlatforms) {
+		if ((scalar(@RebuildFailedPlatforms) == 0) || (length($RebuildFailedPlatforms[0]) == 0)) {
+			@RebuildFailedPlatforms = @BuildUtils::aDEFAULTPLATFORMS;
+		}
+
+		my %hhhhResult=();
+		my %huiCounts=();
+		my %hhhaErrorLogs=();
+		my $DirDate=strftime("%Y.%m.%d",localtime(time));
+		$DirDate =~ s/\.0/\./g;
+
+		my @aMyTags = ($MyTag);
+		BuildUtils::GetBuildResults(\@aMyTags,$DirDate,\%hhhhResult,\%huiCounts,\%hhhaErrorLogs);
+
+		my $bFailedBrandFound = FALSE;
+		for (my $Index=0;$Index < scalar(@RebuildFailedPlatforms);$Index++) {
+			my $Platform = $RebuildFailedPlatforms[$Index];
+			if (scalar(keys(%{$hhhhResult{Failed}{$MyTag}{$Platform}})) == 0) {
+				splice(@RebuildFailedPlatforms,$Index--,1);
+			} else {
+				foreach my $Brand (sort(keys(%{$hhhhResult{Failed}{$MyTag}{$Platform}}))) {
+					push(@aBrandsToBuild, "$Platform:$Brand");
+					$bFailedBrandFound = TRUE;
+				}
+			}
+		}
+
+		if (!$bFailedBrandFound) {
+			print "No failed $MyTag builds found for " . join(", ",@RebuildFailedPlatforms) . " platforms\n";
+			exit;
+		}
+	}
+
+	# If skipped build respin is requested, find skipped build brands for given platforms or for all
+	if (@RebuildSkippedPlatforms) {
+		if ((scalar(@RebuildSkippedPlatforms) == 0) || (length($RebuildSkippedPlatforms[0]) == 0)) {
+			@RebuildSkippedPlatforms = @BuildUtils::aDEFAULTPLATFORMS;
+		}
+
+		my %hhhhResult=();
+		my %huiCounts=();
+		my %hhhaErrorLogs=();
+		my $DirDate=strftime("%Y.%m.%d",localtime(time));
+		$DirDate =~ s/\.0/\./g;
+
+		my @aMyTags = ($MyTag);
+		BuildUtils::GetBuildResults(\@aMyTags,$DirDate,\%hhhhResult,\%huiCounts,\%hhhaErrorLogs);
+
+		my $bSkippedBrandFound = FALSE;
+		for (my $Index=0;$Index < scalar(@RebuildSkippedPlatforms);$Index++) {
+			my $Platform = $RebuildSkippedPlatforms[$Index];
+			if (scalar(keys(%{$hhhhResult{Skipped}{$MyTag}{$Platform}})) == 0) {
+				splice(@RebuildSkippedPlatforms,$Index--,1);
+			} else {
+				foreach my $Brand (sort(keys(%{$hhhhResult{Skipped}{$MyTag}{$Platform}}))) {
+					push(@aBrandsToBuild, "$Platform:$Brand");
+					$bSkippedBrandFound = TRUE;
+				}
+			}
+		}
+
+		if (!$bSkippedBrandFound) {
+			print "No skipped $MyTag builds found for " . join(", ",@RebuildSkippedPlatforms) . " platforms\n";
+			exit;
+		}
+	}
+
+	# If specific platforms are requested, build brands can't be specified
+	if (@aRequestedPlatforms && @aRequestedBrands) {
+		print "\nERROR: -b <brand> and -p <platform> options are mutually exclusive\n";
+		print "\a";
+		sleep 2;
+		usage();
+		exit;
+	}
+
+	# If specific platforms are requested, build default brands for that
+	# platform
+	if (@aRequestedPlatforms) {
+		foreach my $Platform ( @aRequestedPlatforms ) {
+			my $PlatformRequestedBrandOutput = BuildUtils::GetBuildConfig($MyTag, $Platform);
+			my @PlatformRequestedBrands = sort(split(/\s+/,$PlatformRequestedBrandOutput));
+			push(@aBrandsToBuild,@PlatformRequestedBrands);
+		}
+	}
+
+	if (scalar(@aBrandsToBuild) == 0) {
+		if ($MyTag =~ /_REL_/) {
+			print "\nERROR: Must specify 1 or more brands to build";
+			print "\nERROR: or -platform to respin brands for platform";
+			print "\nERROR: or -failed to respin all failed builds";
+			print "\nERROR: or -skipped to respin all skipped or missed builds";
+			print "\nERROR: or -allbrands to build default brands for all platforms.";
+			print "\a";
+		} else {
+			print "\nERROR: Must specify 1 or more brands to build";
+			print "\nERROR: or -failed to respin all failed builds";
+			print "\nERROR: or -skipped to respin all skipped or missed builds";
+			print "\a";
+		}
+		sleep 2;
+		usage();
+		exit;
+	} else {
+		# split any bundled brands, e.g. "brand1 brand2" into multiple array elements
+		for (my $Index=0;$Index < scalar(@aBrandsToBuild);$Index++) {
+			my @aBundledBrands = split(" ",$aBrandsToBuild[$Index]);
+			if (scalar(@aBundledBrands) > 1) {
+				splice(@aBrandsToBuild,$Index--,1);
+				push(@aBrandsToBuild,@aBundledBrands);
+			}
+		}
+
+		# Filter-out brands that have been requested to be skipped
+		if (scalar(@aSkipBrands) > 0) {
+			my $bSkipBrandsRE = join('|', @aSkipBrands);
+			@aBrandsToBuild = grep { $_ !~ /($bSkipBrandsRE)$/ } @aBrandsToBuild;
+			vprint "Will skip ", join(" ",@aSkipBrands), "\n";
+			print "INFO: Brands to be skipped: @aSkipBrands\n\n";
+		}
+
+		vprint "Will build ", join(" ",@aBrandsToBuild), "\n";
+
+		vprint "\n";
+
+		if (scalar(@aMailTos) > 0) {
+			# split any bundled mailtos, e.g. "email1 email2" into multiple array elements
+			for (my $Index=0;$Index < scalar(@aMailTos);$Index++) {
+				my @aBundledMailTos = split(" ",$aMailTos[$Index]);
+				if (scalar(@aBundledMailTos) > 1) {
+					splice(@aMailTos,$Index--,1);
+					push(@aMailTos,@aBundledMailTos);
+				}
+			}
+			vprint "Will mail to ", join(" ",@aMailTos), "\n";
+		}
+
+		# submit builds
+		my @aNotBuildable = @aBrandsToBuild;
+
+		my @aPlatformsToBuild=();
+		if (@RebuildFailedPlatforms && !@aRequestedBrands) {
+			@aPlatformsToBuild = @RebuildFailedPlatforms;
+		} else {
+			if (@aRequestedPlatforms) {
+				@aPlatformsToBuild = @aRequestedPlatforms;
+			} else {
+				@aPlatformsToBuild = @BuildUtils::aDEFAULTPLATFORMS;
+			}
+		}
+
+		my $NBuilds = 0;
+		my %haCanBuild;
+		# first query all servers
+		foreach my $Platform (@aPlatformsToBuild) {
+			my $ServerURL = GetServerFromDirectory($Platform);
+			my $bVerbosePlatform = FALSE;
+
+			if ($Platform =~ /linux/) {
+				$bVerbosePlatform = TRUE;
+				VTimedLog("Enabling $Platform build verbosity");
+			}
+
+			if (length($ServerURL) == 0) {
+				print STDERR "WARNING: No build server for $Platform\n";
+			} else {
+				my $Client = XMLRPC::Lite -> proxy($ServerURL);
+
+				if (VerifyServerVersion(\$Client,\$ServerURL,$Platform)) {
+					# Arg order: ($class, $Platform, $User, $MyTag, $BuildBase, $ServerBase, $raMailTo, $raBrandsRequested, $Cutoff, $bForceBuild, $bRequestVerbose, $bTest, $bAllBrands) = @_;
+					# ask server if it can build brands
+					my $rhResult = CallRPCMethod(\$Client,"BuildBrands",$Platform,$USER,$MyTag,$BaseDir,$ServerBase,\@aMailTos,\@aBrandsToBuild,$Cutoff,$bForceBuild,$bVerbosePlatform,TRUE,$bAllBrands,$GmakeFlags);
+
+					if (scalar(keys(%$rhResult)) > 0) {
+						print "The server can queue the following $Platform build" . ((scalar(keys(%$rhResult))>1)?"s":"") . ":\n";
+						foreach my $BuildableBrand (sort(keys(%$rhResult))) {
+							print "\t$BuildableBrand\n";
+							push(@{$haCanBuild{$Platform}}, $BuildableBrand);
+							$NBuilds++;
+
+							# remove buildable brands from "not building yet" brands array
+							for (my $Index=0;$Index < scalar(@aNotBuildable);$Index++) {
+								if (($BuildableBrand eq $aNotBuildable[$Index])
+								 || ("$Platform:$BuildableBrand" eq $aNotBuildable[$Index])) {
+									splice(@aNotBuildable,$Index--,1);
+								}
+							}
+						}
+					}
+				} else {
+					print STDERR "WARNING: Build server for $Platform ($ServerURL) is not responding\n";
+				}
+			}
+		}
+		# If any non-buildable brands remain, try to
+		# derive build host/platform from build brand name
+		if (scalar(@aNotBuildable) > 0) {
+			print "\nWARNING: Don't Know How To Build:\n";
+			foreach my $Brand (@aNotBuildable) {
+				print "WARNING: \t$Brand\n";
+			}
+			print "\nWARNING: These may be non-default brand builds\n";
+			print "WARNING: for the tag or branch ($MyTag) you have specified.\n";
+			print "WARNING: You can force a brand by -b '<platform>:<brand-name>' -force' switch\n";
+			print "\nWARNING: Examples:\n";
+			print "WARNING: 1. Force linux build linux-external-p2p to be built\n";
+			print "WARNING:    build_brands -b 'linux:linux-external-p2p' -force ...\n";
+			print "WARNING: 2. Force windows build win_mfgtest_wl on PBR branch to be built\n";
+			print "WARNING:    build_brands -b 'windows:win_mfgtest_wl' -r PBR_BRANCH_5_10 -force ...\n";
+			print "WARNING: 3. Force macos build macos-external-wl on HARP branch to be built\n";
+			print "WARNING:    build_brands -b 'macos:macos-external-wl -r HARP_BRANCH_5_30 -force ...\n";
+			if ($bForceBuild) {
+				print "\nWARNING: Cannot specify brand without platform when forcing build!\n";
+				print "WARNING: (e.g: linux:<brand-name>)\n";
+			}
+		}
+
+		if ($BaseDir && $haCanBuild{windows}) {
+			die "ERROR: Cannot specify base dir (-d) for windows builds";
+		}
+
+		# do the builds
+		if (!$bTest && (scalar(keys(%haCanBuild))>0)) {
+			if ($MyTag !~ /^(?:AARD|AKA|BASS|FAL|HARP|KIR|KRN|MIL|PBR|PHO|PHY|PHX|RAP|ROM|RT|RUBY)/ && !exists($ENV{GUB_DEPTH})) {
+			    my $tagname = $MyTag eq 'NIGHTLY' ? 'trunk' : $MyTag;
+			    warn "WARNING: Build_brands is deprecated on $tagname - GUB is preferred.\n";
+			    warn "WARNING: See 'gub help build' or http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/GUB\n";
+			    warn "WARNING: Build_brands is not maintained for newer branches.\n";
+			    my $nogub = uc(promptUser("Are you sure you don't want to use gub (yes,really!/no)? ", "no"));
+			    if ($nogub ne 'YES,REALLY!') {
+				exit(0);
+			    }
+			}
+			# query user
+			my $DoBuilds="N";
+			if (!$bNoPrompt) {
+				$DoBuilds = uc(promptUser("\nDO YOU WANT TO SPIN " . (($NBuilds > 1)?"THESE $NBuilds BUILDS":"THIS BUILD ") ." (Yes|No)\a? ","N"));
+				print "\n";
+			}
+
+			if ($bNoPrompt || ($DoBuilds =~ /^Y/)) {
+				# Alert SCM team to remaining uses so they can:
+				# 1. Tell people who are still using the old tools incorrectly.
+				# 2. Know when it's time to truly stop supporting this.
+				system(qq(echo "$0 @aTempARGV" | mailx -s "I used build_brands for $MyTag") . ADMIN_EMAIL)
+				    if !exists($ENV{GUB_DEPTH}) &&
+				    $USER !~ m%^(?:baysal|dboyce|doublelo|klo|mhubin|sudhirbs|jvarghes)$%;
+
+				@aNotBuildable = @aBrandsToBuild;
+				# submit the builds to appropriate platforms
+				foreach my $Platform (sort(keys(%haCanBuild))) {
+					my $ServerURL = GetServerFromDirectory($Platform);
+					my $bVerbosePlatform = FALSE;
+
+					if ($Platform =~ /linux/) {
+						$bVerbosePlatform = TRUE;
+						VTimedLog("Enabling $Platform build verbosity");
+					}
+
+					if (length($ServerURL) == 0) {
+						print STDERR "WARNING: No build server for $Platform\n";
+					} else {
+						my $Client = XMLRPC::Lite -> proxy($ServerURL);
+
+						if (VerifyServerVersion(\$Client,\$ServerURL,$Platform)) {
+							# ask server to build brands
+							my $rhResult = CallRPCMethod(\$Client,"BuildBrands",$Platform,$USER,$MyTag,$BaseDir,$ServerBase,\@aMailTos,\@{$haCanBuild{$Platform}},$Cutoff,$bForceBuild,$bVerbosePlatform,FALSE,$bAllBrands,$GmakeFlags);
+
+							my $JobID="";
+							print "Server is queueing $Platform builds:\n";
+							foreach my $BuildingBrand (sort(keys(%$rhResult))) {
+								if ($rhResult->{$BuildingBrand} ne $JobID) {
+									$JobID = $rhResult->{$BuildingBrand};
+									print "\tJobID = $JobID\n";
+								}
+								print "\t\t$BuildingBrand\n";
+							}
+
+							# remove building brands from "not building yet" brands array
+							foreach my $BuildingBrand (sort(keys(%$rhResult))) {
+								for (my $Index=0;$Index < scalar(@aNotBuildable);$Index++) {
+									if (($BuildingBrand eq $aNotBuildable[$Index])
+									 || ("$Platform:$BuildingBrand" eq $aNotBuildable[$Index]))  {
+										splice(@aNotBuildable,$Index--,1);
+									}
+								}
+							}
+						} else {
+							print STDERR "WARNING: Build server for $Platform ($ServerURL) is not responding\n";
+						}
+					}
+				}
+				if (scalar(@aNotBuildable) > 0) {
+					print "\nWARNING: Don't Know How To Build:\n";
+					print "WARNING: These may be non-default brand builds\n";
+					foreach my $Brand (@aNotBuildable) {
+						print "WARNING: \t$Brand\n";
+					}
+				}
+				print "\nRun \"" . basename($0) . " -joblogs\" to see the log(s) for the queued job(s).\n";
+			}
+		}
+	}
+
+	print "\n";
+} else {
+#	print "Running as Server\n";
+
+	if ($bHelp) {
+		usage($bHelp);
+		exit;
+	}
+
+	BuildUtils::SetVerbose($bVerbose);
+
+	Buildserver::StartServer(\@aServerPlatforms,$bStartIfNeeded);
+}
+
+# server helper routines
+
+sub PrintTimedLog {
+
+	my $bAddNewLine = TRUE;
+	my @bLogMessage = @_;
+	my $Now = time;
+
+	unshift(@bLogMessage," DBG>") if ($bTest);
+
+	if ($Now > $LastLogTime + 10) {
+		print "-" x "30"," $HostName ","-" x "30","\n";
+	}
+	$LastLogTime = $Now;
+	print "[" . strftime("%Y.%m.%d-%H:%M:%S", localtime($Now)) . " (". $$ . ")" . "]" . " - " . shift(@bLogMessage);
+	if ($bLogMessage[$#bLogMessage] =~ /\n$/) {
+		$bAddNewLine = FALSE;
+	}
+	if (scalar(@bLogMessage) > 0) {
+		print " - " . shift(@bLogMessage);
+		if (scalar(@bLogMessage) > 0) {
+			print " " . join(", ",@bLogMessage);
+		}
+	}
+	if ($bAddNewLine) {
+		print "\n";
+	}
+	$| = 1;	# flush stdout
+}
+
+sub TimedLog {
+	PrintTimedLog((caller(1))[3],@_);
+}
+
+sub VTimedLog {
+	if ($bVerbose) {
+		PrintTimedLog((caller(1))[3],@_);
+	}
+}
+
+sub daemonize {
+	use POSIX qw(setsid);
+
+#	print "\nSpawning Daemon\n";
+
+	chdir("/") or die "ERROR: Can't chdir to root $!\n";
+
+	{
+	    no warnings;
+	    open(STDOUTBACKUP, ">&STDOUT");
+	    open(STDERRBACKUP, ">&STDERR");
+	}
+
+	# autoflush STDOUT
+	$| = 1;
+
+	open(STDOUT, '>>' . MBS_SERVER_LOG) or die "ERROR: Can't open script error log" . MBS_SERVER_LOG . " $!\n";
+	open(STDERR, '>&STDOUT') or die "ERROR: Can't redirect STDERR to STDOUT $!\n";
+
+	# autoflush STDOUT
+	$| = 1;
+
+	defined(my $pid = fork) or die "ERROR: Can't fork: $!\n";
+	exit if $pid;
+	setsid or die "ERROR: Can't start a new session: $!\n";
+
+	umask 0;
+}
+
+sub StartServer {
+	use XMLRPC::Transport::HTTP;
+	use Sys::Hostname;
+
+	my ($raPlatforms,$bStartIfNeeded) = @_;
+
+	foreach my $Platform (@$raPlatforms) {
+		my $ValidHosts = BuildUtils::ValidHostsForPlatform($Platform);
+		if ($ValidHosts) {
+			if ($ValidHosts !~ /^$HostName/) {
+				die "ERROR: Current host ($HostName) is not a valid system to run builds for the $Platform platform. ValidHosts are $ValidHosts\n";
+			}
+		} else {
+			die "ERROR: $Platform is not a valid build platform.\n";
+		}
+		if ($USER ne MBS_SERVER_USER) {
+			die "ERROR: Must run server as " . MBS_SERVER_USER . ".\n";
+		}
+	}
+
+	if ($bStartIfNeeded) {
+		my @aRestartPlatforms = ();
+		foreach my $Platform (@$raPlatforms) {
+			my $ServerURL = GetServerFromDirectory($Platform);
+			if (length($ServerURL) == 0) {
+				print STDERR "WARNING: No build server for $Platform\n";
+			} else {
+				my $Client = XMLRPC::Lite -> proxy($ServerURL);
+
+				if (!VerifyServerVersion(\$Client,\$ServerURL,$Platform)) {
+					print "Will restart unresponsive platform $Platform\n";
+					push(@aRestartPlatforms,$Platform);
+				}
+			}
+		}
+		if (scalar(@aRestartPlatforms) == 0) {
+			# nothing to stop and restart
+			print "All platforms responding at " . strftime("%Y.%m.%d-%H:%M:%S", localtime(time)) . "\n";
+			exit;
+		} else {
+			StopServers(@aRestartPlatforms);
+		}
+		@{$raPlatforms} = @aRestartPlatforms;
+	}
+
+	daemonize();
+
+	my $daemon = XMLRPC::Transport::HTTP::Daemon
+		-> new(LocalPort => LOCALPORT, ReuseAddr => 1)
+		-> dispatch_to('Buildserver')
+	;
+
+	foreach my $Platform (@$raPlatforms) {
+		# REVISIT - SERVER SHOULD KILL ANY RUNNING SCRIPTS THAT SUPPORT THIS BRAND
+		TimedLog("Version " . VERSION . " for $Platform brands at " . $daemon->url);
+		LogServerInDirectory($Platform, $daemon->url);
+	}
+
+	# start server
+	$daemon->handle;
+
+}
+
+# server RPC methods
+
+sub WhichToolkit {
+
+	my ($class) = @_;
+	TimedLog();
+
+	return {
+		toolkitDocsurl => "http://www.soaplite.com/",
+		toolkitName => "XMLRPC::Lite",
+		toolkitVersion => XMLRPC::Lite->VERSION,
+		toolkitOperatingSystem => $^O
+	}
+}
+
+sub GetVersion {
+
+	my ($class) = @_;
+	TimedLog(VERSION);
+
+	return 	{
+		version => VERSION
+	}
+
+}
+
+sub QueryCapabilities {
+
+	my ($class,$Tag,$Platform) = @_;
+	TimedLog("Tag, Platform: ",$Tag,$Platform);
+
+	my %haBrands;
+	foreach my $ServerPlatform (@aServerPlatforms) {
+		if ($ServerPlatform eq $Platform) {
+			BuildUtils::QueryBuildConfig($Tag,\%haBrands,$Platform);
+			last;
+		}
+	}
+
+	return [
+		{
+		platform => $Platform,
+		brands => \@{$haBrands{$Platform}}
+		}
+	]
+
+}
+
+sub ExecuteScript {
+
+	my ($OriginalScript,$raArguments,$bTest,$LogFileName) = @_;
+
+	my $Script = $OriginalScript;
+	my @aArguments = @{$raArguments};
+
+	# add wrapper script, if necessary
+	VTimedLog("Calling WrapperScriptForBuildScript");
+	my $WrapperScript = BuildUtils::WrapperScriptForBuildScript($OriginalScript);
+	VTimedLog("Called WrapperScriptForBuildScript");
+	if (length($WrapperScript) > 0) {
+		unshift(@aArguments,$Script);
+		$Script = $WrapperScript;
+	}
+
+	# add ssh, if necessary
+	VTimedLog("Calling BuildServerForBuildScript");
+	my $BuildServer = BuildUtils::BuildServerForBuildScript($OriginalScript);
+	VTimedLog("Called BuildServerForBuildScript");
+	if ($BuildServer !~ /^$HostName/) {
+		TimedLog("Calling ssh as HostName($HostName) doesn't match BuildServer($BuildServer)");
+		if ($OriginalScript =~ /build_windows.*bat$/) {
+			unshift(@aArguments,$Script);
+			unshift(@aArguments,"-f", "/home/hwnbuild/src/tools/build/expectssh", $BuildServer);
+			$Script = "/tools/bin/expect";
+		} else {
+			unshift(@aArguments,$Script);
+			unshift(@aArguments,$BuildServer);
+			$Script = "/tools/bin/ssh";
+		}
+	}
+
+	TimedLog("Script to execute: ",$Script,@aArguments);
+
+	if ($bTest) {
+		TimedLog("RUNNING IN TEST MODE - SCRIPT NOT SUBMITTED TO QUEUE.");
+	} else {
+		# TODO Since MacOS has multiple servers given a brand
+		# TODO we can submit directly to target macos-server than
+		# TODO primary macos server
+		# if ($Platform eq "macos") {
+		# }
+
+		# fork and build!
+		defined(my $pid = fork) or die "ERROR: Can't fork: $!\n";
+		if (!$pid) {
+			TimedLog("Child submitting script to queue.");
+			# child process executing the build script
+			setsid or die "ERROR: Can't start a new session: $!\n";
+			open(STDOUT, '>' . MBS_SERVER_LOG_BASE . $LogFileName) or die "ERROR: Can't open script log" . $LogFileName . " $!\n";
+			open(STDERR, '>&STDOUT') or die "ERROR: Can't redirect STDERR to STDOUT $!\n";
+
+			exec ($Script, @aArguments);
+		}
+	}
+} # ExecuteScript()
+
+sub BuildBrands {
+	my ($class, $Platform, $User, $MyTag, $BuildBase, $ServerBase, $raMailTo, $raBrandsRequested, $Cutoff, $bForceBuild, $bRequestVerbose, $bTest, $bAllBrands,$GmakeFlags) = @_;
+
+	TimedLog(
+		"Platform: " . $Platform,
+		"User: " . $User,
+		"Tag: " . $MyTag,
+		"Flags: " . $GmakeFlags,
+		"BaseDir: " . $BuildBase,
+		"ServerDir: " . $ServerBase,
+		"Cutoff: " . $Cutoff,
+		"MailTo: " . join(", ",@{$raMailTo}),
+		"Brands: " . join(", ",@{$raBrandsRequested}),
+		"bForceBuild: " . (($bForceBuild)?"TRUE":"FALSE"),
+		"bRequestVerbose: " . (($bRequestVerbose)?"TRUE":"FALSE"),
+		"bAllBrands: " . (($bAllBrands)?"TRUE":"FALSE"),
+	);
+
+	if (length($MyTag) == 0) {
+		$MyTag = DEFAULT_BUILD_TAG;
+	}
+
+	my $RequestTime = strftime("%Y%m%d-%H%M%S", localtime(time));
+
+	my %haBrandsByBuildScript = ();
+	my %haBuildArgumentsByBuildScript = ();
+	my %Brands=();
+	my $bBadBuildBase = FALSE;
+	my %hRequestedBrand = ();
+	for (my $Index=0;$Index < scalar(@{$raBrandsRequested});$Index++) {
+		my $Brand = $$raBrandsRequested[$Index];
+		my $bExplicitPlatform = FALSE;
+		if ($Brand =~ /(.+):(.+)/) {
+			$bExplicitPlatform = TRUE;
+			if ($1 ne $Platform) {
+				next;
+			} else {
+				my $BrandOnly = $2;
+				$hRequestedBrand{$BrandOnly} = $Brand;
+				$Brand = $BrandOnly;
+			}
+		} else {
+			$hRequestedBrand{$Brand} = $Brand;
+		}
+		my $BuildScript = "";
+		VTimedLog("Calling BuildScriptForPlatformTagAndBrand");
+		$BuildScript = BuildUtils::BuildScriptForPlatformTagAndBrand($Platform,$MyTag,$Brand);
+		# if user is forcing the build, use the default build script for this platform
+		if ((length($BuildScript) == 0) && $bForceBuild && $bExplicitPlatform) {
+			$BuildScript = BuildUtils::BuildScriptForPlatformTagAndBrand($Platform,$MyTag);
+		}
+		if (length($BuildScript) > 0) {
+			push(@{$haBrandsByBuildScript{$BuildScript}},$Brand);
+
+			# add initial arguments to build script
+			if (scalar(@{$haBuildArgumentsByBuildScript{$BuildScript}}) == 0) {
+				if ($bAllBrands) {
+					#TODO# TimedLog("For tagged builds, keep latest iterations");
+					#TODO# push(@{$haBuildArgumentsByBuildScript{$BuildScript}},"-x0");
+				}
+				if ($MyTag ne DEFAULT_BUILD_TAG) {
+					push(@{$haBuildArgumentsByBuildScript{$BuildScript}},("-r",$MyTag));
+				}
+				if (!$BuildBase) {
+					VTimedLog("Calling BuildBaseForPlatformTagAndBrand");
+					$BuildBase = BuildUtils::BuildBaseForPlatformTagAndBrand($Platform,$MyTag,$Brand,$bForceBuild);
+					VTimedLog("Called BuildBaseForPlatformTagAndBrand");
+				}
+				if (length($BuildBase) > 0) {
+					push(@{$haBuildArgumentsByBuildScript{$BuildScript}},("-d",$BuildBase));
+					if (! -d $BuildBase) {
+						$bBadBuildBase = TRUE;
+					}
+				}
+				push(@{$haBuildArgumentsByBuildScript{$BuildScript}},"-m");
+				push(@{$haBuildArgumentsByBuildScript{$BuildScript}},"\"$User " . join(" ",@{$raMailTo}) . "\"");
+				if ($Cutoff) {
+					push(@{$haBuildArgumentsByBuildScript{$BuildScript}},("-c",$Cutoff));
+				}
+				if (!$ServerBase) {
+					$ServerBase = BuildUtils::DefaultServerBaseForPlatformTagAndBrand($Platform,$MyTag,$Brand,$bForceBuild);
+				}
+				if ((length($ServerBase) > 0) && BuildUtils::DefaultServerBaseForPlatformTagAndBrand($Platform,$MyTag,$Brand,$bForceBuild)) {
+					push(@{$haBuildArgumentsByBuildScript{$BuildScript}},("-s",$ServerBase));
+				}
+				push(@{$haBuildArgumentsByBuildScript{$BuildScript}},
+					("-e","\"BUILD_REQUESTER = $User : TIME_REQUESTED  = $RequestTime\""));
+				if ($bRequestVerbose) {
+					push(@{$haBuildArgumentsByBuildScript{$BuildScript}},"-v");
+				}
+				if ($GmakeFlags) {
+					if ($Platform =~ /windows/) {
+						push(@{$haBuildArgumentsByBuildScript{$BuildScript}},("-flag","\"$GmakeFlags\""));
+					} else {
+						push(@{$haBuildArgumentsByBuildScript{$BuildScript}},("-f","\"$GmakeFlags\""));
+					}
+				}
+			}
+
+			if ($Brands{$BuildScript}) {
+				$Brands{$BuildScript} .= " " . $Brand;
+			} else {
+				$Brands{$BuildScript} = $Brand;
+			}
+
+			if ($bBadBuildBase) {
+				delete($haBrandsByBuildScript{$BuildScript});
+				delete($haBuildArgumentsByBuildScript{$BuildScript});
+			}
+		}
+	}
+
+	my %hJobIDs = ();
+	if (scalar(keys(%haBrandsByBuildScript)) > 0) {
+		foreach my $BuildScript (sort(keys(%haBrandsByBuildScript))) {
+			# add brands to each build script's arguments
+			if (BuildUtils::SurroundBrandsWithQuotesForBuildScript($BuildScript)) {
+				push(@{$haBuildArgumentsByBuildScript{$BuildScript}},("-b","\"$Brands{$BuildScript}\""));
+			} else {
+				push(@{$haBuildArgumentsByBuildScript{$BuildScript}},("-b",$Brands{$BuildScript}));
+			}
+
+			my $JobID = "$User-$MyTag-" . basename($BuildScript) . "-$RequestTime";
+			foreach my $Brand (split(" ",$Brands{$BuildScript})) {
+				$hJobIDs{$hRequestedBrand{$Brand}} = $JobID;
+			}
+
+			ExecuteScript($BuildScript,\@{$haBuildArgumentsByBuildScript{$BuildScript}},$bTest, $JobID);
+
+			sleep(1);	# seems to need a slight delay when more than one build script
+		}
+	} else {
+		TimedLog("Platform: $Platform - No builds queued.");
+	}
+
+	return \%hJobIDs;
+} # BuildBrands()
+
+sub BuildSummary {
+	my ($class, $User, $MyTag, $raMailTo, $bTest) = @_;
+
+	TimedLog(
+		"User: " . $User,
+		"Tag: " . $MyTag,
+		"MailTo: " . join(", ",@{$raMailTo}),
+	);
+
+	# if no mailto addresses, just send it to the user who requested summary
+	if (scalar(@{$raMailTo}) == 0) {
+		push(@{$raMailTo},$User);
+	}
+
+	# build_summary script and arguments
+	my $Script = "/home/hwnbuild/src/tools/build/build_summary.sh";
+	my @aArguments = ("-s");
+	push(@aArguments,("-m","\"" . join(" ",@{$raMailTo}) . "\""));
+	push(@aArguments,("-u","$User"));
+	if ($MyTag ne DEFAULT_BUILD_TAG) {
+		push(@aArguments,("-r",$MyTag));
+	}
+
+	ExecuteScript($Script,\@aArguments,$bTest,"$User-build_summary.log");
+
+	return 	{
+		success => TRUE
+	}
+} # BuildSummary()
+
+sub GetStatus {
+	my ($class, $JobID) = @_;
+
+	TimedLog($JobID);
+
+	my %hStatus=();
+	opendir(LOGS,MBS_SERVER_LOG_BASE) or die "Cannot open " . MBS_SERVER_LOG_BASE;
+
+	my @aLogFiles = readdir(LOGS);
+	VTimedLog("Looking for jobs that match $JobID");
+	foreach (@aLogFiles) {
+		if (/$JobID/) {
+			VTimedLog("Opening $_");
+			open(STATUS_FILE, "<" . MBS_SERVER_LOG_BASE . $_);
+			$hStatus{basename($_)} = join("",<STATUS_FILE>);
+			VTimedLog("Read " . length($hStatus{basename($_)}) . " bytes.");
+			close(STATUS_FILE);
+		}
+	}
+	closedir(LOGS);
+
+	return(\%hStatus);
+} # GetStatus()
+
+sub Restart {
+
+	my ($class, @Parms) = @_;
+
+	if (scalar(@Parms) != 0) {
+		@RestartParms = @Parms;
+	}
+
+	TimedLog("Restarting using $MBSCommand " . join(" ",@RestartParms) . "\n\n");
+
+	close(STDOUT);
+	close(STDERR);
+	open(STDOUT, ">&STDOUTBACKUP");
+	open(STDERR, ">&STDERRBACKUP");
+
+	# REVISIT wait until job queue is empty?
+	# REVISIT close XMLRPC daemon?
+
+	exec ($MBSCommand, @RestartParms) or die "ERROR: Can't exec $0\n";
+
+} # Restart()
+
+sub Exit {
+
+	my ($class) = @_;
+	TimedLog("Server Stop Requested by $USER");
+	TimedLog("Exiting");
+
+	close(STDOUT);
+	close(STDERR);
+	open(STDOUT, ">&STDOUTBACKUP");
+	open(STDERR, ">&STDERRBACKUP");
+
+	# REVISIT wait until job queue is empty?
+	# REVISIT close XMLRPC daemon?
+
+	exit;
+
+} # Exit()
+
+

@@ -1,0 +1,44 @@
+#
+# Internal sources file (do not release)
+#
+# Copyright (C) 2001 Broadcom Corporation
+#
+# $Id: sources.wlmfd_dll,v 1.2 2008-04-02 14:31:10 $
+#
+
+TARGETTYPE     :=DLL
+PROCESSOR      :=X86
+HOSTOS         :=wince
+REQUIRE_WDM2600:=0
+WINCEVER       :=600
+TARGETNAME     =mfgTestApi
+LIB_PATH       ?= $(SRCBASE)/tools/bin/WINCE/$(WINCEVER)/Lib
+
+C_DEFINES += /DBUILD_MFGAPI_DLL
+
+vpath %.cpp $(SRCBASE)/tools/wlmfd/wlmfd
+SOURCES=stdafx.cpp mfgTestApi.cpp utility.cpp
+TARGETPATH=obj/mfgTestApi/$(WINCEVER)/$(PROCESSOR)
+
+INCLUDES=$(SRCBASE)/tools/wlmfd/wlmfd;$(_WINCEROOT)/public/common/oak/inc;$(_WINCEROOT)/public/common/ddk/inc;$(_WINCEROOT)/public/common/sdk/inc;$(_COMMONSDKROOT)/inc;$(SRCBASE)/include;
+
+ifeq ($(PROCESSOR),ARM)
+  SDK_LIB_PATH := "$(LIB_PATH)/ARMV4I"
+  INCLUDES+=$(_WINCEROOT)/Include/Armv4i;
+endif
+
+ifeq ($(PROCESSOR),X86)
+  SDK_LIB_PATH := "$(LIB_PATH)/$(PROCESSOR)"
+  INCLUDES+=$(_WINCEROOT)/Include/$(PROCESSOR);
+endif
+
+ifneq ($(PROCESSOR),ARM)
+ifneq ($(PROCESSOR),X86)
+  $(error NEW PROCESSOR is defined, needs modification to this file)
+endif
+endif
+
+TARGETLIBS= $(SDK_LIB_PATH)/coredll.lib \
+	    $(SDK_LIB_PATH)/corelibc.lib \
+	    $(SDK_LIB_PATH)/winsock.lib \
+	    $(SDK_LIB_PATH)/ws2.lib

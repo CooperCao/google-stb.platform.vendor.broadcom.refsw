@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BRCM_IP_TAG</key>
+	<string>Broadcom-WL-IPTag/Private1743:</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>AirPortBroadcom43XX</string>
+	<key>CFBundleGetInfoString</key>
+	<string>EPI_VERSION_STR, Copyright © 2011 Broadcom Coproration, All Rights Reserved</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.apple.driver.AirPortBroadcom43XX</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>AirPortBroadcom43XX</string>
+	<key>CFBundlePackageType</key>
+	<string>KEXT</string>
+	<key>CFBundleShortVersionString</key>
+	<string>EPI_VERSION_STR</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>EPI_VERSION_DEV</string>
+	<key>CFBundleCompatibleVersion</key>
+	<string>EPI_VERSION_DEV</string>
+	<key>IOKitPersonalities</key>
+	<dict>
+		<key>Broadcom 802.11 PCI</key>
+		<dict>
+			<key>wl_msg_level</key>
+			<integer>1</integer>
+			<key>wl_msg_level2</key>
+			<integer>0</integer>
+			<key>wl_assert_bypass</key>
+			<false/>
+			<key>wl_p2p_ssid</key>
+			<string></string>
+			<key>CFBundleIdentifier</key>
+			<string>com.apple.driver.AirPortBroadcom43XX</string>
+			<key>IOClass</key>
+			<string>AirPort_Brcm43xx</string>
+			<key>IOMatchCategory</key>
+			<string>IODefaultMatchCategory</string>
+			<key>IONameMatch</key>
+			<array>
+				<string>pci106b,4e</string>
+				<string>pci14e4,4316</string>
+				<string>pci14e4,4324</string>
+				<string>pci14e4,4353</string>
+				<string>pci14e4,4331</string>
+				<string>pci14e4,43a0</string>
+				<string>pci14e4,4360</string>
+				<string>pci14e4,43ae</string>
+				<string>pci14e4,43a3</string>
+				<string>pci14e4,43ba</string>
+			</array>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+		</dict>
+	</dict>
+	<key>OSBundleLibraries</key>
+	<dict>
+		<key>com.apple.iokit.IOACPIFamily</key>
+		<string>1.2</string>
+		<key>com.apple.iokit.IO80211Family</key>
+		<string>310.5</string>
+		<key>com.apple.iokit.IONetworkingFamily</key>
+		<string>1.5.0</string>
+		<key>com.apple.iokit.IOPCIFamily</key>
+		<string>1.6</string>
+		<key>com.apple.kpi.bsd</key>
+		<string>8.0.0</string>
+		<key>com.apple.kpi.iokit</key>
+		<string>8.0.0</string>
+		<key>com.apple.kpi.libkern</key>
+		<string>8.0.0</string>
+		<key>com.apple.kpi.mach</key>
+		<string>8.0.0</string>
+		<key>com.apple.kpi.unsupported</key>
+		<string>8.0.0</string>
+	</dict>
+</dict>
+</plist>
