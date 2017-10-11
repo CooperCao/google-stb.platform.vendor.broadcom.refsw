@@ -1,0 +1,100 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+
+#
+# UTF test script for a basic streams tests
+#
+# Written by: Robert J. McMahon April 2010
+#
+# $Copyright Broadcom Corporation$
+#
+package require UTF
+package require UTF::Streams
+
+#
+#  Make sure that UDP Streams with QOS are prioritized over
+#  best effort TCP streams
+#
+UTF::Test BestEffortNoImpact {args} {
+    UTF::Getopts {
+	{txsta.arg ""}
+	{rxsta.arg ""}
+    }
+    #
+    # Create a UDP video stream and TCP best effort stream
+    #
+    ::UTF::stream create tcpbesteffort
+    tcpbesteffort configure -protocol tcp
+    tcpbesteffort configure -receivesta $(rxsta)
+    tcpbesteffort configure -transmitsta $(txsta)
+    tcpbesteffort configure -advancedstats on
+
+    ::UTF::stream create videostream
+    videostream configure -traffictype VIDEO
+    videostream configure -receivesta $(rxsta)
+    videostream configure -transmitsta $(txsta)
+    videostream configure -advancedstats on
+    #
+    # Measure the tcp best effort rate without the videostream,
+    # i.e. a besteffort rating
+    #
+    tcpbesteffort start
+    UTF::Sleep 5
+    set besteffortrating [lindex [tcpbesteffort stats -rate -mma] 0]
+    if {$besteffortrating == ""} {
+	destroy tcpbesteffort
+	error "null best effort rating"
+    }
+    UTF::Message INFO+blue "TCP-stream" "Besteffort rating is $besteffortrating"
+    tcpbesteffort stop
+    #
+    #  Now start the UDP video stream and make sure it's ok
+    #
+    videostream start
+    UTF::Sleep 5
+    videostream stop
+    set videostreamlost [videostream stats -lost -meanminmax]
+    set maxlost [lindex $videostreamlost end]
+    if {$maxlost > 2} {
+	videostream destroy
+        tcpbesteffort destroy
+	error "Video stream losing packets: [videostream stats -lostratepps]"
+    } else {
+	UTF::Message PASS+green "videostream" "stream ok - no lost packets"
+    }
+
+    #
+    #  Set the videostream to 80% of the Besteffort rating
+    #
+    set tmp [expr $besteffortrating * 0.8]
+    if {$tmp < 1000000} {
+	videostream destroy
+        tcpbesteffort destroy
+	error "Best effort rating is less than 1Mb/s, aborting test"
+    }
+    set offeredrate [expr int($tmp / 1000000)]M
+    videostream configure -rate $offeredrate
+    UTF::Message INFO+blue "videostream" "Offered rate=$offeredrate"
+    videostream start
+    tcpbesteffort start
+    videostream stats -clear
+    tcpbesteffort stats -clear
+    UTF::Sleep 10
+
+    #
+    #  Check streams
+    #
+    set videostreamlost [videostream stats -lost -meanminmax]
+    set maxlost [lindex $videostreamlost end]
+    if {$maxlost > 2} {
+	videostream destroy
+        tcpbesteffort destroy
+	error "Video stream losing packets with best effort: [videostream stats -lostratepps]"
+    } else {
+	UTF::Message PASS+green "QoS Test" "Videostream=[videostream stats -rate -mma] Besteffort=[tcpbesteffort stats -rate -mma]"
+    }
+    videostream destroy
+    tcpbesteffort destroy
+
+}

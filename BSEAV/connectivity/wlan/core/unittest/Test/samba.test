@@ -1,0 +1,177 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for checking SMB performance to a router with
+# internal or external media devices.
+#
+# $Id$
+#
+package require UTF
+package require UTF::Test::controlchart
+
+package provide UTF::Test::samba 2.0
+
+UTF::Test samba {AP args} {
+    UTF::Getopts [subst {
+	{s.arg 5 "Number of samples"}
+	{loop.arg "1" "loops"}
+	{perfcache.arg "" "Performance Cache"}
+	{history.arg 30 "Performance History"}
+	{nocache "Don't update performance cache"}
+	{media.arg "" "Media mountpoint"}
+	{client.arg "[$AP lan]" "Samba Client"}
+	{erase "Erase nand device"}
+    }]
+
+    if {![$AP hostis Router]} {
+	UTF::Message LOG $AP "samba test disabled: not a router"
+	return
+    } elseif {[$AP cget -nosamba]} {
+	UTF::Message LOG $AP "samba test disabled"
+	return
+    } elseif {[catch {$AP nvram get samba_mode} ret]} {
+	UTF::Message ERROR $AP $ret
+    } elseif {$ret ne "2"} {
+	UTF::Message LOG $AP "samba test disabled: samba_mode not enabled"
+	return
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    # Fail criteria
+    set FAILMATCH "LOW|WIDE|ZERO"
+
+    set branch [$AP branchname]
+
+    if {$(media) eq ""} {
+	set (media) [$AP ls /tmp/media]
+    }
+    if {$(erase)} {
+	if {[lsearch $(media) nand] >= 0} {
+	    $AP erase brcmnand
+	    $AP reboot
+	    return
+	} else {
+	    error "No bcmband device to erase"
+	}
+    }
+    set apip [$AP ipaddr]
+
+    foreach m $(media) {
+
+	set parm(media) $m
+
+	set key [concat $branch $AP samba $m]
+
+	if {$m eq "nand"} {
+	    # Nand is slow - no benefit to going larger
+	    set size 10
+	} else {
+	    # USB is fast, larger files give more stable results.
+	    set size 100
+	}
+
+	set parm(size) $size
+
+	set setup 0
+	set getcmd ""
+	set putcmd ""
+	UTF::Try "$AP: samba $m put (${size}MB)" {
+
+	    for {set i 0} {$i < 5} {incr i} {
+		if {[catch {$(client) du --apparent-size -B1MB test$size#$i.rnd} ret] ||
+		    [lindex $ret 0] ne $size} {
+		    $(client) dd if=/dev/urandom of=test$size#$i.rnd bs=1MB count=$size
+		}
+		lappend putcmd "put test$size#$i.rnd"
+		lappend getcmd "get test$size#$i.rnd /dev/null"
+	    }
+	    set setup 1
+
+	    set parm(dir) "put"
+
+	    set smbclient "smbclient -N //$apip/media -D $m"
+
+	    UTF::ControlChart CC -s $(s) -key [concat $key put] \
+		-perfcache $(perfcache) -history $(history) \
+		-title "Samba put" -units "MB/s"
+
+	    for {set c 0} {$c < $(loop)} {incr c} {
+
+		set put {}
+		set ret [$(client) rexec -t 120 \
+			     "$smbclient -c '[join $putcmd ";"]'"]
+
+		foreach {- p} [regexp -line -inline -all \
+				   {putting .* \((\d+\.\d) kb/s\) \(}  $ret] {
+		    lappend put [expr {$p / 1000.0}]
+		}
+		foreach p $put {
+		    UTF::XPASS $AP $p [UTF::ParmStrip parm]
+		}
+
+		UTF::Message LOG $AP "put $put"
+		set ret [CC addsample [UTF::MeanMinMax $put]]
+	    }
+
+	    if {[info exists ::UTF::Summary]} {
+		set ret [CC plotcontrolchart $ret]
+	    }
+	    if {[regexp $FAILMATCH $ret]} {
+		UTF::Message FAIL "" $ret
+		throw FAIL $ret
+	    } else {
+		UTF::Message PASS "" $ret
+		return $ret
+	    }
+	}
+	if {!$setup} {
+	    continue
+	}
+
+	UTF::Try "$AP: samba $m get (${size}MB)" {
+
+	    set parm(dir) "get"
+	    UTF::ControlChart CC -s $(s) -key [concat $key get] \
+		-perfcache $(perfcache) -history $(history) \
+		-title "Samba get" -units "MB/s"
+
+	    for {set c 0} {$c < $(loop)} {incr c} {
+
+		set get {}
+		set ret [$(client) rexec \
+			     "$smbclient -c '[join $getcmd ";"]'"]
+
+		foreach {- p} [regexp -line -inline -all \
+				   {getting .* \((\d+\.\d) (?:kb/s|KiloBytes/sec)\) \(}  $ret] {
+		    lappend get [expr {$p / 1000.0}]
+		}
+		UTF::Message LOG $AP "get $get"
+
+		foreach g $get {
+		    UTF::XPASS $AP $g [UTF::ParmStrip parm]
+		}
+
+		set ret [CC addsample [UTF::MeanMinMax $get]]
+	    }
+
+	    if {[regexp $FAILMATCH $ret]} {
+		UTF::Message FAIL "" $ret
+		set code 1
+	    } else {
+		UTF::Message PASS "" $ret
+		set code 0
+	    }
+	    if {[info exists ::UTF::Summary]} {
+		set ret [CC plotcontrolchart $ret]
+	    }
+	    if {$code} {
+		throw FAIL $ret
+	    } else {
+		return $ret
+	    }
+	}
+    }
+}

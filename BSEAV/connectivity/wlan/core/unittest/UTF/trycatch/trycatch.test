@@ -1,0 +1,598 @@
+# -*-Tcl-*-
+#---------------------------------------------------------------------
+# TITLE:
+#	trycatch.test
+#
+# AUTHOR:
+#	Will Duquette
+#
+# DESCRIPTION:
+#	Test cases for trycatch.tcl.  Uses the ::tcltest:: harness.
+#
+# 	Copyright (C) 2001 by William H. Duquette.  See license.txt
+#	for license information.
+
+#---------------------------------------------------------------------
+# Load the tcltest package
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+#---------------------------------------------------------------------
+# Load the trycatch package
+source trycatch.tcl
+namespace import ::trycatch::*
+
+
+#---------------------------------------------------------------------
+# Test cases
+
+#---------------------------------------------------------------------
+# Form: try {...}
+
+test trycatch-1.1 {try with no errors in tryScript} {} {
+    set a "Before tryScript"
+    try {
+        set a "In tryScript"
+    }
+    set a
+} {In tryScript}
+
+test trycatch-1.2 {try with an error in tryScript} {} {
+    set a "Before tryScript"
+    try {
+        set a "In tryScript"
+        error "Should be ignored"
+    }
+    set a
+} {In tryScript}
+
+test trycatch-1.3 {try with continue in tryScript} {} {
+    set before 0
+    set after 0
+    for {set i 0} {$i < 5} {incr i} {
+        incr before
+        try {
+            continue
+        }
+        incr after
+    }
+    list $before $after
+} {5 0}
+
+test trycatch-1.4 {try with break in tryScript} {} {
+    set before 0
+    set after 0
+    for {set i 0} {$i < 5} {incr i} {
+        incr before
+        try {
+            break
+        }
+        incr after
+    }
+    list $before $after
+} {1 0}
+
+test trycatch-1.5 {try with return in tryScript} {} {
+    proc myproc {} {
+        try {
+            return "OK"
+        }
+        return "NOGO"
+    }
+    myproc
+} {OK}
+
+test trycatch-1.6 {return value from try when no error} {} {
+    try {
+        set a "In tryScript"
+    }
+} {In tryScript}
+
+test trycatch-1.7 {return value from try when error} {} {
+    try {
+        set a "In tryScript"
+        error "Simulated Error"
+    }
+} {}
+
+test trycatch-2.1 {try/catch with no errors in tryScript} {} {
+    try {
+        set a "In tryScript"
+    } catch {
+        set a "In catchScript"
+    }
+    set a
+} {In tryScript}
+
+test trycatch-2.2 {try/catch with continue in tryScript} {} {
+    set before 0
+    set after 0
+    for {set i 0} {$i < 5} {incr i} {
+        incr before
+        try {
+            continue
+        } catch {
+            error "Should not catch!"
+        }
+        incr after
+    }
+    list $before $after
+} {5 0}
+
+test trycatch-2.3 {try/catch with break in tryScript} {} {
+    set before 0
+    set after 0
+    for {set i 0} {$i < 5} {incr i} {
+        incr before
+        try {
+            break
+        } catch {
+            error "Should not catch!"
+        }
+        incr after
+    }
+    list $before $after
+} {1 0}
+
+test trycatch-2.4 {try/catch with return in tryScript} {} {
+    proc myproc {} {
+        try {
+            return "OK"
+        } catch {
+            error "Should not have caught"
+        }
+        return "NOGO"
+    }
+    myproc
+} {OK}
+
+test trycatch-2.5 {try/catch with simulated error in tryScript} {} {
+    try {
+        set a 0
+        set msg OK
+        error "Simulated"
+    } catch -msg msg {
+        set a 1
+    }
+
+    list $a $msg
+} {1 Simulated}
+
+test trycatch-2.6 {return value of try/catch with no errors in tryScript} {} {
+    try {
+        set a "In tryScript"
+    } catch {
+        set a "In catchScript"
+    }
+} {In tryScript}
+
+test trycatch-2.7 {return value of try/catch with error in tryScript} {} {
+    try {
+        set a "In tryScript"
+        error "Simulated Error"
+    } catch {
+        set a "In catchScript"
+    }
+} {In catchScript}
+
+test trycatch-3.1 {try/catch with continue in catchScript} {} {
+    set before 0
+    set after 0
+    for {set i 0} {$i < 5} {incr i} {
+        incr before
+        try {
+            error "try"
+        } catch {
+            continue
+        }
+        incr after
+    }
+    list $before $after
+} {5 0}
+
+test trycatch-3.2 {try/catch with break in catchScript} {} {
+    set before 0
+    set after 0
+    for {set i 0} {$i < 5} {incr i} {
+        incr before
+        try {
+            error "try"
+        } catch {
+            break
+        }
+        incr after
+    }
+    list $before $after
+} {1 0}
+
+test trycatch-3.3 {try/catch with return in catchScript} {} {
+    proc myproc {} {
+        try {
+            error "try"
+        } catch {
+            return "OK"
+        }
+        return "NOGO"
+    }
+    myproc
+} {OK}
+
+test trycatch-3.4 {try/catch with simulated error in catchScript} {} {
+    global errorInfo
+    global errorCode
+
+    proc myproc {} {
+        try {
+            error "try"
+        } catch {
+            error "Simulated" myErrorInfo myErrorCode
+        }
+        return "NOGO"
+    }
+
+    set returnCode [catch {myproc} result]
+    
+    set matchCode [string match "myErrorInfo*" $errorInfo]
+
+    list $returnCode $result $matchCode $errorCode
+} {1 Simulated 1 myErrorCode}
+
+test trycatch-3.5 {try/catch with options} {} {
+    proc myproc {} {
+        try {
+            error "try"
+        } catch {
+            error "Simulated" myErrorInfo myErrorCode
+        }
+        return "NOGO"
+    }
+
+    try {
+        myproc
+    } catch -msg msg -info info -code code {
+        set info [string match "myErrorInfo*" $info]
+        list $msg $info $code
+    }
+} {Simulated 1 myErrorCode}
+
+test trycatch-3.6 {Nested try/catch with return in tryScript} {} {
+    proc myproc {} {
+        try {
+            try {
+                return "OK"
+            } catch {
+                error "try"
+            }
+        } catch {
+            error "try"
+        }
+        return "NOGO"
+    }
+    myproc
+} {OK}
+
+
+test trycatch-4.1 {try/finally with empty try script} {} {
+    set msg "try"
+
+    try { 
+        # do nothing
+    } finally {
+        set msg "finally"
+    }
+
+    set msg
+} {finally}
+
+test trycatch-4.2 {return value of try/finally} {} {
+    set msg ""
+
+    try { 
+        set msg "try"
+    } finally {
+        set msg "finally"
+    }
+} {try}
+
+test trycatch-4.3 {try/finally with break in try script} {} {
+    set msg "try"
+
+    foreach x {1 2 3} {
+        try { 
+            break
+        } finally {
+            set msg "finally"
+        }
+    }
+
+    list $msg $x
+} {finally 1}
+
+test trycatch-4.4 {try/finally with continue in try script} {} {
+    set msg "try"
+
+    foreach x {1 2 3} {
+        set val "before"
+        try { 
+            continue
+        } finally {
+            set msg "finally"
+        }
+        set val "after"
+    }
+
+    list $msg $val $x
+} {finally before 3}
+
+test trycatch-4.5 {try/finally with return in try script} {} {
+    set msg "try"
+
+    proc myproc {var} {
+        upvar $var msg
+        try { 
+            return "ok"
+        } finally {
+            set msg "finally"
+        }
+    }
+
+    set result [myproc msg]
+
+    list $result $msg
+} {ok finally}
+
+test trycatch-4.6 {try/finally with error in try script} {} {
+    set msg1 ""
+    set msg2 ""
+    set msg3 ""
+    set msg4 ""
+
+    try {
+        try { 
+            set msg1 "try"
+            error "Simulated Error"
+            set msg2 "try"
+        } finally {
+            set msg3 "finally"
+        }
+    } catch {
+        set msg4 "catch"
+    }
+    list $msg1 $msg2 $msg3 $msg4
+} {try {} finally catch}
+
+test trycatch-5.1 {try/finally with break in finally script} {} {
+    proc myproc {} {
+        try {
+            # Do nothing
+        } finally {
+            break
+        }
+    }
+
+    catch {myproc} result
+    set result
+} {break, return, or continue in finally script}
+
+test trycatch-5.2 {try/finally with continue in finally script} {} {
+    proc myproc {} {
+        try {
+            # Do nothing
+        } finally {
+            continue
+        }
+    }
+
+    catch {myproc} result
+    set result
+} {break, return, or continue in finally script}
+
+test trycatch-5.3 {try/finally with return in finally script} {} {
+    proc myproc {} {
+        try {
+            # Do nothing
+        } finally {
+            return
+        }
+    }
+
+    catch {myproc} result
+    set result
+} {break, return, or continue in finally script}
+
+test trycatch-5.4 {try/finally with error in finally script} {} {
+    proc myproc {} {
+        try { 
+        } finally {
+            error "finally"
+        }
+        return "after"
+    }
+
+    catch {myproc} result
+    set result
+} {finally}
+
+test trycatch-6.1 {try/catch with no catch script} {} {
+    proc myproc {} {
+        try {
+            # Do nothing
+        } catch
+    }
+
+    catch {myproc} result
+    set result
+} {syntax: try {...} catch ?opts? {...}, try {...} finally {...}}
+
+test trycatch-6.2 {try/catch with extra args} {} {
+    proc myproc {} {
+        try {
+            # Do nothing
+        } catch {
+            # Do nothing
+        } foobar
+    }
+
+    catch {myproc} result
+    set result
+} {syntax: try {...} catch ?opts? {...}, try {...} finally {...}}
+
+test trycatch-6.3 {try/finally with no finally script} {} {
+    proc myproc {} {
+        try {
+            # Do nothing
+        } finally
+    }
+
+    catch {myproc} result
+    set result
+} {syntax: try {...} catch ?opts? {...}, try {...} finally {...}}
+
+test trycatch-6.4 {try/finally with extra args} {} {
+    proc myproc {} {
+        try {
+            # Do nothing
+        } finally {
+            # Do nothing
+        } foobar
+    }
+
+    catch {myproc} result
+    set result
+} {syntax: try {...} catch ?opts? {...}, try {...} finally {...}}
+
+test trycatch-6.5 {try/foo} {} {
+    proc myproc {} {
+        try {
+            # Do nothing
+        } foo {
+            # Do nothing
+        }
+    }
+
+    catch {myproc} result
+    set result
+} {syntax: try {...} catch ?opts? {...}, try {...} finally {...}}
+
+test trycatch-6.6 {try/catch with unknown option} {} {
+    proc myproc {} {
+        try {
+            # Do nothing
+        } catch -foo fooVar {
+            # Do nothing
+        }
+    }
+
+    catch {myproc} result
+    set result
+} {valid options: -msg msgVar -code codeVar -info infoVar}
+
+test trycatch-7.1 {throw} {} {
+    try {
+        throw MyErrorCode "My Error Message"
+    } catch -code code -msg msg {
+        list $code $msg
+    }
+} {MyErrorCode {My Error Message}}
+
+test trycatch-8.1 {Match} {} {
+    list \
+            [::trycatch::Match {*} {}] \
+            [::trycatch::Match {*} {abc}] \
+            [::trycatch::Match {abc} {abc}] \
+            [::trycatch::Match {abc*} {abcd}] \
+            [::trycatch::Match {abc* * def*} {abcd x defg}] \
+            [::trycatch::Match {abc} {def}] \
+            [::trycatch::Match {abc def} {abc}]
+} {0 1 1 1 1 0 0}
+
+test trycatch-9.1 {onerr with bad option} {} {
+    proc myproc {} {
+        onerr -foo None {*} {
+            # Do Nothing
+        }
+    }
+    catch {myproc} result
+    set result
+} {syntax: onerr ?-code errorCode? pattern script ...}
+
+test trycatch-9.2 {onerr with uneven args} {} {
+    proc myproc {} {
+        onerr None {*} {
+            # Do Nothing
+        }
+    }
+    catch {myproc} result
+    set result
+} {syntax: onerr ?-code errorCode? pattern script ...}
+
+test trycatch-9.3 {onerr with implicit error code} {} {
+    set msg1 ""
+    set errorCode {POSIX ENOENT}
+    onerr CHILDKILLED {
+        set msg1 CHILDKILLED
+    } POSIX {
+        set msg1 POSIX
+    } * {
+        set msg1 DEFAULT
+    }
+} {POSIX}
+
+test trycatch-9.4 {onerr with explicit error code} {} {
+    set code {CHILDKILLED 1234 SIGTERM}
+    set msg1 ""
+    onerr -code $code {POSIX ENOENT} {
+        set msg1 ENOENT
+    } POSIX {
+        set msg1 POSIX
+    } {* * SIGTERM} {
+        set msg1 SIGTERM
+    } * {
+        set msg1 DEFAULT
+    }
+} {SIGTERM}
+
+test trycatch-9.5 {onerr with default error code} {} {
+    set code {CHILDKILLED 1234 SIGTERM}
+    set msg1 ""
+    onerr -code $code {POSIX ENOENT} {
+        set msg1 ENOENT
+    } * {
+        set msg1 DEFAULT
+    }
+} {DEFAULT}
+
+test trycatch-9.6 {onerr with no matching error code} {} {
+    set code {CHILDKILLED 1234 SIGTERM}
+    set msg1 ""
+    onerr -code $code {POSIX ENOENT} {
+        set msg1 ENOENT
+    }
+} {}
+
+test trycatch-10.1 {try/catch/throw/onerr} {} {
+    set tag ""
+
+    try {
+        throw {MyPackage MyCode} "Simulated MyCode Error"
+    } catch -msg msg -code code {
+        onerr MyPackage {
+            set tag "onerr"
+        }
+    }
+
+    list $msg $code $tag 
+} {{Simulated MyCode Error} {MyPackage MyCode} onerr}
+
+
+#---------------------------------------------------------------------
+# Clean up
+
+::tcltest::cleanupTests
+return
+
+
+

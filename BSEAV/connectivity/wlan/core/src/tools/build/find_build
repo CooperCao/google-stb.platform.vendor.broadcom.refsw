@@ -1,0 +1,168 @@
+#!/bin/bash
+##
+## Script to search and find a particular build across the swbuild repositories
+##
+## -Prakashd 05/10/2009
+##
+
+## Usage Example2: find_build.sh -all  LALA_REL_4_80_34 (Long listing)
+## Usage Example2: find_build.sh -match LALA_REL_4_80_34 (Try exact match)
+
+show="$1"
+show_flag="match"
+
+# Flags to turn on or off different storage types
+show_production=1; # Show production (read-write) build storage hits
+show_preserved=0;  # Show partially preserved build storage hits
+show_archived=0;   # Show archived (read-only) build storage hits
+
+# -all turns on preserved and archived search as well substring matching
+if [ "${show}" == "-a" -o "${show}" == "-all" ]; then
+	show_flag="all"
+	show_preserved=1
+	show_archived=1
+	shift
+elif [ "${show}" == "-m" -o "${show}" == "-match" ]; then
+	show_flag="match"
+	shift
+elif [ "${show}" == "-l" -o "${show}" == "-latest" ]; then
+	# TODO: Latest bld tag search needs to be worked on still
+	show_flag="latest"
+	shift
+elif echo "${show}" | grep -q "^-"; then
+	echo "WARN: Unknown option '$show'. Ignoring it"
+	shift
+fi
+
+buildtags=$*
+
+if [ "${buildtags}" == "" ]; then
+   echo ""
+   echo "$0 locates a given build/tag across production/preserved/read-only disks"
+   echo ""
+   echo "Error: Missing <build-tag> argument"
+   echo "   Usage: $0 -all <build-tag>"
+   echo "          Shows actual long paths of each occurance"
+   echo "          One can search a sub-string with this flag"
+   echo "          OR"
+   echo "   Usage: $0 -match <build-tag>"
+   echo "          Try to show exact match"
+   echo ""
+   exit 1
+fi
+
+# echo "Searching for (${show_flag}) '$buildtags'"
+
+if [ "${show_flag}" == "match" ]; then
+   pfx=""; sfx="";
+else
+   pfx="*"; sfx="*";
+fi
+
+# Try to automount projects disks first
+for i in $(seq 0 50); do
+	df -k /projects/hnd_swbuild_ext$i/         > /dev/null 2>&1
+	df -k /projects/hnd_swbuild_ext$i_scratch/ > /dev/null 2>&1
+	df -k /projects/hnd_swbuild_preserve$i/    > /dev/null 2>&1
+	df -k /projects/hnd_sw_archive_ro_ext$i/   > /dev/null 2>&1
+done
+
+for tag in ${buildtags}
+do
+	# TODO: Latest bld tag search needs to be worked on still
+	# if [ -n "$latest" ]; then
+	# 	major=""; minor=""; bldnum=""; iter=""
+	# 	IFS="_" rlsnums=($tag)
+	# 	unset IFS
+	# 	major=${rlsnums[2]}
+	# 	minor=${rlsnums[3]}
+	# 	[ -n "${rlsnums[4]}" ] && bldnum=${rlsnums[4]}
+	# 	[ -n "${rlsnums[5]}" ] && iter=${rlsnums[5]}
+	# fi
+
+	if [ "$show_production" != "0" ]; then
+		echo ""
+		echo "-------- PRODUCTION BUILDS ----------------"
+		builds=`find /projects/hnd_swbuild/build_* \
+			/projects/hnd_swbuild_ext/build_* \
+			/projects/hnd_swbuild_ext{?,??}/build_* \
+			/projects/hnd_swbuild_ext{?,??}_scratch/build_* \
+			-maxdepth 1 -mindepth 1 -name "${pfx}${tag}${sfx}" \
+			-follow -print 2> /dev/null | sort -nr 2> /dev/null`
+
+		if [ "$builds" == "" ]; then
+			echo "WARN: No matching PRODUCTION builds found for '$tag'"
+		fi
+
+		for bld in $builds
+		do
+			# TODO: Latest bld tag search needs to be worked on still
+			# if [ -n "$latest" ]; then
+			# 	rcnum=$(echo $(basename $bld) | awk -F_ '{print $NF}')
+			# 	continue
+			# fi
+			if [ -L "$bld" ]; then
+				dest=$(readlink $bld)
+				echo "PRODUCTION Link: $bld"
+				echo "           To  : $dest"
+			elif [ -d "$bld" ]; then
+				echo "PRODUCTION Dir : $bld"
+			elif [ -f "$bld" ]; then
+				echo "PRODUCTION File: $bld"
+			else
+				echo "PRODUCTION Misc: $bld"
+			fi
+		done
+	fi
+
+	if [ "$show_preserved" != "0" ]; then
+		echo ""
+		echo "-------- PARTIAL PRESERVED BUILDS ----------------"
+		builds=`find /projects/hnd_swbuild*/build_*/PRESERVED \
+			-maxdepth 1 -mindepth 1 -name "${pfx}${tag}${sfx}" \
+			-follow -print 2> /dev/null | sort -nr 2> /dev/null`
+
+		if [ "$builds" == "" ]; then
+			echo "WARN: No matching PARTIAL PRESERVED builds found for '$tag'"
+		fi
+
+		for bld in $builds
+		do
+			if [ -L "$bld" ]; then
+				echo "PRESERVED Link: $bld"
+			elif [ -d "$bld" ]; then
+				echo "PRESERVED Dir : $bld"
+			elif [ -f "$bld" ]; then
+				echo "PRESERVED File: $bld"
+			else
+				echo "PRESERVED Misc: $bld"
+			fi
+		done
+	fi
+
+	if [ "$show_archived" != "0" ]; then
+		echo ""
+		echo "-------- ARCHIVED READ-ONLY BUILDS ----------------"
+		builds=`find /projects/hnd_swbuild*/build_*/ARCHIVED \
+			-maxdepth 1 -mindepth 1 -name "${pfx}${tag}${sfx}" \
+			-follow -print 2> /dev/null | sort -nr 2> /dev/null`
+
+		if [ "$builds" == "" ]; then
+			echo "WARN: No matching ARCHIVED READ ONLY builds found for '$tag'"
+		fi
+
+		for bld in $builds
+		do
+			if [ -L "$bld" ]; then
+				echo "ARCHIVED Link: $bld"
+			elif [ -d "$bld" ]; then
+				echo "ARCHIVED Dir : $bld"
+			elif [ -f "$bld" ]; then
+				echo "ARCHIVED File: $bld"
+			else
+				echo "ARCHIVED Misc: $bld"
+			fi
+		done
+	fi
+
+done

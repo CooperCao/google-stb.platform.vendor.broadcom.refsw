@@ -1,0 +1,17 @@
+#
+# $Id$
+#
+MAILTO=tima@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	prod/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+15	1	* * *	prod/unittest/cron/launch mc41r Test/RouterNightly.test -utfconf mc41 -title 'mc41: 4708' -aps '4708t/4360 4708b14x/4360 4708b14/4360 4708b14/4331'
+45	3	* * *	prod/unittest/cron/launch mc41e Test/StaNightly.test -utfconf mc41e -title 'mc41e: X87' -ap 4360e -sta 'X87'
+55	3	* * *	prod/unittest/cron/launch mc41c Test/StaNightly.test -utfconf mc41c -title 'mc41c: 7448/43569+43526' -ap 4360c -sta '7448/43569x 7448/43569 7448/43526b14'
+0	4	* * *	prod/unittest/cron/launch mc41d Test/StaNightly.test -utfconf mc41d -title 'mc41d: 43452' -ap 4360d -sta '43452x 43452'

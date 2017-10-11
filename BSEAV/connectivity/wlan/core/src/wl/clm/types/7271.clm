@@ -1,0 +1,3 @@
+# This enables all CLM modes for NIC drivers and others with no
+# need for filtering. Waiting on more ccodes to be generated. 
+--ccrev "all/0 US/0 Q1/139 E0/938 DE/972 DE/973 DE/974 DE/975 US/877 US/878 US/879 US/880 US/881 US/882" --txbf --1024_qam

@@ -1,0 +1,13 @@
+#
+# Internal sources file (do not release)
+#
+# Copyright (C) 2001 Broadcom Corporation
+#
+# $Id: sources,v 1.2 2008-04-02 14:43:09 $
+#
+
+TARGETNAME=MfgTestLGE
+
+include sources.common
+
+OTHER_SOURCES=

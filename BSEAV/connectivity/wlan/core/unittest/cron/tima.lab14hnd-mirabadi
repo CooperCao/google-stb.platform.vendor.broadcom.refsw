@@ -1,0 +1,16 @@
+# $Id$
+#
+MAILTO=tima@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	prod/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+
+#52 03 * * * prod/unittest/cron/launch 0204  Test/RouterNightly.test -utfconf so-coex-1 -title 'SO-COEX-1: 4709/43570' -aps '4709b35x/43570a 4709b35/43570a 4709b35/43570g' 
+
+#12 03 * * * prod/unittest/cron/launch 0204  Test/StaNightly.test -utfconf so-coex-1 -sta '4352Win7b 43228Win7b 4352Win7 43228Win7' -loop 1 -ap '43570_2g  43570_1a' -title 'SO-COEX-1 43228 4352'
+

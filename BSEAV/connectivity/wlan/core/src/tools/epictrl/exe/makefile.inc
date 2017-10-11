@@ -1,0 +1,3 @@
+
+../($DDKBUILDENV)/$(DIAG_CTLDLL_BASE).lib : FORCE
+	$(MAKE) -C .. $(MAKEFLAGS) 

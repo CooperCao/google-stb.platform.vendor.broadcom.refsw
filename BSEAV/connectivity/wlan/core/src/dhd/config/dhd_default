@@ -1,0 +1,12 @@
+# Broadcom Dongle host driver configuration file
+#
+# $Copyright Open Broadcom Corporation$
+
+# default dhd config file
+#
+# $Id: dhd_default,v 1.3 2010-04-26 19:08:14 prakashd Exp $
+
+# dhd driver base features
+COMMON_FLAGS=1
+
+# dhd features

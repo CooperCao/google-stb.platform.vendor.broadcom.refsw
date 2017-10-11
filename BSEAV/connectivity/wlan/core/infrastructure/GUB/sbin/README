@@ -1,0 +1,5 @@
+None of the files here are important to production use. They're scripts
+which were useful while developing GUB, or in development for possible
+future use, or maybe things that are useful for ad-hoc testing. But
+these programs are not on the production PATH and not part of the
+official tool suite.

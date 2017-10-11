@@ -1,0 +1,31 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# SWWLAN-44330 UTF: 4354a1 PCIe low throughput recovers after reassoc
+#
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+
+UTF::Test SWWLAN-44330 {AP STA} {
+
+    # disable WAR
+    $STA configure -post_assoc_hook ""
+
+    UTF::Try "$STA associate to $AP" {
+	ConnectAPSTA $AP $STA -security open -chanspec 36/80
+    }
+    UTF::Try "AP->STA" {
+	UTF::Multiperf [list $AP $STA] -i 2 -t 6 -w 2m
+    }
+    UTF::Try "reassoc" {
+	$STA wl reassoc [$STA wl bssid]
+    }
+    UTF::Try "AP->STA" {
+	UTF::Multiperf [list $AP $STA] -i 2 -t 6 -w 2m
+    }
+
+}

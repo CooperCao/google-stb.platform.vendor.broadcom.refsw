@@ -1,0 +1,89 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Configure EMF and WMF multicast on AP, STAs and bridges
+#
+# Written by: Robert J. McMahon May 2012
+#
+# $Id$
+#
+
+package require UTF
+
+package provide UTF::Test::ConfigEMF 2.0
+
+UTF::Test ConfigEMF {args} {
+    UTF::Getopts {
+	{ap.arg "" "AP to use"}
+	{sta.arg "" "Bridges/STAs to use"}
+	{disable "Disable EMF/WMF"}
+	{aponly "Only enable WMF on AP"}
+    }
+    # Discover and separate STAs from Bridges
+    set BRIDGES ""
+    set STAS ""
+    foreach STA $(sta) {
+	if {[$STA hostis Router] && [lsearch $BRIDGES $STA] == -1} {
+	    lappend BRIDGES $STA
+	} elseif {![$STA hostis Router] && [lsearch $STAS $STA] == -1} {
+	    lappend STAS $STA
+	}
+    }
+    set setting [expr {!$(disable)}]
+    if {[llength $BRIDGES]} {
+	set EMFTXT "$setting/$setting"
+	if {$(aponly)} {
+	    set WMFTXT "$setting/0"
+	} else {
+	    set WMFTXT "$setting/$setting"
+	}
+    } else {
+	set EMFTXT $setting
+	set WMFTXT $setting
+    }
+    UTF::Try "EMF=$EMFTXT WMF=$WMFTXT" {
+	UTF::Try "EMF=$EMFTXT" {
+	    set SSID [$(ap) wl ssid]
+	    foreach dut [concat $(ap) $BRIDGES] {
+		if {$(disable) && [$dut nvram get emf_enable] ne "0"} {
+		    append testnvram($dut) "emf_enable=0 "
+		} elseif {[$dut nvram get emf_enable] ne "1"} {
+		    append testnvram($dut) "emf_enable=1 "
+		}
+	    }
+	}
+	UTF::Try "WMF=$WMFTXT" {
+	    set SSID [$(ap) wl ssid]
+	    if {$(disable) && [$(ap) nvram get wmf_bss_enable] ne "0"} {
+		append testnvram($(ap)) "wmf_bss_enable=0 "
+	    } elseif {!$(disable) && [$(ap) nvram get wmf_bss_enable] ne "1"} {
+		append testnvram($(ap)) "wmf_bss_enable=1 "
+	    }
+	    if {$(disable) && [$(ap) nvram get [$(ap) wlname]_wmf_bss_enable] ne "0"} {
+		append testnvram($(ap)) "[$(ap) wlname]_wmf_bss_enable=0 "
+	    } elseif {!$(disable) && [$(ap) nvram get [$(ap) wlname]_wmf_bss_enable] ne "1"} {
+		append testnvram($(ap)) "[$(ap) wlname]_wmf_bss_enable=1 "
+	    }
+	    foreach dut $BRIDGES {
+		if {($(aponly) || $(disable)) && [$dut nvram get wmf_bss_enable] ne "0"} {
+		    append testnvram($dut) "wmf_bss_enable=0 "
+		} elseif {!$(aponly) && !$(disable) && [$dut nvram get wmf_bss_enable] ne "1"} {
+		    append testnvram($dut) "wmf_bss_enable=1 "
+		}
+		if {($(aponly) || $(disable)) && [$dut nvram get [$dut wlname]_wmf_bss_enable] ne "0"} {
+		    append testnvram($dut) "[$dut wlname]_wmf_bss_enable=0 "
+		} elseif {!$(aponly) && !$(disable) && [$dut nvram get [$dut wlname]_wmf_bss_enable] ne "1"} {
+		    append testnvram($dut) "[$dut wlname]_wmf_bss_enable=1 "
+		}
+	    }
+	}
+	if {[array exists testnvram]} {
+	    set duts [array names testnvram]
+	    UTF::Try "Apply nvram: $duts" {
+		foreach dut [array names testnvram] {
+		    eval [concat $dut reboot $testnvram($dut)]
+		}
+	    }
+	}
+    }
+}

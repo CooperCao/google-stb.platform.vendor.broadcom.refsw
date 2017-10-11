@@ -1,0 +1,204 @@
+#!/bin/env utf
+
+#
+# preserved script 
+#
+# To get online help, type: Test/preserved.test -help
+#
+
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set preserved_help "\n\nUsage: Test/preserved.test\
+    \n\nTests if preserved builds have all the required bits to load.\
+    \nSome builds have multiple bits that need to be present, such as\
+    \na .bin, .ko, wl & bcmdl files. If any of these are missing, you\
+    \nwill not be able to load the older driver when you want it.\
+    \n\nBy default, all AP (& clones) and all STA (& clones) will be tested.\
+    \n\nValid options:\
+    \n -utfconf path        Config file to use, default is ~/.utfconf.tcl"
+
+# Command line options string
+set preserved_getopts {
+    {aps.arg ""      "AP names to use in tests, defaults to all AP & clones in the testrig"}
+    {email.arg ""    "Email address list, format: userid1 userid2 ... default is your userid"}
+    {n               "Just copy the driver files, dont actually load them"}
+    {noaptest        "Dont test AP at all"}
+    {nostatest       "Dont test STA at all"}
+    {rtrdate.arg ""  "Desired Router build date, format: yyyy.mm.dd"}
+    {rtrtag.arg ""   "Router release tag, default is NIGHTLY"}
+    {stadate.arg ""  "Desired STA build date, format: yyyy.mm.dd"}
+    {statag.arg ""   "STA release tag, default is NIGHTLY"}
+    {stas.arg ""     "STA names to use in test, defaults to all STA & clones in the testrig"}
+    {title.arg ""    "Title for web report & email"}
+}
+
+# Setup online help info.
+UTF::setup_help $preserved_help $preserved_getopts
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+    set ::argv ""
+}
+
+# Load packages
+package require UTF
+package require UTF::utils
+package provide UTF::Test::preserved 2.0
+
+# Common test proc.
+proc find_load_preserved_build {STA tag date type n} {
+    # Finds & load latest preserved build for STA, or logs error on main web page.
+
+    # Find latest preserved build.
+    UTF::Try "$STA find preserved build" {
+        if {$tag != ""} {
+            $STA configure -tag $tag
+        }
+        if {$date != ""} {
+            $STA configure -date $date
+        }
+
+        # Get all builds for this STA / clone.
+        set all_builds ""
+        catch "set all_builds \[$STA findimages -all\]"
+        set name [UTF::get_name $STA]
+        UTF::Message LOG $name "find_load_preserved_build tag: $tag date: $date"
+
+        # Find first preserved build and get date.
+        set p_date ""
+        foreach item $all_builds {
+            UTF::Message LOG $name "find_load_preserved_build item: $item"
+            if {[regexp {PRESERVED|ARCHIVED} $item]} {
+                # UTF::Message LOG $name "find_load_preserved_build MATCH item: $item"
+                if {[regexp {(\d{4}\.\d{1,2}\.\d{1,2}\.\d{1,2})} $item - p_date]} {
+                     UTF::Message LOG $name "find_load_preserved_build MATCH p_date: $p_date item: $item"
+                }
+                $STA configure -image $item ;# also needed for updating title with tag numbers
+                break
+            }
+        }
+
+        # Return preserved date, if any.
+        if {$p_date != ""} {
+            return $p_date
+        } else {
+            UTF::Message LOG $name "find_load_preserved_build tag: $tag date: $date all_builds: $all_builds"
+            error "No preserved date found"
+        }
+    }
+
+    # Load the preserved build, if any.
+    if {$p_date == ""} {
+        return
+    }
+    UTF::Try "$STA load preserved build" {
+        UTF::Message LOG $name "find_load_preserved_build tag: $tag date: $date p_date: $p_date item: $item n=$n"
+        set sw_ver ""
+
+        # NB: Although the STA object has been configured with the -image option,
+        # that only covers the .bin/.sys/.trx file. To get/check the correct 
+        # versions of the other associated files, eg wl.ko & nvram.txt, we need to
+        # keep using the -date option on the load commmands. Otherwise you will pick
+        # up the correct preserved .bin/.sys/.trx file, BUT the wl.ko & nvram.txt files 
+        # will be from the latest build. That is NOT good! So use -date $p_date
+
+        if {$type == "AP"} {
+            # Router
+            if {$n} {
+                # Router objects dont have -n option. The fact that we 
+                # found a single preserved file is usually enough.
+                set sw_ver "findimages found file - not copying - not loading"
+            } else {
+                UTF::load_rtr_retry $STA -date $p_date
+                set sw_ver [$STA nvram get os_version]
+            }
+
+        } else {
+            # STA
+            if {$n} {
+                $STA load  -date $p_date -n
+                set sw_ver "Copied files - not loading"
+            } else {
+                UTF::load_sta_retry $STA -date $p_date
+                set sw_ver [$STA wl ver]
+            }
+        }
+        set msg "html: $sw_ver <br>"
+        regsub -all {\n} $msg " " msg
+        return "$msg"
+    }
+    return
+}
+
+# Start of preserved test.
+UTF::Test preserved {args} {
+    UTF::Getopts "$::preserved_getopts" "$::preserved_help"
+
+    # Get testbed info.
+    set ::UTF::trailer_info [UTF::setup_testbed_info $(email) ""]
+
+    # Setup email subject & report title.
+    if {![info exists ::branch_list]} {
+        set ::branch_list ""
+    }
+    set email_subject [UTF::setup_email_subject $(title)]
+    set summaryinfo ""
+
+    # Start web summary page
+    UTF::WrapSummary $UTF::SummaryDir "$email_subject" "$summaryinfo" "$(email)" {
+
+        # Add a web link to the test.log file
+        UTF::Try "Link to test.log" {
+            return "html: <a href=\"./test.log\">test.log</a>"
+        }
+
+        # If no STAs specified, find all the WLAN STA in the testrig.
+        # This includes clones, if any. But not BlueTooth.
+        if {$(nostatest)} {
+            set STAs ""
+        } else {
+            set STAs [UTF::find_stas $(stas) "Cygwin DHD Linux MacOS WinDHD"]
+        }
+
+        # If no APs specified, find all the Router, Vx & BSDAP in the testrig.
+        # This includes clones, if any.
+        if {$(noaptest)} {
+            set APs ""
+        } else {
+            set APs [UTF::find_stas $(aps) "Router Vx BSDAP"]
+        }
+
+        # Log the testbed info.
+        UTF::Message INFO "" "APs=$APs STAs=$STAs"
+        UTF::Message INFO "" "$::UTF::trailer_info"
+
+        # Test all APs, which may include clones.
+        foreach ap $APs {
+
+            # We process the AP one at a time in case of clones that
+            # have different builds specified for each clone.
+            find_load_preserved_build $ap $(rtrtag) $(rtrdate) AP $(n)
+
+            # Update report title with actual TAG numbers
+            UTF::update_report_title $ap
+        }
+
+        # Test all STAs, which may include clones.
+        foreach sta $STAs {
+
+            # We process the STA one at a time in case of clones that
+            # have different builds specified for each clone.
+            find_load_preserved_build $sta $(statag) $(stadate) STA $(n)
+
+            # Update report title with actual TAG numbers
+            UTF::update_report_title $sta
+        }
+    }
+}
+

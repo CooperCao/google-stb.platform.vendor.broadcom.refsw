@@ -1,0 +1,37 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for connecting several STAs to one AP with different
+# security settings.
+#
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::Mbss::Connectivity
+
+package provide UTF::Test::MixedSecurity 2.0
+
+UTF::Test MixedSecurity {AP APsec args} {
+    APConfigureSecurity $AP -security $APsec
+    set failcount 0
+    foreach {STA sec} $args {
+	UTF::Try "$STA with $sec" {
+	    lappend STAS $STA
+	    incr failcount
+	    ConnectAPSTA $AP $STA -stasecurity $sec
+	    incr failcount -1
+	    return
+	}
+    }
+    if {$failcount == 0} {
+	Mbss::Connectivity $STAS {} {}
+    }
+    # Dump all the keys for debugging
+    foreach s [concat [list $AP] $STAS] {
+	catch {$s wl keys}
+    }
+}

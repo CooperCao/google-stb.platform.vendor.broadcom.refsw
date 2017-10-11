@@ -1,0 +1,46 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# SWWLAN-32890: UTF: 4708/4360, 4706/4360 43236usbap Assoc Mac Filter
+# ping failed
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+
+UTF::Test SWWLAN-32890 {Router STA1 STA2} {
+
+    UTF::Try "$Router: Connect STA1 and STA2 with Open" {
+	catch {$STA1 wl disassoc}
+	catch {$STA2 wl disassoc}
+	ConnectAPSTA $Router [list $STA1 $STA2] -security open -chanspec 52
+    }
+
+    UTF::Try "$Router: Connect STA1 with AESPSK2" {
+	catch {$STA1 wl disassoc}
+	catch {$STA2 wl disassoc}
+	ConnectAPSTA $Router $STA1 -security aespsk2
+    }
+    UTF::Try "$Router: down/up Reassoc STA1" {
+	$Router wl keys
+	$Router wl down
+	$Router wl keys
+	$Router wl up
+	$Router wl keys
+	$STA1 ping $Router -c 15
+	if {![regexp {Key 1: AES_CCM} [$Router wl keys]]} {
+	    throw FAIL "Missing group key"
+	}
+#	ConnectAPSTA $Router $STA1
+    }
+#    UTF::Try "$Router: Connect STA2" {
+#	ConnectAPSTA $Router $STA2
+#    }
+
+    catch {$STA1 wl disassoc}
+    catch {$STA2 wl disassoc}
+
+}

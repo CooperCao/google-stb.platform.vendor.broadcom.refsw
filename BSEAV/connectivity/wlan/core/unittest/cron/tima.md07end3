@@ -1,0 +1,19 @@
+#
+# $Id$
+#
+#
+MAILTO=tima@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+58       7,19,23 * * *   prod/unittest/cron/update
+
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+
+57 04 * * * prod/unittest/cron/launch 0705 Test/RouterNightly.test -utfconf md07r -title 'md07r 4908/4366' -stas 'sta1 sta2 sta3' -aps '4908b170x/0 4908x/0 4908/0 4908/1 4908/2'
+
+# SoftAP
+
+08 03 * * * prod/unittest/cron/launch 0803 Test/Merge.test -utfconf md07s -title 'MD07s 4360 (TOT, 10_10)' 'StaNightly -ap 4360AP -sta 4360' 'StaNightly -ap 4360eAP -sta 4360e'
+

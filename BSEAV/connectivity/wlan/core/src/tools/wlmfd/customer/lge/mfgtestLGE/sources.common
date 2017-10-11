@@ -1,0 +1,15 @@
+# Windows common build file for wl command line tool
+# 
+# Copyright (C) 2005 Broadcom Corporation
+# All Rights Reserved.
+#
+# $Id: sources.common,v 1.2 2008-04-02 14:41:24 $
+#
+TARGETTYPE=EXE
+SUBSYSTEM=console
+TARGETPATH=obj/mfgtestLGE
+#VSVERSION=VS2003
+vpath %.cpp $(SRCBASE)/tools/wlmfd/customer/lge/mfgtestLGE
+SOURCES    = stdafx.cpp mfgtestLGE.cpp 
+
+INCLUDES   = $(SRCBASE)/tools/wlmfd/include

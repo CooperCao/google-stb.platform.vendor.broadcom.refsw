@@ -1,0 +1,33 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# UTF test script for testing Association with power management
+# enabled on the STA
+
+# $Id$
+#
+# Usage: PM PM APSTAS LAN WAN
+#
+# PM is a power management mode 0, 1 or 2
+# APSTAS is an even-length list of AP and STA objects: AP1 STA1 AP2 STA2 ...
+# APs should already be configured for security
+# LAN is a reference host on the Lan
+# WAN is a reference host on the Wan
+# SECLIST is a list of security settings to be applied
+
+# During the test the APs will be assigned to bridges and each
+# STA will be connected to it's corresponding AP, with various
+# security settings.  Once all STAs are associated, both positive and
+# negative connectivity will be verified.
+
+package require UTF
+package require UTF::Test::Mbss::ParallelConnect
+
+package provide UTF::Test::Mbss::PMConnect 2.0
+
+UTF::Test Mbss::PMConnect {PM APSTAS LAN WAN} {
+    foreach {AP STA} $APSTAS {
+	$STA wl PM $PM
+    }
+    ParallelConnect $APSTAS
+}

@@ -1,0 +1,120 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for reporting RSSI and Noise values
+
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+
+package provide UTF::Test::rssinoise 2.0
+
+UTF::Test rssinoise {AP STA args} {
+    UTF::Getopts {
+	{chanspec.arg "" "Chanspec"}
+	{security.arg "" "Security"}
+    }
+
+    if {[catch {$STA wl bssid} sbssid] || [catch {$AP wl bssid} abssid] ||
+	$sbssid ne $abssid || [catch {$STA ipaddr}]} {
+	package require UTF::Test::ConnectAPSTA
+	ConnectAPSTA $AP $STA -chanspec $(chanspec) -security $(security)
+    }
+    $STA wl rateset
+    if {[$STA cget -apmode]} {
+	UTF::Message INFO $STA "apmode: Reversing $AP and $STA"
+	set _STA $AP; set AP $STA; set STA $_STA; unset _STA
+    }
+    set stamac [$STA macaddr]
+    set apmac [$AP macaddr]
+
+    # Initialise the per-bsscfg rssi collectors
+    catch {$AP wl rssi $stamac}
+    catch {$STA wl rssi $apmac}
+
+    # Need to send some traffic to generate enough
+    # stats for accurate rssi and noise measurement on
+    # all antennas
+
+    proc dump_sta_callback {} {
+	uplevel {
+	    UTF::Sleep 1
+	    set stad [$STA wl -u dump rssi]
+	    if {[catch {$STA wl phy_rssi_ant $apmac} stap]} {
+		set stap [$STA wl -u phy_rssi_ant]
+	    }
+	    set stac [lindex [$STA wl -u rxchain] 0]
+	    set star [$STA wl -u rssi $apmac]
+	}
+    }
+
+
+    proc dump_ap_callback {} {
+	uplevel {
+	    UTF::Sleep 1
+	    set apd [$AP wl -u dump rssi]
+	    if {[catch {$AP wl phy_rssi_ant $stamac} app]} {
+		set app [$AP wl -u phy_rssi_ant]
+	    }
+	    set apc [lindex [$AP wl rxchain] 0]
+	    set apr [$AP wl rssi $stamac]
+	}
+    }
+
+    if {[$STA hostis Wiced]} {
+	UTF::Multiperf [list $AP $STA] -t 1 -nolanx
+	set stad [$STA wl -u dump rssi]
+	if {[catch {$STA wl phy_rssi_ant $apmac} stap]} {
+	    set stap [$STA wl -u phy_rssi_ant]
+	}
+	set stac [lindex [$STA wl -u rxchain] 0]
+	set star [$STA wl -u rssi $apmac]
+    } else {
+	UTF::Multiperf [list $AP $STA] -t 1 -nolanx \
+	    -callback dump_sta_callback
+    }
+    UTF::Multiperf [list $STA $AP] -t 1 -nolanx \
+	-callback dump_ap_callback
+
+    # Try phy_rssi_ant, masked by rxchain
+    foreach {- core c} [regexp -inline -all {rssi\[(\d)\]\ (-?\d+)} $stap] {
+	if {$stac & (1<<$core)} {
+	    lappend s [UTF::clean_number $c]
+	}
+    }
+    # If phy_rssi_ant fails, try dump
+    if {![info exists s]} {
+        foreach {- c} [regexp -inline -line -all {\[\s*(-?\d+)\]$} $stad] {
+	    lappend s [UTF::clean_number $c]
+	}
+    }
+    # Fall back to simple RSSI
+    if {![info exists s]} {
+	set s $star
+    }
+
+    # Try phy_rssi_ant, masked by rxchain
+    foreach {- core c} [regexp -inline -all {rssi\[(\d)\]\ (-?\d+)} $app] {
+	if {$apc & (1<<$core)} {
+	    lappend a [UTF::clean_number $c]
+	}
+    }
+    # If phy_rssi_ant fails, try dump
+    if {![info exists a]} {
+	foreach {- c} [regexp -inline -line -all {\[\s*(-?\d+)\]$} $apd] {
+	    lappend a [UTF::clean_number $c]
+	}
+    }
+    # Fall back to simple RSSI
+    if {![info exists a]} {
+	set a $apr
+    }
+
+    set ret "[join $a /] <-> [join $s /]"
+
+    UTF::Message INFO $STA $ret
+    return $ret
+}

@@ -1,0 +1,108 @@
+#!/usr/bin/env python2.7
+
+"""Compare the mogrification defs and undefs between two builds."""
+
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import argparse
+import os
+import sys
+
+
+def search(path):
+    """Dig the mogrifier flags out of a log file."""
+
+    dset = set()
+    uset = set()
+    omark = 'perl src/tools/build/mogrify.pl'
+    nmark = 'xmogrify '
+    if os.path.isdir(path):
+        path = os.path.join(path, ',release.log')
+    f = open(path, 'r')
+    for line in f:
+        if omark in line:
+            line = line.split(omark)[1]
+            for word in line.split():
+                if word.startswith('-D'):
+                    dset.add(word[2:])
+                elif word.startswith('-U'):
+                    uset.add(word[2:])
+        elif nmark in line:
+            line = line.split(nmark)[1]
+            # Copied from xmogrify script.
+            xmparser = argparse.ArgumentParser()
+            xmparser.add_argument(
+                '-D', '--define', nargs='+', action='append')
+            xmparser.add_argument(
+                '-U', '--undefine', nargs='+', action='append')
+            xmparser.add_argument(
+                '-c', '--chunk-size')
+            xmparser.add_argument(
+                '-F', '--file-re-extra')
+            xmparser.add_argument(
+                '-L', '--list-files')
+            xmparser.add_argument(
+                '-l', '--load-limit')
+            xmparser.add_argument(
+                '-M', '--mogrifier')
+            xmparser.add_argument(
+                '-q', '--quiet', action='store_true')
+            xmparser.add_argument('ignore', nargs=argparse.REMAINDER)
+            nargv = [a for a in line.split() if not a.startswith('-endings')]
+            xmopts = xmparser.parse_args(nargv)
+            for l in xmopts.define:
+                dset.update(l)
+            for l in xmopts.undefine:
+                uset.update(l)
+    f.close()
+    return dset, uset
+
+
+def main(argv):
+    """
+    Compare the mogrification defs and undefs between two builds
+
+    """
+
+    parser = argparse.ArgumentParser(
+        epilog=main.__doc__.strip(),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '-V', '--verbose', action='count', default=0,
+        help="print all mogrification flags found")
+    parser.add_argument(
+        'files', nargs=argparse.REMAINDER,
+        help="one or two ',release.log' files")
+    opts = parser.parse_args(argv[1:])
+
+    if not opts.files:
+        main([argv[0], '-h'])
+
+    o_dset, o_uset = search(opts.files[0])
+    if opts.verbose or len(opts.files) == 1:
+        print('DFLAGS =', ' '.join(sorted(o_dset)))
+        print()
+        print('UFLAGS =', ' '.join(sorted(o_uset)))
+
+    if len(opts.files) > 1:
+        n_dset, n_uset = search(opts.files[1])
+        if opts.verbose:
+            print()
+            print('DFLAGS =', ' '.join(sorted(n_dset)))
+            print()
+            print('UFLAGS =', ' '.join(sorted(n_uset)))
+            print()
+
+        print('DFLAGS in old but not new:', o_dset - n_dset)
+        print('DFLAGS in new but not old:', n_dset - o_dset)
+        print()
+        print('UFLAGS in old but not new:', o_uset - n_uset)
+        print('UFLAGS in new but not old:', n_uset - o_uset)
+        print()
+
+
+if __name__ == '__main__':
+    main(sys.argv)
+
+# vim: ts=8:sw=4:tw=80:et:

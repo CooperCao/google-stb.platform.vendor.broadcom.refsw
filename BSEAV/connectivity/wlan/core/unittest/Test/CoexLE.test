@@ -1,0 +1,1687 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# WLAN <-> BLE/BlueTooth Coexistence test script 
+# development code in ~/src/tools/unittest/Test folder
+#
+#
+
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+### Assumes BCM2070 BT Ref board; not expected to run SCO/eSCO tests
+### Triple Coex tests: BLE/ACL/WLAN
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set ::CoexLE_help "\n\nBasic usage: Test/CoexLE.test <options>\
+	\n\nThis script will setup your Coexistence test rig by loading the desired\
+	\nbuilds, making connections between your wireless devices & running numerous\
+	\ntests. Your testbed is expected to have the standard Coexistence configuration\
+	\nwith a WLAN router, WLAN traffic generator, a combo WLAN/BlueTooth LE device,\
+	\nBlueTooth reference device, and clone devices for both the BT DUT and BT Ref.\
+	\nThe tests use IPERF, not CHARIOT.\
+	\n\nThe first time you run the script on a specific testbed that you personally\
+	\nhave never used before with UTF, specify the -auth option and you will be\
+	\nprompted for the login passwords for each device in the testbed that uses SSH.\
+	\n\nvalid options are:\
+	\n -utfconf path		Config file to use, default is ~/.utfconf.tcl"
+
+# Command line options string
+set ::CoexLE_getopts {
+	{acl.arg ""					"BT ACL packet type(s) for tests, default is to test all ACL packet types"}
+	{ap.arg ""					"WLAN router to test"}
+	{auth						"Go through authorization cycle for each device in the testbed that uses SSH"}
+	{bt.arg ""					"BT DUT device to test"}
+	{btclone.arg ""				"BT DUT device clone for BT streams identification"}
+	{btcgr.arg ""				"BT image file, usefull for testing private builds"}
+	{btdate.arg ""				"Desired BT build date, format: yyyy.mm.dd, default=null"}
+	{btref.arg ""				"BT Reference device to test"}
+	{btrefclone.arg ""			"BT Reference device clone for BT streams identification"}
+	{btver.arg ""				"BlueTooth build version, default is \*"}
+	{chanspec.arg ""			"AP channel, default channel is set by NVRAM"}
+	{dhdtag.arg ""				"STA DHD release tag, needed for some dongles, default is statag"}
+	{diagping					"At start of each test, do diagnostic ping for WLAN, do AYT for BT"}
+	{disassoc					"Disassociate STAs at end of tests. By default, the STAs may be left associated"}
+	{dorecovery					"Turn on recovery. Default is off."}
+	{email.arg ""				"Email address list, format: userid1,userid2,... default is your userid"}
+	{ext						"Use external builds"}
+	{full						"Reboot all hosts no matter what. Default is a conditional check & reboot."}
+	{handle_acl_master.arg "12"	"ACL handle for existing bt_master connection, default is to use handle stored in object"}
+	{handle_acl_slave.arg "11"	"ACL handle for existing bt_slave connection, default is to use handle stored in object"}
+	{history.arg 30				"History size for control charts"}
+	{link_policy.arg "4"		"link policy"}
+	{logdir.arg ""				"Log directory override"}
+	{max.arg 300				"Expected maximum througput, -1 means no checks done"}
+	{min.arg 0					"Expected minimum througput, -1 means no checks done"}
+	{noacl						"Don't run BT ACL tests, default is to run BT ACL tests"}
+	{noapload					"Don't load the AP images, default is load the AP images"}
+	{nobase						"Don't run baseline tests, default is to run baseline tests"}
+	{nobid						"Don't run bidirectional tests, default is to run bidirectional tests"}
+	{noble						"Don't run ble tests, default is to run ble tests"}
+	{nocache					"Don't update performance cache files"}
+	{nocheck					"Don't check the testbed, default is to run RebootTestbed"}
+	{nocoex						"Don't run Coex tests, Coex tests are run by default: BCM2070 not expected to run SCO tests"}
+	{nocollect					"Don't collect AP/STA default info, default is to collect this info"}
+	{nomaster					"Don't run BT master tests, default is to run BT master tests"}
+	{noping						"Don't run ping/ayt tests, default is run the ping/ayt tests"}
+	{norx						"Don't run receive direction tests, default is to run receive tests"}
+	{nosetup					"Don't setup the radios & connections, default is to setup the radios & connections"}
+	{nosetuptestbed				"Don't execute setuptestbed , default is to execute setuptestbed when defined in utfconf"}
+	{noslave					"Don't run BT slave tests, default is to run BT slave tests"}
+	{nostaload					"Don't load the STA images, default is load the STA images"}
+	{notx						"Don't run transmit direction tests, default is to run transmit tests"}
+	{nowlan						"Don't run WLAN iperf tests, default is to run WLAN iperf tests"}
+	{perfint.arg 2				"Test interval in seconds for each test sample"}
+	{perfloop.arg 1				"Total performance test iterations for controlchart tests"}
+	{perfsize.arg 5				"Sample size for performance tests"}
+	{perftime.arg 10			"Total time duration, in seconds, for performance tests"}
+	{relay.arg ""				"BT device relay, for HSIC pass-through tests; overrides utfconf file setting"}
+	{retry.arg 3				"Number of times to try rebooting an unresponsive host"}
+	{reverseloadorder			"Provide for case where BT firmware needs to load prior to wlan driver"}
+	{rtrdate.arg ""				"Desired Router build date, format: yyyy.mm.dd|CURRENT|TODAY|\\\*, default=\\\*"}
+	{rtrdef.arg ""				"Default Router STA for connections - not used"}
+	{rtrtag.arg ""				"Router release tag, default is NIGHTLY"}
+	{rtrtrx.arg ""				"Router image file, usefull for testing private builds"}
+	{setup						"Runs the setup method for each device in the testbed that uses SSH"}
+	{showenv					"Show environment variables in the log file"}
+	{sniff_policy.arg "2" 		"enable sniff mode=2"}
+	{sta.arg ""					"WLAN STA to test"}
+	{stabin.arg ""				"STA .sys or .bin image file, usefull for testing private builds"}
+	{stadate.arg ""				"Desired STA build date, format: yyyy.mm.dd|CURRENT|TODAY|\\\*, default=\\\*"}
+	{stadhd.arg ""				"STA .ko linux DHD file, usefull for testing private builds"}
+	{statag.arg ""				"STA release tag, default is NIGHTLY"}
+	{title.arg ""				"Title description text string for use in the reports, eg: \"Linux 4322USB dongle\""}
+	{useobjectsasis				"Lets you specify specific builds/images in the config file so script loads exactly those mages."}
+	{window.arg 512k			"Window size for iperf tests, does not impact Mimo/EmbeddedNightly tests"}
+	{wlup_retry					"do wlan up retry, default is no retry"}
+}
+
+# Setup online help info.
+UTF::setup_help $::CoexLE_help $::CoexLE_getopts
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+	set ::argv ""
+}
+
+# NB: The UTF package seems to recognize -utfconf option without any 
+# additional code in this script.
+
+# Load packages
+package require UTF
+package require UTF::utils
+package require UTF::WinBT
+package require UTF::Test::APChanspec
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::ConnectBTdevices
+package require UTF::Test::controlchart
+package require UTF::Test::DisconnectBTdevices
+package require UTF::Test::RebootTestbed
+package require UTF::Test::ThruputBT_dev_LE
+package require UTF::Test::LEConnectBTdevices
+
+# for development only: use package require statement, above, for production runs
+# source /home/pkwan/src/tools/unittest/Test/ThruputBT_dev_LE.test
+
+namespace eval coex {}
+package provide UTF::Test::CoexLE 2.0
+
+set ::acl_master_handle ""
+set ::acl_slave_handle ""
+set ::acl_pkt_list ""
+set ::key_base ""
+set ::testbed_path_loss ""
+set ::test_sets ""
+set ::wlan_up_flag 0
+set ::test_type ""
+set ::test_subtype ""
+set ::test_slave 0
+set ::test_coex 0
+set ::test_title ""
+set ::tc_title ""
+set ::error_cnt 0
+set ::bt_master ""
+set ::bt_slave ""
+set ::profile 0
+set ::continue_flag 0
+set ::test_prefix ""
+set ::bt_dir_list ""
+set ::bt_dir_display_list ""
+set ::wlan_dir_display_list ""
+set ::wlan_dir_list ""
+set ::logdir ""
+set ::keys ""
+set ::bt_dir ""
+set ::bt_test ""
+set ::wlan_dir ""
+set ::test_perftime 0
+set ::pkt_type ""
+set ::NewXLabel ""
+set ::BT1 ""
+set ::BT2 ""
+set ::max_association_tries 3
+set ::WLAN_DUT_CHAN ""
+set ::wlan_relay ""
+set ::le_master_handle ""
+set ::le_slave_handle ""
+set ::ble_handle ""
+set ::btclone ""
+set ::btrefclone ""
+set ::BT_exists 0
+
+# Common procedures 
+proc coex::diag_ping {diagping test_type test_coex wlan_dut wlan_rtr bt_dut bt_ref {ble_dut ""} {ble_ref ""}} {
+
+	UTF::Message INFO "$::localhost" "************************Func:diag_ping***************************"
+
+	# Optional diagnostic WLAN DUT <-> AP pings.
+	if {$wlan_dut != "" && $wlan_rtr != "" && $diagping} {
+		if {$test_type == "WLAN" || $test_coex == 1} {
+			UTF::Message LOG "" "Start diagnostic WLAN DUT <-> AP pings"
+			catch {$wlan_dut ping $wlan_rtr}
+			catch {$wlan_rtr ping $wlan_dut}
+			UTF::Message LOG "" "End diagnostic WLAN DUT <-> AP pings"
+		}
+	}
+
+	# Optional diagnostic BT <-> BT AYT.
+	if {$test_type == "BLE" && $diagping} {
+		UTF::Message LOG "" "Start diagnostic BLE <-> BT AYT"
+		catch {$ble_dut ayt $ble_ref}
+		catch {$ble_ref ayt $ble_dut}
+		UTF::Message LOG "" "End diagnostic BLE <-> BT AYT"
+	}
+}
+
+proc coex::initialize_variables {} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "$::localhost" "************************Func:initialize_variables***************************"
+
+	# Command line options can overide which packet types to test.
+	if {[string trim $(acl)] == "" } {
+		# use abbreviated list by default
+		set ::acl_pkt_list "DM1 3-DH5" 
+	} else {
+		set ::acl_pkt_list $(acl)
+	}
+	set ::acl_pkt_list [string toupper $::acl_pkt_list]
+
+	# Set common items for all tests.
+	set stream [UTF::get_stream_name end]
+	set ::key_base "$stream $::wlan_rtr Coex.test"
+
+	set ::acl_master_handle ""
+	set ::acl_slave_handle ""
+	
+	# ble
+	set ::le_master_handle ""
+	set ::le_slave_handle ""
+
+	set ::wlan_up_flag 1
+
+	# # #   expanded test_sets to include BLE: baseline, ACL/BLE, WLAN/BLE, WLAN/BLE/ACL:
+	# # #   test_subtype: 0 (wlan), ACL, SCO, eSCO, BLE
+	# # #   test_coex: 0 (base), 1 (coex), 2 (BT/BLE), 3 (triple coex)
+	##############################################################################
+	# ::test_sets structure defines all the coex tests. Parameters are:
+	# ::test_type 		: WLAN, BLE or BT
+	# ::test_subtype 	: 0 (means WLAN), ACL, BLE
+	# ::test_slave 		: 0 for Master, 1 for Slave
+	# ::test_coex 		: 0 for Baseline, 1 for Coex, 2 for BT/BLE Coex, 3 for BT/BLE/WLAN tripple coex
+	# ::test_title 		: Display title of this test
+	##############################################################################
+	### BLE tests ; not expected to run SCO/eSCO on 2070 Ref board
+	set ::test_sets [list	WLAN 0 0 0 "WLAN:"\
+				BLE BLE 0 0 "Base BLE Mst:"\
+				BLE BLE 1 0 "Base BLE Slv:"\
+				BLE BLE 0 1 "Coex BLE/WLAN Mst:"\
+				BLE BLE 1 1 "Coex BLE/WLAN Slv:"\
+				BLE ACL 0 2 "Coex BLE/ACL Mst:"\
+				BLE ACL 1 2 "Coex BLE/ACL Slv:"\
+				BLE ACL 0 3 "Triple Coex BLE/ACL/WLAN Mst:"\
+				BLE ACL 1 3 "Triple Coex BLE/ACL/WLAN Slv:"]
+
+} ;# end Initialize variables
+
+proc coex::initialize_test_variables {} {
+
+	UTF::Message INFO "$::localhost" "************************Func:initialize_test_variables***************************"
+
+	set ::error_cnt 0
+	set ::continue_flag 0
+
+	if {$::test_coex >= 1} {
+		set ::test_prefix "Coex"
+	} else {
+		set ::test_prefix "Baseline"
+	}
+
+	if {$::test_slave == 1} {
+		# Slave test - Ref -> Cohost
+		set ::bt_master $::bt_ref
+		set ::bt_slave $::bt_dut
+		### added BLE 
+		set ::ble_master $::ble_ref
+		set ::ble_slave $::ble_dut
+		# because the way ThruputBT.test is written, it expects the 1st param to be 
+		# dut and the 2nd param to be the ref, therefore you can:
+		# 1) pass $::bt_dut $::bt_ref with ::bt_dir_list="ref2dut dut2ref bidirectional"
+		# 2) pass $::bt_master $::bt_slave with ::bt_dir_list="dut2ref ref2dut bidirectional"
+		set ::bt_dir_list "dut2ref ref2dut bidirectional"
+		set ::bt_dir_display_list "REF->DUT REF<-DUT REF<>DUT"
+		set ::ble_dir_list "dut2ref ref2dut bidirectional"
+		set ::ble_dir_display_list "LE_REF->LE_DUT LE_REF<-LE_DUT LE_REF<>LE_DUT"
+	} else {
+		# Master test - Cohost -> Ref
+		set ::bt_master $::bt_dut
+		set ::bt_slave $::bt_ref
+		set ::bt_dir_list "dut2ref ref2dut bidirectional"
+		set ::bt_dir_display_list "DUT->REF DUT<-REF DUT<>REF"
+		### added BLE
+		set ::ble_master $::ble_dut
+		set ::ble_slave $::ble_ref
+		set ::ble_dir_list "dut2ref ref2dut bidirectional"
+		set ::ble_dir_display_list "LE_DUT->LE_REF LE_DUT<-LE_REF LE_DUT<>LE_REF"
+	}
+
+	set ::wlan_dir_display_list "WLAN->LAN WLAN<-LAN WLAN<>LAN"
+	set ::wlan_dir_list "dut2tg tg2dut bidirectional"
+}
+
+proc coex::setup_wlan_connection {} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "$::localhost" "************************Func:setup_wlan_connection***************************"
+
+	if {$::test_type == "WLAN"} {
+	
+	# If required, reload STAs & Routers, associate the AP and STAS.
+		if {!$(nosetup)} {
+
+			UTF::Try "WLAN Open Connection" {
+
+			# If we did not explicitly load the STA drivers, then reload them
+			if {$(nostaload)} { 
+				foreach item "$::wlan_dut $::bt_dut $::bt_ref" {
+					UTF::Try "Reload $item" {
+		
+						# reload the STA.
+						set catch_resp [catch "UTF::reload_sta $item" catch_msg]
+						if {$catch_resp != 0} {
+							incr ::error_cnt
+							error "$catch_msg"
+						}
+						return "$catch_msg"
+					}
+				}
+			}
+
+			# If we did not explicitly load the router, then reboot it
+			if {$(noapload)} { 
+				UTF::Try "Reboot $::wlan_rtr" {
+	
+				# Make sure router is powered on!
+				catch "$::wlan_rtr power on"
+				UTF::Sleep 5
+
+				# Reboot router.
+				set catch_resp [catch {$::wlan_rtr reboot} catch_msg]
+				if {$catch_resp != 0} {
+					incr ::error_cnt
+					error "$catch_msg"
+				}
+
+				# Set the antenna selection
+				catch "$::wlan_rtr wl down"
+				catch "$::wlan_rtr wl nphy_antsel $::wlan_rtr_antsel"
+				catch "$::wlan_rtr wl up"
+				return "$catch_msg"
+				}
+			}
+
+			# If there are any device that didnt reload, halt the script.
+			# We must have all devices functioning properly in the Coex
+			# test rig.
+			if {$::error_cnt > 0} {
+				error "Halting tests!"
+			}
+
+			# Associate STAs, open connections. Althougth the
+			# ConnectAPSTA script will join multiple STAs at once
+			# it has a VERY NASTY habit of stopping on the first
+			# error. So if one driver is unresponsive, it doesnt
+			# even bother trying the remaining STAs. This can lead
+			# to all sorts of false failures because the other STAs
+			# arent even connected. So we run the ConnectAPSTA 
+			# separately for each STA AP pair.
+			foreach {STA AP} "$::wlan_dut $::wlan_rtr" {
+				UTF::Try "Open Connection $AP $STA" {
+					# There have been times when tests would have
+					# passed if we had tried to open the connection
+					# after the first failure. So we try multiple times.
+					for {set j 1} {$j <= $::max_association_tries} {incr j} {
+						UTF::Message INFO "" "Open Connection $AP $STA Try: $j"
+						set catch_resp [catch "UTF::Test::ConnectAPSTA \"$AP\" \
+						\"$STA\" -security open" catch_msg]
+						if {$catch_resp == 0} {
+						UTF::Message LOG "" "Open Connection $AP\
+						   $STA Try: $j OK: $catch_msg"
+						break
+						} else {
+						UTF::Message ERROR "" "Open Connection $AP\
+								$STA Try: $j failed: $catch_msg"
+						}
+					}
+
+					# Check status & rssi.
+					if {$catch_resp ==0} {
+						catch {$STA wl PM 0} ;# enforce PM=0
+						catch {$STA wl frameburst 1} ;# Turn on frameburst
+						catch {$STA wl status}
+						if {[catch "set WLAN_DUT_RSSI \[$STA wl rssi\]" catch_msg]} {
+							set WLAN_DUT_RSSI ""
+						}
+						set WLAN_RTR_RSSI [UTF::get_ap_rssi $AP $STA]
+						if {[catch "set ::WLAN_DUT_CHAN \[$STA wl chanspec\]" catch_msg]} {
+							set ::WLAN_DUT_CHAN ""
+						}
+					} else {
+						# Getting RSSI from unresponsive hardware can take
+						# up to 20 minutes, so this is the error bypass.
+						set WLAN_DUT_RSSI ""
+						set WLAN_RTR_RSSI ""
+						set ::WLAN_DUT_CHAN ""
+					}
+
+					# Return status depends on which attempt
+					# succeeded or not.
+					if {$j == 1 && $catch_resp == 0} {
+						# Succeeded the first time.
+						return "WLAN_RTR_RSSI=$WLAN_RTR_RSSI\
+						WLAN_DUT_RSSI=$WLAN_DUT_RSSI\
+						WLAN_DUT_CHAN=$::WLAN_DUT_CHAN"
+					} elseif {$catch_resp == 0} {
+						# Succeeded on retry, shows as an error to get
+						# peoples attention to potential unreliablity.
+						error "Open connection succeeded on try: $j\
+						WLAN_RTR_RSSI=$WLAN_RTR_RSSI\
+						WLAN_DUT_RSSI=$WLAN_DUT_RSSI\
+						WLAN_DUT_CHAN=$::WLAN_DUT_CHAN"
+					} else {
+						# Tried N times, still failed. We are done.
+						incr ::error_cnt
+						error "Open connection failed, tried $::max_association_tries times!"
+					}
+				}
+			}
+
+			# Do WLAN ping tests if required. Use all connection lists. Add in
+			# the lan/wan peer devices, if any, for each Router.
+			if {!$(noping)} {
+				UTF::Try "Ping WLAN" {
+
+					# Ping WLAN devices in each direction
+					set ping_pairs [UTF::Combinations 2 "$::wlan_rtr $::wlan_dut $::wlan_tg"]
+					foreach pair $ping_pairs {
+						set sta0 [lindex $pair 0]
+						set sta1 [lindex $pair 1]
+						UTF::Try "Ping $sta0 <--> $sta1" {
+							# NB: On the router, the ping command is very limited
+							# and only sends 1 packet. To send more than 1 packet
+							# you would need to add a loop here.
+							# Send pings in each direction.
+							$sta0 ping $sta1
+							$sta1 ping $sta0
+						}
+					}
+				}
+			}							
+
+			return "WLAN_RTR_RSSI=$WLAN_RTR_RSSI\
+				WLAN_DUT_RSSI=$WLAN_DUT_RSSI\
+				WLAN_DUT_CHAN=$::WLAN_DUT_CHAN"
+			}
+		}
+	}
+}
+
+proc coex::setup_bt_connection {} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "$::localhost" "************************Func:setup_bt_connection***************************"
+
+	# 	delete all handles, if exists
+	UTF::Message DEBUG_LE "" "\nDeleting all ACL handles, if any\n"
+	if { [$::bt_master show_acl_handles] != "" } {
+		UTF::Message DEBUG_LE "" "\nBT master: ACL handles found\n"
+		$::bt_master delete_acl_handles all
+	}
+	if { [$::bt_slave show_acl_handles] != "" } {
+		UTF::Message DEBUG_LE "" "\nBT slave: ACL handles found\n"
+		$::bt_slave delete_acl_handles all
+	}
+
+	if { $::test_coex >= 2 } {
+		set btDevs "ACL BLE" 
+	} else {
+		set btDevs "BLE"
+	}
+
+	UTF::Message DEBUG_LE "" "::test_coex value: $::test_coex\nProfile is: [expr $::test_coex + 1]\nbtDev list is: $btDevs\n"
+	
+	### new loop going through devices listed in btDevs; replacing separate BT and BLE codes blocks
+	if {!$(nosetup)} {
+		foreach btDev $btDevs {
+			set type $btDev
+			# Before WLAN or BT open, make sure the attenuator is set to 0 for RvR
+
+			# Open BT connections.
+			foreach {::BT1 ::BT2} "$::bt_master $::bt_slave" {
+				set tryLabel $type
+				UTF::Try "$::test_title $tryLabel Open Connection" {
+
+					set sta_reload_flag 0
+
+					# There have been times when tests would have
+					# passed if we had tried to open the connection
+					# after the first failure. So we try multiple times.
+					for {set j 1} {$j <= $::max_association_tries} {incr j} {
+						UTF::Message INFO "" "Open Connection $::BT1 $::BT2 Try: $j"
+						### set catch_resp [catch "UTF::Test::LEConnectBTdevices \"$::BT1\" \
+							\"$::BT2\" -type $type" catch_msg]
+						if {$::test_type == "BLE" && $::test_coex >= 2} {
+							# skip device reset in cases where ACL connect goes before BLE
+							set catch_resp [catch "UTF::Test::LEConnectBTdevices \"$::BT1\" \
+							\"$::BT2\" -type $type -noreset" catch_msg]
+						} else {
+							set catch_resp [catch "UTF::Test::LEConnectBTdevices \"$::BT1\" \
+							\"$::BT2\" -type $type" catch_msg]
+						}
+
+						### Redundent debug message: error would catch and display the same information
+						### UTF::Message DEBUG_LE $::localhost "\nLEConnectBTdevices returned value: $catch_resp; \nActual message: $catch_msg\n"
+						# set catch_resp 1 ;# test code
+						# OK if return value is 64: returning BLE handles ;# "|| $catch_resp == 64"
+						if {$catch_resp == 0} {
+							UTF::Message LOG "" "Open Connection $::BT1\
+							$::BT2 Try: $j OK: $catch_msg"
+							### save BLE master handle returned from LEConnectBTdevices
+							if { $type == "BLE" } {
+								set ::ble_handle $catch_msg
+								UTF::Message DEBUG_LE "" "\nBLE master handle returned: $::ble_handle\n"
+							}
+							break
+						} else {
+							# if the 2nd retry failed, then something serious is
+							# wrong and we do a reload of the STA drivers to see if
+							# we recover from this
+
+							if {$j == 2} {
+
+								UTF::Message ERROR "" "Reload STA"
+												
+								if {!$(reverseloadorder)} {
+									set ldList "$::wlan_dut $::bt_dut $::bt_ref"
+								} else {
+									set ldList "$::bt_dut $::bt_ref $::wlan_dut"
+								}
+
+								foreach STA $ldList {
+									UTF::Try "Load STA $STA" {
+									set catch_resp [catch "UTF::reload_sta $STA" catch_msg]
+									if {$catch_resp == 0} {
+										return "$catch_msg"
+									} else {
+										incr ::error_cnt
+										error "$catch_msg"
+									}
+									}
+								}
+
+								foreach {STA AP} "$::wlan_dut $::wlan_rtr" {
+									for {set k 1} {$k <= $::max_association_tries} {incr k} {
+										UTF::Message INFO "" "Open Connection $AP $STA Try: $k"
+										set catch_resp [catch "UTF::Test::ConnectAPSTA \"$AP\" \
+									\"$STA\" -security open" catch_msg]
+										if {$catch_resp == 0} {
+											UTF::Message LOG "" "Open Connection $AP\
+									$STA Try: $k OK: $catch_msg"
+											break
+										} else {
+											UTF::Message ERROR "" "Open Connection $AP\
+									$STA Try: $k failed: $catch_msg"
+										}
+									}
+								}
+
+								set sta_reload_flag 1
+							}
+
+							UTF::Message ERROR "" "Open Connection $::BT1\
+								$::BT2 Try: $j failed: $catch_msg"
+							# Additional error recover is to reload BT devices
+							UTF::Message INFO "" "Recovery - Reload $::BT1"
+							catch {$::BT1 reload}
+							UTF::Message INFO "" "Recovery - Reload $::BT2"
+							catch {$::BT2 reload}
+						} ;# end response not 0
+					} ;# end j loop
+
+					# NB: ConnectBTdevices returns RSSI info, which shows
+					# up in catch_msg. So we return catch_msg to push the
+					# RSSI info onto the summary web page. 
+
+					# Return status depends on which attempt
+					# succeeded or not.
+					if {$j == 1 && $catch_resp == 0} {
+						# Succeeded the first time.
+						return "$catch_msg"
+					} elseif {$catch_resp == 0} {
+						# Succeeded on retry, shows as an error to get
+						# peoples attention to potential unreliablity.
+
+						if {$sta_reload_flag == 1} {
+							error "BT Open connection succeeded on try: $j with STA reloaded\
+							$catch_msg"
+
+						} else {								
+							error "BT Open connection succeeded on try: $j\
+							$catch_msg"
+						}
+					} else {
+						# Tried N times, still failed. We are done.
+						incr ::error_cnt
+						set sta_conn_failure 1
+						error "BT Open connection failed, tried	$::max_association_tries times!"
+					}
+
+					# Do BT ping (ayt) tests if required.
+					if {!$(noping)} {
+						# BT ayt test is similar to ping
+						set bt_dir_display [lindex $::bt_dir_display_list 2]
+						UTF::Try "Ping BT - AYT $bt_dir_display" {
+							# NB: On BT devices, the ayt command is very limited
+							# and only sends 1 packet. To send more than 1 packet
+							# you would need to add a loop here.
+							# Do ayt in each direction.
+							$::bt_master ayt $::bt_slave
+							$::bt_slave ayt $::bt_master
+							return ""
+						}
+					}
+					### catch the case where reload happens during BLE connect	
+					if { $btDev == "BLE" && $::test_coex >= 2 && $sta_reload_flag == 1 } {
+						UTF::Message INFO "" "Sta Reload occurred: re-Open BT Connection $::BT1 $::BT2"
+						set catch_resp [catch "UTF::Test::LEConnectBTdevices \"$::BT1\" \
+							\"$::BT2\" -type BT" catch_msg]
+					} ;# end reconnect BT after BLE reload
+				} ;# end open connection
+			} ;# end master-slave connect
+		} ;# end cycling through btDevs
+
+		if {$::test_type == "BLE" && $::test_coex >= 2} {
+			set ::BT_exists 1
+		}
+		# end BT set up block
+
+	} ;# end nosetup
+
+} ;# end setup_bt_connection
+
+proc coex::close_bt_connection {} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "$::localhost" "************************Func:close_bt_connection***************************"
+
+	### ble block 
+	if {$::test_type == "BLE" || $::test_subtype == "BLE"} {
+		set type "BLE"
+
+		UTF::Try "$::test_title BLE Close Connection" {
+
+			#################################################################
+			# Update of the handles needs to be done here since the ThruputBT
+			# module could do a reset and change the handles
+			#################################################################
+
+			# If no ACL handles are present in the BT objects, use the command
+			# line values
+			if {$::le_master_handle == ""} {
+				set ::le_master_handle $::ble_handle
+				UTF::Message LOG "$::localhost" "Using command line\
+						handle_le_master=$::handle_le_master"
+			}
+			if {$::le_slave_handle == ""} {
+				set ::le_slave_handle $::ble_handle
+				UTF::Message LOG "$::localhost" "Using command line\
+						handle_le_slave=$::handle_le_slave"
+			}
+
+			set catch_resp1 [catch "UTF::Test::DisconnectBTdevices $::bt_master $::bt_slave \
+						-type $type \
+						-handle_acl_master $::le_master_handle \
+						-handle_acl_slave $::le_slave_handle" catch_msg1]
+
+			# UTF::Message LOG "$::localhost" "DisconnectBTdevices catch_resp1=$catch_resp1	catch_msg1=$catch_msg1"
+			# set catch_resp1 1 ;# test code					
+			if {$catch_resp1 == 0 && $catch_msg1 == ""} {
+				return
+			} else {
+				if { ![string match $::le_master_handle [$::bt_master show_acl_handles]] || ![string match $::le_slave_handle [$::bt_slave show_acl_handles]] } {
+					UTF::Message INFO "" "LE handles deleted OK"
+					return
+					break
+				} else {
+					UTF::Message ERROR "" "Close Connection $::BT1 $::BT2 failed: $catch_msg1"
+				}
+				### added new dorecovery option flag at command line
+				if {$(dorecovery)} {
+					UTF::Message ERROR "" "Reload STA"
+
+					foreach STA "$::wlan_dut $::ble_dut $::ble_ref" {
+						UTF::Try "Load STA $STA" {
+							set catch_resp [catch "UTF::reload_sta $STA" catch_msg]
+							if {$catch_resp == 0} {
+								return "$catch_msg"
+							} else {
+								incr ::error_cnt
+								error "$catch_msg"
+							}
+						}
+					}
+
+					foreach {STA AP} "$::wlan_dut $::wlan_rtr" {
+						for {set j 1} {$j <= $::max_association_tries} {incr j} {
+							UTF::Message INFO "" "Open Connection $AP $STA Try: $j"
+							set catch_resp [catch "UTF::Test::ConnectAPSTA \"$AP\" \
+										\"$STA\" -security open" catch_msg]
+							if {$catch_resp == 0} {
+								UTF::Message LOG "" "Open Connection $AP\
+											   $STA Try: $j OK: $catch_msg"
+								break
+							} else {
+								UTF::Message ERROR "" "Open Connection $AP\
+												$STA Try: $j failed: $catch_msg"
+							}
+						}
+					}
+				} ;# end dorecovery option
+				error "Disconnect failed. Reloaded STA"
+			}
+		}
+
+	}
+	# end of BLE type block
+
+	# disconnect BT only when needed in profiles 3 and 4
+	if {$::test_type == "BLE" && $::test_coex >= 2 || $::BT_exists == 1} {
+		UTF::Message DEBUG_LE "" "\n::BT_exists value returned: $::BT_exists\n\n"
+
+		UTF::Try "$::test_title BT Close Connection" {
+
+			#################################################################
+			# Update of the handles needs to be done here since the ThruputBT
+			# module could do a reset and change the handles
+			# Excluded BLE subtype: taken care of in BLE branch
+			#################################################################
+
+			if {$::test_subtype == "ACL"} {
+				# If no ACL handles are present in the BT objects, use the command
+				# line values
+				set ::acl_master_handle [$::bt_master show_acl_handles]
+				if {$::acl_master_handle == ""} {
+					$::bt_master save_acl_handles $(handle_acl_master)
+					UTF::Message LOG "$::localhost" "Using command line\
+					handle_acl_master=$(handle_acl_master)"
+				}
+				set ::acl_slave_handle [$::bt_slave show_acl_handles]
+				if {$::acl_slave_handle == ""} {
+					$::bt_slave save_acl_handles $(handle_acl_slave)
+					UTF::Message LOG "$::localhost" "Using command line\
+					handle_acl_slave=$(handle_acl_slave)"
+				}
+			}
+
+			set catch_resp1 [catch "UTF::Test::DisconnectBTdevices $::bt_master $::bt_slave \
+							-type $::test_subtype \
+							-handle_acl_master $::acl_master_handle \
+							-handle_acl_slave $::acl_slave_handle" catch_msg1]
+
+			# UTF::Message LOG "$::localhost" "DisconnectBTdevices catch_resp1=$catch_resp1	catch_msg1=$catch_msg1"
+			# set catch_resp1 1 ;# test code
+			if {$catch_resp1 == 0 && $catch_msg1 == ""} {
+				return
+			} else {
+					if {[$::bt_master show_acl_handles] == "" || [$::bt_slave show_acl_handles] == ""} {
+						UTF::Message INFO "" "Handles eliminated OK."
+						return
+						break
+					} else {
+						UTF::Message ERROR "" "Close Connection $::BT1 $::BT2 failed: $catch_msg1"
+					}
+					### added dorecovery flag
+					if {$(dorecovery)} {
+						UTF::Message ERROR "" "Reload STA"
+		
+						if {!$(reverseloadorder)} {
+							set ldList "$::wlan_dut $::bt_dut $::bt_ref"
+						} else {
+							set ldList "$::bt_dut $::bt_ref $::wlan_dut"
+						}
+		
+						foreach STA $ldList {
+							UTF::Try "Load STA $STA" {
+								set catch_resp [catch "UTF::reload_sta $STA" catch_msg]
+								if {$catch_resp == 0} {
+									return "$catch_msg"
+								} else {
+									incr ::error_cnt
+									error "$catch_msg"
+								}
+							}
+						}
+		
+						foreach {STA AP} "$::wlan_dut $::wlan_rtr" {
+							for {set j 1} {$j <= $::max_association_tries} {incr j} {
+								UTF::Message INFO "" "Open Connection $AP $STA Try: $j"
+								set catch_resp [catch "UTF::Test::ConnectAPSTA \"$AP\" \
+												\"$STA\" -security open" catch_msg]
+								if {$catch_resp == 0} {
+									UTF::Message LOG "" "Open Connection $AP \
+												$STA Try: $j OK: $catch_msg"
+									break
+								} else {
+									UTF::Message ERROR "" "Open Connection $AP\
+													$STA Try: $j failed: $catch_msg"
+								}
+							}
+						}
+							error "Disconnect failed. Reloaded STA"
+					} ;# end dorecovery
+
+				error "Disconnect failed."
+			}
+		}
+		# end of BT type block
+	}
+
+} ;# end close_bt_connection
+
+proc coex::setup_bt_wlan_state {} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "$::localhost" "************************Func:setup_bt_wlan_state***************************"
+	if {$::test_type == "BLE"} {
+
+		if {($::test_slave == 0 && $(nomaster) ) ||\
+			($::test_slave == 1 && $(noslave) ) ||\
+			($::test_coex == 0 && $(nobase) ) ||\
+			($::test_coex >= 1 && $(nocoex) ) ||\
+			($::test_subtype == "ACL" && $(noacl) )} {
+			set ::continue_flag 1
+			return
+		}
+
+		# For BT baseline, WLAN must be down or COEX code allocates bandwidth
+		# to WLAN even if its not using it.
+	
+		# BT baseline -> wl down
+		# BT coex -> wl up
+
+		set option ""
+
+		if {$::test_coex == 1 && $::wlan_up_flag == 0} {
+			set option "up"
+			set ::wlan_up_flag 1
+		} elseif {$::test_coex == 0 && $::wlan_up_flag == 1} {
+			set option "down"
+			set ::wlan_up_flag 0
+		}
+
+		if {$option != ""} {
+			UTF::Try "WLAN $option" {
+				catch {$::wlan_dut wl PM 0} ;# enforce PM=0
+				catch {$::wlan_dut wl frameburst 1} ;# Turn on frameburst
+
+				set catch_resp2 [catch "$::wlan_dut wl $option" catch_msg2]
+
+				set catch_resp3 0
+				if {$option == "up"} {
+					set catch_resp3 [catch "UTF::Test::ConnectAPSTA $::wlan_rtr $::wlan_dut -security open" catch_msg3]
+				}
+
+				## UTF::Message DEBUG "" "wlup_retry value is set to: $(wlup_retry)" 
+
+				if {$catch_resp2 == 0 && $catch_resp3 == 0} {
+					return
+				} else {
+					if { !$(wlup_retry) } {
+						## original code with no retry
+						error "$catch_msg2 $catch_msg3"
+					} else {
+						## retry, if specified
+						UTF::Message DEBUG "" "WLAN $option retry loop..."
+						for { set j 2 } { $j <= $::max_association_tries } {incr j} {
+							set catch_respj [ catch "UTF::Test::ConnectAPSTA $::wlan_rtr $::wlan_dut -security open" catch_msg3 ]
+							if { $catch_respj == 0 } {
+								UTF::Message DEBUG "" "WLAN up succeeded in try $j: $catch_msg3"
+								break
+							}
+						}
+					}
+					## end of retry 
+				}
+			}
+		}
+	} ;# end BLE block
+}
+
+proc coex::run_throughput_tests {} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "$::localhost" "************************Func:run_throughput_tests***************************"
+
+	if {$::test_coex >= 1} {
+		# run coex test
+		set ::profile [expr ($::test_coex + 1)]
+	} else {
+		# BT test
+		set ::profile 0
+	}
+
+	# Create list of tests parameters
+	# Format is: ::test_title test_subtitle ::profile packet_type_list ... 
+
+	switch $::test_type {
+		UTF::Message DEBUG_LE "" "Test type is: $::test_type"
+		"WLAN" {
+			set test_parms_list [list WLAN "" 1 "auto"]
+		}
+		"BLE" {
+			switch $::test_subtype {
+				"BLE" {
+					### show null string for acl packet type during BLE tests
+					set test_parms_list [list BLE BLE $::profile "auto"]
+				}
+				"ACL" {
+					# use only AUTO frame type for baseline BLE/ACL coex
+					if { $::test_coex >= 2 } {
+						set test_parms_list [list BLE ACL $::profile "$::acl_pkt_list"]
+					} else {
+						set test_parms_list [list BLE ACL $::profile "auto"]
+					}		
+				}
+			}
+		}
+		* {
+			UTF:Message ERROR "" "\nShould not be here: invalid test type or sub_type.\n"
+		}
+	}
+
+	if {$::test_slave == 0} {
+		set ::keys "$::key_base $::test_prefix Master"
+	} else {
+		set ::keys "$::key_base $::test_prefix Slave"
+	}
+
+	set c [lindex $::WLAN_DUT_CHAN 0]
+	set ::keys "$::keys chan=$c"
+
+	# Process each set of test paramters
+	foreach {title subtitle ::profile pkt_type_list} $test_parms_list {
+
+		# # # 		for debug only
+		# # # 		UTF::Message DEBUG_LE_TITLE "" "\ntitle=$title subtitle=$subtitle ::profile=$::profile\
+										   # # # 			 pkt_type_list=$pkt_type_list\n"
+
+		# Process pkt types in pkt_type_list. Default list: DM1 3-DH5
+		foreach ::pkt_type $pkt_type_list {
+
+			for {set wlan_dir_index 0} {$wlan_dir_index <= 2} {incr wlan_dir_index} {
+
+				if {($::test_type == "WLAN" && $(nowlan) ) } {
+					continue
+				}
+
+				set ::wlan_dir [lindex $::wlan_dir_list $wlan_dir_index]
+				set wlan_dir_display [lindex $::wlan_dir_display_list $wlan_dir_index]
+
+				# User may choose to skip selected test directions.
+				if {$::test_slave == 0} {
+					# master
+					if {($::wlan_dir == "dut2tg" && $(notx)) ||\
+						($::wlan_dir == "tg2dut" && $(norx)) ||\
+						($::wlan_dir == "bidirectional" && $(nobid))} {
+					continue
+					}
+				} else {
+					# slave
+					if {($::wlan_dir == "dut2tg" && $(norx)) ||\
+						($::wlan_dir == "tg2dut" && $(notx)) ||\
+						($::wlan_dir == "bidirectional" && $(nobid))} {
+					continue
+					}
+				}
+				# wrap ACL around BLE traffic type loops
+				for {set ble_dir_index 0} {$ble_dir_index <= 2} {incr ble_dir_index} {
+					
+					if {($::test_type == "BLE" && $(noble))} {
+						continue
+					}
+
+					set ::ble_dir [lindex $::ble_dir_list $ble_dir_index]
+					set ble_dir_display [lindex $::ble_dir_display_list $ble_dir_index]
+
+					# User may choose to skip selected BLE test directions.
+					if {$::test_slave == 0} {
+						# master
+						if {($::ble_dir == "dut2ref" && $(notx)) ||\
+							($::ble_dir == "ref2dut" && $(norx)) ||\
+							($::ble_dir == "bidirectional" && $(nobid))} {
+						continue
+						}
+					} else {
+						# slave
+						if {($::ble_dir == "dut2ref" && $(norx)) ||\
+							($::ble_dir == "ref2dut" && $(notx)) ||\
+							($::ble_dir == "bidirectional" && $(nobid))} {
+						continue
+						}
+					}
+
+				for {set bt_dir_index 0} {$bt_dir_index <= 2} {incr bt_dir_index} {		
+					
+					if {($::test_type == "ACL" && $(noacl))} {
+						continue
+					}
+
+					set ::bt_dir [lindex $::bt_dir_list $bt_dir_index]
+					set bt_dir_display [lindex $::bt_dir_display_list $bt_dir_index]
+
+					# User may choose to skip selected test directions.
+					if {$::test_slave == 0} {
+						# master
+						if {($::bt_dir == "dut2ref" && $(notx)) ||\
+							($::bt_dir == "ref2dut" && $(norx)) ||\
+							($::bt_dir == "bidirectional" && $(nobid))} {
+						continue
+						}
+					} else {
+						# slave
+						if {($::bt_dir == "dut2ref" && $(norx)) ||\
+							($::bt_dir == "ref2dut" && $(notx)) ||\
+							($::bt_dir == "bidirectional" && $(nobid))} {
+						continue
+						}
+					}
+
+						# set display titles for tests based on target test/profile
+						### added ble_dir_display
+						if {$title == "BLE"} {
+							switch $::test_coex {
+								3 {
+									# profile4: triple coex
+									if { !$(nowlan) } {
+										set ::tc_title "$wlan_dir_display;$ble_dir_display;$::pkt_type:$bt_dir_display"
+									} else {
+										break
+									}
+								}
+								2 {
+									# profile3: ble/bt coex
+									set ::tc_title "$ble_dir_display;$::pkt_type:$bt_dir_display"
+								}
+								1 {
+									# profile2: ble/wlan
+									if { !$(nowlan) } {
+										set ::tc_title "$wlan_dir_display;$ble_dir_display"
+									} else {
+										break
+									}
+								}
+								0 {
+									# baseline tests
+									set ::tc_title "$ble_dir_display"
+								}
+							} ;# end of switch block
+
+							set ::bt_test $title
+						} else {
+							set ::tc_title "$subtitle $wlan_dir_display"
+							set ::bt_test "none" ;# WLAN tests
+						} ;# end setting display titles
+
+							#################################################################
+							# Update of the handles needs to be done here since the ThruputBT
+							# module could do a reset and change the handles
+							#################################################################
+							if { $::test_type == "BLE" } {
+							# take care of BLE handles
+								if {$::le_master_handle == ""} {
+									set ::handle_le_master $::ble_handle
+									set ::le_Master_handle $::handle_le_master
+								}
+								if {$::le_slave_handle == ""} {
+									set ::handle_le_slave $::ble_handle
+									set ::le_slave_handle $::handle_le_slave
+								}
+
+								# not to forget ACL handles for BT
+								set ::acl_master_handle [$::bt_master show_acl_handles]
+								if {$::acl_master_handle == ""} {
+									$::bt_master save_acl_handles $(handle_acl_master)
+									UTF::Message LOG "$::localhost" "Using command line\
+											handle_acl_master=$(handle_acl_master)"
+									set ::acl_master_handle $(handle_acl_master)
+								}
+								set ::acl_slave_handle [$::bt_slave show_acl_handles]
+								if {$::acl_slave_handle == ""} {
+									$::bt_slave save_acl_handles $(handle_acl_slave)
+									UTF::Message LOG "$::localhost" "Using command line\
+											handle_acl_slave=$(handle_acl_slave)"
+									set ::acl_slave_handle $(handle_acl_slave)
+								}
+							}
+
+							# set perftime: default is 10 seconds
+							set ::test_perftime [expr int($(perftime))]
+
+							UTF::Try "$::test_title $::tc_title" {
+
+								# add the attenuation to the keys
+								### set new_keys "$::keys attn=0"
+								### UTF::Message LOG "$::localhost" "keys=$new_keys"
+
+								# Optional diagnostic WLAN DUT <-> AP pings.
+								coex::diag_ping $(diagping) $::test_type $::test_coex $::wlan_dut $::wlan_rtr $::bt_master $::bt_slave
+								# non-BLE tests: no ble_dir argument to be passed to ThruputBT_dev_LE
+								if {$::test_type == "WLAN" || !$(nowlan)} {
+									UTF::Test::ThruputBT_dev_LE $::ble_master $::ble_slave $::bt_master $::bt_slave -bt_dir $::bt_dir -bt_test $::bt_test\
+									-bt_pkt $::pkt_type -profile $::profile -title $::tc_title\
+									-wlan_dut $::wlan_dut -wlan_tg $::wlan_tg -wlan_dir $::wlan_dir -wlan_relay $::wlan_relay\
+									-key $::keys -perfloop $(perfloop) -perftime $::test_perftime\
+									-perfsize $(perfsize) -perfint $(perfint) -history $(history)\
+									-bt_slave_test $::test_slave \
+									-handle_acl_master $::acl_master_handle \
+									-handle_acl_slave $::acl_slave_handle \
+									-ble_dir $::ble_dir
+								} else {
+									# all BLE tests
+									# added -ble_dir option for ble traffic direction ($::ble_dir);
+									UTF::Test::ThruputBT_dev_LE $::ble_master $::ble_slave $::bt_master $::bt_slave -bt_dir $::bt_dir -bt_test $::bt_test\
+									-bt_pkt $::pkt_type -profile $::profile -title $::tc_title\
+									-wlan_dut $::wlan_dut -wlan_tg $::wlan_tg -wlan_dir $::wlan_dir -wlan_relay $::wlan_relay\
+									-key $::keys -perfloop $(perfloop) -perftime $::test_perftime\
+									-perfsize $(perfsize) -perfint $(perfint) -history $(history)\
+									-bt_slave_test $::test_slave \
+									-handle_acl_master $::acl_master_handle \
+									-handle_acl_slave $::acl_slave_handle \
+									-handle_le_master $::handle_le_master\
+									-handle_le_slave $::handle_le_slave\
+									-btclone $(btclone)\
+									-btrefclone $(btrefclone)\
+									-ble_dir $::ble_dir
+								}
+							}
+
+							if {$::test_type == "WLAN" || ($::test_type == "BLE" && $::test_coex <2)} {
+								# this is WLAN test and we do not need to loop through 3 BT directions
+								# or this is not a BT coex or wlan test and we do not need to loop through 3 BLE directions
+								break
+							}
+
+					} ;# bt_dir_index loop
+					if {$::test_type == "WLAN"} {
+						# this is WLAN test and we do not need to loop through 3 BT directions
+						break
+					}
+
+			} ;# ble_dir_index loop
+
+				if {$::test_type == "BLE" && $::test_coex == 0 || $::test_coex == 2} {
+					# this is WLAN test and we do not need to loop through 3 BT directions
+					break
+				}
+			} ;# wlan_dir index
+
+		} ;# packet_type packet_list
+	} ;# packet_type_list
+	UTF::Message DEBUG_LE "" "Test type is: $::test_type"
+}
+
+UTF::Test Coex {args} {
+	global env
+
+	# Basic command line option processing. Options are stored in the
+	# unnamed array $()
+	UTF::Getopts "$::CoexLE_getopts" "$::CoexLE_help"
+
+	# To support testing of more build variations in the same config file,
+	# which includes clone objects, the user can override the default STA
+	# and other devices in the config file.
+	if {$(ap) != ""} {
+		set ::wlan_rtr $(ap)
+	}
+	if {$(bt) != ""} {
+		set ::bt_dut $(bt)
+		# set ::ble_dut $(bt)
+	}
+	if {$(btref) != ""} {
+		set ::bt_ref $(btref)
+		# set ::ble_ref $(btref)
+	}
+	if {$(sta) != ""} {
+		set ::wlan_dut $(sta)
+	}
+	if {$(btclone) != ""} {
+		set ::ble_dut $(btclone)
+	}
+	if {$(btrefclone) != ""} {
+		set ::ble_ref $(btrefclone)
+	}
+
+	#
+	# add wlan_relay for HSIC pass-through
+	#
+	if { [ $::wlan_dut hostis ] == "HSIC" } {
+		if {$(relay) != ""} {
+			set ::wlan_relay $(relay)
+		} else {
+			## When wlan_relay not defined, use -relay option defined in HSIC object
+			if { $::wlan_relay == "" } {
+				set ::wlan_relay [ $::wlan_dut cget -relay ] 
+			}
+		}
+	} else {
+		# remove ::wlan_relay for non-HSIC cases, even if given
+		if { $::wlan_relay != "" } {
+			UTF::Message DEBUG "" "\n\n::wlan_relay defined in utfconf where it is not required for non-HSIC platform. Removing ${::wlan_relay}...\n\n"
+			set ::wlan_relay ""
+		}
+		if { $(relay) != "" } {
+			error "\n\n\-relay option used where it is not required for non-HSIC platform. Remove \-relay option and try again...\n\n"
+		}
+	}
+	# end case HSIC pass-through
+
+	# DEBUG Check wlan_relay definition.
+	# UTF::Message DEBUG "" "wlan_relay definition: $$::wlan_relay"
+	# puts "wlan_relay definition: $$::wlan_relay\n\:\:wlan_dut is $::wlan_dut\n\$\(sta\) is $(sta)\n"
+	# exit 1
+
+	if { $(btclone) == "" || $(btrefclone) == "" } {
+		UTF::Message DEBUG_LE "" "Separate devices for BT tests needed. Try again...."
+		exit 971
+	}
+
+	# The Coexistence config file is expected to map specific objects to
+	# higher level names. We verify that the required names point to STA 
+	# objects of the correct UTF type. Specify the required variable names
+	# along with one or more object types, types delimited by "|".
+	set coex_sta_types [string trim $::coex_sta_type_list]
+	regsub -all {\s} $coex_sta_types {|} coex_sta_types
+	set coex_list "::bt_dut WinBT ::bt_ref WinBT ::wlan_dut $coex_sta_types\
+		::wlan_rtr Router ::wlan_tg Linux"
+	set ::error_cnt 0
+	foreach {var type} $coex_list {
+
+		# Check var is defined
+		set catch_resp [catch "set $var" catch_msg]
+		# puts "catch_resp=$catch_resp catch_msg=$catch_msg"
+		if {$catch_resp != 0} {
+			incr ::error_cnt
+			UTF::Message ERROR "" "Your UTF config file is missing variable\
+					$var, which needs to specify a STA of type $type"
+			continue
+		}
+		# Check var is a STA of the desired type.
+		set sta_name [set $var] ;# dereference var
+		regsub -all {\|} $type " " type ;# convert type to space separated list
+		# puts "sta_name=$sta_name type=$type"
+		set catch_resp [catch "UTF::check_sta_type $sta_name \"$type\"" catch_msg]
+		# puts "catch_resp=$catch_resp catch_msg=$catch_msg"
+		if {$catch_resp != 0} {
+			incr ::error_cnt
+			UTF::Message ERROR "" "$catch_msg"
+			continue
+		}
+	}
+
+	# Exit if any errors were found in the config file.
+	if {$::error_cnt > 0} {
+		UTF::Message ERROR "" "Please update your UTF config file and try again!"
+		exit 1
+	}
+
+	# If antenna selection default is not set, use 0x01.
+	if {![info exists ::wlan_rtr_antsel]} {
+		set ::wlan_rtr_antsel 0x01
+	}
+
+	# Check for duplicate STA names in use. Get list of actual STA names.
+	set sta_list ""
+	set var_list ""
+	foreach {var -} $coex_list {
+		append sta_list " [set $var]"
+		append var_list " $var=[set $var]"
+	}
+	set sta_list [lsort $sta_list]
+	# puts "sta_list=$sta_list var_list=$var_list"
+
+	# Get unique list of STA names and check for duplicates.
+	set unique_sta_list [lsort -unique $sta_list]
+	if {$unique_sta_list != $sta_list} {
+		UTF::Message ERROR "" "You are using the same STA name for more\
+				than one function within the test rig:"
+		UTF::Message ERROR "" "$var_list"
+		UTF::Message ERROR "" "Each of the above variables in your UTF\
+				config file must be assigned to a unique STA name, not used by\
+				by any of the other variables."
+		UTF::Message ERROR "" "Please update your UTF config file and try again!"
+		exit 1
+	}
+
+	# Dont alter the tag/date options, as that will impact the values that 
+	# may be stored in the config file individual objects.
+
+	# Setup email option if necessary. UTF email utilities will 
+	# set default to your username as necessary.
+	if {$(email) == ""} {
+	# Check for utf config file email default
+		if {[info exists UTF::email_list]} {
+			set (email) "$UTF::email_list"
+		}
+	}
+
+	# Environment variables can alter the defaults for noapload & nostaload
+	if {[info exists env(UTF_debug_noapload)] && $env(UTF_debug_noapload) == 1} {
+		set (noapload) 1
+	}
+	if {[info exists env(UTF_debug_nostaload)] && $env(UTF_debug_nostaload) == 1} {
+		set (nostaload) 1
+	}
+	# puts "email=$(email) noapload=$(noapload) nostaload=$(nostaload)"
+	# parray "" ;# displays unnamed array of calling options
+
+	# Get testbed info.
+	set ::UTF::trailer_info [UTF::setup_testbed_info $(email) $(logdir)]
+
+	# Trim the list of host devices that will be tested down to match the
+	# the sta_list. We dont look at the STAs in the wan/lan lists, as they
+	# are used as needed or not.
+	foreach item "$::endpoint_sta_list $::endpoint_sta_bt_list\
+		$::router_sta_list" {
+
+		# Look for STA item in the sta_list
+		if {[lsearch -exact $sta_list $item] >= 0} {
+			# puts "item=$item found in sta_list=$sta_list"
+		} else {
+
+			# Item not found. Remove STAs from list of items to test.
+			# puts "item=$item not in sta_list=$sta_list"
+			UTF::remove_test_item $item
+		}
+	}
+
+	# The first time a different UTF testbed is used, you need to go through
+	# the authorization process for each device that has a login process.
+	# This option makes it easier for the end user.
+	if {$(auth)} { 
+		UTF::auth_devices
+	}
+
+	# Once in a while the testbed needs to be updated by running the
+	# setup method on all devices. This option makes it easier for the
+	# end user.
+	if {$(setup)} {
+		UTF::setup_devices
+	}
+
+	# Setup build info for routers / STAs
+	set buildfinderror [UTF::setup_build_info "$(rtrtrx)" "$(rtrtag)" "$(rtrdate)"\
+				"$(statag)" "$(stadate)" "$(noapload)" "$(nostaload)" summaryinfo\
+				"$(btver)" "$(btdate)" "$(ext)" "$(stabin)" "$(btcgr)" "" "$(stadhd)"\
+				"$(useobjectsasis)" "$(dhdtag)"]
+
+	# Set email subject & report title.
+	set email_subject [UTF::setup_email_subject $(title)]
+
+	# Main code body that starts html summary report and runs tests.
+	# puts "UTF::SummaryDir=$UTF::SummaryDir summaryinfo=$summaryinfo\
+	# email_subject=$email_subject"
+
+	# Ensure that we always graph at least all of the performance data
+	# that we collect on this test run. If we dont, then you get a graph
+	# of the last 30 samples and the previous (perfloop - 30) samples are
+	# NOT graphed, which is extremely unhelpful.
+	if {$(history) < $(perfloop)} {
+		set (history) $(perfloop)
+	}
+
+	# If requested, dont save the performance results in the cache files.
+	if {$(nocache)} {
+		set ::UTF::ControlChart::readonly 1
+	}
+
+	# Log testbed info. Although the trailer / testbed info is added to the
+	# end of the summary web page, for development, a lot of the time the
+	# script is deliberately aborted before this occurs. Logging the data
+	# now ensures you can go see the data on your screen or the general log
+	# file.
+	UTF::Message INFO "" "$::UTF::trailer_info"
+
+	UTF::WrapSummary $UTF::SummaryDir "$email_subject" "$summaryinfo" "$(email)" {
+
+		# Add a web link to the test.log file
+		UTF::Try "Link to test.log" {
+			return "html: <a href=\"./test.log\">test.log</a>"
+		}
+
+		# Some testrigs have Aeroflex attenuator initialization strings
+		# defined, usually to set all channels to 0 attenuation. If found,
+		# setup the attenuator.
+		if { !$(nosetuptestbed) } {
+			if {[info exists ::UTF::SetupTestBed]} {
+				UTF::Try "Setup attenuator" {
+					eval $::UTF::SetupTestBed
+					return
+				}
+			}
+		}
+
+		# If requested, log all the environment variables. This is useful
+		# for sorting out issues with cron jobs.
+		if {$(showenv)} {
+			UTF::Try "Environment variables" {
+				set env_names [array names env]
+				set env_names [lsort $env_names]
+				foreach item $env_names {
+					UTF::Message INFO "$::localhost" "env($item)=$env($item)"
+				}
+			}
+		}
+
+		# If a build was not found, log it and halt the script. We must have
+		# builds for all devices in the Coex test rig.
+		if {$buildfinderror != ""} {
+			UTF::Try "Find build for: $buildfinderror" {
+				UTF::Message ERROR $::localhost "No build found for: $buildfinderror"
+				error "no build found for $buildfinderror"
+			}
+			error "Halting tests!"
+		}
+
+		# Reboot hosts in testbed as needed. Default is to check for
+		# unresponsive hosts and reboot only the unresponsive ones.
+		if {!$(nocheck)} {
+			UTF::Try "RebootTestbed full=$(full)" {
+				# Getopts doesnt like null options, so we have to work 
+				# around this.
+				if {$(full)} {
+					RebootTestbed -full -retry $(retry)
+				} else {
+					RebootTestbed -retry $(retry)
+				}
+			}
+		}
+
+		# If there are any unresponsive hosts, log them and halt the script.
+		# We must have all devices functioning properly in the Coex test rig.
+		if {[info exists ::unresponsive_hosts] && $::unresponsive_hosts != ""} {
+			error "Halting tests!"
+		}
+
+		# Disassociate all STAs if required.
+		if {!$(nosetup)} {
+			UTF::Try "Disassociate STAs" {
+			catch {$::wlan_dut wl disassoc}
+
+			# Need BT disassoc equivalent
+
+			return
+			}
+		}
+
+		# Check disk utilization of all STA to be tested.
+		## HSIC has read-only file system, and always returns an error; skip HSIC for now
+		if { [ $::wlan_dut hostis ] != "HSIC" } {
+			UTF::check_disk_usage "$::endpoint_sta_list $::router_sta_list $::bt_dut $::bt_ref"
+		}
+
+		# Load the STAs if required.
+		set ::error_cnt 0 ;# error count for script critical items
+		if {!$(nostaload)} {
+			UTF::Try "Load STAs" {
+				if {!$(reverseloadorder)} {
+					set ldList "$::wlan_dut $::bt_dut $::bt_ref"
+				} else {
+					set ldList "$::bt_dut $::bt_ref $::wlan_dut"
+				}
+				foreach STA $ldList {
+					UTF::Try "Load STA $STA" {
+						set catch_resp [catch "UTF::load_sta_retry $STA" catch_msg]
+						if {$catch_resp == 0} {
+							return "$catch_msg"
+						} else {
+							# STA may have recovered or loaded OK on the 2nd try.
+							if {![string match -nocase "*try*pass:*" $catch_msg] &&\
+							![regexp -nocase "removed.*rebooting" $catch_msg] &&\
+							![regexp -nocase "devcon.*completed" $catch_msg] && \
+							![regexp -nocase "recovered" $catch_msg]} {
+								incr ::error_cnt
+							}
+							error "$catch_msg"
+						}
+					}
+				}
+			}
+		}
+
+		# If there are any STA that didnt load, halt the script.
+		# We must have all devices functioning properly in the Coex test rig.
+		if {$::error_cnt > 0} {
+			error "Halting tests!"
+		}
+
+		# Load the Routers if required.
+		if {!$(noapload)} {
+			UTF::Try "Load Routers" {
+				foreach Router "$::wlan_rtr" {
+					UTF::Try "Load Router $Router" {
+						set catch_resp [catch "UTF::load_rtr_retry $Router" catch_msg]
+
+						# User may want a different channel
+						if {$(chanspec) != ""} {
+							UTF::Test::APChanspec $Router $(chanspec)   
+
+							set c [lindex [$Router wl chanspec] 0]
+							if {$c ne $(chanspec)} {
+								error "Chanspec $c != $(chanspec)"
+							}
+						}
+
+						# Set the antenna selection
+						catch "$Router wl down"
+						catch "$Router wl nphy_antsel $::wlan_rtr_antsel"
+						catch "$Router wl up"
+
+						# Check for loading errors
+						if {$catch_resp == 0} {
+							return "$catch_msg"
+						} else {
+							# AP may have loaded OK on the 2nd try.
+							if {![string match -nocase "*try*pass:*" $catch_msg]} {
+								incr ::error_cnt
+							}
+							error "$catch_msg"
+						}
+					}
+				}
+			}
+		}
+
+		# If there are any RTR that didnt load, halt the script.
+		# We must have all devices functioning properly in the Coex test rig.
+		if {$::error_cnt > 0} {
+			error "Halting tests!"
+		}
+
+		# Collect AP/STA info in the log. What to collect for BT?
+		if {!$(nocollect)} {
+			UTF::Try "Collecting defaults, nrate, etc" {
+				foreach STA "$::wlan_rtr $::wlan_dut" {
+					UTF::Try "$STA data" {
+						UTF::Message INFO "$::localhost" "Collecting defaults, nrate, etc for: $STA"
+						foreach cmd {PM frameburst radio rssi nrate rate} {
+							set catch_resp [catch "$STA wl $cmd" catch_msg]
+						}
+						# Collect hardware version info
+						if {[catch {$STA whatami} resp]} {
+							set $resp ""
+						}
+						# Push hardware version info up to main web page.
+						return $resp
+					}
+				}
+			}
+		}
+
+		# Update the report header table with actual OS & hw versions.
+		set summaryinfo [UTF::update_report_hwinfo $summaryinfo]
+	
+		# Update report title with actual TAG numbers
+		eval UTF::update_report_title $::wlan_rtr $::wlan_dut
+
+		set ::logdir [file dirname $UTF::Logfile]
+
+		##################################################################
+		#
+		#	Coex tests start here
+		#
+		##################################################################
+
+		#####################################################
+		#############  Initialize Variables  ################
+		#####################################################
+		coex::initialize_variables
+
+		# Process each ::test_sets paramters
+		foreach {::test_type ::test_subtype ::test_slave ::test_coex ::test_title} $::test_sets {
+
+			UTF::Message INFO "debug" "::test_type=$::test_type ::test_subtype=$::test_subtype ::test_slave=$::test_slave ::test_coex=$::test_coex ::test_title=$::test_title"
+
+			#####################################################
+			###########  Initialize Test Variables  #############
+			#####################################################
+			coex::initialize_test_variables
+
+			#####################################################
+			############	Setup BT WLAN State	   ##############
+			#####################################################
+			### no need for non-wlan coex tests 
+			coex::setup_bt_wlan_state
+
+			if {$::continue_flag == 1} {
+				continue
+			}
+
+			#####################################################
+			############   Setup WLAN Connection   ##############
+			#####################################################
+			if {!$(nowlan)} {
+				# only for wlan tests
+				coex::setup_wlan_connection
+			}
+
+			#####################################################
+			#############   Setup BT Connection   ###############
+			#####################################################
+			if { $::test_type != "WLAN" && ($(nowlan) && ($::test_coex == 1 || $::test_coex == 3)) || $(noble)} {
+				#UTF::Message DBG_INFO "" "Test true: test_type: $::test_type; nowlan: $(nowlan); test_coex value: $::test_coex. No BT Setup."
+				# no BT connection set up needed
+			} else {
+				#UTF::Message DBG_INFO "" "Test false: test_type: $::test_type; nowlan: $(nowlan); test_coex value: $::test_coex. Set up BT connection."
+				coex::setup_bt_connection
+			}
+
+			if {$::error_cnt > 0} {
+				error "Halting tests!"
+			}
+
+			#####################################################
+			##############  Run Throughput Tests  ###############
+			#####################################################
+			coex::run_throughput_tests
+
+			#####################################################
+			#############   Close BT Connection   ###############
+			#####################################################
+			if { $::test_type != "WLAN" && ($(nowlan) && ($::test_coex == 1 || $::test_coex == 3)) || $(noble)} {
+				#UTF::Message DBG_INFO "" "Test true: test_type: $::test_type; nowlan: $(nowlan); test_coex value: $::test_coex. No Closing BT connection."
+				# no BT connection dismantle needed
+			} else {
+				#UTF::Message DBG_INFO "" "Test false: test_type: $::test_type; nowlan: $(nowlan); test_coex value: $::test_coex. Close BT connection."
+				coex::close_bt_connection
+			}
+		} ;# foreach loop ends
+
+		# Report how many times error recovery was invoked and longest
+		# socket delay observed.
+
+		# # # added new dorecovery option flag at command line
+		if {$(dorecovery)} {
+			UTF::Try "Error recovery procedure count" {
+				if {[info exists ::ThruputBT_dev_LE::erp_cnt]} {
+					UTF::Message LOG "$::localhost" "erp_cnt=$::ThruputBT_dev_LE::erp_cnt\
+					max_socket_delay=$::ThruputBT_dev_LE::running_max_socket_delay\
+					seconds occured at: $::ThruputBT_dev_LE::running_max_socket_timestamp"
+					if {$::ThruputBT_dev_LE::erp_cnt == 0} {
+						return
+					} else {
+						error "$::ThruputBT_dev_LE::erp_cnt"
+					}
+				} else {
+					return "n/a"
+				}
+			}
+		} ;# end dorecovery option block
+
+		# Disassociate STAs if requested.
+		if {$(disassoc)} {
+			UTF::Try "Disassociate STAs" {
+				foreach STA "$::wlan_dut" {
+					set catch_resp [catch {$STA wl disassoc} catch_msg]
+				}
+				return ""
+			}
+		}
+
+		# Do optional post test analysis. The "" passes the unnamed options array.
+# 		UTF::do_post_test_analysis Coex.test ""
+
+		# Final testbed cleanup. Reboot only the hosts in the testbed that
+		# crashed during the tests that just ran.
+		if {!$(nocheck)} {
+			UTF::Try "RebootTestbed full=0" {
+				RebootTestbed
+			}
+		}
+
+		# Update the report header table with end test time.
+		set summaryinfo [UTF::update_report_testtime $summaryinfo]
+
+		# End of code block for UTF::WrapSummary
+	}
+} ;# end Coex outermost block

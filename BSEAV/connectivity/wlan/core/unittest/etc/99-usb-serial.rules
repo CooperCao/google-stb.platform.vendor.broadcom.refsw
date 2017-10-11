@@ -1,0 +1,25 @@
+# $Id$
+# /etc/udev/rules.d/99-usb-serial.rules
+
+# Rules to add symlinks for physical address so we can refer to
+# specific USB-to-Serial adapters without worrying about renumbering
+# on reboot.
+
+# Physical names will look something like this, but the exact format
+# will vary according to device capabilities: /dev/ttyUSB.1-2.1.00
+
+
+# Single port USB Serial adapters
+
+# FTDI
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="ttyUSB.%b"
+# Keyspan
+SUBSYSTEM=="tty", ATTRS{idVendor}=="06cd", ATTRS{idProduct}=="0121", SYMLINK+="ttyUSB.%b"
+
+
+# Multiport USB Serial adapters
+
+# FTDI (VScom) 8x
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", SYMLINK+="ttyUSB.%b.%s{bInterfaceNumber}"
+# Moscon (Sewel 8x)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="9710", ATTRS{idProduct}=="7840", SYMLINK+="ttyUSB.%b.%s{port_number}"

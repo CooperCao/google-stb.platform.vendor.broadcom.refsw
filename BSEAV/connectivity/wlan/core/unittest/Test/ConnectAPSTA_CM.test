@@ -1,0 +1,218 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Join one or more STAs to AP using SSID and security settings
+#
+# Usage:  ConnectAPSTA AP 'STA1 STA2 ...'
+#           [-nka open|shared|8021x|wpa|wpapsk|wpa2|wpa2psk|cckm ]
+#           [-crypto tkip|aes] [-eap peap] [-ieap mschapv2|gtc] [-identity xxxx]
+#
+# $Id$
+#
+
+package require -exact UTF 1.262
+package provide UTF::Test::ConnectAPSTA_CM 2.0
+
+UTF::Test ConnectAPSTA_CM {AP STAS args} {
+
+    UTF::Getopts {
+	{nka.arg           "open" "Network Key Authentication"}
+	{crypto.arg        ""     "Cipher Suite"}
+	{eap.arg           ""     "EAP type"}
+	{ieap.arg          ""     "Inner EAP type"}
+	{identity.arg      ""     "Identity"}
+	{ampdu_density.arg ""     "ampdu_density"}
+    }
+
+    # SSID check
+    #set SSID [$AP cget -ssid]
+    #UTF::Assert [$AP wl ssid] $SSID $AP "SSID"
+    set SSID [$AP wl ssid]
+    set APIP [$AP ipaddr]
+
+    set BSSID [$AP wl bssid]
+    UTF::Assert -i $BSSID "00:00:00:00:00:00" $AP "Non zero BSSID"
+
+    # Retrieve keys from AP
+    set WEPKEY [$AP cget -wepkey]
+    set WEPIDX [$AP cget -wepidx]
+    set WPAKEY [$AP cget -wpakey]
+
+    # Defaults
+    set v_bssid $BSSID
+    set v_sec "open"
+    set v_cipher ""
+    set v_keyindex 0
+    set v_eap ""
+    set v_ieap ""
+    set v_identity ""
+
+    # Validate security options
+    switch $(nka) {
+	open {
+	    set v_sec $(nka)
+	}
+	shared {
+	    set v_sec $(nka)
+	    set v_keyindex $WEPIDX
+	}
+	wpapsk -
+	wpa2psk {
+	    set v_sec $(nka)
+	    if {$(crypto) ne ""} {
+		switch $(crypto) {
+		    tkip -
+		    aes {
+			set v_crypto $(crypto)
+		    }
+		    default {
+			error "unknown crypto: $(crypto)"
+		    }
+		}
+	    } else {
+		set v_crypto "tkip"
+	    }
+	}
+	8021x -
+	wpa -
+	wpa2 -
+	cckm {
+	    set v_sec $(nka)
+
+	    # Setup crypto
+	    if {$v_sec eq "8021x"} {
+		set v_crypto "wep"
+	    } else {
+		if {$(crypto) ne ""} {
+		    switch $(crypto) {
+			tkip -
+			aes {
+			    set v_crypto $(crypto)
+			}
+			default {
+			    error "unknown crypto: $(crypto)"
+			}
+		    }
+		} else {
+		    set v_crypto "tkip"
+		}
+	    }
+
+	    # Validate EAP
+	    switch $(eap) {
+		peap {
+		    set v_eap $(eap)
+		    switch $(ieap) {
+			mschapv2 -
+			gtc {
+			    set v_ieap $(ieap)
+			    if {$(identity) ne ""} {
+				set v_identity $(identity)
+			    } else {
+				error "Identity must be specified for tunnel type $(ieap)"
+			    }
+			}
+			default {
+			    error "Unsupported inner EAP type $(eap) for peap"
+			}
+		    }
+		}
+		default {
+		    error "Unsuppored EAP type $(eap)"
+		}
+	    }
+
+	}
+    }
+
+    # For each station, generate connection profiles in /tmp directory
+    set eap_profile ${v_eap}_${v_ieap}
+    set conn_profile ${v_sec}_${v_crypto}_${eap_profile}
+    foreach STA $STAS {
+	$STA rm -f /tmp/${eap_profile}.prf
+	$STA rm -f /tmp/${conn_profile}.prf
+	switch $v_eap {
+	    peap {
+		$STA profile_peap -tunnel $v_ieap -identity $v_identity -o /tmp/${eap_profile}.prf
+		if {[catch {$STA ls /tmp/${eap_profile}.prf} ret]} {
+		    error "Error in executing profile_peap generation"
+		}
+	    }
+	}
+	switch $v_sec {
+	    wpa -
+	    wpa2 -
+	    8021x -
+	    cckm {
+		$STA profile -bss -ssid $SSID -sec $v_sec -eap /tmp/${eap_profile}.prf -cipher $v_crypto -o /tmp/${conn_profile}.prf
+	    }
+	    wep {
+		$STA profile -bss -ssid $SSID -sec $v_sec -keyindex $WEPIDX -o /tmp/$conn_profile".prf"
+	    }
+	    default {
+		$STA profile -bss -ssid $SSID -sec $v_sec -cipher $v_crypto -o /tmp/$conn_profile".prf"
+	    }
+	}
+	if {[catch {$STA ls /tmp/${conn_profile}.prf} ret]} {
+	    error "Error in executing profile generation"
+	}
+    }
+
+    # Attempt to connect STA to AP
+    foreach STA $STAS {
+	if {$(ampdu_density) ne ""} {
+	    $STA wl down
+	    $STA wl ampdu_density $(ampdu_density)
+	}
+	$STA wl up
+
+	set device \{[lindex [$STA wl xlist | grep wireless] 4]\}
+	set cxnnd_server [$STA cget -lan_ip]
+	set cxnnd_server_port 6789
+	set sockfd [socket $cxnnd_server $cxnnd_server_port]
+	fconfigure $sockfd -buffering none
+	fconfigure stdout -buffering none
+
+	set connect_cmd "cmd connect -profile c:\\tmp\\${conn_profile}.prf -if $device"
+	UTF::Message LOG $STA "Connecting using $connect_cmd"
+	puts $sockfd $connect_cmd
+
+	while {[gets $sockfd line] >= 0} {
+	    if {[llength $line] >= 1} {
+		set rec_type [lindex $line 0]
+		switch $rec_type {
+		    evt {
+			UTF::Message LOG $STA $line
+			set evt_id [lindex $line 1]
+			if {$evt_id eq 5 || $evt_id eq 6} {
+			    if {$evt_id eq 6} {
+				UTF::Message INFO $STA "Failed to connect using \"$connect_cmd\", $line"
+			    } else {
+				$STA ping $APIP
+				UTF::Message INFO $STA "Connected using \"$connect_cmd\""
+			    }
+			    break;
+			}
+		    }
+		    req {
+			puts $line
+			set req_str [lindex $line 1]
+			if {$req_str eq "Username"} {
+			    puts $sockfd "rsp srinathm"
+			}
+			if {$req_str eq "Password"} {
+			    puts $sockfd "rsp broadcom"
+			}
+			if {$req_str eq "Enter PSK"} {
+			    puts $sockfd "rsp broadcom"
+			}
+		    }
+		    ret {
+			UTF::Message LOG $STA $line
+		    }
+		}
+	    }
+	}
+    }
+}
+

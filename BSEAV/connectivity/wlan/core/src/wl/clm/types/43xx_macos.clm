@@ -1,0 +1,3 @@
+# This enables all CLM modes for NIC drivers and others with no
+# need for filtering.
+--ccrev all/0 --txbf --regrev_remap --scr_idx8 --scr_40mhz --scr_inc2 --include "PC-OEM+Apple+!BCM94321MC+!M93_BCM94321COEX2+!BCM94322MC+!X9_BCM94322USA+!X16_BCM943224PCIEBT"

@@ -1,0 +1,268 @@
+#!/usr/bin/expect
+# -*-tcl-*-
+#
+# $Copyright Broadcom Corporation$
+# $Id$
+#
+
+proc connect {} {
+    global spawn_id
+    interact {
+	"\u0004" {
+	    return
+	}
+    }
+    send_user "\r"
+}
+
+proc logger {} {
+    global spawn_id
+    # don't want timeouts to interrupt logging, but if a test is still
+    # running after a day then something has gone wrong.
+    set timeout 86400
+    expect {
+	-re {..*} {
+	    puts -nonewline "$expect_out(buffer)"
+	    exp_continue
+	}
+    }
+}
+
+proc command {args} {
+    set cmd [join $args " "]
+    global spawn_id
+    exp_send "\r"
+    expect -re {::$}
+    exp_send "$cmd\r"
+    expect "$cmd\r\n"
+    expect {
+	-re {(ERROR.*?)\r\n::$} {
+	    error "$expect_out(1,string)"
+	}
+	-re {(.*)\r\n::$} {
+	    exp_send_user -- "$expect_out(1,string)"
+	}
+	-re {::$} {
+	}
+    }
+}
+
+proc usage {} {
+    puts stderr "Usage: $::argv0 \[-\](dev|ip:port) \[cmd \[args ...\]\]"
+    exit 1
+}
+
+set vru "/var/run/utf"
+
+# Args
+if {[llength $argv] > 0 && [set host [lindex $argv 0]] != "-man"} {
+
+    if {[info exists env(EXP_INTERNAL)]} {
+	exp_internal 1
+    } else {
+	exp_internal 0
+    }
+    log_user 0
+    set logger [regexp {^-(.*)} $host - host]
+    if {[catch {
+	if {[catch {
+	    # Redirect to consolelogger, if available
+	    set port \
+		[gets [open "$vru/[string map {/ _ : _} $host]"]]
+	    spawn -noecho -open [socket localhost $port]
+	} ret]} {
+	    if {[string match "*/*" $host]} {
+		# reject background (logging) processes if they try to
+		# talk to the device directly.
+		if {$logger} {
+		    exit
+		}
+		set fd [open $host {RDWR NONBLOCK}]
+		fconfigure $fd \
+		    -mode {115200,n,8,1} -buffering none -blocking 0
+		catch {fconfigure $fd -handshake xonxoff}
+		spawn -noecho -open $fd
+	    } else {
+		# Telnet gets a new session so no reset needed
+		if {![regexp {(.*):(.*)} $host - host port]} {
+		    set port 23
+		}
+		spawn -noecho -open [socket $host $port]
+	    }
+	}
+
+	# Make sure we're using the same encoding as consolelogger
+	fconfigure $spawn_id -encoding binary
+
+	set argv [lreplace $argv 0 0]
+	set timeout 60
+
+	if {[llength $argv] == 0} {
+	    connect
+	} elseif {$argv eq "logger"} {
+	    logger
+	} else {
+	    eval command $argv
+	}
+    } ret]} {
+	puts stderr $ret
+	exit 1
+    }
+    exit 0
+}
+
+# Leave this 'til last to improve performance
+lappend auto_path . /projects/hnd/tools/linux/share/unittest
+package require UTF::doc
+
+UTF::doc {
+    # [manpage_begin vashell n 1.0]
+    # [moddesc {HND Wireless Test Framework}]
+    # [titledesc {tool for managing an Aeroflex attenuator}]
+    # [copyright {2008 Broadcom Corporation}]
+    # [description]
+    # [para]
+
+    # [cmd vashell] is a command for communicating with an Aeroflex
+    # variable attenuator via the serial or telnet console.  If the
+    # serial port or telnet host:port are being managed by a [cmd
+    # consolelogger] process, [cmd vashell] will connect to the [cmd
+    # consolelogger] process instead.
+
+    # [list_begin arguments]
+
+    # [arg_def "" connection]
+
+    # Every [cmd vashell] command requires a [arg connection] argument
+    # which specifies the mechanism for communicating with the
+    # attenuator.  Various alternative connection mechanisms are
+    # available:
+
+    # [list_begin arguments]
+
+    # [arg_def "" /dev/ttyS*]
+
+    # The name of the serial port device directly connected to the
+    # attenuator.
+
+    # [arg_def "" address]
+
+    # The hostname or IP address of the attenuator.  In this case [cmd
+    # vashell] will use the attenuator's [cmd telnet] interface.
+
+    # [arg_def "" address:port]
+
+    # The hostname or IP address and TCP port of a terminal server or
+    # [cmd consolelogger] session.
+
+    # [list_end]
+
+    # [para]
+
+    # If [cmd consolelogger] is not running only one [cmd vashell]
+    # process can access a device at a time.  This can cause problems
+    # when background logging processes compete with foreground
+    # command processes.  [cmd consolelogger] avoids this problem by
+    # allowing multiple [cmd vashell] processes to access the same
+    # device.
+
+    # [para]
+
+    # [arg connection] may be prefixed with [cmd -] to indicate this
+    # is a background process and therefore requires [cmd
+    # consolelogger].  If [cmd consolelogger] is not running then
+    # attempts to connect to [arg -connection] will fail silently.
+
+    # [list_end]
+
+    # [list_begin definitions]
+
+    # [call [cmd vashell] [arg connection] [lb][cmd {cmd ...}][rb]]
+
+    # Simulates [cmd {rsh host cmd ...}] on attenuator.  Requires
+    # serial or IP access to the attenuator.
+
+    # [list_begin arguments]
+
+    # [arg_def "" {cmd ...}]
+
+    # [list_end]
+
+    # Optional command and arguments to be run.  If a command line is
+    # not specified, an interactive terminal session is started.  To
+    # disconnect from the session use ^D.
+
+    # [call [cmd group] [arg groupName] [arg attnList]]
+
+    # Creates an attenuator group of the name [arg groupName]
+    # consisting of the channels in [arg attnList].  [arg attnList]
+    # should be a comma-seperated list of channels, each prefixed with
+    # "AT", eg:
+    # [example_begin]} {{
+    $ vashell 192.168.21.60:10001 "group G AT2,AT3,AT4"
+    $
+}} {
+    # [example_end]
+
+    # [call [cmd group?] [arg groupName]]
+
+    # Returns all the channels belonging to the group with the name
+    # [arg groupName]
+
+    # [call [cmd chan] [arg channelNum]]
+
+    # Sets the current channel number to [arg channelNum]
+
+    # [call [cmd chan?]]
+
+    # Returns the current channel number set
+
+    # [call [cmd attn] [arg attnVal]]
+
+    # Sets the current channel with the attenuation value attnVal
+
+    # [call [cmd attn?]]
+
+    # Returns the attenuation value of the current channel number
+
+    # [call [cmd attn] [arg groupName] [arg attnVal]]
+
+    # Sets all the channels in group with name [arg groupName] to be
+    # of attnuation level [arg attnVal]
+
+    # [list_end]
+
+    # A command line may consist of multiple commands, seperated by
+    # semicolons.  The results will be returned also seperated by
+    # semicolons.  eg:
+
+    # [example_begin]
+} {{
+    $ vashell 192.168.21.60:10001 "group %% AT1,AT2,AT3,AT4;attn %% 0;chan 1;attn?;chan 2;attn?;chan 3;attn?;chan 4;attn?"
+    0.00;0.00;0.00;0.00
+    $
+}} {
+    # [example_end]
+
+    # Syntax and range errors will cause the command to return an
+    # error code to the shell, eg: [example_begin]
+} {{
+    $ vashell 192.168.21.60:10001 chan 9; echo $?
+    CME: Command error
+    1
+    $
+}} {
+    # [example_end]
+
+
+
+    # [see_also [uri APdoc.cgi?consolelogger consolelogger]]
+    # [see_also [uri APdoc.cgi?apshell apshell]]
+    # [see_also [uri APdoc.cgi?vxshell vxshell]]
+
+    # [manpage_end]
+}
+
+UTF::man
+exit
+

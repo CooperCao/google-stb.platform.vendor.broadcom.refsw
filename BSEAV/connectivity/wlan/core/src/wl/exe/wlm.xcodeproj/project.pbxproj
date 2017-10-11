@@ -1,0 +1,987 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		483DA5BE1A88F3CA001F411A /* bcmxtlv.c in Sources */ = {isa = PBXBuildFile; fileRef = 483DA5BD1A88F3CA001F411A /* bcmxtlv.c */; };
+		48D6FC811A89021900E79A48 /* wlc_ppr.c in Sources */ = {isa = PBXBuildFile; fileRef = 48D6FC801A89021900E79A48 /* wlc_ppr.c */; };
+		48D6FC851A8904EA00E79A48 /* wlu_rates_matrix.c in Sources */ = {isa = PBXBuildFile; fileRef = 48D6FC841A8904EA00E79A48 /* wlu_rates_matrix.c */; };
+		52FED6BA1D35BB7C00CA0A99 /* wlu_subcounters.c in Sources */ = {isa = PBXBuildFile; fileRef = 52FED6B91D35BB7C00CA0A99 /* wlu_subcounters.c */; };
+		62560F541CE24DA700CBB37E /* wluc_he.c in Sources */ = {isa = PBXBuildFile; fileRef = 62560F531CE24DA700CBB37E /* wluc_he.c */; };
+		686B6C5619105371007ACD0E /* wluc_arpoe.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C5519105371007ACD0E /* wluc_arpoe.c */; };
+		686B6C5919105386007ACD0E /* wluc_bssload.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C5819105386007ACD0E /* wluc_bssload.c */; };
+		686B6C5B19105395007ACD0E /* wluc_keep_alive.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C5A19105395007ACD0E /* wluc_keep_alive.c */; };
+		686B6C5D191053A5007ACD0E /* wluc_mfp.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C5C191053A5007ACD0E /* wluc_mfp.c */; };
+		686B6C5F191053B3007ACD0E /* wluc_offloads.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C5E191053B3007ACD0E /* wluc_offloads.c */; };
+		686B6C61191053BE007ACD0E /* wluc_ota_test.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C60191053BE007ACD0E /* wluc_ota_test.c */; };
+		686B6C63191053D3007ACD0E /* wluc_pkt_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C62191053D3007ACD0E /* wluc_pkt_filter.c */; };
+		686B6C65191053EC007ACD0E /* wluc_stf.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C64191053EC007ACD0E /* wluc_stf.c */; };
+		686B6C67191053F7007ACD0E /* wluc_toe.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C66191053F7007ACD0E /* wluc_toe.c */; };
+		686B6C6919105403007ACD0E /* wluc_tpc.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C6819105403007ACD0E /* wluc_tpc.c */; };
+		686B6C6B1910540C007ACD0E /* wluc_wowl.c in Sources */ = {isa = PBXBuildFile; fileRef = 686B6C6A1910540C007ACD0E /* wluc_wowl.c */; };
+		68A091751905A00400E5B825 /* wluc_phy.c in Sources */ = {isa = PBXBuildFile; fileRef = 68A091741905A00400E5B825 /* wluc_phy.c */; };
+		68A091781905A01A00E5B825 /* wluc_relmcast.c in Sources */ = {isa = PBXBuildFile; fileRef = 68A091771905A01A00E5B825 /* wluc_relmcast.c */; };
+		68A0917A1905A02C00E5B825 /* wluc_rrm.c in Sources */ = {isa = PBXBuildFile; fileRef = 68A091791905A02C00E5B825 /* wluc_rrm.c */; };
+		68A0917C1905A04900E5B825 /* wluc_wnm.c in Sources */ = {isa = PBXBuildFile; fileRef = 68A0917B1905A04900E5B825 /* wluc_wnm.c */; };
+		68A0917E1905A05700E5B825 /* wluc_cac.c in Sources */ = {isa = PBXBuildFile; fileRef = 68A0917D1905A05700E5B825 /* wluc_cac.c */; };
+		68B37D7F191058C7002A18CD /* wluc_sdio.c in Sources */ = {isa = PBXBuildFile; fileRef = 68B37D7E191058C7002A18CD /* wluc_sdio.c */; };
+		68F040AB1950F87B006A577D /* wluc_ap.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040A91950F87B006A577D /* wluc_ap.c */; };
+		68F040AC1950F87B006A577D /* wluc_bmac.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040AA1950F87B006A577D /* wluc_bmac.c */; };
+		68F040B01950F8EC006A577D /* wluc_ampdu_cmn.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040AE1950F8EC006A577D /* wluc_ampdu_cmn.c */; };
+		68F040B11950F8EC006A577D /* wluc_ampdu.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040AF1950F8EC006A577D /* wluc_ampdu.c */; };
+		68F040BA1950F919006A577D /* wluc_btcx.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040B21950F919006A577D /* wluc_btcx.c */; };
+		68F040BC1950F919006A577D /* wluc_ht.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040B41950F919006A577D /* wluc_ht.c */; };
+		68F040BD1950F919006A577D /* wluc_interfere.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040B51950F919006A577D /* wluc_interfere.c */; };
+		68F040BE1950F919006A577D /* wluc_keymgmt.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040B61950F919006A577D /* wluc_keymgmt.c */; };
+		68F040BF1950F919006A577D /* wluc_led.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040B71950F919006A577D /* wluc_led.c */; };
+		68F040C01950F919006A577D /* wluc_lq.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040B81950F919006A577D /* wluc_lq.c */; };
+		68F040C11950F919006A577D /* wluc_ltecx.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040B91950F919006A577D /* wluc_ltecx.c */; };
+		68F040C31950F946006A577D /* wluc_obss.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040C21950F946006A577D /* wluc_obss.c */; };
+		68F040C51950F95F006A577D /* wluc_prot_obss.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040C41950F95F006A577D /* wluc_prot_obss.c */; };
+		68F040C81950F97F006A577D /* wluc_scan.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040C61950F97F006A577D /* wluc_scan.c */; };
+		68F040C91950F97F006A577D /* wluc_seq_cmds.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040C71950F97F006A577D /* wluc_seq_cmds.c */; };
+		68F040CB1950F98C006A577D /* wluc_wds.c in Sources */ = {isa = PBXBuildFile; fileRef = 68F040CA1950F98C006A577D /* wluc_wds.c */; };
+		83131DAA1256D1A300C55FD8 /* wlu_common.c in Sources */ = {isa = PBXBuildFile; fileRef = 83131DA91256D1A300C55FD8 /* wlu_common.c */; };
+		83131DAC1256D1BD00C55FD8 /* wlu_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 83131DAB1256D1BD00C55FD8 /* wlu_common.h */; };
+		83733BC4105ABF4E00CBD2FC /* wlu_iov.c in Sources */ = {isa = PBXBuildFile; fileRef = 837D22B7105063BB00ABC8FB /* wlu_iov.c */; };
+		83733BC5105ABF4E00CBD2FC /* wlu_client_shared.c in Sources */ = {isa = PBXBuildFile; fileRef = 837D22B01050639100ABC8FB /* wlu_client_shared.c */; };
+		83733BC6105ABF4E00CBD2FC /* wlu_cmd.c in Sources */ = {isa = PBXBuildFile; fileRef = 837D22B11050639100ABC8FB /* wlu_cmd.c */; };
+		83733BC8105ABF4E00CBD2FC /* wlu_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 83DF7D74104EF51B00BA6EE7 /* wlu_pipe.c */; };
+		83733BC9105ABF4E00CBD2FC /* miniopt.c in Sources */ = {isa = PBXBuildFile; fileRef = 83DF7D6B104EEE7D00BA6EE7 /* miniopt.c */; };
+		83733BCA105ABF4E00CBD2FC /* wlu_macos.c in Sources */ = {isa = PBXBuildFile; fileRef = 83DF7D68104EEE6300BA6EE7 /* wlu_macos.c */; };
+		83733BCB105ABF4E00CBD2FC /* wlu.c in Sources */ = {isa = PBXBuildFile; fileRef = 83DF7D5E104EEDA100BA6EE7 /* wlu.c */; };
+		83733BCC105ABF4E00CBD2FC /* bcmutils.c in Sources */ = {isa = PBXBuildFile; fileRef = E31461B20B828F6D0054EB8E /* bcmutils.c */; };
+		83733BCD105ABF4E00CBD2FC /* bcmwifi_channels.c in Sources */ = {isa = PBXBuildFile; fileRef = E31461B30B828F6D0054EB8E /* bcmwifi_channels.c */; };
+		837D22B31050639100ABC8FB /* wlu_client_shared.c in Sources */ = {isa = PBXBuildFile; fileRef = 837D22B01050639100ABC8FB /* wlu_client_shared.c */; };
+		837D22B41050639100ABC8FB /* wlu_cmd.c in Sources */ = {isa = PBXBuildFile; fileRef = 837D22B11050639100ABC8FB /* wlu_cmd.c */; };
+		837D22B8105063BB00ABC8FB /* wlu_iov.c in Sources */ = {isa = PBXBuildFile; fileRef = 837D22B7105063BB00ABC8FB /* wlu_iov.c */; };
+		838203C0125A3FCC00FFC228 /* wlm.h in Headers */ = {isa = PBXBuildFile; fileRef = 838203BF125A3FCC00FFC228 /* wlm.h */; };
+		838BE27212124B9D00EC1CF9 /* bcm_app_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 838BE27112124B9D00EC1CF9 /* bcm_app_utils.c */; };
+		83C977A8105F187A00A43A61 /* wlu_pipe_linux.c in Sources */ = {isa = PBXBuildFile; fileRef = 83C977A7105F187A00A43A61 /* wlu_pipe_linux.c */; };
+		83C977D5105F188F00A43A61 /* wlu_pipe_linux.c in Sources */ = {isa = PBXBuildFile; fileRef = 83C977A7105F187A00A43A61 /* wlu_pipe_linux.c */; };
+		83DF7D21104EE44700BA6EE7 /* wlm.c in Sources */ = {isa = PBXBuildFile; fileRef = 838529931048A06E009F0589 /* wlm.c */; };
+		83DF7D5A104EEB6F00BA6EE7 /* bcmutils.c in Sources */ = {isa = PBXBuildFile; fileRef = E31461B20B828F6D0054EB8E /* bcmutils.c */; };
+		83DF7D5B104EEB6F00BA6EE7 /* bcmwifi_channels.c in Sources */ = {isa = PBXBuildFile; fileRef = E31461B30B828F6D0054EB8E /* bcmwifi_channels.c */; };
+		83DF7D5F104EEDA100BA6EE7 /* wlu.c in Sources */ = {isa = PBXBuildFile; fileRef = 83DF7D5E104EEDA100BA6EE7 /* wlu.c */; };
+		83DF7D69104EEE6300BA6EE7 /* wlu_macos.c in Sources */ = {isa = PBXBuildFile; fileRef = 83DF7D68104EEE6300BA6EE7 /* wlu_macos.c */; };
+		83DF7D6C104EEE7D00BA6EE7 /* miniopt.c in Sources */ = {isa = PBXBuildFile; fileRef = 83DF7D6B104EEE7D00BA6EE7 /* miniopt.c */; };
+		83DF7D75104EF51B00BA6EE7 /* wlu_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 83DF7D74104EF51B00BA6EE7 /* wlu_pipe.c */; };
+		A70E48AF107E65C20010A56F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A70E48AE107E65C20010A56F /* IOKit.framework */; };
+		A70E48B3107E65CD0010A56F /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A70E48B2107E65CD0010A56F /* CoreFoundation.framework */; };
+		A70E48B7107E65E00010A56F /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A70E48B6107E65E00010A56F /* CoreFoundation.framework */; };
+		A70E48B9107E65E90010A56F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A70E48B8107E65E90010A56F /* IOKit.framework */; };
+		A70E48BA107E66030010A56F /* libwlm.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 838529AC1048A0BD009F0589 /* libwlm.dylib */; };
+		A7734B251136126A008D9E78 /* main_wlm.c in Sources */ = {isa = PBXBuildFile; fileRef = A7734B241136126A008D9E78 /* main_wlm.c */; };
+		A7FD0D1D107AA817005C7B0E /* libwlm.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 838529AC1048A0BD009F0589 /* libwlm.dylib */; };
+		A7FD0D27107AA82F005C7B0E /* libwlm.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 838529AC1048A0BD009F0589 /* libwlm.dylib */; };
+		A7FD0D2B107AAAB4005C7B0E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = A7FD0D10107AA7E5005C7B0E /* main.c */; };
+		D886C39B10699F1100C9AE67 /* mfgapi_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D886C38E10699EC900C9AE67 /* mfgapi_test.cpp */; };
+		D886C3AA10699F8000C9AE67 /* wlmSampleTests.c in Sources */ = {isa = PBXBuildFile; fileRef = D886C38F10699EC900C9AE67 /* wlmSampleTests.c */; };
+		D886C3D01069A55100C9AE67 /* libwlm.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D886C3CF1069A55100C9AE67 /* libwlm.dylib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		831CAA5A127A422B00673AEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 831CAA52127A422B00673AEA /* wl.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 8DD76F7E0486A8DE00D96B5E;
+			remoteInfo = wl;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		483DA5BD1A88F3CA001F411A /* bcmxtlv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bcmxtlv.c; path = ../../shared/bcmxtlv.c; sourceTree = "<group>"; };
+		48D6FC801A89021900E79A48 /* wlc_ppr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = wlc_ppr.c; path = ../ppr/src/wlc_ppr.c; sourceTree = "<group>"; };
+		48D6FC841A8904EA00E79A48 /* wlu_rates_matrix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_rates_matrix.c; sourceTree = "<group>"; };
+		52FED6B91D35BB7C00CA0A99 /* wlu_subcounters.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_subcounters.c; sourceTree = "<group>"; };
+		62560F531CE24DA700CBB37E /* wluc_he.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_he.c; sourceTree = "<group>"; };
+		686B6C5519105371007ACD0E /* wluc_arpoe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_arpoe.c; sourceTree = "<group>"; };
+		686B6C5819105386007ACD0E /* wluc_bssload.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_bssload.c; sourceTree = "<group>"; };
+		686B6C5A19105395007ACD0E /* wluc_keep_alive.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_keep_alive.c; sourceTree = "<group>"; };
+		686B6C5C191053A5007ACD0E /* wluc_mfp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_mfp.c; sourceTree = "<group>"; };
+		686B6C5E191053B3007ACD0E /* wluc_offloads.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_offloads.c; sourceTree = "<group>"; };
+		686B6C60191053BE007ACD0E /* wluc_ota_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_ota_test.c; sourceTree = "<group>"; };
+		686B6C62191053D3007ACD0E /* wluc_pkt_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_pkt_filter.c; sourceTree = "<group>"; };
+		686B6C64191053EC007ACD0E /* wluc_stf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_stf.c; sourceTree = "<group>"; };
+		686B6C66191053F7007ACD0E /* wluc_toe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_toe.c; sourceTree = "<group>"; };
+		686B6C6819105403007ACD0E /* wluc_tpc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_tpc.c; sourceTree = "<group>"; };
+		686B6C6A1910540C007ACD0E /* wluc_wowl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_wowl.c; sourceTree = "<group>"; };
+		68A091741905A00400E5B825 /* wluc_phy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_phy.c; sourceTree = "<group>"; };
+		68A091771905A01A00E5B825 /* wluc_relmcast.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_relmcast.c; sourceTree = "<group>"; };
+		68A091791905A02C00E5B825 /* wluc_rrm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_rrm.c; sourceTree = "<group>"; };
+		68A0917B1905A04900E5B825 /* wluc_wnm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_wnm.c; sourceTree = "<group>"; };
+		68A0917D1905A05700E5B825 /* wluc_cac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_cac.c; sourceTree = "<group>"; };
+		68B37D7E191058C7002A18CD /* wluc_sdio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_sdio.c; sourceTree = "<group>"; };
+		68F040A91950F87B006A577D /* wluc_ap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_ap.c; sourceTree = "<group>"; };
+		68F040AA1950F87B006A577D /* wluc_bmac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_bmac.c; sourceTree = "<group>"; };
+		68F040AE1950F8EC006A577D /* wluc_ampdu_cmn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_ampdu_cmn.c; sourceTree = "<group>"; };
+		68F040AF1950F8EC006A577D /* wluc_ampdu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_ampdu.c; sourceTree = "<group>"; };
+		68F040B21950F919006A577D /* wluc_btcx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_btcx.c; sourceTree = "<group>"; };
+		68F040B41950F919006A577D /* wluc_ht.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_ht.c; sourceTree = "<group>"; };
+		68F040B51950F919006A577D /* wluc_interfere.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_interfere.c; sourceTree = "<group>"; };
+		68F040B61950F919006A577D /* wluc_keymgmt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_keymgmt.c; sourceTree = "<group>"; };
+		68F040B71950F919006A577D /* wluc_led.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_led.c; sourceTree = "<group>"; };
+		68F040B81950F919006A577D /* wluc_lq.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_lq.c; sourceTree = "<group>"; };
+		68F040B91950F919006A577D /* wluc_ltecx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_ltecx.c; sourceTree = "<group>"; };
+		68F040C21950F946006A577D /* wluc_obss.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_obss.c; sourceTree = "<group>"; };
+		68F040C41950F95F006A577D /* wluc_prot_obss.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_prot_obss.c; sourceTree = "<group>"; };
+		68F040C61950F97F006A577D /* wluc_scan.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_scan.c; sourceTree = "<group>"; };
+		68F040C71950F97F006A577D /* wluc_seq_cmds.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_seq_cmds.c; sourceTree = "<group>"; };
+		68F040CA1950F98C006A577D /* wluc_wds.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wluc_wds.c; sourceTree = "<group>"; };
+		83131DA91256D1A300C55FD8 /* wlu_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_common.c; sourceTree = "<group>"; };
+		83131DAB1256D1BD00C55FD8 /* wlu_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wlu_common.h; sourceTree = "<group>"; };
+		831CAA52127A422B00673AEA /* wl.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = wl.xcodeproj; sourceTree = SOURCE_ROOT; };
+		837D22B01050639100ABC8FB /* wlu_client_shared.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_client_shared.c; sourceTree = "<group>"; };
+		837D22B11050639100ABC8FB /* wlu_cmd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_cmd.c; sourceTree = "<group>"; };
+		837D22B7105063BB00ABC8FB /* wlu_iov.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_iov.c; sourceTree = "<group>"; };
+		837D232E105199F000ABC8FB /* wlu_server_shared.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_server_shared.c; sourceTree = "<group>"; };
+		838203BF125A3FCC00FFC228 /* wlm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wlm.h; sourceTree = "<group>"; };
+		838529931048A06E009F0589 /* wlm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlm.c; sourceTree = "<group>"; };
+		838529AC1048A0BD009F0589 /* libwlm.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libwlm.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		838BE27112124B9D00EC1CF9 /* bcm_app_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bcm_app_utils.c; path = ../../shared/bcm_app_utils.c; sourceTree = SOURCE_ROOT; };
+		83C977A7105F187A00A43A61 /* wlu_pipe_linux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_pipe_linux.c; sourceTree = "<group>"; };
+		83DF7D5E104EEDA100BA6EE7 /* wlu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu.c; sourceTree = "<group>"; };
+		83DF7D68104EEE6300BA6EE7 /* wlu_macos.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_macos.c; sourceTree = "<group>"; };
+		83DF7D6B104EEE7D00BA6EE7 /* miniopt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = miniopt.c; path = ../../shared/miniopt.c; sourceTree = SOURCE_ROOT; };
+		83DF7D74104EF51B00BA6EE7 /* wlu_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wlu_pipe.c; sourceTree = "<group>"; };
+		83E913631059D16D00457D81 /* wl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = wl; sourceTree = BUILT_PRODUCTS_DIR; };
+		A70E48AE107E65C20010A56F /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		A70E48B2107E65CD0010A56F /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		A70E48B6107E65E00010A56F /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		A70E48B8107E65E90010A56F /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		A7734B241136126A008D9E78 /* main_wlm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main_wlm.c; path = ../../../../embedded/apple/testwlm/main_wlm.c; sourceTree = SOURCE_ROOT; };
+		A7FD0D10107AA7E5005C7B0E /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		A7FD0D19107AA80D005C7B0E /* test_wl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test_wl; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7FD0D23107AA82A005C7B0E /* test_wlm */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test_wlm; sourceTree = BUILT_PRODUCTS_DIR; };
+		D886C38E10699EC900C9AE67 /* mfgapi_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mfgapi_test.cpp; path = ../../tools/wlm/mfgapi_test.cpp; sourceTree = SOURCE_ROOT; };
+		D886C38F10699EC900C9AE67 /* wlmSampleTests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = wlmSampleTests.c; path = ../../tools/wlm/wlmSampleTests.c; sourceTree = SOURCE_ROOT; };
+		D886C39510699EEF00C9AE67 /* mfgapi_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mfgapi_test; sourceTree = BUILT_PRODUCTS_DIR; };
+		D886C3A610699F7100C9AE67 /* wlmSampleTests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = wlmSampleTests; sourceTree = BUILT_PRODUCTS_DIR; };
+		D886C3CF1069A55100C9AE67 /* libwlm.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libwlm.dylib; path = build/Debug/libwlm.dylib; sourceTree = "<group>"; };
+		E31461B20B828F6D0054EB8E /* bcmutils.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = bcmutils.c; path = ../../shared/bcmutils.c; sourceTree = SOURCE_ROOT; };
+		E31461B30B828F6D0054EB8E /* bcmwifi_channels.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = bcmwifi_channels.c; path = ../../shared/bcmwifi/src/bcmwifi_channels.c; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		838529AA1048A0BD009F0589 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A70E48AF107E65C20010A56F /* IOKit.framework in Frameworks */,
+				A70E48B3107E65CD0010A56F /* CoreFoundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		83E913611059D16D00457D81 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A70E48B7107E65E00010A56F /* CoreFoundation.framework in Frameworks */,
+				A70E48B9107E65E90010A56F /* IOKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7FD0D17107AA80D005C7B0E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7FD0D1D107AA817005C7B0E /* libwlm.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7FD0D21107AA82A005C7B0E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7FD0D27107AA82F005C7B0E /* libwlm.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D886C39310699EEF00C9AE67 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D886C3D01069A55100C9AE67 /* libwlm.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D886C3A410699F7100C9AE67 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A70E48BA107E66030010A56F /* libwlm.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		08FB7794FE84155DC02AAC07 /* wl */ = {
+			isa = PBXGroup;
+			children = (
+				52FED6B91D35BB7C00CA0A99 /* wlu_subcounters.c */,
+				A7FD0D11107AA7FD005C7B0E /* testwlm */,
+				A7FD0D0F107AA7E5005C7B0E /* testwl */,
+				08FB7795FE84155DC02AAC07 /* Source */,
+				08FB779DFE84155DC02AAC07 /* External Frameworks and Libraries */,
+				19C28FBDFE9D53C911CA2CBB /* Products */,
+				A70E48AE107E65C20010A56F /* IOKit.framework */,
+				A70E48B2107E65CD0010A56F /* CoreFoundation.framework */,
+				A70E48B6107E65E00010A56F /* CoreFoundation.framework */,
+				A70E48B8107E65E90010A56F /* IOKit.framework */,
+			);
+			name = wl;
+			sourceTree = "<group>";
+		};
+		08FB7795FE84155DC02AAC07 /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				62560F531CE24DA700CBB37E /* wluc_he.c */,
+				68F040CA1950F98C006A577D /* wluc_wds.c */,
+				68F040C61950F97F006A577D /* wluc_scan.c */,
+				68F040C71950F97F006A577D /* wluc_seq_cmds.c */,
+				68F040C41950F95F006A577D /* wluc_prot_obss.c */,
+				68F040C21950F946006A577D /* wluc_obss.c */,
+				68F040B21950F919006A577D /* wluc_btcx.c */,
+				68F040B41950F919006A577D /* wluc_ht.c */,
+				68F040B51950F919006A577D /* wluc_interfere.c */,
+				68F040B61950F919006A577D /* wluc_keymgmt.c */,
+				68F040B71950F919006A577D /* wluc_led.c */,
+				68F040B81950F919006A577D /* wluc_lq.c */,
+				68F040B91950F919006A577D /* wluc_ltecx.c */,
+				68F040AE1950F8EC006A577D /* wluc_ampdu_cmn.c */,
+				68F040AF1950F8EC006A577D /* wluc_ampdu.c */,
+				68F040A91950F87B006A577D /* wluc_ap.c */,
+				68F040AA1950F87B006A577D /* wluc_bmac.c */,
+				68B37D7E191058C7002A18CD /* wluc_sdio.c */,
+				686B6C6A1910540C007ACD0E /* wluc_wowl.c */,
+				686B6C6819105403007ACD0E /* wluc_tpc.c */,
+				686B6C66191053F7007ACD0E /* wluc_toe.c */,
+				686B6C64191053EC007ACD0E /* wluc_stf.c */,
+				686B6C62191053D3007ACD0E /* wluc_pkt_filter.c */,
+				686B6C60191053BE007ACD0E /* wluc_ota_test.c */,
+				686B6C5E191053B3007ACD0E /* wluc_offloads.c */,
+				686B6C5C191053A5007ACD0E /* wluc_mfp.c */,
+				686B6C5A19105395007ACD0E /* wluc_keep_alive.c */,
+				686B6C5819105386007ACD0E /* wluc_bssload.c */,
+				686B6C5519105371007ACD0E /* wluc_arpoe.c */,
+				68A0917D1905A05700E5B825 /* wluc_cac.c */,
+				68A0917B1905A04900E5B825 /* wluc_wnm.c */,
+				68A091791905A02C00E5B825 /* wluc_rrm.c */,
+				68A091771905A01A00E5B825 /* wluc_relmcast.c */,
+				68A091741905A00400E5B825 /* wluc_phy.c */,
+				838203BF125A3FCC00FFC228 /* wlm.h */,
+				83131DAB1256D1BD00C55FD8 /* wlu_common.h */,
+				83131DA91256D1A300C55FD8 /* wlu_common.c */,
+				D886C38E10699EC900C9AE67 /* mfgapi_test.cpp */,
+				D886C38F10699EC900C9AE67 /* wlmSampleTests.c */,
+				837D22B7105063BB00ABC8FB /* wlu_iov.c */,
+				837D232E105199F000ABC8FB /* wlu_server_shared.c */,
+				83C977A7105F187A00A43A61 /* wlu_pipe_linux.c */,
+				837D22B01050639100ABC8FB /* wlu_client_shared.c */,
+				838BE27112124B9D00EC1CF9 /* bcm_app_utils.c */,
+				837D22B11050639100ABC8FB /* wlu_cmd.c */,
+				83DF7D74104EF51B00BA6EE7 /* wlu_pipe.c */,
+				83DF7D6B104EEE7D00BA6EE7 /* miniopt.c */,
+				83DF7D68104EEE6300BA6EE7 /* wlu_macos.c */,
+				83DF7D5E104EEDA100BA6EE7 /* wlu.c */,
+				E31461B20B828F6D0054EB8E /* bcmutils.c */,
+				838529931048A06E009F0589 /* wlm.c */,
+				E31461B30B828F6D0054EB8E /* bcmwifi_channels.c */,
+				483DA5BD1A88F3CA001F411A /* bcmxtlv.c */,
+				48D6FC801A89021900E79A48 /* wlc_ppr.c */,
+				48D6FC841A8904EA00E79A48 /* wlu_rates_matrix.c */,
+			);
+			name = Source;
+			sourceTree = "<group>";
+		};
+		08FB779DFE84155DC02AAC07 /* External Frameworks and Libraries */ = {
+			isa = PBXGroup;
+			children = (
+				D886C3CF1069A55100C9AE67 /* libwlm.dylib */,
+			);
+			name = "External Frameworks and Libraries";
+			sourceTree = "<group>";
+		};
+		19C28FBDFE9D53C911CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				838529AC1048A0BD009F0589 /* libwlm.dylib */,
+				83E913631059D16D00457D81 /* wl */,
+				D886C39510699EEF00C9AE67 /* mfgapi_test */,
+				D886C3A610699F7100C9AE67 /* wlmSampleTests */,
+				A7FD0D19107AA80D005C7B0E /* test_wl */,
+				A7FD0D23107AA82A005C7B0E /* test_wlm */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		831CAA53127A422B00673AEA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				831CAA5B127A422B00673AEA /* wl */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A7FD0D0F107AA7E5005C7B0E /* testwl */ = {
+			isa = PBXGroup;
+			children = (
+				A7FD0D10107AA7E5005C7B0E /* main.c */,
+			);
+			name = testwl;
+			path = ../../../../apple/testwl;
+			sourceTree = SOURCE_ROOT;
+		};
+		A7FD0D11107AA7FD005C7B0E /* testwlm */ = {
+			isa = PBXGroup;
+			children = (
+				A7734B241136126A008D9E78 /* main_wlm.c */,
+				831CAA52127A422B00673AEA /* wl.xcodeproj */,
+			);
+			name = testwlm;
+			path = ../../../../apple/testwlm;
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		838529A81048A0BD009F0589 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				83131DAC1256D1BD00C55FD8 /* wlu_common.h in Headers */,
+				838203C0125A3FCC00FFC228 /* wlm.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		838529AB1048A0BD009F0589 /* wlm */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 838529B31048A10D009F0589 /* Build configuration list for PBXNativeTarget "wlm" */;
+			buildPhases = (
+				838529A81048A0BD009F0589 /* Headers */,
+				838529A91048A0BD009F0589 /* Sources */,
+				838529AA1048A0BD009F0589 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = wlm;
+			productName = wlm;
+			productReference = 838529AC1048A0BD009F0589 /* libwlm.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+		83E913621059D16D00457D81 /* wl */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 83E913681059D18F00457D81 /* Build configuration list for PBXNativeTarget "wl" */;
+			buildPhases = (
+				83E913601059D16D00457D81 /* Sources */,
+				83E913611059D16D00457D81 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = wl;
+			productName = wl;
+			productReference = 83E913631059D16D00457D81 /* wl */;
+			productType = "com.apple.product-type.tool";
+		};
+		A7FD0D18107AA80D005C7B0E /* test_wl */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A7FD0D29107AAAA3005C7B0E /* Build configuration list for PBXNativeTarget "test_wl" */;
+			buildPhases = (
+				A7FD0D16107AA80D005C7B0E /* Sources */,
+				A7FD0D17107AA80D005C7B0E /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = test_wl;
+			productName = test_wl;
+			productReference = A7FD0D19107AA80D005C7B0E /* test_wl */;
+			productType = "com.apple.product-type.tool";
+		};
+		A7FD0D22107AA82A005C7B0E /* test_wlm */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A7FD0D2A107AAAA3005C7B0E /* Build configuration list for PBXNativeTarget "test_wlm" */;
+			buildPhases = (
+				A7FD0D20107AA82A005C7B0E /* Sources */,
+				A7FD0D21107AA82A005C7B0E /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = test_wlm;
+			productName = test_wlm;
+			productReference = A7FD0D23107AA82A005C7B0E /* test_wlm */;
+			productType = "com.apple.product-type.tool";
+		};
+		D886C39410699EEF00C9AE67 /* mfgapi_test */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D886C3A010699F4000C9AE67 /* Build configuration list for PBXNativeTarget "mfgapi_test" */;
+			buildPhases = (
+				D886C39210699EEF00C9AE67 /* Sources */,
+				D886C39310699EEF00C9AE67 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = mfgapi_test;
+			productName = mfgapi_test;
+			productReference = D886C39510699EEF00C9AE67 /* mfgapi_test */;
+			productType = "com.apple.product-type.tool";
+		};
+		D886C3A510699F7100C9AE67 /* wlmSampleTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D886C3AB10699F9E00C9AE67 /* Build configuration list for PBXNativeTarget "wlmSampleTests" */;
+			buildPhases = (
+				D886C3A310699F7100C9AE67 /* Sources */,
+				D886C3A410699F7100C9AE67 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = wlmSampleTests;
+			productName = wlmSampleTests;
+			productReference = D886C3A610699F7100C9AE67 /* wlmSampleTests */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		08FB7793FE84155DC02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "wlm" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 08FB7794FE84155DC02AAC07 /* wl */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 831CAA53127A422B00673AEA /* Products */;
+					ProjectRef = 831CAA52127A422B00673AEA /* wl.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				838529AB1048A0BD009F0589 /* wlm */,
+				83E913621059D16D00457D81 /* wl */,
+				D886C39410699EEF00C9AE67 /* mfgapi_test */,
+				D886C3A510699F7100C9AE67 /* wlmSampleTests */,
+				A7FD0D18107AA80D005C7B0E /* test_wl */,
+				A7FD0D22107AA82A005C7B0E /* test_wlm */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		831CAA5B127A422B00673AEA /* wl */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = wl;
+			remoteRef = 831CAA5A127A422B00673AEA /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXSourcesBuildPhase section */
+		838529A91048A0BD009F0589 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				68F040B11950F8EC006A577D /* wluc_ampdu.c in Sources */,
+				48D6FC811A89021900E79A48 /* wlc_ppr.c in Sources */,
+				68F040C31950F946006A577D /* wluc_obss.c in Sources */,
+				686B6C5F191053B3007ACD0E /* wluc_offloads.c in Sources */,
+				686B6C6B1910540C007ACD0E /* wluc_wowl.c in Sources */,
+				62560F541CE24DA700CBB37E /* wluc_he.c in Sources */,
+				686B6C67191053F7007ACD0E /* wluc_toe.c in Sources */,
+				837D22B8105063BB00ABC8FB /* wlu_iov.c in Sources */,
+				83C977A8105F187A00A43A61 /* wlu_pipe_linux.c in Sources */,
+				68F040AB1950F87B006A577D /* wluc_ap.c in Sources */,
+				686B6C61191053BE007ACD0E /* wluc_ota_test.c in Sources */,
+				68F040BD1950F919006A577D /* wluc_interfere.c in Sources */,
+				686B6C65191053EC007ACD0E /* wluc_stf.c in Sources */,
+				68F040BF1950F919006A577D /* wluc_led.c in Sources */,
+				686B6C5919105386007ACD0E /* wluc_bssload.c in Sources */,
+				837D22B31050639100ABC8FB /* wlu_client_shared.c in Sources */,
+				68B37D7F191058C7002A18CD /* wluc_sdio.c in Sources */,
+				68F040C51950F95F006A577D /* wluc_prot_obss.c in Sources */,
+				52FED6BA1D35BB7C00CA0A99 /* wlu_subcounters.c in Sources */,
+				68F040C81950F97F006A577D /* wluc_scan.c in Sources */,
+				68A091751905A00400E5B825 /* wluc_phy.c in Sources */,
+				68F040CB1950F98C006A577D /* wluc_wds.c in Sources */,
+				837D22B41050639100ABC8FB /* wlu_cmd.c in Sources */,
+				68A0917C1905A04900E5B825 /* wluc_wnm.c in Sources */,
+				686B6C5D191053A5007ACD0E /* wluc_mfp.c in Sources */,
+				68A091781905A01A00E5B825 /* wluc_relmcast.c in Sources */,
+				83DF7D75104EF51B00BA6EE7 /* wlu_pipe.c in Sources */,
+				83DF7D6C104EEE7D00BA6EE7 /* miniopt.c in Sources */,
+				68F040C91950F97F006A577D /* wluc_seq_cmds.c in Sources */,
+				68F040BA1950F919006A577D /* wluc_btcx.c in Sources */,
+				83DF7D69104EEE6300BA6EE7 /* wlu_macos.c in Sources */,
+				483DA5BE1A88F3CA001F411A /* bcmxtlv.c in Sources */,
+				68A0917E1905A05700E5B825 /* wluc_cac.c in Sources */,
+				83DF7D5F104EEDA100BA6EE7 /* wlu.c in Sources */,
+				48D6FC851A8904EA00E79A48 /* wlu_rates_matrix.c in Sources */,
+				83DF7D5B104EEB6F00BA6EE7 /* bcmwifi_channels.c in Sources */,
+				686B6C6919105403007ACD0E /* wluc_tpc.c in Sources */,
+				83DF7D5A104EEB6F00BA6EE7 /* bcmutils.c in Sources */,
+				83DF7D21104EE44700BA6EE7 /* wlm.c in Sources */,
+				838BE27212124B9D00EC1CF9 /* bcm_app_utils.c in Sources */,
+				68F040BE1950F919006A577D /* wluc_keymgmt.c in Sources */,
+				83131DAA1256D1A300C55FD8 /* wlu_common.c in Sources */,
+				68F040AC1950F87B006A577D /* wluc_bmac.c in Sources */,
+				68F040B01950F8EC006A577D /* wluc_ampdu_cmn.c in Sources */,
+				686B6C5619105371007ACD0E /* wluc_arpoe.c in Sources */,
+				68F040C11950F919006A577D /* wluc_ltecx.c in Sources */,
+				68F040C01950F919006A577D /* wluc_lq.c in Sources */,
+				68F040BC1950F919006A577D /* wluc_ht.c in Sources */,
+				68A0917A1905A02C00E5B825 /* wluc_rrm.c in Sources */,
+				686B6C63191053D3007ACD0E /* wluc_pkt_filter.c in Sources */,
+				686B6C5B19105395007ACD0E /* wluc_keep_alive.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		83E913601059D16D00457D81 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				83733BC4105ABF4E00CBD2FC /* wlu_iov.c in Sources */,
+				83C977D5105F188F00A43A61 /* wlu_pipe_linux.c in Sources */,
+				83733BC5105ABF4E00CBD2FC /* wlu_client_shared.c in Sources */,
+				83733BC6105ABF4E00CBD2FC /* wlu_cmd.c in Sources */,
+				83733BC8105ABF4E00CBD2FC /* wlu_pipe.c in Sources */,
+				83733BC9105ABF4E00CBD2FC /* miniopt.c in Sources */,
+				83733BCA105ABF4E00CBD2FC /* wlu_macos.c in Sources */,
+				83733BCB105ABF4E00CBD2FC /* wlu.c in Sources */,
+				83733BCC105ABF4E00CBD2FC /* bcmutils.c in Sources */,
+				83733BCD105ABF4E00CBD2FC /* bcmwifi_channels.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7FD0D16107AA80D005C7B0E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7FD0D2B107AAAB4005C7B0E /* main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7FD0D20107AA82A005C7B0E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7734B251136126A008D9E78 /* main_wlm.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D886C39210699EEF00C9AE67 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D886C39B10699F1100C9AE67 /* mfgapi_test.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D886C3A310699F7100C9AE67 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D886C3AA10699F8000C9AE67 /* wlmSampleTests.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1DEB924C08733DCA0010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				OTHER_CFLAGS = OLYMPIC_RWL;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		1DEB924D08733DCA0010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				OTHER_CFLAGS = OLYMPIC_RWL;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		838529AD1048A0BE009F0589 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				COPY_PHASE_STRIP = NO;
+				EXECUTABLE_PREFIX = lib;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = "SRCROOT=$(SRCROOT)";
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = (
+					../../common/include/proto,
+					../../include,
+				);
+				INSTALL_PATH = /usr/local/lib;
+				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
+				OBJROOT = build;
+				OTHER_CFLAGS = (
+					"-DOLYMPIC_RWL",
+					"-DRDR_5905993",
+					"-DRWL_DONGLE",
+					"-DRWL_SOCKET",
+					"-DRWL_SERIAL",
+					"-DWLDYNLIB",
+					"-DMACOSX",
+					"-DSERDOWNLOAD",
+					"-DWLTEST",
+				);
+				PRODUCT_NAME = wlm;
+				SDKROOT = macosx;
+				SHARED_PRECOMPS_DIR = Build;
+				SYMROOT = build;
+				USER_HEADER_SEARCH_PATHS = " ./ ../../include ../../dhd/macos ../../../components/shared ../../shared/bcmwifi/include ../ppr/include ../../dhd/sys";
+			};
+			name = Debug;
+		};
+		838529AE1048A0BE009F0589 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				COPY_PHASE_STRIP = YES;
+				EXECUTABLE_PREFIX = lib;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = "SRCROOT=$(SRCROOT)";
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = (
+					../../common/include/proto,
+					../../include,
+				);
+				INSTALL_PATH = /usr/local/lib;
+				LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)";
+				OBJROOT = build;
+				OTHER_CFLAGS = (
+					"-DOLYMPIC_RWL",
+					"-DRDR_5905993",
+					"-DRWL_DONGLE",
+					"-DRWL_SOCKET",
+					"-DRWL_SERIAL",
+					"-DWLDYNLIB",
+					"-DMACOSX",
+					"-DSERDOWNLOAD",
+					"-DWLTEST",
+				);
+				PRODUCT_NAME = wlm;
+				SDKROOT = macosx;
+				SHARED_PRECOMPS_DIR = Build;
+				USER_HEADER_SEARCH_PATHS = " ./ ../../include ../../dhd/macos ../../../components/shared ../../shared/bcmwifi/include ../ppr/include ../../dhd/sys";
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		83E913651059D16E00457D81 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_VERSION = "";
+				INSTALL_PATH = /usr/local/bin;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_CFLAGS = (
+					"-DRDR_5905993",
+					"-DBCMCCX",
+					"-DBCMDBG",
+					"-DBCMINTERNAL",
+					"-DRWL_SOCKET",
+					"-DMACOSX",
+					"-DRWL_WIFI",
+					"-DRWL_SERIAL",
+					"-DRWL_SOCKET",
+					"-DRWL_DONGLE",
+					"-DSERDOWNLOAD",
+					"-DWLTEST",
+				);
+				PREBINDING = NO;
+				PRODUCT_NAME = wl;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.7.sdk";
+				USER_HEADER_SEARCH_PATHS = "../../macos ../../include ../../common/include ../../shared/bcmwifi/include";
+				VALID_ARCHS = i386;
+			};
+			name = Debug;
+		};
+		83E913661059D16E00457D81 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = wl;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		A7FD0D1B107AA80D005C7B0E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = test_wl;
+			};
+			name = Debug;
+		};
+		A7FD0D1C107AA80D005C7B0E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = test_wl;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		A7FD0D25107AA82B005C7B0E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path";
+				PREBINDING = NO;
+				PRODUCT_NAME = test_wlm;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.7.sdk";
+				USER_HEADER_SEARCH_PATHS = "../../wl/exe ../../RAPTOR2/src/wl/exe";
+			};
+			name = Debug;
+		};
+		A7FD0D26107AA82B005C7B0E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = test_wlm;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		D886C39710699EEF00C9AE67 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/build/Debug\"";
+				OTHER_CFLAGS = "-DMACOSX";
+				PREBINDING = NO;
+				PRODUCT_NAME = mfgapi_test;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.7.sdk";
+				USER_HEADER_SEARCH_PATHS = ../../wl/exe;
+			};
+			name = Debug;
+		};
+		D886C39810699EEF00C9AE67 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/build/Debug\"";
+				PREBINDING = NO;
+				PRODUCT_NAME = mfgapi_test;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		D886C3A810699F7200C9AE67 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/build/Debug\"";
+				OTHER_CFLAGS = "-DWLDYNLIB";
+				PREBINDING = NO;
+				PRODUCT_NAME = wlmSampleTests;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.7.sdk";
+				USER_HEADER_SEARCH_PATHS = ../../wl/exe;
+			};
+			name = Debug;
+		};
+		D886C3A910699F7200C9AE67 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/build/Debug\"";
+				PREBINDING = NO;
+				PRODUCT_NAME = wlmSampleTests;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "wlm" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB924C08733DCA0010E9CD /* Debug */,
+				1DEB924D08733DCA0010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		838529B31048A10D009F0589 /* Build configuration list for PBXNativeTarget "wlm" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				838529AD1048A0BE009F0589 /* Debug */,
+				838529AE1048A0BE009F0589 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		83E913681059D18F00457D81 /* Build configuration list for PBXNativeTarget "wl" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				83E913651059D16E00457D81 /* Debug */,
+				83E913661059D16E00457D81 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A7FD0D29107AAAA3005C7B0E /* Build configuration list for PBXNativeTarget "test_wl" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A7FD0D1B107AA80D005C7B0E /* Debug */,
+				A7FD0D1C107AA80D005C7B0E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A7FD0D2A107AAAA3005C7B0E /* Build configuration list for PBXNativeTarget "test_wlm" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A7FD0D25107AA82B005C7B0E /* Debug */,
+				A7FD0D26107AA82B005C7B0E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D886C3A010699F4000C9AE67 /* Build configuration list for PBXNativeTarget "mfgapi_test" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D886C39710699EEF00C9AE67 /* Debug */,
+				D886C39810699EEF00C9AE67 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D886C3AB10699F9E00C9AE67 /* Build configuration list for PBXNativeTarget "wlmSampleTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D886C3A810699F7200C9AE67 /* Debug */,
+				D886C3A910699F7200C9AE67 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 08FB7793FE84155DC02AAC07 /* Project object */;
+}

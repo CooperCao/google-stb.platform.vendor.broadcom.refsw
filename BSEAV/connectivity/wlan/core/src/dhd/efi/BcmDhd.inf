@@ -1,0 +1,152 @@
+#/*++
+#  Module definition file for Brcm43xx full dongle device driver for EFI
+#
+#  $Copyright Broadcom Corporation $
+#
+#  Module Name:
+#
+#    BcmDhd.inf
+#
+#  Abstract:
+#
+#    Component description file for BcmDhd module.
+#
+#
+#  <<Broadcom-WL-IPTag/Proprietary:>>
+#
+# $Id $
+#
+--*/
+
+[defines]
+BASE_NAME            = BcmDhd
+FILE_GUID            = 1e82b556-4eb6-479f-955a-78a5fe0c0cb2
+COMPONENT_TYPE       = BS_DRIVER
+##############################################
+# Change the DHD_BASE_PATH to start of source tree
+###############################################
+
+DHD_BASE_PATH         =..\..
+
+[sources.common]
+  $(DHD_BASE_PATH)\dhd\sys\dhd_common.c
+  $(DHD_BASE_PATH)\dhd\sys\dhd_debug.c
+  $(DHD_BASE_PATH)\dhd\sys\dhd_mschdbg.c
+  $(DHD_BASE_PATH)\dhd\sys\dhd_efi.c
+  $(DHD_BASE_PATH)\dhd\sys\dhd_flowring.c
+  $(DHD_BASE_PATH)\dhd\sys\dhd_ip.c
+  $(DHD_BASE_PATH)\dhd\sys\dhd_msgbuf.c
+  $(DHD_BASE_PATH)\dhd\sys\dhd_pcie.c
+  $(DHD_BASE_PATH)\dhd\sys\dhd_pcie_efi.c
+  $(DHD_BASE_PATH)\shared\aiutils.c
+  $(DHD_BASE_PATH)\shared\bcm_app_utils.c
+  $(DHD_BASE_PATH)\shared\bcmevent.c
+  $(DHD_BASE_PATH)\shared\bcmotp.c
+  $(DHD_BASE_PATH)\shared\bcmsrom.c
+  $(DHD_BASE_PATH)\shared\bcmstdlib.c
+  $(DHD_BASE_PATH)\shared\bcmutils.c
+  $(DHD_BASE_PATH)\shared\bcmwifi\src\bcmwifi_channels.c
+  $(DHD_BASE_PATH)\shared\bcmwpa.c
+  $(DHD_BASE_PATH)\shared\bcmxtlv.c
+  $(DHD_BASE_PATH)\shared\efi_osl.c
+  $(DHD_BASE_PATH)\shared\hnd_pktpool.c
+  $(DHD_BASE_PATH)\shared\hnd_pktq.c
+  $(DHD_BASE_PATH)\shared\hndpmu.c
+  $(DHD_BASE_PATH)\shared\pcie_core.c
+  $(DHD_BASE_PATH)\shared\sbutils.c
+  $(DHD_BASE_PATH)\shared\siutils.c
+
+
+[includes.common]
+  $(EDK_SOURCE)\Foundation
+  $(EDK_SOURCE)\Foundation\Efi
+  $(EDK_SOURCE)\Foundation\Framework
+  .
+  $(EDK_SOURCE)\Foundation\Include
+  $(EDK_SOURCE)\Foundation\Efi\Include
+  $(EDK_SOURCE)\Foundation\Framework\Include
+  $(EDK_SOURCE)\Foundation\Include\IndustryStandard
+  $(EDK_SOURCE)\Foundation\Core\Dxe
+  $(EDK_SOURCE)\Foundation\Library\Dxe\Include
+  $(EDK_SOURCE)\Foundation\Efi\Protocol\LoadFile
+  $(EDK_SOURCE)\Foundation\Efi\Protocol\SimpleFileSystem
+  $(EDK_SOURCE)\Foundation\Efi\Protocol\DevicePath
+  $(EDK_SOURCE)\Foundation\Efi\Protocol\FileInfo
+  $(EDK_SOURCE)\Platform\Apple\Common
+  $(EDK_SOURCE)\Platform\Apple\Common\Library\NewLib\libc\include
+  $(EDK_SOURCE)\Platform\Apple\Common\Protocol\Apple80211
+  $(EDK_SOURCE)\Sample\Include
+  $(DHD_BASE_PATH)\..\components\drivers\wl\shim\src
+  $(DHD_BASE_PATH)\..\components\shared
+  $(DHD_BASE_PATH)\bcmcrypto
+  $(DHD_BASE_PATH)\common\include
+  $(DHD_BASE_PATH)\common\include\devctrl_if
+  $(DHD_BASE_PATH)\dhd\debugger
+  $(DHD_BASE_PATH)\dhd\sys
+  $(DHD_BASE_PATH)\dongle
+  $(DHD_BASE_PATH)\dongle\include
+  $(DHD_BASE_PATH)\include
+  $(DHD_BASE_PATH)\include\efi
+  $(DHD_BASE_PATH)\shared
+  $(DHD_BASE_PATH)\shared\bcmwifi\include
+  $(DHD_BASE_PATH)\wl\clm\include
+  $(DHD_BASE_PATH)\wl\iocv\src
+  $(DHD_BASE_PATH)\wl\keymgmt\src
+  $(DHD_BASE_PATH)\wl\phy
+  $(DHD_BASE_PATH)\wl\ppr\include
+  $(DHD_BASE_PATH)\wl\proxd\include
+  $(DHD_BASE_PATH)\wl\proxd\src
+  $(DHD_BASE_PATH)\wl\sys
+
+[libraries.common]
+  EdkGuidLib
+  EdkProtocolLib
+  EfiProtocolLib
+  EfiDriverLib
+  EfiCommonLib
+  PrintLib
+
+[nmake.common]
+  IMAGE_ENTRY_POINT=BCMDHD_InitializeDriver
+  C_FLAGS = $(C_FLAGS) /wd4101 /W3 /wd4244 /wd4018 \
+	/DBCMWLUNDI /DEFI /DDHD_EFI /DEFI_WINBLD \
+	/DBCMDRIVER /DBCMDONGLEHOST /DUNRELEASEDCHIP /DBCMDMA32 \
+	/DDHD_FW_COREDUMP /DPCIE_FULL_DONGLE \
+	/DBCMPERFSTATS /DBCMPCIE /DSHOW_LOGTRACE \
+	/DSHOW_EVENTS /DDHD_LOG_DUMP /DDHD_DBG_DUMP
+# Change /DBCMWLUNDI to /DBCMWLSNP to get SNP support
+
+#if BCMINTERNAL
+  C_FLAGS = $(C_FLAGS) /DBCMINTERNAL
+#endif
+
+!IF "$(EFI_DEBUG)" == "YES"
+  C_FLAGS = $(C_FLAGS) /DBCMDBG /DBCMDBG_MEM /DDHD_DEBUG /DBCMDBG_ASSERT
+!ENDIF
+
+!IF "$(EFI_FW_EMBED)" == "YES"
+	C_FLAGS = $(C_FLAGS) /DBCMEMBEDIMAGE
+!ENDIF
+
+# Change following Define to connect to any other AP in this version of the driver
+# /D EFI_SSID=\"pskbug2\"
+
+[gmake.common]
+  IMAGE_ENTRY_POINT=BCMWL_InitializeDriver
+  C_PROJ_FLAGS += -DBCMWLUNDI  -DEFI -DBCMDRIVER -DBCMDONGLEHOST -DEFI_WINBLD \
+		-DUNRELEASEDCHIP -DBCMDMA32 -DBCMFILEIMAGE \
+		-DBCMDMA32 -DBCMFILEIMAGE -DDHD_FW_COREDUMP \
+		-DSDTEST -DPCIE_FULL_DONGLE -DBCMPERFSTATS -DARP_OFFLOAD_SUPPORT \
+		-DWLLXIW -DUSE_IW -DWIFI_ACT_FRAME -DBCMPCIE -DBCMEMBEDIMAGE
+		-Wno-array-bounds \
+		-Wno-conversion
+# Change -D BCMWLUNDI to -D BCMWLSNP to get SNP support
+# -Wno-array-bounds avoids an error due to a variable length array member in a struct: bcm_tlv_t.data
+
+#if BCMINTERNAL
+  C_PROJ_FLAGS += -DBCMINTERNAL
+#endif
+
+ifeq ($(EFI_DEBUG),YES)
+  C_PROJ_FLAGS += -DBCMDBG -DBCMDBG_MEM -DDHD_DEBUG -DBCMDBG_ASSERT
+endif

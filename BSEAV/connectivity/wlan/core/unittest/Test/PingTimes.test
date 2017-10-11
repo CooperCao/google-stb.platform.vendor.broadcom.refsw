@@ -1,0 +1,168 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for testing Ping Times in different PM modes
+# $Id$
+#
+package require UTF
+package require UTF::ControlChart
+package require UTF::Test::ConnectAPSTA
+
+package provide UTF::Test::PingTimes 2.0
+
+UTF::Test PingTimes {AP STA args} {
+
+    UTF::Getopts {
+	{PM.arg "0 1 2" "PM"}
+	{s.arg "5" "sample size"}
+	{key.arg "ping" "key"}
+	{png.arg 1 "Use png file"}
+	{security.arg "" "Security"}
+	{chanspec.arg "" "Chanspec"}
+	{perfcache.arg "" "Performance Cache"}
+	{history.arg 30 "Performance History"}
+	{nocache "Don't update performance cache"}
+	{nopm1.arg 0 "Skip PM1 tests"}
+	{nopm2.arg 0 "Skip PM2 tests"}
+    }
+
+    if {$(nocache)} {
+	set ::UTF::ControlChart::readonly 1
+    }
+
+    # If we're testing in AP mode, PM should be run on the WET device
+    if {[$STA cget -apmode]} {
+	set PMSTA $AP
+    } else {
+	set PMSTA $STA
+    }
+
+    # Fail criteria
+    set FAILMATCH "HIGH|WIDE"
+
+    set branch [$STA branchname]
+
+    set oldPM ""
+    set abort 0
+    foreach PM $(PM) {
+
+	if {$abort ||
+	    ($PM eq "1" && ($(nopm1) || [$PMSTA cget -nopm1])) ||
+	    ($PM eq "2" && ($(nopm2) || [$PMSTA cget -nopm2]))} {
+	    continue
+	}
+
+	UTF::Try "$STA: Ping Time PM=$PM" {
+
+	    if {$oldPM eq ""} {
+
+		# Skip later stages if setup doesn't complete.
+		set abort 1
+
+		# Make sure devices are associated.  Don't try to
+		# optimize this out since there are too many odd cases
+		# where we can't tell.
+		ConnectAPSTA $AP $STA \
+		    -chanspec $(chanspec) -security $(security)
+
+		set IP [$AP ipaddr]
+		if {[catch {$PMSTA wl PM} oldPM]} {
+		    if {[regexp {Error getting the last error} $oldPM]} {
+			UTF::Message WARN $PMSTA "PR#94268"
+			set oldPM 0
+		    } elseif {[regexp {Unsupported} $oldPM]} {
+			# minioctl can set, but not get PM
+			set oldPM 0
+		    } else {
+			error $oldPM
+		    }
+		}
+
+		# Note this is not portable yet.  We can't use the "ping"
+		# method because that's optimized for quick exit and in
+		# this case we need all the stats.
+
+		# Supported ping formats:
+		# rtt min/avg/max/mdev = 10.755/167.799/307.456/91.491 ms, pipe 2
+		# round-trip min/avg/max/stddev = 62.255/185.162/291.040/77.752 ms
+		# round-trip min/avg/max = 1.8/2.6/5.3 ms
+
+		if {[$STA hostis HSIC] && [$STA lan] ne ""} {
+		    # HSIC host is mac-spoofing, so it can't actually
+		    # ping on it's own.  We would normally let the
+		    # ping method delegation handle it, but we're
+		    # bypassing the method here.
+		    set src [$STA lan]
+		} else {
+		    set src $STA
+		}
+
+		if {[$src hostis PXA STB DK8 HSIC]} {
+		    set cmd [list $src rexec ping -c $(s) $IP]
+		} elseif {[$src hostis Wiced]} {
+		    # Wiced ping
+		    set cmd [list $src rexec ping $IP -i 500 -n $(s)]
+		} elseif {[regexp {.*epi_ping} [$src cget -ping] p]} {
+		    # ping faster with epi_ping, but not so fast we beat
+		    # the powersave timers.
+		    set cmd [list $src rexec $p -i 500 -n -c $(s) $IP]
+		} elseif {[$src hostis MacOS]} {
+		    # MacOS can also ping faster, but uses seconds,
+		    # not ms
+		    set cmd [list $src rexec ping -n -i 0.5 -c $(s) $IP]
+		} elseif {[$src hostis Cygwin WinDHD]} {
+		    # Windows native ping
+		    set cmd [list $src rexec ping $IP 56 $(s)]
+		} else {
+		    # Unix native ping (linux+MacOS)
+		    set cmd [list $src rexec ping -n -c $(s) $IP]
+		}
+		# Setup completed ok.
+		set abort 0
+	    }
+
+	    $PMSTA wl PM $PM
+
+	    set key [concat $branch ping PM=$PM $(key) $STA $AP]
+
+	    UTF::ControlChart CC -s $(s) -key $key -allowzero 1 -units ms \
+		-title "Ping Times" -perfcache $(perfcache) \
+		-history $(history)
+
+	    #  Run ping.  Retry if we see wrapping, since that's a bug in epi_ping
+	    while {[regexp {\(wrap\)|printing up packets} [set ret [eval $cmd]]]} {}
+	    if {[$src hostis Wiced]} {
+		set tt {}
+		foreach {- t} [regexp -inline -all {Ping Reply (\d+)ms} $ret] {
+		    lappend tt $t
+		}
+		set mmm [UTF::MeanMinMax $tt]
+	    } elseif {[regexp {min/avg/max(?:/\w+)? = ([\d.]+)/([\d.]+)/([\d.]+)} \
+			    $ret - min mean max]} {
+		set mmm [list $mean $min $max]
+	    } else {
+		error "Unrecognised format"
+	    }
+
+	    set ret [CC addsample $mmm]
+
+	    if {![string is false $(png)]} {
+		set ret [CC plotcontrolchart $ret]
+	    }
+
+	    if {[regexp $FAILMATCH $ret]} {
+		UTF::Message FAIL "" $ret
+		error $ret
+	    } else {
+		UTF::Message PASS "" $ret
+		return $ret
+	    }
+	}
+    }
+    if {[catch {$PMSTA wl PM $oldPM} ret]} {
+	UTF::Try "Reset PM failed" {
+	    error $ret
+	}
+    }
+}

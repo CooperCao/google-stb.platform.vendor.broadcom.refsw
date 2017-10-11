@@ -1,0 +1,50 @@
+#
+# Makefile fragment for Linux 2.6
+# Broadcom 802.11abg Networking Device Driver
+#
+# Broadcom Proprietary and Confidential. Copyright (C) 2017,
+# All Rights Reserved.
+# 
+# This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
+# the contents of this file may not be disclosed to third parties, copied
+# or duplicated in any form, in whole or in part, without the prior
+# written permission of Broadcom.
+#
+# $Id$
+
+obj-m              += wl.o
+
+wl-objs            :=
+wl-objs            += src/shared/linux_osl.o
+wl-objs            += src/shared/linux_pkt.o
+wl-objs            += src/shared/bcmwpa.o
+wl-objs            += src/shared/nvramstubs.o
+wl-objs            += src/wl/sys/wl_linux.o
+wl-objs            += src/wl/sys/wl_iw.o
+wl-objs            += src/wl/sys/wlc.o
+wl-objs            += src/wl/sys/wlc_alloc.o
+wl-objs            += src/wl/sys/wlc_ampdu.o
+wl-objs            += src/wl/sys/wlc_amsdu.o
+wl-objs            += src/wl/sys/wlc_antsel.o
+wl-objs            += src/wl/sys/wlc_assoc.o
+wl-objs            += src/wl/sys/wlc_bsscfg.o
+wl-objs            += src/wl/sys/wlc_vndr_ie_list.o
+wl-objs            += src/wl/sys/wlc_event.o
+wl-objs            += src/wl/sys/wlc_led.o
+wl-objs            += components/phy/old/wlc_phy_iovar.o
+wl-objs            += src/wl/sys/wlc_rate.o
+wl-objs            += src/wl/sys/wlc_rate_sel.o
+wl-objs            += src/wl/sys/wlc_scb_ratesel.o
+wl-objs            += src/wl/sys/wlc_scan.o
+wl-objs            += components/msch/src/wlc_msch.o
+wl-objs            += components/msch/src/wlc_mschutil.o
+wl-objs            += components/msch/src/wlc_msch_profiler.o
+wl-objs            += src/wl/sys/wlc_sta.o
+wl-objs            += src/wl/sys/wlc_scb.o
+
+EXTRA_CFLAGS       :=
+EXTRA_CFLAGS       += -I$(src)/src/include -I$(src)/src/automerg_include
+EXTRA_CFLAGS       += -I$(src)/src/wl/sys -I$(src)/src/wl/ppr/include
+EXTRA_CFLAGS       += -I$(src)/../components/phy/old
+
+EXTRA_LDFLAGS      := $(src)/lib/wlc_hybrid.o_shipped

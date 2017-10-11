@@ -1,0 +1,4288 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40">
+
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=macintosh">
+<meta name=ProgId content=Word.Document>
+<meta name=Generator content="Microsoft Word 9">
+<meta name=Originator content="Microsoft Word 9">
+<link rel=File-List href="./BCM47XX_Resource_Guide_files/filelist.xml">
+<title>The BCM94710 Linux Router Image</title>
+<!--[if gte mso 9]><xml>
+ <o:DocumentProperties>
+  <o:Author>Word X Test Drive User</o:Author>
+  <o:LastAuthor>Roman Baker</o:LastAuthor>
+  <o:Revision>3</o:Revision>
+  <o:TotalTime>790</o:TotalTime>
+  <o:Created>2001-10-16T16:24:00Z</o:Created>
+  <o:LastSaved>2001-10-16T16:26:00Z</o:LastSaved>
+  <o:Pages>28</o:Pages>
+  <o:Words>8847</o:Words>
+  <o:Characters>50428</o:Characters>
+  <o:Company>Alan Smithie Consulting</o:Company>
+  <o:Lines>420</o:Lines>
+  <o:Paragraphs>100</o:Paragraphs>
+  <o:CharactersWithSpaces>61929</o:CharactersWithSpaces>
+  <o:Version>9.2720</o:Version>
+ </o:DocumentProperties>
+ <o:OfficeDocumentSettings>
+  <o:PixelsPerInch>72</o:PixelsPerInch>
+  <o:TargetScreenSize>1024x768</o:TargetScreenSize>
+ </o:OfficeDocumentSettings>
+</xml><![endif]--><!--[if gte mso 9]><xml>
+ <w:WordDocument>
+  <w:Zoom>125</w:Zoom>
+  <w:DoNotShowRevisions/>
+  <w:DoNotPrintRevisions/>
+  <w:DisplayHorizontalDrawingGridEvery>0</w:DisplayHorizontalDrawingGridEvery>
+  <w:DisplayVerticalDrawingGridEvery>0</w:DisplayVerticalDrawingGridEvery>
+  <w:UseMarginsForDrawingGridOrigin/>
+  <w:Compatibility>
+   <w:SpaceForUL/>
+   <w:BalanceSingleByteDoubleByteWidth/>
+   <w:DoNotLeaveBackslashAlone/>
+   <w:ULTrailSpace/>
+   <w:DoNotExpandShiftReturn/>
+   <w:AdjustLineHeightInTable/>
+  </w:Compatibility>
+ </w:WordDocument>
+</xml><![endif]-->
+<style>
+<!--
+ /* Font Definitions */
+@font-face
+	{font-family:Times;
+	panose-1:2 2 6 3 5 4 5 2 3 4;
+	mso-font-charset:0;
+	mso-generic-font-family:roman;
+	mso-font-format:other;
+	mso-font-pitch:variable;
+	mso-font-signature:3 0 0 0 1 0;}
+@font-face
+	{font-family:Helvetica;
+	panose-1:2 11 6 4 2 2 2 2 2 4;
+	mso-font-charset:0;
+	mso-generic-font-family:swiss;
+	mso-font-format:other;
+	mso-font-pitch:variable;
+	mso-font-signature:3 0 0 0 1 0;}
+@font-face
+	{font-family:Wingdings;
+	panose-1:5 0 0 0 0 0 0 0 0 0;
+	mso-font-charset:2;
+	mso-generic-font-family:auto;
+	mso-font-pitch:variable;
+	mso-font-signature:0 268435456 0 0 -2147483648 0;}
+@font-face
+	{font-family:Verdana;
+	panose-1:2 11 6 4 3 5 4 4 2 4;
+	mso-font-charset:0;
+	mso-generic-font-family:swiss;
+	mso-font-pitch:variable;
+	mso-font-signature:536871559 0 0 0 415 0;}
+@font-face
+	{font-family:Georgia;
+	panose-1:2 4 5 2 5 4 5 2 3 3;
+	mso-font-charset:0;
+	mso-generic-font-family:roman;
+	mso-font-pitch:variable;
+	mso-font-signature:647 0 0 0 159 0;}
+@font-face
+	{font-family:"Lucida Grande";
+	mso-font-alt:"Courier New";
+	mso-font-charset:0;
+	mso-generic-font-family:auto;
+	mso-font-pitch:variable;
+	mso-font-signature:50331648 0 0 0 1 0;}
+@font-face
+	{font-family:Copperplate;
+	mso-font-alt:"Courier New";
+	mso-font-charset:0;
+	mso-generic-font-family:auto;
+	mso-font-pitch:variable;
+	mso-font-signature:50331648 0 0 0 1 0;}
+ /* Style Definitions */
+p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{mso-style-parent:"";
+	margin:0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+h1
+	{mso-style-next:Normal;
+	margin-top:12.0pt;
+	margin-right:0in;
+	margin-bottom:3.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:1;
+	font-size:16.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Helvetica;
+	mso-fareast-font-family:Times;
+	color:windowtext;
+	mso-font-kerning:16.0pt;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;}
+h2
+	{mso-style-next:Normal;
+	margin-top:12.0pt;
+	margin-right:0in;
+	margin-bottom:3.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:2;
+	font-size:14.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Helvetica;
+	mso-fareast-font-family:Times;
+	color:windowtext;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;
+	font-style:italic;
+	mso-bidi-font-style:normal;}
+h3
+	{mso-style-next:Normal;
+	margin-top:12.0pt;
+	margin-right:0in;
+	margin-bottom:3.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:3;
+	font-size:13.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Helvetica;
+	mso-fareast-font-family:Times;
+	color:windowtext;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;}
+h4
+	{mso-style-next:Normal;
+	margin:0in;
+	margin-bottom:.0001pt;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:4;
+	font-size:12.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	color:windowtext;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;}
+h5
+	{mso-style-next:Normal;
+	margin:0in;
+	margin-bottom:.0001pt;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:5;
+	font-size:12.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	color:white;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;}
+h6
+	{mso-style-next:Normal;
+	margin:0in;
+	margin-bottom:.0001pt;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:6;
+	font-size:12.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:black;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;}
+p.MsoHeading7, li.MsoHeading7, div.MsoHeading7
+	{mso-style-next:Normal;
+	margin:0in;
+	margin-bottom:.0001pt;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:7;
+	font-size:12.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+p.MsoToc1, li.MsoToc1, div.MsoToc1
+	{mso-style-update:auto;
+	mso-style-next:Normal;
+	margin-top:6.0pt;
+	margin-right:0in;
+	margin-bottom:6.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;
+	text-transform:uppercase;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;}
+p.MsoToc2, li.MsoToc2, div.MsoToc2
+	{mso-style-update:auto;
+	mso-style-next:Normal;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:12.0pt;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	font-variant:small-caps;
+	color:windowtext;}
+p.MsoToc3, li.MsoToc3, div.MsoToc3
+	{mso-style-update:auto;
+	mso-style-next:Normal;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:24.0pt;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;
+	font-style:italic;
+	mso-bidi-font-style:normal;}
+p.MsoToc4, li.MsoToc4, div.MsoToc4
+	{mso-style-update:auto;
+	mso-style-next:Normal;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:9.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+p.MsoToc5, li.MsoToc5, div.MsoToc5
+	{mso-style-update:auto;
+	mso-style-next:Normal;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:48.0pt;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:9.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+p.MsoToc6, li.MsoToc6, div.MsoToc6
+	{mso-style-update:auto;
+	mso-style-next:Normal;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:60.0pt;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:9.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+p.MsoToc7, li.MsoToc7, div.MsoToc7
+	{mso-style-update:auto;
+	mso-style-next:Normal;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:1.0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:9.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+p.MsoToc8, li.MsoToc8, div.MsoToc8
+	{mso-style-update:auto;
+	mso-style-next:Normal;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:84.0pt;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:9.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+p.MsoToc9, li.MsoToc9, div.MsoToc9
+	{mso-style-update:auto;
+	mso-style-next:Normal;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:96.0pt;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:9.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+p.MsoTitle, li.MsoTitle, div.MsoTitle
+	{margin:0in;
+	margin-bottom:.0001pt;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	font-size:20.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Copperplate;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+p.MsoBodyText, li.MsoBodyText, div.MsoBodyText
+	{margin:0in;
+	margin-bottom:.0001pt;
+	text-align:center;
+	mso-pagination:widow-orphan;
+	font-size:20.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Arial;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;
+	font-weight:bold;
+	mso-bidi-font-weight:normal;}
+p.MsoBodyText2, li.MsoBodyText2, div.MsoBodyText2
+	{margin:0in;
+	margin-bottom:.0001pt;
+	text-align:justify;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:Times;
+	mso-fareast-font-family:Times;
+	mso-bidi-font-family:"Times New Roman";
+	color:windowtext;}
+p
+	{margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	font-size:10.0pt;
+	font-family:Verdana;
+	mso-fareast-font-family:"Times New Roman";
+	mso-bidi-font-family:"Times New Roman";
+	color:black;}
+p.Code, li.Code, div.Code
+	{mso-style-name:Code;
+	mso-style-update:auto;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	line-height:14.0pt;
+	mso-line-height-rule:exactly;
+	mso-pagination:widow-orphan;
+	font-size:11.0pt;
+	mso-bidi-font-size:10.0pt;
+	font-family:"Courier New";
+	mso-fareast-font-family:"Times New Roman";
+	mso-bidi-font-family:"Times New Roman";
+	color:black;}
+@page Section1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.25in 1.0in 1.25in;
+	mso-header-margin:.5in;
+	mso-footer-margin:.5in;
+	mso-paper-source:0;}
+div.Section1
+	{page:Section1;}
+ /* List Definitions */
+@list l0
+	{mso-list-id:26494944;
+	mso-list-type:hybrid;
+	mso-list-template-ids:961314176;}
+@list l0:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l1
+	{mso-list-id:100270857;
+	mso-list-type:hybrid;
+	mso-list-template-ids:1307840058;}
+@list l1:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l1:level2
+	{mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l1:level3
+	{mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l1:level4
+	{mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l1:level5
+	{mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l1:level6
+	{mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l1:level7
+	{mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l1:level8
+	{mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l1:level9
+	{mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l2
+	{mso-list-id:225918323;
+	mso-list-type:hybrid;
+	mso-list-template-ids:1625586032;}
+@list l2:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l3
+	{mso-list-id:303581661;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-588995450;}
+@list l3:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l4
+	{mso-list-id:329719897;
+	mso-list-type:hybrid;
+	mso-list-template-ids:1821697388;}
+@list l4:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l5
+	{mso-list-id:457577378;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-1058141632;}
+@list l5:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l6
+	{mso-list-id:516122094;
+	mso-list-type:hybrid;
+	mso-list-template-ids:1880129336;}
+@list l6:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l7
+	{mso-list-id:616254844;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-1769065014;}
+@list l7:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l7:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:o;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:"Courier New";
+	mso-bidi-font-family:"Times New Roman";}
+@list l8
+	{mso-list-id:685667989;
+	mso-list-type:hybrid;
+	mso-list-template-ids:414460152;}
+@list l8:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l8:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:o;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:"Courier New";
+	mso-bidi-font-family:"Times New Roman";}
+@list l9
+	{mso-list-id:711077977;
+	mso-list-type:hybrid;
+	mso-list-template-ids:203702130;}
+@list l9:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l10
+	{mso-list-id:768812412;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-1778765154;}
+@list l10:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l11
+	{mso-list-id:794180414;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-189216530;}
+@list l11:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l12
+	{mso-list-id:833687205;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-255032140;}
+@list l12:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l13
+	{mso-list-id:874922493;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-1744638294;}
+@list l13:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l13:level2
+	{mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l13:level3
+	{mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l13:level4
+	{mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l13:level5
+	{mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l13:level6
+	{mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l13:level7
+	{mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l13:level8
+	{mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l13:level9
+	{mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l14
+	{mso-list-id:879895653;
+	mso-list-type:hybrid;
+	mso-list-template-ids:85749158;}
+@list l14:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l15
+	{mso-list-id:893469923;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-430413054;}
+@list l15:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l16
+	{mso-list-id:928272421;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-888095930;}
+@list l16:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l17
+	{mso-list-id:934703305;
+	mso-list-type:hybrid;
+	mso-list-template-ids:1570244340;}
+@list l17:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l18
+	{mso-list-id:978651814;
+	mso-list-type:hybrid;
+	mso-list-template-ids:2114104210;}
+@list l18:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l19
+	{mso-list-id:991253080;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-1530383006;}
+@list l19:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l20
+	{mso-list-id:1044868372;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-762439456;}
+@list l20:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l21
+	{mso-list-id:1078820460;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-1892630426;}
+@list l21:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l21:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:o;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:"Courier New";
+	mso-bidi-font-family:"Times New Roman";}
+@list l22
+	{mso-list-id:1185292052;
+	mso-list-type:hybrid;
+	mso-list-template-ids:254723384;}
+@list l22:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l23
+	{mso-list-id:1204293598;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-1295505354;}
+@list l23:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l24
+	{mso-list-id:1229456215;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-1924472516;}
+@list l24:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l25
+	{mso-list-id:1262253915;
+	mso-list-type:hybrid;
+	mso-list-template-ids:1423224912;}
+@list l25:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l26
+	{mso-list-id:1562523341;
+	mso-list-type:hybrid;
+	mso-list-template-ids:717788842;}
+@list l26:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l26:level2
+	{mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l26:level3
+	{mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l26:level4
+	{mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l26:level5
+	{mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l26:level6
+	{mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l26:level7
+	{mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l26:level8
+	{mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l26:level9
+	{mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;}
+@list l27
+	{mso-list-id:1626351554;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-389787596;}
+@list l27:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l28
+	{mso-list-id:1936161740;
+	mso-list-type:hybrid;
+	mso-list-template-ids:1263805002;}
+@list l28:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l29
+	{mso-list-id:2012489107;
+	mso-list-type:hybrid;
+	mso-list-template-ids:1867036158;}
+@list l29:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l30
+	{mso-list-id:2024479632;
+	mso-list-type:hybrid;
+	mso-list-template-ids:1274289562;}
+@list l30:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l31
+	{mso-list-id:2035768765;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-384778562;}
+@list l31:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l32
+	{mso-list-id:2075930239;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-5195536;}
+@list l32:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+@list l33
+	{mso-list-id:2081827658;
+	mso-list-type:hybrid;
+	mso-list-template-ids:-404975490;}
+@list l33:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	font-family:Symbol;}
+ol
+	{margin-bottom:0in;}
+ul
+	{margin-bottom:0in;}
+-->
+</style>
+</head>
+
+<body lang=EN-US style='tab-interval:.5in'>
+
+<div class=Section1>
+
+<p class=MsoNormal><a name="_Toc400446503"><i>Last updated 10/15/2001<o:p></o:p></i></a></p>
+
+<h1><span style='mso-bookmark:_Toc400446503'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></h1>
+
+<h1><span style='mso-bookmark:_Toc400446503'>The BCM47XX Resource Guide</span></h1>
+
+<h2>Introduction</h2>
+
+<p class=MsoNormal>In a typical BCM47XX customer engagement, more than just
+silicon is provided to the customer.<span style="mso-spacerun: yes">&nbsp;
+</span>Additional resources such as full residential gateway source
+implementations, simple bridge implementations, supporting build tools,
+supplemental debug facilities and pre-tested platform binaries may also be provided.<span
+style="mso-spacerun: yes">&nbsp; </span>The purpose of the BCM47XX Resource
+Guide is to get the customer introduced to the packages and tools that are
+included in a release.</p>
+
+<h2>Supported Reference Platforms</h2>
+
+<p class=MsoNormal>Several sections of this document reference BCM4710-based
+reference platforms.<span style="mso-spacerun: yes">&nbsp; </span>Two
+Broadcom-supplied reference platforms are supported by this document:<span
+style="mso-spacerun: yes">&nbsp; </span>the BCM94710R4 and the BCM94710D.<span
+style="mso-spacerun: yes">&nbsp; </span>The BCM94710R4 is a compact router
+design with 4 switched 10/100 Mb LAN Ethernet ports, a 10/100 Mb WAN Ethernet
+port and an HPNA LAN port.<span style="mso-spacerun: yes">&nbsp; </span>The
+BCM94710D development boards replaces the 4 switched Ethernet ports with a
+single 10/100 Mb Ethernet port, has increased memory size, a serial port, a
+PCMCIA port and 2 PCI slots.</p>
+
+<h2>Release Packages</h2>
+
+<p class=MsoNormal>There are a range of possible release packages for to
+support BCM4710-based designs:<span style="mso-spacerun: yes">&nbsp; </span>A
+release may include either the VxWorks or Linux operating system; It may
+contain source code or only binary modules; It may include only drivers and BSP
+or it may include full router source code.<span style="mso-spacerun:
+yes">&nbsp; </span>Because of the variety of release packages, certain sections
+of the resource guide may not be applicable to your particular project.</p>
+
+<span style='font-size:12.0pt;mso-bidi-font-size:10.0pt;font-family:Times;
+mso-fareast-font-family:Times;mso-bidi-font-family:"Times New Roman";
+mso-ansi-language:EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA'><br
+clear=all style='mso-special-character:line-break;page-break-before:always'>
+</span>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<h1><a name="_Toc400446504">The BCM947XX Linux </a>Package<a
+name="_Toc400446505"></a></h1>
+
+<h2><span style='mso-bookmark:_Toc400446505'>Introduction</span></h2>
+
+<p class=MsoNormal>The Linux package may be either a simple bridge or a
+full-fledged router implementation.<span style="mso-spacerun: yes">&nbsp;
+</span></p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The simple bridge package will include the following
+features:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l0 level1 lfo37;tab-stops:list .5in'>Allow
+     packet bridging between the LAN Ethernet interface and the HPNA interface</li>
+ <li class=MsoNormal style='mso-list:l0 level1 lfo37;tab-stops:list .5in'>A
+     command shell accessible via the serial UART connector</li>
+ <li class=MsoNormal style='mso-list:l0 level1 lfo37;tab-stops:list .5in'>An
+     extensive list of basic UNIX command-line utilities</li>
+ <li class=MsoNormal style='mso-list:l0 level1 lfo37;tab-stops:list .5in'>The
+     iptables package to provide basic routing services</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>In addition to the features of the simple bridge, the full
+router build includes:</p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l7 level1 lfo1;tab-stops:list .5in'>Support
+     of dynamic and static IP addresses</li>
+ <li class=MsoNormal style='mso-list:l7 level1 lfo1;tab-stops:list .5in'>Supports
+     PPPoE connections on the WAN port</li>
+ <li class=MsoNormal style='mso-list:l7 level1 lfo1;tab-stops:list .5in'>Built-in
+     firewall to protect local PCs from outside intrusion</li>
+ <ul style='margin-top:0in' type=circle>
+  <li class=MsoNormal style='mso-list:l7 level2 lfo1;tab-stops:list 1.0in'>Stateful
+      Packet Inspection (SPI) and IP masquerading</li>
+ </ul>
+ <li class=MsoNormal style='mso-list:l7 level1 lfo1;tab-stops:list .5in'>Router
+     is configurable through any networked PC’s web browser</li>
+ <ul style='margin-top:0in' type=circle>
+  <li class=MsoNormal style='mso-list:l7 level2 lfo1;tab-stops:list 1.0in'>Remote
+      upgrade and remote management</li>
+ </ul>
+ <li class=MsoNormal style='mso-list:l7 level1 lfo1;tab-stops:list .5in'>Can
+     act as either a DHCP server (for LAN PCs) or a DHCP client (on the WAN
+     port)</li>
+ <li class=MsoNormal style='mso-list:l7 level1 lfo1;tab-stops:list .5in'>Compatible
+     with all standard Internet applications</li>
+ <li class=MsoNormal style='mso-list:l7 level1 lfo1;tab-stops:list .5in'>Administrators
+     can block specific LAN users internet access</li>
+ <ul style='margin-top:0in' type=circle>
+  <li class=MsoNormal style='mso-list:l7 level2 lfo1;tab-stops:list 1.0in'>IP
+      packet filtering</li>
+ </ul>
+ <li class=MsoNormal style='mso-list:l7 level1 lfo1;tab-stops:list .5in'>TCP/UDP
+     port forwarding and DMZ capability</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<h2><a name="_Toc400446506">What You Get</a></h2>
+
+<p class=MsoNormal>For both the bridge and router packages you will be delivered:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l21 level1 lfo4;tab-stops:list .5in'>A
+     general readme file that describes the tools used in building the package,
+     how to install the tools, etc.</li>
+ <li class=MsoNormal style='mso-list:l21 level1 lfo4;tab-stops:list .5in'>Source
+     to the Linux kernel in the /src/linux/linux directory</li>
+ <li class=MsoNormal style='mso-list:l21 level1 lfo4;tab-stops:list .5in'>Source
+     for all of the Broadcom-supplied components in the root directory:</li>
+ <ul style='margin-top:0in' type=circle>
+  <li class=MsoNormal style='mso-list:l21 level2 lfo4;tab-stops:list 1.0in'>The
+      /components/et/ directory contains source for the Ethernet driver</li>
+  <li class=MsoNormal style='mso-list:l21 level2 lfo4;tab-stops:list 1.0in'>The
+      /src/il/ directory contains source for the HPNA 2.0 driver</li>
+  <li class=MsoNormal style='mso-list:l21 level2 lfo4;tab-stops:list 1.0in'>The
+      /src/shared/ directory contains source code shared among many of the
+      Broadcom-supplied components</li>
+  <li class=MsoNormal style='mso-list:l21 level2 lfo4;tab-stops:list 1.0in'>The
+      /src/include/ directory contains header files for many of the
+      Broadcom-supplied components</li>
+  <li class=MsoNormal style='mso-list:l21 level2 lfo4;tab-stops:list 1.0in'>The
+      /src/router directory contains the remaing bridge/router source modules</li>
+ </ul>
+ <li class=MsoNormal style='mso-list:l21 level1 lfo4;tab-stops:list .5in'>The
+     /bin directory contains pre-compiled binaries for the package.<span
+     style="mso-spacerun: yes">&nbsp; </span>The image is a gzipped flat binary
+     image with the appropriate TRX header attached.<span style="mso-spacerun:
+     yes">&nbsp; </span>The TRX header allows you to use the PMON boot loader
+     to upload the image to your BCM47XX-based router.<span
+     style="mso-spacerun: yes">&nbsp; </span>If you are not using the PMON boot
+     loader, you can build a new router image and use one of the intermediate
+     file formats (ELF, self-booting, flat binary, etc.) for your purposes.</li>
+ <li class=MsoNormal style='mso-list:l21 level1 lfo4;tab-stops:list .5in'>The
+     /doc directory contains this document as well as other supporting
+     documentation</li>
+ <li class=MsoNormal style='mso-list:l21 level1 lfo4;tab-stops:list .5in'>The
+     /tools direcotory contains things necessary to build the router
+     image.<span style="mso-spacerun: yes">&nbsp; </span>This includes:</li>
+ <ul style='margin-top:0in' type=circle>
+  <li class=MsoNormal style='mso-list:l21 level2 lfo4;tab-stops:list 1.0in'>The
+      GCC 3.0 compiler</li>
+  <li class=MsoNormal style='mso-list:l21 level2 lfo4;tab-stops:list 1.0in'>glibc
+      library</li>
+ </ul>
+ <li class=MsoNormal style='mso-list:l21 level1 lfo4;tab-stops:list .5in'>The
+     pmon/ directory contains source and a binary file for the PMON boot loader<span
+     style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>In addition, a full router release package will also include
+source code for the services necessary to implement a full residential gateway
+application.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Please note that depending on the package that was agreed
+upon, some or all of the aforementioned source directories may be omitted and
+replaced with corresponding binary files.</p>
+
+<h2><a name="_Toc400446507">Tools Installation</a></h2>
+
+<p class=MsoNormal>Along with the Linux distribution, you received compilers,
+libraries, etc. necessary to build the Linux image for the BCM4710.<span
+style="mso-spacerun: yes">&nbsp; </span>The tools are based on gcc 3.0 and make
+use of glibc version 2.2.3.<span style="mso-spacerun: yes">&nbsp; </span>Please
+refer to the README.TXT file in the root of the installation package for
+information on installing and configuring these tools.</p>
+
+<h2><a name="_Toc400446508">The Linux Kernel</a></h2>
+
+<p class=MsoNormal>The Linux image is based on freely available Linux kernel source
+code.<span style="mso-spacerun: yes">&nbsp; </span>The specific version of the
+Linux kernel used is 2.4.5.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Because of memory and Flash constraints, certain kernel
+services are not compiled when the BCM94710 Linux image is created.<span
+style="mso-spacerun: yes">&nbsp; </span>These services were not necessary in
+order to provide the desired router functionality.<span style="mso-spacerun:
+yes">&nbsp; </span>If, however, you are going to be adding extra router functionality
+you may need to modify the kernel build in order to include some services that
+may be necessary to you.<span style="mso-spacerun: yes">&nbsp; </span>In order
+to do this, you will need to perform the following:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l8 level1 lfo2;tab-stops:list .5in'>Create
+     your own kernel .config file.<span style="mso-spacerun: yes">&nbsp;
+     </span>This is normally done by executing the command ‘make config’ in the
+     src/linux/linux directory</li>
+ <li class=MsoNormal style='mso-list:l8 level1 lfo2;tab-stops:list .5in'>Rename
+     the resulting .config file to something like ‘myconfig’</li>
+ <li class=MsoNormal style='mso-list:l8 level1 lfo2;tab-stops:list .5in'>Copy
+     the ‘myconfig’ file to the src/linux/linux/arch/mips directory</li>
+ <li class=MsoNormal style='mso-list:l8 level1 lfo2;tab-stops:list .5in'>Copy
+     the file src/Makefile to src/Makefile.bak</li>
+ <li class=MsoNormal style='mso-list:l8 level1 lfo2;tab-stops:list .5in'>Open
+     the src/Makefile with your favorite editor</li>
+ <li class=MsoNormal style='mso-list:l8 level1 lfo2;tab-stops:list .5in'>Change
+     all instances of the string ‘defconfig-bcm94710-r4’ to ‘myconfig’</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Now, when you perform the build process (see below), it will
+use your custom config file instead of the default Broadcom config file.</p>
+
+<h2><a name="_Toc400446509">Adding Additional Services</a></h2>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l19 level1 lfo3;tab-stops:list .5in'>By
+     default, the build will include a number of services to provide functionality
+     to the bridge/router.<span style="mso-spacerun: yes">&nbsp; </span>The
+     starting of these services is controlled by the Linux shell script located
+     in src/router/misc/rcS in the source distribution. </li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>If there are additional services that you would like started
+when the kernel boots, commands to start them should be added to this startup
+script.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>In addition, you will need to include the binaries for your
+services in the filesystem.<span style="mso-spacerun: yes">&nbsp; </span>The
+compiling of your servicescan be integrated into the main router build by
+editing the makefile/build scripts.<span style="mso-spacerun: yes">&nbsp;
+</span>Alternatively, you can build your services separately and then have them
+copied into the filesystem when the rest of the router is built. </p>
+
+<h2>Building the Linux Image</h2>
+
+<p class=MsoNormal>In the top-level of the distribution, there is a
+makefile.<span style="mso-spacerun: yes">&nbsp; </span>Once all of the tools
+have been properly installed, you can simply type ‘make’ in the src/ directory
+and the PMON boot loader as well as the Linux image will be created.<span
+style="mso-spacerun: yes">&nbsp; </span>Upon successful completion of the make
+command, the PMON boot loader binary will reside in the bootrom/ directory and
+the Linux binary will reside in the bin/ directory.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The Linux kernel will be called linux.trx.<span
+style="mso-spacerun: yes">&nbsp; </span>It will contain both the Linux kernel
+and the root file system and already contain the TRX header necessary for use
+with the PMON TFTP function.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The PMON binary will <b style='mso-bidi-font-weight:normal'>not</b>
+have the necessary EST header necessary for programming with the
+visionICE.<span style="mso-spacerun: yes">&nbsp; </span>This is because the
+PMON binary must first have a default NVRAM image embedded into it before the
+EST header can be added.<span style="mso-spacerun: yes">&nbsp; </span>Please
+see the <i style='mso-bidi-font-style:normal'>PMON Boot Loader</i> chapter for
+information on embedding NVRAM information into a PMON image.<span
+style="mso-spacerun: yes">&nbsp; </span>Please see the <i style='mso-bidi-font-style:
+normal'>Using visionCLICK/visionICE</i> chapter for details on how to add EST
+headers so that the PMON image can be burned to Flash using a visionICE.</p>
+
+<h2><a name="_Toc400446510">User Level Applications</a></h2>
+
+<p class=MsoNormal>In addition to the kernel, source code for a number of Linux
+user-level applications may also beprovided.<span style="mso-spacerun:
+yes">&nbsp; </span>The following sections give some details about these
+applications.</p>
+
+<h3><a name="_Toc400446511">Brctl</a></h3>
+
+<p class=MsoNormal>From the brctl man page:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>brctl is used to set up, maintain, and inspect the ethernet
+bridge configuration in the linux kernel.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>An ethernet bridge is a device commonly used to connect different
+networks of ethernets together, so that these ethernets will appear as one
+ethernet to the participants.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Each of the ethernets being connected corresponds to one
+physical interface in the bridge. These individual ethernets are bundled into
+one bigger ('logical') ethernet, this bigger ethernet corresponds to the bridge
+network interface.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Usage:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>To bridge together eth0 and eth1 into a new logical
+interface br0, do:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>brctl addbr br0</p>
+
+<p class=MsoNormal>brctl addif br0 eth0</p>
+
+<p class=MsoNormal>brctl addif br0 eth1</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>See the brctl man page for a more detailed list of options.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Package: busybox</p>
+
+<p class=MsoNormal>Version: 0.60.0</p>
+
+<p class=MsoNormal>Maintainer: Lineo</p>
+
+<p class=MsoNormal>License: GPL</p>
+
+<p class=MsoNormal>Homepage: http://busybox.lineo.com</p>
+
+<p class=MsoNormal>Description:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<h3><a name="_Toc400446512">Busybox</a></h3>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>From the busybox web site:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>BusyBox combines tiny versions of many common UNIX utilities
+into a single small executable. It provides minimalist replacements for most of
+the utilities you usually find in fileutils, shellutils, findutils, textutils,
+grep, gzip, tar, etc. BusyBox provides a fairly complete POSIX environment for
+any small or embedded system. The utilities in BusyBox generally have fewer
+options than their full featured GNU cousins; however, the options that are
+included provide the expected functionality and behave very much like their GNU
+counterparts.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>BusyBox has been written with size-optimization and limited
+resources in mind. It is also extremely modular so you can easily include or
+exclude commands (or features) at compile time. This makes it easy to customize
+your embedded systems. To create a working system, just add /dev, /etc, and a
+kernel.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Usage:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Edit busybox/Config.h to suit your requirements. The BusyBox
+binary and the symlinks it generates, as well as a minimal /dev directory,
+should be all that is required to get Linux to a shell prompt.</p>
+
+<h3><a name="_Toc400446513">httpd</a></h3>
+
+<p class=MsoNormal>Version: 1.0</p>
+
+<p class=MsoNormal>Maintainer: Broadcom Corporation</p>
+
+<p class=MsoNormal>License:</p>
+
+<p class=MsoNormal>Homepage:</p>
+
+<p class=MsoNormal>Description:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>A modified combination of Jef Poskanzer's micro_httpd and
+mini_httpd, httpd is a minimal web server daemon that calls hooks to handle
+various types of HTTP/1.0 GET requests. The basic build defines a NULL-terminated
+list of MIME handlers of the form</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>{ &lt;pattern&gt;, &lt;mime_type&gt;, &lt;mime_handler&gt;,
+&lt;auth_handler&gt; }</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>See basic.c for a default list that handles most common
+requests. More complicated parsing of dynamic HTML files can also be
+implemented.<span style="mso-spacerun: yes">&nbsp; </span>The basic build
+provides do_file() as an example of handling static HTML files.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>To run httpd, start it in the root directory of your HTML
+files.</p>
+
+<h3><a name="_Toc400446514">iptables</a></h3>
+
+<p class=MsoNormal>Version: 1.2.2</p>
+
+<p class=MsoNormal>Maintainer: Netfilter Project</p>
+
+<p class=MsoNormal>License: GPL</p>
+
+<p class=MsoNormal>Homepage: http://netfilter.filewatcher.org</p>
+
+<p class=MsoNormal>Description:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>iptables is the user interface to the Linux 2.4 packet
+mangling infrastructure (&quot;netfilter&quot;). Netfilter encompasses NAT
+(including IP masquerading), packet filtering (firewalling), and generalized
+packet mangling.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Usage:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>For embedded needs, it is strongly recommended that netconf
+be used instead. netconf provides a C API to the kernel networking stack with a
+much simpler and reduced syntax.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Otherwise, see the iptables man page for detailed
+information on usage.</p>
+
+<h3><a name="_Toc400446515">netconf</a></h3>
+
+<p class=MsoNormal>Version: </p>
+
+<p class=MsoNormal>Maintainer: Broadcom Corporation</p>
+
+<p class=MsoNormal>License: </p>
+
+<p class=MsoNormal>Homepage: </p>
+
+<p class=MsoNormal>Description:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>netconf is a C API to the Linux 2.4 kernel networking stack.
+netconf provides hooks for accessing Ethernet interfaces, IP routes, NAT, and
+packet filter tables.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Usage:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>See the netconf header file netconf.h for API definitions
+and the rc package for usage examples. The netconf binary provides sample
+ifconfig, route, and fw commands implemented using the netconf API. Type
+&quot;ifconfig -h&quot; and &quot;route -h&quot; and &quot;fw&quot; for usage
+information.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Examples:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>From the command line:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>ifconfig br0 192.168.1.1 netmask 255.255.255.0 broadcast
+192.168.1.255</p>
+
+<p class=MsoNormal>route add net 192.168.1.0 netmask 255.255.255.0 br0</p>
+
+<p class=MsoNormal>fw</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>From C:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>netconf_if_t interface;</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>memset(&amp;interface, 0, sizeof(interface));</p>
+
+<p class=MsoNormal>interface.flags = IFF_UP | IFF_RUNNING | IFF_BROADCAST;</p>
+
+<p class=MsoNormal>strncpy(interface.name, &quot;br0&quot;,
+sizeof(interface.name));</p>
+
+<p class=MsoNormal>inet_aton(&quot;192.168.1.1&quot;, &amp;interface.ipaddr);</p>
+
+<p class=MsoNormal>inet_aton(&quot;255.255.255.0&quot;,
+&amp;interface.netmask);</p>
+
+<p class=MsoNormal>inet_aton(&quot;192.168.1.255&quot;,
+&amp;interface.broadcast);</p>
+
+<p class=MsoNormal>netconf_set_interface(&amp;interface);</p>
+
+<h3><a name="_Toc400446516">nvram</a></h3>
+
+<p class=MsoNormal>Version:</p>
+
+<p class=MsoNormal>Maintainer: Broadcom Corporation</p>
+
+<p class=MsoNormal>License:</p>
+
+<p class=MsoNormal>Homepage:</p>
+
+<p class=MsoNormal>Description:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>nvram is a C API to the NVRAM portion of flash memory. It
+provides persistent storage for ASCII text in the form of
+&quot;name=value&quot; pairs. See the nvram header file bcmnvram.h for API
+definitions and the rc package for usage examples. The nvram binary provides
+access to the NVRAM API from the command line and supports &quot;get&quot;,
+&quot;set&quot;, &quot;unset&quot;, and &quot;show&quot; commands.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Examples:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>From the command line:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>nvram set foo=bar</p>
+
+<p class=MsoNormal>nvram get foo</p>
+
+<p class=MsoNormal>nvram show</p>
+
+<p class=MsoNormal>nvram unset foo</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>From C:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>nvram_set(&quot;foo&quot;, &quot;bar&quot;);</p>
+
+<p class=MsoNormal>nvram_get(&quot;foo&quot;);</p>
+
+<p class=MsoNormal>nvram_getall(buf, sizeof(buf));</p>
+
+<p class=MsoNormal>nvram_unset(&quot;foo&quot;);</p>
+
+<h3><a name="_Toc400446517">rc</a></h3>
+
+<p class=MsoNormal>Version:</p>
+
+<p class=MsoNormal>Maintainer: Broadcom Corporation</p>
+
+<p class=MsoNormal>License:</p>
+
+<p class=MsoNormal>Homepage:</p>
+
+<p class=MsoNormal>Description</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>rc is the master control daemon for the router reference
+design. It runs as process 1 (&quot;init&quot;) and is responsible for starting
+and stopping all processes. To add a new process to the system initialization
+and shutdown sequences, edit main_loop() in rc.c. The state of rc may be
+controlled from the command line using the rc utility or by sending</p>
+
+<p class=MsoNormal>signals to process 1 from C.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Examples:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>From the command line:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>rc start</p>
+
+<p class=MsoNormal>rc stop</p>
+
+<p class=MsoNormal>rc restart</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>From C:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>kill(1, SIGUSR1);</p>
+
+<p class=MsoNormal>kill(1, SIGUSR2);</p>
+
+<p class=MsoNormal>kill(1, SIGHUP);</p>
+
+<h3><a name="_Toc400446518">udhcp</a></h3>
+
+<p class=MsoNormal>Version: 0.9.5</p>
+
+<p class=MsoNormal>Maintainer: Lineo</p>
+
+<p class=MsoNormal>License: GPL</p>
+
+<p class=MsoNormal>Homepage: http://opensource.lineo.com</p>
+
+<p class=MsoNormal>Description:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The udhcp package provides minimal DHCP server and client
+functionality in a (optionally) single binary. Both are highly configurable
+through the use of command-line options and configuration files. See the README
+for more information.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Usage:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>A sample udhcpc script is located in samples/sample.script.
+Install the script and point the client at it before starting the client. A
+sample udhcpd configuration file is located in samples/udhcpd.conf. Install the
+configuration file in the location defined in dhcpd.h before starting the
+server.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Examples:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>From the command line:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>udhcpc -i eth1 -s /etc/sample.script</p>
+
+<p class=MsoNormal>udhcpd</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<b style='mso-bidi-font-weight:normal'><span style='font-size:16.0pt;
+mso-bidi-font-size:10.0pt;font-family:Helvetica;mso-fareast-font-family:Times;
+mso-bidi-font-family:"Times New Roman";mso-font-kerning:16.0pt;mso-ansi-language:
+EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA'><br clear=all
+style='page-break-before:always'>
+</span></b>
+
+<h1><a name="_Toc400446519"></a><a name="OLE_LINK1"></a><a name="OLE_LINK2"><span
+style='mso-bookmark:OLE_LINK1'><span style='mso-bookmark:_Toc400446519'>PMON
+Boot Loader</span></span></a></h1>
+
+<span style='mso-bookmark:OLE_LINK1'></span><span style='mso-bookmark:OLE_LINK2'></span>
+
+<h2><a name="_Toc400446520"><span style='color:black'>Introduction</span></a><span
+style='mso-bookmark:_Toc400446520'></span><span style='font-size:13.0pt;
+mso-bidi-font-size:10.0pt;font-family:Verdana;color:black'><o:p></o:p></span></h2>
+
+<p class=MsoNormal><span style='color:black'>PMON is an open-source MIPS boot
+loader ported for the BCM47xx. PMON has three main purposes:<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='color:black;mso-list:l27 level1 lfo5;tab-stops:
+     list .5in'>PMON performs some hardware diagnostics upon power-up<o:p></o:p></li>
+ <li class=MsoNormal style='color:black;mso-list:l27 level1 lfo5;tab-stops:
+     list .5in'>PMON will act as a system bootloader upon power-up<o:p></o:p></li>
+ <li class=MsoNormal style='color:black;mso-list:l27 level1 lfo5;tab-stops:
+     list .5in'>PMON can be used as a means to upgrade OS and application
+     images in the Flash<o:p></o:p></li>
+</ul>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>Additionally, PMON supports a
+serial command line console.&nbsp; Using a terminal application on your PC such
+as HyperTerminal, one can connect to the BCM47XX-based platform to monitor the
+boot process, monitor the self diagnostics and perform upgrade functions. </span><span
+style='font-size:15.0pt;mso-bidi-font-size:10.0pt;font-family:Georgia;
+color:black'><o:p></o:p></span></p>
+
+<h2><a name="_Toc400446521"><span style='color:black'>PMON Environment
+Variables</span></a><span style='color:black'>&nbsp; </span><span
+style='font-size:16.0pt;mso-bidi-font-size:10.0pt;color:black'><o:p></o:p></span></h2>
+
+<p class=MsoNormal><span style='color:black'>PMON has several variables which
+are maintained in the NVRAM portion of the Flash.<span style="mso-spacerun:
+yes">&nbsp; </span>For more information on the NVRAM section and its use,
+please refer to the NVRAM section of this document.<span style="mso-spacerun:
+yes">&nbsp; </span><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>PMON provides commands to
+manipulate these environment variables as well as updating the NVRAM with new
+variable values.<span style="mso-spacerun: yes">&nbsp; </span><o:p></o:p></span></p>
+
+<h3><a name="_Toc400446522">set</a></h3>
+
+<p class=MsoNormal>The ‘set’ command has three functions:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l3 level1 lfo7;tab-stops:list .5in'>It can
+     be used to view the entire list of environment variables</li>
+ <li class=MsoNormal style='mso-list:l3 level1 lfo7;tab-stops:list .5in'>It can
+     be used to add a new variable or modify an existing one</li>
+ <li class=MsoNormal style='mso-list:l3 level1 lfo7;tab-stops:list .5in'>It can
+     be used to write the current set of environment variables to the NVRAM</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>To view the list of current environment variables, issue the
+‘set’ command without any parameters.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>To add a new environment variable or to modify an existing
+one, use the format ‘set &lt;varname&gt; &lt;value&gt;’<span
+style="mso-spacerun: yes">&nbsp; </span>For example, to change the ‘localip’
+parameter to ’10.0.0.1’ issue the command ‘set localip 10.0.0.1’</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>To write the current set of environment variables to the
+NVRAM, issue the command ‘set nvram’</p>
+
+<h3><a name="_Toc400446523">unset</a></h3>
+
+<p class=MsoNormal>The unset command will do exactly what it sounds like it
+will do.<span style="mso-spacerun: yes">&nbsp; </span>It will remove an
+environment variable.<span style="mso-spacerun: yes">&nbsp; </span>To make the
+changes to the environment variables permanent, issue the ‘set nvram’ command.<span
+style='font-size:16.0pt;mso-bidi-font-size:10.0pt;color:black'><o:p></o:p></span></p>
+
+<h2><a name="_Toc400446524"><span style='color:black'>Creating a Default NVRAM
+Image</span></a><span style='mso-bookmark:_Toc400446524'></span><span
+style='font-size:16.0pt;mso-bidi-font-size:10.0pt;color:black'><o:p></o:p></span></h2>
+
+<p class=MsoNormal><span style='color:black'>The NVRAM contains many variables
+that a customized for a particular board and should <i style='mso-bidi-font-style:
+normal'>never</i> be lost, even if there are problems with the Flash in the
+field.<span style="mso-spacerun: yes">&nbsp; </span>These variables include the
+MAC address for all of the interfaces, the serial number of the platform, any
+manufacturing lot numbers, etc.<span style="mso-spacerun: yes">&nbsp; </span>At
+boot time PMON performs a CRC check of this NVRAM configuration area and if
+this area is invalid or does not have any data, the default NVRAM image is
+loaded. To this end, a default NVRAM images is embedded into the PMON binary
+itself and is located at offset 0x400 in the image.<span style="mso-spacerun:
+yes">&nbsp; </span>Currently the length of this area is limited to 8 Kbytes.<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>If no default NVRAM image is
+embedded into a PMON binary and the PMON binary is programmed into a
+BCM47XX-based platform, PMON will create a generic NVRAM image.<span
+style="mso-spacerun: yes">&nbsp; </span>All generic NVRAM images will have the
+same MAC and IP addresses so boards programmed this way will conflict with each
+other.<span style="mso-spacerun: yes">&nbsp; </span>These values can be changed
+from the PMON serial command line using the ‘set’ command described above.<o:p></o:p></span></p>
+
+<h3>nvserial</h3>
+
+<p class=MsoNormal>Along with the source code distribution for the BCM47XX, you
+received a utility (in the /tools directory) called NVSERIAL.<span
+style="mso-spacerun: yes">&nbsp; </span>This utility is used to embed a default
+NVRAM image into the PMON boot loader binary file.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The majority of the default NVRAM information is stored in a
+plain text file.<span style="mso-spacerun: yes">&nbsp; </span>Along with your
+distribution, you received two files:<span style="mso-spacerun: yes">&nbsp;
+</span>R4_NVDATA.TXT and DEV_NVDATA.TXT.<span style="mso-spacerun: yes">&nbsp;
+</span>These files are very similar but have some minor changes with respect to
+the SDRAM configuration.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The xx_NVDATA.TXT files are plain text ASCII files that have
+a list of NVRAM environment variables and default values.<span
+style="mso-spacerun: yes">&nbsp; </span>The file should be edited so that the
+variables match the particulars of your BCM47XX-based platforms.<span
+style="mso-spacerun: yes">&nbsp; </span>Most importantly, the ‘sdram_init’,
+‘sdram_config’and ‘sdram_refresh’ variables <i style='mso-bidi-font-style:normal'>must</i>
+be configured to match the memory configuration of your particular platform.
+For more information, please refer to the <i style='mso-bidi-font-style:normal'>BCM47XX
+Programmer’s Guide.</i>In addition, the MAC address variables for the Ethernet
+and HPNA interfaces should be modified to be unique to the board being
+programmed.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Once you have modified the NVDATA.TXT information, you can
+use the NVSERIAL utility to embed a default NVRAM into the PMON binary.<span
+style="mso-spacerun: yes">&nbsp; </span>To do this, enter the command:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=Code>nvserial -i &lt;input file&gt; -o &lt;output file&gt; -b 0x400 -c
+0x2000 -s 42 nvdata.txt</p>
+
+<p class=MsoNormal><span style='font-family:Verdana;color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>This puts 8 KB of NVRAM data at a
+1 KB offset with the serial number set to 42 in the default NVRAM data.<o:p></o:p></span></p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Of course, you can enter whatever you want for the PMON
+input and output file.<span style="mso-spacerun: yes">&nbsp; </span>Also, you
+can specify a different filename instead of NVDATA.TXT.<span
+style="mso-spacerun: yes">&nbsp; </span>In fact, with your distribution you
+received two files R4_NVDATA.TXT and DEV_NVDATA.TXT which correspond to values
+used for two of our reference platforms.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>NVSERIAL can also be used to create an NVRAM image not
+embedded into PMON.<span style="mso-spacerun: yes">&nbsp; </span>The purpose of
+this image would be to create an NVRAM image that would be burned directly into
+Flash using the visionICE Flash programming facilities.<span
+style="mso-spacerun: yes">&nbsp; </span>To create this NVRAM image, enter the
+following command:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=Code>nvserial -o nvram_42.bin -s 42 r4_nvdata.txt</p>
+
+<p class=Code style='margin-left:0in'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>This would create an NVRAM image with the serial number 42
+suitable for use on a BCM94710R4 platform. Please see the section titled <i
+style='mso-bidi-font-style:normal'>Preparing a Flash Binary Image</i> in the <i
+style='mso-bidi-font-style:normal'>Using visionCLICK/visionICE</i> chapter for
+information on adding the appropriate header and writing the NVRAM image to
+Flash.</p>
+
+<h2><a name="_Toc400446526"><span style='color:black'>Programming PMON Into
+Flash</span></a><span style='mso-bookmark:_Toc400446526'></span><span
+style='font-size:16.0pt;mso-bidi-font-size:10.0pt;color:black'><o:p></o:p></span></h2>
+
+<p class=MsoNormal><span style='color:black'>Once you have a PMON binary image,
+<span style="mso-spacerun: yes">&nbsp;&nbsp;</span>you can then embed a default
+NVRAM image as described above.<span style="mso-spacerun: yes">&nbsp;
+</span>You are then ready to program the resulting image into Flash.<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>For programming the PMON image
+into the target Flash, one could use a standard Data I/O programmer or
+WindRiver VisionICE tool. Refer to the <i style='mso-bidi-font-style:normal'>Programming
+a Flash Device</i> section of the <i style='mso-bidi-font-style:normal'>Using
+visionCLICK/visionICE</i> chapter information on how to do the actual Flash
+programming. For using the Vision ICE tool, one needs access to the JTAG port
+of the BCM47xx in the target board. Once programmed, remove the visionICE pod
+from the target board, and recycle power for PMON to boot up. </span><span
+style='font-size:16.0pt;mso-bidi-font-size:10.0pt;color:black'><o:p></o:p></span></p>
+
+<h2><a name="_Toc400446527"><span style='color:black'>Connecting a Serial
+Monitor to a BCM47XX-based Platform</span></a><span style='color:black'><o:p></o:p></span></h2>
+
+<p class=MsoNormal>You can connect via a serial port to the BCM47XX-based
+platform.<span style="mso-spacerun: yes">&nbsp; </span>In all cases, you will
+need a straight-through serial cable to connect between the PC and the
+BCM47XX-based platform.<span style="mso-spacerun: yes">&nbsp; </span>Depending
+on the platform, you may not need any other hardware to make the connection but
+for at least the BCM94710R4, you will need the Broadcom-supplied serial
+connector (assembly # 102371-00) to connect to the J9 jumper block.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Once you have made the physical connection, load a serial
+terminal application (such as HyperTerminal) on the PC.<span
+style="mso-spacerun: yes">&nbsp; </span>Configure the connection to use these
+parameters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l6 level1 lfo6;tab-stops:list .5in'>115K
+     baud</li>
+ <li class=MsoNormal style='mso-list:l6 level1 lfo6;tab-stops:list .5in'>8 bits</li>
+ <li class=MsoNormal style='mso-list:l6 level1 lfo6;tab-stops:list .5in'>1 stop
+     bit</li>
+ <li class=MsoNormal style='mso-list:l6 level1 lfo6;tab-stops:list .5in'>no
+     parity</li>
+ <li class=MsoNormal style='mso-list:l6 level1 lfo6;tab-stops:list .5in'>no
+     flow control</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>When you reset the BCM47XX-based platform, you will see
+output as the PMON boot loader executes.</p>
+
+<h2><a name="_Toc400446528"><span style='color:black'>When PMON Boots…</span></a><span
+style='color:black'><o:p></o:p></span></h2>
+
+<p class=MsoNormal>These are the steps that PMON goes through when it boots up:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l2 level1 lfo8;tab-stops:list .5in'>First,
+     it does self-diagnostics on the SDRAM, Ethernet and HPNA functions.<span
+     style="mso-spacerun: yes">&nbsp; </span>If there is an error, the
+     appropriate error message is displayed on the serial console and the
+     booting sequence continues.</li>
+ <li class=MsoNormal style='mso-list:l2 level1 lfo8;tab-stops:list .5in'>Second,
+     it waits for 3 seconds to see if a new OS image is to be loaded into Flash
+     via the LAN Ethernet port</li>
+ <li class=MsoNormal style='mso-list:l2 level1 lfo8;tab-stops:list .5in'>Third,
+     it tries to boot a compressed OS image stored in the Flash location
+     specified by the ‘os_flash_addr’ environment variable.</li>
+ <li class=MsoNormal style='mso-list:l2 level1 lfo8;tab-stops:list .5in'>Lastly,
+     if the OS boot fails, PMON returns to the state where it waits for a new
+     OS image on the LAN Ethernet port</li>
+</ul>
+
+<h2><a name="_Toc400446529"><span style='color:black'>Erasing the NVRAM Area</span></a><span
+style='color:black'><o:p></o:p></span></h2>
+
+<p class=MsoNormal>It may be desirable to erase an existing NVRAM image in
+Flash and start over from scratch.<span style="mso-spacerun: yes">&nbsp;
+</span>To do this, you can use the ‘nvErase’ command in PMON.<span
+style="mso-spacerun: yes">&nbsp; </span>To do this, perform the following
+steps:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l20 level1 lfo34;tab-stops:list .5in'>Connect
+     a serial monitor to the BCM4710-based platform as described above</li>
+ <li class=MsoNormal style='mso-list:l20 level1 lfo34;tab-stops:list .5in'>As
+     PMOM boots, hit &lt;CTRL-C&gt; to enter the PMOM prompt</li>
+ <li class=MsoNormal style='mso-list:l20 level1 lfo34;tab-stops:list .5in'>Enter
+     the command ‘nvErase bffe0000 20000’ to erase the NVRAM in Flash</li>
+ <li class=MsoNormal style='mso-list:l20 level1 lfo34;tab-stops:list .5in'>Reboot
+     the system</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>When the system starts, PMON will see that the NVRAM is
+blank and write a new default NVRAM image into Flash.</p>
+
+<h2><a name="_Toc400446530"><span style='color:black'>Loading an OS Image Using
+PMON</span></a><span style='mso-bookmark:_Toc400446530'></span><span
+style='font-size:16.0pt;mso-bidi-font-size:10.0pt;color:black'><o:p></o:p></span></h2>
+
+<p class=MsoNormal><span style='color:black'>Upon power on/reset PMON will wait
+for 3 seconds, listening on the LAN Ethernet port to see if a new OS image is
+to be transferred.<span style="mso-spacerun: yes">&nbsp; </span>If no image is
+received, or an image is received with a corrupt/invalid header, PMON will then
+attempt to boot the OS already located in Flash.<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><b style='mso-bidi-font-weight:normal'><span
+style='color:black'>NOTE:<span style="mso-spacerun: yes">&nbsp; </span></span></b><span
+style='color:black'>An environment variable named ‘boot_wait’ exists which
+controls whether PMON should wait for an OS image upgrade at power-up or not.<span
+style="mso-spacerun: yes">&nbsp; </span>If a developer wants quick boot times
+and uses other means (such as visionICE) to program the Flash, this variable
+can be set to ‘on.’<span style="mso-spacerun: yes">&nbsp; </span>But if set to
+on, OS image updates at power-up will no longer be possible.<o:p></o:p></span></p>
+
+<h3><a name="_Toc400446531">Adding a Header</a></h3>
+
+<p class=MsoNormal><span style='color:black'>A header for the binary images
+needs to be added using the TRX utility prior to sending it to PMON for
+download onto the target Flash.&nbsp;&nbsp; PMON checks the header id, image
+length and crc for every downloaded image. If header is not found, the
+downloaded OS image will not be saved into the flash and not be auto-booted.
+&nbsp;<b style='mso-bidi-font-weight:normal'>NOTE:</b><span
+style="mso-spacerun: yes">&nbsp; </span>A TRX header does not need to be added
+to the PMON binary itself.<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>&nbsp;<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>To add a header to a compressed OS
+image:<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal style='text-indent:.5in'><span style='font-size:13.0pt;
+mso-bidi-font-size:10.0pt;font-family:"Courier New";mso-bidi-font-family:"Times New Roman";
+color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal style='text-indent:.5in'><span style='font-size:13.0pt;
+mso-bidi-font-size:10.0pt;font-family:"Courier New";mso-bidi-font-family:"Times New Roman";
+color:black'>trx –o os_trx.bin os.bin</span><span style='color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>where<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>os.bin = original untagged imaged
+(input)<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>os_trx.bin = tagged/added image
+(output)<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>TRX can also create a single file
+out of multiple images.<span style="mso-spacerun: yes">&nbsp; </span>For
+instance, both the Linux kernel and the Linux root file system can be
+concatenated into a single image that can be uploaded to the platform using
+PMON.<span style="mso-spacerun: yes">&nbsp; </span>The following is an example:<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=Code>trx -o linux.trx vmlinuz -b 768k rootfs</p>
+
+<p class=Code><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The resulting image will have the TRX header at offset 0
+immediately followed by the Linux kernel.<span style="mso-spacerun: yes">&nbsp;
+</span>At at offset of 768Kbytes into the image, the root filesystem will be
+located.<span style="mso-spacerun: yes">&nbsp; </span>When any image is
+uploaded via PMON, it will begin at the 256Kbyte offset in Flash.<span
+style="mso-spacerun: yes">&nbsp; </span>So in this example, the Linux file
+system will ultimately reside at the 1Mbyte (768 + 256) boundary in Flash.</p>
+
+<p class=MsoNormal><span style='color:black'>To actually transfer the file to
+the BCM47XX-based platform, you will use the TFTP application.<span
+style="mso-spacerun: yes">&nbsp; </span>TFTP comes standard on both Windows and
+Linux installations and needs to be invoked from a command-line prompt.<span
+style="mso-spacerun: yes">&nbsp; </span>The format for the command in Windows is:
+<o:p></o:p></span></p>
+
+<p class=MsoNormal><i style='mso-bidi-font-style:normal'><span
+style='color:black'>&nbsp;</span></i><span style='color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal style='text-indent:.5in'><span style='font-family:"Courier New";
+mso-bidi-font-family:"Times New Roman";color:black'>tftp –I &lt;IP address&gt;
+PUT &lt;OS image file&gt;<o:p></o:p></span></p>
+
+<p class=MsoNormal style='text-indent:.5in'><span style='font-family:"Courier New";
+mso-bidi-font-family:"Times New Roman";color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Courier New";mso-bidi-font-family:
+"Times New Roman";color:black'>In Linux, do the following:<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Courier New";mso-bidi-font-family:
+"Times New Roman";color:black'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Courier New";mso-bidi-font-family:
+"Times New Roman";color:black'><span style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>prompt&gt;
+tftp &lt;IP address&gt;<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Courier New";mso-bidi-font-family:
+"Times New Roman";color:black'><span style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>tftp&gt;
+binary<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Courier New";mso-bidi-font-family:
+"Times New Roman";color:black'><span style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>tftp&gt;
+put<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Courier New";mso-bidi-font-family:
+"Times New Roman";color:black'><span style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>(file)
+&lt;OS image file&gt;&nbsp;&nbsp;&nbsp; </span><span style='color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>&nbsp;<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='color:black'>The IP address of the router is
+defined by the ‘localip’ environment variable.<span style="mso-spacerun:
+yes">&nbsp; </span>Once you enter the TFTP command, the image will be&nbsp;
+downloaded to the target RAM starting at the location specified by the
+‘dl_ram_addr’ PMON environment variable.<span style="mso-spacerun: yes">&nbsp;
+</span>PMON will then immediately save this image into the Flash at the
+location specified by the ‘os_flash_addr’ variable.<span style="mso-spacerun:
+yes">&nbsp; </span>It will then copy or decompress the image from Flash back
+into RAM and boot it.<span style="mso-spacerun: yes">&nbsp; </span>Currently
+PMON assumes the maximum length of the OS image is 3 MB.</span><b
+style='mso-bidi-font-weight:normal'><span style='font-size:16.0pt;mso-bidi-font-size:
+10.0pt;font-family:Arial;mso-bidi-font-family:"Times New Roman";color:black'>&nbsp;<o:p></o:p></span></b></p>
+
+<b style='mso-bidi-font-weight:normal'><span style='font-size:16.0pt;
+mso-bidi-font-size:10.0pt;font-family:Helvetica;mso-fareast-font-family:Times;
+mso-bidi-font-family:"Times New Roman";mso-font-kerning:16.0pt;mso-ansi-language:
+EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA'><br clear=all
+style='page-break-before:always'>
+</span></b>
+
+<h1>Using visionCLICK/visionICE</h1>
+
+<h1><a name="_Toc400446532">Introduction</a></h1>
+
+<p class=MsoBodyText2>The combination of visionCLICK software along with a
+visionICE hardware debugger provides for a powerful debugging platform to be
+used with BCM4710-based designs.<span style="mso-spacerun: yes">&nbsp; </span></p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The visionCLICK/visionICE tools are available from WindRiver
+systems.<span style="mso-spacerun: yes">&nbsp; </span>However, some additional
+files are required in order to fully utilize these tools with your
+BCM4710-based hardware design.<span style="mso-spacerun: yes">&nbsp;
+</span>These additional files are provided along with the source code that is
+outlined in your Source Code License Agreement (SCLA).</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The instructions in this document will guide you in
+preparing your visionICE environment to be used with your BCM4710-based
+platform as well as go over some additional uses above and beyond normal
+debugging.<span style="mso-spacerun: yes">&nbsp; </span>Before continuing,
+please refer to the instructions from WindRiver on how to install the
+visionCLICK software on your Windows PC.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<h1><a name="_Toc400446533">Preparing Your visionICE for Use with the BCM4710</a></h1>
+
+<p class=MsoNormal>After you have installed the visionCLICK software on your
+computer, you should ensure that you can communicate with the visionICE
+unit.<span style="mso-spacerun: yes">&nbsp; </span>Communication between the
+visionCLICK software and the visionICE unit can be done through traditional
+computer ports (COM, LPT) or through an Ethernet connection.<span
+style="mso-spacerun: yes">&nbsp; </span>We suggest that you use the Ethernet
+connection as it provides a couple of key benefits:<span style="mso-spacerun:
+yes">&nbsp; </span>faster communication with the visionICE and ability for
+remote debugging of hardware platforms.</p>
+
+<h2><a name="_Toc400446534">Configuring the IP Address Parameters</a></h2>
+
+<p class=MsoNormal>In order for visionCLICK to use the network (Ethernet)
+connection to communicate with the visionICE, the visionICE must first be
+assigned an IP address.<span style="mso-spacerun: yes">&nbsp; </span><i
+style='mso-bidi-font-style:normal'>At this time, assigning an IP address using
+DHCP is not supported!<span style="mso-spacerun: yes">&nbsp; </span>Please
+follow these steps to program a static IP address into the visionICE.</i></p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Connect a serial cable from your visionICE to the serial
+port on your computer (usually the COM1 port.)<span style="mso-spacerun:
+yes">&nbsp; </span>An appropriate serial cable should have been provided with
+your visionICE hardware.<span style="mso-spacerun: yes">&nbsp; </span>Once the
+physical connection has been made, open your terminal software (i.e.
+HyperTerminal for Windows) and use the following settings:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l24 level1 lfo15;tab-stops:list .5in'>8
+     data bits</li>
+ <li class=MsoNormal style='mso-list:l24 level1 lfo15;tab-stops:list .5in'>1
+     stop bit</li>
+ <li class=MsoNormal style='mso-list:l24 level1 lfo15;tab-stops:list .5in'>no
+     parity</li>
+ <li class=MsoNormal style='mso-list:l24 level1 lfo15;tab-stops:list .5in'>no
+     flow control</li>
+ <li class=MsoNormal style='mso-list:l24 level1 lfo15;tab-stops:list .5in'>9600
+     baud</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>When you connect with your terminal software, you will see a
+“NET&gt;” prompt.<span style="mso-spacerun: yes">&nbsp; </span>To configure the
+IP parameters of the visionICE, follow these steps:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l15 level1 lfo16;tab-stops:list .5in'>Enter
+     the command ‘ethsetup’.<span style="mso-spacerun: yes">&nbsp; </span></li>
+ <li class=MsoNormal style='mso-list:l15 level1 lfo16;tab-stops:list .5in'>From
+     the resulting menu, choose “2. Modify Basic IP Parameters.”<span
+     style="mso-spacerun: yes">&nbsp; </span></li>
+ <li class=MsoNormal style='mso-list:l15 level1 lfo16;tab-stops:list .5in'>Choose
+     “1. Enter the IP Manually.”<span style="mso-spacerun: yes">&nbsp;
+     </span>Enter the IP address to be used for the visionICE</li>
+ <li class=MsoNormal style='mso-list:l15 level1 lfo16;tab-stops:list .5in'>Choose
+     “1. Enter the Netmask Manually.”<span style="mso-spacerun: yes">&nbsp;
+     </span>Enter the netmask to be used in hexadecimal format.<span
+     style="mso-spacerun: yes">&nbsp; </span>For instance, if your netmask is
+     255.255.255.0, enter 0xffffff00.</li>
+ <li class=MsoNormal style='mso-list:l15 level1 lfo16;tab-stops:list .5in'>If
+     you need to access the visionICE through a router, choose “Y” from the
+     “Should this system use a default gateway” prompt.<span
+     style="mso-spacerun: yes">&nbsp; </span>Then enter the default gateway.</li>
+ <li class=MsoNormal style='mso-list:l15 level1 lfo16;tab-stops:list .5in'>Next
+     choose “8. Save parameters” and then “9. Exit setup mode”</li>
+ <li class=MsoNormal style='mso-list:l15 level1 lfo16;tab-stops:list .5in'>Enter
+     the ‘reset’ command to reset the ICE so that it uses these IP parameters</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>You should now be able to ping the visionICE at the IP
+address you setup.<span style="mso-spacerun: yes">&nbsp; </span>If you cannot
+ping the visionICE, go through the above steps and verify the values you
+entered.</p>
+
+<h2><a name="_Toc400446535">Debugging via a Terminal Application</a></h2>
+
+<p class=MsoNormal>We recommend using the visionCLICK software for debugging
+the platform.<span style="mso-spacerun: yes">&nbsp; </span>If, however, you
+would like to enter some basic visionICE commands via a terminal application,
+you can do this.<span style="mso-spacerun: yes">&nbsp; </span>From the
+‘NET&gt;’ prompt, enter the ‘bkm’ command.<span style="mso-spacerun:
+yes">&nbsp; </span>This will allow you to enter commands like ‘dc’ to check the
+version, ‘cf’ to configure the project, etc.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>In order to enter the BKM mode, the visionICE must be
+connected to the EJTAG port on the BCM94710 platform.<span style="mso-spacerun:
+yes">&nbsp; </span>Be sure the pin ‘1’ on the the EJTAG connection is connected
+to pin ‘1’ on the BCM94710 platform.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>When you enter the ‘bkm’ command, you will be presented with
+a different prompt.<span style="mso-spacerun: yes">&nbsp; </span>This prompt
+can be either ‘BKM&gt;’ or ‘ERR&gt;’<span style="mso-spacerun: yes">&nbsp;
+</span>Either of these prompts indicates that you are no longer in the
+‘NET&gt;’ configuration mode.<span style="mso-spacerun: yes">&nbsp; </span>The
+difference is that the ‘BKM&gt;’ prompt is presented when the visionICE has
+made a connection with the target hardware (i.e. the BCM94710R4)<span
+style="mso-spacerun: yes">&nbsp; </span>The ‘ERR&gt;’ prompt is presented when
+there is no connection.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>At the BKM&gt;/ERR&gt; prompt, you can enter the ‘he’
+command to get a list of options.<span style="mso-spacerun: yes">&nbsp;
+</span>For more information, please refer to the documentation that accompanied
+your visionICE.</p>
+
+<h2><a name="_Toc400446536">Verifying the Connection</a></h2>
+
+<p class=MsoNormal>Once all of the IP parameters have been properly set through
+the serial port, we are now ready to test the network connection between
+visionCLICK and the visionICE hardware.<span style="mso-spacerun: yes">&nbsp;
+</span>To do this, perform the following steps:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo17;tab-stops:list .5in'>Open
+     the visionCLICK software.<span style="mso-spacerun: yes">&nbsp;
+     </span>When you installed visionCLICK, it should have put a shortcut on
+     your Windows start menu.</li>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo17;tab-stops:list .5in'>On
+     the dialog box that appears, choose the “Configure” option.</li>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo17;tab-stops:list .5in'>Click
+     on the “Communications” tab.<span style="mso-spacerun: yes">&nbsp; </span></li>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo17;tab-stops:list .5in'>In
+     the “Normal Port/Rate” section, chamge from “LPT1” to “Net”</li>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo17;tab-stops:list .5in'>Enter
+     the IP address that you assigned the visionICE and click the “Connect”
+     button.</li>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo17;tab-stops:list .5in'>You
+     will see a “Warning: Configuration Conflict” dialog box.<span
+     style="mso-spacerun: yes">&nbsp; </span>Choose the “No” option.<span
+     style="mso-spacerun: yes">&nbsp; </span>We will create a new project file
+     in a later section.</li>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo17;tab-stops:list .5in'>If
+     all goes well, the status line should show “Connected...” in the status
+     section near the top of the dialog box.<span style="mso-spacerun:
+     yes">&nbsp; </span>You will also be able to open the “Terminal” window in
+     visionCLICK to issue commands directly to the visionICE.</li>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo17;tab-stops:list .5in'>Click
+     “Ok” to close the configuration window.<span style="mso-spacerun:
+     yes">&nbsp; </span>Click “No” on the next dialog box as we will be
+     creating a new project later.</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal><i style='mso-bidi-font-style:normal'>Note:<span
+style="mso-spacerun: yes">&nbsp; </span>By default, the visionCLICK software
+will try to initialize the target hardware to be debugged.<span
+style="mso-spacerun: yes">&nbsp; </span>At this stage, it is not necessary that
+you have your hardware connected to the visionICE.<span style="mso-spacerun:
+yes">&nbsp; </span>If you see a dialog box that complains that it is unable to
+make a connection to the target hardware, ignore this.<span
+style="mso-spacerun: yes">&nbsp; </span>Check the “Do not display this error
+window” checkbox to avoid seeing this in the future.<o:p></o:p></i></p>
+
+<h2><a name="_Toc400446537">Upgrading the visionICE Firmware</a></h2>
+
+<h3><a name="_Toc400446538">Main Firmware Upgrade</a></h3>
+
+<p class=MsoNormal><span style='font-family:"Times New Roman"'>The firmware
+that was on your visionICE when you received it may or may not be compatible
+with the BCM4710.<span style="mso-spacerun: yes">&nbsp; </span>To check the
+firmware level, you can use the ‘dc’ (display configuration) command in the
+Terminal window within visionCLICK.<span style="mso-spacerun: yes">&nbsp;
+</span>You will see output similar to:<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Times New Roman"'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Courier New";mso-bidi-font-family:
+"Times New Roman"'><span style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>&gt;ERR&gt;dc<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Courier New";mso-bidi-font-family:
+"Times New Roman"'><span style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Firm
+Rev<span style='mso-tab-count:1'>&nbsp; </span>= vn 1.8i<o:p></o:p></span></p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>If the visionICE firmware revision is before 1.8i, you <i
+style='mso-bidi-font-style:normal'>must</i> upgrade your visionICE before you
+can use it with your BCM4710-based design.<span style="mso-spacerun:
+yes">&nbsp; </span>Please contact WindRiver support to obtain the latest
+firmware.<span style="mso-spacerun: yes">&nbsp; </span>Once you have the
+firmware, t<span style='font-family:"Times New Roman"'>o upgrade your visionICE
+unit, do the following<o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-family:"Times New Roman"'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l5 level1 lfo9;tab-stops:list .5in'>Ensure
+     you have Ethernet communication between visionCLICK and you visionICE unit</li>
+ <li class=MsoNormal style='mso-list:l5 level1 lfo9;tab-stops:list .5in'>From
+     the visionCLICK menu, choose Tools-&gt;Update visionICE Firmware</li>
+ <li class=MsoNormal style='mso-list:l5 level1 lfo9;tab-stops:list .5in'>Next,
+     choose the visionICE firmware binary file that you are going to upgrade
+     to.<span style="mso-spacerun: yes">&nbsp; </span></li>
+ <li class=MsoNormal style='mso-list:l5 level1 lfo9;tab-stops:list .5in'>The
+     next dialog box warns you that you may lose register configuration
+     information during the upgrade.<span style="mso-spacerun: yes">&nbsp;
+     </span>Since this is an initial upgrade, the register information is more
+     than likely not relevant to your project so you need not save them.<span
+     style="mso-spacerun: yes">&nbsp; </span>If, however, you have used this
+     visionICE on other projects and would like to save the internal settings,
+     then proceed to do so.</li>
+ <li class=MsoNormal style='mso-list:l5 level1 lfo9;tab-stops:list .5in'>Lastly,
+     it will confirm that you want to update.<span style="mso-spacerun:
+     yes">&nbsp; </span>Choose ‘Yes’.<span style="mso-spacerun: yes">&nbsp;
+     </span>The upgrade will then begin.</li>
+ <li class=MsoNormal style='mso-list:l5 level1 lfo9;tab-stops:list .5in'>You
+     can verify that the upgrade was complete by going back to the “Terminal”
+     window and entering the ‘dc’ command.<span style="mso-spacerun:
+     yes">&nbsp; </span>Check that the firmware revision matches the upgrade.</li>
+</ul>
+
+<h3><a name="_Toc400446539">Custom Flash Algorithm Firmware Upgrade</a></h3>
+
+<p class=MsoNormal>Broadcom also distributes a custom Flash firmware.<span
+style="mso-spacerun: yes">&nbsp; </span>This firmware contains additional
+algorithms that are useful with BCM4710-based designs.<span
+style="mso-spacerun: yes">&nbsp; </span>To update the custom firmware flash do
+the following:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l4 level1 lfo32;tab-stops:list .5in'>In
+     the visionCLICK application, choose the ‘Update visionICE Firmware’ under
+     the ‘Tools’ menu item.</li>
+ <li class=MsoNormal style='mso-list:l4 level1 lfo32;tab-stops:list .5in'>Select
+     the <span style='font-family:"Lucida Grande";color:black'>usrflh_ICE2_MIPS.bin
+     </span>file in the /tools/visionice directory of your distribution.</li>
+ <li class=MsoNormal style='mso-list:l4 level1 lfo32;tab-stops:list .5in'>The
+     new firmware will be loaded.<span style="mso-spacerun: yes">&nbsp;
+     </span>After it is complete, you must power cycle the visionICE.</li>
+ <li class=MsoNormal style='mso-list:l4 level1 lfo32;tab-stops:list .5in'>Re-connect
+     to the visionICE and check the flash versions in the terminal window from
+     within visionCLICK.<span style="mso-spacerun: yes">&nbsp; </span>To do
+     this, type the ‘tf version’ command in the terminal window.<span
+     style="mso-spacerun: yes">&nbsp; </span>The ‘TF USR driver(s)’ version
+     should be ‘C5.7a’</li>
+</ul>
+
+<p class=MsoNormal>This new firmware provides support for the ‘AMD29LV32XXT
+(2048 x 16) 1 device’<span style="mso-spacerun: yes">&nbsp; </span>This should
+be used with the specified Flash when the BCM4710 is operating in little-endian
+mode.<span style="mso-spacerun: yes">&nbsp; </span>If you are using this Flash
+device but operating you BCM4710 in big-endian mode, use the ‘BROADCOM<span
+style="mso-spacerun: yes">&nbsp; </span>320DT ( 2048 x 16 )<span
+style="mso-spacerun: yes">&nbsp; </span>1 Device’ Flash driver instead.</p>
+
+<h2><a name="_Toc400446540">Updating a visionCLICK Installation to support the
+BCM4710</a></h2>
+
+<p class=MsoNormal>In order to properly use the visionCLICK/visionICE tools
+with a BCM4710-based platform, several of the files that were originally
+distributed with visionCLICK need to be upgraded with Broadcom-supplied
+versions of these files.<span style="mso-spacerun: yes">&nbsp; </span>(Also, if
+you have an older visionCLICK installation, these files may not exist at all on
+your computer.)<span style="mso-spacerun: yes">&nbsp; </span>To this end,
+Broadcom has created a batch file that will perform the desired file
+updates.<span style="mso-spacerun: yes">&nbsp; </span>The batch file will
+rename any existing BCM4710-specific visionCLICK files to save them and then
+copy over new files.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>To perform the update, execute the UPDATE.BAT file in the
+/tools/visionice directory.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>After you have made the update, if the visionCLICK software
+is already running please exit and restart the visionCLICK application so that
+the BCM4710-specific changes take effect.</p>
+
+<h3><a name="_Toc400446541">Big/Little Endian Matching</a></h3>
+
+<p class=MsoNormal>One of the configuration parameters in the BCM4710_R4.REG
+file is the endianess of the platform.<span style="mso-spacerun: yes">&nbsp;
+</span>The LENDIAN setting in the BCM4710_R4.REG file must match the endian
+mode being used on your hardware platform.<span style="mso-spacerun:
+yes">&nbsp; </span>Please perform the following:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l29 level1 lfo10;tab-stops:list .5in'>Open
+     up the BCM4710_R4.REG file with a text editor.<span style="mso-spacerun:
+     yes">&nbsp; </span>This will be located in \ESTII\REGFILES|MIPS.</li>
+ <li class=MsoNormal style='mso-list:l29 level1 lfo10;tab-stops:list .5in'>Locate
+     the line that reads “CF LENDIAN YES”</li>
+ <li class=MsoNormal style='mso-list:l29 level1 lfo10;tab-stops:list .5in'>If
+     your platform is operating in little endian mode, then no change is
+     necessary.</li>
+ <li class=MsoNormal style='mso-list:l29 level1 lfo10;tab-stops:list .5in'>If,
+     however, your platform is operating in big endian mode, then you need to
+     modify this line.<span style="mso-spacerun: yes">&nbsp; </span>Change the
+     line so that it reads “CF LENDIAN NO” and save the file.</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>For the BCM94710R4 board, there is a jumper, J10, that
+controls the endian mode of the processor.<span style="mso-spacerun:
+yes">&nbsp; </span>When J10 is jumpered, the BCM4710 will operate in big-endian
+mode.<span style="mso-spacerun: yes">&nbsp; </span>When J10 is not jumpered, it
+will operate in little-endian mode.</p>
+
+<h3><a name="_Toc400446542">Creating a Project File</a></h3>
+
+<p class=MsoNormal>If you already have a project file for the BCM4710, then you
+can skip this step.<span style="mso-spacerun: yes">&nbsp; </span>Otherwise, you
+have to create a project file that tells the visionCLICK software about certain
+parameters of your BCM4710 project including where to find the configuration
+files, what ICE your using, etc.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>To create a new project file, start the visionCLICK software
+and choose “File-&gt;Open Project Files.”<span style="mso-spacerun: yes">&nbsp;
+</span>This will present you with a dialog box.<span style="mso-spacerun:
+yes">&nbsp; </span>In the “Project Configuration” tab, choose the “New” button
+to create a new project (this button is located in the lower-left hand corner
+of the dialog box.)<span style="mso-spacerun: yes">&nbsp; </span>Name the
+project appropriately, something like “BCM4710” would work just fine.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Next, you need to fill in several of the fields associated with
+this new project.<span style="mso-spacerun: yes">&nbsp; </span>To modify any of
+the fields in the project configuration dialog box, right-click in the field to
+bring up the context menu.<span style="mso-spacerun: yes">&nbsp; </span>These
+fields are:</p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Description:<span style="mso-spacerun:
+     yes">&nbsp; </span></b>a textual description of the project you are
+     creating.<span style="mso-spacerun: yes">&nbsp; </span>Something like “BCM4710-based
+     Hardware Platform”</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Emulator Register Configuration
+     File:<span style="mso-spacerun: yes">&nbsp; </span></b>Here you should
+     enter in the BCM4710_R4.REG file that you just copied into the ESTII
+     installation.<span style="mso-spacerun: yes">&nbsp; </span>You can
+     right-click the mouse in this area and then browse for the BCM4710_R4.REG
+     file.<span style="mso-spacerun: yes">&nbsp; </span>Again, it is located in
+     the \ESTII\REGFILES\MIPS.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Symbol File:</b><span
+     style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp; </span>Here you would point to
+     any symbol files you have for the image you are running.<span
+     style="mso-spacerun: yes">&nbsp; </span>For now, leave blank.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Download File:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>For now, leave blank.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Source Paths:</b><span
+     style='mso-tab-count:1'> </span><span style="mso-spacerun: yes">&nbsp;
+     </span>Here, you would point to the path(s) of the source file for the
+     current symbol file.<span style="mso-spacerun: yes">&nbsp; </span>This is
+     used for source-level debugging.<span style="mso-spacerun: yes">&nbsp;
+     </span>For now, leave blank.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Reset Symbol:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>The symbol to jump to when a reset
+     occurs.<span style="mso-spacerun: yes">&nbsp; </span>For now, clear out
+     this entry.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Microprocessor:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>The microprocessor you are using.<span
+     style="mso-spacerun: yes">&nbsp; </span>In this case, the BCM4710.<span
+     style="mso-spacerun: yes">&nbsp; </span>The BCM4710 is under the MIPS
+     category when you right-click in this area.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Target Control:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>Set this to visionICE.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>RTOS Debugging:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>Here, choose the target
+     environment you are going to be debugging.<span style="mso-spacerun:
+     yes">&nbsp; </span>Currently, only VxWorks is supported for this
+     option.<span style="mso-spacerun: yes">&nbsp; </span>If usinv VxWorks, you
+     can see many objects related to the kernel.<span style="mso-spacerun:
+     yes">&nbsp; </span>If you are using Linux, you will not get this
+     visibility so just leave it on the ‘VxWorks’ setting.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Event System:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>Choose the “None” option.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Frequency:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>Don’t care.<span
+     style="mso-spacerun: yes">&nbsp; </span>Leave as default value.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Text Editor:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>Here, you can specify a text
+     editor to be used.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Make/BAT File:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>Here you can specify a make or
+     batch file to build your target image.<span style="mso-spacerun:
+     yes">&nbsp; </span>This is so that you can do builds from within the
+     visionCLICK IDE.<span style="mso-spacerun: yes">&nbsp; </span>For now, leave
+     the default.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>ToolBar File:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>If you have created a custom
+     toolbar file, you can specify it here.<span style="mso-spacerun:
+     yes">&nbsp; </span>For now, leave blank.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Auto-Playback:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>You can specify a file to playback
+     at startup of visionICE.<span style="mso-spacerun: yes">&nbsp; </span>For
+     now, leave blank.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Sim Register File:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>For now, leave blank.</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Starting Stack Address (highest):</b><span
+     style="mso-spacerun: yes">&nbsp; </span>For now, set to 0xFFFFFFFF</li>
+ <li class=MsoNormal style='mso-list:l14 level1 lfo11;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Ending Stack Address (lowest):</b><span
+     style="mso-spacerun: yes">&nbsp; </span>For now, set to 0x00000000</li>
+</ul>
+
+<p class=MsoNormal><b style='mso-bidi-font-weight:normal'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></b></p>
+
+<p class=MsoNormal>After you have entered in all of the fields of your new
+project, press the “Save” button at the bottom of the dialog box.<span
+style="mso-spacerun: yes">&nbsp; </span>Press the “OK” button to close the
+dialog box.<span style="mso-spacerun: yes">&nbsp; </span>If it asks if you want
+to activate this project.<span style="mso-spacerun: yes">&nbsp; </span>Choose
+“Yes.”<span style="mso-spacerun: yes">&nbsp; </span>Your newly created project
+is now active.</p>
+
+<h3><a name="_Toc400446543">Writing BCM4710 Register Descriptions to the
+visionICE</a></h3>
+
+<p class=MsoNormal>After you have a valid project file for the BCM4710, you
+need to write the register configuration to the visionICE.<span
+style="mso-spacerun: yes">&nbsp; </span>This only needs to be done once as the
+register configuration is stored in non-volatile memory in the visionICE.<span
+style="mso-spacerun: yes">&nbsp; </span>To do this, perform the following
+steps:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l33 level1 lfo14;tab-stops:list .5in'>Choose
+     the “File-&gt;Open Project Files...” option from the menu.</li>
+ <li class=MsoNormal style='mso-list:l33 level1 lfo14;tab-stops:list .5in'>Under
+     the “Project Configuration” tab, locate the “Active Project”, which should
+     be set to the BCM4710.PRJ file you just created.</li>
+ <li class=MsoNormal style='mso-list:l33 level1 lfo14;tab-stops:list .5in'>Right-click
+     with you mouse in the “Emulator Register Configuration File” and choose
+     the “Load Registers Configuration” option.<span style="mso-spacerun:
+     yes">&nbsp; </span>A dialog box will pop up that asks if you want to save
+     the current register configuration.<span style="mso-spacerun: yes">&nbsp;
+     </span>Generally, you will choose ‘No’ here unless there is a register
+     configuration for some other project that you wish to preserve.<span
+     style="mso-spacerun: yes">&nbsp; </span></li>
+ <li class=MsoNormal style='mso-list:l33 level1 lfo14;tab-stops:list .5in'>This
+     writes the register groups, all of the registers for each core and the bit
+     definitions for these registers into the visionICE’s non-volatile memory.</li>
+ <li class=MsoNormal style='mso-list:l33 level1 lfo14;tab-stops:list .5in'>After
+     all of the register information has been written, you will see an error
+     dialog box pop up that says something like “&gt;ERR&gt;CF REGFILE
+     BCM4710_R4.REG=162518”<span style="mso-spacerun: yes">&nbsp; </span>This
+     error should be ignored.</li>
+ <li class=MsoNormal style='mso-list:l33 level1 lfo14;tab-stops:list .5in'>Close
+     the Project Configuration dialog box by pressing the “OK” button.<span
+     style="mso-spacerun: yes">&nbsp; </span>It will ask if you want to make
+     this project active.<span style="mso-spacerun: yes">&nbsp; </span>Choose
+     “Yes.”</li>
+ <li class=MsoNormal style='mso-list:l33 level1 lfo14;tab-stops:list .5in'>In
+     the terminal window, issue the command ‘in’ to initialize the
+     BCM4710-based board with the register configuration information you just
+     loaded into the visionICE.<span style="mso-spacerun: yes">&nbsp;
+     </span>You’re now ready to program a Flash device.</li>
+</ul>
+
+<h1><a name="_Toc400446544">Programming a Flash Device</a></h1>
+
+<p class=MsoNormal>The visionCLICK software can be used to program the Flash
+device on your BCM4710-based design.<span style="mso-spacerun: yes">&nbsp;
+</span>This is especially useful if you have a new board back with a completely
+blank Flash part.<span style="mso-spacerun: yes">&nbsp; </span>In this
+instance, you can use the visionCLICK/visionICE to quickly get a Flash image up
+and running.</p>
+
+<h2><a name="_Toc400446545">Getting Ready</a></h2>
+
+<p class=MsoNormal>Before you can program a Flash device, you must be able to
+initialize the visionICE and target platform.<span style="mso-spacerun:
+yes">&nbsp; </span>To do this, issue the ‘in’ command in the terminal
+window.<span style="mso-spacerun: yes">&nbsp; </span>If all goes well, the
+prompt will change to “BKM&gt;” which indicates that you are now in background
+debug mode.<span style="mso-spacerun: yes">&nbsp; </span></p>
+
+<h2>Notes on Big-Endian Support</h2>
+
+<p class=MsoNormal>The BCM4710 can support both big- and little-endian
+configurations.<span style="mso-spacerun: yes">&nbsp; </span>But due to the
+unique architecture for supporting these modes, many Flash programming
+algorithms will not function properly in big-endian mode.<span
+style="mso-spacerun: yes">&nbsp; </span>As a service to our customers, Broadcom
+has contracted with WindRiver Systems to develop custom Flash programming
+algorithms that will operate in big-endian mode.<span style="mso-spacerun:
+yes">&nbsp; </span>These custom algorithms exist as a firmware upgrade file for
+the visionICE.<span style="mso-spacerun: yes">&nbsp; </span>Please refer to the
+instructions above on how to install these custom algorithms.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Below is a table detailing the Flash device configurations for
+which we have had custom algorithms developed:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.2in;border-collapse:
+ collapse;border:none;mso-border-alt:solid windowtext .5pt;mso-padding-alt:
+ 0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=138 valign=top style='width:103.5pt;border:solid windowtext .5pt;
+  background:black;mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Device<o:p></o:p></h5>
+  </td>
+  <td width=150 valign=top style='width:112.5pt;border:solid windowtext .5pt;
+  border-left:none;mso-border-left-alt:solid windowtext .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b
+  style='mso-bidi-font-weight:normal'><span style='color:white'>Configuration<o:p></o:p></span></b></p>
+  </td>
+  <td width=139 valign=top style='width:103.9pt;border:solid windowtext .5pt;
+  border-left:none;mso-border-left-alt:solid windowtext .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b
+  style='mso-bidi-font-weight:normal'><span style='color:white'>Big-Endian
+  Driver<o:p></o:p></span></b></p>
+  </td>
+  <td width=145 valign=top style='width:108.5pt;border:solid windowtext .5pt;
+  border-left:none;mso-border-left-alt:solid windowtext .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b
+  style='mso-bidi-font-weight:normal'><span style='color:white'>Little-Endian
+  Driver<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr>
+  <td width=138 valign=top style='width:103.5pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>AMD29LV32XXT</p>
+  </td>
+  <td width=150 valign=top style='width:112.5pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>(2048 x 16) 1 device</p>
+  </td>
+  <td width=139 valign=top style='width:103.9pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>BROADCOM<span style="mso-spacerun: yes">&nbsp;
+  </span>320DT (2048 x 16)<span style="mso-spacerun: yes">&nbsp; </span>1
+  Device</p>
+  </td>
+  <td width=145 valign=top style='width:108.5pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>AMD29LV32XXT (2048 x 16) 1 device</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Remember that if your BCM4710-based design is operating in
+little-endian mode, any of the Flash algorithms provided by WindRiver will function
+properly.<span style="mso-spacerun: yes">&nbsp; </span>But if your design
+operates in big-endian mode and the Flash configuration you are using is not
+supported by a customer driver, you have a few choices:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l31 level1 lfo35;tab-stops:list .5in'>Contact
+     WindRiver and have them develop a custom driver for your particular Flash
+     configuration.<span style="mso-spacerun: yes">&nbsp; </span>Broadcom will gladly
+     assist you in this effort.</li>
+ <li class=MsoNormal style='mso-list:l31 level1 lfo35;tab-stops:list .5in'>Design
+     a jumper on your BCM4710-based design so that the endian mode can be
+     changed.<span style="mso-spacerun: yes">&nbsp; </span>With this option,
+     you can program a Flash image in little-endian mode and then switch back
+     to big-endian mode for normal operating mode.<span style="mso-spacerun:
+     yes">&nbsp; </span>Please see the <i style='mso-bidi-font-style:normal'>Using
+     the SWAP Utility </i>section below for more information on this option.</li>
+ <li class=MsoNormal style='mso-list:l31 level1 lfo35;tab-stops:list .5in'>Install
+     pre-programmed Flash devices with a boot loader, such as PMON, already
+     installed.<span style="mso-spacerun: yes">&nbsp; </span>The PMON boot loader
+     (provided in your distribution package)_allows for programming Flash
+     images through the Ethernet port and supports both big- and little-endian
+     configurations.<span style="mso-spacerun: yes">&nbsp; </span>Please refer
+     to the <i style='mso-bidi-font-style:normal'>PMON Boot Loader</i> section
+     for more information on programming Flash images using PMON.</li>
+</ul>
+
+<h3>Using the SWAP Utility</h3>
+
+<p class=MsoNormal>If you need to program a big-endian Flash image using the
+visionICE while in little-endian mode, the images must first be run through the
+SWAP utility.<span style="mso-spacerun: yes">&nbsp; </span>This utility is
+provided on your distribution in the /tools/bin directory.<span
+style="mso-spacerun: yes">&nbsp; </span>The format of the command is ‘swap &lt;filename&gt;’<span
+style="mso-spacerun: yes">&nbsp; </span>The output will have a ‘_bin’ embedded
+in the output file.<span style="mso-spacerun: yes">&nbsp; </span>For example,
+to swap the ‘pmon.bin’ file:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=Code><span style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>swap
+pmon.bin</p>
+
+<p class=Code><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The output will be a file called ‘pmon_swap.bin’<span
+style="mso-spacerun: yes">&nbsp; </span>Use this swapped file in the following
+section on <i style='mso-bidi-font-style:normal'>Preparing a Flash Binary Image.</i></p>
+
+<h2><a name="_Toc400446546">Preparing a Flash Binary Image</a></h2>
+
+<p class=MsoNormal>First of all, if the image that you are to be writing to the
+Flash is an OS image that will be booted by the PMON boot loader then you will
+need to add a header that tells PMON the size of the OS image and contains a checksum
+to validate the image.<span style="mso-spacerun: yes">&nbsp; </span>Without
+this header, PMON will not boot the OS image.<span style="mso-spacerun:
+yes">&nbsp; </span>Please refer to the “PMON Boot Loader” section for information
+on how to use the TRX utility to do this</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Next, in order for a Flash image to be programmed using the
+visionICE, it must <span style="mso-spacerun: yes">&nbsp;</span>contain another
+header defined by WindRiver that instructs the visionCLICK software the size of
+the image and where in Flash it should be programmed. Broadcom has developed a
+program called ADDHDR (for both Win32 and Linux environments) that will add
+this header to a flat binary file.<span style="mso-spacerun: yes">&nbsp;
+</span>(Please refer to the documentation on your specific build environment to
+obtain details on how to create a flat binary image.) <b style='mso-bidi-font-weight:
+normal'>NOTE:<span style="mso-spacerun: yes">&nbsp; </span></b>The ADDHDR
+program should be run <i style='mso-bidi-font-style:normal'>after</i> any other
+utilites, such as TRX or NVSERIAL, have been run.<span style="mso-spacerun:
+yes">&nbsp; </span>To use ADDHDR, simply issue the command </p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal style='text-indent:.5in'>ADDHDR &lt;filename&gt; </p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>where filename is the flat binary file you wish to prepend
+the header to.<span style="mso-spacerun: yes">&nbsp; </span>The resulting
+output file will have a _EST suffix before any filename extension.<span
+style="mso-spacerun: yes">&nbsp; </span>This _EST file will be used to program
+the Flash from within visionCLICK.</p>
+
+<h2><a name="_Toc400446547">Writing to the Flash Device</a></h2>
+
+<p class=MsoNormal>Once you have prepared the binary image(s) to be programmed,
+bring up the Flash programming dialog box by choosing the “Tools-&gt;Program
+Flash Device” option from the menu.<span style="mso-spacerun: yes">&nbsp;
+</span>It is here that you set the parameters of the programming task.<span
+style="mso-spacerun: yes">&nbsp; </span>Below are the various fields and
+suggested values:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l22 level1 lfo12;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Flash Card or PC Host File Name and
+     Path:</b><span style="mso-spacerun: yes">&nbsp; </span>Here you select the
+     flat binary with header to program into the Flash device.<span
+     style="mso-spacerun: yes">&nbsp;&nbsp; </span>To select the image, click
+     the “Select...” button.<span style="mso-spacerun: yes">&nbsp; </span>This
+     will bring up a second dialog box that contains recent images that you may
+     have used as well as “Browse” and “Remove” buttons and a field to specify
+     the “Bias” of the image.<span style="mso-spacerun: yes">&nbsp; </span>The
+     ADDHDR.EXE utility always adds a header that instructs visionCLICK to
+     program the image to the base of the Flash address space, 0x1FC00000.<span
+     style="mso-spacerun: yes">&nbsp; </span>If you would like a particular
+     image (like the filesystem for a Linux environment) to be programmed into
+     a different location in Flash, put the relative offset in the bias
+     field.<span style="mso-spacerun: yes">&nbsp; </span>For example, if you
+     wanted to program an image at 0x1FC80000 you would enter the value 0x80000
+     into the bias field.<span style="mso-spacerun: yes">&nbsp; </span>Please
+     refer to the figure below for a list of bias offsets for particular
+     files.<span style="mso-spacerun: yes">&nbsp; </span>Once you have the
+     appropriate filename selected and the appropriate bias entered, press the
+     “OK” button to continue.</li>
+</ul>
+
+<h3 style='margin-left:.5in;text-indent:-.25in;mso-list:l22 level1 lfo12;
+tab-stops:list .5in'><![if !supportLists]><span style='font-size:12.0pt;
+mso-bidi-font-size:10.0pt;font-family:Symbol;font-weight:normal'>·<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><![endif]><span style='font-size:12.0pt;mso-bidi-font-size:10.0pt;
+font-family:Times'>Programming Algorithm:</span><span style="mso-spacerun:
+yes">&nbsp; </span><span style='font-size:12.0pt;mso-bidi-font-size:10.0pt;
+font-family:Times;font-weight:normal'>Here you select the Flash device that is
+being used on your design.<span style="mso-spacerun: yes">&nbsp; </span>Below
+is a table of Flash algorithms that can be used for various reference
+designs.<span style="mso-spacerun: yes">&nbsp; </span>Some of these algorithms
+are part of the Broadcom-supplied custom Flash algorithm upgrade.<span
+style="mso-spacerun: yes">&nbsp; </span>Please refer to the previous section titled
+<i style='mso-bidi-font-style:normal'>Custom Flash Algorithm Firmware Upgrade </i>for
+instructions on how to update to the newer Flash algorithms.<span
+style="mso-spacerun: yes">&nbsp; </span><o:p></o:p></span></h3>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='border-collapse:collapse;
+ border:none;mso-border-alt:solid white .5pt;mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=148 valign=top style='width:110.7pt;border:solid white .5pt;
+  background:black;mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Reference Board<o:p></o:p></h5>
+  </td>
+  <td width=148 valign=top style='width:110.7pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b
+  style='mso-bidi-font-weight:normal'><span style='color:white'>Flash Device<o:p></o:p></span></b></p>
+  </td>
+  <td width=148 valign=top style='width:110.7pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b
+  style='mso-bidi-font-weight:normal'><span style='color:white'>Big-Endian
+  Driver<o:p></o:p></span></b></p>
+  </td>
+  <td width=148 valign=top style='width:110.7pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b
+  style='mso-bidi-font-weight:normal'><span style='color:white'>Little-Endian
+  Driver<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr>
+  <td width=148 valign=top style='width:110.7pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoHeading7>BCM94710R4</p>
+  </td>
+  <td width=148 valign=top style='width:110.7pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>AMD29LV32XXT</p>
+  </td>
+  <td width=148 valign=top style='width:110.7pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>BROADCOM<span
+  style="mso-spacerun: yes">&nbsp; </span>320DT (2048 x 16)<span
+  style="mso-spacerun: yes">&nbsp; </span>1 Device</p>
+  </td>
+  <td width=148 valign=top style='width:110.7pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>AMD29LV32XXT (2048
+  x 16) 1 Device</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=148 valign=top style='width:110.7pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoHeading7>BCM94710D</p>
+  </td>
+  <td width=148 valign=top style='width:110.7pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>Intel 28F320J3</p>
+  </td>
+  <td width=148 valign=top style='width:110.7pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>N/A*</p>
+  </td>
+  <td width=148 valign=top style='width:110.7pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>INTEL 28F320Jx
+  (2048 x 16) 1 Device</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal style='margin-left:1.0in'>* No big-endian driver
+available.<span style="mso-spacerun: yes">&nbsp; </span>See previous section
+titled <i style='mso-bidi-font-style:normal'>Notes on Big-Endian Support<o:p></o:p></i></p>
+
+<h3 style='margin-left:.5in;text-indent:-.25in;mso-list:l22 level1 lfo12;
+tab-stops:list .5in'><![if !supportLists]><span style='font-size:12.0pt;
+mso-bidi-font-size:10.0pt;font-family:Symbol;font-weight:normal'>·<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><![endif]><span style='font-size:12.0pt;mso-bidi-font-size:10.0pt;
+font-family:Times;font-weight:normal'>Also, check the “Initialize Target Prior
+To Erase and/or Program” check box.<o:p></o:p></span></h3>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l22 level1 lfo12;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Device or Sector Base and End Address:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>The base address for a Flash
+     device connected to a BCM4710 device is 0x1FC00000.<span
+     style="mso-spacerun: yes">&nbsp; </span>You can have the visionCLICK
+     software erase the entire flash before programming by chooseing the “Erase
+     All” radio button.<span style="mso-spacerun: yes">&nbsp; </span>Or you can
+     erase just a portion of the Flash.<span style="mso-spacerun: yes">&nbsp;
+     </span>For BCM94710r4 boards that will contain router images (either
+     VxWorks or Linux) we recommend that the last 128K of memory NOT be erased
+     as this contains the NVRAM for router environment variables.<span
+     style="mso-spacerun: yes">&nbsp; </span>To leave this portion of the Flash
+     intact, ensure that the “Erase to 0x” radio button is checked and that the
+     value BFFE0000 is entered into the adjacent field.</li>
+ <li class=MsoNormal style='mso-list:l22 level1 lfo12;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Available RAM for Workspace For Flash
+     Algorithm:</b><span style="mso-spacerun: yes">&nbsp; </span>The “Start
+     Address” should be set to A0000000 and the “Bytes Of Target RAM Required”
+     should be set to 8000.</li>
+</ul>
+
+<p class=MsoNormal align=center style='text-align:center'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='border-collapse:collapse;
+ border:none;mso-border-alt:solid windowtext .5pt;mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=295 valign=top style='width:221.4pt;border:solid white .5pt;
+  background:black;mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h4><span style='color:white'>Flash File<o:p></o:p></span></h4>
+  </td>
+  <td width=295 valign=top style='width:221.4pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h4><span style='color:white'>Bias Offset<o:p></o:p></span></h4>
+  </td>
+ </tr>
+ <tr>
+  <td width=295 valign=top style='width:221.4pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>PMON Boot Loader</p>
+  </td>
+  <td width=295 valign=top style='width:221.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>0x00000000</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=295 valign=top style='width:221.4pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>VxWorks Compressed
+  Image</p>
+  </td>
+  <td width=295 valign=top style='width:221.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>0x00040000</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=295 valign=top style='width:221.4pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>Linux Compressed
+  Image</p>
+  </td>
+  <td width=295 valign=top style='width:221.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>0x00040000</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=295 valign=top style='width:221.4pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>NVRAM Image</p>
+  </td>
+  <td width=295 valign=top style='width:221.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>0x003F8000</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Once all of the parameters have been set in the Flash
+programming dialog box, then you can actually program the image into the Flash
+device.<span style="mso-spacerun: yes">&nbsp; </span>At the bottom of the
+dialog box there are three buttons: “Erase and Program” “Program Only” and
+“Erase Only”.<span style="mso-spacerun: yes">&nbsp; </span>To simply erase a
+Flash device, choose the “Erase Only” button.<span style="mso-spacerun:
+yes">&nbsp; </span>To only program (without a prior erase) choose the “Program
+Only” button.<span style="mso-spacerun: yes">&nbsp; </span>As you would expect,
+the “Erase and Program” button will perform an erase on the Flash prior to
+programming the image specified.<span style="mso-spacerun: yes">&nbsp; </span></p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>If you are simply programming a single image, the “Erase and
+Program” button is the obvious choice.<span style="mso-spacerun: yes">&nbsp;
+</span>Where the other options come in handy is if you are programming multiple
+images to different locations in Flash at a single sitting.<span
+style="mso-spacerun: yes">&nbsp; </span>For example, you may want to program a
+PMON image to the base of Flash as well as program a VxWorks image at offset
+0x40000.<span style="mso-spacerun: yes">&nbsp; </span>To do this you would:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l25 level1 lfo13;tab-stops:list .5in'>Point
+     to the PMON image with a bias of 0 and choose the “Erase and Program”
+     button.</li>
+ <li class=MsoNormal style='mso-list:l25 level1 lfo13;tab-stops:list .5in'>Next,
+     point to the VxWorks image with a bias of 0x40000 and then choose the
+     “Program Only” button.</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>It is relatively slow to erase the Flash so if you can do a
+single erase and multiple programs, that is the fastest option.</p>
+
+<h1><a name="_Toc400446548">Basic Debugging</a></h1>
+
+<h2><a name="_Toc400446549">Debugging a Linux Image</a></h2>
+
+<p class=MsoNormal>Before you can debug a Linux image, you must disable the
+watchdog timer.<span style="mso-spacerun: yes">&nbsp; </span>In the Linux
+platform, the watchdog timer is setup so that if there is no processor activity
+for a specified period of time, the platform is reset.<span
+style="mso-spacerun: yes">&nbsp; </span>The intent here is that if some unknown
+bug exists which causes the router to lock up, it will automatically reset and
+allow the user to continue to use the device, sometimes without ever noticing
+anything went wrong.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>This is desirable in the field, but causes problems with
+debugging.<span style="mso-spacerun: yes">&nbsp; </span>When the visionICE
+tries to take control of the processor, the wathdog timer thinks that the
+platform has crashed and causes it to reset, thus terminating the link between
+the visionICE and the platform.<span style="mso-spacerun: yes">&nbsp; </span>To
+disable the watchdog timer to allow debugging via visionICE, perform the
+following steps:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo18;tab-stops:list .5in'>Connect
+     a PC running a terminal application to the serial connector on the
+     BCM94710 platform.</li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo18;tab-stops:list .5in'>The
+     serial parameters are:<span style="mso-spacerun: yes">&nbsp; </span>115000
+     baud, 8 bits, 1 stop bit, no parity, no flow control</li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo18;tab-stops:list .5in'>At
+     the terminal prompt, enter the command “nvram unsetenv watchdog”</li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo18;tab-stops:list .5in'>Reset
+     the 94710.</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The watchdog timer is now disabled and the visionICE can be
+used to debug the linux kernel.</p>
+
+<b style='mso-bidi-font-weight:normal'><span style='font-size:16.0pt;
+mso-bidi-font-size:10.0pt;font-family:Helvetica;mso-fareast-font-family:Times;
+mso-bidi-font-family:"Times New Roman";mso-font-kerning:16.0pt;mso-ansi-language:
+EN-US;mso-fareast-language:EN-US;mso-bidi-language:AR-SA'><br clear=all
+style='page-break-before:always'>
+</span></b>
+
+<h1><a name="_Toc400446550">The NVRAM</a></h1>
+
+<h2><a name="_Toc400446551">Introduction</a></h2>
+
+<p class=MsoNormal>In VxWorks and Linux router designs based around the
+BCM4710, the last 32Kbytes of Flash are designated as non-volatile RAM (NVRAM)
+space.<span style="mso-spacerun: yes">&nbsp; </span>This NVRAM is used as a
+storage space for variables that are used by the PMON boot loader as well as
+the router image.<span style="mso-spacerun: yes">&nbsp; </span></p>
+
+<h2><a name="_Toc400446552">NVRAM Protection</a></h2>
+
+<p class=MsoNormal>The NVRAM section of the Flash should be preserved, even if
+new router images are being programmed into the board.<span
+style="mso-spacerun: yes">&nbsp; </span>This is because the NVRAM will contain
+vital information such as the MAC addresses for each of the interfaces as well
+as the serial number and any other vendor specific identifying information,
+such as lot number or manufacture date.<span style="mso-spacerun: yes">&nbsp;
+</span>This information, if lost, may be difficult or even impossible to
+reconstruct.<span style="mso-spacerun: yes">&nbsp; </span>Even if this
+information is easily retrievable (perhaps from the boot loader itself) other
+information such as the current router IP configuration and any statically
+forwarded ports should be preserved if at all possible.<span
+style="mso-spacerun: yes">&nbsp; </span>Loss of this user-configured
+information would lead to an undesirable user experience.</p>
+
+<h2><a name="_Toc400446553">Accessing NVRAM Information</a></h2>
+
+<h3><a name="_Toc400446554">Don’t Write NVRAM Data Directly</a></h3>
+
+<p class=MsoNormal>In order to maintain NVRAM integrity and to be sure that all
+clients of the NVRAM data (PMON, VxWorks, Linux) can properly access data
+stored in the NVRAM, the NVRAM memory block must NOT be modified directly.<span
+style="mso-spacerun: yes">&nbsp; </span>Direct modification of the data in the
+NVRAM section will result in an unusable NVRAM.<span style="mso-spacerun:
+yes">&nbsp; </span></p>
+
+<h3><a name="_Toc400446555">How the NVRAM Is Accessed</a></h3>
+
+<p class=MsoNormal>To ensure that all clients of the NVRAM information are in
+sync, each client is compiled with shared NVRAM access libraries.<span
+style="mso-spacerun: yes">&nbsp; </span>These libraries deal with reading of
+NVRAM environment variables, changing or creating new variables, calculating
+checksums, writing NVRAM to Flash, etc.<span style="mso-spacerun: yes">&nbsp;
+</span></p>
+
+<h2><a name="_Toc400446556">Getting an Initial NVRAM Environment</a></h2>
+
+<p class=MsoNormal>A default NVRAM image can be inserted into a PMON boot
+loader file.<span style="mso-spacerun: yes">&nbsp; </span>For instructions on
+how this is done, please refer to the <i style='mso-bidi-font-style:normal'>PMON
+Boot Loader</i> section.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>If a PMON image with default NVRAM is booted on a board, it
+will check to see if the NVRAM is either missing entirely or is corrupted.<span
+style="mso-spacerun: yes">&nbsp; </span>If either is true, the default NVRAM is
+loaded into the NVRAM section of the Flash and is subsequently used by PMON and
+any OS image loaded into the Flash.</p>
+
+<h2><a name="_Toc400446557">Reading/Writing NVRAM Environment Variables</a></h2>
+
+<p class=MsoNormal>In general, NVRAM environment variables are read/written to
+by any of the NVRAM clients.<span style="mso-spacerun: yes">&nbsp; </span>For
+instance, if the Linux router is running and a configuration change was made
+that altered the IP address to be used on the WAN port, the Linux code would
+write this new information to the NVRAM memory.<span style="mso-spacerun:
+yes">&nbsp; </span>Also, if some information like a static route entry was no
+longer needed, the Linux code would remove this variable from the NVRAM space.<span
+style="mso-spacerun: yes">&nbsp; </span>(All of this NVRAM manipulation is done
+using the NVRAM access libraries described above.)</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>If you would, however, like to view the NVRAM variables or
+create new ones, this can be done with the PMON boot loader.<span
+style="mso-spacerun: yes">&nbsp; </span>Simply connect a serial client to the
+BCM4710-based board and reset it.<span style="mso-spacerun: yes">&nbsp;
+</span>You will see the PMON boot information displayed.<span
+style="mso-spacerun: yes">&nbsp; </span>You should quickly hit &lt;CTRL-C&gt;
+to break the PMON boot process and get to the PMON prompt.<span
+style="mso-spacerun: yes">&nbsp; </span>From here you can enter the ‘set’ command
+to see all of the current environment variables.<span style="mso-spacerun:
+yes">&nbsp; </span>For more information on PMON NVRAM manipulation commands,
+please refer to the <i style='mso-bidi-font-style:normal'>PMON Environment
+Variables</i> section of the <i style='mso-bidi-font-style:normal'>PMON Boot
+Loader</i> chapter.</p>
+
+<h2><a name="_Toc400446558">NVRAM Format</a></h2>
+
+<h3><a name="_Toc400446559">NVRAM Header</a></h3>
+
+<p class=MsoNormal>The first 40 bytes of the Flash spaced designated as the
+start of NVRAM are is the NVRAM header.<span style="mso-spacerun: yes">&nbsp;
+</span>The format of the NVRAM header is as follows:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=Code>struct nvram_header {</p>
+
+<p class=Code><span style="mso-spacerun:
+yes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>unsigned long magic;</p>
+
+<p class=Code><span style="mso-spacerun:
+yes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>unsigned long len;</p>
+
+<p class=Code><span style="mso-spacerun:
+yes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>unsigned long
+crc_ver_init;</p>
+
+<p class=Code><span style="mso-spacerun:
+yes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>unsigned long
+config_refresh;</p>
+
+<p class=Code><span style="mso-spacerun:
+yes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>unsigned long reserved;</p>
+
+<p class=Code>};</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>The definition for each of the structure members is:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l1 level1 lfo22;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Magic:<span style="mso-spacerun:
+     yes">&nbsp; </span></b>Unique identifier marking the beginning of the
+     NVRAM data sector.<span style="mso-spacerun: yes">&nbsp; </span>The value
+     of this identifier is 0x48534C46, or ‘FLSH’ in ASCII.</li>
+ <li class=MsoNormal style='mso-list:l1 level1 lfo22;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Len:</b><span style="mso-spacerun:
+     yes">&nbsp; </span>The total length of the NVRAM including the NVRAM
+     header and all of the NVRAM environment strings.</li>
+ <li class=MsoNormal style='mso-list:l1 level1 lfo22;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Crc_ver_init:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>Bits 0-7: NVRAM CRC.<span
+     style="mso-spacerun: yes">&nbsp; </span>Bits 8-15: NVRAM version.<span
+     style="mso-spacerun: yes">&nbsp; </span>Bits 16-27:<span
+     style="mso-spacerun: yes">&nbsp; </span>Value to be written into the
+     SDRAMInit regieter.<span style="mso-spacerun: yes">&nbsp; </span>Bits
+     29-31: reserved.</li>
+ <li class=MsoNormal style='mso-list:l1 level1 lfo22;tab-stops:list .5in'><b
+     style='mso-bidi-font-weight:normal'>Config_refresh:</b><span
+     style="mso-spacerun: yes">&nbsp; </span>Bits 0-15: Value to be written
+     into the SDRAMConfig register.<span style="mso-spacerun: yes">&nbsp;
+     </span>Bits 16-32: Value to be written into the SDRAMRefresh register.</li>
+</ul>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<h2><a name="_Toc400446560">NVRAM Environment Variables</a></h2>
+
+<p class=MsoNormal>The NVRAM environment variables are located directly after
+the NVRAM header.<span style="mso-spacerun: yes">&nbsp; </span>The environment
+variables are represented as a series of NULL-terminated strings.<span
+style="mso-spacerun: yes">&nbsp; </span>The strings are in the format</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal><span style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><i
+style='mso-bidi-font-style:normal'>variable=value<o:p></o:p></i></p>
+
+<p class=MsoNormal><i style='mso-bidi-font-style:normal'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></i></p>
+
+<p class=MsoNormal>The end of the strings is deliminated by two consecutive
+NULL bytes.</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Below is a list of supported variables and their meanings:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>General parameters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid white .5pt;mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  background:black;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b
+  style='mso-bidi-font-weight:normal'><span style='color:white'>Description<o:p></o:p></span></b></p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>dl_ram_addr</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The location in RAM where a downloaded image (to PMON
+  using tftp) is stored</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>os_ram_addr</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The location in RAM where a compressed OS image, located
+  in Flash, is decompressed.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>os_flash_addr</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The location in Flash where a compressed OS image is
+  located.<span style="mso-spacerun: yes">&nbsp; </span>On boot, PMON will look
+  for a valid OS image at this location and decompress and execute it.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>sdram_init</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The value to be written to the SDRAMInit register in the
+  SDRAM core of the BCM4710.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>sdram_config</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The value to be written to the SDRAMConfig register in the
+  SDRAM core of the BCM4710.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>et0macaddr</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The MAC address to be used for the LAN Ethernet port.<span
+  style="mso-spacerun: yes">&nbsp; </span>The address is given in the format
+  00:11:22:33:44:55</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>et0phyaddr</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>MII Address of the physical layer device connected to the
+  LAN Ethernet port on the BCM4710 router.<span style="mso-spacerun:
+  yes">&nbsp; </span>For 94710R4 reference designs, this should be set to 30.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>et0mcdport</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>???</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>et1macaddr</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The MAC address to be used for the WAN Ethernet port.<span
+  style="mso-spacerun: yes">&nbsp; </span>The address is given in the format
+  00:11:22:33:44:55</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>et1phyaddr</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>MII Address of the physical layer device connected to the
+  WAN Ethernet port on the BCM4710 router.<span style="mso-spacerun:
+  yes">&nbsp; </span>For BCM94710R4 reference designs, this should be set to 5.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>et1mcdport</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>???</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>il0macaddr</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The MAC address to be used for the HPNA 2.0 port.<span
+  style="mso-spacerun: yes">&nbsp; </span>The address is given in the format
+  00:11:22:33:44:55</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>localip</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The IP address to be used on the LAN ports.<span
+  style="mso-spacerun: yes">&nbsp; </span>For the BCM94710R4 reference design,
+  this is 192.168.1.1</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>localsn</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoBodyText2>The subnet to be used on the LAN ports.<span
+  style="mso-spacerun: yes">&nbsp; </span>For the BCM94710R4 reference design,
+  this should be set to 255.255.255.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>scratch</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Scratch location in RAM where a compressed OS image in
+  Flash is copied before it is decompressed.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>boardtype</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Identifier for the type of board.<span
+  style="mso-spacerun: yes">&nbsp; </span>For the BCM94710R4 reference designs,
+  this should be set to “bcm94710r4”</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>boardtype</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Describes the hardware platform.<span style="mso-spacerun:
+  yes">&nbsp; </span>Possible values are bu4710, bcm94710r1, bcm94710r4, bcm94710dev,
+  i386</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>watchdog</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Interval, in milliseconds, of the system watchdog timer.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>boot_wait</p>
+  </td>
+  <td width=380 valign=top style='width:285.3pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Whether PMON should wait for an OS image download upon
+  power-up.<span style="mso-spacerun: yes">&nbsp; </span>Set to ‘on’ to wait
+  for 3 seconds on powerup and set to ‘off’ to immediately boot OS image on
+  power-up</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Interface parameters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid white .5pt;mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  background:black;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>lan_ifname</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Linux LAN interface device name.<span style="mso-spacerun:
+  yes">&nbsp; </span>Typically ‘br0’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>lan_ifnames</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Linux LAN interface enslaved device names.<span
+  style="mso-spacerun: yes">&nbsp; </span>Typically ‘eth0 eth2’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_ifname</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Linux WAN interface device name.<span style="mso-spacerun:
+  yes">&nbsp; </span>Typically ‘eth1’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_ifnames</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Linux WAN interface enslaved device names.<span
+  style="mso-spacerun: yes">&nbsp; </span>Typically blank.</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal align=center style='text-align:center'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Firmware upgrade parameters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid white .5pt;mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  background:black;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>sw_version</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>The current router software revision.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>sw_server</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>URL of the upgrade server.</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><b style='mso-bidi-font-weight:normal'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></b></p>
+
+<p class=MsoNormal>TCP/IP parameters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid white .5pt;mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  background:black;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>lan_proto</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Type of IP addresses to be used on the LAN interface.<span
+  style="mso-spacerun: yes">&nbsp; </span>Can be either ‘static’ or ‘dhcp’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>lan_ipaddr</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Default IP address on the LAN interface.<span
+  style="mso-spacerun: yes">&nbsp; </span>Typically ‘192.168.1.1’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>lan_netmask</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>IP netmask on the LAN interface.<span style="mso-spacerun:
+  yes">&nbsp; </span>Typically ‘255.255.255.0’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_proto</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Type of IP addresses to be used on the WAN interface.<span
+  style="mso-spacerun: yes">&nbsp; </span>Can be either ‘static’ or ‘dhcp’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_ipaddr</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Default IP address on the WAN interface.<span
+  style="mso-spacerun: yes">&nbsp; </span>If wan_proto was set to DHCP, this
+  should be set to ‘0.0.0.0’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_netmask</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>IP netmask on the WAN interface. If wan_proto was set to
+  DHCP, this should be set to ‘0.0.0.0’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_gateway</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>IP gateway to be used on the WAN interface. If wan_proto
+  was set to DHCP, this should be set to ‘0.0.0.0’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_dns</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>IP address of the DNS server to be used on the WAN
+  interface.<span style="mso-spacerun: yes">&nbsp; </span>If wan_proto was set
+  to DHCP, this field should be left blank.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_wins</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>IP address of the WINS server to be used on the WAN
+  interface. If wan_proto was set to DHCP, this field should be left blank.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_hostname</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>IP host name to be used on the WAN interface. If wan_proto
+  was set to DHCP, this field should be left blank.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=115 valign=top style='width:86.0pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>wan_domain</p>
+  </td>
+  <td width=383 valign=top style='width:287.4pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>IP domain name to be used on the WAN interface. If
+  wan_proto was set to DHCP, this field should be left blank.</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal><b style='mso-bidi-font-weight:normal'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></b></p>
+
+<p class=MsoNormal>Firewall Parameters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid white .5pt;mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  background:black;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>fw_disable</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Flag to enable/disable the firewall protection.<span
+  style="mso-spacerun: yes">&nbsp; </span>Set to ‘0’ to keep firewall disabled
+  and set to ‘1’ to disable the firewall.</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal><b style='mso-bidi-font-weight:normal'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></b></p>
+
+<p class=MsoNormal>LAN Filters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid white .5pt;mso-padding-alt:0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  background:black;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>filter_ip</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>A list of ranges, separated by spaces, of IP addresses to
+  be filtered on the LAN interfaces.<span style="mso-spacerun: yes">&nbsp;
+  </span>For example ‘192.168.1.100-192.168.1.101 192.168.1.150-192.168.1.150’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>filter_tcp</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Lists IP address and TCP port ranges that the router
+  should block.<span style="mso-spacerun: yes">&nbsp; </span>For instance, to
+  block ports 80-81 on 192.168.1.100:<span style="mso-spacerun: yes">&nbsp;
+  </span>filter_tcp=192.168.1.100:80-01<span style="mso-spacerun: yes">&nbsp;
+  </span>To block ports 80-81 on ALL LAN clients:<span style="mso-spacerun:
+  yes">&nbsp; </span>filter_tcp=*:80-81</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>filter_udp</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>This variable has the same syntax as the filter_tcp
+  variable.<span style="mso-spacerun: yes">&nbsp; </span>The difference is that
+  it pertains to UDP ports instead of TCP ports.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:silver;
+  padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>filter_mac</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>A list of MAC addresses, separated by commas, to be filtered
+  on the LAN interfaces.</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal><b style='mso-bidi-font-weight:normal'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></b></p>
+
+<p class=MsoNormal>Port Forwards:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid windowtext .5pt;mso-padding-alt:
+ 0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  background:black;mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>forward_tcp</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Indicates ranges of TCP port numbers and to where they
+  should be forwared to on the LAN.<span style="mso-spacerun: yes">&nbsp;
+  </span>For instance, to forward ports 80-81 to IP address 192.168.1.100 on
+  the LAN, ports 80-81:<span style="mso-spacerun: yes">&nbsp;
+  </span>’80-81&gt;192.168.1.1:80-81’<span style="mso-spacerun: yes">&nbsp;
+  </span>Additional TCP port forwards can be appended, separated by a space
+  character.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>forward_udp</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Indicates ranges of UDP port numbers and to where they
+  should be forwared to on the LAN.<span style="mso-spacerun: yes">&nbsp;
+  </span>For instance, to forward ports 80-81 to IP address 192.168.1.100 on
+  the LAN, ports 80-81:<span style="mso-spacerun: yes">&nbsp;
+  </span>’80-81&gt;192.168.1.1:80-81’<span style="mso-spacerun: yes">&nbsp;
+  </span>Additional UDP port forwards can be appended, separated by a space
+  character.</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>DHCP server parameters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid windowtext .5pt;mso-padding-alt:
+ 0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  background:black;mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>dhcp_start</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Beginning of range of LAN IP addresses to be handed out by
+  the DHCP server.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>dhcp_end</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>End of range of LAN IP addresses to be handed out by the
+  DHCP server.</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Web server parameters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid windowtext .5pt;mso-padding-alt:
+ 0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  background:black;mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>http_username</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Username required to access configuration web pages.<span
+  style="mso-spacerun: yes">&nbsp; </span>This field can be left blank if
+  desired.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>http_passwd</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Default password required to access the configurations web
+  pages.<span style="mso-spacerun: yes">&nbsp; </span>Typicallay set to ‘admin’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>http_lanport</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Default port number used to access configuration web pages
+  on the LAN interface.<span style="mso-spacerun: yes">&nbsp; </span>Typically
+  set to ‘80’</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=114 valign=top style='width:85.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>http_wanport</p>
+  </td>
+  <td width=384 valign=top style='width:287.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Default port number used to access configuration web pages
+  from the WAN interface.<span style="mso-spacerun: yes">&nbsp;
+  </span>Typically set to ‘8080’</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>PPPOE parameters:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid windowtext .5pt;mso-padding-alt:
+ 0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=129 valign=top style='width:96.4pt;border:solid white .5pt;
+  background:black;mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=369 valign=top style='width:277.0pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=129 valign=top style='width:96.4pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>pppoe_username</p>
+  </td>
+  <td width=369 valign=top style='width:277.0pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Login name to be used when making a PPPOE connection.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=129 valign=top style='width:96.4pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>pppoe_passwd</p>
+  </td>
+  <td width=369 valign=top style='width:277.0pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Password to be used when making a PPPOE connection.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=129 valign=top style='width:96.4pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>pppoe_idletime</p>
+  </td>
+  <td width=369 valign=top style='width:277.0pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Timeout value, in seconds, after which the PPPOE
+  connection will be terminated if there has been no activity.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=129 valign=top style='width:96.4pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>pppoe_keepalive</p>
+  </td>
+  <td width=369 valign=top style='width:277.0pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Set to ‘1’ to automatically reconnect when a PPPoE link
+  goes down.</p>
+  </td>
+ </tr>
+ <tr>
+  <td width=129 valign=top style='width:96.4pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>pppoe_demand</p>
+  </td>
+  <td width=369 valign=top style='width:277.0pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Set to ‘1’ to only bring up the PPPoE link when it is
+  necessary.<span style="mso-spacerun: yes">&nbsp; </span>(NOTE: This
+  functionality is not currently enabled.)</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<p class=MsoNormal>Restore defaults:</p>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+<table border=1 cellspacing=0 cellpadding=0 style='margin-left:.8in;border-collapse:
+ collapse;border:none;mso-border-alt:solid windowtext .5pt;mso-padding-alt:
+ 0in 5.4pt 0in 5.4pt'>
+ <tr>
+  <td width=126 valign=top style='width:94.5pt;border:solid white .5pt;
+  background:black;mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Parameter</h5>
+  </td>
+  <td width=372 valign=top style='width:278.9pt;border:solid white .5pt;
+  border-left:none;mso-border-left-alt:solid white .5pt;background:black;
+  mso-shading:windowtext;mso-pattern:solid auto;padding:0in 5.4pt 0in 5.4pt'>
+  <h5>Description</h5>
+  </td>
+ </tr>
+ <tr>
+  <td width=126 valign=top style='width:94.5pt;border:solid white .5pt;
+  border-top:none;mso-border-top-alt:solid white .5pt;background:#BFBFBF;
+  mso-shading:windowtext;mso-pattern:gray-25 auto;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal align=center style='text-align:center'>restore_defaults</p>
+  </td>
+  <td width=372 valign=top style='width:278.9pt;border-top:none;border-left:
+  none;border-bottom:solid white .5pt;border-right:solid white .5pt;mso-border-top-alt:
+  solid white .5pt;mso-border-left-alt:solid white .5pt;padding:0in 5.4pt 0in 5.4pt'>
+  <p class=MsoNormal>Set to restore to factory defaults on the next reset.<span
+  style="mso-spacerun: yes">&nbsp; </span>‘0’ if no restore required, ‘1’ to
+  perform restore.</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
+
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,200 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script to set data rate
+# $Id$
+# $Copyright Broadcom Corporation$
+# modified from DataRate by Jeff Galiotto
+#
+
+package require UTF
+
+package require UTF::Test::ConnectAPSTA
+
+package require UTF::Test::controlchart
+
+package provide UTF::Test::ratetput 2.0
+
+# package provide UTF::Test::ratetput 2.0
+
+UTF::Test ratetput {AP STA args}  {
+
+    # User can specify per device defaults in config.  This is useful
+    # in cases where the auto detected ratesare known to not all
+    # work.
+    set args [concat [$AP cget -datarate] [$STA cget -datarate] $args]
+
+    UTF::Getopts {
+    {chanspec.arg "1" "Chanspec to use for Connections"}
+    {key.arg "" "Parameters for the control chart run"}
+    {email.arg "" "Email Address"}
+    {i.arg "2" "test interval in seconds"}
+    {loop.arg "1" "loops"}
+    {history.arg 30 "Performance History"}
+    {window.arg 0 "Tcp Window"}
+    {skiprx.arg "" "Skip listed AP->STA rates.  Expanded by UTF::Rateexpand."}
+    {skiptx.arg "" "Skip listed STA->AP rates.  Expanded by UTF::Rateexpand."}
+    {nodisassoc "Do not disassociate at end of test"}
+    }
+
+    
+    UTF::WrapSummary $UTF::SummaryDir "RateThroughput" "" $(email) {
+    
+    # Expand skip args into skip lists.
+    foreach {ropt rate -} [UTF::Rateexpand $(skiprx)] {
+	if {$ropt eq  "-r"} {
+	    lappend skiprxr $rate
+	} else {
+	    lappend skiprxm $rate
+	}
+    }
+    foreach {ropt rate -} [UTF::Rateexpand $(skiptx)] {
+	if {$ropt eq  "-r"} {
+	    lappend skiptxr $rate
+	} else {
+	    lappend skiptxm $rate
+	}
+    }
+
+    ConnectAPSTA $AP $STA -chanspec $(chanspec)
+
+    # Figure out what band we're using so that we know how to set rate
+    # to "auto".  Can't just use "rate" since we may not be bandlocked.
+    if {[$AP band] eq "a"} {
+	set lratecmd a_rate
+    } else {
+	set lratecmd bg_rate
+    }
+
+    set APIP [$AP ipaddr]
+
+    # Ask the STA for the rateset, since that will be the common set
+    # negotiated between AP and STA for this BSS.
+    set RATESET [$STA wl rateset]
+    set MCSSET ""
+
+    # Split out any MCS rates to be handled seperately.
+    regexp {(.*)(\nMCS SET : .*)} $RATESET - RATESET MCSSET
+    set RATESET [regexp -all -inline {[\d.]+} $RATESET]
+    set MCSSET [regexp -all -inline {[\d.]+} $MCSSET]
+
+    set k $(key)
+    
+    # Add a place holder for Legacy and MCS rates
+    lappend k "Rate"
+    
+    if {![$AP hostis Airport]} {
+	# First pass, adjust AP rates
+	foreach r $RATESET {
+	    if {[info exists skiprxr] && [lsearch $skiprxr $r] >= 0} {
+		UTF::Message INFO $AP "skipped $r"
+		continue
+	    }
+	    UTF::Try "$AP: legacy rate set to $r" {
+		$AP wl $lratecmd $r
+		catch {$STA wl rssi} rssi
+		set k [lreplace $k end end "LR$r"]
+		set code [catch {controlchart [list $AP $STA] -key $k -i $(i) -window $(window) \
+		    	-loop 1 -history 30} ret]
+		    	
+		set ret "$ret RSSI: $rssi"
+		
+		# Cleanup for next loop by returning results and pass/fail code
+                if {$code == 0} {
+                    return $ret
+                    } else {
+                        error $ret
+                    }
+		
+		# $STA ping $APIP
+	    }
+	}
+	foreach r $MCSSET {
+	    if {[info exists skiprxm] && [lsearch $skiprxm $r] >= 0} {
+		UTF::Message INFO $AP "skipped $r"
+		continue
+	    }
+	    UTF::Try "$AP: mcs rate set to $r" {
+		$AP wl nrate -m $r
+		
+		catch {$STA wl rssi} rssi
+		set k [lreplace $k end end "LR$r"]
+		set code [catch {controlchart [list $AP $STA] -key $k -i $(i) -window $(window) \
+		    	-loop 1 -history 30} ret]
+		    	
+		set ret "$ret RSSI: $rssi"
+		
+		# Cleanup for next loop by returning results and pass/fail code
+                if {$code == 0} {
+                    return $ret
+                    } else {
+                        error $ret
+                    }
+		
+		# Call ControlChart from here!
+		# All the key info will need to be built up first
+		# $STA ping $APIP
+	    }
+	}
+	$AP wl $lratecmd auto
+    }
+
+    # Second pass, adjust STA rates
+    foreach r $RATESET {
+	if {[info exists skiptxr] && [lsearch $skiptxr $r] >= 0} {
+	    UTF::Message INFO $STA "skipped $r"
+	    continue
+	}
+	UTF::Try "$STA: legacy rate set to $r" {
+	    $STA wl $lratecmd $r
+	    catch {$STA wl rssi} rssi
+		set k [lreplace $k end end "LR$r"]
+		set code [catch {controlchart [list $AP $STA] -key $k -i $(i) -window $(window) \
+		    	-loop 1 -history 30} ret]
+		    	
+		set ret "$ret RSSI: $rssi"
+		
+		# Cleanup for next loop by returning results and pass/fail code
+                if {$code == 0} {
+                    return $ret
+                    } else {
+                        error $ret
+                    }
+	}
+    }
+    foreach r $MCSSET {
+	if {[info exists skiptxm] && [lsearch $skiptxm $r] >= 0} {
+	    UTF::Message INFO $STA "skipped $r"
+	    continue
+	}
+	UTF::Try "$STA: mcs rate set to $r" {
+	    $STA wl nrate -m $r
+	    catch {$STA wl rssi} rssi
+		set k [lreplace $k end end "LR$r"]
+		set code [catch {controlchart [list $AP $STA] -key $k -i $(i) -window $(window) \
+		    	-loop 1 -history 30} ret]
+		    	
+		set ret "$ret RSSI: $rssi"
+		
+		# Cleanup for next loop by returning results and pass/fail code
+                if {$code == 0} {
+                    return $ret
+                    } else {
+                        error $ret
+                    }
+	}
+    }
+    $STA wl $lratecmd auto
+
+    # Clean up
+    if {!$(nodisassoc)} {
+	catch {$STA wl disassoc}
+    }
+    if {![$AP hostis Airport]} {
+	$AP wl $lratecmd auto
+    }
+    $STA wl $lratecmd auto
+
+}
+}

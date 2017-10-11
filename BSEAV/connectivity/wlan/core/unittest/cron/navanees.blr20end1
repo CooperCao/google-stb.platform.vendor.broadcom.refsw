@@ -1,0 +1,20 @@
+#
+# $Id$
+#
+MAILTO=Navaneethan.s@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+# Self update this crontabl if master is updated and report any errors
+45      7,11,18,19,23 * * *   /home/navanees/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+01	20	* * *	/home/navanees/unittest/cron/launch	blr20	Test/StaNightly.test -ap 4360a -sta '4355c0-dhd-579-9_30' -utfconf blr20 -email 'Navaneethan.s@broadcom.com hnd-utf-list.pdl' -title 'BLR20 StaNightly-4355c0_BRANCH_9-30-DHD-1_579' -nocustom
+
+30	20	* * *	/home/navanees/unittest/cron/launch	blr20	Test/StaNightly.test -ap 4360a -sta '4355c0-dhd-579-9_44' -utfconf blr20 -email 'Navaneethan.s@broadcom.com hnd-utf-list.pdl' -title 'BLR20 StaNightly-4355c0_BRANCH_9-44-DHD-1_579' -nocustom	   
+
+01	21	* * *	/home/navanees/unittest/cron/launch	blr20	Test/RvRNightly1.test -ap 4360a -sta '4355c0-dhd-579-9_30' -utfconf blr20 -email 'Navaneethan.s@broadcom.com hnd-utf-list.pdl' -title 'BLR20 RvRNightly-4355c0_9_30-1_579' -chan5G80 36/80 -perftime 3 -fb1 -window 2m -attnstep 1 -cycle5G80AttnRange '0-95 95-0' -attngrp ALL -cycle5G40AttnRange '0-95 95-0' -cycle5G20AttnRange '0-95 95-0' -cycle2G20AttnRange '0-95 95-0' -no2G40 
+
+30	21	* * *	/home/navanees/unittest/cron/launch	blr20	Test/RvRNightly1.test -ap 4360a -sta '4355c0-dhd-579-9_44' -utfconf blr20 -email 'Navaneethan.s@broadcom.com hnd-utf-list.pdl' -title 'BLR20 RvRNightly-4355c0_9_44-1_579' -chan5G80 36/80 -perftime 3 -fb1 -window 2m -attnstep 1 -cycle5G80AttnRange '0-95 95-0' -attngrp ALL -cycle5G40AttnRange '0-95 95-0' -cycle5G20AttnRange '0-95 95-0' -cycle2G20AttnRange '0-95 95-0' -no2G40

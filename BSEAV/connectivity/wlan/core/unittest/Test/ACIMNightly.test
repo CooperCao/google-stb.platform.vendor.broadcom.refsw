@@ -1,0 +1,2907 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# ACIM test script 
+#
+# To get online help, type: Test/ACIMNightly.test -h
+#
+
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+##################################################################
+#For legacy chips - 
+#Mode 0 - No interference and noise mitigation
+#Mode 1 - Noise detection and mitigation
+#Mode 2 - ACI mitigation forced
+#Mode 3 - ACI detection and mitigation
+#Mode 4 - Mode 3 + mode 1
+#Use Mode 4
+#
+#For ACPHY - 
+#Modes are defined by bit mask.
+#Bit 0 - Noise detection and mitigation
+#Bit 1 - ACI detection and Mitigation using W3 rssi
+#Bit 2 - ACI detection and Mitigation using W2 rssi
+#Use Mode 7
+##################################################################
+
+# Load help package before any other UTF packages.
+package require UTF::help
+
+# Script help string
+set ::acim_help "\n\nBasic usage: Test/ACIMNightly.test <options>\
+	\n\nThis script will setup your ACIM test rig by loading the desired\
+	\nbuilds, making connections between your wireless devices & running numerous\
+	\ntests. The tests use IPERF.\
+	\n\nFor the dates, TODAY will be translated to todays actual date.\
+	\nCURRENT will match todays date, 1 day ago and 2 days ago.\
+	\n\\\* will find the most recent build, regardless of age.\
+	\n2008.1 will find the most recent build in Jan 2008, no need to add \\\* wildcard.\
+	\n\nvalid options are:\
+	\n -utfconf path		Config file to use, default is ~/.utfconf.tcl"
+
+# Command line options string
+set ::acim_getopts {
+	{email.arg ""		"Email address list, format: userid1,userid2,... default is your userid"}
+	{title.arg ""		"Title description text string for use in the reports, eg: \"Linux 4322USB dongle\""}
+	{sta.arg "" 		"STA name to test"}
+	{ap.arg ""			"WLAN router name.  For simultaneous dualband routers, use a pair '2g 5g'"}
+	{trx.arg "" 		"Router trx"}
+	{tag.arg "" 		"Router release tag"}
+	{statag.arg "" 		"STA release tag"}
+	{stabin.arg "" 		"STA dongle image (rtecdc.bin firmware)"}
+	{stadhd.arg "" 		"STA dongle Linux DHD image (wl.ko high driver). Used for testing private builds"}
+	{date.arg "" 		"Image date"}
+	{apdate.arg "" 		"AP Image date"}
+	{branch.arg "auto" 	"Branch override"}
+	{noapload 			"Don't load images"}
+	{nostaload 			"Don't reload STA drivers"}
+	{nostareload 		"Don't even reload STA drivers"}
+	{norestore 			"Don't reset to defaults"}
+	{nounload 			"Don't unload driver after test"}
+	{nosetup 			"No Setup"}
+	{nocache 			"Don't update performance cache"}
+	{noping				"Don't run ping/ayt tests, default is run the ping/ayt tests"}
+	{nocollect			"Don't collect AP/STA default info, default is to collect this info"}
+	{nosetuptestbed 	"Don't run Setup Testbed hooks"}
+	{noposttesthook 	"Don't run Post Test hooks"}
+	{::logdir.arg ""		"Log directory override"}
+	{history.arg 30		"Performance history samples to keep in perfcache data"}
+	{perfint.arg 1		"Test interval in seconds for each test sample"}
+	{perfloop.arg 1		"Total performance test iterations"}
+	{perfsize.arg 5		"Number of samples stored in each entry of controlchart & perfcache file"}
+	{tcpwsize.arg 512k	"Window size for iperf tests, does not impact Mimo/EmbeddedNightly tests"}
+	{perftime.arg 20	"Total time duration, in seconds, for each performance tests"}
+	{retry.arg 3		"Number of times to try rebooting an unresponsive host"}
+	{use_apple_tool		"Use apple80211 tool instead of wl commands for setup on mac"}
+	{wlan_security.arg {open} "Enable WLAN Security. Default is open security (not aespsk2)"}
+    {dtim.arg "1"    	"AP dtim value. Default is 1 = every 100 ms"}
+    {udp_bandwidth.arg "1m" "Bandwidth setting of the UDP iperf. Default is 1 Meg"}
+	{qos_ampdu_mode.arg "1"	"Turn AMPDU on/off. Default is 1 (on)"}
+	{vsdb_mode.arg ""	"Virtual Simultaneous Daul Band Algorithm Mode. 0=Default (Beacon Position based), 1=Bandwidth Based, 2=Service Interval Based"}
+	{vsdb_bw_percentage.arg "50" "Virtual Simultaneous Daul Band Bandwidth Perventage for Bandwidth Based Algorithm Mode. Default=50% for primary channel, rest for secondary channel"}
+    {interferer_sta.arg ""	"STA to be used as the interference source, this is not the DUT STA"}
+    {interferer_ap.arg ""	"AP to be used as the interference source"}
+    {attn_step_list.arg "40 35 30 25 20 15 10 5 0"           "List of specific attenuator steps to test, in whatever order"}
+    {attn_group.arg "G3" "Attenuation group to use for test"}
+    {pm_mode.arg "0"     "PM mode for testing. Default=0"}
+    {frameburst_mode.arg "0" "Frameburst mode for testing. Default=0 off"}
+    {interferer_mode.arg "4" "Interfere mode for testing. Default=4"}
+    {sta_ap_chan.arg "6" "DUT AP channel for testing. Default=6"}
+    {interferer_ap_chans_list.arg "1 2 3 4 5 6 7 8 9 10 11" "Interfere AP channels for testing."}
+    {upstream			"Use upstream traffic. Default is downstream"}
+    {interferer_ap_nrate.arg "auto" "Interfere AP nrate for testing. Default=auto"}
+    {interferer_sta_nrate.arg "auto" "Interfere STA nrate for testing. Default=auto"}
+    {ap_nrate.arg "auto" "DUT AP nrate for testing. Default=auto"}
+    {sta_nrate.arg "auto" "DUT STA nrate for testing. Default=auto"}
+}
+
+# Setup online help info.
+UTF::setup_help $::acim_help $::acim_getopts
+
+# Keep pkg_mkIndex happy
+if {[info command __package_orig] != ""} {
+	set ::argv ""
+}
+
+# Load packages
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Test::APChanspec
+package require UTF::Test::APConfigureSecurity
+package require UTF::Test::controlchart
+package require UTF::Test::memchart
+package require UTF::MemChart
+
+namespace eval acim {}
+set ::sta_ap ""
+set ::interferer_ap ""
+set ::sta ""
+set ::interferer_sta ""
+set ::sta_tcpsize ""
+set ::interferer_tcpsize ""
+set ::iperf_install_location_linux "/projects/hnd/archives/unix/UTF/usr/local/bin"
+set ::iperf_install_location_mac   "/projects/hnd/archives/Mac/UTF/usr/bin"
+set ::iperf_new_version "2.0.5"
+set ::use_apple_tool 0
+set ::logdir ""
+set ::wlan_security ""
+set ::reboot_flag 0
+set ::error_flag 0
+set ::udp_iperf_starting_port 55005
+#set ::curr_stream_tos "VI"
+#set ::curr_iperf_tos "0x80"
+set ::curr_throughput_scale "m"
+set ::curr_udp_packet_size 	"1470" 
+set ::curr_udp_bandwidth 	"40M"
+set ::curr_stream_tos "TCP"
+set ::curr_iperf_tos "0"
+set ::wlan_tg_tcpsize ""
+set ::iperf_ids ""
+set ::curr_iperf ""
+set ::curr_iperf_tcpwin ""
+
+
+proc acim::throughput_timeplot {plot_title} {
+
+	set series ""
+	set index 0
+	
+	foreach traffic_host $::traffic_hosts_list {
+
+		if {$traffic_host == ""} {
+			break
+		}
+
+		if {[lindex $::traffic_hosts_type_list $index] == "Interfere"} {
+			# Interfere
+			set axes x1y1
+		} else {
+			# WLAN
+			set axes x1y1
+		}
+		
+		set series_title [lindex $::traffic_plot_display_list $index]
+		set series_data [lindex $::traffic_plot_data_list $index]
+		
+		lappend series "\"$series_title\" $axes $series_data"
+		
+		set index [expr $index + 1]
+	}
+
+	set series [string trim $series]
+	
+	set chart [UTF::gnuplot_lines "$plot_title" "Time HH:MM:SS" "time"\
+		"DUT/Interfere Throughput (Mbit/sec)" "" "Time Plot"\
+		"$series"]
+
+	# remove the "html:" from the beginning
+	regsub -nocase {^html:} $chart "" chart
+
+	# Add name id "DATA" for the plot
+	set chart " &nbsp;<b>DATA</b>&nbsp;${chart}"
+
+	return "$chart"
+}
+
+proc acim::control_chart {id sample_list cc_keys cc_title cc_units data_throughput_flag} {
+
+	set sample_cnt [llength $sample_list]
+
+	# Create control chart	
+	# Control chart needs more than 2 samples
+	if {$sample_cnt > 2} {
+		UTF::ControlChart CC -s $sample_cnt -key $cc_keys -units $cc_units -title $cc_title -history 30
+		
+		# Get the Mean, Min, Max
+		set cc_mmm [UTF::MeanMinMax $sample_list]
+
+		# Add it to control chart
+		set cc_result [CC addsample $cc_mmm]
+	} else {
+		UTF::MemChart CC -key $cc_keys -units $cc_units -title $cc_title -history 30
+		
+		# Add it to control chart
+		set cc_result [CC addsample $sample_list]
+	}
+
+	if {$data_throughput_flag == 1} {
+		set rc [regexp -nocase {(LOW|WIDE|ZERO)} $cc_result - code] 
+	} else {
+		set rc [regexp -nocase {(HIGH|WIDE)} $cc_result - code] 
+	}
+
+	if {$rc} {
+		UTF::Message ERROR "" "acim::control_chart Control chart value is $code"
+		append ::acim::cc_error " $code"
+	}
+	
+	# Get the control chart graphics
+	set chart [CC plotcontrolchart $cc_result]
+	
+	# Delete control chart	
+	CC destroy
+
+	# remove the "html:" from the beginning
+	regsub -nocase {^html:} $chart "" chart
+
+	# Add name id to differentiate between multiple charts
+	set chart " &nbsp;<b>$id</b>&nbsp;${chart}"
+
+	return "$chart"
+}
+
+proc acim::start_udp_traffic {endpoint1 endpoint2 endpoint2_ipaddr iperf_stream_name} {
+
+	set ids ""
+	set ::udp_iperf_starting_port
+
+	UTF::Message LOG "" "start_udp_traffic endpoint1=$endpoint1 endpoint2_ipaddr=$endpoint2_ipaddr"
+
+	# endpoint1 -> endpoint2
+
+	# start the UDP server as background task for endpoint2
+	set fd_rx [$endpoint2 rpopen $::curr_udp_server_iperf -s -u -f$::curr_throughput_scale -i $::perfint -w $::tcpwsize -l $::curr_udp_packet_size -p $::curr_udp_iperf_port]
+	UTF::Sleep .2
+	fconfigure $fd_rx -blocking 0
+	fileevent $fd_rx readable {set ::utils_reading READY}
+	set ids "$iperf_stream_name $fd_rx"
+
+	if {[regexp {BI} $::curr_stream_dir]} {
+		regexp {^(\d+)(.)} $::curr_udp_bandwidth match iperf_bandwidth scale
+		set iperf_bandwidth [expr $iperf_bandwidth / 2]
+		set iperf_bandwidth "$iperf_bandwidth$scale"
+	} else {
+		set iperf_bandwidth $::curr_udp_bandwidth
+	}
+
+	# Start iperf as background task	
+	set fd_tx [$endpoint1 rpopen $::curr_iperf -c $endpoint2_ipaddr -u -w $::tcpwsize -b $iperf_bandwidth -l $::curr_udp_packet_size -t $::curr_perftime -f$::curr_throughput_scale -i $::perfint -S $::curr_iperf_tos -p $::curr_udp_iperf_port]
+	UTF::Sleep .2
+	fconfigure $fd_tx -blocking 0
+	fileevent $fd_tx readable {set ::utils_reading READY}
+
+	UTF::Message LOG "" "start_udp_traffic ids=$ids"
+
+	incr ::curr_udp_iperf_port
+
+	return $ids
+}
+
+proc acim::start_tcp_traffic {endpoint1 endpoint2_ipaddr iperf_stream_name} {
+
+	set ids ""
+
+	UTF::Message LOG "" "start_tcp_traffic endpoint1=$endpoint1 endpoint2_ipaddr=$endpoint2_ipaddr"
+
+	# Start iperf as background task	
+	# endpoint1 -> endpoint2
+	# Chariot uses interval of 200 ms, but with iperf, min is 500 ms.
+	if {$::curr_iperf == "iperf"} {
+		# on interferer machine (XP), there is iperf running (not iperf 205)
+		set fd_tx [$endpoint1 rpopen $::curr_iperf -c $endpoint2_ipaddr -t $::curr_perftime -f$::curr_throughput_scale -i $::perfint $::curr_iperf_tcpwin]
+	} else {
+		set fd_tx [$endpoint1 rpopen $::curr_iperf -c $endpoint2_ipaddr -t $::curr_perftime -f$::curr_throughput_scale -i $::perfint $::curr_iperf_tcpwin -S $::curr_iperf_tos -p 55001]
+	}
+
+	# let background process initialize
+	UTF::Sleep .2
+
+	fconfigure $fd_tx -blocking 0
+	fileevent $fd_tx readable {set ::utils_reading READY}
+	set ids "$iperf_stream_name $fd_tx"
+
+	UTF::Message LOG "" "start_tcp_traffic ids=$ids"
+
+	return $ids
+}
+
+proc acim::start_traffic {endpoint1 endpoint2 endpoint2_ipaddr iperf_stream_name} {
+
+	if {$::curr_stream_tos == "TCP"} {
+		set ids [acim::start_tcp_traffic $endpoint1 $endpoint2_ipaddr $iperf_stream_name]
+	} else {
+		set ids [acim::start_udp_traffic $endpoint1 $endpoint2 $endpoint2_ipaddr $iperf_stream_name]	
+	}
+
+	set fd [lindex $ids end]
+	set ::iperf_pid [pid $fd]
+	UTF::Message INFO "" "acim::start_traffic 'ids=$ids' '::iperf_pid=$::iperf_pid'"	
+	#set ::catch_resp [catch "exec ps $::iperf_pid" ::catch_msg]
+	#UTF::Message INFO "" "ps $::iperf_pid catch_msg=$::catch_msg"
+
+	return $ids
+}
+
+proc acim::stop_wlan_traffic {} {
+
+	# Stop the iperf
+	UTF::Message INFO "" "Stop the iperf"
+	set ::catch_resp [catch "exec kill -9 $pid" ::catch_msg]
+	if {$::catch_resp != 0} {
+		UTF::Message ERROR "" "stop_wlan_traffic\
+			did not terminate pid=$pid: $::catch_msg"
+	}
+	set ::catch_resp [catch "exec ps $pid" ::catch_msg]
+	UTF::Message INFO "" "ps $pid catch_msg=$::catch_msg"
+}
+
+proc acim::start_tcp_iperf_server {server_name custom_iperf} {
+
+	UTF::Message INFO "" "************************Func:start_tcp_iperf_server $server_name $custom_iperf***************************"
+
+	# iperf server is already running
+	set rc 0
+	
+	if {$server_name == $::wlan_tg} {
+		# local UTF machine
+		set cmd_prefix "exec"
+	} else {
+		set cmd_prefix "$server_name rexec"
+	}
+	
+	if {$::use_apple_tool == 1} {
+	
+		# use IPV6
+		UTF::Message INFO "" "^^^^^^^^^^^^^^^^^^^^^^^^^ IPV6 ^^^^^^^^^^^^^^^^^^^^^^^^^^"
+		
+		UTF::Message INFO "" "$cmd_prefix ps -ef | grep $custom_iperf -V -s -p 55001"
+		set ::catch_resp [catch "$cmd_prefix ps -ef | grep \"$custom_iperf -V -s -p 55001\"" ::catch_msg]
+		UTF::Message INFO "" "catch_resp=$::catch_resp catch_msg=$::catch_msg"
+		UTF::Message INFO "" "-----------------------------------------------"
+
+		set tmp [split $::catch_msg "\n"]
+		set iperf_server_pid 0
+
+		foreach line $tmp {
+			if {![regexp {grep|python} $line]} {
+				UTF::Message INFO "" "--->: $line"
+				# test to see if iperf server is running
+				set iperf_server_pid 0
+				catch {
+					regexp {([A-Za-z0-9._-]+)\s+([0-9]+)\s+} $line match owner iperf_server_pid
+					UTF::Message INFO "" "Iperf server is already ruuning. pid=$iperf_server_pid owner=$owner"
+				}
+				
+				if {$iperf_server_pid > 0} {
+					# found the iperf process
+					break
+				}
+			}
+		}
+
+		if {$iperf_server_pid == 0} {
+			# Iperf server is not running. start it
+			UTF::Message INFO "" "Starting iperf server"
+			UTF::Message INFO "" "$server_name rpopen $custom_iperf -V -s -p 55001"
+			set fd_iperf_server [$server_name rpopen $custom_iperf -V -s -p 55001]
+
+			# let background process initialize
+			UTF::Sleep 1
+			
+			# iperf server is started
+			set rc 1
+		}
+		
+	} else {
+
+		# use IPV4
+		UTF::Message INFO "" "^^^^^^^^^^^^^^^^^^^^^^^^^ IPV4 ^^^^^^^^^^^^^^^^^^^^^^^^^^"
+		
+		UTF::Message INFO "" "$cmd_prefix ps -ef | grep $custom_iperf -s -p 55001"
+		set ::catch_resp [catch "$cmd_prefix ps -ef | grep \"$custom_iperf -s -p 55001\"" ::catch_msg]
+		UTF::Message INFO "" "catch_resp=$::catch_resp catch_msg=$::catch_msg"
+		UTF::Message INFO "" "-----------------------------------------------"
+
+		set tmp [split $::catch_msg "\n"]
+		set iperf_server_pid 0
+
+		foreach line $tmp {
+			if {![regexp {grep|python} $line]} {
+				UTF::Message INFO "" "--->: $line"
+				# test to see if iperf server is running
+				set iperf_server_pid 0
+				catch {
+					regexp {([A-Za-z0-9._-]+)\s+([0-9]+)\s+} $line match owner iperf_server_pid
+					UTF::Message INFO "" "Iperf server is already ruuning. pid=$iperf_server_pid owner=$owner"
+				}
+				
+				if {$iperf_server_pid > 0} {
+					# found the iperf process
+					break
+				}
+			}
+		}
+
+		if {$iperf_server_pid == 0} {
+
+			# Iperf server is not running. start it
+			UTF::Message INFO "" "Starting iperf server"
+			UTF::Message INFO "" "$server_name rpopen $custom_iperf -s -p 55001"
+			set fd_iperf_server [$server_name rpopen $custom_iperf -s -p 55001]
+
+			# let background process initialize
+			UTF::Sleep 1
+			
+			# iperf server is started
+			set rc 1
+		}
+	}
+	
+	return $rc
+}
+
+proc acim::stop_all_udp_iperf_server {} {
+
+	UTF::Message INFO "" "************************Func:stop_all_udp_iperf_server***************************"
+
+	acim::stop_udp_iperf_server $::wlan_tg
+	acim::stop_udp_iperf_server $::sta
+	acim::stop_udp_iperf_server $::interferer_sta
+	
+	# reset the UDP port #
+	set ::curr_udp_iperf_port $::udp_iperf_starting_port
+}
+
+proc acim::stop_udp_iperf_server {server_name} {
+
+	UTF::Message INFO "" "************************Func:stop_udp_iperf_server $server_name***************************"
+
+	if {$server_name == $::wlan_tg} {
+		# local UTF machine
+		#set cmd_prefix "exec"
+		# do not use exec for the local machine otherwise it cannot delete a process running as root
+		set cmd_prefix "$server_name rexec"
+	} else {
+		set cmd_prefix "$server_name rexec"
+	}
+
+	#UTF::Message INFO "" "-----------------------------------------------"
+	#UTF::Message INFO "" "$cmd_prefix ps -ef"
+	#set ::catch_resp [catch "$cmd_prefix ps -ef" ::catch_msg]
+	#UTF::Message INFO "" "-----------------------------------------------"
+
+	foreach iperf_exe "iperf205 iperf" {
+		
+		UTF::Message INFO "" "$cmd_prefix ps -ef | grep $iperf_exe -s"
+		set ::catch_resp [catch "$cmd_prefix ps -ef | grep \"$iperf_exe -s\"" ::catch_msg]
+		UTF::Message INFO "" "catch_resp=$::catch_resp catch_msg=$::catch_msg"
+		UTF::Message INFO "" "-----------------------------------------------"
+
+		set tmp [split $::catch_msg "\n"]
+		set iperf_server_pid 0
+
+		foreach line $tmp {
+			if {![regexp {grep|python} $line]} {
+
+				if {![regexp "p " $line]} {
+					continue
+				}
+
+				set kill_process_flag 0
+				for {set port_no $::udp_iperf_starting_port} {$port_no < [expr $::udp_iperf_starting_port + 5]} {incr port_no} {
+					if {[regexp "p $port_no" $line]} {
+						set kill_process_flag 1
+						UTF::Message INFO "" "--->: iperf with port $port_no is found"
+						break
+					}
+				}
+
+				if {$kill_process_flag == 1} {
+
+					UTF::Message INFO "" "--->: $line"
+					# test to see if iperf server is running
+					set iperf_server_pid 0
+					catch {
+						regexp {([A-Za-z0-9._-]+)\s+([0-9]+)\s+} $line match owner iperf_server_pid
+						UTF::Message INFO "" "Iperf server is already ruuning. pid=$iperf_server_pid owner=$owner"
+					}
+
+					if {$iperf_server_pid > 0} {
+						# found the iperf process. Kill it
+						UTF::Message INFO "" "$cmd_prefix kill -9 $iperf_server_pid"  
+						set ::catch_resp [catch "$cmd_prefix kill -9 $iperf_server_pid" ::catch_msg]
+						if {$::catch_resp != 0} {
+							UTF::Message ERROR "" "stop_udp_iperf_server\
+								did not terminate iperf_server_pid=$iperf_server_pid: $::catch_msg"
+							incr ::error_flag
+							error "Iperf did not terminate"
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+proc acim::install_iperf {machine} {
+
+	UTF::Message INFO "" "************************Func:install_iperf $machine***************************"
+
+	if {$machine == $::wlan_tg} {
+		# local UTF machine
+		# do not use "exec" because it will have problem with the correct path of "which iperf" why?...
+		# set cmd_prefix "exec"
+		set cmd_prefix "$machine rexec"
+	} else {
+		set cmd_prefix "$machine rexec"
+	}
+
+	# check the current	iperf version, if it is not correct, then proceed
+	UTF::Message INFO "" "$cmd_prefix which iperf"
+	set ::catch_resp [catch "$cmd_prefix which iperf" ::catch_msg]
+	UTF::Message INFO "" "catch_resp=$::catch_resp catch_msg=$::catch_msg"
+	UTF::Message INFO "" "$cmd_prefix iperf -v"
+	set ::catch_resp [catch "$cmd_prefix iperf -v" ::catch_msg]
+	UTF::Message INFO "" "catch_resp=$::catch_resp catch_msg=$::catch_msg"
+	UTF::Message INFO "" "-----------------------------------------------"
+
+	if {[regexp "$::iperf_ver" $::catch_msg]} {
+		# iperf is the correct version. Use that
+		UTF::Message INFO "" "Iperf is the correct version $::iperf_ver"
+		return "iperf"
+	} else {
+		# iperf is not the correct version.
+		UTF::Message INFO "" "Iperf is not the correct version $::iperf_ver"
+	}
+	
+	# iperf must be on the system. Find current iperf location and 
+	# check for existance of iperf2. If it is not there, then copy it
+	
+	set ::catch_resp [catch "$cmd_prefix which iperf" ::catch_msg]
+	if {$::catch_resp != 0} {
+		error "iperf is missing"
+	}
+
+	# string remove "/iperf" and add new iperf string
+	regsub {/iperf} $::catch_msg {} iperf_loc
+	set new_iperf [append iperf_loc "/$::iperf_exe"]
+	
+	UTF::Message INFO "" "$cmd_prefix $new_iperf -v"
+	set ::catch_resp [catch "$cmd_prefix $new_iperf -v" ::catch_msg]
+	UTF::Message INFO "" "catch_resp=$::catch_resp catch_msg=$::catch_msg"
+	UTF::Message INFO "" "-----------------------------------------------"
+
+	if {![regexp "iperf version" $::catch_msg]} {
+		UTF::Message INFO "" "$new_iperf is missing."
+		UTF::Message INFO "" "Copy $::iperf_exe to $iperf_loc"
+		
+		set host_type [$machine hostis]
+		
+		switch $host_type {
+		    MacOS {
+				set loc $::iperf_install_location_mac
+		    }
+		    default {
+				set loc $::iperf_install_location_linux
+		    }
+		}
+		
+		$machine copyto "$loc/$::iperf_exe" "$iperf_loc"
+	} else {
+		UTF::Message INFO "" "$new_iperf is already installed."
+	}
+
+	return $new_iperf
+}
+
+proc acim::general_setup {} {
+
+	UTF::Message INFO "" "************************Func:general_setup***************************"
+
+	set ::wlan_tg_host [$::wlan_tg cget -host]
+	regsub -all {::} $::wlan_tg_host "" ::wlan_tg_host
+	set ::wlan_tg_ip [$::wlan_tg ipaddr]
+
+	set ::sta_host [$::sta cget -host]
+	regsub -all {::} $::sta_host "" ::sta_host
+	set s1 [$::sta cget -sta]
+	#::sta should match [lindex $s1 0]
+	set ::sta_wlan_ifname [lindex $s1 1]
+
+	set ::interferer_host [$::interferer_sta cget -host]
+	regsub -all {::} $::interferer_host "" ::interferer_host
+	set s1 [$::interferer_sta cget -sta]
+	#::interferer_sta should match [lindex $s1 0]
+	set ::interferer_wlan_ifname [lindex $s1 1]
+
+	# Setup stream needed for control chart keys
+	# set ::branch_list XyZyX ;# test code
+	set stream [UTF::get_stream_name end]
+
+	set ::key_base "$stream APs=$::sta_ap $::interferer_ap DUTs=$::sta $::interferer_sta ACIMNightly.test $::upstream_flag Interference Mode=$::interferer_mode"
+
+	# Reset all BT devices in testrig, if any. If you dont do this,
+	# your WLAN throughput can be only 50% of what you expect.
+	UTF::reset_all_bt_devices
+}
+
+proc acim::setup_iperfs {} {
+
+	UTF::Try "Setup Iperf" {
+	
+		UTF::Message INFO "" "************************Func:setup_iperfs***************************"
+
+		#########################################
+		# General Setup
+		#########################################
+		acim::general_setup
+
+		#########################################
+		# Setup TCP Window Size
+		#########################################
+		acim::setup_tcp_window_size
+
+		UTF::Message INFO "" "Using new iperf $::iperf_exe"
+
+		#########################################
+		# see if iperf is installed
+		#########################################
+		set ::wlan_tg_iperf [acim::install_iperf $::wlan_tg]
+		UTF::Message INFO "" "::wlan_tg_iperf=$::wlan_tg_iperf"
+		set ::sta_iperf [acim::install_iperf $::sta]
+		UTF::Message INFO "" "::sta_iperf=$::sta_iperf"
+		#set ::interferer_iperf [acim::install_iperf $::interferer_sta]
+		#UTF::Message INFO "" "::interferer_iperf=$::interferer_iperf"
+
+		if {$::curr_stream_tos == "TCP"} {
+
+			#########################################
+			# Start the tcp iperf server
+			#########################################
+			acim::start_tcp_iperf_server $::wlan_tg $::wlan_tg_iperf
+			acim::start_tcp_iperf_server $::sta $::sta_iperf
+			#acim::start_tcp_iperf_server $::interferer_sta $::interferer_iperf
+		}
+
+		if {$::curr_stream_tos != "TCP"} {		
+
+			#########################################
+			# Stop all the udp iperf servers
+			#########################################
+			acim::stop_all_udp_iperf_server
+		}
+		
+		return ""
+	}
+}
+
+proc acim::setup_tcp_window_size {} {
+
+	UTF::Message INFO "" "************************Func:setup_tcp_window_size***************************"
+
+	set tmp [$::sta cget -tcpwindow]
+
+	if {$tmp != "auto"} {
+		set ::tcpwsize $tmp
+	}
+	
+	UTF::Message INFO "" "Use tcpwsize=$::tcpwsize for all machines"	
+
+	foreach item "$::wlan_tg $::stas_list" {
+
+		set type [$item hostis]
+
+		if {$type == "MacOS" || $type == "Linux" || $type == "DHD" || $type == "Panda"} {
+		
+			# tcptune will adjust the window size
+			set resp [$item tcptune $::tcpwsize]
+
+			UTF::Message INFO "" "machine=$item tcptune tcpwsize=$::tcpwsize"	
+			
+		} else {
+
+			# on Windows machines, use "-w" parameter for window size
+			
+			if {$item == $::wlan_tg} {
+				set ::wlan_tg_tcpsize "-w $::tcpwsize"
+			} elseif {$item == $::sta} {
+				set ::sta_tcpsize "-w $::tcpwsize"
+			} elseif {$item == $::interferer_sta} {
+				set ::interferer_tcpsize "-w $::tcpwsize"
+			}
+			
+			UTF::Message INFO "" "machine=$item Win tcpwsize=$::tcpwsize"	
+		}	
+	}
+}
+
+proc acim::setup_interference_mode {} {
+
+	UTF::Message INFO "" "************************Func:setup_interference_mode***************************"
+	
+	UTF::Try "Set Interference Mode=$::interferer_mode" {
+
+		set error_flag 0
+		
+		UTF::Message INFO "" "Set DUT AP Interference Mode"
+		
+		foreach AP "$::sta_ap" {
+		
+			$AP wl interference $::interferer_mode
+			UTF::Sleep .5
+			$AP wl interference_override $::interferer_mode
+			UTF::Sleep .5
+			$AP wl interference
+			set catch_resp [catch {$AP wl interference} catch_msg]
+			set interference_mode -1
+			# sample string to legecy interfernce mode search:
+			# 'Auto Wireless LAN Interference mitigation is enabled and not active, and noise reduction is enabled. (mode 4)'
+			if {[regexp {\s*mode\s*(\d+)} $catch_msg - interference_mode]} {
+				UTF::Message INFO "" "interference mode=$interference_mode"
+			}
+			if {$interference_mode == -1} {
+				# sample string to AC interfernce mode search:
+				# 'Mode = 7. Following ACI modes are enabled:'
+				if {[regexp {Mode = (\d+).*} $catch_msg - interference_mode]} {
+					UTF::Message INFO "" "interference mode=$interference_mode"
+				}
+			}
+
+			if {$interference_mode != $::interferer_mode} {
+				UTF::Message ERROR "" "***Failed. AP $AP interference mode=$interference_mode instead of $::interferer_mode"
+				set error_flag 1
+			}
+		}
+		
+		UTF::Message INFO "" "Set Interferer AP Interference Mode to 0"
+		foreach AP "$::interferer_ap" {
+		
+			$AP wl interference 0
+		}
+	
+		UTF::Message INFO "" "Set DUT STA Interference Mode"
+		foreach STA "$::sta" {
+
+			$STA wl interference $::interferer_mode
+			UTF::Sleep .5
+			$STA wl interference_override $::interferer_mode
+			UTF::Sleep .5
+			set catch_resp [catch {$STA wl interference} catch_msg]
+			set interference_mode -1
+			# sample string to legecy interfernce mode search:
+			# 'Auto Wireless LAN Interference mitigation is enabled and not active, and noise reduction is enabled. (mode 4)'
+			if {[regexp {\s*mode\s*(\d+)} $catch_msg - interference_mode]} {
+				UTF::Message INFO "" "interference mode=$interference_mode"
+			}
+			if {$interference_mode == -1} {
+				# sample string to AC interfernce mode search:
+				# 'Mode = 7. Following ACI modes are enabled:'
+				if {[regexp {Mode = (\d+).*} $catch_msg - interference_mode]} {
+					UTF::Message INFO "" "interference mode=$interference_mode"
+				}
+			}
+
+			if {$interference_mode != $::interferer_mode} {
+				UTF::Message ERROR "" "***Failed. STA $STA interference mode=$interference_mode instead of $::interferer_mode"
+				set error_flag 1
+			}
+		}
+
+		UTF::Message INFO "" "Set Interferer STA Interference Mode to 0"
+		foreach STA "$::interferer_sta" {
+
+			$STA wl interference 0
+		}
+		
+		set ::wlan_dut_ip [$::sta ipaddr]
+		set ::wlan_interferer_sta_ip [$::interferer_sta ipaddr]
+
+		if {$::upstream_flag == 1} {
+			#upstream to test the AP chip
+			set dut_wlan_pairs [list "DUT" "DUT WLAN->LAN" $::sta_host $::sta $::wlan_tg $::wlan_tg_ip $::sta "$::sta\-UP"]
+			set interferer_wlan_pairs [list "Interfere" "Interferer WLAN->LAN" $::interferer_host $::interferer_sta $::wlan_tg $::wlan_tg_ip $::interferer_sta "$::interferer_sta\-UP"]
+			UTF::Message INFO "" "Upstream traffic test"
+		} else {
+			#downstream to test the STA chip
+			set dut_wlan_pairs [list "DUT" "DUT WLAN<-LAN" $::wlan_tg_host $::wlan_tg $::sta $::wlan_dut_ip $::wlan_tg "$::wlan_tg\-DN"]
+			set interferer_wlan_pairs [list "Interfere" "Interferer WLAN<-LAN" $::wlan_tg_host $::wlan_tg $::interferer_sta $::wlan_interferer_sta_ip $::wlan_tg "$::wlan_tg\-interferer-DN"]
+			UTF::Message INFO "" "Downstream traffic test"
+		}
+		
+		set ::traffic_pairs [concat $interferer_wlan_pairs $dut_wlan_pairs]
+		
+		if {$error_flag == 0} {
+			return ""
+		} else {
+			error ""
+		}
+	}
+}
+
+proc acim::setup_routers {} {
+	# access option array
+	upvar {} {}
+	
+	UTF::Message INFO "" "************************Func:setup_routers***************************"
+	
+	set ap_index 0
+	
+	foreach {AP2G AP5G} "$(ap) $(interferer_ap)" {
+
+		incr ap_index
+
+		if {$ap_index == 1} {
+			# dut AP
+			set ap_chan $(sta_ap_chan)
+		} else {
+			# Interfere AP
+			set ap_chan [lindex $(interferer_ap_chans_list) 0]
+		}
+		
+		if {$AP2G == $AP5G} {
+			set tmp "$AP2G"
+		} else {
+			set tmp "$AP2G $AP5G"
+		}
+
+		UTF::Try "Setup AP '$tmp' Radio" {
+
+			UTF::Message LOG "" "AP2G=$AP2G" 		
+			UTF::Message LOG "" "AP5G=$AP5G"		
+
+			#---------------------------------------------------
+			#----------------    5G or 2.4G AP    --------------
+			#---------------------------------------------------
+			if {[$AP2G band $ap_chan] eq "b"} {
+				set AP $AP2G
+			} else {
+				set AP $AP5G
+			}
+			UTF::Message LOG "" "AP Channel=$ap_chan Router=$AP" 
+			
+			switch $ap_index {
+				1 {
+					# this dut AP					
+					set ::sta_ap $AP
+				}
+
+				2 {
+					# this Interfere 1 AP					
+					set ::interferer_ap $AP
+				}
+			}
+
+
+			if {$AP2G == $AP5G} {
+				UTF::Message INFO "" "AP has only 1 radio"
+				set ap_wlname "0"
+			} else {
+				UTF::Message INFO "" "AP has 2 radio"
+				# Get the correct wlN prefix for the Src AP
+				set ap_wlname [$AP wlname]
+				regsub -all {[a-zA-Z]} $ap_wlname "" ap_wlname
+			}
+
+			UTF::Message INFO "" "ap_wlname=$ap_wlname"
+
+			#####################################################
+			# Turn off all AP radios
+			#####################################################
+
+			catch {$AP nvram set wl0_radio=0}
+			catch {$AP nvram set wl1_radio=0}
+
+			#####################################################
+			# Turn on the correct AP radio
+			#####################################################
+			$AP nvram set wl$ap_wlname\_radio=1
+
+			$AP nvram commit
+			catch {$AP restart}
+			UTF::Sleep 15
+
+			$AP wl frameburst $::frameburst_mode
+
+			set ap_ver [$AP nvram get os_version]
+			set ap_hw [$AP whatami]
+
+			set msg "html: $ap_ver<br>$ap_hw"
+			regsub -all {\n} $msg " " msg
+			return "$msg"
+		}
+	}
+}
+
+proc acim::setup_stas {} {
+
+	UTF::Try "Setup STAs" {
+	
+		UTF::Message INFO "" "************************Func:setup_stas***************************"
+
+		foreach STA "$::sta $::interferer_sta" {
+
+			UTF::Try "Setup $STA" {
+			
+				$STA wl down
+				$STA wl mimo_bw_cap 1
+				$STA wl up
+				$STA wl isup
+				$STA wl msglevel +error +assoc
+				$STA services stop
+				catch {$STA wl stbc_rx 0}
+				catch {$STA wl stbc_tx 0}
+				catch {$STA wl nphy_percal 1}
+				catch {$STA wl sgi_rx 3}
+				catch {$STA wl sgi_tx -1}
+				$STA wl PM $::pm_mode
+				$STA wl roam_trigger -100 all
+				$STA wl frameburst $::frameburst_mode
+
+				set sta_ver [$STA wl ver]
+				set sta_hw [$STA whatami]
+				regsub -all { } $sta_hw "_" sta_hw ;# Rawleys spec
+				set msg "html: $sta_ver<br>$sta_hw"
+				regsub -all {\n} $msg " " msg
+				return "$msg"
+			}
+		}
+	}
+}
+
+proc acim::connect_ap_sta {ap sta} {
+
+	UTF::Message INFO "" "************************Func:connect_ap_sta $ap $sta***************************"
+
+	UTF::Try "$sta connect $ap with $::wlan_security security" {
+
+		UTF::Message INFO "" "-----------------------------------------------------------------------------------------------"
+
+		set ::catch_resp [catch "UTF::Test::ConnectAPSTA $ap $sta" ::catch_msg]
+		if {$::catch_resp != 0} {
+			# sometimes for b band, we need more time to associate. continue to see if it is associated
+
+			for {set retry_cnt 0} {$retry_cnt <= 5} {incr retry_cnt} {
+				UTF::Message INFO "" "UTF::Test::ConnectAPSTA issue '$::catch_msg' - wait more time to associate"
+				if {$retry_cnt == 2} {
+					# still not associated. Try to join again
+					catch {$sta wl disassoc}
+					UTF::Sleep 5
+					catch "UTF::Test::ConnectAPSTA $ap $sta"
+				}
+				UTF::Sleep 5
+				set ::catch_resp [catch {$sta wl bssid} ::catch_msg]
+				if {[string first "Not Associated" $::catch_msg] != -1 || [string first "00:00:00:00:00:00" $::catch_msg] != -1} {
+					continue
+				}
+
+				break
+			}
+		}
+
+		$sta wl assoc
+
+		set ::catch_resp [catch {$sta wl bssid} ::catch_msg]
+		if {[string first "Not Associated" $::catch_msg] != -1 || [string first "00:00:00:00:00:00" $::catch_msg] != -1} {
+			incr ::error_flag	
+			error "$::catch_msg"
+		}
+	}
+}
+
+proc acim::setup_connections {} {
+	connect_ap_sta $::sta_ap $::sta
+	connect_ap_sta $::interferer_ap $::interferer_sta
+}
+
+proc acim::parse_nrate {msg} {
+
+	set nrate ""
+	set nss ""
+	set legacy_rate ""
+
+	# samples:
+	# mcs index 1 stf mode 0 fixed
+	# vht mcs 9 Nss 3 Tx Exp 0 ldpc sgi auto
+
+	if {[regexp {mcs\s*index\s*(\d+)} $msg - nrate]} {
+		UTF::Message INFO "" "mcs nrate = $nrate"
+	} elseif {[regexp {legacy\s*rate\s*(\d+)} $msg - nrate]} {
+		UTF::Message INFO "" "legacy rate = $nrate"
+    	set nrate "legacy $nrate"
+    } elseif {[regexp -nocase {vht\s*mcs\s*(\d+)\s*Nss\s*(\d+)} $msg - nrate nss]} {
+    	set nrate "$nss\x$nrate"
+		UTF::Message INFO "" "vht rate = $nrate"
+	}
+	
+	# put braket around the value otherwise "0x3" will become "3"
+	set nrate "\[$nrate\]"
+	
+	return $nrate
+}
+
+proc acim::perf_hook {conn_list type} {
+
+    # Log data non-null data
+    if {$conn_list == ""} {
+        return
+    }
+    
+    UTF::Message LOG "" "\nperf_hook conn_list=$conn_list type=$type"
+
+    # Run commands for each device
+    foreach object "$conn_list" {
+        # Get command list, based on type.
+        set cmd_list [$object cget -${type}_perf_hook]
+        if {$cmd_list == ""} {
+            continue
+        }
+        
+        # fix malformed lists, add space between elements
+        regsub -all {\}\{} $cmd_list "\} \{" cmd_list ;
+        UTF::Message LOG "$object" "cmd_list=$cmd_list"
+
+        foreach cmd $cmd_list {
+            # Use standard mapping of %S to object name.
+            set cmd [string map [list %S $object] $cmd]
+
+            # Run cmd, log errors.
+            set catch_resp [catch "$cmd" catch_msg]
+            if {$catch_resp != 0} {
+                UTF::Message ERROR $object "$cmd got: $catch_msg"
+            }
+        }
+    }
+    
+    return
+}
+
+proc acim::acim_array_cleanup {} {
+
+	foreach traffic_host $::traffic_hosts_list {
+
+		if {$traffic_host == ""} {
+			break
+		}
+
+		if {[info exists ::array($traffic_host)]} {
+			unset ::array($traffic_host)
+			UTF::Message LOG "" "Delete the throughput data array $traffic_host"
+		}
+	}
+}
+
+proc acim::run_throughput_tests {} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "" "************************Func:run_throughput_tests***************************"
+
+	#####################################################
+	# For all the Interfere channels
+	#####################################################
+	foreach ::attn_level $::attn_step_list {
+		
+		set ::bad_data_flag 0
+
+		UTF::Try "Attn=$::attn_level; FB=$::frameburst_mode; DUTCh=$::sta_ap_chan WLAN->LAN; InterfererCh=$::interferer_ap_chan WLAN->LAN" {
+	
+			UTF::Message INFO "" "Attenuation=$::attn_level"
+			# Set the custom attenuator value.
+			set catch_resp [catch "$::attn_group attn $::attn_level" catch_msg]
+			if {$catch_resp != "0"} {
+				# fill out the csv file for this failed throughput attenuation			
+				set resultsfileId [open "$::logdir/$::ResultsFilename" a]
+				puts $resultsfileId "$::interferer_mode,$::sta_ap_chan,0,,,,$::interferer_mode,$::interferer_ap_chan,$::attn_level,,,,,Bad Data,"
+				close $resultsfileId
+				
+				error "attenuator ERROR: $catch_msg"
+			}
+
+			set catch_resp [catch {$::sta wl interference} catch_msg]
+			set interference_mode -1
+			# sample string to legecy interfernce mode search:
+			# 'Auto Wireless LAN Interference mitigation is enabled and not active, and noise reduction is enabled. (mode 4)'
+			if {[regexp {\s*mode\s*(\d+)} $catch_msg - interference_mode]} {
+				UTF::Message INFO "" "interference mode=$interference_mode"
+			}
+			if {$interference_mode == -1} {
+				# sample string to AC interfernce mode search:
+				# 'Mode = 7. Following ACI modes are enabled:'
+				if {[regexp {Mode = (\d+).*} $catch_msg - interference_mode]} {
+					UTF::Message INFO "" "interference mode=$interference_mode"
+				}
+			}
+
+			if {$interference_mode != $::interferer_mode} {
+				error "interference mode=$interference_mode instead of $::interferer_mode"
+			}
+			
+			#####################################################
+			##########          Set DUT NRate       #############
+			#####################################################
+			if {$::ap_nrate != "auto"} {
+				UTF::Message INFO "" "Set DUT AP NRate to $::ap_nrate"
+				$::sta wl nrate -m $::ap_nrate
+				UTF::Sleep 1
+				$::sta wl nrate
+			}
+			if {$::sta_nrate != "auto"} {
+				UTF::Message INFO "" "Set DUT STA NRate to $::sta_nrate"
+				$::sta wl nrate -m $::sta_nrate
+				UTF::Sleep 1
+				$::sta wl nrate
+			}
+			
+			#####################################################
+			##########      Set Interferer NRate    #############
+			#####################################################
+			if {$::interferer_ap_nrate != "auto"} {
+				UTF::Message INFO "" "Set Interferer AP NRate to $::interferer_ap_nrate"
+				$::interferer_ap wl nrate -m $::interferer_ap_nrate
+				UTF::Sleep 1
+				$::interferer_ap wl nrate
+			}
+			if {$::interferer_sta_nrate != "auto"} {
+				UTF::Message INFO "" "Set Interferer STA NRate to $::interferer_sta_nrate"
+				$::interferer_sta wl nrate -m $::interferer_sta_nrate
+				UTF::Sleep 1
+				$::interferer_sta wl nrate
+			}
+			
+			#####################################################
+			##########      Run pre_perf_hook       #############
+			#####################################################
+    		acim::perf_hook "$::sta $::interferer_sta" "pre"
+			UTF::Message INFO "" "$::sta_ap wl ampdu_clear_dump"
+			catch {$::sta_ap wl ampdu_clear_dump}
+
+			UTF::Message INFO "" "Traffic Pairs='$::traffic_pairs'"
+
+			set ckey "$::key_base Attn=$::attn_level FB=$::frameburst_mode DUTCh=$::sta_ap_chan dut2tg InterfererCh=$::interferer_ap_chan dut2tg"
+
+			#####################################################
+			##########        Run Throughput        #############
+			#####################################################
+			set ::catch_resp [catch {run_throughput} ::catch_msg]
+
+			UTF::Message INFO "" "catch_resp=$::catch_resp catch_msg=$::catch_msg"
+
+			if {$::error_flag > 0} {
+				set ::error_flag 0
+
+				foreach STA "$::sta $::interferer_sta" {
+					$STA wl assoc
+					$STA wl up
+				}
+
+				UTF::Sleep 10
+
+				foreach STA "$::sta $::interferer_sta" {
+					$STA wl assoc
+				}
+
+				set ::catch_resp [catch {run_throughput} ::catch_msg]
+
+				UTF::Message INFO "" "catch_resp=$::catch_resp catch_msg=$::catch_msg"
+				
+				if {$::error_flag == 0} {
+					UTF::Message INFO "" "Recovered using wl up"
+				}
+			}
+
+			if {$::ap_nrate != "auto"} {
+				UTF::Message INFO "" "Get DUT AP NRate to check for $::ap_nrate"
+				$::sta wl nrate
+			}
+			if {$::sta_nrate != "auto"} {
+				UTF::Message INFO "" "Get DUT STA NRate to check for $::sta_nrate"
+				$::sta wl nrate
+			}
+			
+			if {$::interferer_ap_nrate != "auto"} {
+				UTF::Message INFO "" "Get Interferer AP NRate to check for $::interferer_ap_nrate"
+				$::interferer_ap wl nrate
+			}
+			if {$::interferer_sta_nrate != "auto"} {
+				UTF::Message INFO "" "Get Interferer STA NRate to check for $::interferer_sta_nrate"
+				$::interferer_sta wl nrate
+			}
+
+			#####################################################
+			##########  Process Throughput Results  #############
+			#####################################################
+			if {$::error_flag == 0} {
+				acim::process_throughput_results
+			}
+
+			#####################################################
+			##########      Run post_perf_hook      #############
+			#####################################################
+    		acim::perf_hook "$::sta $::interferer_sta" "post"
+			UTF::Message INFO "" "$::sta_ap wl dump ampdu"
+			catch {$::sta_ap wl dump ampdu}
+
+			if {$::error_flag > 0} {
+				set ::error_flag 0
+
+				# fill out the csv file for this failed throughput attenuation			
+				set resultsfileId [open "$::logdir/$::ResultsFilename" a]
+				puts $resultsfileId "$::interferer_mode,$::sta_ap_chan,0,,,,$::interferer_mode,$::interferer_ap_chan,$::attn_level,,,,,Bad Data,"
+				close $resultsfileId
+				
+				error "Throughput Failed"
+			}
+			
+			#####################################################
+			## Create new ControlChart object & graphics file  ##
+			#####################################################
+			set ::acim::cc_error ""
+			set html_results_tot ""
+			set html_results_dut ""
+			set html_results_interfere ""
+
+			if {$::tot_throughputs != ""} {
+
+				set final_ckey "$ckey TotalThroughput"
+				UTF::Message INFO "" "KEY=$final_ckey"
+
+				set html_results_tot [acim::control_chart "Total" $::tot_throughputs $final_ckey "Total Throughput" "Mbits/sec" 1]
+
+				UTF::Message INFO "" "$html_results_tot"
+				# get Total Throughput vlaue
+				set result [regexp {>Total<.*">(\d+\.\d+) \[.*\], range .*} $html_results_tot match total_throughput]
+				if {$result == 0} {
+					# did not find WLAN value
+					set total_throughput 0
+					UTF::Message LOG "" "Did not find Total Throughput value"
+					set ::acim::cc_error "Did not find Total Throughput value"
+
+				}
+				UTF::Message INFO "" "total_throughput=$total_throughput"
+			}
+			if {$::tot_throughputs_dut != ""} {
+
+				set final_ckey "$ckey DUTThroughput"
+				UTF::Message INFO "" "KEY=$final_ckey"
+
+				set html_results_dut [acim::control_chart "DUT" $::tot_throughputs_dut $final_ckey "DUT Throughput" "Mbits/sec" 1]
+
+				UTF::Message INFO "" "$html_results_dut"
+				# get DUT Throughput vlaue
+				set result [regexp {>DUT<.*">(\d+\.\d+) \[.*\], range .*} $html_results_dut match dut_throughput]
+				if {$result == 0} {
+					# did not find WLAN value
+					set dut_throughput 0
+					UTF::Message LOG "" "Did not find DUT Throughput value"
+					set ::acim::cc_error "Did not find DUT Throughput value"
+
+				}
+				UTF::Message INFO "" "dut_throughput=$dut_throughput"
+			}
+			if {$::tot_throughputs_interfere != ""} {
+
+				set final_ckey "$ckey InterfereThroughput"
+				UTF::Message INFO "" "KEY=$final_ckey"
+
+				set html_results_interfere [acim::control_chart "Interfere" $::tot_throughputs_interfere $final_ckey "Interfere Throughput" "Mbits/sec" 1]
+
+				UTF::Message INFO "" "$html_results_interfere"
+				# get Interfere Throughput vlaue
+				set result [regexp {>Interfere<.*">(\d+\.\d+) \[.*\], range .*} $html_results_interfere match interferer_throughput]
+				if {$result == 0} {
+					# did not find WLAN value
+					set interferer_throughput 0
+					UTF::Message LOG "" "Did not find Interfere Throughput value"
+					set ::acim::cc_error "Did not find Interfere Throughput value"
+
+				}
+				UTF::Message INFO "" "interferer_throughput=$interferer_throughput"
+			}
+
+			# throughput time plot graph
+			set html_results_plot [acim::throughput_timeplot "FB=$::frameburst_mode; DUTCh=$::sta_ap_chan WLAN->LAN; InterfererCh=$::interferer_ap_chan WLAN->LAN"]
+
+			set html_results "$html_results_tot<br>$html_results_dut<br>$html_results_interfere<br>$html_results_plot"
+
+
+			#####################################################
+			## NRate Data                                      ##
+			#####################################################
+			foreach AP "$::sta_ap $::interferer_ap" {
+			    set {$AP_NRate} "0"
+				set catch_resp [catch {$AP wl nrate} catch_msg]
+				set nrate [acim::parse_nrate $catch_msg]
+				set {$AP_NRate} $nrate
+			    if {$AP == $::sta_ap} {			    
+			    	set nrate_sta_ap "${$AP_NRate}"
+					UTF::Message INFO "" "nrate_sta_ap=$nrate_sta_ap"
+			    } else {
+			    	set nrate_interferer_ap "${$AP_NRate}"
+					UTF::Message INFO "" "nrate_interferer_ap=$nrate_interferer_ap"
+			    }
+			}
+			
+			foreach STA "$::sta $::interferer_sta" {
+			
+			    set {$STA_NRate} "0"
+			    set catch_resp [catch {$STA wl nrate} catch_msg]
+				set nrate [acim::parse_nrate $catch_msg]
+			    set {$STA_NRate} $nrate
+			    if {$STA == $::sta} {			    
+			    	set nrate_dut_sta "${$STA_NRate}"
+					UTF::Message INFO "" "nrate_dut_sta=$nrate_dut_sta"
+			    } else {
+			    	set nrate_interferer_sta "${$STA_NRate}"
+					UTF::Message INFO "" "nrate_interferer_sta=$nrate_interferer_sta"
+			    }
+            }
+
+			if {$::bad_data_flag == 1} {
+				set str_fail "Bad Data"
+				append ::acim::cc_error " Questionable_Data"
+			} else {
+				set str_fail ""
+			}
+			
+			#####################################################
+			## Update the CSV file                             ##
+			#####################################################
+			set resultsfileId [open "$::logdir/$::ResultsFilename" a]
+			puts $resultsfileId "$::interferer_mode,$::sta_ap_chan,0,$nrate_sta_ap,$nrate_dut_sta,$dut_throughput,$::interferer_mode,$::interferer_ap_chan,$::attn_level,$nrate_interferer_ap,$nrate_interferer_sta,$interferer_throughput,$total_throughput,$str_fail,"
+			close $resultsfileId
+
+			if {$::acim::cc_error == ""} {
+				return "html: $html_results"
+			} else {
+				append html_results " &nbsp;<font color=\"red\"><b>$::acim::cc_error</b></font>"
+				error "html: $html_results"
+			}
+		}
+	}
+	
+}
+
+proc acim::run_throughput {} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "" "************************Func:run_throughput***************************"
+
+	set ::iperf_ids ""
+	set ::iperf_pairs_cnt 0
+	set ::traffic_hosts_list [list "" "" "" ""]
+	set ::traffic_hosts_type_list [list "" "" "" ""]
+	set ::traffic_plot_display_list [list "" "" "" ""]
+	set ::traffic_plot_data_list [list "" "" "" ""]
+
+	foreach {type dir_display host src dst dst_ip machine iperf_name} $::traffic_pairs {
+		
+		UTF::Message INFO "" "((((((((((((((((((((((((((((((((((((((((((((("
+		UTF::Message INFO "" "((((((((((( machine=$machine (((((((((((((((("
+
+		if {[regexp {\-interferer} $iperf_name]} {
+			UTF::Message INFO "" "Interferer $iperf_name"
+			set ::iperf_tcpwin_option $::interferer_tcpsize
+			UTF::Message INFO "" "::iperf_tcpwin_option=::interferer_tcpsize=$::interferer_tcpsize"
+			set ::curr_iperf_tcpwin $::interferer_tcpsize
+			set ::curr_iperf "iperf"
+		} else {
+			UTF::Message INFO "" "STA $iperf_name"
+			set ::iperf_tcpwin_option $::sta_tcpsize
+			UTF::Message INFO "" "::iperf_tcpwin_option=::sta_tcpsize=$::sta_tcpsize"
+			set ::curr_iperf_tcpwin $::sta_tcpsize
+			set ::curr_iperf $::wlan_tg_iperf
+		}
+
+		set ::catch_resp [catch {$src iperf -c $dst_ip -fm -i 1 -t 2 $::iperf_tcpwin_option} ::catch_msg]
+		if {$::catch_resp != 0} {
+			UTF::Message INFO "" "***Fail: catch_resp=$::catch_resp catch_msg=$::catch_msg"
+			incr ::error_flag
+		}
+		UTF::Message INFO "" ")))))))))))))))))))))))))))))))))))))))))))))"
+
+		set ::iperf_pairs_cnt [expr $::iperf_pairs_cnt + 1]
+	}
+
+	UTF::Message INFO "" "================================================================================"
+
+	set ::iperf_pairs_cnt 0
+	set ::curr_perftime 	$(perftime)
+	
+	foreach {type dir_display host src dst dst_ip machine iperf_name} $::traffic_pairs {
+
+		set ::traffic_hosts_type_list [lreplace $::traffic_hosts_type_list $::iperf_pairs_cnt $::iperf_pairs_cnt $type]
+		set ::traffic_plot_display_list [lreplace $::traffic_plot_display_list $::iperf_pairs_cnt $::iperf_pairs_cnt $dir_display]
+
+		if {[regexp {\-interferer} $iperf_name]} {
+			UTF::Message INFO "" "Interferer $iperf_name"
+			set ::iperf_tcpwin_option $::interferer_tcpsize
+			UTF::Message INFO "" "::iperf_tcpwin_option=::interferer_tcpsize=$::interferer_tcpsize"
+			set ::curr_iperf_tcpwin $::interferer_tcpsize
+			set ::curr_iperf "iperf"
+		} else {
+			UTF::Message INFO "" "STA $iperf_name"
+			set ::iperf_tcpwin_option $::sta_tcpsize
+			UTF::Message INFO "" "::iperf_tcpwin_option=::sta_tcpsize=$::sta_tcpsize"
+			set ::curr_iperf_tcpwin $::sta_tcpsize
+			set ::curr_iperf $::wlan_tg_iperf
+		}
+
+		set ::traffic_hosts_list [lreplace $::traffic_hosts_list $::iperf_pairs_cnt $::iperf_pairs_cnt $iperf_name]
+		UTF::Message INFO "" "::traffic_hosts_list=$::traffic_hosts_list"
+		set ::iperf_pairs_cnt [expr $::iperf_pairs_cnt + 1]
+		UTF::Message INFO "" "type=$type"
+		UTF::Message INFO "" "dir_display=$dir_display"
+		UTF::Message INFO "" "host=$host"
+		UTF::Message INFO "" "src=$src"
+		UTF::Message INFO "" "dst=$dst"
+		UTF::Message INFO "" "dst_ip=$dst_ip"
+		UTF::Message INFO "" "iperf_name=$iperf_name"
+		UTF::Message INFO "" "iperf_tcpwin_option=$::iperf_tcpwin_option"
+		UTF::Message INFO "" "curr_iperf_tcpwin=$::curr_iperf_tcpwin"
+		UTF::Message INFO "" "curr_iperf=$::curr_iperf"
+		UTF::Message INFO "" "-----------------------------------"
+		
+		UTF::Message INFO "" "Start the iperf"
+
+		set ::catch_resp [catch {acim::start_traffic $src $dst $dst_ip $iperf_name} ::catch_msg]
+		if {$::catch_resp != 0} {
+			UTF::Message INFO "" "***Fail: catch_resp=$::catch_resp catch_msg=$::catch_msg"
+			incr ::error_flag
+		} else {
+			set ids $::catch_msg
+			set ::iperf_ids [concat $::iperf_ids $ids]
+		}
+	}
+
+	UTF::Message INFO "" "::iperf_pairs_cnt=$::iperf_pairs_cnt"
+	
+	set ::iperf_ids [string trim $::iperf_ids]
+	UTF::Message INFO "" "iperf_ids=$::iperf_ids"
+}
+
+proc acim::process_throughput_results {} {
+
+	UTF::Message INFO "" "************************Func:process_throughput_results***************************"
+
+	# Collect data from parallel processes.
+	set resp1 ""
+	set resp2 ""
+	set timeout_sec [expr $::perftime + 20]
+	UTF::collect_rpopen_data $timeout_sec $::iperf_ids resp1 "" resp2
+		
+	set tot_throughputs ""
+	set throughput_scale ""
+
+	UTF::Message INFO "" "#################################################################"
+
+	set start_time ""
+	set last_host_name ""
+	set same_host_cnt 0
+	
+	# get samples for the control chart
+	foreach line $resp1 {
+		set throughput 0
+		set throughput_scale ""
+
+		UTF::Message INFO "" "$line"
+
+		# 15:18:32 4331-Apple-R 15:19:40 \[  6\]  4.5- 5.0 sec  2.42 MBytes  40.6 Mbits/sec
+		set rc [regexp {([0-9]+\:[0-9]+\:[0-9]+) (\S+) .*Bytes * ([-+]?[0-9]*\.?[0-9]+).*(.)bits/sec} $line match time host throughput throughput_scale]
+
+		if {$rc == 0} {continue}
+
+		#UTF::Message LOG "" "host=$host Time=$time Throughput=$throughput throughput_scale=$throughput_scale"
+
+		if {$start_time == ""} {
+
+			set start_time $time
+			set start_time_tick [clock scan $time]
+
+			# To align the data, due to throughput fluctuation
+			# skip the throughput data for the first 10% of ::perftime
+			
+			# Do the adjustment only when ::perftime is more than 15 sec
+			if {$::perftime >= 15} {
+				set skip_time [expr $::perftime * 0.1]
+				UTF::Message LOG "" "skip_time=$skip_time"
+
+				UTF::Message LOG "" "start_time_tick=$start_time_tick"
+				set start_time_tick [expr $start_time_tick + $skip_time]
+				UTF::Message LOG "" "adjusted 10% perftime start_time_tick=$start_time_tick"
+			}
+		}
+
+		if {[clock scan $time] >= $start_time_tick} {
+
+			# throughput data after the first 10% of ::perftime
+			# put the throughput value in the right bucket
+
+			if {[info exists ::array($host)]} {
+				set ::array($host) "$::array($host) $time $throughput"
+			} else {
+				set ::array($host) "$time $throughput"
+			}
+			
+			# if 3 messages from the same host is back to back then something is wrong with the traffic
+			if {$last_host_name == $host} {
+				incr same_host_cnt
+				#UTF::Message INFO "" "Same host $host data cnt = $same_host_cnt"
+				
+				if {$same_host_cnt > 6} {
+					# throughput data is bad
+					UTF::Message LOG "" "$same_host_cnt data back to back from host $host (Questionable throughput data)"
+					UTF::Message INFO "" ""					
+					set ::bad_data_flag 1
+				}
+			} else {
+				set same_host_cnt 0
+			}
+		} else {
+			UTF::Message LOG "" "Skip this data"
+		}
+		
+		set last_host_name $host
+	}
+
+	UTF::Message INFO "" "#################################################################"
+
+	# calculate the tot bi-directional throughput for DUT and Interfere
+	set ::tot_throughputs_dut ""
+	set ::tot_throughputs_interfere ""
+	set ::tot_throughputs ""
+
+	for {set cnt 0} {$cnt < [expr $::perfsize + 2]} {incr cnt} {
+
+		set new_throughput_dut ""
+		set new_throughput_interfere ""
+		set index 0
+
+		foreach traffic_host $::traffic_hosts_list {
+
+			if {$traffic_host == ""} {
+				break
+			}
+
+			if {![info exists ::array($traffic_host)]} {
+
+				# done
+				set cnt 999
+				break
+			}
+			
+			if {[llength $::array($traffic_host)] <= $cnt} {
+
+				# done
+				set cnt 999
+				break
+			}
+
+			if {[lindex $::traffic_hosts_type_list $index] == "Interfere"} {
+				# Interfere throughput
+				catch {set new_throughput_interfere [expr $new_throughput_interfere + [lindex $::array($traffic_host) [expr $cnt * 2 + 1]]]}
+				#UTF::Message INFO "" "new_throughput_interfere=$new_throughput_interfere"
+			} else {
+				# DUT throughput
+				catch {set new_throughput_dut [expr $new_throughput_dut + [lindex $::array($traffic_host) [expr $cnt * 2 + 1]]]}
+				#UTF::Message INFO "" "new_throughput_dut=$new_throughput_dut"
+			}
+
+			set index [expr $index + 1]
+		}
+
+		if {$new_throughput_dut != "" } {
+			set ::tot_throughputs_dut "$::tot_throughputs_dut $new_throughput_dut"
+		}
+		if {$new_throughput_interfere != "" } {
+			set ::tot_throughputs_interfere "$::tot_throughputs_interfere $new_throughput_interfere"
+		}
+	}
+
+	set index 0
+	set zero_time_tick [clock scan "00:00:00"]
+	
+	foreach traffic_host $::traffic_hosts_list {
+
+		if {$traffic_host == ""} {
+			break
+		}
+
+		if {![info exists ::array($traffic_host)]} {
+
+			# delete the throughput data array
+			acim_array_cleanup
+			UTF::Message LOG "" "***Fail. Throughput data array for $traffic_host is missing"
+
+			# fill out the csv file for this failed throughput attenuation			
+			set resultsfileId [open "$::logdir/$::ResultsFilename" a]
+			puts $resultsfileId "$::interferer_mode,$::sta_ap_chan,0,,,,$::interferer_mode,$::interferer_ap_chan,$::attn_level,,,,,Bad Data,"
+			close $resultsfileId
+			
+			error "Throughput is missing for $traffic_host"
+		}
+
+		UTF::Message INFO "" "expected_throughput_data_cnt = $::perfsize"
+
+		set actual_throughput_data_cnt [llength $::array($traffic_host)]
+
+		# the throughput data arry is "time1 value1 time2 value2 ..."
+		# Due to time in the structure -> devide by 2
+		set actual_throughput_data_cnt [expr $actual_throughput_data_cnt / 2]
+		UTF::Message INFO "" "actual_throughput_data_cnt for $traffic_host = $actual_throughput_data_cnt"
+
+		# RULE:
+		# the throughput data cnt must be at least the size of perfsize (NOT 70% of perfsize but %100)
+		# The 100% rule is very reasonable. For example the defaults are:
+		# perftime=10 and perfsize=5
+		# getting 5 throughput samples in 10 sec is reasonable and it is a must.
+		
+		if {$actual_throughput_data_cnt <= $::perfsize} {
+
+			UTF::Message LOG "" "***Fail. Not enough throughput data for $traffic_host"
+			UTF::Message INFO "" "::array($traffic_host)=$::array($traffic_host)"
+			# delete the throughput data array
+			acim_array_cleanup
+			
+			# fill out the csv file for this failed throughput attenuation			
+			set resultsfileId [open "$::logdir/$::ResultsFilename" a]
+			puts $resultsfileId "$::interferer_mode,$::sta_ap_chan,0,,,,$::interferer_mode,$::interferer_ap_chan,$::attn_level,,,,,Bad Data,"
+			close $resultsfileId
+			
+			error "Not enough throughput data for $traffic_host"
+		}
+
+		UTF::Message INFO "" "::array($traffic_host)=$::array($traffic_host)"
+
+		set ::traffic_plot_data_list [lreplace $::traffic_plot_data_list $index $index $::array($traffic_host)]
+		# remove the first 2 data
+#		set ::traffic_plot_data_list [lreplace $::traffic_plot_data_list $index $index [lreplace [lindex $::traffic_plot_data_list $index] 0 3]]
+		# trim to perfsize
+		set ::traffic_plot_data_list [lreplace $::traffic_plot_data_list $index $index [lreplace [lindex $::traffic_plot_data_list $index] [expr $::perfsize * 2] end]]
+
+		# zero base the timestamp of the throughputs. This is done since the throughputs values do not
+		# have sync timestamp on multiple machines
+		set base_time ""
+		set new_series ""
+		foreach {time data} [lindex $::traffic_plot_data_list $index] {
+		
+			if {$base_time == ""} {
+				set base_time $time
+				set base_tick [clock scan $time]
+			}
+			
+			set time_tick [clock scan $time]
+			set new_time_tick [expr ($time_tick - $base_tick + $zero_time_tick)]
+			set new_time [clock format $new_time_tick -format %H:%M:%S]
+			
+			set new_series "$new_series $new_time $data"
+		}
+		
+		# replace the origianl timestamps with the zero based one
+#		set ::traffic_plot_data_list [lreplace $::traffic_plot_data_list $index $index $new_series]
+		
+		set index [expr $index + 1]
+	}
+
+	# remove the first 2 throughput values since they are ramp up values
+	if {[llength $::tot_throughputs_dut] >= [expr $::perfsize + 2]} {
+#		set ::tot_throughputs_dut [lreplace $::tot_throughputs_dut 0 1]
+	}
+	if {[llength $::tot_throughputs_interfere] >= [expr $::perfsize + 2]} {
+#		set ::tot_throughputs_interfere [lreplace $::tot_throughputs_interfere 0 1]
+	}
+
+	# delete the throughput data array
+	acim_array_cleanup
+
+	UTF::Message INFO "" "::traffic_hosts_list=$::traffic_hosts_list"
+	UTF::Message INFO "" "::traffic_plot_data_list=$::traffic_plot_data_list"
+	UTF::Message LOG "" "Final DUT Throughput values: $::tot_throughputs_dut"
+	UTF::Message LOG "" "Final Interfere Throughput values: $::tot_throughputs_interfere"
+
+	# how many element?	
+	set tot_len [llength $::tot_throughputs_dut]
+	set tot1_len [llength $::tot_throughputs_interfere]
+	if {$tot1_len < $tot_len} {
+		set tot_len $tot1_len
+	}
+	
+	for {set cnt 0} {$cnt < $tot_len} {incr cnt} {
+		set tot_val [expr [lindex $::tot_throughputs_dut $cnt] + [lindex $::tot_throughputs_interfere $cnt]]
+		set ::tot_throughputs "$::tot_throughputs $tot_val"
+	}
+	
+	set ::tot_throughputs [string trim $::tot_throughputs]
+
+	UTF::Message LOG "" "Final Total Throughput values: $::tot_throughputs"
+
+	if {($::tot_throughputs_dut != "" && [llength $::tot_throughputs_dut] >= $::perfsize) || ($::tot_throughputs_interfere != "" && [llength $::tot_throughputs_interfere] >= $::perfsize)} {
+		return
+	} else {
+		error "Not enough throughput data"
+	}
+}
+
+proc acim::setup_csv_results_file {} {
+
+	# On web summary page, add hyperlink to .csv file for easy access.
+	UTF::Try "CSV Results File" {
+		set timestamp [clock format [clock seconds] -format {%Y_%m_%d_%H_%M}]
+		set ::ResultsFilename "ACIM_Data_${timestamp}.csv"
+		
+		set resultsfileId [open "$::logdir/$::ResultsFilename" a]
+		puts $resultsfileId "ACIM Adjacent Channel Test."
+
+		set ::csv_titles "DUT WL Interfere,DUT Channel,DUT Attn,DUT AP NRate,DUT STA NRate,DUT Throughput,\
+							Interferer WL Interfere,Interferer Channel,\
+							Interferer Attn,Interferer AP NRate,Interferer STA NRate,Interferer Throughput,Total Throughput"
+		puts $resultsfileId $::csv_titles
+		close $resultsfileId
+
+		return "html: <a href=\"$::ResultsFilename\">$::ResultsFilename</a>"
+	}
+}
+
+proc acim::create_summary_graphs {} {
+	acim::create_summary_graph "throughput_total" "Total Throughput"
+	acim::create_summary_graph "throughput_dut" "DUT Throughput"
+	acim::create_summary_graph "throughput_interferer" "Interferer Throughput"
+	acim::create_summary_graph "nrate_sta_ap" "DUT NRate for AP"
+	acim::create_summary_graph "nrate_dut_sta" "DUT NRate for STA"
+	acim::create_summary_graph "nrate_interferer_ap" "Interferer NRate for AP"
+	acim::create_summary_graph "nrate_interferer_sta" "Interferer NRate for STA"
+}
+
+proc acim::create_summary_graph {graph_type graph_title} {
+
+    UTF::Try "$graph_title Summary Graph" {
+
+		UTF::Message LOG "" "Graph the results:"
+
+		set test_name_chan "xaxis_chan_$graph_type"
+		acim::create_graph_xaxis_chan $test_name_chan $graph_title
+		set test_name_attn "xaxis_attn_$graph_type"
+		acim::create_graph_xaxis_attn $test_name_attn $graph_title
+    
+		set htmFile [open $::logdir/${graph_type}.htm w 0600]
+		puts $htmFile "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+		puts $htmFile "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"
+		puts $htmFile "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">"
+		puts $htmFile ""
+		puts $htmFile "<head>"
+		puts $htmFile "<title></title>"
+		puts $htmFile "</head>"
+		puts $htmFile ""
+		puts $htmFile "<img src=\"${test_name_attn}.png\" alt=\"url\" width=\"1040\" height=\"680\" border=\"0\">"
+		puts $htmFile "<img src=\"${test_name_chan}.png\" alt=\"url\" width=\"1040\" height=\"680\" border=\"0\">"
+
+		puts $htmFile "</body>"
+		puts $htmFile ""
+		puts $htmFile "</HTML>"
+		close $htmFile
+
+		# change the permission of the htm file
+		exec chmod 777 $::logdir/${graph_type}.htm
+
+		return "html:<p><a href=\"$::logdir/${graph_type}.htm\"><img src=\"${test_name_attn}.png\" alt=\"${test_name_attn}.png\" id=\"img_test_result\" width=\"700\" height=\"500\" border=\"0\"><img src=\"${test_name_chan}.png\" alt=\"${test_name_chan}.png\" id=\"img_test_result\" width=\"700\" height=\"500\" border=\"0\"></a></p>"
+	}
+}
+
+proc acim::create_graph_xaxis_chan {graph_type graph_title} {
+
+	set timestamp [clock format [clock seconds] -format "%Y-%m-%d %H:%M:%S"]
+	set test_name $graph_type
+	set chan_cnt [llength $::interferer_ap_chans_list]
+	set attn_cnt [llength $::attn_step_list]
+	set bigest_value 0
+
+	###################################################################
+	# genrate the gpf files for each attenuation level on all channels
+	###################################################################
+	for {set cnt 0} {$cnt < $attn_cnt} {incr cnt} {
+
+		set filename_ext [lindex $::attn_step_list $cnt]
+		set filename_ext [format "%02u" $filename_ext]
+		set gpf_fd [open "$::logdir/${test_name}.gp$filename_ext" w]
+
+		set csv_fd [open "$::logdir/$::ResultsFilename" r]
+		set csv_curr_line_no 0
+		set csv_process_line_no 3
+		set cnt_chan 0
+
+		# point to the correct attn results
+		set csv_process_line_no [expr $csv_process_line_no + $cnt]
+
+		while {[gets $csv_fd line]>=0} { 
+			incr csv_curr_line_no
+
+			if {$csv_curr_line_no == $csv_process_line_no} {
+				set fields [split $line ","]
+
+				#UTF::Message INFO "" "graph_type=$graph_type"
+
+				switch $graph_type {
+					xaxis_chan_throughput_total {
+						# total throughput
+						set val "[lindex $fields 12]"
+					}
+
+					xaxis_chan_throughput_dut {
+						# DUT throughput
+						set val "[lindex $fields 5]"
+					}
+
+					xaxis_chan_throughput_interferer {
+						# Interfere throughput
+						set val "[lindex $fields 11]"
+					}
+
+					xaxis_chan_nrate_sta_ap {
+						# DUT NRate for AP
+						set val "[lindex $fields 3]"
+					}
+
+					xaxis_chan_nrate_dut_sta {
+						# DUT NRate for STA
+						set val "[lindex $fields 4]"
+					}
+
+					xaxis_chan_nrate_interferer_ap {
+						# Interfere NRate AP
+						set val "[lindex $fields 9]"
+					}
+
+					xaxis_chan_nrate_interferer_sta {
+						# Interfere NRate STA
+						set val "[lindex $fields 10]"
+					}
+				}
+
+				set interferer_channel "[lindex $fields 7]"
+				#set interferer_attn "[lindex $fields 8]"
+
+				# check for bad throughput data
+				set bad_throughput_data_flag 0
+				if {[regexp {throughput_} $graph_type]} {
+					set bad_data "[lindex $fields 13]"
+					if {$bad_data == "Bad Data"} {
+						set bad_throughput_data_flag 1
+					}
+				}
+				
+				if {$val != "" && $bad_throughput_data_flag == 0} {
+				
+					if {$val > $bigest_value} {
+						set bigest_value $val
+					}
+					
+					# for nrate, convert the value to graph value
+					if {[regexp {nrate_} $graph_type]} {
+						set val [acim::graph_map_nrate $val]
+					}
+					
+					incr cnt_chan
+					puts $gpf_fd "$cnt_chan $interferer_channel $val"
+				}
+
+				# skip attn_cnt lines in the csv to go to the next channel
+				set csv_process_line_no [expr $csv_curr_line_no + $attn_cnt]
+			}
+		}
+
+		close $csv_fd
+		close $gpf_fd
+	}
+
+	set tmp [expr [expr $chan_cnt * $attn_cnt] + 2]
+	if {$csv_curr_line_no != $tmp} {
+		UTF::Message ERROR "" "***Fail. Check CSV File."
+		error "CSV file has $csv_curr_line_no lines instead of $tmp"
+	} else {
+		UTF::Message LOG "" "CSV file has $csv_curr_line_no lines"
+	}
+
+	UTF::Message LOG "" "Bigest value=$bigest_value"
+
+	if {[regexp {nrate_} $graph_type]} {
+		if {$bigest_value > 23} {
+			set graph_highest_val 54
+			set ytics "set ytics ('(1)' -12,'(2)' -11,'(5.5)' -10,'(6)' -9,'(9)' -8,'(11)' -7,'(12)' -6,'(18)' -5,'(24)' -4,'(36)' -3,'(48)' -2,'(54)' -1,'0' 0,'1' 1,'2' 2,'3' 3,'4' 4,'5' 5,'6' 6,'7' 7,'8' 8,'9' 9,'10' 10,'11' 11,'12' 12,'13' 13,'14' 14,'15' 15,'16' 16,'17' 17,'18' 18,'19' 19,'20' 20,'21' 21,'22' 22,'23' 23,'1x0' 24,'1x1' 25,'1x2' 26,'1x3' 27,'1x4' 28,'1x5' 29,'1x6' 30,'1x7' 31,'1x8' 32,'1x9' 33,'2x0' 34,'2x1' 35,'2x2' 36,'2x3' 37,'2x4' 38,'2x5' 39,'2x6' 40,'2x7' 41,'2x8' 42,'2x9' 43,'3x0' 44,'3x1' 45,'3x2' 46,'3x3' 47,'3x4' 48,'3x5' 49,'3x6' 50,'3x7' 51,'3x8' 52,'3x9' 53,'auto' 54)"
+			set yrange "set yrange \[-12:54\]"
+		} else {
+			set graph_highest_val 23
+			set ytics "set ytics ('(1)' -12,'(2)' -11,'(5.5)' -10,'(6)' -9,'(9)' -8,'(11)' -7,'(12)' -6,'(18)' -5,'(24)' -4,'(36)' -3,'(48)' -2,'(54)' -1,'0' 0,'1' 1,'2' 2,'3' 3,'4' 4,'5' 5,'6' 6,'7' 7,'8' 8,'9' 9,'10' 10,'11' 11,'12' 12,'13' 13,'14' 14,'15' 15,'16' 16,'17' 17,'18' 18,'19' 19,'20' 20,'21' 21,'22' 22,'23' 23)"
+			set yrange "set yrange \[-12:23\]"
+		}
+	} else {
+		if {$bigest_value < 50} {
+			set graph_highest_val 50
+			set inc_val 10
+		} elseif {$bigest_value < 100} {
+			set graph_highest_val 100
+			set inc_val 20
+		} else {
+			# round off throughput to the 100
+			set rounder .01
+			set nval [expr floor($bigest_value*$rounder) /$rounder]
+			set graph_highest_val [expr $nval + 100]
+			set inc_val 50
+		}
+
+		set i 0
+		set tmp ""
+		while {$i < $graph_highest_val} {
+			set i [expr $i + $inc_val]
+			set tmp "$tmp,\"$i\" $i"
+		}
+
+		set ytics "set ytics (\"0\" 0$tmp)"
+		set yrange "set yrange \[0:$graph_highest_val\]"
+	}
+	
+	UTF::Message LOG "" "ytics=$ytics"
+	UTF::Message LOG "" "yrange=$yrange"
+	
+	###################################################################
+	# genrate the gpc file
+	###################################################################
+	set gpc_fd [open "$::logdir/${test_name}.gpc" w]
+	puts $gpc_fd "set output \"$::logdir/${test_name}.png\""
+	puts $gpc_fd "set title \"ACIM mode=$::interferer_mode; DUT Channel=$::sta_ap_chan - $graph_title over Channel\""
+	puts $gpc_fd "set terminal png"
+	puts $gpc_fd "set nokey"
+	puts $gpc_fd "set xlabel \"Interference Channel\\n\\n                                                                              $timestamp\""
+	puts $gpc_fd "set ytics nomirror"
+	puts $gpc_fd "set grid"
+	puts $gpc_fd "set border"
+	puts $gpc_fd "set key out"
+
+	# 2.4 xtics ("1" 1,"2" 2,"3" 3,"4" 4,"5" 5,"6" 6,"7" 7,"8" 8,"9" 9,"10" 10,"11" 11)
+	# 5G xtics ("36" 1,"40" 2,"52" 3,"64" 4,"100" 5,"108" 6,"120" 7,"140" 8,"144" 9)
+
+	set tmp ""
+	set chan_cnt 1
+	foreach ::interferer_ap_chan $::interferer_ap_chans_list {
+		if {$chan_cnt > 1} {
+			append tmp ","
+		}
+		append tmp "\"$::interferer_ap_chan\" $chan_cnt"
+		incr chan_cnt
+	}
+
+	set xtics "set xtics ($tmp)"
+	puts $gpc_fd "$xtics"
+	UTF::Message LOG "" "xtics=$xtics"
+	
+	if {[regexp {nrate} $graph_type]} {
+		puts $gpc_fd "set ylabel \"NRate\""
+	} else {
+		puts $gpc_fd "set ylabel \"Throughput (Mbps)\""
+	}
+
+	puts $gpc_fd "$ytics"
+	puts $gpc_fd "$yrange"
+
+	# add style for each attenuation
+	set plot_str ""
+	for {set cnt 1} {$cnt <= $attn_cnt} {incr cnt} {
+		puts $gpc_fd "set style line $cnt lt $cnt lw 3 pt 7 ps 1"
+
+		if {$cnt > 1} {
+			set plot_str "$plot_str, "
+		}
+
+		set filename_ext [lindex $::attn_step_list [expr $cnt - 1]]
+		set filename_ext [format "%02u" $filename_ext]
+		set plot_str "$plot_str\"$::logdir/${test_name}.gp$filename_ext\" using 1:3 title \"  Interferer Attn $filename_ext\" with linespoints ls $cnt"
+	}
+
+	puts $gpc_fd "plot $plot_str"
+	puts $gpc_fd "quit"
+	close $gpc_fd
+
+	set rc [catch "exec /usr/bin/gnuplot $::logdir/${test_name}.gpc" result]
+}
+
+proc acim::create_graph_xaxis_attn {graph_type graph_title} {
+
+	set timestamp [clock format [clock seconds] -format "%Y-%m-%d %H:%M:%S"]
+	set test_name $graph_type
+	set tot_chan_cnt [llength $::interferer_ap_chans_list]
+	set attn_cnt [llength $::attn_step_list]
+	set bigest_value 0
+
+	###################################################################
+	# genrate the gpf files for each channel for all attenuations
+	###################################################################
+		
+	set csv_fd [open "$::logdir/$::ResultsFilename" r]
+	set csv_curr_line_no 0
+	set csv_process_line_no 3
+	set current_chan 0
+
+	UTF::Message INFO "" "graph_type=$graph_type"
+
+	while {[gets $csv_fd line]>=0} { 
+		incr csv_curr_line_no
+
+		if {$csv_curr_line_no >= $csv_process_line_no} {
+			set fields [split $line ","]
+
+			set interferer_channel "[lindex $fields 7]"
+
+			if {$interferer_channel != $current_chan} {
+
+				if {$current_chan != 0} {
+					close $gpf_fd
+				UTF::Message INFO "" "closed gpf"
+				}
+				
+				set current_chan $interferer_channel
+				set filename_ext [format "%02u" $current_chan]
+				set gpf_fd [open "$::logdir/${test_name}.gp$filename_ext" w]
+				UTF::Message INFO "" "current_chan=$current_chan opened ${test_name}.gp$filename_ext"
+			}
+
+			set interferer_attn "[lindex $fields 8]"
+
+			switch $graph_type {
+				xaxis_attn_throughput_total {
+					# total throughput
+					set val "[lindex $fields 12]"
+				}
+
+				xaxis_attn_throughput_dut {
+					# DUT throughput
+					set val "[lindex $fields 5]"
+				}
+
+				xaxis_attn_throughput_interferer {
+					# Interfere throughput
+					set val "[lindex $fields 11]"
+				}
+
+				xaxis_attn_nrate_sta_ap {
+					# DUT NRate for AP
+					set val "[lindex $fields 3]"
+				}
+
+				xaxis_attn_nrate_dut_sta {
+					# DUT NRate for STA
+					set val "[lindex $fields 4]"
+				}
+
+				xaxis_attn_nrate_interferer_ap {
+					# Interfere NRate AP
+					set val "[lindex $fields 9]"
+				}
+
+				xaxis_attn_nrate_interferer_sta {
+					# Interfere NRate STA
+					set val "[lindex $fields 10]"
+				}
+			}
+
+			# check for bad throughput data
+			set bad_throughput_data_flag 0
+			if {[regexp {throughput_} $graph_type]} {
+				set bad_data "[lindex $fields 13]"
+				if {$bad_data == "Bad Data"} {
+					set bad_throughput_data_flag 1
+				}
+			}
+
+			if {$val != "" && $bad_throughput_data_flag == 0} {
+
+				if {$val > $bigest_value} {
+					set bigest_value $val
+				}
+					
+				# for nrate, convert the value to graph value
+				if {[regexp {nrate_} $graph_type]} {
+					set val [acim::graph_map_nrate $val]
+				}
+									
+				puts $gpf_fd "$interferer_attn $val"
+			}
+		}
+	}
+
+	close $csv_fd
+	close $gpf_fd
+	UTF::Message INFO "" "end closed gpf"
+	UTF::Message INFO "" "end closed csv"
+
+	UTF::Message LOG "" "Bigest value=$bigest_value"
+
+	if {[regexp {nrate_} $graph_type]} {
+		if {$bigest_value > 23} {
+			set graph_highest_val 51
+			set ytics "set ytics (\"(1)\" -10,\"(2)\" -9,\"(6)\" -8,\"(9)\" -7,\"(12)\" -6,\"(18)\" -5,\"(24)\" -4,\"(36)\" -3,\"(48)\" -2,\"(54)\" -1,\"0\" 0,\"1\" 1,\"2\" 2,\"3\" 3,\"4\" 4,\"5\" 5,\"6\" 6,\"7\" 7,\"8\" 8,\"9\" 9,\"10\" 10,\"11\" 11,\"12\" 12,\"13\" 13,\"14\" 14,\"15\" 15,\"16\" 16,\"17\" 17,\"18\" 18,\"19\" 19,\"20\" 20,\"21\" 21,\"22\" 22,\"23\" 23,\"0x1\" 24,\"1x1\" 25,\"2x1\" 26,\"3x1\" 27,\"4x1\" 28,\"5x1\" 29,\"6x1\" 30,\"7x1\" 31,\"8x1\" 32,\"0x2\" 33,\"1x2\" 34,\"2x2\" 35,\"3x2\" 36,\"4x2\" 37,\"5x2\" 38,\"6x2\" 39,\"7x2\" 40,\"8x1\" 41,\"0x3\" 42,\"1x3\" 43,\"2x3\" 44,\"3x3\" 45,\"4x3\" 46,\"5x3\" 47,\"6x3\" 48,\"7x3\" 49,\"8x1\" 50,\"9x1\" 51)"
+			set yrange "set yrange \[-10:51\]"
+		} else {
+			set graph_highest_val 23
+			set ytics "set ytics (\"(1)\" -10,\"(2)\" -9,\"(6)\" -8,\"(9)\" -7,\"(12)\" -6,\"(18)\" -5,\"(24)\" -4,\"(36)\" -3,\"(48)\" -2,\"(54)\" -1,\"0\" 0,\"1\" 1,\"2\" 2,\"3\" 3,\"4\" 4,\"5\" 5,\"6\" 6,\"7\" 7,\"8\" 8,\"9\" 9,\"10\" 10,\"11\" 11,\"12\" 12,\"13\" 13,\"14\" 14,\"15\" 15,\"16\" 16,\"17\" 17,\"18\" 18,\"19\" 19,\"20\" 20,\"21\" 21,\"22\" 22,\"23\" 23)"
+			set yrange "set yrange \[-10:23\]"
+		}
+	} else {
+		if {$bigest_value < 50} {
+			set graph_highest_val 50
+			set inc_val 10
+		} elseif {$bigest_value < 100} {
+			set graph_highest_val 100
+			set inc_val 20
+		} else {
+			# round off throughput to the 100
+			set rounder .01
+			set nval [expr floor($bigest_value*$rounder) /$rounder]
+			set graph_highest_val [expr $nval + 100]
+			set inc_val 50
+		}
+
+		set i 0
+		set tmp ""
+		while {$i < $graph_highest_val} {
+			set i [expr $i + $inc_val]
+			set tmp "$tmp,\"$i\" $i"
+		}
+
+		set ytics "set ytics (\"0\" 0$tmp)"
+		set yrange "set yrange \[0:$graph_highest_val\]"
+	}
+	
+	UTF::Message LOG "" "ytics=$ytics"
+	UTF::Message LOG "" "yrange=$yrange"
+
+	set tmp ""
+	foreach itm $::attn_step_list {
+	
+		if {$tmp != ""} {
+			set tmp "$tmp,"
+		}
+		
+		set tmp "$tmp\"$itm\" $itm"
+	}
+
+	set xtics "set xtics ($tmp)"
+
+	UTF::Message LOG "" "xtics=$xtics"
+
+	###################################################################
+	# genrate the gpc file
+	###################################################################
+	set gpc_fd [open "$::logdir/${test_name}.gpc" w]
+	puts $gpc_fd "set output \"$::logdir/${test_name}.png\""
+	puts $gpc_fd "set title \"ACIM mode=$::interferer_mode; DUT Channel=$::sta_ap_chan - $graph_title over Attenuation\""
+	puts $gpc_fd "set terminal png"
+	puts $gpc_fd "set nokey"
+	puts $gpc_fd "set xlabel \"Attenuation\\n\\n                                                                              $timestamp\""
+	puts $gpc_fd "set ytics nomirror"
+	puts $gpc_fd "set grid"
+	puts $gpc_fd "set border"
+	puts $gpc_fd "set key out"
+	puts $gpc_fd "$xtics"
+	puts $gpc_fd "set xrange \[\] reverse"
+
+	if {[regexp {nrate} $graph_type]} {
+		puts $gpc_fd "set ylabel \"NRate\""
+	} else {
+		puts $gpc_fd "set ylabel \"Throughput (Mbps)\""
+	}
+
+	puts $gpc_fd "$ytics"
+	puts $gpc_fd "$yrange"
+
+	# add style for each attenuation
+	set plot_str ""
+	for {set chan_cnt 1} {$chan_cnt <= $tot_chan_cnt} {incr chan_cnt} {
+		puts $gpc_fd "set style line $chan_cnt lt $chan_cnt lw 3 pt 7 ps 1"
+
+		if {$chan_cnt > 1} {
+			set plot_str "$plot_str, "
+		}
+
+		set filename_ext [lindex $::interferer_ap_chans_list [expr $chan_cnt - 1]]
+		set filename_ext [format "%02u" $filename_ext]
+		set plot_str "$plot_str\"$::logdir/${test_name}.gp$filename_ext\" title \"  Interferer Channel $filename_ext\" with linespoints ls $chan_cnt"
+	}
+
+	puts $gpc_fd "plot $plot_str"
+	puts $gpc_fd "quit"
+	close $gpc_fd
+
+	set rc [catch "exec /usr/bin/gnuplot $::logdir/${test_name}.gpc" result]
+}
+
+proc acim::graph_map_nrate {msg} {
+
+	set new_nrate ""
+	set nrate ""
+	set nss ""
+
+	# remove the brakets around the nrate value
+	regsub -all {\[} $msg "" msg
+	regsub -all {\]} $msg "" msg
+	
+	if {[regexp -nocase {(\d+)x(\d+)} $msg - nss nrate]} {
+		# vht rate
+		set new_nrate [expr [expr [expr $nss - 1] * 10] + $nrate + 24]
+		UTF::Message INFO "" "vht nrate $nss\x$nrate -> $new_nrate"
+	} elseif {[regexp {legacy (\d+)} $msg - legacy_rate]} {
+
+		switch $legacy_rate {
+
+			54 {
+				set new_nrate "-1"
+			}
+
+			48 {
+				set new_nrate "-2"
+			}
+
+			36 {
+				set new_nrate "-3"
+			}
+
+			24 {
+				set new_nrate "-4"
+			}
+
+			18 {
+				set new_nrate "-5"
+			}
+
+			12 {
+				set new_nrate "-6"
+			}
+
+			11 {
+				set new_nrate "-7"
+			}
+
+			9 {
+				set new_nrate "-8"
+			}
+
+			6 {
+				set new_nrate "-9"
+			}
+
+			5.5 {
+				set new_nrate "-10"
+			}
+
+			2 {
+				set new_nrate "-11"
+			}
+
+			1 {
+				set new_nrate "-12"
+			}
+		}
+
+		# legacy rate
+		UTF::Message INFO "" "legacy rate $legacy_rate -> $new_nrate"
+
+    } else {
+		set new_nrate $msg
+		UTF::Message INFO "" "rate $msg -> $new_nrate"
+	}
+
+	return $new_nrate
+}
+
+proc acim::run_acim_tests {} {
+	# access option array
+	upvar {} {}
+
+	UTF::Message INFO "" "************************Func:run_acim_tests***************************"
+	
+# Only for quick debuging:
+#set ::interferer_ap_chans_list "1 5 11"
+#set ::attn_step_list "40 30 20 10 0"
+#set ::interferer_ap_chans_list "1 2 3 4 5 6 7 8 9 10 11"
+#set ::attn_step_list "70 60 50 40 30 20 15"
+#set ::interferer_ap_chans_list "6"
+#set ::attn_step_list "90 80 70 60 50 40 30 20"
+#set ::interferer_ap_chans_list "36 40 52"
+#set ::attn_step_list "40 30 20"
+
+	#########################################
+	# Setup iperfs
+	#########################################
+	acim::setup_iperfs
+
+	#########################################
+	# Setup Routers
+	#########################################
+	acim::setup_routers
+
+	#########################################
+	# Setup STAs
+	#########################################
+	acim::setup_stas
+
+	#########################################
+	# Setup channel for the APs
+	#########################################
+
+	foreach {AP AP_chan} "$::sta_ap $::sta_ap_chan $::interferer_ap $::interferer_ap_chan" {
+
+		UTF::Try "Setup AP $AP Channel=$AP_chan" {
+
+			for {set retry_cnt 0} {$retry_cnt < 3} {incr retry_cnt} {
+
+				UTF::Message INFO "" "APChanspec retry count $retry_cnt"
+
+				set ap_chan_resp [catch {UTF::Test::APChanspec $AP $AP_chan} catch_msg]
+				if {$ap_chan_resp == 0} {
+					break
+				}
+			}
+		}
+	}
+
+	#########################################
+	# Setup Connections
+	#########################################
+	set ::error_flag 0
+	acim::setup_connections
+
+	if {$::error_flag > 0} {
+		error "Halting tests!"
+	}
+
+	#########################################
+	# CSV Results File
+	#########################################
+	acim::setup_csv_results_file
+
+	#########################################
+	# Setup Interference mode
+	#########################################
+	acim::setup_interference_mode
+
+	#####################################################
+	# For all the Interfere channels
+	#####################################################
+	foreach ::interferer_ap_chan $::interferer_ap_chans_list {
+
+		#############################################
+		# Setup channel for the AP of the Interfere
+		#############################################
+		UTF::Try "Setup AP Interferer to Channel $::interferer_ap_chan" {
+			UTF::Test::APChanspec $::interferer_ap $::interferer_ap_chan
+		}
+
+		#####################################################
+		##############  Run Throughput Tests  ###############
+		#####################################################
+		acim::run_throughput_tests
+	}
+
+	#####################################################
+	##############  Create Summary Graph  ###############
+	#####################################################
+	acim::create_summary_graphs
+}
+
+
+#################################################################################
+#################################################################################
+#                                  M A I N
+#################################################################################
+#################################################################################
+UTF::Test ACIMNightly {args} {
+	global env
+
+	# Basic command line option processing. Options are stored in the
+	# unnamed array $()
+	UTF::Getopts "$::acim_getopts" "$::acim_help"
+
+	# If necessary, override the config file log directory setting.
+	if {$(::logdir) != ""} {
+		set UTF::SummaryDir $(::logdir)
+		UTF::Message INFO "" "Using ::logdir: $UTF::SummaryDir"
+	}
+
+	if {$(nocache)} {
+		set ::UTF::ControlChart::readonly 1
+		set ::UTF::MemChart::readonly 1
+	}
+
+	if {$(ap) != ""} {
+		if {$(ap) eq "" || [llength $(ap)] > 2} { 
+		   error "-ap should be one band-selectable device, or a '2g 5g' pair" 
+		}
+
+		if {[llength $(ap)] == 1} {
+			set (ap) "$(ap) $(ap)"
+		}
+	
+		set ::sta_ap [lindex $(ap) 0]
+	}
+	if {$(interferer_ap) != ""} {
+		if {$(interferer_ap) eq "" || [llength $(interferer_ap)] > 2} { 
+		   error "-ap should be one band-selectable device, or a '2g 5g' pair" 
+		}
+	
+		if {[llength $(interferer_ap)] == 1} {
+			set (interferer_ap) "$(interferer_ap) $(interferer_ap)"
+		}
+	
+		set ::interferer_ap [lindex $(interferer_ap) 0]
+	}
+
+	if {$(sta) != ""} {
+		set ::sta $(sta)
+	}
+	if {$(interferer_sta) != ""} {
+		set ::interferer_sta $(interferer_sta)
+	}
+
+    set ::wlan_tg [$::sta_ap cget -lanpeer]
+
+	if {$(attn_step_list) != ""} {
+		set ::attn_step_list $(attn_step_list)
+	}
+	if {$(attn_group) != ""} {
+		set ::attn_group $(attn_group)
+	}
+	if {$(pm_mode) != ""} {
+		set ::pm_mode $(pm_mode)
+	}
+	if {$(frameburst_mode) != ""} {
+		set ::frameburst_mode $(frameburst_mode)
+	}
+	if {$(interferer_mode) != ""} {
+		set ::interferer_mode $(interferer_mode)
+	}
+	if {$(sta_ap_chan) != ""} {
+		set ::sta_ap_chan $(sta_ap_chan)
+	}
+	if {$(interferer_ap_chans_list) != ""} {
+		set ::interferer_ap_chans_list $(interferer_ap_chans_list)
+		set ::interferer_ap_chan [lindex $(interferer_ap_chans_list) 0]
+	}
+
+	if {$(upstream)} {
+		set ::upstream_flag 1
+	} else {
+		set ::upstream_flag 0
+	}
+
+	if {$(ap_nrate) != ""} {
+		set ::ap_nrate $(ap_nrate)
+	} else {
+		set ::ap_nrate "auto"
+	}
+	if {$(sta_nrate) != ""} {
+		set ::sta_nrate $(sta_nrate)
+	} else {
+		set ::sta_nrate "auto"
+	}
+	
+	if {$(interferer_ap_nrate) != ""} {
+		set ::interferer_ap_nrate $(interferer_ap_nrate)
+	} else {
+		set ::interferer_ap_nrate "auto"
+	}
+	if {$(interferer_sta_nrate) != ""} {
+		set ::interferer_sta_nrate $(interferer_sta_nrate)
+	} else {
+		set ::interferer_sta_nrate "auto"
+	}
+
+	set ::tcpwsize $(tcpwsize)
+	set ::perfint $(perfint)
+	set ::perftime $(perftime)
+
+	set ::perfloop $(perfloop)
+	set ::history $(history)
+	set ::perfsize $(perfsize)
+
+	set ::stas_list "$::sta $::interferer_sta"
+	set ::sta [lindex $(sta) 0]
+	set ::wlan_security $(wlan_security)
+
+	if {$(use_apple_tool)} {
+		set ::use_apple_tool 1
+	} else {
+		set ::use_apple_tool 0
+	}
+	
+	set ::iperf_exe "iperf205"
+	set ::iperf_ver $::iperf_new_version
+
+	# VSDB
+	set ::vsdb_mode $(vsdb_mode)	
+	set ::vsdb_bw_percentage $(vsdb_bw_percentage)
+
+	##########################################################################################
+
+	set branch [$::sta branchname]
+
+	set ::gc_host_type [$::sta hostis]
+	UTF::Message LOG "" "$::sta host_type=$::gc_host_type"
+	
+	set dhd_load_flag 0
+	if {$::gc_host_type == "DHD"} {
+		set dhd_load_flag 1
+		UTF::Message LOG "" "***DHD image load***" 		
+	}
+	
+	if {$(stadhd) ne ""} {
+		foreach {STA host_type} "$::sta $::gc_host_type" {
+			if {$host_type == "DHD"} {
+				$STA configure -dhd_image $(stadhd)
+				UTF::Message LOG "" "$STA DHD ko image from -> $(stadhd)" 		
+			}
+		}
+	}
+
+	# loading bin image (private build):
+	# e.g. for the issue:
+	#	wl.ko for 43236 is the stadhd parameter -> 'stabin=rtecdc.bin.trx' and 'stadhd=wl.ko'
+	#	wl.ko for 43224 is the stabin parameter -> 'stabin=wl.ko'
+	# if GO or GC host is DHD, then bin image is only for host DHD
+	if {$(stabin) ne ""} {
+		foreach {STA host_type} "$::sta $::gc_host_type" {
+			if {$dhd_load_flag == 1} {
+				if {$host_type == "DHD"} {
+					$STA configure -image $(stabin) -date {}
+					UTF::Message LOG "" "$STA DHD bin image from -> $(stabin)" 
+				} else {
+					UTF::Message LOG "" "$STA is not DHD, therefore do not use stabin parameter" 
+				}
+			} else {
+				$STA configure -image $(stabin) -date {}
+			}
+		}
+	}
+
+	if {$(statag) ne ""} {
+		foreach STA "$::stas_list" {
+			$STA configure -tag $(statag) -date {}
+		}
+	}
+	
+	if {$(date) ne ""} {
+		set date $(date)
+		foreach STA "$::stas_list" {
+			$STA configure -date $(date)
+		}
+		unset STA
+	} else {
+		set date [clock format [clock seconds] -format "%Y.%m.%d"]
+		# Clean up leading zeros tcl8.4/8.5 compat
+		regsub -all {\.0} $date {.} date
+	}
+
+	# Compact build list for title
+	set build [UTF::BuildTitle $::sta]
+
+	if {$(title) eq ""} {
+		if {[$STA hostis WinDHD Cygwin]} {
+			set (title) [$STA host whatami]
+		} elseif {[$STA hostis LMAC DHD]} {
+			set (title) "Linux Dongle"
+		} else {
+			set (title) [$STA hostis]
+		}
+
+		if {[regexp {(\d+sd)} $::sta_ap - c]} {
+			append (title) " with $c AP"
+		}
+	}
+
+    set test_name [file tail $::argv0]
+    set test_name [file rootname $test_name]
+
+	if {$::wlan_security == "open"} {
+		set tmp "$(title) mode=$::interferer_mode $test_name"
+	} else {
+		set tmp "$(title) mode=$::interferer_mode Security=$::wlan_security $test_name"
+	}
+		
+	set TITLE "UTF $tmp ($build)"	
+	UTF::Message INFO "" $TITLE
+
+	# $build is used in the title.  For private builds this will
+	# indicate special images.
+
+	# (branch) is used for comparison over time.  For private builds
+	# this should be specified explicitly so the tests know which
+	# branch to test.
+
+	if {$(branch) eq ""} {
+	if {[regexp {/} $build]} {
+		error "Unable to determine branch name from build.  Please specify -branch"
+	}
+	set (branch) $build
+	}
+	unset build
+
+	# Truncate build name for performance keys
+	regsub {_.*} $(branch) {} (branch)
+
+	UTF::WrapSummary $UTF::SummaryDir $TITLE "" $(email) {
+		set ::UTF::Perfcache [file join $UTF::SummaryDir perfcache]
+
+		if {!$(nosetuptestbed) && [info exists ::UTF::SetupTestBed]} {
+			UTF::Try "Setup testbed" {
+				eval $::UTF::SetupTestBed
+			}
+		}
+
+		if {!$(noapload)} {
+			foreach AP "$::sta_ap $::interferer_ap" {
+
+				# Override default tags
+				if {$(trx) ne ""} {
+					$AP configure -image $(trx) -date {}
+				} elseif {$(tag) ne ""} {
+					$AP configure -tag $(tag) -date {}
+				}
+				if {$(apdate) ne ""} {
+					$AP configure -date $(apdate)
+				}
+
+				UTF::Try "$AP: Find Router Image" {
+					UTF::CheckImage $AP $date unknown
+				}
+
+				UTF::Try "$AP: Load Image" {
+					if {[$AP hostis Router Vx BSDAP DSL Airport]} {
+						if {[catch {$AP lan ifconfig [$AP lan cget -ipaddr]}]} {
+							$AP lan ifconfig 192.168.1.50
+						}
+					}
+					set ver [$AP load]
+					set what [$AP whatami]
+					# Pull out chip info and replace whitespace to make it
+					# easier for external parsers.
+					regsub -all {\s+} [lreplace $what 0 0] {_} w
+					if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+						UTF::Message WARN $AP $ret
+					}
+					return "$what $ver"
+				}
+			}
+		}
+
+		if {!$(norestore)} {
+			foreach AP "$::sta_ap $::interferer_ap" {
+			
+				UTF::Try "$AP: Restore Defaults" {
+					if {[$AP hostis Router Vx BSDAP DSL Airport]} {
+						$AP restore_defaults
+					} else {
+						$AP services stop
+						catch {$AP wl msglevel +error +assoc}
+						if {![$AP cget -nomimo_bw_cap]} {
+						catch {$AP wl down}
+						# Enable 40 in 2.4, if available.
+						$AP wl -u mimo_bw_cap 1
+						$AP wl up
+						UTF::Sleep 1
+						}
+
+						$AP chipname
+					}
+				
+					set what [$AP whatami]
+					# Pull out chip info and replace whitespace to make it
+					# easier for external parsers.
+					regsub -all {\s+} [lreplace $what 0 0] {_} w
+					if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+						UTF::Message WARN $AP $ret
+					}
+					$AP dbrecord REF
+					set what
+				}
+			}
+		}
+
+		#---------------------------------------------------
+		#--------------    Setup AP Security   -------------
+		#---------------------------------------------------
+		if {$::wlan_security != "open"} {
+			UTF::Try "$::sta_ap security $::wlan_security" {
+				UTF::Test::APConfigureSecurity $::sta_ap -security $::wlan_security
+				set temp [$::sta_ap cget -security]
+
+				UTF::Message INFO "" "Security is $temp"
+				set temp " &nbsp;<font color=\"blue\"><b>$temp security</b></font>"
+				return "html: $temp"
+			}
+		}
+
+		# Load the STAs if required.
+		set error_cnt 0 ;# error count for script critical items
+		if {!$(nostaload)} {
+		
+			foreach STA "$::stas_list" {
+
+				if {$(branch) eq "auto"} {
+					set branch [$STA branchname]
+				} else {
+					set branch $(branch)
+				}
+
+				# Find images
+				if {!$(nostaload)} {
+					UTF::Try "$STA Find STA Image" {
+						UTF::CheckImage $STA $date unknown
+					}
+				}
+
+				if {!$(nosetup)} {
+					if {$(nostaload)} {
+						if {!$(nostareload)} {
+							UTF::Try "$STA reload" {
+								set ::catch_resp [catch {$STA reload} ::catch_msg]
+								UTF::Message INFO "" "Reload STA catch_resp=$::catch_resp catch_msg=$::catch_msg"
+								if {$::catch_resp != 0} {
+									incr error_cnt
+									set ::reboot_flag 1
+									error "$::catch_msg"
+								} else {
+									return "$::catch_msg"
+								}
+							}
+						}
+					} else {
+						UTF::Try "$STA load" {
+							set ::catch_resp [catch {$STA load} ::catch_msg]
+							UTF::Message INFO "" "Load STA catch_resp=$::catch_resp catch_msg=$::catch_msg"
+							if {$::catch_resp != 0} {
+								incr error_cnt
+								set ::reboot_flag 1
+								error "$::catch_msg"
+							} else {
+								return "$::catch_msg"
+							}
+						}
+					}
+
+					UTF::Try "$STA defaults" {
+
+						$STA services stop
+						catch {$STA wl msglevel +error +assoc}
+						if {![$STA cget -nomimo_bw_cap]} {
+							catch {$STA wl down}
+							# Enable 40 in 2.4, if available.
+							# Doesn't work for LMAC since LMAC is never "down"
+							$STA wl -u mimo_bw_cap 1
+
+							$STA wl ampdu $(qos_ampdu_mode)
+
+							# VSDB
+							if {$::vsdb_mode != ""} {
+								UTF::Message INFO "" "=========================================================================="
+								UTF::Message INFO "" "VSDB Setup"
+								set ::catch_resp [catch "$STA wl PM ; $STA wl mpc ; $STA wl mchan ; $STA wl mchan_bw ; $STA wl mchan_algo" ::catch_msg]
+								set ::catch_resp [catch "$STA wl PM 0 ; $STA wl mchan 1 ; $STA wl mchan_bw $::vsdb_bw_percentage ; $STA wl mchan_algo $::vsdb_mode" ::catch_msg]
+								if {$::catch_resp != 0} {
+									incr error_cnt
+									error "$::catch_msg"
+								}
+							}
+
+							$STA wl up
+							UTF::Sleep 1
+
+							if {$::vsdb_mode != ""} {
+								set ::catch_resp [catch "$STA wl PM ; $STA wl mpc ; $STA wl mchan ; $STA wl mchan_bw ; $STA wl mchan_algo" ::catch_msg]
+								if {$::catch_resp != 0} {
+									error "$::catch_msg"
+								}
+							}
+						}
+
+						$STA wl ver
+						set what [$STA whatami]
+						if {!$(nostaload)} {
+							# Pull out chip info and replace whitespace to
+							# make it easier for external parsers.
+							regsub -all {\s+} [lreplace $what 0 0] {_} w
+							if {[catch {$UTF::Summary header_update 1 $w} ret]} {
+								UTF::Message WARN $STA $ret
+							}
+		    				$STA dbrecord DUT
+						}
+						set what
+					}
+
+					if {!$(nostaload) && [set reclaim [$STA reclaim]]} {
+						UTF::Try "$STA: Reclaim" {
+							memchart $reclaim -key [list $branch $STA reclaim] \
+							-failonlow
+						}
+					}
+				}
+				
+				if {$::reboot_flag == 1} {
+					set ::reboot_flag 0
+					
+					UTF::Try "Issue - Reboot STA $STA" {
+						UTF::Message INFO "" "=========================================================================="
+						UTF::Message INFO "" "Reboot the STA $STA with issue before the exit, so the next test can run"
+						$STA power off
+						UTF::Sleep 5
+						$STA power on
+					}
+				}				
+			}
+		}
+
+		# If there are any STA that didnt load, halt the script.
+		# We must have all devices functioning properly in the Coex test rig.
+		if {$error_cnt > 0} {
+			error "Halting tests!"
+		}
+
+		# Collect AP/STA info in the log. What to collect for BT?
+		if {!$(nocollect)} {
+			UTF::Try "Collecting defaults, nrate, etc" {
+				 foreach STA "$::sta_ap $::interferer_ap $::stas_list" {
+					UTF::Try "$STA data" {
+						UTF::Message INFO "" "Collecting defaults, nrate, etc for: $STA"
+						foreach cmd {PM frameburst radio rssi nrate rate} {
+							set ::catch_resp [catch "$STA wl $cmd" ::catch_msg]
+						}
+						# Collect hardware version info
+						if {[catch {$STA whatami} resp]} {
+							set resp ""
+						}
+						# Push hardware version info up to main web page.
+						return $resp
+					}
+				}
+			}
+		}
+
+		set ::logdir [file dirname $UTF::Logfile]
+		
+		#####################################################
+		#################  Run ACIM Tests  ##################
+		# B Band 2.4G @20 only is used with upstream traffic
+		#####################################################
+		acim::run_acim_tests
+exit
+		#####################################################
+		#################   Leak check   ####################
+		#####################################################
+		foreach s [list $::stas_list $::sta_ap $::interferer_ap] {
+		
+			if {![catch {$s wl assert_type} at]} {
+			
+				UTF::Try "$s: Leak check" {
+					$s wl assert_type 1
+					$s wl down
+					$s wl up
+					$s wl assert_type $at
+				}
+			}
+		}
+
+		#####################################################
+		##############   Unload STA driver   ################
+		#####################################################
+		foreach STA "$::stas_list" {
+		
+			if {!$(nounload)} {
+				UTF::Try "$STA: unload driver" {
+					$STA unload
+				}
+			}
+			
+			catch {$STA deinit}
+		}
+
+		PreservedReport
+
+		if {!$(noposttesthook) && [info exists ::UTF::PostTestHook]} {
+			UTF::Try "Post Test" {
+				eval $::UTF::PostTestHook
+			}
+		}
+
+	# End of code block for UTF::WrapSummary
+	}
+}

@@ -1,0 +1,358 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+#
+# UTF test script for directly reporting performance controlcharts
+# $Id$
+#
+package require UTF
+package require UTF::ControlChart
+
+package provide UTF::Test::controlchart 2.0
+
+UTF::Test controlchart {PAIRS args} {
+
+    # NB: The min/max options are to specify the min/max expected
+    # throughput that this routine will check for. Default -1 means
+    # that the checks will not be done.
+
+    # Minimum expected throughput. If you specify an expected minimum
+    # throughput, an error will occur if the actual throughput is less
+    # than the expected minimum value. The controlchart does give
+    # errors for values that are below the historical trends. However
+    # if the historical data has been low for a while, you may not
+    # observe the performance has dropped below a minimum expected
+    # threshold. The -min option allows you to specify an absolute
+    # lower value below which errors are always flagged, regardless of
+    # the historical data.
+
+    # -min 0 is a special case, which allows zero to be an aceptable
+    # value.  zero is normally an automatic fail.
+
+    # Maximum expected throughput. If you specify an expected maximum
+    # throughput, an error will occur if the actual throughput is
+    # greater than the maximum expected value. The controlchart does
+    # identify high values based on the historical data, but these are
+    # not considered errors. One instance of high values being an
+    # error was a host sending data to itself due to duplicate MAC
+    # address & related DHCP issues. The -max option allow you to
+    # specify an absolute upper value above which errors are always
+    # flagged, regardless of the historical data.
+
+    # Make sure variables exists, so they can be used in defaults
+    if {![info exists UTF::controlchart_cmds]} {
+	set ::UTF::controlchart_cmds ""
+    }
+    if {![info exists UTF::controlchart_iperf]} {
+	set ::UTF::controlchart_iperf ""
+    }
+
+    # Run the option list through subst to pick up external defaults
+    UTF::Getopts [subst {
+	{s.arg "5" "sample size"}
+	{i.arg "2" "test interval in seconds"}
+	{b.arg "0" "UDP bandwidth"}
+	{l.arg "" "iperf write length"}
+	{kpps "Report kpps instead of throughput"}
+	{ylabel.arg "" "ylabel"}
+	{title.arg "Throughput" "title"}
+	{N.arg "0" "Use TCP_NODELAY (disable the Nagle algorithm)"}
+	{loop.arg "1" "loops"}
+	{key.arg "" "Calibration key"}
+	{oldkey.arg "" "Previous key, used for migration"}
+        {max.arg -1 "Expected maximum througput"}
+        {min.arg -1 "Expected minimum througput"}
+	{png.arg 1 "Plot png files"}
+	{perfcache.arg "" "Performance Cache"}
+	{pingmax.arg "" "Max number of pings to verify connectivity"}
+	{history.arg 30 "Performance History"}
+	{window.arg 0 "Tcp Window"}
+	{nopretest "Skip short pre-test run"}
+	{nolanx "No LAN expansion - use only primary endpoint"}
+	{failonhigh "Include HIGH in the failure criteria"}
+	{failcriteria.arg "LOW WIDE ZERO" "Falure criteria list"}
+	{cmds.arg [list $UTF::controlchart_cmds] \
+	     "list of additional logging commands to run inside main test loop.  %S will be replaced by the STA object, eg -cmds \[list {%S wl rssi}].  The default is taken from \$UTF::controlchart_cmds"}
+	{iperf.arg [list $UTF::controlchart_iperf] \
+	     "more arguments to pass to iperf"}
+	{stats.arg "" "Array for returning stats"}
+	{callback.arg "" "Multiperf Callback"}
+	{comp.arg "" "Variable to return component results"}
+    }]
+
+
+    if {[set bpos [lsearch $(iperf) -b]] != -1} {
+	# Backwards compat - extract -b from -iperf args
+	set apos [expr {$bpos +1}]
+	set (b) [lindex $(iperf) $apos]
+	set (iperf) [lreplace $(iperf) $bpos $apos]
+    }
+
+    # If caller provided storage for -stats, use it.
+    if {$(stats) ne ""} {
+	# Direct ties for sample and mean data
+	upvar $(stats)(samples) samples
+	upvar $(stats)(mmm) mmm
+	# Full tie to the array for CC to dump it's own stats
+	upvar $(stats) stats
+    }
+
+    # Create new ControlChart object
+    if {$(oldkey) ne ""} {
+	lappend (oldkey) $PAIRS
+    }
+    lappend (key) $PAIRS
+    UTF::ControlChart CC -s $(s) -key $(key) -oldkey $(oldkey) \
+	-perfcache $(perfcache) -history $(history) \
+	-allowzero [expr {$(min) == 0}] -ylabel $(ylabel) -title $(title)
+
+    #  If (min) is zero then it's not safe to ping.
+    set pinged [expr {$(min) == 0}]
+
+    if {$(loop) > 0} {
+	# Short test of all pairs to make sure rate has
+	# settled. Results are ignored.
+	if {!$(nopretest)} {
+	    UTF::Message LOG "" "controlchart test to stabilize rate"
+	    catch {
+		set mpargs [list -w $(window) -t 1]
+		if {$(pingmax) ne ""} {
+		    lappend mpargs -pingmax $(pingmax)
+		}
+		if {$(N)} {
+		    lappend mpargs -N
+		}
+		if {$(nolanx)} {
+		    lappend mpargs -nolanx
+		}
+		UTF::Multiperf $PAIRS {*}$mpargs {*}$(iperf) -b $(b)
+	    } ret
+	    if {![regexp {ping failed} $ret]} {
+		# skip ping in main loop
+		set pinged 1
+	    }
+	}
+    }
+
+    # Fail criteria
+    if {$(failonhigh)} {
+	lappend (failcriteria) "HIGH"
+    }
+    set FAILMATCH [join $(failcriteria) |]
+
+    # Main loop to get performance samples and check them. Since this
+    # loop can run more than once, we dont want to generate a specific
+    # error message on the high level web summary page more than once.
+    # We have flags to keep track of what errors occured. The detailed
+    # log file will show an error message each and every time it
+    # occurs.
+    set error_short_samples no
+    set error_low_tput no
+    set error_high_tput no
+    set error_LWZ ""
+    for {set i 0} {$i < $(loop)} {incr i} {
+
+        if {$(loop) > 1} {
+	    if {[info exists ::UTF::panic]} {
+		UTF::Message FAIL "" "Panic detected - Aborting early"
+		break
+	    }
+	    UTF::Message LOG "" "controlchart getting sample set $i\
+            ============================================================"
+	}
+
+	# Perform optional logging commands.
+        UTF::forall STA $PAIRS cmd $(cmds) {
+	    if {[catch [string map [list %S $STA] $cmd] ret]} {
+		UTF::Message WARN $STA $ret
+	    }
+	}
+
+	# Run optional pre-test hooks
+	foreach STA [lsort -unique [concat {*}$PAIRS]] {
+	    foreach cmd [$STA cget -pre_perf_hook] {
+		if {[catch [string map [list %S $STA] $cmd] ret]} {
+		    UTF::Message WARN $STA $ret
+		}
+	    }
+	}
+
+	set mpargs [list -w $(window) -i $(i) -t [expr {$(i) * $(s)}]]
+	if {$(N)} {
+	    lappend mpargs -N
+	}
+	if {$(l) ne ""} {
+	    lappend mpargs -l $(l)
+	}
+	if {$(pingmax) ne ""} {
+	    lappend mpargs -pingmax $(pingmax)
+	}
+	if {$pinged} {
+	    lappend mpargs -noping
+	}
+	if {$(b) ne ""} {
+	    lappend mpargs -b $(b)
+	}
+	if {$(nolanx)} {
+	    lappend mpargs -nolanx
+	}
+	if {$(kpps)} {
+	    lappend mpargs -kpps
+	}
+	if {$(callback) ne ""} {
+	    lappend mpargs -callback [list uplevel $(callback)]
+	}
+	if {$(comp) ne ""} {
+	    upvar $(comp) components
+	    lappend mpargs -comp components
+	}
+	# Use try ... finally so that the post test hooks always get
+	# run even if Multiperf gave an error, since they may be
+	# needed for debugging or recovery.  Exit status/stack trace
+	# will not be changed by the finally block.
+	try {
+	    # Get raw performance data samples.
+	    set samples [UTF::Multiperf $PAIRS {*}$mpargs {*}$(iperf)]
+	} finally {
+	    # Run optional post-test hooks
+	    foreach STA [lsort -unique [concat {*}$PAIRS]] {
+		foreach cmd [$STA cget -post_perf_hook] {
+		    if {[catch [string map [list %S $STA] $cmd] ret]} {
+			UTF::Message WARN $STA $ret
+		    }
+		}
+	    }
+	}
+
+        # Check we actually got the expected number of samples.  There
+        # are some timing issues with iperf such that it might only
+        # report N-1 samples. For the time being, we will allow this
+        # behavior and not flag it as an error.  This should not
+        # invalidate the statistical data in practice. We allow the
+        # case of 1 sample, value of 0 to go into the control chart,
+        # as it will get flagged as a ZERO error.
+
+        set threshold_samples [expr $(s) - 1]
+        set samples [string trim $samples]
+        set actual_samples [llength $samples]
+        if {$actual_samples < $(s) && $actual_samples >= $threshold_samples} {
+            UTF::Message WARN "" "controlchart i=$i iperf gave only\
+                  $actual_samples samples, was expecting $(s) samples"
+        }
+        if {$actual_samples < $threshold_samples &&
+	    $actual_samples != 1 &&
+            $samples != "0"} {
+            UTF::Message ERROR "" "controlchart ERROR: did not get the\
+                expected number of samples from UTF::Multiperf,\
+                i=$i actual_samples=$actual_samples\
+                expected_samples=$(s) samples=$samples"
+            set error_short_samples yes
+
+            # Dont allow short sample data to be collected in
+            # perfcache.
+            continue
+        }
+
+        # Optional minimum throughput check. Data is collected in
+        # perfcache regardless of errors.
+        if {$(min) != -1} {
+            UTF::Message LOG "" \
+		"controlchart check throughput is minimum $(min)"
+            foreach val $samples {
+                if {$val < $(min)} {
+                    UTF::Message ERROR "" "controlchart ERROR: actual\
+                        throughput $val < expected minimum throughput $(min),\
+                        i=$i samples=$samples"
+                    set error_low_tput yes
+                    break
+                }
+            }
+        }
+
+        # Optional maximum throughput check. Data is collected in
+        # perfcache regardless of errors.
+        if {$(max) != -1} {
+            UTF::Message LOG "" \
+		"controlchart check throughput is maximum $(max)"
+            foreach val $samples {
+                if {$val > $(max)} {
+                    UTF::Message ERROR "" "controlchart ERROR: actual\
+                        throughput $val > expected maximum throughput $(max),\
+                        i=$i samples=$samples"
+                    set error_high_tput yes
+                    break
+                }
+            }
+        }
+
+	# Generate MeanMinMax data.  Store it, in case someone needs
+	# the raw data.
+	set mmm [UTF::MeanMinMax $samples]
+
+        # Add new data to the controlchart object.  Check for errors
+        # based on historical data.  Variable chart will be link to
+        # the control chart graphic.
+	set chart [CC addsample $mmm]
+	if {[regexp $FAILMATCH $chart x1]} {
+	    set error_LWZ $x1 ;# save latest error only
+	}
+
+	# After sample 0 is collected, there is no need to ping
+	# the devices.
+	set pinged 1
+    }
+
+    # Always use latest controlchart, if any, as the start of the
+    # result.
+    set result_type pass
+    if {[info exists chart]} {
+        set result $chart
+    } else {
+        set result ""
+    }
+
+    if {$(stats) ne ""} {
+	# Retrieve stats from CC object.  The return array is tied to
+	# the -stats calling argument.
+	CC stats stats
+    }
+
+    if {![string is false $(png)]} {
+	set result [CC plotcontrolchart $result]
+    }
+
+    set error_msg ""
+    if {$error_LWZ != ""} {
+        # If current result already has the appropriate error, dont
+        # add it a second time
+        if {![regexp $error_LWZ $result]} {
+            append result " $error_LWZ"
+        }
+        set result_type fail
+    }
+
+    # Add more data to the result based on the error flags.
+    if {$error_short_samples == "yes"} {
+        append result " Iperf stopped reporting data!"
+        set result_type fail
+    }
+    if {$error_low_tput == "yes"} {
+        append result " Tput < $(min) !"
+        set result_type fail
+    }
+    if {$error_high_tput == "yes"} {
+        append result " Tput > $(max) !"
+        set result_type fail
+    }
+
+    # Return results
+    set result [string trim $result]
+    if {$result_type == "pass"} {
+	UTF::Message PASS "" [UTF::StripHtml $result]
+	return $result
+    } else {
+	UTF::Message FAIL "" [UTF::StripHtml $result]
+	throw FAIL $result
+    }
+}
+

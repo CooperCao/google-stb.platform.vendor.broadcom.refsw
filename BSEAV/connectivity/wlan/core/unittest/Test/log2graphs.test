@@ -1,0 +1,1111 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Routine to post process multiple log files and create MCS rate 
+# and MPDU denisty histogram plots, timelines, etc
+# $Id$
+# $Copyright Broadcom Corporation$
+#
+
+# Keep pkg_mkIndex happy
+# puts "__package_orig=[info command __package_orig]"
+if {[info command __package_orig] != ""} {
+    set ::argv ""
+}
+
+package require UTF
+package require UTF::utils
+package provide UTF::Test::log2graphs 2.0
+
+#==================== cleanup =====================================
+# Routine that cleans up when script is done. 
+#
+# Calling parameters: url
+# Returns: error count
+#==================================================================
+proc cleanup {url} {
+
+   # Finish html table & body, flush & close all output web page handles.
+   set names [array names ::handles_array]
+   foreach index $names {
+       set handle $::handles_array($index)
+       # puts "closing $index=$handle"
+       puts $handle "</table>\n\n</body>"
+       catch "flush $handle"
+       catch "close $handle"
+   }
+
+   UTF::Message LOG "$::localhost" "$::self all done, $::errors errors,\
+       $::warnings warnings, processed $::files_cnt files, created\
+       $::graphs_cnt graphs."
+
+   # Pass html formatted url to calling routine, if any.
+   return "<a href=\"$url\">All_Graphs</a>"
+}
+
+#==================== dump_graphs =================================
+# Supervisory routine that links graphs into the appropriate 
+# web pages.
+#
+# Calling parameters: in_file, out_csv
+# Returns: OK
+#==================================================================
+proc dump_graphs {in_file out_csv} {
+
+    # Get sorted device list for this file
+    set device_list $::device_array($in_file)
+    set device_list [lsort $device_list]
+    set fn [file tail $in_file]
+    set all_graphs $::handles_array(all,graphs)
+    # puts "\n\n\ndump_graphs in_file=$in_file \nout_csv=$out_csv \ndevice_list=$device_list"
+    if {$device_list == ""} {
+        return
+    }
+
+    # Just one composite timeplot is done per log file.
+    # Call the gnuplot_lines graphing routine.
+    set out_file "$::sub_dir/${fn}_timeplot"
+    # puts "out_file=$out_file"
+    set graph [dump_timeplot_graph $out_csv $out_file $fn $device_list]
+    set graph [file tail $graph]
+    if {$graph != ""} {
+        # These graphs can be full page width, so only put one graph per table row.
+        incr ::graphs_cnt
+        foreach item $device_list {
+            # puts "item=$item device_list=$device_list"
+            if {[info exists ::handles_array($item,time_tput)]} {
+                set handle $::handles_array($item,time_tput)
+                puts $handle "   <tr><td><img src=\"$graph\"></td></tr>"
+            }
+        }
+        puts $all_graphs "   <tr><td><img src=\"$graph\"></td></tr>"
+    }
+
+    # Plot graph for each column of data for each device.
+    set column 1 ;# points before first column of data for first device
+    foreach device $device_list {
+
+        # Skip next colunm, which is name of next device
+        incr column
+
+        # Process all other fields.
+        foreach item $::fields {
+
+            # Timeplots are already done.
+            incr column
+            if {$item == "time_tput"} {
+                continue
+            }
+
+            # Get handle for current web page. Not all permutations of 
+            # device & item have data or a web page. We do however need
+            # to step through all the permutations in order to maintain
+            # the correct column count. This ensures that we plot the
+            # correct data column on the correct web page with the correct
+            # title information.
+            if {[info exists ::handles_array($device,$item)]} {
+
+                # Get handle for this specific device & field.
+                set handle $::handles_array($device,$item)
+                # puts "device=$device item=$item column=$column handle=$handle"
+
+                # Call the gnuplot_rvr_lines. graphing routine.
+                set out_file "$::sub_dir/${fn}_${device}_${item}"
+                # puts "out_file=$out_file"
+
+                # Graph style depends on item.
+                if {[regexp {mcs|mpdu_density} $item]} {
+                    set style image
+                } else {
+                    set style linespoints
+                }
+                set title "$fn $device"
+                set graph [dump_rvr_graph $out_csv $out_file $column $title $item $style]
+                set graph [file tail $graph]
+                if {$graph != ""} {
+                    # Put 2 graphs per table row.
+                    if {[expr $::graph_cnt_array($device,$item) % 2] == 0} {
+                        puts $handle "   <tr>"
+                    }
+                    puts $handle "      <td><img src=\"$graph\"></td>"
+                    puts $all_graphs "   <tr><td><img src=\"$graph\"></td></tr>"
+                    incr ::graphs_cnt
+
+                    # Track how many graphs have been linked to this
+                    # specific web page.
+                    incr ::graph_cnt_array($device,$item)
+
+                    # Put 2 graphs per table row.
+                    if {[expr $::graph_cnt_array($device,$item) % 2] == 0} {
+                       puts $handle "   </tr>"
+                    }
+                }
+            }
+        }
+    }
+
+    # This file is done.
+    return OK
+}
+
+#==================== dump_rvr_graph ==============================
+# Routine uses gnuplot_rvr_lines to plot composite graph from the
+# .CSV file.
+#
+# Calling parameters: csv_file out_file column title yaxis style
+# Returns: file name of .png created
+#==================================================================
+proc dump_rvr_graph {csv_file out_file column title yaxis style} {
+
+    # Setup list for single column to be graphed.
+    set lt 1
+    set lw 1
+    set pt 1
+    set ps 1
+    set list "$style $yaxis $column $lt $lw $pt $ps"
+    # puts "dump_rvr_graph list=$list"
+    set ::gnuplot_rvr_title ""
+    set ::gnuplot_rvr_xaxis "Count"
+
+    # Call common gnuplot_rvr_lines graph routine.
+    set graph ""
+    set catch_resp [catch "set graph \[UTF::gnuplot_rvr_lines \"$csv_file\"	\
+        \"$out_file\" \"$title\" \"-\" \"$yaxis\" \"Sample\" \"$list\"\]" catch_msg]
+    if {$catch_resp != 0} {
+        UTF::Message ERROR "$::localhost" "$::self: graph not generated: $graph csv_file=$csv_file column=$column $catch_msg"
+        incr ::errors
+        return
+    } elseif {[regexp {no_data} $graph]} {
+        # puts "\n\nNo data to plot!\n\n"
+        return
+    } else {
+        return $graph
+    }
+}
+
+#==================== dump_timeplot_graph =========================
+# Routine uses gnuplot_lines to plot time lines from the
+# .CSV file.
+#
+# Calling parameters: csv_file out_file column title yaxis style
+# Returns: file name of .png created
+#==================================================================
+proc dump_timeplot_graph {csv_file out_file title device_list} {
+
+    # Open the csv_file for reading.
+    set in [open "$csv_file" r] 
+
+    # Initialize data string each device in device_list.
+    foreach device $device_list {
+        # puts "device=$device"
+        set data($device) ""
+    }
+
+    # Get count of fields
+    set field_cnt [llength $::fields]
+    set delta [expr $field_cnt + 1];# there is an extra column for device name
+    # puts "field_cnt=$field_cnt"
+
+    # We need the time & tput pairs for each device in device_list.
+    while {![eof $in]} {
+        set temp [gets $in]
+        # Parse CSV formatted data, skip non-numeric header lines.
+        set fields [split $temp ","]
+        set str [lindex $fields 0 ]
+        if {![regexp {^[\d\.]+$} $str]} {
+            continue
+        }
+        # puts "line: $temp"
+
+        # Extract column of time & tput data for each device
+        set column [expr 2 - $field_cnt]
+        foreach device $device_list {
+            incr column $delta
+            set value [lindex $fields $column]
+            set value [string trim $value]
+            # puts "device=$device column=$column value=$value"
+
+            # Convert bits/sec to Mb/s
+            foreach {time tput} $value {
+                set tput [expr double($tput) / 1000000]
+                append data($device) " $time $tput"
+            }
+        }
+    }
+
+    # Add other info needed by gnuplot_lines.
+    set max_len 0 ;# needed for totals series
+    set series ""
+    set valid_series "";# needed for totals series
+    foreach device $device_list {
+        set str $data($device)
+        set str [string trim $str]
+        set len [llength $str]
+        # puts "\n\n$device len=$len $csv_file\n\n"
+        if {$len > 0} {
+            lappend series "$device x1y1 $str"
+            lappend valid_series $device
+            if {$len > $max_len} {
+                set max_len $len
+            }
+        }
+    }
+
+    # When there are more than 1 series, create an overall total series.
+    set valid_series [string trim $valid_series]
+    if {[llength $valid_series] > 1} {
+        set mismatch ""
+        set total ""
+        for {set i 0} {$i < $max_len} {incr i 2} {
+            set time ""
+            set tput_total 0
+            set j [expr $i + 1]
+            # puts " "
+            foreach device $valid_series {
+                set str $data($device)
+                set str [string trim $str]
+                set sample_time [lindex $str $i]
+                set sample_time [string trim $sample_time]
+                set sample_tput [lindex $str $j]
+                set sample_tput [string trim $sample_tput]
+                # puts "i=$i $device sample_time=$sample_time j=$j sample_tput=$sample_tput"
+                if {$sample_time == "" || $sample_tput == ""} {
+                    # Collect names of devices that are missing samples.
+                    append mismatch " $device $i"
+                    continue
+                }
+                set tput_total [expr $tput_total + $sample_tput]
+                if {$time == ""} {
+                    set time $sample_time
+                }
+            }
+            append total " $time $tput_total"
+        }
+        if {$mismatch != ""} {
+            UTF::Message WARN "$::localhost" "dump_timeplot_graph $csv_file total series mismatch: $mismatch"
+            incr ::warnings
+        }
+        lappend series "Total x1y1 $total"
+    }
+
+    # Did we find any data?
+    # puts "\n\ncsv_file=$csv_file \nseries=$series\n\n"
+    if {$valid_series == ""} {
+        return
+    }
+
+    # Call gnuplot_lines. Ignore html string with thumbnail data that
+    # is returned. We want just the .png pathname.
+    catch "unset ::gnuplot_lines_png"
+    set catch_resp [catch "UTF::gnuplot_lines \"$title\" Time time\
+        \"Throughput Mb/s\" {} - \"$series\"" catch_msg]
+    # puts "catch_resp=$catch_resp catch_msg=$catch_msg"
+    if {$catch_resp != 0} {
+        UTF::Message ERROR "$::localhost" "$::self: graph not generated: csv_file=$csv_file $catch_msg"
+        incr ::errors
+        return
+    }
+
+    # Rename & move the graph to the ::sub_dir.
+    if {[info exists ::gnuplot_lines_png]} {
+        set graph $::gnuplot_lines_png
+        # puts "graph=$graph"
+        set catch_resp [catch "file copy -force \"$graph\" \"$::sub_dir\"" catch_msg]
+        # puts "catch_resp=$catch_resp catch_msg=$catch_msg"
+        if {$catch_resp != 0} {
+            UTF::Message ERROR "$::localhost" "$::self: could not copy: $graph to $::sub_dir $catch_msg"
+            incr ::errors
+            return
+        }
+        set fn [file tail $graph]
+        set catch_resp [catch "file rename -force \"$::sub_dir/$fn\" \"$out_file.png\"" catch_msg]
+        # puts "catch_resp=$catch_resp catch_msg=$catch_msg"
+        if {$catch_resp != 0} {
+            UTF::Message ERROR "$::localhost" "$::self: could not rename: $::sub_dir/$fn $catch_msg"
+            incr ::errors
+            return
+        }
+        catch "file delete \"$graph\""
+        regsub {\.png} $graph "_sm.png" temp
+        # puts "temp=$temp"
+        catch "file delete \"$temp\""
+        return "$out_file.png"
+
+    } else {
+       UTF::Message ERROR "$::localhost" "$::self: variable ::gnuplot_lines_pnggraph not found: csv_file=$csv_file"
+        incr ::errors
+        return
+    }
+}
+
+#==================== dump_stats_array ============================
+# Routine that dumps the stats_array data on the current .CSV file.
+# When data is found, sets entry in ::found_data_array.
+#
+# Calling parameters: file
+# Returns: OK
+#==================================================================
+proc dump_stats_array {file} {
+
+    # Define list of fields to output for each host.
+    set ::fields "time_tput rssi rx_mcs tx_mcs mpdu_density rx_mcs_sgi tx_mcs_sgi malloc_fail\
+        rate nrate rxmpduperampdu txmpduperampdu antswitch tcpwindow"
+
+    # Get sorted device list for this file
+    set device_list $::device_array($file)
+    set device_list [lsort $device_list]
+
+    # Some log files will have a single mcs rate value for a router
+    # or sniffer, and nothing else useful. When we see the sample_cnt
+    # still at -1, we ignore this log.
+    if {$::sample_cnt == "-1"} {
+        set device_list ""
+        set ::device_array($file) ""
+    }
+
+    # Add header line 
+    puts $::out "Data from: $file device_list: $device_list"
+    set header "Sample, Time,"
+    set ::fields [string trim $::fields]
+    regsub -all " " $::fields ", " temp ;# comma seperate list
+    append temp "," ;# trailing comma
+    foreach host $device_list {
+        append header " $host, $temp"
+    }
+    puts $::out "$header"
+
+    # Loop thru stats_array, collecting all data for each sample_cnt.
+    # NB: Not all elements of the array will be defined, so access carefully.
+    for {set i 0} {$i <= $::sample_cnt} {incr i} {
+        if {[info exists ::stats_array($i,time)]} {
+            set time $::stats_array($i,time)
+        } else {
+            set time "?"
+        }
+        set line "$i, $time,"  
+        foreach host $device_list {
+            append line " $host,"
+            foreach item $::fields {
+                if {[info exists ::stats_array($i,$host,$item)]} {
+                    set value $::stats_array($i,$host,$item)
+                    # Keep track of which devices & item had some data.
+                    # Any data at all counts. For elements that are undefined,
+                    # just leave the ::found_data_array element undefined also.
+                    # We want to know if there was any data at all found.
+                    # puts "found data host=$host item=$item value=$value sample_cnt=$i"
+                    set ::found_data_array($host,$item) 1
+                } else {
+                    # Dont alter the value for ::found_data_array !!!
+                    set value ""
+                }
+                append line " $value,"
+                # puts "item=$item value=$value"
+            }
+        }
+        # puts "line=$line"
+        puts $::out "$line"
+    }
+
+    # Clean up.
+    catch "flush $::out"
+    catch "close $::out"
+    catch "close $::in"
+
+    # Remove parsing state variables, if any.
+    reset_parser $file
+    return OK
+}
+
+#==================== get_line ====================================
+# Routine reads a line of data from the current input file.
+#
+# Calling parameters: none
+# Returns: OK, ERROR
+#==================================================================
+proc get_line { } {
+
+    # Get line of data.
+    incr ::line_cnt ;# file line number
+    set line ""
+    set catch_resp [catch "gets $::in ::line" catch_msg]
+    if {$catch_resp != 0} {
+        UTF::Message ERROR "$::localhost" "$::self: reading input ::in=$::in ::line_cnt=$::line_cnt catch_msg=$catch_msg"
+        incr ::errors
+        return ERROR
+    }
+    set ::line [string trim $::line]
+    # puts "::line_cnt=$::line_cnt ::line=$::line"
+    return OK
+}
+
+#==================== help ========================================
+# Routine that gives online help.
+#
+# Calling parameters: args
+# Returns: OK or exits script.
+#==================================================================
+proc help {args} {
+
+    # Check if help was requested or not.
+    set x [lindex $args 0]
+    set x [string tolower $x]
+    set x [string range $x 0 1]
+    if {[string compare $x "-h"] != 0 && [string compare $x "/?"] != 0} {
+       return OK
+    }
+
+    # Give help
+    puts "Basic usage: tclsh Test/log2graphs \[file1\] ... <fileN>"
+    puts " "
+    puts "Post processes one or more UTF log files and plots all manner of graphs."
+    puts "Results are a set of linked web pages."
+    exit 1
+}
+
+#==================== Parse_Line_Store_Stats ======================
+# Routine that parses a line of data from the input file and stores
+# the stats in stats_array.
+#
+# Calling parameters: file
+# Returns: OK, ERROR
+# Sets various global variables.
+#==================================================================
+proc parse_line_store_stats {file} {
+
+    # Get line of data.
+    set resp [get_line]
+    if {$resp == "ERROR"} {
+        return ERROR
+    }
+
+    # Log entries are expected to have a timestamp, msg type, host
+    # followed by msg specific data.
+    if {![regexp {^\s*(\d{2}:\d{2}:\d{2})\s+(\S+)\s+(\S+)\s+(.*)} $::line - time type host msg_data]} {
+        return OK
+    }
+    set found_data no ;# flag for data we want to save
+    regsub -all {>} $host "" host ;# remove GT from serial console lines
+    set state_var "::parser_${host}" ;# needed for multi-line items
+    if {[info exists $state_var]} {
+        set state_value [set $state_var]
+    } else {
+        set state_value ""
+    }
+    # puts "line=$::line"
+    # puts "time=$time type=$type host=$host state_var=$state_var state_value=$state_value msg_data=$msg_data"
+
+    # The challenge here is to have a unique item that tells us when
+    # are starting a new sample set. Right now we count on controlchart.test
+    # putting out a sample count marker line. When we get log files with
+    # streams data in it, we will need to revisit this assumption.
+
+    # We could watch which hostnames are recieving iperf data. When the hostname
+    # comes around to the first one again, then we incr sample_cnt. But this
+    # relies on having multiple hostnames within a given sample of data. If there
+    # is only one hostname, often the case, then this fails. I suppose I could
+    # look at the iperf -t xx -i yy parms, compute how many samples will be created
+    # and then incr sample_cnt after collecting the correct list of samples. But
+    # iperf can fail and stop reporting part way thru a test. Rather complex...
+
+    # We dont use the actual sample count from the file. If somebody concatenated
+    # several files into one big file, the sample numbers would quite likely not
+    # be unique. If we used the sample count from the file, then we would overwrite
+    # data in stats_array, which would lead to messy results.
+
+    # The RvR scripts put out a marker line: step=nn loss=mm which we can also
+    # use to increment sample_cnt. Processing RvR files is usually not useful
+    # as they contain only 1 sample per log file.
+    if {[regexp {controlchart\s+getting\s+sample\s+set\s+\d+} $::line]||
+        [regexp {step=\d+\s+loss=\d+\s+} $::line]} {
+        incr ::sample_cnt
+        # puts "::sample_cnt=$::sample_cnt $::line"
+        reset_parser $file
+        return OK
+    }
+
+    # The iperf warmup samples, if any, will occur before the first marker
+    # line and will be effectively ignored as a result. Also note that 
+    # there can be 2 warmup samples for bidirectional traffic.
+
+    # Look for iperf throughput data. We need to filter out last iperf
+    # average overall sample. This is done allowing the first sample with
+    # 0.0-xxx and rejecting subsequent 0.0-xxx data for that sample_cnt.
+    # NB: iperf rate can occasionally be 0.00!
+    if {[regexp {\s+([\d\.]+)\s+bits/sec\s*$} $::line - tput]} {
+        # puts "sample_cnt=$::sample_cnt $state_var=$state_value"
+        if {[regexp {0.0\s*\-} $::line] && $state_value != ""} {
+            # We already have a 0.0- line for this sample count.
+            # Most of the time the iperf average sample will arrive
+            # in the same second as the last iperf sample we want. But
+            # sometimes the average sample arrives with a different time
+            # stamp, and filtering on duplicate time stamps doesnt work.
+            # This algorithm is more robust.
+            # puts "\n\nskipping 0.0- sample $::line\n\n"
+            return OK
+        }
+
+        # Save this iperf time & tput.
+        # NB: We currently dont attempt to filter out duplicate time stamps!
+        set found_data yes
+        set $state_var iperf
+        # puts "time=$time tput=$tput $::line"
+        append ::stats_array($::sample_cnt,$host,time_tput) " $time $tput"
+    }
+
+    # Look for start of RX MCS rate multi-line data.
+    if {[regexp {RX\s*MCS\s*:(.*)} $::line - mcs]} {
+        regsub -all {\(\d+%\)} $mcs "" mcs ;# remove (nn%)
+        set mcs [string trim $mcs]
+        set state_value rx_mcs
+        set $state_var $state_value
+        # puts "$state_var=$state_value mcs=$mcs"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,$state_value) "$mcs"
+    }
+
+    # Look for start of TX MCS rate multi-line data.
+    if {[regexp {TX\s*MCS\s*:(.*)} $::line - mcs]} {
+        regsub -all {\(\d+%\)} $mcs "" mcs ;# remove (nn%)
+        set mcs [string trim $mcs]
+        set state_value tx_mcs
+        set $state_var $state_value
+        # puts "$state_var=$state_value mcs=$mcs"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,$state_value) "$mcs"
+    }
+
+    # Look for start of RX MCS SGI rate multi-line data.
+    if {[regexp {RX\s*MCS\s*SGI\s*:(.*)} $::line - mcs]} {
+        regsub -all {\(\d+%\)} $mcs "" mcs ;# remove (nn%)
+        set mcs [string trim $mcs]
+        set state_value rx_mcs_sgi
+        set $state_var $state_value
+        # puts "$state_var=$state_value mcs=$mcs"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,$state_value) "$mcs"
+    }
+
+    # Look for start of TX MCS SGI rate multi-line data.
+    if {[regexp {TX\s*MCS\s*SGI\s*:(.*)} $::line - mcs]} {
+        regsub -all {\(\d+%\)} $mcs "" mcs ;# remove (nn%)
+        set mcs [string trim $mcs]
+        set state_value tx_mcs_sgi
+        set $state_var $state_value
+        # puts "$state_var=$state_value mcs=$mcs"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,$state_value) "$mcs"
+    }
+
+    # Look for start of mpdu density multi-line data.
+    if {[regexp {MPDUdens\s*:(.*)} $::line - mpdu]} {
+        regsub -all {\(\d+%\)} $mpdu "" mpdu ;# remove (nn%)
+        set mpdu [string trim $mpdu]
+        set state_value mpdu_density
+        set $state_var $state_value
+        # puts "$state_var=$state_value mpdu=$mpdu"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,$state_value) "$mpdu"
+    }
+
+    # We look at Retry only to the extent that we need to stop collecting
+    # mpdu density data.
+    if {[regexp {Retry\s*:(.*)} $::line]} {
+        # puts "found Retry"
+        catch "unset $state_var"
+    }
+
+    # Collect antswitch=N data
+    if {[regexp {antswitch=(\d+)} $::line - antswitch]} {
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,antswitch) "$antswitch"
+        catch "unset $state_var"
+    }
+
+    # Collect rssi 2-line data
+    if {[regexp {wl.*\s+rssi\s*$} $::line]} {
+        set state_value rssi
+        set $state_var $state_value
+        # puts "$state_var=$state_value"
+        set found_data yes
+    }
+
+    # Collect rate 2-line data
+    if {[regexp {wl.*\s+rate\s*$} $::line]} {
+        set state_value rate
+        set $state_var $state_value
+        # puts "$state_var=$state_value"
+        set found_data yes
+    }
+
+    # Collect nrate
+    if {[regexp {mcs\s+index\s+(\d+)\s+} $::line - nrate]} {
+        # puts "nrate=$nrate"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,nrate) "$nrate"
+        catch "unset $state_var"
+    }
+
+    # Collect malloc failures
+    if {[regexp {Malloc\s+failure\s+count\s*:\s*(\d+)} $::line - malloc_fail]} {
+        # puts "malloc_fail=$malloc_fail"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,malloc_fail) "$malloc_fail"
+        catch "unset $state_var"
+    }
+
+    # Collect rxmpduperampdu
+    if {[regexp {rxmpduperampdu\s+(\d+)} $::line - rxmpduperampdu]} {
+        # puts "rxmpduperampdu=$rxmpduperampdu"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,rxmpduperampdu) "$rxmpduperampdu"
+        catch "unset $state_var"
+    }
+
+    # Collect txmpduperampdu
+    if {[regexp {txmpduperampdu\s+(\d+)} $::line - txmpduperampdu]} {
+        # puts "txmpduperampdu=$txmpduperampdu"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,txmpduperampdu) "$txmpduperampdu"
+        catch "unset $state_var"
+    }
+
+    # Collect TCP window size
+    if {[regexp {TCP\s+window\s+size:?\s+(\d+)} $::line - tcpwindow]} {
+        # puts "tcpwindow=$tcpwindow"
+        set found_data yes
+        set ::stats_array($::sample_cnt,$host,tcpwindow) "$tcpwindow"
+        catch "unset $state_var"
+    }
+
+    # If the parser state variable for this host is not null, then
+    # we are expecting one or more lines of data from a multi-line
+    # command.
+    if {$state_value == "rate"} {
+        # Look for nnn.m Mbps. Yes, there can be decimal places!
+        # There will be only one line of data.
+        if {[regexp {^\s*([\.\d]+)\s+Mbps\s*$} $msg_data - rate]} {
+            # puts "$state_var=$state_value rate=$rate msg_data=$msg_data"
+            set found_data yes
+            set ::stats_array($::sample_cnt,$host,$state_value) $rate
+            catch "unset $state_var"
+        }
+
+    } elseif {$state_value == "rssi"} {
+        # Look for single integer value. rssi is usually negative.
+        # There will be only one line of data.
+        if {[regexp {^\s*(\-?\d+)\s*$} $msg_data - number]} {
+            # puts "$state_var=$state_value number=$number msg_data=$msg_data"
+            set found_data yes
+            set ::stats_array($::sample_cnt,$host,$state_value) $number
+            catch "unset $state_var"
+        }
+
+    } elseif {[string match *mcs* $state_value] || $state_value == "mpdu_density"} {
+        # Look for repeated n(m%) pattern for MCS rates or MPDU density.
+        # There can be multiple lines of this data.
+        if {[regexp {^:\s+\d+\s*\(\d+%\)\s*} $msg_data]} {
+            regsub ":" $msg_data "" data
+            regsub -all {\(\d+%\)} $data "" data ;# remove (nn%)
+            set data [string trim $data]
+            set found_data yes
+            # puts "$state_var=$state_value data=$data"
+            append ::stats_array($::sample_cnt,$host,$state_value) " $data"
+        }
+
+    } elseif {$state_value == "" || $state_value == "iperf"} {
+        # Dont complain about null or iperf states. They are normal!
+
+    } else {
+        incr ::warnings
+        UTF::Message WARN "$::localhost" "$::self: parse_line_store_stats invalid state $state_var=$state_value msg_data=$msg_data"
+    }
+
+    # If no useful data found, return.
+    if {$found_data ==  "no" || $::sample_cnt < 0} {
+        return OK
+    }
+
+    # Save timestamp of first useful data in this sample_cnt. This
+    # helps track where the data came from in the log file.
+    if {![info exists ::stats_array($::sample_cnt,time)]} {
+        set ::stats_array($::sample_cnt,time) $time
+        # puts "sample_cnt=$::sample_cnt time=$time line=$::line"
+    }
+
+    # Have we saved this host in device_array?
+    if {[lsearch -exact $::device_array($file) $host] < 0} {
+        # puts "\n\n\nsaving host=$host sample_cnt=$::sample_cnt $file $::line\n\n"
+        lappend ::device_array($file) $host
+    }
+    return OK
+}
+
+#==================== reset_parser ================================
+# Clears out the parser variables. 
+#
+# Calling parameters: file
+# Returns: OK
+#==================================================================
+proc reset_parser {file} {
+
+    # Get list of devices being observed
+    set device_list $::device_array($file)
+
+    # Clean out device parser state variables. With the multi-line
+    # MCS data, there is no guarantee that there will be another
+    # item we want that will cause the parser state variable to be
+    # be reset to null. So there is no point about complaining about
+    # parser state variables not being null. Thats life!
+    foreach host $device_list {
+        set var "::parser_${host}"
+        if {[info exists $var]} {
+            unset $var
+        }
+    }
+    return OK
+}
+
+#==================== setup_basics ================================
+# Routine that does basic setup, parses command line tokens,
+# creates results directory.
+#
+# Calling parameters: args
+# Returns: OK or exits script.
+#==================================================================
+proc setup_basics {args} {
+
+    # Initialize counters & lists
+    set ::errors 0
+    set ::in_file_list "" ;# keep track of files read
+    set ::files_cnt 0
+    set ::graphs_cnt 0
+    set ::out_csv_list "" ;# tracks list of output csv files created
+    set ::self log2graphs ;# cant rely on argv0!
+    set ::self [file root $::self]
+    set ::warnings 0
+
+    # Check we have at least one file name.
+    set args [join $args " "]
+    set len [llength $args]
+    # puts "args=$args len=$len self=$::self"
+    if {$len < 1} {
+        error "$::self ERROR: You must specify at least 1 input file.\
+            \nFor more info, type: tclsh $::self -h"
+    }
+
+    # We want the results directory to be located with the log
+    # files that were used to create the results. We take the
+    # first input log file in the list of files and use it to
+    # be the location of the results directory.
+    set dest_dir [file dirname [lindex $args 0]]
+    if {![regexp {^/\S+} $dest_dir]} {
+        # Convert dest_dir to fullpath.
+        set dest_dir "[pwd]/$dest_dir"
+    }
+    # puts "dest_dir=$dest_dir"
+
+    # Check dest_dir is a directory & is writable.
+    if {![file isdirectory "$dest_dir"]} {
+        error "$::self ERROR: $dest_dir is NOT a directory!"
+    }
+    if {![file writable "$dest_dir"]} {
+        error "$::self ERROR: $dest_dir is NOT writable for you!"
+    }
+
+    # Setup unique subdirectory for the results.
+    set create_unique no
+    for {set i 0} {$i < 200} {incr i} {
+        set ::sub_dir "$dest_dir/${::self}${i}"
+        if {![file exists "$::sub_dir"]} {
+            file mkdir "$::sub_dir"
+            set create_unique yes
+            break
+        }
+    }
+    # puts "i=$i sub_dir=$::sub_dir"
+    if {$create_unique == "no"} {
+        error "$::self ERROR: Could not create unique subdirectory\
+           for results in $dest_dir!"
+    }
+    return OK
+}
+
+#==================== setup_file ==================================
+# Opens the current input file, creates corresponding output .csv 
+# file, sets up variables.
+#
+# Calling parameters: file
+# Returns: ERROR, OK, WARNING
+#==================================================================
+proc setup_file {file} {
+
+    # Because UTF only supports Linux, there is no point having
+    # support for Windows pathnames with backslash in here.
+
+    # Check input file exists.
+    if {![file exists "$file"]} {
+        UTF::Message ERROR "$::localhost" "$::self: file $file not found!"
+        incr ::errors
+        return ERROR
+    }
+
+    # User may well specify ../../* as an input spec. We will 
+    # be given all files & subdirectories to process. This is the
+    # garbage filter to remove items that are of no interestl.
+    # Skip .png, .jpg  & .sym files. A sub-directory will have ext=null.
+    # Existing html & csv files are of no interest either.
+    set ext [file extension "$file"]
+    # puts "ext=$ext file=$file"
+    if {$ext == ".png" || $ext == ".jpg" || $ext == "" || $ext == ".htm" ||\
+        $ext == ".html" || $ext == ".csv" || $ext == ".sym"} {
+        UTF::Message WARN "$::localhost" "$::self: skipping $file!"
+        incr ::warnings
+        return WARNING
+    }
+
+    # Open input file.
+    set catch_resp [catch "set ::in \[open \"$file\" r\]" catch_msg]
+    if {$catch_resp != 0} {
+        UTF::Message ERROR "$::localhost" "$::self: could not open $file catch_msg=$catch_msg"
+        incr ::errors
+        return ERROR
+    }
+    lappend ::in_file_list $file
+
+    # Create output file name in the new ::sub_dir. Filetype is .csv
+    # so Excel will read the file without any arguing.
+    set out_file [file tail $file]
+    set out_file [file root $out_file]
+    set out_file "$::sub_dir/${out_file}.csv"
+
+    # Open output file. There should not be any existing file,
+    # since we have a fresh ::sub_dir for this run.
+    set catch_resp [catch "set ::out \[open \"$out_file\" w\]" catch_msg]
+    if {$catch_resp != 0} {
+        UTF::Message ERROR "$::localhost" "$::self: could not open $out_file catch_msg=$catch_msg"
+        incr ::errors
+        return ERROR
+    }
+
+    # Update global vars.
+    set ::device_array($file) "" ;# tracks STA & AP found in this file
+    incr ::files_cnt ;# files processed counter
+    set ::line_cnt 0 ;# read line counter for file
+    lappend ::out_csv_list $out_file;# keep track of all .csv files created
+    set ::sample_cnt -1 ;# index into ::stats_array
+    # puts "out_file=$out_file \n::out=$::out file=$file ::in=$::in ::files_cnt=$::files_cnt"
+
+    # Clean out data from previous file from ::stats_array.
+    # set ::stats_array(8,4,6) 1 ;# test code
+    set names [array name ::stats_array]
+    foreach item $names {
+        # puts "found item=$item"
+        unset ::stats_array($item)
+    }
+    return OK
+}
+
+#==================== setup_summaries =============================
+# Starts summary web-pages with all the hyperlinks to other pages
+# at the top of each page. 
+#
+# Calling parameters: none
+# Returns: all graphs page fullpath
+#==================================================================
+proc setup_summaries { } {
+    # puts "setup_summaries $::sub_dir"
+
+    # Create composite sorted list of devices found across all the
+    # log files we processed.
+    set overall_device_list ""
+    foreach file $::in_file_list {
+        append overall_device_list " $::device_array($file)"
+    }
+    set overall_device_list [lsort -unique $overall_device_list]
+    # puts "overall_device_list=$overall_device_list"
+
+    # Setup web header page foreach device & field combination.
+    # Because there are so many links that dont necessarily line up
+    # in a nice visual manner for the user, we make them into a table
+    # to get a pleasing visual alignment on the web pages. 
+    set title_links "<!-- table of summary page links -->\n<table border=\"2\">\n"
+    set result ""
+    foreach device $overall_device_list {
+        append title_links "   <tr>\n      <td>$device</td>\n"
+        foreach item $::fields {
+            # Create web page only if data really was found in .csv file.
+            if {[info exists ::found_data_array($device,$item)]} {
+                # Data was found. Setup filename for summary,
+                # open file, save handle in handles_array
+                set file "$::sub_dir/${device}_${item}.htm"
+                set temp [open "$file" w]
+                set ::handles_array($device,$item) $temp
+
+                # Need counter to keep track of graphs per table row
+                # on the web page.
+                set ::graph_cnt_array($device,$item) 0
+
+                # Add html headers to file.
+                puts $temp "<head>"
+                puts $temp "    <title>$device $item summary</title>"
+                puts $temp "</head>\n"
+                puts $temp "<body>\n"
+                flush $temp ;# leave handle open for more writes
+
+                # Save a link to this page.
+                set href [file tail $file]
+                append title_links "      <td><a href=\"$href\">$item</a></td>\n"
+
+            } else {
+                # No data was found in the .csv file. Put a grayed out entry
+                # in the links table. We really dont want to have web pages
+                # that have no graphs at all. Not useful!
+                append title_links "      <td><font color=\"gray\">$item</font></td>\n"
+            }
+        }
+
+        # Add end table row after each device.
+        append title_links "   </tr>\n"
+    }
+
+    # Add end table.
+    append title_links "</table>\n"
+
+    # Setup link for all graphs
+    set file "$::sub_dir/all_graphs.htm"
+    set result $file ;# this gives a consistent behavior to user
+    set href [file tail $file]
+    append title_links "\n<!-- all graphs page and location -->\n\
+        <p><a href=\"$href\">All Graphs</a>\n"
+    set all [open "$file" w]
+    set ::handles_array(all,graphs) $all
+    set ::graph_cnt_array(all,graphs) 0
+
+    # If user has a sym link in their public_html directory like
+    # "home -> /home/brearley", and the results are in their home
+    # directory, then we can create a working html link to their
+    # home directory.
+    if {[regexp {^/home/([^/]+)/(.*)$} $result - user remainder]} {
+        # puts "user=$user remainder=$remainder"
+        set result "/~$user/home/$remainder"
+    }
+    set url "http://www.sj.broadcom.com${result}"
+
+    # Add link to directory of input files & results.
+    if {[regexp {^/home/} $::sub_dir]} {
+        set temp "."
+    } else {
+        set temp $::sub_dir
+    }
+    append title_links "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\
+        File location: <a href=\"$temp\">$::sub_dir</a><p>\n"
+
+    # Add links for each original log file and .csv file
+    append title_links "\n<!-- table of log file and csv file links -->\n<table border=\"2\">\n   <tr>\n"
+    set i -1
+    foreach in_file $::in_file_list {
+        incr i
+        set in_file [file tail $in_file]
+        set csv_file [lindex $::out_csv_list $i]
+        set csv_file [file tail $csv_file]
+        # puts "in_file=$in_file csv_file=$csv_file"
+        append title_links "      <td><a href=\"../$in_file\">$in_file</a><br><a href=\"$csv_file\">$csv_file</a></td>\n"
+
+        # Every 20 files, start a new table row
+        if {[expr ($i + 1) % 20] == 0} {
+            append title_links "    </tr>\n    <tr>\n"
+        }
+    }
+    append title_links "   </tr>\n</table>\n"
+
+    # Start all graphs page.
+    puts $all "<head>"
+    puts $all "    <title>All Graphs</title>"
+    puts $all "</head>\n"
+    puts $all "<body>\n"
+    flush $all ;# leave handle open for more writes
+
+    # Add title_links, h2 & start of table to each page that we started.
+    # Get names from ::handles_array, as not all permutations of device & items
+    # have data or a web page started.
+    set names [array names ::handles_array]
+    foreach index $names {
+        set handle $::handles_array($index)
+        regsub "," $index " " temp
+        puts $handle "$title_links"
+        puts $handle "<h2>$temp summary</h2>\n"
+        puts $handle "<!-- table of graphs -->"
+        puts $handle "<table border=\"0\">"
+        flush $handle ;# leave handle open for more writes
+    }
+
+    # Return url to all graphs page fullpath. This gives a consistent
+    # behavior to user.
+    return $url
+}
+
+#==================== Main Program ================================
+# This is the main test program. 
+#==================================================================
+UTF::Test log2graphs {args} {
+
+    # Check if online help was requested
+    # puts "args=$args"
+    # set args $::argv
+    help $args
+
+    # Initialization routine. If necessary, get list of files
+    # in specified input directory.
+    if {[llength $args] == 1 && [file isdirectory "$args"]} {
+        set args [glob -nocomplain $args/*]
+        # puts "expanded cnt=[llength $args] args=$args"
+    }
+    set args [lsort $args] ;# process files in name sorted order
+    setup_basics $args
+
+    # Process each file from command line tokens
+    foreach file $args {
+
+        # Setp to read this specific input file.
+        set resp [setup_file $file]
+        # puts "resp=$resp"
+        if {$resp == "ERROR" || $resp == "WARNING"} {
+            continue
+        }
+
+        # Now we process this input file data one line at a time.
+        while {![eof $::in]} {
+
+           # Read a line of input file, parse it, store stats
+           set response [parse_line_store_stats $file]
+           if {$response == "ERROR"} {
+               break
+           }
+        }
+
+        # Dump stats_array to current output .CSV file
+        dump_stats_array $file
+    }
+
+    # Did we process any files?
+    if {$::files_cnt == 0} {
+        error "$::self ERROR: No files processed!"
+    }
+
+    # Setup web-page headers.
+    set url [setup_summaries]
+
+    # Generate graphs for each .csv file.
+    set i -1
+    foreach in_file $::in_file_list {
+        incr i
+        set csv_file [lindex $::out_csv_list $i]
+        dump_graphs $in_file $csv_file
+    }
+
+    UTF::Message LOG "$::localhost" "\n\nResults: $url\n\n"
+
+    # Thats it!
+    cleanup $url
+}

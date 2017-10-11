@@ -1,0 +1,14 @@
+#
+# Internal sources file (do not release)
+#
+# Copyright (C) 2001 Broadcom Corporation
+#
+# $Id: sources.ttcp,v 1.5 2007-06-20 23:23:58 $
+#
+
+TARGETNAME=epi_ttcp
+TARGETPATH=obj/ttcp
+
+include sources.common
+
+SOURCES=epi_ttcp.c

@@ -1,0 +1,39 @@
+# Note: if the use of $(M) for relative include directory looks funny, it's
+# because the sub-make (build/scripts/Makefile.build) includes this Makefile.
+
+obj-m	+= rsmod.o
+
+# driver source base
+SRCBASE := $(M)/../..
+
+# basic options
+EXTRA_CFLAGS += -I$(M) -I$(SRCBASE)/lwip/bcmrsock/exe -I$(SRCBASE)/include
+EXTRA_CFLAGS += -MD -Wall -Werror
+EXTRA_CFLAGS += -fshort-wchar
+EXTRA_CFLAGS += -DBCMDRIVER
+#EXTRA_CFLAGS += -DDEBUG
+
+rsmod-objs := rstest26.o rstest_cmd.o rsock.o ifconfig.o ttcp.o util.o os.o
+
+LINUXDIR := /lib/modules/$(shell uname -r)/build
+
+default: rsock.c ifconfig.c ttcp.c util.c
+	$(MAKE) -C $(LINUXDIR) M=$(PWD) V=1 modules
+
+# Symlinks because vpath doesn't work with Linux makefiles
+
+rsock.c:
+	ln -s ../../lwip/bcmrsock/rsock.c .
+
+ifconfig.c:
+	ln -s ../../lwip/bcmrsock/exe/ifconfig.c .
+
+ttcp.c:
+	ln -s ../../lwip/bcmrsock/exe/ttcp.c .
+
+util.c:
+	ln -s ../../lwip/bcmrsock/exe/util.c .
+
+clean:
+	$(MAKE) -C $(LINUXDIR) M=$(PWD) clean
+	$(RM) rsock.c ifconfig.c ttcp.c util.c

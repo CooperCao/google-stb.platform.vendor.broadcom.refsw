@@ -1,0 +1,64 @@
+#
+# Internal sources file (do not release)
+#
+# Copyright (C) 2006 Broadcom Corporation
+#
+# $Id: sources.common,v 1.1 2008-09-15 09:23:05 $
+#
+
+OEM             := bcm
+HOSTOS          := wince
+PROCESSOR       ?= X86
+WINCEVER        := 500
+LIB_PATH        ?= $(SRCBASE)/tools/bin/WINCE/$(WINCEVER)/Lib
+TARGETTYPE      = EXE
+TARGETNAME      = wps_api_tester
+TARGETPATH=obj/sta/$(WINCEVER)/$(PROCESSOR)
+
+LIB_PATH       ?= $(SRCBASE)/tools/bin/WINCE/$(WINCEVER)/Lib $(SRCBASE)/wps/ce3/test/test
+_WINPCAP_CE_ROOT=$(SRCBASE)/8021x/winpcap/PacketCE
+
+
+vpath %.cpp 
+
+ifdef BRAND
+  C_DEFINES += -D$(BRAND)
+endif
+
+C_DEFINES += -DWPS_WIRELESS_ENROLLEE -DAES_CBC_ONLY 
+
+ifeq ($(WINCEVER),600)
+  C_DEFINES +=  -D_CRT_SECURE_NO_DEPRECATE
+endif
+
+
+ifeq ($(PROCESSOR),ARM)
+  SDK_LIB_PATH := "$(LIB_PATH)/ARMV4I"
+endif
+
+ifeq ($(PROCESSOR),X86)
+  SDK_LIB_PATH := "$(LIB_PATH)/x86"
+endif
+
+ifneq ($(PROCESSOR),ARM)
+ifneq ($(PROCESSOR),X86)
+  $(error NEW PROCESSOR is defined, needs modification to this file)
+endif
+endif
+
+TARGETLIBS= $(SDK_LIB_PATH)/coredll.lib \
+	$(SDK_LIB_PATH)/ndis.lib \
+	$(SDK_LIB_PATH)/corelibc.lib \
+	$(SDK_LIB_PATH)/ceddk.lib
+
+INCLUDES=$(_WINCEROOT)/include;$(_WINCEROOT)/public/common/oak/inc;$(_WINCEROOT)/public/common/ddk/inc;$(_WINCEROOT)/public/common/sdk/inc;
+INCLUDES += $(SRCBASE)/include;$(SRCBASE)/../components/shared;../include;
+INCLUDES+=$(_WINPCAP_CE_ROOT)/Common;.;
+
+SOURCES += wps_api_tester.cpp
+
+#debuginfo:
+#	@echo "TARGETLIBS = $(TARGETLIBS)"
+
+#$(TARGETPATH)/NUL:
+#	mkdir -p $(@D)

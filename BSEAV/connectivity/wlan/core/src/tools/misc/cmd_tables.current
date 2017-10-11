@@ -1,0 +1,398 @@
+---+++ Last update
+This command list content generated Mon Jun 11 00:00:05 PDT 2007
+
+---+++ Commands Missing Categorization
+The following commands appear in wlu.c but do not appear in
+the list in src/wl/exe/wlu_cmd.c:
+<verbatim>
+    ap_ies                        
+    apple_scan                    
+    apple_ssid                    
+    arp_hostip                    
+    arp_hostip_clear              
+    arp_ol                        
+    arp_peerage                   
+    arp_stats                     
+    arp_stats_clear               
+    arp_table_clear               
+    arpoe                         
+    autocountry_default           
+    card_cap                      
+    ccreg                         
+    cur_mcsset                    
+    dfs_channel_forced            
+    dpt_deny                      
+    dpt_endpoint                  
+    event_filter                  
+    extdscan                      
+    iscan_c                       
+    iscan_s                       
+    iscanresults                  
+    nphy_antsel                   
+    nphy_caldump                  
+    nphy_rssiant                  
+    nphy_test_tssi                
+    nphy_test_tssi_offs           
+    pfn                           
+    pfnadd                        
+    pfnclear                      
+    pfneventchk                   
+    pfnset                        
+    phy_rssi_ant                  
+    phy_rxiqest                   
+    pkteng_start                  
+    pkteng_stats                  
+    pkteng_stop                   
+    radarargs40                   
+    rifs                          
+    rsn_ie                        
+    srclear                       
+    srwrite                       
+    toe                           
+    toe_ol                        
+    toe_stats                     
+    toe_stats_clear               
+    txfifo_sz                     
+    wowl                          
+    wowl_bcn_loss                 
+    wowl_pattern                  
+    wowl_wakeind                  
+
+</verbatim>
+---+++ Defunct Commands (not in wlu.c)
+The following commands appear in wlu_cmd.c, but were not
+found in the executable command list in wlu.c:
+<verbatim>
+    (None found)
+
+</verbatim>
+---+++ Command List Table
+| *Command* | *Module* | *Categories* | *Description* |
+| PM | wlu  | PHY, power | set driver power management mode:%BR% 0: CAM (constantly awake)%BR% 1: PS (power-save)%BR% 2: FAST PS mode |
+| a_mrate | wlu  | PHY, rate | force a fixed multicast rate for the A PHY:%BR% valid values for 802.11a are (6, 9, 12, 18, 24, 36, 48, 54)%BR% -1 (default) means automatically determine the best rate |
+| a_rate | wlu  | PHY, rate | force a fixed rate for the A PHY:%BR% valid values for 802.11a are (6, 9, 12, 18, 24, 36, 48, 54)%BR% -1 (default) means automatically determine the best rate |
+| aciargs | wlu  | PHY | Get/Set various aci tuning parameters. Choices are:%BR% enter: CRS glitch trigger level to start detecting ACI%BR% exit: CRS glitch trigger level to exit ACI mode%BR% glitch Seconds interval between ACI scans when glitchcount is continuously high%BR% spin: Num microsecs to delay between rssi samples%BR%%BR% enter: (NPHY) CRS glitch trigger level to start detecting ACI%BR% adcpwr_enter: (NPHY) ADC power to enter ACI Mitigation mode %BR% adcpwr_exit: (NPHY) ADC power to exit ACI Mitigation mode %BR% repeat: (NPHY) Number of tries per channel to compute power %BR% samples: (NPHY) Number of samples to use to compute power on a channel %BR% undetect_sz: (NPHY) # Undetects to wait before coming out of ACI Mitigation mode %BR% loaci: (NPHY) bphy energy threshold for low aci pwr %BR% mdaci: (NPHY) bphy energy threshold for medium aci pwr %BR% hiaci: (NPHY) bphy energy threshold for hi aci pwr %BR%%BR% Usage: wl aciargs [enter x][exit x][spin x][glitch x] |
+| add_ie | wlu  | management | Add a vendor proprietary IE to 802.11 management packets%BR% Usage: wl add_ie [pktflag] length OUI hexdata%BR% [pktflag]: Bit 0 - Beacons%BR% Bit 1 - Probe Rsp%BR% Bit 2 - Assoc/Reassoc Rsp%BR% Bit 3 - Auth Rsp%BR% Bit 4 - Probe Req%BR% Bit 5 - Assoc/Reassoc Req%BR% Example: wl add_ie 3 10 00:90:4C 0101050c121a03%BR% to add this IE to beacons and probe responses |
+| addkey | ndis  | management, security | The OID_802_11_ADD_KEY OID requests the miniport driver to set an%BR% 802.11 wired equivalent privacy (WEP) key to a specified value.%BR% addkey [keyindex] [keydata] [notx] [xx:xx:xx:xx:xx:xx] |
+| addwep | wlu %BR%ndis | management, security | Set an encryption key. The key must be 5, 13 or 16 bytes long, or%BR% 10, 26, 32, or 64 hex digits long. The encryption algorithm is%BR% automatically selected based on the key size. keytype is accepted%BR% only when key length is 16 bytes/32 hex digits and specifies%BR% whether AES-OCB or AES-CCM encryption is used. Default is ccm.%BR% addwep [keyindex] [keydata] [ocb -or- ccm] [notx] [xx:xx:xx:xx:xx:xx]%BR% *NOTE:* Defined in multiple modules. |
+| ampdu_clear_dump | wlu  | admin, monitor | clear ampdu counters |
+| ampdu_dump | wlu  | deprecated, uncategorized | Deprecated. Folded under 'wl dump ampdu' |
+| ampdu_send_addba | wlu  | management | send addba to specified ea-tid; usage: wl ampdu_send_addba [tid] [ea] |
+| ampdu_send_delba | wlu  | management | send delba to specified ea-tid; usage: wl ampdu_send_delba [tid] [ea] |
+| ampdu_tid | wlu  | management | enable/disable per-tid ampdu; usage: wl ampdu_tid [tid] [0/1] |
+| amsdu_clear_counters | wlu  | admin, monitor | clear amsdu counters |
+| amsdu_dump | wlu  | deprecated, uncategorized | Deprecated. Folded under 'wl dump amsdu' |
+| antdiv | wlu  | PHY | Set antenna diversity for rx%BR% 0 - force use of antenna 0%BR% 1 - force use of antenna 1%BR% 3 - automatic selection of antenna diversity |
+| ap | wlu  | AP, STA | Set AP mode: 0 (STA) or 1 (AP) |
+| ap_ies | macos  |  | Get the AP_IES, IE information from the currently associated AP |
+| ap_isolate | wlu  | AP, management | set/get AP isolation |
+| apname | wlu  | AP, management, monitor | get AP name |
+| apple_scan | macos  |  | Start an APPLE80211_IOC_SCAN_REQ scan%BR% Default an active scan across all channels for any SSID.%BR% Optional arg: SSID, the SSID to scan.%BR% Options:%BR% -s S, --ssid=S SSID to scan%BR% -t ST, --scan_type=ST [active -or- passive -or- fast] scan type%BR% --bss_type=BT [bss -or- infra -or- ibss -or- adhoc -or- any] bss type to scan%BR% -b MAC, --bssid=MAC particular BSSID MAC address to scan, xx:xx:xx:xx:xx:xx%BR% -d N, --dwell=N dwell time per channel (ms)%BR% -r N, --rest=N time between scanning each channel (ms)%BR% -p N, --phy_mode=N phy_modes for scan, comma or space separated list %BR% of [11a 11b 11g 11n gturbo aturbo]%BR% -c L, --channels=L comma or space separated list of channels to scan |
+| apple_ssid | macos  |  | Get/Set the SSID |
+| arp_hostip | wlu  |  | Add a host-ip address or display them |
+| arp_hostip_clear | wlu  |  | Clear all host-ip addresses |
+| arp_ol | wlu  |  | Get/Set arp offload components |
+| arp_peerage | wlu  |  | Get/Set age of the arp entry in minutes |
+| arp_stats | wlu  |  | Display ARP offload statistics |
+| arp_stats_clear | wlu  |  | Clear ARP offload statistics |
+| arp_table_clear | wlu  |  | Clear arp cache |
+| arpoe | wlu  |  | Enable/Disable arp agent offload feature |
+| assoc | wlu %BR%ndis | AP, monitor, STA | Print information about current network association.%BR% (also known as status)%BR% *NOTE:* Defined in multiple modules. |
+| assoc_info | wlu  | management, STA | Returns the assoc req and resp information [STA only] |
+| assoc_pref | wlu  | AP, management, STA | Set/Get association preference.%BR% Usage: wl assoc_pref [auto -or- a -or- b -or- g] |
+| assoclist | wlu  | AP, management | AP only: Get the list of associated MAC addresses. |
+| atten | wlu  | channel, PHY, power | Set the transmit attenuation for B band. Args: bb radio txctl1.%BR% auto to revert to automatic control%BR% manual to supspend automatic control |
+| auth | wlu  | management, security | set/get 802.11 authentication type. 0 = OpenSystem, 1= SharedKey |
+| authe_sta_list | wlu  | management, security | Get authenticated sta mac address list |
+| autho_sta_list | wlu  | management, security | Get authorized sta mac address list |
+| authorize | wlu  | management, security | restrict traffic to 802.1X packets until 802.1X authorization succeeds |
+| autochannel | wlu  | channel, PHY | auto channel selection: %BR% 1 to issue a channel scanning;%BR% 2 to set channel based on the channel scanning result;%BR% without argument to only show the channel selected; %BR% ssid must set to null before this process, RF must be up |
+| autocountry_default | wlu  |  | Select Country Code for use with Auto Contry Discovery |
+| ba_clear_counters | wlu  | admin, monitor | clear BA counters |
+| ba_dump | wlu  | deprecated, uncategorized | Deprecated. Folded under 'wl dump ba' |
+| band | wlu  | channel, PHY | Returns or sets the current band%BR% auto - auto switch between available bands (default)%BR% a - force use of 802.11a band%BR% b - force use of 802.11b band |
+| bands | wlu  | channel, PHY | Return the list of available 802.11 bands |
+| bcmerrorstr | wlu  | admin | errorstring |
+| bg_mrate | wlu  | PHY, rate | force a fixed multicast rate for the B/G PHY:%BR% valid values for 802.11b are (1, 2, 5.5, 11)%BR% valid values for 802.11g are (1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54)%BR% -1 (default) means automatically determine the best rate |
+| bg_rate | wlu  | PHY, rate | force a fixed rate for the B/G PHY:%BR% valid values for 802.11b are (1, 2, 5.5, 11)%BR% valid values for 802.11g are (1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54)%BR% -1 (default) means automatically determine the best rate |
+| bi | wlu  | AP, management | Get/Set the beacon period (bi=beacon interval) |
+| bss | wlu  | AP, management, STA | set/get BSS enabled status: up/down |
+| bssid | wlu  | AP | Set or get the BSS ID value%BR% (mac address, e.g. 00:11:20:11:33:33, colons optional)%BR% *NOTE:* Conditionally defined in wlu; %BR%given info is valid for first definition only. |
+| bssmax | wlu  | admin, AP | get number of BSSes  |
+| cac_addts | wlu  | AP, management, STA, wme/wmm | add TSPEC, error if STA is not associated or WME is not enabled%BR% arg1: G711, signal, or starting TSPEC parameter input list%BR% arg2: direction for G711 and signal(bi-direction by default):%BR% 1: uplink direction%BR% 2: downlink direction |
+| cac_delts | wlu  | AP, management, STA, wme/wmm | delete TSPEC, error if STA is not associated or WME is not enabled%BR% arg1: G711, signal, or starting TSPEC parameter input list%BR% arg2: direction for G711 and signal(bi-direction by default):%BR% 1: uplink direction%BR% 2: downlink direction |
+| cac_tslist | wlu  | AP, management, STA, wme/wmm | Get the list of TSINFO in driver%BR% eg. 'wl cac_tslist' get a list of TSINFO |
+| cac_tspec | wlu  | AP, management, STA, wme/wmm | Get specific TSPEC with matching TSINFO%BR% eg. 'wl cac_tspec 0xaa 0xbb 0xcc' where 0xaa 0xbb & 0xcc are TSINFO octets |
+| cap | wlu  | admin | driver capabilities |
+| card_cap | macos  |  | Get the Apple CARD_CAPABILITIES |
+| cck_txbw | wlu  | channel, PHY, uncategorized | get/set cck txbw (2=20Mhz(lower), 3=20Mhz upper) |
+| ccreg | wlu  |  | g/set cc registers |
+| chan_info | wlu  | channel, monitor, PHY | channel info |
+| chanlist | wlu  | deprecated, uncategorized | Deprecated. Use channels. |
+| channel | wlu  | channel, PHY | Set the channel:%BR% valid channels for 802.11b/g (2.4GHz band) are 1 through 14%BR% valid channels for 802.11a (5 GHz band) are:%BR% 36, 40, 44, 48, 52, 56, 60, 64,%BR% 100, 104, 108, 112, 116,120, 124, 128, 132, 136, 140,%BR% 149, 153, 157, 161,%BR% 184, 188, 192, 196, 200, 204, 208, 212, 216 |
+| channel_qa | wlu  | channel, PHY | Get last channel quality measurment |
+| channel_qa_start | wlu  | channel, PHY | Start a channel quality measurment |
+| channels | wlu  | channel, PHY | Return valid channels for the current settings. |
+| channels_in_country | wlu  | channel, PHY | Return valid channels for the country specified.%BR% Arg 1 is the country abbreviation%BR% Arg 2 is the band(a or b) |
+| chanspec | wlu  | channel, PHY | Set [channel][a,b][n][u,l]%BR% channel number (0-224)%BR% band a=5G, b=2G, default to 2G if channel [= 14%BR% bandwidth, n=10, non for 20 & 40%BR% ctl sideband, l=lower, u=upper%BR% OR Set channel with legacy format:%BR% -c channel number (0-224)%BR% -b band (5(a) or 2(b/g))%BR% -w bandwidth, 10,20 or 40%BR% -s ctl sideband, -1=lower, 0=none, 1=upper |
+| chanspecs | wlu  | channel, PHY | Get all the valid chanspecs (default: all within current locale):%BR% -b band (5(a) or 2(b/g))%BR% -w bandwidth, 10,20 or 40%BR% [-c country_abbrev]%BR% |
+| clk | wlu  | board | set board clock state. return error for set_clk attempt if the driver is not down%BR% 0: clock off%BR% 1: clock on |
+| closed | wlu  | security | hides the network from active scans, 0 or 1.%BR% 0 is open, 1 is hide |
+| closednet | wlu  | security | set/get BSS closed network attribute |
+| cmds | wlu  | admin | generate a short list of available commands |
+| config | ndis  | management | Get and Set the default configuration via OID_802_11_CONFIGURATION.%BR% Syntax: config [beacon beacon_value atim atim_value freq freq_in_Khz]%BR% frequency must be in Khz. Invalid frequencies will be rejected.%BR% Example to set parameters: wl config beacon 100 atim 0 freq 2412000%BR% Example to get parameters: wl config |
+| constraint | wlu  | PHY, power | Send an 802.11h Power Constraint IE%BR% Usage: wl constraint 1-255 db |
+| counters | wlu  | admin, monitor | Return driver counter values |
+| country | wlu  | management | Select Country Code for driver operational region%BR% Use either long name or abbreviation from ISO 3166.%BR% Use 'wl country list [band(a or b)]' for the list of supported countries |
+| crsuprs | wlu  | channel, PHY | Manufacturing test: set carrier suppression mode.%BR% carriersuprs syntax is: crsuprs [channel]%BR% Arg is channel number 1-14, or 0 to stop the test. |
+| csa | wlu  | channel, management, PHY | Send an 802.11h channel switch anouncement with chanspec:%BR% [mode] [count] [channel][a,b][n][u,l]%BR% mode (0 or 1)%BR% count (0-254)%BR% channel number (0-224)%BR% band a=5G, b=2G%BR% bandwidth n=10, non for 20 & 40%BR% ctl sideband, l=lower, u=upper, default no ctl sideband%BR% |
+| csscantimer | wlu  | channel, PHY | auto channel scan timer in minutes (0 to disable) |
+| cur_etheraddr | wlu  | management | Get/set the current hw address |
+| cur_mcsset | wlu  |  | Get the current mcs set |
+| curpower | wlu  | PHY, power | Return current tx power settings.%BR% -q (quiet): estimated power only. |
+| cwmax | wlu  | management | Set the cwmax. (integer [256, 2047]) |
+| cwmin | wlu  | management | Set the cwmin. (integer [1, 255]) |
+| deauthenticate | wlu  | management, security | deauthenticate a STA from the AP with optional reason code (AP ONLY) |
+| deauthorize | wlu  | management, security | do not restrict traffic to 802.1X packets until 802.1X authorization succeeds |
+| decryptstatus | ndis  | management, security | the status of WEP decryption: one of success=1, failure=2, unknown=3 |
+| del_ie | wlu  | management | Delete a vendor proprietary IE from 802.11 management packets%BR% Usage: wl del_ie [pktflag] length OUI hexdata%BR% [pktflag]: Bit 0 - Beacons%BR% Bit 1 - Probe Rsp%BR% Bit 2 - Assoc/Reassoc Rsp%BR% Bit 3 - Auth Rsp%BR% Bit 4 - Probe Req%BR% Bit 5 - Assoc/Reassoc Req%BR% Example: wl del_ie 3 10 00:90:4C 0101050c121a03 |
+| dfs_channel_forced | wlu  |  | Set [channel][a,b][n][u,l]%BR% channel number (0-224)%BR% band a=5G, b=2G, default to 2G if channel [= 14%BR% bandwidth, n=10, non for 20 & 40%BR% ctl sideband, l=lower, u=upper%BR% |
+| dfs_status | wlu  | channel, PHY | Get dfs status |
+| diag | wlu  | admin | diag testindex(1-interrupt, 2-loopback, 3-memory, 4-led); precede by 'wl down' and follow by 'wl up' |
+| disassoc | wlu %BR%ndis | management, STA | Disassociate from the current BSS/IBSS.%BR% *NOTE:* Defined in multiple modules. |
+| down | wlu  | admin, board | reset and mark adapter down (disabled) |
+| dpt_deny | wlu  |  | adds/removes ea to dpt deny list%BR% usage: wl dpt_deny [ea] [add,remove]%BR% |
+| dpt_endpoint | wlu  |  | creates/updates/deletes dpt endpoint for ea%BR% usage: wl dpt_endpoint [create, update, delete] [ea]%BR% |
+| dtim | wlu  | AP, management | Get/Set DTIM |
+| dump | wlu  | admin | Give suboption list to list various suboptions |
+| eap | wlu  | management, security | restrict traffic to 802.1X packets until 802.1X authorization succeeds%BR% 0 - disable%BR% 1 - enable |
+| eap_restrict | wlu  | security | set/get EAP restriction |
+| encryptstrength | ndis  | management, security | get the current wep key length |
+| event_filter | wlu  |  | Set/get event filter%BR% event_filter syntax is: event_filter [value] |
+| event_msgs | wlu  | mac | set/get 128-bit hex filter bitmask for MAC event reporting via packet indications |
+| eventing | wlu  | mac | set/get 128-bit hex filter bitmask for MAC event reporting up to application layer |
+| evm | wlu  | channel, PHY, rate | Start an EVM test on the given channel, or stop EVM test.%BR% Arg 1 is channel number 1-14, or off or 0 to stop the test.%BR% Arg 2 is optional rate (1, 2, 5.5 or 11) |
+| extdscan | wlu  |  | Initiate an extended scan.%BR% Default active scan across all channels for any SSID.%BR% Optional args: list of SSIDs to scan.%BR% Options:%BR% -s S1 S2 S3, --ssid=S1 S2 S3 SSIDs to scan, comma or space separted%BR% -x x, --split_scan=ST [split_scan] scan type%BR% -t ST, --scan_type=ST [background:0/forcedbackground:1/foreground:2] scan type%BR% -n N, --nprobes=N number of probes per scanned channel, per SSID%BR% -c L, --channels=L comma or space separated list of channels to scan |
+| fasttimer | wlu  | deprecated, uncategorized | Deprecated. Use fast_timer. |
+| fips | ndis  | management, STA | get/set STA FIPS mode(STA only). Set only before association%BR% 0 - disable%BR% 1 - enable%BR% -1 - prohibited |
+| force | ndis  | PHY | set the state of 'force link up':%BR% 0 - disable%BR% 1 - enable |
+| fqacurcy | wlu  | channel, PHY | Manufacturing test: set frequency accuracy mode.%BR% freqacuracy syntax is: fqacurcy [channel]%BR% Arg is channel number 1-14, or 0 to stop the test. |
+| frag | wlu  | deprecated, uncategorized | Deprecated. Use fragthresh. |
+| frameburst | wlu  | mac, management | Disable/Enable frameburst mode |
+| freqtrack | wlu  | channel, PHY | Set Frequency Tracking Mode (0=Auto, 1=On, 2=OFF) |
+| glacialtimer | wlu  | deprecated, uncategorized | Deprecated. Use glacial_timer. |
+| gmode | wlu  | PHY | Set the 54g Mode (LegacyB -or- Auto -or- -or- GOnly -or- BDeferred -or- Performance -or- LRS) |
+| gmode_protection | wlu  | PHY | Get G protection mode. (0=disabled, 1=enabled) |
+| gmode_protection_control | wlu  | PHY | Get/Set 11g protection mode control alg. (0=always off, 1=monitor local association, 2=monitor overlapping BSS) |
+| gmode_protection_override | wlu  | PHY | Get/Set 11g protection mode override. (-1=auto, 0=disable, 1=enable) |
+| gpiodump | wlu  | deprecated, uncategorized | Deprecated. Folded under 'wl dump gpio' |
+| gpioout | wlu  | device | Set any GPIO pins to any value. Use with caution as GPIOs would be assigned to chipcommon%BR% Usage: gpiomask gpioval |
+| help | wlu  | admin | List commands by category |
+| hwkeys | wlu  | admin, device, security | Dump all keys in h/w |
+| ignore_bcns | wlu  | management | AP only (G mode): Check for beacons without NONERP element (0=Examine beacons, 1=Ignore beacons) |
+| infra | wlu %BR%ndis | AP, management, STA | Set Infrastructure mode: 0 (IBSS) or 1 (Infra BSS)%BR% *NOTE:* Defined in multiple modules. |
+| interference | wlu  | PHY | Get/Set interference mitigation mode. Choices are:%BR% 0 = none%BR% 1 = non wlan%BR% 2 = wlan manual%BR% 3 = wlan automatic |
+| iov | wlu  | admin | Get information on driver IO variables |
+| iscan_c | wlu  |  | Continue an incremental scan.%BR% |
+| iscan_s | wlu  |  | Initiate an incremental scan.%BR% |
+| iscanresults | wlu  |  | Return results from last iscan. Specify a buflen (max 8188)%BR% to artificially limit the size of the results buffer.%BR% iscanresults [buflen]%BR% |
+| isup | wlu  | admin, management | Get driver operational state (0=down, 1=up) |
+| join | wlu %BR%ndis | management, STA | Join a specified network SSID.%BR% Join syntax is: join [ssid] [key xxxxx] [imode bss -or- ibss] [amode open -or- shared -or- wpa -or- wpapsk -or- wpa2 -or- wpa2psk -or- wpanone]%BR% *NOTE:* Defined in multiple modules. |
+| join_pref | wlu  | AP, management, STA | Set/Get join target preferences. |
+| keys | wlu  | management, security | Prints a list of the current WEP keys |
+| lazywds | wlu  | management, security | Set or get lazy WDS mode (dynamically grant WDS membership to anyone). |
+| leap | wlu  | management, security | Set parameters for LEAP authentication%BR% leap [ssid] [username] [password] [domain] |
+| legacy_erp | wlu  | uncategorized | Get/Set 11g legacy ERP inclusion (0=disable, 1=enable) |
+| legacylink | ndis  | board, PHY | set the 'IBSS legacy link behavior':%BR% 0 - disable%BR% 1 - enable |
+| lifetime | wlu  | AP, management, STA | Set Lifetime parameter (milliseconds) for each ac.%BR% wl lifetime be -or- bk -or- vi -or- vo [[value]] |
+| list | ndis %BR%vista | admin | list all installed Wireless adapters%BR% *NOTE:* Defined in multiple modules. |
+| list_ie | wlu  | management | Dump the list of vendor proprietary IEs |
+| listen | ndis  | management | Set or query listen time in units of beacon interval. |
+| longtrain | wlu  | channel, PHY | Manufacturing test: set longtraining mode.%BR% longtrain syntax is: longtrain [channel]%BR% Arg is A band channel number or 0 to stop the test. |
+| loop | wlu  | admin, device, mac | enable mac-level or mii-level loopback |
+| lrl | wlu  | management | Set the long retry limit. (integer [1, 255]) |
+| mac | wlu  | mac, management | Set or get the list of source MAC address matches.%BR% wl mac xx:xx:xx:xx:xx:xx [xx:xx:xx:xx:xx:xx ...]%BR% To Clear the list: wl mac none |
+| macmode | wlu  | mac, management | Set the mode of the MAC list.%BR% 0 - Disable MAC address matching.%BR% 1 - Deny association to stations on the MAC list.%BR% 2 - Allow association to stations on the MAC list. |
+| macreg | wlu  | device, mac | Get/Set any mac registers(include IHR and SB):%BR% macreg offset size[2,4] [ value ] [ band ] |
+| malloc_dump | wlu  | deprecated, uncategorized | Deprecated. Folded under 'wl dump malloc |
+| measure_req | wlu  | monitor, PHY | Send an 802.11h measurement request.%BR% Usage: wl measure_req [type] [target MAC addr]%BR% Measurement types are: TPC, Basic, CCA, RPI%BR% Target MAC addr format is xx:xx:xx:xx:xx:xx |
+| mimo_ft | wlu  | channel, PHY | get/set frame type for mimo frame (0=EWC(PreN), 1=Full N) |
+| mimo_ofdm | wlu  | channel, PHY | get/set stf mode for legacy ofdm frame (0=SISO, 1=CDD) |
+| mimo_ps | wlu  | channel, PHY, power | get/set mimo power save mode, (0=Dont send MIMO, 1=proceed MIMO with RTS, 2=N/A, 3=No restriction) |
+| mimo_txbw | wlu  | channel, PHY | get/set mimo txbw (2=20Mhz(lower), 3=20Mhz upper, 4=40Mhz, 5=40Mhz dup[mcs32 only) |
+| monitor | wlu  | monitor, PHY | set monitor mode%BR% 0 - disable%BR% 1 - enable active monitor mode (interface still operates) |
+| mrate | wlu  | deprecated, uncategorized | force a fixed multicast rate:%BR% valid values for 802.11a are (6, 9, 12, 18, 24, 36, 48, 54)%BR% valid values for 802.11b are (1, 2, 5.5, 11)%BR% valid values for 802.11g are (1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54)%BR% -1 (default) means automatically determine the best rate |
+| msglevel | wlu  | admin | set driver console debugging message bitvector%BR% type 'wl msglevel ?' for values |
+| n_bw | wlu  | channel, PHY | get/set mimo channel bandwidth (10=10MHz, 20=20Mhz, 40=40Mhz), will cause phy to reset |
+| ndis_frag | ndis  | management | Set the Fragmentation Threshold via the%BR% NDIS OID OID_802_11_FRAGMENTATION_THRESHOLD. Range [256, 2346] |
+| ndis_rts | ndis  | management | Set the RTS Threshhold via the%BR% NDIS OID OID_802_11_RTS_THRESHOLD. Range [0, 2347] |
+| ndisscan | ndis  | management, STA | Initiate a broadcast SSID scan across all channels, no SSID argument. |
+| nettype | ndis  | management, PHY | Get/Set network type in use via OID_802_11_NETWORK_TYPE_IN_USE.%BR% Syntax: nettype [FH DS OFDM24 OFDM5]%BR% FH Frequency Hopping%BR% DS Direct-Sequencing, Spread-Spectrum (11b only mode)%BR% OFDM24 OFDM in 2.4 GHz (11g Auto mode)%BR% OFDM5 OFDM in 5 GHz (11a mode) |
+| nettypes_supported | ndis  | admin, monitor | Get supported network types via OID_802_11_NETWORK_TYPES_SUPPORTED. |
+| noise | wlu  | monitor, PHY | Get noise (moving average) right after tx in dBm |
+| nphy_antsel | wlu  |  | get/set antenna configuration %BR% set: -1(AUTO), 0xAB(fixed antenna selection)%BR% where A and B is the antenna numbers used for RF chain 0 and 1 respectively%BR% query: [utx][AUTO] [urx][AUTO] [dtx][AUTO] [drx][AUTO]%BR% where utx = TX unicast antenna configuration%BR% urx = RX unicast antenna configuration%BR% dtx = TX default (non-unicast) antenna configuration%BR% drx = RX default (non-unicast) antenna configuration%BR% advanced paramaters to set: [utx] [urx] [dtx] [drx]%BR% where utx = TX unicast antenna configuration -1 = AUTO%BR% urx = RX unicast antenna configuration, -1 = AUTO%BR% dtx = TX default (non-unicast) antenna configuration, -1 = AUTO%BR% drx = RX default (non-unicast) antenna configuration, -1 = AUTO%BR% |
+| nphy_caldump | wlu  |  | Dump the NPHY calibration coefficients |
+| nphy_rssiant | wlu  |  | wl nphy_rssiant antindex(0-3) |
+| nphy_test_tssi | wlu  |  | wl nphy_test_tssi val |
+| nphy_test_tssi_offs | wlu  |  | wl nphy_test_tssi_offs val |
+| nrate | wlu  | PHY, rate | -r legacy rate (CCK, OFDM) -m mcs index -s stf mode (0=SISO,1=CDD,2=STBC(not supported),3=SDM) |
+| nvget | wlu  | admin | get the value of an nvram variable |
+| nvotpw | wlu  | admin, device | Write nvram to on-chip otp%BR% Usage: wl nvotpw file |
+| nvram_dump | wlu  | admin | print nvram variables to stdout |
+| nvram_get | wlu  | admin | get the value of an nvram variable |
+| nvset | wlu  | admin | set an nvram variable%BR% name=value (no spaces around '=') |
+| ofdm_txbw | wlu  | channel, PHY, uncategorized | get/set ofdm txbw (2=20Mhz(lower), 3=20Mhz upper, 4(not allowed), 5=40Mhz dup) |
+| otpdump | wlu  | admin, device | Dump raw otp |
+| otpw | wlu  | admin, device | Write an srom image to on-chip otp%BR% Usage: wl otpw file |
+| out | wlu  | admin, board | mark adapter down but do not reset hardware(disabled)%BR% On dualband cards, cards must be bandlocked before use. |
+| passive | wlu  | AP, management, PHY, STA | Puts scan engine into passive mode |
+| pcicfgreg | wlu  | board, device | g/set pci cfg register |
+| pciereg | wlu  | board, device | g/set pcie core registers |
+| pcieregdump | wlu  | deprecated, uncategorized | Deprecated.Folded under 'wl dump pcieregs' |
+| pfn | wlu  |  | Enable/disable preferred network off load monitoring%BR% pfn syntax is: pfn 0 -or- 1 |
+| pfnadd | wlu  |  | Adding preferred network to monitor and connect%BR% pfnadd syntax is: pfnadd [SSID] [key xxxxx] [imode (bss) -or- ibss] [amode (open) -or- shared] [wpa_auth (wpadisabled) -or- wpapsk -or- wpa2psk -or- wpanone] [wsec WEP -or- TKIP -or- AES -or- TKIPAES] |
+| pfnclear | wlu  |  | Clear the preferred network list%BR% pfn syntax is: pfnclear |
+| pfneventchk | wlu  |  | Listen and prints the preferred network off load event from dongle%BR% pfneventchk syntax is: pfneventchk [(eth1)ifname] |
+| pfnset | wlu  |  | Configures preferred network off load parameter%BR% pfnset syntax is: pfnset [scanfrq xxxxx(30 sec)] [netimeout xxxx(60 sec)] [rssi_delta xxxx(30 dBm)] [sort (listorder) -or- rssi] [bkgscan (0) -or- 1] [autoswitch (0) -or- 1] |
+| phy_rssi_ant | wlu  |  | Get RSSI per antenna (only support NPHY now)%BR% |
+| phy_rxiqest | wlu  |  | Get phy RX IQ noise in dBm:%BR% -s # of samples (2^n)%BR% -a antenna select, 0,1 or 3%BR% |
+| phylist | wlu  | PHY | Return the list of available phytypes |
+| phyreg | wlu  | device, PHY | Get/Set a phy register:%BR% offset [ value ] [ band ] |
+| phytype | wlu  | PHY | Get phy type |
+| piomode | wlu  | admin, device | Get/Set piomode |
+| pktcnt | wlu  | management, monitor | Get the summary of good and bad packets. |
+| pkteng_start | wlu  |  | start packet engine; usage: wl pkteng_start [xx:xx:xx:xx:xx:xx] [tx -or- rx] [ipg] [len] [nframes] [src]%BR% ipg: inter packet gap in us%BR% len: packet length%BR% nframes: number of frames; 0 indicates continuous tx test%BR% |
+| pkteng_stats | wlu  |  | packet engine stats; usage: wl pkteng_stats |
+| pkteng_stop | wlu  |  | stop packet engine; usage: wl pkteng_stop [tx -or- rx] |
+| plcphdr | wlu  | uncategorized | Set the plcp header.%BR% long or auto or debug |
+| pmkid_info | wlu  | security | Returns the pmkid table |
+| powerindex | wlu  | PHY, power | Set the transmit power for A band(0-63).%BR% -1 - default value |
+| prb_resp_timeout | wlu  | AP, channel, management, PHY, STA | Get/Set probe response timeout |
+| primary_key | wlu  | management, security | Set or get index of primary key |
+| promisc | wlu  | monitor, PHY | set promiscuous mode ethernet address reception%BR% 0 - disable%BR% 1 - enable |
+| protection_control | wlu  | AP, management, STA | Get/Set protection mode control alg. (0=always off, 1=monitor local association, 2=monitor overlapping BSS) |
+| pwr_percent | wlu  | PHY, power | Get/Set power output percentage |
+| quiet | wlu  | PHY | Send an 802.11h quiet command.%BR% Usage: wl quiet [TBTTs until start], [duration (in TUs)], [offset (in TUs)] |
+| radar | wlu  | PHY | Enable/Disable radar |
+| radarargs | wlu  | PHY | Get/Set Radar parameters in %BR% order as npulses, ncontig, min_pw , max_pw, thresh0, thresh1, blank,%BR% fmdemodcfg, tnpulses_lp, min_pw_lp, max_pw_lp, min_fm_lp,%BR% max_deltat_lp, min_deltat, max_deltat%BR% |
+| radarargs40 | wlu  |  | Get/Set Radar parameters for 40Mhz channel in %BR% order as npulses, ncontig, min_pw , max_pw, thresh0, thresh1, blank,%BR% fmdemodcfg, tnpulses_lp, min_pw_lp, max_pw_lp, min_fm_lp,%BR% max_deltat_lp, min_deltat, max_deltat%BR% |
+| radio | wlu  | device, PHY | Set the radio on or off.%BR% on or off |
+| radioreg | wlu  | device, PHY | Get/Set a radio register:%BR% offset [ value ] [ band ] |
+| rand | wlu  | admin, device | Get a 2-byte Random Number from the MAC's PRNG%BR% Usage: wl rand |
+| rate | wlu  | PHY | force a fixed rate:%BR% valid values for 802.11a are (6, 9, 12, 18, 24, 36, 48, 54)%BR% valid values for 802.11b are (1, 2, 5.5, 11)%BR% valid values for 802.11g are (1, 2, 5.5, 6, 9, 11, 12, 18, 24, 36, 48, 54)%BR% -1 (default) means automatically determine the best rate |
+| ratedump | wlu  | PHY, rate | Print driver rate selection tunables and per-scb state to stdout%BR% based on remote station mac address[xx:xx:xx:xx:xx:xx] |
+| rateparam | wlu  | PHY, rate | set driver rate selection tunables%BR% arg 1: tunable id%BR% arg 2: tunable value |
+| rateset | wlu  | PHY, rate | Returns or sets the supported and basic rateset, (b) indicates basic%BR% With no args, returns the rateset. Args are%BR% rateset default -or- all -or- [arbitrary rateset]%BR% default - driver defaults%BR% all - all rates are basic rates%BR% arbitrary rateset - list of rates%BR% List of rates are in Mbps and each rate is optionally followed%BR% by (b) or b for a Basic rate. Example: 1(b) 2b 5.5 11%BR% At least one rate must be Basic for a legal rateset. |
+| rcvdropped | ndis  | monitor | Use RNDIS_OID_GEN_RCV_NO_BUFFER to get 'Frames missed, no buffer' |
+| rcvok | ndis  | monitor | Use OID_GEN_RCV_OK to get 'Frames received without errors' |
+| reassoc | wlu  | management, STA | Reassociate (roam) to the AP with the specified BSSID.%BR% (mac address, e.g. 00:11:20:11:33:33, colons optional) |
+| reboot | wlu  | admin, board | Reboot platform |
+| regulatory | wlu  | management | Get/Set regulatory domain mode (802.11d). Driver must be down. |
+| reinit | wlu  | admin, device | Reinitialize device |
+| reset_d11cnts | wlu  | admin, monitor | reset 802.11 MIB counters |
+| restart | wlu  | admin, board | Restart driver. Driver must already be down. |
+| revinfo | wlu  | admin, device | get hardware revision information |
+| rifs | wlu  |  | set/get the rifs status; usage: wl rifs [1/0] (On/Off)%BR% |
+| rm_rep | wlu  | monitor, PHY | Get current radio measurement report |
+| rm_req | wlu  | monitor, PHY | Request a radio measurement of type basic, cca, or rpi%BR% specify a series of measurement types each followed by options.%BR% example: wl rm_req cca -c 1 -d 50 cca -c 6 cca -c 11%BR% Options:%BR% -t n numeric token id for measurement set or measurement%BR% -c n channel%BR% -d n duration in TUs (1024 us)%BR% -p parallel flag, measurement starts at the same time as previous%BR% %BR% Each measurement specified uses the same channel and duration as the%BR% previous unless a new channel or duration is specified. |
+| rmwep | wlu  | management, security | Remove the encryption key at the specified key index. |
+| rndismac | ndis  | management | Get/Set current MAC address (set allowed with RNDIS-USB only)%BR% (mac address, e.g. 00:11:20:11:33:33, colons optional) |
+| roam_delta | wlu  | management, STA | Set the roam candidate qualification delta. roam_delta [integer [, a/b]] |
+| roam_scan_period | wlu  | management, STA | Set the roam candidate qualification delta. (integer) |
+| roam_trigger | wlu  | management, STA | Get or Set the roam trigger RSSI threshold:%BR% Get: roam_trigger [a -or- b]%BR% Set: roam_trigger [integer] [a -or- b -or- all]%BR% integer - 0: default%BR% 1: optimize bandwidth%BR% 2: optimize distance%BR% [-1, -99]: dBm trigger value |
+| rsn_ie | macos  |  | Get/Set the RSN_IE%BR% On set, provide a hextring or clear to clear the saved RSN_IE info |
+| rssi | wlu  | uncategorized | Get the current RSSI val, for an AP you must specify the mac addr of the STA |
+| rts | wlu  | deprecated, uncategorized | Deprecated. Use rtsthresh. |
+| scan | wlu  | AP, management, PHY, STA | Initiate a scan.%BR% |
+| scan_channel_time | wlu  | channel, PHY | Get/Set scan channel time |
+| scan_home_time | wlu  | channel, PHY | Get/Set scan home channel dwell time |
+| scan_nprobes | wlu  | uncategorized | Get/Set scan parameter for number of probes to use per channel scanned |
+| scan_passive_time | wlu  | channel, PHY | Get/Set passive scan channel dwell time |
+| scan_unassoc_time | wlu  | channel, PHY | Get/Set unassociated scan channel dwell time |
+| scanresults | wlu  | AP, monitor, STA | Return results from last scan. |
+| scansuppress | wlu  | PHY | Suppress all scans for testing.%BR% 0 - allow scans%BR% 1 - suppress scans |
+| scb_timeout | wlu  | AP, management, security | AP only: inactivity timeout value for authenticated stas |
+| sd_blockmode | wlu  | device | g/set blockmode |
+| sd_blocksize | wlu  | device | g/set block size for a function |
+| sd_cis | wlu  | device | dump sdio CIS |
+| sd_devreg | wlu  | device | g/set device register across SDIO bus |
+| sd_divisor | wlu  | device | set the divisor for SDIO clock generation |
+| sd_dma | wlu  | device | g/set dma usage |
+| sd_hciregs | wlu  | device | dump sdio Host Controller Interrupt Registers |
+| sd_highspeed | wlu  | device | set the high-speed clocking mode |
+| sd_hostreg | wlu  | device | g/set local controller register |
+| sd_ints | wlu  | device | g/set client ints |
+| sd_mode | wlu  | device | g/set SDIO bus mode (spi, sd1, sd4) |
+| sd_msglevel | wlu  | admin | g/set debug message level |
+| sd_numints | wlu  | device | number of device interrupts |
+| sd_numlocalints | wlu  | device | number of non-device controller interrupts |
+| send | ndis  | admin | send SNAP formatted packet%BR% syntax: send [dest [f1:f2:f3:f4:f5:f6]] [oui [01:02:03]] [type [888e]] [len [60]] [data [ca fe ba be ...]]%BR% example: send dest 00:11:22:01:00:08 len 32 data be ef%BR% sent to 00:11:22:01:00:08 oui 01:02:03 type 888e len 32%BR% be ef 01 02 03 04 05 06 07 08 |
+| serdespllreg | wlu  | board, device | g/set SERDES PLL registers |
+| serdesrxreg | wlu  | board, device | g/set SERDES rx registers |
+| serdestxreg | wlu  | board, device | g/set SERDES tx registers |
+| set_pmk | wlu  | management, security | Set passphrase for PMK in driver-resident supplicant. |
+| shmem | wlu  | device | Get/Set a shared memory location:%BR% offset [ value ] [band ] |
+| shmem_dump | wlu  | deprecated, uncategorized | Deprecated. Folded under 'wl dump shmem' |
+| shortslot | wlu  | PHY | Get current 11g Short Slot Timing mode. (0=long, 1=short) |
+| shortslot_override | wlu  | PHY | Get/Set 11g Short Slot Timing mode override. (-1=auto, 0=long, 1=short) |
+| shortslot_restrict | wlu  | PHY | Get/Set AP Restriction on associations for 11g Short Slot Timing capable STAs.%BR% 0 - Do not restrict association based on ShortSlot capability%BR% 1 - Restrict association to STAs with ShortSlot capability |
+| shownetworks | wlu %BR%ndis | management, STA | Pretty-print the BSSID list%BR% *NOTE:* Defined in multiple modules. |
+| slowtimer | wlu  | deprecated, uncategorized | Deprecated. Use slow_timer. |
+| spect | wlu  | management, PHY | Get/Set 802.11h Spectrum Management mode.%BR% 0 - Off%BR% 1 - Loose interpretation of 11h spec - may join non-11h APs%BR% 2 - Strict interpretation of 11h spec - may not join non-11h APs%BR% 3 - Disable 11h and enable 11d%BR% 4 - Loose interpretation of 11h+d spec - may join non-11h APs |
+| srclear | wlu  |  | Clear the srom |
+| srdump | wlu  | admin, device | print contents of SPROM to stdout |
+| srl | wlu  | management | Set the short retry limit. (integer [1, 255]) |
+| srwrite | wlu  |  | Write the srom |
+| ssid | wlu %BR%ndis | AP, management, STA | Set or get a configuration's SSID.%BR% wl ssid [-C num] -or- [--cfg=num] [[ssid]]%BR% If the configuration index 'num' is not given, configuraion #0 is assumed and%BR% setting will initiate an assoication attempt if in infrastructure mode,%BR% or join/creation of an IBSS if in IBSS mode,%BR% or creation of a BSS if in AP mode.%BR% *NOTE:* Defined in multiple modules. |
+| sta_info | wlu  | monitor, STA | wl sta_info [xx:xx:xx:xx:xx:xx] |
+| staname | wlu  | management, monitor, STA | get/set station name: %BR% Maximum name length is 15 bytes |
+| stats | ndis  | monitor | Use OID_802_11_STATISTICS to dump statistics for the 802.11 interface |
+| status | wlu %BR%ndis | AP, monitor, STA | Print information about current network association.%BR% (also known as assoc)%BR% *NOTE:* Defined in multiple modules. |
+| suprates | wlu  | PHY, rate | Returns or sets the 11g override for the supported rateset%BR% With no args, returns the rateset. Args are a list of rates,%BR% or 0 or -1 to specify an empty rateset to clear the override.%BR% List of rates are in Mbps, example: 1 2 5.5 11 |
+| tkip_countermeasures | wlu  | management, security | Enable or disable TKIP countermeasures (TKIP-enabled AP only)%BR% 0 - disable%BR% 1 - enable |
+| toe | wlu  |  | Enable/Disable tcpip offload feature |
+| toe_ol | wlu  |  | Get/Set tcpip offload components |
+| toe_stats | wlu  |  | Display checksum offload statistics |
+| toe_stats_clear | wlu  |  | Clear checksum offload statistics |
+| tsc | wlu  | management, monitor, security | Print Tx Sequence Couter for key at specified key index. |
+| tsf_dump | wlu  | deprecated, uncategorized | Deprecated. Folded under 'wl dump tsf' |
+| tssi | wlu  | PHY | Get the tssi value from radio |
+| txant | wlu  | PHY | Set the transmit antenna%BR% 0 - force use of antenna 0%BR% 1 - force use of antenna 1%BR% 3 - use the RX antenna selection that was in force during%BR% the most recently received good PLCP header |
+| txfifo_sz | wlu  |  | set/get the txfifo size; usage: wl txfifo_sz [fifonum] [size_in_bytes] |
+| txinstpwr | wlu  | PHY, power | Return tx power based on instant TSSI  |
+| txpathpwr | wlu  | PHY, power | Turn the tx path power on or off on 2050 radios |
+| txpwr | wlu  | deprecated, uncategorized | Set tx power in milliwatts. Range [1, 84]. |
+| txpwr1 | wlu  | PHY, power | Set tx power in in various units. Choose one of (default: dbm): %BR% -d dbm units%BR% -q quarter dbm units%BR% -m milliwatt units%BR% Can be combined with:%BR% -o turn on override to disable regulatory and other limitations%BR% Use wl txpwr -1 to restore defaults |
+| txpwrlimit | wlu  | PHY, power | Return current tx power limit |
+| ucantdiv | wlu  | device, PHY | Enable/disable ucode antenna diversity (1/0 or on/off) |
+| ucflags | wlu  | device | Get/Set ucode flags 1, 2, 3(16 bits each)%BR% offset [ value ] [ band ] |
+| up | wlu  | admin, board | reinitialize and mark adapter up (operational) |
+| upgrade | wlu  | admin | Upgrade the firmware on an embedded device |
+| ver | wlu  | admin | get version information |
+| wake | wlu  | PHY, power | set driver power-save mode sleep state:%BR% 0: core-managed%BR% 1: awake |
+| wds | wlu  | management, security | Set or get the list of WDS member MAC addresses.%BR% Set using a space separated list of MAC addresses.%BR% wl wds xx:xx:xx:xx:xx:xx [xx:xx:xx:xx:xx:xx ...] |
+| wds_remote_mac | wlu  | management, security | Get WDS link remote endpoint's MAC address |
+| wds_wpa_role | wlu  | management, security | Get/Set WDS link local endpoint's WPA role |
+| wds_wpa_role_old | wlu  | management, security | Get WDS link local endpoint's WPA role (old) |
+| wepdefault | ndis  | management, security | Reset the WEP keys to their power-on defaults |
+| wepstatus | wlu %BR%ndis | deprecated, uncategorized | Set or Get WEP status%BR% wepstatus [on -or- off]%BR% *NOTE:* Defined in multiple modules. |
+| wet | wlu  | management, security | Get/Set wireless ethernet bridging mode |
+| wme | wlu  | wme/wmm | Set WME (Wireless Multimedia Extensions) mode (0=off, 1=on, -1=auto) |
+| wme_ac | wlu  | wme/wmm | wl wme_ac ap -or- sta [be -or- bk -or- vi -or- vo [ecwmax -or- ecwmin -or- txop -or- aifsn -or- acm [value]] ...] |
+| wme_apsd | wlu  | AP, PHY, power, wme/wmm | Set APSD (Automatic Power Save Delivery) mode on AP (0=off, 1=on) |
+| wme_apsd_sta | wlu  | wme/wmm | Set APSD parameters on STA. Driver must be down.%BR% Usage: wl wme_apsd_sta [max_sp_len] [be] [bk] [vi] [vo]%BR% [max_sp_len]: number of frames per USP: 0 (all), 2, 4, or 6%BR% [xx]: value 0 to disable, 1 to enable U-APSD per AC |
+| wme_clear_counters | wlu  | admin, monitor, wme/wmm | clear WMM counters |
+| wme_counters | wlu  | admin, monitor, wme/wmm | print WMM stats |
+| wme_dp | wlu  | wme/wmm | Set AC queue discard policy.%BR% Usage: wl wme_dp [be] [bk] [vi] [vo]%BR% [xx]: value 0 for newest-first, 1 for oldest-first |
+| wme_tx_params | wlu  | wme/wmm | wl wme_tx_params [be -or- bk -or- vi -or- vo [short -or- sfb -or- long -or- lfb -or- max_rate [value]] ...] |
+| wowl | wlu  |  | Enable/disable WOWL events%BR% 0 - Clear all events%BR% Bit 0 - Wakeup on Magic Packet%BR% Bit 1 - Wakeup on NetPattern (use 'wl wowl_pattern' to configure pattern)%BR% Bit 2 - Wakeup on loss-of-link due to Disassociation/Deauth%BR% Bit 3 - Wakeup on retrograde tsf%BR% Bit 4 - Wakeup on loss of beacon (use 'wl wowl_bcn_loss' to configure time)%BR% |
+| wowl_bcn_loss | wlu  |  | Set #of seconds of beacon loss for wakeup event%BR% |
+| wowl_pattern | wlu  |  | usage: wowl_pattern [ [ add -or- del ] offset mask value ]%BR% No options -- lists existing pattern list%BR% add -- Adds the pattern to the list%BR% del -- Removes a pattern from the list%BR% offset -- Starting offset for the pattern%BR% mask -- Mask to be used for pattern. Bit i of mask =] byte i of the pattern%BR% value -- Value of the pattern%BR% |
+| wowl_wakeind | wlu  |  | usage: wowl_wakeind [clear]%BR% Shows last system wakeup event indications from PCI and D11 cores%BR% clear - Clear the indications%BR% |
+| wpa_auth | wlu  | management, security | Bitvector of WPA authorization modes:%BR% 1 WPA-NONE%BR% 2 WPA-802.1X/WPA-Professional%BR% 4 WPA-PSK/WPA-Personal%BR% 8 CCKM (WPA)%BR% 16 CCKM (WPA2)%BR% 64 WPA2-802.1X/WPA2-Professional%BR% 128 WPA2-PSK/WPA2-Personal%BR% 0 disable WPA |
+| wpa_cap | wlu  | management, security | set/get 802.11i RSN capabilities |
+| wsec | wlu  | management, security | wireless security bit vector%BR% 1 - WEP enabled%BR% 2 - TKIP enabled%BR% 4 - AES enabled%BR% 8 - WSEC in software%BR% 0x80 - FIPS enabled |
+| wsec_restrict | wlu  | management, security | Drop unencrypted packets if WSEC is enabled%BR% 0 - disable%BR% 1 - enable |
+| wsec_test | wlu  | management, security | Generate wsec errors%BR% wsec_test [test_type] [keyindex -or- xx:xx:xx:xx:xx:xx]%BR% type 'wl wsec_test ?' for test_types |
+| xlist | ndis  | admin | list ALL installed network adapters |
+| xmitok | ndis  | monitor | Use OID_GEN_XMIT_OK to get 'Frames transmitted without errors' |

@@ -1,0 +1,241 @@
+#!/bin/env utf
+# -*-tcl-*-
+
+# Script for duplicating 
+# By connecting, traffic, then RvR to disconnect-roaming 
+# and measuring the next traffic pattern by looping
+# 
+# Assumes that STA and AP are loaded
+#
+# $Id$
+# $Copyright Broadcom Corporation$
+
+
+package require UTF
+package require UTF::Test::ConnectAPSTA
+package require UTF::Aeroflex
+
+
+UTF::Test PR101402 {AP STA args} {
+    UTF::Getopts {
+	{count.arg 10 "Number of Loops to Try"}
+	{attenuator.arg "" "Attenuator to Use"}
+	{attenstart.arg 0 "Starting Attenuator Value to Use"}
+	{attenincr.arg 10 "Attenuator Increment Value to Use"}
+	{email.arg "" "Email to Use"}
+    {errrate.arg 60 "Rate at Which You Error"}
+    {chanspec.arg 1 "Channel to connect to"}
+    {security.arg open "Security Type to Use"}
+    {scansuppress.arg 1 "scansuppress settings on"}
+    {cal.arg 1 "calibration settings on"}
+	}
+
+    UTF::WrapSummary $UTF::SummaryDir "PR101402" "" "$(email)" {
+
+        # Ensure Attenuation is set to attenstart
+        UTF::Message LOG "" "Setting attenuator to $(attenstart)"
+        if {[catch {ALL attn $(attenstart)} temp]} {
+            UTF::Message WARN "" "Setting attenuator failed: $temp"
+        }
+
+        #set window size
+        set w [$STA cget -tcpwindow]; # Default window size
+
+       # Put the AP information on web page
+        UTF::Try "Whatami AP $AP" {
+            $AP whatami
+        }
+        UTF::Try "WlVer AP $AP" {
+            $AP wl ver
+        }
+        # Put the STA information on web page
+        UTF::Try "Whatami STA $STA" {
+            $STA whatami
+        }
+        UTF::Try "WlVer STA $STA" {
+            $STA wl ver
+        }
+    
+        # Put STA message level for scan and assoc and right mode like RvR Nightly
+		$STA wl down
+        $STA wl msglevel +scan +assoc
+        $STA wl mimo_bw_cap 1
+        $STA wl up
+        $STA wl mpc 0
+        $STA wl isup
+        $STA wl stbc_rx 0
+        $STA wl stbc_tx 0
+        catch {$STA wl nphy_percal 1}
+        $STA wl sgi_rx 3
+        $STA wl sgi_tx -1
+        $STA wl PM 0
+        $STA wl roam_trigger -100 all
+
+        # Loop here
+        for {set i 1} {$i <= $(count)} {incr i} {
+            UTF::Try "Try $i/$(count)" {
+
+                # Connect AP and STA (2G20 channel 1)
+                catch {ConnectAPSTA $AP $STA -security $(security) -chanspec $(chanspec)} connect
+
+                # dump rssi and status for before roaming TP
+                catch {$STA wl rssi} rssi
+                catch {$STA wl status} status
+
+                # handle scansuppress
+                if {$(scansuppress) == 1} {
+	                $STA wl scansuppress 1
+                }
+                
+                # handle disablecal
+                if {$(cal) == 1} {
+	                $STA wl phy_cal_disable 1
+                }
+                
+                # Devloper required stats
+                catch {$AP wl nrate}
+                catch {$STA wl nrate}
+                
+                # clear ampdu on router, also place for developer needed stats
+                catch {$STA wl ampdu_clear_dump}
+                                
+                # Do traffic and see what happens from STA to Lan (upstream)
+                catch {UTF::Multiperf [list $STA [$AP lan]] -i 2 -t 10 -w 512k} ret
+                
+                catch {$STA wl dump ampdu}
+                
+
+                # clear ampdu on router, also place for developer needed stats
+                catch {$STA wl ampdu_clear_dump}
+                
+                # Devloper required stats
+                catch {$AP wl nrate}
+                catch {$STA wl nrate}
+                
+                catch {UTF::Multiperf [list $STA [$AP lan]] -i 2 -t 10 -w 512k} ret1
+
+                catch {$STA wl dump ampdu}
+                
+                # Do traffic and see what happens from STA to Lan (downstream)
+                #catch {UTF::Multiperf [list [$AP lan] $STA] -t 2.5 -w 512k} ret                
+                
+                # handle scansuppress post traffic
+                if {[$STA wl scansuppress] == 1} {
+	                $STA wl scansuppress 0
+                }
+                
+                # handle disablecal post traffic
+                if {[$STA wl phy_cal_disable] == 1} {
+	                $STA wl phy_cal_disable 0
+                }
+                
+                # break out of test if you see low TP, without disconnecting for developer to debug
+                set value1 [lindex $ret1 0]
+                if {$value1 < $(errrate)} {
+                    set i $(count)
+                    UTF::Message Info "" "Rate is: $ret, $ret1 RSSI is $rssi"
+                    error "Rate is: $ret, $ret1 RSSI is $rssi"
+                }
+                
+                # return the value of the performance test and rssi
+                #set ret "html: TP: $ret, RSSI: $rssi"
+
+                # now run through attenuation settings until max of 100, causing STA to roam
+                for {set x $(attenstart)} {$x <= 100} {incr x $(attenincr)} {
+                    catch {ALL attn $x} temp1
+                    UTF::Sleep 1
+                    UTF::Message LOG "" "Current Attenuator Setting: $temp1"    
+                }
+                                                
+                # now bring back attenuation to attenstart
+                for {set x 100} {$x >= $(attenstart)} {incr x -$(attenincr)} {
+                    catch {ALL attn $x} temp1
+                    UTF::Sleep 1
+                    UTF::Message LOG "" "Current Attenuator Setting: $temp1"    
+                }
+                
+                # dump rssi and status for 2nd TP measurement post roam
+                catch {$STA wl rssi} rssi1
+                catch {$STA wl status} status1
+
+                # handle scansuppress
+                if {$(scansuppress) == 1} {
+	                $STA wl scansuppress 1
+                }
+                
+                # handle disablecal
+                if {$(cal) == 1} {
+	                $STA wl phy_cal_disable 1
+                }
+                
+                # Devloper required stats
+                catch {$AP wl nrate}
+                catch {$STA wl nrate}
+
+                # clear ampdu on router, also place for developer needed stats
+                catch {$STA wl ampdu_clear_dump}
+
+                # Devloper required stats
+                catch {$AP wl nrate}
+                catch {$STA wl nrate}                                
+                
+                # Do traffic and see what happens from STA to Lan (upstream)
+                catch {UTF::Multiperf [list $STA [$AP lan]] -i 2 -t 10 -w 512k} ret2
+                
+                catch {$STA wl dump ampdu}
+                
+
+                # clear ampdu on router, also place for developer needed stats
+                catch {$STA wl ampdu_clear_dump}
+                
+                # Devloper required stats
+                catch {$AP wl nrate}
+                catch {$STA wl nrate}
+                
+                catch {UTF::Multiperf [list $STA [$AP lan]] -i 2 -t 10 -w 512k} ret3
+
+                catch {$STA wl dump ampdu}
+                
+                # clear ampdu on router, also place for developer needed stats
+                catch {$STA wl ampdu_clear_dump}
+                
+                # Devloper required stats
+                catch {$AP wl nrate}
+                catch {$STA wl nrate}
+                
+                catch {UTF::Multiperf [list $STA [$AP lan]] -i 2 -t 10 -w 512k} ret4
+
+                catch {$STA wl dump ampdu}
+                
+                # handle scansuppress post traffic
+                if {[$STA wl scansuppress] == 1} {
+	                $STA wl scansuppress 0
+                }
+                
+                # handle disablecal post traffic
+                if {[$STA wl phy_cal_disable] == 1} {
+	                $STA wl phy_cal_disable 0
+                }
+                
+                # break out of test if you see low TP, without disconnecting for developer to debug
+                set value2 [lindex $ret4 0]
+                if {$value2 < $(errrate)} {
+                    set i $(count)
+                    UTF::Message Info "" "Rate is: $ret2, $ret3, $ret4 RSSI is $rssi1"
+                    error "Rate is: $ret2, $ret3, $ret4 RSSI is $rssi1"
+                }
+                
+                # return the value of the performance test and rssi
+                set ret "html: Pre-Roam TP1: $ret,       TP2: $ret1, RSSI: $rssi, Post-Roam TP1: $ret2,       TP2: $ret3, TP3:  $ret4 RSSI: $rssi1"                              
+
+                # Disassoc
+                #catch {$STA wl disassoc}
+
+                # wl down
+                #catch {$STA wl down}
+                                
+                return $ret
+            }
+        }
+    }
+}

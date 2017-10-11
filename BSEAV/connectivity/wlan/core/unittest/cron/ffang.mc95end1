@@ -1,0 +1,22 @@
+#
+MAILTO=ffang@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	/home/ffang/unittest/cron/update
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+15      1      * * *   unittest/cron/launch StaPwrThrttlRel Test/StaNightly.test -utfconf mc95 -sta 'MacX52cP108-TOT MacX51P281-TOT MacX29cP418-TOT MacX51aP403-TOT' -ap '4360FC15SOFTAP-TOT' -perfonly -rateonly -loop 1 -title '[MC95:StaNightly:t1] 4360FC15SOFTAP-BIS120RC4 <=> MacX52cP108,MacX51P281,MacX29cP418,MacX51aP403-TOT perf/rate-only' 
+
+35      1      * * *   unittest/cron/launch StaPwrThrttlTob Test/StaNightly.test -utfconf mc95 -sta 'MacX52cP108-BIS715GALA_BRANCH_7_21 MacX51P281-BIS715GALA_BRANCH_7_21 MacX29cP418-BIS715GALA_BRANCH_7_21 MacX51aP403-BIS715GALA_BRANCH_7_21 MacX14P125-BIS715GALA_BRANCH_7_21 MacX87P202-BIS715GALA_BRANCH_7_21' -ap '4360FC15SOFTAP-EAGLE_BRANCH_10_10' -rateonly -perfonly -loop 1 -title '[MC95:StaNightly:t2] 4360FC15SOFTAP-EAGLE_BRANCH_10_10 <=> MacX52cP108,MacX51P281,MacX29cP418,MacX51aP403,MacX14P125,MacX87P202-BIS715GALA_BRANCH_7_21 -rateonly -perfonly' 
+
+30      15      * * *   unittest/cron/launch MacX51RSOFTAP Test/RvRNightly1.test -utfconf mc95 -ap '4360FC15SOFTAP-TOT' -sta 'MacX52cP108-BIS715GALA_BRANCH_7_21' -va af -cycle5G80AttnRange '10-70 70-10' -cycle5G40AttnRange '10-70 70-10' -cycle5G20AttnRange '10-70 70-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-75 75-10' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MC95:t11R:RvRNightly1:BIS120RC4_REL_7_15_22_* pre-release validation] 4360FC15SOFTAP-TOT <=> MacX52cP108-BIS715GALA_BRANCH_7_21' -perftime 2.5 -window 3640K -fb1 
+
+35      15      * * *   unittest/cron/launch MacX51RSOFTAP Test/RvRNightly1.test -utfconf mc95 -ap '4360FC15SOFTAP-TOT' -sta 'MacX51P281-BIS715GALA_BRANCH_7_21' -va af -cycle5G80AttnRange '0-70 70-0' -cycle5G40AttnRange '0-70 70-0' -cycle5G20AttnRange '0-70 70-0' -cycle2G40AttnRange '0-70 70-0' -cycle2G20AttnRange '0-70 70-0' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MC95:t12R:RvRNightly1:BIS120RC4_REL_7_15_22_* pre-release validation] 4360FC15SOFTAP-TOT <=> MacX51P281-BIS715GALA_BRANCH_7_21' -perftime 2.5 -window 3640K -fb1 
+
+40      15      * * *   unittest/cron/launch MacX51RSOFTAP Test/RvRNightly1.test -utfconf mc95 -ap '4360FC15SOFTAP-TOT' -sta 'MacX29cP418-BIS715GALA_BRANCH_7_21' -va af -cycle5G80AttnRange '10-70 70-10' -cycle5G40AttnRange '10-70 70-10' -cycle5G20AttnRange '10-70 70-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-75 75-10' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MC95:t13R:RvRNightly1:BIS120RC4_REL_7_15_22_* pre-release validation] 4360FC15SOFTAP-TOT <=> MacX29cP418-BIS715GALA_BRANCH_7_21' -perftime 2.5 -window 3640K -fb1 
+
+45      15      * * *   unittest/cron/launch MacX51RSOFTAP Test/RvRNightly1.test -utfconf mc95 -ap '4360FC15SOFTAP-TOT' -sta 'MacX51aP403-BIS715GALA_BRANCH_7_21' -va af -cycle5G80AttnRange '10-70 70-10' -cycle5G40AttnRange '10-70 70-10' -cycle5G20AttnRange '10-70 70-10' -cycle2G40AttnRange '10-70 70-10' -cycle2G20AttnRange '10-75 75-10' -chan5G80 '36/80' -chan5G40 '36l' -chan5G20 '36' -chan2G40 '3l' -chan2G20 '3'  -no2G40 -no5G20 -nocontrvr -title '[MC95:t14R:RvRNightly1:BIS120RC4_REL_7_15_22_* pre-release validation] 4360FC15SOFTAP-TOT <=> MacX51aP403-BIS715GALA_BRANCH_7_21' -perftime 2.5 -window 3640K -fb1 
+

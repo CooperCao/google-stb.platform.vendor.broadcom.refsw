@@ -1,0 +1,52 @@
+#job-ID  prior   name       user         state submit/start at     queue                          #file edited on 25 SEPT2014
+MAILTO=sumesh@broadcom.com
+#
+# min   hour    day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+15,30,45      00,01,08,09,10,11,12,13,14,15,16,17,18,19,20,21,22,23 * * *   /home/sumesh/svn/unittest/cron/update
+
+#========================================================================================
+#
+#=============================== 43602mcs2 StaNightly & RvR =============================
+
+#30   09     * * *   svn/unittest/cron/launch blr07_43602mc2ACI2G20_rate1 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 2G20 43602MC2-Rate 1-Mode 0 & 7]' -ap 4360ref -sta 43602mc2b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 10' -cycle2G20AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl2G20 '0 7'   -loop 2 -no2G40 -no5G40 -no5G20 -nocompositemainpage -intchan2G40 11 -intrate 1 -noapload 0  -email hnd-utf-list
+
+#20   00     * * *    svn/unittest/cron/launch blr07_43602mc2_Nightly  Test/StaNightly.test -utfconf blr07 -sta '43602mc2b 43602mc2t ' -ap '4360ref' -title '[BLR07 StaNightly 43602mc2 <=> 4360mc]' -noapload -email hnd-utf-list 
+
+#25   00     * * *    svn/unittest/cron/launch blr07_43602mc5_RvR Test/RvRNightly1.test -utfconf blr07 -sta '43602mc2b 43602mc2t' -ap 4360ref -attnstep 1 -title '43602MC2 <=> 4360MC' -perftime 2.5 -va aflex -cycle2G20AttnRange '0-100 100-0' -noapload -email hnd-utf-list 
+#================================ ACI Tests =============================================
+
+#00   01     * * *    svn/unittest/cron/launch blr07_43602mc2ACI2G20_rate6 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 2G20 43602MC2-Rate 6-Mode 0 & 7]' -ap 4360ref -sta 43602mc2b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 10' -cycle2G20AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20  -intwl2G20 '0 7 '  -loop 2 -no2G40 -no5G40 -no5G20 -nocompositemainpage -intchan2G40 11 -intrate 6 -noapload  -email hnd-utf-list
+ 
+#30   01     * * *    svn/unittest/cron/launch blr07_43602mc2ACI2G20_rate_mcs7 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 2G20 43602MC2-Rate MCS7Mode 0 & 7]' -ap 4360ref -sta 43602mc2b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 20' -cycle2G20AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20  -intwl2G20 '0 7 '  -loop 2 -no2G40 -no5G40 -no5G20 -nocompositemainpage -intchan2G40 11 -intnrate 7 -noapload    -email hnd-utf-list
+
+#00   02     * * *    svn/unittest/cron/launch blr07_43602mc2ACI2G20_rate_mcs15 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 2G20 43602MC2-Rate MCS15-Mode 0 & 7]' -ap 4360ref -sta 43602mc2b -nosniffer -intsta 4360aci -attngrp G2 -intattn2G20 'ALL 10' -cycle2G20AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20 -intwl2G20 '0 7 '  -loop 2 -no2G40 -no5G40 -no5G20 -nocompositemainpage -intchan2G40 11 -intnrate 15 -noapload   -email hnd-utf-list
+
+#===============================4360mc5 STtaNightly & RvR ============================== 
+
+#00   11     * * *    svn/unittest/cron/launch blr07_43602mc5ACI5G20_rate1 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 5G20 43602MC5-Rate 1-Mode 0&7-Intgap400]' -ap 4360ref -sta 43602mc5b -nosniffer -intsta 4360aci -attngrp G2 -intattn5G20 'ALL 10' -cycle5G20AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20 -nocache -intwl5G20 '0 7'   -loop 2  -no2G40 -no2G20 -no5G40 -nocompositemainpage -intchan2G40 11 -intrate 1 -noapload    -email hnd-utf-list
+
+#45   02    * * *    svn/unittest/cron/launch blr07_43602mc5_Nightly  Test/StaNightly.test -utfconf blr07 -sta '43602mc5b 43602mc5t ' -ap '4360ref' -title '[BLR07 StaNightly 43602mc5 <=> 4360mc]' -noapload -email hnd-utf-list 
+
+#50   02    * * *    svn/unittest/cron/launch blr07_43602mc5_RvR Test/RvRNightly1.test -sta 43602mc5b -ap 4360ref -attnstep 1 -title '43602MC5 <=> 4360MC' -perftime 2.5 -va aflex -cycle5G20AttnRange '0-100 100-0' -cycle5G40AttnRange '0-100 100-0' -noapload  -email hnd-utf-list
+
+#=============================== ACI tests ==============================================
+#30   03    * * *    svn/unittest/cron/launch blr07_43602mc5ACI5G20_rate6 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 5G20 43602MC5-Rate 6-Mode 0&7]' -ap 4360ref -sta 43602mc5b -nosniffer -intsta 4360aci -attngrp G2 -intattn5G20 'ALL 10' -cycle5G20AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20 -intwl5G20 '0 7'   -loop 2 -no2G40 -no2G20 -no5G40 -nocompositemainpage -intchan2G40 11 -intrate 6 -noapload   -email hnd-utf-list
+
+#00   04    * * *    svn/unittest/cron/launch blr07_43602mc5ACI5G20_rate_mcs7 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 5G20 43602MC5-Rate MCS7-Mode 0&7 ]' -ap 4360ref -sta 43602mc5b -nosniffer -intsta 4360aci -attngrp G2 -intattn5G20 'ALL 20' -cycle5G20AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20 -intwl5G20 '0 7'   -loop 2 -no2G40 -no2G20 -no5G40 -nocompositemainpage -intchan2G40 11 -intnrate 7 -noapload   -email hnd-utf-list
+
+#30   04    * * *    svn/unittest/cron/launch blr07_43602mc5ACI5G20_rate_mcs15 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 5G20 43602MC5-Rate MCS15-Mode 0&7 -]' -ap 4360ref -sta 43602mc5b -nosniffer -intsta 4360aci -attngrp G2 -intattn5G20 'ALL 10' -cycle5G20AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20 -intwl5G20 '0 7'   -loop 2 -no2G40 -no2G20 -no5G40 -nocompositemainpage -intchan2G40 11 -intnrate 15 -noapload   -email hnd-utf-list
+
+#45   04    * * *    svn/unittest/cron/launch blr07_43602mc5ACI5G40_rate6 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 5G40 43602MC5-Rate 6-Mode 0 & 7]' -ap 4360ref -sta 43602mc5b -nosniffer -intsta 4360aci -attngrp G2 -intattn5G40 'ALL 10' -cycle5G40AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20 -intwl5G40 '0 7'   -loop 2  -no2G40 -no2G20 -no5G20 -nocompositemainpage -intchan2G40 11 -intrate 6 -noapload   -email hnd-utf-list
+
+#00   05    * * *    svn/unittest/cron/launch blr07_43602mc5ACI5G40_rate_mcs7 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 5G40 43602MC5-Rate MCS7Mode 0 & 7]' -ap 4360ref -sta 43602mc5b -nosniffer -intsta 4360aci -attngrp G2 -intattn5G40 'ALL 20' -cycle5G40AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20 -intwl5G40 '0 7'   -loop 2 -no2G40 -no2G20 -no5G20 -nocompositemainpage -intchan2G40 11 -intnrate 7 -noapload   -email hnd-utf-list
+
+#15   05    * * *    svn/unittest/cron/launch blr07_43602mc5ACI5G40_rate_mcs15 Test/RvRNightly1.test -utfconf blr07  -title '[ACI 5G40 43602MC5-Rate MCS15-Mode 0 & 7]' -ap 4360ref -sta 43602mc5b -nosniffer -intsta 4360aci -attngrp G2 -intattn5G40 'ALL 10' -cycle5G40AttnRange 40-0 -downstreamonly -fb1 -trenderrors -intquiet -pathloss 20 -intwl5G40 '0 7'   -loop 2 -no2G40 -no2G20 -no5G20 -nocompositemainpage -intchan2G40 11 -intnrate 15 -noapload   -email hnd-utf-list
+
+
+#================================ 43438 StaNightly & RvR================================
+
+#55   05    * * *    svn/unittest/cron/launch blr07_43438_Nightly Test/StaNightly.test -utfconf blr07 -sta 43438b -ap 4360ref -title '[BLR07 StaNightly 43438 <=> 4360softap]'  -email hnd-utf-list
+
+
+

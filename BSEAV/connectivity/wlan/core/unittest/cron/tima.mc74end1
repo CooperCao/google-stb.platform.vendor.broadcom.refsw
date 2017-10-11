@@ -1,0 +1,15 @@
+#
+# $Id$
+#
+MAILTO=tima@broadcom.com
+#
+# min	hour	day-o-month  month  day-o-week
+# Self update this crontable if master is updated and report any errors
+58	7,19,23	* * *	prod/unittest/cron/update
+#------------------------------------------------------------------------------
+#=============================================================================
+# UTF TESTS
+#=============================================================================
+#
+55	2	* * *	prod/unittest/cron/launch mc74 Test/RouterNightly.test -utfconf mc74 -title 'mc74: atlas' -stas 'sta1 sta2 sta3' -aps 'atlasb164x/0 atlasb14x/0 atlasb14/0 atlasb14/1 atlasb14/2'
+

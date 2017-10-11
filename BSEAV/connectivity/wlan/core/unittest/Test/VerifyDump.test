@@ -1,0 +1,114 @@
+#!/bin/env utf
+# -*-tcl-*-
+#
+# $Copyright Broadcom Corporation$
+#
+
+package require UTF
+
+# This test has options to verify the correct crash dump is picked off STA in UTF analysis
+UTF::Test VerifyDump {args} {
+    UTF::Getopts {
+	{sta.arg ""}
+	{tag.arg "NIGHTLY" "The subsequent build dates are for TOT"}
+	{badate.arg "2011.10.11.0" "A crashing build"}
+	{goodate.arg "2011.10.27.0" "A working build"}
+	{bootwait.arg "30" "Wait for Reboot"}
+	{instantpanic ""}
+	{goodload ""}
+	{badload ""}
+	{bootwait.arg "30" "Wait time for manual reboot"}
+	{wait.arg "10" "Misc. wait"}
+    }
+
+    # Beginning of procs
+    proc wastetime {args} {
+	# Additional subtests  mainly to waste time.
+	# Substitute with better scheme.
+	upvar {} {}
+	UTF::Try "$(sta)" {
+	    $(sta) :
+	}
+	UTF::Try "$(sta)" {
+	    $(sta) whatami
+	}
+	UTF::Try "Scan" {
+	    $(sta) wl scan
+	    UTF::Sleep $(wait)
+	    $(sta) wl scanresults
+	    $(sta) wl ver
+	}
+	# Just this part might be enough
+	UTF::Try "Do Nothing" {
+	    $(sta) :
+	}
+    }
+	
+    proc recoverpanic {args} {
+	upvar {} {}
+	UTF::Try "Recover STA" {
+	    $(sta) power off
+	    $(sta) power on
+	    UTF::Sleep $(bootwait)
+	}
+	UTF::Try "Collect Dump" {
+	    $(sta) :
+	}
+    }
+    
+    proc instantpanic {args} {
+	upvar {} {}
+	UTF::Try "Instant Panic" {
+	    $(sta) InstantPanic
+	    $(sta) :
+	}
+	recoverpanic
+    }
+    # End of procs
+
+    if {$(goodload)} {
+	UTF::Try "$(sta) CheckImage" {
+	    UTF::CheckImage $(sta)
+	    $(sta) :
+	}
+	UTF::Try "$(sta) Good Load" {
+	    $(sta) load -date $(goodate) -tag $(tag)
+	    $(sta) :
+	}
+    }
+
+    wastetime
+    if {$(instantpanic)} {
+	instantpanic
+    }
+    wastetime
+
+    if {$(badload)} {
+	UTF::Try "$(sta) Bad Load" {
+	    $(sta) load -date $(badate) -tag $(tag)
+	    $(sta) :
+	}
+	recoverpanic
+    }
+
+    if {$(badload)} {
+	UTF::Try "$(sta) CheckImage" {
+	    UTF::CheckImage $(sta)
+	    $(sta) :
+	}
+
+	UTF::Try "$(sta) Good Load" {
+	    $(sta) load -date $(goodate) -tag $(tag)
+	    $(sta) :
+	}
+	wastetime
+    }
+
+    # The user will try to reboot outside the test
+    UTF::Try "Wait for Manual Reboot" {
+	UTF::Sleep $(bootwait)
+    }
+
+    wastetime
+}
+

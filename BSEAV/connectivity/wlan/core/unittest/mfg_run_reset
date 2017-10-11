@@ -1,0 +1,58 @@
+#!/bin/sh -Eu
+# -E: ERR trap is inherited by shell functions.
+# -u: Treat unset variables as an error when substituting.
+#
+# MFG test script to reset LitePoint power.
+#
+# $Copyright Broadcom Corporation$
+#
+
+trap_err()
+{
+	local exit_status=${1:-$?}
+  	echo "***LitePoint Reset Failed."
+	echo Exiting $0 with $exit_status
+	exit $exit_status
+}
+
+#  Trap non-normal exit signals: 1/HUP, 2/INT, 3/QUIT, 15/TERM, ERR
+trap trap_err 1 2 3 15 ERR
+set -e
+set -u
+
+#cd /projects/hnd_software/lpt_common/src/tools/wlan
+# due to modification to ps_set_voltage.tcl, the files are copied to a local UTF location
+cd /projects/hnd_archives/unix/UTF/Agilent_E3646A
+
+./set_voltages.sh state 0
+
+rc=$?
+echo $rc
+
+if [ "$rc" -ne "0" ]; then
+  echo "***LitePoint Reset Failed."
+  exit $rc
+fi
+
+./set_voltages.sh state 1
+
+rc=$?
+echo $rc
+
+if [ "$rc" -ne "0" ]; then
+  echo "***LitePoint Reset Failed."
+  exit $rc
+fi
+
+./set_voltages.sh 3.6
+
+rc=$?
+echo $rc
+
+if [ "$rc" -ne "0" ]; then
+  echo "***LitePoint Reset Failed."
+  exit $rc
+fi
+
+echo "LitePoint Reset Passed."
+exit 0
