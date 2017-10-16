@@ -274,6 +274,9 @@ static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp2x(NEXUS_HdmiOutputHandle output)
         goto err_hdcp;
     }
 
+    /* Default content stream type to type1 */
+    output->hdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType1;
+
     return BERR_SUCCESS;
 
 
