@@ -1,9 +1,0 @@
-Compiling in this directory creates the following applications which are
-clients to the rsock library:
-
-	ifconfig
-	ttcp
-
-The hostbus_usb layer is used under rsock.  It uses libusb to connect to
-a remote USB hardware device which is an RTE dongle.  The dongle image
-is built under src/dongle/rte/wl.

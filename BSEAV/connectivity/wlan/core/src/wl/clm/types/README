@@ -1,9 +1,0 @@
-This directory is for CLM flag files which will get passed to
-ClmCompiler using its --config_file option. If the make variable
-CLM_TYPE is set to 'xyz', then the file xyz.clm from this directory
-will be passed to the CLM compiler. See the twiki page
-http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/ClmRestructure#4_Build_Model
-for full details.
-
-The CLM compiler itself is documented separately. In particular its current set
-of flags can be seen via "ClmCompiler --help".

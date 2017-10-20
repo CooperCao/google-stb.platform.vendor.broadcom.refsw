@@ -1,5 +1,0 @@
-192.168.250.202!traffic_agent_reset!DEFAULT
-192.168.250.202!traffic_agent_config,profile,Start_Sync,direction,receive,source,192.168.250.195,sourceport,5005,destinationport,5005!STREAMID,$1
-
-192.168.250.202!traffic_agent_receive_start,streamID,$1!DEFAULT
-#192.168.250.202!traffic_agent_receive_stop,streamID,$1!DEFAULT

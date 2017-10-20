@@ -1,8 +1,0 @@
-nodebug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-wowl-stbsoc
-nodebug-apdef-stadef-extnvm-mfp-wet-pspretend-stbsoc
-nodebug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-android-wowl-stbsoc
-debug-bcmintdbg-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-wowl-stbsoc
-debug-bcmintdbg-apdef-stadef-extnvm-mfp-wet-pspretend-stbsoc
-debug-bcmintdbg-apdef-stadef-mfgtest-extnvm-p2p-mchan-tdls-mfp-cfg80211-wowl-stbsoc
-debug-bcmintdbg-apdef-stadef-mfgtest-extnvm-mfp-wet-pspretend-stbsoc
-debug-apdef-stadef-mfgtest-extnvm-stbsoc
