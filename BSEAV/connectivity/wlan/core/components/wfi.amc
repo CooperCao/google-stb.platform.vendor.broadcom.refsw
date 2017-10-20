@@ -1,5 +1,0 @@
-# Directories and files included in this component.
-component_paths = [
-    'src/apps/wfi/linux/',
-    'src/tools/release/components/wfi-filelist.txt',
-]

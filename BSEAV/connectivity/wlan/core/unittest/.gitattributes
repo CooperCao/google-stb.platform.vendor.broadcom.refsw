@@ -1,8 +1,0 @@
-*.tcl		ident
-*.test		ident
-README		ident
-Makefile	ident
-*shell		ident
-apcups		ident
-consolelogger	ident
-*.sh		ident

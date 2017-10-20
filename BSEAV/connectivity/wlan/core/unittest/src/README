@@ -1,7 +1,0 @@
-# $Id$
-
-Developer Unit Test Framework src directory
--------------------------------------------
-
-src/tools/unittest/src contains sources to any compiled components of
-the developer unit test framework.

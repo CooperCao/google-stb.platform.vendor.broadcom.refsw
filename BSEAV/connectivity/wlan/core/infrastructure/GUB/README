@@ -1,5 +1,0 @@
-Anyone planning to work on GUB per se should have a look at
-http://hwnbu-twiki.broadcom.com/bin/view/Mwgroup/GubDevelopment
-for rules, conventions, hints, etc.
-     
-Remember to run the 'pystyle' script before each commit.
