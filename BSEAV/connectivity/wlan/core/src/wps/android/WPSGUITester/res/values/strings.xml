@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">WPS GUI Tester</string>
-    <string name="spinner_wps_mode">Choose WPS Mode</string>
-    <string name="alert_dialog_yes">Yes</string>
-    <string name="alert_dialog_no">No</string>
-    <string name="alert_dialog_two_buttons">OK Cancel dialog with a message</string>     
-</resources>

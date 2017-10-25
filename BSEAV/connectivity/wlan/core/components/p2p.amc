@@ -1,5 +1,0 @@
-# Directories and files included in this component.
-component_paths = [
-    'src/p2p/',
-    'src/tools/release/components/p2p-filelist.txt',
-]

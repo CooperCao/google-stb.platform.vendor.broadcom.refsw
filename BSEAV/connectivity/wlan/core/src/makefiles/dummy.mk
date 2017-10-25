@@ -1,3 +1,0 @@
-.PHONY: $(OUTDIR_$(TTYPE))/$(TARGET)
-
-$(OUTDIR_$(TTYPE))/$(TARGET):
