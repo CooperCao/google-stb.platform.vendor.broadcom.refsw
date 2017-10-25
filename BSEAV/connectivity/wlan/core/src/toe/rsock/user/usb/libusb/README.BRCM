@@ -1,4 +1,0 @@
-libusb-0.1.10a with Broadcom modifications - csm 17-Jan-2006
-
-The read/write system calls have been made safe to call from multiple
-threads and have multiple of them outstanding.
