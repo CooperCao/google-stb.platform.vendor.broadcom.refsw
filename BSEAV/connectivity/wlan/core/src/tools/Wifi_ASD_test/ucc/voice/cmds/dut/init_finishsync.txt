@@ -1,7 +1,0 @@
-# two main components DUT Control Agent and Console Traffic Endpoint
-wfa_control_agent!ipaddr=10.10.1.100,port=9000
-
-
-# wfa_test_commands!"dut_setup.txt","console_tg_setup.txt","sta1_setup.txt" 
-# file names 
-wfa_test_commands!../../cmds/dut/dut_finishsync.txt

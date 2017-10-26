@@ -11449,13 +11449,20 @@ static s32 wl_inform_single_bss(struct bcm_cfg80211 *cfg, struct wl_bss_info *bi
 		mgmt->u.probe_resp.timestamp = ((u64)ts.tv_sec*1000000)
 				+ ts.tv_nsec / 1000;
 #else
-		struct timeval tv;
-		jiffies_to_timeval(jiffies - INITIAL_JIFFIES, &tv);
-		mgmt->u.probe_resp.timestamp = ((u64)tv.tv_sec*1000000)
-				+ tv.tv_usec;
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39) &&
-	* (BCMDONGLEHOST || PLATFORM_INTEGRATED_WIFI)
-	*/
+		#define USEC_PER_10MSEC 10000L
+		void *fp = NULL;
+		char buf[21] = {0};
+		char *pbuf=NULL;
+		fp = (void*)osl_os_open_image("/proc/uptime");
+		if (fp != NULL) {
+			osl_os_get_image_block(buf, 20, fp);
+			mgmt->u.probe_resp.timestamp = bcm_strtoull(buf, &pbuf, 0) * USEC_PER_SEC;
+			mgmt->u.probe_resp.timestamp += bcm_strtoul(pbuf+1, &pbuf, 0) * USEC_PER_10MSEC;
+			osl_os_close_image(fp);
+		} else {
+			WL_ERR(("Could not open uptime\n"));
+		}
+#endif
 	}
 
 

@@ -1,4 +1,0 @@
-#ifdef BCMCRYPTO_SRC
-src/bcmcrypto
-src/include/bcmcrypto
-#endif

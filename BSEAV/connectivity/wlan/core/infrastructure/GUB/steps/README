@@ -1,3 +1,0 @@
-This directory is for standard, general-use GUB step classes.
-
-New step classes in this area may be started from the steps/STUB.py example.
