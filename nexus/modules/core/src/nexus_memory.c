@@ -43,6 +43,7 @@
 #include "b_objdb.h"
 #include "priv/nexus_base_platform.h"
 #include "bmma_range.h"
+#include "../src/bdtu_map.inc"
 
 BDBG_MODULE(nexus_memory);
 BDBG_FILE_MODULE(nexus_core);
@@ -210,7 +211,8 @@ static BERR_Code nexus_memory_p_dtu_alloc(NEXUS_HeapHandle heap, BMMA_DeviceOffs
     BDTU_RemapSettings *remapSettings;
     unsigned total = 0;
     size_t last_remapped_addr = 0;
-    BDBG_WRN(("dtu_alloc BA " BDBG_UINT64_FMT ", size %u MB from %s:%u", BDBG_UINT64_ARG(base), (unsigned)(size/1024/1024), fname, line));
+    BDBG_WRN(("dtu_alloc BA " BDBG_UINT64_FMT " (MEMC%u), size %u MB from %s:%u", BDBG_UINT64_ARG(base), heap->settings.memcIndex, (unsigned)(size/1024/1024), fname, line));
+
     if (base & (_2MB-1)) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
@@ -230,14 +232,14 @@ static BERR_Code nexus_memory_p_dtu_alloc(NEXUS_HeapHandle heap, BMMA_DeviceOffs
             goto error;
         }
 
-        remapSettings->list[total].devAddr = deviceAddr;
+        remapSettings->list[total].orgPhysAddr = deviceAddr;
         remapSettings->list[total].fromPhysAddr = deviceAddr;
         remapSettings->list[total].toPhysAddr = base+i;
         total++;
 
         if (total == BDTU_REMAP_LIST_TOTAL || i+_2MB>=size) {
             if (total < BDTU_REMAP_LIST_TOTAL) {
-                remapSettings->list[total].devAddr = 0; /* terminate list */
+                remapSettings->list[total].orgPhysAddr = BDTU_INVALID_ADDR; /* terminate list */
             }
             if (secure) {
                 rc = g_NexusCore.cfg.cma.secure_remap(heap->settings.memcIndex, remapSettings);
@@ -258,7 +260,7 @@ static BERR_Code nexus_memory_p_dtu_alloc(NEXUS_HeapHandle heap, BMMA_DeviceOffs
 error:
     /* free whatever was not remapped */
     for (i=0;i<total;i++) {
-        g_NexusCore.cfg.cma.free(heap->settings.memcIndex, remapSettings->list[i].devAddr , _2MB);
+        g_NexusCore.cfg.cma.free(heap->settings.memcIndex, remapSettings->list[i].orgPhysAddr , _2MB);
     }
     /* then use nexus_memory_p_dtu_free to remap and free the remainder */
     if (last_remapped_addr) {
@@ -291,20 +293,20 @@ static void nexus_memory_p_dtu_free(NEXUS_HeapHandle heap, BMMA_DeviceOffset bas
     for (i=0;i<size;i+=_2MB) {
         uint64_t deviceAddr;
         BERR_Code rc;
-        rc = BDTU_ReadDeviceAddress(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, base + i, &deviceAddr);
+        rc = BDTU_ReadOriginalAddress(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, base + i, &deviceAddr);
         if (rc) {
             BERR_TRACE(rc);
             continue;
         }
 
-        remapSettings->list[total].devAddr = deviceAddr;
+        remapSettings->list[total].orgPhysAddr = deviceAddr;
         remapSettings->list[total].fromPhysAddr = base+i;
         remapSettings->list[total].toPhysAddr = deviceAddr;
         total++;
 
         if (total == BDTU_REMAP_LIST_TOTAL || i+_2MB>=size) {
             if (total < BDTU_REMAP_LIST_TOTAL) {
-                remapSettings->list[total].devAddr = 0; /* terminate list */
+                remapSettings->list[total].orgPhysAddr = BDTU_INVALID_ADDR; /* terminate list */
             }
             /* map back to identity */
             if (secure) {
@@ -319,7 +321,7 @@ static void nexus_memory_p_dtu_free(NEXUS_HeapHandle heap, BMMA_DeviceOffset bas
             else {
                 unsigned j;
                 for (j=0;j<total;j++) {
-                    g_NexusCore.cfg.cma.free(heap->settings.memcIndex, remapSettings->list[j].devAddr, _2MB);
+                    g_NexusCore.cfg.cma.free(heap->settings.memcIndex, remapSettings->list[j].orgPhysAddr, _2MB);
                 }
             }
             total = 0;
@@ -505,8 +507,7 @@ NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, BREG_Handle reg, const 
             BDTU_CreateSettings createSettings;
             BDTU_GetDefaultCreateSettings(&createSettings);
             createSettings.reg = reg;
-            createSettings.memcIndex = heap->settings.memcIndex;
-            createSettings.physAddrBase = g_NexusCore.publicHandles.memoryLayout.memc[heap->settings.memcIndex].region[0].addr;
+            BDTU_P_ReadMappingInfo(reg, heap->settings.memcIndex, &createSettings.memoryLayout);
             rc = BDTU_Create(&g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, &createSettings);
             if (rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto error; }
         }
