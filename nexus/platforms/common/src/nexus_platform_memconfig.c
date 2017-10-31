@@ -58,7 +58,13 @@
 #if NEXUS_HAS_SAGE
 #include "bsagelib_types.h"
 #endif
+#include "bchp_common.h"
+#ifdef BCHP_MEMC_DTU_CONFIG_0_REG_START
+#include "../src/bdtu_map.inc"
+#endif
+
 BDBG_MODULE(nexus_platform_settings); /* reuse same module as heap config */
+#define BDBG_MSG_TRACE(X)
 
 /* TODO: move to nexus_platform.c once available in all platforms */
 static struct NEXUS_PlatformSpecificOps g_platformSpecificOps;
@@ -1129,6 +1135,119 @@ err_getsettings:
     return rc;
 }
 
+static NEXUS_Error NEXUS_P_ConfigOneMemcDtuHeap(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformSettings *pSettings, unsigned heapIndex, unsigned secureHeapIndex,
+    const BCHP_MemoryLayout *pMemoryLayout, unsigned memcIndex)
+{
+#ifdef BCHP_MEMC_DTU_CONFIG_0_REG_START
+    BSTD_DeviceOffset addr;
+    uint64_t size = 0;
+    unsigned i;
+    BDTU_MappingInfo map;
+
+#if NEXUS_HAS_SAGE
+    /* 2MB alignment must be applied to a secure heap, even if DTU not enabled for it */
+    pSettings->heap[secureHeapIndex].alignment = 2*1024*1024;
+#endif
+
+    if ((pSettings->heap[heapIndex].heapType & NEXUS_HEAP_TYPE_DTU) == 0 &&
+        (pSettings->heap[secureHeapIndex].heapType & NEXUS_HEAP_TYPE_DTU) == 0) return NEXUS_SUCCESS;
+
+    BDTU_P_ReadMappingInfo(preInitState->hReg, memcIndex, &map);
+
+    /* top down search for BA above populated DRAM.
+    assume regions indices are the same between BCHP_MemoryLayout and BDTU_MappingInfo.
+    assume largest region is on top. */
+    for (i=BCHP_MAX_MEMC_REGIONS-1;i<BCHP_MAX_MEMC_REGIONS;i--) {
+        BDBG_MSG_TRACE(("dtu memc%u region %u: populated " BDBG_UINT64_FMT "," BDBG_UINT64_FMT ", BA " BDBG_UINT64_FMT "," BDBG_UINT64_FMT,
+            memcIndex, i,
+            BDBG_UINT64_ARG(pMemoryLayout->memc[memcIndex].region[i].addr),
+            BDBG_UINT64_ARG(pMemoryLayout->memc[memcIndex].region[i].size),
+            BDBG_UINT64_ARG(map.region[i].addr),
+            BDBG_UINT64_ARG(map.region[i].size)));
+        if (pMemoryLayout->memc[memcIndex].region[i].size < map.region[i].size) {
+            size = map.region[i].size - pMemoryLayout->memc[memcIndex].region[i].size;
+            if (pMemoryLayout->memc[memcIndex].region[i].size) {
+                BDBG_ASSERT(pMemoryLayout->memc[memcIndex].region[i].addr == map.region[i].addr);
+                addr = pMemoryLayout->memc[memcIndex].region[i].addr + pMemoryLayout->memc[memcIndex].region[i].size;
+            }
+            else {
+                addr = map.region[i].addr;
+            }
+            break;
+        }
+    }
+    if (!size) {
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+
+#if NEXUS_HAS_SAGE
+    if (pSettings->heap[secureHeapIndex].heapType & NEXUS_HEAP_TYPE_DTU) {
+        size /= 2;
+    }
+#else
+    BSTD_UNUSED(secureHeapIndex);
+#endif
+    if (size > 0x40000000) {
+        size = 0x40000000; /* 1 GB max */
+    }
+
+    if (pSettings->heap[heapIndex].heapType & NEXUS_HEAP_TYPE_DTU) {
+        BDBG_WRN(("DTU heap MEMC%u: " BDBG_UINT64_FMT "," BDBG_UINT64_FMT,
+            memcIndex, BDBG_UINT64_ARG(addr), BDBG_UINT64_ARG(size)));
+        pSettings->heap[heapIndex].alignment = 2*1024*1024;
+        pSettings->heap[heapIndex].offset = addr;
+        pSettings->heap[heapIndex].size = size;
+#ifdef BCHP_UINT64_C
+        if (pSettings->heap[heapIndex].offset >= BCHP_UINT64_C(0x1, 0x00000000)) {
+            pSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_HIGH_MEMORY;
+        }
+#endif
+    }
+#if NEXUS_HAS_SAGE
+    if (pSettings->heap[secureHeapIndex].heapType & NEXUS_HEAP_TYPE_DTU) {
+        BDBG_WRN(("DTU secure heap MEMC%u: " BDBG_UINT64_FMT "," BDBG_UINT64_FMT,
+            memcIndex, BDBG_UINT64_ARG(addr + size), BDBG_UINT64_ARG(size)));
+        pSettings->heap[secureHeapIndex].offset = addr + size;
+        pSettings->heap[secureHeapIndex].size = size;
+#ifdef BCHP_UINT64_C
+        if (pSettings->heap[secureHeapIndex].offset >= BCHP_UINT64_C(0x1, 0x00000000)) {
+            pSettings->heap[secureHeapIndex].memoryType |= NEXUS_MEMORY_TYPE_HIGH_MEMORY;
+        }
+#endif
+    }
+#endif
+    return NEXUS_SUCCESS;
+#else
+    BSTD_UNUSED(preInitState);
+    BSTD_UNUSED(heapIndex);
+    BSTD_UNUSED(secureHeapIndex);
+    BSTD_UNUSED(pMemoryLayout);
+    BSTD_UNUSED(memcIndex);
+    if ((pSettings->heap[heapIndex].heapType & NEXUS_HEAP_TYPE_DTU) == 0 &&
+        (pSettings->heap[secureHeapIndex].heapType & NEXUS_HEAP_TYPE_DTU) == 0) return NEXUS_SUCCESS;
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif
+}
+
+static NEXUS_Error NEXUS_P_ConfigAllDtuHeaps(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformSettings *pSettings)
+{
+    const NEXUS_PlatformMemory *pMemory = &g_platformMemory;
+    NEXUS_Error rc;
+    if (pMemory->memoryLayout.memc[0].size) {
+        rc = NEXUS_P_ConfigOneMemcDtuHeap(preInitState, pSettings, NEXUS_MEMC0_PICTURE_BUFFER_HEAP, NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP, &pMemory->memoryLayout, 0);
+        if (rc) return BERR_TRACE(rc);
+    }
+    if (pMemory->memoryLayout.memc[1].size) {
+        rc = NEXUS_P_ConfigOneMemcDtuHeap(preInitState, pSettings, NEXUS_MEMC1_PICTURE_BUFFER_HEAP, NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP, &pMemory->memoryLayout, 1);
+        if (rc) return BERR_TRACE(rc);
+    }
+    if (pMemory->memoryLayout.memc[2].size) {
+        rc = NEXUS_P_ConfigOneMemcDtuHeap(preInitState, pSettings, NEXUS_MEMC2_PICTURE_BUFFER_HEAP, NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP, &pMemory->memoryLayout, 2);
+        if (rc) return BERR_TRACE(rc);
+    }
+    return NEXUS_SUCCESS;
+}
+
 NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preInitState, const NEXUS_MemoryConfigurationSettings *pMemConfig, const NEXUS_MemoryRtsSettings *pRtsSettings, NEXUS_PlatformSettings *pSettings, NEXUS_P_PlatformInternalSettings *pInternalSettings)
 {
     unsigned i;
@@ -1141,22 +1260,19 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
     rc = NEXUS_P_GetMemoryConfiguration(preInitState, pMemConfig, pRtsSettings, pConfig, pSettings);
     if (rc) {rc = BERR_TRACE(rc); goto done;}
 
-#if NEXUS_MEMC0_PICTURE_BUFFER_HEAP
-    {
     for (i=0;i<NEXUS_MAX_MEMC;i++) {
         enum nexus_memconfig_picbuftype sec;
         for (sec=0;sec<nexus_memconfig_picbuftype_max;sec++) {
             unsigned heapIndex = pConfig->pictureBuffer[i][sec].heapIndex;
             if (heapIndex != NEXUS_MAX_HEAPS) {
-                if (pSettings->heap[heapIndex].heapType & NEXUS_HEAP_TYPE_DTU) {
-                    continue;
-                }
                 /* only check when called from NEXUS_Platform_GetDefaultSettings */
                 if (pSettings != &g_NEXUS_platformSettings && pSettings->heap[heapIndex].size) {
                     BDBG_ERR(("Overwriting heap[%d].size %d with memconfig value", heapIndex, pSettings->heap[heapIndex].size));
                 }
                 pSettings->heap[heapIndex].memcIndex = i;
-                pSettings->heap[heapIndex].size = pConfig->pictureBuffer[i][sec].size;
+                if ((pSettings->heap[heapIndex].heapType & NEXUS_HEAP_TYPE_DTU) == 0) {
+                    pSettings->heap[heapIndex].size = pConfig->pictureBuffer[i][sec].size;
+                }
                 pSettings->heap[heapIndex].heapType |= NEXUS_HEAP_TYPE_PICTURE_BUFFERS;
 #if !BMMA_USE_STUB
                 pSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_MANAGED;
@@ -1175,10 +1291,10 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
             }
         }
     }
-    }
-#else
-    BSTD_UNUSED(i);
-#endif
+
+    rc = NEXUS_P_ConfigAllDtuHeaps(preInitState, pSettings);
+    if (rc) {rc = BERR_TRACE(rc); goto done;}
+
 #if NEXUS_HAS_VIDEO_DECODER
     pSettings->videoDecoderModuleSettings = pConfig->videoDecoder;
 #if  NEXUS_NUM_SOFT_VIDEO_DECODERS
