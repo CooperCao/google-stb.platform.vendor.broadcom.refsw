@@ -362,7 +362,8 @@ static const char *GetClientExtensions(void *context)
 
 #define EXTS_WITHOUT_FENCE_SYNC \
    "EGL_ANDROID_framebuffer_target " \
-   "EGL_ANDROID_recordable"
+   "EGL_ANDROID_recordable " \
+   "EGL_ANDROID_image_native_buffer"
 
 #define EXTS_ALL \
    "EGL_ANDROID_native_fence_sync " \

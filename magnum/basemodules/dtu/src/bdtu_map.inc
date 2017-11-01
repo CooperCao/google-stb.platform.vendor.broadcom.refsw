@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,71 +36,52 @@
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
 
-#include "bstd.h"
-#include "bkni.h"
-#include "bdtu.h"
+#include "bchp_common.h"
+#include "bchp_aon_ctrl.h"
 
-void BDTU_GetDefaultCreateSettings( BDTU_CreateSettings *pSettings )
+/* TEMP code to set address map */
+static void BDTU_P_ReadMappingInfo(BREG_Handle reg, unsigned memcIndex, BDTU_MappingInfo *pInfo)
 {
-    BSTD_UNUSED(pSettings);
-}
-BERR_Code BDTU_Create( BDTU_Handle *pHandle, const BDTU_CreateSettings *pSettings )
-{
-    BSTD_UNUSED(pHandle);
-    BSTD_UNUSED(pSettings);
-    return BERR_NOT_SUPPORTED;
-}
-void BDTU_Destroy( BDTU_Handle handle )
-{
-    BSTD_UNUSED(handle);
-}
-void BDTU_GetDefaultRemapSettings( BDTU_RemapSettings *pSettings )
-{
-    BSTD_UNUSED(pSettings);
-}
-BERR_Code BDTU_Remap( BDTU_Handle handle, const BDTU_RemapSettings *pSettings )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(pSettings);
-    return BERR_NOT_SUPPORTED;
-}
-BERR_Code BDTU_ReadOriginalAddress( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BSTD_DeviceOffset *orgPhysAddr )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(physAddr);
-    BSTD_UNUSED(orgPhysAddr);
-    return BERR_NOT_SUPPORTED;
-}
-void BDTU_PrintMap( BDTU_Handle handle, BSTD_DeviceOffset addr, unsigned size )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(addr);
-    BSTD_UNUSED(size);
-}
-BERR_Code BDTU_Own( BDTU_Handle handle, BSTD_DeviceOffset addr, bool own)
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(addr);
-    BSTD_UNUSED(own);
-    return BERR_NOT_SUPPORTED;
-}
-BERR_Code BDTU_Scrub( BDTU_Handle handle, BSTD_DeviceOffset addr, unsigned size )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(addr);
-    BSTD_UNUSED(size);
-    return BERR_NOT_SUPPORTED;
-}
-BERR_Code BDTU_ReadInfo( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BDTU_PageInfo *info)
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(physAddr);
-    BSTD_UNUSED(info);
-    return BERR_NOT_SUPPORTED;
-}
-BERR_Code BDTU_GetStatus( BDTU_Handle handle, BDTU_Status *pStatus )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(pStatus);
-    return BERR_NOT_SUPPORTED;
+    BSTD_UNUSED(reg);
+    BKNI_Memset(pInfo, 0, sizeof(*pInfo));
+    pInfo->memcIndex = memcIndex;
+
+#if BCHP_CHIP==7260 || BCHP_CHIP==7268 || BCHP_CHIP==7271
+    pInfo->region[0].addr = 0x00000000;
+    pInfo->region[0].size = 0xC0000000;
+#if 0
+    /* region above 4GB has issues for HVD, so avoid */
+    pInfo->region[1].addr = BCHP_UINT64_C(0x1, 0x00000000);
+    pInfo->region[1].size = 0x40000000;
+#endif
+#elif BCHP_CHIP==7278
+    if (BCHP_GET_FIELD_DATA(BREG_Read32(reg, BCHP_AON_CTRL_GLOBAL_ADDRESS_MAP_VARIANT),
+        AON_CTRL_GLOBAL_ADDRESS_MAP_VARIANT, map_variant))
+    {
+        /* v7-64 */
+        if (memcIndex == 0) {
+            pInfo->region[0].addr = 0x040000000;                    /* 8GB@1GB */
+            pInfo->region[0].size = BCHP_UINT64_C(0x2, 0x00000000);
+        }
+        else {
+            pInfo->region[0].addr = BCHP_UINT64_C(0x3, 0x00000000); /* 8GB@12GB */
+            pInfo->region[0].size = BCHP_UINT64_C(0x2, 0x00000000);
+        }
+    }
+    else {
+        /* v7-32 */
+        if (memcIndex == 0) {
+            pInfo->region[0].addr = 0x040000000;
+            pInfo->region[0].size = 0x080000000;
+            pInfo->region[1].addr = BCHP_UINT64_C(0x1, 0x00000000); /* 6GB@4GB */
+            pInfo->region[1].size = BCHP_UINT64_C(0x1, 0x80000000);
+        }
+        else {
+            pInfo->region[0].addr = 0x0C0000000;
+            pInfo->region[0].size = 0x040000000;
+            pInfo->region[1].addr = BCHP_UINT64_C(0x3, 0x00000000); /* 7GB@12GB */
+            pInfo->region[1].size = BCHP_UINT64_C(0x1, 0xC0000000);
+        }
+    }
+#endif
 }

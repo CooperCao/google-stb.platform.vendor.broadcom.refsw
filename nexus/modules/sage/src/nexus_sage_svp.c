@@ -579,6 +579,10 @@ static void NEXUS_Sage_P_SvpHandleApiVer(uint32_t sageApiVersion)
             BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED!"));
             lHandle->apiVer=0x00020007;
             break;
+        case 0x00020009: /* Can handle, but no FWRR heap */
+            BDBG_WRN(("Newer SAGE SVP API Version Set detected, continuing..."));
+            lHandle->apiVer=0x00020009;
+            break;
         default:
             BDBG_ERR(("INCOMPATIBLE SAGE SVP API VERSION SET. SVP WILL NOT BE FUNCTIONAL"));
             break;
