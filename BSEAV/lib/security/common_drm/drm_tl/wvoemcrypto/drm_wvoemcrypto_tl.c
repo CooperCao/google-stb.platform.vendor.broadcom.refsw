@@ -507,6 +507,8 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
             goto ErrorExit;
         }
         BKNI_Memset(gWvClrDmaJobBlockSettingsList, 0x0, MAX_SG_DMA_BLOCKS * sizeof(NEXUS_DmaJobBlockSettings));
+        gWvClrNumDmaBlocks = 0;
+        gWVClrQueued = false;
     }
 
     if(gWVClrMutex == NULL)
