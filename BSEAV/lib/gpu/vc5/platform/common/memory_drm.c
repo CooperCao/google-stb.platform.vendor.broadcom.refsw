@@ -75,6 +75,7 @@ static const bool use_alloc_desc_str = false;
 
 typedef struct
 {
+   unsigned  dev_num;
    int       fd;
    int       l2_cache_size;
    bool      force_writecombine;
@@ -685,43 +686,31 @@ error:
    return false;
 }
 
-BEGL_MemoryInterface *CreateDRMMemoryInterface(void)
+static void Term(void *context)
 {
-   char devicepath[128];
-   DRM_MemoryContext *ctx;
-   BEGL_MemoryInterface *mem;
-   char *opt;
-   int devicenum = 0;
-
-   if (opt_bool(V3D_DRM_DISABLE))
-      return NULL;
-
-   ctx = (DRM_MemoryContext*)calloc(1, sizeof(DRM_MemoryContext));
-   mem = (BEGL_MemoryInterface*)calloc(1, sizeof(BEGL_MemoryInterface));
-
-   if (!mem || !ctx)
-      goto error;
-
-   if (use_memory_log)
+   DRM_MemoryContext *ctx = (DRM_MemoryContext*)context;
+   if (ctx->fd >= 0)
    {
-      sLogFile = log_to_stderr ? stderr : fopen("MemoryLog.txt", "w");
-      if (!sLogFile)
-      {
-         perror("Unable to open log file");
-         goto error;
-      }
+      fprintf(stderr,"DRM: closing /dev/dri/card%d\n", ctx->dev_num);
+      close(ctx->fd);
    }
+   ctx->fd = -1;
+}
 
-   opt = getenv(V3D_DRM_DEVICE_NUM);
-   if (opt)
-      devicenum = atoi(opt);
+static int Init(void *context)
+{
+   DRM_MemoryContext *ctx = (DRM_MemoryContext*)context;
+   char devicepath[128];
 
-   sprintf(devicepath,"/dev/dri/card%d", devicenum);
+   if (ctx->fd >= 0)
+      return true;
+
+   sprintf(devicepath,"/dev/dri/card%d", ctx->dev_num);
    fprintf(stderr,"DRM: Trying to open: %s\n", devicepath);
    ctx->fd = open(devicepath, O_RDWR);
    if (ctx->fd < 0)
    {
-      perror("Unable to open device - defaulting back to Nexus");
+      perror("DRM: Unable to open device");
       goto error;
    }
 
@@ -749,6 +738,59 @@ BEGL_MemoryInterface *CreateDRMMemoryInterface(void)
    if (!GetMmuPagetable(ctx))
       goto error;
 
+   if (!ConfigureNexusHeapMappings(ctx))
+      goto error;
+
+   return 0;
+
+error:
+   if (ctx->fd >= 0)
+      close(ctx->fd);
+
+   return -1;
+}
+
+BEGL_MemoryInterface *CreateDRMMemoryInterface(void)
+{
+   DRM_MemoryContext *ctx;
+   BEGL_MemoryInterface *mem;
+   char *opt;
+   char devicepath[128];
+   int devicenum = 0;
+   struct stat statbuf;
+
+   if (opt_bool(V3D_DRM_DISABLE))
+      return NULL;
+
+   opt = getenv(V3D_DRM_DEVICE_NUM);
+   if (opt)
+      devicenum = atoi(opt);
+
+   sprintf(devicepath,"/dev/dri/card%d", devicenum);
+   fprintf(stderr,"DRM: Trying to find: %s\n", devicepath);
+   if (stat(devicepath, &statbuf) < 0)
+   {
+      perror("DRM: Unable to find device - defaulting back to Nexus");
+      return NULL;
+   }
+
+   ctx = (DRM_MemoryContext*)calloc(1, sizeof(DRM_MemoryContext));
+   mem = (BEGL_MemoryInterface*)calloc(1, sizeof(BEGL_MemoryInterface));
+
+   if (!mem || !ctx)
+      goto error;
+   if (use_memory_log)
+   {
+      sLogFile = log_to_stderr ? stderr : fopen("MemoryLog.txt", "w");
+      if (!sLogFile)
+      {
+         perror("Unable to open log file");
+         goto error;
+      }
+   }
+
+   ctx->dev_num = devicenum;
+   ctx->fd = -1;
    ctx->force_writecombine = opt_bool(V3D_DRM_FORCE_WRITECOMBINE);
    if (ctx->force_writecombine)
       fprintf(stderr, "DRM: Forcing all allocations to be writecombined\n");
@@ -757,10 +799,9 @@ BEGL_MemoryInterface *CreateDRMMemoryInterface(void)
    if (ctx->clear_on_alloc)
       fprintf(stderr, "DRM: Clearing memory on alloc\n");
 
-   if (!ConfigureNexusHeapMappings(ctx))
-      goto error;
-
    mem->context      = (void*)ctx;
+   mem->Init         = Init;
+   mem->Term         = Term;
    mem->FlushCache   = MemFlushCache;
    mem->GetInfo      = MemGetInfo;
    mem->Alloc        = MemAllocBlock;
@@ -791,7 +832,7 @@ void DestroyDRMMemoryInterface(BEGL_MemoryInterface *mem)
    {
       DRM_MemoryContext *ctx = (DRM_MemoryContext*)mem->context;
 
-      close(ctx->fd);
+      /* ctx->fd close is now done in Term() */
       free(ctx);
       free(mem);
    }
