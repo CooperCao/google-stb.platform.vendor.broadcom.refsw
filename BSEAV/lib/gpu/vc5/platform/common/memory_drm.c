@@ -5,6 +5,7 @@ All rights reserved.
 
 #include "EGL/egl.h"
 #include "nexus_memory.h"
+#include "nexus_heap_selection.h"
 #include "nexus_platform.h"
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
@@ -609,18 +610,8 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
 
 static bool ConfigureNexusHeapMappings(DRM_MemoryContext *ctx)
 {
-   NEXUS_HeapHandle heap;
+   NEXUS_HeapHandle heap = GetDefaultHeap();
    NEXUS_MemoryStatus memStatus;
-#ifndef SINGLE_PROCESS
-   NEXUS_ClientConfiguration clientConfig;
-   NEXUS_Platform_GetClientConfiguration(&clientConfig);
-#endif
-
-   /*
-    * The unsecure heap used for bin memory in the magnum module will always
-    * be this one.
-    */
-   heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
 
    if (heap == NULL)
    {
@@ -647,13 +638,6 @@ static bool ConfigureNexusHeapMappings(DRM_MemoryContext *ctx)
 
    ctx->offscreen_heap_translation =
       memStatus.offset - ctx->offscreen_heap_mapping.hw_addr;
-
-   /* Now for the secure heap */
-#ifndef SINGLE_PROCESS
-   heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
-#else
-   heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
-#endif
 
    if (heap != NULL)
    {

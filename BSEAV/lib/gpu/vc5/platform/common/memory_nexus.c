@@ -6,6 +6,7 @@ All rights reserved.
 #include "assert.h"
 
 #include "nexus_memory.h"
+#include "nexus_heap_selection.h"
 #include "nexus_platform.h"
 #include "nexus_base_mmap.h"
 #ifdef NXCLIENT_SUPPORT
@@ -393,26 +394,20 @@ BEGL_MemoryInterface *CreateMemoryInterface(void)
          mem->Lock          = MemLockBlock;
          mem->Unlock        = MemUnlockBlock;
 
-#ifndef SINGLE_PROCESS
+         if (ctx->useDynamicMMA)
          {
-            NEXUS_ClientConfiguration clientConfig;
-            NEXUS_Platform_GetClientConfiguration(&clientConfig);
-
-            if (ctx->useDynamicMMA)
-               ctx->heapMap.heap = clientConfig.heap[4];
-            else if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
-               ctx->heapMap.heap = clientConfig.heap[0];
-            else
-               ctx->heapMap.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-
-            ctx->heapMapSecure.heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
+            ctx->heapMap.heap       = GetDynamicHeap();
+            ctx->heapMapSecure.heap = NULL;
          }
-#else
-         /* If you change this, then the heap must also change in nexus_platform.c
-            With refsw NEXUS_OFFSCREEN_SURFACE is the only heap guaranteed to be valid for v3d to use */
-         ctx->heapMap.heap    = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-         ctx->heapMapSecure.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
-#endif
+         else
+         {
+            ctx->heapMap.heap       = GetDefaultHeap();
+            ctx->heapMapSecure.heap = GetSecureHeap();
+         }
+
+         if (!ctx->heapMap.heap)
+            FATAL_ERROR("Could not get Nexus heap\n");
+
          NEXUS_Heap_GetStatus(ctx->heapMap.heap, &memStatus);
          ctx->heapMap.heapStartCached = memStatus.addr;
          ctx->heapMap.heapStartPhys = memStatus.offset;
