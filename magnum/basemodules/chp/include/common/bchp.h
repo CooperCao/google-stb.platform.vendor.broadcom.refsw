@@ -893,6 +893,7 @@ typedef struct BCHP_OpenSettings
     unsigned productId; /* hex value. if non-zero, this will override BCHP_Info.productId. default is zero. */
     BCHP_MemoryLayout memoryLayout;
     unsigned pMapId;
+    bool skipInitialReset;
 } BCHP_OpenSettings;
 
 void BCHP_GetDefaultOpenSettings(
@@ -1119,6 +1120,10 @@ BERR_Code BCHP_GetMemoryInfo_PreInit(
 
 /* Stripe memory address may be shuffled if the MEMC bus protocol supports it */
 BSTD_DeviceOffset BCHP_ShuffleStripedPixelOffset(BCHP_Handle hChp, unsigned memcIdx, BSTD_DeviceOffset offset);
+
+/* Use the following API in order to reset SAGE. */
+bool BCHP_SAGE_IsStarted(BREG_Handle hReg);
+BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
 
 #ifdef __cplusplus
 }

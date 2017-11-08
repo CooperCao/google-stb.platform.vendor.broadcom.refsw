@@ -80,6 +80,11 @@ BDBG_MODULE(BCHP_SAGE);
 #define SAGE_RESET_WAIT_COUNT 1000
 #define SAGE_RESET_WAIT_DELAY 10
 
+bool BCHP_SAGE_IsStarted(BREG_Handle hReg)
+{
+    return (BREG_Read32(hReg, SAGE_SRR_START_REG) != 0x0);
+}
+
 BERR_Code
 BCHP_SAGE_Reset(
     BREG_Handle hReg)
@@ -91,8 +96,7 @@ BCHP_SAGE_Reset(
 
     BDBG_ASSERT(hReg);
 
-    val = BREG_Read32(hReg, SAGE_SRR_START_REG);
-    if (val == 0x0) {
+    if (!BCHP_SAGE_IsStarted(hReg)) {
         BDBG_MSG(("SAGE is not started. Continue...."));
         goto end;
     }

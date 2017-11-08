@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -142,6 +142,7 @@ typedef struct BMRC_Monitor_Settings
 	BMRC_AccessType eKernelBlockMode;    /* blocking mode when violations occur for kernel memory */
 	BMRC_AccessType eBlockMode;          /* blocking mode when violations occur for non-kernel memory */
 	unsigned ulNumCheckersToUse;  /* number of hardware checkers used by this instance of mrc monitor */
+	bool startDisabled;
 } BMRC_Monitor_Settings;
 
 /***************************************************************************
@@ -348,6 +349,11 @@ Summary:
     Gets name of SCB request type
 **************************************************************************/
 const char * BMRC_Monitor_GetRequestTypeName_isrsafe( unsigned requestType);
+
+void BMRC_Monitor_SetEnabled(
+    BMRC_Monitor_Handle hMonitor,
+    bool enabled
+    );
 
 #ifdef __cplusplus
 } /* end extern "C" */
