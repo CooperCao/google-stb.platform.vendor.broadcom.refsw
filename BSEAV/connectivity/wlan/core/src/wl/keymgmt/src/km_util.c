@@ -1113,13 +1113,13 @@ wlc_bsscfg_t *from_cfg, wlc_bsscfg_t *to_cfg)
 		/* Clone tx seq number */
 		data_len = sizeof(data);
 		if (wlc_key_get_seq(from_key, data, data_len, 0, 1) >= 0)
-			wlc_key_set_seq(to_key, data, data_len, 0, 1);
+			(void)wlc_key_set_seq(to_key, data, data_len, 0, 1);
 
 		/* Clone rx seq number */
 		for (i = 0; i < (size_t)WLC_KEY_NUM_RX_SEQ; i++) {
 			data_len = sizeof(data);
 			if (wlc_key_get_seq(from_key, data, data_len, i, 0) >= 0)
-				wlc_key_set_seq(to_key, data, data_len, i, 0);
+				(void)wlc_key_set_seq(to_key, data, data_len, i, 0);
 		}
 
 #if defined(BRCMAPIVTW)
@@ -1174,13 +1174,13 @@ wlc_bsscfg_t *from_cfg, wlc_bsscfg_t *to_cfg)
 			/* Clone tx seq number */
 			data_len = sizeof(data);
 			if (wlc_key_get_seq(from_key, data, data_len, 0, 1) >= 0)
-				wlc_key_set_seq(to_key, data, data_len, 0, 1);
+				(void)wlc_key_set_seq(to_key, data, data_len, 0, 1);
 
 			/* Clone rx seq number */
 			for (i = 0; i < (size_t)WLC_KEY_NUM_RX_SEQ; i++) {
 				data_len = sizeof(data);
 				if (wlc_key_get_seq(from_key, data, data_len, i, 0) >= 0)
-					wlc_key_set_seq(to_key, data, data_len, i, 0);
+					(void)wlc_key_set_seq(to_key, data, data_len, i, 0);
 			}
 
 #if defined(BRCMAPIVTW)
