@@ -305,7 +305,9 @@ tkip_get_data(wlc_key_t *key, uint8 *data, size_t data_size,
 			break;
 		}
 
-		memcpy(data, tkip_key->key, TKIP_KEY_SIZE);
+		memcpy(data, tkip_key->key, TKIP_KEY_TK_SIZE);
+		memcpy(data+TKIP_KEY_TK_SIZE, tkip_key->mic_keys.from_ds, TKIP_MIC_KEY_SIZE);
+		memcpy(data+TKIP_KEY_TK_SIZE+TKIP_MIC_KEY_SIZE, tkip_key->mic_keys.to_ds, TKIP_MIC_KEY_SIZE);
 		break;
 	case WLC_KEY_DATA_TYPE_TKIP_TK:
 		if (data_len != NULL)
@@ -350,10 +352,8 @@ tkip_get_data(wlc_key_t *key, uint8 *data, size_t data_size,
 
 		if (data_type == WLC_KEY_DATA_TYPE_MIC_KEY_FROM_DS)
 			key_data = tkip_key->mic_keys.from_ds;
-		else if (data_type == WLC_KEY_DATA_TYPE_MIC_KEY_TO_DS)
+		else /* Must be WLC_KEY_DATA_TYPE_MIC_KEY_TO_DS */
 			key_data = tkip_key->mic_keys.to_ds;
-		else
-			break;
 
 		memcpy(data, key_data, TKIP_KEY_MIC_KEY_SIZE);
 		break;
@@ -403,14 +403,11 @@ tkip_get_data(wlc_key_t *key, uint8 *data, size_t data_size,
 
 static int
 tkip_set_data(wlc_key_t *key, const uint8 *data,
-    size_t data_len, key_data_type_t data_type, int ins, bool tx)
+	size_t data_len, key_data_type_t data_type, int seq_id, bool tx)
 {
 	tkip_key_t *tkip_key;
 	int err = BCME_OK;
 	wlc_bsscfg_t *bsscfg;
-	int ins_begin;
-	int ins_end;
-	int seq_id;
 	uint8 old_seq[TKIP_KEY_SEQ_SIZE];
 	KM_DBG_ASSERT(TKIP_KEY_VALID(key));
 
@@ -425,8 +422,6 @@ tkip_set_data(wlc_key_t *key, const uint8 *data,
 		err = BCME_BADKEYIDX;
 		goto done;
 	}
-
-	KEY_RESOLVE_SEQ(key, ins, tx, ins_begin, ins_end);
 
 	tkip_key = (tkip_key_t *)key->algo_impl.ctx;
 	switch (data_type) {
@@ -443,9 +438,14 @@ tkip_set_data(wlc_key_t *key, const uint8 *data,
 		} else if (!data) {
 			err = BCME_BADARG;
 			break;
-		} else {
+		} else if (memcmp(tkip_key->key, data, TKIP_KEY_SIZE)) {
 			memset(tkip_key, 0, SIZEOF_TKIP_KEY(key));
-			memcpy(tkip_key->key, data, TKIP_KEY_SIZE);
+			memcpy(tkip_key->key, data, TKIP_KEY_TK_SIZE);
+			memcpy(tkip_key->mic_keys.from_ds, data+TKIP_KEY_TK_SIZE, TKIP_KEY_MIC_KEY_SIZE);
+			memcpy(tkip_key->mic_keys.to_ds, data+TKIP_KEY_TK_SIZE+TKIP_KEY_MIC_KEY_SIZE, TKIP_KEY_MIC_KEY_SIZE);
+		} else {
+			err = BCME_REPLAY; /* attempt to set the same key again */
+			break;
 		}
 		break;
 	case WLC_KEY_DATA_TYPE_TKIP_TK:
@@ -467,23 +467,19 @@ tkip_set_data(wlc_key_t *key, const uint8 *data,
 		}
 		break;
 	case WLC_KEY_DATA_TYPE_SEQ:
-		if (!TKIP_KEY_VALID_INS(key, tx, ins_begin)) {
+		if (!TKIP_KEY_VALID_INS(key, tx, seq_id)) {
 			err = BCME_UNSUPPORTED;
 			break;
 		}
 
-		memcpy(old_seq, TKIP_KEY_SEQ(tkip_key, tx, ins_begin), TKIP_KEY_SEQ_SIZE);
+		memcpy(old_seq, TKIP_KEY_SEQ(tkip_key, tx, seq_id), TKIP_KEY_SEQ_SIZE);
 		if (!data_len) {
-			for (seq_id = ins_begin; seq_id < ins_end; ++seq_id) {
-				memset(TKIP_KEY_SEQ(tkip_key, tx, seq_id), 0, TKIP_KEY_SEQ_SIZE);
-			}
+			memset(TKIP_KEY_SEQ(tkip_key, tx, seq_id), 0, TKIP_KEY_SEQ_SIZE);
 		} else  if (!data || (data_len < TKIP_KEY_SEQ_SIZE)) { /* allows truncation */
 			err = BCME_BADARG;
 			break;
 		} else {
-			for (seq_id = ins_begin; seq_id < ins_end; ++seq_id) {
-				memcpy(TKIP_KEY_SEQ(tkip_key, tx, seq_id), data, TKIP_KEY_SEQ_SIZE);
-			}
+			memcpy(TKIP_KEY_SEQ(tkip_key, tx, seq_id), data, TKIP_KEY_SEQ_SIZE);
 		}
 		break;
 	case WLC_KEY_DATA_TYPE_TKHASH_P1:
@@ -504,7 +500,7 @@ tkip_set_data(wlc_key_t *key, const uint8 *data,
 			uint8 *new_seq;
 			bool hi32_upd;
 
-			new_seq = TKIP_KEY_SEQ(tkip_key, tx, ins_begin);
+			new_seq = TKIP_KEY_SEQ(tkip_key, tx, seq_id);
 			hi32_upd = (KEY_SEQ_HI32(old_seq) != KEY_SEQ_HI32(new_seq));
 			tx_upd = tx && hi32_upd;
 			rx_upd = !tx && hi32_upd;
@@ -517,8 +513,8 @@ tkip_set_data(wlc_key_t *key, const uint8 *data,
 
 		if (rx_upd) {
 			tkip_key_phase1(key, tkip_key->rx_state.cur_phase1_key, tkip_key, bsscfg,
-				TKIP_KEY_SEQ(tkip_key, FALSE, ins_begin), FALSE);
-			tkip_key->rx_state.cur_seq_id = (wlc_key_seq_id_t)ins_begin;
+				TKIP_KEY_SEQ(tkip_key, FALSE, seq_id), FALSE);
+			tkip_key->rx_state.cur_seq_id = (wlc_key_seq_id_t)seq_id;
 		}
 
 		/* notify interested parties of seq update update. if key is
