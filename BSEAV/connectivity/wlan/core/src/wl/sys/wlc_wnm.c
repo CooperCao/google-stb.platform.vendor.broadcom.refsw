@@ -8638,7 +8638,7 @@ wlc_wnm_sleep_resp_keydata_parse(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg,
 	while (len) {
 		wlc_info_t *wlc = wnm->wlc;
 			if (TLV_HDR_LEN + key[1] > len) {
-				return BCME_ERROR;
+				return BCME_BADLEN;
 			}
 
 			if (key[0] == DOT11_WNM_SLEEP_SUBELEM_ID_GTK) {
@@ -8674,8 +8674,14 @@ wlc_wnm_sleep_resp_keydata_parse(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg,
 				igtk->len - sizeof(igtk->key_id) - sizeof(igtk->pn));
 			if (err != BCME_OK)
 				goto done;
-			wlc_key_set_seq(wlc_key, igtk->pn, sizeof(igtk->pn), 0, FALSE);
+			err = wlc_key_set_seq(wlc_key, igtk->pn, sizeof(igtk->pn), 0, FALSE);
+			if (err != BCME_OK) {
+				break;
+			}
 		}
+
+		len -= TLV_HDR_LEN + key[1];
+		key += TLV_HDR_LEN + key[1];
 	}
 
 done:

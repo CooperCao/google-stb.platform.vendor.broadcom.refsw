@@ -847,6 +847,9 @@ wpa_extract_gtk(wpa_t *wpa, nas_sta_t *sta, eapol_header_t *eapol)
 
 	int len = ntohs(body->data_len);
 	ushort key_info = ntohs(body->key_info);
+#ifdef MFP2
+	bool UpdateIgtk = FALSE;
+#endif /* MFP2 */
 
 	/* look for a GTK */
 	data_encap = wpa_find_gtk_encap(body->data, len);
@@ -877,7 +880,9 @@ wpa_extract_gtk(wpa_t *wpa, nas_sta_t *sta, eapol_header_t *eapol)
 	if (MFP_IGTK_REQUIRED(wpa, sta) && sta->key_auth_type == KEYAUTH_SHA256) {
 		/* look for a iGTK */
 		data_encap = wpa_find_igtk_encap(body->data, len);
-		if (data_encap) {
+		if (data_encap &&
+			((uint)(data_encap->length - EAPOL_WPA2_IGTK_ENCAP_MIN_LEN)
+			<= sizeof(wpa->igtk))) {
 			eapol_wpa2_key_igtk_encap_t *igtk_kde;
 			dbg(wpa->nas, "found igtk encap");
 			gtk_encap = (eapol_wpa2_key_gtk_encap_t *)data_encap->data;
@@ -895,12 +900,20 @@ wpa_extract_gtk(wpa_t *wpa, nas_sta_t *sta, eapol_header_t *eapol)
 			wpa->igtk.ipn_hi = *(uint16 *)(igtk_kde->ipn + 4);
 			dbg(wpa->nas, "ipn hi and ipn low = %d, %d\n",
 				wpa->igtk.ipn_lo, wpa->igtk.ipn_hi);
-			bcopy(igtk_kde->key, wpa->igtk.key, AES_TK_LEN);
+			/* Install if it is not the same as previous one */
+			if (bcmp(igtk_kde->key, wpa->igtk.key, AES_TK_LEN) ||
+				!(wpa->nas->flags & NAS_FLAG_IGTK_PLUMBED)) {
+				UpdateIgtk = TRUE;
+				bcopy(igtk_kde->key, wpa->igtk.key, AES_TK_LEN);
+			}
 			dbg(wpa->nas, "igtk:");
 			dump(wpa->nas, wpa->igtk.key, AES_TK_LEN);
-
-			nas_set_key(wpa->nas, NULL, wpa->igtk.key, wpa->igtk.key_len,
-				wpa->igtk.id, 0, wpa->igtk.ipn_lo, wpa->igtk.ipn_hi);
+			if (UpdateIgtk == TRUE) {
+				dbg(wpa->nas, "plumb igtk");
+				if (nas_set_key(wpa->nas, NULL, wpa->igtk.key, wpa->igtk.key_len,
+					wpa->igtk.id, 0, wpa->igtk.ipn_lo, wpa->igtk.ipn_hi) >= 0)
+					wpa->nas->flags |= NAS_FLAG_IGTK_PLUMBED;
+			}
 
 		} else {
 			dbg(wpa->nas, "didn't find igtk encap");
@@ -1942,7 +1955,6 @@ wpa_send_eapol(wpa_t *wpa, nas_sta_t *sta)
 					body->key_info |= htons(WPA_KEY_SECURE);
 				if ((sta->mode & (WPA2 | WPA2_PSK | WPA2_FT)))
 					body->key_info |= htons(WPA_KEY_SECURE);
-				sta->suppl.pk_state = EAPOL_SUP_PK_DONE;
 				break;
 			default:
 				dbg(nas, "Unexpected supplicant pk state %d", sta->suppl.pk_state);
@@ -3470,6 +3482,8 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 	bool UpdatePTK = FALSE;
 	bool UpdateGTK = FALSE;
 	eapol_sup_pk_state_t state = EAPOL_SUP_PK_UNKNOWN;
+	uint8 t_gtk[TKIP_TK_LEN];
+	uint8 t_anonce[NONCE_LEN];
 
 	/* get replay counter from recieved frame */
 	bcopy(body->replay, sta->suppl.replay, REPLAY_LEN);
@@ -3502,9 +3516,13 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 			nas_set_key(wpa->nas, &sta->ea, NULL, 0, 0, 0, 0, 0);
 			sta->suppl.pk_state = EAPOL_SUP_PK_MSG1;
 		}
-		/* 4-way handshake message 3 - validate current state */
-		else if (sta->suppl.pk_state != EAPOL_SUP_PK_MSG3)
+		/* 4-way handshake message 3 - validate current state.
+		 * Accept retransmitted message 3
+		 */
+		else if ((sta->suppl.pk_state != EAPOL_SUP_PK_MSG3) &&
+			(sta->suppl.pk_state != EAPOL_SUP_PK_DONE)) {
 			return state;
+		}
 	}
 	else
 		sta->suppl.state = WPA_SUP_STAKEYSTARTG;
@@ -3529,12 +3547,20 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 					else
 						dbg(wpa->nas, "didn't find rsnie");
 
+					memset(t_gtk, 0, sizeof(t_gtk));
+					memcpy(t_gtk, wpa->gtk, wpa->gtk_len);
 					if (!(UpdateGTK = wpa_extract_gtk(wpa, sta, eapol))) {
 						err(wpa->nas, "extraction of gtk from eapol message"
 						    " failed");
 						return EAPOL_SUP_PK_UNKNOWN;
 					}
-
+					/* If GTK is the same as the previous one,
+					 * do not reinstall it
+					 */
+					else if (!bcmp(t_gtk, wpa->gtk, wpa->gtk_len) &&
+						(wpa->nas->flags & NAS_FLAG_GTK_PLUMBED)) {
+						UpdateGTK = FALSE;
+					}
 				} else
 				/* Check message 3 WPA IE against probe response IE. */
 				if (!data_len || data_len != sta->suppl.assoc_wpaie_len ||
@@ -3548,14 +3574,25 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 					return EAPOL_SUP_PK_ERROR;
 				}
 			}
+			memset(t_anonce, 0, NONCE_LEN);
+			bcopy(sta->suppl.anonce, t_anonce, NONCE_LEN);
 			bcopy(body->nonce, sta->suppl.anonce, NONCE_LEN);
 			wpa_calc_ptk(wpa, sta);
 		}
 
 		if (state == EAPOL_SUP_PK_MICOK)  {
 			dbg(wpa->nas, "MICOK");
-			if (key_info & WPA_KEY_INSTALL)
-				UpdatePTK = TRUE;
+			if (key_info & WPA_KEY_INSTALL) {
+				/* Install a PTK only if it is not retransmitted M3 */
+				if (bcmp(t_anonce, sta->suppl.anonce, NONCE_LEN) ||
+					(sta->suppl.pk_state != EAPOL_SUP_PK_DONE)) {
+					UpdatePTK = TRUE;
+				}
+				else {
+					/* Change the state so that M4 is sent */
+					sta->suppl.pk_state = EAPOL_SUP_PK_MSG3;
+				}
+			}
 			else {
 				dbg(wpa->nas, "INSTALL flag not set in msg 3 key_info; no PTK"
 				    " installed");
@@ -3563,22 +3600,38 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 		}
 	} else if (state == EAPOL_SUP_PK_MICOK) {
 		dbg(wpa->nas, "Group, MICOK");
-	  if ((sta->mode & (WPA2 | WPA2_PSK))) {
+		if ((sta->mode & (WPA2 | WPA2_PSK))) {
+			memset(t_gtk, 0, sizeof(t_gtk));
+			memcpy(t_gtk, wpa->gtk, wpa->gtk_len);
 			if (!(UpdateGTK = wpa_extract_gtk(wpa, sta, eapol))) {
 				err(wpa->nas, "extraction of gtk from eapol message failed");
 				return EAPOL_SUP_PK_UNKNOWN;
 			}
-	  } else {
-		/* Group Key */
-		if (!wpa_decr_gtk(wpa, sta, body)) {
-			dbg(wpa->nas, "unencrypt failed");
-			state = EAPOL_SUP_PK_MICFAILED;
+			/* If GTK is the same as the previous one,
+			 * do not reinstall it
+			 */
+			else if (!bcmp(t_gtk, wpa->gtk, wpa->gtk_len) &&
+				(wpa->nas->flags & NAS_FLAG_GTK_PLUMBED)) {
+				UpdateGTK = FALSE;
+			}
 		} else {
-			dbg(wpa->nas, "unencrypt ok, plumb gtk");
-			wpa_plumb_gtk(wpa, key_info & WPA_KEY_INSTALL);
-			/* nas_deauthenticate(wpa->nas, suppl->ea) */
+			memset(t_gtk, 0, sizeof(t_gtk));
+			memcpy(t_gtk, wpa->gtk, wpa->gtk_len);
+			/* Group Key */
+			if (!wpa_decr_gtk(wpa, sta, body)) {
+				dbg(wpa->nas, "unencrypt failed");
+				state = EAPOL_SUP_PK_MICFAILED;
+			} else {
+				dbg(wpa->nas, "unencrypt ok");
+				/* Install if is not the same as previous one */
+				if (bcmp(t_gtk, wpa->gtk, wpa->gtk_len) ||
+					!(wpa->nas->flags & NAS_FLAG_GTK_PLUMBED)) {
+					dbg(wpa->nas, "plumb gtk");
+					wpa_plumb_gtk(wpa, key_info & WPA_KEY_INSTALL);
+					/* nas_deauthenticate(wpa->nas, suppl->ea) */
+				}
+			}
 		}
-	  }
 	} else {
 		dbg(wpa->nas, "Group, !MICOK");
 		state = EAPOL_SUP_PK_MICFAILED;
@@ -3601,10 +3654,22 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 			dbg(wpa->nas, "nas_set_key() failed");
 			nas_deauthenticate(wpa->nas, &sta->ea, DOT11_RC_BUSY);
 		}
+		else {
+			sta->suppl.pk_state = EAPOL_SUP_PK_DONE;
+		}
 	}
 	if (UpdateGTK == TRUE) {
 		dbg(wpa->nas, "UpdateGTK");
 		wpa_plumb_gtk(wpa, key_info & WPA_KEY_INSTALL);
+	}
+	if ((key_info & WPA_KEY_PAIRWISE) &&
+		(key_info & WPA_KEY_INSTALL)) {
+		/* In case of M3, UpdatePTK will be false only if it is retransmission
+		 * So set the state to EAPOL_SUP_PK_DONE without installing the key
+		 */
+		if (UpdatePTK == FALSE) {
+			sta->suppl.pk_state = EAPOL_SUP_PK_DONE;
+		}
 	}
 	if ((state == EAPOL_SUP_PK_MICOK) && (key_info & WPA_KEY_SECURE)) {
 #ifdef BCMINTDBG

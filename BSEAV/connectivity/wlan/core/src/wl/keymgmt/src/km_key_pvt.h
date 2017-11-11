@@ -239,7 +239,7 @@ struct wlc_key {
 	if ((_ins) == WLC_KEY_SEQ_ID_ALL) {\
 		KM_DBG_ASSERT(!(_tx) && !WLC_KEY_IS_MGMT_GROUP(&(_key)->info)); \
 		_ins_begin = 0; \
-		_ins_end = KEY_NUM_RX_SEQ(_key); \
+		_ins_end = (key_seq_id_t)KEY_NUM_RX_SEQ(_key); \
 	}\
 }
 

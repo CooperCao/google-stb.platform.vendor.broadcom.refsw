@@ -747,6 +747,26 @@ done:
 	return err;
 }
 
+/* return -1, 0, or + 1 based on whether kseq < seq or equal or > */
+static int
+km_key_seq_cmp(wlc_key_t *key, const uint8 *seq, size_t seq_len,
+	wlc_key_seq_id_t seq_id, bool tx)
+{
+	uint8 key_seq[KM_KEY_MAX_DATA_LEN];
+	int key_seq_len;
+	key_seq_len = wlc_key_get_seq(key, key_seq, sizeof(key_seq), seq_id, tx);
+	KM_DBG_ASSERT(key_seq_len >= 0 && (uint)key_seq_len <= sizeof(key_seq));
+
+	seq_len = (size_t)MIN(key_seq_len, (int)seq_len);
+	if (km_key_seq_less(key_seq, seq, seq_len)) {
+		return -1;
+	} else if (!memcmp(key_seq, seq, seq_len)) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
 int
 wlc_key_get_seq(wlc_key_t *key, uint8 *buf, size_t buf_len,
     key_seq_id_t seq_id, bool tx)
@@ -768,7 +788,10 @@ int
 wlc_key_set_seq(wlc_key_t *key, const uint8 *seq, size_t seq_len,
     key_seq_id_t seq_id, bool tx)
 {
-	int err;
+	int err = BCME_OK;
+	key_seq_id_t ins;
+	key_seq_id_t ins_begin;
+	key_seq_id_t ins_end;
 
 	KM_DBG_ASSERT(KEY_VALID(key));
 
@@ -776,8 +799,21 @@ wlc_key_set_seq(wlc_key_t *key, const uint8 *seq, size_t seq_len,
 	if (tx || WLC_KEY_IS_MGMT_GROUP(&key->info))
 		seq_id = 0;
 
-	KEY_ALGO_CB(err, key->algo_impl.cb->set_data,
-		(key, seq, seq_len, WLC_KEY_DATA_TYPE_SEQ, seq_id, tx));
+	KEY_RESOLVE_SEQ(key, seq_id, tx, ins_begin, ins_end);
+	for (ins = ins_begin; ins < ins_end; ++ins) {
+		/* ensure seq > key seq */
+		if (km_key_seq_cmp(key, seq, seq_len, ins, tx) > 0) {
+			err = BCME_REPLAY;
+			break;
+		}
+
+		KEY_ALGO_CB(err, key->algo_impl.cb->set_data,
+			(key, seq, seq_len, WLC_KEY_DATA_TYPE_SEQ, ins, tx));
+
+		if (err != BCME_OK) {
+			break;
+		}
+	}
 
 	KEY_LOG(("wl%d: %s: key@%p key_idx 0x%04x seq len %d status %d\n",
 		KEY_WLUNIT(key), __FUNCTION__, key, key->info.key_idx, (int)seq_len, err));
@@ -849,12 +885,30 @@ wlc_key_set_data(wlc_key_t *key, wlc_key_algo_t algo,
 			goto done;
 	}
 
+	if (data && (data_len > 0)) {
+		uint8 key_data[KM_KEY_MAX_DATA_LEN];
+		size_t key_data_len = 0;
+
+		err = km_key_get_data(key, key_data, KM_KEY_MAX_DATA_LEN, &key_data_len,
+				WLC_KEY_DATA_TYPE_KEY, 0, TRUE);
+		if (err == BCME_OK) {
+			if ((key_data_len == data_len) && !memcmp(key_data, data, key_data_len)) {
+				goto done;
+			}
+		}
+	}
+
 	KEY_ALGO_CB(err, key->algo_impl.cb->set_data,
 		(key, data, data_len, WLC_KEY_DATA_TYPE_KEY, 0, TRUE));
 	if (err != BCME_OK) {
-		if  (err != BCME_UNSUPPORTED)
+		if (err == BCME_UNSUPPORTED) {
+			err = BCME_OK;
+		} else if (err == BCME_REPLAY) {
+			err = BCME_OK;
+			goto done; /* need to skip notification that resets ivtw */
+		} else {
 			goto done;
-		err = BCME_OK;
+		}
 	}
 
 #ifdef GTK_RESET
@@ -1055,24 +1109,22 @@ bool
 wlc_key_seq_less(wlc_key_t *key, const uint8 *seq, size_t seq_len,
 	wlc_key_seq_id_t seq_id, bool tx)
 {
-	uint8 key_seq[KM_KEY_MAX_DATA_LEN];
-	int key_seq_len;
-	key_seq_len = wlc_key_get_seq(key, key_seq, sizeof(key_seq), seq_id, tx);
-	if (key_seq_len < 0) {
-		KEY_ERR(("wlc_key_get_seq returns err of %d\n", key_seq_len));
-		return FALSE;
-	}
-	KM_DBG_ASSERT(key_seq_len >= 0 && (uint)key_seq_len <= sizeof(key_seq));
-	return km_key_seq_less(key_seq, seq, (size_t)MIN(key_seq_len, (int)seq_len));
+	return km_key_seq_cmp(key, seq, seq_len, seq_id, tx) < 0;
 }
 
 int
 wlc_key_advance_seq(wlc_key_t *key, const uint8 *seq, size_t seq_len,
 	wlc_key_seq_id_t seq_id, bool tx)
 {
-	int err = BCME_UNSUPPORTED;
-	if (wlc_key_seq_less(key, seq, seq_len, seq_id, tx))
-		err = wlc_key_set_seq(key, seq, seq_len, seq_id, tx);
+	int err;
+
+	err = wlc_key_set_seq(key, seq, seq_len, seq_id, tx);
+
+	/* if iv rollback ignore, because caller asked to advance */
+	if (err == BCME_REPLAY) {
+		err = BCME_OK;
+	}
+
 	return err;
 }
 
