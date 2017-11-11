@@ -60,11 +60,10 @@ public:
             );
     virtual ~CPowerNx(void);
 
-
-    virtual eRet       setMode(ePowerMode mode, CGraphics * pGraphics = NULL);
-    virtual bool       checkPower(void);
+    virtual eRet setMode(ePowerMode mode, CGraphics * pGraphics = NULL);
+    virtual bool checkPower(void);
 protected:
-    bool     _transition;
+    bool _transition;
 };
 
 #ifdef __cplusplus

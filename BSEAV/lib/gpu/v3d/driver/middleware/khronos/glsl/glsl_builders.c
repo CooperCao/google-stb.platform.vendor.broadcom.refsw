@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include <stdlib.h>
@@ -64,8 +57,8 @@ void glsl_check_namespace_nonfunction(SymbolTable* table, const char* name)
 
 void glsl_insert_function_definition(Statement* statement)
 {
-   vcos_assert(SYMBOL_FUNCTION_INSTANCE == g_DefinitionInsertionSymbol->flavour);
-   vcos_assert(STATEMENT_FUNCTION_DEF == statement->flavour);
+   assert(SYMBOL_FUNCTION_INSTANCE == g_DefinitionInsertionSymbol->flavour);
+   assert(STATEMENT_FUNCTION_DEF == statement->flavour);
 
    if (g_DefinitionInsertionSymbol->u.function_instance.function_def)
    {
@@ -451,7 +444,7 @@ void glsl_build_struct_type(void)
    // while (symbol = glsl_symbol_table_pop(g_StructBuilderMembers))
    for (symbol = glsl_symbol_table_pop(g_StructBuilderMembers); symbol; symbol = glsl_symbol_table_pop(g_StructBuilderMembers))
    {
-      vcos_assert(SYMBOL_STRUCT_MEMBER == symbol->flavour);
+      assert(SYMBOL_STRUCT_MEMBER == symbol->flavour);
       structMemberNames[i] = symbol->name;
       structMemberTypes[i] = symbol->type;
       i--; // build backwards to preserve source order
@@ -537,7 +530,7 @@ void glsl_build_function_type(void)
       //while (symbol = glsl_symbol_table_pop(g_FunctionBuilderParams))
       for (symbol = glsl_symbol_table_pop(g_FunctionBuilderParams); symbol; symbol = glsl_symbol_table_pop(g_FunctionBuilderParams))
       {
-         vcos_assert(SYMBOL_PARAM_INSTANCE == symbol->flavour);
+         assert(SYMBOL_PARAM_INSTANCE == symbol->flavour);
          functionParams[i] = symbol;
          i--; // build backwards to preserve source order
       }
@@ -571,7 +564,7 @@ void glsl_instantiate_function_params(SymbolType* fun)
 {
    int i;
 
-   vcos_assert(SYMBOL_FUNCTION_TYPE == fun->flavour);
+   assert(SYMBOL_FUNCTION_TYPE == fun->flavour);
 
    for (i = 0; i < fun->u.function_type.param_count; i++)
    {

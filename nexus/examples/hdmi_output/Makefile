@@ -38,9 +38,7 @@
 
 APPS += \
     hdmi_output \
-    hdmi_output_hdcp2x \
     hdmi_output_hdcp \
-    hdmi_output_hdcp_compliance_test \
     eotf
 
 

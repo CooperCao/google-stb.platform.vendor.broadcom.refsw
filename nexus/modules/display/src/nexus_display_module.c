@@ -312,7 +312,7 @@ static void NEXUS_Display_P_RdcReadCapture(void *data)
 #endif
 
     if (rdc && g_rdc_capture_fifo) {
-        g_rdc_capture.timer = NEXUS_ScheduleTimer(1000, NEXUS_Display_P_RdcReadCapture, rdc);
+        g_rdc_capture.timer = NEXUS_ScheduleTimer(100, NEXUS_Display_P_RdcReadCapture, rdc);
     }
 }
 
@@ -341,7 +341,7 @@ int nexus_display_p_init_rdccapture(void)
     rc = BDBG_Fifo_Create(&g_rdc_capture_fifo, &settings);
     if (rc) {return BERR_TRACE(rc); goto error;}
 
-    g_rdc_capture.timer = NEXUS_ScheduleTimer(1000, NEXUS_Display_P_RdcReadCapture, g_NEXUS_DisplayModule_State.rdc);
+    g_rdc_capture.timer = NEXUS_ScheduleTimer(100, NEXUS_Display_P_RdcReadCapture, g_NEXUS_DisplayModule_State.rdc);
     if (!g_rdc_capture.timer) {rc = BERR_TRACE(NEXUS_UNKNOWN); goto error;}
 
     return 0;
@@ -469,12 +469,16 @@ static void NEXUS_DisplayModule_Print(void)
         NEXUS_DisplayHandle display = g_NEXUS_DisplayModule_State.displays[i];
         static const char *g_contentModeStr[NEXUS_VideoWindowContentMode_eMax] = {"zoom","box","panscan","full","nonlinear","panscan_no_corr"};
         char str[32];
+        BVDC_Display_UcodeInfo dispUcodeInfo;
 
         if (!display) continue;
 
         BDBG_MODULE_LOG(display_proc, ("display %d: format=%s %d.%02dhz", i,
             NEXUS_P_VideoFormat_ToStr_isrsafe(display->cfg.format),
             display->status.refreshRate/1000, display->status.refreshRate%1000));
+
+        BVDC_Dbg_Display_GetVecUcodeInfo(display->displayVdc, &dispUcodeInfo);
+
         if (display->graphics.frameBuffer3D.right) {
             BKNI_Snprintf(str, sizeof(str), "%p(%p)", (void *)display->graphics.frameBuffer3D.main, (void *)display->graphics.frameBuffer3D.right);
         }
@@ -523,6 +527,15 @@ static void NEXUS_DisplayModule_Print(void)
         for (output=BLST_D_FIRST(&display->outputs);output;output=BLST_D_NEXT(output, link)) {
             BDBG_MODULE_LOG(display_proc, ("  output %p: %s", (void *)output, g_videoOutputStr[output->output->type]));
         }
+
+        if (dispUcodeInfo.ulAnalogTs)
+            BDBG_MODULE_LOG(display_proc, ("  analog microcode ts/cksum  = 0x%.8x, 0x%.8x", dispUcodeInfo.ulAnalogTs, dispUcodeInfo.ulAnalogCksum));
+        if (dispUcodeInfo.ulDviTs)
+            BDBG_MODULE_LOG(display_proc, ("  DVI microcode ts/cksum     = 0x%.8x, 0x%.8x", dispUcodeInfo.ulDviTs, dispUcodeInfo.ulDviCksum));
+        if (dispUcodeInfo.ul656Ts)
+            BDBG_MODULE_LOG(display_proc, ("  656 microcode ts/cksum     = 0x%.8x, 0x%.8x", dispUcodeInfo.ul656Ts, dispUcodeInfo.ul656Cksum));
+
+
     }
 
     for (input=BLST_S_FIRST(&g_NEXUS_DisplayModule_State.inputs);input;input=BLST_S_NEXT(input, link)) {

@@ -37,13 +37,14 @@ extern void bcm_sched_queue_bin_render(
 
 /* Query if completed_deps are completed and finalised_deps are finalised */
 extern void bcm_sched_query(
-   struct bcm_sched_dependencies *completed_deps,
-   struct bcm_sched_dependencies *finalised_deps,
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps,
    struct bcm_sched_query_response *response);
 
 typedef void (*bcm_update_oldest_nfid_fn) (uint64_t oldest_nfid);
 extern void bcm_sched_register_update_oldest_nfid(bcm_update_oldest_nfid_fn update);
 
+#if !V3D_PLATFORM_SIM
 /* If force_create is false, may return V3D_PLATFORM_NULL_FENCE indicating that
  * the specified jobs have already completed/finalised, but never fails.
  *
@@ -52,6 +53,7 @@ extern int bcm_sched_create_fence(
    const struct bcm_sched_dependencies *completed_deps,
    const struct bcm_sched_dependencies *finalised_deps,
    bool force_create);
+#endif
 
 /* Wait for a non-finalised job to be finalised
  * Returns true if a job has been waited for

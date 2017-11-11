@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2012-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2012-2017 2xxx Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -102,10 +102,11 @@ typedef struct NEXUS_P_Base_Stats_TimeNode {
 static void NEXUS_P_Base_Stats_Time_ReplaceSorted(NEXUS_P_Base_Stats_TimeList *list, NEXUS_P_Base_Stats_TimeNode *node)
 {
     NEXUS_P_Base_Stats_TimeNode *n;
-    long time = node->key.time;
+    long time;
 
     BDBG_ASSERT(node == BLST_Q_FIRST(list));
     BLST_Q_REMOVE_HEAD(list, link);
+    time = node->key.time;
     for(n=BLST_Q_LAST(list);;n=BLST_Q_PREV(n,link)) {
         if(n==NULL) {
             BLST_Q_INSERT_HEAD(list, node, link);

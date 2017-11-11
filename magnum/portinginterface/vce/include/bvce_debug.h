@@ -71,7 +71,7 @@ bool
 BVCE_Debug_FormatLogHeader(
    unsigned uiIndex,
    char *szMessage,
-   size_t uiSize
+   unsigned uiSize
    );
 
 /* BVCE_Debug_FormatLogMessage - formats the debug log entry for writing to file.
@@ -80,7 +80,7 @@ void
 BVCE_Debug_FormatLogMessage(
    const void *pstFifoEntry, /* Should point to an element of size BVCE_Debug_FifoInfo.uiElementSize */
    char *szMessage,
-   size_t uiSize
+   unsigned uiSize
    );
 
 /* BVCE_Debug_GetEntrySize - returns size of a log entry */

@@ -65,6 +65,12 @@ Handle for the Graphics2D interface.
 **/
 typedef struct NEXUS_Graphics2D *NEXUS_Graphics2DHandle;
 
+typedef enum NEXUS_Graphics2DMode
+{
+    NEXUS_Graphics2DMode_eBlitter,
+    NEXUS_Graphics2DMode_eMipmap,
+    NEXUS_Graphics2DMode_eMax
+} NEXUS_Graphics2DMode;
 /**
 Summary:
 Settings used for NEXUS_Graphics2D_Open
@@ -84,6 +90,7 @@ typedef struct NEXUS_Graphics2DOpenSettings
     bool compatibleWithSurfaceCompaction;
     bool secure; /* if false (default), reads and writes are only allowed to/from unsecure memory.
                     if true, reads and writes are allowed to/from secure memory and reads are allowed from unsecure memory. */
+    NEXUS_Graphics2DMode mode;
 } NEXUS_Graphics2DOpenSettings;
 
 /**

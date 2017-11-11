@@ -173,6 +173,12 @@ extern "C" {
 #error Unrecognized core version
 #endif
 
+#if (BVCE_P_CORE_MAJOR < 3)
+#define BVCE_P_CORE_FREQUENCY 351000000
+#else
+#define BVCE_P_CORE_FREQUENCY 432000000
+#endif
+
 #define BVCE_P_VIDEOCOMPRESSIONSTD_UNSUPPORTED 0xFFFFFFFF
 
 typedef struct BVCE_P_SupportedProtocolEntry

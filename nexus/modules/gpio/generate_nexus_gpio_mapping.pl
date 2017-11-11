@@ -39,6 +39,7 @@
 
 my $filename = shift; # Get the filename from command line.
 my $counter = 0;
+my $gpioDefined = 0;
 
 # Map RDB names for gpio to Nexus coding convention, RDB names vary per chip
 my %gpioName = (
@@ -108,6 +109,12 @@ foreach $gpioType (sort keys %gpioName) {
         print ("static const NEXUS_GpioTable g_","$gpioName{$gpioType}","Table\[\] = {\n");
         print ("@gpioArray");
         print ("\n};\n\n");
+
+        if ( $gpioType eq gpio ) { if (!$gpioDefined) { print ("#define NEXUS_HAS_GPIO_PINS 1\n\n"); } $gpioDefined = 1; }
+        elsif ( $gpioType eq onoff_gpio ) { if (!$gpioDefined) {print ("#define NEXUS_HAS_GPIO_PINS 1\n\n"); } $gpioDefined = 1; }
+        elsif ( $gpioType eq sgpio ) { print ("#define NEXUS_HAS_SGPIO_PINS 1\n\n"); }
+        elsif ( $gpioType eq aon_gpio ) { print ("#define NEXUS_HAS_AON_GPIO_PINS 1\n\n"); }
+        elsif ( $gpioType eq aon_sgpio ) { print ("#define NEXUS_HAS_AON_SGPIO_PINS 1\n\n"); }
     }
 
     seek(FILE, 0, 0); # reset to start of file

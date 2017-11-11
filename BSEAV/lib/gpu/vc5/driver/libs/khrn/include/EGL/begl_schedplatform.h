@@ -62,9 +62,6 @@ typedef struct BEGL_SchedInterface
    BEGL_SchedStatus   (*PollComplete)(void *context, void *session, struct bcm_sched_complete *complete);
    BEGL_SchedStatus   (*Query)(void *context, void *session, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalized_deps, struct bcm_sched_query_response *response);
    int                (*MakeFenceForJobs)(void *context, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalised_deps, bool force_create);
-   void               (*WaitFence)(void *context, int fence);
-   BEGL_FenceStatus   (*WaitFenceTimeout)(void *context, int fence, uint32_t timeoutms);
-   void               (*CloseFence)(void *context, int fence);
 
    bool               (*WaitForAnyNonFinalisedJob)(void *context);
    void               (*WaitJobs)(void *context, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalised_deps);

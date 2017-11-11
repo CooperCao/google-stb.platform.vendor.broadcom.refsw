@@ -5,11 +5,10 @@
 
 #include "glsl_nast.h"
 #include "glsl_common.h"
+#include "glsl_globals.h"
 #include "glsl_dataflow.h"
 #include "glsl_dataflow_builder.h"
 #include "glsl_basic_block.h"
-#include "glsl_basic_block_flatten.h"
-#include "glsl_basic_block_print.h"
 #include "glsl_intrinsic_ir_builder.h"
 #include "glsl_stackmem.h"
 #include "glsl_ast_visitor.h"
@@ -19,8 +18,10 @@
 #include "glsl_primitive_types.auto.h"
 #include "glsl_stdlib.auto.h"
 #include "glsl_symbol_table.h"
+#include "glsl_constants.h"
 
 #include "libs/util/gfx_util/gfx_util.h"
+#include "libs/core/v3d/v3d_align.h"
 
 // Populates an array of Dataflow* with indices into a symbol's scalar data.
 // This represents the lvalue of the expr and should be updated if this expr is used as an lvalue.
@@ -73,7 +74,7 @@ static void do_store(BasicBlock *b, Dataflow *address, Dataflow *offset, uint8_t
    for (int i = 0; i < 4; i++) if (v[i] != NULL) mask |= (1 << i);
 
    while (mask != 0) {
-#if !V3D_HAS_TMU_MISALIGNED
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       int start = gfx_lsb(mask);
 
       /* Store as vectors where possible (continuous and sufficiently aligned) */
@@ -327,6 +328,13 @@ static Dataflow *subscript_apply_swizzle(Dataflow *subscript, uint8_t *swizzle) 
    return ret;
 }
 
+static Dataflow *clamp_subscript_index(Dataflow *subscript, unsigned member_count)
+{
+   Dataflow *index = glsl_dataflow_construct_reinterp(subscript, DF_UINT);
+   Dataflow *max = glsl_dataflow_construct_const_value(DF_UINT, member_count - 1);
+   return glsl_dataflow_construct_binary_op(DATAFLOW_MIN, index, max);
+}
+
 static void calculate_buffer_address(BasicBlock *b, struct buf_ref *buf, Expr *expr)
 {
    switch (expr->flavour)
@@ -338,7 +346,7 @@ static void calculate_buffer_address(BasicBlock *b, struct buf_ref *buf, Expr *e
             // Assert that we are dealing with an interface block
             assert(s->flavour == SYMBOL_VAR_INSTANCE);
             assert(s->u.var_instance.block_info_valid);
-            int member_offset = 0;
+            unsigned member_offset = 0;
 
             buf->layout = s->u.var_instance.block_info.layout;
             buf->sq = s->u.var_instance.storage_qual;
@@ -427,7 +435,7 @@ static void calculate_buffer_address(BasicBlock *b, struct buf_ref *buf, Expr *e
                calculate_buffer_address(b, buf, aggregate);
 
                if (buf->swizzle == NULL) {
-                  int stride, member_count;
+                  unsigned stride, member_count;
                   switch(buf->layout->flavour)
                   {
                      case LAYOUT_ARRAY:
@@ -469,27 +477,30 @@ static void calculate_buffer_address(BasicBlock *b, struct buf_ref *buf, Expr *e
                         unreachable();
                   }
 
-                  /* If the size is known, do the bounds check here ... */
-                  DataflowFlavour mul = DATAFLOW_MUL;
+                  /* Do the bounds check here. */
+                  unsigned max_member_count;
                   if (member_count > 0) {
-                     subscript = glsl_dataflow_construct_binary_op(DATAFLOW_MIN, subscript, glsl_dataflow_construct_const_uint(member_count-1));
-                     if (member_count <= (1 << 24) && stride < (1 << 24))
-                        mul = DATAFLOW_MUL24;
+                     max_member_count = member_count;
+                     subscript = clamp_subscript_index(subscript, member_count);
+                  } else {
+                     assert(buf->sq == STORAGE_BUFFER);
+                     assert(buf->address->flavour == DATAFLOW_ADDRESS);
+
+                     // There can only be one dynamically sized array in this buffer.
+                     Dataflow *last = glsl_dataflow_construct_buf_array_length(buf->address->d.unary_op.operand, 1 /* get length-1 */);
+                     subscript = glsl_dataflow_construct_binary_op(DATAFLOW_MIN, subscript, last);
+                     max_member_count = GLSL_MAX_SHADER_STORAGE_BLOCK_SIZE / stride;
                   }
+
+                  /* Use cheaper 24-bit multiply if we know this is possible. */
+                  DataflowFlavour mul = DATAFLOW_MUL;
+                  if (max_member_count <= (1 << 24) && stride < (1 << 24))
+                     mul = DATAFLOW_MUL24;
 
                   /* Compute buffer offset. */
                   Dataflow *df_stride = glsl_dataflow_construct_const_uint(stride);
                   Dataflow *offset = glsl_dataflow_construct_binary_op(mul, subscript, df_stride);
-                  offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset, buf->offset);
-
-                  if (member_count <= 0) {
-                     assert(buf->address->flavour == DATAFLOW_ADDRESS);
-                     Dataflow *buf_last = glsl_dataflow_construct_buf_size(buf->address->d.unary_op.operand, stride);
-                     /* ... otherwise do it here */
-                     offset = glsl_dataflow_construct_binary_op(DATAFLOW_MIN, offset, buf_last);
-                  }
-
-                  buf->offset = offset;
+                  buf->offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, buf->offset, offset);
                } else {
                   /* Subscripting a swizzle. Construct an if-then-else tree */
                   /* TODO: There are special cases where we could generate better code.
@@ -511,11 +522,79 @@ static void calculate_buffer_address(BasicBlock *b, struct buf_ref *buf, Expr *e
    }
 }
 
+static void do_in_load(Dataflow *address, Dataflow *offset,
+                       Dataflow **result, DataflowType t, unsigned count, unsigned stride)
+{
+   for (unsigned i=0; i<count; i++) {
+      Dataflow *off = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, offset, glsl_dataflow_construct_const_uint(2));
+      off = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, off, glsl_dataflow_construct_const_uint(i * stride));
+      Dataflow *addr = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, address, off);
+      Dataflow *a = glsl_dataflow_construct_vec4(addr, NULL, NULL, NULL);
+      result[i] = glsl_dataflow_construct_address_load(DATAFLOW_IN_LOAD, t, a);
+   }
+}
+
+static void in_load(BasicBlock *b, const struct buf_ref *buf, Dataflow *offset,
+                    Dataflow **result, MemLayout *layout, SymbolType *type)
+{
+   (void)b;
+
+   assert(layout->flavour == LAYOUT_PRIM_MATRIX || layout->flavour == LAYOUT_PRIM_NONMATRIX);
+   if (layout->flavour == LAYOUT_PRIM_MATRIX) {
+      unsigned columns = glsl_prim_matrix_type_subscript_dimensions(type->u.primitive_type.index, 0);
+      unsigned rows    = glsl_prim_matrix_type_subscript_dimensions(type->u.primitive_type.index, 1);
+
+      unsigned matrix_stride = layout->u.prim_matrix_layout.stride;
+      for (unsigned i=0; i<columns; i++) {
+         Dataflow *vec_offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset, glsl_dataflow_construct_const_uint(i*matrix_stride));
+         do_in_load(buf->address, vec_offset, result+i*rows, df_scalar_type(type, 0), rows, 1);
+      }
+   } else {
+      unsigned stride = layout->u.prim_nonmatrix_layout.stride/4u;
+      do_in_load(buf->address, offset, result,
+                 df_scalar_type(type, 0), type->scalar_count, stride);
+   }
+}
+
+void glsl_buffer_load_calculate_dataflow(BasicBlock *ctx, Dataflow **result,
+                                         Dataflow *address, Dataflow *offset,
+                                         MemLayout *layout, SymbolType *type,
+                                         StorageQualifier sq)
+{
+   struct buf_ref b = {
+      .address = address,
+      .offset  = offset,
+      .layout  = layout,
+      .swizzle = NULL,
+      .sq      = sq
+   };
+
+   lower_loads_stores(ctx, &b, b.offset, result, b.layout, type, build_loads);
+}
+
+void glsl_buffer_store_calculate_dataflow(BasicBlock *ctx, Dataflow **data,
+                                          Dataflow *address, Dataflow *offset,
+                                          MemLayout *layout, SymbolType *type,
+                                          StorageQualifier sq)
+{
+   struct buf_ref b = {
+      .address = address,
+      .offset  = offset,
+      .layout  = layout,
+      .swizzle = NULL,
+      .sq      = sq
+   };
+
+   lower_loads_stores(ctx, &b, b.offset, data, b.layout, type, build_stores);
+}
+
 static void buffer_load_expr_calculate_dataflow(BasicBlock *ctx, Dataflow **result, Expr *expr)
 {
    struct buf_ref b = { 0, };
    calculate_buffer_address(ctx, &b, expr);
-   lower_loads_stores(ctx, &b, b.offset, result, b.layout, expr->type, build_loads);
+
+   LoadStoreFunc load_func = (b.sq != STORAGE_IN && b.sq != STORAGE_OUT) ? build_loads : in_load;
+   lower_loads_stores(ctx, &b, b.offset, result, b.layout, expr->type, load_func);
 }
 
 void buffer_store_expr_calculate_dataflow(BasicBlock *ctx, Expr *lvalue_expr, Dataflow **values)
@@ -534,7 +613,8 @@ static bool instance_in_buffer(Symbol *symbol)
    assert(symbol->flavour==SYMBOL_VAR_INSTANCE);
 
    return symbol->u.var_instance.block_info_valid &&
-          symbol->u.var_instance.block_info.block_symbol;
+          ((symbol->u.var_instance.storage_qual == STORAGE_IN) ||
+           symbol->u.var_instance.block_info.block_symbol);
 }
 
 static bool is_uniform_array_instance(Symbol *symbol)
@@ -570,6 +650,29 @@ bool in_addressable_memory(Expr *expr)
    }
 }
 
+static bool instance_requires_constant_index(const Symbol *s) {
+   if (s->flavour == SYMBOL_TEMPORARY || s->flavour == SYMBOL_PARAM_INSTANCE)
+      return false;
+
+   return (s->u.var_instance.storage_qual == STORAGE_IN) &&
+          (g_ShaderFlavour == SHADER_VERTEX || g_ShaderFlavour == SHADER_FRAGMENT);
+}
+
+static bool requires_constant_index(const Expr *expr) {
+   switch (expr->flavour) {
+      case EXPR_INSTANCE:
+         return instance_requires_constant_index(expr->u.instance.symbol);
+      case EXPR_SUBSCRIPT:
+         return requires_constant_index(expr->u.subscript.aggregate);
+      case EXPR_FIELD_SELECTOR:
+         return requires_constant_index(expr->u.field_selector.aggregate);
+      case EXPR_SWIZZLE:
+         return requires_constant_index(expr->u.swizzle.aggregate);
+      default:
+         return false;
+   }
+}
+
 static inline void expr_calculate_dataflow_instance(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr)
 {
    Symbol *symbol = expr->u.instance.symbol;
@@ -587,10 +690,7 @@ static inline void expr_calculate_dataflow_instance(BasicBlock *ctx, Dataflow **
 /* Exprs that are valid for subscripting: INSTANCE, FUNCTION_CALL and FIELD_SELECTOR */
 static inline void expr_calculate_dataflow_subscript(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr)
 {
-   bool const_subscriptable = expr->u.subscript.subscript->compile_time_value &&
-                              expr->u.subscript.aggregate->type->scalar_count > 0;
-
-   if (!const_subscriptable && !glsl_type_contains_opaque(expr->type) && in_addressable_memory(expr)) {
+   if (!requires_constant_index(expr) && !glsl_type_contains_opaque(expr->type) && in_addressable_memory(expr)) {
       buffer_load_expr_calculate_dataflow(ctx, scalar_values, expr);
    } else {
       Dataflow **aggregate_scalar_values = alloc_dataflow(expr->u.subscript.aggregate->type->scalar_count);
@@ -608,13 +708,34 @@ static inline void expr_calculate_dataflow_subscript(BasicBlock *ctx, Dataflow *
          unsigned scalar_index = gfx_umin(subscript_scalar->u.constant.value, member_count - 1) * expr->type->scalar_count;
          memcpy(scalar_values, aggregate_scalar_values + scalar_index, expr->type->scalar_count * sizeof(Dataflow*));
       }
-      else if (glsl_prim_is_prim_atomic_type(expr->type))
+      else if (member_count > 1 && glsl_prim_is_prim_atomic_type(expr->type))
       {
          Dataflow *addr = aggregate_scalar_values[0];
-         Dataflow *four = glsl_dataflow_construct_const_value(subscript_scalar->type, 4);
-         Dataflow *offset = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, subscript_scalar, four);
-         *scalar_values = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, addr, glsl_dataflow_construct_reinterp(offset, DF_UINT));
+         Dataflow *index = clamp_subscript_index(subscript_scalar, member_count);
+         Dataflow *stride_log2 = glsl_dataflow_construct_const_value(subscript_scalar->type, 2);
+         Dataflow *offset = glsl_dataflow_construct_binary_op(DATAFLOW_SHL, index, stride_log2);
+         *scalar_values = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, addr, offset);
       }
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      else if (member_count > 1 && glsl_prim_is_prim_comb_sampler_type(expr->type))
+      {
+         Dataflow *stride_log2 = glsl_dataflow_construct_const_value(DF_UINT, gfx_log2(64));
+         Dataflow *index = clamp_subscript_index(subscript_scalar, member_count);
+         Dataflow *offset = glsl_dataflow_construct_binary_op(DATAFLOW_SHL, index, stride_log2);
+
+         Dataflow *unnorm_bits = glsl_dataflow_construct_sampler_unnorms(aggregate_scalar_values[1]);
+         Dataflow *unnorm_bit = glsl_dataflow_construct_binary_op(DATAFLOW_ROR, unnorm_bits, index);
+         unnorm_bit = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, unnorm_bit, glsl_dataflow_construct_const_value(DF_UINT, 2));
+
+         for (unsigned i = 0; i != 2; ++i) {
+            Dataflow *addr = glsl_dataflow_construct_reinterp(aggregate_scalar_values[i], DF_UINT);
+            if (i == 1) // Correct unnorm bit in tmuparam1.
+               addr = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_XOR, addr, unnorm_bit);
+            addr = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, addr, offset);
+            scalar_values[i] = glsl_dataflow_construct_reinterp(addr, aggregate_scalar_values[i]->type);
+         }
+      }
+#endif
       else
       {
          assert(expr->u.subscript.aggregate->type->flavour == SYMBOL_ARRAY_TYPE ||
@@ -648,14 +769,12 @@ static inline void expr_calculate_dataflow_array_length(BasicBlock *ctx, Dataflo
 {
    struct buf_ref b = { 0, };
    calculate_buffer_address(ctx, &b, expr->u.array_length.array);
-   assert(b.sq == STORAGE_BUFFER || b.sq == STORAGE_UNIFORM);
+   assert(b.sq == STORAGE_BUFFER);
    assert(b.address->flavour == DATAFLOW_ADDRESS);
    b.address = b.address->d.unary_op.operand;
 
-   Dataflow *buf_size     = glsl_dataflow_construct_buf_size(b.address, 0);
-   Dataflow *array_size   = glsl_dataflow_construct_binary_op(DATAFLOW_SUB, buf_size, b.offset);
-   Dataflow *array_stride = glsl_dataflow_construct_const_uint(b.layout->u.array_layout.stride);
-   Dataflow *array_length = glsl_dataflow_construct_binary_op( DATAFLOW_DIV, array_size, array_stride);
+   // There can only be one dynamically sized array in this buffer.
+   Dataflow *array_length = glsl_dataflow_construct_buf_array_length(b.address, 0);
    scalar_values[0] = glsl_dataflow_construct_reinterp(array_length, DF_INT);
 }
 
@@ -842,26 +961,21 @@ static void expr_calculate_dataflow_unary_op(BasicBlock *ctx, Dataflow **scalar_
    free_dataflow(operand_scalar_values);
 }
 
-static inline void construct_dataflow_matXxY_mul_matZxY_matXxZ(const int X, const int Y, const int Z, Dataflow** result_scalar_values, Dataflow** left_scalar_values, Dataflow** right_scalar_values)
+static inline void construct_dataflow_matXxY_mul_matZxY_matXxZ(int X, int Y, int Z, Dataflow **result_scalar_values,
+                                                               Dataflow **left_scalar_values, Dataflow **right_scalar_values)
 {
    /* Linear algebraic matZxY * matXxZ. */
-   for(int i = 0; i < X; i++)
-   {
-      for (int j = 0; j < Y; j++)
-      {
+   for(int i = 0; i < X; i++) {
+      for (int j = 0; j < Y; j++) {
          Dataflow *acc = NULL;
 
-         // Fold in the rest.
-         for (int k = 0; k < Z; k++)
-         {
-            Dataflow *mul = glsl_dataflow_construct_binary_op(
-                                 DATAFLOW_MUL,
-                                 left_scalar_values[k*Y + j],
-                                 right_scalar_values[i*Z + k]);
+         for (int k = 0; k < Z; k++) {
+            Dataflow *mul = glsl_dataflow_construct_binary_op(DATAFLOW_MUL,
+                                                              left_scalar_values[k*Y + j],
+                                                              right_scalar_values[i*Z + k]);
 
             if (k == 0) acc = mul;
-            else
-               acc = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, acc, mul);
+            else        acc = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, acc, mul);
          }
 
          result_scalar_values[j + i*Y] = acc;

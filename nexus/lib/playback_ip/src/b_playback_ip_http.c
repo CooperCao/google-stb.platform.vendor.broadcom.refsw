@@ -1021,7 +1021,7 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
                 rc = -1;
                 PRINT_SOCKET_MSG(("%s: read ERROR:%d, selectTimeout is set to true\n", BSTD_FUNCTION, errno));
 #ifdef B_HAS_DTCP_IP
-                if (playback_ip->dtcpPcpHeaderFound) {
+                if (playback_ip->dtcpPcpHeaderCount) {
                     goto dtcpHeaderAdjustment;
                 }
 #endif
@@ -1049,12 +1049,12 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
         *bytesRead += rc;
         PRINT_SOCKET_MSG(("after reading: bytes read: cur %d, total %d, asked %d", rc, *bytesRead, bytesToRead));
 #ifdef B_HAS_DTCP_IP
-        if (playback_ip->dtcpPcpHeaderFound) {
+        if (playback_ip->dtcpPcpHeaderCount) {
 dtcpHeaderAdjustment:
-            playback_ip->chunkSize -= DTCP_CONTENT_PACKET_HEADER_SIZE;
-            playback_ip->bytesLeftInCurChunk -= DTCP_CONTENT_PACKET_HEADER_SIZE;
+            playback_ip->chunkSize -= playback_ip->dtcpPcpHeaderCount * DTCP_CONTENT_PACKET_HEADER_SIZE;
+            playback_ip->bytesLeftInCurChunk -= playback_ip->dtcpPcpHeaderCount * DTCP_CONTENT_PACKET_HEADER_SIZE;
             if (playback_ip->adjustBytesToRead) {
-                bytesToRead -= DTCP_CONTENT_PACKET_HEADER_SIZE;
+                bytesToRead -= playback_ip->dtcpPcpHeaderCount * DTCP_CONTENT_PACKET_HEADER_SIZE;
                 playback_ip->adjustBytesToRead = false;
             }
             if (playback_ip->chunkSize < 0 || playback_ip->bytesLeftInCurChunk < 0 || bytesToRead < 0) {
@@ -1062,7 +1062,7 @@ dtcpHeaderAdjustment:
                 playback_ip->chunkSize = 0;
                 BDBG_ASSERT(NULL);
             }
-            playback_ip->dtcpPcpHeaderFound = false;
+            playback_ip->dtcpPcpHeaderCount = 0;
             PRINT_SOCKET_MSG(("%s: bytes read %d, asked %d, adjusting by DTCP PCP Header length of 14 bytes, bytesLeftInCurCHunk %"PRId64 ", chunkSize %"PRId64 "\n",
                         BSTD_FUNCTION, *bytesRead, bytesToRead, playback_ip->bytesLeftInCurChunk, playback_ip->chunkSize));
         }
@@ -1216,14 +1216,12 @@ int
 http_read_response(B_PlaybackIpHandle playback_ip, void *securityHandle, int fd, char **rbufp, int rbuf_size, char **http_hdr, char **http_payload, int *payload_len)
 {
     int bytesRead;
-    char *tmp_ptr;
     char *rbuf;
 #ifdef B_HAS_NETACCEL1
     STRM_SockRecvParams_t sockRecvParams = STRM_SOCK_RECV_PARAMS_HTTP_DEFAULT;
 #endif
     int rc = -1;
     int initial_payload_len = 0;
-    int chunk_hdr_size;
     B_PlaybackIpHttpMsgFields httpFields;
     int loopCnt = 0;
 
@@ -1377,94 +1375,7 @@ read_again:
     playback_ip->totalRead -= httpFields.httpPayload - httpFields.httpHdr;
     *payload_len = initial_payload_len;
 
-    /*
-    * If server is using HTTP Chunked Transfer-Encoding to send the content,
-    * we will need to skip the chunk headers also from the payload pointer.
-    */
-    if (playback_ip->chunkEncoding) {
-        /* if we haven't read any initial payload data or read data doesn't yet contain CRNL (which marks end of chunk size) */
-        /* then read another 32 bytes as it must contain the chunk size */
-        rbuf[bytesRead] = '\0';
-        while (!initial_payload_len || ((tmp_ptr = strstr(*http_payload, "\r\n")) == NULL)) {
-            if (bytesRead >= rbuf_size) {
-                BDBG_ERR(("%s: ERROR: Initial read of %d bytes is not BIG enough to read chunk size header, increase it from %d",
-                    BSTD_FUNCTION, bytesRead, rbuf_size));
-                playback_ip->serverClosed = true;
-                return -1;
-            }
-            if (_http_socket_select(playback_ip, fd, playback_ip->networkTimeout)) {
-                BDBG_ERR(("%s: select ERROR:%d, but continue\n", BSTD_FUNCTION, errno));
-                return -1;
-            }
-
-            if ((rc = playback_ip->netIo.read(securityHandle, playback_ip, fd, rbuf+bytesRead, rbuf_size - bytesRead)) <= 0) {
-                BDBG_ERR(("%s: read failed: rc %d", BSTD_FUNCTION, rc));
-                if (errno == EINTR || errno == EAGAIN) {
-                    playback_ip->selectTimeout = true;
-                    BDBG_ERR(("%s: read ERROR:%d, selectTimeout is set to true\n", BSTD_FUNCTION, errno));
-                }
-                else
-                    playback_ip->serverClosed = true;
-                return -1;
-            }
-            BDBG_MSG(("%s: read %d bytes, bytesRead %d, initial_payload_len %d\n", BSTD_FUNCTION, rc, bytesRead, initial_payload_len));
-            playback_ip->totalRead += rc;
-            bytesRead += rc;
-            initial_payload_len += rc;
-            rbuf[bytesRead] = '\0';
-        }
-        BDBG_MSG(("%s: initial payload length including chunk size header %d\n", BSTD_FUNCTION, initial_payload_len));
-        /*
-         * So we have found the valid chunk-size header, now read the chunk size. It is format:
-         *  <ascii hex string indicating chunk size> <CR> <NL>
-         */
-        if (playback_ip->totalRead)
-            playback_ip->totalRead -= 2;
-        *tmp_ptr = '\0';
-        playback_ip->chunkSize = strtol(*http_payload, (char **)NULL, 16);    /* base 16 */
-        if (playback_ip->chunkSize == 0) {
-            BDBG_MSG(("%s: received 0 chunk size in response, there is no data at the requested range, return EOF\n", BSTD_FUNCTION));
-            return 0;
-        }
-
-        *tmp_ptr = '\r';
-        chunk_hdr_size = (tmp_ptr - *http_payload) + strlen("\r\n");
-        initial_payload_len -= chunk_hdr_size;
-        *http_payload += chunk_hdr_size;
-        playback_ip->totalRead -= chunk_hdr_size;
-        playback_ip->chunkEncoding = true;
-
-        /* chunk encoding case: if DTCP encryption is being used, initial payload is now fed to the dtcp module, else it is passed to the caller. */
-        /* Since for some security protocols, initial HTTP response can be in clear, now indicate to security layer */
-        /* that HTTP header processing is over and it can now start decrypting the incoming data */
-        /* Note: payload_len becomes 0 for DTCP as this data is handled over the dtcp_ip layer for later decryption during 1st read call */
-        if ((rc = B_PlaybackIp_SecurityDecryptionEnable(playback_ip, *http_payload, &initial_payload_len)) != 0) {
-            BDBG_ERR(("%s: Failed (rc %d) for Enabled Decryption for security protocol %d:", BSTD_FUNCTION, rc, playback_ip->openSettings.security.securityProtocol));
-            playback_ip->serverClosed = true;
-            return -1;
-        }
-
-        if (initial_payload_len != 0) {
-            /* Security layer didn't consume the data: either security module provides clear data only (complete transport encryption including chhunk headers) or its clear data */
-            /* Since chunk xfer encoding is being used, we process initial data part of the chunk header processing, so copy this data and set appropriate state */
-            memcpy(playback_ip->temp_buf, *http_payload, initial_payload_len);
-            playback_ip->chunkPayloadLength = initial_payload_len;
-            playback_ip->chunkPlayloadStartPtr = playback_ip->temp_buf;
-        }
-        else {
-            /* initial_payload_len is made 0, so either no initial data was read or was handled over to the security module for later decryption during next read call */
-            playback_ip->chunkPayloadLength = 0;
-        }
-        /* now set the bytes left in the chunk: we start w/ the current chunk size */
-        playback_ip->bytesLeftInCurChunk = playback_ip->chunkSize;
-
-        /* return 0 payload_len as for chunk encoding all initial data is either handled over to the security layer or handled via the chunkPlayloadStartPtr */
-        *payload_len = 0;
-
-        BDBG_MSG(("%s: chunk size %"PRId64 ", chunk header size %d, initial payload size %d, bytesLeftInCurChunk %"PRId64 "\n",
-                    BSTD_FUNCTION, playback_ip->chunkSize, chunk_hdr_size, playback_ip->chunkPayloadLength, playback_ip->bytesLeftInCurChunk));
-    }
-    else {
+    if (!playback_ip->chunkEncoding) {
         /* non-chunk encoding case: if DTCP encryption is being used, initial payload is now fed to the dtcp module, else it is passed to the caller. */
         /* Since for some security protocols, initial HTTP response can be in clear, now indicate to security layer */
         /* that HTTP header processing is over and it can now start decrypting the incoming data */
@@ -1747,7 +1658,8 @@ playback_ip_read_socket(
             else {
                 /* we have read atleast 5 bytes */
                 /* First, make sure the end of chunk marker (CRNL) for previous chunk are present  as each chunk data ends w/ CRNL */
-                if (playback_ip->temp_buf[0] != '\r' || playback_ip->temp_buf[1] != '\n') {
+                unsigned prevChunkHdrSize = 0;
+                if (playback_ip->chunkSize && (playback_ip->temp_buf[0] != '\r' || playback_ip->temp_buf[1] != '\n')) {
                     BDBG_ERR(("%s: ERROR in HTTP chunk header processing: server didn't send End Markers (CR NL) of current data chunk, instead we got: 0x%x, 0x%x\n",
                         BSTD_FUNCTION, playback_ip->temp_buf[0], playback_ip->temp_buf[1]));
                     if (totalBytesRead > 0)
@@ -1778,10 +1690,11 @@ playback_ip_read_socket(
                 playback_ip->tempBytesRead += bytesRead;
 
                 /* at this point we have gotten end markers for the previous chunk & next chunk header as well, so do the math to account for them */
-                playback_ip->chunkPayloadLength = playback_ip->tempBytesRead - 2; /* 2 bytes for CRNL of previous chunk end */
-                chunk_hdr_ptr = &playback_ip->temp_buf[2];
+                if (playback_ip->chunkSize) prevChunkHdrSize = 2; else prevChunkHdrSize = 0;
+                playback_ip->chunkPayloadLength = playback_ip->tempBytesRead - prevChunkHdrSize; /* 2 bytes for CRNL of previous chunk end */
+                chunk_hdr_ptr = &playback_ip->temp_buf[prevChunkHdrSize];
                 if (playback_ip->totalRead)
-                    playback_ip->totalRead -= 2;
+                    playback_ip->totalRead -= prevChunkHdrSize;
                 playback_ip->tempBytesRead = 0; /* resets temp bytes read  for processing of next chunk header */
 
                 /* now get the size of next chunk, format is <hex string of chunk size>CRNL  */
@@ -3996,9 +3909,11 @@ B_PlaybackIp_HttpParseRespHeaderForPsi(
                 end_str[0] = '\r';
                 if (strstr(http_hdr,"SDK/1.0"))
                     /* older streamer "httpstreamer" (SDK/1.0) uses Settop API types, so we need to convert it to Nexus types */
+                    /* coverity[mixed_enums] */
                     psi->extraVideoCodec = B_PlaybackIp_UtilsVideoCodec2Nexus(videoCodec);
                 else
                     /* new streamer "ip_streamer" SDK/2.0 uses Nexus types, so we dont any conversion */
+                    /* coverity[mixed_enums] */
                     psi->extraVideoCodec = videoCodec;
                 BDBG_MSG(("extra-video-Type: %d\n",psi->extraVideoCodec));
             }
@@ -4042,9 +3957,11 @@ B_PlaybackIp_HttpParseRespHeaderForPsi(
                 end_str[0] = '\r';
                 if (strstr(http_hdr,"SDK/1.0"))
                     /* older streamer "httpstreamer" (SDK/1.0) uses Settop API types, so we need to convert it to Nexus types */
+                    /* coverity[mixed_enums] */
                     psi->audioCodec = B_PlaybackIp_UtilsAudioCodec2Nexus(audioCodec);
                 else
                     /* new streamer "ip_streamer" SDK/2.0 uses Nexus types, so we dont any conversion */
+                    /* coverity[mixed_enums] */
                     psi->audioCodec = audioCodec;
                 BDBG_MSG(("audio-Type: %d\n",psi->audioCodec));
                 psi->psiValid = true;
@@ -5800,21 +5717,28 @@ void B_PlaybackIp_HttpPlaypumpThread(
         B_PlaybackIp_TtsThrottle_Start(playback_ip->ttsThrottle);
     }
 
-    /* Note we set the size of bytes to read based on audio only or audio & video channel */
-    /* we may or may not know the stream bitrate and thus can't set the read size based on that */
-    /* that is where readTimeout (set during sessionSetup) comes handy where it will return */
-    /* either when all requested amount is available or when the timeout happens */
-    if (playback_ip->psi.videoCodec == NEXUS_VideoCodec_eNone && !playback_ip->psi.videoPid && playback_ip->psi.audioPid) {
-        /* audio only case */
-        readBufSize = 1024*10;
-    }
-    else {
-        /* audio & video case */
-        readBufSize = 1024*60;
-    }
-
     /* main loop */
     while (true) {
+        /* Note we set the size of bytes to read based on audio only or audio & video channel */
+        /* we may or may not know the stream bitrate and thus can't set the read size based on that */
+        /* that is where readTimeout (set during sessionSetup) comes handy where it will return */
+        /* either when all requested amount is available or when the timeout happens */
+        if (playback_ip->psi.videoCodec == NEXUS_VideoCodec_eNone && !playback_ip->psi.videoPid && playback_ip->psi.audioPid) {
+            /* audio only case */
+            readBufSize = 1024*10;
+        }
+        else {
+            /* audio & video case */
+            if (playback_ip->psi.liveChannel ||
+                    playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip ||
+                    playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip) {
+                readBufSize = 1000*20; /* Lower the read size for live cases to not add delay while collecting this much data. */
+            }
+            else {
+                readBufSize = 1024*60;
+            }
+        }
+
         BDBG_MSG(("%s:%p: Before Acquiring Mutex! ", BSTD_FUNCTION, (void *)playback_ip));
         BKNI_AcquireMutex(playback_ip->lock);
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
@@ -5830,7 +5754,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
         }
 
         /* get an adequately sized buffer from the playpump */
-        if (B_PlaybackIp_UtilsGetPlaypumpBuffer(playback_ip, readBufSize) < 0) {
+        if (B_PlaybackIp_UtilsGetPlaypumpBufferNoSkip(playback_ip, (unsigned int *)&readBufSize) < 0) {
             BKNI_ReleaseMutex(playback_ip->lock);
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
@@ -6028,19 +5952,20 @@ void B_PlaybackIp_HttpPlaypumpThread(
             BKNI_ReleaseMutex(playback_ip->lock);
             continue;
         }
-        BKNI_ReleaseMutex(playback_ip->lock);
 
         if (playback_ip->settings.ttsParams.throttleParams.bufDepthInMsec &&
                 (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip
                 || playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip)) {
-            if (B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec(playback_ip, &playback_ip->curBufferDepthInMsec) == 0) {
-                B_PlaybackIp_TtsThrottle_UpdateBufferDepth(playback_ip->ttsThrottle, playback_ip->curBufferDepthInMsec);
+            if (B_PlaybackIp_UtilsGetPlaypumpBufferDepthInUsec(playback_ip, &playback_ip->curBufferDepthInUsec) == 0) {
+                B_PlaybackIp_TtsThrottle_UpdateBufferDepth(playback_ip->ttsThrottle, playback_ip->curBufferDepthInUsec);
             }
             else {
-                BDBG_WRN(("%s: B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec failed, continuing...", BSTD_FUNCTION));
+                BDBG_MSG(("%s: B_PlaybackIp_UtilsGetPlaypumpBufferDepthInUsec failed, continuing...", BSTD_FUNCTION));
             }
         }
 
+#define TRACK_PACKET_ARRIVAL_DELTA 0
+#if TRACK_PACKET_ARRIVAL_DELTA
         {
             static int firstTime = 1;
             static B_Time lastTime, curTime;
@@ -6057,8 +5982,12 @@ void B_PlaybackIp_HttpPlaypumpThread(
                 lastTime = curTime;
                 firstTime = 0;
             }
-            BDBG_WRN(("%s: Fed %zu bytes to Playpump, total=%"PRId64", timeBetweenFeeds=%u \n", BSTD_FUNCTION, totalBytesRecv, playback_ip->totalConsumed, timeBetweenFeeds));
+            if (timeBetweenFeeds > 100) {
+                BDBG_WRN(("%s: Fed %zu bytes to Playpump, total=%"PRId64", timeBetweenFeeds=%u \n", BSTD_FUNCTION, totalBytesRecv, playback_ip->totalConsumed, timeBetweenFeeds));
+            }
         }
+#endif
+        BKNI_ReleaseMutex(playback_ip->lock);
     }
 
 error:

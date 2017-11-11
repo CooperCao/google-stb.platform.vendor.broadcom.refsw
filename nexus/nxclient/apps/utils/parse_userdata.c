@@ -187,7 +187,7 @@ int buserdata_parse(buserdata_t handle, NEXUS_SimpleVideoDecoderHandle videoDeco
 
             /* these CASSERT's are in nexus */
             BDBG_CASSERT(BAVC_Polarity_eFrame == (BAVC_Polarity)NEXUS_PicturePolarity_eFrame);
-            BDBG_CASSERT(BAVC_USERDATA_Type_eSlice == (BAVC_USERDATA_Type)NEXUS_UserDataType_eSlice);
+            BDBG_CASSERT(BAVC_USERDATA_Type_eMax == (BAVC_USERDATA_Type)NEXUS_UserDataType_eMax);
             BDBG_CASSERT(BAVC_USERDATA_PictureCoding_eB == (BAVC_PictureCoding)NEXUS_PictureCoding_eB);
 
             info.eSourcePolarity = pHeader->polarity;

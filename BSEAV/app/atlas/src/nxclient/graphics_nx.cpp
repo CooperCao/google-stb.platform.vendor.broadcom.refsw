@@ -101,7 +101,6 @@ error:
     return(ret);
 } /* open */
 
-
 void CGraphicsNx::setActive(bool bActive)
 {
     eRet ret = eRet_Ok;
@@ -157,7 +156,6 @@ eRet CSurfaceClientNx::setZOrder(unsigned zOrder)
 error:
     return(ret);
 }
-
 
 CGraphicsNx::CGraphicsNx(
         const char *     name,

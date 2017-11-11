@@ -146,12 +146,13 @@ typedef enum NEXUS_HdmiInputHdcpAuthState
 	NEXUS_HdmiInputHdcpAuthState_eWaitForKeyloading,
 	NEXUS_HdmiInputHdcpAuthState_eWaitForDownstreamKsvs,
 	NEXUS_HdmiInputHdcpAuthState_eKsvFifoReady,
-	NEXUS_HdmiInputHdcpAuthState_eCalcRunning,
-	NEXUS_HdmiInputHdcpAuthState_eCrcMatch,
-	NEXUS_HdmiInputHdcpAuthState_eCrcMismatch,
 	NEXUS_HdmiInputHdcpAuthState_eMax
 } NEXUS_HdmiInputHdcpAuthState ;
 
+/* deprecate unused states */
+#define NEXUS_HdmiInputHdcpAuthState_eCalcRunning   NEXUS_HdmiInputHdcpAuthState_eMax
+#define NEXUS_HdmiInputHdcpAuthState_eCrcMatch      NEXUS_HdmiInputHdcpAuthState_eMax
+#define NEXUS_HdmiInputHdcpAuthState_eCrcMismatch   NEXUS_HdmiInputHdcpAuthState_eMax
 
 /**
 Summary:

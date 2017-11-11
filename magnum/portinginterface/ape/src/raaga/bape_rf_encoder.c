@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_HAS_POST_PROCESSING
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_rf_encoder);
@@ -511,7 +511,7 @@ static void BAPE_RfEncoder_P_GetDefaultBtscSettings(BAPE_RfEncoderHandle handle)
     if ( !BAPE_DSP_P_AlgorithmSupported(handle->node.deviceHandle, BDSP_Algorithm_eBtscEncoder) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eBtscEncoder, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eBtscEncoder, &userConfig, sizeof(userConfig)));
     
     handle->btscSettings.useDeEmphasizedSourceSignals = (userConfig.eUseDeEmphasizedSourceSignals == BDSP_AF_P_eEnable) ? true : false;
     handle->btscSettings.equivalentMode75us = (userConfig.eEquivalenMode75MicroSec == BDSP_AF_P_eEnable) ? true : false;

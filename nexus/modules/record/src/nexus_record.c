@@ -114,6 +114,10 @@ struct NEXUS_Record {
     NEXUS_TimerHandle processDataTimer;
     unsigned picturesIndexed;
     NEXUS_RecpumpStatus status;
+    struct {
+        uint64_t offset;
+        unsigned timestamp;
+    } priming;
 };
 
 static void NEXUS_Record_P_DataReadyCallback(void *context);
@@ -176,6 +180,7 @@ NEXUS_Record_Create(void)
     NEXUS_CallbackHandler_Init(record->data.overflow, NEXUS_Record_P_Overflow, record);
     NEXUS_CallbackHandler_Init(record->index.overflow, NEXUS_Record_P_Overflow, record);
     NEXUS_Record_GetDefaultSettings(&record->cfg);
+    record->priming.offset = 0;
     return record;
 err_alloc:
     return NULL;
@@ -218,12 +223,12 @@ NEXUS_Record_P_WriteDone(void *flow_, ssize_t size)
     NEXUS_Error rc;
     NEXUS_Record_P_Playback *play_item;
 
+    BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     if (flow->state != Writing) {
         BDBG_ERR(("Received bad callback from File module"));
         return;
     }
 
-    BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     record = flow->record;
     BDBG_OBJECT_ASSERT(record, NEXUS_Record);
     BDBG_ASSERT(record->cfg.recpump);
@@ -295,18 +300,40 @@ NEXUS_Record_P_DataReadyCallback(void *context)
     const void *buffer;
     size_t size;
     NEXUS_Error rc;
+    NEXUS_RecordHandle record;
 
+    BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     if (flow->state == Writing) {
         return;
     }
 
-    BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     BDBG_OBJECT_ASSERT(flow->record, NEXUS_Record);
+    record = flow->record;
     BDBG_ASSERT(flow->record->cfg.recpump);
 
     if(!flow->record->started) { goto done; }
 
     NEXUS_Time_Get(&flow->callbackTime);
+
+    if (record->cfg.priming.data.fifoDepth) {
+        const void *buffer2;
+        size_t size2;
+        rc = NEXUS_Recpump_GetDataBufferWithWrap(flow->record->cfg.recpump, &buffer, &size, &buffer2, &size2);
+        if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
+        BSTD_UNUSED(buffer2);
+        if (size + size2 > record->cfg.priming.data.fifoDepth) {
+            size = size + size2 - record->cfg.priming.data.fifoDepth;
+            /* TODO: support 130, 134, and 192 packet sizes */
+            size -= size % B_RECORD_ATOM_SIZE;
+            rc = NEXUS_Recpump_DataReadComplete(record->cfg.recpump, size);
+            if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);}
+
+            /* remember amount of data discarded */
+            record->priming.offset += size;
+        }
+        goto done;
+    }
+
     rc = NEXUS_Recpump_GetDataBuffer(flow->record->cfg.recpump, &buffer, &size);
     if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
 
@@ -387,6 +414,7 @@ NEXUS_Record_P_IndexReadyCallback(void *context)
     size_t size;
     NEXUS_Error rc;
     NEXUS_RecordHandle record;
+    unsigned sct_size;
 
     BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     BDBG_OBJECT_ASSERT(flow->record, NEXUS_Record);
@@ -394,7 +422,25 @@ NEXUS_Record_P_IndexReadyCallback(void *context)
     BDBG_ASSERT(record->cfg.recpump);
 
     if(!record->started) { goto done; }
+    sct_size = (record->entry_size == 6)?sizeof(BSCT_SixWord_Entry):sizeof(BSCT_Entry);
+
     NEXUS_Time_Get(&flow->callbackTime);
+
+    if (record->cfg.priming.index.fifoDepth) {
+        const void *buffer2;
+        size_t size2;
+        rc = NEXUS_Recpump_GetIndexBufferWithWrap(record->cfg.recpump, &buffer, &size, &buffer2, &size2);
+        if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
+        BSTD_UNUSED(buffer2);
+
+        if (size + size2 > record->cfg.priming.index.fifoDepth) {
+            size = size + size2 - record->cfg.priming.index.fifoDepth;
+            size -= size % sct_size;
+            rc = NEXUS_Recpump_IndexReadComplete(record->cfg.recpump, size);
+            if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);}
+        }
+        goto done;
+    }
 
     rc = NEXUS_Recpump_GetIndexBuffer(record->cfg.recpump, &buffer, &size);
     if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
@@ -409,8 +455,6 @@ NEXUS_Record_P_IndexReadyCallback(void *context)
 
     BDBG_MSG_TRACE(("(%#x) got %d bytes of index from %#lx", (unsigned long)flow->record, (int)size, (unsigned long)buffer));
     if(flow->info.index.indexer) {
-        unsigned sct_size = (record->entry_size == 6)?
-            sizeof(BSCT_SixWord_Entry):sizeof(BSCT_Entry);
         unsigned sct_limit;
         size_t old_size;
 
@@ -557,7 +601,7 @@ static unsigned long
 NEXUS_Record_P_WriteNav(const void *p_bfr, unsigned long numEntries, unsigned long entrySize, void *fp )
 {
     NEXUS_RecordHandle record = fp;
-    NEXUS_FileWriteHandle index = record->index.file;
+    NEXUS_FileWriteHandle index;
     BNAV_Indexer_Position position;
     ssize_t rc;
 #if B_VALIDATE_NAV_ENTRIES
@@ -569,6 +613,7 @@ NEXUS_Record_P_WriteNav(const void *p_bfr, unsigned long numEntries, unsigned lo
     }
 #endif
     BDBG_OBJECT_ASSERT(record, NEXUS_Record);
+    index = record->index.file;
 
     BDBG_MSG(("bnav_write %p, %lu", (void *)p_bfr, entrySize*numEntries));
     record->picturesIndexed += numEntries;
@@ -614,6 +659,21 @@ NEXUS_Record_SetSettings(NEXUS_RecordHandle record, const NEXUS_RecordSettings *
     if(settings->recpump==NULL && BLST_S_FIRST(&record->pid_list)) {
         rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto err_settings;
     }
+    if((settings->priming.data.fifoDepth==0) != (settings->priming.index.fifoDepth==0)) {
+        /* must prime for index and data together */
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto err_settings;
+    }
+    if(record->started && !record->cfg.priming.data.fifoDepth && settings->priming.data.fifoDepth) {
+        /* can't re-enable priming after recording to file */
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto err_settings;
+    }
+    if(record->cfg.priming.data.fifoDepth && !settings->priming.data.fifoDepth) {
+        if (record->index.info.index.indexer) {
+            /* we start indexing how */
+            BNAV_Indexer_SetPrimingStart(record->index.info.index.indexer, record->priming.offset);
+        }
+    }
+
     if(settings->recpump) {
         cfg = settings->recpumpSettings;
         NEXUS_Recpump_GetStatus(settings->recpump, &record->status);

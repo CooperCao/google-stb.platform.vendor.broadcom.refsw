@@ -89,7 +89,7 @@ _RsaTl_ContextNew(const char * bin_file_path)
     nexus_rc = NEXUS_Memory_Allocate(sizeof(*hRsaTl), NULL, (void **)&hRsaTl);
     if (nexus_rc != NEXUS_SUCCESS)
     {
-        BDBG_ERR(("%s - cannot allocate memory for RsaTl context", __FUNCTION__));
+        BDBG_ERR(("%s - cannot allocate memory for RsaTl context", BSTD_FUNCTION));
         magnum_rc = BERR_OUT_OF_DEVICE_MEMORY;
         goto ErrorExit;
     }
@@ -100,7 +100,7 @@ _RsaTl_ContextNew(const char * bin_file_path)
     container = SRAI_Container_Allocate();
     if(container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         magnum_rc = BERR_OUT_OF_DEVICE_MEMORY;
         goto ErrorExit;
     }
@@ -113,7 +113,7 @@ _RsaTl_ContextNew(const char * bin_file_path)
                                    &hRsaTl->moduleHandle);
     if(magnum_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error initializing Rsa TL module (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Error initializing Rsa TL module (0x%08x)", BSTD_FUNCTION, container->basicOut[0]));
         goto ErrorExit;
     }
 
@@ -158,14 +158,14 @@ RsaTl_Init(RsaTl_Handle *pRsaTlHandle,
 
     if(pRsaModuleSettings == NULL)
     {
-        BDBG_ERR(("%s - Parameter settings are NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Parameter settings are NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
 
     if (pRsaTlHandle == NULL)
     {
-        BDBG_ERR(("%s - Parameter pHandle is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Parameter pHandle is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -225,7 +225,7 @@ RsaTl_EncryptDecrypt(RsaTl_Handle hRsaTl,
 
     if (!pSrcData || !pDstData || !pDstLength)
     {
-        BDBG_ERR(("%s - Invalid input", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid input", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto handle_error;
     }
@@ -234,19 +234,19 @@ RsaTl_EncryptDecrypt(RsaTl_Handle hRsaTl,
     padding_supplemental = GET_UPPER_16BIT(padding);
     switch (commandId) {
     case Rsa_CommandId_ePublicDecrypt:
-        BDBG_LOG(("%s: Decrypt data using Public key", __FUNCTION__));
+        BDBG_LOG(("%s: Decrypt data using Public key", BSTD_FUNCTION));
         break;
     case Rsa_CommandId_ePublicEncrypt:
-        BDBG_LOG(("%s: Encrypt data using Public key", __FUNCTION__));
+        BDBG_LOG(("%s: Encrypt data using Public key", BSTD_FUNCTION));
         break;
     case Rsa_CommandId_ePrivateDecrypt:
-        BDBG_LOG(("%s: Decrypt data using Private key", __FUNCTION__));
+        BDBG_LOG(("%s: Decrypt data using Private key", BSTD_FUNCTION));
         break;
     case Rsa_CommandId_ePrivateEncrypt:
-        BDBG_LOG(("%s: Encrypt data using Private key", __FUNCTION__));
+        BDBG_LOG(("%s: Encrypt data using Private key", BSTD_FUNCTION));
         break;
     default:
-        BDBG_ERR(("%s - Invalid command ID (%u)", __FUNCTION__, commandId));
+        BDBG_ERR(("%s - Invalid command ID (%u)", BSTD_FUNCTION, commandId));
         rc = BERR_INVALID_PARAMETER;
         goto handle_error;
     }
@@ -291,9 +291,9 @@ RsaTl_EncryptDecrypt(RsaTl_Handle hRsaTl,
         goto handle_error;
     }
 
-    BDBG_LOG(("%s - Result copied back to caller  ------------------", __FUNCTION__));
+    BDBG_LOG(("%s - Result copied back to caller  ------------------", BSTD_FUNCTION));
     /* how to return the info when returned dst size does not match src size*/
-    BDBG_LOG(("%s: returned size: %u", __FUNCTION__, container->basicOut[2]));
+    BDBG_LOG(("%s: returned size: %u", BSTD_FUNCTION, container->basicOut[2]));
     *pDstLength = container->basicOut[2];
     BKNI_Memcpy(pDstData, container->blocks[1].data.ptr, *pDstLength);
 
@@ -357,15 +357,15 @@ RsaTl_SignVerify(RsaTl_Handle hRsaTl,
 
     if(commandId == Rsa_CommandId_eSign)
     {
-        BDBG_LOG(("%s - Signing operation --- data length = '%u'", __FUNCTION__, srcLength));
+        BDBG_LOG(("%s - Signing operation --- data length = '%u'", BSTD_FUNCTION, srcLength));
     }
     else if(commandId == Rsa_CommandId_eVerify)
     {
-        BDBG_LOG(("%s - Verify operation ------------------", __FUNCTION__));
+        BDBG_LOG(("%s - Verify operation ------------------", BSTD_FUNCTION));
     }
     else
     {
-        BDBG_ERR(("%s - Invalid command ID (%u)", __FUNCTION__, commandId));
+        BDBG_ERR(("%s - Invalid command ID (%u)", BSTD_FUNCTION, commandId));
         rc = BERR_INVALID_PARAMETER;
         goto handle_error;
     }
@@ -414,7 +414,7 @@ RsaTl_SignVerify(RsaTl_Handle hRsaTl,
 
     if(commandId == Rsa_CommandId_eSign)
     {
-        BDBG_LOG(("%s - Signature copied back to caller  ------------------", __FUNCTION__));
+        BDBG_LOG(("%s - Signature copied back to caller  ------------------", BSTD_FUNCTION));
         BKNI_Memcpy(pSignature, container->blocks[0].data.ptr, signatureLength);
     }
 
@@ -482,31 +482,31 @@ RsaTl_GetPublicKey(RsaTl_Handle hRsaTl,
     /* validate params */
     if (pModulus == NULL)
     {
-        BDBG_ERR(("%s - Pointer to Modulus is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Pointer to Modulus is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto handle_error;
     }
 
     if (pModulusLength == NULL)
     {
-        BDBG_ERR(("%s - Pointer to Modulus length is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Pointer to Modulus length is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto handle_error;
     }
 
     if (pPublicExponent == NULL)
     {
-        BDBG_ERR(("%s - Pointer to Public Exponent buffer is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Pointer to Public Exponent buffer is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto handle_error;
     }
 
-    BDBG_LOG(("%s - Sending command to return public key for index '%u'", __FUNCTION__, rsaKeyIndex));
+    BDBG_LOG(("%s - Sending command to return public key for index '%u'", BSTD_FUNCTION, rsaKeyIndex));
 
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(MAX_RSA_PUBLIC_KEY_SIZE, SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate '%u' bytes of memory ^^^^^^^^^^^^^^^^^^^", __FUNCTION__, MAX_RSA_PUBLIC_KEY_SIZE));
+        BDBG_ERR(("%s - Cannot allocate '%u' bytes of memory ^^^^^^^^^^^^^^^^^^^", BSTD_FUNCTION, MAX_RSA_PUBLIC_KEY_SIZE));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto handle_error;
     }
@@ -515,7 +515,7 @@ RsaTl_GetPublicKey(RsaTl_Handle hRsaTl,
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(MAX_RSA_PUBLIC_EXPONENT_SIZE, SRAI_MemoryType_Shared);
     if(container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate '%u' bytes of memory ^^^^^^^^^^^^^^^^^^^", __FUNCTION__, MAX_RSA_PUBLIC_EXPONENT_SIZE));
+        BDBG_ERR(("%s - Cannot allocate '%u' bytes of memory ^^^^^^^^^^^^^^^^^^^", BSTD_FUNCTION, MAX_RSA_PUBLIC_EXPONENT_SIZE));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto handle_error;
     }
@@ -525,7 +525,7 @@ RsaTl_GetPublicKey(RsaTl_Handle hRsaTl,
     sage_rc = SRAI_Module_ProcessCommand(hRsaTl->moduleHandle, Rsa_CommandId_eGetPublicKey, container);
     if ((sage_rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
     {
-        BDBG_ERR(("%s - Error fetching public key info data fo rindex '%u'", __FUNCTION__, rsaKeyIndex));
+        BDBG_ERR(("%s - Error fetching public key info data fo rindex '%u'", BSTD_FUNCTION, rsaKeyIndex));
         rc = sage_rc;
         goto handle_error;
     }
@@ -533,11 +533,11 @@ RsaTl_GetPublicKey(RsaTl_Handle hRsaTl,
     BKNI_Memcpy(pModulus, container->blocks[0].data.ptr, container->blocks[0].len);
     (*pModulusLength)= container->basicOut[1];
     ptr = container->blocks[0].data.ptr;
-    BDBG_LOG(("%s - public modulus returned (len = %u) = %02x %02x %02x %02x ...", __FUNCTION__, container->basicOut[1], ptr[0], ptr[1], ptr[2], ptr[3]));
+    BDBG_LOG(("%s - public modulus returned (len = %u) = %02x %02x %02x %02x ...", BSTD_FUNCTION, container->basicOut[1], ptr[0], ptr[1], ptr[2], ptr[3]));
 
     ptr = container->blocks[1].data.ptr;
     BKNI_Memcpy(pPublicExponent, container->blocks[1].data.ptr, MAX_RSA_PUBLIC_EXPONENT_SIZE);
-    BDBG_LOG(("%s - public exponent returned (len = 4) = %02x %02x %02x %02x ...", __FUNCTION__, ptr[0], ptr[1], ptr[2], ptr[3]));
+    BDBG_LOG(("%s - public exponent returned (len = 4) = %02x %02x %02x %02x ...", BSTD_FUNCTION, ptr[0], ptr[1], ptr[2], ptr[3]));
 
 handle_error:
 

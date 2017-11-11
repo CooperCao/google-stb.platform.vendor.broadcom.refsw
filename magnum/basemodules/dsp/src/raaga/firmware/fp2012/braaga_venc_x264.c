@@ -4523,7 +4523,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x30800443,
 	0x50e5c1ff,
 	0x30800443,
-	0x7384c672,
+	0x7394c672,
 	0x50e549ff,
 	0x30800443,
 	0x508429ff,

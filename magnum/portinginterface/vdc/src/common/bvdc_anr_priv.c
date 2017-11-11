@@ -278,13 +278,16 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
     hAnr->bEnableMaaf = BFMT_IS_SECAM(hAnr->pCurSrcInfo->pFmtInfo->eVideoFmt);
     hAnr->ulMosaicInit |= 1<<ulChannelId;
 
+#if (BVDC_P_SUPPORT_MANR_VER <= BVDC_P_MANR_VER_5)
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_AND_0_SW_RESET, ulRegOffset, 1);  /* AND_RESET */
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_AND_0_SW_RESET, ulRegOffset, 0);  /* AND_RESET */
 
     /* SW7445-1454 workaround */
 #if (BVDC_P_SUPPORT_MANR_VER == BVDC_P_MANR_VER_5)
+
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_SOFT_RESET, ulRegOffset, 1);  /* MCTF_RESET */
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_SOFT_RESET, ulRegOffset, 0);  /* MCTF_RESET */
+#endif
 #endif
 
     /* set STREAM_PROCESSED first for mosaic stream first */
@@ -471,7 +474,7 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
     }
 
     /* the following are coded according to mctf_regs.scr */
-#if (BVDC_P_SUPPORT_MANR_VER < BVDC_P_MANR_VER_6)
+#if (BVDC_P_SUPPORT_MANR_VER <= BVDC_P_MANR_VER_6)
 #if (BVDC_P_SUPPORT_MANR_VER < BVDC_P_MANR_VER_5)
     BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_CONT_0_MC_FILTER_COST_PARAME, ulRegOffset,
         BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_MC_FILTER_COST_PARAME, HD_ANR_MCTF_0_CONT_0_MC_ALPHA_CALC_PARAME));

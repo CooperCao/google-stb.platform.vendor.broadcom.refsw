@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -73,7 +73,7 @@ int gen_random_num( uint32_t numberOfBytes, uint8_t *pRandomBytes)
     nxs_rc = NEXUS_RandomNumber_Generate(&settings, &rngOutput);
     if( (nxs_rc != NEXUS_SUCCESS) || (rngOutput.size != numberOfBytes) )
     {
-        printf("%s - Error generating '%u' random bytes (only '%u' bytes returned) ", __FUNCTION__, numberOfBytes, rngOutput.size);
+        printf("%s - Error generating '%u' random bytes (only '%u' bytes returned) ", BSTD_FUNCTION, numberOfBytes, rngOutput.size);
         rc = -1;
         goto ErrorExit;
     }
@@ -161,14 +161,14 @@ DRM_Prdy_Error_e _contentIdentifier_CallBack(
     BSTD_UNUSED(cbContentIdentifier);
 
     if(pvContentIdentifierCallbackContext == NULL) {
-        printf("[FAILED] %s %d - failed to Store license.", __FUNCTION__,__LINE__);
+        printf("[FAILED] %s %d - failed to Store license.", BSTD_FUNCTION,__LINE__);
         return DRM_Prdy_fail;
     }
 
     if(eContentIdentifierType == eDRM_PRDY_ND_CONTENT_IDENTIFIER_TYPE_KID)
     {
         if(pKidContent == NULL) {
-            printf("[FAILED] %s %d - failed to get the Key ID from the callback.", __FUNCTION__,__LINE__);
+            printf("[FAILED] %s %d - failed to get the Key ID from the callback.", BSTD_FUNCTION,__LINE__);
             return DRM_Prdy_fail;
         }
         reqKID = pvContentIdentifierCallbackContext;
@@ -325,7 +325,7 @@ bool test_registration(DRM_Prdy_Handle_t                  drm,
     /* free the channel message */
     DRM_Prdy_ND_MemFree(pbTxProxiDetectChl);
 
-    printf("%s: END.\n",__FUNCTION__);
+    printf("%s: END.\n",BSTD_FUNCTION);
     return true;
 
 exit:
@@ -481,7 +481,7 @@ bool test_proximityDectection(DRM_Prdy_Handle_t   drm)
     if(pbMsgRxToTx != NULL) DRM_Prdy_ND_MemFree(pbMsgRxToTx);
     if(pbMsgTxToRx != NULL) DRM_Prdy_ND_MemFree(pbMsgTxToRx);
 
-    printf("%s: END.\n",__FUNCTION__);
+    printf("%s: END.\n",BSTD_FUNCTION);
     return true;
 
 exit:
@@ -547,7 +547,7 @@ bool test_license(DRM_Prdy_Handle_t   drm)
     uint8_t  *cipherText = NULL;
     uint8_t   iv[8] = {0};
 
-    /* printf("%s: START...\n",__FUNCTION__);*/
+    /* printf("%s: START...\n",BSTD_FUNCTION);*/
 
     /* First cleanup any expired license */
     if( DRM_Prdy_Cleanup_LicenseStores( drm) != DRM_Prdy_ok)
@@ -891,7 +891,7 @@ bool test_license(DRM_Prdy_Handle_t   drm)
         DRM_Prdy_LocalLicense_Release(&phLicense);
     }
 
-    printf("%s: END...\n",__FUNCTION__);
+    printf("%s: END...\n",BSTD_FUNCTION);
     fflush(stdout);
     return true;
 
@@ -939,7 +939,7 @@ int main(int argc, char* argv[])
        printf("[FAILED] %d  Failed to create drm, quitting....",__LINE__);
        goto clean_exit ;
     }
-    printf("[PASSED] %s: Created a DRM_Prdy_context.\n",__FUNCTION__);
+    printf("[PASSED] %s: Created a DRM_Prdy_context.\n",BSTD_FUNCTION);
 
     /* initialize the Receiver context */
     pRxCtx = DRM_Prdy_ND_Receiver_Initialize();
@@ -948,7 +948,7 @@ int main(int argc, char* argv[])
        printf("[FAILED] %d  Failed to initialize Receiver context, quitting....\n",__LINE__);
        goto clean_exit ;
     }
-    printf("[PASSED] %s: Initialized Receiver context.\n",__FUNCTION__);
+    printf("[PASSED] %s: Initialized Receiver context.\n",BSTD_FUNCTION);
 
     /****************** BEGIN SESSIONS ****************************/
     if( DRM_Prdy_ND_Receiver_BeginSession(drm,pRxCtx) != DRM_Prdy_ok )
@@ -965,7 +965,7 @@ int main(int argc, char* argv[])
        printf("[FAILED] %d  Failed to initialize Transmitter context, quitting....\n",__LINE__);
        goto clean_exit ;
     }
-    printf("[PASSED] %s: Initialized Transmitter context.\n",__FUNCTION__);
+    printf("[PASSED] %s: Initialized Transmitter context.\n",BSTD_FUNCTION);
 
     if( DRM_Prdy_ND_Transmitter_BeginSession(drm,pTxCtx) != DRM_Prdy_ok )
     {

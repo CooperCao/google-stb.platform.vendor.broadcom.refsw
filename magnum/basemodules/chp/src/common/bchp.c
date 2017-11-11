@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,19 +49,20 @@
 
 BDBG_MODULE(BCHP);
 
+static void BCHP_P_StandbyMode( BCHP_Handle hChip, bool activate );
 
 BERR_Code BCHP_Close(
     BCHP_Handle hChip               /* [in] Chip handle */
     )
 {
-    BERR_Code rc = BERR_SUCCESS;
-
-    BDBG_ENTER( BCHP_Close );
-    BDBG_ASSERT( hChip );
-    BDBG_ASSERT( hChip->pCloseFunc != NULL );
-    rc = hChip->pCloseFunc( hChip );
-    BDBG_LEAVE( BCHP_Close );
-    return( rc );
+    BDBG_OBJECT_ASSERT(hChip, BCHP);
+    if (hChip->hAvsHandle) {
+        BCHP_P_AvsClose(hChip->hAvsHandle);
+    }
+    BCHP_PWR_Close(hChip->pwrManager);
+    BDBG_OBJECT_DESTROY(hChip, BCHP);
+    BKNI_Free(hChip);
+    return BERR_SUCCESS;
 }
 
 BERR_Code BCHP_GetChipInfo(
@@ -70,21 +71,12 @@ BERR_Code BCHP_GetChipInfo(
     uint16_t *pChipRev                  /* [out] Chip Rev. */
     )
 {
-    BERR_Code rc = BERR_SUCCESS;
-
-    BDBG_ENTER( BCHP_GetChipInfo );
-    BDBG_ASSERT( hChip );
-    if (!hChip->pGetChipInfoFunc) {
-        BCHP_Info info;
-        BCHP_GetInfo(hChip, &info);
-        *pChipId = info.familyId;
-        *pChipRev = info.rev;
-    }
-    else {
-        rc = hChip->pGetChipInfoFunc( hChip, pChipId, pChipRev );
-    }
-    BDBG_LEAVE( BCHP_GetChipInfo );
-    return( rc );
+    BCHP_Info info;
+    BDBG_OBJECT_ASSERT(hChip, BCHP);
+    BCHP_GetInfo(hChip, &info);
+    *pChipId = info.familyId;
+    *pChipRev = info.rev;
+    return BERR_SUCCESS;
 }
 
 BERR_Code BCHP_GetFeature(
@@ -96,8 +88,7 @@ BERR_Code BCHP_GetFeature(
     BERR_Code rc = BERR_SUCCESS;
 
     BDBG_ENTER( BCHP_GetFeature );
-    BDBG_ASSERT( hChip );
-    BDBG_ASSERT( pFeatureValue );
+    BDBG_OBJECT_ASSERT(hChip, BCHP);
 
     if (hChip->pGetFeatureFunc)
         rc = hChip->pGetFeatureFunc( hChip, eFeature, pFeatureValue );
@@ -113,63 +104,34 @@ void BCHP_MonitorPvt(
     BCHP_AvsSettings *pSettings     /* [in] AVS settings. */
     )
 {
-    BDBG_ENTER( BCHP_MonitorPvt );
-    BDBG_ASSERT( hChip );
-    BDBG_ASSERT( pSettings );
-
-    if (hChip->pMonitorPvtFunc)
-        hChip->pMonitorPvtFunc(hChip, pSettings);
-
-    BDBG_LEAVE( BCHP_MonitorPvt );
+    BSTD_UNUSED(pSettings);
+    BDBG_OBJECT_ASSERT(hChip, BCHP);
+    if (hChip->hAvsHandle)
+        BCHP_P_AvsMonitorPvt(hChip->hAvsHandle);
 }
 
 BERR_Code BCHP_GetAvsData_isrsafe(
     BCHP_Handle hChip,   /* [in] Chip handle */
     BCHP_AvsData *pData) /* [out] pointer to location to return data */
 {
-    BERR_Code rc = BERR_SUCCESS;
-
-    BDBG_ENTER( BCHP_GetAvsData );
-    BDBG_ASSERT( hChip );
-    BDBG_ASSERT( pData );
-
-    if (hChip->pGetAvsDataFunc)
-        rc = hChip->pGetAvsDataFunc(hChip, pData);
-    else
-        rc = BERR_TRACE(BERR_UNKNOWN);
-
-    BDBG_LEAVE( BCHP_GetAvsData );
-    return( rc );
+    BDBG_OBJECT_ASSERT(hChip, BCHP);
+    if (hChip->hAvsHandle)
+        BCHP_P_GetAvsData_isrsafe(hChip->hAvsHandle, pData);
+    return BERR_SUCCESS;
 }
 
 BERR_Code BCHP_Standby(
     BCHP_Handle hChip)   /* [in] Chip handle */
 {
-    BERR_Code rc = BERR_SUCCESS;
-
-    BDBG_ENTER( BCHP_Standby );
-    BDBG_ASSERT( hChip );
-
-    if (hChip->pStandbyModeFunc)
-        rc = hChip->pStandbyModeFunc(hChip, true);
-
-    BDBG_LEAVE( BCHP_Standby );
-    return( rc );
+    BCHP_P_StandbyMode(hChip, true);
+    return BERR_SUCCESS;
 }
 
 BERR_Code BCHP_Resume(
     BCHP_Handle hChip)  /* [in] Chip handle */
 {
-    BERR_Code rc = BERR_SUCCESS;
-
-    BDBG_ENTER( BCHP_Resume );
-    BDBG_ASSERT( hChip );
-
-    if (hChip->pStandbyModeFunc)
-        rc = hChip->pStandbyModeFunc(hChip, false);
-
-    BDBG_LEAVE( BCHP_Resume );
-    return( rc );
+    BCHP_P_StandbyMode(hChip, false);
+    return BERR_SUCCESS;
 }
 
 /* For testing purposes only */
@@ -179,7 +141,7 @@ void *BCHP_GetAvsHandle(
     void *result;
 
     BDBG_ENTER( BCHP_GetAvsHandle );
-    BDBG_ASSERT( hChip );
+    BDBG_OBJECT_ASSERT(hChip, BCHP);
 
     result = (void*)hChip->avsHandle; /* will be NULL for platforms without AVS support */
 
@@ -828,7 +790,7 @@ BERR_Code BCHP_GetMemoryInfo(BCHP_Handle hChip, BCHP_MemoryInfo *pInfo)
 }
 
 
-BSTD_DeviceOffset BCHP_ShuffleStripedPixelOffset(BCHP_Handle hChp, unsigned memcIdx, BSTD_DeviceOffset offset)
+BSTD_DeviceOffset BCHP_ShuffleStripedPixelOffset(BCHP_Handle hChp, unsigned memcIdx, unsigned offset)
 {
     BCHP_MemoryInfo *pInfo = &hChp->memoryInfo;
     bool scbBitExtract = false; \
@@ -858,7 +820,7 @@ BERR_Code BCHP_P_GetDefaultFeature
       const BCHP_Feature               eFeature,
       void                            *pFeatureValue )
 {
-    BERR_Code rc;
+    BERR_Code rc = BERR_SUCCESS;
     if (!hChip->memoryInfoSet) {
         if (!hChip->regHandle) {
             return BERR_TRACE(BERR_NOT_AVAILABLE);
@@ -870,47 +832,36 @@ BERR_Code BCHP_P_GetDefaultFeature
     switch (eFeature) {
     case BCHP_Feature_eMemCtrl0DDRDeviceTechCount:
         *(int *)pFeatureValue = hChip->memoryInfo.memc[0].deviceTech;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl0DramWidthCount:
         *(int *)pFeatureValue = hChip->memoryInfo.memc[0].width;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl0DDR3ModeCapable:
         *(bool *)pFeatureValue = hChip->memoryInfo.memc[0].ddr3Capable;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl1Capable:
         *(bool *)pFeatureValue = hChip->memoryInfo.memc[1].valid;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl1DDRDeviceTechCount:
         *(int *)pFeatureValue = hChip->memoryInfo.memc[1].deviceTech;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl1DramWidthCount:
         *(int *)pFeatureValue = hChip->memoryInfo.memc[1].width;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl1DDR3ModeCapable:
         *(bool *)pFeatureValue = hChip->memoryInfo.memc[1].ddr3Capable;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl2Capable:
         *(bool *)pFeatureValue = hChip->memoryInfo.memc[2].valid;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl2DDRDeviceTechCount:
         *(int *)pFeatureValue = hChip->memoryInfo.memc[2].deviceTech;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl2DramWidthCount:
         *(int *)pFeatureValue = hChip->memoryInfo.memc[2].width;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eMemCtrl2DDR3ModeCapable:
         *(bool *)pFeatureValue = hChip->memoryInfo.memc[2].ddr3Capable;
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eProductId:
         {
@@ -918,13 +869,29 @@ BERR_Code BCHP_P_GetDefaultFeature
             BCHP_GetInfo(hChip, &info);
             ((BCHP_FeatureData*)pFeatureValue)->data.productId = info.productId;
         }
-        rc = BERR_SUCCESS;
         break;
     case BCHP_Feature_eDisabledL2Registers:
         /* by default, none are disabled */
         BKNI_Memset(pFeatureValue, 0, sizeof(BCHP_FeatureData));
-        rc = BERR_SUCCESS;
         break;
+
+    /* Default bool features to false */
+    case BCHP_Feature_e3DGraphicsCapable:
+    case BCHP_Feature_eDvoPortCapable:
+    case BCHP_Feature_eMacrovisionCapable:
+    case BCHP_Feature_eHdcpCapable:
+    case BCHP_Feature_e3desCapable:
+    case BCHP_Feature_e1080pCapable:
+    case BCHP_Feature_eRfmCapable:
+       *(bool *)pFeatureValue = false;
+       break;
+
+     /* Default int features to 0 */
+    case BCHP_Feature_eMpegDecoderCount:
+    case BCHP_Feature_eAVDCoreFreq:
+       *(int *)pFeatureValue = 0;
+       break;
+
     default:
         rc = BERR_TRACE(BERR_UNKNOWN);
         break;
@@ -934,54 +901,27 @@ BERR_Code BCHP_P_GetDefaultFeature
 
 void BCHP_GetInfo( BCHP_Handle hChip, BCHP_Info *pInfo )
 {
-#if !BCHP_UNIFIED_IMPL
-/* 40nm and 65nm: only 16 bit ids */
-    if (!hChip->infoSet) {
-        unsigned val;
-        if (!hChip->regHandle) {
-#if BDBG_DEBUG_BUILD || B_REFSW_DEBUG_COMPACT_ERR
-            BERR_TRACE(BERR_NOT_AVAILABLE);
-#endif
-            BKNI_Memset(pInfo, 0, sizeof(*pInfo));
-            return;
-        }
-#ifdef BCHP_SUN_TOP_CTRL_PRODUCT_ID
-        val = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_PRODUCT_ID);
-        if (!val) {
-            val = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
-        }
-#else
-        val = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_PROD_REVISION);
-#endif
-        hChip->info.rev = val & 0xFF;
-        hChip->info.productId = val >> 16;
-#ifdef BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID
-        hChip->info.familyId = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID) >> 16;
-#else
-        hChip->info.familyId = hChip->info.productId;
-#endif
-        hChip->infoSet = true;
-    }
-#endif
     *pInfo = hChip->info;
 }
 
-#if BCHP_UNIFIED_IMPL
 /* decompose 32 bit chip family id for use with printf format string %x%c%d
 Example: 0x74450000 becomes "7445A0" */
 #define PRINT_CHIP(CHIPID) \
     ((CHIPID)&0xF0000000?(CHIPID)>>16:(CHIPID)>>8), ((((CHIPID)&0xF0)>>4)+'A'), ((CHIPID)&0x0F)
 
-static BERR_Code BCHP_P_VerifyChip(BCHP_Handle hChip, const struct BCHP_P_Info *pChipInfo)
+static BERR_Code BCHP_P_VerifyChip(BCHP_Handle hChip, const struct BCHP_P_Info *pChipInfo, unsigned chipInfoSize)
 {
     unsigned i;
     unsigned ulChipFamilyIdReg;
 
     ulChipFamilyIdReg = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
-    for (i=0; pChipInfo[i].ulChipFamilyIdReg; i++) {
+    if (chipInfoSize == 0) {
+        while (pChipInfo[chipInfoSize].ulChipFamilyIdReg) chipInfoSize++;
+    }
+    for (i=0; i<chipInfoSize; i++) {
         BDBG_MSG(("Supported chip family and revision: %x%c%d", PRINT_CHIP(pChipInfo[i].ulChipFamilyIdReg)));
     }
-    for(i = 0; pChipInfo[i].ulChipFamilyIdReg; i++) {
+    for(i = 0; i<chipInfoSize; i++) {
         if (pChipInfo[i].ulChipFamilyIdReg == ulChipFamilyIdReg) {
             hChip->pChipInfo = &pChipInfo[i];
             break;
@@ -998,49 +938,26 @@ static BERR_Code BCHP_P_VerifyChip(BCHP_Handle hChip, const struct BCHP_P_Info *
     return 0;
 }
 
-static BERR_Code BCHP_P_Close( BCHP_Handle hChip )
+#include "bchp_clkgen.h"
+void BCHP_P_MuxSelect(BCHP_Handle hChip)
 {
-    BDBG_ENTER(BCHP_P_Close);
-    BDBG_OBJECT_ASSERT(hChip, BCHP);
-    if (hChip->hAvsHandle) {
-        BCHP_P_AvsClose(hChip->hAvsHandle);
-    }
-    BCHP_PWR_Close(hChip->pwrManager);
-    BDBG_OBJECT_DESTROY(hChip, BCHP);
-    BKNI_Free(hChip);
-    BDBG_LEAVE(BCHP_P_Close);
-    return BERR_SUCCESS;
+#if BCHP_CHIP == 7543 || BCHP_CHIP == 7552 || BCHP_CHIP == 7360 || BCHP_CHIP == 7228 || BCHP_CHIP == 7358 || BCHP_CHIP == 7362 || BCHP_CHIP == 73625
+    uint32_t ulVal;
+
+    ulVal = BREG_Read32 (hChip->regHandle, BCHP_CLKGEN_INTERNAL_MUX_SELECT);
+#if BCHP_CHIP == 7543
+    ulVal |=  (BCHP_FIELD_DATA(CLKGEN_INTERNAL_MUX_SELECT, M2MC_CORE_CLOCK, 0));
+#else
+    ulVal |=  (BCHP_FIELD_DATA(CLKGEN_INTERNAL_MUX_SELECT, GFX_M2MC_CORE_CLOCK, 1));
+#endif
+    BREG_Write32(hChip->regHandle, BCHP_CLKGEN_INTERNAL_MUX_SELECT, ulVal);
+#else
+    BSTD_UNUSED(hChip);
+#endif
 }
 
-/* This gets called regularly to handle the AVS processing */
-static void BCHP_P_MonitorPvt( BCHP_Handle hChip, BCHP_AvsSettings *pSettings )
+static void BCHP_P_StandbyMode( BCHP_Handle hChip, bool activate )
 {
-    BDBG_ENTER(BCHP_P_MonitorPvt);
-    BSTD_UNUSED(pSettings);
-
-    BDBG_OBJECT_ASSERT(hChip, BCHP);
-
-    if (hChip->hAvsHandle)
-        BCHP_P_AvsMonitorPvt(hChip->hAvsHandle);
-
-    BDBG_LEAVE(BCHP_P_MonitorPvt);
-}
-
-static BERR_Code BCHP_P_GetAvsData( BCHP_Handle hChip, BCHP_AvsData *pData )
-{
-    BDBG_ENTER(BCHP_GetAVdata);
-    BDBG_OBJECT_ASSERT(hChip, BCHP);
-
-    if (hChip->hAvsHandle)
-        BCHP_P_AvsGetData(hChip->hAvsHandle, pData);
-
-    BDBG_LEAVE(BCHP_GetAVdata);
-    return BERR_SUCCESS;
-}
-
-static BERR_Code BCHP_P_StandbyMode( BCHP_Handle hChip, bool activate )
-{
-    BDBG_ENTER(BCHP_P_StandbyMode);
     BDBG_OBJECT_ASSERT(hChip, BCHP);
 
     /* Do anything required for CHP Standby changes */
@@ -1048,10 +965,10 @@ static BERR_Code BCHP_P_StandbyMode( BCHP_Handle hChip, bool activate )
     if (hChip->hAvsHandle)
         BCHP_P_AvsStandbyMode(hChip->hAvsHandle, activate);
 
-    BDBG_LEAVE(BCHP_P_StandbyMode);
-    return BERR_SUCCESS;
+    BCHP_P_MuxSelect(hChip);
 }
 
+#if BCHP_UNIFIED_IMPL
 BCHP_Handle BCHP_P_Open(const BCHP_OpenSettings *pSettings, const struct BCHP_P_Info *pChipInfo)
 {
     BCHP_Handle pChip;
@@ -1069,12 +986,8 @@ BCHP_Handle BCHP_P_Open(const BCHP_OpenSettings *pSettings, const struct BCHP_P_
     BDBG_OBJECT_SET(pChip, BCHP);
     pChip->openSettings     = *pSettings;
     pChip->regHandle        = pSettings->reg;
-    pChip->pCloseFunc       = BCHP_P_Close;
-    pChip->pMonitorPvtFunc  = BCHP_P_MonitorPvt;
-    pChip->pGetAvsDataFunc  = BCHP_P_GetAvsData;
-    pChip->pStandbyModeFunc = BCHP_P_StandbyMode;
 
-    rc = BCHP_P_VerifyChip(pChip, pChipInfo);
+    rc = BCHP_P_VerifyChip(pChip, pChipInfo, 0);
     if (rc) {
         BKNI_Free(pChip);
 #if BDBG_DEBUG_BUILD || B_REFSW_DEBUG_COMPACT_ERR
@@ -1123,6 +1036,48 @@ void BCHP_GetDefaultOpenSettings( BCHP_OpenSettings *pSettings )
 }
 
 /* BCHP_Open must be implemented in each bchp_xxxx.c file */
+#else
+static void BCHP_P_SetInfo( BCHP_Handle hChip )
+{
+    unsigned val;
+#ifdef BCHP_SUN_TOP_CTRL_PRODUCT_ID
+    val = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_PRODUCT_ID);
+    if (!val) {
+        val = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
+    }
+#else
+    val = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_PROD_REVISION);
+#endif
+    hChip->info.rev = val & 0xFF;
+    hChip->info.productId = val >> 16;
+#ifdef BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID
+    hChip->info.familyId = BREG_Read32(hChip->regHandle, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID) >> 16;
+#else
+    hChip->info.familyId = hChip->info.productId;
+#endif
+}
+BCHP_Handle BCHP_P_Open(BREG_Handle hRegister, const BCHP_P_Info *pChipInfo, unsigned chipInfoSize)
+{
+    BERR_Code rc;
+    BCHP_Handle pChip;
+
+    pChip = BKNI_Malloc(sizeof(*pChip));
+    if (!pChip) {
+        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
+    }
+    BKNI_Memset(pChip, 0x0, sizeof(*pChip));
+    BDBG_OBJECT_SET(pChip, BCHP);
+    pChip->regHandle = hRegister;
+
+    rc = BCHP_P_VerifyChip(pChip, pChipInfo, chipInfoSize);
+    if (rc) {
+        BKNI_Free(pChip);
+        return NULL;
+    }
+    BCHP_P_SetInfo( pChip );
+    return pChip;
+}
 #endif
 
 BDBG_OBJECT_ID(BCHP);

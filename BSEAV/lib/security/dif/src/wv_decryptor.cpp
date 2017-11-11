@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -95,7 +94,7 @@ static std::string GetCertRequestResponse(
 #ifdef USE_CURL
     server_url += "&signedRequest=";
     server_url += keyMessage;
-    LOGD(("%s: server_url: %s", __FUNCTION__, server_url.c_str()));
+    LOGD(("%s: server_url: %s", BSTD_FUNCTION, server_url.c_str()));
     CURL *curl;
     CURLcode res;
     curl = curl_easy_init();
@@ -107,7 +106,7 @@ static std::string GetCertRequestResponse(
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         res = curl_easy_perform(curl);
-        LOGW(("%s: s_wvBuffer(%d): %s, res: %d", __FUNCTION__, (uint32_t)s_wvBuffer.size(), s_wvBuffer.c_str(), res));
+        LOGW(("%s: s_wvBuffer(%d): %s, res: %d", BSTD_FUNCTION, (uint32_t)s_wvBuffer.size(), s_wvBuffer.c_str(), res));
         message = s_wvBuffer;
 
         curl_easy_cleanup(curl);
@@ -142,7 +141,7 @@ void* GetCdmHost(int host_interface_version, void* user_data)
 WidevineDecryptor::WidevineDecryptor()
     : cdm::Host(), BaseDecryptor()
 {
-    LOGD(("%s: enter", __FUNCTION__));
+    LOGD(("%s: enter", BSTD_FUNCTION));
 
     if (!s_wvcdmLogInit) {
         InitLogging(0, NULL);
@@ -171,15 +170,15 @@ WidevineDecryptor::WidevineDecryptor()
 
     m_certFilePath = m_basePath + kCertificate;
 
-    LOGD(("%s: basePath=%s", __FUNCTION__, m_basePath.c_str()));
+    LOGD(("%s: basePath=%s", BSTD_FUNCTION, m_basePath.c_str()));
 }
 
 WidevineDecryptor::~WidevineDecryptor()
 {
-    LOGD(("%s: enter", __FUNCTION__));
+    LOGD(("%s: enter", BSTD_FUNCTION));
     if (!m_sessionId.empty()) {
         LOGD(("%s: calling CancelKeyRequest sessionId=%s",
-            __FUNCTION__, m_sessionId.c_str()));
+            BSTD_FUNCTION, m_sessionId.c_str()));
         CancelKeyRequest();
     }
     if (m_cdm) {
@@ -192,7 +191,7 @@ WidevineDecryptor::~WidevineDecryptor()
         fclose(m_file);
         m_file = NULL;
     }
-    LOGD(("%s: leave", __FUNCTION__));
+    LOGD(("%s: leave", BSTD_FUNCTION));
 }
 
 bool WidevineDecryptor::Provision()
@@ -224,10 +223,10 @@ bool WidevineDecryptor::Provision()
 
 bool WidevineDecryptor::Initialize(std::string& pssh)
 {
-    LOGW(("%s: pssh(%d): %s", __FUNCTION__, (uint32_t)pssh.size(), b2a_hex(pssh).c_str()));
+    LOGW(("%s: pssh(%d): %s", BSTD_FUNCTION, (uint32_t)pssh.size(), b2a_hex(pssh).c_str()));
     m_pssh.assign(pssh);
     m_keyId.assign(pssh.substr(4));
-    LOGD(("%s: default keyId(%d): %s", __FUNCTION__, (uint32_t)m_keyId.size(), b2a_hex(m_keyId).c_str()));
+    LOGD(("%s: default keyId(%d): %s", BSTD_FUNCTION, (uint32_t)m_keyId.size(), b2a_hex(m_keyId).c_str()));
 
     // Initialize the CDM module before creating a CDM instance.
     INITIALIZE_CDM_MODULE();
@@ -255,10 +254,10 @@ bool WidevineDecryptor::Initialize(std::string& pssh)
     }
 
     if (!Provision()) {
-        LOGW(("%s: First provisioning failed", __FUNCTION__));
+        LOGW(("%s: First provisioning failed", BSTD_FUNCTION));
         // Retry once again
         if (!Provision()) {
-            LOGE(("%s: Provisioning failed", __FUNCTION__));
+            LOGE(("%s: Provisioning failed", BSTD_FUNCTION));
             return false;
         }
     }
@@ -276,7 +275,7 @@ bool WidevineDecryptor::Initialize(std::string& pssh)
 bool WidevineDecryptor::GenerateKeyRequest(std::string initData, dif_streamer::SessionType type)
 {
     BSTD_UNUSED(type);
-    LOGW(("%s: %d initData(%d): %s", __FUNCTION__, __LINE__, (uint32_t)initData.size(), b2a_hex(initData).c_str()));
+    LOGW(("%s: %d initData(%d): %s", BSTD_FUNCTION, __LINE__, (uint32_t)initData.size(), b2a_hex(initData).c_str()));
     m_hasKeyMessage = false;
     cdm::Status status = m_cdm->GenerateKeyRequest(
         NULL, 0, (const uint8_t*)initData.data(), initData.length());
@@ -301,7 +300,7 @@ bool WidevineDecryptor::GenerateKeyRequest(std::string initData, dif_streamer::S
     m_initData.assign(initData);
 
     while (!HasNewKeyMessage()) {
-        LOGW(("%s: waiting for new key", __FUNCTION__));
+        LOGW(("%s: waiting for new key", BSTD_FUNCTION));
         usleep(100000);
     }
 
@@ -310,18 +309,18 @@ bool WidevineDecryptor::GenerateKeyRequest(std::string initData, dif_streamer::S
 
 std::string WidevineDecryptor::GetKeyRequestResponse(std::string url)
 {
-    LOGD(("%s: keyMessage(%d): %s", __FUNCTION__, (uint32_t)m_keyMessage.size(), b2a_hex(m_keyMessage).c_str()));
+    LOGD(("%s: keyMessage(%d): %s", BSTD_FUNCTION, (uint32_t)m_keyMessage.size(), b2a_hex(m_keyMessage).c_str()));
     std::string drm_msg;
     std::string message = "";
     s_wvBuffer.assign("");
 #ifdef USE_CURL
-    LOGW(("%s: server_url: %s", __FUNCTION__, url.c_str()));
+    LOGW(("%s: server_url: %s", BSTD_FUNCTION, url.c_str()));
     CURL *curl;
     CURLcode res;
     curl = curl_easy_init();
 
     if (curl == NULL) {
-        LOGE(("%s: curl_easy_init returned NULL", __FUNCTION__));
+        LOGE(("%s: curl_easy_init returned NULL", BSTD_FUNCTION));
         return drm_msg;
     }
 //    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
@@ -334,10 +333,10 @@ std::string WidevineDecryptor::GetKeyRequestResponse(std::string url)
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "Widevine CDM v1.0");
     res = curl_easy_perform(curl);
-    LOGW(("%s: s_wvBuffer(%d): %s, res: %d", __FUNCTION__, (uint32_t)s_wvBuffer.size(), s_wvBuffer.c_str(), res));
+    LOGW(("%s: s_wvBuffer(%d): %s, res: %d", BSTD_FUNCTION, (uint32_t)s_wvBuffer.size(), s_wvBuffer.c_str(), res));
 
     if (res != 0) {
-        LOGE(("%s: curl error %d", __FUNCTION__, res));
+        LOGE(("%s: curl error %d", BSTD_FUNCTION, res));
         curl_easy_cleanup(curl);
         return drm_msg;
     }
@@ -353,14 +352,14 @@ std::string WidevineDecryptor::GetKeyRequestResponse(std::string url)
 
     LOGD(("GetStatusCode returned %d", status_code));
     if (status_code != 200) {
-        LOGE(("%s: error status_code=%d", __FUNCTION__, status_code));
+        LOGE(("%s: error status_code=%d", BSTD_FUNCTION, status_code));
         return drm_msg;
     }
     s_wvBuffer = message;
 #endif // USE_CURL
     size_t body_head = s_wvBuffer.find("\r\n\r\n");
     if (body_head == std::string::npos) {
-        LOGE(("%s: no body found in response", __FUNCTION__));
+        LOGE(("%s: no body found in response", BSTD_FUNCTION));
 #ifdef USE_CURL
         curl_easy_cleanup(curl);
 #endif
@@ -370,11 +369,11 @@ std::string WidevineDecryptor::GetKeyRequestResponse(std::string url)
     body_head += 4;
     size_t drm_head = s_wvBuffer.find("\r\n\r\n", body_head);
     if (drm_head != std::string::npos) {
-        LOGD(("%s: DRM message found", __FUNCTION__));
+        LOGD(("%s: DRM message found", BSTD_FUNCTION));
         drm_head += 4;
         drm_msg = s_wvBuffer.substr(drm_head);
     } else {
-        LOGW(("%s: return body anyway", __FUNCTION__));
+        LOGW(("%s: return body anyway", BSTD_FUNCTION));
         drm_msg = s_wvBuffer.substr(body_head);
     }
 
@@ -440,7 +439,7 @@ uint32_t WidevineDecryptor::DecryptSample(
         clearSize += pSample->entries[i].bytesOfClearData;
         encSize += pSample->entries[i].bytesOfEncData;
     }
-    LOGD(("%s: sampleSize=%u clearSize=%u encSize=%u", __FUNCTION__, sampleSize, clearSize, encSize));
+    LOGD(("%s: sampleSize=%u clearSize=%u encSize=%u", BSTD_FUNCTION, sampleSize, clearSize, encSize));
 
     if (encSize == 0) {
         // No decrypt needed - just return
@@ -472,10 +471,10 @@ LOGD(("keyId: %x %x %x %x %x %x %x %x", inputBuffer.key_id[0], inputBuffer.key_i
     cdm::Status result = m_cdm->Decrypt(inputBuffer, &outputBlock);
 
     if (result == cdm::kNoKey) {
-        LOGE(("%s: Decrypt returned NoKey\n", __FUNCTION__));
+        LOGE(("%s: Decrypt returned NoKey\n", BSTD_FUNCTION));
         return bytes_processed;
     } else if (result != cdm::kSuccess) {
-        LOGE(("%s: Decrypt returned error %d\n", __FUNCTION__, (int)result));
+        LOGE(("%s: Decrypt returned error %d\n", BSTD_FUNCTION, (int)result));
         return bytes_processed;
     }
 
@@ -512,12 +511,12 @@ void WidevineDecryptor::SendKeyMessage(const char* sessionId,
     int32_t sessionIdLength, const char* message, int32_t messageLength,
     const char* defaultUrl, int32_t defaultUrlLength)
 {
-    LOGD(("%s: enter", __FUNCTION__));
+    LOGD(("%s: enter", BSTD_FUNCTION));
     m_sessionId.assign(sessionId, sessionIdLength);
     m_keyMessage.assign(message, messageLength);
     m_defaultUrl.assign(defaultUrl, defaultUrlLength);
     m_hasKeyMessage = true;
-    LOGD(("%s: keyMessage(%d): %s", __FUNCTION__, (uint32_t)m_keyMessage.size(), b2a_hex(m_keyMessage).c_str()));
+    LOGD(("%s: keyMessage(%d): %s", BSTD_FUNCTION, (uint32_t)m_keyMessage.size(), b2a_hex(m_keyMessage).c_str()));
 }
 
 void WidevineDecryptor::SendKeyError(const char* sessionId,
@@ -532,7 +531,7 @@ void WidevineDecryptor::SendKeyError(const char* sessionId,
 void WidevineDecryptor::GetPlatformString(const std::string& name,
     std::string* value)
 {
-    LOGD(("%s: name=%s", __FUNCTION__, name.c_str()));
+    LOGD(("%s: name=%s", BSTD_FUNCTION, name.c_str()));
     if (name.compare("DeviceCertificate") == 0) {
         if (!m_certificate.empty()) {
             *value = m_certificate;
@@ -556,7 +555,7 @@ void WidevineDecryptor::GetPlatformString(const std::string& name,
 void WidevineDecryptor::SetPlatformString(const std::string& name,
                                  const std::string& value)
 {
-    LOGD(("%s: name=%s", __FUNCTION__, name.c_str()));
+    LOGD(("%s: name=%s", BSTD_FUNCTION, name.c_str()));
     m_platformStrings[name] = value;
 
     if (name.compare("DeviceCertificate") == 0) {
@@ -570,7 +569,7 @@ void WidevineDecryptor::SetPlatformString(const std::string& name,
 
 static bool CreateDirectory(std::string path)
 {
-    LOGD(("%s: path: %s", __FUNCTION__, path.c_str()));
+    LOGD(("%s: path: %s", BSTD_FUNCTION, path.c_str()));
     uint32_t size = path.size();
     if ((size == 1) && (path[0] == kDirectoryDelimiter))
         return true;
@@ -583,7 +582,7 @@ static bool CreateDirectory(std::string path)
         path[pos] = '\0';
         if (mkdir(path.c_str(), 0775) != 0) {
             if (errno != EEXIST) {
-                LOGW(("%s: mkdir failed(%d): %s", __FUNCTION__, errno, path.c_str()));
+                LOGW(("%s: mkdir failed(%d): %s", BSTD_FUNCTION, errno, path.c_str()));
                 return false;
             }
         }
@@ -594,7 +593,7 @@ static bool CreateDirectory(std::string path)
     if (path[size - 1] != kDirectoryDelimiter) {
         if (mkdir(path.c_str(), 0775) != 0) {
             if (errno != EEXIST) {
-                LOGW(("%s: mkdir failed(%d): %s", __FUNCTION__, errno, path.c_str()));
+                LOGW(("%s: mkdir failed(%d): %s", BSTD_FUNCTION, errno, path.c_str()));
                 return false;
             }
         }
@@ -612,7 +611,7 @@ bool WidevineDecryptor::CreateDeviceCertificate()
     if (stat(m_certFilePath.c_str(), &buf) != 0) {
         m_file = fopen(m_certFilePath.c_str(), "w+");
         if (m_file == NULL) {
-            LOGW(("%s: can't create: %s", __FUNCTION__, m_certFilePath.c_str()));
+            LOGW(("%s: can't create: %s", BSTD_FUNCTION, m_certFilePath.c_str()));
             return false;
         }
         fclose(m_file);
@@ -621,7 +620,7 @@ bool WidevineDecryptor::CreateDeviceCertificate()
 
     m_file = fopen(m_certFilePath.c_str(), "r+b");
     if (m_file == NULL) {
-        LOGW(("%s: can't open: %s", __FUNCTION__, m_certFilePath.c_str()));
+        LOGW(("%s: can't open: %s", BSTD_FUNCTION, m_certFilePath.c_str()));
         return false;
     }
 
@@ -630,17 +629,17 @@ bool WidevineDecryptor::CreateDeviceCertificate()
 
 bool WidevineDecryptor::ReadDeviceCertificate()
 {
-    LOGD(("%s: certFilePath=%s", __FUNCTION__, m_certFilePath.c_str()));
+    LOGD(("%s: certFilePath=%s", BSTD_FUNCTION, m_certFilePath.c_str()));
     struct stat buf;
     if (stat(m_certFilePath.c_str(), &buf) != 0) {
-        LOGW(("%s: stat failed(%d): %s", __FUNCTION__, errno, m_certFilePath.c_str()));
+        LOGW(("%s: stat failed(%d): %s", BSTD_FUNCTION, errno, m_certFilePath.c_str()));
         return false;
     }
 
     if (m_file == NULL) {
         m_file = fopen(m_certFilePath.c_str(), "rb");
         if (m_file == NULL) {
-            LOGW(("%s: fopen failed(%d): %s", __FUNCTION__, errno, m_certFilePath.c_str()));
+            LOGW(("%s: fopen failed(%d): %s", BSTD_FUNCTION, errno, m_certFilePath.c_str()));
             return false;
         }
     }
@@ -649,9 +648,9 @@ bool WidevineDecryptor::ReadDeviceCertificate()
     char* buffer = (char*)malloc(buf.st_size);
     uint32_t len = fread(buffer, sizeof(char), buf.st_size, m_file);
     if (len == 0) {
-        LOGW(("%s: fread failed(%d): %s", __FUNCTION__, errno, m_certFilePath.c_str()));
+        LOGW(("%s: fread failed(%d): %s", BSTD_FUNCTION, errno, m_certFilePath.c_str()));
     } else if (len != buf.st_size) {
-        LOGW(("%s: fread incomplete (%d/%d): %s", __FUNCTION__, (int32_t)len, (int32_t)buf.st_size, m_certFilePath.c_str()));
+        LOGW(("%s: fread incomplete (%d/%d): %s", BSTD_FUNCTION, (int32_t)len, (int32_t)buf.st_size, m_certFilePath.c_str()));
     } else {
         m_certificate.assign(buffer, len);
     }
@@ -662,10 +661,10 @@ bool WidevineDecryptor::ReadDeviceCertificate()
 
 bool WidevineDecryptor::WriteDeviceCertificate(const char* buffer, uint32_t bytes)
 {
-    LOGD(("%s: size=%u", __FUNCTION__, bytes));
+    LOGD(("%s: size=%u", BSTD_FUNCTION, bytes));
     uint32_t len = fwrite(buffer, sizeof(char), bytes, m_file);
     if (len == 0) {
-        LOGW(("%s: fwrite failed(%d): %s", __FUNCTION__, errno, m_certFilePath.c_str()));
+        LOGW(("%s: fwrite failed(%d): %s", BSTD_FUNCTION, errno, m_certFilePath.c_str()));
         return false;
     }
     return true;

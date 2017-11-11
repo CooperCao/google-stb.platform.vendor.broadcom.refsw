@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include <stdlib.h>
@@ -758,7 +751,7 @@ bool glsl_shallow_match_nonfunction_types(SymbolType* a, SymbolType* b)
    } else if (SYMBOL_ARRAY_TYPE == a->flavour && SYMBOL_ARRAY_TYPE == b->flavour)
    {
       // Array types are not canonical, so do a manual match.
-      vcos_assert(a->u.array_type.member_count && b->u.array_type.member_count);
+      assert(a->u.array_type.member_count && b->u.array_type.member_count);
       if (a->u.array_type.member_count == b->u.array_type.member_count)
       {
          if (a->u.array_type.member_type == b->u.array_type.member_type)
@@ -1070,8 +1063,8 @@ Symbol* glsl_resolve_overload_using_arguments(Symbol* head, ExprChain* args)
 
       existing_prototype = head->type;
 
-      vcos_assert(SYMBOL_FUNCTION_INSTANCE == head->flavour);
-      vcos_assert(SYMBOL_FUNCTION_TYPE == existing_prototype->flavour);
+      assert(SYMBOL_FUNCTION_INSTANCE == head->flavour);
+      assert(SYMBOL_FUNCTION_TYPE == existing_prototype->flavour);
 
       // First check that the number of params is the same.
       if (existing_prototype->u.function_type.param_count != param_count)
@@ -1134,7 +1127,7 @@ Symbol* glsl_resolve_overload_using_prototype(Symbol* head, SymbolType* prototyp
    Symbol* prototype_param;
    int i, param_count;
 
-   vcos_assert(SYMBOL_FUNCTION_TYPE == prototype->flavour);
+   assert(SYMBOL_FUNCTION_TYPE == prototype->flavour);
 
    param_count = prototype->u.function_type.param_count;
 
@@ -1142,8 +1135,8 @@ Symbol* glsl_resolve_overload_using_prototype(Symbol* head, SymbolType* prototyp
    {
       existing_prototype = head->type;
 
-      vcos_assert(SYMBOL_FUNCTION_INSTANCE == head->flavour);
-      vcos_assert(SYMBOL_FUNCTION_TYPE == existing_prototype->flavour);
+      assert(SYMBOL_FUNCTION_INSTANCE == head->flavour);
+      assert(SYMBOL_FUNCTION_TYPE == existing_prototype->flavour);
 
       // First check that the number of params is the same.
       if (existing_prototype->u.function_type.param_count != param_count)
@@ -1247,13 +1240,13 @@ PrimitiveTypeIndex glsl_get_scalar_value_type_index(SymbolType* type, int n)
 
    STACK_CHECK();
 
-   vcos_assert(0 <= n && n < type->scalar_count);
+   assert(0 <= n && n < type->scalar_count);
 
    switch (type->flavour)
    {
       case SYMBOL_PRIMITIVE_TYPE:
          {
-            vcos_assert(PRIMITIVE_TYPE_UNDEFINED != primitiveScalarTypeIndices[type->u.primitive_type.index]);
+            assert(PRIMITIVE_TYPE_UNDEFINED != primitiveScalarTypeIndices[type->u.primitive_type.index]);
             return primitiveScalarTypeIndices[type->u.primitive_type.index];
          }
 
@@ -1325,17 +1318,17 @@ void glsl_symbol_construct_var_instance(Symbol* result, const char* name, Symbol
                   switch (type_index)
                   {
                      case PRIM_BOOL:
-                        vcos_assert(g_BoolFalse);
+                        assert(g_BoolFalse);
                         result->u.var_instance.scalar_values[i] = g_BoolFalse;
                         break;
 
                      case PRIM_INT:
-                        vcos_assert(g_IntZero);
+                        assert(g_IntZero);
                         result->u.var_instance.scalar_values[i] = g_IntZero;
                         break;
 
                      case PRIM_FLOAT:
-                        vcos_assert(g_FloatZero);
+                        assert(g_FloatZero);
                         result->u.var_instance.scalar_values[i] = g_FloatZero;
                         break;
 
@@ -1418,15 +1411,15 @@ void glsl_symbol_construct_var_instance(Symbol* result, const char* name, Symbol
                      if (g_ShaderFlavour == SHADER_VERTEX) {
                         switch (type_index) {
                         case PRIM_BOOL:
-                           vcos_assert(g_BoolFalse);
+                           assert(g_BoolFalse);
                            dataflow = g_BoolFalse;
                            break;
                         case PRIM_INT:
-                           vcos_assert(g_IntZero);
+                           assert(g_IntZero);
                            dataflow = g_IntZero;
                            break;
                         case PRIM_FLOAT:
-                           vcos_assert(g_FloatZero);
+                           assert(g_FloatZero);
                            dataflow = g_FloatZero;
                            break;
                         default:
@@ -1506,17 +1499,17 @@ void glsl_symbol_construct_param_instance(Symbol* result, const char* name, Symb
       switch (type_index)
       {
          case PRIM_BOOL:
-            vcos_assert(g_BoolFalse);
+            assert(g_BoolFalse);
             result->u.var_instance.scalar_values[i] = g_BoolFalse;
             break;
 
          case PRIM_INT:
-            vcos_assert(g_IntZero);
+            assert(g_IntZero);
             result->u.var_instance.scalar_values[i] = g_IntZero;
             break;
 
          case PRIM_FLOAT:
-            vcos_assert(g_FloatZero);
+            assert(g_FloatZero);
             result->u.var_instance.scalar_values[i] = g_FloatZero;
             break;
 

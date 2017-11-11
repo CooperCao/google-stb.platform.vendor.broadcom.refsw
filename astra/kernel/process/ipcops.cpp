@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,6 +58,8 @@
 
 #include "lib_printf.h"
 
+#include "tzpipe.h"
+
 int TzTask::mqOpen(const char *mqName, int oflag, int mode, mq_attr *attr) {
 
     // Make sure there's a free file descriptor slot
@@ -69,13 +71,20 @@ int TzTask::mqOpen(const char *mqName, int oflag, int mode, mq_attr *attr) {
 
     MsgQueue *mq = MsgQueue::lookUp(mqName);
     if (mq == nullptr) {
-        if (oflag & O_CREAT) {
-            mq = MsgQueue::open(mqName, mode, attr, uid, gid);
-        }
+        if (!(oflag & O_CREAT))
+            return -ENOENT;
+
+        // Create new one (could fail for various reasons)
+        if ((mq = MsgQueue::create(mqName, mode, attr, uid, gid)) == nullptr)
+            return -ENOSPC;
     }
     else {
         if ((oflag & O_EXCL) && (oflag & O_CREAT))
             return -EEXIST;
+
+        // Open existing one (could fail due to race condition)
+        if (!MsgQueue::open(mq))
+            return -ENOENT;
     }
 
     uint16_t owner = mq->uid();
@@ -114,7 +123,9 @@ int TzTask::mqOpen(const char *mqName, int oflag, int mode, mq_attr *attr) {
     files[fd].queue = mq;
     files[fd].read = ((oflag & O_RW_MASK) == O_RDONLY) || (oflag & O_RDWR);
     files[fd].write = (oflag & O_WRONLY) || (oflag & O_RDWR);
-    files[fd].closeOnExec = (oflag & O_CLOEXEC);
+
+    // close on exec for mq by POSIX spec
+    files[fd].closeOnExec = true;
 
     return fd;
 }
@@ -194,5 +205,51 @@ int TzTask::mqAttrChange(int fd, mq_attr *newAttr, mq_attr *oldAttr) {
         return -EINVAL;
 
     queue->changeAttr(newAttr, oldAttr);
+    return 0;
+}
+
+int TzTask::pipeOpen(int *pfds, long flags) {
+
+    if ((flags & O_DIRECT)) {
+        return -EINVAL; // No support
+    }
+
+    IFile *pipe = Pipe::create(uid, gid, flags);
+
+    if (0 == pipe)
+        return -ENFILE;
+
+    // Make sure there are free file descriptor slot
+    int rfd = 0;
+    while ((rfd < MAX_FD) && (files[rfd].data != nullptr))
+        rfd++;
+    if (rfd == MAX_FD)
+        return -ENFILE;
+
+    files[rfd].type = IpcPipe;
+    files[rfd].iNo = (uintptr_t)pipe;
+    files[rfd].file = pipe;
+    files[rfd].read = true;
+    files[rfd].write = false;
+    files[rfd].closeOnExec = (flags & O_CLOEXEC);
+    Pipe::open((Pipe *)pipe, files[rfd].read);
+
+    int wfd = 0;
+    while ((wfd < MAX_FD) && (files[wfd].data != nullptr))
+        wfd++;
+    if (wfd == MAX_FD)
+        return -ENFILE;
+
+    files[wfd].type = IpcPipe;
+    files[wfd].iNo = (uintptr_t)pipe;
+    files[wfd].file = pipe;
+    files[wfd].read = false;
+    files[wfd].write = true;
+    files[wfd].closeOnExec = (flags & O_CLOEXEC);
+    Pipe::open((Pipe *)pipe, files[wfd].read);
+
+    pfds[0] = rfd;
+    pfds[1] = wfd;
+
     return 0;
 }

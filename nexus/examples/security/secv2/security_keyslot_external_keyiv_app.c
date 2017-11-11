@@ -38,8 +38,6 @@
 
 #if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_API_VERSION==2)
 
-#include <assert.h>
-#include "nexus_memory.h"
 #include "nexus_security.h"
 #include "nexus_keyslot.h"
 #include "security_utils.h"
@@ -52,8 +50,7 @@ typedef struct {
         unsigned      offset;                              /* offset into external key slot. */
         unsigned      size;
         uint8_t      *pData;
-    } key        ,
-                  iv;
+    } key, iv;
 } external_key_data_t;
 
 static void compileBtp(
@@ -87,9 +84,9 @@ static void compileBtp(
         /* security BTP */
     };
 
-    assert( pBtp );
-    assert( pBtpData );
-    assert( sizeof( templateBtp ) <= XPT_TS_PACKET_SIZE );
+    BDBG_ASSERT( pBtp );
+    BDBG_ASSERT( pBtpData );
+    BDBG_ASSERT( sizeof( templateBtp ) <= XPT_TS_PACKET_SIZE );
 
     BKNI_Memset( pBtp, 0, XPT_TS_PACKET_SIZE );
     BKNI_Memcpy( pBtp, templateBtp, sizeof( templateBtp ) );
@@ -162,7 +159,6 @@ int main(
     NEXUS_KeySlotAllocateSettings keyslotAllocSettings;
     NEXUS_KeySlotSettings keyslotSettings;
     NEXUS_KeySlotEntrySettings keyslotEntrySettings;
-    NEXUS_KeySlotEntrySettings settings;
     NEXUS_KeySlotIv slotIv;
     NEXUS_KeySlotBlockEntry entry;
     NEXUS_KeySlotKey slotKey;
@@ -188,21 +184,20 @@ int main(
     keyslotHandle = NEXUS_KeySlot_Allocate( &keyslotAllocSettings );
     if( !keyslotHandle ) {
         BDBG_ERR( ( "\nError: Can't allocate keyslot\n" ) );
-        return -1;
+        return NEXUS_NOT_AVAILABLE;
     }
 
     /* Configure the keyslot. */
     NEXUS_KeySlot_GetSettings( keyslotHandle, &keyslotSettings );
 
     rc = NEXUS_KeySlot_SetSettings( keyslotHandle, &keyslotSettings );
-    if( rc != NEXUS_SUCCESS ) {
-        return BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
-    /* Configure a key entry to encry. */
+    /* Configure a key entry for encryption. */
     entry = NEXUS_KeySlotBlockEntry_eCpsClear;
     NEXUS_KeySlot_GetEntrySettings( keyslotHandle, entry, &keyslotEntrySettings );
 
+    /* Specify to use external IV and key from BTP. */
     keyslotEntrySettings.external.iv = true;
     keyslotEntrySettings.external.key = true;
 
@@ -213,17 +208,13 @@ int main(
     keyslotEntrySettings.gPipeEnable = true;
 
     rc = NEXUS_KeySlot_SetEntrySettings( keyslotHandle, entry, &keyslotEntrySettings );
-    if( rc != NEXUS_SUCCESS ) {
-        return BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
     pSrc = pDest = pExternalKey = pExternalKeyShaddow = NULL;
 
-    /* Loading key or IV from BTP. */
+    /* Following steps is for loading the key or IV from BTP. */
     rc = NEXUS_KeySlot_GetEntryExternalKeySettings( keyslotHandle, entry, &extKeyData );
-    if( rc != NEXUS_SUCCESS ) {
-        return BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
     /* The actual key size for the algorithm selected. */
     key_size = securityGetAlogrithmKeySize( NEXUS_CryptographicAlgorithm_eAes128 );
@@ -257,14 +248,12 @@ int main(
     /* Compile a Broadcom Transport Packet into pExternalKey */
     compileBtp( pExternalKey, &btp );
 
-    /* Loads the clear key and IV from BTP to key entry */
+    /* Load the loaded key and IV from BTP to the key entry specified. */
     rc = securityUtil_DmaTransfer( keyslotHandle, pExternalKey, pExternalKeyShaddow, NEXUS_DmaDataFormat_eBlock,
                                    XPT_TS_PACKET_SIZE, true );
-    if( rc != NEXUS_SUCCESS ) {
-        BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
-    /* Using clear key as the root key to encrypt the plain text, cipher is pDest. */
+    /* Using loaded clear key as the root key to encrypt the plain text, cipher is pDest. */
     data_size = sizeof( plainText );
 
     NEXUS_Memory_Allocate( data_size, NULL, ( void ** ) &pSrc );
@@ -273,11 +262,11 @@ int main(
     BKNI_Memcpy( pSrc, plainText, data_size );
     BKNI_Memset( pDest, 0, data_size );
 
+    /* Encrypt the plainText to the cipherText */
     rc = securityUtil_DmaTransfer( keyslotHandle, pSrc, pDest, NEXUS_DmaDataFormat_eBlock, data_size, false );
-    if( rc != NEXUS_SUCCESS ) {
-        BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
     else {
+        /* Check the encryption result. */
         if( BKNI_Memcmp( pDest, CipherText_Aes_128_Cbc, data_size ) ) {
             BDBG_ERR( ( "    Test FAILED!\n" ) );
         }
@@ -286,14 +275,13 @@ int main(
         }
     }
 
-    if( pSrc )
-        NEXUS_Memory_Free( pSrc );
-    if( pDest )
-        NEXUS_Memory_Free( pDest );
-    if( pExternalKey )
-        NEXUS_Memory_Free( pExternalKey );
-    if( pExternalKeyShaddow )
-        NEXUS_Memory_Free( pExternalKeyShaddow );
+exit:
+
+    if( pSrc ) NEXUS_Memory_Free( pSrc );
+    if( pDest ) NEXUS_Memory_Free( pDest );
+    if( pExternalKey ) NEXUS_Memory_Free( pExternalKey );
+    if( pExternalKeyShaddow ) NEXUS_Memory_Free( pExternalKeyShaddow );
+    if (keyslotHandle) NEXUS_KeySlot_Free( keyslotHandle );
 
     securityUtil_PlatformUnInit(  );
 

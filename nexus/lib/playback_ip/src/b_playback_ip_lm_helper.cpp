@@ -190,6 +190,7 @@ B_PlaybackIp_liveMediaSessionOpen(
         if (ioctl(fd, SIOCGIFADDR, &ifr) != 0) {
             BDBG_ERR(("ERROR: Failed to get IP Address Information for Interface %s, errno %d", openSettings->socketOpenSettings.interfaceName, errno));
             errorCode = B_ERROR_SOCKET_ERROR;
+            close(fd);
             goto error;
         }
         /* This is a LiveMedia global variable that should be set to the local i/f address. */

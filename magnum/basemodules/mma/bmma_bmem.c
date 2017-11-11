@@ -66,11 +66,9 @@ struct BMEM_P_Mem {
     BLST_S_HEAD(BMEP_P_Heap_List, BMEM_P_Heap) heaps;
 };
 
-BERR_Code BMEM_GetDefaultSettings (BMEM_Settings *pDefSettings)
+void BMEM_GetDefaultSettings (BMEM_Settings *pDefSettings)
 {
-    BDBG_ASSERT(pDefSettings);
     BKNI_Memset(pDefSettings, 0, sizeof(*pDefSettings));
-    return BERR_SUCCESS;
 }
 
 BERR_Code BMEM_Open ( BMEM_ModuleHandle   *phMem, const BMEM_Settings *pDefSettings)
@@ -218,7 +216,7 @@ void *BMEM_Heap_AllocAligned(BMEM_Heap_Handle h, size_t ulSize, unsigned int  ui
     }
     addrCached = BMMA_Lock_tagged(block, pchFile, iLine);
     if(addrCached==NULL) {(void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_lock;}
-    if((uint8_t *)addrCached < (uint8_t *)h->settings.cached || (uint8_t *)addrCached + ulSize >= (uint8_t *)h->settings.cached + h->settings.length) { (void)BERR_TRACE(BERR_NOT_SUPPORTED);goto err_addr_out_of_range;}
+    if((uint8_t *)addrCached < (uint8_t *)h->settings.cached || (uint8_t *)addrCached + ulSize > (uint8_t *)h->settings.cached + h->settings.length) { (void)BERR_TRACE(BERR_NOT_SUPPORTED);goto err_addr_out_of_range;}
 
     BMMA_Alloc_SetTaint(block);
 
@@ -282,7 +280,7 @@ BERR_Code BMEM_Heap_Free(BMEM_Heap_Handle  h, void  *Address)
     return BMEM_Heap_P_Free(h, addr);
 }
 
-static BERR_Code BMEM_Heap_P_ConvertOffsetToAddress(BMEM_Heap_Handle  h, uint32_t ulOffset, void  **ppvAddress)
+static BERR_Code BMEM_Heap_P_ConvertOffsetToAddress_isrsafe(BMEM_Heap_Handle  h, uint32_t ulOffset, void  **ppvAddress)
 {
     if(ulOffset >=  h->settings.base && ulOffset < h->settings.base + h->settings.length) {
         *ppvAddress = (uint8_t *)h->settings.uncached  + (ulOffset - h->settings.base);
@@ -302,14 +300,14 @@ BERR_Code BMEM_Heap_ConvertOffsetToAddress(BMEM_Heap_Handle  h, uint32_t ulOffse
     if(h->settings.dummy) {
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-    rc = BMEM_Heap_P_ConvertOffsetToAddress(h, ulOffset, ppvAddress);
+    rc = BMEM_Heap_P_ConvertOffsetToAddress_isrsafe(h, ulOffset, ppvAddress);
     if(rc==BERR_SUCCESS) {return rc;}
     m = h->parent;
     if(m) {
         BDBG_OBJECT_ASSERT(m, BMEM_Mem);
         for(heap=BLST_S_FIRST(&m->heaps);heap;heap=BLST_S_NEXT(heap,link)) {
             if(heap!=h) {
-                rc = BMEM_Heap_P_ConvertOffsetToAddress(heap, ulOffset, ppvAddress);
+                rc = BMEM_Heap_P_ConvertOffsetToAddress_isrsafe(heap, ulOffset, ppvAddress);
                 if(rc==BERR_SUCCESS) {return rc;}
             }
         }
@@ -317,7 +315,7 @@ BERR_Code BMEM_Heap_ConvertOffsetToAddress(BMEM_Heap_Handle  h, uint32_t ulOffse
     return BERR_TRACE(BERR_INVALID_PARAMETER);
 }
 
-static BERR_Code BMEM_Heap_P_ConvertAddressToOffset( BMEM_Heap_Handle  h, void *pvAddress, uint32_t  *pulOffset)
+static BERR_Code BMEM_Heap_P_ConvertAddressToOffset_isrsafe( BMEM_Heap_Handle  h, void *pvAddress, uint32_t  *pulOffset)
 {
     BDBG_MSG(("BMEM_Heap_P_ConvertAddressToOffset:%p %p (%p..%p)", (void *)h, pvAddress, h->settings.uncached, (void *)((uint8_t *)h->settings.uncached + h->settings.length)));
     if(h->settings.uncached && (uint8_t *)pvAddress >=  (uint8_t *)h->settings.uncached && (uint8_t *)pvAddress < (uint8_t *)h->settings.uncached + h->settings.length) {
@@ -343,14 +341,14 @@ BERR_Code BMEM_Heap_ConvertAddressToOffset_isrsafe( BMEM_Heap_Handle  h, void *p
     if(h->settings.dummy) {
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-    rc = BMEM_Heap_P_ConvertAddressToOffset(h, pvAddress, pulOffset);
+    rc = BMEM_Heap_P_ConvertAddressToOffset_isrsafe(h, pvAddress, pulOffset);
     if(rc==BERR_SUCCESS) {return rc;}
     m = h->parent;
     if(m) {
         BDBG_OBJECT_ASSERT(m, BMEM_Mem);
         for(heap=BLST_S_FIRST(&m->heaps);heap;heap=BLST_S_NEXT(heap,link)) {
             if(heap!=h) {
-                rc = BMEM_Heap_P_ConvertAddressToOffset(heap, pvAddress, pulOffset);
+                rc = BMEM_Heap_P_ConvertAddressToOffset_isrsafe(heap, pvAddress, pulOffset);
                 if(rc==BERR_SUCCESS) {return rc;}
             }
         }
@@ -365,7 +363,7 @@ BERR_Code BMEM_Heap_ConvertAddressToOffset_isrsafe( BMEM_Heap_Handle  h, void *p
     return BERR_TRACE(BERR_INVALID_PARAMETER);
 }
 
-static BERR_Code BMEM_Heap_P_ConvertAddressToCached( BMEM_Heap_Handle  h, void *pvAddress,void **ppvCachedAddress)
+static BERR_Code BMEM_Heap_P_ConvertAddressToCached_isrsafe( BMEM_Heap_Handle  h, void *pvAddress,void **ppvCachedAddress)
 {
     BDBG_MSG(("BMEM_Heap_P_ConvertAddressToCached:%p %p (%p..%p)", (void *)h, pvAddress, h->settings.uncached, (uint8_t *)h->settings.uncached + h->settings.length));
     if((uint8_t *)pvAddress >=  (uint8_t *)h->settings.uncached && (uint8_t *)pvAddress < (uint8_t *)h->settings.uncached + h->settings.length) {
@@ -376,7 +374,7 @@ static BERR_Code BMEM_Heap_P_ConvertAddressToCached( BMEM_Heap_Handle  h, void *
     return BERR_INVALID_PARAMETER;
 }
 
-BERR_Code BMEM_Heap_ConvertAddressToCached( BMEM_Heap_Handle  h, void *pvAddress,void **ppvCachedAddress)
+BERR_Code BMEM_Heap_ConvertAddressToCached_isrsafe( BMEM_Heap_Handle  h, void *pvAddress,void **ppvCachedAddress)
 {
     BERR_Code rc;
     BMEM_ModuleHandle m;
@@ -387,14 +385,14 @@ BERR_Code BMEM_Heap_ConvertAddressToCached( BMEM_Heap_Handle  h, void *pvAddress
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
     BDBG_MSG(("BMEM_Heap_ConvertAddressToCached:%p %p", (void *)h, pvAddress));
-    rc = BMEM_Heap_P_ConvertAddressToCached(h, pvAddress, ppvCachedAddress);
+    rc = BMEM_Heap_P_ConvertAddressToCached_isrsafe(h, pvAddress, ppvCachedAddress);
     if(rc==BERR_SUCCESS) {return rc;}
     m = h->parent;
     if(m) {
         BDBG_OBJECT_ASSERT(m, BMEM_Mem);
         for(heap=BLST_S_FIRST(&m->heaps);heap;heap=BLST_S_NEXT(heap,link)) {
             if(heap!=h) {
-                rc = BMEM_Heap_P_ConvertAddressToCached(heap, pvAddress, ppvCachedAddress);
+                rc = BMEM_Heap_P_ConvertAddressToCached_isrsafe(heap, pvAddress, ppvCachedAddress);
                 if(rc==BERR_SUCCESS) {return rc;}
             }
         }

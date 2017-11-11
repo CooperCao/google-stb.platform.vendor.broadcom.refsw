@@ -2580,6 +2580,9 @@ static NEXUS_Error NEXUS_Recpump_P_ApplyTpitStartSettings(NEXUS_RecpumpHandle r)
     indx_cfg.Cfg.Tpit.StorePcrMsb = pSettings->tpit.storePcrMsb;
     indx_cfg.Cfg.Tpit.IdleEventEnable = pSettings->tpit.idleEventEnable;
     indx_cfg.Cfg.Tpit.RecordEventEnable = pSettings->tpit.recordEventEnable;
+    indx_cfg.Cfg.Tpit.CorruptionByte = pSettings->tpit.corruption.data;
+    indx_cfg.Cfg.Tpit.CorruptionStart = pSettings->tpit.corruption.start;
+    indx_cfg.Cfg.Tpit.CorruptionEnd = pSettings->tpit.corruption.end;
     rc = BXPT_Rave_SetIndexerConfig(r->tpitIdx, &indx_cfg);
     if (rc) {return BERR_TRACE(rc);}
 

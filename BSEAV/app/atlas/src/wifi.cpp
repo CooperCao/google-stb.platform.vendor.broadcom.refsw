@@ -689,9 +689,10 @@ doneStatus:
                 size_t bufLen = 0;
 
                 memset(buf, 0, sizeof(buf));
-                /* need to null terminate for coverity */
-                buf[sizeof(buf)-1] = '\0';
                 bufLen = sizeof(buf) - 1;
+                /* Struc is already zero'd out */
+
+                /* coverity[string_null_argument] */
                 if (0 == wpa_ctrl_recv(pWpaMonitor, buf, &bufLen))
                 {
                     MString         strBuf(buf);
@@ -847,7 +848,6 @@ doneStatus:
 
                 if (NULL != pCmdData)
                 {
-
                     BDBG_MSG(("worker thread connect login/password:%s/%s", pCmdData->_strSSID.s(), pCmdData->_strPassword.s()));
 
                     /* add network if it does not already exist */
@@ -1575,12 +1575,12 @@ error:
 eRet CWifi::staticIpStart()
 {
     MString strCommand;
-    eRet ret          = eRet_Ok;
+    eRet    ret       = eRet_Ok;
     int32_t retSystem = 0;
 
     if (false == _strInterfaceName.isEmpty())
     {
-        strCommand = "ifconfig " + _strInterfaceName + " ";
+        strCommand  = "ifconfig " + _strInterfaceName + " ";
         strCommand += MString(GET_STR(_pCfg, WPA_SUPPLICANT_STATIC_IP)) + " ";
         strCommand += GET_STR(_pCfg, WPA_SUPPLICANT_STATIC_NETMASK);
 
@@ -1598,8 +1598,8 @@ eRet CWifi::staticIpStart()
 eRet CWifi::staticIpStop()
 {
     MString strCommand = "ifconfig 0.0.0.0";
-    eRet ret          = eRet_Ok;
-    int32_t retSystem = 0;
+    eRet    ret        = eRet_Ok;
+    int32_t retSystem  = 0;
 
     BDBG_WRN(("%s:%s", BSTD_FUNCTION, strCommand.s()));
     retSystem = system(strCommand.s());

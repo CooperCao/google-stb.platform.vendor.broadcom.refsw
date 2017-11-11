@@ -438,8 +438,8 @@ BCMATTACHFN(phy_ac_noise_attach_modes)(phy_info_t *pi)
 			| ACPHY_HWACI_MITIGATION;
 		pi->sh->interference_mode_5G = ACPHY_ACI_GLITCHBASED_DESENSE
 			| ACPHY_HWACI_MITIGATION;
-		pi->sh->interference_mode_2G |= ACPHY_ACI_PREEMPTION;
-		pi->sh->interference_mode_5G |= ACPHY_ACI_PREEMPTION;
+		pi->sh->interference_mode_2G |= ACPHY_ACI_PREEMPTION | ACPHY_LPD_PREEMPTION;
+		pi->sh->interference_mode_5G |= ACPHY_ACI_PREEMPTION | ACPHY_LPD_PREEMPTION;
 	}  else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37)) */
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_40))

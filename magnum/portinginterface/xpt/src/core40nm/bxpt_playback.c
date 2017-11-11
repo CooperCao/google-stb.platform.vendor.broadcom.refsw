@@ -162,7 +162,7 @@ BERR_Code BXPT_Playback_GetChannelDefaultSettings(
 
 #if BXPT_HAS_TSMUX
     /* Defaults, to keep existing behavior. */
-    ChannelSettings->PesBasedPacing = false;
+    ChannelSettings->DescBasedPacing = false;
     ChannelSettings->Use8WordDesc = false;
 #endif
 
@@ -495,7 +495,7 @@ BERR_Code BXPT_Playback_SetChannelSettings(
     }
 
 #if BXPT_HAS_TSMUX
-    else if( ChannelSettings->PesBasedPacing == true )
+    else if( ChannelSettings->DescBasedPacing == true )
     {
         Reg |= (
             BCHP_FIELD_DATA( XPT_PB0_CTRL2, PACING_TYPE, 2 )
@@ -608,7 +608,7 @@ BERR_Code BXPT_Playback_GetChannelSettings(
     /* PCR-based pacing */
     ChannelSettings->PcrBasedPacing = false;
 #if BXPT_HAS_TSMUX
-    ChannelSettings->PesBasedPacing = false;
+    ChannelSettings->DescBasedPacing = false;
 #endif
     Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL2 );
     switch( BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CTRL2, PACING_TYPE ) )
@@ -619,7 +619,7 @@ BERR_Code BXPT_Playback_GetChannelSettings(
 
 #if BXPT_HAS_TSMUX
         case 2:
-        ChannelSettings->PesBasedPacing = true;
+        ChannelSettings->DescBasedPacing = true;
         break;
 #endif
 
@@ -2197,4 +2197,14 @@ void BXPT_Playback_GetLTSID(
 #else
     *ltsid = hPb->ChannelNo + 0x40;
 #endif
+}
+
+BERR_Code BXPT_Playback_GetLastCompletedDataAddress(
+    BXPT_Playback_Handle hPb,                   /* [in] Handle for the playback channel */
+    BMMA_DeviceOffset *LastCompletedDataAddress /* [out] Address of the last completed data buffer. */
+    )
+{
+    BSTD_UNUSED(hPb);
+    BSTD_UNUSED(LastCompletedDataAddress);
+    return BERR_NOT_SUPPORTED;
 }

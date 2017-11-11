@@ -19,8 +19,10 @@ gl_api_t;
 /*
  * GL contexts are not thread-safe at all, so there is a global per-process
  * lock. Lock/unlock it with these functions.
+ * The lock is created at the initialisation of the egl_process
  */
-extern bool egl_context_gl_lock(void);
+extern void egl_context_gl_create_lock(void);
+extern void egl_context_gl_lock(void);
 extern void egl_context_gl_unlock(void);
 
 #ifndef NDEBUG

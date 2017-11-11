@@ -123,13 +123,13 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
     BAPE_DolbyDigitalReencode_GetDefaultSettings(&piSettings);
     if ( g_NEXUS_audioModuleData.armHandle && !NEXUS_GetEnv("disable_arm_audio") )
     {
-        piSettings.encoderDeviceIndex = 6;
+        piSettings.encoderDeviceIndex = BAPE_DEVICE_ARM_FIRST;
         piSettings.encoderMixerRequired = false;
         piSettings.encoderTaskRequired = true;
     }
     else if ( NEXUS_GetEnv("ms12_dual_raaga") )
     {
-        piSettings.encoderDeviceIndex = 1;
+        piSettings.encoderDeviceIndex = BAPE_DEVICE_DSP_FIRST+1;
         piSettings.encoderMixerRequired = true;
         piSettings.encoderTaskRequired = true;
     }
@@ -358,10 +358,8 @@ NEXUS_AudioInputHandle NEXUS_DolbyDigitalReencode_GetConnector( /* attr{shutdown
         }
         else
         {
-            BAPE_Capabilities caps;
-            BAPE_GetCapabilities(g_NEXUS_audioModuleData.apeHandle, &caps);
             /* check for Config C */
-            if ( !caps.dsp.codecs[BAVC_AudioCompressionStd_eAc3Plus].encode )
+            if ( !g_NEXUS_audioModuleData.capabilities.dsp.codecs[NEXUS_AudioCodec_eAc3Plus].encode )
             {
                 BDBG_ERR(("The current MS12 Config does not appear to support 'eCompressed4x' Connector"));
                 (void)BERR_TRACE(BERR_INVALID_PARAMETER);

@@ -78,12 +78,11 @@ public:
 class CPlmDataGraphics
 {
 public:
-    CPlmDataGraphics(
-        const bool bEnable) :
-    _bEnable(bEnable)
+    CPlmDataGraphics(const bool bEnable) :
+        _bEnable(bEnable)
     {}
 public:
-    bool        _bEnable;
+    bool _bEnable;
 };
 
 class CSurfaceClient : public CResource
@@ -157,8 +156,8 @@ public:
     void                          forceDrawSync(bwidget_engine_t widgetEngine);
     eRet                          updateClientSurface(NEXUS_SurfaceClientHandle hClient, B_EventHandle hRecycleEvent, MRect * pRectUpdate = NULL);
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
-    bool                          isPlmEnabled(void);
-    void                          setPlm(bool bEnable);
+    bool isPlmEnabled(void);
+    void setPlm(bool bEnable);
 #endif
     CDisplay * getDisplay(uint8_t num = 0) { return((0 == num) ? _pDisplayPrimary : _pDisplaySecondary); }
     void       setDisplays(

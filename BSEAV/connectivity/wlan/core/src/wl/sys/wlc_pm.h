@@ -40,12 +40,15 @@ extern void wlc_update_sleep_ret(wlc_bsscfg_t *bsscfg, bool inc_rx, bool inc_tx,
 /* PM2 Receive Throttle Duty Cycle */
 #if defined(WL_PM2_RCV_DUR_LIMIT)
 extern void wlc_pm2_rcv_timeout_cb(void *arg);
+extern void wlc_pm2_rcv_stagger_timeout_cb(void *arg);
 extern void wlc_pm2_rcv_timeout(wlc_bsscfg_t *cfg);
 extern void wlc_pm2_rcv_timer_start(wlc_bsscfg_t *cfg);
 extern void wlc_pm2_rcv_timer_stop(wlc_bsscfg_t *cfg);
+extern void wlc_pm2_rcv_stagger_timer_start(wlc_bsscfg_t *cfg);
 #else
 #define wlc_pm2_rcv_timer_stop(cfg)
 #define wlc_pm2_rcv_timer_start(cfg)
+#define wlc_pm2_rcv_stagger_timer_start(cfg)
 #endif /* WL_PM2_RCV_DUR_LIMIT */
 
 #ifdef WL_EXCESS_PMWAKE
@@ -125,6 +128,8 @@ struct wlc_pm_st {
 					 * 0 == disable
 					 */
 	struct wl_timer *apsd_trigger_timer;	/**< timer for wme apsd trigger frames */
+	struct wl_timer *pm2_rcv_stagger_timer;
+	uint	in_pm2_rcv;
 	bool	apsd_sta_usp;		/**< Unscheduled Service Period in progress on STA */
 	bool	WME_PM_blocked;		/**< Can STA go to PM when in WME Auto mode */
 

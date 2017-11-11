@@ -510,7 +510,7 @@ BKNI_Free(void *ptr)
 
 // TBD
 BERR_Code
-BKNI_GetMallocEntryInfo( const void *mem, struct BKNI_MallocEntryInfo *entry)
+BKNI_GetMallocEntryInfo_isrsafe( const void *mem, struct BKNI_MallocEntryInfo *entry)
 {
     memset(entry, 0, sizeof(*entry));
     return BERR_NOT_SUPPORTED;

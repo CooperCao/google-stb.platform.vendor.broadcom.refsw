@@ -63,6 +63,6 @@ int _tzioc_ioctl_mem_free(
 
 int _tzioc_ioctl_call_smc(
     struct tzioc_client *pClient,
-    uint32_t ucMode);
+    uint32_t ulCallnum);
 
 #endif /* LIBTZIOC_H */

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 1.1 state machine.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/glxx/glxx_shared.h"
 
@@ -33,16 +25,1234 @@ Implementation of OpenGL ES 1.1 state machine.
 GLXX_SERVER_STATE_T gl11_server_state;
 #endif
 
-#include "middleware/khronos/gl11/gl11_server_cr.c"
+#define PI     3.14159265f
 
-bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, uint64_t pid, MEM_HANDLE_T shared)
+static int get_texenv_integer_internal(GLenum env, GLenum pname, int *params)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   GL11_TEXUNIT_T *texunit = &state->texunits[state->active_texture - GL_TEXTURE0];
+   GL11_CACHE_TEXUNIT_ABSTRACT_T *texabs = &state->shader.texunits[state->active_texture - GL_TEXTURE0];
+
+   int result = 0;
+
+   switch (env) {
+   case GL_POINT_SPRITE_OES:
+      switch (pname) {
+      case GL_COORD_REPLACE_OES:
+         params[0] = texabs->coord_replace;
+         result = 1;
+         break;
+      default:
+         UNREACHABLE();
+         break;
+      }
+      break;
+   case GL_TEXTURE_ENV:
+      switch (pname) {
+      case GL_TEXTURE_ENV_MODE:
+         params[0] = texabs->mode;
+         result = 1;
+         break;
+      case GL_COMBINE_RGB:
+         params[0] = texunit->rgb.combine;
+         result = 1;
+         break;
+      case GL_COMBINE_ALPHA:
+         params[0] = texunit->alpha.combine;
+         result = 1;
+         break;
+      case GL_SRC0_RGB:
+      case GL_SRC1_RGB:
+      case GL_SRC2_RGB:
+         params[0] = texunit->rgb.source[pname - GL_SRC0_RGB];
+         result = 1;
+         break;
+      case GL_SRC0_ALPHA:
+      case GL_SRC1_ALPHA:
+      case GL_SRC2_ALPHA:
+         params[0] = texunit->alpha.source[pname - GL_SRC0_ALPHA];
+         result = 1;
+         break;
+      case GL_OPERAND0_RGB:
+      case GL_OPERAND1_RGB:
+      case GL_OPERAND2_RGB:
+         params[0] = texunit->rgb.operand[pname - GL_OPERAND0_RGB];
+         result = 1;
+         break;
+      case GL_OPERAND0_ALPHA:
+      case GL_OPERAND1_ALPHA:
+      case GL_OPERAND2_ALPHA:
+         params[0] = texunit->alpha.operand[pname - GL_OPERAND0_ALPHA];
+         result = 1;
+         break;
+      default:
+         UNREACHABLE();
+         break;
+      }
+      break;
+   default:
+      UNREACHABLE();
+      break;
+   }
+
+   GL11_UNLOCK_SERVER_STATE();
+
+   return result;
+}
+
+static int get_texenv_float_internal(GLenum env, GLenum pname, float *params)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   int t = state->active_texture - GL_TEXTURE0;
+   int result = 0;
+
+   switch (env) {
+   case GL_TEXTURE_ENV:
+      switch (pname) {
+      case GL_TEXTURE_ENV_COLOR:
+      {
+         int i;
+         for (i = 0; i < 4; i++)
+            params[i] = state->texunits[t].color[i];
+         result = 4;
+      }
+      break;
+      case GL_RGB_SCALE:
+         params[0] = state->texunits[t].rgb.scale;
+         result = 1;
+         break;
+      case GL_ALPHA_SCALE:
+         params[0] = state->texunits[t].alpha.scale;
+         result = 1;
+         break;
+      default:
+         UNREACHABLE();
+         break;
+      }
+      break;
+   default:
+      UNREACHABLE();
+      break;
+   }
+
+   GL11_UNLOCK_SERVER_STATE();
+
+   return result;
+}
+
+static GL11_LIGHT_T *get_light(GLXX_SERVER_STATE_T *state, GLenum l)
+{
+   if (l >= GL_LIGHT0 && l < GL_LIGHT0 + GL11_CONFIG_MAX_LIGHTS)
+      return &state->lights[l - GL_LIGHT0];
+   else {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      return NULL;
+   }
+}
+
+static GL11_MATRIX_STACK_T *get_stack(GLXX_SERVER_STATE_T *state)
+{
+   switch (state->matrix_mode) {
+   case GL_MODELVIEW:
+      return &state->modelview;
+   case GL_PROJECTION:
+      return &state->projection;
+   case GL_TEXTURE:
+      return &state->texunits[state->active_texture - GL_TEXTURE0].stack;
+   default:
+      UNREACHABLE();
+      return NULL;
+   }
+}
+
+static float *get_matrix(GLXX_SERVER_STATE_T *state)
+{
+   GL11_MATRIX_STACK_T *stack = get_stack(state);
+
+   return stack->body[stack->pos];
+}
+
+static void load_matrix_internal(const float *m)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   float *c = get_matrix(state);
+
+   gl11_matrix_load(c, m);
+
+   GL11_UNLOCK_SERVER_STATE();
+}
+
+static void mult_matrix_internal(const float *m)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   GLfloat *c = get_matrix(state);
+
+   gl11_matrix_mult(c, c, m);
+
+   GL11_UNLOCK_SERVER_STATE();
+}
+
+static float *get_plane(GLXX_SERVER_STATE_T *state, GLenum p)
+{
+   if (p >= GL_CLIP_PLANE0 && p < GL_CLIP_PLANE0 + GL11_CONFIG_MAX_PLANES)
+      return state->planes[p - GL_CLIP_PLANE0];
+   else {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      return NULL;
+   }
+}
+
+static bool is_alpha_func(GLenum func)
+{
+   return func == GL_NEVER ||
+      func == GL_ALWAYS ||
+      func == GL_LESS ||
+      func == GL_LEQUAL ||
+      func == GL_EQUAL ||
+      func == GL_GREATER ||
+      func == GL_GEQUAL ||
+      func == GL_NOTEQUAL;
+}
+
+static void alpha_func_internal(GLenum func, float ref)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   if (is_alpha_func(func)) {
+      state->changed_misc = true;
+      state->alpha_func.func = func;
+      state->alpha_func.ref = clampf(ref, 0.0f, 1.0f);
+   }
+   else
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+   GL11_UNLOCK_SERVER_STATE();
+}
+
+void glAlphaFunc_impl_11(GLenum func, GLclampf ref)
+{
+   alpha_func_internal(func, ref);
+}
+
+void glAlphaFuncx_impl_11(GLenum func, GLclampx ref)
+{
+   alpha_func_internal(func, fixed_to_float(ref));
+}
+
+void glClearColorx_impl_11(GLclampx red, GLclampx green, GLclampx blue, GLclampx alpha)
+{
+   glxx_clear_color_internal(fixed_to_float(red),
+      fixed_to_float(green),
+      fixed_to_float(blue),
+      fixed_to_float(alpha));
+}
+
+void glClearDepthx_impl_11(GLclampx depth)
+{
+   glxx_clear_depth_internal(fixed_to_float(depth));
+}
+
+static void clip_plane_internal(GLenum p, const float *equation)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   float *plane = get_plane(state, p);
+
+   if (plane) {
+      float inv[16];
+
+      assert(state->modelview.pos >= 0 && state->modelview.pos < GL11_CONFIG_MAX_STACK_DEPTH);
+
+      state->changed_misc = true;
+
+      gl11_matrix_invert_4x4(inv, state->modelview.body[state->modelview.pos]);
+      gl11_matrix_mult_row(plane, equation, inv);
+   }
+
+   GL11_UNLOCK_SERVER_STATE();
+}
+
+void glClipPlanef_impl_11(GLenum plane, const GLfloat *equation)
+{
+   clip_plane_internal(plane, equation);
+}
+
+void glClipPlanex_impl_11(GLenum plane, const GLfixed *equation)
+{
+   int i;
+   float temp[4];
+
+   for (i = 0; i < 4; i++)
+      temp[i] = fixed_to_float(equation[i]);
+
+   clip_plane_internal(plane, temp);
+}
+
+static bool is_fog_mode(GLenum mode)
+{
+   return mode == GL_EXP ||
+      mode == GL_EXP2 ||
+      mode == GL_LINEAR;
+}
+
+static void fogv_internal(GLenum pname, const GLfloat *params)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   switch (pname) {
+   case GL_FOG_MODE:
+   {
+      GLenum m = (GLenum)params[0];
+
+      if (is_fog_mode(m))
+      {
+         state->changed_misc = true;
+         state->fog.mode = m;
+      }
+      else
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+      break;
+   }
+   case GL_FOG_DENSITY:
+   {
+      GLfloat d = params[0];
+
+      if (d >= 0.0f) {
+         state->fog.density = d;
+
+         state->fog.coeff_exp = -d * LOG2E;
+         state->fog.coeff_exp2 = -d * d * LOG2E;
+      }
+      else
+         glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+      break;
+   }
+   case GL_FOG_START:
+      state->fog.start = params[0];
+
+      state->fog.scale = 1.0f / (state->fog.end - state->fog.start);
+      break;
+   case GL_FOG_END:
+      state->fog.end = params[0];
+
+      state->fog.scale = 1.0f / (state->fog.end - state->fog.start);
+      break;
+   case GL_FOG_COLOR:
+   {
+      int i;
+      for (i = 0; i < 4; i++)
+         state->fog.color[i] = clampf(params[i], 0.0f, 1.0f);
+   }
+   break;
+   default:
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
+   }
+
+   GL11_UNLOCK_SERVER_STATE();
+}
+
+void glDepthRangex_impl_11(GLclampx zNear, GLclampx zFar)
+{
+   glxx_depth_range_internal(fixed_to_float(zNear),
+      fixed_to_float(zFar));
+}
+
+void glFogf_impl_11(GLenum pname, GLfloat param)
+{
+   GLfloat params[4];
+
+   params[0] = param;
+   params[1] = param;
+   params[2] = param;
+   params[3] = 1.0f;
+
+   fogv_internal(pname, params);
+}
+
+void glFogfv_impl_11(GLenum pname, const GLfloat *params)
+{
+   fogv_internal(pname, params);
+}
+
+static GLboolean fog_requires_scaling(GLenum pname)
+{
+   return pname != GL_FOG_MODE;
+}
+
+void glFogx_impl_11(GLenum pname, GLfixed param)
+{
+   GLfloat floatParam = fog_requires_scaling(pname) ? fixed_to_float(param) : (GLfloat)param;
+   GLfloat params[4];
+
+   params[0] = floatParam;
+   params[1] = floatParam;
+   params[2] = floatParam;
+   params[3] = 1.0f;
+
+   fogv_internal(pname, params);
+}
+
+void glFogxv_impl_11(GLenum pname, const GLfixed *params)
+{
+   GLfloat temp[4];
+
+   if (fog_requires_scaling(pname)) {
+      int i;
+      for (i = 0; i < 4; i++)
+         temp[i] = fixed_to_float(params[i]);
+   }
+   else {
+      int i;
+      for (i = 0; i < 4; i++)
+         temp[i] = (GLfloat)params[i];
+   }
+
+   fogv_internal(pname, temp);
+}
+
+static void frustum_internal(float l, float r, float b, float t, float n, float f)
+{
+   if (n > 0.0f && f > 0.0f && l != r && b != t && n != f) {
+      float m[16];
+
+      m[0] = 2.0f * n / (r - l);
+      m[1] = 0.0f;
+      m[2] = 0.0f;
+      m[3] = 0.0f;
+
+      m[4] = 0.0f;
+      m[5] = 2.0f * n / (t - b);
+      m[6] = 0.0f;
+      m[7] = 0.0f;
+
+      m[8] = (r + l) / (r - l);
+      m[9] = (t + b) / (t - b);
+      m[10] = -(f + n) / (f - n);
+      m[11] = -1.0f;
+
+      m[12] = 0.0f;
+      m[13] = 0.0f;
+      m[14] = -2.0f * f * n / (f - n);
+      m[15] = 0.0f;
+
+      mult_matrix_internal(m);
+   }
+   else {
+      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+      GL11_UNLOCK_SERVER_STATE();
+   }
+}
+
+void glFrustumf_impl_11(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar)
+{
+   frustum_internal(left,
+      right,
+      bottom,
+      top,
+      zNear,
+      zFar);
+}
+
+void glFrustumx_impl_11(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, GLfixed zNear, GLfixed zFar)
+{
+   frustum_internal(fixed_to_float(left),
+      fixed_to_float(right),
+      fixed_to_float(bottom),
+      fixed_to_float(top),
+      fixed_to_float(zNear),
+      fixed_to_float(zFar));
+}
+
+static void get_clip_plane_internal(GLenum pname, float eqn[4])
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   float *plane = get_plane(state, pname);
+
+   if (plane) {
+      int i;
+      for (i = 0; i < 4; i++)
+         eqn[i] = plane[i];
+   }
+
+   GL11_UNLOCK_SERVER_STATE();
+}
+
+void glGetClipPlanef_impl_11(GLenum pname, GLfloat eqn[4])
+{
+   get_clip_plane_internal(pname, eqn);
+}
+
+void glGetClipPlanex_impl_11(GLenum pname, GLfixed eqn[4])
+{
+   float temp[4];
+
+   int i;
+
+   get_clip_plane_internal(pname, temp);
+
+   for (i = 0; i < 4; i++)
+      eqn[i] = float_to_fixed(temp[i]);
+}
+
+int glGetFixedv_impl_11(GLenum pname, GLfixed *params)
+{
+   int i;
+   GLfloat temp[16];
+
+   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   int count = glxx_get_float_or_fixed_internal(state, pname, temp);
+   GLXX_UNLOCK_SERVER_STATE();
+
+   assert(count <= 16);
+
+   for (i = 0; i < count; i++)
+      params[i] = float_to_fixed(temp[i]);
+
+   return count;
+}
+
+static int get_lightv_internal(GLenum l, GLenum pname, float *params)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   GL11_LIGHT_T *light = get_light(state, l);
+
+   int result;
+
+   if (light)
+      switch (pname) {
+      case GL_AMBIENT:
+      {
+         int i;
+         for (i = 0; i < 4; i++)
+            params[i] = light->ambient[i];
+         result = 4;
+         break;
+      }
+      case GL_DIFFUSE:
+      {
+         int i;
+         for (i = 0; i < 4; i++)
+            params[i] = light->diffuse[i];
+         result = 4;
+         break;
+      }
+      case GL_SPECULAR:
+      {
+         int i;
+         for (i = 0; i < 4; i++)
+            params[i] = light->specular[i];
+         result = 4;
+         break;
+      }
+      case GL_POSITION:
+      {
+         int i;
+         for (i = 0; i < 4; i++)
+            params[i] = light->position[i];
+         result = 4;
+         break;
+      }
+      case GL_CONSTANT_ATTENUATION:
+         params[0] = light->attenuation.constant;
+         result = 1;
+         break;
+      case GL_LINEAR_ATTENUATION:
+         params[0] = light->attenuation.linear;
+         result = 1;
+         break;
+      case GL_QUADRATIC_ATTENUATION:
+         params[0] = light->attenuation.quadratic;
+         result = 1;
+         break;
+      case GL_SPOT_DIRECTION:
+      {
+         int i;
+         for (i = 0; i < 3; i++)
+            params[i] = light->spot.direction[i];
+         result = 3;
+         break;
+      }
+      case GL_SPOT_EXPONENT:
+         params[0] = light->spot.exponent;
+         result = 1;
+         break;
+      case GL_SPOT_CUTOFF:
+         params[0] = light->spot.cutoff;
+         result = 1;
+         break;
+      default:
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+         result = 0;
+         break;
+      }
+   else
+      result = 0;
+
+   GL11_UNLOCK_SERVER_STATE();
+
+   return result;
+}
+
+int glGetLightfv_impl_11(GLenum light, GLenum pname, GLfloat *params)
+{
+   return get_lightv_internal(light, pname, params);
+}
+
+int glGetLightxv_impl_11(GLenum light, GLenum pname, GLfixed *params)
+{
+   float temp[4];
+
+   int count = get_lightv_internal(light, pname, temp);
+   int i;
+
+   assert(count <= 4);
+
+   for (i = 0; i < count; i++)
+      params[i] = float_to_fixed(temp[i]);
+
+   return count;
+}
+
+static GLboolean is_single_face(GLenum face)
+{
+   return face == GL_FRONT ||
+      face == GL_BACK;
+}
+
+static int get_materialv_internal(GLenum face, GLenum pname, float *params)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   int result;
+
+   if (is_single_face(face))
+      switch (pname) {
+      case GL_AMBIENT:
+      {
+         int i;
+         for (i = 0; i < 4; i++)
+            params[i] = state->material.ambient[i];
+         result = 4;
+      }
+      break;
+      case GL_DIFFUSE:
+      {
+         int i;
+         for (i = 0; i < 4; i++)
+            params[i] = state->material.diffuse[i];
+         result = 4;
+         break;
+      }
+      case GL_SPECULAR:
+      {
+         int i;
+         for (i = 0; i < 4; i++)
+            params[i] = state->material.specular[i];
+         result = 4;
+         break;
+      }
+      case GL_EMISSION:
+      {
+         int i;
+         for (i = 0; i < 4; i++)
+            params[i] = state->material.emission[i];
+         result = 4;
+         break;
+      }
+      case GL_SHININESS:
+         params[0] = state->material.shininess;
+         result = 1;
+         break;
+      default:
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+         result = 0;
+         break;
+      }
+   else {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      result = 0;
+   }
+
+   GL11_UNLOCK_SERVER_STATE();
+
+   return result;
+}
+
+int glGetMaterialfv_impl_11(GLenum face, GLenum pname, GLfloat *params)
+{
+   return get_materialv_internal(face, pname, params);
+}
+
+int glGetMaterialxv_impl_11(GLenum face, GLenum pname, GLfixed *params)
+{
+   int i;
+   float temp[4];
+
+   int count = get_materialv_internal(face, pname, temp);
+
+   assert(count <= 4);
+
+   for (i = 0; i < count; i++)
+      params[i] = float_to_fixed(temp[i]);
+
+   return count;
+}
+
+int glGetTexEnviv_impl_11(GLenum env, GLenum pname, GLint *params)
+{
+   switch (env) {
+   case GL_POINT_SPRITE_OES:
+      switch (pname) {
+      case GL_COORD_REPLACE_OES:
+         return get_texenv_integer_internal(env, pname, params);
+      default:
+      {
+         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+         GL11_UNLOCK_SERVER_STATE();
+         return 0;
+      }
+      }
+      UNREACHABLE();
+      break;
+   case GL_TEXTURE_ENV:
+      switch (pname) {
+      case GL_TEXTURE_ENV_MODE:
+      case GL_COMBINE_RGB:
+      case GL_COMBINE_ALPHA:
+      case GL_SRC0_RGB:
+      case GL_SRC1_RGB:
+      case GL_SRC2_RGB:
+      case GL_SRC0_ALPHA:
+      case GL_SRC1_ALPHA:
+      case GL_SRC2_ALPHA:
+      case GL_OPERAND0_RGB:
+      case GL_OPERAND1_RGB:
+      case GL_OPERAND2_RGB:
+      case GL_OPERAND0_ALPHA:
+      case GL_OPERAND1_ALPHA:
+      case GL_OPERAND2_ALPHA:
+         return get_texenv_integer_internal(env, pname, params);
+      case GL_TEXTURE_ENV_COLOR:
+      {
+         GLfloat temp[4];
+         GLuint count = get_texenv_float_internal(env, pname, temp);
+         GLuint i;
+
+         assert(count <= 4);
+
+         for (i = 0; i < count; i++) {
+            params[i] = (GLint)floor((4294967295.0f * temp[i] - 1.0f) / 2.0f + 0.5f);
+
+            if (params[i] < 0)
+               params[i] = 0x7fffffff;
+         }
+
+         return count;
+      }
+      case GL_RGB_SCALE:
+      case GL_ALPHA_SCALE:
+      {
+         GLfloat temp;
+         GLuint count = get_texenv_float_internal(env, pname, &temp);
+
+         assert(count == 1);
+
+         params[0] = float_to_int(temp);
+
+         return count;
+      }
+      default:
+      {
+         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+         GL11_UNLOCK_SERVER_STATE();
+         return 0;
+      }
+      }
+      UNREACHABLE();
+      break;
+   default:
+   {
+      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+      GL11_UNLOCK_SERVER_STATE();
+      return 0;
+   }
+   }
+}
+
+static int get_texenv_float_or_fixed_internal(GLenum env, GLenum pname, float *params)
+{
+   switch (env) {
+   case GL_POINT_SPRITE_OES:
+      switch (pname) {
+      case GL_COORD_REPLACE_OES:
+      {
+         int temp;
+         int count = get_texenv_integer_internal(env, pname, &temp);
+
+         assert(count == 1);
+
+         params[0] = (float)temp;
+
+         return count;
+      }
+      default:
+      {
+         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+         GL11_UNLOCK_SERVER_STATE();
+         return 0;
+      }
+      }
+      UNREACHABLE();
+      break;
+   case GL_TEXTURE_ENV:
+      switch (pname) {
+      case GL_TEXTURE_ENV_MODE:
+      case GL_COMBINE_RGB:
+      case GL_COMBINE_ALPHA:
+      case GL_SRC0_RGB:
+      case GL_SRC1_RGB:
+      case GL_SRC2_RGB:
+      case GL_SRC0_ALPHA:
+      case GL_SRC1_ALPHA:
+      case GL_SRC2_ALPHA:
+      case GL_OPERAND0_RGB:
+      case GL_OPERAND1_RGB:
+      case GL_OPERAND2_RGB:
+      case GL_OPERAND0_ALPHA:
+      case GL_OPERAND1_ALPHA:
+      case GL_OPERAND2_ALPHA:
+      {
+         int temp;
+         int count = get_texenv_integer_internal(env, pname, &temp);
+
+         assert(count == 1);
+
+         params[0] = (float)temp;
+
+         return count;
+      }
+      case GL_TEXTURE_ENV_COLOR:
+      case GL_RGB_SCALE:
+      case GL_ALPHA_SCALE:
+         return get_texenv_float_internal(env, pname, params);
+      default:
+      {
+         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+         GL11_UNLOCK_SERVER_STATE();
+         return 0;
+      }
+      }
+      UNREACHABLE();
+      break;
+   default:
+   {
+      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+      GL11_UNLOCK_SERVER_STATE();
+      return 0;
+   }
+   }
+}
+
+int glGetTexEnvfv_impl_11(GLenum env, GLenum pname, GLfloat *params)
+{
+   return get_texenv_float_or_fixed_internal(env, pname, params);
+}
+
+static void lightmodelv_internal(GLenum pname, const GLfloat *params)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+   switch (pname) {
+   case GL_LIGHT_MODEL_AMBIENT:
+   {
+      int i;
+      for (i = 0; i < 4; i++)
+         state->lightmodel.ambient[i] = params[i];
+      break;
+   }
+   case GL_LIGHT_MODEL_TWO_SIDE:
+      state->changed_light = true;
+      state->lightmodel.two_side = params[0] != 0.0f;
+      break;
+   default:
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
+   }
+
+   GL11_UNLOCK_SERVER_STATE();
+}
+
+void glLightModelf_impl_11(GLenum pname, GLfloat param)
+{
+   GLfloat params[4];
+
+   params[0] = param;
+   params[1] = param;
+   params[2] = param;
+   params[3] = 1.0f;
+
+   lightmodelv_internal(pname, params);
+}
+
+void glLightModelfv_impl_11(GLenum pname, const GLfloat *params)
+{
+   lightmodelv_internal(pname, params);
+}
+
+void glLightModelx_impl_11(GLenum pname, GLfixed param)
+{
+   GLfloat params[4];
+
+   params[0] = fixed_to_float(param);
+   params[1] = fixed_to_float(param);
+   params[2] = fixed_to_float(param);
+   params[3] = 1.0f;
+
+   lightmodelv_internal(pname, params);
+}
+
+void glLightModelxv_impl_11(GLenum pname, const GLfixed *params)
+{
+   int i;
+   GLfloat temp[4];
+
+   for (i = 0; i < 4; i++)
+      temp[i] = fixed_to_float(params[i]);
+
+   lightmodelv_internal(pname, temp);
+}
+
+void glLineWidthx_impl_11(GLfixed width)
+{
+   glxx_line_width_internal(fixed_to_float(width));
+}
+
+void glLoadIdentity_impl_11(void)
+{
+   float m[16];
+
+   m[0] = 1.0f;
+   m[1] = 0.0f;
+   m[2] = 0.0f;
+   m[3] = 0.0f;
+
+   m[4] = 0.0f;
+   m[5] = 1.0f;
+   m[6] = 0.0f;
+   m[7] = 0.0f;
+
+   m[8] = 0.0f;
+   m[9] = 0.0f;
+   m[10] = 1.0f;
+   m[11] = 0.0f;
+
+   m[12] = 0.0f;
+   m[13] = 0.0f;
+   m[14] = 0.0f;
+   m[15] = 1.0f;
+
+   load_matrix_internal(m);
+}
+
+void glLoadMatrixf_impl_11(const GLfloat *m)
+{
+   load_matrix_internal(m);
+}
+
+void glLoadMatrixx_impl_11(const GLfixed *m)
+{
+   int i;
+   float f[16];
+
+   for (i = 0; i < 16; i++)
+      f[i] = fixed_to_float(m[i]);
+
+   load_matrix_internal(f);
+}
+
+void glMultMatrixf_impl_11(const GLfloat *m)
+{
+   mult_matrix_internal(m);
+}
+
+void glMultMatrixx_impl_11(const GLfixed *m)
+{
+   int i;
+   float f[16];
+
+   for (i = 0; i < 16; i++)
+      f[i] = fixed_to_float(m[i]);
+
+   mult_matrix_internal(f);
+}
+
+static void rotate_internal(float angle, float x, float y, float z)
+{
+   float s, c;
+   float m[16];
+
+   /*
+   normalize axis vector
+   */
+   if (x != 0.0f || y != 0.0f || z != 0.0f)
+   {
+      float l = (float)sqrt(x * x + y * y + z * z);
+
+      x = x / l;
+      y = y / l;
+      z = z / l;
+   }
+   /*
+   convert angle to radians
+   */
+
+   angle = 2.0f * PI * angle / 360.0f;
+
+   /*
+   build matrix
+   */
+
+   s = (float)sin(angle);
+   c = (float)cos(angle);
+
+   m[0] = x * x * (1 - c) + c;
+   m[1] = y * x * (1 - c) + z * s;
+   m[2] = z * x * (1 - c) - y * s;
+   m[3] = 0.0f;
+
+   m[4] = x * y * (1 - c) - z * s;
+   m[5] = y * y * (1 - c) + c;
+   m[6] = z * y * (1 - c) + x * s;
+   m[7] = 0.0f;
+
+   m[8] = x * z * (1 - c) + y * s;
+   m[9] = y * z * (1 - c) - x * s;
+   m[10] = z * z * (1 - c) + c;
+   m[11] = 0.0f;
+
+   m[12] = 0.0f;
+   m[13] = 0.0f;
+   m[14] = 0.0f;
+   m[15] = 1.0f;
+
+   mult_matrix_internal(m);
+}
+
+void glRotatef_impl_11(GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
+{
+   rotate_internal(angle, x, y, z);
+}
+
+void glRotatex_impl_11(GLfixed angle, GLfixed x, GLfixed y, GLfixed z)
+{
+   rotate_internal(fixed_to_float(angle),
+      fixed_to_float(x),
+      fixed_to_float(y),
+      fixed_to_float(z));
+}
+
+static void scale_internal(float x, float y, float z)
+{
+   float m[16];
+
+   m[0] = x;
+   m[1] = 0.0f;
+   m[2] = 0.0f;
+   m[3] = 0.0f;
+
+   m[4] = 0.0f;
+   m[5] = y;
+   m[6] = 0.0f;
+   m[7] = 0.0f;
+
+   m[8] = 0.0f;
+   m[9] = 0.0f;
+   m[10] = z;
+   m[11] = 0.0f;
+
+   m[12] = 0.0f;
+   m[13] = 0.0f;
+   m[14] = 0.0f;
+   m[15] = 1.0f;
+
+   mult_matrix_internal(m);
+}
+
+void glScalef_impl_11(GLfloat x, GLfloat y, GLfloat z)
+{
+   scale_internal(x, y, z);
+}
+
+void glScalex_impl_11(GLfixed x, GLfixed y, GLfixed z)
+{
+   scale_internal(fixed_to_float(x),
+      fixed_to_float(y),
+      fixed_to_float(z));
+}
+
+static void translate_internal(float x, float y, float z)
+{
+   float m[16];
+
+   m[0] = 1.0f;
+   m[1] = 0.0f;
+   m[2] = 0.0f;
+   m[3] = 0.0f;
+
+   m[4] = 0.0f;
+   m[5] = 1.0f;
+   m[6] = 0.0f;
+   m[7] = 0.0f;
+
+   m[8] = 0.0f;
+   m[9] = 0.0f;
+   m[10] = 1.0f;
+   m[11] = 0.0f;
+
+   m[12] = x;
+   m[13] = y;
+   m[14] = z;
+   m[15] = 1.0f;
+
+   mult_matrix_internal(m);
+}
+
+void glTranslatef_impl_11(GLfloat x, GLfloat y, GLfloat z)
+{
+   translate_internal(x, y, z);
+}
+
+void glTranslatex_impl_11(GLfixed x, GLfixed y, GLfixed z)
+{
+   translate_internal(fixed_to_float(x),
+      fixed_to_float(y),
+      fixed_to_float(z));
+}
+
+static void ortho_internal(float l, float r, float b, float t, float n, float f)
+{
+   if (l != r && b != t && n != f) {
+      float m[16];
+
+      m[0] = 2.0f / (r - l);
+      m[1] = 0.0f;
+      m[2] = 0.0f;
+      m[3] = 0.0f;
+
+      m[4] = 0.0f;
+      m[5] = 2.0f / (t - b);
+      m[6] = 0.0f;
+      m[7] = 0.0f;
+
+      m[8] = 0.0f;
+      m[9] = 0.0f;
+      m[10] = -2.0f / (f - n);
+      m[11] = 0.0f;
+
+      m[12] = -(r + l) / (r - l);
+      m[13] = -(t + b) / (t - b);
+      m[14] = -(f + n) / (f - n);
+      m[15] = 1.0f;
+
+      mult_matrix_internal(m);
+   }
+   else {
+      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+      GL11_UNLOCK_SERVER_STATE();
+   }
+}
+
+void glOrthof_impl_11(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar)
+{
+   ortho_internal(left, right, bottom, top, zNear, zFar);
+}
+
+void glOrthox_impl_11(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, GLfixed zNear, GLfixed zFar)
+{
+   ortho_internal(fixed_to_float(left),
+      fixed_to_float(right),
+      fixed_to_float(bottom),
+      fixed_to_float(top),
+      fixed_to_float(zNear),
+      fixed_to_float(zFar));
+}
+
+void glPolygonOffsetx_impl_11(GLfixed factor, GLfixed units)
+{
+   glxx_polygon_offset_internal(fixed_to_float(factor),
+      fixed_to_float(units));
+}
+
+void glPopMatrix_impl_11(void)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GL11_MATRIX_STACK_T *stack = get_stack(state);
+
+   if (stack->pos > 0)
+      stack->pos--;
+   else
+      glxx_server_state_set_error(state, GL_STACK_UNDERFLOW);
+
+   GL11_UNLOCK_SERVER_STATE();
+}
+
+void glPushMatrix_impl_11(void)
+{
+   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GL11_MATRIX_STACK_T *stack = get_stack(state);
+
+   if (stack->pos + 1 < GL11_CONFIG_MAX_STACK_DEPTH) {
+      gl11_matrix_load(stack->body[stack->pos + 1], stack->body[stack->pos]);
+
+      stack->pos++;
+   }
+   else
+      glxx_server_state_set_error(state, GL_STACK_OVERFLOW);
+
+   GL11_UNLOCK_SERVER_STATE();
+}
+
+bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDLE_T shared)
 {
    int i;
 
    state->type = OPENGL_ES_11;
 
    //initialise common portions of state
-   if(!glxx_server_state_init(state, name, pid, shared))
+   if(!glxx_server_state_init(state, name, shared))
       return false;
 
    //gl 1.1 specific parts
@@ -230,15 +1440,6 @@ bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, uint64_t 
    return true;
 }
 
-/*
-void glPointSize_impl_11 (GLfloat size)
-{
-}
-*/
-
-
-////
-
 int glGetTexParameterxv_impl_11 (GLenum target, GLenum pname, GLfixed *params)
 {
    GLint temp[4];
@@ -246,7 +1447,7 @@ int glGetTexParameterxv_impl_11 (GLenum target, GLenum pname, GLfixed *params)
 
    if (count) {
       unsigned int i;
-      vcos_assert(count == 1 || count == 4);
+      assert(count == 1 || count == 4);
       for(i=0;i<count;i++)
          params[i] = (GLfixed)temp[i];
    }
@@ -266,7 +1467,6 @@ void glTexParameterx_impl_11 (GLenum target, GLenum pname, GLfixed param)
    glxx_texparameter_internal(target, pname, iparams);
 }
 
-
 void glTexParameterxv_impl_11 (GLenum target, GLenum pname, const GLfixed *params)
 {
    if (params)
@@ -284,19 +1484,6 @@ void glTexParameterxv_impl_11 (GLenum target, GLenum pname, const GLfixed *param
    }
 }
 
-
-
-
-
-/*
-void glMultiTexCoord4f_impl_11 (GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q)
-{
-}
-
-void glNormal3f_impl_11 (GLfloat nx, GLfloat ny, GLfloat nz)
-{
-}
-*/
 static void point_parameterv_internal(GLenum pname, const GLfloat *params)
 {
    GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
@@ -367,7 +1554,6 @@ void glPointParameterfv_impl_11 (GLenum pname, const GLfloat *params)
 {
    point_parameterv_internal(pname, params);
 }
-
 
 static GLboolean is_texture_function(GLenum mode)
 {
@@ -617,85 +1803,6 @@ void glTexEnvfv_impl_11 (GLenum target, GLenum pname, const GLfloat *params)
    texenvfv_internal(target, pname, params);
 }
 
-
-
-
-
-
-/*
-void glDisableClientState_impl_11 (GLenum array)
-{
-}
-*/
-
-
-
-/*
-void glEnableClientState_impl_11 (GLenum array)
-{
-}
-*/
-
-/*
-   glLightf_impl_11 (GLenum light, GLenum pname, GLfloat param)
-   glLightfv_impl_11 (GLenum light, GLenum pname, const GLfloat *params)
-   glLightx_impl_11 (GLenum light, GLenum pname, GLfixed param)
-   glLightxv_impl_11 (GLenum light, GLenum pname, const GLfixed *params)
-
-   Khronos documentation:
-
-   Lighting parameters are divided into three categories: material parameters, light
-   source parameters, and lighting model parameters (see Table 2.8). Sets of lighting
-   parameters are specified with
-            :  :  :  :
-      void Light{xf}( enum light, enum pname, T param );
-      void Light{xf}v( enum light, enum pname, T params );
-
-   In the vector versions of the commands, params is a pointer to a group
-   of values to which to set the indicated parameter. The number of values pointed to
-   depends on the parameter being set. In the non-vector versions, param is a value
-   to which to set a single-valued parameter. (If param corresponds to a multi-valued
-   parameter, the error INVALID ENUM results.) In the case of Light, light is a symbolic
-   constant of the form LIGHTi, indicating that light i is to have the specified parameter
-   set. The constants obey LIGHTi = LIGHT0 + i.
-
-   The current model-view matrix is applied to the position parameter indicated
-   with Light for a particular light source when that position is specified. These
-   transformed values are the values used in the lighting equation.
-
-   The spotlight direction is transformed when it is specified using only the upper
-   leftmost 3x3 portion of the model-view matrix
-
-   Lighting Parameters
-
-      AMBIENT 4
-      DIFFUSE 4
-      SPECULAR 4
-      POSITION 4
-      SPOT DIRECTION 3
-      SPOT EXPONENT 1
-      SPOT CUTOFF 1
-      CONSTANT ATTENUATION 1
-      LINEAR ATTENUATION 1
-      QUADRATIC ATTENUATION 1
-
-   Implementation notes:
-
-   Preconditions:
-
-   Valid EGL server state exists
-   EGL server state has a current OpenGL ES 1.1 context
-   For vector variants, params be a valid pointer to 4 elements
-
-   Postconditions:
-
-   If pname is not a valid light parameter or is a vector-valued light parameter
-   and a scalar function has been used or light is invalid, and no current error,
-   error becomes GL_INVALID_ENUM
-
-   Invariants preserved:
-*/
-
 static void lightv_internal(GLenum l, GLenum pname, const GLfloat *params)
 {
    GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
@@ -820,7 +1927,6 @@ void glLightxv_impl_11 (GLenum light, GLenum pname, const GLfixed *params)
    lightv_internal(light, pname, temp);
 }
 
-
 static GLboolean is_logic_op(GLenum op)
 {
    return op == GL_CLEAR ||
@@ -874,47 +1980,6 @@ void glMatrixMode_impl_11 (GLenum mode)
 
    GL11_UNLOCK_SERVER_STATE();
 }
-
-/*
-   void glMaterialf_impl_11 (GLenum face, GLenum pname, GLfloat param)
-   void glMaterialfv_impl_11 (GLenum face, GLenum pname, const GLfloat *params)
-   void glMaterialx_impl_11 (GLenum face, GLenum pname, GLfixed param)
-   void glMaterialxv_impl_11 (GLenum face, GLenum pname, const GLfixed *params)
-
-   Khronos documentation:
-
-   Lighting parameters are divided into three categories: material parameters, light
-   source parameters, and lighting model parameters (see Table 2.8). Sets of lighting
-   parameters are specified with
-            :  :  :  :
-      void Material{xf}( enum face, enum pname, T param );
-      void Material{xf}v( enum face, enum pname, T params );
-
-   Lighting Model Parameters
-
-      AMBIENT 4
-      DIFFUSE 4
-      AMBIENT AND DIFFUSE 4
-      SPECULAR 4
-      EMISSION 4
-      SHININESS 1
-
-   Implementation notes:
-
-   The range of light, lightmodel and material color parameters is -INF to INF (i.e. unclamped)
-
-   Preconditions:
-
-   Valid EGL server state exists
-   EGL server state has a current OpenGL ES 1.1 context
-   For vector variants, params be a valid pointer to 4 elements
-
-   Postconditions:
-
-   If pname is not a valid material parameter and no current error, error becomes GL_INVALID_ENUM
-
-   Invariants preserved:
-*/
 
 static void materialv_internal (GLenum face, GLenum pname, const GLfloat *params)
 {
@@ -1012,16 +2077,6 @@ void glMaterialxv_impl_11 (GLenum face, GLenum pname, const GLfixed *params)
    materialv_internal(face, pname, temp);
 }
 
-/*
-void glMultiTexCoord4x_impl_11 (GLenum target, GLfixed s, GLfixed t, GLfixed r, GLfixed q)
-{
-}
-
-void glNormal3x_impl_11 (GLfixed nx, GLfixed ny, GLfixed nz)
-{
-}
-*/
-
 void glPointParameterx_impl_11 (GLenum pname, GLfixed param)
 {
    GLfloat params[] = {0.0f, 0.0f, 0.0f};
@@ -1041,18 +2096,11 @@ void glPointParameterxv_impl_11 (GLenum pname, const GLfixed *params)
 
    point_parameterv_internal(pname, temp);
 }
-/*
-void glPointSizex_impl_11 (GLfixed size)
-{
-}
-*/
-
 
 void glSampleCoveragex_impl_11 (GLclampx value, GLboolean invert)
 {
    glxx_sample_coverage_internal(fixed_to_float(value), invert);
 }
-
 
 static GLboolean is_shade_model(GLenum model)
 {
@@ -1097,10 +2145,6 @@ void glTexEnvx_impl_11 (GLenum target, GLenum pname, GLfixed param)
    texenvfv_internal(target, pname, params);
 }
 
-/*
-TODO: slightly annoying that we convert enum parameters to float and back.
-But at least it avoids duplicated code.
-*/
 void glTexEnviv_impl_11 (GLenum target, GLenum pname, const GLint *params)
 {
    int i;
@@ -1133,7 +2177,7 @@ int glGetTexEnvxv_impl_11 (GLenum env, GLenum pname, GLfixed *params)
 
    int count = get_texenv_float_or_fixed_internal(env, pname, temp);
 
-   vcos_assert(count <= 4);
+   assert(count <= 4);
 
    for (i = 0; i < count; i++)
       if (texenv_requires_scaling(pname))
@@ -1144,49 +2188,6 @@ int glGetTexEnvxv_impl_11 (GLenum env, GLenum pname, GLfixed *params)
    return count;
 }
 
-
-
-//jeremyt 30/3/2010 glColorPointer_impl_11 moved back from server_cr.c
-/*
-   void glColorPointer_impl_11 ()
-
-   Khronos documentation:
-
-   Blocks of vertex array data may be stored in buffer objects with the same format
-   and layout options supported for client-side vertex arrays.
-
-   The client state associated with each vertex array type includes a buffer object
-   binding point. The commands that specify the locations and organizations of vertex
-   arrays copy the buffer object name that is bound to ARRAY BUFFER to the binding
-   point corresponding to the vertex array of the type being specified. For example,
-   the NormalPointer command copies the value of ARRAY BUFFER BINDING (the
-   queriable name of the buffer binding corresponding to the target ARRAY BUFFER)
-   to the client state variable NORMAL ARRAY BUFFER BINDING.
-
-   Implementation notes:
-
-   We could snapshot the index of the currently bound buffer object at ColorPointer time
-   on the client side, and then pass this down with every DrawElements or DrawArrays call.
-   However it is perfectly legal to bind a buffer as the backing for the vertex color array,
-   delete the buffer FROM ANOTHER EGL CONTEXT SHARING WITH THIS ONE, and then expect to
-   continue using the buffer.
-
-   For this reason, we snapshot the handle on the server side instead.
-
-   Preconditions:
-
-   Valid EGL server state exists
-   EGL server state has a current OpenGL ES 1.1 context
-
-   Postconditions:
-
-   -
-
-   Invariants preserved:
-
-   (GL11_SERVER_STATE_BOUND_COLOR_ARRAY) mh_color_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
-*/
-
 void glColorPointer_impl_11 ()
 {
    GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
@@ -1195,47 +2196,6 @@ void glColorPointer_impl_11 ()
 
    GL11_UNLOCK_SERVER_STATE();
 }
-
-//jeremyt 30/3/2010 glNormalPointer_impl_11 moved back from server_cr.c
-/*
-   void glNormalPointer_impl_11 ()
-
-   Khronos documentation:
-
-   Blocks of vertex array data may be stored in buffer objects with the same format
-   and layout options supported for client-side vertex arrays.
-
-   The client state associated with each vertex array type includes a buffer object
-   binding point. The commands that specify the locations and organizations of vertex
-   arrays copy the buffer object name that is bound to ARRAY BUFFER to the binding
-   point corresponding to the vertex array of the type being specified. For example,
-   the NormalPointer command copies the value of ARRAY BUFFER BINDING (the
-   queriable name of the buffer binding corresponding to the target ARRAY BUFFER)
-   to the client state variable NORMAL ARRAY BUFFER BINDING.
-
-   Implementation notes:
-
-   We could snapshot the index of the currently bound buffer object at NormalPointer time
-   on the client side, and then pass this down with every DrawElements or DrawArrays call.
-   However it is perfectly legal to bind a buffer as the backing for the vertex normal array,
-   delete the buffer FROM ANOTHER EGL CONTEXT SHARING WITH THIS ONE, and then expect to
-   continue using the buffer.
-
-   For this reason, we snapshot the handle on the server side instead.
-
-   Preconditions:
-
-   Valid EGL server state exists
-   EGL server state has a current OpenGL ES 1.1 context
-
-   Postconditions:
-
-   -
-
-   Invariants preserved:
-
-   (GL11_SERVER_STATE_BOUND_NORMAL_ARRAY) mh_normal_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
-*/
 
 void glNormalPointer_impl_11 ()
 {
@@ -1246,48 +2206,6 @@ void glNormalPointer_impl_11 ()
    GL11_UNLOCK_SERVER_STATE();
 }
 
-//jeremyt 30/3/2010 glVertexPointer_impl_11 moved back from server_cr.c
-/*
-   void glVertexPointer_impl_11 ()
-
-   Khronos documentation:
-
-   Blocks of vertex array data may be stored in buffer objects with the same format
-   and layout options supported for client-side vertex arrays.
-
-   The client state associated with each vertex array type includes a buffer object
-   binding point. The commands that specify the locations and organizations of vertex
-   arrays copy the buffer object name that is bound to ARRAY BUFFER to the binding
-   point corresponding to the vertex array of the type being specified. For example,
-   the NormalPointer command copies the value of ARRAY BUFFER BINDING (the
-   queriable name of the buffer binding corresponding to the target ARRAY BUFFER)
-   to the client state variable NORMAL ARRAY BUFFER BINDING.
-
-   Implementation notes:
-
-   We could snapshot the index of the currently bound buffer object at VertexPointer time
-   on the client side, and then pass this down with every DrawElements or DrawArrays call.
-   However it is perfectly legal to bind a buffer as the backing for the vertex array,
-   delete the buffer FROM ANOTHER EGL CONTEXT SHARING WITH THIS ONE, and then expect to
-   continue using the buffer.
-
-   For this reason, we snapshot the handle on the server side instead.
-
-   Preconditions:
-
-   Valid EGL server state exists
-   EGL server state has a current OpenGL ES 1.1 context
-
-   Postconditions:
-
-   -
-
-   Invariants preserved:
-
-   (GL11_SERVER_STATE_BOUND_VERTEX_ARRAY) mh_vertex_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
-*/
-
-
 void glVertexPointer_impl_11 ()
 {
    GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
@@ -1297,100 +2215,17 @@ void glVertexPointer_impl_11 ()
    GL11_UNLOCK_SERVER_STATE();
 }
 
-//jeremyt 30/3/2010 glTexCoordPointer_impl_11 moved back from server_cr.c
-/*
-   void glTexCoordPointer_impl_11 (GLenum unit)
-
-   Khronos documentation:
-
-   Blocks of vertex array data may be stored in buffer objects with the same format
-   and layout options supported for client-side vertex arrays.
-
-   The client state associated with each vertex array type includes a buffer object
-   binding point. The commands that specify the locations and organizations of vertex
-   arrays copy the buffer object name that is bound to ARRAY BUFFER to the binding
-   point corresponding to the vertex array of the type being specified. For example,
-   the NormalPointer command copies the value of ARRAY BUFFER BINDING (the
-   queriable name of the buffer binding corresponding to the target ARRAY BUFFER)
-   to the client state variable NORMAL ARRAY BUFFER BINDING.
-
-   Implementation notes:
-
-   We could snapshot the index of the currently bound buffer object at TexCoordPointer time
-   on the client side, and then pass this down with every DrawElements or DrawArrays call.
-   However it is perfectly legal to bind a buffer as the backing for the vertex texture coord array,
-   delete the buffer FROM ANOTHER EGL CONTEXT SHARING WITH THIS ONE, and then expect to
-   continue using the buffer.
-
-   For this reason, we snapshot the handle on the server side instead.
-
-   Preconditions:
-
-   Valid EGL server state exists
-   EGL server state has a current OpenGL ES 1.1 context
-   0 <= unit-GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS
-
-   Postconditions:
-
-   -
-
-   Invariants preserved:
-
-   (GL11_SERVER_STATE_BOUND_TEXTURE_COORD_ARRAY) each element of mh_texture_coord_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
-*/
-
 void glTexCoordPointer_impl_11 (GLenum unit)
 {
    GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
 
-   vcos_assert(unit >= GL_TEXTURE0);
-   vcos_assert(unit < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS);
+   assert(unit >= GL_TEXTURE0);
+   assert(unit < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS);
 
    MEM_ASSIGN(state->bound_buffer.mh_attrib_array[unit - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD], state->bound_buffer.mh_array);
 
    GL11_UNLOCK_SERVER_STATE();
 }
-
-//jeremyt 30/3/2010 glPointSizePointerOES_impl_11 moved back from server_cr.c
-/*
-   void glPointSizePointerOES_impl_11 ()
-
-   Khronos documentation:
-
-   Blocks of vertex array data may be stored in buffer objects with the same format
-   and layout options supported for client-side vertex arrays.
-
-   The client state associated with each vertex array type includes a buffer object
-   binding point. The commands that specify the locations and organizations of vertex
-   arrays copy the buffer object name that is bound to ARRAY BUFFER to the binding
-   point corresponding to the vertex array of the type being specified. For example,
-   the NormalPointer command copies the value of ARRAY BUFFER BINDING (the
-   queriable name of the buffer binding corresponding to the target ARRAY BUFFER)
-   to the client state variable NORMAL ARRAY BUFFER BINDING.
-
-   Implementation notes:
-
-   We could snapshot the index of the currently bound buffer object at PointSizePointerOES time
-   on the client side, and then pass this down with every DrawElements or DrawArrays call.
-   However it is perfectly legal to bind a buffer as the backing for the vertex point size array,
-   delete the buffer FROM ANOTHER EGL CONTEXT SHARING WITH THIS ONE, and then expect to
-   continue using the buffer.
-
-   For this reason, we snapshot the handle on the server side instead.
-
-   Preconditions:
-
-   Valid EGL server state exists
-   EGL server state has a current OpenGL ES 1.1 context
-
-   Postconditions:
-
-   -
-
-   Invariants preserved:
-
-   (GL11_SERVER_STATE_BOUND_POINT_SIZE_ARRAY) mh_point_size_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
-*/
 
 void glPointSizePointerOES_impl_11 ()
 {
@@ -1400,23 +2235,6 @@ void glPointSizePointerOES_impl_11 ()
 
    GL11_UNLOCK_SERVER_STATE();
 }
-
-/*
-   "It is possible to attach the ambient and diffuse material properties to the current
-color, so that they continuously track its component values.
-Color material tracking is enabled and disabled by calling Enable or Disable
-with the symbolic value COLOR MATERIAL. When enabled, both the ambient (acm)
-and diffuse (dcm) properties of both the front and back material are immediately
-set to the value of the current color, and will track changes to the current color
-resulting from either the Color commands or drawing vertex arrays with the color
-array enabled.
-The replacements made to material properties are permanent; the replaced values
-remain until changed by either sending a new color or by setting a new material
-value when COLOR MATERIAL is not currently enabled, to override that particular
-value."
-
-   TODO: it is irritating that we have to do it this way
-*/
 
 void glintColor_impl_11(float red, float green, float blue, float alpha)
 {

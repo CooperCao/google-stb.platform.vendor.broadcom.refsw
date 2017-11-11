@@ -70,7 +70,7 @@ int SAGE_BP3Module_Init(SRAI_PlatformHandle platform)
                                &hBP3Module);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: Cannot Init Module",__FUNCTION__));
+        BDBG_ERR(("%s: Cannot Init Module",BSTD_FUNCTION));
         rc = 1;
         goto end;
     }
@@ -99,28 +99,28 @@ BERR_Code SAGE_BP3Module_GetSessionToken(uint8_t *pSessionToken, uint32_t tokenS
     pSageInOutContainer = SRAI_Container_Allocate();
     if (pSageInOutContainer == NULL)
     {
-        BDBG_ERR(("%s: Unable to allocate container.",__FUNCTION__));
+        BDBG_ERR(("%s: Unable to allocate container.",BSTD_FUNCTION));
         goto end;
     }
     if (tokenSize == 0)
     {
-        BDBG_ERR(("%s: Invalid session token size.",__FUNCTION__));
+        BDBG_ERR(("%s: Invalid session token size.",BSTD_FUNCTION));
         goto end;
     }
     pSageInOutContainer->blocks[0].data.ptr  = pSessionToken;
     pSageInOutContainer->blocks[0].len       = tokenSize;
-    BDBG_MSG(("%s: SessionToken Ptr 0x%x  Size %lu",__FUNCTION__,pSessionToken,tokenSize));
+    BDBG_MSG(("%s: SessionToken Ptr 0x%x  Size %lu",BSTD_FUNCTION,pSessionToken,tokenSize));
     rc = SRAI_Module_ProcessCommand(hBP3Module,
                                     BP3_CommandId_eGenerateSessionToken,
                                     pSageInOutContainer);
     if (rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: Failed to send generate session token command. %d",__FUNCTION__,rc));
+        BDBG_ERR(("%s: Failed to send generate session token command. %d",BSTD_FUNCTION,rc));
     }
     rc = pSageInOutContainer->basicOut[0];
     if (rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: Failed to generate Session Token %d",__FUNCTION__,rc));
+        BDBG_ERR(("%s: Failed to generate Session Token %d",BSTD_FUNCTION,rc));
     }
 end:
     if (pSageInOutContainer)
@@ -176,7 +176,7 @@ BERR_Code SAGE_BP3Module_Provision(
                                          pSageInOutContainer);
     if (rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: Cannot Send Command\n",__FUNCTION__));
+        BDBG_ERR(("%s: Cannot Send Command\n",BSTD_FUNCTION));
         goto end;
     }
     rc               = pSageInOutContainer->basicOut[0];

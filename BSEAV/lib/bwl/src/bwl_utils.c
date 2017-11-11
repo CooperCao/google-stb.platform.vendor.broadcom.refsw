@@ -1,43 +1,41 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +51,8 @@
 #include <proto/wpa.h>
 #include <proto/bcmip.h>
 #include <wlioctl.h>
+#include <stdbool.h> /* cca_per_chan_summary() uses bool in argument list */
+#include <wlioctl_utils.h>
 #include <bcmutils.h>
 #include <bcmendian.h>
 #ifndef FALCON_WIFI_DRIVER
@@ -1197,51 +1197,51 @@ wl_wowl_pkt(void *wl, void *cmd, char **argv)
 				return BCME_USAGE_ERROR;
 		}
 		tot += ETHER_ADDR_LEN;
-    } else if (type == WL_WOWL_NET) {
-        wl_wowl_pattern_t *wl_pattern;
-        wl_pattern = (wl_wowl_pattern_t *)dst;
+	} else if (type == WL_WOWL_NET) {
+		wl_wowl_pattern_t *wl_pattern;
+		wl_pattern = (wl_wowl_pattern_t *)dst;
 
-        if (!*++argv) {
-            printf("Starting offset not provided\n");
-            return BCME_USAGE_ERROR;
-        }
+		if (!*++argv) {
+			printf("Starting offset not provided\n");
+			return BCME_USAGE_ERROR;
+		}
 
-        wl_pattern->offset = (uint)htod32(strtoul(*argv, NULL, 0));
+		wl_pattern->offset = (uint)htod32(strtoul(*argv, NULL, 0));
 
-        wl_pattern->masksize = 0;
+		wl_pattern->masksize = 0;
 
-        wl_pattern->patternoffset = (uint)htod32(sizeof(wl_wowl_pattern_t));
+		wl_pattern->patternoffset = (uint)htod32(sizeof(wl_wowl_pattern_t));
 
-        dst += sizeof(wl_wowl_pattern_t);
+		dst += sizeof(wl_wowl_pattern_t);
 
-        if (!*++argv) {
-            printf("pattern not provided\n");
-            return BCME_USAGE_ERROR;
-        }
+		if (!*++argv) {
+			printf("pattern not provided\n");
+			return BCME_USAGE_ERROR;
+		}
 
-        wl_pattern->patternsize =
-                (uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
-        dst += wl_pattern->patternsize;
-        tot += sizeof(wl_wowl_pattern_t) + wl_pattern->patternsize;
+		wl_pattern->patternsize =
+		        (uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
+		dst += wl_pattern->patternsize;
+		tot += sizeof(wl_wowl_pattern_t) + wl_pattern->patternsize;
 
-        wl_pattern->reasonsize = 0;
-        if (*++argv) {
-            wl_pattern->reasonsize =
-                (uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
-            tot += wl_pattern->reasonsize;
-        }
-    } else {    /* eapid */
-        if (!*++argv) {
-            printf("EAPOL identity string not provided\n");
-            return BCME_USAGE_ERROR;
-        }
+		wl_pattern->reasonsize = 0;
+		if (*++argv) {
+			wl_pattern->reasonsize =
+				(uint)htod32(wl_pattern_atoh((char *)(uintptr)*argv, dst));
+			tot += wl_pattern->reasonsize;
+		}
+	} else {	/* eapid */
+		if (!*++argv) {
+			printf("EAPOL identity string not provided\n");
+			return BCME_USAGE_ERROR;
+		}
 
-        *dst++ = strlen(*argv);
-        strncpy(dst, *argv, strlen(*argv));
-        tot += 1 + strlen(*argv);
-    }
+		*dst++ = strlen(*argv);
+		strncpy(dst, *argv, strlen(*argv));
+		tot += 1 + strlen(*argv);
+	}
     /*printf( "%s: arg (%s) ... tot (%u)\n", __FUNCTION__, arg, tot );*/
-    return (wlu_set(wl, WLC_SET_VAR, arg, tot));
+	return (wlu_set(wl, WLC_SET_VAR, arg, tot));
 }
 
 /* Create list of attached MAC addresses ... copied wl_maclist() from wlu.c 2017-05-26 */
@@ -1262,4 +1262,635 @@ wl_maclist_2(void *wl, BWL_MAC_ADDRESS *outputList, int outputListLen )
         strncpy( (char*) &(outputList[i]), wl_ether_etoa(ea), sizeof( BWL_MAC_ADDRESS ) - 1 );
     }
     return ( i );
+}
+
+/* copied from wluc.c 2017-08-01 */
+static void
+free_cca_array(cca_congest_channel_req_t **favg, int favg_chan_elts)
+{
+	int i;
+
+	if (favg == NULL)
+		{
+		return;
+		}
+	for (i = 0; i < favg_chan_elts; i++) {
+		if (favg[i] != NULL) {
+			free(favg[i]);
+			favg[i] = NULL;
+		}
+	}
+	if (favg != NULL) {
+		free(favg);
+		favg = NULL;
+	}
+}
+/* copied from wluc.c 2017-08-01 */
+int
+wlu_var_getbuf(void *wl, const char *iovar, void *param, int param_len, void **bufptr)
+{
+	int len;
+
+	memset(buf, 0, WLC_IOCTL_MAXLEN);
+	strcpy( (char*) buf, iovar);
+
+	/* include the null */
+	len = strlen(iovar) + 1;
+
+	if (param_len)
+		memcpy(&buf[len], param, param_len);
+
+	*bufptr = buf;
+
+	return wlu_get(wl, WLC_GET_VAR, &buf[0], WLC_IOCTL_MAXLEN);
+}
+
+/* copied from wluc.c 2017-08-01 */
+/* Return a legacy chanspec given a new chanspec
+ * Returns INVCHANSPEC on error
+ */
+chanspec_t
+wl_chspec_to_legacy(chanspec_t chspec)
+{
+	chanspec_t lchspec;
+
+	if (wf_chspec_malformed(chspec)) {
+		fprintf(stderr, "wl_chspec_to_legacy: input chanspec (0x%04X) malformed\n",
+		        chspec);
+		return INVCHANSPEC;
+	}
+
+	/* get the channel number */
+	lchspec = CHSPEC_CHANNEL(chspec);
+
+	/* convert the band */
+	if (CHSPEC_IS2G(chspec)) {
+		lchspec |= WL_LCHANSPEC_BAND_2G;
+	} else {
+		lchspec |= WL_LCHANSPEC_BAND_5G;
+	}
+
+	/* convert the bw and sideband */
+	if (CHSPEC_IS20(chspec)) {
+		lchspec |= WL_LCHANSPEC_BW_20;
+		lchspec |= WL_LCHANSPEC_CTL_SB_NONE;
+	} else if (CHSPEC_IS40(chspec)) {
+		lchspec |= WL_LCHANSPEC_BW_40;
+		if (CHSPEC_CTL_SB(chspec) == WL_CHANSPEC_CTL_SB_L) {
+			lchspec |= WL_LCHANSPEC_CTL_SB_LOWER;
+		} else {
+			lchspec |= WL_LCHANSPEC_CTL_SB_UPPER;
+		}
+	} else {
+		/* cannot express the bandwidth */
+		char chanbuf[CHANSPEC_STR_LEN];
+		fprintf(stderr,
+		        "wl_chspec_to_legacy: unable to convert chanspec %s (0x%04X) "
+		        "to pre-11ac format\n",
+		        wf_chspec_ntoa(chspec, chanbuf), chspec);
+		return INVCHANSPEC;
+	}
+
+	return lchspec;
+}
+
+/* copied from wluc.c 2017-08-01 */
+/* given a chanspec value, do the endian and chanspec version conversion to
+ * a chanspec_t value
+ * Returns INVCHANSPEC on error
+ */
+chanspec_t
+wl_chspec_to_driver(chanspec_t chanspec)
+{
+	if (ioctl_version == 1) {
+		chanspec = wl_chspec_to_legacy(chanspec);
+		if (chanspec == INVCHANSPEC) {
+			return chanspec;
+		}
+	}
+	chanspec = htodchanspec(chanspec);
+
+	return chanspec;
+}
+
+/* copied from wluc.c 2017-08-01 */
+/* given a chanspec value from the driver, do the endian and chanspec version conversion to
+ * a chanspec_t value
+ * Returns INVCHANSPEC on error
+ */
+chanspec_t
+wl_chspec_from_driver(chanspec_t chanspec)
+{
+	chanspec = dtohchanspec(chanspec);
+	if (ioctl_version == 1) {
+		chanspec = wl_chspec_from_legacy(chanspec);
+	}
+	return chanspec;
+}
+
+/* copied from wluc.c 2017-08-01 */
+/* given a chanspec value from the driver in a 32 bit integer, do the endian and
+ * chanspec version conversion to a chanspec_t value
+ * Returns INVCHANSPEC on error
+ */
+chanspec_t
+wl_chspec32_from_driver(uint32 chanspec32)
+{
+	chanspec_t chanspec;
+
+	chanspec = (chanspec_t)dtoh32(chanspec32);
+
+	if (ioctl_version == 1) {
+		chanspec = wl_chspec_from_legacy(chanspec);
+	}
+	return chanspec;
+}
+/* copied from shared/bcm_app_utils.c 2017-08-01 */
+/*	Take an array of measurments representing a single channel over time and return
+	a summary. Currently implemented as a simple average but could easily evolve
+	into more cpomplex alogrithms.
+*/
+cca_congest_channel_req_t *
+cca_per_chan_summary(cca_congest_channel_req_t *input, cca_congest_channel_req_t *avg, bool percent)
+{
+	int sec;
+	cca_congest_t totals;
+
+	totals.duration  = 0;
+	totals.congest_ibss  = 0;
+	totals.congest_obss  = 0;
+	totals.congest_rx = 0;
+	totals.congest_tx = 0;
+	totals.interference  = 0;
+	avg->num_secs = 0;
+
+	for (sec = 0; sec < input->num_secs; sec++) {
+		if (input->secs[sec].duration) {
+			totals.duration += input->secs[sec].duration;
+			totals.congest_ibss += input->secs[sec].congest_ibss;
+			totals.congest_obss += input->secs[sec].congest_obss;
+			totals.congest_rx += input->secs[sec].congest_rx;
+			totals.congest_tx += input->secs[sec].congest_tx;
+			totals.interference += input->secs[sec].interference;
+			avg->num_secs++;
+		}
+	}
+	avg->chanspec = input->chanspec;
+
+	if (!avg->num_secs || !totals.duration)
+		return (avg);
+
+	if (percent) {
+		avg->secs[0].duration = totals.duration / avg->num_secs;
+		avg->secs[0].congest_ibss = totals.congest_ibss * 100/totals.duration;
+		avg->secs[0].congest_obss = totals.congest_obss * 100/totals.duration;
+		avg->secs[0].congest_rx = totals.congest_rx * 100/totals.duration;
+		avg->secs[0].congest_tx = totals.congest_tx * 100/totals.duration;
+		avg->secs[0].interference = totals.interference * 100/totals.duration;
+	} else {
+		avg->secs[0].duration = totals.duration / avg->num_secs;
+		avg->secs[0].congest_ibss = totals.congest_ibss / avg->num_secs;
+		avg->secs[0].congest_obss = totals.congest_obss / avg->num_secs;
+		avg->secs[0].congest_rx = totals.congest_rx / avg->num_secs;
+		avg->secs[0].congest_tx = totals.congest_tx / avg->num_secs;
+		avg->secs[0].interference = totals.interference / avg->num_secs;
+	}
+
+	return (avg);
+}
+/* copied from wluc.c 2017-08-01 */
+static const char *
+cca_level(int score, int med, int hi)
+{
+	if (score < med)
+		return ("Low");
+	if (score >= med && score < hi)
+		return ("Medium");
+	if (score >= hi)
+		return ("High");
+	return NULL;
+}
+
+/* copied from shared/bcm_app_utils.c 2017-08-01 */
+static void
+cca_info(uint8 *bitmap, int num_bits, int *left, int *bit_pos)
+{
+	int i;
+	for (*left = 0, i = 0; i < num_bits; i++) {
+		if (isset(bitmap, i)) {
+			(*left)++;
+			*bit_pos = i;
+		}
+	}
+}
+
+/* copied from shared/bcm_app_utils.c 2017-08-01 */
+static uint8
+spec_to_chan(chanspec_t chspec)
+{
+	uint8 center_ch, edge, primary, sb;
+
+	center_ch = CHSPEC_CHANNEL(chspec);
+
+	if (CHSPEC_BW_LE20(chspec)) {
+		return center_ch;
+	} else {
+		/* the lower edge of the wide channel is half the bw from
+		 * the center channel.
+		 */
+		if (CHSPEC_IS40(chspec)) {
+			edge = center_ch - CH_20MHZ_APART;
+		} else {
+			/* must be 80MHz (until we support more) */
+			ASSERT(CHSPEC_IS80(chspec));
+			edge = center_ch - CH_40MHZ_APART;
+		}
+
+		/* find the channel number of the lowest 20MHz primary channel */
+		primary = edge + CH_10MHZ_APART;
+
+		/* select the actual subband */
+		sb = (chspec & WL_CHANSPEC_CTL_SB_MASK) >> WL_CHANSPEC_CTL_SB_SHIFT;
+		primary = primary + sb * CH_20MHZ_APART;
+
+		return primary;
+	}
+}
+/* copied from shared/bcm_app_utils.c 2017-08-01 */
+/*
+	Take an array of measumrements representing summaries of different channels.
+	Return a recomended channel.
+	Interference is evil, get rid of that first.
+	Then hunt for lowest Other bss traffic.
+	Don't forget that channels with low duration times may not have accurate readings.
+	For the moment, do not overwrite input array.
+*/
+int
+cca_analyze(cca_congest_channel_req_t *input[], int num_chans, uint flags, chanspec_t *answer)
+{
+	uint8 *bitmap = NULL;	/* 38 Max channels needs 5 bytes  = 40 */
+	int i, left, winner, ret_val = 0;
+	uint32 min_obss = 1 << 30;
+	uint bitmap_sz;
+
+	bitmap_sz = CEIL(num_chans, NBBY);
+	bitmap = (uint8 *)malloc(bitmap_sz);
+	if (bitmap == NULL) {
+		printf("unable to allocate memory\n");
+		return BCME_NOMEM;
+	}
+
+	memset(bitmap, 0, bitmap_sz);
+	/* Initially, all channels are up for consideration */
+	for (i = 0; i < num_chans; i++) {
+		if (input[i]->chanspec)
+			setbit(bitmap, i);
+	}
+	cca_info(bitmap, num_chans, &left, &i);
+	if (!left) {
+		ret_val = CCA_ERRNO_TOO_FEW;
+		goto f_exit;
+	}
+
+	/* Filter for 2.4 GHz Band */
+	if (flags & CCA_FLAG_2G_ONLY) {
+		for (i = 0; i < num_chans; i++) {
+			if (!CHSPEC_IS2G(input[i]->chanspec))
+				clrbit(bitmap, i);
+		}
+	}
+	cca_info(bitmap, num_chans, &left, &i);
+	if (!left) {
+		ret_val = CCA_ERRNO_BAND;
+		goto f_exit;
+	}
+
+	/* Filter for 5 GHz Band */
+	if (flags & CCA_FLAG_5G_ONLY) {
+		for (i = 0; i < num_chans; i++) {
+			if (!CHSPEC_IS5G(input[i]->chanspec))
+				clrbit(bitmap, i);
+		}
+	}
+	cca_info(bitmap, num_chans, &left, &i);
+	if (!left) {
+		ret_val = CCA_ERRNO_BAND;
+		goto f_exit;
+	}
+
+	/* Filter for Duration */
+	if (!(flags & CCA_FLAG_IGNORE_DURATION)) {
+		for (i = 0; i < num_chans; i++) {
+			if (input[i]->secs[0].duration < CCA_THRESH_MILLI)
+				clrbit(bitmap, i);
+		}
+	}
+	cca_info(bitmap, num_chans, &left, &i);
+	if (!left) {
+		ret_val = CCA_ERRNO_DURATION;
+		goto f_exit;
+	}
+
+	/* Filter for 1 6 11 on 2.4 Band */
+	if (flags &  CCA_FLAGS_PREFER_1_6_11) {
+		int tmp_channel = spec_to_chan(input[i]->chanspec);
+		int is2g = CHSPEC_IS2G(input[i]->chanspec);
+		for (i = 0; i < num_chans; i++) {
+			if (is2g && tmp_channel != 1 && tmp_channel != 6 && tmp_channel != 11)
+				clrbit(bitmap, i);
+		}
+	}
+	cca_info(bitmap, num_chans, &left, &i);
+	if (!left) {
+		ret_val = CCA_ERRNO_PREF_CHAN;
+		goto f_exit;
+	}
+
+	/* Toss high interference interference */
+	if (!(flags & CCA_FLAG_IGNORE_INTERFER)) {
+		for (i = 0; i < num_chans; i++) {
+			if (input[i]->secs[0].interference > CCA_THRESH_INTERFERE)
+				clrbit(bitmap, i);
+		}
+		cca_info(bitmap, num_chans, &left, &i);
+		if (!left) {
+			ret_val = CCA_ERRNO_INTERFER;
+			goto f_exit;
+		}
+	}
+
+	/* Now find lowest obss */
+	winner = 0;
+	for (i = 0; i < num_chans; i++) {
+		if (isset(bitmap, i) && input[i]->secs[0].congest_obss < min_obss) {
+			winner = i;
+			min_obss = input[i]->secs[0].congest_obss;
+		}
+	}
+	*answer = input[winner]->chanspec;
+	f_exit:
+	free(bitmap);	/* free the allocated memory for bitmap */
+	return ret_val;
+}
+/* copied from wluc.c 2017-08-01 */
+static const char *cca_errors[] = {
+	"No error",
+	"Preferred band",
+	"Dwell Duration too low",
+	"Channel prefs",
+	"Interference too high",
+	"Only 1 channel inoput"
+};
+/* copied from wluc.c 2017-08-01 ... added BWLGetCcaStats_t argument to return values to caller */
+int
+wl_cca_get_stats(void *wl, char *cmd_name, char **argv, BWLGetCcaStats_t *BWLGetCcaStats )
+{
+	cca_congest_channel_req_t *results;
+	cca_congest_channel_req_t req;
+	cca_congest_t *chptr;
+	cca_congest_channel_req_t **avg = NULL, **new_avg = NULL; /* Max num of channels */
+	void *ptr = NULL;
+	char *param, *val_p;
+	int base, limit, i, channel, err = 0;
+	int ibss_per, obss_per, inter_per, tx_per, rx_per, val;
+	const char *ibss_lvl = NULL;
+	const char *obss_lvl = NULL;
+	const char *inter_lvl = NULL;
+	int tmp_channel;
+	chanspec_t new_chanspec, cur_chanspec;
+	bool do_individ = FALSE;
+	bool do_analyze = TRUE;
+	bool curband = FALSE;
+	int avg_chan_idx = 0, avg_chan_elts = 40;
+	uint32 flags;
+	int j;
+
+
+	req.num_secs = 10;
+	tmp_channel = 0xff;
+
+	argv++;
+
+	/* Parse args */
+	while ((param = *argv++) != NULL) {
+		if (stricmp(param, "-n") == 0) {
+			do_analyze = FALSE;
+			continue;
+		}
+		if (stricmp(param, "-i") == 0) {
+			do_individ = TRUE;
+			continue;
+		}
+		if (stricmp(param, "-curband") == 0) {
+			curband = TRUE;
+			continue;
+		}
+
+		if ((val_p = *argv++) == NULL) {
+			printf("Need value following %s\n", param);
+			return BCME_USAGE_ERROR;
+		}
+		if (stricmp(param, "-c") == 0) {
+			tmp_channel = (int)strtoul(val_p, NULL, 0);
+		}
+
+		if (stricmp(param, "-cs") == 0) {
+			if ((new_chanspec = wf_chspec_aton(val_p)))
+				tmp_channel = wf_chspec_ctlchan(new_chanspec);
+		}
+
+		if (stricmp(param, "-s") == 0) {
+			req.num_secs = (int)strtoul(val_p, NULL, 0);
+			if (req.num_secs == 0 || req.num_secs > MAX_CCA_SECS) {
+				printf("%d: Num of seconds must be <= %d\n",
+					req.num_secs, MAX_CCA_SECS);
+				return BCME_USAGE_ERROR;
+			}
+		}
+	}
+
+	if (tmp_channel == 0) {
+		/* do all channels */
+		base = 1; limit = MAXCHANNEL;
+	} else {
+		/* Use current channel as default if none specified */
+		if (tmp_channel == 0xff) {
+			if ((err = wlu_iovar_getint(wl, "chanspec", (int*)&val)) < 0) {
+				printf("CCA: Can't get currrent chanspec\n");
+				return err;
+			}
+			cur_chanspec = wl_chspec32_from_driver(val);
+			tmp_channel = wf_chspec_ctlchan(cur_chanspec);
+#if 0
+			printf("Using channel %d\n", tmp_channel);
+#endif
+		}
+		base = limit = tmp_channel;
+	}
+
+	avg = (cca_congest_channel_req_t **)
+		calloc(1, sizeof(cca_congest_channel_req_t*) * avg_chan_elts);
+	if (avg == NULL) {
+		printf("unable to allocate memory\n");
+		return BCME_NOMEM;
+	}
+
+	for (channel = base; channel <= limit; channel++) {
+
+		/* Get stats for each channel */
+		req.chanspec = CH20MHZ_CHSPEC(channel);
+		req.chanspec = wl_chspec_to_driver(req.chanspec);
+		if ((err = wlu_var_getbuf(wl, cmd_name, &req, sizeof(req), &ptr)) < 0) {
+		goto func_exit;
+		}
+
+		results = (cca_congest_channel_req_t *)ptr;
+		results->chanspec = wl_chspec_from_driver(results->chanspec);
+		if (results->chanspec == 0 || results->num_secs == 0)
+			continue;
+
+		if (results->num_secs > MAX_CCA_SECS) {
+			printf("Bogus num of seconds returned %d\n", results->num_secs);
+			err = -1;
+			goto func_exit;
+		}
+
+		/* Summarize and save summary for this channel */
+		if (avg_chan_idx >= avg_chan_elts) {
+			new_avg = (cca_congest_channel_req_t **)calloc
+			(1, sizeof(cca_congest_channel_req_t*) * (avg_chan_elts + 10));
+
+			if (new_avg == NULL) {
+				printf("unable to allocate memory\n");
+				err = BCME_NOMEM;
+				goto func_exit;
+			}
+			memcpy(new_avg, avg, avg_chan_elts);
+			free_cca_array(avg, avg_chan_elts);
+			avg_chan_elts += 10;
+			avg = new_avg;
+			new_avg = NULL;
+		}
+
+		avg[avg_chan_idx] = (cca_congest_channel_req_t *)
+			malloc(sizeof(cca_congest_channel_req_t));
+		if (avg[avg_chan_idx] == NULL) {
+			printf("unable to allocate memory\n");
+			err = BCME_NOMEM;
+			goto func_exit;
+		}
+		cca_per_chan_summary(results, avg[avg_chan_idx], 1);
+		if (avg[avg_chan_idx]->num_secs)
+			avg_chan_idx++;
+
+		/* printf stats for each second of each channel */
+		if (do_individ) {
+#if 0
+			if (channel == base)
+				printf("chan dur      ibss           obss"
+					"           interf       RX       TX        time\n");
+#endif
+			for (i = 0; i < results->num_secs; i++) {
+				chptr = &results->secs[i];
+				if (chptr->duration) {
+					/* Percentages */
+					ibss_per = chptr->congest_ibss * 100 /chptr->duration;
+					obss_per = chptr->congest_obss * 100 /chptr->duration;
+					inter_per = chptr->interference * 100 /chptr->duration;
+					tx_per = chptr->congest_tx * 100 /chptr->duration;
+					rx_per = chptr->congest_rx * 100 /chptr->duration;
+					/* Levels */
+					ibss_lvl = cca_level(ibss_per, IBSS_MED, IBSS_HI);
+					obss_lvl = cca_level(obss_per, OBSS_MED, OBSS_HI);
+					inter_lvl = cca_level(inter_per, INTERFER_MED, INTERFER_HI);
+
+                if ( 0 ) {
+                    printf("%-3u %4d %4u %2d%% %-6s %4u %2d%% %-6s %4u %2d%% %-6s %4u %2d%% %4u %2d%%   %d\n",
+                        CHSPEC_CHANNEL(results->chanspec),
+                        chptr->duration,
+                        chptr->congest_ibss, ibss_per, ibss_lvl,
+                        chptr->congest_obss, obss_per, obss_lvl,
+                        chptr->interference, inter_per, inter_lvl,
+                        chptr->congest_rx, rx_per,
+                        chptr->congest_tx, tx_per,
+                        chptr->timestamp);
+                    }
+				}
+			}
+		}
+	}
+
+	/* Print summary stats of each channel */
+#if 0
+	printf("Summaries:\n");
+	printf("chan dur      ibss           obss             interf     RX       TX        num seconds\n");
+#endif
+	for (j = 0; j < avg_chan_idx; j++) {
+		/* Percentages */
+		ibss_per = avg[j]->secs[0].congest_ibss;
+		obss_per = avg[j]->secs[0].congest_obss;
+		inter_per = avg[j]->secs[0].interference;
+		/* Levels */
+		ibss_lvl = cca_level(ibss_per, IBSS_MED, IBSS_HI);
+		obss_lvl = cca_level(obss_per, OBSS_MED, OBSS_HI);
+		inter_lvl = cca_level(inter_per, INTERFER_MED, INTERFER_HI);
+
+		if (avg[j]->num_secs) {
+            unsigned long int msec = 0;
+#if 0
+			printf("%-3u %4d %4s %2d%% %-6s %4s %2d%% %-6s %4s %2d%% %-6s      %2d%%      %2d%%     %d\n",
+				CHSPEC_CHANNEL(avg[j]->chanspec),
+				avg[j]->secs[0].duration,
+				"", avg[j]->secs[0].congest_ibss, ibss_lvl,
+				"", avg[j]->secs[0].congest_obss, obss_lvl,
+				"", avg[j]->secs[0].interference, inter_lvl,
+				avg[j]->secs[0].congest_rx,
+				avg[j]->secs[0].congest_tx,
+				avg[j]->num_secs);
+#endif
+
+            msec = (avg[j]->secs[0].congest_rx * avg[j]->secs[0].duration) / 100;
+            BWLGetCcaStats->ChannelRxTimeMsec = msec;
+            msec = (avg[j]->secs[0].congest_tx * avg[j]->secs[0].duration) / 100;
+            BWLGetCcaStats->ChannelTxTimeMsec = msec;
+            msec = (avg[j]->secs[0].congest_ibss * avg[j]->secs[0].duration) / 100;
+            BWLGetCcaStats->ChannelActiveTimeMsec = msec;
+            msec = (avg[j]->secs[0].congest_obss * avg[j]->secs[0].duration) / 100;
+            BWLGetCcaStats->ChannelBusyTimeMsec = msec;
+            BWLGetCcaStats->ChannelInUse = CHSPEC_CHANNEL(avg[j]->chanspec);
+		}
+	}
+
+	if (!do_analyze) {
+		goto func_exit;
+	}
+
+	if ((err = wlu_iovar_getint(wl, "chanspec", (int *)&val)) < 0) {
+		printf("CCA: Can't get currrent chanspec\n");
+		goto func_exit;
+	}
+	cur_chanspec = wl_chspec32_from_driver(val);
+	flags = 0;
+	if (curband) {
+		if (CHSPEC_IS5G(cur_chanspec))
+			flags |= CCA_FLAG_5G_ONLY;
+		if (CHSPEC_IS2G(cur_chanspec))
+			flags |= CCA_FLAG_2G_ONLY;
+	}
+
+	if ((err = cca_analyze(avg,  avg_chan_idx, flags, &new_chanspec)) != 0) {
+		if (err > 0) {
+			printf("Cannot find a good channel due to: %s\n", cca_errors[err]);
+			err = BCME_ERROR;
+		}
+		goto func_exit;
+	}
+#if 0
+	printf("Recommended channel: %d\n", wf_chspec_ctlchan(new_chanspec));
+#endif
+
+	func_exit:
+	free_cca_array(avg, avg_chan_elts);
+
+	return err;
 }

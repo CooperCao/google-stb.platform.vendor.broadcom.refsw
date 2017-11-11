@@ -91,8 +91,8 @@ const uint32_t BXDM_P_VsyncsPerSecondLUT[BXDM_PictureProvider_MonitorRefreshRate
 /*
  * Local function prototypes
  */
-void BXDM_PPTMR_S_CookResults_isr( BXDM_PictureProvider_Handle hXdmPP );
-void BXDM_PPTMR_S_ResetTimerData_isr( BXDM_PPTIMER_P_Data * pTimerData );
+static void BXDM_PPTMR_S_CookResults_isr( BXDM_PictureProvider_Handle hXdmPP );
+static void BXDM_PPTMR_S_ResetTimerData_isr( BXDM_PPTIMER_P_Data * pTimerData );
 
 /*
  * Private functions

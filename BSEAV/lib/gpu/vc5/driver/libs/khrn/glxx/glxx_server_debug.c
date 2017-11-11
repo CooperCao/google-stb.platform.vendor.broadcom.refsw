@@ -11,8 +11,8 @@ GL_API void GL_APIENTRY glInsertEventMarkerEXT(GLsizei length, const GLchar *mar
       GPUMonitor (other debuggers may be available).
       That's all that is needed
    */
-   vcos_unused(length);
-   vcos_unused(marker);
+   unused(length);
+   unused(marker);
 }
 
 GL_API void GL_APIENTRY glPushGroupMarkerEXT(GLsizei length, const GLchar *marker)
@@ -22,8 +22,8 @@ GL_API void GL_APIENTRY glPushGroupMarkerEXT(GLsizei length, const GLchar *marke
       GPUMonitor (other debuggers may be available).
       That's all that is needed
    */
-   vcos_unused(length);
-   vcos_unused(marker);
+   unused(length);
+   unused(marker);
 }
 
 GL_API void GL_APIENTRY glPopGroupMarkerEXT(void)

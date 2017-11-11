@@ -314,11 +314,8 @@ NEXUS_Base_Core_Init(void)
     rc = BKNI_CreateMutex(&NEXUS_P_Base_State.userThreadInfo.lock);
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_mutex; }
 
-#if BDBG_DEBUG_BUILD
-    NEXUS_P_Base_SetModuleDebugLevel(NEXUS_GetEnv("wrn_modules"), BDBG_eWrn);
-    NEXUS_P_Base_SetModuleDebugLevel(NEXUS_GetEnv("msg_modules"), BDBG_eMsg);
-    NEXUS_P_Base_SetModuleDebugLevel(NEXUS_GetEnv("trace_modules"), BDBG_eTrace);
-#endif
+    NEXUS_Base_SetModuleDebugLevel();
+
     NEXUS_P_Base_State.coreInit = true;
     BDBG_CASSERT(BERR_SUCCESS==NEXUS_SUCCESS);
     BDBG_CASSERT(BERR_NOT_INITIALIZED==NEXUS_NOT_INITIALIZED);
@@ -338,6 +335,15 @@ err_mutex:
     NEXUS_P_Base_Os_Uninit();
 err_os:
     return BERR_TRACE(rc);
+}
+
+void NEXUS_Base_SetModuleDebugLevel(void)
+{
+#if BDBG_DEBUG_BUILD
+    NEXUS_P_Base_SetModuleDebugLevel(NEXUS_GetEnv("wrn_modules"), BDBG_eWrn);
+    NEXUS_P_Base_SetModuleDebugLevel(NEXUS_GetEnv("msg_modules"), BDBG_eMsg);
+    NEXUS_P_Base_SetModuleDebugLevel(NEXUS_GetEnv("trace_modules"), BDBG_eTrace);
+#endif
 }
 
 static void NEXUS_Base_P_RemoveThreadInfo_locked(NEXUS_P_ThreadInfo *threadInfo)
@@ -604,6 +610,7 @@ NEXUS_Module_Lock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsig
     NEXUS_Module_P_CheckLock("NEXUS_Module_Lock_Tagged", info, module, pFileName, lineNumber);
     rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
     BDBG_ASSERT(rc==BERR_SUCCESS);
+    BDBG_OBJECT_ASSERT(module, NEXUS_Module); /* verify that module was not destroyed while we were waiting for it */
     if(!module->enabled) {
         unsigned i;
 #if BDBG_DEBUG_BUILD
@@ -685,6 +692,7 @@ NEXUS_Module_TryLock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, un
             rc=BERR_TIMEOUT;
         }
     }
+    BDBG_OBJECT_ASSERT(module, NEXUS_Module); /* verify that module was not destroyed while we were trying to acquire it */
 #if NEXUS_P_DEBUG_MODULE_LOCKS
     if(info) {
         if(rc==BERR_SUCCESS) {
@@ -867,7 +875,7 @@ int NEXUS_StrCmp(const char *str1, const char *str2)
     } else if(str2==NULL) {
         return -1;
     } else {
-        return NEXUS_P_Base_StrCmp(str1, str2);
+        return NEXUS_P_Base_StrCmp_isrsafe(str1, str2);
     }
 }
 
@@ -887,6 +895,7 @@ void NEXUS_Base_P_CallbackHandler_Init(NEXUS_CallbackHandler *handler, NEXUS_Mod
     handler->pFileName = pFileName;
     handler->lineNumber = lineNumber;
     handler->pCallbackGuard = NULL;
+    /* coverity[missing_lock] */
     handler->timer = NULL;
     return;
 }
@@ -1238,6 +1247,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "debug_mem",
     "dejag",
     "disable_arm_audio",
+    "disable_audio_dsp",
     "disable_avs",
     "disable_oob_frontend",
     "disable_thermal_monitor",
@@ -1271,6 +1281,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "not_realtime_isr",
     "nxclient_ipc_node",
     "odt_ignore_failures",
+    "pkt_override",
     "pq_disabled",
     "profile_accurate",
     "profile_calls",
@@ -1308,7 +1319,7 @@ function that does a binary search in a sorted array ([0] smallest value)
 it returns either index of located entry or negative result
 */
 
-static int NEXUS_P_GetEnvVariables_find(const char *name) {
+static int NEXUS_P_GetEnvVariables_find_isrsafe(const char *name) {
     int nentries = sizeof(NEXUS_P_GetEnvVariables)/sizeof(NEXUS_P_GetEnvVariables[0]);
     int right = nentries-1; int left = 0; int mid;
 
@@ -1326,9 +1337,9 @@ static int NEXUS_P_GetEnvVariables_find(const char *name) {
     return -(left+1);
 }
 
-void NEXUS_P_CheckEnv(const char *name)
+void NEXUS_P_CheckEnv_isrsafe(const char *name)
 {
-    int n = NEXUS_P_GetEnvVariables_find(name);
+    int n = NEXUS_P_GetEnvVariables_find_isrsafe(name);
     if(n<0) {
         BDBG_WRN(("NEXUS_GetEnv: Unrecognized variable '%s'", name));
     }
@@ -1379,8 +1390,20 @@ void NEXUS_P_PrintEnv(const char *mode)
     }
     return ;
 }
+#if NEXUS_MODE_proxy
+extern void NEXUS_Platform_P_SetEnv(const char *name);
+void NEXUS_Base_ExportEnvVariables(void)
+{
+    unsigned nentries = sizeof(NEXUS_P_GetEnvVariables)/sizeof(NEXUS_P_GetEnvVariables[0]);
+    unsigned i;
+    for(i=0;i<nentries;i++) {
+        NEXUS_Platform_P_SetEnv(NEXUS_P_GetEnvVariables[i]);
+    }
+    return;
+}
+#endif
 #else /* #if BDBG_DEBUG_WITH_STRINGS */
-void NEXUS_P_CheckEnv(const char *name)
+void NEXUS_P_CheckEnv_isrsafe(const char *name)
 {
     BSTD_UNUSED(name);
     return;
@@ -1388,6 +1411,10 @@ void NEXUS_P_CheckEnv(const char *name)
 void NEXUS_P_PrintEnv(const char *mode)
 {
     BSTD_UNUSED(mode);
+    return;
+}
+void NEXUS_Base_ExportEnvVariables(void)
+{
     return;
 }
 #endif /* #if BDBG_DEBUG_WITH_STRINGS */

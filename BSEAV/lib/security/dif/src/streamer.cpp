@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,7 +61,7 @@ Streamer::Streamer()
 
 Streamer::~Streamer()
 {
-    LOGD(("Streamer::%s %p enter", __FUNCTION__, (void*)this));
+    LOGD(("Streamer::%s %p enter", BSTD_FUNCTION, (void*)this));
     if (m_playpump) {
         NEXUS_Playpump_Flush(m_playpump);
         NEXUS_Playpump_ClosePidChannel(m_playpump, m_pidChannel);
@@ -77,17 +77,17 @@ Streamer::~Streamer()
 }
 
 bool Streamer::SetupPlaypump(
-    NEXUS_PlaypumpOpenSettings &playpumpOpenSettings)
+    NEXUS_PlaypumpOpenSettings *playpumpOpenSettings)
 {
 #ifdef NXCLIENT_SUPPORT
     NEXUS_ClientConfiguration clientConfig;
     NEXUS_Platform_GetClientConfiguration(&clientConfig);
 
-    playpumpOpenSettings.heap = clientConfig.heap[NXCLIENT_FULL_HEAP];
-    playpumpOpenSettings.boundsHeap = clientConfig.heap[NXCLIENT_FULL_HEAP];
+    playpumpOpenSettings->heap = clientConfig.heap[NXCLIENT_FULL_HEAP];
+    playpumpOpenSettings->boundsHeap = clientConfig.heap[NXCLIENT_FULL_HEAP];
 #else
-    playpumpOpenSettings.heap = NEXUS_MEMC0_MAIN_HEAP;
-    playpumpOpenSettings.boundsHeap = NEXUS_MEMC0_MAIN_HEAP;
+    playpumpOpenSettings->heap = NEXUS_MEMC0_MAIN_HEAP;
+    playpumpOpenSettings->boundsHeap = NEXUS_MEMC0_MAIN_HEAP;
 #endif
 
     return true;
@@ -97,7 +97,7 @@ IBuffer* Streamer::CreateBuffer(uint32_t size, uint8_t* data)
 {
     IBuffer* buffer = BufferFactory::CreateBuffer(size, data);
     if (buffer == NULL) {
-        LOGE(("%s: failed to create buffer", __FUNCTION__));
+        LOGE(("%s: failed to create buffer", BSTD_FUNCTION));
         return NULL;
     }
     return buffer;

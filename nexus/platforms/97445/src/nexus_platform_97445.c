@@ -54,13 +54,10 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
 #if NEXUS_HAS_VIDEO_DECODER
     switch (g_pPreInitState->boxMode) {
     case 15:
-        /* linked decoders */
-        pSettings->videoDecoder[0].mosaic.maxNumber = 1;
+        /* Multi-PIP */
+        pSettings->videoDecoder[0].mosaic.maxNumber = 3;
         pSettings->videoDecoder[0].mosaic.maxWidth =1920;
         pSettings->videoDecoder[0].mosaic.maxHeight=1088;
-        pSettings->videoDecoder[1].mosaic.maxNumber = 1;
-        pSettings->videoDecoder[1].mosaic.maxWidth =1920;
-        pSettings->videoDecoder[1].mosaic.maxHeight=1088;
         break;
     default:
         break;
@@ -151,7 +148,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
             pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;
             break;
     case 15:
-            pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].size = 512*1024*1024; /*gfd 0 on memc 2 */
+            pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].size = 512*1024*1024; /*gfd 0/1 on memc 2 */
             pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
             break;
     case 13:
@@ -223,7 +220,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
             BDBG_WRN(("*** 97445 BoxMode 14:Display:HD Output, Video:HD Main/no PIP,Transcode:Triple (One up to 1080p60 (Max) and Dual up to 1080p30(Max))***"));
         break;
     case 15:
-            BDBG_WRN(("*** 97445 BoxMode 15:Display:UHD Output, Video:Dual HD main/HD PIP,Transcode:Single HDMI input transcoding up to 1080p60(Max)***"));
+            BDBG_WRN(("*** 97445 BoxMode 15:Display:UHD/SD Output, Video:UHD main/HD PIP,Transcode:Single transcoding up to 1080p60 8-bit(Max)***"));
         break;
     case 16:
             BDBG_WRN(("*** 97445 BoxMode 16:Display:UHD/SD, Video:UHD Main/HD PIP,Transcode:Dual 1080i60->1080p30(Max)***"));

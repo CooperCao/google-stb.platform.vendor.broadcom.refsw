@@ -62,7 +62,7 @@ int _astra_ioctl_status_get(
 
 int _astra_ioctl_call_smc(
     astra_kclient_handle hKClient,
-    uint32_t ucMode);
+    astra_smc_code code);
 
 int _astra_ioctl_client_open(
     const char *pName,

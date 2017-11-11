@@ -95,10 +95,10 @@ enum {
     TZIOC_IOCTL_MEM_ALLOC,
     TZIOC_IOCTL_MEM_FREE,
     TZIOC_IOCTL_CALL_SMC,
-    TZIOC_IOCTL_MAP_PADDR,
-    TZIOC_IOCTL_UNMAP_PADDR,
     TZIOC_IOCTL_MAP_PADDRS,
     TZIOC_IOCTL_UNMAP_PADDRS,
+    TZIOC_IOCTL_PADDR_TO_VADDR,
+    TZIOC_IOCTL_VADDR_TO_PADDR,
 
     TZIOC_IOCTL_LAST
 };
@@ -172,6 +172,24 @@ struct tzioc_ioctl_unmap_paddrs_data {
     uintptr_t hClient;
     uint32_t count;
     uintptr_t regionsAddr;
+};
+
+struct tzioc_ioctl_paddr_to_vaddr_data {
+    int retVal;
+
+    uintptr_t hClient;
+    uintptr_t paddr;
+
+    uintptr_t vaddr;
+};
+
+struct tzioc_ioctl_vaddr_to_paddr_data {
+    int retVal;
+
+    uintptr_t hClient;
+    uintptr_t vaddr;
+
+    uintptr_t paddr;
 };
 
 #endif /* TZIOC_IOCTLS_H */

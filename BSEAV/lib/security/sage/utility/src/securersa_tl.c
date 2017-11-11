@@ -94,7 +94,7 @@ static SecureRsaTl_Handle _SecureRsaTl_ContextNew(
                                      (void **)&hSecureRsaTl);
     if(nexus_rc != NEXUS_SUCCESS)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         magnum_rc = BERR_OUT_OF_DEVICE_MEMORY;
         goto ErrorExit;
     }
@@ -105,7 +105,7 @@ static SecureRsaTl_Handle _SecureRsaTl_ContextNew(
     container = SRAI_Container_Allocate();
     if(container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         magnum_rc = BERR_OUT_OF_DEVICE_MEMORY;
         goto ErrorExit;
     }
@@ -118,7 +118,7 @@ static SecureRsaTl_Handle _SecureRsaTl_ContextNew(
     if(magnum_rc != BERR_SUCCESS)
     {
         BDBG_ERR(("%s - Error initializing Secure Rsa TL module (0x%08x)",
-                  __FUNCTION__, container->basicOut[0]));
+                  BSTD_FUNCTION, container->basicOut[0]));
         goto ErrorExit;
     }
 
@@ -148,7 +148,7 @@ BERR_Code SecureRsaTl_Init(
 
     if(pSecureRsaTlHandle == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -205,7 +205,7 @@ BERR_Code SecureRsaTl_LoadRsaPackage(
     if((pLoadRsaPackageSettings == NULL) ||
        (pLoadRsaPackageSettings->drm_binfile_path == NULL))
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -221,7 +221,7 @@ BERR_Code SecureRsaTl_LoadRsaPackage(
                                 container, hSecureRsaTl->moduleHandle,
                                 SecureRsa_CommandId_eLoadRsaPackage) != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error loading RSA package", __FUNCTION__));
+        BDBG_ERR(("%s - Error loading RSA package", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -265,7 +265,7 @@ BERR_Code SecureRsaTl_GetStatus(
        (pGetStatusSettings->key3NumKeys == NULL) ||
        (pGetStatusSettings->kpkNumKeys == NULL))
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -282,7 +282,7 @@ BERR_Code SecureRsaTl_GetStatus(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -297,7 +297,7 @@ BERR_Code SecureRsaTl_GetStatus(
                                                              SRAI_MemoryType_Shared);
         if(container->blocks[1].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+            BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
@@ -309,7 +309,7 @@ BERR_Code SecureRsaTl_GetStatus(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -318,7 +318,7 @@ BERR_Code SecureRsaTl_GetStatus(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -381,7 +381,7 @@ BERR_Code SecureRsaTl_RemoveKey(
 
     if(pRemoveKeySettings == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -414,7 +414,7 @@ BERR_Code SecureRsaTl_RemoveKey(
         break;
 
     default:
-        BDBG_ERR(("%s - Invalid key type %x", __FUNCTION__,
+        BDBG_ERR(("%s - Invalid key type %x", BSTD_FUNCTION,
                   pRemoveKeySettings->keyType));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
@@ -425,7 +425,7 @@ BERR_Code SecureRsaTl_RemoveKey(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -434,7 +434,7 @@ BERR_Code SecureRsaTl_RemoveKey(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -474,7 +474,7 @@ static BERR_Code SecureRsaTl_RsaSignVerify(
 
     if(pRsaSignVerifySettings == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -491,7 +491,7 @@ static BERR_Code SecureRsaTl_RsaSignVerify(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -503,7 +503,7 @@ static BERR_Code SecureRsaTl_RsaSignVerify(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -530,7 +530,7 @@ static BERR_Code SecureRsaTl_RsaSignVerify(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -539,7 +539,7 @@ static BERR_Code SecureRsaTl_RsaSignVerify(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -617,7 +617,7 @@ BERR_Code SecureRsaTl_RsaHostUsage(
 
     if(pRsaHostUsageSettings == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -634,7 +634,7 @@ BERR_Code SecureRsaTl_RsaHostUsage(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -646,7 +646,7 @@ BERR_Code SecureRsaTl_RsaHostUsage(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -659,7 +659,7 @@ BERR_Code SecureRsaTl_RsaHostUsage(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -668,7 +668,7 @@ BERR_Code SecureRsaTl_RsaHostUsage(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -726,7 +726,7 @@ static BERR_Code SecureRsaTl_RsaDecryptAes(
 
     if(pRsaDecryptAesSettings == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -743,7 +743,7 @@ static BERR_Code SecureRsaTl_RsaDecryptAes(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -764,7 +764,7 @@ static BERR_Code SecureRsaTl_RsaDecryptAes(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -777,7 +777,7 @@ static BERR_Code SecureRsaTl_RsaDecryptAes(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[2].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -791,7 +791,7 @@ static BERR_Code SecureRsaTl_RsaDecryptAes(
                                                              SRAI_MemoryType_Shared);
         if(container->blocks[3].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+            BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
@@ -813,7 +813,7 @@ static BERR_Code SecureRsaTl_RsaDecryptAes(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -822,7 +822,7 @@ static BERR_Code SecureRsaTl_RsaDecryptAes(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -880,6 +880,114 @@ BERR_Code SecureRsaTl_RsaDecryptKpk(
 }
 
 
+void SecureRsaTl_GetDefaultRsaLoadPublicKeySettings(
+    SecureRsaTl_RsaLoadPublicKeySettings *pRsaLoadPublicKeySettings)
+{
+    BDBG_ASSERT(pRsaLoadPublicKeySettings);
+    memset(pRsaLoadPublicKeySettings, 0,
+           sizeof(SecureRsaTl_RsaLoadPublicKeySettings));
+}
+
+
+BERR_Code SecureRsaTl_RsaLoadPublicKey(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_RsaLoadPublicKeySettings *pRsaLoadPublicKeySettings)
+{
+    BERR_Code sage_rc;
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer *container = NULL;
+
+    BDBG_ENTER(SecureRsaTl_RsaLoadPublicKey);
+
+    BDBG_OBJECT_ASSERT(hSecureRsaTl, SecureRsaTl_P_Instance);
+
+    if(pRsaLoadPublicKeySettings == NULL)
+    {
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+
+    container->blocks[0].len = pRsaLoadPublicKeySettings->publicModulusLen;
+    container->blocks[0].data.ptr = SRAI_Memory_Allocate(container->blocks[0].len,
+                                                         SRAI_MemoryType_Shared);
+    if(container->blocks[0].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+    BKNI_Memcpy(container->blocks[0].data.ptr, pRsaLoadPublicKeySettings->publicModulus,
+                container->blocks[0].len);
+
+    container->blocks[1].len = pRsaLoadPublicKeySettings->signatureLen;
+    container->blocks[1].data.ptr = SRAI_Memory_Allocate(container->blocks[1].len,
+                                                         SRAI_MemoryType_Shared);
+    if(container->blocks[1].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+    BKNI_Memcpy(container->blocks[1].data.ptr,
+                pRsaLoadPublicKeySettings->signature,
+                container->blocks[1].len);
+
+    container->basicIn[0] = pRsaLoadPublicKeySettings->rsaKeySlot;
+    container->basicIn[1] = pRsaLoadPublicKeySettings->sigKeySlot;
+    container->basicIn[2] = pRsaLoadPublicKeySettings->sigPadType;
+    container->basicIn[3] = pRsaLoadPublicKeySettings->sigDigestType;
+    container->basicIn[4] = pRsaLoadPublicKeySettings->sigPssSaltLen;
+
+    sage_rc = SRAI_Module_ProcessCommand(hSecureRsaTl->moduleHandle,
+                                         SecureRsa_CommandId_eRsaLoadPublicKey,
+                                         container);
+    if(sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
+        rc = BERR_UNKNOWN;
+        goto ErrorExit;
+    }
+
+    rc = container->basicOut[0];
+    if(rc != 0)
+    {
+        BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
+                  BSTD_FUNCTION, rc));
+        goto ErrorExit;
+    }
+
+ErrorExit:
+    if(container != NULL)
+    {
+        if(container->blocks[0].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            container->blocks[0].data.ptr = NULL;
+        }
+
+        if(container->blocks[1].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[1].data.ptr);
+            container->blocks[1].data.ptr = NULL;
+        }
+
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
+
+    BDBG_LEAVE(SecureRsaTl_RsaLoadPublicKey);
+    return rc;
+}
+
+
 void SecureRsaTl_GetDefaultKey3ImportSettings(
     SecureRsaTl_Key3ImportExportSettings *pKey3ImportExportSettings)
 {
@@ -905,7 +1013,7 @@ static BERR_Code SecureRsaTl_Key3ImportExport(
 
     if(pKey3ImportExportSettings == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -922,7 +1030,7 @@ static BERR_Code SecureRsaTl_Key3ImportExport(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -945,7 +1053,7 @@ static BERR_Code SecureRsaTl_Key3ImportExport(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -954,7 +1062,7 @@ static BERR_Code SecureRsaTl_Key3ImportExport(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -1027,7 +1135,7 @@ BERR_Code SecureRsaTl_Key3Route(
 
     if(pKey3RouteSettings == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -1044,7 +1152,7 @@ BERR_Code SecureRsaTl_Key3Route(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -1068,7 +1176,7 @@ BERR_Code SecureRsaTl_Key3Route(
                                                              SRAI_MemoryType_Shared);
         if(container->blocks[1].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+            BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
@@ -1083,7 +1191,7 @@ BERR_Code SecureRsaTl_Key3Route(
                                                              SRAI_MemoryType_Shared);
         if(container->blocks[2].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+            BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
@@ -1096,7 +1204,7 @@ BERR_Code SecureRsaTl_Key3Route(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -1105,7 +1213,7 @@ BERR_Code SecureRsaTl_Key3Route(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -1161,7 +1269,7 @@ BERR_Code SecureRsaTl_Key3Unroute(
 
     if(pKey3UnrouteSettings == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -1180,7 +1288,7 @@ BERR_Code SecureRsaTl_Key3Unroute(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -1189,7 +1297,7 @@ BERR_Code SecureRsaTl_Key3Unroute(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -1227,7 +1335,7 @@ BERR_Code SecureRsaTl_Key3CalculateHmac(
 
     if(pKey3CalculateHmacSettings == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -1244,7 +1352,7 @@ BERR_Code SecureRsaTl_Key3CalculateHmac(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -1257,7 +1365,7 @@ BERR_Code SecureRsaTl_Key3CalculateHmac(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -1270,7 +1378,7 @@ BERR_Code SecureRsaTl_Key3CalculateHmac(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -1279,14 +1387,14 @@ BERR_Code SecureRsaTl_Key3CalculateHmac(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
     *(pKey3CalculateHmacSettings->hmacLen) = container->basicOut[1];
     BKNI_Memcpy(pKey3CalculateHmacSettings->hmac,
                 container->blocks[1].data.ptr,
-                container->blocks[1].len);
+                *(pKey3CalculateHmacSettings->hmacLen));
 
 ErrorExit:
     if(container != NULL)
@@ -1308,6 +1416,309 @@ ErrorExit:
     }
 
     BDBG_LEAVE(SecureRsaTl_Key3CalculateHmac);
+    return rc;
+}
+
+
+void SecureRsaTl_GetDefaultKey3AppendShaSettings(
+    SecureRsaTl_Key3AppendShaSettings *pKey3AppendShaSettings)
+{
+    BDBG_ASSERT(pKey3AppendShaSettings);
+    memset(pKey3AppendShaSettings, 0, sizeof(SecureRsaTl_Key3AppendShaSettings));
+}
+
+
+BERR_Code SecureRsaTl_Key3AppendSha(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_Key3AppendShaSettings *pKey3AppendShaSettings)
+{
+    BERR_Code sage_rc;
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer *container = NULL;
+
+    BDBG_ENTER(SecureRsaTl_Key3AppendSha);
+
+    BDBG_OBJECT_ASSERT(hSecureRsaTl, SecureRsaTl_P_Instance);
+
+    if(pKey3AppendShaSettings == NULL)
+    {
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+
+    if(pKey3AppendShaSettings->inputDataLen > 0)
+    {
+        container->blocks[0].len = pKey3AppendShaSettings->inputDataLen;
+        container->blocks[0].data.ptr = SRAI_Memory_Allocate(container->blocks[0].len,
+                                                             SRAI_MemoryType_Shared);
+        if(container->blocks[0].data.ptr == NULL)
+        {
+            BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
+            rc = BERR_OUT_OF_SYSTEM_MEMORY;
+            goto ErrorExit;
+        }
+        BKNI_Memcpy(container->blocks[0].data.ptr,
+                    pKey3AppendShaSettings->inputData,
+                    container->blocks[0].len);
+    }
+
+    container->blocks[1].len = *(pKey3AppendShaSettings->digestLen);
+    container->blocks[1].data.ptr = SRAI_Memory_Allocate(container->blocks[1].len,
+                                                         SRAI_MemoryType_Shared);
+    if(container->blocks[1].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+
+    container->basicIn[0] = pKey3AppendShaSettings->key3KeySlot;
+    container->basicIn[1] = pKey3AppendShaSettings->digestType;
+
+    sage_rc = SRAI_Module_ProcessCommand(hSecureRsaTl->moduleHandle,
+                                         SecureRsa_CommandId_eKey3AppendSha,
+                                         container);
+    if(sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
+        rc = BERR_UNKNOWN;
+        goto ErrorExit;
+    }
+
+    rc = container->basicOut[0];
+    if(rc != 0)
+    {
+        BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
+                  BSTD_FUNCTION, rc));
+        goto ErrorExit;
+    }
+
+    *(pKey3AppendShaSettings->digestLen) = container->basicOut[1];
+    BKNI_Memcpy(pKey3AppendShaSettings->digest,
+                container->blocks[1].data.ptr,
+                *(pKey3AppendShaSettings->digestLen));
+
+ErrorExit:
+    if(container != NULL)
+    {
+        if(container->blocks[0].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            container->blocks[0].data.ptr = NULL;
+        }
+
+        if(container->blocks[1].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[1].data.ptr);
+            container->blocks[1].data.ptr = NULL;
+        }
+
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
+
+    BDBG_LEAVE(SecureRsaTl_Key3AppendSha);
+    return rc;
+}
+
+
+void SecureRsaTl_GetDefaultKey3LoadClearIkrSettings(
+    SecureRsaTl_Key3LoadClearIkrSettings *pKey3LoadClearIkrSettings)
+{
+    BDBG_ASSERT(pKey3LoadClearIkrSettings);
+    memset(pKey3LoadClearIkrSettings, 0, sizeof(SecureRsaTl_Key3LoadClearIkrSettings));
+}
+
+
+BERR_Code SecureRsaTl_Key3LoadClearIkr(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_Key3LoadClearIkrSettings *pKey3LoadClearIkrSettings)
+{
+    BERR_Code sage_rc;
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer *container = NULL;
+
+    BDBG_ENTER(SecureRsaTl_Key3LoadClearIkr);
+
+    BDBG_OBJECT_ASSERT(hSecureRsaTl, SecureRsaTl_P_Instance);
+
+    if(pKey3LoadClearIkrSettings == NULL)
+    {
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+
+    container->blocks[0].len = pKey3LoadClearIkrSettings->keyLen;
+    container->blocks[0].data.ptr = SRAI_Memory_Allocate(container->blocks[0].len,
+                                                         SRAI_MemoryType_Shared);
+    if(container->blocks[0].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+    BKNI_Memcpy(container->blocks[0].data.ptr,
+                pKey3LoadClearIkrSettings->key,
+                container->blocks[0].len);
+
+    container->basicIn[0] = pKey3LoadClearIkrSettings->key3KeySlot;
+
+    sage_rc = SRAI_Module_ProcessCommand(hSecureRsaTl->moduleHandle,
+                                         SecureRsa_CommandId_eKey3LoadClearIkr,
+                                         container);
+    if(sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
+        rc = BERR_UNKNOWN;
+        goto ErrorExit;
+    }
+
+    rc = container->basicOut[0];
+    if(rc != 0)
+    {
+        BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
+                  BSTD_FUNCTION, rc));
+        goto ErrorExit;
+    }
+
+ErrorExit:
+    if(container != NULL)
+    {
+        if(container->blocks[0].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            container->blocks[0].data.ptr = NULL;
+        }
+
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
+
+    BDBG_LEAVE(SecureRsaTl_Key3LoadClearIkr);
+    return rc;
+}
+
+
+void SecureRsaTl_GetDefaultKey3IkrDecryptIkrSettings(
+    SecureRsaTl_Key3IkrDecryptIkrSettings *pKey3IkrDecryptIkrSettings)
+{
+    BDBG_ASSERT(pKey3IkrDecryptIkrSettings);
+    memset(pKey3IkrDecryptIkrSettings, 0, sizeof(SecureRsaTl_Key3IkrDecryptIkrSettings));
+}
+
+
+BERR_Code SecureRsaTl_Key3IkrDecryptIkr(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_Key3IkrDecryptIkrSettings *pKey3IkrDecryptIkrSettings)
+{
+    BERR_Code sage_rc;
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer *container = NULL;
+
+    BDBG_ENTER(SecureRsaTl_Key3IkrDecryptIkr);
+
+    BDBG_OBJECT_ASSERT(hSecureRsaTl, SecureRsaTl_P_Instance);
+
+    if(pKey3IkrDecryptIkrSettings == NULL)
+    {
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+
+    container->blocks[0].len = pKey3IkrDecryptIkrSettings->encKeyLen;
+    container->blocks[0].data.ptr = SRAI_Memory_Allocate(container->blocks[0].len,
+                                                         SRAI_MemoryType_Shared);
+    if(container->blocks[0].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+    BKNI_Memcpy(container->blocks[0].data.ptr, pKey3IkrDecryptIkrSettings->encKey,
+                container->blocks[0].len);
+
+    if(pKey3IkrDecryptIkrSettings->encIvLen > 0)
+    {
+        container->blocks[1].len = pKey3IkrDecryptIkrSettings->encIvLen;
+        container->blocks[1].data.ptr = SRAI_Memory_Allocate(container->blocks[1].len,
+                                                             SRAI_MemoryType_Shared);
+        if(container->blocks[1].data.ptr == NULL)
+        {
+            BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
+            rc = BERR_OUT_OF_SYSTEM_MEMORY;
+            goto ErrorExit;
+        }
+        BKNI_Memcpy(container->blocks[1].data.ptr, pKey3IkrDecryptIkrSettings->encIv,
+                    container->blocks[1].len);
+    }
+
+    container->basicIn[0] = pKey3IkrDecryptIkrSettings->ikrKeySlot;
+    container->basicIn[1] = pKey3IkrDecryptIkrSettings->encKeySlot;
+    container->basicIn[2] = pKey3IkrDecryptIkrSettings->variant;
+    container->basicIn[3] = pKey3IkrDecryptIkrSettings->enableTransform;
+
+    sage_rc = SRAI_Module_ProcessCommand(hSecureRsaTl->moduleHandle,
+                                         SecureRsa_CommandId_eKey3IkrDecryptIkr,
+                                         container);
+    if(sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
+        rc = BERR_UNKNOWN;
+        goto ErrorExit;
+    }
+
+    rc = container->basicOut[0];
+    if(rc != 0)
+    {
+        BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
+                  BSTD_FUNCTION, rc));
+        goto ErrorExit;
+    }
+
+ErrorExit:
+    if(container != NULL)
+    {
+        if(container->blocks[0].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            container->blocks[0].data.ptr = NULL;
+        }
+
+        if(container->blocks[1].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[1].data.ptr);
+            container->blocks[1].data.ptr = NULL;
+        }
+
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
+
+    BDBG_LEAVE(SecureRsaTl_Key3IkrDecryptIkr);
     return rc;
 }
 
@@ -1335,7 +1746,7 @@ BERR_Code SecureRsaTl_KpkDecryptRsa(
 
     if(pKpkDecryptRsaSettings == NULL)
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -1352,7 +1763,7 @@ BERR_Code SecureRsaTl_KpkDecryptRsa(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -1370,7 +1781,7 @@ BERR_Code SecureRsaTl_KpkDecryptRsa(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -1383,7 +1794,7 @@ BERR_Code SecureRsaTl_KpkDecryptRsa(
                                                          SRAI_MemoryType_Shared);
     if(container->blocks[2].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -1397,7 +1808,7 @@ BERR_Code SecureRsaTl_KpkDecryptRsa(
                                                              SRAI_MemoryType_Shared);
         if(container->blocks[3].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+            BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
@@ -1413,7 +1824,7 @@ BERR_Code SecureRsaTl_KpkDecryptRsa(
                                                              SRAI_MemoryType_Shared);
         if(container->blocks[4].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Cannot allocate memory", __FUNCTION__));
+            BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
@@ -1427,7 +1838,7 @@ BERR_Code SecureRsaTl_KpkDecryptRsa(
                                          container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = BERR_UNKNOWN;
         goto ErrorExit;
     }
@@ -1436,7 +1847,7 @@ BERR_Code SecureRsaTl_KpkDecryptRsa(
     if(rc != 0)
     {
         BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
-                  __FUNCTION__, rc));
+                  BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -1467,10 +1878,123 @@ ErrorExit:
             container->blocks[3].data.ptr = NULL;
         }
 
+        if(container->blocks[4].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[4].data.ptr);
+            container->blocks[4].data.ptr = NULL;
+        }
+
         SRAI_Container_Free(container);
         container = NULL;
     }
 
     BDBG_LEAVE(SecureRsaTl_KpkDecryptRsa);
+    return rc;
+}
+
+
+void SecureRsaTl_GetDefaultKpkDecryptIkrSettings(
+    SecureRsaTl_KpkDecryptIkrSettings *pKpkDecryptIkrSettings)
+{
+    BDBG_ASSERT(pKpkDecryptIkrSettings);
+    memset(pKpkDecryptIkrSettings, 0, sizeof(SecureRsaTl_KpkDecryptIkrSettings));
+}
+
+
+BERR_Code SecureRsaTl_KpkDecryptIkr(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_KpkDecryptIkrSettings *pKpkDecryptIkrSettings)
+{
+    BERR_Code sage_rc;
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer *container = NULL;
+
+    BDBG_ENTER(SecureRsaTl_KpkDecryptIkr);
+
+    BDBG_OBJECT_ASSERT(hSecureRsaTl, SecureRsaTl_P_Instance);
+
+    if(pKpkDecryptIkrSettings == NULL)
+    {
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+
+    container->blocks[0].len = pKpkDecryptIkrSettings->encKeyLen;
+    container->blocks[0].data.ptr = SRAI_Memory_Allocate(container->blocks[0].len,
+                                                         SRAI_MemoryType_Shared);
+    if(container->blocks[0].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+    BKNI_Memcpy(container->blocks[0].data.ptr, pKpkDecryptIkrSettings->encKey,
+                container->blocks[0].len);
+
+    if(pKpkDecryptIkrSettings->encIvLen > 0)
+    {
+        container->blocks[1].len = pKpkDecryptIkrSettings->encIvLen;
+        container->blocks[1].data.ptr = SRAI_Memory_Allocate(container->blocks[1].len,
+                                                             SRAI_MemoryType_Shared);
+        if(container->blocks[1].data.ptr == NULL)
+        {
+            BDBG_ERR(("%s - Cannot allocate memory", BSTD_FUNCTION));
+            rc = BERR_OUT_OF_SYSTEM_MEMORY;
+            goto ErrorExit;
+        }
+        BKNI_Memcpy(container->blocks[1].data.ptr, pKpkDecryptIkrSettings->encIv,
+                    container->blocks[1].len);
+    }
+
+    container->basicIn[0] = pKpkDecryptIkrSettings->ikrKeySlot;
+    container->basicIn[1] = pKpkDecryptIkrSettings->encKeySlot;
+    container->basicIn[2] = pKpkDecryptIkrSettings->variant;
+
+    sage_rc = SRAI_Module_ProcessCommand(hSecureRsaTl->moduleHandle,
+                                         SecureRsa_CommandId_eKpkDecryptIkr,
+                                         container);
+    if(sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
+        rc = BERR_UNKNOWN;
+        goto ErrorExit;
+    }
+
+    rc = container->basicOut[0];
+    if(rc != 0)
+    {
+        BDBG_ERR(("%s - Command was sent successfully but actual operation failed (0x%08x)",
+                  BSTD_FUNCTION, rc));
+        goto ErrorExit;
+    }
+
+ErrorExit:
+    if(container != NULL)
+    {
+        if(container->blocks[0].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            container->blocks[0].data.ptr = NULL;
+        }
+
+        if(container->blocks[1].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[1].data.ptr);
+            container->blocks[1].data.ptr = NULL;
+        }
+
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
+
+    BDBG_LEAVE(SecureRsaTl_KpkDecryptIkr);
     return rc;
 }

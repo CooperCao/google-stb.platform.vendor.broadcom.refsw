@@ -1,22 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-Verifies that a compiled shader agrees with its dataflow graph for random input
-values.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/glsl_dataflow.h"
 #include "middleware/khronos/glsl/glsl_dataflow_visitor.h"
 #include "middleware/khronos/glsl/2708/glsl_allocator_4.h"
 #include "middleware/khronos/glsl/2708/glsl_qdisasm_4.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
+#include <assert.h>
 
 #ifdef BACKEND_VERIFY_SHADERS
 
@@ -48,10 +39,10 @@ static bool truth(uint32_t value, uint32_t mode)
    switch (mode)
    {
    case BOOL_REP_BOOL:
-      vcos_assert(value == 0 || value == 1);
+      assert(value == 0 || value == 1);
       return !!value;
    case BOOL_REP_BOOL_N:
-      vcos_assert(value == 0 || value == 1);
+      assert(value == 0 || value == 1);
       return !value;
    case BOOL_REP_NEG:
       return (value & 0x80000000) != 0;
@@ -89,7 +80,7 @@ static uint32_t visit(Dataflow *dataflow, STATE_T *state)
       if (dataflow->temp != ~0 && dataflow->temp >= 4)
       {
          uint32_t timestamp = dataflow->temp >> 2;
-         vcos_assert(timestamp < MAX_INSTRUCTIONS);
+         assert(timestamp < MAX_INSTRUCTIONS);
 
          if (timestamp > max_instruction)
             max_instruction = timestamp;
@@ -98,7 +89,7 @@ static uint32_t visit(Dataflow *dataflow, STATE_T *state)
             instr_guide[timestamp][0] = dataflow;
          else
          {
-            vcos_assert(instr_guide[timestamp][1] == NULL);
+            assert(instr_guide[timestamp][1] == NULL);
             instr_guide[timestamp][1] = dataflow;
          }
       }
@@ -125,12 +116,12 @@ static uint32_t visit(Dataflow *dataflow, STATE_T *state)
          case BACKEND_UNIFORM_OFFSET_Z:
             value = state->unif_offset_z; break;
          default:
-            vcos_assert((uint32_t)dataflow->u.linkable_value.row < UNIF_MAX);
+            assert((uint32_t)dataflow->u.linkable_value.row < UNIF_MAX);
             value = state->unifs[dataflow->u.linkable_value.row];
          }
          break;
       case DATAFLOW_ATTRIBUTE:
-         vcos_assert((uint32_t)dataflow->u.linkable_value.row < ATTR_MAX);
+         assert((uint32_t)dataflow->u.linkable_value.row < ATTR_MAX);
          value = state->inputs[dataflow->u.linkable_value.row];
          break;
       //case DATAFLOW_VARYING:
@@ -239,7 +230,7 @@ static uint32_t visit(Dataflow *dataflow, STATE_T *state)
             uint32_t unif_size = sampler->u.indexed_uniform_sampler.size;
             int index;
 
-            vcos_assert(unif_base < UNIF_MAX && unif_size < UNIF_MAX && unif_base + unif_size < UNIF_MAX);
+            assert(unif_base < UNIF_MAX && unif_size < UNIF_MAX && unif_base + unif_size < UNIF_MAX);
             index = (int)(*(float*)&value_s * unif_size);
             if (index < 0) index = 0;
             if (index >= (int)unif_size) index = unif_size - 1;
@@ -247,7 +238,7 @@ static uint32_t visit(Dataflow *dataflow, STATE_T *state)
          }
          else
          {
-            vcos_assert(0);    //TODO
+            assert(0);    //TODO
          }
          break;
       }
@@ -266,7 +257,7 @@ static uint32_t visit(Dataflow *dataflow, STATE_T *state)
       //case DATAFLOW_FRAG_SUBMIT_MS:
       //case DATAFLOW_FRAG_SUBMIT_ALL:
       case DATAFLOW_VERTEX_SET:
-         vcos_assert(state->num_outputs < OUT_MAX);
+         assert(state->num_outputs < OUT_MAX);
          state->outputs[state->num_outputs] = visit(dataflow->u.vertex_set.param, state);
          state->num_outputs++;
          value = 0;
@@ -313,7 +304,7 @@ static void test_shader(const void *original_shader, uint32_t num_instr, const u
    hunif = mem_alloc(4 * num_unif, 4, MEM_FLAG_NONE, "unifs");
    hshader = mem_alloc(8 * (ATTR_MAX + 1 + num_instr + 4), 4, MEM_FLAG_NONE, "shader");
    hout = mem_alloc(4 * num_outputs, 4, MEM_FLAG_NONE, "out");
-   vcos_assert(hunif != MEM_HANDLE_INVALID && hshader != MEM_HANDLE_INVALID && hout != MEM_HANDLE_INVALID);
+   assert(hunif != MEM_HANDLE_INVALID && hshader != MEM_HANDLE_INVALID && hout != MEM_HANDLE_INVALID);
 
    shader = (uint32_t *)mem_lock(hshader);
    unifs = (uint32_t *)mem_lock(hunif);
@@ -406,8 +397,8 @@ static void test_shader(const void *original_shader, uint32_t num_instr, const u
          uint32_t *tex;
 
          htex = mem_alloc_ex(64 * ((size + 3) / 4), 4096, MEM_FLAG_DIRECT, "Temporary texture allocation (for indexed uniforms)", MEM_COMPACT_DISCARD);
-         vcos_assert(htex != MEM_HANDLE_INVALID);       //TODO
-         vcos_assert(tex_count < TEX_MAX);
+         assert(htex != MEM_HANDLE_INVALID);       //TODO
+         assert(tex_count < TEX_MAX);
          MEM_ASSIGN(htexs[tex_count], htex);
          mem_release(htex);
          tex_count++;
@@ -415,7 +406,7 @@ static void test_shader(const void *original_shader, uint32_t num_instr, const u
 
          for (i = 0; i < size; i++)
          {
-            vcos_assert(index + i < UNIF_MAX);
+            assert(index + i < UNIF_MAX);
             tex[(i & ~3) << 2 | (i & 3)] = state->unifs[index + i];
          }
 
@@ -497,7 +488,7 @@ void glsl_backend_verify_vertex_shader(uint32_t seed, Dataflow *dataflow, const 
    memset(instr_guide, 0, sizeof(instr_guide));
    max_instruction = 0;
    visit(dataflow, &df_state);
-   vcos_assert(df_state.num_outputs == num_outputs);
+   assert(df_state.num_outputs == num_outputs);
    test_shader(shader, num_instr, unif_map, num_unif, &sh_state, num_outputs);
 
    for (i = 0; i < num_outputs; i++)
@@ -531,7 +522,7 @@ void glsl_backend_verify_vertex_shader(uint32_t seed, Dataflow *dataflow, const 
          }
          test_shader(shader, num_instr, unif_map, num_unif, &sh_state, num_outputs);
       }
-      vcos_assert(df_state.outputs[i] == sh_state.outputs[i]);
+      assert(df_state.outputs[i] == sh_state.outputs[i]);
    }
    wipe(dataflow);
 }

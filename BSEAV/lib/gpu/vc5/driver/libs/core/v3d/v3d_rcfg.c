@@ -332,7 +332,7 @@ void v3d_calc_tlb_ldst_buffer_desc(
    const struct v3d_rcfg *rcfg, v3d_ldst_buf_t buf,
    const struct v3d_tlb_ldst_params *ls)
 {
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GFX_LFMT_T lfmt = gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
       ls->memory_format, ls->pixel_format, ls->chan_reverse, ls->rb_swap, ls->flipy);
 #elif V3D_VER_AT_LEAST(4,0,2,0)

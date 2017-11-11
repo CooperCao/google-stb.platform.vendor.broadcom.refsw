@@ -90,7 +90,7 @@ ifeq ($(filter NEXUS_HAS_XPT_DMA, $(NEXUS_PLATFORM_DEFINES)), NEXUS_HAS_XPT_DMA)
 NEXUS_TRANSPORT_SOURCES += $(NEXUS_TOP)/modules/transport/src/nexus_xpt_dma.c
 endif
 
-ifneq ($(findstring $(BCHP_CHIP),7550 7408),)
+ifneq ($(findstring $(BCHP_CHIP),7550 7408 7255),)
 # Software-based message filtering. Required for chips w/o HW filtering. Optional for other chips.
 NEXUS_USE_SW_FILTER=y
 endif

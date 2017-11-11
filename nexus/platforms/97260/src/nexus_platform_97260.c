@@ -58,6 +58,8 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
         pSettings->videoDecoder[0].mosaic.maxWidth  = 1920;
         pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
         break;
+    case 6:
+        pSettings->videoDecoder[1].colorDepth = 8;
     default:
         break;
     }
@@ -81,10 +83,16 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 
     switch(boxMode)
     {
-        /* Box 4 is a UHD mode so we need a larger CRR region */
+        /* UHD box modes need a larger CRR region */
         case 4:
+        case 5:
         {
             pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64 * MB;
+            break;
+        }
+        case 6: /* UHD + HD */
+        {
+            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 72 * MB;
             break;
         }
     }
@@ -97,7 +105,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 
 #if NEXUS_CPU_ARM64
     const char *mode = "64 bit";
-#elif NEXUS_CPU_ARM
+#else /* NEXUS_CPU_ARM */
     const char *mode = "32 bit compatibility";
 #endif
 

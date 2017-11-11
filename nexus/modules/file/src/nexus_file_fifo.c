@@ -258,6 +258,7 @@ bpvrfifo_write(bfile_io_write_t fd, const void *buf_, size_t length)
             }
         }
     }
+    /* coverity[sleep] - trim may sleep */
     bpvrfifo_dec_busy(file->header);
     B_DUMP_ENTRY(file);
     BDBG_MSG_IO(file, ("<write:%u %lld:%u -> %d", file->header->busy, file->offset, (unsigned)length, (int)result));
@@ -356,6 +357,7 @@ bpvrfifo_read(bfile_io_read_t fd, void *buf_, size_t length)
         length -= (size_t) rc;
         file->cur_pos = file->cur_pos + rc;
     }
+    /* coverity[sleep] - trim may sleep */
     bpvrfifo_dec_busy(file->header);
     B_DUMP_ENTRY(file);
     BDBG_MSG_IO(file, ("<read:%u %lld:%u=%d", file->header->busy, file->cur_pos, (unsigned)length, (int)result));
@@ -571,7 +573,6 @@ bpvrfifo_write_open(const char *fname, bool direct, off_t start )
     BKNI_Memset(file, 0, sizeof(*file));
     file->header = &file->_header;
     file->header->data.h.signature = bpvrfifo_signature;
-    file->writeSnapshotFile = NULL;
     rc = BKNI_CreateMutex(&file->header->lock);
     if (rc!=BERR_SUCCESS) {
         goto err_lock;
@@ -586,8 +587,10 @@ bpvrfifo_write_open(const char *fname, bool direct, off_t start )
     /* initialize data */
     file->self = bpvrfifo_io_write;
     file->start = start;
+    b_lock(file); /* lock added to satisfy static analysis */
     file->ref_cnt = 1;
     file->size = 512 * 1024;
+    b_unlock(file);
     for(i=0;i<BFIFO_N_ENTRYS;i++) {
         B_ENTRY_CLEAR(file, i);
     }
@@ -616,8 +619,8 @@ bpvrfifo_write_release(struct bfile_io_write_fifo *file)
 {
     bool last;
 
-    b_lock(file);
     BDBG_ASSERT(file->header);
+    b_lock(file);
     BDBG_MSG_IO(file, ("release:%u:%u", file->ref_cnt, file->header->busy));
     BDBG_ASSERT(file->ref_cnt);
     file->ref_cnt--;
@@ -1077,11 +1080,13 @@ b_trim_timer(void *file_)
         goto done;
     }
 
+    /* coverity[sleep] - trim may sleep */
     b_trim_try_player(file);
     if(file->bcm_player==NULL) {
         BDBG_WRN(("index file is empty, trim can't be activated"));
         goto done;
     }
+    /* coverity[sleep] - trim may sleep */
     rc = trim_bp_bounds(file->bcm_player, file, &firstIndex, &lastIndex);
     if (rc!=0) {
         BDBG_WRN(("can't obtain file bounds"));
@@ -1110,6 +1115,7 @@ b_trim_timer(void *file_)
     if (last.timestamp - first.timestamp > interval) {
         long index;
         off_t off;
+        /* coverity[sleep] - trim may sleep */
         unsigned index_entrysize = b_get_index_entrysize(file);
 
         index = BNAV_Player_FindIndexFromTimestamp(file->bcm_player, last.timestamp - interval);
@@ -1201,11 +1207,13 @@ NEXUS_FifoRecord_Create(const char *fname, const char *indexname)
 
     file->data.file = bpvrfifo_write_open(fname, true, 0);
     if (!file->data.file) { goto err_data;}
+    /* coverity[missing_lock] not needed because no simultaneous access can happen here. */
     file->data.file->size = file->cfg.data.soft;
 
     file->index.trim_count = 0;
     file->index.file = bpvrfifo_write_open(indexname, false, 2*sizeof(file->data.file->header->data));
     if (!file->index.file) { goto err_index;}
+    /* coverity[missing_lock] not needed because no simultaneous access can happen here. */
     file->index.file->size = file->cfg.index.soft;
 
     file->rd_index = bpvrfifo_read_open(indexname, false, file->index.file);

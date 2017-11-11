@@ -462,6 +462,7 @@ NEXUS_FilePlayHandle NEXUS_FilePlay_Open(const NEXUS_FilePlayOpenSettings *pSett
     }
     file->self.file.data = &file->data.self;
     file->self.file.close = posix_close_in;
+    file->self.locked = false;
 
     return &file->self;
 

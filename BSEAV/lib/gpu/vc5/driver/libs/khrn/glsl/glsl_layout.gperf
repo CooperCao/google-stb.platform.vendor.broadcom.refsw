@@ -8,6 +8,7 @@
 %define hash-function-name   glsl_layout_hash
 %define lookup-function-name glsl_layout_lookup
 %readonly-tables
+%enum
 
 struct layout_data;
 %%

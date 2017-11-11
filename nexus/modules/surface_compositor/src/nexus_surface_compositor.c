@@ -1533,7 +1533,7 @@ static void nexus_surface_compositor_p_compose_framebuffer(NEXUS_SurfaceComposit
                 nexus_surfacemp_scale_clipped_rect(&client->state.framebufferRect, &client->state.left.outputRect, &sourceRect, &client->state.left.sourceRect);
                 BDBG_MSG_TRACE(("%p: client:%p:%u,%u (%d,%d,%u,%u)[left]", (void *)server, (void *)client, client->client_id, client->state.client_type, client->state.left.sourceRect.x, client->state.left.sourceRect.y, client->state.left.sourceRect.width, client->state.left.sourceRect.height));
             }
-            if(!client->state.right.hidden && (cmpDisplay->formatInfo.orientation==NEXUS_VideoOrientation_e3D_LeftRight || NEXUS_VideoOrientation_e3D_OverUnder)) {
+            if(!client->state.right.hidden && (cmpDisplay->formatInfo.orientation==NEXUS_VideoOrientation_e3D_LeftRight || cmpDisplay->formatInfo.orientation==NEXUS_VideoOrientation_e3D_OverUnder)) {
                 NEXUS_Rect outputRect; /* we need to shift outputRect to 0 */
                 NEXUS_Rect framebufferRect; /* we need to account for rightViewOffset */
                 BDBG_ASSERT(client->state.right.outputRect.x >= cmpDisplay->offset3DRight.x);
@@ -1607,7 +1607,7 @@ static void nexus_surface_compositor_p_update_hidden_clients(NEXUS_SurfaceCompos
                     }
                 }
             }
-            if(client->state.right.visible && (cmpDisplay && (cmpDisplay->formatInfo.orientation==NEXUS_VideoOrientation_e3D_LeftRight || NEXUS_VideoOrientation_e3D_OverUnder))) {
+            if(client->state.right.visible && (cmpDisplay && (cmpDisplay->formatInfo.orientation==NEXUS_VideoOrientation_e3D_LeftRight || cmpDisplay->formatInfo.orientation==NEXUS_VideoOrientation_e3D_OverUnder))) {
                 client->state.right.hidden = false;
                 /* then look for all clients that are on top and verify that they aren't completely masking current client */
                 for(prev=BLST_Q_NEXT(client,link); prev ; prev=BLST_Q_NEXT(prev, link)) {
@@ -1681,9 +1681,10 @@ done:
 /* compose all framebuffers */
 void nexus_surface_compositor_p_compose(NEXUS_SurfaceCompositorHandle server)
 {
-    struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[0];
+    struct NEXUS_SurfaceCompositorDisplay *cmpDisplay;
 
     BDBG_OBJECT_ASSERT(server, NEXUS_SurfaceCompositor);
+    cmpDisplay = server->display[0];
 
     if (!server->settings.enabled) {
         /* short circuit composition triggered by client activity */

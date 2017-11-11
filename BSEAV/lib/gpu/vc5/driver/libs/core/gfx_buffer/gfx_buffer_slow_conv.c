@@ -22,7 +22,6 @@ size_t gfx_buffer_block_offset(
 
    assert((dims >= 2) || (y_in_blocks == 0));
    assert((dims >= 3) || (z_in_blocks == 0));
-   vcos_unused_in_release(dims);
 
    if (gfx_lfmt_get_yflip(&plane->lfmt))
    {
@@ -374,7 +373,6 @@ void gfx_buffer_subsample_func(
       bool has_float = gfx_lfmt_contains_float(fmt);
 
       assert(has_norm ^ has_float);
-      vcos_unused_in_release(has_norm);
       assert(!(has_float && has_srgb));
 
       gfx_buffer_xform_seq_init(&xform_seq_up, &src->desc);

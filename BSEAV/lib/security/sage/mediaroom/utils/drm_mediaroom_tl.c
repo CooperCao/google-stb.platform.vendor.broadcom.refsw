@@ -109,17 +109,17 @@ DRM_Mediaroom_Initialize(char *drm_bin_file)
     if (!drm_bin_file )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
     eCode = BCRYPT_Open(&mediaroom_bcrypt_handle);
     if(eCode == BCRYPT_STATUS_eOK)
     {
-        BDBG_MSG(("%s - Opened BCRYPT, mediaroom_bcrypt_handle = '0x%08x' ^^^^^^^", __FUNCTION__, mediaroom_bcrypt_handle));
+        BDBG_MSG(("%s - Opened BCRYPT, mediaroom_bcrypt_handle = '0x%08x' ^^^^^^^", BSTD_FUNCTION, mediaroom_bcrypt_handle));
     }
     else {
-        BDBG_ERR(("%s - Failed to open BCRYPT, rc = '%d' ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__, eCode));
+        BDBG_ERR(("%s - Failed to open BCRYPT, rc = '%d' ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION, eCode));
         mediaroom_bcrypt_handle = 0;
         rc = Drm_BcryptErr;
         goto ErrorExit;
@@ -139,13 +139,13 @@ DRM_Mediaroom_Initialize(char *drm_bin_file)
         BDBG_ERR (("Mediaroom TA path not specified"));
         goto ErrorExit;
     }
-    BDBG_MSG(("%s TA bin file %s ",__FUNCTION__, ta_bin_file_path));
+    BDBG_MSG(("%s TA bin file %s ",BSTD_FUNCTION, ta_bin_file_path));
 
     /* Install Mediaroom TA */
     rc = DRM_Mediaroom_P_TA_Install(ta_bin_file_path);
     if (rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error installing Mediaroom TA %s %d", __FUNCTION__,ta_bin_file_path, rc ));
+        BDBG_ERR(("%s - Error installing Mediaroom TA %s %d", BSTD_FUNCTION,ta_bin_file_path, rc ));
         goto ErrorExit;
     }
 
@@ -155,26 +155,26 @@ DRM_Mediaroom_Initialize(char *drm_bin_file)
         sage_rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_MEDIAROOM, &mediaroomPlatformStatus, &hMediaroomPlatform);
         if (sage_rc != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error calling platform_open, ta_bin_file_path: %s", __FUNCTION__, ta_bin_file_path));
+            BDBG_ERR(("%s - Error calling platform_open, ta_bin_file_path: %s", BSTD_FUNCTION, ta_bin_file_path));
             rc = Drm_Err;
             goto ErrorExit;
         }
         if(mediaroomPlatformStatus == BSAGElib_State_eUninit)
         {
-            BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit *******)", __FUNCTION__));
+            BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit *******)", BSTD_FUNCTION));
             container = SRAI_Container_Allocate();
             if(container == NULL)
             {
-                BDBG_ERR(("%s - Error fetching container", __FUNCTION__));
+                BDBG_ERR(("%s - Error fetching container", BSTD_FUNCTION));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
-            BDBG_MSG(("%s: allocated container for mediaroom at %p",__FUNCTION__,container));
+            BDBG_MSG(("%s: allocated container for mediaroom at %p",BSTD_FUNCTION,container));
             /* Initialize Mediaroom Platform */
             sage_rc = SRAI_Platform_Init(hMediaroomPlatform, container);
             if (sage_rc != BERR_SUCCESS)
             {
-                BDBG_ERR(("%s: %d - Error calling platform init", __FUNCTION__,__LINE__));
+                BDBG_ERR(("%s: %d - Error calling platform init", BSTD_FUNCTION,__LINE__));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
@@ -182,13 +182,13 @@ DRM_Mediaroom_Initialize(char *drm_bin_file)
     }
     else
     {
-        BDBG_WRN(("%s: Mediaroom Platform already initialized *************************", __FUNCTION__));
+        BDBG_WRN(("%s: Mediaroom Platform already initialized *************************", BSTD_FUNCTION));
     }
 
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -198,7 +198,7 @@ DRM_Mediaroom_Initialize(char *drm_bin_file)
     rc = DRM_Mediaroom_ModuleInit(Mediaroom_ModuleId_eDRM,(char *)drm_bin_file, container, &hMediaroomModule);
     if (rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Error initializing module (0x%08x)", BSTD_FUNCTION, container->basicOut[0]));
         goto ErrorExit;
     }
 
@@ -238,14 +238,14 @@ DrmRC DRM_Mediaroom_GetMagic(uint8_t *magic, uint32_t magicLength)
     if (!magic )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -255,7 +255,7 @@ DrmRC DRM_Mediaroom_GetMagic(uint8_t *magic, uint32_t magicLength)
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(magicLength, SRAI_MemoryType_Shared);
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating buffer for magic field", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating buffer for magic field", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -266,7 +266,7 @@ DrmRC DRM_Mediaroom_GetMagic(uint8_t *magic, uint32_t magicLength)
 
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during Get Magic operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during Get Magic operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -281,7 +281,7 @@ DrmRC DRM_Mediaroom_GetMagic(uint8_t *magic, uint32_t magicLength)
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -314,14 +314,14 @@ DrmRC DRM_Mediaroom_GetVersion(uint8_t *version, uint32_t versionLength)
     if (!version )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -331,7 +331,7 @@ DrmRC DRM_Mediaroom_GetVersion(uint8_t *version, uint32_t versionLength)
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(versionLength, SRAI_MemoryType_Shared);
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating buffer for version field", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating buffer for version field", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -342,7 +342,7 @@ DrmRC DRM_Mediaroom_GetVersion(uint8_t *version, uint32_t versionLength)
 
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during Get Version operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during Get Version operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -357,7 +357,7 @@ DrmRC DRM_Mediaroom_GetVersion(uint8_t *version, uint32_t versionLength)
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -390,14 +390,14 @@ DrmRC DRM_Mediaroom_GetCertificate(uint8_t *cert, uint32_t certLength, bool fAV)
     if (!cert )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -407,7 +407,7 @@ DrmRC DRM_Mediaroom_GetCertificate(uint8_t *cert, uint32_t certLength, bool fAV)
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(certLength, SRAI_MemoryType_Shared);
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating buffer for %s certificate", __FUNCTION__,(fAV==true)?"AV":"Non-AV"));
+            BDBG_ERR(("%s - Error allocating buffer for %s certificate", BSTD_FUNCTION,(fAV==true)?"AV":"Non-AV"));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -424,7 +424,7 @@ DrmRC DRM_Mediaroom_GetCertificate(uint8_t *cert, uint32_t certLength, bool fAV)
     }
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during Get %s Certificate operation", __FUNCTION__, (fAV==true)?"AV":"Non-AV"));
+        BDBG_ERR(("%s - Error during Get %s Certificate operation", BSTD_FUNCTION, (fAV==true)?"AV":"Non-AV"));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -439,7 +439,7 @@ DrmRC DRM_Mediaroom_GetCertificate(uint8_t *cert, uint32_t certLength, bool fAV)
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -471,7 +471,7 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -479,7 +479,7 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(MAX(MEDIAROOM_CERT_SIZE,MEDIAROOM_PUBLIC_KEY_SIZE), SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating buffer for certificate and pubkey", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating buffer for certificate and pubkey", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -497,7 +497,7 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
     }
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during Get %s Pb operation", __FUNCTION__, (fAV==true)?"AV":"Non-AV"));
+        BDBG_ERR(("%s - Error during Get %s Pb operation", BSTD_FUNCTION, (fAV==true)?"AV":"Non-AV"));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -506,7 +506,7 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
         rc = NEXUS_Memory_Allocate(container->blocks[0].len, NULL, (void **) &pPublicKey);
         if (rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Error allocating buffer for pubkey", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating buffer for pubkey", BSTD_FUNCTION));
             goto ErrorExit;
         }
         BKNI_Memcpy(pPublicKey, container->blocks[0].data.ptr, container->blocks[0].len);
@@ -517,7 +517,7 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
     }
     else
     {
-        BDBG_ERR(("%s - Get Pb was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Get Pb was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -534,7 +534,7 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
     }
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during Get %s Certificate operation", __FUNCTION__, (fAV==true)?"AV":"Non-AV"));
+        BDBG_ERR(("%s - Error during Get %s Certificate operation", BSTD_FUNCTION, (fAV==true)?"AV":"Non-AV"));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -544,7 +544,7 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
         rc = NEXUS_Memory_Allocate(container->blocks[0].len, NULL, (void **) &pCert);
         if (rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Error allocating buffer for cert", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating buffer for cert", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -560,8 +560,8 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
                                             &pCertificate);
         if(errCode != BCRYPT_STATUS_eOK)
         {
-            BDBG_ERR(("%s - Error x509 DER decode (0x%08x)", __FUNCTION__, errCode));
-            BDBG_ERR(("%s - Error converting cert to internal form", __FUNCTION__));
+            BDBG_ERR(("%s - Error x509 DER decode (0x%08x)", BSTD_FUNCTION, errCode));
+            BDBG_ERR(("%s - Error converting cert to internal form", BSTD_FUNCTION));
             rc = Drm_BcryptErr;
             goto ErrorExit;
         }
@@ -571,8 +571,8 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
                                              (BCRYPT_RSAKey_t*)&rsa_key);
         if(errCode != BCRYPT_STATUS_eOK)
         {
-            BDBG_ERR(("%s - Error x509 get RSA public key (0x%08x)", __FUNCTION__, errCode));
-            BDBG_ERR(("%s - Error extracting pubkey from cert", __FUNCTION__));
+            BDBG_ERR(("%s - Error x509 get RSA public key (0x%08x)", BSTD_FUNCTION, errCode));
+            BDBG_ERR(("%s - Error extracting pubkey from cert", BSTD_FUNCTION));
             rc = Drm_BcryptErr;
             goto ErrorExit;
         }
@@ -587,7 +587,7 @@ DrmRC DRM_Mediaroom_VerifyPb(uint32_t *result, bool fAV)
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -635,38 +635,38 @@ DrmRC DRM_Mediaroom_P_GetFileSize(char * filename, uint32_t *filesize)
     fptr = fopen(filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error opening file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
     pos = fseek(fptr, 0, SEEK_END);
     if(pos == -1)
     {
-        BDBG_ERR(("%s - Error seeking to end of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error seeking to end of file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
     pos = ftell(fptr);
     if(pos == -1)
     {
-        BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
     /* check vs. arbitrary large file size */
     if(pos >= 2*1024*1024)
     {
-        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", __FUNCTION__, filename, pos));
+        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", BSTD_FUNCTION, filename, pos));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
     (*filesize) = pos;
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function (%u bytes)", __FUNCTION__, (*filesize)));
+    BDBG_MSG(("%s - Exiting function (%u bytes)", BSTD_FUNCTION, (*filesize)));
     if(fptr != NULL)
     {
         if(fclose(fptr) != 0){
-            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
             rc = Drm_Err;
         }
     }
@@ -684,27 +684,27 @@ DrmRC DRM_Mediaroom_P_TA_Install(char * ta_bin_filename)
 
     BDBG_ENTER(DRM_Mediaroom_TL_P_Install);
 
-    BDBG_MSG(("%s - TA bin file name '%s'", __FUNCTION__, ta_bin_filename));
+    BDBG_MSG(("%s - TA bin file name '%s'", BSTD_FUNCTION, ta_bin_filename));
 
     rc = DRM_Mediaroom_P_GetFileSize(ta_bin_filename, &file_size);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error determine file size of TA bin file", __FUNCTION__));
+        BDBG_ERR(("%s - Error determine file size of TA bin file", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     ta_bin_file_buff = SRAI_Memory_Allocate(file_size, SRAI_MemoryType_Shared);
     if(ta_bin_file_buff == NULL)
     {
-        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", __FUNCTION__, file_size));
+        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", BSTD_FUNCTION, file_size));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
-    BDBG_MSG(("%s: allocated ta_bin_file_buff at %p size %u",__FUNCTION__,ta_bin_file_buff,file_size));
+    BDBG_MSG(("%s: allocated ta_bin_file_buff at %p size %u",BSTD_FUNCTION,ta_bin_file_buff,file_size));
     fptr = fopen(ta_bin_filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening TA bin file (%s)", __FUNCTION__, ta_bin_filename));
+        BDBG_ERR(("%s - Error opening TA bin file (%s)", BSTD_FUNCTION, ta_bin_filename));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
@@ -712,7 +712,7 @@ DrmRC DRM_Mediaroom_P_TA_Install(char * ta_bin_filename)
     read_size = fread(ta_bin_file_buff, 1, file_size, fptr);
     if(read_size != file_size)
     {
-        BDBG_ERR(("%s - Error reading TA bin file size (%u != %u)", __FUNCTION__, read_size, file_size));
+        BDBG_ERR(("%s - Error reading TA bin file size (%u != %u)", BSTD_FUNCTION, read_size, file_size));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
@@ -720,18 +720,18 @@ DrmRC DRM_Mediaroom_P_TA_Install(char * ta_bin_filename)
     /* close file and set to NULL */
     if(fclose(fptr) != 0)
     {
-        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", __FUNCTION__, ta_bin_filename, strerror(errno)));
+        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", BSTD_FUNCTION, ta_bin_filename, strerror(errno)));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
     fptr = NULL;
 
-    BDBG_MSG(("%s - Install TA file %s size %u", __FUNCTION__,ta_bin_filename,file_size));
+    BDBG_MSG(("%s - Install TA file %s size %u", BSTD_FUNCTION,ta_bin_filename,file_size));
 
     sage_rc = SRAI_Platform_Install(BSAGE_PLATFORM_ID_MEDIAROOM, ta_bin_file_buff, file_size);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%x", __FUNCTION__, sage_rc ));
+        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%x", BSTD_FUNCTION, sage_rc ));
         rc = Drm_SraiModuleError;
         goto ErrorExit;
     }
@@ -806,7 +806,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
     /* if module uses a bin file - read it and add it to the container */
     if(drm_bin_filename != NULL)
     {
-        BDBG_MSG(("%s - DRM bin filename '%s'", __FUNCTION__, drm_bin_filename));
+        BDBG_MSG(("%s - DRM bin filename '%s'", BSTD_FUNCTION, drm_bin_filename));
         /*
          * 1) allocate drm_bin_file_buff
          * 2) read bin file
@@ -815,7 +815,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
         rc = DRM_Mediaroom_P_GetFileSize(drm_bin_filename, &filesize);
         if(rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
+            BDBG_ERR(("%s - Error determine file size of bin file", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -823,13 +823,13 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
         nexerr = NEXUS_Memory_Allocate(filesize, NULL,(void **) &mediaroom_drm_bin_file_buff);
         if(nexerr != NEXUS_SUCCESS)
         {
-            BDBG_ERR(("%s - Error allocating buffer err %u", __FUNCTION__, nexerr));
+            BDBG_ERR(("%s - Error allocating buffer err %u", BSTD_FUNCTION, nexerr));
         }
-        BDBG_MSG(("%s allocated file size %u drm_bin_file_buff %p", __FUNCTION__, filesize,mediaroom_drm_bin_file_buff));
+        BDBG_MSG(("%s allocated file size %u drm_bin_file_buff %p", BSTD_FUNCTION, filesize,mediaroom_drm_bin_file_buff));
 
         if(mediaroom_drm_bin_file_buff == NULL)
         {
-            BDBG_ERR(("%s - Error allocating '%u' bytes", __FUNCTION__, filesize));
+            BDBG_ERR(("%s - Error allocating '%u' bytes", BSTD_FUNCTION, filesize));
             (*moduleHandle) = NULL;
             rc = Drm_MemErr;
             goto ErrorExit;
@@ -838,7 +838,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
         fptr = fopen(drm_bin_filename, "rb");
         if(fptr == NULL)
         {
-            BDBG_ERR(("%s - Error opening drm bin file (%s)", __FUNCTION__, drm_bin_filename));
+            BDBG_ERR(("%s - Error opening drm bin file (%s)", BSTD_FUNCTION, drm_bin_filename));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -847,7 +847,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
         read_size = fread(mediaroom_drm_bin_file_buff, 1, filesize, fptr);
         if(read_size != filesize)
         {
-            BDBG_ERR(("%s - Error reading drm bin file size (%u != %u)", __FUNCTION__, read_size, filesize));
+            BDBG_ERR(("%s - Error reading drm bin file size (%u != %u)", BSTD_FUNCTION, read_size, filesize));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -856,7 +856,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
         /* close file and set to NULL */
         if(fclose(fptr) != 0)
         {
-            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", __FUNCTION__, drm_bin_filename, strerror(errno)));
+            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", BSTD_FUNCTION, drm_bin_filename, strerror(errno)));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -867,21 +867,21 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
         /* verify allocated drm_bin_file_buff size with size in header */
         BKNI_Memcpy((uint8_t*)&mediaroom_drm_bin_header, mediaroom_drm_bin_file_buff, sizeof(drm_bin_header_t));
         filesize_from_header = GET_UINT32_FROM_BUF(mediaroom_drm_bin_header.bin_file_size);
-        BDBG_MSG(("%s file size from header %u - line = %u", __FUNCTION__, filesize_from_header, __LINE__));
+        BDBG_MSG(("%s file size from header %u - line = %u", BSTD_FUNCTION, filesize_from_header, __LINE__));
 
         if(filesize_from_header > DEFAULT_MEDIAROOM_DRM_BIN_FILESIZE)
         {
-            BDBG_MSG(("%s - bin file size too large - line = %u", __FUNCTION__, __LINE__));
+            BDBG_MSG(("%s - bin file size too large - line = %u", BSTD_FUNCTION, __LINE__));
             NEXUS_Memory_Free(mediaroom_drm_bin_file_buff);
             mediaroom_drm_bin_file_buff = NULL;
             nexerr = NEXUS_Memory_Allocate(filesize_from_header, NULL,(void **) &mediaroom_drm_bin_file_buff);
             if (nexerr == NEXUS_SUCCESS) {
-                BDBG_MSG(("%s setting drm bin file buff to 0s",__FUNCTION__));
+                BDBG_MSG(("%s setting drm bin file buff to 0s",BSTD_FUNCTION));
                 BKNI_Memset(mediaroom_drm_bin_file_buff, 0x00, filesize_from_header);
             }
             else
             {
-                BDBG_MSG(("%s failed to allocate mem for invalid drm bin file size nexerr=%d",__FUNCTION__,nexerr));
+                BDBG_MSG(("%s failed to allocate mem for invalid drm bin file size nexerr=%d",BSTD_FUNCTION,nexerr));
                 (*moduleHandle) = NULL;
                 rc = Drm_SraiModuleError;
                 goto ErrorExit;
@@ -890,7 +890,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
 
         if(filesize_from_header != filesize)
         {
-            BDBG_ERR(("%s - Error validating file size in header (%u != %u)", __FUNCTION__, filesize_from_header, filesize));
+            BDBG_ERR(("%s - Error validating file size in header (%u != %u)", BSTD_FUNCTION, filesize_from_header, filesize));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -901,7 +901,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
         /* first verify that it has not been already used by the calling module */
         if(container->blocks[0].data.ptr != NULL)
         {
-            BDBG_ERR(("%s - Shared block[0] reserved for all DRM modules with bin file to pass to Sage.", __FUNCTION__));
+            BDBG_ERR(("%s - Shared block[0] reserved for all DRM modules with bin file to pass to Sage.", BSTD_FUNCTION));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -911,21 +911,21 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(filesize_from_header, SRAI_MemoryType_Shared);
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating SRAI memory", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating SRAI memory", BSTD_FUNCTION));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
         }
         BKNI_Memcpy(container->blocks[0].data.ptr, mediaroom_drm_bin_file_buff, filesize_from_header);
 
-        BDBG_MSG(("%s - Copied '%u' bytes into SRAI container (address %p)", __FUNCTION__, filesize_from_header, container->blocks[0].data.ptr));
+        BDBG_MSG(("%s - Copied '%u' bytes into SRAI container (address %p)", BSTD_FUNCTION, filesize_from_header, container->blocks[0].data.ptr));
     }
 
     /* Initialize Mediaroom DRM module */
     sage_rc = SRAI_Module_Init(hMediaroomPlatform, module_id, container, moduleHandle);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error calling SRAI_Module_Init", __FUNCTION__));
+        BDBG_ERR(("%s - Error calling SRAI_Module_Init", BSTD_FUNCTION));
         (*moduleHandle) = NULL;
         rc = Drm_SraiModuleError;
         goto ErrorExit;
@@ -935,7 +935,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
     sage_rc = container->basicOut[0];
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - SAGE error processing DRM bin file", __FUNCTION__));
+        BDBG_ERR(("%s - SAGE error processing DRM bin file", BSTD_FUNCTION));
 
         if(container->blocks[0].data.ptr != NULL){
             SRAI_Memory_Free(container->blocks[0].data.ptr);
@@ -954,11 +954,11 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
     {
         if(container->basicOut[1] == DRM_MEDIAROOM_OVERWRITE_BIN_FILE)
         {
-            BDBG_MSG(("%s - Overwriting file '%s'", __FUNCTION__, drm_bin_filename));
+            BDBG_MSG(("%s - Overwriting file '%s'", BSTD_FUNCTION, drm_bin_filename));
 
             if(fptr != NULL)
             {
-                BDBG_ERR(("%s - File pointer already opened, invalid state.  '%s'", __FUNCTION__, drm_bin_filename));
+                BDBG_ERR(("%s - File pointer already opened, invalid state.  '%s'", BSTD_FUNCTION, drm_bin_filename));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
@@ -967,7 +967,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
             fptr = fopen(drm_bin_filename, "w+b");
             if(fptr == NULL)
             {
-                BDBG_ERR(("%s - Error opening DRM bin file (%s) in 'w+b' mode.  '%s'", __FUNCTION__, drm_bin_filename, strerror(errno)));
+                BDBG_ERR(("%s - Error opening DRM bin file (%s) in 'w+b' mode.  '%s'", BSTD_FUNCTION, drm_bin_filename, strerror(errno)));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
@@ -975,7 +975,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
             write_size = fwrite(container->blocks[0].data.ptr, 1, filesize_from_header, fptr);
             if(write_size != filesize)
             {
-                BDBG_ERR(("%s - Error writing drm bin file size to rootfs (%u != %u)", __FUNCTION__, write_size, filesize));
+                BDBG_ERR(("%s - Error writing drm bin file size to rootfs (%u != %u)", BSTD_FUNCTION, write_size, filesize));
                 (*moduleHandle) = NULL;
                 rc = Drm_SraiModuleError;
                 goto ErrorExit;
@@ -984,7 +984,7 @@ DRM_Mediaroom_ModuleInit(uint32_t module_id, char * drm_bin_filename,
             fptr = NULL;
         }
         else{
-            BDBG_MSG(("%s - No need to overwrite file '%s'", __FUNCTION__, drm_bin_filename));
+            BDBG_MSG(("%s - No need to overwrite file '%s'", BSTD_FUNCTION, drm_bin_filename));
         }
     }
 #endif
@@ -993,19 +993,19 @@ ErrorExit:
 
     /* if shared block[0] is not null, free since there was an error processing (i.e. can't trust the data) or the file was copied*/
     if(container->blocks[0].data.ptr != NULL){
-        BDBG_MSG(("%s: freeing container->blocks[0].data.ptr",__FUNCTION__));
+        BDBG_MSG(("%s: freeing container->blocks[0].data.ptr",BSTD_FUNCTION));
         SRAI_Memory_Free(container->blocks[0].data.ptr);
         container->blocks[0].data.ptr = NULL;
     }
 
     if(mediaroom_drm_bin_file_buff != NULL){
-        BDBG_MSG(("%s: freeing mediaroom_drm_bin_file_buff",__FUNCTION__));
+        BDBG_MSG(("%s: freeing mediaroom_drm_bin_file_buff",BSTD_FUNCTION));
         NEXUS_Memory_Free(mediaroom_drm_bin_file_buff);
         mediaroom_drm_bin_file_buff = NULL;
     }
 
     if(fptr != NULL){
-        BDBG_MSG(("%s: Freeing fptr",__FUNCTION__));
+        BDBG_MSG(("%s: Freeing fptr",BSTD_FUNCTION));
         fclose(fptr);
         fptr = NULL;
     }

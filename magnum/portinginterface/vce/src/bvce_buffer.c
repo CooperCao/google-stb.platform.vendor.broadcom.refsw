@@ -203,7 +203,7 @@ BVCE_P_Buffer_GetBlockHandle(
    return hBlock;
 }
 
-size_t
+unsigned
 BVCE_P_Buffer_GetSize(
    BVCE_P_Buffer_Handle hBuffer
    )
@@ -366,7 +366,7 @@ void
 BVCE_P_Buffer_FlushCache_isr(
    BVCE_P_Buffer_Handle hBuffer,
    void *pBuffer,
-   size_t uiSize
+   unsigned uiSize
    )
 {
    BDBG_ASSERT( hBuffer );
@@ -549,7 +549,7 @@ BVCE_P_Allocator_Create(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-size_t
+unsigned
 BVCE_P_Allocator_GetSize(
    BVCE_P_Allocator_Handle hAllocator
    )

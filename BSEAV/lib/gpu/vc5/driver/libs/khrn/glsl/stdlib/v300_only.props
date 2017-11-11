@@ -222,7 +222,5 @@ version3 version31 version32:
   const mediump int gl_MaxProgramTexelOffset;
   in  highp   int   gl_VertexID;
   in  highp   int   gl_InstanceID;
-  out highp   float gl_PointSize;
-  in  highp   vec4  gl_FragCoord;
   out highp   float gl_FragDepth;
   in  mediump float __brcm_LineCoord;

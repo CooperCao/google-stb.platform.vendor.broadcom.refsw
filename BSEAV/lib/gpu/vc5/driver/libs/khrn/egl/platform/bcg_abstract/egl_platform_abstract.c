@@ -163,8 +163,7 @@ static bool is_valid_android_framebuffer_target(const EGL_CONFIG_T *config, EGLi
 {
    return config->color_api_fmt         == GFX_LFMT_R8_G8_B8_A8_UNORM &&
           config->depth_stencil_api_fmt == GFX_LFMT_NONE &&
-          config->stencil_api_fmt       == GFX_LFMT_NONE &&
-          config->mask_api_fmt          == GFX_LFMT_NONE;
+          config->stencil_api_fmt       == GFX_LFMT_NONE;
 }
 
 static bool is_valid_android_recordable(const EGL_CONFIG_T *config, EGLint attrib)

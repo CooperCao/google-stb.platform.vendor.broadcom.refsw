@@ -64,12 +64,6 @@ SILENT ?= @
 
 CFLAGS += -g -I.
 
-#ifeq ($(BYPASS_RPC),y)
-#EXES = rf4ce_reset_and_pair_app
-#else
-#EXES = rf4ce_reset_app rf4ce_pair_app rf4ce_reset_and_pair_app rf4ce_unpair_app rf4ce_set_fa_threshold_app rf4ce_get_fa_threshold_app rf4ce_set_discovery_lqi_threshold_app zrc2_pair_app
-#endif
-
 OBJDIR = obj.$(NEXUS_PLATFORM)
 
 #    $(OBJDIR)/$(EXES).o
@@ -160,8 +154,8 @@ INC_PATHS += $(HOST_PATH)/common/include
 
 C99_FLAGS += -g                 # Debug level: emit full debug information.
 C99_FLAGS += -std=gnu99
-C99_FLAGS += -fpack-struct=4
-C99_FLAGS += -fshort-enums
+#C99_FLAGS += -fpack-struct=4
+#C99_FLAGS += -fshort-enums
 #C99_FLAGS += -m32               # 32-bit version
 
 PRJ_FLAGS += _HOST_           # Build for Broadcom STB host.

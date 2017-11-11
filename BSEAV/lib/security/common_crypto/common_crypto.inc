@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,7 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
-
 
 # COMMON CRYPTO module
 
@@ -91,6 +89,10 @@ ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),4)
             NEXUS_CFLAGS += -DCOMMON_CRYPTO_ZEUS_VERSION=42
         endif
     endif
+endif
+ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+    NEXUS_CFLAGS += -DCOMMON_CRYPTO_28NM_CHIP=1
+    NEXUS_CFLAGS += -DCOMMON_CRYPTO_ZEUS_VERSION=50
 endif
 
 COMMON_CRYPTO_INCLUDES += ${NEXUS_TOP}/extensions/security/securersa/include

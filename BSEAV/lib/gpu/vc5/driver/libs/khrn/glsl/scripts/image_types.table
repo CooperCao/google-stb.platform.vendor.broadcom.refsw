@@ -1,22 +1,14 @@
 #
-# This table contains the base data for the image types in GLSL.
+# This table contains the base data for all image types in GLSL.
 #
-name                   scalar_type dim array shadow cube gl_type
-image2D                float       2   N     N      N    GL_IMAGE_2D
-image3D                float       3   N     N      N    GL_IMAGE_3D
-imageCube              float       3   N     N      Y    GL_IMAGE_CUBE
-image2DArray           float       2   Y     N      N    GL_IMAGE_2D_ARRAY
-imageCubeArray         float       3   Y     N      Y    GL_IMAGE_CUBE_MAP_ARRAY
-imageBuffer            float       1   N     N      N    GL_IMAGE_BUFFER
-iimage2D               int         2   N     N      N    GL_INT_IMAGE_2D
-iimage3D               int         3   N     N      N    GL_INT_IMAGE_3D
-iimageCube             int         3   N     N      Y    GL_INT_IMAGE_CUBE
-iimage2DArray          int         2   Y     N      N    GL_INT_IMAGE_2D_ARRAY
-iimageCubeArray        int         3   Y     N      Y    GL_INT_IMAGE_CUBE_MAP_ARRAY
-iimageBuffer           int         1   N     N      N    GL_INT_IMAGE_BUFFER
-uimage2D               uint        2   N     N      N    GL_UNSIGNED_INT_IMAGE_2D
-uimage3D               uint        3   N     N      N    GL_UNSIGNED_INT_IMAGE_3D
-uimageCube             uint        3   N     N      Y    GL_UNSIGNED_INT_IMAGE_CUBE
-uimage2DArray          uint        2   Y     N      N    GL_UNSIGNED_INT_IMAGE_2D_ARRAY
-uimageCubeArray        uint        3   Y     N      Y    GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY
-uimageBuffer           uint        1   N     N      N    GL_UNSIGNED_INT_IMAGE_BUFFER
+name            dim array cube gl_type
+1D              1   N     N    1D_BRCM
+1DArray         1   Y     N    1D_ARRAY_BRCM
+2D              2   N     N    2D
+2DMS            2   N     N    2D_MULTISAMPLE
+2DArray         2   Y     N    2D_ARRAY
+2DMSArray       2   Y     N    2D_MULTISAMPLE_ARRAY
+3D              3   N     N    3D
+Cube            3   N     Y    CUBE
+CubeArray       3   Y     Y    CUBE_MAP_ARRAY
+Buffer          1   N     N    BUFFER

@@ -22,7 +22,8 @@ typedef struct native_egl_image
 static khrn_image *get_native_egl_image(EGL_IMAGE_T *p)
 {
    NATIVE_EGL_IMAGE_T *egl_image = (NATIVE_EGL_IMAGE_T *)p;
-   khrn_image *image = image_from_surface_abstract(egl_image->buffer, false);
+   unsigned num_mip_levels;
+   khrn_image *image = image_from_surface_abstract(egl_image->buffer, false, &num_mip_levels);
    if (!image)
       return NULL;
 
@@ -58,10 +59,10 @@ EGL_IMAGE_T *egl_image_native_buffer_abstract_new(EGL_CONTEXT_T *context,
    BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
    NATIVE_EGL_IMAGE_T *egl_image = NULL;
    EGLenum error = EGL_BAD_ALLOC;
-   vcos_unused(context);
+   unused(context);
 
-   vcos_unused(attrib_list);
-   vcos_unused(attrib_type);
+   unused(attrib_list);
+   unused(attrib_type);
 
    void *buffer;
    if (!platform->GetNativeSurface || platform->GetNativeSurface(
@@ -75,12 +76,13 @@ EGL_IMAGE_T *egl_image_native_buffer_abstract_new(EGL_CONTEXT_T *context,
    if (!egl_image)
       goto end;
 
-   khrn_image *image = image_from_surface_abstract(buffer, false);
+   unsigned num_mip_levels;
+   khrn_image *image = image_from_surface_abstract(buffer, false, &num_mip_levels);
    if (!image)
       goto end;
    egl_image->buffer = buffer;
 
-   egl_image_init(&egl_image->base, image, destroy_native_egl_image, get_native_egl_image);
+   egl_image_init(&egl_image->base, image, num_mip_levels, destroy_native_egl_image, get_native_egl_image);
    KHRN_MEM_ASSIGN(image, NULL);
 
    error = EGL_SUCCESS;

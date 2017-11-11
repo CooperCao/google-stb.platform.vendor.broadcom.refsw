@@ -1066,6 +1066,7 @@ typedef struct B_PlaybackIp_TtsThrottle_Params {
     void *bufDepthViolationCbContext;   /* context passed into buf_depth_violation_callback */
     bool scatterGatherPlaypump;         /* true if playpump used in scatter-gather mode */
     bool bufDepthInMsec;                /* if true, buffer depth is calculated in msec (instead of bytes) using the TTS(if present) or PCR. */
+    NEXUS_Timebase lockedTimebase;      /* locked/output timebase */
 } B_PlaybackIp_TtsThrottle_Params;
 
 typedef struct B_PlaybackIp_TtsParams {

@@ -102,16 +102,9 @@ static void NEXUS_VideoInput_P_SourceCallback_isr(void *pParam1, int pParam2, vo
         The main flag for knowing when video comes and goes is a change in bActive. */
         if (pSrcData->pFmtInfo) {
             if (pMask->bFmtInfo || pMask->bFrameRate) { /* save a couple cpu clock cycles */
-                NEXUS_VideoFormat videoFormat;
                 pStatus->width = pSrcData->pFmtInfo->ulWidth;
                 pStatus->height = pSrcData->pFmtInfo->ulHeight;
-                videoFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(pSrcData->pFmtInfo->eVideoFmt);
-                if (videoFormat == NEXUS_VideoFormat_eUnknown) {
-                    BDBG_ERR(("Unable to convert analog magnum BFMT_VideoFmt %d to NEXUS_VideoFormat", pSrcData->pFmtInfo->eVideoFmt));
-                    /* For nexus_vdb and analog inputs, the videoFormat enum is required. The Nexus and FMT enum lists must be
-                    kept in sync.
-                    Another option is to learn if the stream is progressive/interlaced, then use NEXUS_P_VideoFormat_FromInfo_isrsafe. */
-                }
+                pStatus->format = NEXUS_P_VideoFormat_FromMagnum_isrsafe(pSrcData->pFmtInfo->eVideoFmt);
                 pStatus->aspectRatio = NEXUS_P_AspectRatio_FromMagnum_isrsafe(pSrcData->pFmtInfo->eAspectRatio);
                 pStatus->frameRate = NEXUS_P_FrameRate_FromMagnum_isrsafe(pSrcData->eFrameRateCode);
                 pStatus->refreshRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(pStatus->frameRate);
@@ -443,12 +436,14 @@ NEXUS_VideoInput_P_DestroyLink_Uninit(NEXUS_VideoInput_P_Link *link)
     BDBG_MSG((">NEXUS_VideoInput_P_DestroyLink_Uninit %p", (void *)link));
     BDBG_OBJECT_ASSERT(link, NEXUS_VideoInput_P_Link);
 
+#if NEXUS_VBI_SUPPORT
     NEXUS_IsrCallback_Destroy(link->vbi.gs.isrCallback);
     NEXUS_IsrCallback_Destroy(link->vbi.tt.isrCallback);
     NEXUS_IsrCallback_Destroy(link->vbi.cc.isrCallback);
     NEXUS_IsrCallback_Destroy(link->vbi.wss.isrCallback);
     NEXUS_IsrCallback_Destroy(link->vbi.cgms.isrCallback);
     NEXUS_IsrCallback_Destroy(link->vbi.vps.isrCallback);
+#endif
     if(link->vbi.cc.data) {
         BKNI_Free(link->vbi.cc.data);
     }
@@ -484,8 +479,8 @@ NEXUS_VideoInput_P_Destroy_VdcSource(NEXUS_VideoInput_P_Link *link)
 {
     BERR_Code rc;
 
-    BDBG_MSG((">NEXUS_VideoInput_P_Destroy_VdcSource input %p, link %p", (void *)link->input, (void *)link));
     BDBG_OBJECT_ASSERT(link, NEXUS_VideoInput_P_Link);
+    BDBG_MSG((">NEXUS_VideoInput_P_Destroy_VdcSource input %p, link %p", (void *)link->input, (void *)link));
 
     nexus_p_uninstall_videoinput_cb(link);
 
@@ -631,6 +626,12 @@ NEXUS_VideoInput_GetStatus(NEXUS_VideoInput input,NEXUS_VideoInputStatus *pStatu
     else {
         /* this status was already captured in NEXUS_VideoInput_P_SourceCallback_isr */
         *pStatus = link->status;
+    }
+
+    if (link->sourceVdc) {
+        BVDC_Source_DebugStatus status;
+        BVDC_Dbg_Source_GetDebugStatus(link->sourceVdc, &status);
+        pStatus->numBvnErrors = status.ulNumErr;
     }
 
 done:

@@ -225,8 +225,7 @@ static spinlock_t gSpinLock = SPIN_LOCK_UNLOCKED;
 static wait_queue_head_t g_WaitQueue;
 static intmgr_t g_intmgr;
 static struct proc_dir_entry *umdrv_dir, *version_file, *interrupt_file, *latency_file, *meminfo_file, *debug_file;
-#define DEBUG_INFO_LEN 256
-char debug_info[DEBUG_INFO_LEN];
+char debug_info[256];
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
 	static spinlock_t g_magnum_spinlock = __SPIN_LOCK_UNLOCKED(g_magnum_spinlock);
@@ -620,25 +619,22 @@ static ssize_t proc_write_debug(struct file *file, const char *buffer, unsigned 
 static ssize_t proc_write_debug(struct file *file, const char __user *buffer, size_t count, loff_t *data)
 #endif
 {
-    if(count>=DEBUG_INFO_LEN) {
-        /* SW7335-1355, Coverity: 26492 */
-        count = (DEBUG_INFO_LEN-1);
-        printk("text echo'd to debug exceeds max length, truncating. Max len=%d\n", DEBUG_INFO_LEN);
+    unsigned len = 0;
+    if (!count) return 0;
+    while (len<sizeof(debug_info) && debug_info[len]) len++;
+    if ((len ? len + count + 1 : count) >= sizeof(debug_info)) {
+        return -1;
     }
-
-
-    if (copy_from_user(debug_info, buffer, count))
-    {
-        count = -1;
-        goto end;
+    if (len) {
+        debug_info[len++] = ' ';
     }
-
-    if (count && debug_info[count-1] == '\n')
-        debug_info[count - 1] = 0;
-    else
-        debug_info[count] = 0;
-
-end:
+    /* coverity[overrun-local: FALSE] - coverity has problem with logic above. len+count will be <= sizeof(debug_info) */
+    if (copy_from_user(&debug_info[len], buffer, count)) {
+        return -1;
+    }
+    if (debug_info[len+count-1] == '\n') {
+        debug_info[len+count-1] = 0;
+    }
     return count;
 }
 
@@ -1268,7 +1264,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
             PERR("BRCM_IOCTL_SET_DEBUG copy_to_user failed!\n");
             break;
             }
-        memset(debug_info, 0, sizeof(debug_info));
+        debug_info[0] = 0;
         break;
 
     case BRCM_IOCTL_SET_MMAP_ACCESS:

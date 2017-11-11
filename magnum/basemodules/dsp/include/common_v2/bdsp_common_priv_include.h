@@ -41,11 +41,18 @@
 
 #include "bchp.h"
 #include "bint.h"
+#include "bbox.h"
 #include "breg_mem.h"
 #include "bmma.h"
 #include "btmr.h"
+#include "bdbg.h"
 #include "bimg.h"
 #include "berr.h"
+
+#include "bchp_sun_top_ctrl.h"
+#include "bchp_aud_fmm_bf_ctrl.h"
+#include "bchp_aud_misc.h"
+#include "bchp_common.h"
 
 /* BDSP top level includes */
 #include "bdsp.h"
@@ -53,6 +60,18 @@
 #include "bdsp_priv.h"
 #include "bdsp_task.h"
 
-#include "bdsp_common_priv.h"
+/* Host interface files - Need to rename them*/
+#include "bdsp_raaga_fw_settings.h"
+#include "bdsp_common_cmdresp_priv.h"
+#include "bdsp_raaga_fw.h"
+#include "bdsp_raaga_fw_status.h"
+
+#include "bdsp_common.h"
 #include "bdsp_common_mm_priv.h"
+#include "bdsp_common_fwinterface_priv.h"
+#include "bdsp_common_fwdownload_priv.h"
+#include "bdsp_common_fw_algo.h"
+#include "bdsp_common_cit_log.h"
+#include "bdsp_common_cit_priv.h"
+#include "bdsp_common_priv.h"
 #endif /* BDSP_COMMON_PRIV_INCLUDE_H_ */

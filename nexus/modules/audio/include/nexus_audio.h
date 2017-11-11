@@ -203,7 +203,10 @@ typedef struct NEXUS_AudioCapabilities
     unsigned numMixers;                 /* Number of Mixers */
 
     unsigned numDsps;                   /* Number of audio DSPs */
+    unsigned numSoftAudioCores;         /* Number of Soft Audio Cores */
     unsigned numCrcs;                   /* Number of audio CRCs */
+    unsigned numSrcs;                   /* Number of audio SRCs (Sample Rate Convertors) */
+    unsigned numEqualizerStages;        /* Max Number of Equalizer stages that can be active */
     struct
     {
         struct

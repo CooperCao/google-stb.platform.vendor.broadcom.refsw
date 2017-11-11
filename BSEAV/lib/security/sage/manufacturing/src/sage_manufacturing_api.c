@@ -50,8 +50,13 @@
 #include "sage_srai.h"
 #include "sage_manufacturing_module_ids.h"
 
+#if (NEXUS_SECURITY_API_VERSION == 1)
 #include "nexus_otpmsp.h"
 #include "nexus_read_otp_id.h"
+#else
+#include "nexus_otp_msp.h"
+#include "nexus_otp_key.h"
+#endif
 
 #include "sage_manufacturing_api.h"
 
@@ -125,7 +130,7 @@ BERR_Code SAGE_Manufacturing_Init(SAGE_Manufacturing_OTP_Index otp_index)
         SAGE_Private_Settings.OTP_Index = otp_index;
     }
 
-    BDBG_LOG(("%s() SAGE_Private_Settings.OTP_Index assigned to %d", __FUNCTION__, SAGE_Private_Settings.OTP_Index));
+    BDBG_LOG(("%s() SAGE_Private_Settings.OTP_Index assigned to %d", BSTD_FUNCTION, SAGE_Private_Settings.OTP_Index));
 
     /* perform sanity check on choice once NEXUS is up AND only if Type 1 is detected, otherwise doesn't make sense */
     if(verifyOtpIndex(SAGE_Private_Settings.OTP_Index) != true)
@@ -152,7 +157,7 @@ BERR_Code SAGE_Manufacturing_Init(SAGE_Manufacturing_OTP_Index otp_index)
     rc = _P_TA_Install();
     if(rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: error opening MFG platform", __FUNCTION__));
+        BDBG_ERR(("%s: error opening MFG platform", BSTD_FUNCTION));
         goto handle_error;
     }
 
@@ -169,7 +174,7 @@ BERR_Code SAGE_Manufacturing_Init(SAGE_Manufacturing_OTP_Index otp_index)
                                  &SAGE_Private_Settings.platformHandle);
     if (rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: error opening MFG platform", __FUNCTION__));
+        BDBG_ERR(("%s: error opening MFG platform", BSTD_FUNCTION));
         goto handle_error;
     }
 
@@ -180,7 +185,7 @@ BERR_Code SAGE_Manufacturing_Init(SAGE_Manufacturing_OTP_Index otp_index)
         rc = SRAI_Platform_Init(SAGE_Private_Settings.platformHandle, NULL);
         if (rc != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s: error initializing MFG platform", __FUNCTION__));
+            BDBG_ERR(("%s: error initializing MFG platform", BSTD_FUNCTION));
             goto handle_error;
         }
     }
@@ -203,7 +208,7 @@ BERR_Code SAGE_Manufacturing_Init(SAGE_Manufacturing_OTP_Index otp_index)
         goto handle_error;
     }
 
-    BDBG_LOG(("%s: Sage Manufacturing platform and module initialized", __FUNCTION__));
+    BDBG_LOG(("%s: Sage Manufacturing platform and module initialized", BSTD_FUNCTION));
 
 handle_error:
     if (rc != BERR_SUCCESS)
@@ -269,14 +274,14 @@ int SAGE_Manufacturing_AllocBinBuffer(size_t file_size, uint8_t **ppBinDataBuffe
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(file_size, SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("\tCannot allocate '%u' bytes of memory ^^^^^^^^^^^^^^^^^^^", file_size));
+        BDBG_ERR(("\tCannot allocate '%zu' bytes of memory ^^^^^^^^^^^^^^^^^^^", file_size));
         rc = 1;
         goto handle_error;
     }
     container->blocks[0].len = file_size;
 
     *ppBinDataBuffer = container->blocks[0].data.ptr;
-    BDBG_LOG(("%s(): Allocating SRAI buffer (%d bytes) success.", __FUNCTION__, file_size));
+    BDBG_LOG(("%s(): Allocating SRAI buffer (%zu bytes) success.", BSTD_FUNCTION, file_size));
 
     /* Save container to settings */
     SAGE_Private_Settings.SAGELib_Container = container;
@@ -319,7 +324,7 @@ int SAGE_Manufacturing_BinFile_ParseAndDisplay(uint8_t* pBinData, uint32_t binFi
 
     if(binFileLength < (SIZEOF_DRM_BINFILE_HEADER + SIZEOF_DYNAMIC_OFFSET_HEADER))
     {
-        BDBG_ERR(("%s: DRM bin file length '%u' is less than the minimum size of a valid bin file (%u)", __FUNCTION__,
+        BDBG_ERR(("%s: DRM bin file length '%u' is less than the minimum size of a valid bin file (%u)", BSTD_FUNCTION,
                   binFileLength, (SIZEOF_DRM_BINFILE_HEADER + SIZEOF_DYNAMIC_OFFSET_HEADER)));
         return -1;
     }
@@ -377,7 +382,7 @@ int SAGE_Manufacturing_BinFile_ParseAndDisplay(uint8_t* pBinData, uint32_t binFi
 int SAGE_Manufacturing_VerifyDrmBinFileType(uint8_t* pBinData, int validationCommand)
 {
     /* Check to see if already bound with OTP Key A-H */
-    if(pBinData[OFFSET_TO_RKS_FIELD] >= 0x01 && pBinData[OFFSET_TO_TYPE_FIELD] == 0x03)
+    if((pBinData[OFFSET_TO_RKS_FIELD] >= 0x01 && pBinData[OFFSET_TO_RKS_FIELD] <= 0x08) && pBinData[OFFSET_TO_TYPE_FIELD] == 0x03)
     {
         BDBG_LOG(("\t*** DRM bin file is already bound to chip (Type 3) therefore will not be provisioned ***"));
         if((validationCommand & VALIDATION_COMMAND_ValidateHdcp22) & 0xF)
@@ -404,16 +409,49 @@ int SAGE_Manufacturing_VerifyDrmBinFileType(uint8_t* pBinData, int validationCom
         return DRM_BIN_FILE_TYPE_3;
     }
 
+    if(pBinData[OFFSET_TO_RKS_FIELD] == 0 && pBinData[OFFSET_TO_TYPE_FIELD] == 0x03)
+    {
+        BDBG_LOG(("\t*** DRM bin file is already bound to chip (Type 3 prime) therefore will not be provisioned ***"));
+        if((validationCommand & VALIDATION_COMMAND_ValidateHdcp22) & 0xF)
+        {
+            BDBG_LOG(("\t*** HDCP 2.2 key(s) detected, validation will proceed. Ignoring otp_key flag (if specified)...***"));
+        }
+        if((validationCommand & VALIDATION_COMMAND_ValidateEdrm) & 0xF)
+        {
+            BDBG_LOG(("\t*** EDRM keys detected, validation will proceed. Ignoring otp_key flag (if specified)...***"));
+        }
+        if((validationCommand & VALIDATION_COMMAND_ValidateEcc) & 0xF)
+        {
+            BDBG_LOG(("\t*** ECC keys detected, validation will proceed. Ignoring otp_key flag (if specified)...***"));
+        }
+        if((validationCommand & VALIDATION_COMMAND_ValidateDtcpIp) & 0xF)
+        {
+            BDBG_LOG(("\t*** DTCP-IP keys detected, validation will proceed. Ignoring otp_key flag (if specified)...***"));
+        }
+        if((validationCommand & VALIDATION_COMMAND_ValidateMediaroom) & 0x1F)
+        {
+            BDBG_LOG(("\t*** Mediaroom keys detected, validation will proceed. Ignoring otp_key flag (if specified)...***"));
+        }
+        BDBG_LOG(("\n\n"));
+        return DRM_BIN_FILE_TYPE_3_PRIME;
+    }
+
     /* Otherwise, already bound with CusKey */
-    if(pBinData[OFFSET_TO_RKS_FIELD] == 0x00 && pBinData[OFFSET_TO_TYPE_FIELD] == 0x01)
+    if((pBinData[OFFSET_TO_RKS_FIELD] == 0x00 || pBinData[OFFSET_TO_RKS_FIELD] == 0x0C) && pBinData[OFFSET_TO_TYPE_FIELD] == 0x01)
     {
         return DRM_BIN_FILE_TYPE_1;
     }
 
     /* Type 2 */
-    if(pBinData[OFFSET_TO_RKS_FIELD] == 0x00 && pBinData[OFFSET_TO_TYPE_FIELD] == 0x02)
+    if((pBinData[OFFSET_TO_RKS_FIELD] == 0x00 || pBinData[OFFSET_TO_RKS_FIELD] == 0x0C) && pBinData[OFFSET_TO_TYPE_FIELD] == 0x02)
     {
         return DRM_BIN_FILE_TYPE_2;
+    }
+
+    /* Type 0 */
+    if(pBinData[OFFSET_TO_RKS_FIELD] == 0x00 && pBinData[OFFSET_TO_TYPE_FIELD] == 0x00)
+    {
+        return DRM_BIN_FILE_TYPE_0;
     }
     BDBG_LOG(("\n"));
     return 0;
@@ -581,6 +619,7 @@ static const char * _MapDrmEnumToString(uint32_t drm_type)
     return NULL;
 }
 
+#if (NEXUS_SECURITY_API_VERSION == 1)
 static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index)
 {
     bool brc = true;
@@ -600,11 +639,11 @@ static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index)
 
     /* int otp_index = OTP_Index - SAGE_Manufacturing_OTP_Index_A; */
 
-    BDBG_LOG(("%s - Selecting element '%u'", __FUNCTION__, OTP_Index));
+    BDBG_LOG(("%s - Selecting element '%u'", BSTD_FUNCTION, OTP_Index));
 
     if(NEXUS_Security_ReadOtpId( OtpIdArray[OTP_Index], &otpRead ) != NEXUS_SUCCESS )
     {
-        BDBG_ERR(("%s - NEXUS_Security_ReadOtpId() failed.", __FUNCTION__ ));
+        BDBG_ERR(("%s - NEXUS_Security_ReadOtpId() failed.", BSTD_FUNCTION ));
         brc = false;
         goto ErrorExit;
     }
@@ -615,7 +654,7 @@ static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index)
 
     if(NEXUS_Security_ReadMSP( &readMspParms, &readMspIO ) != NEXUS_SUCCESS )
     {
-        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() FAILED for customer mode.  Field may not be programmed...", __FUNCTION__ ));
+        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() FAILED for customer mode.  Field may not be programmed...", BSTD_FUNCTION ));
         brc = false;
         goto ErrorExit;
     }
@@ -626,7 +665,7 @@ static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index)
                                    OtpIdArray[OTP_Index],
                                    &readOtpIO)   != NEXUS_SUCCESS )
     {
-        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() FAILED for SageKeyladderDisallowed mode", __FUNCTION__));
+        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() FAILED for SageKeyladderDisallowed mode", BSTD_FUNCTION));
         brc = false;
         goto ErrorExit;
     }
@@ -635,7 +674,7 @@ static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index)
     BDBG_MSG(("       %02x %02x %02x %02x ", readOtpIO.otpKeyIdBuf[4], readOtpIO.otpKeyIdBuf[5], readOtpIO.otpKeyIdBuf[6],readOtpIO.otpKeyIdBuf[7]));
     if(readOtpIO.otpKeyIdBuf[7] == 1)
     {
-        BDBG_ERR(("%s - Specified OTP key index is not allowed to use SAGE keyladder", __FUNCTION__));
+        BDBG_ERR(("%s - Specified OTP key index is not allowed to use SAGE keyladder", BSTD_FUNCTION));
         brc = false;
         goto ErrorExit;
     }
@@ -665,6 +704,92 @@ static ChipType_e _P_GetChipType(void)
     }
     return ChipType_eZB;
 }
+#else
+typedef enum otpIdType
+{
+    otpIdType_eA,
+    otpIdType_eB,
+    otpIdType_eC,
+    otpIdType_eD,
+    otpIdType_eE,
+    otpIdType_eF,
+    otpIdType_eG,
+    otpIdType_eH,
+
+    otpIdType_eMax
+}   otpIdType;
+
+static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index)
+{
+    bool brc = true;
+    NEXUS_OtpMspRead readMspIO;
+    NEXUS_OtpKeyInfo otpRead;
+    otpIdType OtpIdArray[] =
+              { otpIdType_eA,
+                otpIdType_eB,
+                otpIdType_eC,
+                otpIdType_eD,
+                otpIdType_eE,
+                otpIdType_eF/*,
+                otpIdType_eG,
+                otpIdType_eH*/};
+
+    /* int otp_index = OTP_Index - SAGE_Manufacturing_OTP_Index_A; */
+
+    BDBG_LOG(("%s - Selecting element '%u'", BSTD_FUNCTION, OTP_Index));
+
+    if(NEXUS_OtpKey_GetInfo( OtpIdArray[OTP_Index], &otpRead ) != NEXUS_SUCCESS )
+    {
+        BDBG_ERR(("%s - NEXUS_Security_ReadOtpId() failed.", BSTD_FUNCTION ));
+        brc = false;
+        goto ErrorExit;
+    }
+
+    if(NEXUS_OtpMsp_Read( 6, &readMspIO ) != NEXUS_SUCCESS )
+    {
+        BDBG_ERR(("%s - NEXUS_Security_ReadMSP() FAILED for customer mode.  Field may not be programmed...", BSTD_FUNCTION ));
+        brc = false;
+        goto ErrorExit;
+    }
+
+    BDBG_MSG(("data = %02x %02x %02x %02x ...", otpRead.id[0], otpRead.id[1], otpRead.id[2],otpRead.id[3]));
+    BDBG_MSG(("       %02x %02x %02x %02x ", otpRead.id[4], otpRead.id[5], otpRead.id[6],otpRead.id[7]));
+    if(otpRead.id[7] == 1)
+    {
+        BDBG_ERR(("%s - Specified OTP key index is not allowed to use SAGE keyladder", BSTD_FUNCTION));
+        brc = false;
+        goto ErrorExit;
+    }
+
+ErrorExit:
+    return brc;
+}
+
+
+static ChipType_e _P_GetChipType(void)
+{
+    NEXUS_OtpMspRead        readMsp0;
+    NEXUS_OtpMspRead        readMsp1;
+    uint32_t Msp0Data;
+    uint32_t Msp1Data;
+    NEXUS_Error rc =  NEXUS_SUCCESS;
+
+    rc = NEXUS_OtpMsp_Read(224, &readMsp0);
+
+    rc = NEXUS_OtpMsp_Read(225, &readMsp1);
+
+    Msp0Data = readMsp0.data & readMsp0.valid;
+    Msp1Data = readMsp1.data & readMsp1.valid;
+
+    BDBG_MSG(("OTP MSP0 %u OTP MSP1 %u", Msp0Data, Msp1Data));
+
+    if((Msp0Data == OTP_MSP0_VALUE_ZS) && (Msp1Data == OTP_MSP1_VALUE_ZS)){
+        return ChipType_eZS;
+    }
+
+    return ChipType_eZB;
+}
+#endif
 
 
 BERR_Code _P_TA_Install(void)
@@ -684,19 +809,19 @@ BERR_Code _P_TA_Install(void)
     else
         ta_bin_filename = MFG_TA_BIN_FILENAME;
 
-    BDBG_MSG(("%s - Loadable TA filename '%s'", __FUNCTION__, ta_bin_filename));
+    BDBG_MSG(("%s - Loadable TA filename '%s'", BSTD_FUNCTION, ta_bin_filename));
 
     rc = _P_GetFileSize(ta_bin_filename, &file_size);
     if(rc != BERR_SUCCESS)
     {
-        BDBG_LOG(("%s - Error determine file size of TA bin file", __FUNCTION__));
+        BDBG_LOG(("%s - Error determine file size of TA bin file", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     ta_bin_file_buff = SRAI_Memory_Allocate(file_size, SRAI_MemoryType_Shared);
     if(ta_bin_file_buff == NULL)
     {
-        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", __FUNCTION__, file_size));
+        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", BSTD_FUNCTION, file_size));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -704,7 +829,7 @@ BERR_Code _P_TA_Install(void)
     fptr = fopen(ta_bin_filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening TA bin file (%s)", __FUNCTION__, ta_bin_filename));
+        BDBG_ERR(("%s - Error opening TA bin file (%s)", BSTD_FUNCTION, ta_bin_filename));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -712,7 +837,7 @@ BERR_Code _P_TA_Install(void)
     read_size = fread(ta_bin_file_buff, 1, file_size, fptr);
     if(read_size != file_size)
     {
-        BDBG_ERR(("%s - Error reading TA bin file size (%u != %u)", __FUNCTION__, read_size, file_size));
+        BDBG_ERR(("%s - Error reading TA bin file size (%u != %u)", BSTD_FUNCTION, read_size, file_size));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -720,18 +845,18 @@ BERR_Code _P_TA_Install(void)
     /* close file and set to NULL */
     if(fclose(fptr) != 0)
     {
-        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", __FUNCTION__, ta_bin_filename, strerror(errno)));
+        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", BSTD_FUNCTION, ta_bin_filename, strerror(errno)));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
     fptr = NULL;
 
-    BDBG_MSG(("%s - TA 0x%08x Install file '%s'", __FUNCTION__, BSAGE_PLATFORM_ID_MANUFACTURING, ta_bin_filename));
+    BDBG_MSG(("%s - TA 0x%08x Install file '%s'", BSTD_FUNCTION, BSAGE_PLATFORM_ID_MANUFACTURING, ta_bin_filename));
 
     sage_rc = SRAI_Platform_Install(BSAGE_PLATFORM_ID_MANUFACTURING, ta_bin_file_buff, file_size);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%08x", __FUNCTION__, sage_rc ));
+        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%08x", BSTD_FUNCTION, sage_rc ));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -764,7 +889,7 @@ BERR_Code _P_GetFileSize(char * filename, uint32_t *filesize)
     fptr = fopen(filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_LOG(("%s - Error opening file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_LOG(("%s - Error opening file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -772,7 +897,7 @@ BERR_Code _P_GetFileSize(char * filename, uint32_t *filesize)
     pos = fseek(fptr, 0, SEEK_END);
     if(pos == -1)
     {
-        BDBG_ERR(("%s - Error seeking to end of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error seeking to end of file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -780,7 +905,7 @@ BERR_Code _P_GetFileSize(char * filename, uint32_t *filesize)
     pos = ftell(fptr);
     if(pos == -1)
     {
-        BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -788,7 +913,7 @@ BERR_Code _P_GetFileSize(char * filename, uint32_t *filesize)
     /* check vs. arbitrary large file size */
     if(pos >= 2*1024*1024)
     {
-        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", __FUNCTION__, filename, pos));
+        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", BSTD_FUNCTION, filename, pos));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -797,13 +922,13 @@ BERR_Code _P_GetFileSize(char * filename, uint32_t *filesize)
 
 ErrorExit:
 
-    BDBG_MSG(("%s - Exiting function (%u bytes)", __FUNCTION__, (*filesize)));
+    BDBG_MSG(("%s - Exiting function (%u bytes)", BSTD_FUNCTION, (*filesize)));
 
     if(fptr != NULL)
     {
         /* error closing?!  weird error case not sure how to handle */
         if(fclose(fptr) != 0){
-            BDBG_ERR(("%s - Error closing Loadable TA file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+            BDBG_ERR(("%s - Error closing Loadable TA file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
             rc = 1;
         }
     }

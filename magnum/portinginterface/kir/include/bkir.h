@@ -261,6 +261,7 @@ See Also:
 ***************************************************************************/
 typedef enum
 {
+    BKIR_INPUT_IR_Default,
     BKIR_INPUT_IR_IN0,
     BKIR_INPUT_IR_IN1,
     BKIR_INPUT_UHF_RX,
@@ -446,6 +447,28 @@ typedef struct BKIR_ChannelSettings
 
 /***************************************************************************
 Summary:
+    Typedef for Ir key data read at isr time
+
+Description:
+    Elements in this structure are read at isr time in response to receiving
+    an interrupt from hardware. Grouped together because they are a matched set.
+
+See Also:
+    None.
+
+****************************************************************************/
+typedef struct BKIR_IrKeyData
+{
+    bool                    repeat;    /* true if hw detects a repeated key */
+    uint32_t                code;      /* code bits 0-31 from the receiver */
+    uint32_t                codeHigh;  /* code bits 32-47 from the receiver, if available. */
+    bool                    preambleA; /* preambleA detected by hw */
+    bool                    preambleB; /* preambleB detected by hw */
+    BKIR_KirInterruptDevice device;    /* IR device type that generated the key */
+} BKIR_IrKeyData;
+
+/***************************************************************************
+Summary:
     This function opens KIR module.
 
 Description:
@@ -455,7 +478,7 @@ Description:
     before it can be opened again.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
     BKIR_Close(), BKIR_OpenChannel(), BKIR_CloseChannel(),
@@ -481,7 +504,7 @@ Description:
     is not done, the results will be unpredicable.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
     BKIR_Open(), BKIR_CloseChannel()
@@ -501,7 +524,7 @@ Description:
     opening the device.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
     BKIR_Open()
@@ -523,7 +546,7 @@ Description:
     device channel.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
     BKIR_OpenChannel(), BKIR_ChannelDefaultSettings()
@@ -544,7 +567,7 @@ Description:
     a channel.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
     BKIR_OpenChannel()
@@ -565,7 +588,7 @@ Description:
     specified device. The return default setting is used when setting custom CIR.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 ****************************************************************************/
 BERR_Code BKIR_GetDefaultCirParam (
@@ -583,7 +606,7 @@ Description:
     used when setting custom CIR.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
     BKIR_SetCustomCir()
@@ -606,7 +629,7 @@ Description:
     channel is opened, it must be closed before it can be opened again.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
     BKIR_CloseChannel(), BKIR_GetChannelDefaultSettings()
@@ -629,7 +652,7 @@ Description:
     opened BKIR channels must be closed before closing BKIR.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
     BKIR_OpenChannel(), BKIR_CloseChannel()
@@ -649,7 +672,7 @@ Description:
     BKIR module channel.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -667,7 +690,7 @@ Description:
     This function is used to check to see if data is received by the KIR receiver.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -678,6 +701,7 @@ BERR_Code BKIR_IsDataReady (
     bool                *dataReady      /* [out] flag to indicate if data is ready */
     );
 
+#if 0
 /***************************************************************************
 Summary:
     This function reads the received KIR data
@@ -687,10 +711,9 @@ Description:
     WARNING: the memory for the data returned MUST be larger than 8 chars.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
-
 
 ****************************************************************************/
 BERR_Code BKIR_Read(
@@ -709,7 +732,7 @@ Description:
     WARNING: the memory for the data returned MUST be larger than 8 chars.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -720,6 +743,7 @@ BERR_Code BKIR_Read_isr(
     BKIR_KirInterruptDevice *pDevice,       /* [out] pointer to IR device type that generated the key */
     unsigned char           *data           /* [out] pointer to data received */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -729,7 +753,7 @@ Description:
     This function is used to check if the remote A repeat condition occurs.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -739,46 +763,6 @@ See Also:
 BERR_Code BKIR_IsRepeated_isrsafe(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     bool                    *repeatFlag     /* [out] flag to remote A repeat condition */
-    );
-
-/***************************************************************************
-Summary:
-    This function checks to see if preamble A is detected.
-
-Description:
-    This function is used to check if the preamble A is detected.
-
-Returns:
-    TODO:
-
-See Also:
-
-
-****************************************************************************/
-#define BKIR_IsPreambleA BKIR_IsPreambleA_isrsafe
-BERR_Code BKIR_IsPreambleA_isrsafe(
-    BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
-    bool                    *preambleFlag   /* [out] flag for preamble A */
-    );
-
-/***************************************************************************
-Summary:
-    This function checks to see if preamble B is detected.
-
-Description:
-    This function is used to check if the preamble B is detected.
-
-Returns:
-    TODO:
-
-See Also:
-
-
-****************************************************************************/
-#define BKIR_IsPreambleB BKIR_IsPreambleB_isrsafe
-BERR_Code BKIR_IsPreambleB_isrsafe(
-    BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
-    bool                    *preambleFlag   /* [out] flag for preamble B */
     );
 
 /***************************************************************************
@@ -801,30 +785,6 @@ BERR_Code BKIR_Set_PM_AON_CONFIG(
 
 /***************************************************************************/
 
-
-/***************************************************************************
-Summary:
-    This function returns the last key pressed.
-
-Description:
-    This function is used to retreive the key that was pressed to wakeup
-    after an S3 or S5 suspend.  This must be used immediatly after channel
-    open.
-
-Returns:
-    TODO:
-
-See Also:
-
-****************************************************************************/
-void BKIR_GetLastKey(
-    BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
-    uint32_t *code,           /* [out] lower 32-bits of returned code */
-    uint32_t *codeHigh,       /* [out] upper 32-bits of returned code */
-    bool *preambleA,          /* [out] flag for preamble A */
-    bool *preambleB           /* [out] flag for preamble B */
-    );
-
 /***************************************************************************
 Summary:
     This function enables a KIR device.
@@ -833,7 +793,7 @@ Description:
     This function enables a KIR device type.
 
 Returns:
-    TODO:
+    void:
 
 See Also:
 
@@ -851,7 +811,7 @@ Description:
     This function disables a KIR device type.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -869,7 +829,7 @@ Description:
     This function enables a data filter based on the pattern.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -890,7 +850,7 @@ Description:
     This function disables a data filter based on the pattern.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -907,7 +867,7 @@ Description:
     This function enables a filter1 using the filter width.
     Any pulse smaller than (28*filter_width+2)/27) microseconds will be rejected
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -925,7 +885,7 @@ Description:
     This function disables a data filter based on the pattern.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -942,7 +902,7 @@ Description:
     This function disables all KIR devices.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -953,24 +913,60 @@ BERR_Code BKIR_DisableAllIrDevices (
 
 /***************************************************************************
 Summary:
-    This function gets the event handle for BKIR module channel.
+    This function retrieves the pertinent data snapshoted in response to IR
+    event.
 
 Description:
-    This function is responsible for getting the event handle. The
-    application code should use this function get BKIR's event handle,
-    which the application should use to pend on.  The KIR ISR will
-    set the event.
+    This function is responsible for reading the pertinent data associated
+    with receiving an IR key event.
+    preamble data is cleared in isr handler BKIR_P_HandleInterrupt_Isr,
+    so this function returns the cached copy associated with the key event.
 
 Returns:
-    TODO:
+    void
 
 See Also:
 
 ****************************************************************************/
-BERR_Code BKIR_GetEventHandle(
-    BKIR_ChannelHandle hChn,            /* [in] Device channel handle */
-    BKNI_EventHandle *phEvent           /* [out] Returns event handle */
+void BKIR_GetIrKeyData_isr(
+    BKIR_ChannelHandle hChn,  /* [in] Device channel handle */
+    BKIR_IrKeyData    *keyData
     );
+
+void BKIR_GetIrKeyData(
+    BKIR_ChannelHandle hChn,  /* [in] Device channel handle */
+    BKIR_IrKeyData    *keyData
+    );
+
+/***************************************************************************
+Summary:
+    This function returns the last key pressed.
+
+Description:
+    This function directly reads the HW to retreive the key that was pressed
+    to wakeup after a S5 suspend. For preamble data to be valid this must be
+    used before an IR interrupt occurs, since preamble will be read and
+    cleared during interrupt.
+
+Returns:
+    void:
+
+See Also:
+    BKIR_GetIrKeyData()
+
+****************************************************************************/
+void BKIR_GetLastKey(
+    BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
+#if 0
+    uint32_t *code,           /* [out] lower 32-bits of returned code */
+    uint32_t *codeHigh,       /* [out] upper 32-bits of returned code */
+    bool *preambleA,          /* [out] flag for preamble A */
+    bool *preambleB           /* [out] flag for preamble B */
+#else
+    BKIR_IrKeyData    *keyData
+#endif
+    );
+
 
 /***************************************************************************
 Summary:
@@ -982,7 +978,7 @@ Description:
     since custom device type is used in BKIR_EnableIrDevice function
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -1002,7 +998,7 @@ Description:
     parameters on the fly.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -1022,7 +1018,7 @@ Description:
     for this channel, it will call that function.
 
 Returns:
-    TODO:
+    BERR_Code:
 
 See Also:
 
@@ -1042,7 +1038,7 @@ Description:
     particular KIR channel.
 
 Returns:
-    TODO:
+    void:
 
 See Also:
 

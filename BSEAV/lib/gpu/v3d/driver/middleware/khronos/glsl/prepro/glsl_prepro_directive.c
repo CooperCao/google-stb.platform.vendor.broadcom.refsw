@@ -116,7 +116,7 @@ static bool has_sticky(void)
 
 static void seen_else(void)
 {
-   vcos_assert(depth > 0);
+   assert(depth > 0);
 
    if_stack[depth - 1].seen_else = true;
 }
@@ -125,7 +125,7 @@ static void set_active(bool active)
 {
    bool sticky = if_stack[depth - 1].sticky;
 
-   vcos_assert(depth > 0);
+   assert(depth > 0);
 
    if_stack[depth - 1].active = !sticky && active;
    if_stack[depth - 1].sticky = sticky || active;

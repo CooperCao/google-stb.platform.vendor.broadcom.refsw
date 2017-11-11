@@ -300,7 +300,7 @@ static void MemCopy2d(void *context, BEGL_MemCopy2d *params)
       if ((params->format == BEGL_BufferFormat_eA8B8G8R8) ||
           (params->format == BEGL_BufferFormat_eR5G6B5))
          memCopy2d_rgba(data, params);
-      else if (params->format == BEGL_BufferFormat_eYV12_Texture)
+      else if (params->format == BEGL_BufferFormat_eYV12)
          memCopy2d_yv12(data, params);
    }
 }
@@ -647,6 +647,18 @@ NEXUS_HeapHandle NXPL_MemHeap(BEGL_MemoryInterface *mem)
    {
       NXPL_MemoryData *data = (NXPL_MemoryData*)mem->context;
       return data->heapMap.heap;
+   }
+   return NULL;
+}
+
+/* Return the primary memory heap */
+__attribute__((visibility("default")))
+NEXUS_HeapHandle NXPL_MemHeapSecure(BEGL_MemoryInterface *mem)
+{
+   if (mem != NULL)
+   {
+      NXPL_MemoryData *data = (NXPL_MemoryData*)mem->context;
+      return data->heapMapSecure.heap;
    }
    return NULL;
 }

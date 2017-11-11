@@ -68,7 +68,6 @@ endif
 
 # Based on algo defines, include proper firmware files.
 # Add firmware files here
-ifneq ($(BCHP_CHIP), 7278)
 BDSP_IMG_SOURCES += \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_rdbvars_${BCHP_CHIP}.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_sys_code.c \
@@ -83,17 +82,6 @@ BDSP_IMG_SOURCES += \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_apt_generic.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_version.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_pcmwav.c
-endif
-
-ifeq ($(BCHP_CHIP), 7278)
-BDSP_IMG_SOURCES += \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_rdbvars_${BCHP_CHIP}.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_files/braaga_fpos_kernel.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_files/braaga_init_romfs.c\
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_apt_generic.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_version.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_pcmwav.c
-endif
 
 #################################################################
 #		ADD AUDIO ALGORITHM SUPPORT			#
@@ -138,41 +126,6 @@ endif
 
 ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
 
-ifeq ($(BCHP_CHIP),7278)
-BDSP_UDC_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_udc.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_udc.c
-ifneq ($(wildcard $(BDSP_UDC_SOURCES)),)
-BDSP_UDC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
-else
-BDSP_UDC_SUPPORT = n
-endif
-
-BDSP_DOLBY_AACHE_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_dolby_aache.c
-ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
-BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
-else
-BDSP_DOLBY_AACHE_SUPPORT = n
-endif
-
-BDSP_AC4_SUPPORT = n
-BDSP_DPCMR_SUPPORT = n
-BDSP_DDPENC_SUPPORT = n
-BDSP_MIXERDAPV2_SUPPORT = n
-
-ifeq ($(BDSP_UDC_SUPPORT),n)
-ifeq ($(BDSP_DOLBY_AACHE_SUPPORT),n)
-BDSP_MS12_SUPPORT = n
-endif
-endif
-ifeq ($(BDSP_DOLBY_AACHE_SUPPORT),n)
-ifeq ($(BDSP_UDC_SUPPORT),n)
-BDSP_MS12_SUPPORT = n
-endif
-endif
-
-else
 BDSP_UDC_SUPPORT = y
 # Check for AC4 sources and decide whether AC4 can be enabled.
 # User can still explicitly disable the AC4 support.
@@ -185,7 +138,6 @@ BDSP_DPCMR_SUPPORT = y
 BDSP_DDPENC_SUPPORT = y
 BDSP_MIXERDAPV2_SUPPORT = y
 BDSP_DOLBY_AACHE_SUPPORT = y
-endif
 BDSP_MS10_SUPPORT = n
 BDSP_MS11_SUPPORT = n
 BDSP_AACSBR_SUPPORT = n

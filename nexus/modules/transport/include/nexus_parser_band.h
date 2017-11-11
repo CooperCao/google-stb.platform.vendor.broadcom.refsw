@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -156,6 +156,11 @@ typedef struct NEXUS_ParserBandStatus
         unsigned overflowErrors; /* Cumulative count of Rate Smoothing Buffer overflows detected.
                                     Reset when PID channel is disabled or NEXUS_PidChannel_ResetStatus() */
     } rsBufferStatus;
+
+    /* The teiErrors and syncErrors are cumulative since the channel was disabled or status was reset */
+    unsigned teiErrors;     /* Count of TEI events seen in the transport header */
+    unsigned syncErrors;    /* Count of packet sync errors */
+
     unsigned index; /* hardware parser band number */
 } NEXUS_ParserBandStatus;
 

@@ -61,8 +61,13 @@
 #endif
 
 #include "libdspcontrol/CHIP.h"
-#include "libdspcontrol/DSP.h"
+#include "libdspcontrol/UTIL_c.h"
 
+#if FEATURE_IS(DBG_TARGET_IF, DEBUG_CONSOLE) || \
+    FEATURE_IS(DBG_TARGET_IF, MISC_BLOCK) || \
+    FEATURE_IS(DBG_TARGET_IF, MISC_BLOCK_BUFFER)
+#include "libdspcontrol/DSP.h"
+#endif
 
 
 #ifdef __cplusplus
@@ -122,26 +127,34 @@ typedef struct
                                          in between if the debug console is out of space */
     unsigned slow_retry_sleep_ms;   /**< how many milliseconds to sleep between two slow retries */
 #endif
-#if FEATURE_IS(DBG_TARGET_IF, MISC_BLOCK) || FEATURE_IS(DBG_TARGET_IF, FPOS_DEBUG)
+#if FEATURE_IS(DBG_TARGET_IF, MISC_BLOCK) || FEATURE_IS(DBG_TARGET_IF, MISC_BLOCK_BUFFER)
     DSP         *dsp;
     DSP_CORE    dsp_core;
     unsigned    mutex_acquire_retries;
 #endif
+#if FEATURE_IS(DBG_TARGET_IF,SOCKET)
+    uint16_t portno;
+    char *hostname;
+#endif
 
 } DBG_PARAMETERS;
+
 
 /*
  * DBG Target interface structure
  * FIXME:Ideally would like individual target interfaces, have the DBG_TARGET structure
  * defined within their own header file. But it will be not possible to include
  * them in a public header
- * */
-
+ */
 typedef struct
 {
     unsigned id;                    /**< to distinguish between different DBG instances */
+#if FEATURE_IS(DBG_TARGET_IF, DEBUG_CONSOLE) || \
+    FEATURE_IS(DBG_TARGET_IF, MISC_BLOCK) || \
+    FEATURE_IS(DBG_TARGET_IF, MISC_BLOCK_BUFFER)
     DSP     *dsp;                   /**< the DSP instance we are communicating with */
     DSP_CORE dsp_core;              /**< the core we are talking to */
+#endif
 #if FEATURE_IS(DBG_TARGET_IF, DEBUG_CONSOLE)
     unsigned fast_write_retries;    /**< how many times to retry writing in a row
                                          if the debug console is out of space */
@@ -161,21 +174,26 @@ typedef struct
     uint8_t max_payload_size;
     DBG_TARGET_ERR_CODE target_err_code;
 #endif
-#if FEATURE_IS(DBG_TARGET_IF, FPOS_DEBUG)
+#if FEATURE_IS(DBG_TARGET_IF, MISC_BLOCK_BUFFER)
     unsigned mutex_acquire_retries; /**< Number of times to try to acquire the misc block mutex*/
     bool b_channel_configured;
     uint8_t *p_u8_channel_address;
     uint16_t u16_channel_size;
     DBG_TARGET_ERR_CODE target_err_code;
 #endif
+#if FEATURE_IS(DBG_TARGET_IF, SOCKET)
+    int      sockfd;
+    DBG_TARGET_ERR_CODE target_err_code;
+#endif
 } DBG_TARGET;
+
 
 /*
  * DBG Host interface structure
- * */
+ */
 typedef struct
 {
-    unsigned id;                /**< to distinguish between different DBG instances */
+    unsigned id;             /**< to distinguish between different DBG instances */
 #if FEATURE_IS(DBG_HOST_IF, SOCKET)
     int      server_fd;      /**< server socket file descriptor */
     int      data_fd;        /**< data socket file descriptor */
@@ -232,7 +250,7 @@ typedef struct
  *                         the return from DBG_init, not for the whole life of the DBG object.
  * @return                 one of the #DBG_RET return values
  */
-__attribute__((nonnull, warn_unused_result))
+BFPSDK_NONNULL BFPSDK_WARN_UNUSED_RESULT
 DBG_RET DBG_init(DBG *dbg, DBG_PARAMETERS *parameters);
 
 
@@ -242,7 +260,7 @@ DBG_RET DBG_init(DBG *dbg, DBG_PARAMETERS *parameters);
  *
  * @param[in] dbg  the DBG instance to terminate
  */
-__attribute__((nonnull))
+BFPSDK_NONNULL
 void DBG_finish(DBG *dbg);
 
 
@@ -253,7 +271,7 @@ void DBG_finish(DBG *dbg);
  * @param[in] dbg  the DBG instance
  * @return         one of the #DBG_RET return values
  */
-__attribute__((nonnull))
+BFPSDK_NONNULL
 DBG_RET DBG_service(DBG *dbg);
 
 

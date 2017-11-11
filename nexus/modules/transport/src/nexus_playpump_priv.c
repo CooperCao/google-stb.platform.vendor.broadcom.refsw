@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -86,6 +86,7 @@ static void b_playpump_p_capture_data(NEXUS_PlaypumpHandle pump, const char *nam
 #define b_playpump_p_capture_data(pump, name, addr, length)
 #endif
 
+
 /* send next chunk to the playback channel */
 bool
 b_play_next(NEXUS_PlaypumpHandle p)
@@ -95,6 +96,7 @@ b_play_next(NEXUS_PlaypumpHandle p)
     size_t receiver_space;
     BPVRlib_Feed_OffsetEntry entry;
     size_t nentries;
+    BPVRlib_Feed_ExtendedOffsetEntry extEntry;
     bool active=false;
 
 restart:
@@ -277,15 +279,31 @@ remove_inalid_chunk:
         }
     } else {
         /* flush cache and convert address */
-        entry.len = p->state.active.length;
-        entry.offset = NEXUS_AddrToOffset(p->state.active.addr);
         if ( false == p->settings.dataNotCpuAccessible ) {
             NEXUS_FlushCache(p->state.active.addr, p->state.active.length);
         }
-        rc = BPVRlib_Feed_AddOffsetEntries(p->play_feed, &entry, 1, &nentries);
-        if (rc!=BERR_SUCCESS) {
-            BDBG_ERR(("BPVRlib_Feed_AddOffsetEntries: returned error %#x, ignored", rc));
-        } else {
+        if(p->openSettings.descriptorPacingEnabled)
+        {
+            BKNI_Memset(&extEntry.flags, 0 , sizeof(BAVC_TsMux_DescConfig));
+            extEntry.flags.bNextPacketPacingTimestampValid = true;
+            extEntry.flags.uiNextPacketPacingTimestamp = item->desc.descriptorSettings.descriptorPacing.timestamp;
+            extEntry.flags.bPacket2PacketTimestampDeltaValid = true;
+            extEntry.flags.uiPacket2PacketTimestampDelta = item->desc.descriptorSettings.descriptorPacing.pkt2pktDelta;
+            extEntry.baseEntry.len = p->state.active.length;
+            extEntry.baseEntry.offset = NEXUS_AddrToOffset(p->state.active.addr);
+            rc = BPVRlib_Feed_AddExtendedOffsetEntries(p->play_feed, &extEntry, 1, &nentries);
+            if (rc!=BERR_SUCCESS)
+                BDBG_ERR(("BPVRlib_Feed_AddExtendedOffsetEntries: returned error %#x, ignored", rc));
+        }
+        else
+        {
+            entry.len = p->state.active.length;
+            entry.offset = NEXUS_AddrToOffset(p->state.active.addr);
+            rc = BPVRlib_Feed_AddOffsetEntries(p->play_feed, &entry, 1, &nentries);
+            if (rc!=BERR_SUCCESS)
+                BDBG_ERR(("BPVRlib_Feed_AddOffsetEntries: returned error %#x, ignored", rc));
+        }
+        if (rc==BERR_SUCCESS) {
             BDBG_ASSERT(nentries==1);
             p->state.queued_in_hw++;
             BDBG_MSG_FLOW(("queued %u:%u", p->state.queued_in_hw, B_PLAY_MAX_HW_QUEUE));
@@ -333,7 +351,7 @@ b_playpump_bound(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpScatterGatherDescri
 }
 
 BERR_Code
-b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used, const NEXUS_PlaypumpScatterGatherDescriptor *pSgDesc)
+b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used, const NEXUS_PlaypumpScatterGatherDescriptor *pSgDesc, NEXUS_PlaypumpWriteCompleteSettings *settings)
 {
     struct bpvr_queue_item *item;
     unsigned nFree;
@@ -359,6 +377,7 @@ b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used
 #if B_HAS_MEDIA
             item->ref_cnt = 0;
 #endif
+            item->desc.descriptorSettings = *settings;
             BFIFO_WRITE_COMMIT(&p->activeFifo,1);
             BFIFO_WRITE_COMMIT(&p->pendingFifo,1);
             BDBG_MSG_FLOW(("queuing up chunk %#x %#x:%u:%u", (unsigned)item, (unsigned)item->desc.addr, item->skip, item->desc.length));
@@ -373,7 +392,7 @@ b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used
 #if B_SAVE_PLAYPUMP
             b_playpump_p_data(BFIFO_WRITE(&p->fifo)+skip, amount_used);
 #endif
-            if(skip==0 && amount_used>0 && p->state.packetizer==b_play_packetizer_none && p->settings.mode == NEXUS_PlaypumpMode_eFifo  && p->state.last_item!=NULL) {
+            if(skip==0 && amount_used>0 && p->state.packetizer==b_play_packetizer_none && p->settings.mode == NEXUS_PlaypumpMode_eFifo  && p->state.last_item!=NULL && !p->openSettings.descriptorPacingEnabled) {
                 size_t threshold;
                 threshold = (2*p->openSettings.fifoSize)/ p->openSettings.numDescriptors; /* limit size of the merged chunk */
                 item = p->state.last_item;
@@ -397,6 +416,7 @@ b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used
             item->sg = false;        
             item->skip = skip;
             item->ref_cnt = 0;
+            item->desc.descriptorSettings = *settings;
             p->state.last_item = item;
             BFIFO_WRITE_COMMIT(&p->activeFifo,1);
             BFIFO_WRITE_COMMIT(&p->pendingFifo,1);
@@ -575,8 +595,6 @@ NEXUS_P_Playpump_DescAvail_isr(void *p, int unused)
     return;
 }
 
-
-
 #if B_SAVE_PLAYPUMP
 #include <stdio.h>
 static FILE *playpump_data=NULL;
@@ -656,4 +674,3 @@ NEXUS_Playpump_GetCompleted_priv(NEXUS_PlaypumpHandle playpump, size_t *ncomplet
     BDBG_OBJECT_ASSERT(playpump, NEXUS_Playpump);
     return BPVRlib_Feed_GetCompleted(playpump->play_feed, ncompleted);
 }
-

@@ -436,7 +436,7 @@ BERR_Code BXPT_PcrOffset_ReleasePidChannel(
         return BERR_TRACE( BERR_INVALID_PARAMETER );
     }
 
-    BXPT_P_SetPidChannelDestination( (BXPT_Handle) hChannel->lvXpt, PidChannel, 5, false );
+    BXPT_P_SetPidChannelDestination( (BXPT_Handle) hChannel->lvXpt, PidChannel, BXPT_PidChannelDestination_eRaveRPipe, false );
     hChannel->PidChannelNum = BXPT_NUM_PID_CHANNELS;
     return BERR_SUCCESS;
 }
@@ -569,7 +569,7 @@ BERR_Code BXPT_PcrOffset_SetSettings(
     */
     if( (Settings->UseHostPcrs == false) && routeToRave )
     {
-        BXPT_P_SetPidChannelDestination( (BXPT_Handle) hChannel->lvXpt, Settings->PidChannelNum, 5, true );
+        BXPT_P_SetPidChannelDestination( (BXPT_Handle) hChannel->lvXpt, Settings->PidChannelNum, BXPT_PidChannelDestination_eRaveRPipe, true );
     }
 
     Reg = BREG_Read32( hChannel->hReg, hChannel->BaseAddr + PCROFF_THRESHOLD_OFFSET );

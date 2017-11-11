@@ -81,7 +81,7 @@ ifneq ($(findstring nintendo,$(TARGET)),)
     endif
 else
     # default module prefix for all targets
-    MODULEPFX := wl
+    MODULEPFX ?= wl
 endif
 
 obj-m             += $(MODULEPFX).o

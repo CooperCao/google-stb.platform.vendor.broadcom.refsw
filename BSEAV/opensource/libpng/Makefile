@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,7 +56,7 @@ $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
 B_LIBPNG_TOOLCHAIN_ARCH ?= $(B_REFSW_ARCH)
 LIBPNG_CONFIG_CFLAGS  := -O2 -fPIC -DLIBPNG_MAX_WRITE_SIZE=65536
 
-.PHONY: source all clean
+.PHONY: all clean
 
 B_LIBPNG_EXTRACT_REDIR :=
 
@@ -64,25 +64,34 @@ ifeq ($(B_REFSW_LIBPNG_IS_EXTERNAL),y)
     $(warning B_REFSW_LIBPNG_IS_EXTERNAL=${B_REFSW_LIBPNG_IS_EXTERNAL} Skipping build of libpng...)
 endif   #  ifeq ($(B_REFSW_LIBPNG_IS_EXTERNAL),y)
 
-all : source
-	@if [ ! -d "${LIBPNG_SOURCE_PATH}" ]; then \
-		echo "libpng source directory: $(abspath ${LIBPNG_SOURCE_PATH}) not found, extracting from tarball..."  ${B_LIBPNG_EXTRACT_REDIR}; \
-		if [ ! -e "${LIBPNG_TAR_PATH}/${LIBPNG_SOURCE_TARBALL}" ]; then \
-			echo "================ Downloading PNG tarball  to ${LIBPNG_TAR_PATH}"; \
-			mkdir -p ${LIBPNG_TAR_PATH}; \
-			B_REFSW_CACHE_DIR=${B_REFSW_CACHE_DIR} $(NEXUS_TOP)/../BSEAV/tools/build/fetch.sh ${LIBPNG_BUILD_DIR}/${LIBPNG_NAME}.info ${LIBPNG_TAR_PATH}; \
-		fi ;\
+all: ${LIBPNG_LIB_FOLDER}/libpng.a
+
+${LIBPNG_LIB_FOLDER}/libpng.a: ${LIBPNG_TAR_PATH}/.libs/libpng16.a
+	@${MAKE} ${MAKE_OPTIONS} -C ${LIBPNG_TAR_PATH} BSEAV=$(abspath ${BSEAV_TOP}) install ${MAKE_SUFFIX} > /dev/null 2>&1
+	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
+		if ls ${LIBPNG_LIB_FOLDER}/libpng${LIBPNG_INSTALL_VER}.so.${LIBPNG_INSTALL_VER_FULL}.0 > /dev/null 2>&1 ; then \
+		    ${STRIP} ${LIBPNG_LIB_FOLDER}/libpng${LIBPNG_INSTALL_VER}.so.${LIBPNG_INSTALL_VER_FULL}.0 ; fi \
 	fi
+
+
+${LIBPNG_TAR_PATH}/.libs/libpng16.a: ${LIBPNG_TAR_PATH}/Makefile
+	@echo "================ Configuring LIBPNG==============================="
+	@cd ${LIBPNG_TAR_PATH}; \
+	CC="${CC}" \
+	CFLAGS="-I$(LIBPNG_INSTALL_PREFIX)/include" \
+	CPPFLAGS="-I$(LIBPNG_INSTALL_PREFIX)/include" \
+	LDFLAGS="-L$(LIBPNG_INSTALL_PREFIX)/lib" \
+	./configure --host=${B_REFSW_ARCH} --prefix=$(LIBPNG_INSTALL_PREFIX) \
+	--with-zlib-prefix=$(LIBPNG_INSTALL_PREFIX) \
+	--with-pkgconfigdir=$(LIBPNG_INSTALL_PREFIX)/lib/pkgconfig \
+	--enable-static --enable-shared 1>/dev/null 2>&1;
+	@echo "================ LIBPNG Configured!"
 
 	@echo "================ Compiling LIBPNG==============================="
-	echo "NEXUS_TOP=$(abspath ${NEXUS_TOP})"
-	${MAKE} ${MAKE_OPTIONS} -C ${LIBPNG_TAR_PATH} BSEAV=$(abspath ${BSEAV_TOP}) ${MAKE_SUFFIX}
-	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
-		if ls ${LIBPNG_LIB_FOLDER}/*.so > /dev/null 2>&1 ; then ${STRIP} ${LIBPNG_LIB_FOLDER}/*.so ; fi \
-	fi
+	@${MAKE} ${MAKE_OPTIONS} -C ${LIBPNG_TAR_PATH} BSEAV=$(abspath ${BSEAV_TOP}) ${MAKE_SUFFIX} > /dev/null
 	@echo "================ LIBPNG Compiled!"
 
-source:
+${LIBPNG_TAR_PATH}/Makefile:
 ifneq ($(B_REFSW_LIBPNG_IS_EXTERNAL),y)
 	@if [ ! -d "${LIBPNG_SOURCE_PATH}" ]; then \
 		echo ""; \
@@ -104,8 +113,8 @@ ifneq ($(B_REFSW_LIBPNG_IS_EXTERNAL),y)
 			echo "LIBPNG_TAR_PATH is ${LIBPNG_TAR_PATH}"; \
 			echo "LIBPNG_SOURCE_TARBALL is ${LIBPNG_SOURCE_TARBALL}"; \
 			tar -xpf ${LIBPNG_TAR_PATH}/${LIBPNG_SOURCE_TARBALL} -C ${LIBPNG_SOURCE_PATH}/..; \
-			echo "Copy ${LIBPNG_BUILD_DIR}/${LIBPNG_NAME} to ${LIBPNG_SOURCE_PATH}/.." ; \
-			cp -r ${LIBPNG_BUILD_DIR}/${LIBPNG_NAME} ${LIBPNG_SOURCE_PATH}/.. ; \
+#			echo "Copy ${LIBPNG_BUILD_DIR}/${LIBPNG_NAME} to ${LIBPNG_SOURCE_PATH}/.." ; \
+#			cp -r ${LIBPNG_BUILD_DIR}/${LIBPNG_NAME} ${LIBPNG_SOURCE_PATH}/.. ; \
 		else \
 			echo "Tarball ${LIBPNG_TAR_PATH}/${LIBPNG_SOURCE_TARBALL} is missing"; exit 1;\
 		fi ${B_LIBPNG_EXTRACT_REDIR};\

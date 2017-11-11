@@ -221,6 +221,9 @@ BDBG_OBJECT_ID_DECLARE(BVDC_RES);
 #define BVDC_P_DRN_HAS_DEBUG(pDrain) \
     (BVDC_P_DRN_INVALID_OFFSET != pDrain->ulDbgOffset)
 
+#ifndef BCHP_VNET_F_SCL_0_SRC_SOURCE_Video_Feeder_1
+#define BCHP_VNET_F_SCL_0_SRC_SOURCE_Video_Feeder_1 BCHP_VNET_F_SCL_0_SRC_SOURCE_Output_Disabled
+#endif
 #ifndef BCHP_VNET_F_SCL_0_SRC_SOURCE_Video_Feeder_2
 #define BCHP_VNET_F_SCL_0_SRC_SOURCE_Video_Feeder_2 BCHP_VNET_F_SCL_0_SRC_SOURCE_Output_Disabled
 #endif
@@ -379,6 +382,9 @@ BDBG_OBJECT_ID_DECLARE(BVDC_RES);
 #define BCHP_VNET_B_CAP_0_SRC_SOURCE_ANR_1 0
 #endif
 
+#ifndef BCHP_VNET_B_CAP_0_SRC_SOURCE_Scaler_1
+#define BCHP_VNET_B_CAP_0_SRC_SOURCE_Scaler_1 0
+#endif
 #ifndef BCHP_VNET_B_CAP_0_SRC_SOURCE_Scaler_2
 #define BCHP_VNET_B_CAP_0_SRC_SOURCE_Scaler_2 0
 #endif
@@ -410,6 +416,9 @@ BDBG_OBJECT_ID_DECLARE(BVDC_RES);
 #define BCHP_VNET_B_CAP_0_SRC_SOURCE_FGT_0 0
 #endif
 
+#ifndef BCHP_VNET_B_CAP_0_SRC_SOURCE_Free_Ch_2
+#define BCHP_VNET_B_CAP_0_SRC_SOURCE_Free_Ch_2 BCHP_VNET_B_CAP_0_SRC_SOURCE_Output_Disabled
+#endif
 #ifndef BCHP_VNET_B_CAP_0_SRC_SOURCE_Free_Ch_3
 #define BCHP_VNET_B_CAP_0_SRC_SOURCE_Free_Ch_3 BCHP_VNET_B_CAP_0_SRC_SOURCE_Output_Disabled
 #endif

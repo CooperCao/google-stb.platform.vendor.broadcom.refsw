@@ -119,17 +119,6 @@ typedef struct BAPE_ProcessorSettings
 
 /***************************************************************************
 Summary:
-Audio PTS Type
-***************************************************************************/
-typedef enum BAPE_PtsType {
-    BAPE_PtsType_eOriginal,
-    BAPE_PtsType_eInterpolated,
-    BAPE_PtsType_eInterpolatedFromInvalid,
-    BAPE_PtsType_eMax
-} BAPE_PtsType;
-
-/***************************************************************************
-Summary:
 Advanced TSM Status
 ***************************************************************************/
 typedef struct BAPE_AdvancedTsmStatus
@@ -137,7 +126,7 @@ typedef struct BAPE_AdvancedTsmStatus
     BAPE_AdvancedTsmMode mode;
     bool ptsValid;
     uint32_t pts;
-    BAPE_PtsType ptsType;
+    BAVC_PTSType ptsType;
     int correction; /* in milliseconds */
 } BAPE_AdvancedTsmStatus;
 

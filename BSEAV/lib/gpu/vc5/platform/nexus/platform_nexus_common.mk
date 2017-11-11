@@ -53,7 +53,6 @@ CFLAGS += \
 	-DGFX_UIF_PAGE_SIZE=4096 \
 	-DGFX_UIF_NUM_BANKS=8 \
 	-DGFX_UIF_XOR_ADDR=16 \
-	-DKHRN_GLES31_DRIVER=1 \
 	-DGLSL_310_SUPPORT \
 	-Wno-unused-function \
 	-Wno-unused-variable \
@@ -136,24 +135,32 @@ V3DDriver:
 
 # $(1) = src
 # $(2) = obj
+# $(3) = cc + flags
 define CCompileRule
-OBJS += $(2)
-$(2) : $(1)
-	$(Q)echo Compiling $(1)
-	$(Q)$(CC) -c $(CFLAGS) -o "$(2)" "$(1)"
-
+$(2) : $(1) \
+	$(AUTO_FILES)
+		$(Q)echo Compiling $(notdir $(1))
+		$(Q)$(3) -c -MMD -MP -MF"$(2:%.o=%.d)" -MT"$(2:%.o=%.d)" -o "$(2)" "$(1)"
 endef
 
-$(foreach src,$(SOURCES),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o)))
+OBJS0 := $(patsubst %.cpp,%.o,$(filter %.cpp,$(SOURCES)))
+OBJS0 += $(patsubst %.c,%.o,$(filter %.c,$(SOURCES)))
+OBJS := $(addprefix $(OBJDIR)/, $(notdir $(OBJS0)))
+
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++11 -fno-rtti -fno-exceptions
+
+$(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 # $(1) = src
 # $(2) = d
 # $(3) = obj
+# $(4) = cc + flags
 define DependRule_C
 $(2) : $(1) | OUTDIR
 	$(Q)echo Making depends for $(1)
 	$(Q)touch $(2).tmp
-	$(Q)$(CC) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(CFLAGS) $(1)
+	$(Q)$(4) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(1)
 	$(Q)sed 's/D:/\/\/D/g' < $(2).tmp | sed 's/C:/\/\/C/g' > $(2)
 	$(Q)rm -f $(2).tmp
 
@@ -163,15 +170,18 @@ endef
 
 ifneq ($(MAKECMDGOALS),clean)
 $(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call DependRule_C,$(src),$(OBJDIR)/$(basename $(notdir $(src))).d,\
-              $(OBJDIR)/$(basename $(notdir $(src))).o)))
+              $(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval $(call DependRule_C,$(src),$(OBJDIR)/$(basename $(notdir $(src))).d,\
+              $(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 $(foreach src,$(filter %.c,$(SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
 endif
 
 $(LIB_DYNAMIC): $(OBJS)
 	$(Q)echo Linking ... $(notdir $@)
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(CC) $(OBJS) $(LDFLAGS) -shared -o $@
+	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared $(OBJS) -o $@
 
 $(LIB_STATIC): $(OBJS)
 	$(Q)echo Archiving ... $(notdir $@)

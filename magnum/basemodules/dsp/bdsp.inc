@@ -217,17 +217,17 @@ ifeq ($(BCHP_CHIP),7278)
 BDSP_RAAGA_FP_VER := fp4015
 endif
 
-# Include Arm files
 ifeq ($(BDSP_ARM_AUDIO_SUPPORT),y)
+ifeq ($(BDSP_ARM_ONLY_SOLUTION),y)
+include $(MAGNUM)/basemodules/dsp/build/bdsp_arm_v2.inc
+include $(MAGNUM)/basemodules/dsp/build/bdsp_common_v2.inc
+else
 include $(MAGNUM)/basemodules/dsp/build/bdsp_arm.inc
 endif
-ifneq ($(BCHP_CHIP),7278)
-# Include Raaga files
-include $(MAGNUM)/basemodules/dsp/build/bdsp_raaga.inc
-# Include Common files
-include $(MAGNUM)/basemodules/dsp/build/bdsp_common.inc
-else
-ifeq ($(BDSP_OCTAVE_USE_M2),y)
+endif
+
+ifneq ($(BDSP_RAAGA_AUDIO_SUPPORT),n)
+ifneq ($(BDSP_RAAGA_FP_VER),fp4015)
 include $(MAGNUM)/basemodules/dsp/build/bdsp_raaga.inc
 include $(MAGNUM)/basemodules/dsp/build/bdsp_common.inc
 else

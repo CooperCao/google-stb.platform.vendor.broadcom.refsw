@@ -199,17 +199,12 @@ key_aes_get_data(wlc_key_t *key, uint8 *data, size_t data_size,
 
 static int
 key_aes_set_data(wlc_key_t *key, const uint8 *data,
-    size_t data_len, key_data_type_t data_type, int ins, bool tx)
+	size_t data_len, key_data_type_t data_type, int seq_id, bool tx)
 {
 	uint8 *key_data;
 	int err = BCME_OK;
-	int ins_begin;
-	int ins_end;
-	int seq_id;
 
 	KM_DBG_ASSERT(AES_KEY_VALID(key));
-
-	KEY_RESOLVE_SEQ(key, ins, tx, ins_begin, ins_end);
 
 	switch (data_type) {
 	case WLC_KEY_DATA_TYPE_KEY:
@@ -236,8 +231,10 @@ key_aes_set_data(wlc_key_t *key, const uint8 *data,
 			break;
 		}
 
-		if (!memcmp(key_data, data, key->info.key_len)) /* no change ? */
+		if (!memcmp(key_data, data, key->info.key_len)) /* no change ? */ {
+			err = BCME_REPLAY;
 			break;
+		}
 
 		/* update the key. and re-init the tx/rx seq */
 		if (WLC_KEY_IS_MGMT_GROUP(&key->info)) {
@@ -262,36 +259,34 @@ key_aes_set_data(wlc_key_t *key, const uint8 *data,
 		memcpy(key_data, data, key->info.key_len);
 		break;
 	case WLC_KEY_DATA_TYPE_SEQ:
-		for (seq_id = ins_begin; seq_id < ins_end; ++seq_id) {
-			if (WLC_KEY_IS_MGMT_GROUP(&key->info)) {
-				key_data = ((aes_igtk_t *)key->algo_impl.ctx)->seq; /* MFP */
-			} else {
-				aes_key_t *aes_key;
-				if (!AES_KEY_VALID_INS(key, tx, seq_id)) {
-					err = BCME_UNSUPPORTED;
-					break;
-				}
-				aes_key = (aes_key_t *)key->algo_impl.ctx;
-				key_data = AES_KEY_SEQ(key, aes_key, tx, seq_id);
-			}
-
-			if (!data_len) {
-				memset(key_data, 0, AES_KEY_SEQ_SIZE);
-				continue;
-			}
-
-			if (!data) {
-				err = BCME_BADARG;
+		if (WLC_KEY_IS_MGMT_GROUP(&key->info)) {
+			key_data = ((aes_igtk_t *)key->algo_impl.ctx)->seq; /* MFP */
+		} else {
+			aes_key_t *aes_key;
+			if (!AES_KEY_VALID_INS(key, tx, seq_id)) {
+				err = BCME_UNSUPPORTED;
 				break;
 			}
-
-			if (data_len < AES_KEY_SEQ_SIZE) /* ocb modes */
-				memset(key_data, 0, AES_KEY_SEQ_SIZE);
-			else if (data_len > AES_KEY_SEQ_SIZE) /* truncate */
-				data_len = AES_KEY_SEQ_SIZE;
-
-			memcpy(key_data, data, data_len);
+			aes_key = (aes_key_t *)key->algo_impl.ctx;
+			key_data = AES_KEY_SEQ(key, aes_key, tx, seq_id);
 		}
+
+		if (!data_len) {
+			memset(key_data, 0, AES_KEY_SEQ_SIZE);
+			break;
+		}
+
+		if (!data) {
+			err = BCME_BADARG;
+			break;
+		}
+
+		if (data_len < AES_KEY_SEQ_SIZE) /* ocb modes */
+			memset(key_data, 0, AES_KEY_SEQ_SIZE);
+		else if (data_len > AES_KEY_SEQ_SIZE) /* truncate */
+			data_len = AES_KEY_SEQ_SIZE;
+
+		memcpy(key_data, data, data_len);
 		break;
 	default:
 		err = BCME_UNSUPPORTED;

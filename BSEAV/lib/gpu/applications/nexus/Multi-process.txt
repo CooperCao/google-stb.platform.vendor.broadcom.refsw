@@ -2,26 +2,33 @@ V3D examples over Nexus
 =======================
 
 Some of the V3D examples will work both in single-process and multi-process configuration.
-These instructions tell you how to build and run in both configurations, in both user and kernel space.
+These instructions tell you how to build and run in both configurations, in both user and
+kernel space.
 
-The build lines below will be given for the 'cube' application, but are applicable to earth_es2, poly_rate,
-poly_rate_es1, eglimage, benchmark & video_texturing with appropriate name substitutions.
+The build lines below will be given for the 'cube' application, but are applicable
+to earth_es2, poly_rate, poly_rate_es1, eglimage, benchmark & video_texturing with
+appropriate name substitutions.
+
+For simplicity we will assume that $REFSW is the path to your reference software
+installation i.e. the folder that contains BSEAV and nexus.
+
+Unless you are using Legacy Mode (see below), ensure that the environment
+variable NEXUS_CLIENT_SUPPORT is not set.
 
 Single-process user mode
 ------------------------
 
 Build:
 
-cd vobs/rockford/applications/khronos/v3d/nexus/cube
+cd $REFSW/BSEAV/lib/gpu/applications/nexus/cube
 unset NEXUS_MODE
 unset NXCLIENT_SUPPORT
-unset NEXUS_CLIENT_SUPPORT
 make clean
 make
 
 Run:
 
-cd vobs/nexus/bin
+cd $REFSW/obj.<board>.<rev>.<cfg>/nexus/bin
 nexus cube
 
 
@@ -30,16 +37,15 @@ Single-process kernel mode
 
 Build:
 
-cd vobs/rockford/applications/khronos/v3d/nexus/cube
+cd $REFSW/BSEAV/lib/gpu/applications/nexus/cube
 export NEXUS_MODE=proxy
 unset NXCLIENT_SUPPORT
-unset NEXUS_CLIENT_SUPPORT
 make clean
 make
 
 Run:
 
-cd vobs/nexus/bin
+cd $REFSW/obj.<board>.<rev>.<cfg>/nexus/bin
 nexus cube
 
 
@@ -49,23 +55,18 @@ Note: This will use NxClient with nxserver by default.
 
 Build the client and server app (NxClient server makefile will be invoked as part of this):
 
-cd vobs/rockford/applications/khronos/v3d/nexus/cube
+cd $REFSW/BSEAV/lib/gpu/applications/nexus/cube
 unset NEXUS_MODE
 export NXCLIENT_SUPPORT=y
-unset NEXUS_CLIENT_SUPPORT
 make clean
 make
 
 Run:
 
-In one telnet or console:
-cd vobs/nexus/bin
-nexus nxserver
-
-In a separate telnet:
-cd vobs/nexus/bin
-./cube d=300x300 o=100x100 &
-./cube d=300x300 o=450x450 &
+cd $REFSW/obj.<board>.<rev>.<cfg>/nexus/bin
+nexus nxserver &
+nexus.client cube d=300x300 o=100x100 &
+nexus.client cube d=300x300 o=450x450 &
 
 Multi-process kernel mode
 -------------------------
@@ -73,23 +74,19 @@ Note: This will use NxClient with nxserver by default.
 
 Build the client and server app (NxClient server makefile will be invoked as part of this):
 
-cd vobs/rockford/applications/khronos/v3d/nexus/cube
+cd $REFSW/BSEAV/lib/gpu/applications/nexus/cube
 export NEXUS_MODE=proxy
 export NXCLIENT_SUPPORT=y
-unset NEXUS_CLIENT_SUPPORT
 make clean
 make
 
 Run:
 
-In one telnet or console:
-cd vobs/nexus/bin
-nexus nxserver
+cd $REFSW/obj.<board>.<rev>.<cfg>/nexus/bin
 
-In a separate telnet:
-cd vobs/nexus/bin
-./cube d=300x300 o=100x100 &
-./cube d=300x300 o=450x450 &
+nexus nxserver &
+nexus.client cube d=300x300 o=100x100 &
+nexus.client cube d=300x300 o=450x450 &
 
 
 Legacy Mode

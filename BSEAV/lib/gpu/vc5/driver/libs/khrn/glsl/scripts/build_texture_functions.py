@@ -181,7 +181,7 @@ if __name__ == "__main__":
        print("version32:", file=prpf)
        for f in v32functions:
            print("  %s" % f, file=prpf)
-       print("GL_BRCM_texture_1d:", file=prpf)
+       print("GL_BRCM_texture_1D:", file=prpf)
        for f in tex_1d_functions:
            print(" %s" % f, file=prpf)
        print("GL_OES_texture_cube_map_array:", file=prpf)

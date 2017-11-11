@@ -1117,7 +1117,7 @@ bcm_iovar_lencheck(const bcm_iovar_t *vi, void *arg, int len, bool set)
 	return bcmerror;
 }
 
-#if !defined(_CFEZ_)
+#if !defined(_CFEZ_) && !defined(STB_SOC_WIFI)
 /*
  * Hierarchical Multiword bitmap based small id allocator.
  *
@@ -1959,7 +1959,7 @@ dll_pool_dump(dll_pool_t * dll_pool_p, dll_elem_dump elem_dump)
 }
 #endif /* BCMDBG */
 
-#endif 
+#endif /* !_CFEZ_  && !STB_SOC_WIFI*/
 
 #endif /* BCMDRIVER */
 
@@ -3794,7 +3794,7 @@ static const char *crypto_algo_names[] = {
 #ifdef BCMWAPI_WAI
 	"WAPI",
 #else
-	"UNDEF"
+	"UNDEF",
 #endif
 	"PMK",
 	"BIP",
@@ -4928,3 +4928,447 @@ getbits(const uint8 *addr, uint size, uint stbit, uint nbits)
 
 	return val;
 }
+
+#ifdef NVRAM_FLASH
+char *
+getflashvar(char *vars, const char *name)
+{
+	char *s;
+	int len;
+	if (!name)
+		return NULL;
+
+	len = strlen(name);
+	if (len == 0)
+		return NULL;
+
+	/* first look in vars[] */
+	for (s = vars; s && *s;) {
+		if ((bcmp(s, name, len) == 0) && (s[len] == '=')) {
+			return (&s[len+1]);
+		}
+		while (*s++)
+			;
+	}
+	/* then query nvram */
+	return NULL;
+
+}
+
+int
+getflashintvar(char *vars, const char *name)
+{
+	char *val;
+
+	if ((val = getflashvar(vars, name)) == NULL)
+		return (0);
+
+	return (bcm_strtoul(val, NULL, 0));
+}
+
+int
+get_num_of_emmc_patt (osl_t *osh, int blkid)
+{
+	int count = 0;
+	char *buf = NULL;
+	void *flshdev_fp = NULL;
+	char *tmpbuf = NULL;
+	int len = 0, idx = 0, n =0;
+	int bufsize = 2048, linesize = 128, emmc_patt_size = 32;
+	char *emmc_patt = NULL;
+
+	if (!osh || blkid < 0)
+		goto exit;
+
+	buf =  MALLOC_NOPERSIST(osh, bufsize);
+	tmpbuf =  MALLOC_NOPERSIST(osh, linesize);
+	emmc_patt =  MALLOC_NOPERSIST(osh, emmc_patt_size);
+	if (!tmpbuf || !buf || !emmc_patt)
+		goto exit;
+
+	if ((flshdev_fp = (void*)osl_os_open_image(SYSFS_PROC_PARTITION))
+	&& ((len = osl_os_get_image_block(buf, bufsize, flshdev_fp)) > 0))
+	{
+		memset(tmpbuf,'\0',linesize);
+		idx = 0;
+		n = 0;
+		while (n < len) {
+			sprintf((tmpbuf+idx),"%c", buf[n]);
+			if (buf[n] == '\n'){
+				*(tmpbuf+idx) = '\0';
+				sprintf(emmc_patt, "%s%dp", EMMC_BLK, blkid);
+				if (strstr(tmpbuf, emmc_patt)){
+					count++;
+				}
+					n++;
+				idx = 0;
+				memset(tmpbuf, '\0', linesize);
+				memset(emmc_patt, '\0', emmc_patt_size);
+			}
+			else {
+				n++;
+				idx++;
+			}
+		}
+	}
+
+exit:
+	if (buf)
+		MFREE(osh, buf, bufsize);
+	if (tmpbuf)
+		MFREE(osh, tmpbuf, linesize);
+	if (emmc_patt)
+		MFREE(osh, emmc_patt, emmc_patt_size);
+	if (flshdev_fp)
+		osl_os_close_image(flshdev_fp);
+
+	return count;
+}
+
+#if defined(OEM_ANDROID)
+/*Find path of emmc dev by name (Andriod)*/
+int
+find_emmc_devpath(osl_t *osh, char* flshdevpath, int emmcblk, char *name, int size)
+{
+	char *flshdev_buf = NULL;
+	void *flshdev_fp = NULL;
+	char *tmpbuf = NULL;
+	char *pathbuf = NULL;
+	char *devname = NULL;
+	char *p = NULL;
+	int  len = 0, idx = 0, n =0, emmc_patt_id = 0, emmc_blk_id = 0, emmc_patt_num = 0, err = BCME_ERROR;
+	int bufsize = 1024, linesize = 128, pathsize = 64, namesize = 32;
+
+	if (!osh || !flshdevpath || !name || emmcblk <= 0 || size <= 0) {
+		err = BCME_ERROR;
+		goto exit;
+	}
+
+	flshdev_buf =  MALLOC_NOPERSIST(osh, bufsize);
+	tmpbuf =  MALLOC_NOPERSIST(osh, linesize);
+	pathbuf =  MALLOC_NOPERSIST(osh, pathsize);
+	devname =  MALLOC_NOPERSIST(osh, namesize);
+	if (!tmpbuf || !flshdev_buf || !pathbuf || !devname) {
+		err = BCME_ERROR;
+		goto exit;
+	}
+
+	emmc_blk_id = 0;
+	/*emmc block*/
+	while ((emmc_blk_id < emmcblk) && (err != BCME_OK)) {
+		emmc_patt_id = 1;
+		emmc_patt_num = get_num_of_emmc_patt(osh, emmc_blk_id);
+		/*emmc partitions for each block*/
+		while ((emmc_patt_id <= emmc_patt_num) && (err != BCME_OK)) {
+			sprintf(pathbuf,"%s/%s%dp%d/uevent", SYSFS_CLASS_BLOCK, EMMC_BLK, emmc_blk_id, emmc_patt_id);
+			if((flshdev_fp = (void*)osl_os_open_image(pathbuf))
+				&& ((len = osl_os_get_image_block(flshdev_buf, bufsize, flshdev_fp))))
+			{
+				memset(tmpbuf,'\0',linesize);
+				memset(devname,'\0',namesize);
+				idx=0;
+				for (n = 0; n < len; n++) {
+					sprintf((tmpbuf+idx),"%c", flshdev_buf[n]);
+					if (flshdev_buf[n] == '\n'){/*Get line*/
+						*(tmpbuf+idx) = '\0';
+						if ((p = strstr(tmpbuf, EMMC_DEVNAME_STR))) {
+							p += strlen(EMMC_DEVNAME_STR)+1;
+							sprintf(devname, "%s", p);
+							p = NULL;
+						}
+						if ((p = strstr(tmpbuf, EMMC_PATTNAME_STR))) {
+							p += strlen(EMMC_PATTNAME_STR)+1;
+							if (!strncmp(p, name, strlen(name))){
+								if((strlen(SYSFS_DEV_BLOCK)+ strlen(devname)+1)<= size) {
+									sprintf(flshdevpath, "%s%s", SYSFS_DEV_BLOCK, devname);
+									err = BCME_OK;
+									break; /*Break for loop*/
+								}
+							}
+						}
+						memset(tmpbuf, '\0', linesize);
+						idx=0;
+					}
+					else
+						idx++;
+				}
+			}
+			if (flshdev_fp) {
+				osl_os_close_image(flshdev_fp);
+				flshdev_fp = NULL;
+			}
+
+			emmc_patt_id++;
+		}
+
+		emmc_blk_id++;
+	}
+exit:
+	if (flshdev_buf)
+		MFREE(osh, flshdev_buf, bufsize);
+	if (tmpbuf)
+		MFREE(osh, tmpbuf, linesize);
+	if (pathbuf)
+		MFREE(osh, pathbuf, pathsize);
+	if (devname)
+		MFREE(osh, devname, namesize);
+	if (flshdev_fp)
+		osl_os_close_image(flshdev_fp);
+
+	return err;
+}
+#else /* OEM_ANDROID */
+/*Find path of emmc dev by name (Linux)*/
+int
+find_emmc_devpath(osl_t *osh, char *flshdevpath, int emmcblk, char *name, int size)
+{
+	char *flshdev_buf = NULL, *tmpbuf = NULL, *ptmp = NULL, *p = NULL;
+	char *emmcblk_path = NULL;
+	char *delim = " ";
+	void *flshdev_fp = NULL;
+	int  len = 0, idx = 0, n =0, emmc_blk_id = 0, err = BCME_ERROR;
+	int bufsize = 4096,	linesize = 128, emmcblk_name_size = 0;
+	bool info = FALSE;
+
+	if (!osh || !flshdevpath || !name || !emmcblk || size <= 0 || emmcblk <= 0) {
+		err = BCME_ERROR;
+		goto exit;
+	}
+
+	flshdev_buf =  MALLOC_NOPERSIST(osh, bufsize);
+	tmpbuf =  MALLOC_NOPERSIST(osh, linesize);
+	if (!tmpbuf || !flshdev_buf){
+			err = BCME_ERROR;
+			goto exit;
+	}
+
+	emmc_blk_id = 0;
+	while ((emmc_blk_id < emmcblk) && (err != BCME_OK)){
+		emmcblk_name_size = snprintf(NULL, 0, "%s%d", EMMC_BLK, emmc_blk_id) + 1;
+		if ((emmcblk_path =  MALLOC_NOPERSIST(osh, emmcblk_name_size))) {
+			sprintf(emmcblk_path, "%s%s%d", SYSFS_DEV, EMMC_BLK, emmc_blk_id);
+			dump_emmc_info(osh, emmcblk_path, EMMC_INFO_TMP_FILE);
+			MFREE(osh, emmcblk_path, emmcblk_name_size);
+		}
+		else {
+			err = BCME_ERROR;
+			break;
+		}
+
+		if ((flshdev_fp = (void*)osl_os_open_image(EMMC_INFO_TMP_FILE))
+			&& ((len = osl_os_get_image_block(flshdev_buf, bufsize, flshdev_fp)) > 0))
+		{
+			for (n = 0; n < len; n++) {
+				sprintf((tmpbuf+idx),"%c", flshdev_buf[n]);
+				if (flshdev_buf[n] == '\n'){ /*Get line*/
+					*(tmpbuf+idx) = '\0';
+					if (info) {
+						ptmp = tmpbuf;
+						p = NULL;
+						if (strstr(ptmp, name) && (p = bcmstrtok(&ptmp, delim, NULL))) {
+								if(((snprintf(NULL, 0, "%s%s%dp%s", SYSFS_DEV, EMMC_BLK, emmc_blk_id, p) + 1) <= size)) {
+									sprintf(flshdevpath,"%s%s%dp%s", SYSFS_DEV, EMMC_BLK, emmc_blk_id, p);
+									err = BCME_OK;
+									break; /*Break for loop*/
+								}
+						}
+					}
+					if (!info && strstr(tmpbuf, EMMC_INFO_START))
+						info = TRUE;
+
+					memset(tmpbuf, '\0', linesize);
+					idx=0;
+				}
+				else
+					idx++;
+			}
+		}
+
+		if (flshdev_fp) {
+			osl_os_close_image(flshdev_fp);
+			flshdev_fp = NULL;
+		}
+
+		emmc_blk_id++;
+	}
+exit:
+	if (flshdev_buf)
+		MFREE(osh, flshdev_buf, bufsize);
+	if (tmpbuf)
+		MFREE(osh, tmpbuf, linesize);
+	if (flshdev_fp)
+		osl_os_close_image(flshdev_fp);
+
+	return err;
+}
+
+/*Dump emmc info to file*/
+void
+dump_emmc_info(osl_t *osh, char *emmcblk_path, char *file)
+{
+	char *argv[4] = {"/bin/bash", "-c", NULL, NULL};
+	char *envp[] = {
+	"HOME=/",
+	"TERM=linux",
+	"PATH=.:/sbin:/usr/sbin:/bin:/usr/bin", NULL
+	};
+	char *tmpbuf = NULL;
+	int size = 64;
+
+	if (!osh || !emmcblk_path || !file)
+		return;
+
+	tmpbuf =  MALLOC_NOPERSIST(osh, size);
+	if (tmpbuf) {
+		sprintf(tmpbuf, "sgdisk -p %s > %s", emmcblk_path, file);
+		argv[2] = tmpbuf;
+		call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
+		MFREE(osh, tmpbuf, size);
+	}
+}
+#endif /* OEM_ANDROID */
+
+/*Find path of nand dev by name*/
+int
+find_nand_devpath(osl_t *osh, char *flshdevpath, char *name, int size)
+{
+	char *flshdev_buf = NULL;
+	void *flshdev_fp = NULL;
+	char *tmpbuf = NULL;
+	int len = 0, idx = 0, n =0, err = BCME_ERROR;
+	char* p = NULL;
+	int bufsize = 1024, linesize = 128;
+
+	if (!osh || !flshdevpath || !name || size <= 0) {
+		err = BCME_ERROR;
+		goto exit;
+	}
+
+	flshdev_buf =  MALLOC_NOPERSIST(osh, bufsize);
+	tmpbuf =  MALLOC_NOPERSIST(osh, linesize);
+	if (tmpbuf == NULL || flshdev_buf == NULL) {
+		err = BCME_ERROR;
+		goto exit;
+	}
+
+	if ((flshdev_fp = (void*)osl_os_open_image(SYSFS_PROC_NAND))
+		&& ((len = osl_os_get_image_block(flshdev_buf, bufsize, flshdev_fp)) > 0))
+	{
+		memset(tmpbuf,'\0',linesize);
+		idx=0;
+		for (n = 0; n < len; n++) {
+			sprintf((tmpbuf+idx),"%c", flshdev_buf[n]);
+			if (flshdev_buf[n] == '\n'){
+				if (strstr(tmpbuf, name)){
+					if (!strncmp(tmpbuf, NAND_DEVNAME, strlen(NAND_DEVNAME))) {
+						if ((p = strstr(tmpbuf, ":"))) {
+							*p = '\0';
+							if ((strlen(tmpbuf)+ 1 + strlen(SYSFS_DEV)) <= size) {
+								/*Get path of flash dev*/
+								sprintf(flshdevpath, "%s%s", SYSFS_DEV, tmpbuf);
+								err = BCME_OK;
+							}
+							break;
+						}
+					}
+				}
+				memset(tmpbuf, '\0', linesize);
+				idx=0;
+			}
+			else
+				idx++;
+		}
+	}
+exit:
+	if (flshdev_buf)
+		MFREE(osh, flshdev_buf, bufsize);
+	if (tmpbuf)
+		MFREE(osh, tmpbuf, linesize);
+	if (flshdev_fp)
+		osl_os_close_image(flshdev_fp);
+
+	return err;
+}
+
+int
+find_emmc_blk_num (osl_t *osh, int *emmcblk_num)
+{
+	int err = BCME_ERROR;
+	char *buf = NULL;
+	void *flshdev_fp = NULL;
+	char *tmpbuf = NULL;
+	int len = 0, idx = 0, n =0;
+	int bufsize = 2048, linesize = 128;
+	int tokens, num, num2;
+
+	if (!osh || !emmcblk_num)
+		goto exit;
+
+	buf =  MALLOC_NOPERSIST(osh, bufsize);
+	tmpbuf =  MALLOC_NOPERSIST(osh, linesize);
+	if (tmpbuf == NULL || buf == NULL)
+		goto exit;
+
+	if ((flshdev_fp = (void*)osl_os_open_image(SYSFS_PROC_PARTITION))
+	&& ((len = osl_os_get_image_block(buf, bufsize, flshdev_fp)) > 0))
+	{
+		memset(tmpbuf,'\0',linesize);
+		idx=0;
+		n = 0;
+		while (n < len) {
+			sprintf((tmpbuf+idx),"%c", buf[n]);
+			if (buf[n] == '\n') {
+				char *delim = " ", *p = NULL;
+				char *ptmp = tmpbuf;
+				*(tmpbuf+idx) = '\0';
+				if (strstr(ptmp, EMMC_BLK)) {
+					while ((p = bcmstrtok(&ptmp, delim, NULL))) {
+						if (strstr(p, EMMC_BLK)) {
+							num = num2 = tokens =0;
+							tokens = sscanf(p, EMMC_BLK"%d""p""%d", &num, &num2);
+							if (tokens == 1 ) {
+								char mmcblkname[32] = {'\0'};
+								snprintf(mmcblkname, sizeof(mmcblkname), "%s%d", EMMC_BLK, num);
+								if (!memcmp (p, mmcblkname, strlen(p))) {
+									err = BCME_OK;
+									(*emmcblk_num)++;
+								}
+							}
+						}
+					}
+				}
+				memset(tmpbuf, '\0', linesize);
+				idx = 0;
+			}
+			else
+				idx++;
+			n++;
+		}
+	}
+exit:
+	if (buf)
+		MFREE(osh, buf, bufsize);
+	if (tmpbuf)
+		MFREE(osh, tmpbuf, linesize);
+	if (flshdev_fp)
+		osl_os_close_image(flshdev_fp);
+
+	return err;
+}
+
+/* Return BCME_OK if wlan flash is found. */
+int
+find_wlanflash_dev(osl_t *osh, char *flshdevpath, int size)
+{
+	int err = BCME_ERROR;
+	int emmcblk_num = 0;
+
+	if ((err = find_nand_devpath(osh, flshdevpath, WIFI_FLASH_PARTITION, size))!= BCME_OK) {
+		if (find_emmc_blk_num(osh, &emmcblk_num) == BCME_OK) {
+			err = find_emmc_devpath(osh, flshdevpath, emmcblk_num, WIFI_FLASH_EMMC_NAME, size);
+		}
+	}
+
+	return err;
+}
+#endif /* NVRAM_FLASH */

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include <stdlib.h>
@@ -35,7 +28,7 @@ bool glsl_map_put(Map* map, const void* k, void* v)
    if (!map) return false;
    if (!k) return false;
 
-   //vcos_assert(k == glsl_intern((const char *)k, true));
+   //assert(k == glsl_intern((const char *)k, true));
 
    new_head = (MapNode *)malloc_fast(sizeof(MapNode));
 
@@ -69,13 +62,13 @@ void *glsl_map_get(Map* map, const void* k, bool cross_checkpoints)
    if (!map) return NULL;
    if (!k) return NULL;
 
-   //vcos_assert(k == glsl_intern((const char *)k, true));
+   //assert(k == glsl_intern((const char *)k, true));
 
    curr = map->head;
 
    while (curr)
    {
-      vcos_assert(((size_t)curr & 3) == 0);
+      assert(((size_t)curr & 3) == 0);
 
       if (NULL == curr->k && NULL == curr->v)
       {

@@ -1159,7 +1159,7 @@ static void NEXUS_VideoOutput_P_SetDefaultHdmiSettings(NEXUS_DisplayHandle displ
     rc = BVDC_Display_SetHdmiColorDepth(display->displayVdc, BAVC_HDMI_BitsPerPixel_e24bit) ;
     if (rc) {
         BERR_TRACE(rc) ;
-        BVDC_AbortChanges(video->vdc) ;
+        (void)BVDC_AbortChanges(video->vdc) ;
         goto done ;
     }
 
@@ -1171,7 +1171,7 @@ static void NEXUS_VideoOutput_P_SetDefaultHdmiSettings(NEXUS_DisplayHandle displ
     rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
     if (rc) {
         BERR_TRACE(rc) ;
-        BVDC_AbortChanges(video->vdc) ;
+        (void)BVDC_AbortChanges(video->vdc) ;
         goto done ;
     }
 
@@ -1456,10 +1456,10 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
 
             /* if HDMI Output is to be scaled, */
             /* use the scaled vs internal format to validate the requested HDMI output settings */
+            BKNI_Memset(&requested, 0, sizeof(requested));
             requested.videoFormat = settings.outputFormat ? settings.outputFormat : format ;
             requested.colorDepth = settings.colorDepth ;
             requested.colorSpace = settings.colorSpace ;
-            BKNI_Memset(&preferred, 0, sizeof(NEXUS_HdmiOutputVideoSettings)) ;
 
             NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
             rc = NEXUS_HdmiOutput_ValidateVideoSettings_priv(hdmiOutput, &requested, &preferred) ;

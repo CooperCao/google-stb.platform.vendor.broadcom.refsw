@@ -53,12 +53,17 @@ static Backflow *get_recip_w(Backflow *clip_w) {
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
 
-static void vpmw(SchedBlock *b, uint32_t addr, Backflow *param, Backflow *dep)
+static void vpmw(SchedBlock *b, uint32_t addr, Backflow *param, Backflow *dep, Backflow *final_vpmwt)
 {
    Backflow *result = tr_binop_io(BACKFLOW_STVPMV, tr_const(addr), param, dep);
    result->age = param->age;
 
+#if V3D_HAS_GFXH1684_FIX
+   assert(!final_vpmwt);
    glsl_backflow_chain_push_back(&b->iodeps, result);
+#else
+   glsl_iodep(final_vpmwt, result);
+#endif
 }
 
 static void vertex_backend(const VertexBackendState *s,
@@ -66,11 +71,17 @@ static void vertex_backend(const VertexBackendState *s,
                            Backflow *clip_x, Backflow *clip_y,
                            Backflow *clip_z, Backflow *clip_w,
                            Backflow *point_size,
-                           Backflow **vertex_vary,
-                           const GLSL_VARY_MAP_T *vary_map)
+                           Backflow **vertex_vary)
 {
    Backflow *fake_vpm_deps[MAX_VPM_DEPENDENCY] = { NULL, };
    Backflow **vpm_dep = ins ? ins->vpm_dep : fake_vpm_deps;
+
+#if V3D_HAS_GFXH1684_FIX
+   Backflow *final_vpmwt = NULL;
+#else
+   Backflow *final_vpmwt = glsl_backflow_vpmwt();
+   glsl_backflow_chain_push_back(&block->iodeps, final_vpmwt);
+#endif
 
    Backflow *recip_w = clip_w ? get_recip_w(clip_w) : NULL;
    Backflow *win_x   = (clip_x && recip_w) ? get_win_coord(clip_x, recip_w, 0) : NULL;
@@ -78,40 +89,40 @@ static void vertex_backend(const VertexBackendState *s,
    Backflow *win_z   = (clip_z && recip_w) ? get_win_coord(clip_z, recip_w, 2) : NULL;
 
    if (s->bin_mode) {
-      if (clip_x != NULL) vpmw(block, 0, clip_x, vpm_dep[0]);
-      if (clip_y != NULL) vpmw(block, 1, clip_y, vpm_dep[1]);
-      if (clip_z != NULL) vpmw(block, 2, clip_z, vpm_dep[2]);
-      if (clip_w != NULL) vpmw(block, 3, clip_w, vpm_dep[3]);
-      if (win_x  != NULL) vpmw(block, 4, win_x,  vpm_dep[4]);
-      if (win_y  != NULL) vpmw(block, 5, win_y,  vpm_dep[5]);
+      if (clip_x != NULL) vpmw(block, 0, clip_x, vpm_dep[0], final_vpmwt);
+      if (clip_y != NULL) vpmw(block, 1, clip_y, vpm_dep[1], final_vpmwt);
+      if (clip_z != NULL) vpmw(block, 2, clip_z, vpm_dep[2], final_vpmwt);
+      if (clip_w != NULL) vpmw(block, 3, clip_w, vpm_dep[3], final_vpmwt);
+      if (win_x  != NULL) vpmw(block, 4, win_x,  vpm_dep[4], final_vpmwt);
+      if (win_y  != NULL) vpmw(block, 5, win_y,  vpm_dep[5], final_vpmwt);
    } else {
-      if (win_x   != NULL) vpmw(block, 0, win_x,   vpm_dep[0]);
-      if (win_y   != NULL) vpmw(block, 1, win_y,   vpm_dep[1]);
-      if (win_z   != NULL) vpmw(block, 2, win_z,   vpm_dep[2]);
-      if (recip_w != NULL) vpmw(block, 3, recip_w, vpm_dep[3]);
+      if (win_x   != NULL) vpmw(block, 0, win_x,   vpm_dep[0], final_vpmwt);
+      if (win_y   != NULL) vpmw(block, 1, win_y,   vpm_dep[1], final_vpmwt);
+      if (win_z   != NULL) vpmw(block, 2, win_z,   vpm_dep[2], final_vpmwt);
+      if (recip_w != NULL) vpmw(block, 3, recip_w, vpm_dep[3], final_vpmwt);
    }
 
    if (s->emit_point_size) {
       unsigned addr = s->bin_mode ? 6 : 4;
-      vpmw(block, addr, point_size, vpm_dep[addr]);
+      vpmw(block, addr, point_size, vpm_dep[addr], final_vpmwt);
    }
 
    if (s->z_only_active) {
       /* For z-only mode we output z,w normally, just z for points */
       unsigned z_only_addr = (s->bin_mode ? 6 : 4) + (s->emit_point_size ? 1 : 0);
-      if (win_z != NULL) vpmw(block, z_only_addr, win_z, vpm_dep[z_only_addr]);
+      if (win_z != NULL) vpmw(block, z_only_addr, win_z, vpm_dep[z_only_addr], final_vpmwt);
       if (!s->emit_point_size) {
-         if (recip_w != NULL) vpmw(block, z_only_addr + 1, recip_w, vpm_dep[z_only_addr+1]);
+         if (recip_w != NULL) vpmw(block, z_only_addr + 1, recip_w, vpm_dep[z_only_addr+1], final_vpmwt);
       }
    }
 
-   if (vary_map != NULL) {
+   if (s->vary_map != NULL) {
       unsigned vary_addr = (s->bin_mode ? 6 : 4) + (s->emit_point_size ? 1 : 0) +
                            (s->z_only_active ? (s->emit_point_size ? 1 : 2) : 0);
-      for (int i = 0; i < vary_map->n; i++) {
-         if (vertex_vary[vary_map->entries[i]] != NULL) {
+      for (int i = 0; i < s->vary_map->n; i++) {
+         if (vertex_vary[s->vary_map->entries[i]] != NULL) {
             Backflow *read_dep = (vary_addr+i) < MAX_VPM_DEPENDENCY ? vpm_dep[vary_addr+i] : NULL;
-            vpmw(block, vary_addr+i, vertex_vary[vary_map->entries[i]], read_dep);
+            vpmw(block, vary_addr+i, vertex_vary[s->vary_map->entries[i]], read_dep, final_vpmwt);
          }
       }
    }
@@ -142,8 +153,7 @@ static void vertex_backend(const VertexBackendState *s,
                            Backflow *clip_x, Backflow *clip_y,
                            Backflow *clip_z, Backflow *clip_w,
                            Backflow *point_size,
-                           Backflow **vertex_vary,
-                           const GLSL_VARY_MAP_T *vary_map)
+                           Backflow **vertex_vary)
 {
    Backflow *dep;
    Backflow *win_z, *recip_w;
@@ -203,12 +213,12 @@ static void vertex_backend(const VertexBackendState *s,
       if (!s->emit_point_size) dep = vpmw(recip_w, dep, vpm_dep[write_index++]);
    }
 
-   assert(vary_map != NULL);
-   for (int i = 0; i < vary_map->n; i++) {
+   assert(s->vary_map != NULL);
+   for (int i = 0; i < s->vary_map->n; i++) {
       Backflow *read_dep = write_index < MAX_VPM_DEPENDENCY ? vpm_dep[write_index] : NULL;
       write_index++;
-      if (vertex_vary[vary_map->entries[i]] != NULL)
-         dep = vpmw(vertex_vary[vary_map->entries[i]], dep, read_dep);
+      if (vertex_vary[s->vary_map->entries[i]] != NULL)
+         dep = vpmw(vertex_vary[s->vary_map->entries[i]], dep, read_dep);
       else
          dep = vpmw(tr_const(0), dep, read_dep);
    }
@@ -225,8 +235,7 @@ void glsl_vertex_backend(
    const LinkMap *link_map,
    SchedShaderInputs *ins,
    const VertexBackendState *s,
-   const bool *shader_outputs_used,
-   const GLSL_VARY_MAP_T *vary_map)
+   const bool *shader_outputs_used)
 {
    assert(!block->per_sample);
 
@@ -237,5 +246,5 @@ void glsl_vertex_backend(
                   bnodes[DF_VNODE_X], bnodes[DF_VNODE_Y],
                   bnodes[DF_VNODE_Z], bnodes[DF_VNODE_W],
                   bnodes[DF_VNODE_POINT_SIZE],
-                  bnodes+DF_VNODE_VARY(0), vary_map);
+                  bnodes+DF_VNODE_VARY(0));
 }

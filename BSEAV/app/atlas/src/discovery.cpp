@@ -324,7 +324,7 @@ void CDiscoveredServer::httpClientFinishedCallback()
         {
             /* coverity[secure_coding]*/
             err = sscanf(_playlistBuffer.s()+ index, "%511s", url);
-            BDBG_MSG((" Code Returned by Sscanf is %d",err));
+            BDBG_MSG((" Code Returned by Sscanf is %d", err));
             pIpChannel = new CChannelBip(getWidgetEngine()->getCfg());
             if (!pIpChannel)
             {
@@ -511,7 +511,8 @@ error:
     }
     triggerHttpClientFinishedCallback(pServer, NULL, 0);
     /* addrInfo is freed later when socket it closed */
-    /* coverity[resource_leak] */
+
+    /* coverity[leaked_storage] */
 } /* HttpClientThread */
 
 CDiscoveredServer::CDiscoveredServer(const char * strIpAddress) :

@@ -53,6 +53,7 @@ BDBG_MODULE(nxserverlib_audio);
 #include "nexus_tru_volume.h"
 #include "nexus_dolby_digital_reencode.h"
 #include "nexus_dolby_volume.h"
+#include "nexus_audio_equalizer.h"
 
 enum nxserver_audio_decoder {
     nxserver_audio_decoder_primary,
@@ -92,6 +93,12 @@ struct b_audio_playback_resource {
     struct b_connect *connect; /* if not NULL, this is in use. */
 };
 
+struct b_audio_equalizer_resource {
+    unsigned numStages;
+    NEXUS_AudioEqualizerHandle eqHandle;
+    NEXUS_AudioEqualizerStageHandle stageHandle[NEXUS_MAX_AUDIO_STAGES_PER_EQUALIZER];
+};
+
 struct b_audio_resource {
     enum b_audio_mode mode;
     NEXUS_AudioDecoderHandle audioDecoder[nxserver_audio_decoder_max];
@@ -109,7 +116,12 @@ struct b_audio_resource {
     BLST_Q_HEAD(b_audio_playback_resource_list, b_audio_playback_resource) audioPlaybackList;
     NEXUS_AudioEncoderHandle audioEncoder;
     NEXUS_SimpleAudioDecoderHandle masterSimpleAudioDecoder; /* holds audio configuration in b_audio_mode_playback.
-                                                                allows for universal SwapServerSettings for all config changes. */
+                                                               allows for universal SwapServerSettings for all config changes. */
+    struct b_audio_equalizer_resource hdmiEqualizer;
+    struct b_audio_equalizer_resource spdifEqualizer;
+    struct b_audio_equalizer_resource dacEqualizer;
+    struct b_audio_equalizer_resource i2sEqualizer[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
+    struct b_audio_equalizer_resource rfmEqualizer;
 
     struct b_session *session;
     struct b_connect *connect;
@@ -465,6 +477,526 @@ static NEXUS_AudioInputHandle b_audio_get_compressed_input(struct b_audio_resour
             return NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_passthrough], NEXUS_AudioConnectorType_eCompressed);
         }
     }
+}
+
+static BERR_Code b_audio_equalizer_open(struct b_audio_equalizer_resource *equalizer, NEXUS_AudioOutputHandle outputHandle)
+{
+    NEXUS_AudioEqualizerSettings equalizerSettings;
+    NEXUS_AudioEqualizer_GetDefaultSettings(&equalizerSettings);
+    equalizer->eqHandle = NEXUS_AudioEqualizer_Create(&equalizerSettings);
+    if (!equalizer->eqHandle){
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
+    }
+    return NEXUS_AudioOutput_SetEqualizer(outputHandle, equalizer->eqHandle);
+}
+
+static void b_audio_equalizer_close(struct b_audio_equalizer_resource *equalizer, NEXUS_AudioOutputHandle outputHandle, bool onlyStages)
+{
+    unsigned i;
+    NEXUS_AudioEqualizer_RemoveAllStages(equalizer->eqHandle);
+    NEXUS_AudioOutput_ClearEqualizer(outputHandle);
+    for (i = 0; i < equalizer->numStages; i++) {
+        NEXUS_AudioEqualizerStage_Destroy(equalizer->stageHandle[i]);
+    }
+    if (onlyStages) {
+        equalizer->numStages = 0;
+        BKNI_Memset(equalizer->stageHandle, 0, sizeof(equalizer->stageHandle));
+        NEXUS_AudioOutput_SetEqualizer(outputHandle, equalizer->eqHandle);
+    }
+    else {
+        NEXUS_AudioEqualizer_Destroy(equalizer->eqHandle);
+        BKNI_Memset(equalizer, 0, sizeof(struct b_audio_equalizer_resource));
+    }
+}
+
+static bool b_is_equalizer_changed(const NxClient_AudioEqualizer *pNewEqSettings, const struct b_audio_equalizer_resource *pOldEqSettings)
+{
+    NEXUS_AudioEqualizerStageSettings stageSettings;
+    unsigned i;
+
+    if (pNewEqSettings->numStages != pOldEqSettings->numStages) {
+        return true;
+    }
+    else if (pNewEqSettings->numStages != 0) {
+        for (i = 0; i < pNewEqSettings->numStages; i++) {
+            NEXUS_AudioEqualizerStage_GetSettings(pOldEqSettings->stageHandle[i], &stageSettings);
+            if (pNewEqSettings->stageSettings[i].type != stageSettings.type) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool b_is_any_equalizer_changed(const struct b_audio_resource *r)
+{
+    bool eqChanged = false;
+
+    #if NEXUS_HAS_HDMI_OUTPUT
+    if (r->session->server->settings.audioOutputs.hdmiEnabled[0]) {
+        eqChanged |= b_is_equalizer_changed(&r->session->audioSettings.hdmi.equalizer, &r->hdmiEqualizer);
+    }
+    #endif
+
+    if (r->session->server->settings.audioOutputs.spdifEnabled[0]) {
+        eqChanged |= b_is_equalizer_changed(&r->session->audioSettings.spdif.equalizer, &r->spdifEqualizer);
+    }
+
+    if (r->session->server->settings.audioOutputs.dacEnabled[0] ||
+        (r->session->server->settings.audioOutputs.i2sEnabled[0] && nxserverlib_p_audio_i2s0_shares_with_dac(r->session) == true)) {
+        eqChanged |= b_is_equalizer_changed(&r->session->audioSettings.dac.equalizer, &r->dacEqualizer);
+    }
+
+    if (r->session->server->settings.audioOutputs.i2sEnabled[0] && nxserverlib_p_audio_i2s0_shares_with_dac(r->session) == false) {
+        eqChanged |= b_is_equalizer_changed(&r->session->audioSettings.i2s[0].equalizer, &r->i2sEqualizer[0]);
+    }
+
+    if (r->session->server->settings.audioOutputs.i2sEnabled[1]) {
+        eqChanged |= b_is_equalizer_changed(&r->session->audioSettings.i2s[1].equalizer, &r->i2sEqualizer[1]);
+    }
+
+    if (r->session->server->settings.audioOutputs.rfmEnabled) {
+        eqChanged |= b_is_equalizer_changed(&r->session->audioSettings.rfm.equalizer, &r->rfmEqualizer);
+    }
+
+    return eqChanged;
+}
+
+static void b_audio_equalizer_apply_settings(NEXUS_AudioEqualizerStageSettings *pOldStageSettings, NEXUS_AudioEqualizerStageSettings *pNewStageSettings)
+{
+    pNewStageSettings->enabled = pOldStageSettings->enabled;
+    pNewStageSettings->rampSettings.enable = pOldStageSettings->rampSettings.enable;
+    pNewStageSettings->rampSettings.stepSize = pOldStageSettings->rampSettings.stepSize;
+    BKNI_Memcpy(&pNewStageSettings->modeSettings, &pOldStageSettings->modeSettings, sizeof(pOldStageSettings->modeSettings));
+}
+
+static void b_configure_equalizers(struct b_audio_resource *r, bool suspended)
+{
+    unsigned i, eqIndex;
+    NEXUS_AudioEqualizerStageSettings stageSettings;
+    nxserver_t server = r->session->server;
+    bool hdmiChanged = false;
+    bool spdifChanged = false;
+    bool i2s0Changed = false;
+    bool i2s1Changed = false;
+    bool dacChanged = false;
+    #if NEXUS_HAS_RFM && NEXUS_NUM_RFM_OUTPUTS
+    bool rfmChanged = false;
+    #endif
+    NEXUS_AudioCapabilities cap;
+    unsigned stagesInUse = 0;
+
+    NEXUS_GetAudioCapabilities(&cap);
+
+    stagesInUse = (r->hdmiEqualizer.numStages + r->spdifEqualizer.numStages + r->dacEqualizer.numStages +
+                   r->i2sEqualizer[0].numStages + r->i2sEqualizer[1].numStages + r->rfmEqualizer.numStages);
+
+    /* If suspended just tear everything down and rebuild in case we moved an eq around */
+    if (suspended) {
+        #if NEXUS_HAS_HDMI_OUTPUT
+        if (r->session->server->settings.audioOutputs.hdmiEnabled[0]) {
+            if (b_is_equalizer_changed(&r->session->audioSettings.hdmi.equalizer, &r->hdmiEqualizer)) {
+                hdmiChanged = true;
+                if (r->hdmiEqualizer.eqHandle) {
+                    stagesInUse -= r->hdmiEqualizer.numStages;
+                    if (r->session->audioSettings.hdmi.equalizer.numStages == 0) {
+                        b_audio_equalizer_close(&r->hdmiEqualizer, NEXUS_HdmiOutput_GetAudioConnector(server->platformConfig.outputs.hdmi[0]), false);
+                    }
+                    else {
+                        b_audio_equalizer_close(&r->hdmiEqualizer, NEXUS_HdmiOutput_GetAudioConnector(server->platformConfig.outputs.hdmi[0]), true);
+                    }
+                }
+                else {
+                    b_audio_equalizer_open(&r->hdmiEqualizer, NEXUS_HdmiOutput_GetAudioConnector(server->platformConfig.outputs.hdmi[0]));
+                }
+            }
+        }
+        #endif
+        if (r->session->server->settings.audioOutputs.spdifEnabled[0]) {
+            if (b_is_equalizer_changed(&r->session->audioSettings.spdif.equalizer, &r->spdifEqualizer)) {
+                spdifChanged = true;
+                if (r->spdifEqualizer.eqHandle) {
+                    stagesInUse -= r->spdifEqualizer.numStages;
+                    if (r->session->audioSettings.spdif.equalizer.numStages == 0) {
+                        b_audio_equalizer_close(&r->spdifEqualizer, NEXUS_SpdifOutput_GetConnector(server->platformConfig.outputs.spdif[0]), false);
+                    }
+                    else {
+                        b_audio_equalizer_close(&r->spdifEqualizer, NEXUS_SpdifOutput_GetConnector(server->platformConfig.outputs.spdif[0]), true);
+                    }
+                }
+                else {
+                    b_audio_equalizer_open(&r->spdifEqualizer, NEXUS_SpdifOutput_GetConnector(server->platformConfig.outputs.spdif[0]));
+                }
+            }
+        }
+        #if NEXUS_HAS_RFM && NEXUS_NUM_RFM_OUTPUTS
+        if (r->session->server->settings.audioOutputs.rfmEnabled) {
+            if (b_is_equalizer_changed(&r->session->audioSettings.rfm.equalizer, &r->rfmEqualizer)) {
+                rfmChanged = true;
+                if (r->rfmEqualizer.eqHandle) {
+                    stagesInUse -= r->rfmEqualizer.numStages;
+                    if (r->session->audioSettings.rfm.equalizer.numStages == 0) {
+                        b_audio_equalizer_close(&r->rfmEqualizer, NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]), false);
+                    }
+                    else {
+                        b_audio_equalizer_close(&r->rfmEqualizer, NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]), true);
+                    }
+                }
+                else {
+                    b_audio_equalizer_open(&r->rfmEqualizer, NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]));
+                }
+            }
+        }
+        #endif
+        if (r->session->server->settings.audioOutputs.dacEnabled[0]) {
+            if (b_is_equalizer_changed(&r->session->audioSettings.dac.equalizer, &r->dacEqualizer)) {
+                dacChanged = true;
+                if (r->dacEqualizer.eqHandle) {
+                    stagesInUse -= r->dacEqualizer.numStages;
+                    if (r->session->audioSettings.dac.equalizer.numStages == 0) {
+                        b_audio_equalizer_close(&r->dacEqualizer, NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]), false);
+                    }
+                    else {
+                        b_audio_equalizer_close(&r->dacEqualizer, NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]), true);
+                    }
+                }
+                else {
+                    b_audio_equalizer_open(&r->dacEqualizer, NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]));
+                }
+            }
+        }
+        if (r->session->server->settings.audioOutputs.i2sEnabled[0]) {
+            if (nxserverlib_p_audio_i2s0_shares_with_dac(r->session)) {
+                if (b_is_equalizer_changed(&r->session->audioSettings.dac.equalizer, &r->i2sEqualizer[0])) {
+                    i2s0Changed = true;
+                    if (r->i2sEqualizer[0].eqHandle) {
+                        stagesInUse -= r->i2sEqualizer[0].numStages;
+                        if (r->session->audioSettings.dac.equalizer.numStages == 0) {
+                            b_audio_equalizer_close(&r->i2sEqualizer[0], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), false);
+                        }
+                        else {
+                            b_audio_equalizer_close(&r->i2sEqualizer[0], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), true);
+                        }
+                    }
+                    else {
+                        b_audio_equalizer_open(&r->i2sEqualizer[0], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]));
+                    }
+                }
+            }
+            else {
+                if (b_is_equalizer_changed(&r->session->audioSettings.i2s[0].equalizer, &r->i2sEqualizer[0])) {
+                    i2s0Changed = true;
+                    if (r->i2sEqualizer[0].eqHandle) {
+                        stagesInUse -= r->i2sEqualizer[0].numStages;
+                        if (r->session->audioSettings.i2s[0].equalizer.numStages == 0) {
+                            b_audio_equalizer_close(&r->i2sEqualizer[0], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), false);
+                        }
+                        else {
+                            b_audio_equalizer_close(&r->i2sEqualizer[0], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), true);
+                        }
+                    }
+                    else {
+                        b_audio_equalizer_open(&r->i2sEqualizer[0], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]));
+                    }
+                }
+            }
+        }
+        if (r->session->server->settings.audioOutputs.i2sEnabled[1]) {
+            if (b_is_equalizer_changed(&r->session->audioSettings.i2s[1].equalizer, &r->i2sEqualizer[1])) {
+                i2s1Changed = true;
+                if (r->i2sEqualizer[1].eqHandle) {
+                    stagesInUse -= r->i2sEqualizer[1].numStages;
+                    if (r->session->audioSettings.i2s[1].equalizer.numStages == 0) {
+                        b_audio_equalizer_close(&r->i2sEqualizer[1], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]), false);
+                    }
+                    else {
+                        b_audio_equalizer_close(&r->i2sEqualizer[1], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]), true);
+                    }
+                }
+                else {
+                    b_audio_equalizer_open(&r->i2sEqualizer[1], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]));
+                }
+            }
+        }
+    }
+
+    #if NEXUS_HAS_HDMI_OUTPUT
+    if (r->session->server->settings.audioOutputs.hdmiEnabled[0]) {
+        if (r->session->audioSettings.hdmi.equalizer.numStages > 0) {
+            if (r->hdmiEqualizer.eqHandle) {
+                eqIndex = 0;
+                for (i = 0; i < r->session->audioSettings.hdmi.equalizer.numStages; i++) {
+                    if (hdmiChanged) {
+                        if (stagesInUse < cap.numEqualizerStages) {
+                            if (r->session->audioSettings.hdmi.equalizer.stageSettings[i].type != NEXUS_AudioEqualizerStageType_eMax) {
+                                NEXUS_AudioEqualizerStage_GetDefaultSettings(r->session->audioSettings.hdmi.equalizer.stageSettings[i].type, &stageSettings);
+                                b_audio_equalizer_apply_settings(&r->session->audioSettings.hdmi.equalizer.stageSettings[i], &stageSettings);
+                                r->hdmiEqualizer.stageHandle[eqIndex] = NEXUS_AudioEqualizerStage_Create(&stageSettings);
+                                if (r->hdmiEqualizer.stageHandle[eqIndex]) {
+                                    NEXUS_AudioEqualizer_AddStage(r->hdmiEqualizer.eqHandle, r->hdmiEqualizer.stageHandle[eqIndex]);
+                                    r->hdmiEqualizer.numStages++;
+                                    eqIndex++;
+                                    stagesInUse++;
+                                }
+                            }
+                        }
+                        else {
+                            BDBG_WRN(("Unable to add HDMI Equalizer Stage.  Max Stages allowed %u", cap.numEqualizerStages));
+                            break;
+                        }
+                    }
+                    else {
+                        if (r->hdmiEqualizer.stageHandle[i]) {
+                            NEXUS_AudioEqualizerStage_GetSettings(r->hdmiEqualizer.stageHandle[i], &stageSettings);
+                            b_audio_equalizer_apply_settings(&r->session->audioSettings.hdmi.equalizer.stageSettings[i], &stageSettings);
+                            NEXUS_AudioEqualizerStage_SetSettings(r->hdmiEqualizer.stageHandle[i], &stageSettings);
+                        }
+                    }
+                }
+                if (r->hdmiEqualizer.numStages == 0) {
+                    b_audio_equalizer_close(&r->hdmiEqualizer, NEXUS_HdmiOutput_GetAudioConnector(server->platformConfig.outputs.hdmi[0]), false);
+                }
+            }
+        }
+    }
+    #endif
+
+    if (r->session->server->settings.audioOutputs.spdifEnabled[0]) {
+        if (r->session->audioSettings.spdif.equalizer.numStages > 0) {
+            if (r->spdifEqualizer.eqHandle) {
+                eqIndex = 0;
+                for (i = 0; i < r->session->audioSettings.spdif.equalizer.numStages; i++) {
+                    if (spdifChanged) {
+                        if (stagesInUse < cap.numEqualizerStages) {
+                            if (r->session->audioSettings.spdif.equalizer.stageSettings[i].type != NEXUS_AudioEqualizerStageType_eMax) {
+                                NEXUS_AudioEqualizerStage_GetDefaultSettings(r->session->audioSettings.spdif.equalizer.stageSettings[i].type, &stageSettings);
+                                b_audio_equalizer_apply_settings(&r->session->audioSettings.spdif.equalizer.stageSettings[i], &stageSettings);
+                                r->spdifEqualizer.stageHandle[eqIndex] = NEXUS_AudioEqualizerStage_Create(&stageSettings);
+                                if (r->spdifEqualizer.stageHandle[eqIndex]) {
+                                    NEXUS_AudioEqualizer_AddStage(r->spdifEqualizer.eqHandle, r->spdifEqualizer.stageHandle[eqIndex]);
+                                    r->spdifEqualizer.numStages++;
+                                    eqIndex++;
+                                    stagesInUse++;
+                                }
+                            }
+                        }
+                        else {
+                            BDBG_WRN(("Unable to add Spdif Equalizer Stage.  Max Stages allowed %u", cap.numEqualizerStages));
+                            break;
+                        }
+                    }
+                    else {
+                        if (r->spdifEqualizer.stageHandle[i]) {
+                            NEXUS_AudioEqualizerStage_GetSettings(r->spdifEqualizer.stageHandle[i], &stageSettings);
+                            b_audio_equalizer_apply_settings(&r->session->audioSettings.spdif.equalizer.stageSettings[i], &stageSettings);
+                            NEXUS_AudioEqualizerStage_SetSettings(r->spdifEqualizer.stageHandle[i], &stageSettings);
+                        }
+                    }
+                    if (r->spdifEqualizer.numStages == 0) {
+                        b_audio_equalizer_close(&r->spdifEqualizer, NEXUS_SpdifOutput_GetConnector(server->platformConfig.outputs.spdif[0]), false);
+                    }
+                }
+            }
+        }
+    }
+
+    if (r->session->server->settings.audioOutputs.dacEnabled[0]) {
+        if (r->session->audioSettings.dac.equalizer.numStages > 0) {
+            if (r->dacEqualizer.eqHandle) {
+                eqIndex = 0;
+                for (i = 0; i < r->session->audioSettings.dac.equalizer.numStages; i++) {
+                    if (dacChanged) {
+                        if (stagesInUse < cap.numEqualizerStages) {
+                            if (r->session->audioSettings.dac.equalizer.stageSettings[i].type != NEXUS_AudioEqualizerStageType_eMax) {
+                                NEXUS_AudioEqualizerStage_GetDefaultSettings(r->session->audioSettings.dac.equalizer.stageSettings[i].type, &stageSettings);
+                                b_audio_equalizer_apply_settings(&r->session->audioSettings.dac.equalizer.stageSettings[i], &stageSettings);
+                                r->dacEqualizer.stageHandle[eqIndex] = NEXUS_AudioEqualizerStage_Create(&stageSettings);
+                                if (r->dacEqualizer.stageHandle[eqIndex]) {
+                                    NEXUS_AudioEqualizer_AddStage(r->dacEqualizer.eqHandle, r->dacEqualizer.stageHandle[eqIndex]);
+                                    r->dacEqualizer.numStages++;
+                                    eqIndex++;
+                                    stagesInUse++;
+                                }
+                            }
+                        }
+                        else {
+                            BDBG_WRN(("Unable to add DAC Equalizer Stage.  Max Stages allowed %u", cap.numEqualizerStages));
+                            break;
+                        }
+                    }
+                    else {
+                        if (r->dacEqualizer.stageHandle[i]) {
+                            NEXUS_AudioEqualizerStage_GetSettings(r->dacEqualizer.stageHandle[i], &stageSettings);
+                            b_audio_equalizer_apply_settings(&r->session->audioSettings.dac.equalizer.stageSettings[i], &stageSettings);
+                            NEXUS_AudioEqualizerStage_SetSettings(r->dacEqualizer.stageHandle[i], &stageSettings);
+                        }
+                    }
+                }
+                if (r->dacEqualizer.numStages == 0) {
+                    b_audio_equalizer_close(&r->dacEqualizer, NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]), false);
+                }
+            }
+        }
+    }
+
+
+    if (r->session->server->settings.audioOutputs.i2sEnabled[0]) {
+        if (nxserverlib_p_audio_i2s0_shares_with_dac(r->session)) {
+            if (r->session->audioSettings.dac.equalizer.numStages > 0) {
+                if (r->i2sEqualizer[0].eqHandle) {
+                    eqIndex = 0;
+                    for (i = 0; i < r->session->audioSettings.dac.equalizer.numStages; i++) {
+                        if (i2s0Changed) {
+                            if (stagesInUse < cap.numEqualizerStages) {
+                                if (r->session->audioSettings.dac.equalizer.stageSettings[i].type != NEXUS_AudioEqualizerStageType_eMax) {
+                                    NEXUS_AudioEqualizerStage_GetDefaultSettings(r->session->audioSettings.dac.equalizer.stageSettings[i].type, &stageSettings);
+                                    b_audio_equalizer_apply_settings(&r->session->audioSettings.dac.equalizer.stageSettings[i], &stageSettings);
+                                    r->i2sEqualizer[0].stageHandle[eqIndex] = NEXUS_AudioEqualizerStage_Create(&stageSettings);
+                                    if (r->i2sEqualizer[0].stageHandle[eqIndex]) {
+                                        NEXUS_AudioEqualizer_AddStage(r->i2sEqualizer[0].eqHandle, r->i2sEqualizer[0].stageHandle[eqIndex]);
+                                        r->i2sEqualizer[0].numStages++;
+                                        eqIndex++;
+                                        stagesInUse++;
+                                    }
+                                }
+                            }
+                            else {
+                                BDBG_WRN(("Unable to add I2S0 Equalizer Stage.  Max Stages allowed %u", cap.numEqualizerStages));
+                                break;
+                            }
+                        }
+                        else {
+                            if (r->i2sEqualizer[0].stageHandle[i]) {
+                                NEXUS_AudioEqualizerStage_GetSettings(r->i2sEqualizer[0].stageHandle[i], &stageSettings);
+                                b_audio_equalizer_apply_settings(&r->session->audioSettings.dac.equalizer.stageSettings[i], &stageSettings);
+                                NEXUS_AudioEqualizerStage_SetSettings(r->i2sEqualizer[0].stageHandle[i], &stageSettings);
+                            }
+                        }
+                    }
+                    if (r->i2sEqualizer[0].numStages == 0) {
+                        b_audio_equalizer_close(&r->i2sEqualizer[0], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), false);
+                    }
+                }
+            }
+        }
+        else {
+            if (r->session->audioSettings.i2s[0].equalizer.numStages > 0) {
+                if (r->i2sEqualizer[0].eqHandle) {
+                    eqIndex = 0;
+                    for (i = 0; i < r->session->audioSettings.i2s[0].equalizer.numStages; i++) {
+                        if (i2s0Changed) {
+                            if (stagesInUse < cap.numEqualizerStages) {
+                                if (r->session->audioSettings.i2s[0].equalizer.stageSettings[i].type != NEXUS_AudioEqualizerStageType_eMax) {
+                                    NEXUS_AudioEqualizerStage_GetDefaultSettings(r->session->audioSettings.i2s[0].equalizer.stageSettings[i].type, &stageSettings);
+                                    b_audio_equalizer_apply_settings(&r->session->audioSettings.i2s[0].equalizer.stageSettings[i], &stageSettings);
+                                    r->i2sEqualizer[0].stageHandle[eqIndex] = NEXUS_AudioEqualizerStage_Create(&stageSettings);
+                                    if (r->i2sEqualizer[0].stageHandle[eqIndex]) {
+                                        NEXUS_AudioEqualizer_AddStage(r->i2sEqualizer[0].eqHandle, r->i2sEqualizer[0].stageHandle[eqIndex]);
+                                        r->i2sEqualizer[0].numStages++;
+                                        eqIndex++;
+                                        stagesInUse++;
+                                    }
+                                }
+                            }
+                            else {
+                                BDBG_WRN(("Unable to add I2S0 Equalizer Stage.  Max Stages allowed %u", cap.numEqualizerStages));
+                                break;
+                            }
+                        }
+                        else {
+                            if (r->i2sEqualizer[0].stageHandle[i]) {
+                                NEXUS_AudioEqualizerStage_GetSettings(r->i2sEqualizer[0].stageHandle[i], &stageSettings);
+                                b_audio_equalizer_apply_settings(&r->session->audioSettings.i2s[0].equalizer.stageSettings[i], &stageSettings);
+                                NEXUS_AudioEqualizerStage_SetSettings(r->i2sEqualizer[0].stageHandle[i], &stageSettings);
+                            }
+                        }
+                    }
+                    if (r->i2sEqualizer[0].numStages == 0) {
+                        b_audio_equalizer_close(&r->i2sEqualizer[0], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), false);
+                    }
+                }
+            }
+        }
+    }
+
+  if (r->session->server->settings.audioOutputs.i2sEnabled[1]) {
+      if (r->session->audioSettings.i2s[1].equalizer.numStages > 0) {
+          if (r->i2sEqualizer[1].eqHandle) {
+              eqIndex = 0;
+              for (i = 0; i < r->session->audioSettings.i2s[1].equalizer.numStages; i++) {
+                  if (i2s1Changed) {
+                      if (stagesInUse < cap.numEqualizerStages) {
+                          if (r->session->audioSettings.i2s[1].equalizer.stageSettings[i].type != NEXUS_AudioEqualizerStageType_eMax) {
+                              NEXUS_AudioEqualizerStage_GetDefaultSettings(r->session->audioSettings.i2s[1].equalizer.stageSettings[i].type, &stageSettings);
+                              b_audio_equalizer_apply_settings(&r->session->audioSettings.i2s[1].equalizer.stageSettings[i], &stageSettings);
+                              r->i2sEqualizer[1].stageHandle[eqIndex] = NEXUS_AudioEqualizerStage_Create(&stageSettings);
+                              if (r->i2sEqualizer[1].stageHandle[eqIndex]) {
+                                  NEXUS_AudioEqualizer_AddStage(r->i2sEqualizer[1].eqHandle, r->i2sEqualizer[1].stageHandle[eqIndex]);
+                                  r->i2sEqualizer[1].numStages++;
+                                  eqIndex++;
+                                  stagesInUse++;
+                              }
+                          }
+                      }
+                      else {
+                          BDBG_WRN(("Unable to add I2S1 Equalizer Stage.  Max Stages allowed %u", cap.numEqualizerStages));
+                          break;
+                      }
+                  }
+                  else {
+                      if (r->i2sEqualizer[1].stageHandle[i]) {
+                          NEXUS_AudioEqualizerStage_GetSettings(r->i2sEqualizer[1].stageHandle[i], &stageSettings);
+                          b_audio_equalizer_apply_settings(&r->session->audioSettings.i2s[1].equalizer.stageSettings[i], &stageSettings);
+                          NEXUS_AudioEqualizerStage_SetSettings(r->i2sEqualizer[1].stageHandle[i], &stageSettings);
+                      }
+                  }
+              }
+          }
+          if (r->i2sEqualizer[1].numStages == 0) {
+              b_audio_equalizer_close(&r->i2sEqualizer[1], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]), false);
+          }
+      }
+  }
+  #if NEXUS_HAS_RFM && NEXUS_NUM_RFM_OUTPUTS
+  if (r->session->server->settings.audioOutputs.rfmEnabled) {
+      if (r->session->audioSettings.rfm.equalizer.numStages > 0) {
+          if (r->rfmEqualizer.eqHandle) {
+              eqIndex = 0;
+              for (i = 0; i < r->session->audioSettings.rfm.equalizer.numStages; i++) {
+                  if (rfmChanged) {
+                      if (stagesInUse < cap.numEqualizerStages) {
+                          if (r->session->audioSettings.rfm.equalizer.stageSettings[i].type != NEXUS_AudioEqualizerStageType_eMax) {
+                              NEXUS_AudioEqualizerStage_GetDefaultSettings(r->session->audioSettings.rfm.equalizer.stageSettings[i].type, &stageSettings);
+                              b_audio_equalizer_apply_settings(&r->session->audioSettings.rfm.equalizer.stageSettings[i], &stageSettings);
+                              r->rfmEqualizer.stageHandle[eqIndex] = NEXUS_AudioEqualizerStage_Create(&stageSettings);
+                              if (r->spdifEqualizer.stageHandle[eqIndex]) {
+                                  NEXUS_AudioEqualizer_AddStage(r->rfmEqualizer.eqHandle, r->rfmEqualizer.stageHandle[eqIndex]);
+                                  r->rfmEqualizer.numStages++;
+                                  eqIndex++;
+                                  stagesInUse++;
+                              }
+                          }
+                      }
+                      else {
+                          BDBG_WRN(("Unable to add RFM Equalizer Stage.  Max Stages allowed %u", cap.numEqualizerStages));
+                          break;
+                        }
+                  }
+                  else {
+                      if (r->rfmEqualizer.stageHandle[i]) {
+                          NEXUS_AudioEqualizerStage_GetSettings(r->rfmEqualizer.stageHandle[i], &stageSettings);
+                          b_audio_equalizer_apply_settings(&r->session->audioSettings.rfm.equalizer.stageSettings[i], &stageSettings);
+                          NEXUS_AudioEqualizerStage_SetSettings(r->rfmEqualizer.stageHandle[i], &stageSettings);
+                      }
+                  }
+              }
+              if (r->rfmEqualizer.numStages == 0) {
+                  b_audio_equalizer_close(&r->rfmEqualizer, NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]), false);
+              }
+          }
+      }
+  }
+  #endif
 }
 
 int nxserverlib_p_session_has_sd_audio(struct b_session *session)
@@ -974,6 +1506,7 @@ error:
 void audio_decoder_destroy(struct b_audio_resource *r)
 {
     unsigned i;
+    int rc;
     struct b_audio_playback_resource *pb;
     NEXUS_AudioCapabilities audioCapabilities;
     nxserver_t server = r->session->server;
@@ -990,7 +1523,8 @@ void audio_decoder_destroy(struct b_audio_resource *r)
             }
         }
         if (connected) {
-            NEXUS_SimpleAudioDecoder_Suspend(r->masterSimpleAudioDecoder);
+            rc = NEXUS_SimpleAudioDecoder_Suspend(r->masterSimpleAudioDecoder);
+            if (rc) { BERR_TRACE(rc); }
         }
 
         NEXUS_SimpleAudioDecoder_Destroy(r->masterSimpleAudioDecoder);
@@ -1014,30 +1548,48 @@ void audio_decoder_destroy(struct b_audio_resource *r)
             if (audioCapabilities.numOutputs.dac > 0) {
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]));
                 server->settings.audioOutputs.dacEnabled[0] = false;
+                if (r->dacEqualizer.eqHandle) {
+                    b_audio_equalizer_close(&r->dacEqualizer, NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]), false);
+                }
             }
             if (audioCapabilities.numOutputs.i2s > 0) {
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]));
                 server->settings.audioOutputs.i2sEnabled[0] = false;
+                if (r->i2sEqualizer[0].eqHandle) {
+                    b_audio_equalizer_close(&r->i2sEqualizer[0], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), false);
+                }
                 if (audioCapabilities.numOutputs.i2s > 1) {
                     NEXUS_AudioOutput_RemoveAllInputs(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]));
                     server->settings.audioOutputs.i2sEnabled[1] = false;
+                    if (r->i2sEqualizer[1].eqHandle) {
+                        b_audio_equalizer_close(&r->i2sEqualizer[1], NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]), false);
+                    }
                 }
             }
             #if NEXUS_HAS_RFM && NEXUS_NUM_RFM_OUTPUTS
             if (server->platformConfig.outputs.rfm[0]) {
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]));
                 server->settings.audioOutputs.rfmEnabled = false;
+                 if (r->rfmEqualizer.eqHandle) {
+                     b_audio_equalizer_close(&r->rfmEqualizer, NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]), false);
+                 }
             }
             #endif
             #if NEXUS_NUM_HDMI_OUTPUTS
             if (audioCapabilities.numOutputs.hdmi > 0) {
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(server->platformConfig.outputs.hdmi[0]));
                 server->settings.audioOutputs.hdmiEnabled[0] = false;
+                if (r->hdmiEqualizer.eqHandle) {
+                     b_audio_equalizer_close(&r->hdmiEqualizer, NEXUS_HdmiOutput_GetAudioConnector(server->platformConfig.outputs.hdmi[0]), false);
+                }
             }
             #endif
             if (audioCapabilities.numOutputs.spdif > 0) {
                 NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(server->platformConfig.outputs.spdif[0]));
                 server->settings.audioOutputs.spdifEnabled[0] = false;
+                if (r->spdifEqualizer.eqHandle) {
+                     b_audio_equalizer_close(&r->spdifEqualizer, NEXUS_SpdifOutput_GetConnector(server->platformConfig.outputs.spdif[0]), false);
+                }
             }
 
         }
@@ -1170,6 +1722,10 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         if (req->handles.simpleAudioDecoder.r->connect != connect) {
             BDBG_ERR(("already connected to %p", (void*)req->handles.simpleAudioDecoder.r->connect));
             return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        }
+        else if (req->handles.simpleAudioDecoder.r->connect->settings.simpleAudioDecoder.decoderCapabilities.type == NxClient_AudioDecoderType_ePersistent) {
+            BDBG_MSG(("Persistent Decoder is already acquired"));
+            return 0;
         }
     }
     if (session->main_audio && session->main_audio->connect == connect) {
@@ -1526,6 +2082,8 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     NEXUS_AudioCapabilities cap;
     bool ac3CompressedAllowed = false;
     bool ddpCompressedAllowed = false;
+    bool suspended = false;
+    bool equalizerChanged = false;
 
     if (!r) {
         return 0;
@@ -1539,6 +2097,18 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     if (!simpleAudioDecoder) {
         return BERR_TRACE(-1);
     }
+    equalizerChanged = b_is_any_equalizer_changed(r);
+    if (equalizerChanged) {
+        rc = NEXUS_SimpleAudioDecoder_Suspend(simpleAudioDecoder);
+        if (rc) {
+            BERR_TRACE(rc);
+        }
+        else {
+            suspended = true;
+        }
+    }
+
+    b_configure_equalizers(r, suspended);
 
     /* TODO: if we are encoding the display, we can't switch audio output config. force to pcm. */
     encode_display = server->settings.session[r->session->index].output.encode;
@@ -1888,7 +2458,11 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     }
 
     rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, simpleAudioDecoder, &audioSettings);
-    if (rc) return BERR_TRACE(rc);
+    if (rc) { BERR_TRACE(rc); }
+    if (suspended) {
+        rc |= NEXUS_SimpleAudioDecoder_Resume(simpleAudioDecoder);
+    }
+    if (rc) { return BERR_TRACE(rc); }
 
     return 0;
 }
@@ -2249,7 +2823,12 @@ NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *sessio
 
     audioDecoder = b_audio_get_active_decoder(session->main_audio);
 
-    NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
+    rc = NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
+    if (rc) {
+        BERR_TRACE(rc);
+        BDBG_ERR(("unable to suspend to open audio capture"));
+        goto err_suspend;
+    }
 
     NEXUS_AudioOutput_GetSettings(NEXUS_AudioCapture_GetConnector(handle), &outputSettings);
     outputSettings.pll = session->server->settings.audioCapture.clockSources[i].pll;
@@ -2262,7 +2841,8 @@ NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *sessio
     rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &sessionSettings);
     if ( rc ) goto err_add_mixer;
 
-    NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+    rc = NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+    if (rc) {rc = BERR_TRACE(rc);}
 
     g_capture[i].session = session;
     g_capture[i].handle = handle;
@@ -2270,8 +2850,10 @@ NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *sessio
     return handle;
 
 err_add_mixer:
+    rc = NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+    if (rc) {rc = BERR_TRACE(rc);}
+err_suspend:
     NEXUS_AudioCapture_Close(handle);
-    NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
     return NULL;
 }
 
@@ -2280,13 +2862,15 @@ void nxserverlib_close_audio_capture(struct b_session *session,unsigned id)
     NEXUS_SimpleAudioDecoderHandle audioDecoder;
     NEXUS_SimpleAudioDecoderServerSettings sessionSettings;
     NEXUS_AudioCapabilities audioCapabilities;
+    int rc;
     NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     if (id < audioCapabilities.numOutputs.capture) {
         BDBG_ASSERT(g_capture[id].handle);
 
         audioDecoder = b_audio_get_active_decoder(session->main_audio);
-        NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
+        rc = NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
+        if (rc) {rc = BERR_TRACE(rc);}
         NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioCapture_GetConnector(g_capture[id].handle));
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &sessionSettings);
         sessionSettings.capture.output = NULL;
@@ -2295,7 +2879,8 @@ void nxserverlib_close_audio_capture(struct b_session *session,unsigned id)
         NEXUS_AudioCapture_Close(g_capture[id].handle);
         g_capture[id].handle = NULL;
 
-        NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+        rc = NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+        if (rc) {rc = BERR_TRACE(rc);}
     }
 }
 
@@ -2312,6 +2897,7 @@ NEXUS_AudioCrcHandle nxserverlib_open_audio_crc(struct b_session *session, unsig
     NEXUS_AudioCrcInputSettings inputSettings;
     NEXUS_SimpleAudioDecoderHandle audioDecoder;
     NEXUS_AudioCapabilities cap;
+    int rc;
 
     NEXUS_GetAudioCapabilities(&cap);
 
@@ -2409,8 +2995,10 @@ NEXUS_AudioCrcHandle nxserverlib_open_audio_crc(struct b_session *session, unsig
 
             audioDecoder = b_audio_get_active_decoder(session->main_audio);
 
-            NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
-            NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+            rc = NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
+            if (rc) {rc = BERR_TRACE(rc);}
+            rc = NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+            if (rc) {rc = BERR_TRACE(rc);}
 
             g_crc[crcType].session = session;
             g_crc[crcType].handle = handle;
@@ -2437,6 +3025,7 @@ void nxserverlib_close_audio_crc(struct b_session *session,unsigned id)
 {
     NEXUS_SimpleAudioDecoderHandle audioDecoder;
     NEXUS_AudioCapabilities cap;
+    int rc;
 
     NEXUS_GetAudioCapabilities(&cap);
 
@@ -2445,22 +3034,27 @@ void nxserverlib_close_audio_crc(struct b_session *session,unsigned id)
         BDBG_ASSERT(id < NxClient_AudioCrcType_eMax && g_crc[id].handle);
 
         audioDecoder = b_audio_get_active_decoder(session->main_audio);
-        NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
+        rc = NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
+        if (rc) {rc = BERR_TRACE(rc);}
 
         NEXUS_AudioCrc_ClearInput(g_crc[id].handle);
         NEXUS_AudioCrc_Close(g_crc[id].handle);
         g_crc[id].handle = NULL;
 
-        NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+        rc = NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+        if (rc) {rc = BERR_TRACE(rc);}
     }
 }
 
 void nxserverlib_p_restart_audio(struct b_session *session)
 {
     NEXUS_SimpleAudioDecoderHandle audioDecoder;
+    int rc;
     audioDecoder = b_audio_get_active_decoder(session->main_audio);
-    NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
-    NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+    rc = NEXUS_SimpleAudioDecoder_Suspend(audioDecoder);
+    if (rc) {rc = BERR_TRACE(rc);}
+    rc = NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
+    if (rc) {rc = BERR_TRACE(rc);}
 }
 
 int nxserverlib_audio_get_status(struct b_session *session, NxClient_AudioStatus *pStatus)

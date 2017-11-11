@@ -41,16 +41,12 @@
 #include "bstd.h"
 #include "bkni.h"
 
-#include "bsagelib.h"
-#include "bsagelib_boot.h"
-#include "bsagelib_priv.h"
-#include "priv/bsagelib_shared_types.h"
-
 #include "bhsm.h"
 #include "bhsm_keyladder.h"
-#include "bhsm_keyladder_enc.h"
+#if (BHSM_API_VERSION==1)
 #include "bhsm_bseck.h"
 #include "bhsm_verify_reg.h"
+#include "bhsm_keyladder_enc.h"
 #include "bhsm_otpmsp.h"
 #include "bhsm_misc.h"
 #include "bsp_s_commands.h"
@@ -60,12 +56,56 @@
 #include "bsp_s_otp_common.h"
 #include "bsp_s_otp.h"
 #include "bsp_s_mem_auth.h"
+#else
+#include "bhsm_keyslot.h"
+#include "bhsm_rv_rsa.h"
+#include "bhsm_rv_region.h"
+#include "bhsm_otp_msp.h"
+#endif
 
 #include "bchp_common.h"
 #include "bchp_sun_top_ctrl.h"
 
+#include "bsagelib.h"
+#include "bsagelib_boot.h"
+#include "bsagelib_priv.h"
+#include "priv/bsagelib_shared_types.h"
 
 BDBG_MODULE(BSAGElib);
+
+/* OTP names */
+#if (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(5,0))
+#define OTP_SAGE_DECRYPT_ENABLE     BCMD_Otp_CmdMsp_eReserved210
+#define OTP_SAGE_VERIFY_ENABLE      BCMD_Otp_CmdMsp_eReserved209
+#define OTP_SAGE_SECURE_ENABLE      BCMD_Otp_CmdMsp_eReserved212
+#define OTP_MARKET_ID_0             BCMD_Otp_CmdMsp_eMarketId
+#define OTP_MARKET_ID_1             BCMD_Otp_CmdMsp_eMarketId1
+#define OTP_SYSTEM_EPOCH_0          BCMD_Otp_CmdMsp_eSystemEpoch
+#define OTP_SYSTEM_EPOCH_3          BCMD_Otp_CmdMsp_eSystemEpoch3
+#else
+
+#if 1 /*TBD these values should come from a header file */
+typedef enum Bsp_Otp_CmdMsp_e
+{
+    Bsp_Otp_CmdMsp_eSageVerifyEnable                               = 164,
+    Bsp_Otp_CmdMsp_eSageFsblDecryptionEnable                       = 165,
+    Bsp_Otp_CmdMsp_eSageSecureEnable                               = 166,
+    Bsp_Otp_CmdMsp_eMarketId0                                      = 313,
+    Bsp_Otp_CmdMsp_eMarketId1                                      = 314,
+    Bsp_Otp_CmdMsp_eSystemEpoch0                                   = 326,
+    Bsp_Otp_CmdMsp_eSystemEpoch3                                   = 329,
+    Bsp_Otp_CmdMsp_LIMIT
+} Bsp_Otp_CmdMsp_e ;
+#endif
+
+#define OTP_SAGE_DECRYPT_ENABLE     Bsp_Otp_CmdMsp_eSageFsblDecryptionEnable
+#define OTP_SAGE_VERIFY_ENABLE      Bsp_Otp_CmdMsp_eSageVerifyEnable
+#define OTP_SAGE_SECURE_ENABLE      Bsp_Otp_CmdMsp_eSageSecureEnable
+#define OTP_MARKET_ID_0             Bsp_Otp_CmdMsp_eMarketId0
+#define OTP_MARKET_ID_1             Bsp_Otp_CmdMsp_eMarketId1
+#define OTP_SYSTEM_EPOCH_0          Bsp_Otp_CmdMsp_eSystemEpoch0
+#define OTP_SYSTEM_EPOCH_3          Bsp_Otp_CmdMsp_eSystemEpoch3
+#endif
 
 
 /* Host to Sage communication buffers size */
@@ -114,54 +154,110 @@ typedef struct {
 } BSAGElib_P_BootContext;
 
 /* TODO: use the BHSM_SecondTierKey_t struct in HSM instead of this one */
-typedef struct
-{
-    uint8_t     ucKeyData[256];
-    uint8_t     ucRights;       /* 0 => MIPS; 2 => AVD, RAPTOR, RAVE; 4 => BSP; 8 => Boot; 10 => SAGE */
-    uint8_t     ucReserved0;
-    uint8_t     ucPubExponent;  /* 0 => 3; 1 => 64K+1 */
-    uint8_t     ucReserved1;
-    uint8_t     ucMarketID[4];
-    uint8_t     ucMarketIDMask[4];
-#if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2))
-    unsigned char ucEpoch;
-    unsigned char ucEpochMask;
-    unsigned char ucEpochSelect;
-    unsigned char ucMarketIDSelect;
-    unsigned char ucSignatureVersion;
-    unsigned char ucSignatureType;
-    unsigned char ucReserved3[2];
-#else
-    unsigned char usReserved2[2];
-    unsigned char ucEpochMask;
-    unsigned char ucEpoch;
-#endif
-    uint8_t     ucSignature[256];
-} BCMD_SecondTierKey_t;
-
+#define BSAGELIB_2ND_TIER_RSAKEY_SIZE_BYTES (256)
+#define BSAGELIB_2ND_TIER_RSAKEY_SIG_SIZE_BYTES (256)
 
 typedef struct
 {
-    unsigned char ucReserved0[2];
-    unsigned char ucCpuType;
-    unsigned char ucNoReloc;
-    unsigned char ucMarketId[4];
-    unsigned char ucMarketIdMask[4];
+    uint8_t ucKeyData[BSAGELIB_2ND_TIER_RSAKEY_SIZE_BYTES];
+    uint8_t ucReserved0;
+    uint8_t ucPubExponent;        /* 0 => 3; 1 => 64K+1 */
+    uint8_t ucReserved1;
+    uint8_t ucRights;             /* 0 => MIPS; 2 => AVD, RAPTOR, RAVE; 4 => BSP; 8 => Boot; 10 => SAGE */
+    uint8_t ucMarketID[4];        /* NB: ID and Mask are little endian, so no _Swap required ... */
+    uint8_t ucMarketIDMask[4];    /* when comparing to value read from OTP */
 #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2))
-    unsigned char ucReserved1;
-    unsigned char ucEpochSelect;
-    unsigned char ucEpochMask;
-    unsigned char ucEpoch;
-    unsigned char ucSignatureVersion;
-    unsigned char ucSignatureType;
-    unsigned char ucReserved2[2];
+    uint8_t ucEpoch;
+    uint8_t ucEpochMask;
+    uint8_t ucEpochSelect;
+    uint8_t ucMarketIDSelect;
+    uint8_t ucReserved3[2];
+    uint8_t ucSignatureType;
+    uint8_t ucSignatureVersion;
 #else
     unsigned char ucReserved1[2];
     unsigned char ucEpochMask;
     unsigned char ucEpoch;
 #endif
-}BSAGElib_ControllingParams;
+   uint8_t ucSignature[BSAGELIB_2ND_TIER_RSAKEY_SIG_SIZE_BYTES];
+} BCMD_Zeus42_SecondTierKey_t;
 
+typedef struct
+{
+    uint8_t ucKeyData[BSAGELIB_2ND_TIER_RSAKEY_SIZE_BYTES];
+    uint8_t ucEpochSelect;          /* [2:0] */
+    uint8_t ucMarketIDSelect;       /* [1:0] */
+    uint8_t ucSignatureType;
+    uint8_t ucSignatureVersion;
+    uint8_t ucReserved_0;
+    uint8_t ucChipBindingSelect;    /* [5:0] */
+    uint8_t ucReserved_1[2];
+    uint8_t ucSigningRights;
+    uint8_t ucReserved_2[3];
+    uint8_t ucMarketID[4];        /* NB: ID and Mask are little endian, so no _Swap required ... */
+    uint8_t ucMarketIDMask[4];    /* when comparing to value read from OTP */
+    uint8_t ucEpoch[4];
+    uint8_t ucEpochMask[4];
+    uint8_t ucUpperChipsetBinding[4];
+    uint8_t ucLowerChipsetBinding[4];
+    uint8_t ucMetadata1[4];
+    uint8_t ucMetadata2[4];
+    uint8_t ucSignature[BSAGELIB_2ND_TIER_RSAKEY_SIG_SIZE_BYTES];
+}BCMD_Zeus50_SecondTierKey_t;
+
+typedef struct
+{
+    uint8_t ucReserved0[2];
+    uint8_t ucCpuType;
+    uint8_t ucNoReloc;
+    uint8_t ucMarketId[4];
+    uint8_t ucMarketIdMask[4];
+#if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2))
+    uint8_t ucReserved1;
+    uint8_t ucEpochSelect;
+    uint8_t ucEpochMask;
+    uint8_t ucEpoch;
+    uint8_t ucSignatureVersion;
+    uint8_t ucSignatureType;
+    uint8_t ucReserved2[2];
+#else
+    unsigned char ucReserved1[2];
+    unsigned char ucEpochMask;
+    unsigned char ucEpoch;
+#endif
+}BSAGElib_Zeus42_ControllingParams;   /* 20 bytes */
+
+typedef struct
+{
+    uint8_t ucEpochSelect;          /* [2:0] */
+    uint8_t ucMarketIDSelect;       /* [1:0] */
+    uint8_t ucSignatureType;
+    uint8_t ucSignatureVersion;
+    uint8_t ucReserved_0;
+    uint8_t ucChipBindingSelect;    /* [5:0] */
+    uint8_t ucReserved_1;
+    uint8_t ucCpuType;
+    uint8_t ucReserved_2[4];
+    uint8_t ucMarketID[4];        /* NB: ID and Mask are little endian, so no _Swap required ... */
+    uint8_t ucMarketIDMask[4];    /* when comparing to value read from OTP */
+    uint8_t ucEpoch[4];
+    uint8_t ucEpochMask[4];
+    uint8_t ucUpperChipsetBinding[4];
+    uint8_t ucLowerChipsetBinding[4];
+    uint8_t ucMetadata1[4];
+    uint8_t ucMetadata2[4];
+}BSAGElib_Zeus50_ControllingParams;  /* 44 bytes */
+
+
+#if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0))
+typedef BCMD_Zeus50_SecondTierKey_t BCMD_SecondTierKey_t;
+typedef BSAGElib_Zeus50_ControllingParams BSAGElib_ControllingParams;
+#define SBLSSF_HEADER_RESERVED_1_SIZE (4)
+#else
+typedef BCMD_Zeus42_SecondTierKey_t BCMD_SecondTierKey_t;
+typedef BSAGElib_Zeus42_ControllingParams BSAGElib_ControllingParams;
+#define SBLSSF_HEADER_RESERVED_1_SIZE (28)
+#endif
 
 typedef struct
 {
@@ -198,7 +294,7 @@ typedef struct
     unsigned char ucSignatureDataSectionShort[128];    /* first 128 bits of SAGE framework data section signature */
     unsigned char ucSageVersionString[2048];           /* SAGE Framework version info string */
     unsigned char ucThLShortSig[4];                    /* first 4 bytes of Thin-Layer signature */
-    unsigned char ucReserved1[28];                     /* Reserved for future usage */
+    unsigned char ucReserved1[SBLSSF_HEADER_RESERVED_1_SIZE];                     /* Reserved for future usage */
     BSAGElib_ControllingParams ucControllingParameters;/* SAGE Image Header controlling Parameters */
     unsigned char ucHeaderSignature[256];              /* Header signature */
 } BSAGElib_SageSecureHeader;
@@ -245,7 +341,7 @@ typedef struct /* SAGE 3.2 framework Header */
     unsigned char ucSignatureDataSectionShort[128];    /* first 128 bits of SAGE framework data section signature */
     unsigned char ucSageVersionString[2048];           /* SAGE Framework version info string */
     unsigned char ucThLShortSig[4];                    /* first 4 bytes of Thin-Layer signature */
-    unsigned char ucReserved1[28];                     /* Reserved for future usage */
+    unsigned char ucReserved1[SBLSSF_HEADER_RESERVED_1_SIZE];                     /* Reserved for future usage */
     BSAGElib_ControllingParams ucControllingParameters;/* SAGE Image Header controlling Parameters */
     unsigned char ucHeaderSignature[256];              /* Header signature */
     BCMD_SecondTierKey_t second_tier_key;              /* Zeus 3/4.1 - size: 528 bytes - Zeus 4.2 - total size: 532 bytes */
@@ -313,7 +409,7 @@ typedef struct /* SAGE 3.2 bootloader header */
     unsigned char ucSignatureDataSectionShort[128];    /* first 128 bits of SAGE framework data section signature */
     unsigned char ucSageVersionString[2048];           /* SAGE Framework version info string */
     unsigned char ucThLShortSig[4];                    /* first 4 bytes of Thin-Layer signature */
-    unsigned char ucReserved1[28];                     /* Reserved for future usage */
+    unsigned char ucReserved1[SBLSSF_HEADER_RESERVED_1_SIZE];                     /* Reserved for future usage */
     BSAGElib_ControllingParams ucControllingParameters;/* SAGE Image Header controlling Parameters */
     unsigned char ucHeaderSignature[256];              /* Header signature */
     BCMD_SecondTierKey_t second_tier_key;              /* Zeus 3/4.1 - size: 528 bytes - Zeus 4.2 - total size: 532 bytes */
@@ -353,13 +449,11 @@ typedef struct
     unsigned char ucSignatureDataSectionShort[128];    /* first 128 bits of SAGE framework data section signature */
     unsigned char ucSageVersionString[2048];           /* SAGE Framework version info string */
     unsigned char ucThLShortSig[4];                    /* first 4 bytes of Thin-Layer signature */
-    unsigned char ucReserved1[28];                     /* Reserved for future usage */
+    unsigned char ucReserved1[SBLSSF_HEADER_RESERVED_1_SIZE];                     /* Reserved for future usage */
     BSAGElib_ControllingParams ucControllingParameters;/* SAGE Image Header controlling Parameters */
     unsigned char ucHeaderSignature[256];              /* Header signature */
     unsigned char ucHeaderSignatureP[256];              /* Header signature */
-    BCMD_SecondTierKey_t second_tier_key;              /* Zeus 3/4.1 - size: 528 bytes - Zeus 4.2 - total size: 532 bytes */
-    BCMD_SecondTierKey_t second_tier_key2;  /* triple signing scheme */
-    BCMD_SecondTierKey_t second_tier_key3;  /* triple signing scheme */
+    BCMD_SecondTierKey_t second_tier_key[3];            /* Zeus 3/4.1 - size: 528 bytes - Zeus 4.2 - total size: 532 bytes */
 } BSAGElib_SageSecureHeaderTripleSign;
 
 typedef struct /* this structure has the common parts to both previous structures */
@@ -438,6 +532,78 @@ static BCMD_SecondTierKey_t * BSAGElib_P_Boot_GetKey(BSAGElib_P_BootContext *ctx
 static uint8_t *BSAGElib_P_Boot_GetSignature(BSAGElib_P_BootContext *ctx, BSAGElib_SageImageHolder *image);
 static void BSAGElib_P_Boot_SetImageInfo(BSAGElib_ImageInfo *pImageInfo, BSAGElib_SageImageHolder* holder, uint32_t header_version, uint32_t type, bool triple_sign);
 
+static BERR_Code BSAGElib_P_Boot_CheckFrameworkKeys(
+    BSAGElib_P_BootContext *ctx,
+    BSAGElib_SageImageHolder* frameworkHolder)
+{
+    BERR_Code rc = BERR_SUCCESS;
+
+    if(ctx->sageFrameworkTripleSigning !=0) {
+        BSAGElib_SageSecureHeaderTripleSign *pTripHeader = (BSAGElib_SageSecureHeaderTripleSign *)frameworkHolder->header;
+        BCMD_SecondTierKey_t *pSecondTierKey;
+        uint32_t market_id, market_id_mask, otp_market_id, i;
+
+        pSecondTierKey = &(pTripHeader->second_tier_key[0]);
+
+        for(i=0; i<3; i++, pSecondTierKey++) {
+            otp_market_id = (pSecondTierKey->ucMarketIDSelect) ? ctx->otp_market_id1 : ctx->otp_market_id;
+            market_id = _ToDWORD(pSecondTierKey->ucMarketID);
+            market_id_mask = _ToDWORD(pSecondTierKey->ucMarketIDMask);
+            BDBG_MSG(("%s comparing key %u ID=0x%08X, mask=0x%08X to OTP=%08X", BSTD_FUNCTION, i, market_id, market_id_mask, otp_market_id));
+            /* check SAGE BL b/c */
+            if( ((market_id&market_id_mask)==(otp_market_id&market_id_mask)) && (market_id!=otp_market_id)) {
+                BDBG_WRN(("%s- Segmentation using marketId=0x%08X, mask=0x%X may not be supported", BSTD_FUNCTION, market_id, market_id_mask));
+                break;
+            }
+        }
+    }
+    return rc;
+}
+
+static BERR_Code BSAGElib_P_Boot_CheckSRR(
+        BSAGElib_Handle hSAGElib,
+        const BSAGElib_BootSettings *pBootSettings)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    uint32_t srr_offset, srr_size, srr_offset_req, srr_size_req;
+
+    /* fetch current SRR start and end values which are set by BFW */
+    _BSAGElib_P_Boot_GetBootParam(SRRStartOffset, srr_offset);
+    _BSAGElib_P_Boot_GetBootParam(SRREndOffset, srr_size);
+
+    if( (srr_offset!=0) || (srr_size!=0) ){
+        /* BFW has already set SRR, which must match current request */
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+        srr_offset_req = pBootSettings->SRROffset;
+        srr_size_req = pBootSettings->SRRSize;
+#else
+        uint32_t i;
+        srr_offset_req = srr_size_req = -1;
+        for(i=0; i< pBootSettings->regionMapNum; i++) {
+            if(pBootSettings->pRegionMap[i].id == BSAGElib_RegionId_Srr){
+                srr_offset_req = pBootSettings->pRegionMap[i].offset;
+                srr_size_req = pBootSettings->pRegionMap[i].size;
+            }
+        }
+#endif
+        /* convert octet end value to size */
+        srr_size = ((srr_size & ~7)+8) - srr_offset;
+
+        BDBG_MSG(("%s - Current SRR offset=0x%08X, size=%u. SAGE heap offset=0x%08X, size=%u",
+                BSTD_FUNCTION, srr_offset, srr_size, srr_offset_req, srr_size_req));
+
+        if( (srr_offset!= srr_offset_req) || (srr_size != srr_size_req) ) {
+            BDBG_ERR(("%s - Current SRR offset=0x%08X, size=%u does not match requested SAGE heap offset=0x%08X, size=%u",
+                    BSTD_FUNCTION, srr_offset, srr_size, srr_offset_req, srr_size_req));
+            rc = BERR_INVALID_PARAMETER;
+            goto end;
+        }
+    }
+end:
+
+    return rc;
+}
+
 static BERR_Code BSAGElib_P_Boot_CheckMarketId(
     BSAGElib_P_BootContext *ctx,
     BCMD_SecondTierKey_t *pKey)
@@ -462,7 +628,7 @@ static BERR_Code BSAGElib_P_Boot_CheckMarketId(
 
     BDBG_MSG(("%s - marketID key-%x otp-%x (key marketID select %d, mask %x, otp_marketID 0-%x, 1-%x", BSTD_FUNCTION,key_market_id,otp_market_id,pKey->ucMarketIDSelect,key_market_id_mask,ctx->otp_market_id,ctx->otp_market_id1));
 
-    if(otp_market_id != key_market_id)
+    if((otp_market_id&key_market_id_mask) != (key_market_id&key_market_id_mask))
     {
         BDBG_WRN(("%s - Key's market id %x do not match with otp market id %x (key market id select %d, mask %x, otp_market id %x, otp market id1 %x", BSTD_FUNCTION,key_market_id,otp_market_id,pKey->ucMarketIDSelect,key_market_id_mask,ctx->otp_market_id,ctx->otp_market_id1));
         rc = BERR_INVALID_PARAMETER;
@@ -484,26 +650,26 @@ BSAGElib_P_Boot_GetKey(
             (BSAGElib_SageSecureHeaderTripleSign *)image->header;
 
         BDBG_MSG(("%s %d keys offset 0x%x 0x%x 0x%x",BSTD_FUNCTION,__LINE__,
-            (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key) - (uint8_t *)triple_sign_header),
-            (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key2) - (uint8_t *)triple_sign_header),
-            (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key3) - (uint8_t *)triple_sign_header)));
+            (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key[0]) - (uint8_t *)triple_sign_header),
+            (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key[1]) - (uint8_t *)triple_sign_header),
+            (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key[2]) - (uint8_t *)triple_sign_header)));
 
         ctx->sageProductionKey = false;
 
-        if(BSAGElib_P_Boot_CheckMarketId(ctx,&triple_sign_header->second_tier_key) == BERR_SUCCESS)
-            ret = &triple_sign_header->second_tier_key;
-        else if(BSAGElib_P_Boot_CheckMarketId(ctx,&triple_sign_header->second_tier_key2) == BERR_SUCCESS)
-            ret = &triple_sign_header->second_tier_key2;
-        else if(BSAGElib_P_Boot_CheckMarketId(ctx,&triple_sign_header->second_tier_key3) == BERR_SUCCESS)
+        if(BSAGElib_P_Boot_CheckMarketId(ctx,&triple_sign_header->second_tier_key[0]) == BERR_SUCCESS)
+            ret = &triple_sign_header->second_tier_key[0];
+        else if(BSAGElib_P_Boot_CheckMarketId(ctx,&triple_sign_header->second_tier_key[1]) == BERR_SUCCESS)
+            ret = &triple_sign_header->second_tier_key[1];
+        else if(BSAGElib_P_Boot_CheckMarketId(ctx,&triple_sign_header->second_tier_key[2]) == BERR_SUCCESS)
         {
             ctx->sageProductionKey = true;
-            ret = &triple_sign_header->second_tier_key3;
+            ret = &triple_sign_header->second_tier_key[2];
         }
         else {
             BDBG_ERR(("%s - This chip type does not have valid second tier key.", BSTD_FUNCTION));
         }
     }
-    else if(image->header->ucHeaderVersion == 0x0a && image->header->ucHeaderIndex[0] == 0x53 && image->header->ucHeaderIndex[1] == 0x57)
+    else if(image->header->ucHeaderVersion >= 0x0a && image->header->ucHeaderIndex[0] == 0x53 && image->header->ucHeaderIndex[1] == 0x57)
     {    /* it's SAGE 3.2 bootloader */
         BSAGElib_BootloaderHeader *pBootLoader = (BSAGElib_BootloaderHeader *)image->header;
         ret = &pBootLoader->second_tier_key;
@@ -566,33 +732,26 @@ BSAGElib_P_Boot_GetSageOtpMspParams(
     BERR_Code rc = BERR_SUCCESS;
     BSAGElib_Handle hSAGElib = ctx->hSAGElib;
 
-    /* Pull OTPs:
-     * BCMD_Otp_CmdMsp_eReserved210 : SAGE decryption enabled
-     * BCMD_Otp_CmdMsp_eReserved209 : SAGE verification enabled
-     * BCMD_Otp_CmdMsp_eReserved212 : SAGE secure enabled
-     * BCMD_Otp_CmdMsp_eMarketId : market Id
-     * BCMD_Otp_CmdMsp_eSystemEpoch // BCMD_Otp_CmdMsp_eReserved87 : Epoch */
-
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved210, &ctx->otp_sage_decrypt_enable, "decrypt_enable");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_DECRYPT_ENABLE, &ctx->otp_sage_decrypt_enable, "decrypt_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved209, &ctx->otp_sage_verify_enable, "verify_enable");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_VERIFY_ENABLE, &ctx->otp_sage_verify_enable, "verify_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved212, &ctx->otp_sage_secure_enable, "secure_enable");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_SECURE_ENABLE, &ctx->otp_sage_secure_enable, "secure_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eMarketId, &ctx->otp_market_id, "market id0");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_MARKET_ID_0, &ctx->otp_market_id, "market id0");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eMarketId1, &ctx->otp_market_id1, "market id1");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_MARKET_ID_1, &ctx->otp_market_id1, "market id1");
     if (rc != BERR_SUCCESS) { goto end; }
 
 #if (ZEUS_VERSION < ZEUS_4_1)
     rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch, &ctx->otp_system_epoch0, "system epoch 0");
 #else
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved87, &ctx->otp_system_epoch0, "epoch");
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch3, &ctx->otp_system_epoch3, "system epoch 3");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SYSTEM_EPOCH_0, &ctx->otp_system_epoch0, "epoch");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SYSTEM_EPOCH_3, &ctx->otp_system_epoch3, "system epoch 3");
 #endif
     if (rc != BERR_SUCCESS) { goto end; }
 
@@ -647,6 +806,7 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
     BSAGElib_Handle hSAGElib,
     BSAGElib_SageImageHolder *image)
 {
+#if (BHSM_API_VERSION==1)
     BERR_Code rc = BERR_SUCCESS;
     BSAGElib_SageSecureHeader *header = (BSAGElib_SageSecureHeader *)image->header;
     BHSM_Capabilities_t hsmCaps;
@@ -688,6 +848,13 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
         }
     }
     return rc;
+#else
+    BSTD_UNUSED( hSAGElib );
+    BSTD_UNUSED( image );
+
+    BDBG_LOG(("%s: TBD not implemented", BSTD_FUNCTION));
+    return 0;
+#endif
 }
 
 static BERR_Code
@@ -816,7 +983,7 @@ BSAGElib_P_Boot_SetImageInfo(
             BSAGElib_FrameworkHeader  *pSage32Header = (BSAGElib_FrameworkHeader  *)header;
             uint32_t header_version;
             header_version = header->ucHeaderVersion;
-            if(header_version == 0x0a)
+            if(header_version >= 0x0a)
             { /* SAGE 3.2 framework */
                 pImageInfo->THLShortSig = pSage32Header->ucThLShortSig[0] | (pSage32Header->ucThLShortSig[1] << 8) |
                                           (pSage32Header->ucThLShortSig[2] << 16) | (pSage32Header->ucThLShortSig[3] << 24);
@@ -1052,11 +1219,14 @@ BSAGElib_P_Boot_ParseSageImage(
        raw_ptr += sec_header_size;
        raw_remain -= sec_header_size;
 
-       if(header_version == 0x0a && image_type == SAGE_HEADER_TYPE_BL)
+       if(header_version >= 0x0a && image_type == SAGE_HEADER_TYPE_BL)
        { /* SAGE 3.2 boot loader */
+            if(header_version > 0x0a){
+                raw_remain -= all_sig_size+sizeof(BSAGElib_ControllingParams);
+            }
            holder->data = raw_ptr;
-           holder->data_len = raw_remain - all_sig_size - 20;
-           raw_ptr += holder->data_len + 20;
+           holder->data_len = raw_remain - all_sig_size - sizeof(BSAGElib_ControllingParams);
+           raw_ptr += holder->data_len + sizeof(BSAGElib_ControllingParams);
            raw_remain = all_sig_size;
            holder->signature = raw_ptr;
            BSAGElib_P_Boot_SetImageInfo(&hSAGElib->bootloaderInfo,
@@ -1155,13 +1325,32 @@ BSAGElib_P_Boot_SetBootParams(
 
     /* Misc */
     _BSAGElib_P_Boot_SetBootParam(SageStatusFlags, 0);
-
+#if (BHSM_API_VERSION==1)
     /* SAGE Services parameters - resources */
     {
         /* HSM internally remaps VKL ID. We need to remap VKL ID back to actual VKL ID before to send to SAGE. */
         uint32_t sageVklMask = ((1 << BHSM_RemapVklId(hSAGElib->vkl1)) | (1 << BHSM_RemapVklId(hSAGElib->vkl2)));
         _BSAGElib_P_Boot_SetBootParam(SageVklMask, sageVklMask);
     }
+#else
+     /* SAGE Services parameters - resources */
+    {
+        uint32_t sageVklMask;
+        BHSM_KeyLadderInfo info;
+
+        info.index = 32; /* shift past uint32 if no return value */
+        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle1, &info);
+        sageVklMask = 1<<info.index;
+
+        info.index = 32;
+        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle2, &info);
+        sageVklMask |= 1<<info.index;
+
+        /* HSM internally remaps VKL ID. We need to remap VKL ID back to actual VKL ID before to send to SAGE. */
+        _BSAGElib_P_Boot_SetBootParam(SageVklMask, sageVklMask);
+         BDBG_LOG(("%s:%u BSAGElib_P_Boot_SetBootParam(SageVklMask,0x%08X)", BSTD_FUNCTION,__LINE__,sageVklMask));
+   }
+ #endif
     _BSAGElib_P_Boot_SetBootParam(SageDmaChannel, 0);
 
     /* SAGE Secure Boot */
@@ -1206,7 +1395,7 @@ BSAGElib_P_Boot_SetBootParams(
             BSAGElib_FrameworkHeader  *pSage32Header =      (BSAGElib_FrameworkHeader  *)frameworkHolder->header;
             uint32_t header_version;
             header_version = single_sign_header->ucHeaderVersion;
-            if(header_version == 0x0a)
+            if(header_version >= 0x0a)
             { /* SAGE 3.2 framework */
                 data = (pSage32Header->ucInstrSectionSize[3] << 0) | (pSage32Header->ucInstrSectionSize[2] << 8) | (pSage32Header->ucInstrSectionSize[1] << 16) | (pSage32Header->ucInstrSectionSize[0] << 24);
             }else{
@@ -1238,8 +1427,9 @@ BSAGElib_P_Boot_ResetSage(
 {
     BERR_Code rc = BERR_SUCCESS;
     BSAGElib_SageSecureHeaderCommon *header = blImg->header;
-    BCMD_VKLID_e vkl_id = BCMD_VKL_eMax;
     BSAGElib_Handle hSAGElib = ctx->hSAGElib;
+#if (BHSM_API_VERSION==1)
+    BCMD_VKLID_e vkl_id = BCMD_VKL_eMax;
 
     /* if OTP_SAGE_VERIFY_ENABLE_BIT: verify SAGE boot loader */
     if(ctx->otp_sage_verify_enable) {
@@ -1582,6 +1772,247 @@ end:
         BSAGElib_iUnlockHsm();
     }
 
+#else
+    BHSM_RvRsaHandle hRvRsa = NULL;
+    BHSM_RvRsaAllocateSettings rsaAllocConf;
+    BHSM_RvRsaSettings rsaConf;
+    BHSM_KeyLadderHandle hKeyLadder = NULL;
+    BHSM_KeyLadderAllocateSettings ladderAllocConf;
+    BHSM_KeyLadderSettings ladderConf;
+    BHSM_KeyLadderLevelKey ladderLevelKey;
+    BCMD_SecondTierKey_t *pRsaKey;   /* BCMD_* is not a good name for this type  */
+    BHSM_RvRegionHandle hRv = NULL;
+    BHSM_RvRegionAllocateSettings rvAllocConf;
+    BHSM_RvRegionSettings rvConf;
+    uint8_t *pSignature;
+    BMMA_DeviceOffset startAddress;
+    BHSM_RvRegionStatus regionStatus;
+    unsigned count;
+
+    /* Share the SAGE BL AR version through SAGE Global SRAM */
+    _BSAGElib_P_Boot_SetBootParam( SageBootloaderEpochVersion, header->ucEpochVersion );
+
+    if( ctx->otp_sage_verify_enable )
+    {
+        /* allocate RSA Key slot. */
+        BKNI_Memset( &rsaAllocConf, 0, sizeof(rsaAllocConf) );
+        rsaAllocConf.rsaKeyId = BHSM_ANY_ID;
+        BSAGElib_iLockHsm();
+        hRvRsa = BHSM_RvRsa_Allocate( hSAGElib->core_handles.hHsm, &rsaAllocConf );
+        BSAGElib_iUnlockHsm();
+        if( !hRvRsa ){ rc = BERR_TRACE( BERR_NOT_AVAILABLE ); goto end; }
+
+        /* Configure the RSA Key.*/
+        BKNI_Memset( &rsaConf, 0, sizeof(rsaConf) );
+        if( header->ucKey0Type == SAGE_HEADER_KEY0_SELECT_KEY0 ) {
+            rsaConf.rootKey = BHSM_RvRsaRootKey_e0;
+        }
+        else {
+            rsaConf.rootKey = BHSM_RvRsaRootKey_e0Prime;
+        }
+
+        pRsaKey = BSAGElib_P_Boot_GetKey( ctx, blImg );
+        rsaConf.keyOffset = hSAGElib->i_memory_map.addr_to_offset( pRsaKey );
+        if( rsaConf.keyOffset == 0 ) { rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto end; }
+
+        BSAGElib_iLockHsm();
+        rc = BHSM_RvRsa_SetSettings( hRvRsa,  &rsaConf );
+        BSAGElib_iUnlockHsm();
+        if( rc != BERR_SUCCESS ){ BERR_TRACE(rc); goto end; }
+    }
+
+    if( ctx->otp_sage_decrypt_enable )
+    {
+#if 0
+        BDBG_MSG(("STB owner ID select=%u", header->ucStbOwnerIdSelect);
+        BDBG_MSG(("GlobalOwnerID0=%u, GlobalOwnerID1=%u",  header->ucGlobalOwnerId[0],  header->ucGlobalOwnerId[1]));
+        BDBG_MSG(("Global Owner ID/Swizzle variant=%u, Global Owner/Swizzle version=%u", header->ucSwizzle0aVariant, header->ucSwizzle0aVersion));
+        BDBG_MSG(("CA VendorId=0x%02x%02X%02X%02X", header->ucCaVendorId[3], header->ucCaVendorId[2], header->ucCaVendorId[1], header->ucCaVendorId[0]));
+#endif
+        /* alloc keyladder */
+        BKNI_Memset( &ladderAllocConf, 0, sizeof(ladderAllocConf) );
+        ladderAllocConf.owner = BHSM_SecurityCpuContext_eHost;
+        ladderAllocConf.index = BHSM_ANY_ID;
+        BSAGElib_iLockHsm();
+        hKeyLadder = BHSM_KeyLadder_Allocate( hSAGElib->core_handles.hHsm, &ladderAllocConf );
+        BSAGElib_iUnlockHsm();
+        if( !hKeyLadder ){ rc = BERR_TRACE( BERR_NOT_AVAILABLE ); goto end; }
+
+        /* configure keyladder root key */
+        BKNI_Memset( &ladderConf, 0, sizeof(ladderConf) );
+        ladderConf.algorithm = BHSM_CryptographicAlgorithm_eAes128;
+        ladderConf.operation = BHSM_CryptographicOperation_eDecrypt;
+        ladderConf.mode = BHSM_KeyLadderMode_eSageBlDecrypt;
+        ladderConf.numLevels = 5;
+
+        ladderConf.root.askm.caVendorIdScope    = BHSM_KeyladderCaVendorIdScope_eFixed;
+        ladderConf.root.askm.stbOwnerSelect     = header->ucStbOwnerIdSelect;
+        ladderConf.root.askm.caVendorId         = (header->ucCaVendorId[3] << 24) |
+                                                    (header->ucCaVendorId[2] << 16) |
+                                                    (header->ucCaVendorId[1] << 8) |
+                                                    (header->ucCaVendorId[0]);
+
+        ladderConf.root.type = BHSM_KeyLadderRootType_eGlobalKey;
+        ladderConf.root.globalKey.index = 0x3B;
+
+
+        switch(header->ucSwizzle0aVariant) {
+            case 0:
+                ladderConf.root.globalKey.owner = BHSM_KeyLadderGlobalKeyOwnerIdSelect_eOne;
+                break;
+            case 1:
+                ladderConf.root.globalKey.owner = BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp0;
+                break;
+            case 2:
+                ladderConf.root.globalKey.owner = BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp1;
+                break;
+            case 3:
+                ladderConf.root.globalKey.owner = BHSM_KeyLadderGlobalKeyOwnerIdSelect_eOne;
+                break;
+            default:
+                /* Invalid parameter */
+                 ladderConf.root.globalKey.owner = BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMax;
+               break;
+        }
+
+        BSAGElib_iLockHsm();
+        rc = BHSM_KeyLadder_SetSettings( hKeyLadder, &ladderConf );
+        BSAGElib_iUnlockHsm();
+        if( rc != BERR_SUCCESS ){ BERR_TRACE(rc); goto end; }
+
+        /* set level 3 key */
+        BKNI_Memset( &ladderLevelKey, 0, sizeof(ladderLevelKey) );
+
+        ladderLevelKey.level = 3;
+        BKNI_Memcpy( ladderLevelKey.ladderKey, header->ucProcIn1, sizeof(header->ucProcIn1) );
+        ladderLevelKey.ladderKeySize = 128;
+        ladderLevelKey.route.destination = BHSM_KeyLadderDestination_eNone;
+
+        BSAGElib_iLockHsm();
+        rc = BHSM_KeyLadder_GenerateLevelKey( hKeyLadder, &ladderLevelKey );
+        BSAGElib_iUnlockHsm();
+        if( rc != BERR_SUCCESS ){ BERR_TRACE(rc); goto end; }
+
+        /* set level 4 key */
+        ladderLevelKey.level = 4;
+        BKNI_Memcpy( ladderLevelKey.ladderKey, header->ucProcIn2, sizeof(header->ucProcIn2) );
+        ladderLevelKey.ladderKeySize = 128;
+
+        BSAGElib_iLockHsm();
+        rc = BHSM_KeyLadder_GenerateLevelKey( hKeyLadder, &ladderLevelKey );
+        BSAGElib_iUnlockHsm();
+        if( rc != BERR_SUCCESS ){ BERR_TRACE(rc); goto end; }
+
+        /* set level 5 key */
+        ladderLevelKey.level = 5;
+        BKNI_Memcpy( ladderLevelKey.ladderKey, header->ucProcIn3, sizeof(header->ucProcIn3) );
+        ladderLevelKey.ladderKeySize = 128;
+
+        BSAGElib_iLockHsm();
+        rc = BHSM_KeyLadder_GenerateLevelKey( hKeyLadder, &ladderLevelKey );
+        BSAGElib_iUnlockHsm();
+        if( rc != BERR_SUCCESS ){ BERR_TRACE(rc); goto end; }
+    }
+
+    /* allocate Region Verification instance. */
+    BKNI_Memset( &rvAllocConf, 0, sizeof(rvAllocConf) );
+#if 0
+    rvAllocConf.regionType = BHSM_RvRegionType_eScpu;
+    rvAllocConf.regionSubType.scpu = BHSM_RvRegionSubTypeScpu_eFsbl;
+#else
+    rvAllocConf.regionId = BHSM_RegionId_eRedacted_0x18; /* TBD this should be publicly named Fsbl */
+#endif
+    BSAGElib_iLockHsm();
+    hRv = BHSM_RvRegion_Allocate( hSAGElib->core_handles.hHsm, &rvAllocConf );
+    BSAGElib_iUnlockHsm();
+    if( !hRv ){ rc = BERR_TRACE( BERR_NOT_AVAILABLE ); goto end; }
+
+    pSignature = BSAGElib_P_Boot_GetSignature( ctx, blImg );
+    if( !pSignature ){ rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto end; }
+    startAddress = hSAGElib->i_memory_map.addr_to_offset(blImg->data);
+    if( startAddress == 0 ){ rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto end; }
+
+    /* configure region verification. */
+    BKNI_Memset( &rvConf, 0, sizeof(rvConf) );
+    rvConf.intervalCheckBandwidth = 0x10;
+#if 0
+    rvConf.scbBurstSize = 64;
+    rvConf.range[0].startAddress = startAddress;  /* TODO SHOUD BE LOCAL */
+    rvConf.range[0].size = blImg->data_len;
+    BKNI_Memcpy( &rvConf.signature, pSignature, sizeof(rvConf.signature) );
+#else
+    rvConf.range[0].address = startAddress;
+    rvConf.range[0].size = blImg->data_len;
+    rvConf.signature.address = hSAGElib->i_memory_map.addr_to_offset(pSignature);
+    rvConf.signature.size = BSAGELIB_2ND_TIER_RSAKEY_SIG_SIZE_BYTES;
+#endif
+    rvConf.rvRsaHandle = hRvRsa;
+    rvConf.keyLadderHandle = hKeyLadder; /* may be  NULL.*/
+    rvConf.keyLadderLayer = 5;
+#if 0
+    rvConf.epoch = 0;
+    rvConf.epochMask = 0;
+#endif
+    /* InstChk managed by BFW based on region ID */
+    if(ctx->otp_sage_verify_enable || ctx->otp_sage_decrypt_enable)
+    {
+        rvConf.backgroundCheck = true;
+    }
+    rvConf.allowRegionDisable = true;
+    rvConf.enforceAuth = true;
+#if 0
+    rvConf.sigType = BHSM_RvRegionSignatureType_eCode;
+    rvConf.sigVersion = 2;
+#endif
+#if (BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0)
+    /* work-around for DMA bug BKNI_Memcpy( LocalRAM, blImg->data, blImg->data_len);*/
+    {
+        uint32_t *pData = (uint32_t *)blImg->data;
+        uint32_t word_count = blImg->data_len/4;
+        uint32_t ix;
+        BDBG_MSG(("%s:%u copying %u bytes of SBL to LocalRAM",BSTD_FUNCTION,__LINE__, blImg->data_len));
+        for (ix=0; ix<word_count; ix++) {
+            BREG_Write32(hSAGElib->core_handles.hReg,BCHP_SCPU_LOCALRAM_REG_START+4*ix, pData[ix]);
+        }
+    }
+#endif
+
+    BSAGElib_iLockHsm();
+    rc = BHSM_RvRegion_SetSettings( hRv, &rvConf );
+    BSAGElib_iUnlockHsm();
+    if( rc != BERR_SUCCESS ){ BERR_TRACE(rc); goto end; }
+
+    /* enable region verification */
+    BSAGElib_iLockHsm();
+    rc = BHSM_RvRegion_Enable( hRv );
+    BSAGElib_iUnlockHsm();
+    if( rc != BERR_SUCCESS ){ BERR_TRACE(rc); goto end; }
+
+    count = 500;
+    do{
+        BKNI_Sleep( 200 );
+
+        BSAGElib_iLockHsm();
+        rc = BHSM_RvRegion_GetStatus( hRv, &regionStatus );
+        BSAGElib_iUnlockHsm();
+        if( rc != BERR_SUCCESS ){ BERR_TRACE(rc); goto end; }
+
+        BDBG_LOG(("[%s] SAGE BL %s verified", BSTD_FUNCTION, regionStatus.verified?"is":"is not yet"));
+
+    }while( !regionStatus.verified && --count );
+
+    if( !count ) {
+        rc = BERR_TRACE(BERR_TIMEOUT); goto end;
+    }
+
+end:
+
+    if( hRv ) BHSM_RvRegion_Free( hRv );
+    if( hRvRsa ) BHSM_RvRsa_Free( hRvRsa );
+    if( hKeyLadder ) BHSM_KeyLadder_Free( hKeyLadder );
+
+#endif
+    BDBG_LOG((" LEAVING -----------------  [%s]", BSTD_FUNCTION));
     return rc;
 }
 
@@ -1679,12 +2110,15 @@ BSAGElib_Boot_HostReset(
     }
 
     _BSAGElib_P_Boot_GetBootParam(SageVklMask, val);
+#if (BHSM_API_VERSION==1)
     if(val!=(uint32_t)((1 << BHSM_RemapVklId(hSAGElib->vkl1)) | (1 << BHSM_RemapVklId(hSAGElib->vkl2))))
     {
         BDBG_ERR(("%s - VKL info cannot change", BSTD_FUNCTION));
         goto end;
     }
-
+#else
+    BDBG_ERR(("%s:%u TBD BHSM_RemapVklId support missing",BSTD_FUNCTION,__LINE__));
+#endif
     _BSAGElib_P_Boot_GetBootParam(SageDmaChannel, val);
     if(val!=0)
     {
@@ -1844,6 +2278,19 @@ BSAGElib_Boot_Launch(
     rc = BSAGElib_P_Boot_CheckSigningMode(ctx);
     if(rc != BERR_SUCCESS) { goto end; } */
 
+    /* Check SBL B/C compatability */
+    BSAGElib_P_Boot_CheckFrameworkKeys(ctx, &frameworkHolder);
+
+    /* Check SRR location  */
+    rc = BSAGElib_P_Boot_CheckSRR(hSAGElib, pBootSettings);
+    if(rc != BERR_SUCCESS) {
+        BDBG_ERR(("***********************************************************************"));
+        BDBG_ERR(("BOLT and Nexus do not agree on SAGE heap location"));
+        BDBG_ERR(("SAGE load can not continue"));
+        BDBG_ERR(("***********************************************************************"));
+        goto end;
+    }
+
     /* push region map to DRAM */
     if(pBootSettings->regionMapNum != 0) {
         hSAGElib->i_memory_sync.flush(pBootSettings-> pRegionMap, pBootSettings->regionMapNum * sizeof(BSAGElib_RegionInfo));
@@ -1946,11 +2393,14 @@ BSAGElib_Boot_Post(
     BDBG_ENTER(BSAGElib_Boot_Post);
 
     BDBG_OBJECT_ASSERT(hSAGElib, BSAGElib_P_Instance);
-
+#if (BHSM_API_VERSION==1)
     BSAGElib_iLockHsm();
     rc = BHSM_InitialiseBypassKeyslots(hSAGElib->core_handles.hHsm);
     BSAGElib_iUnlockHsm();
-
+#else
+    rc = BERR_SUCCESS;
+    BDBG_LOG(("%s TBD BHSM_API_VERSION=2 post boot actions", BSTD_FUNCTION));
+#endif
     if (rc != BERR_SUCCESS) {
         BDBG_ERR(("%s - BHSM_InitialiseBypassKeyslots() fails %d", BSTD_FUNCTION, rc));
         goto end;
@@ -1961,4 +2411,5 @@ BSAGElib_Boot_Post(
 end:
     BDBG_LEAVE(BSAGElib_Boot_Post);
     return rc;
+
 }

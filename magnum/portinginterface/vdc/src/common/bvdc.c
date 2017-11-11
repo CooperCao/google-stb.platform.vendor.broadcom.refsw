@@ -417,6 +417,16 @@ const BVDC_P_Features s_VdcFeatures =
 
     /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
     {  true, true, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false },
+#elif (BCHP_CHIP==7255)
+    false,
+    /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
+    {  true,  false,  false, false, false, false, false },
+
+    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+    {  true,  false, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false },
+
+    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+    {  true, false, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false },
 #elif (BCHP_CHIP==7278)
     false,
     /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
@@ -424,9 +434,13 @@ const BVDC_P_Features s_VdcFeatures =
 
     /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
     {  true,  true,  true,  true, false, false, false, false, false, false,  true,  true,  true,  true, false, false, false,  true, false, false,  true,  true,  true,  true, false, false, false, false },
-
-    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+#if (BVDC_P_SUPPORT_3D)
+    /* mpg0     mpg1     mpg2   mpg3   mpg4    mpg5     vdec0   vdec1     656_0    656_1   gfx0      gfx1       gfx2      gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
     {  true,  true,  true,  true, false, false, false, false, false, false,  true,  true,  true,  true, false, false, false,  true, false, false,  true,  true,  true,  true, false, false, false, false },
+#else /*7278b0 */
+    /* mpg0     mpg1     mpg2   mpg3   mpg4    mpg5     vdec0   vdec1     656_0    656_1   gfx0      gfx1       gfx2      gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+    {  false,  false,  false,  false, false, false, false, false, false, false,  false,  false,  false,  false, false, false, false,  false, false, false,  false,  false,  false,  false, false, false, false, false },
+#endif
 #else
 #error "Unknown chip!  Not yet supported in VDC."
 #endif
@@ -529,9 +543,9 @@ static void BVDC_P_ResetBvn
     BREG_Write32(pVdc->hRegister, BCHP_DMISC_SW_INIT, 0);
 #endif
 
-#ifdef BCHP_DMISC_BVND_MAD_0_CLOCK_CTRL
-    BREG_Write32(pVdc->hRegister, BCHP_DMISC_BVND_MAD_0_CLOCK_CTRL,
-        BCHP_FIELD_DATA(DMISC_BVND_MAD_0_CLOCK_CTRL, CLK_FREE_RUN_MODE, bFreeRun));
+#ifdef BCHP_DMISC_BVND_CLOCK_CTRL
+    BREG_Write32(pVdc->hRegister, BCHP_DMISC_BVND_CLOCK_CTRL,
+        BCHP_FIELD_DATA(DMISC_BVND_CLOCK_CTRL, CLK_FREE_RUN_MODE, bFreeRun));
 #endif
 
     /*---------------*/
@@ -607,7 +621,7 @@ static BERR_Code BVDC_P_CheckBandgapDefSettings
 
     return eStatus;
 }
-#endif
+#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
 /***************************************************************************
  *

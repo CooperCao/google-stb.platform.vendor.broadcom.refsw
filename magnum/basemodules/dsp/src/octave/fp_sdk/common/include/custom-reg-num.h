@@ -36,6 +36,9 @@
  * ANY LIMITED REMEDY.
  ************************************************************************/
 
+#ifndef CUSTOM_REG_NUM_H
+#define CUSTOM_REG_NUM_H 1
+
 
 // Define names of custom registers. Custom registers hold internal
 // state for specific instructions.
@@ -46,7 +49,6 @@
 // changes you make here are reflected there; they may mean adding more
 // ``%ignore'' declarations.
 
-#pragma once
 
 #ifdef __cplusplus
 namespace Sim {
@@ -208,3 +210,5 @@ enum CustomRegNum
 #ifdef __cplusplus
 }
 #endif // __cplusplus
+
+#endif // CUSTOM_REG_NUM_H

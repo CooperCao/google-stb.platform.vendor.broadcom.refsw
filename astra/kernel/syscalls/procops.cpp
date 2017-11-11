@@ -147,6 +147,8 @@ void SysCalls::doExecve(TzTask *currTask) {
         return;
     }
     for (int i=0; i<TzTask::TaskStartInfo::MAX_NUM_ARGS; i++) {
+        kArgv[i] = 0;
+
         if (kuArgv[i] == 0)
             break;
     }

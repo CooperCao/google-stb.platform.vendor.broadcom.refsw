@@ -597,7 +597,54 @@ wlc_pm2_rcv_reset(wlc_bsscfg_t *cfg)
 	/* Next beacon should start the timer */
 
 	pm->pm2_rcv_state = PM2RD_IDLE;
+	pm->in_pm2_rcv = 0;
 	WL_RTDC(wlc, "pm2_rcv_state=PM2RD_IDLE", 0, 0);
+}
+
+void
+wlc_pm2_rcv_stagger_timer_start(wlc_bsscfg_t *cfg)
+{
+	wlc_info_t *wlc = cfg->wlc;
+	wlc_pm_st_t *pm = cfg->pm;
+#ifdef ACROSS_BEACON
+	static bool beacon_flag = TRUE;
+#endif /* ACROSS_BEACON*/
+	 /* Start the PM2 receive stagger duration timer */
+	 /* the new timeout will supersede the old one so delete old one first */
+	wl_del_timer(wlc->wl,pm->pm2_rcv_stagger_timer);
+#ifdef BETWEEN_BEACON
+	if (cfg->AID %2) {
+		wlc_set_pmstate(cfg, TRUE);
+		wl_add_timer(wlc->wl, pm->pm2_rcv_stagger_timer, (pm->pm2_rcv_time), FALSE);
+	} else {
+		wlc_set_pmstate(cfg, FALSE);
+		wlc_pm2_rcv_timer_start(cfg);
+	}
+#endif /* BETWEEN_BEACON */
+#ifdef ACROSS_BEACON
+	WL_TRACE(("beacon_flag %d\n",beacon_flag));
+	if (beacon_flag) {
+		wlc_pm2_enter_ps(cfg);
+		wlc_update_pmstate(cfg, TX_STATUS_BE);
+	} else {
+		wlc_pm2_rcv_timer_start(cfg);
+	}
+	if (beacon_flag == TRUE)
+		beacon_flag = FALSE;
+	else
+		beacon_flag = TRUE;
+#endif /* ACROSS_BEACON*/
+	wlc_pm2_rcv_timer_start(cfg);
+
+	/* In PM2 rcv state we want to wake up every beacon instead of DTIM to read beacon
+	evaluate if there is TIM indication*/
+	wlc_write_shm(wlc, M_BCN_LI(wlc), (0 /* bcn_li_dtim */	<< 8) | 1 /* bcn_li_bcn */);
+}
+void
+wlc_pm2_rcv_stagger_timeout_cb(void *arg)
+{
+	wlc_set_pmstate(arg, FALSE);
+	wlc_pm2_rcv_timer_start(arg);
 }
 
 /* Start the PM2 receive throttle duty cycle timer.
@@ -624,6 +671,7 @@ wlc_pm2_rcv_timer_start(wlc_bsscfg_t *cfg)
 	                    wlc_pm2_rcv_timeout_cb, (void *)cfg);
 
 	pm->pm2_rcv_state = PM2RD_WAIT_TMO;
+	pm->in_pm2_rcv = 1;
 	WL_RTDC(wlc, "pm2_rcv_state=PM2RD_WAIT_TMO", 0, 0);
 
 	/* Ensure we will get our next TBTT wake up interrupt at the next beacon:
@@ -653,6 +701,7 @@ wlc_pm2_rcv_timer_stop(wlc_bsscfg_t *cfg)
 {
 	wlc_pm_st_t *pm = cfg->pm;
 
+	pm->in_pm2_rcv = 0;
 	if (pm->pm2_rcv_timer != NULL)
 		wlc_hrt_del_timeout(pm->pm2_rcv_timer);
 
@@ -671,6 +720,7 @@ wlc_pm2_rcv_timeout(wlc_bsscfg_t *cfg)
 	/* Ignore timeout if it occurs just as we exited PM2 (race condition). */
 	if (pm->PM != PM_FAST) {
 		WL_RTDC(wlc, "wlc_pm2_rcv_timeout: not PM2", 0, 0);
+		pm->in_pm2_rcv = 0;
 		return;
 	}
 
@@ -680,8 +730,10 @@ wlc_pm2_rcv_timeout(wlc_bsscfg_t *cfg)
 	if (PM2_RCV_DUR_ENAB(cfg)) {
 		WL_RTDC(wlc, "wlc_pm2_rcv_timeout: RTDC enter ps", 0, 0);
 		wlc_pm2_enter_ps(cfg);
+		pm->in_pm2_rcv = 0;
 		return;
 	}
+
 
 	/* Let the next beacon start next timer again */
 }
@@ -714,8 +766,17 @@ wlc_update_sleep_ret(wlc_bsscfg_t *bsscfg, bool inc_rx, bool inc_tx,
 		return;
 
 	if (pm->PMenabled) {
-		wlc_set_pmstate(bsscfg, FALSE);
-		sleep_tmr_restart = TRUE;
+#if defined(WL_PM2_RCV_DUR_LIMIT)
+		if(PM2_RCV_DUR_ENAB(bsscfg) && pm->PM == PM_FAST && !pm->in_pm2_rcv) {
+			WL_TRACE(("update sleep ret in Off duty cycle\n"));
+		}
+		else {
+#endif /* WL_PM2_RCV_DUR_LIMIT */
+			wlc_set_pmstate(bsscfg, FALSE);
+			sleep_tmr_restart = TRUE;
+#if defined(WL_PM2_RCV_DUR_LIMIT)
+		}
+#endif /* WL_PM2_RCV_DUR_LIMIT */
 	}
 
 	/* Check if this is the first rx pkt since starting the sleep return
@@ -1467,9 +1528,28 @@ wlc_InTIM(wlc_bsscfg_t *cfg, bcm_tlv_t *tim_ie, uint tim_ie_len)
 void
 wlc_bcn_tim_ie_pm2_action(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 {
+#if defined(WL_PM2_RCV_DUR_LIMIT)
+#ifdef PM2_RCV_DUR_ENAB_ACROSS_BEACON
+	static int beacon =0;
+#endif /* PM2_RCV_DUR_ENAB_ACROSS_BEACON */
+#endif /* WL_PM2_RCV_DUR_LIMIT */
+
 	WL_RTDC(wlc, "wlc_proc_bcn: inTIM PMep=%02u AW=%02u xPS",
 		(cfg->pm->PMenabled ? 10 : 0) | cfg->pm->PMpending,
 		(PS_ALLOWED(cfg) ? 10 : 0) | STAY_AWAKE(wlc));
+#if defined(WL_PM2_RCV_DUR_LIMIT)
+#ifdef PM2_RCV_DUR_ENAB_ACROSS_BEACON
+	if (PM2_RCV_DUR_ENAB(cfg)) {
+		if (beacon  == 0) {
+			wlc_set_pmstate(cfg, FALSE);
+			beacon = 1;
+		} else {
+			beacon = 0;
+			return;
+		}
+	} else
+#endif /* PM2_RCV_DUR_ENAB_ACROSS_BEACON */
+#endif /* WL_PM2_RCV_DUR_LIMIT */
 	wlc_set_pmstate(cfg, FALSE);
 
 	/* Reset PM2 Rx Pkts Count */
@@ -1492,7 +1572,12 @@ wlc_bcn_tim_ie_pm2_action(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 	 * PS mode.
 	 */
 	if (PM2_RCV_DUR_ENAB(cfg)) {
-		wlc_pm2_rcv_timer_start(cfg);
+		wlc_pm2_rcv_stagger_timer_start(cfg);
+		/*wlc_pm2_rcv_timer_start(cfg);*/
+		/* We use stagger timer start API for both rcv
+		     timer start and if in case we want to stagger
+		     the STAs in the beacon intervals
+		*/
 	}
 }
 
@@ -1584,14 +1669,20 @@ wlc_bcn_parse_tim_ie(void *ctx, wlc_iem_parse_data_t *data)
 			       STAY_AWAKE(wlc)));
 			wlc_set_pspoll(cfg, FALSE);
 		}
-
-		if (PM2_RCV_DUR_ENAB(cfg) && pm->PM == PM_FAST &&
-		    pm->pm2_rcv_state == PM2RD_WAIT_BCN) {
+#if defined(WL_PM2_RCV_DUR_LIMIT)
+		if (PM2_RCV_DUR_ENAB(cfg) && pm->PM == PM_FAST) {
 			WL_RTDC(wlc, "wlc_proc_bcn: !inTIM WBCN PMep=%02u AW=%02u",
 			        (pm->PMenabled ? 10 : 0) | pm->PMpending,
 			        (PS_ALLOWED(cfg) ? 10 : 0) | STAY_AWAKE(wlc));
-			wlc_pm2_rcv_reset(cfg);
+
+			if (pm->PMenabled) {
+				wlc_pm2_rcv_reset(cfg);
+				pm->in_pm2_rcv = 1;
+			} else {
+				wlc_set_pmstate(cfg, TRUE);
+			}
 		}
+#endif /* WL_PM2_RCV_DUR_LIMIT */
 	}
 
 #ifdef WLWNM
@@ -2318,7 +2409,15 @@ wlc_pm_bss_init(void *ctx, wlc_bsscfg_t *cfg)
 		err = BCME_NORESOURCE;
 		goto fail;
 	}
-
+#if defined(WL_PM2_RCV_DUR_LIMIT)
+	if ((pm->pm2_rcv_stagger_timer =
+	     wl_init_timer(wlc->wl, wlc_pm2_rcv_stagger_timeout_cb, cfg, "pm2rcv_stagger_trigger")) == NULL) {
+		WL_ERROR(("wl%d: bsscfg %d pm2rcv_stagger_trigger failed\n",
+		          wlc->pub->unit, WLC_BSSCFG_IDX(cfg)));
+		err = BCME_NORESOURCE;
+		goto fail;
+	}
+#endif /* WL_PM2_RCV_DUR_LIMIT */
 	/* create pspoll timer */
 	if ((pm->pspoll_timer =
 	     wl_init_timer(wlc->wl, wlc_pspoll_timer, cfg, "pspoll")) == NULL) {
@@ -2368,6 +2467,12 @@ wlc_pm_bss_deinit(void *ctx, wlc_bsscfg_t *cfg)
 		if (pm->apsd_trigger_timer) {
 			wl_free_timer(wlc->wl, pm->apsd_trigger_timer);
 		}
+
+#if defined(WL_PM2_RCV_DUR_LIMIT)
+		if (pm->pm2_rcv_stagger_timer) {
+			wl_free_timer(wlc->wl, pm->pm2_rcv_stagger_timer);
+		}
+#endif /* WL_PM2_RCV_DUR_LIMIT */
 
 		if (pm->pspoll_timer) {
 			wl_free_timer(wlc->wl, pm->pspoll_timer);

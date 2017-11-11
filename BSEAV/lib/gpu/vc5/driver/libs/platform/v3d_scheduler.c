@@ -300,6 +300,50 @@ uint64_t v3d_scheduler_submit_tfu_job(
    return submit_job(&job, false);
 }
 
+#if V3D_USE_CSD
+
+uint64_t v3d_scheduler_submit_compute_job(
+   const v3d_scheduler_deps *deps,
+   v3d_cache_ops cache_ops,
+   const v3d_compute_subjob* subjobs,
+   unsigned num_subjobs,
+   bool secure,
+   v3d_sched_completion_fn completion, void *data)
+{
+   struct bcm_sched_job job;
+   memset(&job, 0, sizeof(job));
+   job.job_type = BCM_SCHED_JOB_TYPE_V3D_COMPUTE;
+   v3d_scheduler_copy_deps(&job.completed_dependencies, deps);
+   job.completion_fn = completion;
+   job.completion_data = data;
+   job.cache_ops = cache_ops;
+   job.driver.compute.subjobs = subjobs;
+   job.driver.compute.num_subjobs = num_subjobs;
+   job.secure = secure;
+   return submit_job(&job, true);
+}
+
+uint64_t v3d_scheduler_submit_indirect_compute_job(
+   const v3d_scheduler_deps *deps,
+   v3d_cache_ops cache_ops,
+   v3d_compute_subjobs_id subjobs_id,
+   bool secure,
+   v3d_sched_completion_fn completion, void *data)
+{
+   struct bcm_sched_job job;
+   memset(&job, 0, sizeof(job));
+   job.job_type = BCM_SCHED_JOB_TYPE_V3D_COMPUTE;
+   v3d_scheduler_copy_deps(&job.completed_dependencies, deps);
+   job.completion_fn = completion;
+   job.completion_data = data;
+   job.cache_ops = cache_ops;
+   job.driver.compute.subjobs_id = subjobs_id;
+   job.secure = secure;
+   return submit_job(&job, true);
+}
+
+#endif
+
 uint64_t v3d_scheduler_submit_render_job(
    const v3d_scheduler_deps* deps,
    const V3D_RENDER_INFO_T* info,
@@ -314,14 +358,16 @@ uint64_t v3d_scheduler_submit_render_job(
    job.driver.render.num_layers = 1;
    job.driver.render.tile_alloc_layer_stride = 0;
    job.driver.render.empty_tile_mode = info->empty_tile_mode;
-   job.driver.render.gmp_table = info->render_gmp_table;
-   job.driver.render.workaround_gfxh_1181 = info->render_workaround_gfxh_1181;
-   job.driver.render.no_bin_overlap = info->render_no_bin_overlap;
+   job.driver.render.base.gmp_table = info->gmp_table;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   job.driver.render.base.workaround_gfxh_1181 = info->workaround_gfxh_1181;
+#endif
+   job.driver.render.base.no_overlap = info->no_overlap;
 
    job.completion_fn = completion;
    job.completion_data = data;
    job.secure = info->secure;
-   job.cache_ops |= info->render_cache_ops;
+   job.cache_ops |= info->cache_ops;
 
    return submit_job(&job, true);
 }
@@ -342,13 +388,12 @@ void v3d_scheduler_submit_bin_render_job(
    jobs[0].job_type = BCM_SCHED_JOB_TYPE_V3D_BIN;
    v3d_scheduler_copy_deps(&jobs[0].completed_dependencies, bin_deps);
    jobs[0].driver.bin.subjobs_list = br_info->bin_subjobs;
-   jobs[0].driver.bin.workaround_gfxh_1181 = br_info->details.bin_workaround_gfxh_1181;
-   jobs[0].driver.bin.no_render_overlap = br_info->details.bin_no_render_overlap;
+   jobs[0].driver.bin.base.no_overlap = br_info->details.bin_no_overlap;
    jobs[0].driver.bin.minInitialBinBlockSize = br_info->details.min_initial_bin_block_size;
    jobs[0].secure = br_info->details.secure;
 
-   jobs[0].driver.bin.gmp_table = br_info->details.bin_gmp_table;
-#if V3D_HAS_QTS
+   jobs[0].driver.bin.base.gmp_table = br_info->details.bin_gmp_table;
+#if V3D_VER_AT_LEAST(4,1,34,0)
    jobs[0].driver.bin.tile_state_size = br_info->details.bin_tile_state_size;
 #endif
    jobs[0].completion_fn = bin_completion;
@@ -361,15 +406,19 @@ void v3d_scheduler_submit_bin_render_job(
    jobs[1].driver.render.subjobs_list = br_info->render_subjobs;
    jobs[1].driver.render.num_layers = br_info->num_layers;
    jobs[1].driver.render.tile_alloc_layer_stride = br_info->details.tile_alloc_layer_stride;
-   jobs[1].driver.render.workaround_gfxh_1181 = br_info->details.render_workaround_gfxh_1181;
-   jobs[1].driver.render.no_bin_overlap = br_info->details.render_no_bin_overlap;
+   jobs[1].driver.render.base.no_overlap = br_info->details.render_no_overlap;
    jobs[1].secure = br_info->details.secure;
 
-   jobs[1].driver.render.gmp_table = br_info->details.render_gmp_table;
+   jobs[1].driver.render.base.gmp_table = br_info->details.render_gmp_table;
    jobs[1].driver.render.empty_tile_mode = br_info->details.empty_tile_mode;
    jobs[1].completion_fn = render_completion;
    jobs[1].completion_data = render_compl_data;
    jobs[1].cache_ops |= br_info->details.render_cache_ops;
+
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   jobs[0].driver.bin.base.workaround_gfxh_1181 = br_info->details.bin_workaround_gfxh_1181;
+   jobs[1].driver.render.base.workaround_gfxh_1181 = br_info->details.render_workaround_gfxh_1181;
+#endif
 
    // Ensure space for render to bin dependency outside of lock.
    if (br_info->details.render_depends_on_bin)
@@ -507,6 +556,7 @@ static void fill_deps(const v3d_scheduler_deps **completed_deps,
    }
 }
 
+#if !V3D_PLATFORM_SIM
 int v3d_scheduler_create_fence(const v3d_scheduler_deps *deps,
       v3d_sched_deps_state deps_state, bool force_create)
 {
@@ -535,6 +585,7 @@ uint64_t v3d_scheduler_submit_wait_fence(int fence)
 
    return submit_job(&job, true);
 }
+#endif
 
 bool v3d_scheduler_jobs_reached_state(v3d_scheduler_deps *deps,
       v3d_sched_deps_state deps_state, bool call_kernel)
@@ -552,19 +603,12 @@ bool v3d_scheduler_jobs_reached_state(v3d_scheduler_deps *deps,
    struct bcm_sched_query_response response;
    memset(&response, 0, sizeof response);
 
-   switch (deps_state)
-   {
-      case V3D_SCHED_DEPS_COMPLETED:
-         bcm_sched_query(deps, NULL, &response);
-         break;
-      case V3D_SCHED_DEPS_FINALISED:
-         bcm_sched_query(NULL, deps, &response);
-         if (response.state_achieved == 1)
-            deps->n = 0;
-         break;
-      default:
-         assert(0);
-   }
+   const struct bcm_sched_dependencies *completed_deps, *finalised_deps;
+   fill_deps(&completed_deps, &finalised_deps, deps, deps_state);
+
+   bcm_sched_query(completed_deps, finalised_deps, &response);
+   if (response.state_achieved == 1 && deps_state == V3D_SCHED_DEPS_FINALISED)
+      deps->n = 0;
    return (response.state_achieved == 1);
 }
 

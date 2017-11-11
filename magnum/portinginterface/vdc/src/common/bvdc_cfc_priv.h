@@ -62,8 +62,8 @@ extern "C" {
     ((dataType)==BAVC_HdrMetadataType_eTch_Cvri || (dataType)==BAVC_HdrMetadataType_eTch_Cri)
 
 #define BVDC_P_NEED_TF_CONV(i, o) \
-    !(((i) == (o)) || \
-      (((i)==BAVC_P_ColorTF_eHlg) && (o)== BAVC_P_ColorTF_eBt1886))
+    (!(((i) == (o)) || \
+       (((i)==BAVC_P_ColorTF_eHlg) && (o)== BAVC_P_ColorTF_eBt1886)))
 
 #define BVDC_P_IS_BT2020(c) \
     (BAVC_P_Colorimetry_eBt2020 == (c))
@@ -577,12 +577,11 @@ typedef struct
  * execute with regular RDC RUL */
 typedef struct
 {
-    uint32_t           *pulStart;
+    uint32_t           *pulStart[BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT];
+    BMMA_DeviceOffset   ullStartDeviceAddr[BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT];
+    BMMA_Block_Handle   hMmaBlock[BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT];
     uint32_t           *pulCurrent;
-    BMMA_DeviceOffset   ullStartDeviceAddr;
-
-    BMMA_Block_Handle   hMmaBlock;
-    uint32_t            ulRulBuildCntr;
+    uint32_t            ulIndex;
 } BVDC_P_CfcLutLoadListInfo;
 
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
@@ -870,7 +869,8 @@ void BVDC_P_Cfc_ApplyAttenuationRGB_isr
       BVDC_P_Csc3x4                   *pCscCoeffs,
       const BVDC_P_Csc3x4             *pYCbCrToRGB,
       const BVDC_P_Csc3x4             *pRGBToYCbCr,
-      bool                             bUserCsc);
+      bool                             bUserCsc,
+      void                            *pTmpBuf );
 
 void BVDC_P_Cfc_DvoApplyAttenuationRGB_isr
     ( int32_t                          lAttenuationR,
@@ -885,8 +885,8 @@ void BVDC_P_Cfc_ApplyYCbCrColor_isr
     ( BVDC_P_Csc3x4                   *pCscCoeffs,
       uint32_t                         ulColor0,
       uint32_t                         ulColor1,
-      uint32_t                         ulColor2 );
-
+      uint32_t                         ulColor2,
+      void                            *pTmpBuf );
 #ifdef __cplusplus
 }
 #endif

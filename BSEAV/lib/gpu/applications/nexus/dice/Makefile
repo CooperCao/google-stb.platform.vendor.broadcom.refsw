@@ -1,42 +1,5 @@
 ###############################################################################
-# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
-#
-# This program is the proprietary software of Broadcom and/or its
-# licensors, and may only be used, duplicated, modified or distributed pursuant
-# to the terms and conditions of a separate, written license agreement executed
-# between you and Broadcom (an "Authorized License").  Except as set forth in
-# an Authorized License, Broadcom grants no license (express or implied), right
-# to use, or waiver of any kind with respect to the Software, and Broadcom
-# expressly reserves all rights in and to the Software and all intellectual
-# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-#
-# Except as expressly set forth in the Authorized License,
-#
-# 1. This program, including its structure, sequence and organization,
-#    constitutes the valuable trade secrets of Broadcom, and you shall use all
-#    reasonable efforts to protect the confidentiality thereof, and to use
-#    this information only in connection with your use of Broadcom integrated
-#    circuit products.
-#
-# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-#
-# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#    Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 ###############################################################################
 
 ifdef COMSPEC
@@ -54,28 +17,34 @@ endif
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
-# zlib and png required
-include $(NEXUS_TOP)/../BSEAV/opensource/zlib/zlib.inc
-include $(NEXUS_TOP)/../BSEAV/opensource/libpng/libpng.inc
+CC = $(B_REFSW_CROSS_COMPILE)gcc
+C++ = $(B_REFSW_CROSS_COMPILE)g++
+
+GCCGTEQ_40800 := $(shell expr `$(CC) -dumpversion | awk 'BEGIN { FS = "." }; { printf("%d%02d%02d", $$1, $$2, $$3) }'` \>= 40800)
 
 # build paths
 include ../common/common.inc
 
-CFLAGS += -lm -lrt
-CFLAGS += -I../common \
-          -I$(V3D_DIR)/interface/khronos/include/ \
-          -I$(V3D_PLATFORM_DIR)/nexus
-CFLAGS += $(LIBPNG_CFLAGS)
-CFLAGS += $(ZLIB_CFLAGS)
-
 APPS = dice
 
-.PHONY: api nexus_api clean
+.PHONY: api nexus_api libpng clean
 
 TARGET_DIR := $(B_REFSW_OBJ_ROOT)/$(shell pwd | sed 's/.*\($(BASEPATH)\)/\1/g')
 
 all: $(TARGET_DIR) $(APPS)
 $(APPS): api
+
+LIBPNG_DIR = $(NEXUS_TOP)/../BSEAV/opensource/libpng
+include $(LIBPNG_DIR)/b_libpng_targets.inc
+include $(LIBPNG_DIR)/libpng.inc # WORKAROUND for b_libpng_targets.inc missing this include
+libpng: b_libpng_target_build
+clean_libpng: b_libpng_target_clean_all
+
+CFLAGS = -std=c99 -lm -lrt
+CFLAGS += -I../common \
+          -I$(V3D_DIR)/interface/khronos/include/ \
+          -I$(V3D_PLATFORM_DIR)/nexus
+CFLAGS += $(LIBPNG_CFLAGS)
 
 ifeq ($(V3D_DEBUG),y)
 V3D_LIB := lib_$(NEXUS_PLATFORM)_debug
@@ -95,7 +64,7 @@ LDFLAGS := -lpthread \
 		-lv3ddriver \
 		-lnxpl
 LDFLAGS += $(LIBPNG_LDFLAGS)
-LDFLAGS += $(ZLIB_LDFLAGS)
+LDFLAGS += -Wl,-rpath-link=$(LIBPNG_LIB_FOLDER)
 
 api: nexus_api
 	$(MAKE) -C $(V3D_DIR) -f V3DDriver.mk OBJDIR=$(V3DDRIVER_OBJ_TARGET) LIBDIR=$(V3DDRIVER_LIB_TARGET)
@@ -111,17 +80,12 @@ nexus_api:
 	$(MAKE) -C $(NEXUS_TOP)/build
 endif
 
-${ZLIB_LIB_FOLDER}/include/zlib.h:
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/zlib
-${LIBPNG_LIB_FOLDER}/png.h:
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/libpng
-
 $(TARGET_DIR):
 	mkdir -p $(TARGET_DIR)
 
-.PHONY: clean_api clean_v3d clean_app clean_png clean_nxclient
+.PHONY: clean_api clean_v3d clean_app clean_nxclient clean_libpng
 # This cleans nexus and local apps
-clean: clean_nxclient clean_api clean_png clean_v3d clean_app
+clean: clean_api clean_v3d clean_app clean_nxclient clean_libpng
 
 clean_api:
 	$(MAKE) -C $(NEXUS_TOP)/build clean
@@ -132,10 +96,6 @@ clean_v3d:
 
 clean_app:
 	$(RM) $(TARGET_DIR)/$(APPS) $(TARGET_DIR)/*.d $(TARGET_DIR)/*.o $(TARGET_DIR)/*.out;
-
-clean_png:
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/zlib clean
-	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/libpng clean
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 clean_nxclient:
@@ -166,17 +126,21 @@ LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
 endif
 endif
 
-EXTRA_OBJS := ../common/esutil.c ../common/init.c
+ifeq ("$(GCCGTEQ_40800)", "0")
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++0x -fno-exceptions -fpermissive
+endif
 
-AUTO_FILES = \
-        ${ZLIB_LIB_FOLDER}/include/zlib.h \
-        ${LIBPNG_LIB_FOLDER}/png.h
+EXTRA_OBJS := ../common/esutil.c ../common/init.c
 
 # Implicit rule for building local apps
 %$(APPSUFFIX): %.c $(EXTRA_OBJS) \
-	$(AUTO_FILES)
+	libpng
 		@echo [Compile... $<]
+ifeq ("$(GCCGTEQ_40800)", "1")
 		$(Q_)$(CC) -o $(TARGET_DIR)/$@ $(filter %.c %.s %.o, $^) $(CFLAGS) $(LDFLAGS)
+else
+		$(Q_)$(C++) -o $(TARGET_DIR)/$@ $(filter %.c %.s %.o, $^) $(CXXFLAGS) $(LDFLAGS)
+endif
 		cp $(TARGET_DIR)/$@ ${NEXUS_BIN_DIR}
 		cp -f *.png ${NEXUS_BIN_DIR}
 

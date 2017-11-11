@@ -353,13 +353,13 @@ void NEXUS_AudioProcessor_GetStatus(
                 switch ( piStatus.status.advTsm.ptsType )
                 {
                 default:
-                case BAPE_PtsType_eOriginal:
+                case BAVC_PTSType_eCoded:
                     pStatus->status.advancedTsm.ptsType = NEXUS_PtsType_eCoded;
                     break;
-                case BAPE_PtsType_eInterpolated:
+                case BAVC_PTSType_eInterpolatedFromValidPTS:
                     pStatus->status.advancedTsm.ptsType = NEXUS_PtsType_eInterpolatedFromValidPTS;
                     break;
-                case BAPE_PtsType_eInterpolatedFromInvalid:
+                case BAVC_PTSType_eInterpolatedFromInvalidPTS:
                     pStatus->status.advancedTsm.ptsType = NEXUS_PtsType_eInterpolatedFromInvalidPTS;
                     break;
                 }

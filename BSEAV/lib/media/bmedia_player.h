@@ -198,7 +198,8 @@ typedef enum bmedia_player_host_trick_mode
 	bmedia_player_host_trick_mode_gop_IP,
 	bmedia_player_host_trick_mode_mdqt,
 	bmedia_player_host_trick_mode_mdqt_IP,
-	bmedia_player_host_trick_mode_time_skip
+	bmedia_player_host_trick_mode_time_skip,
+	bmedia_player_host_trick_mode_max
 } bmedia_player_host_trick_mode;
 
 /**
@@ -289,8 +290,9 @@ Summary:
 **/
 typedef enum bmedia_player_decoder_frames {
     bmedia_player_decoder_frames_all, /* all decodable frame should be displayed */
-    bmedia_player_decoder_frames_IP,   /* display I(reference) and P frames only */
-    bmedia_player_decoder_frames_I   /* display I(reference) frames only */
+    bmedia_player_decoder_frames_IP,  /* display I(reference) and P frames only */
+    bmedia_player_decoder_frames_I,   /* display I(reference) frames only */
+    bmedia_player_decoder_frames_max
 } bmedia_player_decoder_frames;
 
 /**
@@ -303,7 +305,8 @@ typedef enum bmedia_player_reordering_mode {
     bmedia_player_reordering_mode_gop,          /* unused */
     bmedia_player_reordering_mode_interleaved,  /* data sent in interleaved chunks */
     bmedia_player_reordering_mode_forward,      /* data sent in forward direction */
-    bmedia_player_reordering_mode_backward      /* data sent in forward direction */
+    bmedia_player_reordering_mode_backward,     /* data sent in forward direction */
+    bmedia_player_reordering_mode_max
 } bmedia_player_reordering_mode;
 
 /**

@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,13 +50,6 @@ MAGNUM_MODULES += BXDM
 
 # Module Includes
 BXDM_INCLUDES += $(MAGNUM)/commonutils/xdm/
-
-#
-# SWSTB-1380: use the debug fifo for printing messages
-#
-ifeq ($(BXDM_DEBUG_FIFO),y)
-BXDM_DEFINES += BXDM_DEBUG_FIFO=1
-endif
 
 #
 # SWSTB-1380: enable the low priority TSM and FRD debug messages.

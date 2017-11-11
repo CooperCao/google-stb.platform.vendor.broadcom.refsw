@@ -289,8 +289,8 @@ protected:
 #elif defined NETAPP_SUPPORT
     CNetwork * _pNetwork;
 #else /* placeholder */
-    void    * _pNetwork;
-#endif
+    void * _pNetwork;
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
     CWidgetButton * _pBack;
     MAutoList <CPanelNetworkWifiProp>   _propList;
     MAutoList <CPanelNetworkWifiStatus> _statusList;

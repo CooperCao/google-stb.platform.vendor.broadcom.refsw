@@ -51,6 +51,7 @@
 #include "bimg.h"
 #include "bdsp_types.h"
 #include "bdsp.h"
+
 /* #define RAAGA_UART_ENABLE */
 
 #define BDSP_RAAGA_ADDRESS_ALIGN_CDB  8 /* CDB is aligned to 2^8 Bytes*/
@@ -58,22 +59,6 @@
 
 #define BDSP_RAAGA_ADDRESS_ALIGN      32
 #define BDSP_RAAGA_SIZE_ALIGN(x)
-
-/***************************************************************************
-Summary:
-    This enumeration defines various debug features that can be enabled in the firmware.
-
-***************************************************************************/
-typedef enum BDSP_Raaga_DebugType
-{
-    BDSP_Raaga_DebugType_eDramMsg = 0,
-    BDSP_Raaga_DebugType_eUart,
-    BDSP_Raaga_DebugType_eCoreDump,
-    BDSP_Raaga_DebugType_eTargetPrintf,
-    BDSP_Raaga_DebugType_eLast,
-    BDSP_Raaga_DebugType_eInvalid = 0xFF
-} BDSP_Raaga_DebugType;
-
 /***************************************************************************
 Summary:
 Raaga Debug Type Settings
@@ -87,19 +72,6 @@ typedef struct BDSP_Raaga_DebugTypeSettings
 
 /***************************************************************************
 Summary:
-Raaga DSP Status
-***************************************************************************/
-typedef enum BDSP_Raaga_FwStatus
-{
-    BDSP_Raaga_FwStatus_eRunnning = 0,
-    BDSP_Raaga_FwStatus_eCoreDumpInProgress,
-    BDSP_Raaga_FwStatus_eCoreDumpComplete,
-    BDSP_Raaga_FwStatus_eInvalid = 0xFF
-} BDSP_Raaga_FwStatus;
-
-
-/***************************************************************************
-Summary:
 Raaga DSP Settings
 ***************************************************************************/
 typedef struct BDSP_RaagaSettings
@@ -109,7 +81,7 @@ typedef struct BDSP_RaagaSettings
 
     bool preloadImages;         /* If true, all firmware images will be loaded on startup.  Default=false. */
 
-    BDSP_Raaga_DebugTypeSettings debugSettings[BDSP_Raaga_DebugType_eLast]; /* Debug information for the different types of debug logs */
+    BDSP_Raaga_DebugTypeSettings debugSettings[BDSP_DebugType_eLast]; /* Debug information for the different types of debug logs */
 
     const BIMG_Interface *pImageInterface;      /* Interface to access firmware image. This interface must be
                                                    implemented and the function pointers must be stored here. */
@@ -119,53 +91,13 @@ typedef struct BDSP_RaagaSettings
     unsigned maxAlgorithms[BDSP_AlgorithmType_eMax] ;
 
     unsigned NumDsp;    /*Number of DSP supported in the System, currently used for estimation of Memory*/
+
     struct {
-        BSTD_DeviceOffset baseAddress; /* Physical base address of the lowest physical address region for each MEMC.
-            [0] is always 0 and it is assumed to always exist. For [1] and [2], an address of 0 means the MEMC is not populated.
-            RAAGA is unable to access a discontiguous upper memory region, so its base address and size is not needed. */
+        BSTD_DeviceOffset baseAddress; /* Physical base address accessible heap */
         uint64_t size;
-        unsigned stripeWidth;
-    } memc[3]; /* for each MEMC */
+    } heap[BDSP_RAAGA_MAX_NUM_HEAPS]; /* heaps that DSP is expected to access */
+    BCHP_MemoryLayout memoryLayout; /* all addressable memory per MEMC */
 } BDSP_RaagaSettings;
-
-/*********************************************************************
-Summary:
-    This structure contain elements that is returned by
-        CalcThreshold_BlockTime_AudOffset API.
-
-Description:
-
-        ui32Threshold and ui32BlockTime goes to FW and
-        ui32AudOffset goes to Application and TSM user cfg
-
-See Also:
-**********************************************************************/
-typedef struct BDSP_CTB_Output
-{
-    uint32_t ui32Threshold;                                 /* Interms of samples */
-    uint32_t ui32BlockTime;                                 /* Interms of Time (msec)  */
-    uint32_t ui32AudOffset;                                 /* AudOffset in Time (msec) */
-
-}BDSP_CTB_Output;
-
-
-typedef struct BDSP_CTB_Input
-{
-    BDSP_AudioTaskDelayMode audioTaskDelayMode;
-    BDSP_TaskRealtimeMode realtimeMode;
-    BDSP_Audio_AudioInputSource     eAudioIpSourceType;           /* Capture port Type    */
-}BDSP_CTB_Input;
-
-/***************************************************************************
-Summary:
-Firmware download status.
-***************************************************************************/
-typedef struct BDSP_Raaga_DownloadStatus
-{
-    void    *pBaseAddress;      /* Pointer to base of downloaded firmware executables */
-    dramaddr_t physicalAddress;   /* Physical memory offset of downloaded firmware executables */
-    size_t   length;            /* Length of executables in bytes */
-} BDSP_Raaga_DownloadStatus;
 
 /***************************************************************************
 Summary:
@@ -195,21 +127,6 @@ typedef struct BDSP_RaagaMemoryEstimate
     unsigned GeneralMemory; /* Number of bytes from the general system heap */
     unsigned FirmwareMemory; /* Number of bytes from the firmware heap */
 } BDSP_RaagaMemoryEstimate;
-
-/***************************************************************************
-Summary:
-BDSP codec capabilities
-***************************************************************************/
-typedef struct BDSP_CodecCapabilities
-{
-    struct {
-        bool dapv2;         /* Allow eDapv2 processing if set else restrict it */
-        bool ddEncode;      /* Allow DD compressed1x output if set else restrict it */
-        bool ddpEncode51;   /* Allow DDP 5.1 compressed4x  if set else restrict it */
-        bool ddpEncode71;   /* Allow DDP 7.1 compressed4x  if set else restrict it */
-        bool pcm71;         /* Allow DDP 7.1 decoding if set else restrict it */
-    } dolbyMs;
-}BDSP_CodecCapabilities;
 
 /***************************************************************************
 Summary:
@@ -271,129 +188,10 @@ BERR_Code BDSP_Raaga_GetMemoryEstimate(
 
 /***************************************************************************
 Summary:
-Returns physical memory offset and size of firmware executables.
-
-Description:
-Returns the physical memory offset where firmware executables of all the
-supported algorithms are downloaded in contiguous memory. It
-also returns the total size of the downloaded firmware executables. This
-function is supported only when firmware authentication is enabled.
-
-See also:
-BDSP_Raaga_Initialize
-***************************************************************************/
-BERR_Code BDSP_Raaga_GetDownloadStatus(
-    BDSP_Handle handle,
-    BDSP_Raaga_DownloadStatus *pStatus /* [out] */
-);
-
-/***************************************************************************
-Summary:
-Initialize (Boot) the DSP
-
-Description:
-This call will boot the DSP.  Normally, the DSP is booted on initialization,
-but if the DSP was opened with authenticationEnabled = true, this call
-is required to initialize the DSP.
-
-See Also:
-BDSP_Raaga_Open
-***************************************************************************/
-BERR_Code BDSP_Raaga_Initialize(
-    BDSP_Handle handle
-    );
-
-/***************************************************************************
-Summary:
-et Audio delay values for the delay mode and the stage being handled
-
-Description:
-Delay configuration for a task are set to default initially. Once the delay
-mode and the algorithm to be configured are known the actual audio path delay
-values are calculated in this function and ape will send a command to dsp
-with the updated configuration details which will make sure all the concerned
-stages are updated with the latest configuration.
-See Also:
-
-***************************************************************************/
-BERR_Code BDSP_Raaga_GetAudioDelay_isrsafe(
-    BDSP_CTB_Input *pCTBInput,
-    BDSP_StageHandle hStage,
-    BDSP_CTB_Output *pCTBOutput
-    );
-
- /******************************************************************************
-Summary:
-    This Function returns true, If the decode algorithm having AlgoId passed as
-    argument is supported or not.
-*******************************************************************************/
-bool BDSP_Raaga_IsAlgorithmSupported(
-        BDSP_Algorithm algorithm
-        );
-
-/***************************************************************************
-Summary:
 Get default algorithm settings.
 ***************************************************************************/
-BERR_Code BDSP_Raaga_GetDefaultAlgorithmSettings(
+BERR_Code BDSP_GetDefaultAlgorithmSettings(
         BDSP_Algorithm algorithm,
-        void *pSettingsBuffer,        /* [out] */
-        size_t settingsBufferSize   /*[In]*/
-    );
-
-/***************************************************************************
-Summary:
-Get Raaga Firmware Debug Data
-***************************************************************************/
-BERR_Code BDSP_Raaga_GetDebugBuffer(
-    BDSP_Handle handle,
-    BDSP_Raaga_DebugType debugType, /* [in] Gives the type of debug buffer for which the Base address is required ... UART, DRAM, CoreDump ... */
-    uint32_t dspIndex, /* [in] Gives the DSP Id for which the debug buffer info is required */
-    BDSP_MMA_Memory *pBuffer, /* [out] Base address of the debug buffer data */
-    size_t *pSize /* [out] Contiguous length of the debug buffer data in bytes */
-);
-
-/***************************************************************************
-Summary:
-Consume debug data from the debug ringbuffer.
-***************************************************************************/
-BERR_Code BDSP_Raaga_ConsumeDebugData(
-    BDSP_Handle handle,
-    BDSP_Raaga_DebugType debugType, /* [in] Gives the type of debug buffer for which the Base address is required ... UART, DRAM, CoreDump ... */
-    uint32_t dspIndex, /* [in] Gives the DSP Id for which the debug data needs to be consumed */
-    size_t bytesConsumed    /* [in] Number of bytes consumed from the debug buffer */
-);
-
-/***************************************************************************
-Summary:
-Returns the Status of the DSP
-***************************************************************************/
-BDSP_Raaga_FwStatus BDSP_Raaga_GetCoreDumpStatus (
-    BDSP_Handle handle,
-    uint32_t dspIndex); /* [in] Gives the DSP Id for which the core dump status is required */
-
-/***************************************************************************
-Summary:
-Get the codec copability status
-***************************************************************************/
-void BDSP_Raaga_GetCodecCapabilities(BDSP_CodecCapabilities *pSetting);
-
-#if !B_REFSW_MINIMAL
-/***************************************************************************
-Summary:
-Get default Datasync settings.
-***************************************************************************/
-BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
-        void *pSettingsBuffer,        /* [out] */
-        size_t settingsBufferSize   /*[In]*/
-    );
-#endif /*!B_REFSW_MINIMAL*/
-
-/***************************************************************************
-Summary:
-Get default Tsm settings.
-***************************************************************************/
-BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
         void *pSettingsBuffer,        /* [out] */
         size_t settingsBufferSize   /*[In]*/
     );

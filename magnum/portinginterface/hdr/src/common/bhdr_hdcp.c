@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -273,7 +273,6 @@ BERR_Code BHDR_HDCP_SetHdcp2xRxCaps(
 				| BCHP_FIELD_DATA(HDCP2_RX_0_RXCAPS, REPEATER, repeater);
 	BREG_Write32(hRegister, BCHP_HDCP2_RX_0_RXCAPS + ulOffset, Register) ;
 
-
 	/* Set HDCP2Version register accordingly to indicate HDCP2.x support */
 	Register = BREG_Read32(hRegister, BCHP_HDCP2_RX_0_HDCP2VERSION_CFG  + ulOffset);
 		Register &= ~ BCHP_MASK(HDCP2_RX_0_HDCP2VERSION_CFG, VERSION);
@@ -305,24 +304,49 @@ BERR_Code BHDR_HDCP_EnableSerialKeyRam(
 }
 
 
-BERR_Code BHDR_HDCP_GetHdcp2xEncryptionStatus(
+BERR_Code BHDR_HDCP_GetHdcp2xAuthenticationStatus(
 	const BHDR_Handle hHDR,
-	bool *bEncrypted
+	BHDR_HDCP_Hdcp2xAuthenticationStatus *pAuthenticationStatus
 )
 {
 	uint32_t Register, ulOffset;
 	BREG_Handle hRegister;
 
-	BDBG_ENTER(BHDR_HDCP_GetHdcp2xEncryptionStatus);
+	BDBG_ENTER(BHDR_HDCP_GetHdcp2xAuthenticationStatus);
 	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
 
 	hRegister = hHDR->hRegister;
 	ulOffset = hHDR->ulOffset;
 
 	Register = BREG_Read32(hRegister, BCHP_HDCP2_RX_0_STATUS_0 + ulOffset);
-	*bEncrypted = BCHP_GET_FIELD_DATA(Register, HDCP2_RX_0_STATUS_0, ENCRYPTION_ENABLED) > 0 ;
+	pAuthenticationStatus->bEncrypted = BCHP_GET_FIELD_DATA(Register, HDCP2_RX_0_STATUS_0, ENCRYPTION_ENABLED) > 0 ;
+	pAuthenticationStatus->bAuthenticated = BCHP_GET_FIELD_DATA(Register, HDCP2_RX_0_STATUS_0, AUTH_STATUS) > 0 ;
 
-	BDBG_LEAVE(BHDR_HDCP_GetHdcp2xEncryptionStatus);
+	BDBG_LEAVE(BHDR_HDCP_GetHdcp2xAuthenticationStatus);
+	return BERR_SUCCESS;
+}
+
+
+BERR_Code BHDR_HDCP_SendHdcp2xReAuthREQ(
+	const BHDR_Handle hHDR
+)
+{
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
+
+	BDBG_ENTER(BHDR_HDCP_SendHdcp2xReAuthREQ);
+	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
+
+	hRegister = hHDR->hRegister;
+	ulOffset = hHDR->ulOffset;
+
+	Register = BREG_Read32(hRegister, BCHP_HDCP2_RX_0_RXSTATUS_AUTH_CFG + ulOffset);
+		Register &= ~ BCHP_MASK(HDCP2_RX_0_RXSTATUS_AUTH_CFG, REAUTH_REQ);
+		Register |= BCHP_FIELD_DATA(HDCP2_RX_0_RXSTATUS_AUTH_CFG, REAUTH_REQ, 0x01);
+	BREG_Write32(hRegister, BCHP_HDCP2_RX_0_RXSTATUS_AUTH_CFG + ulOffset, Register) ;
+
+
+	BDBG_LEAVE(BHDR_HDCP_SendHdcp2xReAuthREQ);
 	return BERR_SUCCESS;
 }
 

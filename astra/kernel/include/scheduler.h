@@ -45,8 +45,9 @@
 
 extern "C" void schedule();
 
-#define TIME_SLICE_DURATION_MS  20
-#define EDF_SLICE_PERCENT       25
+#define TIME_SLICE_DURATION_MS      20
+#define TIME_SLICE_STAGGER_PERCENT   1
+#define TIME_SLICE_EDF_PERCENT      25
 
 class TzTask;
 extern "C" TzTask *currentTask[MAX_NUM_CPUS];
@@ -87,6 +88,8 @@ public:
 private:
     static Class scheduleClass;
     static unsigned long TimeSliceDuration;
+    static unsigned long TimeSliceStagger;
+    static unsigned long TimeSliceEDF;
 
     static unsigned int sumRunnablePriorities;
     static tzutils::PriorityQueue<TzTask> runQueue;
@@ -94,7 +97,6 @@ private:
     static SpinLock schedLock;
 
     static tzutils::PriorityQueue<TzTask> edfQueue;
-    static unsigned long EDFTimeSlice;
     static PerCPU<Timer> edfScheduleTimer;
     static PerCPU<Timer> edfPreemptionTimer;
 

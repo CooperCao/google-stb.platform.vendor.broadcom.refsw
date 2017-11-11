@@ -127,7 +127,7 @@ static int piff_playback_dma_buffer(CommonCryptoHandle commonCryptoHandle, void 
     NEXUS_DmaJobBlockSettings blkSettings;
     CommonCryptoJobSettings cryptoJobSettings;
 
-    BDBG_MSG(("%s: from=%p, to=%p, size=%u", __FUNCTION__, src, dst, size));
+    BDBG_MSG(("%s: from=%p, to=%p, size=%u", BSTD_FUNCTION, src, dst, size));
 
     NEXUS_DmaJob_GetDefaultBlockSettings(&blkSettings);
     blkSettings.pSrcAddr = src;
@@ -254,7 +254,7 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
     }
 
     BDBG_MSG(("%s: NEXUS_Playpump_GetBuffer return buffer %p, size %u",
-              __FUNCTION__, playpumpBuffer, bufferSize));
+              BSTD_FUNCTION, playpumpBuffer, bufferSize));
 
     app->outBufSize = 0;
     bytes_processed = 0;
@@ -347,7 +347,7 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
                     outSize += app->outBufSize;
                 }
             } else {
-                BDBG_WRN(("%s Unsupported track type %d detected", __FUNCTION__, frag_info->trackType));
+                BDBG_WRN(("%s Unsupported track type %d detected", BSTD_FUNCTION, frag_info->trackType));
                 return -1;
             }
 
@@ -420,13 +420,13 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
                     aesCtrInfo.bByteOffset = qwOffset % 16 ;
 
                     BDBG_MSG(("%s:%d: DRM_Prdy_Reader_Decrypt(..., ..., %p, %u)",
-                              __FUNCTION__, __LINE__, out, num_enc));
+                              BSTD_FUNCTION, __LINE__, out, num_enc));
                     if(DRM_Prdy_Reader_Decrypt(
                                 &app->decryptor,
                                 &aesCtrInfo,
                                 (uint8_t *)out,
                                 num_enc ) != DRM_Prdy_ok) {
-                        BDBG_ERR(("%s Reader_Decrypt failed - %d", __FUNCTION__, __LINE__));
+                        BDBG_ERR(("%s Reader_Decrypt failed - %d", BSTD_FUNCTION, __LINE__));
                         return -1;
                     }
 
@@ -447,13 +447,13 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
                 outSize += sampleSize;
 
                 BDBG_MSG(("%s:%d: DRM_Prdy_Reader_Decrypt(..., ..., %p, %u)",
-                          __FUNCTION__, __LINE__, out, sampleSize));
+                          BSTD_FUNCTION, __LINE__, out, sampleSize));
                 if(DRM_Prdy_Reader_Decrypt(
                             &app->decryptor,
                             &aesCtrInfo,
                             (uint8_t *)out,
                             sampleSize ) != DRM_Prdy_ok) {
-                    BDBG_ERR(("%s Reader_Decrypt failed - %d", __FUNCTION__, __LINE__));
+                    BDBG_ERR(("%s Reader_Decrypt failed - %d", BSTD_FUNCTION, __LINE__));
                     return -1;
                 }
 
@@ -464,12 +464,12 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
             bytes_processed += numOfByteDecrypted + decrypt_offset;
         }
         BDBG_MSG(("%s: NEXUS_Playpump_WriteComplete buffer %p, size %u",
-                  __FUNCTION__, playpumpBuffer, bufferSize));
+                  BSTD_FUNCTION, playpumpBuffer, bufferSize));
         NEXUS_Playpump_WriteComplete(playpump, 0, outSize);
     }
 
     if(bytes_processed != payload_size) {
-        BDBG_WRN(("%s the number of bytes %d decrypted doesn't match the actual size %d of the payload, return failure...%d",__FUNCTION__,
+        BDBG_WRN(("%s the number of bytes %d decrypted doesn't match the actual size %d of the payload, return failure...%d",BSTD_FUNCTION,
                     bytes_processed, payload_size, __LINE__));
         rc = -1;
     }
@@ -623,7 +623,7 @@ void playback_piff( NEXUS_SimpleVideoDecoderHandle videoDecoder,
     size_t pssh_len;
     NEXUS_PlaypumpOpenPidChannelSettings video_pid_settings;
 
-    BDBG_MSG(("%s - %d\n", __FUNCTION__, __LINE__));
+    BDBG_MSG(("%s - %d\n", BSTD_FUNCTION, __LINE__));
     if(piff_file == NULL ) {
         goto clean_exit;
     }

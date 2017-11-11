@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,20 +34,11 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Revision History:
-# $brcm_Log: $
-#
 ############################################################
 
 ifeq ($(NEXUS_USE_7250_CWF),y)
 NEXUS_USE_7250_CWF := y
 NEXUS_FRONTEND_3128 := y
-NEXUS_HDMI_INPUT_SUPPORT := n
   ifeq ($(NEXUS_FRONTEND_312x_VER),)
       NEXUS_FRONTEND_312x_VER := C0
   endif
@@ -71,7 +62,6 @@ endif
 
 ifeq ($(NEXUS_USE_72501_SAT),y)
 NEXUS_FRONTEND_45216 := y
-NEXUS_HDMI_INPUT_SUPPORT := y
 endif
 
 include $(NEXUS_TOP)/platforms/common/build/platform_modules.inc

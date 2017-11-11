@@ -963,8 +963,8 @@ See Also:
 #define BDBG_OBJECT_ID(name) const char bdbg_id__##name[]= "#" #name
 #define BDBG_OBJECT_ID_DECLARE(name) extern const char bdbg_id__##name[]
 #define BDBG_OBJECT(name) struct bdbg_obj bdbg_object_##name;
-#define BDBG_OBJECT_INIT(ptr,name) BDBG_Object_Init((ptr),sizeof(*(ptr)),&(ptr)->bdbg_object_##name, bdbg_id__##name)
-#define BDBG_OBJECT_DESTROY(ptr,name) BDBG_Object_Init((ptr),sizeof(*(ptr)),&(ptr)->bdbg_object_##name, NULL)
+#define BDBG_OBJECT_INIT(ptr,name) BDBG_Object_Init_isrsafe((ptr),sizeof(*(ptr)),&(ptr)->bdbg_object_##name, bdbg_id__##name)
+#define BDBG_OBJECT_DESTROY(ptr,name) BDBG_Object_Init_isrsafe((ptr),sizeof(*(ptr)),&(ptr)->bdbg_object_##name, NULL)
 
 
 #define BDBG_OBJECT_SET(ptr,name) (ptr)->bdbg_object_##name.bdbg_obj_id=bdbg_id__##name
@@ -977,11 +977,11 @@ void BDBG_Object_Assert_isrsafe(const void *ptr, size_t size, const struct bdbg_
 #define BDBG_OBJECT_ASSERT(ptr,name) (((ptr) && (ptr)->bdbg_object_##name.bdbg_obj_id==bdbg_id__##name)? (void) 0 : BDBG_Object_Assert_isrsafe(ptr, sizeof(*ptr), &(ptr)->bdbg_object_##name, bdbg_id__##name, BSTD_FILE, BSTD_LINE))
 #endif
 
-#define BDBG_OBJECT_INIT_INST(ptr,name,inst) BDBG_Object_Init(ptr,sizeof(*(ptr)),&(ptr)->bdbg_object_##name,bdbg_id__##name+(unsigned)(inst))
+#define BDBG_OBJECT_INIT_INST(ptr,name,inst) BDBG_Object_Init_isrsafe(ptr,sizeof(*(ptr)),&(ptr)->bdbg_object_##name,bdbg_id__##name+(unsigned)(inst))
 #define BDBG_OBJECT_SET_INST(ptr,name,inst) (ptr)->bdbg_object_##name.bdbg_obj_id=(bdbg_id__##name + (unsigned)(inst))
 #define BDBG_OBJECT_ASSERT_INST(ptr,name,inst) BDBG_ASSERT((ptr)->bdbg_object_##name.bdbg_obj_id==&bdbg_id__##name+(unsigned)(inst))
 
-void BDBG_Object_Init(void *ptr, size_t size, struct bdbg_obj *obj, const char *id);
+void BDBG_Object_Init_isrsafe(void *ptr, size_t size, struct bdbg_obj *obj, const char *id);
 
 bool BDBG_P_TestAndPrint_BDBG_eWrn_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
 bool BDBG_P_TestAndPrint_BDBG_eErr_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
@@ -993,8 +993,8 @@ void BDBG_P_UnRegisterInstance(BDBG_Instance handle, BDBG_pDebugModuleFile dbg_m
 void BDBG_P_PrintWithNewLine_isrsafe(const char *fmt, ...) BDBG_P_PRINTF_FORMAT(1, 2);
 void BDBG_P_Release(BDBG_pDebugModuleFile dbg_module);
 
-void BDBG_EnterFunction(BDBG_pDebugModuleFile dbg_module, const char *function);
-void BDBG_LeaveFunction(BDBG_pDebugModuleFile dbg_module, const char *function);
+void BDBG_EnterFunction_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *function);
+void BDBG_LeaveFunction_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *function);
 
 
 #else /* BDBG_DEBUG_BUILD */
@@ -1058,12 +1058,12 @@ they can be used to avoid unused code warnings. */
 #define BDBG_INSTANCE_MSG(instance, format) BDBG_NOP()
 #define BDBG_MODULE_INSTANCE_MSG(module, instance, format) BDBG_NOP()
 #else
-#define BDBG_ENTER(function) ((BDBG_eTrace >= b_dbg_module.level)? BDBG_EnterFunction(&b_dbg_module, #function)  : (void)0)
-#define BDBG_ENTER_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_EnterFunction(&b_dbg_module, BSTD_FUNCTION)  : (void)0)
-#define BDBG_MODULE_ENTER(module, function) ((BDBG_eTrace >= b_dbg_module_##module.level)? BDBG_EnterFunction(&b_dbg_module_##module, #function)  : (void)0)
-#define BDBG_LEAVE(function) ((BDBG_eTrace >= b_dbg_module.level)? BDBG_LeaveFunction(&b_dbg_module, #function)  : (void)0)
-#define BDBG_LEAVE_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_LeaveFunction(&b_dbg_module, BSTD_FUNCTION)  : (void)0)
-#define BDBG_MODULE_LEAVE(module, function) ((BDBG_eTrace >= b_dbg_module_##module.level)? BDBG_LeaveFunction(&b_dbg_module_##module, #function)  : (void)0)
+#define BDBG_ENTER(function) ((BDBG_eTrace >= b_dbg_module.level)? BDBG_EnterFunction_isrsafe(&b_dbg_module, #function)  : (void)0)
+#define BDBG_ENTER_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_EnterFunction_isrsafe(&b_dbg_module, BSTD_FUNCTION)  : (void)0)
+#define BDBG_MODULE_ENTER(module, function) ((BDBG_eTrace >= b_dbg_module_##module.level)? BDBG_EnterFunction_isrsafe(&b_dbg_module_##module, #function)  : (void)0)
+#define BDBG_LEAVE(function) ((BDBG_eTrace >= b_dbg_module.level)? BDBG_LeaveFunction_isrsafe(&b_dbg_module, #function)  : (void)0)
+#define BDBG_LEAVE_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_LeaveFunction_isrsafe(&b_dbg_module, BSTD_FUNCTION)  : (void)0)
+#define BDBG_MODULE_LEAVE(module, function) ((BDBG_eTrace >= b_dbg_module_##module.level)? BDBG_LeaveFunction_isrsafe(&b_dbg_module_##module, #function)  : (void)0)
 #define BDBG_MSG(format) BDBG_P_PRINTMSG(BDBG_eMsg, format)
 #define BDBG_MODULE_MSG(module, format) BDBG_P_MODULE_PRINTMSG(module, BDBG_eMsg, format)
 #define BDBG_INSTANCE_MSG(instance, format) BDBG_P_INSTANCE_PRINTMSG(BDBG_eMsg, instance, format)

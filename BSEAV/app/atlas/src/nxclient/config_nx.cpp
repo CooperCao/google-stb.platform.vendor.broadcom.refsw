@@ -53,8 +53,8 @@ CConfigNx::CConfigNx() :
     CConfig(),
     _pResources(NULL)
 {
-    BKNI_Memset((void *) &_allocResultsMain,0,sizeof(_allocResultsMain));
-    BKNI_Memset((void *) &_allocResultsPip,0,sizeof(_allocResultsPip));
+    BKNI_Memset((void *) &_allocResultsMain, 0, sizeof(_allocResultsMain));
+    BKNI_Memset((void *) &_allocResultsPip, 0, sizeof(_allocResultsPip));
 }
 
 CConfigNx::~CConfigNx()

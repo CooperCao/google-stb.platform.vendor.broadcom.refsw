@@ -360,7 +360,8 @@ Nexus_IMG_Driver_Open(void *context, void **image, unsigned image_id)
         if(acquired) {
             break;
         }
-        BKNI_WaitForEvent(b_interfaces.close, 100);
+        rc = BKNI_WaitForEvent(b_interfaces.close, 100);
+        if (rc) break;
     }
     if(!acquired) {
         BDBG_ERR(("user/kernel BIMG proxy is already used"));

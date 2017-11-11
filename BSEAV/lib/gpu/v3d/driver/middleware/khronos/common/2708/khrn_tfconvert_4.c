@@ -106,7 +106,7 @@ bool khrn_rso_to_tf_convert(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hsrc, MEM_H
    uint32_t x_tiles = (src->width + 63) / 64;
    uint32_t y_tiles = (src->height + 63) / 64;
 
-   vcos_assert(src->width == dst->width && src->height == dst->height);
+   assert(src->width == dst->width && src->height == dst->height);
 
    KHRN_FMEM_T *fmem = khrn_fmem_init(KHRN_INTERLOCK_USER_TEMP);
    if (!fmem)

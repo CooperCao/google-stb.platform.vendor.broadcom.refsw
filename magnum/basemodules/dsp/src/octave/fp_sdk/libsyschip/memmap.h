@@ -99,12 +99,32 @@
 #  include "libsyschip/memmap-pmc3.h"
 #endif
 
+#ifdef PMC3_2_ICA
+#  include <libsyschip/memmap-pmc3_2-ica.h>
+#endif
+
+#ifdef PMC3_2_ICA_ITCM
+#  include <libsyschip/memmap-pmc3_2-ica-itcm.h>
+#endif
+
+#ifdef PMC3_2_ICA_ROM
+#  include <libsyschip/memmap-pmc3_2-ica-rom.h>
+#endif
+
+#ifdef PMC3_2_ITCM
+#  include <libsyschip/memmap-pmc3_2-itcm.h>
+#endif
+
 #ifdef SMC
 #  include "libsyschip/memmap-smc.h"
 #endif
 
-#ifdef GFAP
-#  include "libsyschip/memmap-gfap.h"
+#ifdef GFAP_EP
+#  include "libsyschip/memmap-gfap-ep.h"
+#endif
+
+#ifdef GFAP_PP
+#  include "libsyschip/memmap-gfap-pp.h"
 #endif
 
 #ifdef UTP
@@ -135,6 +155,10 @@
 #  include "libsyschip/memmap-ofdx_rx.h"
 #endif
 
+#ifdef WOD
+#  include "libsyschip/memmap-wod.h"
+#endif
+
 #if defined(__FP4014__)
 #  include "libsyschip/memmap-octave-v1.h"
 #endif
@@ -147,9 +171,9 @@
 /*
  Generic memory layout macros for chips with simple memories
 
- TEXT_START / TEXT_END delimit the main region where instructions live. This
- doesn't include instructions that get loaded after the kernel has started (on
- things like FP4015 Raaga)
+ TEXT_START_ADDR / TEXT_END_ADDR delimit the main region where instructions
+ live. This doesn't include instructions that get loaded after the kernel has
+ started (under FPOS, for example).
 
  DATA_START / DATA_END delimits a contiguous region where data can be
  stored. This isn't meant to be exhaustive: on chips with DMEM it will point at

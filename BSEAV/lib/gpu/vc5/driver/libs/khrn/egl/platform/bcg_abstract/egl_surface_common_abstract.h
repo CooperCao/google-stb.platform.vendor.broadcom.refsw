@@ -8,7 +8,6 @@
 
 #include "egl_platform_abstract.h"
 
-extern BEGL_BufferFormat get_begl_format_abstract(GFX_LFMT_T fmt);
-extern khrn_image     *image_from_surface_abstract(void *nativeSurface, bool flipY);
+extern khrn_image *image_from_surface_abstract(void *nativeSurface, bool flipY, unsigned *num_mip_levels);
 
 #endif

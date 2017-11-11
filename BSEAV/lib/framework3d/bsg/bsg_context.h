@@ -23,11 +23,11 @@ public:
 
    //! Initialize the context based upon the ApplicationOptions.
    //! Rendering using this context will send the output to nativewindow.
-   virtual void Initialize(const ApplicationOptions &options, EGLNativeWindowType nativeWindow);
+   virtual void Initialize(EGLDisplay display, const ApplicationOptions &options, EGLNativeWindowType nativeWindow);
 
    //! Initialize the context based upon the ApplicationOptions.
    //! Rendering using this context will send the output to a pixmap.
-   virtual void Initialize(const ApplicationOptions &options, NativePixmap *nativePixmap);
+   virtual void Initialize(EGLDisplay display, const ApplicationOptions &options, NativePixmap *nativePixmap);
 
    virtual EGLConfig ChooseConfigForDisplay(EGLDisplay display, const ApplicationOptions &options);
 

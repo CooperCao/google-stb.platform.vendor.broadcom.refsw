@@ -380,6 +380,64 @@ NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged( /* attr{thunk=false} */
     unsigned size
     );
 
+typedef struct NEXUS_PlatformMemoryLayout
+{
+    struct {
+        uint64_t size; /* total size of DRAM part */
+        struct {
+            NEXUS_Addr addr; /* base physical address of contiguous addressing region */
+            uint64_t size; /* size of contiguous addressing */
+        } region[NEXUS_NUM_MEMC_REGIONS]; /* supports multiple discontiguous addressing region */
+    } memc[NEXUS_MAX_MEMC];
+} NEXUS_PlatformMemoryLayout;
+
+typedef struct NEXUS_PlatformOsRegion {
+    NEXUS_Addr base; /* physical address */
+    uint64_t length; /* no region if 0 */
+
+    /* correlation of bmem to MEMC */
+    unsigned memcIndex;
+    unsigned subIndex;
+    bool cma;
+} NEXUS_PlatformOsRegion;
+
+typedef struct NEXUS_PlatformOsReservedRegion {
+    NEXUS_Addr base; /* physical address */
+    uint64_t length; /* no region if 0 */
+    unsigned memcIndex;
+    char     tag[8];
+} NEXUS_PlatformOsReservedRegion;
+
+/**
+Summary:
+Memory layout of the board for each MEMC and each physical addressing region
+
+Description:
+These structure members are arranged to be backward compatible with NEXUS_Platform_P_GetHostMemory, which is implemented per OS.
+**/
+typedef struct NEXUS_PlatformMemory
+{
+    NEXUS_PlatformMemoryLayout memoryLayout;
+
+    /* OS's report of usable memory by physical address */
+    NEXUS_PlatformOsRegion osRegion[NEXUS_MAX_HEAPS];
+
+    NEXUS_PlatformOsReservedRegion osReservedRegions[NEXUS_MAX_HEAPS];
+
+    unsigned maxDcacheLineSize; /* reported by OS. BMEM alignment must be >= this to avoid cache coherency bugs. */
+} NEXUS_PlatformMemory;
+
+/***************************************************************************
+Summary:
+NEXUS_Platform_GetMemory is callable before NEXUS_Platform_Init
+***************************************************************************/
+#define NEXUS_Platform_GetMemory(memory) \
+    NEXUS_Platform_GetMemory_tagged((memory), sizeof(NEXUS_PlatformMemory))
+NEXUS_Error NEXUS_Platform_GetMemory_tagged( /* attr{thunk=false} */
+    NEXUS_PlatformMemory *memory,
+    unsigned size
+    );
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

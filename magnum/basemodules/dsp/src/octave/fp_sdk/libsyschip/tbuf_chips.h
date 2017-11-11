@@ -85,7 +85,7 @@
     (defined(RAAGA) && !defined(__FP4015_ONWARDS__))
 #  define TB_ASYNC_TRANSFERS
 #elif defined(PIKE) || defined(GENERIC) || \
-      defined(BSP) || defined(LEAP_PHY) || defined(PMC3) || \
+      defined(BSP) || defined(LEAP_PHY) || defined(PMC3) || defined(PMC3_2_ICA) || \
      (defined(RAAGA) && defined(__FP4015_ONWARDS__)) || defined(YELLOWSTONE) || defined(SHASTA)
 #  define TB_SYNC_TRANSFERS
 #elif defined(__COMPILE_HEADER__)
@@ -101,6 +101,14 @@
  */
 #if defined(SHARED_MEMORY_MULTICORE) && defined(__PIC__)
 #  define TB_SHARED_BETWEEN_CORES
+#endif
+
+/**
+ * TB_SIZE_SET_BY_HOST: whether the size of the target buffer may be dynamically
+ *                      set by the host.
+ */
+#if defined(RAAGA) && defined(__FP4015__)
+#  define TB_SIZE_SET_BY_HOST
 #endif
 
 /**
@@ -155,7 +163,7 @@
 #  define TB_TRANSFER_ALIGNMENT         8               /* accesses, enforce dword size/aligment so that memcpy */
 #  define TB_TRANSFER_SIZE_MULTIPLE     8               /* (the one in libfp) will always do the right thing.   */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
-#elif defined(PMC3) && defined(__FPM1015__)
+#elif (defined(PMC3) || defined(PMC3_2_ICA)) && defined(__FPM1015__)
 #  define TB_TRANSFER_ALIGNMENT         1               /* FIXME: Assume no restrictions in accessing the DRAM  */
 #  define TB_TRANSFER_SIZE_MULTIPLE     1               /* for now, we might have to limit ourselves.           */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE

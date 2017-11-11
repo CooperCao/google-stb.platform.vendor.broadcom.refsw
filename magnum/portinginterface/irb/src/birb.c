@@ -1,15 +1,45 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ***************************************************************************/
 #include "bstd.h"
 #include "birb.h"
+#include "bchp_common.h"
 #include "bchp_irb.h"
-#if (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7278)
+#ifdef BCHP_UPG_MAIN_IRQ_REG_START
 #include "bchp_int_id_upg_main_irq.h"
 #include "bchp_upg_main_irq.h"
 #else
@@ -18,8 +48,6 @@
 #endif
 
 BDBG_MODULE(birb);
-
-#define DEV_MAGIC_ID            ((BERR_IRB_ID<<16) | 0xFACE)
 
 #define BIRB_CHK_RETCODE( rc, func )        \
 do {                                        \
@@ -296,10 +324,12 @@ static const SIrbConfiguration RC6Configuration =
 *   Private Module Handles
 *
 *******************************************************************************/
+BDBG_OBJECT_ID(BIRB_Handle);
 
 typedef struct BIRB_P_Handle
 {
     uint32_t            magicId;                    /* Used to check if structure is corrupt */
+    BDBG_OBJECT(BIRB_Handle)
     BCHP_Handle         hChip;
     BREG_Handle         hRegister;
     BINT_Handle         hInterrupt;
@@ -329,8 +359,8 @@ static const BIRB_Settings defIrbSettings =
 *   Private Module Functions (Prototypes)
 *
 *******************************************************************************/
-static void BIRB_P_EnableInt(BIRB_Handle hDev);
-static void BIRB_P_DisableInt(BIRB_Handle hDev);
+static void BIRB_P_EnableInt_isr(BIRB_Handle hDev);
+static void BIRB_P_DisableInt_isr(BIRB_Handle hDev);
 static void BIRB_P_ConfigDataSequence(BIRB_Handle hDev, uint32_t *pData, uint8_t bits, bool headerPulse);
 static void BIRB_P_ConfigDataSequenceRC6(BIRB_Handle hDev, unsigned mode, unsigned trailer, uint32_t *pData, uint8_t bits);
 static void BIRB_P_ConfigDataSequenceAB(BIRB_Handle hDev, uint32_t *pDataA, uint8_t bitsA,
@@ -371,7 +401,7 @@ BERR_Code BIRB_Open(
         goto done;
     }
 
-    hDev->magicId   = DEV_MAGIC_ID;
+    BDBG_OBJECT_SET(hDev, BIRB_Handle);
     hDev->hChip     = hChip;
     hDev->hRegister = hRegister;
     hDev->hInterrupt = hInterrupt;
@@ -425,12 +455,14 @@ BERR_Code BIRB_Open(
         /*
          * Enable IRB interrupt in IRB
          */
-        BIRB_P_EnableInt (hDev);
+        BIRB_P_EnableInt_isr (hDev);
         BKNI_LeaveCriticalSection();
     }
     else
 	{
-        BIRB_P_DisableInt (hDev);
+        BKNI_EnterCriticalSection();
+        BIRB_P_DisableInt_isr (hDev);
+        BKNI_LeaveCriticalSection();
 	}
 
     *pIrb = hDev;
@@ -450,17 +482,17 @@ BERR_Code BIRB_Close(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     BKNI_EnterCriticalSection();
-    BIRB_P_DisableInt (hDev);
+    BIRB_P_DisableInt_isr(hDev);
     BKNI_LeaveCriticalSection();
 
     BIRB_CHK_RETCODE( retCode, BINT_DisableCallback( hDev->hCallback ) );
     BIRB_CHK_RETCODE( retCode, BINT_DestroyCallback( hDev->hCallback ) );
     BKNI_DestroyEvent( hDev->hEvent );
 
+    BDBG_OBJECT_DESTROY(hDev, BIRB_Handle);
     BKNI_Free( (void *) hDev );
 
 done:
@@ -489,8 +521,7 @@ BERR_Code BIRB_GetEventHandle(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     *phEvent = hDev->hEvent;
 
@@ -515,8 +546,7 @@ BERR_Code BIRB_Config (
     BERR_Code retCode = BERR_SUCCESS;
 	SIrbConfiguration *pConfig = NULL;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     switch (irbDev)
     {
@@ -574,8 +604,7 @@ BERR_Code BIRB_Blast (
     BERR_Code   retCode = BERR_SUCCESS;
     uint32_t    lval;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     lval = BREG_Read32(hDev->hRegister, BCHP_IRB_BLAST_CONTROL);
     lval |= BCHP_IRB_BLAST_CONTROL_blast_MASK;
@@ -604,8 +633,7 @@ BERR_Code BIRB_SendWithHeaderOption (
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     if (bits > MAX_IRB_SEQUENCES)
     {
@@ -635,8 +663,7 @@ BERR_Code BIRB_SendRC6 (
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     if (bits > MAX_IRB_SEQUENCES)
     {
@@ -680,8 +707,7 @@ BERR_Code BIRB_SendABBB (
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     if ((bitsA + bitsB) > MAX_IRB_SEQUENCES)
     {
@@ -711,8 +737,7 @@ BERR_Code BIRB_SendAAAA (
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     if (bitsA > MAX_IRB_SEQUENCES)
     {
@@ -740,8 +765,7 @@ BERR_Code BIRB_SendXmp2Ack (
     uint8_t     ackData;
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     /* build ack data
      * For now, owener code is 0.
@@ -776,8 +800,7 @@ BERR_Code BIRB_SendXmp2Nack (
     uint8_t     ackData;
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
 
     /* build ack data
      * For now, owener code is 0.
@@ -817,8 +840,7 @@ BERR_Code BIRB_SendXmp2Bytes (
     uint8_t     ackData;
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev,BIRB_Handle);
     BSTD_UNUSED(ackData);
 
     if (numByte != 1 && numByte != 4)
@@ -1002,7 +1024,7 @@ void BIRB_ConfigRegisters(
 *   Private Module Functions
 *
 *******************************************************************************/
-static void BIRB_P_EnableInt(
+static void BIRB_P_EnableInt_isr(
     BIRB_Handle     hDev
 )
 {
@@ -1018,7 +1040,7 @@ static void BIRB_P_EnableInt(
 
 }
 
-static void BIRB_P_DisableInt(
+static void BIRB_P_DisableInt_isr(
     BIRB_Handle     hDev
 )
 {

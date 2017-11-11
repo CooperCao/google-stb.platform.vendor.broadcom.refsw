@@ -24,11 +24,6 @@ struct egl_pixmap_surface
    EGL_SURFACE_T   base;
    khrn_image   *image;
    void           *native_surface;
-
-   /* Attributes to be used by VG */
-   EGLint          vg_alpha_format;
-   EGLint          vg_colorspace;
-   EGLint          gl_colorspace;
 };
 
 static EGL_SURFACE_METHODS_T fns;
@@ -75,69 +70,8 @@ static void delete_fn(EGL_SURFACE_T *surface)
    free(surface);
 }
 
-static bool get_attrib(const EGL_SURFACE_T *surface, EGLint attrib,
-      EGLAttribKHR *value)
-{
-   const EGL_PIXMAP_SURFACE_T *surf = (EGL_PIXMAP_SURFACE_T *) surface;
-
-   switch (attrib)
-   {
-   case EGL_VG_ALPHA_FORMAT:
-      *value = surf->vg_alpha_format;
-      return true;
-
-   case EGL_VG_COLORSPACE:
-      *value = surf->vg_colorspace;
-      return true;
-
-   case EGL_GL_COLORSPACE_KHR:
-      *value = surf->gl_colorspace;
-      return true;
-
-   default:
-      break;
-   }
-
-   return egl_surface_base_get_attrib(surface, attrib, value);
-}
-
-static EGLint set_attrib(EGL_SURFACE_T *surface, EGLint attrib,
-      EGLAttribKHR value)
-{
-   EGL_PIXMAP_SURFACE_T *surf = (EGL_PIXMAP_SURFACE_T *) surface;
-
-   switch (attrib)
-   {
-   case EGL_VG_ALPHA_FORMAT:
-      if (value != EGL_VG_ALPHA_FORMAT_NONPRE && value != EGL_VG_ALPHA_FORMAT_PRE)
-         return EGL_BAD_PARAMETER;
-
-      surf->vg_alpha_format = (EGLint)value;
-      return EGL_SUCCESS;
-
-   case EGL_VG_COLORSPACE:
-      if (value != EGL_VG_COLORSPACE_sRGB && value != EGL_VG_COLORSPACE_LINEAR)
-         return EGL_BAD_PARAMETER;
-
-      surf->vg_colorspace = (EGLint)value;
-      return EGL_SUCCESS;
-
-   case EGL_GL_COLORSPACE_KHR:
-      if (value != EGL_GL_COLORSPACE_SRGB_KHR && value != EGL_GL_COLORSPACE_LINEAR_KHR)
-         return EGL_BAD_PARAMETER;
-
-      surf->gl_colorspace = (EGLint)value;
-      return EGL_SUCCESS;
-
-   default:
-      break;
-   }
-
-   return egl_surface_base_set_attrib(surface, attrib, value);
-}
-
 static EGLSurface egl_create_pixmap_surface_impl(
-      EGLDisplay dpy, EGLConfig config,
+      EGLDisplay dpy, EGLConfig config_in,
       NativePixmapType pixmap, const void *attrib_list,
       EGL_AttribType attrib_type)
 {
@@ -148,6 +82,7 @@ static EGLSurface egl_create_pixmap_surface_impl(
    BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
    BEGL_SurfaceInfo      surfaceInfo;
    GFX_LFMT_T            gfx_format;
+   unsigned              num_mip_levels;
 
    if (!egl_initialized(dpy, true))
       return EGL_NO_SURFACE;
@@ -156,10 +91,8 @@ static EGLSurface egl_create_pixmap_surface_impl(
    if (!surface)
       goto end; /* BAD ALLOC */
 
-   /* Even though the config will be checked for validity in egl_surface_base_init
-    * we check it here first so that dEQP doesn't fail us. We'll return a different
-    * error if we leave it until egl_surface_base_init is called. */
-   if (!egl_config_is_valid(config))
+   const EGL_CONFIG_T *config = egl_config_validate(config_in);
+   if (!config)
    {
       error = EGL_BAD_CONFIG;
       goto end;
@@ -175,7 +108,7 @@ static EGLSurface egl_create_pixmap_surface_impl(
    surface->base.fns        = &fns;
    surface->base.type       = EGL_SURFACE_TYPE_PIXMAP;
    surface->native_surface  = (void *)pixmap;
-   surface->image = image_from_surface_abstract(pixmap, true);
+   surface->image = image_from_surface_abstract(pixmap, true, &num_mip_levels);
 
    if (!surface->image)
       goto end;   /* BAD ALLOC */
@@ -189,11 +122,6 @@ static EGLSurface egl_create_pixmap_surface_impl(
       error = EGL_BAD_NATIVE_PIXMAP;
       goto end;
    }
-
-   /* default settings */
-   surface->vg_alpha_format = EGL_VG_ALPHA_FORMAT_NONPRE;
-   surface->vg_colorspace   = EGL_VG_COLORSPACE_sRGB;
-   surface->gl_colorspace   = EGL_GL_COLORSPACE_LINEAR_KHR;
 
    /* Determine size of the underlying native pixmap */
    get_dimensions(&surface->base, &width, &height);
@@ -266,6 +194,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface
    EGL_SURFACE_T        *surf     = NULL;
    khrn_image         *imageDst = NULL;
    GFX_LFMT_T            gfx_format;
+   unsigned              num_mip_levels;
 
    if (!egl_initialized(dpy, true))
       return EGL_FALSE;
@@ -284,8 +213,14 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface
       goto end;
    }
 
-   imageDst = image_from_surface_abstract(target, true); /* TODO : Is this right? */
+   imageDst = image_from_surface_abstract(target, true, &num_mip_levels); /* TODO : Is this right? */
    if (imageDst == NULL)
+   {
+      error = EGL_BAD_NATIVE_PIXMAP;
+      goto end;
+   }
+
+   if (num_mip_levels != 1)
    {
       error = EGL_BAD_NATIVE_PIXMAP;
       goto end;
@@ -320,10 +255,6 @@ end:
 static EGL_SURFACE_METHODS_T fns =
 {
    .get_back_buffer = get_back_buffer,
-   .swap_buffers = NULL,
-   .swap_interval = NULL,
    .get_dimensions = get_dimensions,
-   .get_attrib = get_attrib,
-   .set_attrib = set_attrib,
    .delete_fn = delete_fn,
 };

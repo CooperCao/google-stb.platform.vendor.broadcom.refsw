@@ -27,11 +27,7 @@ EGL_IMAGE_T *egl_image_renderbuffer_new(EGL_CONTEXT_T *context,
    }
    ctx = (EGL_GL_CONTEXT_T *) context;
 
-   if (!egl_context_gl_lock())
-   {
-      error = EGL_BAD_MATCH;
-      goto end;
-   }
+   egl_context_gl_lock();
    locked = true;
 
    state = egl_context_gl_server_state(ctx);
@@ -49,7 +45,7 @@ EGL_IMAGE_T *egl_image_renderbuffer_new(EGL_CONTEXT_T *context,
 
    assert(rb->image);
 
-   egl_image = egl_image_create(rb->image);
+   egl_image = egl_image_create(rb->image, 1);
    if (!egl_image)
       goto end;
    error = EGL_SUCCESS;

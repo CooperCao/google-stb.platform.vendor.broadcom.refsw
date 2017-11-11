@@ -190,6 +190,7 @@ static void BVC5_P_GetClockSpeed(
    BVC5_Handle hVC5
    )
 {
+#ifdef BCHP_PWR_SUPPORT
    BERR_Code err;
    unsigned rate;
 
@@ -200,6 +201,7 @@ static void BVC5_P_GetClockSpeed(
       BDBG_WRN(("GPU Clock speed: %u MHz\n", hVC5->sEventMonitor.uiCyclesPerUs));
    }
    else
+#endif
       hVC5->sEventMonitor.uiCyclesPerUs = 1; /* timestamps will be in clock cycles */
 }
 
@@ -475,15 +477,27 @@ static BERR_Code BVC5_P_SetEventCollection(
 #if V3D_VER_AT_LEAST(3,3,0,0)
          uint32_t uiCoreIndex = 0;
          BVC5_P_HardwareClearEventFifos(hVC5, uiCoreIndex);
+         BKNI_EnterCriticalSection();
 #endif
          hVC5->sEventMonitor.bActive = true;
+#if V3D_VER_AT_LEAST(3,3,0,0)
+         BKNI_LeaveCriticalSection();
+#endif
       }
       else
          err = BERR_NOT_AVAILABLE;
       break;
    case BVC5_EventStop:
       if (hVC5->sEventMonitor.bAcquired && hVC5->sEventMonitor.uiClientId == uiClientId)
+      {
+#if V3D_VER_AT_LEAST(3,3,0,0)
+         BKNI_EnterCriticalSection();
+#endif
          hVC5->sEventMonitor.bActive = false;
+#if V3D_VER_AT_LEAST(3,3,0,0)
+         BKNI_LeaveCriticalSection();
+#endif
+      }
       else
          err = BERR_NOT_AVAILABLE;
       break;
@@ -509,15 +523,7 @@ BERR_Code BVC5_SetEventCollection(
    BDBG_ENTER(BVC5_SetEventCollection);
    BKNI_AcquireMutex(hVC5->hModuleMutex);
 
-   if (hVC5->sOpenParams.bUseClockGating || hVC5->sOpenParams.bUsePowerGating)
-   {
-      BKNI_Printf("ERROR: %s, power gating and clock gating need to be disabled for performance counters to function\n"
-                  "       disable via 'export V3D_USE_POWER_GATING=0' & 'export V3D_USE_CLOCK_GATING=0' prior to launch\n",
-                  BSTD_FUNCTION);
-      err = BERR_NOT_AVAILABLE;
-   }
-   else
-      err = BVC5_P_SetEventCollection(hVC5, uiClientId, eState);
+   err = BVC5_P_SetEventCollection(hVC5, uiClientId, eState);
 
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
    BDBG_LEAVE(BVC5_SetEventCollection);
@@ -525,7 +531,7 @@ BERR_Code BVC5_SetEventCollection(
    return err;
 }
 
-static void BVC5_P_SetOverflow(BVC5_Handle hVC5, bool overflow)
+static void BVC5_P_SetOverflow_isrsafe(BVC5_Handle hVC5, bool overflow)
 {
    BVC5_P_EventBuffer *psBuf = &hVC5->sEventMonitor.sBuffer;
    if (psBuf->bOverflow != overflow)
@@ -537,6 +543,14 @@ static void BVC5_P_SetOverflow(BVC5_Handle hVC5, bool overflow)
          BDBG_WRN(("Event buffer read - event recording resumed"));
    }
 }
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+#define LOCK_EVENTS() BKNI_EnterCriticalSection()
+#define UNLOCK_EVENTS() BKNI_LeaveCriticalSection()
+#else
+#define LOCK_EVENTS() BKNI_AcquireMutex(hVC5->hEventMutex)
+#define UNLOCK_EVENTS() BKNI_ReleaseMutex(hVC5->hEventMutex)
+#endif
 
 
 uint32_t BVC5_GetEventData(
@@ -554,7 +568,7 @@ uint32_t BVC5_GetEventData(
    BDBG_ENTER(BVC5_GetEventData);
 
    BKNI_AcquireMutex(hVC5->hModuleMutex);
-   BKNI_AcquireMutex(hVC5->hEventMutex);
+   LOCK_EVENTS();
 
    if (!hVC5->sEventMonitor.bAcquired || hVC5->sEventMonitor.uiClientId != uiClientId)
       goto error;
@@ -597,14 +611,14 @@ uint32_t BVC5_GetEventData(
          psBuf->uiBytesUsed -= bytesToCopy;
       }
 
-      BVC5_P_SetOverflow(hVC5, false);
+      BVC5_P_SetOverflow_isrsafe(hVC5, false);
    }
 
 error:
    if (puiTimeStamp)
       *puiTimeStamp = BVC5_P_GetEventTimestamp();
 
-   BKNI_ReleaseMutex(hVC5->hEventMutex);
+   UNLOCK_EVENTS();
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
    BDBG_LEAVE(BVC5_GetEventData);
 
@@ -612,7 +626,7 @@ error:
 }
 
 /* You must have a lock on hEventMutex before calling this */
-static bool BVC5_P_Add32(
+static bool BVC5_P_Add32_isrsafe(
    BVC5_Handle    hVC5,
    uint32_t       uiData
    )
@@ -638,7 +652,7 @@ static bool BVC5_P_Add32(
 }
 
 /* You must have a lock on hEventMutex before calling this */
-static bool BVC5_P_Add64(
+static bool BVC5_P_Add64_isrsafe(
    BVC5_Handle    hVC5,
    uint64_t       uiData
    )
@@ -649,21 +663,20 @@ static bool BVC5_P_Add64(
    if (psBuf->uiCapacityBytes - psBuf->uiBytesUsed < 8)
       return false;
 
-   ok = ok && BVC5_P_Add32(hVC5, (uint32_t)uiData);
-   ok = ok && BVC5_P_Add32(hVC5, (uint32_t)(uiData >> 32));
+   ok = ok && BVC5_P_Add32_isrsafe(hVC5, (uint32_t)uiData);
+   ok = ok && BVC5_P_Add32_isrsafe(hVC5, (uint32_t)(uiData >> 32));
 
    BDBG_ASSERT(ok); /* Should be ok as we check for space above */
 
    return ok;
 }
 
-static bool AddEvent(
+static bool BVC5_P_AddEvent_isrsafe(
    BVC5_Handle    hVC5,
    uint32_t       uiTrackIndex,
    uint32_t       uiId,
    uint32_t       uiEventIndex,
    BVC5_EventType eEventType,
-   bool           bAlreadyHaveEventMutex,
    uint64_t       uiTimestamp
    )
 {
@@ -672,9 +685,6 @@ static bool AddEvent(
    bool               ok = true;
    uint32_t           before;
 
-   if (!bAlreadyHaveEventMutex)
-      BKNI_AcquireMutex(hVC5->hEventMutex);
-
    BDBG_ASSERT(uiEventIndex < BVC5_P_EVENT_MONITOR_NUM_EVENTS);
    eventDesc = &hVC5->sEventMonitor.sEventDescs[uiEventIndex];
    BDBG_ASSERT(eventDesc->uiSize >= BVC5_P_EVENT_FIXED_BYTES);
@@ -682,57 +692,27 @@ static bool AddEvent(
    if (psBuf->uiCapacityBytes - psBuf->uiBytesUsed < eventDesc->uiSize)
    {
       /* No room for this event */
-      BVC5_P_SetOverflow(hVC5, true);
+      BVC5_P_SetOverflow_isrsafe(hVC5, true);
       ok = false;
       goto error;
    }
 
    before = psBuf->uiBytesUsed;
 
-   ok = ok && BVC5_P_Add64(hVC5, uiTimestamp);
-   ok = ok && BVC5_P_Add32(hVC5, uiTrackIndex);
-   ok = ok && BVC5_P_Add32(hVC5, uiId);
-   ok = ok && BVC5_P_Add32(hVC5, uiEventIndex);
-   ok = ok && BVC5_P_Add32(hVC5, eEventType);
+   ok = ok && BVC5_P_Add64_isrsafe(hVC5, uiTimestamp);
+   ok = ok && BVC5_P_Add32_isrsafe(hVC5, uiTrackIndex);
+   ok = ok && BVC5_P_Add32_isrsafe(hVC5, uiId);
+   ok = ok && BVC5_P_Add32_isrsafe(hVC5, uiEventIndex);
+   ok = ok && BVC5_P_Add32_isrsafe(hVC5, eEventType);
 
    BDBG_ASSERT(ok); /* Should be ok as we check for space above */
    BDBG_ASSERT(psBuf->uiBytesUsed - before == BVC5_P_EVENT_FIXED_BYTES);
 
    if (!ok)
-      BVC5_P_SetOverflow(hVC5, true);
+      BVC5_P_SetOverflow_isrsafe(hVC5, true);
 
 error:
-   if (!bAlreadyHaveEventMutex)
-      BKNI_ReleaseMutex(hVC5->hEventMutex);
-
    return ok;
-}
-
-static bool BVC5_P_AddEvent_priv(
-   BVC5_Handle    hVC5,
-   uint32_t       uiTrack,
-   uint32_t       uiId,
-   uint32_t       uiEventIndex,
-   BVC5_EventType eEventType,
-   bool           bAlreadyHaveEventMutex,
-   uint64_t       uiTimestamp
-   )
-{
-   bool ret = true;
-
-   if (!hVC5->sEventMonitor.bActive)
-      return ret;
-
-   if (!bAlreadyHaveEventMutex)
-      BKNI_AcquireMutex(hVC5->hEventMutex);
-
-   ret = AddEvent(hVC5, uiTrack, uiId, uiEventIndex, eEventType,
-                  /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
-
-   if (!bAlreadyHaveEventMutex)
-      BKNI_ReleaseMutex(hVC5->hEventMutex);
-
-   return ret;
 }
 
 bool BVC5_P_AddEvent(
@@ -744,11 +724,20 @@ bool BVC5_P_AddEvent(
    uint64_t       uiTimestamp
    )
 {
-   return BVC5_P_AddEvent_priv(hVC5, uiTrack, uiId, uiEventIndex, eEventType,
-                               /*bAlreadyHaveEventMutex=*/false, uiTimestamp);
+   bool ret = true;
+
+   if (hVC5->sEventMonitor.bActive)
+   {
+      LOCK_EVENTS();
+      ret = BVC5_P_AddEvent_isrsafe(hVC5, uiTrack, uiId, uiEventIndex,
+            eEventType, uiTimestamp);
+      UNLOCK_EVENTS();
+   }
+
+   return ret;
 }
 
-static bool BVC5_P_AddDeps(
+static bool BVC5_P_AddDeps_isrsafe(
    BVC5_Handle             hVC5,
    BVC5_SchedDependencies *psDeps
    )
@@ -763,7 +752,7 @@ static bool BVC5_P_AddDeps(
       {
          uint64_t dep = n < psDeps->uiNumDeps ? psDeps->uiDep[n] : 0;
 
-         ok = ok && BVC5_P_Add64(hVC5, dep);
+         ok = ok && BVC5_P_Add64_isrsafe(hVC5, dep);
       }
    }
 
@@ -788,17 +777,16 @@ bool BVC5_P_AddFlushEvent(
    if (!hVC5->sEventMonitor.bActive)
       return ok;
 
-   BKNI_AcquireMutex(hVC5->hEventMutex);
-
+   LOCK_EVENTS();
 
    before = psBuf->uiBytesUsed;
-   ok = BVC5_P_AddEvent_priv(hVC5, BVC5_P_EVENT_MONITOR_SCHED_TRACK, uiId, BVC5_P_EVENT_MONITOR_FLUSH_VC5, eEventType,
-                             /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
+   ok = BVC5_P_AddEvent_isrsafe(hVC5, BVC5_P_EVENT_MONITOR_SCHED_TRACK, uiId,
+         BVC5_P_EVENT_MONITOR_FLUSH_VC5, eEventType, uiTimestamp);
    if (ok)
    {
-      ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL3);
-      ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL2C);
-      ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL2T);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, (uint32_t)clearL3);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, (uint32_t)clearL2C);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, (uint32_t)clearL2T);
 
       BDBG_ASSERT(ok); /* Should be ok as we check for space above */
       BDBG_ASSERT(psBuf->uiBytesUsed - before ==
@@ -806,13 +794,65 @@ bool BVC5_P_AddFlushEvent(
    }
 
    if (!ok)
-      BVC5_P_SetOverflow(hVC5, true);
+      BVC5_P_SetOverflow_isrsafe(hVC5, true);
 
-   BKNI_ReleaseMutex(hVC5->hEventMutex);
+   UNLOCK_EVENTS();
 
    return ok;
 }
 
+
+static bool BVC5_P_AddTFUJobEvent_isrsafe(
+   BVC5_Handle          hVC5,
+   BVC5_EventType       eEventType,
+   BVC5_P_EventInfo    *psEventInfo,
+   uint64_t             uiTimestamp
+   )
+{
+   bool  ok = true;
+
+   BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
+   uint64_t             uiJobId = psEventInfo->uiJobId;
+   uint32_t             before;
+
+   before = psBuf->uiBytesUsed;
+   ok = BVC5_P_AddEvent_isrsafe(hVC5, BVC5_P_EVENT_MONITOR_TFU_TRACK,
+         (uint32_t) uiJobId, BVC5_P_EVENT_MONITOR_TFU, eEventType,
+         uiTimestamp);
+   if (ok)
+   {
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, psEventInfo->uiClientId);
+      ok = ok && BVC5_P_Add64_isrsafe(hVC5, uiJobId);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, psEventInfo->uiWidth);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, psEventInfo->uiHeight);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, psEventInfo->uiRasterStride);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, psEventInfo->uiMipmapCount);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, psEventInfo->uiTextureType);
+      ok = ok && BVC5_P_AddDeps_isrsafe(hVC5, psEventInfo->bHasDeps ? &psEventInfo->sCompletedDependencies : NULL);
+
+      BDBG_ASSERT(ok); /* Should be ok as we check for space above */
+      BDBG_ASSERT(psBuf->uiBytesUsed - before ==
+            hVC5->sEventMonitor.sEventDescs[BVC5_P_EVENT_MONITOR_TFU].uiSize);
+   }
+
+   if (!ok)
+      BVC5_P_SetOverflow_isrsafe(hVC5, true);
+
+   return ok;
+}
+
+bool BVC5_P_AddTFUJobEvent_isr(
+   BVC5_Handle          hVC5,
+   BVC5_EventType       eEventType,
+   BVC5_P_EventInfo    *psEventInfo,
+   uint64_t             uiTimestamp
+   )
+{
+   if (!hVC5->sEventMonitor.bActive)
+      return true;
+
+   return BVC5_P_AddTFUJobEvent_isrsafe(hVC5, eEventType, psEventInfo, uiTimestamp);
+}
 
 bool BVC5_P_AddTFUJobEvent(
    BVC5_Handle          hVC5,
@@ -823,62 +863,30 @@ bool BVC5_P_AddTFUJobEvent(
 {
    bool  ok = true;
 
-   if (!hVC5->sEventMonitor.bActive)
-      return true;
-
+   if (hVC5->sEventMonitor.bActive)
    {
-      BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
-      uint64_t             uiJobId = psEventInfo->uiJobId;
-      uint32_t             before;
-
-      BKNI_AcquireMutex(hVC5->hEventMutex);
-
-
-      before = psBuf->uiBytesUsed;
-      ok = BVC5_P_AddEvent_priv(hVC5, BVC5_P_EVENT_MONITOR_TFU_TRACK, (uint32_t)uiJobId, BVC5_P_EVENT_MONITOR_TFU, eEventType,
-                                /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
-      if (ok)
-      {
-         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiClientId);
-         ok = ok && BVC5_P_Add64(hVC5, uiJobId);
-         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiWidth);
-         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiHeight);
-         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiRasterStride);
-         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiMipmapCount);
-         ok = ok && BVC5_P_Add32(hVC5, psEventInfo->uiTextureType);
-         ok = ok && BVC5_P_AddDeps(hVC5, psEventInfo->bHasDeps ? &psEventInfo->sCompletedDependencies : NULL);
-
-         BDBG_ASSERT(ok); /* Should be ok as we check for space above */
-         BDBG_ASSERT(psBuf->uiBytesUsed - before ==
-               hVC5->sEventMonitor.sEventDescs[BVC5_P_EVENT_MONITOR_TFU].uiSize);
-      }
-
-      if (!ok)
-         BVC5_P_SetOverflow(hVC5, true);
+      LOCK_EVENTS();
+      ok = BVC5_P_AddTFUJobEvent_isrsafe(hVC5, eEventType, psEventInfo, uiTimestamp);
+      UNLOCK_EVENTS();
    }
-
-   BKNI_ReleaseMutex(hVC5->hEventMutex);
 
    return ok;
 }
 
-static bool BVC5_P_AddCoreEvent_priv(
+static bool BVC5_P_AddCoreEvent_isrsafe(
    BVC5_Handle    hVC5,
    uint32_t       uiCore,
    uint32_t       uiTrack,
    uint32_t       uiId,
    uint32_t       uiEventIndex,
    BVC5_EventType eEventType,
-   bool           bAlreadyHaveEventMutex,
    uint64_t       uiTimestamp
    )
 {
    uint32_t  uiTrackIndex = uiTrack + BVC5_P_EVENT_MONITOR_NON_CORE_TRACKS + BVC5_P_EVENT_MONITOR_NUM_CORE_TRACKS * uiCore;
 
-   if (!hVC5->sEventMonitor.bActive)
-      return true;
-
-   return AddEvent(hVC5, uiTrackIndex, uiId, uiEventIndex, eEventType, bAlreadyHaveEventMutex, uiTimestamp);
+   return BVC5_P_AddEvent_isrsafe(hVC5, uiTrackIndex, uiId, uiEventIndex,
+         eEventType, uiTimestamp);
 }
 
 bool BVC5_P_AddCoreEvent(
@@ -891,8 +899,73 @@ bool BVC5_P_AddCoreEvent(
    uint64_t       uiTimestamp
    )
 {
-   return BVC5_P_AddCoreEvent_priv(hVC5, uiCore, uiTrack, uiId, uiEventIndex, eEventType,
-                                   /*bAlreadyHaveEventMutex=*/false, uiTimestamp);
+   bool  ok = true;
+
+   if (hVC5->sEventMonitor.bActive)
+   {
+      LOCK_EVENTS();
+      ok = BVC5_P_AddCoreEvent_isrsafe(hVC5, uiCore, uiTrack, uiId,
+            uiEventIndex, eEventType, uiTimestamp);
+      UNLOCK_EVENTS();
+   }
+
+   return ok;
+}
+
+static bool BVC5_P_AddCoreEventCJD_isrsafe(
+   BVC5_Handle             hVC5,
+   uint32_t                uiCore,
+   uint32_t                uiTrack,
+   uint32_t                uiEventIndex,
+   BVC5_EventType          eEventType,
+   uint32_t                uiClientId,
+   uint64_t                uiJobId,
+   BVC5_SchedDependencies *psDeps,
+   uint64_t                uiTimestamp
+   )
+{
+   bool  ok = true;
+
+   BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
+   uint32_t             before;
+
+   before = psBuf->uiBytesUsed;
+   ok = BVC5_P_AddCoreEvent_isrsafe(hVC5, uiCore, uiTrack, (uint32_t) uiJobId,
+         uiEventIndex, eEventType, uiTimestamp);
+   if (ok)
+   {
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, uiClientId);
+      ok = ok && BVC5_P_Add64_isrsafe(hVC5, uiJobId);
+      ok = ok && BVC5_P_AddDeps_isrsafe(hVC5, psDeps);
+
+      BDBG_ASSERT(ok); /* Should be ok as we check for space above */
+      BDBG_ASSERT(psBuf->uiBytesUsed - before ==
+            hVC5->sEventMonitor.sEventDescs[uiEventIndex].uiSize);
+   }
+
+   if (!ok)
+      BVC5_P_SetOverflow_isrsafe(hVC5, true);
+
+   return ok;
+}
+
+bool BVC5_P_AddCoreEventCJD_isr(
+   BVC5_Handle             hVC5,
+   uint32_t                uiCore,
+   uint32_t                uiTrack,
+   uint32_t                uiEventIndex,
+   BVC5_EventType          eEventType,
+   uint32_t                uiClientId,
+   uint64_t                uiJobId,
+   BVC5_SchedDependencies *psDeps,
+   uint64_t                uiTimestamp
+   )
+{
+   if (!hVC5->sEventMonitor.bActive)
+      return true;
+
+   return BVC5_P_AddCoreEventCJD_isrsafe(hVC5, uiCore, uiTrack, uiEventIndex,
+         eEventType, uiClientId, uiJobId, psDeps, uiTimestamp);
 }
 
 bool BVC5_P_AddCoreEventCJD(
@@ -909,37 +982,31 @@ bool BVC5_P_AddCoreEventCJD(
 {
    bool  ok = true;
 
-   if (!hVC5->sEventMonitor.bActive)
-      return true;
-
+   if (hVC5->sEventMonitor.bActive)
    {
-      BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
-      uint32_t             before;
-
-      BKNI_AcquireMutex(hVC5->hEventMutex);
-
-
-      before = psBuf->uiBytesUsed;
-      ok = BVC5_P_AddCoreEvent_priv(hVC5, uiCore, uiTrack, (uint32_t)uiJobId, uiEventIndex, eEventType,
-                                    /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
-      if (ok)
-      {
-         ok = ok && BVC5_P_Add32(hVC5, uiClientId);
-         ok = ok && BVC5_P_Add64(hVC5, uiJobId);
-         ok = ok && BVC5_P_AddDeps(hVC5, psDeps);
-
-         BDBG_ASSERT(ok); /* Should be ok as we check for space above */
-         BDBG_ASSERT(psBuf->uiBytesUsed - before ==
-               hVC5->sEventMonitor.sEventDescs[uiEventIndex].uiSize);
-      }
-
-      if (!ok)
-         BVC5_P_SetOverflow(hVC5, true);
+      LOCK_EVENTS();
+      ok = BVC5_P_AddCoreEventCJD_isrsafe(hVC5, uiCore, uiTrack, uiEventIndex,
+            eEventType, uiClientId, uiJobId, psDeps, uiTimestamp);
+      UNLOCK_EVENTS();
    }
 
-   BKNI_ReleaseMutex(hVC5->hEventMutex);
-
    return ok;
+}
+
+bool BVC5_P_AddCoreJobEvent_isr(
+   BVC5_Handle          hVC5,
+   uint32_t             uiCore,
+   uint32_t             uiTrack,
+   uint32_t             uiEventIndex,
+   BVC5_EventType       eEventType,
+   BVC5_P_EventInfo    *psEventInfo,
+   uint64_t             uiTimestamp
+   )
+{
+   BVC5_SchedDependencies  *deps = psEventInfo->bHasDeps ? &psEventInfo->sCompletedDependencies : NULL;
+
+   return BVC5_P_AddCoreEventCJD_isr(hVC5, uiCore, uiTrack, uiEventIndex,
+      eEventType, psEventInfo->uiClientId, psEventInfo->uiJobId, deps, uiTimestamp);
 }
 
 bool BVC5_P_AddCoreJobEvent(
@@ -964,12 +1031,12 @@ void BVC5_P_EventMemStats(
    size_t      *puiUsedBytes
    )
 {
-   BKNI_AcquireMutex(hVC5->hEventMutex);
+   LOCK_EVENTS();
 
    *puiCapacityBytes = hVC5->sEventMonitor.sBuffer.uiCapacityBytes;
    *puiUsedBytes     = hVC5->sEventMonitor.sBuffer.uiBytesUsed;
 
-   BKNI_ReleaseMutex(hVC5->hEventMutex);
+   UNLOCK_EVENTS();
 }
 
 void BVC5_P_EventsRemoveClient(
@@ -1017,7 +1084,7 @@ void BVC5_P_PopulateEventInfo(
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
 
-static BVC5_P_EventInfo* BVC5_P_PopFifo(BVC5_P_Fifo *psFifo)
+static BVC5_P_EventInfo* BVC5_P_PopFifo_isrsafe(BVC5_P_Fifo *psFifo)
 {
    BVC5_P_EventInfo *psEventInfo;
    if (psFifo->uiCount == 0)
@@ -1025,18 +1092,18 @@ static BVC5_P_EventInfo* BVC5_P_PopFifo(BVC5_P_Fifo *psFifo)
    psEventInfo = psFifo->psEventInfo[psFifo->uiReadIndx];
    psFifo->uiCount--;
    psFifo->uiReadIndx++;
-   if (psFifo->uiReadIndx == BVC5_P_JOB_FIFO_LEN)
+   if (psFifo->uiReadIndx == BVC5_P_HW_QUEUE_STAGES)
       psFifo->uiReadIndx = 0;
    return psEventInfo;
 }
 
-static void BVC5_P_PushFifo(BVC5_P_Fifo *psFifo, BVC5_P_EventInfo *psEventInfo)
+static void BVC5_P_PushFifo_isrsafe(BVC5_P_Fifo *psFifo, BVC5_P_EventInfo *psEventInfo)
 {
-   BDBG_ASSERT(psFifo->uiCount <= BVC5_P_JOB_FIFO_LEN);
+   BDBG_ASSERT(psFifo->uiCount <= BVC5_P_HW_QUEUE_STAGES);
    psFifo->psEventInfo[psFifo->uiWriteIndx] = psEventInfo;
    psFifo->uiCount++;
    psFifo->uiWriteIndx++;
-   if (psFifo->uiWriteIndx == BVC5_P_JOB_FIFO_LEN)
+   if (psFifo->uiWriteIndx == BVC5_P_HW_QUEUE_STAGES)
       psFifo->uiWriteIndx = 0;
 }
 
@@ -1044,7 +1111,7 @@ void BVC5_P_InitializeQueue(
    BVC5_P_JobQueue    *psQueue
    )
 {
-   psQueue->sFreeFifo.uiCount = BVC5_P_JOB_FIFO_LEN;
+   psQueue->sFreeFifo.uiCount = BVC5_P_HW_QUEUE_STAGES;
    psQueue->sFreeFifo.psEventInfo[0] = &psQueue->sEventInfo[0];
    psQueue->sFreeFifo.psEventInfo[1] = &psQueue->sEventInfo[1];
 }
@@ -1053,7 +1120,7 @@ BVC5_P_EventInfo *BVC5_P_GetMessage(
    BVC5_P_JobQueue    *psQueue
    )
 {
-   return BVC5_P_PopFifo(&psQueue->sFreeFifo);
+   return BVC5_P_PopFifo_isrsafe(&psQueue->sFreeFifo);
 }
 
 void BVC5_P_SendMessage(
@@ -1061,22 +1128,22 @@ void BVC5_P_SendMessage(
    BVC5_P_EventInfo   *psEventInfo
    )
 {
-   BVC5_P_PushFifo(&psQueue->sSendFifo, psEventInfo);
+   BVC5_P_PushFifo_isrsafe(&psQueue->sSendFifo, psEventInfo);
 }
 
-BVC5_P_EventInfo *BVC5_P_ReceiveMessage(
+BVC5_P_EventInfo *BVC5_P_ReceiveMessage_isrsafe(
    BVC5_P_JobQueue    *psQueue
    )
 {
-   return BVC5_P_PopFifo(&psQueue->sSendFifo);
+   return BVC5_P_PopFifo_isrsafe(&psQueue->sSendFifo);
 }
 
-void BVC5_P_ReleaseMessage(
+void BVC5_P_ReleaseMessage_isrsafe(
    BVC5_P_JobQueue    *psQueue,
    BVC5_P_EventInfo   *psEventInfo
    )
 {
-   BVC5_P_PushFifo(&psQueue->sFreeFifo, psEventInfo);
+   BVC5_P_PushFifo_isrsafe(&psQueue->sFreeFifo, psEventInfo);
 }
 
 #endif

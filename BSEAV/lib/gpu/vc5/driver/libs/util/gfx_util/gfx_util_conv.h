@@ -5,8 +5,8 @@
 
 #include "gfx_util.h"
 
+#include "libs/util/common.h"
 #include <stdint.h>
-#include "vcos_types.h"
 
 EXTERN_C_BEGIN
 
@@ -182,6 +182,9 @@ static inline float gfx_snorm_to_float(uint32_t s, uint32_t num_bits)
  * round to nearest) */
 extern float gfx_unorm_to_float_rtz(uint32_t u, uint32_t num_bits);
 
+/* Like gfx_unorm_to_float_rtz but with emulation of GFXH-1287 */
+extern float gfx_unorm_to_float_gfxh1287(uint32_t u, uint32_t num_bits);
+
 /* Like gfx_float_to_float16(gfx_unorm_to_float(u, num_bits)), but with exact
  * rounding in all cases. Note that there is always a closest float16 to round
  * to -- there is never a case where we need to decide between two float16s
@@ -191,6 +194,9 @@ extern uint32_t gfx_unorm_to_float16(uint32_t u, uint32_t num_bits);
 /* Like gfx_snorm_to_float(), but round towards zero (gfx_snorm_to_float() does
  * round to nearest) */
 extern float gfx_snorm_to_float_rtz(uint32_t s, uint32_t num_bits);
+
+/* Like gfx_snorm_to_float_rtz but with emulation of GFXH-1287 */
+extern float gfx_snorm_to_float_gfxh1287(uint32_t u, uint32_t num_bits);
 
 /* Like gfx_float_to_float16(gfx_snorm_to_float(s, num_bits)), but with exact
  * rounding in all cases. Note that there is always a closest float16 to round

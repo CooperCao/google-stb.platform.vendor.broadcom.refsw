@@ -85,17 +85,15 @@ endif
 # Ensure that exactly the same commands are used to built shared library in symbol table rules and real rules
 ifdef MAGNUM_LIB
 MAGNUM_LINK_OBJ := $(MAGNUM_LIB)
-MAGNUM_SOFLAGS_BEGIN := -Wl,--whole-archive
-MAGNUM_SOFLAGS_END := -Wl,--no-whole-archive
 else
 MAGNUM_LINK_OBJ := $(MAGNUM_OBJECTS)
 endif
 
 ifeq ($(BPROFILE_SUPPORT),y)
 # Don't use -Wl,-x linker options that causes exclusion of private (e.g. static functions) symbols from the symbol table
-NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_EXTRALIBS} ${NEXUS_OBJECTS} ${MAGNUM_STATIC_LIBS})) $(MAGNUM_SOFLAGS_BEGIN) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${MAGNUM_LINK_OBJ})) $(MAGNUM_SOFLAGS_END)
+NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_EXTRALIBS} ${NEXUS_OBJECTS})) -Wl,--whole-archive $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${MAGNUM_LINK_OBJ})) $(abspath ${MAGNUM_STATIC_LIBS}) -Wl,--no-whole-archive
 else
-NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared  -Wl,-x -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS})) $(MAGNUM_SOFLAGS_BEGIN) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${MAGNUM_LINK_OBJ})) $(MAGNUM_SOFLAGS_END)
+NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared  -Wl,-x -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${NEXUS_EXTRALIBS})) -Wl,--whole-archive $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${MAGNUM_LINK_OBJ})) $(abspath ${MAGNUM_STATIC_LIBS}) -Wl,--no-whole-archive
 endif
 
 ${NEXUS_SYMBOLS_OBJ} : ${NEXUS_SYMBOLS_SRC} $(filter-out ${NEXUS_SYMBOLS_OBJ},${NEXUS_OBJECTS}) ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_LINK_OBJ} ${MAGNUM_STATIC_LIBS}

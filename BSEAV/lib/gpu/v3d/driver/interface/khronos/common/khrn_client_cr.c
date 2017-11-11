@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-client side API
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 /*
    void callback_destroy_context(KHRN_POINTER_MAP_T *map, uint32_t key, void *value, void *data)
 
@@ -47,10 +40,10 @@ static void callback_destroy_context(KHRN_POINTER_MAP_T *map, uint32_t key, void
    UNUSED(data);
    UNUSED_NDEBUG(key);
 
-   vcos_assert( context != NULL );
-   vcos_assert((uintptr_t)key == (uintptr_t)context->name);
+   assert( context != NULL );
+   assert((uintptr_t)key == (uintptr_t)context->name);
 
-   vcos_assert(!context->is_destroyed);
+   assert(!context->is_destroyed);
 
    context->is_destroyed = true;
    egl_context_maybe_free(context);
@@ -95,8 +88,8 @@ static void callback_destroy_surface(KHRN_POINTER_MAP_T *map, uint32_t key, void
    UNUSED(data);
    UNUSED_NDEBUG(key);
 
-   vcos_assert( surface != NULL );
-   vcos_assert((uintptr_t)key == (uintptr_t)surface->name);
+   assert( surface != NULL );
+   assert((uintptr_t)key == (uintptr_t)surface->name);
 
    surface->is_destroyed = true;
    egl_surface_maybe_free(surface);
@@ -138,10 +131,10 @@ static void callback_destroy_sync(KHRN_POINTER_MAP_T *map, uint32_t key, void *v
    UNUSED(data);
    UNUSED(key);
 
-   vcos_assert( sync != NULL );
+   assert( sync != NULL );
 
    egl_sync_term(sync);
-   khrn_platform_free(sync);
+   free(sync);
 }
 #endif
 

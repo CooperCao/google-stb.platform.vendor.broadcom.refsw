@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -120,6 +120,7 @@ typedef struct NEXUS_WatchdogCallback *NEXUS_WatchdogCallbackHandle;
 typedef struct NEXUS_WatchdogCallbackSettings
 {
     NEXUS_CallbackDesc midpointCallback; /* callback is fired when watchdog is at the midpoint. chip is reset when watchdog expires. */
+    bool stopTimerOnDestroy;
 } NEXUS_WatchdogCallbackSettings;
 
 void NEXUS_WatchdogCallback_GetDefaultSettings(

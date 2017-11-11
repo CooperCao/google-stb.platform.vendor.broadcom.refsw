@@ -55,6 +55,10 @@ extern const inline_qasm tcs_barrier_lthrsw_bin;
 extern const inline_qasm tcs_barrier_lthrsw_rdr;
 extern const inline_qasm tcs_barrier_mem_only;
 
+#if V3D_HAS_NULL_FS
+extern const inline_qasm fs_null;
+#endif
+
 #if !V3D_USE_CSD
 extern const inline_umap cs_pad_setmsf_after_barrier_preamble_unif;
 extern const inline_umap cs_pad_setmsf_unif;

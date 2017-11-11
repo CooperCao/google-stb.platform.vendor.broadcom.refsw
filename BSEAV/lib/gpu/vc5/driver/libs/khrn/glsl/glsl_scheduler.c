@@ -9,8 +9,10 @@
 #include "glsl_backend.h"
 #include "glsl_backend_uniforms.h"
 #include "glsl_map.h"
+#include "glsl_stable_sort.h"
 
 #include "glsl_sched_node_helpers.h"
+#include "glsl_sim_scheduler.h"
 
 #include "libs/core/v3d/v3d_limits.h"
 
@@ -46,30 +48,60 @@ static void graphviz(Backflow **roots, int num_roots, const BackflowChain *iodep
 }
 #endif
 
-static void dpostv_init_backend_fields(Backflow *backend, void *data) {
-   BackflowPriorityQueue *age_queue = data;
+struct init_data {
+   Map       *state_map;
+   int        count;
+   int        capacity;
+   Backflow **nodes;
+};
 
-   bool is_uniform = (backend->type == SIG && backend->u.sigbits == V3D_QPU_SIG_LDUNIF);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   bool is_attribute = (backend->type == SIG && backend->u.sigbits == V3D_QPU_SIG_LDVPM);
+static void dpostv_init_backend_fields(Backflow *backend, void *data) {
+   struct init_data *d = data;
+
+   bool add_to_age_queue = backend->type != SPECIAL_VOID;
+
+   // Don't use age to schedule following signals.
+   if (backend->type == SIG) {
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      v3d_qpu_sigbits_t sigbits = V3D_QPU_SIG_LDUNIF | V3D_QPU_SIG_LDUNIFA;
+#elif V3D_VER_AT_LEAST(4,0,2,0)
+      v3d_qpu_sigbits_t sigbits = V3D_QPU_SIG_LDUNIF;
 #else
-   bool is_attribute = false;
+      v3d_qpu_sigbits_t sigbits = V3D_QPU_SIG_LDUNIF | V3D_QPU_SIG_LDVPM;
+#endif
+      if (backend->u.sigbits & sigbits)
+         add_to_age_queue = false;
+   }
+
+   // Don't use age to schedule writes to unifa.
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   if (backend->magic_write == REG_MAGIC_UNIFA)
+      add_to_age_queue = false;
 #endif
 
-   backend->phase = 0;
-   backend->reg = 0;
-   backend->remaining_dependents = 0;
-   glsl_backflow_chain_init(&backend->data_dependents);
-   for (int i = 0; i < BACKFLOW_DEP_COUNT; i++)
-   {
+   BackendNodeState *s = malloc_fast(sizeof(BackendNodeState));
+
+   s->phase = PHASE_UNVISITED;
+   s->reg   = REG_UNDECIDED;
+   s->remaining_dependents = 0;
+   glsl_backflow_chain_init(&s->data_dependents);
+   for (int i = 0; i < BACKFLOW_DEP_COUNT; i++) {
       if (backend->dependencies[i] != NULL) {
-         backend->dependencies[i]->remaining_dependents++;
-         glsl_backflow_chain_push_back(&backend->dependencies[i]->data_dependents, backend);
+         BackendNodeState *o_s = glsl_map_get(d->state_map, backend->dependencies[i]);
+         o_s->remaining_dependents++;
+         glsl_backflow_chain_push_back(&o_s->data_dependents, backend);
       }
    }
 
-   if (backend->type != SPECIAL_VOID && !is_uniform && !is_attribute)
-      glsl_backflow_priority_queue_push(age_queue, backend);
+   glsl_map_put(d->state_map, backend, s);
+
+   if (add_to_age_queue) {
+      if (d->count == d->capacity) {
+         d->capacity *= 2;
+         d->nodes = glsl_safemem_realloc(d->nodes, d->capacity * sizeof(Backflow *));
+      }
+      d->nodes[d->count++] = backend;
+   }
 }
 
 static bool all_tmu_deps_done(struct tmu_dep_s *dep) {
@@ -317,7 +349,7 @@ static uint32_t fix_texture_dependencies(SchedBlock *block,
       bool new_for_lthrsw = (lthrsw && last_thrsw == NULL);
       bool new_for_reads  = (block->first_tlb_read && !sbwaited);
       if (new_for_lthrsw || new_for_reads) {
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
          Backflow *new_switch = glsl_backflow_thrsw();
          Backflow *new_dep = new_switch;
 #else
@@ -394,6 +426,95 @@ static void clean_up_scheduler_iodeps(BackflowChain *consumers, BackflowChain *s
    assert(snode == NULL);
 }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+
+typedef struct fix_unifa_context
+{
+   ldunifa_lookup* lookups;
+   ldunifa_lookup* sorted_lookups;
+   ldunifa_lookup** sorted_lookups_tail;
+} fix_unifa_context;
+
+static void fix_unifa_schedule_node(void* context_, Backflow* node)
+{
+   fix_unifa_context* context = (fix_unifa_context*)context_;
+
+   if (node->magic_write != REG_MAGIC_UNIFA)
+      return;
+
+   // Find corresponding lookup and move to end of the sorted list.
+   for (ldunifa_lookup** lookup_ptr = &context->lookups; ; ) {
+      ldunifa_lookup* lookup = *lookup_ptr;
+      if (!lookup)
+         break;
+
+      if (lookup->write_unifa == node) {
+         *lookup_ptr = lookup->next;
+         lookup->next = NULL;
+         *context->sorted_lookups_tail = lookup;
+         context->sorted_lookups_tail = &lookup->next;
+         break;
+      }
+      lookup_ptr = &lookup->next;
+   }
+
+#ifndef NDEBUG
+   // Assert this node is in the sorted list.
+   ldunifa_lookup* lookup;
+   for (lookup = context->sorted_lookups; lookup; lookup = lookup->next) {
+      if (lookup->write_unifa == node)
+         break;
+   }
+   assert(lookup != NULL);
+#endif
+}
+
+static void fix_unifa_dependencies(
+   SchedBlock *block,
+   Backflow **sched_queue,
+   unsigned sched_count,
+   RegList* outputs,
+   struct sched_deps_s* sched_deps)
+{
+   // No dependencies to fix if fewer than two ldunifa lookups.
+   if (!block->ldunifa_lookups || !block->ldunifa_lookups->next)
+      return;
+
+   // Schedule all the nodes and arrange the ldunifa-lookups in order they are visited.
+   fix_unifa_context context = {
+      .lookups = block->ldunifa_lookups,
+      .sorted_lookups = NULL,
+      .sorted_lookups_tail = &context.sorted_lookups
+   };
+
+   glsl_sim_schedule_params params = {
+      .schedule_node = fix_unifa_schedule_node,
+      .schedule_context = &context,
+      .queue = sched_queue,
+      .count = sched_count,
+      .outputs = outputs,
+      .iodeps = &block->iodeps,
+      .branch_cond = block->branch_cond
+   };
+   glsl_sim_schedule(&params);
+
+   // Add unvisited lookups (can this happen?).
+   *context.sorted_lookups_tail = context.lookups;
+
+   // Assign newly sorted list back to block.
+   block->ldunifa_lookups = context.sorted_lookups;
+
+   // Create dependencies between the ldunifa lookups.
+   ldunifa_lookup* prev = block->ldunifa_lookups;
+   for (ldunifa_lookup* lookup = prev->next; lookup; prev = lookup, lookup = lookup->next) {
+      glsl_iodep_offset(lookup->write_unifa, prev->last_ldunifa, -1); // ok to write unifa in same instruction as last ldunifa
+      glsl_backflow_chain_push_back(&sched_deps->consumers, lookup->write_unifa);
+      glsl_backflow_chain_push_back(&sched_deps->suppliers, prev->last_ldunifa);
+   }
+}
+
+#endif
+
 bool get_max_threadability(struct tmu_lookup_s *tmu_lookups, int *max_threads) {
    int max = 4;
    bool threaded = false;
@@ -410,10 +531,15 @@ bool get_max_threadability(struct tmu_lookup_s *tmu_lookups, int *max_threads) {
    return threaded;
 }
 
+static bool node_age_less(const void *a, const void *b)
+{
+   return ((const Backflow*)a)->age < ((const Backflow*)b)->age;
+}
+
 GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
                                           RegList *presched,
                                           RegList *outputs,
-                                          int blackout,
+                                          uint64_t blackout,
                                           ShaderFlavour type,
                                           bool bin_mode,
                                           int threads,
@@ -421,18 +547,17 @@ GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
                                           bool lthrsw,
                                           bool sbwaited)
 {
-   GENERATED_SHADER_T *result;
-
-   BackflowPriorityQueue age_queue;
-   glsl_backflow_priority_queue_init(&age_queue, 0x40000);
-
    struct sched_deps_s sched_deps;
    glsl_backflow_chain_init(&sched_deps.consumers);
    glsl_backflow_chain_init(&sched_deps.suppliers);
 
    uint32_t thrsw_count = fix_texture_dependencies(block, &sched_deps, threads, lthrsw, sbwaited);
 
-   BackflowVisitor *sched_visit = glsl_backflow_visitor_begin(&age_queue, NULL, dpostv_init_backend_fields);
+   const size_t sched_queue_size = 2048;
+   struct init_data d = { .state_map = glsl_map_new(), .count = 0,
+                          .capacity = sched_queue_size,
+                          .nodes = glsl_safemem_malloc(sched_queue_size * sizeof(Backflow *)) };
+   BackflowVisitor *sched_visit = glsl_backflow_visitor_begin(&d, NULL, dpostv_init_backend_fields);
 
    /* TODO: This is messy, make it simpler and more consistent */
    for (int i=0; i<block->num_outputs; i++)
@@ -444,24 +569,40 @@ GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
    if (block->branch_cond)
       glsl_backflow_visit(block->branch_cond, sched_visit);
 
+   for (RegList *o = presched; o; o=o->next) glsl_backflow_visit(o->node, sched_visit);
+
    glsl_backflow_visitor_end(sched_visit);
 
-   for (RegList *o = outputs; o; o=o->next) o->node->remaining_dependents++;
-   if (block->branch_cond)
-      block->branch_cond->remaining_dependents++;
+   glsl_stable_sort((const void**)d.nodes, d.count, node_age_less);
 
-   result = glsl_backend(&block->iodeps, type, bin_mode, thrsw_count, threads, &age_queue,
-                         presched, outputs, block->branch_cond, blackout, last, lthrsw);
+   for (RegList *o = outputs; o; o=o->next) {
+      BackendNodeState *s = glsl_map_get(d.state_map, o->node);
+      s->remaining_dependents++;
+   }
+   if (block->branch_cond) {
+      BackendNodeState *s = glsl_map_get(d.state_map, block->branch_cond);
+      s->remaining_dependents++;
+   }
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   fix_unifa_dependencies(block, d.nodes, d.count, outputs, &sched_deps);
+#endif
+
+   GENERATED_SHADER_T *result = glsl_backend(&block->iodeps, type, bin_mode, thrsw_count,
+                                             threads, d.nodes, d.count, presched, outputs,
+                                             d.state_map, block->branch_cond, blackout, last, lthrsw);
+
+   glsl_map_delete(d.state_map);
 
 #ifdef GRAPHVIZ
    graphviz_file_num++;
    graphviz(block->outputs, block->num_outputs, &block->iodeps, threads, (result != NULL));
 #endif
 
-   /* Clean up the texture iodependencies so we can try again with different threadability */
+   /* Clean up the ldunifa/texture iodependencies so we can try again with different threadability */
    clean_up_scheduler_iodeps(&sched_deps.consumers, &sched_deps.suppliers);
 
-   glsl_backflow_priority_queue_term(&age_queue);
+   glsl_safemem_free(d.nodes);
 
    return result;
 }

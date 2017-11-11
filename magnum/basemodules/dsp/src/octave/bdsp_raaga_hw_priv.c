@@ -160,7 +160,7 @@ end:
 	return errCode;
 }
 
-static BERR_Code BDSP_Raaga_P_InitRaagaCore (
+static BERR_Code BDSP_Raaga_P_SetSCBConfig (
 	BDSP_Raaga *pDevice,
 	unsigned uiDspIndex
 )
@@ -168,7 +168,7 @@ static BERR_Code BDSP_Raaga_P_InitRaagaCore (
 	BERR_Code errCode = BERR_SUCCESS;
 	uint32_t regVal =0, ui32dspOffset =0;
 
-	BDBG_ENTER(BDSP_Raaga_P_InitRaagaCore);
+	BDBG_ENTER(BDSP_Raaga_P_SetSCBConfig);
 
 	ui32dspOffset = pDevice->dspOffset[uiDspIndex];
 
@@ -176,27 +176,40 @@ static BERR_Code BDSP_Raaga_P_InitRaagaCore (
 	BDBG_MSG(("NEED TO PROGRAM FROM MEMORY CONTROLLER"));
 	/* These values are currently as per the current proposed values
 	   These values shall be programmed based on pDevice->settings.memc[i] values */
-	regVal = 0xc0004;
-	BDSP_WriteReg32(pDevice->regHandle,
-		BCHP_RAAGA_DSP_MISC_SCB0_BASE_CONFIG+ui32dspOffset,
-		regVal);
 
-	regVal = 0x280010;
-	BDSP_WriteReg32(pDevice->regHandle,
-		BCHP_RAAGA_DSP_MISC_SCB0_EXT_CONFIG+ui32dspOffset,
-		regVal);
+        regVal = BDSP_ReadReg32(pDevice->regHandle, BCHP_RAAGA_DSP_MISC_SCB0_BASE_CONFIG+ui32dspOffset);
+	BCHP_SET_FIELD_DATA(regVal, RAAGA_DSP_MISC_SCB0_BASE_CONFIG, BASE_START,
+	                                     (pDevice->deviceSettings.memoryLayout.memc[0].region[0].addr >> SCB_REG_ADDR_WRITE_SHIFT_VALUE));
+	BCHP_SET_FIELD_DATA(regVal, RAAGA_DSP_MISC_SCB0_BASE_CONFIG, BASE_END, ((pDevice->deviceSettings.memoryLayout.memc[0].region[0].addr +
+                                             pDevice->deviceSettings.memoryLayout.memc[0].region[0].size) >> SCB_REG_ADDR_WRITE_SHIFT_VALUE));
+        BDBG_MSG(("BCHP_RAAGA_DSP_MISC_SCB0_BASE_CONFIG : regVal : 0x%x", regVal));
+	BDSP_WriteReg32(pDevice->regHandle, BCHP_RAAGA_DSP_MISC_SCB0_BASE_CONFIG+ui32dspOffset, regVal);
 
-	regVal = 0x10000c;
-	BDSP_WriteReg32(pDevice->regHandle,
-		BCHP_RAAGA_DSP_MISC_SCB1_BASE_CONFIG+ui32dspOffset,
-		regVal);
+	regVal = BDSP_ReadReg32(pDevice->regHandle, BCHP_RAAGA_DSP_MISC_SCB0_EXT_CONFIG+ui32dspOffset);
+	BCHP_SET_FIELD_DATA(regVal, RAAGA_DSP_MISC_SCB0_EXT_CONFIG, EXT_START,
+	                                     (pDevice->deviceSettings.memoryLayout.memc[0].region[1].addr >> SCB_REG_ADDR_WRITE_SHIFT_VALUE));
+	BCHP_SET_FIELD_DATA(regVal, RAAGA_DSP_MISC_SCB0_EXT_CONFIG, EXT_END, ((pDevice->deviceSettings.memoryLayout.memc[0].region[1].addr +
+                                             pDevice->deviceSettings.memoryLayout.memc[0].region[1].size) >> SCB_REG_ADDR_WRITE_SHIFT_VALUE));
+        BDBG_MSG(("BCHP_RAAGA_DSP_MISC_SCB0_EXT_CONFIG : regVal : 0x%x", regVal));
+	BDSP_WriteReg32(pDevice->regHandle, BCHP_RAAGA_DSP_MISC_SCB0_EXT_CONFIG+ui32dspOffset, regVal);
 
-	regVal = 0x4c0030;
-	BDSP_WriteReg32(pDevice->regHandle,
-		BCHP_RAAGA_DSP_MISC_SCB1_EXT_CONFIG+ui32dspOffset,
-		regVal);
+        regVal = BDSP_ReadReg32(pDevice->regHandle, BCHP_RAAGA_DSP_MISC_SCB1_EXT_CONFIG+ui32dspOffset);
+	BCHP_SET_FIELD_DATA(regVal, RAAGA_DSP_MISC_SCB1_BASE_CONFIG, BASE_START,
+	                                     (pDevice->deviceSettings.memoryLayout.memc[1].region[0].addr >> SCB_REG_ADDR_WRITE_SHIFT_VALUE));
+	BCHP_SET_FIELD_DATA(regVal, RAAGA_DSP_MISC_SCB1_BASE_CONFIG, BASE_END, ((pDevice->deviceSettings.memoryLayout.memc[1].region[0].addr +
+                                             pDevice->deviceSettings.memoryLayout.memc[1].region[0].size) >> SCB_REG_ADDR_WRITE_SHIFT_VALUE));
+        BDBG_MSG(("BCHP_RAAGA_DSP_MISC_SCB1_BASE_CONFIG : regVal : 0x%x", regVal));
+	BDSP_WriteReg32(pDevice->regHandle, BCHP_RAAGA_DSP_MISC_SCB1_BASE_CONFIG+ui32dspOffset, regVal);
 
-	BDBG_LEAVE(BDSP_Raaga_P_InitRaagaCore);
+        regVal = BDSP_ReadReg32(pDevice->regHandle, BCHP_RAAGA_DSP_MISC_SCB1_EXT_CONFIG+ui32dspOffset);
+	BCHP_SET_FIELD_DATA(regVal, RAAGA_DSP_MISC_SCB1_EXT_CONFIG, EXT_START,
+	                                    (pDevice->deviceSettings.memoryLayout.memc[1].region[1].addr >> SCB_REG_ADDR_WRITE_SHIFT_VALUE));
+	BCHP_SET_FIELD_DATA(regVal, RAAGA_DSP_MISC_SCB1_EXT_CONFIG, EXT_END, ((pDevice->deviceSettings.memoryLayout.memc[1].region[1].addr +
+                                             pDevice->deviceSettings.memoryLayout.memc[1].region[1].size) >> SCB_REG_ADDR_WRITE_SHIFT_VALUE));
+        BDBG_MSG(("BCHP_RAAGA_DSP_MISC_SCB1_EXT_CONFIG : regVal : 0x%x", regVal));
+	BDSP_WriteReg32(pDevice->regHandle, BCHP_RAAGA_DSP_MISC_SCB1_EXT_CONFIG+ui32dspOffset, regVal);
+
+        BDBG_LEAVE(BDSP_Raaga_P_SetSCBConfig);
 	return errCode;
 }
 static BERR_Code BDSP_Raaga_P_SetupDspBoot(
@@ -209,7 +222,7 @@ static BERR_Code BDSP_Raaga_P_SetupDspBoot(
 
 	BDBG_ENTER(BDSP_Raaga_P_SetupDspBoot);
 
-	errCode = BDSP_Raaga_P_InitRaagaCore (pDevice, uiDspIndex);
+	errCode = BDSP_Raaga_P_SetSCBConfig (pDevice, uiDspIndex);
 	if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_SetupDspBoot: Error in Initing Core for DSP %d",uiDspIndex));
@@ -235,13 +248,13 @@ static BERR_Code BDSP_Raaga_P_SetupDspBoot(
 		BDBG_ASSERT(0);
 	}
 
-	regVal = BDSP_ReadReg64(pDevice->regHandle,BCHP_RAAGA_DSP_FW_CFG_HOST2DSPCMD_FIFO_ID + pDevice->dspOffset[uiDspIndex]);
+	regVal = BDSP_ReadFIFOReg(pDevice->regHandle,BCHP_RAAGA_DSP_FW_CFG_HOST2DSPCMD_FIFO_ID + pDevice->dspOffset[uiDspIndex]);
 	if(regVal != pDevice->hCmdQueue[uiDspIndex]->ui32FifoId)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_SetupDspBoot: Error in Validating the CMD Q FIFO ID before BOOT"));
 		BDBG_ASSERT(0);
 	}
-	regVal = BDSP_ReadReg64(pDevice->regHandle,BCHP_RAAGA_DSP_FW_CFG_SW_UNUSED1 + pDevice->dspOffset[uiDspIndex]);
+	regVal = BDSP_ReadFIFOReg(pDevice->regHandle,BCHP_RAAGA_DSP_FW_CFG_SW_UNUSED1 + pDevice->dspOffset[uiDspIndex]);
 	if(regVal != pDevice->hGenRespQueue[uiDspIndex]->ui32FifoId)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_SetupDspBoot: Error in Validating the GEN RESP Q FIFO ID before BOOT"));
@@ -540,11 +553,19 @@ BERR_Code BDSP_Raaga_P_ProgramAtuEntries(
 )
 {
 	unsigned index;
+	unsigned num_atu_entry;
     BERR_Code errCode = BERR_SUCCESS;
 	BDSP_Raaga_P_ATUInfo sATUInfo;
     BDBG_ENTER(BDSP_Raaga_P_ProgramAtuEntries);
 
-	for (index=0; index <16; index++)
+#if (BCHP_VER == BCHP_VER_A0)
+  num_atu_entry = 16;
+#else
+  num_atu_entry = 128;
+	BDSP_WriteReg32(pDevice->regHandle,BCHP_RAAGA_DSP_L2C_CTRL5, BCHP_RAAGA_DSP_L2C_CTRL5_COREID_PROTECTION_DISABLE_MASK);
+#endif
+
+	for (index=0; index < num_atu_entry; index++)
 	{
 		BDBG_MSG(("BDSP_Raaga_P_DisableAtuEntry: disabling ATU  %d",index));
 		BDSP_Raaga_P_DisableAtuEntry(pDevice->regHandle, index);
@@ -586,20 +607,26 @@ void BDSP_Raaga_P_DirectRaagaUartToPort(BREG_Handle regHandle)
 {
 #ifdef RAAGA_UART_ENABLE
 	uint32_t regVal;
-	regVal = BDSP_ReadReg32(regHandle, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_1);
-	regVal = (regVal & ~(BCHP_MASK(SUN_TOP_CTRL_UART_ROUTER_SEL_1, port_6_cpu_sel)))
-					| BCHP_FIELD_DATA(SUN_TOP_CTRL_UART_ROUTER_SEL_1, port_6_cpu_sel, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_1_port_6_cpu_sel_AUDIO_FP0);
-	BDSP_WriteReg32(regHandle, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_1, regVal);
+
+	regVal = BDSP_ReadReg32(regHandle, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0);
+	regVal = (regVal & ~(BCHP_MASK(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_1_cpu_sel)))
+					| BCHP_FIELD_DATA(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_1_cpu_sel, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0_port_1_cpu_sel_AUDIO_FP0);
+	BDSP_WriteReg32(regHandle, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0, regVal);
 
 	regVal = BDSP_ReadReg32(regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
 	regVal = (regVal & ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_006)))
-					| BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_006, 4);
+					| BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_006, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_006_TP_IN_18);
 	BDSP_WriteReg32(regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2, regVal);
 
 	regVal = BDSP_ReadReg32(regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
 	regVal = (regVal & ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_007)))
-					| BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_007, 4);
+					| BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_007, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_007_TP_OUT_19);
 	BDSP_WriteReg32(regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2, regVal);
+
+	regVal = BDSP_ReadReg32(regHandle, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL);
+	regVal = (regVal & ~(BCHP_MASK(SUN_TOP_CTRL_TEST_PORT_CTRL, encoded_tp_enable)))
+					| BCHP_FIELD_DATA(SUN_TOP_CTRL_TEST_PORT_CTRL, encoded_tp_enable, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL_encoded_tp_enable_SYS);
+	BDSP_WriteReg32(regHandle, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL, regVal);
 #else
 	BSTD_UNUSED(regHandle);
 #endif /*RAAGA_UART_ENABLE*/
@@ -670,4 +697,172 @@ void BDSP_Raaga_P_EnableAllPwrResource(
 		BCHP_PWR_ReleaseResource(pDevice->chpHandle, BCHP_PWR_RESOURCE_RAAGA1_DSP);
 		#endif
 	}
+}
+
+/***********************************************************************
+Name        :   BDSP_Raaga_P_PowerStandby
+
+Type        :   PI Interface
+
+Input       :   pDeviceHandle -Device Handle which needs to be closed.
+				pSettings - pointer where the Default Data will be filled and returned to PI.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   To check if all the task for the DSP is closed.
+				Then disable the Watchdog timer, Reset the Hardware and relanquish the resources.
+***********************************************************************/
+BERR_Code BDSP_Raaga_P_PowerStandby(
+	void 					*pDeviceHandle,
+	BDSP_StandbySettings    *pSettings
+)
+{
+	BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
+	BERR_Code errCode=BERR_SUCCESS;
+	unsigned index = 0;
+
+	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+	BDBG_ENTER(BDSP_Raaga_P_PowerStandby);
+
+	if (pSettings)
+		BSTD_UNUSED(pSettings);
+
+	if (!pDevice->hardwareStatus.powerStandby)
+	{
+		BDSP_RaagaContext *pRaagaContext=NULL;
+		BDSP_RaagaTask    *pRaagaTask=NULL;
+
+		for (pRaagaContext = BLST_S_FIRST(&pDevice->contextList);
+			pRaagaContext != NULL;
+			pRaagaContext = BLST_S_NEXT(pRaagaContext, node) )
+		{
+			for (pRaagaTask = BLST_S_FIRST(&pRaagaContext->taskList);
+				pRaagaTask != NULL;
+				pRaagaTask = BLST_S_NEXT(pRaagaTask, node) )
+			{
+				if (pRaagaTask->taskParams.isRunning == true)
+				{
+					BDBG_ERR(("BDSP_Raaga_P_PowerStandby: Task %d is not stopped. Cannot go in standby",pRaagaTask->taskParams.taskId));
+					errCode = BERR_INVALID_PARAMETER;
+					goto end;
+				}
+			}
+		}
+		/*Disable watchdog*/
+		for(index=0; index<pDevice->numDsp; index++)
+		{
+			BDSP_Raaga_P_EnableDspWatchdogTimer(pDeviceHandle,index,false);
+		}
+
+		errCode = BDSP_Raaga_P_Reset(pDeviceHandle);
+		if(errCode != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Raaga_P_PowerStandby: Error in Reset of the Raaga"));
+			goto end;
+		}
+		BDSP_Raaga_P_EnableAllPwrResource(pDeviceHandle, false);
+		pDevice->hardwareStatus.powerStandby = true;
+	}
+	else
+	{
+		BDBG_WRN(("BDSP_Raaga_P_PowerStandby: Already in standby mode"));
+		errCode = BERR_INVALID_PARAMETER;
+		goto end;
+	}
+
+end:
+
+	BDBG_LEAVE(BDSP_Raaga_P_PowerStandby);
+	return errCode;
+}
+
+/***********************************************************************
+Name        :   BDSP_Raaga_P_PowerResume
+
+Type        :   PI Interface
+
+Input       :   pDeviceHandle -Device Handle which needs to be closed.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   Acquire the resources for the DSP. Reboot and initialize DSP, then Enable the Watchdog timer.
+***********************************************************************/
+BERR_Code BDSP_Raaga_P_PowerResume(
+	void *pDeviceHandle
+)
+{
+	BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
+	BERR_Code errCode=BERR_SUCCESS;
+
+	BDBG_ENTER(BDSP_Raaga_P_PowerResume);
+	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+
+	if (pDevice->hardwareStatus.powerStandby)
+	{
+		BDSP_Raaga_P_EnableAllPwrResource(pDeviceHandle, true);
+
+		BDSP_Raaga_P_Open(pDevice);
+		if(pDevice->deviceSettings.authenticationEnabled == false)
+		{
+			errCode = BDSP_Raaga_P_Boot(pDevice);
+
+			if (errCode !=BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Raaga_P_PowerResume: Error in Boot Sequence in Power Resume"));
+				errCode = BERR_TRACE(errCode);
+				goto end;
+			}
+		}
+		pDevice->hardwareStatus.powerStandby = false;
+	}
+	else
+	{
+		BDBG_WRN(("BDSP_Raaga_P_PowerResume: Not in standby mode"));
+		errCode = BERR_INVALID_PARAMETER;
+		goto end;
+	}
+end:
+
+	BDBG_LEAVE(BDSP_Raaga_P_PowerResume);
+	return errCode;
+}
+
+BERR_Code BDSP_Raaga_P_Initialize(
+	void  *pDeviceHandle
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
+
+    BDBG_ENTER(BDSP_Raaga_P_Initialize);
+    /* Assert the function arguments*/
+    BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+
+    /*If Firmware authentication is Disabled*/
+    if(pDevice->deviceSettings.authenticationEnabled==false)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_Initialize should be called only if bFwAuthEnable is true"));
+        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto end;
+    }
+
+    errCode = BDSP_Raaga_P_Boot(pDevice);
+    if (errCode!=BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_Initialize: Error in Booting Raaga"));
+        errCode = BERR_TRACE(errCode);
+        goto end;
+    }
+
+    errCode = BDSP_Raaga_P_CheckDspAlive(pDevice);
+    if (errCode!=BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_Initialize: DSP not alive"));
+        errCode = BERR_TRACE(errCode);
+        goto end;
+    }
+
+end:
+    BDBG_LEAVE(BDSP_Raaga_P_Initialize);
+    return errCode;
 }

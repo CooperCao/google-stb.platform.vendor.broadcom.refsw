@@ -5,7 +5,7 @@
 #include "glxx_hw.h"
 #if V3D_VER_AT_LEAST(4,0,2,0)
 
-#if V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,1,34,0)
 /* .vs
  * row 0 contains instance_id, and rows 1, 2, 3 vec3 pos (x, y, z);
  * use combined vpm segment and leave the data as is for gs
@@ -92,9 +92,18 @@ static uint64_t gs_bin_shader[] =
 0x3d90e186bd811000ull, // [0x00000068] ldvpmg_in  rf6, r1, r2   ; nop               ; ldunifrf.r3
 0x3de02107bdfd200full, // [0x00000070] ldvpmg_in  rf7, r2, r2   ; mov r4, 15
 0x3de02180f883710eull, // [0x00000078] stvpmv     14, rf4       ; nop
+#if V3D_HAS_GFXH1684_FIX
 0x3c202180f8834140ull, // [0x00000080] stvpmv     r4, rf5       ; nop               ; thrsw
 0x040020c0f82f3180ull, // [0x00000088] stvpmv     r3, rf6       ; add r3, r3, r1
 0x3c002180f88331c0ull, // [0x00000090] stvpmv     r3, rf7       ; nop
+#else
+// GFXH-1684 workaround
+0x3c002180f8834140ull, // [0x00000080] stvpmv     r4, rf5       ; nop
+0x040020c0f82f3180ull, // [0x00000088] stvpmv     r3, rf6       ; add r3, r3, r1
+0x3c202180f88331c0ull, // [0x00000090] stvpmv     r3, rf7       ; nop               ; thrsw
+0x3c003186bb816000ull, // [0x00000098] vpmwt      -
+0x3c003186bb800000ull, // [0x000000a0] nop
+#endif
 };
 
 static uint32_t gs_bin_unif[] =
@@ -176,9 +185,18 @@ static uint64_t gs_render_shader[] =
 0x3de02180f883724aull, // [0x000000a0] stvpmv    10, rf9       ; nop
 0x3de02180f883728bull, // [0x000000a8] stvpmv    11, rf10      ; nop
 0x3de02180f883718cull, // [0x000000b0] stvpmv    12, rf6       ; nop
+#if V3D_HAS_GFXH1684_FIX
 0x3c202180f88331c0ull, // [0x000000b8] stvpmv    r3, rf7       ; nop                 ; thrsw
 0x3de02180f883724eull, // [0x000000c0] stvpmv    14, rf9       ; nop
 0x3de02180f883728full, // [0x000000c8] stvpmv    15, rf10      ; nop
+#else
+// GFXH-1684 workaround
+0x3de02180f883724eull, // [0x000000b8] stvpmv    14, rf9       ; nop
+0x3de02180f883728full, // [0x000000c0] stvpmv    15, rf10      ; nop
+0x3c202180f88331c0ull, // [0x000000c8] stvpmv    r3, rf7       ; nop                 ; thrsw
+0x3c003186bb816000ull, // [0x000000d0] vpmwt     -
+0x3c003186bb800000ull, // [0x000000d8] nop
+#endif
 };
 
 static uint32_t gs_render_unif[] =
@@ -190,18 +208,22 @@ static uint32_t gs_render_unif[] =
 };
 
 v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
-      const uint32_t *f_shader, const uint32_t *f_unif,
+      v3d_addr_t fshader_addr, v3d_addr_t funif_addr,
       const glxx_rect *rect, float clear_depth_val)
 {
    uint32_t *unif[2]; // 0 = gs_bin, 1 = gs_render
+   v3d_addr_t unif_addr[2];
    uint32_t *shader[2];
+   v3d_addr_t shader_addr[2];
 
-   unif[0] = khrn_fmem_data(fmem, sizeof(gs_bin_unif), V3D_QPU_UNIFS_ALIGN);
-   unif[1] = khrn_fmem_data(fmem, sizeof(gs_render_unif), V3D_QPU_UNIFS_ALIGN);
+   unif[0] = khrn_fmem_data(&unif_addr[0], fmem, sizeof(gs_bin_unif), V3D_QPU_UNIFS_ALIGN);
+   unif[1] = khrn_fmem_data(&unif_addr[1], fmem, sizeof(gs_render_unif), V3D_QPU_UNIFS_ALIGN);
 
-   shader[0] = khrn_fmem_data(fmem, sizeof(gs_bin_shader), V3D_QPU_INSTR_ALIGN);
-   shader[1] = khrn_fmem_data(fmem, sizeof(gs_render_shader), V3D_QPU_INSTR_ALIGN);
-   uint32_t *vshader = khrn_fmem_data(fmem, sizeof(vs_shader), V3D_QPU_INSTR_ALIGN);
+   shader[0] = khrn_fmem_data(&shader_addr[0], fmem, sizeof(gs_bin_shader), V3D_QPU_INSTR_ALIGN);
+   shader[1] = khrn_fmem_data(&shader_addr[1], fmem, sizeof(gs_render_shader), V3D_QPU_INSTR_ALIGN);
+
+   v3d_addr_t vshader_addr;
+   uint32_t *vshader = khrn_fmem_data(&vshader_addr, fmem, sizeof(vs_shader), V3D_QPU_INSTR_ALIGN);
 
    for (unsigned i = 0; i < 2; i++)
    {
@@ -221,12 +243,12 @@ v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
    V3D_SHADREC_GL_GEOM_T g_rec;
    g_rec.gs_bin = (V3D_SHADER_ARGS_T){.threading = V3D_THREADING_4,
                         .single_seg = true, .propagate_nans = true,
-                        .addr = khrn_fmem_hw_address(fmem, shader[0]),
-                        .unifs_addr = khrn_fmem_hw_address(fmem, unif[0])};
+                        .addr = shader_addr[0],
+                        .unifs_addr = unif_addr[0] };
    g_rec.gs_render = (V3D_SHADER_ARGS_T){.threading = V3D_THREADING_4,
                         .single_seg = true, .propagate_nans = true,
-                        .addr = khrn_fmem_hw_address(fmem, shader[1]),
-                        .unifs_addr = khrn_fmem_hw_address(fmem, unif[1])};
+                        .addr = shader_addr[1],
+                        .unifs_addr = unif_addr[1] };
 
    V3D_SHADREC_GL_TESS_OR_GEOM_T tg_rec = {0, };
    tg_rec.num_tcs_invocations = 1;
@@ -266,25 +288,26 @@ v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
    main_rec.defaults = 0;
    main_rec.fs = (V3D_SHADER_ARGS_T){.threading = V3D_THREADING_4,
                    .single_seg = false, .propagate_nans = true,
-                   .addr = khrn_fmem_hw_address(fmem, f_shader),
-                   .unifs_addr = khrn_fmem_hw_address(fmem, f_unif)};
+                   .addr = fshader_addr,
+                   .unifs_addr = funif_addr};
    main_rec.vs = (V3D_SHADER_ARGS_T){.threading = V3D_THREADING_4,
                    .single_seg = true, .propagate_nans = true,
-                   .addr = khrn_fmem_hw_address(fmem, vshader),
+                   .addr = vshader_addr,
                    .unifs_addr = 0 };
    main_rec.cs = (V3D_SHADER_ARGS_T){.threading = V3D_THREADING_4,
                    .single_seg = true, .propagate_nans = true,
-                   .addr = khrn_fmem_hw_address(fmem, vshader),
+                   .addr = vshader_addr,
                    .unifs_addr = 0};
 
 
    V3D_SHADREC_GL_ATTR_T attr = {0, };
    unsigned vdata_max_index;
-   uint32_t *vdata = glxx_draw_rect_vertex_data(&vdata_max_index, fmem, rect,
-      gfx_float_to_bits(clear_depth_val));
-   if (!vdata)
+
+   v3d_addr_t vdata_addr = glxx_draw_rect_vertex_data(
+         &vdata_max_index, fmem, rect, gfx_float_to_bits(clear_depth_val));
+   if (!vdata_addr)
       return 0;
-   attr.addr = khrn_fmem_hw_address(fmem, vdata);
+   attr.addr = vdata_addr;
    assert(vdata_max_index == 3);
    attr.size = 3;
    attr.type = V3D_ATTR_TYPE_FLOAT;
@@ -297,7 +320,9 @@ v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
       V3D_SHADREC_GL_TESS_OR_GEOM_PACKED_SIZE +
       V3D_SHADREC_GL_MAIN_PACKED_SIZE +
       V3D_SHADREC_GL_ATTR_PACKED_SIZE;
-   uint32_t *sh_rec = khrn_fmem_data(fmem, sh_rec_size, V3D_SHADREC_ALIGN);
+
+   v3d_addr_t sh_rec_addr;
+   uint32_t *sh_rec = khrn_fmem_data(&sh_rec_addr, fmem, sh_rec_size, V3D_SHADREC_ALIGN);
    uint32_t *curr = sh_rec;
    if (!sh_rec)
       return 0;
@@ -309,11 +334,11 @@ v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
    curr += V3D_SHADREC_GL_MAIN_PACKED_SIZE / sizeof(*sh_rec);
    v3d_pack_shadrec_gl_attr(curr, &attr);
 
-   return khrn_fmem_hw_address(fmem, sh_rec);
+   return sh_rec_addr;
 }
 #else
 v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
-      const uint32_t *f_shader, const uint32_t *f_unif,
+      v3d_addr_t fshader_addr, v3d_addr_t funif_addr,
       const glxx_rect *rect, float clear_depth_val)
 {
    not_impl();

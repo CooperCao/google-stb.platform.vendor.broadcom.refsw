@@ -44,6 +44,7 @@
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_playback.h"
 #include "nexus_audio_input.h"
+#include "priv/nexus_audio_decoder_priv.h"
 #endif
 #include "nexus_client_resources.h"
 
@@ -155,6 +156,13 @@ void NEXUS_SimpleAudioPlayback_Release( NEXUS_SimpleAudioPlaybackHandle handle )
     }
     NEXUS_CLIENT_RESOURCES_RELEASE(simpleAudioPlayback,Count,NEXUS_ANY_ID);
     handle->acquired = false;
+
+    if (handle->serverSettings.playback) {
+        NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+        NEXUS_AudioPlayback_Clear_priv(handle->serverSettings.playback);
+        NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+    }
+    /* no i2s input callbacks */
 }
 
 void NEXUS_SimpleAudioPlayback_GetDefaultStartSettings( NEXUS_SimpleAudioPlaybackStartSettings *pSettings )

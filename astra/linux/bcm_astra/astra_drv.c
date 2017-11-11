@@ -1923,15 +1923,26 @@ int _astra_file_read(
 
 int _astra_call_smc(
     struct astra_client *pClient,
-    uint32_t ucMode)
+    astra_smc_code code)
 {
+    uint32_t callnum;
+
     if (!ASTRA_CLIENT_VALID(pClient)) {
         LOGE("Invalid astra client handle");
         return -ENOENT;
     }
 
-    /* assuming ucMode == SMC callnum */
-    return _tzioc_call_smc(ucMode);
+    /* convert astra smc calling code to callnum */
+    switch (code) {
+    case ASTRA_SMC_CODE_SWITCH:
+        callnum = 0x83000007;
+        break;
+    default:
+        LOGE("Invalid astra smc calling code");
+        return -EINVAL;
+    }
+
+    return _tzioc_call_smc(callnum);
 }
 
 int _astra_event_poll(

@@ -886,6 +886,9 @@ HOOK(eglQueryWaylandBufferWL);
 #if GL_BRCM_mirror_clamp_to_edge
 #endif /* GL_BRCM_mirror_clamp_to_edge*/
 
+#if GL_BRCM_no_perspective
+#endif /* GL_BRCM_no_perspective*/
+
 #if GL_BRCM_polygon_mode
 HOOK(glPolygonModeBRCM);
 #endif /* GL_BRCM_polygon_mode*/
@@ -894,11 +897,20 @@ HOOK(glPolygonModeBRCM);
 HOOK(glProvokingVertexBRCM);
 #endif /* GL_BRCM_provoking_vertex*/
 
+#if GL_BRCM_sampler_fetch
+#endif /* GL_BRCM_sampler_fetch*/
+
+#if GL_BRCM_shader_framebuffer_fetch_depth_stencil
+#endif /* GL_BRCM_shader_framebuffer_fetch_depth_stencil*/
+
 #if GL_BRCM_texture_1D
 HOOK(glTexImage1DBRCM);
 HOOK(glTexSubImage1DBRCM);
 HOOK(glTexStorage1DBRCM);
 #endif /* GL_BRCM_texture_1D*/
+
+#if GL_BRCM_texture_gather_lod
+#endif /* GL_BRCM_texture_gather_lod*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

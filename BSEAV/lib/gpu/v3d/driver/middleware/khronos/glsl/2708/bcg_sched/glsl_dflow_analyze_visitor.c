@@ -177,7 +177,7 @@ static void Analyze_Accept(void *me, DFlowNode *node)
    {
       DFlowNode *parent;
 
-      vcos_assert(NodeList_size(DFlowNode_Parents(node)) == 1);
+      assert(NodeList_size(DFlowNode_Parents(node)) == 1);
 
       parent = node->m_parents.m_head->m_node;
 
@@ -193,8 +193,8 @@ static void Analyze_Accept(void *me, DFlowNode *node)
       DFlowNode         *parent, *vary;
       NodeList_iterator iter;
 
-      vcos_assert(NodeList_size(DFlowNode_Parents(node)) == 1);
-      vcos_assert(NodeList_size(DFlowNode_IoChildren(node)) == 1);
+      assert(NodeList_size(DFlowNode_Parents(node)) == 1);
+      assert(NodeList_size(DFlowNode_IoChildren(node)) == 1);
 
       parent = node->m_parents.m_head->m_node;
       vary = node->m_ioChildren.m_head->m_node;
@@ -234,7 +234,7 @@ static DFlowNode *GetVaryingParent(DFlowNode *node)
 {
    const NodeList *list = DFlowNode_Parents(node);
 
-   vcos_assert(NodeList_size(list) == 1);
+   assert(NodeList_size(list) == 1);
 
    return NodeList_front(list);
 }
@@ -294,11 +294,11 @@ void DFlowAnalyzeVisitor_Visit(DFlowAnalyzeVisitor *self, DFlowNode *node)
       DFlowNode *node = NodeList_star(iter);
       DFlowNode *parent;
 
-      vcos_assert(NodeList_size(DFlowNode_Parents(node)) == 1);
+      assert(NodeList_size(DFlowNode_Parents(node)) == 1);
 
       parent = node->m_parents.m_head->m_node;
 
-      vcos_assert(NodeList_size(DFlowNode_IoChildren(parent)) > 0);
+      assert(NodeList_size(DFlowNode_IoChildren(parent)) > 0);
 
       DFlowNode_AddExtraIoChild(node, parent->m_ioChildren.m_head->m_node);
       changesMade = true;
@@ -310,7 +310,7 @@ void DFlowAnalyzeVisitor_Visit(DFlowAnalyzeVisitor *self, DFlowNode *node)
       DFlowNode *parent;
       DFlowNode *mov;
 
-      vcos_assert(NodeList_size(DFlowNode_Parents(vary)) == 1);
+      assert(NodeList_size(DFlowNode_Parents(vary)) == 1);
 
       parent = vary->m_parents.m_head->m_node;
 
@@ -689,7 +689,7 @@ static void DFlowSimplifier_Simplify(const DFlowSimplifier *self)
 
       case Simplifier_NONE               :
       default                            :
-         vcos_assert(0);
+         assert(0);
          break;
       }
 

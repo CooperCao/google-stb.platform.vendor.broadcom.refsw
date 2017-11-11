@@ -111,7 +111,7 @@ eRet CChannelPlayback::readXML(MXmlElement * xmlElemChannel)
     {
         setDynamicRange(eDynamicRange_DolbyVision);
     }
-#endif
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
 
     strProgramNum = xmlElemChannel->attrValue(XML_ATT_NUMBER);
     if (false == strProgramNum.isEmpty())
@@ -305,7 +305,7 @@ eRet CChannelPlayback::start(
 
     CChannel::start(pAudioDecode, pVideoDecode);
     return(ret);
-}
+} /* start */
 
 eRet CChannelPlayback::tune(
         void *    id,
@@ -418,7 +418,7 @@ eRet CChannelPlayback::unTune(
     BDBG_ASSERT(NULL != _pModel);
 
     /* we must reset STC to ref count of pids when we do an untune */
-    if(_pStc != NULL )
+    if (_pStc != NULL)
     {
         NEXUS_SimpleStcChannelSettings settings;
         _pStc->getDefaultSettings(&settings);

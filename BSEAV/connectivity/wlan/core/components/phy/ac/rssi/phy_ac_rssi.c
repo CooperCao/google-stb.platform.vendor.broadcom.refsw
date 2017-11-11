@@ -826,10 +826,12 @@ phy_ac_rssi_compute_compensation(phy_type_rssi_ctx_t *ctx, int16 *rxpwr_core, bo
 		if (pi->sh->rssi_mode == RSSI_ANT_MERGE_AVG) {
 			int16 qrxpwr;
 
-			ASSERT(num_activecores > 0);
-
-			rxpwr = (int8)qm_div16(rxpwr, num_activecores, &qrxpwr);
-			rxpwr_qdBm = rxpwr_qdBm/num_activecores;
+			if (num_activecores > 0) {
+				rxpwr = (int8)qm_div16(rxpwr, num_activecores, &qrxpwr);
+				rxpwr_qdBm = rxpwr_qdBm/num_activecores;
+			} else {
+				ASSERT(0);
+			}
 		}
 	}
 	if (db_qdb == 0) {
@@ -1147,6 +1149,10 @@ phy_ac_rssi_get_pkteng_stats(phy_type_rssi_ctx_t *ctx, void *a, int alen, wl_pkt
 				temp_rssi = (R_REG(pi->sh->osh,
 					&pi->regs->u_rcv.d11regs.rxe_phyrs_3)
 					>> 8) & 0xff;
+			} else if (core == 3) {
+				temp_rssi = R_REG(pi->sh->osh,
+					&pi->regs->u_rcv.d11regs.rxe_phyrs_4)
+					& 0xff;
 			}
 		    if (temp_rssi > 127)
 				temp_rssi -= 256;

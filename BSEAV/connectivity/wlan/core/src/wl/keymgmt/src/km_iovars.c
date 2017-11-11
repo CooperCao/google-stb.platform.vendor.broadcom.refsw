@@ -237,6 +237,10 @@ km_doiovar(void *ctx, uint32 actionid,
 			seq_len = wlc_key_pn_to_seq(seq, sizeof(seq), lo, hi);
 			err = wlc_key_set_seq(key, seq, seq_len, WLC_KEY_SEQ_ID_ALL /* seq_id */,
 				/* tx */ BSSCFG_AP(bsscfg));
+			if (err != BCME_OK) {
+				break;
+			}
+
 			if ((wl_key.flags & WL_PRIMARY_KEY) || BSSCFG_AP(bsscfg)) {
 				err = wlc_keymgmt_set_bss_tx_key_id(km,
 					bsscfg, key_info.key_id, TRUE);

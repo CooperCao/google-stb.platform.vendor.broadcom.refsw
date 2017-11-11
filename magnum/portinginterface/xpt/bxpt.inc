@@ -45,10 +45,10 @@ MAGNUM_MODULES += BXPT
 BXPT_DEFINES += UNIFIED_ITB_SUPPORT
 BCHP_VER_LC = $(shell echo $(BCHP_VER) | tr A-Z a-z)
 
-ifeq ($(findstring $(BCHP_CHIP), 7366 7145 74371 7439 7445 7364 7250 7271 7268 7260 7278), $(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP), 7366 7145 74371 7439 7445 7364 7250 7271 7268 7260 7278 7255), $(BCHP_CHIP))
         BXPT_DEFINES += BXPT_IS_CORE28NM
 
-        ifeq ($(findstring $(BCHP_CHIP), 7364 7250 7271 7268 7260), $(BCHP_CHIP))
+        ifeq ($(findstring $(BCHP_CHIP), 7445 7364 7250 7271 7268 7260 7366 7439 7255), $(BCHP_CHIP))
             RAVE_IMAGE_DIR = cat5b
         else # all others
             RAVE_IMAGE_DIR = cat5a
@@ -56,18 +56,6 @@ ifeq ($(findstring $(BCHP_CHIP), 7366 7145 74371 7439 7445 7364 7250 7271 7268 7
 
         ifeq ($(BCHP_CHIP), 7278)
             RAVE_IMAGE_DIR = cat6a
-        endif
-
-        ifeq ($(BCHP_CHIP), 7445)
-            RAVE_IMAGE_DIR = cat5b
-        endif
-
-        ifeq ($(findstring $(BCHP_CHIP), 7366 7145 7439), $(BCHP_CHIP))
-            ifeq ($(BCHP_VER_LC), a0)
-                RAVE_IMAGE_DIR = cat5a
-            else
-                RAVE_IMAGE_DIR = cat5b
-            endif
         endif
 
         BXPT_INCLUDES += \
@@ -78,22 +66,15 @@ ifeq ($(findstring $(BCHP_CHIP), 7366 7145 74371 7439 7445 7364 7250 7271 7268 7
                 $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt.c \
                 $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_directv_playback.c \
                 $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_mpod.c \
-                $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_packetsub.c \
                 $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_pcr_offset_emv.c \
                 $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_playback.c \
                 $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_tsmux.c \
                 $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_rave.c \
-                $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_remux.c \
                 $(MAGNUM)/portinginterface/xpt/src/common/bxpt_directv.c \
                 $(MAGNUM)/portinginterface/xpt/src/common/bxpt_directv_pcr.c \
                 $(MAGNUM)/portinginterface/xpt/src/common/bxpt_directv_pcroffset.c \
-                $(MAGNUM)/portinginterface/xpt/src/common/bxpt_sam.c \
                 $(MAGNUM)/portinginterface/xpt/src/common/bxpt_spid.c \
                 $(MAGNUM)/portinginterface/xpt/src/common/bxpt_pcr.c \
-                $(MAGNUM)/portinginterface/xpt/src/common/bxpt_interrupt.c \
-                $(MAGNUM)/portinginterface/xpt/src/common/bxpt_directv_remux.c \
-                $(MAGNUM)/portinginterface/xpt/src/common/bxpt_remux_priv.c \
-                $(MAGNUM)/portinginterface/xpt/src/common/bxpt_mesg.c \
                 $(MAGNUM)/portinginterface/xpt/src/common/bxpt_rsbuf_priv.c \
                 $(MAGNUM)/portinginterface/xpt/src/common/bxpt_xcbuf_priv.c \
                 $(MAGNUM)/portinginterface/xpt/src/rave/$(RAVE_IMAGE_DIR)/bxpt_rave_ihex.c \
@@ -118,6 +99,20 @@ ifeq ($(findstring $(BCHP_CHIP), 7366 7145 74371 7439 7445 7364 7250 7271 7268 7
                 ifneq ($(wildcard $(RDB_DIR)/bchp_xpt_memdma_mcpb_host_intr_aggregator.h),)
                     BXPT_DEFINES += BXPT_DMA_USE_HOST_AGGREGATOR
                 endif
+
+                ifneq ($(wildcard $(RDB_DIR)/bchp_xpt_msg.h),)
+                    BXPT_SOURCES += $(MAGNUM)/portinginterface/xpt/src/common/bxpt_mesg.c \
+                                    $(MAGNUM)/portinginterface/xpt/src/common/bxpt_sam.c \
+                                    $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_packetsub.c \
+                                    $(MAGNUM)/portinginterface/xpt/src/common/bxpt_interrupt.c
+                endif
+
+                ifneq ($(wildcard $(RDB_DIR)/bchp_xpt_rmx0.h),)
+                    BXPT_SOURCES += $(MAGNUM)/portinginterface/xpt/src/core28nm/bxpt_remux.c \
+                                    $(MAGNUM)/portinginterface/xpt/src/common/bxpt_directv_remux.c \
+                                    $(MAGNUM)/portinginterface/xpt/src/common/bxpt_remux_priv.c
+                endif
+
 endif
 
 ifeq ($(findstring $(BCHP_CHIP), 7425 7422 7358 7552 7543 7344 7640 7360 7362 73625 7228 7435 7231 7346 7429 7584 7563 75635 75845 74295 73465 75525), $(BCHP_CHIP))

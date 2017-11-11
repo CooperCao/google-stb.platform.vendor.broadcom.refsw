@@ -895,23 +895,22 @@ static const struct bfile_io_read bpvrfifo_io_read = {
     BIO_DEFAULT_PRIORITY
 };
 
-static void
+static NEXUS_Error
 b_pvrfifo_header_init(struct bpvrfifo_header *header)
 {
-    BDBG_ASSERT(header);
+    NEXUS_Error rc;
     BDBG_CASSERT(sizeof(header->data) == sizeof(header->data.buf)); /* for proper aligment, size of the header shall be equal to size of the buffer */
     BKNI_Memset(header,0,sizeof(*header));
+    rc = BKNI_CreateMutex(&header->lock);
+    if (rc) return BERR_TRACE(rc);
+    rc = BKNI_CreateEvent(&header->busy_event);
+    if (rc) {
+        BKNI_DestroyMutex(header->lock);
+        return BERR_TRACE(rc);
+    }
     header->data.h.signature = bpvrfifo_signature;
-    header->busy = 0;
-    header->prev_trim = 0;
-    header->trim_gap = 0;
-    header->trim_count = 0;
-    header->chunked = false;
-    header->active = false;
-    return;
+    return NEXUS_SUCCESS;
 }
-
-
 
 static int
 b_file_strcpy(char *dest, size_t buf_len, const char *src)
@@ -939,17 +938,11 @@ bpvrfifo_write_open(const char *fname, bool direct, off_t start, struct bfile_io
     file->meta = meta;
     file->meta_offset = meta_offset;
     file->meta_size = 0;
-    b_pvrfifo_header_init(file->header);
-    file->writeSnapshotFile = NULL;
-    rc = BKNI_CreateMutex(&file->header->lock);
+    rc = b_pvrfifo_header_init(file->header);
     if (rc!=BERR_SUCCESS) {
+        BERR_TRACE(rc);
         goto err_lock;
     }
-    rc = BKNI_CreateEvent(&file->header->busy_event);
-    if (rc!=BERR_SUCCESS) {
-        goto err_event;
-    }
-
     file->data = file->data_;
     file->chunk_data = file->chunk_data_;
     file->chunk_data_no = BFIFO_INVALID_CHUNK; /* clear chunk file */
@@ -958,10 +951,12 @@ bpvrfifo_write_open(const char *fname, bool direct, off_t start, struct bfile_io
     /* initialize data */
     file->self = bpvrfifo_io_write;
     file->start = start;
+    b_lock(file); /* lock added to satisfy static analysis */
     file->ref_cnt = 1;
     file->next_chunk = 0;
     file->entry_cache = NULL;
     file->size = 512 * 1024;
+    b_unlock(file);
     file->header->data.h.type = bpvrfifo_type_unit;
     BKNI_Memcpy(file->header->data.h.meta.master.chunkTemplate, b_file_chunkTemplate, sizeof(b_file_chunkTemplate));
     b_file_strcpy(file->file_name, sizeof(file->file_name), fname); /* save filename for further use */
@@ -977,7 +972,6 @@ bpvrfifo_write_open(const char *fname, bool direct, off_t start, struct bfile_io
 
 err_open_data:
     BKNI_DestroyEvent(file->header->busy_event);
-err_event:
     BKNI_DestroyMutex(file->header->lock);
 err_lock:
     BKNI_Free(file);
@@ -997,10 +991,11 @@ bpvrfifo_write_release(struct bfile_io_write_fifo *file)
 {
     bool last;
 
-    b_lock(file);
     BDBG_ASSERT(file->header);
+    b_lock(file);
     BDBG_MSG_IO(file, ("release:%u:%u", file->ref_cnt, file->header->busy));
     BDBG_ASSERT(file->ref_cnt);
+    /* coverity[missing_lock] - coverity confuses this use with nexus_file_fifo.c, and they do not relate */
     file->ref_cnt--;
     last = file->ref_cnt==0;
     BDBG_ASSERT(!last || file->header->busy==0);
@@ -1050,6 +1045,7 @@ bpvrfifo_read_open(const char *fname, bool direct, struct bfile_io_write_fifo *w
     file->writer = writer;
     if (writer) {
         b_lock(writer);
+        /* coverity[missing_lock] - coverity confuses this use with nexus_file_fifo.c, and they do not relate */
         writer->ref_cnt++;
         file->header = writer->header;
         file->chunkTemplate = writer->header->data.h.meta.master.chunkTemplate;
@@ -1066,15 +1062,10 @@ bpvrfifo_read_open(const char *fname, bool direct, struct bfile_io_write_fifo *w
             BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
             goto err_hdr_alloc;
         }
-        b_pvrfifo_header_init(file->header);
-        rc = BKNI_CreateMutex(&file->header->lock);
+        rc = b_pvrfifo_header_init(file->header);
         if (rc!=BERR_SUCCESS) {
-            BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            BERR_TRACE(rc);
             goto err_lock;
-        }
-        rc = BKNI_CreateEvent(&file->header->busy_event);
-        if (rc!=BERR_SUCCESS) {
-            goto err_event;
         }
         rc_off = b_pvrfifo_io_rseek(&meta->data, meta_off, SEEK_SET);
         if(rc_off!=meta_off) {
@@ -1096,15 +1087,12 @@ bpvrfifo_read_open(const char *fname, bool direct, struct bfile_io_write_fifo *w
 
 err_meta:
 err_rseek:
-err_event:
-err_lock:
     if(!writer) {
-        if (file->header->busy_event) {
-            BKNI_DestroyEvent(file->header->busy_event);
-        }
-        if (file->header->lock) {
-            BKNI_DestroyMutex(file->header->lock);
-        }
+        BKNI_DestroyEvent(file->header->busy_event);
+        BKNI_DestroyMutex(file->header->lock);
+    }
+err_lock:
+    if (!writer) {
         BKNI_Free(file->header);
     }
 err_hdr_alloc:
@@ -1339,9 +1327,14 @@ NEXUS_ChunkedFifoPlay_Open(const char *fname, const char *indexname, NEXUS_Chunk
     if (writer==NULL) {
         struct bpvrfifo_header *buf;
         ssize_t rc;
+        off_t seek_off;
 
         buf = file->index->header;
-        b_pvrfifo_io_rseek(&file->index->data, 0, SEEK_SET);
+        seek_off = 0;
+        if (b_pvrfifo_io_rseek(&file->index->data, seek_off, SEEK_SET) != seek_off) {
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            goto err_meta;
+        }
         rc = b_pvrfifo_io_read(&file->index->data, &buf->data, sizeof(buf->data));
         if (rc!=sizeof(buf->data) || buf->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
             BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -1349,7 +1342,11 @@ NEXUS_ChunkedFifoPlay_Open(const char *fname, const char *indexname, NEXUS_Chunk
         }
 
         buf = file->data->header;
-        b_pvrfifo_io_rseek(&file->index->data, sizeof(buf->data), SEEK_SET);
+        seek_off = sizeof(buf->data);
+        if (b_pvrfifo_io_rseek(&file->index->data, seek_off, SEEK_SET) != seek_off) {
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            goto err_meta;
+        }
         rc = b_pvrfifo_io_read(&file->index->data, &buf->data, sizeof(buf->data));
         if (rc!=sizeof(buf->data) || buf->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
             BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -1650,29 +1647,42 @@ NEXUS_ChunkedFifoRecord_Create(const char *fname, const char *indexname)
             ssize_t rc;
             bool read_error = false;
             int i;
+            off_t seek_off;
 
             index_header = BKNI_Malloc(sizeof(*index_header));
             data_header = BKNI_Malloc(sizeof(*data_header));
 
             if (index_header) {
-                b_pvrfifo_io_rseek(&rd_index->data, 0, SEEK_SET);
-                rc = b_pvrfifo_io_read(&rd_index->data, &index_header->data, sizeof(index_header->data));
-                if (rc!=sizeof(index_header->data) || index_header->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
+                seek_off = 0;
+                if (b_pvrfifo_io_rseek(&rd_index->data, seek_off, SEEK_SET) != seek_off) {
                     BERR_TRACE(NEXUS_INVALID_PARAMETER);
-                    BDBG_MSG(("Index file exists, unable to match signature"));
                     read_error = true;
+                }
+                else {
+                    rc = b_pvrfifo_io_read(&rd_index->data, &index_header->data, sizeof(index_header->data));
+                    if (rc!=sizeof(index_header->data) || index_header->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
+                        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                        BDBG_MSG(("Index file exists, unable to match signature"));
+                        read_error = true;
+                    }
                 }
             }
             else {
                 read_error = true;
             }
             if (data_header) {
-                b_pvrfifo_io_rseek(&rd_index->data, sizeof(data_header->data), SEEK_SET);
-                rc = b_pvrfifo_io_read(&rd_index->data, &data_header->data, sizeof(data_header->data));
-                if (rc!=sizeof(data_header->data) || data_header->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
+                seek_off = sizeof(data_header->data);
+                if (b_pvrfifo_io_rseek(&rd_index->data, seek_off, SEEK_SET) != seek_off) {
                     BERR_TRACE(NEXUS_INVALID_PARAMETER);
-                    BDBG_MSG(("Index file exists, unable to match signature"));
                     read_error = true;
+                }
+                else {
+                    rc = b_pvrfifo_io_read(&rd_index->data, &data_header->data, sizeof(data_header->data));
+                    if (rc!=sizeof(data_header->data) || data_header->data.h.signature.signature[0]!=bpvrfifo_signature.signature[0]) {
+                        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                        BDBG_MSG(("Index file exists, unable to match signature"));
+                        read_error = true;
+                    }
                 }
             }
             else {
@@ -2214,6 +2224,7 @@ NEXUS_ChunkedFifoRecordHandle NEXUS_ChunkedFifoRecord_ReOpenForExport( const cha
     NEXUS_ChunkedFifoRecordHandle file;
     int rc;
     struct bpvrfifo_header *data_header;
+    off_t seek_off;
 
     file = BKNI_Malloc(sizeof(*file));
     if (!file) { rc=BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_alloc; }
@@ -2234,9 +2245,16 @@ NEXUS_ChunkedFifoRecordHandle NEXUS_ChunkedFifoRecord_ReOpenForExport( const cha
 
     /* read data header (the second header in the index) */
     data_header = file->data.file->header;
-    b_pvrfifo_io_rseek(&file->rd_index->data, sizeof(data_header->data), SEEK_SET);
+    seek_off = sizeof(data_header->data);
+    if (b_pvrfifo_io_rseek(&file->rd_index->data, seek_off, SEEK_SET) != seek_off) {
+        BERR_TRACE(-1);
+        goto err_read_header;
+    }
     rc = b_pvrfifo_io_read(&file->rd_index->data, &data_header->data, sizeof(data_header->data));
-    if (rc != sizeof(data_header->data)) { BERR_TRACE(-1); goto err_read_header;}
+    if (rc != sizeof(data_header->data)) {
+        BERR_TRACE(-1);
+        goto err_read_header;
+    }
 
     file->self.index = bpvrfifo_write_file(file->index.file);
     file->self.data = bpvrfifo_write_file(file->data.file);

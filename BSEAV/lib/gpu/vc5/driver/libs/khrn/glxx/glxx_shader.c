@@ -8,7 +8,6 @@
 #include "libs/khrn/common/khrn_mem.h"
 #include "libs/core/v3d/v3d_shadrec.h"
 #include "libs/util/gfx_util/gfx_util.h"
-#include "vcos_types.h"
 
 typedef struct glxx_shader_ubo_load_batch_tmp
 {
@@ -209,13 +208,19 @@ static bool write_common_data(GLXX_SHADER_DATA_T    *data,
                               void *code, v3d_size_t *code_offset,
                               const BINARY_SHADER_T *bin)
 {
+   if (bin == NULL)
+   {
+      data->code_offset = ~(v3d_size_t)0;
+      return true;
+   }
+
    data->code_offset = *code_offset;
    memcpy((char *)code + *code_offset, bin->code, bin->code_size);
    *code_offset += bin->code_size;
 
    data->uniform_map = format_uniform_map(bin->unif, bin->unif_count);
    data->threading   = v3d_translate_threading(bin->n_threads);
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    data->single_seg  = bin->single_seg;
 #endif
 
@@ -246,12 +251,21 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
      #endif
    };
 
+   // Separate shaders for ease of debugging.
+#if KHRN_DEBUG
+   const v3d_size_t code_pad_size = V3D_MAX_QPU_INSTRS_READAHEAD + 8;
+#else
+   const v3d_size_t code_pad_size = 0;
+#endif
+
    v3d_size_t total_code_size = 0;
    for (unsigned m = 0; m != MODE_COUNT; ++m)
       for (unsigned s = 0; s != GLXX_SHADER_VPS_COUNT; ++s)
          if (prog->vstages[flavours[s]][m])
-            total_code_size += prog->vstages[flavours[s]][m]->code_size;
-   total_code_size += prog->fshader->code_size;
+            total_code_size += prog->vstages[flavours[s]][m]->code_size + code_pad_size;
+   if (prog->fshader != NULL)
+      total_code_size += prog->fshader->code_size;
+
    data->res = khrn_resource_create(
       total_code_size + V3D_MAX_QPU_INSTRS_READAHEAD, 8, GMEM_USAGE_V3D_READ,
       "Shader");
@@ -274,9 +288,10 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
       for (unsigned s = 0; s != GLXX_SHADER_VPS_COUNT; ++s)
       {
          BINARY_SHADER_T *bs = prog->vstages[flavours[s]][m];
+         if (!write_common_data(&data->vps[s][m], code, &code_offset, bs))
+            return false;
          if (bs != NULL)
-            if (!write_common_data(&data->vps[s][m], code, &code_offset, bs))
-               return false;
+            code_offset += code_pad_size;
       }
    }
 
@@ -294,7 +309,8 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
             uses_control_flow[m] |= prog->vstages[s][m]->uses_control_flow;
       }
    }
-   uses_control_flow[MODE_RENDER] |= prog->fshader->uses_control_flow;
+   if (prog->fshader != NULL)
+      uses_control_flow[MODE_RENDER] |= prog->fshader->uses_control_flow;
 
    data->bin_uses_control_flow = uses_control_flow[MODE_BIN];
    data->render_uses_control_flow = uses_control_flow[MODE_RENDER];
@@ -305,24 +321,30 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
    for (unsigned i = 0; i != prog->vary_map.n; ++i)
       data->vary_map[i] = prog->vary_map.entries[i];
 
-   /* Fill in the LINK_RESULT_DATA based on the fshader compiler output */
-   if (prog->fshader->u.fragment.writes_z)
-      data->flags |= GLXX_SHADER_FLAGS_FS_WRITES_Z;
+   if (prog->fshader != NULL)
+   {
+      /* Fill in the LINK_RESULT_DATA based on the fshader compiler output */
+      if (prog->fshader->u.fragment.writes_z)
+         data->flags |= GLXX_SHADER_FLAGS_FS_WRITES_Z;
 
-   if (prog->fshader->u.fragment.ez_disable)
-      data->flags |= GLXX_SHADER_FLAGS_FS_EARLY_Z_DISABLE;
+      if (prog->fshader->u.fragment.ez_disable)
+         data->flags |= GLXX_SHADER_FLAGS_FS_EARLY_Z_DISABLE;
 
-   if (prog->fshader->u.fragment.tlb_wait_first_thrsw)
-      data->flags |= GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW;
+      if (prog->fshader->u.fragment.needs_w)
+         data->flags |= GLXX_SHADER_FLAGS_FS_NEEDS_W;
 
-   if (ir->varyings_per_sample || prog->fshader->u.fragment.per_sample)
-      data->flags |= GLXX_SHADER_FLAGS_PER_SAMPLE;
+      if (prog->fshader->u.fragment.tlb_wait_first_thrsw)
+         data->flags |= GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW;
 
-   if (prog->fshader->u.fragment.reads_prim_id && !prog_has_vstage(prog, SHADER_GEOMETRY))
-      data->flags |= (GLXX_SHADER_FLAGS_PRIM_ID_USED | GLXX_SHADER_FLAGS_PRIM_ID_TO_FS);
+      if (ir->varyings_per_sample || prog->fshader->u.fragment.per_sample)
+         data->flags |= GLXX_SHADER_FLAGS_PER_SAMPLE;
+
+      if (prog->fshader->u.fragment.reads_prim_id && !prog_has_vstage(prog, SHADER_GEOMETRY))
+         data->flags |= (GLXX_SHADER_FLAGS_PRIM_ID_USED | GLXX_SHADER_FLAGS_PRIM_ID_TO_FS);
+   }
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   if (!prog->fshader->u.fragment.reads_implicit_varys)
+   if (!prog->fshader || !prog->fshader->u.fragment.reads_implicit_varys)
       data->flags |= GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS;
 #endif
 
@@ -352,19 +374,32 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
       data->num_bin_qpu_instructions = prog->vstages[SHADER_VERTEX][MODE_BIN]->code_size/8;
    }
 
+   bool all_centroid = true;
+   bool centroids    = true;
+#if !V3D_HAS_SRS_CENTROID_FIX
+   centroids = !prog->fshader->u.fragment.ignore_centroids;
+#endif
+
    for (unsigned i = 0; i < data->num_varys; i++) {
       const VARYING_INFO_T *vary = &ir->varying[prog->vary_map.entries[i]];
       uint32_t idx = i / V3D_VARY_FLAGS_PER_WORD;
       uint32_t flag = 1 << (i % V3D_VARY_FLAGS_PER_WORD);
 
-      if (vary->flat)          data->varying_flat[idx]          |= flag;
-      if (vary->centroid)      data->varying_centroid[idx]      |= flag;
-#if V3D_HAS_VARY_NO_PERSP
-      if (vary->noperspective) data->varying_noperspective[idx] |= flag;
+      if (vary->flat)                  data->varying_flat[idx]          |= flag;
+      if (vary->centroid && centroids) data->varying_centroid[idx]      |= flag;
+      else                             all_centroid = false;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      if (vary->noperspective)         data->varying_noperspective[idx] |= flag;
 #else
       assert(!vary->noperspective);
 #endif
    }
+   if (data->num_varys && all_centroid)
+      // HW can avoid calculating non-centroid w and passing to frag shader,
+      // but will only do so if *all* centroid flags are set. This includes
+      // unused ones...
+      for (unsigned i = data->num_varys; i < V3D_MAX_VARYING_COMPONENTS; i++)
+         data->varying_centroid[i / V3D_VARY_FLAGS_PER_WORD] |= 1 << (i % V3D_VARY_FLAGS_PER_WORD);
 
 #if GLXX_HAS_TNG
    if (prog_has_vstage(prog, SHADER_TESS_CONTROL))
@@ -416,7 +451,7 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
       data->flags |= GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA;
 
 
- #if KHRN_GLES31_DRIVER
+ #if V3D_VER_AT_LEAST(3,3,0,0)
    if (ir->cs_shared_block_size != ~0u)
    {
       const V3D_IDENT_T* ident = v3d_scheduler_get_identity();
@@ -439,8 +474,12 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
       data->cs.allow_concurrent_jobs = compute_allow_concurrent_jobs(&params, cfg.wgs_per_sg);
 
       data->cs.wgs_per_sg = cfg.wgs_per_sg;
+    #if V3D_USE_CSD
+      data->cs.max_sg_id = cfg.max_wgs / cfg.wgs_per_sg - 1;
+    #else
       data->cs.max_wgs = cfg.max_wgs;
       data->cs.has_barrier = params.has_barrier;
+    #endif
    }
  #endif
 
@@ -455,7 +494,7 @@ bool glxx_hw_emit_shaders(GLXX_LINK_RESULT_DATA_T  *data,
    /* Hackily randomise the centroid-ness of the varyings */
    for (int i=0; i<V3D_MAX_VARYING_COMPONENTS; i++)
       if (!ir->varying[i].flat && khrn_options_make_centroid()) ir->varying[i].centroid = true;
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    for (int i=0; i<V3D_MAX_VARYING_COMPONENTS; i++)
       if (!ir->varying[i].flat && khrn_options_make_noperspective()) ir->varying[i].noperspective = true;
 #endif

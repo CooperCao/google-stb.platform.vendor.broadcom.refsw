@@ -706,82 +706,50 @@ typedef enum BXVD_Picture_ErrorHandling
    BXVD_ErrorHandling_eMaxErrorHandling
 } BXVD_Picture_ErrorHandling;
 
-/***************************************************************************
- Summary:
-  Enum used to evaluate the video protocol level.
+/* backward compat */
+#define BXVD_Protocol_Level                        BAVC_VideoCompressionLevel
+#define BXVD_Video_Protocol_eLevel_Unknown         BAVC_VideoCompressionLevel_eUnknown
+#define BXVD_Video_Protocol_eLevel_00              BAVC_VideoCompressionLevel_e00
+#define BXVD_Video_Protocol_eLevel_10              BAVC_VideoCompressionLevel_e10
+#define BXVD_Video_Protocol_eLevel_1B              BAVC_VideoCompressionLevel_e1B
+#define BXVD_Video_Protocol_eLevel_11              BAVC_VideoCompressionLevel_e11
+#define BXVD_Video_Protocol_eLevel_12              BAVC_VideoCompressionLevel_e12
+#define BXVD_Video_Protocol_eLevel_13              BAVC_VideoCompressionLevel_e13
+#define BXVD_Video_Protocol_eLevel_20              BAVC_VideoCompressionLevel_e20
+#define BXVD_Video_Protocol_eLevel_21              BAVC_VideoCompressionLevel_e21
+#define BXVD_Video_Protocol_eLevel_22              BAVC_VideoCompressionLevel_e22
+#define BXVD_Video_Protocol_eLevel_30              BAVC_VideoCompressionLevel_e30
+#define BXVD_Video_Protocol_eLevel_31              BAVC_VideoCompressionLevel_e31
+#define BXVD_Video_Protocol_eLevel_32              BAVC_VideoCompressionLevel_e32
+#define BXVD_Video_Protocol_eLevel_40              BAVC_VideoCompressionLevel_e40
+#define BXVD_Video_Protocol_eLevel_41              BAVC_VideoCompressionLevel_e41
+#define BXVD_Video_Protocol_eLevel_42              BAVC_VideoCompressionLevel_e42
+#define BXVD_Video_Protocol_eLevel_50              BAVC_VideoCompressionLevel_e50
+#define BXVD_Video_Protocol_eLevel_51              BAVC_VideoCompressionLevel_e51
+#define BXVD_Video_Protocol_eLevel_60              BAVC_VideoCompressionLevel_e60
+#define BXVD_Video_Protocol_eLevel_62              BAVC_VideoCompressionLevel_e62
+#define BXVD_Video_Protocol_eLevel_low             BAVC_VideoCompressionLevel_eLow
+#define BXVD_Video_Protocol_eLevel_main            BAVC_VideoCompressionLevel_eMain
+#define BXVD_Video_Protocol_eLevel_high            BAVC_VideoCompressionLevel_eHigh
+#define BXVD_Video_Protocol_eLevel_high1440        BAVC_VideoCompressionLevel_eHigh1440
+#define BXVD_Video_Protocol_eLevel_MaxLevel        BAVC_VideoCompressionLevel_eMax
 
- Description:
-  The video decoder writes the video protocol level into the PPB structure.
-  This information is saved by the display manager and can be retrieved
-  with the BXVD_GetChannelStatus() command.
-
- See also:
-  BXVD_GetChannelStatus
-
-****************************************************************************/
-typedef enum BXVD_Protocol_Level
-{
-   BXVD_Video_Protocol_eLevel_Unknown = 0,
-   BXVD_Video_Protocol_eLevel_00,
-   BXVD_Video_Protocol_eLevel_10,
-   BXVD_Video_Protocol_eLevel_1B,
-   BXVD_Video_Protocol_eLevel_11,
-   BXVD_Video_Protocol_eLevel_12,
-   BXVD_Video_Protocol_eLevel_13,
-   BXVD_Video_Protocol_eLevel_20,
-   BXVD_Video_Protocol_eLevel_21,
-   BXVD_Video_Protocol_eLevel_22,
-   BXVD_Video_Protocol_eLevel_30,
-   BXVD_Video_Protocol_eLevel_31,
-   BXVD_Video_Protocol_eLevel_32,
-   BXVD_Video_Protocol_eLevel_40,
-   BXVD_Video_Protocol_eLevel_41,
-   BXVD_Video_Protocol_eLevel_42,
-   BXVD_Video_Protocol_eLevel_50,
-   BXVD_Video_Protocol_eLevel_51,
-   BXVD_Video_Protocol_eLevel_60,
-   BXVD_Video_Protocol_eLevel_62,
-   BXVD_Video_Protocol_eLevel_low,
-   BXVD_Video_Protocol_eLevel_main,
-   BXVD_Video_Protocol_eLevel_high,
-   BXVD_Video_Protocol_eLevel_high1440,
-   BXVD_Video_Protocol_eLevel_MaxLevel
-
-} BXVD_Video_Protocol_Level;
-
-/***************************************************************************
- Summary:
-  Enum used to evaluate the video profile.
-
- Description:
-  The video decoder writes the video profile into the PPB structure.
-  This information is saved by the display manager and can be retrieved
-  with the BXVD_GetChannelStatus() command.
-
- See also:
-  BXVD_GetChannelStatus
-
-****************************************************************************/
-typedef enum BXVD_Video_Protocol_Profile
-{
-   BXVD_Video_Protocol_eProfile_Unknown = 0,
-   BXVD_Video_Protocol_eProfile_Simple,
-   BXVD_Video_Protocol_eProfile_Main,
-   BXVD_Video_Protocol_eProfile_High,
-   BXVD_Video_Protocol_eProfile_Advanced,
-   BXVD_Video_Protocol_eProfile_Jizhun,
-   BXVD_Video_Protocol_eProfile_SnrScalable,
-   BXVD_Video_Protocol_eProfile_SpatiallyScalable,
-   BXVD_Video_Protocol_eProfile_AdvancedSimple,
-   BXVD_Video_Protocol_eProfile_Baseline,
-   BXVD_Video_Protocol_eProfile_MultiHigh,
-   BXVD_Video_Protocol_eProfile_StereoHigh,
-   BXVD_Video_Protocol_eProfile_Main10,
-
-   BXVD_Video_Protocol_eProfile_MaxProfile
-
-} BXVD_Video_Protocol_Profile;
-
+/* backward compat */
+#define BXVD_Video_Protocol_Profile                      BAVC_VideoCompressionProfile
+#define BXVD_Video_Protocol_eProfile_Unknown             BAVC_VideoCompressionProfile_eUnknown
+#define BXVD_Video_Protocol_eProfile_Simple              BAVC_VideoCompressionProfile_eSimple
+#define BXVD_Video_Protocol_eProfile_Main                BAVC_VideoCompressionProfile_eMain
+#define BXVD_Video_Protocol_eProfile_High                BAVC_VideoCompressionProfile_eHigh
+#define BXVD_Video_Protocol_eProfile_Advanced            BAVC_VideoCompressionProfile_eAdvanced
+#define BXVD_Video_Protocol_eProfile_Jizhun              BAVC_VideoCompressionProfile_eJizhun
+#define BXVD_Video_Protocol_eProfile_SnrScalable         BAVC_VideoCompressionProfile_eSnrScalable
+#define BXVD_Video_Protocol_eProfile_SpatiallyScalable   BAVC_VideoCompressionProfile_eSpatiallyScalable
+#define BXVD_Video_Protocol_eProfile_AdvancedSimple      BAVC_VideoCompressionProfile_eAdvancedSimple
+#define BXVD_Video_Protocol_eProfile_Baseline            BAVC_VideoCompressionProfile_eBaseline
+#define BXVD_Video_Protocol_eProfile_MultiHigh           BAVC_VideoCompressionProfile_eMultiHighProfile
+#define BXVD_Video_Protocol_eProfile_StereoHigh          BAVC_VideoCompressionProfile_eStereoHighProfile
+#define BXVD_Video_Protocol_eProfile_Main10              BAVC_VideoCompressionProfile_eMain10
+#define BXVD_Video_Protocol_eProfile_MaxProfile          BAVC_VideoCompressionProfile_eMax
 
 /***************************************************************************
  Summary:
@@ -860,6 +828,10 @@ typedef struct BXVD_Settings
       BMMA_Heap_Handle   hPictureHeap;        /* Decoder picture buffer memory heap handle */
       BMMA_Heap_Handle   hPictureHeap1;       /* Decoder picture buffer 1 memory heap handle */
 
+      BMMA_Block_Handle  hFirmwareBlock;         /* If non-NULL, block where FW code and data is loaded */
+      uint32_t           uiFirmwareBlockOffset;  /* Offset in block where FW code is to be loaded */
+      uint32_t           uiFirmwareBlockSize;    /* Size of memory allocated for FW to be loaded */
+
       BTMR_Handle        hTimerDev;           /* Debug timer */
 
       /* Add BIMG Interface support */
@@ -930,6 +902,18 @@ typedef struct BXVD_Settings
       uint32_t uiNumPreAllocateChannels;
 } BXVD_Settings;
 
+/**************************************************************************
+Summary:
+  Used to specify decoder supported video compression capabilities for each
+supported decode compression standard
+****************************************************************************/
+typedef struct BXVD_VidComprStd_Capabilities
+{
+   BAVC_VideoCompressionProfile  eProfile;
+   BAVC_VideoCompressionLevel    eLevel;
+   BAVC_VideoBitDepth            eBitDepth;
+} BXVD_VidComprStd_Capabilities;
+
 
 /**************************************************************************
 Summary:
@@ -938,6 +922,7 @@ Summary:
 typedef struct BXVD_HardwareCapabilities
 {
    bool bCodecSupported[BAVC_VideoCompressionStd_eMax];
+   BXVD_VidComprStd_Capabilities stCodecCapabilities[BAVC_VideoCompressionStd_eMax];
    uint32_t uiSTC_Count; /* Number of STCs supported by AVD core */
    bool bIncludeRepeatedItbStartCodes;
 } BXVD_HardwareCapabilities;
@@ -1669,12 +1654,12 @@ typedef struct BXVD_ChannelStatus
    /*
     * Video protocol level for the picture being delivered to VDC.
     */
-    BXVD_Video_Protocol_Level eProtocolLevel;
+    BAVC_VideoCompressionLevel eProtocolLevel;
 
    /*
     * Video protocol profile for the picture being delivered to VDC.
     */
-    BXVD_Video_Protocol_Profile eProtocolProfile;
+    BAVC_VideoCompressionProfile eProtocolProfile;
 
     /* Count of all the pictures received by the video decoder.
      * This includes those that are skipped, dropped and decoded.
@@ -1759,8 +1744,8 @@ typedef struct BXVD_PictureParameterInfo
   bool bStreamProgressive_7411;        /* 7411 style progressive indication */
                                        /* i.e. filtered version of BXVD_P_PPB_FLAG_PROG_SEQUENCE */
 
-  uint32_t  uiProfile;                 /* stream encoding profile from the sequence extension */
-  uint32_t  uiLevel;                   /* stream encoding level from the sequence extension */
+  BAVC_VideoCompressionProfile uiProfile; /* stream encoding profile from the sequence extension */
+  BAVC_VideoCompressionLevel uiLevel;  /* stream encoding level from the sequence extension */
 
   uint32_t  uiBitRate;                 /* bit rate from sequence header */
   uint32_t  uiVideoFormat;             /* video format from the sequence display extension */
@@ -2480,6 +2465,26 @@ BERR_Code BXVD_Close
    BXVD_Handle     hXvd    /* [in] XVD handle */
    );
 
+/**************************************************************************
+ Summary:
+    API initializes video decoder firmware on secure systems
+ Description:
+    Firwamre init command sent to video decoder firmware.
+
+ Parameters:
+    BXVD_Handle  hXvd
+
+ Returns:
+    BERR_SUCCESS            Decoder Firmware initialized successfully.
+    BERR_INVALID_PARAMETER  Bad input parameter
+    BERR_TIMEOUT            Firmware startup or initialization timed-out
+**************************************************************************/
+
+BERR_Code BXVD_InitSecureFirmware
+(
+   BXVD_Handle hXvd
+   );
+
 #if BXVD_P_POWER_MANAGEMENT
 /******************************************************************************
 Summary:
@@ -2521,6 +2526,12 @@ BERR_Code BXVD_Resume
    (
    BXVD_Handle     hXvd    /* [in] XVD handle */
    );
+
+BERR_Code BXVD_ResumeRestartDecoder
+   (
+   BXVD_Handle     hXvd    /* [in] XVD handle */
+   );
+
 #endif
 
 #if !B_REFSW_MINIMAL /* SWSTB-461 */
@@ -2715,6 +2726,30 @@ BERR_Code BXVD_UnInstallDeviceInterruptCallback
    BXVD_DeviceInterrupt eInterrupt /* [in] Desired interrupt to disable */
    );
 
+
+/**************************************************************************
+ Summary:
+    API determines the size of the decoder firmware.
+ Description:
+    Determine decoder firware size for the decoder instance specified.
+
+ Parameters:
+   BREG_Handle    hRegister,             register handle
+   uint32_t       uiDecoderInstance,     Decoder instance: 0, 1, 2
+   int32_t        *DecoderFirmwareSize   pointer to decoder firware size being determined.
+
+ Returns:
+        BERR_SUCCESS  Decoder Firmware size determined successfully.
+        BERR_INVALID_PARAMETER  Bad input parameter
+**************************************************************************/
+
+BERR_Code BXVD_GetDecoderFirmwareSize
+(
+   BREG_Handle    hRegister,              /* [in] Register handle */
+   uint32_t       uiDecoderInstance,      /* [in] Decoder instance */
+   uint32_t       *uiDecoderFirmwareSize  /* [out] ptr to decoder firmware size */
+);
+
 /**************************************************************************
  Summary:
     API returns the buffer requirements for CDB and ITB.
@@ -2810,6 +2845,11 @@ Returns:
 See Also:
 ***************************************************************************/
 BERR_Code BXVD_ProcessWatchdog
+(
+   BXVD_Handle hXvd /* [in] XVD context handle */
+   );
+
+BERR_Code BXVD_ProcessWatchdogRestartDecoder
 (
    BXVD_Handle hXvd /* [in] XVD context handle */
    );
@@ -3343,13 +3383,11 @@ Summary:
 See Also:
   BXVD_GetNextPTS_isr
 ****************************************************************************/
-#if !B_REFSW_MINIMAL /* SWSTB-461 */
 BERR_Code BXVD_GetNextPTS
 (
    BXVD_ChannelHandle hXvdCh, /* [in] The XVD Channel handle */
    BXVD_PTSInfo *pPTSInfo /* [out] PTS Info is returned*/
    );
-#endif
 
 /***************************************************************************
 Summary:

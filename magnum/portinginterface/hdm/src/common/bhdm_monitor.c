@@ -225,7 +225,7 @@ static void BHDM_MONITOR_P_ReadStatus_isr(const BHDM_Handle hHDMI)
 	ulOffset = hHDMI->ulOffset ;
 
 #ifdef BCHP_HDMI_TX_PHY_HDMI_TX_PHY_STATUS
-
+	/* 28nm */
 	Register = BREG_Read32(hRegister, BCHP_HDMI_TX_PHY_HDMI_TX_PHY_RESET_CTL + ulOffset) ;
 	hHDMI->MonitorStatus.EnabledTMDS_Clock =
 		!(Register & BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_RESET_CTL, TX_CK_PWRDN)) ;
@@ -237,6 +237,7 @@ static void BHDM_MONITOR_P_ReadStatus_isr(const BHDM_Handle hHDMI)
 	hHDMI->MonitorStatus.EnabledTMDS_CH0 =
 		!(Register & BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_RESET_CTL, TX_0_PWRDN)) ;
 #else
+	/* 40nm */
 	Register = BREG_Read32(hRegister, BCHP_HDMI_TX_PHY_POWERDOWN_CTL + ulOffset) ;
 	hHDMI->MonitorStatus.EnabledTMDS_Clock =
 		!(Register & BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, TX_CK_PWRDN)) ;
@@ -400,9 +401,12 @@ BERR_Code BHDM_MONITOR_GetHwStatusTx(const BHDM_Handle hHDMI, BHDM_MONITOR_Statu
 
 	TxStatus->TxHotPlugInterruptDisabled = hHDMI->MonitorStatus.TxHotPlugInterruptDisabled ;
 
-	BKNI_EnterCriticalSection() ;
-		BHDM_MONITOR_P_ReadStatus_isr(hHDMI) ;
-	BKNI_LeaveCriticalSection() ;
+	if (!hHDMI->standby)
+	{
+		BKNI_EnterCriticalSection() ;
+			BHDM_MONITOR_P_ReadStatus_isr(hHDMI) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 
 	BKNI_Memcpy(TxStatus, &hHDMI->MonitorStatus, sizeof(BHDM_MONITOR_Status)) ;
 	goto done ;

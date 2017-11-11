@@ -1,25 +1,19 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-=============================================================================*/
-
-#ifndef __PLATFORM_H__
-#define __PLATFORM_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #ifndef WIN32
 
 // Unix
 #include <sys/time.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #if !defined(ANDROID)
 // Back-tracing isn't available in the bionic C library
 #include <execinfo.h>
 #include <cxxabi.h>
 #endif
-
-typedef pthread_mutex_t MutexHandle;
 
 #define SPY_UNUSED __attribute__((unused))
 
@@ -29,8 +23,6 @@ typedef pthread_mutex_t MutexHandle;
 #include <windows.h>
 #include <process.h>
 
-typedef HANDLE MutexHandle;
-
 #define getpid _getpid
 
 #define SPY_UNUSED
@@ -39,12 +31,5 @@ typedef HANDLE MutexHandle;
 
 #endif
 
-extern void plCreateMutex(MutexHandle *handle);
-extern void plDestroyMutex(MutexHandle *handle);
-extern void plLockMutex(MutexHandle *handle);
-extern void plUnlockMutex(MutexHandle *handle);
-
 extern unsigned int plGetTimeNowMs(void);
 extern void plGetAccurateTime(unsigned int *secs, unsigned int *nanosecs);
-
-#endif /* __PLATFORM_H__ */

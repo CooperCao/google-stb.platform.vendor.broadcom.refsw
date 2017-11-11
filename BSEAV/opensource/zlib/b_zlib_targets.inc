@@ -54,7 +54,6 @@ b_zlib_target_dummy:
 	@false
 
 b_zlib_target_build: $(B_ZLIB_OTHER_BUILDS)
-	@echo [Build..... zlib]
 	$(Q_)$(MAKE) -C $(BSEAV)/opensource/zlib $(sort $(B_ZLIB_TARGET_MAKEFLAGS))
 
 b_zlib_target_clean: $(B_ZLIB_OTHER_CLEANS)
@@ -65,6 +64,6 @@ b_zlib_target_clean_all: b_zlib_target_clean $(B_ZLIB_OTHER_CLEAN_ALL)
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
-B_ZLIB_BUILD_FILES += $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/zlib/libz.a
+B_ZLIB_BUILD_FILES += $(B_REFSW_OBJ_ROOT)/target/usr/local/lib/libjpeg.a
 
 endif #B_ZLIB_TARGETS_DEFINED

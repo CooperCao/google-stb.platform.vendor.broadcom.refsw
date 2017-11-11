@@ -449,7 +449,7 @@ eRet CChannelMgr::addChannel(CChannel * pChannel)
 } /* addChannel */
 
 /* remove all channels matching the major channel number of the given channel.
-   the given channel is NOT removed from the list. */
+ * the given channel is NOT removed from the list. */
 eRet CChannelMgr::removeOtherMajorChannels(CChannel * pChannel)
 {
     CChannel * pCh = NULL;
@@ -465,7 +465,7 @@ eRet CChannelMgr::removeOtherMajorChannels(CChannel * pChannel)
             CChannel * pChDel = NULL;
 
             pChDel = pCh;
-            pCh = getNextChannel(pChDel, false);
+            pCh    = getNextChannel(pChDel, false);
 
             /* compare major channel number and make sure we don't remove given channel */
             if ((pChDel->getMajor() == pChannel->getMajor()) && (pChDel != pChannel))
@@ -480,8 +480,8 @@ eRet CChannelMgr::removeOtherMajorChannels(CChannel * pChannel)
         }
     }
 
-    return ret;
-}
+    return(ret);
+} /* removeOtherMajorChannels */
 
 /* find channel based on channel number */
 CChannel * CChannelMgr::findChannel(

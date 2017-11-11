@@ -1,5 +1,5 @@
-r############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+############################################################
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@ r############################################################
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 ifndef B_HOSTAPD_TARGETS_DEFINED
 B_HOSTAPD_TARGETS_DEFINED := y
@@ -45,7 +44,7 @@ endif
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
-include $(BSEAV)/lib/hosTapd/hostapd.inc
+include $(BSEAV)/opensource/hostapd/hostapd.inc
 
 .PHONY: b_hostapd_target_dummy b_hostapd_target_build b_hostapd_target_clean
 

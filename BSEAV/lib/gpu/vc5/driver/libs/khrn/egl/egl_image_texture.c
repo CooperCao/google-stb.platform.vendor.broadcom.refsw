@@ -118,11 +118,8 @@ EGL_IMAGE_T *egl_image_texture_new(EGL_CONTEXT_T *context,
    struct image_attribs attr;
    enum glxx_tex_completeness tex_complete;
    GLXX_TEXTURE_SAMPLER_STATE_T sampler_obj;
-   bool locked = false;
 
-   if (!egl_context_gl_lock())
-      goto end;
-   locked = true;
+   egl_context_gl_lock();
 
    if (context == NULL || context->api != API_OPENGL)
    {
@@ -249,15 +246,14 @@ EGL_IMAGE_T *egl_image_texture_new(EGL_CONTEXT_T *context,
       goto end;
    }
 
-   egl_image = egl_image_create(image);
+   egl_image = egl_image_create(image, 1);
    KHRN_MEM_ASSIGN(image, NULL);
    if (!egl_image)
       goto end;
    error = EGL_SUCCESS;
 
 end:
-   if (locked)
-      egl_context_gl_unlock();
+   egl_context_gl_unlock();
    egl_thread_set_error(error);
    return egl_image;
 }

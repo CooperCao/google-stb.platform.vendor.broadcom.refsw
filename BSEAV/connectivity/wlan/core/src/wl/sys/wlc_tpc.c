@@ -151,6 +151,9 @@ static void wlc_tpc_rpt_ovrd(wlc_tpc_info_t *tpc, dot11_tpc_rep_t *rpt);
 #if defined(WL_EXPORT_CURPOWER)
 static uint8 wlc_tpc_clmbw_to_curpwrbw(clm_bandwidth_t clmbw);
 static int wlc_tpc_get_current(wlc_tpc_info_t *tpc, void *pwr, uint len, wlc_bsscfg_t *bsscfg);
+#ifdef STB_SOC_WIFI
+static int wlc_tpc_rateset_fill(int8 *pwr, int8 value, int size);
+#endif
 #else
 #define wlc_tpc_get_current(tpc, pwr, len) BCME_ERROR
 #endif
@@ -1799,7 +1802,11 @@ wlc_tpc_get_current(wlc_tpc_info_t *tpc, void *pwr, uint len, wlc_bsscfg_t *bssc
 		uint8 idx;
 		int8 tssisen_min[PHY_MAX_CORES];
 		uint8 txcore = 1;
+#ifdef STB_SOC_WIFI
+		wlc_tpc_rateset_fill(tssisen_min, (int8)WL_RATE_DISABLED, sizeof(tssisen_min));
+#else
 		memset(tssisen_min, (int8)WL_RATE_DISABLED, sizeof(tssisen_min));
+#endif
 		wlc_phy_get_tssi_sens_min(WLC_PI(wlc), tssisen_min);
 		pwr_to_wl->flags = power->flags;
 		pwr_to_wl->chanspec = power->chanspec;
@@ -1819,8 +1826,13 @@ wlc_tpc_get_current(wlc_tpc_info_t *tpc, void *pwr, uint len, wlc_bsscfg_t *bssc
 #else
 		memset(&pwr_to_wl->SARLIMIT, WLC_TXPWR_MAX, MAX_STREAMS_SUPPORTED);
 #endif
+#ifdef STB_SOC_WIFI
+		wlc_tpc_rateset_fill(pwr_to_wl->target_offsets, (int8)WL_RATE_DISABLED,
+			sizeof(pwr_to_wl->target_offsets));
+#else
 		memset(pwr_to_wl->target_offsets, (int8)WL_RATE_DISABLED,
 			sizeof(pwr_to_wl->target_offsets));
+#endif
 		memcpy(&pwr_to_wl->est_Pout, &power->est_Pout, 4);
 
 		if (PHYTYPE_MIMO_CAP(wlc->band->phytype) &&
@@ -1898,6 +1910,27 @@ free_power:
 	wlc_tpc_free_txpower_data(tpc, power, reg_limits);
 	return err;
 }
+
+#ifdef STB_SOC_WIFI
+/* The 'memset' is not supposed to set the value WL_RATE_DISABLED which is -128,
+*  so using this function to replace it.
+*/
+static int wlc_tpc_rateset_fill(int8 *pwr, int8 value, int size)
+{
+	int ii;
+
+	if (!pwr) {
+		ASSERT(0);
+		return -1;
+	}
+
+	for (ii = 0; ii < size; ii++) {
+		pwr[ii] = value;
+	}
+
+	return 0;
+}
+#endif
 #endif /* WL_EXPORT_CURPOWER */
 
 /* accessors */

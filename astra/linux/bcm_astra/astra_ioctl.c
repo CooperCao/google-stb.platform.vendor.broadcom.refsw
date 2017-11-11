@@ -303,7 +303,7 @@ static int astra_ioctl_call_smc(struct file *file, void *arg)
     callSmcData.retVal =
         _astra_call_smc(
             pClient,
-            callSmcData.mode);
+            callSmcData.code);
 
  RETURN:
     err = copy_to_user(

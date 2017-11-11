@@ -13,11 +13,29 @@
 #endif
 
 // ATTRIBUTE_FORMAT
-#if defined(__GNUC__) && (( __GNUC__ > 2 ) || (( __GNUC__ == 2 ) && ( __GNUC_MINOR__ >= 3 )))
+#ifdef __GNUC__
 #define ATTRIBUTE_FORMAT(ARCHETYPE, STRING_INDEX, FIRST_TO_CHECK)  __attribute__ ((format (ARCHETYPE, STRING_INDEX, FIRST_TO_CHECK)))
 #else
 #define ATTRIBUTE_FORMAT(ARCHETYPE, STRING_INDEX, FIRST_TO_CHECK)
 #endif
+
+// ATTRIBUTE_UNUSED
+#ifdef __GNUC__
+#define ATTRIBUTE_UNUSED __attribute__((unused))
+#else
+#define ATTRIBUTE_UNUSED
+#endif
+
+// ATTRIBUTE_NORETURN
+#ifdef __GNUC__
+#define ATTRIBUTE_NORETURN __attribute__((noreturn))
+#elif defined(_MSC_VER)
+#define ATTRIBUTE_NORETURN __declspec(noreturn)
+#else
+#define ATTRIBUTE_NORETURN
+#endif
+
+#define unused(x) ((void)(x))
 
 // countof
 #if defined(_MSC_VER)
@@ -47,12 +65,14 @@
    #define align_of(T) (sizeof(struct { T t; char ch; }) - sizeof(T))
 #endif
 
+// Max alignment reported by alignof() for any type, ie the alignment that malloc() guarantees
+#define MAX_ALIGN 8 // Just assume this for now
+
+// ALIGNED
 #ifdef _MSC_VER
    #define ALIGNED(X) __declspec(align(X))
-#elif defined(__GNUC__) || defined (__clang__)
+#elif defined(__GNUC__)
    #define ALIGNED(X) __attribute__((aligned(X)))
-#else
-   #define ALIGNED(X)
 #endif
 
 // inline is a keyword in C99 and C++, although MSVC supports a
@@ -72,6 +92,17 @@
 #define noexcept
 #elif defined(_MSC_VER) && (_MSC_VER < 1900)
 #define noexcept throw()
+#endif
+
+// thread_local
+#if defined(__cplusplus)
+   // Assume C++11, use built-in thread_local
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112l)
+#  include <threads.h> // Defines thread_local
+#elif defined(__GNUC__)
+#  define thread_local __thread
+#elif defined(_MSC_VER)
+#  define thread_local __declspec(thread)
 #endif
 
 #ifdef NDEBUG

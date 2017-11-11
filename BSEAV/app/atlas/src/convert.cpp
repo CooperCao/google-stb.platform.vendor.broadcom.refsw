@@ -42,7 +42,7 @@
 #include "nexus_audio_types.h"
 #include "nexus_video_types.h"
 
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
 #include "nexus_security_datatypes.h"
 #endif
 
@@ -243,7 +243,7 @@ STRING_TO_ENUM_START()
 STRING_TO_ENUM_END(NEXUS_UhfInputChannel)
 #endif
 
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
 STRING_TO_ENUM_INIT_C(stringToSecurityAlgorithm, NEXUS_SecurityAlgorithm)
 STRING_TO_ENUM_START()
     STRING_TO_ENUM_ENTRY("des",      NEXUS_SecurityAlgorithm_eDes)

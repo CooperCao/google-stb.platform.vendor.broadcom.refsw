@@ -52,10 +52,7 @@
 #  include <string.h>
 #else
 #  include "bstd_defs.h"
-
-/* Workaround for the missing inttypes.h */
-#define PRIu8       "u"
-#define PRIu32      "u"
+#  include "DSP/DSP_raaga_inttypes.h"
 #endif
 
 #include "libdspcontrol/COMMON.h"
@@ -193,6 +190,7 @@ TB_BUFF_SIZE TB_seek(TB_data_descriptor *descriptor, int offset, TB_seek_whence 
 
         if(!fall_through)
             break;
+    __fallthrough;
         /* no break, no KitKat (so Eclipse's happy) */
 
     case TB_SEEK_CUR:

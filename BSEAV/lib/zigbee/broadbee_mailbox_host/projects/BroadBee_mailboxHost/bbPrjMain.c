@@ -190,6 +190,10 @@ int zigbee_init(int argc, char *argv[])
         wdt_occured = false;
         pthread_create(&wdt_thread, NULL, wdt_handler, (void *)g_zigbeeFd);
 
+#ifdef JTAG_STACK_DEBUG
+        printf("Ready for JTAG Debug session\n");
+#else /* JTAG_STACK_DEBUG */
+
         if (argc > 1) {
             printf("loading firmware from %s\n", argv[1]);
             if ((fd = open(argv[1], O_RDONLY)) == -1) {
@@ -211,7 +215,7 @@ int zigbee_init(int argc, char *argv[])
 
         fw_len = lseek(fd, 0, SEEK_END);
         printf("fw_len=%d\n", fw_len); // TBD - removing this causes problems
-        fw_img = mmap(NULL, fw_len, PROT_READ, MAP_SHARED, fd, 0);
+        fw_img = mmap(NULL, fw_len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 
         if (fw_img == NULL) {
             printf("can't mmap firmware image\n");
@@ -227,6 +231,7 @@ int zigbee_init(int argc, char *argv[])
         Zigbee_Ioctl_GetZbproMacAddr(g_zigbeeFd, zbpro_mac_addr);
         printf("RF4CE hw address:  %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n", rf4ce_mac_addr[3], rf4ce_mac_addr[2], rf4ce_mac_addr[1], rf4ce_mac_addr[0], rf4ce_mac_addr[7], rf4ce_mac_addr[6], rf4ce_mac_addr[5], rf4ce_mac_addr[4]);
         printf("Zigbee pro hw address:  %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n", zbpro_mac_addr[3], zbpro_mac_addr[2], zbpro_mac_addr[1], zbpro_mac_addr[0], zbpro_mac_addr[7], zbpro_mac_addr[6], zbpro_mac_addr[5], zbpro_mac_addr[4]);
+#endif /* JTAG_STACK_DEBUG */
 
         pthread_create(&zigbee_server_thread, NULL, zigbee_server, NULL);
 
@@ -311,7 +316,7 @@ int server_main(int argc, char *argv[])
 
         fw_len = lseek(fd, 0, SEEK_END);
         printf("fw_len=%d\n", fw_len); // TBD - removing this causes problems
-        fw_img = mmap(NULL, fw_len, PROT_READ, MAP_SHARED, fd, 0);
+        fw_img = mmap(NULL, fw_len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 
         if (fw_img == NULL) {
             printf("can't mmap firmware image\n");

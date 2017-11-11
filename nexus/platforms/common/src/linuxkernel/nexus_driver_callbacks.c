@@ -788,7 +788,9 @@ nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_ob
 void
 nexus_driver_scheduler_lock(void *client, NEXUS_ModulePriority priority, bool lock)
 {
-    struct nexus_driver_callback_scheduler *scheduler = &nexus_driver_callback_schedulers[priority];
+    struct nexus_driver_callback_scheduler *scheduler;
+    if (priority >= NEXUS_ModulePriority_eMax) return;
+    scheduler = &nexus_driver_callback_schedulers[priority];
     if(lock) {
         BKNI_AcquireMutex(scheduler->callback_lock);
         scheduler->lock_client = client;

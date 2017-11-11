@@ -2,18 +2,19 @@
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "gfx_buffer_slow_conv_compr.h"
-#include "gfx_buffer_adapter.h"
+#include "gfx_buffer_astc.h"
 #include "gfx_buffer_bc.h"
 #include "gfx_buffer_bstc.h"
+#include "gfx_buffer_etc.h"
 
 #include "libs/util/assert_helpers.h"
 
 GFX_LFMT_T gfx_buffer_get_decompressed_fmt(GFX_LFMT_T compressed_fmt)
 {
    if (gfx_lfmt_is_etc_family(compressed_fmt))
-      return gfx_buffer_adapter_etc_get_decompressed_fmt(compressed_fmt);
+      return gfx_buffer_etc_get_decompressed_fmt(compressed_fmt);
    if (gfx_lfmt_is_astc_family(compressed_fmt))
-      return gfx_buffer_adapter_astc_get_decompressed_fmt(compressed_fmt);
+      return gfx_buffer_astc_get_decompressed_fmt(compressed_fmt);
    if (gfx_lfmt_is_bc_family(compressed_fmt))
       return gfx_buffer_bc_get_decompressed_fmt(compressed_fmt);
    if (gfx_lfmt_is_bstc_family(compressed_fmt))
@@ -31,9 +32,9 @@ static bool decompress_block_direct(
    assert(gfx_lfmt_is_compressed(block->fmt));
 
    if (gfx_lfmt_is_etc_family(block->fmt))
-      gfx_buffer_adapter_etc_decompress_block(pxs, block);
+      gfx_buffer_etc_decompress_block(pxs, block);
    else if (gfx_lfmt_is_astc_family(block->fmt))
-      gfx_buffer_adapter_astc_decompress_block(pxs, block);
+      gfx_buffer_astc_decompress_block(pxs, block);
    else if (gfx_lfmt_is_bstc_family(block->fmt))
       gfx_buffer_bstc_decompress_block(pxs, block);
    else

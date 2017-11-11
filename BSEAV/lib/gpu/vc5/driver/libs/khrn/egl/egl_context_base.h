@@ -6,6 +6,7 @@
 
 #include <EGL/egl.h>
 #include "egl_context.h"
+#include "egl_config.h"
 
 typedef struct
 {
@@ -55,7 +56,7 @@ struct egl_context_base
    /* Identify the type. This is just for debugging and assertions etc. */
    egl_context_type_t      type;
 
-   EGLConfig               config;
+   const EGL_CONFIG_T     *config;
    EGLDisplay              display;
    egl_api_t               api;
    bool                    valid;
@@ -85,7 +86,7 @@ struct egl_context_base
 
 /* Common initialization for a context. */
 extern void egl_context_base_init(EGL_CONTEXT_T *context,
-      egl_api_t api, EGLConfig config, bool debug,
+      egl_api_t api, const EGL_CONFIG_T *config, bool debug,
       bool robustness, bool reset_notification,
       bool secure);
 

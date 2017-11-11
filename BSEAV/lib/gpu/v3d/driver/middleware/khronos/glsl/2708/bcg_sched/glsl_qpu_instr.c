@@ -244,7 +244,7 @@ void QPUInstr_Constr(QPUInstr *self, QPUInstr_Type type)
 
    case QPUInstr_BRANCH:
    default:
-      vcos_assert(0);
+      assert(0);
       break;
    }
 }
@@ -530,7 +530,7 @@ uint64_t QPUInstr_GetCoding(QPUInstr *self)
 
    case QPUInstr_BRANCH:
    default:
-      vcos_assert(0);
+      assert(0);
       break;
    }
 
@@ -576,7 +576,7 @@ const char *QPUInstr_DisassembleEx(QPUInstr *self, uint32_t numUniforms, const U
 
    if (strstr(instr_buffer, "unif") != NULL)
    {
-      vcos_assert(*curUnif < numUniforms);
+      assert(*curUnif < numUniforms);
 
       switch (uniforms[*curUnif].m_type)
       {
@@ -1115,7 +1115,7 @@ bool QPUInstr_SetImmediateInt32(QPUInstr *self, uint32_t i, bool perElementSigne
       break;
 
    default:
-      vcos_assert(0);
+      assert(0);
       ret = false;
       break;
    }
@@ -1126,7 +1126,7 @@ bool QPUInstr_SetImmediateInt32(QPUInstr *self, uint32_t i, bool perElementSigne
 bool QPUInstr_SetSemaphore(QPUInstr *self, uint8_t semaphoreNumber, Semaphore_Enum incOrDec)
 {
    bool ret = true;
-   vcos_assert(semaphoreNumber < 16);
+   assert(semaphoreNumber < 16);
 
    switch (self->m_type)
    {
@@ -1136,7 +1136,7 @@ bool QPUInstr_SetSemaphore(QPUInstr *self, uint8_t semaphoreNumber, Semaphore_En
       break;
 
    default:
-      vcos_assert(0);
+      assert(0);
       ret = false;
       break;
    }
@@ -1421,8 +1421,8 @@ bool QPUGenericInstr_SetMovOpOpEx(QPUGenericInstr *self, const QPUOperand *from,
    bool unpackFloat;
    bool ok = true;
 
-   vcos_assert(QPUOperand_IsRegister(to));
-   vcos_assert(QPUOperand_ValueRegister(to) != Register_ACC4 && QPUOperand_ValueRegister(to) != Register_ACC5);
+   assert(QPUOperand_IsRegister(to));
+   assert(QPUOperand_ValueRegister(to) != Register_ACC4 && QPUOperand_ValueRegister(to) != Register_ACC5);
 
    NeedsALU(self);
 
@@ -1471,7 +1471,7 @@ bool QPUGenericInstr_SetMovOpOpEx(QPUGenericInstr *self, const QPUOperand *from,
 
    if (unit == QPUGenericInstr_ADD)
    {
-      vcos_assert(!self->m_adderUsed);
+      assert(!self->m_adderUsed);
 
       ok = ok && QPUInstr_SetAddOperation(&self->m_instr, unpackFloat ? AOP_FMIN : AOP_OR);
       ok = ok && QPUInstr_SetAddCondition(&self->m_instr, CondCode_ALWAYS);
@@ -1506,7 +1506,7 @@ bool QPUGenericInstr_SetMovOpOpEx(QPUGenericInstr *self, const QPUOperand *from,
    }
    else if (unit == QPUGenericInstr_MUL)
    {
-      vcos_assert(!self->m_mulUsed);
+      assert(!self->m_mulUsed);
 
       ok = ok && QPUInstr_SetMulOperation(&self->m_instr, MOP_V8MIN);
       ok = ok && QPUInstr_SetMulCondition(&self->m_instr, CondCode_ALWAYS);
@@ -1540,7 +1540,7 @@ bool QPUGenericInstr_SetMovOpOpEx(QPUGenericInstr *self, const QPUOperand *from,
          self->m_mulUsed = true;
    }
    else
-      vcos_assert(0);
+      assert(0);
 
    if (unitUsed != NULL)
       *unitUsed = unit;
@@ -1559,8 +1559,8 @@ bool QPUGenericInstr_SetMovIntOp(QPUGenericInstr *self, int32_t immed, const QPU
 {
    bool ok = true;
 
-   vcos_assert(QPUOperand_IsRegister(to));
-   vcos_assert(QPUOperand_ValueRegister(to) != Register_ACC4 && QPUOperand_ValueRegister(to) != Register_ACC5);
+   assert(QPUOperand_IsRegister(to));
+   assert(QPUOperand_ValueRegister(to) != Register_ACC4 && QPUOperand_ValueRegister(to) != Register_ACC5);
 
    NeedsLDI32(self);
 
@@ -1786,8 +1786,8 @@ Register_File QPUGenericInstr_GetFreeOutputRegisters(QPUGenericInstr *self)
 
 void QPUOperand_ConstrCopy(QPUOperand *self, const QPUOperand *rhs)
 {
-   vcos_assert(self != NULL);
-   vcos_assert(rhs  != NULL);
+   assert(self != NULL);
+   assert(rhs  != NULL);
 
    self->m_type    = rhs->m_type;
    self->m_reg     = rhs->m_reg;
@@ -1798,7 +1798,7 @@ void QPUOperand_ConstrCopy(QPUOperand *self, const QPUOperand *rhs)
 
 void QPUOperand_ConstrReg(QPUOperand *self, Register_Enum reg)
 {
-   vcos_assert(self != NULL);
+   assert(self != NULL);
 
    self->m_type   = QPUOperand_REGISTER;
    self->m_reg    = reg;
@@ -1807,7 +1807,7 @@ void QPUOperand_ConstrReg(QPUOperand *self, Register_Enum reg)
 
 void QPUOperand_ConstrType(QPUOperand *self, QPUOperand_Type t, VirtualUnpack_Enum unpack)
 {
-   vcos_assert(self != NULL);
+   assert(self != NULL);
 
    self->m_type   = t;
    self->m_reg    = Register_UNKNOWN;
@@ -1816,7 +1816,7 @@ void QPUOperand_ConstrType(QPUOperand *self, QPUOperand_Type t, VirtualUnpack_En
 
 void QPUOperand_ConstrResource(QPUOperand *self, QPUResource *res)
 {
-   vcos_assert(self != NULL);
+   assert(self != NULL);
 
    self->m_type = QPUOperand_REGISTER;
    self->m_reg  = QPUResource_Name(res);
@@ -1825,7 +1825,7 @@ void QPUOperand_ConstrResource(QPUOperand *self, QPUResource *res)
 
 void QPUOperand_ConstrInt(QPUOperand *self, int8_t i)
 {
-   vcos_assert(self != NULL);
+   assert(self != NULL);
 
    self->m_unpack = VirtualUnpack_NONE;
 
@@ -1835,12 +1835,12 @@ void QPUOperand_ConstrInt(QPUOperand *self, int8_t i)
       self->m_i8 = i;
    }
    else
-      vcos_assert(0);
+      assert(0);
 }
 
 void QPUOperand_ConstrFloat(QPUOperand *self, float f)
 {
-   vcos_assert(self != NULL);
+   assert(self != NULL);
 
    self->m_unpack = VirtualUnpack_NONE;
 
@@ -1850,12 +1850,12 @@ void QPUOperand_ConstrFloat(QPUOperand *self, float f)
       self->m_sf = f;
    }
    else
-      vcos_assert(0);
+      assert(0);
 }
 
 bool QPUOperand_IsReadable(const QPUOperand *self, int32_t atSlot, const QPUResources *res)
 {
-   vcos_assert(self != NULL);
+   assert(self != NULL);
 
    if (self->m_type == QPUOperand_REGISTER)
       return QPUResources_IsReadable(res, self->m_reg, atSlot);
@@ -1865,7 +1865,7 @@ bool QPUOperand_IsReadable(const QPUOperand *self, int32_t atSlot, const QPUReso
 
 bool QPUOperand_SetUnpack(QPUOperand *self, VirtualUnpack_Enum unpack)
 {
-   vcos_assert(self != NULL);
+   assert(self != NULL);
 
    if (self->m_type != QPUOperand_REGISTER)
       return false;
@@ -1877,8 +1877,8 @@ bool QPUOperand_SetUnpack(QPUOperand *self, VirtualUnpack_Enum unpack)
 
 void QPUOperand_Retire(const QPUOperand *self, QPUResources *res)
 {
-   vcos_assert(self != NULL);
-   vcos_assert(self->m_type != QPUOperand_BYPASS);
+   assert(self != NULL);
+   assert(self->m_type != QPUOperand_BYPASS);
 
    if (self->m_type == QPUOperand_REGISTER)
       QPUResource_Unreference(QPUResources_GetResource(res, self->m_reg));

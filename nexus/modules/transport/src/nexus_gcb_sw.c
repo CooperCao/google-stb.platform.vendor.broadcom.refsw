@@ -403,22 +403,25 @@ static void NEXUS_Gcb_P_ProcessItb(NEXUS_GcbSwHandle hGcb)
             }
             if (ITB_WORD0_GET_TYPE(pitb[0]) != 0x84) { BERR_TRACE(BERR_UNKNOWN); goto done; }
             seqNum = pitb[5];
-            offsetCdb = pitb[3];
 #if SUPPORT_40BIT_OFFSETS
             offsetCdb = GET_40BIT_OFFSET(pitb[2], pitb[3]);
+#else
+            offsetCdb = pitb[3];
 #endif
             if (index_buffer_size >= ITB_PAIR_SIZE*2) {
-                offsetCdbNext = pitb[(ITB_WORDS*2)+3];
 #if SUPPORT_40BIT_OFFSETS
                 offsetCdbNext = GET_40BIT_OFFSET(pitb[(ITB_WORDS*2)+2], pitb[(ITB_WORDS*2)+3]);
+#else
+                offsetCdbNext = pitb[(ITB_WORDS*2)+3];
 #endif
             }
             else { /* one ITB pair after wrap */
                 pitbw = index_buffer_wrap;
                 if (ITB_WORD0_GET_TYPE(pitbw[0]) != 0x84) { BERR_TRACE(BERR_UNKNOWN); goto done; }
-                offsetCdbNext = pitbw[3];
 #if SUPPORT_40BIT_OFFSETS
                 offsetCdbNext = GET_40BIT_OFFSET(pitbw[2], pitbw[3]);
+#else
+                offsetCdbNext = pitbw[3];
 #endif
                 pitb = pitbw;
             }

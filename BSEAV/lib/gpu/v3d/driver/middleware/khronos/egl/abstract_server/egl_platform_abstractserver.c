@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  platform interface
-
-FILE DESCRIPTION
-BCG abstraction layer for GL driver
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/vcos/vcos.h"
 
 #include "middleware/khronos/egl/egl_platform.h"
@@ -23,50 +16,79 @@ BCG abstraction layer for GL driver
 #include <cutils/log.h>
 #endif
 
-KHRN_IMAGE_FORMAT_T abstract_colorformat_to_format(KHRN_IMAGE_FORMAT_T format, BEGL_ColorFormat colorformat)
+BEGL_BufferFormat format_to_abstract_bufferformat(KHRN_IMAGE_FORMAT_T format)
 {
-   switch (colorformat)
+   BEGL_BufferFormat ret;
+   switch (format)
    {
-   case BEGL_ColorFormat_eLinear:
-      format = khrn_image_to_linear_format(format);
-      break;
-   case BEGL_ColorFormat_eSRGB:
-      /* nothing */
-      break;
-   case BEGL_ColorFormat_eLinear_Pre:
-      format = khrn_image_to_linear_format(format);
-      format = khrn_image_to_premultiplied_format(format);
-      break;
-   case BEGL_ColorFormat_eSRGB_Pre:
-      format = khrn_image_to_premultiplied_format(format);
-      break;
-   default:
-      UNREACHABLE();
-      break;
+   case ABGR_8888_RSO:                       ret = BEGL_BufferFormat_eA8B8G8R8;                                break;
+   case XBGR_8888_RSO:                       ret = BEGL_BufferFormat_eX8B8G8R8;                                break;
+   case RGBA_8888_RSO:                       ret = BEGL_BufferFormat_eR8G8B8A8;                                break;
+   case RGBX_8888_RSO:                       ret = BEGL_BufferFormat_eR8G8B8X8;                                break;
+   case RGB_565_RSO:                         ret = BEGL_BufferFormat_eR5G6B5;                                  break;
+   case YV12_RSO:                            ret = BEGL_BufferFormat_eYV12;                                    break;
+
+   case (ABGR_8888_RSO | IMAGE_FORMAT_PRE):  ret = BEGL_BufferFormat_eA8B8G8R8_sRGB_PRE;                       break;
+   case (XBGR_8888_RSO | IMAGE_FORMAT_PRE):  ret = BEGL_BufferFormat_eX8B8G8R8_sRGB_PRE;                       break;
+   case (RGBA_8888_RSO | IMAGE_FORMAT_PRE):  ret = BEGL_BufferFormat_eR8G8B8A8_sRGB_PRE;                       break;
+   case (RGBX_8888_RSO | IMAGE_FORMAT_PRE):  ret = BEGL_BufferFormat_eR8G8B8X8_sRGB_PRE;                       break;
+   case (RGB_565_RSO | IMAGE_FORMAT_PRE):    ret = BEGL_BufferFormat_eR5G6B5_sRGB_PRE;                         break;
+
+   case (ABGR_8888_RSO | IMAGE_FORMAT_LIN):  ret = BEGL_BufferFormat_eA8B8G8R8_LIN_NON;                        break;
+   case (XBGR_8888_RSO | IMAGE_FORMAT_LIN):  ret = BEGL_BufferFormat_eX8B8G8R8_LIN_NON;                        break;
+   case (RGBA_8888_RSO | IMAGE_FORMAT_LIN):  ret = BEGL_BufferFormat_eR8G8B8A8_LIN_NON;                        break;
+   case (RGBX_8888_RSO | IMAGE_FORMAT_LIN):  ret = BEGL_BufferFormat_eR8G8B8X8_LIN_NON;                        break;
+   case (RGB_565_RSO | IMAGE_FORMAT_LIN):    ret = BEGL_BufferFormat_eR5G6B5_LIN_NON;                          break;
+
+   case (ABGR_8888_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE):  ret = BEGL_BufferFormat_eA8B8G8R8_LIN_PRE;     break;
+   case (XBGR_8888_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE):  ret = BEGL_BufferFormat_eX8B8G8R8_LIN_PRE;     break;
+   case (RGBA_8888_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE):  ret = BEGL_BufferFormat_eR8G8B8A8_LIN_PRE;     break;
+   case (RGBX_8888_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE):  ret = BEGL_BufferFormat_eR8G8B8X8_LIN_PRE;     break;
+   case (RGB_565_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE):    ret = BEGL_BufferFormat_eR5G6B5_LIN_PRE;       break;
+
+   default:                                  ret = BEGL_BufferFormat_INVALID;                                  break;
    }
 
-   return format;
+   return ret;
 }
 
-BEGL_ColorFormat format_to_abstract_colorformat(KHRN_IMAGE_FORMAT_T format)
+KHRN_IMAGE_FORMAT_T abstract_bufferformat_to_format(BEGL_BufferFormat format)
 {
-   BEGL_ColorFormat colorformat;
-   uint32_t code = (khrn_image_is_linear(format) ? 1 : 0) | (khrn_image_is_premultiplied(format) ? 2 : 0);
-   switch (code)
+   KHRN_IMAGE_FORMAT_T ret;
+   switch (format)
    {
-   case 0:  colorformat = BEGL_ColorFormat_eSRGB;         break;
-   case 1:  colorformat = BEGL_ColorFormat_eLinear;       break;
-   case 2:  colorformat = BEGL_ColorFormat_eSRGB_Pre;     break;
-   case 3:  colorformat = BEGL_ColorFormat_eLinear_Pre;   break;
-   default:
-      UNREACHABLE();
-      break;
+   case BEGL_BufferFormat_eA8B8G8R8:            ret = ABGR_8888_RSO;                                           break;
+   case BEGL_BufferFormat_eX8B8G8R8:            ret = XBGR_8888_RSO;                                           break;
+   case BEGL_BufferFormat_eR8G8B8A8:            ret = RGBA_8888_RSO;                                           break;
+   case BEGL_BufferFormat_eR8G8B8X8:            ret = RGBX_8888_RSO;                                           break;
+   case BEGL_BufferFormat_eR5G6B5:              ret = RGB_565_RSO;                                             break;
+   case BEGL_BufferFormat_eYV12:                ret = YV12_RSO;                                                break;
+
+   case BEGL_BufferFormat_eA8B8G8R8_sRGB_PRE:   ret = (ABGR_8888_RSO | IMAGE_FORMAT_PRE);                      break;
+   case BEGL_BufferFormat_eX8B8G8R8_sRGB_PRE:   ret = (XBGR_8888_RSO | IMAGE_FORMAT_PRE);                      break;
+   case BEGL_BufferFormat_eR8G8B8A8_sRGB_PRE:   ret = (RGBA_8888_RSO | IMAGE_FORMAT_PRE);                      break;
+   case BEGL_BufferFormat_eR8G8B8X8_sRGB_PRE:   ret = (RGBX_8888_RSO | IMAGE_FORMAT_PRE);                      break;
+   case BEGL_BufferFormat_eR5G6B5_sRGB_PRE:     ret = (RGB_565_RSO | IMAGE_FORMAT_PRE);                        break;
+
+   case BEGL_BufferFormat_eA8B8G8R8_LIN_NON:    ret = (ABGR_8888_RSO | IMAGE_FORMAT_LIN);                      break;
+   case BEGL_BufferFormat_eX8B8G8R8_LIN_NON:    ret = (XBGR_8888_RSO | IMAGE_FORMAT_LIN);                      break;
+   case BEGL_BufferFormat_eR8G8B8A8_LIN_NON:    ret = (RGBA_8888_RSO | IMAGE_FORMAT_LIN);                      break;
+   case BEGL_BufferFormat_eR8G8B8X8_LIN_NON:    ret = (RGBX_8888_RSO | IMAGE_FORMAT_LIN);                      break;
+   case BEGL_BufferFormat_eR5G6B5_LIN_NON:      ret = (RGB_565_RSO | IMAGE_FORMAT_LIN);                        break;
+
+   case BEGL_BufferFormat_eA8B8G8R8_LIN_PRE:    ret = (ABGR_8888_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);   break;
+   case BEGL_BufferFormat_eX8B8G8R8_LIN_PRE:    ret = (XBGR_8888_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);   break;
+   case BEGL_BufferFormat_eR8G8B8A8_LIN_PRE:    ret = (RGBA_8888_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);   break;
+   case BEGL_BufferFormat_eR8G8B8X8_LIN_PRE:    ret = (RGBX_8888_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);   break;
+   case BEGL_BufferFormat_eR5G6B5_LIN_PRE:      ret = (RGB_565_RSO | IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);     break;
+
+   default:                                     ret = IMAGE_FORMAT_INVALID;                                    break;
    }
 
-   return colorformat;
+   return ret;
 }
 
-void BEGLint_intBufferGetRequirements(BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements)
+void BEGLint_intBufferGetRequirements(const BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings *bufferConstrainedRequirements)
 {
    KHRN_IMAGE_CREATE_FLAG_T flags = 0;
    KHRN_IMAGE_FORMAT_T format;
@@ -78,52 +100,11 @@ void BEGLint_intBufferGetRequirements(BEGL_PixmapInfoEXT *bufferRequirements, BE
 
    memset(bufferConstrainedRequirements, 0, sizeof(BEGL_BufferSettings));
 
-   switch (bufferRequirements->format)
-   {
-   case BEGL_BufferFormat_eA8B8G8R8:
-   case BEGL_BufferFormat_eX8B8G8R8:
-      format = ABGR_8888_RSO;
-      flags = IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
-      break;
-   case BEGL_BufferFormat_eR8G8B8A8:
-   case BEGL_BufferFormat_eR8G8B8X8:
-      format = RGBA_8888_RSO;
-      flags = IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
-      break;
-   case BEGL_BufferFormat_eR5G6B5:
-      format = RGB_565_RSO;
-      flags = IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
-      break;
-   case BEGL_BufferFormat_eA8B8G8R8_TFormat:
-      format = ABGR_8888_TF;
-      flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
-      break;
-   case BEGL_BufferFormat_eX8B8G8R8_TFormat:
-      format = XBGR_8888_TF;
-      flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
-      break;
-   case BEGL_BufferFormat_eR5G6B5_TFormat:
-      format = RGB_565_TF;
-      flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
-      break;
-   case BEGL_BufferFormat_eR5G5B5A1_TFormat:
-      format = RGBA_5551_TF;
-      flags = IMAGE_CREATE_FLAG_TEXTURE;
-      break;
-   case BEGL_BufferFormat_eR4G4B4A4_TFormat:
-      format = RGBA_4444_TF;
-      flags = IMAGE_CREATE_FLAG_TEXTURE;
-      break;
-   default:
-      assert(0);
-      format = IMAGE_FORMAT_INVALID;
-   }
+   flags = IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
 
-   if (bufferRequirements->openvg)
-   {
-      format = abstract_colorformat_to_format(format, bufferRequirements->colorFormat);
-      format = khrn_image_to_openvg_format(format);
-   }
+   format = abstract_bufferformat_to_format(bufferRequirements->format);
+
+   bufferConstrainedRequirements->secure = bufferRequirements->secure;
 
    wd = bufferRequirements->width;
    ht = bufferRequirements->height;
@@ -132,8 +113,8 @@ void BEGLint_intBufferGetRequirements(BEGL_PixmapInfoEXT *bufferRequirements, BE
    khrn_image_platform_fudge(&format, &wd, &ht, &align, flags);
 
    bufferConstrainedRequirements->format = bufferRequirements->format;
-   bufferConstrainedRequirements->width = wd;
-   bufferConstrainedRequirements->height = ht;
+   bufferConstrainedRequirements->width = bufferRequirements->width;
+   bufferConstrainedRequirements->height = bufferRequirements->height;
    bufferConstrainedRequirements->alignment = (align > cacheline_size) ? align : cacheline_size;
    bufferConstrainedRequirements->pitchBytes = khrn_image_get_stride(format, wd);
    bufferConstrainedRequirements->totalByteSize = khrn_image_get_size(format, wd, ht);
@@ -144,197 +125,79 @@ void BEGLint_intBufferGetRequirements(BEGL_PixmapInfoEXT *bufferRequirements, BE
    bufferConstrainedRequirements->totalByteSize = (bufferConstrainedRequirements->totalByteSize + (cacheline_size - 1)) & ~(cacheline_size - 1);
 }
 
-EGLAPI void EGLAPIENTRY BEGLint_BufferGetRequirements(BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements)
+EGLAPI void EGLAPIENTRY BEGLint_BufferGetRequirements(const BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings *bufferConstrainedRequirements)
 {
    BEGLint_intBufferGetRequirements(bufferRequirements, bufferConstrainedRequirements);
 }
 
-MEM_HANDLE_T egl_server_platform_create_pixmap_info(uint32_t pixmap, EGLint *error)
+MEM_HANDLE_T egl_server_platform_create_pixmap_info(void *platform_pixmap, bool invalid)
 {
-   MEM_HANDLE_T handle = MEM_INVALID_HANDLE;
+   MEM_HANDLE_T mh_image = MEM_HANDLE_INVALID;
    BEGL_BufferSettings bufferSettings;
-   BEGL_DriverInterfaces * driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
 
    memset(&bufferSettings, 0, sizeof(BEGL_BufferSettings));
 
-   if ((driverInterfaces != NULL) &&
-       (driverInterfaces->displayInterface != NULL) &&
-       (driverInterfaces->displayInterface->BufferGetCreateSettings != NULL))
+   BEGL_Error ret = driverInterfaces->displayInterface->SurfaceGetInfo(driverInterfaces->displayInterface->context,
+      BEGL_DEFAULT_BUFFER, (BEGL_BufferHandle)platform_pixmap, &bufferSettings);
+
+   if (ret == BEGL_Success)
    {
-      BEGL_Error ret;
-      ret = driverInterfaces->displayInterface->BufferGetCreateSettings(driverInterfaces->displayInterface->context,
-               (BEGL_BufferHandle)pixmap, &bufferSettings);
+      KHRN_IMAGE_FORMAT_T format = IMAGE_FORMAT_INVALID;
+      KHRN_IMAGE_CREATE_FLAG_T flags;
 
-      if (ret == BEGL_Success)
+      uint32_t w = bufferSettings.width;
+      uint32_t h = bufferSettings.height;
+
+      flags = IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
+
+      if (invalid)
+         flags |= IMAGE_CREATE_FLAG_INVALID;
+
+      format = abstract_bufferformat_to_format(bufferSettings.format);
+
+      if (format == YV12_RSO)
+         flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE;  /* Not a valid render target */
+
+      if ((((uint32_t)bufferSettings.cachedAddr & ~0xFFF) == (uint32_t)bufferSettings.cachedAddr) &&
+            (((uint32_t)bufferSettings.physOffset & ~0xFFF) == (uint32_t)bufferSettings.physOffset) &&
+            (format != IMAGE_FORMAT_INVALID))
       {
-         uint32_t w, h;
          uint32_t align = 0;
-         MEM_HANDLE_T wrapHandle;
-         KHRN_IMAGE_FORMAT_T format = IMAGE_FORMAT_INVALID;
-         KHRN_IMAGE_CREATE_FLAG_T flags;
+         khrn_image_platform_fudge(&format, &w, &h, &align, flags);
 
-         w = bufferSettings.width;
-         h = bufferSettings.height;
+         MEM_HANDLE_T mh_wrap = mem_wrap(bufferSettings.secure ? NULL : bufferSettings.cachedAddr,
+                                 bufferSettings.physOffset,
+                                 bufferSettings.pitchBytes * h,
+                                 align, MEM_FLAG_DIRECT | (bufferSettings.secure ? MEM_FLAG_SECURE : 0),
+                                 "wrapped pixmap");
 
-         flags = IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
+         mh_image = khrn_image_create_from_storage(format,
+            bufferSettings.width, bufferSettings.height, bufferSettings.pitchBytes,
+            MEM_HANDLE_INVALID, mh_wrap, 0,
+            flags, bufferSettings.secure);
 
-         switch (bufferSettings.format)
-         {
-         case BEGL_BufferFormat_eR5G6B5:
-            format = RGB_565_RSO;
-            break;
-         case BEGL_BufferFormat_eR5G6B5_Texture:
-            format = RGB_565_RSO;
-            flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE;  /* Not a valid render target */
-            break;
-         case BEGL_BufferFormat_eA8B8G8R8_Texture:
-         case BEGL_BufferFormat_eR8G8B8A8_Texture:
-            {
-               format = ABGR_8888_RSO;
-               flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE;  /* Not a valid render target */
-            }
-            break;
-         case BEGL_BufferFormat_eA8R8G8B8_Texture:
-         case BEGL_BufferFormat_eB8G8R8A8_Texture:
-            {
-               format = ARGB_8888_RSO;
-               flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE;  /* Not a valid render target */
-            }
-            break;
-         case BEGL_BufferFormat_eA8B8G8R8:
-            format = ABGR_8888_RSO;
-            break;
-         case BEGL_BufferFormat_eR8G8B8A8:
-            format = RGBA_8888_RSO;
-            break;
-         case BEGL_BufferFormat_eX8B8G8R8:
-            format = XBGR_8888_RSO;
-            break;
-         case BEGL_BufferFormat_eR8G8B8X8:
-            format = RGBX_8888_RSO;
-            break;
-         case BEGL_BufferFormat_eA8B8G8R8_TFormat:
-            format = ABGR_8888_TF;
-            flags |= IMAGE_CREATE_FLAG_TEXTURE;
-            break;
-         case BEGL_BufferFormat_eX8B8G8R8_TFormat:
-            format = XBGR_8888_TF;
-            flags |= IMAGE_CREATE_FLAG_TEXTURE;
-            break;
-         case BEGL_BufferFormat_eR5G6B5_TFormat:
-            format = RGB_565_TF;
-            flags |= IMAGE_CREATE_FLAG_TEXTURE;
-            break;
-         case BEGL_BufferFormat_eR5G5B5A1_TFormat:
-            format = RGBA_5551_TF;
-            flags |= IMAGE_CREATE_FLAG_TEXTURE;
-            break;
-         case BEGL_BufferFormat_eR4G4B4A4_TFormat:
-            format = RGBA_4444_TF;
-            flags |= IMAGE_CREATE_FLAG_TEXTURE;
-            break;
-         case BEGL_BufferFormat_eYV12_Texture:
-            format = YV12_RSO;
-            flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE;  /* Not a valid render target */
-            break;
-         default:
-            /* can come here if format is not supported */
-            break;
-         }
+         /* Note: Don't store the opaque buffer handle here, as we may not always want to destroy it.
+            * We'll store it explicitly for our swap chain created buffers. Remember, this is used for pixmaps too.*/
 
-         if (bufferSettings.openvg)
-         {
-            format = abstract_colorformat_to_format(format, bufferSettings.colorFormat);
-            format = khrn_image_to_openvg_format(format);
-         }
-
-         if ((((uint32_t)bufferSettings.cachedAddr & ~0xFFF) == (uint32_t)bufferSettings.cachedAddr) &&
-             (((uint32_t)bufferSettings.physOffset & ~0xFFF) == (uint32_t)bufferSettings.physOffset) &&
-             (format != IMAGE_FORMAT_INVALID))
-         {
-            khrn_image_platform_fudge(&format, &w, &h, &align, flags);
-
-            wrapHandle = mem_wrap(bufferSettings.secure ? NULL : bufferSettings.cachedAddr,
-                                  bufferSettings.physOffset,
-                                  bufferSettings.pitchBytes * h,
-                                  align, MEM_FLAG_DIRECT | (bufferSettings.secure ? MEM_FLAG_SECURE : 0),
-                                  "wrapped pixmap");
-
-#ifdef ANDROID
-            LOGD("%s[%d] Bs.width[w]:%x[%x] BsHeight[h]:%x[%x] BspitchBytes:%x[%x] format:%x ",
-            __FUNCTION__,__LINE__,
-            bufferSettings.width,w,
-            bufferSettings.height,h,
-            bufferSettings.pitchBytes,
-            khrn_image_get_stride(format, w),format);
-#endif
-            handle = khrn_image_create_from_storage(format,
-               bufferSettings.width, bufferSettings.height, bufferSettings.pitchBytes,
-               MEM_INVALID_HANDLE, wrapHandle, 0,
-               flags, bufferSettings.secure);
-
-            /* Note: Don't store the opaque buffer handle here, as we may not always want to destroy it.
-               * We'll store it explicitly for our swap chain created buffers. Remember, this is used for pixmaps too.*/
-
-            mem_release(wrapHandle);
-            if (handle == MEM_INVALID_HANDLE)
-               *error = EGL_BAD_ALLOC;
-            else
-               *error = EGL_SUCCESS;
-         }
-         else
-         {
-            *error = EGL_BAD_NATIVE_PIXMAP;
-         }
+         mem_release(mh_wrap);
       }
    }
 
-   return handle;
+   return mh_image;
 }
 
 void egl_server_platform_init(void)
 {
 }
 
-void egl_server_platform_set_position(uint32_t handle, uint32_t position, uint32_t width, uint32_t height)
-{
-   UNUSED(handle);
-   UNUSED(position);
-   UNUSED(width);
-   UNUSED(height);
-   /* todo, resize swap chain */
-}
-
-uint32_t egl_server_platform_get_window_position(EGLNativeWindowType win)
-{
-   UNUSED(win);
-   return 0;
-}
-
-void BRCM_GetDefaultNativeWindowSettings(EGLNativeWindowType nwt)
-{
-   UNUSED(nwt);
-   /* todo - remove me */
-}
-
-EGLDisplay egl_server_platform_default_display(void)
+static EGLDisplay egl_server_platform_default_display(void)
 {
    /* return the first display */
    return (EGLDisplay)1;
 }
 
-bool egl_server_platform_validate_display(EGLDisplay display)
-{
-   return (display == (EGLDisplay)1);
-}
-
-void egl_server_platform_set_display(EGLDisplay dpy, EGLNativeWindowType win)
-{
-   UNUSED(dpy);
-   UNUSED(win);
-}
-
-bool egl_server_platform_create_window_state(BEGL_WindowState **windowState, uint32_t window)
+bool egl_server_platform_create_window_state(BEGL_WindowState **windowState, uintptr_t window, bool secure)
 {
    BEGL_WindowState        *platformState = NULL;
    BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
@@ -344,17 +207,13 @@ bool egl_server_platform_create_window_state(BEGL_WindowState **windowState, uin
    memset(platformState, 0, sizeof(BEGL_WindowState));
    platformState->window = (BEGL_WindowHandle)window;
 
-   if ((driverInterfaces != NULL) &&
-      (driverInterfaces->displayInterface != NULL) &&
-      (driverInterfaces->displayInterface->WindowPlatformStateCreate != NULL))
+   if (platformState)
    {
-      if (platformState)
-      {
-         platformState->platformState = driverInterfaces->displayInterface->WindowPlatformStateCreate(
-                                                driverInterfaces->displayInterface->context, (BEGL_WindowHandle)window);
-         if (platformState->platformState == NULL)
-            ok = false;
-      }
+      platformState->platformState = driverInterfaces->displayInterface->WindowPlatformStateCreate(
+                                             driverInterfaces->displayInterface->context,
+                                             (BEGL_WindowHandle)window, secure);
+      if (platformState->platformState == NULL)
+         ok = false;
    }
 
    *windowState = platformState;
@@ -362,211 +221,247 @@ bool egl_server_platform_create_window_state(BEGL_WindowState **windowState, uin
    return ok;
 }
 
-uint32_t egl_server_platform_create_buffer(
-   KHRN_IMAGE_FORMAT_T format,
-   uint32_t width, uint32_t height,
-   KHRN_IMAGE_CREATE_FLAG_T flags,
-   BEGL_WindowState *platformState,
-   BEGL_BufferUsage usage,
-   bool secure)
+void egl_server_platform_destroy_window_state(BEGL_WindowState  *windowState)
 {
-   BEGL_BufferHandle bufHandle = 0;
-   BEGL_DriverInterfaces * driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
 
-   if ((driverInterfaces != NULL) &&
-      (driverInterfaces->displayInterface != NULL) &&
-      (driverInterfaces->displayInterface->BufferCreate != NULL))
-   {
-      uint32_t padded_width = width;
-      uint32_t padded_height = height;
-      uint32_t align = 64;
-      uint32_t overrun;
-      BEGL_BufferSettings bufferSettings;
-      bool rso;
-      /* needs to be max of CPU cache line and the GCACHE on the v3d */
-      uint32_t cacheline_size = mem_cacheline_size();
-      cacheline_size = (cacheline_size > BCG_GCACHE_LINE_SIZE) ? cacheline_size : BCG_GCACHE_LINE_SIZE;
-
-      vcos_assert(format != IMAGE_FORMAT_INVALID);
-
-      khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, flags);
-      rso = khrn_image_is_rso(format);
-
-      memset(&bufferSettings, 0, sizeof(BEGL_BufferSettings));
-
-      bufferSettings.usage = usage;
-
-      if (platformState)
-         bufferSettings.windowState = *((BEGL_WindowState *)platformState);
-
-      bufferSettings.alignment = (align > cacheline_size) ? align : cacheline_size;
-      bufferSettings.width = width;
-      bufferSettings.height = height;
-      bufferSettings.pitchBytes = khrn_image_get_stride(format, padded_width);
-      bufferSettings.totalByteSize = khrn_image_get_size(format, padded_width, padded_height);
-      /* make sure the last line can always complete a tile line (with the enables set) */
-      overrun = (KHRN_HW_TILE_WIDTH - (padded_width % KHRN_HW_TILE_WIDTH)) * (khrn_image_get_bpp(format) / 8);
-      bufferSettings.totalByteSize += overrun;
-      /* align to a cache line */
-      bufferSettings.totalByteSize = (bufferSettings.totalByteSize + (cacheline_size - 1)) & ~(cacheline_size - 1);
-#if defined(BIG_ENDIAN_CPU)
-      bufferSettings.format = (rso) ? BEGL_BufferFormat_eR8G8B8A8 : BEGL_BufferFormat_eA8B8G8R8_TFormat;
-#else
-      bufferSettings.format = (rso) ? BEGL_BufferFormat_eA8B8G8R8 : BEGL_BufferFormat_eA8B8G8R8_TFormat;
-#endif
-
-      if (khrn_image_get_bpp(format) == 16)
-         bufferSettings.format = (rso) ? BEGL_BufferFormat_eR5G6B5 : BEGL_BufferFormat_eR5G6B5_TFormat;
-      else if (khrn_image_get_alpha_size(format) == 0)
-      {
-#if defined(BIG_ENDIAN_CPU)
-         bufferSettings.format = (rso) ? BEGL_BufferFormat_eR8G8B8X8 : BEGL_BufferFormat_eX8B8G8R8_TFormat;
-#else
-         bufferSettings.format = (rso) ? BEGL_BufferFormat_eX8B8G8R8 : BEGL_BufferFormat_eX8B8G8R8_TFormat;
-#endif
-      }
-
-      if (khrn_image_is_openvg(format))
-      {
-         bufferSettings.colorFormat = format_to_abstract_colorformat(format);
-         bufferSettings.openvg = 1;
-      }
-      else
-      {
-         bufferSettings.colorFormat = BEGL_ColorFormat_eLinear;
-         bufferSettings.openvg = 0;
-      }
-
-      bufferSettings.secure = secure;
-
-      bufHandle = driverInterfaces->displayInterface->BufferCreate(driverInterfaces->displayInterface->context,
-                                                                   &bufferSettings);
-   }
-
-   return (uint32_t)bufHandle;
+   driverInterfaces->displayInterface->WindowPlatformStateDestroy(
+      driverInterfaces->displayInterface->context,
+      windowState->platformState);
+   free(windowState);
 }
 
-uint32_t egl_server_platform_get_buffer(
-   KHRN_IMAGE_FORMAT_T format,
-   uint32_t width, uint32_t height,
-   KHRN_IMAGE_CREATE_FLAG_T flags,
-   BEGL_WindowState *platformState,
-   BEGL_BufferUsage usage,
-   bool secure)
+void *egl_server_platform_dequeue(
+   BEGL_WindowState *window_state, KHRN_IMAGE_FORMAT_T format, int *fd)
 {
-   BEGL_BufferHandle bufHandle = 0;
-   BEGL_DriverInterfaces * driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_BufferHandle pixmap = NULL;
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
 
-   if ((driverInterfaces != NULL) &&
-      (driverInterfaces->displayInterface != NULL) &&
-      (driverInterfaces->displayInterface->BufferGet != NULL))
-   {
-      uint32_t padded_width = width;
-      uint32_t padded_height = height;
-      uint32_t align = 64;
-      uint32_t overrun;
-      bool rso_image;
-      BEGL_BufferSettings bufferSettings;
-      /* needs to be max of CPU cache line and the GCACHE on the v3d */
-      uint32_t cacheline_size = mem_cacheline_size();
-      cacheline_size = (cacheline_size > BCG_GCACHE_LINE_SIZE) ? cacheline_size : BCG_GCACHE_LINE_SIZE;
+   BEGL_BufferFormat abstract_format = format_to_abstract_bufferformat(format);
 
-      khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, flags);
-      rso_image = khrn_image_is_rso(format);
+   pixmap = driverInterfaces->displayInterface->BufferDequeue(driverInterfaces->displayInterface->context,
+      window_state->platformState, abstract_format, fd);
 
-      memset(&bufferSettings, 0, sizeof(BEGL_BufferSettings));
-      bufferSettings.usage = usage;
-      if (platformState)
-         bufferSettings.windowState = *platformState;
-
-      bufferSettings.alignment = (align > cacheline_size) ? align : cacheline_size;
-      bufferSettings.width = width;
-      bufferSettings.height = height;
-      bufferSettings.pitchBytes = khrn_image_get_stride(format, padded_width);
-      bufferSettings.totalByteSize = khrn_image_get_size(format, padded_width, padded_height);
-      /* make sure the last line can always complete a tile line (with the enables set) */
-      overrun = (KHRN_HW_TILE_WIDTH - (padded_width % KHRN_HW_TILE_WIDTH)) * (khrn_image_get_bpp(format) / 8);
-      bufferSettings.totalByteSize += overrun;
-      /* align to a cache line */
-      bufferSettings.totalByteSize = (bufferSettings.totalByteSize + (cacheline_size - 1)) & ~(cacheline_size - 1);
-#if defined(BIG_ENDIAN_CPU)
-      bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eR8G8B8A8 : BEGL_BufferFormat_eA8B8G8R8_TFormat;
-#else
-      bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eA8B8G8R8 : BEGL_BufferFormat_eA8B8G8R8_TFormat;
-#endif
-
-      if (khrn_image_get_bpp(format) == 16)
-         bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eR5G6B5 : BEGL_BufferFormat_eR5G6B5_TFormat;
-      else if (khrn_image_get_alpha_size(format) == 0)
-      {
-#if defined(BIG_ENDIAN_CPU)
-         bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eR8G8B8X8 : BEGL_BufferFormat_eX8B8G8R8_TFormat;
-#else
-         bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eX8B8G8R8 : BEGL_BufferFormat_eX8B8G8R8_TFormat;
-#endif
-      }
-
-      if (khrn_image_is_openvg(format))
-      {
-         bufferSettings.colorFormat = format_to_abstract_colorformat(format);
-         bufferSettings.openvg = 1;
-      }
-      else
-      {
-         bufferSettings.colorFormat = BEGL_ColorFormat_eLinear;
-         bufferSettings.openvg = 0;
-      }
-
-      bufferSettings.secure = secure;
-
-      bufHandle = driverInterfaces->displayInterface->BufferGet(driverInterfaces->displayInterface->context,
-                                                                &bufferSettings);
-
-      /*
-      printf("cachedAddr     = %p\n"
-             "physOffset     = %p\n"
-             "width          = %d\n"
-             "height         = %d\n"
-             "pitchBytes     = %d\n"
-             "totalByteSize  = %d\n"
-             "alignment      = %d\n"
-             "format         = %d\n"
-             "usage          = %d\n",
-             bufferSettings.cachedAddr,
-             bufferSettings.physOffset,
-             bufferSettings.width,
-             bufferSettings.height,
-             bufferSettings.pitchBytes,
-             bufferSettings.totalByteSize,
-             bufferSettings.alignment,
-             bufferSettings.format,
-             bufferSettings.usage);
-      */
-   }
-
-   return (uint32_t)bufHandle;
+   return (void *)pixmap;
 }
 
-
-void egl_server_platform_destroy_buffer(uint32_t bufHandle, BEGL_WindowState *windowState)
+bool egl_server_platform_queue(BEGL_WindowState *windowState, void *opaque_buffer_handle, int swap_interval, int fd)
 {
-   if (bufHandle != 0)
-   {
-      /* Destroy the abstract buffer */
-      BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
-      if (driverInterfaces != NULL &&
-          driverInterfaces->displayInterface != NULL &&
-          driverInterfaces->displayInterface->BufferDestroy != NULL)
-      {
-         BEGL_BufferDisplayState state;
-         memset(&state, 0, sizeof(BEGL_BufferDisplayState));
-         state.buffer = (BEGL_BufferHandle)bufHandle;
-         if (windowState != NULL)
-         {
-            state.windowState = *windowState;
-         }
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
 
-         driverInterfaces->displayInterface->BufferDestroy(driverInterfaces->displayInterface->context, &state);
+   driverInterfaces->displayInterface->BufferQueue(
+      driverInterfaces->displayInterface->context,
+      windowState->platformState,
+      opaque_buffer_handle,
+      swap_interval,
+      fd);
+
+   return BEGL_Success;
+}
+
+bool egl_server_platform_cancel(BEGL_WindowState *windowState, void *opaque_buffer_handle, int fd)
+{
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   driverInterfaces->displayInterface->BufferCancel(
+      driverInterfaces->displayInterface->context,
+      windowState->platformState,
+      opaque_buffer_handle,
+      fd);
+
+   return BEGL_Success;
+}
+
+bool egl_server_platform_get_info(EGLenum target, void *native_buffer, uint32_t *w, uint32_t *h, uint32_t *stride, KHRN_IMAGE_FORMAT_T *format, uint32_t *offset, void **p)
+{
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   if ((driverInterfaces->displayInterface != NULL) &&
+      (driverInterfaces->displayInterface->SurfaceGetInfo != NULL))
+   {
+      BEGL_Error res;
+      BEGL_BufferSettings settings;
+
+      res = driverInterfaces->displayInterface->SurfaceGetInfo(driverInterfaces->displayInterface->context,
+         target, native_buffer,
+         &settings);
+
+      if (res == BEGL_Success)
+      {
+         *w = settings.width;
+         *h = settings.height;
+         *stride = settings.pitchBytes;
+         *offset = settings.physOffset;
+         *p = settings.cachedAddr;
+
+         KHRN_IMAGE_FORMAT_T f = abstract_bufferformat_to_format(settings.format);
+
+         /* only convert to lt for tf images.  RSO should travel through as normal */
+         if (khrn_image_is_tformat(f) && khrn_image_prefer_lt(f, *w, *h))
+            *format = khrn_image_to_lt_format(f);
+         else
+            *format = f;
+
+         return true;
       }
    }
+
+   return false;
+}
+
+static void egl_server_platform_inc_refcnt(EGLenum target, void *native_buffer)
+{
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   if ((driverInterfaces->displayInterface != NULL) &&
+      (driverInterfaces->displayInterface->SurfaceChangeRefCount != NULL))
+   {
+      driverInterfaces->displayInterface->SurfaceChangeRefCount(driverInterfaces->displayInterface->context,
+            target, native_buffer, BEGL_Increment);
+   }
+}
+
+static void egl_server_platform_dec_refcnt(EGLenum target, void *native_buffer)
+{
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   if ((driverInterfaces->displayInterface != NULL) &&
+      (driverInterfaces->displayInterface->SurfaceChangeRefCount != NULL))
+   {
+      driverInterfaces->displayInterface->SurfaceChangeRefCount(driverInterfaces->displayInterface->context,
+            target, native_buffer, BEGL_Decrement);
+   }
+}
+
+typedef struct
+{
+   EGLenum target;
+   void *native_buffer;
+} EGLBUFINFO_T;
+
+static void egl_server_platform_image_wrap_term(MEM_HANDLE_T handle)
+{
+   EGLBUFINFO_T *info = (EGLBUFINFO_T *)mem_get_param(handle);
+   egl_server_platform_dec_refcnt(info->target, info->native_buffer);
+   free(info);
+}
+
+MEM_HANDLE_T egl_server_platform_image_wrap(EGLenum target, void *native_buffer)
+{
+   MEM_HANDLE_T handle;
+   void *p;
+   uint32_t offset, w, h, stride;
+   KHRN_IMAGE_FORMAT_T format = ABGR_8888_RSO;
+
+   if (!egl_server_platform_get_info(target, native_buffer, &w, &h, &stride, &format, &offset, &p))
+      return MEM_HANDLE_INVALID;
+
+   handle = mem_wrap(p, offset,
+      h * stride,
+      1, MEM_FLAG_DIRECT,
+      "EGL_NATIVE_BUFFER_ANDROID");
+   if (handle == MEM_HANDLE_INVALID)
+      return MEM_HANDLE_INVALID;
+
+   EGLBUFINFO_T *info = malloc(sizeof(*info));
+   if (!info)
+   {
+      mem_release(handle); /* this can't trigger our term handle - it's not set yet */
+      return MEM_HANDLE_INVALID;
+   }
+   info->target = target;
+   info->native_buffer = native_buffer;
+
+   egl_server_platform_inc_refcnt(target, native_buffer);
+
+   mem_set_term(handle, egl_server_platform_image_wrap_term, info);
+
+   MEM_HANDLE_T res = khrn_image_create_from_storage(format,
+      w, h, stride,
+      MEM_HANDLE_INVALID, handle, 0, IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE, false);
+
+   mem_release(handle);
+
+   return res;
+}
+
+void *egl_server_platform_get_native_buffer(EGLenum target, EGLClientBuffer *egl_buffer)
+{
+   void *native_buffer;
+   BEGL_DriverInterfaces  *driverInterfaces = BEGL_GetDriverInterfaces();
+   if ((driverInterfaces->displayInterface != NULL) &&
+      (driverInterfaces->displayInterface->GetNativeBuffer != NULL))
+   {
+      if (driverInterfaces->displayInterface->GetNativeBuffer(
+            driverInterfaces->displayInterface->context, target, egl_buffer,
+            &native_buffer) != BEGL_Success)
+         native_buffer = NULL;
+   }
+   else /* use egl_buffer as is */
+   {
+      native_buffer = (void*)egl_buffer;
+   }
+   return native_buffer;
+
+}
+
+MEM_HANDLE_T egl_server_platform_image_new(EGLenum target, void *native_buffer, EGLint *error)
+{
+   if (native_buffer)
+   {
+      return egl_server_platform_image_wrap(target, native_buffer);
+   }
+   else
+   {
+      *error = EGL_BAD_MATCH;
+      return MEM_HANDLE_INVALID;
+   }
+}
+
+EGLDisplay egl_server_platform_set_display(EGLenum platform, void *native_display)
+{
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   if ((driverInterfaces->displayInterface != NULL) &&
+      (driverInterfaces->displayInterface->SetDisplay != NULL))
+   {
+      BEGL_Error res;
+
+      res = driverInterfaces->displayInterface->SetDisplay(
+            driverInterfaces->displayInterface->context, platform,
+            native_display);
+      if (res != BEGL_Success)
+         return EGL_NO_DISPLAY;
+      return egl_server_platform_default_display();
+   }
+   else if (platform == BEGL_DEFAULT_PLATFORM
+         && native_display == EGL_DEFAULT_DISPLAY)
+      return egl_server_platform_default_display();
+   else
+      return EGL_NO_DISPLAY;
+}
+
+uint32_t egl_server_platform_get_color_format(KHRN_IMAGE_FORMAT_T format)
+{
+   uint32_t res = 0;
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   /* remove any colorspace flags */
+   format = khrn_image_no_colorspace_format(format);
+
+   if (khrn_image_is_tformat(format) || khrn_image_is_rso(format))
+   {
+      if ((driverInterfaces->displayInterface != NULL) &&
+         (driverInterfaces->displayInterface->GetNativeFormat != NULL))
+      {
+         format = khrn_image_to_rso_format(format);
+
+         BEGL_BufferFormat bufferFormat = format_to_abstract_bufferformat(format);
+
+         driverInterfaces->displayInterface->GetNativeFormat(driverInterfaces->displayInterface->context,
+            bufferFormat, &res);
+      }
+   }
+
+   return res;
 }

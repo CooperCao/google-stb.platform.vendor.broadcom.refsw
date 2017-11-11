@@ -1267,7 +1267,10 @@ NEXUS_Error NEXUS_HdmiOutput_SetHdcpSettings(
     /* Store Settings */
     handle->hdcpSettings = *pSettings;
 
-    if (hdcpVersionSelect == NEXUS_HdmiOutputHdcpVersion_e1_x) {
+    if ((hdcpVersionSelect == NEXUS_HdmiOutputHdcpVersion_e1_x)
+    || ((hdcpVersionSelect == NEXUS_HdmiOutputHdcpVersion_eAuto)
+        && (handle->eHdcpVersion < BHDM_HDCP_Version_e2_2)))
+    {
         /* May need to enable encryption if the setting changed.  Check now */
         if ( pSettings->transmitEncrypted )
         {
@@ -1705,7 +1708,7 @@ static void NEXUS_HdmiOutput_P_HdcpKeepAliveTimerCallback(void *pContext)
     rc = NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdcpStatus);
     if (rc) BERR_TRACE(rc);
 
-    if ((hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled || hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eLinkAuthenticated)) {
+    if (hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled) {
         return;
     }
 

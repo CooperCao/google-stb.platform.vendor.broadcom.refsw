@@ -54,10 +54,10 @@ static const bipc_interface_descriptor * const client_interfaces [] = {
 };
 
 static pthread_mutex_t g_mutex[nxclient_ipc_thread_max] = {PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER};
-#define LOCK() pthread_mutex_lock(&g_mutex[nxclient_ipc_thread_restricted])
-#define UNLOCK() pthread_mutex_unlock(&g_mutex[nxclient_ipc_thread_restricted])
-#define LOCK_STANDBY() pthread_mutex_lock(&g_mutex[nxclient_ipc_thread_regular])
-#define UNLOCK_STANDBY() pthread_mutex_unlock(&g_mutex[nxclient_ipc_thread_regular])
+#define LOCK() (void)pthread_mutex_lock(&g_mutex[nxclient_ipc_thread_restricted])
+#define UNLOCK() (void)pthread_mutex_unlock(&g_mutex[nxclient_ipc_thread_restricted])
+#define LOCK_STANDBY() (void)pthread_mutex_lock(&g_mutex[nxclient_ipc_thread_regular])
+#define UNLOCK_STANDBY() (void)pthread_mutex_unlock(&g_mutex[nxclient_ipc_thread_regular])
 
 static unsigned NxClient_P_RegisterAcknowledgeStandby(void);
 static void NxClient_P_Uninit(unsigned id);

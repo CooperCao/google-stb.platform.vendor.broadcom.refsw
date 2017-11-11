@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -229,10 +229,11 @@ int NEXUS_atoi( /* attr{local=true} */
 Summary:
 Standard string functions
 **/
-int NEXUS_P_Base_StrCmp( /* attr{local=true} */
+int NEXUS_P_Base_StrCmp_isrsafe( /* attr{local=true} */
     const char *str1,
     const char *str2
     );
+#define NEXUS_P_Base_StrCmp NEXUS_P_Base_StrCmp_isrsafe
 
 int b_strlen( /* attr{local=true} */
     const char *s

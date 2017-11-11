@@ -87,7 +87,7 @@ MediaParser::~MediaParser()
 
 bool MediaParser::InitParser()
 {
-    LOGD(("%s: enter", __FUNCTION__));
+    LOGD(("%s: enter", BSTD_FUNCTION));
 
     if(m_filePtr == NULL){
         LOGE(("Invalid input file pointer"));
@@ -108,9 +108,7 @@ bool MediaParser::InitParser()
     }
 
     /* now go back to the begining*/
-    fseek(m_filePtr, 0, SEEK_END);
-    uint32_t  fileSize = ftell(m_filePtr);
-    fseek(m_filePtr, 0, SEEK_SET);
+    rewind(m_filePtr);
 
     LOGD(("Parse file type first"));
     bool fileTypeParsed = mp4_parser_scan_file_type(m_handle);
@@ -205,9 +203,7 @@ bool MediaParser::InitParser()
     }
 
     /* go back to the begining */
-    fseek(m_filePtr, 0, SEEK_END);
-    fileSize = ftell(m_filePtr);
-    fseek(m_filePtr, 0, SEEK_SET);
+    rewind(m_filePtr);
 
     return true;
 }

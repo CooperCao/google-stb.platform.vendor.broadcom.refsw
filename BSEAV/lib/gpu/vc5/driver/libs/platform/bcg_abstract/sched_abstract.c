@@ -68,8 +68,8 @@ void bcm_sched_queue_bin_render(
 }
 
 void bcm_sched_query(
-   struct bcm_sched_dependencies *completed_deps,
-   struct bcm_sched_dependencies *finalised_deps,
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps,
    struct bcm_sched_query_response *response)
 {
    demand(s_context.sched_iface.Query != NULL);
@@ -360,40 +360,6 @@ void v3d_platform_shutdown(void)
    gmem_destroy();
 }
 
-void v3d_platform_fence_wait(int fence)
-{
-   if (fence < 0)
-      return;
-
-   demand(s_context.sched_iface.WaitFence != NULL);
-
-   s_context.sched_iface.WaitFence(s_context.sched_iface.context, fence);
-}
-
-enum v3d_fence_status v3d_platform_fence_wait_timeout(int fence, int timeout)
-{
-   BEGL_FenceStatus  status;
-
-   if (fence < 0)
-      return V3D_FENCE_SIGNALED;
-
-   demand(s_context.sched_iface.WaitFenceTimeout != NULL);
-
-   status = s_context.sched_iface.WaitFenceTimeout(s_context.sched_iface.context, fence, timeout);
-
-   return status == BEGL_FenceSignaled ? V3D_FENCE_SIGNALED : V3D_FENCE_TIMEOUT;
-}
-
-void v3d_platform_fence_close(int fence)
-{
-   if (fence < 0)
-      return;
-
-   demand(s_context.sched_iface.CloseFence != NULL);
-
-   s_context.sched_iface.CloseFence(s_context.sched_iface.context, fence);
-}
-
 void v3d_get_info(struct v3d_idents *info)
 {
    demand(s_context.sched_iface.GetInfo != NULL);
@@ -411,7 +377,3 @@ bool v3d_platform_explicit_sync(void)
 
 /* Debug functions. These don't do anything on real HW. */
 void v3d_platform_set_debug_callback(v3d_debug_callback_t callback, void *p) {}
-void v3d_platform_set_fragment_shader_debug(bool enabled) {}
-bool v3d_platform_get_fragment_shader_debug(void) { return false; }
-void v3d_platform_set_vertex_shader_debug(bool enabled) {}
-bool v3d_platform_get_vertex_shader_debug(void) { return false; }

@@ -93,7 +93,7 @@ void khrn_render_state_flush(khrn_render_state *rs)
    case KHRN_RENDER_STATE_TYPE_GLXX:
       glxx_hw_render_state_flush(&rs->data.glxx);
       break;
- #if KHRN_GLES31_DRIVER
+ #if V3D_VER_AT_LEAST(3,3,0,0)
    case KHRN_RENDER_STATE_TYPE_GLXX_COMPUTE:
       glxx_compute_render_state_flush(&rs->data.glxx_compute);
       break;
@@ -143,7 +143,7 @@ bool khrn_render_state_record_fence_to_signal(khrn_render_state *rs,
    case KHRN_RENDER_STATE_TYPE_GLXX:
       fmem = &rs->data.glxx.fmem;
       break;
- #if KHRN_GLES31_DRIVER
+ #if V3D_VER_AT_LEAST(3,3,0,0)
    case KHRN_RENDER_STATE_TYPE_GLXX_COMPUTE:
       fmem = &rs->data.glxx_compute.fmem;
       break;

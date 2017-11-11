@@ -2,12 +2,14 @@
 #  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #############################################################################
 CPP_PLATFORM_FILES += \
+	nexus_init_for_3d.cpp \
 	bsg_platform_nexus.cpp \
 	bsg_media_prober_nexus.cpp \
 	bsg_video_nexus.cpp \
 	bsg_video_decoder_nexus.cpp
 
 H_PLATFORM_FILES += \
+	nexus_init_for_3d.h \
 	bsg_platform_nexus.h \
 	bsg_media_prober_nexus.h
 

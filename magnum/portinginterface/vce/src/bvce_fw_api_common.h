@@ -39,6 +39,10 @@
 #ifndef BVCE_FW_API_COMMON_H_
 #define BVCE_FW_API_COMMON_H_
 
+#if ( (BCHP_CHIP == 7278) && (BCHP_VER > BCHP_VER_A0 ) )
+#include "bvce_fw_api_v3.h"
+#else
 #include "bvce_fw_api.h"
+#endif
 
 #endif /* BVCE_FW_API_COMMON_H_ */

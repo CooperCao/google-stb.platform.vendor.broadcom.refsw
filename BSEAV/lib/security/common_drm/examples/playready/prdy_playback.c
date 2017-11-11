@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -650,7 +650,7 @@ bool get_box_for_type( batom_cursor *cursor, bmp4_box parent_box, uint32_t targe
         box_hdr_size = bmp4_parse_box(cursor, &target_box);
 
         if(box_hdr_size==0) {
-            printf("%s empty box - %d\n", __FUNCTION__, __LINE__);
+            printf("%s empty box - %d\n", BSTD_FUNCTION, __LINE__);
             break;
         }
         if( target_box.type == target_box_type) {
@@ -707,7 +707,7 @@ bool app_parse_sample_enc_extended_box(app_ctx_t app, batom_cursor *cursor, bmp4
                     pSample->nbOfEntries = batom_cursor_uint16_be(cursor);
                     if(pSample->nbOfEntries != 0){
                         if(pSample->nbOfEntries  > MAX_ENTRIES_PER_SAMPLE){
-                            BDBG_ERR(("%s - Default nb of entry too small, increase MAX_ENTRIES_PER_SAMPLE %x\n", __FUNCTION__));
+                            BDBG_ERR(("%s - Default nb of entry too small, increase MAX_ENTRIES_PER_SAMPLE %x\n", BSTD_FUNCTION));
                             return false;
                         }
                         pEntry = pSample->entries;
@@ -1012,14 +1012,14 @@ bool app_parse_stsd(app_ctx_t app, batom_cursor *cursor, bmp4_box *pBox, bmp4_tr
                 BDBG_MSG(("box type = %x", box.type));
                 if (vc1_stream) {
                     if (box.type == BMP4_CENC_DVC1) {
-                        printf("%s - Got the DVC1 box, read the vc1_config data\n", __FUNCTION__);
+                        printf("%s - Got the DVC1 box, read the vc1_config data\n", BSTD_FUNCTION);
                         batom_cursor_copy(cursor, app->vdec_config.data, box.size-box_hdr_size);
                         app->vdec_config.size = box.size-box_hdr_size;
                         rc = true;
                     }
                 } else {
                     if(box.type == BMP4_CENC_AVCC) {
-                        printf("%s - Got the AvcC box, read the avc_config data\n", __FUNCTION__);
+                        printf("%s - Got the AvcC box, read the avc_config data\n", BSTD_FUNCTION);
                         batom_cursor_copy(cursor, app->vdec_config.data, box.size-box_hdr_size);
                         app->vdec_config.size = box.size-box_hdr_size;
                         rc = true;
@@ -1028,7 +1028,7 @@ bool app_parse_stsd(app_ctx_t app, batom_cursor *cursor, bmp4_box *pBox, bmp4_tr
 
                 if (vc1_stream) {
                     if(box.type == BMP4_CENC_WFEX) {
-                        printf("%s - Got the wmap box, read the wmapro_config data\n", __FUNCTION__);
+                        printf("%s - Got the wmap box, read the wmapro_config data\n", BSTD_FUNCTION);
                         batom_cursor_copy(cursor, app->adec_config.data, box.size-box_hdr_size);
                         app->adec_config.size = box.size-box_hdr_size;
                         rc = true;
@@ -1037,7 +1037,7 @@ bool app_parse_stsd(app_ctx_t app, batom_cursor *cursor, bmp4_box *pBox, bmp4_tr
                     }
                 } else {
                     if(box.type == BMP4_CENC_ESDS) {
-                        printf("%s - Got the esds box, read the aac_config data\n", __FUNCTION__);
+                        printf("%s - Got the esds box, read the aac_config data\n", BSTD_FUNCTION);
                         batom_cursor_copy(cursor, app->adec_config.data, box.size-box_hdr_size);
                         app->adec_config.size = box.size-box_hdr_size;
                         rc = true;
@@ -1221,7 +1221,7 @@ bool app_parse_trak(app_ctx_t app, batom_t atom, batom_cursor *cursor, bmp4_box 
                 tkhd = batom_extract(atom, &start, cursor, NULL, NULL);
 
                 if(!bmp4_parse_trackheader(tkhd, &track_header)){
-                    printf("%s - bmp4_parse_trackheader() failded rc %d\n", __FUNCTION__, rc);
+                    printf("%s - bmp4_parse_trackheader() failded rc %d\n", BSTD_FUNCTION, rc);
                     rc = false; goto ErrorExit;
                 }
                 track.scheme.trackId = track_header.track_ID;
@@ -1229,7 +1229,7 @@ bool app_parse_trak(app_ctx_t app, batom_t atom, batom_cursor *cursor, bmp4_box 
             case BMP4_MEDIA:
                 rc = app_parse_mdia(app, cursor, &box, &track);
                 if(rc == false) {
-                    printf("%s - app_parse_mdia() failded rc %d\n", __FUNCTION__, rc);
+                    printf("%s - app_parse_mdia() failded rc %d\n", BSTD_FUNCTION, rc);
                     goto ErrorExit;
                 }
                 break;
@@ -1444,7 +1444,7 @@ void playback_piff( NEXUS_VideoDecoderHandle videoDecoder,
 
 
     BSTD_UNUSED(hex2bin);
-    printf("%s - %d\n", __FUNCTION__, __LINE__);
+    printf("%s - %d\n", BSTD_FUNCTION, __LINE__);
     if(piff_file == NULL ){
         goto clean_exit;
     }

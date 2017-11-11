@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -554,12 +554,16 @@ static void BAPE_I2sOutput_P_UpdateMclkReg_IopOut_isr(BAPE_I2sOutputHandle hI2sO
     /* Use the values in the handle's mclkInfo struct to update the
      * MCLK_CFG register.  */
 
-    BAPE_MclkSource      mclkSource          = hI2sOutput->mclkInfo.mclkSource;
-    unsigned             pllChannel          = hI2sOutput->mclkInfo.pllChannel;
-    unsigned             mclkFreqToFsRatio   = hI2sOutput->mclkInfo.mclkFreqToFsRatio;
+    BAPE_MclkSource mclkSource;
+    unsigned pllChannel;
+    unsigned mclkFreqToFsRatio;
     BAPE_Reg_P_FieldList regFieldList;
 
     BDBG_OBJECT_ASSERT(hI2sOutput, BAPE_I2sOutput);
+
+    mclkSource = hI2sOutput->mclkInfo.mclkSource;
+    pllChannel = hI2sOutput->mclkInfo.pllChannel;
+    mclkFreqToFsRatio = hI2sOutput->mclkInfo.mclkFreqToFsRatio;
 
     BAPE_Reg_P_InitFieldList(hI2sOutput->deviceHandle, &regFieldList);
 

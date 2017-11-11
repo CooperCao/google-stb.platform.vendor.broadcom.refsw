@@ -98,6 +98,9 @@ bool compute_build_dispatch(
    v3d_addr_t unifs_addr,
    const uint32_t num_work_groups[3]) noexcept;
 
+//! Patch the primary control list with a nop.
+void compute_clear_dispatch(uint8_t* dispatch_in_primary_cl) noexcept;
+
 //! Begin writing a primary compute job control list to the memory interface. Returns false on failure.
 bool compute_cl_begin(compute_cl_mem_if const* mem, void* mem_ctx) noexcept;
 

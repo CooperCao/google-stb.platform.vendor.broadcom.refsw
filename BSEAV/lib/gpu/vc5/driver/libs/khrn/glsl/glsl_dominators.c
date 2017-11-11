@@ -14,11 +14,6 @@ typedef struct {
    int *id;
 } NodeSet;
 
-struct abstract_cfg {
-   NodeSet *s;
-   int      n;
-};
-
 /* A simple iterative algorithm for computing the dominance tree. See *
  * "A simple, fast dominance algorithm", Cooper et al.                */
 static int intersect(const int *doms, int b1, int b2) {
@@ -34,25 +29,29 @@ static int intersect(const int *doms, int b1, int b2) {
 /* All nodes are identified by reverse-postorder number. pred is an array     *
  * which, when indexed by node ID gives it's predecessors. When done the doms *
  * array contains the idom for all nodes but the start node.                  */
-static void dom_tree(int *doms, const struct abstract_cfg *cfg) {
+static void dom_tree(int *doms, const NodeSet *pred, int n) {
    /* Mark all Doms as uninitialised */
-   for (int i=0; i<cfg->n; i++) doms[i] = -1;
+   for (int i=0; i<n; i++) doms[i] = -1;
    /* Entry block has id n-1 and dominates itself */
    doms[0] = 0;
 
-   bool changed = true;
-
-   while (changed) {
+   bool changed;
+   do {
       changed = false;
       /* Process the loop in reverse postorder, skipping the start node */
-      for (int rpo_id = 1; rpo_id < cfg->n; rpo_id++) {
-         const NodeSet *p = &cfg->s[rpo_id];
+      for (int rpo_id = 1; rpo_id < n; rpo_id++) {
+         const NodeSet *p = &pred[rpo_id];
 
          assert(p->n > 0);
          assert(p->id[0] != -1);
 
-         int new_idom = p->id[0];
-         for (int i=1; i<p->n; i++) {
+         int i = 0;
+         /* Try the first processed predecessor as the new idom */
+         while (doms[p->id[i]] == -1) i++;
+         int new_idom = p->id[i];
+
+         /* Starting from the next predecessor intersect the sets */
+         for (i++; i<p->n; i++) {
             if (doms[p->id[i]] != -1) new_idom = intersect(doms, p->id[i], new_idom);
          }
 
@@ -61,15 +60,14 @@ static void dom_tree(int *doms, const struct abstract_cfg *cfg) {
             changed = true;
          }
       }
-   }
+   } while (changed);
 }
 
 /* Using the doms form of the dominance tree, calculate dominance frontiers. *
  * Store as a flag, so df[i][j] is true iff j is in the dominance frontier   *
  * of i. Assumes that the array is initialised to false.                     */
-static void dominance_frontiers(bool **df, const int *doms, const struct abstract_cfg *cfg) {
-   const NodeSet *pred = cfg->s;
-   for (int i=0; i<cfg->n; i++) {
+static void dominance_frontiers(bool **df, const int *doms, const NodeSet *pred, int n) {
+   for (int i=0; i<n; i++) {
       if (pred[i].n < 2) continue;  /* Nodes with 1 predecessor are never joins */
 
       for (int j=0; j<pred[i].n; j++) {
@@ -80,6 +78,14 @@ static void dominance_frontiers(bool **df, const int *doms, const struct abstrac
          }
       }
    }
+}
+
+/* Return whether b dominates a */
+static bool dominates(const int *idoms, int a, int b) {
+   assert(idoms[0] == 0);
+   if      (a == 0) return false;
+   else if (a == b) return true;
+   else             return dominates(idoms, idoms[a], b);
 }
 
 static NodeSet *alloc_nodeset(int n_blocks) {
@@ -105,20 +111,37 @@ static int get_reverse_postorder_number(const BasicBlockList *rplist, BasicBlock
    return n;
 }
 
+/******************************************************************************/
+/* Higher level functions for working with abstract_cfg handles               */
+
+struct abstract_cfg {
+   int      n;
+   NodeSet *pred;
+   NodeSet *succ;
+};
+
+static void nodeset_add(NodeSet *s, int n) {
+   s->id[s->n++] = n;
+}
+
 struct abstract_cfg *glsl_alloc_abstract_cfg(const BasicBlockList *l) {
    struct abstract_cfg *cfg = glsl_safemem_malloc(sizeof(struct abstract_cfg));
-   cfg->n = glsl_basic_block_list_count(l);
-   cfg->s = alloc_nodeset(cfg->n);
+   cfg->n    = glsl_basic_block_list_count(l);
+   cfg->pred = alloc_nodeset(cfg->n);
+   cfg->succ = alloc_nodeset(cfg->n);
 
    int reverse_postorder_id = 0;
    for (const BasicBlockList *n = l; n != NULL; n = n->next) {
-      if (n->v->branch_target != NULL) {
-         NodeSet *p = &cfg->s[get_reverse_postorder_number(l, n->v->branch_target)];
-         p->id[p->n++] = reverse_postorder_id;
+      int f_rpo = n->v->fallthrough_target ? get_reverse_postorder_number(l, n->v->fallthrough_target) : -1;
+      int t_rpo = n->v->branch_target ? get_reverse_postorder_number(l, n->v->branch_target) : -1;
+
+      if (f_rpo != -1) {
+         nodeset_add(&cfg->succ[reverse_postorder_id], f_rpo);
+         nodeset_add(&cfg->pred[f_rpo], reverse_postorder_id);
       }
-      if (n->v->fallthrough_target != NULL) {
-         NodeSet *p = &cfg->s[get_reverse_postorder_number(l, n->v->fallthrough_target)];
-         p->id[p->n++] = reverse_postorder_id;
+      if (t_rpo != -1) {
+         nodeset_add(&cfg->succ[reverse_postorder_id], t_rpo);
+         nodeset_add(&cfg->pred[t_rpo], reverse_postorder_id);
       }
       reverse_postorder_id++;
    }
@@ -127,53 +150,43 @@ struct abstract_cfg *glsl_alloc_abstract_cfg(const BasicBlockList *l) {
 
 struct abstract_cfg *glsl_alloc_abstract_cfg_ssa(const SSABlock *blocks, int n_blocks) {
    struct abstract_cfg *cfg = glsl_safemem_malloc(sizeof(struct abstract_cfg));
-   cfg->n = n_blocks;
-   cfg->s = alloc_nodeset(n_blocks);
+   cfg->n    = n_blocks;
+   cfg->pred = alloc_nodeset(n_blocks);
+   cfg->succ = alloc_nodeset(n_blocks);
 
    for (int i=0; i<n_blocks; i++) {
       if (blocks[i].next_false != -1) {
-         NodeSet *p = &cfg->s[blocks[i].next_false];
-         p->id[p->n++] = i;
+         nodeset_add(&cfg->succ[i], blocks[i].next_false);
+         nodeset_add(&cfg->pred[blocks[i].next_false], i);
       }
       if (blocks[i].next_true != -1) {
-         NodeSet *p = &cfg->s[blocks[i].next_true];
-         p->id[p->n++] = i;
+         nodeset_add(&cfg->succ[i], blocks[i].next_true);
+         nodeset_add(&cfg->pred[blocks[i].next_true], i);
       }
    }
    return cfg;
 }
 
-void glsl_free_abstract_cfg(struct abstract_cfg *cfg) {
-   if (!cfg) return;
+struct abstract_cfg *glsl_alloc_abstract_cfg_cfg(const CFGBlock *blocks, int n_blocks) {
+   struct abstract_cfg *cfg = glsl_safemem_malloc(sizeof(struct abstract_cfg));
+   cfg->n    = n_blocks;
+   cfg->pred = alloc_nodeset(n_blocks);
+   cfg->succ = alloc_nodeset(n_blocks);
 
-   free_nodeset(cfg->s, cfg->n);
-   glsl_safemem_free(cfg);
-}
-
-int *glsl_alloc_idoms(const struct abstract_cfg *cfg) {
-   int *idom = glsl_safemem_malloc(cfg->n * sizeof(int));
-   dom_tree(idom, cfg);
-   return idom;
-}
-
-bool **glsl_dom_frontiers_alloc(const struct abstract_cfg *cfg, const int *idoms) {
-   /* Store the dominance frontiers using a simple boolean grid. n^2 memory *
-    * usage but it probably doesn't matter. Always time to optimise later.  */
-   bool **df = glsl_safemem_malloc(cfg->n * sizeof(bool *));
-   for (int i=0; i<cfg->n; i++) {
-      df[i] = glsl_safemem_calloc(cfg->n, sizeof(bool));
+   for (int i=0; i<n_blocks; i++) {
+      if (blocks[i].next_if_true != -1) {
+         nodeset_add(&cfg->succ[i], blocks[i].next_if_true);
+         nodeset_add(&cfg->pred[blocks[i].next_if_true], i);
+      }
+      if (blocks[i].next_if_false != -1) {
+         nodeset_add(&cfg->succ[i], blocks[i].next_if_false);
+         nodeset_add(&cfg->pred[blocks[i].next_if_false], i);
+      }
    }
-
-   dominance_frontiers(df, idoms, cfg);
-   return df;
+   return cfg;
 }
 
-void glsl_dom_frontiers_free(bool **df, int n_blocks) {
-   if (df == NULL) return;
-   for (int i=0; i<n_blocks; i++) glsl_safemem_free(df[i]);
-   glsl_safemem_free(df);
-}
-
+/* Helpers which are used for reversing a CFG */
 
 /* Serialise g in post-order into the node_ids array */
 static void visit(int node, const NodeSet *g, int *node_ids, int *n_visited, bool *visited) {
@@ -216,56 +229,76 @@ static NodeSet *renumber_nodeset(const NodeSet *g, int n, int *id_mapping) {
    return new_g;
 }
 
-/* From a graph whose nodes are in reverse postorder create the reverse graph */
-static NodeSet *get_reverse_graph(const NodeSet *g, int n) {
-   NodeSet *r_g = alloc_nodeset(n);
-   for (int i=0; i<n; i++) {
-      for (int j=0; j<g[i].n; j++) {
-         NodeSet *p = &r_g[g[i].id[j]];
-         /* This is guaranteed by the reverse postorder condition and is
-          * required for the dominance algorithms */
-         assert(p->n == 0 || p->id[p->n-1] < i);
-         p->id[p->n++] = i;
-      }
+/* TODO: This is hard because the RPO is baked into the CFG. Make it separate? */
+struct abstract_cfg *glsl_alloc_abstract_cfg_reverse(const struct abstract_cfg *fwd, int **node_map) {
+   int *rpo_id = alloc_reverse_postorder_numbering(fwd->pred, fwd->n);
+
+   struct abstract_cfg *rev = glsl_safemem_malloc(sizeof(struct abstract_cfg));
+   rev->n = fwd->n;
+   rev->pred = renumber_nodeset(fwd->succ, fwd->n, rpo_id);
+   rev->succ = renumber_nodeset(fwd->pred, fwd->n, rpo_id);
+
+   *node_map = rpo_id;
+   return rev;
+}
+
+void glsl_free_abstract_cfg(struct abstract_cfg *cfg) {
+   if (!cfg) return;
+
+   free_nodeset(cfg->pred, cfg->n);
+   free_nodeset(cfg->succ, cfg->n);
+   glsl_safemem_free(cfg);
+}
+
+int *glsl_alloc_idoms(const struct abstract_cfg *cfg) {
+   int *idom = glsl_safemem_malloc(cfg->n * sizeof(int));
+   dom_tree(idom, cfg->pred, cfg->n);
+   return idom;
+}
+
+bool **glsl_dom_frontiers_alloc(const struct abstract_cfg *cfg, const int *idoms) {
+   /* Store the dominance frontiers using a simple boolean grid. n^2 memory *
+    * usage but it probably doesn't matter. Always time to optimise later.  */
+   bool **df = glsl_safemem_malloc(cfg->n * sizeof(bool *));
+   for (int i=0; i<cfg->n; i++) {
+      df[i] = glsl_safemem_calloc(cfg->n, sizeof(bool));
    }
-   return r_g;
+
+   dominance_frontiers(df, idoms, cfg->pred, cfg->n);
+   return df;
 }
 
-/* Return whether b postdominates a */
-static bool does_postdominate(const int *ipdoms, int a, int b) {
-   if (a == b) return true;
-   else if (ipdoms[a] == b) return true;
-   else if (a == 0) return false;      /* Technically we don't need this, since ipdoms[0] == 0 */
-   else return does_postdominate(ipdoms, ipdoms[a], b);
+void glsl_dom_frontiers_free(bool **df, int n_blocks) {
+   if (df == NULL) return;
+   for (int i=0; i<n_blocks; i++) glsl_safemem_free(df[i]);
+   glsl_safemem_free(df);
 }
 
-static void cd_sets(const SSABlock *blocks, const NodeSet *r_g_in, int n, struct cd_set *cd) {
-   /* TODO: Can we generate a reverse postorder walk on an abstract_cfg directly? */
-   int *rpo_id = alloc_reverse_postorder_numbering(r_g_in, n);
-   NodeSet *r_g = renumber_nodeset(r_g_in, n, rpo_id);
 
-   NodeSet *pred = get_reverse_graph(r_g, n);
-   free_nodeset(r_g, n);
+struct cd_set *glsl_cd_sets_alloc(const struct abstract_cfg *cfg) {
+   struct cd_set *cd = glsl_safemem_malloc(cfg->n * sizeof(struct cd_set));
 
-   struct abstract_cfg cfg = { .s = pred, .n = n };
+   int *rpo_id;
+   struct abstract_cfg *rcfg = glsl_alloc_abstract_cfg_reverse(cfg, &rpo_id);
 
-   int *doms = glsl_alloc_idoms(&cfg);
-   bool **df = glsl_dom_frontiers_alloc(&cfg, doms);
+   int   *pdoms = glsl_alloc_idoms(rcfg);
+   bool **df    = glsl_dom_frontiers_alloc(rcfg, pdoms);
 
-   free_nodeset(pred, n);
+   glsl_free_abstract_cfg(rcfg);
 
-   int *invert_rpo_id = glsl_safemem_malloc(n * sizeof(int));
-   for (int i=0; i<n; i++) invert_rpo_id[rpo_id[i]] = i;
+   int *invert_rpo_id = glsl_safemem_malloc(cfg->n * sizeof(int));
+   for (int i=0; i<cfg->n; i++) invert_rpo_id[rpo_id[i]] = i;
 
-   for (int i=0; i<n; i++) {
+   for (int i=0; i<cfg->n; i++) {
       int count = 0;
-      int *cd_nodes = glsl_safemem_malloc(n * sizeof(int));
-      bool *cond = glsl_safemem_malloc(n * sizeof(bool));
-      for (int j=0; j<n; j++) {
+      int *cd_nodes = glsl_safemem_malloc(cfg->n * sizeof(int));
+      bool *cond = glsl_safemem_malloc(cfg->n * sizeof(bool));
+      for (int j=0; j<cfg->n; j++) {
          if (df[i][j]) {
-            int true_succ = rpo_id[blocks[invert_rpo_id[j]].next_true];
-            cd_nodes[count] = j;
-            cond[count++] = does_postdominate(doms, true_succ, i);
+            assert(cfg->succ[invert_rpo_id[j]].n == 2);
+            int false_succ = rpo_id[cfg->succ[invert_rpo_id[j]].id[0]];
+            cd_nodes[count] = invert_rpo_id[j];
+            cond[count++] = !dominates(pdoms, false_succ, i);
          }
       }
 
@@ -273,7 +306,7 @@ static void cd_sets(const SSABlock *blocks, const NodeSet *r_g_in, int n, struct
       cd[id].n = count;
       cd[id].dep = glsl_safemem_malloc(count * sizeof(struct cd_dep));
       for (int j=0; j<count; j++) {
-         cd[id].dep[j].node = invert_rpo_id[cd_nodes[j]];
+         cd[id].dep[j].node = cd_nodes[j];
          cd[id].dep[j].cond = cond[j];
       }
       glsl_safemem_free(cd_nodes);
@@ -283,14 +316,9 @@ static void cd_sets(const SSABlock *blocks, const NodeSet *r_g_in, int n, struct
    glsl_safemem_free(invert_rpo_id);
    glsl_safemem_free(rpo_id);
 
-   glsl_dom_frontiers_free(df, n);
-   glsl_safemem_free(doms);
-}
+   glsl_dom_frontiers_free(df, cfg->n);
+   glsl_safemem_free(pdoms);
 
-/* TODO: Passing blocks here means that the abstract CFG hasn't really worked ... */
-struct cd_set *glsl_cd_sets_alloc(const struct abstract_cfg *cfg, const SSABlock *blocks) {
-   struct cd_set *cd = glsl_safemem_malloc(cfg->n * sizeof(struct cd_set));
-   cd_sets(blocks, cfg->s, cfg->n, cd);
    return cd;
 }
 
@@ -300,77 +328,45 @@ void glsl_cd_sets_free(struct cd_set *cd, int n_blocks) {
    glsl_safemem_free(cd);
 }
 
-/* From the reverse CFG, work out which blocks are unconditional */
-static void get_unconditional_blocks(const NodeSet *r_g_in, int n, bool *uncond) {
-   /* The dominance algorithms require things to be in reverse postorder, so  *
-    * renumber the input graph to meet that constraint                        */
-   int *rpo_id = alloc_reverse_postorder_numbering(r_g_in, n);
-   NodeSet *r_g = renumber_nodeset(r_g_in, n, rpo_id);
+bool *glsl_alloc_uncond_blocks(const struct abstract_cfg *cfg) {
+   struct cd_set *cd  = glsl_cd_sets_alloc(cfg);
+   bool *uncond = glsl_safemem_malloc(cfg->n * sizeof(bool));
+   for (int i=0; i<cfg->n; i++) uncond[i] = (cd[i].n == 0);
 
-   /* Now reverse the nodeset so that each set tells us the predecessors of the node */
-   NodeSet *pred = get_reverse_graph(r_g, n);
-   free_nodeset(r_g, n);
-   struct abstract_cfg cfg = { .s = pred, .n = n };
-
-   int *doms = glsl_alloc_idoms(&cfg);
-   bool **df = glsl_dom_frontiers_alloc(&cfg, doms);
-
-   free_nodeset(pred, n);
-
-   /* A node is unconditional if there are no nodes in its dominance frontier */
-   /* Reorder the nodes back to the order the caller expects at the same time */
-   for (int i=0; i<n; i++) {
-      uncond[i] = true;
-      for (int j=0; j<n; j++) {
-         if (df[rpo_id[i]][j]) uncond[i] = false;
-      }
-   }
-
-   glsl_safemem_free(rpo_id);
-   glsl_dom_frontiers_free(df, n);
-   glsl_safemem_free(doms);
+   glsl_cd_sets_free(cd, cfg->n);
+   return uncond;
 }
 
-/* This requires the 'b' array to be indexed in reverse postorder */
-int glsl_find_lthrsw_block(const CFGBlock *b, int n_blocks, bool *does_thrsw) {
-   /* Build the reverse flow-graph by finding predecessors */
-   NodeSet *r_g = alloc_nodeset(n_blocks);
-   for (int i=0; i<n_blocks; i++) {
-      if (b[i].next_if_true != -1) {
-         NodeSet *p = &r_g[b[i].next_if_true];
-         p->id[p->n++] = i;
+void glsl_solve_dataflow_equation(const struct abstract_cfg *cfg, unsigned size,
+                                  const struct dflow_state *b, bool **in, bool **out)
+{
+   for (unsigned i=0; i<size; i++) out[0][i] = b[0].gen[i];
+
+   bool changed;
+   do {
+      changed = false;
+
+      for (int rpo_id = 1; rpo_id < cfg->n; rpo_id++) {
+         const struct dflow_state *bb = &b[rpo_id];
+         NodeSet *p = &cfg->pred[rpo_id];
+
+         /* Update 'in' from the predecessor information */
+         for (int pred_id = 0; pred_id<p->n; pred_id++) {
+            const bool *pred_out = out[p->id[pred_id]];
+
+            for (unsigned c_id = 0; c_id < size; c_id++) {
+               if (pred_out[c_id] && !in[rpo_id][c_id]) {
+                  changed = true;
+                  in[rpo_id][c_id] = true;
+               }
+            }
+         }
+
+         /* Use the new 'in' and current block information to update 'out' */
+         for (unsigned c_id = 0; c_id < size; c_id++)
+            out[rpo_id][c_id] = (in[rpo_id][c_id] && !bb->kill[c_id]) || bb->gen[c_id];
       }
-      if (b[i].next_if_false != -1) {
-         NodeSet *p = &r_g[b[i].next_if_false];
-         p->id[p->n++] = i;
-      }
-   }
-
-   bool *uncond = glsl_safemem_malloc(n_blocks * sizeof(bool));
-   get_unconditional_blocks(r_g, n_blocks, uncond);
-   free_nodeset(r_g, n_blocks);
-
-   /* Since the 'b' array is in reverse postorder we just need to find the first
-    * unconditional block after the last block using a texture. The fact that we
-    * require unconditional exit blocks means there must be one. */
-   int i;
-   for (i=n_blocks-1; i>=0; i--) {
-      if (does_thrsw[i]) break;
-   }
-   for ( ; i < n_blocks; i++) {
-      if (uncond[i]) break;
-   }
-   assert(i < n_blocks);
-   glsl_safemem_free(uncond);
-   return i;
-}
-
-void glsl_find_unconditional_blocks(const BasicBlockList *l, bool *uncond) {
-   /* Build the reverse flow-graph by finding predecessors */
-   struct abstract_cfg *cfg = glsl_alloc_abstract_cfg(l);
-   /* TODO: Here we extract the internal representation of the CFG, which happens to be a reverse graph */
-   get_unconditional_blocks(cfg->s, cfg->n, uncond);
-   glsl_free_abstract_cfg(cfg);
+   } while (changed);
 }
 
 /* TODO: This is the most confusing of all possible naming schemes... */
@@ -416,23 +412,6 @@ int identify_merge_exit(const NodeSet *child, int merge_head, const NodeSet *suc
    return merge_head;
 }
 
-static void fill_succ_nodeset(const BasicBlockList *l, NodeSet *s) {
-   int reverse_postorder_id = 0;
-   for (const BasicBlockList *n = l; n != NULL; n = n->next) {
-      NodeSet *p = &s[reverse_postorder_id];
-
-      if (n->v->branch_target != NULL) {
-         int id = get_reverse_postorder_number(l, n->v->branch_target);
-         p->id[p->n++] = id;
-      }
-      if (n->v->fallthrough_target != NULL) {
-         int id = get_reverse_postorder_number(l, n->v->fallthrough_target);
-         p->id[p->n++] = id;
-      }
-      reverse_postorder_id++;
-   }
-}
-
 static bool merge_valid_entry(int head, const NodeSet *merge, const NodeSet *pred) {
    for (int i=0; i<merge->n; i++) {
       int node = merge->id[i];
@@ -473,9 +452,6 @@ bool glsl_ssa_block_flatten(const BasicBlockList *l, int *head, int *exit) {
 
    struct abstract_cfg *cfg = glsl_alloc_abstract_cfg(l);
 
-   NodeSet *succ = alloc_nodeset(cfg->n);
-   fill_succ_nodeset(l, succ);
-
    int *doms = glsl_alloc_idoms(cfg);
 
    /* Construct a version of the dominator tree that's good for walking */
@@ -492,11 +468,11 @@ bool glsl_ssa_block_flatten(const BasicBlockList *l, int *head, int *exit) {
    append_merge_candidates(child, 0, candidates, &n_candidates);
    for (int c=0; c<n_candidates; c++) {
       *head = candidates[c];
-      *exit = identify_merge_exit(child, *head, succ);
+      *exit = identify_merge_exit(child, *head, cfg->succ);
 
-      valid = merge_valid_entry(*head, &child[*head], cfg->s)     &&
-              merge_valid_exit(*head, *exit, &child[*head], succ) &&
-              merge_valid_backedges(*head, &child[*head], succ);
+      valid = merge_valid_entry(*head, &child[*head], cfg->pred)       &&
+              merge_valid_exit(*head, *exit, &child[*head], cfg->succ) &&
+              merge_valid_backedges(*head, &child[*head], cfg->succ);
 
       if (valid) break;
    }
@@ -504,7 +480,6 @@ bool glsl_ssa_block_flatten(const BasicBlockList *l, int *head, int *exit) {
    glsl_safemem_free(candidates);
    free_nodeset(child, cfg->n);
    glsl_safemem_free(doms);
-   free_nodeset(succ, cfg->n);
 
    glsl_free_abstract_cfg(cfg);
 

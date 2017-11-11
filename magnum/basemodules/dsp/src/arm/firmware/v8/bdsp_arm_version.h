@@ -37,7 +37,7 @@
 ******************************************************************************/
 
 
-/* Commit ID of Astra : 3ccab50b9f195b58be15c55720db36c7f0367135 */
+/* Commit ID of Astra : f103d5aa802f9b4baacca67d5c31374dc73f88e3 */
 #define BDSP_ARM_MAJOR_VERSION       1
 #define BDSP_ARM_MINOR_VERSION       2
 #define BDSP_ARM_BUILD_VERSION       0

@@ -47,27 +47,6 @@ BDBG_MODULE(BHDM_PACKET_AVI) ;
 Summary:
 Set/Enable the Auxillary Video Information Info frame to be sent to the HDMI Rx
 *******************************************************************************/
-void BHDM_DisplayAVIInfoFramePacket(
-   const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
-   BAVC_HDMI_AviInfoFrame *pstAviInfoFrame
-)
-{
-#if BDBG_DEBUG_BUILD
-	BDBG_LOG(("<%s> has been deprecated; Use BAVC_HDMI_DisplayNAME instead",
-		BSTD_FUNCTION)) ;
-	BAVC_HDMI_DisplayAVIInfoFramePacket(&hHDMI->DeviceStatus.stPort, pstAviInfoFrame) ;
-
-#else
-	BSTD_UNUSED(hHDMI) ;
-	BSTD_UNUSED(pstAviInfoFrame) ;
-#endif
-}
-
-
-/******************************************************************************
-Summary:
-Set/Enable the Auxillary Video Information Info frame to be sent to the HDMI Rx
-*******************************************************************************/
 BERR_Code BHDM_SetAVIInfoFramePacket(
    const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
    BAVC_HDMI_AviInfoFrame *stAviInfoFrame
@@ -430,6 +409,19 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 	/* update current device settings with new AviInfoFrame settings */
 	BKNI_Memcpy(&(hHDMI->DeviceSettings.stAviInfoFrame), &newAviInfoFrame,
 		sizeof(BAVC_HDMI_AviInfoFrame)) ;
+
+#if BDBG_DEBUG_BUILD
+	{
+		BDBG_Level eLevel;
+
+		BDBG_GetModuleLevel("BHDM_PACKET_AVI", &eLevel) ;
+		if (eLevel == BDBG_eMsg)
+		{
+			BAVC_HDMI_DisplayAVIInfoFramePacket(
+				&hHDMI->DeviceStatus.stPort, &hHDMI->DeviceSettings.stAviInfoFrame) ;
+		}
+	}
+#endif
 
 	return rc ;
 }

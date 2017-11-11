@@ -216,105 +216,6 @@ void TzIoc::TzIocMem::free(
     spinLockRelease(&lock);
 }
 
-int TzIoc::TzIocMem::mapPaddr(
-    struct tzioc_client *pClient,
-    uintptr_t ulPaddr,
-    uint32_t ulSize,
-    uint32_t ulFlags,
-    uintptr_t *pulVaddr)
-{
-    TzTask *task = (TzTask *)pClient->task;
-    PageTable *pageTable = task->userPageTable();
-
-    int startOffset = ulPaddr & ~PAGE_MASK;
-    int endOffset   = startOffset + ulSize - 1;
-    int numPages    = endOffset / PAGE_SIZE_4K_BYTES + 1;
-
-    void *paPageStart = PAGE_START_4K(ulPaddr);
-    void *vaPageStart = pageTable->reserveAddrRange(
-        (void *)PAGE_SIZE_4K_BYTES,
-        numPages * PAGE_SIZE_4K_BYTES,
-        PageTable::ScanForward);
-
-    if (!vaPageStart)
-        return -ENOMEM;
-
-    pageTable->mapPageRange(
-        vaPageStart,
-        (void *)((uintptr_t)vaPageStart + endOffset),
-        paPageStart,
-        (ulFlags & TZIOC_MEM_DEVICE) ?
-            MAIR_DEVICE :               // device memory
-            MAIR_MEMORY,                // memory with caching
-        (ulFlags & TZIOC_MEM_RD_ONLY) ?
-            MEMORY_ACCESS_RO_USER :     // read only
-            MEMORY_ACCESS_RW_USER,      // read write
-        (ulFlags & TZIOC_MEM_NO_EXEC) ?
-            true :                      // no execute
-            false,                      // allow execute
-        true,                           // shared memory
-        true);                          // non-secure
-
-    uint32_t ulVaddr =
-        (uintptr_t)vaPageStart + startOffset;
-
-    // record mapping
-    PaddrMap paddrMap = {
-        pClient,
-        ulPaddr,
-        ulVaddr,
-        ulSize};
-
-    paddrMaps.pushBack(paddrMap);
-
-    *pulVaddr = ulVaddr;
-    return 0;
-}
-
-int TzIoc::TzIocMem::unmapPaddr(
-    struct tzioc_client *pClient,
-    uintptr_t ulPaddr,
-    uint32_t ulSize)
-{
-    // find mapping
-    PaddrMap paddrMap = {NULL, 0, 0, 0};
-    int numPaddrMaps = paddrMaps.numElements();
-
-    for (int i = 0; i < numPaddrMaps; i++) {
-        if (paddrMaps[i].pClient == pClient &&
-            paddrMaps[i].ulPaddr == ulPaddr &&
-            paddrMaps[i].ulSize  == ulSize) {
-
-            paddrMap = paddrMaps[i];
-            paddrMaps[i] = paddrMaps[numPaddrMaps - 1];
-            paddrMaps.popBack(NULL);
-            break;
-        }
-    }
-
-    if (!paddrMap.pClient)
-        return -ENOENT;
-
-    TzTask *task = (TzTask *)pClient->task;
-    PageTable *pageTable = task->userPageTable();
-
-    int startOffset = paddrMap.ulPaddr & ~PAGE_MASK;
-    int endOffset   = startOffset + paddrMap.ulSize - 1;
-    int numPages    = endOffset / PAGE_SIZE_4K_BYTES + 1;
-
-    void *vaPageStart = (void *)(paddrMap.ulVaddr - startOffset);
-
-    pageTable->unmapPageRange(
-        vaPageStart,
-        (void *)((uintptr_t)vaPageStart + endOffset));
-
-    pageTable->releaseAddrRange(
-        vaPageStart,
-        numPages * PAGE_SIZE_4K_BYTES);
-
-    return 0;
-}
-
 int TzIoc::TzIocMem::mapPaddrs(
     struct tzioc_client *pClient,
     uint8_t ucCount,
@@ -326,9 +227,9 @@ int TzIoc::TzIocMem::mapPaddrs(
     int err = 0;
 
     for (idx = 0; idx < ucCount; idx++) {
-        uint32_t ulPaddr = pRegions[idx].ulPaddr;
-        uint32_t ulSize  = pRegions[idx].ulSize;
-        uint32_t ulFlags = pRegions[idx].ulFlags;
+        uintptr_t ulPaddr = pRegions[idx].ulPaddr;
+        uint32_t  ulSize  = pRegions[idx].ulSize;
+        uint32_t  ulFlags = pRegions[idx].ulFlags;
 
         if (ulPaddr == 0 || ulSize == 0) {
             err = -EINVAL;
@@ -366,7 +267,7 @@ int TzIoc::TzIocMem::mapPaddrs(
             true,                           // shared memory
             true);                          // non-secure
 
-        uint32_t ulVaddr =
+        uintptr_t ulVaddr =
             (uintptr_t)vaPageStart + startOffset;
 
         // record mapping
@@ -400,8 +301,9 @@ int TzIoc::TzIocMem::unmapPaddrs(
     int idx;
 
     for (idx = 0; idx < ucCount; idx++) {
-        uint32_t ulPaddr = pRegions[idx].ulPaddr;
-        uint32_t ulSize  = pRegions[idx].ulSize;
+        uintptr_t ulPaddr = pRegions[idx].ulPaddr;
+        uintptr_t ulVaddr = pRegions[idx].ulVaddr;
+        uint32_t  ulSize  = pRegions[idx].ulSize;
 
         // find mapping
         PaddrMap paddrMap = {NULL, 0, 0, 0};
@@ -409,7 +311,8 @@ int TzIoc::TzIocMem::unmapPaddrs(
 
         for (int i = 0; i < numPaddrMaps; i++) {
             if (paddrMaps[i].pClient == pClient &&
-                paddrMaps[i].ulPaddr == ulPaddr &&
+                (paddrMaps[i].ulPaddr == ulPaddr ||
+                 paddrMaps[i].ulVaddr == ulVaddr) &&
                 paddrMaps[i].ulSize  == ulSize) {
 
                 paddrMap = paddrMaps[i];
@@ -437,4 +340,78 @@ int TzIoc::TzIocMem::unmapPaddrs(
             numPages * PAGE_SIZE_4K_BYTES);
     }
     return 0;
+}
+
+int TzIoc::TzIocMem::paddr2vaddr(
+    struct tzioc_client *pClient,
+    uintptr_t ulPaddr,
+    uintptr_t *pulVaddr)
+{
+    // find mapping
+    PaddrMap *pPaddrMap = NULL;
+    int numPaddrMaps = paddrMaps.numElements();
+
+    for (int i = 0; i < numPaddrMaps; i++) {
+        if (paddrMaps[i].pClient == pClient &&
+            paddrMaps[i].ulPaddr <= ulPaddr &&
+            paddrMaps[i].ulPaddr + paddrMaps[i].ulSize > ulPaddr) {
+
+            /* no copy, no pop */
+            pPaddrMap = &paddrMaps[i];
+            break;
+        }
+    }
+
+    if (!pPaddrMap)
+        return -ENOENT;
+
+    *pulVaddr = pPaddrMap->ulVaddr + (ulPaddr - pPaddrMap->ulPaddr);
+    return 0;
+}
+
+int TzIoc::TzIocMem::vaddr2paddr(
+    struct tzioc_client *pClient,
+    uintptr_t ulVaddr,
+    uintptr_t *pulPaddr)
+{
+    // find mapping
+    PaddrMap *pPaddrMap = NULL;
+    int numPaddrMaps = paddrMaps.numElements();
+
+    for (int i = 0; i < numPaddrMaps; i++) {
+        if (paddrMaps[i].pClient == pClient &&
+            paddrMaps[i].ulVaddr <= ulVaddr &&
+            paddrMaps[i].ulVaddr + paddrMaps[i].ulSize > ulVaddr) {
+
+            /* no copy, no pop */
+            pPaddrMap = &paddrMaps[i];
+            break;
+        }
+    }
+
+    if (!pPaddrMap)
+        return -ENOENT;
+
+    *pulPaddr = pPaddrMap->ulPaddr + (ulVaddr - pPaddrMap->ulVaddr);
+    return 0;
+}
+
+void TzIoc::TzIocMem::cleanupClient(
+    struct tzioc_client *pClient)
+{
+    // find mapping
+    int numPaddrMaps = paddrMaps.numElements();
+
+    for (int i = 0; i < numPaddrMaps; i++) {
+        if (paddrMaps[i].pClient == pClient) {
+
+            /* no copy, just pop */
+            paddrMaps[i] = paddrMaps[numPaddrMaps - 1];
+            paddrMaps.popBack(NULL);
+
+            // continue on from current index
+            i--;
+            numPaddrMaps--;
+        }
+    }
 }

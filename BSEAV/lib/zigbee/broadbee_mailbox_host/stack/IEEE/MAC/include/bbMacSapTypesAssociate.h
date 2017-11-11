@@ -343,8 +343,10 @@ struct _MAC_AssociateReqDescr_t
     /* 32-bit data. */
     MAC_AssociateConfCallback_t *callback;      /*!< Entry point of the confirmation callback function. */
 
+#ifndef _HOST_
     /* Structured data. */
     MacServiceField_t            service;       /*!< MAC requests service field. */
+#endif
 
     MAC_AssociateReqParams_t     params;        /*!< Request parameters structured object. */
 };
@@ -500,8 +502,10 @@ struct _MAC_AssociateRespDescr_t
     /* 32-bit data. */
     MAC_CommStatusAssociateIndCallback_t *callback;     /*!< Entry point of the confirmation callback function. */
 
+#ifndef _HOST_
     /* Structured data. */
     MacServiceField_t                     service;      /*!< MAC requests service field. */
+#endif
 
     MAC_AssociateRespParams_t             params;       /*!< Response parameters structured object. */
 };

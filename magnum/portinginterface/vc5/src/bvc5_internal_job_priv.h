@@ -106,6 +106,7 @@ typedef struct BVC5_P_InternalJob
       {
          struct BVC5_P_InternalJob  *psInternalRenderJob;
          uint32_t                   uiMinInitialBinBlockSize;
+         uint32_t                   uiTileStateSize;
       } sBin;
 
       struct BVC5_P_InternalWait

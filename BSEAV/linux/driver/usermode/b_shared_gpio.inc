@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -162,13 +162,13 @@ static void b_shared_gpio_p_close_pin(struct b_shared_gpio_pin * pin)
 {
     unsigned long flags;
 
-    B_SHARED_GPIO_SPIN_LOCK(flags);
     if (g_brcm_gpio_verbose) PINFO("gpio %#x:%u free linux irq %u\n", pin->bank->base_address, pin->shift, b_os_irq_get_id(&pin->irq.base));
+    b_os_irq_uninit_tagged(&pin->irq.base, "shgio close pin", __LINE__);
+    B_SHARED_GPIO_SPIN_LOCK(flags);
     B_SHARED_GPIO_MASK_INT(pin->bank, pin);
     B_SHARED_GPIO_CLEAR_INT(pin->bank, pin);
     pin->bank = NULL;
     B_SHARED_GPIO_SPIN_UNLOCK(flags);
-    b_os_irq_uninit_tagged(&pin->irq.base, "shgio close pin", __LINE__);
 }
 
 void b_shared_gpio_uninit_submodule(void)

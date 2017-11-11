@@ -94,7 +94,7 @@ CControl::CControl(const char * strName) :
     _encodingChannels(false),
     _bIgnoreNextKeypress(false)
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    ,_timerPlmVerify(this)
+    , _timerPlmVerify(this)
 #endif
 {
     _viewList.clear();
@@ -250,10 +250,10 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
 
     case eKey_VolumeUp:
     {
-        int32_t vol = getVolume();
-        int vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
+        int32_t vol       = getVolume();
+        int     vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
 
-        if( vol_steps > 0 )
+        if (vol_steps > 0)
         {
             vol = getVolume() + ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN)/vol_steps);
         }
@@ -263,15 +263,14 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
 
     case eKey_VolumeDown:
     {
-        int32_t vol = getVolume();
-        int vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
+        int32_t vol       = getVolume();
+        int     vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
 
-        if( vol_steps > 0 )
+        if (vol_steps > 0)
         {
             vol = getVolume() - ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) /vol_steps);
         }
         setVolume(NEXUS_AUDIO_VOLUME_LINEAR_MIN < vol ? vol : NEXUS_AUDIO_VOLUME_LINEAR_MIN);
-
     }
     break;
 
@@ -702,9 +701,9 @@ void CControl::onIdle()
         {
             /* verify default channel list file version */
             const char * s = GET_STR(_pCfg, CHANNELS_LIST);
-            if ((s!= NULL) && (eRet_ExternalError == _pChannelMgr->verifyChannelListFile(s)))
+            if ((s != NULL) && (eRet_ExternalError == _pChannelMgr->verifyChannelListFile(s)))
             {
-                BDBG_WRN(("Invalid channel list version in file:%s.  Perform channel scan to generate a new channel list or copy default channel list file from release bundle.",s));
+                BDBG_WRN(("Invalid channel list version in file:%s.  Perform channel scan to generate a new channel list or copy default channel list file from release bundle.", s));
             }
         }
         else
@@ -719,10 +718,10 @@ void CControl::onIdle()
             tuneChannel(pChannel, eWindowType_Main);
 
             /* restore last tuned channel - last channel gets overwritten
-               when untuning prior to powering off (s1/s2/s3).  we save
-               the current last channel first so we can restor it here.
-               using the "last" channel remote button will then work the
-               same both before power off and after power on */
+             * when untuning prior to powering off (s1/s2/s3).  we save
+             * the current last channel first so we can restor it here.
+             * using the "last" channel remote button will then work the
+             * same both before power off and after power on */
             _pModel->restoreLastTunedChannelPowerSave();
         }
     }
@@ -769,7 +768,7 @@ done:
     {
         setPowerMode(ePowerMode_S0);
     }
-#endif
+#endif /* if POWERSTANDBY_SUPPORT */
     return;
 } /* onIdle */
 
@@ -936,8 +935,8 @@ void CControl::processNotification(CNotification & notification)
 
     case eNotify_EnableRemoteIr:
     {
-        bool * pEnableIr = (bool *)notification.getData();
-        CIrRemote *    pIrRemote    = _pModel->getIrRemote();
+        bool *      pEnableIr = (bool *)notification.getData();
+        CIrRemote * pIrRemote = _pModel->getIrRemote();
 
         if (NULL != pIrRemote)
         {
@@ -1389,8 +1388,9 @@ void CControl::processNotification(CNotification & notification)
 
     case eNotify_SetVolume:
     {
+        int   nRange   = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN;
         int * pPercent = (int *)notification.getData();
-        setVolume(NEXUS_AUDIO_VOLUME_LINEAR_NORMAL * *pPercent / 100);
+        setVolume(NEXUS_AUDIO_VOLUME_LINEAR_MIN + (((float)nRange * (float)*pPercent  / 100.0 + 0.5)));
     }
     break;
 
@@ -1488,6 +1488,15 @@ void CControl::processNotification(CNotification & notification)
     }
     break;
 
+    case eNotify_AudioSourceChanged:
+    {
+        CSimpleAudioDecode * pAudioDecode = (CSimpleAudioDecode *)notification.getData();
+        BDBG_ASSERT(NULL != pAudioDecode);
+
+        setAudioFade(_pModel->getPipState());
+    }
+    break;
+
     case eNotify_VideoFormatChanged:
     {
         CDisplay * pDisplay = (CDisplay *)_pModel->getDisplay();
@@ -1556,7 +1565,7 @@ void CControl::processNotification(CNotification & notification)
 
                 /* this timer will trigger updates to both video and graphics plm */
                 _timerPlmVerify.start(1000);
-#endif
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
             }
             else
             {
@@ -1631,11 +1640,11 @@ void CControl::processNotification(CNotification & notification)
                     CHECK_WARN("unable to set graphics dynamic range", ret);
                 }
             }
-#endif
+#endif /* if HAS_GFX_NL_LUMA_RANGE_ADJ */
             /* _plmVideoDecodeList contains started video decoders
-               that are not ready to report dynamic range yet. so we set a timer to
-               retry.  The retries are handled here.
-            */
+             * that are not ready to report dynamic range yet. so we set a timer to
+             * retry.  The retries are handled here.
+             */
             while (NULL != (pVideoDecode = _plmVideoDecodeList[index]))
             {
                 eDynamicRange dynamicRange = pVideoDecode->getDynamicRange();
@@ -1644,7 +1653,9 @@ void CControl::processNotification(CNotification & notification)
                     BDBG_MSG(("_plmVideoDecodeList.total():%d", _plmVideoDecodeList.total()));
                     pVideoDecode->updatePlm();
                     /* remove duplicates as well */
-                    while (NULL != _plmVideoDecodeList.remove(pVideoDecode));
+                    while (NULL != _plmVideoDecodeList.remove(pVideoDecode))
+                    {
+                    }
 
                     setHdmiOutputDynamicRange(dynamicRange);
                 }
@@ -1663,7 +1674,7 @@ void CControl::processNotification(CNotification & notification)
                 _timerPlmVerify.start(1000);
             }
         }
-#endif
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
     }
     break;
 
@@ -1703,14 +1714,14 @@ void CControl::processNotification(CNotification & notification)
 
     case eNotify_SetPowerMode:
     {
-        eRet       ret       = eRet_Ok;
+        eRet ret = eRet_Ok;
 #if POWERSTANDBY_SUPPORT
         ePowerMode powerMode = *((ePowerMode *)notification.getData());
         ret = setPowerMode(powerMode);
         CHECK_ERROR_GOTO("unable to set power mode", ret, error);
 #else
         BDBG_WRN(("POWER MANAGEMENT IS NOT SUPPORTED!"));
-#endif
+#endif /* if POWERSTANDBY_SUPPORT */
     }
     break;
 
@@ -1885,8 +1896,10 @@ void CControl::processNotification(CNotification & notification)
                 pWifi->notifyConnectedState();
                 pBoardResources->checkinResource(pWifi);
             }
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
         }
+        break;
+
         default:
             break;
         }   /* switch */
@@ -2101,8 +2114,8 @@ errorBluetooth:
     case eNotify_SetPlmVideo:
     {
         CSimpleVideoDecode * pVideoDecode = NULL;
-        CChannel * pChannel = NULL;
-        CPlmDataVideo * pPlmData = (CPlmDataVideo *)notification.getData();
+        CChannel *           pChannel     = NULL;
+        CPlmDataVideo *      pPlmData     = (CPlmDataVideo *)notification.getData();
 
         if (eWindowType_Max == pPlmData->_videoWin)
         {
@@ -2456,10 +2469,7 @@ eRet CControl::decodeChannel(
 
         if (false == pPidMgr->isImmutable())
         {
-            /*
-             * coverity[stack_use_local_overflow]
-             * coverity[stack_use_overflow]
-             */
+            /* coverity[stack_use_local_overflow] */
             CHANNEL_INFO_T chanInfo;
             int            minor = 1;
 
@@ -2496,7 +2506,7 @@ eRet CControl::decodeChannel(
                     /* channel pids do not match PSI channel info */
 
                     /* remove channels with same major channel number from channel manager.
-                       we will then add channels based on the new channel info. */
+                     * we will then add channels based on the new channel info. */
                     BDBG_MSG(("remove extra major channels (major:%d)", pChannel->getMajor()));
                     _pChannelMgr->removeOtherMajorChannels(pChannel);
 
@@ -2506,7 +2516,7 @@ eRet CControl::decodeChannel(
                     minor++;
 
                     /* we have rescanned psi data and possibly changed the minor channel number
-                       so set the current channel again */
+                     * so set the current channel again */
                     _pModel->setCurrentChannel(pChannel, windowType);
 
                     pChNew = pChannel->createCopy(pChannel);
@@ -2570,7 +2580,7 @@ eRet CControl::decodeChannel(
     }
 #endif /* ifdef MPOD_SUPPORT */
 
-    if(pVideoDecode != NULL)
+    if (pVideoDecode != NULL)
     {
         pVideoDecode->setChannel(pChannel);
     }
@@ -2579,8 +2589,8 @@ eRet CControl::decodeChannel(
     CHECK_ERROR_GOTO("unable to connect decoders", ret, error);
 
     /* apply channel video window geometry setting. if rectVideoWinPercent is empty
-       (main/pip channels will be), then pVideoDecode will calculate sizes based on atlas.cfg
-       settings. */
+     * (main/pip channels will be), then pVideoDecode will calculate sizes based on atlas.cfg
+     * settings. */
     {
         MRect rectVideoWinPercent = pChannel->getVideoWindowGeometryPercent();
 
@@ -2592,18 +2602,21 @@ eRet CControl::decodeChannel(
             if (eWindowType_Mosaic1 <= pVideoDecode->getWindowType())
             {
                 /* if the channel does not have a specified video window geometry, then
-                   the video decode will use default values.  these defaults will be
-                   returned in rectVideoWinPercent variable.  we will now set the
-                   channel to have these default values.  this will ONLY apply for
-                   mosaic channels.  mosaic subchannels need a video window geometry
-                   so that associated label graphics can be properly placed relative
-                   to the video window.  main and pip channels should have an empty
-                   CHANNEL video window geometry since they will be resized
-                   automatically based on pip swap state. */
+                 * the video decode will use default values.  these defaults will be
+                 * returned in rectVideoWinPercent variable.  we will now set the
+                 * channel to have these default values.  this will ONLY apply for
+                 * mosaic channels.  mosaic subchannels need a video window geometry
+                 * so that associated label graphics can be properly placed relative
+                 * to the video window.  main and pip channels should have an empty
+                 * CHANNEL video window geometry since they will be resized
+                 * automatically based on pip swap state. */
                 pChannel->setVideoWindowGeometryPercent(&rectVideoWinPercent);
             }
         }
     }
+
+    /* if we have dual audio decoders, set master/mixing mode */
+    setMixingMode(windowType, NEXUS_AudioDecoderMixingMode_eStandalone);
 
     ret = startDecoders(pVideoDecode, pVideoPid, pAudioDecode, pAudioPid, pStc);
     CHECK_ERROR_GOTO("unable to start decoders", ret, error);
@@ -2930,7 +2943,7 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     eWindowType          windowType      = eWindowType_Main;
     MString              indexName;
 
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     NEXUS_SecurityAlgorithm algo = NEXUS_SecurityAlgorithm_eMax;
 #endif
 
@@ -2949,7 +2962,8 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     BDBG_ASSERT(NULL != _pModel);
     BDBG_ASSERT(NULL != _pConfig);
     BDBG_ASSERT(NULL != pPlaybackList);
-    if (!pCurrentChannel) {
+    if (!pCurrentChannel)
+    {
         BDBG_WRN(("No current channel"));
         ret = eRet_NotAvailable;
         goto done;
@@ -2994,7 +3008,7 @@ eRet CControl::recordStart(CRecordData * pRecordData)
             DEL(video);
         }
 
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
         if (pRecordData->_security)
         {
             algo = stringToSecurityAlgorithm(pRecordData->_security);
@@ -3033,14 +3047,14 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     pVideoPid = pRecord->getPid(0, ePidType_Video);
     if (pVideoPid)
     {
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
         if (algo < NEXUS_SecurityAlgorithm_eMax)
         {
             pVideoPid->encrypt(algo, NULL, true);
         }
 #endif /* if NEXUS_HAS_SECURITY */
         /* check for Index Name and Index Path from LUA ()*/
-        if((pRecordData == NULL) || (NULL == pRecordData->_strIndexName) || pRecordData->_strIndexName.isEmpty())
+        if ((pRecordData == NULL) || (NULL == pRecordData->_strIndexName) || pRecordData->_strIndexName.isEmpty())
         {
             indexName = video->getVideoName();
             indexName.truncate(video->getVideoName().find(".", 0, false));
@@ -3054,10 +3068,11 @@ eRet CControl::recordStart(CRecordData * pRecordData)
             video->setIndexRequired(true);
         }
 
-        if((pRecordData == NULL) || (NULL == pRecordData->_strIndexPath) || pRecordData->_strIndexPath.isEmpty())
+        if ((pRecordData == NULL) || (NULL == pRecordData->_strIndexPath) || pRecordData->_strIndexPath.isEmpty())
         {
             video->setIndexPath(video->getVideosPath());
-        } else
+        }
+        else
         {
             video->setIndexPath(pRecordData->_strIndexPath);
         }
@@ -3073,12 +3088,12 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     BDBG_MSG(("Setting Record Index File Name to %s", video->getIndexName().s()));
     BDBG_MSG(("Setting Record Videos Path to %s", video->getVideosPath().s()));
     BDBG_MSG(("Setting Record Index Path to %s", video->getIndexPath().s()));
-    BDBG_MSG(("Setting Record to Encrypt: %s", video->isEncrypted()?"yes":"no"));
+    BDBG_MSG(("Setting Record to Encrypt: %s", video->isEncrypted() ? "yes" : "no"));
 
     pAudioPid = pRecord->getPid(0, ePidType_Audio);
     if (pAudioPid)
     {
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
         if (algo < NEXUS_SecurityAlgorithm_eMax)
         {
             pAudioPid->encrypt(algo, NULL, true);
@@ -3732,8 +3747,8 @@ eRet CControl::displayRf4ceRemotes()
 
 eRet CControl::getChannelStats()
 {
-    eRet       ret          = eRet_Ok;
-    CChannel * pChannel     = NULL;
+    eRet       ret      = eRet_Ok;
+    CChannel * pChannel = NULL;
     MString    strChNum;
 
     /* attempt to find deferred channel number if it exists */
@@ -4186,7 +4201,7 @@ eRet CControl::setAudioProgram(unsigned pid)
         BDBG_ASSERT(NULL != pCurrentCh);
 
         /* give the channel object a chance to set the audio program.
-           if it chooses not to, handle it here */
+         * if it chooses not to, handle it here */
         if (eRet_Ok != pCurrentCh->setAudioProgram(pid))
         {
             /* find pid object matching given pid num */
@@ -5078,7 +5093,7 @@ ePowerMode CControl::getPowerMode()
 }
 
 /* used by setPowerMode() - we leave auto discovery alone since it does not touch
-   hard drive */
+ * hard drive */
 eRet CControl::ipServerStart()
 {
 #ifdef PLAYBACK_IP_SUPPORT
@@ -5114,18 +5129,20 @@ eRet CControl::ipServerStart()
         ret = pAutoDiscoveryClient->start();
         CHECK_ERROR_GOTO("unable to start auto discovery client object", ret, error);
     }
-#endif
+#endif /* if 0 */
 
 error:
     ATLAS_MEMLEAK_TRACE("END");
     return(ret);
-#else
-    return eRet_Ok;
-#endif
+
+#else /* ifdef PLAYBACK_IP_SUPPORT */
+    return(eRet_Ok);
+
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 } /* ipServerStart */
 
 /* used by setPowerMode() - we leave auto discovery alone since it does not touch
-   hard drive */
+ * hard drive */
 eRet CControl::ipServerStop()
 {
 #ifdef PLAYBACK_IP_SUPPORT
@@ -5159,13 +5176,15 @@ eRet CControl::ipServerStop()
         ret = pAutoDiscoveryClient->stop();
         CHECK_ERROR_GOTO("unable to stop auto discovery client object", ret, error);
     }
-#endif
+#endif /* if 0 */
 
 error:
     return(ret);
-#else
-    return eRet_Ok;
-#endif
+
+#else /* ifdef PLAYBACK_IP_SUPPORT */
+    return(eRet_Ok);
+
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 } /* ipServerStop */
 
 eRet CControl::setPowerMode(ePowerMode mode)
@@ -5253,9 +5272,9 @@ eRet CControl::setPowerMode(ePowerMode mode)
             if ((NULL != pChannel) && (true == pChannel->isTuned()))
             {
                 /* before we untune, we will save the current "last" channel because
-                   the untune command will overwrite this with the current channel.
-                   we will then restore this saved last channel after transitioning
-                   to S0 mode.  see FIRST_TUNE */
+                 * the untune command will overwrite this with the current channel.
+                 * we will then restore this saved last channel after transitioning
+                 * to S0 mode.  see FIRST_TUNE */
                 _pModel->saveLastTunedChannelPowerSave();
 
                 ret = unTuneChannel(pChannel, true);
@@ -5378,7 +5397,7 @@ eRet CControl::startDecoders(
         _plmVideoDecodeList.add(pVideoDecode);
         _timerPlmVerify.start(240);
     }
-#endif
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
     return(ret);
 } /* startDecoders */
 
@@ -5390,12 +5409,14 @@ eRet CControl::stopDecoders(
     eRet ret = eRet_Ok;
 
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    while (NULL != _plmVideoDecodeList.remove(pVideoDecode));
+    while (NULL != _plmVideoDecodeList.remove(pVideoDecode))
+    {
+    }
     if (0 == _plmVideoDecodeList.total())
     {
         _timerPlmVerify.stop();
     }
-#endif
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
 
     if (NULL != pVideoDecode)
     {
@@ -5408,11 +5429,12 @@ eRet CControl::stopDecoders(
 
     return(ret);
 } /* stopDecoders */
+
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
 eRet CControl::setGraphicsDynamicRange(CChannel * pChannel)
 {
-    eRet        ret       = eRet_Ok;
-    CGraphics * pGraphics = _pModel->getGraphics();
+    eRet                 ret          = eRet_Ok;
+    CGraphics *          pGraphics    = _pModel->getGraphics();
     CSimpleVideoDecode * pVideoDecode = NULL;
 
     if ((NULL == pGraphics) || (NULL == pChannel))
@@ -5437,15 +5459,16 @@ eRet CControl::setGraphicsDynamicRange(CChannel * pChannel)
 
 error:
     return(ret);
-}
-#endif
+} /* setGraphicsDynamicRange */
+
+#endif /* if HAS_GFX_NL_LUMA_RANGE_ADJ */
 #if HAS_VID_NL_LUMA_RANGE_ADJ
 eRet CControl::setHdmiOutputDynamicRange(eDynamicRange dynamicRange)
 {
-    eRet               ret                = eRet_Ok;
-    CDisplay *         pDisplay           = _pModel->getDisplay();
-    eDynamicRange      dynamicRangeLast   = _pModel->getLastDynamicRange();
-    eDynamicRange      dynamicRangeOutput = eDynamicRange_Unknown;
+    eRet          ret                = eRet_Ok;
+    CDisplay *    pDisplay           = _pModel->getDisplay();
+    eDynamicRange dynamicRangeLast   = _pModel->getLastDynamicRange();
+    eDynamicRange dynamicRangeOutput = eDynamicRange_Unknown;
 
     if (NULL == pDisplay)
     {
@@ -5471,13 +5494,14 @@ eRet CControl::setHdmiOutputDynamicRange(eDynamicRange dynamicRange)
 
 error:
     return(ret);
-}
-#endif
+} /* setHdmiOutputDynamicRange */
+
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
 #if HAS_VID_NL_LUMA_RANGE_ADJ
 /* update PLM settings for each video decode */
 eRet CControl::videoDecodeUpdatePlm(CSimpleVideoDecode * pVideoDecode)
 {
-    eRet                     ret     = eRet_Ok;
+    eRet ret = eRet_Ok;
     NEXUS_VideoDecoderStatus status;
 
     ret = pVideoDecode->getStatus(&status);
@@ -5491,5 +5515,6 @@ eRet CControl::videoDecodeUpdatePlm(CSimpleVideoDecode * pVideoDecode)
 
 error:
     return(ret);
-}
-#endif
+} /* videoDecodeUpdatePlm */
+
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */

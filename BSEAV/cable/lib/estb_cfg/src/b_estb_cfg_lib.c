@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 
@@ -379,7 +376,7 @@ static unsigned long b_estb_cfg_checksum(struct b_estb_cfg_ctl * ctl) {
 	if (ctl->data_block == NULL) return 0;
 	data = ctl->data_block + sizeof(struct b_estb_cfg_hdr);
 	len = ctl->data_len - sizeof(struct b_estb_cfg_hdr);
-	/* BDBG_MSG(("%s: data_len %d\n", __FUNCTION__, len)); */
+	/* BDBG_MSG(("%s: data_len %d\n", BSTD_FUNCTION, len)); */
 	checksum = FastCrc32_host(data, len);
 	return checksum;
 }
@@ -510,7 +507,7 @@ static int b_estb_cfg_get_value_by_label(unsigned int label, unsigned char *ptr,
 	for ( i = 0; i < ctl->num_nodes; i++ ) {
 		node = &ctl->node_block[i];
 		/*
-		 * BDBG_MSG(("%s: node type %02x, label 0x%x, %02x, 0x%x\n", __FUNCTION__, node->type, node->label, type, label));
+		 * BDBG_MSG(("%s: node type %02x, label 0x%x, %02x, 0x%x\n", BSTD_FUNCTION, node->type, node->label, type, label));
 		 */
 		if (node->type == type
 		    && node->label == label) {
@@ -629,7 +626,7 @@ static int b_estb_cfg_adjust_data_block(unsigned int label, int len, int type) {
 				/* alloc new buffer, allocate 2xlen to avoid frequent malloc */
 				tmp_buf = (unsigned char *)malloc(2 * tmp_len);
 				if (!tmp_buf) {
-					BDBG_ERR(("%s: malloc %d bytes failed", __FUNCTION__, 2 * tmp_len));
+					BDBG_ERR(("%s: malloc %d bytes failed", BSTD_FUNCTION, 2 * tmp_len));
 					ret = -1;
 					return ret;
 				}
@@ -690,7 +687,7 @@ static int b_estb_cfg_adjust_data_block(unsigned int label, int len, int type) {
 			total_len += sizeof(struct b_estb_cfg_data_hdr);
 		}
 	}
-    BDBG_MSG(("%s: total len %d\n", __FUNCTION__, total_len));
+    BDBG_MSG(("%s: total len %d\n", BSTD_FUNCTION, total_len));
 	ctl->data_len = total_len;
 
 	return 0;
@@ -708,7 +705,7 @@ static int b_estb_cfg_set_value_by_label(unsigned int label, unsigned char * ptr
 		return ret;
 	}
 	if (prop.field_len < len ) {
-		BDBG_ERR(("%s: length %d exceeds field len %d\n", __FUNCTION__, len, prop.len));
+		BDBG_ERR(("%s: length %d exceeds field len %d\n", BSTD_FUNCTION, len, prop.len));
 		return ret;
 	}
 
@@ -910,7 +907,7 @@ static int b_estb_cfg_write_by_ctl (struct b_estb_cfg_ctl * ctl){
 		return -1;
 	}
 	len = ctl->data_len;
-    BDBG_MSG(("%s %d bytes written\n", __FUNCTION__, len));
+    BDBG_MSG(("%s %d bytes written\n", BSTD_FUNCTION, len));
 	if (len) {
         n = write(fd, ctl->data_block, len);
 		if (n != len) {
@@ -1005,7 +1002,7 @@ static int b_estb_cfg_is_data_valid(unsigned char * data, int data_len) {
 		/* BDBG_MSG(("read offset %d, calculated offset %d, len %d\n", dhdr->off, off_c, dhdr->len)); */
 		if (dhdr->off != (int)off_c || (int)off_c > data_len) {
 			BDBG_ERR(("%s: read offset %d and calculated offset %d does not match, or out of bound %d\n",
-				  __FUNCTION__, dhdr->off, off_c, data_len));
+				  BSTD_FUNCTION, dhdr->off, off_c, data_len));
 #if 0
 			/* debug only */
 			exit(1);
@@ -1016,7 +1013,7 @@ static int b_estb_cfg_is_data_valid(unsigned char * data, int data_len) {
 		off_c += (dhdr->len + dhdr->pad);
 		dhdr = (struct b_estb_cfg_data_hdr *)(data + off_c);
 		off_c += sizeof(struct b_estb_cfg_data_hdr);
-        /* BDBG_MSG(("%s: off_C %d data_len %d\n", __FUNCTION__, off_c, data_len)); */
+        /* BDBG_MSG(("%s: off_C %d data_len %d\n", BSTD_FUNCTION, off_c, data_len)); */
 
 	} while ((int)off_c <= data_len);
 	return 0;
@@ -1032,7 +1029,7 @@ static int b_estb_cfg_update_data(struct b_estb_cfg_ctl * ctl, unsigned char * d
 	struct b_estb_cfg_node *  node = NULL;
 	unsigned int label = 0;
 
-    /* BDBG_MSG(("%s\n", __FUNCTION__)); */
+    /* BDBG_MSG(("%s\n", BSTD_FUNCTION)); */
 	off_c = sizeof(struct b_estb_cfg_hdr);
 	dhdr = (struct b_estb_cfg_data_hdr *)(data + off_c);
 	off_c += sizeof(struct b_estb_cfg_data_hdr);
@@ -1040,7 +1037,7 @@ static int b_estb_cfg_update_data(struct b_estb_cfg_ctl * ctl, unsigned char * d
 	do {
 		if (dhdr->off != (int)off_c || (int)off_c > data_len) {
 			BDBG_ERR(("%s: read offset %d and calculated offset %d does not match, or out of bound %d\n",
-				  __FUNCTION__, dhdr->off, off_c, data_len));
+				  BSTD_FUNCTION, dhdr->off, off_c, data_len));
 			return -1;
 		}
 		for ( i = 0; i < ctl->num_nodes; i++ ) {
@@ -1051,7 +1048,7 @@ static int b_estb_cfg_update_data(struct b_estb_cfg_ctl * ctl, unsigned char * d
 		}
         /*
         BDBG_MSG(("%s i = %d, dhdr->off 0x%x, len 0x%x, pad 0x%x dhdr->label %x label %x\n",
-                  __FUNCTION__, i, dhdr->off, dhdr->len, dhdr->pad, dhdr->label, label));
+                  BSTD_FUNCTION, i, dhdr->off, dhdr->len, dhdr->pad, dhdr->label, label));
         */
 		if ( (int)label == dhdr->label) {
 			/* found node */
@@ -1066,7 +1063,7 @@ static int b_estb_cfg_update_data(struct b_estb_cfg_ctl * ctl, unsigned char * d
 		off_c += (dhdr->len + dhdr->pad);
 		dhdr = (struct b_estb_cfg_data_hdr *)(data + off_c);
 		off_c += sizeof(struct b_estb_cfg_data_hdr);
-        /* BDBG_MSG(("%s: off_C %d data_len %d\n", __FUNCTION__, off_c, data_len)); */
+        /* BDBG_MSG(("%s: off_C %d data_len %d\n", BSTD_FUNCTION, off_c, data_len)); */
 
 	} while ((int)off_c <= data_len);
 
@@ -1081,7 +1078,7 @@ static int b_estb_cfg_assemble_data(struct b_estb_cfg_ctl * ctl){
 	struct b_estb_cfg_data_hdr * dhdr;
 	int ret = -1;
 
-    /* BDBG_MSG(("%s\n", __FUNCTION__));*/
+    /* BDBG_MSG(("%s\n", BSTD_FUNCTION));*/
 #ifdef _CFE_
 	if (ctl->data_block == NULL)
 		ctl->data_block = (unsigned char *) MAP_ADDR(ESTB_CFG_DATA_BUF_BASE + NONVOL_MAX_SIZE * ctl->id);
@@ -1107,7 +1104,7 @@ static int b_estb_cfg_assemble_data(struct b_estb_cfg_ctl * ctl){
 		/* alloc new buffer, allocate 2xlen to avoid frequent malloc */
 		tmp_buf = (unsigned char *)malloc(2 * len);
 		if (!tmp_buf) {
-			BDBG_ERR(("%s: malloc %d bytes failed", __FUNCTION__, 2 * len));
+			BDBG_ERR(("%s: malloc %d bytes failed", BSTD_FUNCTION, 2 * len));
 			ret = -1;
 			goto out;
 		}
@@ -1188,7 +1185,7 @@ static int b_estb_cfg_read_by_ctl(struct b_estb_cfg_ctl * ctl){
 	struct b_estb_cfg_hdr * tmp_hdr = NULL;
 	unsigned long tmp_checksum = 0;
 
-	/* BDBG_MSG(("%s : file_name %s\n", __FUNCTION__, ctl->file_name));  */
+	/* BDBG_MSG(("%s : file_name %s\n", BSTD_FUNCTION, ctl->file_name));  */
     ESTB_CFG_SEM_WAIT(ctl);
 
 #if defined(_CFE_) || defined(NOOS)
@@ -1235,7 +1232,7 @@ static int b_estb_cfg_read_by_ctl(struct b_estb_cfg_ctl * ctl){
 	tmp_len = lseek(fd, 0, SEEK_END);
 	tmp_buf = (unsigned char *)malloc(tmp_len);
 	if (!tmp_buf) {
-		BDBG_ERR(("%s: malloc %d bytes failed", __FUNCTION__, tmp_len));
+		BDBG_ERR(("%s: malloc %d bytes failed", BSTD_FUNCTION, tmp_len));
 		ret = -1;
 		goto out;
 	}
@@ -1347,7 +1344,7 @@ static int b_estb_cfg_set_file_name(char * dir, char * fn) {
 	}
 
 	strncpy(ctl->file_name, fn, NAME_LEN);
-	/* BDBG_MSG(("%s : new file name %s\n", __FUNCTION__, ctl->file_name)); */
+	/* BDBG_MSG(("%s : new file name %s\n", BSTD_FUNCTION, ctl->file_name)); */
 	ctl->reload = 1;
 	return 0;
 }
@@ -1366,7 +1363,7 @@ static int b_estb_cfg_get_property_by_label(unsigned int label, struct b_estb_cf
 	for ( i = 0; i < ctl->num_nodes; i++ ) {
 		node = &ctl->node_block[i];
 		/*
-		 * BDBG_MSG(("%s: node type %02x, label 0x%x, %02x, 0x%x\n", __FUNCTION__, node->type, node->label, type, label));
+		 * BDBG_MSG(("%s: node type %02x, label 0x%x, %02x, 0x%x\n", BSTD_FUNCTION, node->type, node->label, type, label));
 		 */
 		if (node->label == label) {
 			prop->type = node->type;
@@ -1863,7 +1860,7 @@ int B_Estb_cfg_Import_bin_from_file(char * field_name, char * fn_name) {
 	lseek(fd, 0, SEEK_SET);
 	tmp_data = (unsigned char *) malloc(len);
 	if (tmp_data == NULL) {
-		BDBG_ERR(("%s malloc %d bytes fail\n", __FUNCTION__, len));
+		BDBG_ERR(("%s malloc %d bytes fail\n", BSTD_FUNCTION, len));
 		ret = -1;
 		close(fd);
 		return ret;

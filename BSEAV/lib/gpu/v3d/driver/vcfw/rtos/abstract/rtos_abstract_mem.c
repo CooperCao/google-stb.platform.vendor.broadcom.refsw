@@ -395,8 +395,6 @@ static void remove_allocation(MEM_HEADER_T *hdr) { UNUSED(hdr); }
 *    Allocate device memory
 *    Copy back from system memory
 */
-extern void glxx_hw_finish_context(GLXX_SERVER_STATE_T *state, bool wait);
-extern void khrn_hw_wait(void);
 
 static uint32_t find_biggest_alloc(MEM_HEADER_T **allocs, uint32_t howMany)
 {
@@ -1238,7 +1236,7 @@ void mem_unlock(MEM_HANDLE_T handle)
          g_mgr.memInterface->MemUnlock(g_mgr.memInterface->context, h->ptr);
       else
          /* MemUnlock is mandatory */
-         vcos_assert(0);
+         assert(0);
    }
 #endif
 
@@ -1358,7 +1356,7 @@ void * mem_lock(MEM_HANDLE_T handle, MEM_LOCK_T *lbh)
    else
    {
       res = h->ptr;
-      vcos_assert(lbh == NULL);
+      assert(lbh == NULL);
    }
 
    return res;
@@ -1427,7 +1425,7 @@ void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc
       conv_format = BEGL_BufferFormat_eR5G6B5;
       break;
    case YV12_RSO:
-      conv_format = BEGL_BufferFormat_eYV12_Texture;
+      conv_format = BEGL_BufferFormat_eYV12;
       break;
    default:
       break;
@@ -1473,7 +1471,7 @@ void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc
                mem_flush_cache();
             }
             else
-               vcos_assert(0);   /* NO SW PATH FOR YUV */
+               assert(0);   /* NO SW PATH FOR YUV */
          }
       }
       else
@@ -1482,7 +1480,7 @@ void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc
              (conv_format == BEGL_BufferFormat_eR5G6B5))
             memcpy(dstCached, srcCached, height * stride);
          else
-            vcos_assert(0);   /* NO SW PATH FOR YUV */
+            assert(0);   /* NO SW PATH FOR YUV */
       }
 
       mem_unlock(hSrc);

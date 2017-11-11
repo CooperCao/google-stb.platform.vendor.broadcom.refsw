@@ -46,7 +46,7 @@
 int _tzioc_peer_coredump(
 	struct tzioc_client *pClient,
 	const char *pPeerName,
-	uint32_t ulPaddr,
+	uintptr_t ulPaddr,
     uint32_t ulBytes);
 
 

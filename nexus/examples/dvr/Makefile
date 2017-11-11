@@ -69,6 +69,7 @@ APPS = \
 	record_allpass_from_remux \
 	record_chunk \
 	record_from_playback \
+	record_priming \
 	recpump \
 	recpump_with_wrap \
 	recpump_with_wrap_and_dma \

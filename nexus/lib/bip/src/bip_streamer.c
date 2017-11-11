@@ -2837,6 +2837,7 @@ BIP_StreamerHandle BIP_Streamer_Create(
     return ( hStreamer );
 
 error:
+    if (hStreamer) { streamerDestroy(hStreamer);}
     return ( NULL );
 } /* BIP_Streamer_Create */
 
@@ -3662,9 +3663,8 @@ void BIP_Streamer_PrintStatus(
     BIP_ArbSubmitSettings arbSettings;
 
     BDBG_ASSERT( hStreamer );
-    BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
-
     if ( !hStreamer ) return;
+    BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
 
     /* Serialize access to Settings state among another thread calling the same _GetSettings API. */
     hArb = hStreamer->printStatusApi.hArb;

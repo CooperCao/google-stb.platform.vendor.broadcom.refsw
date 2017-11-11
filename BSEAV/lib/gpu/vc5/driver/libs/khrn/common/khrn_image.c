@@ -43,19 +43,19 @@ static khrn_image* image_create(khrn_blob *blob, unsigned level,
       unsigned start_slice, unsigned num_slices,
       GFX_LFMT_T api_fmt)
 {
-    khrn_image *img;
-    assert(khrn_blob_contains_level(blob, level) &&
-                (start_elem + num_array_elems <= blob->num_array_elems) &&
-                (start_slice + num_slices <= blob->desc[0].depth));
+   khrn_image *img;
+   assert(khrn_blob_contains_level(blob, level) &&
+               (start_elem + num_array_elems <= blob->num_array_elems) &&
+               (start_slice + num_slices <= blob->desc[0].depth));
 
-    img = KHRN_MEM_ALLOC_STRUCT(khrn_image);
-    if (img == NULL)
-       return NULL;
+   img = KHRN_MEM_ALLOC_STRUCT(khrn_image);
+   if (img == NULL)
+      return NULL;
 
-    image_init(img, blob, level, start_elem, num_array_elems,
-       start_slice, num_slices, api_fmt);
-    khrn_mem_set_term(img, image_term);
-    return img;
+   image_init(img, blob, level, start_elem, num_array_elems,
+      start_slice, num_slices, api_fmt);
+   khrn_mem_set_term(img, image_term);
+   return img;
 }
 
 khrn_image* khrn_image_create(khrn_blob *blob,
@@ -69,6 +69,21 @@ khrn_image* khrn_image_create_one_elem_slice(khrn_blob *blob,
    unsigned elem, unsigned slice, unsigned level, GFX_LFMT_T api_fmt)
 {
    return image_create(blob, level, elem, 1, slice, 1, api_fmt);
+}
+
+khrn_image* khrn_image_shallow_blob_copy(const khrn_image* other)
+{
+   khrn_image *img = KHRN_MEM_ALLOC_STRUCT(khrn_image);
+   if (img)
+   {
+      *img = *other;
+      img->blob = khrn_blob_shallow_copy(img->blob);
+      if (img->blob)
+         khrn_mem_set_term(img, image_term);
+      else
+         KHRN_MEM_ASSIGN(img, NULL);
+   }
+   return img;
 }
 
 GFX_LFMT_T khrn_image_get_lfmt(const khrn_image *img,
@@ -209,6 +224,12 @@ static void begin_imgconv(struct v3d_imgconv_gmem_tgt *tgt,
    v3d_imgconv_init_gmem_tgt(tgt, img->blob->res->handle, 0, &deps, desc, x, y,
       img->start_slice + z, img->start_elem + start_elem,
       img->blob->array_pitch);
+
+   /* GL texture uploads require floating point depth values to be clamped
+    * to a valid range as part of the upload process
+    */
+   if (write)
+      tgt->base.conversion = V3D_IMGCONV_CONVERSION_CLAMP_DEPTH;
 }
 
 static void end_imgconv(const khrn_image *img, bool success,
@@ -447,7 +468,7 @@ bool khrn_image_subsample(khrn_image *dst, const khrn_image *src,
    for (unsigned i = 0; i < src->num_array_elems; i++)
    {
       // Match TFU...
-#if V3D_HAS_BETTER_FCONV_B
+#if V3D_VER_AT_LEAST(4,1,34,0)
       gfx_buffer_subsample(&dst_b, &src_b, NULL);
 #else
       GFX_BUFFER_XFORM_OPTIONS_TRANSMUTE_T transmute_options;

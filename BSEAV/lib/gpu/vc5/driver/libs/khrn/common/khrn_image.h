@@ -51,6 +51,8 @@ extern khrn_image* khrn_image_create(khrn_blob* blob,
 extern khrn_image* khrn_image_create_one_elem_slice(khrn_blob* blob,
       unsigned elem, unsigned slice, unsigned level, GFX_LFMT_T api_fmt);
 
+extern khrn_image* khrn_image_shallow_blob_copy(const khrn_image* other);
+
 extern GFX_LFMT_T khrn_image_get_lfmt(const khrn_image *img,
       unsigned plane);
 

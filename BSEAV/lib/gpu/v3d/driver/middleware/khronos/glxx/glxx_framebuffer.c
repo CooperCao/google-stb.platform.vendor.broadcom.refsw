@@ -10,14 +10,14 @@
 
 static void attachment_info_init(GLXX_ATTACHMENT_INFO_T *attachment)
 {
-   vcos_assert(attachment);
+   assert(attachment);
 
    /*
       we never re-init a program structure, so this
       should be shiny and new
    */
 
-   vcos_assert(attachment->mh_object == MEM_INVALID_HANDLE);
+   assert(attachment->mh_object == MEM_HANDLE_INVALID);
 
    attachment->type = GL_NONE;
    attachment->target = 0;
@@ -26,7 +26,7 @@ static void attachment_info_init(GLXX_ATTACHMENT_INFO_T *attachment)
 
 void glxx_framebuffer_init(GLXX_FRAMEBUFFER_T *framebuffer, int32_t name)
 {
-   vcos_assert(framebuffer);
+   assert(framebuffer);
 
    framebuffer->name = name;
 
@@ -37,19 +37,19 @@ void glxx_framebuffer_init(GLXX_FRAMEBUFFER_T *framebuffer, int32_t name)
 
 static void attachment_info_term(GLXX_ATTACHMENT_INFO_T *attachment)
 {
-   vcos_assert(attachment);
+   assert(attachment);
 
    // If it is a texture 2D and it is a multisample attachment
    if ((attachment->target == GL_TEXTURE_2D) && (attachment->samples != 0))
    {
       // Delete the multisample buffer allocated when attached
       GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(attachment->mh_object, NULL);
-      if ((texture) && (texture->mh_ms_image != MEM_INVALID_HANDLE))
-         MEM_ASSIGN(texture->mh_ms_image, MEM_INVALID_HANDLE);
+      if ((texture) && (texture->mh_ms_image != MEM_HANDLE_INVALID))
+         MEM_ASSIGN(texture->mh_ms_image, MEM_HANDLE_INVALID);
 
       mem_unlock(attachment->mh_object);
    }
-   MEM_ASSIGN(attachment->mh_object, MEM_INVALID_HANDLE);
+   MEM_ASSIGN(attachment->mh_object, MEM_HANDLE_INVALID);
 }
 
 void glxx_framebuffer_term(MEM_HANDLE_T handle)
@@ -71,11 +71,11 @@ vcos_static_assert(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z == GL_TEXTURE_CUBE_MAP_POSITIV
 
 MEM_HANDLE_T glxx_attachment_info_get_images(GLXX_ATTACHMENT_INFO_T *attachment, MEM_HANDLE_T *mh_ms_image)
 {
-   MEM_HANDLE_T result = MEM_INVALID_HANDLE;
+   MEM_HANDLE_T result = MEM_HANDLE_INVALID;
 
    switch (attachment->type) {
    case GL_NONE:
-      result = MEM_INVALID_HANDLE;
+      result = MEM_HANDLE_INVALID;
       break;
    case GL_TEXTURE:
    {
@@ -93,7 +93,7 @@ MEM_HANDLE_T glxx_attachment_info_get_images(GLXX_ATTACHMENT_INFO_T *attachment,
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
       case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-         vcos_assert(attachment->level == 0);
+         assert(attachment->level == 0);
 
          result = glxx_texture_share_mipmap(texture, TEXTURE_BUFFER_POSITIVE_X + attachment->target - GL_TEXTURE_CUBE_MAP_POSITIVE_X, attachment->level);
          break;
@@ -203,8 +203,8 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
       default:
          UNREACHABLE();
       }
-      if (((renderbuffer->mh_storage == MEM_INVALID_HANDLE) && (*samples == 0)) ||     // non-multisample and invalid handle for non-multisample
-          ((renderbuffer->mh_ms_storage == MEM_INVALID_HANDLE) && (*samples != 0)))    // multisample and invalid handle for multisample
+      if (((renderbuffer->mh_storage == MEM_HANDLE_INVALID) && (*samples == 0)) ||     // non-multisample and invalid handle for non-multisample
+          ((renderbuffer->mh_ms_storage == MEM_HANDLE_INVALID) && (*samples != 0)))    // multisample and invalid handle for multisample
       {
          *width = 0;
          *height = 0;
@@ -246,7 +246,7 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
    {
       MEM_HANDLE_T himage = glxx_attachment_info_get_images(attachment, NULL);
       ATTACHMENT_STATUS_T result = ATTACHMENT_BROKEN;
-      if (himage == MEM_INVALID_HANDLE) {
+      if (himage == MEM_HANDLE_INVALID) {
          *width = 0;
          *height = 0;
          *secure = false;
@@ -316,7 +316,7 @@ GLenum glxx_framebuffer_check_status(GLXX_FRAMEBUFFER_T *framebuffer)
    uint32_t    sw,      sh,      ss;
    GLenum result = GL_FRAMEBUFFER_COMPLETE;
 
-   vcos_assert(framebuffer);
+   assert(framebuffer);
 
    // color/depth/stencil attachment/width/height
    // If attachment is NONE or BROKEN, width and height should be ignored

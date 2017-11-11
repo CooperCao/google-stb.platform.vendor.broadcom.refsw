@@ -387,5 +387,6 @@ void NEXUS_HdmiOutput_GetExtraStatus(
         pStatus->dolbyVision.supported = output->dbv.supported;
         pStatus->dolbyVision.enabled = output->dbv.enabled;
 #endif
+        pStatus->phyChangeRequestCounter = output->phyChangeRequestCounter ;
     }
 }

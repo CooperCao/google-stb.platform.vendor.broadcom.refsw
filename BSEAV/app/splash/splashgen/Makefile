@@ -44,6 +44,7 @@ APPS = splashgen
 export NEXUS_POWER_MANAGEMENT=n
 export BRDC_DISABLE_TRACK_EXECUTION=y
 export NEXUS_FILE_MUX_SUPPORT=n
+export BBOX_USE_BOX_MODE_0_RTS ?= y
 
 # These are the only supported targets
 PHONY := \

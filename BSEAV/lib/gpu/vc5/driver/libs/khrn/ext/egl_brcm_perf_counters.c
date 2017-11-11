@@ -12,8 +12,6 @@
 
 #include "vcos.h"
 
-#if EGL_BRCM_performance_counters
-
 static EGLint egl_get_num_counter_groups()
 {
    EGLint ret = 0;
@@ -317,5 +315,3 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetPerfCounterDataBRCM(
    egl_thread_set_error(EGL_SUCCESS);
    return EGL_TRUE;
 }
-
-#endif

@@ -797,17 +797,16 @@ int main(int argc, const char **argv)
 #if NEXUS_HAS_FRONTEND
     else {
         for (i=0;i<num_decodes;i++) {
-            NEXUS_FrontendAcquireSettings settings;
+            struct btune_settings tune_settings = cmdline.frontend.tune;
             struct frontend *frontend;
 
             frontend = BKNI_Malloc(sizeof(*frontend));
             memset(frontend, 0, sizeof(*frontend));
 
-            NEXUS_Frontend_GetDefaultAcquireSettings(&settings);
-            settings.capabilities.qam = (cmdline.frontend.tune.source == channel_source_qam);
-            settings.capabilities.ofdm = (cmdline.frontend.tune.source == channel_source_ofdm);
-            settings.capabilities.satellite = (cmdline.frontend.tune.source == channel_source_sat);
-            frontend->frontend = NEXUS_Frontend_Acquire(&settings);
+            if (tune_settings.index != -1) {
+                tune_settings.index += i;
+            }
+            frontend->frontend = acquire_frontend(&tune_settings);
             if (!frontend->frontend) {
                 BKNI_Free(frontend);
                 num_decodes = i; /* reduce number of decodes to number of frontends for simpler app logic */

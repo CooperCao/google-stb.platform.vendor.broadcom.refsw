@@ -3771,7 +3771,7 @@ const uint32_t BDSP_IMG_fw_mixer_code_array1[] = {
 	0x001dfb31,
 	0xceffee0b,
 	0x21008033,
-	0xd6d8c022,
+	0xd6e0c022,
 	0x0a420a1b,
 	0xd60087b3,
 	0xd6f0a808,

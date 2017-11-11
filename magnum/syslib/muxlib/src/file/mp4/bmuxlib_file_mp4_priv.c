@@ -103,8 +103,6 @@ BDBG_FILE_MODULE(BMUX_MP4_OUTPUT);     /* enables output diagnostics */
 BDBG_FILE_MODULE(BMUX_MP4_STATE);      /* enables state machine diagnostics */
 BDBG_FILE_MODULE(BMUX_MP4_FINISH);     /* enables finish diagnostics */
 
-BDBG_OBJECT_ID_DECLARE(BMUXlib_File_MP4_P_Context);
-
 /* TODO:
    [ ] Auxiliary track creation (SDS, ODS, AVC Params)
    [ ] Store H.264 PPS and SPS in parameter set track
@@ -1435,7 +1433,7 @@ static void InitializeSampleMetadata(BMUXlib_File_MP4_P_CurrentSample *pCurrentS
          /* For audio, the DTS and PTS should always be equal, so this should be zero,
             and no CTTS box should be required - this calc is done incase this is not true */
          /* NOTE: CTSDTSDiff must be in media timescale, not presentation timescale... */
-         uiResult = uiCTSDTSDiff90kHz * pCurrentInput->pTrack->uiTimescale;
+         uiResult = (uint64_t)uiCTSDTSDiff90kHz * pCurrentInput->pTrack->uiTimescale;
          pMetadata->uiCTSDTSDiff = uiResult / BMUXLIB_FILE_MP4_P_TIMESCALE_90KHZ;
          break;
       }
@@ -1510,7 +1508,7 @@ static void UpdateSampleMetadata(BMUXlib_File_MP4_P_CurrentSample *pCurrentSampl
       {
          pCurrentSample->uiDTSDelta90kHz = uiDTSDelta90kHz;
          /* convert delta DTS into timescale units ... */
-         uiResult = uiDTSDelta90kHz * pCurrentInput->pTrack->uiTimescale;
+         uiResult = (uint64_t)uiDTSDelta90kHz * pCurrentInput->pTrack->uiTimescale;
          pMetadata->uiDTSDelta = uiResult / BMUXLIB_FILE_MP4_P_TIMESCALE_90KHZ;
          break;
       }

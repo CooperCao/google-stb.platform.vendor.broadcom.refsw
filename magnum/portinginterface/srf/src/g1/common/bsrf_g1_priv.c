@@ -1,42 +1,40 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 #include "bstd.h"
 #include "bsrf.h"
@@ -158,6 +156,7 @@ BERR_Code BSRF_g1_P_OpenChannel(
 #ifdef BSRF_SXM_OVERRIDE
    uint8_t i;
 
+#if (BCHP_CHIP==lonestar)
    /* sxm request */
    #define BSRF_SXM_NUM_AGC_CODES_DELETE 19
    uint32_t idxLutOmit[BSRF_SXM_NUM_AGC_CODES_DELETE] =
@@ -166,6 +165,14 @@ BERR_Code BSRF_g1_P_OpenChannel(
       62, 64, 66, 68, 70, 72, 74, 76,
       77, 78, 79
    };
+#else
+   /* fabian request */
+   #define BSRF_SXM_NUM_AGC_CODES_DELETE 8
+   uint32_t idxLutOmit[BSRF_SXM_NUM_AGC_CODES_DELETE] =
+   {
+      34, 36, 38, 40, 42, 43, 53, 55
+   };
+#endif
 #endif
 
    BDBG_ASSERT(h);
@@ -223,7 +230,7 @@ BERR_Code BSRF_g1_P_OpenChannel(
    chG1->fastDecayGainThr = 0;
 
 #ifdef BSRF_SXM_OVERRIDE
-   /* sxm request */
+   /* agc codes to omit */
    for (i = 0; i < BSRF_SXM_NUM_AGC_CODES_DELETE; i++)
       chG1->bOmitRfagcLut[idxLutOmit[i]] = true;
 
@@ -920,11 +927,16 @@ BERR_Code BSRF_g1_P_ResetClipCount(BSRF_ChannelHandle h)
    if (!h->bEnabled)
       return BSRF_ERR_POWERED_DOWN;
 
+#if (BCHP_CHIP==lonestar)
    /* setup clip count, sig = 6 for IQ EQ output (tc1.15), thres = 32112 */
    BSRF_P_WriteRegister(h, BCHP_SRFE_FE_CLIP_CTRL, 0x00067D70);
 
    /* reset clip counter */
    BSRF_P_ToggleBit(h, BCHP_SRFE_FE_CLIP_CTRL, 0x00100000);
+#else
+   /* reset clip counter for 89730 */
+   BSRF_P_ToggleBit(h, BCHP_SRFE_RFAGC_LOOP_REG_WIN_CTRL, 0x02000000);
+#endif
 
    BDBG_LEAVE(BSRF_g1_P_ResetClipCount);
    return BERR_SUCCESS;
@@ -943,7 +955,11 @@ BERR_Code BSRF_g1_P_GetClipCount(BSRF_ChannelHandle h, uint32_t *pClipCount)
       return BSRF_ERR_POWERED_DOWN;
 
    /* read clip counter */
+#if (BCHP_CHIP==lonestar)
    BSRF_P_ReadRegister(h, BCHP_SRFE_FE_CLIP_COUNT, pClipCount);
+#else
+   BSRF_P_ReadRegister(h, BCHP_SRFE_RFAGC_LOOP_CLIP_CNT, pClipCount);
+#endif
 
    BDBG_LEAVE(BSRF_g1_P_GetClipCount);
    return BERR_SUCCESS;

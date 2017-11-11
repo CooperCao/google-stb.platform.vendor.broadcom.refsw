@@ -1,7 +1,10 @@
 /******************************************************************************
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#if !V3D_HAS_QTS
+
+#include "libs/core/v3d/v3d_ver.h"
+
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 
 #include "khrn_tile_state.h"
 #include "khrn_process.h"

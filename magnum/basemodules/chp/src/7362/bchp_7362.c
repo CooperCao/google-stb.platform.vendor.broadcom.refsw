@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -181,15 +181,7 @@ BERR_Code BCHP_Open( BCHP_Handle *phChip, const BCHP_OpenSettings *pSettings )
     ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl_en, 1));
     BREG_Write32(pChip->regHandle, BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ulVal);
 
-    if ( ulChipIdReg == 0x73620000 ||
-        ulChipIdReg == 0x73620001 )
-    {
-        /* Set M2MC clk to 324M */
-        ulVal = BREG_Read32 (pChip->regHandle, BCHP_CLKGEN_INTERNAL_MUX_SELECT);
-        ulVal |=  (BCHP_FIELD_DATA(CLKGEN_INTERNAL_MUX_SELECT, GFX_M2MC_CORE_CLOCK, 0x1));
-        BREG_Write32(pChip->regHandle, BCHP_CLKGEN_INTERNAL_MUX_SELECT, ulVal);
-    }
-
+    BCHP_P_MuxSelect(pChip);
 
 #if BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
     BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);

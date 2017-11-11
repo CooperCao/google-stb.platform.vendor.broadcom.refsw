@@ -214,7 +214,7 @@ BERR_Code BTNR_3466_GetPowerSaver(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    uint8_t hab[5] = HAB_MSG_HDR(BTNR_POWER_CTRL_READ, 0, BTNR_CORE_TYPE, BTNR_CORE_ID);
+    uint8_t hab[9] = HAB_MSG_HDR(BTNR_POWER_CTRL_READ, 0, BTNR_CORE_TYPE, BTNR_CORE_ID);
 
     BDBG_ENTER(BTNR_3466_GetPowerSaver);
     BDBG_ASSERT( hDev );

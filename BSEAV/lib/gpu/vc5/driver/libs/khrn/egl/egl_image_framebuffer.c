@@ -147,11 +147,8 @@ EGL_IMAGE_T *egl_image_framebuffer_new(EGL_CONTEXT_T *context,
    glxx_fb_target_t fb_target = 0;
    glxx_attachment_point_t att_point = 0;
    EGL_IMAGE_T *egl_image = NULL;
-   bool locked = false;
 
-   if (!egl_context_gl_lock())
-      goto end;
-   locked = true;
+   egl_context_gl_lock();
 
    if (context == NULL || context->api != API_OPENGL)
    {
@@ -212,15 +209,14 @@ EGL_IMAGE_T *egl_image_framebuffer_new(EGL_CONTEXT_T *context,
    if (!image)
       goto end;
 
-   egl_image = egl_image_create(image);
+   egl_image = egl_image_create(image, 1);
    KHRN_MEM_ASSIGN(image, NULL);
    if (!egl_image)
       goto end;
    error = EGL_SUCCESS;
 
 end:
-   if (locked)
-      egl_context_gl_unlock();
+   egl_context_gl_unlock();
    if (error != EGL_SUCCESS)
       KHRN_MEM_ASSIGN(image, NULL);
    egl_thread_set_error(error);

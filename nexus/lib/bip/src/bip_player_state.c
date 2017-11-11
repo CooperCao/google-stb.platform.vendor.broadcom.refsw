@@ -1441,13 +1441,15 @@ static void pbipCallback(
     BIP_Status       brc;
 
     BDBG_ASSERT( hPlayer );
-    BDBG_OBJECT_ASSERT( hPlayer, BIP_Player );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Received eventId=%d from PBIP, state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, eventId, BIP_PLAYER_STATE(hPlayer->state) ));
+
     /* Note: we got callback from PBIP. We dont run Player's state in this callback context. */
     /* This is done because player's state machine may call destroy PBIP context and we can't do that in the PBIP callback itself. */
     /* Instead, we queue up a function with ARB logic that will be run thru ARB's timer context. */
     if ( hPlayer )
     {
+        BDBG_OBJECT_ASSERT( hPlayer, BIP_Player );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Received eventId=%d from PBIP, state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, eventId, BIP_PLAYER_STATE(hPlayer->state) ));
+
         callbackDesc.callback = &pbipCallbackViaArbTimer;
         callbackDesc.context = hPlayer;
         callbackDesc.param = eventId;
@@ -3870,19 +3872,23 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
             NEXUS_Platform_GetConfiguration(pPlatformConfig);
 
 #if NEXUS_NUM_AUDIO_DACS
-            output = NEXUS_AudioDac_GetConnector(pPlatformConfig->outputs.audioDacs[0]);
-            NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
-            audioOutputSettings.timebase = hPlayer->freeRunTimebase;
-            nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
-            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
-            BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+            if (pPlatformConfig->outputs.audioDacs[0]) {
+                output = NEXUS_AudioDac_GetConnector(pPlatformConfig->outputs.audioDacs[0]);
+                NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
+                audioOutputSettings.timebase = hPlayer->freeRunTimebase;
+                nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+                if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
+                BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+            }
 #endif
 #if NEXUS_NUM_SPDIF_OUTPUTS
-            output = NEXUS_SpdifOutput_GetConnector(pPlatformConfig->outputs.spdif[0]);
-            NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
-            audioOutputSettings.timebase = hPlayer->freeRunTimebase;
-            nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
-            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
+            if (pPlatformConfig->outputs.spdif[0]) {
+                output = NEXUS_SpdifOutput_GetConnector(pPlatformConfig->outputs.spdif[0]);
+                NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
+                audioOutputSettings.timebase = hPlayer->freeRunTimebase;
+                nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+                if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
+            }
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
@@ -3982,6 +3988,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
     NEXUS_Error nrc;
     BIP_Status bipStatus = BIP_ERR_INTERNAL;
     NEXUS_PidChannelHandle pcrPidChannel;
+    NEXUS_PlatformConfiguration *pPlatformConfig = NULL;
 
     /* In this mode, playpump buffer is used as the dejitter buffer. XPT Playback paces the AV data in using the 4-byte timestamps. */
 
@@ -4060,12 +4067,19 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
             BIP_CHECK_GOTO(( hPlayer->lockedTimebase != NEXUS_Timebase_eInvalid), ( "NEXUS_Timebase_Open Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
             NEXUS_Timebase_GetSettings(hPlayer->lockedTimebase, &lockedTimebaseSettings);
+#ifdef SW_PLL
+            /* SW PLL case: this is just a test code. */
+            lockedTimebaseSettings.freeze = true;
+            lockedTimebaseSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e122ppm;
+            lockedTimebaseSettings.sourceType = NEXUS_TimebaseSourceType_eFreeRun;
+#else
             lockedTimebaseSettings.sourceType = NEXUS_TimebaseSourceType_ePcr;
             lockedTimebaseSettings.freeze = false;
             lockedTimebaseSettings.sourceSettings.pcr.pidChannel = pcrPidChannel;
             lockedTimebaseSettings.sourceSettings.pcr.maxPcrError = 255;
-            lockedTimebaseSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e61ppm;
+            lockedTimebaseSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e122ppm;
             lockedTimebaseSettings.sourceSettings.pcr.jitterCorrection = NEXUS_TristateEnable_eDisable;
+#endif
             nrc = NEXUS_Timebase_SetSettings(hPlayer->lockedTimebase, &lockedTimebaseSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Timebase_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
@@ -4113,7 +4127,6 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
         {
             NEXUS_AudioOutput output;
             NEXUS_AudioOutputSettings audioOutputSettings;
-            NEXUS_PlatformConfiguration *pPlatformConfig;
 
             pPlatformConfig = B_Os_Calloc( 1, sizeof(NEXUS_PlatformConfiguration));
             BIP_CHECK_GOTO( (pPlatformConfig), ( "Failed to allocate memory (%zu bytes) for NEXUS_PlatformConfiguration ", sizeof(NEXUS_PlatformConfiguration) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
@@ -4121,20 +4134,24 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
             NEXUS_Platform_GetConfiguration(pPlatformConfig);
 
 #if NEXUS_NUM_AUDIO_DACS
-            output = NEXUS_AudioDac_GetConnector(pPlatformConfig->outputs.audioDacs[0]);
-            NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
-            audioOutputSettings.timebase = hPlayer->lockedTimebase;
-            nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
-            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
-            BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+            if (pPlatformConfig->outputs.audioDacs[0]) {
+                output = NEXUS_AudioDac_GetConnector(pPlatformConfig->outputs.audioDacs[0]);
+                NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
+                audioOutputSettings.timebase = hPlayer->lockedTimebase;
+                nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+                if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
+                BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+            }
 #endif
 #if NEXUS_NUM_SPDIF_OUTPUTS
-            output = NEXUS_SpdifOutput_GetConnector(pPlatformConfig->outputs.spdif[0]);
-            NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
-            audioOutputSettings.timebase = hPlayer->lockedTimebase;
-            nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
-            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
-            BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+            if (pPlatformConfig->outputs.spdif[0]) {
+                output = NEXUS_SpdifOutput_GetConnector(pPlatformConfig->outputs.spdif[0]);
+                NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
+                audioOutputSettings.timebase = hPlayer->lockedTimebase;
+                nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+                if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
+                BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+            }
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
             output = NEXUS_HdmiOutput_GetAudioConnector(pPlatformConfig->outputs.hdmi[0] );
@@ -4153,7 +4170,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
                 nrc = NEXUS_Display_SetSettings(hPlayer->hDisplay, &displaySettings);
                 BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Display_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
             }
-            B_Os_Free(pPlatformConfig);
+            B_Os_Free(pPlatformConfig); pPlatformConfig = NULL;
         }
     }
 
@@ -4171,7 +4188,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
 
             NEXUS_Timebase_GetSettings(hPlayer->freeRunTimebase, &freeRunTimebaseSettings);
             freeRunTimebaseSettings.freeze = true;
-            freeRunTimebaseSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e244ppm;
+            freeRunTimebaseSettings.sourceSettings.freeRun.trackRange = NEXUS_TimebaseTrackRange_e122ppm;
             freeRunTimebaseSettings.sourceType = NEXUS_TimebaseSourceType_eFreeRun;
             nrc = NEXUS_Timebase_SetSettings(hPlayer->freeRunTimebase, &freeRunTimebaseSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Timebase_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
@@ -4230,6 +4247,9 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
         hPlayer->pbipState.settings.ttsParams.throttleParams.minBufDepth = hPlayer->playerSettings.ttsParams.minBufDepth;
         hPlayer->pbipState.settings.ttsParams.throttleParams.maxClockMismatch = hPlayer->playerSettings.ttsParams.maxClockMismatch;
         hPlayer->pbipState.settings.ttsParams.throttleParams.bufDepthInMsec = hPlayer->playerSettings.ttsParams.bufDepthInMsec;
+#ifdef SW_PLL
+        hPlayer->pbipState.settings.ttsParams.throttleParams.lockedTimebase = hPlayer->lockedTimebase;
+#endif
         /* TODO: set the callback */
         if (hPlayer->clockRecoveryMode == BIP_PlayerClockRecoveryMode_ePushWithPcrNoSyncSlip)
         {
@@ -4263,6 +4283,10 @@ error:
     {
         if (hPlayer->hPcrPidChannel) NEXUS_Playpump_ClosePidChannel(hPlayer->hPlaypump, hPlayer->hPcrPidChannel);
         hPlayer->hPcrPidChannel = NULL;
+
+        if (pPlatformConfig) {
+            B_Os_Free(pPlatformConfig);
+        }
     }
     return (bipStatus);
 } /* prepareForPushWithTtsOrPcrNoSyncSlipMode */
@@ -5181,7 +5205,7 @@ static BIP_Status selectTracksAndReconfigDecoders(
 
         /* TODO: duration & contentLength are not valid in this case, try them as 0 values. */
         hNewMediaInfo = BIP_MediaInfo_CreateFromBMediaStream_priv( pbipStatus.stream, 0 /*hPlayer->pbipState.psi.duration*/, 0 /*hPlayer->pbipState.psi.contentLength*/, hPlayer->pbipState.psi.liveChannel , NULL);
-        BIP_CHECK_GOTO(( hPlayer->hMediaInfo ), ( "BIP_MediaInfo_CreateFromBMediaStream_priv Failed"), error, BIP_ERR_PLAYER_PROBE, completionStatus );
+        BIP_CHECK_GOTO(( hNewMediaInfo ), ( "BIP_MediaInfo_CreateFromBMediaStream_priv Failed"), error, BIP_ERR_PLAYER_PROBE, completionStatus );
 
         /* Freeup the current object only if we haven't provided this object to App. Otherwise, it gets freed up when App requests for the next MediaInfo object. */
         if (hPlayer->hMediaInfoForApp != hPlayer->hMediaInfo)

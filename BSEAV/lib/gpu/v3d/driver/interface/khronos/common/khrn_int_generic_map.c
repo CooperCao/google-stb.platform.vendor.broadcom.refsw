@@ -1,19 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Generic map
-
-FILE DESCRIPTION
-KHRN_GENERIC_MAP_KEY_T to KHRN_GENERIC_MAP_VALUE_T map. In
-KHRN_GENERIC_MAP_RELOCATABLE mode, KHRN_GENERIC_MAP(T) is compatible both with
-the c++-style (init/term correspond to constructor/destructor) object semantics
-used by vg and with the object semantics used by gl (structure is initialised to
--1 before any functions are called, term can be called at any time -- before
-init, after init even if it fails, and after term).
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_generic_map.h"
 #include "interface/khronos/common/khrn_int_util.h"
 
@@ -109,8 +96,8 @@ bool khrn_generic_map(init)(KHRN_GENERIC_MAP(T) *map, uint32_t capacity)
       the smallest number that satisfies these constraints is 8 (7 > 4, 7 > 6)
    */
 
-   vcos_assert(capacity >= 8);
-   vcos_assert(is_power_of_2(capacity)); /* hash stuff assumes this */
+   assert(capacity >= 8);
+   assert(is_power_of_2(capacity)); /* hash stuff assumes this */
 
    /*
       alloc and clear storage
@@ -121,14 +108,13 @@ bool khrn_generic_map(init)(KHRN_GENERIC_MAP(T) *map, uint32_t capacity)
 #ifdef KHRN_GENERIC_MAP_RELOCATABLE
    handle = mem_alloc_ex(capacity * sizeof(KHRN_GENERIC_MAP(ENTRY_T)), alignof(KHRN_GENERIC_MAP(ENTRY_T)),
       MEM_FLAG_INIT, STRINGIZE(KHRN_GENERIC_MAP(T)) ".storage", MEM_COMPACT_DISCARD); /* no term (struct containing KHRN_GENERIC_MAP(T) must call khrn_generic_map(term)()) */
-   if (handle == MEM_INVALID_HANDLE) {
+   if (handle == MEM_HANDLE_INVALID) {
       return false;
    }
-   { vcos_static_assert(MEM_INVALID_HANDLE == KHRN_GENERIC_MAP_VALUE_NONE); }
+   { vcos_static_assert(MEM_HANDLE_INVALID == KHRN_GENERIC_MAP_VALUE_NONE); }
    /* all values already initialised to KHRN_GENERIC_MAP_VALUE_NONE */
 #else
-   base = (KHRN_GENERIC_MAP(ENTRY_T) *)KHRN_GENERIC_MAP_ALLOC(capacity * sizeof(KHRN_GENERIC_MAP(ENTRY_T)),
-      STRINGIZE(KHRN_GENERIC_MAP(T)) ".storage");
+   base = (KHRN_GENERIC_MAP(ENTRY_T) *)KHRN_GENERIC_MAP_ALLOC(capacity * sizeof(KHRN_GENERIC_MAP(ENTRY_T)));
    if (!base) {
       return false;
    }
@@ -159,15 +145,15 @@ bool khrn_generic_map(init)(KHRN_GENERIC_MAP(T) *map, uint32_t capacity)
 
 /*
    in KHRN_GENERIC_MAP_RELOCATABLE mode, khrn_generic_map(term) may be called:
-   - before init: map->storage will be MEM_INVALID_HANDLE.
+   - before init: map->storage will be MEM_HANDLE_INVALID.
    - after init fails: map is unchanged.
-   - after term: map->storage will have been set back to MEM_INVALID_HANDLE.
+   - after term: map->storage will have been set back to MEM_HANDLE_INVALID.
 */
 
 void khrn_generic_map(term)(KHRN_GENERIC_MAP(T) *map)
 {
 #ifdef KHRN_GENERIC_MAP_RELOCATABLE
-   if (map->storage != MEM_INVALID_HANDLE) {
+   if (map->storage != MEM_HANDLE_INVALID) {
 #endif
 #ifdef KHRN_GENERIC_MAP_RELEASE_VALUE
 #ifdef KHRN_GENERIC_MAP_RELOCATABLE
@@ -187,7 +173,7 @@ void khrn_generic_map(term)(KHRN_GENERIC_MAP(T) *map)
 #endif
 #ifdef KHRN_GENERIC_MAP_RELOCATABLE
       mem_release(map->storage);
-      map->storage = MEM_INVALID_HANDLE;
+      map->storage = MEM_HANDLE_INVALID;
    }
 #else
    KHRN_GENERIC_MAP_FREE(map->storage);
@@ -199,8 +185,8 @@ bool khrn_generic_map(insert)(KHRN_GENERIC_MAP(T) *map, KHRN_GENERIC_MAP_KEY_T k
    uint32_t capacity = map->capacity;
    KHRN_GENERIC_MAP(ENTRY_T) *entry;
 
-   vcos_assert(value != KHRN_GENERIC_MAP_VALUE_DELETED);
-   vcos_assert(value != KHRN_GENERIC_MAP_VALUE_NONE);
+   assert(value != KHRN_GENERIC_MAP_VALUE_DELETED);
+   assert(value != KHRN_GENERIC_MAP_VALUE_NONE);
 
    entry = get_entry(
 #ifdef KHRN_GENERIC_MAP_RELOCATABLE
@@ -243,7 +229,7 @@ bool khrn_generic_map(insert)(KHRN_GENERIC_MAP(T) *map, KHRN_GENERIC_MAP_KEY_T k
 #endif
          capacity, key);
       if (entry->value == KHRN_GENERIC_MAP_VALUE_DELETED) {
-         vcos_assert(map->deletes > 0);
+         assert(map->deletes > 0);
          --map->deletes;
       }
       entry->key = key;
@@ -272,7 +258,7 @@ bool khrn_generic_map(delete)(KHRN_GENERIC_MAP(T) *map, KHRN_GENERIC_MAP_KEY_T k
 #endif
       entry->value = KHRN_GENERIC_MAP_VALUE_DELETED;
       ++map->deletes;
-      vcos_assert(map->entries > 0);
+      assert(map->entries > 0);
       --map->entries;
    }
 #ifdef KHRN_GENERIC_MAP_RELOCATABLE

@@ -39,12 +39,7 @@
 #include "bdsp_raaga_fwdownload_priv.h"
 #include "bdsp_raaga_fw_algo.h"
 #include "bimg.h"
-
-
-#ifdef BDSP_AUTH
-#define BDSP_MEM_P_ConvertAddressToOffset(a,b,c)
-#define BDSP_MEM_P_FlushCache(a,b,c) BSTD_UNUSED(a)
-#else
+#ifndef BDSP_AUTH
 #include "bdsp_raaga_mm_priv.h"
 #endif
 
@@ -70,16 +65,6 @@ BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
     uint32_t ui32Count = 0;
     uint32_t uiSizeCopied=0;
     BERR_Code rc = BERR_SUCCESS;
-
-#if (BCHP_CHIP == 7278)
-#ifdef FIREPATH_BM
-    uint32_t myval = 0;
-
-    /* AJ BM Debug : Hack to get the regHandle */
-    BREG_Handle pHandle = (BREG_Handle) (((uint8_t *)pMemory->hBlock) - 0x100B4);
-    BDBG_MSG(("pHandle : %llp", pHandle));
-#endif
-#endif
 
     BDBG_ASSERT(iface);
     BDBG_ASSERT(pImgContext);
@@ -127,21 +112,8 @@ BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
           iface->close(image);
           return BERR_TRACE(rc);
       }
-#if (BCHP_CHIP == 7278)
-#ifdef FIREPATH_BM
-      myval = BDSP_Read32(pHandle, BCHP_RAAGA_DSP_PERI_SW_MAILBOX6);
-      BDSP_Write32(pHandle,   BCHP_RAAGA_DSP_PERI_SW_MAILBOX6, myval);
-#endif
-#endif
 
       BKNI_Memcpy((void *)pMemAddr,data,ui32ChunkLen);
-
-#if (BCHP_CHIP == 7278)
-#ifdef FIREPATH_BM
-      myval = BDSP_Read32(pHandle,   BCHP_RAAGA_DSP_PERI_SW_MAILBOX6);
-      BDSP_Write32(pHandle,   BCHP_RAAGA_DSP_PERI_SW_MAILBOX6, myval);
-#endif
-#endif
 
       pMemAddr +=ui32ChunkLen;
       uiSizeCopied +=  ui32ChunkLen;
@@ -256,7 +228,6 @@ unsigned BDSP_Raaga_P_AssignAlgoSizes(
     /* Compute system image requirements */
     for ( i = 0; i < BDSP_SystemImgId_eMax; i++ )
     {
-#if (BCHP_CHIP != 7278)
         /* TODO: There should be a better way to do this. This should probably be handled
         like SCM nodes. However in the current design this might require it to be present in
         the algo ID enumeration which will have implications to vom parse and such. */
@@ -272,7 +243,7 @@ unsigned BDSP_Raaga_P_AssignAlgoSizes(
             if (pInfo->supported == false)
                 continue;
         }
-#endif
+
         if(UseBDSPMacro)
         {
             /* Normal Path */
@@ -373,4 +344,87 @@ unsigned BDSP_Raaga_P_AssignAlgoSizes(
         }
     }
     return totalSize;
+}
+
+BERR_Code BDSP_Raaga_P_DumpImage(
+    void       *pBuffer,
+    unsigned    uiBufferSize,
+    void      **pvCodeStart,
+    unsigned   *puiCodeSize,
+    const BIMG_Interface *pImageInterface,
+    void **pImageContext
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    BDSP_RaagaImgCacheEntry *pImgCache, *pImgCachelocal;
+    const BDSP_RaagaUsageOptions Usage;
+    bool bUseBDSPMacro = true;
+    unsigned i;
+    unsigned uiFwBinSize, uiFwBinSizeWithGuardBand;
+    BDSP_MMA_Memory Memory;
+    unsigned size = 0;
+
+    BDBG_ENTER(BDSP_Raaga_P_DumpImage);
+    *pvCodeStart = NULL;
+    *puiCodeSize = 0;
+
+    pImgCache = (BDSP_RaagaImgCacheEntry *)BKNI_Malloc(sizeof(BDSP_RaagaImgCacheEntry)*BDSP_IMG_ID_MAX);
+    if(pImgCache == NULL)
+    {
+        BDBG_ERR((" Cannot allocate memory"));
+        errCode=BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto end;
+    }
+    pImgCachelocal = pImgCache;
+
+    /* Find all the sizes for supported binaries */
+    BKNI_Memset(pImgCache, 0, (sizeof(BDSP_RaagaImgCacheEntry)*BDSP_IMG_ID_MAX));
+    uiFwBinSize = BDSP_Raaga_P_AssignAlgoSizes(
+                pImageInterface,
+                pImageContext,
+                pImgCache,
+                &Usage,
+                bUseBDSPMacro);
+
+    for(i=0; i < BDSP_IMG_ID_MAX ; i ++ )
+    {
+        size = (unsigned)pImgCachelocal->size;
+        BDBG_MSG((" IMG[%d] : size = %d", i ,size));
+        pImgCachelocal++;
+    }
+
+    /* Guard band required for Raaga Code access */
+    uiFwBinSizeWithGuardBand = uiFwBinSize + BDSP_CODE_DWNLD_GUARD_BAND_SIZE;
+
+    if( uiFwBinSizeWithGuardBand > uiBufferSize )
+    {
+        BDBG_ERR((" Allocated memory for binary download less than the required memory. "));
+        BDBG_ERR((" Please increase the define value at bdsp_auth.h. "));
+        BDBG_ERR((" Allocated Size = %d firmware size = %d Diff(required - allocated ) = %d", uiBufferSize, uiFwBinSizeWithGuardBand, uiFwBinSizeWithGuardBand- uiBufferSize  ));
+        errCode=BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto end;
+    }
+
+    BKNI_Memset( pBuffer, 0, uiFwBinSizeWithGuardBand );
+    Memory.pAddr = pBuffer;
+    Memory.offset = 0;
+    errCode = BDSP_Raaga_P_PreLoadFwImages(
+                pImageInterface,
+                pImageContext,
+                pImgCache,
+                &Memory,
+                uiFwBinSize);
+
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_DumpImage: Preloading of the firmware not successful"));
+        goto end;
+    }
+
+    *pvCodeStart = pBuffer;
+    *puiCodeSize = uiFwBinSizeWithGuardBand;
+
+end:
+    BDBG_LEAVE(BDSP_Raaga_P_DumpImage);
+    return errCode;
 }

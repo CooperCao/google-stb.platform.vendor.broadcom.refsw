@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
 ******************************************************************************/
 
 #include "nexus_platform.h"
@@ -207,8 +206,6 @@ int main(int argc, char **argv)
         NEXUS_VideoDecoderPrimer_GetSettings(primer[i], &primerSettings);
         primerSettings.ptsOffset = FCC_PTS_OFFSET; /* provide a default pts offset for faster change */
         primerSettings.ptsStcDiffCorrectionEnabled = true;
-        primerSettings.pastTolerance = FCC_PTS_OFFSET;
-        primerSettings.futureTolerance = 0;
         NEXUS_VideoDecoderPrimer_SetSettings(primer[i], &primerSettings);
 
         NEXUS_VideoDecoderPrimer_Start(primer[i], &videoProgram[i]);

@@ -169,6 +169,7 @@ private:
 
     static void doDup(TzTask *currTask);
     static void doDup2(TzTask *currTask);
+    static void doDup3(TzTask *currTask);
 
     static void doBrk(TzTask *currTask);
 
@@ -203,6 +204,9 @@ private:
     static void doMqTimedRecv(TzTask *currTask);
     static void doMqNotify(TzTask *currTask);
     static void doMqGetSetAttr(TzTask *currTask);
+
+    static void doPipe2(TzTask *currTask);
+    static void doPipe(TzTask *currTask);
 
     static void doGetRandom(TzTask *currTask);
 

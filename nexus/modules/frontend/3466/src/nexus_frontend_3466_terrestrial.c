@@ -1461,7 +1461,6 @@ full_acquire:
         {
         case NEXUS_FrontendOfdmMode_eDvbt2:
         case NEXUS_FrontendOfdmMode_eDvbt:
-            BKNI_Sleep(500);
             rc = BODS_Acquire(pDevice->terrestrial.ods_chn[pChannel->chn_num], &odsParam);
             if(rc){rc = BERR_TRACE(rc); goto done;}
             break;

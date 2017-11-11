@@ -1009,7 +1009,7 @@ bool CDisplay::isStandardDef()
 
 eDynamicRange CDisplay::getOutputDynamicRange()
 {
-    COutputHdmi * pOutput = (COutputHdmi *)getOutput(eBoardResource_outputHdmi);
+    COutputHdmi * pOutput      = (COutputHdmi *)getOutput(eBoardResource_outputHdmi);
     eDynamicRange dynamicRange = eDynamicRange_Unknown;
 
     if (NULL != pOutput)
@@ -1036,4 +1036,4 @@ eRet CDisplay::setOutputDynamicRange(eDynamicRange dynamicRange)
 
 error:
     return(ret);
-}
+} /* setOutputDynamicRange */

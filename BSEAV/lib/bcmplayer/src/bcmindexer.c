@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -92,6 +92,7 @@ typedef __int64 off_t;
 #define getLo64(X) (unsigned long)((X)&0xFFFFFFFF)
 #define getHi64(X) (unsigned long)((X)>>32)
 #define create64(HI,LO) ((((uint64_t)(HI))<<32)|(unsigned long)(LO))
+#define INVALID_OFFSET ((uint64_t)-1)
 
 /* enable this to add start code validation
    debug messages at the compile time */
@@ -362,6 +363,7 @@ static int BNAV_Indexer_ProcessMPEG2SCT(BNAV_Indexer_Handle handle, const BSCT_E
 
     if (sc != SC_PTS) {
         offset = BNAV_Indexer_getOffset(handle, p_curBfr);
+        if (offset == INVALID_OFFSET) return 0;
     }
 
     if (handle->settings.navVersion == BNAV_Version_TimestampOnly) {
@@ -630,6 +632,7 @@ long BNAV_Indexer_FeedReverse(BNAV_Indexer_Handle handle, const BSCT_Entry *p_bf
 
         case SC_SEQUENCE:
             handle->seqHdrStartOffset = BNAV_Indexer_getOffset(handle, curSct);
+            if (handle->seqHdrStartOffset == INVALID_OFFSET) break;
             handle->seqHdrSize = handle->picEnd - handle->seqHdrStartOffset;
 
             /* Go through every entry and set seqhdr offset if not set already */
@@ -663,6 +666,7 @@ long BNAV_Indexer_FeedReverse(BNAV_Indexer_Handle handle, const BSCT_Entry *p_bf
             navEntry = &handle->reverse.entry[handle->reverse.total_entries++];
 
             handle->picStart = BNAV_Indexer_getOffset(handle, curSct);
+            if (handle->picStart == INVALID_OFFSET) break;
             frameSize = handle->picEnd - handle->picStart;
             if (frameSize > handle->settings.maxFrameSize) {
                 BDBG_WRN(("Giant frame (%d bytes) detected and rejected: %d", frameSize, handle->totalEntriesWritten));
@@ -1140,7 +1144,12 @@ uint64_t BNAV_Indexer_getOffset(BNAV_Indexer_Handle handle, const BSCT_Entry *p_
     if (handle->settings.append.offsetHi || handle->settings.append.offsetLo) {
         /* add the append amount */
         offset += create64(handle->settings.append.offsetHi, handle->settings.append.offsetLo);
-
+    }
+    if (handle->priming.offset) {
+        if (offset < handle->priming.offset) {
+            return INVALID_OFFSET;
+        }
+        offset -= handle->priming.offset;
     }
     return offset;
 }
@@ -1511,6 +1520,7 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
         }
 
         offset = BNAV_Indexer_getOffset(handle, p_curSct4);
+        if (offset == INVALID_OFFSET) continue;
 
         VALIDATE_AVC_SC(handle, p_curSct4,sc);
 
@@ -1790,6 +1800,7 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
         sc = returnStartCode(p_curBfr->startCodeBytes); /* parse once */
         if (sc != SC_AVS_PTS) {
             offset = BNAV_Indexer_getOffset(handle, p_curBfr);
+            if (offset == INVALID_OFFSET) continue;
         }
 
         /* detect invalid start code and offsets */
@@ -1947,6 +1958,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
             continue;
         }
         offset = BNAV_Indexer_getOffset(handle, p_curSct4);
+        if (offset == INVALID_OFFSET) continue;
 
         /* extract 8 bytes of payload from BSCT_SixWord_Entry fields. see RDB for documentation on this. */
         payload[0] = (p_curBfr->startCodeBytes >> 16) & 0xFF;
@@ -2233,3 +2245,11 @@ int BNAV_Indexer_GetStatus( BNAV_Indexer_Handle handle, BNAV_Indexer_Status *pSt
     return 0;
 }
 
+void BNAV_Indexer_SetPrimingStart(BNAV_Indexer_Handle handle, uint64_t offset)
+{
+    handle->priming.offset = offset;
+    if (!handle->settings.simulatedFrameRate && !handle->settings.ptsBasedFrameRate) {
+        /* real, not simulated */
+        handle->lasttime = handle->starttime = currentTimestamp();
+    }
+}

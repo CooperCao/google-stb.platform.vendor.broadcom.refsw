@@ -2183,6 +2183,7 @@ B_PlaybackIpError B_PlaybackIp_TrickMode(
         else {
             /* slow fwd or slow rewind case */
             playback_ip->speedNumerator = 1 * (ipTrickModeSettings->absoluteRate < 0 ? -1: 1);
+            /* coverity[divide_by_zero] */
             playback_ip->speedDenominator = NEXUS_NORMAL_DECODE_RATE / abs(ipTrickModeSettings->absoluteRate) ;
             if (ipTrickModeSettings->method == B_PlaybackIpTrickModesMethod_UsePlaySpeed) {
                 /* build a playSpeed string for this fractional speed case. */

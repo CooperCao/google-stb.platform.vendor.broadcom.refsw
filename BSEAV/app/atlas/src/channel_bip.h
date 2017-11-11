@@ -122,36 +122,36 @@ public:
 
     virtual bool operator ==(CChannel &other);
 
-    eRet                 initialize(PROGRAM_INFO_T * pProgramInfo);
-    eRet                 initialize(void);
-    void                 updateDescription(void);
-    eRet                 getChannelInfo(CHANNEL_INFO_T * pChanInfo, bool bScanning);
-    eRet                 getPsiInfo(void);
-    eRet                 openPids(CSimpleAudioDecode * pAudioDecode, CSimpleVideoDecode * pVideoDecode);
-    eRet                 closePids(void);
-    eRet                 start(CSimpleAudioDecode * pAudioDecode, CSimpleVideoDecode * pVideoDecode);
-    eRet                 play(void);
-    eRet                 pause(void);
-    eRet                 stop(void);
-    eRet                 playAtRate(void);
-    eRet                 frameAdvance(void);
-    eRet                 frameRewind(void);
-    eRet                 seek(bool relative, long int seekTime);
-    eRet                 applyTrickMode(void);
-    eRet                 trickmode(CPlaybackTrickData * pTrickModeData);
-    eRet                 setTrickModeRate(int trickModeRate);
-    eRet                 setTrickMode(bool fastFoward);
-    bool                 timelineSupport() { return(true); }
-    unsigned int         getLastPosition(void);
-    unsigned int         getCurrentPosition(void);
-    void                 setUrl(const char * pString);
-    MString              getUrl()                                   { return(_url); }
-    void                 setAction(BMediaPlayerAction playerAction) { _playerCallbackAction = playerAction; }
-    eRet                 setState(BMediaPlayerState state);
-    BMediaPlayerState    getState(void)   { return(_playerState); }
-    unsigned             getProgram(void) { return(_programNumber); }
-    void                 setProgram(const char * str); /* program number can be set from url */
-    void                 setProgram(unsigned program)
+    eRet              initialize(PROGRAM_INFO_T * pProgramInfo);
+    eRet              initialize(void);
+    void              updateDescription(void);
+    eRet              getChannelInfo(CHANNEL_INFO_T * pChanInfo, bool bScanning);
+    eRet              getPsiInfo(void);
+    eRet              openPids(CSimpleAudioDecode * pAudioDecode, CSimpleVideoDecode * pVideoDecode);
+    eRet              closePids(void);
+    eRet              start(CSimpleAudioDecode * pAudioDecode, CSimpleVideoDecode * pVideoDecode);
+    eRet              play(void);
+    eRet              pause(void);
+    eRet              stop(void);
+    eRet              playAtRate(void);
+    eRet              frameAdvance(void);
+    eRet              frameRewind(void);
+    eRet              seek(bool relative, long int seekTime);
+    eRet              applyTrickMode(void);
+    eRet              trickmode(CPlaybackTrickData * pTrickModeData);
+    eRet              setTrickModeRate(int trickModeRate);
+    eRet              setTrickMode(bool fastFoward);
+    bool              timelineSupport() { return(true); }
+    unsigned int      getLastPosition(void);
+    unsigned int      getCurrentPosition(void);
+    void              setUrl(const char * pString);
+    MString           getUrl()                                   { return(_url); }
+    void              setAction(BMediaPlayerAction playerAction) { _playerCallbackAction = playerAction; }
+    eRet              setState(BMediaPlayerState state);
+    BMediaPlayerState getState(void)   { return(_playerState); }
+    unsigned          getProgram(void) { return(_programNumber); }
+    void              setProgram(const char * str); /* program number can be set from url */
+    void              setProgram(unsigned program)
     {
         /* program number can be set locally.*/
         _programNumberValid = true;

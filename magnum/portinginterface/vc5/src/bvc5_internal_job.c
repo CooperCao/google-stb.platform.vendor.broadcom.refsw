@@ -147,6 +147,7 @@ BVC5_P_InternalJob *BVC5_P_JobCreateBin(
          BKNI_Memcpy(pBinJob, psJob, sizeof(BVC5_JobBin));
          pJob->jobData.sBin.psInternalRenderJob = pRenderJob;
          pJob->jobData.sBin.uiMinInitialBinBlockSize = psJob->uiMinInitialBinBlockSize;
+         pJob->jobData.sBin.uiTileStateSize = psJob->uiTileStateSize;
       }
       else
          BKNI_Free(pBinJob);

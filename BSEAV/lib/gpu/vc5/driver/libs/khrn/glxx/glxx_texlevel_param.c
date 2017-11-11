@@ -1,7 +1,9 @@
 /******************************************************************************
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#if KHRN_GLES31_DRIVER
+#include "libs/core/v3d/v3d_ver.h"
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 #include "gl_public_api.h"
 #include "libs/core/lfmt/lfmt.h"
@@ -175,9 +177,13 @@ static unsigned get_texlevel_param(GLXX_SERVER_STATE_T *state,
    switch(pname)
    {
    case GL_TEXTURE_WIDTH:
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      /* None of the tex_buffer things in this function are needed if
+       * !has_large_1d_texture but this is the only thing that actually breaks */
       if (tex_buffer)
          params[0] = glxx_texture_buffer_get_width(texture);
       else
+#endif
          params[0] = img ? khrn_image_get_width(img) / scale : 0;
       result = 1;
       break;

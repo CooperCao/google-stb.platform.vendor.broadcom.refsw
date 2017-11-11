@@ -89,14 +89,15 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     switch(boxMode)
     {
         case 1:
-        case 1001:
         {
             pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 64*1024*1024;
             pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;
+            pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = 5*1024*1024;
             break;
         }
         case 2:
         case 1000:
+        case 1001:
         {
             break;
         }
@@ -107,6 +108,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         }
     }
 
+#if !B_REFSW_SYSTEM_MODE_CLIENT
     if (BCHP_GET_FIELD_DATA(BREG_Read32(g_pPreInitState->hReg, BCHP_AON_CTRL_GLOBAL_ADDRESS_MAP_VARIANT),
         AON_CTRL_GLOBAL_ADDRESS_MAP_VARIANT, map_variant)) {
         BDBG_WRN(("v7-64 Memory Map Variant detected."));
@@ -116,6 +118,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         pSettings->heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_HIGH_MEMORY | NEXUS_MEMORY_TYPE_MANAGED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
         pSettings->heap[NEXUS_MEMC1_SECURE_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_HIGH_MEMORY | NEXUS_MEMORY_TYPE_MANAGED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
     }
+#endif
     return;
 }
 

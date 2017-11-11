@@ -26,8 +26,8 @@ static EGL_SYNC_T* egl_gl_synckhr_new(EGL_CONTEXT_T *context,
    /* check attrib list is either NULL or empty */
    if (egl_next_attrib(&attrib_list, attrib_type, &name, &value))
    {
-      vcos_unused(name);
-      vcos_unused(value);
+      unused(name);
+      unused(value);
       error = EGL_BAD_ATTRIBUTE;
       goto end;
    }
@@ -35,8 +35,7 @@ static EGL_SYNC_T* egl_gl_synckhr_new(EGL_CONTEXT_T *context,
    assert(context->api == API_OPENGL);
    gl_context = (EGL_GL_CONTEXT_T *) context;
 
-   if (!egl_context_gl_lock())
-      goto end;
+   egl_context_gl_lock();
    state = egl_context_gl_server_state(gl_context);
    assert(state);
    egl_sync = egl_sync_create(EGL_SYNC_FENCE_KHR,
@@ -103,8 +102,7 @@ static EGL_SYNC_T* egl_cl_synckhr_new(EGL_CONTEXT_T *context,
    assert(context->api == API_OPENGL);
    gl_context = (EGL_GL_CONTEXT_T *) context;
 
-   if (!egl_context_gl_lock())
-      goto end;
+   egl_context_gl_lock();
    state = egl_context_gl_server_state(gl_context);
    assert(state);
    egl_sync = egl_sync_create_from_cl_event(EGL_CL_EVENT_HANDLE_KHR,
@@ -131,16 +129,12 @@ static EGLint egl_gl_synckhr_wait(EGL_CONTEXT_T *context, EGL_SYNC_T *egl_sync)
 
    gl_context = (EGL_GL_CONTEXT_T *) context;
 
-   if (egl_context_gl_lock())
-   {
-      state = egl_context_gl_server_state(gl_context);
-      assert(state);
-      if (!glxx_server_state_add_fence_to_depend_on(state, egl_sync->fence))
-         error = EGL_BAD_ALLOC;
-      egl_context_gl_unlock();
-   }
-   else
+   egl_context_gl_lock();
+   state = egl_context_gl_server_state(gl_context);
+   assert(state);
+   if (!glxx_server_state_add_fence_to_depend_on(state, egl_sync->fence))
       error = EGL_BAD_ALLOC;
+   egl_context_gl_unlock();
 
    return error;
 }
@@ -233,8 +227,6 @@ static EGLint egl_client_waitsync_impl(EGLDisplay dpy,
    EGLint error = EGL_SUCCESS;
    EGLint ret = EGL_FALSE;
    int timeout_ms = 0;
-   int platform_fence;
-   enum v3d_fence_status status;
 
    if (!egl_initialized(dpy, true))
       return EGL_FALSE;
@@ -273,31 +265,28 @@ static EGLint egl_client_waitsync_impl(EGLDisplay dpy,
    }
 
    /* we need a gl lock on all the operations involving a khrn_fence because
-    * we are tempering with khrn_fmems */
-   if (!egl_context_gl_lock())
-      goto end;
-   platform_fence = khrn_fence_get_platform_fence(egl_sync->fence,
-      EGL_SYNC_SIGNALED_DEPS_STATE, /*force_create=*/false);
+    * we are tampering with khrn_fmems */
+   egl_context_gl_lock();
+
+   v3d_scheduler_deps fence_deps;
+   v3d_scheduler_copy_deps(&fence_deps, khrn_fence_get_deps(egl_sync->fence));
    egl_context_gl_unlock();
 
    if (timeout == EGL_FOREVER_KHR)
    {
-      v3d_platform_fence_wait(platform_fence);
-      status = V3D_FENCE_SIGNALED;
+      v3d_scheduler_wait_jobs(&fence_deps, EGL_SYNC_SIGNALED_DEPS_STATE);
    }
    else
-      status = v3d_platform_fence_wait_timeout(platform_fence, timeout_ms);
-
-   v3d_platform_fence_close(platform_fence);
-
-   if (status == V3D_FENCE_TIMEOUT)
    {
-      ret = EGL_TIMEOUT_EXPIRED_KHR;
-      goto end;
+      if (!v3d_scheduler_wait_jobs_timeout(&fence_deps, EGL_SYNC_SIGNALED_DEPS_STATE, timeout_ms))
+      {
+         ret = EGL_TIMEOUT_EXPIRED_KHR;
+         goto end;
+      }
    }
-   assert(status == V3D_FENCE_SIGNALED);
    ret = EGL_CONDITION_SATISFIED_KHR;
    egl_sync_set_signaled(egl_sync);
+
 end:
    egl_sync_refdec(egl_sync);
    egl_thread_set_error(error);

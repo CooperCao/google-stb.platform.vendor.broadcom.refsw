@@ -9,8 +9,7 @@
   *
   */
 
-#ifndef VCOS_PLATFORM_H
-#define VCOS_PLATFORM_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +28,7 @@ extern "C" {
 #include <time.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <assert.h>
 
 #define typeof __typeof__  /* hack as we are c89 */
 
@@ -186,7 +186,7 @@ VCOS_STATUS_T vcos_semaphore_wait(VCOS_SEMAPHORE_T *sem) {
    /* gdb causes sem_wait() to EINTR when a breakpoint is hit, retry here */
    while ((ret = sem_wait(sem)) == -1 && errno == EINTR)
       continue;
-   vcos_assert(ret==0);
+   assert(ret==0);
    return VCOS_SUCCESS;
 }
 
@@ -202,7 +202,7 @@ VCOS_STATUS_T vcos_semaphore_wait_timeout(VCOS_SEMAPHORE_T *sem, int timeout) {
       else if (errno == EAGAIN)
          return VCOS_EAGAIN;
       else {
-         vcos_assert(0);
+         assert(0);
          return VCOS_EINVAL;
       }
    }
@@ -257,7 +257,7 @@ VCOS_INLINE_IMPL
 void vcos_semaphore_delete(VCOS_SEMAPHORE_T *sem) {
 #ifndef NDEBUG
    int rc = sem_destroy(sem);
-   vcos_assert(rc != -1);
+   assert(rc != -1);
 #else
    sem_destroy(sem);
 #endif
@@ -267,7 +267,7 @@ VCOS_INLINE_IMPL
 VCOS_STATUS_T vcos_semaphore_post(VCOS_SEMAPHORE_T *sem) {
 #ifndef NDEBUG
    int rc = sem_post(sem);
-   vcos_assert(rc == 0);
+   assert(rc == 0);
 #else
    sem_post(sem);
 #endif
@@ -365,7 +365,7 @@ VCOS_INLINE_IMPL
 void vcos_mutex_delete(VCOS_MUTEX_T *latch) {
 #ifndef NDEBUG
    int rc = pthread_mutex_destroy(latch);
-   vcos_assert(rc==0);
+   assert(rc==0);
 #else
    pthread_mutex_destroy(latch);
 #endif
@@ -375,7 +375,7 @@ VCOS_INLINE_IMPL
 VCOS_STATUS_T vcos_mutex_lock(VCOS_MUTEX_T *latch) {
 #ifndef NDEBUG
    int rc = pthread_mutex_lock(latch);
-   vcos_assert(rc==0);
+   assert(rc==0);
 #else
    pthread_mutex_lock(latch);
 #endif
@@ -386,7 +386,7 @@ VCOS_INLINE_IMPL
 void vcos_mutex_unlock(VCOS_MUTEX_T *latch) {
 #ifndef NDEBUG
    int rc = pthread_mutex_unlock(latch);
-   vcos_assert(rc==0);
+   assert(rc==0);
 #else
    pthread_mutex_unlock(latch);
 #endif
@@ -565,12 +565,6 @@ uint32_t vcos_atomic_flags_get_and_clear(VCOS_ATOMIC_FLAGS_T *atomic_flags)
    return flags;
 }
 
-
-
-
-
-
-
 #if defined(linux) || defined(_HAVE_SBRK)
 
 // not exactly the free memory, but a measure of it
@@ -594,89 +588,29 @@ void vcos_legacy_hisr_delete(VCOS_HISR_T *hisr);
 
 #endif
 
-#if defined(__mips__) && defined(BCG_VC4_FAST_ATOMICS)
-
-/* FAST ATOMICS
- *
- * These fast atomics do not have a sync before and after the atomic operation, which
- * the gcc built-in does.
- */
-VCOS_INLINE_IMPL unsigned int AtomicAddConstant(volatile unsigned int *addr, unsigned int inc)
-{
-   unsigned int temp, res;
-
-   __asm__ __volatile__(
-      ".set push                   \n"
-      ".set noreorder              \n"
-      "1:                          \n"
-      "ll %0, %2                   \n"  /* temp = *addr                     */
-      "addu %0, %0, %3             \n"  /* temp = temp + inc                */
-      "move %1, %0                 \n"  /* after = temp                     */
-      "sc %0, %2                   \n"  /* *ptr  = temp; temp = ok?         */
-      "beqz %0, 1b                 \n"  /* check ok                         */
-      "nop                         \n"
-      ".set pop                    \n"
-      : "=&r" (temp), "=&r" (res), "=m" (*addr)
-      : "Ir" (inc), "m" (*addr)
-      : "memory");
-
-   return res;
-}
-
-VCOS_INLINE_IMPL unsigned int AtomicSubConstant(volatile unsigned int *addr, unsigned int dec)
-{
-   unsigned int temp, res;
-
-   __asm__ __volatile__(
-      ".set push                   \n"
-      ".set noreorder              \n"
-      "1:                          \n"
-      "ll %0, %2                   \n"  /* temp = *addr                     */
-      "subu %0, %0, %3             \n"  /* temp = temp - dec                */
-      "move %1, %0                 \n"  /* after = temp                     */
-      "sc %0, %2                   \n"  /* *ptr  = temp; temp = ok?         */
-      "beqz %0, 1b                 \n"  /* check ok                         */
-      "nop                         \n"
-      ".set pop                    \n"
-      : "=&r" (temp), "=&r" (res), "=m" (*addr)
-      : "Ir" (dec), "m" (*addr)
-      : "memory");
-
-   return res;
-}
-
-VCOS_INLINE_IMPL
-unsigned int vcos_atomic_increment( volatile unsigned int * p )
-{
-   return AtomicAddConstant(p, 1);
-}
-
-VCOS_INLINE_IMPL
-unsigned int vcos_atomic_decrement( volatile unsigned int * p )
-{
-   return AtomicSubConstant(p, 1);
-}
-
-#else
-
 /* USE GCC built-in atomic operations
  */
 
 VCOS_INLINE_IMPL
-unsigned int vcos_atomic_increment( volatile unsigned int * p )
+unsigned int vcos_atomic_increment(volatile unsigned int *p)
 {
    /* semantics define value is returned post addition */
    return __sync_add_and_fetch(p, 1);
 }
 
 VCOS_INLINE_IMPL
-unsigned int vcos_atomic_decrement( volatile unsigned int * p )
+unsigned int vcos_atomic_decrement(volatile unsigned int *p)
 {
    /* semantics define value is returned post subtraction */
    return __sync_sub_and_fetch(p, 1);
 }
 
-#endif
+VCOS_INLINE_IMPL
+unsigned int vcos_atomic_exchange(volatile unsigned int *p, unsigned int n)
+{
+   /* semantics define value is returned post set */
+   return __sync_lock_test_and_set(p, n);
+}
 
 #undef VCOS_ASSERT_LOGGING_DISABLE
 #define VCOS_ASSERT_LOGGING_DISABLE 0
@@ -688,8 +622,9 @@ extern void vcos_atomic_flags_delete(VCOS_ATOMIC_FLAGS_T *atomic_flags);
 extern void vcos_atomic_flags_or(VCOS_ATOMIC_FLAGS_T *atomic_flags, uint32_t flags);
 extern uint32_t vcos_atomic_flags_get_and_clear(VCOS_ATOMIC_FLAGS_T *atomic_flags);
 
-extern unsigned int vcos_atomic_increment( volatile unsigned int * p );
-extern unsigned int vcos_atomic_decrement( volatile unsigned int * p );
+extern unsigned int vcos_atomic_increment(volatile unsigned int *p);
+extern unsigned int vcos_atomic_decrement(volatile unsigned int *p);
+extern unsigned int vcos_atomic_exchange(volatile unsigned int *p, unsigned int n);
 
 #endif /* VCOS_INLINE_BODIES */
 
@@ -713,4 +648,3 @@ VCOS_INLINE_DECL void _vcos_thread_sem_post(VCOS_THREAD_T *);
 #ifdef __cplusplus
 }
 #endif
-#endif /* VCOS_PLATFORM_H */

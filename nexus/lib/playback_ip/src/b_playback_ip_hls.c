@@ -1553,8 +1553,10 @@ B_PlaybackIp_ParsePlaylistFile(
                         goto error;
                     }
                     if (encryptionKeyUri)
+                    {
                         BKNI_Free(encryptionKeyUri);
                         encryptionKeyUri = NULL;
+                    }
                 }
                 else if (B_PlaybackIp_UtilsStristr(attribute, HLS_M3U8_TAG_ATTRIBUTE_ENC_IV) != NULL) {
                     int ivLength, i;

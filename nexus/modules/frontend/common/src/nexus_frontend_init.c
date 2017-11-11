@@ -97,9 +97,8 @@ NEXUS_ModuleHandle NEXUS_FrontendModule_Init(
         return NULL;
     }
 
-    NEXUS_Frontend_P_Init();
-
     g_NEXUS_frontendModuleSettings = *pSettings;
+    NEXUS_Frontend_P_Init();
     return g_NEXUS_frontendModule;
 }
 
@@ -111,6 +110,7 @@ See Also:
  ***************************************************************************/
 void NEXUS_FrontendModule_Uninit(void)
 {
+    NEXUS_Frontend_P_Uninit();
     NEXUS_Module_Destroy(g_NEXUS_frontendModule);
     g_NEXUS_frontendModule = NULL;
 }
@@ -203,6 +203,10 @@ NEXUS_Error NEXUS_FrontendModule_Standby_priv(bool enabled, const NEXUS_StandbyS
             if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
             tuner->mode = pSettings->mode;
         }
+    }
+
+    if (pSettings->mode == NEXUS_StandbyMode_eDeepSleep) {
+        NEXUS_Frontend_P_CloseAllMtsifPidChannels();
     }
 
 error:

@@ -6,7 +6,7 @@
 #include "egl_surface_base.h"
 
 void egl_context_base_init(EGL_CONTEXT_T *context,
-      egl_api_t api, EGLConfig config, bool debug,
+      egl_api_t api, const EGL_CONFIG_T *config, bool debug,
       bool robustness, bool reset_notification,
       bool secure)
 {

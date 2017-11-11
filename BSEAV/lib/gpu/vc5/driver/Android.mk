@@ -35,17 +35,18 @@ LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/driver/libs/khrn/include \
 	$(V3D_DRIVER_TOP)/platform/android \
 	$(V3D_DRIVER_TOP)/platform/common \
+	$(V3D_DRIVER_TOP)/platform/nexus \
 	$(ANDROID_TOP)/system/core/libsync/include \
 	$(ANDROID_TOP)/frameworks/native/libs/arect/include \
-	$(ANDROID_TOP)/frameworks/native/libs/nativebase/include \
 	$(ANDROID_TOP)/frameworks/native/libs/nativewindow/include \
+	$(ANDROID_TOP)/frameworks/native/libs/nativebase/include \
 	$(BSEAV_TOP)/../magnum/portinginterface/vc5/include \
 	$(BSEAV_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
 	$(BSEAV_TOP)/linux/driver/brcmv3d/include/uapi/drm
 
 LOCAL_CFLAGS := \
 	-fpic -DPIC \
-	-std=c99 \
+	-std=c99 -fwrapv \
 	-Dkhronos_EXPORTS \
 	-D_POSIX_C_SOURCE=200112 \
 	-D_GNU_SOURCE \
@@ -55,9 +56,7 @@ LOCAL_CFLAGS := \
 	-DGFX_DEFAULT_UIF_XOR_ADDR=16 \
 	-DGFX_DEFAULT_DRAM_MAP_MODE=2 \
 	-DEMBEDDED_SETTOP_BOX=1 \
-	-DKHRN_GLES31_DRIVER=$(V3D_VER_AT_LEAST_3_3_0) \
 	-DKHRN_GLES32_DRIVER=0 \
-	-DGLSL_310_SUPPORT=1 \
 	-DV3D_PLATFORM_SIM=0 \
 	-Wno-unused-function \
 	-Wno-unused-variable \
@@ -144,7 +143,7 @@ LOCAL_CFLAGS += \
 	-Wno-clobbered
 
 LOCAL_SRC_FILES := \
-	$(addprefix driver/, $(COMMON_SRC_FILES)) \
+	$(addprefix driver/, $(COMMON_SRC_FILES) $(GLES_SRC_FILES)) \
 	platform/android/default_android.c \
 	platform/android/display_android.c \
 	platform/android/memory_android.c \
@@ -159,7 +158,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libGLES_nexus
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 intermediates := $(call local-generated-sources-dir)
-GENERATED_SRC_FILES := $(addprefix $(intermediates)/driver/libs/khrn/glsl/, $(COMMON_GENERATED_SRC_FILES))
+GENERATED_SRC_FILES := $(addprefix $(intermediates)/driver/libs/khrn/glsl/, $(COMMON_GENERATED_SRC_FILES) $(GLES_GENERATED_SRC_FILES))
 LOCAL_GENERATED_SOURCES := $(GENERATED_SRC_FILES)
 GENERATED_SRC_DIR := $(abspath ${intermediates})
 
@@ -170,7 +169,6 @@ LOCAL_C_INCLUDES += \
 glsl_primitive_types_deps := \
 	$(LOCAL_PATH)/driver/libs/khrn/glsl/scripts/build_primitive_types.py \
 	$(LOCAL_PATH)/driver/libs/khrn/glsl/scripts/scalar_types.table \
-	$(LOCAL_PATH)/driver/libs/khrn/glsl/scripts/sampler_types.table \
 	$(LOCAL_PATH)/driver/libs/khrn/glsl/scripts/image_types.table
 
 define glsl_primitive_types_gen
@@ -180,7 +178,6 @@ $(hide) \
 		-I $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl \
 		-O $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl \
 		$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/scalar_types.table \
-		$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/sampler_types.table \
 		$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/image_types.table;
 endef
 
@@ -199,13 +196,13 @@ $(intermediates)/driver/libs/khrn/glsl/glsl_primitive_type_index.auto.h : \
 	$(intermediates)/driver/libs/khrn/glsl/glsl_primitive_types.auto.table
 		@
 
-$(intermediates)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.auto.c : $(LOCAL_PATH)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.gperf
+$(intermediates)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.auto.h : $(LOCAL_PATH)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.gperf
 	$(generated_src_dir_exists)
-	gperf $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.gperf > $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.auto.c
+	gperf $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.gperf > $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.auto.h
 
-$(intermediates)/driver/libs/khrn/glsl/glsl_layout.auto.c : $(LOCAL_PATH)/driver/libs/khrn/glsl/glsl_layout.gperf
+$(intermediates)/driver/libs/khrn/glsl/glsl_layout.auto.h : $(LOCAL_PATH)/driver/libs/khrn/glsl/glsl_layout.gperf
 	$(generated_src_dir_exists)
-	gperf $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_layout.gperf > $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/glsl_layout.auto.c
+	gperf $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_layout.gperf > $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/glsl_layout.auto.h
 
 
 define textures_auto_gen
@@ -222,44 +219,6 @@ $(intermediates)/driver/libs/khrn/glsl/textures.auto.props : $(LOCAL_PATH)/drive
 $(intermediates)/driver/libs/khrn/glsl/textures.auto.glsl : \
 	$(intermediates)/driver/libs/khrn/glsl/textures.auto.props
 		@
-
-# sources for stdlib from source tree.
-STDLIB_SOURCES := \
-	stdlib/atomics.glsl \
-	stdlib/common.glsl \
-	stdlib/derivatives.glsl \
-	stdlib/exponential.glsl \
-	stdlib/extensions.glsl \
-	stdlib/geometry.glsl \
-	stdlib/geom_shade.glsl \
-	stdlib/hyperbolic.glsl \
-	stdlib/image.glsl \
-	stdlib/integer.glsl \
-	stdlib/matrix.glsl \
-	stdlib/packing.glsl \
-	stdlib/synchronisation.glsl \
-	stdlib/texture_gather.glsl \
-	stdlib/trigonometry.glsl \
-	stdlib/vector_relational.glsl \
-	stdlib/common.inl \
-	stdlib/derivatives.inl \
-	stdlib/exponential.inl \
-	stdlib/geometry.inl \
-	stdlib/hyperbolic.inl \
-	stdlib/integer.inl \
-	stdlib/matrix.inl \
-	stdlib/packing.inl \
-	stdlib/trigonometry.inl \
-	stdlib/vector_relational.inl \
-	stdlib/texture.glsl \
-	stdlib/globals.glsl \
-	stdlib/stages.props \
-	stdlib/v100_only.props \
-	stdlib/v300_only.props \
-	stdlib/v310_only.props \
-	stdlib/v320_only.props \
-	stdlib/extensions.props \
-	stdlib/restrictions.props
 
 STDLIB_SOURCES := $(addprefix $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/, $(STDLIB_SOURCES))
 
@@ -293,9 +252,12 @@ $(intermediates)/driver/libs/khrn/glsl/glsl_stdlib.auto.h : \
 	$(intermediates)/driver/libs/khrn/glsl/glsl_stdlib.auto.c
 		@
 
-$(intermediates)/driver/libs/khrn/glsl/glsl_parser.output : $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_parser.y
-	$(generated_src_dir_exists)
-	bison -d -o $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/glsl_parser.c $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_parser.y
+$(intermediates)/driver/libs/khrn/glsl/glsl_parser.output : \
+	$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_parser.y \
+	$(intermediates)/driver/libs/khrn/glsl/glsl_layout.auto.h \
+	$(intermediates)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.auto.h
+		$(generated_src_dir_exists)
+		bison -d -o $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/glsl_parser.c $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_parser.y
 
 $(intermediates)/driver/libs/khrn/glsl/glsl_parser.c \
 $(intermediates)/driver/libs/khrn/glsl/glsl_parser.h : \

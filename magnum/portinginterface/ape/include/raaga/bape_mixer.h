@@ -344,6 +344,14 @@ void BAPE_Mixer_GetConnector(
 
 /***************************************************************************
 Summary:
+Determines if a mixer is running
+***************************************************************************/
+bool BAPE_Mixer_Is_Running(
+    BAPE_MixerHandle handle
+    );
+
+/***************************************************************************
+Summary:
 Mixer Input Settings
 ***************************************************************************/
 typedef struct BAPE_MixerAddInputSettings

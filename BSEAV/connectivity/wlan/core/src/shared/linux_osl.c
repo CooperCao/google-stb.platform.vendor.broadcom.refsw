@@ -255,14 +255,17 @@ osl_attach(void *pdev, uint bustype, bool pkttag)
 
 	bzero(osh, sizeof(osl_t));
 
-	if (osl_cmn == NULL || *osl_cmn == NULL) {
+	if (osl_cmn == NULL) {
 		if (!(osh->cmn = kmalloc(sizeof(osl_cmn_t), flags))) {
 			kfree(osh);
 			return NULL;
 		}
 		bzero(osh->cmn, sizeof(osl_cmn_t));
-		if (osl_cmn)
+		if (osl_cmn) {
+			/* osl_cmn can be non null if SHARED_OSL_CMN defined */
+			/* coverity[dead_error_line] */
 			*osl_cmn = osh->cmn;
+		}
 		atomic_set(&osh->cmn->malloced, 0);
 		osh->cmn->dbgmem_list = NULL;
 		spin_lock_init(&(osh->cmn->dbgmem_lock));
@@ -1387,9 +1390,11 @@ dmaaddr_t BCMFASTPATH
 osl_dma_map(osl_t *osh, void *va, uint size, int direction, void *p, hnddma_seg_map_t *dmah)
 {
 	int dir;
+#ifndef STB_SOC_WIFI
 	dmaaddr_t ret_addr;
 	dma_addr_t map_addr;
 	int ret;
+#endif
 
 	ASSERT((osh && (osh->magic == OS_HANDLE_MAGIC)));
 	dir = (direction == DMA_TX)? PCI_DMA_TODEVICE: PCI_DMA_FROMDEVICE;
@@ -1465,19 +1470,16 @@ no_cache_ops:
 	/* need to flush or invalidate the cache here */
 	if (dir == DMA_TX) { /* to device */
 		osl_cache_flush(va, size);
-	} else if (dir == DMA_RX) { /* from device */
+	} else /*dir == DMA_RX*/ { /* from device */
 		osl_cache_inv(va, size);
-	} else { /* both */
-		osl_cache_flush(va, size);
-		osl_cache_inv(va, size);
-	}
+	} /* bidirectional not valid value for "dir" in this function */
+
 	return virt_to_phys(va);
 #else /* (__LINUX_ARM_ARCH__ == 8) */
 	return dma_map_single(osh->pdev, va, size, dir);
 #endif /* (__LINUX_ARM_ARCH__ == 8) */
 #else /* ! STB_SOC_WIFI */
 	map_addr = pci_map_single(osh->pdev, va, size, dir);
-#endif	/* ! STB_SOC_WIFI */
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27))
 	ret = pci_dma_mapping_error(osh->pdev, map_addr);
@@ -1496,6 +1498,7 @@ no_cache_ops:
 	}
 
 	return ret_addr;
+#endif	/* ! STB_SOC_WIFI */
 }
 
 void BCMFASTPATH
@@ -1523,12 +1526,10 @@ osl_dma_unmap(osl_t *osh, dmaaddr_t pa, uint size, int direction)
 #if (__LINUX_ARM_ARCH__ == 8)
 	if (dir == DMA_TX) { /* to device */
 		dma_sync_single_for_device(OSH_NULL, pa, size, DMA_TX);
-	} else if (dir == DMA_RX) { /* from device */
+	} else /*dir == DMA_RX*/ { /* from device */
 		dma_sync_single_for_cpu(OSH_NULL, pa, size, DMA_RX);
-	} else { /* both */
-		dma_sync_single_for_device(OSH_NULL, pa, size, DMA_TX);
-		dma_sync_single_for_cpu(OSH_NULL, pa, size, DMA_RX);
-	}
+	} /* bidirectional not valid value for "dir" in this function*/
+
 #else /* (__LINUX_ARM_ARCH__ == 8) */
 	dma_unmap_single(osh->pdev, (uintptr)pa, size, dir);
 #endif /* (__LINUX_ARM_ARCH__ == 8) */
@@ -1813,7 +1814,11 @@ inline void osl_pcie_rreg(osl_t *osh, ulong addr, volatile void *v, uint size)
 	}
 
 	if (pci_access && acp_war_enab)
+	{
+		/* Intentional, temporary until acp work around can be revisited */
+		/* coverity[dead_error_line] */
 		spin_unlock_irqrestore(&l2x0_reg_lock, flags);
+	}
 }
 #endif /* BCM47XX_CA9 || (STB && __arm__) */
 

@@ -205,7 +205,7 @@ public:
     static void     displayRf4ceRemotes(void);
     static void     addRf4ceRemote(const char * remote_name);
     static void     removeRf4ceRemote(int pairingRefNum);
-    bool            isEnabled(void) { return(_bEnabled); }
+    bool            isEnabled(void)         { return(_bEnabled); }
     void            setEnable(bool bEnable) { _bEnabled = bEnable; }
 
 protected:

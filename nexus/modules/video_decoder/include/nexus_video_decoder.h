@@ -241,8 +241,8 @@ NEXUS_Error NEXUS_VideoDecoder_GetStreamInformation(
 Summary:
 Set the PTS where decode should start. All pictures before that PTS will be discarded.
 
-Description:
-This is used to implement NEXUS_PlaybackSettings.accurateSeek.
+Must be called before NEXUS_VideoDecoder_Start.
+See NEXUS_VideoDecoderStartSettings.pauseAtStartPts for initial decoder pause option.
 **/
 NEXUS_Error NEXUS_VideoDecoder_SetStartPts(
     NEXUS_VideoDecoderHandle handle,
@@ -261,6 +261,20 @@ void NEXUS_VideoDecoder_IsCodecSupported(
     NEXUS_VideoDecoderHandle videoDecoder,
     NEXUS_VideoCodec codec,
     bool *pSupported
+    );
+
+typedef struct NEXUS_VideoDecoderCodecCapabilities
+{
+    bool supported;
+    NEXUS_VideoProtocolProfile protocolProfile;
+    NEXUS_VideoProtocolLevel protocolLevel;
+    unsigned colorDepth;
+} NEXUS_VideoDecoderCodecCapabilities;
+
+void NEXUS_VideoDecoder_GetCodecCapabilities(
+    NEXUS_VideoDecoderHandle videoDecoder,
+    NEXUS_VideoCodec codec,
+    NEXUS_VideoDecoderCodecCapabilities *pCodecCapabilities
     );
 
 /*

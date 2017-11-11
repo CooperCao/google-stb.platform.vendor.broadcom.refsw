@@ -44,7 +44,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_HAS_POST_PROCESSING
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_auto_volume_level);
@@ -74,7 +74,7 @@ void BAPE_AutoVolumeLevel_GetDefaultSettings(
 
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eBrcmAvl, (void *)&dspSettings, sizeof(dspSettings));
+    BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eBrcmAvl, (void *)&dspSettings, sizeof(dspSettings));
 
     pSettings->enabled = dspSettings.ui32AVLEnableFlag?true:false;    
     pSettings->loudnessEqualization = dspSettings.i32LoudnessLevelEq ? true : false;   

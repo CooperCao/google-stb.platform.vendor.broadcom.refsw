@@ -5,10 +5,44 @@
 #include <cutils/log.h>
 #include <cutils/properties.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "interface/vcos/vcos_log.h"
 
-bool vcos_of_interest_impl(void)
+static FILE *fp = NULL;
+
+static void vcos_create_directory(const char *dir)
+{
+   struct stat s;
+   int res = stat(dir, &s);
+   if (res == 0 && s.st_mode & S_IFDIR)
+      __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "********** %s ********** exists", dir);
+   else
+      // create the directory
+      mkdir(dir, 0770);
+}
+
+static void vcos_open_file(const char *process_name)
+{
+   char name[256];
+   snprintf(name, sizeof(name), "/data/data/%s", process_name);
+   vcos_create_directory(name);
+
+   snprintf(name, sizeof(name), "/data/data/%s/logs", process_name);
+   vcos_create_directory(name);
+
+   snprintf(name, sizeof(name), "/data/data/%s/logs/log_%d.txt", process_name, getpid());
+
+   __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "********** %s ********** opened", name);
+
+   fp = fopen(name, "w");
+}
+
+static bool vcos_of_interest(void)
 {
    static bool tried = false;
    static bool match = false;
@@ -33,7 +67,19 @@ bool vcos_of_interest_impl(void)
          char *filename = basename(buffer);
 
          if (strcmp(filename, value) == 0)
+         {
             match = true;
+            vcos_open_file(filename);
+         }
+         else
+         {
+            property_get( "debug.egl.hw.logd1", value, "" );
+            if (strcmp(filename, value) == 0)
+            {
+               match = true;
+               vcos_open_file(filename);
+            }
+         }
       }
    }
 
@@ -54,11 +100,23 @@ static int level_to_android_prio(log_level_t level)
 
 void vcos_log_impl(log_level_t log_level, const char *fmt, ...)
 {
-   if (vcos_of_interest_impl())
+   if (vcos_of_interest())
    {
-      va_list args;
-      va_start(args, fmt);
-      __android_log_vprint(level_to_android_prio(log_level), LOG_TAG, fmt, args);
-      va_end(args);
+      if (fp)
+      {
+         va_list args;
+         va_start(args, fmt);
+         vfprintf(fp, fmt, args);
+         fputc('\n', fp);
+         va_end(args);
+      }
+      else
+      {
+         /* android can loose logd, so this is not really very reliable for debug */
+         va_list args;
+         va_start(args, fmt);
+         __android_log_vprint(level_to_android_prio(log_level), LOG_TAG, fmt, args);
+         va_end(args);
+      }
    }
 }

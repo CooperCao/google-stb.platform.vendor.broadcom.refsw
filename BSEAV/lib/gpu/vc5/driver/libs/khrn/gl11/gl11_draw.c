@@ -40,11 +40,12 @@ bool gl11_cache_uniforms(GLXX_SERVER_STATE_T *state, khrn_fmem *fmem)
    else
    {
       /* Snapshot the matrix palette so install_uniforms doesn't have to do it more than once */
-      float *matrices = (float *)khrn_fmem_data(fmem, sizeof(s->palette_matrices), 4);
+      v3d_addr_t matrices_addr;
+      void *matrices = khrn_fmem_data(&matrices_addr, fmem, sizeof(s->palette_matrices), 4);
       if (!matrices) return false;
 
-      khrn_memcpy(matrices, s->palette_matrices, sizeof(s->palette_matrices));
-      s->palette_matrices_base_ptr = khrn_fmem_hw_address(fmem, matrices);
+      memcpy(matrices, s->palette_matrices, sizeof(s->palette_matrices));
+      s->palette_matrices_base_ptr = matrices_addr;
       /* Don't transform normals, it will be done on the QPU once the final matrix is known */
    }
 
@@ -172,7 +173,6 @@ void gl11_compute_texture_key(GLXX_SERVER_STATE_T *state, bool points) {
          bool ok;
          ok = glxx_texture_es1_has_color_alpha(texture, &tex_color[i], &tex_alpha[i]);
          assert(ok);
-         vcos_unused_in_release(ok);
       }
    }
 

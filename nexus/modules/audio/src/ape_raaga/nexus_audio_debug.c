@@ -610,10 +610,13 @@ static void NEXUS_AudioDebug_OutputPrint(void)
 static void NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioInputHandle input, int level)
 {
     NEXUS_AudioInputHandle downstreamObject;
+    NEXUS_AudioInputHandle previousdownstreamObject = NULL;
     NEXUS_AudioOutputHandle audioOutput;
     downstreamObject = NEXUS_AudioInput_P_LocateDownstream(input, NULL);
-    while ( downstreamObject )
-    {
+    while ( downstreamObject ) {
+        if (previousdownstreamObject && previousdownstreamObject->pObjectHandle == downstreamObject->pObjectHandle) {
+            break;
+        }
         switch (downstreamObject->objectType)
         {
             case NEXUS_AudioInputType_eEncoder:
@@ -629,11 +632,14 @@ static void NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioInputHandle input, int lev
                 {
                     NEXUS_DolbyDigitalReencodeHandle handle = downstreamObject->pObjectHandle;
                     BDBG_LOG(("%*s%s (%p)", level*4, "", downstreamObject->pName, (void *)downstreamObject->pObjectHandle));
+                    BDBG_LOG(("%*sSTEREO", level*4+2, ""));
                     NEXUS_AudioDebug_P_ConfigPrint(NEXUS_DolbyDigitalReencode_GetConnector(handle, NEXUS_AudioConnectorType_eStereo),level+1);
+                    BDBG_LOG(("%*sMULTICHANNEL", level*4+2, ""));
                     NEXUS_AudioDebug_P_ConfigPrint(NEXUS_DolbyDigitalReencode_GetConnector(handle, NEXUS_AudioConnectorType_eMultichannel),level+1);
+                    BDBG_LOG(("%*sCOMPRESSED", level*4+2, ""));
                     NEXUS_AudioDebug_P_ConfigPrint(NEXUS_DolbyDigitalReencode_GetConnector(handle, NEXUS_AudioConnectorType_eCompressed),level+1);
-                    if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
-                    {
+                    if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 ) {
+                        BDBG_LOG(("%*sCOMPRESSED4x", level*4+2, ""));
                         NEXUS_AudioDebug_P_ConfigPrint(NEXUS_DolbyDigitalReencode_GetConnector(handle, NEXUS_AudioConnectorType_eCompressed4x), level + 1);
                     }
                 }
@@ -643,6 +649,7 @@ static void NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioInputHandle input, int lev
                 NEXUS_AudioDebug_P_ConfigPrint(downstreamObject,level+1);
                 break;
         }
+        previousdownstreamObject = downstreamObject;
         downstreamObject = NEXUS_AudioInput_P_LocateDownstream(input, downstreamObject);
     }
 
@@ -1004,14 +1011,29 @@ static void NEXUS_AudioDebug_PrintVolume(void)
 {
     unsigned i,j;
     bool mixerFound = false;
-    BAPE_DebugStatus debugStatus;
-    NEXUS_AudioCapabilities audioCapabilities;
+    BAPE_DebugStatus *debugStatus = NULL;
+    NEXUS_AudioCapabilities *audioCapabilities = NULL;
     BERR_Code errCode;
 
     BDBG_LOG(("Audio Volume Matrices (all values in hex, * means 0):"));
     BDBG_LOG((" "));
 
-    NEXUS_GetAudioCapabilities(&audioCapabilities);
+    audioCapabilities = BKNI_Malloc(sizeof(NEXUS_AudioCapabilities));
+    if ( NULL == audioCapabilities )
+    {
+        (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        return;
+    }
+
+    debugStatus = BKNI_Malloc(sizeof(BAPE_DebugStatus));
+    if ( NULL == debugStatus )
+    {
+        BKNI_Free(audioCapabilities);
+        (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        return;
+    }
+
+    NEXUS_GetAudioCapabilities(audioCapabilities);
 
     #if 0 /* TBD add support for printing the mixer inputs */
     for (i=0; i < audioCapabilities.numMixers; i++) {
@@ -1025,7 +1047,7 @@ static void NEXUS_AudioDebug_PrintVolume(void)
     #endif
 
     if (!mixerFound) {
-        for (i=0; i < audioCapabilities.numDecoders; i++)
+        for (i=0; i < audioCapabilities->numDecoders; i++)
         {
             NEXUS_AudioDecoderHandle handle = g_decoders[i];
             if (handle && handle->running)
@@ -1094,13 +1116,13 @@ static void NEXUS_AudioDebug_PrintVolume(void)
             }
         }
 
-        for (i=0; i < audioCapabilities.numPlaybacks; i++)
+        for (i=0; i < audioCapabilities->numPlaybacks; i++)
         {
             NEXUS_AudioPlaybackHandle playbackHandle = NEXUS_AudioPlayback_P_GetPlaybackByIndex(i);
             if (playbackHandle)
             {
-                if (NEXUS_AudioPlayback_P_IsRunning(playbackHandle))
-                {
+                if (NEXUS_AudioPlayback_P_IsRunning(playbackHandle)) {
+
                     NEXUS_AudioPlaybackSettings playbackSettings;
                     char volumePrint[20];
                     char * pVolumePrint = volumePrint;
@@ -1117,11 +1139,10 @@ static void NEXUS_AudioDebug_PrintVolume(void)
             }
         }
 
-        for (i=0; i < audioCapabilities.numInputCaptures; i++)
+        for (i=0; i < audioCapabilities->numInputCaptures; i++)
         {
             NEXUS_AudioInputCaptureHandle inputCaptureHandle = NEXUS_AudioInputCapture_P_GetInputCaptureByIndex(i);
-            if (inputCaptureHandle)
-            {
+            if (inputCaptureHandle) {
                 NEXUS_AudioInputCaptureSettings captureSettings;
                 NEXUS_AudioInputCapture_GetSettings(inputCaptureHandle, &captureSettings);
                 BDBG_LOG(("Audio Input Capture%d: Mute:%s", i, captureSettings.muted ? "Y":"N"));
@@ -1174,48 +1195,42 @@ static void NEXUS_AudioDebug_PrintVolume(void)
 
     errCode = BAPE_Debug_GetStatus( g_NEXUS_audioModuleData.debugHandle,
                                     BAPE_DebugSourceType_eVolume,
-                                    &debugStatus);
+                                    debugStatus);
 
-    if ( errCode == BERR_SUCCESS)
-    {
+    if ( errCode == BERR_SUCCESS) {
         #if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0
-        for (i=0; i < audioCapabilities.numOutputs.spdif; i++)
-        {
-            if (debugStatus.status.volumeStatus.spdif[i].enabled)
-            {
-                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus.status.volumeStatus.spdif[i]);
+        for (i=0; i < audioCapabilities->numOutputs.spdif; i++) {
+            if (debugStatus->status.volumeStatus.spdif[i].enabled) {
+                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus->status.volumeStatus.spdif[i]);
             }
         }
         #endif
 
         #if BAPE_CHIP_MAX_MAI_OUTPUTS > 0
-        for (i=0; i < audioCapabilities.numOutputs.hdmi; i++)
-        {
-            if (debugStatus.status.volumeStatus.hdmi[i].enabled)
-            {
-                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus.status.volumeStatus.hdmi[i]);
+        for (i=0; i < audioCapabilities->numOutputs.hdmi; i++) {
+            if (debugStatus->status.volumeStatus.hdmi[i].enabled) {
+                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus->status.volumeStatus.hdmi[i]);
             }
         }
         #endif
         #if BAPE_CHIP_MAX_DACS > 0
-        for (i=0; i < audioCapabilities.numOutputs.dac; i++)
-        {
-            if (debugStatus.status.volumeStatus.dac[i].enabled)
-            {
-                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus.status.volumeStatus.dac[i]);
+        for (i=0; i < audioCapabilities->numOutputs.dac; i++) {
+            if (debugStatus->status.volumeStatus.dac[i].enabled) {
+                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus->status.volumeStatus.dac[i]);
             }
         }
         #endif
         #if BAPE_CHIP_MAX_I2S_OUTPUTS > 0
-        for (i=0; i < audioCapabilities.numOutputs.i2s; i++)
-        {
-            if (debugStatus.status.volumeStatus.i2s[i].enabled)
-            {
-                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus.status.volumeStatus.i2s[i]);
+        for (i=0; i < audioCapabilities->numOutputs.i2s; i++) {
+            if (debugStatus->status.volumeStatus.i2s[i].enabled) {
+                NEXUS_AudioDebug_P_PrintOutputVolume(&debugStatus->status.volumeStatus.i2s[i]);
             }
         }
         #endif
     }
+
+    BKNI_Free(audioCapabilities);
+    BKNI_Free(debugStatus);
 
 }
 

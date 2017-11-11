@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Support functions (mostly relating to shaders) for 2708 GLES1.1
-implementation.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_color.h"
 
@@ -80,7 +71,7 @@ bool gl11_hw_get_texunit_properties(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *t
       GL11_TEXUNIT_T *texunit = &state->texunits[i];
       GL11_CACHE_TEXUNIT_ABSTRACT_T *texabs = &state->shader.texunits[i];
 
-      MEM_HANDLE_T thandle = MEM_INVALID_HANDLE;
+      MEM_HANDLE_T thandle = MEM_HANDLE_INVALID;
 
       memset(&texabs->props, 0, sizeof(texabs->props));
       memset(&texabs->rgb, 0, sizeof(texabs->rgb));
@@ -100,7 +91,7 @@ bool gl11_hw_get_texunit_properties(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *t
           break;
       }
 
-      if (thandle != MEM_INVALID_HANDLE) {
+      if (thandle != MEM_HANDLE_INVALID) {
          GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(thandle, NULL);
          GLXX_TEXTURE_COMPLETENESS_T completeness = glxx_texture_check_complete(texture);
 
@@ -128,7 +119,7 @@ bool gl11_hw_get_texunit_properties(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *t
             else
             {
                glxx_texture_has_color_alpha(texture, &texabs->props.has_color, &texabs->props.has_alpha, &texabs->props.active);
-               vcos_assert(texabs->props.active);
+               assert(texabs->props.active);
             }
 
             if (point_sprites && texabs->coord_replace)

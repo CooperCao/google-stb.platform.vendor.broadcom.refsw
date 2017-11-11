@@ -2762,8 +2762,14 @@ wlc_phy_papd_set_rfpwrlut_tiny(phy_info_t *pi)
 			else
 				shift = 4-qQ;
 
-			val = ((((idx*papd_rf_pwr_scale/32) << shift) + (5*temp) +
-				(1<<(scale_factor+shift-3)))>>(scale_factor+shift-2));
+			if (scale_factor+shift-3 >= 0) {
+				val = ((((idx*papd_rf_pwr_scale/32) << shift) + (5*temp) +
+					(1<<(scale_factor+shift-3)))>>(scale_factor+shift-2));
+			} else {
+				PHY_ERROR(("%s: cannot use a negative value(%d) to do shift operation.\n", __FUNCTION__, scale_factor+shift-3));
+				ASSERT(0);
+				val = 0;
+			}
 
 			radiogainqdb = -(val)/2;
 

@@ -1,5 +1,5 @@
 #############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,7 +51,6 @@ BINT_INCLUDES += $(MAGNUM)/basemodules/int/$(BCHP_CHIP)
 
 # Module Sources
 BINT_SOURCES += $(MAGNUM)/basemodules/int/bint.c
-BINT_SOURCES += $(MAGNUM)/basemodules/int/bint_dump.c
 BINT_SOURCES += $(MAGNUM)/basemodules/int/$(BCHP_CHIP)/bint_$(BCHP_CHIP).c
 
 #

@@ -123,13 +123,13 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_ShowDiscoveredPlaylists).s(), "eNotify_Sho
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ShowPlaylist).s(), "eNotify_ShowPlaylist")                       /* command  - show contents of given playlist */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_StreamChannel).s(), "eNotify_StreamChannel")                     /* command  - stream IP channel from remote server */
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetPlmVideo).s(), "eNotify_SetPlmVideo")                         /* command  - set programmable luma mapping for video */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetPlmVideo).s(), "eNotify_SetPlmVideo") /* command  - set programmable luma mapping for video */
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetPlmGraphics).s(), "eNotify_SetPlmGraphics")                   /* command  - set programmable luma mapping for graphics */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetPlmGraphics).s(), "eNotify_SetPlmGraphics") /* command  - set programmable luma mapping for graphics */
 #endif
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_Debug).s(), "eNotify_Debug")                                     /* command  - show debug message */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_Exit).s(), "eNotify_Exit")                                       /* command  - exit atlas */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_Debug).s(), "eNotify_Debug") /* command  - show debug message */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_Exit).s(), "eNotify_Exit")   /* command  - exit atlas */
 
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Error).s(), "eNotify_Error")                               /* status   - error occurred */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ErrorVbi).s(), "eNotify_ErrorVbi")                         /* status   - VBI error occurred */
@@ -151,20 +151,20 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackStateChanged).s(), "eNotify_Playba
 #if DVR_LIB_SUPPORT
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_TsbStateChanged).s(), "eNotify_TsbStateChanged") /* status   - tsb state has changed */
 #endif
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_VolumeChanged).s(), "eNotify_VolumeChanged")                             /* status   - volume level has changed */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_MuteChanged).s(), "eNotify_MuteChanged")                                 /* status   - mute state has changed */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PipStateChanged).s(), "eNotify_PipStateChanged")                         /* status   - PIP state has changed */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStarted).s(), "eNotify_RecordStarted")                             /* status   - record has started */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStopped).s(), "eNotify_RecordStopped")                             /* status   - record has stopped */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStarted).s(), "eNotify_EncodeStarted")                             /* status   - encode has started */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStopped).s(), "eNotify_EncodeStopped")                             /* status   - encode has stopped */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoSourceChanged).s(), "eNotify_VideoSourceChanged")                   /* status   - video source has changed */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoStreamChanged).s(), "eNotify_VideoStreamChanged")                   /* status   - video source has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_VolumeChanged).s(), "eNotify_VolumeChanged")           /* status   - volume level has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_MuteChanged).s(), "eNotify_MuteChanged")               /* status   - mute state has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PipStateChanged).s(), "eNotify_PipStateChanged")       /* status   - PIP state has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStarted).s(), "eNotify_RecordStarted")           /* status   - record has started */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStopped).s(), "eNotify_RecordStopped")           /* status   - record has stopped */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStarted).s(), "eNotify_EncodeStarted")           /* status   - encode has started */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStopped).s(), "eNotify_EncodeStopped")           /* status   - encode has stopped */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoSourceChanged).s(), "eNotify_VideoSourceChanged") /* status   - video source has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoStreamChanged).s(), "eNotify_VideoStreamChanged") /* status   - video source has changed */
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoPlmChanged).s(), "eNotify_VideoPlmChanged")                         /* status   - video programmable luma mapping has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoPlmChanged).s(), "eNotify_VideoPlmChanged") /* status   - video programmable luma mapping has changed */
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_GraphicsPlmChanged).s(), "eNotify_GraphicsPlmChanged")                   /* status   - graphics programmable luma mapping has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_GraphicsPlmChanged).s(), "eNotify_GraphicsPlmChanged") /* status   - graphics programmable luma mapping has changed */
 #endif
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoDecodeStarted).s(), "eNotify_VideoDecodeStarted")                   /* status   - video decode started */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoDecodeStopped).s(), "eNotify_VideoDecodeStopped")                   /* status   - video decode stopped */

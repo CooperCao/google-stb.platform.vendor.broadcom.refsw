@@ -53,7 +53,7 @@
 #include <pthread.h>
 #include "nexus_driver_ioctl.h"
 
-BDBG_MODULE(logger);
+BDBG_FILE_MODULE(logger);
 
 static bool sigusr1_fired=false;
 
@@ -146,9 +146,11 @@ static BERR_Code get_usermode_log_message(BDBG_FifoReader_Handle logReader, unsi
 
     rc = BDBG_Log_Dequeue(logReader, pTimeout, pBuf, bufLen, pMsgLen);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);return rc;}
-/*  if(*pMsgLen) {                                          */
-/*      BDBG_ERR(("%u %u", *pMsgLen, strlen(pBuf)));        */
-/*  }                                                       */
+#if 0
+    if(*pMsgLen) {
+        BDBG_MODULE_ERR(logger, ("%u %u", (unsigned)*pMsgLen, (unsigned)strlen(pBuf)));
+    }
+#endif
     return BERR_SUCCESS;
 }
 
@@ -164,7 +166,7 @@ static BERR_Code get_driver_log_message(int device_fd, PROXY_NEXUS_Log_Instance 
     dequeue.timeout     = 0;
     urc = ioctl(device_fd, IOCTL_PROXY_NEXUS_Log_Dequeue, &dequeue);
     if(urc!=0) {
-        BDBG_MSG(("Can't read data from the driver"));
+        BDBG_MODULE_MSG(logger, ("Can't read data from the driver"));
         *pMsgLen = 0;
         BERR_TRACE(urc);
         return BERR_UNKNOWN;
@@ -173,9 +175,11 @@ static BERR_Code get_driver_log_message(int device_fd, PROXY_NEXUS_Log_Instance 
     *pTimeout = dequeue.timeout;    
     *pMsgLen  = dequeue.buffer_size;
 
-/*  if(*pMsgLen) {                                          */
-/*      BDBG_ERR(("%u %u", *pMsgLen, strlen(pBuf)));        */
-/*  }                                                       */
+#if 0
+    if(*pMsgLen) {
+        BDBG_MODULE_ERR(logger, ("%u %u", (unsigned)*pMsgLen, (unsigned)strlen(pBuf)));
+    }
+#endif
 
     return BERR_SUCCESS;
 }
@@ -443,7 +447,6 @@ static void write_sink_msg_buf(struct write_sink *sink, struct msg_buf *buf)
     }
 #endif  /* ENABLE_ANSI_COLORS */
 
-    /* BDBG_ERR(("%u %u", dbgStrLen, strlen(dbgStr))); */
     pMsgBuf[msgLen]  = '\n';
     msgLen++;
 
@@ -516,7 +519,7 @@ static BERR_Code print_log_message(struct write_sink *sink, BDBG_FifoReader_Hand
 }
 
 
-int main(int argc, const char *argv[])
+int main(int argc, char * const argv[])
 {
     BERR_Code rc;
     BDBG_FifoReader_Handle logReader=NULL;

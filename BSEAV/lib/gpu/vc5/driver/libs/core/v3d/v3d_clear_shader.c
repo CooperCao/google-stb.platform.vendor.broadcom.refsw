@@ -13,7 +13,7 @@
 /* TODO: MRT and other fanciness? */
 static uint32_t clear_shader_2[] =
 {
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    0xbb800000, 0x3c603186, // nop            ; thrsw ; ldunif
    0xb682d000, 0x3c202183, // mov rf3, r5    ; thrsw
    0xbb800000, 0x3c003186, // nop
@@ -38,11 +38,11 @@ static uint32_t clear_shader_2[] =
 
 static uint32_t clear_shader_4[] =
 {
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    0xbb800000, 0x3c603186, // nop           ; thrsw ; ldunif
    0xb682d000, 0x3c602183, // mov rf3, r5   ; thrsw ; ldunif
    0xb682d000, 0x3c002184, // mov rf4, r5
-# if !V3D_HAS_GFXH1369_FIX
+# if !V3D_VER_AT_LEAST(4,1,34,0)
    0xbb800000, 0x3c003186, // nop
 # endif
    0xb68360c0, 0x3c003188, // mov tlbu, rf3
@@ -69,7 +69,7 @@ static uint32_t clear_shader_4[] =
 
 static uint32_t clear_shader_no_color[] =
 {
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    0xbb800000, 0x3c203186, // nop ; thrsw
    0xbb800000, 0x3c203186, // nop ; thrsw
    0xbb800000, 0x3c003186, // nop
@@ -108,7 +108,7 @@ static void pack_colors_to_f16(const uint32_t color_value[4],
    uniform[1] = gfx_pack_1616(color_f16[2], color_f16[3]);
 }
 
-#if V3D_HAS_TLB_WR_CONVERT
+#if V3D_VER_AT_LEAST(4,2,13,0)
 static void pack_colors_to_i16(const uint32_t color_value[4], uint32_t *uniform)
 {
    uniform[0] = gfx_pack_1616(color_value[0] & 0xFFFF, color_value[1] & 0xFFFF);
@@ -119,7 +119,7 @@ static void pack_colors_to_i16(const uint32_t color_value[4], uint32_t *uniform)
 void v3d_clear_shader_color(uint32_t **shader_code, uint32_t *shader_size, uint32_t *unif_ptr,
                             v3d_rt_type_t type, int rt, const uint32_t *clear_color)
 {
-   unsigned cfg_unif_pos = V3D_HAS_RELAXED_THRSW ? 2 : 1;
+   unsigned cfg_unif_pos = V3D_VER_AT_LEAST(4,1,34,0) ? 2 : 1;
    uint8_t cfg;
 
    /* TODO: select shader based on MRT etc. */
@@ -131,7 +131,7 @@ void v3d_clear_shader_color(uint32_t **shader_code, uint32_t *shader_size, uint3
 
       /* Pack colours into values for the uniform stream */
       uint32_t col_unifs[2];
-#if V3D_HAS_TLB_WR_CONVERT
+#if V3D_VER_AT_LEAST(4,2,13,0)
       if (v3d_tlb_rt_type_is_int(type))
          pack_colors_to_i16(clear_color, col_unifs);
       else
@@ -157,7 +157,7 @@ void v3d_clear_shader_color(uint32_t **shader_code, uint32_t *shader_size, uint3
 
       V3D_TLB_CONFIG_COLOR_32_T c = { .num_words = 4, .all_samples_same_data = true,
                                       .rt = rt,
-#if !V3D_HAS_TLB_WR_CONVERT
+#if !V3D_VER_AT_LEAST(4,2,13,0)
                                       .as_int = v3d_tlb_rt_type_is_int(type)
 #endif
       };
@@ -174,7 +174,7 @@ void v3d_clear_shader_no_color(uint32_t **shader_code, uint32_t *shader_size, ui
 
    /* Configure tlb for f32 color writes, but disable the write masks later */
    V3D_TLB_CONFIG_COLOR_32_T cfg = {
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
       .num_words = 1,
 #else
       /* GFXH-1212 means we must write 4 values to prevent a lockup */
@@ -183,7 +183,7 @@ void v3d_clear_shader_no_color(uint32_t **shader_code, uint32_t *shader_size, ui
 #endif
       .all_samples_same_data = true,
       .rt = 0,
-#if !V3D_HAS_TLB_WR_CONVERT
+#if !V3D_VER_AT_LEAST(4,2,13,0)
       .as_int = false
 #endif
       };

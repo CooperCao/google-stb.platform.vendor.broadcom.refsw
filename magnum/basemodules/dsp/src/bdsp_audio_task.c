@@ -217,3 +217,74 @@ BERR_Code BDSP_AudioTask_AudioGapFill(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 }
+
+/***************************************************************************
+Summary:
+Get the codec copability status
+***************************************************************************/
+void BDSP_GetCodecCapabilities_isrsafe(
+    BDSP_CodecCapabilities *pSetting
+)
+{
+#ifdef BDSP_MS12_SUPPORT
+    switch (BDSP_MS12_SUPPORT)
+    {
+        case 'A':
+            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'A' "));
+            pSetting->dolbyMs.dapv2 = true;
+            pSetting->dolbyMs.ddEncode = true;
+            pSetting->dolbyMs.ddpEncode51 = true;
+            pSetting->dolbyMs.ddpEncode71 = true;
+            pSetting->dolbyMs.pcm71 = true;
+            break;
+        case 'B':
+            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'B' "));
+            pSetting->dolbyMs.dapv2 = true;
+            pSetting->dolbyMs.ddEncode = true;
+            pSetting->dolbyMs.ddpEncode51 = true;
+            pSetting->dolbyMs.ddpEncode71 = false;
+            pSetting->dolbyMs.pcm71 = false;
+            break;
+        case 'C':
+            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'C' "));
+            pSetting->dolbyMs.dapv2 = false;
+            pSetting->dolbyMs.ddEncode = true;
+            pSetting->dolbyMs.ddpEncode51 = false;
+            pSetting->dolbyMs.ddpEncode71 = false;
+            pSetting->dolbyMs.pcm71 = false;
+            break;
+        case 'D':
+            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'D' "));
+            pSetting->dolbyMs.dapv2 = false;
+            pSetting->dolbyMs.ddEncode = true;
+            pSetting->dolbyMs.ddpEncode51 = true;
+            pSetting->dolbyMs.ddpEncode71 = false;
+            pSetting->dolbyMs.pcm71 = false;
+            break;
+        default:
+            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'C', Displaying MS12 Capabilities as: "));
+            pSetting->dolbyMs.dapv2 = true;
+            pSetting->dolbyMs.ddEncode = true;
+            pSetting->dolbyMs.ddpEncode51 = false;
+            pSetting->dolbyMs.ddpEncode71 = false;
+            pSetting->dolbyMs.pcm71 = false;
+            break;
+    }
+#else
+            pSetting->dolbyMs.dapv2 = false;
+#ifdef BDSP_AC3ENC_SUPPORT
+            pSetting->dolbyMs.ddEncode = true;
+#else
+            pSetting->dolbyMs.ddEncode = false;
+#endif
+            pSetting->dolbyMs.ddpEncode51 = false;
+            pSetting->dolbyMs.ddpEncode71 = false;
+            pSetting->dolbyMs.pcm71 = false;
+#endif
+
+            BDBG_MSG(("pSetting->dolbyMs.dapv2 = %d", pSetting->dolbyMs.dapv2));
+            BDBG_MSG(("pSetting->dolbyMs.ddEncode = %d", pSetting->dolbyMs.ddEncode));
+            BDBG_MSG(("pSetting->dolbyMs.ddpEncode51 = %d", pSetting->dolbyMs.ddpEncode51));
+            BDBG_MSG(("pSetting->dolbyMs.ddpEncode71 = %d", pSetting->dolbyMs.ddpEncode71));
+            BDBG_MSG(("pSetting->dolbyMs.pcm71 = %d", pSetting->dolbyMs.pcm71));
+}

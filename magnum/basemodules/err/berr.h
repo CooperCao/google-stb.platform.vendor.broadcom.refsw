@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2003-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -139,7 +139,7 @@ Returns:
 #endif
 
 #ifdef __GNUC__
-BERR_Code BDBG_P_PrintError(const char *file, unsigned lineno, const char *error, BERR_Code error_no);
+BERR_Code BDBG_P_PrintError_isrsafe(const char *file, unsigned lineno, const char *error, BERR_Code error_no);
 BERR_Code BDBG_P_PrintError_small_isrsafe(const char *file, unsigned lineno, BERR_Code error_no);
 
 #ifdef B_REFSW_DEBUG_COMPACT_ERR
@@ -158,7 +158,7 @@ static __inline__ BERR_Code BDBG_P_PrintError_inline_isrsafe(const char *file, u
             return BERR_SUCCESS;
         }
         if(error_no > BERR_NOT_AVAILABLE) {
-            return BDBG_P_PrintError(file, lineno, error, error_no);
+            return BDBG_P_PrintError_isrsafe(file, lineno, error, error_no);
         }
     }
     return BDBG_P_PrintError_small_isrsafe(file, lineno, error_no);
@@ -168,7 +168,7 @@ static __inline__ BERR_Code BDBG_P_PrintError_inline_isrsafe(const char *file, u
 #ifdef B_REFSW_DEBUG_COMPACT_ERR
 #define BDBG_P_PrintError_inline BDBG_P_PrintError_small
 #else
-#define BDBG_P_PrintError_inline BDBG_P_PrintError
+#define BDBG_P_PrintError_inline BDBG_P_PrintError_isrsafe
 #endif
 #endif
 

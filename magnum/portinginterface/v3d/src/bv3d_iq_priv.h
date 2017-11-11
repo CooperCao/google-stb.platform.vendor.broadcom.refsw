@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -60,12 +60,12 @@ BERR_Code BV3D_P_IQPush(
 );
 
 /***************************************************************************/
-BV3D_Instruction * BV3D_P_IQPop(
+BV3D_Instruction *BV3D_P_IQPop(
    BV3D_IQHandle hIQ
 );
 
 /***************************************************************************/
-BV3D_Instruction * BV3D_P_IQTop(
+BV3D_Instruction *BV3D_P_IQTop(
    BV3D_IQHandle hIQ
 );
 

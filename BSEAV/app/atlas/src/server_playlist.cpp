@@ -147,7 +147,7 @@ eRet CPlaylistGenerator::open(
     {
         iOSRequest = true;
     }
-#endif
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
 
     urlPath = MString(pTmpUrlPath);
     /* validate request */
@@ -162,10 +162,9 @@ eRet CPlaylistGenerator::open(
     pPlayListServer = getPlayListServer();
     if (pPlayListServer != NULL)
     {
-
 #if NEXUS_HAS_VIDEO_ENCODER
         /* Generating the streaming playback list as per the client device request.
-           Can only be true when Video encoder support is available */
+         * Can only be true when Video encoder support is available */
         if (iOSRequest == true)
         {
             _playList = generateiOSPlaylist(pPlayListServer);
@@ -174,10 +173,9 @@ eRet CPlaylistGenerator::open(
         {
             _playList = generateAtlasPlaylist(pPlayListServer);
         }
-#else
+#else /* if NEXUS_HAS_VIDEO_ENCODER */
         _playList = generateAtlasPlaylist(pPlayListServer);
-#endif
-
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
     }
     else
     {
@@ -580,8 +578,8 @@ void CServerPlaylist::processRecvdRequest()
             /* coverity: why would bipStatus ever be BIP_SUCCESS if hSocket is NULL? */
             if (bipStatus == BIP_SUCCESS)
             {
-               bipStatus = BIP_ERR_INTERNAL;
-               BDBG_ERR(("Should not be in this state. Error in BIP, please debug"));
+                bipStatus = BIP_ERR_INTERNAL;
+                BDBG_ERR(("Should not be in this state. Error in BIP, please debug"));
             }
 
             CHECK_BIP_ERROR_GOTO("HttpSocket is NULL ==============================================> ", ret, bipStatus, error);

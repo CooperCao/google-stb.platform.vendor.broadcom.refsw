@@ -736,8 +736,8 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_allocateCma(struct NEXUS_
         for (j=0;j<state->cma_info[i].total_regions;j++) {
             unsigned heap_index = state->cma_info[i].region_info[j].nexus_heap_index;
             /* if OS reports greater cache line size than BMEM's default, then increase */
-            if (pMemory->max_dcache_line_size > pCoreSettings->heapRegion[heap_index].alignment) {
-                pCoreSettings->heapRegion[heap_index].alignment = pMemory->max_dcache_line_size;
+            if (pMemory->maxDcacheLineSize > pCoreSettings->heapRegion[heap_index].alignment) {
+                pCoreSettings->heapRegion[heap_index].alignment = pMemory->maxDcacheLineSize;
             }
             pCoreSettings->heapRegion[heap_index].offset =  state->cma_info[i].region_info[j].physicalAddress;
             pCoreSettings->heapRegion[heap_index].length =  state->cma_info[i].region_info[j].length;
@@ -816,7 +816,7 @@ static void NEXUS_Platform_P_SuggestBootParams(struct NEXUS_Platform_P_Allocator
     if(rc!=NEXUS_SUCCESS) {
         return;
     }
-    rc = NEXUS_Platform_P_CalculateBootParams(state, heap, pMemory->max_dcache_line_size);
+    rc = NEXUS_Platform_P_CalculateBootParams(state, heap, pMemory->maxDcacheLineSize);
     if(rc!=NEXUS_SUCCESS) {rc = BERR_TRACE(rc);goto error;}
 
     vmalloc = NEXUS_Platform_P_GetVmallocSize(heap, &state->bmem_hint.info);
@@ -935,7 +935,7 @@ NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pS
             }
         }
         if(pinnedHeaps) { /* verify that all heaps are pinned */
-            unsigned max_dcache_line_size = pMemory->max_dcache_line_size;
+            unsigned maxDcacheLineSize = pMemory->maxDcacheLineSize;
             for (i=0;i<NEXUS_MAX_HEAPS;i++) {
                 if(pSettings->heap[i].memoryType & NEXUS_MEMORY_TYPE_DYNAMIC) {
                     continue;
@@ -954,8 +954,8 @@ NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pS
                 pCoreSettings->heapRegion[i].memcIndex = pSettings->heap[i].memcIndex;
                 pCoreSettings->heapRegion[i].memoryType = pSettings->heap[i].memoryType;
                 pCoreSettings->heapRegion[i].heapType = pSettings->heap[i].heapType;
-                if (max_dcache_line_size > pCoreSettings->heapRegion[i].alignment) {
-                    pCoreSettings->heapRegion[i].alignment = max_dcache_line_size;
+                if (maxDcacheLineSize > pCoreSettings->heapRegion[i].alignment) {
+                    pCoreSettings->heapRegion[i].alignment = maxDcacheLineSize;
                 }
             }
         }
@@ -1210,7 +1210,7 @@ void NEXUS_Platform_P_FreeCma(const NEXUS_PlatformMemory *pMemory, unsigned memc
     (void)cma_dev_put_mem(cma_dev, addr, size);
 }
 
-NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory)
+NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformMemoryLayout *pMemory)
 {
     NEXUS_Error rc;
     struct {
@@ -1224,18 +1224,21 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
     if(state==NULL) {return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);}
 
     rc = NEXUS_Platform_P_GetMemoryInfo(&state->info);
-    if (rc) return BERR_TRACE(rc);
-
-    BDBG_CASSERT(BCHP_MAX_MEMC_REGIONS <= NEXUS_NUM_MEMC_REGIONS);
-    BDBG_CASSERT(NEXUS_MAX_MEMC <= sizeof(pMemory->memc)/sizeof(pMemory->memc[0]));
-    for (i=0;i<NEXUS_MAX_MEMC;i++) {
-        for (j=0;j<BCHP_MAX_MEMC_REGIONS && j<(unsigned)state->info.memc[i].count;j++) {
-            pMemory->memc[i].region[j].addr = state->info.memc[i].range[j].addr;
-            pMemory->memc[i].region[j].size = state->info.memc[i].range[j].size;
-            pMemory->memc[i].size += state->info.memc[i].range[j].size;
+    if (BERR_SUCCESS == rc) {
+        BDBG_CASSERT(BCHP_MAX_MEMC_REGIONS <= NEXUS_NUM_MEMC_REGIONS);
+        BDBG_CASSERT(NEXUS_MAX_MEMC <= sizeof(pMemory->memc)/sizeof(pMemory->memc[0]));
+        for (i=0;i<NEXUS_MAX_MEMC;i++) {
+            for (j=0;j<BCHP_MAX_MEMC_REGIONS && j<(unsigned)state->info.memc[i].count;j++) {
+                pMemory->memc[i].region[j].addr = state->info.memc[i].range[j].addr;
+                pMemory->memc[i].region[j].size = state->info.memc[i].range[j].size;
+                pMemory->memc[i].size += state->info.memc[i].range[j].size;
+            }
         }
+    } else {
+        (void)BERR_TRACE(rc);
     }
+
     BKNI_Free(state);
-    return NEXUS_SUCCESS;
+    return rc;
 }
 #endif /* NEXUS_USE_CMA */

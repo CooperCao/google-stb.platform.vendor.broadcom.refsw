@@ -134,7 +134,7 @@ static void wlc_send_public_action_switch_channel(wlc_csa_info_t *csam, wlc_bssc
   const struct ether_addr *dst, wl_chan_switch_t *csa);
 
 /* channel switch */
-#ifdef AP
+#if (defined AP) || (defined CLIENT_CSA)
 static int wlc_csa_apply_channel_switch(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg);
 #endif
 
@@ -164,7 +164,6 @@ static int wlc_csa_csw_write_wide_bw_ie(void *ctx, wlc_iem_build_data_t *build);
 #endif
 #endif /* AP */
 #ifdef STA
-static int wlc_csa_bcn_parse_csa_ie(void *ctx, wlc_iem_parse_data_t *data);
 static int wlc_csa_bcn_parse_ext_csa_ie(void *ctx, wlc_iem_parse_data_t *data);
 #endif /* STA */
 static void wlc_csa_obss_dynbw_notif_cb_notif(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg,
@@ -291,12 +290,6 @@ BCMATTACHFN(wlc_csa_attach)(wlc_info_t *wlc)
 #endif /* WL11AC */
 #endif /* AP */
 #ifdef STA
-	if (wlc_iem_add_parse_fn(wlc->iemi, FC_BEACON, DOT11_MNG_CHANNEL_SWITCH_ID,
-	                         wlc_csa_bcn_parse_csa_ie, csam) != BCME_OK) {
-		WL_ERROR(("wl%d: %s: wlc_iem_add_parse_fn failed, csa in bcn\n",
-		          wlc->pub->unit, __FUNCTION__));
-		goto fail;
-	}
 	if (wlc_iem_add_parse_fn(wlc->iemi, FC_BEACON, DOT11_MNG_EXT_CSA_ID,
 	                         wlc_csa_bcn_parse_ext_csa_ie, csam) != BCME_OK) {
 		WL_ERROR(("wl%d: %s: wlc_iem_add_parse_fn failed, ext csa in bcn\n",
@@ -1083,7 +1076,7 @@ wlc_csa_process_channel_switch(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg)
 	               csa->csa.mode, wf_chspec_ntoa_ex(csa->csa.chspec, chanbuf), csa->csa.count,
 	               secs));
 
-	if (csa->csa.count <= 1) {
+	if (csa->csa.count < 1) {
 		wl_del_timer(wlc->wl, csa->csa_timer);
 		WL_REGULATORY(("%s: switch is only %d secs, switching now\n", __FUNCTION__, secs));
 		csa->csa.count = 0;
@@ -1908,18 +1901,6 @@ wlc_csa_write_csa_ie(void *ctx, wlc_iem_build_data_t *data)
 #endif /* AP */
 
 #ifdef STA
-static int
-wlc_csa_bcn_parse_csa_ie(void *ctx, wlc_iem_parse_data_t *data)
-{
-	wlc_csa_info_t *csam = (wlc_csa_info_t *)ctx;
-	wlc_bsscfg_t *cfg = data->cfg;
-
-	if (wlc_parse_csa_ie(csam, cfg, data->buf, data->buf_len)) {
-		wlc_csa_process_channel_switch(csam, cfg);
-	}
-
-	return BCME_OK;
-}
 #endif /* STA */
 
 void
@@ -2138,7 +2119,7 @@ wlc_csa_reset_all(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg)
 	csa->csa.count = 0;
 }
 
-#ifdef AP
+#if (defined AP) || (defined CLIENT_CSA)
 int
 wlc_csa_do_channel_switch(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg,
 	chanspec_t chanspec, uint8 mode, uint8 count, uint8 reg_class, uint8 frame_type)
@@ -2255,7 +2236,7 @@ wlc_csa_do_switch(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg, chanspec_t chspec)
 
 	wlc_csa_apply_channel_switch(csam, cfg);
 }
-#endif /* AP */
+#endif /* (defined AP) || (defined CLIENT_CSA) */
 
 #ifdef CLIENT_CSA
 int wlc_send_unicast_action_switch_channel(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg,

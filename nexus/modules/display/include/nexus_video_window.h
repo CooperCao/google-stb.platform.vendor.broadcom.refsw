@@ -242,6 +242,7 @@ typedef struct NEXUS_VideoWindowStatus
     NEXUS_Rect outputRect; /* active video after scaling and clipping (includes aspect ratio correction) in display coordinates */
     bool isSyncLocked; /* if true, the interrupts from this window's source are driving VDC processing and tighter lipsync is possible.
                           if false (known as sync-slip), another source's interrupts are driving the display. more delay is required on sync-slip paths. */
+    unsigned numBvnErrors;
 } NEXUS_VideoWindowStatus;
 
 /**
