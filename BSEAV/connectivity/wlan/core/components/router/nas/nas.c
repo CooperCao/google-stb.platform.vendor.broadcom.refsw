@@ -277,8 +277,11 @@ lookup_sta(nas_t *nas, struct ether_addr *ea, sta_lookup_mode_t mode)
 		if (nas->flags & NAS_FLAG_AUTHENTICATOR)
 			sta->suppl.state = sta->suppl.retry_state = WPA_AUTHENTICATION2;
 #ifdef BCMSUPPL
-		if (nas->flags & NAS_FLAG_SUPPLICANT)
+		if (nas->flags & NAS_FLAG_SUPPLICANT) {
 			sta->suppl.state = sta->suppl.retry_state = WPA_SUP_AUTHENTICATION;
+			nas->flags &= ~NAS_FLAG_GTK_PLUMBED;
+			nas->flags &= ~NAS_FLAG_IGTK_PLUMBED;
+		}
 		sta->suppl.pk_state = EAPOL_SUP_PK_UNKNOWN;
 #endif
 		sta->pae.state = INITIALIZE;
