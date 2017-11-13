@@ -2487,6 +2487,14 @@ static void NEXUS_HdmiOutput_P_RxSenseTimerExpiration(void *pContext)
                     if (errCode) { errCode = BERR_TRACE(errCode) ; }
                 }
             }
+
+#if BHDM_HAS_HDMI_20_SUPPORT
+            /* make sure all Auto I2c channels are disabled */
+            BKNI_EnterCriticalSection() ;
+                BHDM_AUTO_I2C_SetChannels_isr(output->hdmHandle, false) ;
+            BKNI_LeaveCriticalSection() ;
+#endif
+
 #endif
         }
     }

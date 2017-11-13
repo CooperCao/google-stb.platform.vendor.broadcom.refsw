@@ -356,7 +356,7 @@ BERR_Code BHDM_AUTO_I2C_P_EnableInterrupts(BHDM_Handle hHDMI)
 {
 	BERR_Code rc = BERR_SUCCESS ;
 
-	/* disable the auto i2c channels */
+	/* enable the auto i2c channels */
 	BKNI_EnterCriticalSection() ;
 		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
 	BKNI_LeaveCriticalSection() ;

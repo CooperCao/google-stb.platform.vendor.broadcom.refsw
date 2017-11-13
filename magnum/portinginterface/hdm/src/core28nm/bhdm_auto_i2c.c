@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
- ******************************************************************************/#include "bstd.h"
+ ******************************************************************************/
+#include "bstd.h"
 
 #include "bhdm.h"
 #include "../common/bhdm_priv.h"
@@ -135,16 +135,24 @@ void BHDM_AUTO_I2C_EnableReadChannel_isr(const BHDM_Handle hHDMI,
 {
 	BHDM_AUTO_I2C_P_TriggerConfiguration stTriggerConfiguration ;
 
-	BDBG_MSG(("Auto I2C Read Channel %d: %s",
-		eChannel, enable ? "ENABLED" : "DISABLED")) ;
-
-	BKNI_Memset(&stTriggerConfiguration, 0, sizeof(BHDM_AUTO_I2C_P_TriggerConfiguration)) ;
-
 	/* enable/disable Auto I2c channel */
 	BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfiguration) ;
+		if (stTriggerConfiguration.enable == enable)
+		{
+			/* requested setting is already set; no change required */
+			goto done ;
+		}
+
 		stTriggerConfiguration.enable = enable ;
 		stTriggerConfiguration.activePolling = enable ;
 	BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, &stTriggerConfiguration) ;
+
+	BDBG_MSG(("Auto I2C Read Channel %d: %s",
+		eChannel, enable ? "ENABLED" : "DISABLED")) ;
+
+done:
+	/* finished */ ;
+
 }
 
 void BHDM_AUTO_I2C_EnableReadChannel(const BHDM_Handle hHDMI,

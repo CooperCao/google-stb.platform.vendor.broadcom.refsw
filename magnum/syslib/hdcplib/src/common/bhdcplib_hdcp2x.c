@@ -1066,9 +1066,12 @@ BERR_Code BHDCPlib_P_Hdcp2x_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Depen
 			goto done ;
 		}
 
+		/* TODO: Test HDCP 2.2 Compliance with Auto i2c disabled until Auth starts */
+#if 0
 		/* Enable/Configure AutoI2C settings for Hdcp2.x */
 		BHDM_AUTO_I2C_EnableReadChannel(hHandle->stDependencies.hHdm,
 							BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus, 1);
+#endif
 	}
 #if BHDCPLIB_HDR_SUPPORT
 	else {
@@ -1488,6 +1491,10 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 		goto done;
 	}
 	hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
+
+	/* Enable/Configure AutoI2C settings for Hdcp2.x */
+	BHDM_AUTO_I2C_EnableReadChannel(hHDCPlib->stDependencies.hHdm,
+		BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus, 1);
 
 	rc = BHDCPlib_P_Hdcp2x_ProcessRequest(hHDCPlib,
 					BHDCPlib_P_Hdcp2xRequest_eHost_StartAuthentication);
