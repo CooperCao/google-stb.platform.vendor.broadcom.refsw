@@ -1,45 +1,40 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
-
-
 
 /*=********************************************
 This is one implementation of the BRPC api using sockets.
@@ -468,7 +463,6 @@ static int32_t BRPC_P_InitSocketPool(BRPC_SocketData *pSockData)
 	unsigned int j;
 	int32_t rc;
 	char optval;
-
 	for(j = 0; j < BRPC_RMAGNUM_CLNT_NSOCKETS; j++)
 	{
 		/* allocate clnt data first */
@@ -480,7 +474,9 @@ static int32_t BRPC_P_InitSocketPool(BRPC_SocketData *pSockData)
 		}
 
 		/* allocate a socket for the current thread */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+                if (sock_create_kern(&init_net,PF_INET, SOCK_DGRAM, IPPROTO_UDP, &clnt_data->sock_req) < 0)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 		if (sock_create_kern(PF_INET, SOCK_DGRAM, IPPROTO_UDP, &clnt_data->sock_req) < 0)
 #else
 		if (sock_create(PF_INET,SOCK_STREAM,IPPROTO_TCP,&clnt_data->sock_req) < 0)
@@ -571,7 +567,6 @@ static inline BRPC_ClntData* BRPC_P_GetClntData(BRPC_SocketData *pSockData)
 	unsigned int i;
 	int rc;
 	char optval;
-
 	/* try to locate an existing one */
 	BKNI_AcquireMutex(pSockData->lock);
 	if(!BLST_S_EMPTY(&(pSockData->free_cd_list)))
@@ -595,7 +590,9 @@ static inline BRPC_ClntData* BRPC_P_GetClntData(BRPC_SocketData *pSockData)
 	}
 
 	/* allocate a socket for the current thread */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+        if (sock_create_kern(&init_net,PF_INET, SOCK_DGRAM, IPPROTO_UDP, &clnt_data->sock_req) < 0)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 	if (sock_create_kern(PF_INET, SOCK_DGRAM, IPPROTO_UDP, &clnt_data->sock_req) < 0)
 #else
 	if (sock_create(PF_INET,SOCK_STREAM,IPPROTO_TCP,&clnt_data->sock_req) < 0)
@@ -895,7 +892,6 @@ BERR_Code BRPC_Open_SocketImpl(BRPC_Handle *handle, const BRPC_OpenSocketImplSet
 	BRPC_SocketData *pSockData;
 	int32_t buflen  = BRPC_RMAGNUM_MAX_MSG_LEGNTH;
 	char optval;
-
 	/* allocate memory for handle */
 	*handle = BKNI_Malloc(sizeof(struct BRPC_P_Handle));
 	if (!(*handle))
@@ -915,19 +911,17 @@ BERR_Code BRPC_Open_SocketImpl(BRPC_Handle *handle, const BRPC_OpenSocketImplSet
 	}
 
 	/* create sockets */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+        if (sock_create_kern(&init_net,PF_INET, SOCK_DGRAM, IPPROTO_UDP, &pSockData->sock_ntf) < 0)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 	if (sock_create_kern(PF_INET, SOCK_DGRAM, IPPROTO_UDP, &pSockData->sock_ntf) < 0)
-    {
-		BDBG_ERR(("Can not create sock_ntf!"));
-		goto err_sock_ntf;
-    }
 #else
 	if (sock_create(PF_INET,SOCK_STREAM,IPPROTO_TCP,&pSockData->sock_ntf) < 0)
-    {
+#endif
+        {
 		BDBG_ERR(("Can not create sock_ntf!"));
 		goto err_sock_ntf;
-    }
-#endif
+        }
 
 	/* configure the address and port */
 	memset((int8_t*)&sin_ctl, 0, sizeof(sin_ctl));

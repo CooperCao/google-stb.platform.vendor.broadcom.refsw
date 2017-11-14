@@ -50,10 +50,10 @@
 #define TZIOC_MEM_REGIONS
 
 typedef struct tzioc_mem_region {
-	uintptr_t ulPaddr;
-	uintptr_t ulVaddr;
-	uint32_t ulSize;
-	uint32_t ulFlags;
+    uintptr_t ulPaddr;
+    uintptr_t ulVaddr;
+    uint32_t ulSize;
+    uint32_t ulFlags;
 } tzioc_mem_region;
 
 #define TZIOC_MEM_DEVICE                (0x1 << 0)
@@ -69,13 +69,13 @@ class TzIoc::TzIocMem
 public:
     /* defines and types */
 
-	/* physical address mapping record */
-	struct PaddrMap {
-		struct tzioc_client *pClient;
-		uintptr_t ulPaddr;
-		uintptr_t ulVaddr;
-		uint32_t ulSize;
-	};
+    /* physical address mapping record */
+    struct PaddrMap {
+        struct tzioc_client *pClient;
+        uintptr_t ulPaddr;
+        uintptr_t ulVaddr;
+        uint32_t ulSize;
+    };
 
 public:
     /* static methods */
@@ -89,18 +89,6 @@ public:
         struct tzioc_client *pClient,
         void *pBuff);
 
-	static int mapPaddr(
-		struct tzioc_client *pClient,
-		uintptr_t ulPaddr,
-		uint32_t ulSize,
-		uint32_t ulFlags,
-		uintptr_t *pulVaddr);
-
-	static int unmapPaddr(
-		struct tzioc_client *pClient,
-		uintptr_t ulPaddr,
-		uint32_t ulSize);
-
     static int mapPaddrs(
         struct tzioc_client *pClient,
         uint8_t ucCount,
@@ -110,6 +98,19 @@ public:
         struct tzioc_client *pClient,
         uint8_t ucCount,
         struct tzioc_mem_region *pRegions);
+
+    static int paddr2vaddr(
+        struct tzioc_client *pClient,
+        uintptr_t ulPaddr,
+        uintptr_t *pulVaddr);
+
+    static int vaddr2paddr(
+        struct tzioc_client *pClient,
+        uintptr_t ulVaddr,
+        uintptr_t *pulPaddr);
+
+    static void cleanupClient(
+        struct tzioc_client *pClient);
 
 public:
     /* public methods */
@@ -130,7 +131,7 @@ private:
     /* private data */
 
     /* spinlock for data access */
-	static SpinLock lock;
+    static SpinLock lock;
 
     /* mem control block */
     static struct tzioc_mem_cb memCB;

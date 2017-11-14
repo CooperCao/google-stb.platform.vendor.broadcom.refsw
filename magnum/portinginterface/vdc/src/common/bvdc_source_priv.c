@@ -332,6 +332,28 @@ static void BVDC_P_Source_Bringup_isr
 
 
 /***************************************************************************
+*
+*/
+static void BVDC_P_Source_DisableTriggers_isr
+    ( BVDC_Source_Handle               hSource )
+{
+    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
+
+    if(BVDC_P_SRC_IS_HDDVI(hSource->eId))
+    {
+        BVDC_P_HdDvi_DisableTriggers_isr(hSource->hHdDvi);
+    }
+#if BVDC_P_SUPPORT_MTG
+    else if (hSource->bMtgSrc)
+    {
+        BVDC_P_Feeder_Mtg_DisableTriggers_isr(hSource->hMpegFeeder);
+    }
+#endif
+
+    return;
+}
+
+/***************************************************************************
 * {private}
 *
 */
@@ -960,6 +982,10 @@ void BVDC_P_Source_Init
          * now we create src RUL done execution callback */
         BERR_Code eStatus;
         BINT_CallbackFunc MpegSrcCallBack = BVDC_P_Source_MfdGfxCallback_isr;
+        uint32_t ulDebugReg = BVDC_P_MPEG_DEBUG_SCRATCH(hSource->eId);
+
+        /* Initialize debug msg on demand */
+        BREG_Write32_isr(hSource->hVdc->hRegister, ulDebugReg, 0);
 
 #if BVDC_P_SUPPORT_MTG
         if ((pDefSettings == NULL) || (pDefSettings->eMtgMode == BVDC_Mode_eAuto))
@@ -1237,6 +1263,8 @@ void BVDC_P_Source_ApplyChanges_isr
                 BINT_DisableCallback_isr(hSource->hTrigger1Cb);
                 BINT_ClearCallback_isr(hSource->hTrigger1Cb);
             }
+
+            BVDC_P_Source_DisableTriggers_isr(hSource);
         }
 
 #ifdef BCHP_PWR_RESOURCE_VDC_HDMI_RX_CLK0

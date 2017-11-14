@@ -179,7 +179,7 @@ eRet CSimpleVideoDecodeNx::open(
 
         if (NULL != pGraphics)
         {
-            pSurfaceClient = (CSurfaceClientNx *)pGraphics->getSurfaceClientDesktop();
+            pSurfaceClient         = (CSurfaceClientNx *)pGraphics->getSurfaceClientDesktop();
             _surfaceClientVideoWin = NEXUS_SurfaceClient_AcquireVideoWindow(pSurfaceClient->getSurfaceClient(), getWindowType());
         }
 
@@ -262,7 +262,7 @@ eRet CSimpleVideoDecodeNx::setPosition(
         (settings.composition.position.y != (int)rect.y()) ||
         (settings.composition.position.width != rect.width()) ||
         (settings.composition.position.height != rect.height())
-       )
+        )
     {
         settings.composition.position.x      = (int)rect.x();
         settings.composition.position.y      = (int)rect.y();
@@ -280,9 +280,9 @@ error:
 /* percent, border, and *pRectPercent are expressed in terms: 0-1000 = 0-100.0% */
 eRet CSimpleVideoDecodeNx::setGeometryVideoWindow(
         MRect    rect,
-        unsigned  percent,
+        unsigned percent,
         eWinArea area,
-        unsigned  border,
+        unsigned border,
         unsigned zorder,
         MRect *  pRectPercent
         )
@@ -368,7 +368,7 @@ NEXUS_VideoFormat CSimpleVideoDecodeNx::getFormat()
 }
 
 /* given rect values are in percent where 0-1000 == 0%-100.0%.
-   if rectGeom.isNull() is true, then default video window sizes will be used */
+ * if rectGeom.isNull() is true, then default video window sizes will be used */
 eRet CSimpleVideoDecodeNx::setVideoWindowGeometryPercent(MRect * pRectGeomPercent)
 {
     eRet          ret       = eRet_Ok;
@@ -411,28 +411,28 @@ eRet CSimpleVideoDecodeNx::setVideoWindowGeometryPercent(MRect * pRectGeomPercen
         if (eWindowType_Mosaic1 == getWindowType())
         {
             BDBG_MSG(("---------------------------------- resizing mosaic1 video window"));
-            ret = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_UpperLeft, 0, 1, pRectGeomPercent);
+            ret               = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_UpperLeft, 0, 1, pRectGeomPercent);
             *pRectGeomPercent = MRect(0, 0, 500, 500);
         }
         else
         if (eWindowType_Mosaic2 == getWindowType())
         {
             BDBG_MSG(("---------------------------------- resizing mosaic2 video window"));
-            ret = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_UpperRight, 0, 1, pRectGeomPercent);
+            ret               = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_UpperRight, 0, 1, pRectGeomPercent);
             *pRectGeomPercent = MRect(500, 0, 500, 500);
         }
         else
         if (eWindowType_Mosaic3 == getWindowType())
         {
             BDBG_MSG(("---------------------------------- resizing mosaic3 video window"));
-            ret = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_LowerLeft, 0, 1, pRectGeomPercent);
+            ret               = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_LowerLeft, 0, 1, pRectGeomPercent);
             *pRectGeomPercent = MRect(0, 500, 500, 500);
         }
         else
         if (eWindowType_Mosaic4 == getWindowType())
         {
             BDBG_MSG(("---------------------------------- resizing mosaic4 video window"));
-            ret = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_LowerRight, 0, 1, pRectGeomPercent);
+            ret               = setGeometryVideoWindow(rectVideoFormat, 500, eWinArea_LowerRight, 0, 1, pRectGeomPercent);
             *pRectGeomPercent = MRect(500, 500, 500, 500);
         }
         else
@@ -471,10 +471,9 @@ eRet CSimpleVideoDecodeNx::setVideoWindowGeometryPercent(MRect * pRectGeomPercen
         CHECK_ERROR_GOTO("unable to set video window geometry", ret, error);
     }
 
-
 error:
     return(ret);
-}
+} /* setVideoWindowGeometryPercent */
 
 eRet CSimpleVideoDecodeNx::updateConnectSettings(
         NxClient_ConnectSettings * pSettings,

@@ -1,0 +1,112 @@
+###############################################################################
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+###############################################################################
+
+hello_vulkan
+============
+
+This example demonstrates how to create a simple animation (a rotating
+textured cube) in Vulkan.
+
+Vulkan is a new industry-standard API which provides "close-to-the-metal"
+access to 3D graphics and compute functionality.
+See https://www.khronos.org/vulkan/ for more information about the API.
+
+The Vulkan API leaves many low-level details to the application.  This includes
+thread synchronisation, memory allocation and cache flushing.  By exposing
+such details, Vulkan applications can make efficient use of the hardware.
+A Vulkan application is necessarily more complicated than the equivalent
+OpenGL ES application.
+
+Vulkan is only supported on devices with a VideoCore V revision 4.1 and
+above e.g. 7278B0
+
+Vulkan is implemented as an ICD (Installable Client Driver) which is loaded
+using the standard third-party loader from LunarG.
+See https://www.lunarg.com/vulkan-sdk/ for more details of the loader and the
+Vulkan ecosystem.
+
+--------
+Building
+--------
+
+% export REFSW=<path to your reference software installation>
+
+Execute the platform script for your hardware e.g.
+
+% source $REFSW/tools/build/plat <board> <rev> <bits>
+
+<board> is the number of the platform e.g. 97278
+<rev>   is the chip revision e.g. B0
+<bits>  is 32 or 64 according to your target OS
+
+% cd $REFSW/BSEAV/lib/gpu/applications/nexus/hello_vulkan
+
+For single-process exclusive mode:
+
+% unset NEXUS_MODE
+% unset NXCLIENT_SUPPORT
+% unset NEXUS_CLIENT_SUPPORT
+% make clean
+% make
+
+For multi-process using nxserver:
+
+% unset NEXUS_MODE
+% export NXCLIENT_SUPPORT=y
+% unset NEXUS_CLIENT_SUPPORT
+% make clean
+% make
+
+-------
+Running
+-------
+
+Boot your board as usual, then on the board:
+
+% export REFSW=<path to your reference software installation>
+
+The applications are built into your Nexus binary folder:
+
+$REFSW/obj.<board>.<rev>.<bits>
+
+for example $REFSW/obj.97278.B0.32
+
+% export BIN=$REFSW/<binary folder>/nexus/bin
+% cd $BIN
+% export VK_ICD_FILENAMES=$BIN/bcm.json
+
+To run when built for single-process exclusive mode:
+
+% nexus hello_vulkan
+
+To run when built for multi-process using nxserver:
+
+% nexus nxserver &
+% nexus.client hello_vulkan
+
+The application takes the following arguments:
+
+d=XxY    runs the application with a window/display size of X by Y
+o=XxY    in multiprocess mode, positions the window at (X, Y)
+frames=N runs the application for N frames then quits
+
+-----
+NOTES
+-----
+
+Nexus Integration:
+
+The Broadcom Vulkan driver implements the direct display extension.
+
+In multiprocess mode, the driver does its own join with the server and
+Vulkan applications can be run alongside OpenGL ES or other Vulkan applications.
+Each will run in their own window.
+
+In single-process exclusive mode, if the application has not initialized
+the Nexus then the driver will intialize Nexus using default parameters.
+If the application has already opened the display then the Vulkan driver
+will still operate correctly but it will be in a "headless" state meaning
+that the output will not be displayed.  This could be useful for example to
+run compute-only jobs through Vulkan whilst having the display driven via
+a different API.

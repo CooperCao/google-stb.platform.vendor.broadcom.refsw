@@ -251,6 +251,27 @@ void postResume(void)
     mount_all();
 }
 
+static NEXUS_Error setStandbySettings(NEXUS_PlatformStandbySettings *standbySettings)
+{
+    NEXUS_Error rc;
+    unsigned i;
+
+    for(i=0;i<10;i++) { /* try for 1 second (10 x 100 msec) */
+        standbySettings->timeout = 100;
+        rc = NEXUS_Platform_SetStandbySettings(standbySettings);
+        if(rc == NEXUS_TIMEOUT) {
+            BDBG_WRN(("Timeout on SetStandbySettings, wait and try again"));
+            BKNI_ReleaseMutex(mutex);
+            BKNI_Sleep(100);
+            BKNI_AcquireMutex(mutex);
+        } else {
+            break;
+        }
+    }
+
+    return rc;
+}
+
 /**
  * Enter S1 standby
  **/
@@ -284,7 +305,7 @@ int activeStandbyMode(void)
 
     NEXUS_Platform_GetStandbySettings(&nexusStandbySettings);
     nexusStandbySettings.mode = NEXUS_PlatformStandbyMode_eActive;
-    rc = NEXUS_Platform_SetStandbySettings(&nexusStandbySettings);
+    rc = setStandbySettings(&nexusStandbySettings);
     if(rc) { BERR_TRACE(rc); BDBG_ASSERT(!rc); }
 
     get_pmlib_state(&pmlib_state);
@@ -388,7 +409,7 @@ int passiveStandbyMode(void)
     nexusStandbySettings.wakeupSettings.keypad = g_cmd_options.kpd_wakeup;
     nexusStandbySettings.wakeupSettings.timeout = timeout;
 
-    rc = NEXUS_Platform_SetStandbySettings(&nexusStandbySettings);
+    rc = setStandbySettings(&nexusStandbySettings);
     if(rc) { BERR_TRACE(rc); BDBG_ASSERT(!rc); }
 
     /* Set Ethernet WOL */
@@ -504,7 +525,7 @@ int deepStandbyMode(void)
     nexusStandbySettings.wakeupSettings.gpio = g_cmd_options.gpio_wakeup;
     nexusStandbySettings.wakeupSettings.keypad = g_cmd_options.kpd_wakeup;
     nexusStandbySettings.wakeupSettings.timeout = timeout;
-    rc = NEXUS_Platform_SetStandbySettings(&nexusStandbySettings);
+    rc = setStandbySettings(&nexusStandbySettings);
     if(rc) { BERR_TRACE(rc); BDBG_ASSERT(!rc); }
 
     if(moca_info.exists) {
@@ -578,7 +599,7 @@ int haltMode(void)
     nexusStandbySettings.wakeupSettings.gpio = g_cmd_options.gpio_wakeup;
     nexusStandbySettings.wakeupSettings.keypad = g_cmd_options.kpd_wakeup;
     nexusStandbySettings.wakeupSettings.timeout = timeout;
-    rc = NEXUS_Platform_SetStandbySettings(&nexusStandbySettings);
+    rc = setStandbySettings(&nexusStandbySettings);
     if(rc) { BERR_TRACE(rc); BDBG_ASSERT(!rc); }
 
     BKNI_ReleaseMutex(mutex);
@@ -665,7 +686,7 @@ int onMode(void)
     NEXUS_Platform_GetStandbySettings(&nexusStandbySettings);
     nexusStandbySettings.mode = NEXUS_PlatformStandbyMode_eOn;
     nexusStandbySettings.openFrontend = g_DeviceState.openfe;
-    rc = NEXUS_Platform_SetStandbySettings(&nexusStandbySettings);
+    rc = setStandbySettings(&nexusStandbySettings);
     if(rc) { BERR_TRACE(rc); BDBG_ASSERT(!rc); }
 
     postResume();

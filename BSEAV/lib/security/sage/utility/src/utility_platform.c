@@ -103,7 +103,7 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
     {
         if(BKNI_CreateMutex(&utilityMutex) != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error calling create mutex", __FUNCTION__));
+            BDBG_ERR(("%s - Error calling create mutex", BSTD_FUNCTION));
             rc = BERR_OS_ERROR;
             goto End;
         }
@@ -132,7 +132,7 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
 
         if (sage_rc != BERR_SUCCESS)
         {
-            BDBG_WRN(("%s - Could not Install TA %s: Make sure you have the TA binary", __FUNCTION__, ta_bin_filename));
+            BDBG_WRN(("%s - Could not Install TA %s: Make sure you have the TA binary", BSTD_FUNCTION, ta_bin_filename));
             rc = sage_rc;
         }
 #endif
@@ -141,26 +141,26 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
         if (sage_rc != BERR_SUCCESS)
         {
             platformHandle = NULL; /* sanity reset */
-            BDBG_ERR(("%s - Error calling platform_open", __FUNCTION__));
+            BDBG_ERR(("%s - Error calling platform_open", BSTD_FUNCTION));
             rc = sage_rc;
             goto ErrorExit;
         }
 
-        BDBG_MSG(("%s - SRAI_Platform_Open(%u, %p, %p) returned %p", __FUNCTION__, BSAGE_PLATFORM_ID_UTILITY, (void *)&platform_status, (void *)&platformHandle, (void *)platformHandle));
+        BDBG_MSG(("%s - SRAI_Platform_Open(%u, %p, %p) returned %p", BSTD_FUNCTION, BSAGE_PLATFORM_ID_UTILITY, (void *)&platform_status, (void *)&platformHandle, (void *)platformHandle));
 
         if(platform_status == BSAGElib_State_eUninit)
         {
-            BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit ************************* (platformHandle = 0x%09lx)", __FUNCTION__, (long unsigned int)platformHandle));
+            BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit ************************* (platformHandle = 0x%09lx)", BSTD_FUNCTION, (long unsigned int)platformHandle));
             sage_rc = SRAI_Platform_Init(platformHandle, NULL);
             if (sage_rc != BERR_SUCCESS)
             {
-                BDBG_ERR(("%s - Error calling platform init", __FUNCTION__));
+                BDBG_ERR(("%s - Error calling platform init", BSTD_FUNCTION));
                 rc = sage_rc;
                 goto ErrorExit;
             }
         }
         else{
-            BDBG_WRN(("%s - Platform already initialized *************************", __FUNCTION__));
+            BDBG_WRN(("%s - Platform already initialized *************************", BSTD_FUNCTION));
         }
     }
 
@@ -172,19 +172,19 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
         if (container == NULL)
         {
             rc = BSAGE_ERR_CONTAINER_REQUIRED;
-            BDBG_ERR(("%s - container is required to hold bin file", __FUNCTION__));
+            BDBG_ERR(("%s - container is required to hold bin file", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
         /* first verify that it has not been already used by the calling module */
         if(container->blocks[0].data.ptr != NULL)
         {
-            BDBG_ERR(("%s - Shared block[0] reserved for all DRM modules with bin file to pass to Sage.", __FUNCTION__));
+            BDBG_ERR(("%s - Shared block[0] reserved for all DRM modules with bin file to pass to Sage.", BSTD_FUNCTION));
             rc = BERR_INVALID_PARAMETER;
             goto ErrorExit;
         }
 
-        BDBG_MSG(("%s - DRM bin filename '%s'", __FUNCTION__, drm_bin_filename));
+        BDBG_MSG(("%s - DRM bin filename '%s'", BSTD_FUNCTION, drm_bin_filename));
         /*
          * 1) allocate drm_bin_file_buff
          * 2) read bin file
@@ -193,14 +193,14 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
         rc = Utility_P_GetFileSize(drm_bin_filename, &filesize);
         if(rc != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
+            BDBG_ERR(("%s - Error determine file size of bin file", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
         drm_bin_file_buff = SRAI_Memory_Allocate(filesize, SRAI_MemoryType_Shared);
         if(drm_bin_file_buff == NULL)
         {
-            BDBG_ERR(("%s - Error allocating '%u' bytes", __FUNCTION__, filesize));
+            BDBG_ERR(("%s - Error allocating '%u' bytes", BSTD_FUNCTION, filesize));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
@@ -208,7 +208,7 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
         if(Utility_P_ReadFile(drm_bin_filename, drm_bin_file_buff,
                              filesize) != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error reading drm bin file", __FUNCTION__));
+            BDBG_ERR(("%s - Error reading drm bin file", BSTD_FUNCTION));
             rc = BERR_OS_ERROR;
             goto ErrorExit;
         }
@@ -217,47 +217,47 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
         filesize_from_header = Utility_P_CheckDrmBinFileSize();
         if(filesize_from_header != filesize)
         {
-            BDBG_ERR(("%s - Error validating file size in header (%u != %u)", __FUNCTION__, filesize_from_header, filesize));
+            BDBG_ERR(("%s - Error validating file size in header (%u != %u)", BSTD_FUNCTION, filesize_from_header, filesize));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
 
-        BDBG_MSG(("%s - Error validating file size in header (%u ?=? %u)", __FUNCTION__, filesize_from_header, filesize));
+        BDBG_MSG(("%s - Error validating file size in header (%u ?=? %u)", BSTD_FUNCTION, filesize_from_header, filesize));
 
         /* All index '0' shared blocks will be reserved for drm bin file data */
 
         container->blocks[0].len = filesize_from_header;
 
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(filesize_from_header, SRAI_MemoryType_Shared);
-        BDBG_MSG(("%s - Allocating SHARED MEMORY of '%u' bytes for shared block[0] (address %p)", __FUNCTION__, filesize_from_header, container->blocks[0].data.ptr));
+        BDBG_MSG(("%s - Allocating SHARED MEMORY of '%u' bytes for shared block[0] (address %p)", BSTD_FUNCTION, filesize_from_header, container->blocks[0].data.ptr));
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating SRAI memory", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating SRAI memory", BSTD_FUNCTION));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
         BKNI_Memcpy(container->blocks[0].data.ptr, drm_bin_file_buff, filesize_from_header);
 
-        BDBG_MSG(("%s - Copied '%u' bytes into SRAI container (address %p)", __FUNCTION__, filesize_from_header, container->blocks[0].data.ptr));
+        BDBG_MSG(("%s - Copied '%u' bytes into SRAI container (address %p)", BSTD_FUNCTION, filesize_from_header, container->blocks[0].data.ptr));
     }
 
     /* All modules will call SRAI_Module_Init */
-    BDBG_MSG(("%s - ************************* (platformHandle = 0x%09lx)", __FUNCTION__, (long unsigned int)platformHandle));
+    BDBG_MSG(("%s - ************************* (platformHandle = 0x%09lx)", BSTD_FUNCTION, (long unsigned int)platformHandle));
     sage_rc = SRAI_Module_Init(platformHandle, module_id, container, &tmpModuleHandle);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error calling SRAI_Module_Init", __FUNCTION__));
+        BDBG_ERR(("%s - Error calling SRAI_Module_Init", BSTD_FUNCTION));
         rc = sage_rc;
         goto ErrorExit;
     }
     BDBG_MSG(("%s - SRAI_Module_Init(%p, %u, %p, %p) returned %p",
-              __FUNCTION__, (void *)platformHandle, module_id, (void *)container, (void *)&tmpModuleHandle, (void *)moduleHandle));
+              BSTD_FUNCTION, (void *)platformHandle, module_id, (void *)container, (void *)&tmpModuleHandle, (void *)moduleHandle));
 
     /* Extract DRM bin file manager response from basic[0].  Free memory if failed */
     sage_rc = container->basicOut[0];
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - SAGE error processing DRM bin file", __FUNCTION__));
+        BDBG_ERR(("%s - SAGE error processing DRM bin file", BSTD_FUNCTION));
         rc = sage_rc;
         goto ErrorExit;
     }
@@ -267,18 +267,18 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
     {
         if(container->basicOut[1] == OVERWRITE_BIN_FILE)
         {
-            BDBG_MSG(("%s - Overwriting file '%s'", __FUNCTION__, drm_bin_filename));
+            BDBG_MSG(("%s - Overwriting file '%s'", BSTD_FUNCTION, drm_bin_filename));
 
             if(Utility_P_WriteFile(drm_bin_filename, container->blocks[0].data.ptr,
                                    filesize_from_header) != BERR_SUCCESS)
             {
-                BDBG_ERR(("%s - Error writing drm bin file size to rootfs", __FUNCTION__));
+                BDBG_ERR(("%s - Error writing drm bin file size to rootfs", BSTD_FUNCTION));
                 rc = BERR_OS_ERROR;
                 goto ErrorExit;
             }
         }
         else{
-            BDBG_MSG(("%s - No need to overwrite file '%s'", __FUNCTION__, drm_bin_filename));
+            BDBG_MSG(("%s - No need to overwrite file '%s'", BSTD_FUNCTION, drm_bin_filename));
         }
     }
 
@@ -318,7 +318,7 @@ Utility_ModuleUninit(SRAI_ModuleHandle moduleHandle)
     }
 
     if(moduleHandle != NULL){
-        BDBG_MSG(("%s - SRAI_Module_Uninit(%p)", __FUNCTION__, (void *)moduleHandle));
+        BDBG_MSG(("%s - SRAI_Module_Uninit(%p)", BSTD_FUNCTION, (void *)moduleHandle));
         SRAI_Module_Uninit(moduleHandle);
     }
 
@@ -328,10 +328,10 @@ Utility_ModuleUninit(SRAI_ModuleHandle moduleHandle)
      * Otherwise skip the clean up and decrement the counter. Is this handled by SRAI?*/
     if(Utility_ModuleCounter == 1)
     {
-        BDBG_MSG(("%s - Cleaning up Utility TL only parameters ***************************", __FUNCTION__));
+        BDBG_MSG(("%s - Cleaning up Utility TL only parameters ***************************", BSTD_FUNCTION));
         if (platformHandle)
         {
-            BDBG_MSG(("%s - SRAI_Platform_Close(%p)", __FUNCTION__, (void *)platformHandle));
+            BDBG_MSG(("%s - SRAI_Platform_Close(%p)", BSTD_FUNCTION, (void *)platformHandle));
             SRAI_Platform_Close(platformHandle);
             platformHandle = NULL;
         }
@@ -339,13 +339,13 @@ Utility_ModuleUninit(SRAI_ModuleHandle moduleHandle)
         SRAI_Platform_UnInstall(BSAGE_PLATFORM_ID_UTILITY);
 
         BKNI_ReleaseMutex(utilityMutex);
-        BDBG_MSG(("%s - BKNI_DestroyMutex(%p)", __FUNCTION__, (void *)utilityMutex));
+        BDBG_MSG(("%s - BKNI_DestroyMutex(%p)", BSTD_FUNCTION, (void *)utilityMutex));
         BKNI_DestroyMutex(utilityMutex);
         utilityMutex = NULL;
     }
     else if(Utility_ModuleCounter <= 0)
     {
-        BDBG_WRN(("%s - Utility_ModuleCounter value is invalid ('%d').  Possible bad thread exit", __FUNCTION__, Utility_ModuleCounter));
+        BDBG_WRN(("%s - Utility_ModuleCounter value is invalid ('%d').  Possible bad thread exit", BSTD_FUNCTION, Utility_ModuleCounter));
     }
     /* else: remaining modules, do not uninit global variables */
 
@@ -354,7 +354,7 @@ Utility_ModuleUninit(SRAI_ModuleHandle moduleHandle)
     if (utilityMutex != NULL)
     {
         BKNI_ReleaseMutex(utilityMutex);
-        BDBG_MSG(("%s - BKNI_ReleaseMutex(%p)", __FUNCTION__, (void *)utilityMutex));
+        BDBG_MSG(("%s - BKNI_ReleaseMutex(%p)", BSTD_FUNCTION, (void *)utilityMutex));
     }
 
     BDBG_LEAVE(Utility_ModuleUninit);
@@ -378,7 +378,7 @@ Utility_ModuleLoadDrmBin(const char * drm_bin_filename,
 
     if(utilityMutex == NULL)
     {
-        BDBG_ERR(("%s - Mutex does not exist", __FUNCTION__));
+        BDBG_ERR(("%s - Mutex does not exist", BSTD_FUNCTION));
         rc = BERR_OS_ERROR;
         goto End;
     }
@@ -386,19 +386,19 @@ Utility_ModuleLoadDrmBin(const char * drm_bin_filename,
 
     if((moduleHandle == NULL) || (drm_bin_filename == NULL) || (container == NULL))
     {
-        BDBG_ERR(("%s - NULL parameter", __FUNCTION__));
+        BDBG_ERR(("%s - NULL parameter", BSTD_FUNCTION));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
 
     if(container->blocks[0].data.ptr != NULL)
     {
-        BDBG_ERR(("%s - Shared block[0] reserved for all DRM modules with bin file to pass to Sage.", __FUNCTION__));
+        BDBG_ERR(("%s - Shared block[0] reserved for all DRM modules with bin file to pass to Sage.", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s - DRM bin filename '%s'", __FUNCTION__, drm_bin_filename));
+    BDBG_MSG(("%s - DRM bin filename '%s'", BSTD_FUNCTION, drm_bin_filename));
     /*
      * 1) allocate drm_bin_file_buff
      * 2) read bin file
@@ -407,14 +407,14 @@ Utility_ModuleLoadDrmBin(const char * drm_bin_filename,
     rc = Utility_P_GetFileSize(drm_bin_filename, &filesize);
     if(rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
+        BDBG_ERR(("%s - Error determine file size of bin file", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     drm_bin_file_buff = SRAI_Memory_Allocate(filesize, SRAI_MemoryType_Shared);
     if(drm_bin_file_buff == NULL)
     {
-        BDBG_ERR(("%s - Error allocating '%u' bytes", __FUNCTION__, filesize));
+        BDBG_ERR(("%s - Error allocating '%u' bytes", BSTD_FUNCTION, filesize));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -422,7 +422,7 @@ Utility_ModuleLoadDrmBin(const char * drm_bin_filename,
     if(Utility_P_ReadFile(drm_bin_filename, drm_bin_file_buff,
                          filesize) != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error reading drm bin file", __FUNCTION__));
+        BDBG_ERR(("%s - Error reading drm bin file", BSTD_FUNCTION));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
@@ -431,34 +431,34 @@ Utility_ModuleLoadDrmBin(const char * drm_bin_filename,
     filesize_from_header = Utility_P_CheckDrmBinFileSize();
     if(filesize_from_header != filesize)
     {
-        BDBG_ERR(("%s - Error validating file size in header (%u != %u)", __FUNCTION__, filesize_from_header, filesize));
+        BDBG_ERR(("%s - Error validating file size in header (%u != %u)", BSTD_FUNCTION, filesize_from_header, filesize));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s - Error validating file size in header (%u ?=? %u)", __FUNCTION__, filesize_from_header, filesize));
+    BDBG_MSG(("%s - Error validating file size in header (%u ?=? %u)", BSTD_FUNCTION, filesize_from_header, filesize));
 
     /* All index '0' shared blocks will be reserved for drm bin file data */
 
     container->blocks[0].len = filesize_from_header;
 
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(filesize_from_header, SRAI_MemoryType_Shared);
-    BDBG_MSG(("%s - Allocating SHARED MEMORY of '%u' bytes for shared block[0] (address %p)", __FUNCTION__, filesize_from_header, container->blocks[0].data.ptr));
+    BDBG_MSG(("%s - Allocating SHARED MEMORY of '%u' bytes for shared block[0] (address %p)", BSTD_FUNCTION, filesize_from_header, container->blocks[0].data.ptr));
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating SRAI memory", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating SRAI memory", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
     BKNI_Memcpy(container->blocks[0].data.ptr, drm_bin_file_buff, filesize_from_header);
 
-    BDBG_MSG(("%s - Copied '%u' bytes into SRAI container (address %p)", __FUNCTION__, filesize_from_header, container->blocks[0].data.ptr));
+    BDBG_MSG(("%s - Copied '%u' bytes into SRAI container (address %p)", BSTD_FUNCTION, filesize_from_header, container->blocks[0].data.ptr));
 
     /* Extract DRM bin file manager response from basic[0].  Free memory if failed */
     sage_rc = SRAI_Module_ProcessCommand(moduleHandle, commandId, container);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during operation", BSTD_FUNCTION));
         rc = sage_rc;
         goto ErrorExit;
     }
@@ -466,7 +466,7 @@ Utility_ModuleLoadDrmBin(const char * drm_bin_filename,
     sage_rc = container->basicOut[0];
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Load drm bin error", __FUNCTION__));
+        BDBG_ERR(("%s - Load drm bin error", BSTD_FUNCTION));
         rc = sage_rc;
         goto ErrorExit;
     }
@@ -474,18 +474,18 @@ Utility_ModuleLoadDrmBin(const char * drm_bin_filename,
     /* Overwrite the drm bin file in rootfs, free up the buffer since a copy will exist on the sage side */
     if(container->basicOut[1] == OVERWRITE_BIN_FILE)
     {
-        BDBG_MSG(("%s - Overwriting file '%s'", __FUNCTION__, drm_bin_filename));
+        BDBG_MSG(("%s - Overwriting file '%s'", BSTD_FUNCTION, drm_bin_filename));
 
         if(Utility_P_WriteFile(drm_bin_filename, container->blocks[0].data.ptr,
                                filesize_from_header) != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error writing drm bin file size to rootfs", __FUNCTION__));
+            BDBG_ERR(("%s - Error writing drm bin file size to rootfs", BSTD_FUNCTION));
             rc = BERR_OS_ERROR;
             goto ErrorExit;
         }
     }
     else{
-        BDBG_MSG(("%s - No need to overwrite file '%s'", __FUNCTION__, drm_bin_filename));
+        BDBG_MSG(("%s - No need to overwrite file '%s'", BSTD_FUNCTION, drm_bin_filename));
     }
 
 ErrorExit:
@@ -526,7 +526,7 @@ Utility_P_CheckDrmBinFileSize(void)
         BKNI_Memset(drm_bin_file_buff, 0x00, tmp_file_size);
     }
 
-    BDBG_MSG(("%s - tmp_file_size=%u", __FUNCTION__, tmp_file_size));
+    BDBG_MSG(("%s - tmp_file_size=%u", BSTD_FUNCTION, tmp_file_size));
 
     return tmp_file_size;
 }
@@ -542,7 +542,7 @@ static BERR_Code Utility_P_GetFileSize(const char * filename, uint32_t *filesize
     fptr = fopen(filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error opening file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
@@ -550,7 +550,7 @@ static BERR_Code Utility_P_GetFileSize(const char * filename, uint32_t *filesize
     pos = fseek(fptr, 0, SEEK_END);
     if(pos == -1)
     {
-        BDBG_ERR(("%s - Error seeking to end of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error seeking to end of file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
@@ -558,7 +558,7 @@ static BERR_Code Utility_P_GetFileSize(const char * filename, uint32_t *filesize
     pos = ftell(fptr);
     if(pos == -1)
     {
-        BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
@@ -566,7 +566,7 @@ static BERR_Code Utility_P_GetFileSize(const char * filename, uint32_t *filesize
     /* check vs. max SAGE SRAM size */
     if(pos > DEFAULT_DRM_BIN_FILESIZE)
     {
-        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", __FUNCTION__, filename, pos));
+        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", BSTD_FUNCTION, filename, pos));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
@@ -579,12 +579,12 @@ ErrorExit:
     {
         /* error closing?!  weird error case not sure how to handle */
         if(fclose(fptr) != 0){
-            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
             rc = BERR_OS_ERROR;
         }
     }
 
-    BDBG_MSG(("%s - Exiting function (%u bytes)", __FUNCTION__, (*filesize)));
+    BDBG_MSG(("%s - Exiting function (%u bytes)", BSTD_FUNCTION, (*filesize)));
 
     return rc;
 }
@@ -599,7 +599,7 @@ static BERR_Code Utility_P_ReadFile(const char * filename, uint8_t *buffer,
 
     if((filename == NULL) || (buffer == NULL))
     {
-        BDBG_ERR(("%s - Invalid parameter", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -607,7 +607,7 @@ static BERR_Code Utility_P_ReadFile(const char * filename, uint8_t *buffer,
     fptr = fopen(filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening file (%s)", __FUNCTION__, filename));
+        BDBG_ERR(("%s - Error opening file (%s)", BSTD_FUNCTION, filename));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
@@ -615,14 +615,14 @@ static BERR_Code Utility_P_ReadFile(const char * filename, uint8_t *buffer,
     actual_read = fread(buffer, 1, read_size, fptr);
     if(actual_read != read_size)
     {
-        BDBG_ERR(("%s - Error reading file size (%u != %u)", __FUNCTION__, actual_read, read_size));
+        BDBG_ERR(("%s - Error reading file size (%u != %u)", BSTD_FUNCTION, actual_read, read_size));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
 
     if(fclose(fptr) != 0)
     {
-        BDBG_ERR(("%s - Error closing file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error closing file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
@@ -641,7 +641,7 @@ static BERR_Code Utility_P_WriteFile(const char * filename, uint8_t *buffer,
 
     if((filename == NULL) || (buffer == NULL))
     {
-        BDBG_ERR(("%s - Invalid parameter", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid parameter", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -649,7 +649,7 @@ static BERR_Code Utility_P_WriteFile(const char * filename, uint8_t *buffer,
     fptr = fopen(filename, "w+b");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening file (%s) in 'w+b' mode.  '%s'", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error opening file (%s) in 'w+b' mode.  '%s'", BSTD_FUNCTION, filename, strerror(errno)));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
@@ -657,14 +657,14 @@ static BERR_Code Utility_P_WriteFile(const char * filename, uint8_t *buffer,
     actual_written = fwrite(buffer, 1, write_size, fptr);
     if(actual_written != write_size)
     {
-        BDBG_ERR(("%s - Error writing file size to rootfs (%u != %u)", __FUNCTION__, actual_written, write_size));
+        BDBG_ERR(("%s - Error writing file size to rootfs (%u != %u)", BSTD_FUNCTION, actual_written, write_size));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
 
     if(fclose(fptr) != 0)
     {
-        BDBG_ERR(("%s - Error closing file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error closing file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
@@ -682,19 +682,19 @@ static BERR_Code Utility_P_TA_Install(char * ta_bin_filename)
     uint8_t *ta_bin_file_buff = NULL;
     BERR_Code sage_rc = BERR_SUCCESS;
 
-    BDBG_MSG(("%s - TA bin filename '%s'", __FUNCTION__, ta_bin_filename));
+    BDBG_MSG(("%s - TA bin filename '%s'", BSTD_FUNCTION, ta_bin_filename));
 
     rc = Utility_P_GetFileSize(ta_bin_filename, &file_size);
     if(rc != BERR_SUCCESS)
     {
-        BDBG_LOG(("%s - Error determine file size of TA bin file", __FUNCTION__));
+        BDBG_LOG(("%s - Error determine file size of TA bin file", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     ta_bin_file_buff = SRAI_Memory_Allocate(file_size, SRAI_MemoryType_Shared);
     if(ta_bin_file_buff == NULL)
     {
-        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", __FUNCTION__, file_size));
+        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", BSTD_FUNCTION, file_size));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -702,17 +702,17 @@ static BERR_Code Utility_P_TA_Install(char * ta_bin_filename)
     if(Utility_P_ReadFile(ta_bin_filename, ta_bin_file_buff,
                          file_size) != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error reading ta bin file", __FUNCTION__));
+        BDBG_ERR(("%s - Error reading ta bin file", BSTD_FUNCTION));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s - TA 0x%x Install file %s", __FUNCTION__,BSAGE_PLATFORM_ID_UTILITY,ta_bin_filename));
+    BDBG_MSG(("%s - TA 0x%x Install file %s", BSTD_FUNCTION,BSAGE_PLATFORM_ID_UTILITY,ta_bin_filename));
 
     sage_rc = SRAI_Platform_Install(BSAGE_PLATFORM_ID_UTILITY, ta_bin_file_buff, file_size);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%x", __FUNCTION__, sage_rc ));
+        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%x", BSTD_FUNCTION, sage_rc ));
         rc = sage_rc;
         goto ErrorExit;
     }
@@ -742,9 +742,11 @@ static ChipType_e Utility_P_GetChipType()
 
     readMspParms.readMspEnum = NEXUS_OtpCmdMsp_eReserved233;
     rc = NEXUS_Security_ReadMSP(&readMspParms,&readMsp0);
+    if (rc) BERR_TRACE(rc);
 
     readMspParms.readMspEnum = NEXUS_OtpCmdMsp_eReserved234;
     rc = NEXUS_Security_ReadMSP(&readMspParms,&readMsp1);
+    if (rc) BERR_TRACE(rc);
 
     BDBG_MSG(("OTP MSP0 %d %d %d %d OTP MSP0 %d %d %d %d",readMsp0.mspDataBuf[0], readMsp0.mspDataBuf[1], readMsp0.mspDataBuf[2], readMsp0.mspDataBuf[3],
                                                           readMsp1.mspDataBuf[0], readMsp1.mspDataBuf[1], readMsp1.mspDataBuf[2], readMsp1.mspDataBuf[3]));

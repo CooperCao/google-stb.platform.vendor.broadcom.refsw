@@ -9,8 +9,6 @@
 #include "../common/khrn_process.h"
 #include "libs/platform/bcm_perf_api.h"
 
-#if EGL_BRCM_event_monitor
-
 static EGLint egl_get_num_event_tracks()
 {
    return bcm_sched_get_num_event_tracks();
@@ -256,5 +254,3 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetEventDataBRCM(
    egl_thread_set_error(EGL_SUCCESS);
    return EGL_TRUE;
 }
-
-#endif

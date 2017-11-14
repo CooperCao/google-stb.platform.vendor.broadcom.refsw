@@ -46,6 +46,11 @@
 
 BDBG_MODULE(nexus_platform_debug_log);
 
+#if NEXUS_LOGGER_EXTERNAL
+#define main logger_main
+#include "nexus_logger.c"
+#endif /* NEXUS_LOGGER_EXTERNAL */
+
 #define DEFAULT_LOGGER "./logger"
 #define DEFAULT_LOGGER_FILE "/tmp/nexus.log"
 
@@ -102,6 +107,9 @@ void NEXUS_Platform_P_DebugLog_Init(NEXUS_Platform_P_DebugLog *debugLog, const c
         if(logSettings.nelements && logSettings.nelements<8) {
             logSettings.nelements = 2048;
         }
+        else if (logSettings.nelements > 100*1024) {
+            logSettings.nelements = 100*1024;
+        }
     }
     if(logSettings.nelements==0) {
         goto err_elements;
@@ -127,7 +135,6 @@ void NEXUS_Platform_P_DebugLog_Init(NEXUS_Platform_P_DebugLog *debugLog, const c
 
         logSettings.buffer = debugLog->shared;
         logSettings.bufferSize = debugLog->bufferSize;
-         /* coverity[ tainted_data : FALSE ] */
         rc = BDBG_Fifo_Create(&debugLog->logWriter, &logSettings);
         if(rc!=BERR_SUCCESS) {(void)BERR_TRACE(rc);goto err_fifo;}
     }
@@ -149,11 +156,15 @@ void NEXUS_Platform_P_DebugLog_Init(NEXUS_Platform_P_DebugLog *debugLog, const c
         argv[2] = driver?(char *)driver:"";
         argv[3] = fd;
         argv[4] = NULL;
+#if NEXUS_LOGGER_EXTERNAL
+        exit(logger_main(4, argv));
+#else
         /* coverity[toctou: FALSE] */
         execv(logger, argv);
         /* only reached on error */
         _exit(-1);
         /* shouldn't reach here */
+#endif
         return;
     }
     close(pipesfd[1]);

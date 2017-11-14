@@ -26,7 +26,7 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
    NXPL_InternalPlatformHandle *platform = (NXPL_InternalPlatformHandle*)malloc(sizeof(NXPL_InternalPlatformHandle));
    memset(platform, 0, sizeof(NXPL_InternalPlatformHandle));
 
-   NXPL_DisplayContext *ctx = (NXPL_DisplayContext *)malloc(sizeof(*ctx));
+   platform->displayContext = (NXPL_DisplayContext *)malloc(sizeof(*platform->displayContext));
 
    if (platform != NULL)
    {
@@ -37,7 +37,8 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
          platform->memoryInterface = CreateMemoryInterface();
 
       platform->schedInterface  = CreateSchedInterface(platform->memoryInterface);
-      platform->displayInterface = CreateDisplayInterface(display, ctx, platform->schedInterface);
+      platform->displayInterface = CreateDisplayInterface(display,
+            platform->displayContext, platform->schedInterface);
 
       *handle = (NXPL_PlatformHandle)platform;
 
@@ -66,6 +67,8 @@ void NXPL_UnregisterNexusDisplayPlatform(NXPL_PlatformHandle handle)
       BEGL_RegisterSchedInterface(NULL);
 
       DestroyDisplayInterface(data->displayInterface);
+      free(data->displayContext);
+
       if (data->drm)
          DestroyDRMMemoryInterface(data->memoryInterface);
       else

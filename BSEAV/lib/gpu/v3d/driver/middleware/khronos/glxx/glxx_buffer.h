@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 1.1 vertex buffer structure declaration.
-=============================================================================*/
-
-#ifndef GLXX_BUFFER_H
-#define GLXX_BUFFER_H
+/******************************************************************************
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+******************************************************************************/
+#pragma once
 
 #include "interface/khronos/include/GLES/gl.h"
 
@@ -50,7 +41,7 @@ typedef struct {
 
       Invariants:
 
-      mh_storage != MEM_INVALID_HANDLE
+      mh_storage != MEM_HANDLE_INVALID
       mh_storage is MEM_ZERO_SIZE_HANDLE or we have the only reference to it
    */
 
@@ -105,5 +96,3 @@ extern int glxx_buffer_get_size(GLXX_BUFFER_T *buffer);
 
 extern MEM_HANDLE_T glxx_buffer_get_storage_handle(GLXX_BUFFER_T *buffer);
 extern uint32_t glxx_buffer_get_interlock_offset(GLXX_BUFFER_T *buffer);
-
-#endif

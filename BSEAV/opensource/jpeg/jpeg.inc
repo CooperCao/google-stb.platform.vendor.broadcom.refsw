@@ -1,5 +1,5 @@
 ############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,18 +43,25 @@ else
     DEBUG_SUFFIX=release
 endif
 
-JPEG_VER?=6b
+JPEG_VER?=8d
+JPEG_INSTALL_VER=8.4.0
 
 JPEG_NAME:=jpeg-$(JPEG_VER)
-JPEG_SOURCE_TARBALL:=jpegsrc.v6b.tar.gz
+JPEG_SOURCE_TARBALL:=jpegsrc.v$(JPEG_VER).tar.gz
 JPEG_SOURCE_DIRECTORY:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/opensource)
 JPEG_SOURCE_PATH:=${JPEG_SOURCE_DIRECTORY}/${JPEG_NAME}
 JPEG_TAR_PATH:=${JPEG_SOURCE_DIRECTORY}/${JPEG_NAME}
 JPEG_BUILD_DIR:=$(abspath ${BSEAV}/opensource/jpeg)
-JPEG_LIB_FOLDER:=${JPEG_TAR_PATH}/lib/.libs
+JPEG_INSTALL_TARGET := $(abspath $(B_REFSW_OBJ_ROOT)/target)
+JPEG_PREFIX=usr/local
+JPEG_INSTALL_PREFIX := ${JPEG_INSTALL_TARGET}/${JPEG_PREFIX}
+JPEG_LIB_FOLDER:=${JPEG_INSTALL_PREFIX}/lib
+JPEG_INC_FOLDER:=${JPEG_INSTALL_PREFIX}/include
+JPEG_BIN_FOLDER:=${JPEG_INSTALL_PREFIX}/bin
 
-JPEG_CFLAGS:= -D_REENTRANT -I${JPEG_TAR_PATH}/include
+JPEG_CFLAGS:= -D_REENTRANT -I${JPEG_INC_FOLDER}
 JPEG_LDFLAGS:= -L$(JPEG_LIB_FOLDER) -ljpeg
+JPEG_STATIC_LDFLAGS:= -L$(JPEG_LIB_FOLDER) -l:libjpeg.a
 
 #  Where to store downloaded open-source files for local sharing
 B_REFSW_CACHE_DIR ?= $(realpath /projects/stbdev/open-source)

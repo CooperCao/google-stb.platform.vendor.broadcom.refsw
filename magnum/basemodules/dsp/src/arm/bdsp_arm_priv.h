@@ -206,7 +206,7 @@ typedef struct BDSP_Arm_P_TaskCallBacks
     BDSP_Arm_P_TaskCallBacks    interruptCallbacks;
 
     BDSP_ARM_CIT_P_Output   citOutput;
-    BDSP_ARM_CTB_Output     ctbOutput;
+    BDSP_CTB_Output     ctbOutput;
     BDSP_Arm_P_MsgQueueHandle hAsyncMsgQueue; /* Asynchronous message queue belonging to this task */
     BDSP_Arm_P_MsgQueueHandle hSyncMsgQueue; /* Synchronous message queue belonging to this task */
     BDSP_Arm_P_TaskMemoryInfo taskMemGrants; /* Memory for contiguous Async Msgs */
@@ -517,4 +517,12 @@ BDSP_ARM_STAGE_TRAVERSE_LOOP_V1_BEGIN(A, B, macroBrId, macroStId)
 
 /*extern  const BDSP_ARM_VOM_Algo_Start_Addr                      BDSP_ARM_sAlgoStartAddr;*/
 extern  const BDSP_AF_P_sNODE_INFO                          BDSP_ARM_sNodeInfo [BDSP_ARM_AF_P_AlgoId_eMax+1];
+
+BERR_Code BDSP_Arm_P_GetDownloadStatus(
+    void  *pDeviceHandle,
+    BDSP_DownloadStatus *pStatus /* [out] */
+);
+BERR_Code BDSP_Arm_P_Initialize(
+    void  *pDeviceHandle
+);
 #endif /* BDSP_ARM_PRIV_H_ */

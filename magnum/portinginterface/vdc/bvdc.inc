@@ -130,9 +130,6 @@ BVDC_SOURCES = \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_mcdi_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_mcvp_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_pepalgorithm_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_pepcmstable_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_pepcms_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_pepdyncontrast_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_pep_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_resource_priv.c \
@@ -141,7 +138,6 @@ BVDC_SOURCES = \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_source_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_subrul_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_test.c \
-	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_tntalgorithm_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_tnt_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_vnet_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_window.c \
@@ -260,6 +256,16 @@ BVDC_DEFINES += BVDC_CRC_CAPTURE=1
 endif
 ifeq ($(BVDC_DITHER_OFF),y)
 BVDC_DEFINES += BVDC_DITHER_OFF=1
+endif
+
+##
+# SD path frame capture for 50i-to-60i and 60i-to-50i
+ifeq ($(BVDC_ENABLE_50HZ_60HZ_FRAME_CAPTURE),y)
+BVDC_DEFINES += BVDC_ENABLE_50HZ_60HZ_FRAME_CAPTURE=1
+endif
+
+ifeq ($(BVDC_ENABLE_60HZ_50HZ_FRAME_CAPTURE),y)
+BVDC_DEFINES += BVDC_ENABLE_60HZ_50HZ_FRAME_CAPTURE=1
 endif
 
 ##

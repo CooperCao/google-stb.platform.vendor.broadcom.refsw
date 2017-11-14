@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,9 +58,9 @@ BDBG_OBJECT_ID_DECLARE(HDCPLIB);
 #define BHDCPLIB_HDCP22_TXCAPS_VERSION 0x02
 #define BHDCPLIB_HDCP22_TXCAPS_TRANSMITTER_CAPABILITY_MASK 0x0000
 
-#define BHDCPLIB_HDCP2X_SAGERESPONSE_TIMEOUT 5000 /* in ms */
-#define BHDCPLIB_HDCP2X_HWAUTOI2CTIMER_VERIFICATION_TIMER 100 /* in ms */
-#define BHDCPLIB_HDCP2X_AUTHENTICATION_PROCESS_TIMEOUT 5000 /* in ms */
+#define BHDCPLIB_HDCP2X_SAGERESPONSE_TIMEOUT 50000 /* in ms */
+#define BHDCPLIB_HDCP2X_HWAUTOI2CTIMER_VERIFICATION_TIMER 1000 /* in ms */
+#define BHDCPLIB_HDCP2X_AUTHENTICATION_PROCESS_TIMEOUT 50000 /* in ms */
 
 typedef enum BHDCPlib_Hdcp2xState
 {

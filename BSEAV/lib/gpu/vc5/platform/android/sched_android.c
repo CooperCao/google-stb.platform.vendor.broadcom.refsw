@@ -101,10 +101,6 @@ BEGL_SchedInterface *CreateAndroidSchedInterface(BEGL_MemoryInterface *memIface)
 
    if (iface) /* Override a couple of functions with Android-specific ones */
    {
-      iface->WaitFence                 = WaitFence;
-      iface->WaitFenceTimeout          = WaitFenceTimeout;
-      iface->CloseFence                = CloseFence;
-
       iface->WaitForAnyNonFinalisedJob = WaitForAnyNonFinalisedJob;
       iface->WaitJobs                  = WaitJobs;
       iface->WaitJobsTimeout           = WaitJobsTimeout;

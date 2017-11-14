@@ -149,7 +149,7 @@ void
 BVCE_Debug_P_WriteLogBuffer_isr(
    BVCE_Debug_Log_Handle hLog,
    const void * pBuffer,
-   size_t uiNumBytes
+   unsigned uiNumBytes
    )
 {
    fwrite( pBuffer, 1, uiNumBytes, hLog->hFile );

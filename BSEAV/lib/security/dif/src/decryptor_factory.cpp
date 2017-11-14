@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,6 +44,10 @@
 #define LOGD BDBG_MSG
 #define LOGV BDBG_MSG
 
+#if __cplusplus >= 201103L
+#error "code is not yet ready for C++14"
+#endif
+
 #include "pr_decryptor.h"
 #ifdef MSDRM_PRDY30
 #include "pr30_decryptor.h"
@@ -70,7 +74,7 @@ IDecryptor* DecryptorFactory::CreateDecryptor(DrmType type)
 #ifdef MSDRM_PRDY30
         decryptor = new Playready30Decryptor();
 #else
-        LOGE(("%s: Playready 3.0 not supported with this build", __FUNCTION__));
+        LOGE(("%s: Playready 3.0 not supported with this build", BSTD_FUNCTION));
 #endif
         break;
 #ifdef ENABLE_WIDEVINE
@@ -84,19 +88,19 @@ IDecryptor* DecryptorFactory::CreateDecryptor(DrmType type)
         break;
 #endif
       case drm_type_eClear:
-        LOGW(("%s: clear content", __FUNCTION__));
+        LOGW(("%s: clear content", BSTD_FUNCTION));
         break;
       default:
-        LOGE(("%s: unknown DRM type", __FUNCTION__));
+        LOGE(("%s: unknown DRM type", BSTD_FUNCTION));
     }
     return decryptor;
 }
 
 void DecryptorFactory::DestroyDecryptor(IDecryptor* decryptor)
 {
-    LOGD(("%s: decryptor=%p", __FUNCTION__, (void*)decryptor));
+    LOGD(("%s: decryptor=%p", BSTD_FUNCTION, (void*)decryptor));
     if (decryptor == NULL) {
-        LOGE(("%s: decryptor is NULL", __FUNCTION__));
+        LOGE(("%s: decryptor is NULL", BSTD_FUNCTION));
         return;
     }
     delete decryptor;

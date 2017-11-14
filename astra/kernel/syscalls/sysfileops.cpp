@@ -177,6 +177,15 @@ void SysCalls::doDup2(TzTask *currTask) {
     currTask->writeUserReg(TzTask::UserRegs::r0, rv);
 }
 
+void SysCalls::doDup3(TzTask *currTask) {
+    int oldFd = (int)currTask->userReg(TzTask::UserRegs::r0);
+    int newFd = (int)currTask->userReg(TzTask::UserRegs::r1);
+    unsigned long flags = currTask->userReg(TzTask::UserRegs::r2);
+
+    int rv = currTask->dup3(oldFd, newFd, flags);
+    currTask->writeUserReg(TzTask::UserRegs::r0, rv);
+}
+
 void SysCalls::dogetdents(TzTask *currTask) {
     unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
     unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);

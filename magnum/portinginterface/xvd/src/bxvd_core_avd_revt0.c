@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -113,11 +113,11 @@ BERR_Code BXVD_P_FWLoad_Revt0(BXVD_Handle hXvd,
 
    BMMA_FlushCache(hXvd->hFWMemBlock, (void *)hXvd->uiFWMemBaseVirtAddr, BXVD_P_FW_INNER_IMAGE_OFFSET);
 
-   hXvd->astFWBootInfo[0].uiArcInstance = BXVD_IMAGE_FirmwareID_eOuterELF_AVD0;
-   hXvd->astFWBootInfo[0].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
-   hXvd->astFWBootInfo[0].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
-
    hXvd->uiOuterLoopInstructionBase = hXvd->FWMemBasePhyAddr;
+   hXvd->astFWBootInfo[0].uiArcInstance = BXVD_IMAGE_FirmwareID_eOuterELF_AVD0;
+   hXvd->astFWBootInfo[0].stCode = stBAFLoadInfo.stCode;
+   hXvd->astFWBootInfo[0].stCode.offset = hXvd->uiOuterLoopInstructionBase;
+   hXvd->astFWBootInfo[0].stCode.pStartAddress = NULL;
 
    uiEndOfCode = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
@@ -167,11 +167,12 @@ BERR_Code BXVD_P_FWLoad_Revt0(BXVD_Handle hXvd,
 
    BMMA_FlushCache(hXvd->hFWMemBlock, (void *)ulDestVirtAddr, uiILSize);
 
-   hXvd->astFWBootInfo[1].uiArcInstance=1;
-   hXvd->astFWBootInfo[1].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
-   hXvd->astFWBootInfo[1].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
-
    hXvd->uiInnerLoopInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
+   hXvd->astFWBootInfo[1].uiArcInstance=1;
+   hXvd->astFWBootInfo[1].stCode = stBAFLoadInfo.stCode;
+   hXvd->astFWBootInfo[1].stCode.offset = hXvd->uiInnerLoopInstructionBase;
+   hXvd->astFWBootInfo[1].stCode.pStartAddress = NULL;
+
    uiEndOfCode = hXvd->uiInnerLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
    BXVD_DBG_MSG(hXvd, ("IL Start of Code: %08x", hXvd->uiInnerLoopInstructionBase));
@@ -209,11 +210,12 @@ BERR_Code BXVD_P_FWLoad_Revt0(BXVD_Handle hXvd,
 
       BMMA_FlushCache(hXvd->hFWMemBlock, (void *)ulDestVirtAddr, uiILSize);
 
-      hXvd->astFWBootInfo[2].uiArcInstance=2;
-      hXvd->astFWBootInfo[2].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
-      hXvd->astFWBootInfo[2].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
-
       hXvd->uiInnerLoop2InstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_2_IMAGE_OFFSET;
+      hXvd->astFWBootInfo[2].uiArcInstance=2;
+      hXvd->astFWBootInfo[2].stCode = stBAFLoadInfo.stCode;
+      hXvd->astFWBootInfo[2].stCode.offset = hXvd->uiInnerLoop2InstructionBase;
+      hXvd->astFWBootInfo[2].stCode.pStartAddress = NULL;
+
       uiEndOfCode = hXvd->uiInnerLoop2InstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
       BXVD_DBG_MSG(hXvd, ("IL 2 Start of Code: %08x", hXvd->uiInnerLoop2InstructionBase));

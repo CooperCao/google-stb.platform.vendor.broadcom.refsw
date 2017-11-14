@@ -354,6 +354,7 @@ BEGL_DisplayInterface *CreateDisplayInterfaceWaylandServer(NEXUS_DISPLAYHANDLE d
 
 void DestroyDisplayInterfaceWaylandServer(BEGL_DisplayInterface *disp)
 {
-   /* nothing custom to destroy here */
+   WLServer_DisplayContext *wl_context = ToWlServerDisplayContext(disp->context);
    DestroyDisplayInterface(disp);
+   free(wl_context);
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -800,28 +800,47 @@ batom_from_range(batom_factory_t factory, const void *base, size_t len, const ba
 {
 	batom_vec vec[BATOM_MAX_VECTORS];
 	batom_t atom;
-	BDBG_MSG_TRACE(("batom_from_range>: %#lx %#lx %u", (unsigned long)factory, (unsigned long)base, len));
+	BDBG_MSG_TRACE(("batom_from_range>: %p %p %u", (void *)factory, (void *)base, (unsigned)len));
 	if(len<=BATOM_VEC_MAX_SIZE) {
 		B_ATOM_VEC_INIT(&vec[0], base, len);
 		atom = batom_from_vector(factory, &vec[0], user, udata);
 	} else {
-		unsigned count = 0;
-		for(count=0;len>0;count++) {
-			unsigned size = BATOM_VEC_MAX_SIZE&(~(sizeof(int)-1)); /* don't make unaligned vectors */
-			if(count>=BATOM_MAX_VECTORS) {
-				BDBG_ERR(("batom_from_range: size of the %u range exceededs %u:(%u:%u)", (unsigned)(len+(BATOM_MAX_VECTORS*size)), BATOM_MAX_VECTORS*size, count, BATOM_MAX_VECTORS));
-				return NULL;
-			}
-			if(size>len) {
-				size = len;
-			}
-			len -= size;
-			B_ATOM_VEC_INIT(&vec[count], base, size);
-			base = (uint8_t *)base + size;
-		}
-		atom = batom_from_vectors(factory, vec, count, user, udata);
+        unsigned count = 0;
+        unsigned size = BATOM_VEC_MAX_SIZE&(~(sizeof(int)-1)); /* don't make unaligned vectors */
+        unsigned max_count = 1+ (len / size);
+        batom_vec *dynamic_vec;
+
+        if(max_count<BATOM_MAX_VECTORS) {
+            max_count = BATOM_MAX_VECTORS;
+            dynamic_vec = vec;
+        } else {
+            dynamic_vec = BKNI_Malloc(max_count * sizeof(vec[0]));
+            if(dynamic_vec==NULL) {
+                (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+                return NULL;
+            }
+        }
+
+        for(count=0;len>0;count++) {
+            if(count>=max_count) {
+                BDBG_ERR(("batom_from_range: size of the %u range exceededs %u:(%u:%u)", (unsigned)(len+(max_count*size)), max_count*size, count, max_count));
+                atom = NULL;
+                goto done;
+            }
+            if(size>len) {
+                size = len;
+            }
+            len -= size;
+            B_ATOM_VEC_INIT(&dynamic_vec[count], base, size);
+            base = (uint8_t *)base + size;
+        }
+        atom = batom_from_vectors(factory, dynamic_vec, count, user, udata);
+done:
+        if(dynamic_vec!=vec) {
+            BKNI_Free(dynamic_vec);
+        }
 	}
-	BDBG_MSG_TRACE(("batom_from_range<: %#lx -> %#lx", (unsigned long)factory, (unsigned long)atom));
+	BDBG_MSG_TRACE(("batom_from_range<: %p -> %p", (void *)factory, (void *)atom));
 	return atom;
 }
 
@@ -1960,6 +1979,18 @@ batom_bitstream_drop_bits(struct batom_bitstream *bs, unsigned nbits)
     } while(nbits>0);
 
     return;
+}
+
+bool
+batom_bitstream_reserve(const batom_bitstream *bs, unsigned nbits)
+{
+    batom_bitstream bs_peek = *bs;
+    batom_cursor cursor_peek;
+
+    BATOM_CLONE(&cursor_peek,bs->cursor);
+    bs_peek.cursor = &cursor_peek;
+    batom_bitstream_drop_bits(&bs_peek, nbits);
+    return !batom_bitstream_eof(&bs_peek);
 }
 
 batom_pipe_t

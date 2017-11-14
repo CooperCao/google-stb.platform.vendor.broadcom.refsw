@@ -108,17 +108,17 @@ static void v3d_vpm_cfg_validate_br(
    assert(num_sectors <= vpm_size_in_sectors);
    assert(Vc >= gfx_udiv_round_up(Vn, V3D_VPAR));
 
-   unsigned GVe = GV + (!V3D_HAS_RELAX_VPM_LIMS ? (t || Vn <= 16 ? 1u : 2u) : 0);
+   unsigned GVe = GV + (!V3D_VER_AT_LEAST(4,1,34,0) ? (t || Vn <= 16 ? 1u : 2u) : 0);
    if (t)
    {
       unsigned Cfe = get_Cfe(Cf, Cp, Cn, Cw);
-      unsigned CVe = CV + (V3D_HAS_RELAX_VPM_LIMS || Cfe == V3D_CL_TCS_BATCH_FLUSH_MODE_SINGLE_PATCH ? 0u : (Vn <= 16 ? 1u : 2u));
+      unsigned CVe = CV + (V3D_VER_AT_LEAST(4,1,34,0) || Cfe == V3D_CL_TCS_BATCH_FLUSH_MODE_SINGLE_PATCH ? 0u : (Vn <= 16 ? 1u : 2u));
 
       assert(Cw >= gfx_umin(Cn, 16u));
       assert(EC >= (Cfe != V3D_CL_TCS_BATCH_FLUSH_MODE_FULLY_PACKED ? gfx_udiv_round_up(Cn, Cw) : gfx_umin(Cn, 2u)));
-      assert(Ve >= EV + gfx_umax(CVe, !V3D_HAS_RELAX_VPM_LIMS ? 1u : 0u));
+      assert(Ve >= EV + gfx_umax(CVe, !V3D_VER_AT_LEAST(4,1,34,0) ? 1u : 0u));
       assert(Ps >= gfx_udiv_round_up(Ep + Cp - 1, Pw_from_Pd(Pd)));
-      assert(Cs >= EC + (!V3D_HAS_RELAX_VPM_LIMS && Cfe == V3D_CL_TCS_BATCH_FLUSH_MODE_FULLY_PACKED ? 1u : 0u));
+      assert(Cs >= EC + (!V3D_VER_AT_LEAST(4,1,34,0) && Cfe == V3D_CL_TCS_BATCH_FLUSH_MODE_FULLY_PACKED ? 1u : 0u));
       assert(Es >= 2 + (g ? GVe : 0));
       assert((Ep + Cp - 1) * gfx_udiv_round_up(gfx_umax(Vn, Cn), 8) <= 64);
    }
@@ -136,7 +136,7 @@ void v3d_vpm_cfg_validate(
    unsigned max_input_vertices,
    unsigned tes_patch_vertices)
 {
-#if !V3D_HAS_SEP_BR_TG_PARAMS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (t || g)
    {
       assert(tg[0].tcs_batch_flush == tg[1].tcs_batch_flush);
@@ -291,7 +291,7 @@ bool v3d_vpm_compute_cfg_tg(
       }
    }
 
-#if !V3D_HAS_SEP_BR_TG_PARAMS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    // These start high and are decreased if necessary during phase 0. Note that
    // they are common to bin and render...
    unsigned Cp = max_sensible_Cp;
@@ -317,7 +317,7 @@ bool v3d_vpm_compute_cfg_tg(
          assert(Gpk != V3D_CL_GEOM_OUTPUT_PACK_X1);
          Gpk += 1;
       }
-#if V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,1,34,0)
       unsigned Cp = max_sensible_Cp;
       unsigned Ep = max_sensible_Ep;
       if (t)
@@ -355,7 +355,7 @@ bool v3d_vpm_compute_cfg_tg(
 
             Cd = v3d_vpm_words_to_sectors(tcs_words[br], Cpk);
             Ed = v3d_vpm_words_to_sectors(tes_words[br], Epk);
-            CVe = CV + (V3D_HAS_RELAX_VPM_LIMS || Cfe == V3D_CL_TCS_BATCH_FLUSH_MODE_SINGLE_PATCH ? 0u : (Vn <= 16 ? 1u : 2u));
+            CVe = CV + (V3D_VER_AT_LEAST(4,1,34,0) || Cfe == V3D_CL_TCS_BATCH_FLUSH_MODE_SINGLE_PATCH ? 0u : (Vn <= 16 ? 1u : 2u));
          }
 
          unsigned num_sectors = As*Ad;
@@ -364,7 +364,7 @@ bool v3d_vpm_compute_cfg_tg(
          if (g)
          {
             Gd = v3d_vpm_geom_words_to_sectors(gs_output_words[br], Gpk);
-            GVe = GV + (!V3D_HAS_RELAX_VPM_LIMS ? (t || Vn <= 16 ? 1u : 2u) : 0);
+            GVe = GV + (!V3D_VER_AT_LEAST(4,1,34,0) ? (t || Vn <= 16 ? 1u : 2u) : 0);
 
             num_sectors += Gs*Gd;
          }
@@ -377,10 +377,10 @@ bool v3d_vpm_compute_cfg_tg(
          unsigned Es = 0;
          if (t)
          {
-            Ve = gfx_umax(min_Ve, EV + gfx_umax(CVe, !V3D_HAS_RELAX_VPM_LIMS ? 1u : 0u));
+            Ve = gfx_umax(min_Ve, EV + gfx_umax(CVe, !V3D_VER_AT_LEAST(4,1,34,0) ? 1u : 0u));
             EC = gfx_umax(min_EC, Cfe != V3D_CL_TCS_BATCH_FLUSH_MODE_FULLY_PACKED ? gfx_udiv_round_up(Cn, Cw) : gfx_umin(Cn, 2u));
             Ps = gfx_umax(min_Ps, gfx_udiv_round_up(Ep + Cp - 1, Pw[br]));
-            Cs = gfx_umax(min_Cs, EC + (!V3D_HAS_RELAX_VPM_LIMS && Cfe == V3D_CL_TCS_BATCH_FLUSH_MODE_FULLY_PACKED ? 1u : 0u));
+            Cs = gfx_umax(min_Cs, EC + (!V3D_VER_AT_LEAST(4,1,34,0) && Cfe == V3D_CL_TCS_BATCH_FLUSH_MODE_FULLY_PACKED ? 1u : 0u));
             Es = gfx_umax(min_Es, 2 + (g ? GVe : 0));
 
             num_sectors += Ps + Cs*Cd + Es*Ed;
@@ -434,7 +434,7 @@ bool v3d_vpm_compute_cfg_tg(
                   tg[br].tcs_output.pack                   = Cpk;
                   tg[br].tcs_output.size_sectors           = Cd;
                   tg[br].max_extra_vert_segs_per_tcs_batch = CV;
-#if V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,1,34,0)
                   tg[br].max_patches_per_tcs_batch         = Cp;
 #else
                   tg[0].max_patches_per_tcs_batch          = Cp;
@@ -446,7 +446,7 @@ bool v3d_vpm_compute_cfg_tg(
                   tg[br].tes_output.size_sectors           = Ed;
                   tg[br].max_extra_vert_segs_per_tes_batch = EV;
                   tg[br].max_tcs_segs_per_tes_batch        = EC;
-#if V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,1,34,0)
                   tg[br].max_patches_per_tes_batch         = Ep;
 #else
                   tg[0].max_patches_per_tes_batch          = Ep;

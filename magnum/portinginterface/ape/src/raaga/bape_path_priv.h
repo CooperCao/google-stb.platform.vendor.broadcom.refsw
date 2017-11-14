@@ -160,7 +160,7 @@ void BAPE_PathNode_P_GetOutputStatus(
 Summary:
 Search for consumers by a type
 ***************************************************************************/
-void BAPE_PathNode_P_FindConsumersByType(
+void BAPE_PathNode_P_FindConsumersByType_isrsafe(
     BAPE_PathNode *pNode,
     BAPE_PathNodeType type,
     unsigned maxConsumers,
@@ -170,7 +170,7 @@ void BAPE_PathNode_P_FindConsumersByType(
 
 /***************************************************************************
 Summary:
-Search for consumers by a type and subtype
+Search for consumers by a type and subtype using PathNode
 ***************************************************************************/
 void BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(
     BAPE_PathNode *pNode,
@@ -180,6 +180,21 @@ void BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(
     unsigned *pNumFound,        /* [out] */
     BAPE_PathNode **pConsumers  /* [out] Must be an array of at least maxConsumers length */
     );
+
+
+/***************************************************************************
+Summary:
+Search for consumers by a type and subtype using PathConnector
+***************************************************************************/
+void BAPE_PathConnector_P_FindConsumersBySubtype_isrsafe(
+    BAPE_PathConnector *pConnector,
+    BAPE_PathNodeType type,
+    unsigned subtype,
+    unsigned maxConsumers,
+    unsigned *pNumFound,        /* [out] */
+    BAPE_PathNode **pConsumers   /* [out] Must be an array of at least maxConsumers length */
+    );
+
 
 /***************************************************************************
 Summary:
@@ -270,7 +285,7 @@ unsigned BAPE_Connector_P_GetNumConnections(
 Summary:
 Get a connection between a connector and a destination node
 ***************************************************************************/
-BAPE_PathConnection *BAPE_Connector_P_GetConnectionToSink(
+BAPE_PathConnection *BAPE_Connector_P_GetConnectionToSink_isrsafe(
     BAPE_Connector connector,
     BAPE_PathNode *pSink
     );

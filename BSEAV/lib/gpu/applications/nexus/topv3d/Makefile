@@ -17,10 +17,13 @@ endif
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
+CC = $(B_REFSW_CROSS_COMPILE)gcc
+C++ = $(B_REFSW_CROSS_COMPILE)g++
+
+GCCGTEQ_40800 := $(shell expr `$(CC) -dumpversion | awk 'BEGIN { FS = "." }; { printf("%d%02d%02d", $$1, $$2, $$3) }'` \>= 40800)
+
 # build paths
 include ../common/common.inc
-
-C++ = $(B_REFSW_CROSS_COMPILE)g++
 
 APPS = topv3d
 
@@ -74,20 +77,25 @@ clean_nxclient:
 	$(MAKE) -C $(NEXUS_TOP)/nxclient/build clean
 
 # This is the minimum needed to compile and link with Nexus
-CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES)) -I$(NEXUS_TOP)/../BSEAV/lib/netaccel/include
+CXXFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES)) -I$(NEXUS_TOP)/../BSEAV/lib/netaccel/include
 
 # Always build with debug
-CFLAGS += -g -std=c++11
+CXXFLAGS += -g
+ifeq ("$(GCCGTEQ_40800)", "1")
+CXXFLAGS += -std=c++11
+else
+CXXFLAGS += -std=c++0x -D_GLIBCXX_USE_NANOSLEEP -Dsteady_clock=monotonic_clock
+endif
 
 # add nxclient
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
-CFLAGS += $(NXCLIENT_CFLAGS)
+CXXFLAGS += $(NXCLIENT_CFLAGS)
 LDFLAGS += $(NXCLIENT_LDFLAGS)
 
 # Implicit rule for building local apps
 %$(APPSUFFIX): %.cpp $(EXTRA_OBJS)
 	@echo [Compile... $<]
-	$(Q_)$(C++) -o $(TARGET_DIR)/$@ $(filter %.cpp %.s %.o, $^) $(CFLAGS) $(LDFLAGS)
+	$(Q_)$(C++) -o $(TARGET_DIR)/$@ $(filter %.cpp %.s %.o, $^) $(CXXFLAGS) $(LDFLAGS)
 	cp $(TARGET_DIR)/$@ ${NEXUS_BIN_DIR}
 
 install: all

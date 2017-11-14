@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -118,6 +118,7 @@ typedef struct NEXUS_VideoInputStatus
     bool sourcePending; /* Set to true if Nexus is in NEXUS_VideoInputResumeMode_eManual mode and is currently waiting for an eNow trigger.
                            When this is changed to true, you will receive a NEXUS_VideoInputSettings.sourcePending callback.
                            This will not be set to false until NEXUS_VideoInput_SetResumeMode(videoInput, NEXUS_VideoInputResumeMode_eNow) is called. */
+    unsigned numBvnErrors;
 } NEXUS_VideoInputStatus;
 
 /**

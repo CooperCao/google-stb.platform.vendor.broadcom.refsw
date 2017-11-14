@@ -632,6 +632,7 @@ firstPtsCallback(void *context, int param)
 
     BSTD_UNUSED(param);
     BDBG_ASSERT(playback_ip);
+    if (playback_ip == NULL) {return;}
 
     /* get pts corresponding to the 1st frame */
     if ((http_get_current_pts(playback_ip, &currentPts) != B_ERROR_SUCCESS) || currentPts == 0) {
@@ -713,17 +714,15 @@ firstPtsCallback(void *context, int param)
         playback_ip->originalFirstPts = playback_ip->firstPts;
 
 out:
-    if (playback_ip) {
-        if (playback_ip->appFirstPts.callback && playback_ip->appFirstPts.callback != firstPtsCallback)
-            playback_ip->appFirstPts.callback(playback_ip->appFirstPts.context, playback_ip->appFirstPts.param);
-        if (playback_ip->streamStatusAvailable.callback && playback_ip->streamStatusAvailable.callback != firstPtsCallback)
-            playback_ip->streamStatusAvailable.callback(playback_ip->streamStatusAvailable.context, playback_ip->streamStatusAvailable.param);
+    if (playback_ip->appFirstPts.callback && playback_ip->appFirstPts.callback != firstPtsCallback)
+        playback_ip->appFirstPts.callback(playback_ip->appFirstPts.context, playback_ip->appFirstPts.param);
+    if (playback_ip->streamStatusAvailable.callback && playback_ip->streamStatusAvailable.callback != firstPtsCallback)
+        playback_ip->streamStatusAvailable.callback(playback_ip->streamStatusAvailable.context, playback_ip->streamStatusAvailable.param);
 #if 0
-        /* commenting these out as this change breaks time position in server side trickmode case. */
-        B_PlaybackIp_ResetAudioPtsCallback(playback_ip);
-        B_PlaybackIp_ResetVideoPtsCallback(playback_ip);
+    /* commenting these out as this change breaks time position in server side trickmode case. */
+    B_PlaybackIp_ResetAudioPtsCallback(playback_ip);
+    B_PlaybackIp_ResetVideoPtsCallback(playback_ip);
 #endif
-    }
 }
 
 static void
@@ -734,6 +733,7 @@ firstPtsPassedCallback(void *context, int param)
 
     BSTD_UNUSED(param);
     BDBG_ASSERT(playback_ip);
+    if (playback_ip == NULL) {return;}
 
     /* get pts corresponding to the 1st frame */
     if ((http_get_current_pts(playback_ip, &currentPts) != B_ERROR_SUCCESS) || currentPts == 0) {
@@ -747,7 +747,7 @@ firstPtsPassedCallback(void *context, int param)
         BDBG_WRN(("%s:%p first passed pts 0x%x", BSTD_FUNCTION, (void *)playback_ip, currentPts));
 #endif
 out:
-    if (playback_ip && playback_ip->appFirstPtsPassed.callback && playback_ip->appFirstPtsPassed.callback != firstPtsPassedCallback)
+    if (playback_ip->appFirstPtsPassed.callback && playback_ip->appFirstPtsPassed.callback != firstPtsPassedCallback)
         playback_ip->appFirstPtsPassed.callback(playback_ip->appFirstPtsPassed.context, playback_ip->appFirstPtsPassed.param);
 }
 

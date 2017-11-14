@@ -126,8 +126,6 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
    const char *board;
    /* TODO: some day this needs to become run-time vs. compile time. read product ID */
-    board = "7439 Bx Based";
-
 #if defined NEXUS_USE_7252S_VMS_SFF
     board = "7252S VMS SFF";
 #elif defined NEXUS_USE_3390_VMS
@@ -142,6 +140,8 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     board = "SAT board";
 #elif defined NEXUS_USE_7449S_CWM
     board = "SAT board";
+#else
+    board = "7439 Bx Based";
 #endif
     BDBG_WRN(("*** Initializing %s Board ...***", board));
     return 0;

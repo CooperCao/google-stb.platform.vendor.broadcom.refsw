@@ -2596,18 +2596,24 @@ wlc_scan_chnsw_clbk(void* handler_ctxt, wlc_msch_cb_info_t *cb_info)
 				!wlc_scan_valid_chanspec_db(scan_info,
 				scan_info->cur_scan_chanspec) ||
 				(wlc_scan_info->state & SCAN_STATE_PASSIVE)) {
+				if(onchan){
+					/* PASSIVE SCAN */
+					scan_info->state = WLC_SCAN_STATE_LISTEN;
+					scan_info->timeslot_id = onchan->timeslot_id;
 
-				/* PASSIVE SCAN */
-				scan_info->state = WLC_SCAN_STATE_LISTEN;
-				scan_info->timeslot_id = onchan->timeslot_id;
+					WL_SCAN(("wl%d: passive dwell time %d ms, chanspec %s,"
+						" tsf %u\n", scan_info->unit,
+						CHANNEL_PASSIVE_DWELLTIME(scan_info),
+						wf_chspec_ntoa_ex(scan_info->cur_scan_chanspec,
+						chanbuf), start_tsf));
 
-				WL_SCAN(("wl%d: passive dwell time %d ms, chanspec %s,"
-					" tsf %u\n", scan_info->unit,
-					CHANNEL_PASSIVE_DWELLTIME(scan_info),
-					wf_chspec_ntoa_ex(scan_info->cur_scan_chanspec,
-					chanbuf), start_tsf));
-
-				return BCME_OK;
+					return BCME_OK;
+				}
+				else{
+					WL_ERROR(("%s: Dereferencing NULL pointer onchan (which is a copy of cb_info->type_specific)\n", __FUNCTION__));
+					ASSERT(onchan);
+					return BCME_ERROR;
+				}
 			}
 
 			scan_info->state = WLC_SCAN_STATE_START;

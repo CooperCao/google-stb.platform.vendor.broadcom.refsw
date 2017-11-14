@@ -42,13 +42,17 @@
 
 #include "blst_slist.h"
 
+#if (BHSM_API_VERSION==1)
+#include "bhsm_otpmsp.h"
+#include "bhsm_keyladder_enc.h"
+#else
+#include "bhsm_otp_msp.h"
+#include "bhsm_keyladder.h"
+#endif
 #include "bsagelib.h"
 #include "bsagelib_client.h"
 #include "bsagelib_priv.h"
 #include "priv/bsagelib_shared_types.h"
-
-#include "bhsm_otpmsp.h"
-#include "bhsm_keyladder_enc.h"
 
 BDBG_MODULE(BSAGElib);
 
@@ -63,8 +67,13 @@ static void BSAGElib_P_TimerUninit(BSAGElib_Handle hSAGElib);
 static void BSAGElib_P_Close(BSAGElib_Handle hSAGElib);
 static void BSAGElib_P_CloseClient(BSAGElib_ClientHandle hSAGElibClient, int collector);
 static BERR_Code BSAGElib_P_GetChipsetType(BSAGElib_Handle hSAGElib);
+#if (BHSM_API_VERSION==1)
 static void BSAGElib_P_FreeSageVkl(BSAGElib_Handle hSAGElib, BCMD_VKLID_e vklId);
 static BCMD_VKLID_e BSAGElib_P_AllocSageVkl(BSAGElib_Handle hSAGElib);
+#else
+static void BSAGElib_P_FreeSageVklHandle(BSAGElib_Handle hSAGElib, BHSM_KeyLadderHandle vklId);
+static BHSM_KeyLadderHandle BSAGElib_P_AllocSageVklHandle(BSAGElib_Handle hSAGElib);
+#endif
 
 
 static BERR_Code
@@ -90,6 +99,7 @@ BSAGElib_P_TimerUninit(
     }
 }
 
+#if (BHSM_API_VERSION==1)
 static BCMD_VKLID_e
 BSAGElib_P_AllocSageVkl(
     BSAGElib_Handle hSAGElib)
@@ -127,11 +137,63 @@ BSAGElib_P_FreeSageVkl(
     BHSM_FreeVKL(hSAGElib->core_handles.hHsm, vklId);
     BSAGElib_iUnlockHsm();
 }
+#else /* sec2 */
+static BHSM_KeyLadderHandle
+BSAGElib_P_AllocSageVklHandle(
+    BSAGElib_Handle hSAGElib)
+{
+    BHSM_KeyLadderHandle vklHandle;
+    BHSM_KeyLadderAllocateSettings settings;
+    BDBG_ENTER(BSAGElib_P_AllocSageVklHandle);
+
+    BKNI_Memset(&settings,0,sizeof(settings));
+
+    settings.owner = BHSM_SecurityCpuContext_eSage;
+    settings.index = 99;
+
+    BSAGElib_iLockHsm();
+    vklHandle = BHSM_KeyLadder_Allocate(hSAGElib->core_handles.hHsm, &settings);
+    BSAGElib_iUnlockHsm();
+
+    if(vklHandle == NULL) {
+        BDBG_ERR(("%s - BHSM_KeyLadder_Allocate() fails", BSTD_FUNCTION));
+    }
+    else {
+        BERR_Code rc;
+        BHSM_KeyLadderInfo info;
+        rc = BHSM_KeyLadder_GetInfo(vklHandle, &info);
+
+        if (rc == BERR_SUCCESS) {
+            BDBG_MSG(("%s - allocate vkl id=%u", BSTD_FUNCTION, info.index));
+        } else {
+            BSAGElib_P_FreeSageVklHandle(hSAGElib, vklHandle);
+            vklHandle=NULL;
+            BDBG_ERR(("%s - BHSM_KeyLadder_GetInfo() fails", BSTD_FUNCTION));
+        }
+    }
+    BDBG_LEAVE(BSAGElib_P_AllocSageVklHandle);
+    return vklHandle;
+}
+
+static void
+BSAGElib_P_FreeSageVklHandle(
+    BSAGElib_Handle hSAGElib,
+    BHSM_KeyLadderHandle vklHandle)
+{
+    if(vklHandle != NULL) {
+        BSAGElib_iLockHsm();
+        BHSM_KeyLadder_Free(vklHandle);
+        BSAGElib_iUnlockHsm();
+    }
+    return;
+}
+#endif
 
 void
 BSAGElib_P_SageVklsUninit(
     BSAGElib_Handle hSAGElib)
 {
+#if (BHSM_API_VERSION==1)
     if (hSAGElib->vkl1 != BCMD_VKL_eMax) {
         BSAGElib_P_FreeSageVkl(hSAGElib, hSAGElib->vkl1);
         hSAGElib->vkl1 = BCMD_VKL_eMax;
@@ -140,6 +202,12 @@ BSAGElib_P_SageVklsUninit(
         BSAGElib_P_FreeSageVkl(hSAGElib, hSAGElib->vkl2);
         hSAGElib->vkl2 = BCMD_VKL_eMax;
     }
+#else
+    BSAGElib_P_FreeSageVklHandle(hSAGElib, hSAGElib->vklHandle1);
+    hSAGElib->vklHandle1=NULL;
+    BSAGElib_P_FreeSageVklHandle(hSAGElib, hSAGElib->vklHandle2);
+    hSAGElib->vklHandle2=NULL;
+#endif
 }
 
 BERR_Code
@@ -147,17 +215,26 @@ BSAGElib_P_SageVklsInit(
     BSAGElib_Handle hSAGElib)
 {
     BERR_Code rc = BERR_SUCCESS;
+    BDBG_ENTER(BSAGElib_P_SageVklsInit);
 
+#if (BHSM_API_VERSION==1)
     hSAGElib->vkl1 = BSAGElib_P_AllocSageVkl(hSAGElib);
     hSAGElib->vkl2 = BSAGElib_P_AllocSageVkl(hSAGElib);
     if (hSAGElib->vkl1 == BCMD_VKL_eMax ||
         hSAGElib->vkl2 == BCMD_VKL_eMax) {
+#else
+    hSAGElib->vklHandle1 = BSAGElib_P_AllocSageVklHandle(hSAGElib);
+    hSAGElib->vklHandle2 = BSAGElib_P_AllocSageVklHandle(hSAGElib);
+    if (hSAGElib->vklHandle1 == NULL ||
+        hSAGElib->vklHandle2 == NULL) {
+#endif
         BDBG_ERR(("%s - cannot initialize VKLs for SAGE", BSTD_FUNCTION));
         rc = BERR_OS_ERROR;
         goto end;
     }
 
 end:
+    BDBG_LEAVE(BSAGElib_P_SageVklsInit);
     return rc;
 }
 
@@ -272,8 +349,9 @@ BSAGElib_Open(
     }
 
     BKNI_Memset(instance, 0, sizeof(*instance));
+#if (BHSM_API_VERSION==1)
     instance->vkl1 = instance->vkl2 = BCMD_VKL_eMax;
-
+#endif
     BDBG_OBJECT_SET(instance, BSAGElib_P_Instance);
 
     instance->core_handles.hReg = settings->hReg;
@@ -621,6 +699,7 @@ BSAGElib_P_GetOtp(
     const char *dbg_name)
 {
     BERR_Code rc = BERR_SUCCESS;
+#if (BHSM_API_VERSION==1)
     BHSM_ReadMspIO_t ReadMspParm;
 
     BKNI_Memset(&ReadMspParm, 0, sizeof(BHSM_ReadMspIO_t));
@@ -640,10 +719,46 @@ BSAGElib_P_GetOtp(
         goto end;
     }
     *out = _EndianSwap(ReadMspParm.aucMspData);
+#else
+    BHSM_OtpMspRead mspParm;
 
+    BKNI_Memset( &mspParm, 0, sizeof(mspParm) );
+    mspParm.index = msp_enum;
+
+    BSAGElib_iLockHsm();
+    rc = BHSM_OtpMsp_Read( hSAGElib->core_handles.hHsm, &mspParm );
+    BSAGElib_iUnlockHsm();
+
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Error calling BHSM_OtpMsp_Read() for '%s'", dbg_name));
+        goto end;
+    }
+
+    *out = mspParm.data;
+#endif
 end:
     return rc;
 }
+
+/* OTP names */
+#if (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(5,0))
+#define OTP_GLOBAL_KEY_OWNER_ID_0 BCMD_Otp_CmdMsp_eReserved233
+#define OTP_GLOBAL_KEY_OWNER_ID_1 BCMD_Otp_CmdMsp_eReserved234
+
+#else
+#if 1 /*TBD Zeus 5 msp names should come from HSM header file */
+typedef enum Bsp_Otp_CmdMsp_e
+{
+   Bsp_Otp_CmdMsp_eGlobalKeyOwnerID0 = 224,
+   Bsp_Otp_CmdMsp_eGlobalKeyOwnerID1 = 225,
+   Bsp_Otp_CmdMsp_LIMIT
+} Bsp_Otp_CmdMsp_e;
+#endif
+
+#define OTP_GLOBAL_KEY_OWNER_ID_0 Bsp_Otp_CmdMsp_eGlobalKeyOwnerID0
+#define OTP_GLOBAL_KEY_OWNER_ID_1 Bsp_Otp_CmdMsp_eGlobalKeyOwnerID1
+#endif
 
 #define OTP_SWIZZLE0A_MSP0_VALUE_ZS (0x02)
 #define OTP_SWIZZLE0A_MSP1_VALUE_ZS (0x02)
@@ -660,10 +775,10 @@ BSAGElib_P_GetChipsetType(
     uint32_t otp_swizzle0a_msp0;
     uint32_t otp_swizzle0a_msp1;
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved233, &otp_swizzle0a_msp0, "msp0");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_GLOBAL_KEY_OWNER_ID_0, &otp_swizzle0a_msp0, "msp0");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved234, &otp_swizzle0a_msp1, "msp1");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_GLOBAL_KEY_OWNER_ID_1, &otp_swizzle0a_msp1, "msp1");
     if (rc != BERR_SUCCESS) { goto end; }
 
     BDBG_MSG(("%s - OTP [MSP0: %d, MSP1: %d]",

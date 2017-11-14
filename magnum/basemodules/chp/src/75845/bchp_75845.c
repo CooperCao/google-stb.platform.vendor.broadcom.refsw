@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -109,9 +109,7 @@ BERR_Code BCHP_Open75845
 BERR_Code BCHP_Open (BCHP_Handle * phChip, const BCHP_OpenSettings * pSettings)
 {
     BCHP_P_Context *pChip;
-#if BCHP_PWR_SUPPORT
     BERR_Code rc;
-#endif
 
     BDBG_ENTER(BCHP_Open75845);
 
@@ -134,22 +132,18 @@ BERR_Code BCHP_Open (BCHP_Handle * phChip, const BCHP_OpenSettings * pSettings)
 
     BCHP_P_ResetMagnumCores(pChip);
 
-#if BCHP_PWR_SUPPORT
     /* Open BCHP_PWR */
     rc = BCHP_PWR_Open(&pChip->pwrManager, pChip);
     if (rc) {
         BKNI_Free(pChip);
         return BERR_TRACE(rc);
     }
-#endif
 
     /* Open AVS module */
     BCHP_P_AvsOpen(&pChip->hAvsHandle, pChip);
     if(!pChip->hAvsHandle)
     {
-#if BCHP_PWR_SUPPORT
         BCHP_PWR_Close(pChip->pwrManager);
-#endif
         BKNI_Free(pChip);
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }

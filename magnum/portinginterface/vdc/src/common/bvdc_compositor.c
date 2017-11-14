@@ -101,19 +101,26 @@ BERR_Code BVDC_Compositor_Create
     /* CMP CFC LUT allocated only when required, but released until VDC close. */
     if(pDefSettings && pDefSettings->hCfcHeap)
     {
-        if(!hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock) {
+        if(!hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock[0]) {
+            int i;
             hVdc->ahCompositor[eCompositorId]->hCfcHeap = pDefSettings->hCfcHeap;
-            hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock = BMMA_Alloc(pDefSettings->hCfcHeap,
-                BVDC_P_CMP_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
-            if( !hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock)
-            {
-                BDBG_ERR(( "Out of Device Memory" ));
-                BDBG_ASSERT(0);
+            /* double buffer LUT buffers */
+            for(i = 0; i < BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; i++) {
+                hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock[i] = BMMA_Alloc(pDefSettings->hCfcHeap,
+                    BVDC_P_CMP_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
+                if( !hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock[i])
+                {
+                    BDBG_ERR(( "Out of Device Memory" ));
+                    BDBG_ASSERT(0);
+                }
+                hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulStart[i] =
+                    BMMA_Lock(hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock[i]);
+                hVdc->ahCompositor[eCompositorId]->stCfcLutList.ullStartDeviceAddr[i] =
+                    BMMA_LockOffset(hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock[i]);
+                BDBG_MSG(("CMP_CFC LUT pulStart[%d] = %p", i, (void*)hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulStart[i]));
             }
-            hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulStart = hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulCurrent =
-                BMMA_Lock(hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock);
-            hVdc->ahCompositor[eCompositorId]->stCfcLutList.ullStartDeviceAddr =
-                BMMA_LockOffset(hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock);
+            hVdc->ahCompositor[eCompositorId]->stCfcLutList.ulIndex    = 0;
+            hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulCurrent = hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulStart[0];
         }
     }
 #if BVDC_P_DBV_SUPPORT

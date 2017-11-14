@@ -6,22 +6,25 @@
 #include "GLES3/gl32.h"
 
 #include "glsl_ir_program.h"
+#include "libs/core/lfmt/lfmt.h"
 
 EXTERN_C_BEGIN
 
-typedef struct {
-   int    location;
-   GLenum type;
-   bool   is_32bit;
-   bool   in_binning;
+typedef struct GLSL_SAMPLER_T {
+   unsigned location;
+   GLenum   texture_type;        // GL_TEXTURE_*
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   uint8_t  array_size;          // The size of an array (only set for the first element).
+   bool     in_array;            // The element is part of an array.
+#endif
+   bool     is_32bit;
+   bool     in_binning;
 } GLSL_SAMPLER_T;
 
-typedef struct {
-   int    location;
-   GLenum type;
-   bool   is_32bit;
-   bool   in_binning;
-   GLenum internalformat;
+typedef struct GLSL_IMAGE_T {
+   GLSL_SAMPLER_T    sampler;
+   GFX_LFMT_TYPE_T   lfmt_type;
+   GLenum            internalformat;
 } GLSL_IMAGE_T;
 
 typedef struct {
@@ -50,6 +53,8 @@ typedef struct {
    int       array_length;
    bool      is_array;
    unsigned  size;
+   unsigned  dynamic_array_offset;
+   unsigned  dynamic_array_stride;
    char     *name;
 
    unsigned             num_members;

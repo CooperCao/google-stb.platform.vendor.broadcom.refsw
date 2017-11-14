@@ -80,6 +80,16 @@ CompiledShader *glsl_compiled_shader_create(ShaderFlavour f, int version) {
    return ret;
 }
 
+static void free_shader_interface(ShaderInterface* iface) {
+   for (unsigned i = 0; i != iface->n_vars; i++) {
+      free(iface->var[i].ids);
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      free(iface->var[i].flags);
+#endif
+   }
+   free(iface->var);
+}
+
 void glsl_compiled_shader_free(CompiledShader *sh) {
    if (sh == NULL) return;
 
@@ -95,15 +105,11 @@ void glsl_compiled_shader_free(CompiledShader *sh) {
    }
    free(sh->blocks);
    free(sh->outputs);
-   for (int i=0; i<sh->uniform.n_vars; i++) free(sh->uniform.var[i].ids);
-   free(sh->uniform.var);
-   for (int i=0; i<sh->in.n_vars; i++) free(sh->in.var[i].ids);
-   free(sh->in.var);
-   for (int i=0; i<sh->out.n_vars; i++) free(sh->out.var[i].ids);
-   free(sh->out.var);
-   for (int i=0; i<sh->buffer.n_vars; i++) free(sh->buffer.var[i].ids);
-   free(sh->buffer.var);
 
+   free_shader_interface(&sh->uniform);
+   free_shader_interface(&sh->in);
+   free_shader_interface(&sh->out);
+   free_shader_interface(&sh->buffer);
    free(sh);
 }
 
@@ -119,7 +125,7 @@ struct symbol_usage {
    bool used;
 };
 
-static bool interface_from_symbols(ShaderInterface *iface, int n_vars, struct symbol_usage *l, Map *symbol_map, Map *symbol_ids)
+static bool interface_from_symbols(ShaderInterface *iface, int n_vars, struct symbol_usage *l, Map *symbol_map, Map *symbol_ids, bool alloc_flags)
 {
    bool out_of_memory = false;
 
@@ -135,6 +141,9 @@ static bool interface_from_symbols(ShaderInterface *iface, int n_vars, struct sy
 
       v->symbol = glsl_map_get(symbol_map, l[i].symbol);
       v->active = false;
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      v->flags = NULL;
+#endif
 
       v->static_use = l[i].used;
       v->ids = malloc(l[i].symbol->type->scalar_count * sizeof(int));
@@ -142,6 +151,16 @@ static bool interface_from_symbols(ShaderInterface *iface, int n_vars, struct sy
          out_of_memory = true;
          continue;      /* We'll free all of these, continue ensures they are initialised */
       }
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      if (alloc_flags) {
+         v->flags = calloc(l[i].symbol->type->scalar_count, sizeof(InterfaceVarFlags));
+         if (v->flags == NULL) {
+            out_of_memory = true;
+            continue;
+         }
+      }
+#endif
 
       for (unsigned j=0; j<l[i].symbol->type->scalar_count; j++) {
          v->ids[j] = -1;
@@ -181,7 +200,7 @@ static void find_static_use(Expr *e, void *data) {
    }
 }
 
-static bool interface_from_symbol_list(ShaderInterface *iface, Statement *ast, SymbolList *l, Map *symbol_map, Map *symbol_ids)
+static bool interface_from_symbol_list(ShaderInterface *iface, Statement *ast, SymbolList *l, Map *symbol_map, Map *symbol_ids, bool alloc_flags)
 {
    int n_vars = symbol_list_count(l);
    struct symbol_usage *symbs = glsl_safemem_malloc(n_vars * sizeof(struct symbol_usage));
@@ -195,7 +214,7 @@ static bool interface_from_symbol_list(ShaderInterface *iface, Statement *ast, S
 
    glsl_statement_accept_postfix(ast, &d, NULL, find_static_use);
 
-   bool ret = interface_from_symbols(iface, n_vars, symbs, symbol_map, symbol_ids);
+   bool ret = interface_from_symbols(iface, n_vars, symbs, symbol_map, symbol_ids, alloc_flags);
    glsl_safemem_free(symbs);
    return ret;
 }
@@ -286,6 +305,53 @@ static void update_atomics(ShaderInterface *iface, uint32_t *actives) {
    }
 }
 
+#if V3D_VER_AT_LEAST(4,0,2,0)
+
+static void dpostv_detect_dynamic_indexed_samplers(Dataflow *dataflow, void *data)
+{
+   if (dataflow->flavour != DATAFLOW_SAMPLER_UNNORMS)
+      return;
+
+   Dataflow* sampler = dataflow->d.unary_op.operand;
+   assert(sampler->flavour == DATAFLOW_CONST_SAMPLER);
+   assert(sampler->type == DF_SAMPLER);
+   unsigned loc = sampler->u.linkable_value.row;
+   ((bool*)data)[loc] = true;
+}
+
+static void detect_dynamic_indexed_samplers(ShaderInterface *uniform, const SSABlock *blocks, unsigned n_blocks)
+{
+   bool* sampler_dynamic_indexing = glsl_safemem_calloc(interface_max_id(uniform)+1, sizeof(bool));
+
+   for (unsigned i = 0; i != n_blocks; ++i) {
+      glsl_dataflow_visit_array(blocks[i].outputs, 0, blocks[i].n_outputs,
+         sampler_dynamic_indexing, NULL, dpostv_detect_dynamic_indexed_samplers);
+   }
+
+   for (unsigned i = 0; i != uniform->n_vars; ++i) {
+      InterfaceVar *v = &uniform->var[i];
+      bool all_zero = true;
+      if (v->active) {
+         for (unsigned j = 0; j != v->symbol->type->scalar_count; ++j) {
+            if (v->ids[j] != -1 && sampler_dynamic_indexing[v->ids[j]]) {
+               v->flags[j] |= INTERFACE_VAR_SAMPLER_DYNAMIC_INDEXING;
+               all_zero = false;
+            }
+         }
+      }
+
+      // Throw out flags array if empty.
+      if (all_zero) {
+         free(v->flags);
+         v->flags = NULL;
+      }
+   }
+
+   glsl_safemem_free(sampler_dynamic_indexing);
+}
+
+#endif
+
 void glsl_mark_interface_actives(ShaderInterface *in, ShaderInterface *uniform, ShaderInterface *buffer,
                                  const SSABlock *block, int n_blocks)
 {
@@ -303,6 +369,10 @@ void glsl_mark_interface_actives(ShaderInterface *in, ShaderInterface *uniform, 
    update_interface(buffer,  active.buffer);
 
    update_atomics(uniform, active.atomic);
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   detect_dynamic_indexed_samplers(uniform, block, n_blocks);
+#endif
 
    glsl_safemem_free(active.in);
    glsl_safemem_free(active.uniform);
@@ -612,7 +682,7 @@ static Dataflow *replace_phis(Dataflow *d, void *data) {
    return NULL;
 }
 
-void get_reverse_postordering(SSABlock *blocks, int n_blocks, int i, int *ordering, int *order_pos, bool *seen) {
+static void get_reverse_postordering(SSABlock *blocks, int n_blocks, int i, int *ordering, int *order_pos, bool *seen) {
    if (seen[i]) return;
    seen[i] = true;
 
@@ -640,7 +710,7 @@ static Dataflow *block_pred_from_cd(const struct cd_set *cds, const SSABlock *bl
    }
 }
 
-void flatten_and_predicate(SSAShader *sh) {
+static void flatten_and_predicate(SSAShader *sh) {
    SSABlock *blocks = sh->blocks;
    int n_blocks = sh->n_blocks;
 
@@ -682,7 +752,7 @@ void flatten_and_predicate(SSAShader *sh) {
 
    struct abstract_cfg *cfg = glsl_alloc_abstract_cfg_ssa(blocks, n_blocks);
    int *idom = glsl_alloc_idoms(cfg);
-   struct cd_set *cd = glsl_cd_sets_alloc(cfg, blocks);
+   struct cd_set *cd = glsl_cd_sets_alloc(cfg);
    glsl_free_abstract_cfg(cfg);
 
    Dataflow **guards_mem   = glsl_safemem_malloc(n_blocks * sizeof(Dataflow *));
@@ -741,6 +811,36 @@ void flatten_and_predicate(SSAShader *sh) {
    sh->blocks = new_block;
 }
 
+/* Currently all stores have to happen in the last block. Exposing this to the
+ * compiler during optimisation allows us to make good decisions, like only
+ * allocating constants to store during the last block instead of at the point
+ * they are stored */
+static void sink_stores(SSAShader *sh) {
+   unsigned c = 0;
+   for (int i=0; i<sh->n_outputs; i++) {
+      if (sh->outputs[i].block != -1 && sh->outputs[i].block != sh->n_blocks-1)
+         c++;
+   }
+
+   if (c == 0) return;
+
+   SSABlock *b = &sh->blocks[sh->n_blocks-1];
+   unsigned off = b->n_outputs;
+
+   b->outputs = glsl_safemem_realloc(b->outputs, (b->n_outputs + c) * sizeof(Dataflow *));
+   b->n_outputs += c;
+
+   for (int i=0; i < sh->n_outputs; i++) {
+      if (sh->outputs[i].block == -1 || sh->outputs[i].block == sh->n_blocks-1)
+         continue;
+
+      Dataflow *orig = sh->blocks[sh->outputs[i].block].outputs[sh->outputs[i].output];
+      b->outputs[off] = glsl_dataflow_construct_external(orig->type, sh->outputs[i].block, sh->outputs[i].output);
+      sh->outputs[i].block  = sh->n_blocks - 1;
+      sh->outputs[i].output = off++;
+   }
+}
+
 struct unphi_data {
    SSABlock *blocks;
    Map *unphi;
@@ -758,14 +858,14 @@ static void dpostv_find_phid_constants(Dataflow *d, void *data) {
    if (left->flavour  != DATAFLOW_EXTERNAL) return;
    if (right->flavour != DATAFLOW_EXTERNAL) return;
 
-   Dataflow *out_left, *out_right;
-   out_left = blocks[left->u.external.block].outputs[left->u.external.output];
-   out_right = blocks[right->u.external.block].outputs[right->u.external.output];
+   Dataflow *out_left  = blocks[left->u.external.block ].outputs[left->u.external.output];
+   Dataflow *out_right = blocks[right->u.external.block].outputs[right->u.external.output];
 
    if (out_left->flavour == DATAFLOW_CONST && out_right->flavour == DATAFLOW_CONST &&
        out_left->u.constant.value == out_right->u.constant.value)
    {
-      glsl_map_put(unphi, d, out_left);
+      /* Since they are the same constant, choose one arbitrarily */
+      glsl_map_put(unphi, d, left);
    }
 
    if (out_left->flavour == DATAFLOW_EXTERNAL &&
@@ -782,7 +882,7 @@ static void dpostv_find_phid_constants(Dataflow *d, void *data) {
    }
 }
 
-void unphi_constants(SSABlock *blocks, int n_blocks) {
+static void unphi_constants(SSABlock *blocks, int n_blocks) {
    for (int i=0; i<n_blocks; i++) {
       SSABlock *b = &blocks[i];
 
@@ -848,7 +948,7 @@ static Dataflow *dprev_promote_constants(Dataflow *d, void *data) {
    return NULL;
 }
 
-void promote_constants(SSABlock *blocks, int n_blocks) {
+static void promote_constants(SSABlock *blocks, int n_blocks) {
    for (int i=0; i<n_blocks; i++) {
       SSABlock *b = &blocks[i];
 
@@ -1013,7 +1113,7 @@ static void eliminate_dead_code(SSAShader *sh)
       }
 
       if (b->successor_condition != -1)
-        b->successor_condition = output_mapping[i][b->successor_condition];
+         b->successor_condition = output_mapping[i][b->successor_condition];
 
       glsl_safemem_free(b->outputs);
       b->n_outputs = out_count;
@@ -1148,6 +1248,9 @@ void glsl_generate_compute_variables(const Symbol *s_l_idx, const Symbol *s_l_id
    {
       // Fetch base work-group ID from varyings, add in offset from TLB.
       wg_id[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_IN, DF_UINT, i);
+      wg_id[i] = glsl_dataflow_construct_address(wg_id[i]);
+      wg_id[i] = glsl_dataflow_construct_vec4(wg_id[i], NULL, NULL, NULL);
+      wg_id[i] = glsl_dataflow_construct_address_load(DATAFLOW_IN_LOAD, DF_UINT, wg_id[i]);
       wg_id[i] = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, tlb[i+1], wg_id[i]);
    }
 
@@ -1240,7 +1343,7 @@ Symbol *glsl_construct_shared_block(const SymbolList *members)
    resultType->u.block_type.member       = memb;
 
    resultType->u.block_type.layout = malloc_fast(sizeof(MemLayout));
-   glsl_mem_calculate_block_layout(resultType->u.block_type.layout, resultType);
+   glsl_mem_calculate_block_layout(resultType->u.block_type.layout, resultType, /*for_tmu*/true);
    /* Add padding to the end of the block. This ensures that all the copies
     * of the block that are used for concurrent invocations are correctly aligned */
    resultType->u.block_type.layout->u.struct_layout.size = gfx_uround_up(resultType->u.block_type.layout->u.struct_layout.size,
@@ -1502,8 +1605,12 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
       for (int i=0; i<3; i++) data->compute.wg_size[i] = 0;
 }
 
-void glsl_ssa_shader_optimise(SSAShader *sh, bool mem_read_only) {
+void glsl_ssa_shader_optimise(SSAShader *sh, bool mem_read_only, bool flatten) {
+   if (flatten)
+      flatten_and_predicate(sh);
+
    if (sh->n_blocks > 1) {
+      sink_stores(sh);
       unphi_constants(sh->blocks, sh->n_blocks);
       promote_constants(sh->blocks, sh->n_blocks);
    }
@@ -1514,6 +1621,75 @@ void glsl_ssa_shader_optimise(SSAShader *sh, bool mem_read_only) {
    glsl_dataflow_cse(sh->blocks, sh->n_blocks, mem_read_only);
 
    setup_required_components(sh->blocks, sh->n_blocks);
+}
+
+static void dpostv_find_loads(Dataflow *df, void *data) {
+   if (df->flavour == DATAFLOW_IN_LOAD) glsl_dataflow_chain_append(data, df);
+}
+
+void glsl_ssa_shader_hoist_loads(SSAShader *sh) {
+   /* TODO: Hoist input loads into the first block. This isn't required, but for now we're going to
+    * do it because it matches the old system, works for the new system and is simple. */
+   for (int i=1; i<sh->n_blocks; i++) {
+      SSABlock *b = &sh->blocks[i];
+
+      DataflowChain loads;
+      glsl_dataflow_chain_init(&loads);
+      glsl_dataflow_visit_array(b->outputs, 0, b->n_outputs, &loads, NULL, dpostv_find_loads);
+
+      int n_new = 0;
+      for (DataflowChainNode *n = loads.head; n; n=n->l.next) n_new++;
+
+      Dataflow **new_outs = glsl_safemem_malloc((sh->blocks[0].n_outputs + n_new) * sizeof(Dataflow *));
+      memcpy(new_outs, sh->blocks[0].outputs, sh->blocks[0].n_outputs * sizeof(Dataflow *));
+
+      Map *opt_map = glsl_map_new();
+      int idx = sh->blocks[0].n_outputs;
+      for (DataflowChainNode *n = loads.head; n; n=n->l.next, idx++) {
+         /* Copy each load into the new_outs array */
+         Dataflow *cur_addr = n->ptr->d.dependencies[0]->d.dependencies[0];
+         Dataflow *cur_offset = NULL;
+         assert(cur_addr->flavour == DATAFLOW_ADDRESS || cur_addr->flavour == DATAFLOW_ADD);
+         if (cur_addr->flavour == DATAFLOW_ADD) {
+            cur_offset = cur_addr->d.binary_op.right;
+            cur_addr   = cur_addr->d.binary_op.left;
+         }
+
+         Dataflow *new_addr;
+         assert(cur_addr->flavour == DATAFLOW_ADDRESS);
+         assert(cur_addr->d.dependencies[0]->flavour == DATAFLOW_IN);
+         Dataflow *new_in = glsl_dataflow_construct_linkable_value(DATAFLOW_IN, cur_addr->type, cur_addr->d.dependencies[0]->u.linkable_value.row);
+         new_addr = glsl_dataflow_construct_address(new_in);
+
+         if (cur_offset != NULL) {
+            assert(cur_offset->flavour == DATAFLOW_CONST);
+            Dataflow *const_offset = glsl_dataflow_construct_const_value(DF_UINT,  cur_offset->u.constant.value);
+            new_addr = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, new_addr, const_offset);
+         }
+
+         new_outs[idx] = glsl_dataflow_construct_address_load(DATAFLOW_IN_LOAD, n->ptr->type,
+                                       glsl_dataflow_construct_vec4(new_addr, NULL, NULL, NULL));
+
+         /* Create an external for the new output and add it to a map from the original */
+         Dataflow *external = glsl_dataflow_construct_external(n->ptr->type, 0, idx);
+         glsl_map_put(opt_map, n->ptr, external);
+      }
+
+      /* Switch in the new outputs to the first block */
+      glsl_safemem_free(sh->blocks[0].outputs);
+
+      sh->blocks[0].n_outputs += n_new;
+      sh->blocks[0].outputs = new_outs;
+
+      /* Apply the opt map to drop the loads from the original block */
+      glsl_dataflow_visit_array(b->outputs, 0, b->n_outputs, opt_map, dprev_apply_opt_map, NULL);
+      for (int j=0; j<b->n_outputs; j++) {
+         Dataflow *new = glsl_map_get(opt_map, b->outputs[j]);
+         if (new != NULL)
+            b->outputs[j] = new;
+      }
+      glsl_map_delete(opt_map);
+   }
 }
 
 static bool version_valid_for_flavour(ShaderFlavour flavour, int version) {
@@ -1541,9 +1717,10 @@ static bool loop_or_barrier(BasicBlockList *l, Map *seen) {
    return false;
 }
 
-static bool list_contains_loops_or_barriers(BasicBlockList *l) {
+bool glsl_ssa_flattening_supported(BasicBlock *entry) {
+   BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(entry);
    Map *seen = glsl_map_new();
-   bool ret = loop_or_barrier(l, seen);
+   bool ret = !loop_or_barrier(l, seen);
    glsl_map_delete(seen);
    return ret;
 }
@@ -1583,6 +1760,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
 
    Statement *ast = glsl_parse_ast(flavour, version, src->sourcec, src->sourcev);
 
+   /* Check validity. May depend on extension enables, so must wait until after parsing */
    if (!version_valid_for_flavour(flavour, version))
       glsl_compile_error(ERROR_LINKER, 8, -1, "Shader stage not supported in language version");
 
@@ -1629,15 +1807,6 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
 
    glsl_basic_block_elim_dead(shader_start_block);
 
-   BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(shader_start_block);
-
-   if (flavour == SHADER_COMPUTE) {
-      if (!glsl_wg_size_requires_barriers(iface_data.compute.wg_size)) {
-         for (BasicBlockList *n = l; n != NULL; n=n->next)
-            n->v->barrier = false;
-      }
-   }
-
    /* Add interface definitions to a basic block prior to the shader */
    BasicBlock *entry_block = glsl_basic_block_construct();
    entry_block->fallthrough_target = shader_start_block;
@@ -1648,28 +1817,17 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    if (flavour == SHADER_COMPUTE)
       generate_compute_variables(entry_block, iface_data.compute.wg_size, shared_block, multicore, clamp_shared_idx, shared_mem_per_core);
 
-   Map *offsets = glsl_map_new();
-   for (BasicBlockList *n = l ; n != NULL; n=n->next) {
-      int *offset = malloc_fast(sizeof(int));
-      *offset = 1000;
-      glsl_map_put(offsets, n->v, offset);
-   }
-   int *start_offset = malloc_fast(sizeof(int));
-   *start_offset = 0;
-   glsl_map_put(offsets, entry_block, start_offset);
-
-   bool new_flattening = !list_contains_loops_or_barriers(l);
-
-   if (!new_flattening) {
-      /* XXX We skip this code flattening for massive numbers of blocks because it is slow */
-      int c = glsl_basic_block_list_count(l);
-      if (c < 1000)
-         while (glsl_basic_block_flatten_a_bit(entry_block, offsets)) /* Do nothing */;
-
-      entry_block = glsl_basic_block_flatten(entry_block, offsets);
+   if (flavour == SHADER_COMPUTE) {
+      if (!glsl_wg_size_requires_barriers(iface_data.compute.wg_size)) {
+         BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(entry_block);
+         for (BasicBlockList *n = l; n != NULL; n=n->next)
+            n->v->barrier = false;
+      }
    }
 
-   glsl_map_delete(offsets);
+   bool ssa_flattening = glsl_ssa_flattening_supported(entry_block);
+   if (!ssa_flattening)
+      entry_block = glsl_basic_block_flatten(entry_block);
 
    /* Do the conversion to SSA form */
    SSAShader ir_sh;
@@ -1677,10 +1835,10 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    glsl_ssa_convert(&ir_sh, entry_block, interfaces->outs, symbol_ids);
    glsl_basic_block_delete_reachable(entry_block);
 
-   if (new_flattening)
-      flatten_and_predicate(&ir_sh);
+   glsl_ssa_shader_optimise(&ir_sh, version < GLSL_SHADER_VERSION(3, 10, 1), ssa_flattening);
 
-   glsl_ssa_shader_optimise(&ir_sh, version < GLSL_SHADER_VERSION(3, 10, 1));
+   if (flavour == SHADER_VERTEX || flavour == SHADER_FRAGMENT || flavour == SHADER_COMPUTE)
+      glsl_ssa_shader_hoist_loads(&ir_sh);
 
    ret = glsl_compiled_shader_create(flavour, version);
    if (ret == NULL) { return NULL; }
@@ -1691,10 +1849,10 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
       return NULL;
    }
 
-   if (!interface_from_symbol_list(&ret->uniform, ast, interfaces->uniforms, symbol_map, symbol_ids) ||
-       !interface_from_symbol_list(&ret->in,      ast, interfaces->ins,      symbol_map, symbol_ids) ||
-       !interface_from_symbol_list(&ret->out,     ast, interfaces->outs,     symbol_map, symbol_ids) ||
-       !interface_from_symbol_list(&ret->buffer,  ast, interfaces->buffers,  symbol_map, symbol_ids)   )
+   if (!interface_from_symbol_list(&ret->uniform, ast, interfaces->uniforms, symbol_map, symbol_ids, true)  ||
+       !interface_from_symbol_list(&ret->in,      ast, interfaces->ins,      symbol_map, symbol_ids, false) ||
+       !interface_from_symbol_list(&ret->out,     ast, interfaces->outs,     symbol_map, symbol_ids, false) ||
+       !interface_from_symbol_list(&ret->buffer,  ast, interfaces->buffers,  symbol_map, symbol_ids, false)   )
    {
       glsl_compiled_shader_free(ret);
       return NULL;
@@ -1752,6 +1910,15 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
 
    if (flavour == SHADER_GEOMETRY) {
       ret->gs_max_known_layers = 1;
+      unsigned output_word_count = 0;
+      for (int i=0; i<ret->out.n_vars; i++)
+         if (ret->out.var[i].static_use && strcmp(ret->out.var[i].symbol->name, "__brcm_stdlib_header_words"))
+            output_word_count += ret->out.var[i].symbol->type->scalar_count;
+
+      output_word_count *= iface_data.geometry.max_vertices;
+      if (output_word_count > GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS)
+         glsl_compile_error(ERROR_CUSTOM, 5, -1, "Found %d geometry shader output components, max %d",
+                                                 output_word_count, GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS);
       ret->gs_in  = iface_data.geometry.in;
       ret->gs_out = iface_data.geometry.out;
       ret->gs_n_invocations = iface_data.geometry.n_invocations;

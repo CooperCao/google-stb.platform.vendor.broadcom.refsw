@@ -258,8 +258,8 @@ typedef enum BHDCPlib_State
     BHDCPlib_State_eEncryptionEnabled,      /* Part 3 Ri Link Integrity Checks Match */
     BHDCPlib_State_eRepeaterAuthenticationFailure,
     BHDCPlib_State_eRiLinkIntegrityFailure,
-    BHDCPlib_State_ePjLinkIntegrityFailure
-
+    BHDCPlib_State_ePjLinkIntegrityFailure,
+    BHDCPlib_State_eMax
 } BHDCPlib_State;
 
 

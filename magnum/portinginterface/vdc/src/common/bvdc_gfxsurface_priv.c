@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,11 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- *
- ***************************************************************************/
+ ******************************************************************************/
 
 #include "bvdc_gfxsurface_priv.h"
 #include "bvdc_feeder_priv.h"
@@ -217,6 +213,10 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
     uint32_t               ulHeight;
     BPXL_Format            ePxlFmt;
     BMMA_DeviceOffset      ullRSurOffset;
+    uint32_t               ulPltOffset;
+    uint32_t               ulPaletteNumEntries;
+    BPXL_Format            ePaletteEntryFormat;
+#ifndef BVDC_FOR_BOOTUPDATER
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
     const BPXL_Plane      *pRSurface;
     uint32_t               ulRPitch;
@@ -224,14 +224,9 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
     uint32_t               ulRHeight;
     BPXL_Format            eRPxlFmt;
 #endif
-    uint32_t               ulPltOffset;
-    uint32_t               ulPaletteNumEntries;
-    BPXL_Format            ePaletteEntryFormat;
-    BBOX_Vdc_Capabilities *pBoxVdc;
-
+    BBOX_Vdc_Capabilities *pBoxVdc = &hSource->hVdc->stBoxConfig.stVdc;
+#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
     BVDC_P_SurfaceInfo    *pCurSurInfo = &pGfxSurface->stCurSurInfo;
-
-    pBoxVdc = &hSource->hVdc->stBoxConfig.stVdc;
 
     /* get info from main surface */
     if(pAvcGfxPic->pSurface) {
@@ -241,6 +236,7 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
         ulWidth  = pSurface->ulWidth;
         ulHeight = pSurface->ulHeight;
 
+#ifndef BVDC_FOR_BOOTUPDATER
         /* Check for BOX mode limits */
         if (pBoxVdc->astSource[hSource->eId].stSizeLimits.ulHeight != BBOX_VDC_DISREGARD &&
             pBoxVdc->astSource[hSource->eId].stSizeLimits.ulWidth != BBOX_VDC_DISREGARD)
@@ -256,6 +252,7 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
                 return BERR_TRACE(BBOX_FRAME_BUFFER_SIZE_EXCEEDS_LIMIT);
             }
         }
+#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
         ullSurOffset = BMMA_GetOffset_isr(pSurface->hPixels);
         ullSurOffset += pSurface->ulPixelsOffset;
@@ -286,7 +283,7 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
 
         ullRSurOffset = 0; /* mark for 2D case */
 
-#if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
+#if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4) && !defined(BVDC_FOR_BOOTUPDATER)
         /* check right surface */
         if (BVDC_P_ORIENTATION_IS_3D(pAvcGfxPic->eInOrientation))
         {
@@ -344,7 +341,7 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
                 (BFMT_Orientation_e3D_OverUnder == hSource->stCurInfo.eOrientation) * ulHeight* ulPitch +
                 (BFMT_Orientation_e3D_LeftRight == hSource->stCurInfo.eOrientation) * ulWidth * BPXL_BITS_PER_PIXEL(ePxlFmt)/8;
         }
-#endif
+#endif /* #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4) && !defined(BVDC_FOR_BOOTUPDATER) */
 
         /* handle palette format */
         if ( BPXL_IS_PALETTE_FORMAT(ePxlFmt) )

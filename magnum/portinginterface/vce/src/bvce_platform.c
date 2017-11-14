@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -334,7 +334,6 @@ typedef struct BVCE_VideoFormatEntry
    BVCE_VideoFormatInfo stInfo;
 } BVCE_VideoFormatEntry;
 
-#if ( BVCE_P_CORE_MAJOR < 3 )
 static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
 {
    { 0,
@@ -400,73 +399,6 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
       },
    },
 };
-#else
-static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
-{
-   { 0,
-      { BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */\
-         {
-            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30 }, }, /* Bounds[eInterlaced] */
-            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60 }, }, /* Bounds[eProgressive] */
-         }
-      }
-   },
-   { BFMT_VideoFmt_e720p_25Hz,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
-         {
-            { 720, 576, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e25, }, }, /* Bounds[eInterlaced] */
-            { 1280, 720, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e720p_30Hz,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
-         {
-            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1280, 720, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e720p,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
-         {
-            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1280, 720, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, },  /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e1080p_25Hz,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
-         {
-            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eInterlaced] */
-            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e1080p_30Hz,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
-         {
-            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e1080p,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
-         {
-            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1920, 1088, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-};
-#endif
 
 static
 const BVCE_VideoFormatInfo*

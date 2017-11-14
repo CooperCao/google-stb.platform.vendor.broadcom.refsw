@@ -27,7 +27,7 @@ typedef struct {
    umap_entry *unif;
    size_t      unif_count;
    unsigned n_threads;
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    bool single_seg;
 #endif
 #if !V3D_VER_AT_LEAST(3,3,0,0)
@@ -37,11 +37,15 @@ typedef struct {
       struct {
          bool writes_z;
          bool ez_disable;
+         bool needs_w; // Need (non-centroid) W for anything other than varyings?
          bool tlb_wait_first_thrsw;
          bool per_sample;
          bool reads_prim_id;
 #if V3D_VER_AT_LEAST(4,0,2,0)
          bool reads_implicit_varys;
+#endif
+#if !V3D_HAS_SRS_CENTROID_FIX
+         bool ignore_centroids;
 #endif
          bool barrier;
       } fragment;
@@ -74,11 +78,13 @@ typedef struct {
 BINARY_SHADER_T *glsl_binary_shader_create(ShaderFlavour    flavour);
 void             glsl_binary_shader_free  (BINARY_SHADER_T *binary);
 
-BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                  flavour,
-                                                  bool                           bin_mode,
-                                                  GLSL_VARY_MAP_T               *vary_map,
-                                                  IR_PROGRAM_T                  *ir,
-                                                  const struct glsl_backend_cfg *key);
+bool glsl_binary_shader_from_dataflow(
+   BINARY_SHADER_T              **ret_binary,
+   ShaderFlavour                  flavour,
+   bool                           bin_mode,
+   GLSL_VARY_MAP_T               *vary_map,
+   IR_PROGRAM_T                  *ir,
+   const struct glsl_backend_cfg *key);
 
 const char *glsl_shader_flavour_name(ShaderFlavour f);
 

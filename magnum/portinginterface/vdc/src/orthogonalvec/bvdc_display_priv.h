@@ -988,6 +988,7 @@ typedef struct
     uint32_t          ulDvi;
     uint32_t          ulDviRegOffset;      /* DVI instace offset */
     uint32_t          ulDvpRegOffset;      /* DVP instance offset */
+    bool              bCfcProgrammed;
 
     /* SW INIT offset */
     uint32_t          ulDtgSwInitOffset;
@@ -1043,6 +1044,8 @@ typedef struct BVDC_P_StgViceWireInfo
     uint32_t               ulViceChannelId;
 } BVDC_P_StgViceWireInfo;
 #endif
+
+#define BVDC_P_DISP_TMP_BUF_SIZE    (8 * 4 * 4 * 2)
 
 typedef struct BVDC_P_DisplayContext
 {
@@ -1210,6 +1213,12 @@ typedef struct BVDC_P_DisplayContext
     uint32_t                    ulMVQueryAddr;     /* RDC var addr use for MV polling */
     uint32_t                    ulMVQueryTmpAddr;  /* Temp RDC var addr use for MV polling */
 #endif
+
+    /* tmp buf for intermidiate variables of functions that work on display,
+     * to avoid stack overflow.
+     * Currently BVDC_P_Cfc_ApplyYCbCrColor_isr is using it */
+    uint64_t                       aullTmpBuf[BVDC_P_DISP_TMP_BUF_SIZE / 8];
+
 } BVDC_P_DisplayContext;
 
 /***************************************************************************

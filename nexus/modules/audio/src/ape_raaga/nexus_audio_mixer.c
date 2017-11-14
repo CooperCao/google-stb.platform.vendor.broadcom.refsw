@@ -612,7 +612,9 @@ NEXUS_Error NEXUS_AudioMixer_Start(
         errCode = NEXUS_AudioInput_P_ExplictlyStartFMMMixers(&handle->connector);
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            BERR_TRACE(errCode);
+            NEXUS_AudioInput_P_ExplictlyStopFMMMixers(&handle->connector);
+            return errCode;
         }
 
         handle->started = true;

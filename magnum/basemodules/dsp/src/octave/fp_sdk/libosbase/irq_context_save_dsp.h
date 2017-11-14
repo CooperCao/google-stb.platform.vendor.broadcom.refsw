@@ -105,7 +105,7 @@ typedef struct TX_fullContext
     uint64_t u64Valid;
     /** Store predicate registers. */
     uint64_t u64PredReg;
-#ifdef CHIP_HAS_ICACHE
+#if CORE_HAS_DREG_FEATURE_ICA
     /** Stored ICACHE locking state (ICACHE configuration on Octave). */
     uint64_t u64ICacheLockBits;
 #endif
@@ -190,7 +190,7 @@ typedef struct TX_solicitedContext
     uint64_t u64Link;
     /** Field to identify context type. Zero for solicited context. */
     uint64_t u64TxType;
-#ifdef CHIP_HAS_ICACHE
+#if CORE_HAS_DREG_FEATURE_ICA
     /** Stored icache locking bits. */
     uint64_t u64ICacheLockBits;
 #endif

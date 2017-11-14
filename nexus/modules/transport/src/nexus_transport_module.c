@@ -475,6 +475,10 @@ static void NEXUS_TransportModule_P_Print(void)
     NEXUS_P_HwPidChannel *pidChannel;
     bool defaultTimebaseUsed = false;
     BDBG_LOG(("transport"));
+    if(pTransport->xpt==NULL) { /*  _P_Print could be called after NEXUS_TransportModule_PreInit, however module really initialized by NEXUS_TransportModule_PostInit_priv */
+        BDBG_LOG(("not initialized"));
+        return;
+    }
     #if NEXUS_MAX_INPUT_BANDS
     {
        bool foundOne = false;
@@ -866,6 +870,9 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
     if (rc) {rc = BERR_TRACE(rc); goto done;}
 #endif
 
+    rc = BKNI_CreateEvent(&pTransport->pidChannelEvent);
+    if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto done;}
+
     timer_start();
     pipeline_checker_start();
     dpcr_integrator_workaround_start();
@@ -957,6 +964,8 @@ void NEXUS_TransportModule_Uninit(void)
         NEXUS_P_HwPidChannel_CloseAll(pidChannel);
         lastPidChannel = pidChannel;
     }
+
+    BKNI_DestroyEvent(pTransport->pidChannelEvent);
 
 #if NEXUS_NUM_PARSER_BANDS
     NEXUS_ParserBand_P_UninitAll();
@@ -1072,6 +1081,51 @@ void NEXUS_Transport_P_SetInterrupts(void)
 #endif
 }
 
+void NEXUS_TransportModule_GetMtsifPidChannels_priv(struct NEXUS_MtsifPidChannelSettings *pSettings, unsigned numEntries, unsigned *pNumReturned)
+{
+    unsigned total = 0, i;
+    NEXUS_P_HwPidChannel *p = BLST_S_FIRST(&pTransport->pidChannels);
+
+    NEXUS_ASSERT_MODULE();
+
+    for (i=0; i<NEXUS_NUM_PID_CHANNELS; i++) {
+        if (pTransport->mtsifPidChannelState[i]==NEXUS_MtsifPidChannelState_eNone) { continue; }
+        if (total >= numEntries) {
+            break;
+        }
+        BKNI_Memset(&pSettings[total], 0, sizeof(pSettings[total]));
+        if (pTransport->mtsifPidChannelState[i]!=NEXUS_MtsifPidChannelState_eClosed) {
+            /* find the pidchannel handle to copy the status */
+            while (p && p->status.pidChannelIndex < i) {
+                p = BLST_S_NEXT(p, link);
+            }
+            if (p && p->status.pidChannelIndex==i) {
+                pSettings[total].status = p->status;
+                pSettings[total].frontend = p->parserBand ? p->parserBand->settings.sourceTypeSettings.mtsif : NULL;
+            }
+            else {
+                BERR_TRACE(NEXUS_UNKNOWN);
+                p = BLST_S_FIRST(&pTransport->pidChannels);
+                continue;
+            }
+        }
+        else {
+            pSettings[total].status.pidChannelIndex = i;
+        }
+        pSettings[total].state = pTransport->mtsifPidChannelState[i];
+        pTransport->mtsifPidChannelState[i] = NEXUS_MtsifPidChannelState_eNone;
+        total++;
+    }
+
+    *pNumReturned = total;
+}
+
+void NEXUS_TransportModule_GetPidchannelEvent(BKNI_EventHandle *event)
+{
+    NEXUS_ASSERT_MODULE();
+    *event = pTransport->pidChannelEvent;
+}
+
 bool NEXUS_TransportModule_P_IsMtsifEncrypted(void)
 {
 #if BXPT_NUM_MTSIF
@@ -1083,11 +1137,14 @@ bool NEXUS_TransportModule_P_IsMtsifEncrypted(void)
 
 void NEXUS_TransportModule_P_ForceMtsifEncrypted(unsigned index)
 {
-#if BXPT_NUM_MTSIF
+#if (BXPT_NUM_MTSIF > 1)
     if (index < BXPT_NUM_MTSIF) {
         uint32_t addr = BCHP_XPT_FE_MTSIF_RX0_SECRET_WORD + (index * (BCHP_XPT_FE_MTSIF_RX1_CTRL1 - BCHP_XPT_FE_MTSIF_RX0_CTRL1));
         BREG_Write32(g_pCoreHandles->reg, addr, 0);
     }
+#elif (BXPT_NUM_MTSIF == 1)
+    BSTD_UNUSED(index);
+    BREG_Write32(g_pCoreHandles->reg, BCHP_XPT_FE_MTSIF_RX0_SECRET_WORD, 0);
 #else
     BSTD_UNUSED(index);
 #endif
@@ -1164,6 +1221,15 @@ NEXUS_Error NEXUS_TransportModule_Standby_priv(bool enabled, const NEXUS_Standby
         }
 #endif
 
+        if (pSettings->mode == NEXUS_StandbyMode_eDeepSleep) {
+            NEXUS_P_HwPidChannel *pidChannel;
+            for (pidChannel = BLST_S_FIRST(&pTransport->pidChannels); pidChannel; pidChannel = BLST_S_NEXT(pidChannel, link)) {
+                if (pidChannel->parserBand && pidChannel->parserBand->settings.sourceType == NEXUS_ParserBandSourceType_eMtsif) {
+                    pTransport->mtsifPidChannelState[pidChannel->status.pidChannelIndex] = NEXUS_MtsifPidChannelState_eChanged;
+                }
+            }
+        }
+
         standbySettings.S3Standby = (pSettings->mode == NEXUS_StandbyMode_eDeepSleep); /* S3Standby is only avail on 40nm platforms */
 
 
@@ -1219,6 +1285,7 @@ NEXUS_Error NEXUS_TransportModule_PostResume_priv(void)
         }
     }
 #endif
+    BKNI_SetEvent(pTransport->pidChannelEvent);
 
     NEXUS_Vcxo_Init();
 

@@ -1,34 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "platform.h"
 
 #ifndef WIN32
 
 #include <pthread.h>
 #include "nexus_graphicsv3d.h"
-
-void plCreateMutex(MutexHandle *handle)
-{
-   pthread_mutex_init(handle, NULL);
-}
-
-void plDestroyMutex(MutexHandle *handle)
-{
-   pthread_mutex_destroy(handle);
-}
-
-void plLockMutex(MutexHandle *handle)
-{
-   pthread_mutex_lock(handle);
-}
-
-void plUnlockMutex(MutexHandle *handle)
-{
-   pthread_mutex_unlock(handle);
-}
 
 unsigned int plGetTimeNowMs(void)
 {
@@ -61,26 +39,6 @@ void plGetAccurateTime(unsigned int *secs, unsigned int *nanosecs)
 
 #include <windows.h>
 
-void plCreateMutex(MutexHandle *handle)
-{
-   *handle = CreateMutex(0, FALSE, NULL);
-}
-
-void plDestroyMutex(MutexHandle *handle)
-{
-   CloseHandle(*handle);
-}
-
-void plLockMutex(MutexHandle *handle)
-{
-   WaitForSingleObject(*handle, INFINITE);
-}
-
-void plUnlockMutex(MutexHandle *handle)
-{
-   ReleaseMutex(*handle);
-}
-
 unsigned int plGetTimeNowMs()
 {
    return timeGetTime();
@@ -93,6 +51,5 @@ void plGetAccurateTime(unsigned int *secs, unsigned int *nanosecs)
    *secs = msec / 1000;
    *nanosecs = 1000 * (msec - (*secs * 1000));
 }
-
 
 #endif

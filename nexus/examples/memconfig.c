@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 
@@ -146,11 +138,15 @@ static void mem_single_decode(NEXUS_MemoryConfigurationSettings *pSettings)
     unsigned i, j;
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
-            pSettings->display[i].window[j].used = i<1;
+            if (pSettings->display[i].window[j].used) {
+                pSettings->display[i].window[j].used = i<1;
+            }
         }
     }
     for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
-        pSettings->videoDecoder[i].used = i<1;
+        if (pSettings->videoDecoder[i].used) {
+            pSettings->videoDecoder[i].used = i<1;
+        }
     }
 }
 
@@ -177,8 +173,18 @@ static void mem_single_display(NEXUS_MemoryConfigurationSettings *pSettings)
     unsigned i, j;
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
-            pSettings->display[i].window[j].used = i<1 && j<1;
+            if (pSettings->display[i].window[j].used) {
+                pSettings->display[i].window[j].used = i<1 && j<1;
+            }
         }
+    }
+}
+
+static void mem_1080p_display(NEXUS_MemoryConfigurationSettings *pSettings)
+{
+    unsigned i;
+    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+        pSettings->display[i].maxFormat = NEXUS_VideoFormat_e1080p;
     }
 }
 
@@ -187,7 +193,9 @@ static void mem_minimum(NEXUS_MemoryConfigurationSettings *pSettings)
     unsigned i, j;
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
-            pSettings->display[i].window[j].used = i<1 && j<1;
+            if (pSettings->display[i].window[j].used) {
+                pSettings->display[i].window[j].used = i<1 && j<1;
+            }
             if (pSettings->display[i].window[j].used) {
                 pSettings->display[i].maxFormat = NEXUS_VideoFormat_e1080i;
                 pSettings->display[i].window[j].convertAnyFrameRate = false;
@@ -198,12 +206,14 @@ static void mem_minimum(NEXUS_MemoryConfigurationSettings *pSettings)
         }
     }
     for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
-        pSettings->videoDecoder[i].used = i<1;
-        pSettings->videoDecoder[i].maxFormat = NEXUS_VideoFormat_e1080i;
-        pSettings->videoDecoder[i].colorDepth = 8;
-        memset(pSettings->videoDecoder[i].supportedCodecs, 0, sizeof(pSettings->videoDecoder[i].supportedCodecs));
-        pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eMpeg2] = true;
-        pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH264] = true;
+        if (pSettings->videoDecoder[i].used) {
+            pSettings->videoDecoder[i].used = i<1;
+            pSettings->videoDecoder[i].maxFormat = NEXUS_VideoFormat_e1080i;
+            pSettings->videoDecoder[i].colorDepth = 8;
+            memset(pSettings->videoDecoder[i].supportedCodecs, 0, sizeof(pSettings->videoDecoder[i].supportedCodecs));
+            pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eMpeg2] = true;
+            pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH264] = true;
+        }
     }
 #if NEXUS_HAS_VIDEO_ENCODER
     for (i=0;i<NEXUS_MAX_VIDEO_ENCODERS;i++) {
@@ -261,9 +271,10 @@ int main(int argc, char **argv)
             "2) No transcode\n"
             "3) Single decode (plus #2)\n"
             "4) No MVC (plus #3)\n"
-            "5) No HEVC, 4K, 10 bit (plus #4)\n"
+            "5) No HEVC, 4K, 10 bit decode (plus #4)\n"
             "6) Single display (plus #5)\n"
-            "7) Lowest: Single decode, single display, no MAD, no capture\n"
+            "7) 1080p display (plus #6)\n"
+            "8) Lowest: Single decode, single display, no MAD, no capture\n"
             "q) Quit\n"
             );
         fgets(buf, sizeof(buf), stdin);
@@ -273,12 +284,15 @@ int main(int argc, char **argv)
         platformSettings.openFrontend = false;
         NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
         switch (config) {
-        case 7:
+        case 8:
             /* for minimum, set everything in one function */
             mem_minimum(&memConfigSettings);
             break;
 
         /* the following functions cascade */
+        case 7:
+            mem_1080p_display(&memConfigSettings);
+            /* fall through */
         case 6:
             mem_single_display(&memConfigSettings);
             /* fall through */

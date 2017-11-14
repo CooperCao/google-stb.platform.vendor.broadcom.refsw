@@ -137,13 +137,16 @@ typedef struct NEXUS_CallbackDesc {
 Summary:
 Initialize NEXUS_CallbackDesc structure
 **/
-void NEXUS_CallbackDesc_Init(
+void NEXUS_CallbackDesc_Init_isrsafe(
     NEXUS_CallbackDesc *desc /* [out] */
     );
 
-NEXUS_CallbackDesc NEXUS_P_CallbackDescByValue(void);
-#define NEXUS_CALLBACKDESC_INITIALIZER() NEXUS_P_CallbackDescByValue()
-#define NEXUS_CALLBACKDESC_INIT(cb) NEXUS_CallbackDesc_Init(cb)
+
+NEXUS_CallbackDesc NEXUS_P_CallbackDescByValue_isrsafe(void);
+#define NEXUS_CALLBACKDESC_INITIALIZER() NEXUS_P_CallbackDescByValue_isrsafe()
+#define NEXUS_CALLBACKDESC_INIT(cb) NEXUS_CallbackDesc_Init_isrsafe(cb)
+#define NEXUS_CallbackDesc_Init NEXUS_CallbackDesc_Init_isrsafe
+#define NEXUS_P_CallbackDescByValue NEXUS_P_CallbackDescByValue_isrsafe
 
 /**
 Summary:

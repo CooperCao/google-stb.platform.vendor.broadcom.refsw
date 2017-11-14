@@ -271,8 +271,14 @@ BERR_Code BVDC_P_Compositor_Create
     {
         for (i=0; i<BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT; i++)
         {
+#ifdef BCHP_HDR_CMP_0_HDR_V1_HW_CONFIG
             ulHwCfg = BREG_Read32(hVdc->hRegister,
                 ((i==0)? BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG : BCHP_HDR_CMP_0_HDR_V1_HW_CONFIG) + pCompositor->ulRegOffset);
+#else
+            ulHwCfg = BREG_Read32(hVdc->hRegister,
+                BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG + pCompositor->ulRegOffset);
+#endif
+
 #ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_CSC_MA_PRESENT_SHIFT
             pCompositor->stCfcCapability[i].stBits.bMa = BVDC_P_GET_FIELD(
                 ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_CSC_MA_PRESENT);
@@ -502,11 +508,13 @@ void BVDC_P_Compositor_Destroy
     /* At this point application should have disable all the
      * callbacks &slots */
 #if BVDC_P_CMP_CFC_VER >= 3
-    if(hCompositor->stCfcLutList.hMmaBlock) {
-        BMMA_Unlock(hCompositor->stCfcLutList.hMmaBlock, hCompositor->stCfcLutList.pulStart);
-        BMMA_UnlockOffset(hCompositor->stCfcLutList.hMmaBlock, hCompositor->stCfcLutList.ullStartDeviceAddr);
-        BMMA_Free(hCompositor->stCfcLutList.hMmaBlock);
-        hCompositor->stCfcLutList.hMmaBlock = NULL;
+    if(hCompositor->stCfcLutList.hMmaBlock[0]) {
+        for(i = 0; i < BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; i++) {
+            BMMA_Unlock(hCompositor->stCfcLutList.hMmaBlock[i], hCompositor->stCfcLutList.pulStart[i]);
+            BMMA_UnlockOffset(hCompositor->stCfcLutList.hMmaBlock[i], hCompositor->stCfcLutList.ullStartDeviceAddr[i]);
+            BMMA_Free(hCompositor->stCfcLutList.hMmaBlock[i]);
+            hCompositor->stCfcLutList.hMmaBlock[i] = NULL;
+        }
         hCompositor->hCfcHeap  = NULL;
     }
 #endif
@@ -1113,12 +1121,19 @@ static void BVDC_P_Window_BuildDitherRul_isr
     if(!hCompositor->bIs10BitCore && hCompositor->bInDither &&
        hCompositor->pFeatures->ulMaxVideoWindow > eWinInCmp)
     {
+#ifdef BCHP_CMP_0_V1_IN_DITHER_422_CTRL
         uint32_t ulDitherCtrlRegAddr = (1==eWinInCmp)?
             BCHP_CMP_0_V1_IN_DITHER_422_CTRL : BCHP_CMP_0_V0_IN_DITHER_422_CTRL;
         uint32_t ulLfsrInitRegAddr = (1==eWinInCmp)?
             BCHP_CMP_0_V1_IN_DITHER_LFSR_INIT : BCHP_CMP_0_V0_IN_DITHER_LFSR_INIT;
         uint32_t ulLfsrCtrlRegAddr = (1==eWinInCmp)?
             BCHP_CMP_0_V1_IN_DITHER_LFSR_CTRL : BCHP_CMP_0_V0_IN_DITHER_LFSR_CTRL;
+#else
+
+        uint32_t ulDitherCtrlRegAddr = BCHP_CMP_0_V0_IN_DITHER_422_CTRL;
+        uint32_t ulLfsrInitRegAddr = BCHP_CMP_0_V0_IN_DITHER_LFSR_INIT;
+        uint32_t ulLfsrCtrlRegAddr = BCHP_CMP_0_V0_IN_DITHER_LFSR_CTRL;
+#endif
 
         BDBG_MODULE_MSG(BVDC_DITHER,("CMP_%d_V%d IN_DITHER: %s",
             hCompositor->eId, eWinInCmp,
@@ -1155,12 +1170,18 @@ static void BVDC_P_Window_BuildDitherRul_isr
     {
         uint32_t ulScale = hCompositor->bAlign12Bit ?
             BVDC_P_DITHER_CMP_SCALE_12BIT : BVDC_P_DITHER_CMP_SCALE_10BIT;
+#ifdef BCHP_CMP_0_V1_CSC_DITHER_CTRL
         uint32_t ulDitherCtrlRegAddr = (1==eWinInCmp)?
             BCHP_CMP_0_V1_CSC_DITHER_CTRL : BCHP_CMP_0_V0_CSC_DITHER_CTRL;
         uint32_t ulLfsrInitRegAddr = (1==eWinInCmp)?
             BCHP_CMP_0_V1_CSC_DITHER_LFSR_INIT : BCHP_CMP_0_V0_CSC_DITHER_LFSR_INIT;
         uint32_t ulLfsrCtrlRegAddr = (1==eWinInCmp)?
             BCHP_CMP_0_V1_CSC_DITHER_LFSR_CTRL : BCHP_CMP_0_V0_CSC_DITHER_LFSR_CTRL;
+#else
+        uint32_t ulDitherCtrlRegAddr = BCHP_CMP_0_V0_CSC_DITHER_CTRL;
+        uint32_t ulLfsrInitRegAddr = BCHP_CMP_0_V0_CSC_DITHER_LFSR_INIT;
+        uint32_t ulLfsrCtrlRegAddr = BCHP_CMP_0_V0_CSC_DITHER_LFSR_CTRL;
+#endif
 
         BDBG_MODULE_MSG(BVDC_DITHER,("CMP_%d_V%d CSC_DITHER: %s",
             hCompositor->eId, eWinInCmp,
@@ -1464,6 +1485,12 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
                 {
                     BVDC_P_Window_BuildCfcRul_isr(hWindow, 1, pList);
                 }
+                /* CRBVN-782: disable CSC_INDEX to use R0_LSHT by default */
+                #if BVDC_P_CRBVN_782_WORKAROUND && BCHP_CMP_0_V0_RECT_CSC_INDEX_0
+                *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+                *pList->pulCurrent++ = BRDC_REGISTER(BCHP_CMP_0_V0_RECT_CSC_INDEX_0 + hCompositor->ulRegOffset + ulV0V1Offset);
+                *pList->pulCurrent++ = BCHP_FIELD_ENUM(CMP_0_V0_RECT_CSC_INDEX_0, CSC_COEFF_INDEX_RECT0, DISABLE);
+                #endif
             }
 
             if(pList->bLastExecuted)
@@ -1575,6 +1602,11 @@ static void BVDC_P_Compositor_BuildRul_isr
             hCompositor->bCscDitherEnable[eV1Id] = false;
         }
 
+        /* reset CMP for transcoder in case watchdog recovery */
+        if(hCompositor->hDisplay->stCurInfo.bEnableStg) {
+            BVDC_P_BUILD_RESET(pList->pulCurrent, hCompositor->ulCoreResetAddr, hCompositor->ulCoreResetMask);
+        }
+
         /* Also make sure to enable CRC */
         BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CRC_CTRL, pList->pulCurrent);
 
@@ -1582,10 +1614,8 @@ static void BVDC_P_Compositor_BuildRul_isr
     }
 
 #ifndef BVDC_FOR_BOOTUPDATER
-    if(eV0Id == BVDC_P_WindowId_eComp0_V0)
-    {
-        BVDC_P_Pep_BuildRul_isr(hCompositor->ahWindow[eV0Id], pList, hCompositor->bInitial);
-    }
+    BVDC_P_Pep_BuildRul_isr(hCompositor->ahWindow[eV0Id], pList, hCompositor->bInitial);
+    BVDC_P_Pep_BuildRul_isr(hCompositor->ahWindow[eV1Id], pList, hCompositor->bInitial);
 #endif
 
     /* canvas, bgcolor and blender setting */
@@ -1966,13 +1996,14 @@ void BVDC_P_Compositor_WindowsReader_isr
     bool                      bEnableDcxm = false;
 #endif
     BVDC_P_Display_SrcInfo    stSrcInfo;
-    const BFMT_VideoInfo     *pFmtInfo = hCompositor->stCurInfo.pFmtInfo;
+    const BFMT_VideoInfo     *pFmtInfo;
     BAVC_P_Colorimetry        eOutColorimetry;
 
     BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
 
     BVDC_P_Compositor_UpdateOutColorSpace_isr(hCompositor, false); /* for nxserver/client */
     eOutColorimetry = hCompositor->stOutColorSpace.stAvcColorSpace.eColorimetry;
+    pFmtInfo = hCompositor->stCurInfo.pFmtInfo;
 
     /* second pass: to adjust non-vbi-pass-thru window position;
        Note: adjustment is done in the second pass in case vwin0 has no pass-thru,
@@ -2101,6 +2132,9 @@ void BVDC_P_Compositor_WindowsReader_isr
         eOrientation = BFMT_Orientation_e2D;
 #endif
 
+#if (BVDC_P_SUPPORT_3D==0)
+    eOrientation = BFMT_Orientation_e2D;
+#endif
     BVDC_P_CMP_GET_REG_DATA(CMP_0_CMP_CTRL) = (
         BCHP_FIELD_DATA(CMP_0_CMP_CTRL, BVB_VIDEO, eOrientation));
 
@@ -2114,7 +2148,9 @@ void BVDC_P_Compositor_WindowsReader_isr
         (hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled ||
         (hWindow0)))
     {
-        BVDC_P_Compositor_ApplyDbvSettings_isr(hCompositor, hGfxFeeder);
+        if(hCompositor->pstDbv) {
+            BVDC_P_Compositor_ApplyDbvSettings_isr(hCompositor, hGfxFeeder);
+        }
     } else if(hGfxFeeder) {
         hGfxFeeder->bDbvEnabled = false;/* gfd exits dvs mode */
     }

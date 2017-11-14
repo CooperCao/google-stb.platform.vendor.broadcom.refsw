@@ -100,6 +100,9 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/third_party/widevine/CENC3x/widevine3x.inc
 endif
 CFLAGS += -DENABLE_WIDEVINE_3x $(WIDEVINE3x_CFLAGS)
+ifeq ($(WIDEVINE_CDM_VERSION),3.1)
+CFLAGS += -DWV_CDM_V31
+endif
 ifeq ($(WIDEVINE_CDM_VERSION),3.2)
 CFLAGS += -DWV_CDM_V32
 endif
@@ -118,8 +121,38 @@ CFLAGS += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
 CFLAGS += $(addprefix -I, ${DIF_INCLUDES})
 CFLAGS += $(addprefix -D, ${BSAGELIB_DEFINES})
 
+LDFLAGS += $(COMMON_DRM_LDFLAGS)
+LDFLAGS += $(B_OPENSSL_LDFLAGS)
+LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
+           -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
+LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm$(PREBLT_LIB_SUFFIX)
+LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
+
+# Link settings for Widevine
+ifeq ($(WIDEVINE_SUPPORT),y)
+include $(BSEAV_TOP)/opensource/protobuf/protobuf.inc
+ifeq ($(SAGE_SUPPORT),y)
+LDFLAGS += -L$(NEXUS_BIN_DIR) -lwvcdm -loemcrypto_tl -lsrai
+else
+LDFLAGS += -L$(NEXUS_BIN_DIR) -lwvcdm -loemcrypto
+endif
+LDFLAGS += $(PROTOBUF_LDFLAGS) $(GTEST_LDFLAGS)
+endif
+
+# Link settings for Playready 2.5
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+PREBLT_LIB_SUFFIX := 64
+endif
+ifeq ($(SAGE_SUPPORT),y)
+#LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl
+LDFLAGS += -lplayreadypk$(PREBLT_LIB_SUFFIX)_host
+else
+LDFLAGS += -lplayreadypk
+endif
+
 # PlayreadyPK 3.0 is only supported with Sage
 ifeq ($(SAGE_SUPPORT), y)
+include $(BSEAV_TOP)/thirdparty/playready/3.0/prdy30_libdir.inc
 include $(BSEAV_TOP)/thirdparty/playready/http/prdyhttp.inc
 CFLAGS += -DUSE_PK_NAMESPACES=1
 CFLAGS += -DDRM_INCLUDE_PK_NAMESPACE_USING_STATEMENT=1
@@ -127,9 +160,13 @@ CFLAGS += -DMSDRM_PRDY30
 CFLAGS += -DDRM_BUILD_PROFILE=900
 CFLAGS += -DTARGET_LITTLE_ENDIAN=1
 CFLAGS += -DTARGET_SUPPORTS_UNALIGNED_DWORD_POINTERS=1
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+CFLAGS += -DDRM_64BIT_TARGET=1
+endif
 CFLAGS += -I${BSEAV_TOP}/lib/drmrootfs
 CFLAGS += -I${BSEAV_TOP}/thirdparty/playready/3.0/inc
 CFLAGS += $(addprefix -I, ${PRDY_HTTP_INCLUDES})
+LDFLAGS += -L$(BSEAV_TOP)/$(PRDY30_LIBDIR) -lplayready30pk
 LDFLAGS += ${PRDY_HTTP_LDFLAGS}
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
 CFLAGS += -DDRM_64BIT_TARGET=1 -D__arch64__
@@ -171,6 +208,9 @@ CFLAGS := $(filter-out -std=c89 -Wstrict-prototypes, $(CFLAGS))
 
 #allow long long & variadic macros
 CFLAGS += -Wno-long-long -Wno-variadic-macros
+
+#TODO: until the code is ready for C++14
+CXXFLAGS := $(CFLAGS) -std=c++98
 
 ############################################################################
 #
@@ -270,15 +310,15 @@ clean:
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 ${D_FOR_LIB_INSTALL}/%.so : ${END_OBJS}
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
-	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-Bdynamic
+	${CC} -shared -o $@ ${LDFLAGS} $^ -Wl,-Bdynamic
 else
 	$(Q_)echo [Linking shared library .... $@ ]
-	$(Q_)${CC} -shared -o $@ ${LDFLAGS} ${END_OBJS} -Wl,-dy
+	$(Q_)${CC} -shared -o $@ ${LDFLAGS} $^ -Wl,-dy
 endif
 
 ${D_FOR_LIB_INSTALL}/%.a : ${END_OBJS}
 	$(Q_)echo [Linking static library .... $@ ]
-	$(Q_)${AR} rc $@ ${END_OBJS}
+	$(Q_)${AR} rc $@ $^
 
 ${DIF_OBJ_ROOT}/%.o: %.c
 	$(Q_)echo [Compiling  with $(CC).... $< ]
@@ -286,7 +326,7 @@ ${DIF_OBJ_ROOT}/%.o: %.c
 
 ${DIF_OBJ_ROOT}/%.o: %.cpp
 	$(Q_)echo [Compiling  with $(CC).... $< ]
-	$(Q_)${CC} ${CFLAGS} -c -o $@ $<
+	$(Q_)${CC} ${CXXFLAGS} -c -o $@ $<
 
 idirs:
 	$(Q_)[ -d ${D_FOR_LIB_INSTALL} ] || mkdir -p ${D_FOR_LIB_INSTALL}

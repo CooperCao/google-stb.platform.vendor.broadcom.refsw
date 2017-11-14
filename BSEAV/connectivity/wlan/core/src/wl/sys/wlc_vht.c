@@ -2205,6 +2205,8 @@ wlc_vht_upd_rate_mcsmap(wlc_vht_info_t *vhti, struct scb *scb)
 		cubby_info->rxmcsmap = rxmcsmap;
 	}
 
+	BCM_REFERENCE(cfg);
+
 	wlc_vht_upd_rate_mcsmap_ex(vhti, scb, rxmcsmap);
 	wlc_vht_upd_rate_mcsmap_prop_ex(vhti, scb, rxmcsmap);
 

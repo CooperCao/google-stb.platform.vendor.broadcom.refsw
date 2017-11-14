@@ -139,16 +139,12 @@ Input:
 	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
 	stVideoSettings - pointer to hold the current video setting configuration
 
-
-Returns:
-	BERR_SUCCESS
-
 See Also
 	o BHDM_SetBitsPerPixel
 	o BHDM_Video_Settings
 	o BHDM_SetVideoSettings
 *******************************************************************************/
-BERR_Code BHDM_GetVideoSettings(
+void BHDM_GetVideoSettings(
    BHDM_Handle hHDMI,		   /* [in] HDMI handle */
    BHDM_Video_Settings *stVideoSettings /* [out] color depth setting returns */
 ) ;

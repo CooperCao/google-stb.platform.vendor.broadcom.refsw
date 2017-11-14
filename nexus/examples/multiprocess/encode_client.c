@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -240,7 +240,7 @@ int main(int argc, char **argv)  {
 
     while (streamTotal < 10*1024*1024) {
         const void *dataBuffer, *indexBuffer;
-        unsigned dataSize, indexSize;
+        size_t dataSize, indexSize;
         rc = NEXUS_Recpump_GetDataBuffer(recpump, &dataBuffer, &dataSize);
         BDBG_ASSERT(!rc);
         rc = NEXUS_Recpump_GetIndexBuffer(recpump, &indexBuffer, &indexSize);

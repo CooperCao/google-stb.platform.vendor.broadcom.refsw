@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,7 +40,7 @@
 #define BV3D_BIN_MEM_PRIV__H
 
 #include "bv3d.h"
- 
+
 /* Bin memory should be 256byte aligned */
 #define BV3D_BIN_MEM_ALIGN_POW2  (8)
 

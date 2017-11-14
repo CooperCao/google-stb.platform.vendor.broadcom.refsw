@@ -271,6 +271,8 @@ struct nxserver_cmdline_settings
         unsigned dacBandGapAdjust;
         bool dacDetection;
         bool allowCgmsB;
+        bool allowTeletext;
+        bool tteShiftDirMsb2Lsb;
     } video;
     struct {
         unsigned userId, groupId; /* drop to this user and group id after connecting to driver */
@@ -419,6 +421,8 @@ int nxserver_parse_password_file(nxserver_t server, const char *filename);
 /* nxclient_socket.c, can be overridden */
 int b_nxclient_client_connect(void);
 int b_nxclient_socket_listen(void);
+int b_nxclient_socket_accept(int listen_fd);
+int b_nxclient_get_client_pid(int client_fd, unsigned *pid);
 
 bool nxserver_is_standby(nxserver_t server);
 

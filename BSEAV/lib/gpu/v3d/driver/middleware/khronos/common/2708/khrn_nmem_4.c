@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Fixed-size non-relocatable block allocator
-
-FILE DESCRIPTION
-Implementation.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/common/2708/khrn_nmem_4.h"
 #include "interface/vcos/vcos.h"
@@ -97,7 +89,7 @@ static void *alloc_block(MEM_LOCK_T *lbh)
    }
 
    b = mem_alloc(MEM_LEGACY_BLOCK_SIZE, MEM_LEGACY_BLOCK_ALIGN, (MEM_FLAG_T)(MEM_FLAG_DIRECT | MEM_FLAG_NO_INIT), "legacy_block");
-   if (b == MEM_INVALID_HANDLE)
+   if (b == MEM_HANDLE_INVALID)
       return NULL;
 
    p = mem_lock(b, lbh);
@@ -153,7 +145,7 @@ static void free_block(void *p)
    */
 
    for (i = 0; !p_in(p, legacy_blocks[i].p, blocks_per_legacy_block * KHRN_NMEM_BLOCK_SIZE); ++i) {
-      vcos_assert(i != LEGACY_BLOCKS_N_MAX); /* p not found in any legacy blocks! */
+      assert(i != LEGACY_BLOCKS_N_MAX); /* p not found in any legacy blocks! */
    }
 
    /*
@@ -224,7 +216,7 @@ static void free_group_count(KHRN_NMEM_GROUP_BLOCK_T *block, bool throttle,
       free_count(block, throttle);
       --n;
    }
-   vcos_assert(n == 0);
+   assert(n == 0);
 }
 
 /* call with mutex acquired */
@@ -256,7 +248,7 @@ static void update_throttle_limit(void)
 static void advance_exit_pos(uint32_t pos)
 {
    UNUSED(pos);
-   vcos_assert(exit_pos == pos);
+   assert(exit_pos == pos);
    ++exit_pos;
 }
 
@@ -318,18 +310,18 @@ void khrn_nmem_term(void)
       legacy_blocks[0].p = NULL;
    }
 
-   vcos_assert(!legacy_blocks[0].p);
+   assert(!legacy_blocks[0].p);
 
-   vcos_assert((throttle_limit >= THROTTLE_LIMIT_MIN) && (throttle_limit <= THROTTLE_LIMIT_MAX));
-   vcos_assert(throttle_alloced_n == 0);
-   vcos_assert(alloced_n == 0);
-   vcos_assert(reserved_n == 0);
+   assert((throttle_limit >= THROTTLE_LIMIT_MIN) && (throttle_limit <= THROTTLE_LIMIT_MAX));
+   assert(throttle_alloced_n == 0);
+   assert(alloced_n == 0);
+   assert(reserved_n == 0);
 
-   vcos_assert(enter_pos == exit_pos);
+   assert(enter_pos == exit_pos);
 
 #ifndef NDEBUG
    for (i = 0; i != CALLBACKS_N; ++i) {
-      vcos_assert(!callbacks[i].callback);
+      assert(!callbacks[i].callback);
    }
 #endif
 
@@ -369,8 +361,8 @@ void khrn_nmem_unregister(KHRN_NMEM_CALLBACK_T callback, void *p)
 void khrn_nmem_reserve(int32_t adjustment)
 {
    reserved_n += adjustment;
-   vcos_assert((int32_t)reserved_n >= 0);
-   vcos_assert(reserved_n < LIMIT);
+   assert((int32_t)reserved_n >= 0);
+   assert(reserved_n < LIMIT);
 }
 
 uint32_t khrn_nmem_enter(void)

@@ -46,140 +46,140 @@ extern "C" {
 #include "bstd.h"
 #include "bmth_fix.h"
 
-
+#define BMTH_DATA_DIMENSION 4
 /***************************************************************************
 Structures:
 ***************************************************************************/
 typedef struct BMTH_FIX_Matrix
 {
-	uint32_t data[4][4];
-	uint32_t ulSize;
-	uint32_t ulFractBits;
+    uint32_t data[BMTH_DATA_DIMENSION][BMTH_DATA_DIMENSION];
+    uint32_t ulSize;
+    uint32_t ulFractBits;
 } BMTH_FIX_Matrix;
 
 typedef struct BMTH_FIX_Vector
 {
-	uint32_t data[4];
-	uint32_t ulSize;
-	uint32_t ulFractBits;
+    uint32_t data[BMTH_DATA_DIMENSION];
+    uint32_t ulSize;
+    uint32_t ulFractBits;
 } BMTH_FIX_Vector;
 
 typedef struct BMTH_FIX_Matrix_64
 {
-	uint64_t data[4][4];
-	uint32_t ulSize;
-	uint32_t ulFractBits;
+    uint64_t data[BMTH_DATA_DIMENSION][BMTH_DATA_DIMENSION];
+    uint32_t ulSize;
+    uint32_t ulFractBits;
 } BMTH_FIX_Matrix_64;
 
 typedef struct BMTH_FIX_Vector_64
 {
-	uint64_t data[4];
-	uint32_t ulSize;
-	uint32_t ulFractBits;
+    uint64_t data[BMTH_DATA_DIMENSION];
+    uint32_t ulSize;
+    uint32_t ulFractBits;
 } BMTH_FIX_Vector_64;
 
 /***************************************************************************
 Summary:
-	Takes two matrices and multiplies them together.  Result is a matrix
-	with the same size and fixed point fractional bits.  Currently only
-	supports matrices of same size.
+    Takes two matrices and multiplies them together.  Result is a matrix
+    with the same size and fixed point fractional bits.  Currently only
+    supports matrices of same size.
 ***************************************************************************/
 void BMTH_FIX_Matrix_Mult_isrsafe
-	( BMTH_FIX_Matrix                           *pMatrix1,
-	  BMTH_FIX_Matrix                           *pMatrix2,
-	  BMTH_FIX_Matrix                           *pRetMatrix);
+    ( BMTH_FIX_Matrix                           *pMatrix1,
+      BMTH_FIX_Matrix                           *pMatrix2,
+      BMTH_FIX_Matrix                           *pRetMatrix);
 
 #define BMTH_FIX_Matrix_Mult(pMatrix1, pMatrix2, pRetMatrix)   \
-	BMTH_FIX_Matrix_Mult_isrsafe(pMatrix1, pMatrix2, pRetMatrix)
+    BMTH_FIX_Matrix_Mult_isrsafe(pMatrix1, pMatrix2, pRetMatrix)
 
 /***************************************************************************
 Summary:
-	Multiplies a Matrix with a Vector.  Result is a vector with the same
-	size as the original vector and same fixed point fractional bits.
+    Multiplies a Matrix with a Vector.  Result is a vector with the same
+    size as the original vector and same fixed point fractional bits.
 ***************************************************************************/
 void BMTH_FIX_Matrix_MultVector_isrsafe
-	( BMTH_FIX_Matrix                           *pMatrix,
-	  BMTH_FIX_Vector                           *pVector,
-	  BMTH_FIX_Vector                           *pRetVector);
+    ( BMTH_FIX_Matrix                           *pMatrix,
+      BMTH_FIX_Vector                           *pVector,
+      BMTH_FIX_Vector                           *pRetVector);
 
 #define BMTH_FIX_Matrix_MultVector(pMatrix, pVector, pRetVector)   \
-	BMTH_FIX_Matrix_MultVector_isrsafe(pMatrix, pVector, pRetVector)
+    BMTH_FIX_Matrix_MultVector_isrsafe(pMatrix, pVector, pRetVector)
 
 
 void BMTH_FIX_Matrix_MultVector_64_isrsafe
-	( BMTH_FIX_Matrix_64                        *pMatrix,
-	  BMTH_FIX_Vector_64                        *pVector,
-	  BMTH_FIX_Vector_64                        *pRetVector);
+    ( BMTH_FIX_Matrix_64                        *pMatrix,
+      BMTH_FIX_Vector_64                        *pVector,
+      BMTH_FIX_Vector_64                        *pRetVector);
 
 #define BMTH_FIX_Matrix_MultVector_64(pMatrix, pVector, pRetVector)   \
-	BMTH_FIX_Matrix_MultVector_64_isrsafe(pMatrix, pVector, pRetVector)
+    BMTH_FIX_Matrix_MultVector_64_isrsafe(pMatrix, pVector, pRetVector)
 
 /***************************************************************************
 Summary:
-	Takes a 3x3 matrix and converts it to a 4x4 matrix.
+    Takes a 3x3 matrix and converts it to a 4x4 matrix.
 ***************************************************************************/
 void BMTH_FIX_Matrix_Make4x4_isrsafe
-	( BMTH_FIX_Matrix                           *pMatrix,
-	  BMTH_FIX_Matrix                           *pRetMatrix);
+    ( BMTH_FIX_Matrix                           *pMatrix,
+      BMTH_FIX_Matrix                           *pRetMatrix);
 
 #define BMTH_FIX_Matrix_Make4x4(pMatrix, pRetMatrix)   \
-	BMTH_FIX_Matrix_Make4x4_isrsafe(pMatrix, pRetMatrix)
+    BMTH_FIX_Matrix_Make4x4_isrsafe(pMatrix, pRetMatrix)
 
 /***************************************************************************
 Summary:
-	Transposes a matrix.
+    Transposes a matrix.
 ***************************************************************************/
 void BMTH_FIX_Matrix_Transpose_isrsafe
-	( BMTH_FIX_Matrix                           *pMatrix,
-	  BMTH_FIX_Matrix                           *pRetMatrix);
+    ( BMTH_FIX_Matrix                           *pMatrix,
+      BMTH_FIX_Matrix                           *pRetMatrix);
 
 #define BMTH_FIX_Matrix_Transpose(pMatrix, pRetMatrix)   \
-	BMTH_FIX_Matrix_Transpose_isrsafe(pMatrix, pRetMatrix)
+    BMTH_FIX_Matrix_Transpose_isrsafe(pMatrix, pRetMatrix)
 
 /***************************************************************************
 Summary:
-	Calculates the inverse matrix.
+    Calculates the inverse matrix.
 ***************************************************************************/
 void BMTH_FIX_Matrix_Inverse_isrsafe
-	( BMTH_FIX_Matrix                           *pMatrix,
-	  BMTH_FIX_Matrix                           *pRetMatrix);
+    ( BMTH_FIX_Matrix                           *pMatrix,
+      BMTH_FIX_Matrix                           *pRetMatrix);
 
 #define BMTH_FIX_Matrix_Inverse(pMatrix, pRetMatrix)   \
-	BMTH_FIX_Matrix_Inverse_isrsafe(pMatrix, pRetMatrix)
+    BMTH_FIX_Matrix_Inverse_isrsafe(pMatrix, pRetMatrix)
 
 /***************************************************************************
 Summary:
-	Calculates the determinant of a matrix.  If cofactor matrix is present,
-	precaculated cofactors from the table are used.
+    Calculates the determinant of a matrix.  If cofactor matrix is present,
+    precaculated cofactors from the table are used.
 ***************************************************************************/
 uint32_t BMTH_FIX_Matrix_Determinant_isrsafe
-	( BMTH_FIX_Matrix                           *pMatrix,
-	  BMTH_FIX_Matrix                           *pCofactors);
+    ( BMTH_FIX_Matrix                           *pMatrix,
+      BMTH_FIX_Matrix                           *pCofactors);
 
 #define BMTH_FIX_Matrix_Determinant(pMatrix, pCofactors)   \
-	BMTH_FIX_Matrix_Determinant_isrsafe(pMatrix, pCofactors)
+    BMTH_FIX_Matrix_Determinant_isrsafe(pMatrix, pCofactors)
 
 /***************************************************************************
 Summary:
-	Multiplies a matrix by a scalar.
+    Multiplies a matrix by a scalar.
 ***************************************************************************/
 void BMTH_FIX_Matrix_MultScalar_isrsafe
-	( BMTH_FIX_Matrix                           *pMatrix,
-	  uint32_t                                   ulScalar,
-	  BMTH_FIX_Matrix                           *pRetMatrix);
+    ( BMTH_FIX_Matrix                           *pMatrix,
+      uint32_t                                   ulScalar,
+      BMTH_FIX_Matrix                           *pRetMatrix);
 
 #define BMTH_FIX_Matrix_MultScalar(pMatrix, ulScalar, pRetMatrix)   \
-	BMTH_FIX_Matrix_MultScalar_isrsafe(pMatrix, ulScalar, pRetMatrix)
+    BMTH_FIX_Matrix_MultScalar_isrsafe(pMatrix, ulScalar, pRetMatrix)
 
 /***************************************************************************
 Summary:
-	Prints a matrix.
+    Prints a matrix.
 ***************************************************************************/
 void BMTH_FIX_Matrix_Dump_isrsafe
-	( BMTH_FIX_Matrix                           *pMatrix);
+    ( BMTH_FIX_Matrix                           *pMatrix);
 
 #define BMTH_FIX_Matrix_Dump(pMatrix)   \
-	BMTH_FIX_Matrix_Dump_isrsafe(pMatrix)
+    BMTH_FIX_Matrix_Dump_isrsafe(pMatrix)
 
 #ifdef __cplusplus
 }

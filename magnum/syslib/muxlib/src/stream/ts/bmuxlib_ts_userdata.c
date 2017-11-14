@@ -887,7 +887,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
 
                         if (BMUXlib_TS_P_DataType_eCDB == pUserdata->aSegments[uiSegment].eDataType)
                         {
-                           BDBG_MODULE_MSG(BMUXLIB_TS_UD_SCHED, ("Adding Segment[%d]: %d bytes from CDB @ offset: "BDBG_UINT64_FMT, uiSegment, pUserdata->aSegments[uiSegment].uiLength, BDBG_UINT64_ARG((uint64_t)pUserdata->aSegments[uiSegment].uiOffset)));
+                           BDBG_MODULE_MSG(BMUXLIB_TS_UD_SCHED, ("Adding Segment[%d]: %d bytes from CDB @ offset: %#x", uiSegment, pUserdata->aSegments[uiSegment].uiLength, pUserdata->aSegments[uiSegment].uiOffset));
                         }
                         else
                         {

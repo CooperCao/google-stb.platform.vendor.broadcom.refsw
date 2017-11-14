@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,7 +71,7 @@ typedef BERR_Code (*BVBI_P_P656_AncilParser) (
 * Forward declarations of static (private) functions
 ***************************************************************************/
 
-static BVBI_P_SupportedVideo BVBI_P_PALorNTSC_isr (BFMT_VideoFmt eVideoFormat);
+static BVBI_P_SupportedVideo BVBI_P_PALorNTSC_isrsafe (BFMT_VideoFmt eVideoFormat);
 
 static BERR_Code BVBI_P_P656_Alloc   (
     BMMA_Heap_Handle hMmaHeap, BVBI_P_MmaData* pHmmaData, size_t nBytes);
@@ -264,7 +264,7 @@ BERR_Code BVBI_P_P656_Process_Data_isr (
     currLength = pVbi_Dec->pVbi->in656bufferSize;
 
     /* Determine if PAL or NTSC (for teletext, mostly). */
-    switch (BVBI_P_PALorNTSC_isr (pVbi_Dec->curr.eVideoFormat))
+    switch (BVBI_P_PALorNTSC_isrsafe (pVbi_Dec->curr.eVideoFormat))
     {
     case BVBI_P_SupportedVideo_NTSC:
         isPal = false;
@@ -550,7 +550,7 @@ static BERR_Code BVBI_P_P656_SAA7113Parser (
     pktInfo->vbiType = payloadType[vbiType];
 
     /* Check for conflict with video standard (PAL vs NTSC) */
-    if (videoType[vbiType] != BVBI_P_PALorNTSC_isr (eVideoFormat))
+    if (videoType[vbiType] != BVBI_P_PALorNTSC_isrsafe (eVideoFormat))
     {
         *packetLength = currData - rawData;
         eErr = BVBI_ERR_656_PARSE;
@@ -785,7 +785,7 @@ static BERR_Code BVBI_P_P656_SAA7114Parser (
     pktInfo->vbiType = payloadType[vbiType];
 
     /* Check for conflict with video standard (PAL vs NTSC) */
-    if (videoType[vbiType] != BVBI_P_PALorNTSC_isr (eVideoFormat))
+    if (videoType[vbiType] != BVBI_P_PALorNTSC_isrsafe (eVideoFormat))
     {
         *packetLength = currData - rawData;
         return BERR_TRACE (BVBI_ERR_656_PARSE);
@@ -1035,7 +1035,7 @@ BERR_Code BVBI_Decode_656_SMPTE291MbrcmCb_isr (
     BSTD_UNUSED (second_id);
 
     /* PAL or NTSC? */
-    switch (BVBI_P_PALorNTSC_isr (eVideoFormat))
+    switch (BVBI_P_PALorNTSC_isrsafe (eVideoFormat))
     {
     case BVBI_P_SupportedVideo_PAL:
         isPal = true;
@@ -1309,7 +1309,7 @@ static BERR_Code P_CheckEE11 (uint8_t dataByte, uint8_t* payload)
 /***************************************************************************
  *
  */
-static BVBI_P_SupportedVideo BVBI_P_PALorNTSC_isr (BFMT_VideoFmt eVideoFormat)
+static BVBI_P_SupportedVideo BVBI_P_PALorNTSC_isrsafe (BFMT_VideoFmt eVideoFormat)
 {
     BVBI_P_SupportedVideo retval;
 

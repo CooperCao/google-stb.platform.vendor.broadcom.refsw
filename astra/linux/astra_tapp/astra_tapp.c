@@ -565,7 +565,7 @@ static int astra_tapp_msg_hello(void)
     }
 
     /* switch to TZOS */
-    astra_call_smc(ptapp->hClient, 0x83000007);
+    astra_call_smc(ptapp->hClient, ASTRA_SMC_CODE_SWITCH);
 
     /* wait for rpy or timeout */
     timeout = 10;
@@ -663,7 +663,7 @@ static int astra_tapp_mem_alloc(void)
             pthread_mutex_unlock(&ptapp->msgLock);
 
             /* switch to TZOS */
-            astra_call_smc(ptapp->hClient, 0x83000007);
+            astra_call_smc(ptapp->hClient, ASTRA_SMC_CODE_SWITCH);
 
             /* wait for rpy or timeout */
             timeout = 10;

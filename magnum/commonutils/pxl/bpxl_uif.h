@@ -53,7 +53,6 @@ extern "C" {
 #define BPXL_UIF_BLOCKSIZE                     256
 /* Width of UIF column in UIF-blocks */
 #define BPXL_UIF_COL_WIDTH_IN_BLOCK            4
-#define BPXL_UIF_BLOCKPERROW                   (BPXL_UIF_BLOCKSIZE*BPXL_UIF_COL_WIDTH_IN_BLOCK)
 #define BPXL_UIF_MAX_MIP_LEVELS                 15
 
 
@@ -68,6 +67,16 @@ extern "C" {
 #define BPXL_UIF_UB_W_IN_BLOCKS_2D   (BPXL_UIF_UT_W_IN_BLOCKS_2D * 2)
 #define BPXL_UIF_UB_H_IN_BLOCKS_2D   (BPXL_UIF_UT_H_IN_BLOCKS_2D * 2)
 #define BPXL_UIF_UCOL_W_IN_BLOCKS_2D (BPXL_UIF_UB_W_IN_BLOCKS_2D * BPXL_UIF_COL_WIDTH_IN_BLOCK)
+
+/* Enforce a minimum width and height in order to:
+ * - avoid having to deal with small sizes that would normally trigger
+ *	 ub-linear or linear-tile sub-formats, both when using the standard
+ *	 M2MC or the mipmap variant for non-mipmapped surfaces.
+ * - avoid some UIF corner cases when the width is between 17 and 32
+ *	 pixels, where the padding calculated by BPXL_Uif_SurfaceCfg while
+ *	 not wrong is not what the V3D drvier ends up using for textures.
+ */
+#define BPXL_UIF_MINSURFACE          (BPXL_UIF_UCOL_W_IN_BLOCKS_2D*2)
 
 /* need to mapping different value to grc according to the register definition */
 typedef enum BPXL_Uif_Swizzling

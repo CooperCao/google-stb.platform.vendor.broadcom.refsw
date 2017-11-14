@@ -618,7 +618,7 @@ ElfImage * ElfImage::loadElf(int procId, IFile *exeFile, IDirectory *exeDir) {
      */
     if(image->LinkFlag == true) {
         /* Now Delete the elf Image object */
-        printf("\n Dynamically linked Elf image");
+        printf("\n Dynamically linked Elf image\n");
         delete image;
         image = (ElfImage *)NULL;
 
@@ -648,7 +648,7 @@ ElfImage * ElfImage::loadElf(int procId, IFile *exeFile, IDirectory *exeDir) {
         }
     }
     else {
-        printf("\n Statically linked Elf image");
+        printf("\n Statically linked Elf image\n");
     }
 
     return image;

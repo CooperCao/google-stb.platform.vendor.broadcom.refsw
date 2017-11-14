@@ -144,4 +144,4 @@ $(BINDIR)/%.o: %.c
 	${Q_}$(CC) -c -o $@ $(filter %.c %.s %.o, $<) ${CFLAGS}
 
 clean:
-	$(RM) -r $(IPC_LIB) $(IPC_LIB_STATIC) $(LOCAL_LIB) $(BINDIR)/libnxclient.map $(BINDIR)/*.o $(BINDIR)/stubs
+	$(RM) -r $(IPC_LIB) $(IPC_LIB_STATIC) $(LOCAL_LIB) $(BINDIR)/libnxclient.map $(BINDIR)/*.o $(BINDIR)/stubs $(NXCLIENT_MODE_CHECK)

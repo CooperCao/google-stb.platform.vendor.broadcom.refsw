@@ -40,9 +40,49 @@
 
 #include "bdsp_raaga_priv_include.h"
 
+BERR_Code BDSP_Raaga_P_InterTaskBuffer_Create(
+	void *pContextHandle,
+	BDSP_DataType dataType,
+	BDSP_BufferType bufferType,
+	BDSP_InterTaskBufferHandle *pInterTaskBufferHandle
+);
+void BDSP_Raaga_P_InterTaskBuffer_Destroy(
+	void *pInterTaskBufferHandle
+);
+void BDSP_Raaga_P_InterTaskBuffer_Flush(
+	void *pInterTaskBufferHandle
+);
+
+BERR_Code BDSP_Raaga_P_GetDefaultCreateQueueSettings(
+	void                     *pContextHandle,
+	BDSP_QueueCreateSettings *pSettings
+);
+BERR_Code BDSP_Raaga_P_Queue_Create(
+	void 					 *pContextHandle,
+	unsigned 				  dspIndex,
+	BDSP_QueueCreateSettings *pSettings,
+	BDSP_QueueHandle 		 *pQueueHandle
+);
+void BDSP_Raaga_P_Queue_Destroy(
+	void *pQueueHandle
+);
+void BDSP_Raaga_P_Queue_Flush(
+	void *pQueueHandle
+);
 BERR_Code BDSP_Raaga_P_AddRaveInput(
 	void *pStageHandle,
 	const BAVC_XptContextMap *pContextMap,
+	unsigned *pInputIndex
+);
+BERR_Code BDSP_Raaga_P_AddRaveOutput(
+	void *pStageHandle,
+	const BAVC_XptContextMap *pContextMap,
+	unsigned *pOutputIndex
+);
+BERR_Code BDSP_Raaga_P_AddFmmInput(
+	void *pStageHandle,
+	BDSP_DataType dataType,
+	const BDSP_FmmBufferDescriptor *pDescriptor,
 	unsigned *pInputIndex
 );
 BERR_Code BDSP_Raaga_P_AddFmmOutput(
@@ -50,6 +90,30 @@ BERR_Code BDSP_Raaga_P_AddFmmOutput(
 	BDSP_DataType dataType,
 	const BDSP_FmmBufferDescriptor *pDescriptor,
 	unsigned *pOutputIndex
+);
+BERR_Code BDSP_Raaga_P_AddInterTaskBufferInput(
+	void *pStageHandle,
+	BDSP_DataType dataType,
+	const BDSP_InterTaskBuffer *pBufferHandle,
+	unsigned *pInputIndex
+);
+BERR_Code BDSP_Raaga_P_AddInterTaskBufferOutput(
+	void *pStageHandle,
+	BDSP_DataType dataType,
+	const BDSP_InterTaskBuffer *pBufferHandle,
+	unsigned *pOutputIndex
+);
+#if !B_REFSW_MINIMAL
+BERR_Code BDSP_Raaga_P_AddQueueInput(
+	void     *pStageHandle,
+	void     *pQueueHandle,
+	unsigned *pInputIndex /* [out] */
+);
+#endif /*!B_REFSW_MINIMAL*/
+BERR_Code BDSP_Raaga_P_AddQueueOutput(
+	void     *pStageHandle,
+	void     *pQueueHandle,
+	unsigned *pOutputIndex /* [out] */
 );
 BERR_Code BDSP_Raaga_P_AddOutputStage(
 	void *pSrcStageHandle,
@@ -71,5 +135,26 @@ void BDSP_Raaga_P_RemoveOutput(
 );
 void BDSP_Raaga_P_RemoveAllOutputs(
 	void *pStageHandle
+);
+void BDSP_Raaga_P_Queue_GetIoBuffer(
+	void *pQueueHandle,
+	BDSP_AF_P_sIO_BUFFER *pBuffer /*[out]*/
+);
+BERR_Code BDSP_Raaga_P_Queue_GetBuffer(
+	void                  *pQueueHandle,
+	BDSP_BufferDescriptor *pDescriptor /*[out] */
+);
+BERR_Code BDSP_Raaga_P_Queue_CommitData(
+	void  *pQueueHandle,
+	size_t bytesWritten
+);
+BERR_Code BDSP_Raaga_P_Queue_ConsumeData(
+	void  *pQueueHandle,
+	size_t readBytes
+);
+BERR_Code BDSP_Raaga_P_Queue_GetBufferAddr(
+    void    *pQueueHandle,
+    unsigned numbuffers,
+    void    *pBuffer /*[out] */
 );
 #endif /*BDSP_RAAGA_IO_PRIV_H_*/

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Parallel execution utilities
-
-FILE DESCRIPTION
-Miscellaneous parallel utility functions.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_parallel.h"
 #include "interface/vcos/vcos.h"
@@ -16,6 +8,7 @@ Miscellaneous parallel utility functions.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #ifndef WIN32
 #include <sys/syscall.h>
@@ -275,7 +268,7 @@ void khrn_term_thread_pool(void)
    {
       JOB_T *job = &s_workers[t].job;
 
-      vcos_assert(s_workers[t].status == IDLE);
+      assert(s_workers[t].status == IDLE);
 
       job->jobType = TERMINATE;
       job->jobStatus = PENDING;
@@ -326,7 +319,7 @@ void *khrn_par_memcpy(void *destination, const void *source, size_t num)
       {
          JOB_T *job = &s_workers[t].job;
 
-         vcos_assert(s_workers[t].status == IDLE);
+         assert(s_workers[t].status == IDLE);
 
          job->jobType = MEMCPY;
          job->jobStatus = PENDING;
@@ -369,7 +362,7 @@ void *khrn_par_memset(void *ptr, int val, size_t num)
       {
          JOB_T *job = &s_workers[t].job;
 
-         vcos_assert(s_workers[t].status == IDLE);
+         assert(s_workers[t].status == IDLE);
 
          job->jobType = MEMSET;
          job->jobStatus = PENDING;
@@ -416,7 +409,7 @@ int khrn_par_memcmp(const void *ptr1, const void *ptr2, size_t num)
       {
          JOB_T *job = &s_workers[t].job;
 
-         vcos_assert(s_workers[t].status == IDLE);
+         assert(s_workers[t].status == IDLE);
 
          job->jobType = MEMCMP;
          job->jobStatus = PENDING;
@@ -471,7 +464,7 @@ bool khrn_par_server_job(ABSTRACT_SERVER_FUNC_T func, void *opaqueArgs)
    {
       JOB_T *job = &s_workers[t].job;
 
-      vcos_assert(s_workers[t].status == IDLE);
+      assert(s_workers[t].status == IDLE);
 
       job->jobType = ABSTRACT_SERVER_JOB;
       job->jobStatus = PENDING;

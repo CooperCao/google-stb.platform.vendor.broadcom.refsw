@@ -370,19 +370,20 @@ static BIP_Status BIP_HttpHeader_Destroy_locked(
     )
 {
     BIP_Status               rc = BIP_SUCCESS;
-    BIP_HttpHeaderListHandle hList;
 
     BDBG_OBJECT_ASSERT( hHeader, BIP_HttpHeader );
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Entry..." BIP_MSG_PRE_ARG, (void *)hHeader ));
 
-    hList = hHeader->hList;
-    BDBG_ASSERT( hList );
-    B_MUTEX_ASSERT_LOCKED( hList->hMutex );
-
     /* Remove ourself from the HeaderList. */
     if (hHeader->hList)
     {
+        BIP_HttpHeaderListHandle hList;
+
+        hList = hHeader->hList;
+        BDBG_ASSERT( hList );
+        B_MUTEX_ASSERT_LOCKED( hList->hMutex );
+
         BLST_Q_REMOVE( &hHeader->hList->headerListHead, hHeader, headerListNext );
     }
 

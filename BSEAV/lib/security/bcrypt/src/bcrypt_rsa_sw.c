@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  **************************************************************************/
 
 #include <stdio.h>
@@ -107,7 +106,7 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_SubjectPublicKeyInfo(BCRYPT_Handle  hBcry
     res = BCrypt_ASN1DerDecode(hBcrypt, (const unsigned char **)&pBuf, len, (unsigned char **)&pDecoded,&lengthDecoded);
     if(res != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s:Error in ASN1 parsing",__FUNCTION__));
+        BDBG_ERR(("%s:Error in ASN1 parsing",BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -167,20 +166,20 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_PrivateKeyInfo(BCRYPT_Handle  hBcrypt,
         case NID_rsaEncryption:
         if (!(priv_rsa = d2i_RSAPrivateKey (NULL, &p, pkeylen)))
         {
-            BDBG_ERR(("%s %d d2i_RSAPrivateKey() failed ",__FUNCTION__, __LINE__));
+            BDBG_ERR(("%s %d d2i_RSAPrivateKey() failed ",BSTD_FUNCTION, __LINE__));
             errCode = BCRYPT_STATUS_eFAILED;
             goto ErrorExit;
         }
         break;
         default:
-            BDBG_ERR(("%s:Invalid algorithm",__FUNCTION__));
+            BDBG_ERR(("%s:Invalid algorithm",BSTD_FUNCTION));
             errCode = BCRYPT_STATUS_eFAILED;
             goto ErrorExit;
         break;
     }
 
     BDBG_MSG(("%s %d n %p e %p d %p data: n %p e %p d %p\n",
-        __FUNCTION__, __LINE__,
+        BSTD_FUNCTION, __LINE__,
         (void *)priv_rsa->n,(void *)priv_rsa->e,(void *)priv_rsa->d,
         (void *)pBcrypt_rsaSw->n.pData, (void *)pBcrypt_rsaSw->e.pData, (void *)pBcrypt_rsaSw->d.pData));
 
@@ -200,7 +199,7 @@ BCRYPT_STATUS_eCode BCrypt_RSASw (  BCRYPT_Handle  hBcrypt,
     RSA *key = NULL;
     int outDataLen;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
     BDBG_ENTER(BCrypt_RSASw);
     BDBG_ASSERT( hBcrypt );
     BCRYPT_P_CHECK_ERR_CODE_CONDITION( errCode, BCRYPT_STATUS_eFAILED, (hBcrypt->ulMagicNumber != BCRYPT_P_HANDLE_MAGIC_NUMBER ) );
@@ -211,13 +210,13 @@ BCRYPT_STATUS_eCode BCrypt_RSASw (  BCRYPT_Handle  hBcrypt,
 
     if (pInputParam->bRSAop == rsasign)
     {
-        BDBG_MSG(("%s - RSA sign operation specified", __FUNCTION__));
+        BDBG_MSG(("%s - RSA sign operation specified", BSTD_FUNCTION));
 
         BCrypt_RSASetPrivKey(key, pInputParam->key);
 
         if (strcmp(LN_sha1WithRSAEncryption, (const char*) pInputParam->psAlgorithmId) == 0)
         {
-             BDBG_MSG(("%s - regular sign + sha1 with encryption", __FUNCTION__));
+             BDBG_MSG(("%s - regular sign + sha1 with encryption", BSTD_FUNCTION));
              outDataLen = RSA_sign(NID_sha1WithRSAEncryption, pInputParam->pbDataIn, pInputParam->cbDataIn,
              pInputParam->pbDataOut, (unsigned int*) pInputParam->cbDataOut, key);
         }
@@ -225,13 +224,13 @@ BCRYPT_STATUS_eCode BCrypt_RSASw (  BCRYPT_Handle  hBcrypt,
         {
                  if (strcmp("RSA-SHA256", (const char*) pInputParam->psAlgorithmId) == 0)
                  {
-                    BDBG_MSG(("%s - regular sign + sha256 with encryption", __FUNCTION__));
+                    BDBG_MSG(("%s - regular sign + sha256 with encryption", BSTD_FUNCTION));
                     outDataLen = RSA_sign(NID_sha256, pInputParam->pbDataIn, pInputParam->cbDataIn,
                                     pInputParam->pbDataOut, (unsigned int*) pInputParam->cbDataOut, key);
                  }
                  else
                  {
-                   BDBG_MSG(("%s - regular sign + sha1 only", __FUNCTION__));
+                   BDBG_MSG(("%s - regular sign + sha1 only", BSTD_FUNCTION));
                    outDataLen = RSA_sign(NID_sha1, pInputParam->pbDataIn, pInputParam->cbDataIn,
                    pInputParam->pbDataOut, (unsigned int*) pInputParam->cbDataOut, key);
                  }
@@ -239,40 +238,40 @@ BCRYPT_STATUS_eCode BCrypt_RSASw (  BCRYPT_Handle  hBcrypt,
 
         if (outDataLen == 0)
         {
-               BDBG_ERR(("%s - RSA sign operation failed !!!", __FUNCTION__));
+               BDBG_ERR(("%s - RSA sign operation failed !!!", BSTD_FUNCTION));
             errCode = BCRYPT_STATUS_eFAILED;
         }
 
     }
     else if (pInputParam->bRSAop == rsasign_crt)
     {
-        BDBG_MSG(("%s - RSA sign operation specified (CRT)", __FUNCTION__));
+        BDBG_MSG(("%s - RSA sign operation specified (CRT)", BSTD_FUNCTION));
 
         BCrypt_RSASetKey_4CRT(key, pInputParam->key);
 
            if (strcmp(LN_sha1WithRSAEncryption, (const char*) pInputParam->psAlgorithmId) == 0)
         {
-               BDBG_MSG(("%s - CRT sign + sha1 with encryption", __FUNCTION__));
+               BDBG_MSG(("%s - CRT sign + sha1 with encryption", BSTD_FUNCTION));
             outDataLen = RSA_sign(NID_sha1WithRSAEncryption, pInputParam->pbDataIn, pInputParam->cbDataIn,
                                     pInputParam->pbDataOut, (unsigned int*) pInputParam->cbDataOut, key);
 
         }
         else
         {
-            BDBG_MSG(("%s - CRT sign + sha1 only", __FUNCTION__));
+            BDBG_MSG(("%s - CRT sign + sha1 only", BSTD_FUNCTION));
             outDataLen = RSA_sign(NID_sha1, pInputParam->pbDataIn, pInputParam->cbDataIn,
                               pInputParam->pbDataOut, (unsigned int*) pInputParam->cbDataOut, key);
         }
 
         if (outDataLen == 0)
         {
-            BDBG_ERR(("%s - RSA sign operation (CRT) failed !!!", __FUNCTION__));
+            BDBG_ERR(("%s - RSA sign operation (CRT) failed !!!", BSTD_FUNCTION));
             errCode = BCRYPT_STATUS_eFAILED;
         }
     }
     else if (pInputParam->bRSAop == rsaverify)
     {
-        BDBG_MSG(("%s - RSA verify operation specified", __FUNCTION__));
+        BDBG_MSG(("%s - RSA verify operation specified", BSTD_FUNCTION));
 
         BCrypt_RSASetEncodeKey(key, pInputParam->key);
 
@@ -285,36 +284,36 @@ BCRYPT_STATUS_eCode BCrypt_RSASw (  BCRYPT_Handle  hBcrypt,
         {
             if (strcmp("RSA-SHA256", (const char*) pInputParam->psAlgorithmId) == 0)
             {
-                BDBG_MSG(("%s - sha256 verification only", __FUNCTION__));
+                BDBG_MSG(("%s - sha256 verification only", BSTD_FUNCTION));
                 outDataLen = RSA_verify(NID_sha256, pInputParam->pbDataIn, pInputParam->cbDataIn, pInputParam->pbDataOut, *pInputParam->cbDataOut, key);
             }
             else
             {
-                BDBG_MSG(("%s - sha1 verification only", __FUNCTION__));
+                BDBG_MSG(("%s - sha1 verification only", BSTD_FUNCTION));
                 outDataLen = RSA_verify(NID_sha1, pInputParam->pbDataIn, pInputParam->cbDataIn,    pInputParam->pbDataOut, *pInputParam->cbDataOut, key);
             }
            }
 
         if (outDataLen == 0)
         {
-            BDBG_ERR(("%s - RSA verification operation FAILED !!!", __FUNCTION__));
+            BDBG_ERR(("%s - RSA verification operation FAILED !!!", BSTD_FUNCTION));
             errCode = BCRYPT_STATUS_eFAILED;
         }
         else
         {
-            BDBG_MSG(("%s - RSA verification operation SUCCESS !!!", __FUNCTION__));
+            BDBG_MSG(("%s - RSA verification operation SUCCESS !!!", BSTD_FUNCTION));
         }
     }
     else if (pInputParam->bRSAop == rsaenc)
     {
-        BDBG_MSG(("%s - RSA encryption operation specified", __FUNCTION__));
+        BDBG_MSG(("%s - RSA encryption operation specified", BSTD_FUNCTION));
 
         BCrypt_RSASetEncodeKey(key, pInputParam->key);
         outDataLen = RSA_public_encrypt(pInputParam->cbDataIn, pInputParam->pbDataIn,
                                         pInputParam->pbDataOut, key, pInputParam->bRSAPadType /*RSA_PKCS1_PADDING*/);
         if (outDataLen == -1)
         {
-            BDBG_ERR(("%s - RSA encryption operation failed !!!", __FUNCTION__));
+            BDBG_ERR(("%s - RSA encryption operation failed !!!", BSTD_FUNCTION));
             errCode = BCRYPT_STATUS_eFAILED;
         }
         else
@@ -324,7 +323,7 @@ BCRYPT_STATUS_eCode BCrypt_RSASw (  BCRYPT_Handle  hBcrypt,
     }
     else if (pInputParam->bRSAop == rsadec)
     {
-        BDBG_MSG(("%s - RSA decryption operation specified", __FUNCTION__));
+        BDBG_MSG(("%s - RSA decryption operation specified", BSTD_FUNCTION));
         BCrypt_RSASetPrivKey(key, pInputParam->key);
 
         /* Perform RSA data decryption */
@@ -333,7 +332,7 @@ BCRYPT_STATUS_eCode BCrypt_RSASw (  BCRYPT_Handle  hBcrypt,
                                         pInputParam->pbDataOut, key,pInputParam->bRSAPadType /* RSA_PKCS1_PADDING*/ /*RSA_PKCS1_OAEP_PADDING :vgd:commented for adobe . need to clean this up*/);
         if (outDataLen == -1)
         {
-            BDBG_ERR(("%s - RSA decryption operation failed !!!", __FUNCTION__));
+            BDBG_ERR(("%s - RSA decryption operation failed !!!", BSTD_FUNCTION));
             errCode = BCRYPT_STATUS_eFAILED;
         }
         else
@@ -351,7 +350,7 @@ BCRYPT_STATUS_eCode BCrypt_RSASw (  BCRYPT_Handle  hBcrypt,
                                         pInputParam->pbDataOut, key, RSA_PKCS1_OAEP_PADDING);
         if (outDataLen == -1)
         {
-            BDBG_ERR(("%s - RSA decryption failed (crt) !!!", __FUNCTION__));
+            BDBG_ERR(("%s - RSA decryption failed (crt) !!!", BSTD_FUNCTION));
             errCode = BCRYPT_STATUS_eFAILED;
         }
         else
@@ -361,7 +360,7 @@ BCRYPT_STATUS_eCode BCrypt_RSASw (  BCRYPT_Handle  hBcrypt,
     }
     else
     {
-        BDBG_ERR(("%s - Operation not supported (%u)", __FUNCTION__, pInputParam->bRSAop));
+        BDBG_ERR(("%s - Operation not supported (%u)", BSTD_FUNCTION, pInputParam->bRSAop));
         errCode = BCRYPT_STATUS_eFAILED;
     }
 
@@ -371,7 +370,7 @@ BCRYPT_P_DONE_LABEL:
         RSA_free(key);
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return( errCode );
 }
 
@@ -388,32 +387,32 @@ BCRYPT_STATUS_eCode BCrypt_RSA_CRT_CalculatePrivateExponent(RSA *rsaKey, BCRYPT_
     BIGNUM * mod_arg = NULL;
     BN_CTX *ctx = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     if(bcryptKey->p.pData == NULL || bcryptKey->p.len == 0)
     {
-        BDBG_ERR(("%s - Error, 'p' not provided", __FUNCTION__));
+        BDBG_ERR(("%s - Error, 'p' not provided", BSTD_FUNCTION));
         errCode = BCRYPT_STATUS_eFAILED;
         goto ErrorExit;
     }
 
     if(bcryptKey->q.pData == NULL || bcryptKey->q.len == 0)
     {
-        BDBG_ERR(("%s - Error, 'q' not provided", __FUNCTION__));
+        BDBG_ERR(("%s - Error, 'q' not provided", BSTD_FUNCTION));
         errCode = BCRYPT_STATUS_eFAILED;
         goto ErrorExit;
     }
 
     if(bcryptKey->e.pData == NULL || bcryptKey->e.len == 0)
     {
-        BDBG_ERR(("%s - Error, 'e' not provided", __FUNCTION__));
+        BDBG_ERR(("%s - Error, 'e' not provided", BSTD_FUNCTION));
         errCode = BCRYPT_STATUS_eFAILED;
         goto ErrorExit;
     }
 
     if ((ctx = BN_CTX_new()) == NULL)
     {
-        BDBG_ERR(("%s - Error creating context", __FUNCTION__));
+        BDBG_ERR(("%s - Error creating context", BSTD_FUNCTION));
         errCode = BCRYPT_STATUS_eFAILED;
         goto ErrorExit;
     }
@@ -429,7 +428,7 @@ BCRYPT_STATUS_eCode BCrypt_RSA_CRT_CalculatePrivateExponent(RSA *rsaKey, BCRYPT_
     if(BN_sub(result_p_minus_1, rsaKey->p, BN_value_one()) == 0)
     {
         errCode = BCRYPT_STATUS_eFAILED;
-        BDBG_ERR(("%s - Error subtracting", __FUNCTION__));
+        BDBG_ERR(("%s - Error subtracting", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -438,7 +437,7 @@ BCRYPT_STATUS_eCode BCrypt_RSA_CRT_CalculatePrivateExponent(RSA *rsaKey, BCRYPT_
     if(BN_mul(mod_arg, result_p_minus_1, result_q_minus_1, ctx) == 0)
     {
         errCode = BCRYPT_STATUS_eFAILED;
-        BDBG_ERR(("%s - Error multiplying", __FUNCTION__));
+        BDBG_ERR(("%s - Error multiplying", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -454,7 +453,7 @@ ErrorExit:
     BN_free(result_p_minus_1);
     BN_free(result_q_minus_1);
     BN_free(mod_arg);
-    BDBG_MSG(("%s -  Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s -  Exiting function", BSTD_FUNCTION));
     return errCode;
 }
 #endif

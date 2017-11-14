@@ -30,26 +30,39 @@ struct egl_window_surface
 
 static EGL_SURFACE_METHODS_T fns;
 
+static BEGL_BufferFormat get_begl_format(GFX_LFMT_T fmt)
+{
+   switch (fmt)
+   {
+   case GFX_LFMT_R8_G8_B8_A8_UNORM: return BEGL_BufferFormat_eA8B8G8R8;
+   case GFX_LFMT_R8_G8_B8_X8_UNORM:
+   case GFX_LFMT_R8_G8_B8_UNORM:    return BEGL_BufferFormat_eX8B8G8R8;
+   case GFX_LFMT_B5G6R5_UNORM:      return BEGL_BufferFormat_eR5G6B5;
+   case GFX_LFMT_A4B4G4R4_UNORM:    return BEGL_BufferFormat_eA4B4G4R4;
+   case GFX_LFMT_A1B5G5R5_UNORM:    return BEGL_BufferFormat_eA1B5G5R5;
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   case GFX_LFMT_BSTC_RGBA_UNORM:   return BEGL_BufferFormat_eBSTC;
+#endif
+   default:                         unreachable(); return BEGL_BufferFormat_INVALID;
+   }
+}
+
 static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
 {
-   int                           fence = -1;
-   BEGL_DisplayInterface         *platform = &g_bcgPlatformData.displayInterface;
-   BEGL_BufferFormat             format, actualFormat;
-   GFX_LFMT_T                    gfx_format;
+   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
 
    /* What color format does the config request? */
-   GFX_LFMT_T color_format = egl_config_colorformat(surf->base.config,
-      surf->base.colorspace,
-      surf->base.alpha_format);
-   actualFormat = format = get_begl_format_abstract(color_format);
+   BEGL_BufferFormat format = get_begl_format(surf->base.config->color_api_fmt);
 
    /* Get our initial buffer */
+   int fence = -1;
    assert(platform->GetNextSurface);
    if (platform->GetNextSurface(platform->context, surf->native_window_state, format,
-                                &actualFormat, &surf->native_back_buffer, surf->base.secure, &fence) != BEGL_Success)
+                                &format, &surf->native_back_buffer, surf->base.secure, &fence) != BEGL_Success)
       return EGL_RES_BAD_NATIVE_WINDOW;
 
-   surf->active_image = image_from_surface_abstract(surf->native_back_buffer, true);
+   unsigned num_mip_levels;
+   surf->active_image = image_from_surface_abstract(surf->native_back_buffer, true, &num_mip_levels);
 
    if (surf->active_image == NULL)
    {
@@ -60,7 +73,7 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
    }
 
    /* window surfaces need to be renderable */
-   gfx_format = khrn_image_get_lfmt(surf->active_image, 0);
+   GFX_LFMT_T gfx_format = khrn_image_get_lfmt(surf->active_image, 0);
    if (!egl_can_render_format(gfx_format))
    {
       platform->CancelSurface(platform->context, surf->native_window_state,
@@ -209,7 +222,7 @@ static void delete_fn(EGL_SURFACE_T *surface)
    free(surface);
 }
 
-static EGLSurface egl_create_window_surface_impl(EGLDisplay dpy, EGLConfig config,
+static EGLSurface egl_create_window_surface_impl(EGLDisplay dpy, EGLConfig config_in,
       EGLNativeWindowType win, const void *attrib_list,
       EGL_AttribType attrib_type)
 {
@@ -229,10 +242,8 @@ static EGLSurface egl_create_window_surface_impl(EGLDisplay dpy, EGLConfig confi
    if (!surface)
       goto end;
 
-   /* Even though the config will be checked for validity in egl_surface_base_init
-    * we check it here first so that dEQP doesn't fail us. We'll return a different
-    * error if we leave it until egl_surface_base_init is called. */
-   if (!egl_config_is_valid(config))
+   const EGL_CONFIG_T *config = egl_config_validate(config_in);
+   if (!config)
    {
       error = EGL_BAD_CONFIG;
       goto end;
@@ -336,7 +347,5 @@ static EGL_SURFACE_METHODS_T fns =
    .swap_buffers = swap_buffers,
    .swap_interval = swap_interval,
    .get_dimensions = get_dimensions,
-   .get_attrib = NULL,
-   .set_attrib = NULL,
    .delete_fn = delete_fn,
 };

@@ -54,7 +54,7 @@ b_libjpeg_target_dummy:
 	@false
 
 b_libjpeg_target_build: $(B_LIBJPEG_OTHER_BUILDS)
-	$(Q_)$(MAKE) -C $(BSEAV)/opensource/jpeg all $(sort $(B_LIBJPEG_TARGET_MAKEFLAGS))
+	$(Q_)DESTDIR= $(MAKE) -C $(BSEAV)/opensource/jpeg $(sort $(B_LIBJPEG_TARGET_MAKEFLAGS))
 
 b_libjpeg_target_clean: $(B_LIBJPEG_OTHER_CLEANS)
 
@@ -64,6 +64,6 @@ b_libjpeg_target_clean_all: b_libjpeg_target_clean $(B_LIBJPEG_OTHER_CLEAN_ALL)
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
-B_LIBJPEG_BUILD_FILES += $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/jpeg-6b/libjpeg.a
+B_LIBJPEG_BUILD_FILES += $(B_REFSW_OBJ_ROOT)/target/usr/local/lib/libjpeg.a
 
 endif #B_LIBJPEG_TARGETS_DEFINED

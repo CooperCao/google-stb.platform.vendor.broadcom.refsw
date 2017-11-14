@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 /***************************************************************************
@@ -75,7 +76,7 @@
 #define BCHP_PWR_RESOURCE_M2MC0                0x00000019
 #define BCHP_PWR_RESOURCE_M2MC0_SRAM           0x0000001a
 #define BCHP_PWR_RESOURCE_M2MC1                0x0000001b
-#define BCHP_PWR_RESOURCE_M2MCTFU0             0x0000001c
+#define BCHP_PWR_RESOURCE_M2MC1_SRAM           0x0000001c
 #define BCHP_PWR_RESOURCE_M2MC_SRAM            0x0000001d
 #define BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED    0x0000001e
 #define BCHP_PWR_RESOURCE_MMM2MC0_SRAM         0x0000001f

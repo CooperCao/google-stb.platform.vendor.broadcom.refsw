@@ -45,6 +45,7 @@
 #include "bkni.h"
 #include "biobits.h"
 #include "baac_probe.h"
+#include "bmpeg4_util.h"
 BDBG_MODULE(baac_loas_probe);
 
 #define BDBG_MSG_TRACE(x)   /* BDBG_MSG(x) */
@@ -124,23 +125,6 @@ b_aac_loas_LatmGetValue(batom_bitstream *bs)
     return value;
 }
 
-/* Table 1.16 . Sampling Frequency Index */
-static const unsigned b_aac_loas_sample_rate[]={
-	96000,
-	88200,
-	64000,
-	48000,
-	44100,
-	32000,
-	24000,
-	22050,
-	16000,
-	12000,
-	11025,
-	8000,
-    7350
-};
-
 static const uint8_t b_aac_loas_channels[]={
 	0,
 	1,
@@ -152,37 +136,6 @@ static const uint8_t b_aac_loas_channels[]={
 	7+1
 };
 
-static  unsigned
-b_aac_load_probe_parse_GetAudioObjectType(batom_bitstream *bs)
-{
-    unsigned audioObjectType;
-    /* Table 1.14 . Syntax of GetAudioObjectType() */
-    audioObjectType = batom_bitstream_bits(bs, 5);
-    if(audioObjectType==31) {
-        audioObjectType = 32 + batom_bitstream_bits(bs, 6);
-    }
-    return audioObjectType;
-}
-
-static unsigned
-b_aac_load_probe_parse_SamplingRate(batom_bitstream *bs)
-{
-    unsigned sample_rate=0;
-    unsigned samplingFrequencyIndex;
-
-    samplingFrequencyIndex = batom_bitstream_bits(bs, 4);
-    if(batom_bitstream_eof(bs)) {
-        return 0;
-    }
-    if(samplingFrequencyIndex==0xf) {
-        sample_rate = batom_bitstream_bits(bs, 24);
-    } else {
-        if(samplingFrequencyIndex<sizeof(b_aac_loas_sample_rate)/sizeof(*b_aac_loas_sample_rate)) {
-            sample_rate = b_aac_loas_sample_rate[samplingFrequencyIndex];
-        }
-    }
-    return sample_rate;
-}
 
 
 static unsigned
@@ -194,8 +147,8 @@ b_aac_loas_probe_parse_AudioSpecificConfig(batom_bitstream *bs, bmedia_probe_aud
     unsigned sample_rate;
 
     /* Table 1.13 . Syntax of AudioSpecificConfig() */
-    audioObjectType = b_aac_load_probe_parse_GetAudioObjectType(bs);
-    sample_rate = b_aac_load_probe_parse_SamplingRate(bs);
+    audioObjectType = bmpeg4_parse_AudioObjectType(bs);
+    sample_rate = bmpeg4_parse_SamplingRate(bs, NULL);
     BDBG_MSG_TRACE(("audioObjectType:%u sample_rate:%u", audioObjectType, sample_rate));
     if(sample_rate) {
         info->sample_rate = sample_rate;
@@ -212,11 +165,11 @@ b_aac_loas_probe_parse_AudioSpecificConfig(batom_bitstream *bs, bmedia_probe_aud
     BDBG_MSG_TRACE(("channel_count:%u(%u)", info->channel_count, channelConfiguration));
 
     if(audioObjectType==5) { /* SBR */
-        sample_rate = b_aac_load_probe_parse_SamplingRate(bs);
+        sample_rate = bmpeg4_parse_SamplingRate(bs, NULL);
         if(sample_rate) {
             info->sample_rate = sample_rate;
         }
-        audioObjectType = b_aac_load_probe_parse_GetAudioObjectType(bs);
+        audioObjectType = bmpeg4_parse_AudioObjectType(bs);
     }
 
 
@@ -230,6 +183,8 @@ b_aac_loas_probe_parse_AudioSpecificConfig(batom_bitstream *bs, bmedia_probe_aud
     case 5: /* SBR (Spectral Band Replication) */
     case 6: /* AAC Scalable */
     case 29: /* PS (Parametric Stereo) */
+    case 23: /* ER Low Delay */
+    case 39: /* ER Enhanced Low Delay */
     /*  This configuration is based on the MPEG-4 audio object types, ISO/IEC 14496-3 {ed 3.0}, page 20.  
         If a new eumeration is added please ensure it is kept in order. */
         codec_specific.profile = (bmedia_probe_aac_profile) audioObjectType;

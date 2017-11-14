@@ -182,6 +182,8 @@ static void print_full_usage(void)
     "  -videoDacBandGapAdjust VALUE\n"
     "  -videoDacDetection\n"
     "  -cgmsB\n"
+    "  -teletext                         \tEnable teletext\n"
+    "  -teletext_msb2lsb                 \tEnable teletext with MSB2LSB shifting\n"
     );
     printf(
     "  -enablePassthroughAudioPlayback\n"
@@ -258,16 +260,36 @@ static NEXUS_SecureVideo nxserver_p_svpstr(const char *svpstr)
     }
 }
 
-static void set_dynamic_picture_buffers(NEXUS_MemoryConfigurationSettings *pMemConfigSettings)
+enum b_dynamic_picbuf
+{
+    b_dynamic_picbuf_decoder = 1,
+    b_dynamic_picbuf_encoder = 2,
+    b_dynamic_picbuf_all = (b_dynamic_picbuf_decoder|b_dynamic_picbuf_encoder)
+};
+
+#if NEXUS_HAS_VIDEO_DECODER || NEXUS_HAS_VIDEO_ENCODER
+static void set_dynamic_picture_buffers(NEXUS_MemoryConfigurationSettings *pMemConfigSettings, enum b_dynamic_picbuf scope)
 {
     unsigned i;
-    for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
-        pMemConfigSettings->videoDecoder[i].dynamicPictureBuffers = true;
+#if NEXUS_HAS_VIDEO_DECODER
+    if (scope & b_dynamic_picbuf_decoder) {
+        for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
+            pMemConfigSettings->videoDecoder[i].dynamicPictureBuffers = true;
+        }
+        for (i=0;i<NEXUS_MAX_STILL_DECODERS;i++) {
+            pMemConfigSettings->stillDecoder[i].dynamicPictureBuffers = true;
+        }
     }
-    for (i=0;i<NEXUS_MAX_STILL_DECODERS;i++) {
-        pMemConfigSettings->stillDecoder[i].dynamicPictureBuffers = true;
+#endif
+#if NEXUS_HAS_VIDEO_ENCODER
+    if (scope & b_dynamic_picbuf_encoder) {
+        for (i=0;i<NEXUS_MAX_VIDEO_ENCODERS;i++) {
+            pMemConfigSettings->videoEncoder[i].dynamicPictureBuffers = true;
+        }
     }
+#endif
 }
+#endif
 
 static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSettings, NEXUS_MemoryConfigurationSettings *pMemConfigSettings, const char * const *memconfig_str, unsigned memconfig_str_total)
 {
@@ -304,7 +326,7 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
             pMemConfigSettings->videoDecoder[index].mosaic.maxHeight = maxHeight;
         }
         else if (!strcmp(memconfig_str[i], "videoDecoder,dynamic")) {
-            set_dynamic_picture_buffers(pMemConfigSettings);
+            set_dynamic_picture_buffers(pMemConfigSettings, b_dynamic_picbuf_decoder);
         }
 #endif
 #if NEXUS_HAS_DISPLAY && NEXUS_NUM_VIDEO_WINDOWS
@@ -332,6 +354,9 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
         else if (sscanf(memconfig_str[i], "videoEncoder,%u,%u,%u", &index, &maxWidth, &maxHeight) == 3 && index < NEXUS_MAX_VIDEO_ENCODERS) {
             pMemConfigSettings->videoEncoder[index].maxWidth = maxWidth;
             pMemConfigSettings->videoEncoder[index].maxHeight = maxHeight;
+        }
+        else if (!strcmp(memconfig_str[i], "videoEncoder,dynamic")) {
+            set_dynamic_picture_buffers(pMemConfigSettings, b_dynamic_picbuf_encoder);
         }
 #endif
         else if (!strcmp(memconfig_str[i], "display,capture=off")) {
@@ -1044,6 +1069,14 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         else if (!strcmp(argv[curarg], "-cgmsB")) {
             cmdline_settings->video.allowCgmsB = true;
         }
+        else if (!strcmp(argv[curarg], "-teletext")) {
+            cmdline_settings->video.allowTeletext = true;
+            cmdline_settings->video.tteShiftDirMsb2Lsb = false; /* default */
+        }
+        else if (!strcmp(argv[curarg], "-teletext_msb2lsb")) {
+            cmdline_settings->video.allowTeletext = true;
+            cmdline_settings->video.tteShiftDirMsb2Lsb = true;
+        }
         else if (!strcmp(argv[curarg], "-enablePassthroughAudioPlayback")) {
             settings->audioDecoder.enablePassthroughBuffer = true;
             if (settings->session[0].audioPlaybacks > 0){
@@ -1229,6 +1262,10 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     if (cmdline_settings->video.allowCgmsB) {
         pPlatformSettings->displayModuleSettings.vbi.allowCgmsB = true;
     }
+    if (cmdline_settings->video.allowTeletext) {
+        pPlatformSettings->displayModuleSettings.vbi.allowTeletext = true;
+        pPlatformSettings->displayModuleSettings.vbi.tteShiftDirMsb2Lsb = cmdline_settings->video.tteShiftDirMsb2Lsb;
+    }
     pPlatformSettings->permissions.userId = cmdline_settings->permissions.userId;
     pPlatformSettings->permissions.groupId = cmdline_settings->permissions.groupId;
     if (cmdline_settings->file.queued_elements) {
@@ -1238,6 +1275,7 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
         pPlatformSettings->fileModuleSettings.workerThreads = cmdline_settings->file.threads;
     }
 
+#if NEXUS_HAS_VIDEO_DECODER
     if (cmdline_settings->dtu) {
         unsigned index;
 
@@ -1257,8 +1295,9 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
             }
         }
 
-        set_dynamic_picture_buffers(pMemConfigSettings);
+        set_dynamic_picture_buffers(pMemConfigSettings, b_dynamic_picbuf_all);
     }
+#endif
 
     return 0;
 }

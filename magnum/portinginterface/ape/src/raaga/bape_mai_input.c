@@ -1204,7 +1204,7 @@ static BERR_Code BAPE_MaiInput_P_ApplySettings(BAPE_MaiInputHandle handle)
 
     {  /* Start Critical Section */
         BKNI_EnterCriticalSection();
-        BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGADDR);
+        BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGADDR);
         BKNI_LeaveCriticalSection();
     }  /* End Critical Section */
 

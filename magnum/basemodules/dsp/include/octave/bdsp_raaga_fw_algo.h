@@ -38,40 +38,7 @@
 #ifndef BDSP_RAAGA_FW_ALGO_H_
 #define BDSP_RAAGA_FW_ALGO_H_
 
-#define BDSP_RAAGA_STREAMINFO_VALID_OFFSET(typ,var) (unsigned)((unsigned long)(&((typ *)NULL)->var))
-#define BDSP_Raaga_P_LookupAlgorithmInfo BDSP_Raaga_P_LookupAlgorithmInfo_isrsafe
-
-#define BDSP_P_EXTRA_SAMPLES 8
-
-typedef struct BDSP_P_AlgorithmSupportInfo
-{
-	BDSP_Algorithm		algorithm;
-	const char		   *pName;
-	bool				supported;
-}BDSP_P_AlgorithmSupportInfo;
-
-typedef struct BDSP_P_AlgorithmInfo
-{
-    BDSP_Algorithm		algorithm;
-    BDSP_AlgorithmType  type;
-    const char         *pName;
-    const void         *pDefaultUserConfig;
-    size_t              algoUserConfigSize;
-    size_t              algoStatusBufferSize;
-    unsigned            statusValidOffset;
-	size_t				idsStatusBufferSize;
-	size_t				tsmStatusBufferSize;
-    unsigned    		maxChannelsSupported;
-	size_t 			    samplesPerChannel;
-    size_t    			scratchBufferSize;
-    size_t    			romTableSize;
-    size_t    			interFrameSize;
-	size_t    			compressedInterFrameSize;
-    size_t 				algoCodeSize;
-	size_t              idsCodeSize;
-	bool                bPreemptionLevelSupported[BDSP_RAAGA_MAX_NUM_PREEMPTION_LEVELS];
-} BDSP_P_AlgorithmInfo;
-const BDSP_P_AlgorithmInfo *BDSP_Raaga_P_LookupAlgorithmInfo_isrsafe(
+const BDSP_P_AlgorithmCodeInfo *BDSP_Raaga_P_LookupAlgorithmCodeInfo(
     BDSP_Algorithm algorithm
 );
 const BDSP_P_AlgorithmSupportInfo *BDSP_Raaga_P_LookupAlgorithmSupportInfo(

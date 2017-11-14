@@ -1,1 +1,0 @@
-mipsel-linux-uclibc-addr2line -f -e $1 $2

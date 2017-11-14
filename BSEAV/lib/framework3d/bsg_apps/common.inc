@@ -46,7 +46,7 @@ include $(NEXUS_TOP)/../BSEAV/opensource/zlib/zlib.inc
 include $(NEXUS_TOP)/../BSEAV/opensource/libpng/libpng.inc
 include $(NEXUS_TOP)/../BSEAV/opensource/freetype/freetype.inc
 
-# For spyhook_replat only
+# For spytool_replay only
 ifeq ($(V3D_PREFIX),vc5)
 HOOK_NAME = gpumon_hook
 else
@@ -86,7 +86,7 @@ CXXFLAGS += -DV3D_TECH_VERSION=3
 INCLUDES += $(V3D_DIR)/../
 endif
 
-.PHONY:	all clean clean_bsg info bsg install
+.PHONY:	all clean clean_bsg info bsg install copy_target_app copy_data copy_app_resources copy_common_resources make_target_dir
 
 ifneq ($(BSG_PREBUILT),y)
 BSG_PREREQ := bsg
@@ -99,15 +99,16 @@ info:
 	@echo "************************************************************"; \
 	echo "Building $(TARGET) with the following settings:             "; \
 	echo "                                                            "; \
-	echo "BSG_DIR          = $(BSG_DIR)"; \
-	echo "OPENSOURCE       = $(OPENSOURCE)"; \
-	echo "NEXUS_TOP        = $(NEXUS_TOP)"; \
-	echo "NEXUS_BIN_DIR    = $(NEXUS_BIN_DIR)"; \
-	echo "V3D_DIR          = $(V3D_DIR)"; \
-	echo "V3D_PLATFORM_DIR = $(V3D_PLATFORM_DIR)"; \
-	echo "TARGET_DIR       = $(TARGET_DIR)"; \
-	echo "TARGET_APP       = $(TARGET_APP)"; \
-	echo "WEBCPU_MODE      = $(WEBCPU_MODE)"; \
+	echo "BSG_DIR           = $(BSG_DIR)"; \
+	echo "OPENSOURCE        = $(OPENSOURCE)"; \
+	echo "NEXUS_TOP         = $(NEXUS_TOP)"; \
+	echo "NEXUS_BIN_DIR     = $(NEXUS_BIN_DIR)"; \
+	echo "V3D_DIR           = $(V3D_DIR)"; \
+	echo "V3D_PLATFORM_DIR  = $(V3D_PLATFORM_DIR)"; \
+	echo "TARGET_DIR        = $(TARGET_DIR)"; \
+	echo "TARGET_APP        = $(TARGET_APP)"; \
+	echo "WEBCPU_MODE       = $(WEBCPU_MODE)"; \
+	echo "SKIP_COMMON_RSRCS = $(SKIP_COMMON_RSRCS)"; \
 	echo "                                                            "; \
 	echo "************************************************************"
 
@@ -127,16 +128,34 @@ bsg: |info
 	@echo "Making bsg"
 	@$(MAKE) -f bsg.mk -C $(BSG_DIR)
 
+make_target_dir:
+	@mkdir -p $(TARGET_APP)
+	@chmod 777 $(TARGET_APP)
+
+copy_target_app: make_target_dir $(BSG_OBJ_DIR)/$(TARGET)
+	@cp -f $(BSG_OBJ_DIR)/$(TARGET) $(TARGET_APP)
+
+ifneq ($(DATA),)
+copy_data: make_target_dir
+	@cp -f $(DATA) $(TARGET_APP)
+else
+copy_data: ;
+endif
+
+copy_app_resources: make_target_dir
+	@mkdir -p $(TARGET_APP)/resources
+	@cp -f resources/* $(TARGET_APP)/resources
+
+ifeq ($(SKIP_COMMON_RSRCS),)
+copy_common_resources: make_target_dir
+	@mkdir -p $(TARGET_APP)/../common/resources
+	@cp -f ../common/resources/* $(TARGET_APP)/../common/resources
+else
+copy_common_resources: ;
+endif
+
 # Install
-install:	$(BSG_PREREQ)  $(BSG_OBJ_DIR)/$(TARGET)
-	@mkdir -p $(TARGET_APP); \
-	chmod 777 $(TARGET_APP); \
-	cp -f $(BSG_OBJ_DIR)/$(TARGET) $(TARGET_APP); \
-	test "$(DATA)" != "" && cp -f $(DATA) $(TARGET_APP); \
-	mkdir -p $(TARGET_APP)/resources; \
-	cp -f resources/* $(TARGET_APP)/resources; \
-	mkdir -p $(TARGET_APP)/../common/resources; \
-	cp -f ../common/resources/* $(TARGET_APP)/../common/resources
+install: $(BSG_PREREQ) $(BSG_OBJ_DIR)/$(TARGET) copy_target_app copy_data copy_app_resources copy_common_resources ;
 
 clean_app:
 	@echo "Cleaning application ..."

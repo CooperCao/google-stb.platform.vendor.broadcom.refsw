@@ -23,11 +23,11 @@
  * wl driver tunables
  */
 
-#define D11CONF		0x77800000	/* D11 Core Rev
+/* #define D11CONF		0x77800000	*//* D11 Core Rev
 					 * 23 (43224b0), 24 (4313), 25 (5357a0), 26 (4331a0),
 					 * 28 (5357b0), 29 (4331B0), 30(43228).
 					 */
-#define D11CONF2	0x1870500		/* D11 Core Rev > 31, Rev 40(4360a0),
+/* #define D11CONF2	0x1870500	*/	/* D11 Core Rev > 31, Rev 40(4360a0),
 					 * 42(4360B0), 48(4354), 49(43602a0) 50(4349a2),55(4349b0),
 					 * 56(53573)
 					 */

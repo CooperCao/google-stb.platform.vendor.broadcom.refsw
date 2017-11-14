@@ -39,8 +39,6 @@
 
 #include "bape_types.h"
 #include "bdsp.h"
-#include "bdsp_task.h"
-#include "bdsp_audio_task.h"
 
 #ifndef BAPE_DSP_UTILS_PRIV_H_
 #define BAPE_DSP_UTILS_PRIV_H_

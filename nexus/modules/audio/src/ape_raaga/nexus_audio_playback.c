@@ -419,6 +419,13 @@ void NEXUS_AudioPlayback_Stop(
     }
 }
 
+void NEXUS_AudioPlayback_Clear_priv(NEXUS_AudioPlaybackHandle handle)
+{
+    NEXUS_ASSERT_MODULE();
+    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioPlayback);
+    NEXUS_TaskCallback_Clear(handle->appCallback);
+}
+
 /***************************************************************************
 Summary:
 Stop playing data from an audio playback channel without flushing.

@@ -68,7 +68,7 @@ BDBG_OBJECT_ID(NEXUS_IrChannel);
 struct NEXUS_IrChannel {
     BDBG_OBJECT(NEXUS_IrChannel)
     BKIR_ChannelHandle kirChannel;
-    unsigned refcnt;
+    unsigned index;
     NEXUS_IrInputHandle irInput[BKIR_KirInterruptDevice_eMax];
     NEXUS_IrInputDataFilter dataFilter;
     bool wakePatternEnabled;
@@ -77,10 +77,12 @@ struct NEXUS_IrChannel {
 static struct IrInputModule {
     NEXUS_IrInputModuleSettings settings;
     BKIR_Handle kir;
-    struct NEXUS_IrChannel channel[BKIR_N_CHANNELS];
+    struct NEXUS_IrChannel *channel[BKIR_N_CHANNELS];
 } g_NEXUS_irInput;
 
 static BERR_Code NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *context);
+static struct NEXUS_IrChannel *NEXUS_IrInput_P_OpenChannel(unsigned ch, NEXUS_IrInputMode mode, BKIR_KirInterruptDevice interruptDevice);
+static void NEXUS_IrInput_P_CloseChannel(struct NEXUS_IrChannel *irChannel);
 
 /****************************************
 * Module functions
@@ -97,7 +99,6 @@ NEXUS_ModuleHandle NEXUS_IrInputModule_Init(const NEXUS_IrInputModuleSettings *p
 {
     BKIR_Settings kirSettings;
     BERR_Code rc;
-    unsigned ch;
     NEXUS_ModuleSettings moduleSettings;
     NEXUS_IrInputModuleSettings defaultSettings;
 
@@ -123,27 +124,6 @@ NEXUS_ModuleHandle NEXUS_IrInputModule_Init(const NEXUS_IrInputModuleSettings *p
     rc = BKIR_Open(&g_NEXUS_irInput.kir, g_pCoreHandles->chp, g_pCoreHandles->reg, g_pCoreHandles->bint, &kirSettings);
     if (rc) {rc=BERR_TRACE(rc);goto error;}
 
-    BDBG_MSG(("creating %d KIR channels", BKIR_N_CHANNELS));
-    for (ch=0;ch<BKIR_N_CHANNELS;ch++) {
-        BKIR_ChannelSettings channelSettings;
-        struct NEXUS_IrChannel *irChannel = &g_NEXUS_irInput.channel[ch];
-        BDBG_OBJECT_SET(irChannel, NEXUS_IrChannel);
-
-        BKIR_GetChannelDefaultSettings(g_NEXUS_irInput.kir, ch, &channelSettings);
-        channelSettings.intMode = true; /* we don't really care about the event from KIR because there's no ISR-time buffering.
-            We must still register with INT ourselves.  But, if you don't set this flag, interrupts are not enabled properly. */
-        rc = BKIR_OpenChannel(g_NEXUS_irInput.kir, &irChannel->kirChannel, ch, &channelSettings);
-        if (rc) {rc=BERR_TRACE(rc); goto error;}
-
-        BDBG_MSG(("%p KIR Channel %u, IrChannel %p", (void *)irChannel->kirChannel, ch, (void *)irChannel));
-
-        NEXUS_IrInput_GetDefaultDataFilter(&irChannel->dataFilter);
-        irChannel->wakePatternEnabled = false;
-
-        /*Disable Sejin device as it causes false interrupts */
-        BKIR_DisableIrDevice(irChannel->kirChannel, (BKIR_KirDevice)NEXUS_IrInputMode_eSejin38KhzKbd);
-    }
-
     NEXUS_UnlockModule();
     return g_NEXUS_irInputModule;
 
@@ -158,20 +138,17 @@ void NEXUS_IrInputModule_Uninit(void)
     unsigned ch;
     NEXUS_LockModule();
     for (ch=0;ch<BKIR_N_CHANNELS;ch++) {
-        struct NEXUS_IrChannel *irChannel = &g_NEXUS_irInput.channel[ch];
+        struct NEXUS_IrChannel *irChannel = g_NEXUS_irInput.channel[ch];
         unsigned i;
-
+        if (!irChannel) continue;
         BDBG_OBJECT_ASSERT(irChannel, NEXUS_IrChannel);
         for (i=0;i<BKIR_KirInterruptDevice_eMax;i++) {
             if (irChannel->irInput[i]) {
                 NEXUS_IrInput_Close(irChannel->irInput[i]);
+                /* channel may have been closed */
+                if (!g_NEXUS_irInput.channel[ch]) break;
             }
         }
-        BDBG_ASSERT(irChannel->refcnt == 0);
-        if (irChannel->kirChannel) {
-            BKIR_CloseChannel(irChannel->kirChannel);
-        }
-        BDBG_OBJECT_DESTROY(irChannel, NEXUS_IrChannel);
     }
 
     if (g_NEXUS_irInput.kir) {
@@ -180,6 +157,74 @@ void NEXUS_IrInputModule_Uninit(void)
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(g_NEXUS_irInputModule);
     g_NEXUS_irInputModule = NULL;
+}
+
+static struct NEXUS_IrChannel *NEXUS_IrInput_P_OpenChannel(unsigned ch, NEXUS_IrInputMode mode, BKIR_KirInterruptDevice interruptDevice)
+{
+    NEXUS_Error rc;
+    BKIR_ChannelSettings channelSettings;
+    struct NEXUS_IrChannel *irChannel;
+
+    BSTD_UNUSED(mode); /* if no debug */
+    irChannel = g_NEXUS_irInput.channel[ch];
+    if (irChannel) {
+        /* only one IrInput can use an interrupt device on the same channel */
+        if (irChannel->irInput[interruptDevice]) {
+            BDBG_ERR(("cannot use mode %d on channel_number %d because of interrupt device %d conflict",
+                mode, ch, interruptDevice));
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            return NULL;
+        }
+
+        BDBG_OBJECT_ASSERT(irChannel, NEXUS_IrChannel);
+        return irChannel;
+    }
+
+    irChannel = BKNI_Malloc(sizeof(*irChannel));
+    if (!irChannel) {rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_malloc;}
+
+    BKNI_Memset(irChannel, 0, sizeof(*irChannel));
+    BDBG_OBJECT_SET(irChannel, NEXUS_IrChannel);
+
+    BKIR_GetChannelDefaultSettings(g_NEXUS_irInput.kir, ch, &channelSettings);
+    channelSettings.intMode = true; /* we don't really care about the event from KIR because there's no ISR-time buffering.
+        We must still register with INT ourselves.  But, if you don't set this flag, interrupts are not enabled properly. */
+    rc = BKIR_OpenChannel(g_NEXUS_irInput.kir, &irChannel->kirChannel, ch, &channelSettings);
+    if (rc) {rc=BERR_TRACE(rc); goto err_open;}
+
+    BDBG_MSG(("%p KIR Channel %u, IrChannel %p", (void *)irChannel->kirChannel, ch, (void *)irChannel));
+
+    NEXUS_IrInput_GetDefaultDataFilter(&irChannel->dataFilter);
+    irChannel->wakePatternEnabled = false;
+    irChannel->index = ch;
+    g_NEXUS_irInput.channel[ch] = irChannel;
+
+    /*Disable Sejin device as it causes false interrupts */
+    BKIR_DisableIrDevice(irChannel->kirChannel, (BKIR_KirDevice)NEXUS_IrInputMode_eSejin38KhzKbd);
+    BKIR_RegisterCallback(irChannel->kirChannel, NEXUS_IrInput_P_DataReady_isr, irChannel);
+
+    BDBG_OBJECT_ASSERT(irChannel, NEXUS_IrChannel);
+    return irChannel;
+
+err_open:
+    BKNI_Free(irChannel);
+err_malloc:
+    return NULL;
+}
+
+/* close channel if no NEXUS_IrInputs are using it */
+static void NEXUS_IrInput_P_CloseChannel(struct NEXUS_IrChannel *irChannel)
+{
+    unsigned i;
+    BDBG_OBJECT_ASSERT(irChannel, NEXUS_IrChannel);
+    for (i=0;i<BKIR_KirInterruptDevice_eMax;i++) {
+        if (irChannel->irInput[i]) return;
+    }
+    BKIR_UnregisterCallback(irChannel->kirChannel);
+    BKIR_CloseChannel(irChannel->kirChannel);
+    g_NEXUS_irInput.channel[irChannel->index] = NULL;
+    BDBG_OBJECT_DESTROY(irChannel, NEXUS_IrChannel);
+    BKNI_Free(irChannel);
 }
 
 /****************************************
@@ -195,27 +240,22 @@ static BERR_Code NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *co
     BKIR_KirInterruptDevice interruptDevice;
     unsigned char kirCode[8];
     NEXUS_Time time;
+    BKIR_IrKeyData keyData;
 
     BDBG_OBJECT_ASSERT(irChannel, NEXUS_IrChannel);
     BDBG_ASSERT(irChannel->kirChannel == hChn);
 
     BKNI_Memset(kirCode, 0, sizeof(kirCode));
-    rc = BKIR_Read_isr(hChn, &interruptDevice, kirCode);
-    if (rc) {rc=BERR_TRACE(rc); return 0;}
-
     BKNI_Memset(&event, 0, sizeof(event));
 
-    rc = BKIR_IsPreambleA_isrsafe(hChn, &event.preamble.preambleA);
-    if (rc) {rc=BERR_TRACE(rc); return 0;}
-    rc = BKIR_IsPreambleB_isrsafe(hChn, &event.preamble.preambleB);
-    if (rc) {rc=BERR_TRACE(rc); return 0;}
+    BKNI_Memset(kirCode, 0, sizeof(kirCode));
+    BKIR_GetIrKeyData_isr( hChn, &keyData );
+    event.code     = keyData.code;
+    event.codeHigh = keyData.codeHigh;
 
-    event.code = (uint32_t)kirCode[0] |
-        ((uint32_t)kirCode[1] << 8) |
-        ((uint32_t)kirCode[2] << 16) |
-        ((uint32_t)kirCode[3] << 24);
-    event.codeHigh = (uint32_t)kirCode[4] |
-        ((uint32_t)kirCode[5] << 8);
+    event.preamble.preambleA = keyData.preambleA;
+    event.preamble.preambleB = keyData.preambleB;
+    interruptDevice = keyData.device;
 
     BDBG_MSG(("NEXUS_IrInput_P_DataReady_isr dev %d, code %#x %#x (%s%s)",
         interruptDevice, event.code, event.codeHigh, event.preamble.preambleA?"A":"", event.preamble.preambleB?"B":""));
@@ -329,18 +369,12 @@ error:
     return NULL;
 }
 
-/* NEXUS_IrInput_P_Disconnect can be called from SetSettings or Close */
+/* Disconnect this NEXUS_IrInput from its channel, then see if the channel can be closed. */
 static void NEXUS_IrInput_P_Disconnect(NEXUS_IrInputHandle irInput)
 {
+    BDBG_ASSERT(irInput->irChannel->irInput[irInput->interruptDevice] == irInput);
     irInput->irChannel->irInput[irInput->interruptDevice] = NULL;
-    irInput->interruptDevice = BKIR_KirInterruptDevice_eNone;
-    BKIR_DisableIrDevice(irInput->irChannel->kirChannel, irInput->settings.mode);
-
-    BDBG_ASSERT(irInput->irChannel->refcnt);
-    if (--irInput->irChannel->refcnt == 0) {
-        BKIR_UnregisterCallback(irInput->irChannel->kirChannel);
-    }
-    irInput->irChannel = NULL;
+    NEXUS_IrInput_P_CloseChannel(irInput->irChannel);
 }
 
 static void NEXUS_IrInput_P_Finalizer(NEXUS_IrInputHandle irInput)
@@ -371,7 +405,6 @@ void NEXUS_IrInput_GetSettings( NEXUS_IrInputHandle irInput, NEXUS_IrInputSettin
 
 NEXUS_Error NEXUS_IrInput_SetSettings( NEXUS_IrInputHandle irInput, const NEXUS_IrInputSettings *pSettings )
 {
-    struct NEXUS_IrChannel *new_channel;
     BERR_Code rc;
     BKIR_KirInterruptDevice interruptDevice;
 
@@ -413,33 +446,28 @@ NEXUS_Error NEXUS_IrInput_SetSettings( NEXUS_IrInputHandle irInput, const NEXUS_
         interruptDevice = BKIR_KirInterruptDevice_eCir; break;
     }
 
-    /* only one IrInput can use an interrupt device on the same channel. verify this before disconnecting. */
-    new_channel = &g_NEXUS_irInput.channel[pSettings->channel_number];
-    BDBG_OBJECT_ASSERT(new_channel, NEXUS_IrChannel);
-    if (new_channel->irInput[interruptDevice] && new_channel->irInput[interruptDevice] != irInput) {
-        BDBG_ERR(("cannot use mode %d on channel_number %d because of interrupt device %d conflict",
-            pSettings->mode, pSettings->channel_number, interruptDevice));
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
-
-    /* now that we've validated the new state, we can proceed with the disconnect/connect without risk of failure */
-
-    /* disconnect from channel if changing channel_number or interruptDevice */
-    if (irInput->irChannel && (pSettings->channel_number != irInput->settings.channel_number || interruptDevice != irInput->interruptDevice)) {
-        NEXUS_IrInput_P_Disconnect(irInput);
-    }
-
-    /* connect to a channel */
-    if (!irInput->irChannel) {
-        irInput->irChannel = new_channel;
-        irInput->interruptDevice = interruptDevice;
-        irInput->irChannel->irInput[irInput->interruptDevice] = irInput;
-        if (irInput->irChannel->refcnt++ == 0) {
-            BKIR_RegisterCallback(irInput->irChannel->kirChannel, NEXUS_IrInput_P_DataReady_isr, irInput->irChannel);
+    if (!irInput->irChannel || pSettings->channel_number != irInput->settings.channel_number || interruptDevice != irInput->interruptDevice) {
+        struct NEXUS_IrChannel *irChannel;
+        /* verify we can open the new channel before closing the current */
+        irChannel = NEXUS_IrInput_P_OpenChannel(pSettings->channel_number, pSettings->mode, interruptDevice);
+        if (!irChannel) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
+        irChannel->irInput[interruptDevice] = irInput;
+
+        if (irInput->irChannel) {
+            NEXUS_IrInput_P_Disconnect(irInput);
+        }
+
+        irInput->irChannel = irChannel;
+        irInput->interruptDevice = interruptDevice;
         BDBG_MSG(("%p: kirChannel=%p irChannel=%p", (void *)irInput, (void *)irInput->irChannel->kirChannel, (void *)irInput->irChannel));
     }
     BDBG_OBJECT_ASSERT(irInput->irChannel, NEXUS_IrChannel);
+
+    if (pSettings->mode != irInput->settings.mode && irInput->settings.mode) {
+        BKIR_DisableIrDevice(irInput->irChannel->kirChannel, irInput->settings.mode);
+    }
 
     /* compile-time assert that the Nexus and Magnum enums are in sync. If they are not, please sync them up or create a conversion function. */
     BDBG_CASSERT(BKIR_KirDevice_eNumKirDevice == (BKIR_KirDevice)NEXUS_IrInputMode_eMax);
@@ -545,32 +573,27 @@ error:
 
 NEXUS_Error NEXUS_IrInput_GetPreambleStatus(NEXUS_IrInputHandle irInput, NEXUS_IrInputPreambleStatus *pStatus)
 {
-    BERR_Code rc;
+    BKIR_IrKeyData keyData;
+
     BDBG_OBJECT_ASSERT(irInput, NEXUS_IrInput);
 
-    rc = BKIR_IsPreambleA_isrsafe(irInput->irChannel->kirChannel, &pStatus->preambleA);
-    if (rc) {rc = BERR_TRACE(rc); goto error;}
-
-    rc = BKIR_IsPreambleB_isrsafe(irInput->irChannel->kirChannel, &pStatus->preambleB);
-    if (rc) {rc = BERR_TRACE(rc); goto error;}
-
+    BKIR_GetIrKeyData( irInput->irChannel->kirChannel, &keyData );
+    pStatus->preambleA = keyData.preambleA;
+    pStatus->preambleB = keyData.preambleB;
     return NEXUS_SUCCESS;
-
-error:
-    return NEXUS_UNKNOWN;
 }
 
 NEXUS_Error NEXUS_IrInput_ReadEvent(NEXUS_IrInputHandle irInput, NEXUS_IrInputEvent *pEvent)
 {
-    uint32_t code, codeHigh;
-    bool preambleA, preambleB;
+    BKIR_IrKeyData keyData;
     BDBG_OBJECT_ASSERT(irInput, NEXUS_IrInput);
-    BKIR_GetLastKey(irInput->irChannel->kirChannel, &code, &codeHigh, &preambleA, &preambleB);
+
+    BKIR_GetLastKey( irInput->irChannel->kirChannel, &keyData );
     BKNI_Memset(pEvent, 0, sizeof(*pEvent));
-    pEvent->code = code;
-    pEvent->codeHigh = codeHigh;
-    pEvent->preamble.preambleA = preambleA;
-    pEvent->preamble.preambleB = preambleB;
+    pEvent->code               = keyData.code;
+    pEvent->codeHigh           = keyData.codeHigh;
+    pEvent->preamble.preambleA = keyData.preambleA;
+    pEvent->preamble.preambleB = keyData.preambleB;
     return NEXUS_SUCCESS;
 }
 
@@ -640,7 +663,8 @@ NEXUS_Error NEXUS_IrInput_P_InsertEvents( unsigned index, const NEXUS_IrInputEve
 
     /* find IrInput Handle corresponding to Index passed in */
     for (ch=0;ch<BKIR_N_CHANNELS;ch++) {
-         struct NEXUS_IrChannel *irChannel = &g_NEXUS_irInput.channel[ch];
+         struct NEXUS_IrChannel *irChannel = g_NEXUS_irInput.channel[ch];
+         if (!irChannel) continue;
          BDBG_OBJECT_ASSERT(irChannel, NEXUS_IrChannel);
 
          for (i=0;i<BKIR_KirInterruptDevice_eMax;i++) {
@@ -700,26 +724,32 @@ NEXUS_Error NEXUS_IrInputModule_Standby_priv(bool enabled, const NEXUS_StandbySe
     BERR_Code rc;
 
     for (ch=0;ch<BKIR_N_CHANNELS;ch++) {
-        if(!g_NEXUS_irInput.channel[ch].kirChannel)
+        struct NEXUS_IrChannel *irChannel = g_NEXUS_irInput.channel[ch];
+        if (!irChannel)
             continue;
 
         if(enabled) {
             if(pSettings->wakeupSettings.ir) {
-                NEXUS_IrInputDataFilter *pPattern = &g_NEXUS_irInput.channel[ch].dataFilter;
+                NEXUS_IrInputDataFilter *pPattern = &irChannel->dataFilter;
                 if(pPattern->filterWord[0].enabled || pPattern->filterWord[1].enabled) {
-                    rc = BKIR_EnableDataFilter(g_NEXUS_irInput.channel[ch].kirChannel,
+                    rc = BKIR_EnableDataFilter(irChannel->kirChannel,
                             pPattern->filterWord[0].enabled ? pPattern->filterWord[0].patternWord : ((uint64_t)pPattern->patternWord1 << 32) | pPattern->patternWord0,
                             pPattern->filterWord[1].enabled ? pPattern->filterWord[1].patternWord : NEXUS_IR_INPUT_FILTER_DISABLED,
                             pPattern->filterWord[0].enabled ? pPattern->filterWord[0].mask : ((uint64_t)pPattern->mask1 << 32) | pPattern->mask0,
                             pPattern->filterWord[1].enabled ? pPattern->filterWord[1].mask : NEXUS_IR_INPUT_FILTER_DISABLED);
-                    g_NEXUS_irInput.channel[ch].wakePatternEnabled = true;
+                    if (rc) {
+                        BERR_TRACE(rc); /* keep going */
+                    }
+                    else {
+                        irChannel->wakePatternEnabled = true;
+                    }
                 }
             }
         } else {
-            if(g_NEXUS_irInput.channel[ch].wakePatternEnabled) {
-                rc = BKIR_DisableDataFilter(g_NEXUS_irInput.channel[ch].kirChannel);
+            if(irChannel->wakePatternEnabled) {
+                rc = BKIR_DisableDataFilter(irChannel->kirChannel);
                 if (rc) BERR_TRACE(rc);
-                g_NEXUS_irInput.channel[ch].wakePatternEnabled = false;
+                irChannel->wakePatternEnabled = false;
             }
         }
     }

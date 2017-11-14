@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -114,6 +114,8 @@ BERR_Code BXVD_P_SendDecoderCommand(
 
    volatile uint32_t uInBox;
 
+   BMMA_Block_Handle hFWCmdBlock;
+
 #if BXVD_POLL_FW_MBX
    int i;
    volatile uint32_t uIntrVal;
@@ -127,6 +129,17 @@ BERR_Code BXVD_P_SendDecoderCommand(
    uInstance = uInstance;
 
    BKNI_EnterCriticalSection();
+
+#if BXVD_P_FW_HIM_API
+   if (hXvd->hFWCmdBlock != NULL)
+   {
+      hFWCmdBlock = hXvd->hFWCmdBlock;
+   }
+   else
+#endif
+   {
+      hFWCmdBlock = hXvd->hFWMemBlock;
+   }
 
    /* Check to if we're already waiting for a reply from this decoder */
    if (hXvd->stDecoderContext.bIfBusy)
@@ -148,7 +161,8 @@ BERR_Code BXVD_P_SendDecoderCommand(
                (void*)(pCmd),
                sizeof(BXVD_Cmd));
 
-   BMMA_FlushCache(hXvd->hFWMemBlock, (void*)(hXvd->stDecoderContext.ulCmdBufferAddr), sizeof(BXVD_Cmd));
+
+   BMMA_FlushCache(hFWCmdBlock, (void*)(hXvd->stDecoderContext.ulCmdBufferAddr), sizeof(BXVD_Cmd));
 
 #if BXVD_POLL_FW_MBX
    /* zero out the response mailbox*/
@@ -249,7 +263,7 @@ BERR_Code BXVD_P_SendDecoderCommand(
    /* get the response from the AVC  */
    if (uInBox)
    {
-      BMMA_FlushCache(hXvd->hFWMemBlock, (void*)(hXvd->stDecoderContext.ulCmdBufferAddr), sizeof(BXVD_Rsp));
+      BMMA_FlushCache(hFWCmdBlock, (void*)(hXvd->stDecoderContext.ulCmdBufferAddr), sizeof(BXVD_Rsp));
 
       BKNI_Memcpy((void*)(pRsp),
         (void*)(hXvd->stDecoderContext.ulCmdBufferAddr),

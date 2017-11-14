@@ -662,12 +662,10 @@ BVCE_S_LoadFirmware(
 
       if ( 0 != hVce->stPlatformConfig.stCore[i].uiDataSpaceStartSystemOffset )
       {
-         uiRegValue = i ? 0x00000 : 0x00000; /* This is hard-coded */
-
          BREG_WriteAddr(
                   hVce->handles.hReg,
                   hVce->stPlatformConfig.stCore[i].uiDataSpaceStartSystemOffset,
-                  uiRegValue
+                  0
                   );
       }
 
@@ -804,6 +802,12 @@ BVCE_S_Event_isr(
                      );
          }
       }
+   }
+
+   /* Check for device errors */
+   if ( 0 != ( ( uiChannelErrorStatus >> DEVICE_ERROR_CHANNEL_ID ) & 0x01 ) )
+   {
+      BDBG_ERR(("Critical Error: VCE FW Stack Overflow Occurred!"));
    }
 }
 
@@ -1352,11 +1356,10 @@ BVCE_S_DisableWatchdog(
 void
 BVCE_P_ValidateStructSizes(void)
 {
-
-   BDBG_CWARNING( sizeof( ViceCmdInit_t ) == 13*4 );
+   BDBG_CWARNING( sizeof( ViceCmdInit_t ) == 14*4 );
    BDBG_CWARNING( sizeof( ViceCmdInitResponse_t ) == 11*4 );
    BDBG_CWARNING( sizeof( ViceCmdOpenChannel_t ) == 9*4 );
-   BDBG_CWARNING( sizeof( ViceCmdOpenChannelResponse_t ) == 3*4 );
+   BDBG_CWARNING( sizeof( ViceCmdOpenChannelResponse_t ) == 8*4 );
    BDBG_CWARNING( sizeof( ViceCmdStartChannel_t ) == 2*4 );
    BDBG_CWARNING( sizeof( ViceCmdStartChannelResponse_t ) == 2*4 );
    BDBG_CWARNING( sizeof( ViceCmdStopChannel_t ) == 3*4 );
@@ -1401,10 +1404,10 @@ BVCE_S_WriteRegistersNew_isrsafe(
          BVCE_Handle hVce,
      unsigned uiRegStartAddress,
      const uint32_t *pBuffer,
-     size_t uiSize
+     unsigned uiSize
      )
 {
-   size_t i;
+   unsigned i;
 #if BDBG_DEBUG_BUILD
    bool bIsCommand = false;
 #endif
@@ -1464,10 +1467,10 @@ BVCE_S_ReadRegistersNew_isrsafe(
          BVCE_Handle hVce,
      unsigned uiRegStartAddress,
      uint32_t *pBuffer,
-     size_t uiSize /* In bytes (32-bit multiple) */
+     unsigned uiSize /* In bytes (32-bit multiple) */
      )
 {
-   size_t i;
+   unsigned i;
 #if BDBG_DEBUG_BUILD
    bool bIsCommand = false;
 #endif
@@ -2083,175 +2086,175 @@ BVCE_S_SendCommand_OpenChannel(
 
 #define BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED 0xFFFFFFFF
 
-static const uint32_t BVCE_P_ProfileH264LUT[BAVC_VideoCompressionProfile_eMax] =
+static
+uint32_t
+BVCE_S_ProfileH264LUT(
+      BAVC_VideoCompressionProfile eProfile
+      )
 {
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eUnknown */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSimple */
- ENCODING_AVC_PROFILE_MAIN, /* BAVC_VideoCompressionProfile_eMain */
- ENCODING_AVC_PROFILE_HIGH, /* BAVC_VideoCompressionProfile_eHigh */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvance */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eJizhun */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSnrScalable */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSpatiallyScalable */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvancedSimple */
- ENCODING_AVC_PROFILE_BASELINE, /* BAVC_VideoCompressionProfile_eBaseline */
-};
+   switch ( eProfile )
+   {
+      case BAVC_VideoCompressionProfile_eMain:
+         return ENCODING_AVC_PROFILE_MAIN;
+      case BAVC_VideoCompressionProfile_eHigh:
+         return ENCODING_AVC_PROFILE_HIGH;
+      case BAVC_VideoCompressionProfile_eBaseline:
+         return ENCODING_AVC_PROFILE_BASELINE;
+      default:
+         return BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED;
+   }
+}
 
-static const uint32_t BVCE_P_ProfileMPEG2LUT[BAVC_VideoCompressionProfile_eMax] =
+static
+uint32_t
+BVCE_S_ProfileMPEG2LUT(
+      BAVC_VideoCompressionProfile eProfile
+      )
 {
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eUnknown */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSimple */
- ENCODING_MPEG2_PROFILE_MAIN, /* BAVC_VideoCompressionProfile_eMain */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eHigh */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvance */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eJizhun */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSnrScalable */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSpatiallyScalable */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvancedSimple */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eBaseline */
-};
+   switch ( eProfile )
+   {
+      case BAVC_VideoCompressionProfile_eMain:
+         return ENCODING_MPEG2_PROFILE_MAIN;
+      default:
+         return BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED;
+   }
+}
 
-static const uint32_t BVCE_P_ProfileMPEG4LUT[BAVC_VideoCompressionProfile_eMax] =
+static
+uint32_t
+BVCE_S_ProfileMPEG4LUT(
+      BAVC_VideoCompressionProfile eProfile
+      )
 {
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eUnknown */
- ENCODING_MPEG4_PROFILE_SIMPLE, /* BAVC_VideoCompressionProfile_eSimple */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eMain */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eHigh */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvance */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eJizhun */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSnrScalable */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSpatiallyScalable */
- ENCODING_MPEG4_PROFILE_ADVANCED_SIMPLE, /* BAVC_VideoCompressionProfile_eAdvancedSimple */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eBaseline */
-};
+   switch ( eProfile )
+   {
+      case BAVC_VideoCompressionProfile_eSimple:
+         return ENCODING_MPEG4_PROFILE_SIMPLE;
+      case BAVC_VideoCompressionProfile_eAdvancedSimple:
+         return ENCODING_MPEG4_PROFILE_ADVANCED_SIMPLE;
+      default:
+         return BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED;
+   }
+}
 
-static const uint32_t BVCE_P_ProfileHEVCLUT[BAVC_VideoCompressionProfile_eMax] =
+static
+uint32_t
+BVCE_S_ProfileHEVCLUT(
+      BAVC_VideoCompressionProfile eProfile
+      )
 {
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eUnknown */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSimple */
- ENCODING_HEVC_PROFILE_TIER_MAIN, /* BAVC_VideoCompressionProfile_eMain */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eHigh */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvance */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eJizhun */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSnrScalable */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSpatiallyScalable */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvancedSimple */
- BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eBaseline */
-};
+   switch ( eProfile )
+   {
+      case BAVC_VideoCompressionProfile_eMain:
+         return ENCODING_HEVC_PROFILE_TIER_MAIN;
+      default:
+         return BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED;
+   }
+}
 
 #define BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED 0xFFFFFFFF
 
-static const uint32_t BVCE_P_LevelH264LUT[BAVC_VideoCompressionLevel_eMax] =
+static
+uint32_t
+BVCE_S_LevelH264LUT(
+      BAVC_VideoCompressionLevel eLevel
+      )
 {
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eUnknown */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e00 */
- ENCODING_AVC_LEVEL_10, /* BAVC_VideoCompressionLevel_e10 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e1B */
- ENCODING_AVC_LEVEL_11, /* BAVC_VideoCompressionLevel_e11 */
- ENCODING_AVC_LEVEL_12, /* BAVC_VideoCompressionLevel_e12 */
- ENCODING_AVC_LEVEL_13, /* BAVC_VideoCompressionLevel_e13 */
- ENCODING_AVC_LEVEL_20, /* BAVC_VideoCompressionLevel_e20 */
- ENCODING_AVC_LEVEL_21, /* BAVC_VideoCompressionLevel_e21 */
- ENCODING_AVC_LEVEL_22, /* BAVC_VideoCompressionLevel_e22 */
- ENCODING_AVC_LEVEL_30, /* BAVC_VideoCompressionLevel_e30 */
- ENCODING_AVC_LEVEL_31, /* BAVC_VideoCompressionLevel_e31 */
- ENCODING_AVC_LEVEL_32, /* BAVC_VideoCompressionLevel_e32 */
- ENCODING_AVC_LEVEL_40, /* BAVC_VideoCompressionLevel_e40 */
- ENCODING_AVC_LEVEL_41, /* BAVC_VideoCompressionLevel_e41 */
- ENCODING_AVC_LEVEL_42, /* BAVC_VideoCompressionLevel_e42 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e50 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e51 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e60 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e62 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eLow */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eMain */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh1440 */
-};
+   switch ( eLevel )
+   {
+      case BAVC_VideoCompressionLevel_e10:
+         return ENCODING_AVC_LEVEL_10;
+      case BAVC_VideoCompressionLevel_e1B:
+         return ENCODING_AVC_LEVEL_10b;
+      case BAVC_VideoCompressionLevel_e11:
+         return ENCODING_AVC_LEVEL_11;
+      case BAVC_VideoCompressionLevel_e12:
+         return ENCODING_AVC_LEVEL_12;
+      case BAVC_VideoCompressionLevel_e13:
+         return ENCODING_AVC_LEVEL_13;
+      case BAVC_VideoCompressionLevel_e20:
+         return ENCODING_AVC_LEVEL_20;
+      case BAVC_VideoCompressionLevel_e21:
+         return ENCODING_AVC_LEVEL_21;
+      case BAVC_VideoCompressionLevel_e22:
+         return ENCODING_AVC_LEVEL_22;
+      case BAVC_VideoCompressionLevel_e30:
+         return ENCODING_AVC_LEVEL_30;
+      case BAVC_VideoCompressionLevel_e31:
+         return ENCODING_AVC_LEVEL_31;
+      case BAVC_VideoCompressionLevel_e32:
+         return ENCODING_AVC_LEVEL_32;
+      case BAVC_VideoCompressionLevel_e40:
+         return ENCODING_AVC_LEVEL_40;
+      case BAVC_VideoCompressionLevel_e41:
+         return ENCODING_AVC_LEVEL_41;
+      case BAVC_VideoCompressionLevel_e42:
+         return ENCODING_AVC_LEVEL_42;
+      default:
+         return BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED;
+   }
+}
 
-static const uint32_t BVCE_P_LevelMPEG2LUT[BAVC_VideoCompressionLevel_eMax] =
+static
+uint32_t
+BVCE_S_LevelMPEG2LUT(
+      BAVC_VideoCompressionLevel eLevel
+      )
 {
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eUnknown */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e00 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e10 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e1B */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e11 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e12 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e13 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e20 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e21 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e22 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e30 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e31 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e32 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e40 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e41 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e42 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e50 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e51 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e60 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e62 */
- ENCODING_MPEG2_LEVEL_LOW, /* BAVC_VideoCompressionLevel_eLow */
- ENCODING_MPEG2_LEVEL_MAIN, /* BAVC_VideoCompressionLevel_eMain */
- ENCODING_MPEG2_LEVEL_HIGH, /* BAVC_VideoCompressionLevel_eHigh */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh1440 */
-};
+   switch ( eLevel )
+   {
+      case BAVC_VideoCompressionLevel_eLow:
+         return ENCODING_MPEG2_LEVEL_LOW;
+      case BAVC_VideoCompressionLevel_eMain:
+         return ENCODING_MPEG2_LEVEL_MAIN;
+      case BAVC_VideoCompressionLevel_eHigh:
+         return ENCODING_MPEG2_LEVEL_HIGH;
+      default:
+         return BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED;
+   }
+}
 
-static const uint32_t BVCE_P_LevelMPEG4LUT[BAVC_VideoCompressionLevel_eMax] =
+static
+uint32_t
+BVCE_S_LevelMPEG4LUT(
+      BAVC_VideoCompressionLevel eLevel
+      )
 {
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eUnknown */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e00 */
- ENCODING_MPEG4_LEVEL_1, /* BAVC_VideoCompressionLevel_e10 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e1B */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e11 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e12 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e13 */
- ENCODING_MPEG4_LEVEL_2, /* BAVC_VideoCompressionLevel_e20 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e21 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e22 */
- ENCODING_MPEG4_LEVEL_3, /* BAVC_VideoCompressionLevel_e30 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e31 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e32 */
- ENCODING_MPEG4_LEVEL_4, /* BAVC_VideoCompressionLevel_e40 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e41 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e42 */
- ENCODING_MPEG4_LEVEL_5, /* BAVC_VideoCompressionLevel_e50 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e51 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e60 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e62 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eLow */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eMain */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh1440 */
-};
+   switch ( eLevel )
+   {
+      case BAVC_VideoCompressionLevel_e10:
+         return ENCODING_MPEG4_LEVEL_1;
+      case BAVC_VideoCompressionLevel_e20:
+         return ENCODING_MPEG4_LEVEL_2;
+      case BAVC_VideoCompressionLevel_e30:
+         return ENCODING_MPEG4_LEVEL_3;
+      case BAVC_VideoCompressionLevel_e40:
+         return ENCODING_MPEG4_LEVEL_4;
+      case BAVC_VideoCompressionLevel_e50:
+         return ENCODING_MPEG4_LEVEL_5;
+      default:
+         return BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED;
+   }
+}
 
-static const uint32_t BVCE_P_LevelHEVCLUT[BAVC_VideoCompressionLevel_eMax] =
+static
+uint32_t
+BVCE_S_LevelHEVCLUT(
+      BAVC_VideoCompressionLevel eLevel
+      )
 {
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eUnknown */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e00 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e10 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e1B */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e11 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e12 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e13 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e20 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e21 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e22 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e30 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e31 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e32 */
- ENCODING_HEVC_LEVEL_40, /* BAVC_VideoCompressionLevel_e40 */
- ENCODING_HEVC_LEVEL_41, /* BAVC_VideoCompressionLevel_e41 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e42 */
- ENCODING_HEVC_LEVEL_50, /* BAVC_VideoCompressionLevel_e50 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e51 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e60 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e62 */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eLow */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eMain */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh */
- BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh1440 */
-};
+   switch ( eLevel )
+   {
+      case BAVC_VideoCompressionLevel_e40:
+         return ENCODING_HEVC_LEVEL_40;
+      case BAVC_VideoCompressionLevel_e41:
+         return ENCODING_HEVC_LEVEL_41;
+      case BAVC_VideoCompressionLevel_e50:
+         return ENCODING_HEVC_LEVEL_50;
+      default:
+         return BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED;
+   }
+}
 
 static const uint32_t BVCE_P_InputTypeLUT[BAVC_ScanType_eProgressive + 1] =
 {
@@ -2570,10 +2573,6 @@ BVCE_S_VerifyGopStructure(
          BDBG_ERR(("GOP Structure of IBBBP not supported"));
          return BERR_TRACE(BERR_NOT_SUPPORTED);
 
-      case ENCODING_GOP_STRUCT_TRACK_INPUT:
-         /* not supported yet ... */
-         BDBG_ERR(("GOP Structure input tracking not supported"));
-         return BERR_TRACE(BERR_NOT_SUPPORTED);
 
       default:
          BDBG_ERR(("Invalid GOP Structure %d", hVce->fw.stCommand.type.stConfigChannel.GopStructure & GOP_STRUCTURE_MASK));
@@ -2671,35 +2670,19 @@ static const uint32_t BVCE_P_PI2FW_FrameRateLUT[BAVC_FrameRateCode_eMax] =
    ENCODING_FRAME_RATE_CODE_5994, /* BAVC_FrameRateCode_e59_94 */
    ENCODING_FRAME_RATE_CODE_6000, /* BAVC_FrameRateCode_e60 */
    ENCODING_FRAME_RATE_CODE_1498, /* BAVC_FrameRateCode_e14_985 */
-#if ( BVCE_P_CORE_MAJOR < 3 )
    ENCODING_FRAME_RATE_CODE_0749, /* BAVC_FrameRateCode_e7_493 */
    ENCODING_FRAME_RATE_CODE_1000, /* BAVC_FrameRateCode_e10 */
-#else
-   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e7_493 */
-   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e10 */
-#endif
    ENCODING_FRAME_RATE_CODE_1500, /* BAVC_FrameRateCode_e15 */
    ENCODING_FRAME_RATE_CODE_2000, /* BAVC_FrameRateCode_e20 */
-#if ( BVCE_P_CORE_MAJOR < 3 )
    ENCODING_FRAME_RATE_CODE_1250, /* BAVC_FrameRateCode_e12_5 */
-#else
-   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e12_5 */
-#endif
    ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e100 */
    ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e119_88 */
    ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e120 */
    ENCODING_FRAME_RATE_CODE_1998, /* BAVC_FrameRateCode_e19_98 */
-#if ( BVCE_P_CORE_MAJOR < 3 )
    ENCODING_FRAME_RATE_CODE_0750, /* BAVC_FrameRateCode_e7_5 */
    ENCODING_FRAME_RATE_CODE_1200, /* BAVC_FrameRateCode_e12 */
    ENCODING_FRAME_RATE_CODE_1198, /* BAVC_FrameRateCode_e11_988 */
    ENCODING_FRAME_RATE_CODE_0999 /* BAVC_FrameRateCode_e9_99 */
-#else
-   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e7_5 */
-   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e12 */
-   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e11_988 */
-   ENCODING_FRAME_RATE_CODE_UNKNOWN /* BAVC_FrameRateCode_e9_99 */
-#endif
 };
 
 static
@@ -2743,7 +2726,7 @@ BVCE_S_SendCommand_ConfigChannel(
          BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",on input change,new rap,fast channel change");
          BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
 
-         BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",frame rate,frame rate mode,bitrate,bitrate target,A2P delay,gop restart,min gop length after restart,duration,duration ramp up,p frames,b frames,open gop,itfp,num slices");
+         BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",frame rate,frame rate mode,sparse frame rate mode,bitrate,bitrate target,A2P delay,gop restart,min gop length after restart,duration,duration ramp up,p frames,b frames,open gop,itfp,num slices");
          BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 60 );
 
          BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, "\n" );
@@ -2795,9 +2778,10 @@ BVCE_S_SendCommand_ConfigChannel(
       }
 
       /* Encode Settings */
-      BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
+      BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
          pstEncodeSettings->stFrameRate.eFrameRate,
          pstEncodeSettings->stFrameRate.bVariableFrameRateMode,
+         pstEncodeSettings->stFrameRate.bSparseFrameRateMode,
          pstEncodeSettings->stBitRate.uiMax,
          pstEncodeSettings->stBitRate.uiTarget,
          pstEncodeSettings->uiA2PDelay,
@@ -2866,18 +2850,18 @@ BVCE_S_SendCommand_ConfigChannel(
    switch ( hVce->fw.stCommand.type.stConfigChannel.Protocol )
    {
       case ENCODING_STD_H264:
-         hVce->fw.stCommand.type.stConfigChannel.Profile = BVCE_P_ProfileH264LUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eProfile];
-         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_P_LevelH264LUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel];
+         hVce->fw.stCommand.type.stConfigChannel.Profile = BVCE_S_ProfileH264LUT(hVceCh->stStartEncodeSettings.stProtocolInfo.eProfile);
+         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_S_LevelH264LUT(hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel);
          break;
 
       case ENCODING_STD_MPEG2:
-         hVce->fw.stCommand.type.stConfigChannel.Profile = BVCE_P_ProfileMPEG2LUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eProfile];
-         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_P_LevelMPEG2LUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel];
+         hVce->fw.stCommand.type.stConfigChannel.Profile = BVCE_S_ProfileMPEG2LUT(hVceCh->stStartEncodeSettings.stProtocolInfo.eProfile);
+         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_S_LevelMPEG2LUT(hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel);
          break;
 
       case ENCODING_STD_MPEG4:
-         hVce->fw.stCommand.type.stConfigChannel.Profile = BVCE_P_ProfileMPEG4LUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eProfile];
-         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_P_LevelMPEG4LUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel];
+         hVce->fw.stCommand.type.stConfigChannel.Profile = BVCE_S_ProfileMPEG4LUT(hVceCh->stStartEncodeSettings.stProtocolInfo.eProfile);
+         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_S_LevelMPEG4LUT(hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel);
          break;
 
       case ENCODING_STD_VP8:
@@ -2886,8 +2870,8 @@ BVCE_S_SendCommand_ConfigChannel(
          break;
 
       case ENCODING_STD_HEVC:
-         hVce->fw.stCommand.type.stConfigChannel.Profile = BVCE_P_ProfileHEVCLUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eProfile];
-         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_P_LevelHEVCLUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel];
+         hVce->fw.stCommand.type.stConfigChannel.Profile = BVCE_S_ProfileHEVCLUT(hVceCh->stStartEncodeSettings.stProtocolInfo.eProfile);
+         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_S_LevelHEVCLUT(hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel);
          break;
 
       case ENCODING_STD_VP9:
@@ -2921,6 +2905,16 @@ BVCE_S_SendCommand_ConfigChannel(
    }
 
    hVce->fw.stCommand.type.stConfigChannel.Flags |= (( true == pstEncodeSettings->stFrameRate.bVariableFrameRateMode ) << CONFIG_FLAG_RATE_MODE_POS); /* Variable Rate */
+
+   if ( true == pstEncodeSettings->stFrameRate.bSparseFrameRateMode )
+   {
+      if ( BAVC_ScanType_eInterlaced == hVceCh->stStartEncodeSettings.eInputType )
+      {
+         BDBG_ERR(("Interlaced transcode not allowed with Sparse Frame Rate Mode"));
+         return BERR_TRACE( BERR_INVALID_PARAMETER );
+      }
+      hVce->fw.stCommand.type.stConfigChannel.Flags |= 1 << CONFIG_FLAG_ENABLE_SPARSE_FRAME_RATE_MODE;
+   }
 
    hVce->fw.stCommand.type.stConfigChannel.MaxBitrate = pstEncodeSettings->stBitRate.uiMax;
 
@@ -3148,26 +3142,10 @@ BVCE_S_SendCommand_ConfigChannel(
    hVce->fw.stCommand.type.stConfigChannel.CDBBufSize = BVCE_P_Buffer_GetSize( hVceCh->stStartEncodeSettings.hOutputHandle->hOutputBuffers->stCDB.hBuffer );
 
    /* Set ITFP Mode */
-   if ( false == hVceCh->stEncodeSettings.bITFPEnable )
+   if ( false == pstEncodeSettings->bITFPEnable )
    {
       hVce->fw.stCommand.type.stConfigChannel.Flags |= (1 << CONFIG_FLAG_ITFP_DISABLED_POS);
    }
-
-   /* SWSTB-4896: Disable ITFP for Core v2 when doing interlaced encoding on DDR4 boards to workaround FWVICE2-921 */
-#if ( BVCE_P_CORE_MAJOR == 2 )
-   if ( BAVC_ScanType_eInterlaced == hVceCh->stStartEncodeSettings.eInputType )
-   {
-      BCHP_MemoryInfo stMemoryInfo;
-
-      BCHP_GetMemoryInfo( hVce->handles.hChp, &stMemoryInfo );
-
-      if ( BCHP_DramType_eDDR4 == stMemoryInfo.memc[0].type )
-      {
-         BDBG_WRN(("Disabling ITFP on DDR4 board"));
-         hVce->fw.stCommand.type.stConfigChannel.Flags |= (1 << CONFIG_FLAG_ITFP_DISABLED_POS);
-      }
-   }
-#endif
 
    /* Set STC Select */
    hVce->fw.stCommand.type.stConfigChannel.StcID = hVceCh->stStartEncodeSettings.uiStcIndex;
@@ -3513,7 +3491,7 @@ BVCE_S_SendCommand_DebugCommand(
          BVCE_Handle hVce,
          BVCE_ArcInstance eARCInstance,
          char *szCommand,
-         size_t uiLength
+         unsigned uiLength
          )
 {
    BERR_Code rc;
@@ -3662,7 +3640,6 @@ BVCE_S_AllocateDebugLog(
 
       if ( BERR_SUCCESS != rc )
       {
-         BVCE_Close( hVce );
          return BERR_TRACE( rc );
       }
 
@@ -4044,12 +4021,12 @@ BVCE_Debug_S_ReadBuffer_impl(
          BVCE_Handle hVce,
          BVCE_ArcInstance eARCInstance,
          char *szBuffer,   /* [in] pointer to buffer where log is copied to */
-         size_t uiBufferSize,  /* [in] maximum number of bytes to copy to buffer */
-         size_t *puiBytesRead  /* [out] number of bytes copied from debug log */
+         unsigned uiBufferSize,  /* [in] maximum number of bytes to copy to buffer */
+         unsigned *puiBytesRead  /* [out] number of bytes copied from debug log */
          )
 {
    ViceDebugBufferInfo_t stDebugBufferInfo;
-   size_t uiInputLengthRead = 0;
+   unsigned uiInputLengthRead = 0;
 
    BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( szBuffer );
@@ -4083,9 +4060,9 @@ BVCE_Debug_S_ReadBuffer_impl(
    {
       void *pBufferCached;
       const uint8_t *pInputBuffer0;
-      size_t uiInputLength0;
+      unsigned uiInputLength0;
       const uint8_t *pInputBuffer1 = NULL;
-      size_t uiInputLength1 = 0;
+      unsigned uiInputLength1 = 0;
 
       /* Get cached address */
       pBufferCached = BVCE_P_Buffer_LockAddress( hVce->fw.debug[eARCInstance].hBuffer );
@@ -4150,8 +4127,8 @@ BVCE_Debug_S_ReadBuffer_impl(
 
    if ( NULL != hVce->hDebugLogDumpFile[eARCInstance] )
    {
-       size_t uiBytesLeftToWrite = uiInputLengthRead;
-       size_t uiBytesToWrite = 0;
+       unsigned uiBytesLeftToWrite = uiInputLengthRead;
+       unsigned uiBytesToWrite = 0;
 
        if ( uiBytesLeftToWrite > uiInputLength0 )
        {
@@ -4201,8 +4178,8 @@ BVCE_Debug_ReadBuffer(
          BVCE_Handle hVce,
          BVCE_ArcInstance eARCInstance,
          char *szBuffer,   /* [in] pointer to buffer where log is copied to */
-         size_t uiBufferSize,  /* [in] maximum number of bytes to copy to buffer */
-         size_t *puiBytesRead  /* [out] number of bytes copied from debug log */
+         unsigned uiBufferSize,  /* [in] maximum number of bytes to copy to buffer */
+         unsigned *puiBytesRead  /* [out] number of bytes copied from debug log */
          )
 {
    BERR_Code rc;
@@ -4242,9 +4219,9 @@ BVCE_Debug_S_SendCommand_impl(
          )
 {
    BERR_Code rc = BERR_SUCCESS;
-   size_t uiCommandStartIndex;
-   size_t uiCommandLength = 0;
-   size_t uiCommandCurrentIndex = 0;
+   unsigned uiCommandStartIndex;
+   unsigned uiCommandLength = 0;
+   unsigned uiCommandCurrentIndex = 0;
 
    BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( szCommand );
@@ -4626,51 +4603,6 @@ BVCE_ProcessWatchdog(
    }
    else
    {
-#if BDBG_DEBUG_BUILD
-      /* Dump PC */
-
-      {
-         unsigned i;
-
-         for ( i = 0; i < BVCE_PLATFORM_P_NUM_ARC_CORES; i++ )
-         {
-            if ( 0 != hVce->stPlatformConfig.stDebug.uiArcHostIF[i] )
-            {
-               BREG_Write32(
-                  hVce->handles.hReg,
-                  hVce->stPlatformConfig.stDebug.uiArcHostIF[i],
-                  hVce->stPlatformConfig.stDebug.uiArcHostIFMask[i]
-               );
-            }
-         }
-
-         for ( i = 0; i < 10; i++ )
-         {
-            unsigned j;
-
-            for ( j = 0; j < BVCE_PLATFORM_P_NUM_ARC_CORES; j++ )
-            {
-               if ( 0 != hVce->stPlatformConfig.stDebug.uiArcPC[j] )
-               {
-                  BDBG_ERR(("@%08x = %08x (ARC[%d] PC)",
-                     hVce->stPlatformConfig.stDebug.uiArcPC[j],
-                     BREG_Read32(
-                        hVce->handles.hReg,
-                        hVce->stPlatformConfig.stDebug.uiArcPC[j]
-                        ),
-                     j
-                     ));
-               }
-            }
-
-            BKNI_Sleep(10);
-         }
-      }
-
-      /* Dump VCE HW Registers to Console */
-      BVCE_Debug_DumpRegisters(hVce);
-#endif
-
       /* Set SW_INIT_MODE=1 */
       BVCE_Platform_P_WriteRegisterList(
          hVce->handles.hReg,
@@ -4802,6 +4734,9 @@ static const BVCE_Channel_OpenSettings s_stDefaultChannelOpenSettings =
     NULL, /* ITB Heap */
     true, /* bEnableDataUnitDetection */
  },
+ NULL, /* hPictureMem */
+ NULL, /* hSecureMem */
+ NULL, /* hGeneralMem */
 };
 
 void
@@ -5043,10 +4978,71 @@ BVCE_Channel_S_Open_impl(
             &hVceCh->stEncodeSettings
             );
 
-   /* Select heaps */
-   hVceCh->memory[BVCE_P_HeapId_eSystem].hAllocator = hVceCh->hVce->ahAllocator[BVCE_P_HeapId_eSystem];
-   hVceCh->memory[BVCE_P_HeapId_ePicture].hAllocator = hVceCh->hVce->ahAllocator[BVCE_P_HeapId_ePicture];
-   hVceCh->memory[BVCE_P_HeapId_eSecure].hAllocator = hVceCh->hVce->ahAllocator[BVCE_P_HeapId_eSecure];
+   /* Select pre-allocated or dynamic heap */
+   {
+      BVCE_P_HeapId eHeapId;
+
+      BVCE_P_Buffer_AllocSettings stAllocSettings;
+
+      BVCE_P_Buffer_GetDefaultAllocSettings( &stAllocSettings );
+      stAllocSettings.uiAlignment = BVCE_P_DEFAULT_ALIGNMENT;
+
+      for ( eHeapId = 0; eHeapId < BVCE_P_HeapId_eMax; eHeapId++ )
+      {
+         BMMA_Heap_Handle hMma = NULL;
+
+         switch (eHeapId)
+         {
+         case BVCE_P_HeapId_eSystem:
+            stAllocSettings.uiSize = hVceCh->stOpenSettings.stMemoryConfig.uiGeneralMemSize;
+            if (NULL != hVceCh->stOpenSettings.hGeneralMem ) BDBG_MODULE_MSG( BVCE_MEMORY, ("System Heap Channel[%d][%d]: BVCE_Channel_OpenSettings.hGeneralMem", hVceCh->hVce->stOpenSettings.uiInstance, hVceCh->stOpenSettings.uiInstance) );
+            hMma = hVceCh->stOpenSettings.hGeneralMem;
+            break;
+
+         case BVCE_P_HeapId_ePicture:
+            stAllocSettings.uiSize = hVceCh->stOpenSettings.stMemoryConfig.uiPictureMemSize;
+            if (NULL != hVceCh->stOpenSettings.hPictureMem ) BDBG_MODULE_MSG( BVCE_MEMORY, ("Picture Heap Channel[%d][%d]: BVCE_Channel_OpenSettings.hPictureMem", hVceCh->hVce->stOpenSettings.uiInstance, hVceCh->stOpenSettings.uiInstance) );
+            hMma = hVceCh->stOpenSettings.hPictureMem;
+            break;
+
+         case BVCE_P_HeapId_eSecure:
+            stAllocSettings.uiSize = hVceCh->stOpenSettings.stMemoryConfig.uiSecureMemSize;
+            if (NULL != hVceCh->stOpenSettings.hSecureMem ) BDBG_MODULE_MSG( BVCE_MEMORY, ("Secure Heap Channel[%d][%d]: BVCE_Channel_OpenSettings.hSecureMem", hVceCh->hVce->stOpenSettings.uiInstance, hVceCh->stOpenSettings.uiInstance) );
+            hMma = hVceCh->stOpenSettings.hSecureMem;
+            break;
+
+         /* coverity[dead_error_begin] */
+         default:
+            continue;
+         }
+
+         if ( hMma != NULL )
+         {
+            rc = BVCE_P_Allocator_Create(
+               hMma,
+               &stAllocSettings,
+               &hVceCh->memory[eHeapId].hAllocator
+               );
+
+
+            if ( BERR_SUCCESS != rc )
+            {
+               BDBG_ERR(("Error creating local allocator [%d]", eHeapId));
+               BVCE_Channel_Close( hVceCh );
+               return BERR_TRACE( rc );
+            }
+            BDBG_MODULE_MSG( BVCE_MEMORY, ("Created Channel Memory Allocator[%d]: %08lx bytes @ "BDBG_UINT64_FMT,
+               eHeapId,
+               (unsigned long) BVCE_P_Allocator_GetSize( hVceCh->memory[eHeapId].hAllocator ),
+               BDBG_UINT64_ARG(BVCE_P_Allocator_GetDeviceOffset( hVceCh->memory[eHeapId].hAllocator ))
+               ));
+         }
+         else
+         {
+            hVceCh->memory[eHeapId].hAllocator = hVceCh->hVce->ahAllocator[eHeapId];
+         }
+      }
+   }
 
    /* Allocate Memory */
    {
@@ -5281,7 +5277,41 @@ BVCE_Channel_S_Close_impl(
 
    for ( eHeapId = 0; eHeapId < BVCE_P_HeapId_eMax; eHeapId++ )
    {
+      BMMA_Heap_Handle hMma = NULL;
       BVCE_P_Buffer_Free( hVceCh->memory[eHeapId].hBuffer );
+
+      switch (eHeapId)
+      {
+      case BVCE_P_HeapId_eSystem:
+         hMma = hVceCh->stOpenSettings.hGeneralMem;
+         break;
+
+      case BVCE_P_HeapId_ePicture:
+         hMma = hVceCh->stOpenSettings.hPictureMem;
+         break;
+
+      case BVCE_P_HeapId_eSecure:
+         hMma = hVceCh->stOpenSettings.hSecureMem;
+         break;
+
+      /* coverity[dead_error_begin] */
+      default:
+         continue;
+      }
+
+      if ( hMma != NULL )
+      {
+         BDBG_MODULE_MSG( BVCE_MEMORY, ("Freed Channel Memory Allocator[%d]: %08lx bytes @ "BDBG_UINT64_FMT,
+               eHeapId,
+               (unsigned long) BVCE_P_Allocator_GetSize( hVceCh->memory[eHeapId].hAllocator ),
+               BDBG_UINT64_ARG(BVCE_P_Allocator_GetDeviceOffset( hVceCh->memory[eHeapId].hAllocator ))
+            ));
+
+         BVCE_P_Allocator_Destroy(
+            hVceCh->memory[eHeapId].hAllocator
+            );
+      }
+
       hVceCh->memory[eHeapId].hBuffer = NULL;
    }
 
@@ -5481,11 +5511,7 @@ static const BVCE_Channel_StartEncodeSettings s_stDefaultStartEncodeSettings =
  1, /* Encoder defaults to STC[1].  Decoder typically uses STC[0]. */
  {
     {
-#if ( BVCE_P_CORE_MAJOR < 3 )
        BAVC_FrameRateCode_e7_493,
-#else
-       BAVC_FrameRateCode_e14_985,
-#endif
        BAVC_FrameRateCode_e60,
     },
     {
@@ -5996,7 +6022,8 @@ static const BVCE_Channel_EncodeSettings s_stDefaultChEncodeSettings =
  /* Frame Rate */
  {
   BAVC_FrameRateCode_e30,  /* 30 fps */
-  false, /* frame rate mode=fixed*/
+  false, /* variable frame rate mode=off*/
+  false, /* sparse frame rate mode=off*/
  },
  {
   6000000, /* Max Bit Rate */
@@ -6534,7 +6561,7 @@ BVCE_Channel_S_GetStatus_impl(
       hVceCh->stStatus.uiEtsDtsOffset = hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.uiEtsDtsOffset;
       if ( 0 != hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.Throughput )
       {
-         hVceCh->stStatus.uiAverageFramesPerSecond = 351000000 / hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.Throughput;
+         hVceCh->stStatus.uiAverageFramesPerSecond = BVCE_P_CORE_FREQUENCY / hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.Throughput;
       }
       else
       {
@@ -6837,8 +6864,8 @@ BERR_Code
 BVCE_Channel_UserData_AddBuffers_isr(
          BVCE_Channel_Handle hVceCh,
          const BUDP_Encoder_FieldInfo *pstUserDataFieldInfo, /* Pointer to first field info descriptor */
-         size_t uiCount, /* Count of user data field buffer info structs */
-         size_t *puiQueuedCount /* Count of user data field info structs queued by encoder (*puiQueuedCount <= uiCount) */
+         unsigned uiCount, /* Count of user data field buffer info structs */
+         unsigned *puiQueuedCount /* Count of user data field info structs queued by encoder (*puiQueuedCount <= uiCount) */
          )
 {
    BERR_Code rc = BERR_SUCCESS;
@@ -7171,8 +7198,6 @@ BVCE_GetA2PDelayInfo(
 
    BDBG_ASSERT( pstChEncodeSettings );
    BDBG_ASSERT( pstChStartEncodeSettings );
-   BDBG_ASSERT( BVCE_P_SIGNATURE_STARTENCODESETTINGS == pstChStartEncodeSettings->uiSignature );
-   BDBG_ASSERT( BVCE_P_SIGNATURE_CHANNELENCODESETTINGS == pstChEncodeSettings->uiSignature );
    BDBG_ASSERT( pstA2PDelay );
 
    if ( NULL != pstA2PDelay )
@@ -7190,23 +7215,26 @@ BVCE_GetA2PDelayInfo(
          uint32_t uiA2PDelayMax;
          uint32_t uiGOPStructure;
 
+         BDBG_ASSERT( BVCE_P_SIGNATURE_STARTENCODESETTINGS == pstChStartEncodeSettings->uiSignature );
+         BDBG_ASSERT( BVCE_P_SIGNATURE_CHANNELENCODESETTINGS == pstChEncodeSettings->uiSignature );
+
          uiProtocol = BVCE_P_ProtocolLUT(pstChStartEncodeSettings->stProtocolInfo.eProtocol);
 
          switch ( uiProtocol )
          {
             case ENCODING_STD_H264:
-               uiProfile = BVCE_P_ProfileH264LUT[pstChStartEncodeSettings->stProtocolInfo.eProfile];
-               uiLevel = BVCE_P_LevelH264LUT[pstChStartEncodeSettings->stProtocolInfo.eLevel];
+               uiProfile = BVCE_S_ProfileH264LUT(pstChStartEncodeSettings->stProtocolInfo.eProfile);
+               uiLevel = BVCE_S_LevelH264LUT(pstChStartEncodeSettings->stProtocolInfo.eLevel);
                break;
 
             case ENCODING_STD_MPEG2:
-               uiProfile = BVCE_P_ProfileMPEG2LUT[pstChStartEncodeSettings->stProtocolInfo.eProfile];
-               uiLevel = BVCE_P_LevelMPEG2LUT[pstChStartEncodeSettings->stProtocolInfo.eLevel];
+               uiProfile = BVCE_S_ProfileMPEG2LUT(pstChStartEncodeSettings->stProtocolInfo.eProfile);
+               uiLevel = BVCE_S_LevelMPEG2LUT(pstChStartEncodeSettings->stProtocolInfo.eLevel);
                break;
 
             case ENCODING_STD_MPEG4:
-               uiProfile = BVCE_P_ProfileMPEG4LUT[pstChStartEncodeSettings->stProtocolInfo.eProfile];
-               uiLevel = BVCE_P_LevelMPEG4LUT[pstChStartEncodeSettings->stProtocolInfo.eLevel];
+               uiProfile = BVCE_S_ProfileMPEG4LUT(pstChStartEncodeSettings->stProtocolInfo.eProfile);
+               uiLevel = BVCE_S_LevelMPEG4LUT(pstChStartEncodeSettings->stProtocolInfo.eLevel);
                break;
 
             case ENCODING_STD_VP8:
@@ -7215,8 +7243,8 @@ BVCE_GetA2PDelayInfo(
                break;
 
             case ENCODING_STD_HEVC:
-               uiProfile = BVCE_P_ProfileHEVCLUT[pstChStartEncodeSettings->stProtocolInfo.eProfile];
-               uiLevel = BVCE_P_LevelHEVCLUT[pstChStartEncodeSettings->stProtocolInfo.eLevel];
+               uiProfile = BVCE_S_ProfileHEVCLUT(pstChStartEncodeSettings->stProtocolInfo.eProfile);
+               uiLevel = BVCE_S_LevelHEVCLUT(pstChStartEncodeSettings->stProtocolInfo.eLevel);
                break;
 
             case ENCODING_STD_VP9:
@@ -7401,7 +7429,11 @@ BVCE_Channel_GetDefaultMemoryBoundsSettings(
    stCoreSettings.eVersion = CORE_VERSION;
 
    /* Get default non-secure memory settings */
-   BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 7*4 );
+#if (VICE_API_VERSION >= 0x08000000)
+   BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 10*4 );
+#else
+   BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 9*4 );
+#endif
    BKNI_Memset( &stNonSecureMemSettings, 0, sizeof( BVCE_FW_P_NonSecureMemSettings_t ) );
    BVCE_FW_P_GetDefaultNonSecureMemSettings( &stCoreSettings, &stNonSecureMemSettings );
 
@@ -7460,7 +7492,11 @@ BVCE_Channel_GetMemoryConfig(
 
          /* Populate non-secure memory settings */
 
-         BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 7*4 );
+#if (VICE_API_VERSION >= 0x08000000)
+         BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 10*4 );
+#else
+         BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 9*4 );
+#endif
          BKNI_Memset( &stNonSecureMemSettings, 0, sizeof( BVCE_FW_P_NonSecureMemSettings_t ) );
 
          BVCE_FW_P_GetDefaultNonSecureMemSettings( &stCoreSettings, &stNonSecureMemSettings );
@@ -7481,6 +7517,7 @@ BVCE_Channel_GetMemoryConfig(
                stNonSecureMemSettings.DramStripeWidth = stFirmwareMemorySettings.StripeWidth;
                stNonSecureMemSettings.X = stFirmwareMemorySettings.X;
                stNonSecureMemSettings.Y = stFirmwareMemorySettings.Y;
+               stNonSecureMemSettings.PageSize = stFirmwareMemorySettings.PageSize;
             }
          }
 
@@ -7560,6 +7597,53 @@ BVCE_Power_Standby(
          hVce,
          BVCE_Power_Type_eClock
          );
+
+#if BDBG_DEBUG_BUILD
+   if ( true == hVce->bWatchdogOccurred )
+   {
+      /* Dump PC */
+      {
+         unsigned i;
+
+         for ( i = 0; i < BVCE_PLATFORM_P_NUM_ARC_CORES; i++ )
+         {
+            if ( 0 != hVce->stPlatformConfig.stDebug.uiArcHostIF[i] )
+            {
+               BREG_Write32(
+                  hVce->handles.hReg,
+                  hVce->stPlatformConfig.stDebug.uiArcHostIF[i],
+                  hVce->stPlatformConfig.stDebug.uiArcHostIFMask[i]
+               );
+            }
+         }
+
+         for ( i = 0; i < 10; i++ )
+         {
+            unsigned j;
+
+            for ( j = 0; j < BVCE_PLATFORM_P_NUM_ARC_CORES; j++ )
+            {
+               if ( 0 != hVce->stPlatformConfig.stDebug.uiArcPC[j] )
+               {
+                  BDBG_ERR(("@%08x = %08x (ARC[%d] PC)",
+                     hVce->stPlatformConfig.stDebug.uiArcPC[j],
+                     BREG_Read32(
+                        hVce->handles.hReg,
+                        hVce->stPlatformConfig.stDebug.uiArcPC[j]
+                        ),
+                     j
+                     ));
+               }
+            }
+
+            BKNI_Sleep(10);
+         }
+      }
+
+      /* Dump VCE HW Registers to Console */
+      BVCE_Debug_DumpRegisters(hVce);
+   }
+#endif
 
    /* Verify that all channels are stopped.  Keep track of channels that are open */
    for ( uiChannelNum = 0; uiChannelNum < BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS; uiChannelNum++ )

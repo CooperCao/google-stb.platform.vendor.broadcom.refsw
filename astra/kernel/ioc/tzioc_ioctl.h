@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -79,10 +79,10 @@ private:
     static int clientClose(void *arg);
     static int clientGetId(void *arg);
     static int msgSend(void *arg);
-    static int mapPaddr(void *arg);
-    static int unmapPaddr(void *arg);
     static int mapPaddrs(void *arg);
     static int unmapPaddrs(void *arg);
+    static int paddr2vaddr(void *arg);
+    static int vaddr2paddr(void *arg);
 
 }; /* class TzIoc::TzIocIoctl */
 

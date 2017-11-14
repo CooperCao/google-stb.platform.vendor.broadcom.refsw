@@ -75,13 +75,14 @@
 #include <stdlib.h>
 
 const namevalue_t g_videoFormatStrs[] = {
+    {"vga",       NEXUS_VideoFormat_eVesa640x480p60hz},
     {"ntsc",      NEXUS_VideoFormat_eNtsc},
-    {"480i",      NEXUS_VideoFormat_eNtsc},
+    {"480i",      NEXUS_VideoFormat_eNtsc}, /* alias */
     {"pal",       NEXUS_VideoFormat_ePal},
+    {"576i",      NEXUS_VideoFormat_ePal}, /* alias */
     {"pal_m",     NEXUS_VideoFormat_ePalM},
     {"pal_n",     NEXUS_VideoFormat_ePalN},
     {"pal_nc",    NEXUS_VideoFormat_ePalNc},
-    {"576i",      NEXUS_VideoFormat_ePal},
     {"1080i",     NEXUS_VideoFormat_e1080i},
     {"1080i50",   NEXUS_VideoFormat_e1080i50hz},
     {"720p",      NEXUS_VideoFormat_e720p},
@@ -92,11 +93,11 @@ const namevalue_t g_videoFormatStrs[] = {
     {"480p",      NEXUS_VideoFormat_e480p},
     {"576p",      NEXUS_VideoFormat_e576p},
     {"1080p",     NEXUS_VideoFormat_e1080p},
+    {"1080p60",   NEXUS_VideoFormat_e1080p}, /* alias */
     {"1080p24",   NEXUS_VideoFormat_e1080p24hz},
     {"1080p25",   NEXUS_VideoFormat_e1080p25hz},
     {"1080p30",   NEXUS_VideoFormat_e1080p30hz},
     {"1080p50",   NEXUS_VideoFormat_e1080p50hz},
-    {"1080p60",   NEXUS_VideoFormat_e1080p},
     {"1080p100",  NEXUS_VideoFormat_e1080p100hz},
     {"1080p120",  NEXUS_VideoFormat_e1080p120hz},
     {"720p3D",    NEXUS_VideoFormat_e3D_720p},
@@ -198,47 +199,55 @@ const namevalue_t g_videoCodecStrs[] = {
     {NULL, 0}
 };
 
-const namevalue_t g_videoCodecProfileStrs[] = {
-#if NEXUS_HAS_VIDEO_ENCODER
-    {"simple", NEXUS_VideoCodecProfile_eSimple},
-    {"main", NEXUS_VideoCodecProfile_eMain},
-    {"high", NEXUS_VideoCodecProfile_eHigh},
-    {"advanced", NEXUS_VideoCodecProfile_eAdvanced},
-    {"jizhun", NEXUS_VideoCodecProfile_eJizhun},
-    {"snrscl", NEXUS_VideoCodecProfile_eSnrScalable},
-    {"spatialscl", NEXUS_VideoCodecProfile_eSpatiallyScalable},
-    {"advsimple", NEXUS_VideoCodecProfile_eAdvancedSimple},
-    {"baseline", NEXUS_VideoCodecProfile_eBaseline},
-#endif
+const namevalue_t g_videoCodecProfileStrs[NEXUS_VideoProtocolProfile_eMax+1] = {
+    {"unknown", NEXUS_VideoProtocolProfile_eUnknown},
+    {"simple", NEXUS_VideoProtocolProfile_eSimple},
+    {"main", NEXUS_VideoProtocolProfile_eMain},
+    {"high", NEXUS_VideoProtocolProfile_eHigh},
+    {"advanced", NEXUS_VideoProtocolProfile_eAdvanced},
+    {"jizhun", NEXUS_VideoProtocolProfile_eJizhun},
+    {"snrscl", NEXUS_VideoProtocolProfile_eSnrScalable},
+    {"spatialscl", NEXUS_VideoProtocolProfile_eSpatiallyScalable},
+    {"advsimple", NEXUS_VideoProtocolProfile_eAdvancedSimple},
+    {"baseline", NEXUS_VideoProtocolProfile_eBaseline},
+    {"multi-high", NEXUS_VideoProtocolProfile_eMultiHigh},
+    {"stereo-high", NEXUS_VideoProtocolProfile_eStereoHigh},
+    {"main10", NEXUS_VideoProtocolProfile_eMain10},
+    {"0", NEXUS_VideoProtocolProfile_e0},
+    {"2", NEXUS_VideoProtocolProfile_e2},
     {NULL, 0}
 };
 
-const namevalue_t g_videoCodecLevelStrs[] = {
-#if NEXUS_HAS_VIDEO_ENCODER
-    {"0.0", NEXUS_VideoCodecLevel_e00},
-    {"1.0", NEXUS_VideoCodecLevel_e10},
-    {"1.b", NEXUS_VideoCodecLevel_e1B},
-    {"1.1", NEXUS_VideoCodecLevel_e11},
-    {"1.2", NEXUS_VideoCodecLevel_e12},
-    {"1.3", NEXUS_VideoCodecLevel_e13},
-    {"2.0", NEXUS_VideoCodecLevel_e20},
-    {"2.1", NEXUS_VideoCodecLevel_e21},
-    {"2.2", NEXUS_VideoCodecLevel_e22},
-    {"3.0", NEXUS_VideoCodecLevel_e30},
-    {"3.1", NEXUS_VideoCodecLevel_e31},
-    {"3.2", NEXUS_VideoCodecLevel_e32},
-    {"4.0", NEXUS_VideoCodecLevel_e40},
-    {"4.1", NEXUS_VideoCodecLevel_e41},
-    {"4.2", NEXUS_VideoCodecLevel_e42},
-    {"5.0", NEXUS_VideoCodecLevel_e50},
-    {"5.1", NEXUS_VideoCodecLevel_e51},
-    {"6.0", NEXUS_VideoCodecLevel_e60},
-    {"6.2", NEXUS_VideoCodecLevel_e62},
-    {"low", NEXUS_VideoCodecLevel_eLow},
-    {"main", NEXUS_VideoCodecLevel_eMain},
-    {"high", NEXUS_VideoCodecLevel_eHigh},
-    {"high1440", NEXUS_VideoCodecLevel_eHigh1440},
-#endif
+const namevalue_t g_videoCodecLevelStrs[NEXUS_VideoProtocolLevel_eMax+1] = {
+    {"unknown", NEXUS_VideoProtocolLevel_eUnknown},
+    {"0.0", NEXUS_VideoProtocolLevel_e00},
+    {"1.0", NEXUS_VideoProtocolLevel_e10},
+    {"1.b", NEXUS_VideoProtocolLevel_e1B},
+    {"1.1", NEXUS_VideoProtocolLevel_e11},
+    {"1.2", NEXUS_VideoProtocolLevel_e12},
+    {"1.3", NEXUS_VideoProtocolLevel_e13},
+    {"2.0", NEXUS_VideoProtocolLevel_e20},
+    {"2.1", NEXUS_VideoProtocolLevel_e21},
+    {"2.2", NEXUS_VideoProtocolLevel_e22},
+    {"3.0", NEXUS_VideoProtocolLevel_e30},
+    {"3.1", NEXUS_VideoProtocolLevel_e31},
+    {"3.2", NEXUS_VideoProtocolLevel_e32},
+    {"4.0", NEXUS_VideoProtocolLevel_e40},
+    {"4.1", NEXUS_VideoProtocolLevel_e41},
+    {"4.2", NEXUS_VideoProtocolLevel_e42},
+    {"5.0", NEXUS_VideoProtocolLevel_e50},
+    {"5.1", NEXUS_VideoProtocolLevel_e51},
+    {"6.0", NEXUS_VideoProtocolLevel_e60},
+    {"6.2", NEXUS_VideoProtocolLevel_e62},
+    {"low", NEXUS_VideoProtocolLevel_eLow},
+    {"main", NEXUS_VideoProtocolLevel_eMain},
+    {"high", NEXUS_VideoProtocolLevel_eHigh},
+    {"high1440", NEXUS_VideoProtocolLevel_eHigh1440},
+    {"L0", NEXUS_VideoProtocolLevel_eL0},
+    {"L1", NEXUS_VideoProtocolLevel_eL1},
+    {"L2", NEXUS_VideoProtocolLevel_eL2},
+    {"L3", NEXUS_VideoProtocolLevel_eL3},
+    {"8.0", NEXUS_VideoProtocolLevel_e80},
     {NULL, 0}
 };
 

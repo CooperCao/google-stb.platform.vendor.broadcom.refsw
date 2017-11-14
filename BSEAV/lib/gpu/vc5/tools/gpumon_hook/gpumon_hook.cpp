@@ -28,6 +28,8 @@
 #include "control.h"
 #include "archive.h"
 
+#include "libs/core/v3d/v3d_ver.h"
+
 #ifndef WIN32
 #include <dlfcn.h>
 #endif
@@ -42,7 +44,7 @@
 #define CAPTURE_MAJOR_VER 1
 #define CAPTURE_MINOR_VER 5
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 const unsigned int GLESVER = 31;
 #else
 const unsigned int GLESVER = 3;
@@ -6714,17 +6716,4 @@ DLLEXPORT void DLLEXPORTENTRY BEGL_PlatformAboutToShutdown(void)
 
 #endif
 
-#ifdef ANDROID
-/* These functions are defined in nexus_egl_client.cpp (part of libnexuseglclient.so) */
-void* EGL_nexus_join(char *client_process_name);
-void EGL_nexus_unjoin(void *nexus_client);
-
-DLLEXPORT void DLLEXPORTENTRY dummyForLinkage(void)
-{
-   // Force linkage of these
-   EGL_nexus_join(NULL);
-   EGL_nexus_unjoin(NULL);
-}
-
-#endif
 }

@@ -50,7 +50,11 @@
 
 BDBG_MODULE(diags_kpd);
 
-#if (BCHP_CHIP==7271)
+#if (BCHP_CHIP==7271) || (BCHP_CHIP==7268)
+#define PINMUX_72XX 1
+#endif
+
+#if PINMUX_72XX
 #include "bchp_aon_pin_ctrl.h"
 #include "bchp_ldk.h"
 #endif
@@ -69,7 +73,7 @@ void bcmKpdTest(void)
     BKNI_EventHandle event;
     unsigned i;
     
-#if (BCHP_CHIP==7271)
+#if PINMUX_72XX
     uint32_t aon_pin_mux_ctrl[5] = {0};
     uint32_t reg;
     NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, &aon_pin_mux_ctrl[0]);
@@ -186,7 +190,7 @@ void bcmKpdTest(void)
 
     NEXUS_Keypad_Close(keypad);
 
-#if (BCHP_CHIP==7271)
+#if PINMUX_72XX
     NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_pin_mux_ctrl[0]);
     NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_pin_mux_ctrl[1]);
     NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_pin_mux_ctrl[2]);

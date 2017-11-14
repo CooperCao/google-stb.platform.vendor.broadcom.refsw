@@ -62,17 +62,9 @@
 
 #include "bchp_raaga_dsp_fw_inth.h"
 #include "bchp_raaga_dsp_inth.h"
-#if (BCHP_CHIP != 7278)
 #include "bchp_raaga_dsp_mem_subsystem.h"
-#endif
 #include "bchp_raaga_dsp_misc.h"
-
-#if (BCHP_CHIP != 7278)
 #include "bchp_raaga_dsp_peri_dbg_ctrl.h"
-#else
-#include "bchp_raaga_dsp_peri_dbg_ctrl_0.h"
-#include "bchp_raaga_dsp_peri_dbg_ctrl_1.h"
-#endif
 #include "bchp_raaga_dsp_peri_sw.h"
 #include "bchp_raaga_dsp_rgr.h"
 #include "bchp_raaga_dsp_timers.h"
@@ -105,7 +97,6 @@
 #include "bchp_aud_fmm_pll2.h"
 #endif
 
-#if (BCHP_CHIP != 7278)
 #ifdef BCHP_HIFIDAC_CTRL1_REG_START
 #include "bchp_hifidac_ctrl1.h"
 #include "bchp_hifidac_esr1.h"
@@ -116,7 +107,6 @@
 #include "bchp_hifidac_ctrl2.h"
 #include "bchp_hifidac_esr2.h"
 #include "bchp_hifidac_rm2.h"
-#endif
 #endif
 
 #ifdef BCHP_AUDIO0_PLL_REG_START
@@ -132,16 +122,12 @@
 #include "bchp_pll_audio1.h"
 #endif
 
-#if (BCHP_CHIP != 7278)
 /* Max number of DSPs present in SOC */
 #if defined BCHP_RAAGA_DSP_RGR_1_REG_START
 #define BDSP_RAAGA_MAX_DSP 2
 #else
 #define BDSP_RAAGA_MAX_DSP 1
 #endif
-#else
-#define BDSP_RAAGA_MAX_DSP 2 /* 7278 */
-#endif /* (BCHP_CHIP != 7278) */
 
 #ifdef BCHP_RAAGA_DSP_DMA_1_REG_START
 #include "bchp_raaga_dsp_dma_1.h"

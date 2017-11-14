@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "streamer.h"
 
@@ -53,12 +52,15 @@ using namespace dif_streamer;
 IStreamer* StreamerFactory::CreateStreamer(bool unsecureWithSage)
 {
     IStreamer* streamer = NULL;
+    if (!unsecureWithSage) {
 #ifdef USE_SECURE_PLAYBACK
-    if (!unsecureWithSage)
         streamer = new SecureStreamer();
-    else
+#else
+        LOGW(("SecureStreamer is not available with non-sage build"));
+        streamer = new Streamer();
 #endif
-    streamer = new Streamer();
+    } else
+        streamer = new Streamer();
 
     if (streamer->Initialize() == false) {
         LOGE(("Failed to initialize streamer"));
@@ -71,9 +73,9 @@ IStreamer* StreamerFactory::CreateStreamer(bool unsecureWithSage)
 
 void StreamerFactory::DestroyStreamer(IStreamer* streamer)
 {
-    LOGD(("%s: streamer=%p", __FUNCTION__, (void*)streamer));
+    LOGD(("%s: streamer=%p", BSTD_FUNCTION, (void*)streamer));
     if (streamer == NULL) {
-        LOGE(("%s: streamer is NULL", __FUNCTION__));
+        LOGE(("%s: streamer is NULL", BSTD_FUNCTION));
         return;
     }
     delete streamer;

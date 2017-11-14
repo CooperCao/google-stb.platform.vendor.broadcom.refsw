@@ -122,5 +122,4 @@ struct layout_data {
    LQ lq;
 };
 
-const struct layout_data *glsl_layout_lookup(const char *name, unsigned int len);
 AdvancedBlendQualifier    glsl_lq_to_abq(LQ lq);

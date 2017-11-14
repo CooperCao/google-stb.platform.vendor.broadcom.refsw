@@ -41,23 +41,28 @@
 
 #include "bdsp_raaga_priv_include.h"
 
-#define BDSP_RAAGA_INVALID_DRAM_ADDRESS   0xFFFFFFFF
-
-#define BDSP_RAAGA_MAX_MSGS_PER_QUEUE     	10
-#define BDSP_RAAGA_MAX_ASYNC_MSGS_PER_QUEUE 40
-#define BDSP_RAAGA_MAX_FW_TASK_PER_DSP    	12
-
-#define BDSP_RAAGA_MAX_BRANCH   		   	 2
-#define BDSP_RAAGA_MAX_STAGE_PER_BRANCH   	10
-
-#define BDSP_RAAGA_MAX_FW_TASK_PER_AUDIO_CTXT   12
-
-#define BDSP_RAAGA_MAX_DESCRIPTORS			 100
 #define BDSP_ATU_VIRTUAL_RO_MEM_START_ADDR   (0x0)		 /* RO memory mapped to addr : 0x0 */
 #define BDSP_ATU_VIRTUAL_RW_MEM_START_ADDR   (0x10000000) /* RW memory mapped to addr : 0x10000000 (256MB)*/
 
-#define BDSP_MAX_HOST_DSP_L2C_SIZE           512
-#define BDSP_RAAGA_ALIGN_SIZE(x,y)   (((x+(y-1))/y)*y)
+#define BDSP_MIN_DEBUG_BUFFER_SIZE 0
+#define BDSP_TARGET_BUF_MEM_SIZE (4*1024*1024)
+
+#define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER         4
+#define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_ECHOCANCELLER 1
+
+#define BDSP_SIZE_OF_FIFOREG                   (BCHP_RAAGA_DSP_FW_CFG_SOFTWARE5 - BCHP_RAAGA_DSP_FW_CFG_SOFTWARE4)
+#define BDSP_ReadFIFOReg(hReg, addr)           ((BDSP_SIZE_OF_FIFOREG == 8)? BDSP_ReadReg64(hReg, addr): BDSP_ReadReg32(hReg, addr))
+#define BDSP_WriteFIFOReg(hReg, addr, data)    ((BDSP_SIZE_OF_FIFOREG == 8)? BDSP_WriteReg64(hReg, addr, data): BDSP_WriteReg32(hReg, addr, data))
+
+#define MB0(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX0,x);
+#define MB1(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX1,x);
+#define MB2(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX2,x);
+#define MB3(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX3,x);
+#define MB4(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX4,x);
+#define MB5(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX5,x);
+#define MB6(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX6,x);
+#define MB7(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX7,x);
+
 typedef enum BDSP_Raaga_P_ATUEntry{
 	BDSP_Raaga_P_ATUEntry_ROMem =0,
 	BDSP_Raaga_P_ATUEntry_RWMem,
@@ -73,23 +78,12 @@ typedef struct BDSP_Raaga_P_ATUInfo{
 }BDSP_Raaga_P_ATUInfo;
 
 void BDSP_Raaga_P_CalculateInitMemory(
-	unsigned *pMemReqd
+    unsigned *pMemReqd
 );
 void BDSP_Raaga_P_CalculateDebugMemory(
     BDSP_RaagaSettings *pSettings,
     unsigned           *pMemReqd
 );
-BERR_Code BDSP_Raaga_P_RequestMemory(
-    BDSP_P_MemoryPool *pChunkBuffer,
-    uint32_t ui32Size,
-    BDSP_MMA_Memory *pMemory
-);
-BERR_Code BDSP_Raaga_P_ReleaseMemory(
-    BDSP_P_MemoryPool *pChunkBuffer,
-    uint32_t ui32Size,
-    BDSP_MMA_Memory *pMemory
-);
-
 BERR_Code BDSP_Raaga_P_AssignTaskMemory(
 	void *pTask
 );

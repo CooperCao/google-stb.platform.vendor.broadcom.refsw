@@ -28,6 +28,10 @@ TEST=`lsmod|grep brcmv3d >/dev/null && echo 1`
 if [ ! -z $TEST ]; then
     rmmod brcmv3d || exit;
 fi
+TEST=`lsmod|grep spi_drv >/dev/null && echo 1`
+if [ ! -z $TEST ]; then
+    rmmod spi_drv || exit;
+fi
 
 # in 32bit kernel mode always rmmod wl
 TEST=`uname -m|grep aarch64 >/dev/null && echo 64`
@@ -38,12 +42,13 @@ if [ "$TEST" != "64" ]; then
     fi
 fi
 
-# because msg_modules is so common, automatically tunnel it through config
-if [[ -z ${config} && ! -z ${msg_modules} ]]; then config="msg_modules=${msg_modules}"; fi
-
 # brcmv3d.ko has to be first as nexus.ko resolves a weak symbol in it on load
 if [ -e brcmv3d.ko ]; then
 insmod brcmv3d.ko
+fi
+
+if [ -e spi_drv.ko ]; then
+insmod spi_drv.ko
 fi
 
 insmod nexus.ko config=\"${config}\" || exit;

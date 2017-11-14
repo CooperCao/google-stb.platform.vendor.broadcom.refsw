@@ -118,21 +118,6 @@ static void check_singleton_is_instantiable(const char *name, const SymbolType *
       glsl_compile_error(ERROR_CUSTOM, 14, g_LineNumber, NULL);
 }
 
-static SymbolType *make_array_type_internal(SymbolType *member, unsigned size) {
-   SymbolType *type                = malloc_fast(sizeof(SymbolType));
-   type->flavour                   = SYMBOL_ARRAY_TYPE;
-   type->scalar_count              = size * member->scalar_count;
-   type->u.array_type.member_type  = member;
-   type->u.array_type.member_count = size;
-
-   if (size != 0)
-      type->name = asprintf_fast("%s[%d]", member->name, type->u.array_type.member_count);
-   else
-      type->name = asprintf_fast("%s[]", member->name);
-
-   return type;
-}
-
 void glsl_complete_array_type(SymbolType *type, int member_count)
 {
    assert(type->flavour==SYMBOL_ARRAY_TYPE);
@@ -173,7 +158,7 @@ static SymbolType *make_array_type(SymbolType *member_type, Expr *size)
          glsl_compile_error(ERROR_SEMANTIC, 11, g_LineNumber, "%u", size->compile_time_value[0]);
    }
 
-   return make_array_type_internal(member_type, size ? size->compile_time_value[0] : 0);
+   return glsl_symbol_type_construct_array(member_type, size ? size->compile_time_value[0] : 0);
 }
 
 /* build preliminary (perhaps incomplete) type */
@@ -294,7 +279,7 @@ Symbol *glsl_commit_block_type(SymbolTable *table, DeclDefaultState *dflt, Symbo
    Symbol *symbol = malloc_fast(sizeof(Symbol));
    SymbolType *ref_type = &primitiveTypes[PRIM_UINT];
    if (type->flavour == SYMBOL_ARRAY_TYPE)
-      ref_type = make_array_type_internal(ref_type, type->u.array_type.member_count);
+      ref_type = glsl_symbol_type_construct_array(ref_type, type->u.array_type.member_count);
    glsl_symbol_construct_interface_block(symbol, block_name, ref_type, type, quals);
    glsl_symbol_table_insert(table, symbol);
 
@@ -346,7 +331,7 @@ static bool is_arrays_of_atomic_type(SymbolType *type) {
 static bool is_function_overloadable(Symbol *func) {
    /* You can overload everything in version 100 */
    if(g_ShaderVersion == GLSL_SHADER_VERSION(1,0,1)) return true;
-   return !glsl_stdlib_is_stdlib_symbol(func);
+   return !glsl_stdlib_is_stdlib_function(func);
 }
 
 Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const char *name, SymbolType *type, bool definition, bool user_code)
@@ -703,7 +688,7 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
          glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Block layouts may only used for variables in blocks");
    }
 
-   if (glsl_type_contains(type, PRIM_IMAGE_TYPE) && (!q.lq || !(q.lq->qualified & FORMAT_QUALED)))
+   if (glsl_type_contains(type, PRIM_STOR_IMAGE_TYPE) && (!q.lq || !(q.lq->qualified & FORMAT_QUALED)))
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Image type declaration requires a format qualifier");
 
    if (glsl_type_contains(type, PRIM_ATOMIC_TYPE)) {
@@ -939,7 +924,7 @@ SymbolType *glsl_build_block_type(Qualifiers *quals, const char *name, Statement
 
    type->u.block_type.lq = quals->lq;
    type->u.block_type.layout = malloc_fast(sizeof(MemLayout));
-   glsl_mem_calculate_block_layout(type->u.block_type.layout, type);
+   glsl_mem_calculate_block_layout(type->u.block_type.layout, type, (quals->sq != STORAGE_IN && quals->sq != STORAGE_OUT));
    type->u.block_type.has_named_instance = false;
 
    return type;

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,6 +55,7 @@
 BDBG_MODULE(BXDM_PPTSM);
 BDBG_FILE_MODULE(BXDM_PPTSM);
 BDBG_FILE_MODULE(BXDM_PPQM);
+BDBG_FILE_MODULE(BXDM_PPVTSM);
 
 /*******************************************************************************
  *
@@ -410,7 +411,7 @@ static void BXDM_P_PPTSM_S_ActualTSMResultHandler_isr(
    BXDM_PictureProvider_P_Picture_Context* pstPicture
    );
 
-void BXDM_P_PPTSM_S_FinalTSMResultHandler_isr(
+static void BXDM_P_PPTSM_S_FinalTSMResultHandler_isr(
    BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_P_LocalState* pLocalState,
    BXDM_PictureProvider_P_Picture_Context* pstPicture
@@ -623,7 +624,7 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
       case BAVC_FrameRateCode_e120:
          if ( BXDM_PictureProvider_P_ScanMode_eProgressive != pstPicture->stPicParms.stDisplay.stStatic.eScanMode )
          {
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 60i->60p",
+            BDBG_MODULE_MSG( BXDM_PPTSM, ("%x: [%02x.%03x] Source Polarity Override: 60i->60p",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                           pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -725,7 +726,7 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
                 *     display 1080p60
                 *  2) Many early streams were incorrectly encoded as 1080p
                 *     when they were really 1080i */
-               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 1080p->1080i",
+               BDBG_MODULE_MSG( BXDM_PPTSM, ("%x: [%02x.%03x] Source Polarity Override: 1080p->1080i",
                                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                    pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -811,7 +812,7 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
                       * deinterlacer, which can sort out the fields/frames and
                       * construct the correct picture.
                       */
-                     BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 480p->480i",
+                     BDBG_MODULE_MSG( BXDM_PPTSM, ("%x: [%02x.%03x] Source Polarity Override: 480p->480i",
                                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -900,7 +901,7 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
           * case we could find. It was just experimental evidence that
           * showed better performance scaning out progressive.
           */
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 240i->240p (non-AVC)",
+         BDBG_MODULE_MSG( BXDM_PPTSM, ("%x: [%02x.%03x] Source Polarity Override: 240i->240p (non-AVC)",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                           pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -920,7 +921,7 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
         && ( ( BXDM_PictureProvider_P_RepeatMode_eFrame != pstPicture->stPicParms.stDisplay.stDynamic.eRateConversionRepeatMode )
              || ( BXDM_PictureProvider_P_RepeatMode_eFrame != pstPicture->stPicParms.stDisplay.stDynamic.eTrickPlayRepeatMode ) ) )
    {
-      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] 3:2 Source Format Override",
+      BDBG_MODULE_MSG( BXDM_PPTSM, ("%x: [%02x.%03x] 3:2 Source Format Override",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                        pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -1071,7 +1072,7 @@ void BXDM_PPTSM_P_PtsCalculateParameters_isr(
             }
             else
             {
-               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Overriding unsupported frame rate of %d to default of %d",
+               BDBG_MODULE_MSG( BXDM_PPTSM, ("%x: [%02x.%03x] Overriding unsupported frame rate of %d to default of %d",
                                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -1437,6 +1438,10 @@ static void BXDM_P_PPTSM_S_ActualTSMResultHandler_isr(
    BXDM_PictureProvider_P_Picture_Context* pstPicture
    )
 {
+
+   /* SWSTB-6858: used to store the eStcInvalidForceWait state */
+   pstPicture->stPicParms.stTSM.stDynamic.bForceWait = false;
+
    if ( BXDM_PictureProvider_DisplayMode_eTSM == hXdmPP->stDMConfig.eDisplayMode )
    {
       if ( true == hXdmPP->stDMConfig.bPlayback
@@ -1480,6 +1485,9 @@ static void BXDM_P_PPTSM_S_ActualTSMResultHandler_isr(
                     && false == pstPicture->stPicParms.stDisplay.stDynamic.bPPBRepeated )
                {
                   BXDM_PPDBG_P_SelectionLog_isr( hXdmPP, BXDM_PPDBG_Selection_eStcInvalidForceWait );
+
+                  /* SWSTB-6858: need to save this state to prevent a reset of the vPTS. */
+                  pstPicture->stPicParms.stTSM.stDynamic.bForceWait = true;
                }
 
          }
@@ -1858,6 +1866,36 @@ void BXDM_PPTSM_P_EvaluateTsmState_isr(
    /* Remember this pictures last dStcPts */
    pstPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceDisplayed = pstPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceEvaluated;
 
+
+   /* SWSTB-6858: to prevent a bogus reset of the vPTS in BXDM_PPVTSM_P_VirtualPtsInterpolate_isr.
+    * This reset was causing two pictures to pass on a single vsync.
+    * If iStcPtsDifferenceDisplayed is too large, the reset logic assumes that the delivery queue
+    * has underflowed. In this scenario, iStcPtsDifferenceDisplayed is not valid because the STC
+    * was not valid on the previous vsync, so it is set to 0 here.  This failure occured when:
+    * On vsync "n":
+    * - the delivery queue contained data AND the STC was not valid
+    * - the TSM result for the picture was force to be WAIT.
+    * On vsync "n+1":
+    * - the clip start callback fired
+    * - the STC which had been loaded on the previous vsync, was now marked as invalid
+    * - XDM was paused by setting the playback rate to 0.  */
+
+   if ( true == pstPicture->stPicParms.stTSM.stDynamic.bForceWait )
+   {
+      pstPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceDisplayed = 0;
+      BDBG_MODULE_MSG( BXDM_PPVTSM, ("%x:[%02x.%03x] bForceWait is true, resetting iStcPtsDifferenceDisplayed",
+                                hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
+                                BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
+                                pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
+
+      BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, true,
+                                 "%x:[%02x.%03x] bForceWait is true, resetting iStcPtsDifferenceDisplayed",
+                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
+                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
+                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF );
+   }
+
+
    /*
     * Always perform the TSM evaluation for the real STC and PTS.
     */
@@ -1871,8 +1909,10 @@ void BXDM_PPTSM_P_EvaluateTsmState_isr(
     */
    if ( BXDM_PictureProvider_DisplayMode_eVirtualTSM == pstPicture->stPicParms.stTSM.stDynamic.eSelectionMode )
    {
-      BXDM_P_PPTSM_S_CompareStcAndPts_isr(
-          hXdmPP,  pLocalState,  pstPicture, false );
+      /* SWSTB-6858: bForceWait is only applicable when eSelectionMode == eTSM. */
+      pstPicture->stPicParms.stTSM.stDynamic.bForceWait = false;
+
+      BXDM_P_PPTSM_S_CompareStcAndPts_isr( hXdmPP,  pLocalState,  pstPicture, false );
 
       /* SW7445-491: add support for the TSM result callback when in vsync mode.
        * This logic can either be here or in BXDM_P_PPTSM_S_FinalTSMResultHandler_isr. It just
@@ -1895,10 +1935,17 @@ void BXDM_PPTSM_P_EvaluateTsmState_isr(
                case BXDM_PictureProvider_PictureHandlingMode_eIgnorePTS:
                case BXDM_PictureProvider_PictureHandlingMode_eWait:
                   pstPicture->stPicParms.stTSM.stDynamic.ePictureHandlingMode = BXDM_PictureProvider_PictureHandlingMode_eDefault;
-                  BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eQM, " %x:[%02x.xxx] ePictureHandlingMode of %d is not support in vsync mode, forcing eDefault",
+
+                  BDBG_MODULE_MSG( BXDM_PPQM, (" %x:[%02x.xxx] ePictureHandlingMode of %d is not support in vsync mode, forcing eDefault",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                        pstPicture->stPicParms.stTSM.stDynamic.ePictureHandlingMode ));
+
+                  BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eQM, true,
+                                       " %x:[%02x.xxx] ePictureHandlingMode of %d is not support in vsync mode, forcing eDefault",
+                                       hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
+                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
+                                       pstPicture->stPicParms.stTSM.stDynamic.ePictureHandlingMode );
                   break;
 
                default:
@@ -2274,7 +2321,7 @@ static BXDM_PictureProvider_TSMResult BXDM_P_PPTSM_S_CompareStcAndPts_isr(
 
       if ( true == pLocalState->bUsingSwStcToRunInReverse )
       {
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x:[%02x.%03x] %c:%c pts:%08x - stc:%08x =%8d slt:%c elm:%d %s",
+         BDBG_MODULE_MSG( BXDM_PPTSM, ("%x:[%02x.%03x] %c:%c pts:%08x - stc:%08x =%8d slt:%c elm:%d %s",
                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                        pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -2289,7 +2336,7 @@ static BXDM_PictureProvider_TSMResult BXDM_P_PPTSM_S_CompareStcAndPts_isr(
       }
       else
       {
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x:[%02x.%03x] %c:%c stc:%08x - pts:%08x =%8d slt:%c elm:%d %s",
+         BDBG_MODULE_MSG( BXDM_PPTSM, ("%x:[%02x.%03x] %c:%c stc:%08x - pts:%08x =%8d slt:%c elm:%d %s",
                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                        pstPicture->stPicParms.uiPPBIndex & 0xFFF,

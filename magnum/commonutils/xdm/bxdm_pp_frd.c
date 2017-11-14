@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -72,7 +72,7 @@ static void BXDM_PPFRD_S_AddDeltaPTS_isr(
    }
 
 #if BXDM_DEBUG_LOW_PRIORITY
-   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_S_AddDeltaPTS_isr(%d.%d)[%d]",
+   BDBG_MODULE_MSG( BXDM_PPFRD, ("%x:[%02x.xxx] BXDM_PPFRD_S_AddDeltaPTS_isr(%d.%d)[%d]",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               pstDeltaPTS->uiWhole,
@@ -114,7 +114,7 @@ static void BXDM_PPFRD_S_AddNumElements_isr(
    }
 
 #if BXDM_DEBUG_LOW_PRIORITY
-   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_S_AddNumElements_isr(%d)[%d]",
+   BDBG_MODULE_MSG( BXDM_PPFRD, ("%x:[%02x.xxx] BXDM_PPFRD_S_AddNumElements_isr(%d)[%d]",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               uiNumElements,
@@ -149,7 +149,7 @@ BERR_Code BXDM_PPFRD_P_AddPTS_isr(
    uint32_t i;
 
 #if BXDM_DEBUG_LOW_PRIORITY
-   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_P_AddPTS_isr(%d, %d)",
+   BDBG_MODULE_MSG( BXDM_PPFRD, ("%x:[%02x.xxx] BXDM_PPFRD_P_AddPTS_isr(%d, %d)",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               uiPTS,
@@ -196,7 +196,7 @@ BERR_Code BXDM_PPFRD_P_AddPTS_isr(
             }
             else
             {
-               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] Warning, PTS discontinuity detected (dPTS=%d).  Ignoring deltaPTS during discontinuity.",
+               BDBG_MODULE_MSG( BXDM_PPFRD, ("%x:[%02x.xxx] Warning, PTS discontinuity detected (dPTS=%d).  Ignoring deltaPTS during discontinuity.",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                           stDeltaPTS.uiWhole ));
@@ -204,7 +204,7 @@ BERR_Code BXDM_PPFRD_P_AddPTS_isr(
          }
          else
          {
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] Warning, PTS wrap/discontinuity detected (%08x -> %08x).  Ignoring deltaPTS during wrap/discontinuity.",
+            BDBG_MODULE_MSG( BXDM_PPFRD, ("%x:[%02x.xxx] Warning, PTS wrap/discontinuity detected (%08x -> %08x).  Ignoring deltaPTS during wrap/discontinuity.",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                           hXdmPP->stDMState.stDecode.stFRDStats.uiLastPTS,
@@ -401,7 +401,7 @@ BERR_Code BXDM_PPFRD_P_GetFrameRate_isr(
    }
 
 #if BXDM_DEBUG_LOW_PRIORITY
-   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_P_GetFrameRate_isr((%d.%d)/%d = %d.%d --> %d [%d])",
+   BDBG_MODULE_MSG( BXDM_PPFRD, ("%x:[%02x.xxx] BXDM_PPFRD_P_GetFrameRate_isr((%d.%d)/%d = %d.%d --> %d [%d])",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               hXdmPP->stDMState.stDecode.stFRDStats.stDeltaPTSRunningSum.uiWhole,

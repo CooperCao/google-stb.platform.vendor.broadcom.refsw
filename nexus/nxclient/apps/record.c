@@ -251,14 +251,7 @@ static int start_record(struct recordContext *recContext)
             return -1;
         }
     } else {
-#if NEXUS_HAS_FRONTEND
-        NEXUS_FrontendAcquireSettings settings;
-        NEXUS_Frontend_GetDefaultAcquireSettings(&settings);
-        settings.capabilities.qam = (recContext->settings.tune_settings.source == channel_source_qam);
-        settings.capabilities.ofdm = (recContext->settings.tune_settings.source == channel_source_ofdm);
-        settings.capabilities.satellite = (recContext->settings.tune_settings.source == channel_source_sat);
-        recContext->handles.frontend = NEXUS_Frontend_Acquire(&settings);
-#endif
+        recContext->handles.frontend = acquire_frontend(&recContext->settings.tune_settings);
         rc = tune(recContext->handles.parserBand, recContext->handles.frontend, &recContext->settings.tune_settings, false);
         if (rc) return BERR_TRACE(rc);
     }

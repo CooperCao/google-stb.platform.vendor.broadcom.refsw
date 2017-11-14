@@ -41,6 +41,7 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
+#include "bbox_rts_priv.h"
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
@@ -54,7 +55,6 @@
 #include "bbox_vdc_box7_config.h"
 #include "bbox_vdc_box8_config.h"
 #include "bbox_vdc_box10_config.h"
-#include "bbox_vdc_box12_config.h"
 #include "bbox_vdc_box13_config.h"
 #include "bbox_vdc_box14_config.h"
 #include "bbox_vdc_box15_config.h"
@@ -64,6 +64,26 @@
 #include "bbox_vdc_box19_config.h"
 #include "bbox_vdc_box1000_config.h"
 #include "bbox_vdc_box1001_config.h"
+
+#include "bbox_rts_box1.h"
+#include "bbox_rts_box2.h"
+#include "bbox_rts_box3.h"
+#include "bbox_rts_box4.h"
+#include "bbox_rts_box5.h"
+#include "bbox_rts_box6.h"
+#include "bbox_rts_box7.h"
+#include "bbox_rts_box8.h"
+#include "bbox_rts_box10.h"
+#include "bbox_rts_box12.h"
+#include "bbox_rts_box13.h"
+#include "bbox_rts_box14.h"
+#include "bbox_rts_box15.h"
+#include "bbox_rts_box16.h"
+#include "bbox_rts_box17.h"
+#include "bbox_rts_box18.h"
+#include "bbox_rts_box19.h"
+#include "bbox_rts_box1000.h"
+#include "bbox_rts_box1001.h"
 
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
@@ -334,7 +354,7 @@ void BBOX_P_Vdc_SetXcodeCapabilities
     }
 }
 
-BERR_Code BBOX_P_GetMemConfig
+BERR_Code BBOX_P_SetMemConfig
     ( uint32_t               ulBoxId,
       BBOX_MemConfig        *pBoxMemConfig )
 {
@@ -343,74 +363,81 @@ BERR_Code BBOX_P_GetMemConfig
     eStatus = BBOX_P_ValidateId(ulBoxId);
     if (eStatus != BERR_SUCCESS) return eStatus;
 
+    /* Set default config settings  */
+    BBOX_P_SetDefaultMemConfig(pBoxMemConfig);
+
     switch (ulBoxId)
     {
         case 1:
-            BBOX_P_GetBox1MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox1MemConfig(pBoxMemConfig);
             break;
         case 2:
-            BBOX_P_GetBox2MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox2MemConfig(pBoxMemConfig);
             break;
         case 3:
-            BBOX_P_GetBox3MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox3MemConfig(pBoxMemConfig);
             break;
         case 4:
-            BBOX_P_GetBox4MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox4MemConfig(pBoxMemConfig);
             break;
         case 5:
-            BBOX_P_GetBox5MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox5MemConfig(pBoxMemConfig);
             break;
         case 6:
-            BBOX_P_GetBox6MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox6MemConfig(pBoxMemConfig);
             break;
         case 7:
-            BBOX_P_GetBox7MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox7MemConfig(pBoxMemConfig);
             break;
         case 8:
-            BBOX_P_GetBox8MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox8MemConfig(pBoxMemConfig);
             break;
         case 10:
-            BBOX_P_GetBox10MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox10MemConfig(pBoxMemConfig);
             break;
         case 12:
-            BBOX_P_GetBox12MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox12MemConfig(pBoxMemConfig);
             break;
         case 13:
-            BBOX_P_GetBox13MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox13MemConfig(pBoxMemConfig);
             break;
         case 14:
-            BBOX_P_GetBox14MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox14MemConfig(pBoxMemConfig);
             break;
         case 15:
-            BBOX_P_GetBox15MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox15MemConfig(pBoxMemConfig);
             break;
             break;
         case 16:
-            BBOX_P_GetBox16MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox16MemConfig(pBoxMemConfig);
             break;
         case 17:
-            BBOX_P_GetBox17MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox17MemConfig(pBoxMemConfig);
             break;
         case 18:
-            BBOX_P_GetBox18MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox18MemConfig(pBoxMemConfig);
             break;
         case 19:
-            BBOX_P_GetBox19MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox19MemConfig(pBoxMemConfig);
             break;
         case 1000:
-            BBOX_P_GetBox1000MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox1000MemConfig(pBoxMemConfig);
             break;
         case 1001:
-            BBOX_P_GetBox1001MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox1001MemConfig(pBoxMemConfig);
             break;
+        default:
+            BDBG_ERR(("There is no box mode %d MEMC configuration.", ulBoxId));
+            eStatus = BBOX_MEM_CFG_UNINITIALIZED;
     }
-    return BERR_SUCCESS;
+    return eStatus;
 }
 
 BERR_Code BBOX_P_GetRtsConfig
     ( const uint32_t         ulBoxId,
       BBOX_Rts              *pBoxRts )
 {
+    BERR_Code eStatus = BERR_SUCCESS;
     switch (ulBoxId)
     {
         case 1:
@@ -470,7 +497,11 @@ BERR_Code BBOX_P_GetRtsConfig
         case 1001:
             BBOX_P_GetBox1001Rts(pBoxRts);
             break;
+        default:
+            BDBG_ERR(("There is no box mode %d RTS configuration.", ulBoxId));
+            eStatus = BBOX_RTS_CFG_UNINITIALIZED;
     }
-    return BERR_SUCCESS;
+
+    return eStatus;
 }
 /* end of file */

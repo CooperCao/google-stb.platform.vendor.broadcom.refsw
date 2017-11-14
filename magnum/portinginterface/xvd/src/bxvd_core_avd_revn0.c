@@ -115,18 +115,28 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
 
    BMMA_FlushCache(hXvd->hFWMemBlock, (void *)hXvd->uiFWMemBaseVirtAddr, BXVD_P_FW_INNER_IMAGE_OFFSET);
 
-   hXvd->astFWBootInfo[0].uiArcInstance = BXVD_IMAGE_FirmwareID_eOuterELF_AVD0;
-   hXvd->astFWBootInfo[0].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
-   hXvd->astFWBootInfo[0].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
-
    hXvd->uiOuterLoopInstructionBase = hXvd->FWMemBasePhyAddr;
+   hXvd->astFWBootInfo[0].uiArcInstance = BXVD_IMAGE_FirmwareID_eOuterELF_AVD0;
+   hXvd->astFWBootInfo[0].stCode = stBAFLoadInfo.stCode;
+   hXvd->astFWBootInfo[0].stCode.offset = hXvd->uiOuterLoopInstructionBase;
+   hXvd->astFWBootInfo[0].stCode.pStartAddress = NULL;
 
    uiEndOfCode = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
    hXvd->uiOuterLoopEOC = uiEndOfCode -  hXvd->uiOuterLoopInstructionBase;
 
-   hXvd->uiCmdBufferVector = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize;
-   pvCmdBuffer = (void *)(hXvd->uiFWMemBaseVirtAddr + stBAFLoadInfo.stCode.uiSize);
+#if BXVD_P_FW_HIM_API
+   if ((hXvd->stSettings.uiFirmwareBlockSize != 0) && (hXvd->stSettings.hFirmwareBlock != 0 ))
+   {
+      hXvd->uiCmdBufferVector =  (uint32_t) hXvd->FWCmdPhyAddr;
+      pvCmdBuffer = (void *) hXvd->uiFWCmdVirtAddr;
+   }
+   else
+#endif
+   {
+      hXvd->uiCmdBufferVector = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize;
+      pvCmdBuffer = (void *)(hXvd->uiFWMemBaseVirtAddr + stBAFLoadInfo.stCode.uiSize);
+   }
 
    BXVD_DBG_MSG(hXvd, ("OL Start of Code: %08x", (unsigned int)hXvd->uiOuterLoopInstructionBase));
    BXVD_DBG_MSG(hXvd, ("OL Code Size: %08x",  stBAFLoadInfo.stCode.uiSize));
@@ -167,11 +177,12 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
 
    BMMA_FlushCache(hXvd->hFWMemBlock, (void *)ulDestVirtAddr, uiILSize);
 
-   hXvd->astFWBootInfo[1].uiArcInstance=1;
-   hXvd->astFWBootInfo[1].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
-   hXvd->astFWBootInfo[1].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
-
    hXvd->uiInnerLoopInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
+   hXvd->astFWBootInfo[1].uiArcInstance=1;
+   hXvd->astFWBootInfo[1].stCode = stBAFLoadInfo.stCode;
+   hXvd->astFWBootInfo[1].stCode.offset = hXvd->uiInnerLoopInstructionBase;
+   hXvd->astFWBootInfo[1].stCode.pStartAddress = NULL;
+
    hXvd->uiInnerLoopEOC = stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
    BXVD_DBG_MSG(hXvd, ("IL Start of Code: %08x", (unsigned int) hXvd->uiInnerLoopInstructionBase));
@@ -204,11 +215,11 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
 
       BMMA_FlushCache(hXvd->hFWMemBlock, (void *)ulDestVirtAddr, uiILSize);
 
-      hXvd->astFWBootInfo[2].uiArcInstance=2;
-      hXvd->astFWBootInfo[2].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
-      hXvd->astFWBootInfo[2].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
-
       hXvd->uiInnerLoop2InstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_2_IMAGE_OFFSET;
+      hXvd->astFWBootInfo[2].uiArcInstance=2;
+      hXvd->astFWBootInfo[2].stCode = stBAFLoadInfo.stCode;
+      hXvd->astFWBootInfo[2].stCode.offset = hXvd->uiInnerLoop2InstructionBase;
+      hXvd->astFWBootInfo[2].stCode.pStartAddress = NULL;
       hXvd->uiInnerLoop2EOC = stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
       BXVD_DBG_MSG(hXvd, ("IL 2 Start of Code: %08x", (unsigned int) hXvd->uiInnerLoop2InstructionBase));

@@ -1,27 +1,14 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-EGL server-side state structure declaration.
-=============================================================================*/
-
-#ifndef EGL_SERVER_H
-#define EGL_SERVER_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/egl/egl_int.h"
 #include "middleware/khronos/common/khrn_map.h"
 #include "middleware/khronos/common/khrn_image.h"
 #include "middleware/khronos/common/khrn_hw.h"
-#include "middleware/khronos/egl/egl_disp.h"
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
-#ifndef NO_OPENVG
-#include "middleware/khronos/vg/vg_image.h"
-#endif /* NO_OPENVG */
 
 // Must be enough for triple-buffering (windows) and mipmaps (pbuffers)
 #define EGL_MAX_BUFFERS       12
@@ -43,8 +30,6 @@ typedef struct
 #if EGL_KHR_sync
    uint32_t next_sync;
 #endif
-
-   uint64_t pid;                   //currently selected process id
 
    uint32_t glversion;             //EGL_SERVER_GL11 or EGL_SERVER_GL20. (0 if invalid)
    MEM_HANDLE_T glcontext;
@@ -97,21 +82,19 @@ typedef struct
    MEM_HANDLE_T mh_depth;          //floating KHRN_IMAGE_T
    MEM_HANDLE_T mh_ds_multi;       //floating KHRN_IMAGE_T; depth multisample
    MEM_HANDLE_T mh_color_multi;    //floating KHRN_IMAGE_T; colour multisample
-   MEM_HANDLE_T mh_mask;           //floating KHRN_IMAGE_T
-   MEM_HANDLE_T mh_preserve;       //floating KHRN_IMAGE_T
 
    uint8_t config_depth_bits;   // How many depth bits were requested in config. May not match actual buffer.
    uint8_t config_stencil_bits; // How many stencil bits were requested in config. May not match actual buffer.
 
-   uint32_t win;                    // Opaque handle passed to egl_server_platform_display
-   uint32_t swapchainc;             // from the platform, tells the driver which mode its running in
-   uint64_t pid;                    // Opaque handle to creating process
-
    MEM_HANDLE_T mh_bound_texture;
    uint32_t swap_interval;
-   uint32_t semaphoreId;  //Symbian needs a handle passed back in Khan, not just surface number
 
-   EGL_DISP_THREAD_STATE_T display_thread_state;
+   /* Get the buffer to draw to */
+   MEM_HANDLE_T      (*get_back_buffer)(void *p);
+   MEM_HANDLE_T      mh_active_image;
+
+   BEGL_WindowState *native_window_state;
+   KHRN_IMAGE_FORMAT_T colorformat;
 
 } EGL_SERVER_SURFACE_T;
 
@@ -120,10 +103,8 @@ typedef struct
    int32_t type;
    int32_t condition;
    int32_t status;
-   uint64_t sequence;
 
-   uint64_t pid;
-   uint32_t sem;
+   VCOS_SEMAPHORE_T sem;
 } EGL_SERVER_SYNC_T;
 
 extern void egl_server_shutdown(void);
@@ -156,7 +137,3 @@ static INLINE EGL_SERVER_STATE_T *EGL_GET_SERVER_STATE(void)
 extern void egl_server_unlock(void);
 
 #include "interface/khronos/egl/egl_int_impl.h"
-
-extern void egl_khr_fence_update(uint64_t job_sequence);
-
-#endif

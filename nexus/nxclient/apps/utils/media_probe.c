@@ -90,6 +90,7 @@ void probe_media_get_default_request(struct probe_request *request)
     request->decrypt.algo = NEXUS_SecurityAlgorithm_eMax;
 }
 
+#if NEXUS_HAS_PLAYBACK
 static void probe_p_parse_mkv_block(void *data, unsigned len, struct probe_results *results)
 {
     bmkv_TrackEntryVideoColour colour;
@@ -169,6 +170,7 @@ static void probe_p_parse_mkv_block(void *data, unsigned len, struct probe_resul
         bmkv_element_shutdown(bmkv_TrackEntryVideoColour_desc.entries, &colour);
     }
 }
+#endif
 
 int probe_media_request(const struct probe_request *request, struct probe_results *results)
 {

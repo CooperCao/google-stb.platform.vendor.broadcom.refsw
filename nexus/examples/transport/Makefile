@@ -50,6 +50,7 @@ APPS = \
     scrambling_check_with_decode \
     pcr_pacing \
     scrambling_check \
+    playpump_descriptor_pacing \
     remux
 
 include ../Makefile.inc

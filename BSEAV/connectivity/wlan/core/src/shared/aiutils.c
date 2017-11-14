@@ -698,16 +698,15 @@ ai_coreaddrspaceX(si_t *sih, uint asidx, uint32 *addr, uint32 *size)
 	asd = get_asd(sih, &eromptr, 0, 0, AD_ST_SLAVE, &addrl, &addrh, &sizel, &sizeh);
 	if (asd == 0) {
 		/* Try again to see if it is a bridge */
-		asd = get_asd(sih, &eromptr, 0, 0, AD_ST_BRIDGE, &addrl, &addrh,
+		(void) get_asd(sih, &eromptr, 0, 0, AD_ST_BRIDGE, &addrl, &addrh,
 		              &sizel, &sizeh);
 	}
 
 	j = 1;
 	do {
-		asd = get_asd(sih, &eromptr, 0, j, AD_ST_SLAVE, &addrl, &addrh,
-		              &sizel, &sizeh);
 		j++;
-	} while (asd != 0);
+	} while (get_asd(sih, &eromptr, 0, j, AD_ST_SLAVE, &addrl, &addrh,
+		&sizel, &sizeh)	!= 0);
 
 	/* Go through the ASDs for other slave ports */
 	for (i = 1; i < nsp; i++) {

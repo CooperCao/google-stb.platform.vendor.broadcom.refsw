@@ -1499,10 +1499,11 @@ eRet CPanelNetworkWifi::updateSignalStrength(CNetworkWifi * pNetwork)
 
 error:
     return(ret);
-#else
-BSTD_UNUSED(pProp);
-BSTD_UNUSED(info);
-#endif
+
+#else /* if 0 */
+    BSTD_UNUSED(pProp);
+    BSTD_UNUSED(info);
+#endif /* if 0 */
 } /* updateSignalStrength */
 
 #elif defined (NETAPP_SUPPORT)

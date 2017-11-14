@@ -4,9 +4,10 @@
 #ifndef GFX_UTIL_FILE_H
 #define GFX_UTIL_FILE_H
 
-#include "vcos_types.h"
+#include "libs/util/common.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 EXTERN_C_BEGIN
 

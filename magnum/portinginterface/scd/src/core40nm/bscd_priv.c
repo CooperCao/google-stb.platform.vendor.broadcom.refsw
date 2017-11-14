@@ -5203,7 +5203,7 @@ ulVal &=~ BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
 
          if(inp_sSettings->srcClkFreqInHz){
                 in_channelHandle->moduleHandle->currentSettings.moduleClkFreq.ulClkFreq =  inp_sSettings->srcClkFreqInHz;
-                switch(inp_sSettings->srcClkFreqInHz){
+		switch(inp_sSettings->srcClkFreqInHz){
                         case 27000000:
                                 in_channelHandle->currentChannelSettings.eSrcClkFreq = BSCD_ClockFreq_e27MHZ;
                                 break;
@@ -5218,7 +5218,7 @@ ulVal &=~ BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
                                 break;
                         case 108000000:
                                 in_channelHandle->currentChannelSettings.eSrcClkFreq = BSCD_ClockFreq_e108MHZ;
-                                break;
+				break;
                         case 40000000:
                                 in_channelHandle->currentChannelSettings.eSrcClkFreq = BSCD_ClockFreq_e40MHZ;
                                 break;
@@ -5639,7 +5639,7 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
 
 
                 }
-#elif  (BCHP_CHIP==7435)|| (BCHP_CHIP==7445)||(BCHP_CHIP==7366)|| (BCHP_CHIP==7145)|| (BCHP_CHIP==7439) || (BCHP_CHIP==74371)||(BCHP_CHIP==7364)|| (BCHP_CHIP==7250)|| (BCHP_CHIP==7586)|| (BCHP_CHIP==7271)|| (BCHP_CHIP==7268) ||(BCHP_CHIP==7260) || (BCHP_CHIP==7278)
+#elif  (BCHP_CHIP==7435)|| (BCHP_CHIP==7445)||(BCHP_CHIP==7366)|| (BCHP_CHIP==7145)|| (BCHP_CHIP==7439) || (BCHP_CHIP==74371)||(BCHP_CHIP==7364)|| (BCHP_CHIP==7250)|| (BCHP_CHIP==7586)|| (BCHP_CHIP==7271)|| (BCHP_CHIP==7268) ||(BCHP_CHIP==7260) || (BCHP_CHIP==7278) || (BCHP_CHIP==7255)
 #if(BCHP_CHIP==7445)
         {
 
@@ -5665,7 +5665,101 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
         }
 
 #endif
+#if 1
+	{
+		unsigned char nDiv, mDiv;
+		unsigned int nDiv_Frac;
 
+		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_RDB_MACRO_CTRL:BCHP_CLKGEN_PLL_SC0_RDB_MACRO_CTRL;
+		ulVal = 0;
+		BREG_Write32(
+                   in_channelHandle->moduleHandle->regHandle,
+                        ulReg, ulVal);
+		switch(in_channelHandle->currentChannelSettings.eSrcClkFreq ){
+			case BSCD_ClockFreq_e27MHZ:
+				nDiv = 48;
+				mDiv = 48;
+				nDiv_Frac=0;
+				break;
+			case BSCD_ClockFreq_e108MHZ:
+				nDiv = 48;
+				mDiv = 12;
+				nDiv_Frac=0;
+				break;
+			case BSCD_ClockFreq_e24MHZ:
+				nDiv = 48;
+				mDiv = 54;
+				nDiv_Frac=0;
+				break;
+			case BSCD_ClockFreq_e36P864MHZ:
+				nDiv = 48;
+				mDiv = 36;
+				nDiv_Frac=159384;
+				break;
+			case BSCD_ClockFreq_e36MHZ:
+				nDiv = 48;
+				mDiv = 36;
+				nDiv_Frac=0;
+				break;
+			case BSCD_ClockFreq_e7P14MHZ:
+				nDiv = 119;
+				mDiv = 225;
+				nDiv_Frac=0;
+				break;
+			case BSCD_ClockFreq_e40MHZ:
+				nDiv = 40;
+				mDiv = 27;
+				nDiv_Frac=0;
+				break;
+			default:
+				nDiv = 48;
+				mDiv = 48;
+				nDiv_Frac=0;
+				break;
+		}
+		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_DIV:BCHP_CLKGEN_PLL_SC0_PLL_DIV;
+                ulVal = BREG_Read32(
+                                in_channelHandle->moduleHandle->regHandle,
+                                ulReg) ;
+                ulVal &= ~BCHP_CLKGEN_PLL_SC0_PLL_DIV_NDIV_INT_MASK;
+		ulVal |= nDiv<<BCHP_CLKGEN_PLL_SC0_PLL_DIV_NDIV_INT_SHIFT;
+		BREG_Write32(
+                                in_channelHandle->moduleHandle->regHandle,
+                                ulReg, ulVal);
+
+		ulReg =(in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0:BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0;;
+                ulVal = BREG_Read32(
+                                in_channelHandle->moduleHandle->regHandle,
+                                ulReg) ;
+                ulVal &= ~BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK;
+		ulVal |= mDiv<<BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_SHIFT;
+		BREG_Write32(
+                                in_channelHandle->moduleHandle->regHandle,
+                                ulReg, ulVal);
+
+		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_FRAC:BCHP_CLKGEN_PLL_SC0_PLL_FRAC;
+                BREG_Write32(
+                                in_channelHandle->moduleHandle->regHandle,
+                                ulReg, nDiv_Frac);
+
+		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_RESET:BCHP_CLKGEN_PLL_SC0_PLL_RESET;
+
+
+		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK,
+			1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT);
+		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK,
+			1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT);
+
+		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK,
+			0<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT);
+		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK,
+			0<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT);
+	}
+#else
 
 		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_RDB_MACRO_CTRL:BCHP_CLKGEN_PLL_SC0_RDB_MACRO_CTRL;
 		ulVal = 0;
@@ -5698,6 +5792,7 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
 		 BREG_Write32(
                    in_channelHandle->moduleHandle->regHandle,
                         ulReg, ulVal);
+#endif
 #elif (BCHP_CHIP==7241)||(BCHP_CHIP==7429)||(BCHP_CHIP==74295)
 if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e36MHZ){
                         ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_DIV:BCHP_CLKGEN_PLL_SC0_PLL_DIV;
@@ -5784,7 +5879,21 @@ if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e36MHZ
 
                         ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_DIV:BCHP_CLKGEN_PLL_SC0_PLL_DIV;
                         ulVal = BREG_Read32(
-                                in_channelHandle->moduleHandle->regHandle,
+                                EG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+                                                                                ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK,
+                                                                                1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT);
+                        BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+                                                                                ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK,
+                                                                                1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT);
+
+
+                        BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+                                                                                ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK,
+                                                                                0<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT);
+                        BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+                                                                        ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK,
+                                                                                0<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT);
+
                                 ulReg) ;
                         ulVal &= ~BCHP_CLKGEN_PLL_SC0_PLL_DIV_NDIV_INT_MASK;
 

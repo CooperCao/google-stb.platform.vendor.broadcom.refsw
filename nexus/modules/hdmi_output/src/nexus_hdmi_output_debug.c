@@ -91,12 +91,12 @@ void NEXUS_HdmiOutput_PrintAudioInfoFramePacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
+        if (!hdmiOutput->opened) continue;
 
         errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
-        if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+        BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
 
         if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
         {
@@ -155,12 +155,12 @@ void NEXUS_HdmiOutput_PrintAviInfoFramePacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
+        if (!hdmiOutput->opened) continue;
 
         errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
-        if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+        BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
 
         if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
         {
@@ -219,12 +219,12 @@ void NEXUS_HdmiOutput_PrintVendorSpecificInfoFramePacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
+        if (!hdmiOutput->opened) continue;
 
         errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
-        if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+        BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
 
         if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
         {
@@ -290,12 +290,12 @@ void NEXUS_HdmiOutput_PrintDrmInfoFramePacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
+        if (!hdmiOutput->opened) continue;
 
         errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
-        if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+        BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
 
         if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
         {
@@ -357,12 +357,12 @@ void NEXUS_HdmiOutput_PrintAcrPacket(void)
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
+        if (!hdmiOutput->opened) continue;
 
         errCode = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
-        errCode = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
-        if (errCode) {BERR_TRACE(errCode) ; goto done ;}
+        BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, hdmiStatus) ;
 
         if ((hdmiOutputStatus->connected) && (hdmiOutputStatus->rxPowered))
         {
@@ -387,7 +387,8 @@ void NEXUS_HdmiOutput_PrintRxEdid(void)
 
     for (i = 0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
-		BHDM_EDID_DEBUG_PrintData(g_hdmiOutputs[i].hdmHandle) ;
+        if (!g_hdmiOutputs[i].opened) continue;
+        BHDM_EDID_DEBUG_PrintData(g_hdmiOutputs[i].hdmHandle) ;
     }
 #endif
 }
@@ -418,13 +419,8 @@ static void NEXUS_HdmiOutput_PrintEotfSupport(void)
 
     for (i=0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
-        hdmiOutput = NEXUS_HdmiOutput_P_GetHandle(i) ;
-        if (!hdmiOutput)
-        {
-            BDBG_ERR(("Inavid HdmiOutput handle")) ;
-            (void)BERR_TRACE(NEXUS_NOT_INITIALIZED) ;
-            continue ;
-        }
+        hdmiOutput = &g_hdmiOutputs[i] ;
+        if (!hdmiOutput->opened) continue;
 
         /* reset eotf string length for new string */
         strOffset = 0 ;
@@ -499,7 +495,8 @@ void NEXUS_HdmiOutputModule_Print(void)
 
     for (i=0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
-        hdmiOutput = NEXUS_HdmiOutput_P_GetHandle(i) ;
+        hdmiOutput = &g_hdmiOutputs[i] ;
+        if (!hdmiOutput->opened) continue;
         BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
         hdmHandle = hdmiOutput->hdmHandle ;
 

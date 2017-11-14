@@ -44,7 +44,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_MAX_DSP_MIXERS
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_mixer_dsp);
@@ -130,17 +130,14 @@ BERR_Code BAPE_DspMixer_P_Create(
     BDSP_StageCreateSettings stageCreateSettings;
     BAPE_FMT_Descriptor format;
     BAPE_FMT_Capabilities caps;
+    unsigned dspIndex = 0;
+    BDSP_ContextHandle dspContext = NULL;
+    unsigned dspIndexBase = 0;
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
 
     *pHandle = NULL;
-
-    if ( NULL == deviceHandle->dspContext )
-    {
-        BDBG_ERR(("DSP support is not available.  Can't create a DSP mixer."));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
 
     if ( NULL == pSettings )
     {
@@ -154,11 +151,44 @@ BERR_Code BAPE_DspMixer_P_Create(
         pSettings = pDefaultSettings;
     }
 
-    if ( pSettings->dspIndex >= deviceHandle->numDsps )
+    dspIndex = pSettings->dspIndex;
+
+    /* Shift the dsp index to the arm if dsp is not enabled, but arm audio is*/
+    if ( pSettings->dspIndex <= BAPE_DEVICE_DSP_LAST &&
+         deviceHandle->dspHandle == NULL && deviceHandle->armHandle != NULL )
     {
-        BDBG_ERR(("DSP %u is not available.  This system has %u DSPs.", pSettings->dspIndex, deviceHandle->numDsps));
-        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
-        goto err_handle;
+        dspIndex += BAPE_DEVICE_ARM_FIRST;
+    }
+
+    if ( dspIndex >= BAPE_DEVICE_ARM_FIRST &&
+         ( dspIndex >= (BAPE_DEVICE_ARM_FIRST + deviceHandle->numArms) ||
+           deviceHandle->armHandle == NULL ) )
+    {
+        BDBG_ERR(("ARM device index %u is not available.  This system has %u ARM Audio Processors, arm handle %p.", dspIndex, deviceHandle->numArms, (void*)deviceHandle->armHandle));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if ( dspIndex <= BAPE_DEVICE_DSP_LAST && (dspIndex >= deviceHandle->numDsps || deviceHandle->dspHandle == NULL ) )
+    {
+        BDBG_ERR(("DSP %u is not available.  This system has %u DSPs, dsp handle %p.", dspIndex, deviceHandle->numDsps, (void*)deviceHandle->dspHandle));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if ( dspIndex >= BAPE_DEVICE_ARM_FIRST )
+    {
+        dspContext = deviceHandle->armContext;
+        dspIndexBase = BAPE_DEVICE_ARM_FIRST;
+    }
+    else
+    {
+        dspContext = deviceHandle->dspContext;
+        dspIndexBase = BAPE_DEVICE_DSP_FIRST;
+    }
+
+    if ( dspContext == NULL )
+    {
+        BDBG_ERR(("No DSP or ARM device available."));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     if ( pSettings->outputDelay )
@@ -177,12 +207,16 @@ BERR_Code BAPE_DspMixer_P_Create(
     BDBG_OBJECT_SET(handle, BAPE_Mixer);
     handle->explicitFormat = BAPE_MixerFormat_eMax;
     handle->settings = *pSettings;
+    handle->settings.dspIndex = dspIndex;
+    handle->dspIndex = dspIndex;
+    handle->dspContext = dspContext;
     handle->interface = &g_dspMixerInterface;
     handle->deviceHandle = deviceHandle;
     BLST_S_INSERT_HEAD(&deviceHandle->mixerList, handle, node);
     handle->fs = BAPE_FS_INVALID;
     BAPE_P_InitPathNode(&handle->pathNode, BAPE_PathNodeType_eMixer, handle->settings.type, 1, deviceHandle, handle);
-    handle->pathNode.dspIndex = handle->settings.dspIndex;
+    handle->pathNode.deviceIndex = handle->dspIndex;
+    handle->pathNode.deviceContext = (void*)handle->dspContext;
     handle->pathNode.subtype = BAPE_MixerType_eDsp;
     handle->pathNode.pName = "DSP Mixer";
 
@@ -226,20 +260,20 @@ BERR_Code BAPE_DspMixer_P_Create(
     handle->pathNode.inputMute = BAPE_DspMixer_P_InputMute;
     handle->pathNode.removeInput = BAPE_DspMixer_P_RemoveInputCallback;
 
-    BDSP_Task_GetDefaultCreateSettings(deviceHandle->dspContext, &taskCreateSettings);
+    BDSP_Task_GetDefaultCreateSettings(handle->dspContext, &taskCreateSettings);
     taskCreateSettings.masterTask = true;
     taskCreateSettings.numSrc = 3;
-    taskCreateSettings.dspIndex = pSettings->dspIndex;
+    taskCreateSettings.dspIndex = BAPE_DSP_DEVICE_INDEX(handle->dspIndex, dspIndexBase);
 
-    errCode = BDSP_Task_Create(deviceHandle->dspContext, &taskCreateSettings, &handle->hTask);
+    errCode = BDSP_Task_Create(handle->dspContext, &taskCreateSettings, &handle->hTask);
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
         goto err_task_create;
     }
 
-    BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioMixer, &stageCreateSettings);
-    errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hMixerStage);
+    BDSP_Stage_GetDefaultCreateSettings(handle->dspContext, BDSP_AlgorithmType_eAudioMixer, &stageCreateSettings);
+    errCode = BDSP_Stage_Create(handle->dspContext, &stageCreateSettings, &handle->hMixerStage);
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
@@ -253,10 +287,10 @@ BERR_Code BAPE_DspMixer_P_Create(
         goto err_mixer_stage;
     }
 
-    BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
+    BDSP_Stage_GetDefaultCreateSettings(handle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
     BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
     stageCreateSettings.algorithmSupported[BDSP_Algorithm_eSrc] = true;
-    errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hSrcStage);
+    errCode = BDSP_Stage_Create(handle->dspContext, &stageCreateSettings, &handle->hSrcStage);
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
@@ -515,7 +549,7 @@ static BERR_Code BAPE_DspMixer_P_Start(BAPE_MixerHandle handle)
     }
 
     /* Look for MuxOutput */
-    BAPE_PathNode_P_FindConsumersByType(&handle->pathNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pNode);
+    BAPE_PathNode_P_FindConsumersByType_isrsafe(&handle->pathNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pNode);
     if ( numFound > 0 )
     {
         BAPE_MuxOutputHandle hMuxOutput = (BAPE_MuxOutputHandle)pNode->pHandle;
@@ -910,7 +944,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     }
 
     /* Setup Encoder overflow interrupt */
-    BAPE_PathNode_P_FindConsumersByType(&handle->pathNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pNode);
+    BAPE_PathNode_P_FindConsumersByType_isrsafe(&handle->pathNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pNode);
     if ( numFound > 0 )
     {
         BDSP_AudioInterruptHandlers interrupts;
@@ -1210,13 +1244,15 @@ static BERR_Code BAPE_DspMixer_P_AllocatePathFromInput(struct BAPE_PathNode *pNo
     /* Sanity check if the dsp indexes match */
     if ( pConnection->pSource->format.source == BAPE_DataSource_eDspBuffer )
     {
-        if ( pConnection->pSource->pParent->dspIndex != BAPE_DSP_ID_INVALID &&
-             handle->settings.dspIndex != pConnection->pSource->pParent->dspIndex )
+        if ( ( pConnection->pSource->pParent->deviceIndex != BAPE_DSP_ID_INVALID &&
+               handle->settings.dspIndex != pConnection->pSource->pParent->deviceIndex ) ||
+               ( pConnection->pSource->pParent->deviceContext != NULL &&
+                 handle->dspContext != pConnection->pSource->pParent->deviceContext ) )
         {
             BDBG_ERR(("All inputs to a DSP mixer must run on the same DSP as the DSP mixer."));
-            BDBG_ERR(("This mixer is configured for DSP %u but the input %s is configured for DSP %u",
-                      handle->settings.dspIndex, pConnection->pSource->pParent->pName,
-                      pConnection->pSource->pParent->dspIndex));
+            BDBG_ERR(("This mixer is configured for DSP(%p) %u but the input %s is configured for DSP(%p) %u",
+                      (void*)handle->dspContext, handle->dspIndex, pConnection->pSource->pParent->pName,
+                      (void*)pConnection->pSource->pParent->deviceContext, pConnection->pSource->pParent->deviceIndex));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
     }
@@ -1256,7 +1292,7 @@ static BERR_Code BAPE_DspMixer_P_AllocatePathFromInput(struct BAPE_PathNode *pNo
 
         if ( pConnection->hInterTaskBuffer == NULL )
         {
-            errCode = BDSP_InterTaskBuffer_Create(handle->deviceHandle->dspContext,
+            errCode = BDSP_InterTaskBuffer_Create(handle->dspContext,
                                                 BAPE_FMT_P_GetDspDataType_isrsafe(&pConnection->pSource->format),
                                                 BDSP_BufferType_eDRAM,
                                                 &pConnection->hInterTaskBuffer);
@@ -1834,10 +1870,12 @@ static BERR_Code BAPE_DspMixer_P_AllocateLoopbackInput(BAPE_MixerHandle handle, 
     bool sfifo=false, buffers=false, buffersOnly=false;
     unsigned numChannelPairs;
 
-    BAPE_Connector input = pConnection->pSource;
+    BAPE_Connector input;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
+
+    input = pConnection->pSource;
 
     numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&pConnection->pSource->format);
 
@@ -1934,7 +1972,7 @@ static BERR_Code BAPE_DspMixer_P_AllocateLoopbackInput(BAPE_MixerHandle handle, 
         if ( pConnection->sfifoGroup )
         {
             /* Input From Sfifo */
-            BAPE_SfifoGroup_P_GetOutputFciIds(pConnection->sfifoGroup, &srcSettings.input);
+            BAPE_SfifoGroup_P_GetOutputFciIds_isrsafe(pConnection->sfifoGroup, &srcSettings.input);
         }
         else
         {
@@ -2116,7 +2154,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
     }
 
     /* Find Connection */
-    pConnection = BAPE_Connector_P_GetConnectionToSink(handle->inputs[index], &handle->pathNode);
+    pConnection = BAPE_Connector_P_GetConnectionToSink_isrsafe(handle->inputs[index], &handle->pathNode);
     if ( NULL == pConnection )
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -2645,7 +2683,7 @@ static BERR_Code BAPE_DspMixer_P_GetInputStatus(
         unsigned taskInputIndex;
 
         /* Find Connection */
-        pConnection = BAPE_Connector_P_GetConnectionToSink(input, &handle->pathNode);
+        pConnection = BAPE_Connector_P_GetConnectionToSink_isrsafe(input, &handle->pathNode);
         if ( NULL == pConnection )
         {
             return BERR_TRACE(BERR_INVALID_PARAMETER);

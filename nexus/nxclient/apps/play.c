@@ -116,7 +116,8 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     print_list_option(
     "  -video_type              override media probe", g_videoCodecStrs);
     printf(
-    "  -video_cdb MBytes        size of compressed video buffer, in MBytes, decimal allowed\n"
+    "  -video_cdb SIZE          Use M or K suffix for units, decimal allowed\n"
+    "  -video_itb SIZE          Use M or K suffix for units, decimal allowed\n"
     "  -audio PID               override media probe. use 0 for no audio.\n"
     );
     print_list_option(
@@ -316,6 +317,19 @@ static void *standby_monitor(void *context)
     }
 
     return NULL;
+}
+
+static unsigned b_parse_size(const char *parse)
+{
+    if (strchr(parse, 'M') || strchr(parse, 'm')) {
+        return atof(parse)*1024*1024;
+    }
+    else if (strchr(parse, 'K') || strchr(parse, 'k')) {
+        return atof(parse)*1024;
+    }
+    else {
+        return strtoul(parse, NULL, 0);
+    }
 }
 
 int main(int argc, const char **argv)  {
@@ -524,9 +538,10 @@ int main(int argc, const char **argv)  {
             start_settings.video.codec = lookup(g_videoCodecStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-video_cdb") && argc>curarg+1) {
-            float size;
-            sscanf(argv[++curarg], "%f", &size);
-            start_settings.video.fifoSize = size * 1024 * 1024;
+            start_settings.video.fifoSize = b_parse_size(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-video_itb") && argc>curarg+1) {
+            start_settings.video.itbFifoSize = b_parse_size(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-audio") && argc>curarg+1) {
             start_settings.audio.pid = strtoul(argv[++curarg], NULL, 0);

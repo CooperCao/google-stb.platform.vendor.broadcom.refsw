@@ -276,7 +276,7 @@ BIP_Atom_CursorDump(batom_cursor *pCursor, const char *name)
             lineIdx++;
         }
 
-        fmtIdx += snprintf(fmtBuf+fmtIdx, sizeof fmtBuf - fmtIdx, "|");
+        /* fmtIdx += */ snprintf(fmtBuf+fmtIdx, sizeof fmtBuf - fmtIdx, "|");
 
         BDBG_LOG(("%s", fmtBuf));
 

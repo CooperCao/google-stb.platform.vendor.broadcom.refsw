@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include "middleware/khronos/glsl/prepro/glsl_prepro_token.h"
@@ -458,8 +451,8 @@ void glsl_token_dump(Token *token)
       }
       break;
    default:
-      vcos_assert(token->type >= HASH && token->type <= _FALSE);
-      vcos_assert(!strcmp(token_names[_FALSE - HASH], "false"));
+      assert(token->type >= HASH && token->type <= _FALSE);
+      assert(!strcmp(token_names[_FALSE - HASH], "false"));
 
       printf("%s", token_names[token->type - HASH]);
       break;

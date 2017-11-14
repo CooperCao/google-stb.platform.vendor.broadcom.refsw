@@ -1061,7 +1061,7 @@ static const int acphy_hecap_rev[] = {
 
 #ifndef MAXSCB				/* station control blocks in cache */
 #ifdef AP
-#define	MAXSCB		128		/* Maximum SCBs in cache for AP */
+#define	MAXSCB		255		/* Maximum SCBs in cache for AP */
 #else
 #define MAXSCB		32		/* Maximum SCBs in cache for STA */
 #endif /* AP */

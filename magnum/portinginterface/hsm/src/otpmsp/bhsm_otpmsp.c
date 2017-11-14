@@ -567,7 +567,7 @@ BERR_Code BHSM_ProgramDataSect (BHSM_Handle hHsm, BHSM_ProgramDataSectIO_t * pPr
     /* app-to-hsm: 32-byte-array in big endian
      * hsm-to-BSP:  a particular wrapping to help BSP word0/LSB, word7/MSB, word=[15:0] ||[31:16] */
 
-    j = BHSM_READ_DATA_SECTION_DATA_LEN / 4;
+    j = BHSM_READ_DATA_SECTION_DATA_LEN / 4 - 1;
 
     for (i = 0; i < BHSM_DATA_SECTION_DATA_LEN; i += 4, j--)
     {
@@ -577,7 +577,7 @@ BERR_Code BHSM_ProgramDataSect (BHSM_Handle hHsm, BHSM_ProgramDataSectIO_t * pPr
                     (pProgDataSect->aucDataSectData[i + 3] << 16) );
     }
 
-    for (i = 0, j = 1; i < BHSM_DATA_SECTION_DATA_LEN; i += 4, j++)
+    for (i = 0, j = 0; i < BHSM_DATA_SECTION_DATA_LEN; i += 4, j++)
     {
         BHSM_BspMsg_Pack32 (hMsg, BCMD_Otp_InCmdDataSectionProg_eArrayData + i, data[j]);
     }

@@ -105,7 +105,11 @@ BDBG_OBJECT_ID(BXPT_Dma_Handle_Tag);
 BDBG_OBJECT_ID(BXPT_Dma_Context);
 
 #define BXPT_DMA_NUM_CHANNELS   BXPT_NUM_PLAYBACKS
+#if BXPT_DMA_HAS_MEMDMA_MCPB
 #define BXPT_DMA_BAND_ID_OFFSET BXPT_NUM_PLAYBACKS
+#else
+#define BXPT_DMA_BAND_ID_OFFSET 0
+#endif
 
 #define BXPT_DMA_MCPB_DESC_WORDS 8
 #if BXPT_HAS_MCPB_VER_3
@@ -223,6 +227,7 @@ BDBG_OBJECT_ID(BXPT_Dma_Context);
 #define BXPT_DMA_MSA_DEBUG_MODE      0
 #define BXPT_DMA_TRACE_MSGS          0 /* BDBG_MSG_TRACE(x) -> BDBG_MSG(x) */
 #define BXPT_DMA_DESC_DUMP           0 /* dump descriptors */
+#define BXPT_DMA_PID_TABLE_DUMP      0
 
 #define BXPT_DMA_RATE_TEST           0
 
@@ -486,6 +491,9 @@ static void BXPT_Dma_Context_P_SetPidChannelMode(BXPT_Dma_ContextHandle hCtx);
 #if BXPT_DMA_DESC_DUMP
 static void BXPT_Dma_Context_P_BlockSettingsDump(BXPT_Dma_ContextHandle ctx, const BXPT_Dma_ContextBlockSettings *pSettings);
 static void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, bool print_warnings);
+#endif
+#if BXPT_DMA_PID_TABLE_DUMP
+static void BXPT_Dma_P_PidTableDump(BXPT_Dma_Handle dma);
 #endif
 
 static unsigned BXPT_Dma_P_GetWdmaRun_isrsafe(BXPT_Dma_Handle dma)
@@ -1030,6 +1038,17 @@ BERR_Code BXPT_Dma_P_OpenChannel(
 
     BXPT_Dma_P_EnableInterrupts(hXpt);
 
+#if (BCHP_CHIP == 7255)
+    BDBG_CASSERT(7 ==
+        BCHP_INT_ID_XPT_WDMA_DESC_DONE_INTR_L2_WDMA_CHAN_07_INTR -
+        BCHP_INT_ID_XPT_WDMA_DESC_DONE_INTR_L2_WDMA_CHAN_00_INTR);
+    BDBG_CASSERT(7 ==
+        BCHP_INT_ID_XPT_WDMA_OVERFLOW_INTR_L2_WDMA_CHAN_07_INTR -
+        BCHP_INT_ID_XPT_WDMA_OVERFLOW_INTR_L2_WDMA_CHAN_00_INTR);
+    BDBG_CASSERT(7 ==
+        BCHP_INT_ID_XPT_WDMA_BTP_INTR_L2_WDMA_CHAN_07_INTR -
+        BCHP_INT_ID_XPT_WDMA_BTP_INTR_L2_WDMA_CHAN_00_INTR);
+#else
     BDBG_CASSERT(31 ==
         BCHP_INT_ID_XPT_WDMA_DESC_DONE_INTR_L2_WDMA_CHAN_31_INTR -
         BCHP_INT_ID_XPT_WDMA_DESC_DONE_INTR_L2_WDMA_CHAN_00_INTR);
@@ -1039,7 +1058,7 @@ BERR_Code BXPT_Dma_P_OpenChannel(
     BDBG_CASSERT(31 ==
         BCHP_INT_ID_XPT_WDMA_BTP_INTR_L2_WDMA_CHAN_31_INTR -
         BCHP_INT_ID_XPT_WDMA_BTP_INTR_L2_WDMA_CHAN_00_INTR);
-
+#endif
     intr = BCHP_INT_ID_XPT_WDMA_DESC_DONE_INTR_L2_WDMA_CHAN_00_INTR + channelNum;
     rc = BINT_CreateCallback(&dma->irqDescDone, dma->bint, intr, BXPT_Dma_P_DescDoneCallback_isr, dma, 0);
     if (rc != BERR_SUCCESS) { rc = BERR_TRACE(rc); goto error; }
@@ -1209,7 +1228,7 @@ void BXPT_Dma_Context_GetDefaultSettings(
     BDBG_ASSERT(pSettings != NULL);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->maxNumBlocks = 1;
-    pSettings->pidChannelNum = BXPT_DMA_PID_CHANNEL_NUM_START;
+    pSettings->pidChannelNum = BXPT_DMA_PID_CHANNEL_NUM_START+BXPT_DMA_NUM_PID_CHANNELS-1;
 }
 
 void BXPT_Dma_Context_GetDefaultBlockSettings(
@@ -1224,6 +1243,7 @@ static BERR_Code BXPT_Dma_Context_P_SetSettings(BXPT_Dma_ContextHandle ctx, cons
 {
     bool readSwap;
     unsigned readSwapMode, writeSwapMode, prevReadSwapMode, prevWriteSwapMode;
+
     BXPT_Dma_Handle dma = ctx->parent;
     uint32_t reg;
 
@@ -1310,6 +1330,9 @@ static BERR_Code BXPT_Dma_Context_P_SetSettings(BXPT_Dma_ContextHandle ctx, cons
         BCHP_SET_FIELD_DATA(reg, XPT_WDMA_CH0_DATA_CONTROL, INV_STRAP_ENDIAN_CTRL, setCbit);
         BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_DATA_CONTROL + dma->wdmaRamOffset, reg);
     }
+#else
+    BSTD_UNUSED(dma);
+    BSTD_UNUSED(reg);
 #endif
 
     prevWriteSwapMode = (ctx->wdmaDescW3 >> WDMA_DW3_DATA_UNIT_SIZE_SHIFT) & 3;
@@ -1319,22 +1342,6 @@ static BERR_Code BXPT_Dma_Context_P_SetSettings(BXPT_Dma_ContextHandle ctx, cons
     BDBG_MSG_TRACE(("" BDBG_UINT64_FMT " endian swap: (%s:%s) read %u, write %u", BDBG_UINT64_ARG(CTX_ID(ctx)),
         BSTD_CPU_ENDIAN==BSTD_ENDIAN_LITTLE?"LE":"BE", pSettings->endianMode==BXPT_Dma_EndianMode_eLittle?"LE":"BE", readSwapMode, writeSwapMode));
     }
-
-    /* configure the pid channel */
-    reg = 0;
-    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 1);
-    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PLAYBACK_BAND_PARSER_PID_CHANNEL_INPUT_SELECT, dma->channelNum + BXPT_DMA_BAND_ID_OFFSET);
-    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PLAYBACK_FE_SEL, 1); /* PB parser */
-    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, 1); /* direct to XPT security */
-    BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, HD_FILT_DIS_PID_CHANNEL_PID, 0); /* the PID does not matter when PID channel is specified via descriptor */
-    BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * pSettings->pidChannelNum, reg);
-
-    reg = 0;
-    BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + 4 * pSettings->pidChannelNum, reg);
-
-    reg = 0;
-    BCHP_SET_FIELD_DATA(reg, XPT_FE_SPID_EXT_TABLE_i, PID_DESTINATION_EXT, 1 << (!pSettings->useRPipe ? 0 : 1));
-    BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_EXT_TABLE_i_ARRAY_BASE + 4 * pSettings->pidChannelNum, reg);
 
     ctx->settings = *pSettings;
     return BERR_SUCCESS;
@@ -2161,6 +2168,9 @@ BERR_Code BXPT_Dma_Context_Enqueue(
     #endif
     BXPT_Dma_Context_P_DescDump(hCtx, false, false);
 #endif
+#if BXPT_DMA_PID_TABLE_DUMP
+    BXPT_Dma_P_PidTableDump(hCtx->parent);
+#endif
 
     dma = hCtx->parent;
 
@@ -2425,6 +2435,7 @@ static void BXPT_Dma_Context_P_SetPidChannelMode(BXPT_Dma_ContextHandle hCtx)
     chnum = BXPT_P_MEMDMA_PID_CHANNEL_START + dma->channelNum;
 
     if (hCtx->numPidChannels) {
+        /* setup allpass pidchannel */
         reg = 0;
         BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 1);
         BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PLAYBACK_BAND_PARSER_PID_CHANNEL_INPUT_SELECT, dma->channelNum + BXPT_DMA_BAND_ID_OFFSET);
@@ -2456,9 +2467,10 @@ static void BXPT_Dma_Context_P_SetPidChannelMode(BXPT_Dma_ContextHandle hCtx)
         BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * hCtx->settings.pidChannelNum, reg);
     }
     else {
-        reg = BREG_Read32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * chnum);
-        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 0);
-        BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * chnum, reg);
+        /* disable allpass pidchannel */
+        BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * chnum, 0);
+        BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + 4 * chnum, 0);
+        BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_EXT_TABLE_i_ARRAY_BASE + 4 * chnum, 0);
 
 #ifdef BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1
         reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL1 + dma->mcpbRegOffset);
@@ -2470,9 +2482,20 @@ static void BXPT_Dma_Context_P_SetPidChannelMode(BXPT_Dma_ContextHandle hCtx)
         /* re-configure default configuration in Context_P_SetSettings */
         hCtx->mcpbDescW5 |= MCPB_DW5_PID_CHANNEL_VALID;
 
-        reg = BREG_Read32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * hCtx->settings.pidChannelNum);
+        reg = 0;
         BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 1);
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PLAYBACK_BAND_PARSER_PID_CHANNEL_INPUT_SELECT, dma->channelNum + BXPT_DMA_BAND_ID_OFFSET);
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PLAYBACK_FE_SEL, 1); /* PB parser */
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, 1); /* direct to XPT security */
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_PID_TABLE_i, HD_FILT_DIS_PID_CHANNEL_PID, 0); /* the PID does not matter when PID channel is specified via descriptor */
         BREG_Write32(dma->reg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * hCtx->settings.pidChannelNum, reg);
+
+        reg = 0;
+        BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + 4 * hCtx->settings.pidChannelNum, reg);
+
+        reg = 0;
+        BCHP_SET_FIELD_DATA(reg, XPT_FE_SPID_EXT_TABLE_i, PID_DESTINATION_EXT, 1 << (!hCtx->settings.useRPipe ? 0 : 1));
+        BREG_Write32(dma->reg, BCHP_XPT_FE_SPID_EXT_TABLE_i_ARRAY_BASE + 4 * hCtx->settings.pidChannelNum, reg);
     }
 }
 
@@ -2555,7 +2578,7 @@ void BXPT_P_Dma_Resume(BXPT_Handle hXpt)
     return;
 }
 
-#if (!B_REFSW_MINIMAL || BXPT_DMA_DESC_DUMP)
+#if (!B_REFSW_MINIMAL || BXPT_DMA_DESC_DUMP || BXPT_DMA_PID_TABLE_DUMP)
 static void BXPT_Dma_Context_P_DescCheckMcpb(BXPT_Dma_ContextHandle ctx, unsigned idx, bool link_only, uint32_t *desc)
 {
     unsigned numBlocks = ctx->numBlocks;
@@ -2699,6 +2722,19 @@ void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, boo
             if (print_warnings) {
                 BXPT_Dma_Context_P_DescCheckWdma(ctx, i, link_only, desc);
             }
+        }
+    }
+}
+
+void BXPT_Dma_P_PidTableDump(BXPT_Dma_Handle dma)
+{
+    unsigned i;
+    BREG_Handle hReg = dma->reg;
+    uint32_t val;
+    for (i=0; i<BXPT_P_PID_TABLE_SIZE; i++) {
+        val = BREG_Read32(hReg, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4*i);
+        if (BCHP_GET_FIELD_DATA(val, XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE)) {
+            BKNI_Printf("PID_TABLE[%4u]: %08x \n", i, val);
         }
     }
 }

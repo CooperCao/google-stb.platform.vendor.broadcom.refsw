@@ -42,11 +42,6 @@
 #include "libdspcontrol/DSP.h"
 #include "libdspcontrol/TB.h"
 
-#if (BCHP_CHIP == 7278)
-#include "bchp_raaga_dsp_l2c.h"
-#include "bchp.h"
-#endif
-
 #include "bdsp_raaga_fwinterface_priv.h"
 #include "bdsp_common_mm_priv.h"
 #include "bdsp_raaga_img_sizes.h"
@@ -97,31 +92,6 @@ BDSP_Raaga_P_DwnldBufUsageInfo DwnldBufUsageInfo[BDSP_RAAGA_MAX_DWNLD_BUFS] */
 /* MAX_DWNLD_BUFS will be the max of the above defines.I have kept it slightly more  */
 #define BDSP_RAAGA_MAX_DWNLD_BUFS BDSP_RAAGA_MAX_DECODE_CTXT + BDSP_RAAGA_MAX_ENCODE_CTXT
 
-#if (BCHP_CHIP ==7278)
-typedef enum BDSP_AF_P_Process
-{
-    BDSP_AF_P_Process_eMMServerProcess = 0,
-    BDSP_AF_P_Process_eFileServerProcess = 1,
-    BDSP_AF_P_Process_eProcManagerProcess = 2,
-    BDSP_AF_P_Process_eMaxProcess = 3
-}BDSP_AF_P_Process;
-
-#define BDSP_RAAGA_KERNEL_RW_MEM_SIZE      BDSP_IMG_KERNEL_RW_IMG_SIZE /* RW memory used by Kernel */
-#define BDSP_RAAGA_INIT_PROC_MEM_SIZE      (uint32_t) (200 * 1024) /* RW memory used by Init process */
-#define BDSP_RAAGA_APP_PROC_MEM_SIZE       (uint32_t) (512 * 1024) /* RW memory used by Init process */
-#define BDSP_RAAGA_OTHER_PROC_MEM_SIZE     (uint32_t) (200 * 1024) /* RW memory used for creation of each of processes */
-#define BDSP_RAAGA_MM_PROC_HEAP_SIZE       (uint32_t) (220 * 1024) /* RW memory used by MM process for allocations */
-#define BDSP_RAAGA_GUARD_RW_MEM_SIZE       (uint32_t) (2 * 1024)   /* RW Memory guard band to ensure 32-bit aligned addresses */
-
-#define ATU_PHYSICAL_ENTRY_MASK       (uint32_t) (0x7fffffff) /* b31 shall be set to 0 always */
-#define ATU_PHYSICAL_ADDR_MASK        (uint64_t) (0xffffffffff)
-#define ATU_VIRTUAL_ADDR_MASK         (uint32_t) (0xfffff000) /* b31 shall be set to 0 always */
-
-#define ATU_VIRTUAL_RO_MEM_START_ADDR (uint32_t) (0x0) /* RO memory mapped to addr : 0x0 */
-#define ATU_VIRTUAL_RW_MEM_START_ADDR (uint32_t) (0x10000000) /* RW memory mapped to addr : 0x10000000 (256MB)*/
-
-#endif
-
 /* Memory Block */
 typedef struct BDSP_Raaga_P_MemBlock
 {
@@ -157,10 +127,6 @@ typedef struct BDSP_Raaga_P_DwnldMemInfo
     uint32_t ui32TotalSupportedBinSize; /* Sum of all binary sizes */
     uint32_t ui32AllocatedBinSize;      /* Memory allocated for heap in this run */
     uint32_t ui32AllocwithGuardBand;        /* Memory allocated for heap in this run */
-#if (BCHP_CHIP == 7278)
-    uint32_t ui32SystemImgSize;        /* Memory allocated for heap in this run */
-    uint32_t ui32AllocatedAlgoSizes;        /* Memory allocated for heap in this run */
-#endif
     BDSP_MMA_Memory ImgBuf;
     BDSP_Raaga_P_AlgoTypeImgBuf AlgoTypeBufs[BDSP_AlgorithmType_eMax];
 }BDSP_Raaga_P_DwnldMemInfo;
@@ -193,7 +159,7 @@ typedef struct BDSP_Raaga_P_TaskMemoryInfo
     BDSP_P_FwBuffer             sCitStruct;
     BDSP_P_FwBuffer             sSpareCitStruct; /* The working buffer for bdsp to populate
                                                         the updated cit on a seamless input port switch */
-    BDSP_P_FwBuffer             sStackSwapBuff; /* Task stack swap space */
+    BDSP_P_FwBuffer             sStackSwapBuff; /*Task stack swap space*/
     BDSP_P_FwBuffer             sTaskCfgBufInfo;    /*All global task configurations come in here*/
 
     BDSP_P_FwBuffer             sTaskGateOpenBufInfo;    /*All Gate Open Buffer details for Configuration come in here*/
@@ -238,8 +204,22 @@ typedef struct BDSP_Raaga_P_PerDSPMemory
     BDSP_P_FwBuffer                 DspScratchMemGrant[BDSP_AF_P_eSchedulingGroup_Max];
 }BDSP_Raaga_P_PerDSPMemory;
 
+typedef struct BDSP_Raaga_P_RaagaOnlyRWMemory
+{
+    BDSP_P_FwBuffer BufInfo;
+}BDSP_Raaga_P_RaagaOnlyRWMemory;
+
+typedef struct BDSP_Raaga_P_AvailableMemTable
+{
+    uint32_t BufferOccupied;
+    BDSP_P_FwBuffer sStackBuf;
+}BDSP_Raaga_P_AvailableMemTable;
 
 
+typedef struct BDSP_Raaga_P_TaskSwapMemory
+{
+    BDSP_Raaga_P_AvailableMemTable sMemTable[BDSP_RAAGA_MAX_DSP][BDSP_RAAGA_MAX_FW_TASK_PER_DSP];
+}BDSP_Raaga_P_TaskSwapMemory;
 
 /* Memory allocated information for whole Raptor device */
 typedef struct BDSP_Raaga_P_MemoryGrant
@@ -251,7 +231,7 @@ typedef struct BDSP_Raaga_P_MemoryGrant
                                 /* Generic (non-task) response queue per DSP */
     BDSP_MMA_Memory DSPFifoAddrStruct[BDSP_RAAGA_MAX_DSP];
 
-    BDSP_P_FwBuffer FwDebugBuf[BDSP_RAAGA_MAX_DSP][BDSP_Raaga_DebugType_eLast];
+    BDSP_P_FwBuffer FwDebugBuf[BDSP_RAAGA_MAX_DSP][BDSP_DebugType_eLast];
 
     /* Structure used to initialise the libDspControl module  */
     DSP                   sLibDsp;
@@ -261,19 +241,14 @@ typedef struct BDSP_Raaga_P_MemoryGrant
 
     /* DRAM buffer for raaga system to swap its data memory with */
     BDSP_P_FwBuffer        sRaagaSwapMemoryBuf[BDSP_RAAGA_MAX_DSP];
-
-#if (BCHP_CHIP ==7278)
-    /* DRAM memory allocated for raaga rw memory
-     * This includes Message queues, Memory to hold Fifo pointers, Scratch and IS buffers */
-    BDSP_P_FwBuffer         sRaagaRWMemoryBuf;
-    uint32_t                ui32UsedRWMemsize;
-    uint32_t                ui32AvailableRWMemSize;
-    bool                    bIsATUEntryUsed[BDSP_RAAGA_MAX_ATU_ENTRIES];
-#endif
     BDSP_Raaga_P_PerDSPMemory       sScratchandISBuff[BDSP_RAAGA_MAX_DSP];
                                 /* Open time scratch and IS memory info */
     BDSP_Raaga_P_DwnldMemInfo       sDwnldMemInfo;
 
+    BDSP_P_FwBuffer            sVomTableInfo;
+                                /* DRAM for VOM Table */
+    BDSP_Raaga_P_RaagaOnlyRWMemory sRaagaOnlyRWBuf;
+    BDSP_Raaga_P_TaskSwapMemory sRaagaTaskSwapMemory;
 }BDSP_Raaga_P_MemoryGrant;
 
 typedef struct BDSP_Raaga_P_ContextMemoryGrant
@@ -283,8 +258,6 @@ typedef struct BDSP_Raaga_P_ContextMemoryGrant
                                 /*will not be used with new CIT, allocated one time per DSP at Raaga_Open time*/
     BDSP_P_FwBuffer            sSpdifStatusBitBufInfo;
                                 /* Extra buffer to on-the-fly program cfg params*/
-    BDSP_P_FwBuffer            sVomTableInfo;
-                                /* DRAM for VOM Table */
 }BDSP_Raaga_P_ContextMemoryGrant;
 
 /* Buffers required by CIT. This is to handle SW7346-598 */
@@ -364,58 +337,6 @@ BERR_Code BDSP_Raaga_P_FreeStageMemory(
 BERR_Code BDSP_Raaga_P_CalcandAllocScratchISbufferReq(
     void *pDeviceHandle
     );
-#if (BCHP_CHIP == 7278)
-/* Allocates memory from the RW memory buffer
- * Allocates, Message queues, FIFO pointers, Scratch and IS buffers
- * Debug buffers, swap memory, and Oher RW memory required by Processes */
-BERR_Code BDSP_Raaga_P_AllocateFWSharedMem (
-    void *pDeviceHandle,
-    int32_t i32DspIndex
-    );
-
-/* Allocates memory from the RW memory buffer
- * Allocates, Core0 and Core1 RW memory and shared RW memory */
-BERR_Code BDSP_Raaga_P_AllocCoresRWMemory(
-    void *pDeviceHandle
-    );
-
-/* Allocates memory from the RW memory buffer
- * Allocates, Memory for each of the Raaga processes
- * Init, MM, Fileserver, ProcesManager, and application processes */
-BERR_Code BDSP_Raaga_P_AllocProcessRWMemory(
-    void *pDeviceHandle
-    );
-
-/* Assigns memory from the RW memory buffer for the given size */
-BERR_Code BDSP_Raaga_P_AssignFromRWMem(
-    void *pDeviceHandle,
-    uint32_t ui32Size,
-    BDSP_MMA_Memory *pBuffer
-    );
-
-/* This function calculates the RW memory used by Raaga core
- * and gets a single contiguous memory chunk for the total memory required
- * This includes, Memory for queues, Memory to hold FIFO pointers,
- * IS and Scratch buffers, and Debug buffers*/
-BERR_Code BDSP_Raaga_P_CalcAndAllocRWMemoryReq(
-    void *pDeviceHandle
-    );
-BERR_Code BDSP_Raaga_P_FreeScratchISmem(
-    void *pDeviceHandle
-    );
-BERR_Code BDSP_Raaga_P_FreeFWSharedMem(
-    void *pDeviceHandle
-    );
-
-BERR_Code BDSP_Raaga_P_FreeRWMemRegion(
-    void *pDeviceHandle
-    );
-
-BERR_Code BDSP_Raaga_P_ResetAtuEntries(
-    void *pDeviceHandle
-    );
-
-#endif /* (BCHP_CHIP == 7278) */
 
 BERR_Code BDSP_Raaga_P_GetFwMemRequired(
     const BDSP_RaagaSettings  *pSettings,
@@ -459,33 +380,4 @@ void BDSP_Raaga_P_FreeFwExec(   void *pDeviceHandle);
                                ((BDSP_Raaga_P_DwnldBufUsageInfo*)pDwnldBuf)->bIsExistingDwnldValid = false;\
                                ((BDSP_Raaga_P_DwnldBufUsageInfo*)pDwnldBuf)->numUser = 0;
 
-#if (BCHP_CHIP == 7278)
-/* Returns Free ATU Index */
-int32_t BDSP_Raaga_P_GetFreeAtuIndex(
-        void *pDeviceHandle
-        );
-
-/* Add ATU Index */
-BERR_Code BDSP_Raaga_P_AddAtuEntries(
-        void *pDeviceHandle
-        );
-
-BERR_Code BDSP_Raaga_P_GetVirtualAddress(
-        void *pDeviceHandle,
-        uint64_t ui64PhysicalAddr,
-        uint32_t *pui32VirtualAddr
-        );
-
-/* Takes physical address as input and returns virtual address */
-BERR_Code BDSP_Raaga_P_GetVirtualAddress(
-        void *pDeviceHandle,
-        uint64_t ui64PhysicalAddr,
-        uint32_t *pui32VirtualAddr
-        );
-BERR_Code BDSP_Raaga_P_GetPhysicalAddress(
-        void *pDeviceHandle,
-        uint32_t ui32VirtualAddr,
-        uint64_t *pui64PhysicalAddr
-        );
-#endif /* (BCHP_CHIP ==7278) */
 #endif /*BDSP_RAAGA_MM_PRIV_H_*/

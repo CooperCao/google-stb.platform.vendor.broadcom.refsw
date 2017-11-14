@@ -325,6 +325,7 @@ typedef struct {
 #define IP_ETHER_V6	0xdd86
 #define MDNS_WAKEIND	0x3
 #define MDNS_FLAG	0x1
+#define DUR_NDP		0x2c
 
 #ifdef BCMDBG
 static void wlc_print_wowlpattern(wl_wowl_pattern_t *pattern);
@@ -340,6 +341,7 @@ static void wlc_wowl_watchdog(void *arg);
 static int wlc_wowl_nulldata_setup(wowl_info_t *wowl, struct scb *scb);
 static uint32 wlc_wowl_setup_user_keepalive(wowl_info_t *wowl, struct scb *scb);
 static uint32 wlc_wowl_setup_offloads(wowl_info_t *wowl, struct scb *scb);
+static int wlc_wowl_ndp_pmf_setup(wowl_info_t *wowl, struct scb *scb);
 
 static int wlc_wowl_enable_ucode(wowl_info_t *wowl, uint32 wowl_flags, struct scb *scb);
 static uint32 wlc_wowl_clear_ucode(wowl_info_t *wowl);
@@ -2777,6 +2779,13 @@ wlc_wowl_enable_ucode(wowl_info_t *wowl, uint32 wowl_flags, struct scb *scb)
 		/* Configure the offloads like ipv4 arp, ipv6 NS and security algorithm */
 		wowl_flags |= wlc_wowl_setup_offloads(wowl, scb);
 
+		/* Setup KeepAlive pkt */
+		if (D11REV_LT(wlc->pub->corerev, 40) || D11REV_GE(wlc->pub->corerev, 42)) {
+			if ((err = wlc_wowl_ndp_pmf_setup(wowl, scb)) != BCME_OK) {
+				WL_ERROR(("%s: KeepAlive for WoWL setup failed\n", __FUNCTION__));
+				goto done;
+			}
+		}
 		wlc->machwcap = old_machwcap;
 	}
 
@@ -3299,6 +3308,41 @@ wlc_wowl_watchdog(void *arg)
 		(wowl->wakeind & WL_WOWL_BCN))
 			wlc_roam_bcns_lost(cfg);
 }
+
+static int
+wlc_wowl_ndp_pmf_setup(wowl_info_t *wowl, struct scb *scb)
+{
+	void *p;
+	wlc_bsscfg_t *cfg = scb->bsscfg;
+	int err = BCME_OK;
+	wlc_info_t *wlc = wowl->wlc;
+	uint8 *PP;
+	d11actxh_t* vhtHdr = NULL;
+	int HdrLen = 0;
+	uint8 *HdrACptr = NULL;
+	if (!cfg) {
+		WL_ERROR(("wl%d: no cfg's with matching criteria\n", wowl->wlc->pub->unit));
+		err = BCME_ERROR;
+		goto done;
+	}
+
+	p = wlc_nulldata_template(wowl->wlc, cfg, &cfg->BSSID);
+	if (p == NULL) {
+		err = BCME_NOMEM;
+		goto done;
+	}
+	HdrLen =  wlc_pkt_get_vht_hdr(wlc, p, &vhtHdr);
+	HdrACptr = (uint8 *)(PKTDATA(wlc->osh, p) + HdrLen);
+	PP = ((uint8 *)HdrACptr) + D11AC_TXH_LEN;
+	*(PP + 2) = DUR_NDP;
+	/* Program the the template area */
+	wlc_wowl_write_ucode_templates(wowl, T_KEEPALIVE_0_GE42, p, cfg);
+
+	PKTFREE(wowl->wlc->osh, p, TRUE);
+done:
+	return err;
+}
+
 
 static void*
 wlc_alloc_wowl_pkt(wowl_info_t *wowl, uint32 len)

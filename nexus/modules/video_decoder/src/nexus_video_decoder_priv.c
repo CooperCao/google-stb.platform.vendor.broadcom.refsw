@@ -41,6 +41,11 @@
 #include "nexus_video_decoder_module.h"
 #include "priv/nexus_core.h"
 #include "nexus_video_decoder_private.h"
+#include "bxvd_pvr.h"
+#include "nexus_video_decoder_security.h"
+#if NEXUS_HAS_SAGE
+#include "nexus_sage.h"
+#endif
 
 BDBG_MODULE(nexus_video_decoder_priv);
 
@@ -74,53 +79,81 @@ static NEXUS_VideoDecoderModuleStatistics g_NEXUS_VideoDecoderModuleStatistics;
 
 void NEXUS_VideoDecoder_P_WatchdogHandler(void *data)
 {
-    struct NEXUS_VideoDecoderDevice *vDevice = (struct NEXUS_VideoDecoderDevice *)data;
     int i;
+    NEXUS_Error rc;
 
-    vDevice->numWatchdogs++;
+    /* must watchdog all HVD cores because of secure HVD FW */
+    BSTD_UNUSED(data);
 
-    /* when this is called, the xvd core is reset. now we need to disable and flush each rave context,
-    then let xvd process the watchdog (which will bring raptor back up to its previous state),
-    then enable rave and let the data flow. */
-    BDBG_ERR(("BXVD_ProcessWatchdog being called!!!"));
-    LOCK_TRANSPORT();
-    for (i=0;i<NEXUS_NUM_XVD_CHANNELS;i++) {
-        NEXUS_VideoDecoderHandle videoDecoder = vDevice->channel[i];
-        if (videoDecoder && videoDecoder->started) {
-            NEXUS_Rave_Disable_priv(videoDecoder->rave);
-            NEXUS_Rave_Flush_priv(videoDecoder->rave);
-        }
-    }
-    UNLOCK_TRANSPORT();
+#if NEXUS_HAS_SAGE
+    NEXUS_Sage_DisableHvd();
+#endif
 
-    BXVD_ProcessWatchdog(vDevice->xvd);
+    for (i=0; i<NEXUS_MAX_XVD_DEVICES; i++) {
+        struct NEXUS_VideoDecoderDevice *vDevice = &g_NEXUS_videoDecoderXvdDevices[i];
+        unsigned j;
+        if (!vDevice->xvd) continue;
 
-    LOCK_TRANSPORT();
-    for (i=0;i<NEXUS_NUM_XVD_CHANNELS;i++) {
-        NEXUS_VideoDecoderHandle videoDecoder = vDevice->channel[i];
-        if (videoDecoder && videoDecoder->started) {
-            NEXUS_Rave_Enable_priv(videoDecoder->rave);
-        }
-    }
-    UNLOCK_TRANSPORT();
+        vDevice->numWatchdogs++;
 
-#if NEXUS_HAS_ASTM
-    for (i = 0; i < NEXUS_NUM_XVD_CHANNELS; i++)
-    {
-        NEXUS_VideoDecoderHandle videoDecoder = vDevice->channel[i];
-        if (videoDecoder && videoDecoder->started && videoDecoder->astm.settings.enableAstm)
-        {
-            NEXUS_Callback astm_watchdog_isr = videoDecoder->astm.settings.watchdog_isr;
-            BDBG_MSG(("Video channel %p is notifying ASTM of its watchdog recovery", (void *)videoDecoder));
-            if (astm_watchdog_isr)
-            {
-                BKNI_EnterCriticalSection();
-                astm_watchdog_isr(videoDecoder->astm.settings.callbackContext, 0);
-                BKNI_LeaveCriticalSection();
+        /* when this is called, the xvd core is reset. now we need to disable and flush each rave context,
+        then let xvd process the watchdog (which will bring raptor back up to its previous state),
+        then enable rave and let the data flow. */
+        LOCK_TRANSPORT();
+        for (j=0;j<NEXUS_NUM_XVD_CHANNELS;j++) {
+            NEXUS_VideoDecoderHandle videoDecoder = vDevice->channel[j];
+            if (videoDecoder && videoDecoder->started) {
+                NEXUS_Rave_Disable_priv(videoDecoder->rave);
+                NEXUS_Rave_Flush_priv(videoDecoder->rave);
             }
         }
+        UNLOCK_TRANSPORT();
+
+        BXVD_ProcessWatchdog(vDevice->xvd);
     }
+
+#if NEXUS_HAS_SAGE
+    rc = NEXUS_Sage_EnableHvd();
+    if (rc) BERR_TRACE(rc); /* keep going */
 #endif
+
+    rc = NEXUS_VideoDecoder_P_BootDecoders();
+    if (rc) BERR_TRACE(rc); /* keep going */
+
+    for (i=0; i<NEXUS_MAX_XVD_DEVICES; i++) {
+        struct NEXUS_VideoDecoderDevice *vDevice = &g_NEXUS_videoDecoderXvdDevices[i];
+        if (!vDevice->xvd) continue;
+
+        rc = BXVD_ProcessWatchdogRestartDecoder(vDevice->xvd);
+        if (rc) BERR_TRACE(rc); /* keep going */
+
+        LOCK_TRANSPORT();
+        for (i=0;i<NEXUS_NUM_XVD_CHANNELS;i++) {
+            NEXUS_VideoDecoderHandle videoDecoder = vDevice->channel[i];
+            if (videoDecoder && videoDecoder->started) {
+                NEXUS_Rave_Enable_priv(videoDecoder->rave);
+            }
+        }
+        UNLOCK_TRANSPORT();
+
+#if NEXUS_HAS_ASTM
+        for (i = 0; i < NEXUS_NUM_XVD_CHANNELS; i++)
+        {
+            NEXUS_VideoDecoderHandle videoDecoder = vDevice->channel[i];
+            if (videoDecoder && videoDecoder->started && videoDecoder->astm.settings.enableAstm)
+            {
+                NEXUS_Callback astm_watchdog_isr = videoDecoder->astm.settings.watchdog_isr;
+                BDBG_MSG(("Video channel %p is notifying ASTM of its watchdog recovery", (void *)videoDecoder));
+                if (astm_watchdog_isr)
+                {
+                    BKNI_EnterCriticalSection();
+                    astm_watchdog_isr(videoDecoder->astm.settings.callbackContext, 0);
+                    BKNI_LeaveCriticalSection();
+                }
+            }
+        }
+#endif
+    }
 }
 
 void NEXUS_VideoDecoder_P_Watchdog_isr(void *data, int not_used, void *not_used2)
@@ -497,6 +530,11 @@ NEXUS_VideoDecoder_P_RequestStc_isr(void *data, int unused, void *pts_info)
            if (rc) {rc=BERR_TRACE(rc);} /* keep going */
         }
     }
+    if (videoDecoder->startPts.waitForStart && videoDecoder->startSettings.pauseAtStartPts) {
+        rc = BXVD_PVR_EnablePause_isr(videoDecoder->dec, true);
+        if (rc) {rc=BERR_TRACE(rc);} /* keep going */
+        videoDecoder->startPts.waitForStart = false;
+    }
 
 #if NEXUS_HAS_ASTM
     if (videoDecoder->astm.settings.enableAstm && videoDecoder->astm.settings.enableTsm)
@@ -514,27 +552,6 @@ NEXUS_VideoDecoder_P_RequestStc_isr(void *data, int unused, void *pts_info)
     NEXUS_IsrCallback_Fire_isr(videoDecoder->playback.firstPtsCallback);
 }
 
-/* SW7405-5118 bandrews - XDM has one less enum than AVC, so
-invalid maps differently */
-#define NEXUS_VIDEO_DECODER_P_XVD_PTS_INFO_TO_AVC_PTS_INFO(pAvcPts, pXvdPts) \
-do \
-{ \
-    switch ((pXvdPts)->ePTSType) \
-    { \
-        case BXDM_PictureProvider_PTSType_eCoded: \
-            (pAvcPts)->ePTSType = BAVC_PTSType_eCoded; \
-            break; \
-        case BXDM_PictureProvider_PTSType_eInterpolatedFromValidPTS: \
-            (pAvcPts)->ePTSType = BAVC_PTSType_eInterpolatedFromValidPTS; \
-            break; \
-        case BXDM_PictureProvider_PTSType_eInterpolatedFromInvalidPTS: \
-        default: \
-            (pAvcPts)->ePTSType = BAVC_PTSType_eInterpolatedFromInvalidPTS; \
-            break; \
-    } \
-} \
-while (0)
-
 void
 NEXUS_VideoDecoder_P_PtsError_isr(void *data, int unused, void *pts_info)
 {
@@ -549,7 +566,7 @@ NEXUS_VideoDecoder_P_PtsError_isr(void *data, int unused, void *pts_info)
     pts.ui32CurrentPTS = xvdPts->ui32RunningPTS;
     pts.uiDecodedFrameCount = xvdPts->uiPicturesDecodedCount;
     pts.uiDroppedFrameCount = xvdPts->uiDisplayManagerDroppedCount;
-    NEXUS_VIDEO_DECODER_P_XVD_PTS_INFO_TO_AVC_PTS_INFO(&pts, xvdPts);
+    pts.ePTSType = xvdPts->ePTSType;
     BDBG_MSG(("video:%d PTS error %#x", (unsigned)videoDecoder->mfdIndex, pts.ui32CurrentPTS));
 
     if (videoDecoder->trickState.tsmEnabled == NEXUS_TsmMode_eSimulated) {
@@ -602,7 +619,7 @@ NEXUS_VideoDecoder_P_TsmPass_isr(void *data, int unused, void *pts_info)
     pts.ui32CurrentPTS = xvdPts->ui32RunningPTS;
     pts.uiDecodedFrameCount = xvdPts->uiPicturesDecodedCount;
     pts.uiDroppedFrameCount = xvdPts->uiDisplayManagerDroppedCount;
-    NEXUS_VIDEO_DECODER_P_XVD_PTS_INFO_TO_AVC_PTS_INFO(&pts, xvdPts);
+    pts.ePTSType = xvdPts->ePTSType;
     BDBG_MSG(("video:%d TSM pass %#x", (unsigned)videoDecoder->mfdIndex, pts.ui32CurrentPTS));
 
 #if NEXUS_HAS_ASTM
@@ -714,6 +731,8 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
     streamInfo->sampleAspectRatioX = info->uiSampleAspectRatioX;
     streamInfo->sampleAspectRatioY = info->uiSampleAspectRatioY;
     streamInfo->colorDepth = info->eBitDepth;
+    streamInfo->protocolLevel = (NEXUS_VideoProtocolLevel)info->uiLevel;
+    streamInfo->protocolProfile = (NEXUS_VideoProtocolProfile)info->uiProfile;
 
     /* pick 4 values to help assure Nexus and Magnum enums stay in sync */
     BDBG_CASSERT(NEXUS_MatrixCoefficients_eSmpte_240M == (NEXUS_MatrixCoefficients)BAVC_MatrixCoefficients_eSmpte_240M);
@@ -784,8 +803,7 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
         doesn't matter and pb shouldn't overflow */
         BXVD_GetPTS_isr(videoDecoder->dec, &xpts);
 
-        NEXUS_VIDEO_DECODER_P_XVD_PTS_INFO_TO_AVC_PTS_INFO(&apts, &xpts);
-
+        apts.ePTSType = xpts.ePTSType;
         apts.ui32CurrentPTS = xpts.ui32RunningPTS;
 
         BXVD_GetDecodeSettings_isrsafe(videoDecoder->dec,&g_NEXUS_videoDecoderIsrStorage.decodeSettings);
@@ -1025,7 +1043,7 @@ BERR_Code NEXUS_VideoDecoder_P_GetPtsCallback_isr(void *pContext, BAVC_PTSInfo *
 
     /* map data structures */
     pPTSInfo->ui32CurrentPTS = ptsInfo.ui32RunningPTS;
-    NEXUS_VIDEO_DECODER_P_XVD_PTS_INFO_TO_AVC_PTS_INFO(pPTSInfo, &ptsInfo);
+    pPTSInfo->ePTSType = ptsInfo.ePTSType;
     return 0;
 }
 

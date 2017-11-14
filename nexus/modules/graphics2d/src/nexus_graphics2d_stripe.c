@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -69,7 +69,6 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
 {
     bool interlaced;
     unsigned xi, yi, surfaceOffset;
-    BSTD_DeviceOffset offsetY=0, offsetC=0;
     unsigned stripeNum;
     unsigned lumaBufSize, chromaBufSize, totalByteWidth;
     unsigned luma32bit, chroma32bit;
@@ -79,6 +78,7 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
     NEXUS_SurfaceMemory surfaceMem;
     NEXUS_SurfaceCreateSettings surfaceSettings;
     NEXUS_StripedSurfaceCreateSettings picCfg;
+    NEXUS_Error rc;
 
     BSTD_UNUSED(gfx);
     if ( NULL == pSettings || NULL == pSettings->source.surface || NULL == pSettings->output.stripedSurface ) {
@@ -114,8 +114,8 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
 
     if( NEXUS_SUCCESS != NEXUS_MemoryBlock_Lock(picCfg.chromaBuffer, &ptr) ||
         !NEXUS_P_CpuAccessibleAddress(ptr) ) {
-        NEXUS_MemoryBlock_Unlock(picCfg.lumaBuffer);
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto err_lockchroma;
     }
     pvChromaStartAddress = ptr;
     pvChromaStartAddress += picCfg.chromaBufferOffset;
@@ -150,6 +150,8 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
         /* Traverse through each 4 pixels in the line */
         for ( xi = 0; xi < picCfg.imageWidth; xi += 4)
         {
+            unsigned offsetY;
+
             surfaceOffset = surfaceMem.pitch * yi + xi*2;/* 422 source surface */
 
             /* determine which stripe contains this pixel */
@@ -162,7 +164,10 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
 
 
             /* store luma byte */
-            BDBG_ASSERT( offsetY < lumaBufSize);
+            if ( offsetY >= lumaBufSize) {
+                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto err_offset;
+            }
 
             /* Note: the stripe surface is always aligned in 1K pages, so the address shuffling
                can be applied only to the surface offset address. */
@@ -178,7 +183,7 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
             BDBG_MODULE_MSG(pxlval, ("src[%x]: %x %x %x %x, %x %x %x %x", surfaceOffset, pvSurface[surfaceOffset], pvSurface[surfaceOffset+2],
                 pvSurface[surfaceOffset+4], pvSurface[surfaceOffset+6], pvSurface[surfaceOffset+1], pvSurface[surfaceOffset+3],
                 pvSurface[surfaceOffset+5], pvSurface[surfaceOffset+7]));
-            BDBG_MODULE_MSG(pxlval, ("dst["BDBG_UINT64_FMT"]", BDBG_UINT64_ARG(offsetY)));
+            BDBG_MODULE_MSG(pxlval, ("dst[%x]", offsetY));
 
             /* Write luma */
             /* NOTE: mpeg feeder is in big-endian if it's mpeg format data!!! assume cpu is little endian */
@@ -188,12 +193,15 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
             if((yi & 1) == 0)
             {
                 /* calculate pixel's Cr byte offset */
-                offsetC = (xi % picCfg.stripedWidth) +
+                unsigned offsetC = (xi % picCfg.stripedWidth) +
                     (yi/2) * picCfg.stripedWidth +
                     (stripeNum * picCfg.stripedWidth * picCfg.chromaStripedHeight);
 
                 /* store chroma bytes */
-                BDBG_ASSERT( offsetC < chromaBufSize);
+                if ( offsetC >= chromaBufSize) {
+                    rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                    goto err_offset;
+                }
 
                 /* NOTE: mpeg feeder is in big-endian if it's mpeg format data!!! */
                 offsetC = BCHP_ShuffleStripedPixelOffset(g_NEXUS_pCoreHandles->chp, NEXUS_Heap_GetMemcIndex_isrsafe(picCfg.chromaHeap), offsetC);
@@ -213,4 +221,10 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
     NEXUS_MemoryBlock_Unlock(picCfg.chromaBuffer);
 
     return NEXUS_SUCCESS;
+
+err_offset:
+    NEXUS_MemoryBlock_Unlock(picCfg.chromaBuffer);
+err_lockchroma:
+    NEXUS_MemoryBlock_Unlock(picCfg.lumaBuffer);
+    return rc;
 }

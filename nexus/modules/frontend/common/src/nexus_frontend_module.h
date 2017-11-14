@@ -59,6 +59,7 @@
 #include "nexus_frontend_channelbonding.h"
 #if NEXUS_HAS_MXT
 #include "bmxt.h"
+#include "priv/nexus_transport_priv.h"
 #endif
 
 #ifdef NEXUS_FRONTEND_2940
@@ -300,11 +301,14 @@ typedef struct NEXUS_FrontendDeviceMtsifConfig {
         bool errorInputIgnore;
         unsigned timestampMode;
         bool dssMode;
+        bool allPass;
+        bool acceptNull;
     } demodPbSettings[NEXUS_MAX_MTSIF_CONFIG];
 
     unsigned numDemodIb, numDemodPb; /* actual number of demod IB/PB, known at runtime */
     NEXUS_TimerHandle timer;
     bool slave; /* slave (TX-only) in a daisy-chain */
+    bool pidfilter;
 } NEXUS_FrontendDeviceMtsifConfig;
 
 typedef struct NEXUS_FrontendDevice {
@@ -650,6 +654,9 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_FrontendCard);
  * Frontend Private Routines
  ***************************************************************************/
 void NEXUS_Frontend_P_Init(void);
+void NEXUS_Frontend_P_Uninit(void);
+void NEXUS_Frontend_P_EnablePidFiltering(void);
+unsigned NEXUS_Frontend_P_CloseAllMtsifPidChannels(void);
 NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Create(void);
 NEXUS_FrontendHandle NEXUS_Frontend_P_Create(void *pDeviceHandle);
 void NEXUS_Frontend_P_Destroy(NEXUS_FrontendHandle handle);

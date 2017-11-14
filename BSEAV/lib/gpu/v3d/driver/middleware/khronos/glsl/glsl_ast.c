@@ -1306,7 +1306,7 @@ Expr* glsl_expr_construct_prim_constructor_call(PrimitiveTypeIndex return_index,
       }
    }
 
-   vcos_assert(PRIM_CONS_INVALID != expr->u.prim_constructor_call.flavour);
+   assert(PRIM_CONS_INVALID != expr->u.prim_constructor_call.flavour);
 
    return expr;
 }
@@ -1372,7 +1372,7 @@ Expr* glsl_expr_construct_type_constructor_call(SymbolType* type, ExprChain* arg
 
    Expr* expr = (Expr *)malloc_fast(sizeof(Expr));
 
-   vcos_assert(SYMBOL_STRUCT_TYPE == type->flavour);
+   assert(SYMBOL_STRUCT_TYPE == type->flavour);
    expr->line_num = g_LineNumber;
    expr->type = type;
    expr->flavour = EXPR_TYPE_CONSTRUCTOR_CALL;
@@ -1600,7 +1600,7 @@ Expr* glsl_expr_construct_field_selector(Expr* aggregate, const char* field)
             expr->type = &primitiveTypes[PRIM_BVEC4];
             break;
          default:
-            vcos_assert(4 == MAX_SWIZZLE_FIELD_COUNT);
+            assert(4 == MAX_SWIZZLE_FIELD_COUNT);
             return NULL;
          }
          break;
@@ -1621,7 +1621,7 @@ Expr* glsl_expr_construct_field_selector(Expr* aggregate, const char* field)
             expr->type = &primitiveTypes[PRIM_IVEC4];
             break;
          default:
-            vcos_assert(4 == MAX_SWIZZLE_FIELD_COUNT);
+            assert(4 == MAX_SWIZZLE_FIELD_COUNT);
             return NULL;
          }
          break;
@@ -1642,7 +1642,7 @@ Expr* glsl_expr_construct_field_selector(Expr* aggregate, const char* field)
             expr->type = &primitiveTypes[PRIM_VEC4];
             break;
          default:
-            vcos_assert(4 == MAX_SWIZZLE_FIELD_COUNT);
+            assert(4 == MAX_SWIZZLE_FIELD_COUNT);
             return NULL;
          }
          break;
@@ -1793,10 +1793,10 @@ Expr* glsl_expr_construct_unary_op_logical(ExprFlavour flavour, Expr* operand)
             expr->compile_time_value = malloc_fast(expr->type->size_as_const);
 
             // This code assumes we do not act on vectors.
-            vcos_assert(PRIM_BOOL == prim_index);
+            assert(PRIM_BOOL == prim_index);
 
             // and assumes that logical not is the only operator in this category.
-            vcos_assert(EXPR_LOGICAL_NOT == flavour);
+            assert(EXPR_LOGICAL_NOT == flavour);
 
             op_logical_not__const_bool__const_bool((const_bool *)expr->compile_time_value, (const_bool *)operand->compile_time_value);
          }
@@ -1926,11 +1926,11 @@ Expr* glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, Expr* left, 
       // All operations are component-wise except EXPR_MUL involving at least one matrix (cases 1 and 4).
 
       /* Int matrix types don't exist */
-      vcos_assert( !(left_flags & PRIM_MATRIX_TYPE) || left_flags & PRIM_FLOAT_TYPE );
-      vcos_assert( !(right_flags & PRIM_MATRIX_TYPE) || right_flags & PRIM_FLOAT_TYPE );
+      assert( !(left_flags & PRIM_MATRIX_TYPE) || left_flags & PRIM_FLOAT_TYPE );
+      assert( !(right_flags & PRIM_MATRIX_TYPE) || right_flags & PRIM_FLOAT_TYPE );
       /* SCALAR, VECTOR, MATRIX should be exhaustive */
-      vcos_assert(left_flags & (PRIM_SCALAR_TYPE | PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE));
-      vcos_assert(right_flags & (PRIM_SCALAR_TYPE | PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE));
+      assert(left_flags & (PRIM_SCALAR_TYPE | PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE));
+      assert(right_flags & (PRIM_SCALAR_TYPE | PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE));
 
       // Case 1.
       if (left->type == right->type)
@@ -2153,7 +2153,7 @@ Expr* glsl_expr_construct_binary_op_logical(ExprFlavour flavour, Expr* left, Exp
       expr->compile_time_value = malloc_fast(expr->type->size_as_const);
 
       // This code assumes we do not act on vectors.
-      vcos_assert(PRIM_BOOL == left_index);
+      assert(PRIM_BOOL == left_index);
 
       switch (flavour)
       {
@@ -2223,7 +2223,7 @@ Expr* glsl_expr_construct_binary_op_relational(ExprFlavour flavour, Expr* left, 
       expr->compile_time_value = malloc_fast(expr->type->size_as_const);
 
       // This code assumes we do not act on vectors.
-      vcos_assert(left_flags & PRIM_SCALAR_TYPE);
+      assert(left_flags & PRIM_SCALAR_TYPE);
 
       switch (left_flags & (PRIM_INT_TYPE | PRIM_FLOAT_TYPE))
       {
@@ -2891,7 +2891,7 @@ Statement* glsl_statement_construct_selection(Expr* cond, Statement* if_true, St
 static bool cond_or_decl_is_bool(Statement *cond_or_decl) {
    SymbolType *type;
 
-   vcos_assert(cond_or_decl->flavour == STATEMENT_VAR_DECL ||
+   assert(cond_or_decl->flavour == STATEMENT_VAR_DECL ||
                cond_or_decl->flavour == STATEMENT_EXPR);
 
    if (cond_or_decl->flavour == STATEMENT_VAR_DECL) {

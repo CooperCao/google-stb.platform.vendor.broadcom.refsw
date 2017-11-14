@@ -716,6 +716,7 @@ typedef struct _BHDM_Settings_
 	bool BypassEDIDChecking ;  /* debug tool */
 	bool bCrcTestMode ; /* auto crc test mode; should never be used in production */
 	bool UseDebugEdid ;  /* use statically declared EDID; see bhdm_debug_edid.c */
+	uint8_t uiDebugEdid ; /* use EDID n; 0 = do not use any debug EDID*/
 
 	bool bFifoMasterMode;      /* Set true to enable master mode */
 
@@ -1320,18 +1321,10 @@ Input:
 
 Output:
     pHdmiStatus - Status of the HDMI core
-
-
-Returns:
-	BERR_SUCCESS - Status returned in the pHdmiStatus structure
-	BERR_INVALID_PARAMETER - Invalid function parameter.
-
-See Also:
-
 ****************************************************************************/
-BERR_Code BHDM_GetHdmiStatus(
+void BHDM_GetHdmiStatus(
    BHDM_Handle hHDMI,          /* [in] HDMI handle */
-   BHDM_Status *pHdmiStatus  /* [in] HDMI Status  */
+   BHDM_Status *pHdmiStatus  /* [out] HDMI Status  */
 ) ;
 
 

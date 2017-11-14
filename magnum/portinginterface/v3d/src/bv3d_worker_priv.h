@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012-2016 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -144,6 +144,11 @@ bool BV3D_P_AllUnitsIdle(
 bool BV3D_P_SwitchMode(
    BV3D_Handle hV3d,
    bool bSecure
+);
+
+/***************************************************************************/
+void BV3D_P_WakeWorkerThread_isr(
+   BV3D_Handle hV3d
 );
 
 /***************************************************************************/

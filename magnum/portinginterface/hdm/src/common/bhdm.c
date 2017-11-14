@@ -687,7 +687,7 @@ Summary: Get the current version of the HDM PI (used to identify the HDM PI) for
 *******************************************************************************/
 const char * BHDM_P_GetVersion(void)
 {
-	static const char Version[] = "BHDM URSR 17.3" ;
+	static const char Version[] = "BHDM URSR 17.4" ;
 	return Version ;
 }
 
@@ -1853,7 +1853,7 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 
 	uint8_t FrameDelay ;
 
-	const BFMT_VideoInfo *pVideoInfo ;
+	const BFMT_VideoInfo *pVideoFormatInfo ;
 	bool bHdmiPhyChanges ;
 #endif	/* #ifndef BHDM_FOR_BOOTUPDATER */
 
@@ -1997,14 +1997,20 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 #define BHDM_P_TRANSITION_TIMEOUT_FRAMES 5
 		timeoutFrames = BHDM_P_TRANSITION_TIMEOUT_FRAMES ;
 
-		pVideoInfo = BFMT_GetVideoFormatInfoPtr(NewHdmiSettings->eInputVideoFmt) ;
+		pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(NewHdmiSettings->eInputVideoFmt) ;
+		if (pVideoFormatInfo == NULL)
+		{
+			BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+			rc= BERR_TRACE(BERR_NOT_INITIALIZED) ;
+			return rc ;
+		}
 
 		/* configure wait delay based on the referesh rate */
-		if (pVideoInfo->ulVertFreq >= 5994)
+		if (pVideoFormatInfo->ulVertFreq >= 5994)
 			FrameDelay = 17 ;
-		else if (pVideoInfo->ulVertFreq >= 5000)
+		else if (pVideoFormatInfo->ulVertFreq >= 5000)
 			FrameDelay = 20 ;
-		else if (pVideoInfo->ulVertFreq >= 2997)
+		else if (pVideoFormatInfo->ulVertFreq >= 2997)
 			FrameDelay = 33 ;
 		else /* 24/25 Hz refresh rate */
 			FrameDelay = 42 ;
@@ -3144,7 +3150,7 @@ static void BHDM_P_DebugInputVideoFmtConfiguration(
 {
 	static const char * const sPolarity[] = {"-", "+"} ;
 
-       const BFMT_VideoInfo *pVideoInfo ;
+       const BFMT_VideoInfo *pVideoFormatInfo ;
 
 	uint32_t tmdsRate ;
 	uint8_t divider ;
@@ -3153,7 +3159,13 @@ static void BHDM_P_DebugInputVideoFmtConfiguration(
 	divider = (hHDMI->DeviceSettings.stVideoSettings.eColorSpace == BAVC_Colorspace_eYCbCr420)  ? 2 : 1 ;
 	BDBG_MSG(("Horizontal Parameter Divider: %d", divider)) ;
 
-       pVideoInfo = BFMT_GetVideoFormatInfoPtr(NewHdmiSettings->eInputVideoFmt) ;
+	pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(NewHdmiSettings->eInputVideoFmt) ;
+	if (pVideoFormatInfo == NULL)
+	{
+		BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+		BERR_TRACE(BERR_NOT_INITIALIZED) ;
+		return ;
+	}
 
 	BHDM_TMDS_P_VideoFormatSettingsToTmdsRate(hHDMI,
 		NewHdmiSettings->eInputVideoFmt, &NewHdmiSettings->stVideoSettings, &tmdsRate) ;
@@ -3183,7 +3195,7 @@ static void BHDM_P_DebugInputVideoFmtConfiguration(
 		BHDM_VideoFmtParams[index].V_ActiveLinesField0,
 		BHDM_VideoFmtParams[index].V_ActiveLinesField1,
 		sPolarity[BHDM_VideoFmtParams[index].H_Polarity],
-		pVideoInfo->ulPxlFreq / BFMT_FREQ_FACTOR, tmdsRate)) ;
+		pVideoFormatInfo->ulPxlFreq / BFMT_FREQ_FACTOR, tmdsRate)) ;
 
 	if (index == BHDM_InputVideoFmt_eCustom)
 	{
@@ -3373,12 +3385,18 @@ static BERR_Code BHDM_P_ConfigureInputVideoFmt(
 
 	if (index == BHDM_InputVideoFmt_ePowerUp)
 	{
-		const BFMT_VideoInfo *pVideoInfo ;
+		const BFMT_VideoInfo *pVideoFormatInfo ;
 
-		pVideoInfo = BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
+		pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
+		if (pVideoFormatInfo == NULL)
+		{
+			BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+			rc = BERR_TRACE(BERR_NOT_INITIALIZED) ;
+			return rc ;
+		}
 		BDBG_ERR(("Tx%d: BFMT_VideoFmt: %s (%d) is UNKNOWN/UNSUPPORTED in HDM",
-			hHDMI->eCoreId, pVideoInfo->pchFormatStr, eVideoFmt)) ;
-		BSTD_UNUSED(pVideoInfo) ; /* supress coverity message for non-debug builds */
+			hHDMI->eCoreId, pVideoFormatInfo->pchFormatStr, eVideoFmt)) ;
+		BSTD_UNUSED(pVideoFormatInfo) ; /* supress coverity message for non-debug builds */
 		rc = BERR_TRACE(BERR_NOT_SUPPORTED) ;
 		goto done ;
 	}
@@ -4052,23 +4070,15 @@ BERR_Code BHDM_GetHdmiSettings(const BHDM_Handle hHDMI, /* [in] handle to HDMI d
 
 
 /*******************************************************************************
-BERR_Code BHDM_GetHdmiStatus
+void BHDM_GetHdmiStatus
 Summary: Get the current status for the HDMI device.
 *******************************************************************************/
-BERR_Code BHDM_GetHdmiStatus(const BHDM_Handle hHDMI, /* [in] handle to HDMI device */
-	BHDM_Status *pHdmiStatus  /* [in] pointer to memory to hold the current HDMI status */
+void BHDM_GetHdmiStatus(const BHDM_Handle hHDMI, /* [in] handle to HDMI device */
+	BHDM_Status *pHdmiStatus  /* [out] pointer to memory to hold the current HDMI status */
 )
 {
-	BERR_Code      rc = BERR_SUCCESS;
-	BDBG_ENTER(BHDM_GetHdmiStatus) ;
-
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-	BDBG_ASSERT(pHdmiStatus) ;
-
 	*pHdmiStatus = hHDMI->DeviceStatus ;
-
-	BDBG_LEAVE(BHDM_GetHdmiStatus) ;
-	return rc ;
 }
 
 
@@ -5181,6 +5191,12 @@ BERR_Code BHDM_SetColorDepth(
 
 	pVideoFormatInfo =
 		(BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
+	if (pVideoFormatInfo == NULL)
+	{
+		BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+		rc= BERR_TRACE(BERR_NOT_INITIALIZED) ;
+		return rc ;
+	}
 
 	BDBG_MSG(("Set ColorDepth %d for %s  with colorspace %d",
 		pstColorDepthSettings->eBitsPerPixel,
@@ -5373,22 +5389,13 @@ BERR_Code BHDM_SetVideoSettings(
 Summary:
 Get the current Video Settings (colospace, color depth etc)
 *******************************************************************************/
-BERR_Code BHDM_GetVideoSettings(
+void BHDM_GetVideoSettings(
    const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
    BHDM_Video_Settings *stVideoSettings /* [out] color depth setting returns */
 )
 {
-	BDBG_ENTER(BHDM_GetVideoSettings);
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-	BDBG_ASSERT(stVideoSettings) ;
-	BKNI_Memset(stVideoSettings, 0,  sizeof(BHDM_Video_Settings)) ;
-
-	if (stVideoSettings)
-		BKNI_Memcpy(stVideoSettings, &hHDMI->DeviceSettings.stVideoSettings, sizeof(BHDM_Video_Settings));
-
-	BDBG_LEAVE(BHDM_GetVideoSettings);
-	return BERR_SUCCESS;
+	BKNI_Memcpy(stVideoSettings, &hHDMI->DeviceSettings.stVideoSettings, sizeof(*stVideoSettings));
 }
 
 BERR_Code BHDM_GetTxSupportStatus(

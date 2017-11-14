@@ -41,6 +41,7 @@
 #include "nexus_pid_channel.h"
 #include "nexus_stc_channel.h"
 #include "nexus_surface_types.h"
+#include "nexus_video_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -168,6 +169,8 @@ typedef struct NEXUS_VideoDecoderStartSettings
     bool appDisplayManagement;  /* Application Display Management Mode.  If enabled, the application must use NEXUS_VideoDecoder_GetDecodedFrames and
                                    NEXUS_VideoDecoder_ReturnDecodedFrames to manage the decoded picture queue */
     NEXUS_VideoDecoderCrcMode crcMode;
+    bool pauseAtStartPts; /* If SetStartPts is set, display one frame then enter decoder pause state.
+                             Call NEXUS_VideoDecoder_SetTrickState with rate = NEXUS_NORMAL_DECODE_RATE to unpause. */
 } NEXUS_VideoDecoderStartSettings;
 
 /**
@@ -388,68 +391,6 @@ for or capable of decoding 8 bit. */
 /* BAD_STREAM - stream contains illegal syntax */
 #define NEXUS_CHANNELSTATUS_AVD_BAD_STREAM                    0x800
 
-/***************************************************************************
-Summary:
-Video protocol level
-
-Description:
-Returned by NEXUS_VideoDecoderStatus.protocolLevel
-****************************************************************************/
-typedef enum NEXUS_VideoProtocolLevel
-{
-   NEXUS_VideoProtocolLevel_eUnknown = 0,
-   NEXUS_VideoProtocolLevel_e00,
-   NEXUS_VideoProtocolLevel_e10,
-   NEXUS_VideoProtocolLevel_e1B,
-   NEXUS_VideoProtocolLevel_e11,
-   NEXUS_VideoProtocolLevel_e12,
-   NEXUS_VideoProtocolLevel_e13,
-   NEXUS_VideoProtocolLevel_e20,
-   NEXUS_VideoProtocolLevel_e21,
-   NEXUS_VideoProtocolLevel_e22,
-   NEXUS_VideoProtocolLevel_e30,
-   NEXUS_VideoProtocolLevel_e31,
-   NEXUS_VideoProtocolLevel_e32,
-   NEXUS_VideoProtocolLevel_e40,
-   NEXUS_VideoProtocolLevel_e41,
-   NEXUS_VideoProtocolLevel_e42,
-   NEXUS_VideoProtocolLevel_e50,
-   NEXUS_VideoProtocolLevel_e51,
-   NEXUS_VideoProtocolLevel_e60,
-   NEXUS_VideoProtocolLevel_e62,
-   NEXUS_VideoProtocolLevel_eLow,
-   NEXUS_VideoProtocolLevel_eMain,
-   NEXUS_VideoProtocolLevel_eHigh,
-   NEXUS_VideoProtocolLevel_eHigh1440,
-   NEXUS_VideoProtocolLevel_eMax
-} NEXUS_VideoProtocolLevel;
-
-/***************************************************************************
-Summary:
-Video protocol profile
-
-Description:
-Returned by NEXUS_VideoDecoderStatus.protocolProfile
-****************************************************************************/
-typedef enum NEXUS_VideoProtocolProfile
-{
-   NEXUS_VideoProtocolProfile_eUnknown = 0,
-   NEXUS_VideoProtocolProfile_eSimple,
-   NEXUS_VideoProtocolProfile_eMain,
-   NEXUS_VideoProtocolProfile_eHigh,
-   NEXUS_VideoProtocolProfile_eAdvanced,
-   NEXUS_VideoProtocolProfile_eJizhun,
-   NEXUS_VideoProtocolProfile_eSnrScalable,
-   NEXUS_VideoProtocolProfile_eSpatiallyScalable,
-   NEXUS_VideoProtocolProfile_eAdvancedSimple,
-   NEXUS_VideoProtocolProfile_eBaseline,
-   NEXUS_VideoProtocolProfile_eMultiHigh,
-   NEXUS_VideoProtocolProfile_eStereoHigh,
-   NEXUS_VideoProtocolProfile_eMain10,
-
-   NEXUS_VideoProtocolProfile_eMax
-} NEXUS_VideoProtocolProfile;
-
 /**
 Summary:
 Current status of the video decoder.
@@ -557,6 +498,7 @@ Settings for a returned frame
 typedef struct NEXUS_VideoDecoderReturnFrameSettings
 {
     bool display;   /* If true (default), frame will be displayed.  If false, it will be dropped. */
+    bool recycle;   /* If true (default), frame will be recycled to the decoder.  If false, frame will be held until this value becomes true. */
 } NEXUS_VideoDecoderReturnFrameSettings;
 
 /**
@@ -836,6 +778,8 @@ typedef struct NEXUS_VideoDecoderStreamInformation
     NEXUS_ContentLightLevel contentLightLevel;
     NEXUS_MasteringDisplayColorVolume masteringDisplayColorVolume;
     unsigned colorDepth;         /* 8 or 10 bit source */
+    NEXUS_VideoProtocolLevel protocolLevel;
+    NEXUS_VideoProtocolProfile protocolProfile;
 } NEXUS_VideoDecoderStreamInformation;
 
 /**
@@ -904,26 +848,13 @@ When decode is started with NEXUS_VideoDecoderPrimer_StopPrimerAndStartDecode, N
 between the current STC and the PTS of all random access points (RAP) currently in the buffer. Nexus will then
 select a single RAP from which to start decode. This decision affects the momentary behavior immediately after
 decode is started, while a STC/PTS discrepancy exists.
-
-pastTolerance and futureTolerance control the above decision in the following manner:
-
-- If there are no RAPs that satisfy either tolerance, then the larger of the two tolerances is taken as a preference.
-If pastTolerance > futureTolerance, then Nexus will select the nearest past RAP (STC > PTS).
-If pastTolerance < futureTolerance, then Nexus will select the nearest future RAP (STC < PTS)
-If pastTolerance == futureTolerance, then Nexus will select the nearest RAP from the current STC.
-
-- If there are one or more RAPs that satisfy one or both tolerances, then Nexus will select the nearest RAP from
-the current STC that satisfies a tolerance.
 **/
 typedef struct NEXUS_VideoDecoderPrimerSettings
 {
     unsigned ptsOffset; /* Add an offset to the primer's TSM equation. Measured in 45Hz PTS units.
                            A separate ptsOffset must be applied to VideoDecoder if desired. */
-    unsigned pastTolerance;   /* time (in PTS units, typically 45KHz for MPEG2TS) between the current STC and the past, within which
-                                 Nexus will look for a RAP to start decode from */
-    unsigned futureTolerance; /* time (in PTS units, typically 45KHz for MPEG2TS) between the current STC and the future, within which
-                                 Nexus will look for a RAP to start decode from */
-
+    unsigned pastTolerance; /* unused */
+    unsigned futureTolerance; /* unused */
     bool ptsStcDiffCorrectionEnabled; /* If true, then correct the PTS-STC difference when starting decode,
                                          by applying an additional PTS offset to the video decoder.
                                          If not using sync_channel, this may worsen A/V sync.

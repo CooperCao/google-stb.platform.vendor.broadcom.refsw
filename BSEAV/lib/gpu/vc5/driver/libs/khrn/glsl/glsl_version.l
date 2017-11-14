@@ -2,7 +2,7 @@
    // build me with "flex -L -o glsl_version.c glsl_version.l"
 
    #include <stdbool.h>
-
+   #include "libs/core/v3d/v3d_ver.h"
    #include "glsl_common.h"  /* XXX: For GLSL_SHADER_VERSION */
 
    int vvinput(char *buf, int buf_size, yyscan_t scanner);
@@ -101,7 +101,7 @@ static bool parse_for_version(yyscan_t scanner, int *version) {
 static const int supported_versions[] = {
    GLSL_SHADER_VERSION(1, 0, 0),
    GLSL_SHADER_VERSION(3, 0, 1),
-#ifdef GLSL_310_SUPPORT
+#if V3D_VER_AT_LEAST(3,3,0,0)
    GLSL_SHADER_VERSION(3, 10, 1),
 #endif
 #ifdef GLSL_320_SUPPORT

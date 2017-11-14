@@ -89,7 +89,7 @@ public:
     enum FTEType {
         File,
         Directory,
-        Pipe,
+        IpcPipe,
         MQueue,
         Socket
     };
@@ -111,7 +111,8 @@ public:
 
     typedef unsigned int IDType;
 
-    static const unsigned int MAX_FD = 16;
+    static const unsigned int MAX_FD = 32;
+
     static const unsigned int MAX_NUM_TLS_ENTRIES = 16;
 
     static const unsigned int THREAD_INFO_OFFSET = 1024;
@@ -237,6 +238,7 @@ public:
     int llseek(int fd, uint64_t offset, loff_t *result, unsigned int whence);
     int dup(int oldFd);
     int dup2(int oldFd, int newFd);
+    int dup3(int oldFd, int newFd, long flags);
     int fstat(int fd, struct stat *statbuf);
 
     int chmod(const char *filePath, uint32_t mode);
@@ -275,6 +277,8 @@ public:
     int mqRecv(int fd, char *msg, size_t msgSize, int *prio, uint64_t timeout);
     int mqNotify(int fd, struct sigevent *ev);
     int mqAttrChange(int fd, mq_attr *newAttr, mq_attr *oldAttr);
+
+    int pipeOpen(int *pfds, long flags);
 
     inline void enableSecCompStrict() { seccompStrict = true; }
     inline bool isSecCompStrict() { return seccompStrict; }
@@ -370,7 +374,7 @@ public:
 
     class TaskStartInfo {
     public:
-        static const int MAX_NUM_ARGS = 32;
+        static const int MAX_NUM_ARGS = 64;
         static const int MAX_NUM_ENVS = 128;
         static const int MAX_NUM_PROG_HEADERS = 8;
         static const int hwCaps = HWCAPS_AUXVAL;  //"arm v7 neon vfpv3 tls tzos"
@@ -421,6 +425,7 @@ private:
     TzMem::VirtAddr stackKernel;
     uint32_t stackKernelSize;
     TzMem::VirtAddr threadInfo;
+    bool threadInfoCloned;
 
     unsigned int priority;
     uint64_t startedAt;

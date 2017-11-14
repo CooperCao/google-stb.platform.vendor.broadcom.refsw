@@ -510,7 +510,7 @@ BERR_Code BXVD_PVR_SetHostSparseMode(
    BAVC_XptContextMap  XptContextMap;
    BAVC_XptContextMap  aXptContextMap_Extended[BXVD_NUM_EXT_RAVE_CONTEXT];
 
-   bool bCurSparseMode = hXvdCh->stDecoderContext.bHostSparseMode;
+   bool bCurSparseMode;
 
    BXDM_PictureProvider_PreserveStateSettings stPreserveStateSettings;
    BERR_Code rc = BERR_SUCCESS;
@@ -518,6 +518,7 @@ BERR_Code BXVD_PVR_SetHostSparseMode(
    BDBG_ENTER(BXVD_PVR_SetHostSparseMode);
    BDBG_ASSERT(hXvdCh);
 
+   bCurSparseMode = hXvdCh->stDecoderContext.bHostSparseMode;
    hXvdCh->stDecoderContext.bHostSparseMode = bSparseMode;
 
    if ((bCurSparseMode != bSparseMode) && (hXvdCh->eDecoderState == BXVD_P_DecoderState_eActive))

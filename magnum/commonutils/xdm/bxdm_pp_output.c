@@ -190,7 +190,7 @@ static void BXDM_PPOUT_S_ApplySPOScanMode_isr(
          /* Handle p->i source override */
          if ( BAVC_Polarity_eFrame == pMFDPicture->eSourcePolarity )
          {
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Source Polarity Override: p->i",
+            BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Source Polarity Override: p->i",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                              pstPicParms->uiPPBIndex & 0xFFF ));
@@ -209,7 +209,7 @@ static void BXDM_PPOUT_S_ApplySPOScanMode_isr(
          /* Handle i->p source override */
          if ( BAVC_Polarity_eFrame != pMFDPicture->eSourcePolarity )
          {
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Source Polarity Override: i->p",
+            BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Source Polarity Override: i->p",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                              pstPicParms->uiPPBIndex & 0xFFF ));
@@ -256,7 +256,7 @@ static void BXDM_PPOUT_S_ApplySPODisplayFieldMode_isr(
          case BXDM_PictureProvider_DisplayFieldMode_eTopFieldOnly:
             if ( ePulldown != BXDM_Picture_PullDown_eBottom )
             {
-               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Source Polarity Override: eTopFieldOnly",
+               BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Source Polarity Override: eTopFieldOnly",
                                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                 pstPicParms->uiPPBIndex & 0xFFF ));
@@ -269,7 +269,7 @@ static void BXDM_PPOUT_S_ApplySPODisplayFieldMode_isr(
          case BXDM_PictureProvider_DisplayFieldMode_eBottomFieldOnly:
             if ( ePulldown != BXDM_Picture_PullDown_eTop )
             {
-               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Source Polarity Override: eBotFieldOnly",
+               BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Source Polarity Override: eBotFieldOnly",
                                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                 pstPicParms->uiPPBIndex & 0xFFF ));
@@ -287,7 +287,7 @@ static void BXDM_PPOUT_S_ApplySPODisplayFieldMode_isr(
                  && ( BAVC_Polarity_eFrame != hXdmPP->stDMState.stChannel.ePrevSourcePolarity ) /* PR56063: Handle switching from frame to field content */
                )
             {
-               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Source Polarity Override: eSingleField",
+               BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Source Polarity Override: eSingleField",
                                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                    pstPicParms->uiPPBIndex & 0xFFF ));
@@ -361,7 +361,7 @@ static void BXDM_PPOUT_S_ApplySPOMPIM_isr(
          {
             /*  We only need to worry about changing the source
              *  polarity for content that is progressive */
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Source Polarity Override: eInterlacedScanout",
+            BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Source Polarity Override: eInterlacedScanout",
                                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                    pPictureContext->stPicParms.uiPPBIndex & 0xFFF ));
@@ -379,7 +379,7 @@ static void BXDM_PPOUT_S_ApplySPOMPIM_isr(
       case BXDM_PictureProvider_ScanModeOverride_eProgressive:
          /* We're forcing progressive scanout, so just set source
           * polarity to eFrame */
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Source Polarity Override: eProgressiveScanout",
+         BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Source Polarity Override: eProgressiveScanout",
                                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                    pPictureContext->stPicParms.uiPPBIndex & 0xFFF ));
@@ -441,7 +441,7 @@ static BERR_Code BXDM_PPOUT_S_ApplySPOProgressive_isr(
           *  - 24i to 60Hz display
           *  - 3:2 to 50Hz display
           */
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Polarity Override: progressive both field",
+         BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Polarity Override: progressive both field",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                              pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -473,7 +473,7 @@ static BERR_Code BXDM_PPOUT_S_ApplySPOProgressive_isr(
           *  - unexpected repeats (errors, missing pictures, hold last picture, etc.)
           *  */
 
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Polarity Override: progressive repeat",
+         BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Polarity Override: progressive repeat",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                              pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -1189,7 +1189,7 @@ static void BXDM_PPOUT_S_SetAspectRatio_isr(
       {
          bResizeRequired = true;
 
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Source Scaling Required: %4dx%4d --> %4dx%4d",
+         BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Source Scaling Required: %4dx%4d --> %4dx%4d",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                           pPictureContext->stPicParms.uiPPBIndex & 0xFFF,
@@ -1242,7 +1242,7 @@ static void BXDM_PPOUT_S_SetAspectRatio_isr(
             }
 
             /* Populate Overscan */
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] Applying overscan: %4dx%4d + sar:[%4d:%4d] --> %4dx%4d",
+            BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] Applying overscan: %4dx%4d + sar:[%4d:%4d] --> %4dx%4d",
                                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                    pPictureContext->stPicParms.uiPPBIndex & 0xFFF,
@@ -1279,7 +1279,7 @@ static void BXDM_PPOUT_S_SetAspectRatio_isr(
                      &uiEffectiveSampleAspectRatioY
                      );
 
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eOUT, "%x:[%02x.%03x] SAR Based Scaling Conversion: %4dx%4d --> %4dx%4d",
+            BDBG_MODULE_MSG( BXDM_PPOUT, ("%x:[%02x.%03x] SAR Based Scaling Conversion: %4dx%4d --> %4dx%4d",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                           pPictureContext->stPicParms.uiPPBIndex & 0xFFF,
@@ -1819,6 +1819,7 @@ void BXDM_PPOUT_P_CalculateStaticVdcData_isr(
                case BAVC_HdrMetadataType_eDrpu:
                case BAVC_HdrMetadataType_eTch_Cvri:
                case BAVC_HdrMetadataType_eTch_Cri:
+               case BAVC_HdrMetadataType_eTch_Slhdr: /* SWSTB-6121: */
                   pMFDPicture->stHdrMetadata.eType = pstMeta->astExtensionData[i].data.stMetaDataHdr.eType;
                   pMFDPicture->stHdrMetadata.ulSize = pstMeta->astExtensionData[i].data.stMetaDataHdr.uiSize;
                   pMFDPicture->stHdrMetadata.pData = pstMeta->astExtensionData[i].data.stMetaDataHdr.pData;

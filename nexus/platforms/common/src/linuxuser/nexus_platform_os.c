@@ -585,6 +585,21 @@ NEXUS_Error NEXUS_Platform_P_InitOSMem(void)
 #if !B_REFSW_SYSTEM_MODE_CLIENT
     g_NEXUS_driverFd = state->memFdCached;
 #endif
+#if B_REFSW_SYSTEM_MODE_CLIENT
+    g_platformMemory.maxDcacheLineSize = 4096;
+#else
+    /* If MEM's alignment is not set to the MIPS L1 and (if present) L2 cache line size,
+    we will have cache coherency problems (which lead to major system failures).
+    This code verifies that Nexus's MEM configuration is compatible with the MIPS cache line size.
+    If this code fails, please check to make sure the Linux kernel is configured right, then modify nexus_core_features.h to match.
+    use g_platformMemory to pass OS value to NEXUS_Platform_P_SetCoreModuleSettings */
+    rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_GET_DCACHE_LINE_SIZE, &g_platformMemory.maxDcacheLineSize);
+    if (rc) {
+        BDBG_ERR(("Nexus requires a new bcmdriver.ko ioctl API BRCM_IOCTL_GET_DCACHE_LINE_SIZE. Are you running with an old bcmdriver.ko?"));
+        rc = BERR_TRACE(BERR_OS_ERROR);
+        /* keep going */
+    }
+#endif
 
 #if NEXUS_USE_CMA
     rc = NEXUS_Platform_P_InitCma();
@@ -677,10 +692,10 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
                     rc = BERR_TRACE(BERR_OS_ERROR);return rc;
                 }
                 addr = mmap64(0, length, PROT_NONE, MAP_PRIVATE, devZero, 0);
+                close(devZero);
                 if(addr==MAP_FAILED) {
                     rc = BERR_TRACE(BERR_OS_ERROR);return rc;
                 }
-                close(devZero);
                 g_NEXUS_Platform_Os_State.devZeroMaped = true;
                 g_NEXUS_P_CpuNotAccessibleRange.start = addr;
                 g_NEXUS_P_CpuNotAccessibleRange.length = length;
@@ -689,14 +704,13 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
         }
         memset(&chip_info, 0, sizeof(chip_info));
         chip_info.bchp_physical_offset = BCHP_PHYSICAL_OFFSET;
-        ioctl(g_NEXUS_driverFd, BRCM_IOCTL_SET_CHIP_INFO, &chip_info);
+        rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_SET_CHIP_INFO, &chip_info);
+        if (rc) BERR_TRACE(rc); /* keep going */
     }
 #endif
     rc = fcntl(g_NEXUS_driverFd, F_SETFD, FD_CLOEXEC);
     if (rc) BERR_TRACE(rc); /* keep going */
-#if B_REFSW_SYSTEM_MODE_CLIENT
-    g_platformMemory.max_dcache_line_size = 4096;
-#else
+#if !B_REFSW_SYSTEM_MODE_CLIENT
     if ( ioctl(g_NEXUS_driverFd, BRCM_IOCTL_INT_RESET, 0) )
     {
         BDBG_ERR(("cannot reset interrupts. another instance of nexus is probably running."));
@@ -704,17 +718,6 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
         goto err_bcmdriver_setup;
     }
 
-    /* If MEM's alignment is not set to the MIPS L1 and (if present) L2 cache line size,
-    we will have cache coherency problems (which lead to major system failures).
-    This code verifies that Nexus's MEM configuration is compatible with the MIPS cache line size.
-    If this code fails, please check to make sure the Linux kernel is configured right, then modify nexus_core_features.h to match.
-    use g_platformMemory to pass OS value to NEXUS_Platform_P_SetCoreModuleSettings */
-    rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_GET_DCACHE_LINE_SIZE, &g_platformMemory.max_dcache_line_size);
-    if (rc) {
-        BDBG_ERR(("Nexus requires a new bcmdriver.ko ioctl API BRCM_IOCTL_GET_DCACHE_LINE_SIZE. Are you running with an old bcmdriver.ko?"));
-        rc = BERR_TRACE(BERR_OS_ERROR);
-        goto err_bcmdriver_setup;
-    }
 #endif
 
     NEXUS_Platform_P_InitSubmodules();
@@ -1176,9 +1179,9 @@ void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *p
         if (rc) {rc = BERR_TRACE(rc);} /* REG basemodule can't do anything with the error, so fallthrough */
     } else {
         NEXUS_Platform_Os_State *state = &g_NEXUS_Platform_Os_State;
-        pthread_mutex_lock(&state->lockUpdate32);
+        (void)pthread_mutex_lock(&state->lockUpdate32);
         preInitState->privateState.regSettings.systemUpdate32_isrsafe(preInitState->hReg, reg, mask, value, false);
-        pthread_mutex_unlock(&state->lockUpdate32);
+        (void)pthread_mutex_unlock(&state->lockUpdate32);
     }
     return;
 }
@@ -1297,7 +1300,7 @@ static unsigned NEXUS_Platform_P_ReadDeviceTreeInt(const char *path, const char 
     return id;
 }
 
-#if !NEXUS_PLATFORM_P_READ_BOX_MODE
+#if !NEXUS_PLATFORM_P_READ_BOX_MODE && !B_REFSW_SYSTEM_MODE_CLIENT
 #ifndef NEXUS_Platform_P_ReadBoxMode
 unsigned NEXUS_Platform_P_ReadBoxMode(void)
 {
@@ -1369,15 +1372,18 @@ static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(NEXUS_Platform_P_DtNo
     dir = opendir(path);
     if (!dir) {
         BDBG_MSG(("Cannot open dir %s", path));
-        goto done;
+        goto done_opendir;
     }
 
     compat = NEXUS_Platform_P_CheckCompatible(path, compatible);
     if (compat) {
         char *str = strrchr(path, '@');
+        if(str==NULL) {
+            (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);goto done_path;
+        }
         node = BKNI_Malloc(sizeof(NEXUS_Platform_P_DtNode));
         if(node==NULL) {
-            (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto done;
+            (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto done_malloc;
         }
         BLST_Q_INIT(&node->properties);
         BKNI_Memcpy(node->name, str, sizeof(node->name));
@@ -1428,9 +1434,12 @@ static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(NEXUS_Platform_P_DtNo
 			cnt += NEXUS_Platform_P_ParseDeviceTreeCompatible(nodeList, buf, compatible);
 		}
     }
+
+done_path:
+done_malloc:
     closedir(dir);
 
-done:
+done_opendir:
     return cnt;
 }
 

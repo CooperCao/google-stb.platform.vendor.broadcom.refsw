@@ -47,6 +47,7 @@
 #include "btmr.h"
 #include "bdbg.h"
 #include "bimg.h"
+#include "berr.h"
 
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_aud_fmm_bf_ctrl.h"
@@ -84,13 +85,8 @@
 
 /* BDSP_Raaga includes */
 #include "bdsp_raaga.h"
-#include "bdsp_raaga_types.h"
 #include "bdsp_bchp_raaga_dsp_fw_cfg.h"
-#include "bdsp_raaga_fw_settings.h"
 #include "bdsp_raaga_fwinterface_priv.h"
-#include "bdsp_raaga_cmdresp_priv.h"
-#include "bdsp_raaga_fw.h"
-#include "bdsp_raaga_fw_status.h"
 #include "bdsp_raaga_mm_priv.h"
 #include "bdsp_raaga_img.h"
 #include "bdsp_raaga_version.h"
@@ -106,5 +102,11 @@
 #include "bdsp_raaga_fw_priv.h"
 #include "bdsp_raaga_algo_priv.h"
 #include "bdsp_raaga_fw_algo.h"
+#include "bdsp_raaga_capture_priv.h"
+
+#ifdef FIREPATH_BM
+#include "mutex.h"
+extern BEMU_Client_MutexHandle g_hSocketMutex;
+#endif /* FIREPATH_BM */
 
 #endif /*BDSP_RAAGA_PRIV_INCLUDE_H_*/

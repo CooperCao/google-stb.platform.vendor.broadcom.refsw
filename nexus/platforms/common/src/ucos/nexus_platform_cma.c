@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -99,8 +99,8 @@ NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pS
         if (j == num_cma) {
             return BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
         }
-        if (pMemory->max_dcache_line_size > pCoreSettings->heapRegion[i].alignment) {
-            pCoreSettings->heapRegion[i].alignment = pMemory->max_dcache_line_size;
+        if (pMemory->maxDcacheLineSize > pCoreSettings->heapRegion[i].alignment) {
+            pCoreSettings->heapRegion[i].alignment = pMemory->maxDcacheLineSize;
         }
         pCoreSettings->heapRegion[i].offset = mem.region[j].offset;
         pCoreSettings->heapRegion[i].length = pSettings->heap[i].size;

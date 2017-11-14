@@ -848,10 +848,15 @@ eRet CBoardResources::add(
 
         case eBoardResource_outputRFM:
         {
-            COutputRFM * pOutputRFM = NULL;
-            pOutputRFM = new COutputRFM(name, (id && (id != i)) ? id : i, pCfg);
-            BDBG_ASSERT(pOutputRFM);
-            _outputRFMList.add(pOutputRFM);
+#if NEXUS_HAS_RFM
+            if (pPlatformConfig->getOutputRFM((id && (id != i)) ? id : i) != NULL)
+            {
+                COutputRFM * pOutputRFM = NULL;
+                pOutputRFM = new COutputRFM(name, (id && (id != i)) ? id : i, pCfg);
+                BDBG_ASSERT(pOutputRFM);
+                _outputRFMList.add(pOutputRFM);
+            }
+#endif /* if NEXUS_HAS_RFM */
         }
         break;
 

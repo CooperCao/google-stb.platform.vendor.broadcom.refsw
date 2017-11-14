@@ -286,5 +286,8 @@ void               Bmemperf_ChangeCpuState( int new_state );
 int                Bmemperf_GetProductIdMemc( void );
 #endif /* BMEMCONFIG_BOXMODE_SUPPORTED*/
 char              *formatul( unsigned long long int value );
+unsigned long int  delta_time_microseconds( unsigned long int seconds, unsigned long int microseconds );
+int                get_my_ip_addr_from_ifname( const char *ifname, char *ipaddr, int ipaddr_len );
+int                get_my_ip4_addr_all( unsigned long int list[], int list_max );
 
 #endif /* __BMEMPERF_LIB_H__ */

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 /******************************************************************************
  * Module : SAGE - Sage Remote Application Interface (SRAI)
@@ -365,6 +364,24 @@ BERR_Code SRAI_Module_Init(SRAI_PlatformHandle platform,
                            uint32_t moduleId,
                            BSAGElib_InOutContainer *container /* [in/out] */,
                            SRAI_ModuleHandle *pModule /* [out] */);
+
+/* indication callback:
+   module: the module handle on which an indication is received
+   arg: an opaque uint32_t parameter seed at init time and returned through the callback
+   id: the identifier of the indication
+   value: the value of the indication */
+typedef void (*SRAI_IndicationCallback)(SRAI_ModuleHandle module, uint32_t arg, uint32_t id, uint32_t value);
+
+typedef struct {
+    SRAI_IndicationCallback indicationCallback;
+    uint32_t indicationCallbackArg;
+} SRAI_Module_InitSettings;
+
+BERR_Code SRAI_Module_Init_Ext(SRAI_PlatformHandle platform,
+                               uint32_t moduleId,
+                               BSAGElib_InOutContainer *container /* [in/out] */,
+                               SRAI_ModuleHandle *pModule /* [out] */,
+                               SRAI_Module_InitSettings *pSettings /* [in] - optional */);
 
 /***************************************************************************
 Summary:

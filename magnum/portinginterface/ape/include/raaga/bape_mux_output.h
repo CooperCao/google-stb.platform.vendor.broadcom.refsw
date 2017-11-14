@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,6 +55,8 @@ Summary:
 ***************************************************************************/
 typedef struct BAPE_MuxOutput *BAPE_MuxOutputHandle;
 
+#define BAPE_INVALID_DEVICE_INDEX ((unsigned)-1)
+
 /***************************************************************************
 Summary:
     Creation Settings for a MuxOutput object
@@ -79,6 +81,11 @@ typedef struct BAPE_MuxOutputCreateSettings
     } itb, cdb;
     bool useRDB;                        /* If true we will use the ptrs provided
                                            and not the rave to handle mux output. */
+    unsigned dspIndex;                  /* DSP Device Index for this Mux. This should match the Encoder/Mixer
+                                           that will feed the mux. Use a value of BAPE_INVALID_DEVICE_INDEX
+                                           to have APE attempt to figure this out automatically. NOTE in cases
+                                           where the MUX is started before the upstream chain, this may need
+                                           to be explicitly specified by the application. */
 } BAPE_MuxOutputCreateSettings;
 
 

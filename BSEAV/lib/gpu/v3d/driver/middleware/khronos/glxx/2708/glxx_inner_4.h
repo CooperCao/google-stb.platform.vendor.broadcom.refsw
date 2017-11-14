@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Functions for driving the hardware for both GLES1.1 and GLES2.0.
-=============================================================================*/
-
-#ifndef GLXX_INNER_4_H
-#define GLXX_INNER_4_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/common/khrn_image.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
@@ -31,7 +22,6 @@ typedef struct {
    MEM_HANDLE_T mh_color_image;
    MEM_HANDLE_T mh_depth;
    MEM_HANDLE_T mh_ms_color;
-   MEM_HANDLE_T mh_preserve_image;
    KHRN_IMAGE_FORMAT_T col_format;
    uint16_t flags;
    uint32_t width;
@@ -41,7 +31,6 @@ typedef struct {
    bool ms;
    bool have_depth;
    bool have_stencil;
-   bool dither;
    bool stereo_mode;
 } GLXX_HW_FRAMEBUFFER_T;
 
@@ -131,19 +120,17 @@ typedef struct GLXX_HW_RENDER_STATE
    KHRN_FMEM_T *fmem;
 
    uint32_t num_tiles_x, num_tiles_y;
-   GLXX_HW_FRAMEBUFFER_T installed_fb; // = {MEM_INVALID_HANDLE, MEM_INVALID_HANDLE};
+   GLXX_HW_FRAMEBUFFER_T installed_fb; // = {MEM_HANDLE_INVALID, MEM_HANDLE_INVALID};
    uint32_t hw_frame_count; // = 0;
 
    bool color_buffer_valid;
    bool ds_buffer_valid;
    bool ms_color_buffer_valid;
    bool color_load;
-   bool preserve_load;
    bool depth_load;
    bool stencil_load;
    bool drawn;
    bool stencil_used;
-   bool fence_active;
    bool hw_cleared;
 
    /*bool color_buffer_clear;
@@ -151,15 +138,16 @@ typedef struct GLXX_HW_RENDER_STATE
    uint32_t color_value;
    float    depth_value;
    uint8_t  stencil_value;
+   bool     dither;
    uint32_t batch_count;
    bool     vshader_has_texture;
-   int      fence;
 } GLXX_HW_RENDER_STATE_T;
 
-extern bool glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *render_state);
+extern bool glxx_hw_render_state_would_flush(GLXX_HW_RENDER_STATE_T *rs);
+extern bool glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs);
 
 extern bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs, GLXX_HW_FRAMEBUFFER_T *fb);
-extern void glxx_hw_invalidate_internal(GLXX_HW_RENDER_STATE_T *rs, bool color, bool depth, bool stencil, bool multisample, bool preserveBuf);
+extern void glxx_hw_invalidate_internal(GLXX_HW_RENDER_STATE_T *rs, bool color, bool depth, bool stencil, bool multisample);
 
 extern void glxx_hw_handle_end_of_frame(void);
 extern void glxx_hw_handle_flush(void);
@@ -203,5 +191,3 @@ extern bool glxx_big_mem_add_special(uint8_t **p, uint32_t special_i, uint32_t o
 extern bool glxx_hw_insert_interlock(MEM_HANDLE_T handle, uint32_t offset);
 
 extern GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, bool main_buffer);
-
-#endif //GLXX_2708_HW_H

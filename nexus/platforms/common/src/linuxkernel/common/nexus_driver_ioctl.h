@@ -64,6 +64,8 @@ typedef struct nexus_driver_callback_desc {
 
 #define NEXUS_PROXY_IOCTL(NUM, NAME) NEXUS_IOCTL(101, (NEXUS_IOCTL_PROXY_MODULE*NEXUS_IOCTL_PER_MODULE)+(NUM), NAME)
 
+#define IOCTL_PROXY_NEXUS_Open NEXUS_PROXY_IOCTL(0, int)
+
 /* PROXY_NEXUS_Scheduler is used to dequeue, not run */
 typedef struct PROXY_NEXUS_Scheduler {
     struct {

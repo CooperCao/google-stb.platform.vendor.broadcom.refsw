@@ -36,16 +36,7 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#include <stdio.h>
-
 #if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==2
-
-#include <unistd.h>
-#include <string.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <assert.h>
 
 #include "nexus_platform.h"
 #include "nexus_memory.h"
@@ -195,6 +186,7 @@ size_t securityGetAlogrithmKeySize(
         key_size = 192 / 8;
         break;
     case NEXUS_CryptographicAlgorithm_eAes256:
+    case NEXUS_CryptographicAlgorithm_eMulti2:
         key_size = 256 / 8;
         break;
     default:

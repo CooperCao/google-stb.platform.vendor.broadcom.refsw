@@ -72,13 +72,17 @@ extern const char *glsl_stdlib_setup;
 /* These are the properties set on the standard functions (e.g. fragment-only etc) */
 extern const uint64_t glsl_stdlib_function_properties[GLSL_STDLIB_FUNCTION_COUNT];
 
-/* Initialization functions. The masks indicate properties that must _not_ be set for an entry
-   to be added to the symbol table. */
+/* Initialization functions. The masks indicate properties that will cause an entry to be
+   added to the symbol table. */
 void glsl_stdlib_init(void);
 void glsl_stdlib_populate_symbol_table_with_functions(SymbolTable *symbol_table, uint64_t mask);
 void glsl_stdlib_populate_symbol_table_with_variables(SymbolTable *symbol_table, uint64_t mask);
 void glsl_stdlib_populate_symbol_table_with_types    (SymbolTable *symbol_table, uint64_t mask);
 void glsl_stdlib_populate_scalar_value_map(Map *map);
+
+/* Functions for creating/getting the builtin interface blocks */
+void glsl_stdlib_populate_symbol_table_with_gl_in(SymbolTable *symbol_table, unsigned array_size);
+void glsl_stdlib_populate_symbol_table_with_gl_out(SymbolTable *symbol_table, unsigned array_size);
 
 /* Sort the stdlib symbols by storage qual into interfaces */
 void glsl_stdlib_interfaces_update(ShaderInterfaces *interfaces, uint64_t property_mask);
@@ -90,6 +94,8 @@ uint64_t glsl_stdlib_get_property_mask(ShaderFlavour flavour, int version);
 const Symbol *glsl_stdlib_get_function(glsl_stdlib_function_index_t index);
 const Symbol *glsl_stdlib_get_variable(glsl_stdlib_variable_index_t index);
 bool glsl_stdlib_is_stdlib_symbol(const Symbol *sym);
+bool glsl_stdlib_is_stdlib_function(const Symbol *sym);
+bool glsl_stdlib_is_stdlib_interface_block(const Symbol *sym);
 glsl_stdlib_function_index_t glsl_stdlib_function_index(const Symbol *sym);
 """, file=outf)
 
@@ -99,6 +105,8 @@ def print_api(outf):
 void glsl_stdlib_init() {
    glsl_stdlib_variables = malloc_fast(sizeof(*glsl_stdlib_variables) * GLSL_STDLIB_VARIABLE_COUNT);
    glsl_stdlib_functions = malloc_fast(sizeof(*glsl_stdlib_functions) * GLSL_STDLIB_FUNCTION_COUNT);
+   glsl_stdlib_gl_in     = NULL;
+   glsl_stdlib_gl_out    = NULL;
 }
 
 void glsl_stdlib_populate_symbol_table_with_functions(SymbolTable *symbol_table, uint64_t property_mask) {
@@ -140,6 +148,73 @@ void glsl_stdlib_interfaces_update(ShaderInterfaces *interfaces, uint64_t proper
          glsl_shader_interfaces_update(interfaces, &glsl_stdlib_variables[i]);
       }
    }
+
+   if (glsl_stdlib_gl_in)
+      glsl_shader_interfaces_update(interfaces, glsl_stdlib_gl_in);
+   if (glsl_stdlib_gl_out)
+      glsl_shader_interfaces_update(interfaces, glsl_stdlib_gl_out);
+}
+
+static Symbol *in_out_block(SymbolTable *symbol_table, const char *name, StorageQualifier sq, unsigned array_size) {
+   Qualifiers q = { .invariant = false,
+                    .lq = NULL,
+                    .sq = sq,
+                    .iq = INTERP_SMOOTH,
+                    .aq = AUXILIARY_NONE,
+                    .pq = PREC_HIGHP,
+                    .mq = MEMORY_NONE };
+
+   SymbolType *resultType   = malloc_fast(sizeof(SymbolType));
+   resultType->flavour      = SYMBOL_BLOCK_TYPE;
+   resultType->name         = glsl_intern("gl_PerVertex", false);
+   resultType->scalar_count = 5;
+
+   StructMember *memb = malloc_fast(sizeof(StructMember) * 2);
+   memb[0].name   = glsl_intern("gl_Position", false);
+   memb[0].type   = &primitiveTypes[PRIM_VEC4];
+   memb[0].layout = NULL;
+   memb[0].prec   = PREC_HIGHP;
+   memb[0].memq   = MEMORY_NONE;
+   memb[0].interp = INTERP_SMOOTH;
+   memb[0].auxq   = AUXILIARY_NONE;
+
+   memb[1].name   = glsl_intern("gl_PointSize", false);
+   memb[1].type   = &primitiveTypes[PRIM_FLOAT];
+   memb[1].layout = NULL;
+   memb[1].prec   = PREC_HIGHP;
+   memb[1].memq   = MEMORY_NONE;
+   memb[1].interp = INTERP_SMOOTH;
+   memb[1].auxq   = AUXILIARY_NONE;
+
+   resultType->u.struct_type.member_count = 2;
+   resultType->u.struct_type.member       = memb;
+
+   resultType->u.block_type.lq = NULL;
+   resultType->u.block_type.layout = malloc_fast(sizeof(MemLayout));
+   glsl_mem_calculate_block_layout(resultType->u.block_type.layout, resultType, /*for_tmu*/false);
+   resultType->u.block_type.has_named_instance = false;
+
+   SymbolType *arr_type = glsl_symbol_type_construct_array(resultType, array_size);
+
+   Symbol *symbol = malloc_fast(sizeof(Symbol));
+   SymbolType *ref_type = &primitiveTypes[PRIM_UINT];
+   ref_type = glsl_symbol_type_construct_array(ref_type, array_size);
+   glsl_symbol_construct_interface_block(symbol, glsl_intern("gl_PerVertex", false), ref_type, arr_type, &q);
+   glsl_symbol_table_insert(symbol_table, symbol);
+
+   Symbol *s = malloc_fast(sizeof(Symbol));
+   glsl_symbol_construct_var_instance(s, name, arr_type, &q, NULL, symbol);
+   glsl_symbol_table_insert(symbol_table, s);
+
+   return symbol;
+}
+
+void glsl_stdlib_populate_symbol_table_with_gl_in(SymbolTable *symbol_table, unsigned array_size) {
+   glsl_stdlib_gl_in = in_out_block(symbol_table, glsl_intern("gl_in", false), STORAGE_IN, array_size);
+}
+
+void glsl_stdlib_populate_symbol_table_with_gl_out(SymbolTable *symbol_table, unsigned array_size) {
+   glsl_stdlib_gl_out = in_out_block(symbol_table, glsl_intern("gl_out", false), STORAGE_OUT, array_size);
 }
 
 uint64_t glsl_stdlib_get_property_mask(ShaderFlavour flavour, int version) {
@@ -152,15 +227,20 @@ const Symbol *glsl_stdlib_get_function(glsl_stdlib_function_index_t index) {
 const Symbol *glsl_stdlib_get_variable(glsl_stdlib_variable_index_t index) {
    return &glsl_stdlib_variables[index];
 }
+bool glsl_stdlib_is_stdlib_function(const Symbol *sym) {
+   return (sym >= glsl_stdlib_functions && sym < glsl_stdlib_functions + GLSL_STDLIB_FUNCTION_COUNT);
+}
+bool glsl_stdlib_is_stdlib_interface_block(const Symbol *sym) {
+   return (sym && (sym == glsl_stdlib_gl_in || sym == glsl_stdlib_gl_out));
+}
 bool glsl_stdlib_is_stdlib_symbol(const Symbol *sym) {
-   if(sym >= glsl_stdlib_functions && sym < glsl_stdlib_functions + GLSL_STDLIB_FUNCTION_COUNT) {
-      return true;
-   }
    if(sym >= glsl_stdlib_variables && sym < glsl_stdlib_variables + GLSL_STDLIB_VARIABLE_COUNT) {
       return true;
    }
-   return false;
+   return glsl_stdlib_is_stdlib_function(sym) ||
+          glsl_stdlib_is_stdlib_interface_block(sym);
 }
+
 glsl_stdlib_function_index_t glsl_stdlib_function_index(const Symbol *sym) {
    return (glsl_stdlib_function_index_t)(sym - glsl_stdlib_functions);
 }
@@ -882,10 +962,10 @@ static void glsl_stdlib_init_types(void) {
         outf.write("\n")
         for sig in sigs:
             output_sig(outf,sig,primtypemap)
-        for array in arrays:
-            output_array(outf, array, constants, primtypemap)
         for struct in glsl_structs:
             output_struct_type(outf, struct, primtypemap)
+        for array in arrays:
+            output_array(outf, array, constants, primtypemap)
         for param in params:
             output_param(outf,param,primtypemap)
         outf.write("}\n")
@@ -935,6 +1015,9 @@ static void glsl_stdlib_init_types(void) {
         for var in glsl_variables:
             output_var_scalar_values(outf, var, "scalar_value_map")
         outf.write("}\n")
+
+        print("\nSymbol *glsl_stdlib_gl_in;", file=outf)
+        print("Symbol *glsl_stdlib_gl_out;\n", file=outf)
 
         # producing the external api
         print_api(outf)

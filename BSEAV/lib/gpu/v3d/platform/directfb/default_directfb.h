@@ -20,7 +20,9 @@ extern void DBPL_RegisterDirectFBDisplayPlatform(DBPL_PlatformHandle *handle, ID
 /* Unregister directFB */
 extern void DBPL_UnregisterDirectFBDisplayPlatform(DBPL_PlatformHandle handle);
 
-extern bool DBPL_BufferGetRequirements(DBPL_PlatformHandle handle, BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
+extern bool DBPL_BufferGetRequirements(DBPL_PlatformHandle handle,
+                                       BEGL_PixmapInfoEXT *bufferRequirements,
+                                       BEGL_BufferSettings *bufferConstrainedRequirements);
 
 extern bool DBPL_CreateCompatiblePixmap(DBPL_PlatformHandle handle, void **pixmapHandle, IDirectFBSurface **surface, BEGL_PixmapInfo *info);
 

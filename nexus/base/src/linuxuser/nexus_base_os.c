@@ -444,14 +444,14 @@ NEXUS_P_ThreadInfo_Get(void)
 const char *
 NEXUS_GetEnv(const char *name)
 {
-    NEXUS_P_CheckEnv(name);
+    NEXUS_P_CheckEnv_isrsafe(name);
     return getenv(name);
 }
 
 void
 NEXUS_SetEnv(const char *name, const char *value)
 {
-    NEXUS_P_CheckEnv(name);
+    NEXUS_P_CheckEnv_isrsafe(name);
     if (value) {
         setenv(name, value, 1);
     }
@@ -534,7 +534,7 @@ NEXUS_atoi(const char *str)
 }
 
 int
-NEXUS_P_Base_StrCmp(const char *str1, const char *str2)
+NEXUS_P_Base_StrCmp_isrsafe(const char *str1, const char *str2)
 {
     return strcmp(str1, str2);
 }

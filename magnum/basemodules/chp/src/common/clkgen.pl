@@ -80,7 +80,8 @@ my @nexus_functions = (
         "DSEC",
         "FSK",
         "LEAP",
-        "SDS"
+        "SDS",
+        "ASP"
     );
 
 my @div_functions = (
@@ -91,7 +92,7 @@ my @div_functions = (
         "V3D", "V3D0", "V3D1",
         "VICE2", "VICE20", "VICE21",
         "SID", "SID0", "SID1",
-        "XPT"
+        "XPT", "ASP"
     );
 
 sub is_nexus_function {
@@ -181,6 +182,8 @@ sub get_pda {
 
 sub rename_function {
     my ($clk, $func) = @_;
+    my @func_arr;
+    my %func_unique;
 
     if($func =~/\bXPT\b/) {
         if($clk =~ /DISABLE_XPT_(20P25|27|40P5|54|81)_CLOCK/) {
@@ -201,7 +204,13 @@ sub rename_function {
     $func =~ s/\bAIFSAT\b/AIFSAT0/g;
     $func =~ s/OBSERVE//g;
 
-    return $func;
+    @func_arr = split(/\s+/, $func);
+    foreach (@func_arr) {
+        $func_unique{$_}++;
+    }
+    @func_arr = (sort keys %func_unique);
+
+    return @func_arr;
 }
 
 sub parse_rdb_file {
@@ -259,9 +268,9 @@ sub parse_rdb_file {
 		} elsif (/^default\s*(\d+)/) {
             $default = $1;
 		} elsif (/^\/\/PMFunction:\s*(.*?)\s*$/) {
-            my $func = rename_function($resource, $1);
-			push(@{$clk_tree->{$resource}{_funcs}}, split(' ', $func));
-			push(@{$clk_tree->{$resource}{_toplvl}}, split(' ', $func));
+            my @func = rename_function($resource, $1);
+			push(@{$clk_tree->{$resource}{_funcs}}, @func);
+			push(@{$clk_tree->{$resource}{_toplvl}}, @func);
             $clk_tree->{$resource}{_reg} = $reg;
             $clk_tree->{$resource}{_field} = $field;
             $clk_tree->{$resource}{_default} = $default;
@@ -271,19 +280,27 @@ sub parse_rdb_file {
             $clk_tree->{$resource}{_polarity} = "";
             $clk_tree->{$resource}{_div} = "";
 		} elsif (/^\/\/PMSource(\d*):\s*(.*?)\s*$/) {
-            my $indx = $1;
-			my $srcs = $2;
-            if($indx =~ /\d+/) {
-                $clk_tree->{$resource}{_mux}++;
+            if (exists $clk_tree->{$resource}) {
+                my $indx = $1;
+                my $srcs = $2;
+                if($indx =~ /\d+/) {
+                    $clk_tree->{$resource}{_mux}++;
+                }
+                $srcs =~ s/\//_/g;
+                push(@{$clk_tree->{$resource}{_srcs}}, split(' ', $srcs));
             }
-			$srcs =~ s/\//_/g;
-			push(@{$clk_tree->{$resource}{_srcs}}, split(' ', $srcs));
 		} elsif (/^\/\/PMDelay:(\d+)\/(\d+)us/) {
-            $clk_tree->{$resource}{_delay} = $2;
+            if (exists $clk_tree->{$resource}) {
+                $clk_tree->{$resource}{_delay} = $2;
+            }
         } elsif (/^\/\/PMPolarity:\s*(.*?)\s*$/) {
-            $clk_tree->{$resource}{_polarity} = $1;
+            if (exists $clk_tree->{$resource}) {
+                $clk_tree->{$resource}{_polarity} = $1;
+            }
         } elsif (/^\/\/PMLogic:\s*(.*?)\s*$/) {
-            $clk_tree->{$resource}{_div} = $1;
+            if (exists $clk_tree->{$resource}) {
+                $clk_tree->{$resource}{_div} = $1;
+            }
         } elsif (/^\/\/PMPState:\s*STB:PMap(\d+):P(\d+):(\d+)/) {
             $clk_tree->{$resource}{_pmap}{$1}{_pstate}{$2} = $3;
             if (($1+1) > $num_profiles) {
@@ -671,7 +688,7 @@ sub generate_nexus_nodes {
             generate_nodes($clk_tree, \@{$functions->{$func}}, $nodes, $hw_desc, $func, "", 0);
         }
     }
-    trim_dv_nodes($nodes, $hw_desc);
+    #trim_dv_nodes($nodes, $hw_desc);
 }
 
 sub has_feature {
@@ -843,7 +860,7 @@ sub generate_user_defined_nodes {
 
     #check for nodes with no order
     foreach my $node (keys %$nodes) {
-        if(not defined @{$nodes->{$node}{_order}}) {
+        if(!exists $nodes->{$node}{_order}) {
             foreach my $child_node (keys %{$nodes->{$node}{_list}}) {
                 push (@{$nodes->{$node}{_order}}, $child_node);
             }
@@ -856,7 +873,7 @@ sub generate_brcm_copyright_header
     my @lines;
 
     push @lines, " /******************************************************************************\n";
-    push @lines, " *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.\n";
+    push @lines, " *  Copyright (C) 2017 Broadcom.  The term".' "Broadcom" '."refers to Broadcom Limited and/or its subsidiaries.\n";
     push @lines, " *\n";
     push @lines, " *  This program is the proprietary software of Broadcom and/or its licensors,\n";
     push @lines, " *  and may only be used, duplicated, modified or distributed pursuant to the terms and\n";

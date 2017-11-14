@@ -370,6 +370,7 @@ void BAVC_HDMI_DisplayDRMInfoFramePacket(
 #endif
 
 #else
+	BSTD_UNUSED(pstFromPort) ;
 	BSTD_UNUSED(pstDRMInfoFrame) ;
 #endif
 }

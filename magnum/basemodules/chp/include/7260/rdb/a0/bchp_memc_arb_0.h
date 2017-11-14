@@ -44,16 +44,16 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Apr 18 11:40:34 2017
- *                 Full Compile MD5 Checksum  c15538464e5ff0aea31086dcd1a5d6b2
+ * Date:           Generated on               Thu Jun  1 14:43:50 2017
+ *                 Full Compile MD5 Checksum  f5e63307e5dcf1369c866f7e71f68daa
  *                     (minus title and desc)
  *                 MD5 Checksum               c4c446cddb09eae8aa92810408526a00
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1395
+ *                 RDB.pm                     1485
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
@@ -351,13 +351,13 @@
 #define BCHP_MEMC_ARB_0_SPARE_2                  0x21101464 /* [CFG][32] Spare Register 2 . */
 #define BCHP_MEMC_ARB_0_SPARE_RO_1               0x21101468 /* [RO][32] Read only Spare Register 1 . */
 #define BCHP_MEMC_ARB_0_SPARE_RO_2               0x2110146c /* [RO][32] Read only Spare Register 2 . */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE       0x21101470 /* [CFG][32] \"Override registers to force behaviour of client_init module.\" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH 0x21101474 /* [CFG][32] \"Client init block counter threshold value\" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT 0x21101478 /* [RO][32] \"Client init error interrupt\" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR 0x2110147c /* [WO][32] \"Client init error write clear\" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO   0x21101480 /* [RO][32] \"Client init error violation info\" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT      0x21101484 /* [CFG][32] \"Client init software init\" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS       0x21101488 /* [RO][32] \"Client init status and debug register\" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE       0x21101470 /* [CFG][32] "Override registers to force behaviour of client_init module." */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH 0x21101474 /* [CFG][32] "Client init block counter threshold value" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT 0x21101478 /* [RO][32] "Client init error interrupt" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR 0x2110147c /* [WO][32] "Client init error write clear" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO   0x21101480 /* [RO][32] "Client init error violation info" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT      0x21101484 /* [CFG][32] "Client init software init" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS       0x21101488 /* [RO][32] "Client init status and debug register" */
 #define BCHP_MEMC_ARB_0_LCA_VALID_REQ_0          0x2110148c /* [RO][32] LCA Valid Requests for Clients 0 to 31 */
 #define BCHP_MEMC_ARB_0_LCA_VALID_REQ_1          0x21101490 /* [RO][32] LCA Valid Requests for Clients 32 to 63 */
 #define BCHP_MEMC_ARB_0_LCA_VALID_REQ_2          0x21101494 /* [RO][32] LCA Valid Requests for Clients 64 to 95 */
@@ -375,7 +375,7 @@
 #define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_5  0x211014c4 /* [RO][32] Active Blocked Status for Clients 160 to 191 */
 #define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_6  0x211014c8 /* [RO][32] Active Blocked Status for Clients 192 to 223 */
 #define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_7  0x211014cc /* [RO][32] Active Blocked Status for Clients 224 to 255 */
-#define BCHP_MEMC_ARB_0_ARB_CLK_GATE_DISABLE     0x211014d0 /* [CFG][32] \"Arbiter clock gating disable register\" */
+#define BCHP_MEMC_ARB_0_ARB_CLK_GATE_DISABLE     0x211014d0 /* [CFG][32] "Arbiter clock gating disable register" */
 
 /***************************************************************************
  *PHY_DEBUG_REGISTER - MEMC CORE and IOBUF Interface Debug Register
@@ -7960,7 +7960,7 @@
 #define BCHP_MEMC_ARB_0_SPARE_RO_2_SPARE_RO_DEFAULT                0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_ENABLE - \"Override registers to force behaviour of client_init module.\"
+ *CLIENT_INIT_ENABLE - "Override registers to force behaviour of client_init module."
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_ENABLE :: reserved0 [31:16] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE_reserved0_MASK          0xffff0000
@@ -8000,7 +8000,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE_ENABLE_DEFAULT          0x00000001
 
 /***************************************************************************
- *CLIENT_INIT_COUNTER_THRESH - \"Client init block counter threshold value\"
+ *CLIENT_INIT_COUNTER_THRESH - "Client init block counter threshold value"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_COUNTER_THRESH :: reserved0 [31:12] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH_reserved0_MASK  0xfffff000
@@ -8012,7 +8012,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH_THRESHOLD_DEFAULT 0x00000100
 
 /***************************************************************************
- *CLIENT_INIT_ERROR_INTERRUPT - \"Client init error interrupt\"
+ *CLIENT_INIT_ERROR_INTERRUPT - "Client init error interrupt"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_ERROR_INTERRUPT :: reserved0 [31:01] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT_reserved0_MASK 0xfffffffe
@@ -8024,7 +8024,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT_INIT_REQ_ERROR_DEFAULT 0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_ERROR_WRITE_CLEAR - \"Client init error write clear\"
+ *CLIENT_INIT_ERROR_WRITE_CLEAR - "Client init error write clear"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_ERROR_WRITE_CLEAR :: reserved0 [31:01] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR_reserved0_MASK 0xfffffffe
@@ -8036,7 +8036,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR_WRITE_CLEAR_DEFAULT 0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_ERROR_INFO - \"Client init error violation info\"
+ *CLIENT_INIT_ERROR_INFO - "Client init error violation info"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_ERROR_INFO :: reserved0 [31:24] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO_reserved0_MASK      0xff000000
@@ -8052,7 +8052,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO_CLIENT_ID_DEFAULT   0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_SW_INIT - \"Client init software init\"
+ *CLIENT_INIT_SW_INIT - "Client init software init"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_SW_INIT :: reserved0 [31:13] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT_reserved0_MASK         0xffffe000
@@ -8078,7 +8078,7 @@
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT_CLIENT_INIT_ID_DEFAULT 0x00000000
 
 /***************************************************************************
- *CLIENT_INIT_STATUS - \"Client init status and debug register\"
+ *CLIENT_INIT_STATUS - "Client init status and debug register"
  ***************************************************************************/
 /* MEMC_ARB_0 :: CLIENT_INIT_STATUS :: CLIENT_ISOLATION [31:31] */
 #define BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS_CLIENT_ISOLATION_MASK   0x80000000
@@ -8254,7 +8254,7 @@
 #define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_7_CLIENTS_DEFAULT    0x00000000
 
 /***************************************************************************
- *ARB_CLK_GATE_DISABLE - \"Arbiter clock gating disable register\"
+ *ARB_CLK_GATE_DISABLE - "Arbiter clock gating disable register"
  ***************************************************************************/
 /* MEMC_ARB_0 :: ARB_CLK_GATE_DISABLE :: reserved0 [31:01] */
 #define BCHP_MEMC_ARB_0_ARB_CLK_GATE_DISABLE_reserved0_MASK        0xfffffffe

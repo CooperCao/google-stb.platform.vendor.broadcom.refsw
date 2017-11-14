@@ -49,8 +49,8 @@ typedef struct BVCE_P_CommandDebug
       uint32_t uiCommand;
       char *szCommandParameterName[HOST_CMD_BUFFER_SIZE/sizeof(uint32_t)];
       char *szResponseParameterName[HOST_CMD_BUFFER_SIZE/sizeof(uint32_t)];
-      size_t uiCommandSize;
-      size_t uiResponseSize;
+      unsigned uiCommandSize;
+      unsigned uiResponseSize;
 } BVCE_P_CommandDebug;
 
 typedef enum BVCE_DebugFifo_EntryType

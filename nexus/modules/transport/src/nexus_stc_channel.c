@@ -648,11 +648,13 @@ static NEXUS_Error setPcrOffsetSettings(
     }
 
 #if BXPT_HAS_TSMUX
-    BDBG_CASSERT(NEXUS_StcChannel_PcrBits_eLegacy == (NEXUS_StcChannel_PcrBits)BXPT_PcrOffset_BroadcastMode_eLegacy);
-    BDBG_CASSERT(NEXUS_StcChannel_PcrBits_eLsb32 == (NEXUS_StcChannel_PcrBits)BXPT_PcrOffset_BroadcastMode_eLsb32);
-    BDBG_CASSERT(NEXUS_StcChannel_PcrBits_eMsb32 == (NEXUS_StcChannel_PcrBits)BXPT_PcrOffset_BroadcastMode_eMsb32);
-    BDBG_CASSERT(NEXUS_StcChannel_PcrBits_eFull42 == (NEXUS_StcChannel_PcrBits)BXPT_PcrOffset_BroadcastMode_eFull42);
-    pcr_offset_settings.BroadcastMode = pSettings->pcrBits;
+    switch (pSettings->pcrBits) {
+    default: BERR_TRACE(NEXUS_INVALID_PARAMETER); /* fall through */
+    case NEXUS_StcChannel_PcrBits_eLegacy: pcr_offset_settings.BroadcastMode = BXPT_PcrOffset_BroadcastMode_eLegacy; break;
+    case NEXUS_StcChannel_PcrBits_eLsb32:  pcr_offset_settings.BroadcastMode = BXPT_PcrOffset_BroadcastMode_eLsb32; break;
+    case NEXUS_StcChannel_PcrBits_eMsb32:  pcr_offset_settings.BroadcastMode = BXPT_PcrOffset_BroadcastMode_eMsb32; break;
+    case NEXUS_StcChannel_PcrBits_eFull42: pcr_offset_settings.BroadcastMode = BXPT_PcrOffset_BroadcastMode_eFull42; break;
+    }
     BDBG_MSG(("STC%u broadcastmode = %u", stcChannel->stcIndex, pcr_offset_settings.BroadcastMode));
 #else
     if (pSettings->pcrBits != NEXUS_StcChannel_PcrBits_eLegacy) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
@@ -832,6 +834,12 @@ NEXUS_Error NEXUS_StcChannel_GetStatus(NEXUS_StcChannelHandle stcChannel, NEXUS_
     }
     NEXUS_StcChannel_GetStc(stcChannel, &status->stc);
     status->stcValid = stcChannel->stcValid;
+
+    status->index = stcChannel->index;
+    status->stcIndex = stcChannel->stcIndex;
+	if(!stcChannel->timebase)
+		return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+	status->timebaseIndex = stcChannel->timebase->hwIndex;
     return 0;
 }
 

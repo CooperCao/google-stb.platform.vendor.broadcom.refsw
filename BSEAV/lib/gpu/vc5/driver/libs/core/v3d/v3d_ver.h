@@ -79,7 +79,7 @@ static_assert(V3D_HIDDEN_REV == RDB_HIDDEN_REV, "Hidden rev mismatch with RDB");
 
 #include "v3d_ver_gen.h"
 
-#if V3D_HAS_GFXH1631_FIX && WANT_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0) && defined(WANT_CSD)
 #define V3D_USE_CSD 1
 #else
 #define V3D_USE_CSD 0

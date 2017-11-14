@@ -65,7 +65,7 @@ static void fragment_backend(
    if (s->sample_alpha_to_coverage)
       coverage = cov_accum( tr_uop(BACKFLOW_FTOC, A(0,0)), coverage );
 
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    /* Apply any sample mask set in the API */
    if (s->sample_mask)
       coverage = cov_accum( tr_special_uniform(BACKEND_SPECIAL_UNIFORM_SAMPLE_MASK), coverage );
@@ -87,10 +87,7 @@ static void fragment_backend(
       cov_dep = tr_discard(cov_dep, discard);
 
    /* Sort out TLB storing dependencies */
-   bool does_discard = (discard != NULL || s->sample_alpha_to_coverage);
-#if !V3D_HAS_FEP_SAMPLE_MASK
-   does_discard = does_discard || s->sample_mask;
-#endif
+   bool does_discard = (discard != NULL || coverage != NULL);
    bool z_write = (does_discard && !s->fez_safe_with_discard) || !s->early_fragment_tests || depth != NULL;
 
    Backflow *tlb_nodes[4*4*V3D_MAX_RENDER_TARGETS+1];
@@ -102,7 +99,7 @@ static void fragment_backend(
    if (z_write)
    {
       V3D_TLB_CONFIG_Z_T cfg = {
-#if V3D_HAS_TLB_SAMPLED_READ
+#if V3D_VER_AT_LEAST(4,2,13,0)
          .all_samples_same_data = true,
 #endif
          .use_written_z = (depth != NULL) };
@@ -142,8 +139,9 @@ static void fragment_backend(
          /* We set this up once per render target. The config byte is
           * emitted with the first sample that's written
           */
-         int vec_sz = (s->rt[i].is_16) ? (rt_channels+1)/2 : rt_channels;
-         uint8_t config_byte = v3d_tlb_config_color(i, s->rt[i].is_16, s->rt[i].is_int, vec_sz, per_sample);
+         bool use_16 = s->rt[i].is_16 && !s->rt[i].is_int;
+         int vec_sz = (use_16) ? (rt_channels+1)/2 : rt_channels;
+         uint8_t config_byte = v3d_tlb_config_color(i, use_16, s->rt[i].is_int, vec_sz, per_sample);
 
          int samples = per_sample ? 4 : 1;
 
@@ -155,9 +153,9 @@ static void fragment_backend(
                adv_blend_blend(out, out, adv_blend_fb[sm], s->adv_blend);
 
             /* Pad out the output array for working around GFXH-1212 */
-            for (int j=0; j<4; j++) if (out[j] == NULL) out[j] = tr_cfloat(0.0f);
+            for (int j=1; j<4; j++) if (out[j] == NULL) out[j] = out[j-1];
 
-            if (s->rt[i].is_16) {
+            if (use_16) {
                assert(!s->rt[i].is_int);     /* We don't pack integers into 16/16 */
                /* Pack the values in pairs for output */
                for (int j=0; j<vec_sz; j++) {
@@ -185,7 +183,7 @@ static void fragment_backend(
       }
    }
 
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    /* QPU restrictions prevent us writing nothing to the TLB. Write some fake data */
    if (s->requires_sbwait && block->first_tlb_read == NULL && tlb_node_count == 0) {
 # if V3D_VER_AT_LEAST(4,0,2,0)

@@ -111,7 +111,7 @@ b_ape_probe_parse(bmedia_probe_base_t probe_, bfile_buffer_t buf, batom_pipe_t p
 {
     bape_probe_t probe = (bape_probe_t)probe_;
     bfile_buffer_result result;
-    bmedia_probe_stream *stream=NULL;
+    bmedia_probe_stream *stream;
     bmedia_probe_track *track;
     batom_t atom;
     batom_cursor cursor;
@@ -126,24 +126,26 @@ b_ape_probe_parse(bmedia_probe_base_t probe_, bfile_buffer_t buf, batom_pipe_t p
     
     atom = bfile_buffer_read(buf, config->parse_offset+0, BAPE_FILE_DESCRIPTOR_LENGTH+BAPE_FRAME_HEADER_LENGTH, &result);
     if(!atom) {
-        goto error;
+        goto err_read;
     }
     batom_cursor_from_atom(&cursor, atom);
     if(!bape_parse_file_descriptor(&cursor, &file_descriptor)) {
-        goto error;
+        batom_release(atom);
+        goto err_descriptor;
     }
     if(!bape_parse_frame_header(&cursor, &frame_header) || frame_header.sample_rate==0 ) {
-        goto error;
+        batom_release(atom);
+        goto err_frame;
     }
     batom_release(atom);
 	stream = BKNI_Malloc(sizeof(*stream));
     if(!stream) {
-        goto error;
+        goto err_stream;
     }
     bmedia_probe_stream_init(stream, bstream_mpeg_type_ape);
     track = BKNI_Malloc(sizeof(*track));
     if(!track) {
-        goto error;
+        goto err_track;
     }
     bmedia_probe_track_init(track);
     stream->index = bmedia_probe_index_required;
@@ -158,13 +160,12 @@ b_ape_probe_parse(bmedia_probe_base_t probe_, bfile_buffer_t buf, batom_pipe_t p
     bmedia_probe_add_track(stream, track); 
     return stream;
 
-error:
-    if(stream) {
-        BKNI_Free(stream);
-    }
-    if(atom) {
-        batom_release(atom);
-    }
+err_track:
+    BKNI_Free(stream);
+err_stream:
+err_frame:
+err_descriptor:
+err_read:
     return NULL;
 }
 

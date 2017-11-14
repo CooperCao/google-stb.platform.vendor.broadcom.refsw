@@ -365,7 +365,7 @@ Description:
 
 Input:
     hClient - local TZIOC client handle
-    ucMode - SMC mode
+    ulCode - SMC calling code
 
 Output:
 
@@ -376,7 +376,7 @@ Returns:
 
 int tzioc_call_smc(
     tzioc_client_handle hClient,
-    uint32_t ucMode);
+    uint32_t ulCode);
 
 #ifdef __cplusplus
 }

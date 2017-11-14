@@ -169,7 +169,7 @@ void DRM_Adobe_GetDefaultParamSettings(
 
     pAdobeParamSettings->drm_bin_file_path = bdrm_get_drm_bin_file_path();
 
-    BDBG_MSG(("%s DRM %s TA %s", __FUNCTION__, pAdobeParamSettings->drm_bin_file_path, pAdobeParamSettings->drmCommonInit.ta_bin_file_path));
+    BDBG_MSG(("%s DRM %s TA %s", BSTD_FUNCTION, pAdobeParamSettings->drm_bin_file_path, pAdobeParamSettings->drmCommonInit.ta_bin_file_path));
     return;
 }
 
@@ -199,7 +199,7 @@ void DRM_Adobe_SetParamSettings(
     gAdobeParamSettings.drm_bin_file_path = pAdobeParamSettings->drm_bin_file_path;
     gAdobeParamSettings.drmCommonInit.ta_bin_file_path = pAdobeParamSettings->drmCommonInit.ta_bin_file_path;
 
-    BDBG_MSG(("%s - Exiting function (%s)", __FUNCTION__, gAdobeParamSettings.drm_bin_file_path));
+    BDBG_MSG(("%s - Exiting function (%s)", BSTD_FUNCTION, gAdobeParamSettings.drm_bin_file_path));
     return;
 }
 
@@ -217,11 +217,11 @@ DrmRC DRM_Adobe_UnInit(void)
 
     while(ptr != NULL)
     {
-        BDBG_MSG(("%s - Deleting index (0x%08x)", __FUNCTION__, ptr->keyEntry.adobeIndex));
+        BDBG_MSG(("%s - Deleting index (0x%08x)", BSTD_FUNCTION, ptr->keyEntry.adobeIndex));
 
         if(DRM_Adobe_HostKeyIndexMapList_DeleteEntry(ptr->keyEntry.adobeIndex) != Drm_Success)
         {
-            BDBG_ERR(("%s - Error deleting index '0x%08x'. Forcing break", __FUNCTION__, ptr->keyEntry.adobeIndex));
+            BDBG_ERR(("%s - Error deleting index '0x%08x'. Forcing break", BSTD_FUNCTION, ptr->keyEntry.adobeIndex));
             break;
         }
 
@@ -232,7 +232,7 @@ DrmRC DRM_Adobe_UnInit(void)
         count++;
         if(count > 10*1024)
         {/* arbitrary large number */
-            BDBG_ERR(("%s - Error occured during cleanup of the keyList, Forcing break", __FUNCTION__));
+            BDBG_ERR(("%s - Error occured during cleanup of the keyList, Forcing break", BSTD_FUNCTION));
             break;
         }
     }
@@ -278,26 +278,26 @@ DrmRC DRM_Adobe_Initialize(DrmAdobeParamSettings_t *pAdobeParamSettings)
 
     if(pAdobeParamSettings == NULL)
     {
-        BDBG_ERR(("%s - Parameter settings are NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Parameter settings are NULL", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
 
     if(paramStructureSetExternally == false){
-        BDBG_MSG(("%s - Parameter structure not explicitely set", __FUNCTION__));
+        BDBG_MSG(("%s - Parameter structure not explicitely set", BSTD_FUNCTION));
     }
-    BDBG_ERR(("%s:Calling DRM_Common_TL_Initialize",__FUNCTION__));
+    BDBG_ERR(("%s:Calling DRM_Common_TL_Initialize",BSTD_FUNCTION));
     rc = DRM_Common_TL_Initialize(&pAdobeParamSettings->drmCommonInit);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module", __FUNCTION__));
+        BDBG_ERR(("%s - Error initializing module", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     pContainer = SRAI_Container_Allocate();
     if(pContainer == NULL)
     {
-        BDBG_ERR(("%s - Error loading key parameters", __FUNCTION__));
+        BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -313,7 +313,7 @@ DrmRC DRM_Adobe_Initialize(DrmAdobeParamSettings_t *pAdobeParamSettings)
 #endif
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, pContainer->basicOut[0]));
+        BDBG_ERR(("%s - Error initializing module (0x%08x)", BSTD_FUNCTION, pContainer->basicOut[0]));
         goto ErrorExit;
     }
 
@@ -352,25 +352,25 @@ DrmRC DRM_Adobe_P_PrivateKeyDecrypt( uint32_t index,         /* Input: Index of 
     FILE * fPadding= NULL;
 #endif
 
-    BDBG_MSG(("%s - Entered function",__FUNCTION__));
+    BDBG_MSG(("%s - Entered function",BSTD_FUNCTION));
 
     BDBG_ASSERT(pAxsRsaSettings != NULL);
 
-    BDBG_MSG(("%s:srcDataSize = %d",__FUNCTION__,pAxsRsaSettings->operation_struct.sign_op.srcDataSize));
-    BDBG_MSG(("%s:*signatureSize = %d",__FUNCTION__,*pAxsRsaSettings->operation_struct.sign_op.signatureSize));
+    BDBG_MSG(("%s:srcDataSize = %d",BSTD_FUNCTION,pAxsRsaSettings->operation_struct.sign_op.srcDataSize));
+    BDBG_MSG(("%s:*signatureSize = %d",BSTD_FUNCTION,*pAxsRsaSettings->operation_struct.sign_op.signatureSize));
 
     BKNI_Memset((void *)&rsaKey, 0x0,sizeof(DrmCommon_RsaKey_t));
     BKNI_Memset((void *)&rsaSwIO, 0x0,sizeof(DrmCommon_RsaSwParam_t ));
 
     if (true != DRM_Adobe_HostKeyIndexMapList_Search(&pKey,index))
     {
-        BDBG_ERR(("%s:KeyIndex %d Not found ",__FUNCTION__,index));
+        BDBG_ERR(("%s:KeyIndex %d Not found ",BSTD_FUNCTION,index));
         return Drm_Err;
     }
 
     if(!pKey -> swKey) /*call nexus_secirity_RsaSign*/
     {
-        BDBG_ERR(("%s:ERROR: You should not be here ",__FUNCTION__));
+        BDBG_ERR(("%s:ERROR: You should not be here ",BSTD_FUNCTION));
         return Drm_Err;
 
     }
@@ -383,7 +383,7 @@ DrmRC DRM_Adobe_P_PrivateKeyDecrypt( uint32_t index,         /* Input: Index of 
         fswkeybuf = fopen("swkeybuf.bin", "wb");
         fwrite(pKey->keybuf, 1, pKey->keybufsz, fswkeybuf);
 #endif
-        BDBG_MSG(("%s:Calling SW rsa dec api priv key sz is %d",__FUNCTION__,pKey->keybufsz));
+        BDBG_MSG(("%s:Calling SW rsa dec api priv key sz is %d",BSTD_FUNCTION,pKey->keybufsz));
 
 
         DRM_MSG_PRINT_BUF("priv key buf: ", pKey->keybuf,pKey->keybufsz);
@@ -395,7 +395,7 @@ DrmRC DRM_Adobe_P_PrivateKeyDecrypt( uint32_t index,         /* Input: Index of 
         rc = DRM_Common_GetRsa_From_PrivateKeyInfo(pKey->keybuf,pKey->keybufsz,&rsaKey);
         if(rc != Drm_Success)
         {
-            BDBG_ERR(("%s :DRM_Common_GetRsa_From_PrivateKeyInfo() failed",__FUNCTION__));
+            BDBG_ERR(("%s :DRM_Common_GetRsa_From_PrivateKeyInfo() failed",BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -403,7 +403,7 @@ DrmRC DRM_Adobe_P_PrivateKeyDecrypt( uint32_t index,         /* Input: Index of 
         DRM_MSG_PRINT_BUF("pub exp:",&rsaKey.e.pData[0],rsaKey.e.len);
         DRM_MSG_PRINT_BUF("&pKey->keybuf[173]",&pKey->keybuf[173],128);
 
-        BDBG_MSG(("%s:lenof priv exp is %lu",__FUNCTION__,rsaKey.d.len));
+        BDBG_MSG(("%s:lenof priv exp is %lu",BSTD_FUNCTION,rsaKey.d.len));
         DRM_MSG_PRINT_BUF("priv exp:",&rsaKey.d.pData[0],rsaKey.d.len);
 
 
@@ -428,11 +428,11 @@ DrmRC DRM_Adobe_P_PrivateKeyDecrypt( uint32_t index,         /* Input: Index of 
             rsaSwIO.padType     =  DrmCommon_RSAPaddingType_ePKCS1;
         }
 
-        BDBG_MSG(("%s: call DRM_Common_SwRsa",__FUNCTION__));
+        BDBG_MSG(("%s: call DRM_Common_SwRsa",BSTD_FUNCTION));
         rc = DRM_Common_SwRsa(&rsaSwIO);
         if(rc != Drm_Success)
         {
-            BDBG_ERR(("%s :Public key operation failed",__FUNCTION__));
+            BDBG_ERR(("%s :Public key operation failed",BSTD_FUNCTION));
             goto ErrorExit;
 
         }
@@ -440,7 +440,7 @@ DrmRC DRM_Adobe_P_PrivateKeyDecrypt( uint32_t index,         /* Input: Index of 
 
 
     }
-    BDBG_MSG(("%s: size of signature is %d",__FUNCTION__,*pAxsRsaSettings->operation_struct.sign_op.signatureSize ));
+    BDBG_MSG(("%s: size of signature is %d",BSTD_FUNCTION,*pAxsRsaSettings->operation_struct.sign_op.signatureSize ));
 
 ErrorExit:
     if(rsaKey.n.pData)
@@ -465,7 +465,7 @@ ErrorExit:
              fclose(fdigest);
 #endif
 
-    BDBG_MSG(("%s - Exiting function",__FUNCTION__));
+    BDBG_MSG(("%s - Exiting function",BSTD_FUNCTION));
     return rc;
 }
 
@@ -494,7 +494,7 @@ DrmRC DRM_Adobe_LoadKey(uint32_t EncKeyIndex,            /* Input: Index of key 
 
     if(pKeyData == NULL)
     {
-        BDBG_ERR(("%s - key data buffer is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - key data buffer is NULL", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -509,7 +509,7 @@ DrmRC DRM_Adobe_LoadKey(uint32_t EncKeyIndex,            /* Input: Index of key 
 
         if(DRM_Common_MemoryAllocate((uint8_t **)&pClearKey, clearKeySz) != Drm_Success)
         {
-            BDBG_ERR(("%s:Memory Allocation err",__FUNCTION__));
+            BDBG_ERR(("%s:Memory Allocation err",BSTD_FUNCTION));
             return Drm_MemErr;
         }
 
@@ -538,7 +538,7 @@ DrmRC DRM_Adobe_LoadKey(uint32_t EncKeyIndex,            /* Input: Index of key 
     pContainer = SRAI_Container_Allocate();
     if(pContainer == NULL)
     {
-        BDBG_ERR(("%s - Error allocating pContainer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating pContainer", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -568,7 +568,7 @@ DrmRC DRM_Adobe_LoadKey(uint32_t EncKeyIndex,            /* Input: Index of key 
     sage_rc = SRAI_Module_ProcessCommand(moduleHandle, DrmAdobe_CommandId_eLoadKey, pContainer);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error loading key parameters", __FUNCTION__));
+        BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -578,14 +578,14 @@ DrmRC DRM_Adobe_LoadKey(uint32_t EncKeyIndex,            /* Input: Index of key 
     /* how are results/status returned again? */
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to loadkey but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - Command was sent succuessfully to loadkey but actual operation failed (0x%08x)", BSTD_FUNCTION, sage_rc));
         rc = Drm_Err;
         goto ErrorExit;
     }
 
     /* if success, extract index from pContainer */
     (*pIndex) = pContainer->basicOut[1];
-    BDBG_MSG(("%s - Returned index = '0x%08x'", __FUNCTION__, (*pIndex)));
+    BDBG_MSG(("%s - Returned index = '0x%08x'", BSTD_FUNCTION, (*pIndex)));
 
 ErrorExit:
     if(pContainer !=NULL)
@@ -643,7 +643,7 @@ DrmRC DRM_Adobe_GetRand(uint8_t *pRandom,
 
     if(pRandom == NULL || size == 0)
     {
-        BDBG_ERR(("%s: the input arguments are invalid",__FUNCTION__));
+        BDBG_ERR(("%s: the input arguments are invalid",BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto ErrorExit;
     }
@@ -655,14 +655,14 @@ DrmRC DRM_Adobe_GetRand(uint8_t *pRandom,
     rc = DRM_Common_MemoryAllocate(&pBufAligned, alignedSz);
     if(rc !=Drm_Success)
     {
-        BDBG_ERR(("%s: Error Allocating Memory", __FUNCTION__));
+        BDBG_ERR(("%s: Error Allocating Memory", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     rc = DRM_Common_GenerateRandomNumber(alignedSz,pBufAligned);
     if(rc!=Drm_Success)
     {
-        BDBG_ERR(("%s:Error generating random number",__FUNCTION__));
+        BDBG_ERR(("%s:Error generating random number",BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -672,7 +672,7 @@ ErrorExit:
     if(pBufAligned)
        DRM_Common_MemoryFree(pBufAligned);
 
-    BDBG_MSG(("%s - Exiting function",__FUNCTION__));
+    BDBG_MSG(("%s - Exiting function",BSTD_FUNCTION));
     return rc;
 }
 
@@ -708,7 +708,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
 
     if(index == 0x00000000)
     {
-        BDBG_ERR(("%s - Invalid index", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid index", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -716,7 +716,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
     /* check if pointer is null */
     if(*pCTX != NULL)
     {
-        BDBG_ERR(("%s - Pointer to context is NOT null", __FUNCTION__));
+        BDBG_ERR(("%s - Pointer to context is NOT null", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -724,7 +724,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
     pSessCtx = (DrmAdobeSessionContext_t *)BKNI_Malloc(sizeof(DrmAdobeSessionContext_t));
     if(pSessCtx == NULL)
     {
-        BDBG_ERR(("%s - error allocating memory", __FUNCTION__));
+        BDBG_ERR(("%s - error allocating memory", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -735,17 +735,17 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
     {
         if(pMeta->DiskIO)
         {
-            BDBG_MSG(("%s: Context associated with index '0x%08x' can only be used for secure store operations",__FUNCTION__, index));
+            BDBG_MSG(("%s: Context associated with index '0x%08x' can only be used for secure store operations",BSTD_FUNCTION, index));
             pSessCtx->bUseCtxforDiskIO = true;
         }
         else{
-            BDBG_MSG(("%s: Context associated with index '0x%08x' CANNOT be used for secure store operations",__FUNCTION__, index));
+            BDBG_MSG(("%s: Context associated with index '0x%08x' CANNOT be used for secure store operations",BSTD_FUNCTION, index));
             pSessCtx->bUseCtxforDiskIO = false;
         }
     }
     else
     {
-        BDBG_MSG(("%s: No metadata specified for index '0x%08x', setting use option for non-DiskIO operations",__FUNCTION__, index));
+        BDBG_MSG(("%s: No metadata specified for index '0x%08x', setting use option for non-DiskIO operations",BSTD_FUNCTION, index));
         pSessCtx->bUseCtxforDiskIO = false;
     }
 
@@ -763,14 +763,14 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
     NEXUS_Security_GetDefaultKeySlotSettings(&keyslotSettings);
     if((DRM_Adobe_HostKeyIndexMapList_Search(&pSearchEntry, index) == true)||( pSessCtx->bUseCtxforDiskIO == true))
     {
-        BDBG_MSG(("%s - Allocating keyslot for Host", __FUNCTION__));
+        BDBG_MSG(("%s - Allocating keyslot for Host", BSTD_FUNCTION));
         keyslotSettings.client = NEXUS_SecurityClientType_eHost;
-         BDBG_MSG(("%s:loadSWKeyToKeySlot !!!",__FUNCTION__));
+         BDBG_MSG(("%s:loadSWKeyToKeySlot !!!",BSTD_FUNCTION));
 
     }
     else
     {
-        BDBG_MSG(("%s - Allocating keyslot for SAGE", __FUNCTION__));
+        BDBG_MSG(("%s - Allocating keyslot for SAGE", BSTD_FUNCTION));
         keyslotSettings.client = NEXUS_SecurityClientType_eSage;
     }
 
@@ -781,38 +781,38 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
     pSessCtx->drmCommonOpStruct.keyConfigSettings.keySlot = NEXUS_Security_AllocateKeySlot(&keyslotSettings);
     if(pSessCtx->drmCommonOpStruct.keyConfigSettings.keySlot == NULL)
     {
-        BDBG_ERR(("%s - Error allocating keyslot", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating keyslot", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
 
     NEXUS_Security_GetKeySlotInfo(pSessCtx->drmCommonOpStruct.keyConfigSettings.keySlot, &keyslotInfo);
 
-    BDBG_MSG(("%s - Keyslot index = '%u'", __FUNCTION__, keyslotInfo.keySlotNumber));
+    BDBG_MSG(("%s - Keyslot index = '%u'", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
 
     /* set mode */
     pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_SecurityAlgorithm_eAes;
     if(mode == DrmAdobe_AesMode_eAESCBC)
     {
-        BDBG_MSG(("%s - Setting AES-CBC operation", __FUNCTION__));
+        BDBG_MSG(("%s - Setting AES-CBC operation", BSTD_FUNCTION));
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant = NEXUS_SecurityAlgorithmVariant_eCbc;
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_SecurityAlgorithm_eAes;
     }
     else if(mode == DrmAdobe_AesMode_eAESECB)
     {
-        BDBG_MSG(("%s - Setting AES-ECB operation", __FUNCTION__));
+        BDBG_MSG(("%s - Setting AES-ECB operation", BSTD_FUNCTION));
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant = NEXUS_SecurityAlgorithmVariant_eEcb;
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_SecurityAlgorithm_eAes;
     }
     else if(mode == DrmAdobe_AesMode_eAESCTR)
     {
-        BDBG_MSG(("%s - Setting AES-CTR operation", __FUNCTION__));
+        BDBG_MSG(("%s - Setting AES-CTR operation", BSTD_FUNCTION));
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant = NEXUS_SecurityAlgorithmVariant_eCounter;
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_SecurityAlgorithm_eAesCounter;
         }
     else
     {
-        BDBG_ERR(("%s -  Mode type not supported (0x%08x)", __FUNCTION__, mode));
+        BDBG_ERR(("%s -  Mode type not supported (0x%08x)", BSTD_FUNCTION, mode));
         rc = Drm_InvalidParameter;
         goto ErrorExit;
     }
@@ -835,7 +835,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
              uint32_t *pIvkeys = NULL;
              if(DRM_Common_MemoryAllocate((uint8_t **)&pIvkeys, 4*sizeof(uint32_t)) != Drm_Success)
             {
-             BDBG_ERR(("%s: Memory Allocation err",__FUNCTION__));
+             BDBG_ERR(("%s: Memory Allocation err",BSTD_FUNCTION));
              return Drm_MemErr;
             }
             pIvkeys[0] = (*((uint32_t*)&pIv[0]));
@@ -853,11 +853,11 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
             DRM_MSG_PRINT_BUF("pSessCtx->drmCommonOpStruct.keyIvSettings.iv", pSessCtx->drmCommonOpStruct.keyIvSettings.iv, pSessCtx->drmCommonOpStruct.keyIvSettings.ivSize);
         }
 
-        BDBG_MSG(("%s - ********************** pSearchEntry = '%p' ***************************", __FUNCTION__, (void *)pSearchEntry));
+        BDBG_MSG(("%s - ********************** pSearchEntry = '%p' ***************************", BSTD_FUNCTION, (void *)pSearchEntry));
         if(pSearchEntry != NULL)
         {
-            BDBG_MSG(("%s -  pSearchEntry->keybufsz = '%u'", __FUNCTION__, pSearchEntry->keybufsz));
-            BDBG_MSG(("%s -  pSearchEntry->keybuf = '%p", __FUNCTION__, pSearchEntry->keybuf));
+            BDBG_MSG(("%s -  pSearchEntry->keybufsz = '%u'", BSTD_FUNCTION, pSearchEntry->keybufsz));
+            BDBG_MSG(("%s -  pSearchEntry->keybuf = '%p", BSTD_FUNCTION, pSearchEntry->keybuf));
             if(pSearchEntry->keybufsz != 0)
             {
                 BKNI_Memcpy(pSessCtx->drmCommonOpStruct.keyIvSettings.key, pSearchEntry->keybuf /*&test_key[0]*/, pSearchEntry->keybufsz);
@@ -869,23 +869,23 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
         /* Search for keyindex in Host list */
         if(DRM_Adobe_HostKeyIndexMapList_Search(&pSearchEntry, index) == true)
         {
-            BDBG_MSG(("%s -  Index '0x%08x' found on Host side", __FUNCTION__, index));
+            BDBG_MSG(("%s -  Index '0x%08x' found on Host side", BSTD_FUNCTION, index));
 
             if(pMeta == NULL)
             {
-                BDBG_MSG(("%s -  metadata is null, setting decrypt operation", __FUNCTION__));
+                BDBG_MSG(("%s -  metadata is null, setting decrypt operation", BSTD_FUNCTION));
                 pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.opType =  NEXUS_SecurityOperation_eDecrypt;
             }
             else
             {
                 if(pMeta->encrypt != 0)
                 {
-                    BDBG_MSG(("%s -  meta->encrypt != 0, setting encrypt operation", __FUNCTION__));
+                    BDBG_MSG(("%s -  meta->encrypt != 0, setting encrypt operation", BSTD_FUNCTION));
                     pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.opType =  NEXUS_SecurityOperation_eEncrypt;
                 }
                 else
                 {
-                    BDBG_MSG(("%s -  meta->encrypt == 0 setting decrypt operation", __FUNCTION__));
+                    BDBG_MSG(("%s -  meta->encrypt == 0 setting decrypt operation", BSTD_FUNCTION));
                     pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.opType =  NEXUS_SecurityOperation_eDecrypt;
                 }
             }
@@ -903,32 +903,32 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
             /* configure host side keyslot */
             if(DRM_Common_KeyConfigOperation(&pSessCtx->drmCommonOpStruct) != Drm_Success)
             {
-                BDBG_ERR(("%s - Error configuring keyslot", __FUNCTION__));
+                BDBG_ERR(("%s - Error configuring keyslot", BSTD_FUNCTION));
                 rc = BERR_INVALID_PARAMETER;
                 goto ErrorExit;
             }
         }
         else
         {
-            BDBG_MSG(("%s -  Index '0x%08x' NOT found on Host side", __FUNCTION__, index));
+            BDBG_MSG(("%s -  Index '0x%08x' NOT found on Host side", BSTD_FUNCTION, index));
 
             pContainer = SRAI_Container_Allocate();
             if(pContainer == NULL)
             {
-                BDBG_ERR(("%s - error allocating pContainer", __FUNCTION__));
+                BDBG_ERR(("%s - error allocating pContainer", BSTD_FUNCTION));
                 rc = Drm_MemErr;
                 goto ErrorExit;
             }
 
             if(pIv != NULL)
             {
-                BDBG_MSG(("%s -  IV is not null", __FUNCTION__));
+                BDBG_MSG(("%s -  IV is not null", BSTD_FUNCTION));
 
                 /* copy iv if != 0 */
                 pContainer->blocks[0].data.ptr = SRAI_Memory_Allocate(16, SRAI_MemoryType_Shared);
                 if(pContainer->blocks[0].data.ptr == NULL)
                 {
-                    BDBG_ERR(("%s - error allocating memory", __FUNCTION__));
+                    BDBG_ERR(("%s - error allocating memory", BSTD_FUNCTION));
                     rc = Drm_MemErr;
                     goto ErrorExit;
                 }
@@ -937,7 +937,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
 
             }
             else{
-                BDBG_MSG(("%s -  IV is null", __FUNCTION__));
+                BDBG_MSG(("%s -  IV is null", BSTD_FUNCTION));
                 pContainer->blocks[0].len = 0;
                 pContainer->blocks[0].data.ptr = NULL;
             }
@@ -952,20 +952,20 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
              * */
             if(pMeta == NULL)
             {
-                BDBG_MSG(("%s -  specifying DECRYPTION operation for context", __FUNCTION__));
+                BDBG_MSG(("%s -  specifying DECRYPTION operation for context", BSTD_FUNCTION));
                 pContainer->basicIn[4] = 0; /* DECRYPT */
             }
             else
             {
-                BDBG_MSG(("%s -  specifying ENCRYPTION operation for context", __FUNCTION__));
+                BDBG_MSG(("%s -  specifying ENCRYPTION operation for context", BSTD_FUNCTION));
                 if(pMeta->encrypt != 0)
                 {
-                    BDBG_MSG(("%s -  meta->encrypt != 0, setting encrypt operation", __FUNCTION__));
+                    BDBG_MSG(("%s -  meta->encrypt != 0, setting encrypt operation", BSTD_FUNCTION));
                     pContainer->basicIn[4] = 1; /* ENCRYPT */
                 }
                 else
                 {
-                    BDBG_MSG(("%s -  meta->encrypt == 0 setting decrypt operation", __FUNCTION__));
+                    BDBG_MSG(("%s -  meta->encrypt == 0 setting decrypt operation", BSTD_FUNCTION));
                     pContainer->basicIn[4] = 0; /* DECRYPT */
                 }
             }
@@ -973,7 +973,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
             sage_rc = SRAI_Module_ProcessCommand(moduleHandle, DrmAdobe_CommandId_eCreateSessionContext, pContainer);
             if (sage_rc != BERR_SUCCESS)
             {
-                BDBG_ERR(("%s - Error sending command to SAGE", __FUNCTION__));
+                BDBG_ERR(("%s - Error sending command to SAGE", BSTD_FUNCTION));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
@@ -983,13 +983,13 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
             if(sage_rc != BERR_SUCCESS)
             {
                 *pCTX = NULL;
-                BDBG_MSG(("%s - Operation failed. Setting session context to NULL", __FUNCTION__));
+                BDBG_MSG(("%s - Operation failed. Setting session context to NULL", BSTD_FUNCTION));
 
                 if(pContainer->blocks[0].data.ptr != NULL){
                     SRAI_Memory_Free(pContainer->blocks[0].data.ptr);
                 }
 
-                BDBG_MSG(("%s - Freeing allocated context", __FUNCTION__));
+                BDBG_MSG(("%s - Freeing allocated context", BSTD_FUNCTION));
 
                 if(pSessCtx != NULL){
                     BKNI_Free(pSessCtx);
@@ -1000,7 +1000,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
 
     else
     {
-        BDBG_MSG(("%s - session context created for DiskIO operations. Index value '0x%08x' will be ignored for future operations that are not DiskIO related", __FUNCTION__,index));
+        BDBG_MSG(("%s - session context created for DiskIO operations. Index value '0x%08x' will be ignored for future operations that are not DiskIO related", BSTD_FUNCTION,index));
         pSessCtx->drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
         pSessCtx->drmCommonOpStruct.pKeyLadderInfo = NULL;
         pSessCtx->drmCommonOpStruct.keySrc = CommonCrypto_eOtpKey;
@@ -1008,7 +1008,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
         /* augment the secure_store API by being able to specify custom procIns? */
     }
 
-    BDBG_MSG(("%s - returning session context %p", __FUNCTION__, (void *)pSessCtx));
+    BDBG_MSG(("%s - returning session context %p", BSTD_FUNCTION, (void *)pSessCtx));
     *pCTX = pSessCtx;
 
 
@@ -1042,17 +1042,17 @@ void DRM_Adobe_DestroyDRMSessionCtx(DrmAdobeSessionContext_t *pCTX)
 
     if(pCTX == NULL)
     {
-        BDBG_MSG(("%s - nothing to do since context is null", __FUNCTION__));
+        BDBG_MSG(("%s - nothing to do since context is null", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     if((DRM_Adobe_HostKeyIndexMapList_Search(&pSearchEntry, pCTX->adobeIndex) == false) && (pCTX->bUseCtxforDiskIO == false))
     {
-        BDBG_MSG(("%s - Index associated with SAGE-side context '0x%08x'", __FUNCTION__, pCTX->adobeIndex));
+        BDBG_MSG(("%s - Index associated with SAGE-side context '0x%08x'", BSTD_FUNCTION, pCTX->adobeIndex));
         pContainer = SRAI_Container_Allocate();
         if(pContainer == NULL)
         {
-            BDBG_ERR(("%s - Error allocating pContainer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating pContainer", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -1060,25 +1060,25 @@ void DRM_Adobe_DestroyDRMSessionCtx(DrmAdobeSessionContext_t *pCTX)
         pContainer->basicIn[0] = pCTX->adobeIndex;
 
         if (SRAI_Module_ProcessCommand(moduleHandle, DrmAdobe_CommandId_eDestroySessionContext, pContainer) != BERR_SUCCESS){
-            BDBG_ERR(("%s - Error destroying context", __FUNCTION__));
+            BDBG_ERR(("%s - Error destroying context", BSTD_FUNCTION));
         }
 
         sage_rc = pContainer->basicOut[0];
         if (sage_rc != BERR_SUCCESS){
-            BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+            BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, sage_rc));
         }
     }
 
     /* regardless of host or sage side context, free the keyslot */
     if(pCTX->drmCommonOpStruct.keyConfigSettings.keySlot != NULL)
     {
-        BDBG_MSG(("%s - Freeing keyslot...", __FUNCTION__));
+        BDBG_MSG(("%s - Freeing keyslot...", BSTD_FUNCTION));
         NEXUS_Security_FreeKeySlot(pCTX->drmCommonOpStruct.keyConfigSettings.keySlot);
 
         pCTX->drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
     }
 
-    BDBG_MSG(("%s - Freeing context memory...", __FUNCTION__));
+    BDBG_MSG(("%s - Freeing context memory...", BSTD_FUNCTION));
     BKNI_Free(pCTX);
     pCTX = NULL;
 
@@ -1107,7 +1107,7 @@ DrmRC DRM_Adobe_DecryptInit(DrmAdobeSessionContext_t *pCTX)
 
     if(pCTX == NULL)
     {
-        BDBG_MSG(("%s - Context is null", __FUNCTION__));
+        BDBG_MSG(("%s - Context is null", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1115,7 +1115,7 @@ DrmRC DRM_Adobe_DecryptInit(DrmAdobeSessionContext_t *pCTX)
     /* see if init has been called twice with the same context (error?) */
     if(pCTX->firstChunkDecrypted == true)
     {
-        BDBG_WRN(("%s -  Context is resetting IV since first chunk was already decrypted", __FUNCTION__));
+        BDBG_WRN(("%s -  Context is resetting IV since first chunk was already decrypted", BSTD_FUNCTION));
     }
 
     /**/
@@ -1132,19 +1132,19 @@ DrmRC DRM_Adobe_DecryptInit(DrmAdobeSessionContext_t *pCTX)
             /* update the host side keyslot with the IV */
             if(DRM_Common_KeyConfigOperation(&pCTX->drmCommonOpStruct) != Drm_Success)
             {
-                BDBG_ERR(("%s - Error configuring keyslot", __FUNCTION__));
+                BDBG_ERR(("%s - Error configuring keyslot", BSTD_FUNCTION));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
         }
         else
         {
-            BDBG_MSG(("%s - updating IV on SAGE side", __FUNCTION__));
+            BDBG_MSG(("%s - updating IV on SAGE side", BSTD_FUNCTION));
 
             pContainer = SRAI_Container_Allocate();
             if(pContainer == NULL)
             {
-                BDBG_ERR(("%s - Error loading key parameters", __FUNCTION__));
+                BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
@@ -1154,7 +1154,7 @@ DrmRC DRM_Adobe_DecryptInit(DrmAdobeSessionContext_t *pCTX)
             pContainer->blocks[0].data.ptr = SRAI_Memory_Allocate(16, SRAI_MemoryType_Shared);
             if(pContainer->blocks[0].data.ptr == NULL)
             {
-                BDBG_ERR(("%s - error allocating memory", __FUNCTION__));
+                BDBG_ERR(("%s - error allocating memory", BSTD_FUNCTION));
                 rc = Drm_MemErr;
                 goto ErrorExit;
             }
@@ -1164,7 +1164,7 @@ DrmRC DRM_Adobe_DecryptInit(DrmAdobeSessionContext_t *pCTX)
             sage_rc = SRAI_Module_ProcessCommand(moduleHandle, DrmAdobe_CommandId_eDecryptInit, pContainer);
             if (sage_rc != BERR_SUCCESS)
             {
-                BDBG_ERR(("%s - Error loading key parameters", __FUNCTION__));
+                BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
                 rc = Drm_MemErr;
                 goto ErrorExit;
             }
@@ -1172,7 +1172,7 @@ DrmRC DRM_Adobe_DecryptInit(DrmAdobeSessionContext_t *pCTX)
             sage_rc = pContainer->basicOut[0];
             if (sage_rc != BERR_SUCCESS)
             {
-                BDBG_ERR(("%s - Command was sent succuessfully to init key but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+                BDBG_ERR(("%s - Command was sent succuessfully to init key but actual operation failed (0x%08x)", BSTD_FUNCTION, sage_rc));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
@@ -1180,7 +1180,7 @@ DrmRC DRM_Adobe_DecryptInit(DrmAdobeSessionContext_t *pCTX)
     }
     else
     {
-        BDBG_ERR(("%s -  Mode type not supported", __FUNCTION__));
+        BDBG_ERR(("%s -  Mode type not supported", BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto ErrorExit;
     }
@@ -1225,7 +1225,7 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
 
     if(pCTX == NULL)
     {
-        BDBG_MSG(("%s - Context is null", __FUNCTION__));
+        BDBG_MSG(("%s - Context is null", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1241,24 +1241,24 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
             /* if index is on host side, update normally, otherwise send to sage */
             if(DRM_Adobe_HostKeyIndexMapList_Search(&pSearchEntry, pCTX->adobeIndex) == true)
             {
-                BDBG_MSG(("%s - Index found on host side", __FUNCTION__));
+                BDBG_MSG(("%s - Index found on host side", BSTD_FUNCTION));
                 BKNI_Memcpy(pCTX->drmCommonOpStruct.keyIvSettings.iv, pCTX->iv_curr, DRM_ADOBE_IV_SIZE);
 
                 /* update the host side keyslot with the IV */
                 if(DRM_Common_KeyConfigOperation(&pCTX->drmCommonOpStruct) != Drm_Success)
                 {
-                    BDBG_ERR(("%s - Error configuring keyslot", __FUNCTION__));
+                    BDBG_ERR(("%s - Error configuring keyslot", BSTD_FUNCTION));
                     rc = BERR_INVALID_PARAMETER;
                     goto ErrorExit;
                 }
             }
             else
             {
-                BDBG_MSG(("%s - first chunk already decrypted, sending update to SAGE", __FUNCTION__));
+                BDBG_MSG(("%s - first chunk already decrypted, sending update to SAGE", BSTD_FUNCTION));
                 pContainer = SRAI_Container_Allocate();
                 if(pContainer == NULL)
                 {
-                    BDBG_ERR(("%s - Error loading key parameters", __FUNCTION__));
+                    BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
                     rc = Drm_Err;
                     goto ErrorExit;
                 }
@@ -1268,7 +1268,7 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
                 pContainer->blocks[0].data.ptr = SRAI_Memory_Allocate(16, SRAI_MemoryType_Shared);
                 if(pContainer->blocks[0].data.ptr == NULL)
                 {
-                    BDBG_ERR(("%s - error allocating memory", __FUNCTION__));
+                    BDBG_ERR(("%s - error allocating memory", BSTD_FUNCTION));
                     rc = Drm_MemErr;
                     goto ErrorExit;
                 }
@@ -1278,7 +1278,7 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
                 sage_rc = SRAI_Module_ProcessCommand(moduleHandle, DrmAdobe_CommandId_eDecryptUpdate, pContainer);
                 if (sage_rc != BERR_SUCCESS)
                 {
-                    BDBG_ERR(("%s - Error loading key parameters", __FUNCTION__));
+                    BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
                     rc = Drm_Err;
                     goto ErrorExit;
                 }
@@ -1286,7 +1286,7 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
                 sage_rc = pContainer->basicOut[0];
                 if (sage_rc != BERR_SUCCESS)
                 {
-                    BDBG_ERR(("%s - Command was sent succuessfully to update key but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+                    BDBG_ERR(("%s - Command was sent succuessfully to update key but actual operation failed (0x%08x)", BSTD_FUNCTION, sage_rc));
                     rc = Drm_Err;
                     goto ErrorExit;
                 }
@@ -1294,12 +1294,12 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
         }
         else
         {
-            BDBG_MSG(("%s -  Iv0 already loaded therefore skipped loading IV", __FUNCTION__));
+            BDBG_MSG(("%s -  Iv0 already loaded therefore skipped loading IV", BSTD_FUNCTION));
         }
     }
     else
     {
-        BDBG_ERR(("%s -  Mode type not supported", __FUNCTION__));
+        BDBG_ERR(("%s -  Mode type not supported", BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto ErrorExit;
     }
@@ -1308,12 +1308,12 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
     if(pInputDecMem == NULL)
     {
         rc = Drm_MemErr;
-        BDBG_ERR(("%s -  Error Allocating drm Memory for input dec buf", __FUNCTION__));
+        BDBG_ERR(("%s -  Error Allocating drm Memory for input dec buf", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     /* first copy the bytes leftover in previous call */
-    BDBG_MSG(("%s -  Leftover bytes from previous call '%u'", __FUNCTION__, pCTX->prevTrailingBytesSize));
+    BDBG_MSG(("%s -  Leftover bytes from previous call '%u'", BSTD_FUNCTION, pCTX->prevTrailingBytesSize));
     BKNI_Memcpy(pInputDecMem, pCTX->prevTrailingBytes, pCTX->prevTrailingBytesSize);
 
     /*then copy the current bytes in this call */
@@ -1322,7 +1322,7 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
 
     /* now save the left over bytes and their size */
     pCTX->prevTrailingBytesSize = leftOverLength;
-    BDBG_MSG(("%s -  UPDATED Leftover bytes for next call '%u'", __FUNCTION__, pCTX->prevTrailingBytesSize));
+    BDBG_MSG(("%s -  UPDATED Leftover bytes for next call '%u'", BSTD_FUNCTION, pCTX->prevTrailingBytesSize));
 
     /* save the last 16 bytes of the current data as next IV */
     BKNI_Memcpy(pCTX->iv_curr, &pInputDecMem[decryptLength-16], 16);
@@ -1334,13 +1334,13 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
     rc = DRM_Adobe_DecryptFullSampleAndReturn(pCTX, pInputDecMem, &decryptLength, pOutput, pOutLength);
     if(rc != Drm_Success)
     {
-       BDBG_ERR(("%s -  Error decrypting", __FUNCTION__));
+       BDBG_ERR(("%s -  Error decrypting", BSTD_FUNCTION));
        goto ErrorExit;
     }
 
     if(pCTX->firstChunkDecrypted == false)
     {
-        BDBG_MSG(("%s -  Iv0 used therefore subsequent Ivs can loaded, first chunk has been decrypted.", __FUNCTION__));
+        BDBG_MSG(("%s -  Iv0 used therefore subsequent Ivs can loaded, first chunk has been decrypted.", BSTD_FUNCTION));
         pCTX->firstChunkDecrypted = true;
     }
 
@@ -1377,7 +1377,7 @@ DrmRC DRM_Adobe_DecryptFinal(   DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
 
     if(pCTX == NULL)
     {
-        BDBG_MSG(("%s - Context is null", __FUNCTION__));
+        BDBG_MSG(("%s - Context is null", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1395,7 +1395,7 @@ DrmRC DRM_Adobe_DecryptFinal(   DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
                 /* update the host side keyslot with the IV */
                 if(DRM_Common_KeyConfigOperation(&pCTX->drmCommonOpStruct) != Drm_Success)
                 {
-                    BDBG_ERR(("%s - Error configuring keyslot", __FUNCTION__));
+                    BDBG_ERR(("%s - Error configuring keyslot", BSTD_FUNCTION));
                     rc = BERR_INVALID_PARAMETER;
                     goto ErrorExit;
                 }
@@ -1405,7 +1405,7 @@ DrmRC DRM_Adobe_DecryptFinal(   DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
                 pContainer = SRAI_Container_Allocate();
                 if(pContainer == NULL)
                 {
-                    BDBG_ERR(("%s - Error loading key parameters", __FUNCTION__));
+                    BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
                     rc = Drm_Err;
                     goto ErrorExit;
                 }
@@ -1415,7 +1415,7 @@ DrmRC DRM_Adobe_DecryptFinal(   DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
                 pContainer->blocks[0].data.ptr = SRAI_Memory_Allocate(DRM_ADOBE_IV_SIZE, SRAI_MemoryType_Shared);
                 if(pContainer->blocks[0].data.ptr == NULL)
                 {
-                    BDBG_ERR(("%s - error allocating memory", __FUNCTION__));
+                    BDBG_ERR(("%s - error allocating memory", BSTD_FUNCTION));
                     rc = Drm_MemErr;
                     goto ErrorExit;
                 }
@@ -1425,7 +1425,7 @@ DrmRC DRM_Adobe_DecryptFinal(   DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
                 sage_rc = SRAI_Module_ProcessCommand(moduleHandle, DrmAdobe_CommandId_eDecryptUpdate, pContainer);
                 if (sage_rc != BERR_SUCCESS)
                 {
-                    BDBG_ERR(("%s - Error loading key parameters", __FUNCTION__));
+                    BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
                     rc = Drm_Err;
                     goto ErrorExit;
                 }
@@ -1433,7 +1433,7 @@ DrmRC DRM_Adobe_DecryptFinal(   DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
                 sage_rc = pContainer->basicOut[0];/* double check */
                 if (sage_rc != BERR_SUCCESS)
                 {
-                    BDBG_ERR(("%s - Command was sent succuessfully to update key but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+                    BDBG_ERR(("%s - Command was sent succuessfully to update key but actual operation failed (0x%08x)", BSTD_FUNCTION, sage_rc));
                     rc = Drm_Err;
                     goto ErrorExit;
                 }
@@ -1441,24 +1441,24 @@ DrmRC DRM_Adobe_DecryptFinal(   DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
         }
         else
         {
-            BDBG_MSG(("%s -  Iv0 already loaded therefore skipped loading IV", __FUNCTION__));
+            BDBG_MSG(("%s -  Iv0 already loaded therefore skipped loading IV", BSTD_FUNCTION));
         }
     }
     else
     {
-        BDBG_ERR(("%s -  Mode type not supported", __FUNCTION__));
+        BDBG_ERR(("%s -  Mode type not supported", BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s -  prevTrailingBytesSize  = '%u' input length = '%u'   OutLength = '%u' ", __FUNCTION__, pCTX->prevTrailingBytesSize, length, (*pOutLength)));
+    BDBG_MSG(("%s -  prevTrailingBytesSize  = '%u' input length = '%u'   OutLength = '%u' ", BSTD_FUNCTION, pCTX->prevTrailingBytesSize, length, (*pOutLength)));
     if(pCTX->prevTrailingBytesSize != 0)
     {
         DRM_Common_MemoryAllocate(&pInputDecMem, pCTX->prevTrailingBytesSize);
         if(pInputDecMem == NULL)
         {
             rc = Drm_MemErr;
-            BDBG_ERR(("%s -  Error Allocating drm Memory for input dec buf", __FUNCTION__));
+            BDBG_ERR(("%s -  Error Allocating drm Memory for input dec buf", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -1467,12 +1467,12 @@ DrmRC DRM_Adobe_DecryptFinal(   DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
         rc = DRM_Adobe_DecryptFullSampleAndReturn(pCTX, pInputDecMem, &pCTX->prevTrailingBytesSize, pOutput, pOutLength);
         if(rc !=Drm_Success)
         {
-           BDBG_ERR(("%s -  Error decrypting", __FUNCTION__));
+           BDBG_ERR(("%s -  Error decrypting", BSTD_FUNCTION));
            goto ErrorExit;
         }
     }
     else{
-        BDBG_MSG(("%s -  length of trailing bytes = '%u'", __FUNCTION__, pCTX->prevTrailingBytesSize));
+        BDBG_MSG(("%s -  length of trailing bytes = '%u'", BSTD_FUNCTION, pCTX->prevTrailingBytesSize));
     }
 
 ErrorExit:
@@ -1513,11 +1513,11 @@ DrmRC DRM_Adobe_DecryptFullSampleAndReturn(DrmAdobeSessionContext_t *pCTX,/* Inp
     uint8_t *pOutputNexusMem = NULL;
     DrmCommonOperationStruct_t drmCommonOpStruct;
 
-    BDBG_MSG(("%s - Entered function.  Session context %p, data length is '%u'", __FUNCTION__, (void *)pCTX, *pLength));
+    BDBG_MSG(("%s - Entered function.  Session context %p, data length is '%u'", BSTD_FUNCTION, (void *)pCTX, *pLength));
 
     if(pCTX == NULL)
     {
-        BDBG_MSG(("%s - Context is null", __FUNCTION__));
+        BDBG_MSG(("%s - Context is null", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1525,7 +1525,7 @@ DrmRC DRM_Adobe_DecryptFullSampleAndReturn(DrmAdobeSessionContext_t *pCTX,/* Inp
     rc = DRM_Common_MemoryAllocate((uint8_t**)&pInputNexusMem, *pLength);
     if(rc !=Drm_Success)
     {
-       BDBG_ERR(("%s -  Error Allocating drm Memory for input", __FUNCTION__));
+       BDBG_ERR(("%s -  Error Allocating drm Memory for input", BSTD_FUNCTION));
        goto ErrorExit;
     }
 
@@ -1534,11 +1534,11 @@ DrmRC DRM_Adobe_DecryptFullSampleAndReturn(DrmAdobeSessionContext_t *pCTX,/* Inp
     /* if bi-directional is not defined we have to allocate a local buffer */
     if((capabilities & DrmAdobe_CAPABILITY_BI_DIRECTIONAL_MALLOC) == 0)
     {
-        BDBG_MSG(("%s - Capability is NOT bi-directional", __FUNCTION__));
+        BDBG_MSG(("%s - Capability is NOT bi-directional", BSTD_FUNCTION));
         rc = DRM_Common_MemoryAllocate((uint8_t**)&pOutputNexusMem, *pLength);
         if(rc !=Drm_Success)
         {
-           BDBG_ERR(("%s - Error Allocating drm Memory for output", __FUNCTION__));
+           BDBG_ERR(("%s - Error Allocating drm Memory for output", BSTD_FUNCTION));
            goto ErrorExit;
         }
     }
@@ -1559,13 +1559,13 @@ DrmRC DRM_Adobe_DecryptFullSampleAndReturn(DrmAdobeSessionContext_t *pCTX,/* Inp
         drmCommonOpStruct.num_dma_block = 1;
 
         drmCommonOpStruct.keyConfigSettings.keySlot = pCTX->drmCommonOpStruct.keyConfigSettings.keySlot;
-        BDBG_MSG(("%s - drmCommonOpStruct.keyConfigSettings.keySlot = %p", __FUNCTION__, (void *)drmCommonOpStruct.keyConfigSettings.keySlot));
+        BDBG_MSG(("%s - drmCommonOpStruct.keyConfigSettings.keySlot = %p", BSTD_FUNCTION, (void *)drmCommonOpStruct.keyConfigSettings.keySlot));
 
         /*start M2M transfer*/
         rc = DRM_Common_M2mOperation(&drmCommonOpStruct);
         if(rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Call to 'DRM_Common_M2mOperation' failed", __FUNCTION__));
+            BDBG_ERR(("%s - Call to 'DRM_Common_M2mOperation' failed", BSTD_FUNCTION));
             goto ErrorExit;
         }
     }
@@ -1574,7 +1574,7 @@ DrmRC DRM_Adobe_DecryptFullSampleAndReturn(DrmAdobeSessionContext_t *pCTX,/* Inp
         rc = DRM_SecureStore_BufferOperation(pInputNexusMem, *pLength, pOutputNexusMem, DrmDestinationType_eExternal, DrmCryptoOperation_eDecrypt);
         if(rc != Drm_Success)
         {
-            BDBG_ERR(("%s:secure store buffer operation failed",__FUNCTION__));
+            BDBG_ERR(("%s:secure store buffer operation failed",BSTD_FUNCTION));
             goto ErrorExit;
         }
     }
@@ -1583,10 +1583,10 @@ DrmRC DRM_Adobe_DecryptFullSampleAndReturn(DrmAdobeSessionContext_t *pCTX,/* Inp
     if((capabilities & DrmAdobe_CAPABILITY_BI_DIRECTIONAL_MALLOC) == 0)
     {
         if(pCTX->bUseCtxforDiskIO == false){
-            BDBG_MSG(("%s - Copying result of M2M operation", __FUNCTION__));
+            BDBG_MSG(("%s - Copying result of M2M operation", BSTD_FUNCTION));
         }
         else{
-            BDBG_MSG(("%s - Copying result of secure store operation", __FUNCTION__));
+            BDBG_MSG(("%s - Copying result of secure store operation", BSTD_FUNCTION));
         }
         BKNI_Memcpy(pOutput, pOutputNexusMem, *pLength);
         DRM_Common_MemoryFree(pOutputNexusMem);
@@ -1631,11 +1631,11 @@ DrmRC DRM_Adobe_SetClearKey(uint8_t *pKey,
 
     if(length != 0)
     {
-        BDBG_MSG(("%s - Allocating '%u' bytes for key", __FUNCTION__, length));
+        BDBG_MSG(("%s - Allocating '%u' bytes for key", BSTD_FUNCTION, length));
         pKeyEntry.keybuf = (uint8_t*)BKNI_Malloc(length);
         if(pKeyEntry.keybuf == NULL)
         {
-            BDBG_ERR(("%s - error allocating '%u' bytes for clearkey", __FUNCTION__, length));
+            BDBG_ERR(("%s - error allocating '%u' bytes for clearkey", BSTD_FUNCTION, length));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -1643,32 +1643,32 @@ DrmRC DRM_Adobe_SetClearKey(uint8_t *pKey,
     }
     else
     {
-        BDBG_ERR(("%s - Cannot set 0 bytes for clearkey", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot set 0 bytes for clearkey", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
 
     if((keyladderType == DrmAdobe_KeyLadderType_eSESSION_KEY) && (keyType == DrmAdobe_KeyType_eAES128))
     {
-        BDBG_MSG(("%s - Setting clear sw key", __FUNCTION__));
+        BDBG_MSG(("%s - Setting clear sw key", BSTD_FUNCTION));
         pKeyEntry.adobeIndex = DrmAdobe_AdobeKeyIndex_eSwKey|gHostKeySequenceNumber;
         DRM_MSG_PRINT_BUF("swkey", pKey, length);
     }
     else if((keyladderType == DrmAdobe_KeyLadderType_eTRANSPORT_PUB) && (keyType == DrmAdobe_KeyType_eRSA1024 || keyType == DrmAdobe_KeyType_eRSA2048))
     {
-        BDBG_MSG(("%s - Setting public transport key", __FUNCTION__));
+        BDBG_MSG(("%s - Setting public transport key", BSTD_FUNCTION));
         pKeyEntry.adobeIndex = DrmAdobe_AdobeKeyIndex_eTransportPublicKey|gHostKeySequenceNumber;
          DRM_MSG_PRINT_BUF("swkey", pKey, length);
     }
     else if((keyladderType == DrmAdobe_KeyLadderType_eTRANSPORT_PRIV) && (keyType == DrmAdobe_KeyType_eRSA1024 || keyType == DrmAdobe_KeyType_eRSA2048))
     {
-        BDBG_MSG(("%s - Setting private transport key", __FUNCTION__));
+        BDBG_MSG(("%s - Setting private transport key", BSTD_FUNCTION));
         pKeyEntry.adobeIndex = DrmAdobe_AdobeKeyIndex_eTransportPrivateKey|gHostKeySequenceNumber;
          DRM_MSG_PRINT_BUF("swkey", pKey, length);
     }
     else
     {
-        BDBG_ERR(("%s - key type (%u) and algorithm (%u) not supported", __FUNCTION__, keyType, keyladderType));
+        BDBG_ERR(("%s - key type (%u) and algorithm (%u) not supported", BSTD_FUNCTION, keyType, keyladderType));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1676,14 +1676,14 @@ DrmRC DRM_Adobe_SetClearKey(uint8_t *pKey,
     rc = DRM_Adobe_HostKeyIndexMapList_AddEntry(&pKeyEntry);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error loading sw key", __FUNCTION__));
+        BDBG_ERR(("%s - Error loading sw key", BSTD_FUNCTION));
         goto ErrorExit;
     }
     else{
         *pIndex = pKeyEntry.adobeIndex;
     }
 
-    BDBG_MSG(("%s - Sw key successfully loaded and assigned index 0x%08x", __FUNCTION__, (*pIndex)));
+    BDBG_MSG(("%s - Sw key successfully loaded and assigned index 0x%08x", BSTD_FUNCTION, (*pIndex)));
 
 ErrorExit:
     BDBG_LEAVE(DRM_Adobe_SetClearKey);
@@ -1718,24 +1718,24 @@ DrmRC DRM_Adobe_PublicKeyOperation( uint32_t index,         /* Input: Index of k
     char algo[]="RSA-SHA256";
 
 
-    BDBG_MSG(("Entered Function %s, index = 0x%x",__FUNCTION__,index));
+    BDBG_MSG(("Entered Function %s, index = 0x%x",BSTD_FUNCTION,index));
 
     BKNI_Memset((void *)&rsa_params, 0x0, sizeof(DrmCommon_RsaSwParam_t));
 
     if(DRM_Common_MemoryAllocate((uint8_t **)&pPublicKey, (sizeof(struct DrmCommon_RsaKey_t ))) != Drm_Success)
     {
-        BDBG_ERR(("%s: Memory Allocation err",__FUNCTION__));
+        BDBG_ERR(("%s: Memory Allocation err",BSTD_FUNCTION));
         return Drm_MemErr;
         goto ErrorExit;
     }
     if(DRM_Adobe_HostKeyIndexMapList_Search(&pPubKey, index)==false)
     {
-        BDBG_ERR(("%s - Index 0x%x not found on host side", __FUNCTION__,index));
+        BDBG_ERR(("%s - Index 0x%x not found on host side", BSTD_FUNCTION,index));
         return Drm_MemErr;
         goto ErrorExit;
     }
     //DRM_Adobe_KeyIndexMapList_Search(&pPubKey, index);
-    BDBG_MSG((" %s: populate the public key openssl struct,pubKey->keybufsz is %d ",__FUNCTION__,pPubKey->keybufsz));
+    BDBG_MSG((" %s: populate the public key openssl struct,pubKey->keybufsz is %d ",BSTD_FUNCTION,pPubKey->keybufsz));
     if (pPubKey->keyType == DrmAdobe_KeyType_eRSA1024)
     {
         pPublicKey->n.len = DRM_ADOBE_RSA1024_KEYSZ;
@@ -1747,7 +1747,7 @@ DrmRC DRM_Adobe_PublicKeyOperation( uint32_t index,         /* Input: Index of k
     }
     else
     {
-         BDBG_ERR(("%s: Unsupported RSA key size.",__FUNCTION__));
+         BDBG_ERR(("%s: Unsupported RSA key size.",BSTD_FUNCTION));
          rc = Drm_Err;
          goto ErrorExit;
     }
@@ -1764,7 +1764,7 @@ DrmRC DRM_Adobe_PublicKeyOperation( uint32_t index,         /* Input: Index of k
     rsa_params.key = pPublicKey;
     if (pAdobeRsaSettings->operation_type ==  DrmAdobe_RsaPubkeyOpType_eEnc)
     {
-        BDBG_MSG((" %s:pub key encryption",__FUNCTION__));
+        BDBG_MSG((" %s:pub key encryption",BSTD_FUNCTION));
         rsa_params.bRSAop = drmRsaenc;
         rsa_params.pbDataIn = pAdobeRsaSettings->operation_struct.encrypt_op.pSrcAddr;
         rsa_params.cbDataIn = pAdobeRsaSettings->operation_struct.encrypt_op.srcDataSize;
@@ -1787,7 +1787,7 @@ DrmRC DRM_Adobe_PublicKeyOperation( uint32_t index,         /* Input: Index of k
     else if (pAdobeRsaSettings->operation_type ==  DrmAdobe_RsaPubkeyOpType_eVerify)
     {
 
-        BDBG_MSG((" %s: pub key decryption/verify optype=%d ",__FUNCTION__,pAdobeRsaSettings->operation_type));
+        BDBG_MSG((" %s: pub key decryption/verify optype=%d ",BSTD_FUNCTION,pAdobeRsaSettings->operation_type));
         rsa_params.bRSAop = drmRsaverify;
 
         /*The openssl RSA APi for public key verify takes the digest as pbDataIn,  signature as pbDataOut.
@@ -1796,7 +1796,7 @@ DrmRC DRM_Adobe_PublicKeyOperation( uint32_t index,         /* Input: Index of k
         rsa_params.pbDataIn = pAdobeRsaSettings->operation_struct.verify_op.pDigestAddr;
         //DRM_MSG_PRINT_BUF("input/signature",pAdobeRsaSettings->operation_struct.verify_op.pSignatureAddr, pAdobeRsaSettings->operation_struct.verify_op.signatureSize);
         rsa_params.cbDataIn = pAdobeRsaSettings->operation_struct.verify_op.digestSize;
-        BDBG_MSG((" %s:pSrcAddr=%p,size=%d ",__FUNCTION__,(void *)pAdobeRsaSettings->operation_struct.verify_op.pDigestAddr,pAdobeRsaSettings->operation_struct.verify_op.digestSize));
+        BDBG_MSG((" %s:pSrcAddr=%p,size=%d ",BSTD_FUNCTION,(void *)pAdobeRsaSettings->operation_struct.verify_op.pDigestAddr,pAdobeRsaSettings->operation_struct.verify_op.digestSize));
         rsa_params.pbDataOut =  pAdobeRsaSettings->operation_struct.verify_op.pSignatureAddr;
         rsa_params.cbDataOut = (unsigned long *)&pAdobeRsaSettings->operation_struct.verify_op.signatureSize;
         switch(pAdobeRsaSettings->operation_struct.verify_op.padType)
@@ -1815,7 +1815,7 @@ DrmRC DRM_Adobe_PublicKeyOperation( uint32_t index,         /* Input: Index of k
     }
     else
     {
-        BDBG_ERR(("%s:Invalid public key operation",__FUNCTION__));
+        BDBG_ERR(("%s:Invalid public key operation",BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1823,24 +1823,24 @@ DrmRC DRM_Adobe_PublicKeyOperation( uint32_t index,         /* Input: Index of k
 
     DRM_MSG_PRINT_BUF("rsa_params.pbDatain:",rsa_params.pbDataIn,rsa_params.cbDataIn);
 
-    BDBG_MSG((" %s: program rsa params 3 ",__FUNCTION__));
+    BDBG_MSG((" %s: program rsa params 3 ",BSTD_FUNCTION));
 
     rsa_params.psAlgorithmId = (unsigned char *)algo;
     rsa_params.csAlgorithmId = sizeof(algo);;
 
 
-    BDBG_MSG((" %s: program rsa params 4 ",__FUNCTION__));
+    BDBG_MSG((" %s: program rsa params 4 ",BSTD_FUNCTION));
 
-    BDBG_MSG(("%s: rsa params output len=%lu ",__FUNCTION__, *rsa_params.cbDataOut));
+    BDBG_MSG(("%s: rsa params output len=%lu ",BSTD_FUNCTION, *rsa_params.cbDataOut));
 
-    BDBG_MSG(("%s: calling DRM_Common_SwRsa",__FUNCTION__));
+    BDBG_MSG(("%s: calling DRM_Common_SwRsa",BSTD_FUNCTION));
 
     rc = DRM_Common_SwRsa(&rsa_params);
-    BDBG_MSG(("%s:cbDataIn=%lu, cbDataOut=%p",__FUNCTION__,rsa_params.cbDataIn, (void *)rsa_params.cbDataOut));
+    BDBG_MSG(("%s:cbDataIn=%lu, cbDataOut=%p",BSTD_FUNCTION,rsa_params.cbDataIn, (void *)rsa_params.cbDataOut));
 
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s :Public key operation failed",__FUNCTION__));
+        BDBG_ERR(("%s :Public key operation failed",BSTD_FUNCTION));
         goto ErrorExit;
 
     }
@@ -1855,7 +1855,7 @@ ErrorExit:
     if(pPublicKey)
        DRM_Common_MemoryFree((uint8_t*)pPublicKey);
 
-    BDBG_MSG(("Exiting Function %s",__FUNCTION__));
+    BDBG_MSG(("Exiting Function %s",BSTD_FUNCTION));
     return rc;
 }
 
@@ -1875,8 +1875,8 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
     DrmCommon_RsaKey_t rsaKey;
 
     BDBG_ENTER(DRM_Adobe_PrivateKeyEncrypt);
-    BDBG_MSG(("%s:srcDataSize = %d",__FUNCTION__,pAdobeRsaSettings->operation_struct.sign_op.srcDataSize));
-    BDBG_MSG(("%s:*signatureSize = %d",__FUNCTION__,*pAdobeRsaSettings->operation_struct.sign_op.signatureSize));
+    BDBG_MSG(("%s:srcDataSize = %d",BSTD_FUNCTION,pAdobeRsaSettings->operation_struct.sign_op.srcDataSize));
+    BDBG_MSG(("%s:*signatureSize = %d",BSTD_FUNCTION,*pAdobeRsaSettings->operation_struct.sign_op.signatureSize));
 
     if(index > DrmAdobe_AdobeKeyIndex_eSwKey)
     {
@@ -1892,7 +1892,7 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
 
     if(pAdobeRsaSettings->operation_struct.sign_op.pSignatureAddr == NULL)
     {
-        BDBG_ERR(("%s - Output buffer is null", __FUNCTION__));
+        BDBG_ERR(("%s - Output buffer is null", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1900,12 +1900,12 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
     if(index == DrmAdobe_AdobeKeyIndex_eRsaDrmPrivSigningkey) /*call sage */
     {
 
-        BDBG_LOG(("%s:Private key signing with HW key, calling Sage",__FUNCTION__));
+        BDBG_LOG(("%s:Private key signing with HW key, calling Sage",BSTD_FUNCTION));
         pContainer = SRAI_Container_Allocate();
         if(pContainer == NULL)
         {
             rc = Drm_MemErr;
-            BDBG_ERR(("%s - Error allocating SRAI pContainer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating SRAI pContainer", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -1919,7 +1919,7 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
         if(pContainer->blocks[0].data.ptr == NULL)
         {
             rc = Drm_MemErr;
-            BDBG_ERR(("%s - error allocating SRAI memory for input buffer of size 0x%x", __FUNCTION__,pAdobeRsaSettings->operation_struct.sign_op.srcDataSize));
+            BDBG_ERR(("%s - error allocating SRAI memory for input buffer of size 0x%x", BSTD_FUNCTION,pAdobeRsaSettings->operation_struct.sign_op.srcDataSize));
             goto ErrorExit;
         }
 
@@ -1933,7 +1933,7 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
         if(pContainer->blocks[1].data.ptr == NULL)
         {
             rc = Drm_MemErr;
-            BDBG_ERR(("%s - error allocating SRAI memory for output buffer", __FUNCTION__));
+            BDBG_ERR(("%s - error allocating SRAI memory for output buffer", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -1944,7 +1944,7 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
         if (sage_rc != BERR_SUCCESS)
         {
             rc = Drm_MemErr;
-            BDBG_ERR(("%s - Error performing private key operation", __FUNCTION__));
+            BDBG_ERR(("%s - Error performing private key operation", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -1953,7 +1953,7 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
         if(sage_rc != BERR_SUCCESS)
         {
             rc = Drm_MemErr;
-            BDBG_ERR(("%s - SAGE error with private key operation", __FUNCTION__));
+            BDBG_ERR(("%s - SAGE error with private key operation", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -1972,7 +1972,7 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
         fwrite(pKey->keybuf, 1, pKey->keybufsz, fswkeybuf);
 #endif
 
-        BDBG_MSG(("%s:Calling SW rsa SIgn api priv key sz is %d",__FUNCTION__,pKey->keybufsz));
+        BDBG_MSG(("%s:Calling SW rsa SIgn api priv key sz is %d",BSTD_FUNCTION,pKey->keybufsz));
 
         //DRM_MSG_PRINT_BUF("priv key buf: ",pKey->keybuf,pKey->keybufsz);
 
@@ -1986,7 +1986,7 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
         //DRM_MSG_PRINT_BUF( "pub exp:",&rsaKey.e.pData[0],rsaKey.e.len);
         //DRM_MSG_PRINT_BUF("&pKey->keybuf[173]",&pKey->keybuf[173],128);
 
-        BDBG_MSG(("%s:lenof priv exp is %lu",__FUNCTION__,rsaKey.d.len));
+        BDBG_MSG(("%s:lenof priv exp is %lu",BSTD_FUNCTION,rsaKey.d.len));
         //DRM_MSG_PRINT_BUF("priv exp:",&rsaKey.d.pData[0],rsaKey.d.len);
 
         rsaSwIO.bRSAop      = drmRsasign;
@@ -2002,23 +2002,23 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
 
         if(pAdobeRsaSettings->operation_struct.sign_op.srcDataSize == SHA1_DIGEST_SZ)
         {
-            BDBG_ERR(("%s:using SHA1",__FUNCTION__));
+            BDBG_ERR(("%s:using SHA1",BSTD_FUNCTION));
             rsaSwIO.psAlgorithmId = (unsigned char *)algo1;
             rsaSwIO.csAlgorithmId = sizeof(algo1);
         }
         else if(pAdobeRsaSettings->operation_struct.sign_op.srcDataSize==SHA256_DIGEST_SZ)
         {
-            BDBG_ERR(("%s:using SHA256",__FUNCTION__));
+            BDBG_ERR(("%s:using SHA256",BSTD_FUNCTION));
             rsaSwIO.psAlgorithmId = (unsigned char *)algo2;
             rsaSwIO.csAlgorithmId = sizeof(algo2);
         }
 
 
-        BDBG_ERR(("%s:call DRM_Common_SwRsa",__FUNCTION__));
+        BDBG_ERR(("%s:call DRM_Common_SwRsa",BSTD_FUNCTION));
         rc = DRM_Common_SwRsa(&rsaSwIO);
         if(rc != Drm_Success)
         {
-            BDBG_ERR(("%s :private key encrypt/signing failed",__FUNCTION__));
+            BDBG_ERR(("%s :private key encrypt/signing failed",BSTD_FUNCTION));
             goto ErrorExit;
 
         }
@@ -2060,7 +2060,7 @@ static DrmRC DRM_Adobe_HostKeyIndexMapList_Create(DrmAdobeKeyIndexMap_t *pEntry)
     ptr = (DrmAdobeKeyIndexMapList *)BKNI_Malloc(sizeof(DrmAdobeKeyIndexMapList ));
     if(ptr == NULL)
     {
-        BDBG_ERR(("%s - BKNI_Malloc err", __FUNCTION__));
+        BDBG_ERR(("%s - BKNI_Malloc err", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -2096,7 +2096,7 @@ static DrmRC DRM_Adobe_HostKeyIndexMapList_AddEntry(DrmAdobeKeyIndexMap_t *pEntr
     ptr = (DrmAdobeKeyIndexMapList *)BKNI_Malloc(sizeof(DrmAdobeKeyIndexMapList ));
     if(ptr == NULL)
     {
-        BDBG_ERR(("%s - BKNI_Malloc err", __FUNCTION__));
+        BDBG_ERR(("%s - BKNI_Malloc err", BSTD_FUNCTION));
         return Drm_MemErr;
     }
 
@@ -2125,7 +2125,7 @@ static bool DRM_Adobe_HostKeyIndexMapList_Search(DrmAdobeKeyIndexMap_t **pEntry,
     DrmAdobeKeyIndexMapList *tmp = NULL;
     bool found = false;
 
-    BDBG_MSG(("%s - Entered function search for Index 0x%x", __FUNCTION__,index));
+    BDBG_MSG(("%s - Entered function search for Index 0x%x", BSTD_FUNCTION,index));
     while(ptr != NULL)
     {
         if(ptr->keyEntry.adobeIndex == index){
@@ -2139,7 +2139,7 @@ static bool DRM_Adobe_HostKeyIndexMapList_Search(DrmAdobeKeyIndexMap_t **pEntry,
     }
 
     if(true == found){
-        BDBG_MSG(("%s - FOUND KEY index '0x%08x' in the List !!!!", __FUNCTION__, index));
+        BDBG_MSG(("%s - FOUND KEY index '0x%08x' in the List !!!!", BSTD_FUNCTION, index));
         *pEntry = &ptr->keyEntry;
     }
     else{
@@ -2180,32 +2180,32 @@ static DrmRC DRM_Adobe_HostKeyIndexMapList_DeleteEntry(uint32_t index)
 
     if(found == false)
     {
-       BDBG_MSG(("%s -  index '0x%08x' not found in KeyIndexMapList", __FUNCTION__, index));
+       BDBG_MSG(("%s -  index '0x%08x' not found in KeyIndexMapList", BSTD_FUNCTION, index));
        return Drm_Err;
     }
     else
     {
         if(ptr->keyEntry.adobeIndex == gpAdobeHostKeyIndexMapHead->keyEntry.adobeIndex)
         {
-            BDBG_MSG(("%s - entry to be deleted is the HEAD", __FUNCTION__));
+            BDBG_MSG(("%s - entry to be deleted is the HEAD", BSTD_FUNCTION));
             gpAdobeHostKeyIndexMapHead = gpAdobeHostKeyIndexMapHead->pNext;
         }
         else if(ptr->keyEntry.adobeIndex == gpAdobeHostKeyIndexMapTail->keyEntry.adobeIndex)
         {
-            BDBG_MSG(("%s - entry to be deleted is the TAIL", __FUNCTION__));
+            BDBG_MSG(("%s - entry to be deleted is the TAIL", BSTD_FUNCTION));
             gpAdobeHostKeyIndexMapTail = prev;
             gpAdobeHostKeyIndexMapTail->pNext = NULL;
         }
         else
         {
-            BDBG_MSG(("%s - entry to be deleted is not the head or the tail",__FUNCTION__));
+            BDBG_MSG(("%s - entry to be deleted is not the head or the tail",BSTD_FUNCTION));
             prev->pNext = ptr->pNext;
         }
 
         BKNI_Free(ptr);
 
         if(gHostKeySequenceNumber == 0){
-            BDBG_WRN(("%s - HostSequenceNumber is '0' and decrementing!!!", __FUNCTION__));
+            BDBG_WRN(("%s - HostSequenceNumber is '0' and decrementing!!!", BSTD_FUNCTION));
         }
 
         //gHostKeySequenceNumber--;
@@ -2244,21 +2244,21 @@ DrmRC DRM_Adobe_GetDRMCert(uint32_t keyType, /* Input: If the HW supports multip
     if(pContainer == NULL)
     {
         rc = Drm_MemErr;
-        BDBG_ERR(("%s - Error allocating SRAI pContainer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating SRAI pContainer", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     pContainer->basicIn[0] = keyType;
-    BDBG_LOG(("%s:Cert TYPE is %d",__FUNCTION__,keyType));
+    BDBG_LOG(("%s:Cert TYPE is %d",BSTD_FUNCTION,keyType));
     if(keyType == DrmAdobe_CertType_eDUAL||keyType ==  DrmAdobe_Certype_eEncryption)
     {
-        BDBG_LOG(("%s: RETURNING DECRYPTION CERT",__FUNCTION__));
+        BDBG_LOG(("%s: RETURNING DECRYPTION CERT",BSTD_FUNCTION));
  #if FILE_DUMP
             f_cert = fopen("DRM_dec_cert_sage.cer", "wb");
 #endif
     }else if (keyType == DrmAdobe_CertType_eSIGN)
     {
-        BDBG_LOG(("%s: RETURNING SIGNING CERT",__FUNCTION__));
+        BDBG_LOG(("%s: RETURNING SIGNING CERT",BSTD_FUNCTION));
 #if FILE_DUMP
             f_cert = fopen("DRM_Sign_cert_sage.cer", "wb");
 #endif
@@ -2266,13 +2266,13 @@ DrmRC DRM_Adobe_GetDRMCert(uint32_t keyType, /* Input: If the HW supports multip
     }
     else
     {
-        BDBG_ERR(("%s: Invalid CERT Type requested ",__FUNCTION__));
+        BDBG_ERR(("%s: Invalid CERT Type requested ",BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     if(pCert == NULL)
     {
-        BDBG_ERR(("%s - Setting shared pointer to null since going to return size only", __FUNCTION__));
+        BDBG_ERR(("%s - Setting shared pointer to null since going to return size only", BSTD_FUNCTION));
         pContainer->blocks[0].data.ptr = NULL;
         pContainer->blocks[0].len = 0;
     }
@@ -2285,7 +2285,7 @@ DrmRC DRM_Adobe_GetDRMCert(uint32_t keyType, /* Input: If the HW supports multip
     sage_rc = SRAI_Module_ProcessCommand(moduleHandle, DrmAdobe_CommandId_eGetDecryptionCert, pContainer);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error sending command to SAGE", __FUNCTION__));
+        BDBG_ERR(("%s - Error sending command to SAGE", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -2294,18 +2294,18 @@ DrmRC DRM_Adobe_GetDRMCert(uint32_t keyType, /* Input: If the HW supports multip
     if(sage_rc != BERR_SUCCESS)
     {
         rc = Drm_MemErr;
-        BDBG_ERR(("%s - Command sent to SAGE successfully but error fetching decryption certificate", __FUNCTION__));
+        BDBG_ERR(("%s - Command sent to SAGE successfully but error fetching decryption certificate", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     (*pSize) = pContainer->basicOut[1];
     if(pCert == NULL)
     {
-        BDBG_MSG(("%s - Size retrieved is '%u' bytes.  Certificate not copied to destination buffer", __FUNCTION__, (*pSize)));
+        BDBG_MSG(("%s - Size retrieved is '%u' bytes.  Certificate not copied to destination buffer", BSTD_FUNCTION, (*pSize)));
     }
     else
     {
-        BDBG_MSG(("%s - Copying certificate to buffer *** size=%d", __FUNCTION__,*pSize));
+        BDBG_MSG(("%s - Copying certificate to buffer *** size=%d", BSTD_FUNCTION,*pSize));
         BKNI_Memcpy(pCert, pContainer->blocks[0].data.ptr, (*pSize));
         DRM_MSG_PRINT_BUF("HWDRMCERT:",pCert,64 /**size*/);
  #if FILE_DUMP
@@ -2356,7 +2356,7 @@ DrmRC DRM_Adobe_GetHWID(
     rc = DRM_Common_FetchDeviceIds(&chipInfo);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error fetching device IDs", __FUNCTION__));
+        BDBG_ERR(("%s - Error fetching device IDs", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -2368,7 +2368,7 @@ DrmRC DRM_Adobe_GetHWID(
     rc = DRM_Common_SwSha256(temp_buf, digest, 24);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error computing SHA", __FUNCTION__));
+        BDBG_ERR(("%s - Error computing SHA", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -2394,7 +2394,7 @@ DrmRC DRM_Adobe_MemoryFree(uint8_t *pHWMemPTR)
     }
     else
     {
-        BDBG_WRN(("%s - NULL Pointer.No action taken",__FUNCTION__));
+        BDBG_WRN(("%s - NULL Pointer.No action taken",BSTD_FUNCTION));
         rc = Drm_Success;
     }
 
@@ -2425,11 +2425,11 @@ DrmRC DRM_Adobe_EncryptData(DrmAdobeSessionContext_t *pCTX,/* Input: Pointer to 
     uint32_t padded_encrypted_length = 0;
 
 
-    BDBG_MSG(("%s - Entered function.  Session context %p, data length is '%u', output buffer length = '%u'", __FUNCTION__, (void *)pCTX, length, (*pOutLength)));
+    BDBG_MSG(("%s - Entered function.  Session context %p, data length is '%u', output buffer length = '%u'", BSTD_FUNCTION, (void *)pCTX, length, (*pOutLength)));
 
     if(pCTX == NULL)
     {
-        BDBG_MSG(("%s - Context is null", __FUNCTION__));
+        BDBG_MSG(("%s - Context is null", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -2437,15 +2437,15 @@ DrmRC DRM_Adobe_EncryptData(DrmAdobeSessionContext_t *pCTX,/* Input: Pointer to 
     padded_encrypted_length = length;
     if(padded_encrypted_length % 16 != 0)
     {
-        BDBG_MSG(("%s - adjusting length for padding", __FUNCTION__));
+        BDBG_MSG(("%s - adjusting length for padding", BSTD_FUNCTION));
         padded_encrypted_length += (16 - (length % 16));
-        BDBG_MSG(("%s - padded length = '%u'", __FUNCTION__, padded_encrypted_length));
+        BDBG_MSG(("%s - padded length = '%u'", BSTD_FUNCTION, padded_encrypted_length));
     }
 
     rc = DRM_Common_MemoryAllocate(&pInputNexusMem,  padded_encrypted_length);
     if(rc != Drm_Success)
     {
-       BDBG_ERR(("%s -  Error Allocating drm Memory for input", __FUNCTION__));
+       BDBG_ERR(("%s -  Error Allocating drm Memory for input", BSTD_FUNCTION));
        goto ErrorExit;
     }
     BKNI_Memset(pInputNexusMem, 0x00,  padded_encrypted_length);
@@ -2454,12 +2454,12 @@ DrmRC DRM_Adobe_EncryptData(DrmAdobeSessionContext_t *pCTX,/* Input: Pointer to 
     /* if bi-directional is not defined we have to allocate a local buffer */
     if((capabilities & DrmAdobe_CAPABILITY_BI_DIRECTIONAL_MALLOC) == 0)
     {
-        BDBG_MSG(("%s - Capability is NOT bi-directional", __FUNCTION__));
+        BDBG_MSG(("%s - Capability is NOT bi-directional", BSTD_FUNCTION));
 
         rc = DRM_Common_MemoryAllocate((uint8_t**)&pOutputNexusMem,  padded_encrypted_length);
         if(rc != Drm_Success)
         {
-           BDBG_ERR(("%s - Error Allocating drm Memory for output", __FUNCTION__));
+           BDBG_ERR(("%s - Error Allocating drm Memory for output", BSTD_FUNCTION));
            goto ErrorExit;
         }
     }
@@ -2469,7 +2469,7 @@ DrmRC DRM_Adobe_EncryptData(DrmAdobeSessionContext_t *pCTX,/* Input: Pointer to 
 
     if(pCTX->bUseCtxforDiskIO == false)
     {
-        BDBG_MSG(("%s - Starting M2M operation ***", __FUNCTION__));
+        BDBG_MSG(("%s - Starting M2M operation ***", BSTD_FUNCTION));
 
         /* set DMA parameters */
         dmaBlock.pDstData = pOutputNexusMem;
@@ -2486,7 +2486,7 @@ DrmRC DRM_Adobe_EncryptData(DrmAdobeSessionContext_t *pCTX,/* Input: Pointer to 
         rc = DRM_Common_M2mOperation(&pCTX->drmCommonOpStruct);
         if(rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Call to 'DRM_Common_M2mOperation' failed", __FUNCTION__));
+            BDBG_ERR(("%s - Call to 'DRM_Common_M2mOperation' failed", BSTD_FUNCTION));
             goto ErrorExit;
         }
     }
@@ -2495,7 +2495,7 @@ DrmRC DRM_Adobe_EncryptData(DrmAdobeSessionContext_t *pCTX,/* Input: Pointer to 
         rc = DRM_SecureStore_BufferOperation(pInputNexusMem, padded_encrypted_length, pOutputNexusMem, DrmDestinationType_eExternal, DrmCryptoOperation_eEncrypt);
         if(rc!=Drm_Success)
         {
-            BDBG_ERR(("%s:secure store buffer operation failed",__FUNCTION__));
+            BDBG_ERR(("%s:secure store buffer operation failed",BSTD_FUNCTION));
             goto ErrorExit;
         }
     }
@@ -2504,10 +2504,10 @@ DrmRC DRM_Adobe_EncryptData(DrmAdobeSessionContext_t *pCTX,/* Input: Pointer to 
     if((capabilities & DrmAdobe_CAPABILITY_BI_DIRECTIONAL_MALLOC) == 0)
     {
         if(pCTX->bUseCtxforDiskIO == false){
-            BDBG_MSG(("%s - Copying result of M2M operation", __FUNCTION__));
+            BDBG_MSG(("%s - Copying result of M2M operation", BSTD_FUNCTION));
         }
         else{
-            BDBG_MSG(("%s - Copying result of secure store operation", __FUNCTION__));
+            BDBG_MSG(("%s - Copying result of secure store operation", BSTD_FUNCTION));
         }
 
         BKNI_Memcpy(pOutput, pOutputNexusMem,  length);
@@ -2550,9 +2550,9 @@ DrmRC DRM_Adobe_GetRootCertDigest( uint8_t *pCert,       /* Output: Certificate 
     const char * fname ="./testAdobeRootDigest.bin";
     FILE *fp =NULL;
 
-    BDBG_MSG(("Entered %s that reads form loacl file , ",__FUNCTION__ ));
+    BDBG_MSG(("Entered %s that reads form loacl file , ",BSTD_FUNCTION ));
     BDBG_ASSERT(pSize != NULL);
-    BDBG_MSG(("Entered %s, cert buf pointer:%p,cert buf size 0x%x",__FUNCTION__,(void *)pCert,*pSize ));
+    BDBG_MSG(("Entered %s, cert buf pointer:%p,cert buf size 0x%x",BSTD_FUNCTION,(void *)pCert,*pSize ));
 
     if(gpRootCertficateDigest == NULL)
     {
@@ -2561,15 +2561,15 @@ DrmRC DRM_Adobe_GetRootCertDigest( uint8_t *pCert,       /* Output: Certificate 
         fp = fopen(fname, "r");
         if (fp == NULL)
         {
-            BDBG_ERR(("%s: (%s) not found",__FUNCTION__,fname));
+            BDBG_ERR(("%s: (%s) not found",BSTD_FUNCTION,fname));
             rc = Drm_FileErr;
             goto ErrorExit;
         }
-        BDBG_MSG(("%s: %s ",__FUNCTION__,fname));
+        BDBG_MSG(("%s: %s ",BSTD_FUNCTION,fname));
         rc = DRM_Common_MemoryAllocate(&gpRootCertficateDigest, ROOTCERT_DIGEST_SZ);
         if(rc != Drm_Success)
         {
-           BDBG_ERR(("%s: Error Allocating Memory", __FUNCTION__));
+           BDBG_ERR(("%s: Error Allocating Memory", BSTD_FUNCTION));
            goto ErrorExit;
         }
 
@@ -2583,7 +2583,7 @@ DrmRC DRM_Adobe_GetRootCertDigest( uint8_t *pCert,       /* Output: Certificate 
 
     if(pCert == NULL)
     {
-        BDBG_MSG(("%s Cert is NULL sz %d",__FUNCTION__, gRootCertficateDigestSz));
+        BDBG_MSG(("%s Cert is NULL sz %d",BSTD_FUNCTION, gRootCertficateDigestSz));
     }
     else
     {
@@ -2593,7 +2593,7 @@ DrmRC DRM_Adobe_GetRootCertDigest( uint8_t *pCert,       /* Output: Certificate 
 
 ErrorExit:
     /*need to free the cert memory in drm_finalize.*/
-    BDBG_MSG(("%s - Exiting",__FUNCTION__ ));
+    BDBG_MSG(("%s - Exiting",BSTD_FUNCTION ));
     return rc;
 }
 
@@ -2612,17 +2612,17 @@ DrmRC   DRM_Adobe_GetIndivTransportCert( uint8_t *pCert,     /* Output: Certific
 {
     /*TO DO: we need to store the drm cert size in drmroofs or compute the size by looking at the next offset in the header in the adobe_key.bin*/
     DrmRC rc = Drm_Success;
-    BDBG_MSG(("Entered %s, ",__FUNCTION__ ));
+    BDBG_MSG(("Entered %s, ",BSTD_FUNCTION ));
 
     /*pCert Can be NULL when app queries the size, so only do parameter check on pSize*/
     if(pSize == NULL)
     {
-        BDBG_ERR(("%s: Invalid Input Parameter",__FUNCTION__));
+        BDBG_ERR(("%s: Invalid Input Parameter",BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s:, cert buf pointer:%p,cert buf size 0x%x",__FUNCTION__,(void *)pCert,*pSize ));
+    BDBG_MSG(("%s:, cert buf pointer:%p,cert buf size 0x%x",BSTD_FUNCTION,(void *)pCert,*pSize ));
 
     if(gpIndivTransportCert == NULL)
     {
@@ -2631,14 +2631,14 @@ DrmRC   DRM_Adobe_GetIndivTransportCert( uint8_t *pCert,     /* Output: Certific
         FILE *fp = fopen(fname, "r");
         if (fp == NULL)
         {
-          BDBG_ERR(("%s: file(%s) not found",__FUNCTION__,fname));
+          BDBG_ERR(("%s: file(%s) not found",BSTD_FUNCTION,fname));
           rc = Drm_FileErr;
           goto ErrorExit;
         }
         rc = DRM_Common_MemoryAllocate(&gpIndivTransportCert, 1024*2);
         if(rc !=Drm_Success)
         {
-           BDBG_ERR(("%s: Error Allocating Memory", __FUNCTION__));
+           BDBG_ERR(("%s: Error Allocating Memory", BSTD_FUNCTION));
            goto ErrorExit;
         }
 
@@ -2665,6 +2665,6 @@ DrmRC   DRM_Adobe_GetIndivTransportCert( uint8_t *pCert,     /* Output: Certific
      DRM_MSG_PRINT_BUF("IndivTransportCert", pCert, 64);
 ErrorExit:
     /*need to free the cert memory in drm_finalize.*/
-    BDBG_MSG(("%s - Exiting",__FUNCTION__ ));
+    BDBG_MSG(("%s - Exiting",BSTD_FUNCTION ));
     return rc;
 }

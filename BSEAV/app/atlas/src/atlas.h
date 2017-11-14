@@ -60,7 +60,7 @@ extern "C" {
 #undef ABS
 #define ABS(x)     (((x) < 0) ? -(x) : (x))
 #undef ROUND
-#define ROUND(x) ((int)((x) + 0.5))
+#define ROUND(x)   ((int)((x) + 0.5))
 
 #define COLOR_STEP              0x000a0a0a
 #define COLOR_BLACK             0xFF000000
@@ -91,11 +91,11 @@ extern "C" {
 #define COLOR_RED_DARK          0xFF992122
 
 /* percent 0-1000 == 0%-100.0% */
-#define SCALE_RECT_PERCENT(rectBase, rectPercent)                            \
-    MRect( \
+#define SCALE_RECT_PERCENT(rectBase, rectPercent)                                                                                 \
+    MRect(                                                                                                                        \
         (0 == (rectPercent).x())      ? rectBase.x()      : rectBase.x() + ROUND(rectBase.width()  * (rectPercent.x()) / 1000.0), \
         (0 == (rectPercent).y())      ? rectBase.y()      : rectBase.y() + ROUND(rectBase.height() * (rectPercent.y()) / 1000.0), \
-        (0 == (rectPercent).width())  ? rectBase.width()  : ROUND(rectBase.width()  * (rectPercent).width()  / 1000.0), \
+        (0 == (rectPercent).width())  ? rectBase.width()  : ROUND(rectBase.width()  * (rectPercent).width()  / 1000.0),           \
         (0 == (rectPercent).height()) ? rectBase.height() : ROUND(rectBase.height() * (rectPercent).height() / 1000.0));
 
 /* Atlas error codes */
@@ -181,11 +181,11 @@ typedef enum eRet
     } while (0)
 
 /* print helpful trace only if ATLAS_MEMORY_LEAK_DETECT is exported */
-#define ATLAS_MEMLEAK_TRACE(str)                                       \
-    do {                                                               \
-        if (getenv("ATLAS_MEMORY_LEAK_DETECT")) {                      \
+#define ATLAS_MEMLEAK_TRACE(str)                                        \
+    do {                                                                \
+        if (getenv("ATLAS_MEMORY_LEAK_DETECT")) {                       \
             BDBG_WRN(("--> %s:%s %s", __FILE__, BSTD_FUNCTION, (str))); \
-        }                                                              \
+        }                                                               \
     } while (0)
 
 /* print atlas error and return given error code */
@@ -555,15 +555,15 @@ typedef enum eRet
 
 #define ENUM_TO_MSTRING_ENTRY(nvalue, strvalue)  hash.add(MString(nvalue).s(), strvalue);
 
-#define ENUM_TO_MSTRING_END()                                                                     \
-    }                                                                                             \
-    MString strLookup = hash.get(MString(var).s());                                               \
-    if (strLookup.isNull())                                                                       \
-    {                                                                                             \
+#define ENUM_TO_MSTRING_END()                                                                      \
+    }                                                                                              \
+    MString strLookup = hash.get(MString(var).s());                                                \
+    if (strLookup.isNull())                                                                        \
+    {                                                                                              \
         BDBG_WRN(("%s enum:%d is missing corresponding valid string value.", BSTD_FUNCTION, var)); \
-        strLookup = unknownValue;                                                                 \
-    }                                                                                             \
-    return strLookup;                                                                             \
+        strLookup = unknownValue;                                                                  \
+    }                                                                                              \
+    return strLookup;                                                                              \
     }
 
 /* conversion from MString to enum */
@@ -586,14 +586,14 @@ typedef enum eRet
 
 #define STRING_TO_ENUM_ENTRY(strvalue, nvalue)  hash.add(strvalue, MString(nvalue).s());
 
-#define STRING_TO_ENUM_END(ntype)                                                                \
-    }                                                                                            \
-    MString strLookup = hash.get(str);                                                           \
-    if (strLookup.isNull())                                                                      \
-    {                                                                                            \
+#define STRING_TO_ENUM_END(ntype)                                                                 \
+    }                                                                                             \
+    MString strLookup = hash.get(str);                                                            \
+    if (strLookup.isNull())                                                                       \
+    {                                                                                             \
         BDBG_WRN(("%s string:%s is missing corresponding valid enum value", BSTD_FUNCTION, str)); \
-    }                                                                                            \
-    return (ntype)(strLookup.toInt());                                                           \
+    }                                                                                             \
+    return (ntype)(strLookup.toInt());                                                            \
     }
 
 #ifdef __cplusplus

@@ -53,9 +53,13 @@ ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
         NEXUS_CFLAGS += -marm
     endif
     ifeq ($(ARM_ARCH), V8)
-        NEXUS_CFLAGS += -mcpu=cortex-a53 -march=armv8-a
+        NEXUS_CFLAGS += -march=armv8-a
     else
-        NEXUS_CFLAGS += -march=armv7-a
+        ifeq ($(ARM_ARCH), V53)
+            NEXUS_CFLAGS += -mcpu=cortex-a53
+        else
+            NEXUS_CFLAGS += -march=armv7-a
+        endif
     endif
     NEXUS_CFLAGS += -Wno-unused-but-set-variable
     ifeq ($(NEXUS_ENDIAN), BSTD_ENDIAN_BIG)

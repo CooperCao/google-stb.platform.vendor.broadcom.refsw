@@ -257,7 +257,8 @@ typedef volatile struct _d11regs {
 			uint16	rcmta_addr0;		/* 0x43e */
 			uint16	rcmta_addr1;		/* 0x440 */
 			uint16	rcmta_addr2;		/* 0x442 */
-			uint16	PAD[2];			/* 0x444 - 0x446 */
+			uint16	rxe_phyrs_4;		/* 0x444 */
+			uint16	rxe_phyrs_5;		/* 0x446 */
 			uint16	dagg_ctl;		/* 0x448 For corerev < 40 */
 			uint16  dagg_count;		/* 0x44A For corerev < 40 */
 			uint16  dagg_length;	/* 0x44C For corerev < 40 */

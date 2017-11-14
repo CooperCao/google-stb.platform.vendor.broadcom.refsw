@@ -45,6 +45,8 @@
 #include "bvdc_window_priv.h"
 #include "bvdc_source_priv.h"
 #include "bvdc_compositor_priv.h"
+#include "bvdc_displayfmt_priv.h"
+#include "bvdc_display_priv.h"
 #include "bvdc_scaler_priv.h"
 #include "bvdc_dnr_priv.h"
 #include "bvdc_hscaler_priv.h"
@@ -350,8 +352,11 @@ void BVDC_Dbg_Window_GetDebugStatus
                     if ((hWindow->stCurResource.hCapture && (hWindow->stCurResource.hCapture->eId + BVDC_BvnError_eCap_0 == i)) ||
                         (hWindow->stCurResource.hPlayback && (hWindow->stCurResource.hPlayback->eId + BVDC_BvnError_eMfd_0 == i)) || /* includes MFD and VFD */
                         (hWindow->stCurResource.hScaler && (hWindow->stCurResource.hScaler->eId + BVDC_BvnError_eScl_0  == i)) ||
-                        (hWindow->stCurResource.hDnr && (hWindow->stCurResource.hDnr->eId + BVDC_BvnError_eDnr_0  == i)) ||
-                        (hWindow->stCurResource.hHscaler && (hWindow->stCurResource.hHscaler->eId + BVDC_BvnError_eHscl_0 == i)))
+                        (hWindow->stCurResource.hDnr && (hWindow->stCurResource.hDnr->eId + BVDC_BvnError_eDnr_0  == i))
+#if BVDC_P_SUPPORT_HSCL_VER
+                     || (hWindow->stCurResource.hHscaler && (hWindow->stCurResource.hHscaler->eId + BVDC_BvnError_eHscl_0 == i))
+#endif
+                        )
                     {
                         ulBvnErrCount += hWindow->hCompositor->hVdc->aulBvnErrCnt[i];
                     }
@@ -909,6 +914,91 @@ BVDC_Display_Handle BVDC_Dbg_Compositor_GetDisplayHandle
     }
 
     return hDis;
+}
+#endif
+
+#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
+/***************************************************************************
+ *
+ */
+void BVDC_Dbg_Display_GetVecUcodeInfo
+    ( const BVDC_Display_Handle     hDisplay,
+      BVDC_Display_UcodeInfo       *pstUcodeInfo )
+{
+    BREG_Handle hRegister;
+    uint32_t ulBase, ulTsIndex, ulCksumIndex;
+
+    /* Sanity check */
+    BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
+    BDBG_ASSERT(pstUcodeInfo);
+
+    /* Reset */
+    pstUcodeInfo->ulAnalogTs = 0;
+    pstUcodeInfo->ulAnalogCksum = 0;
+    pstUcodeInfo->ulDviTs = 0;
+    pstUcodeInfo->ulDviCksum = 0;
+    pstUcodeInfo->ul656Ts = 0;
+    pstUcodeInfo->ul656Cksum = 0;
+
+    hRegister = hDisplay->hVdc->hRegister;
+
+    if(BVDC_P_STATE_IS_ACTIVE(hDisplay))
+    {
+        if((hDisplay->bAnlgEnable) ||   /* if analog master */
+            (!hDisplay->bAnlgEnable &&  /* or analog slave with DACs */
+            (hDisplay->stAnlgChan_0.bEnable || hDisplay->stAnlgChan_1.bEnable)))
+        {
+            uint32_t ulOffset;
+            if (hDisplay->bAnlgEnable)
+            {
+                ulOffset = hDisplay->stAnlgChan_0.ulItRegOffset;
+            }
+            else
+            {
+                ulOffset = (hDisplay->stAnlgChan_1.bEnable) ?
+                    hDisplay->stAnlgChan_1.ulItRegOffset : hDisplay->stAnlgChan_0.ulItRegOffset;
+            }
+
+            ulBase = BCHP_IT_0_MICRO_INSTRUCTIONi_ARRAY_BASE + ulOffset;
+            ulTsIndex = BVDC_P_RAM_TABLE_TIMESTAMP_IDX * sizeof(uint32_t);
+            ulCksumIndex = BVDC_P_RAM_TABLE_CHECKSUM_IDX * sizeof(uint32_t);
+
+            pstUcodeInfo->ulAnalogTs = BREG_Read32(hRegister, ulBase + ulTsIndex);
+            pstUcodeInfo->ulAnalogCksum = BREG_Read32(hRegister, ulBase + ulCksumIndex);
+        }
+
+        if (hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
+        {
+#if (BVDC_P_ORTHOGONAL_VEC_VER <= BVDC_P_ORTHOGONAL_VEC_VER_1)
+            ulBase = BCHP_DTRAM_0_DMC_INSTRUCTIONi_ARRAY_BASE + (BVDC_P_DVI_DTRAM_START_ADDR * sizeof(uint32_t));
+#else
+            ulBase =  BCHP_DVI_DTG_0_DMC_INSTRUCTIONi_ARRAY_BASE +
+                (BVDC_P_DVI_DTRAM_START_ADDR * sizeof(uint32_t)) + hDisplay->stDviChan.ulDviRegOffset;
+#endif
+            ulTsIndex = BVDC_P_DTRAM_TABLE_TIMESTAMP_IDX * sizeof(uint32_t);
+            ulCksumIndex = BVDC_P_DTRAM_TABLE_CHECKSUM_IDX * sizeof(uint32_t);
+
+            pstUcodeInfo->ulDviTs = BREG_Read32(hRegister, ulBase + ulTsIndex);
+            pstUcodeInfo->ulDviCksum = BREG_Read32(hRegister, ulBase + ulCksumIndex);
+        }
+
+#if (BCHP_ITU656_0_REG_START)
+        if (hDisplay->st656Chan.bEnable)
+        {
+#if (BVDC_P_ORTHOGONAL_VEC_VER <= BVDC_P_ORTHOGONAL_VEC_VER_1)
+            ulBase = BCHP_DTRAM_0_DMC_INSTRUCTIONi_ARRAY_BASE;
+#else
+            ulBase = BCHP_ITU656_DTG_0_DMC_INSTRUCTIONi_ARRAY_BASE;
+#endif
+
+            ulTsIndex = BVDC_P_DTRAM_TABLE_TIMESTAMP_IDX * sizeof(uint32_t);
+            ulCksumIndex = BVDC_P_DTRAM_TABLE_CHECKSUM_IDX * sizeof(uint32_t);
+
+            pstUcodeInfo->ul656Ts = BREG_Read32(hRegister, ulBase + ulTsIndex);
+            pstUcodeInfo->ul656Cksum = BREG_Read32(hRegister, ulBase + ulCksumIndex);
+        }
+#endif
+     }
 }
 #endif
 

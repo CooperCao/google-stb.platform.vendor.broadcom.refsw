@@ -1,40 +1,40 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- ******************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #include "bstd.h"
 #include "bchp.h"
@@ -199,6 +199,9 @@ static BERR_Code BMXT_Open_PreOpen(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_
         }
     }
 
+    if (pSettings->enablePidFiltering) {
+        BDBG_WRN(("Open: enable demod pid filtering on %s", BMXT_CHIP_STR[mxt->settings.chip]));
+    }
 #if 0
 {
     /* manually trigger DEMOD_XPT_FE reset on 45308. no longer needed */
@@ -293,39 +296,41 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
     }
 #endif
 
-    for (i=0; i<mxt->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1]; i++) {
-        uint32_t val = 0;
-        unsigned pipeSel = PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(0); /* default to TX0 */
-
-        addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
-        reg = BMXT_RegRead32(mxt, addr);
-        #if 0
-        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, SECURITY_OUTPUT_PIPE_SEL, 0);
-        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, IGNORE_PID_VERSION, 0);
-        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PLAYBACK_FE_SEL, 0); /* not playback */
-        #endif
-        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, pipeSel);
-        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, INPUT_BAND_PARSER_PID_CHANNEL_INPUT_SELECT, i);
-        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, MPOD_BYPASS_EN, 0);
-        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 1);
-        #if 0
-        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, ENABLE_HD_FILTER, 0);
-        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PID_CHANNEL_PID, 0); /* don't care */
-        #endif
-        BDBG_MSG(("PID_TABLE %3u: %08x -> %08x", i, reg, val));
-        BMXT_RegWrite32(mxt, addr, val);
-    }
-
-    /* for platforms with PARSER-level BAND_ID mapping (pre-4538), set correct MTSIF_TX defaults on possible virtual (not physical) parser's PID_TABLE entries */
-    if (handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] == BMXT_NOREG) {
-        for (; i<BMXT_P_LEGACY_PARSER_BAND_ID_MAX; i++) {
+    if (handle->settings.enablePidFiltering==false) {
+        for (i=0; i<mxt->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1]; i++) {
             uint32_t val = 0;
             unsigned pipeSel = PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(0); /* default to TX0 */
 
             addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
             reg = BMXT_RegRead32(mxt, addr);
+            #if 0
+            BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, SECURITY_OUTPUT_PIPE_SEL, 0);
+            BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, IGNORE_PID_VERSION, 0);
+            BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PLAYBACK_FE_SEL, 0); /* not playback */
+            #endif
             BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, pipeSel);
+            BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, INPUT_BAND_PARSER_PID_CHANNEL_INPUT_SELECT, i);
+            BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, MPOD_BYPASS_EN, 0);
+            BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, 1);
+            #if 0
+            BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, ENABLE_HD_FILTER, 0);
+            BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PID_CHANNEL_PID, 0); /* don't care */
+            #endif
+            BDBG_MSG(("PID_TABLE %3u: %08x -> %08x", i, reg, val));
             BMXT_RegWrite32(mxt, addr, val);
+        }
+
+        /* for platforms with PARSER-level BAND_ID mapping (pre-4538), set correct MTSIF_TX defaults on possible virtual (not physical) parser's PID_TABLE entries */
+        if (handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] == BMXT_NOREG) {
+            for (; i<BMXT_P_LEGACY_PARSER_BAND_ID_MAX; i++) {
+                uint32_t val = 0;
+                unsigned pipeSel = PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(0); /* default to TX0 */
+
+                addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
+                reg = BMXT_RegRead32(mxt, addr);
+                BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, pipeSel);
+                BMXT_RegWrite32(mxt, addr, val);
+            }
         }
     }
 
@@ -345,8 +350,10 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
             BMXT_GetParserConfig(mxt, i, &pbConfig);
             pbConfig.ErrorInputIgnore = false;
             pbConfig.TsMode = BMXT_ParserTimestampMode_eMod300;
-            pbConfig.AcceptNulls = true;
-            pbConfig.AllPass = true;
+            if (mxt->settings.enablePidFiltering==false) {
+                pbConfig.AcceptNulls = true;
+                pbConfig.AllPass = true;
+            }
             pbConfig.DssMode = false;
             pbConfig.InputBandNumber = i; /* default to 1-to-1 mapping */
             pbConfig.virtualParserNum = i; /* default to 1-to-1 mapping */
@@ -369,6 +376,15 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
 #endif
 
     return;
+}
+
+void BMXT_P_Inbuf_Pwr_Ctrl(BMXT_Handle handle, bool powerUp)
+{
+    static const unsigned BMXT_P_INPUF_MEM0_ONLY = 0xFFFFFFFE;
+    uint32_t val;
+    BMXT_RegWrite32(handle, R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_CTRL), powerUp ? 0 : BMXT_P_INPUF_MEM0_ONLY);
+    val = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS));
+    BDBG_MSG(("INBUF powerup %u, STATUS %08x", (unsigned)powerUp, val));
 }
 
 BERR_Code BMXT_Open(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_Handle hReg, const BMXT_Settings *pSettings)
@@ -394,24 +410,12 @@ BERR_Code BMXT_Open(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_Handle hReg, co
     if (BMXT_IS_45308_FAMILY()) {
         reg = BMXT_RegRead32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS));
         BDBG_MSG(("45308_Open: PWR_DN_STATUS: %08x", reg));
-        BMXT_RegWrite32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_CTRL), 0);
 
-        if (pSettings->chip == BMXT_Chip_e45308 && pSettings->chipRev < BMXT_ChipRev_eB0) {
-            reg = BMXT_RegRead32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL));
-            BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL, INBUF_MEM_DYNAMIC_PWR_DN_EN, 0);
-            BMXT_RegWrite32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL), reg);
-        }
-        else {
-            reg = BMXT_RegRead32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL));
-            BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL, INBUF_MEM_DYNAMIC_PWR_DN_EN, 1);
-            BMXT_RegWrite32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL), reg);
-
-#if 0
-            BKNI_Delay(1);
-            reg = BMXT_RegRead32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS));
-            BDBG_MSG(("45308_Open: PWR_DN_STATUS: %08x", reg)); /* for INBUF_MEM_PWR_UP_MEM_NUM_THRESHOLD = 0x2, expect 0x0FFF_FFFC */
-#endif
-        }
+        /* CRXPT-1195: disable dynamic power down and manually enable single instance of INBUF */
+        reg = BMXT_RegRead32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL));
+        BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL, INBUF_MEM_DYNAMIC_PWR_DN_EN, 0);
+        BMXT_RegWrite32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL), reg);
+        BMXT_P_Inbuf_Pwr_Ctrl(mxt, false);
     }
 
     BMXT_Open_PostOpen(mxt);
@@ -422,6 +426,7 @@ void BMXT_Close(BMXT_Handle handle)
 {
     unsigned i;
     BMXT_ParserConfig pbConfig;
+    uint32_t addr, reg;
     BDBG_ASSERT(handle);
 
     for (i=0; i<handle->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1]; i++) {
@@ -433,12 +438,23 @@ void BMXT_Close(BMXT_Handle handle)
     }
 
     for (i=0; i<handle->platform.num[BMXT_RESOURCE_MTSIF_TX0_CTRL1]; i++) {
-        uint32_t reg, addr;
         addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_CTRL1) + (i*STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
         reg = BMXT_RegRead32(handle, addr);
         BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, TX_ENABLE, 0);
         BMXT_RegWrite32(handle, addr, reg);
     }
+
+#if 0 /* prints unnecessary warnings on s3 standby */
+    if (handle->settings.enablePidFiltering) {
+        for (i=0; i<BMXT_MAX_NUM_PIDCHANNELS; i++) {
+            addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
+            reg = BMXT_RegRead32(handle, addr);
+            if (BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE)) {
+                BDBG_WRN(("BMXT_Close: pidchannel %u left enabled", i));
+            }
+        }
+    }
+#endif
 
 #ifdef BCHP_PWR_RESOURCE_XPT_DEMOD
     if (handle->platform.type==BMXT_P_PlatformType_eReg) {
@@ -672,13 +688,14 @@ BERR_Code BMXT_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_Pars
     /* 4538 and later */
     if (handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] != BMXT_NOREG)
     {
-        /* for MTSIF_TX-level mapping, query PID_TABLE to get correct MTSIF_TX first, then query BAND_ID */
-        rc = BMXT_P_GetMtsifTxSelect(handle, parserNum, &pConfig->mtsifTxSelect);
-        if (rc) {
-            BDBG_ERR(("GetParserConfig%u: BMXT_P_GetMtsifTxSelect failure", parserNum));
-            goto done;
+        if (handle->settings.enablePidFiltering==false) {
+            /* for MTSIF_TX-level mapping, query PID_TABLE to get correct MTSIF_TX first, then query BAND_ID */
+            rc = BMXT_P_GetMtsifTxSelect(handle, parserNum, &pConfig->mtsifTxSelect);
+            if (rc) {
+                BDBG_ERR(("GetParserConfig%u: BMXT_P_GetMtsifTxSelect failure", parserNum));
+                goto done;
+            }
         }
-
         pConfig->virtualParserNum = BMXT_P_GetVirtualParserNum(handle, pConfig->mtsifTxSelect, parserNum);
     }
     else { /* legacy */
@@ -797,10 +814,12 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
     /* 4538 and later */
     if (handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] != BMXT_NOREG)
     {
-        rc = BMXT_P_SetMtsifTxSelect(handle, parserNum, pConfig->mtsifTxSelect);
-        if (rc) {
-            BDBG_ERR(("SetParserConfig%u: BMXT_P_SetMtsifTxSelect failure", parserNum));
-            goto done;
+        if (handle->settings.enablePidFiltering==false) {
+            rc = BMXT_P_SetMtsifTxSelect(handle, parserNum, pConfig->mtsifTxSelect);
+            if (rc) {
+                BDBG_ERR(("SetParserConfig%u: BMXT_P_SetMtsifTxSelect failure", parserNum));
+                goto done;
+            }
         }
 
         BMXT_P_SetVirtualParserNum(handle, pConfig->mtsifTxSelect, parserNum, pConfig->virtualParserNum);
@@ -865,6 +884,15 @@ post_map:
 
     /* PARSER_ENABLE always done last */
     BMXT_P_SetParserEnable(handle, parserNum, pConfig->Enable);
+    if (!pConfig->Enable) {
+        /* disable TB-functionality */
+        if (parserNum < handle->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1]) {
+            RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1) + parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1);
+            Reg = BMXT_RegRead32(handle, RegAddr);
+            BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_ENABLE, 0);
+            BMXT_RegWrite32(handle, RegAddr, Reg);
+        }
+    }
 
     /* channel stop */
     if (!pConfig->Enable && wasEnabled) {
@@ -973,6 +1001,32 @@ uint32_t BMXT_ReadIntStatusRegister(BMXT_Handle handle, BMXT_IntReg intReg)
         val = 0;
     }
     return val;
+}
+
+void BMXT_ConfigPidChannel(BMXT_Handle handle, unsigned index, const BMXT_PidChannelSettings *pidChannelSettings)
+{
+    uint32_t addr, reg;
+    if (index >= BMXT_MAX_NUM_PIDCHANNELS) {
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
+    }
+    if (handle->settings.enablePidFiltering==false) {
+        BDBG_ERR(("MXT not configured for pid filtering"));
+        return;
+    }
+
+    addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*index);
+    reg = BMXT_RegRead32(handle, addr);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, SECURITY_OUTPUT_PIPE_SEL, 0);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, IGNORE_PID_VERSION, 1); /* hard-coded for now */
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, PLAYBACK_FE_SEL, 0);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, pidChannelSettings->mtsifTxSelect);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, INPUT_BAND_PARSER_PID_CHANNEL_INPUT_SELECT, pidChannelSettings->inputSelect);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, MPOD_BYPASS_EN, 0);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, pidChannelSettings->enable ? 1:0);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, ENABLE_HD_FILTER, 0);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, HD_FILT_DIS_PID_CHANNEL_PID, pidChannelSettings->pid);
+    BMXT_RegWrite32(handle, addr, reg);
 }
 
 /****************************************************************
@@ -1195,7 +1249,10 @@ BERR_Code BMXT_Tbg_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_
     pConfig->latchSyncCount = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, LATCH_SYNC_COUNT_INTO_TIMESTAMP);
     pConfig->primaryBandNum = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TBG_PRI_BAND_NUM);
     pConfig->enable = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_ENABLE);
-
+    /* pid-filtering with TBG */
+    pConfig->unmappedMarkerPktAcceptEn = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_UNMAPPED_MARKER_PKT_ACCEPT_EN);
+    pConfig->btpGenDis = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_BTP_GEN_DIS);
+    pConfig->unmappedPidChNum = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_PARSER_PID_CH_NUM);
     return BERR_SUCCESS;
 }
 
@@ -1216,6 +1273,10 @@ BERR_Code BMXT_Tbg_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, LATCH_SYNC_COUNT_INTO_TIMESTAMP, pConfig->latchSyncCount);
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TBG_PRI_BAND_NUM, pConfig->primaryBandNum);
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_ENABLE, pConfig->enable);
+    /* pid-filtering with TBG */
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_UNMAPPED_MARKER_PKT_ACCEPT_EN, pConfig->unmappedMarkerPktAcceptEn);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_BTP_GEN_DIS, pConfig->btpGenDis);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_PARSER_PID_CH_NUM, pConfig->unmappedPidChNum);
     BMXT_RegWrite32(handle, addr, reg);
 
     return BERR_SUCCESS;
@@ -1317,7 +1378,7 @@ BERR_Code BMXT_Tbg_SetGlobalConfig(BMXT_Handle handle, const BMXT_Tbg_GlobalConf
 
     reg = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL1));
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_TB_GLOBAL_CTRL1, TB_MARKER_TAG, pConfig->markerTag);
-    BMXT_RegWrite32(handle, BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL1, reg);
+    BMXT_RegWrite32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL1), reg);
 
     reg = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL2));
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_TB_GLOBAL_CTRL2, MARKER_PID_VALUE, pConfig->markerPidValue);

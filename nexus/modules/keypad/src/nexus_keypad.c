@@ -41,6 +41,11 @@
 #include "nexus_keypad_module.h"
 #include "priv/nexus_core.h"
 #include "bkpd.h"
+
+/* keypad SPI support is currently unused. compiling it out for now instead of
+fixing static analysis issues. */
+#undef NEXUS_HAS_SPI
+
 #if !NEXUS_HAS_GPIO
 #undef NEXUS_HAS_SPI
 #endif
@@ -225,7 +230,7 @@ static void NEXUS_Keypad_P_DataReady_isr(void *context, int param, void *unused)
     BSTD_UNUSED(unused);
     BDBG_OBJECT_ASSERT(keypad, NEXUS_Keypad);
 
-    rc = BKPD_Read_isr(keypad->kpd, &event.code);
+    rc = BKPD_Read_isrsafe(keypad->kpd, &event.code);
     if (rc) BERR_TRACE(rc);
 
     NEXUS_Time_Get_isrsafe(&time);
@@ -285,9 +290,9 @@ NEXUS_KeypadHandle NEXUS_Keypad_Open(unsigned index, const NEXUS_KeypadSettings 
 
     /* Check for SPI */
     /* SPI keypad requires GPIO Interrupt */
-#if NEXUS_HAS_SPI
     if (g_NEXUS_keypad.settings.spi.valid && g_NEXUS_keypad.settings.gpio.valid)
     {
+#if NEXUS_HAS_SPI
         NEXUS_SpiSettings spiSettings;
         NEXUS_GpioSettings keypadGpioSettings;
 
@@ -318,8 +323,11 @@ NEXUS_KeypadHandle NEXUS_Keypad_Open(unsigned index, const NEXUS_KeypadSettings 
         }
 
         goto done;
-    }
+#else
+        BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return NULL;
 #endif
+    }
 
     rc = BKPD_GetDefaultSettings(&kpdSettings, g_pCoreHandles->chp);
     if (rc) {BERR_TRACE(rc);goto error;}
@@ -338,7 +346,7 @@ NEXUS_KeypadHandle NEXUS_Keypad_Open(unsigned index, const NEXUS_KeypadSettings 
     {
         uint16_t code;
 
-        rc = BKPD_Read(keypad->kpd, &code);
+        rc = BKPD_Read_isrsafe(keypad->kpd, &code);
         if (rc) {BERR_TRACE(rc);goto error;}
         if (code != 0)
         {   /* this pattern occurs when no keypad is connected */

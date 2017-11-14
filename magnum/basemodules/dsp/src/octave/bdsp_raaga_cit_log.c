@@ -36,235 +36,9 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#include "bdsp_raaga_cit_log.h"
+#include "bdsp_raaga_priv_include.h"
 
 BDBG_MODULE(bdsp_cit);
-
-const char Algorithm2Name[BDSP_Algorithm_eMax][BDSP_MAX_CHAR_LENGTH] =
-{
-	{"MPEG DECODE"},
-	{"MPEG PASSTHRU"},
-	{"MPEG ENCODE"},
-	{"AAC ADTS DECODE"},
-	{"AAC ADTS PASSTHRU"},
-	{"AAC LOAS DECODE"},
-	{"AAC LOAS PASSTHRU"},
-	{"AAC ENCODE"},
-	{"DOLBY PULSE ADTS DECODE"},
-	{"DOLBY PULSE LOAS DECODE"},
-#ifdef BDSP_DDP_SUPPORT
-	{"AC3 DECODE (USING DDP)"},
-#else
-	{"AC3 DECODE"},
-#endif
-	{"AC3 PASSTHRU"},
-	{"AC3 ENCODE"},
-	{"AC3+ DECODE"},
-	{"AC3+ PASSTHRU"},
-	{"DTS CORE ENCODE"},
-	{"DTS HD DECODE"},
-	{"DTS HD PASSTHRU"},
-	{"DTS 14BIT DECODE"},
-	{"DTS 14BIT PASSTHRU"},
-	{"DTS LBR DECODE"},
-	{"WMA DECODE"},
-	{"WMA PRO DECODE"},
-	{"MLP DECODE"},
-	{"MLP PASSTHRU"},
-	{"AMR NB DECODE"},
-	{"AMR NB ENCODE"},
-	{"AMR WB DECODE"},
-	{"AMR WB ENCODE"},
-	{"DRA DECODE"},
-	{"COOK DECODE"},
-	{"VORBIS DECODE"},
-	{"FLAC DECODE"},
-	{"MAC DECODE"},
-	{"G711 DECODE"},
-	{"G711 ENCODE"},
-	{"G726 DECODE"},
-	{"G726 ENCODE"},
-	{"G729 DECODE"},
-	{"G729 ENCODE"},
-	{"G723_1 DECODE"},
-	{"G723_1 ENCODE"},
-	{"LPCM DVD DECODE"},
-	{"LPCM 1394 DECODE"},
-	{"LPCM BD DECODE"},
-	{"PCM WAV DECODE"},
-	{"PCM DECODE"},
-	{"ADPCM DECODE"},
-	{"iLBC DECODE"},
-	{"iSAC DECODE"},
-	{"iLBC ENCODE"},
-	{"iSAC ENCODE"},
-	{"LPCM ENCODE"},
-	{"UDC DECODE"},
-	{"UDC PASSTHRU"},
-	{"DOLBY AACHE ADTS DECODE"},
-	{"DOLBY AACHE LOAS DECODE"},
-	{"OPUS DECODE"},
-	{"ALS DECODE"},
-	{"ALS LOAS DECODE"},
-	{"AC4 DECODE"},
-	{"OPUS ENCODE"},
-	{"DDP ENCODE"},
-	{"GENERIC PASSTHRU"},
-	{"MIXER"},
-	{"MIXER DAPV2"},
-	{"SAMPLE RATE CONVERTER"},
-	{"DSOLA"},
-	{"GEN CDB ITB"},
-	{"BRCM AVL"},
-	{"BRCM 3D SURROUND"},
-	{"SRS TRU SURROUND"},
-	{"SRS TRU VOLUME"},
-	{"DDRE"},
-	{"DV258"},
-	{"DPCMR"},
-	{"CUSTOM VOICE"},
-	{"BTSC ENCODER"},
-	{"KARAOKE"},
-	{"OUTPUT FORMATTER"},
-	{"VACAL PP"},
-	{"FADE CONTROL"},
-	{"AMBISONICS"},
-	{"TSM CORRECTION"},
-	{"SPEEXAEC"},
-	{"VP6 DECODE"},
-	{"H264 ENCODE"},
-	{"X264 ENCODE"},
-	{"XVP8 ENCODE"},
-	{"SECURITY A"},
-	{"SECURITY B"},
-	{"SECURITY C"},
-};
-
-const char PortType[BDSP_AF_P_PortType_eLast][BDSP_MAX_CHAR_LENGTH] =
-{
-	{"FMM"},
-	{"RAVE"},
-	{"RDB"},
-	{"INTER TASK"},
-	{"INTER STAGE"},
-	{"ANDROID AUDIO"}
-};
-
-const char DistinctOutputType[BDSP_AF_P_DistinctOpType_eMax][BDSP_MAX_CHAR_LENGTH] =
-{
-	{"7.1 PCM"},
-	{"5.1 PCM"},
-	{"STEREO PCM"},
-	{"MONO PCM"},
-	{"COMPRESSED"},
-	{"COMPRESSED 4X"},
-	{"COMPRESSED HBR"},
-	{"DOLBY RE-ENCODED AUX"},
-	{"CDB"},
-	{"ITB"},
-	{"ANCILLARY DATA"},
-	{"DESCRIPTOR QUEUE"},
-	{"GENERIC INTERSTAGE"}
-};
-
-const char BufferType[BDSP_AF_P_BufferType_eLast][BDSP_MAX_CHAR_LENGTH] =
-{
-	{"FMM"},
-	{"FMM SLAVE"},
-	{"RAVE"},
-	{"RDB"},
-	{"DRAM"},
-	{"BUFFER POOL"},
-	{"LINEAR"}
-};
-
-const char DataAccessType[BDSP_AF_P_Port_eLast][BDSP_MAX_CHAR_LENGTH] =
-{
-	{"NONE"},
-	{"STANDARD"},
-	{"SAMPLE INTERLEAVED PCM"},
-	{"CHANNEL INTERLEAVED PCM"},
-	{"META DATA ACCESS"},
-};
-
-const char BaseRateMultiplier[BDSP_AF_P_FmmDstFsRate_eInvalid+1][BDSP_MAX_CHAR_LENGTH] =
-{
-	{"Base Rate"},
-	{"Stream Sample Rate"},
-	{"2X Base Rate"},
-	{"4X Base Rate"},
-	{"16X Base Rate"},
-	{"HBR Rate"}
-};
-
-const char FMMContentType [BDSP_AF_P_FmmContentType_eMax][BDSP_MAX_CHAR_LENGTH] =
-{
-	{"PCM"},
-	{"Compressed"},
-	{"Analog Compressed"}
-};
-
-const char GlobalTimeBase [2][BDSP_MAX_CHAR_LENGTH] =
-{
-    {"45 Khz "},
-    {"27 Mhz "}
-};
-
-const char DelayMode[BDSP_AudioTaskDelayMode_eMax+1][BDSP_MAX_CHAR_LENGTH]=
-{
-    {"Default"},
-    {"WD_Low"},
-    {"WD_Lowest"},
-    {"Invalid"}
-};
-
-const char DisableEnable[2][BDSP_MAX_CHAR_LENGTH] =
-{
-    {"Disabled "},
-    {"Enabled "}
-};
-
-const char TrueFalse[2][BDSP_MAX_CHAR_LENGTH] =
-{
-    {"False "},
-    {"True "}
-};
-
-const char ContextType[BDSP_ContextType_eMax+1][BDSP_MAX_CHAR_LENGTH]=
-{
-    {"Audio"},
-    {"Video Decode"},
-    {"Video Encode"},
-    {"Graphics"},
-    {"SCM"},
-    {"Invalid"}
-};
-
-const char SchedulingMode[BDSP_TaskSchedulingMode_eMax+1][BDSP_MAX_CHAR_LENGTH]=
-{
-    {"Standalone"},
-    {"Master"},
-    {"Slave"},
-    {"Invalid"}
-};
-
-const char TaskType[BDSP_P_TaskType_eLast][BDSP_MAX_CHAR_LENGTH]=
-{
-    {"Interrupt"},
-    {"Real Time"},
-    {"Assured Rate"},
-    {"On Demand"},
-	{"AFAP"},
-};
-
-const char SchedulingType[BDSP_TaskRealtimeMode_eMax+1][BDSP_MAX_CHAR_LENGTH]=
-{
-    {"Real Time"},
-    {"Non-Real Time"},
-    {"Soft Real Time"},
-    {"On Demand"},
-    {"Invalid"}
-};
 
 void BDSP_Raaga_P_Analyse_CIT(
 	BDSP_RaagaTask  *pRaagaTask,
@@ -277,7 +51,6 @@ void BDSP_Raaga_P_Analyse_CIT(
 	BDSP_AF_P_sSTAGE_CONFIG *pStageConfig;
 
 	BDBG_ENTER(BDSP_Raaga_P_Analyse_CIT);
-	pTaskConfig = (BDSP_AF_P_sTASK_CONFIG *)pRaagaTask->taskMemInfo.sCITMemory.Buffer.pAddr;
 
 	if(CitReconfig)
 	{
@@ -291,6 +64,8 @@ void BDSP_Raaga_P_Analyse_CIT(
 		BDBG_MSG(("\t\t   CIT FOR TASK %d ",pRaagaTask->taskParams.taskId));
 	    BDBG_MSG(("============================================ "));
 	}
+
+    pTaskConfig = (BDSP_AF_P_sTASK_CONFIG *)pRaagaTask->taskMemInfo.sHostCITMemory.Buffer.pAddr;
 	BDBG_MSG(("Running on DSP: %d ",pRaagaTask->createSettings.dspIndex));
 	BDBG_MSG(("Context: %s ",ContextType[pRaagaTask->pContext->settings.contextType]));
 	BDBG_MSG(("Scheduling Mode: %s ",SchedulingMode[pRaagaTask->startSettings.schedulingMode]));

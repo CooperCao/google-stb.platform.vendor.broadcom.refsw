@@ -51,6 +51,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <errno.h>
+
+#if NEXUS_NUM_HDMI_OUTPUTS
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
 
 BDBG_MODULE(playback_dif_single);
 #define LOG_TAG "playback_dif_single"
@@ -81,7 +87,8 @@ BDBG_MODULE(playback_dif_single);
 #define REPACK_VIDEO_PES_ID 0xE0
 #define REPACK_AUDIO_PES_ID 0xC0
 
-#define BUF_SIZE (1024 * 1024 * 2) /* 2MB */
+#define BUF_SIZE (1024 * 1024 * 4) /* 4MB */
+#define VIDEO_PLAYPUMP_BUF_SIZE (1024 * 1024 * 2) /* 2MB */
 
 #define CALCULATE_PTS(t) (((uint64_t)(t) / 10000LL) * 45LL)
 
@@ -133,9 +140,15 @@ public:
     NEXUS_PidChannelHandle audioPidChannel;
     NEXUS_StcChannelHandle stcChannel;
     BKNI_EventHandle event;
+#if NEXUS_NUM_HDMI_OUTPUTS
+    bool hdcpAuthenticated;
+    std::string hdcp2xKey;
+#endif
+    uint32_t exportHeapSize;
 
     // Session Type - only for Wv3x
     SessionType sessionType;
+    std::string license;
 
     uint64_t last_video_fragment_time;
     uint64_t last_audio_fragment_time;
@@ -166,7 +179,13 @@ AppContext::AppContext()
     display = NULL;
     window = NULL;
     event = NULL;
+#if NEXUS_NUM_HDMI_OUTPUTS
+    hdcpAuthenticated = false;
+    hdcp2xKey.clear();
+#endif
+    exportHeapSize = 0;
     sessionType = session_type_eTemporary;
+    license.clear();
 
     last_video_fragment_time = 0;
     last_audio_fragment_time = 0;
@@ -174,7 +193,7 @@ AppContext::AppContext()
 
 AppContext::~AppContext()
 {
-    LOGW(("%s: start cleaning up", __FUNCTION__));
+    LOGW(("%s: start cleaning up", BSTD_FUNCTION));
     if (videoDecoder) {
         NEXUS_VideoDecoder_Stop(videoDecoder);
     }
@@ -224,6 +243,11 @@ AppContext::~AppContext()
         NEXUS_StcChannel_Close(stcChannel);
     }
 
+#if NEXUS_NUM_HDMI_OUTPUTS
+    if (!hdcp2xKey.empty()) {
+        hdcp2xKey.clear();
+    }
+#endif
     if (window != NULL) {
         LOGW(("Closing window %p", (void*)window));
         NEXUS_VideoWindow_Close(window);
@@ -237,6 +261,8 @@ AppContext::~AppContext()
     if (event != NULL) {
         BKNI_DestroyEvent((BKNI_EventHandle)event);
     }
+
+    license.clear();
 
     NEXUS_Platform_Uninit();
 }
@@ -342,11 +368,11 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
     uint32_t bytes_processed = 0;
     uint32_t last_bytes_processed = 0;
     if (frag_info->samples_info->sample_count == 0) {
-        LOGE(("%s: No samples", __FUNCTION__));
+        LOGE(("%s: No samples", BSTD_FUNCTION));
         return -1;
     }
 
-    LOGD(("%s: #samples=%d",__FUNCTION__, frag_info->samples_info->sample_count));
+    LOGD(("%s: #samples=%d",BSTD_FUNCTION, frag_info->samples_info->sample_count));
     for (unsigned i = 0; i < frag_info->samples_info->sample_count; i++) {
         uint32_t numOfByteDecrypted = 0;
         size_t sampleSize = 0;
@@ -418,7 +444,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             }
             if (numOfByteDecrypted != sampleSize)
             {
-                LOGE(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
+                LOGE(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
                 BufferFactory::DestroyBuffer(input);
                 BufferFactory::DestroyBuffer(decOutput);
                 return -1;
@@ -466,7 +492,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 }
                 if (numOfByteDecrypted != sampleSize)
                 {
-                    LOGE(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
+                    LOGE(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
                     BufferFactory::DestroyBuffer(input);
                     BufferFactory::DestroyBuffer(decOutput);
                     return -1;
@@ -476,7 +502,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 bytes_processed += numOfByteDecrypted;
             }
         } else {
-            LOGW(("%s Unsupported track type %d detected", __FUNCTION__, frag_info->trackType));
+            LOGW(("%s Unsupported track type %d detected", BSTD_FUNCTION, frag_info->trackType));
             return -1;
         }
 
@@ -496,7 +522,7 @@ static void play_callback(void *context, int param)
 
 static void wait_for_drain()
 {
-    LOGW(("%s: start", __FUNCTION__));
+    LOGW(("%s: start", BSTD_FUNCTION));
     NEXUS_Error rc;
     NEXUS_PlaypumpStatus playpumpStatus;
 
@@ -510,7 +536,7 @@ static void wait_for_drain()
         }
         BKNI_Sleep(100);
     }
-    LOGW(("%s: video playpump was drained", __FUNCTION__));
+    LOGW(("%s: video playpump was drained", BSTD_FUNCTION));
 
     for (;;) {
         rc = NEXUS_Playpump_GetStatus(s_app.audioPlaypump, &playpumpStatus);
@@ -522,7 +548,7 @@ static void wait_for_drain()
 
         BKNI_Sleep(100);
     }
-    LOGW(("%s: audio playpump was drained", __FUNCTION__));
+    LOGW(("%s: audio playpump was drained", BSTD_FUNCTION));
 
     if (s_app.videoDecoder) {
         for (;;) {
@@ -537,7 +563,7 @@ static void wait_for_drain()
             BKNI_Sleep(100);
         }
     }
-    LOGW(("%s: video decoder was drained", __FUNCTION__));
+    LOGW(("%s: video decoder was drained", BSTD_FUNCTION));
 
     if (s_app.audioDecoder) {
         for (;;) {
@@ -552,11 +578,206 @@ static void wait_for_drain()
             BKNI_Sleep(100);
         }
     }
-    LOGW(("%s: audio decoder was drained", __FUNCTION__));
+    LOGW(("%s: audio decoder was drained", BSTD_FUNCTION));
 
     // wait for 1 sec to stabilize
     BKNI_Sleep(1000);
     return;
+}
+
+#if NEXUS_NUM_HDMI_OUTPUTS
+static void hdmiOutputHdcpStateChanged(void *pContext, int param)
+{
+    NEXUS_Error rc;
+    bool success = false;
+    NEXUS_HdmiOutputHandle handle = (NEXUS_HdmiOutputHandle)pContext;
+    NEXUS_HdmiOutputHdcpStatus hdcpStatus;
+
+    BSTD_UNUSED(param);
+
+    NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdcpStatus);
+
+    LOGW(("%s: state=%d error=%d", BSTD_FUNCTION, hdcpStatus.hdcpState, hdcpStatus.hdcpError));
+
+    if (hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eUnpowered) {
+        LOGW(("Attached Device is unpowered"));
+    }
+    else {
+        LOGD(("HDCP State: %d", hdcpStatus.hdcpState));
+
+       /* report any error */
+        switch (hdcpStatus.hdcpError)
+        {
+        case NEXUS_HdmiOutputHdcpError_eSuccess:
+            if (hdcpStatus.linkReadyForEncryption || hdcpStatus.transmittingEncrypted) {
+                LOGW(("HDCP Authentication Successful\n"));
+                success = true;
+                s_app.hdcpAuthenticated = true;
+            }
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eRxBksvError:
+            LOGE(("HDCP Rx BKsv Error"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eRxBksvRevoked:
+            LOGE(("HDCP Rx BKsv/Keyset Revoked"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eRxBksvI2cReadError:
+        case NEXUS_HdmiOutputHdcpError_eTxAksvI2cWriteError:
+            LOGE(("HDCP I2C Read Error"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eTxAksvError:
+            LOGE(("HDCP Tx Aksv Error"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eReceiverAuthenticationError:
+            LOGE(("HDCP Receiver Authentication Failure"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eRepeaterAuthenticationError:
+        case NEXUS_HdmiOutputHdcpError_eRepeaterLinkFailure: /* Repeater Error; unused */
+            LOGE(("HDCP Repeater Authentication Failure"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eRxDevicesExceeded:
+            LOGE(("HDCP Repeater MAX Downstram Devices Exceeded"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eRepeaterDepthExceeded:
+            LOGE(("HDCP Repeater MAX Downstram Levels Exceeded"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eRepeaterFifoNotReady:
+            LOGE(("Timeout waiting for Repeater"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eRepeaterDeviceCount0: /* unused */
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eLinkRiFailure:
+            LOGE(("HDCP Ri Integrity Check Failure"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eLinkPjFailure:
+            LOGE(("HDCP Pj Integrity Check Failure"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eFifoUnderflow:
+        case NEXUS_HdmiOutputHdcpError_eFifoOverflow:
+            LOGE(("Video configuration issue"));
+            break;
+
+        case NEXUS_HdmiOutputHdcpError_eMultipleAnRequest: /* Should not reach here; but flag if occurs */
+            LOGW(("Multiple Authentication Request..."));
+            break;
+
+        default:
+            LOGW(("Unknown HDCP Authentication Error %d", hdcpStatus.hdcpError));
+        }
+    }
+
+    if (!success) {
+        rc = NEXUS_HdmiOutput_DisableHdcpAuthentication(handle);
+        if (rc != NEXUS_SUCCESS) {
+            LOGE(("%s: Error in disabling HDCP authentication", BSTD_FUNCTION));
+        }
+    }
+}
+
+static NEXUS_Error loadHdcp2xKeys(
+    NEXUS_PlatformConfiguration &platformConfig)
+{
+    NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
+
+    FILE *fileFd = NULL;
+    uint8_t *buffer = NULL;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    uint32_t fileSize;
+    struct stat buf;
+
+    LOGD(("%s: HDCP2x Key:%s", BSTD_FUNCTION, s_app.hdcp2xKey.c_str()));
+    if (stat(s_app.hdcp2xKey.c_str(), &buf) != 0) {
+        LOGW(("%s: stat failed(%d): %s", BSTD_FUNCTION, errno, s_app.hdcp2xKey.c_str()));
+        return false;
+    }
+    fileSize = buf.st_size;
+
+    fileFd = fopen(s_app.hdcp2xKey.c_str(), "rb");
+    if (fileFd == NULL) {
+        LOGE(("%s: fopen failed(%d): %s", BSTD_FUNCTION, errno, s_app.hdcp2xKey.c_str()));
+        return false;
+    }
+
+    buffer = (uint8_t*)BKNI_Malloc(fileSize);
+    if (fread(buffer, sizeof(char), fileSize, fileFd) != fileSize)
+    {
+        LOGE(("%s: fread failed on %s", BSTD_FUNCTION, s_app.hdcp2xKey.c_str()));
+        rc = NEXUS_OS_ERROR;
+        goto end;
+    }
+
+    LOGW(("%s: buff=%p, size=%u", BSTD_FUNCTION, buffer, fileSize));
+
+    NEXUS_HdmiOutput_GetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
+    LOGW(("%s: HDCP Version=%d", BSTD_FUNCTION, hdmiOutputHdcpSettings.hdcp_version));
+#if 1
+    hdmiOutputHdcpSettings.hdcp_version = NEXUS_HdmiOutputHdcpVersion_e2_2;
+    hdmiOutputHdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType1;
+#else
+    hdmiOutputHdcpSettings.hdcp_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
+    hdmiOutputHdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType0;
+#endif
+
+    BKNI_Memset(hdmiOutputHdcpSettings.aksv.data, 0, sizeof(hdmiOutputHdcpSettings.aksv.data));
+    BKNI_Memset(&hdmiOutputHdcpSettings.encryptedKeySet, 0, sizeof(hdmiOutputHdcpSettings.encryptedKeySet));
+
+    /* install HDCP success callback */
+    hdmiOutputHdcpSettings.successCallback.callback = hdmiOutputHdcpStateChanged;
+    hdmiOutputHdcpSettings.successCallback.context = platformConfig.outputs.hdmi[0];
+
+    /* install HDCP failure callback */
+    hdmiOutputHdcpSettings.failureCallback.callback = hdmiOutputHdcpStateChanged;
+    hdmiOutputHdcpSettings.failureCallback.context = platformConfig.outputs.hdmi[0];
+
+    /* install HDCP stateChanged callback */
+    hdmiOutputHdcpSettings.stateChangedCallback.callback = hdmiOutputHdcpStateChanged;
+    hdmiOutputHdcpSettings.stateChangedCallback.context = platformConfig.outputs.hdmi[0];
+
+    NEXUS_HdmiOutput_SetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
+
+    rc = NEXUS_HdmiOutput_SetHdcp2xBinKeys(platformConfig.outputs.hdmi[0], buffer, (uint32_t)fileSize);
+    if (rc != NEXUS_SUCCESS) {
+        LOGE(("%s: Error setting Hdcp2x encrypted keys. HDCP2.x will not work.", BSTD_FUNCTION));
+        goto end;
+    }
+
+end:
+    if (fileFd != NULL) {
+        fclose(fileFd);
+    }
+
+    if (buffer != NULL) {
+        BKNI_Free(buffer);
+    }
+
+    return rc;
+}
+#endif
+
+static uint32_t parse_size(const char *parse)
+{
+    if (strchr(parse, 'M') || strchr(parse, 'm')) {
+        return atof(parse) * 1024 * 1024;
+    }
+    else if (strchr(parse, 'K') || strchr(parse, 'k')) {
+        return atof(parse) * 1024;
+    }
+    else {
+        return strtoul(parse, NULL, 0);
+    }
 }
 
 static void setup_gui()
@@ -584,30 +805,18 @@ static void setup_gui()
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_Display_AddOutput(s_app.display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
+    s_app.hdcpAuthenticated = false;
     rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
-    if ( !rc && hdmiStatus.connected )
-    {
-        /* If current display format is not supported by monitor, switch to monitor's preferred format.
-           If other connected outputs do not support the preferred format, a harmless error will occur. */
-        NEXUS_Display_GetSettings(s_app.display, &displaySettings);
-        if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
-            displaySettings.format = hdmiStatus.preferredVideoFormat;
-            NEXUS_Display_SetSettings(s_app.display, &displaySettings);
+    if (rc == NEXUS_SUCCESS && hdmiStatus.connected) {
+        if (!s_app.hdcp2xKey.empty()) {
+            rc = loadHdcp2xKeys(platformConfig);
+            if (rc == NEXUS_SUCCESS) {
+                rc = NEXUS_HdmiOutput_StartHdcpAuthentication(platformConfig.outputs.hdmi[0]);
+                if (rc != NEXUS_SUCCESS) {
+                    LOGW(("%s: Error in HDCP authentication", BSTD_FUNCTION));
+                }
+            }
         }
-    }
-#endif
-
-#if NEXUS_NUM_COMPONENT_OUTPUTS
-    NEXUS_Display_AddOutput(s_app.display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
-#endif
-#if NEXUS_NUM_COMPOSITE_OUTPUTS
-    NEXUS_Display_AddOutput(s_app.display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_Display_AddOutput(s_app.display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
-    rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
-    if ( !rc && hdmiStatus.connected )
-    {
         /* If current display format is not supported by monitor, switch to monitor's preferred format.
            If other connected outputs do not support the preferred format, a harmless error will occur. */
         NEXUS_Display_GetSettings(s_app.display, &displaySettings);
@@ -665,6 +874,7 @@ static void setup_streamer()
     NEXUS_VideoDecoderStartSettings videoProgram;
     NEXUS_AudioDecoderStartSettings audioProgram;
     NEXUS_StcChannelSettings stcSettings;
+    NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
     NEXUS_PlaypumpSettings playpumpSettings;
 
     // New API stuffs
@@ -674,8 +884,19 @@ static void setup_streamer()
     if (s_app.videoStreamer == NULL || s_app.audioStreamer == NULL ) {
         exit(EXIT_FAILURE);
     }
-    s_app.videoPlaypump = s_app.videoStreamer->OpenPlaypump(true);
-    s_app.audioPlaypump = s_app.audioStreamer->OpenPlaypump(false);
+
+    // Increase playpump buffer size for video
+    s_app.videoStreamer->GetDefaultPlaypumpOpenSettings(&playpumpOpenSettings);
+    playpumpOpenSettings.fifoSize = VIDEO_PLAYPUMP_BUF_SIZE;
+    s_app.videoPlaypump = s_app.videoStreamer->OpenPlaypump(&playpumpOpenSettings);
+
+    // Use default playpump open settings for audio
+    s_app.audioPlaypump = s_app.audioStreamer->OpenPlaypump(NULL);
+
+    if (s_app.videoPlaypump == NULL || s_app.audioPlaypump == NULL ) {
+        LOGE(("Failed to open playpump"));
+        exit(EXIT_FAILURE);
+    }
 
     NEXUS_Memory_GetDefaultAllocationSettings(&memSettings);
     memSettings.heap = NEXUS_MEMC0_MAIN_HEAP;
@@ -764,7 +985,7 @@ static void setup_streamer()
 
 static void setup_files()
 {
-    LOGD(("%s - %d\n", __FUNCTION__, __LINE__));
+    LOGD(("%s - %d\n", BSTD_FUNCTION, __LINE__));
     if (s_app.file == NULL ) {
         exit(EXIT_FAILURE);
     }
@@ -781,7 +1002,7 @@ static void setup_files()
 
 static void setup_parser()
 {
-    LOGD(("%s - %d\n", __FUNCTION__, __LINE__));
+    LOGD(("%s - %d\n", BSTD_FUNCTION, __LINE__));
     fflush(stdout);
     s_app.parser = new PiffParser(s_app.fp_mp4);
     if (s_app.parser ==  NULL) {
@@ -845,7 +1066,7 @@ static void setup_decryptor()
         decryptorDrmType = parserDrmType;
         if (decryptorDrmType == drm_type_eWidevine ||
             decryptorDrmType == drm_type_eWidevine3x) {
-            BDBG_WRN(("%s: defaulting to WV with GooglePlay License server", __FUNCTION__));
+            BDBG_WRN(("%s: defaulting to WV with GooglePlay License server", BSTD_FUNCTION));
             s_app.useGooglePlayLicServer = true;
         }
     }
@@ -881,6 +1102,18 @@ static void setup_decryptor()
     if (!s_app.decryptor->Initialize(psshDataStr)) {
            LOGE(("Failed to initialize Decryptor"));
         exit(EXIT_FAILURE);
+    }
+
+    // New API - Load
+    if (s_app.sessionType == session_type_ePersistent &&
+        !s_app.license.empty()) {
+        if (s_app.decryptor->Load(s_app.license)) {
+            LOGW(("Successfully loaded persistent license: %s", s_app.license.c_str()));
+            return;
+        } else {
+            LOGW(("Failed to load persistent license: %s", s_app.license.c_str()));
+            LOGW(("Continuing to acquire a license..."));
+        }
     }
 
     // New API - GenerateKeyRequest
@@ -961,12 +1194,15 @@ static void print_usage(char* command)
     LOGE(("        -pr:g <file> Set DRM type as playready and use GooglePlay license server"));
     LOGE(("        -pr3x <file> Set DRM type as playready 3.x"));
     LOGE(("        -pr3x:g <file> Set DRM type as playready 3.x and use GooglePlay license server"));
-    LOGE(("        -wv3x <file> Set DRM type as widevine 3x"));
-    LOGE(("        -wv3x:1 <file> Set DRM type as widevine 3x and session type as persistent"));
-    LOGE(("        -wv3x:2 <file> Set DRM type as widevine 3x and session type as persistent usage record"));
     LOGE(("        -wv <file> Set DRM type as widevine"));
+    LOGE(("        -wv3x <file> Set DRM type as widevine 3x"));
+    LOGE(("        -wv3x:p <file> Set DRM type as widevine 3x and session type as persistent"));
+    LOGE(("        -wv3x:p:<license> <file> Load persistent license for widevine 3x session"));
+    LOGE(("        -wv3x:pur <file> Set DRM type as widevine 3x and session type as persistent usage record"));
     LOGE(("        -loop N    Set # of playback loops"));
     LOGE(("        -secure    Use secure video picture buffers (URR)"));
+    LOGE(("        -hdcp2x_keys <file> Specify HDCP2x key file"));
+    LOGE(("        -export <bytes> Specify export heap size in bytes. Use M or K suffix for units."));
 }
 
 int main(int argc, char* argv[])
@@ -1039,10 +1275,15 @@ int main(int argc, char* argv[])
                 print_usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
-            if (strcmp(argv[i], "-wv3x:1") == 0) {
-                s_app.sessionType = session_type_ePersistent;
-            } else if (strcmp(argv[i], "-wv3x:2") == 0) {
+            if (strncmp(argv[i], "-wv3x:pur", 9) == 0) {
                 s_app.sessionType = session_type_ePersistentUsageRecord;
+            } else if (strncmp(argv[i], "-wv3x:p", 7) == 0) {
+                s_app.sessionType = session_type_ePersistent;
+                if (strncmp(argv[i], "-wv3x:p:", 8) == 0 &&
+                    strlen(argv[i]) > 8) {
+                    s_app.license.assign(&argv[i][8]);
+                    LOGW(("Persistent License: %s", s_app.license.c_str()));
+                }
             }
             s_app.useGooglePlayLicServer = true;
             s_app.parserDrmType = drm_type_eWidevine;
@@ -1061,6 +1302,24 @@ int main(int argc, char* argv[])
         }
         else if (strcmp(argv[i], "-secure") == 0)
             secure_video = true;
+        else if (strcmp(argv[i], "-hdcp2x_keys") == 0) {
+            if (i >= argc - 1) {
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            s_app.hdcp2xKey.assign(argv[++i]);
+            LOGW(("HDCP2x Key: %s", s_app.hdcp2xKey.c_str()));
+        }
+        else if (strcmp(argv[i], "-export") == 0) {
+            if (i >= argc - 1) {
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            s_app.exportHeapSize = parse_size(argv[++i]);
+#ifndef NEXUS_EXPORT_HEAP
+            LOGW(("Export heap is not available"));
+#endif
+        }
         else {
             s_app.file = argv[i];
             LOGW(("File: %s", s_app.file));
@@ -1078,8 +1337,10 @@ int main(int argc, char* argv[])
 
 #ifdef NEXUS_EXPORT_HEAP
     /* Configure export heap since it's not allocated by nexus by default */
-    /* FIXME: for now, using the same size as used in bpiff example */
-    platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024*1024;
+    if (s_app.exportHeapSize != 0) {
+        LOGW(("Configure XRR to %u bytes", s_app.exportHeapSize));
+        platformSettings.heap[NEXUS_EXPORT_HEAP].size = s_app.exportHeapSize;
+    }
 #endif
 
     NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);

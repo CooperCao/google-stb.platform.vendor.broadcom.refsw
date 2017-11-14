@@ -232,73 +232,14 @@ Interrupts must be flagged as CPU trigger-able before this function will allow t
 to be triggered (this flag exists in the BINT_P_intDef structure).  This allows specific
 platforms and environments to prevent software from triggering interrupts they should not be.
 */
-BERR_Code BINT_TriggerInterruptByHandle(
+BERR_Code BINT_TriggerInterruptByHandle_isrsafe(
 								BINT_CallbackHandle cbHandle /* [in] Callback handle returned by BINT_CreateCallback() */
 								);
 
-/*
-Summary:
-This function triggers a hardware interrupt.
+#define BINT_TriggerInterruptByHandle_isr BINT_TriggerInterruptByHandle_isrsafe
+#define BINT_TriggerInterruptByHandle BINT_TriggerInterruptByHandle_isrsafe
 
-Description:
-The interrupt triggers the hardware specified by the BINT_CallbackHandle.
-The callback handle is used directly trigger the interrupt.
 
-Interrupts must be flagged as CPU trigger-able before this function will allow the interrupt
-to be triggered (this flag exists in the BINT_P_intDef structure).  This allows specific
-platforms and environments to prevent software from triggering interrupts they should not be.
-*/
-BERR_Code BINT_TriggerInterruptByHandle_isr(
-									BINT_CallbackHandle cbHandle /* [in] Callback handle returned by BINT_CreateCallback() */
-									);
-
-/*
-Summary:
-Gets the first registered callback.
-
-Description:
-Gets the first callback handle stored in the INT module. used with BINT_GetCallbackNext
-to traverse through all installed callbacks.
-*/
-BINT_CallbackHandle BINT_GetCallbackFirst(
-										  BINT_Handle intHandle /* [in] Interrupt handle */
-										  );
-
-/*
-Summary:
-Gets the next registered callback.
-
-Description:
-Returns the next callback handle after cbHandle. Order of callbacks returned is in
-order of callback creation.
-*/
-BINT_CallbackHandle BINT_GetCallbackNext(
-										 BINT_CallbackHandle cbHandle /* [in] Callback handle returned by BINT_CreateCallback() */
-										 );
-/*
-Summary:
-Gets the interrupt ID for this callback.
-
-Description:
-Returns the interrupt ID for the specific callback in pIntId. Used with the above
-traversal functions to identify a callback hooked to a specific interrupt.
-*/
-BERR_Code BINT_GetInterruptId(
-							  BINT_CallbackHandle cbHandle, /* [in] Callback handle returned by BINT_CreateCallback() */
-							  BINT_Id *pIntId /* [out] Pointer to storage for the interrupt ID */
-							  );
-
-/*
-Summary:
-Gets callback's active status.
-
-Description:
-Gets the status of a callback and returns whether it is active or not in pbEnabled.
-*/
-BERR_Code BINT_GetCallbackStatus(
-								 BINT_CallbackHandle cbHandle,  /* [in] Callback handle returned by BINT_CreateCallback() */
-								 bool *pbEnabled /* [out] Pointer to storage for the callback's active status */
-								 );
 
 /*
 Summary:
@@ -313,7 +254,6 @@ void BINT_ApplyL2State_isr(
                            BINT_Handle  intHandle,
                            uint32_t     L2Reg
                            );
-    	
 /*
 Summary:
 This function outputs statistics of the interrupt interface.

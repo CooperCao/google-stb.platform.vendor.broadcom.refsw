@@ -413,6 +413,7 @@ NEXUS_VideoWindow_P_SetVdcSettings(NEXUS_VideoWindowHandle window, const NEXUS_V
        settings->colorKey.cb.mask    != window->cfg.colorKey.cb.mask)
     {
         BVDC_ColorKey_Settings  colorKeySettings;
+        BVDC_Window_GetColorKeyConfiguration(windowVdc, &colorKeySettings);
         colorKeySettings.bLumaKey = settings->colorKey.luma.enabled;
         colorKeySettings.ucLumaKeyLow = settings->colorKey.luma.lower;
         colorKeySettings.ucLumaKeyHigh = settings->colorKey.luma.upper;
@@ -1902,6 +1903,11 @@ NEXUS_Error NEXUS_VideoWindow_GetStatus( NEXUS_VideoWindowHandle window, NEXUS_V
     start with this copy */
     *pStatus = window->status;
 
+    if (window->vdcState.window) {
+        BVDC_Window_DebugStatus status;
+        BVDC_Dbg_Window_GetDebugStatus(window->vdcState.window, &status);
+        pStatus->numBvnErrors = status.ulNumErr;
+    }
     return 0;
 }
 
@@ -2229,7 +2235,7 @@ void NEXUS_VideoWindow_P_InitState(NEXUS_VideoWindowHandle window, unsigned pare
 
 #if NEXUS_NUM_MOSAIC_DECODES
     window->mosaic.mosaicSettings.backendMosaic.clipRect.width = 1920;
-    window->mosaic.mosaicSettings.backendMosaic.clipRect.width = 1080;
+    window->mosaic.mosaicSettings.backendMosaic.clipRect.height = 1080;
     window->mosaic.mosaicSettings.backendMosaic.clipBase = window->mosaic.mosaicSettings.backendMosaic.clipRect;
 #endif
 
@@ -2365,7 +2371,7 @@ NEXUS_Error NEXUS_VideoWindow_SetSettings_priv( NEXUS_VideoWindowHandle handle, 
 }
 
 #if NEXUS_HAS_VIDEO_ENCODER
-static BERR_Code NEXUS_VideoWindow_P_Attach(NEXUS_VideoWindowHandle window)
+static BERR_Code NEXUS_VideoWindow_P_Reconnect(NEXUS_VideoWindowHandle window)
 {
     BERR_Code rc;
 
@@ -2377,29 +2383,17 @@ static BERR_Code NEXUS_VideoWindow_P_Attach(NEXUS_VideoWindowHandle window)
 }
 
 #if NEXUS_P_CRBVN_496_WORKAROUND /* TODO: following may be generic */
-static void NEXUS_VideoWindow_P_Dettach(NEXUS_VideoWindowHandle window)
-{
-    if (!window->vdcState.window) {
-        /* nothing to recreate */
-        return;
-    }
-
-    NEXUS_VideoWindow_P_DestroyVdcWindow(window);
-    return;
-}
-
 void NEXUS_DisplayModule_ClearDisplay_Prepare_priv(NEXUS_DisplayHandle display)
 {
     unsigned i;
     NEXUS_ASSERT_MODULE();
-    BDBG_WRN(("Disable MAD:%p", (void *)display));
     BDBG_OBJECT_ASSERT(display, NEXUS_Display);
     for(i=0;i<sizeof(display->windows)/sizeof(display->windows[0]);i++) {
         NEXUS_VideoWindowHandle window = &display->windows[i];
-        if (!window->open) {
+        if (!window->open || !window->vdcState.window) {
             continue;
         }
-        NEXUS_VideoWindow_P_Dettach(window);
+        NEXUS_VideoWindow_P_DestroyVdcWindow(window);
     }
     return;
 }
@@ -2414,13 +2408,13 @@ void NEXUS_DisplayModule_ClearDisplay_priv(NEXUS_DisplayHandle display)
     for(i=0;i<sizeof(display->windows)/sizeof(display->windows[0]);i++) {
         BERR_Code rc;
         NEXUS_VideoWindowHandle window = &display->windows[i];
-        if (!window->open) {
+        if (!window->open || !window->input) {
             continue;
         }
         if(window->vdcState.window) {
             rc = NEXUS_VideoWindow_P_RecreateWindow(window);
         } else {
-            rc = NEXUS_VideoWindow_P_Attach(window);
+            rc = NEXUS_VideoWindow_P_Reconnect(window);
         }
         if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); /* keep on going */ }
     }

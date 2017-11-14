@@ -286,6 +286,7 @@ typedef struct BSPI_ChannelSettings
     bool        useUserDtlAndDsclk;         /* Use User specified DTL and DSCLK */
     BSPI_SpiCore spiCore;                   /* SPI core to use */
     BSPI_EbiCs  ebiCs;                      /* EBI CS line to use as slave select */
+    bool        continueSlaveSelect;        /* Continue/discontinue asserting the slave select after data transfer.*/
 } BSPI_ChannelSettings;
 
 typedef void (*BSPI_AssertSSFunc)(void);
@@ -737,8 +738,7 @@ void BSPI_RegisterSSFunctions (
 
 /***************************************************************************
 Summary:
-    This function sets the flag which controls whether to continue driving
-    SS after the last byte of transfer.
+    This API is deprecated. Use BSPI_ContinueSlaveSelect instead.
 
 Description:
 
@@ -749,6 +749,25 @@ See Also:
 
 ****************************************************************************/
 void BSPI_SetLastByteContinueEnable(
+    BSPI_ChannelHandle hChn,                /* Device channel handle */
+    bool bEnable                            /* Enable or disable last byte cont flag */
+);
+
+/***************************************************************************
+Summary:
+    This function sets the flag which controls whether to continue driving
+    slave select after the last byte of transfer. Hence, one more SPI transfer
+    is needed for the slave assertion/deassertion to take effect.
+
+Description:
+
+Returns:
+    TODO:
+
+See Also:
+
+****************************************************************************/
+void BSPI_ContinueSlaveSelect(
     BSPI_ChannelHandle hChn,                /* Device channel handle */
     bool bEnable                            /* Enable or disable last byte cont flag */
 );

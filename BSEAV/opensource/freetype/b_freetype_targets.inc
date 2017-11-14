@@ -51,6 +51,13 @@ ifeq ($(VERBOSE),)
 B_FREETYPE_TARGET_MAKEFLAGS += -s
 endif
 
+include $(BSEAV)/opensource/libpng/b_libpng_targets.inc
+B_FREETYPE_OTHER_BUILDS += b_libpng_target_build
+B_FREETYPE_OTHER_CLEANS += b_libpng_target_clean
+B_FREETYPE_OTHER_CLEAN_ALL += b_libpng_target_clean_all
+B_FREETYPE_BUILD_FILES += $(B_LIBPNG_BUILD_FILES)
+B_FREETYPE_TARGET_MAKEFLAGS += $(B_BWIN_TARGET_MAKEFLAGS)
+
 .PHONY: b_freetype_target_dummy b_freetype_target_build b_freetype_target_clean
 
 b_freetype_target_dummy:

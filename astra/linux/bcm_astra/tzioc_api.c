@@ -258,11 +258,11 @@ EXPORT_SYMBOL(tzioc_vaddr2offset);
 
 int tzioc_call_smc(
     tzioc_client_handle hClient,
-    uint32_t ucMode)
+    uint32_t ulCode)
 {
     UNUSED(hClient);
 
-    /* assuming ucMode == SMC callnum */
-    return _tzioc_call_smc(ucMode);
+    /* assuming ucCode == SMC callnum */
+    return _tzioc_call_smc(ulCode);
 }
 EXPORT_SYMBOL(tzioc_call_smc);

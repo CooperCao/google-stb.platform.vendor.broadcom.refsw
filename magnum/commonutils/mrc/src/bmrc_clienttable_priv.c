@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  ***************************************************************************/
 
 #include "bstd.h"
@@ -53,14 +50,14 @@ typedef struct BMRC_P_ClientEntry
     uint16_t      ausClientId[BCHP_P_MEMC_COUNT];
 } BMRC_P_ClientEntry;
 
-static const BMRC_P_ClientEntry * BMRC_P_GetClientEntry(BMRC_Client eClient);
+static const BMRC_P_ClientEntry * BMRC_P_GetClientEntry_isrsafe(BMRC_Client eClient);
 
 #define INVALID BMRC_Client_eInvalid
 
 
-const char *BMRC_P_GET_CLIENT_NAME(BMRC_Client eClient)
+const char *BMRC_P_GET_CLIENT_NAME_isrsafe(BMRC_Client eClient)
 {
-    const BMRC_P_ClientEntry *client = BMRC_P_GetClientEntry(eClient); 
+    const BMRC_P_ClientEntry *client = BMRC_P_GetClientEntry_isrsafe(eClient);
     if(client) {
         return client->pchClientName;
     }
@@ -69,7 +66,7 @@ const char *BMRC_P_GET_CLIENT_NAME(BMRC_Client eClient)
 
 int BMRC_P_GET_CLIENT_ID(uint16_t usMemcId, BMRC_Client   eClient)
 {
-    const BMRC_P_ClientEntry *client = BMRC_P_GetClientEntry(eClient); 
+    const BMRC_P_ClientEntry *client = BMRC_P_GetClientEntry_isrsafe(eClient);
     if(client) {
         return client->ausClientId[usMemcId];
     }
@@ -80,7 +77,7 @@ BERR_Code BMRC_Checker_P_GetClientInfo_isrsafe(unsigned memcId, BMRC_Client eCli
 {
     BERR_Code rc = BERR_SUCCESS;
     if (eClient < BMRC_Client_eInvalid) {
-        const BMRC_P_ClientEntry *client = BMRC_P_GetClientEntry(eClient);
+        const BMRC_P_ClientEntry *client = BMRC_P_GetClientEntry_isrsafe(eClient);
         if(client) {
             pClientInfo->eClient = eClient;
             pClientInfo->pchClientName = client->pchClientName;
@@ -116,7 +113,7 @@ static const BMRC_P_ClientEntry BMRC_P_astClientTbl[] = {
 #undef BCHP_P_MEMC_DEFINE_CLIENT
 
 
-static const BMRC_P_ClientEntry * BMRC_P_GetClientEntry(BMRC_Client eClient)
+static const BMRC_P_ClientEntry * BMRC_P_GetClientEntry_isrsafe(BMRC_Client eClient)
 {
     unsigned i;
     static const BMRC_P_ClientEntry *client_map[BMRC_Client_eMaxCount]; /* cache of translation entries */

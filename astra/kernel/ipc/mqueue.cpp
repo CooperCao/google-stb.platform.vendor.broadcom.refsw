@@ -81,7 +81,7 @@ MsgQueue::~MsgQueue() {
 
 }
 
-MsgQueue *MsgQueue::open(const char *mqName, int mode, mq_attr *attr, uint16_t owner, uint16_t group) {
+MsgQueue *MsgQueue::create(const char *mqName, int mode, mq_attr *attr, uint16_t owner, uint16_t group) {
     SpinLocker locker(&creationLock);
 
     MsgQueue *mq = nullptr;
@@ -118,7 +118,6 @@ MsgQueue *MsgQueue::lookUp(const char *mqName) {
     for (int i=0; i<numQueues; i++) {
         if (!strcmp(msgQueues[i].mqName, mqName)) {
             mq = msgQueues[i].mq;
-            atomic_incr(&msgQueues[i].refCount);
             break;
         }
     }
@@ -126,15 +125,16 @@ MsgQueue *MsgQueue::lookUp(const char *mqName) {
     return mq;
 }
 
-bool MsgQueue::close(MsgQueue *mq) {
+bool MsgQueue::unlink(const char *mqName) {
     SpinLocker locker(&creationLock);
 
     int numQueues = msgQueues.numElements();
     for (int i=0; i<numQueues; i++) {
-        if (msgQueues[i].mq != mq)
+        if (strcmp(msgQueues[i].mqName, mqName))
             continue;
 
-        atomic_decr(&msgQueues[i].refCount);
+        if (&msgQueues[i].linkCount)
+            atomic_decr(&msgQueues[i].linkCount);
 
         //Entry entry = msgQueues[i];
         if ((msgQueues[i].linkCount == 0) && (msgQueues[i].refCount == 0)) {
@@ -150,15 +150,32 @@ bool MsgQueue::close(MsgQueue *mq) {
     return false;
 }
 
-bool MsgQueue::unlink(const char *mqName) {
+bool MsgQueue::open(MsgQueue *mq) {
     SpinLocker locker(&creationLock);
 
     int numQueues = msgQueues.numElements();
     for (int i=0; i<numQueues; i++) {
-        if (strcmp(msgQueues[i].mqName, mqName))
+        if (msgQueues[i].mq != mq)
             continue;
 
-        atomic_decr(&msgQueues[i].linkCount);
+        atomic_incr(&msgQueues[i].refCount);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool MsgQueue::close(MsgQueue *mq) {
+    SpinLocker locker(&creationLock);
+
+    int numQueues = msgQueues.numElements();
+    for (int i=0; i<numQueues; i++) {
+        if (msgQueues[i].mq != mq)
+            continue;
+
+        if (&msgQueues[i].refCount)
+            atomic_decr(&msgQueues[i].refCount);
 
         //Entry entry = msgQueues[i];
         if ((msgQueues[i].linkCount == 0) && (msgQueues[i].refCount == 0)) {

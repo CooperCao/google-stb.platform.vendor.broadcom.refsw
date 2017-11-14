@@ -1,7 +1,9 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#if KHRN_GLES31_DRIVER
+#include "libs/core/v3d/v3d_ver.h"
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 #include "glxx_compute.h"
 #include "../common/khrn_render_state.h"
@@ -9,6 +11,7 @@
 #include "glxx_server.h"
 #include "glxx_server_pipeline.h"
 #include "libs/compute/compute.h"
+#include "libs/core/v3d/v3d_csd.h"
 
 typedef struct compute_dispatch_cmd
 {
@@ -22,6 +25,7 @@ typedef struct glxx_compute_num_work_groups
    v3d_size_t indirect_offset;
 } glxx_compute_num_work_groups;
 
+#if !V3D_USE_CSD
 static uint8_t* write_cl(void* fmem, unsigned size)
 {
    return khrn_fmem_cle((khrn_fmem*)fmem, size);
@@ -37,6 +41,7 @@ static compute_cl_mem_if const mem_if =
    .write_cl = write_cl,
    .write_cl_final = write_cl_final
 };
+#endif
 
 static inline v3d_addr_t build_shader_uniforms(
    glxx_compute_render_state* rs,
@@ -82,18 +87,23 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
       khrn_render_state_new(KHRN_RENDER_STATE_TYPE_GLXX_COMPUTE)
       );
 
-   khrn_render_state_disallow_flush((khrn_render_state*)rs);
-
    if (!khrn_fmem_init(&rs->fmem, (khrn_render_state*)rs))
       goto error;
 
-   if (!compute_cl_begin(&mem_if, &rs->fmem))
+   #if !V3D_USE_CSD
    {
-      khrn_fmem_discard(&rs->fmem);
-      goto error;
-   }
+      khrn_render_state_disallow_flush((khrn_render_state*)rs);
 
-   khrn_render_state_allow_flush((khrn_render_state*)rs);
+      rs->clist_start = khrn_fmem_begin_clist(&rs->fmem);
+      if (!rs->clist_start || !compute_cl_begin(&mem_if, &rs->fmem))
+      {
+         khrn_fmem_discard(&rs->fmem);
+         goto error;
+      }
+
+      khrn_render_state_allow_flush((khrn_render_state*)rs);
+   }
+   #endif
 
    /* Record security status */
    rs->fmem.br_info.details.secure = egl_context_gl_secure(server_state->context);
@@ -137,18 +147,25 @@ static bool dispatch_compute(GLXX_SERVER_STATE_T* state, glxx_compute_num_work_g
          goto end;
    }
 
-   GLSL_BACKEND_CFG_T backend_cfg = { 0, };
    glxx_hw_image_like_uniforms image_like_uniforms;
-   if (!glxx_compute_image_like_uniforms(state, &rs->base, &image_like_uniforms, &backend_cfg))
+   if (!glxx_compute_image_like_uniforms(state, &rs->base, &image_like_uniforms))
       goto end;
 
    IR_PROGRAM_T const* ir_program = gl20_program_common_get(state)->linked_glsl_program->ir;
    unsigned items_per_wg = ir_program->cs_wg_size[0] * ir_program->cs_wg_size[1] * ir_program->cs_wg_size[2];
-   backend_cfg.backend = compute_backend_flags(items_per_wg);
+
+   GLSL_BACKEND_CFG_T backend_cfg;
+   backend_cfg.backend = 0;
+ #if !V3D_USE_CSD
+   backend_cfg.backend |= compute_backend_flags(items_per_wg);
+ #endif
  #if KHRN_DEBUG
    if (khrn_options.no_ubo_to_unif)
       backend_cfg.backend |= GLSL_DISABLE_UBO_FETCH;
  #endif
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   glxx_copy_gadgettypes_to_shader_key(&backend_cfg, &image_like_uniforms);
+#endif
 
    GLXX_LINK_RESULT_DATA_T* link_data = glxx_get_shaders(state, &backend_cfg);
    if (!link_data || !khrn_fmem_sync_res(&rs->fmem, link_data->res, 0, V3D_BARRIER_QPU_INSTR_READ))
@@ -159,14 +176,52 @@ static bool dispatch_compute(GLXX_SERVER_STATE_T* state, glxx_compute_num_work_g
       goto end;
    v3d_addr_t code_addr = gmem_get_addr(link_data->res->handle) + link_data->fs.code_offset;
 
+   glxx_compute_dispatch* dispatch = khrn_vector_emplace_back(glxx_compute_dispatch, &rs->fmem.persist->compute_dispatches);
+   if (!dispatch)
+      goto end;
+
+   #if V3D_USE_CSD
+   {
+      if (num_work_groups->indirect_res != NULL)
+      {
+         // Will access this pointer in preprocess.
+         glxx_compute_indirect* indirect = khrn_vector_emplace_back(glxx_compute_indirect, &rs->fmem.persist->compute_indirect);
+         if (!indirect)
+         {
+            khrn_vector_pop_back(&rs->fmem.persist->compute_dispatches);
+            goto end;
+         }
+
+         indirect->num_wgs = num_work_groups->cpu_ptr;
+         indirect->dispatch_index = rs->fmem.persist->compute_dispatches.size - 1;
+      }
+      else
+      {
+         const uint32_t* num_wgs_ptr = num_work_groups->cpu_ptr;
+         dispatch->num_wgs_x = num_wgs_ptr[0];
+         dispatch->num_wgs_y = num_wgs_ptr[1];
+         dispatch->num_wgs_z = num_wgs_ptr[2];
+      }
+
+      dispatch->wg_size = items_per_wg;
+      dispatch->wgs_per_sg = link_data->cs.wgs_per_sg;
+      dispatch->max_sg_id = link_data->cs.max_sg_id;
+      dispatch->threading = link_data->fs.threading;
+      dispatch->single_seg = link_data->fs.single_seg;
+      dispatch->propagate_nans = true;
+      dispatch->shader_addr = code_addr;
+      dispatch->unifs_addr = unifs_addr;
+      dispatch->shared_block_size = ir_program->cs_shared_block_size;
+      dispatch->no_overlap = !link_data->cs.allow_concurrent_jobs;
+   }
+   #else
    {
       uint8_t* dispatch_cl = compute_cl_add_dispatch(&mem_if, &rs->fmem);
       if (!dispatch_cl)
+      {
+         khrn_vector_pop_back(&rs->fmem.persist->compute_dispatches);
          goto end;
-
-      glxx_compute_dispatch* dispatch = khrn_vector_emplace_back(glxx_compute_dispatch, &rs->fmem.persist->compute_dispatches);
-      if (!dispatch)
-         goto end;
+      }
 
       // Initialise compute binary program.
       compute_program* program = &dispatch->program;
@@ -206,7 +261,13 @@ static bool dispatch_compute(GLXX_SERVER_STATE_T* state, glxx_compute_num_work_g
       }
 
       if (!link_data->cs.allow_concurrent_jobs)
-         rs->fmem.br_info.details.render_no_bin_overlap = true;
+         rs->fmem.br_info.details.render_no_overlap = true;
+
+      // BETTER_BARRIER should have fixed all the barrier collisions, but TCS-bin can
+      // collide with non CSD compute. The simplest fix for these intermediate HW revisions
+      // is to disable binning alongside fragment compute shaders.
+      if (V3D_VER_AT_LEAST(4,2,13,0) && !V3D_VER_AT_LEAST(4,2,13,0))
+         rs->fmem.br_info.details.render_no_overlap = true;
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
       /* If using flow control, then driver needs to work around GFXH-1181. */
@@ -214,6 +275,7 @@ static bool dispatch_compute(GLXX_SERVER_STATE_T* state, glxx_compute_num_work_g
          rs->fmem.br_info.details.render_workaround_gfxh_1181 = true;
 #endif
    }
+   #endif
 
 end:
    // timh-todo: allow batching of smaller dispatches.
@@ -262,7 +324,7 @@ static bool check_num_work_groups(GLXX_SERVER_STATE_T* state, const uint32_t num
    if (!num_work_groups[0] || !num_work_groups[1] || !num_work_groups[2])
       return false;
 
-   static_assrt(GLXX_CONFIG_MAX_COMPUTE_GROUP_COUNT <= UINT16_MAX);
+   static_assrt(GLXX_CONFIG_MAX_COMPUTE_GROUP_COUNT < (1 << 64/3));
    if (  num_work_groups[0] > GLXX_CONFIG_MAX_COMPUTE_GROUP_COUNT
       || num_work_groups[1] > GLXX_CONFIG_MAX_COMPUTE_GROUP_COUNT
       || num_work_groups[2] > GLXX_CONFIG_MAX_COMPUTE_GROUP_COUNT)
@@ -272,7 +334,7 @@ static bool check_num_work_groups(GLXX_SERVER_STATE_T* state, const uint32_t num
       return false;
    }
 
-   if ((uint64_t)(num_work_groups[0] * num_work_groups[1]) * (uint64_t)num_work_groups[2] > UINT32_MAX)
+   if (((uint64_t)num_work_groups[0] * num_work_groups[1] * num_work_groups[2]) > UINT32_MAX)
    {
       if (state)
          glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
@@ -337,7 +399,7 @@ GL_APICALL void GL_APIENTRY glDispatchComputeIndirect(GLintptr indirect)
    glxx_compute_num_work_groups num_work_groups = { 0, };
 
    // Try and access the indirect buffer now if possible.
-   bool read_now = false;
+   bool read_now = true;
    num_work_groups.cpu_ptr = khrn_resource_try_read_now(
       buffer->resource,
       indirect,
@@ -375,15 +437,17 @@ bool glxx_compute_render_state_flush(glxx_compute_render_state* rs)
       khrn_render_state_begin_flush((khrn_render_state*)rs);
 
       khrn_fmem* fmem = &rs->fmem;
+    #if !V3D_USE_CSD
       compute_cl_end(&mem_if, fmem);
       fmem->render_rw_flags |= compute_mem_access_flags();
       fmem->br_info.num_layers = 1;
       fmem->br_info.render_subjobs.num_subjobs = 1;
       v3d_subjob subjobs;
-      subjobs.start = khrn_fmem_hw_address(fmem, fmem->cle_first);
+      subjobs.start = rs->clist_start;
       subjobs.end = khrn_fmem_end_clist(fmem);
       fmem->br_info.render_subjobs.subjobs = &subjobs;
 
+    #endif
       khrn_fmem_flush(fmem);
    }
    else
@@ -398,20 +462,19 @@ bool glxx_compute_render_state_flush(glxx_compute_render_state* rs)
    return do_flush;
 }
 
-compute_job_mem* glxx_compute_process_dispatches(
-   glxx_compute_dispatch const* dispatches,
-   unsigned num_dispatches)
+#if !V3D_USE_CSD
+compute_job_mem* glxx_compute_process_dispatches(const khrn_vector* dispatches_vec)
 {
-   assert(num_dispatches);
+   assert(dispatches_vec->size != 0);
 
    compute_job_mem* mem = compute_job_mem_new();
    if (!mem)
       return NULL;
 
    bool any_valid = false;
-   for (unsigned i = 0; i != num_dispatches; ++i)
+   for (unsigned i = 0; i != dispatches_vec->size; ++i)
    {
-      glxx_compute_dispatch const* dispatch = dispatches + i;
+      glxx_compute_dispatch const* dispatch = khrn_vector_data(glxx_compute_dispatch, dispatches_vec) + i;
 
       const uint32_t* num_work_groups = dispatch->num_work_groups.immediate;
       if (dispatch->is_indirect)
@@ -445,5 +508,40 @@ compute_job_mem* glxx_compute_process_dispatches(
    }
    return mem;
 }
+#endif
+
+#if V3D_USE_CSD
+void glxx_compute_process_indirect_dispatches(
+   khrn_vector* dispatches_vec,
+   const khrn_vector* indirect_vec)
+{
+   // Update while filtering invalid dispatches.
+   unsigned i = 0;
+   unsigned d = 0;
+   for (unsigned s = 0; s != dispatches_vec->size; ++s)
+   {
+      glxx_compute_dispatch* src = khrn_vector_data(glxx_compute_dispatch, dispatches_vec) + s;
+      if (i != indirect_vec->size)
+      {
+         const glxx_compute_indirect* indirect = khrn_vector_data(glxx_compute_indirect, indirect_vec) + i;
+         if (indirect->dispatch_index == s)
+         {
+            i += 1;
+            if (!check_num_work_groups(NULL, indirect->num_wgs))
+               continue;
+            src->num_wgs_x = indirect->num_wgs[0];
+            src->num_wgs_y = indirect->num_wgs[1];
+            src->num_wgs_z = indirect->num_wgs[2];
+         }
+      }
+
+      if (s != d)
+         khrn_vector_data(glxx_compute_dispatch, dispatches_vec)[d] = *src;
+      d += 1;
+   }
+   assert(i == indirect_vec->size);
+   dispatches_vec->size = d;
+}
+#endif
 
 #endif

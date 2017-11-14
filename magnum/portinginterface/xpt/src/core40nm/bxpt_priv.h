@@ -107,6 +107,20 @@ typedef struct
 }
 MessageBufferEntry;
 
+/* XPT_FE_SPID_TABLE_XX.PID_DESTINATION */
+typedef enum BXPT_PidChannelDestination
+{
+    BXPT_PidChannelDestination_eRemux0GPipe,
+    BXPT_PidChannelDestination_eRemux0RPipe,
+    BXPT_PidChannelDestination_eRemux1GPipe,
+    BXPT_PidChannelDestination_eRemux1RPipe,
+    BXPT_PidChannelDestination_eRaveGPipe,
+    BXPT_PidChannelDestination_eRaveRPipe,
+    BXPT_PidChannelDestination_eMessageGPipe,
+    BXPT_PidChannelDestination_eMessageRPipe,
+    BXPT_PidChannelDestination_eMax
+} BXPT_PidChannelDestination;
+
 /***************************************************************************
 Summary:
 Used to maintain a list of which PID channels are allocated and what parser
@@ -127,7 +141,7 @@ typedef struct
     bool HasDestination;
 #endif /*ENABLE_PLAYBACK_MUX*/
 
-    uint32_t MessageBuffercount;
+    unsigned destRefCnt[BXPT_PidChannelDestination_eMax];
 
 #if BXPT_SW7425_1323_WORKAROUND
     bool IsPb;
@@ -636,6 +650,8 @@ typedef struct BXPT_P_TransportData
     /* Pointers to the interrupt handlers. */
     BXPT_P_InterruptCallbackArgs MesgIntrCallbacks[ BXPT_NUM_MESG_BUFFERS ];
     BXPT_P_InterruptCallbackArgs OverflowIntrCallbacks[ BXPT_NUM_MESG_BUFFERS ];
+
+    BXPT_PidChannelDestination mesgBufferDestination[BXPT_NUM_MESG_BUFFERS];
 #endif
 
 #if BXPT_HAS_REMUX
@@ -772,6 +788,19 @@ void SetPid2BuffMap(BXPT_Handle hXpt);
 
 bool BXPT_P_InputBandIsSupported(
     unsigned ib
+    );
+
+/* NOTE: make these private, return void (instead of unconditional success) */
+void BXPT_P_SetPidChannelDestination(
+    BXPT_Handle hXpt,
+    unsigned int PidChannelNum,
+    BXPT_PidChannelDestination Destination,
+    bool EnableIt
+    );
+
+void BXPT_P_ClearAllPidChannelDestinations(
+    BXPT_Handle hXpt,
+    unsigned int PidChannelNum
     );
 
 #endif

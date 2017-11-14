@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  vcos
-File     :  $RCSfile: $
-Revision :  $Revision$
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - implementation: joinable thread from plain
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
 /** \file
   *
@@ -22,8 +13,7 @@ VideoCore OS Abstraction Layer - implementation: joinable thread from plain
   * - a semaphore to support counted suspend/resume (used by event group)
   */
 
-#ifndef VCOS_JOINABLE_THREAD_FROM_PLAIN_H
-#define VCOS_JOINABLE_THREAD_FROM_PLAIN_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,6 +21,7 @@ extern "C" {
 
 #include "interface/vcos/vcos_semaphore.h"
 #include "interface/vcos/vcos_lowlevel_thread.h"
+#include <assert.h>
 
 #ifdef VCOS_WANT_TLS_EMULATION
 #include "interface/vcos/generic/vcos_generic_tls.h"
@@ -147,7 +138,7 @@ VCOS_THREAD_T *vcos_thread_current(void) {
    VCOS_THREAD_T *ret =  (VCOS_THREAD_T*)vcos_llthread_current();
    //If we're called from a non-vcos thread, this assert will fail.
    //XXX FIXME why is this commented out?
-   //vcos_assert(ret->magic == VCOS_THREAD_MAGIC);
+   //assert(ret->magic == VCOS_THREAD_MAGIC);
    return ret;
 }
 
@@ -189,4 +180,3 @@ extern void vcos_thread_deregister_at_exit(void (*pfn)(void*), void *cxt);
 #ifdef __cplusplus
 }
 #endif
-#endif /* VCOS_JOINABLE_THREAD_FROM_PLAIN_H */

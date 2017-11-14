@@ -239,8 +239,10 @@ struct _MAC_ScanReqDescr_t
     /* 32-bit data. */
     MAC_ScanConfCallback_t *callback;       /*!< Confirmation callback handler-function entry point. */
 
+#ifndef _HOST_
     /* Structured data. */
     MacServiceField_t       service;        /*!< MAC-FE requests/responses service field. */
+#endif
 
     MAC_ScanReqParams_t     params;         /*!< MLME-SCAN.request parameters set. */
 };

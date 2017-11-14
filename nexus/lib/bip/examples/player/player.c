@@ -43,6 +43,8 @@
 #include "nexus_sync_channel.h"
 #endif
 #include "nexus_platform.h"
+#include "nexus_audio_playback.h"
+#include "nexus_audio_mixer.h"
 #endif
 
 #include "bip.h"
@@ -93,6 +95,8 @@ int main(int argc, char *argv[])
     NEXUS_VideoWindowHandle window = NULL;
     NEXUS_VideoDecoderHandle videoDecoder = NULL;
     NEXUS_AudioDecoderHandle pcmDecoder = NULL;
+    NEXUS_AudioPlaybackHandle hAudioPlayback = NULL;
+    NEXUS_AudioMixerHandle hMixer = NULL;
 #endif
 
 
@@ -247,6 +251,70 @@ int main(int argc, char *argv[])
 #endif
             BDBG_MSG(("Display is Opened\n"));
         }
+    }
+
+    if (pAppCtx->sineTone)
+    {
+        /* Play/mix a constant sine tone w/ the audio output. */
+        static int16_t samples[48] = { /* 1KHz sine wave at 48 KHz */
+            0, 4276, 8480, 12539, 16383, 19947, 23169, 25995, 28377, 30272, 31650, 32486, 32767, 32486, 31650, 30272, 28377, 25995, 23169, 19947, 16383, 12539, 8480, 4276,
+            0, -4277, -8481, -12540, -16384, -19948, -23170, -25996, -28378, -30273, -31651, -32487, -32767, -32487, -31651, -30273, -28378, -25996, -23170, -19948, -16384, -12540, -8481, -4277
+            };
+        static size_t offset=0;
+        int16_t *pBuffer;
+        size_t bufferSize = 48*4*1000;   /* samples*bytesPerSample*x */
+        size_t i;
+        NEXUS_AudioPlaybackOpenSettings openSettings;
+        NEXUS_AudioPlaybackStartSettings settings;
+        hMixer = NEXUS_AudioMixer_Open(NULL);
+        BIP_CHECK_GOTO((hMixer ), ( "NEXUS_AudioMixer_Open Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+        NEXUS_AudioPlayback_GetDefaultOpenSettings(&openSettings);
+        openSettings.fifoSize = bufferSize;
+        hAudioPlayback = NEXUS_AudioPlayback_Open(0, &openSettings);
+        BIP_CHECK_GOTO((hAudioPlayback ), ( "NEXUS_AudioPlayback_Open Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+        NEXUS_AudioMixer_AddInput(hMixer, NEXUS_AudioPlayback_GetConnector(hAudioPlayback));
+#if NEXUS_NUM_AUDIO_DACS
+        if (platformConfig.outputs.audioDacs[0]) {
+            NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+                                       NEXUS_AudioMixer_GetConnector(hMixer));
+        }
+#endif
+#if NEXUS_NUM_SPDIF_OUTPUTS
+        if (platformConfig.outputs.spdif[0]) {
+            NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                                       NEXUS_AudioMixer_GetConnector(hMixer));
+        }
+#endif
+#if NEXUS_HAS_HDMI_OUTPUT
+        NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+                                   NEXUS_AudioMixer_GetConnector(hMixer));
+#endif
+        NEXUS_AudioPlayback_GetDefaultStartSettings(&settings);
+        settings.sampleRate = 48000;
+        settings.bitsPerSample = 16;
+        settings.stereo = true;
+        settings.signedData = true;
+        settings.loopAround = true;  /* fill it once and let nexus do the work */
+        BDBG_MSG(("Stream sample rate %d, %d bits per sample, %s, %s\n", settings.sampleRate,
+            settings.bitsPerSample, settings.stereo?"stereo":"mono",settings.endian==NEXUS_EndianMode_eLittle?"LE":"BE"));
+        rc = NEXUS_AudioPlayback_GetBuffer(hAudioPlayback, (void **)&pBuffer, &i);
+        BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_AudioPlayback_GetBuffer Failed" ), error, BIP_ERR_INTERNAL, bipStatus );
+        BIP_CHECK_GOTO(( i == bufferSize ), ( "bufferSize != i" ), error, BIP_ERR_INTERNAL, bipStatus );
+        bufferSize /= 4;
+        for ( i=0; i<bufferSize; i++ )
+        {
+            pBuffer[2*i] = pBuffer[(2*i)+1] = samples[offset];
+            offset++;
+            if ( offset >= 48 )
+            {
+                offset = 0;
+            }
+        }
+        bufferSize *= 4;
+        rc = NEXUS_AudioPlayback_WriteComplete(hAudioPlayback, bufferSize);
+        BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_AudioPlayback_WriteComplete Failed" ), error, BIP_ERR_INTERNAL, bipStatus );
+        rc = NEXUS_AudioPlayback_Start(hAudioPlayback, &settings);
+        BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_AudioPlayback_Start Failed" ), error, BIP_ERR_NEXUS, bipStatus );
     }
 #endif
 
@@ -532,6 +600,13 @@ int main(int argc, char *argv[])
                 BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_SimpleStcChannel_SetSettings Failed" ), error, BIP_ERR_NEXUS, bipStatus );
             }
 
+            if (!pAppCtx->disableAudio && audioPidChannel)
+            {
+                rc = NEXUS_SimpleAudioDecoder_SetStcChannel(hSimpleAudioDecoder, hSimpleStcChannel);
+                BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_SetStcChannel Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+                BDBG_MSG(("Set audio stc before starting video decoder "));
+            }
+
             if (!pAppCtx->disableVideo && videoPidChannel)
             {
                 NEXUS_SimpleVideoDecoderStartSettings videoProgram;
@@ -553,9 +628,6 @@ int main(int argc, char *argv[])
             if (!pAppCtx->disableAudio && audioPidChannel)
             {
                 NEXUS_SimpleAudioDecoderStartSettings audioProgram;
-
-                rc = NEXUS_SimpleAudioDecoder_SetStcChannel(hSimpleAudioDecoder, hSimpleStcChannel);
-                BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_SetStcChannel Failed" ), error, BIP_ERR_NEXUS, bipStatus );
 
                 NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
                 audioProgram.primary.codec = audioCodec;
@@ -638,7 +710,14 @@ int main(int argc, char *argv[])
                 NEXUS_AudioDecoderStartSettings audioProgram;
 
 #if NEXUS_NUM_HDMI_OUTPUTS
-                NEXUS_AudioOutput_AddInput( NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0] ), NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+                if (hAudioPlayback && hMixer) {
+                    NEXUS_AudioPlayback_Suspend(hAudioPlayback);
+                    NEXUS_AudioMixer_AddInput(hMixer,  NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+                    NEXUS_AudioPlayback_Resume(hAudioPlayback);
+                }
+                else {
+                    NEXUS_AudioOutput_AddInput( NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0] ), NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+                }
 #endif
 
                 NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
@@ -906,6 +985,11 @@ error:
     if (display) NEXUS_Display_Close(display);
     if (videoDecoder) NEXUS_VideoDecoder_Close(videoDecoder);
     if (stcChannel) NEXUS_StcChannel_Close(stcChannel);
+    if (hAudioPlayback) {
+        NEXUS_AudioPlayback_Stop(hAudioPlayback);
+        NEXUS_AudioPlayback_Close(hAudioPlayback);
+    }
+    if (hMixer) NEXUS_AudioMixer_Close(hMixer);
 #endif
 
     if (hPlayer) BIP_Player_Destroy(hPlayer);

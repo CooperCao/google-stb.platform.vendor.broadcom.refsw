@@ -435,11 +435,11 @@ static bool BuildOutput(Scheduler *scheduler, uint32_t type,
    hcode = mem_alloc_ex(Scheduler_CodeByteSize(scheduler), 8, MEM_FLAG_DIRECT, "shader code", MEM_COMPACT_DISCARD);
    huniform_map = mem_alloc_ex(Scheduler_UniformsByteSize(scheduler), 4, MEM_FLAG_NONE, "uniform map", MEM_COMPACT_DISCARD);
 
-   if (hcode == MEM_INVALID_HANDLE || huniform_map == MEM_INVALID_HANDLE)
+   if (hcode == MEM_HANDLE_INVALID || huniform_map == MEM_HANDLE_INVALID)
    {
-      if (hcode != MEM_INVALID_HANDLE)
+      if (hcode != MEM_HANDLE_INVALID)
          mem_release(hcode);
-      if (huniform_map != MEM_INVALID_HANDLE)
+      if (huniform_map != MEM_HANDLE_INVALID)
          mem_release(huniform_map);
 
       ret = false;
@@ -567,7 +567,7 @@ bool bcg_schedule(Dataflow *root, uint32_t type, bool *allow_thread, Scheduler_S
    uint32_t                numThreadSwitch;
    Scheduler               scheduler;
 
-   vcos_assert(allow_thread != NULL);
+   assert(allow_thread != NULL);
 
    if (khrn_options.glsl_debug_on)
    {
@@ -816,7 +816,7 @@ static void Scheduler_NodeCompleted(Scheduler *self, DFlowNode *doneNode)
    {
       DFlowNode   *parent = NodeList_const_star(iter);
 
-      vcos_assert(DFlowNode_Slot(parent) == DFlowNode_NOT_SCHEDULED);
+      assert(DFlowNode_Slot(parent) == DFlowNode_NOT_SCHEDULED);
 
       if (DFlowNode_IsSchedulable(parent))
       {
@@ -828,7 +828,7 @@ static void Scheduler_NodeCompleted(Scheduler *self, DFlowNode *doneNode)
    for (iter = NodeList_const_begin(ioParents); iter != NodeList_const_end(ioParents); NodeList_const_next(&iter))
    {
       DFlowNode   *ioParent = NodeList_const_star(iter);
-      vcos_assert(DFlowNode_Slot(ioParent) == DFlowNode_NOT_SCHEDULED);
+      assert(DFlowNode_Slot(ioParent) == DFlowNode_NOT_SCHEDULED);
 
       if (DFlowNode_IsSchedulable(ioParent))
       {
@@ -1017,7 +1017,7 @@ static void Scheduler_AddProgramEnd(Scheduler *self)
    }
    while (!ok);
 
-   vcos_assert(QPUInstr_GetSignal(QPUGenericInstr_GetInstruction(lastButTwo)) == Sig_NONE);
+   assert(QPUInstr_GetSignal(QPUGenericInstr_GetInstruction(lastButTwo)) == Sig_NONE);
 
    QPUGenericInstr_SetSignal(lastButTwo, Sig_END);
 
@@ -1110,12 +1110,12 @@ static void Scheduler_AddProgramEnd(Scheduler *self)
       {
          if (WritesTileColor(last) || QPUInstr_GetSignal(QPUGenericInstr_GetInstruction(lastButOne)) != Sig_NONE)
          {
-            vcos_assert(QPUInstr_GetSignal(QPUGenericInstr_GetInstruction(last)) == Sig_NONE);
+            assert(QPUInstr_GetSignal(QPUGenericInstr_GetInstruction(last)) == Sig_NONE);
             vcos_verify(QPUGenericInstr_SetSignal(last, Sig_SBUNLOCK));
          }
          else
          {
-            vcos_assert(QPUInstr_GetSignal(QPUGenericInstr_GetInstruction(lastButOne)) == Sig_NONE);
+            assert(QPUInstr_GetSignal(QPUGenericInstr_GetInstruction(lastButOne)) == Sig_NONE);
             vcos_verify(QPUGenericInstr_SetSignal(lastButOne, Sig_SBUNLOCK));
          }
       }
@@ -1320,7 +1320,7 @@ void Scheduler_WriteCode(Scheduler *self, void *code, size_t bufSize)
 
    if (bufSize < Scheduler_CodeByteSize(self))
    {
-      vcos_assert(0);
+      assert(0);
       return;
    }
 
@@ -1348,7 +1348,7 @@ void Scheduler_InsertThreadSwitch(Scheduler *self)
    QPUGenericInstr *instr;
 
    uint32_t schedSize = GIVector_size(&self->m_schedule);
-   vcos_assert(schedSize >= 2);
+   assert(schedSize >= 2);
 
    instr = GIVector_lindex(&self->m_schedule, schedSize - 2);
 
@@ -1384,7 +1384,7 @@ bool Scheduler_CanInsertThreadSwitch(const Scheduler *self)
 
 bool Scheduler_AllThreadSwitchesDone(const Scheduler *self)
 {
-   vcos_assert(self->m_numThreadSwitches <= self->m_maxThreadSwitches);
+   assert(self->m_numThreadSwitches <= self->m_maxThreadSwitches);
 
    return self->m_numThreadSwitches == self->m_maxThreadSwitches;
 }
@@ -1396,7 +1396,7 @@ void Scheduler_WriteUniforms(Scheduler *self, void *uniforms, size_t bufSize)
 
    if (bufSize < unifByteSize)
    {
-      vcos_assert(0);
+      assert(0);
       return;
    }
 
@@ -1421,7 +1421,7 @@ void Scheduler_WriteVaryings(Scheduler *self, void *varyings, size_t bufSize)
 
    if (bufSize < varyingsByteSize || bufSize > 32 * 4)
    {
-      vcos_assert(0);
+      assert(0);
       return;
    }
 

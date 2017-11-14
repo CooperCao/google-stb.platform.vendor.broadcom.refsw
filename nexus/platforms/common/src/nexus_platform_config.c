@@ -96,26 +96,77 @@ extern NEXUS_Error NEXUS_Platform_P_InitExternalRfm(const NEXUS_PlatformConfigur
 static void NEXUS_Platform_P_StartMonitor(void);
 static void NEXUS_Platform_P_StopMonitor(void);
 
+#include "nexus_platform_config_custom.inc"
+
 NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 {
     NEXUS_Error errCode=NEXUS_SUCCESS;
     unsigned i;
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
+    union {
+        /* name of union loosly matches scope where variable accessed, this way we don't allocate excessively large memory block */
+#if NEXUS_HAS_DISPLAY
+        struct {
+            NEXUS_DisplayCapabilities cap;
+        } has_display;
+#endif
+#if NEXUS_HAS_VIDEO_DECODER
+        struct {
+            NEXUS_VideoDecoderCapabilities cap;
+        } has_video_decoder;
+#endif
+#if NEXUS_HAS_AUDIO
+        struct {
+            NEXUS_AudioCapabilities audioCapabilities;
+        } has_audio;
+#endif
+#if NEXUS_HAS_TRANSPORT
+        struct {
+            NEXUS_TransportCapabilities transportCapabilities;
+            NEXUS_InputBandStatus status;
+            NEXUS_InputBandSettings inputBandSettings;
+            NEXUS_InputBandSettings orgSettings;
+        } has_transport;
+#endif
+#if NEXUS_NUM_COMPONENT_OUTPUTS
+        struct {
+            NEXUS_ComponentOutputSettings componentCfg;
+        } num_component_outputs;
+#endif
+#if NEXUS_NUM_COMPOSITE_OUTPUTS
+        struct {
+            NEXUS_CompositeOutputSettings compositeCfg;
+        } num_composite_outputs;
+#endif
+#if NEXUS_HAS_I2C
+        struct {
+            NEXUS_I2cSettings i2cSettings;
+            NEXUS_GpioSettings gpioSettings;
+        } has_i2c;
+#endif
+#if NEXUS_HAS_HDMI_OUTPUT
+        struct {
+            NEXUS_HdmiOutputOpenSettings openSettings;
+        } has_hdmi_output;
+#endif
+    } *data;
 
-    /* remove unused warning */
-    if (0) {goto error;}
+    data = BKNI_Malloc(sizeof(*data));
+    if(data==NULL) {
+        goto err_malloc;
+    }
 
 #if NEXUS_HAS_I2C
     BDBG_CASSERT(NEXUS_MAX_I2C_CHANNELS <= NEXUS_MAX_CONFIG_HANDLES);
     /* Open I2C Channels */
     if (pSettings->openI2c)
     {
-        NEXUS_I2cSettings i2cSettings;
+        NEXUS_I2cSettings *i2cSettings = &data->has_i2c.i2cSettings;
         for ( i = 0; i < NEXUS_MAX_I2C_CHANNELS; i++ )
         {
             if (pSettings->i2c[i].open)
             {
-                i2cSettings = pSettings->i2c[i].settings;
+                *i2cSettings = pSettings->i2c[i].settings;
 
                 if ( i == NEXUS_I2C_CHANNEL_HDMI_TX )
                 {
@@ -123,30 +174,30 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
                     #if NEXUS_HAS_HDMI_SOFTI2C_SUPPORT
                     bool forceHardI2c = (hdmi_i2c_software_mode && (hdmi_i2c_software_mode[0] == 'n' ||
                                                                     hdmi_i2c_software_mode[0] == 'N'));
-                    i2cSettings.softI2c = !forceHardI2c;
+                    i2cSettings->softI2c = !forceHardI2c;
                     #else
                     bool forceSoftI2c = (hdmi_i2c_software_mode && (hdmi_i2c_software_mode[0] == 'y' ||
                                                                     hdmi_i2c_software_mode[0] == 'Y'));
-                    i2cSettings.softI2c = forceSoftI2c;
+                    i2cSettings->softI2c = forceSoftI2c;
                     #endif
-                    i2cSettings.clockRate = NEXUS_I2cClockRate_e100Khz;
+                    i2cSettings->clockRate = NEXUS_I2cClockRate_e100Khz;
                 }
 
-                if(i2cSettings.softI2c == true){
+                if(i2cSettings->softI2c == true){
 #if NEXUS_HAS_GPIO
-                    NEXUS_GpioSettings gpioSettings;
+                    NEXUS_GpioSettings *gpioSettings = &data->has_i2c.gpioSettings;
 
-                    NEXUS_Gpio_GetDefaultSettings(pSettings->i2c[i].clock.type, &gpioSettings);
-                    i2cSettings.clockGpio = NEXUS_Gpio_Open(pSettings->i2c[i].clock.type, pSettings->i2c[i].clock.gpio, &gpioSettings);
-                    if(i2cSettings.clockGpio == NULL) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
+                    NEXUS_Gpio_GetDefaultSettings(pSettings->i2c[i].clock.type, gpioSettings);
+                    i2cSettings->clockGpio = NEXUS_Gpio_Open(pSettings->i2c[i].clock.type, pSettings->i2c[i].clock.gpio, gpioSettings);
+                    if(i2cSettings->clockGpio == NULL) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
 
-                    NEXUS_Gpio_GetDefaultSettings(pSettings->i2c[i].data.type, &gpioSettings);
-                    i2cSettings.dataGpio = NEXUS_Gpio_Open(pSettings->i2c[i].data.type, pSettings->i2c[i].data.gpio, &gpioSettings);
-                    if(i2cSettings.dataGpio == NULL) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
+                    NEXUS_Gpio_GetDefaultSettings(pSettings->i2c[i].data.type, gpioSettings);
+                    i2cSettings->dataGpio = NEXUS_Gpio_Open(pSettings->i2c[i].data.type, pSettings->i2c[i].data.gpio, gpioSettings);
+                    if(i2cSettings->dataGpio == NULL) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
 #endif
                 }
 
-                pConfig->i2c[i] = NEXUS_I2c_Open(i, &i2cSettings);
+                pConfig->i2c[i] = NEXUS_I2c_Open(i, i2cSettings);
             }
         }
     }
@@ -154,29 +205,30 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 
 #if NEXUS_HAS_TRANSPORT
     {
-    NEXUS_TransportCapabilities transportCapabilities;
-    NEXUS_GetTransportCapabilities(&transportCapabilities);
-    for ( i = 0; i<transportCapabilities.numInputBands; i++ )
+    NEXUS_TransportCapabilities *transportCapabilities = &data->has_transport.transportCapabilities;
+    NEXUS_GetTransportCapabilities(transportCapabilities);
+    for ( i = 0; i<transportCapabilities->numInputBands; i++ )
     {
-        NEXUS_InputBandStatus status;
-        NEXUS_InputBandSettings inputBandSettings, orgSettings;
+        NEXUS_InputBandStatus *status = &data->has_transport.status;
+        NEXUS_InputBandSettings *inputBandSettings = &data->has_transport.inputBandSettings;
+        NEXUS_InputBandSettings *orgSettings = &data->has_transport.orgSettings;
 
         /* check if input band supported */
-        if (NEXUS_InputBand_GetStatus(i, &status)) continue;
+        if (NEXUS_InputBand_GetStatus(i, status)) continue;
 
-        NEXUS_InputBand_GetSettings(i, &inputBandSettings);
-        orgSettings = inputBandSettings;
+        NEXUS_InputBand_GetSettings(i, inputBandSettings);
+        *orgSettings = *inputBandSettings;
 
 #if (NEXUS_PLATFORM == 97584) || (NEXUS_PLATFORM == 975845)
         if (i == NEXUS_InputBand_e9)
         {
-            inputBandSettings.validEnabled = true;
-            inputBandSettings.parallelInput = true;
+            inputBandSettings->validEnabled = true;
+            inputBandSettings->parallelInput = true;
         }
 #endif
-        if (BKNI_Memcmp(&inputBandSettings, &orgSettings, sizeof(inputBandSettings))) {
+        if (BKNI_Memcmp(inputBandSettings, orgSettings, sizeof(*inputBandSettings))) {
             /* only call setsettings if changed */
-            NEXUS_InputBand_SetSettings(i, &inputBandSettings);
+            NEXUS_InputBand_SetSettings(i, inputBandSettings);
         }
     }
     }
@@ -189,86 +241,43 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
         BDBG_CASSERT(NEXUS_NUM_COMPOSITE_OUTPUTS <= NEXUS_MAX_CONFIG_HANDLES);
         {
-            NEXUS_CompositeOutputSettings compositeCfg;
+            NEXUS_CompositeOutputSettings *compositeCfg = &data->num_composite_outputs.compositeCfg;
             pConfig->outputs.composite[0] = NEXUS_CompositeOutput_Open(0, NULL);
             if(!pConfig->outputs.composite[0]) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
             NEXUS_OBJECT_REGISTER(NEXUS_CompositeOutput, pConfig->outputs.composite[0], Create);
 
-            NEXUS_CompositeOutput_GetSettings(pConfig->outputs.composite[0], &compositeCfg);
-
-            #if ((BCHP_CHIP == 7422) || (BCHP_CHIP == 7425) ||          \
-                 (BCHP_CHIP == 7435) || (BCHP_CHIP == 7445) ||          \
-                 (BCHP_CHIP == 7250 && defined(NEXUS_USE_7250_SV)) ||   \
-                 (BCHP_CHIP == 7439) ||                                 \
-                 ((BCHP_CHIP == 7429 || BCHP_CHIP==74295) && (NEXUS_PLATFORM != 97241 && NEXUS_PLATFORM != 972415))) /* i.e. 7429[5] family execpt 7241[5] bond outs */
-            compositeCfg.dac = NEXUS_VideoDac_e3;
-            #else
-            compositeCfg.dac = NEXUS_VideoDac_e0;
-            #endif
-
-
-
-            errCode = NEXUS_CompositeOutput_SetSettings(pConfig->outputs.composite[0], &compositeCfg);
+            NEXUS_CompositeOutput_GetSettings(pConfig->outputs.composite[0], compositeCfg);
+            compositeCfg->dac = g_NEXUS_compositeDacs[0];
+            errCode = NEXUS_CompositeOutput_SetSettings(pConfig->outputs.composite[0], compositeCfg);
             if(errCode) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
         }
 #endif
 
 #if NEXUS_HAS_RFM && NEXUS_NUM_RFM_OUTPUTS
         {
-            pConfig->outputs.rfm[0] = NEXUS_Rfm_Open(0, NULL);
-            if(!pConfig->outputs.rfm[0]) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
-            NEXUS_OBJECT_REGISTER(NEXUS_Rfm, pConfig->outputs.rfm[0], Create);
+            bool rfmCapable;
+            if((BCHP_GetFeature(g_pCoreHandles->chp, BCHP_Feature_eRfmCapable, (void*) &rfmCapable) == NEXUS_SUCCESS) && rfmCapable) {
+                pConfig->outputs.rfm[0] = NEXUS_Rfm_Open(0, NULL);
+                if(!pConfig->outputs.rfm[0]) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
+                NEXUS_OBJECT_REGISTER(NEXUS_Rfm, pConfig->outputs.rfm[0], Create);
+            }
         }
 #endif
 
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     BDBG_CASSERT(NEXUS_NUM_COMPONENT_OUTPUTS <= NEXUS_MAX_CONFIG_HANDLES);
         {
-            NEXUS_ComponentOutputSettings componentCfg;
+            NEXUS_ComponentOutputSettings *componentCfg = &data->num_component_outputs.componentCfg;
             pConfig->outputs.component[0] = NEXUS_ComponentOutput_Open(0, NULL);
             if(!pConfig->outputs.component[0]) { errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
             NEXUS_OBJECT_REGISTER(NEXUS_ComponentOutput, pConfig->outputs.component[0], Create);
 
-            NEXUS_ComponentOutput_GetSettings(pConfig->outputs.component[0], &componentCfg);
-            componentCfg.type = NEXUS_ComponentOutputType_eYPrPb;
-    #if BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7445 || \
-        ((BCHP_CHIP == 7439) && (BCHP_VER >= BCHP_VER_B0))
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e0;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e2;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e1;
-    #elif BCHP_CHIP==7346 || BCHP_CHIP==7231 || BCHP_CHIP == 7584 || BCHP_CHIP == 75845 || BCHP_CHIP == 73465
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e2;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e3;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e1;
-    #elif  BCHP_CHIP==7344
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e1;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e3;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e2;
-    #elif (BCHP_CHIP == 7358) || (BCHP_CHIP == 7552) || (BCHP_CHIP == 7360) || \
-          (BCHP_CHIP == 7362) || (BCHP_CHIP == 7228) || (BCHP_CHIP == 73625)
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e2;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e3;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e1;
-    #elif  (BCHP_CHIP == 7429) || (BCHP_CHIP == 74295)
-        #if (NEXUS_PLATFORM == 97241) || (NEXUS_PLATFORM == 972415)
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e2;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e3;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e1;
-        #else
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e0;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e2;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e1;
-        #endif
-    #elif (BCHP_CHIP==7364) || (BCHP_CHIP==7366) || (BCHP_CHIP==7250)
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e0;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e2;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e1;
-    #else
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e4;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e5;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e3;
-    #endif
-            errCode = NEXUS_ComponentOutput_SetSettings(pConfig->outputs.component[0], &componentCfg);
+            NEXUS_ComponentOutput_GetSettings(pConfig->outputs.component[0], componentCfg);
+            componentCfg->type = NEXUS_ComponentOutputType_eYPrPb;
+            componentCfg->dacs.YPrPb.dacY = g_NEXUS_componentDacs[0].dacY;
+            componentCfg->dacs.YPrPb.dacPr = g_NEXUS_componentDacs[0].dacPr;
+            componentCfg->dacs.YPrPb.dacPb = g_NEXUS_componentDacs[0].dacPb;
+            errCode = NEXUS_ComponentOutput_SetSettings(pConfig->outputs.component[0], componentCfg);
             if(errCode) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
         }
 #endif
@@ -301,11 +310,13 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 
 #if NEXUS_HAS_AUDIO
     {
-        NEXUS_AudioCapabilities audioCapabilities;
-        NEXUS_GetAudioCapabilities(&audioCapabilities);
+        NEXUS_AudioCapabilities *audioCapabilities = &data->has_audio.audioCapabilities;
+        NEXUS_GetAudioCapabilities(audioCapabilities);
 
+#if NEXUS_NUM_AUDIO_DACS
         BDBG_CASSERT(NEXUS_NUM_AUDIO_DACS <= sizeof(pConfig->outputs.audioDacs)/sizeof(pConfig->outputs.audioDacs[0]));
-        for ( i = 0; i < audioCapabilities.numOutputs.dac; i++ )
+#endif
+        for ( i = 0; i < audioCapabilities->numOutputs.dac; i++ )
         {
             pConfig->outputs.audioDacs[i] = NEXUS_AudioDac_Open(i, NULL);
             if ( NULL == pConfig->outputs.audioDacs[i] )
@@ -316,8 +327,10 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             NEXUS_OBJECT_REGISTER(NEXUS_AudioDac, pConfig->outputs.audioDacs[i], Create);
         }
 
+#if NEXUS_NUM_SPDIF_OUTPUTS
         BDBG_CASSERT(NEXUS_NUM_SPDIF_OUTPUTS <= sizeof(pConfig->outputs.spdif)/sizeof(pConfig->outputs.spdif[0]));
-        for ( i = 0; i < audioCapabilities.numOutputs.spdif; i++ )
+#endif
+        for ( i = 0; i < audioCapabilities->numOutputs.spdif; i++ )
         {
             pConfig->outputs.spdif[i] = NEXUS_SpdifOutput_Open(i, NULL);
             if ( NULL == pConfig->outputs.spdif[i] )
@@ -328,8 +341,10 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             NEXUS_OBJECT_REGISTER(NEXUS_SpdifOutput, pConfig->outputs.spdif[i], Create);
         }
 
+#if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
         BDBG_CASSERT(NEXUS_NUM_AUDIO_DUMMY_OUTPUTS <= sizeof(pConfig->outputs.audioDummy)/sizeof(pConfig->outputs.audioDummy[0]));
-        for ( i = 0; i < audioCapabilities.numOutputs.dummy; i++ )
+#endif
+        for ( i = 0; i < audioCapabilities->numOutputs.dummy; i++ )
         {
             pConfig->outputs.audioDummy[i] = NEXUS_AudioDummyOutput_Open(i, NULL);
             if ( NULL == pConfig->outputs.audioDummy[i] )
@@ -340,8 +355,10 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             NEXUS_OBJECT_REGISTER(NEXUS_AudioDummyOutput, pConfig->outputs.audioDummy[i], Create);
         }
 
+#if NEXUS_NUM_I2S_OUTPUTS
         BDBG_CASSERT(NEXUS_NUM_I2S_OUTPUTS<= sizeof(pConfig->outputs.i2s)/sizeof(pConfig->outputs.i2s[0]));
-        for ( i = 0; i < audioCapabilities.numOutputs.i2s; i++ )
+#endif
+        for ( i = 0; i < audioCapabilities->numOutputs.i2s; i++ )
         {
             pConfig->outputs.i2s[i] = NEXUS_I2sOutput_Open(i, NULL);
             if ( NULL == pConfig->outputs.i2s[i] )
@@ -360,9 +377,10 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 BDBG_CASSERT(NEXUS_NUM_HDMI_OUTPUTS <= NEXUS_MAX_HDMI_OUTPUTS);
             for(i=0 ; i < NEXUS_NUM_HDMI_OUTPUTS ; i++)
             {
-                NEXUS_HdmiOutputOpenSettings openSettings = pSettings->hdmiOutputOpenSettings[i];
-                openSettings.i2c = pConfig->i2c[NEXUS_I2C_CHANNEL_HDMI_TX];
-                pConfig->outputs.hdmi[i] = NEXUS_HdmiOutput_Open(i, &openSettings);
+                NEXUS_HdmiOutputOpenSettings *openSettings = &data->has_hdmi_output.openSettings;
+                *openSettings = pSettings->hdmiOutputOpenSettings[i];
+                openSettings->i2c = pConfig->i2c[NEXUS_I2C_CHANNEL_HDMI_TX];
+                pConfig->outputs.hdmi[i] = NEXUS_HdmiOutput_Open(i, openSettings);
                 if ( NULL == pConfig->outputs.hdmi[i] )
                 {
                     errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -436,28 +454,24 @@ BDBG_CASSERT(NEXUS_NUM_HDMI_OUTPUTS <= NEXUS_MAX_HDMI_OUTPUTS);
     }
 #if NEXUS_HAS_DISPLAY
     {
-        NEXUS_DisplayCapabilities *cap;
-        cap = BKNI_Malloc(sizeof(NEXUS_DisplayCapabilities));
+        NEXUS_DisplayCapabilities *cap = &data->has_display.cap;
         if (cap == NULL) { errCode = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto error; }
         NEXUS_GetDisplayCapabilities(cap);
         for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
             pConfig->supportedDisplay[i] = cap->display[i].numVideoWindows > 0;
         }
         pConfig->numWindowsPerDisplay = cap->display[0].numVideoWindows;
-        BKNI_Free(cap);
     }
 #endif
 
 #if NEXUS_HAS_VIDEO_DECODER
     {
-        NEXUS_VideoDecoderCapabilities *cap;
-        cap = BKNI_Malloc(sizeof(NEXUS_VideoDecoderCapabilities));
+        NEXUS_VideoDecoderCapabilities *cap = &data->has_video_decoder.cap;
         if (cap == NULL) { errCode = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto error; }
         NEXUS_GetVideoDecoderCapabilities(cap);
         for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
             pConfig->supportedDecoder[i] = i < cap->numVideoDecoders;
         }
-        BKNI_Free(cap);
     }
 #endif
 
@@ -468,13 +482,16 @@ BDBG_CASSERT(NEXUS_NUM_HDMI_OUTPUTS <= NEXUS_MAX_HDMI_OUTPUTS);
     (void)NEXUS_AudioModule_EnableExternalMclk(0, NEXUS_AudioOutputPll_e0, NEXUS_ExternalMclkRate_e256Fs);
 #endif
 
+    BKNI_Free(data);
     NEXUS_Platform_P_StartMonitor();
 
     BDBG_MSG(("NEXUS_Platform_P_Config<< DONE"));
     return BERR_SUCCESS;
 
 error:
+    BKNI_Free(data);
     NEXUS_Platform_P_Shutdown();
+err_malloc:
     return errCode;
 }
 

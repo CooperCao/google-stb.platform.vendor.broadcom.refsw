@@ -64,7 +64,7 @@ BDBG_MODULE(nexus_platform_standby);
 
 #if NEXUS_POWER_MANAGEMENT
 NEXUS_PlatformStandbyState g_standbyState = {{NEXUS_StandbyMode_eOn,
-                          {false,false,false,false,false,false,false,0}, false, 100},
+                          {false,false,false,false,false,false,false,0}, false, 250},
                          false};
 #endif
 

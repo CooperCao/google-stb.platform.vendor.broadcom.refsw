@@ -1,20 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  sorting algorithm for packed vertex attributes
-
-FILE DESCRIPTION
-vertex attributes can be supplied packed in the same buffer
-this algorithm orders the enabled attributes for use by the VCD/VPM
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/glxx/glxx_int_attrib.h"
 #include "interface/khronos/glxx/glxx_int_config.h"
 #include "middleware/khronos/glxx/2708/glxx_attr_sort_4.h"
 
 #include <stdio.h>
+#include <assert.h>
 
 struct entry{
    struct entry *prev;
@@ -135,7 +128,7 @@ void glxx_sort_attributes(GLXX_ATTRIB_T *attrib,
                //b should go just before a
 
                //take b out of its current position
-               vcos_assert(b != head);
+               assert(b != head);
                b->prev->next = b->next;
                if(b->next)
                   b->next->prev = b->prev;
@@ -146,12 +139,12 @@ void glxx_sort_attributes(GLXX_ATTRIB_T *attrib,
 
                if(a->prev)
                {
-                  vcos_assert(a != head);
+                  assert(a != head);
                   a->prev->next = b;
                }
                else
                {
-                  vcos_assert(a == head);
+                  assert(a == head);
                   head = b;
                }
 
@@ -165,7 +158,7 @@ void glxx_sort_attributes(GLXX_ATTRIB_T *attrib,
                //a should go just before b
 
                //take b out of its current position
-               vcos_assert(b != head);
+               assert(b != head);
                b->prev->next = b->next;
                if(b->next)
                   b->next->prev = b->prev;
@@ -174,7 +167,7 @@ void glxx_sort_attributes(GLXX_ATTRIB_T *attrib,
                b->prev = a;
                b->next = a->next;
 
-               vcos_assert(a->next);
+               assert(a->next);
                a->next->prev = b;
                a->next = b;
 
@@ -202,7 +195,7 @@ void glxx_sort_attributes(GLXX_ATTRIB_T *attrib,
    {
       if(i<n)
       {
-         vcos_assert(a != NULL);
+         assert(a != NULL);
          vattribs_order[i] = a->index;
          a = a->next;
 
@@ -261,7 +254,7 @@ void glxx_sort_attributes(GLXX_ATTRIB_T *attrib,
       }
    }
    //now push any cattribs that didn't match the merged vattribs on the end of cattribs
-   vcos_assert((last_vattrib+1+num_cattribs_extra)<=GLXX_CONFIG_MAX_VERTEX_ATTRIBS*2);
+   assert((last_vattrib+1+num_cattribs_extra)<=GLXX_CONFIG_MAX_VERTEX_ATTRIBS*2);
    for (j = 0; j < num_cattribs_extra; j++) {
       cattribs_order[last_vattrib+1+j] = cattribs_extra[j];
       dn_cattr++;

@@ -130,6 +130,7 @@ static void init_base_tgt(struct v3d_imgconv_base_tgt *tgt,
    tgt->z = z;
    tgt->start_elem = start_elem;
    tgt->array_pitch = array_pitch;
+   tgt->conversion = V3D_IMGCONV_CONVERSION_FORMAT;
 
    for (unsigned p = 0; p < tgt->desc.num_planes; p++)
       tgt->plane_sizes[p] = gfx_buffer_size_plane(desc, p);

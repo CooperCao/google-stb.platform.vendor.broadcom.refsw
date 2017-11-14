@@ -195,6 +195,19 @@ done:
 		hHDMI, PhysicalHdmiRamPacketId,
 		PacketType, PacketVersion, PacketLength, hHDMI->PacketBytes) ;
 
+#if BDBG_DEBUG_BUILD
+	{
+		BDBG_Level level ;
+
+		BDBG_GetModuleLevel("BHDM_PACKET_VSI", &level) ;
+		if (level == BDBG_eMsg)
+		{
+			BAVC_HDMI_DisplayVendorSpecificInfoFrame(&hHDMI->DeviceStatus.stPort,
+				&hHDMI->DeviceSettings.stVendorSpecificInfoFrame) ;
+		}
+	}
+#endif
+
 	return rc ;
 }
 

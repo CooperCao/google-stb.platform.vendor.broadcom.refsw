@@ -402,7 +402,7 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
     else
     {
         prodOtpData = lHandle->sageContainer->basicOut[0];
-        BDBG_MSG(("bond option %d",prodOtpData));
+        BDBG_LOG(("bond option %d",prodOtpData));
         BDBG_LOG(("Sage BP3 TA running"));
     }
     BDBG_MSG(("Initialized BP3 SAGE platform: assignedAsyncId [0x%x]", lHandle->uiLastAsyncId));
@@ -494,38 +494,31 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
                 rc=BERR_TRACE(rc);
             }
             BDBG_LOG(("Processed bp3.bin rc=%d", lHandle->sageContainer->basicOut[0]));
-            if (lHandle->sageContainer->basicOut[1] == true)
+
+            /* Print CCF block status for number of CCF blocks in bp3.bin */
+            for (index=0; index < NEXUS_BP3_CCF_MAX_NUM_BLOCKS; index++)
             {
-                BDBG_MSG(("BP3 part"));
-                /* Print CCF block status for number of CCF blocks in bp3.bin for a BP3 enabled part */
-                for (index=0; index < NEXUS_BP3_CCF_MAX_NUM_BLOCKS; index++)
+                if (index == 0)
                 {
-                    if (index == 0)
-                    {
-                        BDBG_MSG(("CCF block %d or header status %d",index,pCcfStatus[index]));
-                    }
-                    else
-                    {
-                        BDBG_MSG(("CCF block %d status %d",index,pCcfStatus[index]));
-                    }
-                }
-                if (pCcfStatus[0] == BP3_Error_eInternalDevBondOption)
-                {
-                    BDBG_LOG(("BP3 Internal Development part.  Feature list is not applicable"));
+                    BDBG_MSG(("CCF block %d or header status %d",index,pCcfStatus[index]));
                 }
                 else
                 {
-                    /* Print Feature List for a BP3 enabled part */
-                    BDBG_LOG(("1 enabled Feature List:"));
-                    BDBG_LOG(("Audio   Feature List 0x%08X", pFeatureList[0]));
-                    BDBG_LOG(("Video 0 Feature List 0x%08X", pFeatureList[1]));
-                    BDBG_LOG(("Video 1 Feature List 0x%08X", pFeatureList[2]));
-                    BDBG_LOG(("Host    Feature List 0x%08X", pFeatureList[3]));
+                    BDBG_MSG(("CCF block %d status %d",index,pCcfStatus[index]));
                 }
+            }
+            if (pCcfStatus[0] == BP3_Error_eInternalDevBondOption)
+            {
+                BDBG_LOG(("BP3 Internal Development part.  Feature list is not applicable"));
             }
             else
             {
-                BDBG_MSG(("non-debug part"));
+                /* Print Feature List for a BP3 enabled part */
+                BDBG_LOG(("1 enabled Feature List:"));
+                BDBG_LOG(("Audio   Feature List 0x%08X", pFeatureList[0]));
+                BDBG_LOG(("Video 0 Feature List 0x%08X", pFeatureList[1]));
+                BDBG_LOG(("Video 1 Feature List 0x%08X", pFeatureList[2]));
+                BDBG_LOG(("Host    Feature List 0x%08X", pFeatureList[3]));
             }
         }
     }
@@ -545,7 +538,7 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
         }
         else
         {
-            BDBG_MSG(("non-bp3 part doesn't require bp3.bin for non-bp3 features"));
+            BDBG_LOG(("non-bp3 part doesn't require bp3.bin for non-bp3 features"));
         }
 #endif
     }

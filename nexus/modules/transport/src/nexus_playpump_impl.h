@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_PLAYPUMP_IMPL_H__
 #define NEXUS_PLAYPUMP_IMPL_H__
@@ -186,6 +178,7 @@ struct NEXUS_Playpump {
     BINT_CallbackHandle pacingErrIntCallback;
     BINT_CallbackHandle ccErrorInt;
     BINT_CallbackHandle teiErrorInt;
+    BINT_CallbackHandle outOfSyncErrorInt;
     NEXUS_HeapHandle heap;
 
     NEXUS_TimerHandle throttle_timer;
@@ -210,6 +203,8 @@ struct NEXUS_Playpump {
         unsigned queued_in_hw; /* number of elements queued in the HW */
         unsigned pacingTsRangeError;
         uint64_t bytes_played;
+        unsigned teiErrors;     /* count of TS packets with the Transport Error Indicator bit set. */
+        unsigned syncErrors;   /* count of the number of transport packet sync errors */
     } state;
 
     b_pid_map packetizer_map;
@@ -233,7 +228,7 @@ void b_playpump_p_reset(NEXUS_PlaypumpHandle p);
 void b_playpump_p_throttle_timer(void *play);
 bool b_play_next(NEXUS_PlaypumpHandle p);
 
-BERR_Code b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used, const NEXUS_PlaypumpScatterGatherDescriptor *pSgDesc);
+BERR_Code b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used, const NEXUS_PlaypumpScatterGatherDescriptor *pSgDesc, NEXUS_PlaypumpWriteCompleteSettings *settings);
 
 void NEXUS_P_Playpump_DescAvail_isr(void *p, int unused);
 
@@ -280,4 +275,3 @@ bool b_pump_demux_is_congested(b_pump_demux_t);
 
 
 #endif /* NEXUS_PLAYPUMP_IMPL_H__ */
-

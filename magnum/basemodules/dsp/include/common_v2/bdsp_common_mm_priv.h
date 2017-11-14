@@ -41,6 +41,19 @@
 #ifndef BDSP_COMMON_MM_PRIV_H_
 #define BDSP_COMMON_MM_PRIV_H_
 
+#define BDSP_MAX_FW_TASK_PER_DSP            12
+#define BDSP_MAX_MSGS_PER_QUEUE             10
+#define BDSP_MAX_ASYNC_MSGS_PER_QUEUE       40
+
+#define BDSP_ALIGN_SIZE(x,y)      (((x+(y-1))/y)*y)
+
+#define BDSP_INVALID_DRAM_ADDRESS       0xFFFFFFFF
+#define BDSP_MAX_BRANCH   		   	         2
+#define BDSP_MAX_STAGE_PER_BRANCH   	    10
+#define BDSP_MAX_FW_TASK_PER_AUDIO_CTXT     12
+#define BDSP_MAX_DESCRIPTORS			   200
+#define BDSP_MAX_HOST_DSP_L2C_SIZE         512
+
 #define BDSP_ReadReg32(hReg, addr)             BREG_Read32(hReg, addr)
 #define BDSP_WriteReg32(hReg, addr, data)      BREG_Write32(hReg, addr, data)
 #define BDSP_ReadReg32_isr(hReg, addr)         BREG_Read32_isr(hReg, addr)
@@ -51,20 +64,15 @@
 #define BDSP_ReadReg64_isr(hReg, addr)         BREG_Read64_isr(hReg, addr)
 #define BDSP_WriteReg64_isr(hReg, addr, data)  BREG_Write64_isr(hReg, addr, data)
 
+#define BDSP_SIZE_OF_FMMREG                    (BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_ENDADDR - BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_BASEADDR)
+#define BDSP_ReadFMMReg(hReg, addr)            ((BDSP_SIZE_OF_FMMREG == 8)? BDSP_ReadReg64(hReg, addr): BDSP_ReadReg32(hReg, addr))
+#define BDSP_WriteFMMReg(hReg, addr, data)     ((BDSP_SIZE_OF_FMMREG == 8)? BDSP_WriteReg64(hReg, addr, data): BDSP_WriteReg32(hReg, addr, data))
+
 #define BDSP_MMA_P_FlushCache(Memory, size) BMMA_FlushCache(Memory.hBlock, Memory.pAddr, size)
 #define BDSP_MMA_P_FlushCache_isr(Memory, size) BMMA_FlushCache_isr(Memory.hBlock, Memory.pAddr, size)
 
 #define BDSP_MMA_P_OffsetToVirtual(StartVirtual,StartOffset,Offset) (void *)((uint8_t *)StartVirtual+(Offset-StartOffset))
 #define BDSP_MMA_P_VirtualToOffset(StartVirtual,StartOffset,Virtual) (dramaddr_t)(StartOffset+((uint8_t *)Virtual-(uint8_t *)StartVirtual))
-
-#define MB0(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX0,x);
-#define MB1(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX1,x);
-#define MB2(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX2,x);
-#define MB3(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX3,x);
-#define MB4(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX4,x);
-#define MB5(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX5,x);
-#define MB6(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX6,x);
-#define MB7(hReg, x) BDSP_WriteReg32(hReg,BCHP_RAAGA_DSP_PERI_SW_MAILBOX7,x);
 
 typedef struct BDSP_P_MemoryPool{
     BDSP_MMA_Memory Memory;
@@ -90,45 +98,63 @@ typedef struct BDSP_P_BufferPointer{
     dramaddr_t EndOffset;
 }BDSP_P_BufferPointer;
 
+typedef struct BDSP_P_BufferDescriptor{
+    void     *pBasePtr;      /*  Circular buffer's base address */
+    void     *pEndPtr;       /*  Circular buffer's End address */
+    void     *pReadPtr;      /*  Circular buffer's read address */
+    void     *pWritePtr;     /*  Circular buffer's write address */
+    void     *pWrapPtr;      /*  Circular buffer's wrap address */
+}BDSP_P_BufferDescriptor;
+
+void BDSP_P_CalculateDescriptorMemory(
+	unsigned *pMemReqd
+);
+void BDSP_P_CalculateInterTaskMemory(
+    unsigned  *pMemReqd,
+    unsigned   numchannels
+);
 BERR_Code BDSP_MMA_P_AllocateAlignedMemory(BMMA_Heap_Handle memHandle,
-                        uint32_t size,
-                        BDSP_MMA_Memory *pMemory,
-                        BDSP_MMA_Alignment alignment
-                        );
-
+    uint32_t size,
+    BDSP_MMA_Memory *pMemory,
+    BDSP_MMA_Alignment alignment
+);
 void BDSP_MMA_P_FreeMemory(BDSP_MMA_Memory *pMemory);
-
 BERR_Code BDSP_MMA_P_CopyDataToDram (
     BDSP_MMA_Memory *dest,
     void *src,
     uint32_t size
-    );
-
+);
 BERR_Code BDSP_MMA_P_CopyDataToDram_isr (
     BDSP_MMA_Memory *dest,
     void *src,
     uint32_t size
-    );
-
+);
 BERR_Code BDSP_MMA_P_CopyDataFromDram (
     void *dest,
     BDSP_MMA_Memory *src,
     uint32_t size
-    );
-
+);
 BERR_Code BDSP_MMA_P_CopyDataFromDram_isr(
     void *dest,
     BDSP_MMA_Memory *src,
     uint32_t size
-    );
-
-void* BDSP_MMA_P_GetVirtualAddressfromOffset(
-	BDSP_P_FwBuffer *pBuffer,
-	dramaddr_t       offset
 );
-
+void* BDSP_MMA_P_GetVirtualAddressfromOffset(
+    BDSP_P_FwBuffer *pBuffer,
+    dramaddr_t       offset
+);
 dramaddr_t BDSP_MMA_P_GetOffsetfromVirtualAddress(
-	BDSP_P_FwBuffer *pBuffer,
-	void       		*pAddr
+    BDSP_P_FwBuffer *pBuffer,
+    void       		*pAddr
+);
+BERR_Code BDSP_P_RequestMemory(
+    BDSP_P_MemoryPool *pChunkBuffer,
+    uint32_t ui32Size,
+    BDSP_MMA_Memory *pMemory
+);
+BERR_Code BDSP_P_ReleaseMemory(
+    BDSP_P_MemoryPool *pChunkBuffer,
+    uint32_t ui32Size,
+    BDSP_MMA_Memory *pMemory
 );
 #endif /*BDSP_COMMON_MM_PRIV_H_*/

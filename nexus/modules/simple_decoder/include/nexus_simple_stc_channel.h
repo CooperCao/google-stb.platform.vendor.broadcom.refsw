@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,13 +34,13 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_STC_CHANNEL_H__
 #define NEXUS_SIMPLE_STC_CHANNEL_H__
 
 #include "nexus_types.h"
 #include "nexus_stc_channel.h"
+#include "nexus_timebase.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -113,6 +113,9 @@ typedef struct NEXUS_SimpleStcChannelSettings
     NEXUS_StcChannelUnderflowHandling underflowHandling; /* select how underflows are handled in NRT mode */
     NEXUS_Timebase timebase; /* Optional user-owned and configured timebase. Must be opened with NEXUS_Timebase_Open(NEXUS_ANY_ID).
                                 Internal StcChannel will be set to autoConfigTimebase = false. */
+    bool master; /* For NEXUS_StcChannelMode_ePcr, drive the display and audio output rate managers using this PCR
+                        to minimize frame drops and repeats. By default, the main window is treated as master.
+                        This can be used for PIP and mosaic. */
 } NEXUS_SimpleStcChannelSettings;
 
 void NEXUS_SimpleStcChannel_GetDefaultSettings(
@@ -162,6 +165,19 @@ NEXUS_Error NEXUS_SimpleStcChannel_SetRate(
     unsigned prescale
     );
     
+typedef struct NEXUS_SimpleStcChannelStatus
+{
+    struct {
+        bool valid;
+        NEXUS_TimebaseStatus status;
+    } timebase;
+} NEXUS_SimpleStcChannelStatus;
+
+NEXUS_Error NEXUS_SimpleStcChannel_GetStatus(
+    NEXUS_SimpleStcChannelHandle handle,
+    NEXUS_SimpleStcChannelStatus *pStatus
+    );
+
 #ifdef __cplusplus
 }
 #endif

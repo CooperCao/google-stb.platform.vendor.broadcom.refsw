@@ -55,10 +55,10 @@ BDBG_MODULE(BVBI);
 * Forward declarations of static (private) functions
 ***************************************************************************/
 #if (BVBI_NUM_WSE >= 1)
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex);
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex);
 #endif
 #if (BVBI_NUM_WSE_656 >= 1)
-static uint32_t P_GetCoreOffset_656_isr (uint8_t hwCoreIndex);
+static uint32_t P_GetCoreOffset_656_isrsafe (uint8_t hwCoreIndex);
 #endif
 
 
@@ -78,10 +78,10 @@ void BVBI_P_WSS_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
 
     BDBG_ENTER(BVBI_P_WSS_Enc_Init);
 
-    BVBI_P_VIE_SoftReset_isr (hReg, false, hwCoreIndex, BVBI_P_SELECT_WSS);
+    BVBI_P_VIE_SoftReset_isrsafe (hReg, false, hwCoreIndex, BVBI_P_SELECT_WSS);
 
     /* Determine which core to access */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -134,7 +134,7 @@ void BVBI_P_WSS_Enc_656_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
     BDBG_ENTER(BVBI_P_WSS_Enc_656_Init);
 
     /* Determine which core to access */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -146,7 +146,7 @@ void BVBI_P_WSS_Enc_656_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
 
     /* Start by doing a reset */
 
-    BVBI_P_VIE_SoftReset_isr (hReg, true, hwCoreIndex, BVBI_P_SELECT_WSS);
+    BVBI_P_VIE_SoftReset_isrsafe (hReg, true, hwCoreIndex, BVBI_P_SELECT_WSS);
 
     /* Program the control register */
     ulControlReg = BREG_Read32 (hReg, BCHP_WSE_ANCIL_0_control);
@@ -195,7 +195,7 @@ BERR_Code BVBI_P_WSS_Enc_Program (
     BDBG_ENTER(BVBI_P_WSS_Enc_Program);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -281,7 +281,7 @@ BERR_Code BVBI_P_WSS_Enc_Program (
          BCHP_FIELD_ENUM (WSE_0_control, DECIMATOR_EN,     DISABLE);
     BREG_Write32 (hReg, BCHP_WSE_0_control + ulCoreOffset, ulControlReg);
 
-    eErr = BERR_TRACE (BVBI_P_WSS_Encode_Enable_isr (
+    eErr = BERR_TRACE (BVBI_P_WSS_Encode_Enable_isrsafe (
         hReg, hwCoreIndex, BFMT_VideoFmt_ePAL_G, bActive));
     if (eErr != BERR_SUCCESS)
         goto done;
@@ -316,7 +316,7 @@ BERR_Code BVBI_P_WSS_Enc_656_Program (
     BDBG_ENTER(BVBI_P_WSS_Enc_656_Program);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -395,7 +395,7 @@ BERR_Code BVBI_P_WSS_Enc_656_Program (
 
     BREG_Write32 (hReg, BCHP_WSE_ANCIL_0_control + ulCoreOffset, ulControlReg);
 
-    eErr = BERR_TRACE (BVBI_P_WSS_Encode_656_Enable_isr (
+    eErr = BERR_TRACE (BVBI_P_WSS_Encode_656_Enable_isrsafe (
         hReg, hwCoreIndex, BFMT_VideoFmt_ePAL_G, bActive));
     if (eErr != BERR_SUCCESS)
         goto done;
@@ -427,7 +427,7 @@ uint32_t BVBI_P_WSS_Encode_Data_isr (
     }
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -470,7 +470,7 @@ uint32_t BVBI_P_WSS_Encode_656_Data_isr (
     }
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -493,7 +493,7 @@ uint32_t BVBI_P_WSS_Encode_656_Data_isr (
 #endif
 
 #if (BVBI_NUM_WSE >= 1)
-BERR_Code BVBI_P_WSS_Encode_Enable_isr (
+BERR_Code BVBI_P_WSS_Encode_Enable_isrsafe (
     BREG_Handle hReg,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
@@ -512,15 +512,15 @@ BERR_Code BVBI_P_WSS_Encode_Enable_isr (
     /* TODO: handle progressive video */
     BSTD_UNUSED (eVideoFormat);
 
-    BDBG_ENTER(BVBI_P_WSS_Encode_Enable_isr);
+    BDBG_ENTER(BVBI_P_WSS_Encode_Enable_isrsafe);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
            BVBI_Encode_Create() */
-        BDBG_LEAVE(BVBI_P_WSS_Encode_Enable_isr);
+        BDBG_LEAVE(BVBI_P_WSS_Encode_Enable_isrsafe);
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -536,13 +536,13 @@ BERR_Code BVBI_P_WSS_Encode_Enable_isr (
     }
     BREG_Write32 (hReg, BCHP_WSE_0_control + ulCoreOffset, ulControlReg);
 
-    BDBG_LEAVE(BVBI_P_WSS_Encode_Enable_isr);
+    BDBG_LEAVE(BVBI_P_WSS_Encode_Enable_isrsafe);
     return BERR_SUCCESS;
 }
 #endif
 
 #if (BVBI_NUM_WSE_656 >= 1)
-BERR_Code BVBI_P_WSS_Encode_656_Enable_isr (
+BERR_Code BVBI_P_WSS_Encode_656_Enable_isrsafe (
     BREG_Handle hReg,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
@@ -561,15 +561,15 @@ BERR_Code BVBI_P_WSS_Encode_656_Enable_isr (
     /* TODO: handle progressive video */
     BSTD_UNUSED (eVideoFormat);
 
-    BDBG_ENTER(BVBI_P_WSS_Encode_656_Enable_isr);
+    BDBG_ENTER(BVBI_P_WSS_Encode_656_Enable_isrsafe);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
            BVBI_Encode_Create() */
-        BDBG_LEAVE(BVBI_P_WSS_Encode_656_Enable_isr);
+        BDBG_LEAVE(BVBI_P_WSS_Encode_656_Enable_isrsafe);
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -585,7 +585,7 @@ BERR_Code BVBI_P_WSS_Encode_656_Enable_isr (
     }
     BREG_Write32 (hReg, BCHP_WSE_ANCIL_0_control + ulCoreOffset, ulControlReg);
 
-    BDBG_LEAVE(BVBI_P_WSS_Encode_656_Enable_isr);
+    BDBG_LEAVE(BVBI_P_WSS_Encode_656_Enable_isrsafe);
     return BERR_SUCCESS;
 }
 #endif
@@ -599,7 +599,7 @@ BERR_Code BVBI_P_WSS_Encode_656_Enable_isr (
 /***************************************************************************
  *
  */
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex)
 {
     uint32_t ulCoreOffset = 0xFFFFFFFF;
 
@@ -632,7 +632,7 @@ static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
 /***************************************************************************
  *
  */
-static uint32_t P_GetCoreOffset_656_isr (uint8_t hwCoreIndex)
+static uint32_t P_GetCoreOffset_656_isrsafe (uint8_t hwCoreIndex)
 {
     uint32_t ulCoreOffset = 0xFFFFFFFF;
 

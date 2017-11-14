@@ -763,10 +763,10 @@ static void BINT_P_ProcessL2Reg_isr(BINT_Handle intHandle, BINT_P_L2Register *L2
 }
 
 /**
-BINT_Isr is the main inner loop of the entire refsw architecture.
+BINT_Isr_isr is the main inner loop of the entire refsw architecture.
 Optimization of every line of code matters greatly.
 **/
-void BINT_Isr( BINT_Handle intHandle, int L1Shift )
+void BINT_Isr_isr( BINT_Handle intHandle, int L1Shift )
 {
     BINT_P_L2Register *L2Reg;
 
@@ -1120,19 +1120,12 @@ BERR_Code BINT_ClearCallback_isr( BINT_CallbackHandle cbHandle )
     return rc;
 }
 
-BERR_Code BINT_TriggerInterruptByHandle( BINT_CallbackHandle cbHandle )
-{
-    BDBG_OBJECT_ASSERT(cbHandle, BINT_Callback);
-    return BINT_TriggerInterruptByHandle_isr( cbHandle );
-}
-
-BERR_Code BINT_TriggerInterruptByHandle_isr( BINT_CallbackHandle cbHandle )
+BERR_Code BINT_TriggerInterruptByHandle_isrsafe( BINT_CallbackHandle cbHandle )
 {
     BINT_P_Context *intHandle;
     const BINT_P_L2Register *L2Reg;
 
     BDBG_OBJECT_ASSERT(cbHandle, BINT_Callback);
-    BKNI_ASSERT_ISR_CONTEXT();
 
     L2Reg = cbHandle->L2Handle->L2Reg;
     intHandle = L2Reg->intHandle;
@@ -1188,40 +1181,6 @@ void BINT_GetL1BitMask(BINT_Handle intHandle, uint32_t *BitMask)
             BitMask[0] |= 1ul<<L1Shift;
         }
     }
-}
-
-BINT_CallbackHandle BINT_GetCallbackFirst( BINT_Handle intHandle )
-{
-    BDBG_OBJECT_ASSERT(intHandle, BINT);
-    return BLST_S_FIRST(&(intHandle->allCbList));
-}
-
-BINT_CallbackHandle BINT_GetCallbackNext( BINT_CallbackHandle cbHandle )
-{
-    BDBG_OBJECT_ASSERT(cbHandle, BINT_Callback);
-    return BLST_S_NEXT(cbHandle, allCbLink);
-}
-
-BERR_Code BINT_GetInterruptId( BINT_CallbackHandle cbHandle, BINT_Id *pIntId )
-{
-    if (( cbHandle == NULL ) || ( pIntId == NULL ))
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-    BDBG_OBJECT_ASSERT(cbHandle, BINT_Callback);
-
-    *pIntId = cbHandle->L2Handle->intId;
-
-    return BERR_SUCCESS;
-}
-
-BERR_Code BINT_GetCallbackStatus( BINT_CallbackHandle cbHandle, bool *pbEnabled)
-{
-    BDBG_OBJECT_ASSERT(cbHandle, BINT_Callback);
-
-    *pbEnabled = cbHandle->enabled;
-
-    return BERR_SUCCESS;
 }
 
 BERR_Code BINT_Stats_AddBin( BINT_CallbackHandle cbHandle, uint32_t ulRangeMin, uint32_t ulRangeMax )
@@ -1317,10 +1276,11 @@ BERR_Code BINT_Stats_Get( BINT_CallbackHandle cbHandle, BINT_Stats_CallbackStats
 BERR_Code BINT_Stats_Reset( BINT_CallbackHandle cbHandle )
 {
     uint16_t i;
-    BINT_Stats_CallbackStats *pStatInfo = &(cbHandle->StatInfo);
+    BINT_Stats_CallbackStats *pStatInfo;
 
     BDBG_OBJECT_ASSERT(cbHandle, BINT_Callback);
 
+    pStatInfo = &cbHandle->StatInfo;
     BKNI_EnterCriticalSection();
     pStatInfo->ulTimeMin = UINT32_MAX;
     pStatInfo->ulTimeMax = 0;
@@ -1381,6 +1341,59 @@ BERR_Code BINT_Stats_Disable( BINT_Handle intHandle )
     intHandle->bStatsEnable = false;
 
     return BERR_SUCCESS;
+}
+
+static BINT_CallbackHandle BINT_P_GetCallbackByNumber_locked(BINT_Handle intHandle, unsigned number)
+{
+    unsigned i;
+    BINT_CallbackHandle callback;
+
+    BDBG_OBJECT_ASSERT(intHandle, BINT);
+    for(callback=BLST_S_FIRST(&intHandle->allCbList),i=0;i<number;i++) {
+        if(callback==NULL) {
+            break;
+        }
+        callback = BLST_S_NEXT(callback, allCbLink);
+    }
+    return callback;
+}
+
+BERR_Code BINT_Stats_AddBinByNumber(BINT_Handle  intHandle, unsigned callbackNumber, uint32_t ulRangeMin, uint32_t ulRangeMax)
+{
+    BINT_CallbackHandle callback;
+    BERR_Code rc;
+
+    BDBG_OBJECT_ASSERT(intHandle, BINT);
+
+    BINT_LOCK(intHandle);
+    callback = BINT_P_GetCallbackByNumber_locked(intHandle, callbackNumber);
+    if(callback) {
+        rc = BINT_Stats_AddBin(callback, ulRangeMin, ulRangeMax);
+        if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc);}
+    } else {
+        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    BINT_UNLOCK(intHandle);
+    return rc;
+}
+
+BERR_Code BINT_Stats_ResetByNumber( BINT_Handle  intHandle, unsigned callbackNumber)
+{
+    BINT_CallbackHandle callback;
+    BERR_Code rc;
+
+    BDBG_OBJECT_ASSERT(intHandle, BINT);
+
+    BINT_LOCK(intHandle);
+    callback = BINT_P_GetCallbackByNumber_locked(intHandle, callbackNumber);
+    if(callback) {
+        rc = BINT_Stats_Reset(callback);
+        if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc);}
+    } else {
+        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    BINT_UNLOCK(intHandle);
+    return rc;
 }
 
 #ifdef BINT_STATS_ENABLE
@@ -1488,7 +1501,229 @@ static BERR_Code BINT_P_Stats_ComputeStats_isr( BINT_CallbackHandle cbHandle, ui
 
     return BERR_SUCCESS;
 }
-#endif
+
+static  BINT_CallbackHandle BINT_P_GetCallbackFirst( BINT_Handle intHandle )
+{
+    return BLST_S_FIRST(&(intHandle->allCbList));
+}
+
+static BINT_CallbackHandle BINT_P_GetCallbackNext( BINT_CallbackHandle cbHandle )
+{
+    return BLST_S_NEXT(cbHandle, allCbLink);
+}
+
+static void BINT_P_GetInterruptId( BINT_CallbackHandle cbHandle, BINT_Id *pIntId )
+{
+    *pIntId = cbHandle->L2Handle->intId;
+    return;
+}
+
+static void BINT_P_GetCallbackStatus( BINT_CallbackHandle cbHandle, bool *pbEnabled)
+{
+    *pbEnabled = cbHandle->enabled;
+    return;
+}
+
+
+BERR_Code BINT_Stats_Dump
+	( BINT_Handle          intHandle )
+{
+	BINT_CallbackHandle cbHandle;
+	BINT_Stats_CallbackStats *pCbStats = NULL;
+	BINT_Id intId = 0;
+	int iCallbackNum = 1;
+	int i = 0;
+	bool bCallbackEnabled = false;
+	bool bLastDumpStats = false;
+	bool bFirstLine = true;
+
+	if (intHandle == NULL)
+	{
+		return BERR_TRACE(BERR_INVALID_PARAMETER);
+	}
+
+	cbHandle = BINT_P_GetCallbackFirst( intHandle );
+
+	while (cbHandle)
+	{
+		int iDumpBins = 0;
+		bool bDumpStats = false;
+
+		BINT_Stats_Get(cbHandle, &pCbStats);
+
+		BINT_P_GetInterruptId(cbHandle, &intId);
+		BINT_P_GetCallbackStatus(cbHandle, &bCallbackEnabled);
+
+		if (bCallbackEnabled ||
+			!pCbStats->bDefaultBins ||
+			(pCbStats->ulCbHitCount != 0))
+		{
+			bDumpStats = true;
+		}
+
+		if (bDumpStats || bLastDumpStats || bFirstLine)
+		{
+			BKNI_Printf("-------------------------------------------------------------------------------\n");
+			bFirstLine = false;
+		}
+
+		BKNI_Printf(" Callback %-2d %s -- IntID: 0x%08x  L2Reg: 0x%08x  L2Shift: %u\n",
+			iCallbackNum++,
+			(bCallbackEnabled) ? "(on) ": "(off)",
+			intId,
+			BCHP_INT_ID_GET_REG(intId),
+			BCHP_INT_ID_GET_SHIFT(intId));
+
+		if (bDumpStats)
+		{
+			BKNI_Printf("                      Min: %-6u Max: %-6u  Avg: %-6u  CbHitCount : %-6u\n",
+				(pCbStats->ulTimeMin == UINT32_MAX) ? 0: pCbStats->ulTimeMin,
+				pCbStats->ulTimeMax,
+				pCbStats->ulTimeAvg,
+				pCbStats->ulCbHitCount);
+		}
+
+		/* print bins */
+		for (i = 0; i < (int)pCbStats->ulActiveBins; i++)
+		{
+			if (!pCbStats->bDefaultBins ||
+				(pCbStats->aBinInfo[i].ulBinHitCount != 0))
+			{
+				iDumpBins++;
+
+				BKNI_Printf("  %sBin %-2d -- Range Min: %-6u  Range Max: %-6u  BinHitCount: %-6u\n",
+					pCbStats->bDefaultBins ? "(Default) ": "(User)    ",
+					i + 1,
+					pCbStats->aBinInfo[i].ulBinRangeMin,
+					pCbStats->aBinInfo[i].ulBinRangeMax,
+					pCbStats->aBinInfo[i].ulBinHitCount);
+			}
+		}
+
+		bLastDumpStats = bDumpStats;
+		cbHandle = BINT_P_GetCallbackNext( cbHandle );
+	}
+
+	BKNI_Printf("\n");
+
+	return BERR_SUCCESS;
+}
+
+static void BINT_P_Stats_DumpLabel
+	( BINT_Stats_CallbackStats *pCbStats )
+{
+	int i = 0;
+
+	BKNI_Printf("\n");
+	BKNI_Printf("Callback #,Status,IntId,L2Reg,L2Shift,");
+	BKNI_Printf("Min,Max,Avg,CbHitCount,");
+
+	for (i = 0; i < (int)pCbStats->ulActiveBins; i++)
+	{
+		BKNI_Printf("%d-%d us,",
+			pCbStats->aBinInfo[i].ulBinRangeMin,
+			pCbStats->aBinInfo[i].ulBinRangeMax);
+	}
+
+	BKNI_Printf("\n");
+}
+
+void BINT_P_Stats_DumpCbData
+	( BINT_CallbackHandle cbHandle, int iCallbackNum )
+{
+	BINT_Stats_CallbackStats *pCbStats = NULL;
+	BINT_Id intId = 0;
+	bool bCallbackEnabled = false;
+	int i = 0;
+
+	BINT_Stats_Get(cbHandle, &pCbStats);
+	BINT_P_GetInterruptId(cbHandle, &intId);
+	BINT_P_GetCallbackStatus(cbHandle, &bCallbackEnabled);
+
+	BKNI_Printf("Callback %d,%s,0x%08x,0x%08x,%u,",
+		iCallbackNum,
+		(bCallbackEnabled) ? "(on) ": "(off)",
+		intId,
+		BCHP_INT_ID_GET_REG(intId),
+		BCHP_INT_ID_GET_SHIFT(intId));
+
+	BKNI_Printf("%u,%u,%u,%u,",
+		(pCbStats->ulTimeMin == UINT32_MAX) ? 0: pCbStats->ulTimeMin,
+		pCbStats->ulTimeMax,
+		pCbStats->ulTimeAvg,
+		pCbStats->ulCbHitCount);
+
+	/* print bins */
+	for (i = 0; i < (int)pCbStats->ulActiveBins; i++)
+	{
+		if (pCbStats->aBinInfo[i].ulBinHitCount != 0)
+		{
+			BKNI_Printf("%u",  pCbStats->aBinInfo[i].ulBinHitCount);
+		}
+
+		BKNI_Printf(",");
+	}
+
+	BKNI_Printf("\n");
+}
+
+BERR_Code BINT_Stats_DumpData
+	( BINT_Handle          intHandle )
+{
+	BINT_CallbackHandle cbHandle;
+	BINT_Stats_CallbackStats *pCbStats = NULL;
+	int iCallbackNum = 1;
+	bool bFirstDump = true;
+
+	if (intHandle == NULL)
+	{
+		return BERR_TRACE(BERR_INVALID_PARAMETER);
+	}
+
+	/* print stats using default bins */
+	cbHandle = BINT_P_GetCallbackFirst( intHandle );
+
+	while (cbHandle)
+	{
+		BINT_Stats_Get(cbHandle, &pCbStats);
+
+		if (pCbStats->bDefaultBins)
+		{
+			/* print out label */
+			if (bFirstDump)
+			{
+				BINT_P_Stats_DumpLabel(pCbStats);
+				bFirstDump = false;
+			}
+
+			BINT_P_Stats_DumpCbData(cbHandle, iCallbackNum);
+		}
+
+		iCallbackNum++;
+		cbHandle = BINT_P_GetCallbackNext( cbHandle );
+	}
+
+	/* print stats using user bins */
+	iCallbackNum = 1;
+	cbHandle = BINT_P_GetCallbackFirst( intHandle );
+
+	while (cbHandle)
+	{
+		BINT_Stats_Get(cbHandle, &pCbStats);
+
+		if (!pCbStats->bDefaultBins)
+		{
+			BINT_P_Stats_DumpLabel(pCbStats);
+			BINT_P_Stats_DumpCbData(cbHandle, iCallbackNum);
+		}
+
+		iCallbackNum++;
+		cbHandle = BINT_P_GetCallbackNext( cbHandle );
+	}
+
+	return BERR_SUCCESS;
+}
+#endif /* #ifdef BINT_STATS_ENABLE */
 
 struct BINT_P_DumpInfoState {
     bool int_head;

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2015 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,12 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nxclient.h"
 #include "nexus_playback.h"
 #include "nexus_surface_client.h"
+#include "nexus_parser_band.h"
+#include "nexus_platform.h"
 #include "bstd.h"
 #include "bkni.h"
 #include "bkni_multi.h"
@@ -75,6 +76,7 @@ struct context {
     NEXUS_PlaypumpHandle playpump;
     NEXUS_PlaybackHandle playback;
     NEXUS_FilePlayHandle file;
+    NEXUS_ParserBand parserBand;
     NEXUS_SimpleVideoDecoderHandle videoDecoder;
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleAudioDecoderHandle audioDecoder;
@@ -130,7 +132,7 @@ static int set_full(struct context *context)
     return 0;
 }
 
-static int start_decode(struct context *context, const struct dvrfile *dvrfile, const struct gui *gui)
+static int start_decode(struct context *context, const struct dvrfile *dvrfile, unsigned live_program, const struct gui *gui)
 {
     NxClient_AllocSettings allocSettings;
     NxClient_ConnectSettings connectSettings;
@@ -149,22 +151,32 @@ static int start_decode(struct context *context, const struct dvrfile *dvrfile, 
     rc = NxClient_Alloc(&allocSettings, &context->allocResults);
     if (rc) return BERR_TRACE(rc);
 
-    context->file = NEXUS_FilePlay_OpenPosix(dvrfile->filename, NULL);
-
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&context->videoProgram);
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&context->audioProgram);
 
-    NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
-    context->playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
-    context->playback = NEXUS_Playback_Create();
     context->stcChannel = NEXUS_SimpleStcChannel_Create(NULL);
 
-    NEXUS_Playback_GetSettings(context->playback, &playbackSettings);
-    playbackSettings.playpump = context->playpump;
-    playbackSettings.simpleStcChannel = context->stcChannel;
-    playbackSettings.stcTrick = true;
-    rc = NEXUS_Playback_SetSettings(context->playback, &playbackSettings);
-    BDBG_ASSERT(!rc);
+    if (dvrfile) {
+        context->file = NEXUS_FilePlay_OpenPosix(dvrfile->filename, NULL);
+        NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
+        context->playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
+        context->playback = NEXUS_Playback_Create();
+
+        NEXUS_Playback_GetSettings(context->playback, &playbackSettings);
+        playbackSettings.playpump = context->playpump;
+        playbackSettings.simpleStcChannel = context->stcChannel;
+        playbackSettings.stcTrick = true;
+        rc = NEXUS_Playback_SetSettings(context->playback, &playbackSettings);
+        BDBG_ASSERT(!rc);
+    }
+    else {
+        NEXUS_ParserBandSettings parserBandSettings;
+        context->parserBand = NEXUS_ParserBand_Open(NEXUS_ANY_ID);
+        NEXUS_ParserBand_GetSettings(context->parserBand, &parserBandSettings);
+        parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
+        NEXUS_Platform_GetStreamerInputBand(0, &parserBandSettings.sourceTypeSettings.inputBand);
+        NEXUS_ParserBand_SetSettings(context->parserBand, &parserBandSettings);
+    }
 
     context->videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(context->allocResults.simpleVideoDecoder[0].id);
     context->audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(context->allocResults.simpleAudioDecoder.id);
@@ -177,41 +189,65 @@ static int start_decode(struct context *context, const struct dvrfile *dvrfile, 
     connectSettings.simpleVideoDecoder[0].windowId = windowId;
     connectSettings.simpleVideoDecoder[0].windowCapabilities.type = context->videoWindowType;
     connectSettings.simpleAudioDecoder.id = context->allocResults.simpleAudioDecoder.id;
+    connectSettings.simpleAudioDecoder.primer = true; /* don't grab audio in use. prime instead. */
     rc = NxClient_Connect(&connectSettings, &context->connectId);
     if (rc) return BERR_TRACE(rc);
 
     set_full(context);
 
-    NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
-    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
-    playbackPidSettings.pidTypeSettings.video.codec = dvrfile->videoCodec;
-    playbackPidSettings.pidTypeSettings.video.index = true;
-    playbackPidSettings.pidTypeSettings.video.simpleDecoder = context->videoDecoder;
-    context->videoProgram.settings.pidChannel = NEXUS_Playback_OpenPidChannel(context->playback, dvrfile->videoPid, &playbackPidSettings);
-    context->videoProgram.settings.codec = dvrfile->videoCodec;
+    if (dvrfile) {
+        NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+        playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
+        playbackPidSettings.pidTypeSettings.video.codec = dvrfile->videoCodec;
+        playbackPidSettings.pidTypeSettings.video.index = true;
+        playbackPidSettings.pidTypeSettings.video.simpleDecoder = context->videoDecoder;
+        context->videoProgram.settings.pidChannel = NEXUS_Playback_OpenPidChannel(context->playback, dvrfile->videoPid, &playbackPidSettings);
+        context->videoProgram.settings.codec = dvrfile->videoCodec;
 
-    NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
-    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
-    playbackPidSettings.pidTypeSettings.audio.simpleDecoder = context->audioDecoder;
-    context->audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(context->playback, dvrfile->audioPid, &playbackPidSettings);
-    context->audioProgram.primary.codec = dvrfile->audioCodec;
-    context->audioProgram.primer.pcm = true;
-    context->audioProgram.primer.compressed = true;
+        NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+        playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
+        playbackPidSettings.pidTypeSettings.audio.simpleDecoder = context->audioDecoder;
+        context->audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(context->playback, dvrfile->audioPid, &playbackPidSettings);
+        context->audioProgram.primary.codec = dvrfile->audioCodec;
+        context->audioProgram.primer.pcm = true;
+        context->audioProgram.primer.compressed = true;
+    }
+    else {
+        NEXUS_SimpleStcChannelSettings stcSettings;
+
+        context->videoProgram.settings.pidChannel = NEXUS_PidChannel_Open(context->parserBand, live_program?0x11:0x31, NULL);
+        context->videoProgram.settings.codec = NEXUS_VideoCodec_eMpeg2;
+
+        context->audioProgram.primary.pidChannel = NEXUS_PidChannel_Open(context->parserBand, live_program?0x14:0x34, NULL);
+        context->audioProgram.primary.codec = NEXUS_AudioCodec_eAc3;
+
+        NEXUS_SimpleStcChannel_GetSettings(context->stcChannel, &stcSettings);
+        stcSettings.mode = NEXUS_StcChannelMode_ePcr;
+        stcSettings.modeSettings.pcr.pidChannel = context->videoProgram.settings.pidChannel;
+        stcSettings.master = (context->index == 0);
+        NEXUS_SimpleStcChannel_SetSettings(context->stcChannel, &stcSettings);
+    }
 
     NEXUS_SimpleVideoDecoder_SetStcChannel(context->videoDecoder, context->stcChannel);
     NEXUS_SimpleAudioDecoder_SetStcChannel(context->audioDecoder, context->stcChannel);
     NEXUS_SimpleVideoDecoder_Start(context->videoDecoder, &context->videoProgram);
     NEXUS_SimpleAudioDecoder_Start(context->audioDecoder, &context->audioProgram);
-    NEXUS_Playback_Start(context->playback, context->file, NULL);
+    if (dvrfile) {
+        NEXUS_Playback_Start(context->playback, context->file, NULL);
+    }
     return 0;
 }
 
 static void stop_decode(struct context *context)
 {
-    NEXUS_Playback_Stop(context->playback);
-    NEXUS_Playback_Destroy(context->playback);
-    NEXUS_Playpump_Close(context->playpump);
-    NEXUS_FilePlay_Close(context->file);
+    if (context->playback) {
+        NEXUS_Playback_Stop(context->playback);
+        NEXUS_Playback_Destroy(context->playback);
+        NEXUS_Playpump_Close(context->playpump);
+        NEXUS_FilePlay_Close(context->file);
+    }
+    else {
+    }
     NEXUS_SimpleVideoDecoder_Release(context->videoDecoder);
     NEXUS_SimpleAudioDecoder_Release(context->audioDecoder);
     NEXUS_SurfaceClient_ReleaseVideoWindow(context->videoSurfaceClient);
@@ -316,6 +352,29 @@ static void swap_windows(struct context *context0, struct context *context1)
     context1->videoWindowType = temp.videoWindowType;
 }
 
+static void swap_master(struct context *context0, struct context *context1)
+{
+    if (context0->playback) {
+        BDBG_ERR(("master not supported with playback"));
+    }
+    else {
+        /* have large window drive display/audio rate managers (even if not BVN CMP0_V0) */
+        NEXUS_SimpleStcChannelSettings settings0, settings1;
+        int rc;
+        NEXUS_SimpleStcChannel_GetSettings(context0->stcChannel, &settings0);
+        NEXUS_SimpleStcChannel_GetSettings(context1->stcChannel, &settings1);
+        settings0.master = !settings0.master;
+        settings1.master = !settings1.master;
+        BDBG_ASSERT(settings0.master != settings1.master);
+        rc = NEXUS_SimpleStcChannel_SetSettings(context0->stcChannel, &settings0);
+        if (rc) BERR_TRACE(rc); /* keep going */
+        rc = NEXUS_SimpleStcChannel_SetSettings(context1->stcChannel, &settings1);
+        if (rc) BERR_TRACE(rc); /* keep going */
+
+        BDBG_WRN(("%s is master", (settings0.master == (context0->videoWindowType == NxClient_VideoWindowType_eMain)) ? "Main" : "PIP"));
+    }
+}
+
 int main(int argc, char **argv)
 {
     struct context context[2];
@@ -325,10 +384,14 @@ int main(int argc, char **argv)
     unsigned i;
     bool dual_client = false;
     int curarg = 1;
+    bool live = false;
 
     while (curarg < argc) {
         if (!strcmp(argv[curarg], "-dual")) {
             dual_client = true;
+        }
+        else if (!strcmp(argv[curarg], "-live")) {
+            live = true;
         }
         curarg++;
     }
@@ -346,9 +409,9 @@ int main(int argc, char **argv)
     }
     init_context(0, &context[0]);
     init_context(1, &context[1]);
-    rc = start_decode(&context[0], &g_dvrfile[0], &gui[0]);
+    rc = start_decode(&context[0], live?NULL:&g_dvrfile[0], 0, &gui[0]);
     if (rc) return rc;
-    rc = start_decode(&context[1], &g_dvrfile[1], dual_client?&gui[1]:&gui[0]);
+    rc = start_decode(&context[1], live?NULL:&g_dvrfile[1], 1, dual_client?&gui[1]:&gui[0]);
     if (rc) return rc;
     while (!done) {
         NxClient_ReconfigSettings reconfigSettings;
@@ -357,12 +420,13 @@ int main(int argc, char **argv)
         printf(
         "Commands\n"
         "0: quit\n"
-        "1: swap main and pip video and audio\n"
+        "1: swap main and pip video and audio and master\n"
         "2: swap main and pip video\n"
         "3: swap main and pip audio\n"
-        "4: start/stop main\n"
-        "5: start/stop pip\n"
-        "6: animate\n"
+        "4: swap main and pip master\n"
+        "5: start/stop main\n"
+        "6: start/stop pip\n"
+        "7: animate\n"
         );
         fgets(buf, sizeof(buf), stdin);
         switch (atoi(buf)) {
@@ -379,6 +443,7 @@ int main(int argc, char **argv)
             rc = NxClient_Reconfig(&reconfigSettings);
             if (!rc) {
                 swap_windows(&context[0], &context[1]);
+                swap_master(&context[0], &context[1]);
             }
             break;
         case 2:
@@ -399,22 +464,25 @@ int main(int argc, char **argv)
             NxClient_Reconfig(&reconfigSettings);
             break;
         case 4:
+            swap_master(&context[0], &context[1]);
+            break;
+        case 5:
             if (context[0].connectId) {
                 stop_decode(&context[0]);
             }
             else {
-                start_decode(&context[0], &g_dvrfile[0], &gui[0]);
+                start_decode(&context[0], live?NULL:&g_dvrfile[0], 0, &gui[0]);
             }
             break;
-        case 5:
+        case 6:
             if (context[1].connectId) {
                 stop_decode(&context[1]);
             }
             else {
-                start_decode(&context[1], &g_dvrfile[1], dual_client?&gui[1]:&gui[0]);
+                start_decode(&context[1], live?NULL:&g_dvrfile[1], 1, dual_client?&gui[1]:&gui[0]);
             }
             break;
-        case 6:
+        case 7:
             set_move(&context[0]);
             set_move(&context[1]);
             for (i=0;i<500;i++) {

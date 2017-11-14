@@ -131,10 +131,14 @@ public:
 class CChannelLabel
 {
 public:
-    CChannelLabel(CChannel * pChannel, CLabelData * pData, CWidgetLabel *pLabel) :
+    CChannelLabel(
+            CChannel *     pChannel,
+            CLabelData *   pData,
+            CWidgetLabel * pLabel
+            ) :
         _pChannel(pChannel),
         _labelData(*pData),
-        _pLabel(pLabel) {};
+        _pLabel(pLabel) {}
     ~CChannelLabel() { DEL(_pLabel); }
 public:
     CChannel *     _pChannel;
@@ -155,35 +159,35 @@ public:
     virtual void show(bool bShow);
     virtual bool isVisible(void);
 
-    eRet    initialize(CModel * pModel);
-    void    uninitialize();
-    void    onClick(bwidget_t widget);
-    eRet    onKeyDown(bwidget_t widget, bwidget_key key);
-    void    processNotification(CNotification & notification);
-    void    setPlaybackStatus(CPlayback * pPlayback);
-    void    setChannelNum(const char * str1 = NULL, const char * str2 = NULL);
-    void    setChannelNum(CChannel * pChannel);
+    eRet            initialize(CModel * pModel);
+    void            uninitialize();
+    void            onClick(bwidget_t widget);
+    eRet            onKeyDown(bwidget_t widget, bwidget_key key);
+    void            processNotification(CNotification & notification);
+    void            setPlaybackStatus(CPlayback * pPlayback);
+    void            setChannelNum(const char * str1 = NULL, const char * str2 = NULL);
+    void            setChannelNum(CChannel * pChannel);
     CChannelLabel * findChannelLabel(CChannel * pChannel, CLabelData * pLabelData);
-    void    adjustChannelLabelBorder(MRect * pRect, MRect rectMax, int nBorder);
-    eRet    createChannelLabel(CLabelData * pLabelData, CChannel * pChannel, CWidgetLabel ** pChannelLabel = NULL);
-    eRet    updateChannelLabels(CChannel * pChannel);
-    eRet    removeChannelLabels(CChannel * pChannel);
-    void    setChannelStatus(eMode mode, const char * str1 = NULL, const char * str2 = NULL, const char * strPlaybackTitle = NULL, CChannel * pChannel = NULL);
-    eRet    addRecordEncodeIndicator(CChannel * pChannel);
-    void    setChannelIndicator(CChannelMgr * pChannelMgr, CPlaylistDb * pPlaylistDb);
-    void    setVolumeProgress(uint8_t progress, bool bMute = false);
-    eRet    registerObserver(CObserver * pObserver, eNotification notification = eNotify_All);
-    MRect   getPipGraphicsGeometry(CSimpleVideoDecode * pVideoDecode);
-    eRet    showConnectionStatus(bool bConnected, const char * strText, uint32_t timeout = 3000);
-    eRet    showPlaybackTitle(bool bShow = true);
-    eRet    setPlaybackTitle(const char * str);
-    eRet    showDebugTitle(bool bShow = true);
-    eRet    setDebugTitle(const char * str);
-    eRet    updatePlaybackProgress(void);
-    eRet    updateChannelProgress(void);
-    eRet    updatePip(void);
-    void    showMenu(eMenu menu);
-    MString showKeyboardModal(const char * strTitle, const char * strEntryTitle);
+    void            adjustChannelLabelBorder(MRect * pRect, MRect rectMax, int nBorder);
+    eRet            createChannelLabel(CLabelData * pLabelData, CChannel * pChannel, CWidgetLabel ** pChannelLabel = NULL);
+    eRet            updateChannelLabels(CChannel * pChannel);
+    eRet            removeChannelLabels(CChannel * pChannel);
+    void            setChannelStatus(eMode mode, const char * str1 = NULL, const char * str2 = NULL, const char * strPlaybackTitle = NULL, CChannel * pChannel = NULL);
+    eRet            addRecordEncodeIndicator(CChannel * pChannel);
+    void            setChannelIndicator(CChannelMgr * pChannelMgr, CPlaylistDb * pPlaylistDb);
+    void            setVolumeProgress(uint8_t progress, bool bMute = false);
+    eRet            registerObserver(CObserver * pObserver, eNotification notification = eNotify_All);
+    MRect           getPipGraphicsGeometry(CSimpleVideoDecode * pVideoDecode);
+    eRet            showConnectionStatus(bool bConnected, const char * strText, uint32_t timeout = 3000);
+    eRet            showPlaybackTitle(bool bShow = true);
+    eRet            setPlaybackTitle(const char * str);
+    eRet            showDebugTitle(bool bShow = true);
+    eRet            setDebugTitle(const char * str);
+    eRet            updatePlaybackProgress(void);
+    eRet            updateChannelProgress(void);
+    eRet            updatePip(void);
+    void            showMenu(eMenu menu);
+    MString         showKeyboardModal(const char * strTitle, const char * strEntryTitle);
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     eRet addDynamicRangeIndicator(CSimpleVideoDecode * pVideoDecode);
     void addPlmIndicator(CSimpleVideoDecode * pVideoDecode);
@@ -204,27 +208,27 @@ protected:
     void showMenu(CWidgetMenu * pMenu);
 
 protected:
-    CWidgetProgress * _pLabelScan;
-    CWidgetProgress * _pLabelVolume;
-    MRect             _rectChannelNum;
-    CWidgetLabel *    _pLabelPip;
-    CWidgetLabel *    _pLabelChannelNum;
-    CWidgetLabel *    _pLabelChannelNumText;
-    CWidgetLabel *    _pLabelChannelType;
-    CWidgetProgress * _pProgressPlayback;
-    CWidgetLabel *    _pLabelPlaybackState;
-    CWidgetLabel *    _pLabelPlaybackLength;
-    CWidgetLabel *    _pLabelConnectionType;
-    CWidgetLabel *    _pLabelConnectionStatus;
-    CWidgetLabel *    _pLabelPlaybackName;
-    CWidgetLabel *    _pLabelPlaybackNameShadow;
-    CWidgetLabel *    _pLabelDebugName;
-    CWidgetLabel *    _pLabelDebugNameShadow;
-    CWidgetMenu *     _pMainMenu;
-    CWidgetButton *   _Display;
-    CWidgetButton *   _Decode;
-    CWidgetButton *   _Playback;
-    CWidgetButton *   _Audio;
+    CWidgetProgress *        _pLabelScan;
+    CWidgetProgress *        _pLabelVolume;
+    MRect                    _rectChannelNum;
+    CWidgetLabel *           _pLabelPip;
+    CWidgetLabel *           _pLabelChannelNum;
+    CWidgetLabel *           _pLabelChannelNumText;
+    CWidgetLabel *           _pLabelChannelType;
+    CWidgetProgress *        _pProgressPlayback;
+    CWidgetLabel *           _pLabelPlaybackState;
+    CWidgetLabel *           _pLabelPlaybackLength;
+    CWidgetLabel *           _pLabelConnectionType;
+    CWidgetLabel *           _pLabelConnectionStatus;
+    CWidgetLabel *           _pLabelPlaybackName;
+    CWidgetLabel *           _pLabelPlaybackNameShadow;
+    CWidgetLabel *           _pLabelDebugName;
+    CWidgetLabel *           _pLabelDebugNameShadow;
+    CWidgetMenu *            _pMainMenu;
+    CWidgetButton *          _Display;
+    CWidgetButton *          _Decode;
+    CWidgetButton *          _Playback;
+    CWidgetButton *          _Audio;
     MAutoList<CChannelLabel> _channelLabelList;
 #if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     CWidgetButton * _Network;
@@ -242,6 +246,9 @@ protected:
     CWidgetPopupList * _CpuTestPopup;
     CCpuTest *         _pCpuTest;
 #endif /* ifdef CPUTEST_SUPPORT */
+#if POWERSTANDBY_SUPPORT
+    CWidgetButton * _Power;
+#endif
     CWidgetButton *  _Back;
     CPanelDecode *   _pDecodeMenu;
     CPanelDisplay *  _pDisplayMenu;

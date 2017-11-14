@@ -36,79 +36,78 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 #ifndef PLATFORM_PLM_PRIV_H__
-#define PLATFORM_PLM_PRIV_H__ 1
+#define PLATFORM_PLM_PRIV_H__  1
 
 #include "bstd.h"
 #include "bchp_common.h"
-#define SLOPE_MAN_I_BITS 0
-#define SLOPE_MAN_F_BITS 15
-#define SLOPE_EXP_I_BITS 4
-#define SLOPE_EXP_F_BITS 0
-#define LR_COORD_I_BITS 1
-#define LR_COORD_F_BITS 15
+#define SLOPE_MAN_I_BITS            0
+#define SLOPE_MAN_F_BITS            15
+#define SLOPE_EXP_I_BITS            4
+#define SLOPE_EXP_F_BITS            0
+#define LR_COORD_I_BITS             1
+#define LR_COORD_F_BITS             15
 
 /* TODO: from bmth_fix.h, fix makefile so can include */
-#define BMTH_P_FIX_MAX_BITS 32
-#define BMTH_P_FIX_SIGNED_MAX_BITS (BMTH_P_FIX_MAX_BITS - 1)
+#define BMTH_P_FIX_MAX_BITS         32
+#define BMTH_P_FIX_SIGNED_MAX_BITS  (BMTH_P_FIX_MAX_BITS - 1)
 #define BMTH_P_FIX_SIGNED_MASK(intbits, fractbits) \
     (0xFFFFFFFF >> (BMTH_P_FIX_SIGNED_MAX_BITS - (intbits + fractbits)))
 #define BMTH_P_FIX_SIGN_BIT(intbits, fractbits) \
     (1 << (intbits + fractbits))
 #define BMTH_FIX_SIGNED_ITOFIX(x, intbits, fractbits) \
     (((x) << fractbits) & BMTH_P_FIX_SIGNED_MASK(intbits, fractbits))
-#define BMTH_FIX_SIGNED_FIXTOI(x, intbits, fractbits) \
-    (((x) & BMTH_P_FIX_SIGN_BIT(intbits, fractbits)) ? \
-        ((x) >> (fractbits) | ~BMTH_P_FIX_SIGNED_MASK(intbits, fractbits)) : \
-        ((x) >> (fractbits)))
+#define BMTH_FIX_SIGNED_FIXTOI(x, intbits, fractbits)                     \
+    (((x) & BMTH_P_FIX_SIGN_BIT(intbits, fractbits)) ?                    \
+     ((x) >> (fractbits) | ~BMTH_P_FIX_SIGNED_MASK(intbits, fractbits)) : \
+     ((x) >> (fractbits)))
 #define BMTH_FIX_SIGNED_FTOFIX(x, intbits, fractbits) \
     ((int32_t)(((x) * (1 << fractbits)) + ((x > 0) ? 0.5f : -0.5f)) & BMTH_P_FIX_SIGNED_MASK(intbits, fractbits))
-#define BMTH_FIX_SIGNED_FIXTOF(x, intbits, fractbits) \
+#define BMTH_FIX_SIGNED_FIXTOF(x, intbits, fractbits)          \
     ((int32_t)((BMTH_P_FIX_SIGN_BIT(intbits, fractbits) & x) ? \
-        -((~BMTH_P_FIX_SIGN_BIT(intbits, fractbits) & ~x) + 1) : x ) / (float)(1 << fractbits))
+               -((~BMTH_P_FIX_SIGN_BIT(intbits, fractbits) & ~x) + 1) : x) / (float)(1 << fractbits))
 
 #ifdef BCHP_HDR_CMP_0_REG_START
 #include "bchp_hdr_cmp_0.h"
 
 /* HDR 1.0 */
-#if defined(BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_ARRAY_BASE)
-#define VID_SLOPE_RECT_DELTA (BCHP_HDR_CMP_0_V0_R1_NL_LR_SLOPEi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_ARRAY_BASE)
-#define VID_SLOPE_INDEX_DELTA (BCHP_HDR_CMP_0_V1_R0_NL_LR_SLOPEi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_ARRAY_BASE)
-#define VID_XY_RECT_DELTA (BCHP_HDR_CMP_0_V0_R1_NL_LR_XY_0i_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_ARRAY_BASE)
-#define VID_XY_INDEX_DELTA (BCHP_HDR_CMP_0_V1_R0_NL_LR_XY_0i_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_ARRAY_BASE)
-#define VID_NLCONFIG_INDEX_DELTA (BCHP_HDR_CMP_0_V1_R00_TO_R15_NL_CONFIGi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE)
-#define LRANGE_ADJ_DISABLE BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_RECT0_SEL_LRANGE_ADJ_DISABLE
-#define HAS_VID_NL_LUMA_RANGE_ADJ 1
+#if defined (BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_ARRAY_BASE)
+#define VID_SLOPE_RECT_DELTA       (BCHP_HDR_CMP_0_V0_R1_NL_LR_SLOPEi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_ARRAY_BASE)
+#define VID_SLOPE_INDEX_DELTA      (BCHP_HDR_CMP_0_V1_R0_NL_LR_SLOPEi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_ARRAY_BASE)
+#define VID_XY_RECT_DELTA          (BCHP_HDR_CMP_0_V0_R1_NL_LR_XY_0i_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_ARRAY_BASE)
+#define VID_XY_INDEX_DELTA         (BCHP_HDR_CMP_0_V1_R0_NL_LR_XY_0i_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_ARRAY_BASE)
+#define VID_NLCONFIG_INDEX_DELTA   (BCHP_HDR_CMP_0_V1_R00_TO_R15_NL_CONFIGi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE)
+#define LRANGE_ADJ_DISABLE         BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_RECT0_SEL_LRANGE_ADJ_DISABLE
+#define HAS_VID_NL_LUMA_RANGE_ADJ  1
 
 /* HDR 2.0 */
-#elif defined(BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_ARRAY_BASE)
-#define VID_SLOPE_RECT_DELTA (BCHP_HDR_CMP_0_V0_R1_LR_SLOPEi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_ARRAY_BASE)
-#define VID_SLOPE_INDEX_DELTA (BCHP_HDR_CMP_0_V1_R0_LR_SLOPEi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_ARRAY_BASE)
-#define VID_XY_RECT_DELTA (BCHP_HDR_CMP_0_V0_R1_LR_XY_0i_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_ARRAY_BASE)
-#define VID_XY_INDEX_DELTA (BCHP_HDR_CMP_0_V1_R0_LR_XY_0i_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_ARRAY_BASE)
-#define VID_NLCONFIG_INDEX_DELTA (BCHP_HDR_CMP_0_V1_R00_TO_R15_NL_CONFIGi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE)
-#define LRANGE_ADJ_DISABLE BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_DISABLE
-#define HAS_VID_NL_LUMA_RANGE_ADJ 1
+#elif defined (BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_ARRAY_BASE)
+#define VID_SLOPE_RECT_DELTA       (BCHP_HDR_CMP_0_V0_R1_LR_SLOPEi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_ARRAY_BASE)
+#define VID_SLOPE_INDEX_DELTA      (BCHP_HDR_CMP_0_V1_R0_LR_SLOPEi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_ARRAY_BASE)
+#define VID_XY_RECT_DELTA          (BCHP_HDR_CMP_0_V0_R1_LR_XY_0i_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_ARRAY_BASE)
+#define VID_XY_INDEX_DELTA         (BCHP_HDR_CMP_0_V1_R0_LR_XY_0i_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_ARRAY_BASE)
+#define VID_NLCONFIG_INDEX_DELTA   (BCHP_HDR_CMP_0_V1_R00_TO_R15_NL_CONFIGi_ARRAY_BASE - BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE)
+#define LRANGE_ADJ_DISABLE         BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_DISABLE
+#define HAS_VID_NL_LUMA_RANGE_ADJ  1
 
 /* UNKNOWN HDR chip */
-#else
-#define HAS_VID_NL_LUMA_RANGE_ADJ 0
-#endif
-
+#else /* if defined (BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_ARRAY_BASE) */
+#define HAS_VID_NL_LUMA_RANGE_ADJ  0
+#endif /* if defined (BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_ARRAY_BASE) */
 
 /* NO HDR_CMP registers */
-#else
-#define HAS_VID_NL_LUMA_RANGE_ADJ 0
-#endif
+#else /* ifdef BCHP_HDR_CMP_0_REG_START */
+#define HAS_VID_NL_LUMA_RANGE_ADJ  0
+#endif /* ifdef BCHP_HDR_CMP_0_REG_START */
 
 #ifdef BCHP_GFD_0_REG_START
 #include "bchp_gfd_0.h"
 #ifdef BCHP_GFD_0_NL_LR_SLOPEi_ARRAY_BASE
-#define HAS_GFX_NL_LUMA_RANGE_ADJ 1
+#define HAS_GFX_NL_LUMA_RANGE_ADJ  1
 #else
-#define HAS_GFX_NL_LUMA_RANGE_ADJ 0
+#define HAS_GFX_NL_LUMA_RANGE_ADJ  0
 #endif
-#else
-#define HAS_GFX_NL_LUMA_RANGE_ADJ 0
-#endif
+#else /* ifdef BCHP_GFD_0_REG_START */
+#define HAS_GFX_NL_LUMA_RANGE_ADJ  0
+#endif /* ifdef BCHP_GFD_0_REG_START */
 
 #endif /* PLATFORM_PLM_PRIV_H__ */

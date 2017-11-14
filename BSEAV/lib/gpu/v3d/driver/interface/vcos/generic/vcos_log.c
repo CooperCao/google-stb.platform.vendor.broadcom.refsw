@@ -1,23 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-
-Project  :  vcos
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
 
 #include "interface/vcos/vcos_log.h"
-
-bool vcos_of_interest_impl(void)
-{
-   return false;
-}
 
 void vcos_log_impl(log_level_t level, const char *fmt, ...)
 {

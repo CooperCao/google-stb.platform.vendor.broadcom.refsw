@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -110,6 +110,16 @@
     #define BVBI_P_HAS_XSER_TT 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
+    #define BVBI_P_CGMSAE_VER5 1
+    #define BVBI_P_WSE_VER5 1
+    #define BVBI_P_GSE_VER2 1
+    #define BVBI_P_CCE_VER2 1
+
+#elif (BCHP_CHIP==7255)
+    #define BVBI_P_HAS_EXT_656 0
+    #define BVBI_P_HAS_XSER_TT 0
+    #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
+    #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 0
     #define BVBI_P_CGMSAE_VER5 1
     #define BVBI_P_WSE_VER5 1
     #define BVBI_P_GSE_VER2 1

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x07000002
+#define VICE_API_VERSION                  0x07000003
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -480,7 +480,7 @@ typedef struct ViceCmdInit_t
     uint32_t    BankType;                                   /* 0: 4 Banks.  1: 8 Banks.  2: 16 Banks.                            */
     uint32_t    PageSize;                                   /* 0: 1 Kbytes. 1: 2 Kbytes. 2: 4 Kbytes. 3: 8 Kbytes. 4: 16 Kbytes. */
     uint32_t    Grouping;                                   /* 0: Disable.  1: Enable.                                           */
-
+    uint32_t    NewBvnMailbox;                              /* 0: Disable.  1: Enable.                                           */
 }ViceCmdInit_t;
 
 typedef struct ViceDebugBufferInfo_t                       /* //NS : style check ignored: required for backwards compatibility   */
@@ -635,6 +635,248 @@ typedef struct BVCE_FW_P_UserData_Queue
    uint32_t uiBaseOffsetHi;
 } BVCE_FW_P_UserData_Queue;
 
+/* Picture Buffer Info
+ *
+ * There are 5 types of buffers that the VIP can generate
+ *  1) Luma
+ *  2) Chroma
+ *  3) Decimated Luma - 2H2V
+ *  4) Decimated Luma - 2H1V
+ *  5) Shifted Chroma
+ *
+ *  Each progressive picture consists of 1/2 + 3 and/or 4 (depending on how the VIP is configured)
+ *  Each interlaced picture also contains 5
+ *
+ *  The lifetime (# of vsyncs) the buffer is needed varies.
+ *   - 1 and 2 are released together (aka LumaChroma)
+ *   - 3 and 4 are released together (aka DecimatedLuma)
+ *
+ *  A picture is added via BVN2VICE Mailbox and the VIP interrupt.
+ *
+ *  Each _picture_ consists 2 types of elements:
+ *     1) 3-5 buffers as described above
+ *     2) Metadata (BVN MailBox Info, ITFP, etc)
+ *
+ *  There are 5 picture buffer "release" queues that is used by VCE to release
+ *  buffers for re-use back to BVN.
+ *
+ */
+
+#define BVCE_P_FW_PICTURE_QUEUE_LENGTH 6
+
+typedef struct BVCE_P_FW_PictureBufferOffset
+{
+   uint32_t uiOffsetLo; /* Physical offset of picture buffer (LSB) */
+   uint32_t uiOffsetHi; /* Physical offset of picture buffer (MSB) */
+} BVCE_P_FW_PictureBufferOffset;
+
+#define BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK 0x80000000
+#define BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT 31
+#define BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK 0x70000000
+#define BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT 28
+#define BVCE_P_FW_PictureBufferInfo_Metadata_RESERVED_MASK 0x0FFF0000
+#define BVCE_P_FW_PictureBufferInfo_Metadata_RESERVED_SHIFT 16
+#define BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK 0x0000FFFF
+#define BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT 0
+
+typedef struct BVCE_P_FW_PictureBufferInfo
+{
+   BVCE_P_FW_PictureBufferOffset stOffset;
+   uint32_t uiMetadata; /* [31:31] DCXV Flag
+                         * [30:28] Decimation Value (in power of two) (0=no decimation, 1=2x decimation, 2=4x decimation, etc)
+                         * [27:16] Reserved
+                         * [15:00] Number of rows in macroblocks (NMBY)
+                         */
+} BVCE_P_FW_PictureBufferInfo;
+
+typedef struct BVCE_P_FW_PictureBuffer_Queue
+{
+   uint32_t uiReadOffset;
+   uint32_t uiWriteOffset; /* Offset where 0 is the first entry in the queue, and BVCE_P_FW_Picture_QUEUE_LENGTH-1 is the last */
+   BVCE_P_FW_PictureBufferOffset astQueue[BVCE_P_FW_PICTURE_QUEUE_LENGTH];
+} BVCE_P_FW_PictureBuffer_Queue;
+
+typedef enum
+{
+   SOURCE_POLARITY_TOP = 0,
+   SOURCE_POLARITY_BOT,
+   SOURCE_POLARITY_FRAME
+} Polarity_e;
+
+typedef enum
+{
+   SOURCE_CADENCE_TYPE_UNLOCKED = 0,
+   SOURCE_CADENCE_TYPE_3_2,
+   SOURCE_CADENCE_TYPE_2_2
+} CadenceType_e;
+
+typedef enum
+{
+   SOURCE_CADENCE_PHASE_0 = 0,
+   SOURCE_CADENCE_PHASE_1,
+   SOURCE_CADENCE_PHASE_2,
+   SOURCE_CADENCE_PHASE_3,
+   SOURCE_CADENCE_PHASE_4
+} CadencePhase_e;
+
+typedef enum
+{
+   SOURCE_BAR_DATA_TYPE_INVALID = 0,
+   SOURCE_BAR_DATA_TYPE_TOP_BOTTOM,
+   SOURCE_BAR_DATA_TYPE_LEFT_RIGHT
+} BarDataType_e;
+
+typedef enum
+{
+   SOURCE_ORIENTATION_TYPE_2D = 0,
+   SOURCE_ORIENTATION_TYPE_3D_LEFT_RIGHT,
+   SOURCE_ORIENTATION_TYPE_3D_OVER_UNDER,
+   SOURCE_ORIENTATION_TYPE_3D_LEFT,
+   SOURCE_ORIENTATION_TYPE_3D_RIGHT,
+   SOURCE_ORIENTATION_TYPE_3D_LEFT_RIGHT_ENHANCED
+} OrientationType_e;
+
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_RESERVED_MASK 0xFFFFFFF8
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_RESERVED_SHIFT 3
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_LAST_MASK 0x00000004
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_LAST_SHIFT 2
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_CHANNEL_CHANGE_MASK 0x00000002
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_CHANNEL_CHANGE_SHIFT 1
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_BUSY_MASK 0x00000001
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_BUSY_SHIFT 0
+
+#define BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_MASK 0xFFFF0000
+#define BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_SHIFT 16
+#define BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_MASK 0x0000FFFF
+#define BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_SHIFT 0
+
+#define BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_MASK 0xFFFF0000
+#define BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_SHIFT 16
+#define BVCE_P_FW_PictureBufferMailbox_Cropping_VERTICAL_SIZE_MASK 0x0000FFFF
+#define BVCE_P_FW_PictureBufferMailbox_Cropping_VERTICAL_SIZE_SHIFT 0
+
+#define BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_HORIZONTAL_SIZE_MASK 0xFFFF0000
+#define BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_HORIZONTAL_SIZE_SHIFT 16
+#define BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_VERTICAL_SIZE_MASK 0x0000FFFF
+#define BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_VERTICAL_SIZE_SHIFT 0
+
+#define BVCE_P_FW_PictureBufferMailbox_BarData_RESERVED_MASK 0xC0000000
+#define BVCE_P_FW_PictureBufferMailbox_BarData_RESERVED_SHIFT 30
+#define BVCE_P_FW_PictureBufferMailbox_BarData_TOP_LEFT_VALUE_MASK 0x3FFF0000
+#define BVCE_P_FW_PictureBufferMailbox_BarData_TOP_LEFT_VALUE_SHIFT 16
+#define BVCE_P_FW_PictureBufferMailbox_BarData_TYPE_MASK 0x0000C000
+#define BVCE_P_FW_PictureBufferMailbox_BarData_TYPE_SHIFT 14
+#define BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_MASK 0x00003FFF
+#define BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_SHIFT 0
+
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_RESERVED_MASK 0xFFFF8000
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_RESERVED_SHIFT 15
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_MASK 0x00007000
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_SHIFT 12
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_MODE_MASK 0x00000F00
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_MODE_SHIFT 8
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_VALID_MASK 0x00000080
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_VALID_SHIFT 7
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_MASK 0x00000070
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_SHIFT 4
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_MASK 0x0000000C0
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_SHIFT 2
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_MASK 0x00000003
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_SHIFT 0
+
+/* Example cadence scenarios:
+ *
+ *     VSYNC    | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+ *
+ *   Interlaced:
+ *     POLARITY | T | B | T | B | T | B | T | B | T | B |
+ *
+ *    TYPE = 3:2
+ *     PHASE    | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | --> [T0 B1 T2] [B3 T4] [B5 T6 B7] [T8 B9]
+ *     PHASE    | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | --> T0 B1] [T2 B3] [T4 B5 T6] [B7 T8] [B9
+ *     PHASE    | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | --> T0] [B1 T2] [B3 T4 B5] [T6 B7] [T8 B9
+ *     PHASE    | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | --> [T0 B1] [T2 B3 T4] [B5 T6] [B7 T8 B9]
+ *     PHASE    | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | --> T0] [B1 T2 B3] [T4 B5] [T6 B7 T8] [B9
+ *
+ *     TYPE = 2:2
+ *     PHASE    | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | --> [T0 B1] [T2 B3] [T4 B5] [T6 B7] [T8 B9]
+ *     PHASE    | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | --> T0] [B1 T2] [B3 T4] [B5 T6] [B7 T8] [B9
+ *
+ *   Progressive:
+ *      POLARITY | F | F | F | F | F | F | F | F | F | F |
+ *
+ *      TYPE = 3:2
+ *      PHASE    | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | --> [F0 F1 F2] [F3 F4] [F5 F6 F7] [F8 F9]
+ *      PHASE    | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | --> F0 F1] [F2 F3] [F4 F5] [F6 F7 F8] [F9
+ *      PHASE    | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | --> F0] [F1 F2] [F3 F4 F5] [F6 F7] [F8 F9
+ *      PHASE    | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | --> [F0 F1] [F2 F3 F4] [F5 F6] [F7 F8 F9]
+ *      PHASE    | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | --> F0] [F1 F2 F3] [F4 F5] [F6 F7 F8] [F9
+ *
+ *      TYPE = 2:2
+ *      PHASE    | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | --> [F0 F1] [F2 F3] [F4 F5] [F6 F7] [F8 F9]
+ *      PHASE    | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | --> F0] [F1 F2] [F3 F4] [F5 F6] [F7 F8] [F9
+ */
+
+#define BVCE_P_FW_PictureBufferMailbox_TimingInfo_RESERVED_MASK 0xFFFE0000
+#define BVCE_P_FW_PictureBufferMailbox_TimingInfo_RESERVED_SHIFT 17
+#define BVCE_P_FW_PictureBufferMailbox_TimingInfo_DELTA_PTS_IN_360KHZ_MASK 0x0001FFFE
+#define BVCE_P_FW_PictureBufferMailbox_TimingInfo_DELTA_PTS_IN_360KHZ_SHIFT 1
+#define BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_MASK 0x00000001
+#define BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_SHIFT 0
+
+
+typedef struct BVCE_P_FW_PictureBufferMailbox
+{
+   /* Metadata */
+   uint32_t uiMetadata;          /* [31:03] Unused
+                                  * [02:02] Last Flag
+                                  * [01:01] Channel Change Flag
+                                  * [00:00] Busy Flag
+                                  *          If 0, then the VCE FW is ready for the next picture buffer
+                                  *           For each picture, if uiBusy = 0:
+                                  *            1) Host updates the MBOX with the picture info
+                                  *            2) Host sets busy flag
+                                  *            3) When FW processes the MBOX info, it unsets the busy flag */
+
+   /* Display Info */
+   uint32_t uiResolution;        /* [31:16] Horizontal Size (in 8x8 blocks)
+                                  * [15:00] Vertical Size (in 8x8 blocks) */
+   uint32_t uiCropping;          /* [31:16] Right Cropping Size (in pixels)
+                                  * [15:00] Bottom Cropping Size (in pixels) */
+   uint32_t uiSampleAspectRatio; /* [31:16] Horizontal Size
+                                  * [15:00] Vertical Size */
+   uint32_t uiBarData;           /* [31:30] Unused
+                                  * [29:16] Top/Left Bar Value
+                                  * [15:14] Bar Data Type (See BarDataType_e)
+                                  * [13:00] Bottom/Right Bar Value */
+   uint32_t uiFormatInfo;        /* [31:15] Unused
+                                  * [14:12] Orientation (See OrientationType_e)
+                                  * [11:08] Active Format Data (AFD) Mode
+                                  * [07:07] Active Format Data (AFD) Valid Flag
+                                  * [06:04] Cadence Phase (See CadencePhase_e)
+                                  * [03:02] Cadence Type (See CadenceType_e)
+                                  * [01:00] Polarity (See Polarity_e) */
+
+   /* Timing Info */
+   uint32_t uiTimingInfo;        /* [16:01] Delta PTS (in 360 Khz = (90 Khz * 4) )
+                                  * [00:00] New PTS LSB
+                                  *          NewPTSin90Khz = (uiNewPts << 1) | ( ( uiTimingInfo & BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_MASK ) >> BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_SHIFT ) */
+   uint32_t uiNewPts;            /* [31:00] New PTS (in 45 Khz) */
+   uint32_t uiOriginalPts;       /* [31:00] Original PTS (in 45 Khz) */
+   uint32_t uiPictureId;         /* [31:00] Picture Id */
+
+   /* Debug Info */
+   uint32_t uiSTCSnapshotLo;     /* [31:00] STC Snapshot LSBs (in 27 Mhz) */
+   uint32_t uiSTCSnapshotHi;     /* [31:00] STC Snapshot MSBs (in 27 Mhz) */
+
+    /* Buffer Physical Offsets */
+    BVCE_P_FW_PictureBufferInfo    LumaBufPtr;
+    BVCE_P_FW_PictureBufferInfo    ChromaBufPtr;
+    BVCE_P_FW_PictureBufferInfo    Luma1VBufPtr;
+    BVCE_P_FW_PictureBufferInfo    Luma2VBufPtr;
+    BVCE_P_FW_PictureBufferInfo    ShiftedChromaBufPtr;
+} BVCE_P_FW_PictureBufferMailbox;
+
 typedef struct ViceCmdOpenChannel_t
 {
     uint32_t            Command;                            /* OpCode of the command: VICE_CMD_* */
@@ -654,6 +896,13 @@ typedef struct ViceCmdOpenChannelResponse_t
     uint32_t                          Command;              /* OpCode of the command: VICE_CMD_* */
     uint32_t                          Status;               /* Status: VICE_CMD_OK, or VICE_CMD_ERR_* (see definition above) */
     VCE_PTR(BVCE_FW_P_UserData_Queue) pUserDataQInfoBase;   /* Base DCCM buffer address for the user data queue */
+
+    /* VIP Buffer Release Info */
+    VCE_PTR(BVCE_P_FW_PictureBuffer_Queue) pLumaBufferReleaseQInfoBase;           /* Base DCCM buffer address for the Luma *Buffer* Release Q (VCE --> BVN) */
+    VCE_PTR(BVCE_P_FW_PictureBuffer_Queue) pChromaBufferReleaseQInfoBase;         /* Base DCCM buffer address for the Luma *Buffer* Release Q (VCE --> BVN) */
+    VCE_PTR(BVCE_P_FW_PictureBuffer_Queue) p1VLumaBufferReleaseQInfoBase;       /* Base DCCM buffer address for the 2H1V Decimated Luma *Buffer* Release Q (VCE --> BVN) */
+    VCE_PTR(BVCE_P_FW_PictureBuffer_Queue) p2VLumaBufferReleaseQInfoBase;       /* Base DCCM buffer address for the 2H2V Decimated Luma *Buffer* Release Q (VCE --> BVN) */
+    VCE_PTR(BVCE_P_FW_PictureBuffer_Queue) pShiftedChromaBufferReleaseQInfoBase;  /* Base DCCM buffer address for the Shifted Chroma *Buffer* Release Q (VCE --> BVN) */
 } ViceCmdOpenChannelResponse_t;
 
 
@@ -751,6 +1000,7 @@ typedef enum
     ENCODING_HEVC_LEVEL_41      = 123,  /* 4.1*30 */
     ENCODING_HEVC_LEVEL_50      = 150,  /* 5*30 */
     ENCODING_AVC_LEVEL_10       = 10,
+    ENCODING_AVC_LEVEL_10b      = 14,
     ENCODING_AVC_LEVEL_11       = 11,
     ENCODING_AVC_LEVEL_12       = 12,
     ENCODING_AVC_LEVEL_13       = 13,
@@ -809,16 +1059,16 @@ typedef enum
        ENCODING_FRAME_RATE_CODE_5994,
        ENCODING_FRAME_RATE_CODE_6000,
        ENCODING_FRAME_RATE_CODE_1498,
-       ENCODING_FRAME_RATE_CODE_0749,       /* Not supported for ViCEv3 */
-       ENCODING_FRAME_RATE_CODE_1000,       /* Not supported for ViCEv3 */
+       ENCODING_FRAME_RATE_CODE_0749,
+       ENCODING_FRAME_RATE_CODE_1000,
        ENCODING_FRAME_RATE_CODE_1500,
        ENCODING_FRAME_RATE_CODE_2000,
        ENCODING_FRAME_RATE_CODE_1998,
-       ENCODING_FRAME_RATE_CODE_1250,       /* Not supported for ViCEv3 */
-       ENCODING_FRAME_RATE_CODE_0750,       /* Not supported for ViCEv3 */
-       ENCODING_FRAME_RATE_CODE_1200,       /* Not supported for ViCEv3 */
-       ENCODING_FRAME_RATE_CODE_1198,       /* Not supported for ViCEv3 */
-       ENCODING_FRAME_RATE_CODE_0999        /* Not supported for ViCEv3 */
+       ENCODING_FRAME_RATE_CODE_1250,
+       ENCODING_FRAME_RATE_CODE_0750,
+       ENCODING_FRAME_RATE_CODE_1200,
+       ENCODING_FRAME_RATE_CODE_1198,
+       ENCODING_FRAME_RATE_CODE_0999
 } FrameRateCode_e;
 
 typedef struct FPNumber
@@ -932,6 +1182,8 @@ typedef struct ViceCmdConfigChannel_t
 #define CONFIG_FLAG_ENABLE_RC_SEGMENT_MODE                  11
 /* Flag for disabling picture drops from HRD underflow. 0: Enable HRD picture drop  1: Disable HRD picture drop */
 #define CONFIG_FLAG_DISABLE_HRD_DROP_PICTURE                12
+/* Flag for enabling sparse frame rate mode. 0: Disable sparse frame rate. 1: Enable sparse frame rate */
+#define CONFIG_FLAG_ENABLE_SPARSE_FRAME_RATE_MODE           13
 
 #define GOP_LENGTH_MASK                                     0x0000FFFF          /* Gop length is limited to 16 bits     */
 #define GOP_LENGTH_OR_DURATION_FLAG_MASK                    0x80000000          /* 0 = gop length is in frames. 1= gop length is in 1/1000 sec duration  */
@@ -1055,6 +1307,7 @@ typedef enum
       BVCE_FW_P_COREVERSION_V2_1_2_2 = 5,
       BVCE_FW_P_COREVERSION_V2_1_3_2 = 6,
       BVCE_FW_P_COREVERSION_V3_0_0_2 = 7,
+      BVCE_FW_P_COREVERSION_V3_0_1_2 = 8,
 
       /* Add new revisions ABOVE this line */
       BVCE_FW_P_COREVERSION_MAX
@@ -1075,13 +1328,17 @@ typedef struct BVCE_FW_P_NonSecureMemSettings_t
     uint32_t    MaxPictureWidthInPels;
     uint32_t    MaxPictureHeightInPels;
     uint32_t    DcxvEnable;
+    uint32_t    NewBvnMailboxEnable;
+    uint32_t    PageSize;
 } BVCE_FW_P_NonSecureMemSettings_t;
+
 
 /* Populates the default non-secure memory settings based on the specified core settings */
 void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings );
 
 /* Returns the memory required for the specified core/memory settings */
 uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, const BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings );
+
 
 uint32_t BVCE_FW_P_ConvertFrameRate(FrameRate_e framesPerSecond, FPNumber_t *FP_inverse);
 uint32_t BVCE_FW_P_CalcHRDbufferSize(uint32_t  Protocol, uint32_t  Profile, EncoderLevel_e  Level);
@@ -1195,7 +1452,6 @@ typedef struct ViceCmdGetDeviceStatusResponse_t
     DeviceStatusInfo_t  DeviceStatusInfoStruct;             /* Copy of the Device Status Info buffer for the given channel */
 
 } ViceCmdGetDeviceStatusResponse_t;
-
 
 /* ==========================================================*/
 /* ------------------  COMMAND UNION ------------------- */

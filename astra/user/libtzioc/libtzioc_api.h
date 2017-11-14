@@ -308,12 +308,12 @@ Output:
 
 Returns:
     Virtual address - success
-    (uint32_t)-1 - failure
+    (uintptr_t)-1 - failure
 ******************************************************************************/
 
 uintptr_t tzioc_offset2vaddr(
     tzioc_client_handle hClient,
-    uintptr_t ulOffset);
+    uint32_t ulOffset);
 
 /*****************************************************************************
 Summary:
@@ -333,7 +333,7 @@ Returns:
     (uint32_t)-1 - failure
 ******************************************************************************/
 
-uintptr_t tzioc_vaddr2offset(
+uint32_t tzioc_vaddr2offset(
     tzioc_client_handle hClient,
     uintptr_t ulVaddr);
 
@@ -364,7 +364,8 @@ void *tzioc_map_paddr(
 
 /*****************************************************************************
 Summary:
-    Unmap a memory region from virtual address space.
+    Unmap a previously mapped memory region with the given physical address
+    from virtual address space.
 
 Description:
 
@@ -381,6 +382,28 @@ Returns:
 void tzioc_unmap_paddr(
     tzioc_client_handle hClient,
     uintptr_t ulPaddr,
+    uint32_t ulSize);
+
+/*****************************************************************************
+Summary:
+    Unmap a previously mapped memory region with the given virtual address
+    from virtual address space.
+
+Description:
+
+Input:
+    hClient - local TZIOC client handle
+    ulVaddr - virtual address of memory region
+    ulSize - size of physical memory region
+
+Output:
+
+Returns:
+******************************************************************************/
+
+void tzioc_unmap_vaddr(
+    tzioc_client_handle hClient,
+    uintptr_t ulVaddr,
     uint32_t ulSize);
 
 /*****************************************************************************
@@ -414,7 +437,8 @@ int tzioc_map_paddrs(
 
 /*****************************************************************************
 Summary:
-    Unmap multiple physical memory regions from virtual address space.
+    Unmap a array of multiple memory regions with the given physical addresses
+    from virtual address space.
 
 Description:
 
@@ -434,6 +458,76 @@ int tzioc_unmap_paddrs(
     tzioc_client_handle hClient,
     uint8_t ucCount,
     tzioc_mem_region *pRegions);
+
+/*****************************************************************************
+Summary:
+    Unmap a array of multiple memory regions with the given virtual addresses
+    from virtual address space.
+
+Description:
+
+Input:
+    hClient - local TZIOC client handle
+    ulCount - number of memory regions
+    pRegions - pointer to array of memoery regions
+
+Output:
+
+Returns:
+    0 - success
+    Errno - failure
+******************************************************************************/
+
+int tzioc_unmap_vaddrs(
+    tzioc_client_handle hClient,
+    uint8_t ucCount,
+    tzioc_mem_region *pRegions);
+
+/*****************************************************************************
+Summary:
+    Convert mapped physical address to virtual address.
+
+Description:
+    The address must lie within one of the memory regions mapped through
+    tzioc_map_paddr() or tzioc_map_paddrs() calls.
+
+Input:
+    hClient - local TZIOC client handle
+    ulPaddr - physical address
+
+Output:
+
+Returns:
+    Virtual address - success
+    (uintptr_t)-1 - failure
+******************************************************************************/
+
+uintptr_t tzioc_paddr2vaddr(
+    tzioc_client_handle hClient,
+    uintptr_t ulPaddr);
+
+/*****************************************************************************
+Summary:
+    Convert virtual address to physical address.
+
+Description:
+    The address must lie within one of the memory regions mapped through
+    tzioc_map_paddr() or tzioc_map_paddrs() calls.
+
+Input:
+    hClient - local TZIOC client handle
+    ulVaddr - virtual address
+
+Output:
+
+Returns:
+    physical address - success
+    (uintptr_t)-1 - failure
+******************************************************************************/
+
+uintptr_t tzioc_vaddr2paddr(
+    tzioc_client_handle hClient,
+    uintptr_t ulVaddr);
 
 /*****************************************************************************
 Summary:

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  **************************************************************************/
 
 /* General purpose Diffie Hellman routines. */
@@ -108,7 +107,7 @@ BCRYPT_STATUS_eCode BCrypt_DH_FromPem(const uint8_t * pem,
     int retLen;
 
     if (!pContext) {
-        BDBG_ERR(("%s - invalid context holder %p", __FUNCTION__, (void *)pContext));
+        BDBG_ERR(("%s - invalid context holder %p", BSTD_FUNCTION, (void *)pContext));
         rc = BCRYPT_STATUS_eINVALID_PARAMETER;
         goto end;
     }
@@ -116,21 +115,21 @@ BCRYPT_STATUS_eCode BCrypt_DH_FromPem(const uint8_t * pem,
     *pContext = NULL;
 
     if (!pem) {
-        BDBG_ERR(("%s - invalid pem parameter %p", __FUNCTION__, (void *)pem));
+        BDBG_ERR(("%s - invalid pem parameter %p", BSTD_FUNCTION, (void *)pem));
         rc = BCRYPT_STATUS_eINVALID_PARAMETER;
         goto end;
     }
 
     context = _contextAlloc();
     if (!context) {
-        BDBG_ERR(("%s - context allocation failed", __FUNCTION__));
+        BDBG_ERR(("%s - context allocation failed", BSTD_FUNCTION));
         rc = BCRYPT_STATUS_eOUT_OF_SYSTEM_MEMORY;
         goto end;
     }
 
     bio = BIO_new_mem_buf((void *)pem, (int)pemLen);
     if (!bio) {
-        BDBG_ERR(("%s - BIO allocation failed", __FUNCTION__));
+        BDBG_ERR(("%s - BIO allocation failed", BSTD_FUNCTION));
         rc = BCRYPT_STATUS_eOUT_OF_SYSTEM_MEMORY;
         goto end;
     }
@@ -140,7 +139,7 @@ BCRYPT_STATUS_eCode BCrypt_DH_FromPem(const uint8_t * pem,
                                (pem_password_cb *)NULL,
                                (void *)NULL);
     if (!dh) {
-        BDBG_ERR(("%s - PEM_read_BIO_DHparams failed", __FUNCTION__));
+        BDBG_ERR(("%s - PEM_read_BIO_DHparams failed", BSTD_FUNCTION));
         rc = BCRYPT_STATUS_eFAILED;
         goto end;
     }
@@ -148,7 +147,7 @@ BCRYPT_STATUS_eCode BCrypt_DH_FromPem(const uint8_t * pem,
     context->DHhandle = dh;
 
     if (!DH_generate_key(dh)) {
-        BDBG_ERR(("%s - DH_generate_key failed", __FUNCTION__));
+        BDBG_ERR(("%s - DH_generate_key failed", BSTD_FUNCTION));
         rc = BCRYPT_STATUS_eFAILED;
         goto end;
     }
@@ -162,13 +161,13 @@ BCRYPT_STATUS_eCode BCrypt_DH_FromPem(const uint8_t * pem,
     context->pubKey = (uint8_t *)BKNI_Malloc(retLen);
     if (!context->pubKey) {
         BDBG_ERR(("%s - public key allocation (%u bytes) failed",
-                  __FUNCTION__, context->pubKeyLen));
+                  BSTD_FUNCTION, context->pubKeyLen));
         rc = BCRYPT_STATUS_eOUT_OF_SYSTEM_MEMORY;
         goto end;
     }
 
     if (BN_bn2bin(dh->pub_key, context->pubKey) != retLen) {
-        BDBG_ERR(("%s - BN_bn2bin failed", __FUNCTION__));
+        BDBG_ERR(("%s - BN_bn2bin failed", BSTD_FUNCTION));
         rc = BCRYPT_STATUS_eFAILED;
         goto end;
     }
@@ -207,32 +206,32 @@ BCRYPT_STATUS_eCode BCrypt_DH_ComputeSharedSecret(BCRYPT_DH_t * context,
     int length;
 
     if (!context) {
-        BDBG_ERR(("%s - invalid parameter (context is NULL)", __FUNCTION__));
+        BDBG_ERR(("%s - invalid parameter (context is NULL)", BSTD_FUNCTION));
         rc = BCRYPT_STATUS_eINVALID_PARAMETER;
         goto end;
     }
 
     if (!dh || !dh->pub_key || !dh->priv_key) {
-        BDBG_ERR(("%s - invalid dh context", __FUNCTION__));
+        BDBG_ERR(("%s - invalid dh context", BSTD_FUNCTION));
         rc = BCRYPT_STATUS_eINVALID_PARAMETER;
         goto end;
     }
 
     if (context->sharedSecret) {
-        BDBG_WRN(("%s - shared secret already computed", __FUNCTION__));
+        BDBG_WRN(("%s - shared secret already computed", BSTD_FUNCTION));
         goto end;
     }
 
     bn_remotePublicKey = BN_bin2bn(remotePublicKey, keyLen, NULL);
     if (!bn_remotePublicKey) {
-        BDBG_ERR(("%s - BN_bin2bn failed", __FUNCTION__));
+        BDBG_ERR(("%s - BN_bin2bn failed", BSTD_FUNCTION));
         rc = BCRYPT_STATUS_eFAILED;
         goto end;
     }
 
     length = DH_size(dh);
     if (length <= 0) {
-        BDBG_ERR(("%s - DH_size returns %u", __FUNCTION__, length));
+        BDBG_ERR(("%s - DH_size returns %u", BSTD_FUNCTION, length));
         rc = BCRYPT_STATUS_eFAILED;
         goto end;
     }
@@ -240,7 +239,7 @@ BCRYPT_STATUS_eCode BCrypt_DH_ComputeSharedSecret(BCRYPT_DH_t * context,
     context->sharedSecret = (uint8_t *)BKNI_Malloc(length);
     if (!context->sharedSecret) {
         BDBG_ERR(("%s - alloc shared secret (%u bytes) failed ",
-                  __FUNCTION__, length));
+                  BSTD_FUNCTION, length));
         rc = BCRYPT_STATUS_eOUT_OF_SYSTEM_MEMORY;
         goto end;
     }
@@ -248,7 +247,7 @@ BCRYPT_STATUS_eCode BCrypt_DH_ComputeSharedSecret(BCRYPT_DH_t * context,
     length = DH_compute_key(context->sharedSecret,
                             bn_remotePublicKey, dh);
     if (length < 0) {
-        BDBG_ERR(("%s - DH_compute_key failed ", __FUNCTION__));
+        BDBG_ERR(("%s - DH_compute_key failed ", BSTD_FUNCTION));
         rc = BCRYPT_STATUS_eFAILED;
         goto end;
     }

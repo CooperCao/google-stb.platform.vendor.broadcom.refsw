@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,192 +49,6 @@ BDBG_OBJECT_ID(BVDC_PEP);
 #if (BVDC_P_SUPPORT_MASK_DITHER)
 #include "bchp_mask_0.h"
 #endif
-
-#if (BVDC_P_SUPPORT_PEP)
-
-/*************************************************************************
- *  {secret}
- *  BVDC_P_Cab_BuildRul_isr
- *  Builds CAB block
- **************************************************************************/
-static void BVDC_P_Cab_BuildRul_isr
-    ( const BVDC_Window_Handle     hWindow,
-      BVDC_P_Pep_Handle            hPep,
-      BVDC_P_ListInfo             *pList )
-{
-    const BVDC_P_Window_Info    *pCurInfo;
-    bool                         bCabEnable = false;
-    bool                         bDemoModeEnable = false;
-
-    BDBG_ENTER(BVDC_P_Cab_BuildRul_isr);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    BDBG_OBJECT_ASSERT(hPep, BVDC_PEP);
-
-    /* Get current pointer to RUL */
-    pCurInfo = &hWindow->stCurInfo;
-
-    /* Only enable CAB if there is CAB table available */
-    /* right now only 10 bits CAB tables are supported */
-    bCabEnable = ((pCurInfo->ulFleshtone    != 0) ||
-                  (pCurInfo->ulBlueBoost  != 0) ||
-                  (pCurInfo->ulGreenBoost != 0) ||
-                  (BVDC_P_PEP_CMS_IS_ENABLE(&pCurInfo->stSatGain, &pCurInfo->stHueGain)) ||
-                  (pCurInfo->bUserCabEnable)) ? true : false;
-    bDemoModeEnable = (((pCurInfo->ulFleshtone    != 0 ||
-                         pCurInfo->ulBlueBoost  != 0 ||
-                         pCurInfo->ulGreenBoost != 0) &&
-                        (pCurInfo->stSplitScreenSetting.eAutoFlesh != BVDC_SplitScreenMode_eDisable)) ||
-                       (BVDC_P_PEP_CMS_IS_ENABLE(&pCurInfo->stSatGain, &pCurInfo->stHueGain) &&
-                        pCurInfo->stSplitScreenSetting.eCms != BVDC_SplitScreenMode_eDisable));
-    BDBG_MSG(("User CAB table = %s, CAB_ENABLE = %s, DEMO_MODE = %s",
-        (pCurInfo->bUserCabEnable == true) ? "true" : "false",
-        (bCabEnable == true) ? "true" : "false",
-        (bDemoModeEnable == true) ? "true" : "false"));
-
-    BDBG_MSG(("ulFleshtone %d", pCurInfo->ulFleshtone));
-    BDBG_MSG(("ulBlueBoost %d", pCurInfo->ulBlueBoost));
-    BDBG_MSG(("ulGreenBoost %d", pCurInfo->ulGreenBoost));
-    BDBG_MSG(("stSatGain B %d C %d Y %d G %d M %d R %d ", pCurInfo->stSatGain.lBlue, pCurInfo->stSatGain.lCyan, pCurInfo->stSatGain.lYellow, pCurInfo->stSatGain.lGreen, pCurInfo->stSatGain.lMagenta, pCurInfo->stSatGain.lRed));
-    BDBG_MSG(("stHueGain B %d C %d Y %d G %d M %d R %d ", pCurInfo->stHueGain.lBlue, pCurInfo->stHueGain.lCyan, pCurInfo->stHueGain.lYellow, pCurInfo->stHueGain.lGreen, pCurInfo->stHueGain.lMagenta, pCurInfo->stHueGain.lRed));
-    BDBG_MSG(("eAutoFlesh %d", pCurInfo->stSplitScreenSetting.eAutoFlesh));
-    BDBG_MSG(("stSplitScreenSetting.eCms  %d", pCurInfo->stSplitScreenSetting.eCms));
-    BDBG_MSG(("ulFleshtone %d", pCurInfo->ulFleshtone));
-
-
-    /* Demo mode setting for Auto Flesh, Blue Boost and Green Boost */
-    /* has to be the same, since they are applied to the same CAB table */
-    BDBG_ASSERT(pCurInfo->stSplitScreenSetting.eAutoFlesh == pCurInfo->stSplitScreenSetting.eGreenBoost);
-    BDBG_ASSERT(pCurInfo->stSplitScreenSetting.eAutoFlesh == pCurInfo->stSplitScreenSetting.eBlueBoost);
-
-    /* Build RUL */
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_PEP_CMP_0_V0_CAB_CTRL);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_CTRL, CAB_DEMO_ENABLE, bDemoModeEnable) |
-        BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_CTRL, CAB_ENABLE, bCabEnable) |
-        BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_CTRL, LUMA_OFFSET_ENABLE, 0);
-
-    /* Setting up the demo mode register */
-    if(bDemoModeEnable)
-    {
-        uint32_t ulBoundary = hWindow->stAdjDstRect.ulWidth / 2;
-        uint32_t ulDemoSide;
-
-        if(BVDC_P_PEP_CMS_IS_ENABLE(&pCurInfo->stSatGain, &pCurInfo->stHueGain) &&
-           pCurInfo->stSplitScreenSetting.eCms != BVDC_SplitScreenMode_eDisable)
-        {
-            ulDemoSide = (pCurInfo->stSplitScreenSetting.eCms == BVDC_SplitScreenMode_eLeft) ?
-                               BCHP_PEP_CMP_0_V0_CAB_DEMO_SETTING_DEMO_L_R_LEFT :
-                               BCHP_PEP_CMP_0_V0_CAB_DEMO_SETTING_DEMO_L_R_RIGHT;
-        }
-        else
-        {
-            ulDemoSide = (pCurInfo->stSplitScreenSetting.eAutoFlesh == BVDC_SplitScreenMode_eLeft) ?
-                               BCHP_PEP_CMP_0_V0_CAB_DEMO_SETTING_DEMO_L_R_LEFT :
-                               BCHP_PEP_CMP_0_V0_CAB_DEMO_SETTING_DEMO_L_R_RIGHT;
-        }
-
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_PEP_CMP_0_V0_CAB_DEMO_SETTING);
-        *pList->pulCurrent++ =
-            BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_DEMO_SETTING, DEMO_L_R, ulDemoSide) |
-            BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_DEMO_SETTING, DEMO_BOUNDARY, ulBoundary) ;
-
-        BDBG_MSG(("CAB Demo Mode: L_R = %s, BOUNDARY = %d",
-                  ((ulDemoSide == BCHP_PEP_CMP_0_V0_CAB_DEMO_SETTING_DEMO_L_R_LEFT) ? "L" : "R"),
-                  ulBoundary));
-    }
-
-    if(bCabEnable)
-    {
-        /* Set flag to load user CAB table to the HW when the slot is avaiable */
-        hPep->bLoadCabTable = true;
-        /* Force CAB table to be loaded in same vsync cycle with CAB enable */
-        hPep->bProcessCab   = true;
-    }
-
-    BDBG_LEAVE(BVDC_P_Cab_BuildRul_isr);
-    return;
-}
-
-
-/*************************************************************************
- *  {secret}
- *  BVDC_P_Lab_BuildRul_isr
- *  Builds LAB block
- **************************************************************************/
-static void BVDC_P_Lab_BuildRul_isr
-    ( const BVDC_Window_Handle     hWindow,
-      BVDC_P_Pep_Handle            hPep,
-      BVDC_P_ListInfo             *pList )
-{
-    const BVDC_P_Window_Info    *pCurInfo;
-
-    BDBG_ENTER(BVDC_P_Lab_BuildRul_isr);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    BDBG_OBJECT_ASSERT(hPep, BVDC_PEP);
-
-    /* Get current pointer to RUL */
-    pCurInfo = &hWindow->stCurInfo;
-
-    /* Setting up the demo mode register */
-    if(pCurInfo->stSplitScreenSetting.eContrastStretch != BVDC_SplitScreenMode_eDisable)
-    {
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_PEP_CMP_0_V0_LAB_DEMO_SETTING);
-        *pList->pulCurrent++ =
-            BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_DEMO_SETTING, DEMO_L_R,
-                           (pCurInfo->stSplitScreenSetting.eContrastStretch == BVDC_SplitScreenMode_eLeft) ?
-                            BCHP_PEP_CMP_0_V0_LAB_DEMO_SETTING_DEMO_L_R_LEFT :
-                            BCHP_PEP_CMP_0_V0_LAB_DEMO_SETTING_DEMO_L_R_RIGHT) |
-            BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_DEMO_SETTING, DEMO_BOUNDARY,
-                            hWindow->stAdjDstRect.ulWidth / 2) ;
-
-        BDBG_MSG(("LAB Demo Mode: L_R = %s, BOUNDARY = %d",
-                 (pCurInfo->stSplitScreenSetting.eContrastStretch == BVDC_SplitScreenMode_eLeft) ? "L" : "R",
-                  hWindow->stAdjDstRect.ulWidth / 2));
-    }
-
-    /* Defer LAB enable if CAB table is being processed this vsync */
-    hPep->bLabCtrlPending = ((pCurInfo->bContrastStretch || pCurInfo->bUserLabLuma) &&
-                              hPep->bProcessCab) ? true : false;
-
-    if(!hPep->bLabCtrlPending)
-    {
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_PEP_CMP_0_V0_LAB_CTRL);
-        *pList->pulCurrent++ =
-            ((pCurInfo->stSplitScreenSetting.eContrastStretch == BVDC_SplitScreenMode_eDisable) ?
-              BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_CTRL, LAB_DEMO_ENABLE, 0) :
-              BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_CTRL, LAB_DEMO_ENABLE, 1)) |
-            ((pCurInfo->bContrastStretch || pCurInfo->bBlueStretch ||
-              pCurInfo->bUserLabLuma || pCurInfo->bUserLabCbCr) ?
-              BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_CTRL, ENABLE, 1):
-              BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_CTRL, ENABLE, 0));
-
-        if(pCurInfo->bUserLabLuma || pCurInfo->bUserLabCbCr ||
-           (pCurInfo->bBlueStretch && !pCurInfo->bUserLabCbCr))
-        {
-            /* Set flag to load user LAB table to the HW when the slot is avaiable */
-            hPep->bLoadLabTable = true;
-            /* Set flag to delay CAB table loaded one vsync so that the first LAB */
-            /* table can be loaded in one vsync with LAB enable */
-            hPep->bProcessCab   = false;
-        }
-
-        BDBG_MSG(("Contrast %s, Blue %s, Usr luma %s, Usr CbCr %s, load tbl %s",
-            (pCurInfo->bContrastStretch) ? "enabled" : "disabled",
-            (pCurInfo->bBlueStretch) ? "enabled" : "disabled",
-            (pCurInfo->bUserLabLuma) ? "enabled" : "disabled",
-            (pCurInfo->bUserLabCbCr) ? "enabled" : "disabled",
-            (hPep->bLoadLabTable) ? "enabled" : "disabled"));
-    }
-
-    BDBG_LEAVE(BVDC_P_Lab_BuildRul_isr);
-    return;
-}
-#endif /* (BVDC_P_SUPPORT_PEP) */
-
 
 #if(BVDC_P_SUPPORT_HIST)
 /*************************************************************************
@@ -407,11 +221,8 @@ static void BVDC_P_Pep_DcInit_isr
     BDBG_OBJECT_ASSERT(hPep, BVDC_PEP);
 
     /* Clear out the context and set defaults. */
-    BKNI_Memset((void*)hPep->aulLabTable,      0x0, sizeof(hPep->aulLabTable));
     BKNI_Memset((void*)hPep->aulLastBin,       0x0, sizeof(hPep->aulLastBin));
     BKNI_Memset((void*)hPep->aulLastLastBin,   0x0, sizeof(hPep->aulLastLastBin));
-    BKNI_Memset((void*)hPep->lFixEstLuma,      0x0, sizeof(hPep->lFixEstLuma));
-    BKNI_Memset((void*)hPep->lFixHist_out,     0x0, sizeof(hPep->lFixHist_out));
     BKNI_Memset((void*)&hPep->stHistoData,     0x0, sizeof(BVDC_LumaStatus));
     BKNI_Memset((void*)&hPep->stTmpHistoData,  0x0, sizeof(BVDC_LumaStatus));
     BKNI_Memset((void*)&hPep->ulAvgLevelStats, 0x0, sizeof(hPep->ulAvgLevelStats));
@@ -421,11 +232,6 @@ static void BVDC_P_Pep_DcInit_isr
     hPep->bLoadCabTable  = false;
     hPep->bLoadLabTable  = false;
     hPep->bProcessCab    = true;
-    hPep->lFixLastMin    = 0;
-    hPep->lFixLastMax    = 0;
-    hPep->lFixLastMid    = 0;
-    hPep->lFixBrtCur     = 0;
-    hPep->lFixBrtLast    = 0;
 
     hPep->ulAvgAPL       = 0;
     hPep->ulFiltAPL      = 0;
@@ -450,7 +256,6 @@ void BVDC_P_Pep_Init
     hPep->bLabCtrlPending= false;
 
     hPep->ulHistSize       = BVDC_P_HISTO_TABLE_SIZE;
-    hPep->ulLumaChromaGain = 0x3f;
 
     hPep->stCallbackData.ulShift = 8;
     hPep->stCallbackData.iScalingFactor = 0;
@@ -476,7 +281,7 @@ static void BVDC_P_Dither_BuildRul_isr
 
     /* Update the dithering registers */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_CONTROL);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_CONTROL + hWindow->ulMaskRegOffset);
     *pList->pulCurrent++ =
         BCHP_FIELD_ENUM(MASK_0_CONTROL, TEXTURE_ENABLE, DISABLE ) |
         BCHP_FIELD_DATA(MASK_0_CONTROL, REDUCE_SMOOTH,
@@ -485,25 +290,25 @@ static void BVDC_P_Dither_BuildRul_isr
             pDither->bSmoothEnable                              );
 
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_SMOOTH_LIMIT);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_SMOOTH_LIMIT + hWindow->ulMaskRegOffset);
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA(MASK_0_SMOOTH_LIMIT, VALUE,
             pDither->ulSmoothLimit                              );
 
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_TEXTURE_FREQ);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_TEXTURE_FREQ + hWindow->ulMaskRegOffset);
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA(MASK_0_TEXTURE_FREQ, HORIZ_FREQ, 8 ) |
         BCHP_FIELD_DATA(MASK_0_TEXTURE_FREQ, VERT_FREQ,  8 );
 
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_RANDOM_PATTERN);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_RANDOM_PATTERN + hWindow->ulMaskRegOffset);
     *pList->pulCurrent++ =
         BCHP_FIELD_ENUM(MASK_0_RANDOM_PATTERN, RNG_MODE, RUN  ) |
         BCHP_FIELD_DATA(MASK_0_RANDOM_PATTERN, RNG_SEED, 4369 );
 
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_SCALE_0_1_2_3);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_SCALE_0_1_2_3 + hWindow->ulMaskRegOffset);
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA(MASK_0_SCALE_0_1_2_3, MULT_0,  0 ) |
         BCHP_FIELD_DATA(MASK_0_SCALE_0_1_2_3, SHIFT_0, 4 ) |
@@ -515,7 +320,7 @@ static void BVDC_P_Dither_BuildRul_isr
         BCHP_FIELD_DATA(MASK_0_SCALE_0_1_2_3, SHIFT_3, 4 );
 
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_SCALE_4_5_6_7);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MASK_0_SCALE_4_5_6_7 + hWindow->ulMaskRegOffset);
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA(MASK_0_SCALE_4_5_6_7, MULT_4,  0 ) |
         BCHP_FIELD_DATA(MASK_0_SCALE_4_5_6_7, SHIFT_4, 4 ) |
@@ -544,8 +349,6 @@ static void BVDC_P_Pep_BuildVsyncRul_isr
       BVDC_P_Pep_Handle            hPep,
       BVDC_P_ListInfo             *pList )
 {
-    const BVDC_P_Window_Info *pCurInfo;
-
     BDBG_ENTER(BVDC_P_Pep_BuildVsyncRul_isr);
 
     if(!hWindow)
@@ -555,13 +358,19 @@ static void BVDC_P_Pep_BuildVsyncRul_isr
     }
 
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+
+    if(hWindow->bTntAvail)
+    {
+        BVDC_P_Tnt_BuildVysncRul_isr(hWindow, pList);
+    }
+
+    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
+    {
+        /* Only C0_V0 has PEP */
+        BDBG_LEAVE(BVDC_P_Pep_BuildVsyncRul_isr);
+        return;
+    }
     BDBG_OBJECT_ASSERT(hPep, BVDC_PEP);
-
-    /* Get current pointer to RUL */
-    pCurInfo = &hWindow->stCurInfo;
-
-    BVDC_P_Tnt_BuildVysncRul_isr(hWindow, pList);
-
 
 #if(BVDC_P_SUPPORT_HIST)
     /* Process HIST data here */
@@ -597,107 +406,10 @@ static void BVDC_P_Pep_BuildVsyncRul_isr
     {
         hPep->bProcessHist = true;
     }
-#endif /* BVDC_P_SUPPORT_HIST */
-
-#if(BVDC_P_SUPPORT_PEP)
-    /* We are alternating the service slot for CAB and LAB table every other */
-    /* field to avoid overloading the RUL, so at the max each Vsync, there   */
-    /* will be 1024 entries from ther LAB or CAB table loaded */
-    if(hPep->bProcessCab == true)
-    {
-        hPep->bProcessCab = false;
-        if(hPep->bLoadCabTable)
-        {
-            BDBG_MSG(("Build RUL to load CAB table"));
-            *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(BVDC_P_CAB_TABLE_SIZE);
-            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_PEP_CMP_0_V0_CAB_LUT_DATA_i_ARRAY_BASE);
-            BKNI_Memcpy((void*)pList->pulCurrent, (void*)&pCurInfo->pulCabTable, BVDC_P_CAB_TABLE_SIZE * sizeof(uint32_t));
-            pList->pulCurrent += BVDC_P_CAB_TABLE_SIZE;
-            hPep->bLoadCabTable = false;
-        }
-    }
-    else
-    {
-        uint32_t id = 0;
-
-        if(pCurInfo->bContrastStretch || hPep->bLoadLabTable)
-        {
-            *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(BVDC_P_LAB_TABLE_SIZE);
-            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_PEP_CMP_0_V0_LAB_LUT_DATA_i_ARRAY_BASE);
-            if(pCurInfo->bContrastStretch == true)
-            {
-                /* compute LAB table if contrast stretch is enabled */
-                BVDC_P_Pep_DynamicContrast_isr(&pCurInfo->stContrastStretch,
-                                               hPep,
-                                               &hPep->aulLabTable[0]);
-
-                if(pCurInfo->bUserLabCbCr || pCurInfo->bBlueStretch)
-                {
-                    for(id = 0; id < BVDC_P_LAB_TABLE_SIZE; id++)
-                    {
-#if (BVDC_P_SUPPORT_PEP_VER_5>BVDC_P_SUPPORT_PEP_VER)
-                        hPep->aulLabTable[id] &= ~(
-                            BCHP_MASK(PEP_CMP_0_V0_LAB_LUT_DATA_i, CB_OFFSET) |
-                            BCHP_MASK(PEP_CMP_0_V0_LAB_LUT_DATA_i, CR_OFFSET));
-                        if(pCurInfo->bUserLabCbCr)
-                        {
-                            /* Merge with user Cb and Cr tables */
-                            hPep->aulLabTable[id] |= (
-                                BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_LUT_DATA_i, CB_OFFSET, *(pCurInfo->pulLabCbTbl + id)) |
-                                BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_LUT_DATA_i, CR_OFFSET, *(pCurInfo->pulLabCrTbl + id)));
-                        }
-#endif
-                    }
-                }
-            } else if(hPep->bLoadLabTable)
-            {
-                BDBG_MSG(("Build RUL to load LAB table"));
-
-                for(id = 0; id < BVDC_P_LAB_TABLE_SIZE; id++)
-                {
-                    if(pCurInfo->bUserLabLuma)
-                    {
-                        /* Merge with user luma table */
-                        hPep->aulLabTable[id] &= ~(
-                            BCHP_MASK(PEP_CMP_0_V0_LAB_LUT_DATA_i, LUMA_DATA));
-                        hPep->aulLabTable[id] = (
-                            BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_LUT_DATA_i, LUMA_DATA, *(pCurInfo->pulLabLumaTbl + id)));
-                    }
-                    else if(pCurInfo->bBlueStretch)
-                    {
-                        /* use identity for luma table */
-                        hPep->aulLabTable[id] &= ~(
-                            BCHP_MASK(PEP_CMP_0_V0_LAB_LUT_DATA_i, LUMA_DATA));
-                        hPep->aulLabTable[id] = (
-                            BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_LUT_DATA_i, LUMA_DATA, id));
-                    }
-                    if(pCurInfo->bUserLabCbCr)
-                    {
-#if (BVDC_P_SUPPORT_PEP_VER_5>BVDC_P_SUPPORT_PEP_VER)
-                        /* Merge with user Cb and Cr tables */
-                        hPep->aulLabTable[id] &= ~(
-                            BCHP_MASK(PEP_CMP_0_V0_LAB_LUT_DATA_i, CB_OFFSET) |
-                            BCHP_MASK(PEP_CMP_0_V0_LAB_LUT_DATA_i, CR_OFFSET));
-                        hPep->aulLabTable[id] |= (
-                            BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_LUT_DATA_i, CB_OFFSET, *(pCurInfo->pulLabCbTbl + id)) |
-                            BCHP_FIELD_DATA(PEP_CMP_0_V0_LAB_LUT_DATA_i, CR_OFFSET, *(pCurInfo->pulLabCrTbl + id)));
-#endif
-                    }
-                }
-                hPep->bLoadLabTable = false;
-            }
-
-            BKNI_Memcpy((void*)pList->pulCurrent, (void*)&hPep->aulLabTable[0], BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-            pList->pulCurrent += BVDC_P_LAB_TABLE_SIZE;
-        }
-        hPep->bProcessCab = true;
-    }
-
 #else
     BSTD_UNUSED(hPep);
     BSTD_UNUSED(pList);
-    BSTD_UNUSED(pCurInfo);
-#endif /* BVDC_P_SUPPORT_PEP */
+#endif /* BVDC_P_SUPPORT_HIST */
 
     BDBG_LEAVE(BVDC_P_Pep_BuildVsyncRul_isr);
     return;
@@ -725,45 +437,26 @@ void BVDC_P_Pep_BuildRul_isr
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
     pCurDirty = &hWindow->stCurInfo.stDirty;
 
-    /* Only C0_V0 has PEP */
-    BDBG_ASSERT(BVDC_P_WindowId_eComp0_V0 == hWindow->eId);
-
-    BDBG_OBJECT_ASSERT(hWindow->stCurResource.hPep, BVDC_PEP);
-    bInitial |= hWindow->stCurResource.hPep->bInitial;
+    if(hWindow->eId == BVDC_P_WindowId_eComp0_V0)
+    {
+        /* Only C0_V0 has PEP */
+        BDBG_OBJECT_ASSERT(hWindow->stCurResource.hPep, BVDC_PEP);
+        bInitial |= hWindow->stCurResource.hPep->bInitial;
 
 #if (BVDC_P_SUPPORT_HIST)
-    if(pCurDirty->stBits.bHistoRect || bInitial)
-    {
-        BVDC_P_Histo_BuildRul_isr(hWindow, hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced, pList);
-        pCurDirty->stBits.bHistoRect = BVDC_P_CLEAN;
-    }
+        if(pCurDirty->stBits.bHistoRect || bInitial)
+        {
+            BVDC_P_Histo_BuildRul_isr(hWindow, hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced, pList);
+            pCurDirty->stBits.bHistoRect = BVDC_P_CLEAN;
+        }
 #endif
 
-#if (BVDC_P_SUPPORT_PEP)
-    if(hWindow->stCurResource.hPep->bHardStart)
-    {
-        BVDC_P_Pep_DcInit_isr(hWindow->stCurResource.hPep);
-    }
-
-    if(pCurDirty->stBits.bCabAdjust || bInitial)
-    {
-        BVDC_P_Cab_BuildRul_isr(hWindow, hWindow->stCurResource.hPep, pList);
+        /* never dirty since hardware doesn't exist */
+        pCurDirty->stBits.bLabAdjust = BVDC_P_CLEAN;
         pCurDirty->stBits.bCabAdjust = BVDC_P_CLEAN;
     }
 
-    if(pCurDirty->stBits.bLabAdjust || bInitial || hWindow->stCurResource.hPep->bLabCtrlPending)
-    {
-        BVDC_P_Lab_BuildRul_isr(hWindow, hWindow->stCurResource.hPep, pList);
-        pCurDirty->stBits.bLabAdjust = BVDC_P_CLEAN;
-    }
-
-#else
-    /* never dirty since hardware doesn't exist */
-    pCurDirty->stBits.bLabAdjust = BVDC_P_CLEAN;
-    pCurDirty->stBits.bCabAdjust = BVDC_P_CLEAN;
-#endif
-
-    if(pCurDirty->stBits.bTntAdjust|| bInitial)
+    if(hWindow->bTntAvail && (pCurDirty->stBits.bTntAdjust|| bInitial))
     {
         if(bInitial)
         {
@@ -773,15 +466,18 @@ void BVDC_P_Pep_BuildRul_isr
         pCurDirty->stBits.bTntAdjust = BVDC_P_CLEAN;
     }
 
-    if(pCurDirty->stBits.bDitAdjust || bInitial)
+    if(hWindow->bMaskAvail && (pCurDirty->stBits.bDitAdjust || bInitial))
     {
         BVDC_P_Dither_BuildRul_isr(hWindow, pList);
         pCurDirty->stBits.bDitAdjust = BVDC_P_CLEAN;
     }
 
     BVDC_P_Pep_BuildVsyncRul_isr(hWindow, hWindow->stCurResource.hPep, pList);
-    hWindow->stCurResource.hPep->bInitial   = false;
-    hWindow->stCurResource.hPep->bHardStart = false;
+    if(hWindow->eId == BVDC_P_WindowId_eComp0_V0)
+    {
+        hWindow->stCurResource.hPep->bInitial   = false;
+        hWindow->stCurResource.hPep->bHardStart = false;
+    }
 
     BDBG_LEAVE(BVDC_P_Pep_BuildRul_isr);
     return;

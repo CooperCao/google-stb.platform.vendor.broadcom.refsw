@@ -329,10 +329,8 @@ void NEXUS_Message_GetDefaultStartSettings(NEXUS_MessageHandle msg, NEXUS_Messag
 
 NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStartSettings *pStartSettings)
 {
-    unsigned short pid;
     NEXUS_Error rc;
     NEXUS_P_HwPidChannel *hwPidChannel;
-    bool isDss=false;
 
     BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
 
@@ -387,7 +385,6 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
     if (NEXUS_IS_DSS_MODE(hwPidChannel->status.transportType)) {
         msg->isDss = true;
     }
-    pid = hwPidChannel->status.pid;
 
     if ( msg->settings.recpumpIndex == NEXUS_ANY_ID ) { /* only do search if ANY_ID */
           unsigned findParser = hwPidChannel->parserBand->enumBand;
@@ -505,7 +502,6 @@ err_open:
 
 void NEXUS_Message_Stop(NEXUS_MessageHandle msg)
 {
-    NEXUS_P_HwPidChannel *hwPidChannel;
 
     BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
     if (!msg->started) {
@@ -514,9 +510,12 @@ void NEXUS_Message_Stop(NEXUS_MessageHandle msg)
     BDBG_MSG(("Stop %p", (void *)msg));
 
 #if 0 /* B_REFSW_DSS_SUPPORT */
-    hwPidChannel = msg->startSettings.pidChannel->hwPidChannel;
-    if (NEXUS_IS_DSS_MODE(hwPidChannel->status.transportType)) {
-        isDss = true;
+    {
+        NEXUS_P_HwPidChannel *hwPidChannel;
+        hwPidChannel = msg->startSettings.pidChannel->hwPidChannel;
+        if (NEXUS_IS_DSS_MODE(hwPidChannel->status.transportType)) {
+            isDss = true;
+        }
     }
 #endif
 
@@ -576,7 +575,7 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
     }
 
     msg->lastGetBufferLength = *length;
-    BDBG_MSG(("NEXUS_Message_GetBuffer %p: %p %d", (void *)msg, *buffer, *length));
+    BDBG_MSG(("NEXUS_Message_GetBuffer %p: %p %d", (void *)msg, *buffer, (unsigned)*length));
 
     return 0;
 }
@@ -600,7 +599,7 @@ NEXUS_Error NEXUS_Message_ReadComplete(NEXUS_MessageHandle msg, size_t amount_co
     }
     if (amount_consumed > msg->lastGetBufferLength) {
         BDBG_ERR(("lastGetBufferLength=%d. Therefore can't consume %d bytes",
-            msg->lastGetBufferLength, amount_consumed));
+            msg->lastGetBufferLength, (unsigned)amount_consumed));
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
@@ -630,7 +629,7 @@ NEXUS_Error NEXUS_Message_ReadComplete(NEXUS_MessageHandle msg, size_t amount_co
         if (rc) return BERR_TRACE(rc);
     }
 
-    BDBG_MSG(("ReadComplete %p: %d out of %d", (void *)msg, amount_consumed, msg->lastGetBufferLength));
+    BDBG_MSG(("ReadComplete %p: %d out of %d", (void *)msg, (unsigned)amount_consumed, msg->lastGetBufferLength));
     msg->lastGetBufferLength = 0;
     return 0;
 }
@@ -900,12 +899,12 @@ static void *NEXUS_SwFilter_P_FilterCallback(void *context, size_t msg_size)
             BDBG_MSG_TRACE(("  padding %d bytes to align", (4-mod4)));
             for (i=0; i<mod4; i ++)
             {
-                last_4bytes[i] = * (int8_t *)((int)msg->tempBuffer + msg_size - mod4 + i);
+                last_4bytes[i] = * (int8_t *)((uintptr_t)msg->tempBuffer + msg_size - mod4 + i);
             }
             msg_size -= (mod4); /* take just the multple of 4 */
         }
         if (mod4) { /* copy last 4 padded bytes */
-            BKNI_Memcpy((uint8_t *)(int)msg->tempBuffer + msg_size, last_4bytes, 4);
+            BKNI_Memcpy((uint8_t *)(uintptr_t)msg->tempBuffer + msg_size, last_4bytes, 4);
             msg_size += 4;
         }
     }
@@ -982,7 +981,7 @@ static void NEXUS_SwFilter_P_DataReady(void *context)
             else {
                 consumed = NEXUS_SwFilter_Msg_P_FeedPes(buffer, size);
             }
-            BDBG_MSG(("DataReady(recpump %d) consumed %d of %d", st->recpumpIndex, consumed, size));
+            BDBG_MSG(("DataReady(recpump %d) consumed %d of %d", st->recpumpIndex, (unsigned)consumed, (unsigned)size));
             (void)NEXUS_Recpump_DataReadComplete(st->recpump, consumed);
         }
     }

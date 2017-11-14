@@ -1321,5 +1321,32 @@ extern void add_cint32(const cint32* in1, const cint32* in2, cint32* out);
 extern void power_cint32(const cint32* in1, uint32* pwr);
 extern void power_cint32_arr(const cint32* in1, const uint16* idx_arr, uint16 len, uint32* pwr);
 extern uint32 sqrt_int(uint32 value);
+#ifdef NVRAM_FLASH
+#define WIFI_FLASH_PARTITION "flash0.wlan"
+#define WIFI_FLASH_EMMC_NAME "wlan"
+#define SYSFS_PROC_NAND "/proc/mtd"
+#define SYSFS_CLASS_BLOCK "/sys/class/block"
+#define SYSFS_DEV "/dev/"
+#define SYSFS_DEV_BLOCK "/dev/block/"
+#define SYSFS_PROC_PARTITION "/proc/partitions"
+#define NAND_DEVNAME "mtd"
+#define EMMC_BLK "mmcblk"
+#define EMMC_PATTNAME_STR "PARTNAME"
+#define EMMC_DEVNAME_STR "DEVNAME"
+#define EMMC_INFO_START "Number  Start (sector)"
+#define EMMC_INFO_TMP_FILE "/tmp/emmc_info"
+#define FLASH_DEVICE_NVRAM 2
 
+extern char * getflashvar(char *vars, const char *name);
+extern int getflashintvar(char *vars, const char *name);
+extern int find_wlanflash_dev(osl_t *osh, char *flshdevpath, int size);
+extern int find_nand_devpath(osl_t *osh, char *flshdevpath, char *name, int size);
+extern int find_emmc_devpath(osl_t *osh, char *flshdevpath, int emmcblk, char *name, int size);
+extern int find_emmc_blk_num(osl_t *osh, int *emmcblk_num);
+extern int get_num_of_emmc_patt (osl_t *osh, int blkid);
+#if !defined(OEM_ANDROID)
+extern void dump_emmc_info(osl_t *osh, char *emmcblk_path, char *file);
+#endif /* !OEM_ANDROID  */
+
+#endif /* NVRAM_FLASH */
 #endif	/* _bcmutils_h_ */

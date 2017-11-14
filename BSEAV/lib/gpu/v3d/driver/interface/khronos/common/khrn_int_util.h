@@ -1,12 +1,12 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef KHRN_INT_UTIL_H
-#define KHRN_INT_UTIL_H
+#pragma once
 
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
+#include <assert.h>
 
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/vcos/vcos.h"
@@ -135,13 +135,13 @@ static INLINE uint32_t next_power_of_2(uint32_t x)
 
 static INLINE uint32_t round_up(uint32_t x, uint32_t y)
 {
-   vcos_assert(is_power_of_2(y));
+   assert(is_power_of_2(y));
    return (x + (y - 1)) & ~(y - 1);
 }
 
 static INLINE void *round_up_ptr(void *x, uint32_t y)
 {
-   vcos_assert(is_power_of_2(y));
+   assert(is_power_of_2(y));
    return (void *)(((uintptr_t)x + (uintptr_t)(y - 1)) & ~(uintptr_t)(y - 1));
 }
 
@@ -228,7 +228,7 @@ float to int conversions
 
 static INLINE float r2ni_to_r2n_bias(float f, int32_t shift)
 {
-   vcos_assert((shift >= -129) && (shift <= 124));
+   assert((shift >= -129) && (shift <= 124));
    return f + float_from_bits(((127 - (shift + 2)) << 23) | 0x7fffff);
 }
 
@@ -242,7 +242,7 @@ static INLINE float r2ni_to_r2n_bias(float f, int32_t shift)
 
 static INLINE int32_t float_to_int_shift(float f, int32_t shift)
 {
-   vcos_assert((shift >= 0) && (shift <= 31));
+   assert((shift >= 0) && (shift <= 31));
    f *= (float)(uint32_t)(1 << shift);
    f += (f < 0.0f) ? -0.49999997f : 0.49999997f; /* assume float -> int conversion is round to zero */
    if (f < -2.14748365e9f) { return 0x80000000; }
@@ -410,5 +410,3 @@ static INLINE void khrn_barrier(void) {
    __sync_synchronize();
 #endif
 }
-
-#endif

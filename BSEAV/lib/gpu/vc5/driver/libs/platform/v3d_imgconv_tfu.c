@@ -62,8 +62,18 @@ static bool claim_conversion(
    assert(width <= src->desc.width && height <= src->desc.height &&
          depth <= src->desc.depth);
 
-   // We're supposed to clamp float depth channels but the TFU cannot do this
-   if (gfx_buffer_any_float_depth(&src->desc))
+   if (gfx_lfmt_has_depth_stencil(dst->desc.planes[0].lfmt))
+   {
+      /* The TFU cannot mask writes to only the depth or stencil components
+       * of a combined depth/stencil buffer
+       */
+      if (dst->conversion == V3D_IMGCONV_CONVERSION_DEPTH_ONLY ||
+          dst->conversion == V3D_IMGCONV_CONVERSION_STENCIL_ONLY)
+          return false;
+   }
+
+   /* We have been asked to clamp float depth channels but the TFU cannot do this */
+   if (dst->conversion == V3D_IMGCONV_CONVERSION_CLAMP_DEPTH && gfx_buffer_any_float_depth(&dst->desc))
       return false;
 
    V3D_TFU_COMMAND_T tfu_cmd;
@@ -242,8 +252,8 @@ static bool create_yv12_scratch(struct v3d_imgconv_gmem_tgt *dst,
 
 static void free_prep_buffer(void *data, uint64_t jobId, enum bcm_sched_job_error error)
 {
-   vcos_unused(jobId);
-   vcos_unused(error);
+   unused(jobId);
+   unused(error);
    gmem_handle_t scratch = (gmem_handle_t)data;
    if (scratch != GMEM_HANDLE_INVALID)
       gmem_free(scratch);

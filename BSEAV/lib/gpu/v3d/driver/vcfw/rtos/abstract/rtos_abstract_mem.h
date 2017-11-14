@@ -1,18 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Memory management
-File     :  $RCSfile$
-Revision :  $Revision$
-
-FILE DESCRIPTION
-Khronos memory management API.
-=============================================================================*/
-
-#ifndef COMMON_MEM_H
-#define COMMON_MEM_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "vcinclude/common.h"
 
@@ -65,7 +54,6 @@ MEM_HANDLE_T will ever equal MEM_HANDLE_INVALID.
 
 typedef uintptr_t MEM_HANDLE_T;
 #define MEM_HANDLE_INVALID 0
-#define MEM_INVALID_HANDLE 0
 
 /*
    A MEM_HANDLE_T may optionally have a terminator. This is a function that will
@@ -461,7 +449,7 @@ extern int mem_try_release(
 static RCM_INLINE uint32_t mem_get_size(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
-   vcos_assert(h->magic == MAGIC);
+   assert(h->magic == MAGIC);
    return h->size;
 }
 
@@ -489,7 +477,7 @@ Invariants preserved:
 static RCM_INLINE void *mem_get_param(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
-   vcos_assert(h->magic == MAGIC);
+   assert(h->magic == MAGIC);
    return h->param;
 }
 
@@ -507,8 +495,8 @@ static RCM_INLINE void *mem_get_param(MEM_HANDLE_T handle)
 static RCM_INLINE uint32_t mem_get_align(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
-   vcos_assert(h->magic == MAGIC);
-   vcos_assert(h->ref_count != 0);
+   assert(h->magic == MAGIC);
+   assert(h->ref_count != 0);
    return h->align;
 }
 
@@ -525,8 +513,8 @@ static RCM_INLINE uint32_t mem_get_align(MEM_HANDLE_T handle)
 static RCM_INLINE MEM_FLAG_T mem_get_flags(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
-   vcos_assert(h->magic == MAGIC);
-   vcos_assert(h->ref_count != 0);
+   assert(h->magic == MAGIC);
+   assert(h->ref_count != 0);
    return (MEM_FLAG_T)h->flags;
 }
 
@@ -876,5 +864,3 @@ extern void *autoclif_addr_to_ptr(uint32_t addr);
 extern uint32_t autoclif_ptr_to_addr(void *p);
 extern const char *autoclif_get_clif_filename(void);
 extern void autoclif_reset(void);
-
-#endif /* COMMON_MEM_H */

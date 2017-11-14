@@ -1,18 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  chip driver
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - named semaphores
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
 #include "interface/vcos/vcos.h"
 #include <string.h>
+#include <assert.h>
 
 /**
   * \file
@@ -87,7 +79,7 @@ vcos_generic_named_semaphore_create(VCOS_NAMED_SEMAPHORE_T *sem, const char *nam
 
    if (name_len >= VCOS_NAMED_SEMAPHORE_NAMELEN)
    {
-      vcos_assert(0);
+      assert(0);
       vcos_mutex_unlock(&lock);
       return VCOS_EINVAL;
    }
@@ -114,13 +106,12 @@ vcos_generic_named_semaphore_create(VCOS_NAMED_SEMAPHORE_T *sem, const char *nam
    return VCOS_ENOSPC;
 }
 
-
 void vcos_named_semaphore_delete(VCOS_NAMED_SEMAPHORE_T *sem)
 {
    VCOS_NAMED_SEMAPHORE_IMPL_T *actual = sem->actual;
    vcos_mutex_lock(&lock);
 
-   vcos_assert(actual->refs); /* if this fires, the semaphore has already been deleted */
+   assert(actual->refs); /* if this fires, the semaphore has already been deleted */
 
    if (--actual->refs == 0)
    {

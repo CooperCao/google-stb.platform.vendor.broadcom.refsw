@@ -129,16 +129,16 @@ static const char gDbgPrefix[][4] =
 const char BDBG_P_EmptyString[] = "";
 
 static struct BDBG_DebugModuleInst * BDBG_P_GetInstance(BDBG_Instance handle);
-static const char *BDBG_P_GetPrefix(BDBG_Level level);
-static BERR_Code BDBG_P_RegisterModuleFile(BDBG_pDebugModuleFile dbg_module);
-static bool BDBG_P_TestModule(BDBG_pDebugModuleFile dbg_module, BDBG_Level level);
+static const char *BDBG_P_GetPrefix_isrsafe(BDBG_Level level);
+static BERR_Code BDBG_P_RegisterModuleFile_isrsafe(BDBG_pDebugModuleFile dbg_module);
+static bool BDBG_P_TestModule_isrsafe(BDBG_pDebugModuleFile dbg_module, BDBG_Level level);
 static BDBG_pDebugModuleFile BDBG_P_GetModuleByName(const char *name);
-static BDBG_pDebugModuleFile BDBG_P_GetModuleByName_sync(const char *name, BDBG_pDebugModuleFile module /* optional placeholder */ );
-static int BDBG_P_StrCmp(const char *str1, const char *str2);
+static BDBG_pDebugModuleFile BDBG_P_GetModuleByName_sync_isrsafe(const char *name, BDBG_pDebugModuleFile module /* optional placeholder */ );
+static int BDBG_P_StrCmp_isrsafe(const char *str1, const char *str2);
 static BERR_Code BDBG_P_CheckDebugLevel(BDBG_Level level);
 
 static struct BDBG_DebugInstModule * BDBG_P_GetInstanceModule(struct BDBG_DebugModuleInst *pInstance, BDBG_pDebugModuleFile pModule);
-static struct BDBG_DebugInstModule * BDBG_P_GetInstanceModule_sync(struct BDBG_DebugModuleInst *pInstance, BDBG_pDebugModuleFile pModule);
+static struct BDBG_DebugInstModule * BDBG_P_GetInstanceModule_sync_isrsafe(struct BDBG_DebugModuleInst *pInstance, BDBG_pDebugModuleFile pModule);
 static BERR_Code BDBG_P_SetInstanceModuleLevel(struct BDBG_DebugModuleInst *pInstance, BDBG_pDebugModuleFile pModule, BDBG_Level eLevel);
 static struct BDBG_DebugModuleInst * BDBG_P_GetInstanceByName(const char *name);
 static struct BDBG_DebugModuleInst * BDBG_P_GetInstanceByName_sync(const char *name);
@@ -158,7 +158,7 @@ static android_LogPriority BDBG_P_Level2Android(BDBG_Level level)
 #endif
 
 static const char *
-BDBG_P_GetPrefix(BDBG_Level level)
+BDBG_P_GetPrefix_isrsafe(BDBG_Level level)
 {
    BDBG_CASSERT(sizeof(gDbgPrefix)/sizeof(*gDbgPrefix) == BDBG_P_eLastEntry);
    if (level<BDBG_P_eLastEntry) {
@@ -169,7 +169,7 @@ BDBG_P_GetPrefix(BDBG_Level level)
 }
 
 static int
-BDBG_P_StrCmp(const char *str1, const char *str2)
+BDBG_P_StrCmp_isrsafe(const char *str1, const char *str2)
 {
    int ch1, ch2, diff;
 
@@ -219,26 +219,26 @@ BDBG_P_CheckDebugLevel(BDBG_Level level)
 }
 
 static BERR_Code
-BDBG_P_RegisterModuleFile(BDBG_pDebugModuleFile dbg_module)
+BDBG_P_RegisterModuleFile_isrsafe(BDBG_pDebugModuleFile dbg_module)
 {
    BDBG_pDebugModuleFile module;
    BERR_Code rc = BERR_SUCCESS;
    BDBG_pDebugModuleFile prev;
 
-   BDBG_P_Lock();
+   BDBG_P_Lock_isrsafe();
    /* test if module has been already registered */
    if (dbg_module->level!=BDBG_P_eUnknown) {
       goto done; /* module was already registered */
    }
 
-   module = BDBG_P_GetModuleByName_sync(dbg_module->name, dbg_module);
+   module = BDBG_P_GetModuleByName_sync_isrsafe(dbg_module->name, dbg_module);
    if (!module) {
       rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
       goto done;
    }
    /* check whether new file exists in the module chain */
    for(prev=module; module!=NULL && dbg_module!=module ; module = BLST_S_NEXT(module, link)) {
-      if(BDBG_P_StrCmp(dbg_module->name, module->name)!=0) {
+      if(BDBG_P_StrCmp_isrsafe(dbg_module->name, module->name)!=0) {
          break;
       }
    }
@@ -252,12 +252,12 @@ BDBG_P_RegisterModuleFile(BDBG_pDebugModuleFile dbg_module)
       BLST_S_INSERT_AFTER(&gDbgState.modules, prev, dbg_module, link);
    }
   done:
-   BDBG_P_Unlock();
+   BDBG_P_Unlock_isrsafe();
    return rc;
 }
 
 static struct BDBG_DebugModuleInst *
-BDBG_P_GetInstance_sync(BDBG_Instance handle)
+BDBG_P_GetInstance_sync_isrsafe(BDBG_Instance handle)
 {
    struct BDBG_DebugModuleInst *instance;
 
@@ -277,14 +277,14 @@ BDBG_P_GetInstance(BDBG_Instance handle)
 {
    struct BDBG_DebugModuleInst *instance;
 
-   BDBG_P_Lock();
-   instance = BDBG_P_GetInstance_sync(handle);
-   BDBG_P_Unlock();
+   BDBG_P_Lock_isrsafe();
+   instance = BDBG_P_GetInstance_sync_isrsafe(handle);
+   BDBG_P_Unlock_isrsafe();
    return instance;
 }
 
 static bool
-BDBG_P_TestModule(BDBG_pDebugModuleFile dbg_module, BDBG_Level level)
+BDBG_P_TestModule_isrsafe(BDBG_pDebugModuleFile dbg_module, BDBG_Level level)
 {
    BERR_Code rc;
 
@@ -294,7 +294,7 @@ BDBG_P_TestModule(BDBG_pDebugModuleFile dbg_module, BDBG_Level level)
     */
    if (dbg_module->level==BDBG_P_eUnknown) {
       /* register module file in the system */
-      rc = BDBG_P_RegisterModuleFile(dbg_module);
+      rc = BDBG_P_RegisterModuleFile_isrsafe(dbg_module);
       if (rc!=BERR_SUCCESS) {
          return false;
       }
@@ -312,7 +312,7 @@ BDBG_P_strlen(const char *str)
 
 /* should be called with mutex already held */
 static BDBG_pDebugModuleFile
-BDBG_P_GetModuleByName_sync(const char *name, BDBG_pDebugModuleFile new_module)
+BDBG_P_GetModuleByName_sync_isrsafe(const char *name, BDBG_pDebugModuleFile new_module)
 {
    BDBG_pDebugModuleFile module, prev;
    int cmp=-1;
@@ -321,7 +321,7 @@ BDBG_P_GetModuleByName_sync(const char *name, BDBG_pDebugModuleFile new_module)
 
    /* traverse all known modules */
    for(prev=NULL, module = BLST_S_FIRST(&gDbgState.modules); module ; module = BLST_S_NEXT(module, link)) {
-      cmp = BDBG_P_StrCmp(name, module->name);
+      cmp = BDBG_P_StrCmp_isrsafe(name, module->name);
       if(cmp>=0) {
          break;
       }
@@ -357,10 +357,10 @@ BDBG_P_GetModuleByName(const char *name)
     size_t name_len;
     char *copy_name;
 
-    /* we can't allocate memory inside BDBG_P_GetModuleByName_sync, so try to find existing module first */
-    BDBG_P_Lock();
-    old_module = BDBG_P_GetModuleByName_sync(name, NULL);
-    BDBG_P_Unlock();
+    /* we can't allocate memory inside BDBG_P_GetModuleByName_sync_isrsafe, so try to find existing module first */
+    BDBG_P_Lock_isrsafe();
+    old_module = BDBG_P_GetModuleByName_sync_isrsafe(name, NULL);
+    BDBG_P_Unlock_isrsafe();
     if(old_module) {goto done;}
     /* and if it fails allocate memory, copy string and prepapre to free allocated memory if returned something else */
 
@@ -373,12 +373,12 @@ BDBG_P_GetModuleByName(const char *name)
     copy_name = (char *)new_module + sizeof(*new_module);
     BKNI_Memcpy(copy_name, name, name_len); /* copy name */
 
-    BDBG_P_Lock();
-    old_module = BDBG_P_GetModuleByName_sync(copy_name, new_module);
+    BDBG_P_Lock_isrsafe();
+    old_module = BDBG_P_GetModuleByName_sync_isrsafe(copy_name, new_module);
     if(old_module==new_module) {
         new_module->module_alloc = true;
     }
-    BDBG_P_Unlock();
+    BDBG_P_Unlock_isrsafe();
 
     if(old_module!=new_module) {
         BKNI_Free(new_module);
@@ -397,7 +397,7 @@ BDBG_P_GetInstanceByName_sync(const char *name)
    {
       if (pInstance->name)
       {
-         if (BDBG_P_StrCmp(name, pInstance->name) == 0)
+         if (BDBG_P_StrCmp_isrsafe(name, pInstance->name) == 0)
          {
             return pInstance;
          }
@@ -412,11 +412,11 @@ BDBG_P_GetInstanceByName(const char *name)
 {
    struct BDBG_DebugModuleInst * pInstance;
 
-   BDBG_P_Lock();
+   BDBG_P_Lock_isrsafe();
 
    pInstance = BDBG_P_GetInstanceByName_sync(name);
 
-   BDBG_P_Unlock();
+   BDBG_P_Unlock_isrsafe();
    return pInstance;
 }
 
@@ -462,9 +462,9 @@ BDBG_P_Vprintf_Log_isrsafe(BDBG_ModulePrintKind kind, const char *fmt, va_list a
 /* to save tiny bit of stack, merge two parameters, 'bool instance' and 'BDBG_Level level' into single parameter, 'unsigned kind' */
 #define BDBG_P_INSTANCE_BIT (1<<4)
 #define BDBG_P_LEVEL_MASK 0xF
-static void BDBG_P_PrintHeader(unsigned kind, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(3, 4);
+static void BDBG_P_PrintHeader_isrsafe(unsigned kind, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(3, 4);
 static void
-BDBG_P_PrintHeader(unsigned kind, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
+BDBG_P_PrintHeader_isrsafe(unsigned kind, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
     bool instance = (kind & BDBG_P_INSTANCE_BIT)!=0;
     BDBG_Level level = kind & BDBG_P_LEVEL_MASK;
@@ -477,15 +477,15 @@ BDBG_P_PrintHeader(unsigned kind, BDBG_pDebugModuleFile dbg_module, const char *
 
 
 static void
-BDBG_P_VprintBody(bool instance, BDBG_Level level, BDBG_pDebugModuleFile dbg_module, const char *fmt, va_list ap)
+BDBG_P_VprintBody_isrsafe(bool instance, BDBG_Level level, BDBG_pDebugModuleFile dbg_module, const char *fmt, va_list ap)
 {
     BDBG_P_Vprintf_module(BDBG_ModulePrintKind_eBody, instance, level, dbg_module, fmt, ap);
     return;
 }
 
-static void BDBG_P_PrintTrace(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
+static void BDBG_P_PrintTrace_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
 static void
-BDBG_P_PrintTrace(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
+BDBG_P_PrintTrace_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
     va_list ap;
 
@@ -510,7 +510,7 @@ BDBG_P_PrintWithNewLine_isrsafe(const char *fmt, ...)
 bool
 BDBG_P_TestAndPrint_isrsafe(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
-    if( BDBG_P_TestModule(dbg_module, level)) {
+    if( BDBG_P_TestModule_isrsafe(dbg_module, level)) {
         union {
             char timeStamp[16];
             va_list ap;
@@ -525,11 +525,11 @@ BDBG_P_TestAndPrint_isrsafe(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, 
         }
         else {
 #endif
-        BDBG_P_GetTimeStamp(u.timeStamp, sizeof(u.timeStamp));
-        BDBG_P_PrintHeader(level, dbg_module, "%s %s %s: ", BDBG_P_GetPrefix(level), u.timeStamp, dbg_module->name);
+        BDBG_P_GetTimeStamp_isrsafe(u.timeStamp, sizeof(u.timeStamp));
+        BDBG_P_PrintHeader_isrsafe(level, dbg_module, "%s %s %s: ", BDBG_P_GetPrefix_isrsafe(level), u.timeStamp, dbg_module->name);
         if(fmt) { /* also print body */
             va_start(u.ap, fmt);
-            BDBG_P_VprintBody(false, level, dbg_module, fmt, u.ap);
+            BDBG_P_VprintBody_isrsafe(false, level, dbg_module, fmt, u.ap);
             va_end( u.ap );
         }
 #ifdef BDBG_ANDROID_LOG
@@ -543,7 +543,7 @@ BDBG_P_TestAndPrint_isrsafe(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, 
 bool
 BDBG_P_TestAndPrint_BDBG_eWrn_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
-    if( BDBG_P_TestModule(dbg_module, BDBG_eWrn)) {
+    if( BDBG_P_TestModule_isrsafe(dbg_module, BDBG_eWrn)) {
         union {
             char timeStamp[16];
             va_list ap;
@@ -558,11 +558,11 @@ BDBG_P_TestAndPrint_BDBG_eWrn_isrsafe(BDBG_pDebugModuleFile dbg_module, const ch
         }
         else {
 #endif
-        BDBG_P_GetTimeStamp(u.timeStamp, sizeof(u.timeStamp));
-        BDBG_P_PrintHeader(BDBG_eWrn, dbg_module, "%s %s %s: ", BDBG_P_GetPrefix(BDBG_eWrn), u.timeStamp, dbg_module->name);
+        BDBG_P_GetTimeStamp_isrsafe(u.timeStamp, sizeof(u.timeStamp));
+        BDBG_P_PrintHeader_isrsafe(BDBG_eWrn, dbg_module, "%s %s %s: ", BDBG_P_GetPrefix_isrsafe(BDBG_eWrn), u.timeStamp, dbg_module->name);
         if(fmt) { /* also print body */
             va_start(u.ap, fmt);
-            BDBG_P_VprintBody(false, BDBG_eWrn, dbg_module, fmt, u.ap);
+            BDBG_P_VprintBody_isrsafe(false, BDBG_eWrn, dbg_module, fmt, u.ap);
             va_end( u.ap );
         }
 #ifdef BDBG_ANDROID_LOG
@@ -576,7 +576,7 @@ BDBG_P_TestAndPrint_BDBG_eWrn_isrsafe(BDBG_pDebugModuleFile dbg_module, const ch
 bool
 BDBG_P_TestAndPrint_BDBG_eErr_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
-    if( BDBG_P_TestModule(dbg_module, BDBG_eErr)) {
+    if( BDBG_P_TestModule_isrsafe(dbg_module, BDBG_eErr)) {
         union {
             char timeStamp[16];
             va_list ap;
@@ -591,11 +591,11 @@ BDBG_P_TestAndPrint_BDBG_eErr_isrsafe(BDBG_pDebugModuleFile dbg_module, const ch
         }
         else {
 #endif
-        BDBG_P_GetTimeStamp(u.timeStamp, sizeof(u.timeStamp));
-        BDBG_P_PrintHeader(BDBG_eErr, dbg_module, "%s %s %s: ", BDBG_P_GetPrefix(BDBG_eErr), u.timeStamp, dbg_module->name);
+        BDBG_P_GetTimeStamp_isrsafe(u.timeStamp, sizeof(u.timeStamp));
+        BDBG_P_PrintHeader_isrsafe(BDBG_eErr, dbg_module, "%s %s %s: ", BDBG_P_GetPrefix_isrsafe(BDBG_eErr), u.timeStamp, dbg_module->name);
         if(fmt) { /* also print body */
             va_start(u.ap, fmt);
-            BDBG_P_VprintBody(false, BDBG_eErr, dbg_module, fmt, u.ap);
+            BDBG_P_VprintBody_isrsafe(false, BDBG_eErr, dbg_module, fmt, u.ap);
             va_end( u.ap );
         }
 #ifdef BDBG_ANDROID_LOG
@@ -609,7 +609,7 @@ BDBG_P_TestAndPrint_BDBG_eErr_isrsafe(BDBG_pDebugModuleFile dbg_module, const ch
 bool
 BDBG_P_TestAndPrint_BDBG_eLog_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
-    if( BDBG_P_TestModule(dbg_module, BDBG_eLog)) {
+    if( BDBG_P_TestModule_isrsafe(dbg_module, BDBG_eLog)) {
         union {
             char timeStamp[16];
             va_list ap;
@@ -624,11 +624,11 @@ BDBG_P_TestAndPrint_BDBG_eLog_isrsafe(BDBG_pDebugModuleFile dbg_module, const ch
         }
         else {
 #endif
-        BDBG_P_GetTimeStamp(u.timeStamp, sizeof(u.timeStamp));
-        BDBG_P_PrintHeader(BDBG_eErr, dbg_module, "%s %s %s: ", BDBG_P_GetPrefix(BDBG_eLog), u.timeStamp, dbg_module->name);
+        BDBG_P_GetTimeStamp_isrsafe(u.timeStamp, sizeof(u.timeStamp));
+        BDBG_P_PrintHeader_isrsafe(BDBG_eErr, dbg_module, "%s %s %s: ", BDBG_P_GetPrefix_isrsafe(BDBG_eLog), u.timeStamp, dbg_module->name);
         if(fmt) { /* also print body */
             va_start(u.ap, fmt);
-            BDBG_P_VprintBody(false, BDBG_eLog, dbg_module, fmt, u.ap);
+            BDBG_P_VprintBody_isrsafe(false, BDBG_eLog, dbg_module, fmt, u.ap);
             va_end( u.ap );
         }
 #ifdef BDBG_ANDROID_LOG
@@ -645,19 +645,19 @@ BDBG_P_InstTestAndPrint_isrsafe(BDBG_Level level, BDBG_pDebugModuleFile dbg_modu
 {
    struct BDBG_DebugInstModule *pInstanceModule = NULL;
    struct BDBG_DebugModuleInst *instance;
-   bool module_result = BDBG_P_TestModule(dbg_module, level);
+   bool module_result = BDBG_P_TestModule_isrsafe(dbg_module, level);
    unsigned instance_result;
 
-   BDBG_P_Lock();
-   instance = BDBG_P_GetInstance_sync(handle);
+   BDBG_P_Lock_isrsafe();
+   instance = BDBG_P_GetInstance_sync_isrsafe(handle);
 
    if (instance) {
-      BDBG_pDebugModuleFile pModule = BDBG_P_GetModuleByName_sync(dbg_module->name, dbg_module);
+      BDBG_pDebugModuleFile pModule = BDBG_P_GetModuleByName_sync_isrsafe(dbg_module->name, dbg_module);
       if(pModule) {
-        pInstanceModule = BDBG_P_GetInstanceModule_sync(instance, pModule);
+        pInstanceModule = BDBG_P_GetInstanceModule_sync_isrsafe(instance, pModule);
       }
    }
-   BDBG_P_Unlock();
+   BDBG_P_Unlock_isrsafe();
 
    instance_result = ((instance && level >= instance->level) || (pInstanceModule && level >= pInstanceModule->eLevel)) ? BDBG_P_INSTANCE_BIT : 0;
    if(module_result || instance_result) {
@@ -679,16 +679,16 @@ BDBG_P_InstTestAndPrint_isrsafe(BDBG_Level level, BDBG_pDebugModuleFile dbg_modu
         }
         else {
 #endif
-      BDBG_P_GetTimeStamp(u.timeStamp, sizeof(u.timeStamp));
+      BDBG_P_GetTimeStamp_isrsafe(u.timeStamp, sizeof(u.timeStamp));
       if(instance && instance->name) {
-         BDBG_P_PrintHeader(instance_result | level, dbg_module, "%s %s %s(%s): ", BDBG_P_GetPrefix(level), u.timeStamp, dbg_module->name, instance->name);
+         BDBG_P_PrintHeader_isrsafe(instance_result | level, dbg_module, "%s %s %s(%s): ", BDBG_P_GetPrefix_isrsafe(level), u.timeStamp, dbg_module->name, instance->name);
       } else {
-         BDBG_P_PrintHeader(instance_result | level, dbg_module, "%s %s %s(%p): ", BDBG_P_GetPrefix(level), u.timeStamp, dbg_module->name, (void *)handle);
+         BDBG_P_PrintHeader_isrsafe(instance_result | level, dbg_module, "%s %s %s(%p): ", BDBG_P_GetPrefix_isrsafe(level), u.timeStamp, dbg_module->name, (void *)handle);
       }
       if(fmt) { /* also print body */
 
           va_start(u.ap, fmt);
-          BDBG_P_VprintBody(instance_result, level, dbg_module, fmt, u.ap);
+          BDBG_P_VprintBody_isrsafe(instance_result, level, dbg_module, fmt, u.ap);
           va_end( u.ap );
       }
 #ifdef BDBG_ANDROID_LOG
@@ -705,7 +705,7 @@ BDBG_P_GetModule(BDBG_pDebugModuleFile module)
    /* This return value is not checked intentionally */
    /* coverity[check_return] */
    /* coverity[unchecked_value] */
-   BDBG_P_TestModule(module, BDBG_eTrace);
+   BDBG_P_TestModule_isrsafe(module, BDBG_eTrace);
    return module;
 }
 
@@ -724,7 +724,7 @@ BDBG_P_RegisterInstance(BDBG_Instance handle, BDBG_pDebugModuleFile dbg_module)
 
    /* PR56629: Search for and re-use the previously
     * unregistered instance to prevent memory leak */
-   BDBG_P_Lock();
+   BDBG_P_Lock_isrsafe();
    for(current = BLST_S_FIRST(&gDbgState.unregistered_instances); current ; current = BLST_S_NEXT(current, link))
    {
       if ( ( current->module == module )
@@ -737,9 +737,9 @@ BDBG_P_RegisterInstance(BDBG_Instance handle, BDBG_pDebugModuleFile dbg_module)
          /* Remove and free each module instance */
          while( (pInstanceModule = BLST_S_FIRST(&instance->modules)) != NULL ) {
             BLST_S_REMOVE_HEAD(&instance->modules,link);
-            BDBG_P_Unlock();
+            BDBG_P_Unlock_isrsafe();
             BKNI_Free(pInstanceModule);
-            BDBG_P_Lock();
+            BDBG_P_Lock_isrsafe();
          }
 
          break;
@@ -748,13 +748,13 @@ BDBG_P_RegisterInstance(BDBG_Instance handle, BDBG_pDebugModuleFile dbg_module)
 
    if ( NULL == instance )
    {
-      BDBG_P_Unlock();
+      BDBG_P_Unlock_isrsafe();
       instance = BKNI_Malloc(sizeof(*instance));
       if(!instance) {
          /* too bad */
          return;
       }
-      BDBG_P_Lock();
+      BDBG_P_Lock_isrsafe();
    }
 
    instance->module = module;
@@ -775,7 +775,7 @@ BDBG_P_RegisterInstance(BDBG_Instance handle, BDBG_pDebugModuleFile dbg_module)
    } else {
       BLST_S_INSERT_HEAD(&gDbgState.instances, instance, link);
    }
-   BDBG_P_Unlock();
+   BDBG_P_Unlock_isrsafe();
 
    return;
 }
@@ -789,39 +789,39 @@ BDBG_P_UnRegisterInstance(BDBG_Instance handle, BDBG_pDebugModuleFile dbg_module
 
    instance = BDBG_P_GetInstance(handle);
    if(instance) {
-      BDBG_P_Lock();
+      BDBG_P_Lock_isrsafe();
       BLST_S_REMOVE(&gDbgState.instances, instance, BDBG_DebugModuleInst, link);
 
       /* Add instance to unregistered instance list to be freed later
        * during BDBG_Uninit() */
       BLST_S_INSERT_HEAD(&gDbgState.unregistered_instances, instance, link);
-      BDBG_P_Unlock();
+      BDBG_P_Unlock_isrsafe();
    }
    return;
 }
 
 static void
-BDBG_P_EnterLeaveFunction(BDBG_pDebugModuleFile dbg_module, const char *function, const char *kind)
+BDBG_P_EnterLeaveFunction_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *function, const char *kind)
 {
-   if(BDBG_P_TestModule(dbg_module, BDBG_eTrace)) {
+   if(BDBG_P_TestModule_isrsafe(dbg_module, BDBG_eTrace)) {
       char timeStamp[16];
-      BDBG_P_GetTimeStamp(timeStamp, sizeof(timeStamp));
+      BDBG_P_GetTimeStamp_isrsafe(timeStamp, sizeof(timeStamp));
 
-      BDBG_P_PrintTrace(dbg_module, "%s %s %s: %s", gDbgPrefix[BDBG_eTrace], timeStamp, kind, function);
+      BDBG_P_PrintTrace_isrsafe(dbg_module, "%s %s %s: %s", gDbgPrefix[BDBG_eTrace], timeStamp, kind, function);
    }
 }
 
 void
-BDBG_EnterFunction(BDBG_pDebugModuleFile dbg_module, const char *function)
+BDBG_EnterFunction_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *function)
 {
-   BDBG_P_EnterLeaveFunction(dbg_module, function, "Enter");
+   BDBG_P_EnterLeaveFunction_isrsafe(dbg_module, function, "Enter");
    return;
 }
 
 void
-BDBG_LeaveFunction(BDBG_pDebugModuleFile dbg_module, const char *function)
+BDBG_LeaveFunction_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *function)
 {
-   BDBG_P_EnterLeaveFunction(dbg_module, function, "Leave");
+   BDBG_P_EnterLeaveFunction_isrsafe(dbg_module, function, "Leave");
    return;
 }
 
@@ -838,11 +838,11 @@ BDBG_SetLevel(BDBG_Level level)
 
    gDbgState.level = level;
    /* traverse all known modules */
-   BDBG_P_Lock();
+   BDBG_P_Lock_isrsafe();
    for(module = BLST_S_FIRST(&gDbgState.modules); module ; module = BLST_S_NEXT(module, link)) {
       module->level = (level < module->module_level)?level:module->module_level; /* update current module level with smallest of global level and module level */
    }
-   BDBG_P_Unlock();
+   BDBG_P_Unlock_isrsafe();
    return BERR_SUCCESS;
 }
 
@@ -904,7 +904,7 @@ BDBG_SetInstanceName(BDBG_Instance handle, const char *name)
 }
 
 static struct BDBG_DebugInstModule *
-BDBG_P_GetInstanceModule_sync(struct BDBG_DebugModuleInst *pInstance, BDBG_pDebugModuleFile pModule)
+BDBG_P_GetInstanceModule_sync_isrsafe(struct BDBG_DebugModuleInst *pInstance, BDBG_pDebugModuleFile pModule)
 {
    struct BDBG_DebugInstModule * pInstanceModule;
    for(pInstanceModule = BLST_S_FIRST(&pInstance->modules); pInstanceModule ; pInstanceModule = BLST_S_NEXT(pInstanceModule, link)) {
@@ -919,9 +919,9 @@ BDBG_P_GetInstanceModule(struct BDBG_DebugModuleInst *pInstance, BDBG_pDebugModu
 {
    struct BDBG_DebugInstModule * pInstanceModule;
 
-   BDBG_P_Lock();
-   pInstanceModule = BDBG_P_GetInstanceModule_sync(pInstance, pModule);
-   BDBG_P_Unlock();
+   BDBG_P_Lock_isrsafe();
+   pInstanceModule = BDBG_P_GetInstanceModule_sync_isrsafe(pInstance, pModule);
+   BDBG_P_Unlock_isrsafe();
    return pInstanceModule;
 }
 
@@ -940,7 +940,7 @@ BDBG_P_SetInstanceModuleLevel(struct BDBG_DebugModuleInst *pInstance, BDBG_pDebu
       {
          pInstanceModule->pModule = pModule;
 
-         BDBG_P_Lock();
+         BDBG_P_Lock_isrsafe();
 
          /* 1. Find spot in the sorted list */
          for(pPrevInstanceModule=NULL, pCurInstanceModule = BLST_S_FIRST(&pInstance->modules); pCurInstanceModule ; pCurInstanceModule = BLST_S_NEXT(pCurInstanceModule, link)) {
@@ -955,7 +955,7 @@ BDBG_P_SetInstanceModuleLevel(struct BDBG_DebugModuleInst *pInstance, BDBG_pDebu
             BLST_S_INSERT_HEAD(&pInstance->modules, pInstanceModule, link);
          }
 
-         BDBG_P_Unlock();
+         BDBG_P_Unlock_isrsafe();
       }
    }
 
@@ -1070,15 +1070,15 @@ BDBG_SetModuleLevel(const char *name, BDBG_Level level)
 
       /* We set the module level */
       /* traverse all files of given module */
-      BDBG_P_Lock();
+      BDBG_P_Lock_isrsafe();
       for(; module ; module = BLST_S_NEXT(module, link)) {
-         if(BDBG_P_StrCmp(name, module->name)!=0) {
+         if(BDBG_P_StrCmp_isrsafe(name, module->name)!=0) {
             break;
          }
          module->module_level = level;
          module->level = (gDbgState.level < level)?gDbgState.level:level; /* update current module level with smallest  of global level and module level */
       }
-      BDBG_P_Unlock();
+      BDBG_P_Unlock_isrsafe();
    }
 
    return BERR_SUCCESS;
@@ -1189,7 +1189,7 @@ static const char bdbg_id__bdbg_invalid[]="invalid";
 
 
 void
-BDBG_Object_Init(void *ptr, size_t size, struct bdbg_obj *obj, const char *id)
+BDBG_Object_Init_isrsafe(void *ptr, size_t size, struct bdbg_obj *obj, const char *id)
 {
    unsigned i;
 
@@ -1218,12 +1218,12 @@ BDBG_Object_Assert_isrsafe(const void *ptr, size_t size, const struct bdbg_obj *
     if(ptr) {
         BKNI_MallocEntryInfo entry;
 
-        if(BKNI_GetMallocEntryInfo(ptr, &entry)==BERR_SUCCESS) {
+        if(BKNI_GetMallocEntryInfo_isrsafe(ptr, &entry)==BERR_SUCCESS) {
             gDbgState.assertMessage[0] = '\0';
             if(!entry.alive) {
                 BKNI_Snprintf(gDbgState.assertMessage, sizeof(gDbgState.assertMessage), "and freed at %s:%u", entry.free_file, entry.free_line);
             }
-            BDBG_P_PrintString("BDBG_OBJECT_ASSERT on object %p (%u:%u bytes) was allocated at %s:%u %s\n", ptr, (unsigned)entry.size, (unsigned)size, entry.malloc_file, entry.malloc_line, gDbgState.assertMessage);
+            BDBG_P_PrintString_isrsafe("BDBG_OBJECT_ASSERT on object %p (%u:%u bytes) was allocated at %s:%u %s\n", ptr, (unsigned)entry.size, (unsigned)size, entry.malloc_file, entry.malloc_line, gDbgState.assertMessage);
         }
     }
 #endif
@@ -1239,7 +1239,7 @@ BDBG_Object_Assert_isrsafe(const void *ptr, size_t size, const struct bdbg_obj *
         }
     }
 
-    BDBG_P_AssertFailed(gDbgState.assertMessage, file, line);
+    BDBG_P_AssertFailed_isrsafe(gDbgState.assertMessage, file, line);
     return;
 }
 
@@ -1250,9 +1250,9 @@ BDBG_EnumerateAll(void (*callback)(void *cntx, const char *module, BDBG_Instance
    BDBG_pDebugModuleFile module;
    const char *last_name;
 
-   BDBG_P_Lock();
+   BDBG_P_Lock_isrsafe();
    for(last_name=NULL, module = BLST_S_FIRST(&gDbgState.modules); module ; module = BLST_S_NEXT(module, link)) {
-      if(last_name==NULL || BDBG_P_StrCmp(last_name, module->name)!=0) {
+      if(last_name==NULL || BDBG_P_StrCmp_isrsafe(last_name, module->name)!=0) {
          last_name = module->name;
          callback(cntx, module->name, NULL, NULL);
       }
@@ -1260,19 +1260,19 @@ BDBG_EnumerateAll(void (*callback)(void *cntx, const char *module, BDBG_Instance
    for(instance = BLST_S_FIRST(&gDbgState.instances); instance ; instance = BLST_S_NEXT(instance, link)) {
       callback(cntx, instance->module->name, instance->handle, instance->name);
    }
-   BDBG_P_Unlock();
+   BDBG_P_Unlock_isrsafe();
    return ;
 }
 
 void
 BDBG_P_Release(BDBG_pDebugModuleFile dbg_module)
 {
-   BDBG_P_Lock();
+   BDBG_P_Lock_isrsafe();
    if(dbg_module->level!=BDBG_P_eUnknown) {
         BLST_S_REMOVE(&gDbgState.modules, dbg_module, BDBG_DebugModuleFile, link);
         dbg_module->level = BDBG_P_eUnknown;
    }
-   BDBG_P_Unlock();
+   BDBG_P_Unlock_isrsafe();
    return;
 }
 
@@ -1290,9 +1290,9 @@ BDBG_SetModulePrintFunction(const char *name, BDBG_DebugModule_Print module_prin
 
     /* We set the module level */
     /* traverse all files of given module */
-    BDBG_P_Lock();
+    BDBG_P_Lock_isrsafe();
     for(; module ; module = BLST_S_NEXT(module, link)) {
-        if(BDBG_P_StrCmp(name, module->name)!=0) {
+        if(BDBG_P_StrCmp_isrsafe(name, module->name)!=0) {
             break;
         }
         module->level = (gDbgState.level < module->module_level)?gDbgState.level:module->module_level; /* update current module level with smallest  of global level and module level */
@@ -1301,7 +1301,7 @@ BDBG_SetModulePrintFunction(const char *name, BDBG_DebugModule_Print module_prin
             module->level = -module->level; /* make it negative so it'd always pass test */
         }
     }
-    BDBG_P_Unlock();
+    BDBG_P_Unlock_isrsafe();
 
     return BERR_SUCCESS;
 #else
@@ -1654,6 +1654,6 @@ void
 BDBG_P_Assert_isrsafe(bool expr, const char *file, unsigned line)
 {
     if (expr) return;
-    BDBG_P_AssertFailed(NULL, file, line);
+    BDBG_P_AssertFailed_isrsafe(NULL, file, line);
 }
 #endif

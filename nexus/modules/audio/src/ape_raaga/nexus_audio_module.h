@@ -135,7 +135,8 @@ typedef struct NEXUS_AudioModuleData
     bool watchdogDeferred;
     unsigned numDsps;
     bool verifyFirmware;   /* true if Firmware verifcation is required for Raaga0 or Raaga1  */
-    char firmwareVersionInfo[25];  /* Raaga Release Version */
+    char dspFirmwareVersionInfo[25];  /* Dsp Release Version */
+    char armFirmwareVersionInfo[25];  /* Arm Release Version */
 } NEXUS_AudioModuleData;
 
 extern NEXUS_AudioModuleData g_NEXUS_audioModuleData;

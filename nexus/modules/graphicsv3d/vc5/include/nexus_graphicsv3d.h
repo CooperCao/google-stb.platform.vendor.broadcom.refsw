@@ -219,6 +219,7 @@ typedef struct NEXUS_Graphicsv3dJobBin
    uint32_t                            uiOffset;
    uint32_t                            uiFlags;
    uint32_t                            uiMinInitialBinBlockSize;
+   uint32_t                            uiTileStateSize;
 } NEXUS_Graphicsv3dJobBin;
 
 /**

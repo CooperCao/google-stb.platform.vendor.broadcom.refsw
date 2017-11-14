@@ -40,6 +40,8 @@
  **************************************************************************/
 #include "nexus_platform.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_dac.h"

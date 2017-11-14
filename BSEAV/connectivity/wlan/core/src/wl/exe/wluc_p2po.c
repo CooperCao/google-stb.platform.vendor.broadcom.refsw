@@ -217,12 +217,13 @@ wl_p2po_listen(void *wl, cmd_t *cmd, char **argv)
 		return BCME_OK;
 	}
 
-	if (!argv[2] || !argv[3])
+	if (!argv[2] || !argv[3]) {
 		return BCME_USAGE_ERROR;
+	}
 
-		params.period = atoi(argv[1]);
-		params.interval = atoi(argv[2]);
-		params.count = atoi(argv[3]);
+	params.period = atoi(argv[1]);
+	params.interval = atoi(argv[2]);
+	params.count = atoi(argv[3]);
 
 	params_size = sizeof(wl_p2po_listen_t);
 

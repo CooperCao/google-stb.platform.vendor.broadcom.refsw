@@ -274,7 +274,7 @@ uint32_t tzioc_vaddr2offset(
 
 int tzioc_call_smc(
     tzioc_client_handle hClient,
-    uint32_t ucMode)
+    uint32_t ulCode)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;
 
@@ -283,8 +283,8 @@ int tzioc_call_smc(
         return -EINVAL;
     }
 
-    /* assuming ucMode == SMC callnum */
+    /* assuming ulCode == SMC callnum */
     return _tzioc_call_smc(
         pClient,
-        ucMode);
+        ulCode);
 }

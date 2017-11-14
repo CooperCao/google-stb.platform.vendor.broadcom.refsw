@@ -225,6 +225,38 @@ typedef enum NEXUS_AudioMode
     NEXUS_AudioMode_eMax
 } NEXUS_AudioMode;
 
+
+typedef enum NEXUS_AudioBitDepth
+{
+    NEXUS_AudioBitDepth_e16,  /* 16 bit audio */
+    NEXUS_AudioBitDepth_e20,  /* 20 bit audio */
+    NEXUS_AudioBitDepth_e24,  /* 24 bit audio */
+    NEXUS_AudioBitDepth_eMax
+} NEXUS_AudioBitDepth;
+
+
+typedef enum NEXUS_AudioSampleRate
+{
+    NEXUS_AudioSampleRate_eUnknown, /* Unknown */
+    NEXUS_AudioSampleRate_e8k,      /* 8K Sample rate */
+    NEXUS_AudioSampleRate_e11_025k, /* 11.025K Sample rate */
+    NEXUS_AudioSampleRate_e12k,     /* 12K Sample rate */
+    NEXUS_AudioSampleRate_e16k,     /* 16K Sample rate */
+    NEXUS_AudioSampleRate_e22_05k,  /* 22.05K Sample rate */
+    NEXUS_AudioSampleRate_e24k,     /* 24K Sample rate */
+    NEXUS_AudioSampleRate_e32k,     /* 32K Sample rate */
+    NEXUS_AudioSampleRate_e44_1k,   /* 44.1K Sample rate */
+    NEXUS_AudioSampleRate_e48k,     /* 48K Sample rate */
+    NEXUS_AudioSampleRate_e64k,     /* 64K Sample rate */
+    NEXUS_AudioSampleRate_e96k,     /* 96K Sample rate */
+    NEXUS_AudioSampleRate_e88_2k,   /* 88.2K Sample rate */
+    NEXUS_AudioSampleRate_e128k,    /* 128K Sample rate */
+    NEXUS_AudioSampleRate_e176_4k,  /* 176.4K Sample rate */
+    NEXUS_AudioSampleRate_e192k,    /* 192K Sample rate */
+    NEXUS_AudioSampleRate_eMax
+} NEXUS_AudioSampleRate;
+
+
 /***************************************************************************
 Summary:
 Audio Volume Constants
@@ -249,29 +281,38 @@ typedef struct NEXUS_AudioRawChannelStatus
     uint32_t rightChannelLow;   /* Bits  0..31 */
 } NEXUS_AudioRawChannelStatus;
 
+typedef enum NEXUS_AudioChannelStatusClockAccuracy
+{
+    NEXUS_AudioChannelStatusClockAccuracy_eLevel_II, /* 0x0 Default +/- 0.1% */
+    NEXUS_AudioChannelStatusClockAccuracy_eLevel_I,  /* 0x1 High accuracy +/- 0.005% */
+    NEXUS_AudioChannelStatusClockAccuracy_eLevel_III,/* 0x2 Variable pitch shifted */
+    NEXUS_AudioChannelStatusClockAccuracy_eMismatch, /* 0x3 Interface frame rate not matched to sampling frequency */
+    NEXUS_AudioChannelStatusClockAccuracy_eMax
+} NEXUS_AudioChannelStatusClockAccuracy;
+
 /**
 Summary:
 Audio channel status used in HDMI and SPDIF outputs
 **/
 typedef struct NEXUS_AudioChannelStatusInfo
 {
-    bool           professionalMode;    /* [0:0] The professional mode flag.
-                                            TRUE: Professional mode. Other user
-                                            options will not be considered.
-                                            FALSE: Consumer mode.*/
-    bool           swCopyRight;         /* [2:2] Software CopyRight assert.
-                                            TRUE: CopyRight is asserted
-                                            FALSE: CopyRight is not asserted */
-    uint16_t       categoryCode;        /* [8:15] Category Code */
-    uint16_t       clockAccuracy;       /* [28:29] Clock Accuracy */
-    bool           separateLRChanNum;   /* TRUE:  Left channel num = 0000
-                                                  Right Channel Num = 0000
-                                           FALSE: Left channel num = 1000
-                                                  Right Channel Num = 0100 */
-    uint8_t        cgmsA;               /* CGMS-A copy bits.  Only supported for SPDIF.
-                                           Typical values are
-                                           0=Copy Freely 1=Copy Once
-                                           2=Reserved 3=Copy Never */
+    bool                                    professionalMode;    /* [0:0] The professional mode flag.
+                                                                    TRUE: Professional mode. Other user
+                                                                    options will not be considered.
+                                                                    FALSE: Consumer mode.*/
+    bool                                    swCopyRight;         /* [2:2] Software CopyRight assert.
+                                                                    TRUE: CopyRight is asserted
+                                                                    FALSE: CopyRight is not asserted */
+    uint16_t                                categoryCode;        /* [8:15] Category Code */
+    NEXUS_AudioChannelStatusClockAccuracy   clockAccuracy;       /* [28:29] Clock Accuracy */
+    bool                                    separateLRChanNum;   /* TRUE:  Left channel num = 0000
+                                                                    Right Channel Num = 0000
+                                                                    FALSE: Left channel num = 1000
+                                                                    Right Channel Num = 0100 */
+    uint8_t                                 cgmsA;               /* CGMS-A copy bits.  Only supported for SPDIF.
+                                                                    Typical values are
+                                                                    0=Copy Freely 1=Copy Once
+                                                                    2=Reserved 3=Copy Never */
 } NEXUS_AudioChannelStatusInfo;
 
 /**
@@ -599,6 +640,7 @@ typedef struct NEXUS_AudioMixerStatus
 #define NEXUS_MAX_AUDIO_I2S_INPUTS 1
 #define NEXUS_MAX_AUDIO_SPDIF_INPUTS 1
 #define NEXUS_MAX_AUDIO_INPUT_CAPTURES 6
+#define NEXUS_MAX_AUDIO_STAGES_PER_EQUALIZER 5
 
 #ifdef __cplusplus
 }

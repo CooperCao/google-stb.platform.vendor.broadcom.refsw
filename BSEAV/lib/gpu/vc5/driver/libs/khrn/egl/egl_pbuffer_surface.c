@@ -42,13 +42,10 @@ static void set_mipmap_level(EGL_PBUFFER_SURFACE_T *surface, int level)
    else if ((unsigned int)level >= surface->num_images)
       level = surface->num_images - 1;
 
-   if (egl_context_gl_lock())
-   {
-      khrn_image *image = get_back_buffer(&surface->base);
-      khrn_resource_flush(khrn_image_get_resource(image));
-
-      egl_context_gl_unlock();
-   }
+   egl_context_gl_lock();
+   khrn_image *image = get_back_buffer(&surface->base);
+   khrn_resource_flush(khrn_image_get_resource(image));
+   egl_context_gl_unlock();
 
    surface->current_image = level;
 
@@ -88,7 +85,7 @@ static unsigned count_mipmaps(unsigned width, unsigned height)
    return ret;
 }
 
-static EGLint set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLAttribKHR value)
+static EGLint init_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLAttribKHR value)
 {
    EGL_PBUFFER_SURFACE_T *surf = (EGL_PBUFFER_SURFACE_T *) surface;
 
@@ -120,10 +117,6 @@ static EGLint set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLAttribKHR val
       surf->mipmap = !!value;
       return EGL_SUCCESS;
 
-   case EGL_MIPMAP_LEVEL:
-      set_mipmap_level(surf, (int)value);
-      return EGL_SUCCESS;
-
    case EGL_WIDTH:
       if (value < 0)
          return EGL_BAD_PARAMETER;
@@ -141,14 +134,27 @@ static EGLint set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLAttribKHR val
       return EGL_SUCCESS;
 
    default:
-      break;
+      return egl_surface_base_init_attrib(&surf->base, attrib, value);
    }
+}
 
-   return egl_surface_base_set_attrib(&surf->base, attrib, value);
+static EGLint set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLAttribKHR value)
+{
+   EGL_PBUFFER_SURFACE_T *surf = (EGL_PBUFFER_SURFACE_T *) surface;
+
+   switch (attrib)
+   {
+   case EGL_MIPMAP_LEVEL:
+      set_mipmap_level(surf, (int)value);
+      return EGL_SUCCESS;
+
+   default:
+      return egl_surface_base_set_attrib(&surf->base, attrib, value);
+   }
 }
 
 static bool get_attrib(const EGL_SURFACE_T *surface,
-      EGLint attrib, EGLAttribKHR *value)
+      EGLint attrib, EGLint *value)
 {
    const EGL_PBUFFER_SURFACE_T *surf = (EGL_PBUFFER_SURFACE_T *) surface;
 
@@ -191,7 +197,7 @@ static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface)
 }
 
 EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
-      EGLConfig config, const EGLint *attrib_list)
+      EGLConfig config_in, const EGLint *attrib_list)
 {
    EGLint error = EGL_BAD_ALLOC;
    EGL_PBUFFER_SURFACE_T *surface = NULL;
@@ -200,9 +206,6 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
    static gfx_buffer_usage_t flags ;
    khrn_blob *blob = NULL;
 
-   GFX_LFMT_T colorformat;
-   GFX_LFMT_T color_api_fmt;
-
    /* width and height should be in the attrib_list */
    const unsigned default_width = 0;
    const unsigned default_height = 0;
@@ -210,7 +213,8 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
    if (!egl_initialized(dpy, true))
       return EGL_NO_SURFACE;
 
-   if (!egl_config_is_valid(config))
+   const EGL_CONFIG_T *config = egl_config_validate(config_in);
+   if (!config)
    {
       error = EGL_BAD_CONFIG;
       goto end;
@@ -235,8 +239,8 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
          default_width, default_height, NULL, NULL);
    if (error != EGL_SUCCESS) goto end;
 
-   colorformat = egl_surface_base_colorformat(&surface->base);
-   color_api_fmt = egl_config_color_api_fmt(config);
+   GFX_LFMT_T color_lfmt = gfx_lfmt_to_2d(config->color_api_fmt);
+   GFX_LFMT_T color_api_fmt = egl_config_color_api_fmt(config);
 
    if ((surface->texture_format == EGL_NO_TEXTURE) !=
          (surface->texture_target == EGL_NO_TEXTURE))
@@ -257,21 +261,21 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
    if (surface->texture_format != EGL_NO_TEXTURE)
       flags |= GFX_BUFFER_USAGE_V3D_TEXTURE;
 
-   // TODO: we should check that colorformat matches texture_format(RGB/ RGBA)
+   // TODO: we should check that color_lfmt matches texture_format(RGB/ RGBA)
    if (surface->mipmap && surface->texture_format != EGL_NO_TEXTURE)
    {
       surface->num_images = count_mipmaps(surface->base.width,
             surface->base.height);
 
       blob = khrn_blob_create(surface->base.width, surface->base.height,
-            1, 1, surface->num_images, &colorformat, 1, flags,
+            1, 1, surface->num_images, &color_lfmt, 1, flags,
             surface->base.secure);
       if (!blob) goto end;
    }
    else
    {
       blob = khrn_blob_create(surface->base.width, surface->base.height,
-            1, 1, 1, &colorformat, 1, flags, surface->base.secure);
+            1, 1, 1, &color_lfmt, 1, flags, surface->base.secure);
       if (!blob) goto end;
    }
 
@@ -351,8 +355,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglBindTexImage(EGLDisplay dpy,
       goto end;
    }
 
-   if (!egl_context_gl_lock())
-      goto end;
+   egl_context_gl_lock();
    locked = true;
 
    error = EGL_SUCCESS;
@@ -426,8 +429,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglReleaseTexImage(EGLDisplay dpy,
    /* if the texture was deleted, no, error is generated */
    if (pbsurf->bound_texture)
    {
-      if (!egl_context_gl_lock())
-         goto end;
+      egl_context_gl_lock();
       glxx_texture_release_teximage(pbsurf->bound_texture);
       assert(pbsurf->bound_texture == NULL);
       egl_context_gl_unlock();
@@ -458,7 +460,7 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferFromClientBuffer(EGLDisplay dpy,
       goto end;
    }
 
-   if (!egl_config_is_valid((EGL_CONFIG_T *) config))
+   if (!egl_config_validate(config))
    {
       error = EGL_BAD_CONFIG;
       goto end;
@@ -495,10 +497,8 @@ end:
 static EGL_SURFACE_METHODS_T fns =
 {
    .get_back_buffer = get_back_buffer,
-   .swap_buffers = NULL,
-   .swap_interval = NULL,
-   .get_dimensions = NULL,
    .get_attrib = get_attrib,
+   .init_attrib = init_attrib,
    .set_attrib = set_attrib,
    .delete_fn = delete_fn,
 };

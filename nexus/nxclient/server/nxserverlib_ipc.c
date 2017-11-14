@@ -84,7 +84,7 @@ struct nxclient_ipc {
     nxclient_t client;
     struct ipc_server *server;
     nxclient_ipc_thread id;
-    pid_t pid;
+    unsigned pid;
     struct nxclient_ipc *other_client;
 };
 
@@ -178,8 +178,6 @@ static void ipc_thread(void *context)
             BERR_TRACE(-1);
             goto done;
         }
-        rc = listen(listen_fd, 10);
-        if(rc!=0) { perror("");rc=BERR_TRACE(errno); goto done; }
     }
 
     while(!server->exit) {
@@ -258,7 +256,7 @@ static void ipc_thread(void *context)
 
                     BDBG_ASSERT(id == nxclient_ipc_thread_regular);
                     BDBG_ASSERT(listen_fd==fds[i].fd);
-                    fd = accept(listen_fd, NULL, NULL);
+                    fd = b_nxclient_socket_accept(listen_fd);
                     if(fd<0) {
                         BDBG_WRN(("unable to accept incoming client"));
                         continue;
@@ -371,39 +369,45 @@ nxclient_ipc_t nxclient_p_create(bipc_t ipc, const NxClient_JoinSettings *pJoinS
     struct ipc_server *server = &g_ipc;
     bipc_server_client_create_settings create_settings;
     int rc;
-    struct ucred credentials;
-    socklen_t ucred_length = sizeof(struct ucred);
+    unsigned client_pid;
 
     BDBG_OBJECT_ASSERT(client, nxclient_ipc);
 
     bipc_server_client_get_create_settings(client->ipc, &create_settings);
-    rc = getsockopt(create_settings.recv_fd, SOL_SOCKET, SO_PEERCRED, &credentials, &ucred_length);
-    if (rc) {BERR_TRACE(rc); return NULL;}
+    rc = b_nxclient_get_client_pid(create_settings.recv_fd, &client_pid);
+    if(rc!=0) {
+        (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return NULL;
+    }
 
     for(pClient=BLST_D_FIRST(&server->clients);pClient;pClient=BLST_D_NEXT(pClient,link))  {
-        if(pClient->pid == credentials.pid)
+        if(pClient->pid == client_pid)
             break;
     }
 
     if(pClient && pClient->client) {
-        BDBG_ASSERT(id == nxclient_ipc_thread_restricted);
-        BDBG_ASSERT(pClient->id == nxclient_ipc_thread_regular);
-        client->client = pClient->client;
-        /* cross link */
-        client->other_client = pClient;
-        pClient->other_client = client;
+        if(id == nxclient_ipc_thread_restricted && pClient->id == nxclient_ipc_thread_regular) {
+            client->client = pClient->client;
+            /* cross link */
+            client->other_client = pClient;
+            pClient->other_client = client;
+        } else {
+            BDBG_ERR(("Out of order connections: %u != %o or %u != %u",id , nxclient_ipc_thread_restricted, pClient->id , nxclient_ipc_thread_regular));
+            (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            return NULL;
+        }
     } else {
         if (id != nxclient_ipc_thread_regular) {
             /* the first nxclient_p_create was undone, so this second one must fail */
             return NULL;
         }
-        client->client = NxClient_P_CreateClient(client->server->server, pJoinSettings, &info->certificate, credentials.pid);
+        client->client = NxClient_P_CreateClient(client->server->server, pJoinSettings, &info->certificate, client_pid);
     }
     if (!client->client) {
         return NULL;
     }
     client->id = id;
-    client->pid = credentials.pid;
+    client->pid = client_pid;
 
     return client;
 }

@@ -41,6 +41,7 @@
 #include "nexus_playback_module.h"
 
 NEXUS_ModuleHandle NEXUS_PlaybackModule;
+NEXUS_PlaybackModuleSettings g_NEXUS_PlaybackModulesSettings;
 
 void 
 NEXUS_PlaybackModule_GetDefaultSettings(NEXUS_PlaybackModuleSettings *pSettings)
@@ -80,6 +81,7 @@ NEXUS_PlaybackModule_Init(const NEXUS_PlaybackModuleSettings *pSettings)
     NEXUS_UseModule(pSettings->modules.audioDecoder);
 #endif
     NEXUS_UseModule(pSettings->modules.playpump);
+    g_NEXUS_PlaybackModulesSettings = *pSettings;
 
     return NEXUS_PlaybackModule;
 

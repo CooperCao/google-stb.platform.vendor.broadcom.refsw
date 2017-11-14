@@ -1,0 +1,112 @@
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
+
+#ifndef KEYMASTER_ERR_H__
+#define KEYMASTER_ERR_H__
+
+
+#include "bstd.h"
+
+
+#define BERR_KM_ID          0x200
+
+/* Keymaster error codes */
+#define BSAGE_ERR_KM_ROOT_OF_TRUST_ALREADY_SET                  BERR_MAKE_CODE(BERR_KM_ID,101)
+#define BSAGE_ERR_KM_UNSUPPORTED_PURPOSE                        BERR_MAKE_CODE(BERR_KM_ID,102)
+#define BSAGE_ERR_KM_INCOMPATIBLE_PURPOSE                       BERR_MAKE_CODE(BERR_KM_ID,103)
+#define BSAGE_ERR_KM_UNSUPPORTED_ALGORITHM                      BERR_MAKE_CODE(BERR_KM_ID,104)
+#define BSAGE_ERR_KM_INCOMPATIBLE_ALGORITHM                     BERR_MAKE_CODE(BERR_KM_ID,105)
+#define BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE                       BERR_MAKE_CODE(BERR_KM_ID,106)
+#define BSAGE_ERR_KM_UNSUPPORTED_BLOCK_MODE                     BERR_MAKE_CODE(BERR_KM_ID,107)
+#define BSAGE_ERR_KM_INCOMPATIBLE_BLOCK_MODE                    BERR_MAKE_CODE(BERR_KM_ID,108)
+#define BSAGE_ERR_KM_UNSUPPORTED_MAC_LENGTH                     BERR_MAKE_CODE(BERR_KM_ID,109)
+#define BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE                   BERR_MAKE_CODE(BERR_KM_ID,110)
+#define BSAGE_ERR_KM_INCOMPATIBLE_PADDING_MODE                  BERR_MAKE_CODE(BERR_KM_ID,111)
+#define BSAGE_ERR_KM_UNSUPPORTED_DIGEST                         BERR_MAKE_CODE(BERR_KM_ID,112)
+#define BSAGE_ERR_KM_INCOMPATIBLE_DIGEST                        BERR_MAKE_CODE(BERR_KM_ID,113)
+#define BSAGE_ERR_KM_INVALID_EXPIRATION_TIME                    BERR_MAKE_CODE(BERR_KM_ID,114)
+#define BSAGE_ERR_KM_INVALID_USER_ID                            BERR_MAKE_CODE(BERR_KM_ID,115)
+#define BSAGE_ERR_KM_INVALID_AUTHORIZATION_TIMEOUT              BERR_MAKE_CODE(BERR_KM_ID,116)
+#define BSAGE_ERR_KM_UNSUPPORTED_KEY_FORMAT                     BERR_MAKE_CODE(BERR_KM_ID,117)
+#define BSAGE_ERR_KM_INCOMPATIBLE_KEY_FORMAT                    BERR_MAKE_CODE(BERR_KM_ID,118)
+#define BSAGE_ERR_KM_UNSUPPORTED_KEY_ENCRYPTION_ALGORITHM       BERR_MAKE_CODE(BERR_KM_ID,119)
+#define BSAGE_ERR_KM_UNSUPPORTED_KEY_VERIFICATION_ALGORITHM     BERR_MAKE_CODE(BERR_KM_ID,120)
+#define BSAGE_ERR_KM_INVALID_INPUT_LENGTH                       BERR_MAKE_CODE(BERR_KM_ID,121)
+#define BSAGE_ERR_KM_KEY_EXPORT_OPTIONS_INVALID                 BERR_MAKE_CODE(BERR_KM_ID,122)
+#define BSAGE_ERR_KM_DELEGATION_NOT_ALLOWED                     BERR_MAKE_CODE(BERR_KM_ID,123)
+#define BSAGE_ERR_KM_KEY_NOT_YET_VALID                          BERR_MAKE_CODE(BERR_KM_ID,124)
+#define BSAGE_ERR_KM_KEY_EXPIRED                                BERR_MAKE_CODE(BERR_KM_ID,125)
+#define BSAGE_ERR_KM_KEY_USER_NOT_AUTHENTICATED                 BERR_MAKE_CODE(BERR_KM_ID,126)
+#define BSAGE_ERR_KM_OUTPUT_PARAMETER_NULL                      BERR_MAKE_CODE(BERR_KM_ID,127)
+#define BSAGE_ERR_KM_INVALID_OPERATION_HANDLE                   BERR_MAKE_CODE(BERR_KM_ID,128)
+#define BSAGE_ERR_KM_INSUFFICIENT_BUFFER_SPACE                  BERR_MAKE_CODE(BERR_KM_ID,129)
+#define BSAGE_ERR_KM_VERIFICATION_FAILED                        BERR_MAKE_CODE(BERR_KM_ID,130)
+#define BSAGE_ERR_KM_TOO_MANY_OPERATIONS                        BERR_MAKE_CODE(BERR_KM_ID,131)
+#define BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER                    BERR_MAKE_CODE(BERR_KM_ID,132)
+#define BSAGE_ERR_KM_INVALID_KEY_BLOB                           BERR_MAKE_CODE(BERR_KM_ID,133)
+#define BSAGE_ERR_KM_IMPORTED_KEY_NOT_ENCRYPTED                 BERR_MAKE_CODE(BERR_KM_ID,134)
+#define BSAGE_ERR_KM_IMPORTED_KEY_DECRYPTION_FAILED             BERR_MAKE_CODE(BERR_KM_ID,135)
+#define BSAGE_ERR_KM_IMPORTED_KEY_NOT_SIGNED                    BERR_MAKE_CODE(BERR_KM_ID,136)
+#define BSAGE_ERR_KM_IMPORTED_KEY_VERIFICATION_FAILED           BERR_MAKE_CODE(BERR_KM_ID,137)
+#define BSAGE_ERR_KM_UNSUPPORTED_TAG                            BERR_MAKE_CODE(BERR_KM_ID,139)
+#define BSAGE_ERR_KM_INVALID_TAG                                BERR_MAKE_CODE(BERR_KM_ID,140)
+#define BSAGE_ERR_KM_IMPORT_PARAMETER_MISMATCH                  BERR_MAKE_CODE(BERR_KM_ID,144)
+#define BSAGE_ERR_KM_SECURE_HW_ACCESS_DENIED                    BERR_MAKE_CODE(BERR_KM_ID,145)
+#define BSAGE_ERR_KM_OPERATION_CANCELLED                        BERR_MAKE_CODE(BERR_KM_ID,146)
+#define BSAGE_ERR_KM_CONCURRENT_ACCESS_CONFLICT                 BERR_MAKE_CODE(BERR_KM_ID,147)
+#define BSAGE_ERR_KM_SECURE_HW_BUSY                             BERR_MAKE_CODE(BERR_KM_ID,148)
+#define BSAGE_ERR_KM_UNSUPPORTED_EC_FIELD                       BERR_MAKE_CODE(BERR_KM_ID,150)
+#define BSAGE_ERR_KM_MISSING_NONCE                              BERR_MAKE_CODE(BERR_KM_ID,151)
+#define BSAGE_ERR_KM_INVALID_NONCE                              BERR_MAKE_CODE(BERR_KM_ID,152)
+#define BSAGE_ERR_KM_MISSING_MAC_LENGTH                         BERR_MAKE_CODE(BERR_KM_ID,153)
+#define BSAGE_ERR_KM_KEY_RATE_LIMIT_EXCEEDED                    BERR_MAKE_CODE(BERR_KM_ID,154)
+#define BSAGE_ERR_KM_CALLER_NONCE_PROHIBITED                    BERR_MAKE_CODE(BERR_KM_ID,155)
+#define BSAGE_ERR_KM_KEY_MAX_OPS_EXCEEDED                       BERR_MAKE_CODE(BERR_KM_ID,156)
+#define BSAGE_ERR_KM_INVALID_MAC_LENGTH                         BERR_MAKE_CODE(BERR_KM_ID,157)
+#define BSAGE_ERR_KM_MISSING_MIN_MAC_LENGTH                     BERR_MAKE_CODE(BERR_KM_ID,158)
+#define BSAGE_ERR_KM_UNSUPPORTED_MIN_MAC_LENGTH                 BERR_MAKE_CODE(BERR_KM_ID,159)
+#define BSAGE_ERR_KM_UNSUPPORTED_KDF                            BERR_MAKE_CODE(BERR_KM_ID,160)
+#define BSAGE_ERR_KM_UNSUPPORTED_EC_CURVE                       BERR_MAKE_CODE(BERR_KM_ID,161)
+#define BSAGE_ERR_KM_KEY_REQUIRES_UPGRADE                       BERR_MAKE_CODE(BERR_KM_ID,162)
+#define BSAGE_ERR_KM_ATTESTATION_CHALLENGE_MISSING              BERR_MAKE_CODE(BERR_KM_ID,163)
+#define BSAGE_ERR_KM_KEYMASTER_NOT_CONFIGURED                   BERR_MAKE_CODE(BERR_KM_ID,164)
+#define BSAGE_ERR_KM_VERSION_MISMATCH                           BERR_MAKE_CODE(BERR_KM_ID,199)
+
+
+#endif  /* KEYMASTER_ERR_H__ */

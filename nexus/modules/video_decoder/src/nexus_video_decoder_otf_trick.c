@@ -311,6 +311,13 @@ NEXUS_Error
 NEXUS_VideoDecoder_P_OtfPvr_SetTrickState(NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_VideoDecoderTrickState *pState, bool *complete)
 {
     NEXUS_Error rc;
+    NEXUS_VideoDecoder_ChannelChangeMode channelChangeMode = NEXUS_VideoDecoder_ChannelChangeMode_eHoldUntilFirstPicture;
+
+    /* OTF PVR requires a non-mute channel change mode. Allow override of eHoldUntilFirstPicture if not eMute. */
+    if (videoDecoder->settings.channelChangeMode != NEXUS_VideoDecoder_ChannelChangeMode_eMute) {
+        channelChangeMode = videoDecoder->settings.channelChangeMode;
+    }
+
     *complete = true;
     if(pState->reorderingMode!=NEXUS_VideoDecoderReorderingMode_eNone) {
         if(videoDecoder->startSettings.codec != NEXUS_VideoCodec_eMpeg2) {return BERR_TRACE(NEXUS_NOT_SUPPORTED);}
@@ -322,7 +329,7 @@ NEXUS_VideoDecoder_P_OtfPvr_SetTrickState(NEXUS_VideoDecoderHandle videoDecoder,
         videoDecoder->otfPvr.wasActive = true;
         if(!videoDecoder->otfPvr.active)  {
             /* enable OTF PVR */
-            rc = NEXUS_VideoDecoder_P_SetChannelChangeMode(videoDecoder, NEXUS_VideoDecoder_ChannelChangeMode_eHoldUntilFirstPicture);
+            rc = NEXUS_VideoDecoder_P_SetChannelChangeMode(videoDecoder, channelChangeMode);
             if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);}
             NEXUS_VideoDecoder_P_Stop_priv(videoDecoder);
             BDBG_MSG(("%s: %p enabling OTF PVR", "NEXUS_VideoDecoder_OtfPvr_SetSettings", (void *)videoDecoder));
@@ -359,7 +366,7 @@ NEXUS_VideoDecoder_P_OtfPvr_SetTrickState(NEXUS_VideoDecoderHandle videoDecoder,
         BDBG_MSG(("%s: %p disabling OTF PVR", "NEXUS_VideoDecoder_OtfPvr_SetSettings", (void *)videoDecoder));
 
         videoDecoder->otfPvr.active = false;
-        rc = NEXUS_VideoDecoder_P_SetChannelChangeMode(videoDecoder, NEXUS_VideoDecoder_ChannelChangeMode_eHoldUntilFirstPicture);
+        rc = NEXUS_VideoDecoder_P_SetChannelChangeMode(videoDecoder, channelChangeMode);
         if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);}
 
         NEXUS_VideoDecoder_P_Stop_priv(videoDecoder);

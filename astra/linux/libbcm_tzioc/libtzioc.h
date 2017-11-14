@@ -129,6 +129,6 @@ uint32_t _tzioc_vaddr2offset(
 
 int _tzioc_call_smc(
     struct tzioc_client *pClient,
-    uint32_t ucMode);
+    uint32_t ucCallnum);
 
 #endif /* LIBTZIOC_H */

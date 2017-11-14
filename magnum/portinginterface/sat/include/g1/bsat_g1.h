@@ -48,7 +48,9 @@
 
 
 /* define device configuration parameters */
-/* TBD... */
+enum {
+   BSAT_g1_CONFIG_AFEC_RAMP = 9
+};
 
 /* define channel configuration parameters */
 enum {
@@ -70,6 +72,9 @@ enum {
    BSAT_g1_CONFIG_SA_BUF_ADDR,
    BSAT_g1_CONFIG_MAX
 };
+
+/* bit definitions for BSAT_g1_CONFIG_AFEC_RAMP */
+#define BSAT_g1_CONFIG_AFEC_RAMP_ENABLE            0x80000000 /* 1=enable, 0=disable */
 
 /* bit definitions for BSAT_g1_CONFIG_ACQ_DAFE_CTL/BSAT_g1_CONFIG_TRK_DAFE_CTL */
 #define BSAT_g1_CONFIG_DAFE_CTL_CLDAFECTL          0x0007FFFE /* CLDAFECTL[18:1] */

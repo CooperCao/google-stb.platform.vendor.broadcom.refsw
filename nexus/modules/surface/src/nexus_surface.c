@@ -261,7 +261,10 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
     surface->createSettings = *pCreateSettings;
     surface->memoryPropertiesValid = false;
     if(pixel_format == BPXL_eUIF_R8_G8_B8_A8)
-        BPXL_Plane_Uif_Init(&surface->plane, surface->createSettings.width, surface->createSettings.height, pixel_format, (BCHP_Handle)g_pCoreHandles->chp);
+    {
+        rc = BPXL_Plane_Uif_Init(&surface->plane, surface->createSettings.width, surface->createSettings.height, surface->createSettings.mipLevel, pixel_format, (BCHP_Handle)g_pCoreHandles->chp);
+        if(rc !=BERR_SUCCESS) goto error;
+    }
     else
         BPXL_Plane_Init(&surface->plane, surface->createSettings.width, surface->createSettings.height, pixel_format);
 
@@ -286,18 +289,26 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
         BMMA_GetDefaultAllocationSettings(&mmaSettings);
     }
 
-    if(pCreateSettings->pitch) {
-        if (pCreateSettings->pitch < surface->plane.ulPitch) {
-            rc = BERR_TRACE(BERR_INVALID_PARAMETER);
-            BDBG_ERR(("specified pitch(%u) is too small(%u)", (unsigned)pCreateSettings->pitch, (unsigned)surface->plane.ulPitch));
+    if (pixel_format != BPXL_eUIF_R8_G8_B8_A8) {
+        if(pCreateSettings->pitch) {
+            if (pCreateSettings->pitch < surface->plane.ulPitch) {
+                rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+                BDBG_ERR(("specified pitch(%u) is too small(%u)", (unsigned)pCreateSettings->pitch, (unsigned)surface->plane.ulPitch));
+                goto error;
+            }
+            surface->plane.ulPitch = pCreateSettings->pitch;
+            surface->plane.ulBufSize = surface->plane.ulHeight * surface->plane.ulPitch;
+        }
+        if ((uint64_t)surface->plane.ulHeight * surface->plane.ulPitch > surface->plane.ulBufSize) {
+            BDBG_ERR(("surface too large: pitch %u x height %u", (unsigned)surface->plane.ulPitch, (unsigned)surface->plane.ulHeight));
             goto error;
         }
-        surface->plane.ulPitch = pCreateSettings->pitch;
-        surface->plane.ulBufSize = surface->plane.ulHeight * surface->plane.ulPitch;
     }
-    if ((uint64_t)surface->plane.ulHeight * surface->plane.ulPitch > surface->plane.ulBufSize) {
-        BDBG_ERR(("surface too large: pitch %u x height %u", (unsigned)surface->plane.ulPitch, (unsigned)surface->plane.ulHeight));
-        goto error;
+    else {
+        if ((pCreateSettings->pitch ) && (pCreateSettings->pitch != surface->plane.ulPitch)) {
+            BDBG_ERR(("UIF pitch %u not compatible with surface size", (unsigned)surface->plane.ulPitch));
+            goto error;
+        }
     }
 
     if ( pCreateSettings->pMemory )
@@ -692,6 +703,7 @@ void NEXUS_Surface_GetStatus(NEXUS_SurfaceHandle surface, NEXUS_SurfaceStatus *p
     pStatus->height = surface->createSettings.height;
     pStatus->pitch = surface->plane.ulPitch;
     pStatus->numPaletteEntries = surface->plane.ulNumPaletteEntries;
+    pStatus->bufferSize = surface->plane.ulBufSize;
     return;
 }
 

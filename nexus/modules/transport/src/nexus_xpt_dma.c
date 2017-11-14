@@ -711,13 +711,11 @@ static void NEXUS_Dma_P_CompleteEvent(void* context)
 
 static void NEXUS_Dma_P_CompleteCallback_isr(void *pParam, int iParam)
 {
-    unsigned i;
     NEXUS_DmaJobHandle handle = (NEXUS_DmaJobHandle)pParam;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_DmaJob);
     BSTD_UNUSED(iParam);
 
-    BSTD_UNUSED(i);
     BKNI_SetEvent_isr(handle->completionEvent);
 }
 
@@ -743,11 +741,13 @@ NEXUS_DmaJob_P_ProcessBlocks(NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlockS
         /* convert to offset */
         srcOffset = NEXUS_AddrToOffset((void *)pSettings->pSrcAddr);
         if (0 == srcOffset) {
-            BDBG_ERR(("Invalid Source Address: [%u]%#lx", i, (unsigned long)pSettings->pSrcAddr));
+            BDBG_ERR(("Unusable pSrcAddr %p. NEXUS_Dma requires Nexus heap memory, not kernel allocated memory.", pSettings->pSrcAddr));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
         if (pSettings->cached) {
             if (!NEXUS_P_CpuAccessibleAddress(pSettings->pSrcAddr)) {
+                BDBG_ERR(("Cannot do driver-side cacheflush of pSrcAddr %p (" BDBG_UINT64_FMT ") with no memory mapping. Set cached=false and flush in the app.",
+                    pSettings->pSrcAddr, BDBG_UINT64_ARG(srcOffset)));
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
             NEXUS_FlushCache(pSettings->pSrcAddr, pSettings->blockSize);
@@ -758,11 +758,13 @@ NEXUS_DmaJob_P_ProcessBlocks(NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlockS
         else {
             dstOffset = NEXUS_AddrToOffset(pSettings->pDestAddr);
             if (0 == dstOffset) {
-                BDBG_ERR(("Invalid Destination Address: [%u]%#lx", i, (unsigned long)pSettings->pDestAddr));
+                BDBG_ERR(("Unusable pDestAddr %p. NEXUS_Dma requires Nexus heap memory, not kernel allocated memory.", pSettings->pDestAddr));
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
             if (pSettings->cached) {
                 if (!NEXUS_P_CpuAccessibleAddress(pSettings->pDestAddr)) {
+                    BDBG_ERR(("Cannot do driver-side cacheflush of pDestAddr %p (" BDBG_UINT64_FMT ") with no memory mapping. Set cached=false and flush in the app.",
+                        pSettings->pDestAddr, BDBG_UINT64_ARG(dstOffset)));
                     return BERR_TRACE(BERR_INVALID_PARAMETER);
                 }
                 NEXUS_FlushCache(pSettings->pDestAddr, pSettings->blockSize);

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,7 +48,9 @@
 #include "bvdc_buffer_priv.h"
 #include "bvdc_scaler_priv.h"
 
+#if BVDC_P_SUPPORT_HSCL_VER
 #include "bchp_hscl_0.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,7 +65,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HSCL_VER_6             (6) /* 7231B0, 7344B0, 7346B0, 7425B0, Added more derring knobs */
 #define BVDC_P_SUPPORT_HSCL_VER_7             (7) /* 7364A0, remove HSCL_0_TOP_CONTROL UPDATE_SEL Field */
 
-
+#if BVDC_P_SUPPORT_HSCL_VER
 /***************************************************************************
  * Private register cracking macros
  ***************************************************************************/
@@ -238,7 +240,9 @@ do { \
     (BVDC_P_HSCL_FIR_TAP_COUNT_MAX * BVDC_P_HSCL_FIR_PHASE_COUNT_MAX)
 
 #define BVDC_P_HSCL_LAST UINT32_C(-1)
-
+#else
+#define BVDC_P_HSCL_REGS_COUNT 1
+#endif
 /***************************************************************************
  * Hscaler private data structures
  ***************************************************************************/

@@ -185,7 +185,7 @@
 #endif
 
 /** Explicitly mark a switch-case fallthrough on compilers that support/require that. */
-#if __FP_GCC__ > 2 || (__FP_GCC__ == 2 && __FP_GCC_MINOR__ >= 8)
+#if __GNUC_VERSION__ >= __GCC_VERSION__(7, 0, 0)
 #  define __fallthrough         __attribute__((fallthrough))
 #else
 #  define __fallthrough

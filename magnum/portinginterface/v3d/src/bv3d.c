@@ -555,6 +555,20 @@ BERR_Code BV3D_UnregisterClient(
       /* remove all the elements from the instruction queue */
       while ((psInstruction = BV3D_P_IQPop(instrQueue)) != NULL)
       {
+         /* any pending fences swept away require signalled */
+         if (psInstruction->eOperation == BV3D_Operation_eNotifyInstr)
+         {
+            /* signal the fence if provided (probably Android only) */
+            void *p = (void *)((uintptr_t)psInstruction->uiArg2);
+            BV3D_P_FenceSignalAndCleanup(hV3d->hFences, p, BSTD_FUNCTION);
+         }
+         else if (psInstruction->eOperation == BV3D_Operation_eFenceInstr)
+         {
+            /* delete any waiter callbacks */
+            void *p = (void *)((uintptr_t)psInstruction->uiArg1);
+            BV3D_P_FenceFree(hV3d->hFences, p);
+         }
+
          BV3D_P_InstructionDone(hV3d, psInstruction->psJob);
          uiRemovedCount += 1;
       }
@@ -988,7 +1002,10 @@ BERR_Code BV3D_GetLoadData(
 BERR_Code BV3D_FenceOpen(
    BV3D_Handle          hV3d,              /* [in] Handle to V3D module. */
    uint32_t             uiClientId,
-   int                  *pFence
+   int                 *pFence,
+   void               **dataToSignal,
+   char                 cType,
+   int                  iPid
 )
 {
    BDBG_ENTER(BV3D_FenceOpen);
@@ -996,13 +1013,9 @@ BERR_Code BV3D_FenceOpen(
    if (hV3d == NULL)
       return BERR_INVALID_PARAMETER;
 
-   BV3D_P_FenceArrayMutexAcquire(hV3d->hFences);
-
-   *pFence = BV3D_P_FenceAlloc(hV3d->hFences, uiClientId);
+   *pFence = BV3D_P_FenceOpen(hV3d->hFences, uiClientId, dataToSignal, cType, iPid);
 
    BDBG_MSG(("BV3D_FenceOpen fence %d", *pFence));
-
-   BV3D_P_FenceArrayMutexRelease(hV3d->hFences);
 
    BDBG_LEAVE(BV3D_FenceOpen);
 
@@ -1010,53 +1023,19 @@ BERR_Code BV3D_FenceOpen(
 }
 
 /***************************************************************************/
-void BV3D_FenceClose(
+BERR_Code BV3D_FenceWaitAsync(
    BV3D_Handle          hV3d,
-   int                  fd
+   uint32_t             uiClientId,
+   int                  fd,
+   void               **pV3dFFence
 )
 {
-   BDBG_ENTER(BV3D_FenceClose);
+   BERR_Code err;
+   BDBG_ENTER(BV3D_FenceWaitAsync);
 
-   BV3D_P_FenceArrayMutexAcquire(hV3d->hFences);
-   BV3D_P_FenceFree(hV3d->hFences, fd);
-   BV3D_P_FenceArrayMutexRelease(hV3d->hFences);
+   err = BV3D_P_FenceWaitAsync(hV3d, uiClientId, fd, pV3dFFence);
 
-   BDBG_LEAVE(BV3D_FenceClose);
-}
-
-/***************************************************************************/
-BERR_Code BV3D_FenceSignal(
-   BV3D_Handle          hV3d,
-   int                  fd
-)
-{
-   BERR_Code      err                          = BERR_SUCCESS;
-   BV3D_P_Fence  *pFence                       = NULL;
-
-   BDBG_ENTER(BV3D_FenceSignal);
-
-   BV3D_P_FenceArrayMutexAcquire(hV3d->hFences);
-
-   pFence = BV3D_P_FenceGet(hV3d->hFences, fd);
-
-   if (pFence == NULL || pFence->eState != BV3D_FENCE_ACTIVE)
-   {
-      err = BERR_INVALID_PARAMETER;
-      goto exit;
-   }
-
-   BDBG_MSG(("BV3D_FenceSignal %d : Handler %p, Fence Ptr %p", fd, (void *)(uintptr_t)pFence->pfnCallback, (void *)pFence));
-
-   pFence->eState = BV3D_FENCE_SIGNALLED;
-
-   BV3D_P_FenceCallback(hV3d, pFence);
-
-   BKNI_SetEvent(hV3d->wakeWorkerThread);
-
-exit:
-   BV3D_P_FenceArrayMutexRelease(hV3d->hFences);
-
-   BDBG_LEAVE(BV3D_FenceSignal);
+   BDBG_LEAVE(BV3D_FenceWaitAsync);
 
    return err;
 }

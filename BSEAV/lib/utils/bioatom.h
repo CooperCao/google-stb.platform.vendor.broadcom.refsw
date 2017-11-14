@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1051,6 +1051,15 @@ Summary:
 void batom_bitstream_drop_bits(
     batom_bitstream *bs, /* pointer to the batom_bitstream */
     unsigned nbits       /* number of bits to skip */
+    );
+
+/**
+Summary:
+ This function verifies that specified number of bits exists in tbe bitstream
+**/
+bool batom_bitstream_reserve(
+    const batom_bitstream *bs, /* pointer to the batom_bitstream */
+    unsigned nbits             /* number of bits to reserve */
     );
 
 

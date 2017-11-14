@@ -38,21 +38,21 @@
 
 #ifndef BDSP_AUTH_H_
 #define BDSP_AUTH_H_
-
-#include "bstd.h"
-#include "berr.h"
-#include "bdsp_types.h"
-#include "bdsp_raaga_fwdownload.h"
+/* base modules */
+#include "bstd.h"           /* standard types */
+#include "bdbg.h"           /* debug interface */
+#include "berr.h"           /* error code */
+#include "bkni.h"           /* kernel interface */
+#include "bdsp_raaga_priv_include.h"
 
 #define MAX_FW_BINARY_SIZE 20000000
 
-BERR_Code
-BDSP_DumpImage(
-   unsigned uiFirmwareId,
-   void *pBuffer,
-   unsigned uiBufferSize,
-   void **pvCodeStart,
-   unsigned *puiCodeSize
+BERR_Code BDSP_DumpImage(
+   unsigned   uiFirmwareId,
+   void      *pBuffer,
+   unsigned   uiBufferSize,
+   void     **pvCodeStart,
+   unsigned  *puiCodeSize
 );
 
 #endif /* BDSP_AUTH_H_ */

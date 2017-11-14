@@ -43,7 +43,7 @@ else
     DEBUG_SUFFIX=release
 endif
 
-CURL_VER?=7.54.1
+CURL_VER?=7.56.0
 
 CURL_NAME:=curl-$(CURL_VER)
 CURL_SOURCE_TARBALL:=$(CURL_NAME).tar.gz

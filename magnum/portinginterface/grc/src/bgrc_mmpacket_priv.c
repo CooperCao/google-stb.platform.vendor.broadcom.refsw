@@ -39,7 +39,7 @@
 
 #include "bgrc_mmpacket_priv.h"
 
-#if (BGRC_P_VER >= BGRC_P_VER_3)
+#if (BGRC_P_VER >= BGRC_P_VER_2)
 
 BDBG_FILE_MODULE(BGRC_MIPMAP_SURFACE);
 

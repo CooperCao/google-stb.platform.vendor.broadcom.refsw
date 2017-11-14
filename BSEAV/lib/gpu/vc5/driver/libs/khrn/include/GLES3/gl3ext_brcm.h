@@ -36,6 +36,10 @@ extern "C" {
 #define GL_MIRROR_CLAMP_TO_EDGE_BRCM      0x8743
 #endif /* GL_BRCM_mirror_clamp_to_edge */
 
+#ifndef GL_BRCM_no_perspective
+#define GL_BRCM_no_perspective 1
+#endif /* GL_BRCM_no_perspective */
+
 #ifndef GL_BRCM_polygon_mode
 #define GL_BRCM_polygon_mode 1
 #define GL_POINT_BRCM                     0x1B00
@@ -58,6 +62,14 @@ GL_APICALL void GL_APIENTRY glProvokingVertexBRCM (GLenum mode);
 #endif
 #endif /* GL_BRCM_provoking_vertex */
 
+#ifndef GL_BRCM_sampler_fetch
+#define GL_BRCM_sampler_fetch 1
+#endif /* GL_BRCM_sampler_fetch */
+
+#ifndef GL_BRCM_shader_framebuffer_fetch_depth_stencil
+#define GL_BRCM_shader_framebuffer_fetch_depth_stencil 1
+#endif /* GL_BRCM_shader_framebuffer_fetch_depth_stencil */
+
 #ifndef GL_BRCM_texture_1D
 #define GL_BRCM_texture_1D 1
 #define GL_TEXTURE_1D_BRCM                0x0DE0
@@ -79,6 +91,10 @@ GL_APICALL void GL_APIENTRY glTexSubImage1DBRCM (GLenum target, GLint level, GLi
 GL_APICALL void GL_APIENTRY glTexStorage1DBRCM (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width);
 #endif
 #endif /* GL_BRCM_texture_1D */
+
+#ifndef GL_BRCM_texture_gather_lod
+#define GL_BRCM_texture_gather_lod 1
+#endif /* GL_BRCM_texture_gather_lod */
 
 #ifndef GL_BRCM_texture_norm16
 #define GL_BRCM_texture_norm16 1

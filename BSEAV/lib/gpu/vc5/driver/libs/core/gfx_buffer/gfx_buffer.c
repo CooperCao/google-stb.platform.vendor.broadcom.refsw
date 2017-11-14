@@ -353,7 +353,6 @@ uint32_t gfx_buffer_uif_height_in_ub(
        * that the buffer height is a multiple of this, so that XORing cannot
        * give addresses outside of the buffer. */
       assert(!(h_in_ub_from_pitch & gfx_mask(b)));
-      vcos_unused_in_release(b);
    }
 
    return h_in_ub_from_pitch;

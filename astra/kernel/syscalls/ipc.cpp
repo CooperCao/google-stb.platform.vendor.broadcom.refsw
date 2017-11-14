@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -262,5 +262,46 @@ void SysCalls::doMqGetSetAttr(TzTask *currTask) {
     if (rv == 0) {
         copyToUser(uOldAttr, &kOldAttr);
     }
+    currTask->writeUserReg(TzTask::UserRegs::r0, rv);
+}
+
+void SysCalls::doPipe2(TzTask *currTask) {
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
+    int fds[2];
+
+    if (!validateUserMemAccess((void *)arg0, sizeof(fds))) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+        return;
+    }
+
+    int rv = currTask->pipeOpen(fds, arg1);
+
+    bool rc = toUser((void *)arg0, fds, sizeof(fds));
+    if (!rc) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+        return;
+    }
+
+    currTask->writeUserReg(TzTask::UserRegs::r0, rv);
+}
+
+void SysCalls::doPipe(TzTask *currTask) {
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+    int fds[2];
+
+    if (!validateUserMemAccess((void *)arg0, sizeof(fds))) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+        return;
+    }
+
+    int rv = currTask->pipeOpen(fds, 0);
+
+    bool rc = toUser((void *)arg0, fds, sizeof(fds));
+    if (!rc) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+        return;
+    }
+
     currTask->writeUserReg(TzTask::UserRegs::r0, rv);
 }

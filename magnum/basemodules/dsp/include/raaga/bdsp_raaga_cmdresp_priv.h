@@ -245,11 +245,6 @@ from host to any task on DSP */
 #define BDSP_RAAGA_BSP_SCM_COMMAND_ID       \
         ((uint32_t)((BDSP_RAAGA_AUDIO_GAP_FILL_COMMAND_ID ) + 1))                       /** 0x155**/
 
-#if (BCHP_CHIP == 7278)
-#define BDSP_RAAGA_INIT_PROCESS_COMMAND_ID       \
-       ((uint32_t)((BDSP_RAAGA_BSP_SCM_COMMAND_ID ) + 1))                               /** 0x156*/
-#endif
-
 /*** Following are the Ack ids for different commands ***/
 
 #define BDSP_RAAGA_START_TASK_ACK_ID   \
@@ -428,30 +423,6 @@ typedef struct BDSP_Raaga_P_NumPicToDropCommand
 
 } BDSP_Raaga_P_NumPicToDropCommand;
 
-#if (BCHP_CHIP == 7278)
-/***************************************************************************
-Summary:
-    Host to Init Command
-
-Description:
-
-    Host sends this information to init process for physmem management
-
-****************************************************************************/
-
-typedef struct BDSP_P_InitProcessCommand
-{
-    uint32_t            ui32RomfsSize;  /* Size of the initial ROMFS in the RO memory */
-
-    uint32_t            ui32LdImgSize;  /* Size of the RO memory reserved for loadable images */
-
-    uint32_t            ui32ProcessPhysMemLength; /* RW memory size reserved for creating the processes */
-
-    uint32_t            ui32MMPhysMemLength; /* RW memory size reserved for MM server */
-
-} BDSP_P_InitProcessCommand;
-#endif
-
 /***************************************************************************
 Summary:
     BSP Command: Send SCM Commands to DSP
@@ -461,16 +432,6 @@ Description:
     Host sends this command structure to DSP for SCM operations.
 
 ****************************************************************************/
-
-typedef struct BDSP_Raaga_P_SCM_CmdPayload
-{
-    dramaddr_t  ui32DramCmdBufAddress;
-    uint32_t    ui32DramCmdBufSize;
-    dramaddr_t  ui32DramRespBufAddress;
-    uint32_t    ui32DramRespBufSize;
-
-}BDSP_Raaga_P_SCM_CmdPayload;
-
 
 typedef struct BDSP_Raaga_P_SCM_CmdOperation
 {
@@ -508,9 +469,6 @@ typedef struct BDSP_Raaga_P_Command
         BDSP_Raaga_P_SCM_CmdOperation           sScmCmd;
         BDSP_Raaga_P_GetVomTableCommand         sGetVomTable;
         BDSP_Raaga_P_NumPicToDropCommand        sNumPicToDropCommand;
-#if (BCHP_CHIP == 7278)
-        BDSP_P_InitProcessCommand               sInitProcessCommand;
-#endif
     } uCommand;
 } BDSP_Raaga_P_Command;
 

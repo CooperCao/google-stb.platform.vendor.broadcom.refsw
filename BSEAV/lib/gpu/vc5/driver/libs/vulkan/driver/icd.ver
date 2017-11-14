@@ -1,0 +1,4 @@
+bcmvulkan_icd {
+   global: vk_icd*;
+   local: *;
+};

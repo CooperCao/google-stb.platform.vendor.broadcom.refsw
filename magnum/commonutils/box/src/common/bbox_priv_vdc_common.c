@@ -441,6 +441,8 @@ BERR_Code BBOX_P_Vdc_SelfCheck
     /* Check each entry in MEMC table against appropriate entries in BBOX_Vdc_Capabilities */
     for (i=0; i<BBOX_VDC_DISPLAY_COUNT; i++)
     {
+        BAVC_SourceId eSrc;
+
         /* Check HDMI CFC memc index entries for CMP 0 and 1 only */
         if (i==0 || i==1)
         {
@@ -457,6 +459,26 @@ BERR_Code BBOX_P_Vdc_SelfCheck
                 BDBG_ERR(("CMP CFC allocation in MEMC %d doesn't correspond to display %d entry.",
                     pMemConfig->stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex, i));
                 eStatus = BERR_INVALID_PARAMETER;
+            }
+
+            for (eSrc = BAVC_SourceId_eMpeg0; eSrc <= BAVC_SourceId_eMpegMax; eSrc++)
+            {
+                if (pVdcCap->astSource[eSrc].bAvailable)
+                {
+                    /* This check suffices if one source is HDR capable ie., 10bpp source and one CMP has HDR MEMC client set. */
+                    if ((pMemConfig->stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[i] != BBOX_MemcIndex_Invalid ||
+                         pMemConfig->stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex  != BBOX_MemcIndex_Invalid) &&
+                        pVdcCap->astDisplay[i].bAvailable &&
+                        pVdcCap->astSource[eSrc].eBpp < BBOX_Vdc_Bpp_e10bit)
+                    {
+                        BDBG_ERR(("HDMI/CMP CFC allocation doesn't correspond to any MPEG source that is HDR capable."));
+                        eStatus = BERR_INVALID_PARAMETER;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
         }
 
@@ -618,11 +640,24 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
     if (hBox)
     {
         uint32_t ulBoxId;
-        BBOX_Vdc_Capabilities *pstVdcCap;
-        BBOX_MemConfig *pstMemConfig;
+        BBOX_Vdc_Capabilities *pstVdcCap = NULL;
+        BBOX_MemConfig *pstMemConfig = NULL;
 
         pstVdcCap = (BBOX_Vdc_Capabilities *)BKNI_Malloc(sizeof(BBOX_Vdc_Capabilities));
+        if (!pstVdcCap)
+        {
+            BDBG_ERR(("Failed to allocate memory."));
+            eStatus = BERR_OUT_OF_SYSTEM_MEMORY;
+            goto BBOX_Validate_Done;
+
+        }
         pstMemConfig = (BBOX_MemConfig *)BKNI_Malloc(sizeof(BBOX_MemConfig));
+        if (!pstMemConfig)
+        {
+            BDBG_ERR(("Failed to allocate memory."));
+            eStatus = BERR_OUT_OF_SYSTEM_MEMORY;
+            goto BBOX_Validate_Done;
+        }
 
         for (ulBoxId=1; ulBoxId<=BBOX_MODES_SUPPORTED; ulBoxId++)
         {
@@ -644,7 +679,7 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
                 goto BBOX_Validate_Done;
             }
 
-            eStatus = BBOX_P_GetMemConfig(ulBoxId, pstMemConfig);
+            eStatus = BBOX_P_SetMemConfig(ulBoxId, pstMemConfig);
             if (eStatus != BERR_SUCCESS)
             {
                 goto BBOX_Validate_Done;
@@ -659,15 +694,21 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
             }
         }
 
-        BKNI_Free(pstVdcCap);
-        BKNI_Free(pstMemConfig);
+BBOX_Validate_Done:
+        if (pstVdcCap)
+        {
+            BKNI_Free(pstVdcCap);
+        }
+        if (pstMemConfig)
+        {
+            BKNI_Free(pstMemConfig);
+        }
     }
     else
     {
         BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Box mode 0 doesn't require validation."));
     }
 
-BBOX_Validate_Done:
     return eStatus;
 }
 

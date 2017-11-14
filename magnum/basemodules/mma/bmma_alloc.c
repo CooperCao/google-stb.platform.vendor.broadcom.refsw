@@ -225,19 +225,6 @@ static bool BMMA_P_Relocatable(void *context, void *user_block)
     return !(b->lock_cnt > 0 || b->lock_offset_cnt > 0);
 }
 
-static void BMMA_P_Unmap(BMMA_Heap_Handle h, BMMA_Block_Handle b)
-{
-    BDBG_ASSERT(b->lock_cnt <= 0);
-    if(b->lock_cnt == 0) {
-        size_t size = BMMA_RangeAllocator_GetAllocationSize(b->block);
-        void *addr = b->addr;
-        b->lock_cnt = -1;
-        b->addr = NULL;
-        h->settings.unmap(h->settings.context, (uint8_t *)b+sizeof(*b), addr, size);
-    }
-    return;
-}
-
 static BERR_Code BMMA_P_Relocate(void *context, void *user_block, BMMA_DeviceOffset dst, BMMA_DeviceOffset src, size_t length)
 {
     BMMA_Heap_Handle h = context;
@@ -249,7 +236,6 @@ static BERR_Code BMMA_P_Relocate(void *context, void *user_block, BMMA_DeviceOff
 
     /* it should be already serialized */
     BDBG_ASSERT(b->lock_offset_cnt==0);
-    BMMA_P_Unmap(h, b);
     if(b->discardable) { goto done;}
     if(h->settings.relocate) {
         return h->settings.relocate(h->settings.context, dst, src, length);
@@ -462,7 +448,7 @@ BMMA_Block_Handle BMMA_Alloc(BMMA_Heap_Handle h, size_t size, unsigned alignment
         b->tainted = false;
 #endif
 #if BDBG_DEBUG_BUILD
-        if(b) {
+        {
             BMMA_DeviceOffset offset = BMMA_RangeAllocator_GetAllocationBase(b->block);
             BDBG_MODULE_MSG(BMEM, ("%p: %p:" BDBG_UINT64_FMT "..." BDBG_UINT64_FMT "(%#x),%u %s:%u", (void *)h, (void *)b, BDBG_UINT64_ARG(offset), BDBG_UINT64_ARG(offset+size), (unsigned)alignment, (unsigned)size, b->fname, b->line));
         }
@@ -603,31 +589,32 @@ static void *BMMA_Lock_locked(BMMA_Block_Handle b)
     void *addr=NULL;
 
     BDBG_OBJECT_ASSERT(b, BMMA_Block);
-    if(b->lock_cnt>=0) {
-        if(b->lock_cnt==0) {
-            BMMA_LockOffset_tagged_locked(b, fname, line);
-        }
+    if(b->lock_cnt>0) {
         BDBG_ASSERT(b->lock_cnt<32767);
         b->lock_cnt++;
         addr = b->addr;
         if(addr==NULL && b->heap == &b->heap->parent->dummyHeap) {
             (void)BERR_TRACE(BERR_OS_ERROR);
         }
-    } else {
+    } else { /* lock_cnt == -1 or lock_cnt == 0 */
         BMMA_DeviceOffset offset = BMMA_RangeAllocator_GetAllocationBase(b->block);
         size_t size = BMMA_RangeAllocator_GetAllocationSize(b->block);
         BMMA_LockOffset_tagged_locked(b, fname, line);
-        addr = b->heap->settings.mmap(b->heap->settings.context, (uint8_t *)b + sizeof(*b), offset, size);
-        if(addr==NULL) {
-            (void)BERR_TRACE(BERR_OS_ERROR);
-            BMMA_UnlockOffset_tagged_locked(b, fname, line);
-            goto done;
+        BDBG_ASSERT(b->lock_cnt>=-1);
+        addr = b->addr;
+        if(!b->uncached || b->lock_cnt==-1) {
+            addr = b->heap->settings.mmap(b->heap->settings.context, (uint8_t *)b + sizeof(*b), offset, size);
+            if(addr==NULL) {
+                (void)BERR_TRACE(BERR_OS_ERROR);
+                BMMA_UnlockOffset_tagged_locked(b, fname, line);
+                goto done;
+            }
+            b->addr = addr;
         }
-        b->addr = addr;
         b->lock_cnt=1;
     }
-done:
     b->discardable = false;
+done:
     return addr;
 }
 
@@ -789,10 +776,11 @@ BMMA_DeviceOffset BMMA_GetOffset_isr(BMMA_Block_Handle b)
 void BMMA_FlushCache_isrsafe(BMMA_Block_Handle b, const void *addr, size_t size)
 {
     unsigned offset;
-    size_t block_size = BMMA_RangeAllocator_GetAllocationSize(b->block);
+    size_t block_size;
     /* can't lock in this function */
     BDBG_OBJECT_ASSERT(b, BMMA_Block);
     BDBG_ASSERT(b->lock_cnt>0);
+    block_size = BMMA_RangeAllocator_GetAllocationSize(b->block);
     if((const uint8_t *)addr < (const uint8_t *)b->addr) {
         BDBG_ERR(("BMMA_FlushCache:%p(%p[%u[) addr:%p not from this memory block", (void *)b, b->addr, (unsigned)block_size, addr));
         (void)BERR_TRACE(BERR_INVALID_PARAMETER);

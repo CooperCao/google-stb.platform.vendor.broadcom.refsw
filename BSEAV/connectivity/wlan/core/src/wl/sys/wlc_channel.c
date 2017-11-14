@@ -1995,7 +1995,7 @@ wlc_set_country_common(wlc_cm_info_t *wlc_cmi,
 		if (RADAR_ENAB(wlc->pub) && ((NBANDS(wlc_iter) == 2) ||
 			IS_SINGLEBAND_5G(wlc_iter->deviceid, wlc_iter->phy_cap))) {
 			phy_radar_detect_mode_t mode;
-			result = wlc_get_flags(&locale, CLM_BAND_5G, &flags);
+			(void) wlc_get_flags(&locale, CLM_BAND_5G, &flags);
 
 			mode = ISDFS_EU(flags) ? RADAR_DETECT_MODE_EU:RADAR_DETECT_MODE_FCC;
 			phy_radar_detect_mode_set((phy_info_t *)WLC_PI(wlc_iter), mode);

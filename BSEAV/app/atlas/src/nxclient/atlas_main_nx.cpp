@@ -340,6 +340,7 @@ void CAtlasNx::outputRfmUninitialize(
     BSTD_UNUSED(pOutputRfm);
 }
 
+/* can use 2nd audio decoder for pip if available */
 CSimpleAudioDecode * CAtlasNx::audioDecodeInitializePip(
         COutputHdmi *     pOutputHdmi,
         COutputSpdif *    pOutputSpdif,

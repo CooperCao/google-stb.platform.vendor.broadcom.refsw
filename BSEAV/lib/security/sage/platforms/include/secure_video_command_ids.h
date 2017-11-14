@@ -44,13 +44,23 @@
 extern "C" {
 #endif
 
+/***********
+2.6 - Support dynamic URR
+2.7 - Support secure HDMI Rx
+2.8 - Support for DTU remap of URR
+2.9 - Support enable/disable FWRR arch. SECURE_VIDEO_OUT_VER_COMPAT_MIN added.
+************/
+
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
 #define SECURE_VIDEO_VER_ID 0x00010000
 #else
-#define SECURE_VIDEO_VER_ID 0x00020008
+#define SECURE_VIDEO_VER_ID 0x00020009
 #endif
 #define SECURE_VIDEO_V3D_ALIGNMENT 4096
 #define SECURE_VIDEO_V3D_SIZE 0x4000
+
+/* Only for module init return */
+#define SECURE_VIDEO_OUT_VER_COMPAT_MIN 2
 
 /* Common for all commands */
 #define SECURE_VIDEO_IN_VER 0

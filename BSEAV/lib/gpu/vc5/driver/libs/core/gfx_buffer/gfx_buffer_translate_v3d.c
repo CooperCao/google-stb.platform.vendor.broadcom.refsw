@@ -49,7 +49,7 @@ void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
    ls->addr = base_addr + p->offset + (slice * p->slice_pitch);
 
    ls->memory_format = gfx_buffer_translate_memory_format(desc, plane_i);
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    gfx_lfmt_translate_pixel_format(p->lfmt, &ls->pixel_format, &ls->chan_reverse, &ls->rb_swap);
    ls->load_alpha_to_one = !gfx_lfmt_has_alpha(p->lfmt);
 #elif V3D_VER_AT_LEAST(4,0,2,0)

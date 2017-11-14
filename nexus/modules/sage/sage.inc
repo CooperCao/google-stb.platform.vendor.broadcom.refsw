@@ -112,6 +112,21 @@ ifeq ($(BP3_PROVISIONING),y)
 NEXUS_CFLAGS += -DBP3_PROVISIONING
 endif
 
+######################
+# SARM Interface      #
+######################
+ifneq ($(SAGE_VERSION), 2x)
+NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_sarm.c
+endif
+NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include $(MAGNUM)/commonutils/avc/include
+
+######################
+# Secure_log Interface      #
+######################
+ifneq ($(SAGE_VERSION), 2x)
+NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_secure_log.c
+endif
+
 ###############
 # thunk layer #
 ###############

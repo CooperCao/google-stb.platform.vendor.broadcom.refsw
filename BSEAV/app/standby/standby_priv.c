@@ -2949,8 +2949,9 @@ void graphics2d_setup(void)
 
         NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
         createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
-        createSettings.width =  displayCap.display[1].graphics.width;
-        createSettings.height = displayCap.display[1].graphics.height;
+        /* displayCap.display[1].graphics.width and height not reliable for all platforms (7425, 7435)*/
+        createSettings.width =  720;
+        createSettings.height = 576;
         createSettings.heap = NEXUS_Platform_GetFramebufferHeap(1);
         g_StandbyNexusHandles.framebufferSD = NEXUS_Surface_Create(&createSettings);
         g_StandbyNexusHandles.offscreenSD = NEXUS_Surface_Create(&createSettings);
@@ -3481,7 +3482,7 @@ int live_setup(unsigned id)
             if(rc) { rc = BERR_TRACE(rc); goto err; }
             rc = BKNI_WaitForEvent(g_StandbyNexusHandles.signalLockedEvent, 5000);
             if(rc) {
-                BDBG_WRN(("%s: Frontend failed to lock QAM signal during PSI acquisition"));
+                BDBG_WRN(("Frontend failed to lock QAM signal during PSI acquisition"));
                 BERR_TRACE(rc); goto err;
             }
             break;
@@ -3490,7 +3491,7 @@ int live_setup(unsigned id)
             if(rc) { rc = BERR_TRACE(rc); goto err; }
             rc = BKNI_WaitForEvent(g_StandbyNexusHandles.signalLockedEvent, 5000);
             if(rc) {
-                BDBG_WRN(("%s: Frontend failed to lock SAT signal during PSI acquisition"));
+                BDBG_WRN(("Frontend failed to lock SAT signal during PSI acquisition"));
                 BERR_TRACE(rc); goto err;
             }
             break;
@@ -3499,7 +3500,7 @@ int live_setup(unsigned id)
             if(rc) { rc = BERR_TRACE(rc); goto err; }
             rc = BKNI_WaitForEvent(g_StandbyNexusHandles.signalLockedEvent, 5000);
             if(rc) {
-                BDBG_WRN(("%s: Frontend failed to lock OFDM signal during PSI acquisition"));
+                BDBG_WRN(("Frontend failed to lock OFDM signal during PSI acquisition"));
                 BERR_TRACE(rc); goto err;
             }
             break;

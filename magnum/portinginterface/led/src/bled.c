@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,8 +45,6 @@
 
 BDBG_MODULE(bled);
 
-#define DEV_MAGIC_ID            ((BERR_LED_ID<<16) | 0xFACE)
-
 #define BLED_CHK_RETCODE( rc, func )        \
 do {                                        \
 	if( (rc = BERR_TRACE(func)) != BERR_SUCCESS ) \
@@ -68,9 +66,12 @@ do {                                        \
 *
 *******************************************************************************/
 
+BDBG_OBJECT_ID(BLED_Handle);
+
 typedef struct BLED_P_Handle
 {
 	uint32_t        magicId;                    /* Used to check if structure is corrupt */
+    BDBG_OBJECT(BLED_Handle)
 	BCHP_Handle     hChip;
 	BREG_Handle     hRegister;
 } BLED_P_Handle;
@@ -115,7 +116,7 @@ BERR_Code BLED_Open(
 		goto done;
 	}
 
-	hDev->magicId   = DEV_MAGIC_ID;
+    BDBG_OBJECT_SET(hDev, BLED_Handle);
 	hDev->hChip     = hChip;
 	hDev->hRegister = hRegister;
 	*pLed = hDev;
@@ -146,10 +147,9 @@ BERR_Code BLED_Close(
 {
 	BERR_Code retCode = BERR_SUCCESS;
 
+    BDBG_OBJECT_ASSERT(hDev, BLED_Handle);
 
-	BDBG_ASSERT( hDev );
-	BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
-
+    BDBG_OBJECT_DESTROY(hDev, BLED_Handle);
 	BKNI_Free( (void *) hDev );
 
 	return( retCode );
@@ -261,7 +261,7 @@ BERR_Code BLED_StartHLCD (
 {
 	uint32_t            lval;
 
-	BDBG_ASSERT( hLed );
+    BDBG_OBJECT_ASSERT( hLed, BLED_Handle);
 
 	if (hour_mode)
 	{
@@ -341,7 +341,7 @@ BERR_Code BLED_StopHLCD (
 	uint8_t         cnt;
 	BERR_Code       retCode = BERR_SUCCESS;
 
-	BDBG_ASSERT( hLed );
+    BDBG_OBJECT_ASSERT( hLed, BLED_Handle);
 
 	/* Disable HLCD */
 	BREG_Write32 (hLed->hRegister, BCHP_AON_CTRL_HLCD_CTRL, 0);

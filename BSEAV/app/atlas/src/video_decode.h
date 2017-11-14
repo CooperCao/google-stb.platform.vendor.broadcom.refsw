@@ -124,7 +124,7 @@ public:
     virtual bool                           isCodecSupported(NEXUS_VideoCodec codec);
     virtual void                           videoDecodeSourceChangedCallback(void);
     virtual void                           videoDecodeStreamChangedCallback(void);
-    virtual eRet                           setVideoWindowGeometryPercent(MRect * pRectGeomPercent = NULL) { return(eRet_Ok); };
+    virtual eRet                           setVideoWindowGeometryPercent(MRect * pRectGeomPercent = NULL) { return(eRet_Ok); }
 
     ENUM_TO_MSTRING_DECLARE(noiseReductionModeToString, NEXUS_VideoWindowFilterMode)
 
@@ -140,40 +140,40 @@ public:
             void *            id,
             CBoardResources * pResources
             ) { BSTD_UNUSED(id); _pBoardResources = pResources; }
-    eRet                        getStatus(NEXUS_VideoDecoderStatus * pStatus);
-    eRet                        getStreamInfo(NEXUS_VideoDecoderStreamInformation * pStream);
-    eRet                        getOptimalVideoFormat(COutput * pOutput, NEXUS_VideoFormat * pFormat);
-    eRet                        setStc(CStc * pStc);
-    eRet                        setMaxSize(unsigned width, unsigned height);
-    eRet                        setColorDepth(uint8_t depth);
-    eRet                        setDnrBlockNoiseMode(NEXUS_VideoWindowFilterMode mode);
-    NEXUS_VideoWindowFilterMode getDnrBlockNoiseMode(void);
-    eRet                        setDnrMosquitoNoiseMode(NEXUS_VideoWindowFilterMode mode);
-    NEXUS_VideoWindowFilterMode getDnrMosquitoNoiseMode(void);
-    eRet                        setDnrContourMode(NEXUS_VideoWindowFilterMode mode);
-    NEXUS_VideoWindowFilterMode getDnrContourMode(void);
-    eRet                        setAnrMode(NEXUS_VideoWindowFilterMode mode);
-    NEXUS_VideoWindowFilterMode getAnrMode(void);
-    void                        setWindowType(eWindowType windowType) { _windowType = windowType; }
-    eWindowType                 getWindowType(void)                   { return(_windowType); }
-    NEXUS_SimpleVideoDecoderStartSettings * getStartSettings(void) { return(&_startSettings); }
-    void                        setChannel(CChannel * pChannel) { _pChannel = pChannel; }
-    CChannel *                  getChannel(void) { return(_pChannel); }
+    eRet                                    getStatus(NEXUS_VideoDecoderStatus * pStatus);
+    eRet                                    getStreamInfo(NEXUS_VideoDecoderStreamInformation * pStream);
+    eRet                                    getOptimalVideoFormat(COutput * pOutput, NEXUS_VideoFormat * pFormat);
+    eRet                                    setStc(CStc * pStc);
+    eRet                                    setMaxSize(unsigned width, unsigned height);
+    eRet                                    setColorDepth(uint8_t depth);
+    eRet                                    setDnrBlockNoiseMode(NEXUS_VideoWindowFilterMode mode);
+    NEXUS_VideoWindowFilterMode             getDnrBlockNoiseMode(void);
+    eRet                                    setDnrMosquitoNoiseMode(NEXUS_VideoWindowFilterMode mode);
+    NEXUS_VideoWindowFilterMode             getDnrMosquitoNoiseMode(void);
+    eRet                                    setDnrContourMode(NEXUS_VideoWindowFilterMode mode);
+    NEXUS_VideoWindowFilterMode             getDnrContourMode(void);
+    eRet                                    setAnrMode(NEXUS_VideoWindowFilterMode mode);
+    NEXUS_VideoWindowFilterMode             getAnrMode(void);
+    void                                    setWindowType(eWindowType windowType) { _windowType = windowType; }
+    eWindowType                             getWindowType(void)                   { return(_windowType); }
+    NEXUS_SimpleVideoDecoderStartSettings * getStartSettings(void)                { return(&_startSettings); }
+    void                                    setChannel(CChannel * pChannel)       { _pChannel = pChannel; }
+    CChannel *                              getChannel(void)                      { return(_pChannel); }
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    eDynamicRange               getDynamicRange(void);
-    eRet                        updatePlm(void);
+    eDynamicRange getDynamicRange(void);
+    eRet          updatePlm(void);
 #endif
 
 protected:
     NEXUS_SimpleVideoDecoderHandle        _simpleDecoder;
     NEXUS_SimpleVideoDecoderStartSettings _startSettings;
     CBoardResources *                     _pBoardResources;
-    CVideoDecode *                        _pDecoder;
-    MList<CVideoWindow>                   _videoWindowList;
-    CVideoWindow *                        _pVideoWindow;
-    eWindowType                           _windowType;
-    CModel * _pModel;
-    CChannel * _pChannel;
+    CVideoDecode * _pDecoder;
+    MList<CVideoWindow> _videoWindowList;
+    CVideoWindow *      _pVideoWindow;
+    eWindowType         _windowType;
+    CModel *            _pModel;
+    CChannel *          _pChannel;
 };
 
 #ifdef __cplusplus

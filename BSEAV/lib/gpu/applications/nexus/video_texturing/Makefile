@@ -1,42 +1,5 @@
 ###############################################################################
-# Broadcom Proprietary and Confidential. (c)2010-2014 Broadcom.  All rights reserved.
-#
-# This program is the proprietary software of Broadcom and/or its
-# licensors, and may only be used, duplicated, modified or distributed pursuant
-# to the terms and conditions of a separate, written license agreement executed
-# between you and Broadcom (an "Authorized License").  Except as set forth in
-# an Authorized License, Broadcom grants no license (express or implied), right
-# to use, or waiver of any kind with respect to the Software, and Broadcom
-# expressly reserves all rights in and to the Software and all intellectual
-# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-#
-# Except as expressly set forth in the Authorized License,
-#
-# 1. This program, including its structure, sequence and organization,
-#    constitutes the valuable trade secrets of Broadcom, and you shall use all
-#    reasonable efforts to protect the confidentiality thereof, and to use
-#    this information only in connection with your use of Broadcom integrated
-#    circuit products.
-#
-# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-#
-# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 ###############################################################################
 
 ifdef COMSPEC
@@ -54,6 +17,15 @@ endif
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
+CC = $(B_REFSW_CROSS_COMPILE)gcc
+C++ = $(B_REFSW_CROSS_COMPILE)g++
+
+GCCGTEQ_40800 := $(shell expr `$(CC) -dumpversion | awk 'BEGIN { FS = "." }; { printf("%d%02d%02d", $$1, $$2, $$3) }'` \>= 40800)
+
+ifeq ($(V3D_PREFIX),vc5)
+CFLAGS += -DVC5
+endif
+
 # build paths
 include ../common/common.inc
 
@@ -62,11 +34,13 @@ CFLAGS += -I../common \
           -I$(V3D_DIR)/interface/khronos/include/ \
           -I$(V3D_PLATFORM_DIR)/nexus \
           -I$(NEXUS_TOP)/../BSEAV/lib/utils \
-          -I$(NEXUS_TOP)/../BSEAV/lib/media
+          -I$(NEXUS_TOP)/../BSEAV/lib/media \
+          -I$(NEXUS_TOP)/nxclient/apps/utils \
+          -I$(NEXUS_TOP)/utils
 
 APPS = video_texturing
 
-.PHONY: api clean
+.PHONY: api nexus_api clean
 
 TARGET_DIR := $(B_REFSW_OBJ_ROOT)/$(shell pwd | sed 's/.*\($(BASEPATH)\)/\1/g')
 
@@ -91,18 +65,18 @@ LDFLAGS := -lpthread \
 		-lv3ddriver \
 		-lnxpl
 
+api: nexus_api
+	$(MAKE) -C $(V3D_DIR) -f V3DDriver.mk OBJDIR=$(V3DDRIVER_OBJ_TARGET) LIBDIR=$(V3DDRIVER_LIB_TARGET)
+	$(MAKE) -C $(V3D_PLATFORM_DIR)/nexus -f platform_nexus.mk OBJDIR=$(NXPL_OBJ_TARGET) LIBDIR=$(NXPL_LIB_TARGET) NO_V3DDRIVER_BUILD=y
+
 ifeq ($(NXCLIENT_SUPPORT),y)
 # This builds the nexus api, v3d driver & platform glue
-api:
+nexus_api:
 	$(MAKE) -C $(NEXUS_TOP)/nxclient server
 	$(MAKE) -C $(NEXUS_TOP)/nxclient/build
-	$(MAKE) -C $(V3D_DIR) -f V3DDriver.mk OBJDIR=$(V3DDRIVER_OBJ_TARGET) LIBDIR=$(V3DDRIVER_LIB_TARGET)
-	$(MAKE) -C $(V3D_PLATFORM_DIR)/nexus -f platform_nexus.mk OBJDIR=$(NXPL_OBJ_TARGET) LIBDIR=$(NXPL_LIB_TARGET) NO_V3DDRIVER_BUILD=y
 else
-api:
+nexus_api:
 	$(MAKE) -C $(NEXUS_TOP)/build
-	$(MAKE) -C $(V3D_DIR) -f V3DDriver.mk OBJDIR=$(V3DDRIVER_OBJ_TARGET) LIBDIR=$(V3DDRIVER_LIB_TARGET)
-	$(MAKE) -C $(V3D_PLATFORM_DIR)/nexus -f platform_nexus.mk OBJDIR=$(NXPL_OBJ_TARGET) LIBDIR=$(NXPL_LIB_TARGET) NO_V3DDRIVER_BUILD=y
 endif
 
 $(TARGET_DIR):
@@ -110,7 +84,7 @@ $(TARGET_DIR):
 
 .PHONY: clean_api clean_v3d clean_app clean_nxclient
 # This cleans nexus and local apps
-clean: clean_nxclient clean_api clean_v3d clean_app
+clean: clean_api clean_v3d clean_app clean_nxclient
 
 clean_api:
 	$(MAKE) -C $(NEXUS_TOP)/build clean
@@ -134,9 +108,6 @@ endif
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES)) -I$(NEXUS_TOP)/../BSEAV/lib/netaccel/include
 
-# Always build with debug
-CFLAGS += -g -std=c99
-
 ifeq ($(NXCLIENT_SUPPORT),y)
 # add nxclient
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
@@ -151,12 +122,46 @@ LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
 endif
 endif
 
-EXTRA_OBJS := ../common/esutil.c ../common/init.c
+SOURCES := \
+   video_texturing.cpp \
+   video_decoder.cpp \
+   media_data.cpp \
+   texture_data.cpp \
+   fence.cpp \
+   geometry.cpp \
+   shader_programs.cpp \
+   camera.cpp \
+   ../common/esutil.c \
+   ../common/init.c \
+   $(NEXUS_TOP)/nxclient/apps/utils/binput.c \
+   $(NEXUS_TOP)/nxclient/apps/utils/media_probe.c \
+   $(NEXUS_TOP)/nxclient/apps/utils/bfile_crypto.c \
+   $(NEXUS_TOP)/utils/namevalue.c
+
+OBJS0 := $(patsubst %.cpp,%.o,$(filter %.cpp,$(SOURCES)))
+OBJS0 += $(patsubst %.c,%.o,$(filter %.c,$(SOURCES)))
+OBJS := $(addprefix $(TARGET_DIR)/, $(notdir $(OBJS0)))
+
+define CCompileRule
+$(2) : $(1) \
+	$(AUTO_FILES)
+		$(Q_)echo Compiling $(notdir $(1))
+		$(Q_)$(3) -c -MMD -MP -MF"$(2:%.o=%.d)" -MT"$(2:%.o=%.d)" -o "$(2)" "$(1)"
+endef
+
+ifeq ("$(GCCGTEQ_40800)", "1")
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++11
+else
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++0x -D_GLIBCXX_USE_NANOSLEEP -Dsteady_clock=monotonic_clock
+endif
+
+$(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(TARGET_DIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(TARGET_DIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 # Implicit rule for building local apps
-%$(APPSUFFIX): %.c $(EXTRA_OBJS)
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $(TARGET_DIR)/$@ $(filter %.c %.s %.o, $^) $(CFLAGS) $(LDFLAGS)
-	cp $(TARGET_DIR)/$@ ${NEXUS_BIN_DIR}
+$(APPS) : $(OBJS)
+	$(Q_)echo [Link... $@]
+	$(Q_)$(C++) $(LDFLAGS) -o $(TARGET_DIR)/$@ $(OBJS)
+	$(Q_)cp -af $(TARGET_DIR)/$@ ${NEXUS_BIN_DIR}
 
 install: all

@@ -229,5 +229,6 @@ km_get_alloc_key_info(wlc_keymgmt_t *km, wlc_key_index_t key_idx,
 
 	alloc_key_info->scb_info.scb = scb;
 	alloc_key_info->bss_info.bsscfg = bsscfg;
-	alloc_key_info->bss_info.amt_idx = bss_km->amt_idx;
+	if (bss_km != NULL)
+		alloc_key_info->bss_info.amt_idx = bss_km->amt_idx;
 }

@@ -299,7 +299,12 @@ wlc_vht_txtime(uint mcs, uint nss, uint bw, int sgi, int stbc, int ldpc, int sig
 
 	Ndbps = wlc_txtime_mcs_Ndbps(mcs, nss, bw);
 
-	Nsym = ((8 * phy_len) + VHT_N_SERVICE + (VHT_N_TAIL * Nes) + Ndbps - 1) / Ndbps;
+	if (Ndbps) {
+		Nsym = ((8 * phy_len) + VHT_N_SERVICE + (VHT_N_TAIL * Nes) + Ndbps - 1) / Ndbps;
+	} else {
+		ASSERT(0);
+		return 0;
+	}
 
 	/* Table for Nvhtltf from Nsts.
 	 * Draft 802.11ac D4.0, table 22-13.

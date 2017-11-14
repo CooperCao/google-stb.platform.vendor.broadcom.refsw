@@ -24,9 +24,36 @@ typedef struct DisplayInterface
 {
    Interface base;
 
+   /*
+    * Display the next surface on screen.
+    *
+    * On success the next wait_sync call must result in this surface being
+    * displayed, and display_fence must be set to a fence that will be signalled
+    * when this surface is no longer used by the display, for example
+    * because the next surface is on display or a copy has been made.
+    *
+    * Display takes ownership of the render fence and it's responsible for
+    * closing it. In case of a failure display is not required to wait on the
+    * render_fence but it must close it.
+    */
    DisplayInterfaceResult (*display)(void *context, void *surface,
          int render_fence, bool create_display_fence, int *display_fence);
+
+   /*
+    * Wait for the next sync event from the display
+    *
+    * After pending display operation the next sync event guarantees that the
+    * last displayed surface is on display. Subsequent calls to this function
+    * are used to throttle display if swap interval is greater than one.
+    */
    bool (*wait_sync)(void *context);
+
+   /*
+    * Stop the display and release the last displayed surface.
+    *
+    * This call must block until the last display_fence is signalled
+    * and the last displayed surface is no longer in use.
+    */
    void (*stop)(void *context);
 } DisplayInterface;
 

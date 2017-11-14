@@ -179,12 +179,12 @@ static inline void multi_draw_elements_base_vertex(
    GLsizei primcount,
    const GLint *basevertex)
 {
-   vcos_unused(mode);
-   vcos_unused(count);
-   vcos_unused(type);
-   vcos_unused(indices);
-   vcos_unused(primcount);
-   vcos_unused(basevertex);
+   unused(mode);
+   unused(count);
+   unused(type);
+   unused(indices);
+   unused(primcount);
+   unused(basevertex);
 }
 
 GL_APICALL void GL_APIENTRY glMultiDrawElementsBaseVertexEXT(GLenum mode,

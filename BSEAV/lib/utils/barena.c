@@ -71,6 +71,7 @@ struct barena {
 
 #define B_BLOCK_TAG(arena, block) ((uint16_t)((uint8_t *)(block) - (uint8_t *)(arena))/sizeof(unsigned))
 
+/* coverity[+alloc] */
 void *
 barena_alloc(barena_t arena, size_t size)
 {
@@ -138,6 +139,7 @@ barena_test_block(barena_t arena, void *ptr)
 	return false;
 }
 
+/* coverity[+free : arg-1] */
 void
 barena_free(barena_t arena, void *ptr)
 {

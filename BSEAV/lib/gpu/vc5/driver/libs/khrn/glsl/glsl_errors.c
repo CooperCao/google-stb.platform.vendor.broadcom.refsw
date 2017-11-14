@@ -25,7 +25,7 @@ static const char * const ErrorsCustom[] =
    //00004
    "Invalid interface block declaration",
    //00005
-   "Invalid fragment shader interface",
+   "Invalid shader interface",
    //00006
    "Out of memory",
    //00007

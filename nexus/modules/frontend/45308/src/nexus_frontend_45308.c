@@ -80,6 +80,10 @@ BDBG_OBJECT_ID(NEXUS_45308Device);
 #define NEXUS_45308_MAX_FRONTEND_CHANNELS 16
 #endif
 
+#if NEXUS_HAS_FRONTEND_PID_FILTERING && (!NEXUS_TRANSPORT_EXTENSION_TBG)
+#define NEXUS_HAS_453XX_PID_FILTERING 1
+#endif
+
 typedef struct NEXUS_FrontendDevice45308OpenSettings
 {
     /* either GPIO or an L1 is used for notification from the frontend to the host. */
@@ -672,6 +676,9 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
                 break;
             }
         }
+#if NEXUS_HAS_453XX_PID_FILTERING
+        mxtSettings.enablePidFiltering = true;
+#endif
 
         BDBG_MSG(("NEXUS_FrontendDevice_Open45308: BMXT_Open"));
         rc = BMXT_Open(&pDevice->pGenericDeviceHandle->mtsifConfig.mxt, g_pCoreHandles->chp, g_pCoreHandles->reg, &mxtSettings);
@@ -916,6 +923,10 @@ static NEXUS_Error NEXUS_Frontend_45308_P_DelayedInitialization(NEXUS_FrontendDe
         errCode = BERR_TRACE(BERR_OS_ERROR);
         goto err;
     }
+
+#if NEXUS_HAS_453XX_PID_FILTERING
+    NEXUS_Frontend_P_EnablePidFiltering();
+#endif
 
 #ifdef NEXUS_HAS_FSK
     {
@@ -1411,11 +1422,12 @@ static NEXUS_Error NEXUS_Frontend_P_Get45308RuntimeSettings(void *handle, NEXUS_
     NEXUS_Error rc = NEXUS_SUCCESS;
     BERR_Code e;
     NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
-    NEXUS_45308Device *p45308Device = pSatChannel->settings.pDevice;
+    NEXUS_45308Device *p45308Device;
     BSAT_ExternalBertSettings extBertSettings;
 
     BDBG_ASSERT(handle);
     BDBG_ASSERT(pSettings);
+    p45308Device = pSatChannel->settings.pDevice;
     BDBG_OBJECT_ASSERT(p45308Device, NEXUS_45308Device);
 
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
@@ -1488,13 +1500,14 @@ static NEXUS_Error NEXUS_Frontend_P_Set45308RuntimeSettings(void *handle, const 
 static NEXUS_Error NEXUS_Frontend_P_45308_GetSatelliteAgcStatus(void *handle, NEXUS_FrontendSatelliteAgcStatus *pStatus)
 {
     NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
-    NEXUS_45308Device *p45308Device = pSatChannel->settings.pDevice;
+    NEXUS_45308Device *p45308Device;
     BERR_Code rc = NEXUS_SUCCESS;
     BSAT_ChannelStatus satStatus;
     BERR_Code errCode;
 
     BDBG_ASSERT(NULL != pStatus);
-    BDBG_ASSERT(NULL != p45308Device);
+    p45308Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45308Device, NEXUS_45308Device);
 
     if (pSatChannel->satChip != B_SAT_CHIP) {
         return NEXUS_INVALID_PARAMETER;
@@ -1544,7 +1557,7 @@ static NEXUS_Error NEXUS_Frontend_P_45308_TuneSatellite(void *handle, const NEXU
     NEXUS_45308Device *p45308Device = pSatChannel->settings.pDevice;
     NEXUS_Error rc;
 
-    if (pSettings->mode == NEXUS_FrontendSatelliteMode_eTurboQpsk || pSettings->mode == NEXUS_FrontendSatelliteMode_eTurbo8psk) {
+    if (pSettings->mode == NEXUS_FrontendSatelliteMode_eTurboQpsk || pSettings->mode == NEXUS_FrontendSatelliteMode_eTurbo8psk || pSettings->mode == NEXUS_FrontendSatelliteMode_eTurbo) {
         uint32_t disabledFeatures = 0;
         rc = BSAT_GetConfig(pSatChannel->satDevice->satHandle, BSAT_45308_CONFIG_PARAM_OTP_DISABLE_FEATURE, &disabledFeatures);
         if (rc) BERR_TRACE(rc);
@@ -1552,6 +1565,7 @@ static NEXUS_Error NEXUS_Frontend_P_45308_TuneSatellite(void *handle, const NEXU
             BDBG_ERR(("Turbo modes are not supported on this frontend."));
             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
         }
+        BHAB_45308_InitXp(p45308Device->satDevice->habHandle, 0); /* 0 = enable turbo acquisitions */
     }
 
     if (p45308Device->pGenericDeviceHandle->mtsifConfig.mxt) {

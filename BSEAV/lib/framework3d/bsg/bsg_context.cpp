@@ -367,33 +367,31 @@ void Context::InitializeCreateContext(const ApplicationOptions &options, EGLConf
 
 // This initialization routine works for most platforms, but X11 is more
 // convoluted.
-void Context::Initialize(const ApplicationOptions &options, EGLNativeWindowType nativeWindow)
+void Context::Initialize(EGLDisplay display, const ApplicationOptions &options, EGLNativeWindowType nativeWindow)
 {
    /*
-      Step 1 - Get the default display.
+      Step 1 - Get the display.
       EGL uses the concept of a "display" which in most environments
       corresponds to a single physical screen. Since we want
       to draw to the main screen or only have a single screen to begin
       with, we let EGL pick the default display.
       Querying other displays is platform specific.
    */
-   EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
    EGLConfig  config  = ChooseConfigForDisplay(display, options);
 
    InitializeFromNativeWindow(options, config, nativeWindow);
 }
 
-void Context::Initialize(const ApplicationOptions &options, NativePixmap *nativePixmap)
+void Context::Initialize(EGLDisplay display, const ApplicationOptions &options, NativePixmap *nativePixmap)
 {
    /*
-      Step 1 - Get the default display.
+      Step 1 - Get the display.
       EGL uses the concept of a "display" which in most environments
       corresponds to a single physical screen. Since we want
       to draw to the main screen or only have a single screen to begin
       with, we let EGL pick the default display.
       Querying other displays is platform specific.
    */
-   EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
    EGLConfig  config  = ChooseConfigForDisplay(display, options);
 
    InitializeWithPixmap(options, config, nativePixmap);

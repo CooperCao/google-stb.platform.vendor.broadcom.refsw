@@ -118,7 +118,7 @@ static void process_rx_message(unsigned int *message_rx, int socket)
         server_Get_FW_Rev_Req(&socket_cb[socket].message_rx[0], socket);
         break;
    case RPC_C2S_RF4CE_MAC_GetReq:
-        server_ZBPRO_MAC_GetReq(&socket_cb[socket].message_rx[0], socket);
+        server_RF4CE_MAC_GetReq(&socket_cb[socket].message_rx[0], socket);
         break;
    case RPC_C2S_RF4CE_MAC_SetReq:
         server_RF4CE_MAC_SetReq(&socket_cb[socket].message_rx[0], socket);

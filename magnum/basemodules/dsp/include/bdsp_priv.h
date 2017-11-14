@@ -55,7 +55,6 @@ typedef struct BDSP_Device
     void *pDeviceHandle;
     /* Device-level Function table */
     void (*close)(void *pDeviceHandle);
-    void (*initialize)(void *pDeviceHandle);
     void (*getStatus)(void *pDeviceHandle, BDSP_Status *pStatus);
     void (*getDefaultContextSettings)(void *pDeviceHandle,BDSP_ContextType contextType, BDSP_ContextCreateSettings *pSettings);
     BERR_Code (*createContext)(void *pDeviceHandle, const BDSP_ContextCreateSettings *pSettings, BDSP_ContextHandle *pContext);
@@ -68,6 +67,20 @@ typedef struct BDSP_Device
     BERR_Code (*freeExternalInterrupt)(void  *pInterruptHandle);
     BERR_Code (*getExternalInterruptInfo)(void *pInterruptHandle, BDSP_ExternalInterruptInfo **pInfo);
     BERR_Code (*processAudioCapture)(void *pDeviceHandle);
+
+    /* Below functions are for extracting the debug information*/
+    BERR_Code (*getDebugBuffer)(void *pDeviceHandle, BDSP_DebugType debugType, uint32_t dspIndex, BDSP_MMA_Memory *pBuffer, size_t *pSize);
+    BERR_Code (*consumeDebugData)(void *pDeviceHandle, BDSP_DebugType debugType, uint32_t dspIndex, size_t bytesConsumed);
+    BDSP_FwStatus (*getCoreDumpStatus)(void *pDeviceHandle, uint32_t dspIndex);
+
+    /* Default TSM and Datasync settings*/
+    BERR_Code (*getDefaultTsmSettings)(void *pDeviceHandle, void *pSettingsBuffer, size_t settingsBufferSize);
+    BERR_Code (*getDefaultDatasyncSettings)(void *pDeviceHandle, void *pSettingsBuffer, size_t settingsBufferSize);
+
+    /*Authentication related APIs */
+    BERR_Code (*getDownloadStatus)(void *pDeviceHandle, BDSP_DownloadStatus *pStatus);
+    BERR_Code (*initialize)(void *pDeviceHandle);
+    BERR_Code (*getRRRAddrRange)(void *pDeviceHandle, BDSP_DownloadStatus *pRRRAddrRange);
 }BDSP_Device;
 
 void BDSP_P_InitDevice(
@@ -125,6 +138,7 @@ typedef struct BDSP_Stage
     BERR_Code (*getDatasyncSettings_isr)(void *pStageHandle, BDSP_AudioTaskDatasyncSettings *pSettings);
     BERR_Code (*setDatasyncSettings)(void *pStageHandle, const BDSP_AudioTaskDatasyncSettings *pSettings);
     BERR_Code (*getDatasyncStatus_isr)(void *pStageHandle, BDSP_AudioTaskDatasyncStatus *pStatus);
+    BERR_Code (*getAudioDelay_isrsafe)(BDSP_CTB_Input *pCtbInput, void *pStageHandle, BDSP_CTB_Output *pCTBOutput);
 
     BERR_Code (*addFmmOutput)(void *pStageHandle, BDSP_DataType dataType, const BDSP_FmmBufferDescriptor *pDescriptor, unsigned *pOutputIndex);
     BERR_Code (*addRaveOutput)(void *pStageHandle, const BAVC_XptContextMap *pContext, unsigned *pOutputIndex);

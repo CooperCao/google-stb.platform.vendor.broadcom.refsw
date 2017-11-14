@@ -277,7 +277,7 @@ bool mp4_parser_scan_movie_fragment(mp4_parser_handle_t handle, mp4_parse_frag_i
     if (mediaType == media_type_eCenc && cntxt->mp4_mp4_frag.encrypted) {
         frag_info->aux_info_size = cntxt->mp4_mp4_frag.aux_info_size;
         if (!cntxt->mp4_mp4_frag.enc_info_parsed) {
-            LOGD(("%s: Parse MDAT head", __FUNCTION__));
+            LOGD(("%s: Parse MDAT head", BSTD_FUNCTION));
             cenc_parse_mdat_head(frag_info, &cntxt->mp4_mp4_frag);
         }
     }
@@ -298,7 +298,7 @@ bool mp4_parser_scan_movie_fragment(mp4_parser_handle_t handle, mp4_parse_frag_i
         }
     }
 
-    LOGD(("%s mdat_size=%d sample_count=%d", __FUNCTION__,
+    LOGD(("%s mdat_size=%d sample_count=%d", BSTD_FUNCTION,
         frag_info->mdat_size, frag_info->run_sample_count));
     if (frag_info->samples_info)
         LOGD(("samples_info: flags=%x count=%d", frag_info->samples_info->flags,

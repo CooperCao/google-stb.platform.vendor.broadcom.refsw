@@ -323,7 +323,7 @@ typedef struct BDSP_Raaga_P_TaskCallBacks
 /* PAUSE-UNPAUSE */
     bool frozen;
 /* PAUSE-UNPAUSE */
-	BDSP_AF_P_eSchedulingGroup 		 eSchedulingGroup; /* Scheduling Group*/
+    BDSP_AF_P_eSchedulingGroup       eSchedulingGroup; /* Scheduling Group*/
 } BDSP_RaagaTask;
 
 /***************************************************************************
@@ -341,7 +341,7 @@ typedef struct BDSP_RaagaCapturePointerInfo
     dramaddr_t shadowRead; /* The shadow read pointer for the output buffer */
     dramaddr_t lastWrite; /* The last value of the write pointer; will be used for capture error detection*/
     BDSP_MMA_Memory CaptureBufferMemory;
-	BDSP_MMA_Memory OutputBufferMemory;
+    BDSP_MMA_Memory OutputBufferMemory;
 } BDSP_RaagaCapturePointerInfo;
 
 struct BDSP_RaagaStage;
@@ -505,7 +505,7 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
     BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *sTaskFmmGateOpenConfig,
     uint32_t ui32MaxIndepDelay,
     BDSP_AF_P_BurstFillType eFMMPauseBurstType,
-	BDSP_AF_P_SpdifPauseWidth eSpdifPauseWidth
+    BDSP_AF_P_SpdifPauseWidth eSpdifPauseWidth
     );
 
 BERR_Code BDSP_Raaga_P_RetrieveGateOpenSettings(
@@ -978,7 +978,7 @@ BERR_Code BDSP_Raaga_P_UnresetRaagaCore(
     unsigned uiDspIndex
     );
 
-BERR_Code BDSP_Raaga_P_InitRaagaCore (
+BERR_Code BDSP_Raaga_P_SetSCBConfig (
     void *pDeviceHandle,
     unsigned uiDspIndex
     );
@@ -1033,14 +1033,6 @@ BERR_Code BDSP_Raaga_P_UnFreeze(
 void BDSP_Raaga_P_InitDeviceSettings(
     void * pDeviceHandle
     );
-
-#if (BCHP_CHIP == 7278)
-BERR_Code BDSP_Raaga_P_PrepareInitProcessCmd(
-        void *pDeviceHandle,
-        BDSP_Raaga_P_Command *sCommand,
-        int32_t i32DspIndex
-    );
-#endif
 
 /* PAUSE-UNPAUSE */
 
@@ -1122,4 +1114,68 @@ Summary:
 extern  const BDSP_VOM_Algo_Start_Addr                      BDSP_sAlgoStartAddr;
 extern  const BDSP_VOM_Table                                BDSP_sVomTable;
 extern const BDSP_Version BDSP_sRaagaVersion;
+
+BERR_Code BDSP_Raaga_P_GetDebugBuffer(
+    void  *pDeviceHandle,
+    BDSP_DebugType debugType, /* [in] Gives the type of debug buffer for which the Base address is required ... UART, DRAM, CoreDump ... */
+    uint32_t dspIndex, /* [in] Gives the DSP Id for which the debug buffer info is required */
+    BDSP_MMA_Memory *pBuffer, /* [out] Base address of the debug buffer data */
+    size_t *pSize /* [out] Contiguous length of the debug buffer data in bytes */
+);
+
+BERR_Code BDSP_Raaga_P_ConsumeDebugData(
+    void   *pDeviceHandle,
+    BDSP_DebugType debugType, /* [in] Gives the type of debug buffer for which the Base address is required ... UART, DRAM, CoreDump ... */
+    uint32_t dspIndex, /* [in] Gives the DSP Id for which the debug data needs to be consumed */
+    size_t bytesConsumed    /* [in] Number of bytes consumed from the debug buffer */
+);
+
+BDSP_FwStatus BDSP_Raaga_P_GetCoreDumpStatus(
+    void  *pDeviceHandle,
+    uint32_t dspIndex); /* [in] Gives the DSP Id for which the core dump status is required */
+
+BERR_Code BDSP_Raaga_P_GetRRRAddrRange(
+    void  *pDeviceHandle,
+    BDSP_DownloadStatus *pAddrRange /* [out] */
+);
+
+
+BERR_Code BDSP_Raaga_P_GetDownloadStatus(
+    void  *pDeviceHandle,
+    BDSP_DownloadStatus *pStatus /* [out] */
+);
+
+BERR_Code BDSP_Raaga_P_Initialize(
+    void  *pDeviceHandle
+);
+
+#if !B_REFSW_MINIMAL
+BERR_Code BDSP_Raaga_P_GetDefaultDatasyncSettings(
+        void  *pDeviceHandle,
+        void *pSettingsBuffer,        /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+    );
+#endif /*!B_REFSW_MINIMAL*/
+
+BERR_Code BDSP_Raaga_P_GetDefaultTsmSettings(
+        void  *pDeviceHandle,
+        void *pSettingsBuffer,        /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+    );
+
+BERR_Code BDSP_Raaga_P_GetAudioDelay_isrsafe(
+    BDSP_CTB_Input   *pCtbInput,
+    void             *pStageHandle,
+    BDSP_CTB_Output  *pCTBOutput
+);
+
+BERR_Code BDSP_Raaga_P_FreeTaskStackSwapMemory(
+    BDSP_Raaga *pDevice,
+    BDSP_MMA_Memory *pMemory,
+    uint32_t dspIndex);
+
+BERR_Code BDSP_Raaga_P_AssignTaskStackSwapMemory(
+    BDSP_Raaga *pDevice,
+    BDSP_P_FwBuffer *pMemory,
+    uint32_t dspIndex);
 #endif /* #ifndef BDSP_RAAGA_PRIV_H_*/

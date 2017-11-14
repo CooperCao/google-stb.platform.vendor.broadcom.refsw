@@ -44,7 +44,7 @@
 #include "nexus_platform_server.h"
 
 typedef struct nxclient_p_teletext_data {
-    NEXUS_TeletextLine lines[4];
+    NEXUS_TeletextLine lines[12];
 } nxclient_p_teletext_data;
 
 typedef struct nxclient_p_closecaption_data {

@@ -230,22 +230,22 @@ eRet initializeNexus()
             }
         }
 #ifdef B_HAS_DTCP_IP
-    /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
-       It could be any small size heap.
-       Configure export heap since it's not allocated by nexus by default */
-    platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
+        /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
+         * It could be any small size heap.
+         * Configure export heap since it's not allocated by nexus by default */
+        platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
 #endif
 
 #ifdef MPOD_SUPPORT
 #if ((NEXUS_PLATFORM == 97278) || (NEXUS_PLATFORM == 97271))
-       for (int i = 0; i < MAX_CABLECARD_ROUTE; i++)
-       {
-	/* enable mpodRs only for parsers that need to send data to the cablecard, which will cause an additional 175k or 200k per parserBand to be allocated from the device heap. */
-		platformSettings.transportModuleSettings.clientEnabled.parserBand[i].mpodRs = true;
-		platformSettings.transportModuleSettings.maxDataRate.parserBand[i] = 108000000;		/* 54000000;*/
-	}
-#endif
-#endif
+        for (int i = 0; i < MAX_CABLECARD_ROUTE; i++)
+        {
+            /* enable mpodRs only for parsers that need to send data to the cablecard, which will cause an additional 175k or 200k per parserBand to be allocated from the device heap. */
+            platformSettings.transportModuleSettings.clientEnabled.parserBand[i].mpodRs = true;
+            platformSettings.transportModuleSettings.maxDataRate.parserBand[i]          = 108000000;         /* 54000000;*/
+        }
+#endif /* if ((NEXUS_PLATFORM == 97278) || (NEXUS_PLATFORM == 97271)) */
+#endif /* ifdef MPOD_SUPPORT */
 
         /* coverity[stack_use_overflow] */
         nerror = NEXUS_Platform_Init(&platformSettings);
@@ -381,7 +381,7 @@ eRet initializeAtlas()
             BIP_SslClientFactory_GetDefaultInitSettings(&settings);
             settings.pRootCaCertPath = TEST_ROOT_CA_PATH;
             bipStatus                = BIP_SslClientFactory_Init(&settings);
-            CHECK_BIP_ERROR_GOTO("BIP_SslClientFactory_Init() failed to initialize", ret,bipStatus, err_initDtcpIp);
+            CHECK_BIP_ERROR_GOTO("BIP_SslClientFactory_Init() failed to initialize", ret, bipStatus, err_initDtcpIp);
         }
 #endif /* ifdef B_HAS_SSL */
     }

@@ -82,6 +82,12 @@ extern "C" {
 
 #define BXVD_P_CORE_REVISION_NUM (BXVD_P_CORE_REVISION - 'A' + 1)
 
+#if EMULATION
+#define FW_CMD_TIMEOUT 100000
+#else
+#define FW_CMD_TIMEOUT 1000
+#endif
+
 /***********************************************************************
  *  Private macros
  ***********************************************************************/
@@ -635,6 +641,8 @@ typedef struct BXVD_P_Context
   /* Indicates a watchdog needs to be processed */
   bool bWatchdogPending;
 
+  BXVD_P_PowerState  eWatchdogSavedPowerState;
+
   /* Platform-specific fields defined in platform header */
   BXVD_P_CONTEXT_PLATFORM
 
@@ -665,6 +673,11 @@ typedef struct BXVD_P_Context
   uint32_t             uiFWMemBaseUncachedVirtAddr;
   BXVD_P_PHY_ADDR      FWMemBasePhyAddr;
 
+#if BXVD_P_FW_HIM_API
+  BMMA_Block_Handle    hFWCmdBlock;
+  unsigned long        uiFWCmdVirtAddr;
+  BXVD_P_PHY_ADDR      FWCmdPhyAddr;
+#endif
   uint32_t             uiFWMemSize;
   uint8_t              bFWMemAllocated;
   BXVD_AVDBootMode     eAVDBootMode;
@@ -1057,6 +1070,12 @@ typedef struct BXVD_P_FWMemConfig_SVC
  * Private functions
  ***********************************************************************/
 
+void BXVD_P_GetVidCmprCapability
+(
+ BXVD_VidComprStd_Capabilities *pCodecCapabilities,
+ BAVC_VideoCompressionStd  eVideoCmprStd
+);
+
 BERR_Code BXVD_P_SetupFWSubHeap(BXVD_Handle hXvd);
 BERR_Code BXVD_P_TeardownFWSubHeap(BXVD_Handle hXvd);
 
@@ -1110,6 +1129,21 @@ void BXVD_P_ValidateHeaps
 BERR_Code BXVD_P_Boot
 (
   BXVD_Handle hXvd
+);
+
+BERR_Code BXVD_P_InitDecoderFW
+(
+   BXVD_Handle hXvd
+);
+
+BERR_Code BXVD_P_OpenPartTwo
+(
+   BXVD_Handle hXvd
+);
+
+BERR_Code BXVD_P_RestartDecoder
+(
+   BXVD_Handle hXvd
 );
 
 BERR_Code BXVD_P_SetupStillPictureCompatibilityMode

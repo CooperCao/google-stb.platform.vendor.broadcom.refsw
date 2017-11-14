@@ -41,11 +41,4 @@
 
 #include "bdsp_raaga_priv_include.h"
 
-BERR_Code BDSP_Raaga_P_GetFWSize (
-    const BIMG_Interface *iface,
-    void *context,
-    uint32_t firmware_id,
-    uint32_t *size
-    );
-
 #endif /*BDSP_RAAGA_ALGO_PRIV_H_*/

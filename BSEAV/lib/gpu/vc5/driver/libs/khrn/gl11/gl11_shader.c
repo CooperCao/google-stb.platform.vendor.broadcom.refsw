@@ -92,6 +92,19 @@ IRShader *gl11_ir_shader_from_nodes(Dataflow **df, int count, int *out_bindings)
    return r;
 }
 
+static Dataflow *load(uint32_t row) {
+   Dataflow *ret = glsl_dataflow_construct_linkable_value(DATAFLOW_IN, DF_FLOAT, row);
+   ret =  glsl_dataflow_construct_address(ret);
+   ret =  glsl_dataflow_construct_vec4(ret, NULL, NULL, NULL);
+   return glsl_dataflow_construct_address_load(DATAFLOW_IN_LOAD, DF_FLOAT, ret);
+}
+
+void gl11_load_inputs(GLXX_VEC4_T *inputs, unsigned count) {
+   for (unsigned i=0; i<count; i++)
+      glxx_v_vec4(&inputs[i], load(4*i), load(4*i+1), load(4*i+2), load(4*i+3));
+}
+
+
 LinkMap *gl11_link_map_from_bindings(int out_count, const int *out_bindings, int in_count, int unif_count, const int *unif_bindings) {
    LinkMap *l = glsl_link_map_alloc(in_count, out_count, unif_count, 0);
    if (l == NULL) return NULL;
@@ -106,9 +119,7 @@ LinkMap *gl11_link_map_from_bindings(int out_count, const int *out_bindings, int
 IR_PROGRAM_T *gl11_shader_get_dataflow(const GL11_CACHE_KEY_T *v)
 {
    IR_PROGRAM_T *blob = glsl_ir_program_create();
-   if(!blob) {
-      return NULL;
-   }
+   if(!blob) return NULL;
 
    if (v->fragment & GL11_FLATSHADE) {
       for (int i=0; i<4; i++) {
@@ -120,13 +131,8 @@ IR_PROGRAM_T *gl11_shader_get_dataflow(const GL11_CACHE_KEY_T *v)
    blob->early_fragment_tests = true;
    blob->live_attr_set = gl11_get_live_attr_set(v);
 
-   glsl_dataflow_begin_construction();
-   /* TODO: Need a compiler error handler here */
-
    gl11_get_cvshader(v, &blob->stage[SHADER_VERTEX].ir, &blob->stage[SHADER_VERTEX].link_map);
    gl11_get_fshader (v, &blob->stage[SHADER_FRAGMENT].ir, &blob->stage[SHADER_FRAGMENT].link_map);
-
-   glsl_dataflow_end_construction();
 
    if(!blob->stage[SHADER_VERTEX].ir   || !blob->stage[SHADER_VERTEX].link_map ||
       !blob->stage[SHADER_FRAGMENT].ir || !blob->stage[SHADER_FRAGMENT].link_map)

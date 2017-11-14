@@ -1,23 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
-#ifndef GLSL_COMPILER_H
-#define GLSL_COMPILER_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "middleware/khronos/common/khrn_mem.h"
-
-#include "interface/khronos/include/GLES2/gl2.h"
-
 #include "middleware/khronos/gl20/gl20_config.h"
 
 //
@@ -101,18 +90,15 @@ typedef struct slang_binding_s
 
 typedef struct slang_sampler_s
 {
-   GLint uniform;
-   GLint array_index;
+   int uniform;
+   int array_index;
    bool in_vshader;
 } slang_sampler;
 
 typedef struct slang_uniform_s
 {
-   GLenum type;
-   union {
-      const char* name;
-      MEM_HANDLE_T handle;
-   } u;
+   unsigned type;
+   const char* name;
    unsigned int row;
    unsigned int array_length;
    bool is_array;
@@ -120,11 +106,8 @@ typedef struct slang_uniform_s
 
 typedef struct slang_attribute_s
 {
-   GLenum type;
-   union {
-      const char* name;
-      MEM_HANDLE_T handle;
-   } u;
+   unsigned type;
+   const char* name;
    unsigned int row;
 } slang_attribute;
 
@@ -183,5 +166,3 @@ extern bool glsl_compile(ShaderFlavour flavour, int sourcec, const char** source
 #define GLSL_EXIT_WITH_BAD_TREE 2
 
 void glsl_compiler_exit(bool bad_tree);
-
-#endif // COMPILER_H

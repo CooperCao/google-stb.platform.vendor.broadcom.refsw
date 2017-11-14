@@ -97,8 +97,8 @@
 
 #if BCHP_CHIP == 7439 /* TODO - remove when rdb updated */
 
-#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN0      1
-#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN1      0
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN0      0
+#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN1      1
 #define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_12 3
 #define BCHP_PM_AON_CONFIG_irr1_in_UHF_RX1     2
 
@@ -112,21 +112,7 @@
 #define BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO_12 1
 #define BCHP_PM_AON_CONFIG_irr3_in_UHF_RX1     0
 
-#elif BCHP_CHIP == 7260
-#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN0      0
-#define BCHP_PM_AON_CONFIG_irr0_in_IR_IN1      1
-#define BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO_17 3
-
-#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN0      3
-#define BCHP_PM_AON_CONFIG_irr1_in_IR_IN1      0
-#define BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO_17 2
-
-#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN0      2
-#define BCHP_PM_AON_CONFIG_irr2_in_IR_IN1      3
-#define BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO_17 1
-
-#elif BCHP_CHIP == 7268 || (BCHP_CHIP == 7271 && (BCHP_VER == A0) )
-
+#elif BCHP_CHIP == 7260 || BCHP_CHIP == 7255
 #define BCHP_PM_AON_CONFIG_irr0_in_IR_IN0      0
 #define BCHP_PM_AON_CONFIG_irr0_in_IR_IN1      1
 #define BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO_17 3
@@ -266,7 +252,7 @@ static const CIR_Param giParam = {
     6,              /* minimum dead-time after fault = 3 ms */
     {0, 0},         /* stop symbol pulse or cycle period */
     0,              /* data symbol timeout */
-    0,
+    280,            /* repeat timeout */
     0,
     0,
     0,
@@ -1687,7 +1673,6 @@ typedef struct BKIR_P_Handle
     BCHP_Handle     hChip;
     BREG_Handle     hRegister;
     BINT_Handle     hInterrupt;
-    unsigned int    numChannels;
     BKIR_ChannelHandle hKirChn[BKIR_N_CHANNELS];
 } BKIR_P_Handle;
 
@@ -1700,7 +1685,6 @@ typedef struct BKIR_P_ChannelHandle
     BKIR_Handle         hKir;
     uint32_t            chnNo;
     uint32_t            coreOffset;
-    BKNI_EventHandle    hChnEvent;
     BINT_CallbackHandle hChnCallback;
     BKIR_KirPort        irPort;                     /* port select setting */
     BKIR_KirPort        irPortSelected;             /* which port was selected (auto mode) */
@@ -1795,8 +1779,7 @@ BERR_Code BKIR_Open(
     hDev->hChip     = hChip;
     hDev->hRegister = hRegister;
     hDev->hInterrupt = hInterrupt;
-    hDev->numChannels  = BKIR_N_CHANNELS;
-    for( chnIdx = 0; chnIdx < hDev->numChannels; chnIdx++ )
+    for( chnIdx = 0; chnIdx < BKIR_N_CHANNELS; chnIdx++ )
     {
         hDev->hKirChn[chnIdx] = NULL;
     }
@@ -1814,6 +1797,8 @@ BERR_Code BKIR_Close(
     BERR_Code retCode = BERR_SUCCESS;
 
     BDBG_OBJECT_ASSERT(hDev, BKIR_Handle);
+
+    BREG_Write32( hDev->hRegister, BCHP_PM_AON_CONFIG, 0 );
 
     BDBG_OBJECT_DESTROY(hDev, BKIR_Handle);
     BKNI_Free( (void *) hDev );
@@ -1844,7 +1829,7 @@ BERR_Code BKIR_GetTotalChannels(
 
     BDBG_OBJECT_ASSERT(hDev, BKIR_Handle);
 
-    *totalChannels = hDev->numChannels;
+    *totalChannels = BKIR_N_CHANNELS;
 
     return( retCode );
 }
@@ -2018,7 +2003,7 @@ BERR_Code BKIR_OpenChannel(
 
     hChnDev = NULL;
 
-    if( channelNo < hDev->numChannels )
+    if( channelNo < BKIR_N_CHANNELS )
     {
         if( hDev->hKirChn[channelNo] == NULL )
         {
@@ -2034,7 +2019,6 @@ BERR_Code BKIR_OpenChannel(
 
             BDBG_OBJECT_INIT(hChnDev, BKIR_ChannelHandle);
 
-            BKIR_CHK_RETCODE( retCode, BKNI_CreateEvent( &(hChnDev->hChnEvent) ) );
             hChnDev->hKir       = hDev;
             hChnDev->chnNo      = channelNo;
             hChnDev->irPort     = pChnDefSettings->irPort;
@@ -2118,7 +2102,6 @@ done:
     {
         if( hChnDev != NULL )
         {
-            BKNI_DestroyEvent( hChnDev->hChnEvent );
             BKNI_Free( hChnDev );
             hDev->hKirChn[channelNo] = NULL;
             *phChn = NULL;
@@ -2151,7 +2134,6 @@ BERR_Code BKIR_CloseChannel(
 
     hChn->kirCb     = NULL;
     hChn->cbData    = NULL;
-    BKNI_DestroyEvent( hChn->hChnEvent );
     chnNo = hChn->chnNo;
     BDBG_OBJECT_DESTROY(hChn, BKIR_ChannelHandle);
     BKNI_Free( hChn );
@@ -2199,6 +2181,9 @@ BERR_Code BKIR_Set_PM_AON_CONFIG(
         BDBG_ERR(("BKIR_Set_PM_AON_CONFIG: Invalid input_device\n"));
         return BERR_INVALID_PARAMETER;
     }
+#ifndef BKIR_HAS_ZERO_BASE
+    channel_device++;   /* hw regs start from one */
+#endif
 
     switch (channel_device)
     {
@@ -2208,56 +2193,31 @@ BERR_Code BKIR_Set_PM_AON_CONFIG(
         {
         case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr0_in_AON_GPIO ; break;
 #ifdef HAS_UHF
-        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr0_in_UHF_RX1 ; break;
+        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr0_in_UHF_RX1; break;
 #endif
         case BKIR_INPUT_IR_IN1:     field_value = BCHP_PM_AON_CONFIG_irr0_in_IR_IN1 ; break;
-        case BKIR_INPUT_IR_IN0:
-        default:                    field_value = BCHP_PM_AON_CONFIG_irr0_in_IR_IN0 ; break;
+        default:                    BDBG_MSG(("Using default IR"));
+            /* fall through */
+        case BKIR_INPUT_IR_IN0:     field_value = BCHP_PM_AON_CONFIG_irr0_in_IR_IN0 ; break;
         }
-#ifdef HAS_UHF
         lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr1_in);
         lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr1_in, field_value);
-#else
-        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr0_in);
-        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr0_in, field_value);
-#endif
         break;
-#else  /* not BKIR_HAS_ZERO_BASE */
-    case BKIR_INPUT_PM_APN_CONFIG_IRR3:
-        switch (input_device)
-        {
-        case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO ; break;
-#ifdef HAS_UHF_3
-        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr3_in_UHF_RX1 ; break;
+        break;
 #endif
-#ifndef NO_IR_IN1
-        case BKIR_INPUT_IR_IN1:     field_value = BCHP_PM_AON_CONFIG_irr3_in_IR_IN1  ; break;
-#endif
-        case BKIR_INPUT_IR_IN0:
-        default:                    field_value = BCHP_PM_AON_CONFIG_irr3_in_IR_IN0 ; break;
-        }
-#ifdef HAS_UHF_3
-        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr3_in);
-        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr3_in, field_value);
-#else
-        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr2_in);
-        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr2_in, field_value);
-#endif
-
-#endif  /* end of BKIR_HAS_ZERO_BASE */
-
     case BKIR_INPUT_PM_APN_CONFIG_IRR1:
         switch (input_device)
         {
         case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr1_in_AON_GPIO ; break;
 #ifdef HAS_UHF
-        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr1_in_UHF_RX1 ; break;
+        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr1_in_UHF_RX1; break;
 #endif
 #ifndef NO_IR_IN1
         case BKIR_INPUT_IR_IN1:     field_value = BCHP_PM_AON_CONFIG_irr1_in_IR_IN1 ; break;
 #endif
-        case BKIR_INPUT_IR_IN0:
-        default:                    field_value = BCHP_PM_AON_CONFIG_irr1_in_IR_IN0 ; break;
+        default:                   BDBG_MSG(("Using default IR"));
+            /* fall through */
+        case BKIR_INPUT_IR_IN0:    field_value = BCHP_PM_AON_CONFIG_irr1_in_IR_IN0 ; break;
         }
         lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr1_in);
         lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr1_in, field_value);
@@ -2265,24 +2225,39 @@ BERR_Code BKIR_Set_PM_AON_CONFIG(
     case BKIR_INPUT_PM_APN_CONFIG_IRR2:
         switch (input_device)
         {
-        case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO; break;
+        case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr2_in_AON_GPIO ; break;
 #ifdef HAS_UHF
-        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr2_in_UHF_RX1 ; break;
+        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr2_in_UHF_RX1; break;
 #endif
 #ifndef NO_IR_IN1
         case BKIR_INPUT_IR_IN1:     field_value = BCHP_PM_AON_CONFIG_irr2_in_IR_IN1 ; break;
 #endif
-        case BKIR_INPUT_IR_IN0:
-        default:                    field_value = BCHP_PM_AON_CONFIG_irr2_in_IR_IN0 ; break;
+        default:                    BDBG_MSG(("Using default IR"));
+            /* fall through */
+        case BKIR_INPUT_IR_IN0:     field_value = BCHP_PM_AON_CONFIG_irr2_in_IR_IN0 ; break;
         }
-#ifdef HAS_UHF
         lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr2_in);
         lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr2_in, field_value);
-#else
-        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr1_in);
-        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr1_in, field_value);
-#endif
         break;
+#ifndef BKIR_HAS_ZERO_BASE
+    case BKIR_INPUT_PM_APN_CONFIG_IRR3:
+        switch (input_device)
+        {
+        case BKIR_INPUT_AON_GPIO: field_value = BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO ; break;
+#ifdef HAS_UHF_3
+        case BKIR_INPUT_UHF_RX:     field_value = BCHP_PM_AON_CONFIG_irr3_in_UHF_RX1; break;
+#endif
+#ifndef NO_IR_IN1
+        case BKIR_INPUT_IR_IN1:     field_value = BCHP_PM_AON_CONFIG_irr3_in_IR_IN1 ; break;
+#endif
+        default:                    BDBG_MSG(("Using default IR"));
+            /* fall through */
+        case BKIR_INPUT_IR_IN0:     field_value = BCHP_PM_AON_CONFIG_irr3_in_IR_IN0 ; break;
+        }
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr3_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr3_in, field_value);
+        break;
+#endif
     default:
         retCode = BERR_INVALID_PARAMETER;
         goto done;
@@ -2296,7 +2271,7 @@ done:
 
 BERR_Code BKIR_EnableIrDevice (
     BKIR_ChannelHandle  hChn,       /* Device channel handle */
-    BKIR_KirDevice      device          /* device type to enable */
+    BKIR_KirDevice      device      /* device type to enable */
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
@@ -2383,8 +2358,13 @@ BERR_Code BKIR_EnableIrDevice (
             if ((device == BKIR_KirDevice_eCirRfUei) ||
                 (device == BKIR_KirDevice_eCirDirectvUhfr) ||
                 (device == BKIR_KirDevice_eCirEchostarUhfr) ||
-                (device == BKIR_KirDevice_eCirRC6))
-                lval &= 0xf0;       /* disable TWIRP, SEJIN, REMOTE A, and REMOTE B */
+                (device == BKIR_KirDevice_eCirRC6)) {
+                /* Disable following remote types : */
+                lval &= ~(  KBD_CMD_TWIRP_ENABLE |
+                            KBD_CMD_SEJIN_ENABLE |
+                            KBD_CMD_REMOTE_A_ENABLE |
+                            KBD_CMD_REMOTE_B_ENABLE );
+            }
 
             if (device == BKIR_KirDevice_eCirCustom)
             {
@@ -2392,10 +2372,15 @@ BERR_Code BKIR_EnableIrDevice (
                     (hChn->customDevice == BKIR_KirDevice_eCirDirectvUhfr) ||
                     (hChn->customDevice == BKIR_KirDevice_eCirEchostarUhfr) ||
                     (hChn->customDevice == BKIR_KirDevice_eCirRC6))
-                    lval &= 0xf0;       /* disable TWIRP, SEJIN, REMOTE A, and REMOTE B */
+                    lval &= ~(  KBD_CMD_TWIRP_ENABLE |
+                                KBD_CMD_SEJIN_ENABLE |
+                                KBD_CMD_REMOTE_A_ENABLE |
+                                KBD_CMD_REMOTE_B_ENABLE ); /* Disable remotes */
             }
             break;
-
+        case BKIR_KirDevice_eSonySejin:
+            BDBG_MSG(("update"));
+            break;
         default:
             retCode = BERR_INVALID_PARAMETER;
             goto done;
@@ -2661,20 +2646,6 @@ BERR_Code BKIR_DisableAllIrDevices (
     return( retCode );
 }
 
-BERR_Code BKIR_GetEventHandle(
-    BKIR_ChannelHandle hChn,            /* Device channel handle */
-    BKNI_EventHandle *phEvent           /* [output] Returns event handle */
-    )
-{
-    BERR_Code retCode = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
-
-    *phEvent = hChn->hChnEvent;
-
-    return( retCode );
-}
-
 BERR_Code BKIR_IsDataReady (
     BKIR_ChannelHandle  hChn,           /* Device channel handle */
     bool                *dataReady      /* [output] flag to indicate if data is ready */
@@ -2699,58 +2670,6 @@ BERR_Code BKIR_IsDataReady (
 }
 #endif
 
-BERR_Code BKIR_Read_isr(
-    BKIR_ChannelHandle      hChn,           /* Device channel handle */
-    BKIR_KirInterruptDevice *pDevice,       /* [output] pointer to IR device type that generated the key */
-    unsigned char           *data           /* [output] pointer to data received */
-    )
-{
-    BERR_Code retCode = BERR_SUCCESS;
-    uint32_t lval;
-    BKIR_Handle hDev;
-    uint32_t data0;
-    uint32_t data1;
-
-    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
-
-    hDev = hChn->hKir;
-
-    lval = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_STATUS);
-    *pDevice = (BKIR_KirInterruptDevice)((lval & KBD_STATUS_DEVICE_MASK) >> KBD_STATUS_DEVICE_SHIFTS);
-
-    data0 = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA0);
-    data1 = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA1);
-    data[0] = data0       & 0xff;
-    data[1] = data0 >> 8  & 0xff;
-    data[2] = data0 >> 16 & 0xff;
-    data[3] = data0 >> 24 & 0xff;
-    data[4] = data1       & 0xff;
-#if BCHP_KBD1_CMD_data_filtering_MASK
-    /* 7550 can store up to 48 bit */
-    data[5] = data1 >> 8  & 0xff;
-#endif
-
-    return( retCode );
-}
-
-
-#if !B_REFSW_MINIMAL
-BERR_Code BKIR_Read(
-    BKIR_ChannelHandle      hChn,           /* Device channel handle */
-    BKIR_KirInterruptDevice *pDevice,       /* [output] pointer to IR device type that generated the key */
-    unsigned char           *data           /* [output] pointer to data received */
-    )
-{
-    BERR_Code rc;
-
-    BKNI_EnterCriticalSection();
-    rc = BKIR_Read_isr(hChn, pDevice, data);
-    BKNI_LeaveCriticalSection();
-
-    return rc;
-}
-#endif
-
 BERR_Code BKIR_IsRepeated_isrsafe(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     bool                    *repeatFlag     /* [out] flag to remote A repeat condition */
@@ -2765,40 +2684,46 @@ BERR_Code BKIR_IsRepeated_isrsafe(
     return( retCode );
 }
 
-BERR_Code BKIR_IsPreambleA_isrsafe(
-    BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
-    bool                    *preambleFlag   /* [out] flag to remote A repeat condition */
+void BKIR_GetIrKeyData_isr(
+    BKIR_ChannelHandle hChn,  /* [in] Device channel handle */
+    BKIR_IrKeyData    *keyData
     )
 {
-    BERR_Code retCode = BERR_SUCCESS;
+    BKIR_Handle hDev;
+    uint32_t lval;
 
     BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
+    hDev = hChn->hKir;
 
-    *preambleFlag = hChn->cir_pa;
+    keyData->repeat    = hChn->repeatFlag;
+    keyData->preambleA = hChn->cir_pa;
+    keyData->preambleB = hChn->cir_pb;
 
-    return( retCode );
+    keyData->code     = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA0);
+    keyData->codeHigh = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA1);
+#ifndef BCHP_KBD1_CMD_data_filtering_MASK
+    keyData->codeHigh &= 0x000000FF;
+#endif
+    lval = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_STATUS);
+    keyData->device = (BKIR_KirInterruptDevice)((lval & KBD_STATUS_DEVICE_MASK) >> KBD_STATUS_DEVICE_SHIFTS);
+
 }
 
-BERR_Code BKIR_IsPreambleB_isrsafe(
-    BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
-    bool                    *preambleFlag   /* [out] flag to remote A repeat condition */
+void BKIR_GetIrKeyData(
+    BKIR_ChannelHandle hChn,  /* [in] Device channel handle */
+    BKIR_IrKeyData    *keyData
     )
 {
-    BERR_Code retCode = BERR_SUCCESS;
+    BKNI_EnterCriticalSection();
+    BKIR_GetIrKeyData_isr( hChn, keyData );
+    BKNI_LeaveCriticalSection();
 
-    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
-
-    *preambleFlag = hChn->cir_pb;
-
-    return( retCode );
+    return;
 }
 
 void BKIR_GetLastKey(
     BKIR_ChannelHandle hChn,  /* [in] Device channel handle */
-    uint32_t *code,           /* [out] lower 32-bits of returned code */
-    uint32_t *codeHigh,       /* [out] upper 32-bits of returned code */
-    bool *preambleA,          /* [out] flag for preamble A */
-    bool *preambleB           /* [out] flag for preamble B */
+    BKIR_IrKeyData    *keyData
     )
 {
     BKIR_Handle hDev;
@@ -2808,13 +2733,15 @@ void BKIR_GetLastKey(
 
     hDev = hChn->hKir;
 
-    *code     = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA0);
-    *codeHigh = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA1);
-
+    BKNI_EnterCriticalSection();
+    keyData->code     = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA0);
+    keyData->codeHigh = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA1);
     lval = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_STATUS);
+    keyData->preambleA = (lval & BCHP_KBD1_STATUS_cir_pa_MASK) ? true : false;
+    keyData->preambleB = (lval & BCHP_KBD1_STATUS_cir_pb_MASK) ? true : false;
+    BKNI_LeaveCriticalSection();
 
-    *preambleA = (lval & BCHP_KBD1_STATUS_cir_pa_MASK) ? true : false;
-    *preambleB = (lval & BCHP_KBD1_STATUS_cir_pb_MASK) ? true : false;
+    return;
 }
 
 void BKIR_SetCustomDeviceType (
@@ -2841,8 +2768,10 @@ void BKIR_RegisterCallback (
 {
     BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
+    BKNI_EnterCriticalSection();
     hChn->kirCb = callback;
     hChn->cbData = pData;
+    BKNI_LeaveCriticalSection();
 }
 
 void BKIR_UnregisterCallback (
@@ -2851,8 +2780,10 @@ void BKIR_UnregisterCallback (
 {
     BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
+    BKNI_EnterCriticalSection();
     hChn->kirCb = NULL;
     hChn->cbData = NULL;
+    BKNI_LeaveCriticalSection();
 }
 
 /*******************************************************************************
@@ -2926,7 +2857,6 @@ static void BKIR_P_HandleInterrupt_Isr
         hChn->cir_pb = (lval & BCHP_KBD1_STATUS_cir_pb_MASK) ? true : false;
         hChn->repeatFlag = (lval & BCHP_KBD1_STATUS_rflag_MASK) ? true : false;
     }
-
     lval &= ~BCHP_KBD1_STATUS_irq_MASK;
     BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_STATUS, lval);
 
@@ -2936,7 +2866,6 @@ static void BKIR_P_HandleInterrupt_Isr
         (*hChn->kirCb)( hChn, hChn->cbData );
     }
 
-    BKNI_SetEvent( hChn->hChnEvent );
     return;
 }
 

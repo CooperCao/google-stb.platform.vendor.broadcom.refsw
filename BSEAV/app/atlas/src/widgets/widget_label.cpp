@@ -368,7 +368,7 @@ bwin_image_t CWidgetLabel::getImage()
 
 MRect CWidgetLabel::getImageGeometry(const char * filename)
 {
-    eRet                ret       = eRet_Ok;
+    eRet                ret = eRet_Ok;
     bwin_image_settings settings;
     bwin_image_t        image;
     MRect               rect;

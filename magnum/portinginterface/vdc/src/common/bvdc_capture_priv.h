@@ -161,6 +161,8 @@ typedef struct BVDC_P_CaptureRegisterSetting
     uint32_t       ulDcemRectCtrl;     /* CAP_0_DCEM_RECT_CTRL */
     uint32_t       ulDcemRectMask;     /* CAP_0_DCEM_RECT_ENABLE_MASK */
     uint32_t       ulDcemRectId;       /* CAP_0_DCEM_RECT_ID */
+    uint32_t       ulDecmRect[BAVC_MOSAIC_MAX];        /*CAP_0_DCEM_RECT_SIZEi*/
+    uint32_t       ulDecmRectOffset[BAVC_MOSAIC_MAX];  /*CAP_0_DCEM_RECT_OFFSETi*/
 #endif
 
     BMMA_DeviceOffset  ullMStart;       /* CAP_0_MSTART */

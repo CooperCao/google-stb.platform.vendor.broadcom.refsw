@@ -139,7 +139,7 @@ void glxx_shared_term(void *v, size_t size)
 {
    GLXX_SHARED_T *shared = (GLXX_SHARED_T *)v;
 
-   vcos_unused(size);
+   unused(size);
 
    khrn_map_iterate(&shared->pobjects, destroy_pobject_callback, shared);
    khrn_map_term(&shared->pobjects);

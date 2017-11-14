@@ -53,19 +53,21 @@ b_play_trick_monitor(void *p_)
     BERR_Code rc;
     uint32_t video_pts;
     const NEXUS_Playback_P_PidChannel *pid;
-    const NEXUS_Playback_P_PidChannel *decode;
     NEXUS_VideoDecoderStatus status;
 
     BDBG_OBJECT_ASSERT(p, NEXUS_Playback);
     p->trick.rap_monitor_timer = NULL;
-
-    decode = b_play_get_video_decoder(p);
-    if(!decode) { goto done; }
-    rc = NEXUS_P_Playback_VideoDecoder_GetStatus(decode, &status);
-    if(rc!=NEXUS_SUCCESS) {goto done;}
-    if(status.ptsType == NEXUS_PtsType_eCoded || status.ptsType == NEXUS_PtsType_eInterpolatedFromValidPTS || p->params.playpumpSettings.transportType==NEXUS_TransportType_eEs) {
-        video_pts = status.pts;
-    } else {goto done; }
+    if (p->state.accurateSeek.state == b_accurate_seek_state_idle) {
+        const NEXUS_Playback_P_PidChannel *decode = b_play_get_video_decoder(p);
+        if(!decode) { goto done; }
+        rc = NEXUS_P_Playback_VideoDecoder_GetStatus(decode, &status);
+        if(rc!=NEXUS_SUCCESS) {goto done;}
+        if(status.ptsType == NEXUS_PtsType_eCoded || status.ptsType == NEXUS_PtsType_eInterpolatedFromValidPTS || p->params.playpumpSettings.transportType==NEXUS_TransportType_eEs) {
+            video_pts = status.pts;
+        } else {goto done; }
+    } else {
+        video_pts = p->state.accurateSeek.videoPts;
+    }
     BDBG_MSG(("b_play_trick_monitor: %p, video pts %#x", (void *)p, video_pts));
 
     for(pid = BLST_S_FIRST(&p->pid_list); pid ; pid = BLST_S_NEXT(pid, link)) {
@@ -232,7 +234,7 @@ void NEXUS_Playback_P_VideoDecoderFirstPts(void *context)
 
     BDBG_OBJECT_ASSERT(playback, NEXUS_Playback);
 
-    if (playback->state.inAccurateSeek) {
+    if (playback->state.accurateSeek.state != b_accurate_seek_state_idle) {
         b_trick_settings settings;
         /* video has found its first pts, so now audio can chase */
         /* NOTE: Due to XVD callback order, FirstPtsPassed cback can occur before FirstPts */
@@ -242,12 +244,13 @@ void NEXUS_Playback_P_VideoDecoderFirstPts(void *context)
            /* We got FirstPtsPassed first ! */
            settings.audio_only_pause = false;
            b_play_trick_set(playback, &settings);
-           playback->state.inAccurateSeek = false;
+           playback->state.accurateSeek.state = b_accurate_seek_state_idle;
            BDBG_WRN(("accurate seek: first pts passed, audio seek done FirstPts"));
         }
         else {
             BDBG_WRN(("accurate seek: first pts, starting audio seek FirstPts"));
             settings.audio_only_pause = true;
+            playback->state.accurateSeek.state = b_accurate_seek_state_videoFirstPts;
         }
         b_play_trick_set(playback, &settings);
     }
@@ -260,14 +263,14 @@ void NEXUS_Playback_P_VideoDecoderFirstPtsPassed(void *context)
 
     BDBG_OBJECT_ASSERT(playback, NEXUS_Playback);
 
-    if (playback->state.inAccurateSeek) {
+    if (playback->state.accurateSeek.state != b_accurate_seek_state_idle) {
         b_trick_settings settings;
         b_play_trick_get(playback, &settings);
         if( settings.audio_only_pause ) {
             /* we're done. video has arrived. now audio can start. */
             settings.audio_only_pause = false;
             b_play_trick_set(playback, &settings);
-            playback->state.inAccurateSeek = false;
+            playback->state.accurateSeek.state = b_accurate_seek_state_idle;
             BDBG_WRN(("accurate seek: first pts passed, audio seek done PtsPassed"));
         }
         else {

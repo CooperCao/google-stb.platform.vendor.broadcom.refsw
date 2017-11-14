@@ -22,14 +22,11 @@ gl_DepthRangeParameters gl_DepthRange = gl_DepthRangeParameters(DATAFLOW_GET_DEP
                                                                 DATAFLOW_GET_DEPTHRANGE_FAR,
                                                                 DATAFLOW_GET_DEPTHRANGE_DIFF);
 
-// 'in' and 'out' qualifiers added for v100.
 out highp   vec4  gl_Position;
 in          bool  gl_FrontFacing = DATAFLOW_FRAG_GET_FF;
 in  mediump vec2  gl_PointCoord  = vec2(DATAFLOW_GET_POINT_COORD_X, DATAFLOW_GET_POINT_COORD_Y);
 
-// V100 - TODO: Should we just raise the precision to make these match V300?
-out mediump float gl_PointSize;
-in  mediump vec4  gl_FragCoord = vec4(DATAFLOW_FRAG_GET_X, DATAFLOW_FRAG_GET_Y, DATAFLOW_FRAG_GET_Z, DATAFLOW_FRAG_GET_W);
+// V100
 out mediump vec4  gl_FragColor;
 out mediump vec4  gl_FragData[gl_MaxDrawBuffers];
 
@@ -88,11 +85,8 @@ in    uint  gl_LocalInvocationIndex;  // Value computed later, during compilatio
 
 // V320
 // Vertex
-// TODO: Interface blocks not supported. gl_Position and gl_PointSize are left in for now.
-
 
 // Tessellation Control
-// TODO: Interface blocks not supported
 in highp int gl_PatchVerticesIn;
 in highp int gl_PrimitiveID;
 in highp int gl_InvocationID = DATAFLOW_GET_INVOCATION_ID;
@@ -105,14 +99,11 @@ patch out highp vec4  gl_BoundingBoxEXT[2];
 
 
 // Tessellation Evaluation
-// TODO: Interface blocks not supported
       in highp vec3  gl_TessCoord;
 patch in highp float gl_TessLevelOuter[4];
 patch in highp float gl_TessLevelInner[2];
 
-
 //Geometry
-
 in highp int gl_PrimitiveIDIn;
 
 out highp int gl_PrimitiveID;

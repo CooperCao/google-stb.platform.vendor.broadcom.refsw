@@ -55,17 +55,17 @@ public:
     ~CChannelMosaic(void);
     CChannel * createCopy(CChannel * pChannel);
 
-    virtual eRet tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
-    virtual eRet unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
-    virtual eRet registerObserver(CObserver * observer, eNotification notification = eNotify_All);
-    virtual eRet readXML(MXmlElement * xmlElemChannel);
-    virtual void writeXML(MXmlElement * xmlElemChannel);
-    virtual eRet closePids(void);
-    virtual bool isRecordEnabled(void) { return(false); }
-    virtual bool isTunerRequired(void);
+    virtual eRet    tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
+    virtual eRet    unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
+    virtual eRet    registerObserver(CObserver * observer, eNotification notification = eNotify_All);
+    virtual eRet    readXML(MXmlElement * xmlElemChannel);
+    virtual void    writeXML(MXmlElement * xmlElemChannel);
+    virtual eRet    closePids(void);
+    virtual bool    isRecordEnabled(void) { return(false); }
+    virtual bool    isTunerRequired(void);
     virtual MString getDescription(void) { return("MOSAIC"); }
-    virtual eRet finish(void);
-    virtual eRet getChannelInfo(
+    virtual eRet    finish(void);
+    virtual eRet    getChannelInfo(
             CHANNEL_INFO_T * pChanInfo,
             bool             bScanning
             )

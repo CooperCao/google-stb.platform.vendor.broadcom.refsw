@@ -95,7 +95,6 @@ LDFLAGS += $(NEXUS_LDFLAGS) -lm
 CFLAGS += -g
 
 CFLAGS += $(addprefix -I,${APP_INCLUDES})
-
 CFLAGS += -DPIC -fpic
 
 ifeq ($(NXCLIENT_SUPPORT),y)
@@ -140,10 +139,10 @@ uninstall:
 	@echo [Uninstall... SRAI]
 	${Q_} rm -f ${NEXUS_BIN_DIR}/libsrai.so
 
-install:
+install: srai all
 	@echo [Installing ${APP}... in ${NEXUS_BIN_DIR}]
 	${Q_} install -m 0755 ${APP} ${NEXUS_BIN_DIR}
 	@echo [Installing SRAI... in ${NEXUS_BIN_DIR}]
 	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai/libsrai.so ${NEXUS_BIN_DIR}
 
-re: uninstall clean srai all install
+re: uninstall clean install

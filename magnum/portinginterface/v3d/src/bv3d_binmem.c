@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Copyright (C) 2012 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -101,7 +101,7 @@ static bool BV3D_P_BinMemIsSuitablePool(
 
 /* Chunks must be at least 80 bytes (TILE_STATE_SIZE + CL_BLOCK_SIZE_MIN) per tile
  * Number of tiles = 1920 (max res) * 1080 (max res) * 4 (multisample) / 64 / 64 = 158k
- * Rounding off this gives 256K, so make chunks a multiple (default 1) of 256k 
+ * Rounding off this gives 256K, so make chunks a multiple (default 1) of 256k
  */
 static bool BV3D_P_BinMemAllocatePool(
    BV3D_BinMemManagerHandle hBinMemManager,
@@ -311,7 +311,7 @@ void BV3D_P_BinMemAttachToJob(
    uint32_t indx = BV3D_P_BinMemHandleToIndex(hBinMemManager, hMem);
 
    BDBG_ASSERT(hBinMemManager->pInfo[indx].uiClient == psJob->uiClientId);
-   
+
    hBinMemManager->pInfo[indx].psJob = psJob;
 }
 

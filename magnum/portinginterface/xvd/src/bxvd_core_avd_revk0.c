@@ -118,11 +118,11 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
 
    BMMA_FlushCache(hXvd->hFWMemBlock, (void *)hXvd->uiFWMemBaseVirtAddr, BXVD_P_FW_INNER_IMAGE_OFFSET);
 
-   hXvd->astFWBootInfo[0].uiArcInstance = BXVD_IMAGE_FirmwareID_eOuterELF_AVD0;
-   hXvd->astFWBootInfo[0].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
-   hXvd->astFWBootInfo[0].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
-
    hXvd->uiOuterLoopInstructionBase = hXvd->FWMemBasePhyAddr;
+   hXvd->astFWBootInfo[0].uiArcInstance = BXVD_IMAGE_FirmwareID_eOuterELF_AVD0;
+   hXvd->astFWBootInfo[0].stCode = stBAFLoadInfo.stCode;
+   hXvd->astFWBootInfo[0].stCode.offset = hXvd->uiOuterLoopInstructionBase;
+   hXvd->astFWBootInfo[0].stCode.pStartAddress = NULL;
 
    uiEndOfCode = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
@@ -176,11 +176,11 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
 
    BMMA_FlushCache(hXvd->hFWMemBlock, (void *)uiDestVirtAddr, uiILSize);
 
-   hXvd->astFWBootInfo[1].uiArcInstance=1;
-   hXvd->astFWBootInfo[1].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
-   hXvd->astFWBootInfo[1].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
-
    hXvd->uiInnerLoopInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
+   hXvd->astFWBootInfo[1].uiArcInstance=1;
+   hXvd->astFWBootInfo[1].stCode = stBAFLoadInfo.stCode;
+   hXvd->astFWBootInfo[1].stCode.offset = hXvd->uiInnerLoopInstructionBase;
+   hXvd->astFWBootInfo[1].stCode.pStartAddress = NULL;
    uiEndOfCode = hXvd->uiInnerLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
    BXVD_DBG_MSG(hXvd, ("IL Start of Code: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(hXvd->uiInnerLoopInstructionBase)));
@@ -220,11 +220,11 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
 
       BMMA_FlushCache(hXvd->hFWMemBlock, (void *)uiDestVirtAddr,  BXVD_P_FW_IMAGE_SIZE - BXVD_P_FW_BASELAYER_IMAGE_OFFSET);
 
-      hXvd->astFWBootInfo[2].uiArcInstance = BXVD_IMAGE_RevK_FirmwareID_eBaseELF_SVD;
-      hXvd->astFWBootInfo[2].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
-      hXvd->astFWBootInfo[2].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
-
       hXvd->uiBaseInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_BASELAYER_IMAGE_OFFSET;
+      hXvd->astFWBootInfo[2].uiArcInstance = BXVD_IMAGE_RevK_FirmwareID_eBaseELF_SVD;
+      hXvd->astFWBootInfo[2].stCode = stBAFLoadInfo.stCode;
+      hXvd->astFWBootInfo[2].stCode.offset = hXvd->uiBaseInstructionBase;
+      hXvd->astFWBootInfo[2].stCode.pStartAddress = NULL;
       uiEndOfCode = hXvd->uiBaseInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
       BXVD_DBG_MSG(hXvd, ("BL Start of Code: %08x", (unsigned)hXvd->uiBaseInstructionBase));
@@ -362,14 +362,12 @@ BERR_Code BXVD_P_ChipEnable_RevK0(BXVD_Handle hXvd)
 
       /* Set Outer Loop ARC firmware info */
       astFirmwareInfo[0].uiArcInstance = 0;
-      astFirmwareInfo[0].stCode.pStartAddress = hXvd->astFWBootInfo[0].stCode.pStartAddress;
-      astFirmwareInfo[0].stCode.uiSize = hXvd->astFWBootInfo[0].stCode.uiSize;
+      astFirmwareInfo[0].stCode = hXvd->astFWBootInfo[0].stCode;
       astFirmwareInfo[0].pNext = &astFirmwareInfo[1];
 
       /* Set Inner Loop ARC firmware info */
       astFirmwareInfo[1].uiArcInstance = 1;
-      astFirmwareInfo[1].stCode.pStartAddress = hXvd->astFWBootInfo[1].stCode.pStartAddress;
-      astFirmwareInfo[1].stCode.uiSize = hXvd->astFWBootInfo[1].stCode.uiSize;
+      astFirmwareInfo[1].stCode = hXvd->astFWBootInfo[1].stCode;
       astFirmwareInfo[1].pNext = NULL;
 
 #if BXVD_P_SVD_PRESENT
@@ -379,8 +377,7 @@ BERR_Code BXVD_P_ChipEnable_RevK0(BXVD_Handle hXvd)
 
          /* Set Base Layer ARC firmware info */
          astFirmwareInfo[2].uiArcInstance = 2;
-         astFirmwareInfo[2].stCode.pStartAddress = hXvd->astFWBootInfo[2].stCode.pStartAddress;
-         astFirmwareInfo[2].stCode.uiSize = hXvd->astFWBootInfo[2].stCode.uiSize;
+         astFirmwareInfo[2].stCode = hXvd->astFWBootInfo[2].stCode;
          astFirmwareInfo[2].pNext = NULL;
       }
 #endif
@@ -410,59 +407,57 @@ BERR_Code BXVD_P_ChipEnable_RevK0(BXVD_Handle hXvd)
       BXVD_Reg_Write32(hXvd,
                        (hXvd->stPlatformInfo.stReg.uiDecode_OuterCPUAux+BXVD_P_ARC_STATUS32),
                        0);
-   }
-
-#define FW_CMD_TIMEOUT 10000
 
 #if !BXVD_POLL_FW_MBX
 
-   rc = BERR_TRACE(BKNI_WaitForEvent(hXvd->stDecoderContext.hFWCmdDoneEvent, FW_CMD_TIMEOUT));
+      rc = BERR_TRACE(BKNI_WaitForEvent(hXvd->stDecoderContext.hFWCmdDoneEvent, FW_CMD_TIMEOUT));
 
 #else
 
-   uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
+      uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
 
-   loopCount = 0;
-   rc = BERR_TIMEOUT;
+      loopCount = 0;
+      rc = BERR_TIMEOUT;
 
-   while (loopCount < FW_CMD_TIMEOUT)
-   {
-      if (uiVal != 0)
+      while (loopCount < FW_CMD_TIMEOUT)
       {
-         uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
+         if (uiVal != 0)
+         {
+            uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
 
-         BDBG_MSG(("ARC FW Boot Status = %d", uiFWBootStatus));
+            BDBG_MSG(("ARC FW Boot Status = %d", uiFWBootStatus));
 
-         BDBG_MSG(("loopCount:%d Calling BKNI_Sleep(1), MBX:%d", loopCount, uiVal));
-         BKNI_Sleep(1);
+            BDBG_MSG(("loopCount:%d Calling BKNI_Sleep(1), MBX:%d", loopCount, uiVal));
+            BKNI_Sleep(1);
 
-         loopCount++;
-         uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
+            loopCount++;
+            uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
+         }
+         else
+         {
+            rc = BERR_SUCCESS;
+            break;
+         }
       }
-      else
-      {
-         rc = BERR_SUCCESS;
-         break;
-      }
-   }
 
 #endif
 
-   /* Read FW boot progress/status from CPU2HostStatus register that was written by FW */
-   uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
+      /* Read FW boot progress/status from CPU2HostStatus register that was written by FW */
+      uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
 
-   if(BERR_TIMEOUT == rc)
-   {
-      BXVD_DBG_ERR(hXvd, ("ARC FW command response timed out, FW Boot Status = %d", uiFWBootStatus));
+      if(BERR_TIMEOUT == rc)
+      {
+         BXVD_DBG_ERR(hXvd, ("ARC FW command response timed out, FW Boot Status = %d", uiFWBootStatus));
 
-      return BERR_TRACE(rc);
+         return BERR_TRACE(rc);
+      }
+      else
+      {
+         BXVD_DBG_MSG(hXvd, ("FW boot successful, FW Boot Status = %d", uiFWBootStatus));
+      }
+
+      BKNI_ResetEvent(hXvd->stDecoderContext.hFWCmdDoneEvent);
    }
-   else
-   {
-      BXVD_DBG_MSG(hXvd, ("FW boot successful, FW Boot Status = %d", uiFWBootStatus));
-   }
-
-   BKNI_ResetEvent(hXvd->stDecoderContext.hFWCmdDoneEvent);
 
    BDBG_LEAVE(BXVD_P_ChipEnable_RevK0);
    return BERR_TRACE(rc);

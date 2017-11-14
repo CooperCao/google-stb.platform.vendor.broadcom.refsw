@@ -89,7 +89,7 @@ static void printTranscodeStatus(
                         videoStats.frameRate, videoStats.interlaced?"Y":"N",
                         videoStats.tsm?"Y":"N", videoStats.firstPtsPassed?"Y":"N"
                         ));
-            BDBG_WRN(("Vdec: fifo depth/size=%u/%u decoded=%u displayed=%u picRcvd=%u iFrDisplayed=%u decoderErrs=%u decoderOverflows=%u decoderDrops=%u displayErrs=%u displayDrops=%u displayUnderflows=%u ptsErrs=%u watchdogs=%u bytesDecoded=%llu",
+            BDBG_WRN(("Vdec: fifo depth/size=%u/%u decoded=%u displayed=%u picRcvd=%u iFrDisplayed=%u decoderErrs=%u decoderOverflows=%u decoderDrops=%u displayErrs=%u displayDrops=%u displayUnderflows=%u ptsErrs=%u watchdogs=%u bytesDecoded="BDBG_UINT64_FMT,
                         videoStats.fifoDepth, videoStats.fifoSize,
                         videoStats.numDecoded, videoStats.numDisplayed,
                         videoStats.numPicturesReceived,
@@ -103,20 +103,20 @@ static void printTranscodeStatus(
                         videoStats.numDisplayUnderflows,
                         videoStats.ptsErrorCount,
                         videoStats.numWatchdogs,
-                        videoStats.numBytesDecoded
+                        BDBG_UINT64_ARG(videoStats.numBytesDecoded)
                         ));
         }
         {
             NEXUS_AudioDecoderStatus audioStats;
             nrc = NEXUS_SimpleAudioDecoder_GetStatus( hTranscode->nexusHandles.simple.hAudio, &audioStats );
             BDBG_ASSERT( nrc == NEXUS_SUCCESS );
-            BDBG_WRN(("Adec: started=%s tsm=%s locked=%s fifoSz=%u/%u sampelRate=%d frDecoded=%u frErrs=%u fifoOverflows=%u fifoUnderflows=%u bytesDecoded=%lld watchdogs=%u",
+            BDBG_WRN(("Adec: started=%s tsm=%s locked=%s fifoSz=%u/%u sampelRate=%d frDecoded=%u frErrs=%u fifoOverflows=%u fifoUnderflows=%u bytesDecoded="BDBG_UINT64_FMT" watchdogs=%u",
                         audioStats.started?"Y":"N",
                         audioStats.tsm?"Y":"N", audioStats.locked?"Y":"N",
                         audioStats.fifoDepth, audioStats.fifoSize,
                         audioStats.sampleRate, audioStats.framesDecoded,
                         audioStats.frameErrors, audioStats.numFifoOverflows,
-                        audioStats.numFifoUnderflows, audioStats.numBytesDecoded, audioStats.numWatchdogs
+                        audioStats.numFifoUnderflows, BDBG_UINT64_ARG(audioStats.numBytesDecoded), audioStats.numWatchdogs
                      ));
         }
         {
@@ -130,8 +130,8 @@ static void printTranscodeStatus(
                         encoderStatus.video.picturesDroppedErrors,
                         encoderStatus.video.picturesEncoded,
                         encoderStatus.video.picturesPerSecond,
-                        encoderStatus.video.data.fifoDepth,
-                        encoderStatus.video.data.fifoSize,
+                        (unsigned)encoderStatus.video.data.fifoDepth,
+                        (unsigned)encoderStatus.video.data.fifoSize,
                         encoderStatus.video.version.firmware
                      ));
         }
@@ -1018,7 +1018,7 @@ BIP_TranscodeHandle BIP_Transcode_Create(
 
     /* Create the transcode object */
     hTranscode = B_Os_Calloc( 1, sizeof( BIP_Transcode ));
-    BIP_CHECK_GOTO(( hTranscode != NULL ), ( "Failed to allocate memory (%d bytes) for Transcode Object", sizeof(BIP_Transcode) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+    BIP_CHECK_GOTO(( hTranscode != NULL ), ( "Failed to allocate memory (%d bytes) for Transcode Object", (unsigned)sizeof(BIP_Transcode) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
 
     BDBG_OBJECT_SET( hTranscode, BIP_Transcode );
 

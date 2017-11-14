@@ -142,10 +142,9 @@ void glsl_prec_modify_prec( PrecisionTable *tbl, const SymbolType *type, Precisi
       tbl_set_ints( tbl, newprec );
    else if (type->u.primitive_type.index == PRIM_FLOAT)
       tbl_set_floats( tbl, newprec );
-   else if (glsl_prim_is_prim_sampler_type(type) || glsl_prim_is_prim_image_type(type))
-   {
+   else if (glsl_prim_is_prim_comb_sampler_type(type) || glsl_prim_is_prim_image_type(type))
       tbl->prec[type->u.primitive_type.index] = newprec;
-   } else if (glsl_prim_is_prim_atomic_type(type)) {
+   else if (glsl_prim_is_prim_atomic_type(type)) {
       if (newprec != PREC_HIGHP)
          glsl_compile_error(ERROR_SEMANTIC, 16, g_LineNumber, "precision for atomic type must be highp");
    } else

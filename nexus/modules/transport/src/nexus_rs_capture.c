@@ -224,7 +224,7 @@ static void NEXUS_TransportRsCapture_GetWritePointers(NEXUS_TransportRsCaptureDe
     }
 }
 
-#define WARN_UNMOVED_CYCLES 1000
+#define WARN_UNMOVED_CYCLES 10000
 
 static void NEXUS_TransportRsCapture_Consume(NEXUS_TransportRsCapture * cap, NEXUS_TransportRsCaptureDescriptor * desc)
 {

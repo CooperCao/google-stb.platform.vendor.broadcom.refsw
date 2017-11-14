@@ -1,18 +1,7 @@
-//#define IMAGE_VC_IMAGE /* KHRN_IMAGE_T contains a VC_IMAGE_T (for debugging) */
-
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Image
-
-FILE DESCRIPTION
-Khronos image wrapper declarations.
-=============================================================================*/
-
-#ifndef KHRN_IMAGE_H
-#define KHRN_IMAGE_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_int_image.h"
 #include "middleware/khronos/common/khrn_interlock.h"
@@ -71,14 +60,10 @@ typedef struct {
 
    KHRN_INTERLOCK_T interlock;
 
-   void              *opaque_buffer_handle;
-   BEGL_WindowState  *window_state;
-   void              *display_thread_state;
-   uint32_t          alreadyLocked;
-   uint32_t          swap_interval;
-
-   int               fence;
    bool              secure;
+
+   void              *v3dfence;
+   void              *platform_pixmap;
 
 } KHRN_IMAGE_T;
 
@@ -172,7 +157,7 @@ static INLINE void khrn_image_unlock(const KHRN_IMAGE_T *image)
 }
 
 extern void khrn_image_unlock_wrap(const KHRN_IMAGE_T *image);
-extern void khrn_image_lock_interlock_wrap(KHRN_IMAGE_T *image, KHRN_IMAGE_WRAP_T *wrap, KHRN_INTERLOCK_T *interlock);
+extern void khrn_image_lock_wrap(KHRN_IMAGE_T *image, KHRN_IMAGE_WRAP_T *wrap);
 
 /******************************************************************************
 blitting etc
@@ -244,5 +229,3 @@ extern void khrn_image_copy_stencil_channel(KHRN_IMAGE_T *dst, const KHRN_IMAGE_
 extern void khrn_image_subsample(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src);
 
 extern bool khrn_image_alloc_storage(KHRN_IMAGE_T *image, const char *description);
-
-#endif

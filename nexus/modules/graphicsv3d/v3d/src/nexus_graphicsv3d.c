@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012-13 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -671,7 +671,10 @@ NEXUS_Error NEXUS_Graphicsv3d_GetLoadData(
 
 NEXUS_Error NEXUS_Graphicsv3d_FenceOpen(
    NEXUS_Graphicsv3dHandle          gfx,
-   int *fd
+   int *fd,
+   void **p,
+   char cType,
+   int iPid
    )
 {
    NEXUS_Error ret;
@@ -680,7 +683,7 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceOpen(
 
    if (fd != NULL)
    {
-      BERR_Code err = BV3D_FenceOpen(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, gfx->clientId, fd);
+      BERR_Code err = BV3D_FenceOpen(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, gfx->clientId, fd, p, cType, iPid);
       ret = err == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
    }
    else
@@ -691,37 +694,33 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceOpen(
    return ret;
 }
 
-NEXUS_Error NEXUS_Graphicsv3d_FenceSignal(
-   int fd
+NEXUS_Error NEXUS_Graphicsv3d_FenceWaitAsync(
+   NEXUS_Graphicsv3dHandle          gfx,
+   int fd,
+   void **pV3dFence
    )
 {
    NEXUS_Error ret;
    BERR_Code err;
 
-   BDBG_ENTER(NEXUS_Graphicsv3d_FenceSignal);
+   BDBG_ENTER(NEXUS_Graphicsv3d_FenceWaitAsync);
 
-   err = BV3D_FenceSignal(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, fd);
+   if (pV3dFence == NULL)
+   {
+      ret = NEXUS_INVALID_PARAMETER;
+      goto error;
+   }
+
+   err = BV3D_FenceWaitAsync(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, gfx->clientId, fd, pV3dFence);
    if (err == BERR_SUCCESS)
       ret = NEXUS_SUCCESS;
-   else if (err == BERR_INVALID_PARAMETER)
-      ret = NEXUS_INVALID_PARAMETER;
    else
       ret = NEXUS_UNKNOWN;
 
-   BDBG_LEAVE(NEXUS_Graphicsv3d_FenceSignal);
+error:
+   BDBG_LEAVE(NEXUS_Graphicsv3d_FenceWaitAsync);
 
    return ret;
-}
-
-void NEXUS_Graphicsv3d_FenceClose(
-   int fd
-   )
-{
-   BDBG_ENTER(NEXUS_Graphicsv3d_FenceClose);
-
-   BV3D_FenceClose(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, fd);
-
-   BDBG_LEAVE(NEXUS_Graphicsv3d_FenceClose);
 }
 
 void NEXUS_Graphicsv3d_GetTime(uint64_t *pMicroseconds)

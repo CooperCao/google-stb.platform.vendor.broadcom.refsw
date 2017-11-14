@@ -1,34 +1,78 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 1.1 matrix and matrix stack implementation.
-=============================================================================*/
-
-#include "interface/khronos/common/khrn_int_common.h"
-#include "middleware/khronos/common/khrn_hw.h"
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/gl11/gl11_matrix.h"
+#include "middleware/khronos/common/khrn_hw.h"
+#include <stdbool.h>
 
-#include <string.h>
+void gl11_matrix_load(float *d, const float *a)
+{
+   khrn_memcpy(d, a, 16 * sizeof(float));
+}
 
-#include "middleware/khronos/gl11/gl11_matrix_cr.c"
+#define OFFSET(i, j) ((i) + (j) * 4)
 
-/*
-   multiply matrix by row vector
+void gl11_matrix_mult(float *d, const float *a, const float *b)
+{
+   int i;
+   float t[16];
 
-   (x' y' z' w') = (x y z w) B
-*/
+   for (i = 0; i < 4; i++)
+   {
+      int j4 = 0;
+      int oa = i;
+      int ob = j4;
+      float v = 0.0f;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob];
 
-void gl11_matrix_mult_row(GLfloat *d, const GLfloat *a, const GLfloat *b)
+      t[i + j4] = v;
+
+      j4 = 4;
+      oa = i;
+      ob = j4;
+      v = 0.0f;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob];
+
+      t[i + j4] = v;
+
+      j4 = 8;
+      oa = i;
+      ob = j4;
+      v = 0.0f;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob];
+
+      t[i + j4] = v;
+
+      j4 = 12;
+      oa = i;
+      ob = j4;
+      v = 0.0f;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob]; oa += 4; ob++;
+      v += a[oa] * b[ob];
+
+      t[i + j4] = v;
+
+   }
+
+   gl11_matrix_load(d, t);
+}
+
+void gl11_matrix_mult_row(float *d, const float *a, const float *b)
 {
    int i;
    for (i = 0; i < 4; i++) {
-      GLfloat v = 0.0f;
+      float v = 0.0f;
       int j;
       for (j = 0; j < 4; j++)
          v += a[j] * b[OFFSET(j, i)];
@@ -46,11 +90,11 @@ void gl11_matrix_mult_row(GLfloat *d, const GLfloat *a, const GLfloat *b)
    (w')     (w)
 */
 
-void gl11_matrix_mult_col(GLfloat *d, const GLfloat *a, const GLfloat *b)
+void gl11_matrix_mult_col(float *d, const float *a, const float *b)
 {
    int i;
    for (i = 0; i < 4; i++) {
-      GLfloat v = 0.0f;
+      float v = 0.0f;
       int j;
       for (j = 0; j < 4; j++)
          v += a[OFFSET(i, j)] * b[j];
@@ -59,15 +103,9 @@ void gl11_matrix_mult_col(GLfloat *d, const GLfloat *a, const GLfloat *b)
    }
 }
 
-/*
-   gl11_matrix_invert_4x4(GLfloat *d, const GLfloat *a)
-
-   invert a non-singular 4x4 matrix
-*/
-
 #define SPLICE(i,x) (((i)<(x)) ? (i) : ((i)+1))
 
-void gl11_matrix_invert_4x4(GLfloat *d, const GLfloat *a)
+void gl11_matrix_invert_4x4(float *d, const float *a)
 {
    // A list of all 4-permutations in no particular order except that:
    // - even and odd permutations are listed alternately
@@ -119,7 +157,7 @@ void gl11_matrix_invert_4x4(GLfloat *d, const GLfloat *a)
    with DET  =  a00(a22a11-a21a12)-a10(a22a01-a21a02)+a20(a12a01-a11a02)
 */
 
-void gl11_matrix_invert_3x3(GLfloat *d, const GLfloat *a)
+void gl11_matrix_invert_3x3(float *d, const float *a)
 {
    float det = a[OFFSET(0, 0)] * (a[OFFSET(1, 1)] * a[OFFSET(2, 2)] - a[OFFSET(1, 2)] * a[OFFSET(2, 1)]) +
                a[OFFSET(1, 0)] * (a[OFFSET(2, 1)] * a[OFFSET(0, 2)] - a[OFFSET(2, 2)] * a[OFFSET(0, 1)]) +
@@ -146,7 +184,7 @@ void gl11_matrix_invert_3x3(GLfloat *d, const GLfloat *a)
    d[OFFSET(3, 3)] = 1.0f;
 }
 
-void gl11_matrix_transpose(GLfloat *d, const GLfloat *a)
+void gl11_matrix_transpose(float *d, const float *a)
 {
    int i;
    for (i = 0; i < 4; i++)
@@ -157,7 +195,7 @@ void gl11_matrix_transpose(GLfloat *d, const GLfloat *a)
    }
 }
 
-GLboolean gl11_matrix_is_projective(GLfloat *a)
+bool gl11_matrix_is_projective(float *a)
 {
    return a[3] != 0.0f || a[7] != 0.0f || a[11] != 0.0f || a[15] != 1.0f;
 }

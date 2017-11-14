@@ -101,6 +101,7 @@ LDFLAGS += -lpthread
 MAIN_OBJS = ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.c ${NEXUS_TOP}/../${B_THIS_DIR}/bheaps.c
 SERVER_OBJS = ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_server.c
 EXTRA_OBJS += ${NEXUS_TOP}/../BSEAV/tools/bmemperf/common/bmemperf_lib.c
+EXTRA_OBJS += ${NEXUS_TOP}/../BSEAV/tools/bmemperf/common/bsysperf_wifi.c
 CLKGEN_PATH = ${NEXUS_TOP}/../magnum/basemodules/chp/src/common
 
 ifeq ($(findstring $(BCHP_CHIP),7271 ),$(BCHP_CHIP))
@@ -201,8 +202,9 @@ ifeq ($(ANDROID_BUILD),y)
 CFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DB_ANDROID_BUILD
 endif
 
+include $(NEXUS_TOP)/../$(B_THIS_DIR)/bsysperf.inc
+
 ifdef WLAN_DRIVER
-EXTRA_OBJS += ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_wifi.c
 LDFLAGS += -L$(BWL_OBJ_DIR) -lbwl
 CFLAGS += -DBWL_SUPPORT
 CFLAGS += -I$(BWL_SRC_DIR)/include

@@ -12,6 +12,7 @@
 #include <EGL/begl_displayplatform.h>
 
 #include <stdbool.h>
+#include <semaphore.h>
 
 /*
  * DisplayFramework is a generic implementation of an animation loop
@@ -55,10 +56,11 @@ typedef struct DisplayFramework
    const DisplayInterface   *display_interface;
    const FenceInterface     *fence_interface;
    const SurfaceInterface   *surface_interface;
-   BEGL_WindowInfo                  window_info;
+   BEGL_WindowInfo           window_info;
 
-   pthread_t                        thread;
-   pthread_barrier_t                barrier;
+   pthread_t                 thread;
+   pthread_barrier_t         barrier;
+   sem_t                     latency;
    Swapchain                 swapchain;
 } DisplayFramework;
 

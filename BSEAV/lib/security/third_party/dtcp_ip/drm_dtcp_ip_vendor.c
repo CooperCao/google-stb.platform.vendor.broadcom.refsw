@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,13 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
  *
  *****************************************************************************/
 
@@ -81,7 +75,7 @@ DrmRC DRM_DtcpIp_Vendor_Initialize(void)
 	DrmRC rc = Drm_Success;
 
 
-	BDBG_MSG(("%s - Entering function", __FUNCTION__));
+	BDBG_MSG(("%s - Entering function", BSTD_FUNCTION));
 
 #ifdef B_DTCP_IP_DATA_BRCM
 	/* char *key_file = "DRM_BRCM_7425_DTCP_IP_SET_1.bin"; */
@@ -95,19 +89,19 @@ DrmRC DRM_DtcpIp_Vendor_Initialize(void)
 	/*
 	* IF THE THIRD-PARTY IS NOT USING BROADCOM KEY PROTECTION MECHANISM "DRM UTILITY" A, INSERT CODE HERE
 	*/
-	BDBG_MSG(("%s - Third-party support", __FUNCTION__));
+	BDBG_MSG(("%s - Third-party support", BSTD_FUNCTION));
 
     dtcpIpParamSettings.use_external_keys = true;
 	rc = DRM_Common_AllocKeySlot(NEXUS_SecurityEngine_eM2m, &dtcpIpParamSettings.encryptKeyHandle);
 	if (rc != Drm_Success)
 	{
-		BDBG_ERR(("%s - Error allocating enc keyslot", __FUNCTION__));
+		BDBG_ERR(("%s - Error allocating enc keyslot", BSTD_FUNCTION));
 	}
 
 	rc = DRM_Common_AllocKeySlot(NEXUS_SecurityEngine_eM2m, &dtcpIpParamSettings.decryptKeyHandle);
 	if (rc != Drm_Success)
 	{
-		BDBG_ERR(("%s - Error allocating dec keyslot", __FUNCTION__));
+		BDBG_ERR(("%s - Error allocating dec keyslot", BSTD_FUNCTION));
 	}
 
 	DRM_DtcpIp_SetParamSettings(dtcpIpParamSettings);
@@ -115,13 +109,13 @@ DrmRC DRM_DtcpIp_Vendor_Initialize(void)
 	rc = DRM_Common_BasicInitialize(&dtcpIpParamSettings.drmCommonInit);
 	if(rc != Drm_Success)
 	{
-		BDBG_ERR(("%s - Error initializing Common module", __FUNCTION__));
+		BDBG_ERR(("%s - Error initializing Common module", BSTD_FUNCTION));
 	}
 /* PLEASE PLACE YOUR OWN INITIALIZATION CODE HERE.  IF NO INITIALIZATION IS REQUIRED THEN THIS CAN BE LEFT AS IS */
 
 #endif /* B_DTCP_IP_DATA_BRCM */
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 	return rc;
 }
 
@@ -142,7 +136,7 @@ void DRM_DtcpIp_Vendor_Finalize(void)
 #ifdef B_DTCP_IP_DATA_BRCM
 	DRM_DtcpIp_Finalize();
 #else
-    BDBG_MSG(("%s - Entering third-party finalize",__FUNCTION__));
+    BDBG_MSG(("%s - Entering third-party finalize",BSTD_FUNCTION));
 
     if(dtcpIpParamSettings.encryptKeyHandle != NULL){
     	DRM_Common_FreeKeySlot(dtcpIpParamSettings.encryptKeyHandle);
@@ -156,7 +150,7 @@ void DRM_DtcpIp_Vendor_Finalize(void)
 
 	DRM_Common_Finalize();
 #endif
-    BDBG_MSG(("%s - Exiting function",__FUNCTION__));
+    BDBG_MSG(("%s - Exiting function",BSTD_FUNCTION));
     return;
 }
 
@@ -165,17 +159,17 @@ DrmRC DRM_DtcpIp_Vendor_GetData(drm_dtcp_ip_data_t *pDtcpIpData)
 {
 	DrmRC rc = Drm_Success;
 
-	BDBG_MSG(("%s - Entering function", __FUNCTION__));
+	BDBG_MSG(("%s - Entering function", BSTD_FUNCTION));
 
 	if(pDtcpIpData == NULL)
 	{
 		rc = Drm_InvalidParameter;
-		BDBG_ERR(("%s - Invalid parameter, no structure passed as parameter ", __FUNCTION__));
+		BDBG_ERR(("%s - Invalid parameter, no structure passed as parameter ", BSTD_FUNCTION));
 		goto ErrorExit;
 	}
 
 #ifdef B_DTCP_IP_DATA_BRCM
-	BDBG_MSG(("%s - DTLA data provisioning using proprietary scheme", __FUNCTION__));
+	BDBG_MSG(("%s - DTLA data provisioning using proprietary scheme", BSTD_FUNCTION));
 	rc = DRM_DtcpIp_GetData(pDtcpIpData);
 #else
 	/*
@@ -208,13 +202,13 @@ DrmRC DRM_DtcpIp_Vendor_GetData(drm_dtcp_ip_data_t *pDtcpIpData)
     * r                     160         Order of base point (little-endian)                        unsigned char    OrderBasePoint[DRM_DTCP_IP_ENC_ECC_DATA_SIZE];
 
 	*/
-	BDBG_MSG(("%s - DTLA data provisioning using third-party scheme", __FUNCTION__));
+	BDBG_MSG(("%s - DTLA data provisioning using third-party scheme", BSTD_FUNCTION));
 	rc = Drm_InvalidStateErr;
 #endif
 
 	if(rc != Drm_Success)
 	{
-		BDBG_ERR(("%s - Error in DTLA data provisioning scheme", __FUNCTION__));
+		BDBG_ERR(("%s - Error in DTLA data provisioning scheme", BSTD_FUNCTION));
 		goto ErrorExit;
 	}
 

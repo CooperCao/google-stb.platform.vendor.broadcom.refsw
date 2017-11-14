@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #if NEXUS_HAS_FRONTEND && NEXUS_HAS_VIDEO_DECODER
@@ -203,7 +195,6 @@ int main(int argc, char **argv)  {
     if (clientConfig.resources.simpleVideoDecoder.total) {
         for (i=0;i<clientConfig.resources.simpleVideoDecoder.total && i < NUM_VIDEO_DECODES;i++) {
             NEXUS_VideoDecoderSettings settings;
-            NEXUS_VideoDecoderPrimerSettings primerSettings;
 
             videoDecoder[i] = NEXUS_SimpleVideoDecoder_Acquire(clientConfig.resources.simpleVideoDecoder.id[i]);
             if (!videoDecoder[i]) break;
@@ -212,12 +203,6 @@ int main(int argc, char **argv)  {
             settings.firstPtsPassed.callback = first_pts_passed;
             rc = NEXUS_SimpleVideoDecoder_SetSettings(videoDecoder[i], &settings);
             BDBG_ASSERT(!rc);
-
-            NEXUS_SimpleVideoDecoderPrimer_GetSettings(videoDecoder[i], &primerSettings);
-            /* primerSettings.ptsStcDiffCorrectionEnabled = true; */
-            primerSettings.pastTolerance = 500*45;
-            primerSettings.futureTolerance = 0;
-            NEXUS_SimpleVideoDecoderPrimer_SetSettings(videoDecoder[i], &primerSettings);
 
             stcChannel[i] = NEXUS_SimpleStcChannel_Create(NULL);
             BDBG_ASSERT(stcChannel[i]);

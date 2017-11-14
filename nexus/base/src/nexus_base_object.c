@@ -72,6 +72,7 @@ void NEXUS_BaseObject_P_Init(NEXUS_BaseObject *object, const NEXUS_BaseClassDesc
     object->state.client = NULL;
     object->state.acquired_client = NULL;
     object->state.shared = false;
+    object->state.inCleanup = false;
     BDBG_MSG_OBJECT(object,("%p'%s': Init %p %p'%s'", (void *)descriptor, descriptor->type_name, (void *)(((uint8_t *)object)-descriptor->offset), (void *)object_module, object_module->pModuleName));
     return;
 }

@@ -41,6 +41,7 @@
 #include "nexus_playback_module.h"
 #include "nexus_playback_impl.h"
 #include "nexus_core_utils.h"
+#include "priv/nexus_file_priv.h"
 
 BDBG_MODULE(nexus_playback);
 
@@ -184,11 +185,13 @@ NEXUS_Playback_ClosePidChannel(NEXUS_PlaybackHandle playback, NEXUS_PidChannelHa
     if (play_pid->cfg.pidSettings.pidType == NEXUS_PidType_eVideo) {
         NEXUS_VideoDecoderPlaybackSettings playbackSettings;
         NEXUS_P_Playback_VideoDecoder_GetPlaybackSettings(play_pid, &playbackSettings);
-        playbackSettings.firstPts.callback = NULL;
-        playbackSettings.firstPtsPassed.callback = NULL;
-        (void)NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(play_pid, &playbackSettings);
-        NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPts);
-        NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPtsPassed);
+        if (playbackSettings.firstPts.callback || playbackSettings.firstPtsPassed.callback) {
+            playbackSettings.firstPts.callback = NULL;
+            playbackSettings.firstPtsPassed.callback = NULL;
+            (void)NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(play_pid, &playbackSettings);
+            NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPts);
+            NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPtsPassed);
+        }
     }
 
     NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPts);
@@ -572,29 +575,40 @@ NEXUS_Playback_GetDefaultTrickModeSettings(NEXUS_PlaybackTrickModeSettings *tric
     return;
 }
 
-static int bplay_p_accurate_seek(NEXUS_PlaybackHandle p, bmedia_player_pos position)
+static void bplay_p_apply_accurate_seek(NEXUS_PlaybackHandle p)
+{
+    if(p->state.accurateSeek.state == b_accurate_seek_state_videoPtsQueued ) {
+        const NEXUS_Playback_P_PidChannel *pid = b_play_get_video_decoder(p);
+        if(pid)  {
+            NEXUS_VideoDecoderHandle decode= pid->cfg.pidTypeSettings.video.decoder;
+            if (decode) {
+                /* tell decoder to discard until this pts */
+                NEXUS_Error rc = NEXUS_VideoDecoder_SetStartPts(decode, p->state.accurateSeek.videoPts);
+                if (rc==BERR_SUCCESS) {
+                    p->state.accurateSeek.state=b_accurate_seek_state_videoPtsQueued;
+                    return;
+                }
+            }
+        }
+        p->state.accurateSeek.state=b_accurate_seek_state_idle;
+    }
+    return;
+}
+
+static NEXUS_Error bplay_p_accurate_seek(NEXUS_PlaybackHandle p, bmedia_player_pos position)
 {
     uint32_t pts = 0;
     const NEXUS_Playback_P_PidChannel *pid = b_play_get_video_decoder(p);
-    NEXUS_VideoDecoderHandle decode;
-    int rc;
+    NEXUS_Error rc;
     b_trick_settings settings;
 
     /* requires regular decoder. does not support simpleDecoder */
     if (!pid) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
-    decode = pid->cfg.pidTypeSettings.video.decoder;
-    if (!decode) {
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
     if(!HAS_INDEX(p)) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED); /* playback should be started with an index */
     }
-
-    /* must flush before NEXUS_VideoDecoder_SetStartPts is called to avoid a false detect
-    with existing pictures in the queue */
-    b_play_flush(p);
 
     switch (p->params.playpumpSettings.transportType) {
     case NEXUS_TransportType_eTs:
@@ -606,16 +620,23 @@ static int bplay_p_accurate_seek(NEXUS_PlaybackHandle p, bmedia_player_pos posit
     case NEXUS_TransportType_eAsf:
     case NEXUS_TransportType_eAvi:
         break;
+    case NEXUS_TransportType_eMp4:
+    case NEXUS_TransportType_eMkv:
+        break;
     default:
-        /* not supported for other containers
-        for MKV and MP4, get_next_frame is an asynchronous function. we will need to devise a different technique. */
+        /* not supported for other containers */
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
 
     b_play_trick_get(p, &settings);
     if (settings.state != b_trick_state_normal) {
         /* only applies to normal play mode */
-        return 0;
+        return NEXUS_SUCCESS;
+    }
+
+    if(p->state.accurateSeek.state != b_accurate_seek_state_idle) {
+        BDBG_WRN(("bplay_p_accurate_seek:%p unexpected state:%u", (void *)p, p->state.accurateSeek.state));
+        p->state.accurateSeek.state = b_accurate_seek_state_idle;
     }
 
     if (!bmedia_player_lookup_pts(p->media_player, position, &pts)) {
@@ -639,29 +660,73 @@ static int bplay_p_accurate_seek(NEXUS_PlaybackHandle p, bmedia_player_pos posit
                 bmedia_player_seek(p->media_player, entry.timestamp);
             }
             break;
+        case NEXUS_TransportType_eMp4:
+        case NEXUS_TransportType_eMkv:
+            {
+                unsigned try;
+                bmedia_player_pos original_position = BMEDIA_PLAYER_INVALID;
+                bmedia_player_pos current_target = position;
+
+                for(try=0;;try++)
+                {
+                    unsigned limit = 100; /* number of steps */
+                    bmedia_player_pos step = 500; /* ms */
+                    bmedia_player_status status;
+
+                    bmedia_player_get_status(p->media_player, &status);
+                    if(status.position == BMEDIA_PLAYER_INVALID) {
+                        BDBG_ERR(("bplay_p_accurate_seek:%p can't obtain position after seeking to %ld", (void *)p, (long)current_target));
+                        /* current position is unknown, aboirt */
+                        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                    }
+                    if(try==0) {
+                        original_position = status.position;
+                    }
+                    BDBG_MSG(("bplay_p_accurate_seek:%p seek to [%u]%ld->%ld[%ld]", (void *)p, try, (long)current_target, (long)status.position, (long)original_position));
+                    if(status.position<position) {
+                        BDBG_MSG(("bplay_p_accurate_seek:%p completed seek to %ld-(%ld,%ld) PTS:%#x(%u) in %u steps", (void *)p, (long)position, (long)current_target, (long)status.position, (unsigned)pts, (unsigned)(pts/45),try));
+                        break;
+                    }
+                    if(try>=limit || current_target == 0) {
+                        BDBG_ERR(("bplay_p_accurate_seek:%p can't find seek point for %ld in range %ld -> %ld...%ld", (void *)p, (long)position, (long)current_target, (long)status.position, (long)original_position));
+                        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                    }
+                    if(current_target>step) {
+                        current_target -= step;
+                    } else {
+                        current_target = 0;
+                    }
+                    rc = bmedia_player_seek(p->media_player, current_target);
+                    if( rc!=0 ) {
+                        BDBG_ERR(("bplay_p_accurate_seek:%p can't seek to %ld", (void *)p, (long)current_target));
+                        /* current position is unknown, aboirt */
+                        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                    }
+                }
+            }
+        break;
+
         default:
             /* bcmplayer already seeks back to previous I frame */
             BDBG_WRN(("accurate seek: to %d (pts %#x)", (int)position, (unsigned)pts));
             break;
         }
-
-        /* tell decoder to discard until this pts */
-        rc = NEXUS_VideoDecoder_SetStartPts(decode, pts);
-        if (rc) return BERR_TRACE(rc);
+        /* We can't call yet video decoder API (it should be called after Flush, so store target PTS and call when we can */
+        p->state.accurateSeek.state = b_accurate_seek_state_videoPtsQueued;
+        p->state.accurateSeek.videoPts = pts;
+        /* start state machine to allow audio to chase video's PTS. This keeps a full audio CDB from
+        hanging video as it seeks for its start PTS. the state machine is:
+        1) wait for video first PTS
+        2) start audio pause (which launches the rap_monitor_timer)
+        3) wait for video first PTS passed, which means we've found the start pts
+        4) stop audio pause
+        */
     }
     else {
-        BDBG_WRN(("Unable to do accurateSeek position=%d(%#x), decode=%p", (int)position, pts, (void *)decode));
+        BDBG_WRN(("Unable to do accurateSeek position=%d(%#x)", (int)position, pts));
     }
 
-    /* start state machine to allow audio to chase video's PTS. This keeps a full audio CDB from
-    hanging video as it seeks for its start PTS. the state machine is:
-    1) wait for video first PTS
-    2) start audio pause (which launches the rap_monitor_timer)
-    3) wait for video first PTS passed, which means we've found the start pts
-    4) stop audio pause
-    */
-    p->state.inAccurateSeek = true;
-    return 0;
+    return NEXUS_SUCCESS;
 }
 static bool bplay_p_use_stc_trick(NEXUS_PlaybackHandle p)
 {
@@ -737,7 +802,15 @@ bplay_p_play_impl(NEXUS_PlaybackHandle p, bool *restart, bool flush, bmedia_play
         bmedia_player_set_direction(p->media_player, 0, BMEDIA_TIME_SCALE_BASE, &mode); /* normal decode */
 
         if (p->params.accurateSeek) {
-            bplay_p_accurate_seek(p, position);
+            rc = bplay_p_accurate_seek(p, position);
+            if(rc==NEXUS_SUCCESS) {
+                /* must flush before NEXUS_VideoDecoder_SetStartPts is called to avoid a false detect
+                with existing pictures in the queue */
+                b_play_flush(p);
+                bplay_p_apply_accurate_seek(p);
+            } else {
+                rc = BERR_SUCCESS; /* clear error from bplay_p_accurate_seek */
+            }
         }
 
         *restart = true;
@@ -1142,6 +1215,7 @@ bplay_restart_playback(NEXUS_PlaybackHandle p, bool restart_data_flow)
             p->state.media.entry.atom = NULL;
         }
         b_play_flush(p);
+        bplay_p_apply_accurate_seek(p); /* apply videoPTS after decoder flish */
         bplay_p_clear_buffer(p);
         p->state.state = eTransition;
         /* start data flowing */
@@ -1194,6 +1268,7 @@ bplay_restart_playback(NEXUS_PlaybackHandle p, bool restart_data_flow)
         BDBG_ERR(("Restart: unknown state %d", p->state.state));
     }
 
+    bplay_p_apply_accurate_seek(p); /* call so don't keep stale target videoPTS */
     p->state.decoder_flushed = false;
     b_play_check_buffer(p);
     return;
@@ -1548,6 +1623,11 @@ NEXUS_Playback_Seek(NEXUS_PlaybackHandle p, NEXUS_PlaybackPosition position)
     rc = bplay_sync_playback(p);
     if(rc!=NEXUS_SUCCESS) {rc = BERR_TRACE(rc); goto done;}
 
+    if(p->state.accurateSeek.state != b_accurate_seek_state_idle) {
+        BDBG_WRN(("NEXUS_Playback_Seek:%p unexpected state:%u", (void *)p, p->state.accurateSeek.state));
+        p->state.accurateSeek.state = b_accurate_seek_state_idle;
+    }
+
     if (!b_play_get_video_decoder(p) && !b_play_has_audio_decoder(p)) {
         /* no-decoder playback is valid, so this is only a WRN */
         BDBG_WRN(("No video or audio decoder was provided with NEXUS_PlaybackPidChannelSettings; therefore NEXUS_Playback_Seek will not be precise."));
@@ -1703,6 +1783,12 @@ NEXUS_Playback_Start(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, c
     if (!file) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
+    NEXUS_Module_Lock(g_NEXUS_PlaybackModulesSettings.modules.file);
+    rc = NEXUS_FilePlay_Lock_priv(file);
+    NEXUS_Module_Unlock(g_NEXUS_PlaybackModulesSettings.modules.file);
+    if (rc) {
+        return BERR_TRACE(rc);
+    }
     BDBG_OBJECT_ASSERT(playback, NEXUS_Playback);
 
     if(!pSettings) {
@@ -1817,6 +1903,9 @@ error_player:
 error_state:
 error_index_mode:
     playback->state.state = eStopped;
+    NEXUS_Module_Lock(g_NEXUS_PlaybackModulesSettings.modules.file);
+    NEXUS_FilePlay_Unlock_priv(file);
+    NEXUS_Module_Unlock(g_NEXUS_PlaybackModulesSettings.modules.file);
     /* On any Start failure, we must end in a clean eStopped state that can be restarted. */
     return rc;
 }
@@ -2013,7 +2102,7 @@ NEXUS_Playback_Stop(NEXUS_PlaybackHandle playback)
     b_play_stop_media(playback);
     b_play_trick_shutdown(playback);
     b_play_capture_close(playback);
-    playback->state.inAccurateSeek = false;
+    playback->state.accurateSeek.state = b_accurate_seek_state_idle;
     playback->state.state = eStopped;
 
     NEXUS_StopCallbacks(playback->params.playpump);
@@ -2021,6 +2110,9 @@ NEXUS_Playback_Stop(NEXUS_PlaybackHandle playback)
     NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPts);
     NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPtsPassed);
 
+    NEXUS_Module_Lock(g_NEXUS_PlaybackModulesSettings.modules.file);
+    NEXUS_FilePlay_Unlock_priv(playback->file);
+    NEXUS_Module_Unlock(g_NEXUS_PlaybackModulesSettings.modules.file);
 
 done:
     return ;

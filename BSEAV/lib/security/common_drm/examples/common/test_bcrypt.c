@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011 Broadcom Corporation
- * 
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,41 +9,33 @@
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *  
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
  * Except as expressly set forth in the Authorized License,
- *  
+ *
  * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
  * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *  
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  * USE OR PERFORMANCE OF THE SOFTWARE.
- * 
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- * 
  * Module Description:
- * 
- * Revision History:
- * 
- * $brcm_Log: $
  * 
  *****************************************************************************/
 #include <stdlib.h>
@@ -155,11 +147,11 @@ int main(int argc, char *argv[])
     test_rsa();
 
 
-    printf("\n\n\t%s - Number of test cases that failed = '%u'\n", __FUNCTION__, error_count);
-    printf("\t%s - Number of test cases that failed = '%u'\n", __FUNCTION__, error_count);
-    printf("\t%s - Number of test cases that failed = '%u'\n", __FUNCTION__, error_count);
-    printf("\t%s - Number of test cases that failed = '%u'\n", __FUNCTION__, error_count);
-    printf("\t%s - Exiting\n", __FUNCTION__);
+    printf("\n\n\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
+    printf("\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
+    printf("\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
+    printf("\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
+    printf("\t%s - Exiting\n", BSTD_FUNCTION);
     return 0;
 }
 
@@ -177,7 +169,7 @@ void test_sha1()
     							0x7e, 0xdd, 0xc8, 0x61, 0x32, 0x19, 0x9e, 0xce,
     							0x3b, 0x9e, 0xa0, 0xcc, 0x00, 0x00, 0x00, 0x00,
     							0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	printf("\n\t%s - Entered SHA-1 test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered SHA-1 test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 	DRM_Common_SwSha1(pBuf, pShaBuf, 32);
 
 	printf("\tMain - Calculated SHA-1 :\n\t\t");
@@ -217,28 +209,28 @@ void test_partial_sha1()
     							0x7e, 0xdd, 0xc8, 0x61, 0x32, 0x19, 0x9e, 0xce,
     							0x3b, 0x9e, 0xa0, 0xcc, 0x00, 0x00, 0x00, 0x00,
     							0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	printf("\n\t%s - Entered Partial SHA-1 test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered Partial SHA-1 test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	for(i=0; i<3; i++)
 	{
 		switch(i)
 		{
 			case 0:
-				printf("\t%s - Partial SHA-1 Init\n", __FUNCTION__);
+				printf("\t%s - Partial SHA-1 Init\n", BSTD_FUNCTION);
 				pCurrData = pBuf;
 				curr_data_size = 8;
 				partialSha1Type = DrmCommon_PartialSha1Type_Init;
 			break;
 
 			case 1:
-				printf("\t%s - Partial SHA-1 Update\n", __FUNCTION__);
+				printf("\t%s - Partial SHA-1 Update\n", BSTD_FUNCTION);
 				pCurrData = &pBuf[8];
 				curr_data_size = 16;
 				partialSha1Type = DrmCommon_PartialSha1Type_Update;
 			break;
 
 			case 2:
-				printf("\t%s - Partial SHA-1 Finalize\n", __FUNCTION__);
+				printf("\t%s - Partial SHA-1 Finalize\n", BSTD_FUNCTION);
 				pCurrData = &pBuf[24];
 				curr_data_size = 8;
 				partialSha1Type = DrmCommon_PartialSha1Type_Finalize;
@@ -248,7 +240,7 @@ void test_partial_sha1()
 		DRM_Common_SwPartialSha1(pBuf, pShaBuf, 32, partialSha1Type, &context);
 	}
 
-	printf("\t%s - Calculated Full SHA-1 :\n\t\t", __FUNCTION__);
+	printf("\t%s - Calculated Full SHA-1 :\n\t\t", BSTD_FUNCTION);
 	for(i = 0; i < 20; i++)
 	{
 	   printf("0x%02x ", pShaBuf[i]);
@@ -282,10 +274,10 @@ void test_sha256()
     								0xe, 0x43, 0xd6, 0xd9, 0xfc, 0x7b, 0x2f, 0xdf,
     								0xc7, 0x32, 0x6e, 0x7f, 0x94, 0x97, 0x29, 0xef};
 
-    printf("\n\t%s - Entered SHA-1 test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+    printf("\n\t%s - Entered SHA-1 test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 	DRM_Common_SwSha256(pBuf, pShaBuf, 32);
 
-	printf("\t%s - Calculated SHA-256 :\n\t\t", __FUNCTION__);
+	printf("\t%s - Calculated SHA-256 :\n\t\t", BSTD_FUNCTION);
 	for(i = 0; i < 32; i++)
 	{
 	   printf("0x%02x ", pShaBuf[i]);
@@ -294,11 +286,11 @@ void test_sha256()
 
 	if(memcmp(pCompareSha256Hash, pShaBuf, 32) == 0)
 	{
-	   printf("\n\t%s - SHA-256 Test PASSED!!\n\n", __FUNCTION__);
+	   printf("\n\t%s - SHA-256 Test PASSED!!\n\n", BSTD_FUNCTION);
 	}
 	else
 	{
-	   printf("\n\t%s - SHA-256 Test FAILED!!\n\n", __FUNCTION__);
+	   printf("\n\t%s - SHA-256 Test FAILED!!\n\n", BSTD_FUNCTION);
 	   error_count++;
 	}
 
@@ -317,7 +309,7 @@ void test_ecdsa_verify()
 		0x9C, 0xD0, 0xD8, 0x9D
 	};
 
-	printf("\n\t%s - Entered ECDSA Verify test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered ECDSA Verify test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 	/* ECC params for AACS */
 	inoutp_ecdsaSwIO.eccParm.P		= "900812823637587646514106462588455890498729007071";
 	inoutp_ecdsaSwIO.eccParm.A		= "-3";
@@ -366,7 +358,7 @@ void test_ecdsa_sign()
 		0x9C, 0xD0, 0xD8, 0x9D
 	};
 
-	printf("\n\t%s - Entered ECDSA Signature test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered ECDSA Signature test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	/* ECC params for AACS */
 	ecdsaSwIO.eccParm.P		= "900812823637587646514106462588455890498729007071";
@@ -392,12 +384,12 @@ void test_ecdsa_sign()
 
 	if(DRM_Common_SwEcdsaSign(&ecdsaSwIO) == Drm_Success)
 	{
-		printf("\t%s - ECDSA signature (r,s)\n", __FUNCTION__);
-		printf("\t%s - ecdsaSwIO.r = %s\n", __FUNCTION__, ecdsaSwIO.sig.r);
-		printf("\t%s - ecdsaSwIO.s = %s\n", __FUNCTION__, ecdsaSwIO.sig.s);
+		printf("\t%s - ECDSA signature (r,s)\n", BSTD_FUNCTION);
+		printf("\t%s - ecdsaSwIO.r = %s\n", BSTD_FUNCTION, ecdsaSwIO.sig.r);
+		printf("\t%s - ecdsaSwIO.s = %s\n", BSTD_FUNCTION, ecdsaSwIO.sig.s);
 	}
 	else{
-		printf("\t%s - ECDSA signature FAILED\n", __FUNCTION__);
+		printf("\t%s - ECDSA signature FAILED\n", BSTD_FUNCTION);
 	}
 	return;
 }
@@ -411,7 +403,7 @@ void test_ecdsa_multiply()
 	char *exp_x = "1176954224688105769566774212902092897866168635793";
 	char *exp_y = "1130322298812061698910820170565981471918861336822";
 
-	printf("\n\t%s - Entered ECDSA Multiplication test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered ECDSA Multiplication test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	/* ECC params for SECP160R1 */
 	ecdsaSwIO.eccParm.P		= "1461501637330902918203684832716283019653785059327";
@@ -430,28 +422,28 @@ void test_ecdsa_multiply()
 
 	if (DRM_Common_SwEcdsaMultiply(&ecdsaSwIO) != Drm_Success)
 	{
-		printf("\t%s - Error calling Ecdsa multiply\n", __FUNCTION__);
+		printf("\t%s - Error calling Ecdsa multiply\n", BSTD_FUNCTION);
 		goto ErrorExit;
 	}
 	else
 	{
-		printf("\t%s - ECDSA scalar multiplcation result:\n", __FUNCTION__);
-		printf("\t%s - x = %s\n", __FUNCTION__, ecdsaSwIO.outPoint.x);
-		printf("\t%s - y = %s\n", __FUNCTION__, ecdsaSwIO.outPoint.y);
+		printf("\t%s - ECDSA scalar multiplcation result:\n", BSTD_FUNCTION);
+		printf("\t%s - x = %s\n", BSTD_FUNCTION, ecdsaSwIO.outPoint.x);
+		printf("\t%s - y = %s\n", BSTD_FUNCTION, ecdsaSwIO.outPoint.y);
 
 		if (strcmp (ecdsaSwIO.outPoint.x, exp_x) != 0)
 		{
-			printf("\t%s - Multiplication error x\n", __FUNCTION__);
+			printf("\t%s - Multiplication error x\n", BSTD_FUNCTION);
 			error_count++;
 			goto ErrorExit;
 		}
 		if (strcmp (ecdsaSwIO.outPoint.y, exp_y) != 0)
 		{
-			printf("\t%s - Multiplication error y\n", __FUNCTION__);
+			printf("\t%s - Multiplication error y\n", BSTD_FUNCTION);
 			error_count++;
 			goto ErrorExit;
 		}
-		printf("\t%s - Multiplication PASSED!!\n", __FUNCTION__);
+		printf("\t%s - Multiplication PASSED!!\n", BSTD_FUNCTION);
 	}
 
 ErrorExit:
@@ -472,7 +464,7 @@ void test_aes_ecb()
 	DrmCommon_AesEcbSw_t SwAesCtrl;
 
 	BKNI_Memset((unsigned char*)pDestBuf, 0x0, 16);
-	printf("\n\t%s - Entered AES-ECB test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered AES-ECB test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	SwAesCtrl.pIn = pSrcBuf;
 	SwAesCtrl.pkey = (unsigned char*)KeyForAes;
@@ -483,11 +475,11 @@ void test_aes_ecb()
 
 	if(DRM_Common_SwAesEcb(&SwAesCtrl) != Drm_Success)
 	{
-		printf("\t%s - bcrypt error\n", __FUNCTION__);
+		printf("\t%s - bcrypt error\n", BSTD_FUNCTION);
 	}
 
 
-   printf("\t%s - Decrypted buffer (do you see MPEG header?) :\n\t\t", __FUNCTION__);
+   printf("\t%s - Decrypted buffer (do you see MPEG header?) :\n\t\t", BSTD_FUNCTION);
    for(i = 0; i < 16; i++)
    {
 	   printf("0x%02x ", pDestBuf[i]);
@@ -496,10 +488,10 @@ void test_aes_ecb()
 
    if(memcmp(compareBuf, pDestBuf, 16) == 0)
    {
-	   printf("\t%s - TEST PASSED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST PASSED\n\n", BSTD_FUNCTION);
    }
    else{
-	   printf("\t%s - TEST FAILED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST FAILED\n\n", BSTD_FUNCTION);
 	   error_count++;
    }
 
@@ -521,7 +513,7 @@ void test_aes_cbc()
     int i = 0;
 	DrmCommon_AesCbcSw_t SwAesCtrl;
 
-	printf("\n\t%s - Entered AES-CBC test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered AES-CBC test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	BKNI_Memset((unsigned char*)pDestBuf, 0x0, 16);
 
@@ -535,11 +527,11 @@ void test_aes_cbc()
 
 	if(DRM_Common_SwAesCbc(&SwAesCtrl) != Drm_Success)
 	{
-		printf("\t%s - bcrypt error\n", __FUNCTION__);
+		printf("\t%s - bcrypt error\n", BSTD_FUNCTION);
 	}
 
 
-   printf("\t%s - Decrypted buffer :\n\t\t", __FUNCTION__);
+   printf("\t%s - Decrypted buffer :\n\t\t", BSTD_FUNCTION);
    for(i = 0; i < 16; i++)
    {
 	   printf("0x%02x ", pDestBuf[i]);
@@ -548,10 +540,10 @@ void test_aes_cbc()
 
    if(memcmp(compareBuf, pDestBuf, 16) == 0)
    {
-	   printf("\t%s - TEST PASSED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST PASSED\n\n", BSTD_FUNCTION);
    }
    else{
-	   printf("\t%s - TEST FAILED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST FAILED\n\n", BSTD_FUNCTION);
 	   error_count++;
    }
 
@@ -588,7 +580,7 @@ void test_cmac()
 	    0xad, 0x2b, 0x41, 0x7b, 0xe6, 0x6c, 0x37, 0x10
 	};
 
-	printf("\n\t%s - Entered CMAC test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered CMAC test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	/* Perform CMAC, Mlen = 128 bits */
 	cmacParam.pBuffer = M;
@@ -597,7 +589,7 @@ void test_cmac()
 	cmacParam.pMac = cmac_val;
     DRM_Common_SwCmac(&cmacParam);
 
-    printf("\t%s - CMAC value:\n\t\t", __FUNCTION__);
+    printf("\t%s - CMAC value:\n\t\t", BSTD_FUNCTION);
     for(i = 0; i < 16; i++)
     {
  	   printf("0x%02x ", cmac_val[i]);
@@ -606,10 +598,10 @@ void test_cmac()
 
 	if(memcmp(cmac_val, Exp_CMAC_16, 16) == 0)
 	{
-	   printf("\t%s - TEST PASSED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST PASSED\n\n", BSTD_FUNCTION);
 	}
 	else{
-	   printf("\t%s - TEST FAILED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST FAILED\n\n", BSTD_FUNCTION);
 	   error_count++;
 	}
 
@@ -626,7 +618,7 @@ void test_des_ecb()
 	uint8_t compareBuf [16] = {0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13,
 			                   0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b};
 	uint8_t ecb_key[]={0x54,0x62,0xcb,0xa8, 0x72,0x46,0x43,0xe4};
-	printf("\n\t%s - Entered DES-ECB test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered DES-ECB test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 	ctrl.pIn = encBuf;
 	ctrl.pkey = ecb_key;
 	ctrl.len = 16;
@@ -637,10 +629,10 @@ void test_des_ecb()
 
 	if(memcmp(decBuf, compareBuf, 16) == 0)
 	{
-	   printf("\t%s - TEST PASSED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST PASSED\n\n", BSTD_FUNCTION);
 	}
 	else{
-	   printf("\t%s - TEST FAILED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST FAILED\n\n", BSTD_FUNCTION);
 	   error_count++;
 	}
 	return;
@@ -665,7 +657,7 @@ void test_des_cbc()
 		0x1d,0x26,0x93,0x97,0xf7,0xfe,0x62,0xb4};
 
 	unsigned char cbc_out[40];
-	printf("\n\t%s - Entered DES-CBC test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered DES-CBC test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 
 	BKNI_Memset (cbc_out, 40, 0);
@@ -681,10 +673,10 @@ void test_des_cbc()
 
 	if(memcmp(cbc_out, cbc_ok, 32) == 0)
 	{
-	   printf("\t%s - TEST PASSED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST PASSED\n\n", BSTD_FUNCTION);
 	}
 	else{
-	   printf("\t%s - TEST FAILED\n\n", __FUNCTION__);
+	   printf("\t%s - TEST FAILED\n\n", BSTD_FUNCTION);
 	   error_count++;
 	}
 
@@ -780,11 +772,11 @@ static uint8_t signature[]= {
 	dsaSwIO.key 		= &key;
 	dsaSwIO.pbDataIn 	= (uint8_t *)str1;
 	dsaSwIO.cbDataIn	= strlen((char*)str1)  ;
-	printf("\n\t%s - Entered DSA test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered DSA test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	DRM_Common_SwDsa(&dsaSwIO);
 
-	printf("\t%s - Print signature is \n\t\t", __FUNCTION__) ;
+	printf("\t%s - Print signature is \n\t\t", BSTD_FUNCTION) ;
 	for (i=0; i< dsaSwIO.sigoutlen ; i++)
 	{
 		printf("%02x ", dsaSwIO.sigout[i]) ;
@@ -794,11 +786,11 @@ static uint8_t signature[]= {
 
 	if (memcmp(dsaSwIO.sigout, signature, dsaSwIO.sigoutlen) != 0)
 	{
-		printf("\t%s - TEST FAILED Signature data is wrong!\n", __FUNCTION__);
+		printf("\t%s - TEST FAILED Signature data is wrong!\n", BSTD_FUNCTION);
 		error_count++;
 	}
 	else{
-		printf("\t%s - TEST PASSED (correct signature data generated).\n", __FUNCTION__);
+		printf("\t%s - TEST PASSED (correct signature data generated).\n", BSTD_FUNCTION);
 	}
 
 	return;
@@ -820,16 +812,16 @@ void test_md5()
 	md5Param.cbInData = strlen (input1);
 	md5Param.pbOutData = md;
 
-	printf("\n\t%s - Entered MD5 test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered MD5 test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	DRM_Common_SwMd5(&md5Param);
 
 	if(memcmp(output1, md, 16) == 0)
 	{
-		printf("\t%s - TEST PASSED.\n", __FUNCTION__);
+		printf("\t%s - TEST PASSED.\n", BSTD_FUNCTION);
 	}
 	else{
-		printf("\t%s - TEST FAILED\n", __FUNCTION__);
+		printf("\t%s - TEST FAILED\n", BSTD_FUNCTION);
 		error_count++;
 	}
 
@@ -854,21 +846,21 @@ void test_rc4()
 	rc4Param.pbDataIn = input0;
 	rc4Param.pbDataOut = outData;
 
-	printf("\n\t%s - Entered RC4 test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered RC4 test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	DRM_Common_SwRc4SetKey (&key, 8, key0);
 
 	DRM_Common_SwRc4(&rc4Param);
 
-	printf("\n\t%sOutput:\n\t", __FUNCTION__);
+	printf("\n\t%sOutput:\n\t", BSTD_FUNCTION);
 	for(i=0; i<8; i++) printf("0x%02x ", outData[i]);
 
 	if(memcmp(outData, output0, 8) == 0)
 	{
-		printf("\n\t%s - TEST PASSED\n\n", __FUNCTION__);
+		printf("\n\t%s - TEST PASSED\n\n", BSTD_FUNCTION);
 	}
 	else{
-		printf("\n\t%s - TEST FAILED\n\n", __FUNCTION__);
+		printf("\n\t%s - TEST FAILED\n\n", BSTD_FUNCTION);
 		error_count++;
 	}
 
@@ -884,11 +876,11 @@ void test_rng()
 	rngParam.pucBuf = buf;
 	rngParam.ulLen = 16;
 
-	printf("\n\t%s - Entered RNG test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered RNG test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	DRM_Common_SwRng(&rngParam);
 
-    printf("\t%s - Random bytes:\n\t\t", __FUNCTION__);
+    printf("\t%s - Random bytes:\n\t\t", BSTD_FUNCTION);
     for(i = 0; i < 16; i++)
     {
  	   printf("0x%02x ", buf[i]);
@@ -932,7 +924,7 @@ void test_rsa()
 	0xb7, 0x8a, 0xd8, 0x84, 0xf8, 0x4d, 0x5b, 0xeb, 0x04, 0x72, 0x4d, 0xc7, 0x36, 0x9b, 0x31, 0xde,
 	0xf3, 0x7d, 0x0c, 0xf5, 0x39, 0xe9, 0xcf, 0xcd, 0xd3, 0xde, 0x65, 0x37, 0x29, 0xea, 0xd5, 0xd1 };
 
-    printf("\n\t%s - Entered RSA test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+    printf("\n\t%s - Entered RSA test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 
 	/* Setup the key to use */
 	key.n.pData = n;
@@ -952,15 +944,15 @@ void test_rsa()
 
 	DRM_Common_SwRsa(&rsaSwIO);
 
-	printf("\t%s - Size of encrypted data in bytes = %d\n", __FUNCTION__, (int)(*rsaSwIO.cbDataOut));
+	printf("\t%s - Size of encrypted data in bytes = %d\n", BSTD_FUNCTION, (int)(*rsaSwIO.cbDataOut));
 
 	if (*rsaSwIO.cbDataOut != 128)
 	{
-		printf("\t%s - Length '%lu' != expected length of '128'\n", __FUNCTION__, (*rsaSwIO.cbDataOut));
+		printf("\t%s - Length '%lu' != expected length of '128'\n", BSTD_FUNCTION, (*rsaSwIO.cbDataOut));
 		goto ErrorExit;
 	}
 
-	printf("\t%s - Input Data (encrypted) =\n\t\t", __FUNCTION__);
+	printf("\t%s - Input Data (encrypted) =\n\t\t", BSTD_FUNCTION);
 	for (i=0; i<16; i++){
 		printf("0x%02x ", rsaSwIO.pbDataOut[i]);
 	}
@@ -983,13 +975,13 @@ void test_rsa()
 
 	DRM_Common_SwRsa(&rsaSwIO);
 
-	printf("\t%s - Decrypted data length = %d\n", __FUNCTION__, (int)outDataLen);
+	printf("\t%s - Decrypted data length = %d\n", BSTD_FUNCTION, (int)outDataLen);
 	if (outDataLen != sizeof (ptext1_1))
 	{
-		printf("\t%s - Decrypted size is wrong!! expected %d\n", __FUNCTION__, sizeof (ptext1_1));
+		printf("\t%s - Decrypted size is wrong!! expected %d\n", BSTD_FUNCTION, sizeof (ptext1_1));
 	}
 
-	printf("\t%s - Output Data (decrypted) =\n\t\t", __FUNCTION__);
+	printf("\t%s - Output Data (decrypted) =\n\t\t", BSTD_FUNCTION);
 	for (i=0; i<16; i++)	{
 		printf("0x%02x ", rsaSwIO.pbDataOut[i]);
 	}
@@ -997,12 +989,12 @@ void test_rsa()
 
 	if (memcmp(ptext, ptext1_1, outDataLen) != 0)
 	{
-		printf("\t%s - TEST FAILED Decryption data is wrong!\n", __FUNCTION__);
+		printf("\t%s - TEST FAILED Decryption data is wrong!\n", BSTD_FUNCTION);
 		error_count++;
 	}
 	else
 	{
-		printf("\t%s - TEST PASSED (ptext matches output)\n", __FUNCTION__);
+		printf("\t%s - TEST PASSED (ptext matches output)\n", BSTD_FUNCTION);
 	}
 
 ErrorExit:

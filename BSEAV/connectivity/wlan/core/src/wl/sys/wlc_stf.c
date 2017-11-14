@@ -3429,6 +3429,7 @@ wlc_stf_spatialpolicy_set_complete(wlc_info_t *wlc)
 		if (Nsts > wlc->stf->txstreams) {
 			WL_NONE(("wl%d: %s: Nsts (%d) > # of streams hw supported (%d)\n",
 			         wlc->pub->unit, __FUNCTION__, Nsts, wlc->stf->txstreams));
+			/* coverity[copy_paste_error] */
 			core_mask = 0;
 		}
 
@@ -5208,7 +5209,12 @@ wlc_stf_get_204080_pwrs(wlc_info_t *wlc, ratespec_t rspec, txpwr204080_t* pwrs,
 		return BCME_ERROR;
 	}
 
-	memset(pwrs, WL_RATE_DISABLED, sizeof(*pwrs));
+	if (pwrs == NULL) {
+		ASSERT(0);
+		return BCME_ERROR;
+	}
+
+	memset(pwrs->pbw, (uint8)(WL_RATE_DISABLED), sizeof(pwrs->pbw));
 	mode = WL_TX_MODE_NONE;
 
 	if (RSPEC_ISSTBC(rspec)) {

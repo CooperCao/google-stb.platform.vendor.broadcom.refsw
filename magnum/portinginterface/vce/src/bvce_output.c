@@ -904,7 +904,7 @@ BVCE_Output_S_DataUnitDetectReset(
 typedef struct BVCE_DataUnitDetect_Settings
 {
    uint8_t *pBuffer; /* Pointer to the CDB buffer */
-   size_t uiSize; /* Size of the CDB buffer */
+   unsigned uiSize; /* Size of the CDB buffer */
    unsigned uiStartOffset; /* Start Offset - Offset to the first byte where the Data Unit Detect code should start parsing */
    unsigned uiStopOffset; /* End Offset - Offset to the last byte where the Data Unit Detect code should stop parsing */
 } BVCE_DataUnitDetect_Settings;
@@ -1403,7 +1403,9 @@ BVCE_Output_S_CDB_BufferCacheUpdate(
          BVCE_Output_Handle hVceOutput
          )
 {
+#if !BVCE_PLATFORM_P_SUPPORTS_ITB_NAL || BVCE_P_DUMP_OUTPUT_CDB || BVCE_PLATFORM_P_CDB_REQUIRES_BYTESWAP
    void *pAddress;
+#endif
    unsigned uiLength;
 
    if ( 0 == hVceOutput->state.stBufferCache.uiCDBCacheValidOffset )
@@ -3646,7 +3648,7 @@ static
 BERR_Code
 BVCE_Output_S_ConsumeBufferDescriptors(
    BVCE_Output_Handle hVceOutput,
-   size_t uiNumBufferDescriptors
+   unsigned uiNumBufferDescriptors
    )
 {
    BERR_Code rc = BERR_SUCCESS;
@@ -3747,7 +3749,7 @@ BVCE_Output_S_ConsumeBufferDescriptors(
 BERR_Code
 BVCE_Output_ConsumeBufferDescriptors(
    BVCE_Output_Handle hVceOutput,
-   size_t uiNumBufferDescriptors
+   unsigned uiNumBufferDescriptors
    )
 {
    BERR_Code rc;
@@ -4280,7 +4282,7 @@ BVCE_Channel_Output_GetBufferDescriptors(
 BERR_Code
 BVCE_Channel_Output_ConsumeBufferDescriptors(
    BVCE_Channel_Handle hVceCh,
-   size_t uiNumBufferDescriptors
+   unsigned uiNumBufferDescriptors
    )
 {
    BERR_Code rc;

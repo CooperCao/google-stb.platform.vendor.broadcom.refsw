@@ -50,10 +50,7 @@
 #  include <inttypes.h>
 #else
 #  include "bstd_defs.h"
-
-/* Workaround for the missing inttypes.h */
-#define PRIx32      "x"
-#define PRIu32      "u"
+#  include "DSP_raaga_inttypes.h"
 #endif
 
 #include "fp_sdk_config.h"
@@ -135,10 +132,8 @@ void DSP_pollInterrupts(DSP *dsp, DSP_CORE core __unused, DSP_INTERRUPTS *interr
 {
     interrupts->host_intc_host_irq = DSP_readSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_HOST_IRQ_LATCHED));
 
-#if defined(__FP4015_ONWARDS__) || defined(__FPM1015_ONWARDS__)
     interrupts->obus_fault = DSP_readSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_OBUSFAULT_STATUS));
     interrupts->obus_fault_address = DSP_readSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_OBUSFAULT_ADDRESS));
-#endif
 }
 
 
@@ -147,22 +142,18 @@ void DSP_pollInterrupts(DSP *dsp, DSP_CORE core __unused, DSP_INTERRUPTS *interr
 void DSP_clearInterrupts(DSP *dsp, DSP_CORE core __unused, DSP_INTERRUPTS *interrupts)
 {
     DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_HOST_IRQ_CLEAR), interrupts->host_intc_host_irq);
-#if defined(__FP4015_ONWARDS__) || defined(__FPM1015_ONWARDS__)
     if(interrupts->obus_fault & MISC_BLOCK_INTERRUPT_OBUSFAULT_FAULT_PENDING)
     {
         DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_OBUSFAULT_CLEAR), MISC_BLOCK_INTERRUPT_OBUSFAULT_CLEAR_FAULT);
         interrupts->obus_fault_address = 0;
     }
-#endif
 }
 
 
 void DSP_clearAllInterrupts(DSP *dsp, DSP_CORE core __unused)
 {
     DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_HOST_IRQ_CLEAR), 0xFFFFFFFF);
-#if defined(__FP4015_ONWARDS__) || defined(__FPM1015_ONWARDS__)
     DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_OBUSFAULT_CLEAR), MISC_BLOCK_INTERRUPT_OBUSFAULT_CLEAR_FAULT);
-#endif
 }
 
 #endif /* !FEATURE_IS(SW_HOST, RAAGA_MAGNUM) */

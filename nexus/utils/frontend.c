@@ -515,23 +515,35 @@ frontend_getStrength(FrontendSettings *settings, int *pStrength, unsigned *pLeve
 #if NEXUS_HAS_FRONTEND
     switch (settings->source) {
     case FrontendSource_eOfdm: {
-        NEXUS_FrontendOfdmStatus status;
+        NEXUS_FrontendOfdmStatus *status;
+        NEXUS_Error rc;
         BKNI_ResetEvent(ofdmStatusEvent);
-        if (NEXUS_Frontend_RequestOfdmAsyncStatus(settings->handle) != NEXUS_SUCCESS) {
-            BDBG_ERR(("Request"));
+        rc = NEXUS_Frontend_RequestOfdmAsyncStatus(settings->handle);
+        if (rc) {
+            BERR_TRACE(rc);
             return 0;
         }
-        if (BKNI_WaitForEvent(ofdmStatusEvent, 5000) == NEXUS_TIMEOUT) {
-            BDBG_ERR(("Timed out"));
+        rc = BKNI_WaitForEvent(ofdmStatusEvent, 5000);
+        if (rc) {
+            BERR_TRACE(rc);
             return 0;
         }
-        if (NEXUS_Frontend_GetOfdmAsyncStatus(settings->handle, &status) != NEXUS_SUCCESS) {
-            BDBG_ERR(("Get"));
+        status = BKNI_Malloc(sizeof(*status));
+        if (!status) {
+            BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            return 0;
         }
-        *pStrength = status.signalStrength;
-        *pLevelPercent = status.signalLevelPercent;
-        *pQualityPercent = status.signalQualityPercent;
-        return 1;
+        rc = NEXUS_Frontend_GetOfdmAsyncStatus(settings->handle, status);
+        if (rc) {
+            BERR_TRACE(rc);
+        }
+        else {
+            *pStrength = status->signalStrength;
+            *pLevelPercent = status->signalLevelPercent;
+            *pQualityPercent = status->signalQualityPercent;
+        }
+        BKNI_Free(status);
+        return rc?0:1;
     }
     default:
         break;

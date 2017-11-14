@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -142,12 +142,12 @@ typedef struct BVCE_P_Context *BVCE_Handle;
  */
 typedef struct BVCE_MemoryConfig
 {
-      size_t uiPictureMemSize; /* The total amount of picture heap memory that should be allocated */
-      size_t uiSecureMemSize;  /* The total amount of secure heap memory that should be allocated */
-      size_t uiGeneralMemSize; /* The total amount of general heap memory that should be allocated */
-      size_t uiFirmwareMemSize; /* The total amount of firmware heap memory that should be allocated */
-      size_t uiIndexMemSize; /* The total amount of index (ITB) heap memory that should be allocated */
-      size_t uiDataMemSize; /* The total amount of data (CDB) heap memory that should be allocated */
+      unsigned uiPictureMemSize; /* The total amount of picture heap memory that should be allocated */
+      unsigned uiSecureMemSize;  /* The total amount of secure heap memory that should be allocated */
+      unsigned uiGeneralMemSize; /* The total amount of general heap memory that should be allocated */
+      unsigned uiFirmwareMemSize; /* The total amount of firmware heap memory that should be allocated */
+      unsigned uiIndexMemSize; /* The total amount of index (ITB) heap memory that should be allocated */
+      unsigned uiDataMemSize; /* The total amount of data (CDB) heap memory that should be allocated */
 } BVCE_MemoryConfig;
 
 /* BVCE_ArcInstance - enum allowing selection of a specific ARC in the ViCE encoder core
@@ -240,11 +240,12 @@ typedef struct BVCE_OpenSettings
 
       BVCE_MemoryConfig stMemoryConfig; /* The total amount of memory that needs to be allocated for *all* channels
                                          * E.g. Let's say the application intends to open 2 simultaneous encode
-                                         * channels: 1 for SD MPEG2 and 1 for HD VC1.
-                                         * The app would need to look up the memory requirements for each configuration
+                                         * channels: 1 for SD MPEG2 and 1 for HD H264.
+                                         * The app would need to look up the memory requirements for the device and each channel
                                          * and combine them.
-                                         *    - BVCE_MemoryConfig.uiPictureMemSize = PictureMemSize(SD MPEG2) + PictureMemSize(HD VC1)
-                                         *    - BVCE_MemoryConfig.uiSecureMemSize = SecureMemSize(SD MPEG2) + SecureMemSize(HD VC1)
+                                         *  BVCE_OpenSettings.stMemoryConfig = BVCE_GetMemoryConfig() + BVCE_ChannelGetMemoryConfig(SD MPEG2) + BVCE_ChannelGetMemoryConfig(HD H264)
+                                         *
+                                         * SW7445-2999: If using dynamic allocation of channel memory, then: BVCE_OpenSettings.stMemoryConfig = BVCE_GetMemoryConfig()
                                          */
 
       /*********************/
@@ -295,7 +296,7 @@ typedef struct BVCE_OpenSettings
       BTMR_Handle hTimer; /* If non-NULL, may be used to gather performance data */
 
       /* Size of debug logging buffer */
-      size_t uiDebugLogBufferSize[BVCE_ArcInstance_eMax];
+      unsigned uiDebugLogBufferSize[BVCE_ArcInstance_eMax];
       BVCE_Debug_BufferingMode eDebugLogBufferMode[BVCE_ArcInstance_eMax];
 
       bool bVerificationMode;
@@ -353,8 +354,8 @@ BVCE_Debug_ReadBuffer(
          BVCE_Handle hVce,
          BVCE_ArcInstance eARCInstance,
          char *szBuffer,   /* [in] pointer to buffer where log is copied to */
-         size_t uiBufferSize,  /* [in] maximum number of bytes to copy to buffer */
-         size_t *puiBytesRead  /* [out] number of bytes copied from debug log */
+         unsigned uiBufferSize,  /* [in] maximum number of bytes to copy to buffer */
+         unsigned *puiBytesRead  /* [out] number of bytes copied from debug log */
          );
 
 /* BVCE_Debug_SendCommand - sends the debug command to the specified ARC */
@@ -373,7 +374,7 @@ BVCE_Debug_DumpRegisters(
 
 typedef struct BVCE_Debug_FifoInfo
 {
-   size_t uiElementSize; /* Size of one element */
+   unsigned uiElementSize; /* Size of one element */
    BMMA_Block_Handle hBlock; /* Memory Block containing the VCE PI's internal BDBG_Fifo */
    unsigned uiOffset; /* Offset from start of memory block where BDBG_Fifo begins */
 } BVCE_Debug_FifoInfo;
@@ -577,7 +578,7 @@ BVCE_Output_GetBufferDescriptors(
 BERR_Code
 BVCE_Output_ConsumeBufferDescriptors(
    BVCE_Output_Handle hVceOutput,
-   size_t uiNumBufferDescriptors
+   unsigned uiNumBufferDescriptors
    );
 
 /* BVCE_Output_ReadIndex -
@@ -652,7 +653,7 @@ typedef struct BVCE_Channel_OpenSettings
 
       unsigned uiInstance; /* Channel instance */
 
-      BVCE_MemoryConfig stMemoryConfig; /* The total amount of memory that needs to be sub-allocated for this channel */
+      BVCE_MemoryConfig stMemoryConfig; /* The total amount of memory that is needed this channel (See: BVCE_Channel_GetMemoryConfig) */
 
       BVCE_MultiChannelMode eMultiChannelMode;  /* Specifies the expected usage for number and type of
                                                  * simultaneous channels on this device. */
@@ -668,8 +669,8 @@ typedef struct BVCE_Channel_OpenSettings
          bool bAllocateOutput; /* Set to true if the output memory should be allocated in BVCE_Channel_Open
                                   and are using BVCE_Channel_Output_XXX() instead of using BVCE_Output_XXX() */
 
-         BMMA_Heap_Handle hIndexMem; /* [optional] For ITB output. If null, uses hMem from VCE Handle. */
-         BMMA_Heap_Handle hDataMem; /* [optional] For CDB output. If null, uses hSecureMem (if non-null) from VCE Handle. */
+         BMMA_Heap_Handle hIndexMem; /* [optional] For ITB output (BVCE_Channel_OpenSettings.stMemoryConfig.uiIndexMemSize). If null, uses hMem from VCE Handle. */
+         BMMA_Heap_Handle hDataMem; /* [optional] For CDB output (BVCE_Channel_OpenSettings.stMemoryConfig.uiDataMemSize).. If null, uses hSecureMem (if non-null) from VCE Handle. */
 
          bool bEnableDataUnitDetection; /* If TRUE: CDB will be parsed to detect data units and video buffer descriptors
                                          * returned by BVCE_Output_GetBufferDescriptors will indicate the location and type
@@ -683,6 +684,14 @@ typedef struct BVCE_Channel_OpenSettings
                                          * Data Unit detection is needed for muxing certain protocols/container (e.g. H.264 in MP4)
                                          */
       } stOutput;
+
+      /* SW7445-2999: Add support for dynamic allocation of channel memory */
+      BMMA_Heap_Handle hPictureMem;  /* If non-NULL, BVCE_Channel_OpenSettings.stMemoryConfig.uiPictureMemSize is allocated from this heap, otherwise
+                                      * If NULL, sub allocated from heap allocated in BVCE_Open() */
+      BMMA_Heap_Handle hSecureMem;   /* If non-NULL, BVCE_Channel_OpenSettings.stMemoryConfig.uiSecureMemSize is allocated from this heap, otherwise
+                                      * If NULL, sub allocated from heap allocated in BVCE_Open() */
+      BMMA_Heap_Handle hGeneralMem;  /* If non-NULL, BVCE_Channel_OpenSettings.stMemoryConfig.uiSecureMemSize is allocated from this heap, otherwise
+                                      * If NULL, sub allocated from heap allocated in BVCE_Open() */
 } BVCE_Channel_OpenSettings;
 
 void
@@ -1047,6 +1056,11 @@ typedef struct BVCE_FrameRate
       BAVC_FrameRateCode eFrameRate;
 
       bool bVariableFrameRateMode; /* See http://twiki-01.broadcom.com/bin/view/Arch/TranscodingBvnIntegration#User_Version */
+      bool bSparseFrameRateMode; /* When true, repeated pictures are dropped. Only supported for progressive transcode.
+                                  * E.g. if source is 24p, display is 60p, VCE will receive 60 pictures/sec in a 3:2 cadence, but
+                                  * will only encode the unique pictures, which will result in 24 pictures/sec in the output that
+                                  * have the deltaPTS values that correspond to the original 3:2 cadence.
+                                  */
 } BVCE_FrameRate;
 
 typedef struct BVCE_Channel_EncodeSettings
@@ -1266,7 +1280,7 @@ BVCE_Channel_Output_GetBufferDescriptors(
 BERR_Code
 BVCE_Channel_Output_ConsumeBufferDescriptors(
    BVCE_Channel_Handle hVceCh,
-   size_t uiNumBufferDescriptors
+   unsigned uiNumBufferDescriptors
    );
 
 /* BVCE_Channel_Output_ReadIndex -
@@ -1297,8 +1311,8 @@ BERR_Code
 BVCE_Channel_UserData_AddBuffers_isr(
          BVCE_Channel_Handle hVceCh,
          const BUDP_Encoder_FieldInfo *pstUserDataFieldInfo, /* Pointer to first field info descriptor */
-         size_t uiCount, /* Count of user data field buffer info structs */
-         size_t *puiQueuedCount /* Count of user data field info structs queued by encoder (*puiQueuedCount <= uiCount) */
+         unsigned uiCount, /* Count of user data field buffer info structs */
+         unsigned *puiQueuedCount /* Count of user data field info structs queued by encoder (*puiQueuedCount <= uiCount) */
          );
 
 /* BVCE_Channel_UserData_GetStatus_isr -

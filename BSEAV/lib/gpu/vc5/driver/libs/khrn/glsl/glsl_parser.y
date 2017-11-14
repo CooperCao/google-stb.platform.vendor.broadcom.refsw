@@ -9,7 +9,8 @@
 %code requires {
    #include "glsl_common.h"
    #include "glsl_layout.h"
-   #include "glsl_intrinsic.h"
+   #include "glsl_intrinsic_types.h"
+   #include "glsl_symbols.h"
 
    typedef enum {
       CALL_CONTEXT_FUNCTION,
@@ -57,6 +58,8 @@
    #include "glsl_ast_visitor.h"
    #include "glsl_symbol_table.h"
    #include "glsl_primitive_types.auto.h"
+   #include "glsl_intrinsic_lookup.auto.h"
+   #include "glsl_layout.auto.h"
    #include "glsl_fastmem.h"  // for 'malloc_fast'
 
    #include "glsl_stdlib.auto.h"
@@ -100,7 +103,7 @@
       GLSL_UNIQUE_INDEX_QUEUE_T *q = data;
       if (e->flavour == EXPR_FUNCTION_CALL) {
          Symbol *function = e->u.function_call.function;
-         if (glsl_stdlib_is_stdlib_symbol(function)) {
+         if (glsl_stdlib_is_stdlib_function(function)) {
             glsl_unique_index_queue_add(q, glsl_stdlib_function_index(function));
          }
       }
@@ -1332,7 +1335,7 @@ precision_qualifier
    ;
 
 struct_specifier
-   : STRUCT IDENTIFIER LEFT_BRACE struct_declaration_list RIGHT_BRACE
+   : STRUCT identifier_or_typename LEFT_BRACE struct_declaration_list RIGHT_BRACE
          { $$ = glsl_build_struct_type($2.name, $4); glsl_commit_struct_type(PS->symbol_table, $$); }
    | STRUCT LEFT_BRACE struct_declaration_list RIGHT_BRACE
          { $$ = glsl_build_struct_type(NULL, $3); }

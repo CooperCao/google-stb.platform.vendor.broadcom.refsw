@@ -40,12 +40,11 @@
 
 #include "bdsp_raaga_priv_include.h"
 
-#define BDSP_RAAGA_MAX_DECODE_CTXT 		     4
-#define BDSP_RAAGA_MAX_PASSTHROUGH_CTXT      4
-#define BDSP_RAAGA_MAX_ENCODE_CTXT           2
-#define BDSP_RAAGA_MAX_ECHOCANCELLER_CTXT    1
-#define BDSP_RAAGA_MAX_AUDIO_PROCESSING_CTXT 1     /* All PP are downloaded onetime hence kept as 1 */
-#define BDSP_RAAGA_MAX_MIXER_CTXT            2     /* We currently have only 2 types of mixers */
+#define BDSP_RAAGA_MAX_INTERRUPTS_PER_DSP   32
+
+#define BDSP_RAAGA_FMM_WRAP_BIT             40
+#define BDSP_RAAGA_FMM_WRAP_MASK           ((dramaddr_t)0x1<<BDSP_RAAGA_FMM_WRAP_BIT)
+#define BDSP_RAAGA_FMM_ADDR_MASK           (BDSP_RAAGA_FMM_WRAP_MASK-1)
 
 #define BDSP_RAAGA_PREBOOT_MAILBOX_PATTERN          0xA5A5
 
@@ -59,9 +58,6 @@
 							   (BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR))/*61*/
 #define BDSP_RAAGA_TARGET_PRINT_FIFO  ((BCHP_RAAGA_DSP_FW_CFG_FIFO_TARGETPRINT_BASE_ADDR - BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR)/ \
 							   (BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR))/*62*/
-#define BDSP_RAAGA_FIFO_INVALID         ((unsigned int)(-1))
-#define BDSP_RAAGA_FIFO_0_INDEX         0
-
 
 #define BDSP_STAGE_TRAVERSE_LOOP_V1_BEGIN(A, B, C, D)                           \
     {                                                                           \
@@ -117,71 +113,23 @@ typedef struct BDSP_Raaga_P_DeviceMemoryInfo
 	BDSP_P_MemoryPool 			sROMemoryPool;
 	BDSP_P_MemoryPool 			sRWMemoryPool[BDSP_RAAGA_MAX_DSP];
 
-    BDSP_P_FwBuffer             SharedKernalMemory[BDSP_RAAGA_MAX_DSP];
+    BDSP_P_FwBuffer             KernalMemory[BDSP_RAAGA_MAX_DSP];
+    BDSP_P_FwBuffer             TargetBufferMemory[BDSP_RAAGA_MAX_DSP];
     BDSP_P_FwBuffer             DescriptorMemory[BDSP_RAAGA_MAX_DSP];
-	BDSP_P_FwBuffer             WorkBufferMemory[BDSP_RAAGA_MAX_NUM_PREEMPTION_LEVELS];
-    BDSP_Raaga_P_MsgQueueParams cmdQueueParams[BDSP_RAAGA_MAX_DSP];
-    BDSP_Raaga_P_MsgQueueParams genRspQueueParams[BDSP_RAAGA_MAX_DSP];
-	BDSP_Raaga_P_MsgQueueParams debugQueueParams[BDSP_RAAGA_MAX_DSP][BDSP_Raaga_DebugType_eLast];
+	BDSP_P_FwBuffer             WorkBufferMemory[BDSP_RAAGA_MAX_DSP][BDSP_MAX_NUM_PREEMPTION_LEVELS];
+    BDSP_P_MsgQueueParams       cmdQueueParams[BDSP_RAAGA_MAX_DSP];
+    BDSP_P_MsgQueueParams       genRspQueueParams[BDSP_RAAGA_MAX_DSP];
+	BDSP_P_MsgQueueParams       debugQueueParams[BDSP_RAAGA_MAX_DSP][BDSP_DebugType_eLast];
 }BDSP_Raaga_P_DeviceMemoryInfo;
-
-typedef struct BDSP_P_TaskMemoryInfo
-{
-	BDSP_P_MemoryPool			sMemoryPool;
-
-	BDSP_P_HostBuffer			hostAsyncQueue;
-	BDSP_P_FwBuffer 	  		sCITMemory;
-	BDSP_P_FwBuffer 	  		sCITReConfigMemory;
-	BDSP_P_FwBuffer				sSampleRateLUTMemory;
-	BDSP_P_FwBuffer				sSchedulingConfigMemory;
-	BDSP_P_FwBuffer				sGateOpenConfigMemory;
-
-	BDSP_P_FwBuffer		  		sCacheHole; /* 512 bytes of hole for cache coherency */
-	BDSP_Raaga_P_MsgQueueParams syncQueueParams;
-	BDSP_Raaga_P_MsgQueueParams asyncQueueParams;
-	BDSP_P_FwBuffer             sMPSharedMemory;
-}BDSP_P_TaskMemoryInfo;
-
-typedef struct BDSP_P_TaskInfo
-{
-    bool    taskId[BDSP_RAAGA_MAX_FW_TASK_PER_DSP];
-    void    *pTask[BDSP_RAAGA_MAX_FW_TASK_PER_DSP];
-    unsigned numActiveTasks;
-}BDSP_P_TaskInfo;
-
-typedef struct BDSP_P_TaskParams
-{
-	bool 	 isRunning;
-	bool 	 paused;
-	bool	 frozen;
-	unsigned taskId;
-	unsigned masterTaskId;
-	unsigned commandCounter;
-	unsigned lastCommand;
-	uint32_t eventEnabledMask;
-}BDSP_P_TaskParams;
-
-typedef struct BDSP_P_StageMemoryInfo
-{
-	BDSP_P_MemoryPool	  sMemoryPool;
-	BDSP_P_FwBuffer 	  sDataSyncSettings;
-	BDSP_P_FwBuffer 	  sTsmSettings;
-	BDSP_P_FwBuffer       sHostAlgoUserConfig;
-
-	BDSP_P_FwBuffer		  sCacheHole; /* 512 bytes of hole for cache coherency */
-	BDSP_P_FwBuffer 	  sAlgoUserConfig;
-	BDSP_P_FwBuffer       sAlgoStatus;
-	BDSP_P_FwBuffer       sIdsStatus;
-	BDSP_P_FwBuffer       sTsmStatus;
-	BDSP_P_FwBuffer       sInterframe;
-}BDSP_P_StageMemoryInfo;
 
 typedef struct BDSP_Raaga_P_HardwareStatus
 {
     bool bWatchdogTimerStatus;
 	bool deviceWatchdogFlag;
+	bool dspInterrupts[BDSP_RAAGA_MAX_DSP][BDSP_RAAGA_MAX_INTERRUPTS_PER_DSP];
 	bool dspFifo[BDSP_RAAGA_MAX_DSP][BDSP_RAAGA_NUM_FIFOS];
-	bool descriptor[BDSP_RAAGA_MAX_DSP][BDSP_RAAGA_MAX_DESCRIPTORS];
+	bool descriptor[BDSP_RAAGA_MAX_DSP][BDSP_MAX_DESCRIPTORS];
+	bool powerStandby;
 }BDSP_Raaga_P_HardwareStatus;
 
 BDBG_OBJECT_ID_DECLARE(BDSP_Raaga);
@@ -208,13 +156,14 @@ typedef struct BDSP_Raaga
 	BDSP_Raaga_P_DeviceCallBacks interruptCallbacks[BDSP_RAAGA_MAX_DSP];
 	BDSP_P_TaskInfo  taskDetails[BDSP_RAAGA_MAX_DSP];
 
-    BDSP_Raaga_P_MsgQueueHandle hCmdQueue[BDSP_RAAGA_MAX_DSP];
-    BDSP_Raaga_P_MsgQueueHandle hGenRespQueue[BDSP_RAAGA_MAX_DSP];
+    BDSP_P_MsgQueueHandle hCmdQueue[BDSP_RAAGA_MAX_DSP];
+    BDSP_P_MsgQueueHandle hGenRespQueue[BDSP_RAAGA_MAX_DSP];
 
     BDSP_Raaga_P_DeviceMemoryInfo memInfo;
 	BDSP_Raaga_P_CodeDownloadInfo codeInfo;
 
     BLST_S_HEAD(BDSP_RaagaContextList, BDSP_RaagaContext) contextList;
+    BLST_S_HEAD(BDSP_RaagaExtInterruptList, BDSP_RaagaExternalInterrupt) interruptList;
 }BDSP_Raaga;
 
 BDBG_OBJECT_ID_DECLARE(BDSP_RaagaContext);
@@ -240,8 +189,8 @@ typedef struct BDSP_RaagaTask
     BDSP_TaskStartSettings  startSettings;
 	BDSP_P_TaskParams taskParams;
 
-	BDSP_Raaga_P_MsgQueueHandle hSyncQueue;
-	BDSP_Raaga_P_MsgQueueHandle hAsyncQueue;
+	BDSP_P_MsgQueueHandle hSyncQueue;
+	BDSP_P_MsgQueueHandle hAsyncQueue;
 
 	BDSP_P_TaskMemoryInfo taskMemInfo;
 
@@ -271,10 +220,85 @@ typedef struct BDSP_RaagaStage
 	unsigned  stageID;
 
 	BDSP_P_StageConnectionInfo sStageConnectionInfo;
+    /* Capture information for the stage */
+    BLST_S_HEAD(BDSP_RaagaCaptureList, BDSP_RaagaCapture) captureList;
 }BDSP_RaagaStage;
+
+/***************************************************************************
+Summary:
+Capture pointers structure
+***************************************************************************/
+typedef struct BDSP_RaagaCapturePointerInfo
+{
+    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER outputBufferPtr; /* Structure containing pointers to the output buffers
+                                                   from which the data has to be captured */
+    dramaddr_t ui32StartWriteAddr;
+    BDSP_P_BufferDescriptor captureBufferPtr; /* Structure containing the pointers to the intermediate
+                                                    buffer into which the captured data is written */
+    dramaddr_t shadowRead; /* The shadow read pointer for the output buffer */
+    dramaddr_t lastWrite; /* The last value of the write pointer; will be used for capture error detection*/
+    BDSP_MMA_Memory CaptureBufferMemory; /* Memory for Each channel  where captured Data is written into*/
+	BDSP_MMA_Memory OutputBufferMemory;  /* Memory provided by APE(FMM/RDB) which was allocated for the Port to read from*/
+} BDSP_RaagaCapturePointerInfo;
+
+BDBG_OBJECT_ID_DECLARE(BDSP_RaagaCapture);
+typedef struct BDSP_RaagaCapture
+{
+    BDBG_OBJECT(BDSP_RaagaCapture)
+    BDSP_AudioCapture    capture;
+    BDSP_RaagaStage *pRaagaStage;
+    BDSP_RaagaContext *pRaagaContext;
+
+    BMMA_Heap_Handle hHeap; /* Heap from which the capture buffers need to be allocated */
+    BDSP_MMA_Memory  captureBuffer;
+    uint8_t maxBuffers;             /* Maximum number of buffers */
+    bool enabled;                   /* Flag to indicate whether the capture is enabled or disabled */
+    bool updateRead;               /* If true then the read pointers of the output buffer are updated in the capture
+                                                                    thread. This can be set to true when there is not consumer for the output data */
+
+    BDSP_AF_P_BufferType eBuffType; /* The buffer type of the the output buffer (RAVE, FMM, DRAM etc ...) */
+    bool StartCapture;
+    uint8_t numBuffers;             /* Number of valid buffers */
+    BDSP_RaagaCapturePointerInfo CapturePointerInfo[BDSP_AF_P_MAX_CHANNELS]; /* Capture pointer info for all the output capture */
+    BLST_S_ENTRY(BDSP_RaagaCapture) node;
+} BDSP_RaagaCapture;
+
+BDBG_OBJECT_ID_DECLARE(BDSP_RaagaQueue);
+typedef struct BDSP_RaagaQueue
+{
+    BDBG_OBJECT(BDSP_RaagaQueue)
+    BDSP_Queue Queue;
+
+    BDSP_QueueCreateSettings createSettings;
+    BDSP_RaagaContext  *pRaagaContext;
+
+    bool inUse; /* Flag to indicate if the Queue is in use */
+    bool input; /* True if the queue is for host input */
+    unsigned      numChannels; /* Number of channels in the Queue */
+    BDSP_AF_P_DistinctOpType distinctOp; /* Distinct output type of the Queue */
+    BDSP_RaagaStage *srcHandle; /* Source Stage handle */
+    BDSP_RaagaStage *dstHandle; /* Destination Stage Handle */
+    int32_t    srcIndex; /* Index of the src Stage output to which the Queue is connected */
+    int32_t    dstIndex; /* Index of the dst Stage input to which theQueue is conneceted */
+    unsigned   dspIndex; /* Index of DSP on which the Queue is created */
+	BDSP_P_MsgQueueHandle hMsgQueue[BDSP_AF_P_MAX_CHANNELS];
+} BDSP_RaagaQueue;
+
+/* Handle for External interrupt to DSP */
+BDBG_OBJECT_ID_DECLARE(BDSP_RaagaExternalInterrupt);
+typedef struct BDSP_RaagaExternalInterrupt
+{
+    BDBG_OBJECT(BDSP_RaagaExternalInterrupt)
+    BDSP_ExternalInterrupt  extInterrupt;
+    BDSP_Raaga *pDevice;
+    BLST_S_ENTRY(BDSP_RaagaExternalInterrupt) node;
+    uint32_t    dspIndex;
+    BDSP_ExternalInterruptInfo InterruptInfo;
+}BDSP_RaagaExternalInterrupt;
 
 void BDSP_Raaga_P_CalculateStageMemory(
 	unsigned    *pMemReqd,
+	BDSP_AlgorithmType  algoType,
     bool        ifMemApiTool,
 	const BDSP_RaagaUsageOptions *pUsage
 );
@@ -283,6 +307,7 @@ void BDSP_Raaga_P_CalculateTaskMemory(
 );
 void BDSP_Raaga_P_CalculateDeviceRWMemory(
     BDSP_Raaga *pDevice,
+    unsigned    dspIndex,
     unsigned   *pMemReqd
 );
 void BDSP_Raaga_P_CalculateDeviceROMemory(
@@ -378,6 +403,11 @@ BERR_Code BDSP_Raaga_P_SetAlgorithm(
 	void *pStageHandle,
 	BDSP_Algorithm algorithm
 );
+BERR_Code BDSP_Raaga_P_GetAudioDelay_isrsafe(
+    BDSP_CTB_Input   *pCtbInput,
+    void             *pStageHandle,
+    BDSP_CTB_Output  *pCTBOutput
+);
 BERR_Code BDSP_Raaga_P_GetStageSettings(
 	void *pStageHandle,
 	void *pSettingsBuffer,
@@ -449,5 +479,22 @@ BERR_Code BDSP_Raaga_P_Freeze(
 BERR_Code BDSP_Raaga_P_UnFreeze(
 	void *pTaskHandle,
 	const BDSP_AudioTaskUnFreezeSettings *pSettings
+);
+BERR_Code BDSP_Raaga_P_GetDebugBuffer(
+    void       			   *pDeviceHandle,
+    BDSP_DebugType 	        debugType,
+    uint32_t 				dspIndex,
+    BDSP_MMA_Memory 	   *pBuffer,
+    size_t 				   *pSize
+);
+BERR_Code BDSP_Raaga_P_ConsumeDebugData(
+    void       			   *pDeviceHandle,
+    BDSP_DebugType 	        debugType,
+    uint32_t 				dspIndex,
+    size_t 					bytesConsumed
+);
+BDSP_FwStatus BDSP_Raaga_P_GetCoreDumpStatus (
+    void    *pDeviceHandle,
+    uint32_t dspIndex /* [in] Gives the DSP Id for which the core dump status is required */
 );
 #endif /*BDSP_RAAGA_PRIV_H_*/

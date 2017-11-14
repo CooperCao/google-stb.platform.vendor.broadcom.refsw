@@ -51,12 +51,7 @@
 
 /* STATIC MEMORY ALLOCATION FOR A TASK */
 
-#if (BCHP_CHIP == 7278)
-#define BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES        ((uint32_t)(32*1024)) /* Task Swap Buffer size in bytes */
-#else
 #define BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES        ((uint32_t)(2048*4)) /* Task Swap Buffer size in bytes */
-#endif /* (BCHP_CHIP == 7278) */
-
 #define BDSP_CIT_P_TASK_PORT_CONFIG_MEM_SIZE            ((uint32_t)((((SIZEOF(BDSP_AF_P_sFMM_DEST_CFG)*BDSP_AF_P_MAX_NUM_PLLS + 20)+3)>>2)<<2)) /* Task's output port configuration memory size in bytes */
 #define BDSP_CIT_P_TASK_SPDIF_USER_CFG_MEM_SIZE         ((uint32_t)((((SIZEOF(BDSP_AF_P_sSPDIF_USER_CFG)*BDSP_AF_P_MAX_NUM_SPDIF_PORTS + 20) +3)>>2)<<2)) /* Task's SPDIF user configuration memory size in bytes for all ports*/
 #define BDSP_CIT_P_TASK_FMM_GATE_OPEN_CONFIG            ((uint32_t)((((SIZEOF(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG) + 20)+3)>>2)<<2)) /* FMM gate open configuration memory size in bytes*/

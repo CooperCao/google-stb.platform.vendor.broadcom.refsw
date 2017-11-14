@@ -125,7 +125,7 @@ static CommonDrmPlatformType_e DRM_Common_P_drmType_to_PlatformIndex(BSAGElib_Bi
                 platformIndex = Common_Platform_Common;
             break;
     }
-    BDBG_MSG(("%s: platformIndex = %d",__FUNCTION__,platformIndex));
+    BDBG_MSG(("%s: platformIndex = %d",BSTD_FUNCTION,platformIndex));
     return platformIndex;
 }
 
@@ -157,7 +157,7 @@ static uint32_t DRM_Common_P_PlatformIndex_to_PlatformID (CommonDrmPlatformType_
             platformID = BSAGE_PLATFORM_ID_COMMONDRM;
             break;
     }
-    BDBG_MSG(("%s: platformID = 0x%x",__FUNCTION__,platformID));
+    BDBG_MSG(("%s: platformID = 0x%x",BSTD_FUNCTION,platformID));
     return platformID;
 }
 
@@ -179,10 +179,10 @@ DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings)
     {
         if(BKNI_CreateMutex(&drmCommonTLMutex[platformIndex]) != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error calling create mutex", __FUNCTION__));
+            BDBG_ERR(("%s - Error calling create mutex", BSTD_FUNCTION));
             goto ErrorExit;
         }
-        BDBG_MSG(("%s: created mutex for platformIndex %d mutex %p handle %p",__FUNCTION__,platformIndex,drmCommonTLMutex[platformIndex],&drmCommonTLMutex[platformIndex]));
+        BDBG_MSG(("%s: created mutex for platformIndex %d mutex %p handle %p",BSTD_FUNCTION,platformIndex,drmCommonTLMutex[platformIndex],&drmCommonTLMutex[platformIndex]));
     }
     BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
 
@@ -200,7 +200,7 @@ DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings)
     rc = DRM_Common_BasicInitialize(&pCommonTLSettings->drmCommonInit);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error calling BasicInitialize", __FUNCTION__));
+        BDBG_ERR(("%s - Error calling BasicInitialize", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -212,7 +212,7 @@ DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings)
         rc = DRM_Common_P_TA_Install(platformID, pCommonTLSettings->ta_bin_file_path);
 
         if(rc != Drm_Success){
-            BDBG_WRN(("%s Installing Loadable TA %s - Error (rc %x) ", __FUNCTION__, pCommonTLSettings->ta_bin_file_path, rc));
+            BDBG_WRN(("%s Installing Loadable TA %s - Error (rc %x) ", BSTD_FUNCTION, pCommonTLSettings->ta_bin_file_path, rc));
         }
         /* Set to Success as we support pre-loaded common drm TA */
         rc = Drm_Success;
@@ -229,26 +229,26 @@ DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings)
         if (sage_rc != BERR_SUCCESS)
         {
             BDBG_ERR(("%s - Error calling platform_open, pCommonTLSettings->ta_bin_file_path: %s",
-                __FUNCTION__, pCommonTLSettings->ta_bin_file_path));
+                BSTD_FUNCTION, pCommonTLSettings->ta_bin_file_path));
             rc = Drm_Err;
             goto ErrorExit;
         }
 
         if(platform_status[platformIndex] == BSAGElib_State_eUninit)
         {
-            BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit ************************* (platformHandle = %p)", __FUNCTION__, (void *)platformHandle[platformIndex]));
+            BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit ************************* (platformHandle = %p)", BSTD_FUNCTION, (void *)platformHandle[platformIndex]));
             container = SRAI_Container_Allocate();
             if(container == NULL)
             {
-                BDBG_ERR(("%s - Error fetching container", __FUNCTION__));
+                BDBG_ERR(("%s - Error fetching container", BSTD_FUNCTION));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
-            BDBG_MSG(("%s: allocated container for platformIndex %d at %p",__FUNCTION__,platformIndex,container));
+            BDBG_MSG(("%s: allocated container for platformIndex %d at %p",BSTD_FUNCTION,platformIndex,container));
             sage_rc = SRAI_Platform_Init(platformHandle[platformIndex], container);
             if (sage_rc != BERR_SUCCESS)
             {
-                BDBG_ERR(("%s: %d - Error calling platform init", __FUNCTION__,__LINE__));
+                BDBG_ERR(("%s: %d - Error calling platform init", BSTD_FUNCTION,__LINE__));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
@@ -257,7 +257,7 @@ DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings)
     }
     else
     {
-        BDBG_WRN(("%s: Platform ID 0x%x already initialized *************************", __FUNCTION__,platformID));
+        BDBG_WRN(("%s: Platform ID 0x%x already initialized *************************", BSTD_FUNCTION,platformID));
     }
 
     DrmCommon_TL_Counter++;
@@ -268,7 +268,7 @@ DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings)
 ErrorExit:
 
     if (container != NULL) {
-        BDBG_MSG(("%s: freeing container %p for platformIndex %d",__FUNCTION__,container,platformIndex));
+        BDBG_MSG(("%s: freeing container %p for platformIndex %d",BSTD_FUNCTION,container,platformIndex));
         SRAI_Container_Free(container);
     }
 
@@ -315,14 +315,14 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
 
     BDBG_ASSERT(((platIndex < Common_Platform_Max) && ( platIndex >= Common_Platform_Common)));
     platformIndex = platIndex;
-    BDBG_MSG(("%s platform %d module %d container %p moduleHandle %p ",__FUNCTION__,platformIndex,module_id,container,moduleHandle));
+    BDBG_MSG(("%s platform %d module %d container %p moduleHandle %p ",BSTD_FUNCTION,platformIndex,module_id,container,moduleHandle));
 
     BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
 
     /* if module uses a bin file - read it and add it to the container */
     if(drm_bin_filename != NULL)
     {
-        BDBG_MSG(("%s - DRM bin filename '%s'", __FUNCTION__, drm_bin_filename));
+        BDBG_MSG(("%s - DRM bin filename '%s'", BSTD_FUNCTION, drm_bin_filename));
         /*
          * 1) allocate drm_bin_file_buff
          * 2) read bin file
@@ -331,7 +331,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
         rc = DRM_Common_P_GetFileSize(drm_bin_filename, &filesize);
         if(rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
+            BDBG_ERR(("%s - Error determine file size of bin file", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -347,13 +347,13 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
 
         if(nexerr != NEXUS_SUCCESS)
         {
-            BDBG_ERR(("%s - Error allocating buffer err %u  bUseExternalHeap (%u)", __FUNCTION__, nexerr, bUseExternalHeapTA[platformIndex]));
+            BDBG_ERR(("%s - Error allocating buffer err %u  bUseExternalHeap (%u)", BSTD_FUNCTION, nexerr, bUseExternalHeapTA[platformIndex]));
         }
-        BDBG_MSG(("%s allocated file size %u drm_bin_file_buff[%d] %p", __FUNCTION__, filesize, platformIndex, drm_bin_file_buff[platformIndex]));
+        BDBG_MSG(("%s allocated file size %u drm_bin_file_buff[%d] %p", BSTD_FUNCTION, filesize, platformIndex, drm_bin_file_buff[platformIndex]));
 
         if(drm_bin_file_buff[platformIndex] == NULL)
         {
-            BDBG_ERR(("%s - Error allocating '%u' bytes", __FUNCTION__, filesize));
+            BDBG_ERR(("%s - Error allocating '%u' bytes", BSTD_FUNCTION, filesize));
             (*moduleHandle) = NULL;
             rc = Drm_MemErr;
             goto ErrorExit;
@@ -362,7 +362,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
         fptr = fopen(drm_bin_filename, "rb");
         if(fptr == NULL)
         {
-            BDBG_ERR(("%s - Error opening drm bin file (%s)", __FUNCTION__, drm_bin_filename));
+            BDBG_ERR(("%s - Error opening drm bin file (%s)", BSTD_FUNCTION, drm_bin_filename));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -371,7 +371,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
         read_size = fread(drm_bin_file_buff[platformIndex], 1, filesize, fptr);
         if(read_size != filesize)
         {
-            BDBG_ERR(("%s - Error reading drm bin file size (%u != %u)", __FUNCTION__, read_size, filesize));
+            BDBG_ERR(("%s - Error reading drm bin file size (%u != %u)", BSTD_FUNCTION, read_size, filesize));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -380,7 +380,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
         /* close file and set to NULL */
         if(fclose(fptr) != 0)
         {
-            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", __FUNCTION__, drm_bin_filename, strerror(errno)));
+            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", BSTD_FUNCTION, drm_bin_filename, strerror(errno)));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -391,11 +391,11 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
         /* verify allocated drm_bin_file_buff size with size in header */
         BKNI_Memcpy((uint8_t*)&drm_bin_header[platformIndex], drm_bin_file_buff[platformIndex], sizeof(drm_bin_header_t));
         filesize_from_header = GET_UINT32_FROM_BUF(drm_bin_header[platformIndex].bin_file_size);
-        BDBG_MSG(("%s file size from header %u - line = %u", __FUNCTION__, filesize_from_header, __LINE__));
+        BDBG_MSG(("%s file size from header %u - line = %u", BSTD_FUNCTION, filesize_from_header, __LINE__));
 
         if(filesize_from_header > DEFAULT_DRM_BIN_FILESIZE)
         {
-            BDBG_MSG(("%s - bin file size too large - line = %u", __FUNCTION__, __LINE__));
+            BDBG_MSG(("%s - bin file size too large - line = %u", BSTD_FUNCTION, __LINE__));
             NEXUS_Memory_Free(drm_bin_file_buff[platformIndex]);
             drm_bin_file_buff[platformIndex] = NULL;
             if (bUseExternalHeapTA[platformIndex] == true)
@@ -407,12 +407,12 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
                 nexerr = NEXUS_Memory_Allocate(filesize_from_header, NULL,(void **) &drm_bin_file_buff[platformIndex]);
             }
             if (nexerr == NEXUS_SUCCESS) {
-                BDBG_MSG(("%s setting drm bin file buff to 0s",__FUNCTION__));
+                BDBG_MSG(("%s setting drm bin file buff to 0s",BSTD_FUNCTION));
                 BKNI_Memset(drm_bin_file_buff[platformIndex], 0x00, filesize_from_header);
             }
             else
             {
-                BDBG_MSG(("%s failed to allocate mem for invalid drm bin file size nexerr=%d",__FUNCTION__,nexerr));
+                BDBG_MSG(("%s failed to allocate mem for invalid drm bin file size nexerr=%d",BSTD_FUNCTION,nexerr));
                 (*moduleHandle) = NULL;
                 rc = Drm_SraiModuleError;
                 goto ErrorExit;
@@ -421,7 +421,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
 
         if(filesize_from_header != filesize)
         {
-            BDBG_ERR(("%s - Error validating file size in header (%u != %u)", __FUNCTION__, filesize_from_header, filesize));
+            BDBG_ERR(("%s - Error validating file size in header (%u != %u)", BSTD_FUNCTION, filesize_from_header, filesize));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -432,7 +432,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
         /* first verify that it has not been already used by the calling module */
         if(container->blocks[0].data.ptr != NULL)
         {
-            BDBG_ERR(("%s - Shared block[0] reserved for all DRM modules with bin file to pass to Sage.", __FUNCTION__));
+            BDBG_ERR(("%s - Shared block[0] reserved for all DRM modules with bin file to pass to Sage.", BSTD_FUNCTION));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
@@ -441,25 +441,25 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
         container->blocks[0].len = filesize_from_header;
 
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(filesize_from_header, SRAI_MemoryType_Shared);
-        BDBG_MSG(("%s - Allocating SHARED MEMORY of '%u' bytes for shared block[0] (address %p)", __FUNCTION__, filesize_from_header, container->blocks[0].data.ptr));
+        BDBG_MSG(("%s - Allocating SHARED MEMORY of '%u' bytes for shared block[0] (address %p)", BSTD_FUNCTION, filesize_from_header, container->blocks[0].data.ptr));
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating SRAI memory", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating SRAI memory", BSTD_FUNCTION));
             (*moduleHandle) = NULL;
             rc = Drm_SraiModuleError;
             goto ErrorExit;
         }
         BKNI_Memcpy(container->blocks[0].data.ptr, drm_bin_file_buff[platformIndex], filesize_from_header);
 
-        BDBG_MSG(("%s - Copied '%u' bytes into SRAI container (address %p)", __FUNCTION__, filesize_from_header, container->blocks[0].data.ptr));
+        BDBG_MSG(("%s - Copied '%u' bytes into SRAI container (address %p)", BSTD_FUNCTION, filesize_from_header, container->blocks[0].data.ptr));
     }
 
     /* All modules will call SRAI_Module_Init */
-    BDBG_MSG(("%s - ************************* (platformHandle = %p)", __FUNCTION__, (void *)platformHandle[platformIndex]));
+    BDBG_MSG(("%s - ************************* (platformHandle = %p)", BSTD_FUNCTION, (void *)platformHandle[platformIndex]));
     sage_rc = SRAI_Module_Init(platformHandle[platformIndex], module_id, container, moduleHandle);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error calling SRAI_Module_Init", __FUNCTION__));
+        BDBG_ERR(("%s - Error calling SRAI_Module_Init", BSTD_FUNCTION));
         (*moduleHandle) = NULL;
         rc = Drm_SraiModuleError;
         goto ErrorExit;
@@ -469,7 +469,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
     sage_rc = container->basicOut[0];
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - SAGE error processing DRM bin file", __FUNCTION__));
+        BDBG_ERR(("%s - SAGE error processing DRM bin file", BSTD_FUNCTION));
 
         if(container->blocks[0].data.ptr != NULL){
             SRAI_Memory_Free(container->blocks[0].data.ptr);
@@ -488,11 +488,11 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
     {
         if(container->basicOut[1] == DRM_COMMON_OVERWRITE_BIN_FILE)
         {
-            BDBG_MSG(("%s - Overwriting file '%s'", __FUNCTION__, drm_bin_filename));
+            BDBG_MSG(("%s - Overwriting file '%s'", BSTD_FUNCTION, drm_bin_filename));
 
             if(fptr != NULL)
             {
-                BDBG_ERR(("%s - File pointer already opened, invalid state.  '%s'", __FUNCTION__, drm_bin_filename));
+                BDBG_ERR(("%s - File pointer already opened, invalid state.  '%s'", BSTD_FUNCTION, drm_bin_filename));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
@@ -501,7 +501,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
             fptr = fopen(drm_bin_filename, "w+b");
             if(fptr == NULL)
             {
-                BDBG_ERR(("%s - Error opening DRM bin file (%s) in 'w+b' mode.  '%s'", __FUNCTION__, drm_bin_filename, strerror(errno)));
+                BDBG_ERR(("%s - Error opening DRM bin file (%s) in 'w+b' mode.  '%s'", BSTD_FUNCTION, drm_bin_filename, strerror(errno)));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
@@ -509,7 +509,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
             write_size = fwrite(container->blocks[0].data.ptr, 1, filesize_from_header, fptr);
             if(write_size != filesize)
             {
-                BDBG_ERR(("%s - Error writing drm bin file size to rootfs (%u != %u)", __FUNCTION__, write_size, filesize));
+                BDBG_ERR(("%s - Error writing drm bin file size to rootfs (%u != %u)", BSTD_FUNCTION, write_size, filesize));
                 (*moduleHandle) = NULL;
                 rc = Drm_SraiModuleError;
                 goto ErrorExit;
@@ -518,7 +518,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
             fptr = NULL;
         }
         else{
-            BDBG_MSG(("%s - No need to overwrite file '%s'", __FUNCTION__, drm_bin_filename));
+            BDBG_MSG(("%s - No need to overwrite file '%s'", BSTD_FUNCTION, drm_bin_filename));
         }
     }
 #endif
@@ -527,19 +527,19 @@ ErrorExit:
 
     /* if shared block[0] is not null, free since there was an error processing (i.e. can't trust the data) or the file was copied*/
     if(container->blocks[0].data.ptr != NULL){
-        BDBG_MSG(("%s: freeing container->blocks[0].data.ptr %p",__FUNCTION__, container->blocks[0].data.ptr));
+        BDBG_MSG(("%s: freeing container->blocks[0].data.ptr %p",BSTD_FUNCTION, container->blocks[0].data.ptr));
         SRAI_Memory_Free(container->blocks[0].data.ptr);
         container->blocks[0].data.ptr = NULL;
     }
 
     if(drm_bin_file_buff[platformIndex] != NULL){
-        BDBG_MSG(("%s: freeing drm_bin_file_buff[%d] %p",__FUNCTION__,platformIndex,drm_bin_file_buff[platformIndex]));
+        BDBG_MSG(("%s: freeing drm_bin_file_buff[%d] %p",BSTD_FUNCTION,platformIndex,drm_bin_file_buff[platformIndex]));
         NEXUS_Memory_Free(drm_bin_file_buff[platformIndex]);
         drm_bin_file_buff[platformIndex] = NULL;
     }
 
     if(fptr != NULL){
-        BDBG_MSG(("%s: Freeing fptr %p",__FUNCTION__,fptr));
+        BDBG_MSG(("%s: Freeing fptr %p",BSTD_FUNCTION,fptr));
         fclose(fptr);
         fptr = NULL;
     }
@@ -585,18 +585,18 @@ static DrmRC DRM_Common_TL_URR_Toggle(void)
 
     drmRc = DRM_Playback_Initialize(&playbackHandle);
     if (drmRc != Drm_Success || playbackHandle == NULL) {
-        BDBG_ERR(("%s: DRM_Playback_Initialize returned error %d", __FUNCTION__, drmRc));
+        BDBG_ERR(("%s: DRM_Playback_Initialize returned error %d", BSTD_FUNCTION, drmRc));
         goto toggle_error_exit;
     }
     drmRc = DRM_Playback_Stop(playbackHandle);
     if (drmRc != Drm_Success) {
-        BDBG_ERR(("%s: DRM_Playback_Stop returned error %d", __FUNCTION__, drmRc));
+        BDBG_ERR(("%s: DRM_Playback_Stop returned error %d", BSTD_FUNCTION, drmRc));
         /* Fall through */
     }
 
     drmRc = DRM_Playback_Finalize(playbackHandle);
     if (drmRc != Drm_Success) {
-         BDBG_ERR(("%s: DRM_Playback_Finalize returned error %d",__FUNCTION__, drmRc));
+         BDBG_ERR(("%s: DRM_Playback_Finalize returned error %d",BSTD_FUNCTION, drmRc));
     }
 #endif
 
@@ -622,9 +622,9 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
     BDBG_ASSERT(drmCommonTLMutex[platformIndex] != NULL);
     BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
 
-    BDBG_MSG(("%s - Entered function (init = '%d')", __FUNCTION__, DrmCommon_TL_Counter));
+    BDBG_MSG(("%s - Entered function (init = '%d')", BSTD_FUNCTION, DrmCommon_TL_Counter));
 #ifndef USE_UNIFIED_COMMON_DRM
-    BDBG_MSG(("%s - Platform_RefCount[%d]=%d", __FUNCTION__, platformIndex, Platform_RefCount[platformIndex]));
+    BDBG_MSG(("%s - Platform_RefCount[%d]=%d", BSTD_FUNCTION, platformIndex, Platform_RefCount[platformIndex]));
 #endif
 
     platformID = DRM_Common_P_PlatformIndex_to_PlatformID(platformIndex);
@@ -632,12 +632,12 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
     /* sanity check */
     if (DrmCommon_TL_Counter <= 0)
     {
-        BDBG_WRN(("%s - DrmCommon_TL_Counter value is invalid ('%d').  Possible bad thread exit", __FUNCTION__, DrmCommon_TL_Counter));
+        BDBG_WRN(("%s - DrmCommon_TL_Counter value is invalid ('%d').  Possible bad thread exit", BSTD_FUNCTION, DrmCommon_TL_Counter));
     }
 #ifndef USE_UNIFIED_COMMON_DRM
     if (Platform_RefCount[platformIndex] <= 0)
     {
-        BDBG_WRN(("%s - Platform_RefCount[%d] value is invalid ('%d').  Possible bad thread exit", __FUNCTION__, platformIndex, Platform_RefCount[platformIndex]));
+        BDBG_WRN(("%s - Platform_RefCount[%d] value is invalid ('%d').  Possible bad thread exit", BSTD_FUNCTION, platformIndex, Platform_RefCount[platformIndex]));
     }
 #endif
     /* if there's one DRM module left calling DRM_Common_Finalize, clean everything up
@@ -648,12 +648,12 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
         * release the mutex.  The counter will increment again preventing an infinite loop. */
         BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
 
-  BDBG_MSG(("%s - Start URR toggle", __FUNCTION__));
+  BDBG_MSG(("%s - Start URR toggle", BSTD_FUNCTION));
         rc = DRM_Common_TL_URR_Toggle();
         if (rc != Drm_Success) {
-            BDBG_ERR(("%s - Error performing URR toggle", __FUNCTION__));
+            BDBG_ERR(("%s - Error performing URR toggle", BSTD_FUNCTION));
         }
-  BDBG_MSG(("%s - URR toggle completed", __FUNCTION__));
+  BDBG_MSG(("%s - URR toggle completed", BSTD_FUNCTION));
 
         BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
     }
@@ -664,7 +664,7 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
     if (Platform_RefCount[platformIndex] == 1)
 #endif
     {
-        BDBG_MSG(("%s - Cleaning up Common DRM TL only parameters ***************************", __FUNCTION__));
+        BDBG_MSG(("%s - Cleaning up Common DRM TL only parameters ***************************", BSTD_FUNCTION));
         if (platformHandle[platformIndex]) {
             SRAI_Platform_Close(platformHandle[platformIndex]);
             platformHandle[platformIndex] = NULL;
@@ -698,9 +698,9 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
         BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
     }
 
-    BDBG_MSG(("%s - Exiting function (init = '%d')", __FUNCTION__, DrmCommon_TL_Counter));
+    BDBG_MSG(("%s - Exiting function (init = '%d')", BSTD_FUNCTION, DrmCommon_TL_Counter));
 #ifndef USE_UNIFIED_COMMON_DRM
-    BDBG_MSG(("%s - Platform_RefCount[%d]=%d", __FUNCTION__, platformIndex, Platform_RefCount[platformIndex]));
+    BDBG_MSG(("%s - Platform_RefCount[%d]=%d", BSTD_FUNCTION, platformIndex, Platform_RefCount[platformIndex]));
 #endif
     return rc;
 }
@@ -716,7 +716,7 @@ DrmRC DRM_Common_P_GetFileSize(char * filename, uint32_t *filesize)
     fptr = fopen(filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error opening file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
@@ -724,7 +724,7 @@ DrmRC DRM_Common_P_GetFileSize(char * filename, uint32_t *filesize)
     pos = fseek(fptr, 0, SEEK_END);
     if(pos == -1)
     {
-        BDBG_ERR(("%s - Error seeking to end of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error seeking to end of file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
@@ -732,7 +732,7 @@ DrmRC DRM_Common_P_GetFileSize(char * filename, uint32_t *filesize)
     pos = ftell(fptr);
     if(pos == -1)
     {
-        BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
@@ -740,7 +740,7 @@ DrmRC DRM_Common_P_GetFileSize(char * filename, uint32_t *filesize)
     /* check vs. arbitrary large file size */
     if(pos >= 2*1024*1024)
     {
-        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", __FUNCTION__, filename, pos));
+        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", BSTD_FUNCTION, filename, pos));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
@@ -749,13 +749,13 @@ DrmRC DRM_Common_P_GetFileSize(char * filename, uint32_t *filesize)
 
 ErrorExit:
 
-    BDBG_MSG(("%s - Exiting function (%u bytes)", __FUNCTION__, (*filesize)));
+    BDBG_MSG(("%s - Exiting function (%u bytes)", BSTD_FUNCTION, (*filesize)));
 
     if(fptr != NULL)
     {
         /* error closing?!  weird error case not sure how to handle */
         if(fclose(fptr) != 0){
-            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+            BDBG_ERR(("%s - Error closing drm bin file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
             rc = Drm_Err;
         }
     }
@@ -777,7 +777,7 @@ DrmRC DRM_Common_TL_M2mOperation_TA(CommonDrmPlatformType_e platIndex, DrmCommon
     CommonDrmPlatformType_e platformIndex;
 
     /* The mutex is still protecting the DRM Common Handle (resp CommonCrypto handle) table */
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 #ifdef USE_UNIFIED_COMMON_DRM
     platformIndex = Common_Platform_Common;
 #else
@@ -790,7 +790,7 @@ DrmRC DRM_Common_TL_M2mOperation_TA(CommonDrmPlatformType_e platIndex, DrmCommon
          (pDrmCommonOpStruct->num_dma_block > MAX_DMA_BLOCKS) ||
          ( bExternalIV && pDrmCommonOpStruct->num_dma_block < 1 ))
     {
-        BDBG_ERR(("%s - invalid paramters for M2M operation", __FUNCTION__));
+        BDBG_ERR(("%s - invalid paramters for M2M operation", BSTD_FUNCTION));
         drmRc = Drm_CryptoDmaErr;
         goto ErrorExit;
     }
@@ -814,7 +814,7 @@ DrmRC DRM_Common_TL_M2mOperation_TA(CommonDrmPlatformType_e platIndex, DrmCommon
 
         if ( bExternalIV )
         {
-            BDBG_MSG(("%s - btp 0x%08x size=%d", __FUNCTION__, pDmaBlock->pSrcData, pDmaBlock->uiDataSize));
+            BDBG_MSG(("%s - btp 0x%08x size=%d", BSTD_FUNCTION, pDmaBlock->pSrcData, pDmaBlock->uiDataSize));
 
             /* External IV BTP data in first dma block */
             NEXUS_DmaJob_GetDefaultBlockSettings(&jobBlkSettings[0]);
@@ -832,7 +832,7 @@ DrmRC DRM_Common_TL_M2mOperation_TA(CommonDrmPlatformType_e platIndex, DrmCommon
 
         for ( i = j; i < pDrmCommonOpStruct->num_dma_block; i++)
         {
-            BDBG_MSG(("%s - blkidx=%d, src=0x%08x, des=0x%08x, size=%d, start=%d,end=%d", __FUNCTION__, i, pDmaBlock->pSrcData, pDmaBlock->pDstData, pDmaBlock->uiDataSize, pDmaBlock->sg_start,pDmaBlock->sg_end ));
+            BDBG_MSG(("%s - blkidx=%d, src=0x%08x, des=0x%08x, size=%d, start=%d,end=%d", BSTD_FUNCTION, i, pDmaBlock->pSrcData, pDmaBlock->pDstData, pDmaBlock->uiDataSize, pDmaBlock->sg_start,pDmaBlock->sg_end ));
             NEXUS_DmaJob_GetDefaultBlockSettings (&jobBlkSettings[i]);
             jobBlkSettings[i].pSrcAddr = pDmaBlock->pSrcData;
             jobBlkSettings[i].pDestAddr = pDmaBlock->pDstData;
@@ -851,13 +851,13 @@ DrmRC DRM_Common_TL_M2mOperation_TA(CommonDrmPlatformType_e platIndex, DrmCommon
 
         jobBlkSettings[j].resetCrypto = true;
 
-        BDBG_MSG(("%s - dmaXfer [%d] blocks", __FUNCTION__, pDrmCommonOpStruct->num_dma_block ));
+        BDBG_MSG(("%s - dmaXfer [%d] blocks", BSTD_FUNCTION, pDrmCommonOpStruct->num_dma_block ));
         if (CommonCrypto_DmaXfer(drmHnd->cryptHnd,
                                  &jobSettings,
                                  jobBlkSettings,
                                  pDrmCommonOpStruct->num_dma_block) != NEXUS_SUCCESS)
         {
-            BDBG_ERR(("%s - Error with M2M DMA operation", __FUNCTION__));
+            BDBG_ERR(("%s - Error with M2M DMA operation", BSTD_FUNCTION));
             drmRc = Drm_CryptoDmaErr;
             goto ErrorExit;
         }
@@ -871,7 +871,7 @@ DrmRC DRM_Common_TL_M2mOperation_TA(CommonDrmPlatformType_e platIndex, DrmCommon
     }
 
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
     return drmRc;
 }
@@ -887,27 +887,27 @@ DrmRC DRM_Common_P_TA_Install(uint32_t platformID, char * ta_bin_filename)
 
     BDBG_ENTER(DRM_Common_TL_P_Install);
 
-    BDBG_MSG(("%s - DRM bin filename '%s'", __FUNCTION__, ta_bin_filename));
+    BDBG_MSG(("%s - DRM bin filename '%s'", BSTD_FUNCTION, ta_bin_filename));
 
     rc = DRM_Common_P_GetFileSize(ta_bin_filename, &file_size);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error determine file size of TA bin file", __FUNCTION__));
+        BDBG_ERR(("%s - Error determine file size of TA bin file", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     ta_bin_file_buff = SRAI_Memory_Allocate(file_size, SRAI_MemoryType_Shared);
     if(ta_bin_file_buff == NULL)
     {
-        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", __FUNCTION__, file_size));
+        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", BSTD_FUNCTION, file_size));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
-    BDBG_MSG(("%s: allocated ta_bin_file_buff at %p size %u",__FUNCTION__,ta_bin_file_buff,file_size));
+    BDBG_MSG(("%s: allocated ta_bin_file_buff at %p size %u",BSTD_FUNCTION,ta_bin_file_buff,file_size));
     fptr = fopen(ta_bin_filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening TA bin file (%s)", __FUNCTION__, ta_bin_filename));
+        BDBG_ERR(("%s - Error opening TA bin file (%s)", BSTD_FUNCTION, ta_bin_filename));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
@@ -915,7 +915,7 @@ DrmRC DRM_Common_P_TA_Install(uint32_t platformID, char * ta_bin_filename)
     read_size = fread(ta_bin_file_buff, 1, file_size, fptr);
     if(read_size != file_size)
     {
-        BDBG_ERR(("%s - Error reading TA bin file size (%u != %u)", __FUNCTION__, read_size, file_size));
+        BDBG_ERR(("%s - Error reading TA bin file size (%u != %u)", BSTD_FUNCTION, read_size, file_size));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
@@ -923,18 +923,18 @@ DrmRC DRM_Common_P_TA_Install(uint32_t platformID, char * ta_bin_filename)
     /* close file and set to NULL */
     if(fclose(fptr) != 0)
     {
-        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", __FUNCTION__, ta_bin_filename, strerror(errno)));
+        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", BSTD_FUNCTION, ta_bin_filename, strerror(errno)));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
     fptr = NULL;
 
-    BDBG_MSG(("%s - TA 0x%x Install file %s size %u", __FUNCTION__,platformID,ta_bin_filename,file_size));
+    BDBG_MSG(("%s - TA 0x%x Install file %s size %u", BSTD_FUNCTION,platformID,ta_bin_filename,file_size));
 
     sage_rc = SRAI_Platform_Install(platformID, ta_bin_file_buff, file_size);
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%x", __FUNCTION__, sage_rc ));
+        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%x", BSTD_FUNCTION, sage_rc ));
         rc = Drm_SraiModuleError;
         goto ErrorExit;
     }

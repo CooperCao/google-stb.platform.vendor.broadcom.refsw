@@ -62,7 +62,6 @@ struct video_decoder_resource {
     NxClient_ConnectSettings connectSettings; /* copy of settings that were used when created */
     unsigned windowIndex; /* index into connect->client->session->window[] */
     struct b_session *session; /* needed for cleanup after connect/clients are gone */
-    struct video_decoder_resource *linked;
 };
 #define IS_MOSAIC(connect) ((connect)->settings.simpleVideoDecoder[1].id)
 
@@ -92,7 +91,7 @@ enum b_cap {
 consider 50==60 and 24==25==30. consider i60 == p30. consider 1920x1080==1280x720.
 valid comparisons: 4Kp60 > 4Kp30 > 1080p60 > 1080i60/1080p30/720p60 > 480p60 > 480i
 */
-static unsigned nxserver_p_video_comparator(unsigned height, bool interlaced, unsigned verticalFreq)
+static unsigned nxserver_p_video_comparator(unsigned width, unsigned height, bool interlaced, unsigned verticalFreq)
 {
     if (verticalFreq >= 50) {
         verticalFreq = interlaced ? 30 : 60;
@@ -100,13 +99,13 @@ static unsigned nxserver_p_video_comparator(unsigned height, bool interlaced, un
     else {
         verticalFreq = 30;
     }
-    if (height > 1088) { /* UHD */
+    if (width > 1920 || height > 1088) { /* UHD */
         return 200 + verticalFreq;
     }
-    else if (height >= 1080) { /* 1080p60/30 */
+    else if (width > 1280 || height > 720) { /* 1080p60/30 */
         return 100 + verticalFreq;
     }
-    else if (height >= 720) { /* 720p60, which is like 1080p30 */
+    else if (width > 720 || height > 576) { /* 720p60, which is like 1080p30 */
         return 100 + 30;
     }
     else { /* SD */
@@ -117,7 +116,7 @@ static unsigned nxserver_p_videoformat_comparator(NEXUS_VideoFormat format)
 {
     NEXUS_VideoFormatInfo info;
     NEXUS_VideoFormat_GetInfo(format, &info);
-    return nxserver_p_video_comparator(info.height, info.interlaced, info.verticalFreq/100);
+    return nxserver_p_video_comparator(info.width, info.height, info.interlaced, info.verticalFreq/100);
 }
 
 static enum b_cap video_decoder_p_meets_decoder_cap(struct b_connect *connect, unsigned index, unsigned assumed_framerate)
@@ -175,18 +174,13 @@ static enum b_cap video_decoder_p_meets_decoder_cap(struct b_connect *connect, u
         if (needed_mem > avail_mem) {
             return b_cap_no;
         }
-
-        /* for platforms with linked decoders, only allow mosaic on decoder 0 */
-        if (connect->client->server->videoDecoder.special_mode && index != 0) {
-            return b_cap_no;
-        }
     }
     else if (connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxFormat) {
         if (nxserver_p_videoformat_comparator(connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxFormat) >
             nxserver_p_videoformat_comparator(server->settings.memConfigSettings.videoDecoder[index].maxFormat)) return b_cap_no;
     }
     else if (connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxWidth || connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxHeight) {
-        if (nxserver_p_video_comparator(connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxHeight, false, assumed_framerate) >
+        if (nxserver_p_video_comparator(connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxWidth, connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxHeight, false, assumed_framerate) >
             nxserver_p_videoformat_comparator(server->settings.memConfigSettings.videoDecoder[index].maxFormat)) return b_cap_no;
     }
 
@@ -231,41 +225,13 @@ static enum b_cap video_decoder_p_meets_decoder_cap(struct b_connect *connect, u
     return result;
 }
 
-/* params: index = current index. start with NEXUS_MAX_VIDEO_DECODERS.
-   return: next index, caller terminates with -1. */
-static int b_next_decoder_index(struct b_connect *connect, int index)
-{
-    if (connect->client->server->videoDecoder.special_mode == b_special_mode_linked_decoder2)
-    {
-        if (connect->settings.simpleVideoDecoder[0].windowCapabilities.encoder) {
-            /* encoder uses 2,0 */
-            switch (index) {
-            case NEXUS_MAX_VIDEO_DECODERS: return 2;
-            case 2: return 0;
-            default: return -1;
-            }
-        }
-        else {
-            /* non-transcode uses 0,2 */
-            switch (index) {
-            case NEXUS_MAX_VIDEO_DECODERS: return 0;
-            case 0: return 2;
-            default: return -1;
-            }
-        }
-    }
-    else {
-        /* a reverse search generally finds the least capable decoder that meets requirements */
-        return index-1;
-    }
-}
-
 static void video_decoder_p_find_decoder(struct b_connect *connect, unsigned assumed_framerate, unsigned *pindex, unsigned *pnum_avail)
 {
     int i = NEXUS_MAX_VIDEO_DECODERS;
     *pnum_avail = 0;
 
-    while ((i = b_next_decoder_index(connect, i)) != -1) {
+    /* a reverse search generally finds the least capable decoder that meets requirements */
+    while (--i != -1) {
         bool done = false;
         if (!connect->client->server->settings.memConfigSettings.videoDecoder[i].used) {
             continue;
@@ -372,8 +338,6 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
     struct video_decoder_resource *r;
     nxserver_t server = connect->client->server;
     struct b_session *session = connect->client->session;
-    unsigned linked_decoder = 0;
-    unsigned total_linked_decoders = 0;
     NEXUS_HeapHandle cdbHeap = NULL;
 
     /* allow SimpleVideoDecoder to cache VideoDecoder/VideoWindow connections to
@@ -436,24 +400,6 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
     }
 
     if (index == TOTAL_DECODERS) {
-        if (server->videoDecoder.special_mode == b_special_mode_linked_decoder2 &&
-            connect->settings.simpleVideoDecoder[1].id &&
-            connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxHeight >= 720)
-        {
-            if ((!g_decoders[0].r || !g_decoders[0].r->used) && (!g_decoders[1].r || !g_decoders[1].r->used))
-            {
-                index = 0;
-                linked_decoder = 1;
-                total_linked_decoders = 2;
-            }
-            else {
-                BERR_TRACE(NEXUS_NOT_SUPPORTED);
-                return NULL;
-            }
-        }
-    }
-
-    if (index == TOTAL_DECODERS) {
         unsigned num_avail = 0;
         unsigned tries = 0;
         /* two passes required: assume p60/50, then don't assume (aka assume p30/25/24). */
@@ -501,13 +447,13 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
             unsigned i;
             /* compare decoder capabilities that are only set at Open, # of mosaics */
             for (i=0;i<NXCLIENT_MAX_IDS;i++) {
-                if (linked_decoder) break; /* always recreate for linked_decoder configuration */
                 if ((connect->settings.simpleVideoDecoder[i].id!=0) != (r->connectSettings.simpleVideoDecoder[i].id!=0)) break;
                 if (connect->settings.simpleVideoDecoder[i].id) {
                     NEXUS_VideoDecoderOpenSettings openSettings;
                     const NxClient_VideoDecoderCapabilities *cap = &connect->settings.simpleVideoDecoder[i].decoderCapabilities;
                     NEXUS_VideoDecoder_GetOpenSettings(r->handle[i], &openSettings);
-                    if ((cap->fifoSize && cap->fifoSize < openSettings.fifoSize) ||
+                    if ((cap->fifoSize && cap->fifoSize != openSettings.fifoSize) ||
+                        (cap->itbFifoSize && cap->itbFifoSize != openSettings.itbFifoSize) ||
                         (cap->avc51Enabled != openSettings.avc51Enabled) ||
                         (cap->secureVideo != openSettings.secureVideo) ||
                         (cap->userDataBufferSize > openSettings.userDataBufferSize) ||
@@ -537,17 +483,6 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         goto err_malloc;
     }
-    if (linked_decoder) {
-        if (g_decoders[linked_decoder].r) {
-            video_decoder_destroy(g_decoders[linked_decoder].r);
-        }
-        r->linked = nx_video_decoder_p_malloc(connect, linked_decoder);
-        if (!r->linked) {
-            BKNI_Free(r);
-            BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-            goto err_malloc;
-        }
-    }
     nxserverlib_p_clear_video_cache();
 
     if (!IS_MOSAIC(connect)) {
@@ -562,6 +497,9 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         else if (server->settings.videoDecoder.fifoSize) {
             /* global override */
             openSettings.fifoSize = server->settings.videoDecoder.fifoSize;
+        }
+        if (connect->settings.simpleVideoDecoder[0].decoderCapabilities.itbFifoSize) {
+            openSettings.itbFifoSize = connect->settings.simpleVideoDecoder[0].decoderCapabilities.itbFifoSize;
         }
         openSettings.avc51Enabled = connect->settings.simpleVideoDecoder[0].decoderCapabilities.avc51Enabled;
         openSettings.enhancementPidChannelSupported = connect->settings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[NEXUS_VideoCodec_eH264_Mvc];
@@ -613,19 +551,13 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
             if (connect->settings.simpleVideoDecoder[i].decoderCapabilities.fifoSize) {
                 openSettings.openSettings.fifoSize = connect->settings.simpleVideoDecoder[i].decoderCapabilities.fifoSize;
             }
+            if (connect->settings.simpleVideoDecoder[i].decoderCapabilities.itbFifoSize) {
+                openSettings.openSettings.itbFifoSize = connect->settings.simpleVideoDecoder[i].decoderCapabilities.itbFifoSize;
+            }
             openSettings.openSettings.secureVideo = connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo;
             openSettings.openSettings.cdbHeap = cdbHeap;
-
-            if (r->linked && i >= (total_linked_decoders/2)) {
-                openSettings.linkedDevice.enabled = true;
-                openSettings.linkedDevice.avdIndex = 0;
-                parentIndex = r->linked->index;
-                mosaicIndex = i - (total_linked_decoders/2);
-            }
-            else {
-                parentIndex = r->index;
-                mosaicIndex = i;
-            }
+            parentIndex = r->index;
+            mosaicIndex = i;
             r->handle[i] = NEXUS_VideoDecoder_OpenMosaic(parentIndex, mosaicIndex, &openSettings);
             if (!r->handle[i]) {
                 rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -677,9 +609,6 @@ static void video_decoder_destroy(struct video_decoder_resource *r)
 
     BDBG_MSG(("video_decoder_destroy %p: connect %p, index %d", (void*)r, (void*)r->connect, r->index));
 
-    if (r->linked) {
-        video_decoder_destroy(r->linked);
-    }
     BDBG_ASSERT(g_decoders[r->index].r == r);
     g_decoders[r->index].r = NULL;
     for (i=NXCLIENT_MAX_IDS-1;i<=NXCLIENT_MAX_IDS;i--) { /* reverse */
@@ -1233,12 +1162,6 @@ void release_video_decoders(struct b_connect *connect)
 
 int video_init(nxserver_t server)
 {
-#if BCHP_CHIP == 7445
-    if (server->platformStatus.boxMode == 15) {
-        server->videoDecoder.special_mode = b_special_mode_linked_decoder2;
-    }
-#endif
-
     NEXUS_GetVideoDecoderCapabilities(&server->videoDecoder.cap);
 #if NEXUS_NUM_VIDEO_ENCODERS
     NEXUS_GetVideoEncoderCapabilities(&server->videoEncoder.cap);

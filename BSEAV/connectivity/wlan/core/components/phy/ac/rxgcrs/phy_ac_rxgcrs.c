@@ -4312,7 +4312,10 @@ wlc_phy_rxgainctrl_gainctrl_acphy(phy_info_t *pi)
 	uint8 maxgain_5g[] = {47, 47, 47, 52, 52, 100, 0};
 
 	uint8 i, core, elna_idx;
-	int8 md_low_end, hi_high_end, lo_low_end, md_high_end, max_himd_hi_end;
+	int8 md_low_end, hi_high_end, lo_low_end, md_high_end;
+#ifndef STB_SOC_WIFI
+	int8  max_himd_hi_end;
+#endif
 	int8 nbclip_pwrdBm, w1clip_pwrdBm;
 	phy_ac_rxgcrs_info_t *ri = pi->u.pi_acphy->rxgcrsi;
 	bool elnabyp_en = phy_ac_hirssi_get(pi);
@@ -4353,11 +4356,13 @@ wlc_phy_rxgainctrl_gainctrl_acphy(phy_info_t *pi)
 			hi_gain = 48;
 		}
 		elna_idx = READ_PHYREGFLDC(pi, InitGainCodeA, core, initExtLnaIndex);
+		/*max_himd_hi_end  is not used for 7271 */
+#ifndef STB_SOC_WIFI
 		max_himd_hi_end =
 			- 16 - ri->rxgainctrl_params[core].gaintbl[0][elna_idx];
 		if (ri->curr_desense->elna_bypass == 1)
 			max_himd_hi_end += ri->fem_rxgains[core].trloss;
-
+#endif  /* STB_SOC_WIFI */
 		/* 0,1,2,3 for Init, hi, md and lo gains respectively */
 		wlc_phy_rxgainctrl_set_init_clip_gain_acphy(pi, 0, init_gain, init_trtx,
 			FALSE, core);
@@ -6109,7 +6114,9 @@ int8 offset_2, int8 offset_3)
 	uint8 mfcrs_1bit = 0; /* match filter carrier sense 1 bit mode */
 	uint8 mf_th = ac_th;
 	int8  mf_off1 = offset_1;
+#if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_1))
 	phy_info_acphy_t *pi_ac = (phy_info_acphy_t *)pi->u.pi_acphy;
+#endif
 
 	if (!ACMAJORREV_32(pi->pubpi->phy_rev) && !ACMAJORREV_33(pi->pubpi->phy_rev))
 		PHY_TRACE(("%s: AC %d\n", __FUNCTION__, ac_th));
@@ -6138,6 +6145,7 @@ int8 offset_2, int8 offset_3)
 	}
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_2)) */
 
+#if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_1))
 	if (ac_th == 0) {
 		if (mfcrs_1bit == 1) {
 			if (CHSPEC_IS20(pi->radio_chanspec)) {
@@ -6184,7 +6192,13 @@ int8 offset_2, int8 offset_3)
 			}
 		}
 	}
-
+#else
+	if (ac_th == 0) {
+		mf_th = ACPHY_CRSMIN_DEFAULT;
+		ac_th = ACPHY_CRSMIN_DEFAULT;
+		pi->u.pi_acphy->rxgcrsi->phy_crs_th_from_crs_cal = ac_th;
+	}
+#endif
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_2))
 	/* Adjust offset values for 1-bit MF */
 	/* Not needed for 4335 and 4360, will be needed for 4350, disabled for now */
@@ -7178,13 +7192,18 @@ wlc_phy_rxgainctrl_set_gaintbls_acphy_28nm_ulp(phy_info_t *pi,
 			lna1_min_indx = rxg_params->lna1_lonf_max_indx;
 		}
 
+		/* Get the absolute hardware limit*/
 		lna1_max_indx = rxg_params->lna1_max_indx;
 
-		/* find maximum gain */
+		/* Find the index for the new max gain / find maximum gain */
 		for (i = lna1_min_indx; (i <= lna1_max_indx) &&
-				(elna_gain + lna1_gain[i] < lna1_max_gain); i++);
+				(elna_gain + lna1_gain[i] < lna1_max_gain); i++){
+		}
 
-			lna1_max_indx = (i > lna1_max_indx) ? lna1_max_indx : i;
+		/* Limit the new max gain to the absolute hardware max gain index
+		 * in case it exceeds the hardware limit */
+		lna1_max_indx = (i > lna1_max_indx) ? lna1_max_indx : i;
+
 	} else {
 		/* iLNA LNA1 configuration
 		 * eg. set lna1_max_lna=4 to reduce LNA1 gain by 6 dB.

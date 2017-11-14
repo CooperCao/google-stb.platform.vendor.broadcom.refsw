@@ -46,22 +46,10 @@
 #define BDSP_Read32_isr(hReg, addr)         BREG_Read32_isr(hReg, addr)
 #define BDSP_Write32_isr(hReg, addr, data)  BREG_Write32_isr(hReg, addr, data)
 
-#define BDSP_Read64(hReg, addr)             BREG_Read64(hReg, addr)
-#define BDSP_Write64(hReg, addr, data)      BREG_Write64(hReg, addr, data)
-#define BDSP_Read64_isr(hReg, addr)         BREG_Read64_isr(hReg, addr)
-#define BDSP_Write64_isr(hReg, addr, data)  BREG_Write64_isr(hReg, addr, data)
-
-#if (BCHP_CHIP != 7278)
 #define BDSP_ReadReg(hReg, addr)             BREG_Read32(hReg, addr)
 #define BDSP_WriteReg(hReg, addr, data)      BREG_Write32(hReg, addr, data)
 #define BDSP_ReadReg_isr(hReg, addr)         BREG_Read32_isr(hReg, addr)
 #define BDSP_WriteReg_isr(hReg, addr, data)  BREG_Write32_isr(hReg, addr, data)
-#else
-#define BDSP_ReadReg(hReg, addr)             BREG_Read64(hReg, addr)
-#define BDSP_WriteReg(hReg, addr, data)      BREG_Write64(hReg, addr, data)
-#define BDSP_ReadReg_isr(hReg, addr)         BREG_Read64_isrsafe(hReg, addr)
-#define BDSP_WriteReg_isr(hReg, addr, data)  BREG_Write64_isrsafe(hReg, addr, data)
-#endif
 
 #define BDSP_MMA_P_FlushCache(Memory, size) BMMA_FlushCache(Memory.hBlock, Memory.pAddr, size)
 #define BDSP_MMA_P_FlushCache_isr(Memory, size) BMMA_FlushCache_isr(Memory.hBlock, Memory.pAddr, size)
@@ -116,35 +104,10 @@ uint32_t BDSP_MMA_P_MemRead32_isr(
      BDSP_MMA_Memory  *src
     );
 
-BERR_Code BDSP_MMA_P_MemWrite64(
-    BDSP_MMA_Memory  *dest,
-    uint64_t data
-    );
-
-BERR_Code BDSP_MMA_P_MemWrite64_isr(
-    BDSP_MMA_Memory    *dest,
-    uint64_t    data
-    );
-
-uint64_t BDSP_MMA_P_MemRead64(
-     BDSP_MMA_Memory  *src
-    );
-
-uint64_t BDSP_MMA_P_MemRead64_isr(
-     BDSP_MMA_Memory  *src
-    );
-
-#if (BCHP_CHIP != 7278)
 #define BDSP_MMA_P_MemWrite(dest, data) BDSP_MMA_P_MemWrite32(dest, data)
 #define BDSP_MMA_P_MemWrite_isr(dest, data) BDSP_MMA_P_MemWrite32_isr(dest, data)
 #define BDSP_MMA_P_MemRead(src, data) BDSP_MMA_P_MemRead32(src, data)
 #define BDSP_MMA_P_MemRead_isr(src, data) BDSP_MMA_P_MemRead32_isr(src, data)
-#else
-#define BDSP_MMA_P_MemWrite(dest, data) BDSP_MMA_P_MemWrite64(dest, data)
-#define BDSP_MMA_P_MemWrite_isr(dest, data) BDSP_MMA_P_MemWrite64_isr(dest, data)
-#define BDSP_MMA_P_MemRead(src, data) BDSP_MMA_P_MemRead64(src, data)
-#define BDSP_MMA_P_MemRead_isr(src, data) BDSP_MMA_P_MemRead64_isr(src, data)
-#endif /* (BCHP_CHIP != 7278) */
 
 
 /* Memory allocated information for each Stage */

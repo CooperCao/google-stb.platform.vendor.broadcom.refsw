@@ -61,7 +61,7 @@ typedef struct NEXUS_HdmiOutputVideoSettings
 
 NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings_priv(
     NEXUS_HdmiOutputHandle hdmiOutput,
-    NEXUS_HdmiOutputVideoSettings *requested,
+    const NEXUS_HdmiOutputVideoSettings *requested,
     NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
 ) ;
 

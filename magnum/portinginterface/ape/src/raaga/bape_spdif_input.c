@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -748,7 +748,7 @@ static BERR_Code BAPE_SpdifInput_P_ApplySettings(BAPE_SpdifInputHandle handle)
 
     {  /* Start Critical Section */
         BKNI_EnterCriticalSection();
-        BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGADDR);
+        BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGADDR);
         BKNI_LeaveCriticalSection();
     }  /* End Critical Section */
 

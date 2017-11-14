@@ -322,8 +322,16 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
       nexusBin.sBase.uiMmuMaxVirtAddr = context->mmuMaxVirtAddr;
 
       CopyBinSubjobsList(&nexusBin, &jobs->driver.bin.subjobs_list);
-      nexusBin.uiFlags  = jobs->driver.bin.no_render_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
-      nexusBin.uiFlags |= jobs->driver.bin.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+      nexusBin.uiFlags  = jobs->driver.bin.base.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+      nexusBin.uiFlags |= jobs->driver.bin.base.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+#endif
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      nexusBin.uiTileStateSize = jobs->driver.bin.tile_state_size;
+#else
+      nexusBin.uiTileStateSize = 0;
+#endif
 
       err = NEXUS_Graphicsv3d_QueueBin(session, &nexusBin);
       break;
@@ -339,8 +347,10 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
 
       BDBG_ASSERT(jobs->driver.render.num_layers == 1);
       CopyRenderSubjobsList(&nexusRender, &jobs->driver.render.subjobs_list);
-      nexusRender.uiFlags  = jobs->driver.render.no_bin_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
-      nexusRender.uiFlags |= jobs->driver.render.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+      nexusRender.uiFlags  = jobs->driver.render.base.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
+    #if !V3D_VER_AT_LEAST(3,3,0,0)
+      nexusRender.uiFlags |= jobs->driver.render.base.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+    #endif
 
       nexusRender.uiEmptyTileMode = jobs->driver.render.empty_tile_mode;
 
@@ -485,8 +495,16 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
    nexusBin.sBase.uiMmuMaxVirtAddr = ctx->mmuMaxVirtAddr;
 
    CopyBinSubjobsList(&nexusBin, &bin->driver.bin.subjobs_list);
-   nexusBin.uiFlags  = bin->driver.bin.no_render_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
-   nexusBin.uiFlags |= bin->driver.bin.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+   nexusBin.uiFlags  = bin->driver.bin.base.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   nexusBin.uiFlags |= bin->driver.bin.base.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+#endif
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   nexusBin.uiTileStateSize = bin->driver.bin.tile_state_size;
+#else
+   nexusBin.uiTileStateSize = 0;
+#endif
 
    nexusBin.uiMinInitialBinBlockSize = bin->driver.bin.minInitialBinBlockSize;
 
@@ -497,8 +515,10 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
 
    BDBG_ASSERT(render->driver.render.num_layers == 1);
    CopyRenderSubjobsList(&nexusRender, &render->driver.render.subjobs_list);
-   nexusRender.uiFlags  = render->driver.render.no_bin_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
-   nexusRender.uiFlags |= render->driver.render.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+   nexusRender.uiFlags  = render->driver.render.base.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   nexusRender.uiFlags |= render->driver.render.base.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+#endif
    nexusRender.uiEmptyTileMode = render->driver.render.empty_tile_mode;
 
    /* Render jobs are a bit special because they control the throttling semaphore. When their completion
@@ -1122,9 +1142,6 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
    iface->QueueBinRender   = QueueBinRender;
    iface->Query            = Query;
    iface->MakeFenceForJobs = MakeFenceForJobs;
-   iface->WaitFence        = WaitFence;
-   iface->WaitFenceTimeout = WaitFenceTimeout;
-   iface->CloseFence       = CloseFence;
 
    iface->WaitForAnyNonFinalisedJob = WaitForAnyNonFinalisedJob;
    iface->WaitJobs                  = WaitJobs;

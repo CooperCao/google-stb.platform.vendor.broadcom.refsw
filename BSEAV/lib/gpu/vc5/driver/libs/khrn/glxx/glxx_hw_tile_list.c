@@ -166,7 +166,7 @@ static void write_load(uint8_t **instr,
       v3d_ldst_buf_t buf, const struct v3d_tlb_ldst_params *ls, uint32_t layer_offset)
 {
    v3d_cl_load(instr, buf, ls->memory_format, ls->flipy, ls->decimate, ls->pixel_format,
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
          ls->load_alpha_to_one, ls->chan_reverse, ls->rb_swap,
 #endif
          ls->stride, ls->flipy_height_px, ls->addr + layer_offset);
@@ -260,7 +260,7 @@ static void write_store(uint8_t **instr,
 {
    v3d_cl_store(instr, buf, ls->memory_format, ls->flipy, ls->dither,
          ls->decimate, ls->pixel_format, clear,
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
          ls->chan_reverse, ls->rb_swap,
 #endif
          ls->stride, ls->flipy_height_px, ls->addr + layer_offset);
@@ -372,7 +372,7 @@ static bool write_stores_clears_end_and_rcfg(
             V3D_DECIMATE_SAMPLE0,
             V3D_PIXEL_FORMAT_SRGB8_ALPHA8,
             /*clear=*/false,
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
             /*chan_reverse=*/false,
             /*rb_swap=*/false,
 #endif
@@ -385,7 +385,7 @@ static bool write_stores_clears_end_and_rcfg(
     * end. */
    bool clear_all_rts_at_end = (fb_ops->rt_clear_mask & ~rt_store_mask) != 0;
 
-#if V3D_HAS_GFXH1568_FIX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    /* Can enable early depth/stencil clear optimisation in HW if we are not
     * loading or storing depth/stencil. Never enable in double-buffer mode --
     * doesn't make sense. */
@@ -744,7 +744,7 @@ static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
          V3D_CL_ENABLE_Z_ONLY_SIZE +
          (rs->num_z_prepass_bins * V3D_CL_BRANCH_IMPLICIT_TILE_SIZE) +
          V3D_CL_DISABLE_Z_ONLY_SIZE +
-#if !V3D_HAS_TL_START_UNC
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          (rs->fmem.br_info.bin_subjobs.num_subjobs * V3D_CL_PRIM_LIST_FORMAT_SIZE) +
 #endif
          (rs->fmem.br_info.bin_subjobs.num_subjobs * V3D_CL_BRANCH_IMPLICIT_TILE_SIZE));
@@ -771,7 +771,7 @@ static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
 
    for (unsigned i = 0; i != rs->fmem.br_info.bin_subjobs.num_subjobs; ++i)
    {
-#if !V3D_HAS_TL_START_UNC
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       v3d_cl_prim_list_format(&instr, 3, false, false);
 #endif
       v3d_cl_branch_implicit_tile(&instr, i);

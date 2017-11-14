@@ -2171,19 +2171,19 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    pstXdmPicture->stProtocol.eLevel = (( pPPB->profile_level & BXVD_P_PPB_PROTOCOL_LEVEL_MASK ) >> BXVD_P_PPB_PROTOCOL_LEVEL_SHIFT );
 
    /* SWSTB-612: add range checking. */
-   if ( pstXdmPicture->stProtocol.eLevel >= BXDM_Picture_Protocol_Level_eMaxLevel )
+   if ( pstXdmPicture->stProtocol.eLevel >= BAVC_VideoCompressionLevel_eMax )
    {
       BXVD_DBG_WRN(hXvdCh,("%s: eLevel of %d is out of range.", BSTD_FUNCTION, pstXdmPicture->stProtocol.eLevel ));
-      pstXdmPicture->stProtocol.eLevel = BXDM_Picture_Protocol_Level_eUnknown;
+      pstXdmPicture->stProtocol.eLevel = BAVC_VideoCompressionLevel_eUnknown;
    }
 
    pstXdmPicture->stProtocol.eProfile = (( pPPB->profile_level & BXVD_P_PPB_PROTOCOL_PROFILE_MASK ) >> BXVD_P_PPB_PROTOCOL_PROFILE_SHIFT );
 
    /* SWSTB-612: add range checking. */
-   if ( pstXdmPicture->stProtocol.eProfile >= BXDM_Picture_Profile_eMaxProfile )
+   if ( pstXdmPicture->stProtocol.eProfile >= BAVC_VideoCompressionProfile_eMax )
    {
       BXVD_DBG_WRN(hXvdCh,("%s: eProfile of %d is out of range.", BSTD_FUNCTION, pstXdmPicture->stProtocol.eProfile ));
-      pstXdmPicture->stProtocol.eProfile = BXDM_Picture_Profile_eUnknown;
+      pstXdmPicture->stProtocol.eProfile = BAVC_VideoCompressionProfile_eUnknown;
    }
 
    /*********************/
@@ -3309,6 +3309,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
          bPassDataToVdc = ( uiDataType == BXVD_P_PPB_METADATA_TYPE_eDRPU );
          bPassDataToVdc |= ( uiDataType == BXVD_P_PPB_METADATA_TYPE_eTCH_CVRI ); /* SWSTB-4182 */
          bPassDataToVdc |= ( uiDataType == BXVD_P_PPB_METADATA_TYPE_eTCH_CRI );  /* SWSTB-4182 */
+         bPassDataToVdc |= ( uiDataType == BXVD_P_PPB_METADATA_TYPE_eTCH_SLHDR );  /* SWSTB-6121 */
 
          if ( true == bPassDataToVdc )
          {
@@ -3980,9 +3981,6 @@ static void BXVD_Decoder_S_UnifiedQ_GetSetType_isr(
          if ( pstPicCntxt->stPPB.pPPB->flags & BXVD_P_PPB_MULTIVIEW_BASE_FLAG )
          {
             pstPicCntxt->eSetType = BXVD_Decoder_P_PictureSet_eBase;
-            pstPicCntxt->uiSetCount = (( pstPicCntxt->stPPB.pPPB->flags & BXVD_P_PPB_MULTIVIEW_COUNT_MASK ) >> BXVD_P_PPB_MULTIVIEW_COUNT_SHIFT );
-
-            /* Should be generalized to use "pstPicCntxt->uiSetCount", waiting on the firmware.*/
             pstPicCntxt->uiSetCount = BXVD_DECODER_S_PICTURES_PER_SET;
          }
          else
@@ -4047,6 +4045,10 @@ static void BXVD_Decoder_S_MPDQT_EOG_isr(
 
          if ( 0 == pDQTCntxt->uiNumberOfAdditionalPasses )
          {
+             /* SWSTB-7011: we could only get here if pDQTCntxt->uiAvailableBuffers == 1
+              * If that is the case, MP DQT is going to take a long time. */
+            pDQTCntxt->uiNumberOfAdditionalPasses = iTargetIndex;
+
             BXVD_DBG_ERR( hXvdCh, ("%s: passes:%d index:%d buffs:%d gIndex:%d chunck:%d",
                         BSTD_FUNCTION,
                         pDQTCntxt->uiNumberOfAdditionalPasses,
@@ -6006,12 +6008,12 @@ BXVD_Decoder_GetPictureDropPendingCount_isr(
 
    uint32_t uiNumToBeDropped;
 
-   BXVD_P_GET_DROP_COUNT( hXvdCh, uiNumToBeDropped );
-
    BDBG_ENTER( BXVD_Decoder_GetPictureDropPendingCount_isr );
 
    BDBG_ASSERT( hXvdCh );
    BDBG_ASSERT( puiPictureDropPendingCount );
+
+   BXVD_P_GET_DROP_COUNT( hXvdCh, uiNumToBeDropped );
 
    /* The "pending drop count" is difference between the number of pictures
     * that the Picture Provider has requested to be dropped and the number
@@ -6073,11 +6075,11 @@ BXVD_Decoder_RequestPictureDrop_isr(
 
    uint32_t uiDropCount;
 
-   BXVD_P_GET_DROP_COUNT( hXvdCh, uiDropCount );
-
    BDBG_ENTER( BXVD_Decoder_RequestPictureDrop_isr );
 
    BDBG_ASSERT( hXvdCh );
+
+   BXVD_P_GET_DROP_COUNT( hXvdCh, uiDropCount );
 
    /* We only request more drops if the decoder has caught up with the previous drop request.
     */

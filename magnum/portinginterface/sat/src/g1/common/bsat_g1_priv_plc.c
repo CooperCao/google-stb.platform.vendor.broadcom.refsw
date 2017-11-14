@@ -49,7 +49,7 @@ BDBG_MODULE(bsat_g1_priv_plc);
 /******************************************************************************
  start of generated data
 ******************************************************************************/
-/* generated 08-29-2016 14:32:00 */
+/* generated 09-27-2017 13:56:05 */
 
 #define BSAT_PLC_NUM_SYMRATES 7
 #define BSAT_PLC_DAMP_SCALE 8
@@ -251,7 +251,7 @@ static const uint8_t BSAT_plc_data[] = {
 0x0D,	0x37,	0x6E,	0xA4,	0xFF,	0xFF,	0xFF,	0x10,	0x22,	0x22,	0x22,	0x22,	0x22,	0x22,	/* trk_default_nopilot_afec_qpsk_high */
 0x00,	0x00,	0x00,	0x04,	0x09,	0x0D,	0x0C,	0x78,	0x79,	0x79,	0x7A,	0x7A,	0x7A,	0x7A,	/* trk_default_nopilot_afec_8psk_low */
 0x00,	0x00,	0x00,	0x04,	0x09,	0x0D,	0x0C,	0x78,	0x79,	0x79,	0x7A,	0x7A,	0x7A,	0x82,	/* trk_default_nopilot_afec_8psk_3_4 */
-0x00,	0x00,	0x00,	0x04,	0x09,	0x0D,	0x0C,	0x78,	0x79,	0x79,	0x7A,	0x7A,	0x7A,	0x82,	/* trk_default_nopilot_afec_8psk_5_6 */
+0x0D,	0x03,	0x0A,	0x10,	0x1D,	0x1F,	0x1F,	0x10,	0x79,	0x79,	0x7A,	0x7A,	0x7A,	0x82,	/* trk_default_nopilot_afec_8psk_5_6 */
 0x0D,	0x03,	0x0A,	0x10,	0x1D,	0x1F,	0x1F,	0x10,	0x79,	0x79,	0x7A,	0x7A,	0x7A,	0x82,	/* trk_default_nopilot_afec_8psk_high */
 0x0D,	0x26,	0x21,	0x15,	0x0C,	0x05,	0x00,	0x10,	0x10,	0x10,	0x10,	0x10,	0x10,	0x10,	/* trk_default_nopilot_afec_16apsk_low */
 0x0D,	0x26,	0x21,	0x15,	0x0C,	0x05,	0x00,	0x10,	0x10,	0x10,	0x10,	0x10,	0x10,	0x10,	/* trk_default_nopilot_afec_16apsk_high */
@@ -834,7 +834,7 @@ BERR_Code BSAT_g1_P_ConfigPlc_isr(BSAT_ChannelHandle h, bool bAcq)
       symRateIdx = BSAT_PLC_NUM_SYMRATES - 1;
    else
    {
-      for (symRateIdx = 1; symRateIdx < BSAT_PLC_NUM_SYMRATES-1; symRateIdx++)
+      for (symRateIdx = 1; symRateIdx < BSAT_PLC_NUM_SYMRATES; symRateIdx++)
       {
          if (hChn->acqSettings.symbolRate == BSAT_plc_symbol_rate[symRateIdx])
             break;
@@ -860,6 +860,7 @@ BERR_Code BSAT_g1_P_ConfigPlc_isr(BSAT_ChannelHandle h, bool bAcq)
       symbol_rate_lo = BSAT_plc_symbol_rate[symRateIdx];
 
       BSAT_CHK_RETCODE(BSAT_g1_P_LookupPlcTable_isr(pPlcData, pScaleTable, pMinBwTable, symRateIdx, &bw_lo, &damp8_lo));
+      BSAT_DEBUG_PLC(BDBG_WRN(("PLC interp: bw_lo=%u, bw_hi=%u, Fb_lo=%u, Fb_hi=%u", bw_lo, bw_hi, symbol_rate_lo, symbol_rate_hi)));
 
       if (bw_hi >= bw_lo)
          val = bw_hi - bw_lo;

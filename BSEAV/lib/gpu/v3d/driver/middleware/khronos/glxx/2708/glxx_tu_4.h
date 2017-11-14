@@ -1,21 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Inline functions to control the texture units.
-=============================================================================*/
-
-/*!
- * \file tu.h
- * \brief Inline functions to control the texture units.
- */
-
-#ifndef GLXX_TU_4_H
-#define GLXX_TU_4_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "middleware/khronos/glxx/2708/glxx_inner_4.h"
@@ -42,9 +28,6 @@ Inline functions to control the texture units.
  */
 static INLINE uint32_t tu_image_format_to_type(KHRN_IMAGE_FORMAT_T format)
 {
-#ifndef NO_OPENVG
-   format = khrn_image_no_colorspace_format(format);
-#endif
    switch (format) {
    case ABGR_8888_TF: return 0;
    case RGBA_8888_TF: return 0;
@@ -81,9 +64,6 @@ static INLINE uint32_t tu_image_format_to_type(KHRN_IMAGE_FORMAT_T format)
 
 static INLINE bool tu_image_format_rb_swap(KHRN_IMAGE_FORMAT_T format)
 {
-#ifndef NO_OPENVG
-   format = khrn_image_no_colorspace_format(format);
-#endif
    switch (format) {
    case ABGR_8888_TF:
    case XBGR_8888_TF:
@@ -151,17 +131,15 @@ static INLINE bool tu_image_format_rb_swap(KHRN_IMAGE_FORMAT_T format)
 //   uint32_t nonp2 = (width & (width-1)) != 0 || (height & (height-1)) != 0;
 //   uint32_t etcflipy = 1;
 //
-//   vcos_assert(wrapt <= 3);
-//   vcos_assert(wraps <= 3);
-//   vcos_assert(miplvls <= 11);
-//   vcos_assert(type <= 14);
-////   vcos_assert((base_addr & 0xfff) == 0);
+//   assert(wrapt <= 3);
+//   assert(wraps <= 3);
+//   assert(miplvls <= 11);
+//   assert(type <= 14);
+////   assert((base_addr & 0xfff) == 0);
 //
-//  vcos_assert(minfilt <= 5);
-//   vcos_assert(magfilt <= 1);
+//  assert(minfilt <= 5);
+//   assert(magfilt <= 1);
 //
 //   glxx_add_addr_plus(um_ptr, base_addr, nonp2 << 9 | type << 4 | miplvls);   /* Param0 (c_swiz and flipy set to 0) */
 //   glxx_add_word(um_ptr, height << 20 | etcflipy << 19 | width << 8 | magfilt << 7 | minfilt << 4 | wrapt << 2 | wraps);   /* Param1 */
 //}
-
-#endif

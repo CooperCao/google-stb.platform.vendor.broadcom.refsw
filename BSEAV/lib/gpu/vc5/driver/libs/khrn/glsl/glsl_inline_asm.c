@@ -12,49 +12,19 @@
 #include "libs/util/common.h"
 
 static const uint64_t cs_barrier_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
-0x3c203190bb814000ull, // [0x00000000] barrierid sync    ; nop ; thrsw
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
+0x3c203192bb814000ull, // [0x00000000] barrierid syncb   ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop               ; nop
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1660_FIX
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop               ; nop
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x3c203191bb814000ull, // [0x00000000] barrierid syncu   ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop               ; nop
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1659_FIX
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop               ; nop
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c203191bb814000ull, // [0x00000000] barrierid syncu   ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop               ; nop
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_BETTER_BARRIER
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop               ; nop
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
-0x3c203191bb814000ull, // [0x00000000] barrierid syncu   ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop               ; nop
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1631_FIX
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop               ; nop
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x0000000000000000ull, // [0x00000000] bkpt
-#elif V3D_HAS_CSD
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop               ; nop
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop               ; nop
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_RELAXED_THRSW
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop               ; nop
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
@@ -62,9 +32,13 @@ static const uint64_t cs_barrier_instrs[] = {
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop               ; nop
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#else
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop               ; nop
+0x3c003186bb800000ull, // [0x00000010] nop               ; nop
+#else
+0x3c203180bb80f000ull, // [0x00000000] ycd r0            ; nop ; thrsw
+0x3de031917d838001ull, // [0x00000008] shr syncu, r0, 1  ; nop
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
 #endif
 0x0000000000000000ull
@@ -72,49 +46,19 @@ static const uint64_t cs_barrier_instrs[] = {
 const struct inline_qasm cs_barrier = { cs_barrier_instrs, countof(cs_barrier_instrs)-1 };
 
 static const uint64_t cs_barrier_lthrsw_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
-0x3c203190bb814000ull, // [0x00000000] barrierid sync    ; nop ; thrsw
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
+0x3c203192bb814000ull, // [0x00000000] barrierid syncb   ; nop ; thrsw
 0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1660_FIX
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x3c203191bb814000ull, // [0x00000000] barrierid syncu   ; nop ; thrsw
 0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1659_FIX
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c203191bb814000ull, // [0x00000000] barrierid syncu   ; nop ; thrsw
-0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_BETTER_BARRIER
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
-0x3c203191bb814000ull, // [0x00000000] barrierid syncu   ; nop ; thrsw
-0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_GFXH1631_FIX
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x0000000000000000ull, // [0x00000000] bkpt
-#elif V3D_HAS_CSD
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_HAS_RELAXED_THRSW
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
@@ -122,62 +66,31 @@ static const uint64_t cs_barrier_lthrsw_instrs[] = {
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#else
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
+#else
+0x3c203180bb80f000ull, // [0x00000000] ycd r0            ; nop ; thrsw
+0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
+0x3de031917d838001ull, // [0x00000010] shr syncu, r0, 1  ; nop
 #endif
 0x0000000000000000ull
 };
 const struct inline_qasm cs_barrier_lthrsw = { cs_barrier_lthrsw_instrs, countof(cs_barrier_lthrsw_instrs)-1 };
 
 static const uint64_t cs_barrier_preamble_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1660_FIX
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3d10f180bb80f000ull, // [0x00000000] ycd r0                  ;  nop                   ; ldvary
 0x3c207186bb802000ull, // [0x00000008] eidx.pushz -            ;  nop                   ; thrsw
 0x3de050c67df78001ull, // [0x00000010] shr.pushz -, r0, 1      ;  mov rf3, r5
 0x3dfc80c37de3e0d0ull, // [0x00000018] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
 0x3c003191b68360c0ull, // [0x00000020] mov syncu, rf3          ;  nop
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1659_FIX
-0x3d10f180bb80f000ull, // [0x00000000] ycd r0                  ;  nop                   ; ldvary
-0x3c207186bb802000ull, // [0x00000008] eidx.pushz -            ;  nop                   ; thrsw
-0x3de050c67df78001ull, // [0x00000010] shr.pushz -, r0, 1      ;  mov rf3, r5
-0x3dfc80c37de3e0d0ull, // [0x00000018] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
-0x3c003191b68360c0ull, // [0x00000020] mov syncu, rf3          ;  nop
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c003191bb814000ull, // [0x00000000] barrierid syncu         ;  nop
-#elif V3D_HAS_BETTER_BARRIER
-0x3d10f180bb80f000ull, // [0x00000000] ycd r0                  ;  nop                   ; ldvary
-0x3c207186bb802000ull, // [0x00000008] eidx.pushz -            ;  nop                   ; thrsw
-0x3de050c67df78001ull, // [0x00000010] shr.pushz -, r0, 1      ;  mov rf3, r5
-0x3dfc80c37de3e0d0ull, // [0x00000018] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
-0x3c003191b68360c0ull, // [0x00000020] mov syncu, rf3          ;  nop
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x3c003190bb814000ull, // [0x00000000] barrierid sync          ;  nop
-#elif V3D_HAS_GFXH1631_FIX
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3d10f180bb80f000ull, // [0x00000000] ycd r0                  ;  nop                   ; ldvary
-0x3c207186bb802000ull, // [0x00000008] eidx.pushz -            ;  nop                   ; thrsw
-0x3de050c67df78001ull, // [0x00000010] shr.pushz -, r0, 1      ;  mov rf3, r5
-0x3dfc80c37de3e0d0ull, // [0x00000018] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
-0x3c003191b68360c0ull, // [0x00000020] mov syncu, rf3          ;  nop
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x0000000000000000ull, // [0x00000000] bkpt
-#elif V3D_HAS_CSD
-0x3d10f180bb80f000ull, // [0x00000000] ycd r0                  ;  nop                   ; ldvary
-0x3c207186bb802000ull, // [0x00000008] eidx.pushz -            ;  nop                   ; thrsw
-0x3de050c67df78001ull, // [0x00000010] shr.pushz -, r0, 1      ;  mov rf3, r5
-0x3dfc80c37de3e0d0ull, // [0x00000018] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
-0x3c003191b68360c0ull, // [0x00000020] mov syncu, rf3          ;  nop
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3d10f180bb80f000ull, // [0x00000000] ycd r0                  ;  nop                   ; ldvary
-0x3c207186bb802000ull, // [0x00000008] eidx.pushz -            ;  nop                   ; thrsw
-0x3de050c67df78001ull, // [0x00000010] shr.pushz -, r0, 1      ;  mov rf3, r5
-0x3dfc80c37de3e0d0ull, // [0x00000018] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
-0x3c003191b68360c0ull, // [0x00000020] mov syncu, rf3          ;  nop
-#elif V3D_HAS_RELAXED_THRSW
-0x3d003180bb80f000ull, // [0x00000000] ycd r0                  ;  nop                   ; ldvary
 0x3c207186bb802000ull, // [0x00000008] eidx.pushz -            ;  nop                   ; thrsw
 0x3de050c67df78001ull, // [0x00000010] shr.pushz -, r0, 1      ;  mov rf3, r5
 0x3dfc80c37de3e0d0ull, // [0x00000018] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
@@ -190,12 +103,19 @@ static const uint64_t cs_barrier_preamble_instrs[] = {
 0x3dfc80c37de3e0d0ull, // [0x00000020] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
 0x3c803186bb800000ull, // [0x00000028] nop                     ;  nop                   ; ldtmu
 0x3c003191b68360c0ull, // [0x00000030] mov syncu, rf3          ;  nop
-#else
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 0x3dc47040bbfcf000ull, // [0x00000000] ycd r0                  ;  mov.pushz r1, 0       ; ldvary
 0x3d2e7306bbe42000ull, // [0x00000008] eidx.pushz -            ;  mov.ifna tmua, r1     ; ldvary; thrsw
 0x3de071867d838001ull, // [0x00000010] shr.pushz -, r0, 1      ;  nop
 0x3df080c37df7d010ull, // [0x00000018] shr.ifna rf3, r5, -16   ;  mov.ifa rf3, r5
 0x3c8b2183bb80f000ull, // [0x00000020] ycd.ifnb rf3            ;  nop                   ; ldtmu
+0x3c003191b68360c0ull, // [0x00000028] mov syncu, rf3          ;  nop
+#else
+0x3dc46044bbfcf000ull, // [0x00000000] ycd rf4                 ;  mov.pushz r1, 0       ; ldvary
+0x3d2e7306bbe42000ull, // [0x00000008] eidx.pushz -            ;  mov.ifna tmua, r1     ; ldvary; thrsw
+0x3de061847d83e101ull, // [0x00000010] shr.pushz rf4, rf4, 1   ;  nop
+0x3df080c37df7d010ull, // [0x00000018] shr.ifna rf3, r5, -16   ;  mov.ifa rf3, r5
+0x3c8b2183b6836100ull, // [0x00000020] mov.ifnb rf3, rf4       ;  nop                   ; ldtmu
 0x3c003191b68360c0ull, // [0x00000028] mov syncu, rf3          ;  nop
 #endif
 0x0000000000000000ull
@@ -203,42 +123,21 @@ static const uint64_t cs_barrier_preamble_instrs[] = {
 const struct inline_qasm cs_barrier_preamble = { cs_barrier_preamble_instrs, countof(cs_barrier_preamble_instrs)-1 };
 
 static const uint64_t cs_pad_setmsf_after_barrier_preamble_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1660_FIX
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3e30f186bb800000ull, // [0x00000000] nop                     ; nop             ; ldtlbu
 0x3de074467dfbb0cfull, // [0x00000008] shr.pushz -, r3, 15     ; mov syncu, rf3
 0x3dea3186ba837000ull, // [0x00000010] setmsf.ifna -, 0        ; nop
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1659_FIX
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3e30f186bb800000ull, // [0x00000000] nop                     ; nop             ; ldtlbu
 0x3de074467dfbb0cfull, // [0x00000008] shr.pushz -, r3, 15     ; mov syncu, rf3
 0x3dea3186ba837000ull, // [0x00000010] setmsf.ifna -, 0        ; nop
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-#elif V3D_HAS_BETTER_BARRIER
-0x3e30f186bb800000ull, // [0x00000000] nop                     ; nop             ; ldtlbu
-0x3de074467dfbb0cfull, // [0x00000008] shr.pushz -, r3, 15     ; mov syncu, rf3
-0x3dea3186ba837000ull, // [0x00000010] setmsf.ifna -, 0        ; nop
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1631_FIX
-0x3e30f186bb800000ull, // [0x00000000] nop                     ; nop             ; ldtlbu
-0x3de074467dfbb0cfull, // [0x00000008] shr.pushz -, r3, 15     ; mov syncu, rf3
-0x3dea3186ba837000ull, // [0x00000010] setmsf.ifna -, 0        ; nop
-#elif V3D_HAS_CSD && V3D_USE_CSD
-#elif V3D_HAS_CSD
-0x3e30f186bb800000ull, // [0x00000000] nop                     ; nop             ; ldtlbu
-0x3de074467dfbb0cfull, // [0x00000008] shr.pushz -, r3, 15     ; mov syncu, rf3
-0x3dea3186ba837000ull, // [0x00000010] setmsf.ifna -, 0        ; nop
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c003186bb800000ull, // [0x00000000] nop
-0x3e30f186bb800000ull, // [0x00000008] nop                     ; nop             ; ldtlbu
-0x3de074467dfbb0cfull, // [0x00000010] shr.pushz -, r3, 15     ; mov syncu, rf3
-0x3dea3186ba837000ull, // [0x00000018] setmsf.ifna -, 0        ; nop
-#elif V3D_HAS_RELAXED_THRSW
-0x3c003186bb800000ull, // [0x00000000] nop
-0x3e203186bb800000ull, // [0x00000008] nop                     ; nop             ; ldtlbu
-0x3de074467dfbb0cfull, // [0x00000010] shr.pushz -, r3, 15     ; mov syncu, rf3
-0x3dea3186ba837000ull, // [0x00000018] setmsf.ifna -, 0        ; nop
 #elif V3D_VER_AT_LEAST(4,0,2,0)
+0x3e203186bb800000ull, // [0x00000000] nop                     ; nop             ; ldtlbu
+0x3de074467dfbb0cfull, // [0x00000008] shr.pushz -, r3, 15     ; mov syncu, rf3
+0x3dea3186ba837000ull, // [0x00000010] setmsf.ifna -, 0        ; nop
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 0x3e203186bb800000ull, // [0x00000000] nop                     ; nop             ; ldtlbu
 0x3de074467dfbb0cfull, // [0x00000008] shr.pushz -, r3, 15     ; mov syncu, rf3
 0x3dea3186ba837000ull, // [0x00000010] setmsf.ifna -, 0        ; nop
@@ -252,64 +151,32 @@ static const uint64_t cs_pad_setmsf_after_barrier_preamble_instrs[] = {
 const struct inline_qasm cs_pad_setmsf_after_barrier_preamble = { cs_pad_setmsf_after_barrier_preamble_instrs, countof(cs_pad_setmsf_after_barrier_preamble_instrs)-1 };
 
 static const uint64_t cs_pad_setmsf_threaded_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1660_FIX
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3c203186bb800000ull, // [0x00000000] nop                     ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop
 0x3c003186bb800000ull, // [0x00000010] nop
 0x3e30f186bb800000ull, // [0x00000018] nop                        ; ldtlbu
 0x3de071867d83b00full, // [0x00000020] shr.pushz -, r3, 15
 0x3dea3186ba837000ull, // [0x00000028] setmsf.ifna -, 0
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1659_FIX
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3c203186bb800000ull, // [0x00000000] nop                     ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop
 0x3c003186bb800000ull, // [0x00000010] nop
 0x3e30f186bb800000ull, // [0x00000018] nop                        ; ldtlbu
 0x3de071867d83b00full, // [0x00000020] shr.pushz -, r3, 15
 0x3dea3186ba837000ull, // [0x00000028] setmsf.ifna -, 0
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-#elif V3D_HAS_BETTER_BARRIER
-0x3c203186bb800000ull, // [0x00000000] nop                     ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop
+#elif V3D_VER_AT_LEAST(4,0,2,0)
+0x3c207180b7836000ull, // [0x00000000] xor.pushz r0, rf0, rf0  ; thrsw
+0x3c0a318cb6800000ull, // [0x00000008] mov.ifna tmua, r0
 0x3c003186bb800000ull, // [0x00000010] nop
-0x3e30f186bb800000ull, // [0x00000018] nop                        ; ldtlbu
-0x3de071867d83b00full, // [0x00000020] shr.pushz -, r3, 15
-0x3dea3186ba837000ull, // [0x00000028] setmsf.ifna -, 0
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1631_FIX
-0x3c203186bb800000ull, // [0x00000000] nop                     ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop
-0x3c003186bb800000ull, // [0x00000010] nop
-0x3e30f186bb800000ull, // [0x00000018] nop                        ; ldtlbu
-0x3de071867d83b00full, // [0x00000020] shr.pushz -, r3, 15
-0x3dea3186ba837000ull, // [0x00000028] setmsf.ifna -, 0
-#elif V3D_HAS_CSD && V3D_USE_CSD
-#elif V3D_HAS_CSD
-0x3c203186bb800000ull, // [0x00000000] nop                     ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop
-0x3c003186bb800000ull, // [0x00000010] nop
-0x3e30f186bb800000ull, // [0x00000018] nop                        ; ldtlbu
-0x3de071867d83b00full, // [0x00000020] shr.pushz -, r3, 15
-0x3dea3186ba837000ull, // [0x00000028] setmsf.ifna -, 0
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c203186bb800000ull, // [0x00000000] nop                     ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop
-0x3c003186bb800000ull, // [0x00000010] nop
-0x3c003186bb800000ull, // [0x00000018] nop
-0x3e30f186bb800000ull, // [0x00000020] nop                        ; ldtlbu
-0x3de071867d83b00full, // [0x00000028] shr.pushz -, r3, 15
-0x3dea3186ba837000ull, // [0x00000030] setmsf.ifna -, 0
-#elif V3D_HAS_RELAXED_THRSW
-0x3c203186bb800000ull, // [0x00000000] nop                     ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop
-0x3c003186bb800000ull, // [0x00000010] nop
-0x3c003186bb800000ull, // [0x00000018] nop
+0x3c803186bb800000ull, // [0x00000018] nop                     ; ldtmu
 0x3e203186bb800000ull, // [0x00000020] nop                        ; ldtlbu
 0x3de071867d83b00full, // [0x00000028] shr.pushz -, r3, 15
 0x3dea3186ba837000ull, // [0x00000030] setmsf.ifna -, 0
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x3c207180b7836000ull, // [0x00000000] xor.pushz r0, rf0, rf0  ; thrsw
+#elif V3D_VER_AT_LEAST(3,3,0,0)
+0x3d207180b7836000ull, // [0x00000000] xor.pushz r0, rf0, rf0  ; ldvary; thrsw
 0x3c0a318cb6800000ull, // [0x00000008] mov.ifna tmua, r0
 0x3c003186bb800000ull, // [0x00000010] nop
 0x3c803186bb800000ull, // [0x00000018] nop                     ; ldtmu
@@ -330,20 +197,17 @@ static const uint64_t cs_pad_setmsf_threaded_instrs[] = {
 const struct inline_qasm cs_pad_setmsf_threaded = { cs_pad_setmsf_threaded_instrs, countof(cs_pad_setmsf_threaded_instrs)-1 };
 
 static const uint64_t cs_pad_setmsf_unthreaded_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1660_FIX
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1659_FIX
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-#elif V3D_HAS_BETTER_BARRIER
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1631_FIX
-#elif V3D_HAS_CSD && V3D_USE_CSD
-#elif V3D_HAS_CSD
-#elif V3D_HAS_SIG_TO_MAGIC
-#elif V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,2,13,0)
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 #elif V3D_VER_AT_LEAST(4,0,2,0)
 0x3c003186bb800000ull, // [0x00000000] nop
+0x3e203186bb800000ull, // [0x00000008] nop                  ; ldtlbu
+0x3de071867d83b00full, // [0x00000010] shr.pushz -, r3, 15
+0x3dea3186ba837000ull, // [0x00000018] setmsf.ifna -, 0
+#elif V3D_VER_AT_LEAST(3,3,0,0)
+0x3d003186bb800000ull, // [0x00000000] nop                  ; ldvary
 0x3e203186bb800000ull, // [0x00000008] nop                  ; ldtlbu
 0x3de071867d83b00full, // [0x00000010] shr.pushz -, r3, 15
 0x3dea3186ba837000ull, // [0x00000018] setmsf.ifna -, 0
@@ -357,52 +221,57 @@ static const uint64_t cs_pad_setmsf_unthreaded_instrs[] = {
 };
 const struct inline_qasm cs_pad_setmsf_unthreaded = { cs_pad_setmsf_unthreaded_instrs, countof(cs_pad_setmsf_unthreaded_instrs)-1 };
 
+static const uint64_t fs_null_instrs[] = {
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
+0x3c203186bb800000ull, // [0x00000000] nop   ; thrsw
+0x3c203186bb800000ull, // [0x00000008] nop   ; thrsw
+0x3c003186bb800000ull, // [0x00000010] nop
+0x3c203186bb800000ull, // [0x00000018] nop   ; thrsw
+0x3c003186bb800000ull, // [0x00000020] nop
+0x3c003186bb800000ull, // [0x00000028] nop
+#elif V3D_VER_AT_LEAST(4,2,13,0)
+0x3c203186bb800000ull, // [0x00000000] nop   ; thrsw
+0x3c203186bb800000ull, // [0x00000008] nop   ; thrsw
+0x3c003186bb800000ull, // [0x00000010] nop
+0x3c203186bb800000ull, // [0x00000018] nop   ; thrsw
+0x3c003186bb800000ull, // [0x00000020] nop
+0x3c003186bb800000ull, // [0x00000028] nop
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
+0x3c203186bb800000ull, // [0x00000000] nop   ; thrsw
+0x3c203186bb800000ull, // [0x00000008] nop   ; thrsw
+0x3c003186bb800000ull, // [0x00000010] nop
+0x3c203186bb800000ull, // [0x00000018] nop   ; thrsw
+0x3c003186bb800000ull, // [0x00000020] nop
+0x3c003186bb800000ull, // [0x00000028] nop
+#elif V3D_VER_AT_LEAST(4,1,34,0)
+0x3c203186bb800000ull, // [0x00000000] nop   ; thrsw
+0x3c203186bb800000ull, // [0x00000008] nop   ; thrsw
+0x3c003186bb800000ull, // [0x00000010] nop
+0x3c203186bb800000ull, // [0x00000018] nop   ; thrsw
+0x3c003186bb800000ull, // [0x00000020] nop
+0x3c003186bb800000ull, // [0x00000028] nop
+#elif V3D_VER_AT_LEAST(4,0,2,0)
+#elif V3D_VER_AT_LEAST(3,3,0,0)
+#else
+#endif
+0x0000000000000000ull
+};
+const struct inline_qasm fs_null = { fs_null_instrs, countof(fs_null_instrs)-1 };
+
 static const uint64_t tcs_barrier_bin_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003190bb814000ull, // [0x00000010] barrierid sync
-#elif V3D_HAS_GFXH1660_FIX
+0x3c003192bb814000ull, // [0x00000010] barrierid syncb
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003190bb814000ull, // [0x00000010] barrierid sync
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_GFXH1659_FIX
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
+0x3c003192bb814000ull, // [0x00000010] barrierid syncb
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop                   ; thrsw
 0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_GFXH1631_FIX
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop                   ; thrsw
-0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop                   ; thrsw
-0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_CSD
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop                   ; thrsw
-0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop                   ; thrsw
-0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_RELAXED_THRSW
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop                   ; thrsw
 0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
@@ -410,6 +279,7 @@ static const uint64_t tcs_barrier_bin_instrs[] = {
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop                   ; thrsw
 0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
 0x0000000000000000ull
@@ -417,51 +287,19 @@ static const uint64_t tcs_barrier_bin_instrs[] = {
 const struct inline_qasm tcs_barrier_bin = { tcs_barrier_bin_instrs, countof(tcs_barrier_bin_instrs)-1 };
 
 static const uint64_t tcs_barrier_lthrsw_bin_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003190bb814000ull, // [0x00000010] barrierid sync
-#elif V3D_HAS_GFXH1660_FIX
+0x3c003192bb814000ull, // [0x00000010] barrierid syncb
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003190bb814000ull, // [0x00000010] barrierid sync
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_GFXH1659_FIX
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
+0x3c003192bb814000ull, // [0x00000010] barrierid syncb
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
 0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
 0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
-#elif V3D_HAS_GFXH1631_FIX
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
-0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
-0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
-0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
-0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
-#elif V3D_HAS_CSD
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
-0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
-0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
-0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
-0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
-#elif V3D_HAS_RELAXED_THRSW
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
 0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
 0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
@@ -469,6 +307,7 @@ static const uint64_t tcs_barrier_lthrsw_bin_instrs[] = {
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
 0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
 0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
 0x0000000000000000ull
@@ -476,51 +315,19 @@ static const uint64_t tcs_barrier_lthrsw_bin_instrs[] = {
 const struct inline_qasm tcs_barrier_lthrsw_bin = { tcs_barrier_lthrsw_bin_instrs, countof(tcs_barrier_lthrsw_bin_instrs)-1 };
 
 static const uint64_t tcs_barrier_lthrsw_rdr_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003190bb814000ull, // [0x00000010] barrierid sync
-#elif V3D_HAS_GFXH1660_FIX
+0x3c003192bb814000ull, // [0x00000010] barrierid syncb
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003190bb814000ull, // [0x00000010] barrierid sync
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_GFXH1659_FIX
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
+0x3c003192bb814000ull, // [0x00000010] barrierid syncb
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
 0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
 0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
-#elif V3D_HAS_GFXH1631_FIX
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
-0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
-0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
-#elif V3D_HAS_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_RELAXED_THRSW
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
 0x3c003191bb814000ull, // [0x00000010] barrierid syncu
@@ -528,6 +335,7 @@ static const uint64_t tcs_barrier_lthrsw_rdr_instrs[] = {
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
 0x3c003191bb814000ull, // [0x00000010] barrierid syncu
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
 0x0000000000000000ull
@@ -535,32 +343,17 @@ static const uint64_t tcs_barrier_lthrsw_rdr_instrs[] = {
 const struct inline_qasm tcs_barrier_lthrsw_rdr = { tcs_barrier_lthrsw_rdr_instrs, countof(tcs_barrier_lthrsw_rdr_instrs)-1 };
 
 static const uint64_t tcs_barrier_mem_only_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
 0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_GFXH1660_FIX
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_GFXH1659_FIX
-0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_BETTER_BARRIER
-0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
-0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_GFXH1631_FIX
-0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_CSD
-0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_HAS_RELAXED_THRSW
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3c003186bb816000ull, // [0x00000000] vpmwt
 #elif V3D_VER_AT_LEAST(4,0,2,0)
 0x3c003186bb816000ull, // [0x00000000] vpmwt
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
 0x0000000000000000ull
@@ -568,35 +361,13 @@ static const uint64_t tcs_barrier_mem_only_instrs[] = {
 const struct inline_qasm tcs_barrier_mem_only = { tcs_barrier_mem_only_instrs, countof(tcs_barrier_mem_only_instrs)-1 };
 
 static const uint64_t tcs_barrier_preamble_bin_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1660_FIX
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1659_FIX
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c003191bb814000ull, // [0x00000000] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER
-0x3c003191bb814000ull, // [0x00000000] barrierid syncu
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,2,13,0)
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x25e07046bbfc2010ull, // [0x00000000] eidx.pushz -      ; smul24 r1, -16, -16
 0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_GFXH1631_FIX
-0x25e07046bbfc2010ull, // [0x00000000] eidx.pushz -      ; smul24 r1, -16, -16
-0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x25e07046bbfc2010ull, // [0x00000000] eidx.pushz -      ; smul24 r1, -16, -16
-0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_CSD
-0x25e07046bbfc2010ull, // [0x00000000] eidx.pushz -      ; smul24 r1, -16, -16
-0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_SIG_TO_MAGIC
-0x25e07046bbfc2010ull, // [0x00000000] eidx.pushz -      ; smul24 r1, -16, -16
-0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_RELAXED_THRSW
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x25e07046bbfc2010ull, // [0x00000000] eidx.pushz -      ; smul24 r1, -16, -16
 0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
@@ -604,6 +375,7 @@ static const uint64_t tcs_barrier_preamble_bin_instrs[] = {
 0x25e07046bbfc2010ull, // [0x00000000] eidx.pushz -      ; smul24 r1, -16, -16
 0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
 0x0000000000000000ull
@@ -611,37 +383,14 @@ static const uint64_t tcs_barrier_preamble_bin_instrs[] = {
 const struct inline_qasm tcs_barrier_preamble_bin = { tcs_barrier_preamble_bin_instrs, countof(tcs_barrier_preamble_bin_instrs)-1 };
 
 static const uint64_t tcs_barrier_preamble_rdr_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1660_FIX
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-#elif V3D_HAS_GFXH1659_FIX
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c003191bb814000ull, // [0x00000000] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER
-0x3c003191bb814000ull, // [0x00000000] barrierid syncu
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
+#elif V3D_VER_AT_LEAST(4,2,13,0)
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x0de07046bbfc2008ull, // [0x00000000] eidx.pushz -      ; umul24 r1, 8, 8
 0x3c003180bb814000ull, // [0x00000008] barrierid r0
 0x3dec300038fc8002ull, // [0x00000010] add r0, r0, r1    ; mov.ifa r0, 2
 0x3c003191b6800000ull, // [0x00000018] mov syncu, r0
-#elif V3D_HAS_GFXH1631_FIX
-0x3c007186bb802000ull, // [0x00000000] eidx.pushz -
-0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
-0x3c003191b6800000ull, // [0x00000010] mov syncu, r0
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x0de07046bbfc2008ull, // [0x00000000] eidx.pushz -      ; umul24 r1, 8, 8
-0x3c003180bb814000ull, // [0x00000008] barrierid r0
-0x3dec300038fc8002ull, // [0x00000010] add r0, r0, r1    ; mov.ifa r0, 2
-0x3c003191b6800000ull, // [0x00000018] mov syncu, r0
-#elif V3D_HAS_CSD
-0x3c007186bb802000ull, // [0x00000000] eidx.pushz -
-0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
-0x3c003191b6800000ull, // [0x00000010] mov syncu, r0
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c007186bb802000ull, // [0x00000000] eidx.pushz -
-0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
-0x3c003191b6800000ull, // [0x00000010] mov syncu, r0
-#elif V3D_HAS_RELAXED_THRSW
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3c007186bb802000ull, // [0x00000000] eidx.pushz -
 0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
 0x3c003191b6800000ull, // [0x00000010] mov syncu, r0
@@ -649,6 +398,7 @@ static const uint64_t tcs_barrier_preamble_rdr_instrs[] = {
 0x3c007186bb802000ull, // [0x00000000] eidx.pushz -
 0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
 0x3c003191b6800000ull, // [0x00000010] mov syncu, r0
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
 0x0000000000000000ull
@@ -656,51 +406,19 @@ static const uint64_t tcs_barrier_preamble_rdr_instrs[] = {
 const struct inline_qasm tcs_barrier_preamble_rdr = { tcs_barrier_preamble_rdr_instrs, countof(tcs_barrier_preamble_rdr_instrs)-1 };
 
 static const uint64_t tcs_barrier_rdr_instrs[] = {
-#if V3D_HAS_GFXH1660_FIX && V3D_USE_CSD
+#if V3D_VER_AT_LEAST(4,2,13,0) && V3D_USE_CSD
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003190bb814000ull, // [0x00000010] barrierid sync
-#elif V3D_HAS_GFXH1660_FIX
+0x3c003192bb814000ull, // [0x00000010] barrierid syncb
+#elif V3D_VER_AT_LEAST(4,2,13,0)
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003190bb814000ull, // [0x00000010] barrierid sync
-#elif V3D_HAS_GFXH1659_FIX && V3D_USE_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_GFXH1659_FIX
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_BETTER_BARRIER
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_GFXH1631_FIX && V3D_USE_CSD
+0x3c003192bb814000ull, // [0x00000010] barrierid syncb
+#elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop             ; thrsw
 0x0de03046bbfd6008ull, // [0x00000008] vpmwt             ; umul24 r1, 8, 8
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_GFXH1631_FIX
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_CSD && V3D_USE_CSD
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop             ; thrsw
-0x0de03046bbfd6008ull, // [0x00000008] vpmwt             ; umul24 r1, 8, 8
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_HAS_CSD
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_SIG_TO_MAGIC
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_HAS_RELAXED_THRSW
+#elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c003186bb816000ull, // [0x00000008] vpmwt
 0x3c003191bb814000ull, // [0x00000010] barrierid syncu
@@ -708,6 +426,7 @@ static const uint64_t tcs_barrier_rdr_instrs[] = {
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c003186bb816000ull, // [0x00000008] vpmwt
 0x3c003191bb814000ull, // [0x00000010] barrierid syncu
+#elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
 0x0000000000000000ull
@@ -731,7 +450,7 @@ const inline_umap cs_pad_setmsf_after_barrier_preamble_unif = { .unifs = cs_pad_
 const inline_umap cs_pad_setmsf_unif = { .unifs = cs_pad_setmsf_unifs, .size = countof(cs_pad_setmsf_unifs)-1 };
 #endif
 
-#if V3D_USE_CSD && (V3D_HAS_GFXH1659_FIX || !V3D_HAS_BETTER_BARRIER)
+#if V3D_USE_CSD
 const inline_umap cs_barrier_preamble_unif = { .unifs = NULL, .size = 0 };
 #else
 static const umap_entry cs_barrier_preamble_unifs[] = {
@@ -740,57 +459,43 @@ static const umap_entry cs_barrier_preamble_unifs[] = {
 const inline_umap cs_barrier_preamble_unif = { .unifs = cs_barrier_preamble_unifs, .size = countof(cs_barrier_preamble_unifs) };
 #endif
 
-#if V3D_USE_CSD && V3D_HAS_GFXH1660_FIX
+#if V3D_USE_CSD && V3D_VER_AT_LEAST(4,2,13,0)
 const inline_umap cs_barrier_unif = { .unifs = NULL, .size = 0 };
 #else
 static const umap_entry cs_barrier_unifs[] = {
- #if V3D_USE_CSD && V3D_HAS_GFXH1659_FIX
-   { BACKEND_UNIFORM_LITERAL, 0xFFFFFF00 | V3D_TSY_OP_SET_QUORUM_WAIT_INC_CHECK }
- #else
    { BACKEND_UNIFORM_LITERAL, 0xFFFFFF00 | gfxh1370_tsy_op(V3D_TSY_OP_WAIT_INC_CHECK) }
- #endif
 };
 const inline_umap cs_barrier_unif = { .unifs = cs_barrier_unifs, .size = countof(cs_barrier_unifs) };
 #endif
 
-#if V3D_HAS_GFXH1659_FIX
+#if V3D_VER_AT_LEAST(4,2,13,0)
 const inline_umap tcs_barrier_preamble_bin_unif = { .unifs = NULL, .size = 0 };
 const inline_umap tcs_barrier_preamble_rdr_unif = { .unifs = NULL, .size = 0 };
-#else
-static const umap_entry tcs_barrier_preamble_unifs[] = {
-   { BACKEND_UNIFORM_LITERAL, 0xFFFFFF00 | V3D_TSY_OP_SET_QUORUM }
-};
-const inline_umap tcs_barrier_preamble_bin_unif = { .unifs = tcs_barrier_preamble_unifs, .size = countof(tcs_barrier_preamble_unifs) };
-const inline_umap tcs_barrier_preamble_rdr_unif = { .unifs = tcs_barrier_preamble_unifs, .size = countof(tcs_barrier_preamble_unifs) };
-#endif
-
-#if V3D_HAS_GFXH1660_FIX
 const inline_umap tcs_barrier_bin_unif          = { .unifs = NULL, .size = 0 };
 const inline_umap tcs_barrier_rdr_unif          = { .unifs = NULL, .size = 0 };
 const inline_umap tcs_barrier_lthrsw_bin_unif   = { .unifs = NULL, .size = 0 };
 const inline_umap tcs_barrier_lthrsw_rdr_unif   = { .unifs = NULL, .size = 0 };
 #else
 
-#if V3D_HAS_GFXH1659_FIX
-#define TCS_BARRIER_OP V3D_TSY_OP_SET_QUORUM_WAIT_INC_CHECK
-#else
+static const umap_entry tcs_barrier_preamble_unifs[] = {
+   { BACKEND_UNIFORM_LITERAL, 0xFFFFFF00 | V3D_TSY_OP_SET_QUORUM }
+};
+const inline_umap tcs_barrier_preamble_bin_unif = { .unifs = tcs_barrier_preamble_unifs, .size = countof(tcs_barrier_preamble_unifs) };
+const inline_umap tcs_barrier_preamble_rdr_unif = { .unifs = tcs_barrier_preamble_unifs, .size = countof(tcs_barrier_preamble_unifs) };
+
 #define TCS_BARRIER_OP V3D_TSY_OP_WAIT_INC_CHECK
-#endif
 
 static const umap_entry tcs_barrier_unifs[] = {
    { BACKEND_UNIFORM_LITERAL, 0xFFFFFF00 | TCS_BARRIER_OP }
 };
 
 static const umap_entry tcs_barrier_lthrsw_bin_unifs[] = {
-#if !V3D_HAS_BETTER_BARRIER
    { BACKEND_UNIFORM_LITERAL, 0x00000100 }, // bin barrier ID from 256 onwards.
-#else
    { BACKEND_UNIFORM_LITERAL, 0xFFFFFF00 | TCS_BARRIER_OP }
-#endif
 };
 
 static const umap_entry tcs_barrier_lthrsw_rdr_unifs[] = {
-#if !V3D_HAS_BETTER_BARRIER && V3D_USE_CSD
+#if V3D_USE_CSD
    { BACKEND_UNIFORM_LITERAL, 0x00000040 }, // rdr barrier ID from 64 onwards if using CSD.
 #endif
    { BACKEND_UNIFORM_LITERAL, 0xFFFFFF00 | TCS_BARRIER_OP }

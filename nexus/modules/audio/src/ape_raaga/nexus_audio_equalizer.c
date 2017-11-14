@@ -153,17 +153,28 @@ void NEXUS_AudioEqualizerStage_GetDefaultSettings(
     pSettings->rampSettings.stepSize = 0xA;
     pSettings->enabled = true;
     
+    BDBG_CASSERT((int)NEXUS_AudioEqualizerStageType_eToneControl == (int)BAPE_EqualizerStageType_eToneControl);
+    BDBG_CASSERT((int)NEXUS_AudioEqualizerStageType_eFiveBand == (int)BAPE_EqualizerStageType_eFiveBand);
+    BDBG_CASSERT((int)NEXUS_AudioEqualizerStageType_eSevenBand == (int)BAPE_EqualizerStageType_eSevenBand);
+    BDBG_CASSERT((int)NEXUS_AudioEqualizerStageType_eSubsonic == (int)BAPE_EqualizerStageType_eSubsonic);
+    BDBG_CASSERT((int)NEXUS_AudioEqualizerStageType_eSubwoofer == (int)BAPE_EqualizerStageType_eSubwoofer);
+
+    BDBG_CASSERT((int)NEXUS_AudioToneControlType_eShelving == (int)BAPE_ToneControlEqType_eShelving);
+    BDBG_CASSERT((int)NEXUS_AudioToneControlType_eNotch == (int)BAPE_ToneControlEqType_eNotch);
+
     switch(pSettings->type)
     {
         case NEXUS_AudioEqualizerStageType_eToneControl:
 
 			BAPE_EqualizerStage_GetDefaultSettings(BAPE_EqualizerStageType_eToneControl,&settings);
 			pSettings->modeSettings.toneControl.bassSettings.bandwidthFreq = settings.modeSettings.toneControl.bassBandwidthFreq;
-			pSettings->modeSettings.toneControl.bassSettings.eqType = settings.modeSettings.toneControl.bassEqType;
+            /* coverity[mixed_enums] */
+			pSettings->modeSettings.toneControl.bassSettings.eqType = (NEXUS_AudioToneControlType)settings.modeSettings.toneControl.bassEqType;
 			pSettings->modeSettings.toneControl.bassSettings.freq = settings.modeSettings.toneControl.bassFreq;
 			pSettings->modeSettings.toneControl.bassSettings.gain = settings.modeSettings.toneControl.bassGain;
 			pSettings->modeSettings.toneControl.trebleSettings.bandwidthFreq = settings.modeSettings.toneControl.trebleBandwidthFreq;
-			pSettings->modeSettings.toneControl.trebleSettings.eqType = settings.modeSettings.toneControl.trebleEqType;
+            /* coverity[mixed_enums] */
+			pSettings->modeSettings.toneControl.trebleSettings.eqType = (NEXUS_AudioToneControlType)settings.modeSettings.toneControl.trebleEqType;
 			pSettings->modeSettings.toneControl.trebleSettings.freq = settings.modeSettings.toneControl.trebleFreq;
 			pSettings->modeSettings.toneControl.trebleSettings.gain = settings.modeSettings.toneControl.trebleGain;
             break;
@@ -472,18 +483,21 @@ NEXUS_Error NEXUS_AudioEqualizerStage_SetSettings(
 	}
 	piSettings.rampSettings.enable = pSettings->rampSettings.enable;
 	piSettings.rampSettings.stepSize = pSettings->rampSettings.stepSize;
-	piSettings.type = pSettings->type;
+    /* coverity[mixed_enums] */
+	piSettings.type = (BAPE_EqualizerStageType)pSettings->type;
 
 	/*** TODO convert the following to element copy instead of struct copy ***/
 	switch(pSettings->type)
 	{
 		case NEXUS_AudioEqualizerStageType_eToneControl:
 		piSettings.modeSettings.toneControl.bassBandwidthFreq = pSettings->modeSettings.toneControl.bassSettings.bandwidthFreq;
-		piSettings.modeSettings.toneControl.bassEqType = pSettings->modeSettings.toneControl.bassSettings.eqType;
+        /* coverity[mixed_enums] */
+		piSettings.modeSettings.toneControl.bassEqType = (BAPE_ToneControlEqType)pSettings->modeSettings.toneControl.bassSettings.eqType;
 		piSettings.modeSettings.toneControl.bassFreq = pSettings->modeSettings.toneControl.bassSettings.freq;
 		piSettings.modeSettings.toneControl.bassGain = pSettings->modeSettings.toneControl.bassSettings.gain;
 		piSettings.modeSettings.toneControl.trebleBandwidthFreq = pSettings->modeSettings.toneControl.trebleSettings.bandwidthFreq;
-		piSettings.modeSettings.toneControl.trebleEqType = pSettings->modeSettings.toneControl.trebleSettings.eqType;
+        /* coverity[mixed_enums] */
+		piSettings.modeSettings.toneControl.trebleEqType = (BAPE_ToneControlEqType)pSettings->modeSettings.toneControl.trebleSettings.eqType;
 		piSettings.modeSettings.toneControl.trebleFreq = pSettings->modeSettings.toneControl.trebleSettings.freq;
 		piSettings.modeSettings.toneControl.trebleGain = pSettings->modeSettings.toneControl.trebleSettings.gain;
 		break;

@@ -9,35 +9,29 @@
 
 #include "libs/util/gfx_util/gfx_util.h"
 
-/* ------------------------------- Layout tables ---------------------------- */
-/* We use the shared layout when asked for packed because it's most efficient */
+/* ------------------------------- Layout tables ----------------------------- */
+/* We use the tmu_opt layout when asked for packed because it's most efficient */
 
 #define BASIC_MACHINE_UNIT 4
 
-typedef enum {
-   STD140 = 0,
-   STD430 = 1,
-   SHARED = 2
-} LayoutSpec;
+static const unsigned struct_alignment[4] = { 4, 1, 1, 1 };
+static const unsigned  array_alignment[4] = { 4, 1, 1, 1 };
 
-static unsigned calculate_prim_nonmatrix_layout(MemLayout *layout, const SymbolType *type);
-static unsigned calculate_prim_matrix_layout(MemLayout *layout, const SymbolType *type, const LayoutQualifier *lq, LayoutSpec s);
-static unsigned calculate_struct_layout(MemLayout *layout, const SymbolType *type, const LayoutQualifier *lq, LayoutSpec s);
-static unsigned calculate_array_layout(MemLayout *layout, const SymbolType *type, const LayoutQualifier *lq, LayoutSpec s);
-
-static const unsigned struct_alignment[3] = { 4, 1, 1 };
-static const unsigned  array_alignment[3] = { 4, 1, 1 };
-
-static inline uint32_t basic_layout_align(PrimitiveTypeIndex t) {
+static inline uint32_t basic_layout_align(PrimitiveTypeIndex t, LayoutSpec s) {
    static const unsigned aligns_by_scalar_count[5] = { 0, 1, 2, 4, 4 };
    assert(primitiveTypeFlags[t] & (PRIM_SCALAR_TYPE | PRIM_VECTOR_TYPE));
    assert(primitiveTypes[t].scalar_count > 0 && primitiveTypes[t].scalar_count <= 4);
-   return aligns_by_scalar_count[primitiveTypes[t].scalar_count];
+   return (s == MEM_PACKED) ? 1 : aligns_by_scalar_count[primitiveTypes[t].scalar_count];
 }
 static inline unsigned basic_layout_size(PrimitiveTypeIndex t) {
    assert(primitiveTypeFlags[t] & (PRIM_SCALAR_TYPE | PRIM_VECTOR_TYPE));
    return primitiveTypes[t].scalar_count;
 }
+
+static unsigned calculate_prim_nonmatrix_layout(MemLayout *layout, const SymbolType *type, LayoutSpec s);
+static unsigned calculate_prim_matrix_layout(MemLayout *layout, const SymbolType *type, const LayoutQualifier *lq, LayoutSpec s);
+static unsigned calculate_struct_layout(MemLayout *layout, const SymbolType *type, const LayoutQualifier *lq, LayoutSpec s);
+static unsigned calculate_array_layout(MemLayout *layout, const SymbolType *type, const LayoutQualifier *lq, LayoutSpec s);
 
 /* ------------------------ Packing functions ------------------------ */
 
@@ -58,7 +52,7 @@ static unsigned calculate_non_block_type_layout(MemLayout *layout, const SymbolT
          if(flags & PRIM_MATRIX_TYPE)
             return calculate_prim_matrix_layout(layout, type, lq, s);
          else
-            return calculate_prim_nonmatrix_layout(layout, type);
+            return calculate_prim_nonmatrix_layout(layout, type, s);
       }
       case SYMBOL_ARRAY_TYPE:
          return calculate_array_layout(layout, type, lq, s);
@@ -70,16 +64,17 @@ static unsigned calculate_non_block_type_layout(MemLayout *layout, const SymbolT
    }
 }
 
-unsigned glsl_mem_calculate_non_block_layout(MemLayout *layout, const SymbolType *type) {
-   return calculate_non_block_type_layout(layout, type, NULL, SHARED);
+void glsl_mem_calculate_non_block_layout(MemLayout *layout, const SymbolType *type, LayoutSpec spec) {
+   calculate_non_block_type_layout(layout, type, NULL, spec);
 }
 
-static LayoutSpec get_layout_spec(const LayoutQualifier *lq) {
-   if (!lq || !(lq->qualified & UNIF_QUALED)) return SHARED;
+static LayoutSpec get_layout_spec(const LayoutQualifier *lq, bool for_tmu) {
+   LayoutSpec unqualed = for_tmu ? MEM_TMU_OPT : MEM_PACKED;
+   if (!lq || !(lq->qualified & UNIF_QUALED)) return unqualed;
 
-   if (lq->unif_bits & LAYOUT_STD140) return STD140;
-   if (lq->unif_bits & LAYOUT_STD430) return STD430;
-   else                               return SHARED;
+   if (lq->unif_bits & LAYOUT_STD140) return MEM_STD140;
+   if (lq->unif_bits & LAYOUT_STD430) return MEM_STD430;
+   else                               return unqualed;
 }
 
 static unsigned struct_layout(MemLayout *layout, unsigned member_count, const StructMember *members,
@@ -98,13 +93,13 @@ static unsigned struct_layout(MemLayout *layout, unsigned member_count, const St
       SymbolType *member_type = members[i].type;
       const LayoutQualifier *l = lq ? lq : members[i].layout;
 
-      unsigned size = calculate_non_block_type_layout( &layout->u.struct_layout.member_layouts[i], member_type, l, s);
+      unsigned size = calculate_non_block_type_layout(&layout->u.struct_layout.member_layouts[i], member_type, l, s);
       unsigned member_alignment = layout->u.struct_layout.member_layouts[i].base_alignment;
       layout->base_alignment = gfx_umax(layout->base_alignment, member_alignment);
       offset = gfx_uround_up(offset, member_alignment);
       layout->u.struct_layout.member_offsets[i] = offset;
       offset += size;
-      if (i+1 < member_count && (s == STD140 || s == STD430) &&
+      if (i+1 < member_count && (s == MEM_STD140 || s == MEM_STD430) &&
            (member_type->flavour == SYMBOL_STRUCT_TYPE || member_type->flavour == SYMBOL_ARRAY_TYPE))
       {
          offset = gfx_uround_up(offset, member_alignment);
@@ -118,10 +113,10 @@ static unsigned struct_layout(MemLayout *layout, unsigned member_count, const St
 }
 
 /* Blocks are laid out the same as structs */
-unsigned glsl_mem_calculate_block_layout(MemLayout *layout, const SymbolType *type) {
+void glsl_mem_calculate_block_layout(MemLayout *layout, const SymbolType *type, bool for_tmu) {
    assert(type->flavour == SYMBOL_BLOCK_TYPE);
-   LayoutSpec s = get_layout_spec(type->u.block_type.lq);
-   return struct_layout(layout, type->u.block_type.member_count, type->u.block_type.member, NULL, s);
+   LayoutSpec s = get_layout_spec(type->u.block_type.lq, for_tmu);
+   struct_layout(layout, type->u.block_type.member_count, type->u.block_type.member, NULL, s);
 }
 
 static unsigned calculate_struct_layout(MemLayout *layout, const SymbolType *type, const LayoutQualifier *lq, LayoutSpec s)
@@ -166,7 +161,7 @@ static unsigned calculate_prim_matrix_layout(MemLayout *layout, const SymbolType
    }
 
    MemLayout dummy;
-   int vector_size = calculate_prim_nonmatrix_layout(&dummy, &primitiveTypes[vector_type_index]);
+   int vector_size = calculate_prim_nonmatrix_layout(&dummy, &primitiveTypes[vector_type_index], s);
 
    layout->base_alignment = gfx_uround_up(dummy.base_alignment, array_alignment[s]*BASIC_MACHINE_UNIT);
    layout->u.prim_matrix_layout.stride = gfx_uround_up(vector_size, layout->base_alignment);
@@ -181,13 +176,13 @@ static bool is_prim_type_basic(const SymbolType *type) {
                                   (PRIM_SCALAR_TYPE | PRIM_VECTOR_TYPE);
 }
 
-static unsigned calculate_prim_nonmatrix_layout(MemLayout *layout, const SymbolType *type)
+static unsigned calculate_prim_nonmatrix_layout(MemLayout *layout, const SymbolType *type, LayoutSpec s)
 {
    unsigned size;
    if (is_prim_type_basic(type)) {
       PrimitiveTypeIndex idx = type->u.primitive_type.index;
-      layout->base_alignment = basic_layout_align(idx) * BASIC_MACHINE_UNIT;
-      size                   = basic_layout_size (idx) * BASIC_MACHINE_UNIT;
+      layout->base_alignment = basic_layout_align(idx, s) * BASIC_MACHINE_UNIT;
+      size                   = basic_layout_size (idx)    * BASIC_MACHINE_UNIT;
    } else {
       /* A non-block uniform can still get a layout from here. */
       layout->base_alignment = BASIC_MACHINE_UNIT;

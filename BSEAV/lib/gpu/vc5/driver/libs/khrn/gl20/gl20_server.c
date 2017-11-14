@@ -425,23 +425,12 @@ void gl20_server_try_delete_program(GLXX_SHARED_T *shared, GL20_PROGRAM_T *progr
    }
 }
 
-static void release_program(GLXX_SHARED_T *shared, khrn_mem_handle_t handle)
+static void release_program(GLXX_SHARED_T *shared, GL20_PROGRAM_T *program)
 {
-   if (handle != KHRN_MEM_HANDLE_INVALID) {
-      GL20_PROGRAM_T *program;
-
-      khrn_mem_acquire(handle);
-
-      program = (GL20_PROGRAM_T *)khrn_mem_lock(handle);
-
+   if (program) {
       assert(gl20_is_program(program));
-
       gl20_program_release(program);
-
       gl20_server_try_delete_program(shared, program);
-
-      khrn_mem_unlock(handle);
-      khrn_mem_release(handle);
    }
 }
 
@@ -465,14 +454,11 @@ GL_APICALL void GL_APIENTRY glDeleteProgram(GLuint p)
 
    if (p == 0) goto end;
 
-   khrn_mem_handle_t h_program = glxx_shared_get_pobject(state->shared, p);
-   if (h_program == KHRN_MEM_HANDLE_INVALID) {
+   GL20_PROGRAM_T *program = glxx_shared_get_pobject(state->shared, p);
+   if (!program) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
    }
-
-   khrn_mem_acquire(h_program);
-   GL20_PROGRAM_T *program = (GL20_PROGRAM_T *)khrn_mem_lock(h_program);
 
    if (gl20_is_program(program)) {
       program->deleted = GL_TRUE;
@@ -480,9 +466,6 @@ GL_APICALL void GL_APIENTRY glDeleteProgram(GLuint p)
       gl20_server_try_delete_program(state->shared, program);
    } else
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-
-   khrn_mem_unlock(h_program);
-   khrn_mem_release(h_program);
 
 end:
    glxx_unlock_server_state();
@@ -502,24 +485,15 @@ GL_APICALL void GL_APIENTRY glDeleteShader(GLuint s)
    if (!state) return;
 
    if (s) {
-      khrn_mem_handle_t handle = glxx_shared_get_pobject(state->shared, s);
+      GL20_SHADER_T *shader = glxx_shared_get_pobject(state->shared, s);
 
-      if (handle != KHRN_MEM_HANDLE_INVALID) {
-         GL20_SHADER_T *shader;
-
-         khrn_mem_acquire(handle);
-
-         shader = (GL20_SHADER_T *)khrn_mem_lock(handle);
-
+      if (shader) {
          if (gl20_is_shader(shader)) {
             shader->deleted = GL_TRUE;
 
             gl20_server_try_delete_shader(state->shared, shader);
          } else
             glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-
-         khrn_mem_unlock(handle);
-         khrn_mem_release(handle);
       } else
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
    }
@@ -802,7 +776,7 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
 #endif
       break;
    case GL_INFO_LOG_LENGTH:
-      params[0] = khrn_mem_get_size(program->mh_info);
+      params[0] = khrn_mem_get_size(program->info);
       break;
    case GL_ACTIVE_UNIFORM_BLOCKS:
       if (!linked_program || linked_program->num_uniform_blocks == 0) {
@@ -869,7 +843,7 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       params[0] = 0;
       break;
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
    case GL_ACTIVE_ATOMIC_COUNTER_BUFFERS:
       params[0] = linked_program ? linked_program->num_atomic_buffers : 0u;
       break;
@@ -963,7 +937,7 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
    }
    goto end;
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 invalid_op:
    glxx_server_state_set_error(state, GL_INVALID_OPERATION);
 #endif
@@ -986,9 +960,7 @@ GL_APICALL void GL_APIENTRY glGetProgramInfoLog(GLuint p, GLsizei bufsize, GLsiz
    }
 
    {
-      size_t chars = strzncpy(infolog, (const char *)khrn_mem_lock(program->mh_info), bufsize);
-      khrn_mem_unlock(program->mh_info);
-
+      size_t chars = strzncpy(infolog, program->info, bufsize);
       if (length)
          *length = gfx_smax(0, (GLsizei)chars);
    }
@@ -1087,19 +1059,12 @@ GL_APICALL GLint GL_APIENTRY glGetUniformLocation(GLuint p, const char *name)
 
 GL_APICALL GLboolean GL_APIENTRY glIsProgram(GLuint p)
 {
-   GLboolean result;
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
-   khrn_mem_handle_t handle;
    if (!state) return 0;
 
-   handle = glxx_shared_get_pobject(state->shared, p);
+   GL20_PROGRAM_T *program = glxx_shared_get_pobject(state->shared, p);
 
-   if (handle == KHRN_MEM_HANDLE_INVALID)
-      result = GL_FALSE;
-   else {
-      result = gl20_is_program((GL20_PROGRAM_T *)khrn_mem_lock(handle));
-      khrn_mem_unlock(handle);
-   }
+   GLboolean result = program && gl20_is_program(program);
 
    glxx_unlock_server_state();
 
@@ -1119,19 +1084,12 @@ GL_APICALL GLboolean GL_APIENTRY glIsProgram(GLuint p)
 
 GL_APICALL GLboolean GL_APIENTRY glIsShader(GLuint s)
 {
-   GLboolean result;
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
-   khrn_mem_handle_t handle;
    if (!state) return 0;
 
-   handle  = glxx_shared_get_pobject(state->shared, s);
+   GL20_SHADER_T *shader = glxx_shared_get_pobject(state->shared, s);
 
-   if (handle == KHRN_MEM_HANDLE_INVALID)
-      result = GL_FALSE;
-   else {
-      result = gl20_is_shader((GL20_SHADER_T *)khrn_mem_lock(handle));
-      khrn_mem_unlock(handle);
-   }
+   GLboolean result = shader && gl20_is_shader(shader);
 
    glxx_unlock_server_state();
 
@@ -1864,7 +1822,7 @@ GL_APICALL void GL_APIENTRY glUniformMatrix4fv(GLint location, GLsizei num, GLbo
    }
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 /* ES3.1 Program Pipeline uniform setting commands: */
 
@@ -2165,7 +2123,7 @@ GL_APICALL void GL_APIENTRY glValidateProgram(GLuint p)
    if (program) {
       program->validated = gl20_validate_program(state, &program->common);
 
-      KHRN_MEM_ASSIGN(program->mh_info, KHRN_MEM_HANDLE_EMPTY_STRING);
+      KHRN_MEM_ASSIGN(program->info, khrn_mem_empty_string);
    }
 
    glxx_unlock_server_state();
@@ -2601,7 +2559,7 @@ GL_API void GL_APIENTRY glProgramParameteri(GLuint p, GLenum pname, GLint value)
       program->binary_hint = !!value;
       break;
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
    case GL_PROGRAM_SEPARABLE:
       if (value != GL_TRUE && value != GL_FALSE) {
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
@@ -2619,7 +2577,7 @@ end:
    glxx_unlock_server_state();
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 // TODO: Check this function for error behaviour.  It should not disturb the state.
 GL_APICALL GLuint GL_APIENTRY glCreateShaderProgramv(GLenum type, GLsizei count, const GLchar *const*strings)
@@ -2698,7 +2656,7 @@ GL_APICALL GLuint GL_APIENTRY glCreateShaderProgramv(GLenum type, GLsizei count,
    }
 
    // Concatenate the info_log
-   const char   *old_log = khrn_mem_lock(program_object->mh_info);
+   const char   *old_log = program_object->info;
    unsigned int  old_len = strlen(old_log);
    unsigned int  new_len = old_len + strlen(shader_object->info_log);
    char         *tmp     = calloc(sizeof(char), new_len + 1);
@@ -2708,8 +2666,6 @@ GL_APICALL GLuint GL_APIENTRY glCreateShaderProgramv(GLenum type, GLsizei count,
       strncpy(tmp, old_log, old_len + 1);
       strcat(tmp, shader_object->info_log);
    }
-
-   khrn_mem_unlock(program_object->mh_info);
 
    if (tmp != NULL)
       gl20_program_save_error(program_object, tmp);

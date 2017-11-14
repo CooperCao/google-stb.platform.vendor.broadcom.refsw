@@ -83,7 +83,7 @@ static NEXUS_SpiHandle g_dc_spi[NEXUS_NUM_SPI_CHANNELS] = {NULL};
 
 #define USE_I2C 0
 
-#if (BCHP_CHIP == 7260)
+#if (BCHP_CHIP == 7260) || (BCHP_CHIP == 7255)
     #define SV_BOARD_ID 1
     #define DV_BOARD_ID 2
     #define HB_BOARD_ID 6

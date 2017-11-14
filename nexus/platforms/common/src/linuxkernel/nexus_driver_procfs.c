@@ -73,13 +73,6 @@ static struct proc_dir_entry *brcm_config_entry;       /* /proc/brcm/config */
 #if BDBG_DEBUG_BUILD
 static struct proc_dir_entry *brcm_debug_entry;        /* /proc/brcm/debug */
 
-struct dbgprint_page {
-    BLST_Q_ENTRY(dbgprint_page) link;
-    char *buf;
-    unsigned bufsize;
-    unsigned wptr, rptr;
-};
-
 typedef struct nexus_driver_proc_data {
     const char *dbg_modules;
     const char *filename;
@@ -88,16 +81,13 @@ typedef struct nexus_driver_proc_data {
     NEXUS_ModuleHandle handle;
 } nexus_driver_proc_data;
 
-/* same as in the BDBG_P_LogEntry from magnum/basemodules/dbg/bdbg.c */
-#define NEXUS_P_DBGPRINT_LINE (256-sizeof(uint32_t)-sizeof(void *)-sizeof(int16_t))
-/* any BDBG print longer than 80 characters may get truncated at the end of a page */
-static bool dbgprint_page_done(const struct dbgprint_page *page) {return (page->bufsize - page->wptr) < NEXUS_P_DBGPRINT_LINE;}
+struct nexus_driver_seq;
 static struct {
-    struct dbgprint_page first; /* print directly to linux memory; no memcpy */
-    BLST_Q_HEAD(dbgprint_page_list_t, dbgprint_page) additional; /* memcpy on subsequent proc reads */
-    const nexus_driver_proc_data *current_proc; /* current file */
-    BKNI_MutexHandle lock; /* lock to be held while modifying linked list */
+    struct nexus_driver_seq *seq;
+    BKNI_MutexHandle lock; /* lock to be held while capturing debug data */
+    BKNI_MutexHandle procfs_lock; /* lock to be held when adding/removing procfs entries */
 } NEXUS_P_ProcFsState;
+static void nexus_driver_seq_capture_locked(BDBG_ModulePrintKind kind, BDBG_Level level, const BDBG_DebugModuleFile *module, const char *fmt, va_list ap);
 
 struct brcm_bdbg_context {
     int bufsize;
@@ -166,65 +156,8 @@ static void brcm_bdbg_fetch_state(char *buf, int *len, int bufsize)
     BKNI_Free(modules);
 }
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-static int brcm_proc_debug_read(char *buf, char **start, off_t off,
-                          int bufsize, int *eof, void *unused)
-{
-    int len = 0;
-    if (off > 0) return 0;
-    brcm_bdbg_fetch_state(buf, &len, bufsize);
-    return len;
-}
-#else
-static ssize_t brcm_proc_debug_read(struct file *fp,char *buf,size_t bufsize, loff_t *offp )
-{
-    int len;
-    static struct {
-#define BRCM_PROC_DEBUG_CACHESIZE (3*4096)
-        char *buffer;
-        int len;
-        struct file *fp;
-    } cache = {NULL,0};
-
-    if (*offp == 0) {
-        if (!cache.buffer) {
-            cache.buffer = BKNI_Malloc(BRCM_PROC_DEBUG_CACHESIZE);
-            if (!cache.buffer) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return -1;}
-        }
-        cache.fp = fp;
-        brcm_bdbg_fetch_state(cache.buffer, &cache.len, BRCM_PROC_DEBUG_CACHESIZE);
-    }
-    if (cache.fp != fp) {
-        /* multiple reads from /proc/brcm/debug are not supported */
-        return -EIO;
-    }
-
-    if (!cache.buffer) return -1;
-    len = cache.len - *offp;
-    if (len <= 0) {
-        BKNI_Free(cache.buffer);
-        cache.buffer = NULL;
-        cache.len = 0;
-        len = 0;
-    }
-    else {
-        if (len > bufsize) {
-            len = bufsize;
-        }
-        BKNI_Memcpy(buf, &cache.buffer[*offp], len);
-        *offp += len;
-    }
-    return len;
-}
-#endif
-
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-static int brcm_proc_debug_write(struct file * file, const char *buffer, unsigned long count,
-    void *data)
-#else
 static ssize_t brcm_proc_debug_write(struct file *file, const char __user *buffer, size_t count,
     loff_t *data)
-#endif
 {
 #define WHITESPACE " \t="
     char *endofmodule, *level;
@@ -276,25 +209,15 @@ end:
 }
 #endif
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-static int brcm_proc_config_read(char *buf, char **start, off_t off,
-                          int bufsize, int *eof, void *unused)
-#else
-static ssize_t brcm_proc_config_read(struct file *fp,char *buf,size_t bufsize, loff_t *offp )
-#endif
+static ssize_t brcm_proc_config_read(struct file *fp,char __user *buf,size_t bufsize, loff_t *offp )
 {
     /* currently no way to read the full list */
     return 0;
 }
 
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-static int brcm_proc_config_write(struct file * file, const char *buffer, unsigned long count,
-    void *data)
-#else
 static ssize_t brcm_proc_config_write(struct file *file, const char __user *buffer, size_t count,
     loff_t *data)
-#endif
 {
     static const char whitespace[] = " \t\n=";
     char *value;
@@ -331,24 +254,327 @@ end:
     return count;
 }
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-static struct proc_dir_entry *nexus_p_create_proc(struct proc_dir_entry *parent, const char *name, read_proc_t * read, write_proc_t *write, void *context)
-{
-    struct proc_dir_entry *entry;
-    entry = create_proc_entry(name, S_IFREG|S_IRUGO, parent);
-    if (!entry) return NULL;
-    entry->read_proc = read;
-    entry->write_proc = write;
-    entry->data = context;
-    return entry;
-}
-#else /* #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0) */
 #if BDBG_DEBUG_BUILD
+#include "linux/seq_file.h"
+#include "blst_squeue.h"
+
+#define dbg_printk(...) /* printk(__VA_ARGS__) */
+
+struct nexus_driver_seq_buf {
+    BLST_SQ_ENTRY(nexus_driver_seq_buf) link;
+    unsigned len; /* number of bytes (without trailing 0) used in buffer */
+    char buf[PAGE_SIZE - sizeof(unsigned) - sizeof(void *)];
+};
+
+struct nexus_driver_seq {
+    BLST_SQ_HEAD(nexus_driver_seq_buf_list, nexus_driver_seq_buf) buffers;
+    bool out_of_memory;
+};
+
+static void *nexus_driver_seq_start(struct seq_file *s, loff_t *pos)
+{
+    struct nexus_driver_seq *seq = s->private;
+    struct nexus_driver_seq_buf *buf;
+    loff_t i;
+
+    BDBG_ASSERT(seq);
+    for(buf=BLST_SQ_FIRST(&seq->buffers),i=0;buf && i<*pos;i++) {
+        buf = BLST_SQ_NEXT(buf, link);
+    }
+    if(buf) {
+        dbg_printk("start: %u -> %p(%u)\n", (unsigned)*pos, buf, (buf->len));
+    } else {
+        dbg_printk("start: %u -> EOS\n", (unsigned)*pos);
+    }
+    return buf;
+}
+
+static void *nexus_driver_seq_next(struct seq_file *s, void *v, loff_t *pos)
+{
+    struct nexus_driver_seq_buf *buf=v;
+    BDBG_ASSERT(buf);
+    (*pos) += 1;
+    buf=BLST_SQ_NEXT(buf,link);
+    if(buf) {
+        dbg_printk("next: %u -> %p(%u)\n", (unsigned)*pos, buf, (buf->len));
+    } else {
+        dbg_printk("next: %u -> EOS\n", (unsigned)*pos);
+    }
+    return buf;
+}
+
+static void nexus_driver_seq_stop(struct seq_file *s, void *v)
+{
+    return;
+}
+
+static int nexus_driver_seq_show(struct seq_file *s, void *v)
+{
+    struct nexus_driver_seq_buf *buf=v;
+    BDBG_ASSERT(buf);
+    dbg_printk("show: %p(%u)\n", buf, (buf->len));
+    /* dbg_printk("''%s''", buf->buf); */
+    seq_write(s, buf->buf, buf->len);
+    return 0;
+}
+
+
+static struct seq_operations nexux_driver_seq_ops = {
+start: nexus_driver_seq_start,
+next:  nexus_driver_seq_next,
+stop:  nexus_driver_seq_stop,
+show:  nexus_driver_seq_show
+};
+
+static struct nexus_driver_seq_buf *nexus_driver_seq_add_buffer_locked(struct nexus_driver_seq *seq)
+{
+    struct nexus_driver_seq_buf *buf;
+
+    BDBG_CWARNING(sizeof(*buf)==PAGE_SIZE);
+    buf = kmalloc(sizeof(*buf), GFP_KERNEL);
+    if(buf==NULL) {
+        seq->out_of_memory = true;
+        (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);return NULL;
+    }
+    buf->len =0;
+    buf->buf[0] = '\0';
+    BLST_SQ_INSERT_TAIL(&seq->buffers, buf, link);
+    return buf;
+}
+
+static void nexus_driver_seq_free_buffers_locked(struct nexus_driver_seq *seq)
+{
+    struct nexus_driver_seq_buf *buf;
+
+    while (NULL != (buf = BLST_SQ_FIRST(&seq->buffers))) {
+        BLST_SQ_REMOVE_HEAD(&seq->buffers, link);
+        kfree(buf);
+    }
+    return;
+}
+
+static bool
+nexus_driver_seq_capture_to_buf_locked(struct nexus_driver_seq_buf *buf, const char *fmt, va_list ap)
+{
+    int rc;
+    size_t left;
+
+    dbg_printk(">capture: %p(%u)\n", buf, (buf->len));
+    if(buf->len >= sizeof(buf->buf)-2) { /* no space for \n and \0 */
+        return false;
+    }
+    left = (sizeof(buf->buf) - 2) - buf->len;
+    rc = vsnprintf(&buf->buf[buf->len], left, fmt, ap);
+    if(rc<0) {
+        buf->buf[buf->len]='\0';
+        return true; /* there is nothing to do if formatting have failed */
+    }
+    if(rc>left) {
+        if(buf->len!=0) { /* it was not full buffer, allocate full buffer and try again */
+            buf->buf[buf->len]='\0';
+            return false;
+        }
+        rc = left-1;
+    }
+    /* dbg_printk("<capture:>> ''%s''\n", buf->buf+buf->len); */
+    buf->buf[buf->len+rc] = '\n';
+    buf->buf[buf->len+rc+1] = '\0';
+    /* dbg_printk("<capture:  ''%s''\n", buf->buf); */
+    dbg_printk("<capture: %p(%u->%u)\n", buf, buf->len, buf->len+rc+1);
+    buf->len += rc + 1;
+    return true;
+}
+
+static void
+nexus_driver_seq_capture_locked(BDBG_ModulePrintKind kind, BDBG_Level level, const BDBG_DebugModuleFile *module, const char *fmt, va_list ap)
+{
+    struct nexus_driver_seq *seq;
+    struct nexus_driver_seq_buf *buf;
+
+    if ((level == BDBG_eTrace) || (kind == BDBG_ModulePrintKind_eHeader)) {
+        return;
+    }
+    seq = NEXUS_P_ProcFsState.seq;
+    if(seq==NULL) {
+        return; /* something that was captured out of sequence, for example from different thread */
+    }
+    if(seq->out_of_memory) {
+        return; /* if already run out of memory don't try tool allocate some more, just return ASAP */
+    }
+    buf = BLST_SQ_LAST(&seq->buffers);
+
+    BDBG_ASSERT(buf);
+    if(!nexus_driver_seq_capture_to_buf_locked(buf, fmt, ap)) {
+        buf = nexus_driver_seq_add_buffer_locked(seq);
+        if(buf) {
+            if(!nexus_driver_seq_capture_to_buf_locked(buf, fmt, ap)) {
+                BDBG_ASSERT(0); /* second try must succeed */
+            }
+        }
+    }
+    return;
+}
+
+static int nexus_driver_seq_open_locked(const nexus_driver_proc_data *p, struct file *file)
+{
+    int rc;
+    struct nexus_driver_seq *seq;
+    struct nexus_driver_seq_buf *buf;
+    struct seq_file *s;
+
+    seq = kmalloc(sizeof(*seq), GFP_KERNEL);
+    if(seq==NULL) {
+        (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);rc = -ENOMEM;
+        goto err_kmalloc;
+    }
+    BLST_SQ_INIT(&seq->buffers);
+    seq->out_of_memory = false;
+
+    buf = nexus_driver_seq_add_buffer_locked(seq);
+    if(buf==NULL) {
+        (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);rc = -ENOMEM;
+        goto err_add_buffer;
+    }
+
+    if (NEXUS_Platform_P_ModuleInStandby(p->handle)) {
+        buf->len = BKNI_Snprintf(buf->buf, sizeof(buf->buf), "%s in standby\n", NEXUS_Module_GetName(p->handle));
+    }
+    else {
+        /* call function which captures to nexus_driver_seq */
+        NEXUS_Module_Lock(p->handle);
+        NEXUS_P_ProcFsState.seq = seq;
+        BDBG_SetModulePrintFunction(p->dbg_modules,nexus_driver_seq_capture_locked);
+        p->callback(p->context);
+        BDBG_SetModulePrintFunction(p->dbg_modules,NULL);
+        NEXUS_P_ProcFsState.seq = NULL;
+        NEXUS_Module_Unlock(p->handle);
+        if(seq->out_of_memory) {
+            (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);rc = -ENOMEM;
+            goto err_capture;
+        }
+    }
+
+    rc = seq_open(file, &nexux_driver_seq_ops);
+    if(rc!=0) {
+        (void)BERR_TRACE(NEXUS_OS_ERROR);
+        goto err_seq_open;
+    }
+    s = file->private_data;
+    s->private = seq;
+    return rc;
+
+err_seq_open:
+err_capture:
+    nexus_driver_seq_free_buffers_locked(seq);
+err_add_buffer:
+    kfree(seq);
+err_kmalloc:
+    return rc;
+
+}
+
+static int nexus_driver_seq_open(struct inode *inode, struct file *file)
+{
+    int rc;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,9,0)
+    const nexus_driver_proc_data *p = PDE(inode)->data;
+#else
+    const nexus_driver_proc_data *p = PDE_DATA(inode);
+#endif
+    BDBG_ASSERT(p);
+
+    BKNI_AcquireMutex(NEXUS_P_ProcFsState.lock);
+    rc = nexus_driver_seq_open_locked(p, file);
+    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.lock);
+    return rc;
+}
+
+static int nexus_driver_seq_release(struct inode *inode, struct file *file)
+{
+    struct seq_file *s = file->private_data;
+    struct nexus_driver_seq *seq;
+
+    BDBG_ASSERT(s);
+    seq = s->private;
+    BDBG_ASSERT(seq);
+
+    BKNI_AcquireMutex(NEXUS_P_ProcFsState.lock);
+    nexus_driver_seq_free_buffers_locked(seq);
+    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.lock);
+    kfree(seq);
+
+    return seq_release(inode, file);
+}
+
+
+static const struct file_operations read_fops_seq_dbgprint = {
+open:    nexus_driver_seq_open,
+read:    seq_read,
+llseek:  seq_lseek,
+release: nexus_driver_seq_release,
+};
+
+#define BRCM_PROC_DEBUG_CACHESIZE (3*4096)
+struct nexus_driver_seq_debug {
+    int len;
+    char buffer[BRCM_PROC_DEBUG_CACHESIZE-sizeof(int)];
+};
+
+static int nexus_driver_seq_debug_show(struct seq_file *s, void *v)
+{
+    struct nexus_driver_seq_debug *seq = s->private;
+    BDBG_ASSERT(seq);
+    seq_write(s, seq->buffer, seq->len);
+    return 0;
+}
+
+static int nexus_driver_seq_debug_open(struct inode *inode, struct file *file)
+{
+    struct nexus_driver_seq_debug *seq;
+    int rc;
+
+    seq = kmalloc(sizeof(*seq), GFP_KERNEL);
+    if(seq==NULL) {
+        (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);rc = -ENOMEM;
+        goto err_kmalloc;
+    }
+    seq->len = 0;
+    brcm_bdbg_fetch_state(seq->buffer, &seq->len, sizeof(seq->buffer));
+#define BRCM_PROC_DEBUG_CACHESIZE (3*4096)
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
+    rc = single_open(file, nexus_driver_seq_debug_show, seq);
+#else
+    rc = single_open_size(file, nexus_driver_seq_debug_show, seq, BRCM_PROC_DEBUG_CACHESIZE);
+#endif
+    if(rc!=0) { goto err_seq;}
+
+    return rc;
+err_seq:
+    kfree(seq);
+err_kmalloc:
+    return rc;
+}
+
+static int nexus_driver_seq_debug_release(struct inode *inode, struct file *file)
+{
+    struct seq_file *s = file->private_data;
+    struct nexus_driver_seq_debug *seq;
+    BDBG_ASSERT(s);
+    seq = s->private;
+    BDBG_ASSERT(seq);
+    kfree(seq);
+    return single_release(inode, file);
+}
+
 static const struct file_operations read_fops_debug = {
-read:   brcm_proc_debug_read,
+release: nexus_driver_seq_debug_release,
+open:    nexus_driver_seq_debug_open,
+read:    seq_read,
+llseek:  seq_lseek,
 write:  brcm_proc_debug_write
 };
-#endif
+#endif /* #if BDBG_DEBUG_BUILD */
+
 static const struct file_operations read_fops_config = {
 read:   brcm_proc_config_read,
 write:  brcm_proc_config_write
@@ -359,15 +585,15 @@ static struct proc_dir_entry *nexus_p_create_proc(struct proc_dir_entry *parent,
     return proc_create_data(name, S_IFREG|S_IRUGO, parent, fops, context);
 }
 
-#endif /* #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0) */
-
 int nexus_driver_proc_init(void)
 {
 #if BDBG_DEBUG_BUILD
     BERR_Code rc;
 
     rc = BKNI_CreateMutex(&NEXUS_P_ProcFsState.lock);
-    if(rc!=BERR_SUCCESS) { goto error; }
+    if(rc!=BERR_SUCCESS) { goto err_lock; }
+    rc = BKNI_CreateMutex(&NEXUS_P_ProcFsState.procfs_lock);
+    if(rc!=BERR_SUCCESS) { goto err_procfs_lock; }
 #endif
 
     /* Root directory */
@@ -376,21 +602,13 @@ int nexus_driver_proc_init(void)
 
 #if BDBG_DEBUG_BUILD
     brcm_debug_entry = nexus_p_create_proc(brcm_dir_entry, "debug",
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-                        brcm_proc_debug_read, brcm_proc_debug_write,
-#else
                         &read_fops_debug,
-#endif
                         NULL);
     if (!brcm_debug_entry) goto error;
 #endif
 
     brcm_config_entry = nexus_p_create_proc(brcm_dir_entry, "config",
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-                        brcm_proc_config_read, brcm_proc_config_write,
-#else
                         &read_fops_config,
-#endif
                         NULL);
     if (!brcm_config_entry) goto error;
 
@@ -399,10 +617,14 @@ int nexus_driver_proc_init(void)
 error:
     nexus_driver_proc_done();
     return -1;
+
+#if BDBG_DEBUG_BUILD
+err_procfs_lock:
+    BKNI_DestroyMutex(NEXUS_P_ProcFsState.lock);
+err_lock:
+    return -1;
+#endif
 }
-
-
-static void nexus_p_free_capture_buffers(void);
 
 void nexus_driver_proc_done(void)
 {
@@ -416,21 +638,21 @@ void nexus_driver_proc_done(void)
         remove_proc_entry("debug", brcm_dir_entry);
         brcm_debug_entry = NULL;
     }
+    BKNI_AcquireMutex(NEXUS_P_ProcFsState.procfs_lock);
     for (i=0; i < NEXUS_P_PROC_DATA_MAX; i++) {
         if ( g_proc_data[i].filename !=NULL) {
             remove_proc_entry(g_proc_data[i].filename, brcm_dir_entry);
             g_proc_data[i].filename = NULL;
         }
     }
+    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.procfs_lock);
 #endif
     if (brcm_dir_entry) {
         remove_proc_entry("brcm", NULL);
         brcm_dir_entry = NULL;
     }
 #if BDBG_DEBUG_BUILD
-    BKNI_AcquireMutex(NEXUS_P_ProcFsState.lock);
-    nexus_p_free_capture_buffers();
-    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.lock);
+    BKNI_DestroyMutex(NEXUS_P_ProcFsState.procfs_lock);
     BKNI_DestroyMutex(NEXUS_P_ProcFsState.lock);
 #endif
     return;
@@ -438,159 +660,10 @@ void nexus_driver_proc_done(void)
 
 
 #if BDBG_DEBUG_BUILD
-static void nexus_p_free_capture_buffers(void)
-{
-    struct dbgprint_page *page;
-    while ((page = BLST_Q_FIRST(&NEXUS_P_ProcFsState.additional))) {
-        BLST_Q_REMOVE_HEAD(&NEXUS_P_ProcFsState.additional, link);
-        kfree(page->buf);
-        kfree(page);
-    }
-}
-
-static void
-brcm_proc_dbgprint_capture(
-        BDBG_ModulePrintKind kind, /* type of the output */
-        BDBG_Level level, /* level of the debug output */
-        const BDBG_DebugModuleFile *module, /* pointer to the debug module */
-        const char *fmt,  /* format */
-        va_list ap /* variable list of arguments */
-)
-{
-    int l = 0;
-    if ((level != BDBG_eTrace) && (kind != BDBG_ModulePrintKind_eHeader)) {
-        struct dbgprint_page *page;
-        int left;
-        /* find available page or alloc a new one */
-        if (!dbgprint_page_done(&NEXUS_P_ProcFsState.first)) {
-            page = &NEXUS_P_ProcFsState.first;
-        }
-        else {
-            page = BLST_Q_LAST(&NEXUS_P_ProcFsState.additional);
-            if (!page || dbgprint_page_done(page)) {
-                /* add another page */
-                /* must use kmalloc, not BKNI_Malloc, because we may be called from bkni_track_mallocs.inc */
-                page = kmalloc(sizeof(*page), GFP_KERNEL);
-                if (!page) {
-                    BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-                    return;
-                }
-                BKNI_Memset(page, 0, sizeof(*page));
-                page->bufsize = 4096;
-                page->buf = kmalloc(page->bufsize, GFP_KERNEL);
-                if (!page->buf) {
-                    kfree(page);
-                    BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-                    return;
-                }
-                BLST_Q_INSERT_TAIL(&NEXUS_P_ProcFsState.additional, page, link);
-            }
-        }
-        left = page->bufsize-page->wptr;
-        BDBG_ASSERT(left >= NEXUS_P_DBGPRINT_LINE);
-        BDBG_CASSERT( NEXUS_P_DBGPRINT_LINE > 1);
-        left--;
-        l = vsnprintf(&page->buf[page->wptr], left, fmt, ap);
-        if((l+1)<=left) { /* output was not truncated */
-            page->buf[page->wptr+l] = '\n';
-            page->buf[page->wptr+l+1] = '\0';
-            page->wptr += l+1;
-        } else { /* output was truncated */
-            page->buf[page->wptr+(left-1)] = '\n'; /* replace last character with '\n' */
-            page->buf[page->wptr+(left)] = '\0';
-            page->wptr += left;
-        }
-    }
-}
-
 void nexus_driver_proc_print(BDBG_ModulePrintKind kind, const char *fmt, va_list ap)
 {
-    brcm_proc_dbgprint_capture(kind, BDBG_eLog, NULL, fmt, ap);
+    nexus_driver_seq_capture_locked(kind, BDBG_eLog, NULL, fmt, ap);
 }
-
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-static int brcm_proc_dbgprint_read(char *buf, char **start, off_t off,
-                          int bufsize, int *eof, void *data)
-#else
-static ssize_t brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize, loff_t *offp )
-#endif
-{
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-    nexus_driver_proc_data *p = (nexus_driver_proc_data *)data;
-#else
-    nexus_driver_proc_data *p = (nexus_driver_proc_data *)PDE_DATA(file_inode(fp));
-    off_t off = (loff_t) *offp;
-#endif
-    unsigned total = 0;
-    if (off > 0) {
-        /* subsequent read */
-        struct dbgprint_page *page;
-        if(NEXUS_P_ProcFsState.current_proc != p) {
-            (void)BERR_TRACE(NEXUS_NOT_SUPPORTED); /* we support only one procfs node at a time */
-            return -EIO;
-        }
-        BKNI_AcquireMutex(NEXUS_P_ProcFsState.lock);
-        while ((page = BLST_Q_FIRST(&NEXUS_P_ProcFsState.additional))) {
-            unsigned n = bufsize-total;
-            if (!n) break;
-            if (n > page->wptr - page->rptr) {
-                n = page->wptr - page->rptr;
-            }
-            BKNI_Memcpy(&buf[total], &page->buf[page->rptr], n);
-            page->rptr += n;
-            total += n;
-            if (page->rptr < page->wptr) break;
-            BLST_Q_REMOVE_HEAD(&NEXUS_P_ProcFsState.additional, link);
-            kfree(page->buf);
-            kfree(page);
-        }
-        #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-        *start = buf; /* reading fs/proc/generic.c, this is required for multi-page reads */
-        if (!BLST_Q_FIRST(&NEXUS_P_ProcFsState.additional)) *eof = 1;
-        #else
-        *offp += total;
-        #endif
-        BKNI_ReleaseMutex(NEXUS_P_ProcFsState.lock);
-        return total;
-    }
-
-    BKNI_AcquireMutex(NEXUS_P_ProcFsState.lock);
-    NEXUS_P_ProcFsState.current_proc = p;
-    /* first page is the linux-provided buffer */
-    NEXUS_P_ProcFsState.first.buf = buf;
-    NEXUS_P_ProcFsState.first.bufsize = bufsize;
-    NEXUS_P_ProcFsState.first.rptr = 0;
-    NEXUS_P_ProcFsState.first.wptr = 0;
-    nexus_p_free_capture_buffers();
-
-    if (NEXUS_Platform_P_ModuleInStandby(p->handle)) {
-        NEXUS_P_ProcFsState.first.wptr = BKNI_Snprintf(buf, bufsize, "%s in standby\n", NEXUS_Module_GetName(p->handle));
-    }
-    else {
-        /* call function which captures to NEXUS_P_ProcFsState */
-        NEXUS_Module_Lock(p->handle);
-        BDBG_SetModulePrintFunction(p->dbg_modules,brcm_proc_dbgprint_capture);
-        p->callback(p->context);
-        BDBG_SetModulePrintFunction(p->dbg_modules,NULL);
-        NEXUS_Module_Unlock(p->handle);
-    }
-
-    #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-    *start = buf; /* reading fs/proc/generic.c, this is required for multi-page reads */
-    if (!BLST_Q_FIRST(&NEXUS_P_ProcFsState.additional)) *eof = 1;
-    #else
-    *offp = NEXUS_P_ProcFsState.first.wptr;
-    #endif
-    total = NEXUS_P_ProcFsState.first.wptr;
-    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.lock);
-    return total;
-}
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-#else
-static const struct file_operations read_fops_dbgprint = {
-read:   brcm_proc_dbgprint_read
-};
-#endif
 #endif /* #if BDBG_DEBUG_BUILD */
 
 int nexus_driver_proc_register_status(const char *filename, NEXUS_ModuleHandle handle, const char *dbg_module_name, void (*callback)(void *context), void *context)
@@ -598,6 +671,8 @@ int nexus_driver_proc_register_status(const char *filename, NEXUS_ModuleHandle h
 #if BDBG_DEBUG_BUILD
     struct proc_dir_entry *p;
     unsigned i;
+    BDBG_ASSERT(filename);
+    BKNI_AcquireMutex(NEXUS_P_ProcFsState.procfs_lock);
     for (i=0; i < NEXUS_P_PROC_DATA_MAX; i++) {
         if (!g_proc_data[i].filename) {
             g_proc_data[i].filename = filename;
@@ -608,17 +683,14 @@ int nexus_driver_proc_register_status(const char *filename, NEXUS_ModuleHandle h
             break;
         }
     }
+    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.procfs_lock);
     if(i>=NEXUS_P_PROC_DATA_MAX) {
         BDBG_ERR(("When adding '%s' overflow of the g_proc_data, increase NEXUS_P_PROC_DATA_MAX(%u)", filename, NEXUS_P_PROC_DATA_MAX));
         i = NEXUS_P_PROC_DATA_MAX-1;
     }
 
     p = nexus_p_create_proc(brcm_dir_entry, filename,
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-            brcm_proc_dbgprint_read, NULL,
-#else
-            &read_fops_dbgprint,
-#endif
+            &read_fops_seq_dbgprint,
             &g_proc_data[i]);
     if (!p) { g_proc_data[i].filename = NULL; return -1; }
 #endif
@@ -629,6 +701,7 @@ void nexus_driver_proc_unregister_status(const char *filename)
 {
 #if BDBG_DEBUG_BUILD
     int i;
+    BKNI_AcquireMutex(NEXUS_P_ProcFsState.procfs_lock);
     for (i=0; i < NEXUS_P_PROC_DATA_MAX; i++) {
         if (g_proc_data[i].filename==filename) {
             remove_proc_entry(filename, brcm_dir_entry);
@@ -639,6 +712,7 @@ void nexus_driver_proc_unregister_status(const char *filename)
             break;
         }
     }
+    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.procfs_lock);
     if (i >= NEXUS_P_PROC_DATA_MAX) {
         BDBG_LOG(("Trying to remove unknown module '%s'", filename));
     }

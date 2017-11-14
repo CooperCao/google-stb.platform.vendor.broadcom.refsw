@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2006-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef BCHP_AVS_H__
 #define BCHP_AVS_H__
 
@@ -111,14 +128,14 @@ Description:
 
 Input:
     hHandle - The handle supplied by a successful BCHP_P_AvsOpen call.
-	pData - is pointer to location to return the data.
+    pData - is pointer to location to return the data.
 
 See Also:
     BCHP_P_AvsOpen, BCHP_P_AvsMonitorPvt
 
 **************************************************************************/
-BERR_Code BCHP_P_AvsGetData(
-	BCHP_P_AvsHandle hHandle, /* [in] handle supplied from open */
+BERR_Code BCHP_P_GetAvsData_isrsafe(
+    BCHP_P_AvsHandle hHandle, /* [in] handle supplied from open */
     BCHP_AvsData *pData);     /* [out] location to put data */
 
 /***************************************************************************
@@ -127,19 +144,19 @@ Summary:
 
 Description:
     This can be used to have AVS hardware enter stand-by (low power) mode.
-	Once entered, calls to BCHP_P_AvsMonitorPvt can be used but will be non-functional.
+    Once entered, calls to BCHP_P_AvsMonitorPvt can be used but will be non-functional.
 
 Input:
     hHandle - The handle supplied by a successful BCHP_P_AvsOpen call.
-	activate - is set to true to enter stand-by mode, false returns from stand-by.
+    activate - is set to true to enter stand-by mode, false returns from stand-by.
 
 See Also:
     BCHP_P_AvsOpen, BCHP_P_AvsMonitorPvt
 
 **************************************************************************/
 BERR_Code BCHP_P_AvsStandbyMode(
-	BCHP_P_AvsHandle hHandle, /* [in] handle supplied from open */
-	bool activate);           /* [in] true to enter low power mode */
+    BCHP_P_AvsHandle hHandle, /* [in] handle supplied from open */
+    bool activate);           /* [in] true to enter low power mode */
 
 #ifdef __cplusplus
 }

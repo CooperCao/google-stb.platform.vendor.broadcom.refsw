@@ -11,9 +11,10 @@
 #include <string.h>
 #include <stdio.h>
 
-static BM2MC_PACKET_PixelFormat get_conversion_format(BEGL_ColorFormat f)
+static BM2MC_PACKET_PixelFormat get_conversion_format(BEGL_BufferFormat f)
 {
    BM2MC_PACKET_PixelFormat res;
+
    if (f == BEGL_BufferFormat_eA8B8G8R8)
       res = BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
    else if (f == BEGL_BufferFormat_eR5G6B5)

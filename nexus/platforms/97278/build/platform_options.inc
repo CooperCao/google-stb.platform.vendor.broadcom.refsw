@@ -42,8 +42,16 @@
 # you can define your platform's options here
 
 NEXUS_POWER_MANAGEMENT ?= y
-NEXUS_SECURITY_SUPPORT ?= n
 SAGE_SUPPORT ?= n
+
+ifeq ($(BCHP_VER),A0)
+NEXUS_SECURITY_SUPPORT ?= n
+else
+VIDEO_ENCODER_SUPPORT ?= y
+NEXUS_SECURITY_SUPPORT ?= y
+NEXUS_VBI_SUPPORT ?= n
+endif
+
 
 
 export NEXUS_FRONTEND_SUPPORT ?= y
@@ -63,7 +71,6 @@ endif
 ifeq ($(NEXUS_USE_3390_VMS),y)
 NEXUS_PLATFORM_DEFINES += NEXUS_USE_3390_VMS=1
 endif
-
 #
 # by default, we include the following
 #

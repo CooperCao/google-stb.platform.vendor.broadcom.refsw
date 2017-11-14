@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,28 +56,11 @@ MAGNUM_TOP ?= ${URSR_TOP}/magnum
 BSEAV_TOP ?= ${URSR_TOP}/BSEAV
 SAGE_PUBLIC_TOP ?= ${BSEAV_TOP}/lib/security/sage
 SRAI_TOP  ?= ${SAGE_PUBLIC_TOP}/srai
-IMAGE_DIR ?= ${SAGE_PUBLIC_TOP}/manufacturing/image
-EXPECTED_PATH ?= $(IMAGE_DIR)/$(IMAGE_NAME)
 
 # include cross-compiler definitions
 include ${NEXUS_TOP}/platforms/${NEXUS_PLATFORM}/build/platform_app.inc
 
 APP = brcm_manufacturing_tool
-
-ifeq ($(IMAGE_NAME),)
-$(error Image file not specified. Usage: make IMAGE_NAME=<file name> <target>)
-endif
-
-
-
-
-# Check for image file
-IMAGE_PATH := $(shell find $(IMAGE_DIR) -name $(IMAGE_NAME))
-ifneq ($(IMAGE_PATH),$(EXPECTED_PATH))
-$(error Specified image file name not found in $(IMAGE_DIR). $(IMAGE_PATH), $(IMAGE_NAME))
-else
-$(warning SAGE Manufacturing file image specified $(IMAGE_PATH))
-endif
 
 ifeq (${USE_NXCLIENT},y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
@@ -148,11 +131,5 @@ uninstall:
 install:
 	@echo [Installing ${APP}... in ${NEXUS_BIN_DIR}]
 	${Q_} install -m 0755 ${APP} ${NEXUS_BIN_DIR}
-#	@echo [Installing SRAI... in ${NEXUS_BIN_DIR}]
-#	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai/* ${NEXUS_BIN_DIR}
-	@echo [Installing Loadable Manufacturing TA binary ${IMAGE_NAME} in ${NEXUS_BIN_DIR}]
-	${Q_} install -m 0755 ${EXPECTED_PATH} ${NEXUS_BIN_DIR}/sage_ta_manufacturing.bin
-
-
 
 re: uninstall clean all install

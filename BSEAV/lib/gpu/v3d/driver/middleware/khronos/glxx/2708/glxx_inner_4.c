@@ -320,10 +320,10 @@ bool glxx_hw_clear(bool color, bool depth, bool stencil, GLXX_SERVER_STATE_T *st
       vcos_log(LOG_INFO, "--------------------");
    }
 
-   if (fb.mh_depth != MEM_INVALID_HANDLE)
+   if (fb.mh_depth != MEM_HANDLE_INVALID)
    {
       KHRN_IMAGE_T *depth = (KHRN_IMAGE_T *)mem_lock(fb.mh_depth, NULL);
-      depth_storage = (depth->mh_storage != MEM_INVALID_HANDLE);
+      depth_storage = (depth->mh_storage != MEM_HANDLE_INVALID);
       mem_unlock(fb.mh_depth);
    }
 
@@ -398,7 +398,6 @@ bool glxx_hw_clear(bool color, bool depth, bool stencil, GLXX_SERVER_STATE_T *st
          KHRN_IMAGE_FORMAT_T col_format;
          rs->color_buffer_valid = true;
          rs->color_load = false;
-         rs->preserve_load = false;
          col_format = khrn_image_no_colorspace_format(fb.col_format);
          col_format = khrn_image_to_tf_format(col_format);
          if (tu_image_format_rb_swap(col_format))
@@ -446,61 +445,37 @@ fail:
    return false;
 }
 
-void glxx_hw_invalidate_internal(GLXX_HW_RENDER_STATE_T *rs, bool color, bool depth, bool stencil, bool multisample, bool preserveBuf)
+void glxx_hw_invalidate_internal(GLXX_HW_RENDER_STATE_T *rs, bool color, bool depth, bool stencil, bool multisample)
 {
-   UNUSED(multisample);
-
    if (color)
    {
       rs->color_buffer_valid = false;
       rs->color_load = false;
    }
+
    if ((depth || !rs->installed_fb.have_depth) && (stencil || !rs->installed_fb.have_stencil))
-   {
       rs->ds_buffer_valid = false;
-   }
+
    if (multisample || !rs->installed_fb.ms)
-   {
       rs->ms_color_buffer_valid = false;
-   }
-   if (preserveBuf || !rs->installed_fb.mh_preserve_image)
-   {
-      rs->preserve_load = false;
-   }
 }
 
 bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs, GLXX_HW_FRAMEBUFFER_T *fb)
 {
    uint32_t tilesize = fb->ms ? (KHRN_HW_TILE_HEIGHT>>1) : KHRN_HW_TILE_HEIGHT;
-   bool color_valid_to_load;
-   bool preserve_buf_valid_to_load = false;
-   bool depth_storage = false;
-   bool depth_valid_to_load = false;
-   bool ms_color_valid_to_load = false;
-   KHRN_IMAGE_T *color, *preserveBuf;
 
-   vcos_assert(render_state == NULL);
+   assert(render_state == NULL);
 
    rs->xxx_empty = false;
-   rs->installed_fb.mh_color_image = MEM_INVALID_HANDLE;
-   rs->installed_fb.mh_depth = MEM_INVALID_HANDLE;
-   rs->installed_fb.mh_ms_color = MEM_INVALID_HANDLE;
-   rs->installed_fb.mh_preserve_image = MEM_INVALID_HANDLE;
+   rs->installed_fb.mh_color_image = MEM_HANDLE_INVALID;
+   rs->installed_fb.mh_depth = MEM_HANDLE_INVALID;
+   rs->installed_fb.mh_ms_color = MEM_HANDLE_INVALID;
    rs->hw_frame_count = 0;
 
-   color = (KHRN_IMAGE_T *)mem_lock(fb->mh_color_image, NULL);
-   color_valid_to_load = !khrn_interlock_is_invalid(&color->interlock);
+   KHRN_IMAGE_T *color = (KHRN_IMAGE_T *)mem_lock(fb->mh_color_image, NULL);
+   bool color_valid_to_load = !khrn_interlock_is_invalid(&color->interlock);
    khrn_interlock_write(&color->interlock, khrn_interlock_user(rs->name));
    mem_unlock(fb->mh_color_image);
-
-   if (!color_valid_to_load && fb->mh_preserve_image)
-   {
-      /* If the color buffer is not valid to load, see if the preserve buffer can be loaded instead */
-      preserveBuf = (KHRN_IMAGE_T *)mem_lock(fb->mh_preserve_image, NULL);
-      preserve_buf_valid_to_load = !khrn_interlock_is_invalid(&preserveBuf->interlock);
-      khrn_interlock_read(&preserveBuf->interlock, khrn_interlock_user(rs->name));
-      mem_unlock(fb->mh_preserve_image);
-   }
 
    if(!glxx_lock_fixer_stuff(rs))
       goto quit2;
@@ -522,7 +497,6 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs, GLXX_HW_FRAMEBUFFE
    MEM_ASSIGN(render_state->installed_fb.mh_color_image, fb->mh_color_image);
    MEM_ASSIGN(render_state->installed_fb.mh_depth, fb->mh_depth);
    MEM_ASSIGN(render_state->installed_fb.mh_ms_color, fb->mh_ms_color);
-   MEM_ASSIGN(render_state->installed_fb.mh_preserve_image, fb->mh_preserve_image);
 
    render_state->installed_fb.width = fb->width;
    render_state->installed_fb.height = fb->height;
@@ -532,30 +506,25 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs, GLXX_HW_FRAMEBUFFE
    render_state->installed_fb.flags = fb->flags;
    render_state->installed_fb.have_depth = fb->have_depth;
    render_state->installed_fb.have_stencil = fb->have_stencil;
-   render_state->installed_fb.dither = fb->dither;
    render_state->installed_fb.stereo_mode = fb->stereo_mode;
 
-   if (fb->mh_depth != MEM_INVALID_HANDLE)
+   bool depth_storage = false;
+   bool depth_valid_to_load = false;
+   if (fb->mh_depth != MEM_HANDLE_INVALID)
    {
       KHRN_IMAGE_T *depth = (KHRN_IMAGE_T *)mem_lock(fb->mh_depth, NULL);
       depth_valid_to_load = !khrn_interlock_is_invalid(&depth->interlock);
       khrn_interlock_write(&depth->interlock, khrn_interlock_user(rs->name));
-      depth_storage = (depth->mh_storage != MEM_INVALID_HANDLE);
+      depth_storage = (depth->mh_storage != MEM_HANDLE_INVALID);
       mem_unlock(fb->mh_depth);
    }
 
-   if (fb->mh_ms_color != MEM_INVALID_HANDLE)
+   if (fb->mh_ms_color != MEM_HANDLE_INVALID)
    {
       KHRN_IMAGE_T *ms_color_image = (KHRN_IMAGE_T *)mem_lock(fb->mh_ms_color, NULL);
-      ms_color_valid_to_load = !khrn_interlock_is_invalid(&ms_color_image->interlock);
       khrn_interlock_write(&ms_color_image->interlock, khrn_interlock_user(rs->name));
       mem_unlock(fb->mh_ms_color);
    }
-
-   color = (KHRN_IMAGE_T *)mem_lock(fb->mh_color_image, NULL);
-   render_state->fence = color->fence;
-   color->fence = -1;
-   mem_unlock(fb->mh_color_image);
 
    render_state->color_buffer_valid = true;
    // render_state->ds_buffer_valid = depth_storage; // This is not sensible, since the storage won't be created if the buffer is invalid.
@@ -563,7 +532,6 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs, GLXX_HW_FRAMEBUFFE
    render_state->ds_buffer_valid = true;
    render_state->ms_color_buffer_valid = true;
    render_state->color_load = color_valid_to_load;
-   render_state->preserve_load = preserve_buf_valid_to_load;
    render_state->depth_load = depth_valid_to_load && fb->have_depth && depth_storage;
    render_state->stencil_load = depth_valid_to_load && fb->have_stencil && depth_storage;
    render_state->drawn = false;
@@ -580,7 +548,7 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs, GLXX_HW_FRAMEBUFFE
 #endif
    render_state->depth_value = 1.0f;
    render_state->stencil_value = 0;
-   render_state->fence_active = false;
+   render_state->dither = true;
 
    if (khrn_workarounds.HW2116)
       render_state->batch_count = 0;
@@ -623,7 +591,7 @@ static bool create_master_cl(void)
 
    add_byte(&instr, KHRN_HW_INSTR_STATE_TILE_RENDERING_MODE);  //(11)
 
-   vcos_assert(col_format == ABGR_8888_RSO ||
+   assert(col_format == ABGR_8888_RSO ||
           col_format == XBGR_8888_RSO ||
           col_format == ARGB_8888_RSO ||
           col_format == XRGB_8888_RSO ||
@@ -672,7 +640,7 @@ static bool create_master_cl(void)
    pixel_format = 1<<2;
    if (col_format == RGB_565_RSO || col_format == RGB_565_TF || col_format == RGB_565_LT)
    {
-      if (render_state->installed_fb.dither && !khrn_options.force_dither_off)
+      if (render_state->dither && !khrn_options.force_dither_off)
          pixel_format = 0<<2;
       else
          pixel_format = 2<<2;
@@ -789,13 +757,17 @@ fail:
    return false;
 }
 
+bool glxx_hw_render_state_would_flush(GLXX_HW_RENDER_STATE_T *rs)
+{
+   assert(!rs->xxx_empty);
+   return (rs->drawn || rs->hw_cleared);
+}
+
 bool glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
 {
-   uint8_t * instr;
-   KHRN_IMAGE_T *color, *depth, *ms_color_image, *preserve_image;
    GLXX_HW_RENDER_STATE_T *stashed_rs = NULL;
 
-   vcos_assert(!rs->xxx_empty);
+   assert(!rs->xxx_empty);
 
    if (rs->drawn || rs->hw_cleared)
    {
@@ -821,7 +793,7 @@ bool glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
          goto quit2;
 
       // Terminate tile control lists if necessary
-      instr = glxx_big_mem_alloc_cle(2);
+      uint8_t *instr = glxx_big_mem_alloc_cle(2);
       if (!instr)
          goto quit;
 
@@ -837,41 +809,37 @@ bool glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
       glxx_unlock_fixer_stuff();
 
       /* Now transfer everything */
-      color = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_color_image, NULL);
+      KHRN_IMAGE_T *color = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_color_image, NULL);
 
       bool secure = color->secure;
+      void *v3dfence = (void *)(uintptr_t)vcos_atomic_exchange((unsigned int *)&color->v3dfence, (unsigned int)((uintptr_t)NULL));
+
+      if (v3dfence)
+         khrn_issue_fence_wait_job(v3dfence);
 
       khrn_interlock_transfer(&color->interlock, khrn_interlock_user(rs->name), KHRN_INTERLOCK_FIFO_HW_RENDER);
       mem_unlock(rs->installed_fb.mh_color_image);
 
-      if (rs->installed_fb.mh_depth != MEM_INVALID_HANDLE)
+      if (rs->installed_fb.mh_depth != MEM_HANDLE_INVALID)
       {
-         depth = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_depth, NULL);
+         KHRN_IMAGE_T *depth = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_depth, NULL);
          khrn_interlock_transfer(&depth->interlock, khrn_interlock_user(rs->name), KHRN_INTERLOCK_FIFO_HW_RENDER);
          mem_unlock(rs->installed_fb.mh_depth);
       }
 
-      if (rs->installed_fb.mh_ms_color != MEM_INVALID_HANDLE)
+      if (rs->installed_fb.mh_ms_color != MEM_HANDLE_INVALID)
       {
-         ms_color_image = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_ms_color, NULL);
+         KHRN_IMAGE_T *ms_color_image = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_ms_color, NULL);
          khrn_interlock_transfer(&ms_color_image->interlock, khrn_interlock_user(rs->name), KHRN_INTERLOCK_FIFO_HW_RENDER);
          mem_unlock(rs->installed_fb.mh_ms_color);
-      }
-
-      if (rs->installed_fb.mh_preserve_image != MEM_INVALID_HANDLE)
-      {
-         preserve_image = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_preserve_image, NULL);
-         khrn_interlock_transfer(&preserve_image->interlock, khrn_interlock_user(rs->name), KHRN_INTERLOCK_FIFO_HW_RENDER);
-         mem_unlock(rs->installed_fb.mh_preserve_image);
       }
 
       /* Submit a job */
       khrn_issue_bin_render_job(rs, secure);
 
-      MEM_ASSIGN(rs->installed_fb.mh_color_image, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(rs->installed_fb.mh_depth, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(rs->installed_fb.mh_ms_color, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(rs->installed_fb.mh_preserve_image, MEM_INVALID_HANDLE);
+      MEM_ASSIGN(rs->installed_fb.mh_color_image, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(rs->installed_fb.mh_depth, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(rs->installed_fb.mh_ms_color, MEM_HANDLE_INVALID);
 
       khrn_render_state_finish(rs->name);
       if (stashed_rs) glxx_lock_fixer_stuff(stashed_rs);
@@ -896,55 +864,38 @@ quit2:
  */
 static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
 {
-   uint32_t y;
-   uint8_t *instr;
-   bool load_full_color, load_full_depth, store_full_color, store_full_depth;
-   bool load_standard, load_preserve, load_full, store_full, stereo_mode;
-   uint32_t alloc_tile, alloc;
-   MEM_HANDLE_T ds_handle = MEM_INVALID_HANDLE;
-   MEM_HANDLE_T ms_color_handle = MEM_INVALID_HANDLE;
-   uint32_t ds_stride = 0, ds_offset = 0;
-   uint32_t ms_color_stride = 0, ms_color_offset = 0;
-   bool alloc_by_row = false;
-   uint32_t alloc_row;
    KHRN_IMAGE_T *depth = NULL;
-   KHRN_IMAGE_T *ms_color_image = NULL;
-   KHRN_IMAGE_T *color_image = NULL;
-   KHRN_IMAGE_T *preserve_image = NULL;
-   uint32_t gfxh30_counter = 0;
-   uint32_t *gfxh30_shader_rec = NULL;
-   MEM_LOCK_T gfxh30_shader_rec_lbh;
-   uint32_t *gfxh30_vertices;
-
-   if (fb->mh_depth != MEM_INVALID_HANDLE)
+   if (fb->mh_depth != MEM_HANDLE_INVALID)
       depth = (KHRN_IMAGE_T *)mem_lock(fb->mh_depth, NULL);
 
-   if (fb->mh_ms_color != MEM_INVALID_HANDLE)
+   KHRN_IMAGE_T *ms_color_image = NULL;
+   if (fb->mh_ms_color != MEM_HANDLE_INVALID)
       ms_color_image = (KHRN_IMAGE_T *)mem_lock(fb->mh_ms_color, NULL);
 
+   KHRN_IMAGE_T *color_image = NULL;
    color_image = (KHRN_IMAGE_T *)mem_lock(fb->mh_color_image, NULL);
 
-   load_standard = render_state->color_load && !fb->ms;
-   load_preserve = render_state->preserve_load && !fb->ms && !load_standard && fb->mh_preserve_image;
-   load_full_color = fb->ms && render_state->color_load;
-   load_full_depth = render_state->depth_load || render_state->stencil_load;
-   store_full_color = fb->ms && render_state->ms_color_buffer_valid;
-   store_full_depth = (fb->have_depth || fb->have_stencil) && render_state->ds_buffer_valid;
+   bool load_standard = render_state->color_load && !fb->ms;
+   bool load_full_color = fb->ms && render_state->color_load;
+   bool load_full_depth = render_state->depth_load || render_state->stencil_load;
+   bool store_full_color = fb->ms && render_state->ms_color_buffer_valid;
+   bool store_full_depth = (fb->have_depth || fb->have_stencil) && render_state->ds_buffer_valid;
 
-   load_full = load_full_color || load_full_depth;
-   store_full = store_full_color || store_full_depth;
+   bool load_full = load_full_color || load_full_depth;
+   bool store_full = store_full_color || store_full_depth;
 
-   if (load_preserve)
-      preserve_image = (KHRN_IMAGE_T *)mem_lock(fb->mh_preserve_image, NULL);
+   bool stereo_mode = fb->stereo_mode;
 
-   stereo_mode = fb->stereo_mode;
-
+   MEM_HANDLE_T ds_handle = MEM_HANDLE_INVALID;
+   MEM_HANDLE_T ms_color_handle = MEM_HANDLE_INVALID;
+   uint32_t ds_stride = 0, ds_offset = 0;
+   uint32_t ms_color_stride = 0, ms_color_offset = 0;
    if (load_full || store_full)
    {
       if (load_full_depth || store_full_depth)
       {
-         vcos_assert(depth != NULL);
-         vcos_assert(depth->format == DEPTH_32_TLBD);
+         assert(depth != NULL);
+         assert(depth->format == DEPTH_32_TLBD);
          ds_stride = khrn_image_get_bpp(depth->format) * (KHRN_HW_TILE_HEIGHT * KHRN_HW_TILE_WIDTH / 8);
          ds_offset = depth->offset;
          /* Allocate some memory if necessary. TODO: this code should probably be in khrn_image */
@@ -956,8 +907,8 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
 
       if (load_full_color || store_full_color)
       {
-         vcos_assert(ms_color_image != NULL);
-         vcos_assert(ms_color_image->format == COL_32_TLBD);
+         assert(ms_color_image != NULL);
+         assert(ms_color_image->format == COL_32_TLBD);
          ms_color_stride = khrn_image_get_bpp(ms_color_image->format) * (KHRN_HW_TILE_HEIGHT * KHRN_HW_TILE_WIDTH / 8);
          ms_color_offset = ms_color_image->offset;
          if (!khrn_image_alloc_storage(ms_color_image, "KHRN_IMAGE_T.storage OpenGL ES ms color buffer"))
@@ -966,14 +917,14 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
          ms_color_handle = ms_color_image->mh_storage;
       }
    }
-   vcos_assert(color_image->mh_storage != MEM_INVALID_HANDLE);
+   assert(color_image->mh_storage != MEM_HANDLE_INVALID);
 
    INCR_DRIVER_COUNTER(tb_grp_color_stores);
 
    /* Decide how much room we need for an instruction */
-   alloc_tile = 11;
+   uint32_t alloc_tile = 11;
 
-   if (load_standard || load_preserve)
+   if (load_standard)
    {
       alloc_tile += 7;
       INCR_DRIVER_COUNTER(tb_grp_color_loads);
@@ -996,7 +947,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
          // Tile coordinates and store command between the two loads
          alloc_tile += 10;
    }
-   if ((load_standard || load_preserve) && load_full)
+   if (load_standard && load_full)
    {
       alloc_tile += 10;
    }
@@ -1014,11 +965,14 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
       }
    }
 
-   alloc_row = alloc_tile * render_state->num_tiles_x;
+   bool alloc_by_row = false;
+   uint32_t alloc_row = alloc_tile * render_state->num_tiles_x;
+   uint32_t *gfxh30_shader_rec = NULL;
+   MEM_LOCK_T gfxh30_shader_rec_lbh;
+   uint32_t *gfxh30_vertices;
    if (!khrn_workarounds.GFXH30)
    {
-      if(alloc_row < 2048)
-         alloc_by_row = true;
+      alloc_by_row = (alloc_row < 2048);
    }
    else
    {
@@ -1035,7 +989,6 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
       gfxh30_vertices[7] = 0;
       gfxh30_vertices[8] = 0;
 
-
       gfxh30_shader_rec = glxx_big_mem_alloc_junk(16, 16, &gfxh30_shader_rec_lbh);
       if (!gfxh30_shader_rec) goto fail;
       gfxh30_shader_rec[0] = 12 << 8;
@@ -1051,10 +1004,11 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
       - store subsample instructions
       into the master control list.
    */
-   for (y = 0; y < render_state->num_tiles_y; y++) {
+   uint8_t *instr;
+   for (unsigned int y = 0; y < render_state->num_tiles_y; y++) {
       unsigned int x_original;
-      if(alloc_by_row) {
-         alloc = alloc_row;
+      if (alloc_by_row) {
+         uint32_t alloc = alloc_row;
          instr = glxx_big_mem_alloc_cle(alloc);
          if(!instr)
             goto fail;
@@ -1071,8 +1025,9 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
          else
             x = x_original;
 
-         if(!alloc_by_row) {
-            alloc = alloc_tile;
+         uint32_t gfxh30_counter = 0;
+         if (!alloc_by_row) {
+            uint32_t alloc = alloc_tile;
             if (khrn_workarounds.GFXH30)
             {
                gfxh30_counter++;
@@ -1087,7 +1042,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
                goto fail;
          }
 
-         if (load_standard || load_preserve)
+         if (load_standard)
          {
             uint16_t flags;
             uint32_t offset;
@@ -1096,8 +1051,6 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
 
             if (load_standard)
                image = color_image;
-            else
-               image = preserve_image;
 
             INCR_DRIVER_COUNTER(tb_color_loads);
 
@@ -1163,7 +1116,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             if (load_full_depth)
             {
                INCR_DRIVER_COUNTER(tb_ds_loads);
-               vcos_assert(ds_offset + ds_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ds_handle));
+               assert(ds_offset + ds_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ds_handle));
 
                add_byte(&instr, KHRN_HW_INSTR_LOAD_FULL);          //(5)
 
@@ -1195,7 +1148,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             if (load_full_color)
             {
                INCR_DRIVER_COUNTER(tb_ms_color_loads);
-               vcos_assert(ms_color_offset + ms_color_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ms_color_handle));
+               assert(ms_color_offset + ms_color_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ms_color_handle));
 
                add_byte(&instr, KHRN_HW_INSTR_LOAD_FULL);          //(5)
 
@@ -1271,7 +1224,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             {
                INCR_DRIVER_COUNTER(tb_ds_stores);
 
-               vcos_assert(ds_offset + ds_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ds_handle));
+               assert(ds_offset + ds_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ds_handle));
 
                flags = 1<<2;                               /* disable clear. Not last tile in frame. */
                flags |= 1<<0; /* disable colour write */
@@ -1295,7 +1248,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             {
                INCR_DRIVER_COUNTER(tb_ms_color_stores);
 
-               vcos_assert(ms_color_offset + ms_color_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ms_color_handle));
+               assert(ms_color_offset + ms_color_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ms_color_handle));
 
                flags = 1<<2;                               /* disable clear. Not last tile in frame. */
                flags |= 1<<1;            /* disable depth write */
@@ -1329,11 +1282,9 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
       }
    }
 
-   if (load_preserve)
-      mem_unlock(fb->mh_preserve_image);
-   if (fb->mh_depth != MEM_INVALID_HANDLE)
+   if (fb->mh_depth != MEM_HANDLE_INVALID)
       mem_unlock(fb->mh_depth);
-   if (fb->mh_ms_color != MEM_INVALID_HANDLE)
+   if (fb->mh_ms_color != MEM_HANDLE_INVALID)
       mem_unlock(fb->mh_ms_color);
    mem_unlock(fb->mh_color_image);
 
@@ -1341,11 +1292,9 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
 
 fail:
 
-   if (load_preserve)
-      mem_unlock(fb->mh_preserve_image);
-   if (fb->mh_depth != MEM_INVALID_HANDLE)
+   if (fb->mh_depth != MEM_HANDLE_INVALID)
       mem_unlock(fb->mh_depth);
-   if (fb->mh_ms_color != MEM_INVALID_HANDLE)
+   if (fb->mh_ms_color != MEM_HANDLE_INVALID)
       mem_unlock(fb->mh_ms_color);
    mem_unlock(fb->mh_color_image);
 
@@ -1445,7 +1394,7 @@ static bool draw_rect(
       selector |= CLR_MULTISAMPLE;
 
    uint32_t *shader_code = clear_shaders[selector];
-   vcos_assert(shader_code);
+   assert(shader_code);
 
    /* How many uniforms will we have? */
 
@@ -1616,21 +1565,21 @@ uint32_t glxx_hw_convert_operation(GLenum operation)
 
 uint32_t glxx_hw_convert_test_function(GLenum function)
 {
-   vcos_assert(function >= GL_NEVER && function < GL_NEVER + 8);
+   assert(function >= GL_NEVER && function < GL_NEVER + 8);
    return function - GL_NEVER;
 }
 
 
 bool glxx_lock_fixer_stuff(GLXX_HW_RENDER_STATE_T *rs)
 {
-   vcos_assert(render_state == NULL);
+   assert(render_state == NULL);
    render_state = rs;
    return true;
 }
 
 void glxx_unlock_fixer_stuff(void)
 {
-   vcos_assert(render_state != NULL);
+   assert(render_state != NULL);
    render_state = NULL;
 }
 
@@ -1640,10 +1589,10 @@ bool glxx_hw_texture_fix(MEM_HANDLE_T thandle, bool in_vshader)
    bool result = true;
    GLXX_TEXTURE_T *texture;
 
-   if (thandle == MEM_INVALID_HANDLE)
+   if (thandle == MEM_HANDLE_INVALID)
       return true;
 
-   vcos_assert(render_state != NULL);
+   assert(render_state != NULL);
 
    /* This state is used to make sure that a previous render has completed
     * It is conservative because we don't check if a flush is needed
@@ -1680,7 +1629,7 @@ bool glxx_hw_texture_fix(MEM_HANDLE_T thandle, bool in_vshader)
 
       for (i = min_buffer; i <= max_buffer; i++) {
          for (j = 0; j <= LOG2_MAX_TEXTURE_SIZE; j++) {
-            if (texture->mh_mipmaps[i][j] != MEM_INVALID_HANDLE) {
+            if (texture->mh_mipmaps[i][j] != MEM_HANDLE_INVALID) {
                khrn_interlock_read(&((KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[i][j], NULL))->interlock, khrn_interlock_user(render_state->name));
                mem_unlock(texture->mh_mipmaps[i][j]);
                result &= glxx_hw_insert_interlock(texture->mh_mipmaps[i][j], offsetof(KHRN_IMAGE_T, interlock));
@@ -1697,7 +1646,7 @@ void glxx_hw_discard_frame(GLXX_HW_RENDER_STATE_T *rs)
    //do the tidying up that glxx_hw_flush and hw_callback do
    //but without flushing to the hardware
 
-   if (rs->installed_fb.mh_color_image != MEM_INVALID_HANDLE)
+   if (rs->installed_fb.mh_color_image != MEM_HANDLE_INVALID)
    {
       KHRN_IMAGE_T *color = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_color_image, NULL);
 
@@ -1706,7 +1655,7 @@ void glxx_hw_discard_frame(GLXX_HW_RENDER_STATE_T *rs)
       mem_unlock(rs->installed_fb.mh_color_image);
    }
 
-   if (rs->installed_fb.mh_depth != MEM_INVALID_HANDLE)
+   if (rs->installed_fb.mh_depth != MEM_HANDLE_INVALID)
    {
       KHRN_IMAGE_T *depth = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_depth, NULL);
 
@@ -1715,7 +1664,7 @@ void glxx_hw_discard_frame(GLXX_HW_RENDER_STATE_T *rs)
       mem_unlock(rs->installed_fb.mh_depth);
    }
 
-   if (rs->installed_fb.mh_ms_color != MEM_INVALID_HANDLE)
+   if (rs->installed_fb.mh_ms_color != MEM_HANDLE_INVALID)
    {
       KHRN_IMAGE_T *ms_color_image = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_ms_color, NULL);
 
@@ -1725,7 +1674,7 @@ void glxx_hw_discard_frame(GLXX_HW_RENDER_STATE_T *rs)
    }
 
    /*junk_mem = rs->current_junk_mem;
-   while (junk_mem != MEM_INVALID_HANDLE)
+   while (junk_mem != MEM_HANDLE_INVALID)
    {
       MEM_HANDLE_T next_junk_mem;
       next_junk_mem = *(MEM_HANDLE_T *)mem_lock(junk_mem);
@@ -1734,66 +1683,58 @@ void glxx_hw_discard_frame(GLXX_HW_RENDER_STATE_T *rs)
       junk_mem = next_junk_mem;
    }
 
-   rs->current_junk_mem = MEM_INVALID_HANDLE;
+   rs->current_junk_mem = MEM_HANDLE_INVALID;
    rs->current_junk_offset = 0;*/
 
    rs->hw_frame_count = 0;
 
    if (rs->fmem) khrn_fmem_discard(rs->fmem);
 
-   MEM_ASSIGN(rs->installed_fb.mh_color_image, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(rs->installed_fb.mh_depth, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(rs->installed_fb.mh_ms_color, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(rs->installed_fb.mh_preserve_image, MEM_INVALID_HANDLE);
-
-   if (rs->fence_active) {
-      /* signal EGL sync object(s) */
-      egl_khr_fence_update(khrn_get_last_issued_seq() + 1);
-      rs->fence_active = false;
-   }
+   MEM_ASSIGN(rs->installed_fb.mh_color_image, MEM_HANDLE_INVALID);
+   MEM_ASSIGN(rs->installed_fb.mh_depth, MEM_HANDLE_INVALID);
+   MEM_ASSIGN(rs->installed_fb.mh_ms_color, MEM_HANDLE_INVALID);
 
    khrn_render_state_finish(rs->name);
 }
 
 uint32_t glxx_render_state_name(void)
 {
-   vcos_assert(render_state != NULL);
+   assert(render_state != NULL);
    return render_state->name;
 }
 
-
 uint8_t *glxx_big_mem_alloc_cle(int size)
 {
-   vcos_assert(render_state != NULL);
+   assert(render_state != NULL);
    return khrn_fmem_cle(render_state->fmem, size);
 }
 
 uint32_t *glxx_big_mem_alloc_junk(int size, int align, MEM_LOCK_T *lbh)
 {
-   vcos_assert(render_state != NULL);
+   assert(render_state != NULL);
    return khrn_fmem_junk(render_state->fmem, size, align, lbh);
 }
 
 bool glxx_big_mem_insert(uint32_t *location, MEM_HANDLE_T handle, uint32_t offset)
 {
-   vcos_assert(render_state != NULL);
+   assert(render_state != NULL);
    return khrn_fmem_fix(render_state->fmem, location, handle, offset);
 }
 
 bool glxx_big_mem_add_fix(uint8_t **p, MEM_HANDLE_T handle, uint32_t offset)
 {
-   vcos_assert(render_state != NULL);
+   assert(render_state != NULL);
    return khrn_fmem_add_fix(render_state->fmem, p, handle, offset);
 }
 
 bool glxx_big_mem_add_special(uint8_t **p, uint32_t special_i, uint32_t offset)
 {
-   vcos_assert(render_state != NULL);
+   assert(render_state != NULL);
    return khrn_fmem_add_special(render_state->fmem, p, special_i, offset);
 }
 
 bool glxx_hw_insert_interlock(MEM_HANDLE_T handle, uint32_t offset)
 {
-   vcos_assert(render_state != NULL);
+   assert(render_state != NULL);
    return khrn_fmem_interlock(render_state->fmem, handle, offset);
 }

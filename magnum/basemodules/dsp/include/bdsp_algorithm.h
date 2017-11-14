@@ -149,6 +149,7 @@ typedef enum BDSP_Algorithm
 	BDSP_Algorithm_eSecurityC,
 
 	/* Last Entry */
-	BDSP_Algorithm_eMax
+	BDSP_Algorithm_eMax,
+	BDSP_Algorithm_eInvalid = 0x7FFFFFFF
 } BDSP_Algorithm;
 #endif /*BDSP_ALGORITHM_*/

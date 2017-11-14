@@ -503,7 +503,7 @@ CSimpleVideoDecode::CSimpleVideoDecode(
      * regular video decoder type */
     setType(eBoardResource_simpleDecodeVideo);
 
-    memset(&_startSettings,0,sizeof(_startSettings));
+    memset(&_startSettings, 0, sizeof(_startSettings));
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&_startSettings);
     BDBG_ASSERT(eRet_Ok == ret);
 }
@@ -1152,8 +1152,8 @@ NEXUS_VideoWindowFilterMode CSimpleVideoDecode::getAnrMode(void)
 #if HAS_VID_NL_LUMA_RANGE_ADJ
 eDynamicRange CSimpleVideoDecode::getDynamicRange(void)
 {
-    eRet                                ret          = eRet_Ok;
-    eDynamicRange                       dynamicRange = eDynamicRange_Unknown;
+    eRet          ret          = eRet_Ok;
+    eDynamicRange dynamicRange = eDynamicRange_Unknown;
     NEXUS_VideoDecoderStreamInformation streamInfo;
 
     ret = getStreamInfo(&streamInfo);
@@ -1171,7 +1171,7 @@ eDynamicRange CSimpleVideoDecode::getDynamicRange(void)
 
     default:
     case NEXUS_VideoDecoderDynamicRangeMetadataType_eNone:
-        switch(streamInfo.eotf)
+        switch (streamInfo.eotf)
         {
         case NEXUS_VideoEotf_eHdr10:
             dynamicRange = eDynamicRange_HDR10;
@@ -1187,14 +1187,15 @@ eDynamicRange CSimpleVideoDecode::getDynamicRange(void)
 
         default:
             break;
-        }
+        } /* switch */
         break;
-    }
+    } /* switch */
 
 error:
     return(dynamicRange);
-}
-#endif
+} /* getDynamicRange */
+
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
 
 #if HAS_VID_NL_LUMA_RANGE_ADJ
 eRet CSimpleVideoDecode::updatePlm()
@@ -1232,5 +1233,6 @@ eRet CSimpleVideoDecode::updatePlm()
 
     notifyObservers(eNotify_VideoPlmChanged, this);
     return(ret);
-}
-#endif
+} /* updatePlm */
+
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */

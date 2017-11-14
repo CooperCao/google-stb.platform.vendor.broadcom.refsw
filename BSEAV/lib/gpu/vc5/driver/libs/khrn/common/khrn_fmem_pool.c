@@ -17,11 +17,10 @@ LOG_DEFAULT_CAT("khrn_fmem_pool")
 typedef struct khrn_fmem_client_pool
 {
    VCOS_MUTEX_T lock;
-   khrn_fmem_buffer buffer[KHRN_FMEM_MAX_BLOCKS];
-   unsigned n_free_buffers;   /* number of fmem free buffers */
-   unsigned n_submitted_buffers; /* number of fmem buffers that were submitted;
-                                  waiting on all the completion callbacks in this client,
-                                  will free these buffers back to the pool */
+   unsigned num_free_buffers;       /* number of fmem free buffers */
+   unsigned num_flushed_buffers;    /* number of fmem buffers that will become free after waiting */
+   khrn_fmem_buffer* free_buffers;
+   khrn_fmem_buffer buffers[KHRN_FMEM_MAX_BLOCKS];
 
 } khrn_fmem_client_pool;
 
@@ -32,262 +31,255 @@ bool khrn_fmem_client_pool_init(void)
    if (vcos_mutex_create(&client_pool.lock, "client_pool.lock") != VCOS_SUCCESS)
       return false;
 
-   for (unsigned i = 0; i < KHRN_FMEM_MAX_BLOCKS; i++)
-   {
-      khrn_fmem_buffer* buffer = &client_pool.buffer[i];
-      buffer->in_use = false;
-      buffer->bytes_used = ~0u;
-      buffer->cpu_address = NULL;
-      buffer->handle = GMEM_HANDLE_INVALID;
-   }
+   memset(client_pool.buffers, 0, sizeof(client_pool.buffers));
+   for (unsigned i = 1; i != KHRN_FMEM_MAX_BLOCKS; ++i)
+      client_pool.buffers[i-1].next_free = &client_pool.buffers[i];
+   client_pool.free_buffers = client_pool.buffers;
 
-   client_pool.n_free_buffers = KHRN_FMEM_MAX_BLOCKS;
-   client_pool.n_submitted_buffers = 0;
+   client_pool.num_free_buffers = KHRN_FMEM_MAX_BLOCKS;
+   client_pool.num_flushed_buffers = 0;
 
    return true;
 }
 
 void khrn_fmem_client_pool_deinit(void)
 {
+   assert(client_pool.num_free_buffers == KHRN_FMEM_MAX_BLOCKS);
+
    for (unsigned i = 0; i < KHRN_FMEM_MAX_BLOCKS; i++)
    {
-      khrn_fmem_buffer* buffer = &client_pool.buffer[i];
-      assert(!buffer->in_use);
-      if (buffer->handle != GMEM_HANDLE_INVALID)
-      {
-         assert(buffer->cpu_address != NULL);
-         gmem_free(buffer->handle);
-      }
+      khrn_fmem_buffer* buf = &client_pool.buffers[i];
+      assert(buf->num_users == 0 && buf->bytes_used == 0 && buf->state == KHRN_FMEM_BUFFER_FREE);
+      gmem_free(buf->handle);
    }
+
    vcos_mutex_delete(&client_pool.lock);
 }
 
-/* get a free buffer from the client_pool if possible, return NULL otherwise */
-static khrn_fmem_buffer* client_pool_get_buffer(void)
+// must hold client_pool.lock.
+static inline void client_pool_buffer_add_to_free_list(khrn_fmem_buffer* buf)
 {
-   khrn_fmem_buffer *buffer = NULL;
-
-   vcos_mutex_lock(&client_pool.lock);
-
-   if (client_pool.n_free_buffers == 0)
-      goto end;
-
-   for (unsigned i = 0; i < KHRN_FMEM_MAX_BLOCKS; i++)
-   {
-      if (!client_pool.buffer[i].in_use)
-      {
-         client_pool.buffer[i].in_use = true;
-         buffer = &client_pool.buffer[i];
-         client_pool.n_free_buffers--;
-         break;
-      }
-   }
-
-end:
-   vcos_mutex_unlock(&client_pool.lock);
-   return buffer;
-}
-
-/*
-   Release a buffer  back to the client fmem pool,
-   was_submitted is true if this buffer became free after it was flushed, false
-   if we've not submitted this buffer;
-*/
-static void client_pool_release_buffer(khrn_fmem_buffer *buffer, bool was_submitted)
-{
-   vcos_mutex_lock(&client_pool.lock);
-   buffer->in_use = false;
-   client_pool.n_free_buffers++;
-   if (was_submitted)
-      client_pool.n_submitted_buffers--;
-   vcos_mutex_unlock(&client_pool.lock);
-}
-
-static void client_pool_add_submitted_buffers(unsigned count)
-{
-   vcos_mutex_lock(&client_pool.lock);
-   assert(client_pool.n_submitted_buffers + client_pool.n_free_buffers +
-         count <= KHRN_FMEM_MAX_BLOCKS);
-   client_pool.n_submitted_buffers += count;
-   vcos_mutex_unlock(&client_pool.lock);
-}
-
-unsigned khrn_fmem_client_pool_get_num_free_and_submitted()
-{
-   vcos_mutex_lock(&client_pool.lock);
-   unsigned count = client_pool.n_submitted_buffers + client_pool.n_free_buffers;
-   vcos_mutex_unlock(&client_pool.lock);
-   return count;
+   assert(buf->state == KHRN_FMEM_BUFFER_ASSIGNED || buf->state == KHRN_FMEM_BUFFER_FLUSHED);
+   buf->state = KHRN_FMEM_BUFFER_FREE;
+   buf->next_free = client_pool.free_buffers;
+   client_pool.free_buffers = buf;
+   client_pool.num_free_buffers += 1;
+   assert(client_pool.num_free_buffers <= KHRN_FMEM_MAX_BLOCKS);
 }
 
 void khrn_fmem_pool_init(khrn_fmem_pool *pool, khrn_render_state *render_state)
 {
-   pool->n_buffers = 0;
-   pool->buffers_submitted = false;
+   pool->num_blocks = 0;
+   pool->render_state = render_state;
+   pool->submitted = false;
+   debug_only(pool->begin_allocs = 0);
 }
 
-void khrn_fmem_pool_deinit(khrn_fmem_pool *pool)
+void khrn_fmem_pool_term(khrn_fmem_pool *pool)
 {
-   for (unsigned i = 0; i < pool->n_buffers; i++)
+   assert(pool->begin_allocs == 0);
+
+   vcos_mutex_lock(&client_pool.lock);
+
+   for (unsigned i = 0; i != pool->num_blocks; ++i)
    {
-      client_pool_release_buffer(pool->buffer[i], pool->buffers_submitted);
+      khrn_fmem_buffer* buf = &client_pool.buffers[pool->blocks[i].buf_index];
+
+      assert(buf->num_users > 0);
+      buf->num_users -= 1;
+
+      // Add back to the free list if pool is unsubmitted (buf is assigned to this pool).
+      assert(pool->submitted || buf->state == KHRN_FMEM_BUFFER_ASSIGNED);
+      bool add_to_free_list = !pool->submitted;
+
+      // Reset buffer if no outstanding users.
+      if (!buf->num_users)
+      {
+         if (buf->state == KHRN_FMEM_BUFFER_FLUSHED)
+         {
+            assert(client_pool.num_flushed_buffers > 0);
+            client_pool.num_flushed_buffers -= 1;
+            add_to_free_list = true;
+         }
+         buf->bytes_used = 0;
+      }
+
+      if (add_to_free_list)
+         client_pool_buffer_add_to_free_list(buf);
+   }
+
+   vcos_mutex_unlock(&client_pool.lock);
+}
+
+static khrn_fmem_buffer* wait_for_free_buffer_locked(void)
+{
+   for (bool try_wait = true; ;)
+   {
+      khrn_fmem_buffer* buf = client_pool.free_buffers;
+      if (buf)
+      {
+         if (buf->handle)
+            return buf;
+
+         buf->handle = gmem_alloc_and_map(KHRN_FMEM_BUFFER_SIZE, KHRN_FMEM_ALIGN_MAX, GMEM_USAGE_V3D_READ, "Fmem buffer");
+         if (buf->handle)
+            return buf;
+      }
+
+      // If no buffers we can wait for.
+      if (!client_pool.num_flushed_buffers)
+      {
+         // Give up if no free buffers now.
+         if (!buf)
+         {
+            log_warn("All fmem buffer slots are in use.");
+            return NULL;
+         }
+
+         // Give up if there's nothing to wait for.
+         if (!try_wait)
+         {
+            log_warn("All allocated fmem buffers are in use.");
+            return NULL;
+         }
+      }
+
+      // Wait for either one of our buffers or gmem to become free.
+      vcos_mutex_unlock(&client_pool.lock);
+      try_wait = v3d_scheduler_wait_any();
+      vcos_mutex_lock(&client_pool.lock);
    }
 }
 
-void* khrn_fmem_pool_alloc(khrn_fmem_pool *pool)
+khrn_fmem_buffer* khrn_fmem_pool_begin_alloc(khrn_fmem_pool *pool, uint32_t min_size, uint32_t align)
 {
-   assert(!pool->buffers_submitted);
+   assert(!pool->submitted);
 
-   khrn_fmem_buffer *buffer = client_pool_get_buffer();
-   if (buffer == NULL)
+   vcos_mutex_lock(&client_pool.lock);
+
+    /* If we are getting low on fmems, flush others render states except
+     * ourselves. Flushing a render state increases the number of submitted
+     * buffers. Don't do this if we're currently flushing unless we really
+     * ran out of buffers. */
+   assert(pool->render_state->flush_state != KHRN_RENDER_STATE_FLUSH_ALLOWED);
+   unsigned threshold = pool->render_state->flush_state == KHRN_RENDER_STATE_FLUSHING ? 1u : KHRN_FMEM_THRESHOLD_FLUSH_OTHER_RS;
+   while (client_pool.num_free_buffers + client_pool.num_flushed_buffers < threshold)
    {
-      /* no free buffers, see if we have some submitted ones that we can wait
-       * for to become free */
-      if (khrn_fmem_client_pool_get_num_free_and_submitted() != 0)
+      vcos_mutex_unlock(&client_pool.lock);
+      bool flushed = khrn_render_state_flush_oldest_possible();
+      vcos_mutex_lock(&client_pool.lock);
+      if (!flushed)
+         break;
+   }
+
+   khrn_fmem_buffer* buf;
+   for (; ; )
+   {
+      buf = wait_for_free_buffer_locked();
+      if (!buf)
+         break;
+
+      // Remove from free-list.
+      assert(client_pool.num_free_buffers > 0);
+      client_pool.num_free_buffers -= 1;
+      client_pool.free_buffers = buf->next_free;
+      buf->next_free = NULL;
+
+      // Check buffer is large enough.
+      assert(min_size <= KHRN_FMEM_BUFFER_SIZE);
+      assert(align <= KHRN_FMEM_ALIGN_MAX && gfx_is_power_of_2(align));
+      uint32_t offset = (buf->bytes_used + (align - 1)) & ~(align - 1);
+      if ((offset + min_size) <= KHRN_FMEM_BUFFER_SIZE)
       {
-         do
-         {
-            bool all_finalised = !v3d_scheduler_wait_any();
-            buffer = client_pool_get_buffer();
-            assert(buffer || !all_finalised);
-         }while(buffer == NULL);
+         buf->state = KHRN_FMEM_BUFFER_ASSIGNED;
+         buf->num_users += 1;
+         debug_only(pool->begin_allocs += 1);
+         break;
       }
+
+      // Buffer wasn't large enough, so simply transition to flushed state.
+      assert(buf->num_users > 0 && buf->bytes_used > 0);
+      client_pool.num_flushed_buffers += 1;
+      buf->state = KHRN_FMEM_BUFFER_FLUSHED;
+   }
+
+   vcos_mutex_unlock(&client_pool.lock);
+   return buf;
+}
+
+void khrn_fmem_pool_end_alloc(khrn_fmem_pool *pool, khrn_fmem_buffer* buf, uint32_t bytes_used)
+{
+   assert(buf->state == KHRN_FMEM_BUFFER_ASSIGNED);
+   assert(bytes_used >= buf->bytes_used && bytes_used <= KHRN_FMEM_BUFFER_SIZE);
+   assert(pool->begin_allocs > 0);
+   debug_only(pool->begin_allocs -= 1);
+
+   // Need to store approximate range of buffer used for cpu flushing.
+   // The buffer bytes-used is updated when the pool is submitted.
+   assert(pool->num_blocks < countof(pool->blocks));
+   khrn_fmem_buffer_block* block = &pool->blocks[pool->num_blocks++];
+   block->buf_index = gfx_bits(buf - client_pool.buffers, 8);
+   block->start64 = gfx_bits(buf->bytes_used / 64, 12);
+   block->end64 = gfx_bits((bytes_used + 63) / 64, 12);
+}
+
+void khrn_fmem_pool_cpu_flush(khrn_fmem_pool* pool)
+{
+   assert(pool->begin_allocs == 0);
+
+   for (unsigned i = 0; i != pool->num_blocks; ++i)
+   {
+      // OK to access handle without the lock as this is immutable.
+      khrn_fmem_buffer_block* block = &pool->blocks[i];
+      gmem_handle_t handle = client_pool.buffers[block->buf_index].handle;
+      gmem_flush_mapped_range(handle, (uint32_t)block->start64 * 64, (uint32_t)(block->end64 - block->start64) * 64);
+   }
+}
+
+void khrn_fmem_pool_on_submit(khrn_fmem_pool *pool)
+{
+   assert(pool->begin_allocs == 0);
+   assert(!pool->submitted);
+   pool->submitted = true;
+
+   vcos_mutex_lock(&client_pool.lock);
+
+   for (unsigned i = 0; i != pool->num_blocks; ++i)
+   {
+      khrn_fmem_buffer_block *block = &pool->blocks[i];
+      khrn_fmem_buffer *buf = &client_pool.buffers[block->buf_index];
+
+      // Update the number of bytes used from this buffer.
+      assert(buf->state == KHRN_FMEM_BUFFER_ASSIGNED);
+      buf->bytes_used = (uint32_t)block->end64 * 64;
+
+      // If there's enough space remaining, then add it back to the free list.
+      if (buf->bytes_used <= (KHRN_FMEM_BUFFER_SIZE*15)/16)
+         client_pool_buffer_add_to_free_list(buf);
       else
       {
-         log_warn("%s: all fmems are in use", __FUNCTION__);
-         return NULL;
+         client_pool.num_flushed_buffers += 1;
+         buf->state = KHRN_FMEM_BUFFER_FLUSHED;
       }
    }
 
-   if (buffer->handle == GMEM_HANDLE_INVALID)
-   {
-      buffer->handle = gmem_alloc(KHRN_FMEM_BUFFER_SIZE, KHRN_FMEM_ALIGN_MAX,
-            GMEM_USAGE_V3D_READ, "Fmem buffer");
-      if (buffer->handle == GMEM_HANDLE_INVALID)
-      {
-         log_error("[%s] gmem_alloc failed", __FUNCTION__);
-         goto fail;
-      }
-
-      assert(buffer->cpu_address == NULL);
-      buffer->cpu_address = gmem_map_and_get_ptr(buffer->handle);
-      if (!buffer->cpu_address)
-      {
-         gmem_free(buffer->handle);
-         buffer->handle = GMEM_HANDLE_INVALID;
-         goto fail;
-      }
-   }
-
-   buffer->hw_address = gmem_get_addr(buffer->handle);
-
-   pool->buffer[pool->n_buffers++] = buffer;
-   buffer->bytes_used = ~0u;
-   return buffer->cpu_address;
-
-fail:
-   client_pool_release_buffer(buffer, false);
-   return NULL;
+   vcos_mutex_unlock(&client_pool.lock);
 }
 
-void khrn_fmem_pool_post_cpu_write(khrn_fmem_pool* pool)
-{
-   for (unsigned i=0; i < pool->n_buffers; i++)
-   {
-      khrn_fmem_buffer *buffer = pool->buffer[i];
-      assert(buffer->bytes_used != ~0u);
-      gmem_flush_mapped_range(buffer->handle, 0, buffer->bytes_used);
-   }
-}
-
-void khrn_fmem_pool_submit(
+#if KHRN_DEBUG
+void khrn_fmem_pool_add_to_memaccess(
    khrn_fmem_pool *pool,
-#if KHRN_DEBUG
    khrn_memaccess* memaccess,
+   v3d_barrier_flags bin_rw_flags,
+   v3d_barrier_flags render_rw_flags)
+{
+   assert(pool->begin_allocs == 0);
+
+   for (unsigned i = 0; i != pool->num_blocks; ++i)
+   {
+      khrn_fmem_buffer_block* block = &pool->blocks[i];
+      gmem_handle_t handle = client_pool.buffers[block->buf_index].handle;
+      khrn_memaccess_add_buffer(memaccess, handle, bin_rw_flags, render_rw_flags);
+   }
+}
 #endif
-   v3d_barrier_flags* bin_rw_flags,
-   v3d_barrier_flags* render_rw_flags)
-{
-   // Be conservative with read flags since all sorts of data can live in fmem.
-   v3d_barrier_flags common_rw_flags =
-         V3D_BARRIER_CLE_CL_READ
-      |  V3D_BARRIER_CLE_SHADREC_READ
-      |  V3D_BARRIER_VCD_READ
-      |  V3D_BARRIER_QPU_INSTR_READ
-      |  V3D_BARRIER_QPU_UNIF_READ
-      |  V3D_BARRIER_TMU_CONFIG_READ
-      |  V3D_BARRIER_TMU_DATA_READ;
-
-   *bin_rw_flags =
-         common_rw_flags
-      |  V3D_BARRIER_CLE_PRIMIND_READ
-      |  V3D_BARRIER_CLE_DRAWREC_READ;
-
-   *render_rw_flags =
-         common_rw_flags
-       | V3D_BARRIER_TLB_IMAGE_READ;
-
-#if KHRN_DEBUG
-   if (memaccess)
-   {
-      for (unsigned i=0; i < pool->n_buffers; i++)
-      {
-         khrn_fmem_buffer *buffer = pool->buffer[i];
-         khrn_memaccess_add_buffer(memaccess, buffer->handle, *bin_rw_flags, *render_rw_flags);
-      }
-   }
-#endif
-
-   assert(pool->buffers_submitted == false);
-   pool->buffers_submitted = true;
-   client_pool_add_submitted_buffers(pool->n_buffers);
-}
-
-static bool buffer_contains(const khrn_fmem_buffer *buffer, const void *address)
-{
-   uintptr_t offset = (uintptr_t)address - (uintptr_t)buffer->cpu_address;
-   return offset < KHRN_FMEM_BUFFER_SIZE;
-}
-
-static khrn_fmem_buffer *get_buffer_containing(const khrn_fmem_pool *pool, const void *address)
-{
-   static unsigned lastMatchedBufIndx = 0;
-
-   if (lastMatchedBufIndx >= pool->n_buffers)
-      lastMatchedBufIndx = 0;
-
-   /* high probability that the match is the previous, so start here and scan to end */
-   for (unsigned i = lastMatchedBufIndx; i != pool->n_buffers; i++)
-   {
-      if (buffer_contains(pool->buffer[i], address))
-      {
-         lastMatchedBufIndx = i;
-         return pool->buffer[i];
-      }
-   }
-
-   /* scan from start to lastMatchedBufIndx */
-   for (unsigned i = 0; i != lastMatchedBufIndx; i++)
-   {
-      if (buffer_contains(pool->buffer[i], address))
-      {
-         lastMatchedBufIndx = i;
-         return pool->buffer[i];
-      }
-   }
-   unreachable();
-   return NULL;
-}
-
-v3d_addr_t khrn_fmem_pool_hw_address(khrn_fmem_pool *pool, const void *address)
-{
-   khrn_fmem_buffer *buffer = get_buffer_containing(pool, address);
-   return buffer->hw_address + ((char *)address - (char *)buffer->cpu_address);
-}
-
-void khrn_fmem_pool_finalise_end(khrn_fmem_pool *pool, void *address)
-{
-   khrn_fmem_buffer *buffer = get_buffer_containing(pool, address);
-   assert(buffer->bytes_used == ~0u);
-   buffer->bytes_used = (char*)address - (char*)buffer->cpu_address;
-}

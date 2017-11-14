@@ -384,6 +384,7 @@ NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
     case NEXUS_VideoFormat_e4096x2160p30hz:
     case NEXUS_VideoFormat_e4096x2160p50hz:
     case NEXUS_VideoFormat_e4096x2160p60hz:
+    case NEXUS_VideoFormat_eNtsc443:
         BDBG_MSG(("Display VideoFormat %d does not support VBI encoding.", format));
         return 0;
     default:

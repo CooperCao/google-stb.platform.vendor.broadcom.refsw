@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "vcos_types.h"
+#include "libs/util/common.h"
 #include "../demand.h"
 
 #include <stddef.h>

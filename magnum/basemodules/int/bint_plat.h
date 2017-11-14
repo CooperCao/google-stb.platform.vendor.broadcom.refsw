@@ -394,10 +394,12 @@ This is to allow the platform/os specific code to share the L1 registers
 between platform/os specific code and common code which uses the interrupt
 interface.
 */
-void BINT_Isr(
+void BINT_Isr_isr(
               BINT_Handle Handle, /* [in] handle created by BINT_Open */
               int L1Shift /* [in] shift value for L1 interrupt bit to be processed */
               );
+
+#define BINT_Isr BINT_Isr_isr
 
 #ifdef __cplusplus
 }

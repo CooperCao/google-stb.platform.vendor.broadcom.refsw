@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "drm_prdy.h"
 #include "bdbg.h"
@@ -1320,7 +1319,7 @@ DRM_Prdy_Error_e convertDrmResult_Ex(DRM_RESULT result)
 }
 
 ErrorExit:
-    BDBG_WRN(("[WARNING] %s Error Code(%x) is not defined or could not be found \n",__FUNCTION__,result));
+    BDBG_WRN(("[WARNING] %s Error Code(%x) is not defined or could not be found \n",BSTD_FUNCTION,result));
     return DRM_Prdy_fail;
 
 }
@@ -1410,7 +1409,7 @@ bool OEM_OpaqueBufferCreate( OEM_OPAQUE_BUFFER_HANDLE    *f_phBuf )
 
 ErrorExit:
     SAFE_OEM_FREE( pBuf );
-    BDBG_ERR(("%s: OEM_OpaqueBufferCreate failed [0x%X], exiting...", __FUNCTION__,dr));
+    BDBG_ERR(("%s: OEM_OpaqueBufferCreate failed [0x%X], exiting...", BSTD_FUNCTION,dr));
     return false;
 }
 
@@ -1451,7 +1450,7 @@ bool OEM_OpaqueBufferCreateWithData(
 ErrorExit:
     SAFE_OEM_FREE( pBuf );
     /*SAFE_OEM_FREE( pbData );*/
-    BDBG_ERR(("%s: OEM_OpaqueBufferCreateWithData failed [0x%X], exiting...\n", __FUNCTION__,dr));
+    BDBG_ERR(("%s: OEM_OpaqueBufferCreateWithData failed [0x%X], exiting...\n", BSTD_FUNCTION,dr));
     return false;
 }
 
@@ -1492,7 +1491,7 @@ bool load_revocation_list(
     fRev = fopen(revListFile, "rb");
     if( fRev == NULL)
     {
-        BDBG_WRN(("[WARNING] %s %d: Failed to open %s \n",__FUNCTION__,__LINE__,revListFile));
+        BDBG_WRN(("[WARNING] %s %d: Failed to open %s \n",BSTD_FUNCTION,__LINE__,revListFile));
         return true;
     }
 
@@ -1504,7 +1503,7 @@ bool load_revocation_list(
     revBuf = BKNI_Malloc(fileSize);
     if( revBuf == NULL)
     {
-        BDBG_ERR(("%s: Failed to allocate memory.\n",__FUNCTION__));
+        BDBG_ERR(("%s: Failed to allocate memory.\n",BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -1550,7 +1549,7 @@ DRM_RESULT DRM_API DRM_Prdy_policy_callback(
 {
     PRDY_APP_CONTEXT  *pPrdyContext = (PRDY_APP_CONTEXT  *)f_pv;
     DRM_RESULT rc = DRM_SUCCESS;
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
     DRM_Prdy_policy_t *policy = NULL;
     DRM_PLAY_OPL_EX2 *pPolicyData=NULL;
 
@@ -1641,7 +1640,7 @@ DRM_RESULT DRM_API DRM_Prdy_policy_callback(
             break;
     }
 
-    BDBG_MSG(("%s: Exiting, rc %d.\n", __FUNCTION__, rc));
+    BDBG_MSG(("%s: Exiting, rc %d.\n", BSTD_FUNCTION, rc));
     return rc;
 }
 
@@ -1649,7 +1648,7 @@ void* DRM_Prdy_GetDrmAppContext(DRM_Prdy_Handle_t handle)
 {
     PRDY_APP_CONTEXT  *pPrdyCxt = (PRDY_APP_CONTEXT*)handle;
     if(pPrdyCxt == NULL) {
-        BDBG_ERR(("%s - Given handle is null\n", __FUNCTION__));
+        BDBG_ERR(("%s - Given handle is null\n", BSTD_FUNCTION));
         return NULL;
     }
 
@@ -1658,12 +1657,12 @@ void* DRM_Prdy_GetDrmAppContext(DRM_Prdy_Handle_t handle)
 
 void DRM_Prdy_GetDefaultParamSettings( DRM_Prdy_Init_t *pPrdyParamSettings)
 {
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
     BDBG_ASSERT(pPrdyParamSettings != NULL);
 
     BKNI_Memset(pPrdyParamSettings, 0x00, sizeof(DRM_Prdy_Init_t));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
 }
 
 DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
@@ -1674,12 +1673,12 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     NEXUS_ClientConfiguration platformConfig;
     char *             revFile = NULL;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     /* initialize the PRDY_APP_CONTEXT */
     pPrdyCxt = Oem_MemAlloc(sizeof(PRDY_APP_CONTEXT));
     if( pPrdyCxt == NULL ) {
-        BDBG_ERR(("%s: Prdy Context alloc failed\n", __FUNCTION__));
+        BDBG_ERR(("%s: Prdy Context alloc failed\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
     BKNI_Memset(pPrdyCxt, 0, sizeof(PRDY_APP_CONTEXT));
@@ -1691,7 +1690,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
 
     /* initialize the DRM_APP_CONTEXT */
     pPrdyCxt->pDrmAppCtx = Oem_MemAlloc(SIZEOF(DRM_APP_CONTEXT));
-    BDBG_MSG(("%s: allocated DrmAppCtx %p size %u",__FUNCTION__,pPrdyCxt->pDrmAppCtx,(SIZEOF(DRM_APP_CONTEXT))));
+    BDBG_MSG(("%s: allocated DrmAppCtx %p size %u",BSTD_FUNCTION,pPrdyCxt->pDrmAppCtx,(SIZEOF(DRM_APP_CONTEXT))));
     ChkMem(pPrdyCxt->pDrmAppCtx);
     ZEROMEM( ( uint8_t * )pPrdyCxt->pDrmAppCtx, SIZEOF( DRM_APP_CONTEXT));
 
@@ -1700,7 +1699,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.binFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
-        BDBG_MSG(("%s: allocated binFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.binFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
+        BDBG_MSG(("%s: allocated binFileName %p size %u",BSTD_FUNCTION,pPrdyCxt->oemSettings.binFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->binFileName, pPrdyCxt->oemSettings.binFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.binFileName);
@@ -1712,7 +1711,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.keyFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
-        BDBG_MSG(("%s: allocated keyFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.keyFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
+        BDBG_MSG(("%s: allocated keyFileName %p size %u",BSTD_FUNCTION,pPrdyCxt->oemSettings.keyFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->keyFileName, pPrdyCxt->oemSettings.keyFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.keyFileName);
@@ -1724,7 +1723,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.keyHistoryFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
-        BDBG_MSG(("%s: allocated keyHistoryFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.keyHistoryFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
+        BDBG_MSG(("%s: allocated keyHistoryFileName %p size %u",BSTD_FUNCTION,pPrdyCxt->oemSettings.keyHistoryFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->keyHistoryFileName, pPrdyCxt->oemSettings.keyHistoryFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.keyHistoryFileName);
@@ -1736,7 +1735,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.defaultRWDirName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
-        BDBG_MSG(("%s: allocated defaultRWDirName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.defaultRWDirName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
+        BDBG_MSG(("%s: allocated defaultRWDirName %p size %u",BSTD_FUNCTION,pPrdyCxt->oemSettings.defaultRWDirName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->defaultRWDirName, pPrdyCxt->oemSettings.defaultRWDirName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.defaultRWDirName);
@@ -1749,7 +1748,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     if (platformConfig.heap[NXCLIENT_FULL_HEAP])
     {
         NEXUS_HeapHandle heap = platformConfig.heap[NXCLIENT_FULL_HEAP];
-        BDBG_MSG(("%s: heap = %p",__FUNCTION__,heap));
+        BDBG_MSG(("%s: heap = %p",BSTD_FUNCTION,heap));
         NEXUS_MemoryStatus heapStatus;
         NEXUS_Heap_GetStatus(heap, &heapStatus);
         if (heapStatus.memoryType & NEXUS_MemoryType_eFull)
@@ -1766,7 +1765,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
 #else
     pPrdyCxt->oemSettings.drmType = BSAGElib_BinFileDrmType_ePlayready;
 #endif
-    BDBG_MSG(("%s:drmType 0x%x", __FUNCTION__,pPrdyCxt->oemSettings.drmType));
+    BDBG_MSG(("%s:drmType 0x%x", BSTD_FUNCTION,pPrdyCxt->oemSettings.drmType));
 #endif
 #endif
     pPrdyCxt->pOEMContext = Drm_Platform_Initialize(&pPrdyCxt->oemSettings);
@@ -1777,8 +1776,8 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     ChkMem( pPrdyCxt->pbOpaqueBuffer = ( uint8_t * )Oem_MemAlloc(MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
     ChkMem( pPrdyCxt->pbRevocationBuffer = ( uint8_t * )Oem_MemAlloc( REVOCATION_BUFFER_SIZE));
 
-    BDBG_MSG(("%s: allocated OpaqueBuffer %p size %u", __FUNCTION__, pPrdyCxt->pbOpaqueBuffer, MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
-    BDBG_MSG(("%s: allocated RevocationBuffer %p size %u", __FUNCTION__, pPrdyCxt->pbRevocationBuffer, REVOCATION_BUFFER_SIZE));
+    BDBG_MSG(("%s: allocated OpaqueBuffer %p size %u", BSTD_FUNCTION, pPrdyCxt->pbOpaqueBuffer, MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
+    BDBG_MSG(("%s: allocated RevocationBuffer %p size %u", BSTD_FUNCTION, pPrdyCxt->pbRevocationBuffer, REVOCATION_BUFFER_SIZE));
 
     /* Drm_Initialize */
     sDstrHDSPath.pwszString = sRgwchHDSPath;
@@ -1807,14 +1806,14 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
             goto ErrorExit;
         }
     }
-   BDBG_MSG(("%s calling Drm_Initialize DrmAppCtx %p pOEMContext %p ",__FUNCTION__,pPrdyCxt->pDrmAppCtx, pPrdyCxt->pOEMContext));
+   BDBG_MSG(("%s calling Drm_Initialize DrmAppCtx %p pOEMContext %p ",BSTD_FUNCTION,pPrdyCxt->pDrmAppCtx, pPrdyCxt->pOEMContext));
    /* TODO: perform synchronous activation if Drm_Initialize fails */
    ChkDR( Drm_Initialize( pPrdyCxt->pDrmAppCtx,
                           pPrdyCxt->pOEMContext,
                           pPrdyCxt->pbOpaqueBuffer,
                           pPrdyCxt->cbOpaqueBuffer,
                           &sDstrHDSPath) );
-   BDBG_MSG(("%s calling Drm_Revocation_SetBuffer pPrdyCxt->pDrmAppCtx %p",__FUNCTION__,pPrdyCxt->pDrmAppCtx));
+   BDBG_MSG(("%s calling Drm_Revocation_SetBuffer pPrdyCxt->pDrmAppCtx %p",BSTD_FUNCTION,pPrdyCxt->pDrmAppCtx));
    ChkDR( Drm_Revocation_SetBuffer( pPrdyCxt->pDrmAppCtx,
                                     pPrdyCxt->pbRevocationBuffer,
                                     REVOCATION_BUFFER_SIZE ) );
@@ -1840,11 +1839,11 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     Oem_Clock_SetSystemTime( &poAppContextInternal->oBlackBoxContext, &systemTime);
    }
 #endif
-   BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+   BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
    return (DRM_Prdy_Handle_t ) pPrdyCxt;
 
 ErrorExit:
-   BDBG_ERR(("%s: Exiting with error [0x%X].\n", __FUNCTION__,(unsigned int)dr));
+   BDBG_ERR(("%s: Exiting with error [0x%X].\n", BSTD_FUNCTION,(unsigned int)dr));
    if( pPrdyCxt != NULL)
        DRM_Prdy_Uninitialize( pPrdyCxt);
    return NULL;
@@ -1858,12 +1857,12 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     NEXUS_ClientConfiguration platformConfig;
     char *             revFile = NULL;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     /* initialize the PRDY_APP_CONTEXT */
     pPrdyCxt = Oem_MemAlloc(sizeof(PRDY_APP_CONTEXT));
     if( pPrdyCxt == NULL ) {
-        BDBG_ERR(("%s: Prdy Context alloc failed\n", __FUNCTION__));
+        BDBG_ERR(("%s: Prdy Context alloc failed\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
     BKNI_Memset(pPrdyCxt, 0, sizeof(PRDY_APP_CONTEXT));
@@ -1875,7 +1874,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
 
     /* initialize the DRM_APP_CONTEXT */
     pPrdyCxt->pDrmAppCtx = Oem_MemAlloc(SIZEOF(DRM_APP_CONTEXT));
-    BDBG_MSG(("%s: allocated DrmAppCtx %p size %u",__FUNCTION__,pPrdyCxt->pDrmAppCtx,(SIZEOF(DRM_APP_CONTEXT))));
+    BDBG_MSG(("%s: allocated DrmAppCtx %p size %u",BSTD_FUNCTION,pPrdyCxt->pDrmAppCtx,(SIZEOF(DRM_APP_CONTEXT))));
     ChkMem(pPrdyCxt->pDrmAppCtx);
     ZEROMEM( ( uint8_t * )pPrdyCxt->pDrmAppCtx, SIZEOF( DRM_APP_CONTEXT));
 
@@ -1884,7 +1883,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.binFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
-        BDBG_MSG(("%s: allocated binFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.binFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
+        BDBG_MSG(("%s: allocated binFileName %p size %u",BSTD_FUNCTION,pPrdyCxt->oemSettings.binFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->binFileName, pPrdyCxt->oemSettings.binFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.binFileName);
@@ -1896,7 +1895,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.keyFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
-        BDBG_MSG(("%s: allocated keyFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.keyFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
+        BDBG_MSG(("%s: allocated keyFileName %p size %u",BSTD_FUNCTION,pPrdyCxt->oemSettings.keyFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->keyFileName, pPrdyCxt->oemSettings.keyFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.keyFileName);
@@ -1908,7 +1907,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.keyHistoryFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
-        BDBG_MSG(("%s: allocated keyHistoryFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.keyHistoryFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
+        BDBG_MSG(("%s: allocated keyHistoryFileName %p size %u",BSTD_FUNCTION,pPrdyCxt->oemSettings.keyHistoryFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->keyHistoryFileName, pPrdyCxt->oemSettings.keyHistoryFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.keyHistoryFileName);
@@ -1920,7 +1919,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.defaultRWDirName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
-        BDBG_MSG(("%s: allocated defaultRWDirName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.defaultRWDirName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
+        BDBG_MSG(("%s: allocated defaultRWDirName %p size %u",BSTD_FUNCTION,pPrdyCxt->oemSettings.defaultRWDirName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->defaultRWDirName, pPrdyCxt->oemSettings.defaultRWDirName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.defaultRWDirName);
@@ -1933,7 +1932,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     if (platformConfig.heap[NXCLIENT_FULL_HEAP])
     {
         NEXUS_HeapHandle heap = platformConfig.heap[NXCLIENT_FULL_HEAP];
-        BDBG_MSG(("%s: heap = %p",__FUNCTION__,heap));
+        BDBG_MSG(("%s: heap = %p",BSTD_FUNCTION,heap));
         NEXUS_MemoryStatus heapStatus;
         NEXUS_Heap_GetStatus(heap, &heapStatus);
         if (heapStatus.memoryType & NEXUS_MemoryType_eFull)
@@ -1950,7 +1949,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
 #else
     pPrdyCxt->oemSettings.drmType = BSAGElib_BinFileDrmType_ePlayready;
 #endif
-    BDBG_MSG(("%s:drmType 0x%x", __FUNCTION__,pPrdyCxt->oemSettings.drmType));
+    BDBG_MSG(("%s:drmType 0x%x", BSTD_FUNCTION,pPrdyCxt->oemSettings.drmType));
 #endif
 #endif
     pPrdyCxt->pOEMContext = Drm_Platform_Initialize(&pPrdyCxt->oemSettings);
@@ -1961,8 +1960,8 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     ChkMem( pPrdyCxt->pbOpaqueBuffer = ( uint8_t * )Oem_MemAlloc(MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
     ChkMem( pPrdyCxt->pbRevocationBuffer = ( uint8_t * )Oem_MemAlloc( REVOCATION_BUFFER_SIZE));
 
-    BDBG_MSG(("%s: allocated OpaqueBuffer %p size %u", __FUNCTION__, pPrdyCxt->pbOpaqueBuffer, MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
-    BDBG_MSG(("%s: allocated RevocationBuffer %p size %u", __FUNCTION__, pPrdyCxt->pbRevocationBuffer, REVOCATION_BUFFER_SIZE));
+    BDBG_MSG(("%s: allocated OpaqueBuffer %p size %u", BSTD_FUNCTION, pPrdyCxt->pbOpaqueBuffer, MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
+    BDBG_MSG(("%s: allocated RevocationBuffer %p size %u", BSTD_FUNCTION, pPrdyCxt->pbRevocationBuffer, REVOCATION_BUFFER_SIZE));
 
     /* Drm_Initialize */
     sDstrHDSPath.pwszString = sRgwchHDSPath;
@@ -1991,14 +1990,14 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
             goto ErrorExit;
         }
     }
-   BDBG_MSG(("%s calling Drm_Initialize DrmAppCtx %p pOEMContext %p ",__FUNCTION__,pPrdyCxt->pDrmAppCtx, pPrdyCxt->pOEMContext));
+   BDBG_MSG(("%s calling Drm_Initialize DrmAppCtx %p pOEMContext %p ",BSTD_FUNCTION,pPrdyCxt->pDrmAppCtx, pPrdyCxt->pOEMContext));
    /* TODO: perform synchronous activation if Drm_Initialize fails */
    ChkDR( Drm_Initialize( pPrdyCxt->pDrmAppCtx,
                           pPrdyCxt->pOEMContext,
                           pPrdyCxt->pbOpaqueBuffer,
                           pPrdyCxt->cbOpaqueBuffer,
                           &sDstrHDSPath) );
-   BDBG_MSG(("%s calling Drm_Revocation_SetBuffer pPrdyCxt->pDrmAppCtx %p",__FUNCTION__,pPrdyCxt->pDrmAppCtx));
+   BDBG_MSG(("%s calling Drm_Revocation_SetBuffer pPrdyCxt->pDrmAppCtx %p",BSTD_FUNCTION,pPrdyCxt->pDrmAppCtx));
    ChkDR( Drm_Revocation_SetBuffer( pPrdyCxt->pDrmAppCtx,
                                     pPrdyCxt->pbRevocationBuffer,
                                     REVOCATION_BUFFER_SIZE ) );
@@ -2024,13 +2023,13 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Pr
     Oem_Clock_SetSystemTime( &poAppContextInternal->oBlackBoxContext, &systemTime);
    }
 #endif
-   BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+   BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
    *Drm_Prdy_Error = convertDrmResult(DRM_SUCCESS);
    return (DRM_Prdy_Handle_t ) pPrdyCxt;
 
 ErrorExit:
    *Drm_Prdy_Error = convertDrmResult_Ex(dr);
-   BDBG_ERR(("%s: Exiting with error [0x%X] (converted to [%d]).\n", __FUNCTION__,dr, *Drm_Prdy_Error));
+   BDBG_ERR(("%s: Exiting with error [0x%X] (converted to [%d]).\n", BSTD_FUNCTION,dr, *Drm_Prdy_Error));
 
    if( pPrdyCxt != NULL)
        DRM_Prdy_Uninitialize( pPrdyCxt);
@@ -2040,7 +2039,7 @@ ErrorExit:
 
 DRM_Prdy_Error_e DRM_Prdy_Uninitialize(DRM_Prdy_Handle_t  pPrdyContext)
 {
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     if( pPrdyContext->pDrmAppCtx ) {
@@ -2059,7 +2058,7 @@ DRM_Prdy_Error_e DRM_Prdy_Uninitialize(DRM_Prdy_Handle_t  pPrdyContext)
 
     SAFE_OEM_FREE(pPrdyContext);
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 }
 
@@ -2068,7 +2067,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reinitialize(DRM_Prdy_Handle_t  pPrdyContext)
     DRM_RESULT        dr = DRM_SUCCESS;
     DRM_Prdy_Error_e  result = DRM_Prdy_fail;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     if( pPrdyContext->pDrmAppCtx ) {
@@ -2081,7 +2080,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reinitialize(DRM_Prdy_Handle_t  pPrdyContext)
         result = DRM_Prdy_invalid_parameter;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return result;
 }
 
@@ -2096,7 +2095,7 @@ DRM_Prdy_Error_e DRM_Prdy_Get_Buffer_Size(
     DRM_RESULT        dr = DRM_SUCCESS;
     DRM_Prdy_Error_e  result = DRM_Prdy_ok;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
@@ -2256,7 +2255,7 @@ DRM_Prdy_Error_e DRM_Prdy_Get_Buffer_Size(
                 *pData1_size = (uint32_t) cch_ci;
             }
             else {
-                BDBG_ERR(("%s: Drm_Device_GetProperty [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+                BDBG_ERR(("%s: Drm_Device_GetProperty [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
                 result = DRM_Prdy_fail;
             }
         }
@@ -2437,12 +2436,12 @@ DRM_Prdy_Error_e DRM_Prdy_Get_Buffer_Size(
         break;
 
         default:
-            BDBG_ERR(("%s: Unknown buffer type %d \n",__FUNCTION__,chType));
+            BDBG_ERR(("%s: Unknown buffer type %d \n",BSTD_FUNCTION,chType));
             result = DRM_Prdy_fail;
 
     } /* end switch */
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return result;
 }
 
@@ -2455,7 +2454,7 @@ DRM_Prdy_Error_e DRM_Prdy_Content_GetProperty(
     DRM_RESULT        dr = DRM_SUCCESS;
     DRM_Prdy_Error_e  result = DRM_Prdy_ok;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
@@ -2477,7 +2476,7 @@ DRM_Prdy_Error_e DRM_Prdy_Content_GetProperty(
         }
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return result;
 }
 
@@ -2490,7 +2489,7 @@ DRM_Prdy_Error_e DRM_Prdy_Content_SetProperty(
     DRM_RESULT        dr = DRM_SUCCESS;
     DRM_Prdy_Error_e  result = DRM_Prdy_ok;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     dr = Drm_Content_SetProperty(
             pPrdyContext->pDrmAppCtx,
@@ -2512,7 +2511,7 @@ DRM_Prdy_Error_e DRM_Prdy_Content_SetProperty(
         result = DRM_Prdy_fail;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return result;
 }
 
@@ -2520,27 +2519,27 @@ DRM_Prdy_Error_e DRM_Prdy_Get_Protection_Policy(
         DRM_Prdy_Handle_t      pPrdyContext,
         DRM_Prdy_policy_t     *pPolicy)
 {
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
     BDBG_ASSERT(pPrdyContext != NULL);
     DRM_Prdy_Error_e dr = DRM_Prdy_ok;
 
     if( pPolicy == NULL)
     {
-        BDBG_ERR(("%s: pPolicy is NULL, xxiting\n", __FUNCTION__));
+        BDBG_ERR(("%s: pPolicy is NULL, xxiting\n", BSTD_FUNCTION));
         return DRM_Prdy_fail;
     };
 
     if(pPrdyContext->nbOfPolicyQueued == 0) {
-        BDBG_MSG(("%s: no policy found\n", __FUNCTION__));
+        BDBG_MSG(("%s: no policy found\n", BSTD_FUNCTION));
         dr = DRM_Prdy_no_policy;
     }
     else {
-        BDBG_MSG(("%s: policy found\n", __FUNCTION__));
+        BDBG_MSG(("%s: policy found\n", BSTD_FUNCTION));
         pPrdyContext->nbOfPolicyQueued--;
         BKNI_Memcpy(pPolicy, &pPrdyContext->protectionPolicy[pPrdyContext->nbOfPolicyQueued], sizeof(DRM_Prdy_policy_t));
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return dr;
 }
 
@@ -2590,7 +2589,7 @@ static DRM_Prdy_Error_e Drm_Prdy_AllocateDecryptContextKeySlot (
     rc = NEXUS_Memory_Allocate(sizeof(DRM_Prdy_DecryptContextKey_t), &allocSettings, (void *)(pDecryptContextKey));
     if (rc)
     {
-        BDBG_ERR(("%s: Failed to allocate memory %d, exiting...\n", __FUNCTION__,rc));
+        BDBG_ERR(("%s: Failed to allocate memory %d, exiting...\n", BSTD_FUNCTION,rc));
         dr = DRM_Prdy_fail;
         goto ErrorExit;
     }
@@ -2602,7 +2601,7 @@ static DRM_Prdy_Error_e Drm_Prdy_AllocateDecryptContextKeySlot (
     (*pDecryptContextKey)->keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
     if((*pDecryptContextKey)->keySlot == NULL)
     {
-        BDBG_ERR(("%s: Failed to allocate Key Slot, exiting...\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to allocate Key Slot, exiting...\n", BSTD_FUNCTION));
         dr = DRM_Prdy_fail;
         goto ErrorExit;
     }
@@ -2643,7 +2642,7 @@ DRM_Prdy_DecryptContext_t * DRM_Prdy_AllocateDecryptContext (
     CommonCryptoHandle             cryptoHandle=0;
     CommonCryptoSettings           cryptoSettings;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
     NEXUS_Platform_GetClientConfiguration(&platformConfig);
@@ -2662,7 +2661,7 @@ DRM_Prdy_DecryptContext_t * DRM_Prdy_AllocateDecryptContext (
     rc = NEXUS_Memory_Allocate(sizeof(DRM_Prdy_DecryptContext_t), &allocSettings, (void *)(&pDecryptContext));
     if (rc)
     {
-        BDBG_ERR(("%s: Failed to allocate memory %d, exiting...\n", __FUNCTION__,rc));
+        BDBG_ERR(("%s: Failed to allocate memory %d, exiting...\n", BSTD_FUNCTION,rc));
         goto ErrorExit;
     }
     BKNI_Memset(pDecryptContext, 0, sizeof(*pDecryptContext));
@@ -2691,12 +2690,12 @@ DRM_Prdy_DecryptContext_t * DRM_Prdy_AllocateDecryptContext (
 
     if(CommonCrypto_LoadKeyConfig(cryptoHandle, &algSettings) != NEXUS_SUCCESS)
     {
-        BDBG_ERR(("%s - CommonCrypto_ConfigAlg failed aes ctr\n", __FUNCTION__));
+        BDBG_ERR(("%s - CommonCrypto_ConfigAlg failed aes ctr\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     CommonCrypto_Close(cryptoHandle);
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return pDecryptContext;
 
 ErrorExit:
@@ -2704,7 +2703,7 @@ ErrorExit:
     if(pDecryptContext->pKeyContext) Drm_Prdy_FreeDecryptContextKeySlot(pDecryptContext->pKeyContext);
     if(pDecryptContext->pDecrypt) Oem_MemFree(pDecryptContext->pDecrypt);
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return NULL;
 }
 
@@ -2718,17 +2717,17 @@ DRM_Prdy_Error_e  DRM_Prdy_SetDecryptContext (
     CommonCryptoHandle             cryptoHandle=0;
     CommonCryptoSettings           cryptoSettings;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     if( pDecryptContext == NULL )
     {
-        BDBG_ERR(("%s: Decrypt Context is NULL, exiting...\n", __FUNCTION__));
+        BDBG_ERR(("%s: Decrypt Context is NULL, exiting...\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     if( pDecryptContext->pKeyContext != NULL )
     {
-        BDBG_ERR(("%s: Decrypt Context key slot is already allocated...\n", __FUNCTION__));
+        BDBG_ERR(("%s: Decrypt Context key slot is already allocated...\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -2753,19 +2752,19 @@ DRM_Prdy_Error_e  DRM_Prdy_SetDecryptContext (
 
     if(CommonCrypto_LoadKeyConfig(cryptoHandle, &algSettings) != NEXUS_SUCCESS)
     {
-        BDBG_ERR(("%s - CommonCrypto_ConfigAlg failed aes ctr\n", __FUNCTION__));
+        BDBG_ERR(("%s - CommonCrypto_ConfigAlg failed aes ctr\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     CommonCrypto_Close(cryptoHandle);
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
     if(cryptoHandle) CommonCrypto_Close(cryptoHandle);
     if(pDecryptContext->pKeyContext) Drm_Prdy_FreeDecryptContextKeySlot(pDecryptContext->pKeyContext);
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_fail;
 }
 
@@ -2793,7 +2792,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Bind(
     uint8_t                *pbNewOpaqueBuffer = NULL;
     const DRM_CONST_STRING *rgstrRights[ 1 ] = { &g_dstrWMDRM_RIGHT_PLAYBACK };
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pDecryptContext != NULL);
@@ -2840,32 +2839,32 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Bind(
     if (DRM_FAILED( dr )) {
         if (dr == DRM_E_LICENSE_NOT_FOUND) {
             /* could not find a license for the KID */
-            BDBG_ERR(("%s: no licenses found in the license store. Please request one from the license server.\n", __FUNCTION__));
+            BDBG_ERR(("%s: no licenses found in the license store. Please request one from the license server.\n", BSTD_FUNCTION));
             result = DRM_Prdy_license_not_found;
         }
         else if(dr == DRM_E_LICENSE_EXPIRED) {
             /* License is expired */
-            BDBG_ERR(("%s: License expired. Please request one from the license server.\n", __FUNCTION__));
+            BDBG_ERR(("%s: License expired. Please request one from the license server.\n", BSTD_FUNCTION));
             result = DRM_Prdy_license_expired;
         }
         else if(  dr == DRM_E_RIV_TOO_SMALL ||
                   dr == DRM_E_LICEVAL_REQUIRED_REVOCATION_LIST_NOT_AVAILABLE )
         {
             /* Revocation Package must be update */
-            BDBG_ERR(("%s: Revocation Package must be update. 0x%x\n", __FUNCTION__,(unsigned int)dr));
+            BDBG_ERR(("%s: Revocation Package must be update. 0x%x\n", BSTD_FUNCTION,(unsigned int)dr));
             result = DRM_Prdy_revocation_package_expired;
         }
         else {
-            BDBG_ERR(("%s: unexpected failure during bind. 0x%x\n", __FUNCTION__,(unsigned int)dr));
+            BDBG_ERR(("%s: unexpected failure during bind. 0x%x\n", BSTD_FUNCTION,(unsigned int)dr));
             result = DRM_Prdy_fail;
         }
     }
 
-   BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+   BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
    return result;
 
 ErrorExit:
-   BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+   BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
    if( pDecryptContext->pDecrypt != NULL) {
        SAFE_OEM_FREE(pDecryptContext->pDecrypt);
    }
@@ -2889,7 +2888,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Bind_Netflix(
     uint8_t                *pbNewOpaqueBuffer = NULL;
     const DRM_CONST_STRING *rgstrRights[ 1 ] = { &g_dstrWMDRM_RIGHT_PLAYBACK };
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pDecryptContext != NULL);
@@ -2937,32 +2936,32 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Bind_Netflix(
     if (DRM_FAILED( dr )) {
         if (dr == DRM_E_LICENSE_NOT_FOUND) {
             /* could not find a license for the KID */
-            BDBG_ERR(("%s: no licenses found in the license store. Please request one from the license server.\n", __FUNCTION__));
+            BDBG_ERR(("%s: no licenses found in the license store. Please request one from the license server.\n", BSTD_FUNCTION));
             result = DRM_Prdy_license_not_found;
         }
         else if(dr == DRM_E_LICENSE_EXPIRED) {
             /* License is expired */
-            BDBG_ERR(("%s: License expired. Please request one from the license server.\n", __FUNCTION__));
+            BDBG_ERR(("%s: License expired. Please request one from the license server.\n", BSTD_FUNCTION));
             result = DRM_Prdy_license_expired;
         }
         else if(  dr == DRM_E_RIV_TOO_SMALL ||
                   dr == DRM_E_LICEVAL_REQUIRED_REVOCATION_LIST_NOT_AVAILABLE )
         {
             /* Revocation Package must be update */
-            BDBG_ERR(("%s: Revocation Package must be update. 0x%x\n", __FUNCTION__,(unsigned int)dr));
+            BDBG_ERR(("%s: Revocation Package must be update. 0x%x\n", BSTD_FUNCTION,(unsigned int)dr));
             result = DRM_Prdy_revocation_package_expired;
         }
         else {
-            BDBG_ERR(("%s: unexpected failure during bind. 0x%x\n", __FUNCTION__,(unsigned int)dr));
+            BDBG_ERR(("%s: unexpected failure during bind. 0x%x\n", BSTD_FUNCTION,(unsigned int)dr));
             result = DRM_Prdy_fail;
         }
     }
 
-   BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+   BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
    return result;
 
 ErrorExit:
-   BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+   BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
    if( pDecryptContext->pDecrypt != NULL) {
        SAFE_OEM_FREE(pDecryptContext->pDecrypt);
    }
@@ -2988,7 +2987,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Bind_Netflix_WCK(
     uint8_t                *pbNewOpaqueBuffer = NULL;
     const DRM_CONST_STRING *rgstrRights[ 1 ] = { &g_dstrWMDRM_RIGHT_PLAYBACK };
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pDecryptContext != NULL);
@@ -3037,32 +3036,32 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Bind_Netflix_WCK(
     if (DRM_FAILED( dr )) {
         if (dr == DRM_E_LICENSE_NOT_FOUND) {
             /* could not find a license for the KID */
-            BDBG_ERR(("%s: no licenses found in the license store. Please request one from the license server.\n", __FUNCTION__));
+            BDBG_ERR(("%s: no licenses found in the license store. Please request one from the license server.\n", BSTD_FUNCTION));
             result = DRM_Prdy_license_not_found;
         }
         else if(dr == DRM_E_LICENSE_EXPIRED) {
             /* License is expired */
-            BDBG_ERR(("%s: License expired. Please request one from the license server.\n", __FUNCTION__));
+            BDBG_ERR(("%s: License expired. Please request one from the license server.\n", BSTD_FUNCTION));
             result = DRM_Prdy_license_expired;
         }
         else if(  dr == DRM_E_RIV_TOO_SMALL ||
                   dr == DRM_E_LICEVAL_REQUIRED_REVOCATION_LIST_NOT_AVAILABLE )
         {
             /* Revocation Package must be update */
-            BDBG_ERR(("%s: Revocation Package must be update. 0x%x\n", __FUNCTION__,(unsigned int)dr));
+            BDBG_ERR(("%s: Revocation Package must be update. 0x%x\n", BSTD_FUNCTION,(unsigned int)dr));
             result = DRM_Prdy_revocation_package_expired;
         }
         else {
-            BDBG_ERR(("%s: unexpected failure during bind. 0x%x\n", __FUNCTION__,(unsigned int)dr));
+            BDBG_ERR(("%s: unexpected failure during bind. 0x%x\n", BSTD_FUNCTION,(unsigned int)dr));
             result = DRM_Prdy_fail;
         }
     }
 
-   BDBG_MSG(("%s: Exiting with success\n", __FUNCTION__));
+   BDBG_MSG(("%s: Exiting with success\n", BSTD_FUNCTION));
    return result;
 
 ErrorExit:
-   BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+   BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
    if( pDecryptContext->pDecrypt != NULL) {
        SAFE_OEM_FREE(pDecryptContext->pDecrypt);
    }
@@ -3078,17 +3077,17 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Commit(
 {
     DRM_RESULT   dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
     ChkDR( Drm_Reader_Commit( pPrdyContext->pDrmAppCtx, NULL, NULL ) );
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Reader Commit failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Reader Commit failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3100,7 +3099,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Decrypt(
 {
     DRM_RESULT     dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pDecryptContext != NULL);
     BDBG_ASSERT(pDecryptContext->pDecrypt != NULL);
@@ -3109,7 +3108,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Decrypt(
 
     if(pDecryptContext->pDecrypt == NULL)
     {
-        BDBG_ERR(("%s: Invalid Decryptor.\n", __FUNCTION__));
+        BDBG_ERR(("%s: Invalid Decryptor.\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
     ChkDR( Drm_Reader_Decrypt(
@@ -3118,12 +3117,12 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Decrypt(
                     pBuf,
                     dataSize ) );
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
 
-    BDBG_ERR(("%s: Reader Decrypt failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Reader Decrypt failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3136,7 +3135,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_DecryptOpaque(
     DRM_RESULT     dr = DRM_SUCCESS;
     DRM_Prdy_Error_e rc = DRM_Prdy_fail;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pDecryptContext != NULL);
     BDBG_ASSERT(pDecryptContext->pDecrypt != NULL);
@@ -3145,7 +3144,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_DecryptOpaque(
 
     if(pDecryptContext->pDecrypt == NULL)
     {
-        BDBG_ERR(("%s: Invalid Decryptor.\n", __FUNCTION__));
+        BDBG_ERR(("%s: Invalid Decryptor.\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
     ChkDR( Drm_Reader_DecryptOpaque(
@@ -3154,12 +3153,12 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_DecryptOpaque(
                     (OEM_OPAQUE_BUFFER_HANDLE)pScatterGatherList,
                     (OEM_OPAQUE_BUFFER_HANDLE)pScatterGatherList,
                     nelem ) );
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
 
-    BDBG_ERR(("%s: Reader Decrypt Opaque failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Reader Decrypt Opaque failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return convertDrmResult_Ex((unsigned int)dr);
 }
 
@@ -3187,18 +3186,18 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_CloneDecryptContext(
     ChkDR( Drm_Reader_CloneDecryptContext(pDecryptContext->pDecrypt, pClonedDecryptContext->pDecrypt));
 
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
 
-    BDBG_ERR(("%s: DRM_Prdy_Reader_CloneDecryptContext failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: DRM_Prdy_Reader_CloneDecryptContext failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
 DRM_Prdy_Error_e DRM_Prdy_Reader_Close( DRM_Prdy_DecryptContext_t  *pDecryptContext)
 {
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
     BDBG_ASSERT(pDecryptContext != NULL);
 
     if( pDecryptContext->pDecrypt != NULL) {
@@ -3210,7 +3209,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Close( DRM_Prdy_DecryptContext_t  *pDecryptCont
         pDecryptContext->pDecrypt = NULL;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 }
 
@@ -3228,7 +3227,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GenerateChallenge(
     DRM_CHAR *pchURL = pCh_url;
     const DRM_CONST_STRING *rgstrRights[ 1 ] = { &g_dstrWMDRM_RIGHT_PLAYBACK };
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pCh_len != NULL);
@@ -3249,7 +3248,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GenerateChallenge(
 
     if(dr != DRM_SUCCESS) {
        if(dr == DRM_E_BUFFERTOOSMALL) {
-           BDBG_MSG(("%s - The given buffer size is too small.", __FUNCTION__));
+           BDBG_MSG(("%s - The given buffer size is too small.", BSTD_FUNCTION));
            return DRM_Prdy_buffer_size;
        }
        else {
@@ -3257,11 +3256,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GenerateChallenge(
        }
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: License generation failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: License generation failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3284,7 +3283,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GenerateChallenge_Netflix(
     DRM_CHAR *pchURL = pCh_url;
     const DRM_CONST_STRING *rgstrRights[ 1 ] = { &g_dstrWMDRM_RIGHT_PLAYBACK };
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pCh_len != NULL);
@@ -3308,7 +3307,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GenerateChallenge_Netflix(
 
     if(dr != DRM_SUCCESS) {
        if(dr == DRM_E_BUFFERTOOSMALL) {
-           BDBG_MSG(("%s - The given buffer size is too small.", __FUNCTION__));
+           BDBG_MSG(("%s - The given buffer size is too small.", BSTD_FUNCTION));
            return DRM_Prdy_buffer_size;
        }
        else {
@@ -3316,11 +3315,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GenerateChallenge_Netflix(
        }
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: License generation failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: License generation failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return convertDrmResult(dr);
 }
 
@@ -3333,7 +3332,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_CancelChallenge_Netflix(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pNonce != NULL);
@@ -3346,11 +3345,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_CancelChallenge_Netflix(
        goto ErrorExit;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Operation failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Operation failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return convertDrmResult(dr);
 }
 
@@ -3363,7 +3362,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GetLdlSessionsLimit_Netflix(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pLdlSessionsLimit != NULL);
@@ -3376,11 +3375,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GetLdlSessionsLimit_Netflix(
        goto ErrorExit;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Operation failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Operation failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return convertDrmResult(dr);
 }
 
@@ -3392,7 +3391,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_FlushLdlChallenges_Netflix(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
@@ -3403,11 +3402,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_FlushLdlChallenges_Netflix(
        goto ErrorExit;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Operation failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Operation failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return convertDrmResult(dr);
 }
 
@@ -3421,7 +3420,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponse(
     DRM_RESULT dr = DRM_SUCCESS;
     DRM_LICENSE_RESPONSE oResponse;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pData != NULL);
@@ -3442,11 +3441,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponse(
         BKNI_Memcpy(pResponse, (void*)&oResponse, sizeof(DRM_LICENSE_RESPONSE));
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: License Process Response failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: License Process Response failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3460,7 +3459,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponseNonPersistent(
     DRM_RESULT dr = DRM_SUCCESS;
     DRM_LICENSE_RESPONSE oResponse;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pData != NULL);
@@ -3481,11 +3480,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponseNonPersistent(
         BKNI_Memcpy(pResponse, (void*)&oResponse, sizeof(DRM_LICENSE_RESPONSE));
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: License Process Response failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: License Process Response failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3500,7 +3499,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponse_SecStop(
     DRM_RESULT dr = DRM_SUCCESS;
     DRM_LICENSE_RESPONSE oResponse;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pData != NULL);
@@ -3522,11 +3521,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponse_SecStop(
         BKNI_Memcpy(pResponse, (void*)&oResponse, sizeof(DRM_LICENSE_RESPONSE));
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: License Process Response failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: License Process Response failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3541,7 +3540,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponse_Netflix(
     DRM_RESULT dr = DRM_SUCCESS;
     DRM_LICENSE_RESPONSE oResponse;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pData != NULL);
@@ -3563,11 +3562,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponse_Netflix(
         BKNI_Memcpy(pResponse, (void*)&oResponse, sizeof(DRM_LICENSE_RESPONSE));
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: License Process Response failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: License Process Response failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3592,7 +3591,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GenerateAck(
 
     if(dr != DRM_SUCCESS) {
        if(dr == DRM_E_BUFFERTOOSMALL) {
-           BDBG_MSG(("%s - The given buffer size is too small.", __FUNCTION__));
+           BDBG_MSG(("%s - The given buffer size is too small.", BSTD_FUNCTION));
            return DRM_Prdy_buffer_size;
        }
        else {
@@ -3600,11 +3599,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_GenerateAck(
        }
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Generating ACK for license's response failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Generating ACK for license's response failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3617,7 +3616,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessAckResponse(
     DRM_RESULT dr = DRM_SUCCESS;
 
     DRM_RESULT f_pResult;
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pData != NULL);
@@ -3628,11 +3627,11 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessAckResponse(
             dataLen,
             &f_pResult));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: License Acq Process Ack Response failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: License Acq Process Ack Response failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3648,7 +3647,7 @@ DRM_Prdy_Error_e DRM_Prdy_Device_GetProperty(
     DRM_BYTE *tmpClientInfo = NULL;
     DRM_DWORD cchLen = pCliInfo_len;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pClient_info != NULL);
@@ -3668,14 +3667,14 @@ DRM_Prdy_Error_e DRM_Prdy_Device_GetProperty(
         SAFE_OEM_FREE(tmpClientInfo);
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
     if( tmpClientInfo != NULL) {
         SAFE_OEM_FREE(tmpClientInfo);
     }
-    BDBG_ERR(("%s: Device GetProperty failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Device GetProperty failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3690,7 +3689,7 @@ DRM_Prdy_Error_e DRM_Prdy_GetAdditionalResponseData(
 
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(f_pbResponse != NULL);
@@ -3705,12 +3704,12 @@ DRM_Prdy_Error_e DRM_Prdy_GetAdditionalResponseData(
                 &f_cbchDataString ));
 
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
 
-    BDBG_ERR(("%s: Device GetProperty failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Device GetProperty failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3721,7 +3720,7 @@ DRM_Prdy_Error_e DRM_Prdy_Revocation_StorePackage(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pbRevPackage != NULL);
@@ -3731,11 +3730,11 @@ DRM_Prdy_Error_e DRM_Prdy_Revocation_StorePackage(
                 ( DRM_CHAR * )pbRevPackage,
                 cbRevPackage ) );
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Revocation Store Package failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Revocation Store Package failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3744,18 +3743,18 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_InitializePolicyDescriptor(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPoDescriptor != NULL);
 
     ChkDR( Drm_LocalLicense_InitializePolicyDescriptor(
                                  (DRM_LOCAL_LICENSE_POLICY_DESCRIPTOR *) pPoDescriptor) );
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: InitializePolicyDescriptor failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: InitializePolicyDescriptor failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 
 
@@ -3773,7 +3772,7 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_CreateLicense(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pPoDescriptor  != NULL);
@@ -3790,11 +3789,11 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_CreateLicense(
                 ( const DRM_LICENSE_HANDLE ) hRootLicense,
                 ( DRM_LICENSE_HANDLE *) phLicense ) );
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Locallicens_CreateLicense failed [0x%X], exiting...\n",__FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Locallicens_CreateLicense failed [0x%X], exiting...\n",BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3804,7 +3803,7 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_StoreLicense(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(hLicense != DRM_PRDY_LICENSE_HANDLE_INVALID );
 
@@ -3812,11 +3811,11 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_StoreLicense(
                 ( const DRM_LICENSE_HANDLE ) hLicense,
                 ( const DRM_LOCAL_LICENSE_STORE ) eLicenseStore ) );
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: LocalLicense_StoreLicense failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: LocalLicense_StoreLicense failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 
 }
@@ -3825,17 +3824,17 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_Release(DRM_Prdy_license_handle  *hLicens
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(hLicense != DRM_PRDY_LICENSE_HANDLE_INVALID );
 
     ChkDR( Drm_LocalLicense_Release( (DRM_LICENSE_HANDLE ) hLicense) );
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: LocalLicense_Release failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: LocalLicense_Release failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3853,7 +3852,7 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_EncryptSample(
     DRM_BYTE      *rgbSubsamplePointerOut[1] = {0};
     OEM_HAL_SAMPLE_METADATA metaData;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(hLicense != DRM_PRDY_LICENSE_HANDLE_INVALID );
     BDBG_ASSERT(pInBuf != NULL );
@@ -3899,12 +3898,12 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_EncryptSample(
 #endif
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
 
-    BDBG_ERR(("%s: LocalLicense_EncryptSample failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: LocalLicense_EncryptSample failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -3924,7 +3923,7 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_EncryptSubsamples(
     DRM_Prdy_subSample_t   *encSub = NULL;
     uint32_t               i = 0;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(hLicense != DRM_PRDY_LICENSE_HANDLE_INVALID );
     BDBG_ASSERT(pClearSamples != NULL );
@@ -4018,7 +4017,7 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_EncryptSubsamples(
     if (rgbSubsamplePointerEnc != NULL)
         SAFE_OEM_FREE(rgbSubsamplePointerEnc);
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
@@ -4027,7 +4026,7 @@ ErrorExit:
     if (rgbSubsamplePointerEnc != NULL) SAFE_OEM_FREE(rgbSubsamplePointerEnc);
     if (rgbSubsamplePointerClr != NULL) SAFE_OEM_FREE(rgbSubsamplePointerClr);
 
-    BDBG_ERR(("%s: LocalLicense_EncryptSample failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: LocalLicense_EncryptSample failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4037,7 +4036,7 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_GetKID(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(hLicense != DRM_PRDY_LICENSE_HANDLE_INVALID );
     BDBG_ASSERT(pKeyID != NULL );
@@ -4046,11 +4045,11 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_GetKID(
                 (DRM_LICENSE_HANDLE ) hLicense,
                 (DRM_KID *)pKeyID) );
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: LocalLicense_GetKID failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: LocalLicense_GetKID failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4062,7 +4061,7 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_GetKID_base64W(
     DRM_RESULT      dr = DRM_SUCCESS;
     DRM_KID         pKeyID;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(hLicense != DRM_PRDY_LICENSE_HANDLE_INVALID );
     BDBG_ASSERT(pKidBase64W != NULL );
@@ -4081,15 +4080,15 @@ DRM_Prdy_Error_e DRM_Prdy_LocalLicense_GetKID_base64W(
         (DRM_DWORD *)pRequiredSize,
         0 ) == DRM_E_BUFFERTOOSMALL )
     {
-       BDBG_MSG(("%s: KeyID Buffer too small, requiring %d, exiting\n", __FUNCTION__, *pRequiredSize));
+       BDBG_MSG(("%s: KeyID Buffer too small, requiring %d, exiting\n", BSTD_FUNCTION, *pRequiredSize));
        return DRM_Prdy_buffer_size;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: LocalLicense_GetKID failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: LocalLicense_GetKID failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4102,7 +4101,7 @@ DRM_Prdy_Error_e DRM_Prdy_StoreMgmt_DeleteLicenses(
     DRM_RESULT dr = DRM_SUCCESS;
     DRM_CONST_STRING dcstrKID = EMPTY_DRM_STRING;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pcLicDeleted != NULL);
@@ -4130,14 +4129,14 @@ DRM_Prdy_Error_e DRM_Prdy_StoreMgmt_DeleteLicenses(
         SAFE_OEM_FREE(dcstrKID.pwszString);
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
     if( dcstrKID.pwszString != NULL) {
         SAFE_OEM_FREE(dcstrKID.pwszString);
     }
-    BDBG_ERR(("%s: Delete Licenses failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Delete Licenses failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4146,7 +4145,7 @@ DRM_Prdy_Error_e DRM_Prdy_Cleanup_LicenseStores( DRM_Prdy_Handle_t   pPrdyContex
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
@@ -4156,11 +4155,11 @@ DRM_Prdy_Error_e DRM_Prdy_Cleanup_LicenseStores( DRM_Prdy_Handle_t   pPrdyContex
                                       5,
                                       NULL));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to cleanup license store [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to cleanup license store [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4168,7 +4167,7 @@ DRM_Prdy_Error_e DRM_Prdy_Cleanup_Expired_LicenseStores( DRM_Prdy_Handle_t   pPr
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
@@ -4179,11 +4178,11 @@ DRM_Prdy_Error_e DRM_Prdy_Cleanup_Expired_LicenseStores( DRM_Prdy_Handle_t   pPr
                                       5,
                                       NULL));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to delete expired licenses from license store [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to delete expired licenses from license store [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4197,14 +4196,14 @@ ErrorExit:
 
 void DRM_Prdy_ND_MemFree( uint8_t   *pbToFree)
 {
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     if( pbToFree != NULL)
     {
         Drm_Prnd_MemFree(pbToFree);
    }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
 }
 
 DRM_Prdy_Error_e DRM_Prdy_ND_GetMessageType(
@@ -4214,7 +4213,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_GetMessageType(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pbUnknownMessage != NULL);
     BDBG_ASSERT(peMessageType != NULL);
@@ -4224,11 +4223,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_GetMessageType(
                 (DRM_DWORD ) cbUnknownMessage,
                 (DRM_PRND_MESSAGE_TYPE *) peMessageType));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to get message type [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to get message type [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4245,7 +4244,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_RegistrationRequest_Process(
         uint16_t                                 *pdwFlags,
         uint32_t                                 *pPrdyResultCode )
 {
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pbReqMessage != NULL);
@@ -4273,11 +4272,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_RegistrationRequest_Process(
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Transmitter_RegistrationRequest_Process failed [0x%X], exiting...\n", __FUNCTION__,*pPrdyResultCode));
+    BDBG_ERR(("%s: Transmitter_RegistrationRequest_Process failed [0x%X], exiting...\n", BSTD_FUNCTION,*pPrdyResultCode));
     return DRM_Prdy_fail;
 }
 
@@ -4285,11 +4284,11 @@ DRM_Prdy_ND_Transmitter_Context_t DRM_Prdy_ND_Transmitter_Initialize(void)
 {
     DRM_PRDY_ND_TRANSMITTER_CONTEXT   *pTxCtx = NULL;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     pTxCtx = Oem_MemAlloc(sizeof(DRM_PRDY_ND_TRANSMITTER_CONTEXT));
     if( pTxCtx == NULL ) {
-        BDBG_ERR(("%s: Transmitter Context alloc failed\n", __FUNCTION__));
+        BDBG_ERR(("%s: Transmitter Context alloc failed\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -4297,17 +4296,17 @@ DRM_Prdy_ND_Transmitter_Context_t DRM_Prdy_ND_Transmitter_Initialize(void)
 
     pTxCtx->pPrndTxContext = Oem_MemAlloc(sizeof(DRM_PRND_TRANSMITTER_CONTEXT));
     if( pTxCtx->pPrndTxContext == NULL ) {
-        BDBG_ERR(("%s: DRM PRND Transmitter Context alloc failed\n", __FUNCTION__));
+        BDBG_ERR(("%s: DRM PRND Transmitter Context alloc failed\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     BKNI_Memset(pTxCtx->pPrndTxContext, 0, sizeof(DRM_PRND_TRANSMITTER_CONTEXT));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return (DRM_Prdy_ND_Transmitter_Context_t) pTxCtx;
 
 ErrorExit:
-    BDBG_ERR(("%s: Transmitter_RegistrationRequest_Process failed, exiting...\n", __FUNCTION__));
+    BDBG_ERR(("%s: Transmitter_RegistrationRequest_Process failed, exiting...\n", BSTD_FUNCTION));
     return NULL;
 }
 
@@ -4316,11 +4315,11 @@ DRM_Prdy_ND_Receiver_Context_t DRM_Prdy_ND_Receiver_Initialize(void)
 {
     DRM_PRDY_ND_RECEIVER_CONTEXT   *pRxCtx = NULL;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     pRxCtx = Oem_MemAlloc(sizeof(DRM_PRDY_ND_RECEIVER_CONTEXT));
     if( pRxCtx == NULL ) {
-        BDBG_ERR(("%s: Receiver Context alloc failed\n", __FUNCTION__));
+        BDBG_ERR(("%s: Receiver Context alloc failed\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -4328,17 +4327,17 @@ DRM_Prdy_ND_Receiver_Context_t DRM_Prdy_ND_Receiver_Initialize(void)
 
     pRxCtx->pPrndRxContext = Oem_MemAlloc(sizeof(DRM_PRND_RECEIVER_CONTEXT));
     if( pRxCtx->pPrndRxContext == NULL ) {
-        BDBG_ERR(("%s: DRM PRND Receiver Context alloc failed\n", __FUNCTION__));
+        BDBG_ERR(("%s: DRM PRND Receiver Context alloc failed\n", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     BKNI_Memset(pRxCtx->pPrndRxContext, 0, sizeof(DRM_PRND_RECEIVER_CONTEXT));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return (DRM_Prdy_ND_Receiver_Context_t) pRxCtx;
 
 ErrorExit:
-    BDBG_ERR(("%s: Receiver_RegistrationRequest_Process failed, exiting...\n", __FUNCTION__));
+    BDBG_ERR(("%s: Receiver_RegistrationRequest_Process failed, exiting...\n", BSTD_FUNCTION));
     return NULL;
 }
 
@@ -4374,7 +4373,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_BeginSession(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pPrdyTxCtx != NULL);
@@ -4383,11 +4382,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_BeginSession(
                 pPrdyContext->pDrmAppCtx,
                 pPrdyTxCtx->pPrndTxContext));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Transmitter_BeginSession failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Transmitter_BeginSession failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4397,7 +4396,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_BeginSession(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pPrdyRxCtx != NULL);
@@ -4406,11 +4405,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_BeginSession(
                 pPrdyContext->pDrmAppCtx,
                 pPrdyRxCtx->pPrndRxContext));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Receiver_BeginSession failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Receiver_BeginSession failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4418,18 +4417,18 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_EndSession( DRM_Prdy_Handle_t   pPrdyCo
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
     ChkDR( Drm_Prnd_Transmitter_EndSession(
                 pPrdyContext->pDrmAppCtx ));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Transmitter_EndSession failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Transmitter_EndSession failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4437,18 +4436,18 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_EndSession( DRM_Prdy_Handle_t   pPrdyConte
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
     ChkDR( Drm_Prnd_Receiver_EndSession(
                 pPrdyContext->pDrmAppCtx ));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Receiver_EndSession failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Receiver_EndSession failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4464,7 +4463,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_RegistrationResponse_Generate(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BSTD_UNUSED(dwFlags);
 
@@ -4479,11 +4478,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_RegistrationResponse_Generate(
                 (DRM_BYTE **) ppbRespMessage,
                 (DRM_DWORD *) pcbRespMessage));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: RegistrationResponse Generation failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: RegistrationResponse Generation failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4496,7 +4495,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_RegistrationError_Generate(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BSTD_UNUSED(dwFlags);
 
@@ -4511,11 +4510,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_RegistrationError_Generate(
                 (DRM_BYTE **) ppbErrMessage,
                 (DRM_DWORD *) pcbErrMessage));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: RegistrationError Generation failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: RegistrationError Generation failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4530,7 +4529,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_LicenseRequest_Process(
         uint16_t                                  *pdwFlags,
         uint32_t                                  *pPrdyResultCode )
 {
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pbLicReqMessage != NULL);
@@ -4551,11 +4550,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_LicenseRequest_Process(
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Processeing LicenseRequest failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)pPrdyResultCode));
+    BDBG_ERR(("%s: Processeing LicenseRequest failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)pPrdyResultCode));
     return DRM_Prdy_fail;
 }
 
@@ -4570,7 +4569,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_LicenseTransmit_Generate(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(ppbLicTransmitMessage != NULL);
@@ -4585,11 +4584,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_LicenseTransmit_Generate(
                 (DRM_BYTE **) ppbLicTransmitMessage,
                 (DRM_DWORD *) pcbLicTransmitMessage));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Generation for LicenseTransmit failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Generation for LicenseTransmit failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4598,18 +4597,18 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_PrepareLicensesForTransmit(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
     ChkDR( Drm_Prnd_Transmitter_PrepareLicensesForTransmit (
                 pPrdyContext->pDrmAppCtx));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Preparing License for transmit failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Preparing License for transmit failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4623,7 +4622,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_LicenseError_Generate(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BSTD_UNUSED(dwFlags);
 
@@ -4639,11 +4638,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_LicenseError_Generate(
                 (DRM_BYTE **) ppbErrMessage,
                 (DRM_DWORD *) pcbErrMessage));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to generate License error [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to generate License error [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4658,7 +4657,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_ProximityDetectionResponse_Process(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BSTD_UNUSED(dwFlags);
 
@@ -4677,11 +4676,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_ProximityDetectionResponse_Process(
                 (DRM_DWORD *) pcbPDResultMessage,
                 (DRM_DWORD *) pdwFlags ));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to process Proximity Dectection Response [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to process Proximity Dectection Response [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4695,7 +4694,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_ProximityDetectionResult_Generate(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BSTD_UNUSED(dwFlags);
 
@@ -4711,11 +4710,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_ProximityDetectionResult_Generate(
                 (DRM_BYTE **) ppbPDResultMessage,
                 (DRM_DWORD *) pcbPDResultMessage));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to generate proximity dectection result [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to generate proximity dectection result [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4730,7 +4729,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_ProximityDetectionStart_Process(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BSTD_UNUSED(dwFlags);
 
@@ -4749,11 +4748,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Transmitter_ProximityDetectionStart_Process(
                 (DRM_DWORD *) pcbPDChlgMessage,
                 (DRM_DWORD *) pdwFlags ));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to process Proximity Dectection Start message [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to process Proximity Dectection Start message [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4769,7 +4768,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_RegistrationRequest_Generate(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BSTD_UNUSED(dwFlags);
 
@@ -4787,11 +4786,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_RegistrationRequest_Generate(
                 (DRM_BYTE **) ppbReqMessage,
                 (DRM_DWORD *) pcbReqMessage));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to generate Registration request [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to generate Registration request [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4808,7 +4807,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_RegistrationResponse_Process(
         uint16_t                                  *pdwFlags,
         uint32_t                                  *pPrdyResultCode)
 {
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pbRespMessage != NULL);
@@ -4836,11 +4835,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_RegistrationResponse_Process(
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Processing Registration Response failed [0x%X], exiting...\n", __FUNCTION__,*pPrdyResultCode));
+    BDBG_ERR(("%s: Processing Registration Response failed [0x%X], exiting...\n", BSTD_FUNCTION,*pPrdyResultCode));
     return DRM_Prdy_fail;
 }
 
@@ -4853,7 +4852,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_RegistrationError_Process(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pbErrMessage != NULL);
@@ -4867,11 +4866,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_RegistrationError_Process(
                 (DRM_RESULT * ) pPrdyResultCode,
                 (DRM_DWORD *) pdwFlags));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to process Registration Error message [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to process Registration Error message [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4891,7 +4890,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_LicenseRequest_Generate(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pguidRequestedAction != NULL);
@@ -4913,11 +4912,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_LicenseRequest_Generate(
                 (DRM_BYTE **) ppbLicReqMessage,
                 (DRM_DWORD *) pcbLicReqMessage));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to generate License Request [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to generate License Request [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4931,7 +4930,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_LicenseTransmit_Process(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pbLicTransmitMessage != NULL);
@@ -4945,11 +4944,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_LicenseTransmit_Process(
                 (DRM_VOID *) pvDataCallbackContext,
                 (DRM_DWORD *) pdwFlags));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to process License Response from Transmitter [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to process License Response from Transmitter [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4962,7 +4961,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_LicenseError_Process(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pbErrMessage != NULL);
@@ -4976,11 +4975,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_LicenseError_Process(
                 (DRM_RESULT * ) pPrdyResultCode,
                 (DRM_DWORD *) pdwFlags));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to process License Error message [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to process License Error message [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -4992,7 +4991,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_ProximityDetectionStart_Generate(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BSTD_UNUSED(dwFlags);
 
@@ -5007,11 +5006,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_ProximityDetectionStart_Generate(
                 (DRM_BYTE **) ppbPDStartMessage,
                 (DRM_DWORD *) pcbPDStartMessage));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to generate a Proximity Detection Start message [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to generate a Proximity Detection Start message [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -5026,7 +5025,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_ProximityDetectionChallenge_Process(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BSTD_UNUSED(dwFlags);
 
@@ -5045,11 +5044,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_ProximityDetectionChallenge_Process(
                 (DRM_DWORD *) pcbPDRespMessage,
                 (DRM_DWORD *) pdwFlags));
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to process a Proximity Detection Challenge response message [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to process a Proximity Detection Challenge response message [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -5062,7 +5061,7 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_ProximityDetectionResult_Process(
     DRM_RESULT dr = DRM_SUCCESS;
     DRM_RESULT drPDResult = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pbPDResultMessage != NULL);
@@ -5077,11 +5076,11 @@ DRM_Prdy_Error_e DRM_Prdy_ND_Receiver_ProximityDetectionResult_Process(
 
     ChkDR( drPDResult);
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to process a Proximity Detection Challenge response message [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to process a Proximity Detection Challenge response message [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -5144,7 +5143,7 @@ DRM_Prdy_Error_e DRM_Prdy_License_GetProperty(
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed [0x%X]\n", __FUNCTION__, (unsigned int)dr));
+    BDBG_ERR(("%s: failed [0x%X]\n", BSTD_FUNCTION, (unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -5161,7 +5160,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseQuery_GetState(
 
     BDBG_ASSERT(pPrdyContext != NULL);
     if (pLicenseState == NULL) {
-        BDBG_ERR(("%s: output buffer is NULL\n", __FUNCTION__));
+        BDBG_ERR(("%s: output buffer is NULL\n", BSTD_FUNCTION));
         return DRM_Prdy_invalid_parameter;
     }
 
@@ -5188,7 +5187,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseQuery_GetState(
             rightToQuery[0] = &g_dstrWMDRM_RIGHT_MOVE;
             break;
         default:
-            BDBG_ERR(("%s: Unknown right (%d)\n", __FUNCTION__, licenseRight));
+            BDBG_ERR(("%s: Unknown right (%d)\n", BSTD_FUNCTION, licenseRight));
             return DRM_Prdy_invalid_parameter;
     }
     ChkDR( Drm_LicenseQuery_GetState(
@@ -5231,7 +5230,7 @@ DRM_Prdy_Error_e DRM_Prdy_SecureClock_GenerateChallenge(
     /*DRM_WCHAR        *pwszURL = NULL;*/
     DRM_DWORD        cchChallenge       = 0;
 
-    BDBG_MSG(("%s:%d - entering.", __FUNCTION__,__LINE__));
+    BDBG_MSG(("%s:%d - entering.", BSTD_FUNCTION,__LINE__));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pURL_len != NULL);
@@ -5257,24 +5256,24 @@ DRM_Prdy_Error_e DRM_Prdy_SecureClock_GenerateChallenge(
 
     if( dr == DRM_E_BUFFERTOOSMALL )
     {
-        BDBG_MSG(("%s: Exiting with Buffer too small...\n", __FUNCTION__));
+        BDBG_MSG(("%s: Exiting with Buffer too small...\n", BSTD_FUNCTION));
         result = DRM_Prdy_buffer_size;
     }
     else if( dr != DRM_SUCCESS)
     {
-        BDBG_LOG(("%s:%d returning [0x%x]\n", __FUNCTION__,__LINE__,dr));
-        BDBG_MSG(("%s:%d returning [0x%x]\n", __FUNCTION__,__LINE__,dr));
+        BDBG_LOG(("%s:%d returning [0x%x]\n", BSTD_FUNCTION,__LINE__,dr));
+        BDBG_MSG(("%s:%d returning [0x%x]\n", BSTD_FUNCTION,__LINE__,dr));
         goto ErrorExit;
     }
 
     *pURL_len = cchURL;
     *pCh_len = cchChallenge;
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return result;
 
 ErrorExit:
-    BDBG_ERR(("%s:%d failed [0x%x], exiting...\n", __FUNCTION__,__LINE__,(unsigned int)dr));
+    BDBG_ERR(("%s:%d failed [0x%x], exiting...\n", BSTD_FUNCTION,__LINE__,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 
@@ -5289,7 +5288,7 @@ DRM_Prdy_Error_e DRM_Prdy_SecureClock_ProcessResponse(
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pChResponse != NULL);
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     ChkDR(Drm_SecureClock_ProcessResponse(
                     pPrdyContext->pDrmAppCtx,
@@ -5303,11 +5302,11 @@ DRM_Prdy_Error_e DRM_Prdy_SecureClock_ProcessResponse(
        ChkDR( drResponse);
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return DRM_Prdy_fail;
 
 }
@@ -5323,7 +5322,7 @@ DRM_Prdy_Error_e DRM_Prdy_SecureClock_GetStatus(
     DRM_DWORD         cbTimeStatus       = 0;
     DRM_DWORD         dwFlag             = 0;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pStatus != NULL);
@@ -5357,12 +5356,12 @@ ErrorExit:
 
     if( dr != DRM_SUCCESS)
     {
-        BDBG_ERR(("%s: failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+        BDBG_ERR(("%s: failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
 
         return DRM_Prdy_fail;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
 
     return DRM_Prdy_ok;
 
@@ -5381,7 +5380,7 @@ void DRM_Prdy_GetSystemTime(
 {
     DRMSYSTEMTIME     systemTime;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pYear != NULL);
@@ -5404,7 +5403,7 @@ void DRM_Prdy_GetSystemTime(
     *pSecond = systemTime.wSecond;
     *pMilliseconds = systemTime.wMilliseconds;
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
 
 }
 
@@ -5422,7 +5421,7 @@ void DRM_Prdy_SetSystemTime(
     DRMSYSTEMTIME     systemTime;
     DRM_APP_CONTEXT_INTERNAL    *poAppContextInternal = ( DRM_APP_CONTEXT_INTERNAL * )pPrdyContext->pDrmAppCtx;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
 
@@ -5436,13 +5435,13 @@ void DRM_Prdy_SetSystemTime(
     systemTime.wMilliseconds = milliseconds;
 
 #ifdef CMD_DRM_PLAYREADY_SAGE_IMPL
-    BDBG_MSG(("%s:%d - Calling Oem_Clock_SetSystemTime with BBX context %x\n",__FUNCTION__,__LINE__,&poAppContextInternal->oBlackBoxContext));
+    BDBG_MSG(("%s:%d - Calling Oem_Clock_SetSystemTime with BBX context %x\n",BSTD_FUNCTION,__LINE__,&poAppContextInternal->oBlackBoxContext));
     Oem_Clock_SetSystemTime( &poAppContextInternal->oBlackBoxContext, &systemTime);
     poAppContextInternal->fClockSet = true;
 #else
     Oem_Clock_SetSystemTime( pPrdyContext->pOEMContext, &systemTime);
 #endif
-    BDBG_MSG(("%s: Exiting", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting", BSTD_FUNCTION));
 }
 
 /***********************************************************************************
@@ -5454,7 +5453,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Unbind(
 {
     DRM_RESULT             dr;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pDecryptContext != NULL);
     BDBG_ASSERT(pDecryptContext->pDecrypt  != NULL);
@@ -5468,7 +5467,7 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Unbind(
     SAFE_OEM_FREE(pDecryptContext->pDecrypt);
     pDecryptContext->pDecrypt = NULL;
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
 
     return convertDrmResult(dr);
 }
@@ -5493,7 +5492,7 @@ DRM_Prdy_Error_e DRM_Prdy_TurnSecureStop(
     BDBG_ASSERT(pPrdyContext != NULL);
 
     dr = Drm_TurnSecureStop(pPrdyContext->pDrmAppCtx, inOnOff);
-    BDBG_MSG(("exiting %s dr=0x%lx",__FUNCTION__,dr));
+    BDBG_MSG(("exiting %s dr=0x%lx",BSTD_FUNCTION,dr));
     return convertDrmResult(dr);
 }
 
@@ -5638,7 +5637,7 @@ DRM_Prdy_Error_e DRM_Prdy_Clock_GetSystemTime(
 {
     DRM_RESULT dr = DRM_SUCCESS;
 
-    BDBG_MSG(("%s - entering", __FUNCTION__));
+    BDBG_MSG(("%s - entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pPrdyContext != NULL);
     BDBG_ASSERT(pSystemTime != NULL);
@@ -5651,10 +5650,10 @@ DRM_Prdy_Error_e DRM_Prdy_Clock_GetSystemTime(
        goto ErrorExit;
     }
 
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting\n", BSTD_FUNCTION));
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: Operation failed [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: Operation failed [0x%X], exiting...\n", BSTD_FUNCTION,(unsigned int)dr));
     return convertDrmResult(dr);
 }

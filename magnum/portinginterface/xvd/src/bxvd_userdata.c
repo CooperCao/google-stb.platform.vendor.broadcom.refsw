@@ -124,16 +124,16 @@ BERR_Code BXVD_P_Userdata_QueueDestroy(QUEUE_MGR *queue, BXVD_Userdata_Settings 
    queue->ulWritePtr = BXVD_P_USERDATA_QUEUE_START;
    queue->ulNextPtr = BXVD_P_USERDATA_QUEUE_START;
 
-   for (i = 0; i < stUDSettings.maxQueueDepth; i++)
-   {
-      /* SWSTB-5460: not all the entries will be valid if BKNI_Malloc
-       * failed in BXVD_P_Userdata_QueueInitialize. */
-      if (queue->queue_data[i].uUserData)
-         BKNI_Free(queue->queue_data[i].uUserData);
-   }
-
    if (queue->queue_data)
    {
+      for (i = 0; i < stUDSettings.maxQueueDepth; i++)
+      {
+         /* SWSTB-5460: not all the entries will be valid if BKNI_Malloc
+          * failed in BXVD_P_Userdata_QueueInitialize. */
+         if (queue->queue_data[i].uUserData)
+            BKNI_Free(queue->queue_data[i].uUserData);
+      }
+
       BKNI_Free(queue->queue_data);
       queue->queue_data = NULL;
    }

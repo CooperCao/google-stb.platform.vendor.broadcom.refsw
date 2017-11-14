@@ -59,6 +59,12 @@
 #include "bmemperf_info.h"
 #include "nexus_platform.h"
 
+#ifdef BMEMCONFIG_BOXMODE_SUPPORTED
+#include "bmemperf_lib.h"
+#include "boxmodes_defines.h"
+extern bmemconfig_box_info g_bmemconfig_box_info[BMEMCONFIG_MAX_BOXMODES];
+#endif /* BMEMCONFIG_BOXMODE_SUPPORTED*/
+
 #define SYSFS_SCB_FREQ_FILENAME "/sys/kernel/debug/clk/clk_summary"
 
 #ifdef USE_BOXMODES
@@ -897,6 +903,8 @@ static unsigned int bmemperf_read_ddrFreq( char * path_to_frequency_file )
     char strFrequency[12];
     unsigned int frequency = 0;
 
+    memset(strFrequency, 0, sizeof(strFrequency));
+
     if (path_to_frequency_file == NULL)
     {
         return ( frequency );
@@ -1162,3 +1170,31 @@ unsigned int bmemperf_get_scbFreqInMhz(
     /*printf("~%s: returning freq %u \n~", __FUNCTION__, freq );*/
     return ( freq );
 }
+
+#ifdef BMEMCONFIG_BOXMODE_SUPPORTED
+int Bmemperf_GetProductIdMemc(
+    void
+    )
+{
+    unsigned int idx     = 0;
+    int          numMemc = 1;
+    char         *lProductIdStr = getProductIdStr();
+
+    /* loop through global array to find the specified boxmode */
+    for (idx = 0; idx < ( sizeof( g_bmemconfig_box_info )/sizeof( g_bmemconfig_box_info[0] )); idx++)
+    {
+        PRINTF( "~DEBUG~%s: g_bmemconfig_box_info[%d].strProductId is %s ... comparing with %s~\n", __FUNCTION__, idx,
+                g_bmemconfig_box_info[idx].strProductId, lProductIdStr );
+        /* some 7439 IDs have 7252s (boxmode 24) and some have 7252S (boxmode 2, 3, 4, 9, 27) */
+        if ( lProductIdStr && strcasecmp ( g_bmemconfig_box_info[idx].strProductId, lProductIdStr ) == 0 )
+        {
+            numMemc = g_bmemconfig_box_info[idx].numMemc;
+            PRINTF( "~DEBUG~%s: match at boxmode %u; numMemc %u ~\n", __FUNCTION__, idx, numMemc );
+            break;
+        }
+    }
+
+    /* we did not find the specified product id */
+    return( numMemc );
+}  /* getBoxModeMemc */
+#endif /* BMEMCONFIG_BOXMODE_SUPPORTED*/

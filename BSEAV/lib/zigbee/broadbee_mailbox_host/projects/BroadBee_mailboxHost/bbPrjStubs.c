@@ -543,10 +543,14 @@ void RF4CE_ZRC2_GetSharedSecretInd(RF4CE_ZRC2_GetSharedSecretIndDescr_t *request
 //void Phy_Test_SelectAntenna_Req(Phy_Test_Select_Antenna_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 //void RF4CE_Get_Diag_Caps_Req(RF4CE_Diag_Caps_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 //void RF4CE_Get_Diag_Req(RF4CE_Diag_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+
+#ifdef BYPASS_RPC
+#include "zigbee.h"
+#endif
+
 void Mail_UartRecvInd(Mail_UartRecvIndDescr_t *const ind)
 {
 #ifdef BYPASS_RPC
-#include "zigbee.h"
     if(Zigbee_GetCallback()->Mail_UartRecvInd)
         Zigbee_GetCallback()->Mail_UartRecvInd(ind);
     //server_Mail_UartRecvInd(ind, 0);

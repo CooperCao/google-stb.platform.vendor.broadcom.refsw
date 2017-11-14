@@ -97,15 +97,21 @@ b_mp4_probe_header_match(batom_cursor *header)
 	if(header_size==0) {
 		return false;
 	}
-	/* ISO/IEC 14496-12:2005 MPEG-4 Part 12 - ISO Base Media File Format */
-	/* page 5 */
     switch(box.type) {
     default:
-		return false;
+        return false;
+
+        /* QuickTime File Format Specification */
+    case BMP4_TYPE('w','i','d','e'):
+    case BMP4_TYPE('f','r','e','e'):
+    case BMP4_TYPE('s','k','i','p'):
+
+        /* ISO/IEC 14496-12:2005 MPEG-4 Part 12 - ISO Base Media File Format */
+        /* page 5 */
     case BMP4_FILETYPEBOX:
     case BMP4_MOVIE:
     case BMP4_MOVIE_DATA:
-        return box.size > 0;
+        return true;
     }
 }
 
@@ -590,12 +596,20 @@ b_mp4_probe_sampletable(bmp4_parser_handler *handler, uint32_t type, batom_t box
                             track->media.type = bmedia_track_type_audio;
                             track->media.info.audio.channel_count = sample->codec.mp4a.audio.channelcount;
                             track->media.info.audio.sample_size = sample->codec.mp4a.audio.samplesize;
-                            if(sample->codec.mp4a.mpeg4.decoder.iso_14496_3.samplingFrequencyIndex!=0x0F) {
+                            if(sample->codec.mp4a.audio.samplerate>0) {
+                                track->media.info.audio.sample_rate = sample->codec.mp4a.audio.samplerate>>16;
+                            } else if(sample->codec.mp4a.mpeg4.decoder.iso_14496_3.samplingFrequencyIndex!=0x0F) {
                                 track->media.info.audio.sample_rate = bmedia_info_aac_sampling_frequency_from_index(sample->codec.mp4a.mpeg4.decoder.iso_14496_3.samplingFrequencyIndex);
                             } else {
                                 track->media.info.audio.sample_rate = sample->codec.mp4a.mpeg4.decoder.iso_14496_3.samplingFrequency;
                             }
-                            track->media.info.audio.codec = (sample->codec.mp4a.mpeg4.decoder.iso_14496_3.audioObjectType == 5 ? baudio_format_aac_plus_adts: baudio_format_aac);
+                            if(sample->codec.mp4a.mpeg4.decoder.iso_14496_3.audioObjectType==5) {
+                                track->media.info.audio.codec = baudio_format_aac_plus_adts;
+                            } else if(sample->codec.mp4a.mpeg4.decoder.iso_14496_3.audioObjectType==23 || sample->codec.mp4a.mpeg4.decoder.iso_14496_3.audioObjectType==39) {
+                                track->media.info.audio.codec = baudio_format_aac_plus_loas;
+                            } else {
+                                track->media.info.audio.codec = baudio_format_aac;
+                            }
                             BDBG_CASSERT(sizeof(bmedia_probe_aac_audio) <= sizeof(track->media.info.audio.codec_specific));
                             if (sample->codec.mp4a.mpeg4.decoder.iso_14496_3.audioObjectType <= 5)
                             {

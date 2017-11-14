@@ -21,8 +21,7 @@ void v3d_get_nv_shader_record_alloc_sizes(V3D_NV_SHADER_RECORD_ALLOC_SIZES_T *si
 #if !V3D_VER_AT_LEAST(3,3,0,0)
 void v3d_workaround_gfxh_1276(V3D_SHADREC_GL_MAIN_T *record)
 {
-   /* This is more complicated for points, so for now skip the workaround */
-   if (record->num_varys == 0 && !record->point_size_included)
+   if (record->num_varys == 0)
       record->num_varys = 1;
 }
 #endif
@@ -40,7 +39,7 @@ static void push_simple_float_shader_attr(uint32_t **attr_packed,
    attr.cs_num_reads = cs_reads;
    attr.vs_num_reads = vs_reads;
    attr.stride = stride;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    attr.max_index = max_index;
 #endif
 

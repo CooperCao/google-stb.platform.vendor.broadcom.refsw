@@ -100,11 +100,22 @@ NEXUS_C_WARNINGS += -Wno-unused-variable -Wno-unused-parameter -Wno-unused-funct
 endif
 
 NEXUS_INTERNAL_CFLAGS += $(NEXUS_C_WARNINGS)
+ifeq ($(NEXUS_WITH_LIBBACKTRACE),y)
+NEXUS_INTERNAL_CFLAGS += -DB_REFSW_WITH_LIBBACKTRACE=1 -I${B_REFSW_OBJ_ROOT}/BSEAV/opensource/libbacktrace
+endif
+
+ifeq ($(B_REFSW_DEBUG),y)
+NEXUS_INTERNAL_CFLAGS += -funwind-tables
+endif
+
 NEXUS_CFLAGS += $(NEXUS_INTERNAL_CFLAGS)
 
 # NEXUS_EXTRA_CFLAGS  and/or NEXUS_EXTRA_LDFLAGS can be defined by the user to bring in compiler and/or linker flags
 NEXUS_CFLAGS += ${NEXUS_EXTRA_CFLAGS}
 NEXUS_LDFLAGS += ${NEXUS_EXTRA_LDFLAGS}
+ifeq ($(NEXUS_WITH_LIBBACKTRACE),y)
+BDBG_STATIC_LIBS += ${B_REFSW_OBJ_ROOT}/BSEAV/opensource/libbacktrace/libbacktrace.a
+endif
 
 ifeq ($(B_REFSW_ANDROID),y)
 include $(NEXUS_TOP)/build/os/linuxuser/os_flags_android.inc

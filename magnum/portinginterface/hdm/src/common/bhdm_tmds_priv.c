@@ -225,7 +225,7 @@ BERR_Code BHDM_TMDS_P_VideoFormatSettingsToTmdsRate(
 	uint32_t *tmdsRate) /* [in] settings */
 {
 	BERR_Code rc ;
-	const BFMT_VideoInfo *pVideoInfo ;
+	const BFMT_VideoInfo *pVideoFormatInfo ;
 
 	BHDM_P_TmdsClock eTmdsClock ;
 
@@ -235,10 +235,16 @@ BERR_Code BHDM_TMDS_P_VideoFormatSettingsToTmdsRate(
 	uint8_t BitsPerColor ;
 	uint8_t divider ;
 
-	pVideoInfo = BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
+	pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
+    if (pVideoFormatInfo == NULL)
+    {
+        BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+        rc = BERR_TRACE(BERR_NOT_INITIALIZED) ;
+        return rc ;
+    }
 
 	rc = BHDM_PACKET_ACR_P_LookupTmdsClock_isrsafe(hHDMI,
-		pVideoInfo->ulPxlFreqMask, settings, BAVC_HDMI_PixelRepetition_eNone,
+		pVideoFormatInfo->ulPxlFreqMask, settings, BAVC_HDMI_PixelRepetition_eNone,
 		&eTmdsClock) ;
 	if (rc) {rc = BERR_TRACE(rc) ; goto done ;}
 
@@ -260,11 +266,11 @@ BERR_Code BHDM_TMDS_P_VideoFormatSettingsToTmdsRate(
 	*tmdsRate = PixelClock / 10000 ;
 
 	BDBG_MSG(("Video Format (%d) %s to TMDS Rate (eTmdsClock= %d)  %d",
-		eVideoFmt, pVideoInfo->pchFormatStr, eTmdsClock, TmdsClockValue)) ;
+		eVideoFmt, pVideoFormatInfo->pchFormatStr, eTmdsClock, TmdsClockValue)) ;
 
 	BDBG_MSG(("   BitRate: %d ; BitsPerColor: %d    Divider %d", BitRate, BitsPerColor, divider)) ;
 	BDBG_MSG(("   Pixel Frequency:  %d MHz (TMDS Character Rate %d Mcsc)",
-		pVideoInfo->ulPxlFreq / BFMT_FREQ_FACTOR, *tmdsRate)) ;
+		pVideoFormatInfo->ulPxlFreq / BFMT_FREQ_FACTOR, *tmdsRate)) ;
 
 done :
 	return rc ;

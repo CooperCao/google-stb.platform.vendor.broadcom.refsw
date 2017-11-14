@@ -43,6 +43,7 @@ APPS = \
     avs_status \
     cec \
     client \
+    cloned_memory \
     dma \
     playback \
     playback_gui_only \

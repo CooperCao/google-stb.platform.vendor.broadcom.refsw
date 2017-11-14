@@ -128,7 +128,7 @@ static bool is_query_target(GLenum target)
       case GL_PRIMITIVES_GENERATED:
 #if V3D_VER_AT_LEAST(4,0,2,0)
          /* this is supported in es31 with extension geometry_shader */
-         return (KHRN_GLES31_DRIVER ? true : false);
+         return (V3D_VER_AT_LEAST(3,3,0,0) ? true : false);
 #else
          return false;
 #endif
@@ -311,15 +311,12 @@ GL_API void GL_APIENTRY glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint* par
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state(OPENGL_ES_3X);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLenum error = GL_NO_ERROR;
-   GLXX_QUERY_T *query;
-   struct glxx_queries_of_type *qot;
 
    if (!state)
    {
-      state = glxx_lock_server_state_changed_even_if_reset(OPENGL_ES_3X);
-
+      state = glxx_lock_server_state_unchanged_even_if_reset(OPENGL_ES_3X);
       if (!state)
          return;
 
@@ -338,7 +335,7 @@ GL_API void GL_APIENTRY glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint* par
       goto end;
    }
 
-   query = khrn_map_lookup(&state->queries.objects, id);
+   GLXX_QUERY_T *query = khrn_map_lookup(&state->queries.objects, id);
    if (!query || query->target == GL_NONE ||
        is_query_active(state, query))
    {
@@ -346,7 +343,7 @@ GL_API void GL_APIENTRY glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint* par
       goto end;
    }
 
-   qot = &state->queries.queries[query->type];
+   struct glxx_queries_of_type *qot = &state->queries.queries[query->type];
    if (pname == GL_QUERY_RESULT_AVAILABLE)
    {
       if (khrn_timeline_check(&qot->timeline, query->wait_point,

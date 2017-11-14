@@ -1,42 +1,6 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2010 Broadcom.  All rights reserved.
- *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- *  Except as expressly set forth in the Authorized License,
- *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
- *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <math.h>
 #include <string>
 #include <vector>
@@ -343,7 +307,6 @@ struct Options
       m_batchFile         (rhs.m_batchFile         ),
       m_outFile           (rhs.m_outFile           ),
       m_useMultisample    (rhs.m_useMultisample    ),
-      m_usePreservingSwap (rhs.m_usePreservingSwap ),
       m_stretchToFit      (rhs.m_stretchToFit      ),
       m_useDepth          (rhs.m_useDepth          ),
       m_useStencil        (rhs.m_useStencil        ),
@@ -390,7 +353,6 @@ struct Options
       m_batchFile          = "";
       m_outFile            = "";
       m_useMultisample     = false;
-      m_usePreservingSwap  = false;
       m_stretchToFit       = true;
       m_useDepth           = true;
       m_useStencil         = true;
@@ -547,7 +509,6 @@ struct Options
    std::string  m_batchFile;
    std::string  m_outFile;
    bool         m_useMultisample;
-   bool         m_usePreservingSwap;
    bool         m_stretchToFit;
    bool         m_useDepth;
    bool         m_useStencil;
@@ -1074,8 +1035,7 @@ void LoadPackedTexture(const char *baseName)
 
 void LoadFilterTexturePacked(const char *baseName, TexFmt_t fmt, GLenum magFilterMode, GLenum minFilterMode, GLuint numLevels)
 {
-   GLFormatInfo   info       = GetFormatInfo(fmt);
-   std::string    fileName   = baseName;
+   std::string fileName = baseName;
 
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -1673,11 +1633,6 @@ unsigned int ParseArg(const char *arg, Options *options)
       options->m_useMultisample = true;
       return 1;
    }
-   if (ArgMatch(arg, "+p"))
-   {
-      options->m_usePreservingSwap = true;
-      return 1;
-   }
    if (ArgMatch(arg, "+s"))
    {
       options->m_stretchToFit = true;
@@ -2139,15 +2094,6 @@ bool InitEGL(NativeWindowType egl_win)
       return false;
    }
 
-   /* Only use preserved swap if you need the contents of the frame buffer to be preserved from
-    * one frame to the next
-    */
-   if (g_options.m_usePreservingSwap)
-   {
-      printf("Using preserved swap.  Application will run slowly.\n");
-      eglSurfaceAttrib(egl_display, egl_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
-   }
-
    /*
       Step 6 - Create a context.
       EGL has to create a context for OpenGL ES. Our OpenGL ES resources
@@ -2218,7 +2164,7 @@ int main(int argc, char** argv)
 {
    // Message to print to show what args are accepted
    const char  *usage =
-      "Usage: %s [+m] [+p] [+s] [d=WxH] [bpp=16/24/32]\n"
+      "Usage: %s [+m] [+s] [d=WxH] [bpp=16/24/32]\n"
       "repeat=R       draw the grid R times per frame\n"
       "iters=I        perform I iterations of the per frame (grid is drawn R x I times)\n"
       "side=WxH       each rectangle in the grid is WxH pixels\n"

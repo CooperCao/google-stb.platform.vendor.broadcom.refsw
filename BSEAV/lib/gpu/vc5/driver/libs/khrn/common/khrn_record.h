@@ -14,7 +14,11 @@ EXTERN_C_BEGIN
 
 typedef struct khrn_memaccess khrn_memaccess;
 
-extern void khrn_record(khrn_memaccess* ma, const V3D_BIN_RENDER_INFO_T *br_info);
+void khrn_record(khrn_memaccess* ma, const V3D_BIN_RENDER_INFO_T *br_info);
+
+#if V3D_USE_CSD
+void khrn_record_csd(khrn_memaccess* ma, v3d_compute_subjob const* subjobs, unsigned num_subjobs);
+#endif
 
 EXTERN_C_END
 

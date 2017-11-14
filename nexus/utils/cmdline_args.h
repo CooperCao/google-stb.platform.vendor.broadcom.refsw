@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -153,6 +153,7 @@ struct util_opts_t {
 #if NEXUS_HAS_PLAYBACK
     NEXUS_PlaybackLoopMode beginningOfStreamAction;
     NEXUS_PlaybackLoopMode endOfStreamAction;
+    bool accurateSeek;
 #endif
 #if NEXUS_HAS_VIDEO_DECODER
     NEXUS_VideoDecoderErrorHandling videoErrorHandling;

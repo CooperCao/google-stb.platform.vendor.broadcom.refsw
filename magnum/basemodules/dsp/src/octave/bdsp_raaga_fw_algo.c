@@ -46,13 +46,16 @@ const uint32_t BDSP_SystemID_MemoryReqd[BDSP_SystemImgId_eMax] = {
     BDSP_IMG_SYSTEM_LIB_SIZE,
 };
 
-static const BDSP_P_AlgorithmSupportInfo BDSP_sAlgorithmSupportInfo[] =
+static const BDSP_P_AlgorithmSupportInfo BDSP_sRaagaAlgorithmSupportInfo[] =
 {
 #ifdef BDSP_MPEG_SUPPORT
-    {BDSP_Algorithm_eMpegAudioDecode, "MPEG Audio Decode", true},
+    {BDSP_Algorithm_eMpegAudioDecode, "MPEG Decode", true},
 #endif
 #ifdef BDSP_UDC_SUPPORT
-	{BDSP_Algorithm_eUdcDecode, "UDC Audio Decode", true},
+	{BDSP_Algorithm_eUdcDecode, "UDC Decode", true},
+#endif
+#ifdef BDSP_UDC_PASSTHRU_SUPPORT
+	{BDSP_Algorithm_eUdcPassthrough, "UDC Passthru", true},
 #endif
 #ifdef BDSP_AC3_SUPPORT
 	{BDSP_Algorithm_eAc3Decode, "AC3 Decode", true},
@@ -71,6 +74,11 @@ static const BDSP_P_AlgorithmSupportInfo BDSP_sAlgorithmSupportInfo[] =
 	{BDSP_Algorithm_eAacAdtsDecode, "AAC ADTS Decode", true},
 	{BDSP_Algorithm_eAacLoasDecode, "AAC LOAS Decode", true},
 #endif
+#ifdef BDSP_DOLBY_AACHE_SUPPORT
+	{BDSP_Algorithm_eDolbyAacheAdtsDecode, "Dolby AACHE ADTS Decode", true},
+	{BDSP_Algorithm_eDolbyAacheLoasDecode, "Dolby AACHE LOAS Decode", true},
+#endif
+
 #ifdef BDSP_AACSBR_PASSTHRU_SUPPORT
 	{BDSP_Algorithm_eAacLoasPassthrough,  "AAC LOAS Passthru", true},
 	{BDSP_Algorithm_eAacAdtsPassthrough,  "AAC ADTS Passthru", true},
@@ -81,332 +89,327 @@ static const BDSP_P_AlgorithmSupportInfo BDSP_sAlgorithmSupportInfo[] =
 #ifdef BDSP_SRC_SUPPORT
 	{BDSP_Algorithm_eSrc, "Sample Rate Conversion", true},
 #endif
+#ifdef BDSP_MIXERDAPV2_SUPPORT
+	{BDSP_Algorithm_eMixerDapv2, "Mixer Dapv2", true},
+#endif
+#ifdef BDSP_FWMIXER_SUPPORT
+	{BDSP_Algorithm_eMixer, "Mixer", true},
+#endif
+#ifdef BDSP_DPCMR_SUPPORT
+	{BDSP_Algorithm_eDpcmr, "Dolby PCM Renderer", true},
+#endif
+#ifdef BDSP_DDPENC_SUPPORT
+	{BDSP_Algorithm_eDDPEncode, "DDP Encode", true},
+#endif
+#ifdef BDSP_AACHEENC_SUPPORT
+	{BDSP_Algorithm_eAacEncode, "AACHE Encode", true},
+#endif
+#ifdef BDSP_GENCDBITB_SUPPORT
+	{BDSP_Algorithm_eGenCdbItb, "Gen CDB/ITB PP", true},
+#endif
+#ifdef BDSP_DSOLA_SUPPORT
+    {BDSP_Algorithm_eDsola, "DSOLA PP", true},
+#endif
 	{BDSP_Algorithm_eMax, "Invalid", false}
 };
 
-static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
+static const BDSP_P_AlgorithmCodeInfo BDSP_sRaagaAlgorithmCodeInfo[] =
 {
 	{
-		/* Algorithm */                    /* Type */                       /* Name */
-		BDSP_Algorithm_eMpegAudioDecode, BDSP_AlgorithmType_eAudioDecode, "MPEG Audio Decode",
-		/* Default User Config */            /* User config size */
-		&BDSP_sMpegDefaultUserConfig, sizeof(BDSP_Raaga_Audio_MpegConfigParams),
-		/* Stream Info Size */                   /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_MpegStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_MpegStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */      /* samples per channel */
-		2,   					         1152,
+		/* Algorithm */
+		BDSP_Algorithm_eMpegAudioDecode,
 		/* Scratch buffer size */			  /* rom table size */
 		BDSP_IMG_ADEC_MPEG1_SCRATCH_SIZE, BDSP_IMG_ADEC_MPEG1_TABLES_SIZE,
 		/* interframe size */                    /*  Compressed interframe size */
 		BDSP_IMG_ADEC_MPEG1_INTER_FRAME_SIZE, BDSP_IMG_ADEC_MPEG1_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/			   /* IDS codeSize*/
 		BDSP_IMG_ADEC_MPEG1_SIZE,        BDSP_IMG_AIDS_MPEG1_SIZE,
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
+		/* Code Lib name*/                /* IDS Code Lib name*/
+		"/libadec_mpeg1.so",               "/libaids_mpeg1.so"
 	},
 	{
-		/* Algorithm */                    /* Type */                       /* Name */
-		BDSP_Algorithm_eUdcDecode, BDSP_AlgorithmType_eAudioDecode, "UDC Audio Decode",
-		/* Default User Config */            /* User config size */
-		&BDSP_sUdcdecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_UdcdecConfigParams),
-		/* Stream Info Size */                   /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_UdcStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_UdcStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */      /* samples per channel */
-		8,   					         1536,
+		/* Algorithm */
+		BDSP_Algorithm_eUdcDecode,
 		/* Scratch buffer size */			/* rom table size */
 		BDSP_IMG_ADEC_UDC_SCRATCH_SIZE,	BDSP_IMG_ADEC_UDC_TABLES_SIZE,
 		/* interframe size */					/* Compressed interframe size */
 		BDSP_IMG_ADEC_UDC_INTER_FRAME_SIZE, BDSP_IMG_ADEC_UDC_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/			   /* IDS codeSize*/
 		BDSP_IMG_ADEC_UDC_SIZE,        BDSP_IMG_AIDS_DDP_SIZE,
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
+		/* Code Lib name*/                /* IDS Code Lib name*/
+		"/libadec_udc.so",               "/libaids_ddp.so"
 	},
+    {
+        /* Algorithm */
+        BDSP_Algorithm_eUdcPassthrough,
+        /* Scratch buffer size */                /* rom table size */
+        BDSP_IMG_ADEC_PASSTHRU_SCRATCH_SIZE, BDSP_IMG_ADEC_PASSTHRU_TABLES_SIZE,
+        /* interframe size */                       /*Compressed interframe size */
+        BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE, BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE,
+        /* Algorithm codeSize*/            /* IDS codeSize*/
+        BDSP_IMG_ADEC_PASSTHRU_SIZE,     BDSP_IMG_AIDS_DDP_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_passthru.so",           "/libaids_ddp.so"
+    },
 	{
-		/* Algorithm */                    /* Type */                       /* Name */
-		BDSP_Algorithm_eAc3Decode, BDSP_AlgorithmType_eAudioDecode, "AC3 Decode",
-		/* Default User Config */            /* User config size */
-		&BDSP_sUdcdecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_UdcdecConfigParams),
-		/* Stream Info Size */                   /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_UdcStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_UdcStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */      /* samples per channel */
-		8,   					         1536,
+		/* Algorithm */
+		BDSP_Algorithm_eAc3Decode,
 		/* Scratch buffer size */			/* rom table size */
 		BDSP_IMG_ADEC_AC3_SCRATCH_SIZE,	BDSP_IMG_ADEC_AC3_TABLES_SIZE,
 		/* interframe size */					/*Compressed interframe size */
 		BDSP_IMG_ADEC_AC3_INTER_FRAME_SIZE, BDSP_IMG_ADEC_AC3_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/			   /* IDS codeSize*/
 		BDSP_IMG_ADEC_AC3_SIZE,        BDSP_IMG_AIDS_DDP_SIZE,
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_ac3.so",               "/libaids_ddp.so"
 	},
 	{
-		/* Algorithm */ 				   /* Type */						      /* Name */
-		BDSP_Algorithm_eAc3Passthrough, BDSP_AlgorithmType_eAudioPassthrough, "AC3 Passthru",
-		/* Default User Config */			 /* User config size */
-		&BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
-		/* Stream Info Size */					 /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_DdpStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_DdpStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */	  /* samples per channel */
-		1,								 24576,
+		/* Algorithm */
+		BDSP_Algorithm_eAc3Passthrough,
 		/* Scratch buffer size */				 /* rom table size */
 		BDSP_IMG_ADEC_PASSTHRU_SCRATCH_SIZE, BDSP_IMG_ADEC_PASSTHRU_TABLES_SIZE,
 		/* interframe size */                       /*Compressed interframe size */
 		BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE, BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/ 		   /* IDS codeSize*/
 		BDSP_IMG_ADEC_PASSTHRU_SIZE,	 BDSP_IMG_AIDS_DDP_SIZE,
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_passthru.so",           "/libaids_ddp.so"
+
 	},
 	{
-		/* Algorithm */                    /* Type */                       /* Name */
-		BDSP_Algorithm_eAc3PlusDecode, BDSP_AlgorithmType_eAudioDecode, "AC3+ Decode",
-		/* Default User Config */            /* User config size */
-		&BDSP_sUdcdecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_UdcdecConfigParams),
-		/* Stream Info Size */                   /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_UdcStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_UdcStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */      /* samples per channel */
-		8,   					         1536,
+		/* Algorithm */
+		BDSP_Algorithm_eAc3PlusDecode,
 		/* Scratch buffer size */           /* rom table size */
 		BDSP_IMG_ADEC_DDP_SCRATCH_SIZE, BDSP_IMG_ADEC_DDP_TABLES_SIZE,
 		/* interframe size */					/*Compressed interframe size */
 		BDSP_IMG_ADEC_DDP_INTER_FRAME_SIZE, BDSP_IMG_ADEC_DDP_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/			   /* IDS codeSize*/
 		BDSP_IMG_ADEC_DDP_SIZE,        BDSP_IMG_AIDS_DDP_SIZE,
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_ddp.so",               "/libaids_ddp.so"
+
 	},
 	{
-		/* Algorithm */ 				         /* Type */						      /* Name */
-		BDSP_Algorithm_eAc3PlusPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "AC3+ Passthru",
-		/* Default User Config */			 /* User config size */
-		&BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
-		/* Stream Info Size */					 /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_DdpStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_DdpStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */	  /* samples per channel */
-		1,								 98304,
+		/* Algorithm */
+		BDSP_Algorithm_eAc3PlusPassthrough,
 		/* Scratch buffer size */				 /* rom table size */
 		BDSP_IMG_ADEC_PASSTHRU_SCRATCH_SIZE, BDSP_IMG_ADEC_PASSTHRU_TABLES_SIZE,
 		/* interframe size */						 /*Compressed interframe size */
 		BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE, BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/ 		   /* IDS codeSize*/
 		BDSP_IMG_ADEC_PASSTHRU_SIZE,	 BDSP_IMG_AIDS_DDP_SIZE,
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_passthru.so",           "/libaids_ddp.so"
 	},
 	{
-		/* Algorithm */                    /* Type */                       /* Name */
-		BDSP_Algorithm_eAacAdtsDecode, BDSP_AlgorithmType_eAudioDecode, "AAC ADTS Decode",
-		/* Default User Config */            /* User config size */
-		&BDSP_sAacheDefaultUserConfig, sizeof(BDSP_Raaga_Audio_AacheConfigParams),
-		/* Stream Info Size */                   /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_AacStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_AacStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */      /* samples per channel */
-		6,   					         2048,
+		/* Algorithm */
+		BDSP_Algorithm_eAacAdtsDecode,
 		/* Scratch buffer size */			  /* rom table size */
 		BDSP_IMG_ADEC_AACHE_SCRATCH_SIZE, BDSP_IMG_ADEC_AACHE_TABLES_SIZE,
 		/* interframe size */				      /*Compressed interframe size */
 		BDSP_IMG_ADEC_AACHE_INTER_FRAME_SIZE, BDSP_IMG_ADEC_AACHE_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/			   /* IDS codeSize*/
 		BDSP_IMG_ADEC_AACHE_SIZE,        BDSP_IMG_AIDS_ADTS_SIZE,
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_aache.so",              "/libaids_adts.so"
 	},
 	{
-		/* Algorithm */ 				   		/* Type */								/* Name */
-		BDSP_Algorithm_eAacAdtsPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "AAC ADTS Passthru",
-		/* Default User Config */			 /* User config size */
-		&BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
-		/* Stream Info Size */					 /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_AacStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_AacStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */	  /* samples per channel */
-		1,								 6144,/* For time being only LOAS 6144 samples */
+		/* Algorithm */
+		BDSP_Algorithm_eDolbyAacheAdtsDecode,
+		/* Scratch buffer size */			  /* rom table size */
+		BDSP_IMG_ADEC_DOLBY_AACHE_SCRATCH_SIZE, BDSP_IMG_ADEC_DOLBY_AACHE_TABLES_SIZE,
+		/* interframe size */				      /*Compressed interframe size */
+		BDSP_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_SIZE, BDSP_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/			   /* IDS codeSize*/
+		BDSP_IMG_ADEC_DOLBY_AACHE_SIZE,        BDSP_IMG_AIDS_ADTS_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_dolby_aache.so",              "/libaids_adts.so"
+	},
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eAacAdtsPassthrough,
 		/* Scratch buffer size */				 /* rom table size */
 		BDSP_IMG_ADEC_PASSTHRU_SCRATCH_SIZE, BDSP_IMG_ADEC_PASSTHRU_TABLES_SIZE,
 		/* interframe size */				  	     /* Compressed interframe size */
 		BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE, BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/ 		   /* IDS codeSize*/
 		BDSP_IMG_ADEC_PASSTHRU_SIZE,	 BDSP_IMG_AIDS_ADTS_SIZE,
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_passthru.so",           "/libaids_adts.so"
 	},
 	{
-		/* Algorithm */                    /* Type */                       /* Name */
-		BDSP_Algorithm_eAacLoasDecode, BDSP_AlgorithmType_eAudioDecode, "AAC LOAS Decode",
-		/* Default User Config */            /* User config size */
-		&BDSP_sAacheDefaultUserConfig, sizeof(BDSP_Raaga_Audio_AacheConfigParams),
-		/* Stream Info Size */                   /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_AacStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_AacStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */      /* samples per channel */
-		6,   					         2048,
+		/* Algorithm */
+		BDSP_Algorithm_eAacLoasDecode,
 		/* Scratch buffer size */			  /* rom table size */
 		BDSP_IMG_ADEC_AACHE_SCRATCH_SIZE, BDSP_IMG_ADEC_AACHE_TABLES_SIZE,
 		/* interframe size */				      /* Compressed interframe size */
 		BDSP_IMG_ADEC_AACHE_INTER_FRAME_SIZE, BDSP_IMG_ADEC_AACHE_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/			   /* IDS codeSize*/
 		BDSP_IMG_ADEC_AACHE_SIZE,        BDSP_IMG_AIDS_LOAS_SIZE,
-		/* Preemption levels*/
-		{
-		  true,
-		  false,
-		  false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_aache.so",              "/libaids_loas.so"
 	},
 	{
-		/* Algorithm */					 /* Type */ 					  /* Name */		  /* Supported */
-		BDSP_Algorithm_eAacLoasPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "AAC LOAS Audio Passthru",
-		/* Default User Config */ 		   /* User config size */
-		&BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
-		/* Stream Info Size */				   /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_AacStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_AacStreamInfo, ui32StatusValid),
-		/* IDS status size */ 				   /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */		/* samples per channel */
-		1,							   6144,/* For time being only LOAS 6144 samples */
+		/* Algorithm */
+		BDSP_Algorithm_eDolbyAacheLoasDecode,
+		/* Scratch buffer size */			  /* rom table size */
+		BDSP_IMG_ADEC_DOLBY_AACHE_SCRATCH_SIZE, BDSP_IMG_ADEC_DOLBY_AACHE_TABLES_SIZE,
+		/* interframe size */				      /* Compressed interframe size */
+		BDSP_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_SIZE, BDSP_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/			   /* IDS codeSize*/
+		BDSP_IMG_ADEC_DOLBY_AACHE_SIZE,        BDSP_IMG_AIDS_LOAS_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_dolby_aache.so",              "/libaids_loas.so"
+	},
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eAacLoasPassthrough,
 		/* Scratch buffer size */				 /* rom table size */
 		BDSP_IMG_ADEC_PASSTHRU_SCRATCH_SIZE, BDSP_IMG_ADEC_PASSTHRU_TABLES_SIZE,
 		 /* interframe size */ 					 	 /* Compressed interframe size */
 		BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE, BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/			 /* IDS codeSize*/
 		BDSP_IMG_ADEC_PASSTHRU_SIZE,	   BDSP_IMG_AIDS_LOAS_SIZE,
-		/* Preemption levels*/
-		{
-		  true,
-		  false,
-		  false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_passthru.so",             "/libaids_loas.so"
+
 	},
 	{
-		/* Algorithm */                    /* Type */                       /* Name */
-		BDSP_Algorithm_ePcmWavDecode, BDSP_AlgorithmType_eAudioDecode, "PCMWAV Decode",
-		/* Default User Config */            /* User config size */
-		&BDSP_sPcmWavDefaultUserConfig, sizeof(BDSP_Raaga_Audio_PcmWavConfigParams),
-		/* Stream Info Size */                   /* Valid offset */
-		sizeof(BDSP_Raaga_Audio_PcmWavStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_PcmWavStreamInfo, ui32StatusValid),
-		/* IDS status size */					 /* TSM status size */
-		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
-		/* Max Channels Supported */      /* samples per channel */
-		8,   					         5760,/* 30 ms at 192KHz*/
+		/* Algorithm */
+		BDSP_Algorithm_ePcmWavDecode,
 		/* Scratch buffer size */			   /* rom table size */
 		BDSP_IMG_ADEC_PCMWAV_SCRATCH_SIZE, BDSP_IMG_ADEC_PCMWAV_TABLES_SIZE,
 		/* interframe size */					   /*Compressed interframe size */
 		BDSP_IMG_ADEC_PCMWAV_INTER_FRAME_SIZE, BDSP_IMG_ADEC_PCMWAV_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/			   /* IDS codeSize*/
 		BDSP_IMG_ADEC_PCMWAV_SIZE,        BDSP_IMG_AIDS_WAVFORMATEX_SIZE,
-		/* Preemption levels*/
-		{
-		  true,
-		  false,
-		  false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_pcmwav.so",              "/libaids_wavformatex.so"
+
 	},
 	{
-		/* Algorithm */				   /* Type */						/* Name */
-		BDSP_Algorithm_eSrc, BDSP_AlgorithmType_eAudioProcessing, "Sample Rate Conversion",
-		/* Default User Config */ 		 /* User config size */
-		NULL, 							  0,
-		/* Stream Info Size */			/* Valid offset */
-		0,								0xffffffff,
-		/* IDS status size */ 			  /* TSM status size */
-		0,								  0,
-		/* Max Channels Supported */		/* Samples per channel */
-		6,							   (8*1024),
+		/* Algorithm */
+		BDSP_Algorithm_eSrc,
 		/* Scratch buffer size */		   /* Rom table size */
 		BDSP_IMG_APP_SRC_SCRATCH_SIZE, BDSP_IMG_APP_SRC_TABLES_SIZE,
 		/* Interframe size */  			  /* Compressed Interframe size */
 		BDSP_IMG_APP_SRC_INTER_FRAME_SIZE, BDSP_IMG_APP_SRC_INTER_FRAME_ENCODED_SIZE,
 		/* Algorithm codeSize*/		  /* IDS codeSize*/
 		BDSP_IMG_APP_SRC_SIZE,		 0,
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libapp_src.so",              "INVALID"
 	},
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eMixerDapv2,
+		/* Scratch buffer size */		   /* Rom table size */
+		BDSP_IMG_APP_MIXER_DAPV2_SCRATCH_SIZE, BDSP_IMG_APP_MIXER_DAPV2_TABLES_SIZE,
+		/* Interframe size */  			  /* Compressed Interframe size */
+		BDSP_IMG_APP_MIXER_DAPV2_INTER_FRAME_SIZE, BDSP_IMG_APP_MIXER_DAPV2_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_IMG_APP_MIXER_DAPV2_SIZE,		 0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libapp_mixer_dapv2.so",           "INVALID"
+
+    },
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eMixer,
+		/* Scratch buffer size */		   /* Rom table size */
+		BDSP_IMG_APP_MIXER_DAPV2_SCRATCH_SIZE, BDSP_IMG_APP_MIXER_DAPV2_TABLES_SIZE,
+		/* Interframe size */  			  /* Compressed Interframe size */
+		BDSP_IMG_APP_MIXER_DAPV2_INTER_FRAME_SIZE, BDSP_IMG_APP_MIXER_DAPV2_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_IMG_APP_MIXER_DAPV2_SIZE,		 0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+		"/libapp_fw_mixer.so",           "INVALID"
+
+    },
+    {
+		/* Algorithm */
+		BDSP_Algorithm_eDpcmr,
+		/* Scratch buffer size */		   /* Rom table size */
+		BDSP_IMG_APP_DPCMR_SCRATCH_SIZE, BDSP_IMG_APP_DPCMR_TABLES_SIZE,
+		/* Interframe size */  			  /* Compressed Interframe size */
+		BDSP_IMG_APP_DPCMR_INTER_FRAME_SIZE, BDSP_IMG_APP_DPCMR_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_IMG_APP_DPCMR_SIZE,		 0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libapp_dpcmr.so",               "INVALID"
+	},
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eDDPEncode,
+		/* Scratch buffer size */		  /* Rom table size */
+		BDSP_IMG_AENC_DDP_SCRATCH_SIZE, BDSP_IMG_AENC_DDP_TABLES_SIZE,
+		/* Interframe size */  		  /* Compressed Interframe size */
+		BDSP_IMG_AENC_DDP_INTER_FRAME_SIZE, BDSP_IMG_AENC_DDP_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_IMG_AENC_DDP_SIZE,		    0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libaenc_ddp.so",               "INVALID"
+	},
+    {
+        /* Algorithm */
+        BDSP_Algorithm_eAacEncode,
+        /* Scratch buffer size */		  /* Rom table size */
+        BDSP_IMG_AENC_AACHE_SCRATCH_SIZE, BDSP_IMG_AENC_AACHE_TABLES_SIZE,
+        /* Interframe size */  		  /* Compressed Interframe size */
+        BDSP_IMG_AENC_AACHE_INTER_FRAME_SIZE, BDSP_IMG_AENC_AACHE_INTER_FRAME_ENCODED_SIZE,
+        /* Algorithm codeSize*/		  /* IDS codeSize*/
+        BDSP_IMG_AENC_AACHE_SIZE,		    0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libaenc_aache.so",               "INVALID"
+    },
+    {
+        /* Algorithm */
+        BDSP_Algorithm_eGenCdbItb,
+        /* Scratch buffer size */		  /* Rom table size */
+        BDSP_IMG_APP_GEN_CDBITB_SCRATCH_SIZE, BDSP_IMG_APP_GEN_CDBITB_TABLES_SIZE,
+        /* Interframe size */  		  /* Compressed Interframe size */
+        BDSP_IMG_APP_GEN_CDBITB_INTER_FRAME_SIZE, BDSP_IMG_APP_GEN_CDBITB_INTER_FRAME_ENCODED_SIZE,
+        /* Algorithm codeSize*/		  /* IDS codeSize*/
+        BDSP_IMG_APP_GEN_CDBITB_SIZE,		    0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libapp_gen_cdbitb.so",               "INVALID"
+    },
+    {
+        /* Algorithm */
+        BDSP_Algorithm_eDsola,
+        /* Scratch buffer size */         /* Rom table size */
+        BDSP_IMG_APP_DSOLA_SCRATCH_SIZE, BDSP_IMG_APP_DSOLA_TABLES_SIZE,
+        /* Interframe size */         /* Compressed Interframe size */
+        BDSP_IMG_APP_DSOLA_INTER_FRAME_SIZE, BDSP_IMG_APP_DSOLA_INTER_FRAME_ENCODED_SIZE,
+        /* Algorithm codeSize*/       /* IDS codeSize*/
+        BDSP_IMG_APP_DSOLA_SIZE,           0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libapp_dsola.so",               "INVALID"
+    },
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{
-		BDSP_Algorithm_eMax, BDSP_AlgorithmType_eMax, "Invalid",
-		NULL, 0,
-		0, 0xffffffff,
+		BDSP_Algorithm_eMax,
 		0, 0,
 		0, 0,
 		0, 0,
-		0, 0,
-		0, 0,
-		{
-			false,
-			false,
-			false
-		}
+		"INVALID", "INVALID"
 	}
 };
 
-const BDSP_P_AlgorithmInfo *BDSP_Raaga_P_LookupAlgorithmInfo_isrsafe(
+const BDSP_P_AlgorithmCodeInfo *BDSP_Raaga_P_LookupAlgorithmCodeInfo(
     BDSP_Algorithm algorithm
 )
 {
   unsigned i;
 
-  for ( i = 0; BDSP_sAlgorithmInfo[i].algorithm != BDSP_Algorithm_eMax; i++ )
+  for ( i = 0; BDSP_sRaagaAlgorithmCodeInfo[i].algorithm != BDSP_Algorithm_eMax; i++ )
   {
-    if ( BDSP_sAlgorithmInfo[i].algorithm == algorithm )
+    if ( BDSP_sRaagaAlgorithmCodeInfo[i].algorithm == algorithm )
     {
       break;
     }
     }
 
-    return &BDSP_sAlgorithmInfo[i];
+    return &BDSP_sRaagaAlgorithmCodeInfo[i];
 }
 
 const BDSP_P_AlgorithmSupportInfo *BDSP_Raaga_P_LookupAlgorithmSupportInfo(
@@ -415,12 +418,12 @@ const BDSP_P_AlgorithmSupportInfo *BDSP_Raaga_P_LookupAlgorithmSupportInfo(
 {
 	unsigned i;
 
-	for (i = 0; BDSP_sAlgorithmSupportInfo[i].algorithm != BDSP_Algorithm_eMax; i++ )
+	for (i = 0; BDSP_sRaagaAlgorithmSupportInfo[i].algorithm != BDSP_Algorithm_eMax; i++ )
 	{
-		if ( BDSP_sAlgorithmSupportInfo[i].algorithm == algorithm )
+		if ( BDSP_sRaagaAlgorithmSupportInfo[i].algorithm == algorithm )
 		{
 		  break;
 		}
 	}
-	return &BDSP_sAlgorithmSupportInfo[i];
+	return &BDSP_sRaagaAlgorithmSupportInfo[i];
 }

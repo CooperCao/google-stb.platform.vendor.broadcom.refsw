@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,11 +42,12 @@
 #include "bicp.h"
 #include "bicp_priv.h"
 #include "bchp_icap.h"
+#include "bchp_common.h"
 #if (BCHP_CHIP == 7125) || (BCHP_CHIP == 7325) || (BCHP_CHIP == 7335) || (BCHP_CHIP == 7340) || (BCHP_CHIP == 7342) || (BCHP_CHIP == 7400) || \
     (BCHP_CHIP == 7405) || (BCHP_CHIP == 7408) || (BCHP_CHIP == 7420) || (BCHP_CHIP == 7468) || (BCHP_CHIP == 7550)
     #include "bchp_irq0.h"
     #include "bchp_int_id_irq0.h"
-#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7278)
+#elif defined(BCHP_UPG_MAIN_AON_IRQ_REG_START)
     #include "bchp_int_id_upg_main_aon_irq.h"
 #else
     #include "bchp_int_id_irq0_aon.h"
@@ -54,8 +55,6 @@
 #endif
 
 BDBG_MODULE(bicp);
-
-#define DEV_MAGIC_ID            ((BERR_ICP_ID<<16) | 0xFACE)
 
 #define BICP_CHK_RETCODE( rc, func )        \
 do {                                        \
@@ -67,6 +66,8 @@ do {                                        \
 
 #define MAX_ICAP_RCNT               15
 
+BDBG_OBJECT_ID(BICP_Handle);
+
 /*******************************************************************************
 *
 *   Private Module Handles
@@ -76,6 +77,7 @@ do {                                        \
 typedef struct BICP_P_Handle
 {
     uint32_t        magicId;                    /* Used to check if structure is corrupt */
+    BDBG_OBJECT(BICP_Handle)
     BCHP_Handle     hChip;
     BREG_Handle     hRegister;
     BINT_Handle     hInterrupt;
@@ -108,9 +110,12 @@ typedef struct BICP_P_RC6
     BICP_P_RC6_KEYBIT   keybits[314];
 } BICP_P_RC6;
 
+BDBG_OBJECT_ID(BICP_ChannelHandle);
+
 typedef struct BICP_P_ChannelHandle
 {
     uint32_t            magicId;                    /* Used to check if structure is corrupt */
+    BDBG_OBJECT(BICP_ChannelHandle)
     BICP_Handle         hIcp;
     uint32_t            chnNo;
     uint32_t            isrCount;
@@ -194,7 +199,7 @@ BERR_Code BICP_Open(
         goto done;
     }
 
-    hDev->magicId   = DEV_MAGIC_ID;
+    BDBG_OBJECT_SET(hDev, BICP_Handle);
     hDev->hChip     = hChip;
     hDev->hRegister = hRegister;
     hDev->hInterrupt = hInterrupt;
@@ -219,9 +224,7 @@ BERR_Code BICP_Close(
     BERR_Code retCode = BERR_SUCCESS;
     unsigned int chnIdx;
 
-
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BICP_Handle);
 
     /* If channel is not closed, close the channel to free up the memory */
     for( chnIdx = 0; chnIdx < hDev->maxChnNo; chnIdx++ )
@@ -232,6 +235,7 @@ BERR_Code BICP_Close(
         }
     }
 
+    BDBG_OBJECT_DESTROY(hDev, BICP_Handle);
     BKNI_Free( (void *) hDev );
 
     return( retCode );
@@ -258,9 +262,7 @@ BERR_Code BICP_GetTotalChannels(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BICP_Handle);
 
     *totalChannels = hDev->maxChnNo;
 
@@ -280,8 +282,7 @@ BERR_Code BICP_GetChannelDefaultSettings(
     BSTD_UNUSED(hDev);
 #endif
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BICP_Handle);
 
     switch (channelNo)
     {
@@ -320,8 +321,7 @@ BERR_Code BICP_OpenChannel(
     BERR_Code           retCode = BERR_SUCCESS;
     BICP_ChannelHandle  hChnDev;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BICP_Handle);
 
     hChnDev = NULL;
 
@@ -340,7 +340,7 @@ BERR_Code BICP_OpenChannel(
             }
 
             BICP_CHK_RETCODE( retCode, BKNI_CreateEvent( &(hChnDev->hChnEvent) ) );
-            hChnDev->magicId    = DEV_MAGIC_ID;
+            BDBG_OBJECT_INIT(hChnDev, BICP_ChannelHandle);
             hChnDev->hIcp       = hDev;
             hChnDev->chnNo      = channelNo;
             hChnDev->isrCount   = 0;
@@ -427,8 +427,7 @@ BERR_Code BICP_CloseChannel(
     unsigned int chnNo;
 
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
 
     hDev = hChn->hIcp;
 
@@ -464,9 +463,7 @@ BERR_Code BICP_GetDevice(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
 
     *phDev = hChn->hIcp;
 
@@ -481,9 +478,7 @@ BERR_Code BICP_GetEventHandle(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
 
 
     *phEvent = hChn->hChnEvent;
@@ -499,8 +494,7 @@ BERR_Code BICP_EnableEdge(
     uint32_t lval, mask;
     BICP_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
 
     hDev = hChn->hIcp;
 
@@ -526,8 +520,7 @@ BERR_Code BICP_DisableEdge(
     uint32_t lval, mask;
     BICP_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
 
     hDev = hChn->hIcp;
 
@@ -552,8 +545,7 @@ BERR_Code BICP_GetTimerCnt(
     uint32_t        msb = 0, lsb = 0;
     BICP_Handle     hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
 
     hDev = hChn->hIcp;
 
@@ -596,8 +588,7 @@ BERR_Code BICP_PollTimer(
     uint32_t        mask, lval;
     BICP_Handle     hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
 
     hDev = hChn->hIcp;
     lval = BREG_Read32(hDev->hRegister, BCHP_ICAP_INSTATUS);
@@ -621,8 +612,8 @@ void BICP_EnableInt(
     BICP_ChannelHandle  hChn            /* Device channel handle */
     )
 {
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
+
     BICP_P_EnableInt( hChn );
 }
 
@@ -630,8 +621,7 @@ void BICP_DisableInt(
     BICP_ChannelHandle  hChn            /* Device channel handle */
     )
 {
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
     BICP_P_DisableInt( hChn );
 }
 
@@ -642,8 +632,7 @@ void BICP_EnableRC6(
 {
     BICP_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BICP_ChannelHandle);
     hChn->handleRC6 = 1;
     hChn->pInterruptEventUserCallback = pCallback;
     hDev = hChn->hIcp;
@@ -656,8 +645,7 @@ void BICP_DisableRC6(
 {
     BICP_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
     hChn->handleRC6 = 0;
 
     hDev = hChn->hIcp;
@@ -668,8 +656,7 @@ void BICP_ResetIntCount(
     BICP_ChannelHandle  hChn            /* Device channel handle */
     )
 {
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
     hChn->isrCount = 0;
 }
 
@@ -678,8 +665,7 @@ void BICP_GetIntCount(
     uint32_t            *data
     )
 {
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
     *data = hChn->isrCount;
 }
 #endif

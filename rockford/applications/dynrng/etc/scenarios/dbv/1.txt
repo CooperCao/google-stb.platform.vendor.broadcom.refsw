@@ -1,2 +1,0 @@
-stream=waterfalls.dm1_U25000.ts
-osd=off

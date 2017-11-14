@@ -44,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri May 26 16:05:47 2017
- *                 Full Compile MD5 Checksum  9adbc395b049f9d59dc6236c99470286
+ * Date:           Generated on               Fri Sep 15 14:47:22 2017
+ *                 Full Compile MD5 Checksum  493ce95c2999fc964ea8b5f1f30a0b54
  *                     (minus title and desc)
- *                 MD5 Checksum               be65de934022dbbaac2735622a046bdc
+ *                 MD5 Checksum               3d0c4b0494ea69369f5bbe3d74ddf30c
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1481
+ *                 RDB.pm                     1749
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
+ *                 Script Source              home/pt902453/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pt902453/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -12864,10 +12864,10 @@ BCHP_REGISTER(0x20652280, 32, CFG, HDR_CMP_0, V0_L2NL_LUT_CTRL)
 BCHP_REGISTER(0x20652700, 32, CFG, HDR_CMP_0, V0_R0_LMR_MULT_COEF)
 BCHP_REGISTER(0x20652704, 32, CFG, HDR_CMP_0, V0_R0_LMR_ADD_COEFF)
 BCHP_REGISTER(0x20652708, 32, CFG, HDR_CMP_0, V0_R0_LMR_LUT_CTRL)
-BCHP_REGISTER(0x20652728, 32, CFG, HDR_CMP_0, V0_MB2_COEF_C00)
-BCHP_REGISTER(0x2065272c, 32, CFG, HDR_CMP_0, V0_MB2_COEF_C01)
-BCHP_REGISTER(0x20652730, 32, CFG, HDR_CMP_0, V0_MB2_COEF_C02)
-BCHP_REGISTER(0x20652734, 32, CFG, HDR_CMP_0, V0_MB2_COEF_C03)
+BCHP_REGISTER(0x20652728, 32, CFG, HDR_CMP_0, V0_R0_MB2_COEF_C00)
+BCHP_REGISTER(0x2065272c, 32, CFG, HDR_CMP_0, V0_R0_MB2_COEF_C01)
+BCHP_REGISTER(0x20652730, 32, CFG, HDR_CMP_0, V0_R0_MB2_COEF_C02)
+BCHP_REGISTER(0x20652734, 32, CFG, HDR_CMP_0, V0_R0_MB2_COEF_C03)
 BCHP_REGISTER(0x20656070, 32, CFG, HDR_CMP_0, CMP_HDR_V1_CTRL)
 BCHP_REGISTER(0x20656100, 32, CFG, HDR_CMP_0, V1_R0_MA_COEFF_LSHF)
 BCHP_REGISTER(0x20656104, 32, CFG, HDR_CMP_0, V1_R0_MA_COEFF_C00)
@@ -13175,10 +13175,10 @@ BCHP_REGISTER(0x20658280, 32, CFG, HDR_CMP_0, V1_L2NL_LUT_CTRL)
 BCHP_REGISTER(0x20658700, 32, CFG, HDR_CMP_0, V1_R0_LMR_MULT_COEF)
 BCHP_REGISTER(0x20658704, 32, CFG, HDR_CMP_0, V1_R0_LMR_ADD_COEFF)
 BCHP_REGISTER(0x20658708, 32, CFG, HDR_CMP_0, V1_R0_LMR_LUT_CTRL)
-BCHP_REGISTER(0x20658728, 32, CFG, HDR_CMP_0, V1_MB2_COEF_C00)
-BCHP_REGISTER(0x2065872c, 32, CFG, HDR_CMP_0, V1_MB2_COEF_C01)
-BCHP_REGISTER(0x20658730, 32, CFG, HDR_CMP_0, V1_MB2_COEF_C02)
-BCHP_REGISTER(0x20658734, 32, CFG, HDR_CMP_0, V1_MB2_COEF_C03)
+BCHP_REGISTER(0x20658728, 32, CFG, HDR_CMP_0, V1_R0_MB2_COEF_C00)
+BCHP_REGISTER(0x2065872c, 32, CFG, HDR_CMP_0, V1_R0_MB2_COEF_C01)
+BCHP_REGISTER(0x20658730, 32, CFG, HDR_CMP_0, V1_R0_MB2_COEF_C02)
+BCHP_REGISTER(0x20658734, 32, CFG, HDR_CMP_0, V1_R0_MB2_COEF_C03)
 BCHP_REGISTER(0x2065a000, 32,  RO, PEP_CMP_0_V0, REVISION)
 BCHP_REGISTER(0x2065a004, 32,  RW, PEP_CMP_0_V0, SCRATCH_REGISTER)
 BCHP_REGISTER(0x2065a008, 32,  RW, PEP_CMP_0_V0, CAB_DEMO_SETTING)
@@ -34742,7 +34742,7 @@ BCHP_REGISTER(0x21208f08, 32,  RO, V3D_ERR_0, FDBGB)
 BCHP_REGISTER(0x21208f0c, 32,  RO, V3D_ERR_0, FDBGR)
 BCHP_REGISTER(0x21208f10, 32,  RO, V3D_ERR_0, FDBGS)
 BCHP_REGISTER(0x21208f20, 32,  RO, V3D_ERR_0, STAT)
-BCHP_REGISTER(0x2120a000, 32,  RO, V3D_QPUDBG_0, STS1)
+BCHP_REGISTER(0x2120a000, 32,  RW, V3D_QPUDBG_0, STS1)
 BCHP_REGISTER(0x2120a004, 32,  RO, V3D_QPUDBG_0, STS2)
 BCHP_REGISTER(0x2120a008, 32,  RO, V3D_QPUDBG_0, ALLSTS)
 BCHP_REGISTER(0x2120a00c, 32,  RO, V3D_QPUDBG_0, VER)

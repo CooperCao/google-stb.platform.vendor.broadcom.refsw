@@ -83,7 +83,7 @@ struct NEXUS_SimpleEncoder
     bool acquired;
     bool clientStarted; /* user has called Start. if false, all other started variants must be false. */
     bool started; /* actually started or may be partially stopped */
-    bool audioStarted, videoStarted; /* to start */
+    bool startAudio, startVideo; /* StartSettings say that audio or video should be started */
     bool audioEncoderAcquired; /* Audio Encoder is opened */
     bool videoEncoderStarted;
     bool abort;
@@ -374,6 +374,9 @@ void NEXUS_SimpleEncoder_Release( NEXUS_SimpleEncoderHandle handle )
 
     NEXUS_CLIENT_RESOURCES_RELEASE(simpleEncoder,IdList,handle->index);
     handle->acquired = false;
+
+    NEXUS_TaskCallback_Clear(handle->resourceChangedCallback);
+    NEXUS_TaskCallback_Clear(handle->finishedCallback);
 }
 
 void NEXUS_SimpleEncoder_GetDefaultStartSettings( NEXUS_SimpleEncoderStartSettings *pSettings )
@@ -390,6 +393,7 @@ void NEXUS_SimpleEncoder_GetDefaultStartSettings( NEXUS_SimpleEncoderStartSettin
     pSettings->output.audio.codec = NEXUS_AudioCodec_eAac;
     pSettings->output.transport.type = NEXUS_TransportType_eTs;
     pSettings->output.transport.pcrPid = 0x15;
+    pSettings->output.transport.pcrInterval = 50;
     pSettings->output.transport.pmtPid = 0x55;
     pSettings->output.transport.interval = 1000; /* 1 second */
     pSettings->transcode.nonRealTimeRate = 32 * NEXUS_NORMAL_PLAY_SPEED; /* AFAP */
@@ -429,15 +433,15 @@ NEXUS_Error NEXUS_SimpleEncoder_Start( NEXUS_SimpleEncoderHandle handle, const N
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
-    handle->audioStarted = (pSettings->input.display || pSettings->input.audio) && (pSettings->output.audio.codec != NEXUS_AudioCodec_eUnknown);
-    if (handle->audioStarted && !handle->serverSettings.audioMuxOutput) {
-        handle->audioStarted = false;
+    handle->startAudio = (pSettings->input.display || pSettings->input.audio) && (pSettings->output.audio.codec != NEXUS_AudioCodec_eUnknown);
+    if (handle->startAudio && !handle->serverSettings.audioMuxOutput) {
+        handle->startAudio = false;
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
-    handle->videoStarted = pSettings->input.display || pSettings->input.video;
-    if (handle->videoStarted && !handle->serverSettings.videoEncoder) {
-        handle->audioStarted = false;
-        handle->videoStarted = false;
+    handle->startVideo = pSettings->input.display || pSettings->input.video;
+    if (handle->startVideo && !handle->serverSettings.videoEncoder) {
+        handle->startAudio = false;
+        handle->startVideo = false;
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 
@@ -506,7 +510,6 @@ void NEXUS_SimpleEncoder_Stop( NEXUS_SimpleEncoderHandle handle )
     if (handle->clientStarted) {
         nexus_simpleencoder_p_stop(handle);
     }
-    handle->videoStarted = false;
     if (!handle->clientStarted) {
         if (handle->startSettings.input.video) {
             NEXUS_OBJECT_RELEASE(handle, NEXUS_SimpleVideoDecoder, handle->startSettings.input.video);
@@ -659,7 +662,7 @@ done:
 
 static bool ready_to_start(NEXUS_SimpleEncoderHandle handle)
 {
-    return handle->clientStarted && !handle->wait.audio && !handle->wait.video && !handle->started;
+    return handle->clientStarted && !handle->wait.audio && !handle->wait.video && (!handle->started || !handle->videoEncoderStarted);
 }
 
 NEXUS_Error nexus_simpleencoder_p_start_audio(NEXUS_SimpleEncoderHandle handle)
@@ -779,7 +782,7 @@ static NEXUS_Error nexus_simpleencoder_p_pre_start( NEXUS_SimpleEncoderHandle ha
 #endif
     }
 
-    if (handle->audioStarted) {
+    if (handle->startAudio) {
         if (handle->startSettings.input.display) {
             rc = nexus_simpleaudiodecoder_p_add_encoder(
                 handle->serverSettings.displayEncode.masterAudio,
@@ -963,13 +966,13 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
     pMuxStartSettings->nonRealTimeRate = handle->startSettings.transcode.nonRealTimeRate;
     pMuxStartSettings->useInitialPts = handle->startSettings.transcode.useInitialPts;
     pMuxStartSettings->initialPts = handle->startSettings.transcode.initialPts;
-    if (handle->videoStarted) {
+    if (handle->startVideo) {
         pMuxStartSettings->video[0].pid = handle->startSettings.output.video.pid;
         pMuxStartSettings->video[0].encoder = handle->serverSettings.videoEncoder;
         pMuxStartSettings->video[0].playpump = handle->serverSettings.playpump[0];
         nexus_simpleencoder_p_set_playpump(pMuxStartSettings->video[0].playpump, tts, false);
     }
-    if (handle->audioStarted) {
+    if (handle->startAudio) {
         pMuxStartSettings->audio[0].pid = handle->startSettings.output.audio.pid;
         pMuxStartSettings->audio[0].muxOutput = handle->serverSettings.audioMuxOutput;
         pMuxStartSettings->audio[0].playpump = handle->serverSettings.playpump[1];
@@ -981,7 +984,7 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
     nexus_simpleencoder_p_set_playpump(pMuxStartSettings->pcr.playpump, tts, true);
     if (handle->startSettings.output.transport.pcrPid) {
         pMuxStartSettings->pcr.pid = handle->startSettings.output.transport.pcrPid;
-        pMuxStartSettings->pcr.interval = 50;
+        pMuxStartSettings->pcr.interval = handle->startSettings.output.transport.pcrInterval;
     }
     else {
         pMuxStartSettings->pcr.interval = 0;
@@ -1149,7 +1152,7 @@ static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 
-    if (handle->videoStarted) {
+    if (handle->startVideo) {
 
         handle->stack.videoEncoderStartSettings = handle->startSettings.output.video.settings;
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
@@ -1181,7 +1184,7 @@ static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle
         NEXUS_VideoEncoder_GetDelayRange(handle->serverSettings.videoEncoder, &handle->settings.videoEncoder, &handle->stack.videoEncoderStartSettings, &handle->stack.videoDelay);
         BDBG_WRN(("Video encoder end-to-end delay = [%u ~ %u] ms", handle->stack.videoDelay.min/27000, handle->stack.videoDelay.max/27000));
 
-        if (handle->audioStarted) {
+        if (handle->startAudio) {
             unsigned Dee;
 
             rc = NEXUS_AudioMuxOutput_GetDelayStatus(handle->serverSettings.audioMuxOutput, handle->startSettings.output.audio.codec, &handle->stack.audioDelayStatus);
@@ -1293,7 +1296,7 @@ void nexus_simpleencoder_p_stop_videoencoder(NEXUS_SimpleEncoderHandle handle, b
 
 void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
 {
-    BDBG_MSG(("nexus_simpleencoder_p_stop %p: %d %d %p %p mode: %u", (void *)handle, handle->started, handle->audioStarted, (void *)handle->startSettings.input.video, (void *)handle->transcodeWindow, handle->settings.stopMode));
+    BDBG_MSG(("nexus_simpleencoder_p_stop %p: %d %d %p %p mode: %u", (void *)handle, handle->started, handle->startAudio, (void *)handle->startSettings.input.video, (void *)handle->transcodeWindow, handle->settings.stopMode));
     if (handle->settings.stopMode != NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly && handle->started) {
         unsigned i;
         if ( handle->startSettings.output.transport.type == NEXUS_TransportType_eTs ) {
@@ -1313,7 +1316,7 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
         if (handle->serverSettings.mixer) {
             NEXUS_AudioMixer_Stop(handle->serverSettings.mixer);
         }
-        if (handle->audioStarted) {
+        if (handle->startAudio) {
             NEXUS_AudioMuxOutput_Stop(handle->serverSettings.audioMuxOutput);
             if (handle->startSettings.input.display) {
                 nexus_simpleaudiodecoder_p_remove_encoder(handle->serverSettings.displayEncode.masterAudio);
@@ -1330,19 +1333,22 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
     nexus_simpleencoder_p_stop_videoencoder(handle,
         (handle->startSettings.output.transport.type != NEXUS_TransportType_eMp4 &&
          handle->settings.stopMode != NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) || handle->abort);
-    if (handle->transcodeWindow) {
-        if (handle->startSettings.input.video) {
-            nexus_simplevideodecoder_p_remove_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);
+
+    if (handle->settings.stopMode != NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) {
+        if (handle->transcodeWindow) {
+            if (handle->startSettings.input.video) {
+                nexus_simplevideodecoder_p_remove_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);
+            }
+            NEXUS_VideoWindow_Close(handle->transcodeWindow);
+            handle->transcodeWindow = NULL;
         }
-        NEXUS_VideoWindow_Close(handle->transcodeWindow);
-        handle->transcodeWindow = NULL;
+        if (handle->transcodeDisplay && !handle->startSettings.transcode.display) {
+            NEXUS_Display_Close(handle->transcodeDisplay);
+        }
+        handle->transcodeDisplay = NULL;
+        handle->wait.video = false;
+        handle->wait.audio = false;
     }
-    if (handle->transcodeDisplay && !handle->startSettings.transcode.display) {
-        NEXUS_Display_Close(handle->transcodeDisplay);
-    }
-    handle->transcodeDisplay = NULL;
-    handle->wait.video = false;
-    handle->wait.audio = false;
 }
 
 /* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
@@ -1414,7 +1420,7 @@ static NEXUS_Error nexus_simpleencoder_p_start_psi( NEXUS_SimpleEncoderHandle ha
         TS_PMT_setPcrPid(&pmtState, handle->startSettings.output.transport.pcrPid);
     }
 
-    if (handle->videoStarted) {
+    if (handle->startVideo) {
         unsigned vidStreamType;
         switch(handle->startSettings.output.video.settings.codec) {
         case NEXUS_VideoCodec_eMpeg2:         vidStreamType = 0x2; break;
@@ -1430,7 +1436,7 @@ static NEXUS_Error nexus_simpleencoder_p_start_psi( NEXUS_SimpleEncoderHandle ha
         TS_PMT_addStream(&pmtState, &pmt_stream, &streamNum);
     }
 
-    if (handle->audioStarted) {
+    if (handle->startAudio) {
         unsigned audStreamType;
         switch(handle->startSettings.output.audio.codec) {
         case NEXUS_AudioCodec_eMpeg:         audStreamType = 0x4; break;

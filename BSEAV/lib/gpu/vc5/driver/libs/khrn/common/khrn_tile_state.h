@@ -4,7 +4,7 @@
 #pragma once
 #include "libs/platform/gmem.h"
 
-#if !V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 
 typedef struct khrn_shared_tile_state
 {

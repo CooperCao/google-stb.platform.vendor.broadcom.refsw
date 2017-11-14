@@ -999,7 +999,7 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetFastStatus(void *handle, NEXUS_Front
         BSTD_UNUSED(hFrontendDevice);
         pStatus->acquireInProgress = p3466Device->cable.acquireInProgress[pChannel->chn_num];
     } else
-        rc = NEXUS_INVALID_PARAMETER;
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
 done:
     return rc;
 }

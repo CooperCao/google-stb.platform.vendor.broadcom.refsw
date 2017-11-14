@@ -165,6 +165,18 @@ static void SetupBufferRegs(
 #endif
 }
 
+void BXPT_P_SetupShareRsBufferRegs(
+    BXPT_Handle hXpt,
+    unsigned BaseRegAddr,       /* [in] Which client buffer we are dealing with */
+    unsigned WhichInstance,
+    size_t Size,
+    BMMA_DeviceOffset Offset
+    )
+{
+    SetupBufferRegs( hXpt, BaseRegAddr, WhichInstance, Size, Offset );
+    return;
+}
+
 static int GetBufferIndex(unsigned BaseRegAddr, unsigned WhichInstance)
 {
     unsigned start = 0, index;
@@ -184,6 +196,19 @@ static int GetBufferIndex(unsigned BaseRegAddr, unsigned WhichInstance)
     }
 
     return index;
+}
+
+unsigned BXPT_P_GetMpodRsBufferIndex(
+    unsigned WhichInstance
+    )
+{
+#if BXPT_HAS_MPOD_RSBUF
+    return GetBufferIndex(BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP0, WhichInstance);
+#else
+    BSTD_UNUSED(WhichInstance);
+    return 0;
+#endif
+
 }
 
 static BERR_Code AllocateBuffer(
@@ -216,7 +241,6 @@ static BERR_Code AllocateBuffer(
     Offset = BMMA_LockOffset(block);
     hXpt->rsbuff[index].block = block;
     hXpt->rsbuff[index].offset = Offset;
-
     SetupBufferRegs( hXpt, BaseRegAddr, WhichInstance, Size, Offset );
     return BERR_SUCCESS;
 }
@@ -489,17 +513,25 @@ BERR_Code BXPT_P_RsBuf_Init(
     #endif
 
     #if BXPT_HAS_MPOD_RSBUF
+
+    #if BXPT_NUM_TSIO
+        #define INPUT_BAND_MPOD_BUF_SIZE ( 200 * 1024 )
+    #else
+        #define INPUT_BAND_MPOD_BUF_SIZE INPUT_BAND_BUF_SIZE
+    #endif
+
     BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_MPOD_IBP_BUFFER_ENABLE, 0 );    /* Default to OFF */
+
     for( ii = 0; ii < BXPT_NUM_PID_PARSERS; ii++ )
     {
         if( BandwidthConfig->MaxInputRate[ ii ] && BandwidthConfig->IbParserClients[ii].ToMpodRs )
         {
             BDBG_MSG(( "Alloc RS for IB MPOD parser %u, %u bps", ii, BandwidthConfig->MaxInputRate[ ii ] ));
-            AllocateBuffer( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP0, ii, INPUT_BAND_BUF_SIZE );
+            AllocateBuffer( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP0, ii, INPUT_BAND_MPOD_BUF_SIZE );
             SetBlockout( hXpt, BCHP_XPT_RSBUFF_BO_MPOD_IBP0, ii,
                ComputeBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_LEN, maxReadSize ) );
             SetBufferEnable( hXpt, BCHP_XPT_RSBUFF_MPOD_IBP_BUFFER_ENABLE, ii, true );
-            totalAllocated += INPUT_BAND_BUF_SIZE;
+            totalAllocated += INPUT_BAND_MPOD_BUF_SIZE;
         }
         else
         {
@@ -520,7 +552,6 @@ BERR_Code BXPT_P_RsBuf_Init(
         BREG_Write32(hXpt->hRegister, BCHP_XPT_RSBUFF_TBG0_BO + TBG_BO_STEP_SIZE*ii, PWR_BO_COUNT);
     }
 #endif
-
     BDBG_MSG(( "RS totalAllocated: %u bytes", totalAllocated ));
     return ExitCode;
 }

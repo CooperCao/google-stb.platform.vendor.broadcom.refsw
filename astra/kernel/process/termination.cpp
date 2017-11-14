@@ -54,6 +54,7 @@
 
 #include "lib_printf.h"
 #include "svcutils.h"
+#include "tzpipe.h"
 
 TzTask::~TzTask() {
     if (state != Defunct) {
@@ -80,13 +81,14 @@ TzTask::~TzTask() {
     }
 
     // Destroy the kernel TLS region if mapped
-    if (threadInfo != nullptr) {
+    if (threadInfo != nullptr && (!threadInfoCloned)) {
         TzMem::VirtAddr tiVa = PAGE_START_4K(threadInfo);
         TzMem::PhysAddr tiPa = kernPageTable->lookUp(tiVa);
         if (tiPa) {
             kernPageTable->unmapPage(tiVa);
             TzMem::freePage(tiPa);
         }
+        threadInfo = nullptr;
     }
 
     //printf("Task %d %p collected\n", tid, this);
@@ -121,6 +123,10 @@ void TzTask::terminate(int tcode, int tsignal) {
             RamFS::File::close((RamFS::File *)files[i].file);
         else if (files[i].type == Directory)
             RamFS::Directory::close((RamFS::Directory *)files[i].dir);
+        else if (files[i].type == MQueue)
+            MsgQueue::close((MsgQueue *)files[i].queue);
+        else if (files[i].type == IpcPipe)
+            Pipe::close((Pipe *)files[i].file, files[i].read);
 
         files[i].data = nullptr;
         files[i].offset = 0;

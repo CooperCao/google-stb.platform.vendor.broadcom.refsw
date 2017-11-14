@@ -36,45 +36,10 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#include "bdsp_raaga_cit_log.h"
+#include "bdsp_raaga_priv_include.h"
 
 BDBG_MODULE(bdsp_ext);
 
-static void BDSP_Raaga_P_Analyse_CIT_PortDetails(
-	BDSP_AF_P_sIoPort *pPortDetails,
-	BDSP_P_FwBuffer   *pDescriptorMemory
-)
-{
-	unsigned i = 0;
-	BDBG_MSG(("\t Port Type                = %s",PortType[pPortDetails->ePortType]));
-	BDBG_MSG(("\t Distinct Output Type     = %s",DistinctOutputType[pPortDetails->ePortDataType]));
-	BDBG_MSG(("\t Num Port Buffer          = %d",pPortDetails->ui32numPortBuffer));
-	if(pPortDetails->ui32tocIndex != BDSP_AF_P_TOC_INVALID)
-	{
-		BDBG_MSG(("\t TOC Index                = %d",pPortDetails->ui32tocIndex));
-	}
-	if(pPortDetails->ui32numBranchfromPort != BDSP_AF_P_BRANCH_INVALID)
-	{
-		BDBG_MSG(("\t Branch from Port         = %d",pPortDetails->ui32numBranchfromPort));
-	}
-	if(pPortDetails->sIOGenericBuffer != 0)
-	{
-		BDBG_MSG(("\t IO GEN Buffer Descriptor = "BDSP_MSG_FMT,BDSP_MSG_ARG(pPortDetails->sIOGenericBuffer)));
-	}
-	BDSP_Raaga_P_Analyse_CIT_DataAccess(&pPortDetails->sDataAccessAttributes);
-	for(i=0;i<pPortDetails->ui32numPortBuffer;i++)
-	{
-		unsigned j = 0;
-		BDBG_MSG(("\t IO Buffer: Num Buffers   = %d",pPortDetails->sIoBuffer[i].ui32NumBuffer));
-		BDBG_MSG(("\t IO Buffer: Buffer Type   = %s",BufferType[pPortDetails->sIoBuffer[i].eBufferType]));
-		for(j=0; j<pPortDetails->sIoBuffer[i].ui32NumBuffer; j++)
-		{
-			BDSP_Raaga_P_Analyse_CIT_BufferDetails(pDescriptorMemory,
-				pPortDetails->sIoBuffer[i].sCircularBuffer[j],
-				j);
-		}
-	}
-}
 void BDSP_Raaga_P_Analyse_CIT_GlobalTask(
 	BDSP_RaagaTask                  *pRaagaTask,
 	BDSP_AF_P_sGLOBAL_TASK_CONFIG   *psGlobalTaskConfig
@@ -95,15 +60,19 @@ void BDSP_Raaga_P_Analyse_CIT_GlobalTask(
 
 	BDBG_MSG(("TSM UserConfig Offset    = "BDSP_MSG_FMT", Size = %d",
 		BDSP_MSG_ARG(psGlobalTaskConfig->sTsmConfigInfo.BaseAddr), psGlobalTaskConfig->sTsmConfigInfo.Size));
-	BDSP_Raaga_P_Analyse_CIT_TSMConfig(pRaagaPrimaryStage->stageMemInfo.sTsmSettings.Buffer);
+	BDSP_P_Analyse_CIT_TSMConfig(pRaagaPrimaryStage->stageMemInfo.sTsmSettings.Buffer);
 
 	BDBG_MSG(("GateOpen Config Offset   = "BDSP_MSG_FMT", Size = %d",
 		BDSP_MSG_ARG(psGlobalTaskConfig->sGateOpenConfigInfo.BaseAddr), psGlobalTaskConfig->sGateOpenConfigInfo.Size));
-	BDSP_Raaga_P_Analyse_CIT_GateOpenConfig(pRaagaTask->taskMemInfo.sGateOpenConfigMemory.Buffer);
+	BDSP_P_Analyse_CIT_GateOpenConfig(pRaagaTask->taskMemInfo.sGateOpenConfigMemory.Buffer);
 
 	BDBG_MSG(("Scheduling Config Offset = "BDSP_MSG_FMT", Size = %d",
 		BDSP_MSG_ARG(psGlobalTaskConfig->sSchedulingInfo.BaseAddr), psGlobalTaskConfig->sSchedulingInfo.Size));
-	BDSP_Raaga_P_Analyse_CIT_SchedulingConfig(pRaagaTask->taskMemInfo.sSchedulingConfigMemory.Buffer);
+	BDSP_P_Analyse_CIT_SchedulingConfig(pRaagaTask->taskMemInfo.sSchedulingConfigMemory.Buffer);
+
+	BDBG_MSG(("STC Trigger Config Offset   = "BDSP_MSG_FMT", Size = %d",
+		BDSP_MSG_ARG(psGlobalTaskConfig->sStcTriggerInfo.BaseAddr), psGlobalTaskConfig->sStcTriggerInfo.Size));
+	BDSP_P_Analyse_CIT_StcTriggerConfig(pRaagaTask->taskMemInfo.sStcTriggerConfigMemory.Buffer);
 
 	BDBG_MSG(("-------------------------------------------- "));
 	BDBG_LEAVE(BDSP_Raaga_P_Analyse_CIT_GlobalTask);
@@ -124,7 +93,7 @@ void BDSP_Raaga_P_Analyse_CIT_PrimaryStage(
 	BDBG_MSG(("Sampling Freq LUT Offset = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pPrimaryStageInfo->sSamplingFrequencyLutInfo.BaseAddr),pPrimaryStageInfo->sSamplingFrequencyLutInfo.Size));
 	BDBG_MSG(("DataSync Status Offset   = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pPrimaryStageInfo->sDataSyncStatusInfo.BaseAddr),pPrimaryStageInfo->sDataSyncStatusInfo.Size));
 	BDBG_MSG(("TSM Status Offset        = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pPrimaryStageInfo->sTsmStatusInfo.BaseAddr),pPrimaryStageInfo->sTsmStatusInfo.Size));
-	BDSP_Raaga_P_Analyse_CIT_PPMConfig(&pPrimaryStageInfo->sPPMConfig[0]);
+	BDSP_P_Analyse_CIT_PPMConfig(&pPrimaryStageInfo->sPPMConfig[0]);
 
 	BDBG_LEAVE(BDSP_Raaga_P_Analyse_CIT_PrimaryStage);
 }
@@ -141,7 +110,7 @@ void BDSP_Raaga_P_Analyse_CIT_Stage(
 	BDBG_MSG(("eCollectResidual    = %s ",DisableEnable[pStageConfig->eCollectResidual]));
 	BDBG_MSG(("Stage Memory Offset = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pStageConfig->sStageMemoryInfo.BaseAddr),pStageConfig->sStageMemoryInfo.Size));
 	BDBG_MSG(("User Config Offset  = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pStageConfig->sAlgoUserConfigInfo.BaseAddr),pStageConfig->sAlgoUserConfigInfo.Size));
-	BDBG_MSG(("Status Offset       = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pStageConfig->sAlgoStatusInfo.BaseAddr),pStageConfig->sStageMemoryInfo.Size));
+	BDBG_MSG(("Status Offset       = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pStageConfig->sAlgoStatusInfo.BaseAddr),pStageConfig->sAlgoStatusInfo.Size));
 	BDBG_MSG(("Code   Offset       = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pStageConfig->sAlgoCodeInfo.BaseAddr),pStageConfig->sAlgoCodeInfo.Size));
 	BDBG_MSG(("Interframe Offset   = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pStageConfig->sInterFrameInfo.BaseAddr),pStageConfig->sInterFrameInfo.Size));
 	BDBG_MSG(("LUT	Offset         = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pStageConfig->sLookUpTableInfo.BaseAddr),pStageConfig->sLookUpTableInfo.Size));
@@ -149,14 +118,14 @@ void BDSP_Raaga_P_Analyse_CIT_Stage(
 	for(index = 0; index<pStageConfig->sIOConfig.ui32NumInputs; index++)
 	{
 		BDBG_MSG(("--------------------"));
-		BDSP_Raaga_P_Analyse_CIT_PortDetails(&pStageConfig->sIOConfig.sInputPort[index], pDescriptorMemory);
+		BDSP_P_Analyse_CIT_PortDetails(&pStageConfig->sIOConfig.sInputPort[index], pDescriptorMemory);
 		BDBG_MSG(("--------------------"));
 	}
 	BDBG_MSG(("Num Output Ports    = %d", pStageConfig->sIOConfig.ui32NumOutputs));
 	for(index = 0; index<pStageConfig->sIOConfig.ui32NumOutputs; index++)
 	{
 		BDBG_MSG(("--------------------"));
-		BDSP_Raaga_P_Analyse_CIT_PortDetails(&pStageConfig->sIOConfig.sOutputPort[index], pDescriptorMemory);
+		BDSP_P_Analyse_CIT_PortDetails(&pStageConfig->sIOConfig.sOutputPort[index], pDescriptorMemory);
 		BDBG_MSG(("--------------------"));
 	}
 	BDBG_LEAVE(BDSP_Raaga_P_Analyse_CIT_Stage);

@@ -478,10 +478,10 @@ typedef struct BXPT_Playback_ChannelSettings
     ** Pacing is done using timestamps stored in the playback descriptor. Use the NextPacketPacingTimestamp
     ** member of the BXPT_PvrDescriptor8 struct. Use8WordDesc (below) must be true to use this feature.
     **
-    ** NOTE: PesBasedPacing and PcrBasedPacing (above) are mutually exclusive. If both bools are true,
+    ** NOTE: DescBasedPacing and PcrBasedPacing (above) are mutually exclusive. If both bools are true,
     ** PES pacing will be used.
     */
-    bool PesBasedPacing;
+    bool DescBasedPacing;
 
     /* If true, hw will expect all descriptors to use the 8-word format. Value is false by default */
     bool Use8WordDesc;  /* This is ignored if BXPT_HAS_MULTICHANNEL_PLAYBACK is defined. */
@@ -1377,6 +1377,20 @@ Return LTSID value associated with the given playback.
 void BXPT_Playback_GetLTSID(
     BXPT_Playback_Handle hPb,
     unsigned *ltsid
+    );
+
+/***************************************************************************
+Summary:
+Return the address of the last data buffer that has been completely
+consumed by hardware. If no descriptors have been consumed, NULL is returned.
+
+Returns:
+    BERR_SUCCESS                - Retrieved address from hardware.
+    BERR_INVALID_PARAMETER      - Bad input parameter
+****************************************************************************/
+BERR_Code BXPT_Playback_GetLastCompletedDataAddress(
+    BXPT_Playback_Handle PlaybackHandle,        /* [in] Handle for the playback channel */
+    BMMA_DeviceOffset *LastCompletedDataAddress /* [out] Address of the last completed data buffer. */
     );
 
 /*
