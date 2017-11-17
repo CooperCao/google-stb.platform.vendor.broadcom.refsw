@@ -153,6 +153,8 @@ static bool UseMovableBlocks(void)
 /*****************************************************************************
  * Memory interface
  *****************************************************************************/
+void EGL_nexus_trim_cma(void *nexus_client);
+extern void *v3d_get_nexus_client_context();
 static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t alignment, uint32_t flags, const char *desc)
 {
    ANPL_MemoryContext                  *data = (ANPL_MemoryContext*)context;
@@ -189,10 +191,17 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
          ret = ioctl(memBlkFd, NX_ASHMEM_GETMEM, &ashmem_getmem);
          if (ret < 0)
          {
-            close(memBlkFd);
-            memBlkFd = -1;
+            void *nexus_client = v3d_get_nexus_client_context();
+            EGL_nexus_trim_cma(nexus_client);
+            ret = ioctl(memBlkFd, NX_ASHMEM_GETMEM, &ashmem_getmem);
+            if (ret < 0)
+            {
+               close(memBlkFd);
+               memBlkFd = -1;
+            }
          }
-         else
+
+         if (!ret && memBlkFd >= 0)
          {
             memTracker->fd = memBlkFd;
             memTracker->hdl = (NEXUS_MemoryBlockHandle)(intptr_t)ashmem_getmem.hdl;
