@@ -100,14 +100,6 @@ void BEGL_RegisterMemoryInterface(BEGL_MemoryInterface *iface)
    {
       s_context.mem_iface = *iface;                                    /* Register   */
 
-      uint32_t cpuCacheLine = 512;  /* Safe value */
-
-      /* Get the real value if possible */
-      if (mem_interface_has_get_info())
-         cpuCacheLine = (uint32_t)mem_interface_get_info(BEGL_MemCacheLineSize);
-
-      s_context.non_coherent_atom_size = vcos_max(V3D_MAX_CACHE_LINE_SIZE, cpuCacheLine);
-
       demand(s_context.mem_iface.Alloc != NULL);
       demand(s_context.mem_iface.Free != NULL);
       demand(s_context.mem_iface.Map != NULL);
@@ -127,7 +119,19 @@ bool gmem_init(void)
 {
    log_trace(VCOS_FUNCTION);
 
-   demand_msg(s_context.non_coherent_atom_size != 0, "Memory interface not registered");
+   demand_msg(s_context.mem_iface.Alloc != NULL, "Memory interface not registered");
+
+   if (s_context.mem_iface.Init != NULL)
+      demand_msg(s_context.mem_iface.Init(s_context.mem_iface.context) == 0, "Failed to initialize memory interface");
+
+   uint32_t cpuCacheLine = 512;  /* Safe value */
+
+   /* Get the real value if possible */
+   if (mem_interface_has_get_info())
+      cpuCacheLine = (uint32_t)mem_interface_get_info(BEGL_MemCacheLineSize);
+
+   s_context.non_coherent_atom_size = gfx_umax(V3D_MAX_CACHE_LINE_SIZE, cpuCacheLine);
+
    demand(vcos_mutex_create(&s_context.api_mutex, "gmem mutex") == VCOS_SUCCESS);
    vcos_mutex_lock(&s_context.api_mutex);
 
@@ -180,6 +184,9 @@ void gmem_destroy(void)
    }
 
    gmem_analyzer_term();
+
+   if (s_context.mem_iface.Term != NULL)
+      s_context.mem_iface.Term(s_context.mem_iface.context);
 
    vcos_mutex_unlock(&s_context.api_mutex);
    vcos_mutex_delete(&s_context.api_mutex);

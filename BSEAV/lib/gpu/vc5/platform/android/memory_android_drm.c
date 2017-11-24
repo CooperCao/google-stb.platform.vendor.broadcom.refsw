@@ -309,6 +309,8 @@ error:
 /*****************************************************************************
  * Memory interface
  *****************************************************************************/
+void EGL_nexus_trim_cma(void *nexus_client);
+extern void *v3d_get_nexus_client_context();
 static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t alignment, uint32_t flags, const char *desc)
 {
    struct drm_v3d_gem_create cs = {};
@@ -344,10 +346,15 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
 
    if (!CreateGemObject(ctx->fd,&cs))
    {
-      if (use_memory_log)
-         fprintf(sLogFile, "A %zu %zu = FAILED\n", numBytes, alignment);
+      void *nexus_client = v3d_get_nexus_client_context();
+      EGL_nexus_trim_cma(nexus_client);
+      if (!CreateGemObject(ctx->fd,&cs))
+      {
+         if (use_memory_log)
+            fprintf(sLogFile, "A %zu %zu = FAILED\n", numBytes, alignment);
 
-      goto error;
+         goto error;
+      }
    }
 
    block->handle = cs.handle;
