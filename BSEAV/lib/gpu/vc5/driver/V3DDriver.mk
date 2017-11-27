@@ -79,6 +79,7 @@ CFLAGS += \
 	-DKHRN_GLES32_DRIVER=0 \
 	-DGLSL_310_SUPPORT=1 \
 	-DV3D_PLATFORM_SIM=0 \
+	-DSECURE_SUPPORT=1 \
 	-Wno-unused-function \
 	-Wno-unused-variable \
 	-Wno-unused-but-set-variable

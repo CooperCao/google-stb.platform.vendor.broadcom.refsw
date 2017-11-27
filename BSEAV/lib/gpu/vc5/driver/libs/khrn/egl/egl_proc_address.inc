@@ -795,8 +795,12 @@ CASE(eglCreatePlatformWindowSurfaceEXT, 0x026bc216);
 CASE(eglCreatePlatformPixmapSurfaceEXT, 0x470711cd);
 
 // EGL_EXT_protected_content
+#if SECURE_SUPPORT
+#endif /* SECURE_SUPPORT*/
 
 // EGL_EXT_protected_surface
+#if SECURE_SUPPORT
+#endif /* SECURE_SUPPORT*/
 
 // GL_BRCM_image_formats
 #if V3D_HAS_GFXH1638_FIX
