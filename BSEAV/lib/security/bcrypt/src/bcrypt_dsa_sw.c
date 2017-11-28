@@ -99,7 +99,7 @@ BCRYPT_STATUS_eCode BCrypt_DSASw (    BCRYPT_Handle  hBcrypt,
 {
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     static const char rnd_seed[] = "string to make the random number generator think it has entropy";
-        DSA *key = NULL;
+    DSA *key = NULL;
     int outDataLen =0;
 
     int i;
@@ -115,27 +115,17 @@ BCRYPT_STATUS_eCode BCrypt_DSASw (    BCRYPT_Handle  hBcrypt,
     } ;
 
     BN_CTX *ctx;
-    BIGNUM *kinv=NULL,*r=NULL,*k=NULL;
-
 
     if ((ctx=BN_CTX_new()) == NULL) goto myerr;
-    if ((r=BN_new()) == NULL) goto myerr;
-    kinv=NULL;
-
-
 
     BDBG_MSG(("Inside BCrypt_DSASw\n"));
     BDBG_ENTER(BCrypt_DSASw);
     BDBG_ASSERT( hBcrypt );
     BCRYPT_P_CHECK_ERR_CODE_CONDITION( errCode, BCRYPT_STATUS_eFAILED,
         (hBcrypt->ulMagicNumber != BCRYPT_P_HANDLE_MAGIC_NUMBER ) );
-
-       RAND_seed(rnd_seed, sizeof rnd_seed); /* or OAEP may fail */
-
+    RAND_seed(rnd_seed, sizeof rnd_seed); /* or OAEP may fail */
 
     key = DSA_new();
-
-
 
     if (pInputParam->bDSASign == true)
     {
@@ -144,22 +134,6 @@ BCRYPT_STATUS_eCode BCrypt_DSASw (    BCRYPT_Handle  hBcrypt,
         /* This is for sign */
 
         BCrypt_DSASetPrivKey(key, pInputParam->key);
-
-        k = BN_bin2bn(pInputParam->key->k.pData, pInputParam->key->k.len, k);
-
-
-        /* Compute r = (g^k mod p) mod q */
-        if (!BN_mod_exp_mont(r,key->g,k,key->p,ctx,
-            (BN_MONT_CTX *)key->method_mont_p)) goto myerr;
-        if (!BN_mod(r,r,key->q,ctx)) goto myerr;
-
-        /* Compute  part of 's = inv(k) (m + xr) mod q' */
-        if ((kinv=BN_mod_inverse(NULL,k,key->q,ctx)) == NULL) goto myerr;
-
-
-        key->kinv= kinv;
-        key->r=r;
-
 
         outDataLen = DSA_sign(0, pInputParam->pbDataIn, pInputParam->cbDataIn, pInputParam->sigout, &pInputParam->sigoutlen, key);
 
@@ -225,10 +199,6 @@ BCRYPT_STATUS_eCode BCrypt_DSASw (    BCRYPT_Handle  hBcrypt,
 myerr:
 
     printf("DSA_F_DSA_SIGN_SETUP,ERR_R_BN_LIB\n");
-
-        if (kinv != NULL) BN_clear_free(kinv);
-        if (r != NULL) BN_clear_free(r);
-        if (k != NULL) BN_clear_free(k);
 
 BCRYPT_P_DONE_LABEL:
     DSA_free(key);
