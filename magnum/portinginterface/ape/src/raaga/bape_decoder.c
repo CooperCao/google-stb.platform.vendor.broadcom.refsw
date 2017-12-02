@@ -102,6 +102,14 @@ static bool BAPE_Decoder_P_HasConnectedOutput(BAPE_DecoderHandle handle, BAPE_Co
      c == BAVC_AudioCompressionStd_eAacPlusLoas || \
      c == BAVC_AudioCompressionStd_eAacPlusAdts)
 
+#define BAVC_CODEC_IS_DOLBY(c) \
+    (BAVC_CODEC_IS_AAC(c) || \
+     c == BAVC_AudioCompressionStd_eAc3 || \
+     c == BAVC_AudioCompressionStd_eAc3Plus || \
+     c == BAVC_AudioCompressionStd_eAc3Lossless || \
+     c == BAVC_AudioCompressionStd_eAc4 || \
+     c == BAVC_AudioCompressionStd_eMlp)
+
 static const BAPE_DecoderDecodeToMemorySettings g_defaultDecodeToMemSettings =
 {
     16, /* maxBuffers */
@@ -2032,6 +2040,12 @@ static BERR_Code BAPE_Decoder_P_Start(
                        ( BAPE_Decoder_P_HasConnectedOutput(handle, BAPE_ConnectorFormat_eMultichannel) && pSettings->codec == BAVC_AudioCompressionStd_ePcmWav && handle->settings.multichannelFormat == BAPE_MultichannelFormat_e5_1 ) ) )
             {
                 BDBG_MSG(("Setting App/SFx Decoder %p to output 48k since DDRE is attached", (void *)handle));
+                fixedOutputRate = 48000;
+            }
+            else if (BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && handle->ddre &&
+                     (handle->startSettings.mixingMode == BAPE_DecoderMixingMode_eStandalone || handle->startSettings.mixingMode == BAPE_DecoderMixingMode_eDescription) &&
+                     !BAVC_CODEC_IS_DOLBY(pSettings->codec)) {
+                BDBG_MSG(("Setting Non-Dolby Primary Decoder %p to output 48k since MS12 DDRE is attached", (void *)handle));
                 fixedOutputRate = 48000;
             }
             else if (BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && handle->ddre && BAVC_CODEC_IS_AAC(pSettings->codec))
