@@ -1027,20 +1027,10 @@ BERR_Code BHDM_P_BREG_I2C_Read(
 {
 	BERR_Code rc = BERR_SUCCESS;
 #if BHDM_CONFIG_HAS_HDCP22
-	BHDM_AUTO_I2C_P_CHANNEL eChannel ;
 	bool  bActivePolling = false ;
 
-	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_P_CHANNEL_eMax ; eChannel++)
-	{
-		if (hHDMI->AutoI2CChannel_TriggerConfig[eChannel].activePolling)
-		{
-			bActivePolling = true ;
-			break ;
-		}
-	}
-
-
 	/* disable Auto I2C polling if enabled; prior to the read */
+	bActivePolling = BHDM_AUTO_I2C_P_IsPollingEnabled(hHDMI) ;
 	if (bActivePolling)
 	{
 		BKNI_EnterCriticalSection() ;
@@ -1076,10 +1066,10 @@ BERR_Code BHDM_P_BREG_I2C_ReadNoAddr(
 	BERR_Code rc = BERR_SUCCESS;
 
 #if BHDM_CONFIG_HAS_HDCP22
-	BHDM_AUTO_I2C_P_CHANNEL eChannel ;
+	BHDM_AUTO_I2C_CHANNEL eChannel ;
 	bool  bActivePolling = false ;
 
-	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_P_CHANNEL_eMax ; eChannel++)
+	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_CHANNEL_eMax ; eChannel++)
 	{
 		if (hHDMI->AutoI2CChannel_TriggerConfig[eChannel].activePolling)
 		{

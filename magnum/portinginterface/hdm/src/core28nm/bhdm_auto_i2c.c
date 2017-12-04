@@ -60,7 +60,7 @@ BERR_Code BHDM_AUTO_I2C_GetEventHandle(
 	BDBG_ENTER(BHDM_AUTO_I2C_GetEventHandle) ;
 	BDBG_ASSERT( hHDMI );
 
-	/* See BHDM_AUTO_I2C_P_CHANNEL for channel mapping */
+	/* See BHDM_AUTO_I2C_CHANNEL for channel mapping */
 
 	switch (eEventChannel)
 	{
@@ -130,10 +130,10 @@ BERR_Code BHDM_AUTO_I2C_GetHdcp22RxStatusData(const BHDM_Handle hHDMI,
 #endif
 
 void BHDM_AUTO_I2C_EnableReadChannel_isr(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable
+	BHDM_AUTO_I2C_CHANNEL eChannel, uint8_t enable
 )
 {
-	BHDM_AUTO_I2C_P_TriggerConfiguration stTriggerConfiguration ;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfiguration ;
 
 	/* enable/disable Auto I2c channel */
 	BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfiguration) ;
@@ -156,7 +156,7 @@ done:
 }
 
 void BHDM_AUTO_I2C_EnableReadChannel(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable
+	BHDM_AUTO_I2C_CHANNEL eChannel, uint8_t enable
 )
 {
 	BKNI_EnterCriticalSection() ;
@@ -170,10 +170,10 @@ void BHDM_AUTO_I2C_SetChannels_isr(const BHDM_Handle hHDMI,
 	uint8_t enable
 )
 {
-	BHDM_AUTO_I2C_P_TriggerConfiguration stTriggerConfiguration ;
-	BHDM_AUTO_I2C_P_CHANNEL eChannel ;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfiguration ;
+	BHDM_AUTO_I2C_CHANNEL eChannel ;
 
-	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_P_CHANNEL_eMax ; eChannel++)
+	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_CHANNEL_eMax ; eChannel++)
 	{
 		/* all I2c transactions triggerred by timer are Auto Poll configurations
 		    enable/disable as requested
@@ -192,6 +192,24 @@ void BHDM_AUTO_I2C_SetChannels_isr(const BHDM_Handle hHDMI,
 			stTriggerConfiguration.enable = enable ;
 		BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, &stTriggerConfiguration) ;
 	}
+}
+
+
+
+void BHDM_AUTO_I2C_GetTriggerConfiguration(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig
+)
+{
+	*pstTriggerConfig = hHDMI->AutoI2CChannel_TriggerConfig[eChannel] ;
+}
+
+void  BHDM_AUTO_I2C_SetTriggerConfiguration(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	const BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig
+)
+{
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, pstTriggerConfig) ;
+	BKNI_LeaveCriticalSection() ;
 }
 
 

@@ -552,7 +552,7 @@ typedef struct BHDM_P_Handle
 	/************/
 	/*     SCDC      */
 	/************/
-	BHDM_AUTO_I2C_P_CHANNEL AutoI2CChannel_ScdcUpdate ;
+	BHDM_AUTO_I2C_CHANNEL AutoI2CChannel_ScdcUpdate ;
 	BKNI_EventHandle AutoI2CEvent_ScdcUpdate ;
 	BHDM_SCDC_ManufacturerData manufacturerData;
 	uint8_t ScdcBuffer[2] ;
@@ -560,7 +560,7 @@ typedef struct BHDM_P_Handle
 	/************/
 	/*    HDCP 22   */
 	/************/
-	BHDM_AUTO_I2C_P_CHANNEL AutoI2CChannel_Hdcp22RxStatus ;
+	BHDM_AUTO_I2C_CHANNEL AutoI2CChannel_Hdcp22RxStatus ;
 	BKNI_EventHandle AutoI2CEvent_Hdcp22RxStatusUpdate ;
 	BKNI_EventHandle BHDM_EventHdcp22EncEnUpdate;
 	BKNI_EventHandle BHDM_EventHdcp22ReAuthRequest;
@@ -571,18 +571,18 @@ typedef struct BHDM_P_Handle
 	/************/
 	/*   AutoWrite  */
 	/************/
-	BHDM_AUTO_I2C_P_CHANNEL AutoI2CChannel_Read ;
+	BHDM_AUTO_I2C_CHANNEL AutoI2CChannel_Read ;
 	BKNI_EventHandle AutoI2CEvent_Write ;
 
 	/************/
 	/*   AutoRead  */
 	/************/
-	BHDM_AUTO_I2C_P_CHANNEL AutoI2CChannel_Write ;
+	BHDM_AUTO_I2C_CHANNEL AutoI2CChannel_Write ;
 	BKNI_EventHandle AutoI2CEvent_Read ;
 
 	BHDM_AUTO_I2C_P_READ_DATA ePendingReadType ;
 
-	BHDM_AUTO_I2C_P_TriggerConfiguration AutoI2CChannel_TriggerConfig[BHDM_AUTO_I2C_P_CHANNEL_eMax] ;
+	BHDM_AUTO_I2C_TriggerConfiguration AutoI2CChannel_TriggerConfig[BHDM_AUTO_I2C_CHANNEL_eMax] ;
 
 	BHDM_SCDC_StatusControlData stStatusControlData ;
 

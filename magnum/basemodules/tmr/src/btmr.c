@@ -425,7 +425,7 @@ static BERR_Code JustStartTimer_isr(BTMR_TimerHandle timer, uint32_t initialValu
 
     /* We only have specific number of bits worth of timer value */
     if (initialValue >= MaxTimerValue) {
-        BDBG_ERR(("BTMR_StartTimer: initial value too large!"));
+        BDBG_ERR(("BTMR_StartTimer: initial value %d too large!", initialValue));
         return BERR_TRACE(BTMR_ERR_TIMEOUT_TOO_LARGE);
     }
 

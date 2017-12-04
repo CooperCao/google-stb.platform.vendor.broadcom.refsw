@@ -343,8 +343,18 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 {
 
     NEXUS_HdmiOutputHandle handle = pContext;
+    NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_HdmiOutputHdcpStatus hdcpStatus;
     BSTD_UNUSED(param) ;
+
+
+    /* check if  HDCP state changed due to power down */
+    NEXUS_HdmiOutput_GetStatus(handle, &hdmiStatus);
+    if (!hdmiStatus.rxPowered)
+    {
+        BDBG_WRN(("HDMI Rx is powered down; HDCP authentication disabled")) ;
+        goto done ;
+    }
 
 
     NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdcpStatus);
@@ -366,7 +376,8 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 
 		/* Unauthenticated - with hdcp authentication error */
 		else {
-			BDBG_LOG(("*** HDCP Authentication failed - Error: %s - ***", hdcpErrorToStr(hdcpStatus.hdcpError)));
+			BDBG_LOG(("*** HDCP Authentication failed - Error (%d): %s - ***",
+				hdcpStatus.hdcpError, hdcpErrorToStr(hdcpStatus.hdcpError)));
 
 		    /* always retry if running compliance test */
 	        if (complianceTest) {
@@ -394,6 +405,7 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     case NEXUS_HdmiOutputHdcpState_eEncryptionEnabled:
 		/* HDCP successfully authenticated */
 		BDBG_LOG(("*** HDCP Authentication Successful ***\n"));
+		hdmiHdcpEnabled = true ;
 		break;
 
 

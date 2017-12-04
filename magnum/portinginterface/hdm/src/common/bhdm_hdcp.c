@@ -3092,7 +3092,7 @@ void BHDM_HDCP_P_ReadHdcp22RxStatus_isr(const BHDM_Handle hHDMI)
     ulOffset = hHDMI->ulOffset ;
 
     autoI2cChxOffset =
-        BHDM_AUTO_I2C_P_NUM_CHX_REGISTERS * BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus ;
+        BHDM_AUTO_I2C_P_NUM_CHX_REGISTERS * BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus ;
 
     RegAddr = BCHP_HDMI_TX_AUTO_I2C_CH0_RD_0 + ulOffset + autoI2cChxOffset ;
 
