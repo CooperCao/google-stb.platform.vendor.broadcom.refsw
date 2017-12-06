@@ -4327,8 +4327,7 @@ static void NEXUS_P_SetVideoDecoderCapabilities(void)
 static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVideoDecoderLite, const BXDM_DisplayInterruptInfo *pstDisplayInterruptInfo, BAVC_MFD_Picture **pMFDPicture, BXDM_Picture *pstDispPicture, BAVC_Polarity SrcPolarity)
 {
     BAVC_MFD_Picture *pCurrentMFDPicture;
-    *pMFDPicture = &pVideoDecoderLite->pMFDPicture[0];
-    pCurrentMFDPicture = *pMFDPicture;
+    *pMFDPicture = pCurrentMFDPicture = &pVideoDecoderLite->MFDPicture;
 
     if (pstDispPicture)
     {
@@ -4860,8 +4859,7 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     BXDM_DisplayInterruptHandler_AddPictureProviderInterface_Settings addPictureProviderSettings;
 
     videoDecoder->externalTsm.stopped = false;
-    videoDecoder->externalTsm.pMFDPicture = &videoDecoder->externalTsm.MFDPicture;
-    BKNI_Memset( videoDecoder->externalTsm.pMFDPicture, 0, sizeof ( BAVC_MFD_Picture ));
+    BKNI_Memset(&videoDecoder->externalTsm.MFDPicture, 0, sizeof ( BAVC_MFD_Picture ));
 
     BDBG_MSG(("NEXUS_VideoDecoder_Initialize_Queue "));
 
@@ -5260,6 +5258,8 @@ static void NEXUS_VideoDecoder_P_ReturnOutstandingFrames_Avd(
         }
         /* Return active picture */
         DML_P_ReleasePic_isr(&videoDecoder->externalTsm,&videoDecoder->externalTsm.displayPic);
+        videoDecoder->externalTsm.displayPic.valid = false;
+        videoDecoder->externalTsm.displayPic.pDispPicture = NULL;
 
         BKNI_LeaveCriticalSection();
     }

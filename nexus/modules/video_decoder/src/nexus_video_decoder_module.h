@@ -238,7 +238,6 @@ typedef struct NEXUS_VideoDecoderExternalTsmData
     void* pDecoderPrivateContext;
 
     DML_DispPicStruct displayPic;
-    BAVC_MFD_Picture *pMFDPicture;
     BAVC_MFD_Picture MFDPicture;
 	bool stopped;
 
