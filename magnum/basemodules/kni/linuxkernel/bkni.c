@@ -311,8 +311,13 @@ void BKNI_Fail(void)
     */
     for ( ;; )
     {
+        unsigned long ticks;
+
         printk("BKNI_Fail: Nexus/Magnum has crashed.  Please check the android log with 'logcat NEXUS:*' for more information.\n");
-        BKNI_Sleep(30*1000);  /* Print every 30 seconds until someone does something. */
+        ticks = (30 * HZ);
+
+        set_current_state(TASK_INTERRUPTIBLE);
+        (void)schedule_timeout(ticks);
     }
 #else
     volatile long i=0;
