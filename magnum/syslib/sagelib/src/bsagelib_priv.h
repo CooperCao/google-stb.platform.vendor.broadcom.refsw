@@ -167,7 +167,9 @@ struct BSAGElib_P_Instance {
 
     uint8_t resetPending;
     uint8_t enablePinmux;
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     BSAGElib_RpcRemoteHandle hStandbyRemote; /* remote used to sent S2 request */
+#endif
 
     /* Standby mode */
     BSAGElib_eStandbyMode currentMode;
