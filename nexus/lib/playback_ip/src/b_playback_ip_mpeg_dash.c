@@ -351,7 +351,7 @@ int  B_PlaybackIp_MpegDashDumpBuffer(const char * msg, const void * dumpBuf, siz
             lineIdx++;
         }
 
-        fmtIdx += snprintf(fmtBuf+fmtIdx, sizeof fmtBuf - fmtIdx, "|");
+        /* fmtIdx += */ snprintf(fmtBuf+fmtIdx, sizeof fmtBuf - fmtIdx, "|");
 
         BDBG_LOG(("%s", fmtBuf));
     }
@@ -462,7 +462,6 @@ bool B_PlaybackIp_MpegDashGetMsFromDuration(MpegDashDuration  * duration,  uint6
     if (duration->year != 0) goto error;
     if (duration->mon != 0) goto error;
 
-    myDurationInMs = duration->nsec / 1000000;
     myDurationInMs = duration->mday;  /* days */
     myDurationInMs = myDurationInMs * 24 + duration->hour; /* hours */
     myDurationInMs = myDurationInMs * 60 + duration->min;
@@ -857,7 +856,13 @@ static void B_PlaybackIp_MpegDashGetDateTimeNow(MpegDashDateTime  *dateTime)
     MpegDashDateTime  myDateTime;
     struct timespec              myTimespec;
 
-    clock_gettime(CLOCK_REALTIME, &myTimespec);
+    if (clock_gettime(CLOCK_REALTIME, &myTimespec) != 0)
+    {
+        int myErrno = errno;
+        BDBG_ERR(("%s: clock_gettime() failed, errno=%d", BSTD_FUNCTION, myErrno));
+        BKNI_Memset(&myDateTime, 0, sizeof myDateTime);
+        return;
+    }
 
     myDateTime.utc_time_t = myTimespec.tv_sec;
     myDateTime.nsecs      = myTimespec.tv_nsec;
@@ -8486,13 +8491,7 @@ error:
             playback_ip->playback_state != B_PlaybackIpState_eStopping &&
             playback_ip->playback_state != B_PlaybackIpState_eStopped)
     {
-        B_PlaybackIpEventIds eventId;
-        if (playback_ip->serverClosed)
-            eventId = B_PlaybackIpEvent_eServerEndofStreamReached;
-        else {
-            eventId = B_PlaybackIpEvent_eErrorDuringStreamPlayback;
-            eventId = B_PlaybackIpEvent_eServerEndofStreamReached;
-        }
+        B_PlaybackIpEventIds eventId = B_PlaybackIpEvent_eServerEndofStreamReached;
         playback_ip->openSettings.eventCallback(playback_ip->openSettings.appCtx, eventId);
     }
 #ifdef BDBG_DEBUG_BUILD

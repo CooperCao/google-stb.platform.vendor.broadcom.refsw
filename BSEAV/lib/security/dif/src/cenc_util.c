@@ -56,24 +56,24 @@ void cenc_parse_auxiliary_info_sizes(batom_cursor *cursor,
     uint32_t samplecount = 0;
     uint8_t sampleinfo = 0;
 
-    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
+    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", BSTD_FUNCTION, cursor->cursor, cursor->left, cursor->pos, cursor->count));
     batom_cursor_copy(cursor, &version, 1);
     if (version != 0) {
-        LOGW(("%s: version %u not supported", __FUNCTION__, version));
+        LOGW(("%s: version %u not supported", BSTD_FUNCTION, version));
     }
 
     batom_cursor_copy(cursor, &flags, 3);
-    LOGD(("%s: flags 0x%x", __FUNCTION__, flags));
+    LOGD(("%s: flags 0x%x", BSTD_FUNCTION, flags));
     if (flags & 1) {
         /* TODO: handle info type*/
     }
 
     batom_cursor_copy(cursor, &defsize, 1);
-    LOGD(("%s: defsize %u", __FUNCTION__, defsize));
+    LOGD(("%s: defsize %u", BSTD_FUNCTION, defsize));
     frag_header->samples_info.default_sample_info_size = defsize;
 
     samplecount = batom_cursor_uint32_be(cursor);
-    LOGD(("%s: sampleCount %u", __FUNCTION__, samplecount));
+    LOGD(("%s: sampleCount %u", BSTD_FUNCTION, samplecount));
     frag_header->samples_info.sample_count = samplecount;
 
     frag_header->aux_info_size = 0;
@@ -86,7 +86,7 @@ void cenc_parse_auxiliary_info_sizes(batom_cursor *cursor,
     } else {
         frag_header->aux_info_size += samplecount * defsize;
     }
-    LOGD(("%s: aux_info_size %u", __FUNCTION__, (uint32_t)frag_header->aux_info_size));
+    LOGD(("%s: aux_info_size %u", BSTD_FUNCTION, (uint32_t)frag_header->aux_info_size));
 }
 
 uint32_t cenc_parse_auxiliary_info_offsets(batom_cursor *cursor,
@@ -98,26 +98,26 @@ uint32_t cenc_parse_auxiliary_info_offsets(batom_cursor *cursor,
     uint32_t i;
     uint32_t drmoffset;
 
-    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
+    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", BSTD_FUNCTION, cursor->cursor, cursor->left, cursor->pos, cursor->count));
     batom_cursor_copy(cursor, &version, 1);
-    LOGD(("%s: version %u", __FUNCTION__, version));
+    LOGD(("%s: version %u", BSTD_FUNCTION, version));
 
     flags = batom_cursor_uint24_be(cursor);
-    LOGD(("%s: flags 0x%x", __FUNCTION__, flags));
+    LOGD(("%s: flags 0x%x", BSTD_FUNCTION, flags));
 
     entrycount = batom_cursor_uint32_be(cursor);
-    LOGD(("%s: entrycount %u", __FUNCTION__, entrycount));
+    LOGD(("%s: entrycount %u", BSTD_FUNCTION, entrycount));
 
     for (i = 0; i < entrycount; i++) {
         if (version == 0) {
             uint32_t tmp;
             tmp = batom_cursor_uint32_be(cursor);
-            LOGD(("%s: offset[%d]=%lu", __FUNCTION__, i, (long unsigned)tmp));
+            LOGD(("%s: offset[%d]=%lu", BSTD_FUNCTION, i, (long unsigned)tmp));
             frag_header->samples_info.samples[i].offset = tmp;
         } else {
             uint64_t tmp;
             tmp = batom_cursor_uint64_be(cursor);
-            LOGD(("%s: offset[%d]=%llu", __FUNCTION__, i, (long long unsigned)tmp));
+            LOGD(("%s: offset[%d]=%llu", BSTD_FUNCTION, i, (long long unsigned)tmp));
             frag_header->samples_info.samples[i].offset = tmp;
         }
     }
@@ -142,7 +142,7 @@ void cenc_parse_mdat_head(mp4_parse_frag_info *frag_info,
     uint32_t numencrypted;
     uint32_t length;
 
-    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__,
+    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", BSTD_FUNCTION,
         cursor->cursor, cursor->left, cursor->pos, cursor->count));
 
     LOGD(("sample_count %d", frag_header->samples_info.sample_count));
@@ -153,13 +153,13 @@ void cenc_parse_mdat_head(mp4_parse_frag_info *frag_info,
         memset(smpl->iv, 0, 16);
         length = batom_cursor_copy(cursor, smpl->iv, ivlength);
         if (length != ivlength) {
-            LOGE(("%s: could not read iv for %dth sample", __FUNCTION__, i));
+            LOGE(("%s: could not read iv for %dth sample", BSTD_FUNCTION, i));
             return;
         }
 
         if (frag_header->samples_info.default_sample_info_size != 0) {
             /* Probably audio case */
-            LOGD(("%s: only 1 subsample in %dth sample: size=%u", __FUNCTION__,
+            LOGD(("%s: only 1 subsample in %dth sample: size=%u", BSTD_FUNCTION,
                 i, frag_info->sample_info[i].size));
             smpl->nbOfEntries = 1;
             smpl->entries[0].bytesOfClearData = 0;
@@ -195,15 +195,15 @@ int cenc_parse_sample_encryption_box(
     uint16_t bytes_clear;
     uint32_t bytes_encrypted;
 
-    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
+    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", BSTD_FUNCTION, cursor->cursor, cursor->left, cursor->pos, cursor->count));
     batom_cursor_copy(cursor, &version, 1);
-    LOGD(("%s: version %u", __FUNCTION__, version));
+    LOGD(("%s: version %u", BSTD_FUNCTION, version));
 
     flags = batom_cursor_uint24_be(cursor);
-    LOGD(("%s: flags 0x%x", __FUNCTION__, flags));
+    LOGD(("%s: flags 0x%x", BSTD_FUNCTION, flags));
 
     sample_count = batom_cursor_uint32_be(cursor);
-    LOGD(("%s: sample_count %u", __FUNCTION__, sample_count));
+    LOGD(("%s: sample_count %u", BSTD_FUNCTION, sample_count));
 
     for (i = 0; i < sample_count; i++) {
         SampleInfo *smpl = &frag_header->samples_info.samples[i];
@@ -211,7 +211,7 @@ int cenc_parse_sample_encryption_box(
         memset(smpl->iv, 0, 16);
         length = batom_cursor_copy(cursor, smpl->iv, ivlength);
         if (length != ivlength) {
-            LOGE(("%s: could not read iv for %dth sample", __FUNCTION__, i));
+            LOGE(("%s: could not read iv for %dth sample", BSTD_FUNCTION, i));
             return -1;
         }
 

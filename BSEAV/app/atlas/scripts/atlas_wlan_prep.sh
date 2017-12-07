@@ -58,8 +58,8 @@ do
     esac
 done
 
-if [ ! -d /var/run/wpa_supplicant ]; then
-    mkdir -p /var/run/wpa_supplicant
+if [ ! -d /tmp/run/wpa_supplicant ]; then
+    mkdir -p /tmp/run/wpa_supplicant
     FORCE="true"
 fi
 

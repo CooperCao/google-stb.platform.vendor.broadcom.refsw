@@ -221,9 +221,6 @@ NEXUS_Platform_P_InitOS(void)
         state->pending[i] = state->processing[i];
     }
     state->started = true;
-    
-    /* use g_platformMemory to pass OS value to NEXUS_Platform_P_SetCoreModuleSettings */
-    g_platformMemory.max_dcache_line_size = nexus_driver_state.settings.max_dcache_line_size;
 
     NEXUS_Platform_P_InitSubmodules();
 
@@ -272,7 +269,8 @@ NEXUS_Platform_P_UninitOS(void)
 
 NEXUS_Error NEXUS_Platform_P_InitOSMem()
 {
-    /* nothing required */
+    /* use g_platformMemory to pass OS value to NEXUS_Platform_P_SetCoreModuleSettings */
+    g_platformMemory.maxDcacheLineSize = nexus_driver_state.settings.maxDcacheLineSize;
     return 0;
 }
 
@@ -982,7 +980,7 @@ void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *p
 
     if (systemRegister)
     {
-#if defined(CONFIG_ARM) && (BRCMSTB_H_VERSION == 8) && ((BCHP_CHIP == 7260) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271))
+#if defined(CONFIG_ARM) && (BRCMSTB_H_VERSION == 8) && (BCHP_PHYSICAL_OFFSET == 0xd0000000)
         /* This is a workaround for an issue inside of the 4.1-1.3 kernel release which fails
          * to handle address mappings for chips with BCHP_PHYSICAL_OFFSET of 0xD0000000. */
         reg &= ~0x20000000;
@@ -1083,9 +1081,16 @@ done:
 void NEXUS_Platform_P_StartCallbacks(void *interfaceHandle)
 {
     if((uint8_t *)interfaceHandle >= (uint8_t *)NEXUS_BASEOBJECT_MIN_ID) {
+        NEXUS_Error rc = b_objdb_verify_any_object(interfaceHandle);
+        if(rc!=NEXUS_SUCCESS) {
+            /* XXX NEXUS_StartCallbacks could be used with bad handle, in particularly XXX_Close, is paired with auto generated Stop>Start callbacks, where Start called _after_ obhect was already destroyed */
+            goto done;
+        }
+
         NEXUS_Base_P_StartCallbacks(interfaceHandle);
         NEXUS_P_Proxy_StartCallbacks(interfaceHandle);
     }
+done:
     return;
 }
 

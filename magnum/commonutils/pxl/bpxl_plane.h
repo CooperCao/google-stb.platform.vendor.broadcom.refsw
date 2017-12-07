@@ -104,10 +104,11 @@ Description:
     This function will not allocate memory for the PixelPlane
 ****************************************************************************/
 
-void BPXL_Plane_Uif_Init(
+BERR_Code BPXL_Plane_Uif_Init(
     BPXL_Plane *plane,
     size_t width,
     size_t height,
+    unsigned mipLevel,
     BPXL_Format format,
     BCHP_Handle hChip);
 

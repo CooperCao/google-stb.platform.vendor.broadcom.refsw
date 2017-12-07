@@ -32,7 +32,7 @@ static void tf_term(void *v, size_t size)
    free(tf->debug_label);
    tf->debug_label = NULL;
 
-   vcos_unused(size);
+   unused(size);
 }
 
 GLXX_TRANSFORM_FEEDBACK_T* glxx_tf_create(unsigned name)

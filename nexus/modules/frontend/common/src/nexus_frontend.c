@@ -221,12 +221,39 @@ NEXUS_Error NEXUS_Frontend_SetUserParameters( NEXUS_FrontendHandle handle, const
 }
 
 #if NEXUS_HAS_MXT
+struct NEXUS_P_MtsifPidChannel {
+    BLST_S_ENTRY(NEXUS_P_MtsifPidChannel) link;
+    unsigned pid;
+    unsigned hostPb, demodPb;
+    unsigned hostIndex, demodIndex;
+    unsigned mtsifTxSel;
+    enum {
+        enabled,
+        pendingEnable, /* pidchannel has been opened on host, but no demodPB -> hostPB connection has been established */
+        disabled
+    } state;
+    BMXT_Handle mxt;
+};
+typedef struct NEXUS_P_MtsifPidChannel *NEXUS_P_MtsifPidChannelHandle;
+
+static void NEXUS_Frontend_P_PidChannelCallback(void *arg);
+static void NEXUS_Frontend_P_SetPid(NEXUS_P_MtsifPidChannelHandle pidChannel);
+static void NEXUS_Frontend_P_SetPendingPids(void);
+
+#define MAX_MTSIF_PID_CHANNELS_PER_CALLBACK 32
 typedef struct NEXUS_FrontendHostMtsifConfig {
     struct {
         unsigned demodPb; /* PB number used on demod */
         bool connected; /* if connection specified in NEXUS_ParserBandSettings has been established (via tune) */
         NEXUS_FrontendDeviceMtsifConfig *deviceConfig; /* device that is feeding the host PB */
     } hostPbSettings[NEXUS_NUM_PARSER_BANDS];
+
+    BLST_S_HEAD(NEXUS_Frontend_P_MtsifPidChannels, NEXUS_P_MtsifPidChannel) mtsifPidChannels;
+    bool demodPidChannelUsed[BMXT_MAX_NUM_PIDCHANNELS];
+    struct NEXUS_MtsifPidChannelSettings *pidSettings;
+
+    BKNI_EventHandle pidChannelEvent;
+    NEXUS_EventCallbackHandle pidChannelEventCallback;
 } NEXUS_FrontendHostMtsifConfig;
 static struct NEXUS_FrontendHostMtsifConfig g_NEXUS_Frontend_P_HostMtsifConfig;
 #endif
@@ -235,6 +262,66 @@ void NEXUS_Frontend_P_Init(void)
 {
 #if NEXUS_HAS_MXT
     BKNI_Memset(&g_NEXUS_Frontend_P_HostMtsifConfig, 0, sizeof(g_NEXUS_Frontend_P_HostMtsifConfig));
+#endif
+}
+
+void NEXUS_Frontend_P_EnablePidFiltering(void) {
+#if NEXUS_HAS_MXT
+    /* single callback for all frontend devices */
+    if (g_NEXUS_Frontend_P_HostMtsifConfig.pidChannelEventCallback==NULL) {
+        NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
+        NEXUS_TransportModule_GetPidchannelEvent(&g_NEXUS_Frontend_P_HostMtsifConfig.pidChannelEvent);
+        NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
+        if (g_NEXUS_Frontend_P_HostMtsifConfig.pidChannelEvent==NULL) {
+            BDBG_ERR(("Unable to get transport pidchannel event"));
+            return;
+        }
+
+        g_NEXUS_Frontend_P_HostMtsifConfig.pidChannelEventCallback = NEXUS_RegisterEvent(g_NEXUS_Frontend_P_HostMtsifConfig.pidChannelEvent, NEXUS_Frontend_P_PidChannelCallback, NULL);
+
+        g_NEXUS_Frontend_P_HostMtsifConfig.pidSettings = BKNI_Malloc(sizeof(struct NEXUS_MtsifPidChannelSettings)*MAX_MTSIF_PID_CHANNELS_PER_CALLBACK);
+        if (!g_NEXUS_Frontend_P_HostMtsifConfig.pidSettings) {
+            BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            return;
+        }
+    }
+#endif
+}
+
+unsigned NEXUS_Frontend_P_CloseAllMtsifPidChannels(void)
+{
+#if NEXUS_HAS_MXT
+    unsigned count = 0;
+    NEXUS_P_MtsifPidChannelHandle p;
+    while (NULL!=(p=BLST_S_FIRST(&g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels))) {
+        BLST_S_REMOVE_HEAD(&(g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels), link);
+        g_NEXUS_Frontend_P_HostMtsifConfig.demodPidChannelUsed[p->demodIndex] = false;
+        BKNI_Free(p);
+        count++;
+    }
+    return count;
+#else
+    return 0;
+#endif
+}
+
+void NEXUS_Frontend_P_Uninit(void)
+{
+#if NEXUS_HAS_MXT
+    unsigned count = NEXUS_Frontend_P_CloseAllMtsifPidChannels();
+    if (count) {
+        BDBG_MSG(("Clean up %u stale demod pidchannels", count));
+    }
+
+    if (g_NEXUS_Frontend_P_HostMtsifConfig.pidChannelEventCallback) {
+        NEXUS_Module_Lock(g_NEXUS_frontendModule);
+        NEXUS_UnregisterEvent(g_NEXUS_Frontend_P_HostMtsifConfig.pidChannelEventCallback);
+        NEXUS_Module_Unlock(g_NEXUS_frontendModule);
+    }
+
+    if (g_NEXUS_Frontend_P_HostMtsifConfig.pidSettings) {
+        BKNI_Free(g_NEXUS_Frontend_P_HostMtsifConfig.pidSettings);
+    }
 #endif
 }
 
@@ -739,8 +826,6 @@ void NEXUS_Frontend_P_DestroyExtension(NEXUS_FrontendHandle handle)
     NEXUS_Frontend_P_Destroy(handle);
 }
 
-#include "priv/nexus_transport_priv.h"
-
 #if NEXUS_HAS_MXT
 NEXUS_Error NEXUS_Frontend_P_InitMtsifConfig(NEXUS_FrontendDeviceMtsifConfig *pConfig, const BMXT_Settings *mxtSettings)
 {
@@ -757,6 +842,7 @@ NEXUS_Error NEXUS_Frontend_P_InitMtsifConfig(NEXUS_FrontendDeviceMtsifConfig *pC
         BDBG_WRN(("Unexpected non-zero members in MTSIF config")); /* this is a helpful warning to indicate that platform frontend code is not memset'ing the NEXUS_FrontendDeviceMtsifConfig's parent struct to 0 */
     }
 
+    pConfig->pidfilter = mxtSettings->enablePidFiltering;
     pConfig->numDemodIb = BMXT_GetNumResources(mxtSettings->chip, mxtSettings->chipRev, BMXT_ResourceType_eInputBand);
     pConfig->numDemodPb = BMXT_GetNumResources(mxtSettings->chip, mxtSettings->chipRev, BMXT_ResourceType_eParser);
 
@@ -772,6 +858,8 @@ NEXUS_Error NEXUS_Frontend_P_InitMtsifConfig(NEXUS_FrontendDeviceMtsifConfig *pC
         pConfig->demodPbSettings[i].timestampMode = (unsigned)parserConfig.TsMode;
         pConfig->demodPbSettings[i].dssMode = parserConfig.DssMode;
         pConfig->demodPbSettings[i].mtsifTxSel = parserConfig.mtsifTxSelect;
+        pConfig->demodPbSettings[i].allPass = parserConfig.AllPass;
+        pConfig->demodPbSettings[i].acceptNull = parserConfig.AcceptNulls;
 
         rc = BMXT_SetParserConfig(pConfig->mxt, i, &parserConfig);
         if (rc) { return BERR_TRACE(rc); }
@@ -1060,6 +1148,19 @@ apply_settings:
             pConfig->demodPbSettings[demodPb].timestampMode = mxtParserConfig.TsMode;
             pConfig->demodPbSettings[demodPb].dssMode = mxtParserConfig.DssMode;
         }
+
+        if ( pConfig->pidfilter &&
+            ((pConfig->demodPbSettings[demodPb].allPass != pSettings->allPass) ||
+            (pConfig->demodPbSettings[demodPb].acceptNull != pSettings->acceptNullPackets)) )
+        {
+            BMXT_ParserConfig mxtParserConfig;
+            BDBG_MSG(("MTSIF PB settings: demod PB%u <- host PB%u (allPass %u, acceptNull %u)", demodPb, hostPb, pSettings->allPass, pSettings->acceptNullPackets));
+            BMXT_GetParserConfig(mxt, demodPb, &mxtParserConfig);
+            pConfig->demodPbSettings[demodPb].allPass = mxtParserConfig.AllPass = pSettings->allPass;
+            pConfig->demodPbSettings[demodPb].acceptNull = mxtParserConfig.AcceptNulls = pSettings->acceptNullPackets;
+            BMXT_SetParserConfig(mxt, demodPb, &mxtParserConfig);
+        }
+
         if (pSettings->teiError.callback || pSettings->lengthError.callback) {
             setTimer = true;
         }
@@ -1074,6 +1175,10 @@ apply_settings:
         NEXUS_Frontend_P_SetTsmfOutput(mxt, demodPb, mtsifConnections[i].tsmf.hwIndex, mtsifConnections[i].tsmf.settings.enabled);
 #endif
 
+    }
+
+    if (enabled && pConfig->pidfilter) {
+        NEXUS_Frontend_P_SetPendingPids();
     }
 
     /* find any previously-established connections that must now be disconnected. disconnects are only implicitly requested, so we must search */
@@ -2303,3 +2408,179 @@ void NEXUS_FrontendModule_GetStatistics( NEXUS_FrontendModuleStatistics *pStats 
 {
     *pStats = g_NEXUS_FrontendModuleStatistics;
 }
+
+#if NEXUS_HAS_MXT
+static NEXUS_Error NEXUS_Frontend_P_FindDemodPidChannelIndex(unsigned first, unsigned bound, unsigned *index)
+{
+    unsigned i;
+    for (i=first; i<bound; i++) {
+        if (i>=BMXT_MAX_NUM_PIDCHANNELS) {
+            break;
+        }
+        if (g_NEXUS_Frontend_P_HostMtsifConfig.demodPidChannelUsed[i]==false) {
+            *index = i;
+            return NEXUS_SUCCESS;
+        }
+    }
+
+    return NEXUS_NOT_AVAILABLE;
+}
+
+static NEXUS_FrontendDeviceHandle NEXUS_FrontendConnector_P_GetDevice(NEXUS_FrontendConnectorHandle connector)
+{
+    NEXUS_FrontendHandle frontend = NULL;
+    for (frontend = BLST_SQ_FIRST(&g_frontendList.frontends); frontend; frontend = BLST_SQ_NEXT(frontend, link)) {
+        if (frontend->connector == connector) break;
+    }
+    if (frontend) {
+        return frontend->pGenericDeviceHandle;
+    }
+    else {
+        return NULL;
+    }
+}
+
+static void NEXUS_Frontend_P_PidChannelCallback(void *arg)
+{
+    unsigned num, i, demodIndex;
+    unsigned hostIndex, hostPb;
+    NEXUS_P_MtsifPidChannelHandle pidChannel;
+    NEXUS_Error rc;
+    struct NEXUS_MtsifPidChannelSettings *settings = g_NEXUS_Frontend_P_HostMtsifConfig.pidSettings;
+    bool exists;
+    NEXUS_P_MtsifPidChannelHandle p, prev;
+    NEXUS_FrontendDeviceHandle device;
+
+    BSTD_UNUSED(arg);
+
+    do {
+        NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
+        NEXUS_TransportModule_GetMtsifPidChannels_priv(settings, MAX_MTSIF_PID_CHANNELS_PER_CALLBACK, &num);
+        NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
+
+        for (i=0; i<num; i++) {
+            device = NEXUS_FrontendConnector_P_GetDevice(settings[i].frontend);
+            if (device==NULL || device->mtsifConfig.pidfilter==false) {
+                continue;
+            }
+            hostIndex = settings[i].status.pidChannelIndex;
+            hostPb = settings[i].status.parserBand;
+            exists = false;
+
+            /* check if exists / find insertion point in order of hostIndex */
+            for (prev=NULL,p=BLST_S_FIRST(&(g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels));p;prev=p,p=BLST_S_NEXT(p,link)) {
+                if (p->hostIndex == hostIndex) {
+                    exists = true;
+                    break;
+                }
+                if (hostIndex < p->hostIndex) break;
+            }
+
+            if (settings[i].state == NEXUS_MtsifPidChannelState_eChanged) {
+                if (!exists) {
+                    rc = NEXUS_Frontend_P_FindDemodPidChannelIndex(hostIndex, BMXT_MAX_NUM_PIDCHANNELS, &demodIndex);
+                    if (rc) {
+                        rc = NEXUS_Frontend_P_FindDemodPidChannelIndex(BMXT_MAX_NUM_PARSERS, hostIndex, &demodIndex);
+                        if (rc) {
+                            BDBG_ERR(("Out of demod pidchannels (host pidchannel index %u)", hostIndex));
+                            continue;
+                        }
+                    }
+                    pidChannel = BKNI_Malloc(sizeof(*pidChannel));
+                    if (!pidChannel) {
+                        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+                        continue;
+                    }
+                    BKNI_Memset(pidChannel, 0, sizeof(*pidChannel));
+
+                    if (prev) {
+                        BLST_S_INSERT_AFTER(&(g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels), prev, pidChannel, link);
+                    }
+                    else {
+                        BLST_S_INSERT_HEAD(&(g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels), pidChannel, link);
+                    }
+                    g_NEXUS_Frontend_P_HostMtsifConfig.demodPidChannelUsed[demodIndex] = true;
+                }
+                else {
+                    demodIndex = p->demodIndex;
+                    pidChannel = p;
+                }
+                BDBG_ASSERT(pidChannel);
+                pidChannel->pid = settings[i].status.pid;
+                pidChannel->hostPb = hostPb;
+                pidChannel->hostIndex = hostIndex;
+                pidChannel->demodIndex = demodIndex;
+
+                if (g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].connected) { /* demodPB -> hostPB already connected */
+                    NEXUS_FrontendDeviceMtsifConfig *config = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[pidChannel->hostPb].deviceConfig;
+                    if (exists && pidChannel->mxt && (pidChannel->mxt != config->mxt)) {
+                        pidChannel->state = disabled;
+                        BDBG_MSG(("MTSIF pidChannel %3u:%3u device change %p:%p", hostIndex, pidChannel->demodIndex, (void*)pidChannel->mxt, (void*)config->mxt));
+                        NEXUS_Frontend_P_SetPid(pidChannel);
+                    }
+                    pidChannel->state = enabled;
+                    pidChannel->demodPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].demodPb;
+                    pidChannel->mtsifTxSel = config->demodPbSettings[pidChannel->demodPb].mtsifTxSel;
+                    pidChannel->mxt = config->mxt;
+                    BDBG_MSG(("MTSIF pidChannel %3u:%3u, PB%2u:%2u %s", hostIndex, pidChannel->demodIndex, hostPb, pidChannel->demodPb, exists?"(override)":""));
+                    NEXUS_Frontend_P_SetPid(pidChannel);
+                }
+                else {
+                    if (exists && pidChannel->mxt) {
+                        pidChannel->state = disabled;
+                        BDBG_MSG(("MTSIF pidChannel %3u:%3u device change %p", hostIndex, pidChannel->demodIndex, (void*)pidChannel->mxt));
+                        NEXUS_Frontend_P_SetPid(pidChannel);
+                    }
+                    pidChannel->state = pendingEnable;
+                    BDBG_MSG(("MTSIF pidChannel %3u:%3u, PB%2u:(pending) %s", hostIndex, pidChannel->demodIndex, hostPb, exists?"(override)":""));
+                }
+            }
+            else if (settings[i].state == NEXUS_MtsifPidChannelState_eClosed) {
+                if (exists) {
+                    BDBG_MSG(("MTSIF pidChannel %3u:%3u close", p->hostIndex, p->demodIndex));
+                    if (p->mxt) {
+                        p->state = disabled;
+                        NEXUS_Frontend_P_SetPid(p);
+                    }
+                    BLST_S_REMOVE(&(g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels), p, NEXUS_P_MtsifPidChannel, link);
+                    g_NEXUS_Frontend_P_HostMtsifConfig.demodPidChannelUsed[p->demodIndex] = false;
+                    BKNI_Free(p);
+                }
+            }
+        }
+    }while (num==MAX_MTSIF_PID_CHANNELS_PER_CALLBACK);
+
+    return;
+}
+
+static void NEXUS_Frontend_P_SetPid(NEXUS_P_MtsifPidChannelHandle pidChannel)
+{
+    BMXT_PidChannelSettings pidSettings;
+    unsigned hostPb = pidChannel->hostPb;
+
+    BDBG_ASSERT(hostPb < NEXUS_NUM_PARSER_BANDS);
+    BDBG_ASSERT(pidChannel->mxt);
+
+    pidSettings.pid = pidChannel->pid;
+    pidSettings.enable = (pidChannel->state==enabled);
+    pidSettings.inputSelect = pidChannel->demodPb;
+    pidSettings.mtsifTxSelect = pidChannel->mtsifTxSel;
+    BDBG_MSG(("Set pidchannel[%3u]: pid %x, enable %u, demodPB%u, TX%u", pidChannel->demodIndex, pidSettings.pid, pidSettings.enable, pidSettings.inputSelect, pidSettings.mtsifTxSelect));
+    BMXT_ConfigPidChannel(pidChannel->mxt, pidChannel->demodIndex, &pidSettings);
+}
+
+static void NEXUS_Frontend_P_SetPendingPids(void)
+{
+    NEXUS_P_MtsifPidChannelHandle pidChannel;
+    for (pidChannel = BLST_S_FIRST(&(g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels)); pidChannel; pidChannel = BLST_S_NEXT(pidChannel, link)) {
+        if (pidChannel->state==pendingEnable) {
+            NEXUS_FrontendDeviceMtsifConfig *config = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[pidChannel->hostPb].deviceConfig;
+            pidChannel->demodPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[pidChannel->hostPb].demodPb;
+            pidChannel->mtsifTxSel = config->demodPbSettings[pidChannel->demodPb].mtsifTxSel;
+            pidChannel->mxt = config->mxt;
+            pidChannel->state = enabled;
+            NEXUS_Frontend_P_SetPid(pidChannel);
+        }
+    }
+}
+#endif

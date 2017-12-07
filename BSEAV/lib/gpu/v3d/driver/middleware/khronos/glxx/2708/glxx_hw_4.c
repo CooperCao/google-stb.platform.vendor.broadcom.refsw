@@ -55,7 +55,6 @@ static MEM_LOCK_T dummy_texture_lbh = { 0 };
 static bool install_uniforms(
    uint32_t *startaddr_location,
    GLXX_SERVER_STATE_T *state,
-   GL20_PROGRAM_T *program,
    uint32_t count,
    MEM_HANDLE_T hmap,
    GL20_HW_INDEXED_UNIFORM_T *iu,
@@ -126,26 +125,21 @@ static void EventLog(uint32_t t, uint32_t c, uint32_t d, char *desc)
  Global Functions
  *************************************************************/
 
-void glxx_hw_finish_context(GLXX_SERVER_STATE_T *state, bool wait)
+void glxx_hw_finish_context(bool wait)
 {
    khrn_render_state_flush_all(KHRN_RENDER_STATE_TYPE_GLXX);
-   if (wait) {
+   if (wait)
       khrn_hw_wait();
-      if (state != NULL)
-         state->frame_number++;  /* Finish is a nominal frame delimiter, so bump the counter */
-   }
 }
 
-void glxx_hw_invalidate_frame(GLXX_SERVER_STATE_T *state, bool color, bool depth, bool stencil, bool multisample, bool preserveBuf, bool main_buffer)
+void glxx_hw_invalidate_frame(GLXX_SERVER_STATE_T *state, bool color, bool depth, bool stencil, bool multisample, bool main_buffer)
 {
    GLXX_HW_FRAMEBUFFER_T fb;
-   GLXX_HW_RENDER_STATE_T *rs;
-
-   rs = glxx_install_framebuffer(state, &fb, main_buffer);
+   GLXX_HW_RENDER_STATE_T *rs = glxx_install_framebuffer(state, &fb, main_buffer);
    if (!rs)
       return;
 
-   glxx_hw_invalidate_internal(rs, color, depth, stencil, multisample, preserveBuf);
+   glxx_hw_invalidate_internal(rs, color, depth, stencil, multisample);
 }
 
 /*!
@@ -170,8 +164,8 @@ void glxx_hw_term(void)
 static MEM_HANDLE_T get_texture_11(GLXX_SERVER_STATE_T *state,
    unsigned texunit)
 {
-   vcos_assert(IS_GL_11(state));
-   vcos_assert(texunit < GL11_CONFIG_MAX_TEXTURE_UNITS);
+   assert(IS_GL_11(state));
+   assert(texunit < GL11_CONFIG_MAX_TEXTURE_UNITS);
 
    switch (state->texunits[texunit].target_enabled) {
    case GL_TEXTURE_2D:
@@ -229,191 +223,71 @@ static void set_current_render_state(GLXX_SERVER_STATE_T *state, uint32_t rs_nam
 GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, bool main_buffer)
 {
    MEM_HANDLE_T hcolor, hdepth, hstencil;
-   KHRN_IMAGE_T *color;
-   uint32_t i;
    bool multisample;
-   GLXX_HW_RENDER_STATE_T *rs;
-   BEGL_WindowHandle win = NULL;
 
-   if (state->mh_bound_framebuffer != MEM_INVALID_HANDLE && !main_buffer)
-   {
+   if (state->mh_bound_framebuffer != MEM_HANDLE_INVALID && !main_buffer) {
       GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
 
       hcolor = glxx_attachment_info_get_images(&framebuffer->attachments.color, &fb->mh_ms_color);
       hdepth = glxx_attachment_info_get_images(&framebuffer->attachments.depth, NULL);
       hstencil = glxx_attachment_info_get_images(&framebuffer->attachments.stencil, NULL);
 
-      fb->mh_depth = hdepth != MEM_INVALID_HANDLE ? hdepth : hstencil;  /* TODO naughty */
+      fb->mh_depth = hdepth != MEM_HANDLE_INVALID ? hdepth : hstencil;  /* TODO naughty */
       fb->have_depth = framebuffer->attachments.depth.type != GL_NONE;
       fb->have_stencil = framebuffer->attachments.stencil.type != GL_NONE;
 
       multisample = (framebuffer->attachments.color.samples != 0);
-   }
-   else
-   {
+   } else {
       hcolor = state->mh_draw;
       hdepth = state->mh_depth;
-      multisample = state->mh_color_multi != MEM_INVALID_HANDLE;    /* TODO naughty */
+      multisample = state->mh_color_multi != MEM_HANDLE_INVALID;    /* TODO naughty */
 
-      if (multisample)
-      {
+      if (multisample) {
          fb->mh_ms_color = state->mh_color_multi;  /* TODO naughty */
          fb->mh_depth = state->mh_ds_multi;        /* TODO naughty */
-      }
-      else
-      {
-         fb->mh_ms_color = MEM_INVALID_HANDLE;  /* TODO naughty */
+      } else {
+         fb->mh_ms_color = MEM_HANDLE_INVALID;  /* TODO naughty */
          fb->mh_depth = state->mh_depth;        /* TODO naughty */
       }
 
-      fb->have_depth = state->mh_depth != MEM_INVALID_HANDLE && state->config_depth_bits > 0;
+      fb->have_depth = state->mh_depth != MEM_HANDLE_INVALID && state->config_depth_bits > 0;
       fb->have_stencil = state->mh_depth && state->config_stencil_bits > 0;
    }
 
-   if(hcolor==MEM_INVALID_HANDLE)
+   if (hcolor == MEM_HANDLE_INVALID)
       return NULL;
 
-   color = (KHRN_IMAGE_T *)mem_lock(hcolor, NULL);
-
-   fb->mh_preserve_image = state->mh_preserve;
+   KHRN_IMAGE_T *color = (KHRN_IMAGE_T *)mem_lock(hcolor, NULL);
 
    fb->mh_color_image = hcolor; /* TODO naughty */
 
-   /* wins has to be something sensible for platforms which support rendering into client provided surfaces
-      EG. ANDROID/DFB
-      win is only valid for BEGL_BufferUsage_eSwapChain0, BEGL_BufferUsage_eSwapChain1 & BEGL_BufferUsage_eSwapChain2
-      so this shouldn't reprogram for pixmaps and FBO's */
+   /* resize the depth and stencil if its changed */
+   if (state->mh_depth) {
+      int scale = (multisample) ? 2 : 1;
+      KHRN_IMAGE_T *depth = (KHRN_IMAGE_T *)mem_lock(state->mh_depth, NULL);
+      if ((depth->width != (color->width * scale)) ||
+         (depth->height != (color->height * scale))) {
+         khrn_interlock_write_immediate(&depth->interlock);
+         khrn_image_resize(depth, color->width * scale, color->height * scale);
+      }
+      mem_unlock(state->mh_depth);
+   }
 
-   if (color->window_state)
-      win = color->window_state->window;
+   if (multisample) {
+      KHRN_IMAGE_T *color_multi = (KHRN_IMAGE_T *)mem_lock(state->mh_color_multi, NULL);
+      if (color_multi->width != (color->width * 2) || color_multi->height != (color->height * 2)) {
+         khrn_interlock_write_immediate(&color_multi->interlock);
+         khrn_image_resize(color_multi, color->width * 2, color->height * 2);
+      }
+      mem_unlock(state->mh_color_multi);
 
-   if (win != NULL)
-   {
-      /* abstract platform always has an opaque_buffer_handle */
-      vcos_assert(color->opaque_buffer_handle != NULL);
-
-      if (1) /*state->swapchainc > 0)*/
-      {
-         BEGL_BufferSettings bufferSettings;
-
-         /* have we already locked the image?, If yes then the size cant have changed, just carry on */
-         if (!color->alreadyLocked)
-         {
-            bool locked;
-            KHRN_IMAGE_FORMAT_T format = ABGR_8888;
-            uint32_t padded_width, padded_height, align;
-
-            EventData *lastEv = khrn_remote_get_last_event();
-            uint32_t funcData = 0;
-            if (lastEv->eventType != eEVENT_END && lastEv->eventType != eEVENT_INVALID_TYPE)
-            {
-               // An event is already in progress. Terminate it and start again after the delay.
-               funcData = lastEv->eventData;
-               EventLog(eEVENT_END, eEVENT_API, funcData, 0);
-            }
-
-            EventLog(eEVENT_WAITING, eEVENT_API, funcData, "Waiting for render buffer");
-
-            locked = platform_lock_buffer(color->opaque_buffer_handle, color->window_state, &color->fence);
-            vcos_assert(locked);
-
-            EventLog(eEVENT_START, eEVENT_API, funcData, 0);
-            if (funcData == 0)
-            {
-               // We started this event, so end it now
-               EventLog(eEVENT_END, eEVENT_API, funcData, 0);
-            }
-
-            /* Set our alreadyLocked flag so that subsequent installFramebuffer calls will not try to lock the
-               buffer again. The flag is cleared during swapBuffers, when all draw calls are finished. After that
-               anyone trying to lock the buffer again will block until it's been displayed and recycled.
-            */
-            if (locked)
-            {
-               vcos_atomic_increment(&color->alreadyLocked);
-
-               /* after the lock the bufferSettings are updated with the correct address */
-               platform_get_buffersettings(color->opaque_buffer_handle, &bufferSettings);
-
-               padded_width = bufferSettings.width;
-               padded_height = bufferSettings.height;
-               align = 0;
-
-               if ((bufferSettings.format == BEGL_BufferFormat_eA8B8G8R8) ||
-                   (bufferSettings.format == BEGL_BufferFormat_eA8B8G8R8_TFormat))
-                  format = ABGR_8888;
-               else if ((bufferSettings.format == BEGL_BufferFormat_eX8B8G8R8) ||
-                        (bufferSettings.format == BEGL_BufferFormat_eX8B8G8R8_TFormat))
-                  format = XBGR_8888;
-               else if (bufferSettings.format == BEGL_BufferFormat_eR8G8B8X8)
-                  format = RGBX_8888;
-               else if (bufferSettings.format == BEGL_BufferFormat_eR8G8B8A8)
-                  format = RGBA_8888;
-               else if ((bufferSettings.format == BEGL_BufferFormat_eR5G6B5) ||
-                        (bufferSettings.format == BEGL_BufferFormat_eR5G6B5_TFormat))
-                  format = RGB_565;
-
-               KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
-                  ((color->flags & IMAGE_FLAG_TEXTURE) ? IMAGE_CREATE_FLAG_TEXTURE : 0) |
-                  ((color->flags & IMAGE_FLAG_RSO_TEXTURE) ? IMAGE_CREATE_FLAG_RSO_TEXTURE : 0) |
-                  ((color->flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
-                  ((color->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
-
-               khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, image_create_flags);
-
-               color->width = bufferSettings.width;
-               color->height = bufferSettings.height;
-               color->format = format;
-               color->stride = khrn_image_get_stride(format, padded_width);
-               color->secure = bufferSettings.secure;
-
-               /* the underlying OS may have changed the color format to one not supported by v3d.  All bets are off */
-               vcos_assert(platform_supported_format(color->format) != false);
-
-               /* Re-wrap the back buffer handle - this is where we render NEXT */
-               MEM_ASSIGN(color->mh_storage, MEM_HANDLE_INVALID);
-
-               color->mh_storage = mem_wrap(bufferSettings.secure ? NULL : bufferSettings.cachedAddr,
-                                            bufferSettings.physOffset,
-                                            bufferSettings.pitchBytes * bufferSettings.height,
-                                            bufferSettings.alignment, MEM_FLAG_DIRECT | (bufferSettings.secure ? MEM_FLAG_SECURE : 0),
-                                            "wrapped pixmap");
-
-               /* resize the depth and stencil if its changed */
-               if (state->mh_depth) {
-                  int scale = (multisample) ? 2 : 1;
-                  KHRN_IMAGE_T *depth = (KHRN_IMAGE_T *)mem_lock(state->mh_depth, NULL);
-                  if ((depth->width != (bufferSettings.width*scale)) ||
-                      (depth->height != (bufferSettings.height*scale)))
-                  {
-                     khrn_interlock_write_immediate(&depth->interlock);
-                     khrn_image_resize(depth, bufferSettings.width*scale, bufferSettings.height*scale);
-                  }
-                  mem_unlock(state->mh_depth);
-               }
-
-               if (multisample) {
-                  KHRN_IMAGE_T *color_multi = (KHRN_IMAGE_T *)mem_lock(state->mh_color_multi, NULL);
-                  if (color_multi->width != (bufferSettings.width*2) || color_multi->height != (bufferSettings.height*2))
-                  {
-                     khrn_interlock_write_immediate(&color_multi->interlock);
-                     khrn_image_resize(color_multi, bufferSettings.width*2, bufferSettings.height*2);
-                  }
-                  mem_unlock(state->mh_color_multi);
-
-                  if (state->mh_ds_multi != MEM_INVALID_HANDLE)
-                  {
-                     KHRN_IMAGE_T *ds_multi = (KHRN_IMAGE_T *)mem_lock(state->mh_ds_multi, NULL);
-                     if (ds_multi->width != (bufferSettings.width*2) || ds_multi->height != (bufferSettings.height*2))
-                     {
-                        khrn_interlock_write_immediate(&ds_multi->interlock);
-                        khrn_image_resize(ds_multi, bufferSettings.width*2, bufferSettings.height*2);
-                     }
-                     mem_unlock(state->mh_ds_multi);
-                  }
-               }
-            }
+      if (state->mh_ds_multi != MEM_HANDLE_INVALID) {
+         KHRN_IMAGE_T *ds_multi = (KHRN_IMAGE_T *)mem_lock(state->mh_ds_multi, NULL);
+         if (ds_multi->width != (color->width * 2) || ds_multi->height != (color->height * 2)) {
+            khrn_interlock_write_immediate(&ds_multi->interlock);
+            khrn_image_resize(ds_multi, color->width * 2, color->height * 2);
          }
+         mem_unlock(state->mh_ds_multi);
       }
    }
 
@@ -421,7 +295,6 @@ GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLX
    fb->height = color->height;
    fb->col_format = color->format;
    fb->flags = color->flags;
-   fb->dither = state->caps.dither;
 #ifdef GLXX_FORCE_MULTISAMPLE
    fb->ms = true;
 #else
@@ -431,8 +304,8 @@ GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLX
    fb->pad_width = color->stride * 8 / khrn_image_get_bpp(color->format);
    fb->pad_height = fb->height;
 
-   i = khrn_interlock_render_state_i(khrn_interlock_get_writer(&color->interlock));
-   /* TODO: usurp KHRN_RENDER_STATE_TYPE_COPY_BUFFER? */
+   GLXX_HW_RENDER_STATE_T *rs;
+   uint32_t i = khrn_interlock_render_state_i(khrn_interlock_get_writer(&color->interlock));
    if (i != (uint32_t)~0 && khrn_render_state_get_type(i) == KHRN_RENDER_STATE_TYPE_GLXX)
    {
       rs = (GLXX_HW_RENDER_STATE_T *)khrn_render_state_get_data(i);
@@ -458,6 +331,10 @@ GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLX
          return NULL;    /* TODO: distinguish between out-of-memory and null clip rectangle */
       }
    }
+
+   /* A render state can only dither if everything was dithered */
+   if (!state->caps.dither)
+      rs->dither = false;
 
    mem_unlock(hcolor);
    return rs;
@@ -521,7 +398,7 @@ int glxx_convert_filter(GLenum filter)
  */
 uint32_t glxx_enable_back(GLenum mode)
 {
-   vcos_assert(mode == GL_FRONT || mode == GL_BACK || mode == GL_FRONT_AND_BACK);
+   assert(mode == GL_FRONT || mode == GL_BACK || mode == GL_FRONT_AND_BACK);
 
    return mode == GL_FRONT;
 }
@@ -535,7 +412,7 @@ uint32_t glxx_enable_back(GLenum mode)
  */
 uint32_t glxx_enable_front(GLenum mode)
 {
-   vcos_assert(mode == GL_FRONT || mode == GL_BACK || mode == GL_FRONT_AND_BACK);
+   assert(mode == GL_FRONT || mode == GL_BACK || mode == GL_FRONT_AND_BACK);
 
    return mode == GL_BACK;
 }
@@ -550,7 +427,7 @@ uint32_t glxx_enable_front(GLenum mode)
  */
 uint32_t glxx_front_facing_is_clockwise(GLenum mode)
 {
-   vcos_assert(mode == GL_CW || mode == GL_CCW);
+   assert(mode == GL_CW || mode == GL_CCW);
 
    return mode == GL_CW;
 }
@@ -604,7 +481,7 @@ bool do_vcd_setup(
    UNUSED_NDEBUG(vattribs_live);
    UNUSED(mergeable_attribs);
 
-   vcos_assert(!(cattribs_live & ~vattribs_live));
+   assert(!(cattribs_live & ~vattribs_live));
 
    vpm_offset_v = 0;             /* vpm_offset counts from the start of one read setup to make sure */
    vpm_offset_c = 0;             /* we never exceed 15 rows at a time.                              */
@@ -628,7 +505,7 @@ bool do_vcd_setup(
 
          last_vattrib = j;
 
-         vcos_assert(vattribs_live & 15<<(4*i) && attrib[i].enabled);
+         assert(vattribs_live & 15<<(4*i) && attrib[i].enabled);
 
          length = attrib[i].size * khrn_get_type_size(attrib[i].type);
 
@@ -644,11 +521,12 @@ bool do_vcd_setup(
             last_vattrib = j;
          }
 #endif
-         vcos_assert( ((((length + 3) & ~3)+3)/4) <= 15 );//small enough to fit in a vpm_setup
+         assert( ((((length + 3) & ~3)+3)/4) <= 15 );//small enough to fit in a vpm_setup
 
          glxx_big_mem_insert(&shader_record->attr[n].base, attrib_handles[i], (uint32_t)attrib[i].pointer);
 
          shader_record->attr[n].base = i; /* SW-5891 temporarily store i here so can duplicate shader record if needed */
+
          shader_record->attr[n].sizem1 = length - 1;
          shader_record->attr[n].stride = attrib[i].stride ? attrib[i].stride : attrib[i].size * khrn_get_type_size(attrib[i].type);
 
@@ -710,7 +588,7 @@ bool do_vcd_setup(
          uint32_t length;
          uint32_t new_num_rows;
 
-         vcos_assert(n<GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+         assert(n<GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
 
          length = attrib[i].size * khrn_get_type_size(attrib[i].type);
 
@@ -726,6 +604,7 @@ bool do_vcd_setup(
          glxx_big_mem_insert(&shader_record->attr[n].base, attrib_handles[i], (uint32_t)attrib[i].pointer);
 
          shader_record->attr[n].base = i; /* SW-5891 temporarily store i here so can duplicate shader record if needed */
+
          shader_record->attr[n].sizem1 = length - 1;
          shader_record->attr[n].stride = attrib[i].stride ? attrib[i].stride : attrib[i].size * khrn_get_type_size(attrib[i].type);
 
@@ -770,14 +649,14 @@ bool do_vcd_setup(
       shader_record->attr[n].stride = 0;
 
       if (nc == 0) {
-         vcos_assert(vpm_offset_c == 0);
+         assert(vpm_offset_c == 0);
          shader_record->attr[n].coffset = 0;
          cattrsel |= 1<<n;
          num_vpm_rows_c[0] = 1;
       } else shader_record->attr[n].coffset = 0xff;
 
       if (nv == 0) {
-         vcos_assert(vpm_offset_v == 0);
+         assert(vpm_offset_v == 0);
          shader_record->attr[n].voffset = 0;
          vattrsel |= 1<<n;
          num_vpm_rows_v[0] = 1;
@@ -806,7 +685,7 @@ static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T
    /* TODO: we enumerate over textures elsewhere. Feels slightly wasteful. */
    for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
-      MEM_HANDLE_T thandle = MEM_INVALID_HANDLE;
+      MEM_HANDLE_T thandle = MEM_HANDLE_INVALID;
 
       state->shader.common.texture_rb_swap[i] = false;
       if (IS_GL_11(state))
@@ -827,7 +706,7 @@ static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T
             GL20_UNIFORM_INFO_T *ui;
             int index;
 
-            vcos_assert(state->batch.sampler_info != NULL);
+            assert(state->batch.sampler_info != NULL);
 
             ui = &state->batch.uniform_info[state->batch.sampler_info[i].uniform];
             index = state->batch.uniform_data[ui->offset + state->batch.sampler_info[i].index];
@@ -851,7 +730,7 @@ static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T
             }
          }
       }
-      if (thandle != MEM_INVALID_HANDLE)
+      if (thandle != MEM_HANDLE_INVALID)
       {
          GLXX_TEXTURE_T *texture;
 
@@ -1036,8 +915,8 @@ static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T
    }
    else
    {
-      vcos_assert(!state->changed_misc);
-      vcos_assert(!state->changed_light);
+      assert(!state->changed_misc);
+      assert(!state->changed_light);
       /*
          Can set changed_texunit accidentally because of has_color/has_alpha stuff
          (more specifically, we don't check for IS_ES_11 in glTexImage2D)
@@ -1060,7 +939,7 @@ bool glxx_hw_get_attr_live(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *attrib)
    }
    else
    {
-      if (state->mh_program != MEM_INVALID_HANDLE)
+      if (state->mh_program != MEM_HANDLE_INVALID)
       {
          GL20_PROGRAM_T *program = (GL20_PROGRAM_T *)mem_lock(state->mh_program, NULL);
          state->batch.cattribs_live = program->result.cattribs_live;
@@ -1258,7 +1137,7 @@ static void reset_egl_images_in_textures(GLXX_SERVER_STATE_T *state)
    {
       for (int i = 0; i < state->batch.num_samplers; i++)
       {
-         vcos_assert(state->batch.sampler_info != NULL);
+         assert(state->batch.sampler_info != NULL);
 
          if (i < GLXX_CONFIG_MAX_TEXTURE_UNITS)
          {
@@ -1338,7 +1217,6 @@ bool glxx_hw_draw_triangles(
    //gl 2.0 specific
    GL20_PROGRAM_T *program = NULL;
    GL20_HW_INDEXED_UNIFORM_T iu;
-   bool locked_program_items = false;
 
    if(IS_GL_11(state)) {
       if (count == 0)
@@ -1361,7 +1239,7 @@ bool glxx_hw_draw_triangles(
          rs = glxx_install_framebuffer(state, &fb, false);
          if (!rs)
             goto done;
-         vcos_assert(rs->batch_count == 0);
+         assert(rs->batch_count == 0);
       }
       rs->batch_count++;
    }
@@ -1377,11 +1255,10 @@ bool glxx_hw_draw_triangles(
       goto fail2;
 
    if (!IS_GL_11(state)) {
-      state->batch.sampler_info = (GL20_SAMPLER_INFO_T *)mem_lock(program->mh_sampler_info, NULL);
-      state->batch.uniform_info = (GL20_UNIFORM_INFO_T *)mem_lock(program->mh_uniform_info, NULL);
-      state->batch.uniform_data = (uint32_t *)mem_lock(program->mh_uniform_data, NULL);
-      state->batch.num_samplers = mem_get_size(program->mh_sampler_info) / sizeof(GL20_SAMPLER_INFO_T);
-      locked_program_items = true;
+      state->batch.sampler_info = program->samplers;
+      state->batch.num_samplers = program->num_samplers;
+      state->batch.uniform_info = program->uniforms;
+      state->batch.uniform_data = program->uniform_data;
    }
 
    calculate_and_hide(state, &fb, attrib);
@@ -1395,7 +1272,7 @@ bool glxx_hw_draw_triangles(
       uint32_t      *mergeable_attribs_i = &mergeable_attribs[i];
       GLXX_ATTRIB_T *attrib_i            = &attrib[i];
 
-      if (*attrib_handles_i != MEM_INVALID_HANDLE)
+      if (*attrib_handles_i != MEM_HANDLE_INVALID)
       {
          //look for potentially mergable attributes (packed in same buffer)
          for (j = 0; j < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; j++)
@@ -1453,7 +1330,7 @@ bool glxx_hw_draw_triangles(
 
    do_vcd_setup(shader_record, attrib, attrib_handles, cattribs_live, vattribs_live, mergeable_attribs, cattribs_order, vattribs_order,
       num_vpm_rows_c, num_vpm_rows_v, &attr_count);
-   vcos_assert(attr_count >= 1 && attr_count <= 8);
+   assert(attr_count >= 1 && attr_count <= 8);
 
    if (!IS_GL_11(state))
       gl20_hw_iu_init(&iu);
@@ -1466,7 +1343,6 @@ bool glxx_hw_draw_triangles(
    if (!install_uniforms(
       &shader_record->cunif,
       state,
-      program,
       cunif_count,
       cunif_map,
       &iu,
@@ -1482,7 +1358,6 @@ bool glxx_hw_draw_triangles(
    if (!install_uniforms(
       &shader_record->vunif,
       state,
-      program,
       vunif_count,
       vunif_map,
       &iu,
@@ -1498,7 +1373,6 @@ bool glxx_hw_draw_triangles(
    if (!install_uniforms(
       &shader_record->funif,
       state,
-      program,
       funif_count,
       funif_map,
       &iu,
@@ -1514,13 +1388,6 @@ bool glxx_hw_draw_triangles(
    /* after all uniforms are installed, loop over samplers and remove any egl image scratch
       which where created during install_uniforms */
    reset_egl_images_in_textures(state);
-
-   if (!IS_GL_11(state)) {
-      mem_unlock(program->mh_sampler_info);
-      mem_unlock(program->mh_uniform_info);
-      mem_unlock(program->mh_uniform_data);
-      locked_program_items = false;
-   }
 
    if (!IS_GL_11(state)) {
       gl20_hw_iu_close(&iu);
@@ -1609,24 +1476,24 @@ bool glxx_hw_draw_triangles(
 
          add_byte(&instr, KHRN_HW_INSTR_NOP);        //(1) TODO: is this necessary?
 
-         vcos_assert(step <= (uint32_t)count);
+         assert(step <= (uint32_t)count);
 
          count = count - step;
 
          if(count > 0)
          {
-            GLXX_HW_SHADER_RECORD_T *new_shader_record;
             MEM_LOCK_T new_shader_record_lbh;
             /* some vertices were not drawn */
             /* create a new shader record with offset pointers for another GLDRAWARRAYS instruction */
-            new_shader_record = (GLXX_HW_SHADER_RECORD_T *)glxx_big_mem_alloc_junk(100, 16, &new_shader_record_lbh);
+            GLXX_HW_SHADER_RECORD_T *new_shader_record = (GLXX_HW_SHADER_RECORD_T *)glxx_big_mem_alloc_junk(100, 16, &new_shader_record_lbh);
             if (!new_shader_record) goto fail;
-            khrn_memcpy(new_shader_record,shader_record,sizeof(GLXX_HW_SHADER_RECORD_T));
+            khrn_memcpy(new_shader_record, shader_record, sizeof(GLXX_HW_SHADER_RECORD_T));
             shader_record = new_shader_record;
+
             /* get_shaders() put copies of the handles we need in shader_record->fshader etc. */
-            glxx_big_mem_insert(&shader_record->fshader,shader_record->fshader,0);
-            glxx_big_mem_insert(&shader_record->vshader,shader_record->vshader,0);
-            glxx_big_mem_insert(&shader_record->cshader,shader_record->cshader,0);
+            glxx_big_mem_insert(&shader_record->fshader, shader_record->fshader, 0);
+            glxx_big_mem_insert(&shader_record->vshader, shader_record->vshader, 0);
+            glxx_big_mem_insert(&shader_record->cshader, shader_record->cshader, 0);
 
             offset += step + indices_offset;
             indices_offset = 0;
@@ -1634,15 +1501,13 @@ bool glxx_hw_draw_triangles(
             for(j=0; j < attr_count; j++)
             {
                i = shader_record->attr[j].base;
-               vcos_assert(i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);/* stored i here in do_vcd_setup */
+               assert(i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);/* stored i here in do_vcd_setup */
                glxx_big_mem_insert(&shader_record->attr[j].base, attrib_handles[i], (uint32_t)attrib[i].pointer + offset*shader_record->attr[j].stride);
-               vcos_assert(i == shader_record->attr[j].base);/* check big_mem_insert didn't change this */
+               assert(i == shader_record->attr[j].base);/* check big_mem_insert didn't change this */
             }
          }
          else
-         {
             count = 0;
-         }
       }
    }
    else
@@ -1699,13 +1564,6 @@ fail:
 fail2:
    if(!IS_GL_11(state)) {
       mem_unlock(state->mh_program);
-      if(locked_program_items)
-      {
-         mem_unlock(program->mh_sampler_info);
-         mem_unlock(program->mh_uniform_info);
-         mem_unlock(program->mh_uniform_data);
-         locked_program_items = false;
-      }
    }
 
    glxx_hw_discard_frame(rs);
@@ -1725,7 +1583,6 @@ static void save_shader_tool_file(GL20_PROGRAM_T *program, GLXX_SERVER_STATE_T *
    char                    stsName[1024];
    GL20_SHADER_T           *shader;
    int32_t                 count, i;
-   MEM_HANDLE_T            *handles;
    GLXX_LINK_RESULT_KEY_T  *key = &state->shader.common;
 
    // Work out the running program name
@@ -1789,35 +1646,23 @@ static void save_shader_tool_file(GL20_PROGRAM_T *program, GLXX_SERVER_STATE_T *
 
    fprintf(sts, "<vertexShader>");
    shader = (GL20_SHADER_T *)mem_lock(program->mh_vertex, NULL);
-   count = mem_get_size(shader->mh_sources_compile) / sizeof(MEM_HANDLE_T);
-
-   handles = (MEM_HANDLE_T *)mem_lock(shader->mh_sources_compile, NULL);
+   count = shader->sourcec;
    for (i = 0; i < count; i++)
-   {
-      fprintf(sts, "%s\n", (char *)mem_lock(handles[i], NULL));
-      mem_unlock(handles[i]);
-   }
-   mem_unlock(shader->mh_sources_compile);
+      fprintf(sts, "%s\n", shader->sourcev[i]);
    mem_unlock(program->mh_vertex);
    fprintf(sts, "</vertexShader>\n");
 
    fprintf(sts, "<fragmentShader>");
    shader = (GL20_SHADER_T *)mem_lock(program->mh_fragment, NULL);
-   count = mem_get_size(shader->mh_sources_compile) / sizeof(MEM_HANDLE_T);
-
-   handles = (MEM_HANDLE_T *)mem_lock(shader->mh_sources_compile, NULL);
+   count = shader->sourcec;
    for (i = 0; i < count; i++)
-   {
-      fprintf(sts, "%s\n", (char *)mem_lock(handles[i], NULL));
-      mem_unlock(handles[i]);
-   }
-   mem_unlock(shader->mh_sources_compile);
+      fprintf(sts, "%s\n", shader->sourcev[i]);
    mem_unlock(program->mh_fragment);
    fprintf(sts, "</fragmentShader>\n");
 
    fprintf(sts, "hasDepth=%d\n", key->use_depth ? 1 : 0);
    fprintf(sts, "hasStencil=%d\n", (key->stencil_config & 0x1) != 0 ? 1 : 0);
-   fprintf(sts, "hasMSAA=%d\n", state->mh_color_multi == MEM_INVALID_HANDLE ? 0 : 1);
+   fprintf(sts, "hasMSAA=%d\n", state->mh_color_multi == MEM_HANDLE_INVALID ? 0 : 1);
    fprintf(sts, "is565=%d\n", key->rgb565 ? 1 : 0);
    fprintf(sts, "renderAlpha=%d\n", key->render_alpha ? 1 : 0);
 
@@ -1940,7 +1785,7 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
             {
                uint8_t data_start = 0;
                uint32_t i;
-               vcos_assert(j <= 3 && num_vpm_rows[j] <= 15);
+               assert(j <= 3 && num_vpm_rows[j] <= 15);
                for (i = 0; i < j; i++)
                   data_start += num_vpm_rows[i];
                data_start &= 0x3F;
@@ -1978,7 +1823,7 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
             break;
          //2.0 specific cases
          case BACKEND_UNIFORM_BLEND_COLOR:
-            vcos_assert(!IS_GL_11(state));
+            assert(!IS_GL_11(state));
             *ptr = color_floats_to_rgba(state->blend_color[0], state->blend_color[1], state->blend_color[2], state->blend_color[3]);
             break;
          case BACKEND_UNIFORM_FBHEIGHT:
@@ -1992,15 +1837,15 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
                *ptr = egl_output;
             break;
          case BACKEND_UNIFORM_DEPTHRANGE_NEAR:
-            vcos_assert(!IS_GL_11(state));
+            assert(!IS_GL_11(state));
             *ptr = *(uint32_t *)&state->viewport.internal[6];
             break;
          case BACKEND_UNIFORM_DEPTHRANGE_FAR:
-            vcos_assert(!IS_GL_11(state));
+            assert(!IS_GL_11(state));
             *ptr = *(uint32_t *)&state->viewport.internal[7];
             break;
          case BACKEND_UNIFORM_DEPTHRANGE_DIFF:
-            vcos_assert(!IS_GL_11(state));
+            assert(!IS_GL_11(state));
             *ptr = *(uint32_t *)&state->viewport.internal[8];
             break;
          default:
@@ -2046,11 +1891,10 @@ fail:
 static bool install_uniforms(
    uint32_t *startaddr_location,
    GLXX_SERVER_STATE_T *state,
-   GL20_PROGRAM_T *program,
    uint32_t count,
    MEM_HANDLE_T hmap,
    GL20_HW_INDEXED_UNIFORM_T *iu,
-   uint32_t * num_vpm_rows,
+   uint32_t *num_vpm_rows,
    GLXX_ATTRIB_T *attrib,
    bool egl_output,
    unsigned int fb_height,
@@ -2063,7 +1907,6 @@ static bool install_uniforms(
    MEM_LOCK_T ptr_lbh;
    uint32_t *map;
    //gl 2.0 specific
-   uint32_t max = 0;
 
    ptr = glxx_big_mem_alloc_junk(4 * count, 4, &ptr_lbh);
 
@@ -2071,10 +1914,6 @@ static bool install_uniforms(
    *startaddr_location = khrn_hw_addr(ptr, &ptr_lbh); //PTR
 
    map = (uint32_t *)mem_lock(hmap, NULL);
-
-   if(!IS_GL_11(state)) {
-      max = mem_get_size(program->mh_uniform_data);
-   }
 
    for (i = count; i != 0; --i, ptr++)
    {
@@ -2182,11 +2021,11 @@ static MEM_HANDLE_T image_for_texturing(GLXX_SERVER_STATE_T *state,
       /* if the image is an underlying platform client buffer, then it may have resized since it
          originally was mapped */
       if ((egl_image->platform_client_buffer) &&
-          (egl_image->buffer) &&
           (egl_image->mh_image != MEM_HANDLE_INVALID) &&
           (egl_image->mh_tf_image != MEM_HANDLE_INVALID))
       {
-         MEM_HANDLE_T new_image = khrn_platform_image_wrap(egl_image->buffer);
+         MEM_HANDLE_T new_image = egl_server_platform_image_wrap(
+               egl_image->target, egl_image->native_buffer);
 
          KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(egl_image->mh_image, NULL);
          KHRN_IMAGE_T *dst = (KHRN_IMAGE_T *)mem_lock(egl_image->mh_tf_image, NULL);
@@ -2258,7 +2097,7 @@ static MEM_HANDLE_T image_for_texturing(GLXX_SERVER_STATE_T *state,
 
             khrn_rso_to_tf_convert(state, hscratch, egl_image->mh_tf_image);
 
-            MEM_ASSIGN(hscratch, MEM_INVALID_HANDLE);
+            MEM_ASSIGN(hscratch, MEM_HANDLE_INVALID);
          }
       }
       else
@@ -2307,13 +2146,13 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
 
    if (texture == NULL)
    {
-      vcos_assert(!IS_GL_11(state));
+      assert(!IS_GL_11(state));
       ok = use_dummy(location, u0);
       goto end;
    }
 
    bool is_cube = (texture->target == GL_TEXTURE_CUBE_MAP);
-   MEM_HANDLE_T handle = MEM_INVALID_HANDLE;
+   MEM_HANDLE_T handle = MEM_HANDLE_INVALID;
    switch (u0)
    {
       case BACKEND_UNIFORM_TEX_PARAM0:
@@ -2322,7 +2161,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
          uint32_t type = 0;
          uint32_t offset = 0;
 
-         if (texture->external_image != MEM_INVALID_HANDLE)
+         if (texture->external_image != MEM_HANDLE_INVALID)
          {
             MEM_HANDLE_T himage = image_for_texturing(state, texture->external_image, secure);
             KHRN_IMAGE_T *image = (KHRN_IMAGE_T*)mem_lock(himage, NULL);
@@ -2353,12 +2192,12 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
             }
          }
 
-         vcos_assert(!is_cube || !IS_GL_11(state));
+         assert(!is_cube || !IS_GL_11(state));
 
          mipmap_count = glxx_texture_get_mipmap_count(texture);
 
-         vcos_assert(handle != MEM_INVALID_HANDLE);
-         vcos_assert(mipmap_count >= 1 && mipmap_count <= LOG2_MAX_TEXTURE_SIZE + 1);
+         assert(handle != MEM_HANDLE_INVALID);
+         assert(mipmap_count >= 1 && mipmap_count <= LOG2_MAX_TEXTURE_SIZE + 1);
 
          offset += (mipmap_count - 1) | (type & 15) << 4 | is_cube << 9;
          if(!glxx_big_mem_insert(location, handle, offset))
@@ -2372,7 +2211,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
       case BACKEND_UNIFORM_TEX_PARAM1:
       {
          uint32_t type;
-         if (texture->external_image != MEM_INVALID_HANDLE)
+         if (texture->external_image != MEM_HANDLE_INVALID)
             type = tu_image_format_to_type(image_for_texturing_format(glxx_texture_get_tformat(texture)));
          else
             type = tu_image_format_to_type(glxx_texture_get_tformat(texture));
@@ -2389,14 +2228,14 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
       }
       case BACKEND_UNIFORM_TEX_CUBE_STRIDE:
       {
-         vcos_assert(!IS_GL_11(state));
+         assert(!IS_GL_11(state));
 
          uint32_t cube_stride = 0;
          if (is_cube)
          {
             uint32_t stride = glxx_texture_get_cube_stride(texture);
 
-            vcos_assert(!(stride & 0xfff));
+            assert(!(stride & 0xfff));
                cube_stride = stride | (1 << 30);
          }
          /* disable automatic level of detail in vertex shader */
@@ -2433,7 +2272,7 @@ static bool backend_uniform_address( uint32_t u1,
    MEM_LOCK_T texa_lbh = { 0 };
    UNUSED_NDEBUG(state);
 
-   vcos_assert(!IS_GL_11(state));
+   assert(!IS_GL_11(state));
    for (i = 0; i < iu->count; i++)
    {
       if (iu->index[i] == index && iu->size[i] == size)
@@ -2479,7 +2318,7 @@ static bool backend_uniform_address( uint32_t u1,
  */
 static uint32_t convert_primitive_type(GLenum mode)
 {
-   vcos_assert(mode <= GL_TRIANGLE_FAN);
+   assert(mode <= GL_TRIANGLE_FAN);
 
    return (uint32_t)mode;
 }
@@ -2614,7 +2453,7 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    GL20_HW_INDEXED_UNIFORM_T iu;
    //
 
-   vcos_assert(IS_GL_11(state));
+   assert(IS_GL_11(state));
 
    rs = glxx_install_framebuffer(state, &fb, false);
    if (!rs)
@@ -2727,7 +2566,7 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       }
    }
 
-   vcos_assert((uint8_t *)p == (uint8_t *)attrib_data + stride*4);
+   assert((uint8_t *)p == (uint8_t *)attrib_data + stride*4);
 
    /* TODO: only allocate space for as many vertex attributes as we need */
    /* TODO: extended vertex stride? */
@@ -2776,7 +2615,6 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    if (!install_uniforms(
       &shader_record->cunif,
       state,
-      program,
       cunif_count,
       cunif_map,
       &iu,
@@ -2792,7 +2630,6 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    if (!install_uniforms(
       &shader_record->vunif,
       state,
-      program,
       vunif_count,
       vunif_map,
       &iu,
@@ -2808,7 +2645,6 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    if (!install_uniforms(
       &shader_record->funif,
       state,
-      program,
       funif_count,
       funif_map,
       &iu,
@@ -2888,7 +2724,6 @@ bool glxx_schedule_during_link(GLXX_SERVER_STATE_T *state, void *prog)
    GLXX_HW_FRAMEBUFFER_T fb;
    GLXX_HW_RENDER_STATE_T *rs;
    bool unlockFixer = false;
-   bool lockedProgramItems = false;
 
    assert(IS_GL_20(state));
    if (!program->linked)
@@ -2930,11 +2765,10 @@ bool glxx_schedule_during_link(GLXX_SERVER_STATE_T *state, void *prog)
    for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
       mergeable_attribs[i] = (uint32_t)~0;
 
-   state->batch.sampler_info = (GL20_SAMPLER_INFO_T *)mem_lock(program->mh_sampler_info, NULL);
-   state->batch.uniform_info = (GL20_UNIFORM_INFO_T *)mem_lock(program->mh_uniform_info, NULL);
-   state->batch.uniform_data = (uint32_t *)mem_lock(program->mh_uniform_data, NULL);
-   state->batch.num_samplers = mem_get_size(program->mh_sampler_info) / sizeof(GL20_SAMPLER_INFO_T);
-   lockedProgramItems = true;
+   state->batch.sampler_info = program->samplers;
+   state->batch.num_samplers = program->num_samplers;
+   state->batch.uniform_info = program->uniforms;
+   state->batch.uniform_data = program->uniform_data;
 
    calculate_and_hide(state, &fb, attrib);
    state->shader.common.primitive_type = glxx_hw_primitive_mode_to_type(GL_TRIANGLES);
@@ -2955,25 +2789,26 @@ out_of_mem:
    goto done;
 
 done:
-   program->linked = GL_FALSE;
-   if (lockedProgramItems)
-   {
-      mem_unlock(program->mh_sampler_info);
-      mem_unlock(program->mh_uniform_info);
-      mem_unlock(program->mh_uniform_data);
-   }
+   program->linked = false;
 
    if (unlockFixer)
       glxx_unlock_fixer_stuff();
 
-   {
-      MEM_HANDLE_T handle = mem_strdup_ex(error_buffer, MEM_COMPACT_DISCARD);
-      if (handle != MEM_INVALID_HANDLE)
-      {
-         MEM_ASSIGN(program->mh_info, handle);
-         mem_release(handle);
-      }
-   }
+   free(program->info_log);
+   program->info_log = strdup(error_buffer);
 
    return false;
+}
+
+bool glxx_hw_insert_sync(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T handle)
+{
+   GLXX_HW_FRAMEBUFFER_T fb;
+   GLXX_HW_RENDER_STATE_T *rs = glxx_install_framebuffer(state, &fb, false);
+
+   if (!rs)
+      return false;
+
+   khrn_fmem_sync(rs->fmem, handle);
+
+   return true;
 }

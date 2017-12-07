@@ -559,7 +559,7 @@ NEXUS_atoi(const char *str)
 }
 
 int
-NEXUS_P_Base_StrCmp(const char *str1, const char *str2)
+NEXUS_P_Base_StrCmp_isrsafe(const char *str1, const char *str2)
 {
     return strcmp(str1, str2);
 }

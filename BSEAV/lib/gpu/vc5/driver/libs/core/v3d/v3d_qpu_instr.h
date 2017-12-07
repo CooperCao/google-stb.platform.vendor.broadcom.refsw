@@ -80,7 +80,7 @@ typedef enum
    V3D_QPU_SIG_LDTLBU    = (1<<7),
    V3D_QPU_SIG_UCB       = (1<<8),
    V3D_QPU_SIG_ROTATE    = (1<<9),
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_QPU_SIG_LDUNIFRF  = (1<<10),
    V3D_QPU_SIG_LDUNIFA   = (1<<11),
    V3D_QPU_SIG_LDUNIFARF = (1<<12),
@@ -92,7 +92,7 @@ struct v3d_qpu_sig
    v3d_qpu_sigbits_t sigbits;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
-#if V3D_HAS_SIG_TO_MAGIC
+#if V3D_VER_AT_LEAST(4,1,34,0)
    bool magic;
 #else
    bool sig_reg;
@@ -102,7 +102,7 @@ struct v3d_qpu_sig
 };
 
 extern bool v3d_qpu_sig_has_result_write(v3d_qpu_sigbits_t sigbits);
-#if !V3D_HAS_SIG_TO_MAGIC
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 extern uint32_t v3d_qpu_sig_default_reg(v3d_qpu_sigbits_t sigbits);
 #endif
 
@@ -239,7 +239,7 @@ typedef enum
 #endif
    V3D_QPU_MAGIC_WADDR_CLASS_SYNC,
    V3D_QPU_MAGIC_WADDR_CLASS_SFU,
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_QPU_MAGIC_WADDR_CLASS_UNIF,
 #endif
    V3D_QPU_MAGIC_WADDR_CLASS_INVALID

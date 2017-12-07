@@ -228,23 +228,33 @@
 #  define __unused                      __attribute__((unused))
 #endif
 
-/** Avoid extra padding in structs and enums */
+/** Avoid extra padding in structs, unless the target requires it.
+ * Don't use this on enums - use __packed_enum instead. */
 #ifndef __packed
-#  define __packed                      __attribute__((packed))
+#  ifndef SDK_NO_MISALIGNED_DATA
+#    define __packed                    __attribute__((packed))
+#  else
+#    define __packed
+#  endif
+#endif
+
+/** Shrink an enum to the minimum size required to contain its values */
+#ifndef __packed_enum
+#  define __packed_enum                 __attribute__((packed))
 #endif
 
 /** Instruct the compiler to align a variable on an n-byte boundary */
 #define __align(n)                      __attribute__((aligned(n)))
 
 
-#if (!defined (_Static_assert)) && (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L)
+#if !defined(_Static_assert) && (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L)
 /* A fake _Static_assert implementation that we can use in pre-C11 mode.
  *
  * The error messages are nowhere near as good, but it will still explode at the
  * right time.
  */
-#define _Static_assert(exp, msg) \
-    typedef int _Static_assert_type [(exp) ? 1 : -1] __attribute__((unused))
+#  define _Static_assert(exp, msg) \
+    typedef int _Static_assert_type [(exp) ? 1 : -1] __unused
 #endif
 
 #endif /* !defined(ASMCPP) */

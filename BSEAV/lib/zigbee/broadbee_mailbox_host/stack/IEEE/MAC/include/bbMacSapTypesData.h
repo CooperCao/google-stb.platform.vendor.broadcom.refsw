@@ -321,8 +321,10 @@ struct _MAC_DataReqDescr_t
     /* 32-bit data. */
     MAC_DataConfCallback_t *callback;       /*!< Entry point of the confirmation callback function. */
 
+#ifndef _HOST_
     /* Structured data. */
     MacServiceField_t       service;        /*!< MAC requests service field. */
+#endif
 
     MAC_DataReqParams_t     params;         /*!< Request parameters structured object. */
 };

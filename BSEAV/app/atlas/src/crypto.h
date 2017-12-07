@@ -46,7 +46,7 @@
 #include "mxmlelement.h"
 #include "xmltags.h"
 #include "nexus_pid_channel.h"
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
 #include "nexus_security_datatypes.h"
 #include "nexus_security_client.h"
 #else

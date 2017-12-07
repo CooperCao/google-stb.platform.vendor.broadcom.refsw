@@ -207,19 +207,6 @@ static Dataflow *get_lt_ut_offset(const df_base_detail *df_bd,
    return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, d1, d2);
 }
 
-static Dataflow *construct_dataflow_img_buffer_addr(Dataflow *sampler, GFX_LFMT_T fmt,
-      Dataflow *x)
-{
-   Dataflow *lx_addr = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_ADDR);
-
-   GFX_LFMT_BASE_DETAIL_T bd;
-   gfx_lfmt_base_detail(&bd, fmt);
-   assert(bd.block_w == 1 && bd.block_h == 1 &&  bd.block_d == 1);
-   Dataflow *bytes_per_texel = glsl_dataflow_construct_const_uint(bd.bytes_per_block);
-   Dataflow *offset = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, x, bytes_per_texel);
-   return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, lx_addr, offset);
-}
-
 static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
       Dataflow *x, Dataflow *y, Dataflow *z, Dataflow *elem_no)
 {
@@ -271,9 +258,7 @@ static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
    Dataflow *addr = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_ADDR);
    return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, addr, offset);
 }
-#endif
 
-#if !V3D_HAS_LARGE_1D_TEXTURE
 static Dataflow *calculate_store_cond(const PrimSamplerInfo *image_info,
       Dataflow *sampler, Dataflow *x, Dataflow *y, Dataflow *z)
 {
@@ -496,32 +481,6 @@ static DataflowFlavour df_atomic_from_intrinsic(glsl_intrinsic_index_t f) {
    }
 }
 
-#if !V3D_HAS_LARGE_1D_TEXTURE
-static bool is_imagebuffer(const PrimSamplerInfo *sampler)
-{
-   return (sampler->type == PRIM_IMAGEBUFFER || sampler->type == PRIM_UIMAGEBUFFER ||
-         sampler->type == PRIM_IIMAGEBUFFER);
-}
-
-void glsl_imgbuffer_translate_coord(Dataflow *sampler, Dataflow *coord,
-      Dataflow **x, Dataflow **elem_no)
-{
-   assert(sampler->u.load.fmt_valid);
-   GFX_LFMT_T fmt = fmt_qualifier_to_fmt(sampler->u.load.fmt);
-
-   GFX_LFMT_BASE_DETAIL_T bd;
-   gfx_lfmt_base_detail(&bd, fmt);
-   assert(bd.block_w == 1 && bd.block_h == 1 &&  bd.block_d == 1);
-
-   uint32_t arr_elem_w = GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES / bd.bytes_per_block;
-   Dataflow *log2_arr_elem_w = glsl_dataflow_construct_const_uint(gfx_log2(arr_elem_w));
-   Dataflow *arr_elem_w_minus_1 = glsl_dataflow_construct_const_uint(arr_elem_w -1);
-
-   *elem_no = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, coord, log2_arr_elem_w);
-   *x = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, coord, arr_elem_w_minus_1);
-}
-#endif
-
 void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr)
 {
    ExprChain *args = expr->u.intrinsic.args;
@@ -553,35 +512,17 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
    else
       values = glsl_dataflow_construct_vec4(data[0], cmp, NULL, NULL);
 
-   Dataflow *cond;
-   Dataflow *addr;
-
 #if V3D_VER_AT_LEAST(4,0,2,0)
-# if !V3D_HAS_LARGE_1D_TEXTURE
-   if (is_imagebuffer(image_info))
-   {
-      assert(y == NULL && z == NULL && elem_no == NULL);
-      cond = calculate_store_cond(image_info, sampler, x, NULL, NULL);
-
-      Dataflow *coord = x;
-      glsl_imgbuffer_translate_coord(sampler, coord, &x, &elem_no);
-   }
-   else
-# endif
-   {
-      /* We use border wrap mode, which will cause the TMU to skip writes which
-      * are outside of the image. So no need for an explicit condition. */
-      cond = NULL;
-   }
-   addr = glsl_dataflow_construct_texture_addr(sampler, x, y, z, elem_no);
+   /* We use border wrap mode, which will cause the TMU to skip writes which
+    * are outside of the image. So no need for an explicit condition. */
+   Dataflow *cond = NULL;
+   Dataflow *addr = glsl_dataflow_construct_texture_addr(sampler, x, y, z, elem_no);
 #else
    //if coordinates are outside image size --> don't do any stores;
-   cond = calculate_store_cond(image_info, sampler, x, y, z ? z : elem_no);
+   Dataflow *cond = calculate_store_cond(image_info, sampler, x, y, z ? z : elem_no);
    GFX_LFMT_T fmt = fmt_qualifier_to_fmt(sampler->u.load.fmt);
-   if (is_imagebuffer(image_info))
-      addr = construct_dataflow_img_buffer_addr(sampler, fmt, x);
-   else
-      addr = construct_dataflow_img_addr(sampler, fmt, x, y, z, elem_no);
+   /* Image buffer aren't supported on v3.3, so this must be a normal image */
+   Dataflow *addr = construct_dataflow_img_addr(sampler, fmt, x, y, z, elem_no);
 #endif
 
    DataflowType t = expr->u.intrinsic.flavour == INTRINSIC_IMAGE_STORE ? DF_VOID :

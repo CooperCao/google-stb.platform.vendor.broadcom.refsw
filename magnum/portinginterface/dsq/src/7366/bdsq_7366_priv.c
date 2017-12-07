@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bstd.h"
@@ -62,9 +54,9 @@ BDBG_MODULE(bdsq_7366_priv);
 
 
 /* local functions */
-BERR_Code BDSQ_7366_P_InterruptCallback(void *pParm1, int parm2);
-BERR_Code BDSQ_7366_P_SendCommand(BHAB_Handle h, uint32_t *pBuf, uint32_t n);
-BERR_Code BDSQ_7366_P_EnableChannelInterrupt(BDSQ_ChannelHandle h, bool bEnable, uint32_t mask);
+static BERR_Code BDSQ_7366_P_InterruptCallback(void *pParm1, int parm2);
+static BERR_Code BDSQ_7366_P_SendCommand(BHAB_Handle h, uint32_t *pBuf, uint32_t n);
+static BERR_Code BDSQ_7366_P_EnableChannelInterrupt(BDSQ_ChannelHandle h, bool bEnable, uint32_t mask);
 
 
 /******************************************************************************

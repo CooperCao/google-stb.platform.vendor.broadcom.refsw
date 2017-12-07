@@ -7,24 +7,23 @@
 #include "egl_config.h"
 #include "egl_display.h"
 
-/*
- * Set attributes that apply to all kinds of surfaces and validate some
- * others. The attrib_list is also passed into the "derived" init function
- * which is where the more specific attributes will actually be handled.
- *
- * Returns an EGL error code.
- */
-static EGLint set_attributes(EGL_SURFACE_T *surface, const void *attrib_list,
+static EGLint init_attrib(EGL_SURFACE_T *surface,
+      EGLint attrib, EGLAttribKHR value)
+{
+   if (surface->fns->init_attrib)
+      return surface->fns->init_attrib(surface, attrib, value);
+   else
+      return egl_surface_base_init_attrib(surface, attrib, value);
+}
+
+static EGLint init_attribs(EGL_SURFACE_T *surface, const void *attrib_list,
       EGL_AttribType attrib_type)
 {
-   if (!attrib_list)
-      return EGL_SUCCESS;
-
    EGLint name;
    EGLAttribKHR value;
    while (egl_next_attrib(&attrib_list, attrib_type, &name, &value))
    {
-      EGLint ret = egl_surface_set_attrib(surface, name, value);
+      EGLint ret = init_attrib(surface, name, value);
       if (ret != EGL_SUCCESS) return ret;
    }
 
@@ -33,16 +32,11 @@ static EGLint set_attributes(EGL_SURFACE_T *surface, const void *attrib_list,
 
 EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
       const EGL_SURFACE_METHODS_T *fns,
-      EGL_CONFIG_T *config, const void *attrib_list,
+      const EGL_CONFIG_T *config, const void *attrib_list,
       EGL_AttribType attrib_type,
       unsigned width, unsigned height,
       EGLNativeWindowType win, EGLNativePixmapType pix)
 {
-   EGLint status;
-
-   if (!egl_config_is_valid(config))
-      return EGL_BAD_CONFIG;
-
    if (win != NULL && egl_any_surfaces_using_native_win(win))
       return EGL_BAD_ALLOC;
 
@@ -73,7 +67,7 @@ EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
    surface->native_window = win;
    surface->native_pixmap = pix;
 
-   status = set_attributes(surface, attrib_list, attrib_type);
+   EGLint status = init_attribs(surface, attrib_list, attrib_type);
    if (status != EGL_SUCCESS) return status;
 
    if (surface->width > EGL_CONFIG_MAX_WIDTH
@@ -98,29 +92,23 @@ void egl_surface_base_destroy(EGL_SURFACE_T *surface)
 }
 
 bool egl_surface_base_get_attrib(const EGL_SURFACE_T *surface,
-      EGLint attrib, EGLAttribKHR *value)
+      EGLint attrib, EGLint *value)
 {
    switch (attrib)
    {
-   case EGL_GL_COLORSPACE_KHR:
-      if (surface->colorspace == SRGB)
-         *value = EGL_GL_COLORSPACE_SRGB_KHR;
+   case EGL_GL_COLORSPACE:
+      if (surface->gl_colorspace == SRGB)
+         *value = EGL_GL_COLORSPACE_SRGB;
       else
-         *value = EGL_GL_COLORSPACE_LINEAR_KHR;
+         *value = EGL_GL_COLORSPACE_LINEAR;
       return true;
 
    case EGL_VG_ALPHA_FORMAT:
-      if (surface->alpha_format == NONPRE)
-         *value = EGL_VG_ALPHA_FORMAT_NONPRE;
-      else
-         *value = EGL_VG_ALPHA_FORMAT_PRE;
+      *value = EGL_VG_ALPHA_FORMAT_NONPRE;
       return true;
 
    case EGL_VG_COLORSPACE:
-      if (surface->colorspace == SRGB)
-         *value = EGL_VG_COLORSPACE_sRGB;
-      else
-         *value = EGL_VG_COLORSPACE_LINEAR;
+      *value = EGL_VG_COLORSPACE_sRGB;
       return true;
 
    case EGL_CONFIG_ID:
@@ -194,10 +182,89 @@ bool egl_surface_base_get_attrib(const EGL_SURFACE_T *surface,
       }
       return true;
 
+   case EGL_LARGEST_PBUFFER:
+   case EGL_TEXTURE_FORMAT:
+   case EGL_TEXTURE_TARGET:
+   case EGL_MIPMAP_TEXTURE:
+   case EGL_MIPMAP_LEVEL:
+      /* Querying these for a non-pbuffer surface is not an error, but value is
+       * not modified */
+      return true;
+
    default:
       break;
    }
    return false;
+}
+
+EGLint egl_surface_base_init_attrib(EGL_SURFACE_T *surface,
+      EGLint attrib, EGLAttribKHR value)
+{
+   switch (attrib)
+   {
+   case EGL_GL_COLORSPACE:
+      switch (value)
+      {
+      case EGL_GL_COLORSPACE_SRGB:
+         surface->gl_colorspace = SRGB;
+         return EGL_SUCCESS;
+      case EGL_GL_COLORSPACE_LINEAR:
+         surface->gl_colorspace = LINEAR;
+         return EGL_SUCCESS;
+      default:
+         return EGL_BAD_PARAMETER;
+      }
+
+   case EGL_VG_COLORSPACE:
+      switch (value)
+      {
+      case EGL_VG_COLORSPACE_sRGB:
+         return EGL_SUCCESS;
+      case EGL_VG_COLORSPACE_LINEAR:
+         return EGL_BAD_MATCH;
+      default:
+         return EGL_BAD_PARAMETER;
+      }
+
+   case EGL_VG_ALPHA_FORMAT:
+      switch (value)
+      {
+      case EGL_VG_ALPHA_FORMAT_NONPRE:
+         return EGL_SUCCESS;
+      case EGL_VG_ALPHA_FORMAT_PRE:
+         return EGL_BAD_MATCH;
+      default:
+         return EGL_BAD_PARAMETER;
+      }
+
+   case EGL_RENDER_BUFFER:
+      switch (value)
+      {
+         /*
+          * We only support BACK_BUFFER rendering, but it's ok just to not
+          * "respect" any attempt to set this to anything else (EGL 1.4 3.5.1)
+          */
+      case EGL_BACK_BUFFER:
+      case EGL_SINGLE_BUFFER:
+         return EGL_SUCCESS;
+      default:
+         return EGL_BAD_PARAMETER;
+      }
+
+#if EGL_EXT_protected_content
+   case EGL_PROTECTED_CONTENT_EXT:
+      if (value == EGL_TRUE || value == EGL_FALSE)
+      {
+         surface->secure = value;
+         return EGL_SUCCESS;
+      }
+      else
+         return EGL_BAD_PARAMETER;
+#endif
+
+   default:
+      return EGL_BAD_ATTRIBUTE;
+   }
 }
 
 EGLint egl_surface_base_set_attrib(EGL_SURFACE_T *surface,
@@ -205,6 +272,10 @@ EGLint egl_surface_base_set_attrib(EGL_SURFACE_T *surface,
 {
    switch (attrib)
    {
+   case EGL_MIPMAP_LEVEL:
+      // May be set on non-pbuffer surfaces, but doing so has no effect
+      return EGL_SUCCESS;
+
    case EGL_SWAP_BEHAVIOR:
       switch (value)
       {
@@ -212,6 +283,7 @@ EGLint egl_surface_base_set_attrib(EGL_SURFACE_T *surface,
          if (!(egl_config_get_attrib(surface->config, EGL_SURFACE_TYPE, NULL)
              & EGL_SWAP_BEHAVIOR_PRESERVED_BIT))
             return EGL_BAD_MATCH;
+         break;
       case EGL_BUFFER_DESTROYED:
          break;
       default:
@@ -228,6 +300,7 @@ EGLint egl_surface_base_set_attrib(EGL_SURFACE_T *surface,
          if (!(egl_config_get_attrib(surface->config, EGL_SURFACE_TYPE, NULL)
             & EGL_MULTISAMPLE_RESOLVE_BOX_BIT))
             return EGL_BAD_MATCH;
+         break;
       case EGL_MULTISAMPLE_RESOLVE_DEFAULT:
          break;
       default:
@@ -237,94 +310,17 @@ EGLint egl_surface_base_set_attrib(EGL_SURFACE_T *surface,
       surface->multisample_resolve = (EGLenum)value;
       return EGL_SUCCESS;
 
-   case EGL_GL_COLORSPACE_KHR:
-      switch (value)
-      {
-      case EGL_GL_COLORSPACE_SRGB_KHR:
-         surface->colorspace = SRGB;
-         return EGL_SUCCESS;
-      case EGL_GL_COLORSPACE_LINEAR_KHR:
-         surface->colorspace = LINEAR;
-         return EGL_SUCCESS;
-      default:
-         return EGL_BAD_PARAMETER;
-      }
-      break;
-
-   case EGL_VG_COLORSPACE:
-      switch (value)
-      {
-      case EGL_VG_COLORSPACE_sRGB:
-         surface->colorspace = SRGB;
-         return EGL_SUCCESS;
-      case EGL_VG_COLORSPACE_LINEAR:
-         surface->colorspace = LINEAR;
-         return EGL_SUCCESS;
-      default:
-         return EGL_BAD_PARAMETER;
-      }
-      break;
-
-   case EGL_VG_ALPHA_FORMAT:
-      switch (value)
-      {
-      case EGL_VG_ALPHA_FORMAT_NONPRE:
-         surface->alpha_format = NONPRE;
-         return EGL_SUCCESS;
-      case EGL_VG_ALPHA_FORMAT_PRE:
-         surface->alpha_format = PRE;
-         return EGL_SUCCESS;
-      default:
-         return EGL_BAD_PARAMETER;
-      }
-      break;
-
-   case EGL_RENDER_BUFFER:
-      switch (value)
-      {
-         /*
-          * We only support BACK_BUFFER rendering, but it's ok just to not
-          * "respect" any attempt to set this to anything else (EGL 1.4 3.5.1)
-          */
-      case EGL_BACK_BUFFER:
-      case EGL_SINGLE_BUFFER:
-         return EGL_SUCCESS;
-      default:
-         return EGL_BAD_PARAMETER;
-      }
-      break;
-
-#if EGL_EXT_protected_content
-   case EGL_PROTECTED_CONTENT_EXT:
-      if (value == EGL_TRUE || value == EGL_FALSE)
-      {
-         surface->secure = value;
-         return EGL_SUCCESS;
-      }
-      else
-         return EGL_BAD_PARAMETER;
-      break;
-#endif
-
    default:
-      break;
+      return EGL_BAD_ATTRIBUTE;
    }
-
-   return EGL_BAD_ATTRIBUTE;
-}
-
-static GFX_LFMT_T base_color_fmt(const EGL_SURFACE_T *surface)
-{
-   GFX_LFMT_T color_format = egl_config_colorformat(surface->config,
-      surface->colorspace,
-      surface->alpha_format);
-   return color_format;
 }
 
 bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
 {
    const EGL_CONFIG_T *config = surface->config;
-   GFX_LFMT_T color_format = base_color_fmt(surface);
+   GFX_LFMT_T color_format = config->color_api_fmt;
+   if (surface->gl_colorspace == SRGB)
+      color_format = egl_surface_lfmt_to_srgb(color_format);
 
    // TODO This currently only handles single plane image formats,
    //      formats like D32 S8 would need some extra work.
@@ -354,15 +350,6 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
          GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL,
          1,
          egl_config_get_attrib(config, EGL_STENCIL_SIZE, NULL),
-      },
-
-      /* mask */
-      {
-         config->mask_api_fmt,
-         config->mask_api_fmt,
-         GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL,
-         1,
-         0,
       },
 
       /* multisample */
@@ -444,11 +431,6 @@ khrn_image *egl_surface_base_get_aux_buffer(const EGL_SURFACE_T *surface,
 {
    assert(which < AUX_MAX);
    return surface->aux_bufs[which].image;
-}
-
-GFX_LFMT_T egl_surface_base_colorformat(const EGL_SURFACE_T *surface)
-{
-   return gfx_lfmt_to_2d(base_color_fmt(surface));
 }
 
 void egl_surface_base_delete_aux_bufs(EGL_SURFACE_T *surface)

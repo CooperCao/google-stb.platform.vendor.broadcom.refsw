@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #ifndef _DECRYPTOR_H_
 #define _DECRYPTOR_H_
@@ -77,6 +76,8 @@ public:
 
     virtual uint32_t DecryptSample(SampleInfo *pSample, IBuffer *input, IBuffer *output, uint32_t sampleSize) = 0;
 
+    virtual bool Load(std::string license) = 0;
+
     virtual std::string GetSessionId() = 0;
     virtual std::string GetKeyMessage() = 0;
     virtual std::string GetDefaultUrl() = 0;
@@ -100,6 +101,8 @@ public:
     virtual bool CancelKeyRequest() OVERRIDE = 0;
 
     virtual uint32_t DecryptSample(SampleInfo *pSample, IBuffer *input, IBuffer *output, uint32_t sampleSize) OVERRIDE = 0;
+
+    virtual bool Load(std::string license) OVERRIDE { BSTD_UNUSED(license); return false; }
 
     virtual std::string GetSessionId() OVERRIDE { return m_sessionId; }
     virtual std::string GetKeyMessage() OVERRIDE { return m_keyMessage; }

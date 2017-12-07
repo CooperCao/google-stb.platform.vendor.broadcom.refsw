@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "streamer.h"
 
@@ -53,11 +52,14 @@ using namespace dif_streamer;
 IBuffer* BufferFactory::CreateBuffer(uint32_t size, uint8_t* nexusBuf, bool secure)
 {
     IBuffer* buffer = NULL;
+    if (secure) {
 #ifdef USE_SECURE_PLAYBACK
-    if (secure)
         buffer = new SecureBuffer(size, nexusBuf);
-    else
+#else
+        LOGW(("Secure buffer is not available for non-sage build"));
+        buffer = new Buffer(size, nexusBuf);
 #endif
+    } else
         buffer = new Buffer(size, nexusBuf);
 
     if (buffer->Initialize() == false) {
@@ -71,9 +73,9 @@ IBuffer* BufferFactory::CreateBuffer(uint32_t size, uint8_t* nexusBuf, bool secu
 
 void BufferFactory::DestroyBuffer(IBuffer* buffer)
 {
-    LOGD(("%s: buffer=%p", __FUNCTION__, (void*)buffer));
+    LOGD(("%s: buffer=%p", BSTD_FUNCTION, (void*)buffer));
     if (buffer == NULL) {
-        LOGE(("%s: buffer is NULL", __FUNCTION__));
+        LOGE(("%s: buffer is NULL", BSTD_FUNCTION));
         return;
     }
     delete buffer;

@@ -53,16 +53,16 @@ void ResetCPUStats(void)
 {
    std::vector<uint32_t> toDelete;
 
-   for (auto const & m : g_cpuData)
+   for (std::map<uint32_t, CPUData>::const_iterator it = g_cpuData.begin(); it != g_cpuData.end(); ++it)
    {
-      auto d = m.second;
+      auto d = it->second;
       if (!d.alive)
-         toDelete.push_back(m.first);
+         toDelete.push_back(it->first);
       d.alive = false;
    }
 
-   for (auto & l : toDelete)
-      g_cpuData.erase(l);
+   for (std::vector<uint32_t>::const_iterator it = toDelete.begin(); it != toDelete.end(); ++it)
+      g_cpuData.erase(*it);
 }
 
 void UpdateCPUStats(uint32_t pid)
@@ -94,7 +94,7 @@ void UpdateCPUStats(uint32_t pid)
    auto utime = d.utime;
    auto stime = d.stime;
 
-   if (sscanf(buf, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*lu %*lu %*lu %*lu %lu %lu %ld %ld %*ld %*ld %ld %*ld %*llu %*lu %*ld %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*d %d",
+   if (sscanf(buf, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %u %u %d %d %*d %*d %d %*d %*u %*u %*d %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %d",
                    &d.utime, &d.stime, &d.cutime, &d.cstime, &d.threads, &d.lastCpu) != 6)
       return;
 
@@ -130,7 +130,7 @@ void UpdateCPUStats(uint32_t pid)
    g_totMem += d.vsize;
    g_totThreads += d.threads;
 
-   printf(" % 4u%%  % 4u   % 8u %s % 2u ", percent, d.threads, d.vsize, name, d.lastCpu);
+   printf(" %4u%%  %4u   %8u %s %2u ", percent, d.threads, d.vsize, name, d.lastCpu);
 }
 
 int main(int __attribute__((unused)) argc, const char __attribute__((unused)) **argv)
@@ -170,7 +170,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) **
 
          NEXUS_Graphicsv3d_GetLoadData(loadData, numClients, &numClients);
 
-         for (auto i = 0; i < numClients; i++)
+         for (uint32_t i = 0; i < numClients; i++)
          {
             char buf[1024];
             sprintf(buf, "/proc/%d/cmdline", loadData[i].uiClientPID);
@@ -190,7 +190,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) **
             printf("% 4d ", loadData[i].uiClientId);
             printf(" % 6d", loadData[i].uiClientPID);
             printf("  % 4d", loadData[i].uiNumRenders);
-            printf(" % 4u%%", loadData[i].sRenderPercent);
+            printf(" %4u%%", loadData[i].sRenderPercent);
 
             UpdateCPUStats(loadData[i].uiClientPID);
 
@@ -200,7 +200,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) **
       }
 
       printf("\033[4m                                                                    \033[0m\n");
-      printf("              % 4d % 4u%% % 4u%%  % 4u    % 7u kB\n", g_totRenders, g_totGPU, g_totCPU, g_totThreads, g_totMem);
+      printf("              % 4d %4u%% %4u%%  %4u    %7u kB\n", g_totRenders, g_totGPU, g_totCPU, g_totThreads, g_totMem);
 
       std::this_thread::sleep_for(std::chrono::seconds(1));
    }

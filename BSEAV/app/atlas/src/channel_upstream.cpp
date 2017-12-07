@@ -222,7 +222,7 @@ eRet CChannelUpstream::unTune(
     pBoardResources = pConfig->getBoardResources();
 
     /* we must reset STC to ref count of pids when we do an untune */
-    if(_pStc != NULL )
+    if (_pStc != NULL)
     {
         NEXUS_SimpleStcChannelSettings settings;
         _pStc->getDefaultSettings(&settings);

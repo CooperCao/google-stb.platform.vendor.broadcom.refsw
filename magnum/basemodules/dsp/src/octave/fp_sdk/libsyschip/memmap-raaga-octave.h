@@ -57,6 +57,12 @@ extern __absolute Misc_Block taddr_Misc_Block;
 #  endif
 
 /*
+ * The address of core 0's Misc block, given to the linker script to provide
+ * taddr_Misc_Block.
+ */
+#define DEFAULT_MISC_BLOCK_ADDRESS  0x0fe34000
+
+/*
  * The base of FP0's CCS area, cast to a volatile uint8_t* (so pointer
  * arithmetic is just the same as it would be on the address)
  */
@@ -94,7 +100,8 @@ extern __absolute Misc_Block taddr_Misc_Block;
  *  - queue 6: core 1, high prio
  *  - queue 7: core 1, highest prio
  */
-#define L2_CACHE_CMD_QUEUE_CORE_BASE        (FIREPATH_NUM << 2)
+#define L2_CACHE_CMD_QUEUE_CORE_BASE_FOR_CORE(core) ((core) << 2)
+#define L2_CACHE_CMD_QUEUE_CORE_BASE        L2_CACHE_CMD_QUEUE_CORE_BASE_FOR_CORE(FIREPATH_NUM)
 #define L2_CACHE_CMD_QUEUE_LOW_OFFSET       0
 #define L2_CACHE_CMD_QUEUE_MEDIUM_OFFSET    1
 #define L2_CACHE_CMD_QUEUE_HIGH_OFFSET      2
@@ -124,20 +131,18 @@ extern void l2_init(void);
 #if !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
 /* Location and size of memory regions as set at link time.
  * Please use below defined macros in C code. */
-extern int taddr_dram_ro, tsize_dram_ro;
-extern int taddr_dram_rw, tsize_dram_rw;
+extern char taddr_dram_ro, tsize_dram_ro;
+extern char taddr_dram_rw, tsize_dram_rw;
 
 /* The whole firmware image */
 __absolute
-extern int __begin_ro_image, __end_ro_image, __ro_image_size;
+extern char __begin_ro_image, __end_ro_image, __ro_image_size;
 __absolute
-extern int __begin_rw_image, __end_rw_image, __rw_image_size;
+extern char __begin_rw_image, __end_rw_image, __rw_image_size;
 
-/* FPOS (libthreadxp) specific symbols. */
-extern void __text_start();
-extern void __text_end();
+/* FPOS specific symbols. */
 __absolute __weak
-extern int __romfs_start, __romfs_length;
+extern char __romfs_start, __romfs_length;
 #endif
 
 
@@ -173,10 +178,8 @@ extern int __romfs_start, __romfs_length;
 #define IMAGE_RW_SIZE          SYMBOL_ADDR_TO_ADDR(__rw_image_size)
 
 /*
- * FPOS (libthreadxp) specific symbols.
+ * FPOS specific symbols.
  */
-#define TEXT_START          SYMBOL_ADDR_TO_ADDR(__text_start)
-#define TEXT_END            SYMBOL_ADDR_TO_ADDR(__text_end)
 #define ROMFS_START         SYMBOL_ADDR_TO_ADDR(__romfs_start)
 #define ROMFS_LENGTH        SYMBOL_ADDR_TO_ADDR(__romfs_length)
 
@@ -189,6 +192,7 @@ extern int __romfs_start, __romfs_length;
 /* Hardware mutexes are accessed over a 32-bit bus. */
 typedef volatile uint32_t hw_mutex_t;
 
+#if !POWER_MANAGEMENT_SUPPORT
 /* core_mutex.h integration.
  *
  * NUM_MUTEXES is the number available in the pool for core_mutex. The debug
@@ -204,6 +208,20 @@ get_mutex_addr (int idx)
     volatile uint32_t *mutexes = &FPMISC_BLOCK_FOR_CORE(core)->corestate_sys_mtx0;
     return & mutexes [idx / NUM_CORES];
 }
+#else /* POWER_MANAGEMENT_SUPPORT */
+/* Under power management, only provide mutexes from core 0. We don't support
+ * mutex migration (yet), and other cores may be powered down.
+ */
+#define NUM_MUTEXES (NUM_MUTEXES_PER_CORE - 1)
+
+static inline hw_mutex_t *
+get_mutex_addr (int idx)
+{
+    volatile uint32_t *mutexes = &FPMISC_BLOCK_FOR_CORE(0)->corestate_sys_mtx0;
+    return & mutexes [idx];
+}
+#endif /* !POWER_MANAGEMENT_SUPPORT */
+
 #endif /* !ASMCPP && !__LINKER_SCRIPT__ */
 
 /*

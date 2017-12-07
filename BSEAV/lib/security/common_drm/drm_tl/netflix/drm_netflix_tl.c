@@ -105,7 +105,7 @@ BDBG_MODULE(drm_netflix_tl);
 {                                                        \
     if(_rc) {                                            \
         rc = _rc;                                        \
-        BDBG_ERR(("%s - rc %d", __FUNCTION__, rc));      \
+        BDBG_ERR(("%s - rc %d", BSTD_FUNCTION, rc));     \
         goto ErrorExit;                                  \
     }                                                    \
 }
@@ -161,7 +161,7 @@ typedef struct DrmNetflixSageContext_s
     _blk.len = _len;                                                      \
     _blk.data.ptr = SRAI_Memory_Allocate(_len, SRAI_MemoryType_Shared);   \
     if(_blk.data.ptr == NULL){                                            \
-        BDBG_ERR(("%s - SRAI mem alloca failed", __FUNCTION__));          \
+        BDBG_ERR(("%s - SRAI mem alloca failed", BSTD_FUNCTION));         \
         CHK_RC(Drm_Err); }                                                \
     BDBG_MSG(("SETUP_SHARED_BLOCK alloc %u to %p",_len,_blk.data.ptr));   \
     BKNI_Memcpy(_blk.data.ptr, _ptr, _len);                               \
@@ -189,13 +189,13 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
     DrmCommonInit_TL_t              drmCmnInit;
     ChipType_e                      chip_type;
 
-    BDBG_LOG(("%s - Entered function", __FUNCTION__));
-    printf("%s:%d\n",__FUNCTION__,__LINE__);
+    BDBG_LOG(("%s - Entered function", BSTD_FUNCTION));
+    printf("%s:%d\n",BSTD_FUNCTION,__LINE__);
 
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
     nrc = NEXUS_Memory_Allocate(sizeof(DrmNetflixSageContext_t), &allocSettings, (void *)&handle);
     if(nrc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for NetflixSage handle, rc = %d", __FUNCTION__, nrc));
+        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for NetflixSage handle, rc = %d", BSTD_FUNCTION, nrc));
         (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         rc = nrc;
         goto ErrorExit;
@@ -235,15 +235,15 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
     rc = DRM_Common_TL_Initialize(&drmCmnInit);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing common drm", __FUNCTION__));
+        BDBG_ERR(("%s - Error initializing common drm", BSTD_FUNCTION));
         goto ErrorExit;
     }
-    printf("%s:%d DRM_Common_TL_Initialize succeeded\n",__FUNCTION__,__LINE__);
+    printf("%s:%d DRM_Common_TL_Initialize succeeded\n",BSTD_FUNCTION,__LINE__);
 
     container = SRAI_Container_Allocate();
     if(container == NULL)
     {
-        BDBG_ERR(("%s - Error to allocate SRAI Container", __FUNCTION__));
+        BDBG_ERR(("%s - Error to allocate SRAI Container", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -251,16 +251,16 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
     rc = DRM_Common_P_GetFileSize((char *) bin_file, &binfilesize );
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
+        BDBG_ERR(("%s - Error determine file size of bin file", BSTD_FUNCTION));
         goto ErrorExit;
     }
     container->blocks[1].len = binfilesize; /* allocate the maximum size as the bin file*/
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(binfilesize, SRAI_MemoryType_Shared);
     if(container->blocks[1].data.ptr == NULL) {
-        BDBG_ERR(("%s - Error allocating SRAI memory for PD certificate", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating SRAI memory for PD certificate", BSTD_FUNCTION));
         goto ErrorExit;
     }
-    BDBG_MSG(("%s: allocated %u for PD certificate at container->blocks[1].data.ptr %p",__FUNCTION__,binfilesize, container->blocks[1].data.ptr));
+    BDBG_MSG(("%s: allocated %u for PD certificate at container->blocks[1].data.ptr %p",BSTD_FUNCTION,binfilesize, container->blocks[1].data.ptr));
     handle->pNetflixSageModuleHandle = NULL;
 
 #ifdef USE_UNIFIED_COMMON_DRM
@@ -270,17 +270,17 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
 #endif
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Error initializing module (0x%08x)", BSTD_FUNCTION, container->basicOut[0]));
         goto ErrorExit;
     }
-printf("%s:%d DRM_Common_TL_ModuleInitialize_TA succeeded, SageModuleHandle 0x%p\n",__FUNCTION__,__LINE__,(void *)handle->pNetflixSageModuleHandle);
+printf("%s:%d DRM_Common_TL_ModuleInitialize_TA succeeded, SageModuleHandle 0x%p\n",BSTD_FUNCTION,__LINE__,(void *)handle->pNetflixSageModuleHandle);
     handle->pSageNetflixCtx = (void *)container->basicOut[2];
 
     /* initialize the SRAI command nodes */
     if( handle->pSageNetflixCtx !=NULL)
     {
         if(BKNI_CreateMutex(&handle->mutex) != BERR_SUCCESS){
-            BDBG_ERR(("%s: failed to create mutex",__FUNCTION__));
+            BDBG_ERR(("%s: failed to create mutex",BSTD_FUNCTION));
             goto ErrorExit;
         }
         NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
@@ -288,7 +288,7 @@ printf("%s:%d DRM_Common_TL_ModuleInitialize_TA succeeded, SageModuleHandle 0x%p
         for(ii = 0; ii < NETFLIX_CONCURRENT_COMMANDS; ii++){
             nrc = NEXUS_Memory_Allocate(sizeof(Netflix_SageCommandNode), &allocSettings, (void *)&pNode);
             if(rc != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for Netflix handle, rc = %d\n", __FUNCTION__, rc));
+                BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for Netflix handle, rc = %d\n", BSTD_FUNCTION, rc));
                 (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
                 goto ErrorExit;
             }
@@ -309,7 +309,7 @@ printf("%s:%d DRM_Common_TL_ModuleInitialize_TA succeeded, SageModuleHandle 0x%p
         /*
         GET_COMMAND_CONTAINER(pNode, &handle->cmds, link, handle->mutex);
         if(pNode == NULL){
-            BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+            BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
             goto ErrorExit;
         }
         */
@@ -318,7 +318,7 @@ printf("%s:%d DRM_Common_TL_ModuleInitialize_TA succeeded, SageModuleHandle 0x%p
 
     /* Clean up the SRAI container */
     if(container->blocks[1].data.ptr != NULL){
-        BDBG_MSG(("%s: freeing container->blocks[1].data.ptr %p",__FUNCTION__,container->blocks[1].data.ptr));
+        BDBG_MSG(("%s: freeing container->blocks[1].data.ptr %p",BSTD_FUNCTION,container->blocks[1].data.ptr));
         SRAI_Memory_Free(container->blocks[1].data.ptr);
         container->blocks[1].data.ptr = NULL;
     }
@@ -357,7 +357,7 @@ ErrorExit:
     }
 
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
 
@@ -376,7 +376,7 @@ DrmRC DRM_Netflix_Finalize(DrmNetFlixSageHandle   netflixSageHandle)
     Netflix_SageCommandNode  *pNode;
     DrmNetflixSageContext_t  *ctx = (DrmNetflixSageContext_t *) netflixSageHandle;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     BKNI_Memset((uint8_t*)&netflix_data_struct, 0x00, sizeof(drm_nf_data_t));
     /*DRM_Common_Finalize();*/
@@ -404,7 +404,7 @@ DrmRC DRM_Netflix_Finalize(DrmNetFlixSageHandle   netflixSageHandle)
 #else
     DRM_Common_TL_Finalize_TA(Common_Platform_Netflix);
 #endif
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
 
@@ -434,7 +434,7 @@ DrmRC DRM_Netflix_Decrypt(DrmNetFlixSageHandle  pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx != NULL);
     BDBG_ASSERT(pBuf != NULL);
@@ -442,7 +442,7 @@ DrmRC DRM_Netflix_Decrypt(DrmNetFlixSageHandle  pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -454,7 +454,7 @@ DrmRC DRM_Netflix_Decrypt(DrmNetFlixSageHandle  pHandle,
                                          NETFLIX_DECRYPT_DATA,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
@@ -465,7 +465,7 @@ DrmRC DRM_Netflix_Decrypt(DrmNetFlixSageHandle  pHandle,
     }
     else
     {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -475,7 +475,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -504,7 +504,7 @@ DrmRC DRM_Netflix_Encrypt(DrmNetFlixSageHandle     pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx != NULL);
     BDBG_ASSERT(pBuf != NULL);
@@ -512,7 +512,7 @@ DrmRC DRM_Netflix_Encrypt(DrmNetFlixSageHandle     pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -524,7 +524,7 @@ DrmRC DRM_Netflix_Encrypt(DrmNetFlixSageHandle     pHandle,
                                          NETFLIX_ENCRYPT_DATA,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
@@ -541,7 +541,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -558,14 +558,14 @@ DrmRC DRM_Netflix_AesCtr_Init(DrmNetFlixSageHandle       pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx != NULL);
 
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -577,7 +577,7 @@ DrmRC DRM_Netflix_AesCtr_Init(DrmNetFlixSageHandle       pHandle,
                                          NETFLIX_AES_CTR_INIT,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
@@ -594,7 +594,7 @@ DrmRC DRM_Netflix_AesCtr_Init(DrmNetFlixSageHandle       pHandle,
 ErrorExit:
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -609,14 +609,14 @@ DrmRC DRM_Netflix_AesCtr_UnInit(DrmNetFlixSageHandle       pHandle,
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
     /*uint8_t*                 dmaBuf = NULL; */
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx != NULL);
 
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -627,7 +627,7 @@ DrmRC DRM_Netflix_AesCtr_UnInit(DrmNetFlixSageHandle       pHandle,
                                          NETFLIX_AES_CTR_UNINIT,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
@@ -640,7 +640,7 @@ DrmRC DRM_Netflix_AesCtr_UnInit(DrmNetFlixSageHandle       pHandle,
 ErrorExit:
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -658,8 +658,8 @@ DrmRC DRM_Netflix_AesCtr_EncryptInit(DrmNetFlixSageHandle       pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
-    /*printf("%s - Entering\n", __FUNCTION__);*/
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
+    /*printf("%s - Entering\n", BSTD_FUNCTION);*/
 
     BDBG_ASSERT(pCtx != NULL);
     BDBG_ASSERT(pCipherCtx != NULL);
@@ -669,13 +669,13 @@ DrmRC DRM_Netflix_AesCtr_EncryptInit(DrmNetFlixSageHandle       pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
     pNode->pCmd->basicIn[0] = (int32_t)pCtx->pSageNetflixCtx;
     pNode->pCmd->basicIn[1] = (int32_t)pCipherCtx;
-    /*printf("%s - Key size %d.\n", __FUNCTION__, encKeySize);*/
+    /*printf("%s - Key size %d.\n", BSTD_FUNCTION, encKeySize);*/
     if( encKeySize > 0)
     {
         SETUP_SHARED_BLOCK(pNode->pCmd->blocks[0], pEncKey, encKeySize);
@@ -690,13 +690,13 @@ DrmRC DRM_Netflix_AesCtr_EncryptInit(DrmNetFlixSageHandle       pHandle,
                                          NETFLIX_AES_CTR_ENCRYPT_INIT,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s - AES CTR Encrypt init failed.", __FUNCTION__));
+        BDBG_ERR(("%s - AES CTR Encrypt init failed.", BSTD_FUNCTION));
     }
 
 
@@ -711,8 +711,8 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
-    /*printf("%s - Exiting, rc %d.\n", __FUNCTION__, rc);*/
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
+    /*printf("%s - Exiting, rc %d.\n", BSTD_FUNCTION, rc);*/
 
     return rc;
 }
@@ -730,8 +730,8 @@ DrmRC DRM_Netflix_AesCtr_DecryptInit(DrmNetFlixSageHandle       pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
-    /*printf("%s - Entering\n", __FUNCTION__);*/
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
+    /*printf("%s - Entering\n", BSTD_FUNCTION);*/
 
     BDBG_ASSERT(pCtx       != NULL);
     BDBG_ASSERT(pCipherCtx != NULL);
@@ -741,13 +741,13 @@ DrmRC DRM_Netflix_AesCtr_DecryptInit(DrmNetFlixSageHandle       pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
     pNode->pCmd->basicIn[0] = (int32_t)pCtx->pSageNetflixCtx;
     pNode->pCmd->basicIn[1] = (int32_t)pCipherCtx;
-    /*printf("%s - Key size %d.\n", __FUNCTION__, encKeySize);*/
+    /*printf("%s - Key size %d.\n", BSTD_FUNCTION, encKeySize);*/
     if( encKeySize > 0)
     {
         SETUP_SHARED_BLOCK(pNode->pCmd->blocks[0], pEncKey, encKeySize);
@@ -762,13 +762,13 @@ DrmRC DRM_Netflix_AesCtr_DecryptInit(DrmNetFlixSageHandle       pHandle,
                                          NETFLIX_AES_CTR_DECRYPT_INIT,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s - AES CTR Decrypt init failed.", __FUNCTION__));
+        BDBG_ERR(("%s - AES CTR Decrypt init failed.", BSTD_FUNCTION));
     }
 
 
@@ -783,8 +783,8 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
-    /*printf("%s - Exiting, rc %d.\n", __FUNCTION__, rc);*/
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
+    /*printf("%s - Exiting, rc %d.\n", BSTD_FUNCTION, rc);*/
 
     return rc;
 }
@@ -804,7 +804,7 @@ DrmRC DRM_Netflix_AesCtr_Update(DrmNetFlixSageHandle       pHandle,
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
     /*uint8_t*                 dmaBuf = NULL; */
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx       != NULL);
     BDBG_ASSERT(pCipherCtx != NULL);
@@ -815,7 +815,7 @@ DrmRC DRM_Netflix_AesCtr_Update(DrmNetFlixSageHandle       pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -828,19 +828,19 @@ DrmRC DRM_Netflix_AesCtr_Update(DrmNetFlixSageHandle       pHandle,
                                          NETFLIX_AES_CTR_UPDATE,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
     *pOutputLen = (int) pNode->pCmd->basicOut[1];
-    BDBG_MSG(("%s:%d - output from AES CTR Update with len %d.", __FUNCTION__,__LINE__,*pOutputLen));
+    BDBG_MSG(("%s:%d - output from AES CTR Update with len %d.", BSTD_FUNCTION,__LINE__,*pOutputLen));
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc == Drm_Success) {
         BKNI_Memcpy(pOutBuf, pNode->pCmd->blocks[1].data.ptr,*pOutputLen);
     }
     else {
-        BDBG_ERR(("%s - AES CTR Update failed.", __FUNCTION__));
+        BDBG_ERR(("%s - AES CTR Update failed.", BSTD_FUNCTION));
     }
 
 
@@ -855,7 +855,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -871,8 +871,8 @@ DrmRC DRM_Netflix_AesCtr_Final(DrmNetFlixSageHandle       pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
-    /*printf("%s - Entering\n", __FUNCTION__);*/
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
+    /*printf("%s - Entering\n", BSTD_FUNCTION);*/
 
     BDBG_ASSERT(pCtx       != NULL);
     BDBG_ASSERT(pCipherCtx != NULL);
@@ -882,11 +882,11 @@ DrmRC DRM_Netflix_AesCtr_Final(DrmNetFlixSageHandle       pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
-    BDBG_MSG(("%s - provided output buffer size %d.", __FUNCTION__,outBufSize));
+    BDBG_MSG(("%s - provided output buffer size %d.", BSTD_FUNCTION,outBufSize));
 
     pNode->pCmd->basicIn[0] = (int32_t)pCtx->pSageNetflixCtx;
     pNode->pCmd->basicIn[1] = (int32_t)pCipherCtx;
@@ -896,7 +896,7 @@ DrmRC DRM_Netflix_AesCtr_Final(DrmNetFlixSageHandle       pHandle,
                                          NETFLIX_AES_CTR_FINAL,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
@@ -905,11 +905,11 @@ DrmRC DRM_Netflix_AesCtr_Final(DrmNetFlixSageHandle       pHandle,
         /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
         *pOutputLen = (int) pNode->pCmd->basicOut[1];
 
-        /*printf("%s - AES CTR Command success with output buffer size %d\n", __FUNCTION__,*pOutputLen);*/
+        /*printf("%s - AES CTR Command success with output buffer size %d\n", BSTD_FUNCTION,*pOutputLen);*/
         BKNI_Memcpy(pOutBuf, pNode->pCmd->blocks[0].data.ptr,*pOutputLen);
     }
     else {
-        BDBG_ERR(("%s - AES CTR Decrypt init failed.", __FUNCTION__));
+        BDBG_ERR(("%s - AES CTR Decrypt init failed.", BSTD_FUNCTION));
     }
 
 
@@ -920,8 +920,8 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
-    /*printf("%s - Exiting, rc %d.\n", __FUNCTION__, rc);*/
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
+    /*printf("%s - Exiting, rc %d.\n", BSTD_FUNCTION, rc);*/
 
     return rc;
 }
@@ -938,15 +938,15 @@ DrmRC DRM_Netflix_Hmac_Init(DrmNetFlixSageHandle      pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
-    /*printf("%s - Entering\n", __FUNCTION__);*/
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
+    /*printf("%s - Entering\n", BSTD_FUNCTION);*/
 
     BDBG_ASSERT(pCtx != NULL);
 
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -958,7 +958,7 @@ DrmRC DRM_Netflix_Hmac_Init(DrmNetFlixSageHandle      pHandle,
                                          NETFLIX_HMAC_INIT,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
@@ -975,8 +975,8 @@ DrmRC DRM_Netflix_Hmac_Init(DrmNetFlixSageHandle      pHandle,
 ErrorExit:
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
-    /*printf("%s - Exiting, rc %d.\n", __FUNCTION__, rc);*/
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
+    /*printf("%s - Exiting, rc %d.\n", BSTD_FUNCTION, rc);*/
 
     return rc;
 }
@@ -990,14 +990,14 @@ DrmRC DRM_Netflix_Hmac_UnInit(DrmNetFlixSageHandle      pHandle,
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
     /*uint8_t*                 dmaBuf = NULL; */
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx != NULL);
 
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1008,7 +1008,7 @@ DrmRC DRM_Netflix_Hmac_UnInit(DrmNetFlixSageHandle      pHandle,
                                          NETFLIX_HMAC_UNINIT,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
@@ -1021,7 +1021,7 @@ DrmRC DRM_Netflix_Hmac_UnInit(DrmNetFlixSageHandle      pHandle,
 ErrorExit:
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1040,8 +1040,8 @@ DrmRC DRM_Netflix_Hmac_Compute(DrmNetFlixSageHandle      pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
-    /*printf("%s - Entering\n", __FUNCTION__);*/
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
+    /*printf("%s - Entering\n", BSTD_FUNCTION);*/
 
     BDBG_ASSERT(pCtx       != NULL);
     BDBG_ASSERT(pHmacCtx   != NULL);
@@ -1052,14 +1052,14 @@ DrmRC DRM_Netflix_Hmac_Compute(DrmNetFlixSageHandle      pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
     pNode->pCmd->basicIn[0] = (int32_t)pCtx->pSageNetflixCtx;
     pNode->pCmd->basicIn[1] = (int32_t)pHmacCtx;
 
-    /*printf("%s - HmacKey size %d.\n", __FUNCTION__, encHmacKeySize);*/
+    /*printf("%s - HmacKey size %d.\n", BSTD_FUNCTION, encHmacKeySize);*/
     if( encHmacKeySize > 0)
     {
         SETUP_SHARED_BLOCK(pNode->pCmd->blocks[0], pEncHmacKey, encHmacKeySize);
@@ -1072,13 +1072,13 @@ DrmRC DRM_Netflix_Hmac_Compute(DrmNetFlixSageHandle      pHandle,
                                          NETFLIX_HMAC_COMPUTE,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s - Hmac Update failed.", __FUNCTION__));
+        BDBG_ERR(("%s - Hmac Update failed.", BSTD_FUNCTION));
     }
 
     /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
@@ -1101,8 +1101,8 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
-    /*printf("%s - Exiting, rc %d.\n", __FUNCTION__, rc);*/
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
+    /*printf("%s - Exiting, rc %d.\n", BSTD_FUNCTION, rc);*/
 
     return rc;
 }
@@ -1115,14 +1115,14 @@ DrmRC DRM_Netflix_DH_Init(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx != NULL);
 
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1132,7 +1132,7 @@ DrmRC DRM_Netflix_DH_Init(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_DH_INIT,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
@@ -1140,7 +1140,7 @@ DrmRC DRM_Netflix_DH_Init(DrmNetFlixSageHandle    pHandle,
     if(rc == Drm_Success)
     {
         *pDiffHellCtx = (void *)pNode->pCmd->basicOut[1];
-        /*printf("%s:%d - success with DH contxt 0x%p\n",__FUNCTION__,__LINE__,*pDiffHellCtx); */
+        /*printf("%s:%d - success with DH contxt 0x%p\n",BSTD_FUNCTION,__LINE__,*pDiffHellCtx); */
     }
     else
     {
@@ -1151,7 +1151,7 @@ DrmRC DRM_Netflix_DH_Init(DrmNetFlixSageHandle    pHandle,
 ErrorExit:
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1164,14 +1164,14 @@ DrmRC DRM_Netflix_DH_UnInit(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx != NULL);
 
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1182,7 +1182,7 @@ DrmRC DRM_Netflix_DH_UnInit(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_DH_UNINIT,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
@@ -1195,7 +1195,7 @@ DrmRC DRM_Netflix_DH_UnInit(DrmNetFlixSageHandle    pHandle,
 ErrorExit:
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1210,7 +1210,7 @@ DrmRC DRM_Netflix_DH_Compute_Shared_Secret(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx           != NULL);
     BDBG_ASSERT(pDiffHellCtx   != NULL);
@@ -1219,7 +1219,7 @@ DrmRC DRM_Netflix_DH_Compute_Shared_Secret(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1231,13 +1231,13 @@ DrmRC DRM_Netflix_DH_Compute_Shared_Secret(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_DH_COMPUTE_SHARED_SECRET,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s -  Failed to compute the Diffie-Hellman shared secret.", __FUNCTION__));
+        BDBG_ERR(("%s -  Failed to compute the Diffie-Hellman shared secret.", BSTD_FUNCTION));
     }
 
 
@@ -1248,7 +1248,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1262,7 +1262,7 @@ DrmRC DRM_Netflix_DH_Get_PubKeySize(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx           != NULL);
     BDBG_ASSERT(pDiffHellCtx   != NULL);
@@ -1270,7 +1270,7 @@ DrmRC DRM_Netflix_DH_Get_PubKeySize(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1281,13 +1281,13 @@ DrmRC DRM_Netflix_DH_Get_PubKeySize(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_DH_GET_PUBKEY_SIZE,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s - Failed to get Diffie-Hellman public key size.", __FUNCTION__));
+        BDBG_ERR(("%s - Failed to get Diffie-Hellman public key size.", BSTD_FUNCTION));
     }
     else {
         *pubKeySize = (uint32_t)pNode->pCmd->basicOut[1];
@@ -1296,7 +1296,7 @@ DrmRC DRM_Netflix_DH_Get_PubKeySize(DrmNetFlixSageHandle    pHandle,
 ErrorExit:
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1311,7 +1311,7 @@ DrmRC DRM_Netflix_DH_Get_PubKey(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx           != NULL);
     BDBG_ASSERT(pDiffHellCtx   != NULL);
@@ -1320,7 +1320,7 @@ DrmRC DRM_Netflix_DH_Get_PubKey(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1332,13 +1332,13 @@ DrmRC DRM_Netflix_DH_Get_PubKey(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_DH_GET_PUBKEY,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s - Failed to get Diffie-Hellman public key.", __FUNCTION__));
+        BDBG_ERR(("%s - Failed to get Diffie-Hellman public key.", BSTD_FUNCTION));
     }
     else {
         *pubKeySize = (uint32_t) pNode->pCmd->basicOut[1];
@@ -1353,7 +1353,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1362,7 +1362,7 @@ ErrorExit:
 DrmRC DRM_Netflix_test(void)
 {
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, 123));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, 123));
     return Drm_Success;
 }
 */
@@ -1381,7 +1381,7 @@ DrmRC DRM_Netflix_ClientKeys_Create(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx            != NULL);
     BDBG_ASSERT(pDiffHellCtx    != NULL);
@@ -1393,7 +1393,7 @@ DrmRC DRM_Netflix_ClientKeys_Create(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1408,13 +1408,13 @@ DrmRC DRM_Netflix_ClientKeys_Create(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_CREATE_CLIENT_KEY,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s - Client Keys creation failed.", __FUNCTION__));
+        BDBG_ERR(("%s - Client Keys creation failed.", BSTD_FUNCTION));
     }
     else {
         /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[1].len*/
@@ -1436,7 +1436,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1450,7 +1450,7 @@ DrmRC DRM_Netflix_Get_EsnSize(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx           != NULL);
     BDBG_ASSERT(pEsnSize       != NULL);
@@ -1458,7 +1458,7 @@ DrmRC DRM_Netflix_Get_EsnSize(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1468,23 +1468,23 @@ DrmRC DRM_Netflix_Get_EsnSize(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_GET_ESN_SIZE,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s - Failed to get Diffie-Hellman public key size.", __FUNCTION__));
+        BDBG_ERR(("%s - Failed to get Diffie-Hellman public key size.", BSTD_FUNCTION));
     }
     else {
         *pEsnSize = (uint32_t)pNode->pCmd->basicOut[1];
     }
-    /*printf("%s - Successfully got the size of ESN %d\n", __FUNCTION__,*pEsnSize);*/
+    /*printf("%s - Successfully got the size of ESN %d\n", BSTD_FUNCTION,*pEsnSize);*/
 
 ErrorExit:
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1498,7 +1498,7 @@ DrmRC DRM_Netflix_Get_Esn(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx     != NULL);
     BDBG_ASSERT(pEsn     != NULL);
@@ -1507,7 +1507,7 @@ DrmRC DRM_Netflix_Get_Esn(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1518,13 +1518,13 @@ DrmRC DRM_Netflix_Get_Esn(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_GET_ESN,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s - Failed to get ESN.", __FUNCTION__));
+        BDBG_ERR(("%s - Failed to get ESN.", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
     else {
@@ -1533,7 +1533,7 @@ DrmRC DRM_Netflix_Get_Esn(DrmNetFlixSageHandle    pHandle,
         BKNI_Memcpy(pEsn, pNode->pCmd->blocks[0].data.ptr,*pEsnSize);
     }
 
-    /*printf("%s - Got the ESN %d.\n", __FUNCTION__);*/
+    /*printf("%s - Got the ESN %d.\n", BSTD_FUNCTION);*/
 
 ErrorExit:
     if(pNode->pCmd->blocks[0].data.ptr) {
@@ -1542,7 +1542,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1569,7 +1569,7 @@ DrmRC DRM_Netflix_Import_Key(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx         != NULL);
     BDBG_ASSERT(keyHandlePtr != NULL);
@@ -1578,7 +1578,7 @@ DrmRC DRM_Netflix_Import_Key(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1595,13 +1595,13 @@ DrmRC DRM_Netflix_Import_Key(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_IMPORT_KEY,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to import key to SAGE.", __FUNCTION__,__LINE__));
+        BDBG_ERR(("%s%d - Failed to import key to SAGE.", BSTD_FUNCTION,__LINE__));
         CHK_RC(Drm_Err);
     }
     else {
@@ -1609,7 +1609,7 @@ DrmRC DRM_Netflix_Import_Key(DrmNetFlixSageHandle    pHandle,
         *keyTypePtr   = (uint32_t) pNode->pCmd->basicOut[2];
     }
 
-    /*printf("%s - success with Handle %d and type %d.\n", __FUNCTION__,*keyHandlePtr,*keyTypePtr);*/
+    /*printf("%s - success with Handle %d and type %d.\n", BSTD_FUNCTION,*keyHandlePtr,*keyTypePtr);*/
 
 ErrorExit:
     if(pNode->pCmd->blocks[0].data.ptr) {
@@ -1618,7 +1618,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1640,7 +1640,7 @@ DrmRC DRM_Netflix_Import_Sealed_Key(DrmNetFlixSageHandle    pHandle,
     /* for output */
     NetflixKeyInfo_t keyInfo;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx               != NULL);
     BDBG_ASSERT(sealedKeyDataPtr   != NULL);
@@ -1653,7 +1653,7 @@ DrmRC DRM_Netflix_Import_Sealed_Key(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1672,17 +1672,17 @@ DrmRC DRM_Netflix_Import_Sealed_Key(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_IMPORT_SEALED_KEY,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to import key to SAGE.", __FUNCTION__,__LINE__));
+        BDBG_ERR(("%s%d - Failed to import key to SAGE.", BSTD_FUNCTION,__LINE__));
         CHK_RC(Drm_Err);
     }
     else if( pNode->pCmd->blocks[1].len != sizeof(NetflixKeyInfo_t)) {
-        BDBG_ERR(("%s%d - incorrect output from SAGE, the output size %d.", __FUNCTION__,__LINE__,pNode->pCmd->blocks[1].len));
+        BDBG_ERR(("%s%d - incorrect output from SAGE, the output size %d.", BSTD_FUNCTION,__LINE__,pNode->pCmd->blocks[1].len));
         CHK_RC(BSAGE_ERR_INTERNAL);
     }
 
@@ -1695,7 +1695,7 @@ DrmRC DRM_Netflix_Import_Sealed_Key(DrmNetFlixSageHandle    pHandle,
     *keyUsageFlagsPtr = keyInfo.key_usage_flags;
     *keySizePtr       = pNode->pCmd->basicOut[1];
 
-    /*printf("%s:%d - success with key handle %d and type %d algo %d keyUsage %d keySize %d.\n", __FUNCTION__,__LINE__,
+    /*printf("%s:%d - success with key handle %d and type %d algo %d keyUsage %d keySize %d.\n", BSTD_FUNCTION,__LINE__,
             *keyHandlePtr,*keyTypePtr,*algorithmPtr,*keyUsageFlagsPtr,*keySizePtr);
             */
 
@@ -1710,7 +1710,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1726,8 +1726,8 @@ DrmRC DRM_Netflix_Export_Key(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
-    BDBG_LOG(("%s:%d - exporting key with handle %d", __FUNCTION__,__LINE__,keyHandle));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
+    BDBG_LOG(("%s:%d - exporting key with handle %d", BSTD_FUNCTION,__LINE__,keyHandle));
 
     BDBG_ASSERT(pCtx         != NULL);
     BDBG_ASSERT(keyDataPtr   != NULL);
@@ -1736,7 +1736,7 @@ DrmRC DRM_Netflix_Export_Key(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1753,13 +1753,13 @@ DrmRC DRM_Netflix_Export_Key(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_EXPORT_KEY,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to export key from SAGE. key handle %d", __FUNCTION__,__LINE__,keyHandle));
+        BDBG_ERR(("%s%d - Failed to export key from SAGE. key handle %d", BSTD_FUNCTION,__LINE__,keyHandle));
         CHK_RC(Drm_Err);
     }
 
@@ -1768,7 +1768,7 @@ DrmRC DRM_Netflix_Export_Key(DrmNetFlixSageHandle    pHandle,
     /*SWSECDRM-1658:sage informs the actual length in container->basicout[1] instead of  altering pNode->pCmd->blocks[0].len*/
     *keySizePtr = pNode->pCmd->basicOut[1];
 
-    /*printf("%s:%d - successfully export key for key handle %d keySize %d.\n", __FUNCTION__,__LINE__,keyHandle,*keySizePtr);*/
+    /*printf("%s:%d - successfully export key for key handle %d keySize %d.\n", BSTD_FUNCTION,__LINE__,keyHandle,*keySizePtr);*/
 
 ErrorExit:
     if(pNode->pCmd->blocks[0].data.ptr) {
@@ -1777,7 +1777,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1792,7 +1792,7 @@ DrmRC DRM_Netflix_Export_Sealed_Key(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx               != NULL);
     BDBG_ASSERT(sealedKeyDataPtr   != NULL);
@@ -1801,7 +1801,7 @@ DrmRC DRM_Netflix_Export_Sealed_Key(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1817,13 +1817,13 @@ DrmRC DRM_Netflix_Export_Sealed_Key(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_EXPORT_SEALED_KEY,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to export the sealed key from SAGE. key handle %d", __FUNCTION__,__LINE__,sealedKeyHandle));
+        BDBG_ERR(("%s%d - Failed to export the sealed key from SAGE. key handle %d", BSTD_FUNCTION,__LINE__,sealedKeyHandle));
         CHK_RC(Drm_Err);
     }
 
@@ -1831,7 +1831,7 @@ DrmRC DRM_Netflix_Export_Sealed_Key(DrmNetFlixSageHandle    pHandle,
     BKNI_Memcpy(sealedKeyDataPtr, pNode->pCmd->blocks[0].data.ptr, pNode->pCmd->basicOut[1]);
     *maxKeySizePtr = pNode->pCmd->basicOut[1];
 
-    /*printf("%s:%d - successfully export key for key handle %d keySize %d.\n", __FUNCTION__,__LINE__,sealedKeyHandle,*maxKeySizePtr);*/
+    /*printf("%s:%d - successfully export key for key handle %d keySize %d.\n", BSTD_FUNCTION,__LINE__,sealedKeyHandle,*maxKeySizePtr);*/
 
 ErrorExit:
     if(pNode->pCmd->blocks[0].data.ptr) {
@@ -1840,7 +1840,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1860,7 +1860,7 @@ DrmRC DRM_Netflix_Get_Key_Info(DrmNetFlixSageHandle    pHandle,
     /* for output */
     NetflixKeyInfo_t keyInfo;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx               != NULL);
     BDBG_ASSERT(keyTypePtr         != NULL);
@@ -1871,7 +1871,7 @@ DrmRC DRM_Netflix_Get_Key_Info(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1887,13 +1887,13 @@ DrmRC DRM_Netflix_Get_Key_Info(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_GET_KEY_INFO,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to get the key info from SAGE. key handle %d", __FUNCTION__,__LINE__,keyHandle));
+        BDBG_ERR(("%s%d - Failed to get the key info from SAGE. key handle %d", BSTD_FUNCTION,__LINE__,keyHandle));
         CHK_RC(Drm_Err);
     }
 
@@ -1905,7 +1905,7 @@ DrmRC DRM_Netflix_Get_Key_Info(DrmNetFlixSageHandle    pHandle,
     *extractable      = (keyInfo.key_usage_flags & NFLX_EXTRACTABLE_KEY)?true:false;
 
     /*printf("%s:%d - key info for key handle (0x%x), keyType (0x%x), algorithm (0x%x), keyUsage (0x%x), extractable (0x%x).\n",
-            __FUNCTION__,__LINE__,keyHandle,*keyTypePtr,*algorithmPtr,*keyUsageFlagsPtr,*extractable);
+            BSTD_FUNCTION,__LINE__,keyHandle,*keyTypePtr,*algorithmPtr,*keyUsageFlagsPtr,*extractable);
             */
 
 ErrorExit:
@@ -1915,7 +1915,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1930,7 +1930,7 @@ DrmRC DRM_Netflix_Get_Named_Key(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx          != NULL);
     BDBG_ASSERT(namedKeyPtr   != NULL);
@@ -1939,7 +1939,7 @@ DrmRC DRM_Netflix_Get_Named_Key(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -1952,19 +1952,19 @@ DrmRC DRM_Netflix_Get_Named_Key(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_GET_NAMED_KEY,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to get the named key handle from SAGE", __FUNCTION__,__LINE__));
+        BDBG_ERR(("%s%d - Failed to get the named key handle from SAGE", BSTD_FUNCTION,__LINE__));
         CHK_RC(Drm_Err);
     }
 
     *keyHandlePtr = pNode->pCmd->basicOut[1];
 
-    /*printf("%s:%d - successfully got the named key handle %d.\n", __FUNCTION__,__LINE__,*keyHandlePtr);*/
+    /*printf("%s:%d - successfully got the named key handle %d.\n", BSTD_FUNCTION,__LINE__,*keyHandlePtr);*/
 
 ErrorExit:
     if(pNode->pCmd->blocks[0].data.ptr) {
@@ -1974,7 +1974,7 @@ ErrorExit:
 
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -1994,7 +1994,7 @@ DrmRC DRM_Netflix_AES_CBC(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx         != NULL);
     BDBG_ASSERT(ivPtr        != NULL);
@@ -2005,13 +2005,13 @@ DrmRC DRM_Netflix_AES_CBC(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
     if( *outDataSize < inDataSize)
     {
-        BDBG_ERR(("%s - output data buffer is too small", __FUNCTION__));
+        BDBG_ERR(("%s - output data buffer is too small", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -2029,13 +2029,13 @@ DrmRC DRM_Netflix_AES_CBC(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_AES_CBC,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to export key from SAGE. key handle %d", __FUNCTION__,__LINE__,keyHandle));
+        BDBG_ERR(("%s%d - Failed to export key from SAGE. key handle %d", BSTD_FUNCTION,__LINE__,keyHandle));
         CHK_RC(Drm_Err);
     }
 
@@ -2047,7 +2047,7 @@ DrmRC DRM_Netflix_AES_CBC(DrmNetFlixSageHandle    pHandle,
     BKNI_Memcpy(outDataPtr, pNode->pCmd->blocks[2].data.ptr, *outDataSize);
 
 
-    /*printf("%s:%d - successfully performed aes cbc for key handle %d out data size %d.\n", __FUNCTION__,__LINE__,keyHandle,*outDataSize);*/
+    /*printf("%s:%d - successfully performed aes cbc for key handle %d out data size %d.\n", BSTD_FUNCTION,__LINE__,keyHandle,*outDataSize);*/
 
 ErrorExit:
     if(pNode->pCmd->blocks[0].data.ptr) {
@@ -2064,7 +2064,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -2082,7 +2082,7 @@ DrmRC DRM_Netflix_HMAC(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx         != NULL);
     BDBG_ASSERT(inDataPtr    != NULL);
@@ -2092,7 +2092,7 @@ DrmRC DRM_Netflix_HMAC(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -2110,13 +2110,13 @@ DrmRC DRM_Netflix_HMAC(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_HMAC,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to export key from SAGE. key handle %d", __FUNCTION__,__LINE__,hmacKeyHandle));
+        BDBG_ERR(("%s%d - Failed to export key from SAGE. key handle %d", BSTD_FUNCTION,__LINE__,hmacKeyHandle));
         CHK_RC(Drm_Err);
     }
 
@@ -2127,7 +2127,7 @@ DrmRC DRM_Netflix_HMAC(DrmNetFlixSageHandle    pHandle,
     BKNI_Memcpy(outDataPtr, pNode->pCmd->blocks[1].data.ptr, *outDataSize);
 
 
-    BDBG_MSG(("%s:%d successfully performed hmac for the key handle 0x%p out data size %u", __FUNCTION__,__LINE__,hmacKeyHandle,*outDataSize));
+    BDBG_MSG(("%s:%d successfully performed hmac for the key handle 0x%p out data size %u", BSTD_FUNCTION,__LINE__,hmacKeyHandle,*outDataSize));
 
 ErrorExit:
     if (pNode) {
@@ -2141,7 +2141,7 @@ ErrorExit:
         }
         RELEASE_COMMAND_CONTAINER(pNode);
     }
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
     return rc;
 }
 
@@ -2159,7 +2159,7 @@ DrmRC DRM_Netflix_HMAC_Verify(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx         != NULL);
     BDBG_ASSERT(inDataPtr    != NULL);
@@ -2169,7 +2169,7 @@ DrmRC DRM_Netflix_HMAC_Verify(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -2185,13 +2185,13 @@ DrmRC DRM_Netflix_HMAC_Verify(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_HMAC_VERIFY,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to export key from SAGE. key handle %d", __FUNCTION__,__LINE__,hmacKeyHandle));
+        BDBG_ERR(("%s%d - Failed to export key from SAGE. key handle %d", BSTD_FUNCTION,__LINE__,hmacKeyHandle));
         CHK_RC(Drm_Err);
     }
 
@@ -2199,7 +2199,7 @@ DrmRC DRM_Netflix_HMAC_Verify(DrmNetFlixSageHandle    pHandle,
     *verified = (bool)pNode->pCmd->basicOut[1];
 
     /*printf("%s:%d - successfully performed HMAC Verify for the key handle %d Verified %d.\n",
-            __FUNCTION__,__LINE__,hmacKeyHandle,*verified);
+            BSTD_FUNCTION,__LINE__,hmacKeyHandle,*verified);
             */
 
 ErrorExit:
@@ -2213,7 +2213,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -2232,7 +2232,7 @@ DrmRC DRM_Netflix_DH_Gen_Keys(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx          != NULL);
     BDBG_ASSERT(generatorPtr  != NULL);
@@ -2243,7 +2243,7 @@ DrmRC DRM_Netflix_DH_Gen_Keys(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -2258,13 +2258,13 @@ DrmRC DRM_Netflix_DH_Gen_Keys(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_DH_GEN_KEYS,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to generate DH keys from SAGE rc = (%d)", __FUNCTION__,__LINE__,rc));
+        BDBG_ERR(("%s%d - Failed to generate DH keys from SAGE rc = (%d)", BSTD_FUNCTION,__LINE__,rc));
         CHK_RC(Drm_Err);
     }
 
@@ -2276,7 +2276,7 @@ DrmRC DRM_Netflix_DH_Gen_Keys(DrmNetFlixSageHandle    pHandle,
     *privKeyHandle  = pNode->pCmd->basicOut[1];
 
     /*printf("%s:%d - successfully generated the DH keys, handle (%d)\n",
-            __FUNCTION__,__LINE__,*pubKeyHandle);
+            BSTD_FUNCTION,__LINE__,*pubKeyHandle);
             */
 
 ErrorExit:
@@ -2290,7 +2290,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -2309,7 +2309,7 @@ DrmRC DRM_Netflix_DH_Derive_Keys(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx             != NULL);
     BDBG_ASSERT(peerPubKeyPtr    != NULL);
@@ -2320,7 +2320,7 @@ DrmRC DRM_Netflix_DH_Derive_Keys(DrmNetFlixSageHandle    pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -2335,13 +2335,13 @@ DrmRC DRM_Netflix_DH_Derive_Keys(DrmNetFlixSageHandle    pHandle,
                                          NETFLIX_DH_DERIVE_KEYS,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to derive keys from SAGE rc = (%d)", __FUNCTION__,__LINE__,rc));
+        BDBG_ERR(("%s%d - Failed to derive keys from SAGE rc = (%d)", BSTD_FUNCTION,__LINE__,rc));
         CHK_RC(Drm_Err);
     }
 
@@ -2350,7 +2350,7 @@ DrmRC DRM_Netflix_DH_Derive_Keys(DrmNetFlixSageHandle    pHandle,
     *wrapKeyHandlePtr  = pNode->pCmd->basicOut[3];
 
     /*printf("%s:%d - successfully derived key Handles %d, %d and %d\n",
-            __FUNCTION__,__LINE__,*encKeyHandlePtr,*hmacKeyHandlePtr,*wrapKeyHandlePtr);
+            BSTD_FUNCTION,__LINE__,*encKeyHandlePtr,*hmacKeyHandlePtr,*wrapKeyHandlePtr);
             */
 
 ErrorExit:
@@ -2360,7 +2360,7 @@ ErrorExit:
     }
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -2373,14 +2373,14 @@ DrmRC DRM_Netflix_Delete_Key(DrmNetFlixSageHandle    pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx             != NULL);
 
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
@@ -2388,28 +2388,28 @@ DrmRC DRM_Netflix_Delete_Key(DrmNetFlixSageHandle    pHandle,
     pNode->pCmd->basicIn[1] = (uint32_t)pCtx->pSageNetflixCtx;
     pNode->pCmd->basicIn[2] = (uint32_t)keyHandle;
 
-    BDBG_MSG(("%s - deleting key with handle (%d)", __FUNCTION__,keyHandle));
+    BDBG_MSG(("%s - deleting key with handle (%d)", BSTD_FUNCTION,keyHandle));
     sage_rc = SRAI_Module_ProcessCommand(pCtx->pNetflixSageModuleHandle,
                                          NETFLIX_DELETE_KEY,
                                          pNode->pCmd);
     if( sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 
     rc = (DrmRC)pNode->pCmd->basicOut[0];
     if(rc != Drm_Success) {
-        BDBG_ERR(("%s%d - Failed to derive DH keys from SAGE rc = (%d)", __FUNCTION__,__LINE__,rc));
+        BDBG_ERR(("%s%d - Failed to derive DH keys from SAGE rc = (%d)", BSTD_FUNCTION,__LINE__,rc));
         CHK_RC(Drm_Err);
     }
 
-    /*printf("%s:%d - successfully deleted the key with handle (%d)\n", __FUNCTION__,__LINE__,keyHandle);*/
+    /*printf("%s:%d - successfully deleted the key with handle (%d)\n", BSTD_FUNCTION,__LINE__,keyHandle);*/
 
 ErrorExit:
 
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
-    BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
 
     return rc;
 }
@@ -2442,7 +2442,7 @@ DrmRC DRM_Netflix_Secure_Store_Op(DrmNetFlixSageHandle   pHandle,
     BERR_Code               sage_rc;
     DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
 
-    BDBG_MSG(("%s - Entering", __FUNCTION__));
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
 
     BDBG_ASSERT(pCtx != NULL);
     BDBG_ASSERT(pBuf != NULL);
@@ -2452,13 +2452,13 @@ DrmRC DRM_Netflix_Secure_Store_Op(DrmNetFlixSageHandle   pHandle,
     GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
 
     if(pNode == NULL){
-        BDBG_ERR(("%s - Out of SRAI command container", __FUNCTION__));
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
         CHK_RC(Drm_Err);
     }
 
     if( (op != e_NETFLIX_TL_ENCRYPT) && (op != e_NETFLIX_TL_DECRYPT))
     {
-        BDBG_ERR(("%s - invalid operation 0x%x", __FUNCTION__,op));
+        BDBG_ERR(("%s - invalid operation 0x%x", BSTD_FUNCTION,op));
         CHK_RC(Drm_Err);
     }
 
@@ -2475,7 +2475,7 @@ DrmRC DRM_Netflix_Secure_Store_Op(DrmNetFlixSageHandle   pHandle,
                                          NETFLIX_SECURE_STORE_OP,
                                          pNode->pCmd);
     if (sage_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
         CHK_RC(Drm_SraiModuleError);
     }
 

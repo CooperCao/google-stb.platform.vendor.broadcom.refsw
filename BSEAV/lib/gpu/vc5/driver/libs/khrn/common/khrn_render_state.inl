@@ -71,7 +71,7 @@ static inline GLXX_HW_RENDER_STATE_T *khrn_render_state_get_glxx(khrn_render_sta
    return &rs->data.glxx;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 static inline glxx_compute_render_state* khrn_render_state_get_glxx_compute(khrn_render_state* rs)
 {
    static_assrt(offsetof(khrn_render_state, data.glxx_compute) == 0);

@@ -40,36 +40,26 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
-#include "bbox_vdc_box2_config.h"
+#include "bbox_rts_priv.h"
+#include "bbox_rts_box2.h"
 
 BDBG_MODULE(BBOX_RTS_BOX2);
 BDBG_OBJECT_ID(BBOX_RTS_BOX2);
 
-/* Memc Index for box mode 1. BBOX_MemcIndex_Invalid means it's not used */
-static const BBOX_MemConfig stBoxMemConfig_7278A0_box2 =
-{
-   {
-      BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
-      BBOX_MK_DVI_CFC_MEMC_IDX(0),   /* HDMI display CFC */
-      {
-         BBOX_MK_HDR_MEMC_IDX(1,       1,       0,       0,       0,        0,        0      ),  /* disp 0 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, 0      ),  /* disp 1 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 2 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 3 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 4 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 5 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 6 */
-      }
-   },
-   BBOX_INVALID_NUM_MEMC,
-   BBOX_MK_DRAM_REFRESH_RATE(1x)
-};
-
-void BBOX_P_GetBox2MemConfig
+void BBOX_P_SetBox2MemConfig
     ( BBOX_MemConfig                *pBoxMemConfig )
 {
-    *pBoxMemConfig = stBoxMemConfig_7278A0_box2;
-    pBoxMemConfig->ulNumMemc = stBoxRts_7278_box2_box2.ulNumMemc;
+    BBOX_P_SET_DVI_CFC_MEMC(pBoxMemConfig, 0);
+
+    BBOX_P_SET_HDR_VIDEO_AND_GFX_MEMC(pBoxMemConfig, Display0,   0,       0);
+
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video0,  1,       0);
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video1,  1,       0);
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display0,  Gfx0,    0         );
+
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display1,  Gfx0,    0         );
+
+    BBOX_P_SET_NUM_MEMC(pBoxMemConfig, stBoxRts_7278_box2_box2.ulNumMemc);
 }
 
 void BBOX_P_GetBox2Rts

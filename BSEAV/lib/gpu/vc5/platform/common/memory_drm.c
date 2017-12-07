@@ -3,6 +3,7 @@
  ******************************************************************************/
 #include "EGL/egl.h"
 #include "nexus_memory.h"
+#include "nexus_heap_selection.h"
 #include "nexus_platform.h"
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
@@ -525,8 +526,6 @@ static void MemUnlockBlock(void *context, BEGL_MemHandle h)
 static void MemFlushCache(void *context, BEGL_MemHandle h, void *pCached, size_t numBytes)
 {
    DRM_MemoryBlock *block = (DRM_MemoryBlock *)h;
-   char *p = pCached;
-   const size_t sz = 2 * 1024 * 1024; // Avoid the broken bcmdriver cacheflush for >3MB
 
    UNUSED(context);
    BDBG_ASSERT(pCached != NULL);
@@ -557,15 +556,7 @@ static void MemFlushCache(void *context, BEGL_MemHandle h, void *pCached, size_t
       fprintf(sLogFile, "C %p (%u) %p %zu\n",
                         block, block ? block->handle : 0, pCached, numBytes);
 
-   while (numBytes > sz)
-   {
-      NEXUS_FlushCache(p, sz);
-      p += sz;
-      numBytes -= sz;
-   }
-
-   if (numBytes > 0)
-      NEXUS_FlushCache(p, numBytes);
+   NEXUS_FlushCache(pCached, numBytes);
 }
 
 /* Retrieve some information about the memory system */
@@ -623,29 +614,8 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
 
 static bool ConfigureNexusHeapMappings(DRM_MemoryContext *ctx)
 {
-   NEXUS_HeapHandle heap;
+   NEXUS_HeapHandle heap = GetDefaultHeap();
    NEXUS_MemoryStatus memStatus;
-#ifndef SINGLE_PROCESS
-   NEXUS_ClientConfiguration clientConfig;
-   NEXUS_Platform_GetClientConfiguration(&clientConfig);
-
-   if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
-      heap = clientConfig.heap[0];
-   else
-#ifdef NXCLIENT_SUPPORT
-      heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-#else
-      /* NEXUS_Platform_GetFramebufferHeap() is not callable under NEXUS_CLIENT_SUPPORT=y */
-      heap = NULL;
-#endif
-
-#else
-   /*
-    * The unsecure heap used for bin memory in the magnum module will always
-    * be this one.
-    */
-   heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-#endif
 
    if (heap == NULL)
    {
@@ -674,17 +644,7 @@ static bool ConfigureNexusHeapMappings(DRM_MemoryContext *ctx)
       memStatus.offset - ctx->offscreen_heap_mapping.hw_addr;
 
    /* Now for the secure heap */
-#ifndef SINGLE_PROCESS
-#ifdef NXCLIENT_SUPPORT
-   heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
-#else
-   /* not available in NEXUS_CLIENT_SUPPORT=y mode */
-   heap = NULL;
-#endif
-#else
-   heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
-#endif
-
+   heap = GetSecureHeap();
    if (heap != NULL)
    {
       if (NEXUS_Heap_GetStatus(heap, &memStatus) != NEXUS_SUCCESS)

@@ -66,8 +66,8 @@
 
 #if defined(__FIREPATH__) && !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
 #include <stdint.h>
-extern uint32_t tsize_dmem;
-extern uint32_t tsize_smem;
+extern char tsize_dmem;
+extern char tsize_smem;
 #endif
 
 #if !defined(__LINKER_SCRIPT__)

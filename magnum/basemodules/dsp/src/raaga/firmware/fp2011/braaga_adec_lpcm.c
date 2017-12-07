@@ -423,7 +423,7 @@ const uint32_t BDSP_IMG_lpcm_decode_code_array1[] = {
 	0x21010013,
 	0x0840044b,
 	0x2100923b,
-	0xd6d88133,
+	0xd6e08133,
 	0x0842c223,
 	0x74040623,
 	0x1b5f8647,

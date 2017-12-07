@@ -1,7 +1,7 @@
 /***************************************************************************
- *    (c)2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,13 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
  *
 *******************************************************************************/
 #include <stdio.h>
@@ -132,7 +126,7 @@ int main(int argc, char* argv[])
     }
 
     if(DRM_Common_MemoryAllocate(&output_cmac, 16) != Drm_Success){
-        printf("%s - Allocate memory failed (%u) ", __FUNCTION__, __LINE__);
+        printf("%s - Allocate memory failed (%u) ", BSTD_FUNCTION, __LINE__);
         return -1;
     }
 
@@ -167,13 +161,13 @@ int main(int argc, char* argv[])
 
         if(BKNI_Memcmp(ptrToCompare, output_cmac, 16) != 0)
         {
-           printf("%s - AES-CMAC comparison failed (iteration = %u)\n", __FUNCTION__, zz);
-           printf("%s - AES-CMAC comparison failed (iteration = %u)\n", __FUNCTION__, zz);
+           printf("%s - AES-CMAC comparison failed (iteration = %u)\n", BSTD_FUNCTION, zz);
+           printf("%s - AES-CMAC comparison failed (iteration = %u)\n", BSTD_FUNCTION, zz);
         }
         else
         {
-            printf("%s - AES-CMAC MATCH!!!! (iteration = %u)\n", __FUNCTION__, zz);
-            printf("%s - AES-CMAC MATCH!!!! (iteration = %u)\n", __FUNCTION__, zz);
+            printf("%s - AES-CMAC MATCH!!!! (iteration = %u)\n", BSTD_FUNCTION, zz);
+            printf("%s - AES-CMAC MATCH!!!! (iteration = %u)\n", BSTD_FUNCTION, zz);
         }
     }
 

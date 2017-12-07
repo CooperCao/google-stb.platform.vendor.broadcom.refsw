@@ -79,16 +79,25 @@
 #    define BFPSDK_STATIC_INLINE        static
 #    define BFPSDK_STATIC_ALWAYS_INLINE static
 #  endif
+#  define BFPSDK_NONNULL                __attribute__((nonnull))
+#  define BFPSDK_NONNULL_ARGS(args)     __attribute__((nonnull args))
+#  define BFPSDK_WARN_UNUSED_RESULT     __attribute__((warn_unused_result))
 #elif __GNUC__ < 3
-#    define BFPSDK_INLINE               inline
-#    define BFPSDK_ALWAYS_INLINE        inline
-#    define BFPSDK_STATIC_INLINE        static inline
-#    define BFPSDK_STATIC_ALWAYS_INLINE static inline
+#  define BFPSDK_INLINE                 inline
+#  define BFPSDK_ALWAYS_INLINE          inline
+#  define BFPSDK_STATIC_INLINE          static inline
+#  define BFPSDK_STATIC_ALWAYS_INLINE   static inline
+#  define BFPSDK_NONNULL
+#  define BFPSDK_NONNULL_ARGS(args)
+#  define BFPSDK_WARN_UNUSED_RESULT
 #else
-#    define BFPSDK_INLINE               inline
-#    define BFPSDK_ALWAYS_INLINE        inline __attribute__((always_inline))
-#    define BFPSDK_STATIC_INLINE        static inline
-#    define BFPSDK_STATIC_ALWAYS_INLINE static inline __attribute__((always_inline))
+#  define BFPSDK_INLINE                 inline
+#  define BFPSDK_ALWAYS_INLINE          inline __attribute__((always_inline))
+#  define BFPSDK_STATIC_INLINE          static inline
+#  define BFPSDK_STATIC_ALWAYS_INLINE   static inline __attribute__((always_inline))
+#  define BFPSDK_NONNULL                __attribute__((nonnull))
+#  define BFPSDK_NONNULL_ARGS(args)     __attribute__((nonnull args))
+#  define BFPSDK_WARN_UNUSED_RESULT     __attribute__((warn_unused_result))
 #endif
 
 

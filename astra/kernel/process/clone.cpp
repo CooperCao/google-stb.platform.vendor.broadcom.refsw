@@ -214,6 +214,7 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
      * Prepare TLS region
      */
     threadInfo = tls;
+    threadInfoCloned = true;
 
     for (int i=0; i<NUM_SAVED_CPU_REGS; i++) {
         savedRegs[i] = parentTask.savedRegs[i];
@@ -232,8 +233,10 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
     savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
     savedNeonRegBase = &savedNeonRegs[NUM_SAVED_NEON_REGS];
 
-    // copy parent task user stack
-    copyParentStack();
+    if (!vmCloned) {
+        // copy parent task user stack
+        copyParentStack();
+    }
 
     spinLockInit(&lock);
 

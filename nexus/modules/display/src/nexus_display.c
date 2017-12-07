@@ -1770,7 +1770,6 @@ static NEXUS_Error NEXUS_Display_P_SetVsyncCallback(NEXUS_DisplayHandle display,
                 NEXUS_VideoBufferType vsyncType;
                 switch ( i )
                 {
-                default:
                 case 0: pol = BAVC_Polarity_eTopField; vsyncType = NEXUS_VideoBufferType_eTopField; break;
                 case 1: pol = BAVC_Polarity_eBotField; vsyncType = NEXUS_VideoBufferType_eBotField; break;
                 case 2: pol = BAVC_Polarity_eFrame;    vsyncType = NEXUS_VideoBufferType_eFrame;    break;
@@ -1813,7 +1812,7 @@ NEXUS_Error NEXUS_Display_SetCustomFormatSettings( NEXUS_DisplayHandle display, 
     BERR_Code rc;
     BFMT_AspectRatio magnumAspectRatio;
     BFMT_VideoFmt magnumVideoFormat;
-    NEXUS_DisplaySettings settings = display->cfg;
+    NEXUS_DisplaySettings settings;
     NEXUS_VideoFormatInfo nexusVideoFormatInfo;
 
     if (format != NEXUS_VideoFormat_eCustom2) {
@@ -1821,6 +1820,7 @@ NEXUS_Error NEXUS_Display_SetCustomFormatSettings( NEXUS_DisplayHandle display, 
     }
 
     NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
+    settings = display->cfg;
     if(pVideo->updateMode != NEXUS_DisplayUpdateMode_eAuto) {rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);}
 
     if (!pSettings) {
@@ -1835,8 +1835,25 @@ NEXUS_Error NEXUS_Display_SetCustomFormatSettings( NEXUS_DisplayHandle display, 
         /* this memory is freed in NEXUS_Display_Close */
     }
 
-    rc = NEXUS_P_DisplayAspectRatio_ToMagnum(pSettings->aspectRatio, format, &magnumAspectRatio);
-    if (rc) return BERR_TRACE(rc);
+    if (pSettings->aspectRatio != NEXUS_DisplayAspectRatio_eAuto) {
+        rc = NEXUS_P_DisplayAspectRatio_ToMagnum(pSettings->aspectRatio, format, &magnumAspectRatio);
+        if (rc) return BERR_TRACE(rc);
+    }
+    else {
+        unsigned ar = pSettings->height ? pSettings->width * 100 / pSettings->height : 0;
+        if (ar >= 221) {
+            magnumAspectRatio = BFMT_AspectRatio_e221_1; /* 221 / 1 = 221 */
+        }
+        else if (ar >= 177) {
+            magnumAspectRatio = BFMT_AspectRatio_e16_9;  /* 1600 / 9 = 177 */
+        }
+        else if (ar >= 166) {
+            magnumAspectRatio = BFMT_AspectRatio_e15_9;  /* 1500 / 9 = 166 */
+        }
+        else {
+            magnumAspectRatio = BFMT_AspectRatio_e4_3;   /* 400 / 3 = 133 */
+        }
+    }
 
     rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &magnumVideoFormat);
     if (rc) return BERR_TRACE(rc);

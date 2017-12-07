@@ -179,7 +179,6 @@ int main(int argc, char **argv)
     const char *outputFile = getenv("IVF_SUPPORT")? "videos/stream.ivf":"videos/stream.pes";/* default PES file output */
 
     int i = 0;
-    char key;
 
     for(i=0; i<argc; i++) {
         if(!strcmp("-h",argv[i])) {
@@ -405,6 +404,7 @@ int main(int argc, char **argv)
 #if NEXUS_NUM_DSP_VIDEO_ENCODERS && !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
     videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e29_97;
     videoEncoderConfig.bitrateMax = 400*1000;
+    BSTD_UNUSED(frameRate);
 #else
     videoEncoderConfig.frameRate = frameRate;
     videoEncoderConfig.bitrateMax = bitrate;
@@ -422,6 +422,7 @@ int main(int argc, char **argv)
     videoEncoderStartConfig.bounds.inputDimension.max.width = BTST_INPUT_MAX_WIDTH;
     videoEncoderStartConfig.bounds.inputDimension.max.height = BTST_INPUT_MAX_HEIGHT;
     videoEncoderStartConfig.stcChannel = stcChannelTranscode;
+    BSTD_UNUSED(avc);
 #else
     videoEncoderStartConfig.codec = avc? NEXUS_VideoCodec_eH264 : NEXUS_VideoCodec_eVp8;
     videoEncoderStartConfig.profile = NEXUS_VideoCodecProfile_eMain;
@@ -478,7 +479,7 @@ int main(int argc, char **argv)
 
     /* Playback state machine is driven from inside Nexus. */
     printf("Press ENTER to continue; type 'q' to quit\n");
-    key = getchar();
+    getchar();
 
     /* Bring down system */
     NEXUS_Playback_Stop(playback);

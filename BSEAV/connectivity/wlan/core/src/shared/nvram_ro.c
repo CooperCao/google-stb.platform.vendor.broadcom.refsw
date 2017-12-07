@@ -28,6 +28,9 @@
 #include <bcmdevs.h>
 #include <sflash.h>
 #include <hndsoc.h>
+#ifdef NVRAM_FLASH
+#include <bcmsrom_tbl.h>
+#endif /* NVRAM_FLASH */
 
 #ifdef BCMDBG_ERR
 #define NVR_MSG(x) printf x
@@ -52,6 +55,18 @@ static vars_t *vars = NULL;
 #if !defined(BCMDONGLEHOST)
 #define NVRAM_FILE	1
 #endif
+
+#ifdef NVRAM_FLASH
+static int flash_update_nvbuf(osl_t *osh, char *nvram_buf, int *nvramlen, char *flshdev_data, char *pvar, char *pvalue);
+static int flash_add_new_var(osl_t *osh, char *nvram_buf, int *nvramlen, char *pvar, char *pvalue);
+static int flash_modify_var(osl_t *osh, char *nvram_buf,int *nvramlen, char *pvar, char *pvalue);
+static uint8 soc_nvram_calc_crc(struct nvram_header *nvh);
+static void read_wlan_flash(si_t *sih, osl_t *osh,  char **nvramp, int *nvraml);
+static int get_pavar_tbl(const pavars_t **pav, uint32 paparambwver, uint32 sromrev);
+static int pavar_check(osl_t *osh, char *nvram_buf, char *flshdev_data, int32 *value_each_subband, int32 *panum, bool *ispa, char *pvar, char *pvalue);
+static int update_po_value(osl_t *osh, char *nvram_buf, char *pnvvalue, int *nvramlen, uint16 *podata, int32 ponum, int32 value_each_subband);
+static int remove_devpath_var(si_t *sih, char **pvar);
+#endif /* NVRAM_FLASH */
 
 #ifdef NVRAM_FILE
 static int nvram_file_init(void* sih);
@@ -375,6 +390,13 @@ nvram_file_init(void* sih)
 
 	/* Init nvram from nvram file if they exist */
 	err = initvars_file(sih, si_osh((si_t *)sih), &nvp, (int*)&nvlen);
+#ifdef NVRAM_FLASH
+	if (err == 0) {
+		nvp = base;
+		nvlen--; /* initvars_file added one for the null character*/
+		read_wlan_flash(sih, si_osh((si_t *)sih), &nvp, (int*)&nvlen);
+	}
+#endif /* NVRAM_FLASH */
 	if (err != 0) {
 		NVR_MSG(("No valid NVRAM file present!!!\n"));
 		goto exit;
@@ -670,3 +692,406 @@ nvram_printall(void)
 	}
 }
 #endif /* BCMQT */
+
+#ifdef NVRAM_FLASH
+static int
+flash_update_nvbuf(osl_t *osh, char *nvram_buf, int *nvramlen, char *flshdev_data, char *pvar, char *pvalue)
+{
+	char *pnvvalue = NULL;
+	char *pch = NULL;
+	int n = 0;
+	int32 value_each_subband = 0, panum = 0;
+	bool ispavar = FALSE;
+	uint16 *povalues = NULL;
+	int err = BCME_OK;
+
+	if (!nvram_buf || !flshdev_data || !nvramlen || !pvar || !pvalue)
+		return BCME_ERROR;
+	/*Only non-pavar and vaild pavar will return BCME_OK*/
+	if ((err = pavar_check(osh, nvram_buf, flshdev_data, &value_each_subband, &panum, &ispavar, pvar, pvalue)) != BCME_OK)
+		return BCME_ERROR;
+
+	if ((pnvvalue = getvar(nvram_buf, pvar))) /*Modify values*/
+	{
+		if (ispavar){
+			int idx = 0;
+			int ponum = 0;
+			ponum = panum/value_each_subband;
+			if ((povalues = MALLOC_NOPERSIST(osh, (ponum * sizeof(uint16))))){
+				n = 0;
+				while ((pch = bcmstrtok(&pvalue, ",", NULL)) && (n < panum))
+				{
+					if((n % value_each_subband) == 0){
+						povalues[idx] = (uint16)bcm_strtoul(pch, NULL, 16);
+						idx++;
+					}
+					n++;
+				}
+				/*Only update power offset(A value) of pavars, use B, C, D values from nvram file*/
+				update_po_value(osh, nvram_buf, pnvvalue, nvramlen, povalues, ponum, value_each_subband);
+				MFREE(osh, povalues, (ponum * sizeof(uint16)));
+			}
+		}
+		else{
+			if(strcmp(pvar, SROMREV_STR)) /*sromrev var in flash is used to check pa version, so do not override the value from nvram file */
+				flash_modify_var(osh, nvram_buf, nvramlen, pvar, pvalue);
+		}
+	}
+	else /*Add new var*/
+		flash_add_new_var(osh, nvram_buf, nvramlen, pvar, pvalue);
+
+	return err ;
+}
+
+/* returns the CRC8 of the nvram */
+static uint8
+soc_nvram_calc_crc(struct nvram_header *nvh)
+{
+	struct nvram_header tmp;
+	uint8 crc;
+
+	if (!nvh)
+		return 0;
+
+	/* Little-endian CRC8 over the last 11 bytes of the header */
+	tmp.crc_ver_init = htol32((nvh->crc_ver_init & NVRAM_CRC_VER_MASK));
+	crc = hndcrc8((uint8 *) &tmp + NVRAM_CRC_START_POSITION, 1, CRC8_INIT_VALUE);
+	/* Continue CRC8 over data bytes */
+	crc = hndcrc8((uint8 *) &nvh[1], nvh->len - sizeof(struct nvram_header), crc);
+	return crc;
+}
+
+static void
+read_wlan_flash(si_t *sih, osl_t *osh,	char **nvramp, int *nvraml)
+{
+	struct nvram_header *nvh = NULL;
+	char *flshdev_buf = NULL;
+	char *flshdev_tmpbuf = NULL;
+	void *flshdev_fp = NULL;
+	int n = 0, flshdevlen = 0;
+	char flshdevpath[32];
+	char *ptmpdata = NULL;
+	char *pflshdevdata = NULL;
+	int maxdlen = 0;
+	char *pvar = NULL;
+	char *pvalue = NULL;
+	char *nvram_buf = NULL;
+	int len = 0;
+
+	if(!osh || ! nvramp || !nvraml)
+		return;
+
+	nvram_buf = *nvramp;
+	len = *nvraml;
+	memset(flshdevpath,'\0',sizeof(flshdevpath));
+	if (find_wlanflash_dev(osh, flshdevpath,sizeof(flshdevpath)) == BCME_OK
+		&& (flshdev_fp = (void*)osl_os_open_image(flshdevpath))
+		&& (flshdev_buf = MALLOC_NOPERSIST(osh, MAXSZ_NVRAM_VARS))
+		&& (flshdev_tmpbuf = MALLOC_NOPERSIST(osh, MAXSZ_NVRAM_VARS))
+		&& ((flshdevlen = osl_os_get_image_block(flshdev_buf, MAXSZ_NVRAM_VARS, flshdev_fp)) > 0))
+	{
+		nvh = (struct nvram_header*)flshdev_buf;
+		if ((nvh->magic == NVRAM_MAGIC) && (nvh->len >= sizeof(struct nvram_header)) && (soc_nvram_calc_crc(nvh) == (uint8)nvh->crc_ver_init))/*Signature*/
+		{
+			memcpy(flshdev_tmpbuf, flshdev_buf, MAXSZ_NVRAM_VARS);
+			pflshdevdata = FLASHPDATA(flshdev_buf);
+			ptmpdata = FLASHPDATA(flshdev_tmpbuf);
+			maxdlen = (nvh->len) - (ptmpdata - flshdev_tmpbuf);
+			n = 0;
+			while(n < maxdlen){
+				pvar = ptmpdata+n;
+				pvalue = NULL;
+				if( pvar && ((n += strlen(pvar)+1) < maxdlen)){
+					if((pvalue = strstr(pvar, "="))){
+						*pvalue = '\0';
+						pvalue++;
+						remove_devpath_var(sih, &pvar);
+						flash_update_nvbuf(osh, nvram_buf, &len, pflshdevdata, pvar, pvalue);
+					}
+				}
+				else
+					break;
+			}
+		}
+		else
+			NVR_MSG(("Invalid nvram data in wlan flash\n"));
+	}
+	else
+		NVR_MSG(("%s does not exist\n", WIFI_FLASH_PARTITION));
+
+	nvram_buf += len;
+	*nvram_buf++ = '\0';
+	*nvramp = nvram_buf;
+	*nvraml = len+1; /* add one for the null character */
+
+	if (flshdev_fp)
+		osl_os_close_image(flshdev_fp);
+	if (flshdev_buf)
+		MFREE(osh, flshdev_buf, MAXSZ_NVRAM_VARS);
+	if (flshdev_tmpbuf)
+		MFREE(osh, flshdev_tmpbuf, MAXSZ_NVRAM_VARS);
+}
+
+static int
+get_pavar_tbl(const pavars_t **pav, uint32 paparambwver, uint32 sromrev){
+	int err = BCME_OK;
+
+	if (pav == NULL)
+		return BCME_ERROR;
+
+	 /*Not support paparambwver, todo if we want to use paparambwver*/
+	if (paparambwver != 0)
+		*pav = pavars;
+	else {
+		/*srom revision number*/
+		if (sromrev > 12)
+			*pav = pavars_SROM13;
+		if (sromrev == 12)
+			*pav = pavars_SROM12;
+		if (sromrev < 12)
+			*pav = pavars;
+	}
+
+	return err;
+}
+
+/*
+* if var is not pavar, return BCME_OK.
+* if var is pavar and valid, return BCME_OK, else return BCME_ERROR.
+*/
+static int
+pavar_check(osl_t *osh, char *nvram_buf, char *flshdev_data, int32 *value_each_subband, int *panum, bool *ispa, char *pvar, char *pvalue)
+{
+	int32 paparambwver = 0;
+	int32 sromrev = 0, fsromrev = 0;
+	const pavars_t *pav = pavars;
+	int32 len = 0, n = 0;
+	int err = BCME_ERROR;
+
+	if(!osh || !nvram_buf || !flshdev_data || !value_each_subband || !panum || !ispa || !pvar || !pvalue )
+		return BCME_ERROR;
+
+	paparambwver = getintvar(nvram_buf, "paparambwver");
+	sromrev = getintvar(nvram_buf, SROMREV_STR);
+	fsromrev = getflashintvar(flshdev_data, SROMREV_STR);
+	if((strlen(pvar) >= 4) && (!strncmp(pvar, PA5G_STR, strlen(PA5G_STR)) || !strncmp(pvar, PA2G_STR, strlen(PA2G_STR))))
+		*ispa = TRUE;
+	else
+		*ispa = FALSE;
+
+	if (*ispa){
+		if ((get_pavar_tbl(&pav, paparambwver, sromrev) == BCME_OK ) && ( pav != pavars) && fsromrev && (sromrev == fsromrev)){
+
+			while (pav->phy_type != PHY_TYPE_NULL) {
+				if (!strcmp(pvar, pav->vars)) {
+					 /*only support sromrev >= 12, todo if we want to use sromrev < 12*/
+					if (((pav->phy_type == PHY_TYPE_AC) || (pav->phy_type == PHY_TYPE_LCN20)) && (sromrev >= 12)) {
+						if ((pav->bandrange == WL_CHAN_FREQ_RANGE_2G) ||
+						   (pav->bandrange == WL_CHAN_FREQ_RANGE_2G_40)){
+							*panum = 4;
+							*value_each_subband = 4;
+						}
+						else if ((pav->bandrange ==
+							WL_CHAN_FREQ_RANGE_5G_5BAND) ||
+							(pav->bandrange ==
+							WL_CHAN_FREQ_RANGE_5G_5BAND_40) ||
+							(pav->bandrange ==
+							WL_CHAN_FREQ_RANGE_5G_5BAND_80)){
+							*panum = 20;
+							*value_each_subband = 4;
+						}
+						else {
+							*panum = 0;
+							*value_each_subband = 0;
+						}
+					}
+					break;
+				}
+				pav++;
+			}
+			if((len = strlen(pvalue)) && (*panum)){
+				char* pabase = NULL;
+				char* patmp = NULL;
+				len++;
+				patmp = pabase = (char*) MALLOC_NOPERSIST(osh, len);
+				memcpy(patmp, pvalue, len);
+				while ((bcmstrtok(&patmp, ",", NULL)))
+					n++;
+
+				if ((n == *panum) && (*panum >= *value_each_subband) && (*panum % *value_each_subband == 0)) /*check paparam*/
+					err = BCME_OK;
+
+				if (pabase)
+					MFREE(osh, pabase, len);
+			}
+
+		}
+
+	}
+	else
+		err = BCME_OK;
+
+	return err;
+}
+
+static int update_po_value(osl_t *osh, char *nvram_buf, char *pnvvalue, int *nvramlen, uint16 *podata, int32 ponum, int32 value_each_subband)
+{
+	char *q = NULL;
+	char *update = NULL;
+	int param_idx = 0, poidx = 0;
+	int next_po_value_idx = 0;
+	int n = 0;
+	int len_diff = 0;
+	char *tmpbuf = NULL;
+	int nvidx = 0 ;
+
+	if (!osh || !pnvvalue || !nvramlen || !podata || !(tmpbuf =  MALLOC_NOPERSIST(osh, MAXSZ_NVRAM_VARS)))
+		return BCME_ERROR;
+
+	nvidx = pnvvalue - nvram_buf;
+	while (ponum){
+		update = pnvvalue;
+		memset(tmpbuf, 0, MAXSZ_NVRAM_VARS);
+		while(*(pnvvalue+n) != '\0'){ /*find "A" value */
+			q = (pnvvalue+n);
+			if (*q == ','){
+				if (param_idx == next_po_value_idx){
+					next_po_value_idx += value_each_subband;
+					break;
+				}
+				else {
+					update = q+1;
+				}
+				param_idx++;
+			}
+			n++;
+		}
+		len_diff = strlen("0xffff") - (q-update);
+		memcpy(tmpbuf,q,(*nvramlen - nvidx - n));
+		sprintf(update,"0x%04x",*(podata + poidx));
+		update += (2*sizeof(uint16))+2; /*length of hex ascii fromat (0xffff)*/
+		memcpy(update,tmpbuf,(*nvramlen - nvidx - n));
+		*nvramlen += len_diff;
+		poidx++;
+		ponum--;
+	}
+
+	if (tmpbuf)
+		MFREE(osh, tmpbuf, MAXSZ_NVRAM_VARS);
+
+	return BCME_OK;
+}
+
+static int
+flash_modify_var(osl_t *osh, char *nvram_buf, int *nvramlen, char *pvar, char *pvalue)
+{
+	char *tmpbuf =	NULL;
+	int lendif = 0, tmplen = 0, n = 0, pidx = 0, valuelen = 0;
+	char *pnvvalue = NULL;
+	pnvvalue = getvar(nvram_buf, pvar);
+
+	if (!osh || !nvram_buf || !nvramlen || !pvar || !pvalue || !(tmpbuf =  MALLOC_NOPERSIST(osh, MAXSZ_NVRAM_VARS)))
+		return BCME_ERROR;
+
+	lendif = strlen(pvalue) - strlen(pnvvalue);
+	pidx = pnvvalue - nvram_buf;
+	valuelen = (strlen(pnvvalue)+1);
+	tmplen = *nvramlen-pidx - valuelen;
+	memcpy(tmpbuf, pnvvalue + valuelen, tmplen);
+	n += sprintf(pnvvalue+n, "%s", pvalue);
+	*(pnvvalue+n) = '\0';
+	memcpy((pnvvalue+n+1), tmpbuf, tmplen);
+	*nvramlen += lendif;
+
+	if (tmpbuf)
+		MFREE(osh, tmpbuf, MAXSZ_NVRAM_VARS);
+
+	return BCME_OK;
+}
+
+
+static int
+flash_add_new_var(osl_t *osh, char *nvram_buf, int *nvramlen, char *pvar, char *pvalue)
+{
+	char *tmpbuf =	NULL;
+	char *pnvvalue = NULL;
+	int lendif = 0, tmplen = 0, n = 0;
+
+	if (!osh || !nvram_buf || !nvramlen || !pvar || !pvalue)
+		return BCME_ERROR;
+
+	if (!(tmpbuf =  MALLOC_NOPERSIST(osh, MAXSZ_NVRAM_VARS)))
+		return BCME_ERROR;
+
+	pnvvalue = nvram_buf;
+	tmplen = *nvramlen;
+	memcpy(tmpbuf, pnvvalue, *nvramlen);
+	lendif = strlen(pvar) + 1 + strlen(pvalue) + 1; /*var=value\0*/
+	n += sprintf(pnvvalue, "%s=", pvar);
+	n += sprintf(pnvvalue+n, "%s", pvalue);
+	*(pnvvalue+n) = '\0';
+	memcpy((pnvvalue+n+1), tmpbuf, tmplen);
+	*nvramlen += lendif;
+
+	if (tmpbuf)
+		MFREE(osh, tmpbuf, MAXSZ_NVRAM_VARS);
+
+	return BCME_OK;
+}
+
+/* Island write setting for NVRAM format is,  output of 'wl devpath' concatenate with pa params.
+* Remove devpath to get nvram var.
+*/
+static int
+remove_devpath_var(si_t *sih, char **pvar)
+{
+	int err = BCME_OK;
+	int slen = 0, tokens = 0;
+	uint32 num = 0, num2 = 0;
+	char devpath[SI_DEVPATH_BUFSZ] = {'\0'};
+
+	if ( !sih || !pvar)
+		return BCME_ERROR;
+
+	switch (BUSTYPE(sih->bustype)) {
+		case SI_BUS:
+		case JTAG_BUS:
+			/* Island get  devpath by "wl devpath", and the path is sb/1/.
+			* But when wl driver at nvram_init,  si_coreidx is 0 so that devpath get from si_devpath is sb/0/
+			* So, it is not able to get the same devpath as Island get by si_devpath.
+			* Use below method to check and to  remove devpath.
+			*/
+			tokens = sscanf(*pvar, DEVPATH_JTAG_BUS_FORMAT, &num);
+			if (tokens == 1)
+				slen = snprintf(devpath, SI_DEVPATH_BUFSZ, DEVPATH_JTAG_BUS_FORMAT, num);
+			break;
+		case PCI_BUS:
+			tokens = sscanf(*pvar, DEVPATH_PCI_BUS_FORMAT, &num, &num2);
+			if (tokens == 2)
+				slen = snprintf(devpath, sizeof(devpath), DEVPATH_PCI_BUS_FORMAT, num, num2);
+			break;
+		case PCMCIA_BUS:
+			tokens = sscanf(*pvar, DEVPATH_PCMCIA_BUS_FORMAT, &num, &num2);
+			if (tokens == 2)
+				slen = snprintf(devpath, SI_DEVPATH_BUFSZ,DEVPATH_PCMCIA_BUS_FORMAT, num, num2);
+			break;
+		default:
+			break;
+	}
+
+	if (slen == 0) {
+		tokens = 0;
+		num = 0;
+		tokens = sscanf(*pvar, "%d:", &num);
+		if (tokens == 1) {
+			memset(devpath, '\0', SI_DEVPATH_BUFSZ);
+			slen = snprintf(devpath, sizeof(devpath), "%d:", num);
+		}
+	}
+
+	if ((slen > 0) && (!memcmp(*pvar, devpath, strlen(devpath))) && (strlen(*pvar) > slen))
+		*pvar += slen; /* Remove devpath */
+
+	return err;
+}
+#endif /* NVRAM_FLASH */

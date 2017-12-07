@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -106,7 +106,7 @@ BDBG_MODULE(BVBI);
 * Implementation of supporting VBI_ENC functions that are not in API
 ***************************************************************************/
 
-BERR_Code BVBI_P_VIE_SoftReset_isr (
+BERR_Code BVBI_P_VIE_SoftReset_isrsafe (
     BREG_Handle hReg,
     bool is656,
     uint8_t hwCoreIndex,
@@ -115,7 +115,7 @@ BERR_Code BVBI_P_VIE_SoftReset_isr (
     uint32_t ulRegAddr;
     uint32_t ulRegBase = 0xFFFFFFFF;
 
-    BDBG_ENTER(BVBI_P_VIE_SoftReset_isr);
+    BDBG_ENTER(BVBI_P_VIE_SoftReset_isrsafe);
 
     switch (whichStandard)
     {
@@ -211,7 +211,7 @@ BERR_Code BVBI_P_VIE_SoftReset_isr (
     /* Take care of errors above */
     if (ulRegBase == 0xFFFFFFFF)
     {
-        BDBG_LEAVE(BVBI_P_VIE_SoftReset_isr);
+        BDBG_LEAVE(BVBI_P_VIE_SoftReset_isrsafe);
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -220,7 +220,7 @@ BERR_Code BVBI_P_VIE_SoftReset_isr (
     BREG_Write32 (hReg, ulRegAddr, 0x1);
     BREG_Write32 (hReg, ulRegAddr, 0x0);
 
-    BDBG_LEAVE(BVBI_P_VIE_SoftReset_isr);
+    BDBG_LEAVE(BVBI_P_VIE_SoftReset_isrsafe);
     return BERR_SUCCESS;
 }
 

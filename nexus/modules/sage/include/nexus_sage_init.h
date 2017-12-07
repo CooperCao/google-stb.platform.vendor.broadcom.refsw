@@ -60,6 +60,11 @@ NEXUS_SageModule_Init
 typedef struct NEXUS_SageModuleInternalSettings
 {
     NEXUS_ModuleHandle security; /* Used for security. */
+    NEXUS_ModuleHandle transport; /* Used for transport (RAVE handle) */
+    struct {
+        NEXUS_MemoryBlockHandle block;
+        unsigned size;
+    } videoDecoderFirmware;
 } NEXUS_SageModuleInternalSettings;
 
 

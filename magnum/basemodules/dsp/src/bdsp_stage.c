@@ -845,3 +845,23 @@ BERR_Code BDSP_Queue_GetBufferAddr(
     err = hQueue->getOpBufferAddr((void *)hQueue->pQueueHandle, numbuf, pBuffer);
     return err;
 }
+
+BERR_Code BDSP_GetAudioDelay_isrsafe(
+    BDSP_CTB_Input   *pCtbInput,
+    BDSP_StageHandle  hStage,
+    BDSP_CTB_Output  *pCTBOutput
+)
+{
+    BDBG_OBJECT_ASSERT(hStage, BDSP_Stage);
+    BDBG_ASSERT(NULL != pCtbInput);
+    BDBG_ASSERT(NULL != pCTBOutput);
+
+    if (hStage->getAudioDelay_isrsafe)
+    {
+        return hStage->getAudioDelay_isrsafe(pCtbInput, hStage->pStageHandle, pCTBOutput);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}

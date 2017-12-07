@@ -259,7 +259,8 @@ typedef enum NEXUS_PtsType
     NEXUS_PtsType_eCoded,                     /* PTS value came from the stream. */
     NEXUS_PtsType_eInterpolatedFromValidPTS,  /* PTS has been interpolated over time from a valid (i.e. coded) PTS from the stream. */
     NEXUS_PtsType_eHostProgrammedPTS,         /* PTS was set by the application and did not come from the stream. */
-    NEXUS_PtsType_eInterpolatedFromInvalidPTS /* PTS has been interpolated over time from an invalid value. */
+    NEXUS_PtsType_eInterpolatedFromInvalidPTS,/* PTS has been interpolated over time from an invalid value. */
+    NEXUS_PtsType_eMax
 } NEXUS_PtsType;
 
 /**

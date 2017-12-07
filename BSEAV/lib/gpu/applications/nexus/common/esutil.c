@@ -1,42 +1,6 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom.  All rights reserved.
- *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- *  Except as expressly set forth in the Authorized License,
- *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
- *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <string.h>
 #include <math.h>
 
@@ -291,4 +255,45 @@ int esInverse(ESMatrix * in, ESMatrix * out)
 
       return 1;
    }
+}
+
+ESVec3 esNormalize(ESVec3 vec)
+{
+   ESVec3 output;
+   float  length;
+   length = sqrtf(vec.v[0] * vec.v[0] + vec.v[1] * vec.v[1] + vec.v[2] * vec.v[2]);
+   output.v[0] = vec.v[0] / length;
+   output.v[1] = vec.v[1] / length;
+   output.v[2] = vec.v[2] / length;
+   return output;
+}
+
+ESVec3 esCross(ESVec3 vec1, ESVec3 vec2)
+{
+   ESVec3 output;
+   output.v[0] = vec1.v[1] * vec2.v[2] - vec1.v[2] * vec2.v[1];
+   output.v[1] = vec1.v[2] * vec2.v[0] - vec1.v[0] * vec2.v[2];
+   output.v[2] = vec1.v[0] * vec2.v[1] - vec1.v[1] * vec2.v[0];
+   return output;
+}
+
+float esDot(ESVec3 vec1, ESVec3 vec2)
+{
+   return vec1.v[0] * vec2.v[0] + vec1.v[1] * vec2.v[1] + vec1.v[2] * vec2.v[2];
+}
+
+ESVec3 esRotateVec(ESVec3 vec, ESVec3 axis, float angle)
+{
+   ESVec3 output;
+   float d = esDot(vec, axis);
+   float x = vec.v[0], y = vec.v[1], z = vec.v[2];
+   float u = axis.v[0], v = axis.v[1], w = axis.v[2];
+   float c = cosf(angle);
+   float s = sinf(angle);
+
+   // rotate vector around the axis
+   output.v[0] = u*d*(1 - c) + x*c + (-w*y + v*z)*s;
+   output.v[1] = v*d*(1 - c) + y*c + (w*x - u*z)*s;
+   output.v[2] = w*d*(1 - c) + z*c + (-v*x + u*y)*s;
+   return output;
 }

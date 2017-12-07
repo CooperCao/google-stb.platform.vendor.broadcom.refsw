@@ -61,30 +61,30 @@ CPowerNx::CPowerNx(
 
 CPowerNx::~CPowerNx(void)
 {
-
 }
 
 /* Returns true if we are going to S0 mode */
 bool CPowerNx::checkPower(void)
 {
-     NEXUS_Error rc;
-     NxClient_StandbyStatus standbyStatus;
-     bool powerOn = false;
+    NEXUS_Error            rc;
+    NxClient_StandbyStatus standbyStatus;
+    bool                   powerOn = false;
 
 #if POWERSTANDBY_SUPPORT
-     rc = NxClient_GetStandbyStatus(&standbyStatus);
+    rc = NxClient_GetStandbyStatus(&standbyStatus);
 
-     BKNI_Sleep(100);
-     if (_transition == false && _eMode != ePowerMode_S0 && standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eOn) {
-         BDBG_MSG(("NxClient PowerManagement is changing from S%d changing to S0 mode.", _eMode));
-         powerOn = true;
-     }
-#else
+    BKNI_Sleep(100);
+    if ((_transition == false) && (_eMode != ePowerMode_S0) && (standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eOn))
+    {
+        BDBG_MSG(("NxClient PowerManagement is changing from S%d changing to S0 mode.", _eMode));
+        powerOn = true;
+    }
+#else /* if POWERSTANDBY_SUPPORT */
     BSTD_UNUSED(rc);
     BSTD_UNUSED(standbyStatus);
-#endif
-    return powerOn;
-}
+#endif /* if POWERSTANDBY_SUPPORT */
+    return(powerOn);
+} /* checkPower */
 
 eRet CPowerNx::setMode(
         ePowerMode  mode,
@@ -93,10 +93,10 @@ eRet CPowerNx::setMode(
 {
     NxClient_StandbyStatus   standbyStatus;
     NxClient_StandbySettings standbySettings;
-    NEXUS_Error              nerror    =  NEXUS_SUCCESS;
-    eRet                     ret       =  eRet_Ok;
-    ePowerMode               modeOld   =  getMode();
-    CGraphicsNx             * pGraphics = (CGraphicsNx *) pGraphicsX;
+    NEXUS_Error              nerror    = NEXUS_SUCCESS;
+    eRet                     ret       = eRet_Ok;
+    ePowerMode               modeOld   = getMode();
+    CGraphicsNx *            pGraphics = (CGraphicsNx *) pGraphicsX;
 
     BDBG_MSG(("CPowerNx %s set power mode:%s", BSTD_FUNCTION, (powerModeToString(mode)).s()));
 
@@ -114,25 +114,25 @@ eRet CPowerNx::setMode(
 
 #if POWERSTANDBY_SUPPORT
     _transition = true;
-    nerror = NxClient_GetStandbyStatus(&standbyStatus);
-    if (nerror) {BERR_TRACE(nerror); return ret;}
+    nerror      = NxClient_GetStandbyStatus(&standbyStatus);
+    if (nerror) { BERR_TRACE(nerror); return(ret); }
 
     BDBG_MSG(("Wake up Status:\n"
-           "IR      : %d\n"
-           "UHF     : %d\n"
-           "XPT     : %d\n"
-           "CEC     : %d\n"
-           "GPIO    : %d\n"
-           "KPD     : %d\n"
-           "Timeout : %d\n"
-           "\n",
-           standbyStatus.status.wakeupStatus.ir,
-           standbyStatus.status.wakeupStatus.uhf,
-           standbyStatus.status.wakeupStatus.transport,
-           standbyStatus.status.wakeupStatus.cec,
-           standbyStatus.status.wakeupStatus.gpio,
-           standbyStatus.status.wakeupStatus.keypad,
-           standbyStatus.status.wakeupStatus.timeout));
+              "IR      : %d\n"
+              "UHF     : %d\n"
+              "XPT     : %d\n"
+              "CEC     : %d\n"
+              "GPIO    : %d\n"
+              "KPD     : %d\n"
+              "Timeout : %d\n"
+              "\n",
+              standbyStatus.status.wakeupStatus.ir,
+              standbyStatus.status.wakeupStatus.uhf,
+              standbyStatus.status.wakeupStatus.transport,
+              standbyStatus.status.wakeupStatus.cec,
+              standbyStatus.status.wakeupStatus.gpio,
+              standbyStatus.status.wakeupStatus.keypad,
+              standbyStatus.status.wakeupStatus.timeout));
 
     {
         int           powerModeToPmStandbyState[ePowerMode_Max] = { 0, 0, BRCM_PM_STANDBY, BRCM_PM_SUSPEND };
@@ -144,29 +144,29 @@ eRet CPowerNx::setMode(
 
         BDBG_MSG(("Entering StandBy Mode S%d\n", mode));
         NxClient_GetDefaultStandbySettings(&standbySettings);
-        _eMode                                       = mode;
-        standbySettings.settings.mode                = (NEXUS_PlatformStandbyMode) mode;
-        standbySettings.settings.wakeupSettings.ir   = true;
-        standbySettings.settings.wakeupSettings.uhf  = true;
-        standbySettings.settings.openFrontend        = (ePowerMode_S0 == mode) ? true : false;
+        _eMode                                      = mode;
+        standbySettings.settings.mode               = (NEXUS_PlatformStandbyMode) mode;
+        standbySettings.settings.wakeupSettings.ir  = true;
+        standbySettings.settings.wakeupSettings.uhf = true;
+        standbySettings.settings.openFrontend       = (ePowerMode_S0 == mode) ? true : false;
         BDBG_MSG(("Wake up Settings:\n"
-          "IR       : %d\n"
-          "UHF      : %d\n"
-          "XPT      : %d\n"
-          "CEC      : %d\n"
-          "GPIO     : %d\n"
-          "KPD      : %d\n"
-          "Timeout  : %d\n"
-          "Frontend : %d\n"
-          "\n",
-          standbySettings.settings.wakeupSettings.ir,
-          standbySettings.settings.wakeupSettings.uhf,
-          standbySettings.settings.wakeupSettings.transport,
-          standbySettings.settings.wakeupSettings.cec,
-          standbySettings.settings.wakeupSettings.gpio,
-          standbySettings.settings.wakeupSettings.keypad,
-          standbySettings.settings.wakeupSettings.timeout,
-          standbySettings.settings.openFrontend        ));
+                  "IR       : %d\n"
+                  "UHF      : %d\n"
+                  "XPT      : %d\n"
+                  "CEC      : %d\n"
+                  "GPIO     : %d\n"
+                  "KPD      : %d\n"
+                  "Timeout  : %d\n"
+                  "Frontend : %d\n"
+                  "\n",
+                  standbySettings.settings.wakeupSettings.ir,
+                  standbySettings.settings.wakeupSettings.uhf,
+                  standbySettings.settings.wakeupSettings.transport,
+                  standbySettings.settings.wakeupSettings.cec,
+                  standbySettings.settings.wakeupSettings.gpio,
+                  standbySettings.settings.wakeupSettings.keypad,
+                  standbySettings.settings.wakeupSettings.timeout,
+                  standbySettings.settings.openFrontend));
 
         nerror = NxClient_SetStandbySettings(&standbySettings);
         if (nerror)
@@ -181,27 +181,33 @@ eRet CPowerNx::setMode(
             pGraphics->setActive(false);
         }
 
-        /* Wait for nexus to enter standby , disable/enable bwin callbacks */
-        /* notifiy observers that we are changing Mode */
+        /*
+         * Wait for nexus to enter standby , disable/enable bwin callbacks
+         * notifiy observers that we are changing Mode
+         */
         notifyObservers(eNotify_PowerModeChanged, &mode);
         SET(_pCfg, POWER_STATE, MString(mode));
 
         /* limit the amount of loops to 15 for NxServer to respond */
-        do{
+        do
+        {
             BKNI_Sleep(1000);
             cnt--;
             nerror = NxClient_GetStandbyStatus(&standbyStatus);
-            if (nerror) {BERR_TRACE(nerror); goto error;}
-            if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
+            if (nerror) { BERR_TRACE(nerror); goto error; }
+            if (standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded)
+            {
                 BDBG_ERR(("'Atlas' acknowledges standby state: %s\n", powerModeToString(_eMode).s()));
                 NxClient_AcknowledgeStandby(true);
             }
 
-            if (cnt==0) {
+            if (cnt == 0)
+            {
                 BDBG_ERR(("StandbyTransition Failed!"));
                 goto error;
             }
-        }while ((standbyStatus.transition != NxClient_StandbyTransition_eDone) && mode != ePowerMode_S0);
+        }
+        while ((standbyStatus.transition != NxClient_StandbyTransition_eDone) && mode != ePowerMode_S0);
 
         /* set linux power mode */
         if (true == doLinuxPower(modeOld, mode))
@@ -312,14 +318,15 @@ eRet CPowerNx::setMode(
         /* We resume from S2/S3 Right here */
 
         /* We need to turn on NxServer after we wake up. Just wake up NxServer. Control onIdle()
-           will wake up Atlas */
-        if(_eMode != ePowerMode_S0) {
+         * will wake up Atlas */
+        if (_eMode != ePowerMode_S0)
+        {
             BDBG_MSG(("We are waking up from S%d!\n Wake up NxServer!!", _eMode));
             standbySettings.settings.mode = NEXUS_PlatformStandbyMode_eOn;
-            nerror = NxClient_SetStandbySettings(&standbySettings);
+            nerror                        = NxClient_SetStandbySettings(&standbySettings);
             /* if we cannot wake up then we need to ASSERT because there is a
-               fundamental issue with Atlas and NxServer that needs to be fixed
-               ASAP */
+             * fundamental issue with Atlas and NxServer that needs to be fixed
+             * ASAP */
             BDBG_ASSERT(!nerror);
         }
 

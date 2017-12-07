@@ -172,34 +172,27 @@ nexus_driver_module_uninit(struct nexus_driver_module_header *header)
     nexus_driver_callback_uninit(header);
 }
 
-int
-nexus_generic_driver_open(unsigned module, void **pstate, unsigned pid, const char *process_name, bool trusted)
+static int
+nexus_driver_ioctl_proxy_nexus_open(struct nexus_generic_driver_state *state)
 {
     struct nexus_driver_module_driver_state *driver_state = NULL;
     int rc = 0;
-
-    BDBG_MSG_TRACE((">>nexus_driver_open: %u", module));
-    if(module >= NEXUS_PLATFORM_P_NUM_DRIVERS) {
-        rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
-        goto done;
+    if(state->kind != nexus_generic_driver_kind_uninitialized) {
+        return BERR_TRACE(-1);
     }
-
+    BDBG_MSG_TRACE((">>nexus_driver_ioctl_proxy_nexus_open:"));
     /* alloc per-instance data */
     driver_state = BKNI_Malloc(sizeof(*driver_state));
-    if (driver_state==NULL) {
+    if(driver_state==NULL) {
         rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         goto done;
     }
-    driver_state->pid = pid;
-    b_strncpy(driver_state->process_name, process_name?process_name:"", NEXUS_MAX_PROCESS_NAME);
+    BDBG_CASSERT(sizeof(driver_state->process_name) == sizeof(state->process_name));
+    BDBG_CASSERT(sizeof(driver_state->process_name) == NEXUS_MAX_PROCESS_NAME);
+    b_strncpy(driver_state->process_name, state->process_name, NEXUS_MAX_PROCESS_NAME);
+    driver_state->pid = state->pid;
 
     LOCK();
-    /* server opens with 0 first. client with NEXUS_PLATFORM_P_NUM_DRIVERS-1 first.
-    only allow the server to init the driver. */
-    if (module != 0 && (!nexus_driver_state.server || nexus_driver_state.uninit_in_progress)) {
-        rc = NEXUS_NOT_AVAILABLE; /* don't use BERR_TRACE. this is not an error in the driver. */
-        goto lockeddone;
-    }
 
     if (nexus_driver_state.uninit_pending) {
         nexus_driver_server_uninit_lock();
@@ -207,11 +200,11 @@ nexus_generic_driver_open(unsigned module, void **pstate, unsigned pid, const ch
 
     /* init driver on first open */
     if (!nexus_driver_state.uninit_in_progress && !nexus_driver_state.server) {
-        if (!trusted) {
+        if (!state->trusted) {
             rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
             goto lockeddone;
         }
-        rc = nexus_driver_server_init_lock(pid);
+        rc = nexus_driver_server_init_lock(state->pid);
         if (rc) {
             rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
             goto lockeddone;
@@ -219,7 +212,7 @@ nexus_generic_driver_open(unsigned module, void **pstate, unsigned pid, const ch
         /* server's client has been created, so nexus_driver_open_client will work. */
     }
 
-    driver_state->client = nexus_driver_open_client_lock(pid);
+    driver_state->client = nexus_driver_open_client_lock(state->pid);
     if (!driver_state->client) {
         if (nexus_driver_state.uninit_in_progress) {
             /* client was not created because we are shutting down. uninit_in_progress must be checked after nexus_driver_open_client
@@ -237,7 +230,8 @@ nexus_generic_driver_open(unsigned module, void **pstate, unsigned pid, const ch
     nexus_driver_state.open_count++;
     driver_state->slave_scheduler = NULL;
 
-    *pstate = driver_state;
+    state->state.nexus_driver = driver_state;
+    state->kind = nexus_generic_driver_kind_nexus;
 
 lockeddone:
     UNLOCK();
@@ -247,7 +241,29 @@ done:
             BKNI_Free(driver_state);
         }
     }
-    BDBG_MSG_TRACE(("<<nexus_driver_open: %u -> %d", module, rc));
+    BDBG_MSG_TRACE(("<<nexus_driver_ioctl_proxy_nexus_open: -> %d", rc));
+    return rc;
+}
+
+int
+nexus_generic_driver_open(struct nexus_generic_driver_state **pstate, unsigned pid, const char *process_name, bool trusted)
+{
+    struct nexus_generic_driver_state *driver_state = NULL;
+    int rc = 0;
+
+    BDBG_MSG_TRACE((">>nexus_driver_open: %u", module));
+
+    /* alloc per-instance data */
+    driver_state = BKNI_Malloc(sizeof(*driver_state));
+    if (driver_state==NULL) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    driver_state->pid = pid;
+    b_strncpy(driver_state->process_name, process_name?process_name:"", NEXUS_MAX_PROCESS_NAME);
+    driver_state->kind = nexus_generic_driver_kind_uninitialized;
+    driver_state->trusted = trusted;
+    *pstate = driver_state;
+
     return rc;
 }
 
@@ -270,12 +286,10 @@ static void nexus_driver_disable_clients_lock(bool including_server)
     }
 }
 
-void
-nexus_generic_driver_close(unsigned module, void *state, bool abnormal_termination)
+static void
+nexus_driver_nexus_close(struct nexus_driver_module_driver_state *driver_state, bool abnormal_termination)
 {
-    struct nexus_driver_module_driver_state *driver_state = state;
-
-    BDBG_MSG_TRACE((">>nexus_driver_close:%u %s", module, abnormal_termination?"SIGNAL":""));
+    BDBG_MSG_TRACE((">>nexus_driver_nexus_close: %s", abnormal_termination?"SIGNAL":""));
 
     BDBG_ASSERT(driver_state);
 
@@ -297,7 +311,7 @@ nexus_generic_driver_close(unsigned module, void *state, bool abnormal_terminati
         }
         /* Slave scheduler can be disabled even though clean up may not happen.
          * Callbacks are prevented from firing already and can safely be disabled during cleanup */
-        nexus_driver_slave_scheduler_destroy(g_nexus_driver_state_handlers[module].header, driver_state->slave_scheduler);
+        nexus_driver_slave_scheduler_destroy(g_nexus_driver_state_handlers[0].header, driver_state->slave_scheduler);
     }
 
     /* test if the server is closing without a full shutdown */
@@ -322,20 +336,36 @@ nexus_generic_driver_close(unsigned module, void *state, bool abnormal_terminati
     }
     UNLOCK();
 
-    BDBG_MSG_TRACE(("<<nexus_driver_close: %u done", module));
+    BDBG_MSG_TRACE(("<<nexus_driver_nexus_close: done"));
+    return;
 }
 
-int nexus_generic_driver_validate_mmap(unsigned module, void *context_, uint64_t offset, unsigned size)
+void
+nexus_generic_driver_close(struct nexus_generic_driver_state *state, bool abnormal_termination)
 {
-    struct nexus_driver_module_driver_state *context = context_;
-    struct nexus_driver_client_state *client = context->client;
+    if(state->kind == nexus_generic_driver_kind_nexus) {
+        nexus_driver_nexus_close(state->state.nexus_driver, abnormal_termination);
+    }
+    BKNI_Free(state);
+    return;
+}
+
+
+int nexus_generic_driver_validate_mmap(struct nexus_generic_driver_state *state, uint64_t offset, unsigned size)
+{
+    struct nexus_driver_module_driver_state *context;
+    struct nexus_driver_client_state *client;
     unsigned i;
     bool hasDynamicHeap = false;
 
+    if(state->kind != nexus_generic_driver_kind_nexus) {
+        return NEXUS_NOT_AVAILABLE;
+    }
+    context = state->state.nexus_driver;
+    client = context->client;
     /* don't allow mmap without join */
     if (!client) return NEXUS_NOT_AVAILABLE;
 
-    BSTD_UNUSED(module); /* unused. added for api consistency. */
     BDBG_MSG(("nexus_generic_driver_validate_mmap " BDBG_UINT64_FMT ", %u", BDBG_UINT64_ARG(offset), size));
 
     BDBG_OBJECT_ASSERT(client, nexus_driver_client_state);
@@ -394,10 +424,25 @@ int
 nexus_generic_driver_ioctl(unsigned module, void *context_, unsigned int cmd, unsigned long arg, bool compat)
 {
     int rc;
-    struct nexus_driver_module_driver_state *context = context_;
-    struct nexus_driver_client_state *client = context->client;
+    struct nexus_generic_driver_state *state = context_;
+    struct nexus_driver_module_driver_state *context;
+    struct nexus_driver_client_state *client;
     bool unlocked = false;
     bool lock_standby = false;
+
+    switch(cmd) {
+    case IOCTL_PROXY_NEXUS_Open:
+         rc = nexus_driver_ioctl_proxy_nexus_open(state);
+         return rc;
+    default:
+         break;
+    }
+    if(state->kind != nexus_generic_driver_kind_nexus) {
+        (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return -1;
+    }
+    context = state->state.nexus_driver;
+    client = context->client;
 
     if (module == NEXUS_IOCTL_PROXY_MODULE) {
         module = NEXUS_PLATFORM_P_NUM_DRIVERS-1;
@@ -439,15 +484,16 @@ nexus_generic_driver_ioctl(unsigned module, void *context_, unsigned int cmd, un
     unlocked = true if platform module must be called with no lock (e.g. because the lock will be created or destroyed in the call) */
     if (module == 0 && client == nexus_driver_state.server) {
 #if NEXUS_COMPAT_32ABI
-        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_Uninit == IOCTL_PLATFORM_NEXUS_Platform_Uninit_compat);
-        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_Init_tagged == IOCTL_PLATFORM_NEXUS_Platform_Init_tagged_compat);
-        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_GetDefaultSettings_tagged == IOCTL_PLATFORM_NEXUS_Platform_GetDefaultSettings_tagged_compat);
-        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_InitStandby == IOCTL_PLATFORM_NEXUS_Platform_InitStandby_compat);
-        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_UninitStandby == IOCTL_PLATFORM_NEXUS_Platform_UninitStandby_compat);
         BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_GetDefaultMemoryConfigurationSettings_tagged == IOCTL_PLATFORM_NEXUS_GetDefaultMemoryConfigurationSettings_tagged_compat);
         BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_GetPlatformCapabilities_tagged == IOCTL_PLATFORM_NEXUS_GetPlatformCapabilities_tagged_compat);
         BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_GetPlatformConfigCapabilities_tagged == IOCTL_PLATFORM_NEXUS_GetPlatformConfigCapabilities_tagged_compat);
+        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_GetDefaultSettings_tagged == IOCTL_PLATFORM_NEXUS_Platform_GetDefaultSettings_tagged_compat);
+        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_GetMemory_tagged == IOCTL_PLATFORM_NEXUS_Platform_GetMemory_tagged);
+        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_InitStandby == IOCTL_PLATFORM_NEXUS_Platform_InitStandby_compat);
+        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_Init_tagged == IOCTL_PLATFORM_NEXUS_Platform_Init_tagged_compat);
         BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_SetStandbySettings_driver == IOCTL_PLATFORM_NEXUS_Platform_SetStandbySettings_driver_compat);
+        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_Uninit == IOCTL_PLATFORM_NEXUS_Platform_Uninit_compat);
+        BDBG_CASSERT(IOCTL_PLATFORM_NEXUS_Platform_UninitStandby == IOCTL_PLATFORM_NEXUS_Platform_UninitStandby_compat);
 #endif
         switch (cmd) {
         case IOCTL_PLATFORM_NEXUS_Platform_Uninit:
@@ -460,13 +506,14 @@ nexus_generic_driver_ioctl(unsigned module, void *context_, unsigned int cmd, un
             nexus_driver_server_preinit();
             unlocked = true;
             break;
-        case IOCTL_PLATFORM_NEXUS_Platform_GetDefaultSettings_tagged:
-        case IOCTL_PLATFORM_NEXUS_Platform_InitStandby:
-        case IOCTL_PLATFORM_NEXUS_Platform_UninitStandby:
         case IOCTL_PLATFORM_NEXUS_GetDefaultMemoryConfigurationSettings_tagged:
         case IOCTL_PLATFORM_NEXUS_GetPlatformCapabilities_tagged:
         case IOCTL_PLATFORM_NEXUS_GetPlatformConfigCapabilities_tagged:
         case IOCTL_PLATFORM_NEXUS_INIT:
+        case IOCTL_PLATFORM_NEXUS_Platform_GetDefaultSettings_tagged:
+        case IOCTL_PLATFORM_NEXUS_Platform_GetMemory_tagged:
+        case IOCTL_PLATFORM_NEXUS_Platform_InitStandby:
+        case IOCTL_PLATFORM_NEXUS_Platform_UninitStandby:
             unlocked = true;
             break;
         case IOCTL_PLATFORM_NEXUS_Platform_SetStandbySettings_driver:
@@ -625,6 +672,7 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
             rc = copy_from_user_small(&data.in, (void *)arg, sizeof(data.in));
             /* coverity[dead_error_condition] - it's important to do this check in case it's not a dead condition in the future. */
             if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
+            /* coverity[stack_use_overflow] - coverity jumps from this kernel mode ioctl into user mode nexus_playback stack, which is not possible */
             rc = nexus_driver_run_scheduler(data.in.priority, data.in.timeout, &data.out.has_callbacks, state->slave_scheduler);
             if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
             rc = copy_to_user_small((&((PROXY_NEXUS_RunScheduler *)arg)->out), &data.out, sizeof(data.out));
@@ -664,17 +712,32 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
     case IOCTL_PROXY_NEXUS_Log_Activate:
     {{
         BDBG_Fifo_CreateSettings logSettings;
+        PROXY_NEXUS_Log_Activate data;
         BERR_Code mrc;
         struct nexus_driver_state *state = &nexus_driver_state;
 
         if (!state->debugLog.logWriter) {
-            /* debug_log_size param is ignored because large buffer cannot be
-            reliably allocated at run time. */
+            unsigned debug_log_size_limit = 128*1024;
+            rc = copy_from_user_small(&data, (void *)arg, sizeof(data));
+            if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
+            if(data.debug_log_size > debug_log_size_limit) {
+               BDBG_WRN(("limiting size of debug log from %u to %u lines", data.debug_log_size, debug_log_size_limit));
+                data.debug_log_size = debug_log_size_limit;
+            }
             BDBG_Fifo_GetDefaultCreateSettings(&logSettings);
-            logSettings.nelements = 0;
             BDBG_Log_GetElementSize(&logSettings.elementSize);
+            logSettings.bufferSize = logSettings.elementSize * data.debug_log_size;
             logSettings.buffer = state->debugLog.buffer;
-            logSettings.bufferSize = sizeof(state->debugLog.buffer);
+            if(logSettings.bufferSize>sizeof(state->debugLog.buffer)) {
+                state->debugLog.dynamicBuffer = BKNI_Malloc(logSettings.bufferSize);
+                if(state->debugLog.dynamicBuffer) {
+                    logSettings.buffer = state->debugLog.dynamicBuffer;
+                } else {
+                    BDBG_WRN(("can't allocate buffer of requested size (%u) bytes, use default  %u bytes", (unsigned)logSettings.bufferSize, (unsigned)sizeof(state->debugLog.buffer)));
+                    logSettings.bufferSize = sizeof(state->debugLog.buffer);
+                }
+            }
+
             mrc = BDBG_Fifo_Create(&state->debugLog.logWriter, &logSettings);
             if(mrc!=BERR_SUCCESS) {rc=BERR_TRACE(mrc);goto err_ioctl;}
         }
@@ -725,7 +788,7 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
         if(data.instance.instance>=NEXUS_DRIVER_MAX_LOG_READERS) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); goto err_ioctl; }
         if(state->debugLog.readers[data.instance.instance].fifo == NULL) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); goto err_ioctl; }
         dbgStrLen = sizeof(dbgStr);
-        if(data.buffer_size>dbgStrLen) {
+        if(dbgStrLen > data.buffer_size) {
             dbgStrLen = data.buffer_size;
         }
 
@@ -1258,6 +1321,8 @@ static int nexus_driver_server_init_lock(unsigned pid)
         client->pid = pid;
         nexus_driver_state.server = client;
         b_objdb_set_default_client(&client->client);
+
+        NEXUS_Base_SetModuleDebugLevel();
     }
     return 0;
 }
@@ -1435,6 +1500,10 @@ static void nexus_driver_server_uninit_lock(void)
             BDBG_Log_SetFifo(NULL);
             BDBG_Fifo_Destroy(state->debugLog.logWriter);
             state->debugLog.logWriter = NULL;
+            if(state->debugLog.dynamicBuffer) {
+                BKNI_Free(state->debugLog.dynamicBuffer);
+                state->debugLog.dynamicBuffer = NULL;
+            }
         }
     }
 

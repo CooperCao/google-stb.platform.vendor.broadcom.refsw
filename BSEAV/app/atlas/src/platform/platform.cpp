@@ -55,7 +55,7 @@ CPlatform::CPlatform() :
     {
         _lumaRangeAdj[i] = 0;
     }
-#endif
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
 }
 
 CPlatform::~CPlatform()
@@ -421,7 +421,10 @@ NEXUS_FrontendHandle CPlatform::getFrontend(unsigned number)
 }
 
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-bool CPlatform::getPlmLumaRangeAdjVideo(unsigned inputIndex, unsigned rectIndex)
+bool CPlatform::getPlmLumaRangeAdjVideo(
+        unsigned inputIndex,
+        unsigned rectIndex
+        )
 {
     uint32_t reg;
     unsigned lRangeAdj;
@@ -436,15 +439,20 @@ bool CPlatform::getPlmLumaRangeAdjVideo(unsigned inputIndex, unsigned rectIndex)
 #if BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_MASK
     lRangeAdj = BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LRANGE_ADJ);
 #else
-    lRangeAdj = rectIndex&1?BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ):BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ);
+    lRangeAdj = rectIndex&1 ? BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ) : BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ);
 #endif
 
     return(lRangeAdj != LRANGE_ADJ_DISABLE);
-}
-#endif
+} /* getPlmLumaRangeAdjVideo */
+
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
 
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-void CPlatform::setPlmLumaRangeAdjVideo(unsigned inputIndex, unsigned rectIndex, bool enable)
+void CPlatform::setPlmLumaRangeAdjVideo(
+        unsigned inputIndex,
+        unsigned rectIndex,
+        bool     enable
+        )
 {
     uint32_t reg;
     unsigned lRangeAdj;
@@ -460,9 +468,9 @@ void CPlatform::setPlmLumaRangeAdjVideo(unsigned inputIndex, unsigned rectIndex,
 #if BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_MASK
     curLRangeAdj = BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LRANGE_ADJ);
 #else
-    curLRangeAdj = rectIndex&1?BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ):BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ);
+    curLRangeAdj = rectIndex&1 ? BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ) : BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ);
 #endif
-    if(true == enable)
+    if (true == enable)
     {
         lRangeAdj = _lumaRangeAdj[rectIndex];
     }
@@ -471,21 +479,29 @@ void CPlatform::setPlmLumaRangeAdjVideo(unsigned inputIndex, unsigned rectIndex,
         lRangeAdj = LRANGE_ADJ_DISABLE;
     }
 
-    if(lRangeAdj != curLRangeAdj) {
+    if (lRangeAdj != curLRangeAdj)
+    {
 #if BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_MASK
         BCHP_SET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LRANGE_ADJ, lRangeAdj);
 #else
-        if(rectIndex&1)
+        if (rectIndex&1)
+        {
             BCHP_SET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ, lRangeAdj);
+        }
         else
+        {
             BCHP_SET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ, lRangeAdj);
-#endif
+        }
+#endif /* if BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_MASK */
         NEXUS_Platform_WriteRegister(BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE + 4*rectDelta + (inputIndex*VID_NLCONFIG_INDEX_DELTA), reg);
     }
-    if(curLRangeAdj != LRANGE_ADJ_DISABLE)
+    if (curLRangeAdj != LRANGE_ADJ_DISABLE)
+    {
         _lumaRangeAdj[rectIndex] = curLRangeAdj;
-}
-#endif
+    }
+} /* setPlmLumaRangeAdjVideo */
+
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
 
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
 bool CPlatform::getPlmLumaRangeAdjGraphics()
@@ -498,7 +514,8 @@ bool CPlatform::getPlmLumaRangeAdjGraphics()
 
     return(lRangeAdj == BCHP_GFD_0_NL_CSC_CTRL_LRANGE_ADJ_EN_ENABLE);
 }
-#endif
+
+#endif /* if HAS_GFX_NL_LUMA_RANGE_ADJ */
 
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
 void CPlatform::setPlmLumaRangeAdjGraphics(bool enable)
@@ -509,13 +526,19 @@ void CPlatform::setPlmLumaRangeAdjGraphics(bool enable)
 
     NEXUS_Platform_ReadRegister(BCHP_GFD_0_NL_CSC_CTRL, &reg);
     curLRangeAdj = BCHP_GET_FIELD_DATA(reg, GFD_0_NL_CSC_CTRL, LRANGE_ADJ_EN);
-    if(true == enable)
+    if (true == enable)
+    {
         lRangeAdj = 1;
+    }
     else
+    {
         lRangeAdj = 0;
-    if(lRangeAdj != curLRangeAdj) {
+    }
+    if (lRangeAdj != curLRangeAdj)
+    {
         BCHP_SET_FIELD_DATA(reg, GFD_0_NL_CSC_CTRL, LRANGE_ADJ_EN, lRangeAdj);
         NEXUS_Platform_WriteRegister(BCHP_GFD_0_NL_CSC_CTRL, reg);
     }
-}
-#endif
+} /* setPlmLumaRangeAdjGraphics */
+
+#endif /* if HAS_GFX_NL_LUMA_RANGE_ADJ */

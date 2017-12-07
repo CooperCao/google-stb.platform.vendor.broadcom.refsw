@@ -64,8 +64,10 @@ static bool texture_create_image(GLXX_TEXTURE_T *texture, unsigned face, unsigne
 
 static void texture_unbind_and_release_all(GLXX_TEXTURE_T *texture);
 static bool texture_unbind(GLXX_TEXTURE_T *texture, glxx_context_fences *fences);
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static bool texture_buffer_possible_complete(const GLXX_TEXTURE_T *texture);
 static bool texture_buffer_create_images(GLXX_TEXTURE_T *texture);
+#endif
 
 static bool in_secure_context(void)
 {
@@ -360,7 +362,9 @@ static void init_default_texture_sampler(enum glxx_tex_target target,
    sampler->unnormalised_coords = false;
    sampler->skip_srgb_decode = false;
 
+#if V3D_VER_AT_LEAST(4,0,2,0)
    memset(sampler->border_color, 0, sizeof(sampler->border_color));
+#endif
 
    sampler->debug_label = NULL;
 }
@@ -402,7 +406,7 @@ static void texture_term(void *v, size_t size)
 {
    GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)v;
 
-   vcos_unused(size);
+   unused(size);
    texture_unbind_and_release_all(texture);
 
    free(texture->debug_label);
@@ -1033,9 +1037,11 @@ bool glxx_texture_try_get_num_levels(const GLXX_TEXTURE_T *texture,
       *num_levels = 1;
       if (*base_level != 0)
          return false;
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (texture->target == GL_TEXTURE_BUFFER)
          return texture_buffer_possible_complete(texture);
       else
+#endif
       {
          if(texture->img[0][0] != NULL)
             return true;
@@ -1484,7 +1490,7 @@ static bool filtering_ok(const GLXX_TEXTURE_T *texture, bool shadow_compare)
    if (gfx_sized_internalformat_from_api_fmt_maybe(api_fmt) != GL_NONE)
    {
       if ((gfx_lfmt_has_color(api_fmt) && !glxx_is_texture_filterable_api_fmt(api_fmt)) ||
-          (KHRN_GLES31_DRIVER && gfx_lfmt_has_depth_stencil(api_fmt) &&
+          (V3D_VER_AT_LEAST(3,3,0,0) && gfx_lfmt_has_depth_stencil(api_fmt) &&
             texture->ds_texture_mode == GL_STENCIL_INDEX) ||
           (gfx_lfmt_has_depth(api_fmt) && !shadow_compare) ||
           (gfx_lfmt_has_stencil(api_fmt) && !gfx_lfmt_has_depth(api_fmt)))
@@ -1527,8 +1533,10 @@ glxx_texture_ensure_contiguous_blob_if_complete(GLXX_TEXTURE_T *texture,
 
    if (texture->immutable_format == GFX_LFMT_NONE)
    {
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (texture->target == GL_TEXTURE_BUFFER)
          return texture_buffer_create_images(texture);
+#endif
 
       bool same_blob;
       unsigned faces = num_faces(texture->target);
@@ -1575,9 +1583,10 @@ static enum glxx_tex_completeness get_base_level_image_and_num_levels(
    if (complete != COMPLETE)
       return complete;
 
-   if (texture->source)
+   assert(!texture->source || (texture->source && base_level == 0));
+
+   if (texture->source && *num_levels == 1)
    {
-      assert(base_level == 0 && *num_levels == 1);
       *image = get_image_for_texturing(texture->source, fences);
    }
    else
@@ -1620,7 +1629,7 @@ static uint32_t get_hw_stride(const khrn_blob *blob, unsigned plane_i)
    return 0; /* arr_str unused */
 }
 
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static void clamp_to_base_level(V3D_TMU_SAMPLER_T *s)
 {
    s->mipfilt = V3D_TMU_MIPFILT_NEAREST;
@@ -1691,222 +1700,20 @@ static v3d_tmu_filters_t get_tmu_filters(GLenum mag_filter, GLenum min_filter, f
 }
 #endif
 
-static bool uses_border_color(const GLXX_TEXTURE_SAMPLER_STATE_T *sampler)
+static void compose_swizzles(v3d_tmu_swizzle_t composed[4],
+   const v3d_tmu_swizzle_t fmt[4], const unsigned tex[4])
 {
-   return
-      sampler->wrap.s == GL_CLAMP_TO_BORDER ||
-      sampler->wrap.t == GL_CLAMP_TO_BORDER ||
-      sampler->wrap.r == GL_CLAMP_TO_BORDER;
-}
-
-static bool swizzles_01_or(const v3d_tmu_swizzle_t swizzles[4],
-   v3d_tmu_swizzle_t cmp0, v3d_tmu_swizzle_t cmp1, v3d_tmu_swizzle_t cmp2, v3d_tmu_swizzle_t cmp3)
-{
-   v3d_tmu_swizzle_t cmp[] = {cmp0, cmp1, cmp2, cmp3};
-   for (unsigned i = 0; i != 4; ++i)
-      if ((swizzles[i] != V3D_TMU_SWIZZLE_0) &&
-         (swizzles[i] != V3D_TMU_SWIZZLE_1) &&
-         (swizzles[i] != cmp[i]))
-         return false;
-   return true;
-}
-
-/* This must be called *before* composing tmu_trans->swizzles with texture->swizzle! */
-static GFX_LFMT_T get_hw_border_fmt(const GFX_LFMT_TMU_TRANSLATION_T *tmu_trans, bool output_32)
-{
-   #define SWIZZLES_01_OR(R,G,B,A)        \
-      swizzles_01_or(tmu_trans->swizzles, \
-         V3D_TMU_SWIZZLE_##R,             \
-         V3D_TMU_SWIZZLE_##G,             \
-         V3D_TMU_SWIZZLE_##B,             \
-         V3D_TMU_SWIZZLE_##A)
-
-   GFX_LFMT_T fmt;
-
-   if (v3d_tmu_is_depth_type(tmu_trans->type))
-   {
-#if V3D_VER_AT_LEAST(4,0,2,0)
-      /* Depth border is always applied in 32F on new hardware */
-      fmt = GFX_LFMT_R32_FLOAT;
-#else
-      /* Depth border colour is applied at a different stage in the pipeline.
-       * Format of border colour matches in-memory format of texture data. */
-      fmt = gfx_lfmt_translate_from_tmu_type(tmu_trans->type, /*srgb=*/false);
-#endif
-
-      /* See comment in else but we don't expect any format swizzling in this case */
-      assert(SWIZZLES_01_OR(R,G,B,A));
-   }
-   else
-   {
-      /* Border colour should be in blend format */
-      fmt = v3d_get_tmu_blend_fmt(tmu_trans->type, tmu_trans->srgb, /*shadow=*/false, output_32);
-
-      /* Border colour is handled by HW before swizzle, but format bit of
-       * swizzle (what's currently in tmu_trans->swizzles) should not be
-       * applied to border colour. So we need to apply the inverse of the
-       * format swizzle here... */
-      assert(gfx_lfmt_get_channels(&fmt) == GFX_LFMT_CHANNELS_RGBA);
-      if (SWIZZLES_01_OR(A,B,G,R))
-         gfx_lfmt_set_channels(&fmt, GFX_LFMT_CHANNELS_ABGR);
-      else if (SWIZZLES_01_OR(B,G,R,A))
-         gfx_lfmt_set_channels(&fmt, GFX_LFMT_CHANNELS_BGRA);
-      else if (SWIZZLES_01_OR(G,B,A,R))
-         gfx_lfmt_set_channels(&fmt, GFX_LFMT_CHANNELS_ARGB);
-      else if (SWIZZLES_01_OR(R,G,B,A))
-         gfx_lfmt_set_channels(&fmt, GFX_LFMT_CHANNELS_RGBA);
-      else if (SWIZZLES_01_OR(R,R,R,G))
-         gfx_lfmt_set_channels(&fmt, GFX_LFMT_CHANNELS_RAXX);
-      else
-         unreachable();
-   }
-
-   return fmt;
-
-   #undef SWIZZLES_01_OR
-}
-
-static void get_hw_border(uint8_t packed_bcol[16], const uint32_t tex_border_color[4], GFX_LFMT_T fmt)
-{
-   memset(packed_bcol, 0, 16);
-
-   switch (fmt)
-   {
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case GFX_LFMT_R16_UNORM:
-   {
-      uint32_t packed = gfx_float_to_unorm(gfx_float_from_bits(tex_border_color[0]), 16);
-      memcpy(packed_bcol, &packed, 2);
-      return;
-   }
-   case GFX_LFMT_R24X8_UNORM:
-   {
-      uint32_t packed = gfx_float_to_unorm(gfx_float_from_bits(tex_border_color[0]), 24);
-      memcpy(packed_bcol, &packed, 4);
-      return;
-   }
-   case GFX_LFMT_X8R24_UNORM:
-   {
-      uint32_t packed = gfx_float_to_unorm(gfx_float_from_bits(tex_border_color[0]), 24) << 8;
-      memcpy(packed_bcol, &packed, 4);
-      return;
-   }
-#endif
-   case GFX_LFMT_R32_FLOAT:
-      memcpy(packed_bcol, tex_border_color, 4);
-      return;
-   default:
-      break;
-   }
-
-   size_t bytes_per_channel;
-   uint32_t bcol[4];
-   switch (gfx_lfmt_get_base(&fmt))
-   {
-   case GFX_LFMT_BASE_C16_C16_C16_C16:
-   case GFX_LFMT_BASE_C15X1_C15X1_C15X1_C15X1:
-      bytes_per_channel = 2;
-      for (unsigned i = 0; i != 4; ++i)
-      {
-         uint32_t c = tex_border_color[i];
-         switch (fmt & ~GFX_LFMT_CHANNELS_MASK)
-         {
-         case GFX_LFMT_C16_C16_C16_C16_FLOAT:         bcol[i] = gfx_floatbits_to_float16(c); break;
-         case GFX_LFMT_C16_C16_C16_C16_UNORM:         bcol[i] = gfx_float_to_unorm(gfx_float_from_bits(c), 16); break;
-         case GFX_LFMT_C16_C16_C16_C16_SNORM:         bcol[i] = gfx_float_to_snorm(gfx_float_from_bits(c), 16); break;
-                                                      /* Bit 15 is not ignored by HW -- it must match bit 14! */
-         case GFX_LFMT_C15X1_C15X1_C15X1_C15X1_SNORM: bcol[i] = gfx_sext(gfx_float_to_snorm(gfx_float_from_bits(c), 15), 15) & 0xffff; break;
-         default:                                     unreachable();
-         }
-      }
-      break;
-   case GFX_LFMT_BASE_C32_C32_C32_C32:
-      bytes_per_channel = 4;
-      for (unsigned i = 0; i != 4; ++i)
-         bcol[i] = tex_border_color[i];
-
-      assert((fmt & ~GFX_LFMT_CHANNELS_MASK) == GFX_LFMT_C32_C32_C32_C32_FLOAT ||
-             (fmt & ~GFX_LFMT_CHANNELS_MASK) == GFX_LFMT_C32_C32_C32_C32_INT ||
-             (fmt & ~GFX_LFMT_CHANNELS_MASK) == GFX_LFMT_C32_C32_C32_C32_UINT  );
-      break;
-   default:
-      unreachable();
-   }
-
-   switch (gfx_lfmt_get_channels(&fmt))
-   {
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   #define PACK(A,B,C,D)                                       \
-      memcpy(packed_bcol + 0,  &bcol[A], bytes_per_channel);   \
-      memcpy(packed_bcol + 4,  &bcol[B], bytes_per_channel);   \
-      memcpy(packed_bcol + 8,  &bcol[C], bytes_per_channel);   \
-      memcpy(packed_bcol + 12, &bcol[D], bytes_per_channel);
-#else
-   #define PACK(A,B,C,D)                                                            \
-      memcpy(packed_bcol + (0 * bytes_per_channel), &bcol[A], bytes_per_channel);   \
-      memcpy(packed_bcol + (1 * bytes_per_channel), &bcol[B], bytes_per_channel);   \
-      memcpy(packed_bcol + (2 * bytes_per_channel), &bcol[C], bytes_per_channel);   \
-      memcpy(packed_bcol + (3 * bytes_per_channel), &bcol[D], bytes_per_channel);
-#endif
-   case GFX_LFMT_CHANNELS_ABGR:  PACK(3,2,1,0); break;
-   case GFX_LFMT_CHANNELS_BGRA:  PACK(2,1,0,3); break;
-   case GFX_LFMT_CHANNELS_ARGB:  PACK(3,0,1,2); break;
-   case GFX_LFMT_CHANNELS_RGBA:  PACK(0,1,2,3); break;
-   case GFX_LFMT_CHANNELS_RAXX:  PACK(0,3,0,0); break;
-   default:                      unreachable();
-   #undef PACK
-   }
-}
-
-static void compose_swizzles(v3d_tmu_swizzle_t swizzles[4], const unsigned tex_swizzles[4])
-{
-   v3d_tmu_swizzle_t swizzle_components[] = {
-      V3D_TMU_SWIZZLE_0,
-      V3D_TMU_SWIZZLE_1,
-      swizzles[0],
-      swizzles[1],
-      swizzles[2],
-      swizzles[3]};
    for (unsigned i = 0; i < 4; i++)
    {
-      assert(tex_swizzles[i] < countof(swizzle_components));
-      swizzles[i] = swizzle_components[tex_swizzles[i]];
-   }
-}
-
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-static glsl_gadgettype_t get_glsl_gadgettype_and_adjust_hw_swizzles(
-   GFX_LFMT_TMU_TRANSLATION_T *tmu_trans, bool is_32bit)
-{
-   if (v3d_tmu_is_depth_type(tmu_trans->type) &&
-      (tmu_trans->type != V3D_TMU_TYPE_DEPTH_COMP32F))
-      return GLSL_GADGETTYPE_DEPTH_FIXED;
-
-   if (tmu_trans->shader_swizzle)
-   {
-      glsl_gadgettype_t g;
-      switch (tmu_trans->ret) {
-      case GFX_LFMT_TMU_RET_8:         g = GLSL_GADGETTYPE_INT8; break;
-      case GFX_LFMT_TMU_RET_16:        g = GLSL_GADGETTYPE_INT16; break;
-      case GFX_LFMT_TMU_RET_32:        g = GLSL_GADGETTYPE_INT32; break;
-      case GFX_LFMT_TMU_RET_1010102:   g = GLSL_GADGETTYPE_INT10_10_10_2; break;
-      default:                         unreachable();
+      assert(tex[i] < 6);
+      switch (tex[i])
+      {
+      case 0:  composed[i] = V3D_TMU_SWIZZLE_0; break;
+      case 1:  composed[i] = V3D_TMU_SWIZZLE_1; break;
+      default: composed[i] = fmt[tex[i] - 2];
       }
-
-      glsl_gadgettype_t gadgettype = glsl_make_shader_swizzled_gadgettype(g, tmu_trans->swizzles);
-      tmu_trans->swizzles[0] = V3D_TMU_SWIZZLE_R;
-      tmu_trans->swizzles[1] = V3D_TMU_SWIZZLE_G;
-      tmu_trans->swizzles[2] = V3D_TMU_SWIZZLE_B;
-      tmu_trans->swizzles[3] = V3D_TMU_SWIZZLE_A;
-      return gadgettype;
-   }
-   else
-   {
-      bool tmu_output_32bit = v3d_tmu_auto_output_32(tmu_trans->type, /*shadow=*/false);
-      return glsl_make_tmu_swizzled_gadgettype(tmu_output_32bit, is_32bit);
    }
 }
-#endif
 
 /* Converts the texture wrap setting from the GLenum
  * representation to the internal one used in the HW.
@@ -1976,32 +1783,37 @@ static v3d_tmu_wrap_t get_hw_wrap(GLenum wrap)
 
 static void get_plane_and_lfmt_for_texturing(const khrn_image *img_base,
       glxx_ds_texture_mode ds_texture_mode,
-      unsigned *plane , GFX_LFMT_T *lfmt)
+      unsigned *plane , GFX_LFMT_T *lfmt, bool *need_depth_type)
 {
    /* we describe everything relative to the beginning of the blob */
    const GFX_BUFFER_DESC_T *desc_base = &img_base->blob->desc[0];
 
+   *need_depth_type = false;
    if ((ds_texture_mode == GL_STENCIL_INDEX && gfx_lfmt_has_depth_stencil(img_base->api_fmt)) ||
         (gfx_lfmt_has_stencil(img_base->api_fmt) && !gfx_lfmt_has_depth(img_base->api_fmt)))
    {
       /* stencil is always in the last plane */
       *plane = khrn_image_get_num_planes(img_base) - 1;
       *lfmt = desc_base->planes[*plane].lfmt;
-      *lfmt = gfx_lfmt_depth_to_x(*lfmt);
+      *lfmt = gfx_lfmt_ds_to_red(gfx_lfmt_depth_to_x(*lfmt));
    }
    else if (gfx_lfmt_has_depth(img_base->api_fmt))
    {
       *plane = 0;
       *lfmt = desc_base->planes[*plane].lfmt;
-      *lfmt = gfx_lfmt_stencil_to_x(*lfmt);
+      *lfmt = gfx_lfmt_ds_to_red(gfx_lfmt_stencil_to_x(*lfmt));
+#if !V3D_HAS_TMU_R32F_R16_SHAD
+      /* We must use a depth type if we're reading a depth channel -- if we
+       * don't and the lookup is a shadow-compare lookup it won't work. The
+       * other way around doesn't matter. */
+      *need_depth_type = true;
+#endif
    }
    else
    {
       *plane = 0;
       *lfmt = desc_base->planes[*plane].lfmt;
    }
-
-   return;
 }
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -2032,8 +1844,9 @@ struct hw_tex_params
    uint32_t arr_str;
    struct gfx_buffer_uif_cfg uif_cfg;
    GFX_LFMT_TMU_TRANSLATION_T tmu_trans;
+   v3d_tmu_swizzle_t composed_swizzles[4]; // tmu_trans.swizzles composed with swizzles from texture object
    bool yflip;
-   uint32_t base_level;
+   uint32_t base_level, max_level;
    GFX_LFMT_T tex_lfmt;
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -2069,8 +1882,9 @@ static bool record_tex_usage_and_get_hw_params(
 
    unsigned plane;
    GFX_LFMT_T tex_lfmt; /* lfmt used for texturing --> d or s are used as red */
+   bool need_depth_type;
    get_plane_and_lfmt_for_texturing(img_base, texture->ds_texture_mode,
-            &plane, &tex_lfmt);
+            &plane, &tex_lfmt, &need_depth_type);
    if (image_unit)
    {
       assert(plane == 0);
@@ -2082,23 +1896,11 @@ static bool record_tex_usage_and_get_hw_params(
    v3d_addr_t base_addr = gmem_get_addr(blob_base->res->handle) +
       (img_base->start_elem * blob_base->array_pitch);
 
-#if V3D_HAS_LARGE_1D_TEXTURE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (glxx_tex_target_is_1d(texture->target))
       v3d_tmu_get_wh_for_1d_tex_state(&tp->w, &tp->h, desc_base->width);
-#else
-   if (texture->target == GL_TEXTURE_BUFFER)
-   {
-      GFX_LFMT_BASE_DETAIL_T bd;
-      gfx_lfmt_base_detail(&bd, desc_base->planes[0].lfmt);
-
-      /* this assert is not true for RGB32(F/I/UI), but we are going to treat
-       * those as R32 textures*/
-      assert(GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES % bd.bytes_per_block == 0);
-      tp->w = GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES / bd.bytes_per_block;
-      tp->h = 1;
-   }
-#endif
    else
+#endif
    {
       tp->w = desc_base->width;
       tp->h = desc_base->height;
@@ -2108,17 +1910,17 @@ static bool record_tex_usage_and_get_hw_params(
 
    tp->tex_lfmt = tex_lfmt;
 
-   gfx_lfmt_translate_tmu(&tp->tmu_trans, gfx_lfmt_ds_to_red(tex_lfmt)
-#if !V3D_HAS_TMU_R32F_R16_SHAD
-      /* We must use a depth type if we're reading a depth channel -- if we
-       * don't and the lookup is a shadow-compare lookup it won't work. The
-       * other way around doesn't matter. */
-      , gfx_lfmt_has_depth(tex_lfmt)
+#if V3D_HAS_TMU_R32F_R16_SHAD
+   assert(!need_depth_type);
+   gfx_lfmt_translate_tmu(&tp->tmu_trans, tex_lfmt);
+#else
+   gfx_lfmt_translate_tmu(&tp->tmu_trans, tex_lfmt, need_depth_type);
 #endif
-      );
+   compose_swizzles(tp->composed_swizzles, tp->tmu_trans.swizzles, texture->swizzle);
    tp->yflip = !!(tex_lfmt & GFX_LFMT_YFLIP_YFLIP);
 
    tp->base_level = img_base->level;
+   tp->max_level = tp->base_level + num_levels - 1;
 
    v3d_addr_t img_base_plane_addr = base_addr + img_base_plane->offset;
 
@@ -2153,37 +1955,26 @@ static bool record_tex_usage_and_get_hw_params(
       assert(img_base->start_slice == 0);
 
       tp->l0_addr = base_addr + desc_base->planes[plane].offset;
+      tp->d = desc_base->depth * khrn_image_get_num_elems(img_base);
 
-#if !V3D_HAS_LARGE_1D_TEXTURE
-      if (texture->target == GL_TEXTURE_BUFFER)
+      /* For image units which are using a single face, img_base will already
+       * contain only a single 2d slice, so num_elems should be 1 and is
+       * correct. For cubemaps img_base *always* contains only a single face,
+       * so num_elems will always return 1. For cubemap arrays img_base
+       * contains the whole image and so will have num_elems == array_layers * 6.
+       * Image units expect a depth of 6*array_layers, but textures expect just
+       * array_layers. Correct the two cases as appropriate. */
+      if (image_unit && image_unit->use_face_layer)
+         assert(tp->d == 1);
+      else if (image_unit && texture->target == GL_TEXTURE_CUBE_MAP)
+         tp->d *= 6;
+      else if (!image_unit && texture->target == GL_TEXTURE_CUBE_MAP_ARRAY)
       {
-         tp->d = gfx_udiv_round_up(desc_base->width, tp->w);
-         tp->arr_str = GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES;
+         assert((tp->d % 6) == 0);
+         tp->d /= 6;
       }
-      else
-#endif
-      {
-         tp->d = desc_base->depth * khrn_image_get_num_elems(img_base);
 
-         /* For image units which are using a single face, img_base will already
-          * contain only a single 2d slice, so num_elems should be 1 and is
-          * correct. For cubemaps img_base *always* contains only a single face,
-          * so num_elems will always return 1. For cubemap arrays img_base
-          * contains the whole image and so will have num_elems == array_layers * 6.
-          * Image units expect a depth of 6*array_layers, but textures expect just
-          * array_layers. Correct the two cases as appropriate. */
-         if (image_unit && image_unit->use_face_layer)
-            assert(tp->d == 1);
-         else if (image_unit && texture->target == GL_TEXTURE_CUBE_MAP)
-            tp->d *= 6;
-         else if (!image_unit && texture->target == GL_TEXTURE_CUBE_MAP_ARRAY)
-         {
-            assert((tp->d % 6) == 0);
-            tp->d /= 6;
-         }
-
-         tp->arr_str = get_hw_stride(blob_base, plane);
-      }
+      tp->arr_str = get_hw_stride(blob_base, plane);
    }
 
    assert(v3d_addr_aligned(tp->l0_addr, V3D_TMU_ML_ALIGN));
@@ -2201,44 +1992,53 @@ static bool record_tex_usage_and_get_hw_params(
    return true;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
-
-static bool std_bcol_0001_works(bool *reverse_std_bcol, GFX_LFMT_T hw_border_fmt)
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+static glsl_gadgettype_t get_glsl_gadgettype_and_adjust_composed_swizzles(
+   struct hw_tex_params *tp, bool is_32bit)
 {
-   GFX_LFMT_CHANNELS_T channels = gfx_lfmt_get_channels(&hw_border_fmt);
-   uint32_t alpha_channel = gfx_lfmt_has_alpha((GFX_LFMT_T)channels) ?
-      (1u << gfx_lfmt_alpha_index((GFX_LFMT_T)channels)) : 0;
-   uint32_t non_alpha_channels = gfx_lfmt_valid_chan_mask((GFX_LFMT_T)channels) & ~alpha_channel;
+   if (v3d_tmu_is_depth_type(tp->tmu_trans.type) &&
+      (tp->tmu_trans.type != V3D_TMU_TYPE_DEPTH_COMP32F))
+      return GLSL_GADGETTYPE_DEPTH_FIXED;
 
-   if (!(alpha_channel & 0x7) && !(non_alpha_channels & 0x8))
+   if (tp->tmu_trans.shader_swizzle)
    {
-      *reverse_std_bcol = false;
-      return true;
-   }
+      glsl_gadgettype_t g;
+      switch (tp->tmu_trans.ret) {
+      case GFX_LFMT_TMU_RET_8:         g = GLSL_GADGETTYPE_INT8; break;
+      case GFX_LFMT_TMU_RET_16:        g = GLSL_GADGETTYPE_INT16; break;
+      case GFX_LFMT_TMU_RET_32:        g = GLSL_GADGETTYPE_INT32; break;
+      case GFX_LFMT_TMU_RET_1010102:   g = GLSL_GADGETTYPE_INT10_10_10_2; break;
+      default:                         unreachable();
+      }
 
-   if (!(alpha_channel & 0xe) && !(non_alpha_channels & 0x1))
+      glsl_gadgettype_t gadgettype = glsl_make_shader_swizzled_gadgettype(g, tp->composed_swizzles);
+      tp->composed_swizzles[0] = V3D_TMU_SWIZZLE_R;
+      tp->composed_swizzles[1] = V3D_TMU_SWIZZLE_G;
+      tp->composed_swizzles[2] = V3D_TMU_SWIZZLE_B;
+      tp->composed_swizzles[3] = V3D_TMU_SWIZZLE_A;
+      return gadgettype;
+   }
+   else
    {
-      *reverse_std_bcol = true;
-      return true;
+      bool tmu_output_32bit = v3d_tmu_auto_output_32(tp->tmu_trans.type, /*shadow=*/false);
+      return glsl_make_tmu_swizzled_gadgettype(tmu_output_32bit, is_32bit);
    }
-
-   *reverse_std_bcol = false;
-   return false;
 }
+#endif
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
 
 /* Returns true iff state extension needed */
 static bool pack_tex_state(
    uint8_t hw_tex_state[V3D_TMU_TEX_STATE_PACKED_SIZE + V3D_TMU_TEX_EXTENSION_PACKED_SIZE],
-   bool *std_bcol_0001_ok,
-   const struct hw_tex_params *tp, uint32_t num_levels,
-   GFX_LFMT_T hw_border_fmt)
+   const struct hw_tex_params *tp)
 {
    V3D_TMU_TEX_STATE_T s;
    s.flipx = false;
    s.flipy = tp->yflip;
    s.srgb = tp->tmu_trans.srgb;
    s.ahdr = false;
-   *std_bcol_0001_ok = std_bcol_0001_works(&s.reverse_std_bcol, hw_border_fmt);
+   s.reverse_std_bcol = false;
    s.l0_addr = tp->l0_addr;
    s.arr_str = tp->arr_str;
    s.width = tp->w;
@@ -2246,8 +2046,8 @@ static bool pack_tex_state(
    s.depth = tp->d;
    s.type = tp->tmu_trans.type;
    s.extended = tp->uif_cfg.force;
-   memcpy(s.swizzles, tp->tmu_trans.swizzles, sizeof(s.swizzles));
-   s.max_level = tp->base_level + num_levels - 1;
+   memcpy(s.swizzles, tp->composed_swizzles, sizeof(s.swizzles));
+   s.max_level = tp->max_level;
    s.base_level = tp->base_level;
    v3d_pack_tmu_tex_state(hw_tex_state, &s);
 
@@ -2265,26 +2065,37 @@ static bool pack_tex_state(
    return s.extended;
 }
 
-static void clamp_bcols(uint32_t bcol_out[4], const uint32_t bcol_in[4], GFX_LFMT_T tex_fmt)
+static bool uses_border_color(const GLXX_TEXTURE_SAMPLER_STATE_T *sampler)
+{
+   return
+      sampler->wrap.s == GL_CLAMP_TO_BORDER ||
+      sampler->wrap.t == GL_CLAMP_TO_BORDER ||
+      sampler->wrap.r == GL_CLAMP_TO_BORDER;
+}
+
+static void clamp_border_color(uint32_t bcol_out[4], const uint32_t bcol_in[4], GFX_LFMT_T tex_fmt)
 {
    GFX_LFMT_TYPE_T type = gfx_lfmt_get_type(&tex_fmt);
 
    switch(type) {
       case GFX_LFMT_TYPE_UFLOAT:
+         for (int i=0; i<4; i++)
+            if (gfx_float_from_bits(bcol_in[i]) <= 0.0f)
+               bcol_out[i] = 0;
+            else
+               bcol_out[i] = bcol_in[i];
+         break;
       case GFX_LFMT_TYPE_FLOAT:
          for (int i=0; i<4; i++) bcol_out[i] = bcol_in[i];
          break;
       case GFX_LFMT_TYPE_UINT:
       case GFX_LFMT_TYPE_INT:
       {
-         int chan_bits[4] = { 0, };
-         if (gfx_lfmt_has_stencil(tex_fmt)) chan_bits[0] = gfx_lfmt_stencil_bits(tex_fmt);
-         else {
-            chan_bits[0] = gfx_lfmt_red_bits(tex_fmt);
-            chan_bits[1] = gfx_lfmt_green_bits(tex_fmt);
-            chan_bits[2] = gfx_lfmt_blue_bits(tex_fmt);
-            chan_bits[3] = gfx_lfmt_alpha_bits(tex_fmt);
-         }
+         int chan_bits[] = {
+            gfx_lfmt_red_bits(tex_fmt),
+            gfx_lfmt_green_bits(tex_fmt),
+            gfx_lfmt_blue_bits(tex_fmt),
+            gfx_lfmt_alpha_bits(tex_fmt)};
          for (int i=0; i<4; i++) {
             if (chan_bits[i] == 0) continue;
 
@@ -2310,17 +2121,114 @@ static void clamp_bcols(uint32_t bcol_out[4], const uint32_t bcol_in[4], GFX_LFM
    }
 }
 
-static bool bcol_eq(const uint32_t bcol[4], uint32_t c, uint32_t a)
+static bool swizzles_01_or(const v3d_tmu_swizzle_t swizzles[4],
+   v3d_tmu_swizzle_t cmp0, v3d_tmu_swizzle_t cmp1, v3d_tmu_swizzle_t cmp2, v3d_tmu_swizzle_t cmp3)
 {
-   return (bcol[0] == c) && (bcol[1] == c) && (bcol[2] == c) && (bcol[3] == a);
+   v3d_tmu_swizzle_t cmp[] = {cmp0, cmp1, cmp2, cmp3};
+   for (unsigned i = 0; i != 4; ++i)
+      if ((swizzles[i] != V3D_TMU_SWIZZLE_0) &&
+         (swizzles[i] != V3D_TMU_SWIZZLE_1) &&
+         (swizzles[i] != cmp[i]))
+         return false;
+   return true;
+}
+
+// TODO Not entirely correct if V3D_HAS_TMU_R32F_R16_SHAD. See GFXH-1498.
+static void get_hw_border(uint32_t hw[4], const uint32_t in[4],
+   const struct hw_tex_params *tp, bool is_32bit)
+{
+   uint32_t clamped[4];
+   clamp_border_color(clamped, in, tp->tex_lfmt);
+
+   #define FMT_SWIZZLES_01_OR(R,G,B,A)       \
+      swizzles_01_or(tp->tmu_trans.swizzles, \
+         V3D_TMU_SWIZZLE_##R,                \
+         V3D_TMU_SWIZZLE_##G,                \
+         V3D_TMU_SWIZZLE_##B,                \
+         V3D_TMU_SWIZZLE_##A)
+
+   if (v3d_tmu_is_depth_type(tp->tmu_trans.type))
+   {
+      // Depth border always supplied as R32F
+      assert(FMT_SWIZZLES_01_OR(R,G,B,A)); // See comment below but we don't expect any format swizzling in this case
+      hw[0] = clamped[0];
+      return;
+   }
+
+   // Border colour should be in blend format...
+   GFX_LFMT_T fmt = v3d_get_tmu_blend_fmt(tp->tmu_trans.type, tp->tmu_trans.srgb, /*shadow=*/false, is_32bit);
+   assert(gfx_lfmt_get_channels(&fmt) == GFX_LFMT_CHANNELS_RGBA); // Which is always RGBA
+
+   uint32_t hw_unswizzled[4];
+   switch (gfx_lfmt_get_base(&fmt))
+   {
+   case GFX_LFMT_BASE_C16_C16_C16_C16:
+   case GFX_LFMT_BASE_C15X1_C15X1_C15X1_C15X1:
+      for (unsigned i = 0; i != 4; ++i)
+      {
+         uint32_t c = clamped[i];
+         switch (fmt & ~GFX_LFMT_CHANNELS_MASK)
+         {
+         case GFX_LFMT_C16_C16_C16_C16_FLOAT:         hw_unswizzled[i] = gfx_floatbits_to_float16(c); break;
+         case GFX_LFMT_C16_C16_C16_C16_UNORM:         hw_unswizzled[i] = gfx_float_to_unorm(gfx_float_from_bits(c), 16); break;
+         case GFX_LFMT_C16_C16_C16_C16_SNORM:         hw_unswizzled[i] = gfx_float_to_snorm(gfx_float_from_bits(c), 16); break;
+#if V3D_VER_AT_LEAST(4,2,13,0)
+         case GFX_LFMT_C15X1_C15X1_C15X1_C15X1_SNORM: hw_unswizzled[i] = gfx_float_to_snorm(gfx_float_from_bits(c), 15); break;
+#else
+                                                      /* Bit 15 is not ignored by HW -- it must match bit 14! */
+         case GFX_LFMT_C15X1_C15X1_C15X1_C15X1_SNORM: hw_unswizzled[i] = gfx_sext(gfx_float_to_snorm(gfx_float_from_bits(c), 15), 15) & 0xffff; break;
+#endif
+         default:                                     unreachable();
+         }
+      }
+      break;
+   case GFX_LFMT_BASE_C32_C32_C32_C32:
+      for (unsigned i = 0; i != 4; ++i)
+         hw_unswizzled[i] = clamped[i];
+
+      assert((fmt & ~GFX_LFMT_CHANNELS_MASK) == GFX_LFMT_C32_C32_C32_C32_FLOAT ||
+             (fmt & ~GFX_LFMT_CHANNELS_MASK) == GFX_LFMT_C32_C32_C32_C32_INT ||
+             (fmt & ~GFX_LFMT_CHANNELS_MASK) == GFX_LFMT_C32_C32_C32_C32_UINT  );
+      break;
+   default:
+      unreachable();
+   }
+
+   #define SWIZZLE(A,B,C,D)         \
+      do                            \
+      {                             \
+         hw[0] = hw_unswizzled[A];  \
+         hw[1] = hw_unswizzled[B];  \
+         hw[2] = hw_unswizzled[C];  \
+         hw[3] = hw_unswizzled[D];  \
+      } while (0)
+
+   // HW applies swizzle to border colour, but we don't want to apply format
+   // bit of swizzle (tp->tmu_trans.swizzles) to border colour. So we need to
+   // apply the inverse of the format swizzle here...
+   if (FMT_SWIZZLES_01_OR(A,B,G,R))
+      SWIZZLE(3,2,1,0);
+   else if (FMT_SWIZZLES_01_OR(B,G,R,A))
+      SWIZZLE(2,1,0,3);
+   else if (FMT_SWIZZLES_01_OR(G,B,A,R))
+      SWIZZLE(3,0,1,2);
+   else if (FMT_SWIZZLES_01_OR(R,G,B,A))
+      SWIZZLE(0,1,2,3);
+   else if (FMT_SWIZZLES_01_OR(R,R,R,G))
+      SWIZZLE(0,3,0,0);
+   else
+      unreachable();
+
+   #undef SWIZZLE
+
+   #undef FMT_SWIZZLES_01_OR
 }
 
 /* Returns true iff sampler extension (for non-standard border colour) needed */
 static bool pack_sampler(
    uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE + 16],
    const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
-   GFX_LFMT_T tex_fmt,
-   GFX_LFMT_T hw_border_fmt, bool std_bcol_0001_ok)
+   const struct hw_tex_params *tp, bool is_32bit)
 {
    V3D_TMU_SAMPLER_T s;
    s.compare_func = glxx_hw_convert_test_function(sampler->compare_func);
@@ -2334,7 +2242,7 @@ static bool pack_sampler(
       min_filter = filter_disable_mipmapping(min_filter);
       anisotropy = 0.0f;
    }
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    set_tmu_filters(&s, sampler->filter.mag, min_filter, anisotropy); // Must call after min_lod/max_lod set
 #else
    s.filters = get_tmu_filters(sampler->filter.mag, min_filter, anisotropy);
@@ -2346,21 +2254,10 @@ static bool pack_sampler(
    s.wrap_i = V3D_TMU_WRAP_I_CLAMP; /* All lookup types which use a sampler want clamping for array index */
    if (uses_border_color(sampler))
    {
-      uint32_t bcol[4];
-      uint32_t one = gfx_lfmt_contains_int(hw_border_fmt) ? 1 : gfx_float_to_bits(1.0f);
-      clamp_bcols(bcol, sampler->border_color, tex_fmt);
-
-      if (bcol_eq(bcol, 0, 0))
-         s.std_bcol = V3D_TMU_STD_BCOL_0000;
-      else if (std_bcol_0001_ok && bcol_eq(bcol, 0, one))
-         s.std_bcol = V3D_TMU_STD_BCOL_0001;
-      else if (bcol_eq(bcol, one, one))
-         s.std_bcol = V3D_TMU_STD_BCOL_1111;
-      else
-      {
-         s.std_bcol = V3D_TMU_STD_BCOL_NON_STD;
-         get_hw_border(hw_sampler + V3D_TMU_SAMPLER_PACKED_SIZE, bcol, hw_border_fmt);
-      }
+      s.std_bcol = V3D_TMU_STD_BCOL_NON_STD;
+      uint32_t hw_border[4] = {0};
+      get_hw_border(hw_border, sampler->border_color, tp, is_32bit);
+      memcpy(hw_sampler + V3D_TMU_SAMPLER_PACKED_SIZE, hw_border, 16);
    }
    else
       s.std_bcol = V3D_TMU_STD_BCOL_0000;
@@ -2368,12 +2265,40 @@ static bool pack_sampler(
    return s.std_bcol == V3D_TMU_STD_BCOL_NON_STD;
 }
 
+static bool set_tex_unif_hw_params(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
+   const struct hw_tex_params *tp, const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
+   const GLSL_SAMPLER_T *glsl_sampler, bool is_image)
+{
+   uint8_t hw_tex_state[V3D_TMU_TEX_STATE_PACKED_SIZE + V3D_TMU_TEX_EXTENSION_PACKED_SIZE];
+   bool tex_state_extended = pack_tex_state(hw_tex_state, tp);
+   /* Everything else in param 0 comes from the shader */
+   texture_unif->hw_param[0] = khrn_fmem_add_tmu_tex_state(fmem, hw_tex_state, tex_state_extended, glsl_sampler->in_array);
+   if (!texture_unif->hw_param[0])
+      return false;
+
+   if (is_image)
+      texture_unif->hw_param[1] = 0; // hw_param1 gets ignored in this case
+   else
+   {
+      uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE + 16];
+      bool sampler_extended = pack_sampler(hw_sampler, sampler, tp, glsl_sampler->is_32bit); // tp/is_32bit needed for border color packing!
+      V3D_TMU_PARAM1_T p1 = {
+         /* Everything else in param 1 comes from the shader */
+         .unnorm = sampler->unnormalised_coords,
+         .sampler_addr = khrn_fmem_add_tmu_sampler(fmem, hw_sampler, sampler_extended, glsl_sampler->in_array)};
+      if (!p1.sampler_addr)
+         return false;
+      texture_unif->hw_param[1] = v3d_pack_tmu_param1(&p1);
+   }
+
+   return true;
+}
+
 #else
 
-static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
-   enum glxx_tex_target tex_target, const struct hw_tex_params *tp, unsigned num_levels,
-   const GLXX_TEXTURE_SAMPLER_STATE_T *sampler, GFX_LFMT_T hw_border_fmt,
-   bool is_32bit)
+static bool set_tex_unif_hw_params(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
+   const struct hw_tex_params *tp, const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
+   const GLSL_SAMPLER_T *glsl_sampler, enum glxx_tex_target tex_target)
 {
    bool is_cube_map = tex_target == GL_TEXTURE_CUBE_MAP;
    bool unnormalised_coords = sampler->unnormalised_coords && !is_cube_map;
@@ -2406,16 +2331,15 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
       GLenum min_filter = sampler->filter.min;
       float anisotropy = sampler->anisotropy;
 
-      unsigned max_level = tp->base_level + num_levels - 1;
-      if ((max_level == tp->base_level) || unnormalised_coords)
+      if ((tp->max_level == tp->base_level) || unnormalised_coords)
       {
          min_filter = filter_disable_mipmapping(min_filter);
          anisotropy = 0.0f;
       }
       else
       {
-         min_lod = gfx_umin(min_lod, max_level << V3D_TMU_F_BITS);
-         max_lod = gfx_umin(max_lod, max_level << V3D_TMU_F_BITS);
+         min_lod = gfx_umin(min_lod, tp->max_level << V3D_TMU_F_BITS);
+         max_lod = gfx_umin(max_lod, tp->max_level << V3D_TMU_F_BITS);
       }
 
 #if !V3D_VER_AT_LEAST(3,3,1,0)
@@ -2458,23 +2382,17 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
    ind.srgb    = tp->tmu_trans.srgb && !sampler->skip_srgb_decode;
    ind.ahdr    = false;
    ind.compare_func = glxx_hw_convert_test_function(sampler->compare_func);
-   memcpy(ind.swizzles, tp->tmu_trans.swizzles, sizeof(ind.swizzles));
+   memcpy(ind.swizzles, tp->composed_swizzles, sizeof(ind.swizzles));
    ind.flipx     = false;
    ind.flipy     = tp->yflip;
    ind.bcolour   = 0;
-   if (uses_border_color(sampler))
-   {
-      uint8_t bcolour[16];
-      get_hw_border(bcolour, sampler->border_color, hw_border_fmt);
-      memcpy(&ind.bcolour, bcolour, 8);
-   }
    ind.u.not_child_image.min_lod = min_lod;
    ind.u.not_child_image.max_lod = max_lod;
    ind.u.not_child_image.fixed_bias = 0;
    ind.u.not_child_image.base_level = tp->base_level;
    ind.u.not_child_image.samp_num = 0;
 #if V3D_VER_AT_LEAST(3,3,0,0)
-   ind.u.not_child_image.output_type = is_32bit ? V3D_TMU_OUTPUT_TYPE_32 : V3D_TMU_OUTPUT_TYPE_16;
+   ind.u.not_child_image.output_type = glsl_sampler->is_32bit ? V3D_TMU_OUTPUT_TYPE_32 : V3D_TMU_OUTPUT_TYPE_16;
 #else
    ind.u.not_child_image.output_type = V3D_TMU_OUTPUT_TYPE_AUTO;
 #endif
@@ -2497,7 +2415,8 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
    texture_unif->hw_param[1] = v3d_pack_tmu_param1_cfg1(&p1);
 
    v3d_tmu_swizzle_t swizzle_0 = ind.swizzles[0];
-   ind.filters = (num_levels == 1) ? V3D_TMU_FILTERS_MIN_LIN_MAG_LIN : V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_LIN;
+   ind.filters = (tp->base_level == tp->max_level) ?
+      V3D_TMU_FILTERS_MIN_LIN_MAG_LIN : V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_LIN;
    for (int i=0; i<4; i++) {
       ind.swizzles[0] = ind.swizzles[i];
       v3d_pack_tmu_indirect_not_child_image(hw_indirect, &ind);
@@ -2507,11 +2426,23 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
       texture_unif->hw_param1_gather[i] = v3d_pack_tmu_param1_cfg1(&p1);
    }
 
+   if(v3d_tmu_filters_is_anisotropic(filters)) {
+      /* Ideally we would create another indirect record with filters set to
+       * mag/min/mip = linear but that seems a little excessive for this edge
+       * case. So just use the gather indirect record which has filters set to
+       * mag/min = linear, mip = nearest. If this turns out to be unsatisfactory
+       * an additional record could be added. */
+      texture_unif->hw_param1_no_aniso = texture_unif->hw_param1_gather[0];
+   } else {
+      /* Anisotropic filtering is not enabled so no change required */
+      texture_unif->hw_param1_no_aniso = texture_unif->hw_param[1];
+   }
+
    ind.swizzles[0] = swizzle_0;
    ind.srgb = tp->tmu_trans.srgb;      // Ignore the sampler state for fetch
    // See GFXH-1363: must not use min/max LoD from sampler for fetch lookups...
    ind.u.not_child_image.min_lod = tp->base_level << 8;
-   ind.u.not_child_image.max_lod = (tp->base_level + num_levels - 1) << 8;
+   ind.u.not_child_image.max_lod = tp->max_level << 8;
    v3d_pack_tmu_indirect_not_child_image(hw_indirect, &ind);
    p1.unnorm = false; /* Must not set both fetch & unnorm! */
    p1.ts_base = khrn_fmem_add_tmu_indirect(fmem, hw_indirect);
@@ -2525,13 +2456,10 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
 
 enum glxx_tex_completeness
 glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_unit *image_unit,
-      const GLXX_TEXTURE_SAMPLER_STATE_T *sampler, bool used_in_bin, bool is_32bit,
-      glxx_render_state *rs, GLXX_TEXTURE_UNIF_T *texture_unif,
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-      glsl_gadgettype_t *gadgettype,
-#endif
-      glxx_context_fences *fences)
+      const GLXX_TEXTURE_SAMPLER_STATE_T *sampler, const GLSL_SAMPLER_T* glsl_sampler,
+      glxx_render_state *rs, GLXX_TEXTURE_UNIF_T *texture_unif, glxx_context_fences *fences)
 {
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (texture->target == GL_TEXTURE_BUFFER)
    {
       if (!texture_buffer_possible_complete(texture))
@@ -2539,6 +2467,7 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
       if (!texture_buffer_create_images(texture))
          return OUT_OF_MEMORY;
    }
+#endif
 
    khrn_image *img_base = NULL;
    uint32_t num_levels;
@@ -2548,7 +2477,7 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
       return complete;
 
    struct hw_tex_params tp;
-   if (!record_tex_usage_and_get_hw_params(&tp, rs, texture, image_unit, img_base, num_levels, used_in_bin))
+   if (!record_tex_usage_and_get_hw_params(&tp, rs, texture, image_unit, img_base, num_levels, glsl_sampler->in_binning))
    {
       KHRN_MEM_ASSIGN(img_base, NULL);
       return OUT_OF_MEMORY;
@@ -2563,6 +2492,8 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
    else
       texture_unif->depth = khrn_image_get_depth(img_base) * khrn_image_get_num_elems(img_base);
 
+   KHRN_MEM_ASSIGN(img_base, NULL);
+
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    texture_unif->base_level = tp.base_level;
 
@@ -2573,58 +2504,18 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
    texture_unif->lx_swizzling = tp.lx_swizzling;
 #endif
 
-#if !V3D_HAS_LARGE_1D_TEXTURE
-   if (texture->target == GL_TEXTURE_BUFFER)
-   {
-      texture_unif->texbuffer_log2_arr_elem_w = gfx_log2(tp.w);
-      texture_unif->texbuffer_arr_elem_w_minus_1 = tp.w - 1;
-   }
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   texture_unif->gadgettype = get_glsl_gadgettype_and_adjust_composed_swizzles(&tp, glsl_sampler->is_32bit);
 #endif
 
-   KHRN_MEM_ASSIGN(img_base, NULL);
-
-#if V3D_VER_AT_LEAST(3,3,0,0)
-   GFX_LFMT_T hw_border_fmt = get_hw_border_fmt(&tp.tmu_trans, is_32bit);
-#else
-   GFX_LFMT_T hw_border_fmt = get_hw_border_fmt(&tp.tmu_trans,
-      v3d_tmu_auto_output_32(tp.tmu_trans.type, /*shadow=*/false));
-#endif
-
-   compose_swizzles(tp.tmu_trans.swizzles, texture->swizzle);
-
+   if (!set_tex_unif_hw_params(texture_unif, &rs->fmem, &tp, sampler, glsl_sampler,
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   uint8_t hw_tex_state[V3D_TMU_TEX_STATE_PACKED_SIZE + V3D_TMU_TEX_EXTENSION_PACKED_SIZE];
-   bool std_bcol_0001_ok;
-   bool tex_state_extended = pack_tex_state(hw_tex_state, &std_bcol_0001_ok,
-         &tp, num_levels, hw_border_fmt);
-   /* Everything else in param 0 comes from the shader */
-   texture_unif->hw_param[0] = khrn_fmem_add_tmu_tex_state(&rs->fmem, hw_tex_state, tex_state_extended);
-   if (!texture_unif->hw_param[0])
-      return OUT_OF_MEMORY;
-
-   if (image_unit)
-      texture_unif->hw_param[1] = 0; // hw_param1 gets ignored in this case
-   else
-   {
-      uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE + 16];
-      bool sampler_extended = pack_sampler(hw_sampler, sampler, tp.tex_lfmt, hw_border_fmt, std_bcol_0001_ok);
-      V3D_TMU_PARAM1_T p1 = {
-         /* Everything else in param 1 comes from the shader */
-         .unnorm = sampler->unnormalised_coords,
-         .sampler_addr = khrn_fmem_add_tmu_sampler(&rs->fmem, hw_sampler, sampler_extended)};
-      if (!p1.sampler_addr)
-         return OUT_OF_MEMORY;
-      texture_unif->hw_param[1] = v3d_pack_tmu_param1(&p1);
-   }
+         image_unit != NULL
 #else
-# if !V3D_VER_AT_LEAST(3,3,0,0)
-   *gadgettype = get_glsl_gadgettype_and_adjust_hw_swizzles(&tp.tmu_trans, is_32bit);
-# endif
-
-   if (!pack_tmu_config(texture_unif, &rs->fmem,
-      texture->target, &tp, num_levels, sampler, hw_border_fmt, is_32bit))
-      return OUT_OF_MEMORY;
+         texture->target
 #endif
+         ))
+      return OUT_OF_MEMORY;
 
    return COMPLETE;
 }
@@ -2908,7 +2799,7 @@ bool glxx_texture_compressed_subimage(GLXX_TEXTURE_T *texture, unsigned face,
 static bool is_luminance_or_alpha(GFX_LFMT_T lfmt)
 {
    bool res;
-   switch (lfmt & GFX_LFMT_FORMAT_MASK & ~GFX_LFMT_PRE_MASK)
+   switch (lfmt & GFX_LFMT_FORMAT_MASK)
    {
       case GFX_LFMT_L1_UNORM:
       case GFX_LFMT_L4_UNORM:
@@ -3366,11 +3257,8 @@ GL_API void GL_APIENTRY glEGLImageTargetTexture2DOES(GLenum target,
    GLenum error = GL_NO_ERROR;
    GLXX_TEXTURE_T *texture = NULL;
    khrn_image *khr_image = NULL;
-   bool locked = false;
 
-   if (!egl_context_gl_lock())
-      goto end;
-   locked = true;
+   egl_context_gl_lock();
 
    state = egl_context_gl_server_state(NULL);
    if (!state) goto end;
@@ -3409,9 +3297,41 @@ GL_API void GL_APIENTRY glEGLImageTargetTexture2DOES(GLenum target,
       goto end;
    }
 
-   texture_bind_images(texture, TEX_BOUND_EGLIMAGE_TARGET,
-         &khr_image, 1);
+   unsigned num_mip_levels = egl_image_get_num_mip_levels(egl_image);
+   if (num_mip_levels == 1)
+   {
+      texture_bind_images(texture, TEX_BOUND_EGLIMAGE_TARGET,
+            &khr_image, 1);
+   }
+   else
+   {
+      khrn_image *miplevels[V3D_MAX_MIP_COUNT];
+      memset(miplevels, 0, sizeof(miplevels));
 
+      for (unsigned l = 0; l < num_mip_levels; l++)
+      {
+         miplevels[l] = khrn_image_create(khr_image->blob, 0, 1, l, khr_image->api_fmt);
+         if (miplevels[l] == NULL)
+         {
+            error = GL_OUT_OF_MEMORY;
+            break;
+         }
+      }
+
+      if (error == GL_NO_ERROR)
+      {
+         texture_bind_images(texture, TEX_BOUND_EGLIMAGE_TARGET,
+            miplevels, num_mip_levels);
+      }
+
+      // clean up the references to the new images, this needs to happen both
+      // in the success and failure cases.
+      for (unsigned l = 0; l < num_mip_levels; l++)
+         KHRN_MEM_ASSIGN(miplevels[l], NULL);
+
+      if (error != GL_NO_ERROR)
+         goto end;
+   }
    /*
     * Any existing source should have been detached by
     * glxx_texture_bind_images which did a nullify
@@ -3427,8 +3347,7 @@ end:
       glxx_server_state_set_error(state, error);
    }
 
-   if (locked)
-      egl_context_gl_unlock();
+   egl_context_gl_unlock();
 }
 
 bool glxx_texture_copy_image(GLXX_TEXTURE_T *texture, unsigned face,
@@ -3519,6 +3438,7 @@ bool glxx_texture_get_fixed_sample_locations(const GLXX_TEXTURE_T *texture)
    return texture->fixed_sample_locations;
 }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
 size_t glxx_texture_buffer_get_width(const GLXX_TEXTURE_T *texture)
 {
    assert(texture->target == GL_TEXTURE_BUFFER);
@@ -3622,3 +3542,4 @@ static bool texture_buffer_create_images(GLXX_TEXTURE_T *texture)
 
    return (texture->img[0][0] != NULL);
 }
+#endif

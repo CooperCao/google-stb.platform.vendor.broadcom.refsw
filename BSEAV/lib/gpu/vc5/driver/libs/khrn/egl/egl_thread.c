@@ -24,7 +24,6 @@ static struct
    bool              once_ok;
    VCOS_MUTEX_T      lock;
    VCOS_TLS_KEY_T    tls_key;
-   EGL_THREAD_T*     list;
 } egl_thread;
 
 static void init_once(void)
@@ -61,25 +60,7 @@ static EGL_THREAD_T *thread_create(void)
    // add a reference to egl_process, but don't actually initialise it
    egl_process_add_ref();
 
-   if (vcos_tls_set(egl_thread.tls_key, thread) == VCOS_SUCCESS)
-   {
-      // all ok
-      thread->error = EGL_SUCCESS;
-
-      // add to list
-      vcos_mutex_lock(&egl_thread.lock);
-      thread->next = egl_thread.list;
-      egl_thread.list = thread;
-      vcos_mutex_unlock(&egl_thread.lock);
-
-      return thread;
-   }
-   log_error("Fatal: unable to allocate thread-local-storage for EGL");
-
-   egl_process_release();
-
-   free(thread);
-   return NULL;
+   return thread;
 }
 
 static void thread_destroy(void* t)
@@ -89,32 +70,18 @@ static void thread_destroy(void* t)
    vcos_mutex_lock(&egl_thread.lock);
 
    for (egl_api_t api = 0; api < API_COUNT; api++)
-   {
       make_current(thread, api, NULL, NULL, NULL);
-   }
-
-   // remove from linked list
-   for (EGL_THREAD_T** prev = &egl_thread.list; *prev != NULL; prev = &(*prev)->next)
-   {
-      if (*prev == thread)
-      {
-         *prev = thread->next;
-         break;
-      }
-   }
-
-   vcos_tls_set(egl_thread.tls_key, NULL);
 
    vcos_mutex_unlock(&egl_thread.lock);
 
    // this is ref counted
    egl_process_release();
 
+   // Free the EGL thread state
    free(t);
 }
 
-//! get the elg_thread object if it exists, otherwise return NULL
-static inline EGL_THREAD_T *egl_thread_try_get(void)
+EGL_THREAD_T *egl_thread_try_get(void)
 {
    // ensure tls_key is initialised
    if (!ensure_init_once()) return NULL;
@@ -128,6 +95,15 @@ EGL_THREAD_T *egl_thread_get(void)
    if (!thread)
    {
       thread = thread_create();
+
+      if (vcos_tls_set(egl_thread.tls_key, thread) == VCOS_SUCCESS)
+         thread->error = EGL_SUCCESS;
+      else
+      {
+         log_error("Fatal: unable to allocate thread-local-storage for EGL");
+         thread_destroy(thread);
+         thread = NULL;
+      }
    }
    return thread;
 }
@@ -431,6 +407,8 @@ EGLBoolean egl_release_thread(void)
 
    // destroy thread and clear pointer from TLS
    thread_destroy(thread);
+
+   vcos_tls_set(egl_thread.tls_key, NULL);
 
    return EGL_TRUE;
 }

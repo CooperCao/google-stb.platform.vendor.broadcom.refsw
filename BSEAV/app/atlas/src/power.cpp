@@ -72,10 +72,10 @@ void CMountData::dump(bool bForce)
 /* read drive data for given device */
 eRet CMountData::initializeDriveData(const char * str)
 {
-    eRet              ret            = eRet_NotAvailable;
-    int               fd             = -1;
-    char              strTmpName[32] = "/tmp/AtlasXXXXXX";
-    MString           cmd;
+    eRet    ret            = eRet_NotAvailable;
+    int     fd             = -1;
+    char    strTmpName[32] = "/tmp/AtlasXXXXXX";
+    MString cmd;
 
     BDBG_ASSERT(NULL != str);
 
@@ -87,22 +87,22 @@ eRet CMountData::initializeDriveData(const char * str)
         goto error;
     }
     /* a+rw permissions */
-    fchmod(fd,0666);
+    fchmod(fd, 0666);
 
     /* we will use fdisk -l to retrieve the GUID of the given drive */
-    cmd = MString("fdisk -l ") + str;
+    cmd  = MString("fdisk -l ") + str;
     cmd += " > ";
     cmd += strTmpName;
     system(cmd);
 
     {
         MString strBuf;
-        char buf[1024];
-        int  bufSize = 0;
-        int  index;
+        char    buf[1024];
+        int     bufSize = 0;
+        int     index;
 
         /* read results of fdisk */
-        bufSize = read(fd, buf, sizeof(buf) - 1);
+        bufSize          = read(fd, buf, sizeof(buf) - 1);
         buf[bufSize - 1] = '\0';
 
         if (0 == bufSize)
@@ -119,9 +119,9 @@ eRet CMountData::initializeDriveData(const char * str)
         index = strBuf.find("GUID");
         if (-1 != index)
         {
-            index += strlen("Guid): ");
+            index        += strlen("Guid): ");
             _strDriveGUID = strBuf.mid(index, strlen("XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"));
-            ret = eRet_Ok;
+            ret           = eRet_Ok;
         }
     }
 
@@ -146,7 +146,7 @@ eRet CMountData::initializeMountData(const char * str)
 
     /* coverity[secure_coding] */
     err = sscanf(str, "%15s %31s %15s", strPartition, _strMountPoint, _strMountType);
-    BDBG_MSG(("Code returned by Sscanf is %d",err));
+    BDBG_MSG(("Code returned by Sscanf is %d", err));
     _nPartition = atoi(strPartition + 8);
     strncpy(_strDrive, strPartition, 8);
     _strDrive[8] = '\0';
@@ -398,9 +398,9 @@ eRet CPower::mountDrives(
                 DEL(pMount);
 
                 /* there may be old mount points that correspond to disks that are no longer
-                   connected.  so we will skip over these and continue - it is not a error
-                   unmounting the disk.  it is just that the disk corresponding to the mount
-                   point is no longer connected. */
+                 * connected.  so we will skip over these and continue - it is not a error
+                 * unmounting the disk.  it is just that the disk corresponding to the mount
+                 * point is no longer connected. */
                 ret = eRet_Ok;
                 continue;
             }
@@ -580,7 +580,7 @@ eRet CPower::setMode(
     SET(_pCfg, POWER_STATE, MString(mode));
 
     NEXUS_Platform_GetStandbySettings(&_settings);
-    _settings.mode               = (NEXUS_PlatformStandbyMode)mode; /* direct mapping */
+    _settings.mode = (NEXUS_PlatformStandbyMode)mode; /* direct mapping */
     /* save internally */
     _eMode                       = mode;
     _settings.openFrontend       = (ePowerMode_S0 == mode) ? true : false;
@@ -614,7 +614,6 @@ eRet CPower::setMode(
         {
             /* disable graphics before turning off (S1, S2, S3) */
             pGraphics->setActive(false);
-            BKNI_Sleep(100);
         }
 
         nerror = NEXUS_Platform_SetStandbySettings(&_settings);

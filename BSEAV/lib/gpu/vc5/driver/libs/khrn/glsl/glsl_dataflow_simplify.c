@@ -5,13 +5,14 @@
 
 #include "glsl_const_operators.h"
 #include "glsl_dataflow_simplify.h"
+#include "glsl_constants.h"
 #include "libs/util/gfx_util/gfx_util.h"
 
 //#define NAN_CORRECT_OPTIMISATION
 //#define DISABLE_CONSTANT_FOLDING
 
 typedef enum {
-   FOLDER_CANT_FOLD,
+   FOLDER_CANT_FOLD = 0,
    FOLDER_RET_BOOL,
    FOLDER_RET_FLOAT,
    FOLDER_RET_INT,
@@ -23,7 +24,6 @@ typedef const_value (*unary_fold)(const_value);
 typedef const_value (*binary_fold)(const_value, const_value);
 
 struct dataflow_fold_info_s {
-   DataflowFlavour   flavour; // for checking the table
    FolderResultType  type;
    int               num_args;
    // Folding functions, one for each type
@@ -37,135 +37,64 @@ static const_value const_zero(const_value input) { return 0; }
 
 /* Order: bool, float, int, uint */
 static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
-   { DATAFLOW_CONST,               FOLDER_CANT_FOLD, },
-   { DATAFLOW_LOAD,                FOLDER_CANT_FOLD, },
-   { DATAFLOW_PHI,                 FOLDER_CANT_FOLD, },
-   { DATAFLOW_EXTERNAL,            FOLDER_CANT_FOLD, },
-   { DATAFLOW_LOGICAL_NOT,         FOLDER_RET_MATCH, 1, .uf = { op_logical_not, NULL, NULL, NULL } },
-   { DATAFLOW_CONST_IMAGE,         FOLDER_CANT_FOLD, },
-   { DATAFLOW_CONST_SAMPLER,       FOLDER_CANT_FOLD, },
-   { DATAFLOW_FTOI_TRUNC,          FOLDER_RET_INT,   1, .uf = { NULL, op_floattoint_trunc,   NULL, NULL }, },
-   { DATAFLOW_FTOI_NEAREST,        FOLDER_RET_INT,   1, .uf = { NULL, op_floattoint_nearest, NULL, NULL }, },
-   { DATAFLOW_FTOU,                FOLDER_RET_UINT,  1, .uf = { NULL, op_floattouint,        NULL, NULL }, },
+   [ DATAFLOW_LOGICAL_NOT ]        = { FOLDER_RET_MATCH, 1, .uf = { op_logical_not, NULL, NULL, NULL } },
 
-   { DATAFLOW_BITWISE_NOT,         FOLDER_RET_MATCH, 1, .uf = { NULL, NULL, op_bitwise_not, op_bitwise_not }, },
-   { DATAFLOW_BITWISE_AND,         FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_and, op_bitwise_and }, },
-   { DATAFLOW_BITWISE_OR,          FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_or,  op_bitwise_or  }, },
-   { DATAFLOW_BITWISE_XOR,         FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_xor, op_bitwise_xor }, },
+   [ DATAFLOW_FTOI_TRUNC ]         = { FOLDER_RET_INT,   1, .uf = { NULL, op_floattoint_trunc,   NULL, NULL }, },
+   [ DATAFLOW_FTOI_NEAREST ]       = { FOLDER_RET_INT,   1, .uf = { NULL, op_floattoint_nearest, NULL, NULL }, },
+   [ DATAFLOW_FTOU ]               = { FOLDER_RET_UINT,  1, .uf = { NULL, op_floattouint,        NULL, NULL }, },
+   [ DATAFLOW_ISNAN ]              = { FOLDER_RET_BOOL,  1, .uf = { NULL, op_isnan,              NULL, NULL }, },
 
-   { DATAFLOW_SHL,                 FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_shl,   op_bitwise_shl   }, },
-   { DATAFLOW_SHR,                 FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_i_bitwise_shr, op_u_bitwise_shr }, },
-   { DATAFLOW_ROR,                 FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_ror,   op_bitwise_ror }, },
+   [ DATAFLOW_BITWISE_NOT ]        = { FOLDER_RET_MATCH, 1, .uf = { NULL, NULL, op_bitwise_not, op_bitwise_not }, },
+   [ DATAFLOW_BITWISE_AND ]        = { FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_and, op_bitwise_and }, },
+   [ DATAFLOW_BITWISE_OR ]         = { FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_or,  op_bitwise_or  }, },
+   [ DATAFLOW_BITWISE_XOR ]        = { FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_xor, op_bitwise_xor }, },
 
-   { DATAFLOW_ADDRESS_STORE,       FOLDER_CANT_FOLD, },
-   { DATAFLOW_VECTOR_LOAD,         FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_ADD,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_SUB,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_MIN,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_MAX,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_AND,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_OR,           FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_XOR,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_XCHG,         FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_CMPXCHG,      FOLDER_CANT_FOLD, },
-   { DATAFLOW_UNIFORM,             FOLDER_CANT_FOLD, },
-   { DATAFLOW_UNIFORM_BUFFER,      FOLDER_CANT_FOLD, },
-   { DATAFLOW_STORAGE_BUFFER,      FOLDER_CANT_FOLD, },
-   { DATAFLOW_ATOMIC_COUNTER,      FOLDER_CANT_FOLD, },
-   { DATAFLOW_IN,                  FOLDER_CANT_FOLD, },
-   { DATAFLOW_MUL,                 FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_mul, op_i_mul, op_u_mul }, },
-   { DATAFLOW_MUL24,               FOLDER_RET_MATCH, 2, .bf = { NULL, NULL,     op_i_mul, op_u_mul }, },
-   { DATAFLOW_DIV,                 FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_div, op_i_div, op_u_div }, },
-   { DATAFLOW_REM,                 FOLDER_RET_MATCH, 2, .bf = { NULL, NULL,     op_i_rem, op_u_rem }, },
-   { DATAFLOW_ADD,                 FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_add, op_i_add, op_i_add }, },
-   { DATAFLOW_SUB,                 FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_sub, op_i_sub, op_i_sub }, },
-   { DATAFLOW_ARITH_NEGATE,        FOLDER_RET_MATCH, 1, .uf = { NULL, op_f_negate, op_i_negate, op_i_negate }, },
-   { DATAFLOW_LESS_THAN,           FOLDER_RET_BOOL,  2, .bf = { NULL, op_f_less_than, op_i_less_than, op_u_less_than }, },
-   { DATAFLOW_LESS_THAN_EQUAL,     FOLDER_RET_BOOL,  2, .bf = { NULL, op_f_less_than_equal, op_i_less_than_equal, op_u_less_than_equal }, },
-   { DATAFLOW_GREATER_THAN,        FOLDER_RET_BOOL,  2, .bf = { NULL, op_f_greater_than, op_i_greater_than, op_u_greater_than }, },
-   { DATAFLOW_GREATER_THAN_EQUAL,  FOLDER_RET_BOOL,  2, .bf = { NULL, op_f_greater_than_equal, op_i_greater_than_equal, op_u_greater_than_equal }, },
-   { DATAFLOW_EQUAL,               FOLDER_RET_BOOL,  2, .bf = { op_b_equal, op_f_equal, op_i_equal, op_i_equal }, },
-   { DATAFLOW_NOT_EQUAL,           FOLDER_RET_BOOL,  2, .bf = { op_b_not_equal, op_f_not_equal, op_i_not_equal, op_i_not_equal }, },
-   { DATAFLOW_LOGICAL_AND,         FOLDER_RET_MATCH, 2, .bf = { op_logical_and, NULL, NULL, NULL }, },
-   { DATAFLOW_LOGICAL_XOR,         FOLDER_RET_MATCH, 2, .bf = { op_logical_xor, NULL, NULL, NULL }, },
-   { DATAFLOW_LOGICAL_OR,          FOLDER_RET_MATCH, 2, .bf = { op_logical_or,  NULL, NULL, NULL }, },
-   { DATAFLOW_CONDITIONAL,         FOLDER_CANT_FOLD, },
-   { DATAFLOW_SQRT,                FOLDER_RET_MATCH, 1, .uf = { NULL, op_sqrt,  NULL, NULL }, },
-   { DATAFLOW_RSQRT,               FOLDER_RET_MATCH, 1, .uf = { NULL, op_rsqrt, NULL, NULL }, },
-   { DATAFLOW_RCP,                 FOLDER_RET_MATCH, 1, .uf = { NULL, op_recip, NULL, NULL }, },
-   { DATAFLOW_LOG2,                FOLDER_RET_MATCH, 1, .uf = { NULL, op_log2,  NULL, NULL }, },
-   { DATAFLOW_EXP2,                FOLDER_RET_MATCH, 1, .uf = { NULL, op_exp2,  NULL, NULL }, },
-   { DATAFLOW_SIN,                 FOLDER_RET_MATCH, 1, .uf = { NULL, op_sin,   NULL, NULL }, },
-   { DATAFLOW_COS,                 FOLDER_RET_MATCH, 1, .uf = { NULL, op_cos,   NULL, NULL }, },
-   { DATAFLOW_TAN,                 FOLDER_RET_MATCH, 1, .uf = { NULL, op_tan,   NULL, NULL }, },
-   { DATAFLOW_MIN,                 FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_min, op_i_min, op_u_min }, },
-   { DATAFLOW_MAX,                 FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_max, op_i_max, op_u_max }, },
-   { DATAFLOW_TRUNC,               FOLDER_RET_MATCH, 1, .uf = { NULL, op_trunc, NULL, NULL }, },
-   { DATAFLOW_NEAREST,             FOLDER_RET_MATCH, 1, .uf = { NULL, op_round, NULL, NULL }, },
-   { DATAFLOW_CEIL,                FOLDER_RET_MATCH, 1, .uf = { NULL, op_ceil,  NULL, NULL }, },
-   { DATAFLOW_FLOOR,               FOLDER_RET_MATCH, 1, .uf = { NULL, op_floor, NULL, NULL }, },
-   { DATAFLOW_ABS,                 FOLDER_RET_MATCH, 1, .uf = { NULL, op_f_abs, NULL, NULL }, },
-   { DATAFLOW_FDX,                 FOLDER_RET_MATCH, 1, .uf = { NULL, const_zero, NULL, NULL }, },
-   { DATAFLOW_FDY,                 FOLDER_RET_MATCH, 1, .uf = { NULL, const_zero, NULL, NULL }, },
-   { DATAFLOW_REINTERP,            FOLDER_CANT_FOLD, },     /* Handled in a special way */
-   { DATAFLOW_FPACK,               FOLDER_RET_UINT,  2, .bf = { NULL, op_fpack, NULL, NULL }, },
-   { DATAFLOW_FUNPACKA,            FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, NULL, op_funpacka }, },
-   { DATAFLOW_FUNPACKB,            FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, NULL, op_funpackb }, },
+   [ DATAFLOW_SHL ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_shl,   op_bitwise_shl   }, },
+   [ DATAFLOW_SHR ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_i_bitwise_shr, op_u_bitwise_shr }, },
+   [ DATAFLOW_ROR ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_ror,   op_bitwise_ror   }, },
 
-   { DATAFLOW_ITOF,                FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, op_inttofloat, NULL }, },
-   { DATAFLOW_UTOF,                FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, NULL, op_uinttofloat }, },
-   { DATAFLOW_CLZ,                 FOLDER_RET_UINT,  1, .uf = { NULL, NULL, NULL, op_clz }, },
+   [ DATAFLOW_MUL ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_mul, op_i_mul, op_u_mul }, },
+   [ DATAFLOW_MUL24 ]              = { FOLDER_RET_MATCH, 2, .bf = { NULL, NULL,     op_i_mul, op_u_mul }, },
+   [ DATAFLOW_DIV ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_div, op_i_div, op_u_div }, },
+   [ DATAFLOW_REM ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, NULL,     op_i_rem, op_u_rem }, },
+   [ DATAFLOW_ADD ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_add, op_i_add, op_i_add }, },
+   [ DATAFLOW_SUB ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_sub, op_i_sub, op_i_sub }, },
+   [ DATAFLOW_ARITH_NEGATE ]       = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_f_negate, op_i_negate, op_i_negate }, },
+   [ DATAFLOW_LESS_THAN ]          = { FOLDER_RET_BOOL,  2, .bf = { NULL, op_f_less_than, op_i_less_than, op_u_less_than }, },
+   [ DATAFLOW_LESS_THAN_EQUAL ]    = { FOLDER_RET_BOOL,  2, .bf = { NULL, op_f_less_than_equal, op_i_less_than_equal, op_u_less_than_equal }, },
+   [ DATAFLOW_GREATER_THAN ]       = { FOLDER_RET_BOOL,  2, .bf = { NULL, op_f_greater_than, op_i_greater_than, op_u_greater_than }, },
+   [ DATAFLOW_GREATER_THAN_EQUAL ] = { FOLDER_RET_BOOL,  2, .bf = { NULL, op_f_greater_than_equal, op_i_greater_than_equal, op_u_greater_than_equal }, },
+   [ DATAFLOW_EQUAL ]              = { FOLDER_RET_BOOL,  2, .bf = { op_b_equal, op_f_equal, op_i_equal, op_i_equal }, },
+   [ DATAFLOW_NOT_EQUAL ]          = { FOLDER_RET_BOOL,  2, .bf = { op_b_not_equal, op_f_not_equal, op_i_not_equal, op_i_not_equal }, },
+   [ DATAFLOW_LOGICAL_AND ]        = { FOLDER_RET_MATCH, 2, .bf = { op_logical_and, NULL, NULL, NULL }, },
+   [ DATAFLOW_LOGICAL_XOR ]        = { FOLDER_RET_MATCH, 2, .bf = { op_logical_xor, NULL, NULL, NULL }, },
+   [ DATAFLOW_LOGICAL_OR ]         = { FOLDER_RET_MATCH, 2, .bf = { op_logical_or,  NULL, NULL, NULL }, },
 
-   { DATAFLOW_VEC4,                FOLDER_CANT_FOLD, },
-   { DATAFLOW_TEXTURE,             FOLDER_CANT_FOLD, },
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   { DATAFLOW_TEXTURE_ADDR,        FOLDER_CANT_FOLD, },
-#endif
-   { DATAFLOW_TEXTURE_SIZE,        FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_VEC4_COMPONENT,  FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_COL,        FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_DEPTH,      FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_STENCIL,    FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_X,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_Y,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_X_UINT,     FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_Y_UINT,     FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_Z,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_W,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_FRAG_GET_FF,         FOLDER_CANT_FOLD, },
-   { DATAFLOW_COMP_GET_ID0,        FOLDER_CANT_FOLD, },
-   { DATAFLOW_COMP_GET_ID1,        FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_THREAD_INDEX,    FOLDER_CANT_FOLD, },
-   { DATAFLOW_SHARED_PTR,          FOLDER_CANT_FOLD, },
-   { DATAFLOW_IS_HELPER,           FOLDER_CANT_FOLD, },
-   { DATAFLOW_SAMPLE_POS_X,        FOLDER_CANT_FOLD, },
-   { DATAFLOW_SAMPLE_POS_Y,        FOLDER_CANT_FOLD, },
-   { DATAFLOW_SAMPLE_MASK,         FOLDER_CANT_FOLD, },
-   { DATAFLOW_SAMPLE_ID,           FOLDER_CANT_FOLD, },
-   { DATAFLOW_NUM_SAMPLES,         FOLDER_CANT_FOLD, },
-   { DATAFLOW_TEXTURE_LEVELS,      FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_VERTEX_ID,       FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_INSTANCE_ID,     FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_BASE_INSTANCE,   FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_POINT_COORD_X,   FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_POINT_COORD_Y,   FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_LINE_COORD,      FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_DEPTHRANGE_NEAR, FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_DEPTHRANGE_FAR,  FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_DEPTHRANGE_DIFF, FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_NUMWORKGROUPS_X, FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_NUMWORKGROUPS_Y, FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_NUMWORKGROUPS_Z, FOLDER_CANT_FOLD, },
-   { DATAFLOW_GET_INVOCATION_ID,   FOLDER_CANT_FOLD, },
-   { DATAFLOW_ADDRESS,             FOLDER_CANT_FOLD, },
-   { DATAFLOW_BUF_SIZE,            FOLDER_CANT_FOLD, },
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   { DATAFLOW_IMAGE_INFO_PARAM,    FOLDER_CANT_FOLD, },
-#endif
-#if !V3D_HAS_LARGE_1D_TEXTURE
-   { DATAFLOW_TEXBUFFER_INFO_PARAM, FOLDER_CANT_FOLD, },
-#endif
-   { DATAFLOW_GET_FB_MAX_LAYER,     FOLDER_CANT_FOLD, },
+   [ DATAFLOW_SQRT ]               = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_sqrt,  NULL, NULL }, },
+   [ DATAFLOW_RSQRT ]              = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_rsqrt, NULL, NULL }, },
+   [ DATAFLOW_RCP ]                = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_recip, NULL, NULL }, },
+   [ DATAFLOW_LOG2 ]               = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_log2,  NULL, NULL }, },
+   [ DATAFLOW_EXP2 ]               = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_exp2,  NULL, NULL }, },
+   [ DATAFLOW_SIN ]                = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_sin,   NULL, NULL }, },
+   [ DATAFLOW_COS ]                = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_cos,   NULL, NULL }, },
+   [ DATAFLOW_TAN ]                = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_tan,   NULL, NULL }, },
+   [ DATAFLOW_MIN ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_min, op_i_min, op_u_min }, },
+   [ DATAFLOW_MAX ]                = { FOLDER_RET_MATCH, 2, .bf = { NULL, op_f_max, op_i_max, op_u_max }, },
+   [ DATAFLOW_TRUNC ]              = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_trunc, NULL, NULL }, },
+   [ DATAFLOW_NEAREST ]            = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_round, NULL, NULL }, },
+   [ DATAFLOW_CEIL ]               = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_ceil,  NULL, NULL }, },
+   [ DATAFLOW_FLOOR ]              = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_floor, NULL, NULL }, },
+   [ DATAFLOW_ABS ]                = { FOLDER_RET_MATCH, 1, .uf = { NULL, op_f_abs, NULL, NULL }, },
+   [ DATAFLOW_FDX ]                = { FOLDER_RET_MATCH, 1, .uf = { NULL, const_zero, NULL, NULL }, },
+   [ DATAFLOW_FDY ]                = { FOLDER_RET_MATCH, 1, .uf = { NULL, const_zero, NULL, NULL }, },
+   [ DATAFLOW_REINTERP ]           = { FOLDER_CANT_FOLD, },     /* Handled in a special way */
+   [ DATAFLOW_FPACK ]              = { FOLDER_RET_UINT,  2, .bf = { NULL, op_fpack, NULL, NULL }, },
+   [ DATAFLOW_FUNPACKA ]           = { FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, NULL, op_funpacka }, },
+   [ DATAFLOW_FUNPACKB ]           = { FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, NULL, op_funpackb }, },
+
+   [ DATAFLOW_ITOF ]               = { FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, op_inttofloat, NULL }, },
+   [ DATAFLOW_UTOF ]               = { FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, NULL, op_uinttofloat }, },
+   [ DATAFLOW_CLZ ]                = { FOLDER_RET_UINT,  1, .uf = { NULL, NULL, NULL, op_clz }, },
 };
 
 static int df_type_index(DataflowType t) {
@@ -252,7 +181,6 @@ static Dataflow *simplify_small_pow(Dataflow *log, Dataflow *pow) {
 static Dataflow *simplify_unary_op (DataflowFlavour flavour, Dataflow *operand) {
    if (operand->flavour == DATAFLOW_CONST) {
       const struct dataflow_fold_info_s *info = &dataflow_info[flavour];
-      assert(info->flavour == flavour);
       if (info->type != FOLDER_CANT_FOLD) {
          assert(info->num_args == 1);
          int id = df_type_index(operand->type);
@@ -348,10 +276,10 @@ static Dataflow *umul_high_const(Dataflow *l, uint32_t r) {
    Dataflow *ml = glsl_dataflow_construct_const_uint(r & 0xFFFF);
    Dataflow *mh = glsl_dataflow_construct_const_uint(r >> 16);
 
-   Dataflow *hi = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, lh, mh);
-   Dataflow *m1 = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, ll, mh);
-   Dataflow *m2 = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, lh, ml);
-   Dataflow *lo = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, ll, ml);
+   Dataflow *hi = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, lh, mh);
+   Dataflow *m1 = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, ll, mh);
+   Dataflow *m2 = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, lh, ml);
+   Dataflow *lo = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, ll, ml);
 
    Dataflow *temp = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, lo, c16);
    temp = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, m1, temp);
@@ -577,6 +505,96 @@ static bool is_numeric_zero(Dataflow *d) {
           (d->type == DF_FLOAT && is_float_zero(d->u.constant.value));
 }
 
+static bool simplify_address_offset(
+   Dataflow** ret_address,
+   Dataflow** ret_offset,
+   Dataflow* address,
+   Dataflow* offset)
+{
+   assert(address->flavour == DATAFLOW_ADDRESS);
+
+   Dataflow* buffer = address->d.unary_op.operand;
+   if (buffer->flavour == DATAFLOW_UNIFORM        || buffer->flavour == DATAFLOW_ATOMIC_COUNTER ||
+       buffer->flavour == DATAFLOW_UNIFORM_BUFFER || buffer->flavour == DATAFLOW_STORAGE_BUFFER)
+   {
+      // Combine constant offset with address.
+      if (offset->flavour == DATAFLOW_CONST) {
+         const_value new_offset = (buffer->u.buffer.offset + offset->u.constant.value);
+         new_offset &= GLSL_MAX_SHADER_STORAGE_BLOCK_SIZE - 1;
+         Dataflow* new_buffer = glsl_dataflow_construct_buffer(
+            buffer->flavour, buffer->type, buffer->u.buffer.index, new_offset);
+         *ret_address = glsl_dataflow_construct_address(new_buffer);
+         *ret_offset = NULL;
+         return true;
+      }
+      // Try reassociating the addition.
+      else if (offset->flavour == DATAFLOW_ADD) {
+         Dataflow* offset_a = offset->d.dependencies[0];
+         Dataflow* offset_b = offset->d.dependencies[1];
+
+         Dataflow* new_address = address;
+         bool simplified = false;
+         if (simplify_address_offset(&new_address, &offset_a, new_address, offset_a))
+            simplified = true;
+         if (simplify_address_offset(&new_address, &offset_b, new_address, offset_b))
+            simplified = true;
+         if (simplified) {
+            Dataflow* new_offset = NULL;
+            if (offset_a && offset_b)
+               new_offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset_a, offset_b);
+            else if (offset_a)
+               new_offset = offset_a;
+            else if (offset_b)
+               new_offset = offset_b;
+
+            *ret_address = new_address;
+            *ret_offset = new_offset;
+            return true;
+         }
+      }
+      // Detect the pattern mul(min(constant_index, array_length-1), constant_stride)
+      // and add the constant expression constant_index*constant_stride to the address.
+      // The address uniform will incorporate the clamp operation.
+      else if (offset->flavour == DATAFLOW_MUL || offset->flavour == DATAFLOW_MUL24 || offset->flavour == DATAFLOW_SHL) {
+         unsigned perms = offset->flavour == DATAFLOW_MUL ? 2 : 1;
+         for (unsigned i = 0; i != perms; ++i) {
+            Dataflow* offset_a = offset->d.dependencies[i];
+            Dataflow* offset_b = offset->d.dependencies[1-i];
+            if (offset_a->flavour == DATAFLOW_MIN && offset_b->flavour == DATAFLOW_CONST) {
+               for (unsigned j = 0; j != 2; ++j) {
+                  Dataflow* min_a = offset_a->d.dependencies[j];
+                  Dataflow* min_b = offset_a->d.dependencies[1-j];
+                  if (  min_a->flavour == DATAFLOW_CONST
+                     && min_b->flavour == DATAFLOW_BUF_ARRAY_LENGTH
+                     && min_b->u.constant.value == 1)
+                  {
+                     const_value stride = offset_b->u.constant.value;
+                     if (offset->flavour == DATAFLOW_SHL)
+                        stride = 1 << stride;
+
+                     // Clamp index so that we don't overflow static offset.
+                     const_value max_buffer_offset = GLSL_MAX_SHADER_STORAGE_BLOCK_SIZE - 1;
+                     const_value max_offset = max_buffer_offset - buffer->u.buffer.offset;
+                     const_value max_index = max_offset / stride;
+                     const_value index = gfx_umin(min_a->u.constant.value, max_index);
+                     const_value new_offset = index*stride + buffer->u.buffer.offset;
+                     assert(new_offset < GLSL_MAX_SHADER_STORAGE_BLOCK_SIZE);
+
+                     Dataflow* new_buffer = glsl_dataflow_construct_buffer(buffer->flavour, buffer->type,
+                        buffer->u.buffer.index, new_offset);
+                     *ret_address = glsl_dataflow_construct_address(new_buffer);
+                     *ret_offset = NULL;
+                     return true;
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   return false;
+}
+
 static Dataflow *simplify_commutative_binop(DataflowFlavour flavour, Dataflow *non_c, Dataflow *c) {
    if (non_c->type == DF_FLOAT) {
       if (is_float_zero(c->u.constant.value)) {
@@ -615,18 +633,6 @@ static Dataflow *simplify_commutative_binop(DataflowFlavour flavour, Dataflow *n
          if (flavour == DATAFLOW_BITWISE_OR ) return c;
          if (flavour == DATAFLOW_BITWISE_XOR) return glsl_dataflow_construct_unary_op(DATAFLOW_BITWISE_NOT, non_c);
       }
-
-      if (flavour == DATAFLOW_ADD && non_c->flavour == DATAFLOW_ADDRESS) {
-         Dataflow *pointee = non_c->d.unary_op.operand;
-         if (pointee->flavour == DATAFLOW_UNIFORM        || pointee->flavour == DATAFLOW_ATOMIC_COUNTER ||
-             pointee->flavour == DATAFLOW_UNIFORM_BUFFER || pointee->flavour == DATAFLOW_STORAGE_BUFFER)
-         {
-            Dataflow *u = glsl_dataflow_construct_buffer(pointee->flavour, pointee->type,
-                                                         pointee->u.buffer.index,
-                                                         pointee->u.buffer.offset + c->u.constant.value);
-            return glsl_dataflow_construct_address(u);
-         }
-      }
    }
    if (non_c->type == DF_BOOL) {
       if (flavour == DATAFLOW_EQUAL) {
@@ -649,10 +655,27 @@ static Dataflow *simplify_commutative_binop(DataflowFlavour flavour, Dataflow *n
    return NULL;
 }
 
+static bool is_24bit_safe(const Dataflow *o) {
+   const uint32_t sign_mask = (o->type == DF_UINT) ? 0xFF000000 : 0xFF800000;
+   if (o->flavour == DATAFLOW_CONST) {
+      if ((o->u.constant.value & sign_mask) == 0) return true;
+      if (o->type == DF_INT && (o->u.constant.value & sign_mask) == sign_mask) return true;
+   }
+   if (o->flavour == DATAFLOW_SHR) {
+      Dataflow *d = o->d.binary_op.right;
+      /* For signed we know that we've shifted the sign-bit into the low 24 bits, so this is safe */
+      if (d->flavour == DATAFLOW_CONST && d->u.constant.value >= 8) return true;
+   }
+   if (o->flavour == DATAFLOW_BITWISE_AND) {
+      if (o->d.binary_op.right->flavour == DATAFLOW_CONST && (o->d.binary_op.right->u.constant.value & sign_mask) == 0) return true;
+      if (o->d.binary_op.left->flavour  == DATAFLOW_CONST && (o->d.binary_op.left->u.constant.value & sign_mask) == 0) return true;
+   }
+   return false;
+}
+
 static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Dataflow *right) {
    if (left->flavour == DATAFLOW_CONST && right->flavour == DATAFLOW_CONST) {
       const struct dataflow_fold_info_s *info = &dataflow_info[flavour];
-      assert(info->flavour == flavour);
       if (info->type != FOLDER_CANT_FOLD) {
          assert(info->num_args == 2);
          int id = df_type_index(left->type);
@@ -726,8 +749,11 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
          Dataflow *c = glsl_dataflow_construct_const_value(right->type, log2i(right->u.constant.value));
          return glsl_dataflow_construct_binary_op(DATAFLOW_SHL, left, c);
       }
-   }
 
+      if (flavour == DATAFLOW_MUL && is_24bit_safe(left) && is_24bit_safe(right)) {
+         return glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, left, right);
+      }
+   }
 
    if (flavour == DATAFLOW_REM) {
       assert(right->type == DF_INT || right->type == DF_UINT);
@@ -799,6 +825,26 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
 
    if (flavour == DATAFLOW_SUB && left->flavour == DATAFLOW_BUF_SIZE && right->flavour == DATAFLOW_CONST)
       return glsl_dataflow_construct_buf_size(left->d.unary_op.operand, left->u.constant.value + right->u.constant.value);
+
+   if (flavour == DATAFLOW_SUB && left->flavour == DATAFLOW_BUF_ARRAY_LENGTH && right->flavour == DATAFLOW_CONST) {
+      const_value constant = left->u.constant.value + right->u.constant.value;
+      if (constant < GLSL_MAX_SHADER_STORAGE_BLOCK_SIZE)
+         return glsl_dataflow_construct_buf_array_length(left->d.unary_op.operand, constant);
+   }
+
+   for (unsigned i = 0; i != 2; ++i) {
+      Dataflow* a = i ? left : right;
+      Dataflow* b = i ? right : left;
+      if (flavour == DATAFLOW_ADD && a->flavour == DATAFLOW_ADDRESS) {
+         Dataflow* address = NULL;
+         Dataflow* offset = NULL;
+         if (simplify_address_offset(&address, &offset, a, b)) {
+            if (offset)
+               return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, address, offset);
+            return address;
+         }
+      }
+   }
 
    if (left->flavour == DATAFLOW_CONST) {
       Dataflow *comm = simplify_commutative_binop(flavour, right, left);

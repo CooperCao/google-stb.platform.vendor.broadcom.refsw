@@ -731,13 +731,8 @@ Description:
     source format to the destination format and put in the low position.
     This macro does not support color space conversion, eg. RGB to YCbCr.
 
-Returns:
-    BERR_SUCCESS - The source pixel componment was converted to the
-                   destination format.
-    BERR_INVALID_PARAMETER - An invalid parameter was supplied.
-
 ****************************************************************************/
-BERR_Code BPXL_ConvertComponent_isr(
+void BPXL_ConvertComponent_isrsafe(
     BPXL_Format eDstFormat,   /* [in] Destination format. */
     BPXL_Format eSrcFormat,   /* [in] Source format. */
     unsigned int uiSrcPixel,  /* [in] Source pixel. */
@@ -745,7 +740,8 @@ BERR_Code BPXL_ConvertComponent_isr(
                                  2=R/Y1/Y, 1=G/Cb, 0=B/Cr/P/L) */
     unsigned int *puiDstComp  /* [out] Pointer to converted pixel. */
 );
-#define BPXL_ConvertComponent BPXL_ConvertComponent_isr
+#define BPXL_ConvertComponent BPXL_ConvertComponent_isrsafe
+#define BPXL_ConvertComponent_isr BPXL_ConvertComponent_isrsafe
 
 /***************************************************************************
 Summary:
@@ -756,19 +752,16 @@ Description:
     format to the destination format. This macro does not support color
     space conversion, eg. RGB to YCbCr.
 
-Returns:
-    BERR_SUCCESS - The source pixel was converted to the destination format.
-    BERR_INVALID_PARAMETER - An invalid parameter was supplied.
-
 ****************************************************************************/
-BERR_Code BPXL_ConvertPixel_isr(
+void BPXL_ConvertPixel_isrsafe(
     BPXL_Format eDstFormat,    /* [in] Destination format */
     BPXL_Format eSrcFormat,    /* [in] Source format */
     unsigned int uiSrcPixel,   /* [in] Source pixel */
     unsigned int *puiDstPixel  /* [out] Pointer to returned destination
                                   pixel */
 );
-#define BPXL_ConvertPixel BPXL_ConvertPixel_isr
+#define BPXL_ConvertPixel BPXL_ConvertPixel_isrsafe
+#define BPXL_ConvertPixel_isr BPXL_ConvertPixel_isrsafe
 
 /***************************************************************************
 Summary:
@@ -778,19 +771,16 @@ Description:
     This function converts a pixel of any RGB format to a pixel of any
     YCbCr format.
 
-Returns:
-    BERR_SUCCESS - The source pixel was converted to the destination format.
-    BERR_INVALID_PARAMETER - An invalid parameter was supplied.
-
 ****************************************************************************/
-BERR_Code BPXL_ConvertPixel_RGBtoYCbCr_isr(
+void BPXL_ConvertPixel_RGBtoYCbCr_isrsafe(
     BPXL_Format eDstFormat,    /* [in] Destination format */
     BPXL_Format eSrcFormat,    /* [in] Source format */
     unsigned int uiSrcPixel,   /* [in] Source pixel */
     unsigned int *puiDstPixel  /* [out] Pointer to returned destination
                                   pixel */
 );
-#define BPXL_ConvertPixel_RGBtoYCbCr BPXL_ConvertPixel_RGBtoYCbCr_isr
+#define BPXL_ConvertPixel_RGBtoYCbCr BPXL_ConvertPixel_RGBtoYCbCr_isrsafe
+#define BPXL_ConvertPixel_RGBtoYCbCr_isr BPXL_ConvertPixel_RGBtoYCbCr_isrsafe
 
 /***************************************************************************
 Summary:
@@ -800,19 +790,16 @@ Description:
     This function converts a pixel of any RGB format to a pixel of any
     HdYCbCr format.
 
-Returns:
-    BERR_SUCCESS - The source pixel was converted to the destination format.
-    BERR_INVALID_PARAMETER - An invalid parameter was supplied.
-
 ****************************************************************************/
-BERR_Code BPXL_ConvertPixel_RGBtoHdYCbCr_isr(
+void BPXL_ConvertPixel_RGBtoHdYCbCr_isrsafe(
     BPXL_Format eDstFormat,    /* [in] Destination format */
     BPXL_Format eSrcFormat,    /* [in] Source format */
     unsigned int uiSrcPixel,   /* [in] Source pixel */
     unsigned int *puiDstPixel  /* [out] Pointer to returned destination
                                   pixel */
 );
-#define BPXL_ConvertPixel_RGBtoHdYCbCr BPXL_ConvertPixel_RGBtoHdYCbCr_isr
+#define BPXL_ConvertPixel_RGBtoHdYCbCr BPXL_ConvertPixel_RGBtoHdYCbCr_isrsafe
+#define BPXL_ConvertPixel_RGBtoHdYCbCr_isr BPXL_ConvertPixel_RGBtoHdYCbCr_isrsafe
 
 /***************************************************************************
 Summary:
@@ -823,12 +810,8 @@ Description:
     RGB format. If the YCbCr format has no alpha, then the uiSrcAlpha
     parameter will be used for the alpha component.
 
-Returns:
-    BERR_SUCCESS - The source pixel was converted to the destination format.
-    BERR_INVALID_PARAMETER - An invalid parameter was supplied.
-
 ****************************************************************************/
-BERR_Code BPXL_ConvertPixel_YCbCrtoRGB_isr(
+void BPXL_ConvertPixel_YCbCrtoRGB_isrsafe(
     BPXL_Format eDstFormat,       /* [in] Destination format. */
     BPXL_Format eSrcFormat,       /* [in] Source format. */
     unsigned int uiSrcPixel,      /* [in] Source pixel. */
@@ -838,7 +821,8 @@ BERR_Code BPXL_ConvertPixel_YCbCrtoRGB_isr(
     unsigned int *puiDstPixel     /* [out] Pointer to returned destination
                                      pixel. */
 );
-#define BPXL_ConvertPixel_YCbCrtoRGB BPXL_ConvertPixel_YCbCrtoRGB_isr
+#define BPXL_ConvertPixel_YCbCrtoRGB BPXL_ConvertPixel_YCbCrtoRGB_isrsafe
+#define BPXL_ConvertPixel_YCbCrtoRGB_isr BPXL_ConvertPixel_YCbCrtoRGB_isrsafe
 
 /***************************************************************************
 Summary:
@@ -853,19 +837,16 @@ Description:
     of compressed formats, such as BPXL_eY08_Cb8_Y18_Cr8, there
     may be some rounding involved.
 
-Returns:
-    BERR_SUCCESS - The number of bytes was calculated.
-    BERR_INVALID_PARAMETER - An invalid parameter was supplied.
-
 ****************************************************************************/
-BERR_Code BPXL_GetBytesPerNPixels_isr(
+void BPXL_GetBytesPerNPixels_isrsafe(
     BPXL_Format eFormat,          /* [in] Pixel format. */
     unsigned int uiNPixels,       /* [in] Number of pixels in row. */
     unsigned int *puiBytes        /* [out] The number of bytes required to
                                      store the number of pixels of the
                                      given format. */
 );
-#define BPXL_GetBytesPerNPixels BPXL_GetBytesPerNPixels_isr
+#define BPXL_GetBytesPerNPixels BPXL_GetBytesPerNPixels_isrsafe
+#define BPXL_GetBytesPerNPixels_isr BPXL_GetBytesPerNPixels_isrsafe
 
 /***************************************************************************
 Summary:
@@ -880,10 +861,11 @@ Input:
 Returns:
     The literal string of the given pixel format
 ****************************************************************************/
-const char* BPXL_ConvertFmtToStr_isr(
+const char* BPXL_ConvertFmtToStr_isrsafe(
     BPXL_Format eFormat
 );
-#define BPXL_ConvertFmtToStr BPXL_ConvertFmtToStr_isr
+#define BPXL_ConvertFmtToStr BPXL_ConvertFmtToStr_isrsafe
+#define BPXL_ConvertFmtToStr_isr BPXL_ConvertFmtToStr_isrsafe
 
 #ifdef __cplusplus
 }

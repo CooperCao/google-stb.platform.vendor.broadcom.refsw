@@ -163,6 +163,7 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
    info->pitchBytes     = hnd->oglStride;
    info->width          = buffer->width;
    info->height         = buffer->height;
+   info->miplevels      = 1;
    AndroidToBeglFormat(&info->format, buffer->format);
 
    return BEGL_Success;

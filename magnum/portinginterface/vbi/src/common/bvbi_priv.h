@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -470,7 +470,7 @@ BERR_Code BVBI_P_CC_Encode_656_Enable_isr (
 #endif
 #endif
 
-uint16_t BVBI_P_SetCCParityBits_isr (
+uint16_t BVBI_P_SetCCParityBits_isrsafe (
     uint16_t uchData);
 
 void BVBI_P_CC_Dec_Init (BREG_Handle hReg, uint32_t ulCoreOffset);
@@ -564,7 +564,7 @@ BERR_Code BVBI_P_WSS_Encode_Data_isr (
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     uint16_t usData );
-BERR_Code BVBI_P_WSS_Encode_Enable_isr (
+BERR_Code BVBI_P_WSS_Encode_Enable_isrsafe (
     BREG_Handle hReg,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
@@ -584,7 +584,7 @@ BERR_Code BVBI_P_WSS_Encode_656_Data_isr (
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     uint16_t usData );
-BERR_Code BVBI_P_WSS_Encode_656_Enable_isr (
+BERR_Code BVBI_P_WSS_Encode_656_Enable_isrsafe (
     BREG_Handle hReg,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
@@ -1028,7 +1028,7 @@ uint8_t BVBI_P_p656_SetEEbits (uint8_t arg);
 /***************************************************************************
  * VBI private Video Encoder (top level) functions
  ***************************************************************************/
-BERR_Code BVBI_P_VIE_SoftReset_isr (
+BERR_Code BVBI_P_VIE_SoftReset_isrsafe (
     BREG_Handle hReg,
     bool is656,
     uint8_t hwCoreIndex,
@@ -1061,7 +1061,7 @@ void BVBI_P_Encode_ConnectCores (
 /***************************************************************************
  * Other private functions
  ***************************************************************************/
-bool BVBI_P_is656_isr (BAVC_VbiPath eDest);
+bool BVBI_P_is656_isrsafe (BAVC_VbiPath eDest);
 const BVBI_XSER_Settings * BVBI_P_GetDefaultXserSettings (void);
 
 /*

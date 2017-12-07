@@ -16,8 +16,8 @@
 #define EGL_CONFIG_MAX_WIDTH 4096
 #define EGL_CONFIG_MAX_HEIGHT 4096
 
-/*
- * EGLConfigs as used in EGL Apis are just castable to const EGL_CONFIG_T *
+/* You can just cast from const EGL_CONFIG_T * --> EGLConfig, but you should
+ * use egl_config_validate to convert EGLConfig --> const EGL_CONFIG_T *
  */
 typedef struct
 {
@@ -26,12 +26,12 @@ typedef struct
    GFX_LFMT_T  color_api_fmt;
    GFX_LFMT_T  depth_stencil_api_fmt;
    GFX_LFMT_T  stencil_api_fmt;
-   GFX_LFMT_T  mask_api_fmt;
    bool        invalid;
 }
 EGL_CONFIG_T;
 
-extern bool egl_config_is_valid(const EGL_CONFIG_T *config);
+// Returns NULL if config is not valid
+extern const EGL_CONFIG_T *egl_config_validate(EGLConfig config);
 
 /*
  * Return the value of attrib in config, or 0 if attrib is not a valid
@@ -56,14 +56,6 @@ extern uint32_t egl_config_get_api_conformance(const EGL_CONFIG_T *config);
 
 extern bool egl_config_context_surface_compatible(const EGL_CONTEXT_T *context,
       const EGL_SURFACE_T *surface);
-
-/*
- * Convert config->color to the colour format to actually use for a surface
- * with the given colourspace, alphaformat.
- */
-extern GFX_LFMT_T egl_config_colorformat(const EGL_CONFIG_T *config,
-      egl_surface_colorspace_t colorspace,
-      egl_surface_alphaformat_t alphaformat);
 
 extern GFX_LFMT_T egl_config_color_api_fmt(const EGL_CONFIG_T *config);
 extern GFX_LFMT_T egl_config_depth_stencil_api_fmt(const EGL_CONFIG_T *config);

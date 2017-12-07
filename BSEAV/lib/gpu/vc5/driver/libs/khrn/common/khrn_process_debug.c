@@ -29,7 +29,7 @@ void khrn_debug_callback(const struct v3d_debug_event *e, void *p)
 #else
 void khrn_debug_callback(const struct v3d_debug_event *e, void *p)
 {
-   vcos_unused(e);
-   vcos_unused(p);
+   unused(e);
+   unused(p);
 }
 #endif

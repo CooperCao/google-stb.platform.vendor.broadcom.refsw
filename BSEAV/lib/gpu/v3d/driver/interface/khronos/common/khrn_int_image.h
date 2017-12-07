@@ -97,7 +97,6 @@ typedef enum {
 
    IMAGE_FORMAT_PRE = 1 << 19, /* premultiplied (for vg) */
    IMAGE_FORMAT_LIN = 1 << 20, /* linear (for vg) */
-   IMAGE_FORMAT_OVG = 1 << 21, /* mark this as a VG surface */
 
    /* uncomp, depth */
 
@@ -259,97 +258,91 @@ typedef enum {
 
 static INLINE bool khrn_image_is_rso(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_MEM_LAYOUT_MASK) == IMAGE_FORMAT_RSO;
 }
 
 static INLINE bool khrn_image_is_tformat(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_MEM_LAYOUT_MASK) == IMAGE_FORMAT_TF;
 }
 
 static INLINE bool khrn_image_is_lineartile(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_MEM_LAYOUT_MASK) == IMAGE_FORMAT_LT;
 }
 
 static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_rso_format(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)((format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) | IMAGE_FORMAT_RSO);
 }
 
 static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_tf_format(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)((format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) | IMAGE_FORMAT_TF);
 }
 
 static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_lt_format(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)((format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) | IMAGE_FORMAT_LT);
-}
-
-static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_openvg_format(KHRN_IMAGE_FORMAT_T format)
-{
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
-   return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_OVG);
 }
 
 static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_linear_format(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_LIN);
 }
 
 static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_premultiplied_format(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_PRE);
 }
 
 static INLINE bool khrn_image_is_uncomp(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_COMP_MASK) == IMAGE_FORMAT_UNCOMP;
 }
 
 static INLINE bool khrn_image_is_color(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & (IMAGE_FORMAT_COMP_MASK | IMAGE_FORMAT_PIXEL_TYPE_MASK)) == (IMAGE_FORMAT_UNCOMP | IMAGE_FORMAT_COLOR);
 }
 
 static INLINE bool khrn_image_is_gray(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & (IMAGE_FORMAT_L)) != 0;
 }
 
 static INLINE bool khrn_image_is_paletted(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & (IMAGE_FORMAT_COMP_MASK | IMAGE_FORMAT_PIXEL_TYPE_MASK)) == (IMAGE_FORMAT_UNCOMP | IMAGE_FORMAT_PALETTE);
 }
 
 static INLINE bool khrn_image_is_depth(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & (IMAGE_FORMAT_COMP_MASK | IMAGE_FORMAT_PIXEL_TYPE_MASK)) == (IMAGE_FORMAT_UNCOMP | IMAGE_FORMAT_DEPTH);
 }
 
 static INLINE bool khrn_image_is_etc1(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_COMP_MASK) == IMAGE_FORMAT_ETC1;
 }
 
 static INLINE bool khrn_image_is_yuv422(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return khrn_image_is_uncomp(format) &&
       khrn_image_is_rso(format) &&
       khrn_image_is_color(format) &&
@@ -359,38 +352,32 @@ static INLINE bool khrn_image_is_yuv422(KHRN_IMAGE_FORMAT_T format)
 
 static INLINE bool khrn_image_is_packed_mask(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_COMP_MASK) == IMAGE_FORMAT_PACKED_MASK;
-}
-
-static INLINE bool khrn_image_is_openvg(KHRN_IMAGE_FORMAT_T format)
-{
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
-   return (format & IMAGE_FORMAT_OVG) != 0;
 }
 
 static INLINE bool khrn_image_is_linear(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_LIN) != 0;
 }
 
 static INLINE bool khrn_image_is_premultiplied(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_PRE) != 0;
 }
 
 /* returns the image stripped of its colorspace flags */
 static INLINE KHRN_IMAGE_FORMAT_T khrn_image_no_colorspace_format(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
-   return (format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG));
+   assert(format != IMAGE_FORMAT_INVALID);
+   return (format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN));
 }
 
 static INLINE KHRN_IMAGE_FORMAT_T khrn_image_no_layout_format(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
    return (format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK);
 }
 
@@ -426,8 +413,6 @@ typedef struct {
 
    void *palette;
    void *storage;
-   KHRN_INTERLOCK_T *interlock;
-
 } KHRN_IMAGE_WRAP_T;
 
 extern uint32_t khrn_image_pad_width(KHRN_IMAGE_FORMAT_T format, uint32_t width);
@@ -441,8 +426,8 @@ static INLINE uint32_t khrn_image_get_packed_mask_height(uint32_t height)
       _min(height & ((VG_Q_TILE_HEIGHT * 4) - 1), VG_Q_TILE_HEIGHT);
 }
 
-extern void khrn_image_interlock_wrap(KHRN_IMAGE_WRAP_T *wrap, KHRN_IMAGE_FORMAT_T format,
+extern void khrn_image_wrap(KHRN_IMAGE_WRAP_T *wrap, KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height, int32_t stride,
-   uint32_t flags, bool secure, void *storage, KHRN_INTERLOCK_T *interlock);
+   uint32_t flags, bool secure, void *storage);
 
 #endif

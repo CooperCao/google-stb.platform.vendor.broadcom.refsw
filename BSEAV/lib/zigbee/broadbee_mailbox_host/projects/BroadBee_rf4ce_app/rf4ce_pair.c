@@ -91,6 +91,16 @@ int main(int argc, char *argv[])
 
     Zigbee_Open(&zcb, argv[1]);
 
+#ifdef BYPASS_RPC
+    printf("press any key to proceed...\n");
+    getchar();
+    BroadBee_ZRC_Restore_Factory_Settings(1);
+
+    //printf("press any key to proceed...\n");
+    //getchar();
+    //BroadBee_SYS_Get_Fw_Rev();
+#endif
+
     printf(prebindingInstruction);
     char key = getchar();
     switch(key){

@@ -331,4 +331,11 @@ swctrlmap4_misc5g_fem7to4=0
 
 paprdis=1
 low_adc_rate_en=1
+
+# BT BLE / WLAN Coexistence
+# To enable BLE functionality, add relevant tasks to mask in btc_param 51
+# default value is 0xf; 0xdf will set critical priority to all BLE tasks
+# with the exception of BLE scan
+# btc_params51=0xdf
+
 #end

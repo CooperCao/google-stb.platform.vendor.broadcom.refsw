@@ -156,7 +156,7 @@ typedef struct b_mp4_track {
 #endif
     } codec;
     size_t hdr_len;
-    uint8_t hdr_buf[3200];
+    uint8_t hdr_buf[32000];
 } b_mp4_track;
 
 #define B_MP4_PLAYER_REW_STACK  30
@@ -1337,7 +1337,7 @@ b_mp4_player_open_file(bmp4_player_t player)
     bmp4_parser_cfg cfg;
     bmp4_parser_t  mp4;
     int rc=-1;
-    batom_factory_t factory=player->factory;
+    batom_factory_t factory;
     BERR_Code mrc;
     unsigned sample_count=0;
     bfile_io_read_t fd;
@@ -1345,6 +1345,7 @@ b_mp4_player_open_file(bmp4_player_t player)
 
     BSTD_UNUSED(mrc);
     BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    factory=player->factory;
     BLST_SQ_INIT(&player->movie.tracks);
     player->eof_reached = false;
     player->movie.ntracks = 0;
@@ -1605,19 +1606,31 @@ static batom_t
 b_mp4_process_sample_mp4a(bmp4_player_t player, b_mp4_track *track, batom_t atom, const bmp4_sample_mp4a *mp4a)
 {
 	batom_accum_t dst = player->accum_dest;
-	size_t len = batom_len(atom)+7;
 
 	BSTD_UNUSED(mp4a);
 	BDBG_ASSERT(track);
 	BDBG_ASSERT(mp4a);
-	BDBG_ASSERT(batom_accum_len(dst)==0);
 
-    len = bmedia_adts_header_fill(track->hdr_buf, &track->codec.mp4a, batom_len(atom));
+    BDBG_ASSERT(batom_accum_len(dst)==0);
 
-	batom_accum_add_range(dst, track->hdr_buf, len);
-	batom_accum_add_atom(dst, atom);
-	batom_release(atom);
-	return batom_from_accum(dst, NULL, NULL);
+    if(    mp4a->mpeg4.decoder.iso_14496_3.audioObjectType==23 /* ER AAC LD (Low Delay) */
+        || mp4a->mpeg4.decoder.iso_14496_3.audioObjectType==39 /* ER AAC ELD (Enhanced Low Delay) */) {
+        int len;
+        len = bmedia_create_loas_packet(track->hdr_buf, sizeof(track->hdr_buf), mp4a->mpeg4.decoder.iso_14496_3.aac_info, mp4a->mpeg4.decoder.iso_14496_3.aac_info_size_bits, atom);
+        batom_release(atom);
+        if(len<0) {
+            return NULL;
+        }
+        batom_accum_add_range(dst, track->hdr_buf, len);
+    } else {
+        size_t len;
+        len = bmedia_adts_header_fill(track->hdr_buf, &track->codec.mp4a, batom_len(atom));
+
+        batom_accum_add_range(dst, track->hdr_buf, len);
+        batom_accum_add_atom(dst, atom);
+        batom_release(atom);
+    }
+    return batom_from_accum(dst, NULL, NULL);
 }
 
 static batom_t

@@ -1,5 +1,3 @@
-/* Process this file with gperf glsl_intrinsic_lookup.gperf > glsl_intrinsic_lookup.auto.c */
-
 %{
 #include <string.h>
 #include "glsl_intrinsic.h"
@@ -10,6 +8,7 @@
 %define hash-function-name   glsl_intrinsic_hash
 %define lookup-function-name glsl_intrinsic_lookup
 %readonly-tables
+%enum
 
 struct glsl_intrinsic_data_s;
 %%
@@ -39,6 +38,7 @@ funpackb,      INTRINSIC_FUNPACKB
 sin,           INTRINSIC_SIN
 cos,           INTRINSIC_COS
 tan,           INTRINSIC_TAN
+isnan,         INTRINSIC_ISNAN
 atomicLoad,    INTRINSIC_ATOMIC_LOAD
 atomicAdd,     INTRINSIC_ATOMIC_ADD
 atomicSub,     INTRINSIC_ATOMIC_SUB

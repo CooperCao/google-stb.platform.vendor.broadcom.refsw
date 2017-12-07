@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -374,14 +374,14 @@ void BVDC_P_Capture_BuildRul_isr
         /* Disable compression if not 10bit core. Default is enabled. */
         if(hCapture->hWindow->bSupportDcxm)
         {
+#if (BVDC_P_SUPPORT_MOSAIC_MODE)
             uint32_t i, ulMosaicCount = pPicture->ulMosaicCount;
-            bool   bInterlaced;
-
-            bInterlaced = (hCapture->eCapturePolarity != BAVC_Polarity_eFrame);
+#endif
 
             BVDC_P_CAP_WRITE_TO_RUL(CAP_0_DCEM_CFG, pList->pulCurrent,
                 hCapture->stRegs.ulDcemCfg);
 
+#if (BVDC_P_SUPPORT_MOSAIC_MODE)
 #if (!BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH)
             if(hCapture->bEnableDcxm)
 #endif
@@ -399,11 +399,7 @@ void BVDC_P_Capture_BuildRul_isr
                         BCHP_CAP_0_DCEM_RECT_SIZEi_ARRAY_BASE + hCapture->ulRegOffset);
                     for(i = 0; i < ulMosaicCount; i++)
                     {
-                        *pList->pulCurrent++ =
-                            BCHP_FIELD_DATA(CAP_0_DCEM_RECT_SIZEi, HSIZE,
-                                pPicture->astMosaicRect[i].ulWidth) |
-                            BCHP_FIELD_DATA(CAP_0_DCEM_RECT_SIZEi, VSIZE,
-                                pPicture->astMosaicRect[i].ulHeight >> bInterlaced);
+                        *pList->pulCurrent++ = hCapture->stRegs.ulDecmRect[i];
                     }
 
                     *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(ulMosaicCount);
@@ -411,15 +407,12 @@ void BVDC_P_Capture_BuildRul_isr
                         BCHP_CAP_0_DCEM_RECT_OFFSETi_ARRAY_BASE + hCapture->ulRegOffset);
                     for(i = 0; i < ulMosaicCount; i++)
                     {
-                        *pList->pulCurrent++ =
-                            BCHP_FIELD_DATA(CAP_0_DCEM_RECT_OFFSETi, X_OFFSET,
-                                pPicture->astMosaicRect[i].lLeft) |
-                            BCHP_FIELD_DATA(CAP_0_DCEM_RECT_OFFSETi, Y_OFFSET,
-                                pPicture->astMosaicRect[i].lTop >> bInterlaced);
+                        *pList->pulCurrent++ =hCapture->stRegs.ulDecmRectOffset[i];
                     }
 
                 }
             }
+#endif
         }
 #endif
 
@@ -554,6 +547,31 @@ static BERR_Code BVDC_P_Capture_SetPictureRect_isr
         BCHP_FIELD_DATA(CAP_0_BVB_IN_SIZE, HSIZE, ulCapInWidth) |
         BCHP_FIELD_DATA(CAP_0_BVB_IN_SIZE, VSIZE, ulCapInHeight));
 
+#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM && BVDC_P_SUPPORT_MOSAIC_MODE)
+    /* Disable compression if not 10bit core. Default is enabled. */
+    if(hCapture->hWindow->bSupportDcxm)
+    {
+        uint32_t i, ulMosaicCount = pPicture->ulMosaicCount;
+        bool   bInterlaced;
+
+        bInterlaced = (hCapture->eCapturePolarity != BAVC_Polarity_eFrame);
+
+        for(i = 0; i < ulMosaicCount; i++)
+        {
+            hCapture->stRegs.ulDecmRect[i]=
+                BCHP_FIELD_DATA(CAP_0_DCEM_RECT_SIZEi, HSIZE,
+                    pPicture->astMosaicRect[i].ulWidth) |
+                BCHP_FIELD_DATA(CAP_0_DCEM_RECT_SIZEi, VSIZE,
+                    pPicture->astMosaicRect[i].ulHeight >> bInterlaced);
+
+            hCapture->stRegs.ulDecmRectOffset[i] =
+                 BCHP_FIELD_DATA(CAP_0_DCEM_RECT_OFFSETi, X_OFFSET,
+                    pPicture->astMosaicRect[i].lLeft) |
+                BCHP_FIELD_DATA(CAP_0_DCEM_RECT_OFFSETi, Y_OFFSET,
+                    pPicture->astMosaicRect[i].lTop >> bInterlaced);
+        }
+    }
+#endif
     BDBG_LEAVE(BVDC_P_Capture_SetPictureRect_isr);
     return BERR_SUCCESS;
 }
@@ -906,6 +924,7 @@ BERR_Code BVDC_P_Capture_SetEnable_isr
     return BERR_SUCCESS;
 }
 
+#if (BVDC_P_SUPPORT_MOSAIC_MODE)
 #if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
 /***************************************************************************
  * {private}
@@ -954,7 +973,6 @@ static BERR_Code BVDC_P_Capture_SetDcxmMosaicRect_isr
 }
 #endif
 
-#if BVDC_P_SUPPORT_MOSAIC_MODE
 /***************************************************************************
  * {private}
  *
@@ -1015,7 +1033,9 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
     BMMA_DeviceOffset ullStartAddr, ullStartAddr_R = 0;
     BVDC_P_Rect  *pCapOut, *pCapIn;
     bool bDrain = false;
+#if BVDC_P_SUPPORT_MOSAIC_MODE
     const BVDC_P_Window_Info *pUserInfo;
+#endif
 
     BDBG_OBJECT_ASSERT(hCapture, BVDC_CAP);
     BDBG_ASSERT(BVDC_P_VNET_USED_CAPTURE(pPicture->stVnetMode));
@@ -1024,7 +1044,9 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
     BDBG_ASSERT(pCapIn->ulWidth  >= pCapOut->ulWidth  + pCapOut->lLeft);
     BDBG_ASSERT(pCapIn->ulHeight >= pCapOut->ulHeight + pCapOut->lTop);
 
+#if BVDC_P_SUPPORT_MOSAIC_MODE
     pUserInfo = &hWindow->stCurInfo;
+#endif
     hCapture->bEnableDcxm = pPicture->bEnableDcxm;
 
     /* compression is always enabled for 10bit */
@@ -1057,7 +1079,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
             BCHP_FIELD_DATA(CAP_0_DCEM_CFG, HALF_VBR_BFR_MODE, bHalfSizeBufMode) |
 #endif
             BCHP_FIELD_ENUM(CAP_0_DCEM_CFG, APPLY_QERR,  Apply_Qerr) |
-            BCHP_FIELD_ENUM(CAP_0_DCEM_CFG, FIXED_RATE,  Fixed     ) |
+            BCHP_FIELD_DATA(CAP_0_DCEM_CFG, FIXED_RATE,  pPicture->bMosaicMode) |
             BCHP_FIELD_ENUM(CAP_0_DCEM_CFG, COMPRESSION, BPP_10 ));
     }
 #endif
@@ -1075,7 +1097,8 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
         else
             BPXL_GetBytesPerNPixels_isr(pPicture->ePixelFormat, ulWidth, &ulPitch);
         ulPitch += (pPicture->eCapOrientation == BFMT_Orientation_e2D)
-            ? BVDC_P_CAP_GUARD_MEMORY_2D : BVDC_P_CAP_GUARD_MEMORY_3D;
+            ? BVDC_P_GUARD_MEMORY_2D(pPicture->ulMosaicCount)
+            : BVDC_P_GUARD_MEMORY_3D(pPicture->ulMosaicCount);
     }
     else
     {

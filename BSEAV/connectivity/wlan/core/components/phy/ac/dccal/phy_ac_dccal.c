@@ -1076,6 +1076,7 @@ phy_ac_dccal_init(phy_info_t *pi)
 				MOD_PHYREGCE(pi, dccal_control_15, core, dccal_sw_reset_h, 0);
 				MOD_RADIO_REG_20694(pi, RF, TIA_DCDAC_REG2, core, tia_dcdac_scale,
 						1);
+				/* coverity[result_independent_of_operands] */
 				MOD_RADIO_REG_20694(pi, RF, TIA_REG5, core, tia_spare, 1);
 			}
 		}

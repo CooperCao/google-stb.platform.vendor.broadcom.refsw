@@ -46,7 +46,8 @@
 #define RAAGA_DEBUG_LOG_CHANGES 1
 
 #if BAPE_DSP_SUPPORT
-#include "bdsp_raaga.h"
+
+#include "bdsp.h"
 
 BDBG_MODULE(nexus_audio_dsp);
 
@@ -60,8 +61,9 @@ NEXUS_Error NEXUS_AudioDsp_GetDebugBuffer(
     BERR_Code errCode;
     BDSP_MMA_Memory debugBuffer;
     size_t bufferSize;
+    BDSP_Handle hDsp = NULL;
 
-    if ( dspIndex >= g_NEXUS_audioModuleData.numDsps )
+    if ( !BAPE_DEVICE_DSP_VALID(dspIndex) && !BAPE_DEVICE_ARM_VALID(dspIndex) )
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
@@ -79,30 +81,42 @@ NEXUS_Error NEXUS_AudioDsp_GetDebugBuffer(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    errCode = BDSP_Raaga_GetDebugBuffer(g_NEXUS_audioModuleData.dspHandle, (BDSP_Raaga_DebugType)debugType, dspIndex, &debugBuffer, &bufferSize);
-    if ( errCode )
+    if ( g_NEXUS_audioModuleData.dspHandle && BAPE_DEVICE_DSP_VALID(dspIndex) )
     {
-        return BERR_TRACE(errCode);
+        hDsp = g_NEXUS_audioModuleData.dspHandle;
+    }
+    else if ( g_NEXUS_audioModuleData.armHandle && BAPE_DEVICE_ARM_VALID(dspIndex) )
+    {
+        hDsp = g_NEXUS_audioModuleData.armHandle;
     }
 
-    if ( bufferSize > 0 )
+    if ( hDsp )
     {
-        *pBuffer = debugBuffer.pAddr;
-        *pBufferSize = bufferSize;
-
-        BMMA_FlushCache(debugBuffer.hBlock, debugBuffer.pAddr, bufferSize);
-    }
-    else
-    {
-        *pBuffer = NULL;
-        *pBufferSize = 0;
-
-        /* After all of the core dump has been consumed for the DSP, restart */
-        if ( debugType == NEXUS_AudioDspDebugType_eCoreDump && g_NEXUS_audioModuleData.watchdogDeferred )
+        errCode = BDSP_GetDebugBuffer(hDsp, (BDSP_DebugType)debugType, dspIndex, &debugBuffer, &bufferSize);
+        if ( errCode )
         {
-            /* Restart DSP now */
-            g_NEXUS_audioModuleData.watchdogDeferred = false;
-            NEXUS_AudioDecoder_P_Reset();
+            return BERR_TRACE(errCode);
+        }
+
+        if ( bufferSize > 0 )
+        {
+            *pBuffer = debugBuffer.pAddr;
+            *pBufferSize = bufferSize;
+
+            BMMA_FlushCache(debugBuffer.hBlock, debugBuffer.pAddr, bufferSize);
+        }
+        else
+        {
+            *pBuffer = NULL;
+            *pBufferSize = 0;
+
+            /* After all of the core dump has been consumed for the DSP, restart */
+            if ( debugType == NEXUS_AudioDspDebugType_eCoreDump && g_NEXUS_audioModuleData.watchdogDeferred )
+            {
+                /* Restart DSP now */
+                g_NEXUS_audioModuleData.watchdogDeferred = false;
+                NEXUS_AudioDecoder_P_Reset();
+            }
         }
     }
 
@@ -117,8 +131,15 @@ NEXUS_Error NEXUS_AudioDsp_DebugReadComplete(
     )
 {
     BERR_Code errCode;
+    BDSP_Handle hDsp = NULL;
+    unsigned dspOffset;
+    unsigned dspBase = 0;
+    unsigned numCores = 0;
+    NEXUS_AudioCapabilities caps;
 
-    if ( dspIndex >= g_NEXUS_audioModuleData.numDsps )
+    NEXUS_GetAudioCapabilities(&caps);
+
+    if ( !BAPE_DEVICE_DSP_VALID(dspIndex) && !BAPE_DEVICE_ARM_VALID(dspIndex) )
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
@@ -138,10 +159,31 @@ NEXUS_Error NEXUS_AudioDsp_DebugReadComplete(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    errCode = BDSP_Raaga_ConsumeDebugData(g_NEXUS_audioModuleData.dspHandle, (BDSP_Raaga_DebugType)debugType, dspIndex, bytesRead);
-    if ( errCode )
+    if ( g_NEXUS_audioModuleData.dspHandle && BAPE_DEVICE_DSP_VALID(dspIndex) )
     {
-        return BERR_TRACE(errCode);
+        hDsp = g_NEXUS_audioModuleData.dspHandle;
+        dspBase = BAPE_DEVICE_DSP_FIRST;
+        numCores = caps.numDsps;
+    }
+    else if ( g_NEXUS_audioModuleData.armHandle && BAPE_DEVICE_ARM_VALID(dspIndex) )
+    {
+        hDsp = g_NEXUS_audioModuleData.armHandle;
+        dspBase = BAPE_DEVICE_ARM_FIRST;
+        numCores = caps.numSoftAudioCores;
+    }
+
+    dspOffset = BAPE_DSP_DEVICE_INDEX(dspIndex, dspBase);
+    if (dspOffset >= numCores) {
+        BDBG_ERR(("Audio Core Index %u not supported(%u)", dspOffset, numCores));
+    }
+
+    if ( hDsp )
+    {
+        errCode = BDSP_ConsumeDebugData(hDsp, (BDSP_DebugType)debugType, dspOffset, bytesRead);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
     }
 
     return BERR_SUCCESS;

@@ -241,6 +241,10 @@ This function returns bounds of the play file
 
 Description:
 This function could be used for files that were previously recorded using NEXUS_Record.
+
+If NEXUS_FilePlayHandle is in use by NEXUS_Playback, this function will fail because it must
+modify the state of the file read pointer. Use NEXUS_Playback_GetStatus or open a separate
+NEXUS_FilePlayHandle instance.
 */
 NEXUS_Error NEXUS_FilePlay_GetBounds(
     NEXUS_FilePlayHandle file, /* Handle returned by NEXUS_FifoRecord_Create */
@@ -254,6 +258,10 @@ Get position information for a given timestamp.
 
 Description:
 Function fails if timestamp is out of bounds.
+
+If NEXUS_FilePlayHandle is in use by NEXUS_Playback, this function will fail because it must
+modify the state of the file read pointer. Use NEXUS_Playback_GetStatus or open a separate
+NEXUS_FilePlayHandle instance.
 */
 NEXUS_Error NEXUS_FilePlay_GetLocation(
     NEXUS_FilePlayHandle file, /* Handle returned by NEXUS_FifoRecord_Create */

@@ -363,16 +363,16 @@ static NEXUS_PlatformSettings *NEXUS_Platform_P_AllocSettingsForAdjacentHeaps(co
                 *pBmemSettings = *pSettings;
             }
         }
-        if (pSettings->heap[i].heapType & (NEXUS_HEAP_TYPE_SECURE_GRAPHICS|NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)) {
+        if ((pSettings->heap[i].heapType & (NEXUS_HEAP_TYPE_SECURE_GRAPHICS|NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)) && pBmemSettings) {
             int rc;
             unsigned picbufHeap;
             rc = NEXUS_Platform_P_GetPictureBufferForAdjacent(pSettings, i, &picbufHeap);
             if (rc) {
                 BERR_TRACE(rc);
-                if (pBmemSettings) BKNI_Free(pBmemSettings);
+                BKNI_Free(pBmemSettings);
                 return NULL;
             }
-            if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS && pBmemSettings) {
+            if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS) {
                 /* additional memory */
                 pBmemSettings->heap[picbufHeap].size += pBmemSettings->heap[i].size;
             }
@@ -445,7 +445,7 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
     struct nexus_map_settings map_settings;
     BINT_Settings intSettings;
     const BINT_Settings *intr_cfg;
-    NEXUS_PlatformSettings *pBmemSettings;
+    NEXUS_PlatformSettings *pBmemSettings = NULL;
 
 /* TODO: for nfe image, g_mipsKernelMode could be passed in as runtime param */
 #if NEXUS_MODE_driver || NEXUS_BASE_OS_linuxkernel
@@ -456,10 +456,6 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
 
     /* determine heaps based on MEMC config and user config */
     NEXUS_CoreModule_GetDefaultSettings(&g_coreSettings);
-    if (!pMemory->max_dcache_line_size) {
-        pMemory->max_dcache_line_size = 4096;
-        BDBG_WRN(("max_dcache_line_size is 0. increasing to %d for cache coherency.", pMemory->max_dcache_line_size));
-    }
 
     pBmemSettings = NEXUS_Platform_P_AllocSettingsForAdjacentHeaps(pSettings);
 
@@ -468,6 +464,7 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
 
     if (pBmemSettings) {
         NEXUS_Platform_P_FreeSettingsForAdjacentHeaps(pBmemSettings);
+        pBmemSettings = NULL;
         errCode = NEXUS_Platform_P_BuildAdjacentHeaps(pSettings, &g_coreSettings);
         if (errCode) return BERR_TRACE(errCode);
     }
@@ -507,7 +504,13 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
         }
     }
 
-    g_coreSettings.memoryLayout = pMemory->memoryLayout;
+    NEXUS_ASSERT_STRUCTURE(NEXUS_PlatformMemoryLayout, BCHP_MemoryLayout);
+    NEXUS_ASSERT_FIELD(NEXUS_PlatformMemoryLayout, memc , BCHP_MemoryLayout, memc);
+    NEXUS_ASSERT_FIELD(NEXUS_PlatformMemoryLayout, memc[0].size , BCHP_MemoryLayout, memc[0].size);
+    NEXUS_ASSERT_FIELD(NEXUS_PlatformMemoryLayout, memc[0].region, BCHP_MemoryLayout, memc[0].region);
+    NEXUS_ASSERT_FIELD(NEXUS_PlatformMemoryLayout, memc[0].region[0].addr, BCHP_MemoryLayout, memc[0].region[0].addr);
+    NEXUS_ASSERT_FIELD(NEXUS_PlatformMemoryLayout, memc[0].region[0].size, BCHP_MemoryLayout, memc[0].region[0].size);
+    BKNI_Memcpy(&g_coreSettings.memoryLayout, &pMemory->memoryLayout, sizeof(g_coreSettings.memoryLayout));
     g_coreSettings.regHandle = preInitState->hReg;
     g_coreSettings.interruptInterface.pDisconnectInterrupt = NEXUS_Platform_P_DisconnectInterrupt;
     g_coreSettings.interruptInterface.pConnectInterrupt = NEXUS_Platform_P_ConnectInterrupt;
@@ -586,6 +589,9 @@ err_map:
     nexus_p_uninit_map();
 err_guardband:
 err_memc:
+    if (pBmemSettings) {
+        NEXUS_Platform_P_FreeSettingsForAdjacentHeaps(pBmemSettings);
+    }
 
     return errCode;
 }
@@ -699,7 +705,7 @@ static void NEXUS_Platform_P_UnmapRegion(NEXUS_Core_MemoryRegion *region)
 #include "../../src/common/bchp_memc_offsets_priv.h"
 
 
-NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory)
+NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformMemoryLayout *pMemory)
 {
     BCHP_MemoryInfo info;
     unsigned memcIndex;

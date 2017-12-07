@@ -771,9 +771,13 @@ static void NEXUS_Gpio_P_isr(void *context, int param)
     BDBG_MSG(("GIO_MASK_EXT2 0x%08x GIO_STAT_EXT2 0x%08x", BREG_Read32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT2), BREG_Read32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT2)));
     #endif
 #endif
-    if (g_NEXUS_gpio.osSharedBankCaps.osManaged && g_NEXUS_gpio.settings.osSharedBankSettings.getInterruptStatus_isr)
-    {
-        g_NEXUS_gpio.settings.osSharedBankSettings.getInterruptStatus_isr(&osSharedBankStatus);
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged) {
+        if (g_NEXUS_gpio.settings.osSharedBankSettings.getInterruptStatus_isr) {
+            g_NEXUS_gpio.settings.osSharedBankSettings.getInterruptStatus_isr(&osSharedBankStatus);
+        }
+        else {
+            BKNI_Memset(&osSharedBankStatus, 0, sizeof(osSharedBankStatus));
+        }
     }
 
     for (gpio=BLST_S_FIRST(&g_NEXUS_gpio.list); gpio; gpio = BLST_S_NEXT(gpio, link)) {
@@ -819,7 +823,7 @@ static void NEXUS_GpioModule_P_SetStandby(bool enabled, NEXUS_StandbyMode mode)
             {
                 if (enabled && (mode == NEXUS_StandbyMode_eDeepSleep) && !NEXUS_GPIO_P_IS_AON(gpio))
                 {
-                    BDBG_WRN(("Entering S3 with a regular gpio set as wake source. Only AON gpio can wake from S3."));
+                    BDBG_WRN(("Entering Deep Sleep with a regular gpio set as wake source. Only AON gpio can wake from this state."));
                 }
                 g_NEXUS_gpio.settings.osSharedBankSettings.setStandby(gpio->osSharedBankGpio, enabled);
             }

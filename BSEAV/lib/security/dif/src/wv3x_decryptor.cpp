@@ -51,6 +51,7 @@
 #include <arpa/inet.h>
 
 #include <sys/stat.h>
+#include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #if defined(__linux__)
@@ -95,7 +96,7 @@ static uint32_t curl_writeback( void *ptr, uint32_t size, uint32_t nmemb, void *
 
 static std::string GetCertRequestResponse(std::string& keyMessage)
 {
-    LOGW(("%s: Cert req keyMessage(%d): %s", __FUNCTION__, (uint32_t)keyMessage.size(), keyMessage.c_str()));
+    LOGW(("%s: Cert req keyMessage(%d): %s", BSTD_FUNCTION, (uint32_t)keyMessage.size(), keyMessage.c_str()));
     std::string server_url;
     std::string message = "";
     s_wvBuffer.assign("");
@@ -144,7 +145,7 @@ static std::string GetCertRequestResponse(std::string& keyMessage)
 Widevine3xDecryptor::Widevine3xDecryptor()
     : BaseDecryptor(), IEventListener()
 {
-    LOGD(("%s: enter", __FUNCTION__));
+    LOGD(("%s: enter", BSTD_FUNCTION));
 
     if (!s_wvcdmLogInit) {
         InitLogging();
@@ -160,16 +161,16 @@ Widevine3xDecryptor::Widevine3xDecryptor()
 
 Widevine3xDecryptor::~Widevine3xDecryptor()
 {
-    LOGD(("%s: enter", __FUNCTION__));
+    LOGD(("%s: enter", BSTD_FUNCTION));
 #if 0
     if (!m_sessionId.empty()) {
         LOGD(("%s: calling CancelKeyRequest sessionId=%s",
-            __FUNCTION__, m_sessionId.c_str()));
+            BSTD_FUNCTION, m_sessionId.c_str()));
         CancelKeyRequest();
     }
 #endif
     if (m_cdm) {
-        LOGD(("%s: closing session_id:%s", __FUNCTION__, m_sessionId.c_str()));
+        LOGD(("%s: closing session_id:%s", BSTD_FUNCTION, m_sessionId.c_str()));
         m_cdm->close(m_sessionId);
         delete m_cdm;
         m_cdm = NULL;
@@ -179,7 +180,7 @@ Widevine3xDecryptor::~Widevine3xDecryptor()
         delete m_cdmHost;
         m_cdmHost = NULL;
     }
-    LOGD(("%s: leave", __FUNCTION__));
+    LOGD(("%s: leave", BSTD_FUNCTION));
 }
 
 bool Widevine3xDecryptor::Initialize(std::string& pssh)
@@ -187,10 +188,10 @@ bool Widevine3xDecryptor::Initialize(std::string& pssh)
     Cdm::Status status;
     char* logLevelStr;
     int logLevel = 0;
-    LOGD(("%s: pssh(%d): %s", __FUNCTION__, (uint32_t)pssh.size(), b2a_hex(pssh).c_str()));
+    LOGD(("%s: pssh(%d): %s", BSTD_FUNCTION, (uint32_t)pssh.size(), b2a_hex(pssh).c_str()));
     m_pssh.assign(pssh);
     m_keyId.assign(pssh.substr(4));
-    LOGD(("%s: default keyId(%d): %s", __FUNCTION__, (uint32_t)m_keyId.size(), b2a_hex(m_keyId).c_str()));
+    LOGD(("%s: default keyId(%d): %s", BSTD_FUNCTION, (uint32_t)m_keyId.size(), b2a_hex(m_keyId).c_str()));
 
     // Initialize the CDM module before creating a CDM instance.
 
@@ -227,8 +228,16 @@ bool Widevine3xDecryptor::Initialize(std::string& pssh)
     LOGW(("Cdm version=%s", Cdm::version()));
 
     // Create the CDM.
-    // TODO: privacy mode disabled for now
-    bool privacyMode = false;
+    // Use privacy mode by default
+    bool privacyMode = true;
+
+    // Provide a way to go without privacy mode
+    const char *privacyModeEnv = getenv("WIDEVINE_PRIVACY_MODE");
+    if (privacyModeEnv != NULL && strcmp(privacyModeEnv, "n") == 0) {
+        privacyMode = false;
+    }
+    LOGW(("Privacy mode is set to %s", privacyMode ? "true" : "false"));
+
     if (m_cdm == NULL)
         m_cdm = reinterpret_cast<widevine::Cdm*>(Cdm::create(this, m_cdmHost, privacyMode));
 
@@ -237,50 +246,92 @@ bool Widevine3xDecryptor::Initialize(std::string& pssh)
         return false;
     }
 
-#if defined( WV_CDM_V32 )
-    if (!privacyMode) {
-        const std::string kDefaultCertificate = wvcdm::a2bs_hex(
-        "0ABF020803121028703454C008F63618ADE7443DB6C4C8188BE7F99005228E023082010A02"
-        "82010100B52112B8D05D023FCC5D95E2C251C1C649B4177CD8D2BEEF355BB06743DE661E3D"
-        "2ABC3182B79946D55FDC08DFE95407815E9A6274B322A2C7F5E067BB5F0AC07A89D45AEA94"
-        "B2516F075B66EF811D0D26E1B9A6B894F2B9857962AA171C4F66630D3E4C602718897F5E1E"
-        "F9B6AAF5AD4DBA2A7E14176DF134A1D3185B5A218AC05A4C41F081EFFF80A3A040C50B09BB"
-        "C740EEDCD8F14D675A91980F92CA7DDC646A06ADAD5101F74A0E498CC01F00532BAC217850"
-        "BD905E90923656B7DFEFEF42486767F33EF6283D4F4254AB72589390BEE55808F1D668080D"
-        "45D893C2BCA2F74D60A0C0D0A0993CEF01604703334C3638139486BC9DAF24FD67A07F9AD9"
-        "4302030100013A1273746167696E672E676F6F676C652E636F6D128003983E30352675F40B"
-        "A715FC249BDAE5D4AC7249A2666521E43655739529721FF880E0AAEFC5E27BC980DAEADABF"
-        "3FC386D084A02C82537848CC753FF497B011A7DA97788A00E2AA6B84CD7D71C07A48EBF616"
-        "02CCA5A3F32030A7295C30DA915B91DC18B9BC9593B8DE8BB50F0DEDC12938B8E9E039CDDE"
-        "18FA82E81BB032630FE955D85A566CE154300BF6D4C1BD126966356B287D657B18CE63D0EF"
-        "D45FC5269E97EAB11CB563E55643B26FF49F109C2101AFCAF35B832F288F0D9D45960E259E"
-        "85FB5D24DBD2CF82764C5DD9BF727EFBE9C861F869321F6ADE18905F4D92F9A6DA6536DB84"
-        "75871D168E870BB2303CF70C6E9784C93D2DE845AD8262BE7E0D4E2E4A0759CEF82D109D25"
-        "92C72429F8C01742BAE2B3DECADBC33C3E5F4BAF5E16ECB74EADBAFCB7C6705F7A9E3B6F39"
-        "40383F9C5116D202A20C9229EE969C2519718303B50D0130C3352E06B014D838540F8A0C22"
-        "7C0011E0F5B38E4E298ED2CB301EB4564965F55C5D79757A250A4EB9C84AB3E6539F6B6FDF"
-        "56899EA29914");
+    const std::string kBrcmCertificate = wvcdm::a2bs_hex(
+        "0AC102080312101705B917CC1204868B06333A2F772A8C1882B4829205228E02308201"
+        "0A028201010099ED5B3B327DAB5E24EFC3B62A95B598520AD5BCCB37503E0645B814D8"
+        "76B8DF40510441AD8CE3ADB11BB88C4E725A5E4A9E0795291D58584023A7E1AF0E38A9"
+        "1279393008610B6F158C878C7E21BFFBFEEA77E1019E1E5781E8A45F46263D14E60E80"
+        "58A8607ADCE04FAC8457B137A8D67CCDEB33705D983A21FB4EECBD4A10CA47490CA47E"
+        "AA5D438218DDBAF1CADE3392F13D6FFB6442FD31E1BF40B0C604D1C4BA4C9520A4BF97"
+        "EEBD60929AFCEEF55BBAF564E2D0E76CD7C55C73A082B996120B8359EDCE2470708268"
+        "0D6F67C6D82C4AC5F3134490A74EEC37AF4B2F010C59E82843E2582F0B6B9F5DB0FC5E"
+        "6EDF64FBD308B4711BCF1250019C9F5A0902030100013A146C6963656E73652E776964"
+        "6576696E652E636F6D128003AE347314B5A835297F271388FB7BB8CB5277D249823CDD"
+        "D1DA30B93339511EB3CCBDEA04B944B927C121346EFDBDEAC9D413917E6EC176A10438"
+        "460A503BC1952B9BA4E4CE0FC4BFC20A9808AAAF4BFCD19C1DCFCDF574CCAC28D1B410"
+        "416CF9DE8804301CBDB334CAFCD0D40978423A642E54613DF0AFCF96CA4A9249D855E4"
+        "2B3A703EF1767F6A9BD36D6BF82BE76BBF0CBA4FDE59D2ABCC76FEB64247B85C431FBC"
+        "A52266B619FC36979543FCA9CBBDBBFAFA0E1A55E755A3C7BCE655F9646F582AB9CF70"
+        "AA08B979F867F63A0B2B7FDB362C5BC4ECD555D85BCAA9C593C383C857D49DAAB77E40"
+        "B7851DDFD24998808E35B258E75D78EAC0CA16F7047304C20D93EDE4E8FF1C6F17E624"
+        "3E3F3DA8FC1709870EC45FBA823A263F0CEFA1F7093B1909928326333705043A29BDA6"
+        "F9B4342CC8DF543CB1A1182F7C5FFF33F10490FACA5B25360B76015E9C5A06AB8EE02F"
+        "00D2E8D5986104AACC4DD475FD96EE9CE4E326F21B83C7058577B38732CDDABC6A6BED"
+        "13FB0D49D38A45EB87A5F4");
 
-        status = m_cdm->setServiceCertificate(kDefaultCertificate);
-        if (status != Cdm::kSuccess) {
-            LOGE(("setServiceCertificate failed: %d", (int)status));
-            return false;
+#if defined( WV_CDM_V31 )
+    if (privacyMode)
+        status = m_cdm->setServerCertificate(kBrcmCertificate);
+#else
+    status = m_cdm->setServiceCertificate(kBrcmCertificate);
+#endif
+    if (status != Cdm::kSuccess) {
+        LOGE(("setServiceCertificate failed: %d", (int)status));
+        return false;
+    }
+    return true;
+}
+
+bool Widevine3xDecryptor::Load(std::string license)
+{
+    Cdm::Status status;
+    std::vector<std::string> set_key_ids;
+    LOGD(("%s: License: %s", BSTD_FUNCTION, license.c_str()));
+
+#ifdef WV_CDM_V32
+    bool match = false;
+    status = m_cdm->listStoredLicenses(&set_key_ids);
+    for (std::vector<std::string>::iterator it = set_key_ids.begin() ; it != set_key_ids.end(); ++it) {
+        LOGD(("Compare stored license: %s", it->c_str()));
+        if (it->compare(license) == 0) {
+            LOGW(("%s: license(%s) is in the stored license list", BSTD_FUNCTION, license.c_str()));
+            match = true;
+            m_valid = false;
+            break;
         }
     }
+
+    if (!match) {
+        LOGW(("%s: License(%s) is not in the stored license list", BSTD_FUNCTION, license.c_str()));
+        return false;
+    }
 #endif
+
+    m_sessionId.assign(license);
+    LOGW(("%s: Loading license: %s", BSTD_FUNCTION, m_sessionId.c_str()));
+    status = m_cdm->load(m_sessionId);
+    if (status != Cdm::kSuccess) {
+        LOGE(("%s: License load failed %d", BSTD_FUNCTION, status));
+        m_sessionId.clear();
+        m_valid = false;
+        return false;
+    }
+
+    m_cdmSessionType = Cdm::kPersistentLicense;
+    m_valid = true;
     return true;
 }
 
 bool Widevine3xDecryptor::Provision()
 {
     Cdm::Status status;
-    LOGD(("%s: enter", __FUNCTION__));
+    LOGD(("%s: enter", BSTD_FUNCTION));
 
     status = m_cdm->createSession(m_cdmSessionType, &m_sessionId);
     if (status != Cdm::kSuccess) {
         return false;
     }
-    LOGD(("%s: created session_id:%s", __FUNCTION__, m_sessionId.c_str()));
+    LOGD(("%s: created session_id:%s", BSTD_FUNCTION, m_sessionId.c_str()));
 
     status = m_cdm->generateRequest(m_sessionId, Cdm::kCenc, m_initData);
     if (status != Cdm::kSuccess && status != Cdm::kDeferred) {
@@ -291,14 +342,14 @@ bool Widevine3xDecryptor::Provision()
 
     // Wait for the callback
     while (!m_gotCertReq){
-        LOGW(("%s: waiting for cert request from CDM", __FUNCTION__));
+        LOGW(("%s: waiting for cert request from CDM", BSTD_FUNCTION));
         usleep(100000);
     }
 
     if (!m_certReq.empty()) {
         m_certificate = GetCertRequestResponse(m_certReq);
 
-        LOGW(("%s: m_certificate=%s", __FUNCTION__, m_certificate.c_str()));
+        LOGW(("%s: m_certificate=%s", BSTD_FUNCTION, m_certificate.c_str()));
 
         status = m_cdm->update(m_sessionId, m_certificate);
         if (status != Cdm::kSuccess) {
@@ -316,8 +367,13 @@ bool Widevine3xDecryptor::Provision()
 
 bool Widevine3xDecryptor::GenerateKeyRequest(std::string initData, dif_streamer::SessionType type)
 {
-    LOGW(("%s: %d initData(%d): %s", __FUNCTION__, __LINE__, (uint32_t)initData.size(), b2a_hex(initData).c_str()));
-    LOGW(("%s: type:%d", __FUNCTION__, type));
+    LOGW(("%s: %d initData(%d): %s", BSTD_FUNCTION, __LINE__, (uint32_t)initData.size(), b2a_hex(initData).c_str()));
+    LOGW(("%s: type:%d", BSTD_FUNCTION, type));
+
+    if (m_valid) {
+        LOGW(("%s: License has already been loaded", BSTD_FUNCTION));
+        return true;
+    }
 
     m_hasKeyMessage = false;
 
@@ -327,16 +383,16 @@ bool Widevine3xDecryptor::GenerateKeyRequest(std::string initData, dif_streamer:
     m_initData.assign(initData);
 
     if (!Provision()) {
-        LOGW(("%s: First provisioning failed", __FUNCTION__));
+        LOGW(("%s: First provisioning failed", BSTD_FUNCTION));
         // Try again just in case
         if (!Provision()) {
-            LOGE(("%s: Provisioning failed", __FUNCTION__));
+            LOGE(("%s: Provisioning failed", BSTD_FUNCTION));
             return false;
         }
     }
 
     while (!HasNewKeyMessage()) {
-        LOGW(("%s: waiting for new key", __FUNCTION__));
+        LOGW(("%s: waiting for new key", BSTD_FUNCTION));
         usleep(100000);
     }
 
@@ -348,17 +404,17 @@ std::string Widevine3xDecryptor::GetKeyRequestResponse(std::string url)
     m_url = url;
     std::string drm_msg;
 
-        LOGW(("%s: keyMessage(%d): %s", __FUNCTION__, (uint32_t)m_keyMessage.size(), b2a_hex(m_keyMessage).c_str()));
+        LOGW(("%s: keyMessage(%d): %s", BSTD_FUNCTION, (uint32_t)m_keyMessage.size(), b2a_hex(m_keyMessage).c_str()));
         std::string message = "";
         s_wvBuffer.assign("");
 #ifdef USE_CURL
        // url+= "SecurityLevel=L3";
-        LOGW(("%s: server_url: %s", __FUNCTION__, url.c_str()));
+        LOGW(("%s: server_url: %s", BSTD_FUNCTION, url.c_str()));
         CURL *curl;
         CURLcode res;
         curl = curl_easy_init();
         if (curl == NULL) {
-            LOGE(("%s: curl_easy_init returned NULL", __FUNCTION__));
+            LOGE(("%s: curl_easy_init returned NULL", BSTD_FUNCTION));
             return drm_msg;
         }
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
@@ -371,10 +427,10 @@ std::string Widevine3xDecryptor::GetKeyRequestResponse(std::string url)
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "Widevine v3.x");
         res = curl_easy_perform(curl);
-        LOGW(("%s: s_wvBuffer(%d): %s, res: %d", __FUNCTION__, (uint32_t)s_wvBuffer.size(), s_wvBuffer.c_str(), res));
+        LOGW(("%s: s_wvBuffer(%d): %s, res: %d", BSTD_FUNCTION, (uint32_t)s_wvBuffer.size(), s_wvBuffer.c_str(), res));
 
         if (res != 0) {
-            LOGE(("%s: curl error %d", __FUNCTION__, res));
+            LOGE(("%s: curl error %d", BSTD_FUNCTION, res));
             curl_easy_cleanup(curl);
             return drm_msg;
         }
@@ -390,14 +446,14 @@ std::string Widevine3xDecryptor::GetKeyRequestResponse(std::string url)
 
         LOGD(("GetStatusCode returned %d", status_code));
         if (status_code != 200) {
-            LOGE(("%s: error status_code=%d", __FUNCTION__, status_code));
+            LOGE(("%s: error status_code=%d", BSTD_FUNCTION, status_code));
             return drm_msg;
         }
         s_wvBuffer = message;
 #endif // USE_CURL
         size_t body_head = s_wvBuffer.find("\r\n\r\n");
         if (body_head == std::string::npos) {
-            LOGE(("%s: no body found in response", __FUNCTION__));
+            LOGE(("%s: no body found in response", BSTD_FUNCTION));
 #ifdef USE_CURL
             curl_easy_cleanup(curl);
 #endif
@@ -410,7 +466,7 @@ std::string Widevine3xDecryptor::GetKeyRequestResponse(std::string url)
             drm_head += 4;
             drm_msg = s_wvBuffer.substr(drm_head);
         } else {
-            LOGW(("%s: return body anyway", __FUNCTION__));
+            LOGW(("%s: return body anyway", BSTD_FUNCTION));
             drm_msg = s_wvBuffer.substr(body_head);
         }
 
@@ -426,6 +482,11 @@ bool Widevine3xDecryptor::AddKey(std::string key)
     std::string response;
     Cdm::Status status;
     Cdm::KeyStatusMap key_statuses;
+
+    if (m_valid) {
+        LOGW(("%s: License(%s) has already been loaded", BSTD_FUNCTION, m_sessionId.c_str()));
+        return true;
+    }
 
     status = m_cdm->update(m_sessionId, key);
     if (status != Cdm::kSuccess) {
@@ -489,7 +550,7 @@ uint32_t Widevine3xDecryptor::DecryptSample(
         clearSize += pSample->entries[i].bytesOfClearData;
         encSize += pSample->entries[i].bytesOfEncData;
     }
-    LOGD(("%s: sampleSize=%u clearSize=%u encSize=%u", __FUNCTION__, sampleSize, clearSize, encSize));
+    LOGD(("%s: sampleSize=%u clearSize=%u encSize=%u", BSTD_FUNCTION, sampleSize, clearSize, encSize));
 
     // DMA Transfer to the destination buffer
     if (output->IsSecure()) {
@@ -537,7 +598,7 @@ uint32_t Widevine3xDecryptor::DecryptSample(
         /* Skip over remaining clear units */
         offset += num_clear;
 
-        LOGD(("%s: encrypted %u @ %u blkOffset=%u", __FUNCTION__,
+        LOGD(("%s: encrypted %u @ %u blkOffset=%u", BSTD_FUNCTION,
             pSample->entries[i].bytesOfEncData, offset, blockOffset));
 
         Cdm::Pattern p(0,0);
@@ -559,10 +620,10 @@ uint32_t Widevine3xDecryptor::DecryptSample(
         Cdm::Status result = m_cdm->decrypt(inputBuffer, outputBuffer);
 
         if (result == Cdm::kNoKey) {
-            LOGE(("%s: Decrypt returned NoKey\n", __FUNCTION__));
+            LOGE(("%s: Decrypt returned NoKey\n", BSTD_FUNCTION));
             goto ErrorExit;
         } else if (result != Cdm::kSuccess) {
-            LOGE(("%s: Decrypt returned error %d\n", __FUNCTION__, (int)result));
+            LOGE(("%s: Decrypt returned error %d\n", BSTD_FUNCTION, (int)result));
             goto ErrorExit;
         }
 
@@ -580,7 +641,7 @@ ErrorExit:
 
 bool Widevine3xDecryptor::CancelKeyRequest()
 {
-    LOGW(("%s: sessionId=%s", __FUNCTION__, m_sessionId.c_str()));
+    LOGW(("%s: sessionId=%s", BSTD_FUNCTION, m_sessionId.c_str()));
     Cdm::Status status = m_cdm->close(m_sessionId);
     m_sessionId.clear();
     m_valid = false;
@@ -596,20 +657,20 @@ void Widevine3xDecryptor::onKeyStatusesChange(
 {
     Cdm::Status status;
     Cdm::KeyStatusMap key_statuses;
-    LOGW(("%s: session_id=%s", __FUNCTION__, session_id.c_str()));
+    LOGW(("%s: session_id=%s", BSTD_FUNCTION, session_id.c_str()));
     status = m_cdm->getKeyStatuses(session_id, &key_statuses);
     if (status != Cdm::kSuccess) {
-        LOGE(("%s: getKeyStatuses Error: %d", __FUNCTION__, status));
+        LOGE(("%s: getKeyStatuses Error: %d", BSTD_FUNCTION, status));
         return;
     }
 
-    LOGW(("%s: keyStatus=%d", __FUNCTION__, key_statuses[session_id]));
+    LOGW(("%s: keyStatus=%d", BSTD_FUNCTION, key_statuses[session_id]));
     if (key_statuses[session_id] == Cdm::kUsable) {
         m_valid = true;
         return;
     }
     else if (key_statuses[session_id] == Cdm::kExpired) {
-        LOGW(("%s: session %s expired", __FUNCTION__, session_id.c_str()));
+        LOGW(("%s: session %s expired", BSTD_FUNCTION, session_id.c_str()));
     }
     m_valid = false;
 }
@@ -617,20 +678,20 @@ void Widevine3xDecryptor::onKeyStatusesChange(
 void Widevine3xDecryptor::onRemoveComplete(
     const std::string& session_id)
 {
-    LOGW(("%s: session_id=%s", __FUNCTION__, session_id.c_str()));
+    LOGW(("%s: session_id=%s", BSTD_FUNCTION, session_id.c_str()));
 }
 
 void Widevine3xDecryptor::onDeferredComplete(
     const std::string& session_id, Cdm::Status result)
 {
-    LOGW(("%s: session_id=%s result=%d", __FUNCTION__, session_id.c_str(), result));
+    LOGW(("%s: session_id=%s result=%d", BSTD_FUNCTION, session_id.c_str(), result));
     m_gotCertReq = true;
 }
 
 void Widevine3xDecryptor::onDirectIndividualizationRequest(
     const std::string& session_id, const std::string& request)
 {
-    LOGW(("%s: session_id=%s request=%s", __FUNCTION__, session_id.c_str(), request.c_str()));
+    LOGW(("%s: session_id=%s request=%s", BSTD_FUNCTION, session_id.c_str(), request.c_str()));
     m_certReq = request;
     m_gotCertReq = true;
 }
@@ -640,7 +701,7 @@ void Widevine3xDecryptor::onMessage(
     Cdm::MessageType message_type,
     const std::string& message)
 {
-    LOGW(("%s: session_id=%s type=%d message(%d)=%s", __FUNCTION__,
+    LOGW(("%s: session_id=%s type=%d message(%d)=%s", BSTD_FUNCTION,
         session_id.c_str(), message_type, (uint32_t)message.size(), message.c_str()));
     m_sessionId = session_id;
     m_messageType = message_type;
@@ -669,21 +730,21 @@ CdmHost::CdmHost() : widevine::Cdm::IStorage(),
     m_basePath += kL3;
 #endif
     m_basePath += kDirectoryDelimiter;
-    LOGD(("%s: basePath=%s", __FUNCTION__, m_basePath.c_str()));
+    LOGD(("%s: basePath=%s", BSTD_FUNCTION, m_basePath.c_str()));
 }
 
 CdmHost::~CdmHost()
 {
-    LOGD(("%s: CdmHost %p destroyed", __FUNCTION__, (void*)this));
+    LOGD(("%s: CdmHost %p destroyed", BSTD_FUNCTION, (void*)this));
 }
 
 bool CdmHost::read(const std::string& name,
     std::string* data)
 {
-    LOGD(("CdmHost::%s: name=%s", __FUNCTION__, name.c_str()));
+    LOGD(("CdmHost::%s: name=%s", BSTD_FUNCTION, name.c_str()));
 
     if (data == NULL) {
-        LOGD(("CdmHost::%s: data is NULL", __FUNCTION__));
+        LOGD(("CdmHost::%s: data is NULL", BSTD_FUNCTION));
         return false;
     }
 
@@ -691,7 +752,7 @@ bool CdmHost::read(const std::string& name,
     std::string filePath = m_basePath;
     filePath.append(name);
     if (stat(filePath.c_str(), &buf) != 0) {
-        LOGW(("%s: stat failed(%d): %s", __FUNCTION__, errno, filePath.c_str()));
+        LOGW(("%s: stat failed(%d): %s", BSTD_FUNCTION, errno, filePath.c_str()));
         return false;
     }
 
@@ -699,9 +760,9 @@ bool CdmHost::read(const std::string& name,
     FILE* fd = fopen(filePath.c_str(), "r+b");
     uint32_t len = fread(buffer, sizeof(char), buf.st_size, fd);
     if (len == 0) {
-        LOGW(("%s: fread failed(%d): %s", __FUNCTION__, errno, filePath.c_str()));
+        LOGW(("%s: fread failed(%d): %s", BSTD_FUNCTION, errno, filePath.c_str()));
     } else if ((int32_t)len != buf.st_size) {
-        LOGW(("%s: fread incomplete (%d/%d): %s", __FUNCTION__, (int32_t)len, (int32_t)buf.st_size, filePath.c_str()));
+        LOGW(("%s: fread incomplete (%d/%d): %s", BSTD_FUNCTION, (int32_t)len, (int32_t)buf.st_size, filePath.c_str()));
     } else {
         data->assign(buffer, len);
     }
@@ -711,7 +772,7 @@ bool CdmHost::read(const std::string& name,
 
 static bool createDirectory(std::string path)
 {
-    LOGD(("%s: path: %s", __FUNCTION__, path.c_str()));
+    LOGD(("%s: path: %s", BSTD_FUNCTION, path.c_str()));
     uint32_t size = path.size();
     if ((size == 1) && (path[0] == kDirectoryDelimiter))
         return true;
@@ -724,7 +785,7 @@ static bool createDirectory(std::string path)
         path[pos] = '\0';
         if (mkdir(path.c_str(), 0775) != 0) {
             if (errno != EEXIST) {
-                LOGW(("%s: mkdir failed(%d): %s", __FUNCTION__, errno, path.c_str()));
+                LOGW(("%s: mkdir failed(%d): %s", BSTD_FUNCTION, errno, path.c_str()));
                 return false;
             }
         }
@@ -735,7 +796,7 @@ static bool createDirectory(std::string path)
     if (path[size - 1] != kDirectoryDelimiter) {
         if (mkdir(path.c_str(), 0775) != 0) {
             if (errno != EEXIST) {
-                LOGW(("%s: mkdir failed(%d): %s", __FUNCTION__, errno, path.c_str()));
+                LOGW(("%s: mkdir failed(%d): %s", BSTD_FUNCTION, errno, path.c_str()));
                 return false;
             }
         }
@@ -757,7 +818,7 @@ static FILE* openFile(
     if (stat(filePath.c_str(), &buf) != 0) {
         fd = fopen(filePath.c_str(), "w+");
         if (fd == NULL) {
-            LOGW(("%s: can't create: %s", __FUNCTION__, filePath.c_str()));
+            LOGW(("%s: can't create: %s", BSTD_FUNCTION, filePath.c_str()));
             return NULL;
         }
         fclose(fd);
@@ -766,7 +827,7 @@ static FILE* openFile(
 
     fd = fopen(filePath.c_str(), "r+b");
     if (fd == NULL) {
-        LOGW(("%s: can't open: %s", __FUNCTION__, filePath.c_str()));
+        LOGW(("%s: can't open: %s", BSTD_FUNCTION, filePath.c_str()));
         return NULL;
     }
 
@@ -776,13 +837,13 @@ static FILE* openFile(
 bool CdmHost::write(const std::string& name,
     const std::string& data)
 {
-    LOGW(("CdmHost::%s: name=%s", __FUNCTION__, name.c_str()));
+    LOGW(("CdmHost::%s: name=%s", BSTD_FUNCTION, name.c_str()));
     dump_hex("data", data.data(), data.size());
 
     FILE* fd = openFile(m_basePath, name);
     uint32_t len = fwrite(data.data(), sizeof(char), data.size(), fd);
     if (len != data.size()) {
-        LOGW(("%s: fwrite failed(%d): len=%d %s", __FUNCTION__, errno, (int32_t)len, name.c_str()));
+        LOGW(("%s: fwrite failed(%d): len=%d %s", BSTD_FUNCTION, errno, (int32_t)len, name.c_str()));
         return false;
     }
     fflush(fd);
@@ -791,24 +852,24 @@ bool CdmHost::write(const std::string& name,
 
 bool CdmHost::exists(const std::string& name)
 {
-    LOGD(("CdmHost::%s: name=%s", __FUNCTION__, name.c_str()));
+    LOGD(("CdmHost::%s: name=%s", BSTD_FUNCTION, name.c_str()));
 
     std::string filePath = m_basePath;
     filePath.append(name);
     FILE* fd = fopen(filePath.c_str(), "r+b");
     if (fd == NULL) {
-        LOGD(("%s: can't open: %s", __FUNCTION__, filePath.c_str()));
+        LOGD(("%s: can't open: %s", BSTD_FUNCTION, filePath.c_str()));
         return false;
     }
 
-    LOGD(("CdmHost::%s: return true", __FUNCTION__));
+    LOGD(("CdmHost::%s: return true", BSTD_FUNCTION));
     return true;
 }
 
 bool CdmHost::remove(const std::string& name)
 {
     bool rc = false;
-    LOGD(("CdmHost::%s: name=%s", __FUNCTION__, name.c_str()));
+    LOGD(("CdmHost::%s: name=%s", BSTD_FUNCTION, name.c_str()));
 
     std::string filePath = m_basePath;
     filePath.append(name);
@@ -818,28 +879,28 @@ bool CdmHost::remove(const std::string& name)
 
 int32_t CdmHost::size(const std::string& name)
 {
-    LOGD(("CdmHost::%s: name=%s", __FUNCTION__, name.c_str()));
+    LOGD(("CdmHost::%s: name=%s", BSTD_FUNCTION, name.c_str()));
 
     struct stat buf;
     std::string filePath = m_basePath;
     filePath.append(name);
     if (stat(filePath.c_str(), &buf) != 0) {
-        LOGW(("%s: stat failed(%d): %s", __FUNCTION__, errno, filePath.c_str()));
+        LOGW(("%s: stat failed(%d): %s", BSTD_FUNCTION, errno, filePath.c_str()));
         return -1;
     }
-    LOGD(("CdmHost::%s: size=%d", __FUNCTION__, (int32_t)buf.st_size));
+    LOGD(("CdmHost::%s: size=%d", BSTD_FUNCTION, (int32_t)buf.st_size));
     return (int32_t)buf.st_size;
 }
 
 #ifdef WV_CDM_V32
 bool CdmHost::list(std::vector<std::string>* names)
 {
-    LOGD(("CdmHost::%s", __FUNCTION__));
+    LOGD(("CdmHost::%s", BSTD_FUNCTION));
     DIR *dir;
     struct dirent *dirEnt;
 
     if (names == NULL) {
-        LOGD(("CdmHost::%s names is NULL", __FUNCTION__));
+        LOGD(("CdmHost::%s names is NULL", BSTD_FUNCTION));
     }
 
     names->clear();
@@ -848,7 +909,7 @@ bool CdmHost::list(std::vector<std::string>* names)
     {
         while ((dirEnt = readdir(dir)) != NULL)
         {
-            LOGD(("CdmHost::%s d_name=%s", __FUNCTION__, dirEnt->d_name));
+            LOGD(("CdmHost::%s d_name=%s", BSTD_FUNCTION, dirEnt->d_name));
             names->push_back(dirEnt->d_name);
         }
 

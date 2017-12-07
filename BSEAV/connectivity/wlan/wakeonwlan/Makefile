@@ -96,7 +96,7 @@ endif
 
 wakeup_drv-objs := wlan_plat.o
 
-all: $(BCM_OBJ_PATH) $(BCM_NEXUS_BIN_PATH)
+all: $(BCM_OBJ_PATH) $(BCM_NEXUS_BIN_PATH) $(BCM_BSEAV_BIN_PATH)
 	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) modules srctree=$(LINUX) ARCH=$(B_REFSW_LINUX_ARCH) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
 	${Q_}cp -f $(BCM_OBJ_PATH)/*.ko $(BCM_NEXUS_BIN_PATH)
 	${Q_}cp -f $(BCM_OBJ_PATH)/*.ko $(BCM_BSEAV_BIN_PATH)
@@ -115,4 +115,7 @@ $(BCM_OBJ_PATH): $(BCM_OBJ_PATH)/exists
 	${Q_}cp -f * $@
 
 $(BCM_NEXUS_BIN_PATH):
+	${Q_}mkdir -p $@
+
+$(BCM_BSEAV_BIN_PATH):
 	${Q_}mkdir -p $@

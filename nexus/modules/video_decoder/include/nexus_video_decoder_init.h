@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_DECODER_INIT_H__
 #define NEXUS_VIDEO_DECODER_INIT_H__
@@ -73,6 +72,11 @@ typedef struct NEXUS_VideoDecoderModuleInternalSettings
     NEXUS_ModuleHandle core; /* Handle to Core module. See NEXUS_Core_Init. */
     NEXUS_ModuleHandle security; /* Handle to Security module. */
     bool deferInit; /* if set to true, HW and FW initialization will be deferred until actually used */
+    struct {
+        /* location of all HVD FW */
+        NEXUS_MemoryBlockHandle block;
+        unsigned size;
+    } firmware;
 } NEXUS_VideoDecoderModuleInternalSettings;
 
 /**
@@ -86,7 +90,15 @@ See Also:
 NEXUS_VideoDecoderModule_Init
 **/
 void NEXUS_VideoDecoderModule_GetDefaultInternalSettings(
-    NEXUS_VideoDecoderModuleInternalSettings *pSettings /* [out] */
+    NEXUS_VideoDecoderModuleInternalSettings *pSettings, /* [out] */
+    const NEXUS_VideoDecoderModuleSettings *pModuleSettings
+    );
+
+struct NEXUS_Core_PreInitState;
+
+unsigned NEXUS_VideoDecoderModule_GetFirmwareSize(
+    const struct NEXUS_Core_PreInitState *preInitState,
+    const NEXUS_VideoDecoderModuleSettings *pModuleSettings
     );
 
 void NEXUS_VideoDecoderModule_GetDefaultSettings(

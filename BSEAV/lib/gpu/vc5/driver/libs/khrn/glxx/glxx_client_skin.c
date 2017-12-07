@@ -82,7 +82,7 @@ GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
       case GL_VERSION:
          if (KHRN_GLES32_DRIVER)
             result = "OpenGL ES 3.2";
-         else if (KHRN_GLES31_DRIVER)
+         else if (V3D_VER_AT_LEAST(3,3,0,0))
             result = "OpenGL ES 3.1";
          else
             result = "OpenGL ES 3.0";
@@ -90,7 +90,7 @@ GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
       case GL_SHADING_LANGUAGE_VERSION:
          if (KHRN_GLES32_DRIVER)
             result = "OpenGL ES GLSL ES 3.20";
-         else if (KHRN_GLES31_DRIVER)
+         else if (V3D_VER_AT_LEAST(3,3,0,0))
             result = "OpenGL ES GLSL ES 3.10";
          else
             result = "OpenGL ES GLSL ES 3.00";
@@ -157,11 +157,11 @@ GL_API void GL_APIENTRY glReleaseShaderCompiler(void)
 
 GL_API void GL_APIENTRY glShaderBinary(GLint n, const GLuint* shaders, GLenum binaryformat, const void* binary, GLint length)
 {
-   vcos_unused(n);
-   vcos_unused(shaders);
-   vcos_unused(binaryformat);
-   vcos_unused(binary);
-   vcos_unused(length);
+   unused(n);
+   unused(shaders);
+   unused(binaryformat);
+   unused(binary);
+   unused(length);
 
    glxx_set_error_api(OPENGL_ES_3X, GL_INVALID_ENUM);
 }

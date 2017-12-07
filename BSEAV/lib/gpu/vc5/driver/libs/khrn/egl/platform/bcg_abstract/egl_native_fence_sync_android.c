@@ -59,8 +59,7 @@ EGL_SYNC_T *egl_native_fence_sync_android_new(EGL_CONTEXT_T *context,
 
    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID)
    {
-      if (!egl_context_gl_lock())
-         goto end;
+      egl_context_gl_lock();
       state = egl_context_gl_server_state(gl_context);
       assert(state);
       egl_sync = egl_sync_create(EGL_SYNC_NATIVE_FENCE_ANDROID,
@@ -69,8 +68,8 @@ EGL_SYNC_T *egl_native_fence_sync_android_new(EGL_CONTEXT_T *context,
    }
    else
    {
-      egl_sync = egl_sync_create_from_fd(EGL_SYNC_NATIVE_FENCE_ANDROID,
-            EGL_SYNC_NATIVE_FENCE_SIGNALED_ANDROID, fd);
+      egl_sync = egl_sync_create_from_job(EGL_SYNC_NATIVE_FENCE_ANDROID,
+            EGL_SYNC_NATIVE_FENCE_SIGNALED_ANDROID, v3d_scheduler_submit_wait_fence(fd));
    }
 
    if (!egl_sync)
@@ -110,9 +109,9 @@ EGLAPI EGLint EGLAPIENTRY eglDupNativeFenceFDANDROID(EGLDisplay dpy, EGLSyncKHR 
 
    /* we need a gl lock on all the operations involving a khrn_fence because
     * we are tempering with khrn_fmems by calling a flush*/
-   if (!egl_context_gl_lock())
-      goto end;
-   fd = khrn_fence_get_platform_fence(egl_sync->fence,
+   egl_context_gl_lock();
+
+   fd = v3d_scheduler_create_fence(khrn_fence_get_deps(egl_sync->fence),
          GLXX_FENCESYNC_SIGNALED_DEPS_STATE, /*force_create=*/true);
    egl_context_gl_unlock();
    static_assrt(V3D_PLATFORM_NULL_FENCE == EGL_NO_NATIVE_FENCE_FD_ANDROID);

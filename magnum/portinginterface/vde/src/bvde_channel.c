@@ -666,9 +666,9 @@ void BVDE_Channel_GetDefaultCdbItbConfig(
     BSTD_UNUSED(handle);
     BKNI_Memset(pConfig, 0, sizeof(BAVC_CdbItbConfig));
     pConfig->Cdb.Length = 256*1024;
-    pConfig->Cdb.Alignment = 6; /* cache line on 4380 */
+    pConfig->Cdb.Alignment = 8; /* Rave expects CDB aligned at 8 */
     pConfig->Itb.Length = 128*1024;
-    pConfig->Itb.Alignment = 6; /* cache line on 4380 */
+    pConfig->Itb.Alignment = 7; /* Rave expects CDB aligned at 7 */
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE
     pConfig->Cdb.LittleEndian = true;
 #else

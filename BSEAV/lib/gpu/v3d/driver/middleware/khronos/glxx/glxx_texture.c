@@ -43,7 +43,7 @@ static void check_buffer(int buffer, const GLXX_TEXTURE_T *texture)
             && buffer <= TEXTURE_BUFFER_NEGATIVE_Z;
         break;
     }
-    vcos_assert(ok);
+    assert(ok);
 }
 #define CHECK_BUFFER(buffer, texture) do { check_buffer((buffer), \
         (texture)); } while (0)
@@ -88,7 +88,7 @@ void glxx_texture_init(GLXX_TEXTURE_T *texture, int32_t name, GLenum target)
 {
    int i, j;
 
-   vcos_assert(texture);
+   assert(texture);
 
    texture->name = name;
    texture->target = target;
@@ -103,7 +103,7 @@ void glxx_texture_init(GLXX_TEXTURE_T *texture, int32_t name, GLenum target)
 
    for (i = 0; i < TEXTURE_BUFFER_COUNT; i++) {
       for (j = 0; j <= LOG2_MAX_TEXTURE_SIZE; j++)
-         vcos_assert(texture->mh_mipmaps[i][j] == MEM_INVALID_HANDLE);
+         assert(texture->mh_mipmaps[i][j] == MEM_HANDLE_INVALID);
       texture->blob_valid[i] = 0;
    }
    texture->explicit_mipmaps = 0;
@@ -113,23 +113,23 @@ void glxx_texture_init(GLXX_TEXTURE_T *texture, int32_t name, GLenum target)
 
    for (i = 0; i < GLXX_TEXTURE_POOL_SIZE; i++)
    {
-      vcos_assert(texture->blob_pool[i].mh_storage == MEM_INVALID_HANDLE);
+      assert(texture->blob_pool[i].mh_storage == MEM_HANDLE_INVALID);
       texture->blob_pool[i].secure = false;
       khrn_interlock_init(&texture->blob_pool[i].interlock);
    }
-   vcos_assert(texture->mh_depaletted_blob == MEM_INVALID_HANDLE);
+   assert(texture->mh_depaletted_blob == MEM_HANDLE_INVALID);
 
    texture->binding_type = TEXTURE_BLOB_NULL;
    texture->mipmaps_available = true;
 
    texture->mip0_offset = ~0;
 
-   MEM_ASSIGN(texture->mh_ms_image, MEM_INVALID_HANDLE);
+   MEM_ASSIGN(texture->mh_ms_image, MEM_HANDLE_INVALID);
 }
 
 static void unretain_current(GLXX_TEXTURE_T *texture)
 {
-   if(texture->blob_pool[texture->current_item].mh_storage!=MEM_INVALID_HANDLE
+   if(texture->blob_pool[texture->current_item].mh_storage!=MEM_HANDLE_INVALID
       && mem_get_flags(texture->blob_pool[texture->current_item].mh_storage) & MEM_FLAG_DISCARDABLE)
    {
       mem_unretain(texture->blob_pool[texture->current_item].mh_storage);
@@ -142,7 +142,7 @@ static void nullify(GLXX_TEXTURE_T *texture)
 
    for (i = 0; i < TEXTURE_BUFFER_COUNT; i++) {
       for (j = 0; j <= LOG2_MAX_TEXTURE_SIZE; j++)
-         MEM_ASSIGN(texture->mh_mipmaps[i][j], MEM_INVALID_HANDLE);
+         MEM_ASSIGN(texture->mh_mipmaps[i][j], MEM_HANDLE_INVALID);
       texture->blob_valid[i] = 0;
    }
 
@@ -156,11 +156,11 @@ static void nullify(GLXX_TEXTURE_T *texture)
    for (i = 0; i < GLXX_TEXTURE_POOL_SIZE; i++)
    {
       texture->blob_pool[i].secure = false;
-      MEM_ASSIGN(texture->blob_pool[i].mh_storage, MEM_INVALID_HANDLE);
+      MEM_ASSIGN(texture->blob_pool[i].mh_storage, MEM_HANDLE_INVALID);
    }
-   MEM_ASSIGN(texture->mh_depaletted_blob, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(texture->mh_ms_image, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(texture->external_image, MEM_INVALID_HANDLE);
+   MEM_ASSIGN(texture->mh_depaletted_blob, MEM_HANDLE_INVALID);
+   MEM_ASSIGN(texture->mh_ms_image, MEM_HANDLE_INVALID);
+   MEM_ASSIGN(texture->external_image, MEM_HANDLE_INVALID);
 }
 
 void glxx_texture_term(MEM_HANDLE_T handle)
@@ -298,7 +298,7 @@ static KHRN_IMAGE_FORMAT_T convert_raster_format(GLenum format, GLenum type)
       return A_8_RSO;
 #if GL_EXT_texture_format_BGRA8888
    case GL_BGRA_EXT:
-      vcos_assert(type == GL_UNSIGNED_BYTE);
+      assert(type == GL_UNSIGNED_BYTE);
 #ifdef BIG_ENDIAN_CPU
       return BGRA_8888_RSO;
 #else
@@ -307,7 +307,7 @@ static KHRN_IMAGE_FORMAT_T convert_raster_format(GLenum format, GLenum type)
 #endif
 #if GL_APPLE_rgb_422
    case GL_RGB_422_APPLE:
-      vcos_assert(type == GL_UNSIGNED_SHORT_8_8_APPLE || type == GL_UNSIGNED_SHORT_8_8_REV_APPLE);
+      assert(type == GL_UNSIGNED_SHORT_8_8_APPLE || type == GL_UNSIGNED_SHORT_8_8_REV_APPLE);
       if (type == GL_UNSIGNED_SHORT_8_8_APPLE)
          return YUV_422_RSO;
       else if (type == GL_UNSIGNED_SHORT_8_8_REV_APPLE)
@@ -429,7 +429,7 @@ static bool invalidate_ms_image(GLXX_TEXTURE_T *texture, int width, int height, 
          width, height,
          IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, secure);
 
-      if (hmsimage == MEM_INVALID_HANDLE)
+      if (hmsimage == MEM_HANDLE_INVALID)
          return false;
 
       MEM_ASSIGN(texture->mh_ms_image, hmsimage);
@@ -446,24 +446,24 @@ static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level
 
    //Always specify the t-format version. It will get converted to linear tile
    //if necessary.
-   vcos_assert(buffer < TEXTURE_BUFFER_COUNT);
+   assert(buffer < TEXTURE_BUFFER_COUNT);
 #ifndef NDEBUG
    switch (buffer) {
    case TEXTURE_BUFFER_TWOD:
-       vcos_assert(texture->target == GL_TEXTURE_2D);
+       assert(texture->target == GL_TEXTURE_2D);
        break;
    case TEXTURE_BUFFER_EXTERNAL:
-       vcos_assert(texture->target == GL_TEXTURE_EXTERNAL_OES);
+       assert(texture->target == GL_TEXTURE_EXTERNAL_OES);
        break;
    default:
-       vcos_assert(texture->target == GL_TEXTURE_CUBE_MAP);
-       vcos_assert(width == height);
+       assert(texture->target == GL_TEXTURE_CUBE_MAP);
+       assert(width == height);
        break;
    }
 #endif
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
-   vcos_assert(khrn_image_is_tformat(format) || khrn_image_is_yuv422(format));
-   vcos_assert(width > 0 && height > 0);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(khrn_image_is_tformat(format) || khrn_image_is_yuv422(format));
+   assert(width > 0 && height > 0);
 
    /*
       First case: This is the first level 0 image we have received, which
@@ -491,17 +491,17 @@ static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level
          mem_flag |= (MEM_FLAG_SECURE | MEM_FLAG_NO_INIT);
 
       handle = mem_alloc_ex(size, align, mem_flag, "Texture blob", MEM_COMPACT_DISCARD);   // check, no term
-      if (handle == MEM_INVALID_HANDLE) {
+      if (handle == MEM_HANDLE_INVALID) {
          texture->binding_type = TEXTURE_BLOB_NULL;
          return false;
       }
 
-      vcos_assert(texture->current_item == 0);
+      assert(texture->current_item == 0);
 
       texture->blob_valid[buffer] |= 1<<level;
       texture->blob_pool[texture->current_item].secure = secure;
       assign_retain(texture_get_storage_handle_ref(texture), handle);
-      assign_retain(&handle,MEM_INVALID_HANDLE);
+      assign_retain(&handle,MEM_HANDLE_INVALID);
       return true;
    }
 
@@ -549,7 +549,7 @@ static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level
 
    himage = khrn_image_create(format, width, height,
       IMAGE_CREATE_FLAG_ONE | IMAGE_CREATE_FLAG_TEXTURE, secure); /* todo: check usage flags */
-   if (himage == MEM_INVALID_HANDLE)
+   if (himage == MEM_HANDLE_INVALID)
       return false;
 
    if (!invalidate_ms_image(texture, width, height, secure))
@@ -559,7 +559,7 @@ static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level
       return false;
    }
 
-   if (texture->mh_mipmaps[buffer][level] == MEM_INVALID_HANDLE)
+   if (texture->mh_mipmaps[buffer][level] == MEM_HANDLE_INVALID)
       texture->explicit_mipmaps++;
 
    MEM_ASSIGN(texture->mh_mipmaps[buffer][level], himage);
@@ -598,7 +598,7 @@ static uint32_t convert_target(GLenum target)
 
 static bool update_mipmaps_and_blobs(GLXX_TEXTURE_T *texture, uint32_t level, uint32_t buffer)
 {
-   MEM_ASSIGN(texture->mh_depaletted_blob, MEM_INVALID_HANDLE);
+   MEM_ASSIGN(texture->mh_depaletted_blob, MEM_HANDLE_INVALID);
    CHECK_BUFFER(buffer, texture);
 
    /*
@@ -639,19 +639,19 @@ static KHRN_IMAGE_FORMAT_T choose_copy_format(GLenum fmt, KHRN_IMAGE_FORMAT_T sr
 static void mip_lock_wrap(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level, KHRN_IMAGE_WRAP_T *wrap)
 {
    if (texture->blob_valid[buffer] & 1<<level) {
-      khrn_image_interlock_wrap(wrap,
+      khrn_image_wrap(wrap,
          glxx_texture_get_mipmap_format(texture, level, false),
          _max(texture->width >> level, 1),
          _max(texture->height >> level, 1),
          texture_get_mipmap_stride(texture, level, false),
          0,
          texture->blob_pool[texture->current_item].secure,
-         (char *)mem_lock(glxx_texture_get_storage_handle(texture), NULL) + glxx_texture_get_mipmap_offset(texture, buffer, level, false), NULL);
+         (char *)mem_lock(glxx_texture_get_storage_handle(texture), NULL) + glxx_texture_get_mipmap_offset(texture, buffer, level, false));
 
       //this assert checks the blob is big enough for a tformat image, but we now also accept linear_tile images
-      //vcos_assert(glxx_texture_get_mipmap_offset(texture, buffer, level, false) + get_size(wrap->format, wrap->width, wrap->height) <= mem_get_size(texture->mh_blob));
+      //assert(glxx_texture_get_mipmap_offset(texture, buffer, level, false) + get_size(wrap->format, wrap->width, wrap->height) <= mem_get_size(texture->mh_blob));
    } else {
-      khrn_image_lock_interlock_wrap((KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[buffer][level], NULL), wrap, NULL);
+      khrn_image_lock_wrap((KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[buffer][level], NULL), wrap);
       mem_unlock(texture->mh_mipmaps[buffer][level]);
    }
 }
@@ -670,7 +670,7 @@ static bool has_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level)
 {
    if (texture->blob_valid[buffer] & 1<<level)
       return true;
-   else if (texture->mh_mipmaps[buffer][level] != MEM_INVALID_HANDLE)
+   else if (texture->mh_mipmaps[buffer][level] != MEM_HANDLE_INVALID)
       return true;
    else
       return false;
@@ -678,18 +678,18 @@ static bool has_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level)
 
 static void null_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level)
 {
-   vcos_assert(texture->binding_type == TEXTURE_BLOB_NULL || texture->binding_type == TEXTURE_STATE_UNDER_CONSTRUCTION || texture->binding_type == TEXTURE_STATE_COMPLETE_UNBOUND);
+   assert(texture->binding_type == TEXTURE_BLOB_NULL || texture->binding_type == TEXTURE_STATE_UNDER_CONSTRUCTION || texture->binding_type == TEXTURE_STATE_COMPLETE_UNBOUND);
    if (texture->binding_type == TEXTURE_STATE_COMPLETE_UNBOUND)
       texture->binding_type = TEXTURE_STATE_UNDER_CONSTRUCTION;
 
-   if (texture->mh_mipmaps[buffer][level] != MEM_INVALID_HANDLE) {
-      vcos_assert(texture->explicit_mipmaps);
+   if (texture->mh_mipmaps[buffer][level] != MEM_HANDLE_INVALID) {
+      assert(texture->explicit_mipmaps);
       texture->explicit_mipmaps--;
-      MEM_ASSIGN(texture->mh_mipmaps[buffer][level], MEM_INVALID_HANDLE);
+      MEM_ASSIGN(texture->mh_mipmaps[buffer][level], MEM_HANDLE_INVALID);
    }
    texture->blob_valid[buffer] &= ~(1<<level);
 
-   MEM_ASSIGN(texture->mh_ms_image, MEM_INVALID_HANDLE);
+   MEM_ASSIGN(texture->mh_ms_image, MEM_HANDLE_INVALID);
 }
 
 bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level,
@@ -700,9 +700,9 @@ bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level,
    uint32_t buffer;
    bool result;
 
-   vcos_assert(texture);
+   assert(texture);
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
 
    format = convert_format(fmt, type);
    srcformat = convert_raster_format(fmt, type);
@@ -728,8 +728,8 @@ bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level,
    if (pixels) {
       KHRN_IMAGE_WRAP_T dst_wrap, src_wrap;
 
-      khrn_image_interlock_wrap(&src_wrap, srcformat,
-         width, height, get_stride(width, fmt, type, align), 0, false, (void *)pixels, NULL);
+      khrn_image_wrap(&src_wrap, srcformat,
+         width, height, get_stride(width, fmt, type, align), 0, false, (void *)pixels);
 
       mip_lock_wrap(texture, buffer, level, &dst_wrap);
       if (!dst_wrap.secure)
@@ -746,9 +746,9 @@ bool glxx_texture_etc1_blank_image(GLXX_TEXTURE_T *texture, GLenum target, uint3
 {
    uint32_t buffer;
 
-   vcos_assert(texture);
+   assert(texture);
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
 
    buffer = convert_target(target);
 
@@ -772,11 +772,11 @@ void glxx_texture_etc1_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_
    KHRN_IMAGE_WRAP_T dst_wrap;
    uint32_t buffer;
 
-   vcos_assert(texture);
-   vcos_assert(data);
-   vcos_assert(!(dstx & 3) && !(dsty & 3));
+   assert(texture);
+   assert(data);
+   assert(!(dstx & 3) && !(dsty & 3));
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
 
    if (height == 0 || width == 0)
       return;
@@ -797,7 +797,7 @@ void glxx_texture_etc1_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_
    {
       KHRN_IMAGE_WRAP_T src_wrap;
 
-      khrn_image_interlock_wrap(&src_wrap, ETC1, width, height, width / 2, 0, false, (void *)data, NULL);
+      khrn_image_wrap(&src_wrap, ETC1, width, height, width / 2, 0, false, (void *)data);
       khrn_image_wrap_copy_region(&dst_wrap, dstx, dsty, width, height, &src_wrap, 0, 0, IMAGE_CONV_GL);
    }
    else
@@ -826,9 +826,9 @@ bool glxx_texture_copy_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t le
    uint32_t buffer;
    uint32_t dstx = 0, dsty = 0;
 
-   vcos_assert(texture);
+   assert(texture);
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
 
    // Choose the best internal representation
    format = choose_copy_format(fmt, src->format);
@@ -857,10 +857,10 @@ bool glxx_texture_copy_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t le
 
    if (width > 0 && height > 0)
    {
-      vcos_assert(srcx < srcx+width  && srcx+width  <= src->width);
-      vcos_assert(srcy < srcy+height && srcy+height <= src->height);
+      assert(srcx < srcx+width  && srcx+width  <= src->width);
+      assert(srcy < srcy+height && srcy+height <= src->height);
 
-      khrn_image_lock_interlock_wrap((KHRN_IMAGE_T *)src, &src_wrap, NULL);
+      khrn_image_lock_wrap((KHRN_IMAGE_T *)src, &src_wrap);
       khrn_image_wrap_copy_region(&mipmap_wrap, dstx, dsty, width, height, &src_wrap, srcx, srcy, IMAGE_CONV_GL);
       khrn_image_unlock_wrap(src);
    }
@@ -875,9 +875,9 @@ bool glxx_texture_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t lev
    uint32_t buffer;
    KHRN_IMAGE_WRAP_T dst_wrap;
 
-   vcos_assert(texture);
+   assert(texture);
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
 
    if (height == 0 || width == 0)
       return true;
@@ -895,8 +895,8 @@ bool glxx_texture_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t lev
 
    mip_lock_wrap(texture, buffer, level, &dst_wrap);
 
-   vcos_assert(dstx < dstx+width  && dstx+width  <= dst_wrap.width);
-   vcos_assert(dsty < dsty+height && dsty+height <= dst_wrap.height);
+   assert(dstx < dstx+width  && dstx+width  <= dst_wrap.width);
+   assert(dsty < dsty+height && dsty+height <= dst_wrap.height);
    //TODO get KHRN_IMAGE_T to do this for us
 
    // Invalidate the ms image if it exists
@@ -908,7 +908,7 @@ bool glxx_texture_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t lev
 
    if (pixels) {
       KHRN_IMAGE_WRAP_T src_wrap;
-      khrn_image_interlock_wrap(&src_wrap, srcformat, width, height, get_stride(width, fmt, type, align), 0, false, (void *)pixels, NULL);
+      khrn_image_wrap(&src_wrap, srcformat, width, height, get_stride(width, fmt, type, align), 0, false, (void *)pixels);
       khrn_image_wrap_copy_region(
          &dst_wrap, dstx, dsty,
          width, height,
@@ -933,11 +933,11 @@ bool glxx_texture_copy_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_
    KHRN_IMAGE_WRAP_T dst_wrap, src_wrap;
    uint32_t buffer;
 
-   vcos_assert(texture);
-   vcos_assert(srcx < srcx+width  && srcx+width  <= src->width);
-   vcos_assert(srcy < srcy+height && srcy+height <= src->height);
+   assert(texture);
+   assert(srcx < srcx+width  && srcx+width  <= src->width);
+   assert(srcy < srcy+height && srcy+height <= src->height);
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
 
    if (height == 0 || width == 0)
       return true;
@@ -950,10 +950,10 @@ bool glxx_texture_copy_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_
    texture_write_image_immediate(texture, buffer, level);
 
    mip_lock_wrap(texture, buffer, level, &dst_wrap);
-   khrn_image_lock_interlock_wrap((KHRN_IMAGE_T *)src, &src_wrap, NULL);
+   khrn_image_lock_wrap((KHRN_IMAGE_T *)src, &src_wrap);
 
-   vcos_assert(dstx < dstx+width  && dstx+width  <= dst_wrap.width);
-   vcos_assert(dsty < dsty+height && dsty+height <= dst_wrap.height);
+   assert(dstx < dstx+width  && dstx+width  <= dst_wrap.width);
+   assert(dsty < dsty+height && dsty+height <= dst_wrap.height);
    khrn_image_wrap_copy_region(&dst_wrap, dstx, dsty, width, height, &src_wrap, srcx, srcy, IMAGE_CONV_GL);
 
    khrn_image_unlock_wrap(src);
@@ -974,8 +974,8 @@ bool glxx_texture_paletted_blank_image(GLXX_TEXTURE_T *texture, GLenum target, u
    uint32_t buffer;
    uint32_t w, h, level;
 
-   vcos_assert(texture);
-   vcos_assert(levels <= LOG2_MAX_TEXTURE_SIZE);
+   assert(texture);
+   assert(levels <= LOG2_MAX_TEXTURE_SIZE);
 
    buffer = convert_target(target);
 
@@ -1010,10 +1010,10 @@ void glxx_texture_paletted_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uin
    bool firsthalf;
    uint32_t level;
 
-   vcos_assert(texture);
-   vcos_assert(data);
+   assert(texture);
+   assert(data);
 
-   vcos_assert(levels <= LOG2_MAX_TEXTURE_SIZE);
+   assert(levels <= LOG2_MAX_TEXTURE_SIZE);
 
    if (height == 0 || width == 0)
       return;
@@ -1083,7 +1083,7 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer, bool
       KHRN_IMAGE_FORMAT_T format;
       uint32_t width, height, level;
 
-      vcos_assert(buffer <= TEXTURE_BUFFER_NEGATIVE_Z);
+      assert(buffer <= TEXTURE_BUFFER_NEGATIVE_Z);
       mip_lock_wrap(texture, buffer, 0, &wrap0);
 
       width = wrap0.width >> 1;
@@ -1192,7 +1192,7 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_new_blob(GLXX_TEXTURE_T *text
    tdummy.target = texture->target;
    tdummy.min = texture->min;
    tdummy.current_item = 0;
-   tdummy.blob_pool[0].mh_storage = MEM_INVALID_HANDLE;
+   tdummy.blob_pool[0].mh_storage = MEM_HANDLE_INVALID;
    tdummy.binding_type = TEXTURE_STATE_UNDER_CONSTRUCTION;
    tdummy.blob_mip_count = glxx_texture_get_mipmap_count(&tdummy);
    tdummy.offset = 0;  /* needed for correct texture_get_required_blob_size */
@@ -1204,7 +1204,7 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_new_blob(GLXX_TEXTURE_T *text
    align = 4096;
    handle = mem_alloc_ex(size, align, MEM_FLAG_DIRECT | MEM_FLAG_DISCARDABLE | MEM_FLAG_RETAINED, "Texture blob", MEM_COMPACT_DISCARD);   // check, no term
 
-   if (handle == MEM_INVALID_HANDLE)
+   if (handle == MEM_HANDLE_INVALID)
       return OUT_OF_MEMORY;
 
    MEM_ASSIGN(tdummy.blob_pool[0].mh_storage, handle);
@@ -1224,7 +1224,7 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_new_blob(GLXX_TEXTURE_T *text
                khrn_image_wrap_convert(&dst_wrap, &src_wrap, IMAGE_CONV_GL);
                mip_unlock_wrap(texture, buffer, level);
 
-               if (texture->mh_mipmaps[buffer][level] != MEM_INVALID_HANDLE) {
+               if (texture->mh_mipmaps[buffer][level] != MEM_HANDLE_INVALID) {
                   if (keep_explicit_mipmaps(texture)) {
                      /*
                         We have been told to keep this image, but need to point it
@@ -1237,8 +1237,8 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_new_blob(GLXX_TEXTURE_T *text
 
                      mem_unlock(texture->mh_mipmaps[buffer][level]);
                   } else {
-                     MEM_ASSIGN(texture->mh_mipmaps[buffer][level], MEM_INVALID_HANDLE);
-                     vcos_assert(texture->explicit_mipmaps);
+                     MEM_ASSIGN(texture->mh_mipmaps[buffer][level], MEM_HANDLE_INVALID);
+                     assert(texture->explicit_mipmaps);
                      texture->explicit_mipmaps--;
                   }
                }
@@ -1266,7 +1266,7 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_new_blob(GLXX_TEXTURE_T *text
    texture->mip0_offset = ~0;
 
    mem_release(tdummy.blob_pool[0].mh_storage);
-   assign_retain(&handle, MEM_INVALID_HANDLE);
+   assign_retain(&handle, MEM_HANDLE_INVALID);
 
    return complete ? COMPLETE : INCOMPLETE;
 }
@@ -1277,17 +1277,17 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_current_blob(GLXX_TEXTURE_T *
    KHRN_IMAGE_WRAP_T src_wrap, dst_wrap;
    uint32_t min_buffer, max_buffer, buffer, level, mipmap_count;
 
-   vcos_assert(glxx_texture_get_storage_handle(texture) != MEM_INVALID_HANDLE);
+   assert(glxx_texture_get_storage_handle(texture) != MEM_HANDLE_INVALID);
 
    buffer_minmax(texture, &min_buffer, &max_buffer);
 
    mipmap_count = base_complete ? 1 : glxx_texture_get_mipmap_count(texture);
-   vcos_assert(texture->blob_mip_count >= mipmap_count);
+   assert(texture->blob_mip_count >= mipmap_count);
 
    for (buffer = min_buffer; buffer <= max_buffer; buffer++) {
       for (level = 0; level < mipmap_count; level++) {
          if (!(texture->blob_valid[buffer] & 1<<level)) {
-            if (texture->mh_mipmaps[buffer][level] != MEM_INVALID_HANDLE) {
+            if (texture->mh_mipmaps[buffer][level] != MEM_HANDLE_INVALID) {
                bool ok = false;
                if (texture->blob_valid[buffer] & 1<<level) {
 #ifndef NDEBUG
@@ -1300,10 +1300,10 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_current_blob(GLXX_TEXTURE_T *
                      this image exactly as it is).
                   */
                   ok = true;
-                  vcos_assert((src = (KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[buffer][level], NULL), 1));
-                  vcos_assert(src->mh_storage == glxx_texture_get_storage_handle(texture));
-                  vcos_assert(src->offset == glxx_texture_get_mipmap_offset(texture, buffer, level, false));
-                  vcos_assert((mem_unlock(texture->mh_mipmaps[buffer][level]),1));
+                  assert((src = (KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[buffer][level], NULL), 1));
+                  assert(src->mh_storage == glxx_texture_get_storage_handle(texture));
+                  assert(src->offset == glxx_texture_get_mipmap_offset(texture, buffer, level, false));
+                  assert((mem_unlock(texture->mh_mipmaps[buffer][level]),1));
                } else {
                   KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[buffer][level], NULL);
 
@@ -1312,7 +1312,7 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_current_blob(GLXX_TEXTURE_T *
                   mip_lock_wrap(texture, buffer, level, &dst_wrap);
 
                   if (dst_wrap.width == src->width && dst_wrap.height == src->height && khrn_image_to_tf_format(dst_wrap.format) == khrn_image_to_tf_format(src->format)) {
-                     khrn_image_lock_interlock_wrap(src, &src_wrap, NULL);
+                     khrn_image_lock_wrap(src, &src_wrap);
                      khrn_image_wrap_convert(&dst_wrap, &src_wrap, IMAGE_CONV_GL);
                      khrn_image_unlock_wrap(src);
                      ok = true;
@@ -1344,8 +1344,8 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_current_blob(GLXX_TEXTURE_T *
 
                      Note we make sure we've finished with the image before deleting it.
                   */
-                  MEM_ASSIGN(texture->mh_mipmaps[buffer][level], MEM_INVALID_HANDLE);
-                  vcos_assert(texture->explicit_mipmaps);
+                  MEM_ASSIGN(texture->mh_mipmaps[buffer][level], MEM_HANDLE_INVALID);
+                  assert(texture->explicit_mipmaps);
                   texture->explicit_mipmaps--;
                }
             } else {
@@ -1361,7 +1361,7 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_current_blob(GLXX_TEXTURE_T *
 
    if (complete)
    {
-      vcos_assert(texture->binding_type == TEXTURE_BLOB_NULL || texture->binding_type == TEXTURE_STATE_UNDER_CONSTRUCTION);
+      assert(texture->binding_type == TEXTURE_BLOB_NULL || texture->binding_type == TEXTURE_STATE_UNDER_CONSTRUCTION);
       texture->binding_type = TEXTURE_STATE_COMPLETE_UNBOUND;
    }
 
@@ -1382,7 +1382,7 @@ bool glxx_texture_is_cube_complete(GLXX_TEXTURE_T *texture)
 
    /* This feels dirty, but the non-storage part of the wrap structure will still be valid... */
 
-   vcos_assert(px_wrap.width == px_wrap.height);  /* shouldn't be possible to install non-square images */
+   assert(px_wrap.width == px_wrap.height);  /* shouldn't be possible to install non-square images */
 
    for (buffer = TEXTURE_BUFFER_NEGATIVE_X; buffer <= TEXTURE_BUFFER_NEGATIVE_Z; buffer++)
    {
@@ -1437,8 +1437,8 @@ void glxx_texture_bind_images(GLXX_TEXTURE_T *texture, uint32_t levels, MEM_HAND
 
    UNUSED(bound_data);
 
-   vcos_assert(levels <= LOG2_MAX_TEXTURE_SIZE);
-   vcos_assert(binding_type == TEXTURE_STATE_BOUND_TEXIMAGE || binding_type == TEXTURE_STATE_BOUND_EGLIMAGE);
+   assert(levels <= LOG2_MAX_TEXTURE_SIZE);
+   assert(binding_type == TEXTURE_STATE_BOUND_TEXIMAGE || binding_type == TEXTURE_STATE_BOUND_EGLIMAGE);
 
    buf = convert_target(texture->target);
 
@@ -1453,8 +1453,8 @@ void glxx_texture_bind_images(GLXX_TEXTURE_T *texture, uint32_t levels, MEM_HAND
       KHRN_IMAGE_WRAP_T blob_wrap;
 #endif
 
-      vcos_assert(images[i] != MEM_INVALID_HANDLE);
-      vcos_assert(texture->mh_mipmaps[buf][i] == MEM_INVALID_HANDLE);
+      assert(images[i] != MEM_HANDLE_INVALID);
+      assert(texture->mh_mipmaps[buf][i] == MEM_HANDLE_INVALID);
       MEM_ASSIGN(texture->mh_mipmaps[buf][i], images[i]);
       texture->explicit_mipmaps++;
 
@@ -1470,7 +1470,7 @@ void glxx_texture_bind_images(GLXX_TEXTURE_T *texture, uint32_t levels, MEM_HAND
 
             at present this code supports #2 only - TODO add a flag to clearly identify this path
          */
-         vcos_assert(khrn_image_is_tformat(image->format) || khrn_image_is_lineartile(image->format) || khrn_image_is_rso(image->format));
+         assert(khrn_image_is_tformat(image->format) || khrn_image_is_lineartile(image->format) || khrn_image_is_rso(image->format));
          texture->format = khrn_image_is_rso(image->format) ? image->format : khrn_image_to_tf_format(image->format); /*_TF: mipmaps are all t-format */
          assign_retain(texture_get_storage_handle_ref(texture), image->mh_storage);
          texture->mip0_offset = ~0;
@@ -1484,19 +1484,19 @@ void glxx_texture_bind_images(GLXX_TEXTURE_T *texture, uint32_t levels, MEM_HAND
 #ifndef NDEBUG
          /* Check that image agrees completely with what it should be */
          mip_lock_wrap(texture, buf, i, &blob_wrap);   /* This can't be called until binding_type, dimensions, etc. are set */
-         vcos_assert(image->format == blob_wrap.format);
-         vcos_assert(image->width == blob_wrap.width);
-         vcos_assert(image->height == blob_wrap.height);
-         vcos_assert(image->stride == blob_wrap.stride);
-         vcos_assert(image->mh_storage == glxx_texture_get_storage_handle(texture));
-         vcos_assert(image->offset == glxx_texture_get_mipmap_offset(texture, buf, i, false));
+         assert(image->format == blob_wrap.format);
+         assert(image->width == blob_wrap.width);
+         assert(image->height == blob_wrap.height);
+         assert(image->stride == blob_wrap.stride);
+         assert(image->mh_storage == glxx_texture_get_storage_handle(texture));
+         assert(image->offset == glxx_texture_get_mipmap_offset(texture, buf, i, false));
          mip_unlock_wrap(texture, buf, i);
 #endif
 
-         vcos_assert(!(image->flags & IMAGE_FLAG_BOUND_TEXIMAGE));  /* we set this flag */
+         assert(!(image->flags & IMAGE_FLAG_BOUND_TEXIMAGE));  /* we set this flag */
          image->flags |= IMAGE_FLAG_BOUND_TEXIMAGE;
       } else {
-         vcos_assert(image->flags & IMAGE_FLAG_BOUND_EGLIMAGE);     /* EGL sets this flag */
+         assert(image->flags & IMAGE_FLAG_BOUND_EGLIMAGE);     /* EGL sets this flag */
          /* remove the IMAGE_FLAG_DISPLAY so any copytext is just mapped as a one to one copy (not inverted) */
          /* JSH -> If the user mapped this mapped texture to an FBO, rendered into it and then read the data back from the
             data pointer, then the image would be upside down. */
@@ -1561,7 +1561,7 @@ static bool texture_unbind(GLXX_TEXTURE_T *texture)
          int j;
          for (j = TEXTURE_BUFFER_POSITIVE_X; j <= TEXTURE_BUFFER_NEGATIVE_Z; j++) {
             for (i = 0; i < LOG2_MAX_TEXTURE_SIZE + 1; i++) {
-               if (texture->mh_mipmaps[j][i] != MEM_INVALID_HANDLE) {
+               if (texture->mh_mipmaps[j][i] != MEM_HANDLE_INVALID) {
                   ((KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[j][i], NULL))->flags &= ~IMAGE_FLAG_BOUND_TEXIMAGE;  /* we clear this flag */
                   mem_unlock(texture->mh_mipmaps[j][i]);
                }
@@ -1570,7 +1570,7 @@ static bool texture_unbind(GLXX_TEXTURE_T *texture)
       } else {
          buf = convert_target(texture->target);
          for (i = 0; i < LOG2_MAX_TEXTURE_SIZE + 1; i++) {
-            if (texture->mh_mipmaps[buf][i] != MEM_INVALID_HANDLE) {
+            if (texture->mh_mipmaps[buf][i] != MEM_HANDLE_INVALID) {
                ((KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[buf][i], NULL))->flags &= ~IMAGE_FLAG_BOUND_TEXIMAGE;  /* we clear this flag */
                mem_unlock(texture->mh_mipmaps[buf][i]);
             }
@@ -1582,12 +1582,12 @@ static bool texture_unbind(GLXX_TEXTURE_T *texture)
 
    case TEXTURE_STATE_BOUND_EGLIMAGE:  /* TODO: does this work for EGLImage sources as well as targets? */
    {
-      vcos_assert(texture->target != GL_TEXTURE_CUBE_MAP);
+      assert(texture->target != GL_TEXTURE_CUBE_MAP);
 
       /* Set these now so that copy_mipmaps_to_new_blob is not confused by keep_explicit_mipmaps */
       texture->binding_type = TEXTURE_STATE_UNDER_CONSTRUCTION;  /* Should be complete, but this feels safer... */
       texture->framebuffer_sharing = false;
-      MEM_ASSIGN(texture->external_image, MEM_INVALID_HANDLE);
+      MEM_ASSIGN(texture->external_image, MEM_HANDLE_INVALID);
 
       return copy_mipmaps_to_new_blob(texture) != OUT_OF_MEMORY;
    }
@@ -1617,9 +1617,9 @@ uint32_t glxx_texture_get_mipmap_count(GLXX_TEXTURE_T *texture)
       int w = texture->width;
       int h = texture->height;
 
-      vcos_assert(w > 0 && h > 0);
+      assert(w > 0 && h > 0);
       uint32_t result = _msb(_max(w, h)) + 1;
-      vcos_assert(result >= 1 && result <= LOG2_MAX_TEXTURE_SIZE + 1);
+      assert(result >= 1 && result <= LOG2_MAX_TEXTURE_SIZE + 1);
       return result;
    }
    default:
@@ -1658,7 +1658,7 @@ uint32_t glxx_texture_get_cube_stride(GLXX_TEXTURE_T *texture)
    uint32_t mipmap_count = texture->blob_mip_count;
    uint32_t i;
 
-   vcos_assert(texture->target == GL_TEXTURE_CUBE_MAP);
+   assert(texture->target == GL_TEXTURE_CUBE_MAP);
 
    for (i = 0; i < mipmap_count; i++) {
       cube_stride += texture_get_mipmap_size(texture, i, false);
@@ -1676,14 +1676,14 @@ uint32_t glxx_texture_get_mipmap_offset(GLXX_TEXTURE_T *texture, uint32_t buffer
    bool cacheable = ((level == 0) &&
        (buffer == TEXTURE_BUFFER_TWOD || buffer == TEXTURE_BUFFER_EXTERNAL));
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE+1);
-   vcos_assert(!depaletted || texture->mh_depaletted_blob != MEM_INVALID_HANDLE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE+1);
+   assert(!depaletted || texture->mh_depaletted_blob != MEM_HANDLE_INVALID);
 
    if (cacheable && texture->mip0_offset != (uint32_t)~0)
       return texture->mip0_offset;
 
    mipmap_count = texture->blob_mip_count;
-   vcos_assert(mipmap_count != 0);
+   assert(mipmap_count != 0);
    result0 = texture->offset;
    for (i = mipmap_count - 1; i > level; i--) {
       result += texture_get_mipmap_size(texture, i, depaletted);
@@ -1716,9 +1716,9 @@ static uint32_t texture_get_mipmap_size(GLXX_TEXTURE_T *texture, uint32_t level,
    uint32_t result;
    uint32_t width, height;
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
-   vcos_assert(!depaletted || texture->mh_depaletted_blob != MEM_INVALID_HANDLE);
-   vcos_assert(texture->binding_type != TEXTURE_BLOB_NULL);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(!depaletted || texture->mh_depaletted_blob != MEM_HANDLE_INVALID);
+   assert(texture->binding_type != TEXTURE_BLOB_NULL);
 
    format = glxx_texture_get_mipmap_format(texture, level, depaletted);
    width = texture->width;
@@ -1740,9 +1740,9 @@ static uint32_t texture_get_mipmap_stride(GLXX_TEXTURE_T *texture, uint32_t leve
    uint32_t result;
    uint32_t width;
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
-   vcos_assert(!depaletted || texture->mh_depaletted_blob != MEM_INVALID_HANDLE);
-   vcos_assert(texture->binding_type != TEXTURE_BLOB_NULL);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(!depaletted || texture->mh_depaletted_blob != MEM_HANDLE_INVALID);
+   assert(texture->binding_type != TEXTURE_BLOB_NULL);
 
    format = glxx_texture_get_mipmap_format(texture, level, depaletted);
    width = texture->width;
@@ -1781,9 +1781,9 @@ KHRN_IMAGE_FORMAT_T glxx_texture_get_mipmap_format(GLXX_TEXTURE_T *texture, uint
    //w = _max(w >> level, 1);
    //h = _max(h >> level, 1);
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
-   vcos_assert(!depaletted || texture->mh_depaletted_blob != MEM_INVALID_HANDLE);
-   vcos_assert(texture->binding_type != TEXTURE_BLOB_NULL);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(!depaletted || texture->mh_depaletted_blob != MEM_HANDLE_INVALID);
+   assert(texture->binding_type != TEXTURE_BLOB_NULL);
 
    if (depaletted) {
       //if (w >= 8 && h >= 8 || all_tformat)
@@ -1806,10 +1806,10 @@ KHRN_IMAGE_FORMAT_T glxx_texture_incomplete_get_mipmap_format(GLXX_TEXTURE_T *te
 {
    uint32_t buffer = convert_target(target);
 
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
    if (texture->blob_valid[buffer] & (1 << level))
       return glxx_texture_get_mipmap_format(texture, level, false);
-   else if (texture->mh_mipmaps[buffer][level] == MEM_INVALID_HANDLE)
+   else if (texture->mh_mipmaps[buffer][level] == MEM_HANDLE_INVALID)
       return IMAGE_FORMAT_INVALID;
    else
    {
@@ -1850,7 +1850,7 @@ bool glxx_texture_includes(GLXX_TEXTURE_T *texture, GLenum target, int level, in
    if ((texture->blob_valid[buffer] & 1<<level)) {
       width = _max(texture->width >> level, 1);
       height = _max(texture->height >> level, 1);
-   } else if (texture->mh_mipmaps[buffer][level] != MEM_INVALID_HANDLE) {
+   } else if (texture->mh_mipmaps[buffer][level] != MEM_HANDLE_INVALID) {
       KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[buffer][level], NULL);
       width = image->width;
       height = image->height;
@@ -1865,7 +1865,7 @@ bool glxx_texture_is_valid_image(KHRN_IMAGE_T *image)
 {
    KHRN_IMAGE_FORMAT_T format;
 
-   vcos_assert(image);
+   assert(image);
 
    if (image->width > MAX_TEXTURE_SIZE || image->height > MAX_TEXTURE_SIZE)
       return false;
@@ -1918,9 +1918,9 @@ static bool write_would_block(GLXX_TEXTURE_BLOB_T *item)
 static void texture_write_image_immediate(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level)
 {
    CHECK_BUFFER(buffer, texture);
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
 
-   if (texture->mh_mipmaps[buffer][level] != MEM_INVALID_HANDLE) {
+   if (texture->mh_mipmaps[buffer][level] != MEM_HANDLE_INVALID) {
       khrn_interlock_write_immediate(&((KHRN_IMAGE_T *)mem_lock(texture->mh_mipmaps[buffer][level], NULL))->interlock);
       mem_unlock(texture->mh_mipmaps[buffer][level]);
    }
@@ -1951,11 +1951,11 @@ static void texture_write_image_immediate(GLXX_TEXTURE_T *texture, uint32_t buff
             /* assign but not unretain, as should already be unretained */
             MEM_ASSIGN(texture->blob_pool[i].mh_storage,texture->blob_pool[texture->current_item].mh_storage);
             MEM_ASSIGN(texture->blob_pool[texture->current_item].mh_storage,existing_blob); /* assign but not retain */
-            assign_retain(&existing_blob,MEM_INVALID_HANDLE);/* unretain */
+            assign_retain(&existing_blob,MEM_HANDLE_INVALID);/* unretain */
             texture->current_item = i;
          }
          else
-            MEM_ASSIGN(existing_blob,MEM_INVALID_HANDLE); /* lose 1 ref but keep retained */
+            MEM_ASSIGN(existing_blob,MEM_HANDLE_INVALID); /* lose 1 ref but keep retained */
       } //else stick with the existing and wait
    }
 
@@ -1965,11 +1965,11 @@ static void texture_write_image_immediate(GLXX_TEXTURE_T *texture, uint32_t buff
 MEM_HANDLE_T glxx_texture_share_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level)
 {
    CHECK_BUFFER(buffer, texture);
-   vcos_assert(level <= LOG2_MAX_TEXTURE_SIZE);
+   assert(level <= LOG2_MAX_TEXTURE_SIZE);
 
    texture->framebuffer_sharing = true;
 
-   if (texture->mh_mipmaps[buffer][level] == MEM_INVALID_HANDLE && texture->blob_valid[buffer] & 1<<level) {
+   if (texture->mh_mipmaps[buffer][level] == MEM_HANDLE_INVALID && texture->blob_valid[buffer] & 1<<level) {
       /*
          This mipmap exists but has not been shared before. Need to create an image object
          pointing to our blob.
@@ -1981,14 +1981,14 @@ MEM_HANDLE_T glxx_texture_share_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer,
          width,
          height,
          texture_get_mipmap_stride(texture, level, false),
-         MEM_INVALID_HANDLE,
+         MEM_HANDLE_INVALID,
          glxx_texture_get_storage_handle(texture),
          glxx_texture_get_mipmap_offset(texture, buffer, level, false),
          IMAGE_CREATE_FLAG_TEXTURE,
          texture->blob_pool[texture->current_item].secure); /* todo: check flags */
 
       /* TODO: we have no way of reporting the out-of-memory case here */
-      if (image != MEM_INVALID_HANDLE) {
+      if (image != MEM_HANDLE_INVALID) {
          MEM_ASSIGN(texture->mh_mipmaps[buffer][level], image);
          mem_release(image);
          texture->explicit_mipmaps++;

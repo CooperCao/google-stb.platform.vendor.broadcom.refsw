@@ -81,7 +81,12 @@ typedef struct glxx_tex_sampler_state {
     * BORDER/CLAMP_TO_EDGE. */
    bool unnormalised_coords;
    bool skip_srgb_decode;
+   // Note GL_CLAMP_TO_BORDER is supported internally on earlier versions for
+   // images (see init_image_unit_default_sampler), but the border color is
+   // always (0,0,0,0)
+#if V3D_VER_AT_LEAST(4,0,2,0)
    uint32_t border_color[4];
+#endif
    char   *debug_label;
 }GLXX_TEXTURE_SAMPLER_STATE_T;
 
@@ -205,9 +210,11 @@ extern bool glxx_texture_storage(GLXX_TEXTURE_T *texture,unsigned levels,
       GLenum internalformat, unsigned width, unsigned height, unsigned depth,
       glxx_ms_mode ms_mode, bool fixed_sample_locations);
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
 extern void glxx_texture_buffer_attach(GLXX_TEXTURE_T *texture, GLXX_BUFFER_T *buffer,
       GLenum internalformat, size_t offset, size_t size);
 extern size_t glxx_texture_buffer_get_width(const GLXX_TEXTURE_T *texture);
+#endif
 
 enum glxx_tex_completeness
 {
@@ -231,15 +238,14 @@ typedef struct
    uint32_t height;
    uint32_t depth;
 
-#if !V3D_HAS_LARGE_1D_TEXTURE
-   /* valid only for TEXTURE_BUFFER */
-   uint32_t texbuffer_log2_arr_elem_w; /* log2 (array element's width in texels) */
-   uint32_t texbuffer_arr_elem_w_minus_1; /* array element's width in texels - 1*/
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   glsl_gadgettype_t gadgettype;
 #endif
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    uint32_t hw_param1_gather[4];
    uint32_t hw_param1_fetch;
+   uint32_t hw_param1_no_aniso;
 
    /* For working around GFXH-1363 */
    uint32_t base_level;
@@ -257,15 +263,13 @@ typedef struct
 #endif
 } GLXX_TEXTURE_UNIF_T;
 
+typedef struct GLSL_SAMPLER_T GLSL_SAMPLER_T;
+
 struct glxx_calc_image_unit;
 extern enum glxx_tex_completeness
 glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const struct glxx_calc_image_unit *calc_image_unit,
-      const GLXX_TEXTURE_SAMPLER_STATE_T *sampler, bool used_in_bin, bool is_32bit,
-      glxx_render_state *rs, GLXX_TEXTURE_UNIF_T *texture_unif,
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-      glsl_gadgettype_t *gadgettype,
-#endif
-      glxx_context_fences *fences);
+      const GLXX_TEXTURE_SAMPLER_STATE_T *sampler, const GLSL_SAMPLER_T* glsl_sampler,
+      glxx_render_state *rs, GLXX_TEXTURE_UNIF_T *texture_unif, glxx_context_fences *fences);
 
 extern bool glxx_texture_is_cube_complete(GLXX_TEXTURE_T *texture);
 

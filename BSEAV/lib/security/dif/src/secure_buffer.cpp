@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "sage_srai.h"
 
@@ -70,12 +69,12 @@ SecureBuffer::~SecureBuffer()
         SRAI_Memory_Free(m_data);
         s_nAllocatedSecureBuffers--;
         LOGD(("%s: secure memory released(%d): %p",
-            __FUNCTION__, s_nAllocatedSecureBuffers, (void*)m_data));
+            BSTD_FUNCTION, s_nAllocatedSecureBuffers, (void*)m_data));
         m_data = NULL;
     }
 
     if (s_nAllocatedSecureBuffers == 0) {
-        LOGD(("%s: all secure memory released", __FUNCTION__));
+        LOGD(("%s: all secure memory released", BSTD_FUNCTION));
         SRAI_Cleanup();
     }
 }
@@ -92,13 +91,13 @@ bool SecureBuffer::Initialize()
                 SRAI_MemoryType_SagePrivate);
 
         if (pBuf == NULL) {
-            LOGE(("%s: failed to allocate secure memory", __FUNCTION__));
+            LOGE(("%s: failed to allocate secure memory", BSTD_FUNCTION));
             return false;
         }
         s_nAllocatedSecureBuffers++;
         m_data = pBuf;
         LOGD(("%s: secure memory allocated(%d): %p",
-            __FUNCTION__, s_nAllocatedSecureBuffers, (void*)pBuf));
+            BSTD_FUNCTION, s_nAllocatedSecureBuffers, (void*)pBuf));
     }
 
     return true;
@@ -122,13 +121,13 @@ void SecureBuffer::PrivateCopy(void *pDest, const void *pSrc, uint32_t nSize, bo
 {
     NEXUS_Error rc;
 
-    LOGV(("%s: dest:%p, src:%p, size:%d", __FUNCTION__, pDest, pSrc, (uint32_t)nSize));
+    LOGV(("%s: dest:%p, src:%p, size:%d", BSTD_FUNCTION, pDest, pSrc, (uint32_t)nSize));
 
     if (m_dmaJob == NULL) {
-        LOGD(("%s: setting up DmaJob", __FUNCTION__));
+        LOGD(("%s: setting up DmaJob", BSTD_FUNCTION));
         m_dmaHandle = NEXUS_Dma_Open(NEXUS_ANY_ID, NULL);
         if (m_dmaHandle == NULL) {
-            LOGE(("%s: Failed to NEXUS_Dma_Open !!!", __FUNCTION__));
+            LOGE(("%s: Failed to NEXUS_Dma_Open !!!", BSTD_FUNCTION));
             return;
         }
 
@@ -139,7 +138,7 @@ void SecureBuffer::PrivateCopy(void *pDest, const void *pSrc, uint32_t nSize, bo
         m_dmaJob = NEXUS_DmaJob_Create(m_dmaHandle, &dmaJobSettings);
 
         if (m_dmaJob == NULL) {
-            LOGE(("%s: Failed to NEXUS_DmaJob_Create !!!", __FUNCTION__));
+            LOGE(("%s: Failed to NEXUS_DmaJob_Create !!!", BSTD_FUNCTION));
             return;
         }
     }
@@ -160,7 +159,7 @@ void SecureBuffer::PrivateCopy(void *pDest, const void *pSrc, uint32_t nSize, bo
             NEXUS_DmaJobStatus status;
             rc = NEXUS_DmaJob_GetStatus(m_dmaJob, &status);
             if (rc != NEXUS_SUCCESS) {
-                LOGE(("%s: DmaJob_GetStatus err=%d", __FUNCTION__, rc));
+                LOGE(("%s: DmaJob_GetStatus err=%d", BSTD_FUNCTION, rc));
                 return;
             }
             if (status.currentState == NEXUS_DmaJobState_eComplete ) {
@@ -170,7 +169,7 @@ void SecureBuffer::PrivateCopy(void *pDest, const void *pSrc, uint32_t nSize, bo
         }
     }
     else if (rc != NEXUS_SUCCESS) {
-        LOGE(("%s: error in dma transfer, err:%d", __FUNCTION__, rc));
+        LOGE(("%s: error in dma transfer, err:%d", BSTD_FUNCTION, rc));
         return;
     }
 

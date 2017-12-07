@@ -3,11 +3,13 @@
  ******************************************************************************/
 #include <EGL/begl_memplatform.h>
 #include "memory_android.h"
+#include "nexus_heap_selection.h"
 #include "nexus_platform.h"
 #include "nexus_base_mmap.h"
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
 #endif
+#include "fatal_error.h"
 
 #include <EGL/egl.h>
 #include <ctype.h>
@@ -379,16 +381,7 @@ static void MemFlushCache(void *context, BEGL_MemHandle handle, void *pCached, s
       fprintf(sLogFile, "C %u %p %u\n", (uint32_t)handle, pCached, numBytes);
 #endif
 
-   /* Avoid Nexus ARM cache flush using broken set/way approach for flushes >= 3MB */
-   while (numBytes > 0)
-   {
-      size_t const maxBytesThisTime = 2*1024*1024;
-      size_t numBytesThisTime = numBytes < maxBytesThisTime ? numBytes : maxBytesThisTime;
-
-      NEXUS_FlushCache(pCached, numBytesThisTime);
-      pCached = (uint8_t*)pCached + numBytesThisTime;
-      numBytes -= numBytesThisTime;
-   }
+   NEXUS_FlushCache(pCached, numBytes);
 }
 
 /* Retrieve some information about the memory system */
@@ -492,23 +485,9 @@ BEGL_MemoryInterface *CreateAndroidMemoryInterface(void)
          mem->Lock          = MemLockBlock;
          mem->Unlock        = MemUnlockBlock;
 
-#ifndef SINGLE_PROCESS
-         {
-            NEXUS_ClientConfiguration clientConfig;
-            NEXUS_Platform_GetClientConfiguration(&clientConfig);
-
-            if (ctx->useDynamicMMA)
-               ctx->heaps[0].heap = clientConfig.heap[4];
-            else if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
-               ctx->heaps[0].heap = clientConfig.heap[0];
-            else
-               ctx->heaps[0].heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-         }
-#else
-         /* If you change this, then the heap must also change in nexus_platform.c
-            With refsw NEXUS_OFFSCREEN_SURFACE is the only heap guaranteed to be valid for v3d to use */
-         ctx->heaps[0].heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-#endif
+         ctx->heaps[0].heap = ctx->useDynamicMMA ? GetDynamicHeap() : GetDefaultHeap();
+         if (!ctx->heaps[0].heap)
+            FATAL_ERROR("Could not get Nexus heap\n");
 
          property_get("ro.nexus.ashmem.devname", device, NULL);
          if (strlen(device))

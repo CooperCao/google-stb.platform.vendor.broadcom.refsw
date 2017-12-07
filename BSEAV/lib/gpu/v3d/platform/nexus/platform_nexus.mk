@@ -78,65 +78,59 @@ ifeq ($(KHRN_AUTOCLIF),1)
 	CFLAGS += -DKHRN_AUTOCLIF
 endif
 
-SOURCES =	default_nexus.c \
+SOURCES = \
+			default_nexus.c \
+			bitmap.cpp \
+			display_nexus.cpp \
 			../common/memory_nexus.c \
 			../common/packet_rgba.c \
 			../common/packet_yv12.c \
-			../common/hardware_nexus.c \
+			../common/hardware_nexus.cpp \
 			../common/autoclif.c
 
 ifeq ($(NXCLIENT_SUPPORT),y)
+	# Multi-process surface compositor client
+	SOURCES += \
+		./multi/worker.cpp \
+		./multi/windowinfo.cpp
 
-# Multi-process surface compositor client
-SOURCES += surface_comp_display_nexus.c
+	CFLAGS += \
+		-I./multi
 
-include $(NEXUS_TOP)/nxclient/include/nxclient.inc
-CFLAGS += $(NXCLIENT_CFLAGS)
-
+	include $(NEXUS_TOP)/nxclient/include/nxclient.inc
+	CFLAGS += $(NXCLIENT_CFLAGS)
 else
+	ifeq ($(NEXUS_CLIENT_SUPPORT),y)
+		# Multi-process surface compositor client
+		SOURCES += \
+			./multi/worker.cpp \
+			./multi/windowinfo.cpp
 
-ifeq ($(NEXUS_CLIENT_SUPPORT),y)
+		CFLAGS += \
+			-I./multi
+	else
+		SOURCES += \
+			./single/worker.cpp \
+			./single/windowstate.cpp \
+			./single/windowinfo.cpp
 
-# Multi-process surface compositor client
-SOURCES += surface_comp_display_nexus.c
-
-else
-
-CFLAGS += -DSINGLE_PROCESS
-
-ifeq ($(NULL_DISPLAY),y)
-
-# Null display
-SOURCES += null_display_nexus.c
-
-CFLAGS += -DNULL_DISPLAY
-
-else
-
-# Single process exclusive/blit display
-SOURCES += exclusive_display_nexus.c
-
-endif # NULL_DISPLAY
-
-endif # NEXUS_CLIENT_SUPPORT
-
+		CFLAGS += \
+			-I./single \
+			-DSINGLE_PROCESS
+	endif # NEXUS_CLIENT_SUPPORT
 endif # NXCLIENT_SUPPORT
+
+ifeq ("$(GCCGTEQ_40800)", "1")
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++11
+LDFLAGS += -static-libstdc++
+else
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++0x
+endif
+CXXFLAGS += -fno-rtti -fno-exceptions
 
 .PHONY : all
 
-ifeq ($(NO_V3DDRIVER_BUILD),)
-  ifeq ($(BUILD_DYNAMIC),1)
-  all: V3DDriver $(LIBDIR)/libnxpl.so
-  else
-  all: V3DDriver $(LIBDIR)/libnxpl.a
-  endif
-else
-  ifeq ($(BUILD_DYNAMIC),1)
-  all: $(LIBDIR)/libnxpl.so
-  else
-  all: $(LIBDIR)/libnxpl.a
-  endif
-endif
+all: $(LIBDIR)/libnxpl.so
 
 .phony: OUTDIR
 OUTDIR :
@@ -146,26 +140,30 @@ OUTDIR :
 V3DDriver:
 	$(Q)$(MAKE) --no-print-directory -C $(V3D_DIR) -f V3DDriver.mk $(MAKECMDGOALS)
 
+OBJS0 := $(patsubst %.cpp,%.o,$(filter %.cpp,$(SOURCES)))
+OBJS0 += $(patsubst %.c,%.o,$(filter %.c,$(SOURCES)))
+OBJS := $(addprefix $(OBJDIR)/, $(notdir $(OBJS0)))
+
 # $(1) = src
 # $(2) = obj
 define CCompileRule
-OBJS += $(2)
 $(2) : $(1)
 	$(Q)echo Compiling $(1)
-	$(Q)$(CC) -c $(CFLAGS) -o "$(2)" "$(1)"
-
+	$(Q)$(3) -c -MMD -MP -MF"$(2:%.o=%.d)" -MT"$(2:%.o=%.d)" -o "$(2)" "$(1)"
 endef
 
-$(foreach src,$(SOURCES),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o)))
+$(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 # $(1) = src
 # $(2) = d
 # $(3) = obj
+# $(4) = compiler version
 define DependRule_C
 $(2) : $(1) | OUTDIR
 	$(Q)echo Making depends for $(1)
 	$(Q)touch $(2).tmp
-	$(Q)$(CC) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(CFLAGS) $(1)
+	$(Q)$(4) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(1)
 	$(Q)sed 's/D:/\/\/D/g' < $(2).tmp | sed 's/C:/\/\/C/g' > $(2)
 	$(Q)rm -f $(2).tmp
 
@@ -175,20 +173,18 @@ endef
 
 ifneq ($(MAKECMDGOALS),clean)
 $(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call DependRule_C,$(src),$(OBJDIR)/$(basename $(notdir $(src))).d,\
-              $(OBJDIR)/$(basename $(notdir $(src))).o)))
+              $(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval $(call DependRule_C,$(src),$(OBJDIR)/$(basename $(notdir $(src))).d,\
+              $(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 $(foreach src,$(filter %.c,$(SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
 endif
 
 $(LIBDIR)/libnxpl.so: $(OBJS)
 	$(Q)echo Linking ... libnxpl.so
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libnxpl.so $(OBJS)
-
-$(LIBDIR)/libnxpl.a: $(OBJS)
-	$(Q)echo Archiving ... libnxpl.a
-	$(Q)mkdir -p $(LIBDIR)
-	$(Q)ar -rcs $(LIBDIR)/libnxpl.a $(OBJS)
+	$(Q)$(C++) $(LDFLAGS) -shared -o $(LIBDIR)/libnxpl.so $(OBJS)
 
 .PHONY: clean
 .PHONY: clean_self
@@ -196,12 +192,10 @@ $(LIBDIR)/libnxpl.a: $(OBJS)
 # clean out the dross
 clean:
 	$(Q)rm -f $(LIBDIR)/libnxpl.so *~ $(OBJS)
-	$(Q)rm -f $(LIBDIR)/libnxpl.a
 	$(Q)rm -f $(OBJDIR)/*.d
 	$(Q)$(MAKE) --no-print-directory -C $(V3D_DIR) -f V3DDriver.mk clean
 
 # clean out the dross
 clean_self:
 	$(Q)rm -f $(LIBDIR)/libnxpl.so *~ $(OBJS)
-	$(Q)rm -f $(LIBDIR)/libnxpl.a
 	$(Q)rm -f $(OBJDIR)/*.d

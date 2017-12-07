@@ -44,7 +44,11 @@
 #include "priv/nexus_sage_priv.h"
 #include "bsagelib_rai.h"
 #include "bsagelib_client.h"
+#if (NEXUS_SECURITY_API_VERSION==1)
 #include "nexus_security_client.h"
+#include "nexus_security.h"
+#endif
+#include "priv/nexus_security_regver_priv.h"
 
 #include "bsagelib_boot.h"
 #include "bkni.h"
@@ -96,6 +100,7 @@ struct sageSvpInfo {
     unsigned indicationReadPtr;
     unsigned indicationWritePtr;
     NEXUS_EventCallbackHandle eventIndicationRecvCallback;
+    NEXUS_SageModuleInternalSettings *internalSettings;
 };
 
 static const struct {
@@ -110,6 +115,8 @@ static const struct {
 static struct sageSvpInfo *lHandle;
 
 NEXUS_SageMemoryBlock svp_ta;         /* raw ta binary in memory */
+
+static NEXUS_Error NEXUS_Sage_P_EnableHvd(bool enable);
 
 /* Does some sanity checks. To be used before trying to do any communication
 * with the SAGE side SVP code */
@@ -222,7 +229,7 @@ static void NEXUS_Sage_SVP_P_SageIndicationEventHandler(void *pContext)
         switch(id)
         {
             case bvn_monitor_IndicationType_eLockdown:
-                BDBG_ERR(("==============\nSVP BVN LOCKDOWN STATUS: %s %s %s %s %s %s\n==============",
+                BDBG_ERR(("============== SVP BVN LOCKDOWN STATUS: %s %s %s %s %s %s ==============",
                            (value & (1 << bvn_monitor_Indication_Lockdown_eNone)) ? "CLEAR" : "LOCKDOWN",
                            (value & (1 << bvn_monitor_Indication_Lockdown_eGeneral)) ? "GENERAL" : "",
                            (value & (1 << bvn_monitor_Indication_Lockdown_eBvn)) ? "BVN" : "",
@@ -304,6 +311,7 @@ yourself in the foot if you try to do dynamic urr */
 * everything (i.e. pre-dynamic-urr) and correctly walks through all nexus heaps */
 static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps_2_5(bool disable)
 {
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeySlotSettings keySlotSettings;
     NEXUS_KeySlotHandle scrubbingKeyHandle = 0;
     NEXUS_SecurityKeySlotInfo  keyslotInfo;
@@ -399,6 +407,12 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps_2_5(bool disable)
             bvn_monitor_CommandId_eToggle, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, bvn_monitor_CommandId_eToggle, lHandle->uiLastAsyncId));
+    if (rc != BERR_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+        goto EXIT;
+    }
+
     rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
     if (rc != BERR_SUCCESS)
     {
@@ -416,8 +430,18 @@ EXIT:
     }
 
     return rc;
+#else
+    BSTD_UNUSED( disable );
+    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif
 }
 
+/** Update heap info
+* Called "on the fly" to handle enable/disable/shrink/grow of
+* URR/XRR. On the "disable" case (only for shutdown/s3), also make
+* sure any additional heaps (FWRR) are also cleaned up
+*/
 static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
 {
     unsigned heapIndex;
@@ -510,10 +534,28 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
             bvn_monitor_CommandId_eUpdateHeaps, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, bvn_monitor_CommandId_eUpdateHeaps, lHandle->uiLastAsyncId));
+    if (rc != BERR_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+        goto EXIT;
+    }
+
     rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
     if (rc != BERR_SUCCESS)
     {
         rc = BERR_TRACE(rc);
+    }
+
+    /* Special case for disable.. i.e. it's a cleanup for shutdown or S3...
+    * also clean up FWRR */
+    if(disable && g_pCoreHandles->heap[NEXUS_FIRMWARE_HEAP].nexus &&
+       (lHandle->apiVer>=0x00020009))
+    {
+        rc = NEXUS_Sage_P_EnableHvd(false);
+        if (rc != BERR_SUCCESS)
+        {
+            rc = BERR_TRACE(rc);
+        }
     }
 
 EXIT:
@@ -553,10 +595,17 @@ void NEXUS_Sage_P_SvpUninit(void)
     lHandle=NULL;
 }
 
-static void NEXUS_Sage_P_SvpHandleApiVer(uint32_t sageApiVersion)
+/** Handle different sage svp ta api versions
+*
+* This is the SVP TA "api" version, and is not directly tied to any higher "svp version". Supporting
+* older handled by disabling features and/or adjusting api usage. Supporting newer svp ta may be possible
+* based on info provided by svp module init.
+*/
+static void NEXUS_Sage_P_SvpHandleApiVer(uint32_t sageApiVersion, uint32_t minCompat)
 {
     if(sageApiVersion==lHandle->apiVer)
     {
+        /* Everything is in sync */
         return;
     }
 
@@ -567,32 +616,45 @@ static void NEXUS_Sage_P_SvpHandleApiVer(uint32_t sageApiVersion)
         case 0: /* Intentional fall-through.. */
                 /* Pre 0x00020006, SAGE did not return a version (i.e. 0) */
                 /* No Pre 0x00020006 release made with sage 3.x other than 0x00020005 */
-        case 0x00020005: /* Can handle this, but not ideal */
-            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED!"));
+        case 0x00020005: /* Can handle this, no hdmi/dtu/fwrr. Use "legacy" update heaps code */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! Secure HDMI Rx/Secure DTU remap/FWRR NOT supported"));
             lHandle->apiVer=0x00020005;
             break;
-        case 0x00020006: /* Can handle this.. no secure hdmi Rx though */
-            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! Secure HDMI Rx NOT supported"));
+        case 0x00020006: /* Can handle this, no hdmi/dtu/fwrr */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! Secure HDMI Rx/Secure DTU remap/FWRR NOT supported"));
             lHandle->apiVer=0x00020006;
             break;
-        case 0x00020007: /* Can handle, but DTU remapping not possible */
-            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED!"));
+        case 0x00020007: /* Can handle this, no dtu/fwrr */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! Secure DTU remap/FWRR NOT supported"));
             lHandle->apiVer=0x00020007;
             break;
-        case 0x00020009: /* Can handle, but no FWRR heap */
-            BDBG_WRN(("Newer SAGE SVP API Version Set detected, continuing..."));
-            lHandle->apiVer=0x00020009;
+        case 0x00020008: /* Can handle this, no fwrr */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! FWRR NOT supported"));
+            lHandle->apiVer=0x00020008;
             break;
         default:
+            if(sageApiVersion>=0x00020009)
+            {
+                /* minCompat is valid. Forward compatibility MAY be allowed/supported */
+                /* This can happen when no existing api has been removed or changed */
+                if(SECURE_VIDEO_VER_ID>=minCompat)
+                {
+                    BDBG_WRN(("NEWER SAGE SVP API VERSION SET DETECTED! But it is compatible"));
+                    break;
+                }
+            }
             BDBG_ERR(("INCOMPATIBLE SAGE SVP API VERSION SET. SVP WILL NOT BE FUNCTIONAL"));
-            break;
+            return; /* Do not update version reported to SAGE. SAGE will reject all commands */
     }
+
+    /* Update version reported to SAGE */
+    lHandle->apiVer=sageApiVersion;
 }
 
 /* Some of the init needs to be delayed until SAGE is running */
 /* TODO: Move some of this (platform open/init, module open/init, into
 * more generic functions that can be used across nexus */
-void NEXUS_Sage_P_SvpInitDelayed(void)
+void NEXUS_Sage_P_SvpInitDelayed(void *pParam)
 {
     BSAGElib_ClientSettings sagelibClientSettings;
     BERR_Code rc;
@@ -603,6 +665,8 @@ void NEXUS_Sage_P_SvpInitDelayed(void)
     /* Image Interface */
     void * img_context = NULL;
     BIMG_Interface img_interface;
+
+    BSTD_UNUSED(pParam);
 
     /* Initialize IMG interface; used to pull out an image on the file system from the kernel. */
     rc = Nexus_SageModule_P_Img_Create(NEXUS_CORE_IMG_ID_SAGE, &img_context, &img_interface);
@@ -775,7 +839,8 @@ void NEXUS_Sage_P_SvpInitDelayed(void)
     BDBG_MSG(("Initialized SAGE SVP Module: receivedSageModuleHandle [%p], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, lHandle->uiLastAsyncId));
 
-    NEXUS_Sage_P_SvpHandleApiVer(lHandle->sageContainer->basicOut[SECURE_VIDEO_OUT_VER]);
+    NEXUS_Sage_P_SvpHandleApiVer(lHandle->sageContainer->basicOut[SECURE_VIDEO_OUT_VER],
+                                 lHandle->sageContainer->basicOut[SECURE_VIDEO_OUT_VER_COMPAT_MIN]);
 
 EXIT:
     /* Init complete */
@@ -815,9 +880,14 @@ static uint32_t NEXUS_Sage_P_GetBSAGElib_RegionId(uint8_t bchp_mem_count)
     return BSAGElib_RegionId_eInvalid;
 }
 
-NEXUS_Error NEXUS_Sage_P_SvpInit(void)
+NEXUS_Error NEXUS_Sage_P_SvpInit(NEXUS_SageModuleInternalSettings *internalSettings)
 {
     BERR_Code rc;
+
+    if(!internalSettings)
+    {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
 
     if(lHandle)
     {
@@ -834,6 +904,7 @@ NEXUS_Error NEXUS_Sage_P_SvpInit(void)
 
     BKNI_Memset(lHandle, 0, sizeof(*lHandle));
     lHandle->secureGfxHeapIndex=NEXUS_MAX_HEAPS;
+    lHandle->internalSettings=internalSettings;
 
     rc = BKNI_CreateEvent(&lHandle->response);
     rc |= BKNI_CreateEvent(&lHandle->indication);
@@ -1071,9 +1142,7 @@ NEXUS_Error NEXUS_Sage_UpdateHeaps(void)
     NEXUS_Error rc;
 
     NEXUS_LockModule();
-
     rc=NEXUS_Sage_SVP_P_UpdateHeaps(false);
-
     NEXUS_UnlockModule();
 
     return rc;
@@ -1132,6 +1201,12 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
             bvn_monitor_CommandId_eSetCores, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, bvn_monitor_CommandId_eSetCores, lHandle->uiLastAsyncId));
+    if (rc != BERR_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+        goto EXIT;
+    }
+
     rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
     if (rc != BERR_SUCCESS)
     {
@@ -1164,7 +1239,7 @@ void NEXUS_Sage_P_PrintSvp(void)
     unsigned i;
     for (i=0;i<BAVC_CoreId_eMax;i++) {
         /* if it's never toggled, don't bother printing */
-        if (lHandle->aeCoreStat[i].toggles) {
+        if (lHandle && lHandle->aeCoreStat[i].toggles) {
             BDBG_MODULE_LOG(nexus_sage_module, ("core[%s][%u] refcnt %u, toggles %u", g_NEXUS_SvpHwBlockTbl[i].achName, i, lHandle->aeCoreStat[i].refcnt, lHandle->aeCoreStat[i].toggles));
         }
     }
@@ -1255,14 +1330,13 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
             bvn_monitor_CommandId_eSetCores, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, bvn_monitor_CommandId_eSetCores, lHandle->uiLastAsyncId));
-    rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
-
-    if(hMemBlock)
+    if (rc != BERR_SUCCESS)
     {
-        NEXUS_MemoryBlock_UnlockOffset(hMemBlock);
-        NEXUS_MemoryBlock_Free(hMemBlock);
+        rc = BERR_TRACE(rc);
+        goto EXIT;
     }
 
+    rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
     if (rc != BERR_SUCCESS)
     {
         rc = BERR_TRACE(rc);
@@ -1274,6 +1348,12 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
 #endif
 
 EXIT:
+    if(hMemBlock)
+    {
+        NEXUS_MemoryBlock_UnlockOffset(hMemBlock);
+        NEXUS_MemoryBlock_Free(hMemBlock);
+    }
+
     NEXUS_UnlockModule();
 }
 
@@ -1306,12 +1386,11 @@ NEXUS_Error NEXUS_Sage_SecureRemap(unsigned memcIndex, const BDTU_RemapSettings 
 
     BKNI_Memset(lHandle->pSharedMem[0], 0, sizeof(union sageSvpSharedMem));
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
-    lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER] = lHandle->apiVer;
-    lHandle->sageContainer->basicIn[SECURE_VIDEO_REMAP_IN_MEMC] = memcIndex;
 
     BKNI_Memcpy(lHandle->pSharedMem[0], pSettings, sizeof(*pSettings));
     lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
     lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_ADD] = false;
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_REMAP_IN_MEMC] = memcIndex;
     lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].len = sizeof(*pSettings);
     lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].data.ptr = lHandle->pSharedMem[0];
 
@@ -1319,6 +1398,11 @@ NEXUS_Error NEXUS_Sage_SecureRemap(unsigned memcIndex, const BDTU_RemapSettings 
             bvn_monitor_CommandId_eSecureRemap, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, bvn_monitor_CommandId_eUpdateHeaps, lHandle->uiLastAsyncId));
+    if (rc != BERR_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+        goto EXIT;
+    }
     rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
     if (rc != BERR_SUCCESS)
     {
@@ -1329,4 +1413,103 @@ EXIT:
     NEXUS_UnlockModule();
 
     return rc;
+}
+
+static NEXUS_Error NEXUS_Sage_P_EnableHvd(bool enable)
+{
+    NEXUS_Error rc;
+    uint64_t *start=(uint64_t *)lHandle->pSharedMem[0];
+    uint64_t *size=(uint64_t *)lHandle->pSharedMem[1];
+    NEXUS_Addr offset;
+    uint32_t size2;
+
+    if(lHandle->apiVer<0x00020009)
+    {
+        bool required;
+
+        NEXUS_Module_Lock(lHandle->internalSettings->security);
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+        required=NEXUS_Security_RegionVerification_IsRequired_priv(NEXUS_SecurityRegverRegionID_eVDEC0_OLA);
+#else
+        required=NEXUS_Security_RegionVerification_IsRequired_priv(NEXUS_SecurityRegverRegionID_eAvd0Inner);
+#endif
+        NEXUS_Module_Unlock(lHandle->internalSettings->security);
+
+        if(required)
+        {
+            BDBG_ERR(("SAGE/SVP Binaries must be updated"));
+            /* rc=BERR_TRACE(NEXUS_NOT_SUPPORTED); */
+            rc=NEXUS_SUCCESS;
+        }
+        else
+        {
+            BDBG_WRN(("SAGE/SVP binaries should be updated. HVD FW auth will not be possible"));
+            rc=NEXUS_SUCCESS;
+        }
+        goto EXIT;
+    }
+
+    rc = NEXUS_Sage_SVP_isReady();
+    if(rc != NEXUS_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+        goto EXIT;
+    }
+
+    BKNI_Memset(lHandle->pSharedMem[0], 0, sizeof(union sageSvpSharedMem));
+    BKNI_Memset(lHandle->pSharedMem[1], 0, sizeof(union sageSvpSharedMem));
+
+    rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_FIRMWARE_HEAP, &offset, &size2, NULL);
+    if(rc!=NEXUS_SUCCESS)
+    {
+        return BERR_TRACE(rc);
+    }
+    if(enable) {
+        size[0]=size2;
+    }
+    start[0]=offset;
+
+    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT]=1;
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].len=sizeof(uint64_t)*(1);
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].data.ptr=(uint8_t *)start;
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].len=sizeof(uint64_t)*(1);
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].data.ptr=(uint8_t *)size;
+
+    rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
+            bvn_monitor_CommandId_eUpdateHeaps, lHandle->sageContainer, &lHandle->uiLastAsyncId);
+    if (rc != BERR_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+    }
+    BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
+              (void*)lHandle->hSagelibRpcModuleHandle, bvn_monitor_CommandId_eUpdateHeaps, lHandle->uiLastAsyncId));
+    rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+    if (rc != BERR_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+    }
+
+EXIT:
+    return rc;
+}
+
+
+NEXUS_Error NEXUS_Sage_EnableHvd(void)
+{
+    return NEXUS_Sage_P_EnableHvd(true);
+}
+
+void NEXUS_Sage_DisableHvd(void)
+{
+    NEXUS_Error rc;
+
+    rc=NEXUS_Sage_P_EnableHvd(false);
+    if(rc!=NEXUS_SUCCESS)
+    {
+        BERR_TRACE(rc);
+    }
+
+    return;
 }

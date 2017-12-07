@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,6 +47,21 @@ extern "C"{
 
 /* used in bxpt.c and bxpt_rsbuf_priv.c */
 #define RS_BUFFER_PTR_REG_STEPSIZE     (BCHP_XPT_RSBUFF_BASE_POINTER_IBP1 - BCHP_XPT_RSBUFF_BASE_POINTER_IBP0)
+
+#if BXPT_NUM_TSIO
+/* used in bxpt_tsio.c */
+void BXPT_P_SetupShareRsBufferRegs(
+    BXPT_Handle hXpt,
+    unsigned BaseRegAddr,       /* [in] Which client buffer we are dealing with */
+    unsigned WhichInstance,
+    size_t Size,
+    BMMA_DeviceOffset Offset
+    );
+
+unsigned BXPT_P_GetMpodRsBufferIndex(
+    unsigned WhichInstance
+    );
+#endif
 
 /*
 ** These functions are called internally from BXPT_Open() and BXPT_Close().

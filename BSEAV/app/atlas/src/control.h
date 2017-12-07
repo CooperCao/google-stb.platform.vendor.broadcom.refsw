@@ -83,7 +83,7 @@ public:
     virtual ePowerMode getPowerMode(void);
     virtual eRet       setWindowGeometry(void);
 
-    virtual eRet    connectDecoders(
+    virtual eRet connectDecoders(
             CSimpleVideoDecode * pVideoDecode,
             CSimpleAudioDecode * pAudioDecode,
             uint32_t             width,
@@ -98,61 +98,63 @@ public:
             CPid *               pAudioPid,
             CStc *               pStc);
     virtual eRet stopDecoders(CSimpleVideoDecode * pVideoDecode, CSimpleAudioDecode * pAudioDecode);
-    virtual bool checkPower(void) {return false;}
+    virtual bool checkPower(void) { return(false); }
+    virtual void setMixingMode(eWindowType windowType, NEXUS_AudioDecoderMixingMode mixingMode) { BSTD_UNUSED(windowType); BSTD_UNUSED(mixingMode); }
+    virtual void setAudioFade(bool bPipState) { BSTD_UNUSED(bPipState); }
 
-    eRet            initialize(void * id, CConfig * pConfig, CChannelMgr * pChannelMgr, CWidgetEngine * pWidgetEngine);
-    eRet            uninitialize();
-    void            processNotification(CNotification & notification);
-    eRet            processKeyEvent(CRemoteEvent * pRemoteEvent);
-    void            onIdle(void);
-    CWidgetEngine * getWidgetEngine(void) { return(_pWidgetEngine); }
-    eRet            tuneChannel(CChannel * pChannel = NULL, eWindowType windowType = eWindowType_Max, unsigned tunerIndex = ANY_INDEX);
-    eRet            unTuneChannel(CChannel * pChannel = NULL, bool bFullUnTune = false, eWindowType windowType = eWindowType_Max);
-    eRet            unTuneAllChannels(void);
-    eRet            decodeChannel(CChannel * pChannel, eWindowType windowType);
-    eRet            stopAllPlaybacks(void);
-    eRet            stopAllRecordings(void);
-    eRet            stopAllEncodings(void);
-    eRet            tuneDeferredChannel(eWindowType windowType = eWindowType_Max);
-    eRet            tuneLastChannel(void);
-    eRet            addChannelToChList(CChannel * pChannel);
-    eRet            getChannelStats(void);
-    eRet            channelUp(void);
-    eRet            channelDown(void);
-    eRet tenKey(eKey key);
-    eRet playbackStart(const char * fileName, const char * indexName, const char * path, eWindowType windowType = eWindowType_Max);
-    eRet playbackStart(CVideo * pVideo, eWindowType windowType = eWindowType_Max);
-    eRet playbackStop(const char * MediaName = NULL, eWindowType windowType = eWindowType_Max, bool bTuneLast = true);
-    eRet recordStart(CRecordData * pRecordData = NULL);
-    eRet recordStop(CChannel * pChannel = NULL);
-    eRet encodeStart(const char * fileName = NULL, const char * path = NULL);
-    eRet encodeStop(CChannel * pChannel = NULL);
-    eRet setAudioProgram(unsigned pid);
-    eRet setAudioProcessing(eAudioProcessing audioProcessing);
-    eRet          ipServerStart(void);
-    eRet          ipServerStop(void);
-    eRet          setSpdifInput(eSpdifInput spdifInput);
-    eRet          setHdmiAudioInput(eHdmiAudioInput hdmiInput);
-    eRet          setAudioDownmix(eAudioDownmix audioDownmix);
-    eRet          setAudioDualMono(eAudioDualMono audioDualMono);
-    eRet          setDolbyDRC(eDolbyDRC dolbyDRC);
-    eRet          setDolbyDialogNorm(bool dolbyDialogNorm);
-    eRet          setColorSpace(NEXUS_ColorSpace colorSpace);
-    eRet          setColorDepth(uint8_t colorDepth);
-    eRet          setBoxDetect(bool bBoxDetect);
-    eRet          setAspectRatio(NEXUS_DisplayAspectRatio aspectRatio);
-    eRet          setAutoVideoFormat(bool bAutoVideoFormat);
-    eRet          showWindowType(eWindowType windowType, bool bShow = true);
-    void          setModel(CModel * pModel)                { _pModel = pModel; }
-    void          setChannelMgr(CChannelMgr * pChannelMgr) { _pChannelMgr = pChannelMgr; }
-    CChannelMgr * getChannelMgr(void)                      { return(_pChannelMgr); }
-    CConfiguration * getCfg(void) { return(_pCfg); }
+    eRet             initialize(void * id, CConfig * pConfig, CChannelMgr * pChannelMgr, CWidgetEngine * pWidgetEngine);
+    eRet             uninitialize();
+    void             processNotification(CNotification & notification);
+    eRet             processKeyEvent(CRemoteEvent * pRemoteEvent);
+    void             onIdle(void);
+    CWidgetEngine *  getWidgetEngine(void) { return(_pWidgetEngine); }
+    eRet             tuneChannel(CChannel * pChannel = NULL, eWindowType windowType = eWindowType_Max, unsigned tunerIndex = ANY_INDEX);
+    eRet             unTuneChannel(CChannel * pChannel = NULL, bool bFullUnTune = false, eWindowType windowType = eWindowType_Max);
+    eRet             unTuneAllChannels(void);
+    eRet             decodeChannel(CChannel * pChannel, eWindowType windowType);
+    eRet             stopAllPlaybacks(void);
+    eRet             stopAllRecordings(void);
+    eRet             stopAllEncodings(void);
+    eRet             tuneDeferredChannel(eWindowType windowType = eWindowType_Max);
+    eRet             tuneLastChannel(void);
+    eRet             addChannelToChList(CChannel * pChannel);
+    eRet             getChannelStats(void);
+    eRet             channelUp(void);
+    eRet             channelDown(void);
+    eRet             tenKey(eKey key);
+    eRet             playbackStart(const char * fileName, const char * indexName, const char * path, eWindowType windowType = eWindowType_Max);
+    eRet             playbackStart(CVideo * pVideo, eWindowType windowType = eWindowType_Max);
+    eRet             playbackStop(const char * MediaName = NULL, eWindowType windowType = eWindowType_Max, bool bTuneLast = true);
+    eRet             recordStart(CRecordData * pRecordData = NULL);
+    eRet             recordStop(CChannel * pChannel = NULL);
+    eRet             encodeStart(const char * fileName = NULL, const char * path = NULL);
+    eRet             encodeStop(CChannel * pChannel = NULL);
+    eRet             setAudioProgram(unsigned pid);
+    eRet             setAudioProcessing(eAudioProcessing audioProcessing);
+    eRet             ipServerStart(void);
+    eRet             ipServerStop(void);
+    eRet             setSpdifInput(eSpdifInput spdifInput);
+    eRet             setHdmiAudioInput(eHdmiAudioInput hdmiInput);
+    eRet             setAudioDownmix(eAudioDownmix audioDownmix);
+    eRet             setAudioDualMono(eAudioDualMono audioDualMono);
+    eRet             setDolbyDRC(eDolbyDRC dolbyDRC);
+    eRet             setDolbyDialogNorm(bool dolbyDialogNorm);
+    eRet             setColorSpace(NEXUS_ColorSpace colorSpace);
+    eRet             setColorDepth(uint8_t colorDepth);
+    eRet             setBoxDetect(bool bBoxDetect);
+    eRet             setAspectRatio(NEXUS_DisplayAspectRatio aspectRatio);
+    eRet             setAutoVideoFormat(bool bAutoVideoFormat);
+    eRet             showWindowType(eWindowType windowType, bool bShow = true);
+    void             setModel(CModel * pModel)                { _pModel = pModel; }
+    void             setChannelMgr(CChannelMgr * pChannelMgr) { _pChannelMgr = pChannelMgr; }
+    CChannelMgr *    getChannelMgr(void)                      { return(_pChannelMgr); }
+    CConfiguration * getCfg(void)                             { return(_pCfg); }
     void             updatePlaybackList();
-    void       dumpPlaybackList(bool bForce = false);
-    void       addView(CView * pView, const char * name);
-    CView *    findView(const char * name);
-    void       removeView(CView * pView);
-    bool       validateNotification(CNotification & notification, eMode mode);
+    void             dumpPlaybackList(bool bForce = false);
+    void             addView(CView * pView, const char * name);
+    CView *          findView(const char * name);
+    void             removeView(CView * pView);
+    bool             validateNotification(CNotification & notification, eMode mode);
 #ifdef CPUTEST_SUPPORT
     eRet setCpuTestLevel(int nLevel);
 #endif
@@ -216,7 +218,7 @@ protected:
     bool                  _bIgnoreNextKeypress;
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     MList <CSimpleVideoDecode> _plmVideoDecodeList;
-    CTimer _timerPlmVerify;
+    CTimer                     _timerPlmVerify;
 #endif
 };
 

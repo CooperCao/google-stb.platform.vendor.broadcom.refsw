@@ -1593,11 +1593,12 @@ b_avi_player_next_backward(bavi_player_t player, bmedia_player_entry *entry)
 int
 bavi_player_next(bavi_player_t player, bmedia_player_entry *entry)
 {
-	bfile_io_read_t  fd = player->fd;
+	bfile_io_read_t  fd;
 	int rc;
 
 	BDBG_OBJECT_ASSERT(player, bavi_player_t);
 	BDBG_MSG_TRACE(("bavi_player_next:> %#lx %u %d %u", (unsigned long)player, (unsigned)player->pos, (int)player->step, (unsigned)player->player_state));
+    fd = player->fd;
     bmedia_player_init_entry(entry);
 
     if(player->eof_reached) {

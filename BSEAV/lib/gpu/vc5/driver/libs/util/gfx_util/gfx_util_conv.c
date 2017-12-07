@@ -400,12 +400,12 @@ uint32_t gfx_float_to_unorm8_approx(float f)
 
    rsh = (127 - exp) + 12;
    ans256 = mmt >> rsh;
-   if (mmt << (32 - rsh)) {
+   if (mmt & gfx_mask(rsh)) {
       ans256 |= 1;
    }
 
    ans = ans256 >> 8;
-   if (ans256 << 24) {
+   if (ans256 & gfx_mask(8)) {
       ans |= 1;
    }
 
@@ -571,6 +571,15 @@ float gfx_unorm_to_float_rtz(uint32_t u, uint32_t num_bits)
    return f;
 }
 
+float gfx_unorm_to_float_gfxh1287(uint32_t u, uint32_t num_bits)
+{
+   if(num_bits == 32)
+   {
+      if (u >= 0xffffff00) u = 0xffffffff;
+   }
+   return gfx_unorm_to_float_rtz(u, num_bits);
+}
+
 uint32_t gfx_unorm_to_float16(uint32_t u, uint32_t num_bits)
 {
    uint32_t f16 = unorm_to_float_generic(u, num_bits,
@@ -587,6 +596,19 @@ float gfx_snorm_to_float_rtz(uint32_t s, uint32_t num_bits)
    assert(f >= -1.0f);
    assert(f <= 1.0f);
    return f;
+}
+
+float gfx_snorm_to_float_gfxh1287(uint32_t s, uint32_t num_bits)
+{
+   if(num_bits == 32)
+   {
+      if (s & 0x80000000) {
+         if ((s & 0x7fffffff) < 0xff) s = 0x80000000;
+      } else {
+         if (s >= 0x7fffff80) s = 0x7fffffff;
+      }
+   }
+   return gfx_snorm_to_float_rtz(s, num_bits);
 }
 
 uint32_t gfx_snorm_to_float16(uint32_t s, uint32_t num_bits)

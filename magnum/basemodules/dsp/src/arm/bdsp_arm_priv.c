@@ -2040,11 +2040,11 @@ BERR_Code BDSP_Arm_P_AddQueueOutput(
 
     for(i = 0; i< pRaagaQueue->numBuf; i++)
     {
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32BaseAddr  = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32BaseAddr);
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32EndAddr   = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32EndAddr);
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32ReadAddr  = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32ReadAddr);
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32WrapAddr  = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32EndAddr);
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32WriteAddr = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32WriteAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32BaseAddr  = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32BaseAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32EndAddr   = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32EndAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32ReadAddr  = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32ReadAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32WrapAddr  = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32EndAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32WriteAddr = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32WriteAddr);
 
         errCode = BDSP_Arm_P_InsertEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
                                     &(pArmStage->sStageMapTable[0]),
@@ -3230,7 +3230,6 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
 
     BDBG_ASSERT(NULL != pStageHandle);
     pArmStage = (BDSP_ArmStage *)pStageHandle;
-    pDevice = (BDSP_Arm *)pArmStage->pContext->pDevice;
 
     BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmStage, pStageIterator)
     BSTD_UNUSED(macroStId);
@@ -3248,6 +3247,7 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
             BDBG_ASSERT(0);
         }
 #if 0  /*SR_TBD: Enabled when Interframe download is enabled*/
+        pDevice = (BDSP_Arm *)pArmStage->pContext->pDevice;
         ui32ImgId = BDSP_ARM_IMG_ID_IFRAME(algoId);
 
         pIfAddr_Cached = pIfAddr;
@@ -3263,6 +3263,7 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
 #else
         pIfAddr_Cached = pIfAddr;
         BKNI_Memset((void *)(volatile void*)pIfAddr_Cached, 0, ui32IfBuffSize);
+        BSTD_UNUSED(pDevice);
 #endif /*SR_TBD: Enabled when Interframe download is enabled*/
         BDSP_MMA_P_FlushCache(pStageIterator->sDramInterFrameBuffer.Buffer, ui32IfBuffSize);
 
@@ -3478,9 +3479,9 @@ end:
 }
 
 static BERR_Code BDSP_Arm_P_CalcThresholdZeroFillTimeAudOffset(
-                    BDSP_ARM_CTB_Input              *psCtbInput,
+                    BDSP_CTB_Input              *psCtbInput,
                     void                            *pStageHandle,
-                    BDSP_ARM_CTB_Output             *psCTB_OutputStructure
+                    BDSP_CTB_Output             *psCTB_OutputStructure
                 )
 {
     BERR_Code   err = BERR_SUCCESS;
@@ -3555,6 +3556,7 @@ BERR_Code BDSP_Arm_P_SendMapCommand(
 
     psCommand->uCommand.sMapCommand.ui32NumEntries        = ui32NumEntries;
     /*sCommand.uCommand.sMapCommand.ui32HostMapTableAddr  = physAddress;*/ /*CDN_TBD*/
+    BSTD_UNUSED(physAddress);
 
     BKNI_ResetEvent(pDevice->hDeviceEvent);
     err = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue, psCommand,(void *)NULL);
@@ -3630,6 +3632,7 @@ BERR_Code BDSP_Arm_P_SendUnMapCommand(
 
         psCommand->uCommand.sUnMapCommand.ui32NumEntries        = ui32NumEntries;
         /*sCommand.uCommand.sUnMapCommand.ui32HostUnMapTableAddr= physAddress;*/ /*CDN_TBD*/
+        BSTD_UNUSED(physAddress);
 
         BKNI_ResetEvent(pDevice->hDeviceEvent);
         err = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue, psCommand,(void *)NULL);
@@ -3927,7 +3930,7 @@ BERR_Code BDSP_Arm_P_StartTask(
     BDSP_Arm_P_Response sRsp;
     BDSP_P_MsgType  eMsgType;
     BDSP_P_TaskParamInfo *pTaskParams = NULL;
-    BDSP_ARM_CTB_Input sctbInput;
+    BDSP_CTB_Input sctbInput;
     uint32_t    ui32PhysAddr = 0;
     unsigned    uiSchedulingBufId, uiSchedulingBufDelay = 0, ui32RbufOffset = 0, uiSchedulingBufferThreshold = 0;
     BDSP_AF_P_FmmDstFsRate eschedulingBufferRate = BDSP_AF_P_FmmDstFsRate_eBaseRate;
@@ -4051,23 +4054,23 @@ BERR_Code BDSP_Arm_P_StartTask(
     if( err != BERR_SUCCESS)
         return BERR_TRACE(err);
 
-	/* Download CIT structure into DSP/RUNNING CIT Buffer DRAM */
-	err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sCitStruct.ui32Size);
-	if (BERR_SUCCESS != err)
-	{
-		BDBG_ERR(("Error in Copying data to CIT Buffer DRAM"));
-		err = BERR_TRACE(err);
-		goto err_gen_citinput;
-	}
+    /* Download CIT structure into DSP/RUNNING CIT Buffer DRAM */
+    err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sCitStruct.ui32Size);
+    if (BERR_SUCCESS != err)
+    {
+        BDBG_ERR(("Error in Copying data to CIT Buffer DRAM"));
+        err = BERR_TRACE(err);
+        goto err_gen_citinput;
+    }
 
-	/* Download CIT structure into HOST/SPARE CIT Buffer DRAM */
-	err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sSpareCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sSpareCitStruct.ui32Size);
-	if (BERR_SUCCESS != err)
-	{
-		BDBG_ERR(("Error in Copying data to SPARE CIT Buffer DRAM"));
-		err = BERR_TRACE(err);
-		goto err_gen_citinput;
-	}
+    /* Download CIT structure into HOST/SPARE CIT Buffer DRAM */
+    err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sSpareCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sSpareCitStruct.ui32Size);
+    if (BERR_SUCCESS != err)
+    {
+        BDBG_ERR(("Error in Copying data to SPARE CIT Buffer DRAM"));
+        err = BERR_TRACE(err);
+        goto err_gen_citinput;
+    }
 
     BDSP_Arm_P_Analyse_CIT(pArmTask, false);
     /* Initialize interframe buffers for all the nodes */
@@ -4196,6 +4199,7 @@ BERR_Code BDSP_Arm_P_StartTask(
             eSchedulingBufferType = BDSP_CIT_P_FwStgSrcDstType_eInvalid;
             BSTD_UNUSED(ui32RbufOffset);
             BSTD_UNUSED(uiSchedulingBufId);
+            BSTD_UNUSED(eSchedulingBufferType);
 
             pTaskParams->ui32IndepDelay                = uiSchedulingBufDelay;
             pTaskParams->ui32SchedulingBufferThreshold = uiSchedulingBufferThreshold;
@@ -4551,7 +4555,6 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
 {
     BERR_Code   err = BERR_SUCCESS;
     BDSP_ArmStage *pArmStage;
-    BDSP_Arm *pDevice;
     const BDSP_Arm_P_AlgorithmInfo *pAlgoInfo;
     const BDSP_Arm_P_AlgorithmInfo *pCurrAlgoInfo;
     bool validType;
@@ -4559,7 +4562,6 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
     BDBG_ENTER(BDSP_Arm_P_SetAlgorithm);
     BDBG_ASSERT(NULL != pStageHandle);
     pArmStage = (BDSP_ArmStage *)pStageHandle;
-    pDevice = pArmStage->pContext->pDevice;
     pAlgoInfo = BDSP_Arm_P_LookupAlgorithmInfo(algorithm);
     pCurrAlgoInfo = BDSP_Arm_P_LookupAlgorithmInfo(pArmStage->algorithm);
 
@@ -4671,4 +4673,92 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
 end:
     BDBG_LEAVE(BDSP_Arm_P_SetAlgorithm);
     return err;
+}
+
+BERR_Code BDSP_Arm_P_GetDownloadStatus(
+    void  *pDeviceHandle,
+    BDSP_DownloadStatus *pStatus /* [out] */
+    )
+{
+
+    BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
+
+    BDBG_ENTER(BDSP_Arm_P_GetDownloadStatus);
+    /* Assert the function arguments*/
+    BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
+
+    /*If Firmware Firmware authentication is Disabled*/
+    if(pDevice->settings.authenticationEnabled==false)
+    {
+        BDBG_ERR(("BDSP_Arm_P_GetDownloadStatus should be called only if bFwAuthEnable is true"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+	pStatus->pBaseAddress = pDevice->pFwHeapMemory;
+	pStatus->physicalAddress = pDevice->FwHeapOffset;
+    /*Size of the executable download */
+    pStatus->length = pDevice->fwHeapSize;
+
+    BDBG_LEAVE(BDSP_Arm_P_GetDownloadStatus);
+
+    return BERR_SUCCESS;
+}
+
+BERR_Code BDSP_Arm_P_Initialize(
+    void  *pDeviceHandle
+)
+{
+    BERR_Code rc = BERR_SUCCESS ;
+    BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
+    BDSP_MAP_Table_Entry MapTable[BDSP_ARM_MAX_ALLOC_DEVICE];
+    uint32_t ui32NumEntries = 0;
+
+    BDBG_ENTER(BDSP_Arm_P_Initialize);
+    /* Assert the function arguments*/
+    BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
+
+    /*If Firmware Firmware authentication is Disabled*/
+    if(pDevice->settings.authenticationEnabled==false)
+    {
+        BDBG_ERR(("BDSP_Arm_StartDsp should be called only if bFwAuthEnable is true"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+	rc = BDSP_Arm_P_StartHbcMonitor(pDevice);
+	if (BERR_SUCCESS != rc) {
+			BDBG_ERR(("failed to start hbc_monitor"));
+			goto err_hbc_start;
+	}
+
+	/* Write the downloaded application code into Astra secure memory */
+	rc = BDSP_Arm_P_DownloadSystemCodeToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eSystemCode);
+	if (BERR_SUCCESS != rc) {
+		BDBG_ERR(("failed to start armdsp_system"));
+		goto err_peer_start;
+	}
+
+    rc = BTEE_Application_Open(
+        pDevice->armDspApp.hClient,
+        "armdsp_system",
+        "armdsp_system.elf",
+        &pDevice->armDspApp.hApplication);
+
+    if (BERR_SUCCESS != rc) {
+        BDBG_ERR(("failed to start armdsp_system"));
+        goto err_peer_start;
+    }
+    BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_DEVICE*sizeof(BDSP_MAP_Table_Entry)));
+    BDSP_Arm_P_RetrieveEntriesToMap(&(pDevice->sDeviceMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_DEVICE);
+    rc = BDSP_Arm_P_SendMapCommand(pDevice, &MapTable[0], ui32NumEntries);
+    if (BERR_SUCCESS != rc)
+    {
+        BDBG_ERR(("BDSP_Arm_P_Initialize: Send ARM MAP Command failed!!!!"));
+        goto err_send_map_cmd;
+    }
+
+err_hbc_start:
+err_peer_start:
+err_send_map_cmd:
+
+    BDBG_LEAVE(BDSP_Arm_P_Initialize);
+    return rc;
 }

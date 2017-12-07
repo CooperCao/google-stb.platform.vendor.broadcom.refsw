@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     Zigbee_Open(&zcb, argv[1]);
 
     BroadBee_SYS_Get_Fw_Rev();
-    printf("\nPress any key to exist\n");
+    printf("\nPress any key to exit\n");
     getchar();
     printf("Completed 'rf4ce_get_fw_rev' application successfully.\n");
 

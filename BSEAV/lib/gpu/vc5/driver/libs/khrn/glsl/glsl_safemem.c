@@ -167,7 +167,7 @@ void glsl_safemem_dump() {
    for(Alloc *cur = s_safemem_tail; cur; cur=cur->prev) {
 #ifdef GLSL_MEMORY_DEBUG
       fprintf(stderr, "Alloc %d%s\n", count, count == 0 ? " (most recent)" : "");
-      fprintf(stderr, " %u bytes (%s:%d)\n", cur->bytes, cur->file, cur->line);
+      fprintf(stderr, " %zu bytes (%s:%d)\n", cur->bytes, cur->file, cur->line);
 #endif
       ++count;
    }

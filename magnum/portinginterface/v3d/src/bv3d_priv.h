@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef BV3D_PRIV_H__
 #define BV3D_PRIV_H__
@@ -49,6 +48,7 @@
 #include "bv3d_binmem_priv.h"
 #include "bv3d_fence_priv.h"
 #include "bv3d_os_priv.h"
+#include "bchp_common.h"
 
 #if ((BCHP_CHIP == 7425) && (BCHP_VER >= BCHP_VER_B0))
 #include "bchp_v3d_top_gr_bridge.h"
@@ -60,15 +60,7 @@
 #define BCHP_INT_ID_V3D_INTCTL_INTR              BCHP_INT_ID_CREATE(BCHP_V3D_CTL_INTCTL, 0)
 #define BCHP_INT_ID_V3D_DBQITC_INTR              BCHP_INT_ID_CREATE(BCHP_V3D_DBG_DBQITC, 0)
 
-#elif (BCHP_CHIP == 7435) || \
-      (BCHP_CHIP == 7445) || \
-      (BCHP_CHIP == 7145) || \
-      (BCHP_CHIP == 7364) || \
-      (BCHP_CHIP == 7366) || \
-      (BCHP_CHIP == 7439) || \
-      (BCHP_CHIP == 74371) || \
-      (BCHP_CHIP == 7586) || \
-      (BCHP_CHIP == 11360)
+#elif defined(BCHP_V3D_TOP_GR_BRIDGE_REG_START) || (BCHP_CHIP == 11360)
 #include "bchp_v3d_top_gr_bridge.h"
 #include "bchp_hif_cpu_intr1.h"
 /*#define BCHP_INT_ID_V3D_INTR  BCHP_INT_ID_CREATE(0, BCHP_HIF_CPU_INTR1_INTR_W2_STATUS_V3D_CPU_INTR_SHIFT)*/

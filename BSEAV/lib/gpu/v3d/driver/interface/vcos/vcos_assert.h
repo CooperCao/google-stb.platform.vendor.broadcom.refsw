@@ -1,17 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  osal
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - Assertion and error-handling macros.
-=============================================================================*/
-
-
-#ifndef VCOS_ASSERT_H
-#define VCOS_ASSERT_H
+/******************************************************************************
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+******************************************************************************/
+#pragma once
 
 /*
  * Macro:
@@ -174,30 +164,6 @@ extern void logging_assert(const char *file, const char *func, int line, const c
 #define VCOS_ASSERT_LOGGING_DISABLE 0
 #endif
 
-#if !defined(NDEBUG) || defined(VCOS_RELEASE_ASSERTS)
-
-#ifndef vcos_assert
-#define vcos_assert(cond) \
-   ( (cond) ? (void)0 : (VCOS_ASSERT_MSG("%s", #cond), VCOS_ASSERT_BKPT) )
-#endif
-
-#ifndef vcos_assert_msg
-#define vcos_assert_msg(cond, ...) \
-   ( (cond) ? (void)0 : (VCOS_ASSERT_MSG(__VA_ARGS__), VCOS_ASSERT_BKPT) )
-#endif
-
-#else  /* !defined(NDEBUG) || defined(VCOS_RELEASE_ASSERTS) */
-
-#ifndef vcos_assert
-#define vcos_assert(cond) (void)0
-#endif
-
-#ifndef vcos_assert_msg
-#define vcos_assert_msg(cond, ...) (void)0
-#endif
-
-#endif /* !defined(NDEBUG) || defined(VCOS_RELEASE_ASSERTS) */
-
 #if !defined(NDEBUG)
 
 #ifndef vcos_demand
@@ -250,10 +216,6 @@ extern void logging_assert(const char *file, const char *func, int line, const c
 #endif
 #endif
 
-#ifndef vc_assert
-#define vc_assert(cond) vcos_assert(cond)
-#endif
-
 /** Print out a backtrace, on supported platforms.
   */
 extern void vcos_backtrace_self(void);
@@ -261,5 +223,3 @@ extern void vcos_backtrace_self(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* VCOS_ASSERT_H */

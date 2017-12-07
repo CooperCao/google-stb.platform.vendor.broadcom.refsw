@@ -1,5 +1,5 @@
 ############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,7 +35,6 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #############################################################################
-
 B_REFSW_DEBUG ?= y
 ifeq ($(B_REFSW_DEBUG),y)
     DEBUG_SUFFIX=debug
@@ -43,7 +42,7 @@ else
     DEBUG_SUFFIX=release
 endif
 
-ZLIB_VER?=1.1.3
+ZLIB_VER?=1.2.11
 
 ZLIB_NAME:=zlib-$(ZLIB_VER)
 ZLIB_SOURCE_TARBALL:=$(ZLIB_NAME).tar.gz
@@ -51,10 +50,15 @@ ZLIB_SOURCE_DIRECTORY:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/opensource)
 ZLIB_SOURCE_PATH:=${ZLIB_SOURCE_DIRECTORY}/${ZLIB_NAME}
 ZLIB_TAR_PATH:=${ZLIB_SOURCE_DIRECTORY}/${ZLIB_NAME}
 ZLIB_BUILD_DIR:=$(abspath $(NEXUS_TOP)/../BSEAV/opensource/zlib)
-ZLIB_LIB_FOLDER:=${ZLIB_TAR_PATH}
+ZLIB_INSTALL_TARGET := $(abspath $(B_REFSW_OBJ_ROOT)/target)
+ZLIB_PREFIX=usr/local
+ZLIB_INSTALL_PREFIX := ${ZLIB_INSTALL_TARGET}/${ZLIB_PREFIX}
+ZLIB_LIB_FOLDER:=${ZLIB_INSTALL_PREFIX}/lib
+ZLIB_INC_FOLDER:=${ZLIB_INSTALL_PREFIX}/include
 
-ZLIB_CFLAGS:= -D_REENTRANT -I${ZLIB_TAR_PATH}/include
+ZLIB_CFLAGS:= -D_REENTRANT -I${ZLIB_INC_FOLDER}
 ZLIB_LDFLAGS:= -L$(ZLIB_LIB_FOLDER) -lz
+ZLIB_STATIC_LDFLAGS:=-L$(ZLIB_LIB_FOLDER) -l:libz.a
 
 #  Where to store downloaded open-source files for local sharing
 B_REFSW_CACHE_DIR ?= $(realpath /projects/stbdev/open-source)

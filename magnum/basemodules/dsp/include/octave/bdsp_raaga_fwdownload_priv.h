@@ -41,35 +41,11 @@
 
 #include "bdsp_raaga_priv_include.h"
 
-#define BDSP_RAAGA_MAX_DOWNLOAD_BUFFERS   4
-
-typedef struct BDSP_Raaga_P_ImageBlockInfo
-{
-    BDSP_MMA_Memory Memory;
-    BDSP_Algorithm algorithm;
-    int32_t numUser;
-    bool bDownloadValid;
-}BDSP_Raaga_P_ImageBlockInfo;
-
-typedef struct BDSP_Raaga_P_AlgoTypeSplitInfo
-{
-	unsigned maxImageSize;
-	unsigned numImageBlock;
-	BDSP_Raaga_P_ImageBlockInfo sImageBlockInfo[BDSP_RAAGA_MAX_DOWNLOAD_BUFFERS];
-}BDSP_Raaga_P_AlgoTypeSplitInfo;
-
-typedef struct BDSP_Raaga_P_LoadableImageInfo
-{
-	unsigned allocatedSize;
-	unsigned supportedSize;
-	BDSP_Raaga_P_AlgoTypeSplitInfo sAlgoTypeSplitInfo[BDSP_AlgorithmType_eMax];
-}BDSP_Raaga_P_LoadableImageInfo;
-
 typedef struct BDSP_Raaga_P_CodeDownloadInfo
 {
-	bool  preloadImages;		/* If true, all firmware images will be loaded on startup.	Default=false. */
-	BDSP_P_FwBuffer imgInfo[BDSP_IMG_ID_MAX];
-	BDSP_Raaga_P_LoadableImageInfo  sLoadableImageInfo;
+    bool  preloadImages;		/* If true, all firmware images will be loaded on startup.	Default=false. */
+    BDSP_P_FwBuffer imgInfo[BDSP_IMG_ID_MAX];
+    BDSP_P_LoadableImageInfo  sLoadableImageInfo;
 }BDSP_Raaga_P_CodeDownloadInfo;
 
 BERR_Code BDSP_Raaga_P_AssignAlgoSize(
@@ -86,12 +62,6 @@ BERR_Code BDSP_Raaga_P_ComputeLoadbleSection_APITool(
 	const BDSP_RaagaUsageOptions  *pUsage,
 	BDSP_Raaga_P_CodeDownloadInfo *pCodeDownloadInfo,
 	unsigned *pMemReqd
-);
-BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
-        const BIMG_Interface *iface,
-        void *pImgContext,
-        BDSP_MMA_Memory *pMemory,
-        unsigned firmware_id
 );
 BERR_Code BDSP_Raaga_P_RequestImg(
     const BIMG_Interface *pImageInterface,
@@ -119,5 +89,17 @@ BERR_Code BDSP_Raaga_P_DownloadAlgorithm(
 BERR_Code BDSP_Raaga_P_ReleaseAlgorithm(
 	void *pDevice,
 	BDSP_Algorithm algorithm
+);
+BERR_Code BDSP_Raaga_P_GetDownloadStatus(
+    void                *pDeviceHandle,
+    BDSP_DownloadStatus *pStatus /* [out] */
+);
+BERR_Code BDSP_Raaga_P_DumpImage(
+    void       *pBuffer,
+    unsigned    uiBufferSize,
+    void      **pvCodeStart,
+    unsigned   *puiCodeSize,
+    const BIMG_Interface *pImageInterface,
+    void **pImageContext
 );
 #endif /*BDSP_RAAGA_FWDOWNLOAD_PRIV_H_*/

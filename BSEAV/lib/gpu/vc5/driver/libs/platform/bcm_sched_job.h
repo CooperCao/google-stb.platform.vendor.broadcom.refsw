@@ -5,6 +5,8 @@
 #define BCM_SCHED_JOB_H
 #include "gmem.h"
 #include "libs/core/v3d/v3d_barrier.h"
+#include "libs/core/v3d/v3d_csd.h"
+#include "libs/util/demand.h"
 
 #define BCM_SCHED_MAX_DEPENDENCIES 8
 #define BCM_SCHED_MAX_COMPLETIONS 8
@@ -42,31 +44,91 @@ typedef struct
    v3d_subjob *subjobs;
 }v3d_subjobs_list;
 
-struct v3d_bin_job
+typedef struct v3d_core_job
 {
-   uint32_t no_render_overlap : 1;
-   uint32_t workaround_gfxh_1181 : 1;   /* GFXH-1181 */
-   uint32_t reserved_ : 30;
+   const void* gmp_table;
+   bool no_overlap;              // If true, do not run this sub concurrently on the same core with other job types.
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   bool workaround_gfxh_1181;   /* GFXH-1181 */
+#endif
+} v3d_core_job;
+
+typedef struct v3d_bin_job
+{
+   v3d_core_job base;
    uint32_t minInitialBinBlockSize;
    uint32_t tile_state_size;
-   void* gmp_table;
    v3d_subjobs_list subjobs_list;
-};
+} v3d_bin_job;
 
-struct v3d_render_job
+typedef struct v3d_render_job
 {
-   uint32_t no_bin_overlap : 1;
-   uint32_t workaround_gfxh_1181 : 1;   /* GFXH-1181 */
-   uint32_t empty_tile_mode : 2;
-   uint32_t reserved_ : 28;
-   void* gmp_table;
-
+   v3d_core_job base;
+   v3d_empty_tile_mode empty_tile_mode;
    uint32_t tile_alloc_layer_stride;
-
    uint32_t num_layers;
    v3d_subjobs_list subjobs_list;  /* subjobs_list->subjobs[layer * num_subjobs_per_layer + subjob_in_layer]
                                     *, where num_subjobs_per_layer = subjobs_list->num_subjobs/num_layers */
-};
+} v3d_render_job;
+
+#if V3D_USE_CSD
+
+typedef struct v3d_compute_subjobs* v3d_compute_subjobs_id; // 0 is not a valid ID.
+
+typedef struct v3d_compute_subjob
+{
+   union
+   {
+      struct
+      {
+         uint32_t num_wgs_x;
+         uint32_t num_wgs_y;
+         uint32_t num_wgs_z;
+      };
+      uint32_t num_wgs[3];
+   };
+   uint16_t wg_size;
+   uint8_t wgs_per_sg;
+   uint8_t max_sg_id;
+   v3d_addr_t shader_addr;
+   v3d_addr_t unifs_addr;
+   uint16_t shared_block_size;
+   v3d_threading_t threading;
+   bool single_seg;
+   bool propagate_nans;
+   bool no_overlap;                 // If true, do not run this csd subjob concurrently on the same core with other job types.
+} v3d_compute_subjob;
+
+// Note this function may assert if subjob is very large. For that reason, it
+// should not be used in production code.
+static inline V3D_CSD_CFG_T v3d_compute_subjob_to_single_csd_cfg(const v3d_compute_subjob *subjob)
+{
+   V3D_CSD_CFG_T cfg = {0};
+   cfg.num_wgs_x = subjob->num_wgs_x;
+   cfg.num_wgs_y = subjob->num_wgs_y;
+   cfg.num_wgs_z = subjob->num_wgs_z;
+   cfg.wg_size = subjob->wg_size;
+   cfg.wgs_per_sg = subjob->wgs_per_sg;
+   cfg.max_sg_id = subjob->max_sg_id;
+   cfg.threading = subjob->threading;
+   cfg.single_seg = subjob->single_seg;
+   cfg.propagate_nans = subjob->propagate_nans;
+   cfg.shader_addr = subjob->shader_addr;
+   cfg.unifs_addr = subjob->unifs_addr;
+   v3d_csd_cfg_compute_num_batches(&cfg);
+   demand(cfg.num_batches <= (1ull << 32));
+   return cfg;
+}
+
+typedef struct v3d_compute_job
+{
+   v3d_core_job base;
+   v3d_compute_subjobs_id subjobs_id;
+   const v3d_compute_subjob* subjobs;
+   unsigned num_subjobs;
+} v3d_compute_job;
+
+#endif
 
 struct v3d_user_job
 {
@@ -75,10 +137,12 @@ struct v3d_user_job
    uint32_t unif[V3D_MAX_QPU_SUBJOBS];
 };
 
+#if !V3D_PLATFORM_SIM
 struct bcm_fence_wait_job
 {
    int fence;
 };
+#endif
 
 typedef uint64_t bcm_sched_event_id;
 
@@ -295,13 +359,18 @@ enum bcm_sched_job_type
    BCM_SCHED_JOB_TYPE_V3D_RENDER,
    BCM_SCHED_JOB_TYPE_V3D_USER,
    BCM_SCHED_JOB_TYPE_V3D_TFU,
+#if !V3D_PLATFORM_SIM
    BCM_SCHED_JOB_TYPE_FENCE_WAIT,
+#endif
    BCM_SCHED_JOB_TYPE_TEST,
    BCM_SCHED_JOB_TYPE_USERMODE,
    BCM_SCHED_JOB_TYPE_V3D_BARRIER,
    BCM_SCHED_JOB_TYPE_WAIT_ON_EVENT,
    BCM_SCHED_JOB_TYPE_SET_EVENT,
    BCM_SCHED_JOB_TYPE_RESET_EVENT,
+#if V3D_USE_CSD
+   BCM_SCHED_JOB_TYPE_V3D_COMPUTE,
+#endif
    BCM_SCHED_JOB_TYPE_NUM_JOB_TYPES
 };
 
@@ -361,10 +430,16 @@ struct bcm_sched_job
 
    union
    {
+      struct v3d_core_job core;        // base class for bin, render, compute jobs.
       struct v3d_bin_job bin;
       struct v3d_render_job render;
+#if V3D_USE_CSD
+      struct v3d_compute_job compute;
+#endif
       struct v3d_user_job user;
+#if !V3D_PLATFORM_SIM
       struct bcm_fence_wait_job fence_wait;
+#endif
       struct bcm_sched_test test;
       struct bcm_tfu_job tfu;
       struct bcm_usermode_job usermode;

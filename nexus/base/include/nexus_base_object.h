@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2012-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2012-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,6 +47,7 @@
 
 BLST_AA_TREE_HEAD(NEXUS_P_BaseObjectTree, NEXUS_BaseObject);
 BLST_AA_TREE_HEAD(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObject);
+BLST_AA_TREE_HEAD(NEXUS_P_BaseObjectOrderTree, NEXUS_BaseObject);
 
 typedef struct NEXUS_BaseClassDescriptor {
     unsigned offset;  /* used to convert from the NEXUS_BaseClass to the object  */
@@ -87,18 +88,26 @@ BDBG_OBJECT_ID_DECLARE(NEXUS_BaseObject);
 
 typedef struct NEXUS_BaseObject {
     BDBG_OBJECT(NEXUS_BaseObject)
-    BLST_AA_TREE_ENTRY(NEXUS_P_BaseObjectTree) node;
+    struct {
+        struct {
+            BLST_AA_TREE_ENTRY(NEXUS_P_BaseObjectTree) object; /* collection where key is object (pointer) */
+            BLST_AA_TREE_ENTRY(NEXUS_P_BaseObjectIdTree) id; /* collection where kye is object ID (32-bit number) */
+        } live;
+        struct {
+            BLST_AA_TREE_ENTRY(NEXUS_P_BaseObjectOrderTree) order; /* collection of objects where key is pair object order (to sort) and object (for uniqueness) */
+        } cleanup;
+    } node;
 #if NEXUS_P_BASE_OBJECT_USE_REFCNT 
     NEXUS_ModuleHandle module; /* module that have created this object, calls to finalizer must be done with acquired module lock */
     int ref_cnt;
 #endif
     const NEXUS_BaseClassDescriptor *descriptor;
     NEXUS_BaseObjectId id; /* each object has an unique integer ID, this ID used as the object handle by 32-bit code, if 'driver' is 64-bit */
-    BLST_AA_TREE_ENTRY(NEXUS_P_BaseObjectIdTree) nodeId;
     struct {
         const struct b_objdb_client *client; /* each object is owned by one client. destroy must match. verify must match client or acquired_client. */
         const struct b_objdb_client *acquired_client; /* each object can be acquired by one client. release must match. verify must match client or acquired_client. */
         bool shared; /* if true, bypass client ownership check */
+        bool inCleanup; /* if true, object also in cleanup tree */
         unsigned order; /* persistent order, used to destroy objects in exact opposite of create */
         const struct b_objdb_class *objdb_class;
         NEXUS_Object_P_RegisterUnregister insert_operation;

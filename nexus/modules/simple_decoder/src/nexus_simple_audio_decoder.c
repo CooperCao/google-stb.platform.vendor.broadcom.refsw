@@ -71,6 +71,7 @@ static NEXUS_Error nexus_simpleaudiodecoder_p_start(NEXUS_SimpleAudioDecoderHand
 static void nexus_simpleaudiodecoder_p_stop( NEXUS_SimpleAudioDecoderHandle handle);
 static NEXUS_Error nexus_simpleaudiodecoder_p_start_resume(NEXUS_SimpleAudioDecoderHandle handle, unsigned whatToStart);
 static NEXUS_Error nexus_simpleaudiodecoder_apply_mixerinput_settings( NEXUS_AudioInputHandle hInput, NEXUS_AudioMixerHandle hMixer, NEXUS_SimpleAudioDecoderSelector selector, const NEXUS_SimpleAudioDecoderSettings *pSettings );
+static NEXUS_AudioDecoderHandle nexus_p_get_decoder(NEXUS_SimpleAudioDecoderHandle handle, NEXUS_SimpleAudioDecoderSelector selector);
 
 static const char * const g_state[state_max] = {"stopped", "started", "suspended", "priming"};
 static const char * const g_selectorStr[NEXUS_SimpleAudioDecoderSelector_eMax] = {"primary", "secondary", "description"};
@@ -85,7 +86,7 @@ static const char * const g_selectorStr[NEXUS_SimpleAudioDecoderSelector_eMax] =
 #define SUSPEND_MIXER       0x04
 #define SUSPEND_PERSISTENT  0x08
 #define SUSPEND_ALL (SUSPEND_DECODER|SUSPEND_PLAYBACK|SUSPEND_MIXER|SUSPEND_PERSISTENT)
-static NEXUS_Error NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHandle handle, unsigned whatToSuspend);
+static void NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHandle handle, unsigned whatToSuspend);
 
 #define CONNECTED(handle) ((handle)->serverSettings.primary || (handle)->serverSettings.secondary || (handle)->serverSettings.description)
 
@@ -325,10 +326,20 @@ static void nexus_simpleaudiodecoder_freeprocessing( NEXUS_SimpleAudioDecoderHan
 /* stop or clear so that we're not holding anything open */
 static void NEXUS_SimpleAudioDecoder_P_ReleaseResources( NEXUS_SimpleAudioDecoderHandle handle )
 {
+    NEXUS_SimpleAudioDecoderSelector selector;
     if (handle->clientStarted || handle->decoders[NEXUS_SimpleAudioDecoderSelector_ePrimary].state == state_started || handle->decoders[NEXUS_SimpleAudioDecoderSelector_eSecondary].state == state_started || handle->playback.state == state_started) {
         NEXUS_SimpleAudioDecoder_Stop(handle);
     }
     nexus_simpleaudiodecoder_freeprocessing(handle);
+
+    NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+    for (selector=0;selector<NEXUS_SimpleAudioDecoderSelector_eMax;selector++) {
+        NEXUS_AudioDecoderHandle decoder = nexus_p_get_decoder(handle, selector);
+        if (decoder) {
+            NEXUS_AudioDecoder_Clear_priv(decoder);
+        }
+    }
+    NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
 
     NEXUS_SimpleAudioDecoder_SetStcChannel(handle, NULL);
     if (handle->decoders[NEXUS_SimpleAudioDecoderSelector_ePrimary].primer) {
@@ -471,7 +482,8 @@ static bool nexus_p_check_reconfig(NEXUS_SimpleAudioDecoderHandle handle, const 
 
     if ((pNewSettings->primary != pCurrentSettings->primary ||
         pNewSettings->secondary != pCurrentSettings->secondary ||
-        pNewSettings->description != pCurrentSettings->description) && handle->acquired) return true;
+        pNewSettings->description != pCurrentSettings->description) && handle->acquired &&
+        pNewSettings->type == NEXUS_SimpleAudioDecoderType_eDynamic) return true;
     /* If HDMI input is enabled we do not want to change any output setting just save them*/
     for (i=0;i<NEXUS_AudioCodec_eMax;i++) {
         if (pNewSettings->spdif.input[i] != pCurrentSettings->spdif.input[i] && !handle->hdmiInput.handle) return true;
@@ -710,7 +722,8 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SwapServerSettings( NEXUS_SimpleAudioDecode
             }
         }
 
-        NEXUS_SimpleAudioDecoder_Resume(dest);
+        rc = NEXUS_SimpleAudioDecoder_Resume(dest);
+        if (rc) {rc = BERR_TRACE(rc);} /* fall through */
     }
 #endif
 
@@ -913,7 +926,8 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
         }
     }
 
-    NEXUS_SimpleAudioDecoder_Resume(handle);
+    rc = NEXUS_SimpleAudioDecoder_Resume(handle);
+    if (rc) {rc = BERR_TRACE(rc);}
 
     handle->currentSpdifInput = spdifInput;
     handle->currentSpdifInputCompressed = handle->currentSpdifInput && nexus_p_is_compressed_output(handle, handle->currentSpdifInput);
@@ -935,6 +949,7 @@ static void nexus_p_check_decoder(NEXUS_AudioDecoderHandle audioDecoder)
 static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHandle handle )
 {
     unsigned i;
+    int rc;
 
     NEXUS_GetAudioCapabilities(&handle->audioCapabilities);
 
@@ -943,7 +958,11 @@ static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHa
     }
     /* Suspend playbacks first as suspending the decoder will cause the
        decoder to detach from the mixer but if anything is running it can't */
-    NEXUS_SimpleAudioDecoder_Suspend(handle);
+    rc = NEXUS_SimpleAudioDecoder_Suspend(handle);
+    if (rc) {
+        BERR_TRACE(rc);
+        return;
+    }
 
     if (handle->serverSettings.primary) {
         nexus_p_check_decoder(handle->serverSettings.primary);
@@ -1039,6 +1058,7 @@ NEXUS_SimpleStcChannelHandle NEXUS_SimpleAudioDecoder_P_GetStcChannel( NEXUS_Sim
 NEXUS_Error NEXUS_SimpleAudioDecoder_Start( NEXUS_SimpleAudioDecoderHandle handle, const NEXUS_SimpleAudioDecoderStartSettings *pSettings )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_Error cumulativeRc = NEXUS_SUCCESS;
 #if NEXUS_HAS_AUDIO
     bool bypass_p_start = false;
 
@@ -1084,15 +1104,16 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Start( NEXUS_SimpleAudioDecoderHandle handl
     }
 
     if (!bypass_p_start) {
-        rc = nexus_simpleaudiodecoder_p_start(handle);
+        cumulativeRc = rc = nexus_simpleaudiodecoder_p_start(handle);
         if (rc) {
             NEXUS_SimpleAudioDecoder_Stop(handle);
             BERR_TRACE(rc); /* fall through */
         }
-        NEXUS_SimpleAudioDecoder_Resume(handle);
+        cumulativeRc |= rc = NEXUS_SimpleAudioDecoder_Resume(handle);
+        if (rc) {rc = BERR_TRACE(rc);}
     }
 #endif
-    return rc;
+    return cumulativeRc;
 }
 
 #if NEXUS_HAS_AUDIO
@@ -1879,10 +1900,9 @@ static int nexus_simpleaudiodecoder_change_state(NEXUS_SimpleAudioDecoderHandle 
 NEXUS_Error NEXUS_SimpleAudioDecoder_Suspend(NEXUS_SimpleAudioDecoderHandle handle)
 {
 #if NEXUS_HAS_AUDIO
-    return NEXUS_SimpleAudioDecoder_P_Suspend(handle, SUSPEND_ALL);
-#else
-    return NEXUS_SUCCESS;
+    NEXUS_SimpleAudioDecoder_P_Suspend(handle, SUSPEND_ALL);
 #endif
+    return NEXUS_SUCCESS;
 }
 
 #if NEXUS_HAS_AUDIO
@@ -1911,11 +1931,12 @@ static bool nexus_p_is_connected_to_a_mixer(NEXUS_SimpleAudioDecoderHandle handl
     return anyConnected;
 }
 
-static NEXUS_Error NEXUS_SimpleAudioDecoder_P_SuspendPersistentDecoders(NEXUS_SimpleAudioDecoderHandle handle)
+static void NEXUS_SimpleAudioDecoder_P_SuspendPersistentDecoders(NEXUS_SimpleAudioDecoderHandle handle)
 {
     int i, j;
     bool running;
     bool found;
+    NEXUS_Error rc = NEXUS_SUCCESS;
 
     for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
         found = false;
@@ -1924,30 +1945,43 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_SuspendPersistentDecoders(NEXUS_Si
             {
                 NEXUS_AudioInput_IsRunning(NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, j), &running);
                 if (running && nexus_p_is_connected_to_a_mixer(handle, NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, j))) {
-                    NEXUS_AudioDecoder_Suspend(handle->serverSettings.persistent[i].decoder);
+                    rc = NEXUS_AudioDecoder_Suspend(handle->serverSettings.persistent[i].decoder);
+                    if (rc) {
+                        BERR_TRACE(rc);
+                    }
+                    else {
                     handle->serverSettings.persistent[i].suspended = true;
+                    }
                     found = true;
                 }
             }
         }
     }
-    return BERR_SUCCESS;
+    return;
 }
 
 static NEXUS_Error NEXUS_SimpleAudioDecoder_P_ResumePersistentDecoders(NEXUS_SimpleAudioDecoderHandle handle)
 {
     int i;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_Error cumulativeRc = NEXUS_SUCCESS;
 
     for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
         if (handle->serverSettings.persistent[i].decoder != NULL && handle->serverSettings.persistent[i].suspended) {
-            NEXUS_AudioDecoder_Resume(handle->serverSettings.persistent[i].decoder);
-            handle->serverSettings.persistent[i].suspended = false;
+            rc = NEXUS_AudioDecoder_Resume(handle->serverSettings.persistent[i].decoder);
+            if (rc) {
+                BERR_TRACE(rc);
+                cumulativeRc |= rc;
+            }
+            else {
+                handle->serverSettings.persistent[i].suspended = false;
+            }
         }
     }
-    return BERR_SUCCESS;
+    return cumulativeRc;
 }
 
-static NEXUS_Error NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHandle handle, unsigned whatToSuspend)
+static void NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHandle handle, unsigned whatToSuspend)
 {
     int rc;
 
@@ -1976,7 +2010,7 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHa
     }
 
     if (whatToSuspend & SUSPEND_PERSISTENT) {
-        NEXUS_SimpleAudioDecoder_P_SuspendPersistentDecoders(handle);
+       NEXUS_SimpleAudioDecoder_P_SuspendPersistentDecoders(handle);
     }
 
     if (whatToSuspend & SUSPEND_PLAYBACK) {
@@ -2003,23 +2037,22 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHa
             handle->mixers.suspended = true;
         }
     }
-    return 0;
+    return;
 }
 #endif
 
 NEXUS_Error NEXUS_SimpleAudioDecoder_Resume(NEXUS_SimpleAudioDecoderHandle handle)
 {
+    int rc = NEXUS_SUCCESS;
 #if NEXUS_HAS_AUDIO
-    int rc;
-
     if ( !NEXUS_GetEnv("audio_mixer_start_disabled") ) {
         if (handle->mixers.suspended && nexus_simpleaudiodecoder_p_running_mixer_input_changes_allowed(handle)) {
-            handle->mixers.suspended = false;
             if (handle->serverSettings.mixers.stereo) {
                 BDBG_MSG(("Start stereo mixer."));
                 rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.stereo);
                 if (rc != NEXUS_SUCCESS) {
                     BERR_TRACE(rc);
+                    goto suspend_stereo;
                 }
             }
             if (handle->serverSettings.mixers.multichannel) {
@@ -2027,6 +2060,7 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Resume(NEXUS_SimpleAudioDecoderHandle handl
                 rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.multichannel);
                 if (rc != NEXUS_SUCCESS) {
                     BERR_TRACE(rc);
+                    goto suspend_multichannel;
                 }
             }
             if (handle->serverSettings.mixers.persistent) {
@@ -2034,12 +2068,17 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Resume(NEXUS_SimpleAudioDecoderHandle handl
                 rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.persistent);
                 if (rc != NEXUS_SUCCESS) {
                     BERR_TRACE(rc);
+                    goto suspend_persistent;
                 }
             }
+            handle->mixers.suspended = false;
         }
     }
 
-    NEXUS_SimpleAudioDecoder_P_ResumePersistentDecoders(handle);
+    rc = NEXUS_SimpleAudioDecoder_P_ResumePersistentDecoders(handle);
+    if (rc != NEXUS_SUCCESS) {
+        BERR_TRACE(rc);
+    }
 
     {
         NEXUS_SimpleAudioPlaybackHandle audioPlayback;
@@ -2055,8 +2094,17 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Resume(NEXUS_SimpleAudioDecoderHandle handl
         }
     }
 #endif
-
-    return 0;
+    return rc;
+suspend_persistent:
+        if (handle->serverSettings.mixers.multichannel) {
+            NEXUS_AudioMixer_Stop(handle->serverSettings.mixers.multichannel);
+        }
+suspend_multichannel:
+        if (handle->serverSettings.mixers.stereo) {
+            NEXUS_AudioMixer_Stop(handle->serverSettings.mixers.stereo);
+        }
+suspend_stereo:
+        return rc;
 }
 
 #if NEXUS_HAS_AUDIO
@@ -2096,14 +2144,15 @@ NEXUS_Error nexus_simpleaudiodecoder_p_add_encoder(NEXUS_SimpleAudioDecoderHandl
 
     {
         if (slave) {
-            NEXUS_SimpleAudioDecoder_Suspend(slave);
+            rc = NEXUS_SimpleAudioDecoder_Suspend(slave);
+            if (rc) return BERR_TRACE(rc);
             /* give the master the decoder, just temporarily */
             handle->serverSettings.primary = slave->serverSettings.primary;
         }
         else {
-            if (displayEncode)
-            {
-                NEXUS_SimpleAudioDecoder_Suspend(handle);
+            if (displayEncode) {
+                rc = NEXUS_SimpleAudioDecoder_Suspend(handle);
+                if (rc) return BERR_TRACE(rc);
             }
         }
         rc = NEXUS_SimpleAudioDecoder_P_AddEncoderOutputs(handle);
@@ -2115,10 +2164,12 @@ NEXUS_Error nexus_simpleaudiodecoder_p_add_encoder(NEXUS_SimpleAudioDecoderHandl
             slave->displayEncode.master = handle;
             handle->displayEncode.slave = slave;
             handle->serverSettings.primary = NULL;
-            NEXUS_SimpleAudioDecoder_Resume(slave);
+            rc = NEXUS_SimpleAudioDecoder_Resume(slave);
+            if (rc) {rc = BERR_TRACE(rc);}
         }
         else {
-            NEXUS_SimpleAudioDecoder_Resume(handle);
+            rc = NEXUS_SimpleAudioDecoder_Resume(handle);
+            if (rc) {rc = BERR_TRACE(rc);}
         }
     }
 
@@ -2409,8 +2460,7 @@ static void nexus_simpleaudiodecoder_p_stop( NEXUS_SimpleAudioDecoderHandle hand
         nexus_simpleaudiodecoder_disconnect_downstream(handle);
         (void)NEXUS_SimpleAudioDecoder_P_AddOutputs(handle);
     }
-    else
-    {
+    else {
         nexus_simpleaudiodecoder_disconnect_downstream(handle);
     }
 }
@@ -3079,7 +3129,10 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_StartHdmiInput( NEXUS_SimpleAudioDecoderHan
         NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&handle->startSettings);
     }
     if (CONNECTED(handle) && (!handle->encoder.audioEncoder || handle->encoder.displayEncode)) {
-        NEXUS_SimpleAudioDecoder_Suspend(handle);
+        rc = NEXUS_SimpleAudioDecoder_Suspend(handle);
+        if (rc) {
+            return BERR_TRACE(rc);
+        }
     }
     if (CONNECTED(handle))
     {
@@ -3090,7 +3143,8 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_StartHdmiInput( NEXUS_SimpleAudioDecoderHan
         }
     }
     if (CONNECTED(handle) && (!handle->encoder.audioEncoder || handle->encoder.displayEncode)) {
-        NEXUS_SimpleAudioDecoder_Resume(handle);
+        rc = NEXUS_SimpleAudioDecoder_Resume(handle);
+        if (rc) {rc = BERR_TRACE(rc);}
     }
     return rc;
 #else

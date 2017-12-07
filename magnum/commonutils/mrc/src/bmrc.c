@@ -618,10 +618,10 @@ BERR_Code BMRC_Checker_SetClient
       BMRC_Client eClient,
       BMRC_AccessType eAccessType )
 {
-    int usClientId = BMRC_P_GET_CLIENT_ID(hChecker->hMrc->usMemcId, eClient);
-    uint32_t ulClientsIdx = usClientId / BMRC_P_CLIENTS_ARRAY_ELEMENT_SIZE;
-    uint32_t ulClientsShift = (usClientId % BMRC_P_CLIENTS_ARRAY_ELEMENT_SIZE);
-    uint32_t ulClientsMask = 1 << ulClientsShift;
+    int usClientId;
+    uint32_t ulClientsIdx;
+    uint32_t ulClientsShift;
+    uint32_t ulClientsMask;
 
     BDBG_OBJECT_ASSERT(hChecker, BMRC_Checker);
 
@@ -630,13 +630,18 @@ BERR_Code BMRC_Checker_SetClient
         return BERR_TRACE(BMRC_CHECKER_ERR_ENABLED_CANT_SET);
     }
 
+    usClientId = BMRC_P_GET_CLIENT_ID(hChecker->hMrc->usMemcId, eClient);
     if (usClientId < 0)
     {
-        BDBG_ERR(( "Client %s(%d) not supported on this platform.",  BMRC_P_GET_CLIENT_NAME(eClient), (int)eClient));
+        BDBG_ERR(( "Client %s(%d) not supported on this platform.",  BMRC_P_GET_CLIENT_NAME_isrsafe(eClient), (int)eClient));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+    ulClientsIdx = usClientId / BMRC_P_CLIENTS_ARRAY_ELEMENT_SIZE;
     BDBG_ASSERT(ulClientsIdx < BMRC_P_CLIENTS_ARRAY_SIZE);
+
+    ulClientsShift = (usClientId % BMRC_P_CLIENTS_ARRAY_ELEMENT_SIZE);
+    ulClientsMask = 1 << ulClientsShift;
 
     if (eAccessType == BMRC_AccessType_eRead)
     {
@@ -845,16 +850,19 @@ void BMRC_P_Checker_Violation_isr
 {
     uint32_t ulReg = 0;
     BMRC_Checker_Handle hChecker = (BMRC_Checker_Handle)pvData1;
-    BMRC_CheckerInfo *pCheckerInfo = &(hChecker->stCheckerInfo);
-    BMRC_Handle hMrc = hChecker->hMrc;
+    BMRC_CheckerInfo *pCheckerInfo;
+    BMRC_Handle hMrc;
     BMRC_ClientInfo stClientInfo;
 
     BSTD_UNUSED(iData2);
     BDBG_OBJECT_ASSERT(hChecker, BMRC_Checker);
+    hMrc = hChecker->hMrc;
     BDBG_OBJECT_ASSERT(hMrc, BMRC);
     if(hMrc->suspended) {
         return ;
     }
+
+    pCheckerInfo = &hChecker->stCheckerInfo;
 
     pCheckerInfo->usMemcId = hMrc->usMemcId;
     pCheckerInfo->usCheckerId = hChecker->usCheckerId;

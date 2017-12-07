@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Client-side implementation of EGL_KHR_lock_surface extension
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #define EGL_EGLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
 #include "interface/khronos/common/khrn_client_mangle.h"
@@ -126,29 +118,17 @@ EGLAPI EGLBoolean EGLAPIENTRY eglUnlockSurfaceKHR (EGLDisplay dpy, EGLSurface su
             if (surface->mapped_buffer) {
                KHRN_IMAGE_FORMAT_T format = egl_config_get_mapped_format(egl_config_to_id(surface->config));
                uint32_t stride = khrn_image_get_stride(format, surface->width);
-               int lines, offset, height;
 
-               lines = KHDISPATCH_WORKSPACE_SIZE / stride;
-               offset = 0;
-               height = surface->height;
+               eglIntSetColorData_impl(
+                  surface->serverbuffer,
+                  format,
+                  surface->width,
+                  surface->height,
+                  stride,
+                  0,
+                  (const char *)surface->mapped_buffer);
 
-               while (height > 0) {
-                  int batch = _min(lines, height);
-
-                  eglIntSetColorData_impl(
-                     surface->serverbuffer,
-                     format,
-                     surface->width,
-                     batch,
-                     stride,
-                     offset,
-                     (const char *)surface->mapped_buffer + offset * stride);
-
-                  offset += batch;
-                  height -= batch;
-               }
-
-               khrn_platform_free(surface->mapped_buffer);
+               free(surface->mapped_buffer);
             }
 
             surface->mapped_buffer = 0;

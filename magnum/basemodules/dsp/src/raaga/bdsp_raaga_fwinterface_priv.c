@@ -119,36 +119,6 @@ BERR_Code BDSP_Raaga_P_CreateMsgQueue(
             BDSP_RAAGA_P_FIFO_WRITE_OFFSET + ui32DspOffset,
         ui32BaseAddr); /* write */
 
-#if (BCHP_CHIP ==7278)
-#if 0
-    BDBG_ERR(("ui32BaseAddr : %llx",ui32BaseAddr ));
-    BDBG_ERR(("ui32ReadAddr : %llx",  BDSP_ReadReg(
-            hRegister,
-            BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                (0) +
-                BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset)));
-
-    BDBG_ERR(("ui32WriteAddr : %llx",  BDSP_ReadReg(
-                hRegister,
-                BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                    (0) +
-                    BDSP_RAAGA_P_FIFO_WRITE_OFFSET + ui32DspOffset)));
-
-    BDBG_ERR(("ui32BaseAddr : %llx",ui32BaseAddr ));
-    BDBG_ERR(("ui32ReadAddr : %llx",  BDSP_ReadReg(
-            hRegister,
-            BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                (ui32RegOffset * 1) +
-                BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset)));
-
-    BDBG_ERR(("ui32WriteAddr : %llx",  BDSP_ReadReg(
-                hRegister,
-                BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                    (ui32RegOffset * 1) +
-                    BDSP_RAAGA_P_FIFO_WRITE_OFFSET + ui32DspOffset)));
-#endif
-#endif
-
     /* Initializes attributes in the local copy(handle) in system memory*/
     hHandle->hRegister      = hRegister;
     hHandle->ui32BaseAddr     = ui32BaseAddr ;
@@ -743,11 +713,6 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
             BDSP_RAAGA_P_FIFO_WRITE_OFFSET + hMsgQueue->ui32DspOffset,
         ui32dramWriteAddr); /* write */
 
-#if (BCHP_CHIP == 7278)
-    BDBG_MSG(("ui32dramReadAddr >" BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramReadAddr)));
-    BDBG_MSG(("ui32dramWriteAddr >" BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramWriteAddr)));
-#endif
-
     /* Updating write ptr in the handle */
     hMsgQueue->ui32WriteAddr = ui32dramWriteAddr;
 
@@ -794,11 +759,7 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
 
 
     if ( (psCommand->sCommandHeader.ui32CommandID != BDSP_PING_COMMAND_ID)
-        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID)
-#if (BCHP_CHIP ==7278)
-        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_INIT_PROCESS_COMMAND_ID)
-#endif
-       )
+        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID))
     {
         BDBG_ASSERT(pRaagaTask);
         /* When isStopped is true at that instance STOP/START commands can come

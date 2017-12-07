@@ -64,10 +64,12 @@ public:
 public:
     static void init();
 
-    static MsgQueue *open(const char *mqName, int mode, mq_attr *attr, uint16_t owner, uint16_t group);
+    static MsgQueue *create(const char *mqName, int mode, mq_attr *attr, uint16_t owner, uint16_t group);
     static MsgQueue *lookUp(const char *mqName);
-    static bool close(MsgQueue *mq);
     static bool unlink(const char *mqName);
+
+    static bool open(MsgQueue *mq);
+    static bool close(MsgQueue *mq);
 
     bool send(const char *msgPtr, size_t msgLen, unsigned int priority);
     long recv(char *msgPtr, size_t msgLen, unsigned int *priority, uint64_t timeout);

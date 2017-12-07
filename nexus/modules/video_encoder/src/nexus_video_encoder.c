@@ -103,9 +103,10 @@ static void NEXUS_VideoEncoderModule_P_Print_Vce(void)
                 BDBG_MODULE_LOG(vce_proc, ("  started=%c, codec=%d, profile=%#x, level=%u, stcCh=%p", videoEncoder->started?'y':'n',
                     videoEncoder->started?videoEncoder->startSettings.codec:0,
                     videoEncoder->started?videoEncoder->startSettings.profile:0, videoEncoder->startSettings.level, (void *)videoEncoder->startSettings.stcChannel));
-                BDBG_MODULE_LOG(vce_proc, ("  CDB: "BDBG_UINT64_FMT"/"BDBG_UINT64_FMT" (%d%%), ITB: "BDBG_UINT64_FMT"/"BDBG_UINT64_FMT" (%d%%)",
-                    BDBG_UINT64_ARG((uint64_t)status.data.fifoDepth), BDBG_UINT64_ARG((uint64_t)status.data.fifoSize), (unsigned)(status.data.fifoSize?status.data.fifoDepth*100/status.data.fifoSize:0),
-                    BDBG_UINT64_ARG((uint64_t)status.index.fifoDepth), BDBG_UINT64_ARG((uint64_t)status.index.fifoSize), (unsigned)(status.index.fifoSize?status.index.fifoDepth*100/status.index.fifoSize:0)));
+                /* VCE PI manages fifoDepth and fifoSize as "unsigned", so truncating to 32 bits is safe and avoids static analysis warnings */
+                BDBG_MODULE_LOG(vce_proc, ("  CDB: %u/%u (%u%%), ITB: %u/%u (%u%%)",
+                    (unsigned)status.data.fifoDepth, (unsigned)status.data.fifoSize, (unsigned)(status.data.fifoSize?status.data.fifoDepth*100/status.data.fifoSize:0),
+                    (unsigned)status.index.fifoDepth, (unsigned)status.index.fifoSize, (unsigned)(status.index.fifoSize?status.index.fifoDepth*100/status.index.fifoSize:0)));
                 BDBG_MODULE_LOG(vce_proc, ("  Encode: encoded=%d lastPicID=%d picPerSeconds=%d", status.picturesEncoded, status.pictureIdLastEncoded,
                     status.picturesPerSecond));
                 BDBG_MODULE_LOG(vce_proc, ("  Drops: received=%d dropsFRC=%d dropsHRD=%d dropsErr=%d", status.picturesReceived, status.picturesDroppedFRC,
@@ -174,6 +175,16 @@ static void NEXUS_VideoEncoder_P_WatchdogHandler(void *context)
     NEXUS_VideoEncoder_P_Device *device = context;
     unsigned i;
     BDBG_WRN(("Video Encoder Watchdog"));
+    /* release nexus memory block before processing watchdog */
+    for(i=0;i<NEXUS_NUM_VCE_CHANNELS;i++ ) {
+        if(device->channels[i].enc && device->channels[i].startSettings.input) {
+            NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.display);
+            NEXUS_DisplayModule_SetUserDataEncodeMode_priv(device->channels[i].startSettings.input, false, NULL, NULL);
+            NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.display);
+        }
+    }
+    BVCE_Power_Standby(device->vce);
+
     #if NEXUS_P_CRBVN_496_WORKAROUND /* workaround CRBVN-496 */
     {
         bool rt = false;
@@ -194,14 +205,6 @@ static void NEXUS_VideoEncoder_P_WatchdogHandler(void *context)
         }
     }
     #endif
-    /* release nexus memory block before processing watchdog */
-    for(i=0;i<NEXUS_NUM_VCE_CHANNELS;i++ ) {
-        if(device->channels[i].enc && device->channels[i].startSettings.input) {
-            NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.display);
-            NEXUS_DisplayModule_SetUserDataEncodeMode_priv(device->channels[i].startSettings.input, false, NULL, NULL);
-            NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.display);
-        }
-    }
     rc = BVCE_ProcessWatchdog(device->vce);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);/* keep going */ }
     for(i=0;i<NEXUS_NUM_VCE_CHANNELS;i++ ) {
@@ -303,7 +306,9 @@ static NEXUS_Error NEXUS_VideoEncoderModule_P_PostInit(void)
         vceSettings.hFirmwareMem[1] = g_pCoreHandles->heap[pSettings->heapIndex[i].firmware[1]].mma;
         /* firmwareMemc[1] is unused, so don't set */
         vceSettings.hSecureMem = g_pCoreHandles->heap[pSettings->heapIndex[i].secure].mma;
-        vceSettings.hPictureMem = g_pCoreHandles->heap[pSettings->heapIndex[i].picture].mma;
+        if (pSettings->heapSize[i].picture) { /* 0 if dynamicPictureBuffers */
+            vceSettings.hPictureMem = g_pCoreHandles->heap[pSettings->heapIndex[i].picture].mma;
+        }
         if (Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_VCE,&device->img_context,&device->img_interface )== NEXUS_SUCCESS)
         {
             BDBG_WRN(("FW download used"));
@@ -566,6 +571,7 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
     NEXUS_HeapHandle heap;
     unsigned deviceId, chanId;
     BVCE_Channel_CallbackSettings callbackSettings;
+    const NEXUS_VideoEncoderModuleInternalSettings *pModuleSettings = &g_NEXUS_VideoEncoder_P_State.config;
 
     if(index>=NEXUS_NUM_VCE_CHANNELS*NEXUS_NUM_VCE_DEVICES) {rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);goto error;}
 
@@ -644,16 +650,16 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
 
         encSettings.stMemoryConfig.uiPictureMemSize = memConfig.uiPictureMemSize;
         encSettings.stMemoryConfig.uiSecureMemSize  = memConfig.uiSecureMemSize;
-        BDBG_MSG(("Memory Config(%ux%u%c) heap size: picture "BDBG_UINT64_FMT", secure "BDBG_UINT64_FMT,
+        BDBG_MSG(("Memory Config(%ux%u%c) heap size: picture %#x, secure %#x",
             pSettings->memoryConfig.maxWidth, pSettings->memoryConfig.maxHeight,
             pSettings->memoryConfig.interlaced?'i' : 'p',
-                  BDBG_UINT64_ARG((uint64_t)memConfig.uiPictureMemSize), BDBG_UINT64_ARG((uint64_t)memConfig.uiSecureMemSize)));
+                  memConfig.uiPictureMemSize, memConfig.uiSecureMemSize));
     }
 
     encSettings.stOutput.bAllocateOutput = true;
     encSettings.stMemoryConfig.uiDataMemSize = pSettings->data.fifoSize;
     encSettings.stMemoryConfig.uiIndexMemSize = pSettings->index.fifoSize;
-    BDBG_MSG(("CDB size = "BDBG_UINT64_FMT", ITB size = "BDBG_UINT64_FMT, BDBG_UINT64_ARG((uint64_t)encSettings.stMemoryConfig.uiDataMemSize), BDBG_UINT64_ARG((uint64_t)encSettings.stMemoryConfig.uiIndexMemSize)));
+    BDBG_MSG(("CDB size = %#x, ITB size = %#x", encSettings.stMemoryConfig.uiDataMemSize, encSettings.stMemoryConfig.uiIndexMemSize));
     /* ITB buffer must be non-secure to be parsed by host mux manager; and
      * ITB buffer must be on MEMC0 since CABAC hw generates the ITB and CABAC is tied to MEMC0 for security reason; */
     encSettings.stOutput.hIndexMem = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mma;
@@ -665,6 +671,10 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
     heap = get_heap(pSettings->data.heap, g_NEXUS_VideoEncoder_P_State.config.heapIndex[deviceId].output);
     if (heap) {
        encSettings.stOutput.hDataMem = NEXUS_Heap_GetMmaHandle(heap);
+    }
+
+    if (pModuleSettings->videoEncoder[index].memory.dynamicPictureBuffers) {
+        encSettings.hPictureMem = g_pCoreHandles->heap[pModuleSettings->heapIndex[deviceId].picture].mma;
     }
 
     rc = BVCE_Channel_Open(device->vce, &encoder->enc, &encSettings);
@@ -703,6 +713,7 @@ void NEXUS_VideoEncoder_GetDefaultSettings( NEXUS_VideoEncoderSettings *pSetting
     pSettings->encoderDelay = encodeSettings.uiA2PDelay;
     pSettings->frameRate = NEXUS_P_FrameRate_FromMagnum_isrsafe(encodeSettings.stFrameRate.eFrameRate);
     pSettings->variableFrameRate = encodeSettings.stFrameRate.bVariableFrameRateMode;
+    pSettings->sparseFrameRate = encodeSettings.stFrameRate.bSparseFrameRateMode;
     pSettings->enableFieldPairing = encodeSettings.bITFPEnable;
     pSettings->streamStructure.newGopOnSceneChange = encodeSettings.stGOPStructure.bAllowNewGOPOnSceneChange;
     pSettings->streamStructure.openGop = encodeSettings.stGOPStructure.bAllowOpenGOP;
@@ -866,6 +877,7 @@ NEXUS_VideoEncoder_P_ConvertSettings(const NEXUS_VideoEncoderSettings *pSettings
     rc = NEXUS_P_FrameRate_ToMagnum_isrsafe(pSettings->frameRate, &encodeSettings->stFrameRate.eFrameRate);
     if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
     encodeSettings->stFrameRate.bVariableFrameRateMode = pSettings->variableFrameRate;
+    encodeSettings->stFrameRate.bSparseFrameRateMode = pSettings->sparseFrameRate;
     encodeSettings->bITFPEnable = pSettings->enableFieldPairing;
     encodeSettings->stBitRate.uiMax = pSettings->bitrateMax;
     encodeSettings->stBitRate.uiTarget = pSettings->bitrateTarget;

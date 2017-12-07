@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_HAS_POST_PROCESSING
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_tru_volume);
@@ -79,7 +79,7 @@ void BAPE_TruVolume_GetDefaultSettings(
 
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eSrsTruVolume, 
+    BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eSrsTruVolume,
                                            (void *)&dspSettings, 
                                            sizeof(BDSP_Raaga_Audio_TruVolumeUserConfig)
                                            );

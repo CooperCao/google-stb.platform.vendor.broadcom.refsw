@@ -46,6 +46,12 @@ SymbolTable *glsl_symbol_table_populate(SymbolTable *table, ShaderFlavour flavou
    glsl_stdlib_populate_symbol_table_with_functions(table, active_mask);
    glsl_stdlib_populate_symbol_table_with_variables(table, active_mask);
 
+   /* For Geometry shaders this happens later */
+   if (flavour == SHADER_TESS_CONTROL || flavour == SHADER_TESS_EVALUATION)
+      glsl_stdlib_populate_symbol_table_with_gl_in(table, V3D_MAX_PATCH_VERTICES);
+   if (flavour == SHADER_TESS_CONTROL)
+      glsl_stdlib_populate_symbol_table_with_gl_out(table, V3D_MAX_PATCH_VERTICES);
+
    // Create the global scope.
    glsl_symbol_table_enter_scope(table);
 

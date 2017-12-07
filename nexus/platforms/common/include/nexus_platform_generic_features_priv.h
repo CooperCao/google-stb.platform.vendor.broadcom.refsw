@@ -113,9 +113,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #endif
 
 #ifdef NEXUS_HAS_GRAPHICS2D
-#if (BCHP_CHIP == 7278 ) && !defined NEXUS_WEBCPU
-#define NEXUS_NUM_2D_ENGINES 3
-#elif (BCHP_CHIP == 7366 || BCHP_CHIP == 7435 || BCHP_CHIP == 74371 || BCHP_CHIP == 7439 || BCHP_CHIP == 7445 || BCHP_CHIP == 7278 || BCHP_CHIP == 11360 ) && !defined NEXUS_WEBCPU
+#if (BCHP_CHIP == 7366 || BCHP_CHIP == 7435 || BCHP_CHIP == 74371 || BCHP_CHIP == 7439 || BCHP_CHIP == 7445 || BCHP_CHIP == 7278 || BCHP_CHIP == 11360 ) && !defined NEXUS_WEBCPU
 #define NEXUS_NUM_2D_ENGINES 2
 #else
 #define NEXUS_NUM_2D_ENGINES 1
@@ -289,5 +287,6 @@ For a compile-time test for RAAGA, use:
 #define NEXUS_MEMC1_SECURE_GRAPHICS_HEAP        16
 #define NEXUS_MEMC2_SECURE_GRAPHICS_HEAP        17
 #define NEXUS_EXPORT_HEAP                       18
+#define NEXUS_FIRMWARE_HEAP                     19
 
 #endif

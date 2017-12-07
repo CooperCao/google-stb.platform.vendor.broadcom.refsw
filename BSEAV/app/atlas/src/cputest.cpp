@@ -121,7 +121,7 @@ static void cpuTestThread(void * pParam)
     BDBG_ASSERT(NULL != pCpuTest);
     BDBG_ASSERT(NULL != pCpuTest->getImageBuffer());
 
-    memset(&cinfo,0,sizeof(cinfo));
+    memset(&cinfo, 0, sizeof(cinfo));
     cinfo.err = jpeg_std_error(&jerr);
 
     while (true == pCpuTest->getThreadRun())

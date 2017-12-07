@@ -53,52 +53,178 @@
 #ifndef _FP_SDK_CONFIG_H_
 #define _FP_SDK_CONFIG_H_
 
+
 /************************************************************************
- * Miscelaneous constants
+ * Core details
  ************************************************************************/
 
-/* Number of cores on target */
-#define NUM_CORES 2
+/* Core generation - the earliest core generation which we support. */
+#define CORE_GENERATION 0
 
-/* Are we a shared-memory multicore machine where all cores must access their
- * data at different virtual addresses? */
+
+/************************************************************************
+ * Core characteristics derived from architecture versions
+ ************************************************************************/
+
+/* The core supports load/store instructions with long immediate operands. */
 #if 1
-#  define SHARED_MEMORY_MULTICORE 1
+#  define CORE_HAS_IMM32_LDST 1
 #endif
+
+/* The core has 8 MREGs as opposed to the earlier 4 */
+#if 1
+#  define CORE_HAS_8_MREGS 1
+#endif
+
+/* DIR instructions must be written on the Y side only */
+#if 1
+#  define CORE_DIRS_ON_Y_ONLY 1
+#endif
+
+/* Core uses modeless encodings instead of FNSC */
+#if 1
+#  define CORE_USES_MODELESS_ENCODING 1
+#endif
+
+/* The exception and interrupt vectors can be relocated at runtime */
+#if 1
+#  define CORE_HAS_RELOCATABLE_VECTORS 1
+#endif
+
+/* Core has an undefined instruction exception */
+#if 1
+#  define CORE_HAS_UNDEF_TRAP 1
+#endif
+
+/* Core has DIR instructions with register operand for directive number */
+#if 1
+#  define CORE_HAS_DIR_REG_REG 1
+#endif
+
+/* Core has banked general purpose registers */
+#if 0
+#  define CORE_HAS_BANKED_REGS 1
+#endif
+
+/* Core memory protection support */
+#if 0
+#  define CORE_HAS_MEM_PROT_FP2006 1
+#endif
+#if 0
+#  define CORE_HAS_MEM_PROT_FP2011 1
+#endif
+#if 1
+#  define CORE_HAS_MEM_PROT_FP4015 1
+#endif
+
+#if 1
+#  define CORE_HAS_DREG_FEATURE_MPUD_STATUS 1
+#endif
+#if 0
+#  define CORE_HAS_DREG_FEATURE_MPU_DTCM 1
+#endif
+#if 1
+#  define CORE_HAS_DREG_FEATURE_MPU_ICA  1
+#endif
+#if 1
+#  define CORE_HAS_DREG_FEATURE_MPU_DCA  1
+#endif
+#if 1
+#  define CORE_HAS_DREG_FEATURE_MPU_IO   1
+#endif
+
+#define CORE_MPU_NUM_PROTI_REGIONS 4
+#define CORE_MPU_NUM_PROTD_REGIONS 12
+
+/* Core fetched addresses FNSC bitmask */
+#define PC_FETCHING_COMPRESSED_MASK 0
+
+
+/************************************************************************
+ * SoC features and parameters
+ ************************************************************************/
+
+/* Number of cores */
+#define NUM_CORES 2
 
 /* Number of symmetrical subsystems */
 #define NUM_SUBSYSTEMS 1
 
-/************************************************************************
- * VOM support
- ************************************************************************/
+/* Are we a multicore machine with a shared view of the memory, which
+ * presupposes that each core private data must live at different virtual
+ * addresses? */
+#if 1
+#  define SHARED_MEMORY_MULTICORE 1
+#endif
 
-/* Does the subsystem support VOM? (and do we want to support it?) */
+/* The core has a Bit Read Buffer */
+#if 1
+#  define CORE_HAS_BRB 1
+#endif
+
+/* The core has DREGs for driving I$ features */
+#if 1
+#  define CORE_HAS_DREG_FEATURE_ICA 1
+#endif
+
+/* Configurable reset vector */
+#if 0
+#  define CORE_HAS_CONFIGURABLE_RESET_VECTOR 1
+#endif
+
+/* Enable memory parity checking support  */
+#if 0
+#  define CHIP_HAS_PARITY 1
+#endif
+
+/* An address translation unit is attached to the core */
+#if 1
+#  define CHIP_HAS_ATU 1
+#endif
+
+/* Host Port available */
+#if 0
+#  define CHIP_HAS_HOST_PORT 1
+#endif
+
+/* Whether the chip has a programmable Phase Locked Loop clock source
+ * from which the core clock is derived */
+#if 0
+#  define CHIP_HAS_PLL 1
+#endif
+
+/* Soft breakpoint support */
+#if 0
+#  define CHIP_HAS_SOFTBPT 1
+#endif
+
+/* VOM support */
 #if 0
 #  define CHIP_HAS_VOM 1
 #endif
 
-/*
-  The bit that governs whether an address is treated as virtual when
-  fetching an instruction
-*/
 #define VOM_ADDRESS_BIT 0
+#define VOM_PAGE_SHIFT  0
+#define VMEM_SIZE       0
+#define VOM_PAGE_SIZE   (1 << VOM_PAGE_SHIFT)
+#define VMEM_PAGES      (VMEM_SIZE / VOM_PAGE_SIZE)
 
-/* The number of address bits in a page. This is the number of bits to shift an
- * address right by to get the page number and corresponds to the vom_page_bits
- * BM parameter. */
-#define VOM_PAGE_SHIFT 0
+/* The chip's cores have an icache that supports prefetching */
+#if 1
+#  define ICACHE_HAS_PREFETCH 1
+#endif
 
-/* Size of the virtual memory space */
-#define VMEM_SIZE 0
+/* The chip has some form of data cache */
+#if 1
+#  define CHIP_HAS_DATA_CACHE 1
+#endif
 
-/* Derived figures */
-#define VOM_PAGE_SIZE       (1 << VOM_PAGE_SHIFT)
-#define VMEM_PAGES          (VMEM_SIZE/VOM_PAGE_SIZE)
+/* Chip class */
+#define CHIP_CLASS_UNKNOWN 1
 
 
 /************************************************************************
- * Interrupt configuration
+ * SDK features selection - interrupt handling
  ************************************************************************/
 
 /* Are FATAL/DEBUG exceptions fully handled or should only stubs be provided? */
@@ -121,24 +247,95 @@
 #  endif
 #endif
 
-/************************************************************************
- * Debug agent version
- ************************************************************************/
-#define DBA_VERSION 2
+/* Do we expect interrupts to arrive during the execution of untrusted code? */
+#if 1
+#  define IRQ_INTERRUPTS_UNTRUSTED_CODE 1
+#endif
 
-#if DBA_VERSION == 1
 /************************************************************************
- * Soft breakpoint support available
+ * SDK features selection - init-time behaviour
  ************************************************************************/
-/* Enable soft breakpoint support  */
-#  if 0
-#    define CHIP_HAS_SOFTBPT 1
-#  endif
+
+/* Multi-stage booting is supported, that is the software can decide to
+ * "soft-reset" the core by jumping to the reset vector or to the entry address
+ * of a different firmware image. */
+#if 0
+#  define MULTI_STAGE_BOOT 1
+#endif
+
+/* At runtime init, read the entries from the __loadtable_zero and
+ * __loadtable_copy tables and appropriately zero/copy memory regions. */
+#if 1
+#  define RUNTIME_INIT_ZERO_COPY_REGIONS 1
+#endif
+
+/* At runtime init, fetch the values of argv, argc and envp. */
+#if 1
+#  define RUNTIME_INIT_FETCH_MAIN_ARGS 1
+#endif
+
+/* Is the __init_mpu_state hook (called from __init_core_state) mechanism
+ * available? */
+#if 0
+#  define MEMORY_PROTECTION_INIT_HOOK 1
+#endif
+
+/* Support for the reset flags mechanism. */
+#if 1
+#  define RESET_FLAGS 1
+#endif
+
+/* Are reset flags read-only? */
+#if 1
+#  define RESET_FLAGS_RO 1
+#endif
+
+/************************************************************************
+ * SDK features selection - compliance to C/C++ standards.
+ ************************************************************************/
+
+/* Support for atexit / on_exit functions. */
+#if 1
+#  define STANDARD_COMPLIANT_EXITPROCS 1
+#endif
+
+/* Support for calling _GLOBAL_REENT->__cleanup on exit. */
+#if 1
+#  define STANDARD_COMPLIANT_EXIT_LIBC_CLEANUP 1
+#endif
+
+/* Support for C/C++ static constructors and destructors. */
+#if 1
+#  define STANDARD_COMPLIANT_CTORS_DTORS 1
 #endif
 
 
 /************************************************************************
- * Instrumentation configuration
+ * SDK features selection - memory protection behaviour.
+ ************************************************************************/
+
+/* On targets with an MPU, the first data/code region not used by the SDK */
+#define MEMORY_PROTECTION_FIRST_USER_PROTI 4
+#define MEMORY_PROTECTION_FIRST_USER_PROTD 12
+
+/* Do we provide the "classic" protection style, where sensitive SDK and
+ * read-only data/bss are placed in a protected region, while the rest
+ * lives in an unprotected region? */
+#if 0
+#  define CLASSIC_MEMORY_PROTECTION 1
+#endif
+#define CLASSIC_MEMORY_PROTECTION_PROTD_REGION -16777216
+
+/************************************************************************
+ * SDK features selection - memory access restrictions
+ ************************************************************************/
+
+#if 0
+#  define SDK_NO_MISALIGNED_DATA 1
+#endif
+
+/************************************************************************
+ * SDK features selection - instrumentation configuration
  ************************************************************************/
 
 #if 0
@@ -248,201 +445,97 @@
 
 #endif
 
+
 /************************************************************************
- * Parity checking config
+ * SDK features selection - miscellaneous
  ************************************************************************/
 
-/* Enable memory parity checking support  */
+/* Debug Agent version */
+#define DBA_VERSION 2
+
+/* Overlays support */
 #if 0
-#  define CHIP_HAS_PARITY 1
+#  define ENABLE_OVERLAYS
+#  define OVERLAYS_CODE_NUM_REGIONS              0
+#  define OVERLAYS_CODE_MAX_OVERLAYS_PER_REGION  0
+#  define OVERLAYS_DATA_NUM_REGIONS              0
+#  define OVERLAYS_DATA_MAX_OVERLAYS_PER_REGION  0
 #endif
 
+/* Enable statistical profiling. FIXME: what does this really do? */
+#if 1
+#  define ENABLE_PROFILING 1
+#endif
+
+/* Target Prints support */
+#if 1
+#  define TARGET_PRINT_SUPPORT 1
+#endif
+
+/* Target Buffer options */
+#define TARGET_BUFFER_VERSION 2
+#if TARGET_BUFFER_VERSION >= 2 && 1
+#  define TARGET_BUFFER_MUX_SERVICES 1
+#endif
+
+/* A NULL pointer vector is provided */
+#if 1
+#  define NULL_POINTER_VECTOR 1
+#endif
+
+/* Heartbeat support */
+#if 1
+#  define ENABLE_HEARTBEAT 1
+#endif
+
+/* Stitched executables support */
+#if 0
+#  define ENABLE_STITCHING 1
+#endif
+
+/* Power management support */
+#if 1
+#  define POWER_MANAGEMENT_SUPPORT 1
+#endif
+
+/* Mutex migration support */
+#if 0
+#  define MUTEX_MIGRATION_SUPPORT 1
+#endif
+
+/* Preemption thresholding for ThreadX/FPOS */
+#if 0
+#  define TX_PREEMPTION_THRESHOLD 1
+#endif
+
+/* FPOS - maximum size of the ROM filesystem image. */
+#define TX_ROMFS_MAX_SIZE 67108864
+
+
 /************************************************************************
- * ICache manipulation
+ * SDK features selection - context switching options
  ************************************************************************/
 
 #if 1
-#  define CHIP_HAS_ICACHE 1
+#  define FIR_STATE_CONTEXT 1
 #endif
-
-/************************************************************************
- * Data cache manipulaition
- ************************************************************************/
 
 #if 1
-#  define CHIP_HAS_DATA_CACHE 1
+#  define MAC_CONTEXT 1
 #endif
-
-/************************************************************************
- * Host Port available
- ************************************************************************/
 
 #if 0
-#  define CHIP_HAS_HOST_PORT 1
+#  define REED_SOLOMON_CONTEXT 1
 #endif
-
-/************************************************************************
- * Bit Read Buffer available
- ************************************************************************/
-
-/* Enable mBit Read Buffer support  */
-#if 1
-#  define CHIP_HAS_BRB 1
-#endif
-
-/************************************************************************
- * DTCM is attached to the core (fp4015+/fpm1015+)
- ************************************************************************/
 
 #if 0
-#  define CHIP_HAS_DTCM 1
+#  define SIMD_BITFIELD_CONTEXT 1
 #endif
-
-/************************************************************************
- * An address translation unit is attached to the core (typically with an
- * L2 cache)
- ************************************************************************/
-
-#if 1
-#  define CHIP_HAS_ATU 1
-#endif
-
-/************************************************************************
- * Whether the chip has a programmable Phase Locked Loop clock source
- * from which the core clock is derived.
- ************************************************************************/
 
 #if 0
-#  define CHIP_HAS_PLL 1
+#  define TRELLIS_STATE_CONTEXT 1
 #endif
 
-/************************************************************************
- * Chip class
- ************************************************************************/
-#define CHIP_CLASS_UNKNOWN 1
-
-/************************************************************************
- * Characteristics derived from architecture versions
- ************************************************************************/
-
-/* The core supports load/store instructions with long immediate operands. */
-#if 1
-#  define CORE_HAS_IMM32_LDST 1
-#endif
-
-/* The core has 8 MREGs as opposed to the earlier 4 */
-#if 1
-#  define CORE_HAS_8_MREGS 1
-#endif
-
-/* DIR instructions must be written on the Y side only */
-#if 1
-#  define CORE_DIRS_ON_Y_ONLY 1
-#endif
-
-/* Core uses modeless encodings instead of FNSC */
-#if 1
-#  define CORE_USES_MODELESS_ENCODING 1
-#endif
-
-/* The exception and interrupt vectors can be relocated at runtime */
-#if 1
-#  define CORE_HAS_RELOCATABLE_VECTORS 1
-#endif
-
-/* Core has an undefined instruction exception */
-#if 1
-#  define CORE_HAS_UNDEF_TRAP 1
-#endif
-
-/* Core has DIR instructions with register operand for directive number */
-#if 1
-#  define CORE_HAS_DIR_REG_REG 1
-#endif
-
-/* Core has banked general purpose registers */
-#if 0
-#  define CORE_HAS_BANKED_REGS 1
-#endif
-
-/* Core generation */
-#define CORE_GENERATION 0
-
-/* FP2006/FP2008 memory protection */
-#if 0
-#  define CORE_HAS_MEM_PROT_FP2006 1
-#endif
-
-/* FP2011+ memory protection */
-#if 0
-#  define CORE_HAS_MEM_PROT_FP2011 1
-#endif
-
-/* Octave v2 / Maestro v1 memory protection */
-#if 1
-#  define CORE_HAS_MEM_PROT_FP4015 1
-#endif
-
-/* Core fetched addresses FNSC bitmask */
-#define PC_FETCHING_COMPRESSED_MASK 0
-
-/* Configurable reset vector */
-#define CORE_HAS_CONFIGURABLE_RESET_VECTOR 0
-
-/************************************************************************
- * Define behaviour at init time.
- ************************************************************************/
-
-/* At runtime init, read the entries from the __loadtable_zero and
-   __loadtable_copy tables and appropriately zero/copy memory regions. */
-#if 1
-#  define RUNTIME_INIT_ZERO_COPY_REGIONS 1
-#endif
-
-/* At runtime init, fetch the values of argv, argc and envp. */
-#if 1
-#  define RUNTIME_INIT_FETCH_MAIN_ARGS 1
-#endif
-
-/* Support for the reset flags mechanism. */
-#if 0
-#  define RESET_FLAGS 1
-#endif
-
-/************************************************************************
- * Compliance to C/C++ standards.
- ************************************************************************/
-/* Support for atexit / on_exit functions. */
-#if 1
-#  define STANDARD_COMPLIANT_EXITPROCS 1
-#endif
-
-/* Support for calling _GLOBAL_REENT->__cleanup on exit. */
-#if 1
-#  define STANDARD_COMPLIANT_EXIT_LIBC_CLEANUP 1
-#endif
-
-/* Support for C/C++ static constructors and destructors. */
-#if 1
-#  define STANDARD_COMPLIANT_CTORS_DTORS 1
-#endif
-
-/************************************************************************
- * Define memory protection behaviour.
- ************************************************************************/
-/* Do we provide the "classic" protection style, where sensitive SDK and
- * read-only data/bss are placed in a protected region, while the rest
- * lives in an unprotected region? */
-#if 0
-#  define CLASSIC_MEMORY_PROTECTION 1
-#endif
-#define CLASSIC_MEMORY_PROTECTION_PROTD_REGION -16777216
-
-/* Is the __init_mpu_state hook (called from __init_core_state) mechanism
- * available? */
-#if 0
-#  define MEMORY_PROTECTION_INIT_HOOK 1
-#endif
 
 /************************************************************************
  * Define derived architecture version macros.
@@ -488,106 +581,5 @@
 #  define __FPM1015_ONWARDS__
 #endif
 
-/************************************************************************
- * Overlays support
- ************************************************************************/
-
-#if 0
-#  define ENABLE_OVERLAYS
-#  define OVERLAYS_CODE_NUM_REGIONS              0
-#  define OVERLAYS_CODE_MAX_OVERLAYS_PER_REGION  0
-#  define OVERLAYS_DATA_NUM_REGIONS              0
-#  define OVERLAYS_DATA_MAX_OVERLAYS_PER_REGION  0
-#endif
-
-
-/************************************************************************
- * Statistical profiling options
- ************************************************************************/
-
-/* Enable modified interrupt vectors */
-#if 1
-#  define ENABLE_PROFILING 1
-#endif
-
-/************************************************************************
- * Target Prints support
- ************************************************************************/
-#if 1
-#  define TARGET_PRINT_SUPPORT 1
-#endif
-
-/************************************************************************
- * Target Buffer options
- ************************************************************************/
-#define TARGET_BUFFER_VERSION 2
-#if TARGET_BUFFER_VERSION >= 2 && 1
-#  define TARGET_BUFFER_MUX_SERVICES 1
-#endif
-
-/************************************************************************
- * Heartbeat support
- ************************************************************************/
-#if 1
-#  define ENABLE_HEARTBEAT 1
-#endif
-
-/************************************************************************
- * Stitched executables support
- ************************************************************************/
-#if 0
-#  define ENABLE_STITCHING 1
-#endif
-
-/************************************************************************
- * Power management support
- ************************************************************************/
-#if 0
-#  define POWER_MANAGEMENT_SUPPORT 1
-#endif
-
-/************************************************************************
- * ThreadX features
- ************************************************************************/
-#if 0
-#  define TX_PREEMPTION_THRESHOLD 1
-#endif
-
-/************************************************************************
- * FPOS (libthreadxp) specific settings
- ************************************************************************/
-/* Maximum size of the ROM filesystem image. */
-#define TX_ROMFS_MAX_SIZE 67108864
-
-/************************************************************************
- * Context save / restore
- ************************************************************************/
-#if 1
-#  define FIR_STATE_CONTEXT 1
-#endif
-
-#if 1
-#  define MAC_CONTEXT 1
-#endif
-
-#if 0
-#  define REED_SOLOMON_CONTEXT 1
-#endif
-
-#if 0
-#  define SIMD_BITFIELD_CONTEXT 1
-#endif
-
-#if 0
-#  define TRELLIS_STATE_CONTEXT 1
-#endif
-
-/************************************************************************
- * Some chips define stub DBA_memProtection{On,Off}Fp macros instead of
- * a proper implementation.
- ************************************************************************/
-#if 0
-#  define MEMORY_PROTECTION_STUB_API 1
-#endif
 
 #endif /* _FP_SDK_CONFIG_H_ */

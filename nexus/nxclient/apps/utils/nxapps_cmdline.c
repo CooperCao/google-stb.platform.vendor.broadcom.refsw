@@ -136,6 +136,14 @@ void nxapps_cmdline_print_usage(const struct nxapps_cmdline *cmdline)
         "  -streamer #              if no -freq, default is streamer 0\n"
         "  -freq #[,#,#]            frequency list in MHz or Hz\n"
         );
+        printf(
+        "  -adc #\n"
+        "  -ksyms SYMBOLRATE\n"
+        "  -kufreq FREQ\n"
+        );
+        print_list_option("  -voltage",g_diseqcVoltageStrs);
+        print_list_option("  -tone",g_diseqcToneEnabledStrs);
+        print_list_option("  -networkspec",g_satNetworkSpecStrs);
 #if NEXUS_HAS_FRONTEND
         printf(
         "  -qam [64|256]            If HW supports auto, # is not required\n"
@@ -145,6 +153,7 @@ void nxapps_cmdline_print_usage(const struct nxapps_cmdline *cmdline)
 #endif
         printf(
         "  -sym X                   Symbol rate in baud\n"
+        "  -frontend #              Pick a specific frontend by index\n"
         );
     }
 }
@@ -307,6 +316,10 @@ int nxapps_cmdline_parse(int curarg, int argc, const char **argv, struct nxapps_
             else {
                 cmdline->frontend.tune.mode = NEXUS_FrontendSatelliteMode_eDvb;
             }
+        }
+        else if (!strcmp(argv[curarg], "-frontend") && curarg+1<argc) {
+            cmdline->frontend.tune.source = channel_source_auto;
+            cmdline->frontend.tune.index = atoi(argv[++curarg]);;
         }
         else if (!strcmp(argv[curarg], "-sym") && curarg+1<argc) {
             cmdline->frontend.tune.symbolRate = atoi(argv[++curarg]);;

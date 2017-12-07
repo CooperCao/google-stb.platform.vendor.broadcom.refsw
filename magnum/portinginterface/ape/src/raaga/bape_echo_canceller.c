@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,7 +42,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_HAS_POST_PROCESSING
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_echo_canceller);
@@ -677,7 +677,7 @@ static void BAPE_EchoCanceller_P_GetDefaultSpeexSettings(BAPE_EchoCancellerHandl
 {
     BDSP_Raaga_Audio_SpeexAECConfigParams userConfig;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eSpeexAec, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eSpeexAec, &userConfig, sizeof(userConfig)));
 
     handle->speexSettings.gainMode = (userConfig.ui32GainResolution == 0)?BAPE_SpeexEchoCancellerGainMode_eBark:BAPE_SpeexEchoCancellerGainMode_eLinear;
 }

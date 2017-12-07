@@ -251,10 +251,25 @@ eRet CControlNx::showPip(bool bShow)
                 pChannelPip = _pChannelMgr->getFirstChannel(pipWinType);
             }
         }
+
+        /* start audio fade at 0 for the decimated window. after showing, decimated window audio will
+           then rise up to the requested level */
+        {
+            CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
+            if (NULL != pAudioDecode)
+            {
+                BDBG_MSG(("set audio fade to 0 for decode:%d (PIP)", pAudioDecode->getNumber()));
+                /* set decimated window audio fade to 0 */
+                pAudioDecode->setAudioFade(0, 3);
+            }
+        }
     }
     else
     {
         /* hide pip */
+
+        setAudioFade(false);
+
         eMode mode = _pModel->getMode(pipWinType);
 
         switch (mode)
@@ -336,11 +351,21 @@ eRet CControlNx::swapPip()
     _pModel->setFullScreenWindowType((eWindowType_Main == _pModel->getFullScreenWindowType()) ? eWindowType_Pip : eWindowType_Main);
 
     NxClient_GetDefaultReconfigSettings(&reconfigSettings);
+#if BDSP_MS12_SUPPORT
+    /* ms12 mixer supported so we are using 2 audio decoders and crossfading audio between main/pip.
+       no need to swap audio since we will just adjust the fade values of each. */
+    reconfigSettings.command[0].type       = NxClient_ReconfigType_eRerouteVideo;
+#else
+    /* single audio decoder so we need to swap audio too */
     reconfigSettings.command[0].type       = NxClient_ReconfigType_eRerouteVideoAndAudio;
+#endif
     reconfigSettings.command[0].connectId1 = _pModel->getConnectId(eWindowType_Main);
     reconfigSettings.command[0].connectId2 = _pModel->getConnectId(eWindowType_Pip);
     nerror = NxClient_Reconfig(&reconfigSettings);
     CHECK_NEXUS_ERROR_GOTO("unable to swap pip windows", ret, nerror, error);
+
+    /* if we have dual audio decoders, and if pip is visible, fade main/pip audio */
+    setAudioFade(_pModel->getPipState());
 
 error:
     /* notify that pip state has changed - no actual change in pip state value */
@@ -354,31 +379,33 @@ bool CControlNx::checkPower(void)
     CPowerNx *        pPowerNx        = NULL;
     bool              powerOn         = false;
 
-
     pBoardResources = _pConfig->getBoardResources();
     BDBG_ASSERT(NULL != pBoardResources);
 #if POWERSTANDBY_SUPPORT
     pPowerNx = (CPowerNx *)pBoardResources->checkoutResource(_id, eBoardResource_power);
-    if(pPowerNx == NULL) {
+    if (pPowerNx == NULL)
+    {
         BDBG_WRN(("Power resource is not available "));
-        return false;
+        return(false);
     }
 
-    BDBG_MSG(("CControlNX::%s mode:S%d", BSTD_FUNCTION,pPowerNx->getMode()));
+    BDBG_MSG(("CControlNX::%s mode:S%d", BSTD_FUNCTION, pPowerNx->getMode()));
     powerOn = pPowerNx->checkPower();
     pBoardResources->checkinResource(pPowerNx);
     BKNI_Sleep(1000);
-    return powerOn;
-#else
-   BSTD_UNUSED(pPowerNx);
-   return powerOn;
-#endif
+    return(powerOn);
 
-}
+#else /* if POWERSTANDBY_SUPPORT */
+    BSTD_UNUSED(pPowerNx);
+    return(powerOn);
+
+#endif /* if POWERSTANDBY_SUPPORT */
+} /* checkPower */
 
 eRet CControlNx::setPowerMode(ePowerMode mode)
 {
-    eRet              ret             = eRet_Ok;
+    eRet ret = eRet_Ok;
+
 #if POWERSTANDBY_SUPPORT
     CBoardResources * pBoardResources = NULL;
     CPowerNx *        pPowerNx        = NULL;
@@ -389,7 +416,6 @@ eRet CControlNx::setPowerMode(ePowerMode mode)
     pBoardResources = _pConfig->getBoardResources();
     BDBG_ASSERT(NULL != pBoardResources);
     pPowerNx = (CPowerNx *)pBoardResources->checkoutResource(_id, eBoardResource_power);
-
 
     BDBG_MSG(("CControlNx::%s mode:S%d", BSTD_FUNCTION, mode));
     if (pPowerNx->getMode() == mode)
@@ -448,9 +474,9 @@ eRet CControlNx::setPowerMode(ePowerMode mode)
             if ((NULL != pChannel) && (true == pChannel->isTuned()))
             {
                 /* before we untune, we will save the current "last" channel because
-                   the untune command will overwrite this with the current channel.
-                   we will then restore this saved last channel after transitioning
-                   to S0 mode.  see FIRST_TUNE */
+                 * the untune command will overwrite this with the current channel.
+                 * we will then restore this saved last channel after transitioning
+                 * to S0 mode.  see FIRST_TUNE */
                 _pModel->saveLastTunedChannelPowerSave();
                 ret = unTuneChannel(pChannel, true);
                 CHECK_ERROR_GOTO("unable to untune channel", ret, error);
@@ -476,9 +502,9 @@ eRet CControlNx::setPowerMode(ePowerMode mode)
             if ((NULL != pChannel) && (true == pChannel->isTuned()))
             {
                 /* before we untune, we will save the current "last" channel because
-                   the untune command will overwrite this with the current channel.
-                   we will then restore this saved last channel after transitioning
-                   to S0 mode.  see FIRST_TUNE */
+                 * the untune command will overwrite this with the current channel.
+                 * we will then restore this saved last channel after transitioning
+                 * to S0 mode.  see FIRST_TUNE */
                 _pModel->saveLastTunedChannelPowerSave();
 
                 ret = unTuneChannel(pChannel, true);
@@ -510,21 +536,23 @@ eRet CControlNx::setPowerMode(ePowerMode mode)
 error:
 done:
     pBoardResources->checkinResource(pPowerNx);
-#endif
+#endif /* if POWERSTANDBY_SUPPORT */
     return(ret);
 } /* setPower */
 
 ePowerMode CControlNx::getPowerMode()
 {
-    ePowerMode          mode            = ePowerMode_Max;
+    ePowerMode mode = ePowerMode_Max;
+
 #if POWERSTANDBY_SUPPORT
-    CPowerNx *          pPowerNx          = NULL;
-    CBoardResources *   pBoardResources = NULL;
+    CPowerNx *        pPowerNx        = NULL;
+    CBoardResources * pBoardResources = NULL;
 
     pBoardResources = _pConfig->getBoardResources();
     BDBG_ASSERT(NULL != pBoardResources);
     pPowerNx = (CPowerNx *)pBoardResources->checkoutResource(_id, eBoardResource_power);
-    if(pPowerNx == NULL) {
+    if (pPowerNx == NULL)
+    {
         mode = ePowerMode_S0;
         goto done;
     }
@@ -533,12 +561,11 @@ ePowerMode CControlNx::getPowerMode()
 
     pBoardResources->checkinResource(pPowerNx);
 done:
-#else
+#else /* if POWERSTANDBY_SUPPORT */
     mode = ePowerMode_S0;
-#endif
+#endif /* if POWERSTANDBY_SUPPORT */
     return(mode);
-}
-
+} /* getPowerMode */
 
 int32_t CControlNx::getVolume(void)
 {
@@ -704,11 +731,17 @@ eRet CControlNx::connectDecoders(
             ((CSimpleVideoDecodeNx *)pVideoDecode)->updateConnectSettings(&settings, index++);
         }
     }
-    if (eWindowType_Mosaic1 > winType)
+
+    if (NULL != pAudioDecode)
     {
-        if (NULL != pAudioDecode)
+        if ((eWindowType_Main == winType) || (eWindowType_Pip == winType))
         {
             ((CSimpleAudioDecodeNx *)pAudioDecode)->updateConnectSettings(&settings);
+#if BDSP_MS12_SUPPORT
+            /* if we are doing ms12 mixer based audio fading between main/pip, both audio
+               decoders must be persistent */
+            settings.simpleAudioDecoder.decoderCapabilities.type = NxClient_AudioDecoderType_ePersistent;
+#endif
         }
     }
 
@@ -733,7 +766,7 @@ error:
 
 void CControlNx::disconnectDecoders(eWindowType winType)
 {
-    uint32_t connectId = _pModel->getConnectId(winType);
+    uint32_t             connectId    = _pModel->getConnectId(winType);
     CSimpleVideoDecode * pVideoDecode = _pModel->getSimpleVideoDecode(winType);
 
     if (NULL != pVideoDecode)
@@ -767,11 +800,89 @@ eRet CControlNx::setWindowGeometry()
 
     CSimpleVideoDecode * pVideoDecodeMain = _pModel->getSimpleVideoDecode(eWindowType_Main);
     CSimpleVideoDecode * pVideoDecodePip  = _pModel->getSimpleVideoDecode(eWindowType_Pip);
-    MRect rectFull(0, 0, 1000, 1000);
+    MRect                rectFull(0, 0, 1000, 1000);
 
-    if (NULL != pVideoDecodeMain) pVideoDecodeMain->setVideoWindowGeometryPercent(&rectFull);
-    if (NULL != pVideoDecodePip)  pVideoDecodePip->setVideoWindowGeometryPercent(&rectFull);
+    if (NULL != pVideoDecodeMain) { pVideoDecodeMain->setVideoWindowGeometryPercent(&rectFull); }
+    if (NULL != pVideoDecodePip) { pVideoDecodePip->setVideoWindowGeometryPercent(&rectFull); }
 
     /* setVideoWindGeometry will give you the correct error messages */
-    return ret;
+    return(ret);
 }
+#if BDSP_MS12_SUPPORT
+/* if we have dual audio decoders, set master/mixing mode */
+void CControlNx::setMixingMode(eWindowType windowType, NEXUS_AudioDecoderMixingMode mixingMode)
+{
+    CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode(windowType);
+
+    if ((NULL == _pModel->getSimpleAudioDecode(eWindowType_Main)) ||
+        (NULL == _pModel->getSimpleAudioDecode(eWindowType_Pip)))
+    {
+        return;
+    }
+
+    if (NULL == pAudioDecode)
+    {
+        return;
+    }
+
+    if ((eWindowType_Main != windowType) && (eWindowType_Pip != windowType))
+    {
+        return;
+    }
+
+    pAudioDecode->setMaster((_pModel->getFullScreenWindowType() == windowType) ? true : false);
+    //pAudioDecode->setMaster((eWindowType_Main == windowType) ? true : false);
+    pAudioDecode->setMixingMode(mixingMode);
+}
+
+/* if we have dual audio decoders, set audio fade */
+void CControlNx::setAudioFade(bool bPipState)
+{
+    int duration       = GET_INT(_pCfg, AUDIO_DECODER_FADE_DURATION);
+    int levelFull      = GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_FULL);
+    int levelDecimated = GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_DECIMATED);
+    int level          = 100;
+
+    CSimpleAudioDecode * pAudioDecodeMain = _pModel->getSimpleAudioDecode(eWindowType_Main);
+    CSimpleAudioDecode * pAudioDecodePip  = _pModel->getSimpleAudioDecode(eWindowType_Pip);
+
+    if ((NULL == pAudioDecodeMain) || (NULL == pAudioDecodePip))
+    {
+        return;
+    }
+
+    /* make sure any previous audio fade setting has completed before continuing.
+       note that this will really only work after simple audio decode has started. */
+    {
+        NEXUS_SimpleAudioDecoderSettings settings;
+        eRet ret = eRet_Ok;
+
+        NEXUS_SimpleAudioDecoder_GetSettings(pAudioDecodeMain->getSimpleDecoder(), &settings);
+        if (true == settings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected)
+        {
+            ret = pAudioDecodeMain->waitAudioFadeComplete();
+            CHECK_ERROR("timeout waiting for previous audio fade to complete on main decoder", ret);
+        }
+
+        NEXUS_SimpleAudioDecoder_GetSettings(pAudioDecodePip->getSimpleDecoder(), &settings);
+        if (true == settings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected)
+        {
+            ret = pAudioDecodePip->waitAudioFadeComplete();
+            CHECK_ERROR("timeout waiting for previous audio fade to complete on pip decoder", ret);
+        }
+    }
+
+    if (true == bPipState)
+    {
+        level = (eWindowType_Pip == _pModel->getFullScreenWindowType()) ? levelDecimated : levelFull;
+    }
+    else
+    {
+        level = (eWindowType_Pip == _pModel->getFullScreenWindowType()) ? 0 : 100;
+    }
+
+    BDBG_MSG(("set audio fade main:%d pip:%d", level, 100-level));
+    pAudioDecodeMain->setAudioFade(level, duration);
+    pAudioDecodePip->setAudioFade(100 - level, duration);
+}
+#endif

@@ -53,8 +53,8 @@
    but there is no BKNI standard interface to do this.
 */
 /* 
-	JPF - The PI often calls BDBG_MSG which calls BDBG_P_Lock in critical sections 
-	BDBG_P_Lock uses a mutex which causes scheduling which is not legal in a real 
+	JPF - The PI often calls BDBG_MSG which calls BDBG_P_Lock_isrsafe in critical sections
+	BDBG_P_Lock_isrsafe uses a mutex which causes scheduling which is not legal in a real
 	critical section.  One possible workaround is to not do real critical sections.
 	The current workaround is to have CHECK_CRITICAL return true when uCos 
 	OSLockNesting > 0.
@@ -98,7 +98,7 @@ BDBG_P_InitializeTimeStamp(void)
 /****************************************************************************
 ****************************************************************************/
 void
-BDBG_P_GetTimeStamp(char *timeStamp, int size_t)
+BDBG_P_GetTimeStamp_isrsafe(char *timeStamp, int size_t)
 {
     unsigned int deltaTicks;
     unsigned int milliseconds;
@@ -339,7 +339,7 @@ BDBG_P_OsUninit(void)
 /****************************************************************************
 ****************************************************************************/
 void 
-BDBG_P_Lock(void)
+BDBG_P_Lock_isrsafe(void)
 {
     unsigned char ucosError;
 
@@ -359,7 +359,7 @@ BDBG_P_Lock(void)
 /****************************************************************************
 ****************************************************************************/
 void 
-BDBG_P_Unlock(void)
+BDBG_P_Unlock_isrsafe(void
 {
     BERR_Code rc;
 

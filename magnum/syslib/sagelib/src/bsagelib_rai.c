@@ -226,6 +226,7 @@ _P_LookupPlatformName(uint32_t platformId)
     CASE_PLATFORM_NAME_TO_STRING(MARLIN);
     CASE_PLATFORM_NAME_TO_STRING(EDRM);
     CASE_PLATFORM_NAME_TO_STRING(BP3);
+    CASE_PLATFORM_NAME_TO_STRING(SARM);
     default:
       break;
   }
@@ -245,6 +246,7 @@ BSAGElib_Rai_Platform_Install(
     BSAGElib_SDLHeader *pHeader = NULL;
     char *platform_name = _P_LookupPlatformName(platformId);
     char revstr[9];
+    BSAGElib_Handle hSAGElib = hSAGElibClient->hSAGElib;
 
     if (binSize < sizeof(BSAGElib_SDLHeader)) {
         BDBG_ERR(("%s: The binary size for TA 0x%X is less than the SDL header structure",
@@ -510,6 +512,30 @@ BSAGElib_Rai_Platform_Install(
     }
     BDBG_MSG(("%s Output Status %x",BSTD_FUNCTION,container->basicOut[0]));
 
+    if(hSAGElib->securelog_module != NULL
+      && hSAGElib->securelogContainer != NULL
+      && platformId != BSAGE_PLATFORM_ID_SYSTEM
+      && platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT
+      && platformId != BSAGE_PLATFORM_ID_ANTIROLLBACK)
+    {
+        uint32_t async_id;
+
+        hSAGElib->securelogContainer->basicIn[0]=platformId;
+        rc = BSAGElib_Rai_Module_ProcessCommand(hSAGElib->securelog_module,
+                                            Secure_Log_CommandId_eAttach,
+                                            hSAGElib->securelogContainer, &async_id);
+        if (rc != BERR_SUCCESS)
+        {
+            rc = BERR_TRACE(rc);
+            goto end;
+        }
+        rc = BSAGELib_Rai_P_WaitForResponse(hSAGElib->securelog_module->hSAGElibClient, async_id);
+        if (rc != BERR_SUCCESS) {
+            rc = BERR_TRACE(rc);
+            goto end;
+        }
+    }
+
     if((rc == BERR_SUCCESS) || (container->basicOut[0] == BSAGE_ERR_SDL_ALREADY_LOADED)){
         rc = BERR_SUCCESS;
         goto end;
@@ -533,11 +559,40 @@ BSAGElib_Rai_Platform_UnInstall(BSAGElib_ClientHandle hSAGElibClient,
     BERR_Code rc = BERR_SUCCESS;
     BSAGElib_InOutContainer * container = NULL;
     uint32_t async_id;
+    BSAGElib_Handle hSAGElib = hSAGElibClient->hSAGElib;
 
 
     if((hSAGElibClient->system_module == NULL) || (hSAGElibClient->system_platform == NULL)){
         rc = BERR_INVALID_PARAMETER;
         goto err;
+    }
+
+    if(platformId == BSAGE_PLATFORM_ID_SECURE_LOGGING)
+    {
+        hSAGElib->securelog_module = NULL;
+        hSAGElib->securelogContainer = NULL;
+    }else
+    if(hSAGElib->securelog_module != NULL
+      && hSAGElib->securelogContainer != NULL
+      && platformId != BSAGE_PLATFORM_ID_SYSTEM
+      && platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT
+      && platformId != BSAGE_PLATFORM_ID_ANTIROLLBACK)
+    {
+        uint32_t async_id;
+
+        hSAGElib->securelogContainer->basicIn[0]=platformId;
+        rc = BSAGElib_Rai_Module_ProcessCommand(hSAGElib->securelog_module,
+                                            Secure_Log_CommandId_eDetach,
+                                            hSAGElib->securelogContainer, &async_id);
+        if (rc != BERR_SUCCESS)
+        {
+            rc = BERR_TRACE(rc);
+            goto end;
+        }
+        rc = BSAGELib_Rai_P_WaitForResponse(hSAGElib->securelog_module->hSAGElibClient, async_id);
+        if (rc != BERR_SUCCESS) {
+            rc = BERR_TRACE(rc);
+        }
     }
 
     container = BSAGElib_Rai_Container_Allocate(hSAGElibClient);
@@ -894,6 +949,12 @@ BSAGElib_Rai_Module_Init(
     BSAGElib_P_Rai_Adjust_ContainerCache(platform->hSAGElibClient);
     *pModule = new_module;
 
+    if(new_module->platformId == BSAGE_PLATFORM_ID_SECURE_LOGGING)
+    {
+        hSAGElib->securelog_module = new_module;
+        hSAGElib->securelogContainer = container;
+    }
+
 end:
     BDBG_LEAVE(BSAGElib_Rai_Module_Init);
     return rc;
@@ -906,8 +967,10 @@ BSAGElib_Rai_Module_Uninit(
 {
     BERR_Code rc;
     BSAGElib_RpcCommand command;
+    BSAGElib_Handle hSAGElib;
 
     BDBG_ENTER(BSAGElib_Rai_Module_Uninit);
+    hSAGElib = module->hSAGElibClient->hSAGElib;
 
     BDBG_OBJECT_ASSERT(module, BSAGElib_P_RpcRemote);
 
@@ -931,6 +994,12 @@ BSAGElib_Rai_Module_Uninit(
 #endif
     module->hSAGElibClient->moduleNum--;
     BSAGElib_P_Rai_Adjust_ContainerCache(module->hSAGElibClient);
+
+    if(module->platformId == BSAGE_PLATFORM_ID_SECURE_LOGGING)
+    {
+        hSAGElib->securelog_module = NULL;
+        hSAGElib->securelogContainer = NULL;
+    }
 
     BDBG_LEAVE(BSAGElib_Rai_Module_Uninit);
 }

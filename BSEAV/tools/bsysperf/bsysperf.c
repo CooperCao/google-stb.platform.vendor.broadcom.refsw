@@ -1461,7 +1461,7 @@ int main(
 
         if (NetIgmpInit)
         {
-            char contents[1024];
+            char contents[PATH_PROCNET_IGMP_MAX];
             FILE *fp = fopen( PATH_PROCNET_IGMP, "r" );
             fread( contents, 1,PATH_PROCNET_IGMP_MAX, fp );
             fclose( fp );
@@ -1829,7 +1829,7 @@ int main(
 
         printf( "<tr>");
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;border-bottom: solid thin black;\" >PmqOvfl:<span class=bluetext>%s </span></td> ", formatul( tCounters.pmqovfl) );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" >SNR:<span class=bluetext>%d</span></td>", tScanInfo.lSnr );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" >SNR:<span class=bluetext>%d</span></td>", tScanInfo.lSNR );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" ><span class=bluetext>&nbsp;</span></td> " );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;border-bottom: solid thin black;\" >&nbsp;</td> " );
         printf( "</tr>");

@@ -187,7 +187,7 @@ int main(void)
         printf("%s: DAC   %p\n", BSTD_FUNCTION, (void*)audioDacHandle);
     }
 
-    if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
+    if ( AUDIO_CODEC == NEXUS_AudioCodec_eAc3 )
     {
         /* Only pass through AC3 */
         spdifInput = NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed);
@@ -326,11 +326,6 @@ int main(void)
 
     /* Start decoders */
     NEXUS_AudioDecoder_Start(pcmDecoder, &audioProgram);
-    if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
-    {
-        NEXUS_AudioDecoder_Stop(compressedDecoder);
-    }
-
     if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
     {
         /* Only pass through AC3 */

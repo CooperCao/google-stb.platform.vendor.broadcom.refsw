@@ -44,7 +44,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_MAX_DECODERS
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_decoder_status);
@@ -509,6 +509,8 @@ static BERR_Code BAPE_Decoder_P_GetMpegStatus(
         pStatus->codecStatus.mpeg.original = handle->streamInfo.mpeg.ui32OriginalCopy?true:false;
         pStatus->codecStatus.mpeg.copyright = handle->streamInfo.mpeg.ui32Copyright?true:false;
         pStatus->codecStatus.mpeg.crcPresent = handle->streamInfo.mpeg.ui32CrcPresent?true:false;
+
+
         switch(handle->streamInfo.mpeg.ui32SamplingFreq)
         {
             case 0:
@@ -524,6 +526,7 @@ static BERR_Code BAPE_Decoder_P_GetMpegStatus(
                 pStatus->codecStatus.mpeg.samplingFrequency = 0;
                 break;
         }
+
 
         switch ( handle->streamInfo.mpeg.ui32MpegLayer )
         {

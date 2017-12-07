@@ -36,7 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-
 #ifndef BDSP_H_
 #define BDSP_H_
 #include "bdsp_types.h"
@@ -47,6 +46,13 @@
 #include "bdsp_video_task.h"
 #include "bdsp_video_encode_task.h"
 #include "bdsp_scm_task.h"
+#if BDSP_RAAGA_AUDIO_SUPPORT
+#include "bdsp_raaga.h"
+#endif
+#if BDSP_ARM_AUDIO_SUPPORT
+#include "bdsp_arm.h"
+#endif
+
 /*------------------------- ERROR CODES---------------------------------------*/
 #define BDSP_ERR_DEVICE_UNINTIALIZED        BERR_MAKE_CODE(BERR_DSP_ID, 1)
 #define BDSP_ERR_BAD_DEVICE_STATE           BERR_MAKE_CODE(BERR_DSP_ID, 2)
@@ -58,6 +64,20 @@
 #define BDSP_ERR_BUFFER_INVALID             BERR_MAKE_CODE(BERR_DSP_ID, 8)
 #define BDSP_ERR_INVALID_TASK               BERR_MAKE_CODE(BERR_DSP_ID, 9)
 #define BDSP_ERR_DOWNLOAD_FAILED            BERR_MAKE_CODE(BERR_DSP_ID, 10)
+
+#if BDSP_RAAGA_AUDIO_SUPPORT
+#define BDSP_ADDRESS_ALIGN_CDB              BDSP_RAAGA_ADDRESS_ALIGN_CDB
+#define BDSP_ADDRESS_ALIGN_ITB              BDSP_RAAGA_ADDRESS_ALIGN_ITB
+#define BDSP_ADDRESS_ALIGN                  BDSP_RAAGA_ADDRESS_ALIGN
+#define BDSP_SIZE_ALIGN(x)                  BDSP_RAAGA_SIZE_ALIGN(x)
+#else
+#if BDSP_ARM_AUDIO_SUPPORT
+#define BDSP_ADDRESS_ALIGN_CDB              BDSP_ARM_ADDRESS_ALIGN_CDB
+#define BDSP_ADDRESS_ALIGN_ITB              BDSP_ARM_ADDRESS_ALIGN_ITB
+#define BDSP_ADDRESS_ALIGN                  BDSP_ARM_ADDRESS_ALIGN
+#define BDSP_SIZE_ALIGN(x)                  BDSP_ARM_SIZE_ALIGN(x)
+#endif /*BDSP_ARM_AUDIO_SUPPORT*/
+#endif /*BDSP_RAAGA_AUDIO_SUPPORT*/
 
 #if (BCHP_CHIP != 7278)
 #define BDSP_RAAGA_RBUS_RDB_ADDRESS
@@ -78,8 +98,8 @@
     #define BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(Addr) ((Addr) - BCHP_PHYSICAL_OFFSET )
 #endif
 
-#define BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(offset) ((offset) + BCHP_PHYSICAL_OFFSET)
-#define BDSP_RAAGA_REGSET_OFFSET_ADDR_FOR_HOST(offset) ((offset) - BCHP_PHYSICAL_OFFSET)
+#define BDSP_REGSET_PHY_ADDR_FOR_DSP(offset)     ((offset) + BCHP_PHYSICAL_OFFSET)
+#define BDSP_REGSET_OFFSET_ADDR_FOR_HOST(offset) ((offset) - BCHP_PHYSICAL_OFFSET)
 
 
 /*=************************ Module Overview ********************************
@@ -301,4 +321,69 @@ BERR_Code BDSP_ProcessAudioCapture(
     BDSP_Handle hDsp
     );
 
+/***************************************************************************
+Summary:
+Raaga DSP Status
+***************************************************************************/
+typedef enum BDSP_FwStatus
+{
+    BDSP_FwStatus_eRunnning = 0,
+    BDSP_FwStatus_eCoreDumpInProgress,
+    BDSP_FwStatus_eCoreDumpComplete,
+    BDSP_FwStatus_eInvalid = 0x7FFFFFFF
+} BDSP_FwStatus;
+
+BERR_Code BDSP_GetDebugBuffer(
+    BDSP_Handle             hDsp,
+    BDSP_DebugType          debugType,
+    uint32_t                dspIndex,
+    BDSP_MMA_Memory        *pBuffer,
+    size_t                 *pSize
+);
+BERR_Code BDSP_ConsumeDebugData(
+    BDSP_Handle             hDsp,
+    BDSP_DebugType          debugType,
+    uint32_t                dspIndex,
+    size_t                  bytesConsumed
+);
+
+BDSP_FwStatus BDSP_GetCoreDumpStatus (
+    BDSP_Handle hDsp,
+    uint32_t    dspIndex /* [in] Gives the DSP Id for which the core dump status is required */
+);
+
+/***************************************************************************
+Summary:
+Firmware download status.
+***************************************************************************/
+typedef struct BDSP_DownloadStatus
+{
+    void      *pBaseAddress;      /* Pointer to base of downloaded firmware executables */
+    dramaddr_t physicalAddress;   /* Physical memory offset of downloaded firmware executables */
+    size_t     length;            /* Length of executables in bytes */
+} BDSP_DownloadStatus;
+
+BERR_Code BDSP_GetDownloadStatus(
+    BDSP_Handle hDsp,
+    BDSP_DownloadStatus *pStatus /* [out] */
+);
+BERR_Code BDSP_Initialize(
+    BDSP_Handle hDsp
+);
+BERR_Code BDSP_GetRRRAddrRange(
+    BDSP_Handle hDsp,
+    BDSP_DownloadStatus *pAddrRange
+);
+#if !B_REFSW_MINIMAL
+BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
+        BDSP_Handle hDsp,
+        void *pSettingsBuffer,      /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+);
+#endif /*!B_REFSW_MINIMAL*/
+BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
+        BDSP_Handle hDsp,
+        void *pSettingsBuffer,      /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+);
 #endif

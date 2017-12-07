@@ -50,21 +50,46 @@ struct nexus_generic_driver_init_settings
         unsigned size;
     } region[16];
 
-    unsigned max_dcache_line_size; /* to ensure nexus heap allocations are cache coherent */
+    unsigned maxDcacheLineSize; /* to ensure nexus heap allocations are cache coherent */
+};
+
+enum nexus_generic_driver_kind {
+    nexus_generic_driver_kind_uninitialized,
+#ifdef NEXUS_HAS_SOCKET_DRIVER
+    nexus_generic_driver_kind_listen, /* this file descriptor could be called with 'select' which will get woken up, if there are 'connect' descriptors queued */
+    nexus_generic_driver_kind_connect, /* this file descriptor used to connect to the 'listen' descriptor */
+    nexus_generic_driver_kind_accept, /* this file descriptor used to pair with one on 'connect' descriptors */
+#endif
+    nexus_generic_driver_kind_nexus
+};
+
+struct nexus_driver_module_driver_state;
+struct nexus_generic_driver_state {
+    unsigned pid;
+    bool trusted;
+    enum nexus_generic_driver_kind kind;
+    union {
+        struct nexus_driver_module_driver_state *nexus_driver;
+#ifdef NEXUS_HAS_SOCKET_DRIVER
+        struct nexus_driver_socket_listen *listen;
+        struct nexus_driver_socket_connect *connect;
+        struct nexus_driver_socket_accept *accept;
+#endif
+    } state;
+    char process_name[32];
 };
 
 int  nexus_generic_driver_init(const struct nexus_generic_driver_init_settings *settings);
 void nexus_generic_driver_uninit(void);
 
 int  nexus_generic_driver_open(
-    unsigned module, /* driver can open multiple modules, each given a unique module id */
-    void **context, /* [out] storage for generic driver context */
+    struct nexus_generic_driver_state **state, /* [out] storage for generic driver context */
     unsigned process_id, /* does not have to be actual OS process_id. will correspond to terminate_process(process_id). */
     const char *process_name, /* optional name for process */
     bool trusted /* generally, true for root, false for non-root */
     );
-void nexus_generic_driver_close(unsigned module, void *context, bool abnormal_termination);
-int  nexus_generic_driver_validate_mmap(unsigned module, void *context, uint64_t offset, unsigned size);
+void nexus_generic_driver_close(struct nexus_generic_driver_state *state, bool abnormal_termination);
+int  nexus_generic_driver_validate_mmap(struct nexus_generic_driver_state *state, uint64_t offset, unsigned size);
 int  nexus_generic_driver_ioctl(unsigned module, void *context, unsigned int cmd, unsigned long arg, bool compat);
 void nexus_generic_driver_read_register(uint32_t addr, uint32_t *p_value);
 void nexus_generic_driver_write_register(uint32_t addr, uint32_t value);

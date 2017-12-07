@@ -11,6 +11,8 @@
 #include <math.h>
 #endif
 
+#include <assert.h>
+
 #include "middleware/khronos/glsl/2708/glsl_fpu_4.h"
 
 static void float_unpack (uint64_t *mantissa, int *exponent, int *sign, unsigned input);
@@ -54,19 +56,19 @@ static int float_pack (unsigned *r, uint64_t mantissa, int exponent, int sign, i
    int highbit;
    int adjust;
 
-   vcos_assert (exponent != INT_MAX);
+   assert (exponent != INT_MAX);
 
    if (mantissa == 0) {
       *r = sign << 31;
       return 0;
    }
 
-   vcos_assert (mantissa < (one << 48));
+   assert (mantissa < (one << 48));
    highbit = 47;
    while ((mantissa & (one << highbit)) == 0)
       highbit--;
 
-   vcos_assert (mantissa < (one << (highbit + 1)));
+   assert (mantissa < (one << (highbit + 1)));
 
    adjust = highbit - 23;
    if (adjust < 0) {
@@ -97,7 +99,7 @@ static int float_pack (unsigned *r, uint64_t mantissa, int exponent, int sign, i
    exponent += 23;
 
    /* Check that we've got our (soon to be) implicit bit in the correct place.  */
-   vcos_assert (mantissa & (1 << 23));
+   assert (mantissa & (1 << 23));
 
    /* Remove the implicit bit. */
    mantissa &= ((one << 23) - 1);
@@ -280,7 +282,7 @@ extern int glsl_fpu_add (unsigned *r, unsigned a, unsigned b)
       int superfluous = e - e2;
 
       if (superfluous < 64) {
-         vcos_assert (sticky_bit == 0); /* At most one operand will be shifted right.  */
+         assert (sticky_bit == 0); /* At most one operand will be shifted right.  */
          sticky_bit = !! (m2 & ((one << superfluous) - 1));
          m2 >>= superfluous;
       } else {
@@ -410,8 +412,8 @@ extern int glsl_fpu_div (unsigned *r, unsigned a, unsigned b)
    q = m1 / m2;
 
    /* Verify that the higest set bit is in the correct place.  */
-   vcos_assert (q & (1 << 23));
-   vcos_assert (q < (1 << 24));
+   assert (q & (1 << 23));
+   assert (q < (1 << 24));
 
    rem = m1 % m2;
    if (2*rem >= m2) {
@@ -1060,7 +1062,7 @@ static unsigned fn_interp (unsigned c0_table[], unsigned c1_table[], unsigned c2
    if (c0_table == c0_exp2)
       c1x_a = (~ c1x_a) & ((1 << 15) - 1);
 
-   vcos_assert (m < (1 << 16));
+   assert (m < (1 << 16));
 
    out_ms = c0 - c1x_a - c2xx_a;
    out_ms &= ((1 << 15) - 1);
@@ -1111,7 +1113,7 @@ static int fn_rsqrt (unsigned *r, unsigned f)
       return FPE_DZ;
    }
 
-   vcos_assert (s == 0);
+   assert (s == 0);
 
    e = ~e;
    e -= 127;
@@ -1174,7 +1176,7 @@ static int fn_log2 (unsigned *r, unsigned f)
          return 0;
    }
 
-   vcos_assert (denorm < (1 << 23));
+   assert (denorm < (1 << 23));
 
    e = 133;
    while (! (denorm & (1 << 22))) {

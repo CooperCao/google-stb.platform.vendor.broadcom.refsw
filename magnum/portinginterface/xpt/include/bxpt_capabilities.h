@@ -36,7 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-
 #ifndef BXPT_CAPABILITIES_H__
 #define BXPT_CAPABILITIES_H__
 
@@ -58,15 +57,23 @@ extern "C" {
 #endif
 
 /* remux */
+#if (BCHP_CHIP==7255)
+#define BXPT_NUM_REMULTIPLEXORS             0
+#else
 #define BXPT_NUM_REMULTIPLEXORS             2
+#endif
 #define BXPT_HAS_REMUX_PAUSE                1
 #define BXPT_HAS_REMUX_PCR_OFFSET           1
 
 /* rave */
 #define BXPT_NUM_RAVE_CHANNELS              1
-#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
+#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260))
     #define BXPT_NUM_SCD                        32
     #define BXPT_NUM_TPIT_PIDS                  32
+    #define BXPT_NUM_TPIT                       8
+#elif (BCHP_CHIP == 7255)
+    #define BXPT_NUM_SCD                        24
+    #define BXPT_NUM_TPIT_PIDS                  16
     #define BXPT_NUM_TPIT                       8
 #else
     #define BXPT_NUM_SCD                        64
@@ -93,6 +100,8 @@ extern "C" {
 /* pcr */
 #if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
     #define BXPT_NUM_PCRS                       6
+#elif (BCHP_CHIP == 7255)
+    #define BXPT_NUM_PCRS                       4
 #else
     #define BXPT_NUM_PCRS                       14
 #endif
@@ -103,6 +112,8 @@ extern "C" {
 /* psub */
 #if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
     #define BXPT_NUM_PACKETSUBS                 8
+#elif (BCHP_CHIP == 7255)
+    #define BXPT_NUM_PACKETSUBS                 0
 #else
     #define BXPT_NUM_PACKETSUBS                 16
 #endif
@@ -142,6 +153,9 @@ extern "C" {
 #if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260))
     #define BXPT_NUM_MESG_BUFFERS                 128
     #define BXPT_NUM_MESSAGE_CAPABLE_PID_CHANNELS 384
+#elif (BCHP_CHIP == 7255)
+    #define BXPT_NUM_MESG_BUFFERS                 0
+    #define BXPT_NUM_MESSAGE_CAPABLE_PID_CHANNELS 0
 #else
     #define BXPT_NUM_MESG_BUFFERS                 256
     #define BXPT_NUM_MESSAGE_CAPABLE_PID_CHANNELS 768
@@ -174,6 +188,10 @@ In the math below, the arrays are 0-based.
     #endif
     #define BXPT_NUM_FILTERS_PER_BANK             32
     #define BXPT_P_FILTER_TABLE_SIZE              BXPT_NUM_FILTERS_PER_BANK
+#else
+    #define BXPT_NUM_FILTER_BANKS 0
+    #define BXPT_NUM_FILTERS_PER_BANK             0
+    #define BXPT_P_FILTER_TABLE_SIZE              BXPT_NUM_FILTERS_PER_BANK
 #endif
 
 /* frontend */
@@ -182,6 +200,10 @@ In the math below, the arrays are 0-based.
     #define BXPT_NUM_PID_PARSERS                 16
     #define BXPT_P_PID_TABLE_SIZE                512
     #define BXPT_NUM_PID_CHANNELS                384    /* Leave 128 for MEMDMA */
+#elif (BCHP_CHIP == 7255)
+    #define BXPT_NUM_PID_PARSERS                 4
+    #define BXPT_P_PID_TABLE_SIZE                256
+    #define BXPT_NUM_PID_CHANNELS                192    /* Leave 64 for MEMDMA */
 #else
     #define BXPT_NUM_PID_PARSERS                 24
     #define BXPT_P_PID_TABLE_SIZE                1024
@@ -193,7 +215,7 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_MEMDMA                      1
 #define BXPT_NUM_MEMDMA_PID_CHANNELS         (BXPT_P_PID_TABLE_SIZE - BXPT_NUM_PID_CHANNELS)
 #define BXPT_P_MEMDMA_PID_CHANNEL_START      BXPT_NUM_PID_CHANNELS
-#if (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0)
+#if (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0) || (BCHP_CHIP == 7255)
 /* Some chips do not have the performance monitor regs */
 #else
 #define BXPT_DMA_HAS_PERFORMANCE_METER  1
@@ -213,7 +235,7 @@ In the math below, the arrays are 0-based.
 #elif ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
 #define BXPT_NUM_RAVE_CONTEXTS              24
 #define BXPT_NUM_MTSIF                  4
-#if (BCHP_CHIP == 7271 && BCHP_VER >= BCHP_VER_B0)
+#if ((BCHP_CHIP == 7271 || BCHP_CHIP == 7268) && BCHP_VER >= BCHP_VER_B0)
     #define BXPT_NUM_STCS                   8
 #else
     #define BXPT_NUM_STCS                   6
@@ -223,6 +245,16 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_STC_TRIG_TYPE          1
 #define BXPT_HAS_16BYTE_ES_COUNT        1
 #define BXPT_NUM_TBG                    1
+
+#elif (BCHP_CHIP == 7255)
+#define BXPT_NUM_RAVE_CONTEXTS         16
+#define BXPT_NUM_MTSIF                  1
+#define BXPT_NUM_STCS                   4
+#define BXPT_P_HAS_0_238_PPM_RESOLUTION 1
+#define BXPT_MAX_EXTERNAL_TRIGS         6
+#define BXPT_HAS_STC_TRIG_TYPE          1
+#define BXPT_HAS_16BYTE_ES_COUNT        1
+#define BXPT_NUM_TBG                    0
 
 #elif (BCHP_CHIP == 7278)
 #define BXPT_NUM_RAVE_CONTEXTS          48
@@ -250,7 +282,11 @@ In the math below, the arrays are 0-based.
 
 #if ( !((BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_C0) || (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0)) )
 #define BXPT_HAS_RAVE_MIN_DEPTH_INTR        1
+#if (BCHP_CHIP==7255)
+#define BXPT_HAS_MESG_L2                    0
+#else
 #define BXPT_HAS_MESG_L2                    1
+#endif
 #define BXPT_HAS_RAVE_L2                    1
 #endif
 
@@ -266,6 +302,8 @@ In the math below, the arrays are 0-based.
 #define BXPT_NUM_INPUT_BANDS            6
 #elif (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0)
 #define BXPT_NUM_INPUT_BANDS            20
+#elif (BCHP_CHIP==7255)
+#define BXPT_NUM_INPUT_BANDS            6
 #else
 #define BXPT_NUM_INPUT_BANDS            13
 #endif
@@ -294,6 +332,9 @@ In the math below, the arrays are 0-based.
 #elif ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
     #define BXPT_NUM_STC_SNAPSHOTS          6
     #define BXPT_HAS_STC_SNAPSHOT_XBAR      1
+#elif (BCHP_CHIP == 7255)
+    #define BXPT_NUM_STC_SNAPSHOTS          4
+    #define BXPT_HAS_STC_SNAPSHOT_XBAR      1
 #else
 #define BXPT_NUM_STC_SNAPSHOTS          0
 #define BXPT_HAS_STC_SNAPSHOT_XBAR 0
@@ -307,7 +348,7 @@ In the math below, the arrays are 0-based.
 #endif /* BXPT_IS_CORE28NM */
 
 /* RS / XC */
-#if (BCHP_CHIP == 7278)
+#if (BCHP_CHIP == 7278) || (BCHP_CHIP == 7255)
     /* 7278 does NOT have an transport client buffers. */
 #else
     #define BXPT_HAS_XCBUF_HW                1

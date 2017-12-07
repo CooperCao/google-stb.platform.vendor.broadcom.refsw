@@ -1029,6 +1029,8 @@ wlc_ccx_chk_iapp_frm(ccx_t *ccxh, struct wlc_frminfo *f, wlc_bsscfg_t* cfg)
 	case CCX_IAPP_TYPE_LINK_TEST:
 		if (iapp->subtype == CCX_IAPP_SUBTYPE_REQ) {
 			/* looks like a valid link test request packet */
+			/* Swapping the da/sa for sending back a link test packet. */
+			/* coverity[swapped_arguments] */
 			wlc_ccx_send_linktest_rpt((ccx_t*)ci,
 				(struct ether_addr*)f->sa, /* it is dst address */
 				(struct ether_addr*)f->da, /* it is src address */
@@ -2720,12 +2722,8 @@ wlc_ccx_rm_parse_requests(wlc_ccx_info_t *ci, ccx_rm_req_ie_t* ie, int len,
 		req[idx].token = ltoh16(ie->token);
 		req[idx].chanspec = CH20MHZ_CHSPEC(ie->channel);
 		req[idx].dur = ltoh16(ie->duration);
-		/* special handling for beacon table */
-		if (type == WLC_RM_TYPE_BEACON_TABLE) {
-			req[idx].chanspec = 0;
-			req[idx].dur = 0;
-		}
-		else if (type == WLC_RM_TYPE_PATHLOSS) {
+
+		if (type == WLC_RM_TYPE_PATHLOSS) {
 			pathloss_req = (ccx_rm_pathlossreq_t *)&(ie->channel);
 
 			bzero(pathloss_data, sizeof(ccx_rm_pl_data_t));
@@ -2980,22 +2978,20 @@ wlc_ccx_rm_next_ie(ccx_rm_req_ie_t* ie, int* len)
 		/* advance to the next IE */
 		buflen -= CCX_RM_IE_HDR_LEN + ie_len;
 		ie = (ccx_rm_req_ie_t*)((int8*)ie + CCX_RM_IE_HDR_LEN + ie_len);
+		if (ie) {
+			/* make sure there is room for a valid CCX RM IE */
+			if (buflen < CCX_RM_IE_HDR_LEN ||
+			    buflen < CCX_RM_IE_HDR_LEN + (ie_len = ltoh16(ie->len))) {
+				buflen = 0;
+				ie = NULL;
+				break;
+			}
 
-		if (ie == NULL)
-			return NULL;
-
-		/* make sure there is room for a valid CCX RM IE */
-		if (buflen < CCX_RM_IE_HDR_LEN ||
-		    buflen < CCX_RM_IE_HDR_LEN + (ie_len = ltoh16(ie->len))) {
-			buflen = 0;
-			ie = NULL;
-			break;
-		}
-
-		if (ltoh16(ie->id) == CCX_RM_ID_REQUEST &&
-		    ie_len >= CCX_RM_REQ_IE_FIXED_LEN) {
-			/* found valid measurement request */
-			break;
+			if (ltoh16(ie->id) == CCX_RM_ID_REQUEST &&
+			    ie_len >= CCX_RM_REQ_IE_FIXED_LEN) {
+				/* found valid measurement request */
+				break;
+			}
 		}
 	} while (ie);
 
@@ -3803,21 +3799,22 @@ wlc_ccx_calc_cckm_ie_len(void *ctx, wlc_iem_calc_data_t *data)
 	wlc_bsscfg_t *cfg = data->cfg;
 	ccx_bsscfg_priv_t *cfgi = CCX_BSSCFG_CUBBY(ccx, cfg);
 
-	if (!CCX_ENAB(wlc->pub))
+	if (!CCX_ENAB(wlc->pub)) {
 		return 0;
+	}
 
-		if (data->ft == FC_REASSOC_REQ &&
-		    IS_CCKM_AUTH(cfg->WPA_auth) && WLC_PORTOPEN(cfg)) {
-			return sizeof(cckm_reassoc_req_ie_t);
-		}
-		else if (data->ft == FC_ASSOC_REQ &&
-			IS_CCKM_AUTH(cfg->WPA_auth) && !WLC_PORTOPEN(cfg)) {
+	if (data->ft == FC_REASSOC_REQ &&
+	    IS_CCKM_AUTH(cfg->WPA_auth) && WLC_PORTOPEN(cfg)) {
+		return sizeof(cckm_reassoc_req_ie_t);
+	}
+	else if (data->ft == FC_ASSOC_REQ &&
+		IS_CCKM_AUTH(cfg->WPA_auth) && !WLC_PORTOPEN(cfg)) {
 #if defined(BCMINTSUP)
-			if (!SUP_ENAB(wlc->pub) || !BSS_SUP_ENAB_WPA(wlc->idsup, cfg))
+		if (!SUP_ENAB(wlc->pub) || !BSS_SUP_ENAB_WPA(wlc->idsup, cfg))
 #endif
-			/* just initialize rn value and return 0, i.e. do NOT write cckm ie */
-			cfgi->rn = 1;
-		}
+		/* just initialize rn value and return 0, i.e. do NOT write cckm ie */
+		cfgi->rn = 1;
+	}
 
 	return 0;
 }
@@ -3888,65 +3885,67 @@ wlc_ccx_write_cckm_ie(void *ctx, wlc_iem_build_data_t *data)
 	wlc_bss_info_t *bi = ftcbparm->assocreq.target;
 	wlc_bsscfg_t *cfg = data->cfg;
 	ccx_bsscfg_priv_t* cfgi = CCX_BSSCFG_CUBBY(ccx, cfg);
-	if (!CCX_ENAB(wlc->pub))
+	if (!CCX_ENAB(wlc->pub)) {
 		return BCME_OK;
+	}
 
-		if (data->ft == FC_REASSOC_REQ &&
-		    IS_CCKM_AUTH(cfg->WPA_auth) && WLC_PORTOPEN(cfg)) {
-			wpa_ie_fixed_t *wpa_ie;
-			uint32 tsf_l, tsf_h;
-			cckm_reassoc_req_ie_t *cckmie;
-			uint8 iebuf[30] = {0};
+	if (data->ft == FC_REASSOC_REQ &&
+	    IS_CCKM_AUTH(cfg->WPA_auth) && WLC_PORTOPEN(cfg)) {
+		wpa_ie_fixed_t *wpa_ie;
+		uint32 tsf_l, tsf_h;
+		cckm_reassoc_req_ie_t *cckmie;
+		uint8 iebuf[30] = {0};
 
-			wpa_ie = NULL;
-			if (cfg->WPA_auth == WPA2_AUTH_CCKM)
-				wpa_ie = (wpa_ie_fixed_t*)ftcbparm->assocreq.wpa2_ie;
-			else
-				if (wlc_ccx_get_wpa_ie(wlc, cfg, iebuf, sizeof(iebuf)) == BCME_OK)
-					wpa_ie = (wpa_ie_fixed_t*)iebuf;
-			if (wpa_ie == NULL) {
-				WL_ERROR(("wl%d: %s: no WPA or WPA2 IE\n",
-				          ccx->pub->unit, __FUNCTION__));
-				return BCME_ERROR;
-			}
+		wpa_ie = NULL;
+		if (cfg->WPA_auth == WPA2_AUTH_CCKM)
+			wpa_ie = (wpa_ie_fixed_t*)ftcbparm->assocreq.wpa2_ie;
+		else
+			if (wlc_ccx_get_wpa_ie(wlc, cfg, iebuf, sizeof(iebuf)) == BCME_OK)
+				wpa_ie = (wpa_ie_fixed_t*)iebuf;
+		if (wpa_ie == NULL) {
+			WL_ERROR(("wl%d: %s: no WPA or WPA2 IE\n",
+			          ccx->pub->unit, __FUNCTION__));
+			return BCME_ERROR;
+		}
 
-			/* copy WPA info element template */
-			cckmie = (cckm_reassoc_req_ie_t *)data->buf;
+		/* copy WPA info element template */
+		cckmie = (cckm_reassoc_req_ie_t *)data->buf;
 
-			bcm_copy_tlv(CCKM_info_element, data->buf);
+		bcm_copy_tlv(CCKM_info_element, data->buf);
 
-			wlc_ccx_get_updated_timestamp(ccx, bi->bcn_prb,
-			                              bi->rx_tsf_l, &tsf_l, &tsf_h);
-			/* fill in CCKM reassoc req IE */
+		wlc_ccx_get_updated_timestamp(ccx, bi->bcn_prb,
+		                              bi->rx_tsf_l, &tsf_l, &tsf_h);
+		/* fill in CCKM reassoc req IE */
 #if defined(BCMINTSUP)
-		if (SUP_ENAB(wlc->pub) && BSS_SUP_ENAB_WPA(wlc->idsup, cfg))
+		if (SUP_ENAB(wlc->pub) && BSS_SUP_ENAB_WPA(wlc->idsup, cfg)) {
 				wlc_cckm_gen_reassocreq_IE(ccx->wlc->ccxsup, cfg, cckmie,
 					tsf_h, tsf_l, &bi->BSSID, wpa_ie);
+		}
 		else
 #endif /* BCMINTSUP */
-			{
-			uint32 rn;
-			uint32 timestamp[2];
+		{
+		uint32 rn;
+		uint32 timestamp[2];
 
-			timestamp[0] = htol32(tsf_l);
-			timestamp[1] = htol32(tsf_h);
+		timestamp[0] = htol32(tsf_l);
+		timestamp[1] = htol32(tsf_h);
 
-			/* load timestamp from bcn_prb (< 1s) */
-			bcopy(timestamp, cckmie->timestamp, DOT11_MNG_TIMESTAMP_LEN);
+		/* load timestamp from bcn_prb (< 1s) */
+		bcopy(timestamp, cckmie->timestamp, DOT11_MNG_TIMESTAMP_LEN);
 
-			/* increment and load RN */
-			rn = ++cfgi->rn;
-			/* 80211 uses le byte order */
-			rn = htol32(rn);
-			bcopy((char *)&rn, (char *)&cckmie->rn, sizeof(rn));
+		/* increment and load RN */
+		rn = ++cfgi->rn;
+		/* 80211 uses le byte order */
+		rn = htol32(rn);
+		bcopy((char *)&rn, (char *)&cckmie->rn, sizeof(rn));
 
-			/* calculate and load MIC */
-			wlc_cckm_calc_reassocreq_MIC(cckmie, &bi->BSSID, wpa_ie,
-			                             &cfg->cur_etheraddr,
-			                             cfgi->rn, cfgi->key_refresh_key,
-			                             cfg->WPA_auth);
-			}
+		/* calculate and load MIC */
+		wlc_cckm_calc_reassocreq_MIC(cckmie, &bi->BSSID, wpa_ie,
+		                             &cfg->cur_etheraddr,
+		                             cfgi->rn, cfgi->key_refresh_key,
+		                             cfg->WPA_auth);
 		}
+	}
 
 	return BCME_OK;
 }
@@ -3963,12 +3962,13 @@ wlc_ccx_calc_aironet_ie_len(void *ctx, wlc_iem_calc_data_t *data)
 
 	ccx_bsscfg_priv_t *cfgi = CCX_BSSCFG_CUBBY(ccx, cfg);
 
-	if (!CCX_ENAB(wlc->pub) || !cfgi->ccx_network)
+	if (!CCX_ENAB(wlc->pub) || !cfgi->ccx_network) {
 		return 0;
+	}
 
-		if (bi->aironet_ie_rx) {
-			return sizeof(aironet_assoc_ie_t);
-		}
+	if (bi->aironet_ie_rx) {
+		return sizeof(aironet_assoc_ie_t);
+	}
 
 	return 0;
 }
@@ -3984,27 +3984,28 @@ wlc_ccx_write_aironet_ie(void *ctx, wlc_iem_build_data_t *data)
 
 	ccx_bsscfg_priv_t *cfgi = CCX_BSSCFG_CUBBY(ccx, cfg);
 
-	if (!CCX_ENAB(wlc->pub) || !cfgi->ccx_network)
+	if (!CCX_ENAB(wlc->pub) || !cfgi->ccx_network) {
 		return BCME_OK;
+	}
 
-		if (bi->aironet_ie_rx) {
-			aironet_assoc_ie_t dev_ie;
+	if (bi->aironet_ie_rx) {
+		aironet_assoc_ie_t dev_ie;
 
-			/* add Machine Name to (re)association request message */
-			bzero(&dev_ie, sizeof(aironet_assoc_ie_t));
-			dev_ie.id = DOT11_MNG_AIRONET_ID;
-			dev_ie.len = sizeof(aironet_assoc_ie_t)-TLV_HDR_LEN;
-			dev_ie.device = AIRONET_IE_DEVICE_ID;
-			dev_ie.refresh_rate = KEEP_ALIVE_INTERVAL;
-			dev_ie.flags = (CKIP_KP | CKIP_MIC);
-			strncpy(dev_ie.name, cfgi->staname, sizeof(dev_ie.name)-1);
-			dev_ie.name[sizeof(dev_ie.name) - 1] = '\0';
-			bcopy((uint8 *)&dev_ie, data->buf, sizeof(aironet_assoc_ie_t));
+		/* add Machine Name to (re)association request message */
+		bzero(&dev_ie, sizeof(aironet_assoc_ie_t));
+		dev_ie.id = DOT11_MNG_AIRONET_ID;
+		dev_ie.len = sizeof(aironet_assoc_ie_t)-TLV_HDR_LEN;
+		dev_ie.device = AIRONET_IE_DEVICE_ID;
+		dev_ie.refresh_rate = KEEP_ALIVE_INTERVAL;
+		dev_ie.flags = (CKIP_KP | CKIP_MIC);
+		strncpy(dev_ie.name, cfgi->staname, sizeof(dev_ie.name)-1);
+		dev_ie.name[sizeof(dev_ie.name) - 1] = '\0';
+		bcopy((uint8 *)&dev_ie, data->buf, sizeof(aironet_assoc_ie_t));
 #ifdef BCMDBG
-			WL_WSEC(("wl%d: %s: JOIN: requesting full CKIP support\n",
-			         ccx->pub->unit, __FUNCTION__));
+		WL_WSEC(("wl%d: %s: JOIN: requesting full CKIP support\n",
+		         ccx->pub->unit, __FUNCTION__));
 #endif /* BCMDBG */
-		}
+	}
 	/* Driver maintains rn value for external supplicant */
 	if ((!SUP_ENAB(wlc->pub) || !BSS_SUP_ENAB_WPA(wlc->idsup, cfg)) &&
 		data->ft != FC_REASSOC_REQ &&

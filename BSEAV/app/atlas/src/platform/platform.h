@@ -113,7 +113,7 @@ protected:
     NEXUS_MemoryConfigurationSettings _memSettings;
     bool                              _bMemSettingsValid;
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    unsigned                          _lumaRangeAdj[eWindowType_Max - eWindowType_Mosaic1];
+    unsigned _lumaRangeAdj[eWindowType_Max - eWindowType_Mosaic1];
 #endif
 }; /* CPlatform */
 

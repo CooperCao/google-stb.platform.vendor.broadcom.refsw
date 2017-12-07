@@ -142,7 +142,7 @@ NEXUS_Platform_P_InitOS(void)
     state->started = true;
 
     /* use g_platformMemory to pass OS value to NEXUS_Platform_P_SetCoreModuleSettings */
-    g_platformMemory.max_dcache_line_size = 128; /* TBD nexus_driver_state.settings.max_dcache_line_size; */
+    g_platformMemory.maxDcacheLineSize = 128; /* TBD nexus_driver_state.settings.maxDcacheLineSize; */
 
     /* create ISR task */
 #if UCOS_VERSION==1
@@ -1114,7 +1114,7 @@ void NEXUS_Platform_P_GetGpioModuleOsSharedBankSettings(NEXUS_GpioModuleOsShared
 #if NEXUS_USE_CMA
 /* macros found in magnum/basemodules/chp */
 #include "../../src/common/bchp_memc_offsets_priv.h"
-NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory)
+NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformMemoryLayout *pMemory)
 {
     unsigned i;
     BCHP_MemoryInfo memoryInfo;

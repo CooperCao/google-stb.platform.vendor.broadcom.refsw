@@ -61,6 +61,8 @@ static void lock_callback(void *context, int param)
 void get_default_tune_settings(struct btune_settings *psettings)
 {
     memset(psettings, 0, sizeof(*psettings));
+    psettings->adc = 0xFFFFFFFF;
+    psettings->index = -1;
 }
 
 #if NEXUS_HAS_FRONTEND
@@ -184,10 +186,8 @@ int tune(NEXUS_ParserBand parserBand, NEXUS_FrontendHandle frontend, const struc
     case channel_source_sat:
         {
         NEXUS_FrontendSatelliteSettings satSettings;
-        NEXUS_FrontendSatelliteCapabilities cap;
 
-        NEXUS_FrontendDevice_GetSatelliteCapabilities(NEXUS_Frontend_GetDevice(frontend), &cap);
-        if (cap.numAdc > 0) {
+        if (psettings->adc != 0xFFFFFFFF) {
             NEXUS_FrontendSatelliteRuntimeSettings settings;
             NEXUS_Frontend_GetSatelliteRuntimeSettings(frontend, &settings);
             settings.selectedAdc = psettings->adc;
@@ -589,12 +589,7 @@ int bchannel_scan_restart(bchannel_scan_t scan, const bchannel_scan_start_settin
             }
         }
         if (!scan->frontend) {
-            NEXUS_FrontendAcquireSettings settings;
-            NEXUS_Frontend_GetDefaultAcquireSettings(&settings);
-            settings.capabilities.qam = (psettings->tune.source == channel_source_qam);
-            settings.capabilities.ofdm = (psettings->tune.source == channel_source_ofdm);
-            settings.capabilities.satellite = (psettings->tune.source == channel_source_sat);
-            scan->frontend = NEXUS_Frontend_Acquire(&settings);
+            scan->frontend = acquire_frontend(&psettings->tune);
             if (!scan->frontend) {
                 /* no WRN. we're just out of frontends. */
                 return NEXUS_NOT_AVAILABLE;
@@ -678,3 +673,26 @@ int main(void)
     return 0;
 }
 #endif
+
+NEXUS_FrontendHandle acquire_frontend(const struct btune_settings *psettings)
+{
+#if NEXUS_HAS_FRONTEND
+    NEXUS_FrontendAcquireSettings settings;
+    NEXUS_Frontend_GetDefaultAcquireSettings(&settings);
+
+    if (psettings->index != -1) {
+        settings.mode = NEXUS_FrontendAcquireMode_eByIndex;
+        settings.index = psettings->index;
+    }
+    else {
+        settings.mode = NEXUS_FrontendAcquireMode_eByCapabilities;
+        settings.capabilities.qam = psettings->source == channel_source_qam;
+        settings.capabilities.ofdm = psettings->source == channel_source_ofdm;
+        settings.capabilities.satellite = psettings->source == channel_source_sat;
+    }
+    return NEXUS_Frontend_Acquire(&settings);
+#else
+    BSTD_UNUSED(psettings);
+#endif
+    return NULL;
+}

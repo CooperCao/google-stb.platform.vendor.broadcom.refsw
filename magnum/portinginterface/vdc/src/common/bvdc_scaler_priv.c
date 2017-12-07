@@ -427,7 +427,7 @@ void BVDC_P_Scaler_BuildRul_isr
             BVDC_P_SCL_WRITE_TO_RUL(SCL_0_VIDEO_3D_MODE, pList->pulCurrent);
             BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_TOP_CONTROL, SCL_0_HORIZ_CONTROL, pList->pulCurrent);
 #else
-            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VIDEO_3D_MODE, SCL_0_HORIZ_DEST_PIC_REGION_3_END, pList->pulCurrent);
+            BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_VIDEO_3D_MODE, SCL_0_HORIZ_FIR_COEFF_00, pList->pulCurrent);
             BVDC_P_SCL_BLOCK_WRITE_TO_RUL(SCL_0_TOP_CONTROL, SCL_0_VERT_FIR_INIT_PIC_STEP, pList->pulCurrent);
 #endif
         }
@@ -1599,7 +1599,7 @@ void BVDC_P_Scaler_SetInfo_isr
     if(BVDC_P_RUL_UPDATE_THRESHOLD == hScaler->ulUpdateAll)
     {
         BDBG_MSG(("-------------------------"));
-        BDBG_MSG(("Scaler[%d]chan[%d]         : %dx%d to %dx%d", hScaler->eId,pPicture->ulPictureIdx,
+        BDBG_MSG(("Scaler[%d]chan[%d]  : %dx%d to %dx%d", hScaler->eId,pPicture->ulPictureIdx,
             pSclIn->ulWidth,  pSclIn->ulHeight,
             pSclOut->ulWidth, pSclOut->ulHeight));
         BDBG_MSG(("Scaler[%d]'clip    : %dx%d to %dx%d", hScaler->eId,

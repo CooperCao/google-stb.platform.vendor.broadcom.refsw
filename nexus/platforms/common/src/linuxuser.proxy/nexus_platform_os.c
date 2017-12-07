@@ -244,14 +244,14 @@ int proxy_ioctl_fd = -1;
 
 #define NEXUS_MODULE_SELF NEXUS_Platform_P_State.module
 
-void NEXUS_Platform_GetDefaultSettings_tagged_proxy(NEXUS_PlatformSettings *pSettings, size_t size);
+NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged_proxy( const NEXUS_PlatformSettings *pSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig, NEXUS_PlatformConfigCapabilities *pCap, unsigned size );
+NEXUS_Error NEXUS_Platform_InitStandby_proxy(const NEXUS_StandbySettings *pSettings);
+NEXUS_Error NEXUS_Platform_Init_tagged_proxy(const NEXUS_PlatformSettings *pSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig, unsigned platformCheck, unsigned versionCheck, unsigned structSizeCheck);
+NEXUS_Error NEXUS_Platform_GetMemory_tagged_proxy(NEXUS_PlatformMemory *memory, unsigned size);
 void NEXUS_GetDefaultMemoryConfigurationSettings_tagged_proxy( NEXUS_MemoryConfigurationSettings *pSettings, size_t size );
 void NEXUS_GetPlatformCapabilities_tagged_proxy( NEXUS_PlatformCapabilities *pCap, size_t size );
-NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged_proxy( const NEXUS_PlatformSettings *pSettings,
-    const NEXUS_MemoryConfigurationSettings *pMemConfig, NEXUS_PlatformConfigCapabilities *pCap, unsigned size );
-NEXUS_Error NEXUS_Platform_Init_tagged_proxy(const NEXUS_PlatformSettings *pSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig, unsigned platformCheck, unsigned versionCheck, unsigned structSizeCheck);
+void NEXUS_Platform_GetDefaultSettings_tagged_proxy(NEXUS_PlatformSettings *pSettings, size_t size);
 void NEXUS_Platform_Uninit_proxy(void);
-NEXUS_Error NEXUS_Platform_InitStandby_proxy(const NEXUS_StandbySettings *pSettings);
 void NEXUS_Platform_UninitStandby_proxy(void);
 
 void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_AddrType type)
@@ -555,6 +555,11 @@ NEXUS_Platform_P_OpenDriver(void)
         BDBG_ERR(("can't access device '%s'", devName));
         return NEXUS_OS_ERROR; /* no BERR_TRACE */
     }
+    rc = ioctl(fd, IOCTL_PROXY_NEXUS_Open, 0);
+    if(rc!=0) {
+        close(fd);
+        return BERR_TRACE(NEXUS_OS_ERROR);
+    }
     rc = fcntl(fd, F_SETFD, FD_CLOEXEC);
     if (rc) BERR_TRACE(rc); /* keep going */
 
@@ -602,18 +607,17 @@ NEXUS_Platform_P_UninitDriver(void)
     return;
 }
 
-static NEXUS_Error NEXUS_Platform_P_SetEnv(const char *name)
+void NEXUS_Platform_P_SetEnv(const char *name)
 {
     const char *value = NEXUS_GetEnv(name);
     if (value) {
-        char buf[32];
+        char buf[256];
         FILE *f = fopen("/proc/brcm/config", "w");
-        if (!f) return BERR_TRACE(NEXUS_UNKNOWN);
+        if (!f) {BERR_TRACE(NEXUS_UNKNOWN); return;}
         BKNI_Snprintf(buf, sizeof(buf), "%s=%s", name, value);
         fputs(buf, f);
         fclose(f);
     }
-    return NEXUS_SUCCESS;
 }
 
 /* bring up the proxy base and the driver.
@@ -637,6 +641,8 @@ static NEXUS_Error NEXUS_P_Init(void)
     /* Now, proceed to boot the board. -- Always initialize base first */
     errCode = NEXUS_Base_Init(NULL);
     if ( errCode!=BERR_SUCCESS ) { errCode = BERR_TRACE(errCode); goto err_base; }
+
+    NEXUS_Base_ExportEnvVariables();
 
     BDBG_MSG((">CORE_LOCAL"));
     errCode = NEXUS_CoreModule_LocalInit();
@@ -694,14 +700,9 @@ static NEXUS_Error NEXUS_P_Init(void)
         }
     }
 
-    rc = NEXUS_Platform_P_SetEnv("B_REFSW_BOXMODE");
-    if (rc) {BERR_TRACE(rc); goto err_boxmode;}
-
     state->init = true;
     return 0;
 
-err_boxmode:
-    NEXUS_Platform_P_UninitDriver();
 err_driver:
     NEXUS_Module_Destroy(proxy);
     state->module = NULL;
@@ -1148,6 +1149,15 @@ void NEXUS_GetPlatformCapabilities_tagged( NEXUS_PlatformCapabilities *pCap, siz
         if (NEXUS_P_Init()) return;
     }
     NEXUS_GetPlatformCapabilities_tagged_proxy(pCap, size);
+}
+
+NEXUS_Error NEXUS_Platform_GetMemory_tagged( NEXUS_PlatformMemory *memory, unsigned size )
+{
+    if (!NEXUS_Platform_P_State.init) {
+        int rc = NEXUS_P_Init();
+        if (rc) return rc;
+    }
+    return NEXUS_Platform_GetMemory_tagged_proxy(memory, size);
 }
 
 NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged(const NEXUS_PlatformSettings *pSettings,

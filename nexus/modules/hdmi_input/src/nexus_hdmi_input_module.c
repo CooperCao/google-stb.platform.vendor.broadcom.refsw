@@ -523,7 +523,8 @@ NEXUS_HdmiInputHandle NEXUS_HdmiInput_OpenWithEdid(
 
     BDBG_MSG(("Using BCM%d on-chip EDID RAM...", BCHP_CHIP)) ;
 
-    if (edidData && (edidDataSize % 128))
+    BDBG_ASSERT(edidData);
+    if (edidDataSize % 128)
     {
         BDBG_ERR(("EDID Block(s) size '%d' is not a multiple of 128", edidDataSize));
         BERR_TRACE(BERR_INVALID_PARAMETER);

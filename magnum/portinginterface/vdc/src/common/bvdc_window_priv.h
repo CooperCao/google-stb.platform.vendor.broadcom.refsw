@@ -529,31 +529,14 @@ typedef struct
     bool                          bUserSharpnessConfig;
     BVDC_SharpnessSettings        stSharpnessConfig;
 
-#if (BVDC_P_SUPPORT_TNT_VER == 5)            /* TNT2 HW base */
-    BVDC_P_SharpnessData          stSharpnessPrivData;
-#else
-    uint32_t                      ulLumaGain;
-    uint32_t                      ulSharpnessPeakSetting;
-    uint32_t                      ulSharpnessPeakScale;
-#endif
-
     /* These attributes are used for contrast stretch */
-    bool                          bContrastStretch;
     BVDC_ContrastStretch          stContrastStretch;
     /* These attributes are used for blue stretch */
-    bool                          bBlueStretch;
     BVDC_BlueStretch              stBlueStretch;
-    bool                          bUserLabLuma;
-    bool                          bUserLabCbCr;
-    uint32_t                     *pulLabCbTbl;
-    uint32_t                     *pulLabCrTbl;
-    uint32_t                     *pulLabLumaTbl;
     /* These are the CAB parameters */
-    bool                          bUserCabEnable;
     uint32_t                      ulFleshtone;
     uint32_t                      ulGreenBoost;
     uint32_t                      ulBlueBoost;
-    uint32_t                     *pulCabTable;
     BVDC_ColorBar                 stSatGain;
     BVDC_ColorBar                 stHueGain;
 
@@ -780,6 +763,7 @@ typedef struct
 
 } BVDC_P_Window_PanScanSettings;
 
+#define BVDC_P_WIN_TMP_BUF_SIZE    (8 * 4 * 4 * 4)
 /***************************************************************************
  * Window Context
  ***************************************************************************/
@@ -806,6 +790,10 @@ typedef struct BVDC_P_WindowContext
                                                 * G0_CMP_0, G0_CMP_1.
                                                 * Offset from the start of the compositor
                                                 * the window is on */
+    uint32_t                      ulTntRegOffset;
+    bool                          bTntAvail;
+    uint32_t                      ulMaskRegOffset;
+    bool                          bMaskAvail;
 
     /* Use to determine Vnet mode. */
     bool                          bDstFullScreen;
@@ -1036,6 +1024,11 @@ typedef struct BVDC_P_WindowContext
 
     bool                           bNotEnoughCapBuf;
 
+    /* tmp buf for intermidiate variables of functions that work on window,
+     * to avoid stack overflow.
+     * Currently BVDC_P_Cfc_ApplyAttenuationRGB_isr is using it */
+    uint64_t                       aullTmpBuf[BVDC_P_WIN_TMP_BUF_SIZE / 8];
+
 } BVDC_P_WindowContext;
 
 /***************************************************************************
@@ -1082,10 +1075,8 @@ void BVDC_P_Window_Destroy
 
 void BVDC_P_Window_Rts_Init
     (
-#if BVDC_P_SUPPORT_XCODE_WIN_CAP
       bool                             bCmpXcode,
       bool                             bDispNrtStg,
-#endif
       bool                            *pbForceCapture,
       BVDC_SclCapBias                 *peSclCapBias,
       uint32_t                        *pulBandwidthDelta );
@@ -1101,12 +1092,6 @@ void BVDC_P_Window_Compression_Init_isr
 void BVDC_P_Window_Init
     ( BVDC_Window_Handle               hWindow,
       BVDC_Source_Handle               hSource );
-
-#if (BVDC_P_SUPPORT_TNT_VER < 5)         /* TNT HW base */
-void BVDC_P_Window_Sharpness_Init
-    ( BVDC_Window_Handle               hWindow,
-      BVDC_SharpnessSettings          *pSharpnessConfig );
-#endif
 
 void BVDC_P_Window_BuildRul_isr
     ( BVDC_Window_Handle               hWindow,

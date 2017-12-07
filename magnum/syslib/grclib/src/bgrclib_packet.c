@@ -87,17 +87,17 @@ BGRClib_P_Data;
 */
 
 /*****************************************************************************/
-static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_FillOp[] = {
+static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_FillOp[BGRCLib_FillOp_eCount] = {
     { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eConstantColor, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eConstantColor, BM2MC_PACKET_BlendFactor_eConstantAlpha, 0, BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eInverseConstantAlpha, 0,BM2MC_PACKET_BlendFactor_eZero }
 };
-static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_FillOp[] = {
+static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_FillOp[BGRCLib_FillOp_eCount] = {
     { BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eConstantAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eInverseConstantAlpha, 0, BM2MC_PACKET_BlendFactor_eConstantAlpha, BM2MC_PACKET_BlendFactor_eConstantAlpha, 0, BM2MC_PACKET_BlendFactor_eZero }
 };
-static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_BlitOp[] = {
+static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_BlitOp[BGRCLib_BlitColorOp_Count] = {
     { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eConstantAlpha, 0, BM2MC_PACKET_BlendFactor_eDestinationColor, BM2MC_PACKET_BlendFactor_eInverseConstantAlpha, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eSourceAlpha, 0, BM2MC_PACKET_BlendFactor_eDestinationColor, BM2MC_PACKET_BlendFactor_eInverseSourceAlpha, 0, BM2MC_PACKET_BlendFactor_eZero },
@@ -107,7 +107,7 @@ static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_BlitOp[] = {
     { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eDestinationColor, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero }
 };
-static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_BlitOp[] = {
+static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_BlitOp[BGRCLib_BlitAlphaOp_Count] = {
     { BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eConstantAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eDestinationAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
@@ -117,7 +117,7 @@ static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_BlitOp[] = {
     { BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eDestinationAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero }
 };
-static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_PorterDuffFillOp[] = {
+static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_PorterDuffFillOp[BGRCLib_PorterDuffOp_Count] = {
     { BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eConstantColor, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
@@ -131,7 +131,7 @@ static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_PorterDuffFillOp[
     { BM2MC_PACKET_BlendFactor_eConstantColor, BM2MC_PACKET_BlendFactor_eInverseSourceAlpha, 0, BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eConstantAlpha, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eConstantColor, BM2MC_PACKET_BlendFactor_eInverseSourceAlpha, 0, BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eInverseConstantAlpha, 0, BM2MC_PACKET_BlendFactor_eZero }
 };
-static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_PorterDuffFillOp[] = {
+static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_PorterDuffFillOp[BGRCLib_PorterDuffOp_Count] = {
     { BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eConstantAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
@@ -145,7 +145,7 @@ static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_PorterDuffFillOp[
     { BM2MC_PACKET_BlendFactor_eConstantAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eConstantAlpha, BM2MC_PACKET_BlendFactor_eInverseSourceAlpha, 0, BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eInverseConstantAlpha, 0,  BM2MC_PACKET_BlendFactor_eZero }
 };
-static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_PorterDuffBlitOp[] = {
+static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_PorterDuffBlitOp[BGRCLib_PorterDuffOp_Count] = {
     { BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eDestinationColor, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
@@ -159,7 +159,7 @@ static const BM2MC_PACKET_Blend g_aGRClib_Packet_ColorEquation_PorterDuffBlitOp[
     { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eInverseDestinationAlpha, 0, BM2MC_PACKET_BlendFactor_eDestinationColor, BM2MC_PACKET_BlendFactor_eSourceAlpha, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eInverseDestinationAlpha, 0, BM2MC_PACKET_BlendFactor_eDestinationColor, BM2MC_PACKET_BlendFactor_eInverseSourceAlpha, 0, BM2MC_PACKET_BlendFactor_eZero }
 };
-static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_PorterDuffBlitOp[] = {
+static const BM2MC_PACKET_Blend g_aGRClib_Packet_AlphaEquation_PorterDuffBlitOp[BGRCLib_PorterDuffOp_Count] = {
     { BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
     { BM2MC_PACKET_BlendFactor_eDestinationAlpha, BM2MC_PACKET_BlendFactor_eOne, 0, BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, 0, BM2MC_PACKET_BlendFactor_eZero },
@@ -262,7 +262,7 @@ static void BGRClib_P_GetBlendEquation( BM2MC_PACKET_Blend *pEquation, const BGR
 #define BGRClib_P_SetDefaultSourceFeederPacket(grclib, pPacket) \
     ((grclib)->defaultSourceFeederPacket?(pPacket):BGRClib_P_SetSourceFeederPacket( (grclib), (pPacket), 0, DEFAULT_COLOR))
 
-static size_t *BGRClib_P_SetSourceFeederPacket( BGRClib_Handle grclib,
+static void *BGRClib_P_SetSourceFeederPacket( BGRClib_Handle grclib,
     void *pPacket, const BM2MC_PACKET_Plane *pSrcSurface, uint32_t color )
 {
     grclib->defaultSourceFeederPacket = (!pSrcSurface && color == DEFAULT_COLOR);
@@ -271,7 +271,7 @@ static size_t *BGRClib_P_SetSourceFeederPacket( BGRClib_Handle grclib,
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetStripedSourceFeederPacket( BGRClib_Handle grclib,
+static void *BGRClib_P_SetStripedSourceFeederPacket( BGRClib_Handle grclib,
     void *pPacket, const BM2MC_PACKET_StripedPlane *pSrcPlane, uint32_t color )
 {
     grclib->defaultSourceFeederPacket = false;
@@ -282,7 +282,7 @@ static size_t *BGRClib_P_SetStripedSourceFeederPacket( BGRClib_Handle grclib,
 #define BGRClib_P_SetDefaultDestinationFeederPacket(grclib, pPacket) \
     ((grclib)->defaultDestinationFeederPacket?(pPacket):BGRClib_P_SetDestinationFeederPacket( (grclib), (pPacket), NULL, DEFAULT_COLOR))
 
-static size_t *BGRClib_P_SetDestinationFeederPacket( BGRClib_Handle grclib,
+static void *BGRClib_P_SetDestinationFeederPacket( BGRClib_Handle grclib,
     void *pPacket, const BM2MC_PACKET_Plane *pSurface, uint32_t color )
 {
     grclib->defaultDestinationFeederPacket = (!pSurface && color == DEFAULT_COLOR);
@@ -291,7 +291,7 @@ static size_t *BGRClib_P_SetDestinationFeederPacket( BGRClib_Handle grclib,
 }
 
 /* the only way to cache this without comparing everything is something like BSUR's SurfaceId to know if the surface has been recreated. */
-static size_t *BGRClib_P_SetOutputFeederPacket( BGRClib_Handle grclib,
+static void *BGRClib_P_SetOutputFeederPacket( BGRClib_Handle grclib,
     void *pPacket, const BM2MC_PACKET_Plane *pSurface )
 {
     BGRC_Packet_SetOutputPlanePacket( grclib->hGRC, &pPacket, pSurface );
@@ -302,7 +302,7 @@ static size_t *BGRClib_P_SetOutputFeederPacket( BGRClib_Handle grclib,
 #define BGRClib_P_SetDefaultFillBlendPacket(grclib, pPacket) \
     ((grclib)->defaultFillBlendPacket?(pPacket):BGRClib_P_SetFillBlendPacket( (grclib), (pPacket), BGRCLib_FillOp_eCopy, BGRCLib_FillOp_eCopy, 0 ))
 
-static size_t *BGRClib_P_SetFillBlendPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetFillBlendPacket( BGRClib_Handle grclib, void *pPacket,
     BGRCLib_FillOp colorOp, BGRCLib_FillOp alphaOp, uint32_t color )
 {
     grclib->defaultBlitBlendPacket = false;
@@ -317,7 +317,7 @@ static size_t *BGRClib_P_SetFillBlendPacket( BGRClib_Handle grclib, void *pPacke
 #define BGRClib_P_SetDefaultBlitBlendPacket(grclib, pPacket) \
     ((grclib)->defaultBlitBlendPacket?(pPacket):BGRClib_P_SetBlitBlendPacket( (grclib), (pPacket), BGRCLib_BlitColorOp_eCopySource, BGRCLib_BlitAlphaOp_eCopySource, 0, 0, 0 ))
 
-static size_t *BGRClib_P_SetBlitBlendPacket( BGRClib_Handle grclib,
+static void *BGRClib_P_SetBlitBlendPacket( BGRClib_Handle grclib,
     void *pPacket, BGRCLib_BlitColorOp colorOp, BGRCLib_BlitAlphaOp alphaOp,
     const BGRClib_BlendEquation *pColorBlend, const BGRClib_BlendEquation *pAlphaBlend, uint32_t color )
 {
@@ -340,7 +340,7 @@ static size_t *BGRClib_P_SetBlitBlendPacket( BGRClib_Handle grclib,
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetPorterDuffFillBlendPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetPorterDuffFillBlendPacket( BGRClib_Handle grclib, void *pPacket,
     BGRCLib_PorterDuffOp pdOp, uint32_t color )
 {
     /* no grclib defaults */
@@ -353,7 +353,7 @@ static size_t *BGRClib_P_SetPorterDuffFillBlendPacket( BGRClib_Handle grclib, vo
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetPorterDuffBlitBlendPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetPorterDuffBlitBlendPacket( BGRClib_Handle grclib, void *pPacket,
     BGRCLib_PorterDuffOp pdOp, uint32_t color )
 {
     /* no grclib defaults */
@@ -369,7 +369,7 @@ static size_t *BGRClib_P_SetPorterDuffBlitBlendPacket( BGRClib_Handle grclib, vo
 #define BGRClib_P_SetDefaultRopPacket(grclib, pPacket) \
     ((grclib)->defaultRopPacket?(pPacket):BGRClib_P_SetRopPacket( (grclib), (pPacket), 0xCC, NULL, 0, 0))
 
-static size_t *BGRClib_P_SetRopPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetRopPacket( BGRClib_Handle grclib, void *pPacket,
     uint8_t rop, uint32_t* pattern, uint32_t color0, uint32_t color1 )
 {
     grclib->defaultRopPacket = (rop == 0xCC && pattern == NULL && color0==0 && color1==0);
@@ -381,7 +381,7 @@ static size_t *BGRClib_P_SetRopPacket( BGRClib_Handle grclib, void *pPacket,
 #define BGRClib_P_SetDefaultSourceColorkeyPacket(grclib, pPacket) \
     ((grclib)->defaultSourceColorkeyPacket?(pPacket):BGRClib_P_SetSourceColorkeyPacket( (grclib), (pPacket), false, 0, 0, 0, 0, 0))
 
-static size_t *BGRClib_P_SetSourceColorkeyPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetSourceColorkeyPacket( BGRClib_Handle grclib, void *pPacket,
     bool enable, uint32_t high, uint32_t low, uint32_t mask, uint32_t replacement, uint32_t replacement_mask )
 {
     grclib->defaultSourceColorkeyPacket = (!enable && !high && !low && !mask && !replacement && !replacement_mask);
@@ -394,7 +394,7 @@ static size_t *BGRClib_P_SetSourceColorkeyPacket( BGRClib_Handle grclib, void *p
 #define BGRClib_P_SetDefaultDestinationColorkeyPacket(grclib, pPacket) \
     ((grclib)->defaultDstColorkeyPacket?(pPacket):BGRClib_P_SetDestinationColorkeyPacket( (grclib), (pPacket), false, 0, 0, 0, 0, 0))
 
-static size_t *BGRClib_P_SetDestinationColorkeyPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetDestinationColorkeyPacket( BGRClib_Handle grclib, void *pPacket,
     bool enable, uint32_t high, uint32_t low, uint32_t mask, uint32_t replacement, uint32_t replacement_mask )
 {
     grclib->defaultDstColorkeyPacket = (!enable && !high && !low && !mask && !replacement && !replacement_mask);
@@ -404,14 +404,14 @@ static size_t *BGRClib_P_SetDestinationColorkeyPacket( BGRClib_Handle grclib, vo
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetDestinationControlPacket( BGRClib_Handle grclib, void *pPacket, bool zeroPad, bool chromaFilter )
+static void *BGRClib_P_SetDestinationControlPacket( BGRClib_Handle grclib, void *pPacket, bool zeroPad, bool chromaFilter )
 {
     BGRC_Packet_SetDestinationControl( grclib->hGRC, &pPacket, zeroPad, chromaFilter );
     return pPacket;
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetFilterPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetFilterPacket( BGRClib_Handle grclib, void *pPacket,
     BGRC_FilterCoeffs horz, BGRC_FilterCoeffs vert, BM2MC_PACKET_Rectangle *pSrcRect, BM2MC_PACKET_Rectangle *pOutRect )
 {
     /* no default value, so we cache values. the src/out rects are used to determine changes in scaling factor */
@@ -438,7 +438,7 @@ static size_t *BGRClib_P_SetFilterPacket( BGRClib_Handle grclib, void *pPacket,
 #define BGRClib_P_SetDefaultColorMatrixPacket(grclib, pPacket) \
     ((grclib)->defaultColorMatrixPacket?(pPacket):BGRClib_P_SetColorMatrixPacket( (grclib), (pPacket), NULL, 0))
 
-static size_t *BGRClib_P_SetColorMatrixPacket( BGRClib_Handle grclib,
+static void *BGRClib_P_SetColorMatrixPacket( BGRClib_Handle grclib,
     void *pPacket, const int32_t matrix[], uint32_t shift )
 {
     grclib->defaultColorMatrixPacket = (!matrix && !shift);
@@ -450,16 +450,16 @@ static size_t *BGRClib_P_SetColorMatrixPacket( BGRClib_Handle grclib,
     ((FORMAT)>=BM2MC_PACKET_PixelFormat_eA8_P8 && (FORMAT)<=BM2MC_PACKET_PixelFormat_eY8_P8)
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetSourcePalette(BGRClib_Handle grclib, void *pPacket, unsigned paletteOffset)
+static void *BGRClib_P_SetSourcePalette(BGRClib_Handle grclib, void *pPacket, unsigned paletteOffset)
 {
     BGRC_Packet_SetSourcePalette( grclib->hGRC, &pPacket, (uint64_t) paletteOffset );
-    return (size_t *)pPacket;
+    return pPacket;
 }
 
 /*****************************************************************************/
 #define BGRClib_P_SetDefaultAlphaPremultiplyPacket(grclib, pPacket) \
     ((grclib)->defaultAlphaPremultiplyPacket?(pPacket):BGRClib_P_SetAlphaPremultiplyPacket( (grclib), (pPacket), false))
-static size_t *BGRClib_P_SetAlphaPremultiplyPacket( BGRClib_Handle grclib, void *pPacket, bool enable )
+static void *BGRClib_P_SetAlphaPremultiplyPacket( BGRClib_Handle grclib, void *pPacket, bool enable )
 {
     grclib->defaultAlphaPremultiplyPacket = (!enable);
     BGRC_Packet_SetAlphaPremultiply( grclib->hGRC, &pPacket, enable );
@@ -467,7 +467,7 @@ static size_t *BGRClib_P_SetAlphaPremultiplyPacket( BGRClib_Handle grclib, void 
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetSourceFilterOrderPacket( BGRClib_Handle grclib, void *pPacket, BM2MC_PACKET_eFilterOrder sourceFilterOrder )
+static void *BGRClib_P_SetSourceFilterOrderPacket( BGRClib_Handle grclib, void *pPacket, BM2MC_PACKET_eFilterOrder sourceFilterOrder )
 {
     grclib->sourceFilterOrder = sourceFilterOrder;
     BGRC_Packet_SetFilterControlPacket( grclib->hGRC, &pPacket, false, false, false, sourceFilterOrder );
@@ -475,20 +475,20 @@ static size_t *BGRClib_P_SetSourceFilterOrderPacket( BGRClib_Handle grclib, void
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetSourceControlPacket( BGRClib_Handle grclib, void *pPacket, bool zeroPad, bool chromaFilter, bool linearDestripe )
+static void *BGRClib_P_SetSourceControlPacket( BGRClib_Handle grclib, void *pPacket, bool zeroPad, bool chromaFilter, bool linearDestripe )
 {
     BGRC_Packet_SetSourceControl( grclib->hGRC, &pPacket, zeroPad, chromaFilter, linearDestripe );
     return pPacket;
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetOutputControlPacket( BGRClib_Handle grclib, void *pPacket, bool dither, bool chromaFilter)
+static void *BGRClib_P_SetOutputControlPacket( BGRClib_Handle grclib, void *pPacket, bool dither, bool chromaFilter)
 {
     BGRC_Packet_SetOutputControl( grclib->hGRC, &pPacket, dither, chromaFilter);
     return pPacket;
 }
 
-static size_t *BGRClib_P_SetMipmapPacket( BGRClib_Handle grclib, void *pPacket, uint32_t mipLevel)
+static void *BGRClib_P_SetMipmapPacket( BGRClib_Handle grclib, void *pPacket, uint32_t mipLevel)
 {
     BGRC_Packet_SetMipmapControl( grclib->hGRC, &pPacket, mipLevel);
     return pPacket;
@@ -498,7 +498,7 @@ static size_t *BGRClib_P_SetMipmapPacket( BGRClib_Handle grclib, void *pPacket, 
 /*****************************************************************************/
 #define BGRClib_P_SetDefaultMirrorPacket(grclib, pPacket) \
     ((grclib)->defaultMirrorPacket?(pPacket):BGRClib_P_SetMirrorPacket( (grclib), (pPacket), false, false, false, false, false, false))
-static size_t *BGRClib_P_SetMirrorPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetMirrorPacket( BGRClib_Handle grclib, void *pPacket,
     uint16_t srcHorz, uint16_t srcVert, uint16_t dstHorz, uint16_t dstVert, uint16_t outHorz, uint16_t outVert )
 {
     grclib->defaultMirrorPacket = (!srcHorz && !srcVert && !dstHorz && !dstVert && !outHorz && !outVert);
@@ -510,7 +510,7 @@ static size_t *BGRClib_P_SetMirrorPacket( BGRClib_Handle grclib, void *pPacket,
 /*****************************************************************************/
 #define BGRClib_P_SetDefaultFixedScalePacket(grclib, pPacket) \
     ((grclib)->defaultFixedScalePacket?(pPacket):BGRClib_P_SetFixedScalePacket( (grclib), (pPacket), NULL))
-static size_t *BGRClib_P_SetFixedScalePacket( BGRClib_Handle grclib, void *pPacket, const BGRClib_BlitScalingControlParams *params )
+static void *BGRClib_P_SetFixedScalePacket( BGRClib_Handle grclib, void *pPacket, const BGRClib_BlitScalingControlParams *params )
 {
 #if 1
     /* the following usage of fixed_scale is going to be obsolete */
@@ -555,7 +555,7 @@ static size_t *BGRClib_P_SetFixedScalePacket( BGRClib_Handle grclib, void *pPack
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetFillPacket( BGRClib_Handle grclib,
+static void *BGRClib_P_SetFillPacket( BGRClib_Handle grclib,
     void *pPacket, BM2MC_PACKET_Rectangle *pRect )
 {
     BGRC_Packet_SetBlitPacket( grclib->hGRC, &pPacket, pRect, NULL, NULL );
@@ -563,7 +563,7 @@ static size_t *BGRClib_P_SetFillPacket( BGRClib_Handle grclib,
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetBlitPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetBlitPacket( BGRClib_Handle grclib, void *pPacket,
     BM2MC_PACKET_Rectangle *pSrcRect, BM2MC_PACKET_Rectangle *pDstRect, BM2MC_PACKET_Rectangle *pOutRect,
     BGRC_FilterCoeffs horz, BGRC_FilterCoeffs vert )
 {
@@ -580,7 +580,7 @@ static size_t *BGRClib_P_SetBlitPacket( BGRClib_Handle grclib, void *pPacket,
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_SetDestripeBlitPacket( BGRClib_Handle grclib, void *pPacket,
+static void *BGRClib_P_SetDestripeBlitPacket( BGRClib_Handle grclib, void *pPacket,
     BM2MC_PACKET_Rectangle *pSrcRect, BM2MC_PACKET_Rectangle *pOutRect )
 {
     BGRC_Packet_SetScaleBlitPacket( grclib->hGRC, &pPacket, pSrcRect, pOutRect, NULL /*(BM2MC_PACKET_Point *) pOutRect*/);
@@ -588,14 +588,17 @@ static size_t *BGRClib_P_SetDestripeBlitPacket( BGRClib_Handle grclib, void *pPa
 }
 
 /*****************************************************************************/
-static BERR_Code BGRClib_P_PacketsComplete( BGRClib_Handle grclib, size_t ulPacketSize )
+static BERR_Code BGRClib_P_PacketsComplete( BGRClib_Handle grclib, void *end, void *start )
 {
-    BERR_Code err = BGRC_Packet_SubmitPackets( grclib->hGRC, grclib->hContext, ulPacketSize );
+    BERR_Code err;
+    /* coverity[overflow_assign] - coverity sees 64 bit pointer math could overflow 32 bit integer size,
+    but this should never happen here */
+    err = BGRC_Packet_SubmitPackets( grclib->hGRC, grclib->hContext, (uint8_t*)end - (uint8_t*)start );
     return (err == BGRC_PACKET_MSG_PACKETS_INCOMPLETE) ? BERR_SUCCESS : err;
 }
 
 /*****************************************************************************/
-static size_t *BGRClib_P_GetPacketBuffer( BGRClib_Handle grclib, size_t size )
+static void *BGRClib_P_GetPacketBuffer( BGRClib_Handle grclib, unsigned size )
 {
     void *pPacket;
     size_t iAllocSize = 0;
@@ -683,7 +686,7 @@ BERR_Code BGRClib_Memset32( BGRClib_Handle grclib, uint32_t offset, uint32_t dat
     pPacket = BGRClib_P_SetDefaultFixedScalePacket(grclib, pPacket);
     pPacket = BGRClib_P_SetFillPacket( grclib, pPacket, &outRect );
 
-    err = BGRClib_P_PacketsComplete( grclib, (size_t)pPacket - (size_t)pPacketStart );
+    err = BGRClib_P_PacketsComplete( grclib, pPacket, pPacketStart);
 
     return BERR_TRACE(err);
 }
@@ -743,7 +746,7 @@ BERR_Code BGRClib_Destripe_Blit( BGRClib_Handle grclib, const BGRClib_DestripeBl
     pPacket = BGRClib_P_SetOutputControlPacket(grclib, pPacket, false, params->chromaFilter);
     pPacket = BGRClib_P_SetDestripeBlitPacket( grclib, pPacket, &srcRect, &outRect );
 
-    err = BGRClib_P_PacketsComplete( grclib, (size_t)pPacket - (size_t)pPacketStart);
+    err = BGRClib_P_PacketsComplete( grclib, pPacket, pPacketStart);
 
     return BERR_TRACE(err);
 }
@@ -787,7 +790,7 @@ BERR_Code BGRClib_Blended_Fill( BGRClib_Handle grclib, const BM2MC_PACKET_Plane 
     pPacket = BGRClib_P_SetDefaultFixedScalePacket(grclib, pPacket);
     pPacket = BGRClib_P_SetFillPacket( grclib, pPacket, &outRect );
 
-    err = BGRClib_P_PacketsComplete( grclib, (size_t)pPacket - (size_t)pPacketStart);
+    err = BGRClib_P_PacketsComplete( grclib, pPacket, pPacketStart);
 
     return BERR_TRACE(err);
 }
@@ -827,7 +830,7 @@ BERR_Code BGRClib_PorterDuffFill( BGRClib_Handle grclib, BGRCLib_PorterDuffOp pd
     pPacket = BGRClib_P_SetDefaultFixedScalePacket(grclib, pPacket);
     pPacket = BGRClib_P_SetFillPacket( grclib, pPacket, &outRect );
 
-    err = BGRClib_P_PacketsComplete( grclib, (size_t)pPacket - (size_t)pPacketStart);
+    err = BGRClib_P_PacketsComplete( grclib, pPacket, pPacketStart);
 
     return BERR_TRACE(err);
 }
@@ -882,7 +885,7 @@ BERR_Code BGRClib_PorterDuffBlit( BGRClib_Handle grclib, BGRCLib_PorterDuffOp pd
     pPacket = BGRClib_P_SetBlitPacket( grclib, pPacket, &srcRect, pDstSurface ? &dstRect : NULL, &outRect,
         BGRC_FilterCoeffs_ePointSample, BGRC_FilterCoeffs_ePointSample );
 
-    err = BGRClib_P_PacketsComplete( grclib, (size_t)pPacket - (size_t)pPacketStart);
+    err = BGRClib_P_PacketsComplete( grclib, pPacket, pPacketStart);
 
     return BERR_TRACE(err);
 }
@@ -1043,7 +1046,7 @@ BERR_Code BGRClib_Blit( BGRClib_Handle grclib, const BGRClib_BlitParams *params,
 
     pPacket = BGRClib_P_SetBlitPacket( grclib, pPacket, &srcRect, params->dstSurface ? &dstRect : NULL, &outRect, params->horzFilter, params->vertFilter );
 
-    err = BGRClib_P_PacketsComplete( grclib, (size_t)pPacket - (size_t)pPacketStart);
+    err = BGRClib_P_PacketsComplete( grclib, pPacket, pPacketStart);
 
     return BERR_TRACE(err);
 }

@@ -853,11 +853,15 @@ wl_phymsglevel(void *wl, cmd_t *cmd, char **argv)
 		}
 		/* not an integer if not all the string was parsed by strtoul */
 		if (*endptr != '\0') {
-			for (i = 0; (val = phy_msg[i].value); i++)
-				if (stricmp(phy_msg[i].string, s) == 0)
+			for (i = 0; (val = phy_msg[i].value); i++) {
+				if (stricmp(phy_msg[i].string, s) == 0) {
 					break;
-				if (!val)
-					goto usage;
+				}
+			}
+
+			if (!val) {
+				goto usage;
+			}
 		}
 		if (**argv == '-')
 			phymsglevel_del |= val;
@@ -2435,21 +2439,23 @@ wl_phy_rssi_gain_delta_2g_sub(void *wl, cmd_t *cmd, char **argv)
 	}
 
 	if (!*++argv) {
-		if ((err = wlu_iovar_get(wl, cmd->name, deltaValues, sizeof(deltaValues))) < 0)
+		if ((err = wlu_iovar_get(wl, cmd->name, deltaValues, sizeof(deltaValues))) < 0) {
 			return err;
-			N = 27; /* 9 entries per core, 43602WLCSP - 27 MAX entried;
-					 * 4350 - 18 MAX entries; 4345 9 MAX entries
-					 */
-			for (i = 0; i < N; i++) {
+		}
+		N = 27; /* 9 entries per core, 43602WLCSP - 27 MAX entried;
+				 * 4350 - 18 MAX entries; 4345 9 MAX entries
+				 */
+		for (i = 0; i < N; i++) {
 			if (i%9 == 0 && i > 0) {
 				printf("\n");
 				if (deltaValues[i] == -1) break;
 			}
 
-				printf("%d ", deltaValues[i]);
+			printf("%d ", deltaValues[i]);
 		}
-		if (i == N)
+		if (i == N) {
 			printf("\n");
+		}
 	} else {
 		int argc = 0;
 		int index = 0;

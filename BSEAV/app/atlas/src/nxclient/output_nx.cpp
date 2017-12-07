@@ -316,10 +316,10 @@ CAudioVolume COutputHdmiNx::getVolume()
 
     settings.volumeType = NEXUS_AudioVolumeType_eLinear;
     NxClient_GetAudioSettings(&settings);
-    volume._volumeType = settings.hdmi.volumeType;
-    volume._left       = settings.hdmi.leftVolume;
-    volume._right      = settings.hdmi.rightVolume;
-    volume._muted      = settings.hdmi.muted;
+    volume._volumeType = settings.volumeType;
+    volume._left       = settings.leftVolume;
+    volume._right      = settings.rightVolume;
+    volume._muted      = settings.muted;
 
     return(volume);
 }
@@ -331,10 +331,10 @@ eRet COutputHdmiNx::setVolume(CAudioVolume volume)
     eRet                   ret    = eRet_Ok;
 
     NxClient_GetAudioSettings(&settings);
-    settings.hdmi.volumeType  = volume._volumeType;
-    settings.hdmi.leftVolume  = volume._left;
-    settings.hdmi.rightVolume = volume._right;
-    settings.hdmi.muted       = volume._muted;
+    settings.volumeType  = volume._volumeType;
+    settings.leftVolume  = volume._left;
+    settings.rightVolume = volume._right;
+    settings.muted       = volume._muted;
 
     nerror = NxClient_SetAudioSettings(&settings);
     CHECK_NEXUS_ERROR_GOTO("unable to set nxclient audio settings", ret, nerror, error);

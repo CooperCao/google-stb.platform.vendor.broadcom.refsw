@@ -327,36 +327,36 @@ static const char * const CeaAudioTypeText[] =
 	"WMA Pro",	"Reserved15"
 } ;
 
-BHDM_EDID_P_AUDIO_FORMATS BcmSupportedAudioFormats [] =
+static const BHDM_EDID_P_AUDIO_FORMATS BcmSupportedAudioFormats[] =
 {
-	{BHDM_EDID_P_AudioFormat_ePCM,   BAVC_AudioFormat_ePCM},
-	{BHDM_EDID_P_AudioFormat_eAC3,   BAVC_AudioFormat_eAC3},
-	{BHDM_EDID_P_AudioFormat_eMPEG1, BAVC_AudioFormat_eMPEG1},
-	{BHDM_EDID_P_AudioFormat_eMP3,   BAVC_AudioFormat_eMP3},
-	{BHDM_EDID_P_AudioFormat_eMPEG2, BAVC_AudioFormat_eMPEG2},
-	{BHDM_EDID_P_AudioFormat_eAAC,   BAVC_AudioFormat_eAAC},
-	{BHDM_EDID_P_AudioFormat_eDTS,   BAVC_AudioFormat_eDTS}
+	{BHDM_EDID_P_AudioFormat_ePCM,   BAVC_AudioCompressionStd_ePcm},
+	{BHDM_EDID_P_AudioFormat_eAC3,   BAVC_AudioCompressionStd_eAc3},
+	{BHDM_EDID_P_AudioFormat_eMPEG1, BAVC_AudioCompressionStd_eMpegL1},
+	{BHDM_EDID_P_AudioFormat_eMP3,   BAVC_AudioCompressionStd_eMpegL3},
+	{BHDM_EDID_P_AudioFormat_eMPEG2, BAVC_AudioCompressionStd_eMpegL2},
+	{BHDM_EDID_P_AudioFormat_eAAC,   BAVC_AudioCompressionStd_eAac},
+	{BHDM_EDID_P_AudioFormat_eDTS,   BAVC_AudioCompressionStd_eDts}
 
 #if BHDM_CONFIG_AUDIO_SUPPORT_DDP
-	, {BHDM_EDID_P_AudioFormat_eDDPlus, BAVC_AudioFormat_eDDPlus}
+	, {BHDM_EDID_P_AudioFormat_eDDPlus, BAVC_AudioCompressionStd_eAc3Plus}
 #endif
 
 #if BHDM_CONFIG_AUDIO_SUPPORT_DTSHD
-	, {BHDM_EDID_P_AudioFormat_eDTSHD, BAVC_AudioFormat_eDTSHD}
+	, {BHDM_EDID_P_AudioFormat_eDTSHD, BAVC_AudioCompressionStd_eDtshd}
 #endif
 
 #if BHDM_CONFIG_AUDIO_SUPPORT_MATMLP
-	, {BHDM_EDID_P_AudioFormat_eMATMLP, BAVC_AudioFormat_eMATMLP}
+	, {BHDM_EDID_P_AudioFormat_eMATMLP, BAVC_AudioCompressionStd_eMlp}
 #endif
 
 #if BHDM_CONFIG_AUDIO_SUPPORT_WMAPRO
-	, {BHDM_EDID_P_AudioFormat_eWMAPro, BAVC_AudioFormat_eWMAPro}
+	, {BHDM_EDID_P_AudioFormat_eWMAPro, BAVC_AudioCompressionStd_eWmaPro}
 #endif
 
 #if 0
-	, {BHDM_EDID_P_AudioFormat_eATRAC, BAVC_AudioFormat_eATRAC}
-	, {BHDM_EDID_P_AudioFormat_eOneBit, BAVC_AudioFormat_eOneBit}
-	, {BHDM_EDID_P_AudioFormat_eDST,	 BAVC_AudioFormat_eDST}
+	, {BHDM_EDID_P_AudioFormat_eATRAC, BAVC_AudioCompressionStd_eMax}
+	, {BHDM_EDID_P_AudioFormat_eOneBit, BAVC_AudioCompressionStd_eMax}
+	, {BHDM_EDID_P_AudioFormat_eDST,	 BAVC_AudioCompressionStd_eMax}
 #endif
 
  } ;
@@ -528,9 +528,10 @@ BERR_Code BHDM_EDID_GetNthBlock(
 				const uint8_t *DebugRxEdid ;
 
 				BDBG_WRN(("<$$$ BHDM_CONFIG_DEBUG_EDID_PROCESSING  $$$>")) ;
-				BDBG_WRN(("<$$$ Using EDID declared in bhdm_edid_debug.c $$$>")) ;
+				BDBG_WRN(("<$$$ DEBUG_EDID: Using EDID declared in bhdm_edid_debug.c Block: %d $$$>",
+					BlockNumber)) ;
 
-				DebugRxEdid = BHDM_EDID_P_GetDebugEdid() ;
+				DebugRxEdid = BHDM_EDID_P_GetDebugEdid(hHDMI) ;
 
 				BKNI_Memcpy(pBuffer,
 					DebugRxEdid + (uint8_t) (BHDM_EDID_BLOCKSIZE * (BlockNumber % 2)) + (BHDM_EDID_BLOCKSIZE * 2 * uiSegment),
@@ -911,7 +912,7 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 			continue ;
 
 		pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
-		if (!pVideoFormatInfo)
+		if (pVideoFormatInfo == NULL)
 		{
 #if 0
 			/* debug format not found / unknown */
@@ -1296,6 +1297,12 @@ BcmSupportedFormatFound:
 			if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[eVideoFmt])
 			{
 				pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
+				if (pVideoFormatInfo == NULL)
+				{
+					BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+					rc= BERR_TRACE(BERR_NOT_INITIALIZED) ;
+					return rc ;
+				}
 				BDBG_MSG(("Overriding DetailTiming #%d (1366x768p/1360x768p) to %s",
 					NthTimingRequested, pVideoFormatInfo->pchFormatStr));
 				BSTD_UNUSED(pVideoFormatInfo) ; /* supress coverity message for non-debug builds */
@@ -1808,11 +1815,10 @@ BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport(
 	uint8_t
 		i,
 		FormatFound,
-		EdidAudioSamplingRate,
-		EdidAudioBits,
-		EdidMaxCompressedBitRate ;
+		EdidAudioSamplingRate ;
 
 	uint8_t RxDeviceAttached ;
+	BAVC_AudioCompressionStd eAudioCompressionStd ;
 
 	BDBG_ENTER(BHDM_EDID_CheckRxHdmiAudioSupport) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
@@ -1833,6 +1839,33 @@ BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport(
 		goto done ;
 	}
 
+	switch (eAudioFormat)
+	{
+	case BAVC_AudioFormat_ePCM    : eAudioCompressionStd = BAVC_AudioCompressionStd_ePcm ; break ;
+	case BAVC_AudioFormat_eAC3    : eAudioCompressionStd = BAVC_AudioCompressionStd_eAc3 ; break ;
+	case BAVC_AudioFormat_eMPEG1  : eAudioCompressionStd = BAVC_AudioCompressionStd_eMpegL1; break ;
+	case BAVC_AudioFormat_eMP3    : eAudioCompressionStd = BAVC_AudioCompressionStd_eMpegL3; break ;
+	case BAVC_AudioFormat_eMPEG2  : eAudioCompressionStd = BAVC_AudioCompressionStd_eMpegL2; break ;
+	case BAVC_AudioFormat_eAAC    : eAudioCompressionStd = BAVC_AudioCompressionStd_eAac; break ;
+	case BAVC_AudioFormat_eDTS    : eAudioCompressionStd = BAVC_AudioCompressionStd_eDts; break ;
+	case BAVC_AudioFormat_eDDPlus : eAudioCompressionStd = BAVC_AudioCompressionStd_eAc3Plus; break ;
+	case BAVC_AudioFormat_eDTSHD  : eAudioCompressionStd = BAVC_AudioCompressionStd_eDtshd; break ;
+	case BAVC_AudioFormat_eMATMLP : eAudioCompressionStd = BAVC_AudioCompressionStd_eMlp; break ;
+	case BAVC_AudioFormat_eWMAPro : eAudioCompressionStd = BAVC_AudioCompressionStd_eWmaPro; break ;
+
+	/* Unsupported Audio formats over HDMI */
+	case BAVC_AudioFormat_eAVS	  :
+	case BAVC_AudioFormat_eATRAC  :
+	case BAVC_AudioFormat_eDST	  :
+	case BAVC_AudioFormat_eOneBit :
+	case BAVC_AudioFormat_eMaxCount :
+	default :
+		BDBG_ERR(("Unknown/Unsupported BAVC_AudioFormat %d", eAudioFormat)) ;
+		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
+		goto done ;
+	}
+
+
 	/* 1st check for requested format */
 	if(!hHDMI->AttachedEDID.BcmSupportedAudioFormats[eAudioFormat].Supported)
 		goto done ;
@@ -1852,8 +1885,7 @@ BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport(
 	if (EdidAudioSamplingRate == BAVC_AudioSamplingRate_eUnknown)
 		goto done ;
 
-	if (!(EdidAudioSamplingRate
-		& hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].ucCeaSampleRates))
+	if (!hHDMI->AttachedEDID.BcmSupportedAudioFormats[eAudioFormat].bSampleRates[eAudioSamplingRate])
 		goto done ;
 
 
@@ -1862,39 +1894,31 @@ BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport(
 	/* monitor supports for the requested Audio Format etc  */
 
 
-	EdidAudioBits =
-		hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].ucCeaNBits_BitRate ;
-
 	FormatFound = 0 ;
 	/* get the number of bits supported by this format */
-	if (eAudioFormat != BAVC_AudioFormat_ePCM) /* compressed */
-	{										   /*  formats   */
-		/* Max Bit Rate = EdidAudioBits * 8 */
-		EdidMaxCompressedBitRate = EdidAudioBits * 8 ;
-		if (iCompressedBitRate  <= EdidMaxCompressedBitRate)
+	if (eAudioCompressionStd != BAVC_AudioCompressionStd_ePcm) /* compressed formats */
+	{
+		if (iCompressedBitRate <= hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].dataType.compressed.BitRate)
 		{
 			BDBG_MSG(("<%.*s> Max Bit Rate Supported: %d",
-					BHDM_EDID_DESC_ASCII_STRING_LEN, hHDMI->AttachedEDID.MonitorName,
-					EdidMaxCompressedBitRate)) ;
+				BHDM_EDID_DESC_ASCII_STRING_LEN, hHDMI->AttachedEDID.MonitorName,
+				hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].dataType.compressed.BitRate)) ;
 			FormatFound = 1 ;
 		}
-	} /* if compressed formats */
-	else									 /* uncompressed */
-	{										 /*     PCM      */
-		if (EdidAudioBits & 0x01)           EdidAudioBits = 16 ;
-		else if (EdidAudioBits & 0x02)		EdidAudioBits = 20 ;
-		else if (EdidAudioBits & 0x04)		EdidAudioBits = 24 ;
-		else
+	}
+	else                                            /* else uncompressed PCM */
+	{
+		if (eAudioBits >= BAVC_AudioBits_eMax)
 		{
-			BDBG_ERR(("Unknown Supported Bit Rate")) ;
+			BDBG_ERR(("Unknown Supported Bit Rate: %d", eAudioBits)) ;
 			rc = BERR_TRACE(BHDM_EDID_HDMI_UNKNOWN_BIT_RATE) ;
 			goto done ;
 		}
 
-		/* check if the number of bits matches the requested value */
-		if (eAudioBits == BAVC_AudioBits_e16)		FormatFound = (EdidAudioBits == 16) ;
-		else if (eAudioBits == BAVC_AudioBits_e20)	FormatFound = (EdidAudioBits == 20) ;
-		else if (eAudioBits == BAVC_AudioBits_e24)	FormatFound = (EdidAudioBits == 24) ;
+		if (hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].dataType.pcm.bBitDepths[eAudioBits])
+		{
+			FormatFound = 1 ;
+		}
 	} /* else uncompressed formats */
 
 
@@ -2144,6 +2168,13 @@ BERR_Code BHDM_EDID_VideoFmtSupported(
 	}
 #endif
 
+	/* VGA is supported by all RXs */
+	if (eVideoFmt == BFMT_VideoFmt_eDVI_640x480p)
+	{
+		*Supported = 1 ;
+		goto done ;
+	}
+
 	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto error;
@@ -2168,6 +2199,12 @@ BERR_Code BHDM_EDID_VideoFmtSupported(
 		if (!hHDMI->AttachedEDID.UnsupportedVideoFormatReported[eVideoFmt])
 		{
 			pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
+			if (pVideoFormatInfo == NULL)
+			{
+				BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+				rc= BERR_TRACE(BERR_NOT_INITIALIZED) ;
+				return rc ;
+			}
 
 			BDBG_MSG(("%-30s %4d x %4d %c NOT SUPPORTED by attached <%.13s> receiver",
 				pVideoFormatInfo->pchFormatStr,
@@ -2399,7 +2436,7 @@ static BERR_Code BHDM_EDID_P_ParseVideoDB(
 					continue ;
 
 				pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
-				if (!pVideoFormatInfo)
+				if (pVideoFormatInfo == NULL)
 					continue;
 
 				/* Skip 3D formats */
@@ -2671,7 +2708,7 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420VideoDB(
 					continue ;
 
 				pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
-				if (!pVideoFormatInfo)
+				if (pVideoFormatInfo == NULL)
 					continue;
 
 				/* Skip 3D formats */
@@ -2791,27 +2828,59 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 			break ;
 		}
 
-		pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(pVideoDescriptor->eVideoFmt) ;
-
-#if 0
 		/* debug message for CapabilityByte/Bit Mask */
 		BDBG_MSG((" Capability Byte 0x%02x BitMask 0x%02x", CapabilityByte, CapabilityBitMask)) ;
-#endif
 
 		/* check if 4:2:0 format is supported */
 		if (CapabilityByte & CapabilityBitMask )
 		{
 			hHDMI->AttachedEDID.BcmSupported420VideoFormats[pVideoDescriptor->eVideoFmt] = true ;
-			BDBG_MSG(("   YCbCr 4:2:0 %s ", pVideoFormatInfo->pchFormatStr)) ;
+			pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(pVideoDescriptor->eVideoFmt) ;
+			if (pVideoFormatInfo == NULL)
+			{
+				/* report and continue for next format */
+				BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+				(void) BERR_TRACE(BERR_NOT_INITIALIZED) ;
+			}
+			else
+			{
+				BDBG_MSG(("   YCbCr 4:2:0 %s ", pVideoFormatInfo->pchFormatStr)) ;
+			}
 		}
 	}
 
 	hHDMI->AttachedEDID.BcmSupported420VideoFormatsChecked = 1 ;
 
-	BSTD_UNUSED(pVideoFormatInfo);
 	return rc ;
 }
 
+
+/******************************************************************************
+Summary:
+Return status bool of existence of MaxBitRate in Audio Descriptor based on Audio Format
+
+*******************************************************************************/
+static bool BHDM_EDID_P_AudioDecriptorHasMaxBitRate(BAVC_AudioCompressionStd BcmAudioFormat)
+{
+	bool bHasMaxBitRate = false ;
+
+	switch (BcmAudioFormat)
+	{
+	case BAVC_AudioCompressionStd_eAc3 :
+	case BAVC_AudioCompressionStd_eMpegL1 :
+	case BAVC_AudioCompressionStd_eMpegL3 :
+	case BAVC_AudioCompressionStd_eMpegL2 :
+	case BAVC_AudioCompressionStd_eAac :
+	case BAVC_AudioCompressionStd_eDts :
+		bHasMaxBitRate = true ;
+		break ;
+
+	default :
+		bHasMaxBitRate = false ;
+	}
+
+	return bHasMaxBitRate ;
+}
 
 /******************************************************************************
 Summary:
@@ -2830,13 +2899,13 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 	uint8_t
 		i, j, /* indexes */
 		NumAudioDescriptors,
-		BcmAudioFormat,
 		SampleRateFound,
 		EdidAudioFormat,
 		EdidAudioMaxChannels,
 		EdidAudioSampleRate,
-		EdidAudioBits ;
+		AudioDescriptorByte3 ;
 
+	BAVC_AudioCompressionStd BcmAudioFormat ;
 
 	NumAudioDescriptors = DataBlockLength / 3 ;
 
@@ -2844,9 +2913,9 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 
 	for (j = 0 ; j < NumAudioDescriptors ; j++)
 	{
-		EdidAudioFormat        = hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 1] ;
-		EdidAudioSampleRate = hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 2] ;
-		EdidAudioBits             = hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 3] ;
+		EdidAudioFormat      = hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 1] ;
+		EdidAudioSampleRate  = hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 2] ;
+		AudioDescriptorByte3 = hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 3] ;
 
 		EdidAudioFormat = EdidAudioFormat & 0x7F ; /* clear reserved bit */
 		EdidAudioMaxChannels = (EdidAudioFormat & 0x07) + 1 ; /* max channels */
@@ -2854,7 +2923,7 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 
 		/************************************************/
 		/* 1st check if format is supported  */
-		BcmAudioFormat = BAVC_AudioFormat_eMaxCount ;
+		BcmAudioFormat = BAVC_AudioCompressionStd_eMax ;
 		for (i = 0; i < sizeof(BcmSupportedAudioFormats) / sizeof(*BcmSupportedAudioFormats) ; i++)
 		{
 			if (EdidAudioFormat == BcmSupportedAudioFormats[i].EdidAudioFormat)
@@ -2864,9 +2933,10 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 			}
 		}
 
-		if (BcmAudioFormat == BAVC_AudioFormat_eMaxCount)
+		if (BcmAudioFormat == BAVC_AudioCompressionStd_eMax)
 		{
-			BDBG_MSG(("%s - **** NOT Implemented/Supported by BCM%d ; [%02X %02X %02X]",
+			BDBG_MSG(("%s - **** NOT Implemented/Supported by BCM%d ; "
+				      "Audio Descriptor: [%02X %02X %02X]",
 				CeaAudioTypeText[EdidAudioFormat],  BCHP_CHIP,
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 1],
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 2],
@@ -2904,36 +2974,41 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 
 		if (EdidAudioFormat != BHDM_EDID_P_AudioFormat_ePCM) /* compressed */
 		{										           /*  formats   */
-			/* Max Bit Rate = EdidAudioBits * 8 */
-			EdidAudioBits = EdidAudioBits /** 8*/ ;
-
-#if !BDBG_NO_LOG
 			/* display debug information */
-			BDBG_MSG(("Found BCM supported CEA-861 Audio: %s - %d Ch [%d max bit rate] ; [%02X %02X %02X]",
+			BDBG_MSG(("Found BCM supported CEA-861 Audio: %s - %d Ch ; "
+			          "Audio Descriptor: [%02X %02X %02X]",
 				CeaAudioTypeText[EdidAudioFormat],
-				EdidAudioMaxChannels, EdidAudioBits *8,
+				EdidAudioMaxChannels,
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 1],
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 2],
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 3])) ;
 
-			/* show the supported sample rates */
-			for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates); i++)
+			if (BHDM_EDID_P_AudioDecriptorHasMaxBitRate(BcmAudioFormat))
 			{
-				/* check that at least one sample rate is supported */
-				if (EdidAudioSampleRate & BcmSupportedAudioSampleRates[i].EdidAudioSampleRate)
-				{
-					BDBG_MSG(("   Sample Rate %s", CeaAudioSampleRateTypeText[i])) ;
-				}
+				hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].dataType.compressed.BitRate =
+					AudioDescriptorByte3 * 8 ;
+				BDBG_MSG(("   Max Bit Rate: %d",
+					hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].dataType.compressed.BitRate)) ;
 			}
-#endif
+			else
+			{
+				hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].dataType.compressed.formatDependentValue =
+					AudioDescriptorByte3 ;
+			}
 		} /* END if compressed formats */
 		else									 /* uncompressed */
 		{										 /*     PCM      */
 			uint8_t uiAudioSampleSize ;
 
-			if (EdidAudioBits & 0x04)       uiAudioSampleSize = 24 ;
-			else if (EdidAudioBits & 0x02)	uiAudioSampleSize = 20 ;
-			else if (EdidAudioBits & 0x01)	uiAudioSampleSize = 16 ;
+			for (i = 0 ; i < BAVC_AudioBits_eMax ; i++)
+			{
+				hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].dataType.pcm.bBitDepths[i] =
+					AudioDescriptorByte3 & (1 << i) ;
+			}
+
+			if      (AudioDescriptorByte3 & 0x04)   uiAudioSampleSize = 24 ;
+			else if (AudioDescriptorByte3 & 0x02)	uiAudioSampleSize = 20 ;
+			else if (AudioDescriptorByte3 & 0x01)	uiAudioSampleSize = 16 ;
 			else
 			{
 				BDBG_WRN(("Unknown/Un-Supported Bit Rate")) ;
@@ -2941,28 +3016,30 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 				continue ;
 			}
 
-#if !BDBG_NO_LOG
 			/* display debug information */
-			BDBG_MSG(("Found BCM supported CEA-861 Audio: %s - %d Ch [up to %d bits] ; [%02X %02X %02X]",
+			BDBG_MSG(("Found BCM supported CEA-861 Audio: %s - %d Ch [up to %d bits] ; "
+			          "Audio Descriptor: [%02X %02X %02X]",
 				CeaAudioTypeText[EdidAudioFormat],
 				EdidAudioMaxChannels, uiAudioSampleSize,
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 1],
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 2],
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 3])) ;
-
-			/* show the supported sample rates */
-			for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates); i++)
-				/* check that at least one sample rate is supported */
-				if (EdidAudioSampleRate & BcmSupportedAudioSampleRates[i].EdidAudioSampleRate)
-				{
-					BDBG_MSG(("   Sample Rate %s", CeaAudioSampleRateTypeText[i])) ;
-				}
-#endif
 		} /* END ELSE uncompressed formats */
 
-		/* update audio supported information */
 
+		/* update audio supported information */
 		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].Supported = 1 ;
+
+		/* update supported sample rates */
+		for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates); i++)
+		{
+			/* check that at least one sample rate is supported */
+			if (EdidAudioSampleRate & BcmSupportedAudioSampleRates[i].EdidAudioSampleRate)
+			{
+				BDBG_MSG(("   Sample Rate %s", CeaAudioSampleRateTypeText[i])) ;
+				hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].bSampleRates[i] = true ;
+			}
+		}
 
 		/* update supported format only if descriptor contains a larger number of Audio Channels */
 		if (EdidAudioMaxChannels > hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].AudioChannels )
@@ -2970,12 +3047,6 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 			hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].AudioChannels
 				= EdidAudioMaxChannels ;
 		}
-
-		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].ucCeaSampleRates
-			= EdidAudioSampleRate ;
-
-		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].ucCeaNBits_BitRate
-			= EdidAudioBits ;
 	} /* for each CEA Audio Format Code Found in EDID */
 
 	return rc ;
@@ -3000,7 +3071,7 @@ static void BHDM_EDID_P_SetSupportedMatchingFmts(
 		*pSupportedVideoFormatInfo ;
 
 	pSupportedVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(eVideoFmt) ;
-	if (!pSupportedVideoFormatInfo)
+	if (pSupportedVideoFormatInfo == NULL)
 	{
 		/* BFMT_VideoFmt_eCustom2 is used. BFMT does not have any
 				information on this format so it returns NULL.
@@ -3026,7 +3097,7 @@ static void BHDM_EDID_P_SetSupportedMatchingFmts(
 			continue ;
 
 		pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt) i) ;
-		if (!pVideoFormatInfo)
+		if (pVideoFormatInfo == NULL)
 			continue;
 
 		/* 1st, Check if Pixel Format matches */
@@ -3209,13 +3280,20 @@ BERR_Code BHDM_EDID_GetSupportedAudioFormats(
 	BDBG_ENTER(BHDM_EDID_GetSupportedAudioFormats) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
+	BKNI_Memset(BcmAudioFormats, 0, sizeof(hHDMI->AttachedEDID.BcmSupportedAudioFormats)) ;
+
 	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
 	}
 
-	BKNI_Memset(BcmAudioFormats, 0, sizeof(hHDMI->AttachedEDID.BcmSupportedAudioFormats)) ;
+	if (!hHDMI->AttachedEDID.RxHasHdmiSupport)
+	{
+		BDBG_WRN(("Attached device <%s> does not support Audio",
+			hHDMI->AttachedEDID.MonitorName)) ;
+		goto done ;
+	}
 
 	if (hHDMI->AttachedEDID.BcmAudioFormatsChecked == 0)
 	{
@@ -3902,19 +3980,19 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 		BDBG_WRN(("Attached HDMI device '%s' does not support audio",
 			hHDMI->AttachedEDID.MonitorName)) ;
 	}
-	else if (!hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioFormat_ePCM].Supported)
+	else if (!hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioCompressionStd_ePcm].Supported)
 	{
 		/* all HDMI Rx that set VSDB.Audio must support Basic Audio (eg 2 Ch PCM)
 		 although not all devices explicitly specify it in Audio Descriptors */
 		BDBG_WRN(("VSDB implies audio support, but no PCM Audio Descriptors found; Assuming 2Ch PCM support")) ;
 
 		/* all HDMI Rxs are required to support PCM Audio; list 48KHz PCM as supported */
-		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioFormat_ePCM].Supported = 1 ;
-		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioFormat_ePCM].AudioChannels = 2 ;
-		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioFormat_ePCM].ucCeaSampleRates
-			= BAVC_AudioSamplingRate_e48k ;
-		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioFormat_ePCM].ucCeaNBits_BitRate
-			= 1 ;	/* 16 bits */
+		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioCompressionStd_ePcm].Supported = 1 ;
+		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioCompressionStd_ePcm].AudioChannels = 2 ;
+
+		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioCompressionStd_ePcm].dataType.pcm.bBitDepths[BAVC_AudioBits_e16] = true ;
+		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioCompressionStd_ePcm].bSampleRates[BAVC_AudioSamplingRate_e48k] = true ;
+
 		hHDMI->AttachedEDID.BcmAudioFormatsChecked = 1 ;
 	}
 
@@ -4949,17 +5027,13 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 	}
 
 	{
-		BAVC_AudioFormat BcmAudioFormat ;
+		BAVC_AudioCompressionStd BcmAudioFormat ;
 		uint8_t EdidAudioFormat ;
-		uint8_t EdidAudioSampleRate ;
-		uint8_t uiAudioSampleSize ;
-		uint8_t EdidAudioBits ;
-
 
 		BDBG_LOG((ucDataBlockHeaderFormat, "Audio")) ;
 		BDBG_LOG(("Supported audio formats:")) ;
 
-		for (BcmAudioFormat = 0 ; BcmAudioFormat < BAVC_AudioFormat_eMaxCount ; BcmAudioFormat++)
+		for (BcmAudioFormat = 0 ; BcmAudioFormat < BAVC_AudioCompressionStd_eMax ; BcmAudioFormat++)
 		{
 			if (hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].Supported)
 			{
@@ -4980,41 +5054,41 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 					continue ;
 				}
 
-				if (BcmAudioFormat != BAVC_AudioFormat_ePCM)  /* COMPRESSED */
+				if (BcmAudioFormat != BAVC_AudioCompressionStd_ePcm)  /* COMPRESSED */
 				{
-					BDBG_LOG(("   %s - %d Ch [up to %d bits]",
-						CeaAudioTypeText[EdidAudioFormat],
-						hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].AudioChannels ,
-						hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].ucCeaNBits_BitRate * 8)) ;
+					if (BHDM_EDID_P_AudioDecriptorHasMaxBitRate(BcmAudioFormat))
+					{
+						BDBG_LOG(("   %s - %d Ch [Max Bit Rate: %d]",
+							CeaAudioTypeText[EdidAudioFormat],
+							hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].AudioChannels,
+							hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].dataType.compressed.BitRate)) ;
+					}
+					else
+					{
+						BDBG_LOG(("   %s - Format dependent value: %d]",
+							CeaAudioTypeText[EdidAudioFormat],
+							hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].dataType.compressed.formatDependentValue)) ;
+					}
 				}
 				else                                    /* UNCOMPRESSED PCM */
 				{
-					EdidAudioBits =
-						hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].ucCeaNBits_BitRate ;
-
-					if        (EdidAudioBits & 0x04) uiAudioSampleSize = 24 ;
-					else if (EdidAudioBits & 0x02) uiAudioSampleSize = 20 ;
-					else if (EdidAudioBits & 0x01) uiAudioSampleSize = 16 ;
-					else
-					{
-						BDBG_WRN(("Error printing Audio DB formats; Unknown/Un-Supported Bit Rate")) ;
-						/* rc = BHDM_EDID_HDMI_UNKNOWN_BIT_RATE ; */
-						continue ;
-					}
-
-					BDBG_LOG(("   %s - %d Ch [up to %d bits]",
+					BDBG_LOG(("   %s - %d Ch",
 						CeaAudioTypeText[EdidAudioFormat],
-						hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].AudioChannels,
-						uiAudioSampleSize)) ;
+						hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].AudioChannels)) ;
+					for (i = 0 ;  i < BAVC_AudioBits_eMax ; i++)
+					{
+						if (hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].dataType.pcm.bBitDepths[i])
+						{
+							BDBG_LOG(("      %s bit supported",
+								BHDM_EDID_DEBUG_CeaAudioBitDepthToStr(i))) ;
+						}
+					}
 				}
 
-				EdidAudioSampleRate =
-					hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].ucCeaSampleRates ;
 
-				for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates); i++)
+				for (i = 0; i < BAVC_AudioSamplingRate_eMax ; i++)
 				{
-					/* check that at least one sample rate is supported */
-					if (EdidAudioSampleRate & BcmSupportedAudioSampleRates[i].EdidAudioSampleRate)
+					if (hHDMI->AttachedEDID.BcmSupportedAudioFormats[BcmAudioFormat].bSampleRates[i])
 					{
 						BDBG_LOG(("      Sample Rate %s", BHDM_EDID_DEBUG_CeaAudioSampleRateToStr(i))) ;
 					}
@@ -5109,7 +5183,20 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 				for (i = 0 ; i < BFMT_VideoFmt_eMaxCount; i++)
 				{
 					const BFMT_VideoInfo *pVideoFormatInfo ;
+
+					if (i >= BFMT_VideoFmt_eCustom0)
+					{
+						/* skip custom formats */
+						break ;
+					}
+
 					pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt) i) ;
+					if (pVideoFormatInfo == NULL)
+					{
+						BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+						(void) BERR_TRACE(BERR_NOT_INITIALIZED) ;
+						continue ;
+					}
 
 					if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_FRAME_PACKING) {
 						BDBG_LOG(("   %s Frame Packing ", pVideoFormatInfo->pchFormatStr)) ;
@@ -5251,7 +5338,13 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 		{
 			if (hHDMI->AttachedEDID.BcmSupported420VideoFormats[i])
 			{
-				const BFMT_VideoInfo *pVideoInfo = BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt) i) ;
+				const BFMT_VideoInfo *pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt) i) ;
+				if (pVideoFormatInfo == NULL)
+				{
+					BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+					(void) BERR_TRACE(BERR_NOT_INITIALIZED) ;
+					continue ;
+				}
 
 				/* based on BCM Supported YCbCr 4:2:0 video format, find associated CEA-861 Code */
 				for (j = 0 ; j < BHDM_EDID_P_BCM_VIDEO_FORMATS_MAX ; j++)
@@ -5309,11 +5402,11 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 
 					/* messages for debugging search */
 					BDBG_MSG(("Checking bfmt  %s  %d x %d %d Hz  AR: %d %s",
-						pVideoInfo->pchFormatStr,
-						pVideoInfo->ulWidth, pVideoInfo->ulHeight,
-						pVideoInfo->ulVertFreq /100,
-						pVideoInfo->eAspectRatio,
-						pVideoInfo->bInterlaced ? "Interlaced" : "Progressive")) ;
+						pVideoFormatInfo->pchFormatStr,
+						pVideoFormatInfo->ulWidth, pVideoFormatInfo->ulHeight,
+						pVideoFormatInfo->ulVertFreq /100,
+						pVideoFormatInfo->eAspectRatio,
+						pVideoFormatInfo->bInterlaced ? "Interlaced" : "Progressive")) ;
 
 					BDBG_MSG(("Checking CEA 861 format %s  %d x %d  %d Hz    AR: %d   Interlaced: %s",
 						(char *) BAVC_HDMI_AviInfoFrame_VideoIdCodeToStr(pCea861VideoFormat->CeaVideoCode),
@@ -5321,11 +5414,11 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 						pCea861VideoFormat->eAspectRatio, uiCea861FormatVeriticalFrequency,
 						bCea861VideoFormatInterlaced ? "Interlaced" : "Progressive")) ;
 
-					if ((pVideoInfo->ulWidth != (uint32_t) pCea861VideoFormat->HorizontalPixels) /* format width */
-					||  (pVideoInfo->ulHeight != pCea861VideoFormat->VerticalPixels) /* format height */
-					||  (pVideoInfo->ulVertFreq != uiCea861FormatVeriticalFrequency) /* refresh rate */
-					||  (pVideoInfo->bInterlaced != bCea861VideoFormatInterlaced) /* ScanType */
-					||  (pVideoInfo->eAspectRatio != pCea861VideoFormat->eAspectRatio)) /*  Aspect Ratio */
+					if ((pVideoFormatInfo->ulWidth != (uint32_t) pCea861VideoFormat->HorizontalPixels) /* format width */
+					||  (pVideoFormatInfo->ulHeight != pCea861VideoFormat->VerticalPixels) /* format height */
+					||  (pVideoFormatInfo->ulVertFreq != uiCea861FormatVeriticalFrequency) /* refresh rate */
+					||  (pVideoFormatInfo->bInterlaced != bCea861VideoFormatInterlaced) /* ScanType */
+					||  (pVideoFormatInfo->eAspectRatio != pCea861VideoFormat->eAspectRatio)) /*  Aspect Ratio */
 						continue ;
 
 					/* Matching CEA-861 Video Format Found */
@@ -5366,6 +5459,12 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 
 				pVideoFormatInfo =
 					(BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(pVideoDescriptor->eVideoFmt) ;
+				if (pVideoFormatInfo == NULL)
+				{
+					BDBG_ERR(("Unable to get valid BFMT Video Format Info pointer")) ;
+					(void) BERR_TRACE(BERR_NOT_INITIALIZED) ;
+					continue ;
+				}
 				BDBG_LOG(("YCbCr 4:2:0 %s ", pVideoFormatInfo->pchFormatStr)) ;
 			}
 		}

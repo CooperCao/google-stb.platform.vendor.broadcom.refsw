@@ -13,7 +13,6 @@ VideoCore OS Abstraction Layer - basic types
 #include <assert.h>
 #include <stddef.h>
 #include "vcos_platform_types.h"
-#include "vcos_attr.h"
 #include "libs/util/common.h"
 
 /* Error return codes - chosen to be similar to errno values */
@@ -52,29 +51,5 @@ static inline const char *vcos_desc_status(VCOS_STATUS_T status)
    default:             assert(0); return NULL;
    }
 }
-
-
-/*
- * Branch prediction hint for compiler
- */
-#ifdef CC_UNLIKELY
-#define VCOS_UNLIKELY CC_UNLIKELY
-#else
-#ifdef G_UNLIKELY
-#define VCOS_UNLIKELY G_UNLIKELY
-#endif
-#endif
-
-#ifndef VCOS_UNLIKELY
-#define VCOS_UNLIKELY(a) (a)
-#endif
-
-/** Mark unused arguments/locals to keep compilers quiet */
-#define vcos_unused(x) (void)(x)
-#ifdef NDEBUG
-#define vcos_unused_in_release(x) vcos_unused(x)
-#else
-#define vcos_unused_in_release(x)
-#endif
 
 #endif

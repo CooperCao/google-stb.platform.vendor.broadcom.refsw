@@ -93,9 +93,10 @@ typedef enum
                                            Pc = Sc; Pa = Sa */
     BGRCLib_FillOp_eCopy,               /* Copy the value of the channel (color or alpha) from the constant
                                            color to the surface: Pc = Cc; Pa = Ca */
-    BGRCLib_FillOp_eBlend               /* For color channel, blend surface color with constant color using
+    BGRCLib_FillOp_eBlend,              /* For color channel, blend surface color with constant color using
                                            constant alpha. For alpha channel, combine constant alpha with source alpha.
                                            Pc = Ca*Cc + (1-Ca)*Sc; Pa = Ca*Ca + (1-Ca)*Sa */
+    BGRCLib_FillOp_eCount
 } BGRCLib_FillOp;
 
 /*****************************************************************************

@@ -37,6 +37,7 @@
  *****************************************************************************/
 
 #include "nexus_audio_decoder.h"
+#include "nexus_simple_audio_decoder.h"
 #include "audio_decode.h"
 #include "audio_processing.h"
 #include "atlas_os.h"
@@ -374,6 +375,8 @@ CSimpleAudioDecode::CSimpleAudioDecode(
     _bEncodeConnectedDts(false),
     _bEncodeConnectedAc3(false),
     _bPrimer(true),
+    _bMaster(false),
+    _mixingMode(NEXUS_AudioDecoderMixingMode_eDescription),
     _windowType(eWindowType_Max),
     _pModel(NULL)
 {
@@ -388,7 +391,7 @@ CSimpleAudioDecode::CSimpleAudioDecode(
         _pDecoders[i] = NULL;
     }
 
-    memset(&_startSettings,0,sizeof(_startSettings));
+    memset(&_startSettings, 0, sizeof(_startSettings));
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&_startSettings);
 
     BDBG_ASSERT(eRet_Ok == ret);
@@ -1231,6 +1234,10 @@ eRet CSimpleAudioDecode::start(
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&_startSettings);
     _startSettings.primary.codec      = pPid->getAudioCodec();
     _startSettings.primary.pidChannel = pPid->getPidChannel();
+    _startSettings.primary.mixingMode = getMixingMode();
+    _startSettings.master             = isMaster();
+
+    BDBG_MSG(("simple audio decoder %d starting decoder. mixingmode:%d ismaster:%d", getNumber(), getMixingMode(), isMaster()));
 
     if (NULL != pStc)
     {
@@ -1392,6 +1399,12 @@ eRet CSimpleAudioDecode::setVolume(uint32_t level)
 error:
     return(ret);
 } /* setVolume */
+
+/* only available in nxclient atlas with BDSP_MS12_SUPPORT */
+eRet CSimpleAudioDecode::setAudioFade(unsigned level, unsigned duration)
+{
+    return(eRet_Ok);
+}
 
 bool CSimpleAudioDecode::getMute()
 {

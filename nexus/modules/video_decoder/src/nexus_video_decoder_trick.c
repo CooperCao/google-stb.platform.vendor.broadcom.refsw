@@ -214,7 +214,7 @@ NEXUS_VideoDecoder_P_GetNextPts_Avd(NEXUS_VideoDecoderHandle videoDecoder, uint3
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    rc = BXVD_GetNextPTS_isr(videoDecoder->dec, &nextPtsInfo);
+    rc = BXVD_GetNextPTS(videoDecoder->dec, &nextPtsInfo);
 
     if ((nextPtsInfo.ePTSType==(BXDM_PictureProvider_PTSType)BXVD_PTSType_eInterpolatedFromInvalidPTS) || (rc!=BERR_SUCCESS)) {
         BDBG_MSG(("NEXUS_VideoDecoder_GetNextPts: Next PTS is invalid"));

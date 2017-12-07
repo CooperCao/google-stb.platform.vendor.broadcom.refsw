@@ -160,6 +160,7 @@ BERR_Code BSAT_g1_P_InitHandle(BSAT_Handle h)
    hDev->acqDoneThreshold = 3;
    hDev->networkSpec = BSAT_NetworkSpec_eDefault;
    hDev->pSaBuf = 0;
+   hDev->afecRampSettings = 0x8000;
    return BSAT_g1_P_InitHandleExt(h);
 }
 

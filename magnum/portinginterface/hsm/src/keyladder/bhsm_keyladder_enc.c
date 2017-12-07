@@ -1078,51 +1078,52 @@ BERR_Code BHSM_FastLoadEncryptedHdcpKey (
 
     generateRouteKeyIO.subCmdID   = BCMD_VKLAssociationQueryFlag_eNoQuery;
 
-	if (((keyStruct->Alg) & BHSM_KEYLADDER_HDCP_ROOT_KEY_SOURCE_MASK) == 0)
-	{
-		RootKeySrc = BCMD_RootKeySrc_eCusKey;
-	}
-	else
-	{
-		/* Root key is OTP key*/
-		switch (keyStruct->CaDataLo)
-		{
-		case 1:
-			RootKeySrc = BCMD_RootKeySrc_eOTPKeya;
-			break;
-		case 2:
-			RootKeySrc = BCMD_RootKeySrc_eOTPKeyb;
-			break;
-		case 3:
-			RootKeySrc = BCMD_RootKeySrc_eOTPKeyc;
-			break;
-		case 4:
-			RootKeySrc = BCMD_RootKeySrc_eOTPKeyd;
-			break;
-		case 5:
-			RootKeySrc = BCMD_RootKeySrc_eOTPKeye;
-			break;
-		case 6:
-			RootKeySrc = BCMD_RootKeySrc_eOTPKeyf;
-			break;
+    if (((keyStruct->Alg) & BHSM_KEYLADDER_HDCP_ROOT_KEY_SOURCE_MASK) == 0)
+    {
+        RootKeySrc = BCMD_RootKeySrc_eCusKey;
+    }
+    else
+    {
+        /* Root key is OTP key*/
+        switch (keyStruct->CaDataLo)
+        {
+        case 1:
+            RootKeySrc = BCMD_RootKeySrc_eOTPKeya;
+            break;
+        case 2:
+            RootKeySrc = BCMD_RootKeySrc_eOTPKeyb;
+            break;
+        case 3:
+            RootKeySrc = BCMD_RootKeySrc_eOTPKeyc;
+            break;
+        case 4:
+            RootKeySrc = BCMD_RootKeySrc_eOTPKeyd;
+            break;
+        case 5:
+            RootKeySrc = BCMD_RootKeySrc_eOTPKeye;
+            break;
+        case 6:
+            RootKeySrc = BCMD_RootKeySrc_eOTPKeyf;
+            break;
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
-		case 7:
-			RootKeySrc = BCMD_RootKeySrc_eOTPKeyg;
-			break;
-		case 8:
-			RootKeySrc = BCMD_RootKeySrc_eOTPKeyh;
-			break;
+        case 7:
+            RootKeySrc = BCMD_RootKeySrc_eOTPKeyg;
+            break;
+        case 8:
+            RootKeySrc = BCMD_RootKeySrc_eOTPKeyh;
+            break;
 #endif
-		default:
-			return  BERR_TRACE(BHSM_STATUS_INPUT_PARM_ERR);
-		}
-	}
+        default:
+            BHSM_FreeVKL( hHsm, vkl.allocVKL );
+            return  BERR_TRACE(BHSM_STATUS_INPUT_PARM_ERR);
+        }
+    }
 
-	generateRouteKeyIO.rootKeySrc = RootKeySrc;
+    generateRouteKeyIO.rootKeySrc = RootKeySrc;
     generateRouteKeyIO.customerSubMode = BCMD_CustomerSubMode_eGeneralPurpose1;
 
     generateRouteKeyIO.ucSwizzle1Index = 0;
-	generateRouteKeyIO.swizzleType = (RootKeySrc == BCMD_RootKeySrc_eCusKey) ? BCMD_SwizzleType_eSwizzle0 : BCMD_SwizzleType_eNoSwizzle;
+    generateRouteKeyIO.swizzleType = (RootKeySrc == BCMD_RootKeySrc_eCusKey) ? BCMD_SwizzleType_eSwizzle0 : BCMD_SwizzleType_eNoSwizzle;
 
     generateRouteKeyIO.bUseCustKeyHighDecrypt = false ;
     generateRouteKeyIO.bUseCustKeyLowDecrypt =    false ;
@@ -1147,7 +1148,7 @@ BERR_Code BHSM_FastLoadEncryptedHdcpKey (
     generateRouteKeyIO.keyMode = BCMD_KeyMode_eRegular;
 
 
-	generateRouteKeyIO.keyLadderType = (keyStruct->Alg) & (~BHSM_KEYLADDER_HDCP_ROOT_KEY_SOURCE_MASK);
+    generateRouteKeyIO.keyLadderType = (keyStruct->Alg) & (~BHSM_KEYLADDER_HDCP_ROOT_KEY_SOURCE_MASK);
     generateRouteKeyIO.ucCustKeyLow = keyStruct->cusKeySel;
     generateRouteKeyIO.ucKeyVarLow = keyStruct->cusKeyVarL;
     generateRouteKeyIO.ucCustKeyHigh = keyStruct->cusKeySel;

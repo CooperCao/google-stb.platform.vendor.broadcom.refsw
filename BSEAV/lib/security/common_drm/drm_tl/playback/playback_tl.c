@@ -73,12 +73,12 @@ DrmRC DRM_Playback_Initialize(DrmPlaybackHandle_t  *playbackHandle)
     BSAGElib_InOutContainer        *container = NULL;
     DrmPlaybackContext_t           *pContext=NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
     nrc = NEXUS_Memory_Allocate(sizeof(DrmPlaybackContext_t), &allocSettings, (void *)&pContext);
     if(nrc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for Playback handle, rc = %d\n", __FUNCTION__, nrc));
+        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for Playback handle, rc = %d\n", BSTD_FUNCTION, nrc));
         (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         rc = nrc;
         goto ErrorExit;
@@ -92,7 +92,7 @@ DrmRC DRM_Playback_Initialize(DrmPlaybackHandle_t  *playbackHandle)
     container = SRAI_Container_Allocate();
     if(container == NULL)
     {
-        BDBG_ERR(("%s - Error to allocate SRAI Container", __FUNCTION__));
+        BDBG_ERR(("%s - Error to allocate SRAI Container", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -103,7 +103,7 @@ DrmRC DRM_Playback_Initialize(DrmPlaybackHandle_t  *playbackHandle)
 #endif
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Error initializing module (0x%08x)", BSTD_FUNCTION, container->basicOut[0]));
         goto ErrorExit;
     }
 
@@ -116,7 +116,7 @@ DrmRC DRM_Playback_Initialize(DrmPlaybackHandle_t  *playbackHandle)
 ErrorExit:
     if(container)SRAI_Container_Free(container);
     if( pContext != NULL) NEXUS_Memory_Free(pContext);
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
 
@@ -158,7 +158,7 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
     if(container == NULL)
     {
         rc = Drm_MemErr;
-        BDBG_ERR(("%s - Error allocating SRAI container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating SRAI container", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -175,14 +175,14 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
 
     NEXUS_Security_GetKeySlotInfo(scrubbingKeyHandle, &keyslotInfo);
     container->basicIn[0] = (int32_t)keyslotInfo.keySlotNumber;
-    BDBG_MSG(("%s - keyslotInfo.keySlotNumber %d\n", __FUNCTION__, keyslotInfo.keySlotNumber));
+    BDBG_MSG(("%s - keyslotInfo.keySlotNumber %d\n", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
 
     /* Allocate enough memory for DMA descriptors */
     pDmaMemoryPool = SRAI_Memory_Allocate(size, SRAI_MemoryType_SagePrivate);
     if(pDmaMemoryPool == NULL)
     {
         rc = Drm_MemErr;
-        BDBG_ERR(("%s - Error calling SRAI_Memory_Allocate()", __FUNCTION__));
+        BDBG_ERR(("%s - Error calling SRAI_Memory_Allocate()", BSTD_FUNCTION));
         goto ErrorExit;
     }
     container->blocks[0].data.ptr  = pDmaMemoryPool;
@@ -191,7 +191,7 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
     sage_rc = SRAI_Module_ProcessCommand(pCtx->playbackSageHandle, PLAYBACK_STOPPED, container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error sending command to SAGE", __FUNCTION__));
+        BDBG_ERR(("%s - Error sending command to SAGE", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -200,7 +200,7 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
     if(sage_rc != BERR_SUCCESS)
     {
         rc = Drm_Err;
-        BDBG_ERR(("%s - Command sent to SAGE successfully but error fetching decryption certificate", __FUNCTION__));
+        BDBG_ERR(("%s - Command sent to SAGE successfully but error fetching decryption certificate", BSTD_FUNCTION));
         goto ErrorExit;
     }
 

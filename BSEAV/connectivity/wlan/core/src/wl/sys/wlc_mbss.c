@@ -764,6 +764,16 @@ mbss_bsscfg_up(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 		}
 	}
 
+	/* not primary and not macgen, we validate bsscfg cur_etheraddr to save vether_base */
+	if ((cfg != wlc->cfg) && (idx == WLC_MAXBSSCFG)) {
+		result = wlc_mbss_validate_mac(wlc, cfg, &cfg->cur_etheraddr);
+		if (result != BCME_OK) {
+			WL_ERROR(("wl%d.%d: %s: unable to validate MAC address\n",
+				wlc->pub->unit, WLC_BSSCFG_IDX(cfg), __FUNCTION__));
+			return result;
+		}
+	}
+
 	bmi = BSS_MBSS_INFO(mbss, cfg);
 	ASSERT(bmi != NULL);
 
@@ -798,6 +808,9 @@ mbss_bsscfg_up(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 	} else {
 		cfg->flags |= (WLC_BSSCFG_HW_BCN | WLC_BSSCFG_HW_PRB);
 	}
+
+	/* write to BSSID for wlc_BSSinit */
+	bcopy(&cfg->cur_etheraddr, &cfg->target_bss->BSSID, ETHER_ADDR_LEN);
 
 	return result;
 }

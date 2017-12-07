@@ -360,6 +360,7 @@ typedef struct NEXUS_VideoEncoderSettings
     unsigned bitrateTarget; /* units of bits per second, If "0", means CBR, and bitrateTarget=bitrateMax.  If non-zero, then VBR. */
 
     bool variableFrameRate;
+    bool sparseFrameRate; /* If true, the encoder will drop any repeated pictures. Allowed in progressive mode only */
     bool enableFieldPairing; /* to enable picture repeat cadence detection feature to improve bit efficiency */
 
     NEXUS_VideoFrameRate    frameRate;
@@ -495,5 +496,3 @@ void NEXUS_VideoEncoderModule_GetStatistics(
 
 
 #endif /* NEXUS_VIDEO_ENCODER_H__ */
-
-

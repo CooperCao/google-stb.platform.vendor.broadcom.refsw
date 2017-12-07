@@ -52,6 +52,7 @@
 #include "lib_printf.h"
 
 #include "fs/ramfs.h"
+#include "tzpipe.h"
 
 static const char *extractEndPoint(char *path) {
     // First remove any trailing slashes from the path.
@@ -125,8 +126,12 @@ void TzTask::inheritFileTable(const TzTask& parentTask) {
         // Open file and directory if necessary
         if (files[i].type == File)
             RamFS::File::open((RamFS::File *)files[i].file);
-        if (files[i].type == Directory)
+        else if (files[i].type == Directory)
             RamFS::Directory::open((RamFS::Directory *)files[i].dir);
+        else if (files[i].type == MQueue)
+            MsgQueue::open((MsgQueue *)files[i].queue);
+        else if (files[i].type == IpcPipe)
+            Pipe::open((Pipe *)files[i].file, files[i].read);
     }
 }
 
@@ -388,6 +393,7 @@ int TzTask::dup(int fd) {
 int TzTask::dup2(int fd1, int fd2) {
     if ((fd1 >= MAX_FD) || (fd1 < 0))
         return -ENOENT;
+
     if (files[fd1].data == nullptr)
         return -ENOENT;
 
@@ -397,12 +403,26 @@ int TzTask::dup2(int fd1, int fd2) {
     if (files[fd2].data != nullptr) {
         if (files[fd2].type == File)
             RamFS::File::close((RamFS::File *)files[fd2].file);
-        if (files[fd2].type == Directory)
+        else if (files[fd2].type == Directory)
             RamFS::Directory::close((RamFS::Directory *)files[fd2].dir);
+        else if (files[fd2].type == MQueue)
+            MsgQueue::close((MsgQueue *)files[fd2].queue);
+        else if (files[fd2].type == IpcPipe)
+            Pipe::close((Pipe *)files[fd2].file, files[fd2].read);
     }
-
     memcpy(&files[fd2], &files[fd1], sizeof(FileTableEntry));
     return fd2;
+}
+
+int TzTask::dup3(int fd1, int fd2, long flags) {
+    if (fd1 == fd2) return -EINVAL;
+
+    int newFd = dup2(fd1, fd2);
+
+    if (flags & O_CLOEXEC)
+        files[newFd].closeOnExec = true;
+
+    return newFd;
 }
 
 int TzTask::readdir(int fd, void *userBuffer, size_t size) {
@@ -463,10 +483,12 @@ int TzTask::close(int fd) {
 
     if (files[fd].type == File)
         RamFS::File::close((RamFS::File *)files[fd].file);
-    if (files[fd].type == Directory)
+    else if (files[fd].type == Directory)
         RamFS::Directory::close((RamFS::Directory *)files[fd].dir);
-    if (files[fd].type == MQueue)
+    else if (files[fd].type == MQueue)
         MsgQueue::close(files[fd].queue);
+    else if (files[fd].type == IpcPipe)
+        Pipe::close((Pipe *)files[fd].file, files[fd].read);
 
     files[fd].data = nullptr;
     files[fd].offset = 0;
@@ -660,7 +682,7 @@ int TzTask::fstat(int fd, struct stat *statBuf) {
         statBuf->st_ino = (uint64_t) files[fd].iNo;
     }
 
-    if (files[fd].type == File) {
+    if ((files[fd].type == File) || (files[fd].type == IpcPipe)) {
         IFile *file = files[fd].file;
         statBuf->nlink = file->numLinks();
         statBuf->uid = file->owner();

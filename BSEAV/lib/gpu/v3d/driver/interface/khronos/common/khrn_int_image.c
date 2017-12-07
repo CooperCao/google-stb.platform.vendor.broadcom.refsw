@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of client-side subset of Khronos image wrapper.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "interface/khronos/common/khrn_int_image.h"
@@ -20,7 +12,7 @@ formats
 
 uint32_t khrn_image_get_bpp(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
 
    switch (format & IMAGE_FORMAT_COMP_MASK) {
    case IMAGE_FORMAT_UNCOMP:
@@ -156,7 +148,7 @@ uint32_t khrn_image_get_stencil_size(KHRN_IMAGE_FORMAT_T format)
    if (khrn_image_is_depth(format) && (format & IMAGE_FORMAT_STENCIL)) {
       if (format == DEPTH_32_TLBD || format == DEPTH_COL_64_TLBD)
          return 8;
-      vcos_assert((format & IMAGE_FORMAT_PIXEL_SIZE_MASK) == IMAGE_FORMAT_32);
+      assert((format & IMAGE_FORMAT_PIXEL_SIZE_MASK) == IMAGE_FORMAT_32);
       return 8;
    } else {
       return 0;
@@ -165,7 +157,7 @@ uint32_t khrn_image_get_stencil_size(KHRN_IMAGE_FORMAT_T format)
 
 uint32_t khrn_image_get_log2_utile_width(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(khrn_image_is_tformat(format) || khrn_image_is_lineartile(format));
+   assert(khrn_image_is_tformat(format) || khrn_image_is_lineartile(format));
 
    switch (format & IMAGE_FORMAT_COMP_MASK) {
    case IMAGE_FORMAT_UNCOMP:
@@ -187,7 +179,7 @@ uint32_t khrn_image_get_log2_utile_width(KHRN_IMAGE_FORMAT_T format)
 
 uint32_t khrn_image_get_log2_utile_height(KHRN_IMAGE_FORMAT_T format)
 {
-   vcos_assert(khrn_image_is_tformat(format) || khrn_image_is_lineartile(format));
+   assert(khrn_image_is_tformat(format) || khrn_image_is_lineartile(format));
 
    switch (format & IMAGE_FORMAT_COMP_MASK) {
    case IMAGE_FORMAT_UNCOMP:
@@ -223,7 +215,7 @@ image handling
 
 uint32_t khrn_image_pad_width(KHRN_IMAGE_FORMAT_T format, uint32_t width)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
 
    switch (format & IMAGE_FORMAT_MEM_LAYOUT_MASK) {
    case IMAGE_FORMAT_RSO: return width;
@@ -236,7 +228,7 @@ uint32_t khrn_image_pad_width(KHRN_IMAGE_FORMAT_T format, uint32_t width)
 
 uint32_t khrn_image_pad_height(KHRN_IMAGE_FORMAT_T format, uint32_t height)
 {
-   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   assert(format != IMAGE_FORMAT_INVALID);
 
    if (khrn_image_is_packed_mask(format)) {
       height = khrn_image_get_packed_mask_height(height);
@@ -262,9 +254,9 @@ uint32_t khrn_image_get_size(KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_
    return size;
 }
 
-void khrn_image_interlock_wrap(KHRN_IMAGE_WRAP_T *wrap, KHRN_IMAGE_FORMAT_T format,
+void khrn_image_wrap(KHRN_IMAGE_WRAP_T *wrap, KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height, int32_t stride,
-   uint32_t flags, bool secure, void *storage, KHRN_INTERLOCK_T *interlock)
+   uint32_t flags, bool secure, void *storage)
 {
    wrap->format = format;
    wrap->width = (uint16_t)width;
@@ -274,5 +266,4 @@ void khrn_image_interlock_wrap(KHRN_IMAGE_WRAP_T *wrap, KHRN_IMAGE_FORMAT_T form
    wrap->secure = secure;
    wrap->palette = NULL;
    wrap->storage = storage;
-   wrap->interlock = interlock;
 }

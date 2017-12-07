@@ -19,10 +19,11 @@ static const char *df_type_string(DataflowType type) {
       case DF_F_SAMP_IMG: return "f_sampled_img";
       case DF_I_SAMP_IMG: return "i_sampled_img";
       case DF_U_SAMP_IMG: return "u_sampled_img";
-      case DF_ATOMIC:     return "atomic";
       case DF_F_STOR_IMG: return "f_storage_img";
       case DF_I_STOR_IMG: return "i_storage_img";
       case DF_U_STOR_IMG: return "u_storage_img";
+      case DF_SAMPLER:    return "sampler";
+      case DF_ATOMIC:     return "atomic";
       case DF_VOID:       return "void";
       default: assert(0); return NULL;
    }
@@ -33,7 +34,7 @@ void glsl_print_dataflow(FILE *f, Dataflow *dataflow)
    const char *name = glsl_dataflow_info_get_name(dataflow->flavour);
    const char *type = df_type_string(dataflow->type);
 
-   fprintf(f, "%%%d = %s %s", dataflow->id, name, type);
+   fprintf(f, "%%%d = %s %s (age %d)", dataflow->id, name, type, dataflow->age);
 
    for(int i = 0; i < dataflow->dependencies_count; i++) {
       if (dataflow->d.reloc_deps[i] == -1) {

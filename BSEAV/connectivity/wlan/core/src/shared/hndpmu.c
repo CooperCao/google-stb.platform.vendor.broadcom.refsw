@@ -6547,10 +6547,11 @@ BCMINITFN(si_pmu1_cpuclk0)(si_t *sih, osl_t *osh, pmuregs_t *pmu)
 	PMU_MSG(("si_pmu1_cpuclk0: ndiv_int %u ndiv_frac %u p2div %u p1div %u fvco %u\n",
 	         ndiv_int, ndiv_frac, p2div, p1div, fvco));
 
-	FVCO = fvco;
+	 return fvco / mdiv * 1000;
+#else
+	 return FVCO / mdiv * 1000; /* Return CPU clock in [Hz] */
 #endif	/* BCMDBG */
 
-	return FVCO / mdiv * 1000; /* Return CPU clock in [Hz] */
 } /* si_pmu1_cpuclk0 */
 
 /**
@@ -9208,51 +9209,53 @@ BCMATTACHFN(si_pmu_chip_init)(si_t *sih, osl_t *osh)
 		pmuregs_t *pmu = si_setcore(sih, PMU_CORE_ID, 0);
 		uint32 lpo = LHL_LPO_AUTO;
 
-		if (R_REG(osh, &pmu->pmustatus) & PST_EXTLPOAVAIL) {
-			lpo = LHL_EXT_LPO_ENAB;
+		if (pmu) {
+			if (R_REG(osh, &pmu->pmustatus) & PST_EXTLPOAVAIL) {
+				lpo = LHL_EXT_LPO_ENAB;
+			}
+
+			if (!ISSIM_ENAB(sih)) {
+				si_lhl_set_lpoclk(sih, osh, lpo);
+			}
+
+			if (getintvar(NULL, rstr_btldo3p3pu)) {
+				si_pmu_regcontrol(sih, 4,
+					PMU4347_VREG4_WL_LDO_CNTL_EN,
+					PMU4347_VREG4_WL_LDO_CNTL_EN);
+				si_pmu_regcontrol(sih, 6,
+					PMU4347_VREG6_BTLDO3P3_PU,
+					PMU4347_VREG6_BTLDO3P3_PU);
+			}
+
+			/* Updating xtal pmu registers to combat slow powerup issue */
+			si_pmu_chipcontrol(sih, PMU_CHIPCTL3,
+				PMUCCTL03_4347_XTAL_CORESIZE_PMOS_NORMAL_MASK,
+				(PMUCCTL03_4347_XTAL_CORESIZE_PMOS_NORMAL_VAL <<
+				PMUCCTL03_4347_XTAL_CORESIZE_PMOS_NORMAL_SHIFT));
+
+			si_pmu_chipcontrol(sih, PMU_CHIPCTL3,
+				PMUCCTL03_4347_XTAL_CORESIZE_NMOS_NORMAL_MASK,
+				(PMUCCTL03_4347_XTAL_CORESIZE_NMOS_NORMAL_VAL <<
+				PMUCCTL03_4347_XTAL_CORESIZE_NMOS_NORMAL_SHIFT));
+
+			si_pmu_chipcontrol(sih, PMU_CHIPCTL3,
+				PMUCCTL03_4347_XTAL_SEL_BIAS_RES_NORMAL_MASK,
+				(PMUCCTL03_4347_XTAL_SEL_BIAS_RES_NORMAL_VAL <<
+				PMUCCTL03_4347_XTAL_SEL_BIAS_RES_NORMAL_SHIFT));
+
+			si_pmu_chipcontrol(sih, PMU_CHIPCTL0,
+				PMUCCTL00_4347_XTAL_CORESIZE_BIAS_ADJ_NORMAL_MASK,
+				(PMUCCTL00_4347_XTAL_CORESIZE_BIAS_ADJ_NORMAL_VAL <<
+				PMUCCTL00_4347_XTAL_CORESIZE_BIAS_ADJ_NORMAL_SHIFT));
+
+			si_pmu_chipcontrol(sih, PMU_CHIPCTL0,
+				PMUCCTL00_4347_XTAL_RES_BYPASS_NORMAL_MASK,
+				(PMUCCTL00_4347_XTAL_RES_BYPASS_NORMAL_VAL <<
+				PMUCCTL00_4347_XTAL_RES_BYPASS_NORMAL_SHIFT));
+
 		}
-
-		if (!ISSIM_ENAB(sih)) {
-			si_lhl_set_lpoclk(sih, osh, lpo);
-		}
-
-		if (getintvar(NULL, rstr_btldo3p3pu)) {
-			si_pmu_regcontrol(sih, 4,
-				PMU4347_VREG4_WL_LDO_CNTL_EN,
-				PMU4347_VREG4_WL_LDO_CNTL_EN);
-			si_pmu_regcontrol(sih, 6,
-				PMU4347_VREG6_BTLDO3P3_PU,
-				PMU4347_VREG6_BTLDO3P3_PU);
-		}
-
-		/* Updating xtal pmu registers to combat slow powerup issue */
-		si_pmu_chipcontrol(sih, PMU_CHIPCTL3,
-			PMUCCTL03_4347_XTAL_CORESIZE_PMOS_NORMAL_MASK,
-			(PMUCCTL03_4347_XTAL_CORESIZE_PMOS_NORMAL_VAL <<
-			PMUCCTL03_4347_XTAL_CORESIZE_PMOS_NORMAL_SHIFT));
-
-		si_pmu_chipcontrol(sih, PMU_CHIPCTL3,
-			PMUCCTL03_4347_XTAL_CORESIZE_NMOS_NORMAL_MASK,
-			(PMUCCTL03_4347_XTAL_CORESIZE_NMOS_NORMAL_VAL <<
-			PMUCCTL03_4347_XTAL_CORESIZE_NMOS_NORMAL_SHIFT));
-
-		si_pmu_chipcontrol(sih, PMU_CHIPCTL3,
-			PMUCCTL03_4347_XTAL_SEL_BIAS_RES_NORMAL_MASK,
-			(PMUCCTL03_4347_XTAL_SEL_BIAS_RES_NORMAL_VAL <<
-			PMUCCTL03_4347_XTAL_SEL_BIAS_RES_NORMAL_SHIFT));
-
-		si_pmu_chipcontrol(sih, PMU_CHIPCTL0,
-			PMUCCTL00_4347_XTAL_CORESIZE_BIAS_ADJ_NORMAL_MASK,
-			(PMUCCTL00_4347_XTAL_CORESIZE_BIAS_ADJ_NORMAL_VAL <<
-			PMUCCTL00_4347_XTAL_CORESIZE_BIAS_ADJ_NORMAL_SHIFT));
-
-		si_pmu_chipcontrol(sih, PMU_CHIPCTL0,
-			PMUCCTL00_4347_XTAL_RES_BYPASS_NORMAL_MASK,
-			(PMUCCTL00_4347_XTAL_RES_BYPASS_NORMAL_VAL <<
-			PMUCCTL00_4347_XTAL_RES_BYPASS_NORMAL_SHIFT));
-
-	}
 		break;
+	}
 	case BCM4349_CHIP_GRPID:
 		{
 		uint32 val;
@@ -9994,6 +9997,8 @@ si_pmu_res_minmax_update(si_t *sih, osl_t *osh)
 		W_REG(osh, &pmu->min_res_mask, min_mask);
 	}
 	if (max_mask) {
+		/* This might be dead code now but other future chip might need to adjust for max mask. */
+		/* coverity[dead_error_begin] */
 		max_mask |= si_pmu_res_deps(sih, osh, pmu, max_mask, FALSE);
 		W_REG(osh, &pmu->max_res_mask, max_mask);
 	}
@@ -10016,7 +10021,6 @@ si_pmu_set_ulbmode(si_t *sih, osl_t *osh, uint8 pmu_ulb_bw)
 	uint err = BCME_OK;
 	uint8 ulb_mode = 0;
 	BCM_REFERENCE(osh);
-
 	ASSERT(pmu_ulb_bw < MAX_SUPP_PMU_ULB_BW);
 
 	switch (CHIPID(sih->chip)) {
@@ -10156,8 +10160,14 @@ si_pmu_set_ulbmode(si_t *sih, osl_t *osh, uint8 pmu_ulb_bw)
 
 			/* MAC Clock Multiplication Factor is updated */
 			/* Since MAC is not downclocked setting div factor to 0 now */
+#ifdef STB_SOC_WIFI
+			/* Hard coded ulb_mode=0 as not supported for 7271 */
+			si_update_macclk_mul_fact(sih, 0);
+#else
 			ulb_mode = 0;
 			si_update_macclk_mul_fact(sih, ulb_mode);
+#endif  /* STB_SOC_WIFI */
+
 
 			PMU_ERROR(("%s: ULB setting for 4365\n", __FUNCTION__));
 			break;

@@ -1,20 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Server-side implementation of the EGLImage extensions for EGL:
-   EGL_KHR_image
-   EGL_KHR_vg_parent_image
-   EGL_KHR_gl_texture_2D_image
-   EGL_KHR_gl_texture_cubemap_image
-=============================================================================*/
-
-#ifndef _EGL_KHR_IMAGE_H_
-#define _EGL_KHR_IMAGE_H_
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/include/EGL/egl.h"
@@ -36,8 +23,6 @@ typedef struct {
 } EGL_IMAGE_TILE_DIRTY_BITS_T;
 
 typedef struct EGL_IMAGE {
-   uint64_t pid;
-
    MEM_HANDLE_T mh_image;
 
    /* intialized in install_uniforms and reset at the end of the respective draw call */
@@ -45,10 +30,9 @@ typedef struct EGL_IMAGE {
    MEM_HANDLE_T mh_tf_image;
 
    /* used for platforms which may have reference counting on mapping */
-   EGLClientBuffer buffer;
+   EGLenum         target;
+   void           *native_buffer;
    bool            platform_client_buffer;
 } EGL_IMAGE_T;
 
 extern void egl_image_term(MEM_HANDLE_T handle);
-
-#endif

@@ -107,20 +107,9 @@ uintptr_t _tzioc_offset2vaddr(
 	struct tzioc_client *pClient,
 	uint32_t ulOffset);
 
-uintptr_t _tzioc_vaddr2offset(
+uint32_t _tzioc_vaddr2offset(
 	struct tzioc_client *pClient,
 	uintptr_t ulVaddr);
-
-void *_tzioc_map_paddr(
-    struct tzioc_client *pClient,
-	uintptr_t ulPaddr,
-	uint32_t ulSize,
-	uint32_t ulFlags);
-
-void _tzioc_unmap_paddr(
-    struct tzioc_client *pClient,
-	uintptr_t ulPaddr,
-	uint32_t ulSize);
 
 int _tzioc_map_paddrs(
     struct tzioc_client *pClient,
@@ -131,5 +120,13 @@ int _tzioc_unmap_paddrs(
     struct tzioc_client *pClient,
     uint8_t ucCount,
     struct tzioc_mem_region *pRegions);
+
+uintptr_t _tzioc_paddr2vaddr(
+	struct tzioc_client *pClient,
+	uintptr_t ulPaddr);
+
+uintptr_t _tzioc_vaddr2paddr(
+	struct tzioc_client *pClient,
+	uintptr_t ulVaddr);
 
 #endif /* LIBTZIOC_H */

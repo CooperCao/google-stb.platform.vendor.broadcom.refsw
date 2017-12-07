@@ -444,11 +444,11 @@ uint32_t _tzioc_vaddr2offset(
 
 int _tzioc_call_smc(
     struct tzioc_client *pClient,
-    uint32_t ucMode)
+    uint32_t ulCallnum)
 {
     int err = 0;
 
-    err = _tzioc_ioctl_call_smc(pClient, ucMode);
+    err = _tzioc_ioctl_call_smc(pClient, ucCallnum);
     if (err) {
         LOGE("failed to call SMC");
         return err;

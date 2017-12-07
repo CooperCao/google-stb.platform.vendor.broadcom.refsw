@@ -41,13 +41,7 @@
 
 #include "bdsp_raaga.h"
 
-#if (BCHP_CHIP != 7278)
 #define BDSP_CODE_DWNLD_GUARD_BAND_SIZE 0x800
-#else
-/* To ensure physical and virtual addresses are aligned to 4k */
-#define BDSP_MAX_ALIGNED_ADDRESS        ((uint32_t) 0x1000)
-#define BDSP_CODE_DWNLD_GUARD_BAND_SIZE BDSP_MAX_ALIGNED_ADDRESS
-#endif
 
 typedef struct BDSP_RaagaImgCacheEntry
 {
@@ -88,5 +82,13 @@ BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
         void *pImgContext,
 		BDSP_MMA_Memory *pMemory,
 		unsigned firmware_id
+);
+BERR_Code BDSP_Raaga_P_DumpImage(
+    void       *pBuffer,
+    unsigned    uiBufferSize,
+    void      **pvCodeStart,
+    unsigned   *puiCodeSize,
+    const BIMG_Interface *pImageInterface,
+    void **pImageContext
 );
 #endif

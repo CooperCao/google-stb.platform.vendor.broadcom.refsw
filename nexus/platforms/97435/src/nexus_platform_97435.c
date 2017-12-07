@@ -264,7 +264,7 @@ extern NEXUS_Error NEXUS_Platform_P_InitExternalRfm(const NEXUS_PlatformConfigur
 }
 #endif
 
-#if NEXUS_PLATFORM_P_READ_BOX_MODE
+#if NEXUS_PLATFORM_P_READ_BOX_MODE && !B_REFSW_SYSTEM_MODE_CLIENT
 unsigned NEXUS_Platform_P_ReadBoxMode(void)
 {
     static bool set = false;

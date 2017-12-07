@@ -53,424 +53,9 @@
 BDBG_MODULE(BXDM_PPDBG_FIFO_PRIV);
 
 
-#if BDBG_DEBUG_BUILD && BXDM_DEBUG_FIFO
+#if BDBG_DEBUG_BUILD
 
-/* To be deleted. */
-
-static void BXDM_PPDBG_S_AppendChar_isrsafe(
-   BXDM_PPDBG_P_String * pstString,
-   uint32_t uiCount,
-   ...
-   )
-{
-   uint32_t i;
-
-   va_list args;
-
-   va_start(args, uiCount);
-
-   for( i=0; i < uiCount; i++ )
-   {
-      BXDM_PPDBG_P_APPEND_CHAR( pstString, va_arg(args, uint32_t) );
-   }
-
-   va_end(args);
-
-   return;
-}
-
-
-
-/*
- * Functions
- */
-
-BERR_Code BXDM_PPDFIFO_P_OutputLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_PictureProvider_P_LocalState *pLocalState,
-   const BAVC_MFD_Picture *pMFDPicture
-   )
-{
-   BXDM_PPDBG_P_Info *pDebugInfo = &hXdmPP->stDMState.stDecode.stDebug;
-   uint32_t uiPPBIndex;
-   char iInfoFlag;
-
-   /* Gather Stats for this VSYNC */
-   uiPPBIndex = hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.uiPPBIndex & 0xFFF;
-
-   if (pMFDPicture->bMute)
-   {
-      iInfoFlag = 'M';
-   }
-   else if ((pMFDPicture->eInterruptPolarity != BAVC_Polarity_eFrame) &&
-            (pMFDPicture->eSourcePolarity != BAVC_Polarity_eFrame) &&
-            (pMFDPicture->eInterruptPolarity != pMFDPicture->eSourcePolarity) &&
-            (BXDM_PictureProvider_P_InterruptType_eSingle == pLocalState->eInterruptType)
-            )
-   {
-      iInfoFlag = '*';
-   }
-   else if (pMFDPicture->bPictureRepeatFlag)
-   {
-      iInfoFlag = 'R';
-   }
-   else
-   {
-      iInfoFlag = ' ';
-   }
-
-   if (pDebugInfo->uiVsyncCount == 0)
-   {
-      BKNI_Memset( &(pDebugInfo->stInterruptString), 0, sizeof( BXDM_PPDBG_P_String ) );
-      BXDM_PPDBG_S_AppendChar_isrsafe( &(pDebugInfo->stInterruptString), 4, 'P', 'S', ':', ' ' );
-   }
-
-   BXDM_PPDBG_S_AppendChar_isrsafe(
-         &(pDebugInfo->stInterruptString),
-         8,
-         BXDM_P_InterruptPolarityToStrLUT[pMFDPicture->eInterruptPolarity],
-         BXDM_P_PicturePolaritytoStrLUT[pLocalState->eInterruptType][pMFDPicture->eSourcePolarity],
-         ':',
-         BXDM_P_HexToCharLUT[ (uiPPBIndex >> 8) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiPPBIndex >> 4) & 0xF ],
-         BXDM_P_HexToCharLUT[ uiPPBIndex & 0xF ],
-         iInfoFlag,
-         ' ' );
-
-   return BERR_SUCCESS;
-}
-
-BERR_Code BXDM_PPDFIFO_P_OutputSPOLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiOverrideBits
-   )
-{
-   BXDM_PPDBG_P_Info *pDebugInfo = &hXdmPP->stDMState.stDecode.stDebug;
-   BXDM_PPDBG_P_String * pStr = &pDebugInfo->stSourcePolarityOverrideString;
-
-   if (pDebugInfo->uiVsyncCount == 0)
-   {
-      BKNI_Memset( pStr, 0, sizeof( BXDM_PPDBG_P_String ) );
-      BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 4, 'O', 'V', ':', ' ' );
-   }
-
-   if ( uiOverrideBits )
-   {
-      BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         BXDM_P_HexToCharLUT[ (uiOverrideBits >> 16) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiOverrideBits >> 12) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiOverrideBits >> 8) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiOverrideBits >> 4) & 0xF ],
-         BXDM_P_HexToCharLUT[ uiOverrideBits & 0xF ],
-         ' ' );
-   }
-   else
-   {
-      /* If none of the bits are set, print spaces to make it
-       * more obvious when something is set.
-       */
-      BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' );
-   }
-
-   if ( 0 != uiOverrideBits )
-   {
-      pDebugInfo->bPrintSPO = true;
-   }
-
-   return BERR_SUCCESS;
-}
-
-BERR_Code BXDM_PPDFIFO_P_SelectionLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   BXDM_PPDBG_Selection eSelectionInfo
-   )
-{
-   BXDM_PPDBG_P_Info *pDebugInfo = &hXdmPP->stDMState.stDecode.stDebug;
-   BXDM_PPDBG_P_String * pStr = &pDebugInfo->stTSMString;
-
-   if (pDebugInfo->abSelectionLogHeader[pDebugInfo->uiVsyncCount] == false)
-   {
-      if (pDebugInfo->uiVsyncCount == 0)
-      {
-         BKNI_Memset( pStr, 0, sizeof( BXDM_PPDBG_P_String ) );
-         BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 4, 'T', 'M', ':', ' ' );
-      }
-      else
-      {
-         BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 1, ' ' );
-      }
-
-      BXDM_PPDBG_S_AppendChar_isrsafe(
-            pStr,
-            2,
-            BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount & 0xF ],
-            ':' );
-
-      pDebugInfo->abSelectionLogHeader[pDebugInfo->uiVsyncCount] = true;
-   }
-   if ( BXDM_PPDBG_Selection_PolarityOverride_eSelectPrevious == eSelectionInfo
-        || BXDM_PPDBG_Selection_PolarityOverride_eRepeatPrevious == eSelectionInfo
-        || BXDM_PPDBG_Selection_PolarityOverride_eFICForceWait == eSelectionInfo
-        || BXDM_PPDBG_Selection_PolarityOverride_e2ndSlotNextElement == eSelectionInfo )
-   {
-      BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 1, '(' );
-   }
-
-   BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 1, BXDM_P_PictureSelectionLUT[eSelectionInfo] );
-
-   if ( BXDM_PPDBG_Selection_PolarityOverride_eSelectPrevious == eSelectionInfo
-        || BXDM_PPDBG_Selection_PolarityOverride_eRepeatPrevious == eSelectionInfo
-        || BXDM_PPDBG_Selection_PolarityOverride_eFICForceWait == eSelectionInfo
-        || BXDM_PPDBG_Selection_PolarityOverride_e2ndSlotNextElement == eSelectionInfo )
-   {
-      BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 1, ')' );
-   }
-
-
-   return BERR_SUCCESS;
-}
-
-BERR_Code BXDM_PPDFIFO_P_CallbackTriggeredLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiCallbackTriggeredBits
-   )
-{
-   BXDM_PPDBG_P_Info *pDebugInfo = &hXdmPP->stDMState.stDecode.stDebug;
-   BXDM_PPDBG_P_String * pStr = &pDebugInfo->stCallbackString;
-
-   if (pDebugInfo->uiVsyncCount == 0)
-   {
-      BKNI_Memset( pStr, 0, sizeof( BXDM_PPDBG_P_String ) );
-      BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 4, 'C', 'B', ':', ' ' );
-   }
-
-
-   if ( uiCallbackTriggeredBits )
-   {
-      BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         BXDM_P_HexToCharLUT[ (uiCallbackTriggeredBits >> 16) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiCallbackTriggeredBits >> 12) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiCallbackTriggeredBits >> 8) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiCallbackTriggeredBits >> 4) & 0xF ],
-         BXDM_P_HexToCharLUT[ uiCallbackTriggeredBits & 0xF ],
-         ' ' );
-   }
-   else
-   {
-      /* If none of the bits are set, print spaces to make
-       * it more obvious when something is set.
-       */
-      BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' );
-   }
-
-   if ( 0 != uiCallbackTriggeredBits )
-   {
-      pDebugInfo->bPrintCallbacks = true;
-   }
-
-   return BERR_SUCCESS;
-}
-
-BERR_Code BXDM_PPDFIFO_P_StateLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiStateBits
-   )
-{
-   BXDM_PPDBG_P_Info *pDebugInfo = &hXdmPP->stDMState.stDecode.stDebug;
-   BXDM_PPDBG_P_String * pStr = &pDebugInfo->stStateString;
-
-   if (pDebugInfo->uiVsyncCount == 0)
-   {
-      BKNI_Memset( pStr, 0, sizeof( BXDM_PPDBG_P_String ) );
-      BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 4, 'S', 'T', ':', ' ' );
-   }
-
-   BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         BXDM_P_HexToCharLUT[ (uiStateBits >> 16) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiStateBits >> 12) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiStateBits >> 8) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiStateBits >> 4) & 0xF ],
-         BXDM_P_HexToCharLUT[ uiStateBits & 0xF ],
-         ' ' );
-
-   return BERR_SUCCESS;
-}
-
-BERR_Code BXDM_PPDFIFO_P_State2Log_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiStateBits
-   )
-{
-   BXDM_PPDBG_P_Info *pDebugInfo = &hXdmPP->stDMState.stDecode.stDebug;
-   BXDM_PPDBG_P_String * pStr = &pDebugInfo->stState2String;
-
-   if (pDebugInfo->uiVsyncCount == 0)
-   {
-      BKNI_Memset( pStr, 0, sizeof( BXDM_PPDBG_P_String ) );
-      BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 3, 'S', '2', ':' );
-   }
-
-
-   if ( uiStateBits )
-   {
-      BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         BXDM_P_HexToCharLUT[ (uiStateBits >> 16) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiStateBits >> 12) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiStateBits >> 8) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiStateBits >> 4) & 0xF ],
-         BXDM_P_HexToCharLUT[ uiStateBits & 0xF ],
-         ' ' );
-   }
-   else
-   {
-      /* If none of the bits are set, print spaces to make
-       * it more obvious when something is set.
-       */
-      BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' );
-   }
-
-   if ( 0 != uiStateBits )
-   {
-      pDebugInfo->bPrintState2 = true;
-   }
-
-   return BERR_SUCCESS;
-}
-
-
-BERR_Code BXDM_PPDFIFO_P_StcDeltaLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_PictureProvider_P_LocalState * pLocalState
-   )
-{
-   BXDM_PPDBG_P_Info *pDebugInfo = &hXdmPP->stDMState.stDecode.stDebug;
-   BXDM_PPDBG_P_String * pStr = &pDebugInfo->stStcDeltaString;
-
-   /*uint32_t uiStcDelta = pLocalState->uiStcSnapshot - hXdmPP->stDMState.stDecode.uiLastStcSnapshot;*/
-   uint32_t uiStcDelta = pLocalState->stEffectiveSTCDelta[BXDM_PictureProvider_DisplayMode_eTSM].uiWhole;
-
-   if (pDebugInfo->uiVsyncCount == 0)
-   {
-      BKNI_Memset( pStr, 0, sizeof( BXDM_PPDBG_P_String ) );
-      BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 4, 'C', 'D', ':', ' ' );
-   }
-
-   BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         BXDM_P_HexToCharLUT[ (uiStcDelta >> 16) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiStcDelta >> 12) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiStcDelta >> 8) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiStcDelta >> 4) & 0xF ],
-         BXDM_P_HexToCharLUT[ uiStcDelta & 0xF ],
-         ' ' );
-
-   return BERR_SUCCESS;
-}
-
-BERR_Code BXDM_PPDFIFO_P_DecoderDropLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiPendingDrop
-   )
-{
-   BXDM_PPDBG_P_Info *pDebugInfo = &hXdmPP->stDMState.stDecode.stDebug;
-   BXDM_PPDBG_P_String * pStr = &pDebugInfo->stPendingDropString;
-
-   if (pDebugInfo->uiVsyncCount == 0)
-   {
-      BKNI_Memset( pStr, 0, sizeof( BXDM_PPDBG_P_String ) );
-      BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 4, 'D', 'R', ':', ' ' );
-   }
-
-   if ( uiPendingDrop )
-   {
-      BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         BXDM_P_HexToCharLUT[ (uiPendingDrop >> 16) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiPendingDrop >> 12) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiPendingDrop >> 8) & 0xF ],
-         BXDM_P_HexToCharLUT[ (uiPendingDrop >> 4) & 0xF ],
-         BXDM_P_HexToCharLUT[ uiPendingDrop & 0xF ],
-         ' ' );
-   }
-   else
-   {
-      /* If none of the bits are set, print spaces to make it
-       * more obvious when something is set.
-       */
-      BXDM_PPDBG_S_AppendChar_isrsafe(
-         pStr,
-         8,
-         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
-         ':',
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' ,
-         ' ' );
-   }
-
-   if ( 0 != uiPendingDrop )
-   {
-      pDebugInfo->bPrintDropCount = true;
-   }
-
-   return BERR_SUCCESS;
-}
-
-void BXDM_PPDFIFO_S_GetDefaultMetaData(
+static void BXDM_PPDFIFO_S_GetDefaultMetaData(
    const BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_P_Picture_Context * pstPicture,
    BXDM_P_DebugFifo_Entry *pstEntry
@@ -491,65 +76,10 @@ void BXDM_PPDFIFO_S_GetDefaultMetaData(
       pstEntry->stMetadata.uiPPBIndex = pstPicture->stPicParms.uiPPBIndex;
    }
 
-   /*
-   ( NULL != hVceOutput->hVce->hTimer ) ? BTMR_ReadTimer( hVceOutput->hVce->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;
-   */
-   return;
-}
-
-
-/*
- * routines for writing the queue
- */
-void BXDM_PPDFIFO_P_QueString_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_Debug_MsgType eMessageType,
-   char * format,
-   ...
-   )
-{
-   BXDM_P_DebugFifo_Entry *pstEntry;
-   BDBG_Fifo_Token stToken;
-   BXDM_PictureProvider_P_DebugFifo * pstDebugFifo = &(hXdmPP->stDMConfig.stDebugFifo);
-
-   BDBG_ENTER( BXDM_PPDFIFO_P_QueString_isr );
-
-   BDBG_ASSERT( hXdmPP );
-
-   if ( NULL == pstDebugFifo->hDebugFifo )
+   if ( NULL != hXdmPP->hTimer )
    {
-      BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", BSTD_FUNCTION ));
-      goto error;
+      BTMR_ReadTimer_isr( hXdmPP->hTimer, &pstEntry->stMetadata.uiTimestamp );
    }
-
-   pstEntry = (BXDM_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( pstDebugFifo->hDebugFifo, &stToken );
-
-   if ( NULL == pstEntry )
-   {
-      BDBG_MSG(("%s:: pstEntry == NULL", BSTD_FUNCTION ));
-      goto error;
-   }
-
-   {
-      BXDM_PictureProvider_P_Picture_Context * pstPicture = NULL;
-      va_list argList;
-
-
-      BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, pstPicture, pstEntry );
-      pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eString;
-
-      pstEntry->data.stString.eType = ( eMessageType < BXDM_Debug_MsgType_eMax ) ? eMessageType : BXDM_Debug_MsgType_eUnKnown ;
-
-      va_start( argList, format );
-      BKNI_Vsnprintf(pstEntry->data.stString.szString, BXDM_P_MAX_DEBUG_FIFO_STRING_LEN, format, argList );
-      va_end(argList);
-
-      BDBG_Fifo_CommitBuffer( &stToken );
-   }
-
-error:
-
-   BDBG_LEAVE( BXDM_PPDFIFO_P_QueString_isr );
 
    return;
 }
@@ -557,129 +87,36 @@ error:
 
 BERR_Code BXDM_PPDFIFO_P_QueDBG_isr(
    const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_PictureProvider_P_LocalState* pLocalState,
-   bool bForcePrint
+   const BXDM_DebugFifo_DebugInfo * pstDebugInfo
    )
 {
-   BXDM_PPDBG_P_Info *pDebugInfo = &hXdmPP->stDMState.stDecode.stDebug;
    BXDM_P_DebugFifo_Entry *pstEntry;
    BDBG_Fifo_Token stToken;
    BXDM_PictureProvider_P_DebugFifo * pstDebugFifo = &(hXdmPP->stDMConfig.stDebugFifo);
 
    BDBG_ASSERT( hXdmPP );
-   BDBG_ASSERT( pLocalState );
+   BDBG_ASSERT( pstDebugInfo );
 
-   /* See if we need to print out stats */
-   if (pDebugInfo->uiVsyncCount == (BXDM_PPDBG_P_MAX_VSYNC_DEPTH - 1)
-       || true == bForcePrint )
+   if ( NULL == pstDebugFifo->hDebugFifo )
    {
-      int32_t iAverageStcDelta;
-      uint32_t uiAverageFractionBase10;
-
-      BXDM_PictureProvider_MonitorRefreshRate eMonitorRefreshRate = hXdmPP->stDMConfig.eMonitorRefreshRate;
-
-      if ( NULL == pstDebugFifo->hDebugFifo )
-      {
-         BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", BSTD_FUNCTION ));
-         goto error;
-      }
-
-      pstEntry = (BXDM_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( pstDebugFifo->hDebugFifo, &stToken );
-
-      if ( NULL == pstEntry )
-      {
-         BDBG_MSG(("%s:: pstEntry == NULL", BSTD_FUNCTION ));
-         goto error;
-      }
-
-      if ( eMonitorRefreshRate >= BXDM_PictureProvider_MonitorRefreshRate_eMax )
-      {
-         eMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_eUnknown;
-      }
-
-      /* Figure out the STC delta (from the previous vsync) based on assorted state.
-       */
-      if ( true == hXdmPP->stDMConfig.stClockOverride.bEnableClockOverride )
-      {
-         iAverageStcDelta = hXdmPP->stDMConfig.stClockOverride.iStcDelta;
-         uiAverageFractionBase10 = 0;
-      }
-      else if ( true == hXdmPP->stDMConfig.bSTCValid )
-      {
-         iAverageStcDelta = pLocalState->stDeltaSTCAvg.uiWhole;
-
-         /* Convert the fractional part of stDeltaSTCAvg to a base 10 value for display. */
-         BXDM_PPFP_P_FixPtBinaryFractionToBase10_isr(
-                  (BXDM_PPFP_P_DataType *)&(pLocalState->stDeltaSTCAvg),
-                  2,
-                  &(uiAverageFractionBase10)
-                  );
-      }
-      else
-      {
-         iAverageStcDelta = pLocalState->stEffectiveSTCDelta[BXDM_PictureProvider_DisplayMode_eTSM].uiWhole;
-         uiAverageFractionBase10 = 0;
-      }
-
-      BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, NULL, pstEntry );
-      pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eDebugInfo;
-
-      pstEntry->data.stDebugInfo.uiStcSnapshot = pLocalState->uiStcSnapshot;
-      pstEntry->data.stDebugInfo.iStcJitterCorrectionOffset = hXdmPP->stDMState.stDecode.iStcJitterCorrectionOffset;
-      pstEntry->data.stDebugInfo.eMonitorRefreshRate = eMonitorRefreshRate;
-      pstEntry->data.stDebugInfo.stSTCDelta = pLocalState->stSTCDelta;
-      pstEntry->data.stDebugInfo.iAverageStcDelta = iAverageStcDelta;
-      pstEntry->data.stDebugInfo.uiAverageFractionBase10 = uiAverageFractionBase10;
-      pstEntry->data.stDebugInfo.uiSlowMotionRate = pLocalState->uiSlowMotionRate;
-      pstEntry->data.stDebugInfo.eSTCTrickMode = pLocalState->eSTCTrickMode;
-      pstEntry->data.stDebugInfo.bPlayback = hXdmPP->stDMConfig.bPlayback;
-
-      BDBG_Fifo_CommitBuffer( &stToken );
-
-      /* Print TSM Logs */
-      BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, "%s", (char *)&pDebugInfo->stTSMString.szDebugStr );
-
-      /* Print Decoder Drop Logs */
-      if ( true ==  pDebugInfo->bPrintDropCount )
-      {
-         BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, "%s", (char *)&pDebugInfo->stPendingDropString.szDebugStr );
-      }
-
-      /* Print picture selecton log */
-      BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, "%s", (char *)&pDebugInfo->stInterruptString.szDebugStr );
-
-      /* Print stats for Source Polarity Override */
-      if ( true == pDebugInfo->bPrintSPO )
-      {
-         BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, "%s", (char *)&pDebugInfo->stSourcePolarityOverrideString.szDebugStr );
-      }
-
-      /* Print stats for Callbacks */
-      if ( true == pDebugInfo->bPrintCallbacks )
-      {
-         BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, "%s", (char *)&pDebugInfo->stCallbackString.szDebugStr );
-      }
-
-      /* Print State Logs: */
-      BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, "%s", (char *)&pDebugInfo->stStateString.szDebugStr );
-
-      /* Print stats for state 2 */
-      if ( true == pDebugInfo->bPrintState2 )
-      {
-         BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG2, "%s", (char *)&pDebugInfo->stState2String.szDebugStr );
-      }
-
-      BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBGC, "%s", (char *)&pDebugInfo->stStcDeltaString.szDebugStr );
-
-      BKNI_Memset(pDebugInfo, 0, sizeof(BXDM_PPDBG_P_Info));
-
-   }
-   else
-   {
-      pDebugInfo->uiVsyncCount++;
+      goto done;
    }
 
-error:
+   pstEntry = (BXDM_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( pstDebugFifo->hDebugFifo, &stToken );
+
+   if ( NULL == pstEntry )
+   {
+      goto done;
+   }
+
+   BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, NULL, pstEntry );
+   pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eDebugInfo;
+
+   pstEntry->data.stDebugInfo = *pstDebugInfo;
+
+   BDBG_Fifo_CommitBuffer( &stToken );
+
+done:
 
    return BERR_SUCCESS;
 
@@ -703,8 +140,7 @@ void BXDM_PPDFIFO_P_QueMFD_isr(
 
    if ( NULL == pstDebugFifo->hDebugFifo )
    {
-      BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", BSTD_FUNCTION ));
-      goto error;
+      goto done;
    }
 
    while ( NULL != pMFDPicture )
@@ -713,8 +149,7 @@ void BXDM_PPDFIFO_P_QueMFD_isr(
 
       if ( NULL == pstEntry )
       {
-         BDBG_MSG(("%s:: pstEntry == NULL", BSTD_FUNCTION ));
-         goto error;
+         goto done;
       }
 
       BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, &hXdmPP->stDMState.stChannel.stSelectedPicture, pstEntry );
@@ -726,7 +161,7 @@ void BXDM_PPDFIFO_P_QueMFD_isr(
       pMFDPicture = pMFDPicture->pEnhanced;
    }
 
-error:
+done:
 
    BDBG_LEAVE( BXDM_PPDFIFO_P_QueMFD_isr );
 
@@ -777,7 +212,6 @@ void BXDM_PPDFIFO_P_QueUnifiedPicture_isr(
 
    if ( NULL == pstDebugFifo->hDebugFifo )
    {
-      BDBG_MSG(("%s:: pstDebugFifo->hDebugFifo == NULL", BSTD_FUNCTION ));
       goto Done;
    }
 
@@ -785,7 +219,6 @@ void BXDM_PPDFIFO_P_QueUnifiedPicture_isr(
 
    if ( NULL == pstEntry )
    {
-      BDBG_MSG(("%s:: pstEntry == NULL", BSTD_FUNCTION ));
       goto Done;
    }
 
@@ -851,8 +284,6 @@ void BXDM_PPDFIFO_P_QueUnifiedPicture_isr(
          pUniP->eDisplayFieldMode = hXdmPP->stDMConfig.eDisplayFieldMode;
          pUniP->ePictureDisplayFieldMode = pstPicture->stPicParms.stDisplay.stDynamic.eDisplayFieldMode;
          pUniP->bForceSingleFieldMode = pstPicture->stPicParms.stDisplay.stDynamic.bForceSingleFieldMode;
-
-         hXdmPP->stDMState.stDecode.uiVsyncCountQM = 0;
 
       }     /* end of if ( bPrintAdditional )*/
 
@@ -972,324 +403,42 @@ void BXDM_PPDFIFO_P_QueDMConfig_isr(
    bool bLastCall
    )
 {
+   BXDM_P_DebugFifo_Entry *pstEntry;
+   BDBG_Fifo_Token stToken;
+   BXDM_PictureProvider_P_DebugFifo * pstDebugFifo = &(hXdmPP->stDMConfig.stDebugFifo);
+
    BDBG_ENTER( BXDM_PPDFIFO_P_QueDMConfig_isr );
 
    BSTD_UNUSED(pLocalState);
    BSTD_UNUSED(hXdmPP);
-   BSTD_UNUSED(bLastCall);
 
-   /* Print when any of the parameters change. */
-
-   if (  hXdmPP->stDMConfig.uiDirtyBits_1 || hXdmPP->stDMConfig.uiDirtyBits_2 )
+   if ( NULL == pstDebugFifo->hDebugFifo )
    {
-      uint32_t uiDirtyBitsGroup_1_1, uiDirtyBitsGroup_1_2, uiDirtyBitsGroup_1_3, uiDirtyBitsGroup_1_4;
-      uint32_t uiDirtyBitsGroup_2_1, uiDirtyBitsGroup_2_2, uiDirtyBitsGroup_2_3, uiDirtyBitsGroup_2_4 ;
+      goto done;
+   }
 
-      uiDirtyBitsGroup_1_1 = uiDirtyBitsGroup_1_2 = uiDirtyBitsGroup_1_3 = uiDirtyBitsGroup_1_4 = hXdmPP->stDMConfig.uiDirtyBits_1;
+   pstEntry = (BXDM_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( pstDebugFifo->hDebugFifo, &stToken );
 
-      uiDirtyBitsGroup_2_1 = uiDirtyBitsGroup_2_2 = uiDirtyBitsGroup_2_3 = uiDirtyBitsGroup_2_4 = hXdmPP->stDMConfig.uiDirtyBits_2;
+   if ( NULL == pstEntry )
+   {
+      goto done;
+   }
 
-      uiDirtyBitsGroup_1_1 &= BXDM_PictureProvider_P_DIRTY_1_STC_VALID
-                              | BXDM_PictureProvider_P_DIRTY_1_PTS_OFFSET
-                              | BXDM_PictureProvider_P_DIRTY_1_SOFTWARE_PCR_OFFSET
-                              | BXDM_PictureProvider_P_DIRTY_1_USE_HW_PCR_OFFSET
-                              | BXDM_PictureProvider_P_DIRTY_1_PLAYBACK_RATE
-                              | BXDM_PictureProvider_P_DIRTY_1_DISPLAY_FIELD_MODE;
+   BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, NULL, pstEntry );
+   pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eConfig;
 
-      uiDirtyBitsGroup_2_1 &= BXDM_PictureProvider_P_DIRTY_2_MUTE;
+   pstEntry->data.stConfigInfo.bLastCall = bLastCall;
+   pstEntry->data.stConfigInfo.stConfig = hXdmPP->stDMConfig;
 
-      if ( uiDirtyBitsGroup_1_1 || uiDirtyBitsGroup_2_1 )
-      {
+   BDBG_Fifo_CommitBuffer( &stToken );
 
-         BXDM_PPDFIFO_P_QueString_isr(
-            hXdmPP,
-            BXDM_Debug_MsgType_eCFG,
-            "%c%x:[%02x.xxx]1:%c stc:%c(%d) PTSoff:%08x(%d) STCoff:%08x(%d) usePCR:%c(%d) pbr:%d/%d(%d) dfm:%s(%d)",
-            ( bLastCall ) ? '*' : ' ',
-            hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-            ( hXdmPP->stDMConfig.bMute == true ) ? 'M' : ' ',
-/*                  ( hXdmPP->stDMConfig.uiDirtyBits_2 & BXDM_PictureProvider_P_DIRTY_2_MUTE ) ? 1 : 0,*/
-            ( hXdmPP->stDMConfig.bSTCValid == true ) ? 'v' : 'i',
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_STC_VALID ) ? 1 : 0,
-            hXdmPP->stDMConfig.uiPTSOffset,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_PTS_OFFSET ) ? 1 : 0,
-            hXdmPP->stDMConfig.uiSoftwarePCROffset,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_SOFTWARE_PCR_OFFSET ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.bUseHardwarePCROffset == true) ? 't' : 'f',
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_USE_HW_PCR_OFFSET ) ? 1 : 0,
-            hXdmPP->stDMConfig.stPlaybackRate.uiNumerator,
-            hXdmPP->stDMConfig.stPlaybackRate.uiDenominator,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_PLAYBACK_RATE ) ? 1 : 0,
-            BXDM_P_DisplayFieldModeToStrLUT[ hXdmPP->stDMConfig.eDisplayFieldMode ],
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_DISPLAY_FIELD_MODE ) ? 1 : 0
-         );
-
-      }     /* end of  if ( uiDirtyBitsGroup_1_1 || uiDirtyBitsGroup_2_1 ) */
-
-
-      uiDirtyBitsGroup_1_2 &= BXDM_PictureProvider_P_DIRTY_1_PLAYBACK
-                              | BXDM_PictureProvider_P_DIRTY_1_PROTOCOL
-                              | BXDM_PictureProvider_P_DIRTY_1_MONITOR_REFRESH_RATE
-                              | BXDM_PictureProvider_P_DIRTY_1_DEFAULT_FRAME_RATE
-                              | BXDM_PictureProvider_P_DIRTY_1_FRAMERATE_OVERRIDE
-                              | BXDM_PictureProvider_P_DIRTY_1_TRICK_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_FREEZE ;
-
-      uiDirtyBitsGroup_2_2 &= BXDM_PictureProvider_P_DIRTY_2_DISPLAY_MODE;
-
-      if ( uiDirtyBitsGroup_1_2 || uiDirtyBitsGroup_2_2 )
-      {
-         BXDM_PPDFIFO_P_QueString_isr(
-            hXdmPP,
-            BXDM_Debug_MsgType_eCFG,
-            "%c%x:[%02x.xxx]2:%s(%d) %s(%d) %s(%d) mr:%s(%d) dfr:%s(%d) fro:%d/%d(%d,%d)(%d) tm:%s(%d) frz:%c(%d)",
-            ( bLastCall ) ? '*' : ' ',
-            hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-            ( hXdmPP->stDMConfig.eDisplayMode == BXDM_PictureProvider_DisplayMode_eTSM ) ? "TSM" : "vsync",
-            ( hXdmPP->stDMConfig.uiDirtyBits_2 & BXDM_PictureProvider_P_DIRTY_2_DISPLAY_MODE ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.bPlayback == true ) ? "pb" : "lv",
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_PLAYBACK ) ? 1 : 0,
-            BXDM_P_VideoCompressionStdToStrLUT[ hXdmPP->stDMConfig.eProtocol ],
-            ( hXdmPP->stDMConfig.uiDirtyBits_2 & BXDM_PictureProvider_P_DIRTY_1_PROTOCOL ) ? 1 : 0,
-            BXDM_P_MonitorRefreshRateToStrLUT[ hXdmPP->stDMConfig.eMonitorRefreshRate ],
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_MONITOR_REFRESH_RATE ) ? 1 : 0,
-            BXDM_P_BAVCFrameRateToStrLUT[ hXdmPP->stDMConfig.eDefaultFrameRate ],
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_DEFAULT_FRAME_RATE ) ? 1 : 0,
-            hXdmPP->stDMConfig.stFrameRateOverride.stRate.uiNumerator,
-            hXdmPP->stDMConfig.stFrameRateOverride.stRate.uiDenominator,
-            hXdmPP->stDMConfig.stFrameRateOverride.bValid,
-            hXdmPP->stDMConfig.stFrameRateOverride.bTreatAsSingleElement,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_FRAMERATE_OVERRIDE ) ? 1 : 0,
-            BXDM_P_TrickModeToStrLUT[ hXdmPP->stDMConfig.eTrickMode ],
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_TRICK_MODE ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.bFreeze == true ) ? 't' : 'f',
-            ( hXdmPP->stDMConfig.uiDirtyBits_2 & BXDM_PictureProvider_P_DIRTY_1_FREEZE ) ? 1 : 0
-         );
-
-      } /* end of if ( uiDirtyBitsGroup_1_2 || uiDirtyBitsGroup_2_2 ) */
-
-
-      uiDirtyBitsGroup_1_3 &= BXDM_PictureProvider_P_DIRTY_1_SRC_FORMAT_OVERRIDE
-                              | BXDM_PictureProvider_P_DIRTY_1_SCAN_MODE_OVERRIDE
-                              | BXDM_PictureProvider_P_DIRTY_1_1080P_SCAN_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_PICTURE_DROP_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_480P_PULLDOWN_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_1080P_PULLDOWN_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_240I_SCAN_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_HORIZON_OVERSCAN_MODE;
-
-
-      if ( uiDirtyBitsGroup_1_3 )
-      {
-         char cSFO, cSMO;
-
-         switch( hXdmPP->stDMConfig.eSourceFormatOverride )
-         {
-            case BXDM_PictureProvider_SourceFormatOverride_eInterlaced:    cSFO = 'P';    break;
-            case BXDM_PictureProvider_SourceFormatOverride_eProgressive:   cSFO = 'I';    break;
-            case BXDM_PictureProvider_SourceFormatOverride_eDefault:
-            default:                                                       cSFO = 'D';    break;
-         }
-
-         switch( hXdmPP->stDMConfig.eScanModeOverride )
-         {
-            case BXDM_PictureProvider_ScanModeOverride_eInterlaced:     cSMO = 'P';    break;
-            case BXDM_PictureProvider_ScanModeOverride_eProgressive:    cSMO = 'I';    break;
-            case BXDM_PictureProvider_ScanModeOverride_eDefault:
-            default:                                                    cSMO = 'D';    break;
-         }
-
-         BXDM_PPDFIFO_P_QueString_isr(
-            hXdmPP,
-            BXDM_Debug_MsgType_eCFG,
-            "%c%x:[%02x.xxx]3:sfo:%c(%d) smo:%c(%d) 1080sm:%c(%d) pdm:%s(%d) 480pdm:%s(%d) 1080pdm:%s(%d) 240sm:%s(%d) hom:%s(%d)",
-            ( bLastCall ) ? '*' : ' ',
-            hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-            cSFO,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_SRC_FORMAT_OVERRIDE ) ? 1 : 0,
-            cSMO,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_SCAN_MODE_OVERRIDE ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.e1080pScanMode == BXDM_PictureProvider_1080pScanMode_eDefault ) ? 'D' : 'A' ,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_1080P_SCAN_MODE ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.ePictureDropMode == BXDM_PictureProvider_PictureDropMode_eField ) ? "fld" : "Frm" ,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_PICTURE_DROP_MODE ) ? 1 : 0,
-            BXDM_P_PulldownModeToStrLUT[ hXdmPP->stDMConfig.e480pPulldownMode ],
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_480P_PULLDOWN_MODE ) ? 1 : 0,
-            BXDM_P_PulldownModeToStrLUT[ hXdmPP->stDMConfig.e1080pPulldownMode ],
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_1080P_PULLDOWN_MODE ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.e240iScanMode == BXDM_PictureProvider_240iScanMode_eForceProgressive ) ? "fp" : "en" ,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_240I_SCAN_MODE ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.eHorizontalOverscanMode == BXDM_PictureProvider_HorizontalOverscanMode_eAuto ) ? "auto" : "dis" ,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_HORIZON_OVERSCAN_MODE ) ? 1 : 0
-         );
-
-      }     /* end of if ( uiDirtyBitsGroup_1_3 ) */
-
-
-      uiDirtyBitsGroup_1_4 &= BXDM_PictureProvider_P_DIRTY_1_FRAME_ADVANCE_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_REVERSE_FIELDS
-                              | BXDM_PictureProvider_P_DIRTY_1_AUTO_VALIDATE_ON_PAUSE
-                              | BXDM_PictureProvider_P_DIRTY_1_3D_SETTINGS
-                              | BXDM_PictureProvider_P_DIRTY_1_JITTER_TOLERANCE
-                              | BXDM_PictureProvider_P_DIRTY_1_FRAME_RATE_DETECTION_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_ERROR_HANDLING_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_ATSM_MODE
-                              | BXDM_PictureProvider_P_DIRTY_1_VTSM_ON_PCR_DISCON ;
-
-
-      uiDirtyBitsGroup_2_4 &= BXDM_PictureProvider_P_DIRTY_2_ERROR_THRESHOLD;
-
-      if ( uiDirtyBitsGroup_1_4 || uiDirtyBitsGroup_2_4 )
-      {
-         BXDM_PPDFIFO_P_QueString_isr(
-            hXdmPP,
-            BXDM_Debug_MsgType_eCFG,
-            "%c%x:[%02x.xxx]4:fra:%s(%d) rvf:%c(%d) avop:%c(%d) 3Do:%s(%d)(%d) jti:%s(%d) frd:%s(%d) ehm:%s(%d) el:%d(%d) astm:%c(%d) avsync:%c(%d) ",
-            ( bLastCall ) ? '*' : ' ',
-            hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-            BXDM_P_FrameAdvanceModeToStrLUT[hXdmPP->stDMConfig.eFrameAdvanceMode],
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_FRAME_ADVANCE_MODE ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.bReverseFields == true ) ? 't' : 'f' ,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_REVERSE_FIELDS ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.bAutoValidateStcOnPause == true ) ? 't' : 'f' ,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_AUTO_VALIDATE_ON_PAUSE ) ? 1 : 0,
-            BXDM_P_PPOrientationToStrLUT[ hXdmPP->stDMConfig.st3DSettings.eOrientation ],
-            hXdmPP->stDMConfig.st3DSettings.bOverrideOrientation,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_3D_SETTINGS ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.bJitterToleranceImprovement == true ) ? "on" : "off" ,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_JITTER_TOLERANCE ) ? 1 : 0,
-            BXDM_P_FrameRateDetectionModeToStrLUT[ hXdmPP->stDMConfig.eFrameRateDetectionMode ],
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_FRAME_RATE_DETECTION_MODE ) ? 1 : 0,
-            BXDM_P_ErrorHandlingModeToStrLUT[ hXdmPP->stDMConfig.eErrorHandlingMode ],
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_ERROR_HANDLING_MODE ) ? 1 : 0,
-            hXdmPP->stDMConfig.uiErrorThreshold,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_2_ERROR_THRESHOLD ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.bAstmMode == true ) ? 't' : 'f' ,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_ATSM_MODE ) ? 1 : 0,
-            ( hXdmPP->stDMConfig.bVirtualTSMOnPCRDiscontinuity == true ) ? 't' : 'f' ,
-            ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_VTSM_ON_PCR_DISCON ) ? 1 : 0
-         );
-
-      }     /* end of if ( uiDirtyBitsGroup_1_4 || uiDirtyBitsGroup_2_4 ) */
-
-      /* The following are not currently printed.
-       *
-       * uint32_t uiRemovalDelay;
-       * BXDM_Picture_Rate stPreRollRate;
-       * uint32_t uiMaxHeightSupportedByDeinterlacer;
-       * BXDM_PictureProvider_TSMThresholdSettings stTSMThresholdSettings;
-       * uint32_t uiSTCIndex;
-       * BXDM_PictureProvider_ClipTimeSettings stClipTimeSettings;
-       */
-
-      hXdmPP->stDMConfig.uiDirtyBits_1 = BXDM_PictureProvider_P_DIRTY_NONE;
-      hXdmPP->stDMConfig.uiDirtyBits_2 = BXDM_PictureProvider_P_DIRTY_NONE;
-
-   }       /* end of  if ( hXdmPP->stDMConfig.uiDirtyBits_1 || hXdmPP->stDMConfig.uiDirtyBits_2 ) */
+done:
 
    BDBG_LEAVE( BXDM_PPDFIFO_P_QueDMConfig_isr );
 
    return;
 
 }  /* end of BXDM_PPDFIFO_P_PrintDMConfig */
-
-void BXDM_PPDFIFO_P_QueStartDecode_isr(
-   const BXDM_PictureProvider_Handle hXdmPP
-   )
-{
-   /* SW7445-1259: reduce messages printed at start decode time */
-   BXDM_PictureProvider_P_State_Decode *pDecode = &hXdmPP->stDMState.stDecode;
-   BXDM_PPDBG_P_Info *pDebug = &pDecode->stDebug;
-
-   BXDM_PPDFIFO_P_QueString_isr(
-            hXdmPP,
-            BXDM_Debug_MsgType_eDBG,
-            "--- %x:[%02x.xxx] BXDM_PictureProvider_StartDecode_isr has been called (hXdmPP:0x%lu) ---",
-            pDebug->uiVsyncCount,
-            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-            (unsigned long)hXdmPP
-            );
-   return;
-}
-
-void BXDM_PPDFIFO_P_QueStopDecode_isr(
-   const BXDM_PictureProvider_Handle hXdmPP
-   )
-{
-   BXDM_PictureProvider_P_State_Decode *pDecode = &hXdmPP->stDMState.stDecode;
-   BXDM_PPDBG_P_Info *pDebug = &pDecode->stDebug;
-
-   BXDM_PPDFIFO_P_QueString_isr(
-            hXdmPP,
-            BXDM_Debug_MsgType_eDBG,
-            "--- %x:[%02x.xxx] BXDM_PictureProvider_StopDecode_isr has been called (hXdmPP:0x%lu) ---",
-            pDebug->uiVsyncCount,
-            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-            (unsigned long)hXdmPP
-            );
-
-   return;
-}
-
-/*
-** SW7335-781: Output warning when forcing picture selection override
-** Output Selection Mode override message only once, if:
-** an override to vTSM mode occurred
-** the override was not the same as the previous Override
-** function assumes new selection mode is VSYNC (vTSM) mode
-*/
-void BXDM_PPDFIFO_P_PrintSelectionModeOverride_isr(
-   char *pMsg,
-   const BXDM_PictureProvider_Handle hXdmPP,
-   BXDM_PictureProvider_P_Picture_Context *pPicture)
-{
-   BXDM_PictureProvider_P_State_Decode *pDecode = &hXdmPP->stDMState.stDecode;
-   BXDM_PPDBG_P_Info *pDebug = &pDecode->stDebug;
-
-   if ((BXDM_PictureProvider_DisplayMode_eVirtualTSM != pPicture->stPicParms.stTSM.stDynamic.eSelectionMode)
-     && (BXDM_PictureProvider_DisplayMode_eVirtualTSM != pDecode->eLastSelectionModeOverride))
-   {
-      BXVD_DBG_WRN(hXdmPP, (" %x:[%02x.%03x] %s: Selection Mode Override (TSM -> vTSM)",
-                              pDebug->uiVsyncCount,
-                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                              pPicture->stPicParms.uiPPBIndex & 0xFFF,
-                              pMsg));
-
-      /* prevent repeated override messages */
-      pDecode->eLastSelectionModeOverride = BXDM_PictureProvider_DisplayMode_eVirtualTSM;
-   }
-}
-
-/*
-** SW7335-781: Output warning when forcing picture selection override
-** Indicate when the override transitions back to TSM mode
-*/
-void BXDM_PPDFIFO_P_PrintEndSelectionModeOverride_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   BXDM_PictureProvider_P_Picture_Context *pPicture)
-{
-   BXDM_PictureProvider_P_State_Decode *pDecode = &hXdmPP->stDMState.stDecode;
-   BXDM_PPDBG_P_Info *pDebug = &pDecode->stDebug;
-
-   /* if selected picture's selection mode was TSM and last selection mode override was VSYNC
-      then output the selection mode change message */
-   if ((BXDM_PictureProvider_DisplayMode_eTSM == pPicture->stPicParms.stTSM.stDynamic.eSelectionMode)
-      && (BXDM_PictureProvider_DisplayMode_eVirtualTSM == pDecode->eLastSelectionModeOverride))
-   {
-      BXVD_DBG_WRN(hXdmPP, (" %x:[%02x.%03x] Selection Mode Override: Return to TSM",
-                                 pDebug->uiVsyncCount,
-                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 pPicture->stPicParms.uiPPBIndex & 0xFFF
-                                 ));
-
-      pDecode->eLastSelectionModeOverride = BXDM_PictureProvider_DisplayMode_eTSM;
-   }
-}
-
 
 
 /*
@@ -1378,15 +527,25 @@ BERR_Code BXDM_PPDFIFO_P_Fifo_Create(
       BDBG_ERR(("%s:: BDBG_Fifo_Create failure: rc:%08x", BSTD_FUNCTION, rc ));
       bAllocationError = true;
    }
+
+#if 0
    BDBG_MSG(("%s:: ", BSTD_FUNCTION ));
+
    BDBG_MSG(("    pstDebugFifo->hBMMAHeap: %08x", (unsigned)pstDebugFifo->hBMMAHeap ));
    BDBG_MSG(("    pstDebugFifo->hDebugFifo: %08x", (unsigned)pstDebugFifo->hDebugFifo ));
    BDBG_MSG(("    pstDebugFifo->pBuffer: %08x", (unsigned)pstDebugFifo->pBuffer ));
    BDBG_MSG(("    pstDebugFifo->bmmaOffset: %08x", (unsigned)pstDebugFifo->bmmaOffset ));
    BDBG_MSG(("    pstDebugFifo->hBMMABlock: %08x", (unsigned)pstDebugFifo->hBMMABlock ));
-   BDBG_MSG(("    pstDebugFifo->uiElementSize: %d", pstDebugFifo->uiElementSize ));
-   BDBG_MSG(("    pstDebugFifo->uiFifoSize: %d", pstDebugFifo->uiFifoSize ));
 
+   BDBG_MSG(("    pstDebugFifo->uiElementSize: %d",         pstDebugFifo->uiElementSize ));
+   BDBG_MSG(("    pstDebugFifo->uiFifoSize: %d /1024 = %d", pstDebugFifo->uiFifoSize, pstDebugFifo->uiFifoSize/1024 ));
+   BDBG_MSG(("    BXDM_P_DebugFifo_Entry size: %d",         sizeof(BXDM_P_DebugFifo_Entry) ));
+   BDBG_MSG(("    BAVC_MFD_Picture size: %d",               sizeof(BAVC_MFD_Picture) ));
+   BDBG_MSG(("    BXDM_DebugFifo_UnifiedPicture size: %d",  sizeof(BXDM_DebugFifo_UnifiedPicture) ));
+   BDBG_MSG(("    BXDM_DebugFifo_String size: %d",          sizeof(BXDM_DebugFifo_String) ));
+   BDBG_MSG(("    BXDM_DebugFifo_DebugInfo size: %d",       sizeof(BXDM_DebugFifo_DebugInfo) ));
+   BDBG_MSG(("    BXDM_PictureProvider_P_Config size: %d",  sizeof(BXDM_PictureProvider_P_Config) ));
+#endif
 
 error:
 
@@ -1418,14 +577,14 @@ BERR_Code BXDM_PPDFIFO_P_Fifo_Destroy(
       BDBG_ERR(("%s  pstDebugFifo is NULL", BSTD_FUNCTION ));
       goto error;
    }
-
+#if 0
    BDBG_MSG(("%s::", BSTD_FUNCTION ));
    BDBG_MSG(("    pstDebugFifo->hBMMAHeap: %08x", (unsigned)pstDebugFifo->hBMMAHeap ));
    BDBG_MSG(("    hDebugFifo: %08x", (unsigned)pstDebugFifo->hDebugFifo ));
    BDBG_MSG(("    pBuffer: %08x", (unsigned)pstDebugFifo->pBuffer ));
    BDBG_MSG(("    bmmaOffset: %08x", (unsigned)pstDebugFifo->bmmaOffset ));
    BDBG_MSG(("    hBMMABlock: %08x", (unsigned)pstDebugFifo->hBMMABlock ));
-
+#endif
    if ( 0 != pstDebugFifo->pBuffer )
    {
       BMMA_Unlock( pstDebugFifo->hBMMABlock, pstDebugFifo->pBuffer );
@@ -1513,11 +672,12 @@ BERR_Code BXDM_PPDFIFO_P_Reader_Create(
       bAllocationError = true;
       goto error;
    }
-
+#if 0
    BDBG_MSG(("%s::", BSTD_FUNCTION ));
    BDBG_MSG(("    pstReaderInfo->hDebugReader: %08x", (unsigned)pstReaderInfo->hDebugReader ));
    BDBG_MSG(("    pstReaderInfo->pEntry: %08x", (unsigned)pstReaderInfo->pEntry ));
    BDBG_MSG(("    pstReaderInfo->pDebugFifo: %08x", (unsigned)pstReaderInfo->pDebugFifo ));
+#endif
 
 error:
 
@@ -1546,12 +706,12 @@ BERR_Code BXDM_PPDFIFO_P_Reader_Destroy(
 
    pstReaderInfo = &hXdmPP->stDMConfig.stDebugReader;
 
-
+#if 0
    BDBG_MSG(("%s::", BSTD_FUNCTION ));
    BDBG_MSG(("    pstReaderInfo->hDebugReader: %08x", (unsigned)pstReaderInfo->hDebugReader ));
    BDBG_MSG(("    pstReaderInfo->pEntry: %08x", (unsigned)pstReaderInfo->pEntry ));
    BDBG_MSG(("    pstReaderInfo->pDebugFifo: %08x", (unsigned)pstReaderInfo->pDebugFifo ));
-
+#endif
 
    if ( NULL != pstReaderInfo->pDebugFifo )
    {
@@ -1580,9 +740,73 @@ BERR_Code BXDM_PPDFIFO_P_Reader_Destroy(
 
 }
 
-/*
- * SWSTB-1380: end of prototype code for the BDBG_Fifo
- */
-
-
 #endif
+
+void BXDM_PPDFIFO_P_QueString_isr(
+   const BXDM_PictureProvider_Handle hXdmPP,
+   const BXDM_Debug_MsgType eMessageType,
+   bool bNeedFormat,
+   char * format,
+   ...
+   )
+{
+#if BDBG_DEBUG_BUILD
+   BXDM_P_DebugFifo_Entry *pstEntry;
+   BDBG_Fifo_Token stToken;
+   BXDM_PictureProvider_P_DebugFifo * pstDebugFifo = &(hXdmPP->stDMConfig.stDebugFifo);
+
+   BDBG_ENTER( BXDM_PPDFIFO_P_QueString_isr );
+
+   BDBG_ASSERT( hXdmPP );
+
+   if ( NULL == pstDebugFifo->hDebugFifo )
+   {
+      goto done;
+   }
+
+   pstEntry = (BXDM_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( pstDebugFifo->hDebugFifo, &stToken );
+
+   if ( NULL == pstEntry )
+   {
+      goto done;
+   }
+
+   {
+      BXDM_PictureProvider_P_Picture_Context * pstPicture = NULL;
+      va_list argList;
+
+
+      BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, pstPicture, pstEntry );
+      pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eString;
+
+      pstEntry->data.stString.eType = ( eMessageType < BXDM_Debug_MsgType_eMax ) ? eMessageType : BXDM_Debug_MsgType_eUnKnown ;
+
+      if ( true == bNeedFormat )
+      {
+         va_start( argList, format );
+         BKNI_Vsnprintf(pstEntry->data.stString.szString, BXDM_P_MAX_DEBUG_FIFO_STRING_LEN, format, argList );
+         va_end(argList);
+      }
+      else
+      {
+         va_start( argList, format );
+         BKNI_Memcpy(pstEntry->data.stString.szString, va_arg(argList, char *), BXDM_P_MAX_DEBUG_FIFO_STRING_LEN);
+         va_end(argList);
+      }
+
+      BDBG_Fifo_CommitBuffer( &stToken );
+   }
+
+done:
+
+   BDBG_LEAVE( BXDM_PPDFIFO_P_QueString_isr );
+
+#else
+   BSTD_UNUSED(hXdmPP);
+   BSTD_UNUSED(eMessageType);
+   BSTD_UNUSED(bNeedFormat);
+   BSTD_UNUSED(format);
+#endif
+
+   return;
+}

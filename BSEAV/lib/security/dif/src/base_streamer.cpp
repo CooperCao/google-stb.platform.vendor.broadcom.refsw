@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,18 +59,32 @@ BaseStreamer::BaseStreamer()
     m_pidChannel = NULL;
 }
 
-NEXUS_PlaypumpHandle BaseStreamer::OpenPlaypump(bool isVideo)
+void BaseStreamer::GetDefaultPlaypumpOpenSettings(
+    NEXUS_PlaypumpOpenSettings *playpumpOpenSettings)
 {
+    if (playpumpOpenSettings == NULL) {
+        LOGW(("%s: NULL pointer was given", BSTD_FUNCTION));
+        return;
+    }
+
+    NEXUS_Playpump_GetDefaultOpenSettings(playpumpOpenSettings);
+}
+
+
+NEXUS_PlaypumpHandle BaseStreamer::OpenPlaypump(
+    NEXUS_PlaypumpOpenSettings *playpumpOpenSettings)
+{
+    NEXUS_PlaypumpOpenSettings defaultSettings;
+
     if (m_playpump != NULL) {
         LOGW(("Playpump already opened"));
         return m_playpump;
     }
 
-    NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
-    NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
-    if (isVideo) {
-        playpumpOpenSettings.fifoSize *= DEFAULT_VIDEO_MULTIPLE;
-        playpumpOpenSettings.numDescriptors *= DEFAULT_VIDEO_MULTIPLE;
+    if (playpumpOpenSettings == NULL) {
+        LOGW(("%s: NULL pointer was given, default settings are used", BSTD_FUNCTION));
+        NEXUS_Playpump_GetDefaultOpenSettings(&defaultSettings);
+        playpumpOpenSettings = &defaultSettings;
     }
 
     if (SetupPlaypump(playpumpOpenSettings) == false) {
@@ -78,7 +92,7 @@ NEXUS_PlaypumpHandle BaseStreamer::OpenPlaypump(bool isVideo)
         return NULL;
     }
 
-    m_playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
+    m_playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, playpumpOpenSettings);
     if (!m_playpump) {
         LOGE(("@@@ Playpump Open FAILED----"));
     }
@@ -129,7 +143,7 @@ IBuffer* BaseStreamer::GetBuffer(uint32_t size)
         }
 
         if (m_offset > 0) {
-            LOGD(("%s: internally push %u", __FUNCTION__, m_offset));
+            LOGD(("%s: internally push %u", BSTD_FUNCTION, m_offset));
             NEXUS_Playpump_WriteComplete(m_playpump, 0, m_offset);
             m_internallyPushed += m_offset;
             m_offset = 0;
@@ -137,7 +151,7 @@ IBuffer* BaseStreamer::GetBuffer(uint32_t size)
         }
 
         if (bufferSize > 0) {
-            LOGD(("%s: skip bufferSize=%u fragment_size=%u", __FUNCTION__, (uint32_t)bufferSize, fragment_size));
+            LOGD(("%s: skip bufferSize=%u fragment_size=%u", BSTD_FUNCTION, (uint32_t)bufferSize, fragment_size));
             NEXUS_Playpump_WriteComplete(m_playpump, bufferSize, 0);
         }
     }
@@ -155,13 +169,13 @@ bool BaseStreamer::Push(uint32_t size)
         return false;
     }
 
-    LOGD(("SecureStreamer::%s size=%u", __FUNCTION__, size));
+    LOGD(("SecureStreamer::%s size=%u", BSTD_FUNCTION, size));
     NEXUS_Error rc;
     if (size > m_internallyPushed) {
         rc = NEXUS_Playpump_WriteComplete(m_playpump, 0, size - m_internallyPushed);
         m_internallyPushed = 0;
     } else
-        LOGW(("SecureStreamer::%s warning size=%u < internallyPushed=%u", __FUNCTION__, size, m_internallyPushed));
+        LOGW(("SecureStreamer::%s warning size=%u < internallyPushed=%u", BSTD_FUNCTION, size, m_internallyPushed));
 
     m_offset = 0;
     return (rc == NEXUS_SUCCESS);

@@ -10,12 +10,12 @@
 typedef struct {
    bool ms;
    bool sample_alpha_to_coverage;
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    bool sample_mask;
 #endif
    bool fez_safe_with_discard;
    bool early_fragment_tests;
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    bool requires_sbwait;
 #endif
 

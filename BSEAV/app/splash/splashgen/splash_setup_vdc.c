@@ -125,6 +125,7 @@ BERR_Code  splash_vdc_setup(
 	BRFM_Handle             hRfm;
 	BRFM_Settings           rfmDevSettings;
 #endif
+    BBOX_Config             stBoxConfig;
 
 	BVDC_Compositor_Handle  hCompositor;
 	BVDC_Display_Handle     hDisplay;
@@ -150,6 +151,10 @@ BERR_Code  splash_vdc_setup(
 	uint32_t  winHeight;
 	BVDC_Settings  stDefSettings;
 	int  ii;
+
+    eErr = BBOX_GetConfig(hBox, &stBoxConfig);
+    if (eErr != BERR_SUCCESS)
+        return eErr;
 
 	/* setup surfaces */
 	for (ii=0; ii<SPLASH_NUM_SURFACE; ii++)
@@ -285,6 +290,10 @@ BERR_Code  splash_vdc_setup(
 	hdmDspIdx = 0;
 	for(ii=0; ii<SPLASH_NUM_DISPLAY; ii++)
 	{
+        /* proceed to create display if available per box mode */
+        if (!stBoxConfig.stVdc.astDisplay[ii].bAvailable)
+            continue;
+
 		if (IS_HD(pState->disp[ii].eDispFmt))
 		{
 			componentDspIdx = ii;
@@ -449,55 +458,63 @@ BERR_Code  splash_vdc_setup(
 			}
 #endif
 
-			/* create a window handle */
-			TestError( BVDC_Window_Create( hCompositor,
-				&hGfxWindow, BVDC_WindowId_eAuto, hGfxSource, NULL ),
-				"ERROR:BVDC_Window_Create" );
-			pState->disp[ii].hGfxWindow = hGfxWindow;
+            /* proceed to create gfx window if available per box mode */
+            if (stBoxConfig.stVdc.astDisplay[ii].astWindow[BBOX_Vdc_Window_eGfx0].bAvailable)
+            {
+                /* create a window handle */
+                TestError( BVDC_Window_Create( hCompositor,
+                    &hGfxWindow, BVDC_WindowId_eAuto, hGfxSource, NULL ),
+                    "ERROR:BVDC_Window_Create" );
+                pState->disp[ii].hGfxWindow = hGfxWindow;
 
-			/* set destination height not bigger than src height */
-			winHeight = (stVideoInfo.ulHeight <= pState->disp[ii].pSurf->ulHeight)?
-				stVideoInfo.ulHeight : pState->disp[ii].pSurf->ulHeight;
+                /* set destination height not bigger than src height */
+                winHeight = (stVideoInfo.ulHeight <= pState->disp[ii].pSurf->ulHeight)?
+                    stVideoInfo.ulHeight : pState->disp[ii].pSurf->ulHeight;
 
-			if(pState->bScaleToFullScreen)
-			{
-				iLeft = 0;
-				ulWidth  = stVideoInfo.ulWidth;
+                if(pState->bScaleToFullScreen)
+                {
+                    iLeft = 0;
+                    ulWidth  = stVideoInfo.ulWidth;
 
-				/* set destination size to match display */
-				if(pState->disp[ii].bGfdHasVertScale)
-				{
-					iTop     = 0;
-					ulHeight = stVideoInfo.ulHeight;
-				}
-				else
-				{
-					iTop  = (stVideoInfo.ulHeight - winHeight)/2;
-					ulHeight = winHeight;
-				}
-			}
-			else
-			{
-				iLeft    = 0;
-				iTop     = (stVideoInfo.ulHeight - winHeight)/2;
-				ulWidth  = stVideoInfo.ulWidth;
-				ulHeight = winHeight;
-			}
+                    /* set destination size to match display */
+                    if(pState->disp[ii].bGfdHasVertScale)
+                    {
+                        iTop     = 0;
+                        ulHeight = stVideoInfo.ulHeight;
+                    }
+                    else
+                    {
+                        iTop  = (stVideoInfo.ulHeight - winHeight)/2;
+                        ulHeight = winHeight;
+                    }
+                }
+                else
+                {
+                    iLeft    = 0;
+                    iTop     = (stVideoInfo.ulHeight - winHeight)/2;
+                    ulWidth  = stVideoInfo.ulWidth;
+                    ulHeight = winHeight;
+                }
 
-			BDBG_MSG(("output rect(%4d, %4d, %4d, %4d)", iTop, iTop, ulWidth, ulHeight));
+                BDBG_MSG(("output rect(%4d, %4d, %4d, %4d)", iTop, iTop, ulWidth, ulHeight));
 
-			TestError( BVDC_Window_SetDstRect(hGfxWindow, iTop, iTop, ulWidth, ulHeight),
-				"ERROR:BVDC_Window_SetDstRect");
-			TestError( BVDC_Window_SetScalerOutput(hGfxWindow, iTop, iTop, ulWidth, ulHeight),
-				"ERROR:BVDC_Window_SetScalerOutput");
+                TestError( BVDC_Window_SetDstRect(hGfxWindow, iTop, iTop, ulWidth, ulHeight),
+                    "ERROR:BVDC_Window_SetDstRect");
+                TestError( BVDC_Window_SetScalerOutput(hGfxWindow, iTop, iTop, ulWidth, ulHeight),
+                    "ERROR:BVDC_Window_SetScalerOutput");
 
-			/* set order to front */
-			TestError( BVDC_Window_SetZOrder( hGfxWindow, 1),
-				"ERROR:BVDC_Window_SetZOrder" );
+                /* set order to front */
+                TestError( BVDC_Window_SetZOrder( hGfxWindow, 1),
+                    "ERROR:BVDC_Window_SetZOrder" );
 
-			/* enable visibility */
-			TestError( BVDC_Window_SetVisibility( hGfxWindow, true),
-				"ERROR:BVDC_Window_SetVisibility" );
+                /* enable visibility */
+                TestError( BVDC_Window_SetVisibility( hGfxWindow, true),
+                    "ERROR:BVDC_Window_SetVisibility" );
+            }
+            else
+            {
+                continue;
+            }
 		}
 	}
 

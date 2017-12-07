@@ -604,7 +604,7 @@ const uint32_t BDSP_IMG_ac3_ids_array1[] = {
 	0x94100b04,
 	0x15008387,
 	0xb40901f8,
-	0xd6e7c099,
+	0xd6dfc099,
 	0xb40281f8,
 	0x7400030f,
 	0x2b00fe07,

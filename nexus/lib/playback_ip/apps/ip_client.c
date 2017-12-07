@@ -934,7 +934,6 @@ useLiveModeForIpPlayback(
             *clockRecoveryModeForPlaybackIp = B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip;
         } else
         {
-            *clockRecoveryModeForPlaybackIp = B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip;
             *clockRecoveryModeForPlaybackIp = B_PlaybackIpClockRecoveryMode_ePushWithPcrSyncSlip;
         }
         useLiveIpMode = true;
@@ -959,7 +958,6 @@ useLiveModeForIpPlayback(
 #if 1
             /* live channel & stream doesn't has 4 byte Timestamps, so use PCRs as timestamps for pacing */
             /* however, this PCR based basing is not yet fully tested, so default to pull mode for now */
-            *clockRecoveryModeForPlaybackIp = B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip;
             *clockRecoveryModeForPlaybackIp = B_PlaybackIpClockRecoveryMode_ePushWithPcrSyncSlip;
             useLiveIpMode = true;
 #else
@@ -2474,13 +2472,7 @@ skipNexusOpens:
 #endif
     }
     if (ipCfg.fastChannelChange) {
-        NEXUS_VideoDecoderPrimerSettings primerSettings;
         for (i=0;i<TOTAL_PRIMERS;i++) {
-            NEXUS_VideoDecoderPrimer_GetSettings(primer[i], &primerSettings);
-            primerSettings.pastTolerance = 1500; /* amount of time willing to race: for IP, start decode from the previous GOP */
-            primerSettings.futureTolerance = 0;
-            rc = NEXUS_VideoDecoderPrimer_SetSettings(primer[i], &primerSettings);
-
             /* now start the primer */
             NEXUS_VideoDecoderPrimer_Start(primer[i], &videoProgram);
         }

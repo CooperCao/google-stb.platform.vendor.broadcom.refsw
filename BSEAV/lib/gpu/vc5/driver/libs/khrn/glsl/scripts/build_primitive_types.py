@@ -5,9 +5,12 @@ from generation_utils import *
 from parsers import parse_table
 
 ValueType     = namedtuple('ValueType',   [ 'scalar_type', 'index_count', 'indexed_type', 'flags', 'gl_type' ])
-sampler_flags = set(["sampler_type"])
-image_flags   = set(["image_type"])
-atomic_flags  = set(["atomic_type"])
+samp_image_flags   = set(["samp_image_type"])
+stor_image_flags   = set(["stor_image_type"])
+sampler_flags      = set(["sampler_type"])
+comb_sampler_flags = set(["comb_sampler_type"])
+atomic_flags       = set(["atomic_type"])
+shadow_flag        = set(["shadow_type"])
 
 ### Deriving basic data from the primitive type information
 
@@ -49,10 +52,8 @@ def find_scalar_count(prim_name):
             break
     return scalarcount
 
-def find_ordered_primitive_types(scalar_types,
-                                 value_types,
-                                 sampler_types,
-                                 image_types):
+def find_ordered_primitive_types(scalar_types, value_types,
+                                 texture_names, sampler_names, image_names):
     ret = ["void"]
     sorted_scalar_types = list(scalar_types.keys())
     sorted_scalar_types.sort()
@@ -63,20 +64,21 @@ def find_ordered_primitive_types(scalar_types,
                 values_for_scalar_type.append(name)
         values_for_scalar_type.sort()
         ret.extend(values_for_scalar_type)
+    ret.extend(["sampler"])
     ret.extend(["atomic_uint"])
-    sampler_names = list(sampler_types.keys())
-    sampler_names.sort()
+    ret.extend(texture_names)
     ret.extend(sampler_names)
-    image_names = list(image_types.keys())
-    image_names.sort()
     ret.extend(image_names)
     return ret
 
-def find_flags(value_types, sampler_flags, image_flags, atomic_flags):
+def find_flags(value_types, samp_image_flags, stor_image_flags, sampler_flags, comb_sampler_flags, atomic_flags, shadow_flag):
     ret = set()
+    ret.update(samp_image_flags)
+    ret.update(stor_image_flags)
     ret.update(sampler_flags)
-    ret.update(image_flags)
+    ret.update(comb_sampler_flags)
     ret.update(atomic_flags)
+    ret.update(shadow_flag)
     for v in list(value_types.values()):
         ret.update(v.flags)
     return ret
@@ -94,20 +96,30 @@ def df_index(d):
 def print_header_api(outf, scalar_types):
     print_banner(outf, ["The callable API for primitive types"])
     print("void               glsl_prim_init();", file=outf)
-    print("PrimSamplerInfo   *glsl_prim_get_sampler_info(PrimitiveTypeIndex idx);", file=outf)
     print("PrimSamplerInfo   *glsl_prim_get_image_info  (PrimitiveTypeIndex idx);", file=outf)
+    print("bool               glsl_prim_sampler_is_shadow(PrimitiveTypeIndex idx);", file=outf)
     print("DataflowType       glsl_prim_index_to_df_type(PrimitiveTypeIndex idx);", file=outf)
     print("unsigned int       glsl_prim_matrix_type_subscript_dimensions(PrimitiveTypeIndex index, int dimension);", file=outf)
     print("PrimitiveTypeIndex glsl_prim_matrix_type_subscript_vector    (PrimitiveTypeIndex index, int dimension);", file=outf)
     print(file=outf)
-    print("static inline bool glsl_prim_is_prim_sampler_type(const SymbolType *type) {", file=outf)
+    print("static inline bool glsl_prim_is_prim_comb_sampler_type(const SymbolType *type) {", file=outf)
     print("   if(type->flavour != SYMBOL_PRIMITIVE_TYPE) return false;", file=outf)
-    print("   return (primitiveTypeFlags[type->u.primitive_type.index] & PRIM_SAMPLER_TYPE);", file=outf)
+    print("   return (primitiveTypeFlags[type->u.primitive_type.index] & PRIM_COMB_SAMPLER_TYPE);", file=outf)
+    print("}", file=outf)
+    print(file=outf)
+    print("static inline bool glsl_prim_is_prim_texture_type(const SymbolType *type) {", file=outf)
+    print("   if(type->flavour != SYMBOL_PRIMITIVE_TYPE) return false;", file=outf)
+    print("   return (primitiveTypeFlags[type->u.primitive_type.index] & PRIM_SAMP_IMAGE_TYPE);", file=outf)
     print("}", file=outf)
     print(file=outf)
     print("static inline bool glsl_prim_is_prim_image_type(const SymbolType *type) {", file=outf)
     print("   if(type->flavour != SYMBOL_PRIMITIVE_TYPE) return false;", file=outf)
-    print("   return (primitiveTypeFlags[type->u.primitive_type.index] & PRIM_IMAGE_TYPE);", file=outf)
+    print("   return (primitiveTypeFlags[type->u.primitive_type.index] & PRIM_STOR_IMAGE_TYPE);", file=outf)
+    print("}", file=outf)
+    print(file=outf)
+    print("static inline bool glsl_prim_is_prim_sampler_type(const SymbolType *type) {", file=outf)
+    print("   if(type->flavour != SYMBOL_PRIMITIVE_TYPE) return false;", file=outf)
+    print("   return (primitiveTypeFlags[type->u.primitive_type.index] & PRIM_SAMPLER_TYPE);", file=outf)
     print("}", file=outf)
     print(file=outf)
     print("static inline bool glsl_prim_is_prim_atomic_type(const SymbolType *type) {", file=outf)
@@ -116,8 +128,10 @@ def print_header_api(outf, scalar_types):
     print("}", file=outf)
     print(file=outf)
     print("static inline bool glsl_prim_is_opaque_type(const SymbolType *type) {", file=outf)
-    print("   return glsl_prim_is_prim_sampler_type(type) ||", file=outf)
-    print("          glsl_prim_is_prim_image_type(type)   ||", file=outf)
+    print("   return glsl_prim_is_prim_comb_sampler_type(type) ||", file=outf)
+    print("          glsl_prim_is_prim_texture_type(type)      ||", file=outf)
+    print("          glsl_prim_is_prim_image_type(type)        ||", file=outf)
+    print("          glsl_prim_is_prim_sampler_type(type)      ||", file=outf)
     print("          glsl_prim_is_prim_atomic_type(type);", file=outf)
     print("}", file=outf)
     print(file=outf)
@@ -138,11 +152,10 @@ def print_header_api(outf, scalar_types):
     print("}", file=outf)
     print(file=outf)
     print("static inline SymbolType *glsl_prim_same_shape_type(const SymbolType *type, PrimitiveTypeIndex base_idx) {", file=outf)
-    print("   SymbolType *new_type;", file=outf)
     print("   if(type->flavour != SYMBOL_PRIMITIVE_TYPE) {", file=outf)
     print("      return NULL;", file=outf)
     print("   }", file=outf)
-    print("   new_type = &primitiveTypes[base_idx];", file=outf)
+    print("   SymbolType *new_type = &primitiveTypes[base_idx];", file=outf)
     print("   if(primitiveTypeSubscriptTypes[type->u.primitive_type.index] == NULL) {", file=outf)
     print("      return new_type;", file=outf)
     print("   } else {", file=outf)
@@ -215,9 +228,7 @@ def print_sampler_info(outf, sampler_names, scalar_types, value_types, sampler_t
         dim = "PRIMITIVE_TYPES_COUNT - %s" % prim_index(sampler_names[0])
     print("PrimSamplerInfo %s[%s] = {"  % ( output_name, dim ), file=outf)
     maxnamelen = max([len(s) for s in sampler_names])
-    typenames  = [prim_index(type_map[sampler_types[s].scalar_type])
-                  if not sampler_types[s].shadow else prim_index(sampler_types[s].scalar_type)
-                  for s in sampler_names]
+    typenames  = [prim_index(type_map[sampler_types[s].scalar_type]) for s in sampler_names]
     maxtypelen = max([len(t) for t in typenames])
     for i,s in enumerate(sampler_names):
         name_pad = " " * (maxnamelen - len(s))
@@ -232,45 +243,80 @@ def print_sampler_info(outf, sampler_names, scalar_types, value_types, sampler_t
             size_dim += 1
         if sampler_types[s].cube:
             size_dim -= 1
-        print("   { %s,%s %d, %d, %s,%s %s, %s, %s }," % (
+        print("   { %s,%s %d, %d, %s,%s %s, %s }," % (
             prim_index(s), name_pad, coords, size_dim, typenames[i], type_pad,
-            tf(sampler_types[s].array), tf(sampler_types[s].shadow), tf(sampler_types[s].cube)), file=outf)
+            tf(sampler_types[s].array), tf(sampler_types[s].cube)), file=outf)
     print("};", file=outf)
     print(file=outf)
 
 if __name__ == "__main__":
     output_dir, include_dirs, input_files = parse_opts()
 
-    if len(input_files) != 3:
-        print("Usage: %s [options] <scalars_table> <samplers_table> <images_table>" % sys.argv[0], file=sys.stderr)
+    if len(input_files) != 2:
+        print("Usage: %s [options] <scalars_table> <images_table>" % sys.argv[0], file=sys.stderr)
         sys.exit(1)
     scalar_table  = find_file(input_files[0], include_dirs)
-    sampler_table = find_file(input_files[1], include_dirs)
-    image_table   = find_file(input_files[2], include_dirs)
-    if scalar_table == None or sampler_table == None or image_table == None:
-        print("Could not find required file %s" % (input_files[0] if scalar_table == None else (input_files[1] if sampler_table == None else image_table)), file=stderr)
+    image_table   = find_file(input_files[1], include_dirs)
+    if scalar_table == None or image_table == None:
+        bad_files = []
+        if scalar_table  == None: bad_files.append(input_files[0])
+        if image_table   == None: bad_files.append(input_files[1])
+        print("Could not find required file %s" % bad_files, file=stderr)
         sys.exit(1)
 
+    ImageBaseType = namedtuple("ImageBaseType", ["name", "scalar_type", "dim", "array", "cube"])
+    ImageType     = namedtuple("ImageType",     ["name", "base_img_type", "shadow", "gl_type"])
+    t      = ['float',  'int',          'uint']
+    prefix = [     '' ,   'i',             'u']
+    infix  = [     '', 'INT_', 'UNSIGNED_INT_']
+    no_images = [ '2DMS', '2DMSArray', '1D', '1DArray' ]
     with open(scalar_table, "r") as fp:
         lines = fp.readlines()
         ScalarType,scalar_types = parse_table("ScalarType", lines, "name")
-    with open(sampler_table, "r") as fp:
-        lines = fp.readlines()
-        SamplerType,sampler_types = parse_table("SamplerType", lines, "name")
     with open(image_table, "r") as fp:
         lines = fp.readlines()
-        ImageType,image_types = parse_table("ImageType", lines, "name")
-    value_types   = find_value_types(scalar_types)
-    prim_names    = find_ordered_primitive_types(
-        scalar_types, value_types, sampler_types, image_types)
-    matrix_types   = find_matrix_types(value_types)
+        IT,img = parse_table("ImageType", lines, "name")
+        image_base_types = {}
+
+        image_types = {}
+        texture_types = {}
+        sampler_types = {}
+        for k in img:
+            for i in [0, 1, 2]:
+                tname = prefix[i] + 'texture' + img[k].name
+                image_base_types[tname] = ImageBaseType(tname, t[i], img[k].dim, img[k].array, img[k].cube)
+
+                texture_types[tname] = ImageType(tname, prim_index(tname), False, 'GL_NONE')
+
+                sname = prefix[i] + 'sampler' + img[k].name
+                gl_type = 'GL_' + infix[i] + 'SAMPLER_' + img[k].gl_type
+                sampler_types[sname] = ImageType(sname, prim_index(tname), False, gl_type)
+
+                if img[k].name in no_images: continue
+
+                iname = prefix[i] + 'image' + img[k].name
+                gl_type = 'GL_' + infix[i] + 'IMAGE_' + img[k].gl_type
+                image_types[iname] = ImageType(iname, prim_index(tname), False, gl_type)
+
+    sampler_types['sampler2DShadow']        = ImageType('sampler2DShadow',        prim_index('texture2D'),        True, 'GL_SAMPLER_2D_SHADOW')
+    sampler_types['sampler2DArrayShadow']   = ImageType('sampler2DArrayShadow',   prim_index('texture2DArray'),   True, 'GL_SAMPLER_2D_ARRAY_SHADOW')
+    sampler_types['samplerCubeShadow']      = ImageType('samplerCubeShadow',      prim_index('textureCube'),      True,  'GL_SAMPLER_CUBE_SHADOW')
+    sampler_types['samplerCubeArrayShadow'] = ImageType('samplerCubeArrayShadow', prim_index('textureCubeArray'), True,  'GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW')
+    sampler_types['samplerExternalOES']     = ImageType('samplerExternalOES',     prim_index('texture2D'),        False, 'GL_SAMPLER_EXTERNAL_OES')
+
+    value_types  = find_value_types(scalar_types)
+    matrix_types = find_matrix_types(value_types)
     matrix_types.sort()
+    texture_names = list(texture_types.keys())
+    texture_names.sort()
     sampler_names = list(sampler_types.keys())
     sampler_names.sort()
     image_names = list(image_types.keys())
     image_names.sort()
-    all_flags = list(find_flags(value_types, sampler_flags, image_flags, atomic_flags))
+    all_flags = list(find_flags(value_types, samp_image_flags, stor_image_flags, sampler_flags, comb_sampler_flags, atomic_flags, shadow_flag))
     all_flags.sort()
+
+    prim_names = find_ordered_primitive_types(scalar_types, value_types, texture_names, sampler_names, image_names)
 
     with open(os.path.join(output_dir,"glsl_primitive_type_index.auto.h"), "w") as outf:
         print_inclusion_guard_start(outf, "glsl_primitive_type_index.auto.h")
@@ -291,7 +337,6 @@ typedef struct {
    int size_dim;                    /* How many size dimensions the texture has */
    PrimitiveTypeIndex return_type;  /* Type of data returned */
    bool array;
-   bool shadow;
    bool cube;
 } PrimSamplerInfo;
 """, file=outf)
@@ -321,7 +366,7 @@ typedef struct {
                         if (value_types[p].indexed_type != None and value_types[p].scalar_type != value_types[p].indexed_type) else None)
                 table_rows.append([p, prim_index(p), base, df, dim1, dim2, value_types[p].gl_type])
             else:
-                table_rows.append([p, prim_index(p), None, None, None, None, sampler_types[p].gl_type if p in sampler_types else "GL_NONE"])
+                table_rows.append([p, prim_index(p), None, None, None, None, 'GL_NONE'])
         print_table(outf, ["name", "prim_name", "base_type", "df_type", "dim1", "dim2", "gl_type"], table_rows)
 
     with open(os.path.join(output_dir,"glsl_primitive_types.auto.c"), "w") as outf:
@@ -332,8 +377,7 @@ SymbolType*        primitiveTypeSubscriptTypes[PRIMITIVE_TYPES_COUNT] = { NULL }
 SymbolType         primitiveTypes             [PRIMITIVE_TYPES_COUNT];
 """, file=outf)
 
-        print_sampler_info(outf, sampler_names, scalar_types, value_types, sampler_types, "sampler_gadgets")
-        print_sampler_info(outf, image_names,   scalar_types, value_types, image_types,   "image_gadgets")
+        print_sampler_info(outf, texture_names, scalar_types, value_types, image_base_types, "image_gadgets")
 
         ## GLEnums
         gl_types = {}
@@ -342,19 +386,23 @@ SymbolType         primitiveTypes             [PRIMITIVE_TYPES_COUNT];
                 gl_types[p] = "GL_NONE"
             elif p in value_types:
                 gl_types[p] = value_types[p].gl_type
+            elif p == "sampler":
+                gl_types[p] = "GL_NONE"
             elif p == "atomic_uint":
                 gl_types[p] = "GL_UNSIGNED_INT_ATOMIC_COUNTER"
             elif p in image_types:
                 gl_types[p] = image_types[p].gl_type
-            else:
+            elif p in sampler_types:
                 gl_types[p] = sampler_types[p].gl_type
+            else:
+                gl_types[p] = texture_types[p].gl_type
         gl_enum_values = [(gl_types[p], prim_index(p)) for p in prim_names]
         print_array(outf, "GLenum", "primitiveTypesToGLenums", "PRIMITIVE_TYPES_COUNT", gl_enum_values)
 
         ## Subscript dimension
         subscript_dimension_values = []
         for p in prim_names:
-            if p in value_types and  value_types[p].indexed_type != None:
+            if p in value_types and value_types[p].indexed_type != None:
                 index_count = value_types[p].index_count
             else:
                 index_count = 0
@@ -378,10 +426,15 @@ SymbolType         primitiveTypes             [PRIMITIVE_TYPES_COUNT];
             flags = set()
             if p in value_types:
                 flags.update(value_types[p].flags)
+            elif p in texture_types:
+                flags.update(samp_image_flags)
             elif p in sampler_types:
-                flags.update(sampler_flags)
+                flags.update(comb_sampler_flags)
+                if sampler_types[p].shadow: flags.update(shadow_flag)
             elif p in image_types:
-                flags.update(image_flags)
+                flags.update(stor_image_flags)
+            elif p == "sampler":
+                flags.update(sampler_flags)
             elif p == "atomic_uint":
                 flags.update(atomic_flags)
 
@@ -426,6 +479,20 @@ SymbolType         primitiveTypes             [PRIMITIVE_TYPES_COUNT];
                 row.append(prim_index(mtype))
             array_values.append((row, "%d rows" % i))
         print_2d_array(outf, "const PrimitiveTypeIndex", "primitiveMatrixTypeIndices", max_dimension,max_dimension, array_values)
+
+        # Image type base information
+        image_bases = []
+        for p in prim_names:
+            if p in image_types:
+                b = image_types[p].base_img_type
+            elif p in texture_types:
+                b = texture_types[p].base_img_type
+            elif p in sampler_types:
+                b = sampler_types[p].base_img_type
+            else:
+                b = 'PRIMITIVE_TYPE_UNDEFINED'
+            image_bases.append((b, prim_index(p)))
+        print_array(outf, "PrimitiveTypeIndex", "primitiveTypeImageBase", "PRIMITIVE_TYPES_COUNT", image_bases)
 
         #### Functions
         print("unsigned int glsl_prim_matrix_type_subscript_dimensions(PrimitiveTypeIndex type_idx, int dim_idx) {", file=outf)
@@ -480,16 +547,13 @@ SymbolType         primitiveTypes             [PRIMITIVE_TYPES_COUNT];
         print("   return sub;", file=outf)
         print("}", file=outf)
 
-        print("PrimSamplerInfo *glsl_prim_get_sampler_info(PrimitiveTypeIndex idx) {", file=outf)
-        print("   assert(idx >= %s && idx < PRIMITIVE_TYPES_COUNT);" % prim_index(sampler_names[0]), file=outf)
-        print("   assert(sampler_gadgets[idx - %s].type == idx);" % prim_index(sampler_names[0]), file=outf)
-        print("   return &sampler_gadgets[idx - %s];" % prim_index(sampler_names[0]), file=outf)
+        print("PrimSamplerInfo *glsl_prim_get_image_info(PrimitiveTypeIndex idx) {", file=outf)
+        print("   assert(primitiveTypeImageBase[idx] != PRIMITIVE_TYPE_UNDEFINED);", file=outf)
+        print("   return &image_gadgets[primitiveTypeImageBase[idx] - %s];" % prim_index(texture_names[0]), file=outf)
         print("}", file=outf)
         print(file=outf)
-        print("PrimSamplerInfo *glsl_prim_get_image_info(PrimitiveTypeIndex idx) {", file=outf)
-        print("   assert(idx >= %s && idx < PRIMITIVE_TYPES_COUNT);" % prim_index(image_names[0]), file=outf)
-        print("   assert(image_gadgets[idx - %s].type == idx);" % prim_index(image_names[0]), file=outf)
-        print("   return &image_gadgets[idx - %s];" % prim_index(image_names[0]), file=outf)
+        print("bool glsl_prim_sampler_is_shadow(PrimitiveTypeIndex idx) {", file=outf)
+        print("   return primitiveTypeFlags[idx] & PRIM_SHADOW_TYPE;", file=outf)
         print("}", file=outf)
         print(file=outf)
         print("DataflowType glsl_prim_index_to_df_type(PrimitiveTypeIndex pti) {", file=outf)

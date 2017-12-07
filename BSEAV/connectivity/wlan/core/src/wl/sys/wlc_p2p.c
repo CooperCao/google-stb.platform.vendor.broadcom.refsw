@@ -1907,10 +1907,12 @@ wlc_p2p_doiovar(void *context, uint32 actionid,
 					__FUNCTION__, chanspec));
 				break;
 			}
+#ifndef STB_SOC_WIFI
 			/* for p2p operation, may start GO on radar channel, so
 			 * should have AP_NORADAR_CHAN rules in place.
 			 */
 			flags |= WLC_BSSCFG_AP_NORADAR_CHAN;
+#endif
 			flags = bsscfg->flags;
 		}
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,7 +64,7 @@ BERR_Code BVBI_P_Encode_ReserveCore (
     uint32_t ulSelectedCoreIndex = 0xFF;
     BVBI_P_EncCoreType eType = BVBI_P_EncCoreType_eLAST;
 
-    bIs656 = BVBI_P_is656_isr (eDest);
+    bIs656 = BVBI_P_is656_isrsafe (eDest);
 
     switch (ulSelect_Standard)
     {
@@ -186,7 +186,7 @@ void BVBI_P_Encode_ReleaseCore (
     uint32_t ulCoreIndex = 0xFF;
     BVBI_P_EncCoreType eType = BVBI_P_EncCoreType_eLAST;
 
-    bIs656 = BVBI_P_is656_isr (eDest);
+    bIs656 = BVBI_P_is656_isrsafe (eDest);
 
     switch (ulSelect_Standard)
     {

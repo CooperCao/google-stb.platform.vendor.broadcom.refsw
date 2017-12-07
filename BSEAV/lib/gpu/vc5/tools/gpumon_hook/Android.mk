@@ -20,18 +20,23 @@ LOCAL_PATH := $(subst ${ANDROID}/,,$(LOCAL_PATH))
 LOCAL_C_INCLUDES := \
         $(V3D_DRIVER_TOP)/driver/ \
         $(V3D_DRIVER_TOP)/driver/interface/khronos/include/ \
-        $(V3D_DRIVER_TOP)/driver/vcos/pthreads/ \
-        $(V3D_DRIVER_TOP)/driver/vcos/generic/ \
-        $(V3D_DRIVER_TOP)/driver/vcos/include/ \
-        $(V3D_DRIVER_TOP)/driver/vcos/ \
-        $(V3D_DRIVER_TOP)/driver/v3d_platform/ \
-        $(V3D_DRIVER_TOP)/driver/v3d_platform/bcg_abstract \
-        $(V3D_DRIVER_TOP)/driver/v3d_platform/bcg_abstract/egl \
-        $(V3D_DRIVER_TOP)/driver/middleware/khronos/glsl/ \
+        $(V3D_DRIVER_TOP)/driver/libs/core/vcos/generic/ \
+        $(V3D_DRIVER_TOP)/driver/libs/core/vcos/include/ \
+        $(V3D_DRIVER_TOP)/driver/libs/core/vcos/ \
+        $(V3D_DRIVER_TOP)/driver/libs/platform \
+        $(V3D_DRIVER_TOP)/driver/libs/platform/bcg_abstract \
+        $(V3D_DRIVER_TOP)/driver/libs/khrn/egl/platform/bcg_abstract \
+        $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/ \
         $(V3D_DRIVER_TOP)/platform/android \
         $(V3D_DRIVER_TOP)/platform/common \
+        $(V3D_DRIVER_TOP)/platform/nexus \
+        $(ANDROID_TOP)/frameworks/native/libs/arect/include \
+        $(ANDROID_TOP)/frameworks/native/libs/nativewindow/include \
+        $(ANDROID_TOP)/frameworks/native/libs/nativebase/include
 
 LOCAL_CFLAGS := \
+        -I$(MAGNUM_TOP)/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
+        -DEMBEDDED_SETTOP_BOX=1 \
         -fpic -std=c++0x -DPIC -DBCG_ABSTRACT_PLATFORM \
         -Dkhronos_EXPORTS \
         -D_POSIX_C_SOURCE=200112 \
@@ -70,6 +75,8 @@ endif
 ## CAUTION: Using higher optimsation levels causes a SEGV when getting state
 #LOCAL_CFLAGS += -O0 -fPIC -DPIC -fvisibility=hidden
 LOCAL_CPPFLAGS := \
+	-I$(MAGNUM_TOP)/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
+	-DEMBEDDED_SETTOP_BOX=1 \
 	-O0 \
 	-DANDROID \
 	-DHAVE_SYS_UIO_H \

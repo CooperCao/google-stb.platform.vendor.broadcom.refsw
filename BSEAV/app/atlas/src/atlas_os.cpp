@@ -136,7 +136,7 @@ MList <if_interface> * get_ifaddrs(void)
             continue;
         }
         sa = (sockaddr_in *)&ifr.ifr_addr;
-        BDBG_MSG(("Interface name:%s ip: " INET_ADDR_PRINTF_FMT , pTempIfNameIndex->if_name, INET_ADDR_PRINTF_ARG(sa->sin_addr.s_addr)));
+        BDBG_MSG(("Interface name:%s ip: " INET_ADDR_PRINTF_FMT, pTempIfNameIndex->if_name, INET_ADDR_PRINTF_ARG(sa->sin_addr.s_addr)));
         if ((sa->sin_addr.s_addr == 0x0100007f) || (sa->sin_addr.s_addr == 0))
         {
             continue;

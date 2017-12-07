@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  ******************************************************************************/
 
 /*
@@ -235,7 +234,8 @@ BERR_Code BSID_P_LoadCode(BSID_Handle hSid)
         if (retCode != BERR_SUCCESS)
         {
             BDBG_ERR(("Unable to obtain chunk %d from BIMG interface", uiChunk));
-            return BERR_TRACE(retCode);
+            BERR_TRACE(retCode);
+            goto done;
         }
         if (NULL == pImageData)
             break;  /* end of FW chunk array */
@@ -246,14 +246,16 @@ BERR_Code BSID_P_LoadCode(BSID_Handle hSid)
         retCode = LoadOne(hSid, (uint32_t *)pImageData, BSID_IMG_CHUNK_SIZE, &bEOF);
         if (retCode != BERR_SUCCESS)
         {
-            return BERR_TRACE(retCode);
+            BERR_TRACE(retCode);
+            goto done;
         }
         if (bEOF)
             break;
     }
+done:
     pImgInterface->close(pImage);
 
-    return BERR_TRACE(BERR_SUCCESS);
+    return retCode;
 }
 
 

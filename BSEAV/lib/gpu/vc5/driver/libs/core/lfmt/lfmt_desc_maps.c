@@ -384,18 +384,6 @@ const struct desc_map gfx_lfmt_channels_desc_map = {
    .num_entries = 54,
    .entries_value_ordered = gfx_lfmt_channels_desc_map_entries_value_ordered,
    .entries_desc_ordered = gfx_lfmt_channels_desc_map_entries_desc_ordered};
-static const struct desc_map_entry gfx_lfmt_pre_desc_map_entries_value_ordered[] = {
-   {"NONPRE", 0x00000000},
-   {"PRE", 0x01000000},
-};
-static const struct desc_map_entry gfx_lfmt_pre_desc_map_entries_desc_ordered[] = {
-   {"NONPRE", 0x00000000},
-   {"PRE", 0x01000000},
-};
-const struct desc_map gfx_lfmt_pre_desc_map = {
-   .num_entries = 2,
-   .entries_value_ordered = gfx_lfmt_pre_desc_map_entries_value_ordered,
-   .entries_desc_ordered = gfx_lfmt_pre_desc_map_entries_desc_ordered};
 static const struct desc_map_entry gfx_lfmt_base_channels_desc_map_entries_value_ordered[] = {
    {"NONE", 0x00000000},
    {"C32_C32_C32_C32", 0x00000080},

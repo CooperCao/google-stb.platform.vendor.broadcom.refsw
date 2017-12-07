@@ -70,6 +70,27 @@ typedef enum
    /* renderable, but can only be used by the display and not re-read */
    BEGL_BufferFormat_eBSTC,
 
+   /* A format which can be bound directly to the texture target without
+    * requiring internal format conversions by the OpenGL driver.
+    *
+    * This is available only on Nexus based platform implementations and is
+    * mapped to NEXUS_PixelFormat_eUIF_R8_G8_B8_A8, which has been coded in
+    * Nexus and Magnum to produce memory layouts directly compatible
+    * with V3D, the standard M2MC and mipmap M2MC hardware on supported SoCs.
+    *
+    * - Pixmaps of this type may be created with or without a mipchain.
+    * - Only level 0 will be renderable by V3D
+    * - Only pixmaps without a mipchain will be readable by the standard M2MC,
+    *   i.e. via the Nexus 2D graphics blit APIs or Nexus surface compositor
+    * - pixmaps with a mipchain can have the mipchain populated using the
+    *   mipmap specific variant of the M2MC on SoCs where that is available
+    * - pixmaps with a mipchain can not be read by any of the M2MCs
+    * - Not all level 0 image sizes are supported to ensure compatibility
+    *   between the two sides, this currently means the minimum width
+    *   and height are both limited to 64 pixels.
+    */
+   BEGL_BufferFormat_eTILED,
+
    /* Can be used to return back an invalid format */
    BEGL_BufferFormat_INVALID
 } BEGL_BufferFormat;
@@ -93,18 +114,22 @@ typedef struct BEGL_PixmapInfoEXT
    uint32_t            magic;
    uint32_t            width;                 /* Visible width of pixmap in pixels */
    uint32_t            height;                /* Visible height of pixmap in pixels */
+   uint32_t            miplevels;             /* Number of miplevels required, eTILED format only */
+                                              /* must be 1 (default) for all other buffer formats */
    BEGL_BufferFormat   format;
    bool                secure;                /* Create pixmap in secure heap */
 } BEGL_PixmapInfoEXT;
 
 typedef struct
 {
-   uint32_t            width;                 /* Visible width of surface in pixels                   */
-   uint32_t            height;                /* Visible height of surface in pixels                  */
-   uint32_t            pitchBytes;            /* Bytes per row                                        */
-   uint64_t            physicalOffset;        /* Physical address                                     */
-   void                *cachedAddr;           /* Cached address mapping                               */
-   uint32_t            byteSize;              /* Size of buffer in bytes                              */
+   uint32_t            width;                 /* Visible width of surface in pixels                     */
+   uint32_t            height;                /* Visible height of surface in pixels                    */
+   uint32_t            pitchBytes;            /* Bytes per row, or HW specific pitch for eTILED format  */
+   uint64_t            physicalOffset;        /* Physical address                                       */
+   void                *cachedAddr;           /* Cached address mapping                                 */
+   uint32_t            byteSize;              /* Size of buffer in bytes                                */
+   uint32_t            miplevels;             /* Number of miplevels contained in the surface,          */
+                                              /* this will be 1 for formats that do not support mipmaps */
    BEGL_BufferFormat   format;
 } BEGL_SurfaceInfo;
 

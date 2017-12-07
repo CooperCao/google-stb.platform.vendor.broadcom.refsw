@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,28 +62,34 @@ BWIN_LDFLAGS = -L$(BWIN_LIBDIR) -lbwin
 # prerendered fonts in the application.
 FREETYPE_SUPPORT ?= n
 
+ifeq ($(FREETYPE_SUPPORT),y)
+PNG_SUPPORT := y
+else
 PNG_SUPPORT ?= y
+endif
+
 JPEG_SUPPORT = y
 
 LIB_DIR = $(BSEAV)/lib
 
-ZLIB_DIR = $(BSEAV)/opensource/zlib
-ZLIB_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/zlib-1.1.3
-LIBJPEG_DIR = $(BSEAV)/opensource/jpeg
-LIBJPEG_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/jpeg-6b
-
 ifeq ($(FREETYPE_SUPPORT),y)
 FREETYPE_DIR = $(BSEAV)/opensource/freetype
 include $(FREETYPE_DIR)/freetype.inc
-BWIN_LDFLAGS += -L$(FREETYPE_LIB_FOLDER) -lfreetype
+BWIN_LDFLAGS += $(FREETYPE_STATIC_LDFLAGS)
 endif
 
 ifeq ($(PNG_SUPPORT),y)
 LIBPNG_DIR = $(BSEAV)/opensource/libpng
 include $(LIBPNG_DIR)/libpng.inc
-BWIN_LDFLAGS += -L$(LIBPNG_LIB_FOLDER) -lpng -L$(ZLIB_ODIR) -lz
+BWIN_LDFLAGS += $(LIBPNG_STATIC_LDFLAGS)
 endif
 
+ZLIB_DIR = $(BSEAV)/opensource/zlib
+include $(ZLIB_DIR)/zlib.inc
+BWIN_LDFLAGS += $(ZLIB_STATIC_LDFLAGS)
+
 ifeq ($(JPEG_SUPPORT),y)
-BWIN_LDFLAGS += -L$(LIBJPEG_ODIR) -ljpeg
+LIBJPEG_DIR = $(BSEAV)/opensource/jpeg
+include $(LIBJPEG_DIR)/jpeg.inc
+BWIN_LDFLAGS += $(JPEG_STATIC_LDFLAGS)
 endif

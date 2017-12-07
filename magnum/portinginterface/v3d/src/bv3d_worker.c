@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,18 +57,9 @@
 #include "bchp_v3d_cle.h"
 #include "bchp_v3d_ptb.h"
 #include "bchp_v3d_pctr.h"
+#include "bchp_common.h"
 
-#if ((BCHP_CHIP == 7425) && (BCHP_VER >= BCHP_VER_B0))
-#include "bchp_v3d_top_gr_bridge.h"
-#elif (BCHP_CHIP == 7435) || \
-      (BCHP_CHIP == 7445) || \
-      (BCHP_CHIP == 7145) || \
-      (BCHP_CHIP == 7364) || \
-      (BCHP_CHIP == 7366) || \
-      (BCHP_CHIP == 7439) || \
-      (BCHP_CHIP == 74371) || \
-      (BCHP_CHIP == 7586) || \
-      (BCHP_CHIP == 11360)
+#if defined(BCHP_V3D_TOP_GR_BRIDGE_REG_START) || (BCHP_CHIP == 11360)
 #include "bchp_v3d_top_gr_bridge.h"
 #else
 #include "bchp_gfx_gr.h"
@@ -464,8 +455,7 @@ void BV3D_P_ResetCore(
    /* Do this for all chips and kernels, as missing a case could cause failure, whereas doing it will always be OK */
    BKNI_EnterCriticalSection();
 
-#if ((BCHP_CHIP==7425) && (BCHP_VER>=BCHP_VER_B0)) || (BCHP_CHIP==7435) || (BCHP_CHIP==7445) || (BCHP_CHIP==7145) || \
-     (BCHP_CHIP==7364) || (BCHP_CHIP==7366) || (BCHP_CHIP == 7439) || (BCHP_CHIP == 74371) || (BCHP_CHIP == 7586)
+#ifdef BCHP_V3D_TOP_GR_BRIDGE_REG_START
    BREG_Write32(hV3d->hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, V3D_CLK_108_SW_INIT, ASSERT));
    BREG_Write32(hV3d->hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, V3D_CLK_108_SW_INIT, DEASSERT));
 #elif (BCHP_CHIP==7231) || (BCHP_CHIP==7584) || (BCHP_CHIP==75845)
@@ -570,7 +560,8 @@ void BV3D_P_ResetCore(
 
 #if (((BCHP_CHIP == 7445) && (BCHP_VER == BCHP_VER_D0)) || \
      ((BCHP_CHIP == 7145) && (BCHP_VER >= BCHP_VER_B0)) || \
-     ((BCHP_CHIP == 7366) && (BCHP_VER == BCHP_VER_B0)))
+     ((BCHP_CHIP == 7366) && (BCHP_VER == BCHP_VER_B0)) || \
+     ((BCHP_CHIP == 7255)))
    BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_LOW_PRI_ID, 0xA40000);
 #endif
 
@@ -836,6 +827,15 @@ static void BV3D_P_HardwareDone(
       BDBG_MSG(("Issuing HW NOTIFY CALLBACK(p=%d) to client %d", psInstruction->psJob->uiNotifyCallbackParam, psInstruction->psJob->uiClientId));
       BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->psJob->uiNotifyCallbackParam,
                               psInstruction->psJob->uiNotifySequenceNum, false);
+      psInstruction->psJob->uiNotifyCallbackParam = 0;
+   }
+
+   if (psInstruction->psJob->uiNotifyFence)
+   {
+      /* signal the fence if provided (probably Android only) */
+      void *p = (void *)((uintptr_t)psInstruction->psJob->uiNotifyFence);
+      BV3D_P_FenceSignalAndCleanup(hV3d->hFences, p, BSTD_FUNCTION);
+      psInstruction->psJob->uiNotifyFence = 0;
    }
 
    BV3D_P_InstructionDone(hV3d, psInstruction->psJob);
@@ -1278,9 +1278,15 @@ static void BV3D_P_IssueInstr(
                   if (BV3D_P_InstructionIsClear(&hV3d->sRender) ||
                       psInstruction->psJob->uiClientId != hV3d->sRender.psJob->uiClientId)
                   {
+                     void *p;
                      /* The renderer is idle, or working for another client - so issue the notify
                         callback immediately */
                      BDBG_MSG(("Issuing NOTIFY CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
+
+                     /* signal the fence if provided (probably Android only) */
+                     p = (void *)((uintptr_t)psInstruction->uiArg2);
+
+                     BV3D_P_FenceSignalAndCleanup(hV3d->hFences, p, BSTD_FUNCTION);
 
                      BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam,
                                              psInstruction->psJob->uiSequence, false);
@@ -1289,27 +1295,40 @@ static void BV3D_P_IssueInstr(
                   }
                   else
                   {
-                     hV3d->sRender.psJob->uiNotifyCallbackParam = psInstruction->uiCallbackParam;
-                     hV3d->sRender.psJob->uiNotifySequenceNum   = psInstruction->psJob->uiSequence;
-                     bAdvance = true;
+                     if ((hV3d->sRender.psJob->uiNotifyCallbackParam == 0) &&
+                         (hV3d->sRender.psJob->uiNotifyFence == 0))
+                     {
+                        hV3d->sRender.psJob->uiNotifyCallbackParam = psInstruction->uiCallbackParam;
+                        hV3d->sRender.psJob->uiNotifySequenceNum   = psInstruction->psJob->uiSequence;
+                        hV3d->sRender.psJob->uiNotifyFence         = psInstruction->uiArg2;
+
+                        bAdvance = true;
+                     }
+                     else
+                        bAdvance = false;
                   }
 
-                  BV3D_P_InstructionDone(hV3d, psInstruction->psJob);
+                  if (bAdvance)
+                     BV3D_P_InstructionDone(hV3d, psInstruction->psJob);
 
                   break;
 
                case BV3D_Operation_eFenceInstr:
                   {
-                     int fd = (int)(uintptr_t)psInstruction->uiArg1;
-                     bool                    bSignalled = false;
+                     void *pWaitData = (void *)((uintptr_t)psInstruction->uiArg1);
+                     bool bSignalled = false;
 
-                     BV3D_P_FenceArrayMutexAcquire(hV3d->hFences);
-
-                     bSignalled = BV3D_P_FenceIsSignalled(hV3d->hFences, fd);
+                     bSignalled = BV3D_P_FenceIsSignalled(hV3d->hFences, pWaitData);
                      if (bSignalled)
                      {
                         /* There will not be any other waiters so free up the fence */
-                        BV3D_P_FenceFree(hV3d->hFences, fd);
+                        BV3D_P_FenceFree(hV3d->hFences, pWaitData);
+
+                        bAdvance = true;
+
+                        BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam,
+                                                psInstruction->psJob->uiSequence, false);
+
                         BV3D_P_InstructionDone(hV3d, psInstruction->psJob);
                      }
                      else
@@ -1317,8 +1336,6 @@ static void BV3D_P_IssueInstr(
                         /* Poll on fence failed, just try again at next opportunity */
                         bAdvance = false;
                      }
-
-                     BV3D_P_FenceArrayMutexRelease(hV3d->hFences);
                   }
                   break;
 
@@ -1520,6 +1537,14 @@ static void BV3D_P_ProcessInterrupt(
 }
 
 /********************************************************************************************/
+void BV3D_P_WakeWorkerThread_isr(
+   BV3D_Handle hV3d
+   )
+{
+   BKNI_SetEvent(hV3d->wakeWorkerThread);
+}
+
+/********************************************************************************************/
 /* Called either in real ISR context from the handler or locally to simulate a missing ISR. */
 void BV3D_P_OnInterrupt_isr(
    BV3D_Handle hV3d,
@@ -1527,7 +1552,7 @@ void BV3D_P_OnInterrupt_isr(
    )
 {
    hV3d->interruptReason |= uiReason;
-   BKNI_SetEvent(hV3d->wakeWorkerThread);
+   BV3D_P_WakeWorkerThread_isr(hV3d);
 }
 
 /* We check every 20ms for lockups and power-down conditions */

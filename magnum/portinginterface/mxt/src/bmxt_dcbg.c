@@ -193,7 +193,6 @@ unsigned BMXT_Dcbg_GetFreeIndex(BMXT_Handle hMxt)
 BERR_Code BMXT_Dcbg_Open(BMXT_Handle hMxt, BMXT_Dcbg_Handle *phDcbg, unsigned index, BMXT_Dcbg_OpenSettings *pSettings)
 {
     BMXT_Dcbg_Handle dcbg = NULL;
-    unsigned i;
 
     BDBG_ASSERT(hMxt);
     BDBG_ASSERT(pSettings);
@@ -214,13 +213,6 @@ BERR_Code BMXT_Dcbg_Open(BMXT_Handle hMxt, BMXT_Dcbg_Handle *phDcbg, unsigned in
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    for (i=0; i<BMXT_MAX_NUM_DCBG; i++) {
-        if (hMxt->dcbg[i]!=NULL) { break; }
-    }
-    if (i==BMXT_MAX_NUM_DCBG) {
-        BMXT_Dcbg_Reset(hMxt);
-    }
-
     *phDcbg = NULL;
     dcbg = BKNI_Malloc(sizeof(*dcbg));
     if (dcbg == NULL) {
@@ -235,14 +227,21 @@ BERR_Code BMXT_Dcbg_Open(BMXT_Handle hMxt, BMXT_Dcbg_Handle *phDcbg, unsigned in
     hMxt->dcbg[index] = dcbg;
     BDBG_MSG(("%u: Open", index));
 
+    if (hMxt->numDcbg++==0) {
+        BMXT_P_Inbuf_Pwr_Ctrl(hMxt, true); /* CRXPT-1195: any DCBG usage powers up all INBUFs */
+        BMXT_Dcbg_Reset(hMxt);
+    }
+
     return BERR_SUCCESS;
 }
 
 void BMXT_Dcbg_Close(BMXT_Dcbg_Handle hDcbg)
 {
     unsigned i;
+    BMXT_Handle hMxt;
 
     BDBG_ASSERT(hDcbg);
+    hMxt = hDcbg->hMxt;
 
     if (hDcbg->running) {
         BDBG_WRN(("%u: Close without Stop. Forcing stop...", hDcbg->index));
@@ -261,10 +260,15 @@ void BMXT_Dcbg_Close(BMXT_Dcbg_Handle hDcbg)
         }
     }
 
-    hDcbg->hMxt->dcbg[hDcbg->index] = NULL;
+    hMxt->dcbg[hDcbg->index] = NULL;
     BDBG_MSG(("%u: Close", hDcbg->index));
     BDBG_OBJECT_UNSET(hDcbg, BMXT_Dcbg_Handle);
     BKNI_Free(hDcbg);
+
+    BDBG_ASSERT(hMxt->numDcbg > 0);
+    if (--hMxt->numDcbg==0) {
+        BMXT_P_Inbuf_Pwr_Ctrl(hMxt, false);
+    }
 }
 
 BERR_Code BMXT_Dcbg_AddParser(BMXT_Dcbg_Handle hDcbg, unsigned parserNum)
@@ -503,10 +507,10 @@ BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSet
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_BO, BO_COUNT, 0); /* not set since DCBG_BO_EN = 0. note that is per-DCBG, not per-band */
     BMXT_RegWrite32(hMxt, addr, val);
 
-#if 0 /* for debug */
-    addr = R(BCHP_DEMOD_XPT_FE_SLOT_MANAGEMENT_BAND_MAX_POSSIBLE_SLOT_ALLOCATION); /* accomodate large number of packets sent in one band at once */
-    BMXT_RegWrite32(hMxt, addr, 0x800);
-#endif
+    /* CRXPT-1194: ensure that total number of bands supported doesn't exceed number of slots available */
+    addr = R(BCHP_DEMOD_XPT_FE_SLOT_MANAGEMENT_BAND_MAX_POSSIBLE_SLOT_ALLOCATION);
+    BMXT_RegWrite32(hMxt, addr, 0x1B8);
+
 #if 0 /* for debug */
     addr = R(BCHP_DEMOD_XPT_FE_DCB_MISC_CFG); /* accomodate large skew */
     val = BMXT_RegRead32(hMxt, addr);

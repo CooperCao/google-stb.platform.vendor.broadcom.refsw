@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -69,7 +69,7 @@
 #define B_IPC_DRIVER_RECV_ADDR(api, arg) B_IPC_FIELD(api, in, memory.arg) =  B_IOCTL_FIELD(api, in, memory.arg);
 #define B_IPC_DRIVER_RECV_VARARG(api, arg, type, nelem) if(NEXUS_P_DriverInVararg_InVarArg(&__in_vararg, sizeof(type)* B_IOCTL_FIELD(api, in, args.nelem), B_IPC_COMPAT_POINTER(B_IOCTL_FIELD(api, in, pointer.arg)), &(B_IPC_FIELD(api, in, vararg.arg)), &(B_IPC_FIELD(api, in, pointer.is_null.arg)))!=NEXUS_SUCCESS) {NEXUS_DRIVER_TRACE(-1);goto err_alloc;}  __in_data = __in_vararg.data;
 #define B_IPC_DRIVER_RECV_VARARG_NELEM_CONVERT(api, arg, type, convert, nelem) if(NEXUS_P_DriverInVararg_InVarArg(&__in_vararg, convert(B_IOCTL_FIELD(api, in, args.nelem)), B_IPC_COMPAT_POINTER(B_IOCTL_FIELD(api, in, pointer.arg)), &(B_IPC_FIELD(api, in, vararg.arg)), &(B_IPC_FIELD(api, in, pointer.is_null.arg)))!=NEXUS_SUCCESS) {NEXUS_DRIVER_TRACE(-1);goto err_alloc;}  __in_data = __in_vararg.data;
-#define B_IPC_DRIVER_RECV_VARARG_ADDR(api, arg, type, field, field_addr, nelem) NEXUS_P_DriverInVararg_InVarArg_AddrField(&__in_vararg, B_IPC_COMPAT_POINTER(B_IOCTL_FIELD(api, in, pointer.field_addr)), B_IOCTL_FIELD(api, in, args.nelem), B_IPC_FIELD(api, in, vararg.arg), &(B_IPC_FIELD(api, in, vararg.field_addr)));  __in_data = __in_vararg.data;
+#define B_IPC_DRIVER_RECV_VARARG_ADDR(api, arg, type, field, field_addr, nelem) if(NEXUS_P_DriverInVararg_InVarArg_AddrField(&__in_vararg, B_IPC_COMPAT_POINTER(B_IOCTL_FIELD(api, in, pointer.field_addr)), B_IOCTL_FIELD(api, in, args.nelem), B_IPC_FIELD(api, in, vararg.arg), &(B_IPC_FIELD(api, in, vararg.field_addr)))!=NEXUS_SUCCESS) {NEXUS_DRIVER_TRACE(-1);goto err_alloc;}  __in_data = __in_vararg.data;
 #define B_IPC_DRIVER_SEND_VARARG_NELEM_OUT(api, arg, type, nelem_out) if(NEXUS_P_Driver_OutVarArg(__out_data, sizeof(type) * B_IPC_FIELD(api, out, pointer.nelem_out), B_IPC_COMPAT_POINTER(arg), B_IPC_FIELD(api, out, vararg.arg))!=NEXUS_SUCCESS) {NEXUS_DRIVER_TRACE(-1);goto err_fault;}
 #define B_IPC_DRIVER_SEND_VARARG_NELEM(api, arg, type, nelem) if(NEXUS_P_Driver_OutVarArg(__out_data, sizeof(type) * B_IPC_FIELD(api, in, args.nelem), B_IPC_COMPAT_POINTER(arg), B_IPC_FIELD(api, out, vararg.arg))!=NEXUS_SUCCESS) {NEXUS_DRIVER_TRACE(-1);goto err_fault;}
 /* END OF FILE */

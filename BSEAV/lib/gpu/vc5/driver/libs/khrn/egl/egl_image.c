@@ -26,27 +26,29 @@ static khrn_image *get(EGL_IMAGE_T *egl_image)
    return egl_image->image;
 }
 
-EGL_IMAGE_T* egl_image_create(khrn_image *image)
+EGL_IMAGE_T* egl_image_create(khrn_image *image, unsigned num_mip_levels)
 {
    assert(image != NULL);
    EGL_IMAGE_T *egl_image = calloc(1, sizeof(EGL_IMAGE_T));
    if (!egl_image)
       return NULL;
 
-   egl_image_init(egl_image, image, destroy, get);
+   egl_image_init(egl_image, image, num_mip_levels, destroy, get);
    return egl_image;
 }
 
 void egl_image_init(EGL_IMAGE_T* egl_image, khrn_image *image,
-   egl_image_destroy destroy, egl_image_get get)
+   unsigned num_mip_levels, egl_image_destroy destroy, egl_image_get get)
 {
    assert(egl_image != NULL);
    assert(image != NULL);
    assert(destroy != NULL);
    assert(get != NULL);
+   assert(num_mip_levels > 0 && num_mip_levels <= V3D_MAX_MIP_COUNT);
 
    egl_image->ref_count = 1;
    KHRN_MEM_ASSIGN(egl_image->image, image);
+   egl_image->num_mip_levels = num_mip_levels;
    egl_image->destroy = destroy;
    egl_image->get = get;
 }
@@ -75,6 +77,11 @@ void egl_image_refdec(EGL_IMAGE_T *egl_image)
 khrn_image *egl_image_get_image(EGL_IMAGE_T *egl_image)
 {
    return egl_image->get(egl_image);
+}
+
+unsigned egl_image_get_num_mip_levels(EGL_IMAGE_T *egl_image)
+{
+   return egl_image->num_mip_levels;
 }
 
 static EGLImageKHR egl_create_image_impl(EGLDisplay dpy,

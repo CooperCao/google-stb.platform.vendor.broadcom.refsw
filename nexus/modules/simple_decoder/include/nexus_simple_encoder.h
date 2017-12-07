@@ -120,8 +120,9 @@ typedef struct NEXUS_SimpleEncoderStartSettingsOutput
     struct {
         NEXUS_TransportType type;   /* If ES, App must call NEXUS_SimpleEncoder_GetVideoBuffer/GetAudioBuffer to retrieve frames */
         unsigned pcrPid;            /* if zero, no PCR */
+        unsigned pcrInterval;       /* interval for PCR insertion, in milliseconds */
         unsigned pmtPid;            /* if zero, no PSI */
-        unsigned interval;          /* internal for psi insertion, in millseconds */
+        unsigned interval;          /* interval for PSI insertion, in milliseconds */
     } transport;
     struct {
         NEXUS_KeySlotHandle keyslot;

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2008 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description:
 *   API name: PSIP
 *    Library routines for PSIP getchlist state
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "b_os_lib.h"
@@ -168,7 +160,7 @@ void B_PSIP_State_GetChList_GetPidsPSI_PMT(
             int numVideo = 0;
             int p_idx    = 0;
 
-            BDBG_MSG(("%s success!", __FUNCTION__));
+            BDBG_MSG(("%s success!", BSTD_FUNCTION));
             /*
             printPMT(pJob->apiSettings.siHandle, pStateData->pmtBuffer, pStateData->pmtBufferLen);
             */
@@ -253,7 +245,7 @@ void B_PSIP_State_GetChList_GetPidsPSI_PMT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d",
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -310,7 +302,7 @@ void B_PSIP_State_GetChList_GetPidsPSI_PAT(
         STATE_ENGINE(pJob, event);
         break;
     case B_PSIP_eStateEvent_TableReceived:
-        BDBG_MSG(("%s success!", __FUNCTION__));
+        BDBG_MSG(("%s success!", BSTD_FUNCTION));
 
         if (TS_PAT_validate(pJob->stateData.getChListData.patBuffer,
                             pJob->stateData.getChListData.patBufferLen))
@@ -329,7 +321,7 @@ void B_PSIP_State_GetChList_GetPidsPSI_PAT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d",
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -412,7 +404,7 @@ void B_PSIP_State_GetChList_Done(
         pJob->apiSettings.dataReadyCallback( B_ERROR_SUCCESS, pJob->apiSettings.dataReadyCallbackParam);
         break;
     case B_PSIP_eStateEvent_TableReceived:
-        BDBG_WRN(("shouldn't get a table received event in this state:%s", __FUNCTION__));
+        BDBG_WRN(("shouldn't get a table received event in this state:%s", BSTD_FUNCTION));
         break;
     case B_PSIP_eStateEvent_Failure:
         pJob->apiSettings.dataReadyCallback( B_ERROR_UNKNOWN, pJob->apiSettings.dataReadyCallbackParam);
@@ -425,7 +417,7 @@ void B_PSIP_State_GetChList_Done(
         pJob->apiSettings.dataReadyCallback( B_ERROR_PSIP_CANCEL, pJob->apiSettings.dataReadyCallbackParam);
         break;
     default:
-        BDBG_ERR(("invalid event:%d received in state:%s:%d", event, __FUNCTION__, __LINE__));
+        BDBG_ERR(("invalid event:%d received in state:%s:%d", event, BSTD_FUNCTION, __LINE__));
         break;
     }
 
@@ -514,7 +506,7 @@ void B_PSIP_State_GetChList_GetVCT(
         STATE_ENGINE(pJob, event);
         break;
     case B_PSIP_eStateEvent_TableReceived:
-        BDBG_MSG(("%s success!", __FUNCTION__));
+        BDBG_MSG(("%s success!", BSTD_FUNCTION));
         /*
         printVCT(pJob->apiSettings.siHandle,
                  pJob->stateData.getChListData.vctBuffer,
@@ -526,7 +518,7 @@ void B_PSIP_State_GetChList_GetVCT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d",
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -997,7 +989,7 @@ void B_PSIP_State_GetChList_GetChData(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d",
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }

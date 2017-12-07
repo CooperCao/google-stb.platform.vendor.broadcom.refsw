@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nexus_file_mux_module.h"
 #include "nexus_video_encoder_output.h"
@@ -1054,7 +1053,7 @@ NEXUS_P_FileMux_Start_MP4( NEXUS_FileMuxHandle mux, const NEXUS_FileMuxStartSett
     startSettings.stStorage.pfGetDefaultStorageSettings = NEXUS_P_FileMux_GetDefaultStorageSettings;
     startSettings.stStorage.pfCreateStorageObject = NEXUS_P_FileMux_CreateStorage;
     startSettings.stStorage.pfDestroyStorageObject = NEXIS_P_FileMux_DestroyStorage;
-    for(i=j=0;i<NEXUS_MAX_MUX_PIDS;i++) {
+    for(i=j=0;i<NEXUS_MAX_MUX_PIDS && j<BMUXLIB_FILE_MP4_MAX_VIDEO_INPUTS;i++) {
         if(pSettings->video[i].encoder==NULL && pSettings->video[i].simpleEncoder==NULL) {
             break;
         }
@@ -1067,7 +1066,7 @@ NEXUS_P_FileMux_Start_MP4( NEXUS_FileMuxHandle mux, const NEXUS_FileMuxStartSett
         j++;
     }
     startSettings.uiNumVideoInputs = j;
-    for(j=i=0;i<NEXUS_MAX_MUX_PIDS;i++) {
+    for(j=i=0;i<NEXUS_MAX_MUX_PIDS && j<BMUXLIB_FILE_MP4_MAX_AUDIO_INPUTS;i++) {
         if(pSettings->audio[i].muxOutput==NULL && pSettings->audio[i].simpleEncoder==NULL) {
             break;
         }
@@ -1432,4 +1431,3 @@ NEXUS_FileMux_GetStatus( NEXUS_FileMuxHandle mux, NEXUS_FileMuxStatus *pStatus )
 
     return NEXUS_SUCCESS;
 }
-

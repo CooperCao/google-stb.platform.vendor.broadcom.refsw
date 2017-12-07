@@ -40,6 +40,42 @@
 
 BDBG_MODULE(bdsp_common_mm_priv);
 
+void BDSP_P_CalculateDescriptorMemory(
+	unsigned *pMemReqd
+)
+{
+    unsigned MemoryRequired = 0;
+
+    BDBG_ENTER(BDSP_P_CalculateDescriptorMemory);
+    *pMemReqd = 0;
+
+	MemoryRequired = (BDSP_MAX_DESCRIPTORS * sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
+    *pMemReqd = MemoryRequired;
+
+	BDBG_MSG(("Descriptor Memory = %d",MemoryRequired));
+    BDBG_LEAVE(BDSP_P_CalculateDescriptorMemory);
+}
+
+void BDSP_P_CalculateInterTaskMemory(
+    unsigned  *pMemReqd,
+    unsigned   numchannels
+)
+{
+    unsigned MemoryRequired = 0;
+    BDBG_ENTER(BDSP_P_CalculateDescriptorMemory);
+    *pMemReqd = 0;
+
+    MemoryRequired = (numchannels      * BDSP_AF_P_INTERTASK_BUFFER_PER_CHANNEL)+
+              (BDSP_AF_P_MAX_TOC       * BDSP_AF_P_TOC_BUFFER_SIZE)+
+              (BDSP_AF_P_MAX_METADATA  * BDSP_AF_P_METADATA_BUFFER_SIZE)+
+              (BDSP_AF_P_MAX_OBJECTDATA*BDSP_AF_P_OBJECTDATA_BUFFER_SIZE);
+    BDSP_SIZE_ALIGN(MemoryRequired);
+
+    *pMemReqd = MemoryRequired;
+    BDBG_MSG(("InterTask Memory( %d channels) = %d",numchannels, MemoryRequired));
+    BDBG_LEAVE(BDSP_P_CalculateDescriptorMemory);
+}
+
 BERR_Code BDSP_MMA_P_AllocateAlignedMemory(BMMA_Heap_Handle memHandle,
 	uint32_t size,
 	BDSP_MMA_Memory *pMemory,
@@ -197,4 +233,55 @@ dramaddr_t BDSP_MMA_P_GetOffsetfromVirtualAddress(
 	}
 	BDBG_LEAVE(BDSP_MMA_P_GetOffsetfromVirtualAddress);
 	return offset;
+}
+
+BERR_Code BDSP_P_RequestMemory(
+    BDSP_P_MemoryPool *pMemoryPool,
+    uint32_t ui32Size,
+    BDSP_MMA_Memory *pMemory
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+
+    BDBG_ENTER(BDSP_P_RequestMemory);
+    if((pMemoryPool->ui32UsedSize + ui32Size) > pMemoryPool->ui32Size)
+    {
+        BDBG_ERR(("BDSP_P_RequestMemory: Cannot Assign the requested Size"));
+        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        goto end;
+    }
+
+    *pMemory = pMemoryPool->Memory;
+    pMemory->offset = pMemory->offset + pMemoryPool->ui32UsedSize;
+    pMemory->pAddr  = (void *)((uint8_t *)pMemory->pAddr + pMemoryPool->ui32UsedSize);
+
+    pMemoryPool->ui32UsedSize += ui32Size;
+
+end:
+    BDBG_LEAVE(BDSP_P_RequestMemory);
+    return errCode;
+}
+
+BERR_Code BDSP_P_ReleaseMemory(
+    BDSP_P_MemoryPool *pMemoryPool,
+    uint32_t ui32Size,
+    BDSP_MMA_Memory *pMemory
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+
+    BDBG_ENTER(BDSP_P_ReleaseMemory);
+    if(pMemoryPool->ui32UsedSize < ui32Size)
+    {
+        BDBG_ERR(("BDSP_P_ReleaseMemory: Trying the release memory more than used"));
+        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        goto end;
+    }
+
+    pMemoryPool->ui32UsedSize -= ui32Size;
+	BKNI_Memset(pMemory, 0, sizeof(BDSP_MMA_Memory));
+
+end:
+    BDBG_LEAVE(BDSP_P_ReleaseMemory);
+    return errCode;
 }

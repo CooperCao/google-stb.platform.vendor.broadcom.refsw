@@ -688,6 +688,11 @@ _msch_req_entity_create(wlc_msch_info_t *msch_info, chanspec_t chanspec,
 	/* Add the request entity on corresponding list based on its request type */
 	if (MSCH_START_FIXED(req_param->req_type)) {
 		/* queue in timing */
+		/*
+		* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+		* So the overrun which coverity reported will not happen.
+		*/
+		/* coverity[overrun-buffer-arg] */
 		msch_list_sorted_add(&msch_info->msch_start_fixed_list,
 			&req_entity->start_fixed_link,
 			OFFSETOF(msch_req_entity_t, pend_slot) -
@@ -696,6 +701,11 @@ _msch_req_entity_create(wlc_msch_info_t *msch_info, chanspec_t chanspec,
 			sizeof(uint64), MSCH_ASCEND);
 	} else if (MSCH_START_FLEX(req_param->req_type)) {
 		/* queue in priority */
+		/*
+		* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+		* So the overrun which coverity reported will not happen.
+		*/
+		/* coverity[overrun-buffer-arg] */
 		msch_list_sorted_add(&msch_info->msch_start_flex_list,
 			&req_entity->rt_specific_link,
 			OFFSETOF(msch_req_entity_t, priority) -
@@ -704,6 +714,11 @@ _msch_req_entity_create(wlc_msch_info_t *msch_info, chanspec_t chanspec,
 
 	} else if (MSCH_BOTH_FLEX(req_param->req_type)) {
 		/* queue in priority in bf_entity_list */
+		/*
+		* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+		* So the overrun which coverity reported will not happen.
+		*/
+		/* coverity[overrun-buffer-arg] */
 		msch_list_sorted_add(&chan_ctxt->bf_entity_list,
 			&req_entity->rt_specific_link,
 			OFFSETOF(msch_req_entity_t, priority) -
@@ -711,6 +726,11 @@ _msch_req_entity_create(wlc_msch_info_t *msch_info, chanspec_t chanspec,
 			1, MSCH_DESCEND);
 
 		/* queue in timing in msch_both_flex_req_entity_list */
+		/*
+		* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+		* So the overrun which coverity reported will not happen.
+		*/
+		/* coverity[overrun-buffer-arg] */
 		msch_list_sorted_add(&msch_info->msch_both_flex_req_entity_list,
 			&req_entity->both_flex_list,
 			OFFSETOF(msch_req_entity_t, pend_slot) -
@@ -723,6 +743,11 @@ _msch_req_entity_create(wlc_msch_info_t *msch_info, chanspec_t chanspec,
 		}
 
 		if (!msch_elem_inlist(&chan_ctxt->bf_link)) {
+			/*
+			* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+			* So the overrun which coverity reported will not happen.
+			*/
+			/* coverity[overrun-buffer-arg] */
 			msch_list_sorted_add(&msch_info->msch_both_flex_list,
 				&chan_ctxt->bf_link, 0, 0, MSCH_NO_ORDER);
 			msch_info->flex_list_cnt++;
@@ -758,6 +783,11 @@ _msch_req_entity_create(wlc_msch_info_t *msch_info, chanspec_t chanspec,
 	}
 
 	/* queue req_entity to chan_ctxt->req_entity_list in priority order */
+	/*
+	* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+	* So the overrun which coverity reported will not happen.
+	*/
+	/* coverity[overrun-buffer-arg] */
 	msch_list_sorted_add(&chan_ctxt->req_entity_list, &req_entity->chan_ctxt_link,
 		OFFSETOF(msch_req_entity_t, priority) -
 		OFFSETOF(msch_req_entity_t, chan_ctxt_link),
@@ -1029,6 +1059,11 @@ _msch_slot_start_end_notif(wlc_msch_info_t *msch_info, msch_timeslot_t *ts)
 					req_entity->curts_fire_time =
 						req_entity->cur_slot.end_time;
 					/* Add the new end time to slot end fire time */
+					/*
+					* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+					* So the overrun which coverity reported will not happen.
+					*/
+					/* coverity[overrun-buffer-arg] */
 					msch_list_sorted_add(&msch_info->msch_req_timing_list,
 						&req_entity->cur_slot.link,
 						(OFFSETOF(msch_req_entity_t, curts_fire_time) -
@@ -1120,6 +1155,11 @@ _msch_slot_start_end_notif(wlc_msch_info_t *msch_info, msch_timeslot_t *ts)
 			/* For BothFlex it is always OFF_PREP */
 			if (req_entity->cur_slot.end_time != -1) {
 				req_entity->curts_fire_time = req_entity->cur_slot.end_time;
+				/*
+				* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+				* So the overrun which coverity reported will not happen.
+				*/
+				/* coverity[overrun-buffer-arg] */
 				msch_list_sorted_add(&msch_info->msch_req_timing_list,
 					&req_entity->cur_slot.link,
 					(OFFSETOF(msch_req_entity_t, curts_fire_time) -
@@ -1504,6 +1544,11 @@ _msch_next_chn_seq_pend_slot(wlc_msch_info_t *msch_info, msch_req_entity_t *req_
 		(uint32)req_entity->pend_slot.start_time,
 		(uint32)req_entity->pend_slot.end_time));
 	/* add the req_entity back to the list */
+	/*
+	* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+	* So the overrun which coverity reported will not happen.
+	*/
+	/* coverity[overrun-buffer-arg] */
 	msch_list_sorted_add(&msch_info->msch_start_fixed_list,
 		&req_entity->start_fixed_link,
 		OFFSETOF(msch_req_entity_t, pend_slot) -
@@ -1539,6 +1584,11 @@ _msch_next_pend_slot(wlc_msch_info_t *msch_info, msch_req_entity_t *req_entity)
 			req_entity->actual_start_time = req_entity->pend_slot.start_time;
 
 			/* add the req_entity back to the list */
+			/*
+			* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+			* So the overrun which coverity reported will not happen.
+			*/
+			/* coverity[overrun-buffer-arg] */
 			msch_list_sorted_add(&msch_info->msch_start_fixed_list,
 				&req_entity->start_fixed_link,
 				OFFSETOF(msch_req_entity_t, pend_slot) -
@@ -1592,7 +1642,11 @@ _msch_next_pend_slot(wlc_msch_info_t *msch_info, msch_req_entity_t *req_entity)
 				req_entity->pend_slot.start_time - chansw_time;
 			req_entity->pend_slot.end_time = req_entity->pend_slot.start_time +
 				req_param->duration;
-
+			/*
+			* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+			* So the overrun which coverity reported will not happen.
+			*/
+			/* coverity[overrun-buffer-arg] */
 			msch_list_sorted_add(&msch_info->msch_both_flex_req_entity_list,
 				&req_entity->both_flex_list,
 				OFFSETOF(msch_req_entity_t, pend_slot) -
@@ -1785,6 +1839,11 @@ _msch_schd_slot_start_end(wlc_msch_info_t *msch_info, msch_timeslot_t *ts)
 
 		if (!(req_entity->cur_slot.flags & MSCH_RC_FLAGS_START_FIRE_DONE)) {
 			req_entity->curts_fire_time = req_entity->cur_slot.start_time;
+			/*
+			* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+			* So the overrun which coverity reported will not happen.
+			*/
+			/* coverity[overrun-buffer-arg] */
 			msch_list_sorted_add(&msch_info->msch_req_timing_list,
 				&req_entity->cur_slot.link,
 				(OFFSETOF(msch_req_entity_t, curts_fire_time) -
@@ -1794,6 +1853,11 @@ _msch_schd_slot_start_end(wlc_msch_info_t *msch_info, msch_timeslot_t *ts)
 		} else if (!(req_entity->cur_slot.flags & MSCH_RC_FLAGS_END_FIRE_DONE) &&
 			req_entity->cur_slot.end_time != -1) {
 				req_entity->curts_fire_time = req_entity->cur_slot.end_time;
+			/*
+			* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+			* So the overrun which coverity reported will not happen.
+			*/
+			/* coverity[overrun-buffer-arg] */
 			msch_list_sorted_add(&msch_info->msch_req_timing_list,
 				&req_entity->cur_slot.link,
 				(OFFSETOF(msch_req_entity_t, curts_fire_time) -
@@ -2237,6 +2301,11 @@ _msch_schd_new_req(wlc_msch_info_t *msch_info, wlc_msch_req_handle_t *req_hdl)
 				req_param->duration;
 
 			/* add the req_entity back to the list */
+			/*
+			* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+			* So the overrun which coverity reported will not happen.
+			*/
+			/* coverity[overrun-buffer-arg] */
 			msch_list_sorted_add(&msch_info->msch_start_fixed_list,
 				&new_entity->start_fixed_link,
 				OFFSETOF(msch_req_entity_t, pend_slot) -
@@ -2435,6 +2504,11 @@ _msch_get_next_sfix(wlc_msch_info_t *msch_info, uint64 slot_start, uint64 prep_d
 					msch_list_remove(&sfix_entity->start_fixed_link);
 
 					/* add the req_entity back to the list */
+					/*
+					* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+					* So the overrun which coverity reported will not happen.
+					*/
+					/* coverity[overrun-buffer-arg] */
 					msch_list_sorted_add(&msch_info->msch_start_fixed_list,
 						&sfix_entity->start_fixed_link,
 						OFFSETOF(msch_req_entity_t, pend_slot) -
@@ -3521,6 +3595,11 @@ _msch_reduce_curts(wlc_msch_info_t *msch_info, uint64 end_time)
 			msch_list_remove(&entity->cur_slot.link);
 			entity->curts_fire_time = entity->cur_slot.end_time;
 			/* Add the slot to req timing for new end time */
+			/*
+			* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+			* So the overrun which coverity reported will not happen.
+			*/
+			/* coverity[overrun-buffer-arg] */
 			msch_list_sorted_add(&msch_info->msch_req_timing_list,
 				&entity->cur_slot.link,
 				(OFFSETOF(msch_req_entity_t, curts_fire_time) -
@@ -3944,6 +4023,11 @@ wlc_msch_timeslot_register(wlc_msch_info_t *msch_info, chanspec_t* chanspec_list
 	}
 
 	/* queue req_hdl to msch_info->msch_reqhandle_list */
+	/*
+	* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+	* So the overrun which coverity reported will not happen.
+	*/
+	/* coverity[overrun-buffer-arg] */
 	msch_list_sorted_add(&msch_info->msch_req_hdl_list, &req_hdl->link, 0, 0, MSCH_NO_ORDER);
 
 	_msch_dump_profiler(msch_info->profiler);
@@ -4048,6 +4132,11 @@ _msch_schd_remaining_cur_slots(wlc_msch_info_t *msch_info, msch_timeslot_t *ts,
 			(uint32)(entity->pend_slot.end_time - entity->pend_slot.start_time)));
 
 		/* add the req_entity back to the list */
+		/*
+		* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+		* So the overrun which coverity reported will not happen.
+		*/
+		/* coverity[overrun-buffer-arg] */
 		msch_list_sorted_add(&msch_info->msch_start_fixed_list,
 			&entity->start_fixed_link,
 			OFFSETOF(msch_req_entity_t, pend_slot) -
@@ -4402,6 +4491,11 @@ _msch_chan_seq_update_ts(wlc_msch_info_t *msch_info, wlc_msch_req_handle_t *hdl,
 			msch_list_remove(&cur_ts_entity->cur_slot.link);
 			cur_ts_entity->curts_fire_time = cur_ts_entity->cur_slot.end_time;
 			/* Add the slot to req timing for new end time */
+			/*
+			* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+			* So the overrun which coverity reported will not happen.
+			*/
+			/* coverity[overrun-buffer-arg] */
 			msch_list_sorted_add(&msch_info->msch_req_timing_list,
 				&cur_ts_entity->cur_slot.link,
 				(OFFSETOF(msch_req_entity_t, curts_fire_time) -
@@ -4576,6 +4670,11 @@ wlc_msch_timeslot_update(wlc_msch_info_t *msch_info, wlc_msch_req_handle_t *p_re
 
 			if (MSCH_START_FIXED(param_req_type)) {
 				/* add the req_entity back to start fixed list */
+				/*
+				* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+				* So the overrun which coverity reported will not happen.
+				*/
+				/* coverity[overrun-buffer-arg] */
 				msch_list_sorted_add(&msch_info->msch_start_fixed_list,
 					&entity->start_fixed_link,
 					OFFSETOF(msch_req_entity_t, pend_slot) -
@@ -4584,6 +4683,11 @@ wlc_msch_timeslot_update(wlc_msch_info_t *msch_info, wlc_msch_req_handle_t *p_re
 					sizeof(uint64), MSCH_ASCEND);
 			} else {
 				/* add the req_entity back to both flex list */
+				/*
+				* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+				* So the overrun which coverity reported will not happen.
+				*/
+				/* coverity[overrun-buffer-arg] */
 				msch_list_sorted_add(
 					&msch_info->msch_both_flex_req_entity_list,
 					&entity->both_flex_list,
@@ -4645,6 +4749,11 @@ _msch_chan_cont_req_update(wlc_msch_info_t * msch_info, wlc_msch_req_handle_t *r
 			(uint32)entity->pend_slot.start_time));
 
 		/* add the req_entity back to start fixed list */
+		/*
+		* Function msch_list_sorted_add uses msch_list_elem_t address as a base address to look for address of other member of msch_req_entity_t by offset.
+		* So the overrun which coverity reported will not happen.
+		*/
+		/* coverity[overrun-buffer-arg] */
 		msch_list_sorted_add(&msch_info->msch_start_fixed_list,
 			&entity->start_fixed_link,
 			OFFSETOF(msch_req_entity_t, pend_slot) -

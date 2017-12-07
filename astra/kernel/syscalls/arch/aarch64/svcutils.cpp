@@ -83,7 +83,7 @@ void SysCalls::init() {
 	dispatchTable[SYS_epoll_ctl] = notImpl;
 	dispatchTable[SYS_epoll_pwait] = notImpl;
 	dispatchTable[SYS_dup] = doDup;
-	dispatchTable[SYS_dup3] = notImpl;
+	dispatchTable[SYS_dup3] = doDup3;
 	dispatchTable[SYS_fcntl] = notImpl;
 	dispatchTable[SYS_inotify_init1] = notImpl;
 	dispatchTable[SYS_inotify_add_watch] = notImpl;
@@ -118,7 +118,7 @@ void SysCalls::init() {
 	dispatchTable[SYS_openat] = doOpenat;
 	dispatchTable[SYS_close] = doClose;
 	dispatchTable[SYS_vhangup] = notImpl;
-	dispatchTable[SYS_pipe2] = notImpl;
+	dispatchTable[SYS_pipe2] = doPipe2;
 	dispatchTable[SYS_quotactl] = notImpl;
 	dispatchTable[SYS_getdents64] = dogetdents;
 	dispatchTable[SYS_lseek] = dolSeek;

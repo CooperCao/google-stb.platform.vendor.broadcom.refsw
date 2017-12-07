@@ -216,6 +216,7 @@ typedef struct NEXUS_HdmiOutput
 
     NEXUS_HdmiOutputTxHardwareStatus txHwStatus ;
     NEXUS_HdmiOutputRxHardwareStatus rxHwStatus ;
+    unsigned phyChangeRequestCounter ;
 
     /* HDCP Stats */
     struct {
@@ -267,7 +268,7 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_HdmiAviInfoFrame avif;
 
     uint16_t supported3DFormats[BFMT_VideoFmt_eMaxCount];
-    BHDM_EDID_AudioDescriptor supportedAudioFormats[BAVC_AudioFormat_eMaxCount];
+    BHDM_EDID_AudioDescriptor supportedAudioFormats[BAVC_AudioCompressionStd_eMax];
 
 #if NEXUS_DBV_SUPPORT
     NEXUS_HdmiOutputDbvState dbv;
@@ -326,7 +327,6 @@ void NEXUS_HdmiOutput_P_CheckHdcpVersion(NEXUS_HdmiOutputHandle output);
 
 void NEXUS_HdmiOutput_P_CloseHdcp(NEXUS_HdmiOutputHandle output);
 
-NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_P_GetHandle(unsigned index);
 const char * NEXUS_HdmiOutput_P_ColorSpace_ToText(NEXUS_ColorSpace colorSpace);
 
 /* Proxy conversion */

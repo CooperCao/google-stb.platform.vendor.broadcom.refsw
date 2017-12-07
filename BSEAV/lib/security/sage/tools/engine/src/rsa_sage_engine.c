@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -181,7 +181,7 @@ RsaSageEngine_Link(
     BSTD_UNUSED(ui_method);
     BSTD_UNUSED(callback_data);
 
-    DBG_RSA(("%s(%p, %s, %p, %p)", __FUNCTION__, engine, key_id, ui_method, callback_data));
+    DBG_RSA(("%s(%p, %s, %p, %p)", BSTD_FUNCTION, engine, key_id, ui_method, callback_data));
 
 #ifdef DEBUG_OPENSSL_PRINTOUT
     out=BIO_new(BIO_s_file());
@@ -195,14 +195,14 @@ RsaSageEngine_Link(
 
     if(engine == NULL)
     {
-        BDBG_ERR(("# %s - engine is NULL (or was not loaded).", __FUNCTION__));
+        BDBG_ERR(("# %s - engine is NULL (or was not loaded).", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
 
     if(key_id == NULL)
     {
-        BDBG_ERR(("# %s - key_id is NULL", __FUNCTION__));
+        BDBG_ERR(("# %s - key_id is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -213,30 +213,30 @@ RsaSageEngine_Link(
     /* extract id (we don't care about the slot value for now) */
     if( (p_slot == NULL) && (p_id == NULL))
     {
-        BDBG_MSG(("# %s - string format not detected, assuming simple index (i.e. '0' to '7' inclusive", __FUNCTION__));
+        BDBG_MSG(("# %s - string format not detected, assuming simple index (i.e. '0' to '7' inclusive", BSTD_FUNCTION));
         /* assume simple index (uint32_t) 0-7 */
         key_uint = atoi(key_id);
     }
     else
     {
-        BDBG_MSG(("# %s - p_slot ='%s'   p_id = '%s'", __FUNCTION__, p_slot, p_id));
+        BDBG_MSG(("# %s - p_slot ='%s'   p_id = '%s'", BSTD_FUNCTION, p_slot, p_id));
         p_id_value = p_id + strlen(id_string);
-        BDBG_MSG(("# %s - key index string value = '%s'", __FUNCTION__, p_id_value));
+        BDBG_MSG(("# %s - key index string value = '%s'", BSTD_FUNCTION, p_id_value));
         key_uint = atoi(p_id_value);
     }
 
     if(key_uint > MAX_ID_VALUE)
     {
-        BDBG_ERR(("# %s - invalid index detected (%u).  Valid range is 0-7 inclusive", __FUNCTION__, key_uint));
+        BDBG_ERR(("# %s - invalid index detected (%u).  Valid range is 0-7 inclusive", BSTD_FUNCTION, key_uint));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
 
-    BDBG_MSG(("# %s - key index value = '%u'", __FUNCTION__, key_uint));
+    BDBG_MSG(("# %s - key index value = '%u'", BSTD_FUNCTION, key_uint));
 
     if(engine == NULL)
     {
-        BDBG_ERR(("# %s - engine pointer is NULL", __FUNCTION__));
+        BDBG_ERR(("# %s - engine pointer is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -244,7 +244,7 @@ RsaSageEngine_Link(
     evp_key = EVP_PKEY_new();
     if(evp_key == NULL)
     {
-        BDBG_ERR(("# %s - error allocating EVP_PKEY context", __FUNCTION__));
+        BDBG_ERR(("# %s - error allocating EVP_PKEY context", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -252,7 +252,7 @@ RsaSageEngine_Link(
     rsa = RSA_new();
     if(rsa == NULL)
     {
-        BDBG_ERR(("# %s - error allocating RSA context", __FUNCTION__));
+        BDBG_ERR(("# %s - error allocating RSA context", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -263,14 +263,14 @@ RsaSageEngine_Link(
     rsaEngine = _rsaengine_search(rsa, 0);
     if (rsaEngine == NULL)
     {
-        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", __FUNCTION__, rsa));
+        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", BSTD_FUNCTION, rsa));
         goto ErrorExit;
     }
 
     rc = RsaTl_GetPublicKey(rsaEngine->hRsaTl, key_uint, modulus, &modulusLength, publicExponent);
     if(rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("# %s - error fetching public key info (index = '%u')", __FUNCTION__, key_uint));
+        BDBG_ERR(("# %s - error fetching public key info (index = '%u')", BSTD_FUNCTION, key_uint));
         goto ErrorExit;
     }
     rsaEngine->drmBinFileKeyIndex = key_uint;
@@ -287,11 +287,11 @@ RsaSageEngine_Link(
 #endif
     evp_key->type = EVP_PKEY_RSA;
 
-    BDBG_MSG(("# %s - evp_key = %p, rsa = '%p'", __FUNCTION__, evp_key, rsa));
+    BDBG_MSG(("# %s - evp_key = %p, rsa = '%p'", BSTD_FUNCTION, evp_key, rsa));
 
     if(EVP_PKEY_assign_RSA(evp_key, rsa) != 1)
     {
-        BDBG_ERR(("# %s - error assigning RSA context to EVP_PKEY context", __FUNCTION__));
+        BDBG_ERR(("# %s - error assigning RSA context to EVP_PKEY context", BSTD_FUNCTION));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -338,14 +338,14 @@ RsaSageEngine_Sign(
 
     if(m == NULL)
     {
-        BDBG_ERR(("# %s - Message is NULL", __FUNCTION__));
+        BDBG_ERR(("# %s - Message is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
 
     if(sigret == NULL || siglen == NULL)
     {
-        BDBG_ERR(("# %s - Pointer to return signature (%p) or signature length (%p) is NULL", __FUNCTION__, sigret, siglen));
+        BDBG_ERR(("# %s - Pointer to return signature (%p) or signature length (%p) is NULL", BSTD_FUNCTION, sigret, siglen));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -355,7 +355,7 @@ RsaSageEngine_Sign(
     rsaEngine = _rsaengine_search(rsa, 0);
     if (rsaEngine == NULL)
     {
-        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", __FUNCTION__, rsa));
+        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", BSTD_FUNCTION, rsa));
         goto ErrorExit;
     }
 
@@ -368,7 +368,7 @@ RsaSageEngine_Sign(
                           sigret,
                           *siglen);
 
-    BDBG_MSG(("# %s - *siglen after SAGE operation ='%u' -> size '%u'", __FUNCTION__, *siglen, RSA_size(rsa)));
+    BDBG_MSG(("# %s - *siglen after SAGE operation ='%u' -> size '%u'", BSTD_FUNCTION, *siglen, RSA_size(rsa)));
 
     DBG_RSA(("# *siglen: %i", *siglen));
     DBG_RSA(("# Content of sigret:"));
@@ -426,14 +426,14 @@ RsaSageEngine_Verify(
 
     if((m_len != OPENSSL_SHA1_SIZE) && (m_len != OPENSSL_SHA256_SIZE))
     {
-        BDBG_ERR(("%s - Invalid digest message length (%u)", __FUNCTION__, m_len));
+        BDBG_ERR(("%s - Invalid digest message length (%u)", BSTD_FUNCTION, m_len));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
 
     if(m == NULL)
     {
-        BDBG_ERR(("# %s - Digest message is NULL", __FUNCTION__));
+        BDBG_ERR(("# %s - Digest message is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -441,14 +441,14 @@ RsaSageEngine_Verify(
 
     if(sigret == NULL)
     {
-        BDBG_ERR(("# %s - Pointer to signature is NULL", __FUNCTION__));
+        BDBG_ERR(("# %s - Pointer to signature is NULL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
 
     if((unsigned int)RSA_size(rsa) != siglen)
     {
-        BDBG_ERR(("# %s - RSA context key size (%u) != signature length (%u)", __FUNCTION__, RSA_size(rsa), siglen));
+        BDBG_ERR(("# %s - RSA context key size (%u) != signature length (%u)", BSTD_FUNCTION, RSA_size(rsa), siglen));
         rc = BERR_INVALID_PARAMETER;
         goto ErrorExit;
     }
@@ -456,7 +456,7 @@ RsaSageEngine_Verify(
     rsaEngine = _rsaengine_search(rsa, 0);
     if (rsaEngine == NULL)
     {
-        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", __FUNCTION__, rsa));
+        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", BSTD_FUNCTION, rsa));
         goto ErrorExit;
     }
 
@@ -513,7 +513,7 @@ RsaSageEngine_P_EncDec(
     rsaEngine = _rsaengine_search(rsa, 0);
     if (rsaEngine == NULL)
     {
-        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", __FUNCTION__, rsa));
+        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", BSTD_FUNCTION, rsa));
         goto ErrorExit;
     }
 
@@ -628,7 +628,7 @@ _rsa_sage_engine_ctrl(
     BSTD_UNUSED(engine);
     BSTD_UNUSED(i);
     BSTD_UNUSED(f);
-    DBG_RSA(("%s(%p, %d, %ld, %p, %p)", __FUNCTION__, engine, cmd, i, p, f));
+    DBG_RSA(("%s(%p, %d, %ld, %p, %p)", BSTD_FUNCTION, engine, cmd, i, p, f));
 
     switch(cmd) {
     case CMD_SAGE_UTILITY_TL:
@@ -636,7 +636,7 @@ _rsa_sage_engine_ctrl(
                 size_t len = strlen(p);
                 if ((len+1) > sizeof(_g_ctx.rsaSettings.drm_binfile_path)) {
                     rc = 0;
-                    BDBG_ERR(("%s: path too long", __FUNCTION__));
+                    BDBG_ERR(("%s: path too long", BSTD_FUNCTION));
                 }
                 BKNI_Memcpy(&_g_ctx.rsaSettings.drm_binfile_path, p, len);
                 _g_ctx.rsaSettings.drm_binfile_path[len] = '\0';
@@ -647,7 +647,7 @@ _rsa_sage_engine_ctrl(
         break;
     default:
         rc = 0;
-        BDBG_WRN(("%s: unsupported control command %d", __FUNCTION__, cmd));
+        BDBG_WRN(("%s: unsupported control command %d", BSTD_FUNCTION, cmd));
         break;
     }
     return rc;
@@ -665,7 +665,7 @@ static int _init_rsa_ctx_cb(RSA *rsa)
 
     rc = RsaTl_Init(&hRsaTl, &_g_ctx.rsaSettings);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - Call to initialize RSA TL failed", __FUNCTION__));
+        BDBG_ERR(("%s - Call to initialize RSA TL failed", BSTD_FUNCTION));
         rc = 0;
         hRsaTl = NULL;
         goto ErrorExit;
@@ -675,7 +675,7 @@ static int _init_rsa_ctx_cb(RSA *rsa)
     if(rsaEngine == NULL)
     {
         BDBG_ERR(("# %s - Cannot allocate '%u' bytes of memory for Engine context",
-                  __FUNCTION__, sizeof(*rsaEngine)));
+                  BSTD_FUNCTION, sizeof(*rsaEngine)));
         rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto ErrorExit;
     }
@@ -684,7 +684,7 @@ static int _init_rsa_ctx_cb(RSA *rsa)
     rsaEngine->rsa = rsa;
     rsaEngine->hRsaTl = hRsaTl;
 
-    BDBG_MSG(("%s - RSA TL module %p initialized for RSA %p", __FUNCTION__, hRsaTl, rsa));
+    BDBG_MSG(("%s - RSA TL module %p initialized for RSA %p", BSTD_FUNCTION, hRsaTl, rsa));
 
     hRsaTl = NULL;/* eat-up for error handling */
 
@@ -707,7 +707,7 @@ static int _finish_rsa_ctx_cb(RSA *rsa)
     rsaEngine = _rsaengine_search(rsa, 1);
     if (rsaEngine == NULL)
     {
-        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", __FUNCTION__, rsa));
+        BDBG_ERR(("%s: cannot found RSA %p in SAGE Engine", BSTD_FUNCTION, rsa));
         goto ErrorExit;
     }
 
@@ -726,7 +726,7 @@ _bind_helper(ENGINE * e)
     int rc = 0;
     BERR_Code magnum_rc;
 
-    DBG_RSA(("%s(%u)", __FUNCTION__, e));
+    DBG_RSA(("%s(%u)", BSTD_FUNCTION, e));
 
     if (_init_g_ctx != 0)
     {
@@ -768,7 +768,7 @@ _bind_helper(ENGINE * e)
         !ENGINE_set_load_pubkey_function(e, RsaSageEngine_Link) ||
         !ENGINE_set_load_privkey_function(e, RsaSageEngine_Link))
     {
-        BDBG_ERR(("# %s - (%u) ENGINE_set_xyz(%p) calls failed", __FUNCTION__, __LINE__, e));
+        BDBG_ERR(("# %s - (%u) ENGINE_set_xyz(%p) calls failed", BSTD_FUNCTION, __LINE__, e));
         rc = -3;
         goto end;
     }
@@ -777,7 +777,7 @@ _bind_helper(ENGINE * e)
      * (i.e. printed on the console by _display_engine_list) */
     if(!ENGINE_add(e))
     {
-        BDBG_ERR(("%s - ENGINE_add(%p) failed!", __FUNCTION__, e));
+        BDBG_ERR(("%s - ENGINE_add(%p) failed!", BSTD_FUNCTION, e));
         rc = -4;
         goto end;
     }
@@ -795,15 +795,15 @@ _bind_fn(
     ENGINE * e,
     const char *id)
 {
-    DBG_RSA(("%s(%p, %s)", __FUNCTION__, e, id));
+    DBG_RSA(("%s(%p, %s)", BSTD_FUNCTION, e, id));
 
     if (id && (strcmp(id, RSA_SAGE_ENGINE) != 0)) {
-        BDBG_ERR(("# %s - --------------bad engine id='%s'", __FUNCTION__, id));
+        BDBG_ERR(("# %s - --------------bad engine id='%s'", BSTD_FUNCTION, id));
         return 0;
     }
 
     if (_bind_helper(e) != 0) {
-        BDBG_ERR(("# %s - --------------bind failed id='%s'", __FUNCTION__, id));
+        BDBG_ERR(("# %s - --------------bind failed id='%s'", BSTD_FUNCTION, id));
         return 0;
     }
 
@@ -821,14 +821,14 @@ _display_engine_list(void)
 
     h = ENGINE_get_first();
     loop = 0;
-    BDBG_MSG(("# %s - listing available engine types", __FUNCTION__));
+    BDBG_MSG(("# %s - listing available engine types", BSTD_FUNCTION));
     while(h)
     {
-        BDBG_MSG(("# %s - engine %i, id = \"%s\", name = \"%s\"", __FUNCTION__, loop++, ENGINE_get_id(h), ENGINE_get_name(h)));
+        BDBG_MSG(("# %s - engine %i, id = \"%s\", name = \"%s\"", BSTD_FUNCTION, loop++, ENGINE_get_id(h), ENGINE_get_name(h)));
         h = ENGINE_get_next(h);
     }
 
-    BDBG_MSG(("# %s - end of list",__FUNCTION__));
+    BDBG_MSG(("# %s - end of list",BSTD_FUNCTION));
 
     ENGINE_free(h);
 }

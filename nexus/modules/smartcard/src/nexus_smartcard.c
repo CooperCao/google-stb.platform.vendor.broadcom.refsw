@@ -473,7 +473,7 @@ error:
 NEXUS_SmartcardHandle NEXUS_Smartcard_Open(unsigned index, const NEXUS_SmartcardSettings *pSettings)
 {
     NEXUS_Error errCode;
-    unsigned char totalChannels;
+    unsigned char totalChannels=0;
     NEXUS_SmartcardHandle smartcard;
 
     if ( pSettings == NULL )
@@ -630,6 +630,7 @@ NEXUS_Error NEXUS_Smartcard_GetStatus(NEXUS_SmartcardHandle smartcard, NEXUS_Sma
     BDBG_OBJECT_ASSERT(smartcard, NEXUS_Smartcard);
     BDBG_ASSERT(NULL != pStatus);
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    BKNI_Memset(&internal_status, 0, sizeof(internal_status));
 
     rc = BSCD_Channel_GetStatus(smartcard->channelHandle, &internal_status);
     if (rc) return BERR_TRACE(rc);

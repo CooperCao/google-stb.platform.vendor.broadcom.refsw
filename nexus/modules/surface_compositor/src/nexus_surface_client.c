@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -488,8 +488,8 @@ NEXUS_Error NEXUS_SurfaceClient_SetSurface( NEXUS_SurfaceClientHandle client, NE
 
 NEXUS_Error NEXUS_SurfaceClient_UpdateSurface( NEXUS_SurfaceClientHandle client, const NEXUS_Rect *pUpdateRect )
 {
-    BDBG_MSG_TRACE(("UpdateSurface:%p %u", (void *)client, client->client_id));
     BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
+    BDBG_MSG_TRACE(("UpdateSurface:%p %u", (void *)client, client->client_id));
     if (client->type == NEXUS_SurfaceClient_eVideoWindow) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }

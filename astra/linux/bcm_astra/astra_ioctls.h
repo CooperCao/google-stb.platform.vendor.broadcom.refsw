@@ -203,7 +203,7 @@ struct astra_ioctl_call_smc_data {
     int retVal;
 
     astra_kclient_handle hClient;
-    uint32_t mode;
+    uint32_t code;
 };
 
 struct astra_ioctl_file_open_data {

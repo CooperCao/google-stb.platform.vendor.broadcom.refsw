@@ -1415,7 +1415,7 @@ end:
    glxx_unlock_server_state();
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_APICALL void GL_APIENTRY glFramebufferParameteri(GLenum target_e,
       GLenum pname, GLint param)

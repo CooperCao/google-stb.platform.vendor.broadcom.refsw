@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #define KHRN_MAP_C
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow_containers.h"
 
@@ -371,9 +363,8 @@ void NodeSet_Flatten(NodeSet *self, NodeVector *result)
 // NodeVectorMap -- a map from int32_t to pointers to vectors of node pointers
 ///////////////////////////////////////////////////////////////////////////////
 
-void *NodeVectorMap_Alloc(uint32_t size, const char *ident)
+void *NodeVectorMap_Alloc(uint32_t size)
 {
-   UNUSED(ident);
    return bcg_glsl_malloc(size);
 }
 

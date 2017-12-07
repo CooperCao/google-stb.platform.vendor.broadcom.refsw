@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,8 +53,8 @@ extern "C" {
 #endif
 
 /*=Module Overview: ********************************************************
-The purpose of this module is to take 'jobs' submitted by a user-mode client 
-OpenGLES/VG driver and schedule them on the underlying V3D hardware. 
+The purpose of this module is to take 'jobs' submitted by a user-mode client
+OpenGLES/VG driver and schedule them on the underlying V3D hardware.
 
 Multiple Processes
 ------------------
@@ -78,7 +78,7 @@ Summary:
    The handle for the v3d graphics module.
 
 Description:
-   This is the main handle required to do any operations within the 
+   This is the main handle required to do any operations within the
    v3d graphics module.
 
 See Also:
@@ -164,7 +164,7 @@ Summary:
 
 Description:
    Notifications are queued when a callback from a job is issued.
-   Clients can pop the notification queue when they get a callback so they 
+   Clients can pop the notification queue when they get a callback so they
    can find out what is being notified.
 
 See Also:
@@ -248,8 +248,8 @@ Summary:
    Opens the v3d graphics module.
 
 Description:
-   The module is opened and a v3d graphics module handle is created and 
-   returned. This handle will be necessary to perform any tasks in the 
+   The module is opened and a v3d graphics module handle is created and
+   returned. This handle will be necessary to perform any tasks in the
    v3d graphics module.
 
    The BV3D module should only be opened once.
@@ -286,8 +286,8 @@ Summary:
    Closes the v3d graphics module.
 
 Description:
-   Once this function is called no more v3d graphics module functions can 
-   be used. 
+   Once this function is called no more v3d graphics module functions can
+   be used.
 
    Outstanding callbacks may be interrupted without callbacks being
    called.
@@ -389,6 +389,7 @@ typedef struct BV3D_Job
    bool              bCollectTimeline;       /* Set when timeline data is wanted                         */
    uint32_t          uiNotifyCallbackParam;  /* Set internally for notify instruction implementation     */
    uint64_t          uiNotifySequenceNum;    /* Set internally for notify instruction implementation     */
+   uint32_t          uiNotifyFence;          /* Set internally for notify of fence (Android)             */
    BV3D_TimelineData sTimelineData;          /* The timeline data that is being collected                */
    void              *psClientJob;           /* Opaque pointer to a client's view of the job             */
 } BV3D_Job;
@@ -555,11 +556,11 @@ Summary:
 	Pop the earliest pending notification from the queue of notifications.
 
 Description:
-   As job instructions complete, their notifications are added to a queue and 
+   As job instructions complete, their notifications are added to a queue and
    the callback that was registered in BV3D_RegisterClient is called. When
-   a callback is received by the client, it should keep calling 
-   BV3D_GetNotification repeatedly until it stops returning BERR_SUCCESS. 
-   This will ensure that all notifications are retrieved since there may be 
+   a callback is received by the client, it should keep calling
+   BV3D_GetNotification repeatedly until it stops returning BERR_SUCCESS.
+   This will ensure that all notifications are retrieved since there may be
    less actual callbacks than notifications in the queue.
 
 Returns:
@@ -583,11 +584,11 @@ Summary:
 
 Description:
    There are very few occasions that the V3D core has to wait for the client.
-   When this is required, the client will call this function to tell the V3D 
-   core to continue. When blocked in this way other processes will still 
+   When this is required, the client will call this function to tell the V3D
+   core to continue. When blocked in this way other processes will still
    continue to run on the 3D core, so deadlock cannot occur.
 
-   If the client decides that the job should be abandoned instead, it can 
+   If the client decides that the job should be abandoned instead, it can
    set the abandon flag.
 
 Returns:
@@ -680,7 +681,7 @@ Summary:
 Description:
    The V3D scheduler is able to deal with multiple clients (user-processes)
    simultaneously. When a new client process wants to use the 3D core it
-   must call this function to register itself. 
+   must call this function to register itself.
 
    The clientId returned by register client is system unique.
 
@@ -824,42 +825,27 @@ See Also:
 BERR_Code BV3D_FenceOpen(
    BV3D_Handle          hV3d,              /* [in] Handle to V3D module. */
    uint32_t             uiClientId,
-   int                  *pFence
+   int                 *pFence,
+   void               **dataToSignal,
+   char                 cType,
+   int                  iPid
 );
 
 /***************************************************************************
 Summary:
-Step master timeline
+Async wait on a fence
 
 Description:
-Will clock the timeline inside the BV3D module.  Any fences waiting on this
-should progress
-
-Returns:
-BERR_SUCCESS.
-BERR_INVALID_PARAMETER - One of the input parameters was invalid.
-
-See Also:
-****************************************************************************/
-BERR_Code BV3D_FenceSignal(
-   BV3D_Handle          hV3d,
-   int                  fd
-);
-
-/***************************************************************************
-Summary:
-Close a fence
-
-Description:
-This removes an untriggered fence from the system
 
 Returns:
 
 See Also:
 ****************************************************************************/
-void BV3D_FenceClose(
+BERR_Code BV3D_FenceWaitAsync(
    BV3D_Handle          hV3d,
-   int                  fd
+   uint32_t             uiClientId,
+   int                  fd,
+   void               **pV3dFence
 );
 
 /***************************************************************************
@@ -887,5 +873,3 @@ extern void BV3D_P_OsSoftReset(BV3D_Handle hV3d);
 #endif
 
 #endif /* #ifndef BV3D_H__ */
-
-/* end of file */

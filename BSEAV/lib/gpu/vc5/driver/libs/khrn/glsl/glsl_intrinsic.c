@@ -40,6 +40,7 @@ static const struct intrinsic_info_s intrinsic_info[INTRINSIC_COUNT] = {
    { INTRINSIC_SIN,            "sin"            },
    { INTRINSIC_COS,            "cos"            },
    { INTRINSIC_TAN,            "tan"            },
+   { INTRINSIC_ISNAN,          "isnan"          },
    { INTRINSIC_ATOMIC_LOAD,    "atomic_load"    },
    { INTRINSIC_ATOMIC_ADD,     "atomic_add"     },
    { INTRINSIC_ATOMIC_SUB,     "atomic_sub"     },
@@ -81,19 +82,14 @@ static void validate_texture_lookup(ExprChain *args) {
    Expr *lod     = args->first->next->next->next->expr;
    Expr *offset  = NULL, *comp = NULL, *dref = NULL;
 
-   PrimSamplerInfo *sampler_info;
-   bool is_image = glsl_prim_is_prim_image_type(sampler->type);
-   if (is_image)
-      sampler_info = glsl_prim_get_image_info(sampler->type->u.primitive_type.index);
-   else
-      sampler_info = glsl_prim_get_sampler_info(sampler->type->u.primitive_type.index);
+   PrimSamplerInfo *sampler_info = glsl_prim_get_image_info(sampler->type->u.primitive_type.index);
 
    assert(bits->type->flavour                == SYMBOL_PRIMITIVE_TYPE &&
           bits->type->u.primitive_type.index == PRIM_INT);
 
    uint32_t texture_bits = *(const_value *)bits->compile_time_value;
    ExprChainNode *arg = args->first->next->next->next->next;
-   if (sampler_info->shadow) {
+   if (glsl_prim_sampler_is_shadow(sampler->type->u.primitive_type.index)) {
       dref = arg->expr;
       arg = arg->next;
    }
@@ -108,6 +104,7 @@ static void validate_texture_lookup(ExprChain *args) {
 
    assert(arg == NULL);
 
+   bool is_image = glsl_prim_is_prim_image_type(sampler->type);
    if (texture_bits & (DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH)) {
       assert(glsl_prim_is_vector_type(coord->type, PRIM_INT, count_sampler_coords(sampler_info, is_image)));
       assert(lod->type == &primitiveTypes[PRIM_INT]);
@@ -168,7 +165,7 @@ static void validate_intrinsic(glsl_intrinsic_index_t intrinsic, ExprChain *args
    case INTRINSIC_TEXTURE_SIZE:
       /* (ivec2|ivec3) <- intrinsic(genImageType) */
       assert(args->count == 1);
-      assert(glsl_prim_is_prim_sampler_type(args->first->expr->type) ||
+      assert(glsl_prim_is_prim_comb_sampler_type(args->first->expr->type) ||
              glsl_prim_is_prim_image_type(args->first->expr->type));
       break;
 
@@ -185,7 +182,8 @@ static void validate_intrinsic(glsl_intrinsic_index_t intrinsic, ExprChain *args
    case INTRINSIC_SIN:
    case INTRINSIC_COS:
    case INTRINSIC_TAN:
-      /* genFtype <- intrinsic(genFtype) */
+   case INTRINSIC_ABS:
+   case INTRINSIC_ISNAN:
       assert(args->count == 1);
       assert(glsl_prim_is_prim_with_base_type(args->first->expr->type, PRIM_FLOAT));
       break;
@@ -237,12 +235,6 @@ static void validate_intrinsic(glsl_intrinsic_index_t intrinsic, ExprChain *args
       assert(args->first->expr->type == args->first->next->expr->type ||
              glsl_prim_is_base_of_prim_type(args->first->expr->type,       args->first->next->expr->type) ||
              glsl_prim_is_base_of_prim_type(args->first->next->expr->type, args->first->expr->type));
-      break;
-
-   case INTRINSIC_ABS:
-      /* genFtype <- intrinsic(genFtype); */
-      assert(args->count == 1);
-      assert(glsl_prim_is_prim_with_base_type(args->first->expr->type, PRIM_FLOAT));
       break;
 
    case INTRINSIC_CLZ:
@@ -361,23 +353,16 @@ static SymbolType *calculate_texture_lookup_return_type(ExprChain *args) {
 
    uint32_t texture_bits = *(const_value *)bits->compile_time_value;
 
-   PrimSamplerInfo *sampler_info;
-   if (glsl_prim_is_prim_sampler_type(sampler->type))
-      sampler_info = glsl_prim_get_sampler_info(sampler->type->u.primitive_type.index);
-   else
-      sampler_info = glsl_prim_get_image_info(sampler->type->u.primitive_type.index);
+   PrimSamplerInfo *sampler_info = glsl_prim_get_image_info(sampler->type->u.primitive_type.index);
 
-   if (texture_bits & DF_TEXBITS_GATHER && sampler_info->shadow) return &primitiveTypes[PRIM_VEC4];
+   if (glsl_prim_sampler_is_shadow(sampler->type->u.primitive_type.index) && !(texture_bits & DF_TEXBITS_GATHER))
+      return &primitiveTypes[PRIM_FLOAT];
    else
       return &primitiveTypes[sampler_info->return_type];
 }
 
 static SymbolType *calculate_texture_size_return_type(ExprChain *args) {
-   PrimSamplerInfo *sampler_info;
-   if (glsl_prim_is_prim_image_type(args->first->expr->type))
-      sampler_info = glsl_prim_get_image_info(args->first->expr->type->u.primitive_type.index);
-   else
-      sampler_info = glsl_prim_get_sampler_info(args->first->expr->type->u.primitive_type.index);
+   PrimSamplerInfo *sampler_info = glsl_prim_get_image_info(args->first->expr->type->u.primitive_type.index);
    return glsl_prim_vector_type(PRIM_INT, sampler_info->size_dim);
 }
 

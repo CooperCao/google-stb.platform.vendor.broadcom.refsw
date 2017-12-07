@@ -227,7 +227,7 @@ error:
     _tuned = (eRet_Ok == ret) ? true : false;
 
     /* mosaic channels do not decode...only the individual mosaics do so
-       we will call start() manually here */
+     * we will call start() manually here */
     start();
     return(ret);
 } /* tune */
@@ -246,7 +246,7 @@ eRet CChannelMosaic::unTune(
     BDBG_ASSERT(NULL != _pModel);
 
     /* we must reset STC to ref count of pids when we do an untune */
-    if(_pStc != NULL )
+    if (_pStc != NULL)
     {
         NEXUS_SimpleStcChannelSettings settings;
         _pStc->getDefaultSettings(&settings);
@@ -337,4 +337,4 @@ eRet CChannelMosaic::finish()
 
 error:
     return(ret);
-}
+} /* finish */

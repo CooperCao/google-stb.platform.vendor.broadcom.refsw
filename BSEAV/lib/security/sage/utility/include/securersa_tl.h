@@ -274,6 +274,27 @@ typedef struct SecureRsaTl_RsaDecryptAesSettings
 
 /***************************************************************************
 Summary:
+RSA Load Public Key Settings structure
+
+See Also:
+SecureRsaTl_GetDefaultRsaLoadPublicKeySettings()
+SecureRsaTl_RsaLoadPublicKey()
+***************************************************************************/
+typedef struct SecureRsaTl_RsaLoadPublicKeySettings
+{
+    SecureRsaTl_RsaKeySlot_e rsaKeySlot;
+    uint8_t *publicModulus;
+    uint32_t publicModulusLen;
+    SecureRsaTl_RsaKeySlot_e sigKeySlot;
+    SecureRsaTl_RsaSignaturePadding_e sigPadType;
+    SecureRsaTl_DigestType_e sigDigestType;
+    uint32_t sigPssSaltLen;
+    uint8_t *signature;
+    uint32_t signatureLen;
+} SecureRsaTl_RsaLoadPublicKeySettings;
+
+/***************************************************************************
+Summary:
 Key3 Import Export Settings structure
 
 See Also:
@@ -352,6 +373,59 @@ typedef struct SecureRsaTl_Key3CalculateHmacSettings
 
 /***************************************************************************
 Summary:
+Key3 Append SHA Settings structure
+
+See Also:
+SecureRsaTl_GetDefaultKey3AppendShaSettings()
+SecureRsaTl_Key3AppendSha()
+***************************************************************************/
+typedef struct SecureRsaTl_Key3AppendShaSettings
+{
+    SecureRsaTl_Key3KeySlot_e key3KeySlot;
+    uint8_t *inputData;
+    uint32_t inputDataLen;
+    SecureRsaTl_DigestType_e digestType;
+    uint8_t *digest;
+    uint32_t *digestLen;
+} SecureRsaTl_Key3AppendShaSettings;
+
+/***************************************************************************
+Summary:
+Key3 Load Clear Ikr Settings structure
+
+See Also:
+SecureRsaTl_GetDefaultKey3LoadClearIkrSettings()
+SecureRsaTl_Key3LoadClearIkr()
+***************************************************************************/
+typedef struct SecureRsaTl_Key3LoadClearIkrSettings
+{
+    SecureRsaTl_Key3KeySlot_e key3KeySlot;
+    uint8_t *key;
+    uint32_t keyLen;  /* must be 16 or 32 */
+} SecureRsaTl_Key3LoadClearIkrSettings;
+
+/***************************************************************************
+Summary:
+Key3 IKR Decrypt IKR Settings structure
+
+See Also:
+SecureRsaTl_GetDefaultKey3IkrDecryptIkrSettings()
+SecureRsaTl_Key3IkrDecryptIkr()
+***************************************************************************/
+typedef struct SecureRsaTl_Key3IkrDecryptIkrSettings
+{
+    SecureRsaTl_Key3KeySlot_e ikrKeySlot;
+    SecureRsaTl_Key3KeySlot_e encKeySlot;
+    BSAGElib_Crypto_AlgorithmVariant_e variant;
+    uint32_t enableTransform;
+    uint8_t *encKey;
+    uint32_t encKeyLen;  /* must be 16 or 32 */
+    uint8_t *encIv;
+    uint32_t encIvLen;
+} SecureRsaTl_Key3IkrDecryptIkrSettings;
+
+/***************************************************************************
+Summary:
 KPK Decrypt RSA Settings structure
 
 See Also:
@@ -378,6 +452,25 @@ typedef struct SecureRsaTl_KpkDecryptRsaSettings
 } SecureRsaTl_KpkDecryptRsaSettings;
 
 #define SECURE_RSA_TL_KPK_DECRYPT_RSA_NUM_PARAMETERS  7
+
+/***************************************************************************
+Summary:
+KPK Decrypt IKR Settings structure
+
+See Also:
+SecureRsaTl_GetDefaultKpkDecryptIkrSettings()
+SecureRsaTl_KpkDecryptIkr()
+***************************************************************************/
+typedef struct SecureRsaTl_KpkDecryptIkrSettings
+{
+    SecureRsaTl_Key3KeySlot_e ikrKeySlot;
+    SecureRsaTl_KpkKeySlot_e encKeySlot;
+    BSAGElib_Crypto_AlgorithmVariant_e variant;
+    uint8_t *encKey;
+    uint32_t encKeyLen;  /* must be 16 or 32 */
+    uint8_t *encIv;
+    uint32_t encIvLen;
+} SecureRsaTl_KpkDecryptIkrSettings;
 
 /***************************************************************************
 Summary:
@@ -602,6 +695,31 @@ BERR_Code SecureRsaTl_RsaDecryptKpk(
 
 /***************************************************************************
 Summary:
+Get default RSA load public key settings
+
+Description:
+This function is used to initialize a SecureRsaTl_RsaLoadPublicKeySettings
+structure with default settings
+
+See Also
+SecureRsaTl_RsaLoadPublicKey()
+***************************************************************************/
+void SecureRsaTl_GetDefaultRsaLoadPublicKeySettings(
+    SecureRsaTl_RsaLoadPublicKeySettings *pRsaLoadPublicKeySettings);
+
+/***************************************************************************
+Summary:
+Load an RSA public key
+
+See Also
+SecureRsaTl_GetDefaultRsaLoadPublicKeySettings()
+***************************************************************************/
+BERR_Code SecureRsaTl_RsaLoadPublicKey(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_RsaLoadPublicKeySettings *pRsaLoadPublicKeySettings);
+
+/***************************************************************************
+Summary:
 Get default Key3 import settings
 
 Description:
@@ -726,6 +844,81 @@ BERR_Code SecureRsaTl_Key3CalculateHmac(
 
 /***************************************************************************
 Summary:
+Get default Key3 append SHA settings
+
+Description:
+This function is used to initialize a SecureRsaTl_Key3AppendShaSettings
+structure with default settings
+
+See Also
+SecureRsaTl_Key3AppendSha()
+***************************************************************************/
+void SecureRsaTl_GetDefaultKey3AppendShaSettings(
+    SecureRsaTl_Key3AppendShaSettings *pKey3AppendShaSettings);
+
+/***************************************************************************
+Summary:
+Calculate a Key3 appended SHA
+
+See Also
+SecureRsaTl_GetDefaultKey3AppendShaSettings()
+***************************************************************************/
+BERR_Code SecureRsaTl_Key3AppendSha(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_Key3AppendShaSettings *pKey3AppendShaSettings);
+
+/***************************************************************************
+Summary:
+Get default Key3 load clear IKR settings
+
+Description:
+This function is used to initialize a SecureRsaTl_Key3LoadClearIkrSettings
+structure with default settings
+
+See Also
+SecureRsaTl_Key3LoadClearIkr()
+***************************************************************************/
+void SecureRsaTl_GetDefaultKey3LoadClearIkrSettings(
+    SecureRsaTl_Key3LoadClearIkrSettings *pKey3LoadClearIkrSettings);
+
+/***************************************************************************
+Summary:
+Load a clear key to a Key3 IKR key
+
+See Also
+SecureRsaTl_GetDefaultKey3LoadClearIkrSettings()
+***************************************************************************/
+BERR_Code SecureRsaTl_Key3LoadClearIkr(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_Key3LoadClearIkrSettings *pKey3LoadClearIkrSettings);
+
+/***************************************************************************
+Summary:
+Get default Key3 IKR decrypt IKR settings
+
+Description:
+This function is used to initialize a SecureRsaTl_Key3IkrDecryptIkrSettings
+structure with default settings
+
+See Also
+SecureRsaTl_Key3IkrDecryptIkr()
+***************************************************************************/
+void SecureRsaTl_GetDefaultKey3IkrDecryptIkrSettings(
+    SecureRsaTl_Key3IkrDecryptIkrSettings *pKey3IkrDecryptIkrSettings);
+
+/***************************************************************************
+Summary:
+Decrypt an IKR key using an IKR key
+
+See Also
+SecureRsaTl_GetDefaultKey3IkrDecryptIkrSettings()
+***************************************************************************/
+BERR_Code SecureRsaTl_Key3IkrDecryptIkr(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_Key3IkrDecryptIkrSettings *pKey3IkrDecryptIkrSettings);
+
+/***************************************************************************
+Summary:
 Get default KPK decrypt RSA settings
 
 Description:
@@ -748,6 +941,31 @@ SecureRsaTl_GetDefaultKpkDecryptRsaSettings()
 BERR_Code SecureRsaTl_KpkDecryptRsa(
     SecureRsaTl_Handle hSecureRsaTl,
     SecureRsaTl_KpkDecryptRsaSettings *pKpkDecryptRsaSettings);
+
+/***************************************************************************
+Summary:
+Get default KPK decrypt IKR settings
+
+Description:
+This function is used to initialize a SecureRsaTl_KpkDecryptIkrSettings
+structure with default settings
+
+See Also
+SecureRsaTl_KpkDecryptIkr()
+***************************************************************************/
+void SecureRsaTl_GetDefaultKpkDecryptIkrSettings(
+    SecureRsaTl_KpkDecryptIkrSettings *pKpkDecryptIkrSettings);
+
+/***************************************************************************
+Summary:
+Decrypt an IKR key using a KPK key
+
+See Also
+SecureRsaTl_GetDefaultKpkDecryptIkrSettings()
+***************************************************************************/
+BERR_Code SecureRsaTl_KpkDecryptIkr(
+    SecureRsaTl_Handle hSecureRsaTl,
+    SecureRsaTl_KpkDecryptIkrSettings *pKpkDecryptIkrSettings);
 
 
 #ifdef __cplusplus

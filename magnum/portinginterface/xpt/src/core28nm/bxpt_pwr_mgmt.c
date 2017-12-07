@@ -864,6 +864,7 @@ static BERR_Code BXPT_P_AllocBackup(struct BXPT_Backup *backup, unsigned numEntr
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto error;
     }
+    BKNI_Memset(backup->reg, 0, sizeof(void*)*backup->numpages);
     for (page=0;page<backup->numpages;page++) {
         backup->reg[page] = BKNI_Malloc(backup->pagesize);
         if (!backup->reg[page]) {

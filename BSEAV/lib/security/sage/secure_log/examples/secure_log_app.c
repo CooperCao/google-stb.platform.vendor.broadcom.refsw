@@ -42,6 +42,7 @@
 #include <stdlib.h> /* exit */
 #include <unistd.h> /* read */
 #include <string.h>
+#include <getopt.h>
 /* open etc */
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -55,6 +56,9 @@
 #include "secure_log_tl.h"
 #include "bsagelib_types.h"
 #include "nexus_security_client.h"
+#if defined(RUN_AS_NXCLIENT)
+#include "nxclient.h"
+#endif
 
 BDBG_MODULE(secure_log_app);
 
@@ -67,11 +71,26 @@ BDBG_MODULE(secure_log_app);
 static SRAI_ModuleHandle hUtilModule;
 static SRAI_PlatformHandle hUtilPlatform;
 
+static char log_name[512];
+static char ta_name[512];
+static char cert_name[512];
+
 #define RING_BUFFER_SIZE_BYTES  (1024)
 
 static int SAGE_app_join_nexus(void)
 {
     int rc = 0;
+#if defined(RUN_AS_NXCLIENT)
+    NxClient_JoinSettings joinSettings;
+    NxClient_GetDefaultJoinSettings(&joinSettings);
+    joinSettings.ignoreStandbyRequest = true;
+    joinSettings.timeout = 60;
+    rc = NxClient_Join(&joinSettings);
+    if (rc) {
+       BDBG_LOG(("\tfailed to join nexus.  aborting.\n"));
+       rc = 1;
+    }
+#else
     NEXUS_PlatformSettings platformSettings;
     BDBG_LOG(("\tBringing up all Nexus modules for platform using default settings\n\n"));
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -85,12 +104,17 @@ static int SAGE_app_join_nexus(void)
         BDBG_ERR(("\tFailed to bring up Nexus\n"));
         rc = 1;
     }
+#endif
     return rc;
 }
 
 static void SAGE_app_leave_nexus(void)
 {
+#if defined(RUN_AS_NXCLIENT)
+    NxClient_Uninit();
+#else
     NEXUS_Platform_Uninit();
+#endif
 }
 
 int SAGE_Util_Init(void)
@@ -131,7 +155,7 @@ int SAGE_Util_Init(void)
 
 end:
     if (rc) {
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
 
         BDBG_WRN(("\n **************END************"));
 
@@ -183,10 +207,10 @@ static void CompleteCallback ( void *pParam, int iParam )
 
 /* Common Buffer Testing */
 static void
-_usage(const char *binName1, const char *binName2)
+_usage(void)
 {
     printf("usage:\n");
-    printf("%s %s < Util TA > < Certificate BRCM USEC> \n", binName1,binName2);
+    printf("-t < Util TA > -c < Certificate BRCM USEC > -l < Log File >\n");
 }
 
 static int
@@ -194,7 +218,7 @@ SAGE_Read_File(const char *filePath, uint8_t** binBuff, uint32_t* binSize)
 {
     int rc = 0;
     int fd = -1;
-    uint32_t size;
+    uint32_t size = 0;
     uint8_t *buff;
 
     fd = open(filePath, O_RDONLY);
@@ -244,7 +268,7 @@ end:
             SRAI_Memory_Free(buff);
             buff = NULL;
         }
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
     }
     *binBuff = buff;
     *binSize = size;
@@ -254,21 +278,38 @@ end:
 static int
 _parse_cmdline(int argc, char *argv[])
 {
+    int arg;
     int rc = 0;
-    int curr_arg = 1;
-    int next_arg = 2;
+    uint8_t chk = 0;
 
-    printf("no of args = %d, name of prog = %s arg one = %s arg two = %s",
-        argc, argv[0], argv[1], argv[2]);
-
-    if (argc != 3) {
-        _usage(argv[1],argv[2]);
-        rc = -1;
-        goto end;
+    while ((arg = getopt(argc, argv, "t:c:l:")) != -1) {
+    switch (arg) {
+    case 't':
+       sprintf(ta_name, "%s", optarg);
+       chk |= 0x1;
+       break;
+    case 'c':
+       sprintf(cert_name, "%s", optarg);
+       chk |= 0x2;
+       break;
+    case 'l':
+       sprintf(log_name, "%s", optarg);
+       chk |= 0x4;
+       break;
+    default:
+       _usage();
+       return -1;
+    }
     }
 
-    rc = SAGE_Read_File(argv[curr_arg],&utilBinBuff, &utilBinSize);
-    rc = SAGE_Read_File(argv[next_arg],&certBinBuff,&certBinSize);
+    if ((chk & 0x7) != 0x7) {
+       _usage();
+       rc = -1;
+       goto end;
+    }
+
+    rc = SAGE_Read_File(ta_name, &utilBinBuff, &utilBinSize);
+    rc = SAGE_Read_File(cert_name, &certBinBuff, &certBinSize);
 
     if (rc) { goto end; }
 
@@ -281,11 +322,20 @@ int main(int argc, char *argv[])
     int rc = 0;
     //Dumping the Buffer into File
     uint8_t *pB64LogBuffer=NULL;
-    uint32_t platId = NULL;
+    uint32_t platId = 0;
     uint8_t *secType = NULL;
-    uint32_t bufferLen = NULL;
+    uint32_t bufferLen = 0;
+    FILE *sagelogptr = NULL;
 
-    FILE *sagelogptr = fopen("sagelogTAtest.bin", "wb+");
+    /* Join Nexus: Initialize platform ... */
+    SAGE_app_join_nexus();
+
+    if (_parse_cmdline(argc, argv)) {
+        rc = -1;
+        goto handle_err;
+    }
+
+    sagelogptr = fopen(log_name, "wb+");
     if(!sagelogptr) {
             BDBG_ERR(("\nCan not create a sage_log file"));
             rc = -1;
@@ -295,14 +345,6 @@ int main(int argc, char *argv[])
     //Get Buffer after logging
     Secure_Log_TlBufferContext *pBuffContext = NULL;
     uint8_t *pGlrBuffAddr = NULL;
-
-    /* Join Nexus: Initialize platform ... */
-    SAGE_app_join_nexus();
-
-    if (_parse_cmdline(argc, argv)) {
-        rc = -1;
-        goto handle_err;
-    }
 
     _STEP("Install 'Secure Log TA' platform");
     if (Secure_Log_TlInit()) {

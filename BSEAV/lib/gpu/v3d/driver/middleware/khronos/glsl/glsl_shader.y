@@ -4,6 +4,7 @@
    #include <stdlib.h>
    #include <stdio.h>
    #include <string.h>
+   #include <assert.h>
 
    #include "middleware/khronos/glsl/glsl_symbols.h"
    #include "middleware/khronos/glsl/glsl_ast.h"
@@ -134,12 +135,12 @@
 
    void enter_loop(void)
    {
-      vcos_assert(g_LoopDepth < INT_MAX);
+      assert(g_LoopDepth < INT_MAX);
       g_LoopDepth++;
    }
    static void exit_loop(void)
    {
-      vcos_assert(g_LoopDepth > 0);
+      assert(g_LoopDepth > 0);
       g_LoopDepth--;
    }
    static int in_loop(void)

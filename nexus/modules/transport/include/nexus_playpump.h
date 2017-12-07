@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,6 +85,7 @@ typedef struct NEXUS_PlaypumpOpenSettings
 
     NEXUS_HeapHandle heap;       /* optional heap for fifo allocation */
     NEXUS_HeapHandle boundsHeap; /* optional heap to bounds check all scatter-gather descriptors */
+    bool descriptorPacingEnabled;      /* Support descriptor-based pacing. See NEXUS_Playpump_WriteCompleteWithSettings() */
 } NEXUS_PlaypumpOpenSettings;
 
 /**
@@ -350,6 +351,26 @@ NEXUS_Error NEXUS_Playpump_GetBuffer(
     size_t *pSize /* [out] total number of writeable, contiguous bytes which buffer is pointing to */
     );
 
+#define  NEXUS_Playpump_WriteComplete(playpump, skip, amountUsed) NEXUS_Playpump_WriteCompleteWithSettings(playpump, skip, amountUsed, NULL)
+
+/**
+Summary:
+Notify Playpump of how much data was added into the buffer, including optional per-commit parameters.
+**/
+
+typedef struct NEXUS_PlaypumpWriteCompleteSettings
+{
+    /* Timestamps are in the same format as the type given in the playpump settings struct. */
+    struct {
+        uint32_t timestamp;
+        uint32_t pkt2pktDelta;
+    } descriptorPacing;
+} NEXUS_PlaypumpWriteCompleteSettings;
+
+void NEXUS_Playpump_GetDefaultWriteCompleteSettings(
+    NEXUS_PlaypumpWriteCompleteSettings *Settings
+    );
+
 /**
 Summary:
 Notify Playpump of how much data was added into the buffer.
@@ -362,12 +383,11 @@ The skip parameter allows an application to copy data into the playpump buffer w
 whatever alignment it desired. This is needed for "direct I/O" from disk drives which requires
 all memory access to be page aligned (e.g. 4K).
 **/
-NEXUS_Error NEXUS_Playpump_WriteComplete(
-    NEXUS_PlaypumpHandle playpump,
-    size_t skip,            /* skip is the number of bytes at the beginning of the current buffer pointer
-                               which Playpump should skip over. */
-    size_t amountUsed       /* amountUsed is the number of bytes, following any skip bytes,
-                               which Playpump should feed into transport. */
+NEXUS_Error NEXUS_Playpump_WriteCompleteWithSettings(
+    NEXUS_PlaypumpHandle p,
+    unsigned skip,
+    unsigned amount_used,
+    const NEXUS_PlaypumpWriteCompleteSettings *pSettings /* attr{null_allowed=y} */
     );
 
 /* backward compatibility */
@@ -380,7 +400,8 @@ Playpump scatter gather Descriptor
 typedef struct NEXUS_PlaypumpScatterGatherDescriptor
 {
     void *addr;    /* attr{memory=cached} address of memory region */
-    size_t length; /* size of the memory region */
+    unsigned length; /* size of the memory region */
+    NEXUS_PlaypumpWriteCompleteSettings descriptorSettings; /* Used only when descriptorPacingEnabled is true */
 } NEXUS_PlaypumpScatterGatherDescriptor;
 
 /**
@@ -418,6 +439,7 @@ typedef struct NEXUS_PlaypumpStatus
     NEXUS_PtsType mediaPtsType;    /* Type of the current PTS, updated only for stream processed in SW */
     uint32_t mediaPts;    /* if playpump does inline media streeam conversion (i.e. AVI to PES), then this is the last known PTS
                              (in units of 45KHz) for the first converted pid (track) */
+    unsigned teiErrors;     /* count of TS packets with the Transport Error Indicator bit set. */
 } NEXUS_PlaypumpStatus;
 
 /**

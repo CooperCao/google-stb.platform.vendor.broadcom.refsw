@@ -683,6 +683,9 @@ BPVRlib_Feed_Priv_Update(BPVRlib_Feed_Handle feed)
     }
 #if BXPT_HAS_MULTICHANNEL_PLAYBACK
     rc = BXPT_Playback_GetLastCompletedDescriptorAddress(feed->config.xptPlayHandle, &nc_hw_desc); /* [in] Handle for the playback channel */
+    if(rc==BERR_NOT_AVAILABLE) {
+        goto done;
+    }
 #else
     rc = BXPT_Playback_GetCurrentDescriptorAddress(feed->config.xptPlayHandle, &nc_hw_desc);
 #endif

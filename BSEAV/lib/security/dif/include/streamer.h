@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,7 +45,6 @@
 #include "bmp4.h"
 
 #define DEBUG_OUTPUT_CAPTURE 0
-#define DEFAULT_VIDEO_MULTIPLE 7
 
 #include <string>
 
@@ -192,8 +191,13 @@ public:
 
     virtual bool Initialize() = 0;
 
+    // Used to get default settings
+    virtual void GetDefaultPlaypumpOpenSettings(
+        NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) = 0;
+
     // Used to open a playpump
-    virtual NEXUS_PlaypumpHandle OpenPlaypump(bool isVideo) = 0;
+    virtual NEXUS_PlaypumpHandle OpenPlaypump(
+        NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) = 0;
 
     // Used to open a pid channel
     virtual NEXUS_PidChannelHandle OpenPidChannel(
@@ -217,7 +221,11 @@ public:
 
     virtual bool Initialize() OVERRIDE { return true; }
 
-    virtual NEXUS_PlaypumpHandle OpenPlaypump(bool isVideo) OVERRIDE;
+    virtual void GetDefaultPlaypumpOpenSettings(
+        NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) OVERRIDE;
+
+    virtual NEXUS_PlaypumpHandle OpenPlaypump(
+        NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) OVERRIDE;
 
     virtual NEXUS_PidChannelHandle OpenPidChannel(
         unsigned pid,
@@ -228,7 +236,7 @@ public:
     virtual bool Push(uint32_t size) OVERRIDE;
 
 protected:
-    virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings &playpumpOpenSettings) = 0;
+    virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) = 0;
     virtual bool SetupPidChannel() { return true; }
     virtual IBuffer* CreateBuffer(uint32_t size, uint8_t* data) = 0;
 
@@ -246,7 +254,7 @@ public:
     virtual ~Streamer();
 
 protected:
-    virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings &playpumpOpenSettings) OVERRIDE;
+    virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) OVERRIDE;
     virtual IBuffer* CreateBuffer(uint32_t size, uint8_t* data) OVERRIDE;
 };
 
@@ -260,7 +268,7 @@ public:
     virtual bool Initialize() OVERRIDE;
 
 protected:
-    virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings &playpumpOpenSettings) OVERRIDE;
+    virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) OVERRIDE;
     virtual bool SetupPidChannel() OVERRIDE;
     virtual IBuffer* CreateBuffer(uint32_t size, uint8_t* data) OVERRIDE;
     NEXUS_DmaJobHandle GetDmaJob() { return m_dmaJob; }

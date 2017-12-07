@@ -1828,7 +1828,7 @@ static BIP_Status createAndPushAtom(
     /* Push it in the pipe to be processed later. */
     batom_pipe_push( pAtomPipe, pAtom );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "pAtom=%p created from range=%p size=%u" BIP_MSG_PRE_ARG, (void *)pAtom, (void *)pBuffer, bufferSize ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "pAtom=%p created from range=%p size=%u" BIP_MSG_PRE_ARG, (void *)pAtom, (void *)pBuffer, (unsigned)bufferSize ));
     bipStatus = BIP_SUCCESS;
 
 error:
@@ -1900,7 +1900,7 @@ static BIP_Status buildMediaPlaylist(
                         "#EXT-X-MEDIA-SEQUENCE:%d\n"
                         ,
                         BIP_HLS_SERVER_VERSION, (mediaSegmentDurationInMs/1000 + 1), currentMediaSegmentSeq);
-                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, (unsigned)bytesCopied, (unsigned)bytesLeft, (unsigned)bytesNeeded ));
                 if ( bytesNeeded < bytesLeft )
                 {
                     bytesCopied += snprintf( pPlaylistBuffer, bytesLeft,
@@ -1949,7 +1949,7 @@ static BIP_Status buildMediaPlaylist(
                         (mediaSegmentDurationInMs/1000), (mediaSegmentDurationInMs%1000),
                         pUrl+1, BIP_SEGMENT_URL_PREFIX, i+currentMediaSegmentSeq, BIP_SEGMENT_URL_SUFFIX       /* Skip one byte as URLs seem to start w/ / */
                         );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, (unsigned)bytesCopied, (unsigned)bytesLeft, (unsigned)bytesNeeded ));
                 if ( bytesNeeded < bytesLeft )
                 {
                     bytesCopied += snprintf( pPlaylistBuffer+bytesCopied, bytesLeft,
@@ -1968,7 +1968,7 @@ static BIP_Status buildMediaPlaylist(
                     bipStatus = createAndPushAtom( pAtomFactory, pAtomPipe, (const void *)pPlaylistBuffer, bytesCopied );
                     BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "createAndPushAtom() Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
                     *pPlaylistLength += bytesCopied;
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] Current Playlist: pPlaylistLength=%u bytesCopied=%u playlist:\n%s" BIP_MSG_PRE_ARG, i, *pPlaylistLength, bytesCopied, pPlaylistBuffer ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] Current Playlist: pPlaylistLength=%u bytesCopied=%u playlist:\n%s" BIP_MSG_PRE_ARG, i, (unsigned)*pPlaylistLength, (unsigned)bytesCopied, pPlaylistBuffer ));
                     pPlaylistBuffer = NULL;
                     bytesLeft = 0;
                     bytesCopied = 0;
@@ -1981,7 +1981,7 @@ static BIP_Status buildMediaPlaylist(
                 BDBG_ASSERT( addEndTag );
                 BDBG_ASSERT( i==numMediaSegments );
                 bytesNeeded = snprintf( pPlaylistBuffer+bytesCopied, 1, "#EXT-X-ENDLIST\n");
-                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, (unsigned)bytesCopied, (unsigned)bytesLeft, (unsigned)bytesNeeded ));
                 if ( bytesNeeded < bytesLeft )
                 {
                     bytesCopied += snprintf( pPlaylistBuffer+bytesCopied, bytesLeft,"#EXT-X-ENDLIST\n");
@@ -2003,14 +2003,14 @@ static BIP_Status buildMediaPlaylist(
         }
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, (unsigned)bytesCopied, (unsigned)bytesLeft, (unsigned)bytesNeeded ));
     if ( pPlaylistBuffer )
     {
         bipStatus = createAndPushAtom( pAtomFactory, pAtomPipe, (const void *)pPlaylistBuffer, bytesCopied );
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "createAndPushAtom() Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
         *pPlaylistLength += bytesCopied;
-        BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: playlistLength=%u" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, *pPlaylistLength ));
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: playlistLength=%u, MediaPlaylist \n%s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, *pPlaylistLength, pPlaylistBuffer ));
+        BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: playlistLength=%u" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, (unsigned)*pPlaylistLength ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: playlistLength=%u, MediaPlaylist \n%s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, (unsigned)*pPlaylistLength, pPlaylistBuffer ));
         pPlaylistBuffer = NULL;
         bytesCopied = 0;
     }
@@ -2197,7 +2197,7 @@ static BIP_Status prepareMasterPlaylist(
         bipStatus = createAndPushAtom( pAtomFactory, pAtomPipe, (const void *)pPlaylistBuffer, bytesCopied );
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "createAndPushAtom() Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
         *pPlaylistLength += bytesCopied;
-        BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: MasterPlaylistLength=%u" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, *pPlaylistLength ));
+        BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: MasterPlaylistLength=%u" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, (unsigned)*pPlaylistLength ));
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: MasterPlaylist \n%s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, pPlaylistBuffer ));
         pPlaylistBuffer = NULL;
     }

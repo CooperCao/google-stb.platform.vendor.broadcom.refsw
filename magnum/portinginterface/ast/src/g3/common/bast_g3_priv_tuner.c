@@ -743,6 +743,9 @@ static BERR_Code BAST_g3_P_TunerVcSearch_isr(BAST_ChannelHandle h, uint32_t *Vc)
 static BERR_Code BAST_g3_P_TunerCalibrateKvco_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
+#if 0
+   BAST_g3_P_Handle *hDev = h->pDevice->pImpl;
+#endif
 
    if (hChn->count2 >= 8)
    {
@@ -750,7 +753,7 @@ static BERR_Code BAST_g3_P_TunerCalibrateKvco_isr(BAST_ChannelHandle h)
       BDBG_MSG(("cap_cntl|kvco_cntl"));
       for (hChn->count2 = 0; hChn->count2 < 8; hChn->count2++)
       {
-         BDBG_MSG(("%d|%03X", hChn->tuner_kvco_cal_capcntl_table[hChn->count2], hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2]));
+         BDBG_MSG(("%d|%03X", hDev->tuner_kvco_cal_capcntl_table[hChn->count2], hDev->tuner_kvco_cal_kvcocntl_table[hChn->count2]));
       }
    #endif
 
@@ -793,6 +796,7 @@ static BERR_Code BAST_g3_P_TunerCalibrateKvco_isr(BAST_ChannelHandle h)
 static BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
+   BAST_g3_P_Handle *hDev = h->pDevice->pImpl;
    uint32_t Kvco, vc1, vc2, val;
 
    BAST_g3_P_TunerVcSearch_isr(h, &vc1);
@@ -834,8 +838,8 @@ static BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h)
    if (((Kvco > BAST_KVCO_LO_THRESH) && (Kvco < BAST_KVCO_HI_THRESH)) || (hChn->tunerKvcoCntl >= 0x7))
    {
       /* save cap_cntl and calibrated kvco_cntl */
-      hChn->tuner_kvco_cal_capcntl_table[hChn->count2] = hChn->tunerCapCntl;
-      hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2] = hChn->tunerKvcoCntl;
+      hDev->tuner_kvco_cal_capcntl_table[hChn->count2] = hChn->tunerCapCntl;
+      hDev->tuner_kvco_cal_kvcocntl_table[hChn->count2] = hChn->tunerKvcoCntl;
       hChn->count2++;
 
       return BAST_g3_P_TunerCalibrateKvco_isr(h);
@@ -849,13 +853,13 @@ static BERR_Code BAST_g3_P_TunerCalibrateKvco1_isr(BAST_ChannelHandle h)
       if (hChn->count2 > 0)
       {
          /* check if kvco_cntl greater than previous entry */
-         if (hChn->tunerKvcoCntl > hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2 - 1])
-            hChn->tunerKvcoCntl = hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2 - 1];
+         if (hChn->tunerKvcoCntl > hDev->tuner_kvco_cal_kvcocntl_table[hChn->count2 - 1])
+            hChn->tunerKvcoCntl = hDev->tuner_kvco_cal_kvcocntl_table[hChn->count2 - 1];
       }
 
       /* save cap_cntl and calibrated kvco_cntl */
-      hChn->tuner_kvco_cal_capcntl_table[hChn->count2] = hChn->tunerCapCntl;
-      hChn->tuner_kvco_cal_kvcocntl_table[hChn->count2] = hChn->tunerKvcoCntl;
+      hDev->tuner_kvco_cal_capcntl_table[hChn->count2] = hChn->tunerCapCntl;
+      hDev->tuner_kvco_cal_kvcocntl_table[hChn->count2] = hChn->tunerKvcoCntl;
       hChn->count2++;
 
       return BAST_g3_P_TunerCalibrateKvco_isr(h);
@@ -1497,6 +1501,7 @@ static BERR_Code BAST_g3_P_TunerSetCapCntl_isr(BAST_ChannelHandle h)
 ******************************************************************************/
 static BERR_Code BAST_g3_P_TunerSetCapCntlLoopParams_isr(BAST_ChannelHandle h)
 {
+   BAST_g3_P_Handle *hDev = h->pDevice->pImpl;
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    uint32_t val;
    uint16_t sval;
@@ -1543,12 +1548,12 @@ static BERR_Code BAST_g3_P_TunerSetCapCntlLoopParams_isr(BAST_ChannelHandle h)
       for (idx = 1; idx < BAST_TUNER_KVCO_CAL_TABLE_SIZE - 1; idx++)
       {
          /* interval boundaries at CAP[1..6] + 1 */
-         if (hChn->tunerCapCntl > hChn->tuner_kvco_cal_capcntl_table[idx])
+         if (hChn->tunerCapCntl > hDev->tuner_kvco_cal_capcntl_table[idx])
             break;
       }
 
       sval = 0x4240;    /* nbr_lf = b'01, wben_lf=0, QPbiasCNT2=b'01001 */
-      hChn->tunerKvcoCntl = hChn->tuner_kvco_cal_kvcocntl_table[idx-1];
+      hChn->tunerKvcoCntl = hDev->tuner_kvco_cal_kvcocntl_table[idx-1];
       /* BDBG_MSG(("cap=%d: kvco_cntl=%d\n", hChn->tunerCapCntl, hChn->tuner_kvco_cal_kvcocntl_table[idx])); */
    }
 

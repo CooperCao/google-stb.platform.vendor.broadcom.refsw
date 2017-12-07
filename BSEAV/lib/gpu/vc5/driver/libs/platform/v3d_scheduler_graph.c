@@ -2,7 +2,7 @@
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "v3d_scheduler_graph.h"
-#include "libs/platform/v3d_platform.h"
+#include "v3d_scheduler.h"
 
 #include <stdio.h>
 
@@ -30,13 +30,18 @@ static const char *type_name(enum bcm_sched_job_type type)
    case BCM_SCHED_JOB_TYPE_V3D_RENDER    : return "RENDER";
    case BCM_SCHED_JOB_TYPE_V3D_USER      : return "USER";
    case BCM_SCHED_JOB_TYPE_V3D_TFU       : return "TFU";
+#if !V3D_PLATFORM_SIM
    case BCM_SCHED_JOB_TYPE_FENCE_WAIT    : return "FENCE_WAIT";
+#endif
    case BCM_SCHED_JOB_TYPE_TEST          : return "TEST";
    case BCM_SCHED_JOB_TYPE_USERMODE      : return "USERMODE";
    case BCM_SCHED_JOB_TYPE_V3D_BARRIER   : return "BARRIER";
    case BCM_SCHED_JOB_TYPE_WAIT_ON_EVENT : return "WAIT_EVENT";
    case BCM_SCHED_JOB_TYPE_SET_EVENT     : return "SET_EVENT";
    case BCM_SCHED_JOB_TYPE_RESET_EVENT   : return "RESET_EVENT";
+#if V3D_USE_CSD
+   case BCM_SCHED_JOB_TYPE_V3D_COMPUTE   : return "COMPUTE";
+#endif
    default                               : return "error";
    }
 }
@@ -49,7 +54,9 @@ static const char *type_color(enum bcm_sched_job_type type)
    case BCM_SCHED_JOB_TYPE_V3D_BIN     : return "aquamarine2";
    case BCM_SCHED_JOB_TYPE_V3D_RENDER  : return "crimson";
    case BCM_SCHED_JOB_TYPE_V3D_TFU     : return "goldenrod3";
+#if !V3D_PLATFORM_SIM
    case BCM_SCHED_JOB_TYPE_FENCE_WAIT  : return "dodgerblue3";
+#endif
    default                             : return "white";
    }
 }
@@ -96,15 +103,18 @@ void v3d_sched_graph_add_node(const struct bcm_sched_job *job)
    add_deps("", job->job_id, &job->completed_dependencies, "gray");
    add_deps("", job->job_id, &job->finalised_dependencies, "black");
 
+#if !V3D_PLATFORM_SIM
    if (job->job_type == BCM_SCHED_JOB_TYPE_FENCE_WAIT)
    {
       fprintf(fp, "%" PRIu64 " -> F%d [color=darkorchid];\n",
          job->job_id, job->driver.fence_wait.fence);
    }
+#endif
 
    end_writing();
 }
 
+#if !V3D_PLATFORM_SIM
 void v3d_sched_graph_add_fence(
    int fence,
    const struct bcm_sched_dependencies *completed_deps,
@@ -122,6 +132,7 @@ void v3d_sched_graph_add_fence(
       end_writing();
    }
 }
+#endif
 
 void v3d_sched_graph_add_bin_render_dep(uint64_t bin, uint64_t render)
 {

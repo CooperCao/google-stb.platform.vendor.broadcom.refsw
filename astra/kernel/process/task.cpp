@@ -482,6 +482,7 @@ TzTask::TzTask(TzTask& parentTask) :
     // MUSL has moved the parent TLS region to user-space,
     // child inherits the page with AllocOnWrite by default.
     threadInfo = parentTask.threadInfo;
+    threadInfoCloned = true;
 
     for (int i=0; i<NUM_SAVED_CPU_REGS; i++) {
         savedRegs[i] = parentTask.savedRegs[i];

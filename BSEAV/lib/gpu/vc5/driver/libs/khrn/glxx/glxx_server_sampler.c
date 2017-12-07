@@ -39,7 +39,7 @@ static void glxx_sampler_term(void *v, size_t size)
    free(so->debug_label);
    so->debug_label = NULL;
 
-   vcos_unused(size);
+   unused(size);
 }
 
 static bool glxx_sampler_allocate(GLXX_SERVER_STATE_T *state, uint32_t id)
@@ -293,11 +293,13 @@ GL_API void GL_APIENTRY glSamplerParameterfv (GLuint sampler, GLenum pname, cons
       else
       {
          GLint iparams[4] = {gfx_float_to_int32(param[0]), 0, 0, 0};
+#if V3D_VER_AT_LEAST(4,0,2,0)
          if (pname == GL_TEXTURE_BORDER_COLOR)
          {
             for (unsigned int i = 0; i < 4; i++)
                iparams[i] = gfx_float_to_bits(param[i]);
          }
+#endif
          glxx_texparameter_sampler_internal(state, 0, so, pname, iparams);
       }
    }
@@ -372,9 +374,11 @@ GL_API void GL_APIENTRY glGetSamplerParameterfv (GLuint sampler, GLenum pname, G
          count = glxx_get_texparameter_sampler_internal(state, so, pname, temp);
 
          for (unsigned int i = 0; i < count; i++)
+#if V3D_VER_AT_LEAST(4,0,2,0)
             if (pname == GL_TEXTURE_BORDER_COLOR)
                params[i] = gfx_float_from_bits(temp[i]);
             else
+#endif
                params[i] = (GLfloat)temp[i];
       }
       else

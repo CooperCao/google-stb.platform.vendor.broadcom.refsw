@@ -7,6 +7,25 @@
 #include <string.h>
 #include <assert.h>
 
+/* Maximum display latency:
+ * 0 - Won't work, it would be equivalent of a single-buffering where
+ *     drawing is visible on screen immediately.
+ * 1 - Start a new frame after the previous one is on screen, the result
+ *     of drawing is visible at most 1 VSYNC later. After finishing a frame
+ *     both CPU and GPU stall until the next VSYNC. This allows for minimal
+ *     latency but at the cost of a significantly lower performance.
+ * 2 - Start a new frame before the previous one is on screen, the result
+ *     of drawing is visible 2 VSYNCs later. After finishing a frame
+ *     CPU and triple-buffered GPU can start the next frame immediately,
+ *     a double-buffered GPU always has to stall the rasterisation until
+ *     the next VSYNC, when the other buffer becomes available.
+ * 3 - More latency, same performance; the app has 1 VSYNC on average
+ *     to complete a frame, the latency of 2 fames already compensates for
+ *     software delay in VSYNC processing and gives plenty of room for
+ *     occasional overshoots.
+ */
+#define MAX_DISPLAY_LATENCY 2
+
 static unsigned wait_sync(DisplayFramework *df, unsigned swap_interval)
 {
    while(swap_interval && DisplayInterface_WaitSync(df->display_interface))
@@ -14,28 +33,6 @@ static unsigned wait_sync(DisplayFramework *df, unsigned swap_interval)
       --swap_interval;
    }
    return swap_interval;
-}
-
-static void display_surface(DisplayFramework *df,
-      SwapchainSurface *surface)
-{
-   void *native_surface = surface->native_surface;
-
-   switch (DisplayInterface_Display(df->display_interface, native_surface,
-         surface->render_fence, (surface->swap_interval >= 1), &surface->display_fence))
-   {
-   case eDisplayFailed:
-      /* display fence shouldn't be set */
-      assert(surface->display_fence == df->fence_interface->invalid_fence);
-      break;
-   case eDisplaySuccessful:
-   case eDisplayPending:
-      /* display fence may be set */
-      break;
-   }
-
-   /* render fence is now owned by the display */
-   surface->render_fence = df->fence_interface->invalid_fence;
 }
 
 static void *display_thread_func(void *p)
@@ -48,15 +45,30 @@ static void *display_thread_func(void *p)
    SwapchainSurface *surface;
    while ((surface = SwapchainDequeueDisplaySurface(&df->swapchain)) != NULL)
    {
-      if (FenceInterface_Wait(df->fence_interface,
-            surface->display_fence, FENCE_WAIT_INFINITE))
+      /* ownership of the render fence is passed to display */
+      int render_fence = surface->render_fence;
+      surface->render_fence = df->fence_interface->invalid_fence;
+
+      assert(surface->display_fence == df->fence_interface->invalid_fence);
+
+      switch (DisplayInterface_Display(df->display_interface, surface->native_surface,
+            render_fence, (surface->swap_interval > 0), &surface->display_fence))
       {
-         FenceInterface_Destroy(df->fence_interface,
-            &surface->display_fence);
-         display_surface(df, surface);
-         SwapchainEnqueueRenderSurface(&df->swapchain, surface);
+      case eDisplayFailed:
+         /* display fence shouldn't be set */
+         assert(surface->display_fence == df->fence_interface->invalid_fence);
          wait_sync(df, surface->swap_interval);
+         break;
+      case eDisplaySuccessful: /* on display now */
+         if (surface->swap_interval > 1)
+            wait_sync(df, surface->swap_interval - 1);
+         break;
+      case eDisplayPending: /* will be on display after next sync */
+         wait_sync(df, surface->swap_interval);
+         break;
       }
+      SwapchainEnqueueRenderSurface(&df->swapchain, surface);
+      sem_post(&df->latency);
    }
    return NULL;
 }
@@ -87,17 +99,21 @@ bool DisplayFramework_Start(DisplayFramework *df,
 
    if (SwapchainCreate(&df->swapchain, fence_interface, surface_interface, swapchain_count))
    {
-      if (pthread_barrier_init(&df->barrier, NULL, 2) == 0)
+      if (sem_init(&df->latency, 0, MAX_DISPLAY_LATENCY) == 0)
       {
-         if (pthread_create(&df->thread, NULL, display_thread_func, df) == 0)
+         if (pthread_barrier_init(&df->barrier, NULL, 2) == 0)
          {
-            /* Wait for thread to really start */
-            pthread_barrier_wait(&df->barrier);
+            if (pthread_create(&df->thread, NULL, display_thread_func, df) == 0)
+            {
+               /* Wait for thread to really start */
+               pthread_barrier_wait(&df->barrier);
 
+               pthread_barrier_destroy(&df->barrier);
+               return true;
+            }
             pthread_barrier_destroy(&df->barrier);
-            return true;
          }
-         pthread_barrier_destroy(&df->barrier);
+         sem_destroy(&df->latency);
       }
       SwapchainDestroy(&df->swapchain);
    }
@@ -122,6 +138,8 @@ void DisplayFramework_Stop(DisplayFramework *df)
        * if present, prior to destroying each surface so we don't have to.
        */
       SwapchainDestroy(&df->swapchain);
+
+      sem_destroy(&df->latency);
    }
 }
 
@@ -137,6 +155,8 @@ void *DisplayFramework_GetNextSurface(DisplayFramework *df,
          .format = format,
    };
 
+   sem_wait(&df->latency);
+
    SwapchainSurface *surface = SwapchainDequeueRenderSurface(
          &df->swapchain, &requested, secure);
    if (surface)
@@ -145,24 +165,21 @@ void *DisplayFramework_GetNextSurface(DisplayFramework *df,
       FenceInterface_WaitAndDestroy(df->fence_interface,
             &surface->render_fence);
 
-      /* hand over display fence to the caller */
       if (fence)
       {
-         if (surface->swap_interval > 0)
-         {
-            /* retain our own reference to the display fence */
-            FenceInterface_Keep(df->fence_interface, surface->display_fence);
-
-            /* hand over the other reference to the renderer */
-            *fence = surface->display_fence;
-         }
-         else
-         {
-            /* let renderer ignore the display fence */
-            *fence = df->fence_interface->invalid_fence;
-         }
+         /* hand over the the display fence to the caller */
+         *fence = surface->display_fence;
+         surface->display_fence = df->fence_interface->invalid_fence; /* lost ownership */
+      }
+      else
+      {
+         /*the caller didn't want to handle the fence so wait here */
+         FenceInterface_WaitAndDestroy(df->fence_interface,
+               &surface->display_fence);
       }
 
+      assert(surface->render_fence == df->fence_interface->invalid_fence);
+      assert(surface->display_fence == df->fence_interface->invalid_fence);
       return surface->native_surface;
    }
    return NULL;
@@ -177,6 +194,7 @@ void DisplayFramework_DisplaySurface(DisplayFramework *df,
    SwapchainSurface *s = container_of(surface,
          SwapchainSurface, native_surface);
 
+   assert(s->render_fence == df->fence_interface->invalid_fence);
    s->render_fence = fence;
    s->swap_interval = swap_interval;
 
@@ -192,6 +210,7 @@ void DisplayFramework_CancelSurface(DisplayFramework *df,
    SwapchainSurface *s = container_of(surface,
          SwapchainSurface, native_surface);
 
+   assert(s->render_fence == df->fence_interface->invalid_fence);
    s->render_fence = fence;
 
    SwapchainEnqueueRenderSurface(&df->swapchain, s);

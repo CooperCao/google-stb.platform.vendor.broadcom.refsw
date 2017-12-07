@@ -14,7 +14,7 @@
  *    log_info("This is a %s message", "log"); // Uses default category (my_log_cat)
  */
 
-#include "vcos_types.h"
+#include "libs/util/common.h"
 #include "vcos_atomic.h"
 #include <assert.h>
 #include <stdbool.h>
@@ -54,7 +54,7 @@ static inline log_level_t log_cat_load_level(const struct log_cat *cat)
 extern bool log_cat_enabled_extern(struct log_cat *cat, log_level_t level);
 
 extern void log_cat_msg_v_extern(struct log_cat *cat, log_level_t level, const char *fmt, va_list args);
-extern void log_cat_msg_extern(struct log_cat *cat, log_level_t level, const char *fmt, ...) VCOS_FORMAT_ATTR_(printf, 3, 4);
+extern void log_cat_msg_extern(struct log_cat *cat, log_level_t level, const char *fmt, ...) ATTRIBUTE_FORMAT(printf, 3, 4);
 
 #ifndef WANT_LOGGING
 #define WANT_LOGGING 0

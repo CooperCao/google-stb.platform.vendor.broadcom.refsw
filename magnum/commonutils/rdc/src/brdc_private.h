@@ -51,7 +51,9 @@ extern "C" {
  * Defines
  ***************************************************************************/
 #define BRDC_P_Read32(hRdc, reg)                BREG_Read32(hRdc->hReg, reg)
+#define BRDC_P_Read32_isr(hRdc, reg)            BREG_Read32_isr(hRdc->hReg, reg)
 #define BRDC_P_Write32(hRdc, reg, data)         BREG_Write32(hRdc->hReg, reg, data)
+#define BRDC_P_Write32_isr(hRdc, reg, data)     BREG_Write32_isr(hRdc->hReg, reg, data)
 
 #define BRDC_Slot_P_Read32(hSlot, reg)          BRDC_P_Read32(hSlot->hRdc, reg)
 #define BRDC_Slot_P_Write32(hSlot, reg, data)   BRDC_P_Write32(hSlot->hRdc, reg, data)
@@ -332,9 +334,12 @@ typedef struct BRDC_P_List_Handle
 BERR_Code BRDC_P_SoftReset
     ( BRDC_Handle                      hRdc );
 
-BERR_Code BRDC_Slot_P_GetNextSlot
+BERR_Code BRDC_Slot_P_GetNextSlot_isr
     ( BRDC_Handle                      hRdc,
       BRDC_SlotId                     *pSlotId );
+
+#define BRDC_Slot_P_GetNextSlot(hRdc, pSlotId) \
+    BRDC_Slot_P_GetNextSlot_isr(hRdc, pSlotId)
 
 BERR_Code BRDC_Slot_P_Write_Registers_isr
     ( BRDC_Slot_Handle                 hSlot,
@@ -350,11 +355,11 @@ void BRDC_P_ReleaseSemaphore_isr
     ( BRDC_Handle                      hRdc,
       BRDC_SlotId                      eSlotId );
 
-BERR_Code BRDC_P_AcquireSync
+BERR_Code BRDC_P_AcquireSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                        *pulId );
 
-BERR_Code BRDC_P_ReleaseSync
+BERR_Code BRDC_P_ReleaseSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                         ulId );
 

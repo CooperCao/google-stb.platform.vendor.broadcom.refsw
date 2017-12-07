@@ -90,7 +90,7 @@ static void BVC5_P_ProcessInterrupt(
                   uint64_t uiRenderEnd, uiRenderTime;
                   BVC5_P_GetTime_isrsafe(&uiRenderEnd);
                   uiRenderTime = uiRenderEnd - pJob->uiRenderStart;
-                  BVC5_P_ClientMapUpdateStats(hVC5->hClientMap, pJob->uiClientId, uiRenderTime);
+                  BVC5_P_ClientMapUpdateStats_isrsafe(hVC5->hClientMap, pJob->uiClientId, uiRenderTime);
                }
 #endif
 
@@ -222,11 +222,6 @@ static void BVC5_P_ProcessInterrupt(
          BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
       }
    }
-
-#if V3D_VER_AT_LEAST(3,3,0,0)
-   /* Read the event counter fifos and log the events */
-   BVC5_P_HardwareReadEventFifos(hVC5, uiCoreIndex);
-#endif
 }
 
 /* BVC5_P_WatchdogTimeout

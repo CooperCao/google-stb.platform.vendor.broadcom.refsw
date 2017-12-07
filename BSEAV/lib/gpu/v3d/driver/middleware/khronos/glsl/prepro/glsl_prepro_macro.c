@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include "middleware/khronos/glsl/prepro/glsl_prepro_macro.h"
@@ -112,8 +105,8 @@ Macro *glsl_macro_construct_file()
 
 bool glsl_macro_equals(Macro *m1, Macro *m2)
 {
-   vcos_assert(m1);
-   vcos_assert(m2);
+   assert(m1);
+   assert(m2);
 
    return m1->type == m2->type &&
           glsl_token_equals(m1->name, m2->name, false) &&

@@ -1,5 +1,5 @@
 #############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,7 +85,7 @@ BSID_MJPEG_SUPPORT := y
 endif
 
 ifeq ($(shell test -e ${BCHP_RDB_PATH}/bchp_scpu_top_ctrl.h && echo y),y)
-ifneq ($(findstring $(BCHP_CHIP),7435 7584 75845 74371),$(BCHP_CHIP))
+ifneq ($(findstring $(BCHP_CHIP),7435 7584 75845 74371 7255),$(BCHP_CHIP))
 SAGE_SUPPORT ?= y
 endif
 endif

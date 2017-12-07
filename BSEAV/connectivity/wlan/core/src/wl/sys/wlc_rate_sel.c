@@ -4765,7 +4765,12 @@ wlc_ratesel_use_txs_blockack(rcb_t *state, tx_status_t *txs, uint8 suc_mpdu, uin
 		p = &(state->psri[PSR_FBR_IDX].psr);
 	}
 
-	cur_succ = (suc_mpdu << RATESEL_EMA_NF) / tot_mpdu;
+	if (tot_mpdu) {
+		cur_succ = (suc_mpdu << RATESEL_EMA_NF) / tot_mpdu;
+	} else {
+		ASSERT(0);
+		return 0;
+	}
 	alpha = state->gotpkts ? ((state->nupd <= state->rsi->ema_nupd_thres) ?
 		state->rsi->psr_ema_alpha0 : state->rsi->psr_ema_alpha) : RATESEL_EMA_ALPHA_INIT;
 

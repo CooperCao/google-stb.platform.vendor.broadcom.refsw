@@ -56,6 +56,10 @@ BERR_Code BDSP_Raaga_P_ProcessStartTaskCommand(
 BERR_Code BDSP_Raaga_P_ProcessStopTaskCommand(
     BDSP_RaagaTask *pRaagaTask
 );
+BERR_Code BDSP_Raaga_P_ProcessCITReConfigCommand(
+    BDSP_RaagaTask *pRaagaTask,
+    BDSP_P_CitReconfigCommand *pPayload
+);
 BERR_Code BDSP_Raaga_P_ProcessAlgoReconfigCommand(
     BDSP_RaagaTask *pRaagaTask,
     BDSP_P_AlgoReconfigCommand *pPayload

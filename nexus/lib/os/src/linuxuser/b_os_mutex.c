@@ -129,7 +129,9 @@ void B_Mutex_Lock(
     if ( pthread_equal(pthread_self(), mutex->owner) )
     {
         BDBG_ERR(("Deadlock on non-recursive mutex"));
+        #if !B_REFSW_BUILD_FOR_STATIC_ANALYSIS
         BDBG_ASSERT(false);
+        #endif
     }
     #endif
 
@@ -187,7 +189,9 @@ void B_Mutex_Unlock(
     if ( !pthread_equal(pthread_self(), mutex->owner) )
     {
         BDBG_ERR(("Attempt to unlock mutex from thread other than current owner"));
+        #if !B_REFSW_BUILD_FOR_STATIC_ANALYSIS
         BDBG_ASSERT(false);
+        #endif
     }
     #endif
 

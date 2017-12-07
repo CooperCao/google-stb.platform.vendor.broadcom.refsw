@@ -95,8 +95,7 @@ EXTERN_C_BEGIN
  * - yflip     /
  * - base (short for base format) \
  * - type                         | Format
- * - channels                     |
- * - pre                          /
+ * - channels                     /
  *
  * The dims field indicates how many dimensions the buffer has; so 1D, 2D, or
  * 3D.
@@ -116,12 +115,7 @@ EXTERN_C_BEGIN
  *
  * The type field gives types to the slots defined by the base field.
  *
- * The channels field maps slots defined by the base field onto channels.
- *
- * The pre field is a single bit. If it is set, then it means that all color
- * channels are stored premultiplied by the alpha channel. Note that this bit
- * only affects VG behaviour -- the EGL/GL specs say that GL must ignore
- * premultipliedness. */
+ * The channels field maps slots defined by the base field onto channels. */
 
 /* BEGIN AUTO-GENERATED CODE (enum_dims) */
 #define GFX_LFMT_DIMS_SHIFT 0
@@ -409,28 +403,16 @@ typedef enum gfx_lfmt_channels
 } GFX_LFMT_CHANNELS_T;
 /* END AUTO-GENERATED CODE (enum_channels) */
 
-/* BEGIN AUTO-GENERATED CODE (enum_pre) */
-#define GFX_LFMT_PRE_SHIFT 24
-#define GFX_LFMT_PRE_BITS 1
-#define GFX_LFMT_PRE_MASK (0x1 << 24)
-
-typedef enum gfx_lfmt_pre
-{
-   GFX_LFMT_PRE_NONPRE = 0 << GFX_LFMT_PRE_SHIFT,
-   GFX_LFMT_PRE_PRE    = 1 << GFX_LFMT_PRE_SHIFT,
-} GFX_LFMT_PRE_T;
-/* END AUTO-GENERATED CODE (enum_pre) */
-
 /* Macros for constructing a GFX_LFMT_T. For picking apart a GFX_LFMT_T,
  * just & with the appropriate mask defines, eg:
- * (GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_BC1, TYPE_UNORM, CHANNELS_RGBA, PRE_NONPRE) & GFX_LFMT_BASE_MASK) == GFX_LFMT_BC1 */
-#define GFX_LFMT_MAKE_NOCAST(DIMS, SWIZZLING, YFLIP, BASE, TYPE, CHANNELS, PRE) \
-   (GFX_LFMT_##DIMS | GFX_LFMT_##SWIZZLING | GFX_LFMT_##YFLIP | GFX_LFMT_##BASE | GFX_LFMT_##TYPE | GFX_LFMT_##CHANNELS | GFX_LFMT_##PRE)
-#define GFX_LFMT_MAKE(DIMS, SWIZZLING, YFLIP, BASE, TYPE, CHANNELS, PRE) \
-   ((GFX_LFMT_T)GFX_LFMT_MAKE_NOCAST(DIMS, SWIZZLING, YFLIP, BASE, TYPE, CHANNELS, PRE))
+ * (GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_BC1, TYPE_UNORM, CHANNELS_RGBA) & GFX_LFMT_BASE_MASK) == GFX_LFMT_BC1 */
+#define GFX_LFMT_MAKE_NOCAST(DIMS, SWIZZLING, YFLIP, BASE, TYPE, CHANNELS) \
+   (GFX_LFMT_##DIMS | GFX_LFMT_##SWIZZLING | GFX_LFMT_##YFLIP | GFX_LFMT_##BASE | GFX_LFMT_##TYPE | GFX_LFMT_##CHANNELS)
+#define GFX_LFMT_MAKE(DIMS, SWIZZLING, YFLIP, BASE, TYPE, CHANNELS) \
+   ((GFX_LFMT_T)GFX_LFMT_MAKE_NOCAST(DIMS, SWIZZLING, YFLIP, BASE, TYPE, CHANNELS))
 
 #define GFX_LFMT_LAYOUT_MASK (GFX_LFMT_SWIZZLING_MASK | GFX_LFMT_YFLIP_MASK)
-#define GFX_LFMT_FORMAT_MASK (GFX_LFMT_BASE_MASK | GFX_LFMT_TYPE_MASK | GFX_LFMT_CHANNELS_MASK | GFX_LFMT_PRE_MASK)
+#define GFX_LFMT_FORMAT_MASK (GFX_LFMT_BASE_MASK | GFX_LFMT_TYPE_MASK | GFX_LFMT_CHANNELS_MASK)
 
 typedef enum gfx_lfmt
 {
@@ -471,11 +453,6 @@ static inline GFX_LFMT_CHANNELS_T gfx_lfmt_get_channels(const GFX_LFMT_T *lfmt)
 { return (GFX_LFMT_CHANNELS_T)(*lfmt & GFX_LFMT_CHANNELS_MASK); }
 static inline GFX_LFMT_T * gfx_lfmt_set_channels(GFX_LFMT_T *lfmt, GFX_LFMT_CHANNELS_T channels)
 { *lfmt = (GFX_LFMT_T)((*lfmt & ~GFX_LFMT_CHANNELS_MASK) | channels); return lfmt; }
-
-static inline GFX_LFMT_PRE_T gfx_lfmt_get_pre(const GFX_LFMT_T *lfmt)
-{ return (GFX_LFMT_PRE_T)(*lfmt & GFX_LFMT_PRE_MASK); }
-static inline GFX_LFMT_T * gfx_lfmt_set_pre(GFX_LFMT_T *lfmt, GFX_LFMT_PRE_T pre)
-{ *lfmt = (GFX_LFMT_T)((*lfmt & ~GFX_LFMT_PRE_MASK) | pre); return lfmt; }
 /* END AUTO-GENERATED CODE (get_set_funcs) */
 
 /** Get/parse human-readable strings describing lfmts */
@@ -788,18 +765,6 @@ static inline GFX_LFMT_T gfx_lfmt_copy_layout_same_dims(GFX_LFMT_T to, GFX_LFMT_
 static inline GFX_LFMT_T gfx_lfmt_to_2d_rso(GFX_LFMT_T lfmt)
 {
    return gfx_lfmt_to_2d(gfx_lfmt_to_rso(lfmt));
-}
-
-static inline GFX_LFMT_T gfx_lfmt_to_nonpre(GFX_LFMT_T lfmt)
-{
-   gfx_lfmt_set_pre(&lfmt, GFX_LFMT_PRE_NONPRE);
-   return lfmt;
-}
-
-static inline GFX_LFMT_T gfx_lfmt_to_pre(GFX_LFMT_T lfmt)
-{
-   gfx_lfmt_set_pre(&lfmt, GFX_LFMT_PRE_PRE);
-   return lfmt;
 }
 
 static inline GFX_LFMT_SWIZZLING_T gfx_lfmt_collapse_uif_family(GFX_LFMT_SWIZZLING_T swizzling)

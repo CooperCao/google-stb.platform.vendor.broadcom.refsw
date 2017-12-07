@@ -85,7 +85,7 @@ BERR_Code BBOX_P_LoadRts
       const uint32_t             ulBoxId,
       const BBOX_DramRefreshRate eRefreshRate );
 
-BERR_Code BBOX_P_GetMemConfig
+BERR_Code BBOX_P_SetMemConfig
     ( uint32_t               ulBoxId,
       BBOX_MemConfig        *pBoxMemConfig );
 

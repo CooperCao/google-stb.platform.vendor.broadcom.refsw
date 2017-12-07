@@ -57,14 +57,16 @@ extern "C" {
 #include "bgrc_packet.h"
 #include "bgrc_errors.h"
 
-#if (BGRC_P_VER >= BGRC_P_VER_3)
+#if (BGRC_P_VER >= BGRC_P_VER_2)
+
+
 
 #ifdef BCHP_MM_M2MC0_REG_START
 #include "bchp_mm_m2mc0.h"
+#define BGRC_MM_M2MC(val)   BCHP_MM_M2MC0_##val
 #endif
 
 
-#define BGRC_MM_M2MC(val)   BCHP_MM_M2MC0_##val
 
 
 

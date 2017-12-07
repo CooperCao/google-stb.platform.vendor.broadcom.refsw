@@ -99,7 +99,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
     char *orig_rbuf = NULL;
     char temp_bytes[HTTP_AES_BLOCK_SIZE];  /* Used for reading upto 16 bytes */
     B_PlaybackIpState *playbackIpState = &playback_ip->playback_state;
-    bool dtcp_pcp_header_found = 0;
+    unsigned dtcpPcpHeaderCount = 0;
 
 #ifdef RECORD_CLEAR_DATA
     if(fclear == NULL)
@@ -311,18 +311,18 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
                     (unsigned char *)rbuf + total_clear_data, /* clear buffer */
                     &clear_buff_size,   /* input: clear buffer length, output: length of decrypted bytes (may be less than data processed due to DTCP lib taking out PCP header) */
                     &data_processed,    /* how many bytes are processed by DTCP lib after decryption, includes the length of PCP header */
-                    &dtcp_pcp_header_found);
+                    &dtcpPcpHeaderCount);
 
             if (errorCode != BERR_SUCCESS) {
                 BDBG_ERR(("%s: DTCP_DepacketizeData returned %d\n", BSTD_FUNCTION, bytesRead));
                 break;
             }
-            if (playback_ip->chunkEncoding && dtcp_pcp_header_found ) {
-                playback_ip->dtcpPcpHeaderFound = true;
+            if (playback_ip->chunkEncoding && dtcpPcpHeaderCount ) {
+                playback_ip->dtcpPcpHeaderCount = dtcpPcpHeaderCount;
                 BDBG_MSG(("DTCP PCP header flag is set "));
             }
 
-            BDBG_MSG(("len: bytesRemaining (enc) %d, clear %d, processed %d\n", bytesRemaining, clear_buff_size, data_processed));
+            BDBG_MSG(("len: bytesRemaining (enc) %d, clear %d, processed %d, dtcp_pcp_header_cnt=%u\n", bytesRemaining, clear_buff_size, data_processed, dtcpPcpHeaderCount));
             beginPointer += data_processed;
             bytesRemaining = endPointer - beginPointer;
 
@@ -458,7 +458,6 @@ int B_PlaybackIp_DtcpIpSessionOpen(
 {
     B_PlaybackIpDtcpIpCtx *securityCtx = NULL;
     B_PlaybackIpSecurityOpenSettings *securityOpenSettings;
-    BERR_Code rc;
 
     BSTD_UNUSED(sd);
 
@@ -504,7 +503,7 @@ int B_PlaybackIp_DtcpIpSessionOpen(
     if((securityCtx->streamHandle = DtcpAppLib_OpenSinkStream(securityCtx->akeHandle, B_StreamTransport_eHttp)) == NULL)
     {
         BDBG_ERR(("%s: Failed to open DTCP-IP sink stream\n", BSTD_FUNCTION));
-        rc = B_ERROR_SOCKET_ERROR;
+        BERR_TRACE(B_ERROR_SOCKET_ERROR);
         goto error;
     }
 

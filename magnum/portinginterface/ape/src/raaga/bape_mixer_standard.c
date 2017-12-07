@@ -92,7 +92,7 @@ BERR_Code BAPE_StandardMixer_P_Create(
     )
 {
     BAPE_MixerHandle handle;
-    BAPE_MixerSettings defaultSettings;
+    BAPE_MixerSettings *defaultSettings = NULL;
     BAPE_FMT_Descriptor format;
     BAPE_FMT_Capabilities caps;
     BERR_Code errCode;
@@ -102,21 +102,28 @@ BERR_Code BAPE_StandardMixer_P_Create(
 
     *pHandle = NULL;
 
-    if ( NULL == pSettings )
-    {
-        BAPE_Mixer_GetDefaultSettings(&defaultSettings);
-        pSettings = &defaultSettings;
+    if ( NULL == pSettings ) {
+        defaultSettings = BKNI_Malloc(sizeof(BAPE_MixerSettings));
+        if ( NULL == defaultSettings ) {
+            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        }
+        BAPE_Mixer_GetDefaultSettings(defaultSettings);
+        pSettings = defaultSettings;
     }
 
     /* Make sure settings are valid */
-    if ( !BAPE_StandardMixer_P_ValidateSettings(deviceHandle, pSettings) )
-    {
+    if ( !BAPE_StandardMixer_P_ValidateSettings(deviceHandle, pSettings) ) {
+        if (defaultSettings) {
+            BKNI_Free(defaultSettings);
+        }
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     handle = BKNI_Malloc(sizeof(BAPE_Mixer));
-    if ( NULL == handle )
-    {
+    if ( NULL == handle ) {
+        if (defaultSettings) {
+            BKNI_Free(defaultSettings);
+        }
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
 
@@ -184,11 +191,16 @@ BERR_Code BAPE_StandardMixer_P_Create(
     handle->stereoMode = BAPE_StereoMode_eLeftRight;
 
     *pHandle = handle;
-
+    if (defaultSettings) {
+        BKNI_Free(defaultSettings);
+    }
     return BERR_SUCCESS;
 
 err_caps:
 err_format:
+    if (defaultSettings) {
+        BKNI_Free(defaultSettings);
+    }
     BAPE_Mixer_Destroy(handle);
 
     return errCode;
@@ -1157,7 +1169,7 @@ static void BAPE_StandardMixer_P_FreePathFromInput(
 
     /* Release resources for this connection */
     BAPE_StandardMixer_P_FreeConnectionResources(handle, pConnection);
-    if (!handle->running)
+    if (!handle->running && !handle->startedExplicitly)
     {
         /* Free mixer-level resources if needed  */
         BAPE_StandardMixer_P_FreeResources(handle);
@@ -1202,7 +1214,7 @@ static BERR_Code BAPE_StandardMixer_P_ConfigPathFromInput(
         {
             BDBG_MSG(("Linking mixer to associated SFIFO"));
             BDBG_MODULE_MSG(bape_fci, ("  linking to upstream SFIFO group %p", (void*)pConnection->sfifoGroup));
-            BAPE_SfifoGroup_P_GetOutputFciIds(pConnection->sfifoGroup, &mixerInputSettings.input);
+            BAPE_SfifoGroup_P_GetOutputFciIds_isrsafe(pConnection->sfifoGroup, &mixerInputSettings.input);
         }
         else
         {
@@ -1530,7 +1542,7 @@ void BAPE_StandardMixer_P_SfifoStarted(BAPE_MixerHandle handle, BAPE_PathConnect
         unsigned i;
         BDSP_StageAudioCaptureSettings capSettings;
         BDSP_Stage_GetDefaultAudioCaptureSettings(&capSettings);
-		capSettings.numChannelPair = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&pConnection->format);
+        capSettings.numChannelPair = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&pConnection->format);
         for ( i = 0; i < capSettings.numChannelPair; i++ )
         {
             capSettings.channelPairInfo[i].outputBuffer.hBlock = pConnection->pSource->pBuffers[i]->block;
@@ -2574,11 +2586,13 @@ static BERR_Code BAPE_StandardMixer_P_AllocateConnectionResources(BAPE_MixerHand
     BERR_Code errCode;
     bool sfifoRequired=false, srcRequired=false, buffersOnly=false;
 
-    BAPE_Connector input = pConnection->pSource;
+    BAPE_Connector input;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
     BDBG_ASSERT(&handle->pathNode == pConnection->pSink);
+
+    input = pConnection->pSource;
 
     i = BAPE_Mixer_P_FindInputIndex_isrsafe(handle, input);
     BDBG_ASSERT(i != BAPE_MIXER_INPUT_INDEX_INVALID);
@@ -2692,7 +2706,7 @@ static BERR_Code BAPE_StandardMixer_P_AllocateConnectionResources(BAPE_MixerHand
         {
             /* Input From Sfifo */
             BDBG_MODULE_MSG(bape_fci, ("  SFIFO -> SRC"));
-            BAPE_SfifoGroup_P_GetOutputFciIds(pConnection->sfifoGroup, &srcSettings.input);
+            BAPE_SfifoGroup_P_GetOutputFciIds_isrsafe(pConnection->sfifoGroup, &srcSettings.input);
         }
         else
         {

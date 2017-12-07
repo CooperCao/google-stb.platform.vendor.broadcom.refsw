@@ -40,9 +40,6 @@
 
 #include "bdsp_raaga_priv_include.h"
 
-#define BDSP_P_SET_BIT(A,B)   (A |= ((uint32_t)0x00000001 << B))
-#define BDSP_P_CLEAR_BIT(A,B) (A &= ~((uint32_t)0x00000001 << B))
-
 typedef struct BDSP_Raaga_P_TaskCallBacks
 {
     BINT_CallbackHandle     hDSPAsync;  /* DSP Async Interrupt callback */
@@ -56,9 +53,9 @@ typedef struct BDSP_Raaga_P_DeviceCallBacks
 }BDSP_Raaga_P_DeviceCallBacks;
 
 BERR_Code BDSP_Raaga_P_RestoreInterrupts_isr(
-     void                *pDeviceHandle,
-     uint32_t             uiDspIndex
-     );
+    void                *pDeviceHandle,
+    uint32_t             uiDspIndex
+);
 BERR_Code BDSP_Raaga_P_TaskInterruptInstall (
     void    *pTaskHandle        /* [in] Raptor Channel handle */
 );
@@ -91,5 +88,17 @@ BERR_Code BDSP_Raaga_P_SetContextInterruptHandlers(
 );
 BERR_Code BDSP_Raaga_P_ProcessContextWatchdogInterrupt(
     void *pContextHandle
+);
+BERR_Code BDSP_Raaga_P_AllocateExternalInterrupt(
+	void 						 *pDeviceHandle,
+	uint32_t 					  dspIndex,
+	BDSP_ExternalInterruptHandle *pInterruptHandle /* OUT*/
+);
+BERR_Code BDSP_Raaga_P_FreeExternalInterrupt(
+	void *pInterruptHandle
+);
+BERR_Code BDSP_Raaga_P_GetExternalInterruptInfo(
+	void *pInterruptHandle,
+	BDSP_ExternalInterruptInfo **pInfo
 );
 #endif /*BDSP_INT_PRIV_H_*/

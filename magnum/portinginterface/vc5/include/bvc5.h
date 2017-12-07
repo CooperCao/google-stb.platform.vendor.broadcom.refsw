@@ -213,6 +213,7 @@ typedef struct BVC5_JobBin
    uint32_t                uiOffset;
    uint32_t                uiFlags;
    uint32_t                uiMinInitialBinBlockSize;
+   uint32_t                uiTileStateSize;
 } BVC5_JobBin;
 
 typedef struct BVC5_JobRender

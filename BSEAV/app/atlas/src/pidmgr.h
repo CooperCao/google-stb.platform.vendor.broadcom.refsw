@@ -94,7 +94,7 @@ public:
     bool                isEmpty(void);
     unsigned            getProgram(void)             { return(_program); }
     void                setProgram(unsigned program) { _program = program; }
-    bool                isImmutable(void) { return(_bImmutable); }
+    bool                isImmutable(void)            { return(_bImmutable); }
     void                print(bool bForce = false);
     void                dump(bool bForce = false) { print(bForce); }
 

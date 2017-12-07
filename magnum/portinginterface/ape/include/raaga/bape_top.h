@@ -178,6 +178,20 @@ BAPE_DecoderHandle2 (stereo data) -/
 
 ***************************************************************************/
 
+#define BAPE_DEVICE_DSP_FIRST   ((unsigned)0)
+#define BAPE_DEVICE_DSP_LAST    ((unsigned)5)
+#define BAPE_DEVICE_ARM_FIRST   ((unsigned)6)
+#define BAPE_DEVICE_ARM_LAST    ((unsigned)10)
+#define BAPE_DEVICE_INVALID     ((unsigned)-1)
+
+#define BAPE_DEVICE_DSP_VALID(d)    (d < BAPE_DEVICE_DSP_LAST)
+#define BAPE_DEVICE_ARM_VALID(d)    (d >= BAPE_DEVICE_ARM_FIRST && d < BAPE_DEVICE_ARM_LAST)
+#define BAPE_DSP_DEVICE_INDEX(idx, base) ((idx>=base)?(idx-base):0)
+
+#define BAPE_DEVICE_TYPE_DSP    ((unsigned)0)
+#define BAPE_DEVICE_TYPE_ARM    ((unsigned)1)
+#define BAPE_DEVICE_TYPE_MAX    ((unsigned)2)
+
 /***************************************************************************
 Summary:
 Device Settings
@@ -386,10 +400,13 @@ typedef struct BAPE_Capabilities
     unsigned numPlls;                   /* Number of output PLL clocks */
     unsigned numNcos;                   /* Number of output NCO clocks */
     unsigned numCrcs;                   /* Number of CRC objects */
+    unsigned numSrcs;                   /* Number of SRC objects */
     unsigned numStcs;                   /* Number of STC objects */
     unsigned numMixers;               /* Number of Mixers */
+    unsigned numEqualizerStages;        /* Max number of active equalizer stages */
 
-    unsigned numDsps;                   /* Number of audio DSPs */
+    unsigned numDevices[BAPE_DEVICE_TYPE_MAX]; /* Number of audio Devices by type */
+    unsigned deviceIndexBase[BAPE_DEVICE_TYPE_MAX]; /* Index Base by device type */
     struct
     {
         struct
@@ -428,8 +445,8 @@ typedef struct BAPE_Capabilities
         bool studioSound;               /* True if SRS StudioSound processing is supported */
         bool truVolume;                 /* True if SRS TruVolume processing is supported */
         bool processing[BAPE_PostProcessorType_eMax];  /* True if specificed type is supported by BAPE_Processor */
-        char versionInfo[25];           /* Raaga Release Version */
-    } dsp;
+        char versionInfo[25];           /* Device Release Version */
+    } dsp[BAPE_DEVICE_TYPE_MAX];
 
     struct
     {

@@ -15,9 +15,16 @@ typedef struct khrn_uintptr_vector
 }
 khrn_uintptr_vector;
 
-extern void khrn_uintptr_vector_init(khrn_uintptr_vector *vector);
+static inline void khrn_uintptr_vector_init(khrn_uintptr_vector *vector)
+{
+   memset(vector, 0, sizeof(khrn_uintptr_vector));
+}
 
-extern void khrn_uintptr_vector_destroy(khrn_uintptr_vector *vector);
+static inline void khrn_uintptr_vector_reset(khrn_uintptr_vector *vector)
+{
+   free(vector->data);
+   memset(vector, 0, sizeof(khrn_uintptr_vector));
+}
 
 /* inserts a new element at the end */
 extern bool khrn_uintptr_vector_push_back(khrn_uintptr_vector *vector,

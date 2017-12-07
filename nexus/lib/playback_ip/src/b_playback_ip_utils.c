@@ -400,6 +400,44 @@ done:
     return result;
 }
 #ifndef DMS_CROSS_PLATFORMS
+int B_PlaybackIp_UtilsGetPlaypumpBufferNoSkip(
+    B_PlaybackIpHandle playback_ip,
+    unsigned int *size
+    )
+{
+    NEXUS_Error rc;
+    NEXUS_PlaypumpStatus ppStatus;
+    for(;;) {
+        if (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode || playback_ip->playback_state == B_PlaybackIpState_eEnteringTrickMode) {
+            goto error;
+        }
+
+        if (NEXUS_Playpump_GetBuffer(playback_ip->nexusHandles.playpump, &playback_ip->buffer, &playback_ip->buffer_size)) {
+            BDBG_ERR(("Returned error from NEXUS_Playpump_GetBuffer()!"));
+            goto error;
+        }
+        rc = NEXUS_Playpump_GetStatus(playback_ip->nexusHandles.playpump, &ppStatus);
+
+        if (playback_ip->buffer_size == 0) {
+            if (!rc) BDBG_MSG(("Returned 0 buffer size from GetBuffer()!, fifo dep %zu, size %zu, desc sz %zu dep %zu", ppStatus.fifoDepth, ppStatus.fifoSize, ppStatus.descFifoDepth, ppStatus.descFifoSize));
+            BKNI_Sleep(50);
+            continue;
+        }
+        else {
+            if (playback_ip->buffer_size > *size) {
+                /* constrain the amount of data to what is asked for. */
+                playback_ip->buffer_size = *size;
+            }
+            *size = playback_ip->buffer_size;
+            BDBG_MSG(("%s: got buffer of size %d from the playpump\n", BSTD_FUNCTION, *size));
+            break;
+        }
+    }
+    return (playback_ip->buffer_size);
+error:
+    return -1;
+}
+
 int B_PlaybackIp_UtilsGetPlaypumpBuffer(
     B_PlaybackIpHandle playback_ip,
     unsigned int size
@@ -416,7 +454,6 @@ int B_PlaybackIp_UtilsGetPlaypumpBuffer(
             BDBG_ERR(("Returned error from NEXUS_Playpump_GetBuffer()!"));
             goto error;
         }
-        /* bplaypump_flush(playback_ip->nexusHandles.playpump); */
         rc = NEXUS_Playpump_GetStatus(playback_ip->nexusHandles.playpump, &ppStatus);
 
         if (playback_ip->buffer_size == 0) {
@@ -443,27 +480,31 @@ error:
     return -1;
 }
 
-int findFirstTsPkt(uint8_t *pBuffer, size_t bufferSize, unsigned tsHdrOffset, unsigned int *pTsPktIndex)
+int findFirstTsPkt(uint8_t *pBuffer, size_t bufferSize, bool ttsPresent, bool useTts, unsigned int *pTsPktIndex)
 {
     unsigned int tsPkt1Index= 0;
-    unsigned int tsPkt2Index= 0;
-    unsigned int tsPkt3Index= 0;
-    unsigned int tsPkt4Index= 0;
+    unsigned int tsHdrOffset= 0;
 
     /* Find 3 consecutive TS Sync bytes starting from pBuffer. */
-    if (tsHdrOffset != 0) {
-        /* TS packets begins at the non-zero boundary, so timestamps are present in the stream (TTS). */
-        /* start looking for TS packet after the 4 byte timestmaps. */
+    if (ttsPresent) {
+        /* Buffer contains TS packets w/ 4 bytes of TTS timestamps. */
+        /* We skip these 4 bytes (assuming that stream begins w/ TTS bytes) & then look for TS SYNC byte value of 0x47. */
+        tsHdrOffset = 4; /* 4 bytes of TTS header. */
         tsPkt1Index = tsHdrOffset;
+    }
+    else {
+        tsHdrOffset = 0;
     }
 
     do {
         /* Find the first Sync byte. */
         while (tsPkt1Index < bufferSize) {
+            NEXUS_FlushCache(&pBuffer[tsPkt1Index], 12);
             if (pBuffer[tsPkt1Index] == 0x47) {
-                BDBG_MSG(("%s: Found TS sync byte at offset=%u bufferSize=%zu", BSTD_FUNCTION, tsPkt1Index, bufferSize));
-                BDBG_MSG(("%s: 1 TS sync bytes: 0x%x%x%x%x ", BSTD_FUNCTION, pBuffer[tsPkt1Index], pBuffer[tsPkt1Index+1], pBuffer[tsPkt1Index+2], pBuffer[tsPkt1Index+3] ));
-                BDBG_MSG(("%s:1+ TS sync bytes: 0x%x%x%x%x ", BSTD_FUNCTION, pBuffer[tsPkt1Index+4], pBuffer[tsPkt1Index+5], pBuffer[tsPkt1Index+6], pBuffer[tsPkt1Index+7] ));
+                BDBG_MSG(("%s: Found potential TS sync byte at offset=%u bufferSize=%zu", BSTD_FUNCTION, tsPkt1Index, bufferSize));
+                BDBG_MSG(("%s: offset=%u TS sync bytes: 0x%02x%02x%02x%02x ", BSTD_FUNCTION, tsPkt1Index, pBuffer[tsPkt1Index], pBuffer[tsPkt1Index+1], pBuffer[tsPkt1Index+2], pBuffer[tsPkt1Index+3] ));
+                BDBG_MSG(("%s: offset=%u TS sync bytes: 0x%02x%02x%02x%02x ", BSTD_FUNCTION, tsPkt1Index+4, pBuffer[tsPkt1Index+4], pBuffer[tsPkt1Index+5], pBuffer[tsPkt1Index+6], pBuffer[tsPkt1Index+7] ));
+                BDBG_MSG(("%s: offset=%u TS sync bytes: 0x%02x%02x%02x%02x ", BSTD_FUNCTION, tsPkt1Index+8, pBuffer[tsPkt1Index+8], pBuffer[tsPkt1Index+9], pBuffer[tsPkt1Index+10], pBuffer[tsPkt1Index+11] ));
                 break;
             }
             tsPkt1Index++;
@@ -473,83 +514,149 @@ int findFirstTsPkt(uint8_t *pBuffer, size_t bufferSize, unsigned tsHdrOffset, un
             return -1;
         }
 
-        /* Make sure that buffer contains space for 2nd & 3rd TS Sync byte header. */
+        /* Make sure that buffer contains space for multiple TS pkts. */
         if ( (tsPkt1Index + 4*(TS_PKT_SIZE+tsHdrOffset)) >= bufferSize ) {
-            BDBG_WRN(("%s: Buffer doesn't contain enough space for finding the 2nd & 3rd TS pkt from index=%u", BSTD_FUNCTION, tsPkt1Index));
+            BDBG_MSG(("%s: Buffer doesn't contain enough space for finding the 2nd & 3rd TS pkt from index=%u", BSTD_FUNCTION, tsPkt1Index));
             return -1;
         }
 
-        /* Make sure that we didn't have the false detection of SYNC byte as it can be part of the TTS timestamp value. */
-        /* So check if there is a Sync byte in the next 4 bytes after the 1st one & use that as the 1st Sync byte index. */
+        /* Now check if there are three consecutive TS pkts are present in the stream. */
+        /* So look for 3 more SYNC bytes from this index position. */
+        /* This check eliminates the case where we find a random SYNC byte which wont have SYNC bytes for the consecutive TS packets. */
         {
             int i;
-            unsigned syncByteOffset = 0;
+            unsigned nextSyncByteOffset;
+            bool syncByteMismatchFound = false;
 
-            for (i=1; i<5; i++) {
-                if (pBuffer[tsPkt1Index+i] == 0x47) {
-                    BDBG_MSG(("%s: Found correct TS sync byte at offset=%u bufferSize=%zu", BSTD_FUNCTION, tsPkt1Index+i, bufferSize));
-                    syncByteOffset = i;
+            for (i=1; i<=3; i++) {
+                nextSyncByteOffset = tsPkt1Index + (TS_PKT_SIZE + tsHdrOffset)*i;
+                NEXUS_FlushCache(&pBuffer[nextSyncByteOffset], 4);
+                if (pBuffer[nextSyncByteOffset] != 0x47) {
+                    /* False detection of SYNC byte. */
+                    syncByteMismatchFound = true;
+                    break;
+                }
+                BDBG_MSG(("%s: offset=%u TS sync bytes: 0x%02x%02x%02x%02x ", BSTD_FUNCTION,
+                            nextSyncByteOffset, pBuffer[nextSyncByteOffset], pBuffer[nextSyncByteOffset+1], pBuffer[nextSyncByteOffset+2], pBuffer[nextSyncByteOffset+3] ));
+            }
+            if (syncByteMismatchFound) {
+                BDBG_MSG(("%s: Didn't find 3 consecutive SYNC bytes from offset %u, rescan from next offset!", BSTD_FUNCTION, tsPkt1Index));
+                tsPkt1Index++;
+                continue; /* SYNC byte mismatch was found. */
+            }
+        }
+
+        /* So we have confirmed that 3 additional potential TS pkts starting w/ SYNC byte. */
+        /* But we need to rule out this false detection case where a SYNC value is in the  TTS timestamp value itself. */
+        /* In such a case, the real SYNC byte is in the next 1-4 bytes after this false SYNC byte. */
+        /* To catch this, we will check if SYNC is NOT present in any of the subsequent 4 bytes. */
+        /* Also, we do this for 4 consecutive 4 TS packets so as to rule out any random occurance of SYNC */
+        /* value in the stream after the potentially good SYNC byte. */
+        /* Note this only applies to the TTS streams w/ the timestamps value (containing the SYNC value & tripping us). */
+        if (ttsPresent) {
+            int i;
+            unsigned nextSyncByteOffset;
+            unsigned nextSyncCount =0;
+
+            for (i=0; i<=3; i++) {
+                nextSyncByteOffset = tsPkt1Index + (TS_PKT_SIZE + tsHdrOffset)*i + 1; /* +1 to check from the byte after the potential SYNC byte. */
+                NEXUS_FlushCache(&pBuffer[nextSyncByteOffset], 4);
+                if ( pBuffer[nextSyncByteOffset+0] == 0x47 ||
+                     pBuffer[nextSyncByteOffset+1] == 0x47 ||
+                     pBuffer[nextSyncByteOffset+2] == 0x47 ||
+                     pBuffer[nextSyncByteOffset+3] == 0x47) {
+                    /* One or more SYNC byte is found in this potential TS packet, note it. */
+                    nextSyncCount++;
+                    BDBG_MSG(("%s: Sync byte within next word at offset=%u, nextSyncCount=%u", BSTD_FUNCTION, nextSyncByteOffset, nextSyncCount));
+                    BDBG_MSG(("%s: offset=%u TS sync bytes: 0x%02x%02x%02x%02x ", BSTD_FUNCTION, nextSyncByteOffset, pBuffer[nextSyncByteOffset], pBuffer[nextSyncByteOffset+1], pBuffer[nextSyncByteOffset+2], pBuffer[nextSyncByteOffset+3] ));
                 }
             }
-            tsPkt1Index += syncByteOffset;
+            if (nextSyncCount == 4) {
+                /* We had found SYNC bytes in ALL of the next 3 consecutive words, so we our current SYNC position is incorrect. */
+                BDBG_MSG(("%s: Incorrect SYNC detection as SYNC byte is also found in subsequent bytes of %u consecutive pkts, resync from next offset after=%u", BSTD_FUNCTION, nextSyncCount, tsPkt1Index));
+                tsPkt1Index++;
+                continue;
+            }
         }
 
-        /* Now check if there are three consecutive TS pkts are present in the stream. */
-        /* So look for 2 more from this index position. */
-
-        /* Look for 2nd TS pkt at the expected TS pkt offset. */
-        tsPkt2Index = tsPkt1Index + TS_PKT_SIZE + tsHdrOffset;
-        tsPkt3Index = tsPkt2Index + TS_PKT_SIZE + tsHdrOffset;
-        tsPkt4Index = tsPkt3Index + TS_PKT_SIZE + tsHdrOffset;
-        if (pBuffer[tsPkt2Index] == 0x47 && pBuffer[tsPkt3Index] == 0x47 && pBuffer[tsPkt4Index] == 0x47) {
-            BDBG_MSG(("%s: Found 3 consecutive SYNC bytes at offsets %u:%u:%u", BSTD_FUNCTION, tsPkt1Index, tsPkt2Index, tsPkt3Index));
-            BDBG_MSG(("%s: 2 TS sync bytes: 0x%x%x%x%x ", BSTD_FUNCTION, pBuffer[tsPkt2Index], pBuffer[tsPkt2Index+1], pBuffer[tsPkt2Index+2], pBuffer[tsPkt2Index+3] ));
-            BDBG_MSG(("%s: 3 TS sync bytes: 0x%x%x%x%x ", BSTD_FUNCTION, pBuffer[tsPkt3Index], pBuffer[tsPkt3Index+1], pBuffer[tsPkt3Index+2], pBuffer[tsPkt3Index+3] ));
-            BDBG_MSG(("%s: 4 TS sync bytes: 0x%x%x%x%x ", BSTD_FUNCTION, pBuffer[tsPkt4Index], pBuffer[tsPkt4Index+1], pBuffer[tsPkt4Index+2], pBuffer[tsPkt4Index+3] ));
-            *pTsPktIndex = tsPkt1Index - tsHdrOffset;
-            return 0;
-        }
-
-        /* If 2nd and/or 3rd Sync byte is not matching, we may not have the first TS Sync byte location correct. */
-        /* So look again starting tsIndex1 until this buffer is exhausted. */
-        BDBG_MSG(("%s: 3 consecutive SYNC bytes not found at offset %u, rescan for SYNC byte from next offset!", BSTD_FUNCTION, tsPkt1Index));
-        tsPkt1Index++;
+        /* We are here, so we have found a valid starting TS header. */
+        break;
     } while (1);
 
+    /* We have found a valid first TS packet in the buffer. */
+    /* Return the index of the TS packet based on the useTts flag. */
+    {
+        if (useTts) {
+            /* using TTS, so return the index of the first TTS header. */
+            *pTsPktIndex = tsPkt1Index - tsHdrOffset;
+            NEXUS_FlushCache(&pBuffer[*pTsPktIndex], 8);
+            BDBG_MSG(("%s: Found correct SYNC position at=%u TTS bytes= 0x%02x%02x%02x%02x ", BSTD_FUNCTION, *pTsPktIndex, pBuffer[*pTsPktIndex], pBuffer[*pTsPktIndex+1], pBuffer[*pTsPktIndex+2], pBuffer[*pTsPktIndex+3] ));
+            BDBG_MSG(("%s: TS header bytes at %d: 0x%02x%02x%02x%02x ", BSTD_FUNCTION, *pTsPktIndex, pBuffer[*pTsPktIndex+4], pBuffer[*pTsPktIndex+5], pBuffer[*pTsPktIndex+6], pBuffer[*pTsPktIndex+7] ));
+            return 0;
+        }
+        else {
+            /* Not using TTS, find the next PCR packet. */
+            /* TODO: pcr */
+        }
+    }
     return -1;
 }
 
-int findLastTsPkt(uint32_t firstTsPktIndex, size_t bufferDepth, unsigned tsHdrOffset, uint32_t *pLastTsPktIndex)
+int findLastTsPkt(uint32_t firstTsPktIndex, size_t bufferDepth, bool ttsPresent, bool useTts, uint32_t *pLastTsPktIndex)
 {
+    unsigned int tsHdrOffset= 0;
     size_t updatedDepth;
     int howManyTsPkts = 0;
+
+    if (ttsPresent) {
+        /* Buffer contains TS packets w/ 4 bytes of TTS timestamps. */
+        /* We skip these 4 bytes (assuming that stream begins w/ TTS bytes) & then look for TS SYNC byte value of 0x47. */
+        tsHdrOffset = 4; /* 4 bytes of TTS header. */
+    }
+    else {
+        tsHdrOffset = 0;
+    }
 
     updatedDepth = bufferDepth - firstTsPktIndex; /* how many bytes are left after we find the 1st TS packets. */
 
     /* Find out how many of full TS packets are available in this buffer. */
     howManyTsPkts = updatedDepth / (TS_PKT_SIZE+tsHdrOffset);
     howManyTsPkts -=1; /* Caller ensures that there are atleast 6 TS  packets in the buffer. */
-    BDBG_ASSERT(howManyTsPkts > 0);
     BDBG_MSG(("howManyTsPkts=%u", howManyTsPkts));
+    BDBG_ASSERT(howManyTsPkts > 0);
 
     *pLastTsPktIndex = firstTsPktIndex + howManyTsPkts*(TS_PKT_SIZE+tsHdrOffset);
-    BDBG_MSG(("%s: tsPktIndex: first=%u last=%u depth=%zu", BSTD_FUNCTION, firstTsPktIndex, *pLastTsPktIndex, bufferDepth));
+    if (useTts) {
+        /* We will use the TTS from the last TS  packet itself, so we are done. */
+        BDBG_MSG(("%s: TTS pktIndex: first=%u last=%u depthInBytes=%zu", BSTD_FUNCTION, firstTsPktIndex, *pLastTsPktIndex, bufferDepth));
+    }
+    else {
+        /* keep going back from this last TS packet until we find one w/ the PCRs in it. */
+        /* TODO: pcr */
+        BDBG_ASSERT(NULL);
+    }
     return 0;
 }
 
-int B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec(
+int B_PlaybackIp_UtilsGetPlaypumpBufferDepthInUsec(
     B_PlaybackIpHandle playback_ip,
-    unsigned int *pDepthInMsec
+    unsigned int *pDepthInUsec
     )
 {
     NEXUS_PlaypumpStatus ppStatus;
     uint8_t *pBase, *pEnd, *pRead, *pWrite;
     size_t size;
     uint32_t bufferStartTime = 0, bufferEndTime = 0;
-    uint32_t curBufferDepthInMsec = 0;
+    static uint32_t prevBufferEndTime = 0;
+    uint32_t curBufferDepthInUsec = 0;
     uint32_t tsPktSize = TS_PKT_SIZE;
+    size_t fifoDepthInBytes;
+    bool ttsPresent = false;
+    bool useTts = false;    /* Even though stream may have ttsPresent, but app may have just configured to use PCRs only. */
+    static unsigned wrap = false;
+    unsigned depth1 = 0, depth2 = 0;
 
-    if (playback_ip->curBufferDepthInMsec == playback_ip->maxBufferDepthInMsec && playback_ip->curBufferDepthInMsec == playback_ip->minBufferDepthInMsec) {
+    if (playback_ip->curBufferDepthInUsec == playback_ip->maxBufferDepthInUsec && playback_ip->curBufferDepthInUsec == playback_ip->minBufferDepthInUsec) {
         /* first time case */
         B_Time_Get(&playback_ip->lastBufferDepthSampleTime);
     }
@@ -557,10 +664,24 @@ int B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec(
         B_Time curTime;
 
         B_Time_Get(&curTime);
-        if (B_Time_Diff(&curTime, &playback_ip->lastBufferDepthSampleTime) < 200)  goto done;
+        if (B_Time_Diff(&curTime, &playback_ip->lastBufferDepthSampleTime) < 100)  goto done;
         playback_ip->lastBufferDepthSampleTime = curTime;
     }
-    if (playback_ip->psi.transportTimeStampEnabled) tsPktSize += 4; /* 4 extra bytes for timestamp. */
+    if (playback_ip->psi.transportTimeStampEnabled) {
+        tsPktSize += 4; /* 4 extra bytes for timestamp. */
+        ttsPresent = true;
+    }
+    else {
+        ttsPresent = false;
+    }
+    if (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip)  {
+        useTts = true;
+    }
+    else {
+        useTts = false;
+        BDBG_ERR(("%s: we dont yet support time depth calculations for streams w/o TTS.", BSTD_FUNCTION));
+        goto error;
+    }
 
     /* In order to find the buffer depth in time units (msec), we will need to know
      * the read & write pointers in the current playpump FIFO buffer. Once we have them,
@@ -571,7 +692,7 @@ int B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec(
      * We have to consider the wrapping of read/write pointers in the FIFO and
      * also the skipped bytes in the FIFO.
      */
-    if (playback_ip->psi.transportTimeStampEnabled) {
+    {
         unsigned int firstTsPktIndex = 0;
         unsigned int lastTsPktIndex = 0;
         if (NEXUS_Playpump_GetBuffer(playback_ip->nexusHandles.playpump, (void *)&pWrite, &size)) {
@@ -585,147 +706,219 @@ int B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec(
 
         if (ppStatus.fifoDepth == 0 || ppStatus.fifoDepth < 6*tsPktSize) {
             /* Can't continue if we dont have atleast 6 TS packets. */
-            BDBG_WRN(("playpump underflow, previous depthInMsec=%u", playback_ip->curBufferDepthInMsec));
-            playback_ip->curBufferDepthInMsec = 0;
+            BDBG_MSG(("playpump underflow, previous depthInUsec=%u", playback_ip->curBufferDepthInUsec));
+            playback_ip->curBufferDepthInUsec = 0;
             goto done;
         }
+        BDBG_ASSERT(ppStatus.fifoDepth < ppStatus.fifoSize);
 
+        /* Calculate the read pointer, we already know base, end, write pointers, & depth in the FIFO. */
         pBase = ppStatus.bufferBase;
         pEnd = pBase + ppStatus.fifoSize; /* points to 1 byte after the end of buffer. */
-
-        /* Calculate the read pointer. */
-        pRead = pWrite - ppStatus.fifoDepth;
-        if (pRead >= pBase) {
+        pRead = pWrite - ppStatus.fifoDepth;     /* playpump returned fifodepth contains the # of skipped bytes, so we have to adjust them using the pBufferWrap pointer. */
+        wrap = false;
+        if (pRead < pBase) {
+            /* Calculate the starting point in the buffer. */
+            depth2 = (pWrite - pBase);
+            depth1 = ppStatus.fifoDepth - depth2;
+            pRead = pEnd - depth1;
+            BDBG_ASSERT(pRead >= pBase);
+            wrap = true;
+        }
+        if (wrap == false/*pRead >= pBase*/)
+        {
             /* Write pointer hasn't yet wrapped, */
             /* so buffer is contigous upto the write pointer. */
-            BDBG_MSG(("no wrap: base:end 0x%lx:0x%lx pRead=0x%lx pWrite=0x%lx pSkip=0x%lx depth=%zu",
-                        (unsigned long)pBase, (unsigned long)pEnd, (unsigned long)pRead, (unsigned long)pWrite, (unsigned long)playback_ip->pBufferWrap, ppStatus.fifoDepth));
+            fifoDepthInBytes = pWrite - pRead;
+            BDBG_MSG(("no wrap: base:end 0x%lx:0x%lx pRead=0x%lx pWrite=0x%lx pSkip=0x%lx depth=%zu real=%zu",
+                        (unsigned long)pBase, (unsigned long)pEnd, (unsigned long)pRead, (unsigned long)pWrite, (unsigned long)playback_ip->pBufferWrap, ppStatus.fifoDepth, fifoDepthInBytes));
 
-            if (findFirstTsPkt(pRead, pWrite-pRead, 4, &firstTsPktIndex)) {
-                BDBG_WRN(("%s: Failed to find start or 3 TS pkts in the Playpump Buffer FIFO!", BSTD_FUNCTION));
+            if (findFirstTsPkt(pRead, pWrite-pRead, ttsPresent, useTts, &firstTsPktIndex)) {
+                BDBG_WRN(("%s: findFirstTsPkt() failed: couldn't find 3 consecutive TS pkts in the Playpump Buffer FIFO!", BSTD_FUNCTION));
                 goto error;
             }
 
             /* We have 3 consecutive TS pkts starting from firstTsPktIndex. */
             /* Note the bufferStartTime from the next TS pkt. */
-            {
-                int i = firstTsPktIndex;
+            if (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip) {
+                /* TTS is present & is being used for Clockrecovery. Use 4 byte TTS timestamp as the bufferStartTime. */
+                unsigned int i = firstTsPktIndex;
                 NEXUS_FlushCache(&pRead[i], 4);
                 bufferStartTime = pRead[i]<<24|pRead[i+1]<<16|pRead[i+2]<<8|pRead[i+3];
-                BDBG_MSG(("values= 0x%x%x%x%x", pRead[i], pRead[i+1], pRead[i+2], pRead[i+3]));
+                BDBG_MSG(("offset=%u start TTS = 0x%02x%02x%02x%02x", i, pRead[i], pRead[i+1], pRead[i+2], pRead[i+3]));
+            }
+            else {
+                /* non-TTS based Clock Recovery mode. So we need to use PCR for determining the bufferStart position. */
+                /* Find the next PCR pkt from this pkt onwards & use its 45Khz value as the bufferStartTime. */
+                /* TODO: pcr */
             }
 
             /* Then find the last TS pkt in this current buffer. */
-            if (findLastTsPkt(firstTsPktIndex, ppStatus.fifoDepth, 4, &lastTsPktIndex)) {
+            if (findLastTsPkt(firstTsPktIndex, fifoDepthInBytes, ttsPresent, useTts, &lastTsPktIndex)) {
                 BDBG_WRN(("%s: Failed to find a TS pkt in the Playpump Buffer FIFO!", BSTD_FUNCTION));
                 goto error;
             }
-            BDBG_ASSERT(lastTsPktIndex < ppStatus.fifoDepth);
-            {
+            BDBG_ASSERT(lastTsPktIndex < fifoDepthInBytes);
+
+            /* Note the bufferEndTime. */
+            if (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip) {
+                /* TTS is present & is being used for Clockrecovery. Use the TTS timestamp from this last TS packet. */
                 int i = lastTsPktIndex;
-                NEXUS_FlushCache(pRead, 4);
+                NEXUS_FlushCache(&pRead[i], 4);
                 bufferEndTime = pRead[i]<<24|pRead[i+1]<<16|pRead[i+2]<<8|pRead[i+3];
-                BDBG_MSG(("values= 0x%x%x%x%x", pRead[i], pRead[i+1], pRead[i+2], pRead[i+3]));
+                BDBG_MSG(("offset=%u end TTS = 0x%02x%02x%02x%02x", i, pRead[i], pRead[i+1], pRead[i+2], pRead[i+3]));
+
+                i += 4;
+                NEXUS_FlushCache(&pRead[i], 4);
+                BDBG_MSG(("Last TS pkt byte = 0x%02x%02x%02x%02x", pRead[i], pRead[i+1], pRead[i+2], pRead[i+3]));
+                BDBG_ASSERT(pRead[i] == 0x47);
             }
-            BDBG_MSG(("%s: bufferDepth: end=%x start=%x diff=%u depth=%zu fed=%"PRId64, BSTD_FUNCTION,
-                        bufferEndTime, bufferStartTime, (bufferEndTime-bufferStartTime)/(27000), ppStatus.fifoDepth, playback_ip->totalConsumed ));
+            else {
+                /* non-TTS based Clock Recovery mode. So we need to use PCR for determining the bufferEnd position. */
+                /* Starting from this last PCR pkt, find the last PCR packet & use its 45Khz value as the bufferEndTime. */
+                /* TODO: pcr */
+            }
+            BDBG_MSG(("%s: bufferDepth: end=%x start=%x depth msec=%u bytes=%zu fed=%"PRId64, BSTD_FUNCTION,
+                        bufferEndTime, bufferStartTime, (bufferEndTime-bufferStartTime)/(27000), fifoDepthInBytes, playback_ip->totalConsumed ));
         }
         else {
-            /* read pointer is < base, so write pointer has wrapped. */
-            /* to calculate the correct read pointer location, */
-            /* we have to use the wrapPointer (pointer at which we skip bytes till the end of FIFO buffer), */
-            /* we skip bytes as caller wants to get a minimum size buffer which may not be available towards */
-            /* the end of FIFO, thus we tell playpump to skip those bytes and thus they can't be used in the */
-            /* logic to find the buffer's read pointer. */
-            size_t depth2, depth1;
+            /* pRead < pBase => pWrite < pRead, so write pointer has wrapped (already ruled out empty FIFO w/ depth == 0 check above). */
+            fifoDepthInBytes = depth1 + depth2;
+            BDBG_MSG(("wrap: base:end 0x%lx:0x%lx pRead=0x%lx pWrite=0x%lx pSkip=0x%lx depth=%zu real=%zu",
+                        (unsigned long)pBase, (unsigned long)pEnd, (unsigned long)pRead, (unsigned long)pWrite, (unsigned long)playback_ip->pBufferWrap, ppStatus.fifoDepth, fifoDepthInBytes));
 
-            BDBG_MSG(("wrap: base:end 0x%lx:0x%lx pRead=0x%lx pWrite=0x%lx pSkip=0x%lx depth=%zu",
-                        (unsigned long)pBase, (unsigned long)pEnd, (unsigned long)pRead, (unsigned long)pWrite, (unsigned long)playback_ip->pBufferWrap, ppStatus.fifoDepth));
+            if (findFirstTsPkt(pRead, depth1, ttsPresent, useTts, &firstTsPktIndex) == 0) {
+                unsigned int i = firstTsPktIndex;
 
-            /* Calculate the starting point in the buffer. */
-            depth2 = (pWrite - pBase);
-            depth1 = ppStatus.fifoDepth - depth2;
-            pRead = (uint8_t *)playback_ip->pBufferWrap - depth1;
+                BDBG_MSG(("%s: Found TS pkt at %d between pRead & pValid of FIFO!", BSTD_FUNCTION, firstTsPktIndex));
+                /* Note the bufferStart time. */
+                if (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip) {
+                    /* TTS is present & is being used for Clockrecovery. Use 4 byte TTS timestamp as the bufferStartTime. */
+                    NEXUS_FlushCache(&pRead[i], 4);
+                    bufferStartTime = pRead[i]<<24|pRead[i+1]<<16|pRead[i+2]<<8|pRead[i+3];
+                    BDBG_MSG(("offset=%d start TTS = 0x%x%x%x%x", i, pRead[i], pRead[i+1], pRead[i+2], pRead[i+3]));
+                }
+                else {
+                    /* non-TTS based Clock Recovery mode. So we need to use PCR for determining the bufferStart position. */
+                    /* Find the next PCR pkt from this pkt onwards & use its 45Khz value as the bufferStartTime. */
+                    /* TODO: pcr */
+                }
+            }
+            else {
+                unsigned int i;
 
-            if (findFirstTsPkt(pRead, depth1, 4, &firstTsPktIndex)) {
-                BDBG_WRN(("%s: Failed to find start or 3 TS pkts in the Playpump Buffer FIFO at its end, check after wrap!", BSTD_FUNCTION));
+                BDBG_MSG(("%s: Didn't find 3 consecutive TS pkts in the Playpump Buffer FIFO at its end, check after wrap!", BSTD_FUNCTION));
                 /* Look from the buffer base. */
-                if (findFirstTsPkt(pBase, pWrite-pBase, 4, &firstTsPktIndex)) {
+                if (findFirstTsPkt(pBase, pWrite-pBase, ttsPresent, useTts, &firstTsPktIndex)) {
                     BDBG_WRN(("%s: Failed to find start or 3 TS pkts in the Playpump Buffer FIFO!", BSTD_FUNCTION));
                     goto error;
                 }
-            }
-
-            /* Note the bufferStart time. */
-            {
-                int i = firstTsPktIndex;
-                NEXUS_FlushCache(&pRead[i], 4);
-                bufferStartTime = pRead[i]<<24|pRead[i+1]<<16|pRead[i+2]<<8|pRead[i+3];
-                BDBG_MSG(("values= 0x%x%x%x%x", pRead[i], pRead[i+1], pRead[i+2], pRead[i+3]));
-            }
-
-            /* Now find the last Ts pkt, but align index to the next TS packet at the base of the buffer. */
-            if (findFirstTsPkt(pBase, pWrite-pBase, 4, &firstTsPktIndex)) {
-                BDBG_WRN(("%s: Failed to find start or 3 TS pkts in the Playpump Buffer FIFO!", BSTD_FUNCTION));
-                goto error;
+                i = firstTsPktIndex;
+                /* Note the bufferStart time. */
+                if (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip) {
+                    /* TTS is present & is being used for Clockrecovery. Use 4 byte TTS timestamp as the bufferStartTime. */
+                    NEXUS_FlushCache(&pBase[i], 4);
+                    bufferStartTime = pBase[i]<<24|pBase[i+1]<<16|pBase[i+2]<<8|pBase[i+3];
+                    BDBG_MSG(("offset=%u start TTS = 0x%x%x%x%x", i, pBase[i], pBase[i+1], pBase[i+2], pBase[i+3]));
+                }
+                else {
+                    /* non-TTS based Clock Recovery mode. So we need to use PCR for determining the bufferStart position. */
+                    /* Find the next PCR pkt from this pkt onwards & use its 45Khz value as the bufferStartTime. */
+                    /* TODO: pcr */
+                }
             }
 
             /* Then find the last TS pkt in this current buffer. */
-            if (findLastTsPkt(firstTsPktIndex, pWrite-pBase, 4, &lastTsPktIndex)) {
+            /* For that, first align index to the next TS packet starting at the base of the buffer. */
+            if (findFirstTsPkt(pBase, pWrite-pBase, ttsPresent, useTts, &firstTsPktIndex)) {
+                BDBG_MSG(("%s: Failed to find start or 3 TS pkts in the Playpump Buffer FIFO!", BSTD_FUNCTION));
+                goto error;
+            }
+            /* Then find last TS packet relative to this first TS packet from the base. */
+            if (findLastTsPkt(firstTsPktIndex, pWrite-pBase, ttsPresent, useTts, &lastTsPktIndex)) {
                 BDBG_WRN(("%s: Failed to find a TS pkt in the Playpump Buffer FIFO!", BSTD_FUNCTION));
                 goto error;
             }
             if (lastTsPktIndex >= (unsigned)(pWrite-pBase)) {
                 BDBG_MSG(("wrap: base:end 0x%lx:0x%lx pRead=0x%lx pWrite=0x%lx pSkip=0x%lx depth=%zu",
-                            (unsigned long)pBase, (unsigned long)pEnd, (unsigned long)pRead, (unsigned long)pWrite, (unsigned long)playback_ip->pBufferWrap, ppStatus.fifoDepth));
+                            (unsigned long)pBase, (unsigned long)pEnd, (unsigned long)pRead, (unsigned long)pWrite, (unsigned long)playback_ip->pBufferWrap, fifoDepthInBytes));
             }
             BDBG_ASSERT(lastTsPktIndex < (unsigned)(pWrite-pBase));
-            {
+            if (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip) {
+                /* TTS is present & is being used for Clockrecovery. Use 4 byte TTS timestamp as the bufferEndTime. */
                 int i = lastTsPktIndex;
                 NEXUS_FlushCache(&pBase[i], 4);
                 bufferEndTime = pBase[i]<<24|pBase[i+1]<<16|pBase[i+2]<<8|pBase[i+3];
-                BDBG_MSG(("values= 0x%x%x%x%x", pBase[i], pBase[i+1], pBase[i+2], pBase[i+3]));
+                BDBG_MSG(("offset=%u end TTS = 0x%x%x%x%x", i, pBase[i], pBase[i+1], pBase[i+2], pBase[i+3]));
+
+                i += 4;
+                NEXUS_FlushCache(&pBase[i], 4);
+                BDBG_MSG(("Last TS pkt byte = 0x%x%x%x%x", pBase[i], pBase[i+1], pBase[i+2], pBase[i+3]));
+                BDBG_ASSERT(pBase[i] == 0x47);
             }
-            BDBG_MSG(("%s: wrap: bufferDepth: end=%x start=%x diff=%u depth=%zu fed=%"PRId64, BSTD_FUNCTION,
-                        bufferEndTime, bufferStartTime, (bufferEndTime-bufferStartTime)/(27000), ppStatus.fifoDepth, playback_ip->totalConsumed ));
+            else {
+                /* non-TTS based Clock Recovery mode. So we need to use PCR for determining the bufferEnd position. */
+                /* Find the next PCR pkt from this pkt onwards & use its 45Khz value as the bufferEndTime. */
+                /* TODO: pcr */
+            }
+            BDBG_MSG(("%s: wrap: bufferDepth: end=%x start=%x depth msec=%u bytes=%zu fed=%"PRId64, BSTD_FUNCTION,
+                        bufferEndTime, bufferStartTime, (bufferEndTime-bufferStartTime)/(27000), fifoDepthInBytes, playback_ip->totalConsumed ));
         }
-#if 1
-        curBufferDepthInMsec = (bufferEndTime - bufferStartTime) / 27000; /* Assumes binary 32bit TTS value in 27Mhz clock. */
+        /* TODO: pcr : change the divisor for PCR based case. */
+        /* TTS is being kept in 10's of msec vs. PCR value may be 45/90Khz. */
+        /* It may be better to keep both in the 27Mhz value. */
+        curBufferDepthInUsec = (bufferEndTime - bufferStartTime) / 27; /* Assumes binary 32bit TTS value in 27Mhz clock. */
+        if (curBufferDepthInUsec > 2000*1000)
         {
-            if (curBufferDepthInMsec > 8000)
-            {
-                BDBG_WRN(("incorrect depth=%u sample, ignoring it!", curBufferDepthInMsec));
-                goto done;
-            }
-            if (playback_ip->curBufferDepthInMsec == playback_ip->maxBufferDepthInMsec && playback_ip->curBufferDepthInMsec == playback_ip->minBufferDepthInMsec)
-            {
-                /* Initial case. */
-                playback_ip->curBufferDepthInMsec = curBufferDepthInMsec;
-                playback_ip->maxBufferDepthInMsec = playback_ip->curBufferDepthInMsec-1;
-                playback_ip->minBufferDepthInMsec = playback_ip->curBufferDepthInMsec;
-            }
-            else
-            {
-                playback_ip->curBufferDepthInMsec = curBufferDepthInMsec;
-                if (playback_ip->curBufferDepthInMsec > playback_ip->maxBufferDepthInMsec) playback_ip->maxBufferDepthInMsec = playback_ip->curBufferDepthInMsec;
-                if (playback_ip->curBufferDepthInMsec < playback_ip->minBufferDepthInMsec) playback_ip->minBufferDepthInMsec = playback_ip->curBufferDepthInMsec;
-            }
-            BDBG_WRN(("%s: bufferDepthInMsec: min, cur, max, #bytes %u, %u, %u, %zu", BSTD_FUNCTION,
-                        playback_ip->minBufferDepthInMsec,
-                        playback_ip->curBufferDepthInMsec,
-                        playback_ip->maxBufferDepthInMsec, ppStatus.fifoDepth));
+            BDBG_WRN(("%s: Incorrect curBufferDepthInUsec =%u sample > 2sec, ignoring it!", BSTD_FUNCTION, curBufferDepthInUsec));
+            goto done;
         }
+        if (playback_ip->curBufferDepthInUsec == playback_ip->maxBufferDepthInUsec && playback_ip->curBufferDepthInUsec == playback_ip->minBufferDepthInUsec)
+        {
+            /* Initial case. */
+            playback_ip->curBufferDepthInUsec = curBufferDepthInUsec;
+            playback_ip->maxBufferDepthInUsec = playback_ip->curBufferDepthInUsec-1;
+            playback_ip->minBufferDepthInUsec = playback_ip->curBufferDepthInUsec;
+        }
+        else
+        {
+            playback_ip->curBufferDepthInUsec = curBufferDepthInUsec;
+            if (playback_ip->curBufferDepthInUsec > playback_ip->maxBufferDepthInUsec) playback_ip->maxBufferDepthInUsec = playback_ip->curBufferDepthInUsec;
+            if (playback_ip->curBufferDepthInUsec < playback_ip->minBufferDepthInUsec) playback_ip->minBufferDepthInUsec = playback_ip->curBufferDepthInUsec;
+        }
+        BDBG_MSG(("%s: bufferDepthInUsec: min, cur, max, #bytes %u, %u, %u, %zu", BSTD_FUNCTION,
+                    playback_ip->minBufferDepthInUsec, playback_ip->curBufferDepthInUsec, playback_ip->maxBufferDepthInUsec, fifoDepthInBytes));
+        if (prevBufferEndTime == 0) {
+            prevBufferEndTime = bufferEndTime;
+            BDBG_MSG(("%s: endTimes diff: end, prevEnd, diff(msec)", BSTD_FUNCTION));
+        }
+        else {
+            /* check for incorrect buffer start & end times. */
+            uint32_t timeDiffInUsec;
+            timeDiffInUsec = (bufferEndTime - prevBufferEndTime)/27;
+            BDBG_MSG(("%s: endTimes diff: %x, %x, %u", BSTD_FUNCTION, bufferEndTime, prevBufferEndTime, timeDiffInUsec/1000));
+#ifdef BDBG_DEBUG_BUILD
+            if (playback_ip->ipVerboseLog) {
+                if (timeDiffInUsec > 1000000) /* two consecurtive end times are > 1sec apart */
+                {
+                    BDBG_WRN(("%s: endTimes(=%u usec) > 1sec apart: bufferDepth: end=%x prevEnd=%x start=%x depth msec=%u bytes=%zu fed=%"PRId64, BSTD_FUNCTION,
+                                timeDiffInUsec, bufferEndTime, prevBufferEndTime, bufferStartTime, (bufferEndTime-bufferStartTime)/(27000), fifoDepthInBytes, playback_ip->totalConsumed ));
+                }
+                else if (timeDiffInUsec > 200000) /* two consecutive end times are > 200 msec apart */
+                {
+                    BDBG_WRN(("%s: endTimes(=%u usec) > 200msec apart: bufferDepth: end=%x prevEnd=%x start=%x depth msec=%u bytes=%zu fed=%"PRId64, BSTD_FUNCTION,
+                                timeDiffInUsec, bufferEndTime, prevBufferEndTime, bufferStartTime, (bufferEndTime-bufferStartTime)/(27000), fifoDepthInBytes, playback_ip->totalConsumed ));
+                }
+            }
 #endif
+            prevBufferEndTime = bufferEndTime;
+        }
     }
-    else {
-        BDBG_ERR(("%s: we dont yet support time depth calculations for streams w/o TTS.", BSTD_FUNCTION));
-        goto error;
-    }
-    *pDepthInMsec = curBufferDepthInMsec;
+    *pDepthInUsec = curBufferDepthInUsec;
 done:
     return (0);
 error:
-    *pDepthInMsec = 0;
+    *pDepthInUsec = 0;
     return -1;
 }
 
@@ -2105,7 +2298,6 @@ sendData(int fd, void *outBuf, int bytesToSend, bool *stopStreaming)
             return -1;
         }
 #endif
-        BDBG_MSG(("Ok to write %d bytes \n", bytesToSend));
 #ifdef USE_NON_BLOCKING_MODE
         rc = send(fd, (void*)outBuf, bytesToSend, MSG_NOSIGNAL | MSG_DONTWAIT );
 #else
@@ -2137,15 +2329,15 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
     struct bfile_io_write_net *file = (struct bfile_io_write_net *) self;
     ssize_t rc;
     size_t bytesSent = 0;
-    int writeQueueDepth;
+    int writeQueueDepth, writeQueueNotSent=0;
     unsigned int bytesConsumed = 0;     /* how many out of length bytes were actually consumed (sent) */
+    bool pcpHeaderInserted = false;
 #ifdef B_HAS_DTCP_IP
     unsigned int bytesToEncrypt;     /* how many bytes to encrypt */
     unsigned int bytesEncrypted;     /* how many bytes were encrypted */
     unsigned int encryptedBufSize;   /* encrypted bytes including any DTCP headers + padding */
 #ifdef B_HAS_DTCP_IP_PACKETIZE_WITH_EXTERNAL_PCP
     unsigned int pcpHeaderOffset = 0;
-    bool pcpHeaderInserted = false;
 #endif
     struct timeval curTime, startTime, endTime;
 #endif
@@ -2158,7 +2350,9 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
 #endif
 
     BDBG_ASSERT(file);
+    BSTD_UNUSED(pcpHeaderInserted);
 
+    BDBG_MSG(("%s: Entering to write=%zu bytes", BSTD_FUNCTION, length));
 #ifdef USE_NON_BLOCKING_MODE
     /* check is socket has some space to send data */
     if ((rc = B_PlaybackIp_UtilsWaitForSocketWriteReady(file->fd, SELECT_TIMEOUT_FOR_SOCKET_SEND /* timeout in usec*/)) <= 0) {
@@ -2172,8 +2366,14 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
         BDBG_WRN(("%s: failed to get tcp write q depth for socket %d", BSTD_FUNCTION, file->fd));
         writeQueueDepth = 0;
     }
+#ifdef SIOCOUTQNSD
+    if (ioctl(file->fd, SIOCOUTQNSD, &writeQueueNotSent)) {
+        BDBG_WRN(("%s: failed to get tcp write q depth for socket %d", BSTD_FUNCTION, file->fd));
+        writeQueueDepth = 0;
+    }
+#endif
     writeQueueSpaceAvail = file->writeQueueSize - writeQueueDepth;
-    BDBG_MSG(("%s: Write %zu bytes for socket %d (wr q depth %d, size %d, rem %zu)\n", BSTD_FUNCTION, length, file->fd, writeQueueDepth, file->writeQueueSize, writeQueueSpaceAvail));
+    BDBG_MSG(("%s: Write %zu bytes for socket %d (wr q depth %d, notSent=%d, size %d, rem %zu)\n", BSTD_FUNCTION, length, file->fd, writeQueueDepth, writeQueueNotSent, file->writeQueueSize, writeQueueSpaceAvail));
     file->writeQueueFullTimeouts = 0;
     if (writeQueueSpaceAvail == 0) {
         /* write q is full, check if there is a socket error. This can happen particularly for streaming to a local client */

@@ -18,7 +18,7 @@ extern gmem_handle_t get_dummy_texture(void);
 struct glxx_texture_sampler_state;
 extern const struct glxx_tex_sampler_state *khrn_get_image_unit_default_sampler(void);
 
-#if !V3D_HAS_GFXH1636_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 extern gmem_handle_t khrn_get_dummy_ocq_buffer(void);
 #endif
 extern const char *khrn_get_device_name(void);

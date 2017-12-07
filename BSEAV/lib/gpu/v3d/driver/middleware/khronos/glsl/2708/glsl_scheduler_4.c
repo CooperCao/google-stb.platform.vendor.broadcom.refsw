@@ -233,7 +233,7 @@ static void dpostv_calculate_bushiness(Dataflow* dataflow, void* data)
       Dataflow *write_s;
       uint32_t write_count;
 
-      vcos_assert(num_tmu_lookups < MAX_TMU_LOOKUPS);
+      assert(num_tmu_lookups < MAX_TMU_LOOKUPS);
 
       copy_tmu_dependencies(tmu_lookups[num_tmu_lookups].tmu_dependencies, tmu_dependencies);
       write_s = NULL;
@@ -245,7 +245,7 @@ static void dpostv_calculate_bushiness(Dataflow* dataflow, void* data)
             break;
          }
       }
-      vcos_assert(write_s != NULL);
+      assert(write_s != NULL);
       tmu_lookups[num_tmu_lookups].read = dataflow;
 
       tmu_lookups[num_tmu_lookups].write[0] = write_s;
@@ -257,7 +257,7 @@ static void dpostv_calculate_bushiness(Dataflow* dataflow, void* data)
                node->dataflow->flavour == DATAFLOW_TEX_SET_BIAS  ||
                node->dataflow->flavour == DATAFLOW_TEX_SET_LOD)
          {
-            vcos_assert(write_count < 4);
+            assert(write_count < 4);
             tmu_lookups[num_tmu_lookups].write[write_count] = node->dataflow;
             write_count++;
          }
@@ -271,20 +271,20 @@ static void dpostv_calculate_bushiness(Dataflow* dataflow, void* data)
 
    if (dataflow->flavour == DATAFLOW_SCOREBOARD_WAIT)
    {
-      vcos_assert(sbwait_node == NULL);
+      assert(sbwait_node == NULL);
       sbwait_node = dataflow;
    }
 
    if (dataflow->flavour == DATAFLOW_ADD && dataflow->d.binary_op.right->flavour == DATAFLOW_VARYING_C)
    {
-      vcos_assert(xxx_num_varying_nodes < 32);
+      assert(xxx_num_varying_nodes < 32);
       xxx_varying_nodes[xxx_num_varying_nodes] = dataflow;
       xxx_num_varying_nodes++;
    }
 
    if (dataflow->flavour == DATAFLOW_FRAG_SUBMIT_STENCIL)
    {
-      vcos_assert(xxx_num_stencil_nodes < 32);
+      assert(xxx_num_stencil_nodes < 32);
       xxx_stencil_nodes[xxx_num_stencil_nodes] = dataflow;
       xxx_num_stencil_nodes++;
    }
@@ -356,7 +356,7 @@ static void visit_recursive(Dataflow *dataflow, bool schedule_if_input)
       */
       if (dataflow->flavour == DATAFLOW_CONDITIONAL)
       {
-         vcos_assert(dataflow->d.cond_op.true_value != dataflow->d.cond_op.false_value);
+         assert(dataflow->d.cond_op.true_value != dataflow->d.cond_op.false_value);
 
          if (dataflow->d.cond_op.true_value == dataflow->d.cond_op.cond)
             dataflow->d.cond_op.false_value->delay = -1;  /* Make sure this one gets visited last */
@@ -380,7 +380,7 @@ static void visit_recursive(Dataflow *dataflow, bool schedule_if_input)
                                                                   /* suggested a node which depends on this one.                                  */
       if (glsl_allocator_failed()) return;
 
-      vcos_assert(dataflow->slot == ~0);
+      assert(dataflow->slot == ~0);
       if (schedule_type & SCHEDULE_TYPE_ALU || schedule_type & SCHEDULE_TYPE_OUTPUT || schedule_type & SCHEDULE_TYPE_SIG)
       {
          dataflow->phase = BACKEND_PASS_SCHEDULED;
@@ -413,7 +413,7 @@ static void iodep(Dataflow *consumer, Dataflow *supplier)
 {
    if (consumer != NULL && supplier != NULL)
    {
-      vcos_assert(consumer != supplier);
+      assert(consumer != supplier);
       glsl_dataflow_add_iodependent(supplier, consumer);
       glsl_dataflow_add_iodependency(consumer, supplier);
    }
@@ -430,17 +430,17 @@ static void copy_tmu_dependencies(uint32_t *dep_out, uint32_t *dep_in) {
 }
 
 static void flag_tmu_dependency(uint32_t *dep, int dep_num) {
-   vcos_assert((dep_num / 32) < TMU_DEP_WORD_COUNT);
+   assert((dep_num / 32) < TMU_DEP_WORD_COUNT);
    dep[dep_num/32] |= (1 << (dep_num & 31));
 }
 
 static bool tmu_dependency_flagged(uint32_t *dep, int dep_num) {
-   vcos_assert((dep_num / 32) < TMU_DEP_WORD_COUNT);
+   assert((dep_num / 32) < TMU_DEP_WORD_COUNT);
    return ( (dep[dep_num/32] & (1<<(dep_num&31))) != 0 );
 }
 
 static bool tmu_all_n_flagged(uint32_t *dep, int num_deps) {
-   vcos_assert(num_deps <= MAX_TMU_LOOKUPS);
+   assert(num_deps <= MAX_TMU_LOOKUPS);
    while (num_deps >= 32) {
       if (dep[0] != ~0u) return 0;
       num_deps -= 32;
@@ -501,7 +501,7 @@ static bool fix_texture_dependencies(bool thrsw)
    block_stuff_output[1] = output_fifo_size;
 
    /* Add sentinel */
-   vcos_assert(num_tmu_lookups < MAX_TMU_LOOKUPS);
+   assert(num_tmu_lookups < MAX_TMU_LOOKUPS);
    tmu_lookups[num_tmu_lookups].read = NULL;
    tmu_lookups[num_tmu_lookups].write[0] = NULL;
    tmu_lookups[num_tmu_lookups].stuff_in_input_fifo = 0;
@@ -542,7 +542,7 @@ static bool fix_texture_dependencies(bool thrsw)
 
             break;
       }
-      vcos_assert(i < num_tmu_lookups);
+      assert(i < num_tmu_lookups);
 
       /*
          See if something else is using the same texture sampler. If so, force this to the same
@@ -604,7 +604,7 @@ static bool fix_texture_dependencies(bool thrsw)
                best_j = j;
             }
          }
-         vcos_assert(best_j != (uint32_t)~0);
+         assert(best_j != (uint32_t)~0);
          tmu_lookups[i].write_read_dependency = best_j;
       }
 
@@ -630,7 +630,7 @@ static bool fix_texture_dependencies(bool thrsw)
       if (khrn_workarounds.TMUS_PER_SLICE > 1)
          tmu ^= 1;
    }
-   vcos_assert(stuff_in_output_fifo[0] + stuff_in_output_fifo[1] == num_tmu_lookups);
+   assert(stuff_in_output_fifo[0] + stuff_in_output_fifo[1] == num_tmu_lookups);
 
    if (thrsw && thrsw_count == 0)
       return false;
@@ -681,17 +681,17 @@ static bool fix_texture_dependencies(bool thrsw)
             if (tmu_lookups[j].tmu == tmu && tmu_lookups[j].stuff_in_output_fifo == i)
                break;
          }
-         vcos_assert(j != num_tmu_lookups);
+         assert(j != num_tmu_lookups);
 
          /* Let allocator know which TMU this is assigned to */
          if (tmu == 1)
          {
             Dataflow *sampler = tmu_lookups[j].read->d.texture_lookup_get.sampler;
-            vcos_assert(sampler->flavour == DATAFLOW_CONST_SAMPLER);
+            assert(sampler->flavour == DATAFLOW_CONST_SAMPLER);
             sampler->u.const_sampler.location |= 0x80000000;
             for (k = 0; k < tmu_lookups[j].write_count; k++)
             {
-               vcos_assert(tmu_lookups[j].write[k]->d.texture_lookup_set.sampler == sampler);
+               assert(tmu_lookups[j].write[k]->d.texture_lookup_set.sampler == sampler);
             }
          }
 
@@ -906,7 +906,7 @@ bool glsl_backend_create_shaders(
    if (vertex_point_size) glsl_dataflow_accept_towards_leaves_postfix(vertex_point_size, NULL, dpostv_find_live_attribs, BACKEND_PASS_FIND_ATRIBS);
    result->cattribs_live = cattribs_live_scalars;
    result->vattribs_live = program->live_attributes;
-   vcos_assert(!(result->cattribs_live & ~result->vattribs_live));
+   assert(!(result->cattribs_live & ~result->vattribs_live));
 
    nodes[0] = frag_r;
    nodes[1] = frag_g;
@@ -924,5 +924,5 @@ bool glsl_backend_create_shaders(
    result->vary_count = vary_count;
    result->mh_blob = hblob;     /* TODO naughty */
 
-   return result->mh_blob != MEM_INVALID_HANDLE;
+   return result->mh_blob != MEM_HANDLE_INVALID;
 }

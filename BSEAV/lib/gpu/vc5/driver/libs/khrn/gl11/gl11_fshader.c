@@ -178,7 +178,7 @@ static void texture_lookup(GLXX_VEC4_T *result, Dataflow *image, Dataflow *sampl
 {
    Dataflow *coords = glsl_dataflow_construct_vec4(coord->x, coord->y, NULL, NULL);
    Dataflow *c[4];
-   glsl_dataflow_construct_texture_lookup(c, 4, DF_TEXBITS_NONE, image, coords, NULL, NULL, NULL, sampler, DF_FLOAT);
+   glsl_dataflow_construct_texture_lookup(c, 4, DF_TEXBITS_NONE, image, coords, NULL, NULL, NULL, sampler);
 
    Dataflow *l = c[0]->d.unary_op.operand;
    assert(l->flavour == DATAFLOW_TEXTURE);
@@ -331,36 +331,13 @@ static void fog(GLXX_VEC4_T *result, const GLXX_VEC4_T *varying, uint32_t fog_mo
    glxx_v_vec4(result, color3.x, color3.y, color3.z, color->w);
 }
 
-/*
-   Compute the coverage value for a fragment which is part of a point. Update
-   the dataflow pointed to by discard so that fragments with alpha == 0 are
-   discarded. Return the color vector with modified alpha
-
-   *discard is a Dataflow graph to compute the logical-or of the input value
-   with (coverage == 0)
-*/
-static void apply_antialiased_point(GLXX_VEC4_T       *result,
-                                    const GLXX_VEC4_T *varying,
-                                    const GLXX_VEC4_T *color,
-                                    Dataflow          *point_x,
-                                    Dataflow          *point_y,
-                                    Dataflow         **discard)
+static Dataflow *get_point_aa_coverage(Dataflow *point_size, Dataflow *point_x, Dataflow *point_y)
 {
-   Dataflow *point_size = varying[GL11_VARYING_POINT_SIZE].x;
-
    Dataflow *x = glxx_add(glxx_square(glxx_sub(point_x, glxx_cfloat(0.5))), glxx_square(glxx_sub(point_y, glxx_cfloat(0.5))));
-   x = glxx_mul(glxx_sub(glxx_cfloat(0.25), x), point_size);
-   *discard = glxx_lequal(x, glxx_cfloat(0.0f));
-   x = glxx_clamp(x);
-
-   glxx_v_vec4(result, color->x, color->y, color->z, glxx_mul(x, color->w));
+   return glxx_mul(glxx_sub(glxx_cfloat(0.25), x), point_size);
 }
 
-static void apply_antialiased_line(GLXX_VEC4_T       *result,
-                                   const GLXX_VEC4_T *color,
-                                   Dataflow          *line_coord,
-                                   Dataflow         **discard,
-                                   Dataflow          *line_width)
+static Dataflow *get_line_aa_coverage(Dataflow *line_coord, Dataflow *line_width)
 {
    /* line_coord varies across line from 0.0 to 1.0 across line
       calculated at centre of pixel
@@ -375,12 +352,7 @@ static void apply_antialiased_line(GLXX_VEC4_T       *result,
    Dataflow *pixels = glxx_mul(drawn_line_width, x);         /* number of pixels from centre of line */
 
    /* fraction of pixel covered */
-   Dataflow *coverage = glxx_sub( glxx_cfloat(0.5f), glxx_mul(glxx_cfloat(1.0f/(float)M_SQRT2), glxx_sub(pixels, half_line)));
-   /* Discard pixels that aren't covered at all in case blend is off */
-   *discard = glxx_lequal( coverage, glxx_cfloat(0.0f) );
-   coverage = glxx_clamp(coverage);
-
-   glxx_v_vec4(result, color->x, color->y, color->z, glxx_mul(coverage, color->w));
+   return glxx_sub( glxx_cfloat(0.5f), glxx_mul(glxx_cfloat(1.0f/(float)M_SQRT2), glxx_sub(pixels, half_line)));
 }
 
 static Dataflow *perform_user_clip(uint32_t user_clip, const GLXX_VEC4_T *clip)
@@ -492,10 +464,6 @@ static void apply_logic_op(GLXX_VEC4_T *result, const GLXX_VEC4_T *col_in, uint3
    glxx_v_vec4(result, out[0], out[1], out[2], out[3]);
 }
 
-static Dataflow *frag_vary(uint32_t row) {
-   return glsl_dataflow_construct_linkable_value(DATAFLOW_IN, DF_FLOAT, row);
-}
-
 struct builtin_unifs_s {
    struct fog_s fog_params;
    Dataflow *line_width;
@@ -552,11 +520,12 @@ static void construct_builtins(struct builtin_unifs_s *unif, int *bindings) {
  */
 void gl11_get_fshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm_out)
 {
+   glsl_dataflow_begin_construction();
+
    const uint32_t fog_mode   = v->fragment & GL11_FOG_M;
    const uint32_t alpha_func = v->fragment & GL11_AFUNC_M;
    const uint32_t user_clip  = v->fragment & GL11_UCLIP_M;
    const uint32_t logic_op   = v->fragment & GL11_LOGIC_M;
-   GLXX_VEC4_T varying[GL11_NUM_VARYINGS];
    Dataflow *point_x     = glxx_fragment_get(DATAFLOW_GET_POINT_COORD_X);
    Dataflow *point_y     = glxx_fragment_get(DATAFLOW_GET_POINT_COORD_Y);
    Dataflow *line_coord  = glxx_fragment_get(DATAFLOW_GET_LINE_COORD);
@@ -569,8 +538,8 @@ void gl11_get_fshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm
    Dataflow *out_nodes[DF_BLOB_FRAGMENT_COUNT];
    memset(out_nodes, 0, sizeof(Dataflow *) * DF_BLOB_FRAGMENT_COUNT);
 
-   for (int i=0; i<GL11_NUM_VARYINGS; i++)
-      glxx_v_vec4(&varying[i], frag_vary(4*i), frag_vary(4*i+1), frag_vary(4*i+2), frag_vary(4*i+3));
+   GLXX_VEC4_T varying[GL11_NUM_VARYINGS];
+   gl11_load_inputs(varying, GL11_NUM_VARYINGS);
 
    construct_builtins(&unif, unif_bindings);
 
@@ -585,18 +554,20 @@ void gl11_get_fshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm
       fog(&color, varying, fog_mode, &color, &unif.fog_params);
 
    Dataflow *discard = glxx_cbool(false);
-   if (v->fragment & GL11_POINTSMOOTH)
+   if (v->fragment & (GL11_POINTSMOOTH | GL11_LINESMOOTH))
    {
-      Dataflow *point_discard;
-      apply_antialiased_point(&color, varying, &color, point_x, point_y, &point_discard);
+      Dataflow *coverage;
+      if (v->fragment & GL11_POINTSMOOTH)
+         coverage = get_point_aa_coverage(varying[GL11_VARYING_POINT_SIZE].x, point_x, point_y);
+      else
+         coverage = get_line_aa_coverage(line_coord, unif.line_width);
+
       /* Discard to ensure we only generate fragments with alpha > 0 */
-      discard = glxx_logicor(discard, point_discard);
-   }
-   if (v->fragment & GL11_LINESMOOTH)
-   {
-      Dataflow *line_discard;
-      apply_antialiased_line(&color, &color, line_coord, &line_discard, unif.line_width);
-      discard = glxx_logicor(discard, line_discard);
+      Dataflow *a_discard = glxx_lequal(coverage, glxx_cfloat(0.0f));
+      coverage = glxx_clamp(coverage);
+
+      glxx_v_vec4(&color, color.x, color.y, color.z, glxx_mul(coverage, color.w));
+      discard = glxx_logicor(discard, a_discard);
    }
 
    //TODO: sample coverage
@@ -622,4 +593,6 @@ void gl11_get_fshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm
    int out_bindings[DF_BLOB_FRAGMENT_COUNT];
    *sh_out = gl11_ir_shader_from_nodes(out_nodes, DF_BLOB_FRAGMENT_COUNT, out_bindings);
    *lm_out = gl11_link_map_from_bindings(DF_BLOB_FRAGMENT_COUNT, out_bindings, 4*GL11_NUM_VARYINGS, unif_count, unif_bindings);
+
+   glsl_dataflow_end_construction();
 }

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Server-side implementation of the GL_OES_draw_texture extension for GLES 1.1.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/gl11/gl11_server.h"
 #include "middleware/khronos/glxx/glxx_server.h"
@@ -135,7 +128,7 @@ static void try_slow_path(GLXX_SERVER_STATE_T *state,
 {
    uint32_t i;
    GL11_TEXUNIT_T * texunit = NULL;
-   MEM_HANDLE_T thandle = MEM_INVALID_HANDLE;
+   MEM_HANDLE_T thandle = MEM_HANDLE_INVALID;
    GLXX_TEXTURE_T *texture = NULL;
    bool tex_ok = false;
 
@@ -148,7 +141,7 @@ static void try_slow_path(GLXX_SERVER_STATE_T *state,
 
       thandle = state->bound_texture[i].mh_twod;
 
-      if (texunit->target_enabled && thandle != MEM_INVALID_HANDLE) {
+      if (texunit->target_enabled && thandle != MEM_HANDLE_INVALID) {
          KHRN_IMAGE_FORMAT_T format;
          texture = (GLXX_TEXTURE_T *)mem_lock(thandle, NULL);
          format = texture->format;
@@ -161,11 +154,11 @@ static void try_slow_path(GLXX_SERVER_STATE_T *state,
             unsigned buf = texture->target == GL_TEXTURE_2D ?
                  TEXTURE_BUFFER_TWOD : TEXTURE_BUFFER_EXTERNAL;
             MEM_HANDLE_T himage = texture->mh_mipmaps[buf][0];
-            if(himage!=MEM_INVALID_HANDLE)
+            if(himage!=MEM_HANDLE_INVALID)
             {
                KHRN_IMAGE_T * image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
                MEM_HANDLE_T hstorage = image->mh_storage;
-               if(hstorage!=MEM_INVALID_HANDLE)
+               if(hstorage!=MEM_HANDLE_INVALID)
                {
                   uint32_t pixels = (uint32_t)mem_lock(hstorage, NULL);
                   if(!(pixels & 0xfff))/* 4k aligned */
@@ -200,7 +193,7 @@ void glDrawTexfOES_impl_11(GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLflo
 {
    GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
 
-   vcos_assert(state);
+   assert(state);
 
    if(Ws <=0.0f || Hs <= 0.0f)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);

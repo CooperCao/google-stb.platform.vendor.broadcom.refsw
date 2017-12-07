@@ -40,6 +40,7 @@
 #include "nexus_frontend.h"
 #include "nexus_parser_band.h"
 #include "nexus_simple_video_decoder.h"
+#include "nexus_platform.h"
 #include "bstd.h"
 #include "bkni.h"
 #include "bkni_multi.h"
@@ -70,6 +71,7 @@ int main(void)
     NEXUS_SimpleVideoDecoderHandle videoDecoder;
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleStcChannelHandle stcChannel;
+    NEXUS_SimpleStcChannelSettings stcSettings;
     NEXUS_Error rc;
     unsigned freq = 765;
     
@@ -84,39 +86,43 @@ int main(void)
     videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
     BDBG_ASSERT(videoDecoder);
     
-    stcChannel = NEXUS_SimpleStcChannel_Create(NULL);
-    
     parserBand = NEXUS_ParserBand_Open(NEXUS_ANY_ID);
     
     NEXUS_Frontend_GetDefaultAcquireSettings(&frontendAcquireSettings);
     frontendAcquireSettings.capabilities.qam = true;
     frontend = NEXUS_Frontend_Acquire(&frontendAcquireSettings);
     if (!frontend) {
-        BDBG_WRN(("Unable to find QAM-capable frontend"));
-        return -1;
-    }
-    
-    NEXUS_Frontend_GetDefaultQamSettings(&qamSettings);
-    qamSettings.frequency = freq * 1000000;
-    qamSettings.mode = NEXUS_FrontendQamMode_e64;
-    qamSettings.symbolRate = 5056900;
-    NEXUS_Frontend_GetUserParameters(frontend, &userParams);
-    NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
-    if (userParams.isMtsif) {
-        parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eMtsif;
-        parserBandSettings.sourceTypeSettings.mtsif = NEXUS_Frontend_GetConnector(frontend); /* NEXUS_Frontend_TuneXyz() will connect this frontend to this parser band */
+        BDBG_WRN(("Unable to find QAM-capable frontend. Try streamer."));
+        NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
+        parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
+        NEXUS_Platform_GetStreamerInputBand(0, &parserBandSettings.sourceTypeSettings.inputBand);
+        parserBandSettings.transportType = NEXUS_TransportType_eTs;
+        rc = NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
+        BDBG_ASSERT(!rc);
     }
     else {
-        parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
-        parserBandSettings.sourceTypeSettings.inputBand = userParams.param1;  /* Platform initializes this to input band */
-    }
-    parserBandSettings.transportType = NEXUS_TransportType_eTs;
-    rc = NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
-    BDBG_ASSERT(!rc);
+        NEXUS_Frontend_GetDefaultQamSettings(&qamSettings);
+        qamSettings.frequency = freq * 1000000;
+        qamSettings.mode = NEXUS_FrontendQamMode_e64;
+        qamSettings.symbolRate = 5056900;
+        NEXUS_Frontend_GetUserParameters(frontend, &userParams);
+        NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
+        if (userParams.isMtsif) {
+            parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eMtsif;
+            parserBandSettings.sourceTypeSettings.mtsif = NEXUS_Frontend_GetConnector(frontend); /* NEXUS_Frontend_TuneXyz() will connect this frontend to this parser band */
+        }
+        else {
+            parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
+            parserBandSettings.sourceTypeSettings.inputBand = userParams.param1;  /* Platform initializes this to input band */
+        }
+        parserBandSettings.transportType = NEXUS_TransportType_eTs;
+        rc = NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
+        BDBG_ASSERT(!rc);
 
-    rc = NEXUS_Frontend_TuneQam(frontend, &qamSettings);
-    BDBG_ASSERT(!rc);
-            
+        rc = NEXUS_Frontend_TuneQam(frontend, &qamSettings);
+        BDBG_ASSERT(!rc);
+    }
+
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
     rc = NxClient_Connect(&connectSettings, &connectId);
@@ -125,6 +131,12 @@ int main(void)
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
     videoProgram.settings.pidChannel = NEXUS_PidChannel_Open(parserBand, VIDEO_PID, NULL);
     videoProgram.settings.codec = VIDEO_CODEC;
+
+    stcChannel = NEXUS_SimpleStcChannel_Create(NULL);
+    NEXUS_SimpleStcChannel_GetSettings(stcChannel, &stcSettings);
+    stcSettings.mode = NEXUS_StcChannelMode_ePcr;
+    stcSettings.modeSettings.pcr.pidChannel = videoProgram.settings.pidChannel;
+    NEXUS_SimpleStcChannel_SetSettings(stcChannel, &stcSettings);
 
     if (videoProgram.settings.pidChannel) {
         NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);

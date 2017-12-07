@@ -135,7 +135,13 @@ void BPXL_Plane_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Format
 }
 
 /***************************************************************************/
-void BPXL_Plane_Uif_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Format format, BCHP_Handle hChip)
+BERR_Code BPXL_Plane_Uif_Init(
+        BPXL_Plane *plane,
+        size_t width,
+        size_t height,
+        unsigned mipLevel,
+        BPXL_Format format,
+        BCHP_Handle hChip)
 {
     BCHP_MemoryInfo stMemInfo;
     BPXL_Uif_Memory_Info stUifMemInfo;
@@ -143,6 +149,13 @@ void BPXL_Plane_Uif_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Fo
     uint32_t ulBank=4;
 
     BDBG_ASSERT(format ==BPXL_eUIF_R8_G8_B8_A8);
+
+    if((width < BPXL_UIF_MINSURFACE) ||(height < BPXL_UIF_MINSURFACE))
+         return BERR_TRACE(BERR_INVALID_PARAMETER);
+
+    /* Check the number of miplevels is valid for the base image size */
+    if ((width >> mipLevel) == 0 || (height >> mipLevel) == 0)
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
 
     BCHP_GetMemoryInfo(hChip, &stMemInfo);
 
@@ -174,7 +187,7 @@ void BPXL_Plane_Uif_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Fo
 
     stUifSurface.ulWidth = width;
     stUifSurface.ulHeight = height;
-    stUifSurface.ulMipLevel = plane->ulMipLevel;
+    stUifSurface.ulMipLevel = mipLevel;
     BPXL_Uif_SurfaceCfg(&stUifMemInfo, &stUifSurface);
 
     BKNI_Memset(plane, 0, sizeof(*plane));
@@ -184,7 +197,8 @@ void BPXL_Plane_Uif_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Fo
     plane->ulAlignment = stUifSurface.ulAlign;
     plane->ulBufSize = stUifSurface.ulSize;
     plane->eFormat = format;
-    plane->ulMipLevel = stUifSurface.ulMipLevel;
+    plane->ulMipLevel = mipLevel;
+    return BERR_SUCCESS;
 }
 
 

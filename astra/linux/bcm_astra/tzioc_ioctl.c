@@ -371,7 +371,7 @@ static int tzioc_ioctl_call_smc(struct file *file, void *arg)
         return -EINVAL;
     }
 
-    _tzioc_call_smc(callSmcData.mode);
+    _tzioc_call_smc(callSmcData.callnum);
 
     callSmcData.retVal = 0;
 

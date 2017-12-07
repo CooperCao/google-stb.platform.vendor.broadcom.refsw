@@ -44,6 +44,11 @@
 #define RAAGA_SCM_SUPPORT 1
 
 /**************************************************************************
+        Maximum heaps from which raaga memory is allocated
+***************************************************************************/
+#define BDSP_RAAGA_MAX_NUM_HEAPS 8
+
+/**************************************************************************
         Inter Task Feed back buffer path
 ***************************************************************************/
 #define BDSP_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE    (uint32_t)(128*4)
@@ -93,7 +98,6 @@ See Also:
 ****************************************************************************/
 typedef enum BDSP_SystemImgId
 {
-#if (BCHP_CHIP != 7278)
     BDSP_SystemImgId_eSystemCode,
     BDSP_SystemImgId_eSystemRdbvars,
     BDSP_SystemImgId_eSyslibCode,
@@ -106,11 +110,6 @@ typedef enum BDSP_SystemImgId
     BDSP_SystemImgId_eVideo_Encode_Task_Code,
     BDSP_SystemImgId_eScm1_Digest,
     BDSP_SystemImgId_eScm2_Digest,
-#else
-    BDSP_SystemImgId_eSystemKernelCode,
-    BDSP_SystemImgId_eSystemRdbvars,
-    BDSP_SystemImgId_eSystemRomfsCode,
-#endif
     BDSP_SystemImgId_eMax
 } BDSP_SystemImgId;
 
@@ -546,14 +545,9 @@ See Also:
 **********************************************************************/
 typedef struct BDSP_VOM_Table_Entry
 {
-#if (BCHP_CHIP == 7278)
-    dramaddr_t          uiDramAddr;
-    uint32_t            ui32AlgoSize;
-#else
     uint32_t            ui32PageStart;
     uint32_t            ui32PageEnd;
     uint32_t            ui32DramAddr;
-#endif
 }BDSP_VOM_Table_Entry;
 
 /*********************************************************************
@@ -1254,6 +1248,15 @@ typedef struct  BDSP_SCM_P_sTASK_CONFIG
     BDSP_AF_P_sNODE_CONFIG          sNodeConfig[BDSP_AF_P_SCM_MAX_NODES];
 
 }BDSP_SCM_P_sTASK_CONFIG;
+
+typedef struct BDSP_Raaga_P_SCM_CmdPayload
+{
+    dramaddr_t  ui32DramCmdBufAddress;
+    uint32_t    ui32DramCmdBufSize;
+    dramaddr_t  ui32DramRespBufAddress;
+    uint32_t    ui32DramRespBufSize;
+
+}BDSP_Raaga_P_SCM_CmdPayload;
 
 
 #endif

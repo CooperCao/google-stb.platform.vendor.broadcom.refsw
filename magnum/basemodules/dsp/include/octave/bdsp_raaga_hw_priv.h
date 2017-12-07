@@ -42,6 +42,10 @@
 #include "bdsp_raaga_priv_include.h"
 
 #define BDSP_RAAGA_DEFAULT_WATCHDOG_COUNT   (0x3FFFFFFF)
+/* We should program only upper 12 bit in 40-bit addressing
+ * In 7278 this is 40 bit addressing and hence (40-12 = 28)
+ * For a given chip, make sure to set the value correct */
+#define SCB_REG_ADDR_WRITE_SHIFT_VALUE 28
 
 BERR_Code BDSP_Raaga_P_ResetHardware_isr(
 	BDSP_Raaga *pRaaga,
@@ -70,7 +74,17 @@ void BDSP_Raaga_P_DirectRaagaUartToPort(
     BREG_Handle regHandle
 );
 void BDSP_Raaga_P_EnableAllPwrResource(
-		void *pDeviceHandle,
-		bool bEnable
+	void *pDeviceHandle,
+	bool bEnable
+);
+BERR_Code BDSP_Raaga_P_PowerStandby(
+	void 					*pDeviceHandle,
+	BDSP_StandbySettings    *pSettings
+);
+BERR_Code BDSP_Raaga_P_PowerResume(
+	void *pDeviceHandle
+);
+BERR_Code BDSP_Raaga_P_Initialize(
+	void  *pDeviceHandle
 );
 #endif /*BDSP_RAAGA_HW_PRIV_H_*/

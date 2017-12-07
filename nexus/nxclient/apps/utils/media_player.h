@@ -49,11 +49,15 @@ typedef unsigned NEXUS_SimpleStcChannelSyncMode;
 typedef unsigned NEXUS_PlaybackLoopMode;
 typedef unsigned NEXUS_PlaybackSettings;
 typedef unsigned NEXUS_PlaybackStatus;
-typedef unsigned NEXUS_AudioDecoderDolbyDrcMode;
 typedef unsigned NEXUS_SimpleStcChannelSyncMode;
 typedef void *NEXUS_SimpleVideoDecoderHandle;
+typedef void *NEXUS_SimpleAudioDecoderHandle;
 typedef unsigned NEXUS_VideoDecoderScanMode;
+typedef unsigned NEXUS_AudioDecoderMixingMode;
+typedef unsigned NEXUS_VideoDecoderCrcMode;
+typedef unsigned NEXUS_PlaybackTrickModeSettings;
 #endif
+#include "nexus_stc_channel_types.h"
 #include "dvr_crypto.h"
 #include "nxclient.h"
 #if B_REFSW_TR69C_SUPPORT
@@ -151,9 +155,12 @@ typedef struct media_player_start_settings
     struct {
         unsigned pid; /* override probe */
         NEXUS_VideoCodec codec; /* override probe */
-        unsigned fifoSize;
+        unsigned fifoSize, itbFifoSize;
         bool secure;
         NEXUS_VideoDecoderScanMode scanMode;
+        unsigned colorDepth;
+        NEXUS_VideoDecoderTimestampMode timestampMode;
+        NEXUS_VideoFrameRate frameRate;
     } video;
     NEXUS_TransportType transportType; /* override probe */
     struct {

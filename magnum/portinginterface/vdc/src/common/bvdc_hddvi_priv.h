@@ -299,6 +299,10 @@ void BVDC_P_HdDvi_GetInputStatus
 
 void BVDC_P_HdDvi_Bringup_isr
     ( BVDC_P_HdDvi_Handle              hHdDvi );
+
+void BVDC_P_HdDvi_DisableTriggers_isr
+    ( BVDC_P_HdDvi_Handle              hHdDvi );
+
 #else
 #define BVDC_P_HdDvi_Create(phHdDvi, eHdDviId, hReg, hSource)    BDBG_ASSERT(0)
 #define BVDC_P_HdDvi_Destroy(hHdDvi)                             BDBG_ASSERT(0)
@@ -306,6 +310,7 @@ void BVDC_P_HdDvi_Bringup_isr
 #define BVDC_P_HdDvi_GetStatus_isr(hHdDvi, pbVideoDetected)      BDBG_ASSERT(0)
 #define BVDC_P_HdDvi_GetInputStatus(pHdDvi, pInputStatus)        BDBG_ASSERT(0)
 #define BVDC_P_HdDvi_Bringup_isr(hHdDvi)                         BDBG_ASSERT(0)
+#define BVDC_P_HdDvi_DisableTriggers_isr(hHdDvi)                 BDBG_ASSERT(0)
 #endif
 
 #ifdef __cplusplus

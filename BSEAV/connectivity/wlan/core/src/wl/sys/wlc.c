@@ -712,6 +712,7 @@ enum wlc_iov {
 	IOV_PAY_DECODE_WAR = 118,
 	IOV_SLAVE_RADAR = 119,
 	IOV_PKTALLOCED = 120,
+	IOV_INTF_ENABLE_BRIDGE = 121,
 	IOV_LAST		/* In case of a need to check max ID number */
 };
 
@@ -1133,6 +1134,9 @@ static const bcm_iovar_t wlc_iovars[] = {
 	0, 0, IOVT_BOOL, 0
 	},
 #endif /* SLAVE_RADAR */
+	{"intf_enable_bridge", IOV_INTF_ENABLE_BRIDGE,
+	0, 0, IOVT_BOOL, 0
+	},
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -9755,6 +9759,8 @@ wlc_bandlock(wlc_info_t *wlc, int val)
 		wlc->bandlocked = TRUE;
 		break;
 	}
+	/* every switch needs a default. Intentional error check */
+	/* coverity[dead_error_begin] */
 	default:
 		ASSERT(0);
 		break;
@@ -10981,7 +10987,7 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 			bcmerror = BCME_EPERM;
 #endif /* EXT_STA */
 
-		if (bcmerror || (AP_ENAB(wlc->pub) == bool_val))
+		if (bcmerror)
 			break;
 
 		if (wasup) {
@@ -11244,9 +11250,10 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		/* count of number of bands, followed by each band type */
 		*pval++ = NBANDS(wlc);
 		*pval++ = wlc->band->bandtype;
-		if (NBANDS(wlc) > 1)
+		if (NBANDS(wlc) > 1) {
 			*pval++ = wlc->bandstate[OTHERBANDUNIT(wlc)]->bandtype;
-			break;
+		}
+		break;
 
 	case WLC_GET_BAND:
 		*pval = wlc->bandlocked ? wlc->band->bandtype : WLC_BAND_AUTO;
@@ -13976,6 +13983,10 @@ wlc_doiovar(void *hdl, uint32 actionid,
 		*ret_int_ptr = (int)wlc->pub->cmn->_slvradar;
 		break;
 #endif /* SLAVE_RADAR */
+
+	case IOV_SVAL(IOV_INTF_ENABLE_BRIDGE):
+		wl_enable_bridge_if(wlc->wl, wlcif, bool_val);
+		break;
 
 	default:
 		err = BCME_UNSUPPORTED;

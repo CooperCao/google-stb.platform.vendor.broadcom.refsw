@@ -408,15 +408,17 @@ CConfig::CConfig() :
     _pResources(NULL)
 {
     const char * s = NULL;
+
     _name = "BCM_BOARD_STR";
     _chipList.clear();
     _features.clear();
 
     s = GET_STR(&_cfg, CONFIG_FILENAME);
     /* update configuration settings from file */
-    if(s != NULL)
+    if (s != NULL)
+    {
         _cfg.read(s);
-
+    }
 }
 
 CConfig::~CConfig()

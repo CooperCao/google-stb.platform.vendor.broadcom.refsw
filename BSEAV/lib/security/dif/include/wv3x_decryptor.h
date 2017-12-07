@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #ifndef _WV_DECRYPTOR_H_
 #define _WV_DECRYPTOR_H_
@@ -133,6 +132,8 @@ public:
     virtual void onDirectIndividualizationRequest(const std::string& session_id, const std::string& request) OVERRIDE;
 
     virtual void onMessage(const std::string& session_id, Cdm::MessageType message_type, const std::string& message) OVERRIDE;
+
+    virtual bool Load(std::string license) OVERRIDE;
 
     void SetKeyId(std::string keyId) { m_keyId.assign(keyId); }
 

@@ -57,8 +57,9 @@ static inline uint32_t backend_uniform_get_extra(uint32_t u) {
 
 /* PARAM 1 */
 
-#define GLSL_TEXPARAM1_GATHER_COMP_SHIFT 6
+#define GLSL_TEXPARAM1_GATHER_COMP_SHIFT 7
 #define GLSL_TEXPARAM1_GATHER_COMP_MASK  (0x3 << GLSL_TEXPARAM1_GATHER_COMP_SHIFT)
+#define GLSL_TEXPARAM1_NO_ANISO         (1<<6)
 #define GLSL_TEXPARAM1_FETCH            (1<<5)
 #define GLSL_TEXPARAM1_GATHER           (1<<4)
 #define GLSL_TEXPARAM1_WORD_READ_MASK    0xF

@@ -59,6 +59,12 @@
 #include <pthread.h>
 #include <dirent.h>
 
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <ifaddrs.h>
+
+
 #include "bmemperf.h"
 #include "bmemperf_cgi.h"
 #include "bmemperf_info.h"
@@ -2878,7 +2884,7 @@ void printflog(const char * szFormat, ... )
     va_end(arg_ptr);
 
     if ( strlen( sLogFile ) ) {
-        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND) );
+        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND), 0777 );
         if ( fd ) {
             write ( fd, str, strlen(str) );
             close ( fd );
@@ -2919,7 +2925,7 @@ void printffile(const char *sLogFile, const char * szFormat, ... )
     va_end(arg_ptr);
 
     if ( strlen( sLogFile ) ) {
-        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND) );
+        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND), 0777 );
         if ( fd ) {
             write ( fd, str, strlen(str) );
             close ( fd );
@@ -3629,34 +3635,6 @@ void Bmemperf_ChangeCpuState(
     system( line );
 }
 
-#ifdef BMEMCONFIG_BOXMODE_SUPPORTED
-int Bmemperf_GetProductIdMemc(
-    void
-    )
-{
-    unsigned int idx     = 0;
-    int          numMemc = 1;
-    char         *lProductIdStr = getProductIdStr();
-
-    /* loop through global array to find the specified boxmode */
-    for (idx = 0; idx < ( sizeof( g_bmemconfig_box_info )/sizeof( g_bmemconfig_box_info[0] )); idx++)
-    {
-        PRINTF( "~DEBUG~%s: g_bmemconfig_box_info[%d].strProductId is %s ... comparing with %s~\n", __FUNCTION__, idx,
-                g_bmemconfig_box_info[idx].strProductId, lProductIdStr );
-        /* some 7439 IDs have 7252s (boxmode 24) and some have 7252S (boxmode 2, 3, 4, 9, 27) */
-        if ( lProductIdStr && strcasecmp ( g_bmemconfig_box_info[idx].strProductId, lProductIdStr ) == 0 )
-        {
-            numMemc = g_bmemconfig_box_info[idx].numMemc;
-            PRINTF( "~DEBUG~%s: match at boxmode %u; numMemc %u ~\n", __FUNCTION__, idx, numMemc );
-            break;
-        }
-    }
-
-    /* we did not find the specified product id */
-    return( numMemc );
-}  /* getBoxModeMemc */
-#endif /* BMEMCONFIG_BOXMODE_SUPPORTED*/
-
 /**
  *  Function: This function will format an integer to output an indicator for kilo, mega, or giga.
  **/
@@ -3686,3 +3664,104 @@ char *formatul(
 
     return( outString );
 }                                                          /* formatul */
+
+unsigned long int delta_time_microseconds(
+    unsigned long int seconds,
+    unsigned long int microseconds
+    )
+{
+    struct timeval         tv2;
+    unsigned long long int microseconds1      = 0;
+    unsigned long long int microseconds2      = 0;
+    unsigned long int      microseconds_delta = 0;
+
+    memset( &tv2, 0, sizeof( tv2 ));
+
+    gettimeofday( &tv2, NULL );
+    microseconds1      = ( seconds * 1000000LL );       /* q-scale shift the seconds left to allow for addition of microseconds */
+    microseconds1     += microseconds;
+    microseconds2      = ( tv2.tv_sec * 1000000LL );       /* q-scale shift the seconds left to allow for addition of microseconds */
+    microseconds2     += tv2.tv_usec;                      /* add in microseconds */
+    microseconds_delta = ( microseconds2 - microseconds1 );
+    /*printf( "now: %lu.%06lu ... input: %lu.%06lu ... elapsed time %lu milliseconds\n", tv2.tv_sec, tv2.tv_usec, seconds, microseconds, microseconds_delta/1000 );*/
+
+    return( microseconds_delta );
+}
+
+/**
+ *  Function: This function will determine the IP address of the specified interface name.
+ *            If the address is found, it will be copied into the specified user buffer.
+ **/
+int get_my_ip_addr_from_ifname( const char *ifname, char *ipaddr, int ipaddr_len )
+{
+    int fd = 0;
+    struct ifreq ifr;
+
+    if ( ifname && strlen(ifname) )
+    {
+        fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+        if ( fd )
+        {
+            ifr.ifr_addr.sa_family = AF_INET; /* I want to get an IPv4 IP address */
+
+            strncpy(ifr.ifr_name, ifname, IFNAMSIZ-1);
+
+            ioctl(fd, SIOCGIFADDR, &ifr);
+
+            close(fd);
+
+            if ( ipaddr && ipaddr_len > strlen( inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr)) )
+            {
+                strncpy( ipaddr, inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr), ipaddr_len-1 );
+            }
+        }
+    }
+
+    return 0;
+}
+
+/**
+ *  Function: This function will find the IP4 addresses of all network interfaces.
+ **/
+int get_my_ip4_addr_all( unsigned long int list[], int list_max )
+{
+    int             ifa_count = 0;
+    struct ifaddrs *ifaddr, *ifa;
+    int             s, n;
+    char            host[NI_MAXHOST];
+
+    if (getifaddrs( &ifaddr ) == -1)
+    {
+        fprintf( stderr, "getifaddrs() failed\n" );
+        return -1;
+    }
+
+    /* loop through all of the interfaces found */
+    for (ifa = ifaddr, n = 0; ifa != NULL; ifa = ifa->ifa_next, n++)
+    {
+        if (ifa->ifa_addr == NULL) continue;
+
+        if (( ifa->ifa_addr->sa_family == AF_INET ) || ( ifa->ifa_addr->sa_family == AF_INET6 ))
+        {
+            s = getnameinfo( ifa->ifa_addr, ( ifa->ifa_addr->sa_family == AF_INET ) ? sizeof( struct sockaddr_in ) : sizeof( struct sockaddr_in6 ),
+                    host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST );
+            if (s != 0)
+            {
+                fprintf( stderr, "getnameinfo() failed: %s\n", gai_strerror( s ));
+                return -1;
+            }
+
+            if ( strcmp( host, "127.0.0.1" ) == 0 ) printf( "%-6s <%s> %lX\n", ifa->ifa_name, host, (unsigned long int) inet_addr(host) );
+            if ( ifa_count < list_max && inet_addr(host) != 0x100007F ) /* ignore local addr 127.0.0.1 */
+            {
+                list[ifa_count] = inet_addr(host);
+
+                ifa_count++;
+            }
+        }
+    }
+
+    freeifaddrs( ifaddr );
+    return 0;
+}

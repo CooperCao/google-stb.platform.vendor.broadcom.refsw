@@ -5,7 +5,7 @@
 
 #include "libs/core/v3d/v3d_addr.h"
 #include "libs/util/log/log.h"
-#include "vcos_types.h"
+#include "libs/util/common.h"
 #include <stdbool.h>
 
 /* gmem_handle_t is a platform-specific opaque type.

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -265,6 +265,38 @@ typedef struct NEXUS_HdmiOutputMonitorRange
     uint8_t secondaryTiming;  /* Secondary Timing Formula (if supported) */
     uint8_t secondaryTimingParameters[7];  /* Secondary Timing Formula Params */
 } NEXUS_HdmiOutputMonitorRange;
+
+
+
+/****
+Summary:
+Data structure containing Audio Data Block info from a HDMI Rx EDID
+Audio Data Block contains 1 or more descriptors corresponding to supported Audio Codecs
+See CEA-861 for description of Audio Data Block
+******/
+typedef struct NEXUS_HdmiOutputEdidRxAudiodb
+{
+    bool valid; /* Valid Audio Capability Data Block was found */
+    struct
+    {
+        bool supported;
+        unsigned audioChannels;  /* max audio channels */
+        bool sampleRate[NEXUS_AudioSampleRate_eMax];  /* supported sample rates */
+        struct
+        {
+            struct
+            {
+                bool bitDepth[NEXUS_AudioBitDepth_eMax]; /* supported audio bit depths */
+            } pcm;
+            struct
+            {
+                unsigned bitRate;  /* max bit rate kHz */
+                unsigned formatDependentValue; /* value indicating additional info
+                                                  for certain audio formats */
+            } compressed;
+        } dataType;
+    } audioFormat[NEXUS_AudioCodec_eMax];
+} NEXUS_HdmiOutputEdidRxAudiodb;
 
 
 /****
@@ -550,12 +582,15 @@ typedef struct NEXUS_HdmiOutputEdidData
     /*    EDID BLOCK 1    */
     /**********************/
 
+    /* Audio Data Block */
+    NEXUS_HdmiOutputEdidRxAudiodb audiodb;
+
     /* Video Capability data block - optional */
     /* See CEA-861 for Video Capability data block details */
     NEXUS_HdmiOutputEdidRxVideoCapabilitydb videoCapabilitydb;
 
     /* VSDB (Vendor Specific data block)  - required for HDMI */
-     NEXUS_HdmiOutputEdidRxHdmiVsdb hdmiVsdb;
+    NEXUS_HdmiOutputEdidRxHdmiVsdb hdmiVsdb;
 
     /* HF-VSDB (HDMI Forum Vendor Specific data block) - required for certain HDMI 2.0 features */
     NEXUS_HdmiOutputEdidRxHdmiForumVsdb hdmiForumVsdb;

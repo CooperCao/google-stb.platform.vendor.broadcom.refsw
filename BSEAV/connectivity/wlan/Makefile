@@ -104,7 +104,8 @@ ifeq ($(B_REFSW_VERBOSE),)
                                -e "^Making .*\.depend$$"                            \
                                -e "^test -r .* .$$"                                 \
                                -e "^  CC \[M\] .*\.o$$"                             \
-                               -e "^\# Strip off debugging symbols" |               \
+                               -e "^\# Strip off debugging symbols"                 \
+                               -e "error:" -e "In function"         |               \
         sed -u                                                                      \
                 -e  "s/^Making .\(.*\)\.depend$$/[Depends... \1 (WLAN)]/ "          \
                 -e  "s/^test -r \(.*\) ||.*$$/[Symlinking... \1 (WLAN)]/ "          \
@@ -437,7 +438,14 @@ install:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST} 
 	@echo "Done."
 	$(B_TRACE_RECIPE_END)
 
-driver:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST}
+# The "driver" intended for Coverity just builds driver related files
+driver: build_wldriver build_platdriver
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "Done."
+	$(B_TRACE_RECIPE_END)
+
+# The "utils" intended for Coverity just builds app/util related files
+utils:  build_wlexe  ${B_WLAN_UTILS_INSTALL_PATH_LIST}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Done."
 	$(B_TRACE_RECIPE_END)

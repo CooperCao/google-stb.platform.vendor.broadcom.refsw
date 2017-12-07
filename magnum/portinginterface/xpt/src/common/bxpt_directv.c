@@ -254,6 +254,7 @@ BERR_Code BXPT_Mesg_StartDirecTvMessageCaptureWithOptions(
     {
         uint32_t Reg, RegAddr;
         unsigned int GroupSel, OutputMode, GenOffset, SpecialSel, SpecialType;
+        BXPT_PidChannelDestination dest;
 
         ExitCode = BXPT_P_GetGroupSelect( Settings->Bank, &GroupSel );
         if( ExitCode != BERR_SUCCESS )
@@ -348,18 +349,21 @@ BERR_Code BXPT_Mesg_StartDirecTvMessageCaptureWithOptions(
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
 
         /* Enable data from the PID channel to the mesg block. */
-        BXPT_P_SetPidChannelDestination( hXpt, PidChannelNum, 6, true );
+        dest = BXPT_PidChannelDestination_eMessageGPipe;
+        BXPT_P_SetPidChannelDestination( hXpt, PidChannelNum, dest, true );
+        hXpt->mesgBufferDestination[MesgBufferNum] = dest;
 
-        /* Set this PID channel as allocated, in case they forced the channel assignment. */
-        hXpt->PidChannelTable[ PidChannelNum ].IsAllocated = true;
+        if (hXpt->PidChannelTable[ PidChannelNum ].destRefCnt[dest] == 1) {
+            /* Set this PID channel as allocated, in case they forced the channel assignment. */
+            hXpt->PidChannelTable[ PidChannelNum ].IsAllocated = true;
 
-        /* Enable data from the PID channel to the mesg block. */
-        if(hXpt->PidChannelTable[ PidChannelNum ].MessageBuffercount == 0)
-        {
+            /* Enable data from the PID channel to the mesg block. */
             /* Configure the PID channel. */
             ExitCode = BXPT_ConfigurePidChannel( hXpt, PidChannelNum, Settings->Pid, Settings->Band );
-            if( ExitCode != BERR_SUCCESS )
+            if( ExitCode != BERR_SUCCESS ) {
+                BXPT_P_SetPidChannelDestination( hXpt, PidChannelNum, dest, false );
                 goto Done;
+            }
         }
 
         ConfigPid2BufferMap( hXpt, PidChannelNum, MesgBufferNum, true);
@@ -368,13 +372,15 @@ BERR_Code BXPT_Mesg_StartDirecTvMessageCaptureWithOptions(
 #if BXPT_MESG_DONT_AUTO_ENABLE_PID_CHANNEL
         /* do nothing. must be explicitly enabled. */
 #else
-        if(hXpt->PidChannelTable[ PidChannelNum ].MessageBuffercount == 0)
+        if (hXpt->PidChannelTable[ PidChannelNum ].destRefCnt[dest] == 1)
         {
             ExitCode = BERR_TRACE( BXPT_EnablePidChannel( hXpt, PidChannelNum ) );
+            if (ExitCode != BERR_SUCCESS) {
+                BXPT_P_SetPidChannelDestination( hXpt, PidChannelNum, dest, false );
+                goto Done;
+            }
         }
 #endif
-
-        hXpt->PidChannelTable[ PidChannelNum ].MessageBuffercount++;
     }
     else
     {

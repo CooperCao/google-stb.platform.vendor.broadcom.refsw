@@ -623,10 +623,10 @@ static void destroyIoChecker(
 {
     BDBG_ENTER( destroyIoChecker );
     BDBG_ASSERT(hIoChecker);
-    BDBG_OBJECT_ASSERT( hIoChecker, BIP_IoChecker );
 
     if(hIoChecker)
     {
+        BDBG_OBJECT_ASSERT( hIoChecker, BIP_IoChecker );
         BDBG_MSG(("%s: Deleting hIoChecker = %p for fd = %d", BSTD_FUNCTION, (void *)hIoChecker, hIoChecker->fd));
 
         /* IoChecker element is already removed from the Factory list and */

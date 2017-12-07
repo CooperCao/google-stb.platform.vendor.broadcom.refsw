@@ -35,7 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 ***************************************************************************/
-
+#include "bdsp.h"
 #include "nexus_audio_module.h"
 #include "priv/nexus_audio_mux_output_priv.h"
 
@@ -211,9 +211,9 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
 
     mmaHeap = NEXUS_Heap_GetMmaHandle(heap);
 
-    handle->cdb.mmaBlock = BMMA_Alloc(mmaHeap, cdbLength, 8, NULL);
+    handle->cdb.mmaBlock = BMMA_Alloc(mmaHeap, cdbLength, BDSP_ADDRESS_ALIGN_CDB, NULL);
     if (!handle->cdb.mmaBlock) {BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err_cdb_alloc;}
-    handle->itb.mmaBlock = BMMA_Alloc(mmaHeap, itbLength, 8, NULL);
+    handle->itb.mmaBlock = BMMA_Alloc(mmaHeap, itbLength, BDSP_ADDRESS_ALIGN_ITB, NULL);
     if (!handle->itb.mmaBlock) {BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err_itb_alloc;}
 #endif
 

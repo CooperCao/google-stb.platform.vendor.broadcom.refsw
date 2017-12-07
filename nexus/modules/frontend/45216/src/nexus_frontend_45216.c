@@ -602,6 +602,15 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
         val &= ~0x000001FE;
         val |= 8<<1;
         e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+
+        addr = 0x692079c;
+        e = BHAB_ReadRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+        BDBG_MSG(("%08x: %08x", addr, val));
+        BDBG_MSG(("CH4 Old divider: %d", (val & 0x000001FE)>>1));
+        val &= ~0x000001FE;
+        val |= 22<<1;
+        e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+
     }
 
     for (i=0; i < 2; i++) {
@@ -1248,11 +1257,12 @@ static NEXUS_Error NEXUS_Frontend_P_Get45216RuntimeSettings(void *handle, NEXUS_
     NEXUS_Error rc = NEXUS_SUCCESS;
     BERR_Code e;
     NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
-    NEXUS_45216Device *p45216Device = pSatChannel->settings.pDevice;
+    NEXUS_45216Device *p45216Device;
     BSAT_ExternalBertSettings extBertSettings;
 
     BDBG_ASSERT(handle);
     BDBG_ASSERT(pSettings);
+    p45216Device = pSatChannel->settings.pDevice;
     BDBG_OBJECT_ASSERT(p45216Device, NEXUS_45216Device);
 
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
@@ -1325,13 +1335,14 @@ static NEXUS_Error NEXUS_Frontend_P_Set45216RuntimeSettings(void *handle, const 
 static NEXUS_Error NEXUS_Frontend_P_45216_GetSatelliteAgcStatus(void *handle, NEXUS_FrontendSatelliteAgcStatus *pStatus)
 {
     NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
-    NEXUS_45216Device *p45216Device = pSatChannel->settings.pDevice;
+    NEXUS_45216Device *p45216Device;
     BERR_Code rc = NEXUS_SUCCESS;
     BSAT_ChannelStatus satStatus;
     BERR_Code errCode;
 
     BDBG_ASSERT(NULL != pStatus);
-    BDBG_ASSERT(NULL != p45216Device);
+    p45216Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45216Device, NEXUS_45216Device);
 
     if (pSatChannel->satChip != B_SAT_CHIP) {
         return NEXUS_INVALID_PARAMETER;

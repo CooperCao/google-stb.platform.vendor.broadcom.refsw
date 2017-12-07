@@ -310,10 +310,13 @@ static BERR_Code BAST_g3_P_HpConfig_isr(BAST_ChannelHandle h)
       rcvr_lock_m_peak = 17;
 
       hpconfig |= 0x00020081; /* use_sw_modcod_type, set modcod=1, one_of_n_pn_mode */
-      if ((hChn->bTurboSpinv) && (hDev->sdsRevId < 0x68))
+      if (hDev->sdsRevId < 0x68)
       {
-         hpconfig |= 0x0000C000; /* spinv */
-         BAST_DEBUG_HP(BDBG_MSG(("setting hp spinv")));
+         hpconfig |= 0x8000;
+         if (hChn->bTurboSpinv)
+            hpconfig |= 0x4000;
+         else
+            hpconfig &= ~0x4000;
       }
 
       if (BAST_MODE_IS_TURBO_8PSK(hChn->actualMode))

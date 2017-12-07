@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -234,7 +234,7 @@ DRM_Prdy_http_engine_get_header(DRM_Prdy_http_engine* http, const char* name )
          http_hdr != NULL;
          http_hdr = BLST_S_NEXT(http_hdr, link))
     {
-        /*printf("%s:%d: checking %s vs %s\n",__FUNCTION__,__LINE__,http_hdr->hdr_name,name);*/
+        /*printf("%s:%d: checking %s vs %s\n",BSTD_FUNCTION,__LINE__,http_hdr->hdr_name,name);*/
         if (strcasecmp(http_hdr->hdr_name, name) == 0)
         {
             value = http_hdr->hdr_value;
@@ -636,7 +636,7 @@ DRM_Prdy_http_client_connect(DRM_Prdy_http_engine* http, const char *host, uint3
     memset(portString, 0, sizeof(portString));  /* getaddrinfo() requires port # in the string form */
     snprintf(portString, sizeof(portString)-1, "%d", port);
     if (getaddrinfo(host, portString, &hints, &addrInfo) != 0) {
-        BDBG_ERR(("%s: ERROR: getaddrinfo failed for server:port: %s:%d, errno %d", __FUNCTION__, host, port, errno));
+        BDBG_ERR(("%s: ERROR: getaddrinfo failed for server:port: %s:%d, errno %d", BSTD_FUNCTION, host, port, errno));
         return (-1);
     }
 
@@ -716,7 +716,7 @@ DRM_Prdy_http_client_read_responsehdr(DRM_Prdy_http_engine* http)
     if((find - line) < (int32_t)sizeof(response)) {
         strncpy(response, line, find - line);
         http->_responseCode = atoi(response);;
-        /*printf("%s %d - http repsonse code %d. \n",__FUNCTION__,__LINE__,http->_responseCode);*/
+        /*printf("%s %d - http repsonse code %d. \n",BSTD_FUNCTION,__LINE__,http->_responseCode);*/
     }
 
     return DRM_Prdy_http_engine_read_headers(http);
@@ -748,7 +748,7 @@ DRM_Prdy_http_get_petition(DRM_Prdy_http_engine* http, char *urlstr)
 
     if (DRM_Prdy_http_engine_internal_write(http, buf, len) == -1)
     {
-        BDBG_ERR(("%s:%d - Couldn't write headers internal", __FUNCTION__,__LINE__));
+        BDBG_ERR(("%s:%d - Couldn't write headers internal", BSTD_FUNCTION,__LINE__));
         return -1;
     }
 
@@ -785,7 +785,7 @@ int32_t DRM_Prdy_http_client_get_petition (
 
     /* initialize http engine and post */
     DRM_Prdy_http_engine_init(&http);
-    /* printf("%s - http engine init success. \n",__FUNCTION__)*/
+    /* printf("%s - http engine init success. \n",BSTD_FUNCTION)*/
     if ((post_ret = DRM_Prdy_http_get_petition(&http, petition_url)) != 0) {
         BDBG_WRN(("DRM_Prdy_http_license_get failed on POST"));
         return (post_ret);
@@ -797,7 +797,7 @@ int32_t DRM_Prdy_http_client_get_petition (
    {
      const char* clstr;
 
-     /*printf("%s:%d - the response from the petition server is redirect\n",__FUNCTION__,__LINE__);*/
+     /*printf("%s:%d - the response from the petition server is redirect\n",BSTD_FUNCTION,__LINE__);*/
 
      clstr = DRM_Prdy_http_engine_get_header(&http,HDR_TAG_LOCATION_VALUE );
 
@@ -815,7 +815,7 @@ int32_t DRM_Prdy_http_client_get_petition (
 
        if( len <= 0 )
        {
-           BDBG_ERR(("%s:%d - The response from the petition is empty", __FUNCTION__,__LINE__));
+           BDBG_ERR(("%s:%d - The response from the petition is empty", BSTD_FUNCTION,__LINE__));
            return -1;
        }
 
@@ -825,7 +825,7 @@ int32_t DRM_Prdy_http_client_get_petition (
    }
    else
    {
-     BDBG_ERR(("%s:%d - Response from the petition is unknown - %d\n",__FUNCTION__,__LINE__,*petition_response));
+     BDBG_ERR(("%s:%d - Response from the petition is unknown - %d\n",BSTD_FUNCTION,__LINE__,*petition_response));
      return -1;
    }
 
@@ -861,13 +861,13 @@ DRM_Prdy_http_client_time_challenge_post  (char* url, char* chall, uint8_t non_q
     len += sprintf(buf, DRM_POST_PREFIX, app_sec, non_quiet);
     #endif
     len += sprintf((char *)*resp + len, "%s", chall);
-    /* printf("%s - %d get the len of the challenge %d\n",__FUNCTION__,__LINE__,len);*/
+    /* printf("%s - %d get the len of the challenge %d\n",BSTD_FUNCTION,__LINE__,len);*/
 
     /* initialize http engine and post */
     DRM_Prdy_http_engine_init(&http);
-    /* printf("%s - http engine init success. \n",__FUNCTION__);*/
+    /* printf("%s - http engine init success. \n",BSTD_FUNCTION);*/
     if ((post_ret = DRM_Prdy_http_client_post(&http, url)) != 0) {
-        BDBG_ERR(("%s:%d - failed on POST request",__FUNCTION__,__LINE__));
+        BDBG_ERR(("%s:%d - failed on POST request",BSTD_FUNCTION,__LINE__));
         return (post_ret);
     }
 
@@ -891,7 +891,7 @@ DRM_Prdy_http_client_time_challenge_post  (char* url, char* chall, uint8_t non_q
 
     /* look for a license */
     bzero(*resp, resp_len); len = DRM_Prdy_http_engine_read(&http, (char *)*resp, resp_len);
-    /* printf("%s - get the len of the response message %d\n",__FUNCTION__,resp_len); */
+    /* printf("%s - get the len of the response message %d\n",BSTD_FUNCTION,resp_len); */
     #if 0
     BDBG_MSG(("HTTP :: resp_len <%d>, buf<%s>", resp_len, buf));
     #endif
@@ -962,7 +962,7 @@ DRM_Prdy_http_client_license_post_default (char* url, char* chall, uint8_t non_q
         BDBG_WRN(("DRM_Prdy_http_license_post failed on POST"));
         return (post_ret);
     }
-    /*printf("%s %d - DRM_Prdy_http_client_post success. \n",__FUNCTION__,__LINE__);*/
+    /*printf("%s %d - DRM_Prdy_http_client_post success. \n",BSTD_FUNCTION,__LINE__);*/
     /* set headers, read response */
     DRM_Prdy_http_engine_set_headers(&http, HDR_TAG_CONTENT_TYPE, HDR_VALUE_URLENCODED_CT);
     DRM_Prdy_http_engine_set_header(&http,  HDR_TAG_CONTENT_LENGTH, len);
@@ -1051,16 +1051,16 @@ DRM_Prdy_http_client_license_post_soap (char* url, char* chall, uint8_t non_quie
     len += sprintf(buf, DRM_POST_PREFIX, app_sec, non_quiet);
     #endif
     len += sprintf((char *)*resp + len, "%s", chall);
-   // printf("%s - %d get the len of the challenge %d\n",__FUNCTION__,__LINE__,len);
+   // printf("%s - %d get the len of the challenge %d\n",BSTD_FUNCTION,__LINE__,len);
 
     /* initialize http engine and post */
     DRM_Prdy_http_engine_init(&http);
-   // printf("%s - http engine init success. \n",__FUNCTION__);
+   // printf("%s - http engine init success. \n",BSTD_FUNCTION);
     if ((post_ret = DRM_Prdy_http_client_post(&http, url)) != 0) {
         BDBG_WRN(("DRM_Prdy_http_license_post failed on POST"));
         return (post_ret);
     }
-   // printf("%s - DRM_Prdy_http_client_post success. \n",__FUNCTION__);
+   // printf("%s - DRM_Prdy_http_client_post success. \n",BSTD_FUNCTION);
 
 
     /* set headers, read response */
@@ -1134,16 +1134,16 @@ DRM_Prdy_http_client_license_post_soap_url (char* url, char* chall, uint8_t non_
     len += sprintf(buf, DRM_POST_PREFIX, app_sec, non_quiet);
     #endif
     len += sprintf((char *)*resp + len, "%s", chall);
-   // printf("%s - %d get the len of the challenge %d\n",__FUNCTION__,__LINE__,len);
+   // printf("%s - %d get the len of the challenge %d\n",BSTD_FUNCTION,__LINE__,len);
 
     /* initialize http engine and post */
     DRM_Prdy_http_engine_init(&http);
-   // printf("%s - http engine init success. \n",__FUNCTION__);
+   // printf("%s - http engine init success. \n",BSTD_FUNCTION);
     if ((post_ret = DRM_Prdy_http_client_post(&http, url)) != 0) {
         BDBG_WRN(("DRM_Prdy_http_license_post failed on POST"));
         return (post_ret);
     }
-   // printf("%s - DRM_Prdy_http_client_post success. \n",__FUNCTION__);
+   // printf("%s - DRM_Prdy_http_client_post success. \n",BSTD_FUNCTION);
 
 
     /* set headers, read response */

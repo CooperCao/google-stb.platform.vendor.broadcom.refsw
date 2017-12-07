@@ -36,44 +36,25 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-# build environment
-TZ_DIR ?= ../..
-include $(TZ_DIR)/kernel/default.inc
+# build env
+TZ_TOP := ../..
+TZ_MOD := user/libtzioc
+TZ_LIB := libtzioc
 
-# platform and target
-PLATFORM ?= brcmstb
+include $(TZ_TOP)/build/build_env.mk
 
-# source files
-USER_LIB := libtzioc
-
+# build src
 SRC_DIRS := .
 INC_DIRS := .
-BASE_OBJ_DIR := $(B_REFSW_OBJ_ROOT)/user/libtzioc
-BIN_DIRS := $(BASE_OBJ_DIR)/bin
-LIB_DIR := $(BASE_OBJ_DIR)/lib
+BIN_DIRS := $(TZ_OBJ_DIR)
 
-SOURCES_ASM-$(CFG_ARM32_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a32.S))
-SOURCES_ASM-$(CFG_ARM64_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a64.S))
-OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM-y))
-DEPS        := $(patsubst %.S,%.d,$(SOURCES_ASM-y))
-
-SOURCES_C   := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.c)))
-OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
-DEPS        += $(patsubst %.c,%.d,$(SOURCES_C))
-
-SOURCES_CPP := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp)))
-OBJS        += $(patsubst %.cpp,%.o,$(SOURCES_CPP))
-DEPS        += $(patsubst %.cpp,%.d,$(SOURCES_CPP))
-
-# Create out of build (OOB) objects
-OOB_OBJS			:= $(patsubst %.o, $(BASE_OBJ_DIR)/bin/%.o,$(OBJS))
-OOB_DEPS			:= $(patsubst %.d, $(BASE_OBJ_DIR)/bin/%.d,$(DEPS))
+include $(TZ_TOP)/build/build_src.mk
 
 # build flags
 DEPENDFLAGS := -MD -MP
 
 INCLUDES    := $(addprefix -I,$(INC_DIRS))
-INCLUDES    += -I$(TZ_DIR)/kernel/api
+INCLUDES    += -I$(TZ_KERNEL_DIR)/api
 
 BASEFLAGS   := -O2 -g -fpic
 
@@ -97,44 +78,25 @@ CPPFLAGS    += -D_POSIX_SOURCE
 
 LDFLAGS     := -shared
 
-vpath %.S   $(SRC_DIRS)
-vpath %.c   $(SRC_DIRS)
-vpath %.cpp $(SRC_DIRS)
-
-define make-goal
-$1/%.o: %.c
-	$(TZ_ARMGNU)-gcc $(CFLAGS) -c $$< -o $$@
-$1/%.o: %.S
-	$(TZ_ARMGNU)-gcc $(ASFLAGS) -c $$< -o $$@
-$1/%.o: %.cpp
-	$(TZ_ARMGNU)-g++ $(CPPFLAGS) -c $$< -o $$@
-endef
-
 # build rules
-.PHONY: checkplatform checkdirs
+.PHONY: checkplatform checkdirs $(TZ_LIB)
 
-all: checkplatform checkdirs $(LIB_DIR)/$(USER_LIB).so
+all: $(TZ_LIB)
 
--include $(OOB_DEPS)
-
-kernel:
-	$(MAKE) -C $(TZ_KERNEL_DIR)
+$(TZ_LIB): checkplatform checkdirs $(TZ_OBJ_DIR)/$(TZ_LIB).so
 
 checkplatform:
-	@echo Building for PLATFORM=$(PLATFORM)...
+	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
 
-checkdirs: $(BIN_DIRS) $(LIB_DIR)
+checkdirs: $(BIN_DIRS)
 
 $(BIN_DIRS):
-	mkdir -p $@
+	@mkdir -p $@
 
-$(LIB_DIR):
-	mkdir -p $@
-
-$(LIB_DIR)/$(USER_LIB).so: $(OOB_OBJS)
-	$(TZ_ARMGNU)-g++ $(LDFLAGS) $(OOB_OBJS) -o $@
+$(TZ_OBJ_DIR)/$(TZ_LIB).so: $(OBJS)
+	$(TZ_ARMGNU)-g++ $(LDFLAGS) $(OBJS) -o $@
 
 clean:
-	$(RM) -r $(BIN_DIRS) $(LIB_DIR)
+	$(RM) -r $(TZ_OBJ_DIR)
 
-$(foreach bdir,$(BIN_DIRS),$(eval $(call make-goal,$(bdir))))
+include $(TZ_TOP)/build/build_rules.mk

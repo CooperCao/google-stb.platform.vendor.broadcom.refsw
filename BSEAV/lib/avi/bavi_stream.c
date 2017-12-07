@@ -1134,11 +1134,12 @@ static bool
 b_avi_stream_video_divx3(bavi_stream_t stream, batom_t data)
 {
 	bavi_demux_t demux;
-	bool key_frame = stream->frame_no==0;
+	bool key_frame;
 	batom_t atom;
 	bmedia_packet_header hdr;
 
     BDBG_OBJECT_ASSERT(stream, bavi_stream_t);
+    key_frame = stream->frame_no==0;
     demux = stream->demux;
     BDBG_OBJECT_ASSERT(demux, bavi_demux_t);
     BDBG_ASSERT(data);

@@ -92,7 +92,7 @@ static bool gl3_is_buffer_target(GLenum target)
    case GL_ATOMIC_COUNTER_BUFFER:
    case GL_SHADER_STORAGE_BUFFER:
    case GL_TEXTURE_BUFFER:
-      return KHRN_GLES31_DRIVER ? true : false;
+      return V3D_VER_AT_LEAST(3,3,0,0) ? true : false;
    default:
       return false;
    }
@@ -106,7 +106,7 @@ static bool is_indexed_buffer_target(GLenum target) {
       return true;
    case GL_SHADER_STORAGE_BUFFER:
    case GL_ATOMIC_COUNTER_BUFFER:
-      return KHRN_GLES31_DRIVER ? true : false;
+      return V3D_VER_AT_LEAST(3,3,0,0) ? true : false;
    default:
       return false;
    }
@@ -306,7 +306,7 @@ unlock_out:
    glxx_unlock_server_state();
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_API void GL_APIENTRY glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride)
 {

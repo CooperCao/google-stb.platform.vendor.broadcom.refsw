@@ -44,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue May 16 09:06:56 2017
- *                 Full Compile MD5 Checksum  7b03c89d50f085c54a02c79fd195723c
+ * Date:           Generated on               Fri Sep 15 14:47:20 2017
+ *                 Full Compile MD5 Checksum  493ce95c2999fc964ea8b5f1f30a0b54
  *                     (minus title and desc)
- *                 MD5 Checksum               e35a84b72d9be50f0bd457a73456d0d4
+ *                 MD5 Checksum               3d0c4b0494ea69369f5bbe3d74ddf30c
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1444
+ *                 RDB.pm                     1749
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
+ *                 Script Source              home/pt902453/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pt902453/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -394,10 +394,10 @@
 #define BCHP_HDR_CMP_0_V0_R0_LMR_MULT_COEF       0x20652700 /* [CFG][32] LMR adjustment multiplicative coefficients */
 #define BCHP_HDR_CMP_0_V0_R0_LMR_ADD_COEFF       0x20652704 /* [CFG][32] LMR adjustment additive coefficients */
 #define BCHP_HDR_CMP_0_V0_R0_LMR_LUT_CTRL        0x20652708 /* [CFG][32] LMR LUT Control */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C00           0x20652728 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C00 */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C01           0x2065272c /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C01 */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C02           0x20652730 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C02 */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C03           0x20652734 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C03 */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C00        0x20652728 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C00 */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C01        0x2065272c /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C01 */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C02        0x20652730 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C02 */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C03        0x20652734 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C03 */
 #define BCHP_HDR_CMP_0_CMP_HDR_V1_CTRL           0x20656070 /* [CFG][32] Video Surface 1 HDR Control */
 #define BCHP_HDR_CMP_0_V1_R0_MA_COEFF_LSHF       0x20656100 /* [CFG][32] Video Surface 1 Color Matrix A R0 coefficient left shift */
 #define BCHP_HDR_CMP_0_V1_R0_MA_COEFF_C00        0x20656104 /* [CFG][32] Video Surface 1 Color Matrix A R0 coefficient c00 */
@@ -705,10 +705,10 @@
 #define BCHP_HDR_CMP_0_V1_R0_LMR_MULT_COEF       0x20658700 /* [CFG][32] LMR adjustment multiplicative coefficients */
 #define BCHP_HDR_CMP_0_V1_R0_LMR_ADD_COEFF       0x20658704 /* [CFG][32] LMR adjustment additive coefficients */
 #define BCHP_HDR_CMP_0_V1_R0_LMR_LUT_CTRL        0x20658708 /* [CFG][32] LMR LUT Control */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C00           0x20658728 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C00 */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C01           0x2065872c /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C01 */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C02           0x20658730 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C02 */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C03           0x20658734 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C03 */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C00        0x20658728 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C00 */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C01        0x2065872c /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C01 */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C02        0x20658730 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C02 */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C03        0x20658734 /* [CFG][32] Color Space Conversion Mb2 LMR Matrix Coefficients C03 */
 
 /***************************************************************************
  *HDR_V0_HW_CONFIG - HDR V0 HW Configuration
@@ -5675,52 +5675,52 @@
 
 
 /***************************************************************************
- *V0_MB2_COEF_C00 - Color Space Conversion Mb2 LMR Matrix Coefficients C00
+ *V0_R0_MB2_COEF_C00 - Color Space Conversion Mb2 LMR Matrix Coefficients C00
  ***************************************************************************/
-/* HDR_CMP_0 :: V0_MB2_COEF_C00 :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C00_reserved0_MASK              0xfe000000
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C00_reserved0_SHIFT             25
+/* HDR_CMP_0 :: V0_R0_MB2_COEF_C00 :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C00_reserved0_MASK           0xfe000000
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C00_reserved0_SHIFT          25
 
-/* HDR_CMP_0 :: V0_MB2_COEF_C00 :: COEFF_MUL [24:00] */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C00_COEFF_MUL_MASK              0x01ffffff
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C00_COEFF_MUL_SHIFT             0
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C00_COEFF_MUL_DEFAULT           0x00000000
+/* HDR_CMP_0 :: V0_R0_MB2_COEF_C00 :: COEFF_MUL [24:00] */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C00_COEFF_MUL_MASK           0x01ffffff
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C00_COEFF_MUL_SHIFT          0
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C00_COEFF_MUL_DEFAULT        0x00000000
 
 /***************************************************************************
- *V0_MB2_COEF_C01 - Color Space Conversion Mb2 LMR Matrix Coefficients C01
+ *V0_R0_MB2_COEF_C01 - Color Space Conversion Mb2 LMR Matrix Coefficients C01
  ***************************************************************************/
-/* HDR_CMP_0 :: V0_MB2_COEF_C01 :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C01_reserved0_MASK              0xfe000000
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C01_reserved0_SHIFT             25
+/* HDR_CMP_0 :: V0_R0_MB2_COEF_C01 :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C01_reserved0_MASK           0xfe000000
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C01_reserved0_SHIFT          25
 
-/* HDR_CMP_0 :: V0_MB2_COEF_C01 :: COEFF_MUL [24:00] */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C01_COEFF_MUL_MASK              0x01ffffff
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C01_COEFF_MUL_SHIFT             0
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C01_COEFF_MUL_DEFAULT           0x00000000
+/* HDR_CMP_0 :: V0_R0_MB2_COEF_C01 :: COEFF_MUL [24:00] */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C01_COEFF_MUL_MASK           0x01ffffff
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C01_COEFF_MUL_SHIFT          0
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C01_COEFF_MUL_DEFAULT        0x00000000
 
 /***************************************************************************
- *V0_MB2_COEF_C02 - Color Space Conversion Mb2 LMR Matrix Coefficients C02
+ *V0_R0_MB2_COEF_C02 - Color Space Conversion Mb2 LMR Matrix Coefficients C02
  ***************************************************************************/
-/* HDR_CMP_0 :: V0_MB2_COEF_C02 :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C02_reserved0_MASK              0xfe000000
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C02_reserved0_SHIFT             25
+/* HDR_CMP_0 :: V0_R0_MB2_COEF_C02 :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C02_reserved0_MASK           0xfe000000
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C02_reserved0_SHIFT          25
 
-/* HDR_CMP_0 :: V0_MB2_COEF_C02 :: COEFF_MUL [24:00] */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C02_COEFF_MUL_MASK              0x01ffffff
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C02_COEFF_MUL_SHIFT             0
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C02_COEFF_MUL_DEFAULT           0x00400000
+/* HDR_CMP_0 :: V0_R0_MB2_COEF_C02 :: COEFF_MUL [24:00] */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C02_COEFF_MUL_MASK           0x01ffffff
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C02_COEFF_MUL_SHIFT          0
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C02_COEFF_MUL_DEFAULT        0x00400000
 
 /***************************************************************************
- *V0_MB2_COEF_C03 - Color Space Conversion Mb2 LMR Matrix Coefficients C03
+ *V0_R0_MB2_COEF_C03 - Color Space Conversion Mb2 LMR Matrix Coefficients C03
  ***************************************************************************/
-/* HDR_CMP_0 :: V0_MB2_COEF_C03 :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C03_reserved0_MASK              0xfe000000
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C03_reserved0_SHIFT             25
+/* HDR_CMP_0 :: V0_R0_MB2_COEF_C03 :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C03_reserved0_MASK           0xfe000000
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C03_reserved0_SHIFT          25
 
-/* HDR_CMP_0 :: V0_MB2_COEF_C03 :: COEFF_ADD [24:00] */
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C03_COEFF_ADD_MASK              0x01ffffff
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C03_COEFF_ADD_SHIFT             0
-#define BCHP_HDR_CMP_0_V0_MB2_COEF_C03_COEFF_ADD_DEFAULT           0x00000000
+/* HDR_CMP_0 :: V0_R0_MB2_COEF_C03 :: COEFF_ADD [24:00] */
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C03_COEFF_ADD_MASK           0x01ffffff
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C03_COEFF_ADD_SHIFT          0
+#define BCHP_HDR_CMP_0_V0_R0_MB2_COEF_C03_COEFF_ADD_DEFAULT        0x00000000
 
 /***************************************************************************
  *CMP_HDR_V1_CTRL - Video Surface 1 HDR Control
@@ -10134,52 +10134,52 @@
 
 
 /***************************************************************************
- *V1_MB2_COEF_C00 - Color Space Conversion Mb2 LMR Matrix Coefficients C00
+ *V1_R0_MB2_COEF_C00 - Color Space Conversion Mb2 LMR Matrix Coefficients C00
  ***************************************************************************/
-/* HDR_CMP_0 :: V1_MB2_COEF_C00 :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C00_reserved0_MASK              0xfe000000
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C00_reserved0_SHIFT             25
+/* HDR_CMP_0 :: V1_R0_MB2_COEF_C00 :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C00_reserved0_MASK           0xfe000000
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C00_reserved0_SHIFT          25
 
-/* HDR_CMP_0 :: V1_MB2_COEF_C00 :: COEFF_MUL [24:00] */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C00_COEFF_MUL_MASK              0x01ffffff
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C00_COEFF_MUL_SHIFT             0
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C00_COEFF_MUL_DEFAULT           0x00000000
+/* HDR_CMP_0 :: V1_R0_MB2_COEF_C00 :: COEFF_MUL [24:00] */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C00_COEFF_MUL_MASK           0x01ffffff
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C00_COEFF_MUL_SHIFT          0
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C00_COEFF_MUL_DEFAULT        0x00000000
 
 /***************************************************************************
- *V1_MB2_COEF_C01 - Color Space Conversion Mb2 LMR Matrix Coefficients C01
+ *V1_R0_MB2_COEF_C01 - Color Space Conversion Mb2 LMR Matrix Coefficients C01
  ***************************************************************************/
-/* HDR_CMP_0 :: V1_MB2_COEF_C01 :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C01_reserved0_MASK              0xfe000000
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C01_reserved0_SHIFT             25
+/* HDR_CMP_0 :: V1_R0_MB2_COEF_C01 :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C01_reserved0_MASK           0xfe000000
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C01_reserved0_SHIFT          25
 
-/* HDR_CMP_0 :: V1_MB2_COEF_C01 :: COEFF_MUL [24:00] */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C01_COEFF_MUL_MASK              0x01ffffff
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C01_COEFF_MUL_SHIFT             0
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C01_COEFF_MUL_DEFAULT           0x00000000
+/* HDR_CMP_0 :: V1_R0_MB2_COEF_C01 :: COEFF_MUL [24:00] */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C01_COEFF_MUL_MASK           0x01ffffff
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C01_COEFF_MUL_SHIFT          0
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C01_COEFF_MUL_DEFAULT        0x00000000
 
 /***************************************************************************
- *V1_MB2_COEF_C02 - Color Space Conversion Mb2 LMR Matrix Coefficients C02
+ *V1_R0_MB2_COEF_C02 - Color Space Conversion Mb2 LMR Matrix Coefficients C02
  ***************************************************************************/
-/* HDR_CMP_0 :: V1_MB2_COEF_C02 :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C02_reserved0_MASK              0xfe000000
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C02_reserved0_SHIFT             25
+/* HDR_CMP_0 :: V1_R0_MB2_COEF_C02 :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C02_reserved0_MASK           0xfe000000
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C02_reserved0_SHIFT          25
 
-/* HDR_CMP_0 :: V1_MB2_COEF_C02 :: COEFF_MUL [24:00] */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C02_COEFF_MUL_MASK              0x01ffffff
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C02_COEFF_MUL_SHIFT             0
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C02_COEFF_MUL_DEFAULT           0x00400000
+/* HDR_CMP_0 :: V1_R0_MB2_COEF_C02 :: COEFF_MUL [24:00] */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C02_COEFF_MUL_MASK           0x01ffffff
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C02_COEFF_MUL_SHIFT          0
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C02_COEFF_MUL_DEFAULT        0x00400000
 
 /***************************************************************************
- *V1_MB2_COEF_C03 - Color Space Conversion Mb2 LMR Matrix Coefficients C03
+ *V1_R0_MB2_COEF_C03 - Color Space Conversion Mb2 LMR Matrix Coefficients C03
  ***************************************************************************/
-/* HDR_CMP_0 :: V1_MB2_COEF_C03 :: reserved0 [31:25] */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C03_reserved0_MASK              0xfe000000
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C03_reserved0_SHIFT             25
+/* HDR_CMP_0 :: V1_R0_MB2_COEF_C03 :: reserved0 [31:25] */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C03_reserved0_MASK           0xfe000000
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C03_reserved0_SHIFT          25
 
-/* HDR_CMP_0 :: V1_MB2_COEF_C03 :: COEFF_ADD [24:00] */
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C03_COEFF_ADD_MASK              0x01ffffff
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C03_COEFF_ADD_SHIFT             0
-#define BCHP_HDR_CMP_0_V1_MB2_COEF_C03_COEFF_ADD_DEFAULT           0x00000000
+/* HDR_CMP_0 :: V1_R0_MB2_COEF_C03 :: COEFF_ADD [24:00] */
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C03_COEFF_ADD_MASK           0x01ffffff
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C03_COEFF_ADD_SHIFT          0
+#define BCHP_HDR_CMP_0_V1_R0_MB2_COEF_C03_COEFF_ADD_DEFAULT        0x00000000
 
 #endif /* #ifndef BCHP_HDR_CMP_0_H__ */
 

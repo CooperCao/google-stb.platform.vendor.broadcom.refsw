@@ -66,6 +66,14 @@ typedef struct
     volatile Bool8_t isEmpty;
 } SYS_FifoDescriptor_t;
 
+
+extern void SYS_FifoFillDescriptor_notinline(SYS_FifoDescriptor_t *const fifo, uint8_t *const buffer, const uint16_t bufferLength);
+extern uint8_t SYS_FifoRead_notinline(SYS_FifoDescriptor_t *const fifo, uint8_t *const buffer, const uint8_t bufferLength);
+extern uint8_t SYS_FifoWrite_notinline(SYS_FifoDescriptor_t *const fifo, const  uint8_t *const data, const uint8_t dataLength);
+extern uint16_t SYS_FifoDataSize_notinline(const SYS_FifoDescriptor_t *const fifo);
+extern void SYS_FifoReset_notinline(SYS_FifoDescriptor_t *const fifo);
+
+
 /************************* PROTOTYPES **************************************************/
 /************************************************************************************//**
   \brief Resets FIFO buffer.
@@ -95,7 +103,7 @@ INLINE void SYS_FifoFillDescriptor(SYS_FifoDescriptor_t *const fifo, uint8_t *co
 
     fifo->buffer = buffer;
     fifo->bufferLength = bufferLength;
-    SYS_FifoReset(fifo);
+    SYS_FifoReset_notinline(fifo);
 }
 
 /************************************************************************************//**
@@ -298,6 +306,8 @@ INLINE uint8_t SYS_FifoRead(SYS_FifoDescriptor_t *const fifo, uint8_t *const buf
     }
     return dataToRead;
 }
+
+
 #endif /* _SYS_FIFO_H */
 
 /* eof bbSysFifo.h */

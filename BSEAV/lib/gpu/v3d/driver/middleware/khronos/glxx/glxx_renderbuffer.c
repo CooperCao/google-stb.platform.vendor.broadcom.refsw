@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 2.0 / Open GL ES 1.1 OES_framebuffer_object renderbuffer structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/include/GLES/gl.h"
 #include "interface/khronos/include/GLES/glext.h"
@@ -25,21 +17,21 @@ static GLXX_RENDERBUFFER_TYPE_T convert_renderbuffer_type(GLenum format);
 
 void glxx_renderbuffer_init(GLXX_RENDERBUFFER_T *renderbuffer, int32_t name)
 {
-   vcos_assert(renderbuffer);
+   assert(renderbuffer);
 
    renderbuffer->name = name;
 
    renderbuffer->type = RB_NEW_T;
-   vcos_assert(renderbuffer->mh_storage == MEM_INVALID_HANDLE);
-   vcos_assert(renderbuffer->mh_ms_storage == MEM_INVALID_HANDLE);
+   assert(renderbuffer->mh_storage == MEM_HANDLE_INVALID);
+   assert(renderbuffer->mh_ms_storage == MEM_HANDLE_INVALID);
 }
 
 void glxx_renderbuffer_term(MEM_HANDLE_T handle)
 {
    GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(handle, NULL);
 
-   MEM_ASSIGN(renderbuffer->mh_storage, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(renderbuffer->mh_ms_storage, MEM_INVALID_HANDLE);
+   MEM_ASSIGN(renderbuffer->mh_storage, MEM_HANDLE_INVALID);
+   MEM_ASSIGN(renderbuffer->mh_ms_storage, MEM_HANDLE_INVALID);
 
    mem_unlock(handle);
 }
@@ -125,7 +117,7 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
 
          // Allocate the resolve buffer if it is a colour render buffer
          MEM_HANDLE_T image = khrn_image_create(format, width, height, flags, secure); /* todo: check usage flags */
-         if (image == MEM_INVALID_HANDLE)
+         if (image == MEM_HANDLE_INVALID)
             return false;
          MEM_ASSIGN(renderbuffer->mh_storage, image);
          mem_release(image);
@@ -136,7 +128,7 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
                IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, secure);
 
             // If the ms image fails to allocate, invalidate the resolve just allocated above
-            if (ms_image == MEM_INVALID_HANDLE) {
+            if (ms_image == MEM_HANDLE_INVALID) {
                MEM_ASSIGN(renderbuffer->mh_storage, MEM_HANDLE_INVALID);
                return false;
             }
@@ -152,7 +144,7 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
          image_create = (samples) ? glxx_image_create_ms : khrn_image_create;
 
          MEM_HANDLE_T image = image_create(format, width, height, flags, secure); /* todo: check usage flags */
-         if (image == MEM_INVALID_HANDLE)
+         if (image == MEM_HANDLE_INVALID)
             return false;
          MEM_ASSIGN(renderbuffer->mh_storage, image);
          mem_release(image);
@@ -196,7 +188,7 @@ bool glxx_renderbuffer_bind_image(GLXX_RENDERBUFFER_T *renderbuffer, MEM_HANDLE_
 
    if (valid_image(image)) {
       MEM_ASSIGN(renderbuffer->mh_storage, himage);
-      vcos_assert(khrn_image_is_color(image->format));
+      assert(khrn_image_is_color(image->format));
       renderbuffer->type = RB_COLOR_T;
       renderbuffer->merged = false;
       result = true;
@@ -210,11 +202,11 @@ bool glxx_renderbuffer_bind_image(GLXX_RENDERBUFFER_T *renderbuffer, MEM_HANDLE_
 static bool single_ref_count(GLXX_RENDERBUFFER_T *renderbuffer)
 {
    uint32_t refcount;
-   vcos_assert(renderbuffer->type != RB_NEW_T);
-   vcos_assert(renderbuffer->mh_storage != MEM_INVALID_HANDLE);
+   assert(renderbuffer->type != RB_NEW_T);
+   assert(renderbuffer->mh_storage != MEM_HANDLE_INVALID);
 
    refcount = mem_get_ref_count(renderbuffer->mh_storage);
-   vcos_assert(refcount > 0);
+   assert(refcount > 0);
 
    return refcount == 1;
 }
@@ -229,14 +221,14 @@ bool glxx_renderbuffer_unmerge(GLXX_RENDERBUFFER_T *renderbuffer)
 
       // Renderbuffer is in merged state. We must unmerge it.
 
-      vcos_assert(renderbuffer->type == RB_DEPTH24_T || renderbuffer->type == RB_STENCIL_T);  // The only sorts of buffer we can merge
+      assert(renderbuffer->type == RB_DEPTH24_T || renderbuffer->type == RB_STENCIL_T);  // The only sorts of buffer we can merge
       storage = (KHRN_IMAGE_T *)mem_lock(renderbuffer->mh_storage, NULL);
-      vcos_assert(storage->format == DEPTH_32_TF);
+      assert(storage->format == DEPTH_32_TF);
 
       hstorage = khrn_image_create_dup(storage, IMAGE_CREATE_FLAG_NONE);
       mem_unlock(renderbuffer->mh_storage);
 
-      if (hstorage == MEM_INVALID_HANDLE)
+      if (hstorage == MEM_HANDLE_INVALID)
          return false;
 
       MEM_ASSIGN(renderbuffer->mh_storage, hstorage);
@@ -257,10 +249,10 @@ void glxx_renderbuffer_attempt_merge(GLXX_RENDERBUFFER_T *depth, GLXX_RENDERBUFF
    KHRN_IMAGE_T *dstorage = (KHRN_IMAGE_T *)mem_lock(depth->mh_storage, NULL);
    KHRN_IMAGE_T *sstorage = (KHRN_IMAGE_T *)mem_lock(stencil->mh_storage, NULL);
 
-   vcos_assert(depth && stencil);
-   vcos_assert(depth->type == RB_DEPTH24_T && stencil->type == RB_STENCIL_T);  // The only sorts of buffer we can merge
-   vcos_assert(dstorage->format == DEPTH_32_TF && sstorage->format == DEPTH_32_TF);
-   vcos_assert(dstorage->width == sstorage->width && dstorage->height == sstorage->height);
+   assert(depth && stencil);
+   assert(depth->type == RB_DEPTH24_T && stencil->type == RB_STENCIL_T);  // The only sorts of buffer we can merge
+   assert(dstorage->format == DEPTH_32_TF && sstorage->format == DEPTH_32_TF);
+   assert(dstorage->width == sstorage->width && dstorage->height == sstorage->height);
 
    if (single_ref_count(depth) && single_ref_count(stencil)) {
       khrn_image_copy_stencil_channel(dstorage, sstorage);

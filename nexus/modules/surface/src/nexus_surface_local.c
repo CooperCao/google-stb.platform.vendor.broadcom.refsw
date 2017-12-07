@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #include "nexus_base.h"
 #include "nexus_surface.h"
@@ -76,7 +65,7 @@ struct NEXUS_SurfaceModule_StateLocal {
 
 static struct NEXUS_SurfaceModule_StateLocal g_NexusSurfaceLocal;
 
-static int NEXUS_P_SurfaceLocal_Compare(const struct NEXUS_SurfaceLocal * node, NEXUS_SurfaceHandle surface)
+static int NEXUS_P_SurfaceLocal_Compare_isrsafe(const struct NEXUS_SurfaceLocal * node, NEXUS_SurfaceHandle surface)
 {
     if((char *)surface > (char *)node->surface) {
         return 1;
@@ -88,8 +77,8 @@ static int NEXUS_P_SurfaceLocal_Compare(const struct NEXUS_SurfaceLocal * node, 
 }
 
 
-BLST_AA_TREE_GENERATE_FIND(NEXUS_P_SurfaceLocalTree , NEXUS_SurfaceHandle , NEXUS_SurfaceLocal, node, NEXUS_P_SurfaceLocal_Compare)
-BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_SurfaceLocalTree, NEXUS_SurfaceHandle , NEXUS_SurfaceLocal, node, NEXUS_P_SurfaceLocal_Compare)
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_SurfaceLocalTree , NEXUS_SurfaceHandle , NEXUS_SurfaceLocal, node, NEXUS_P_SurfaceLocal_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_SurfaceLocalTree, NEXUS_SurfaceHandle , NEXUS_SurfaceLocal, node, NEXUS_P_SurfaceLocal_Compare_isrsafe)
 BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_SurfaceLocalTree, NEXUS_SurfaceLocal, node)
 BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_SurfaceLocalTree, NEXUS_SurfaceLocal, node)
 
@@ -384,7 +373,7 @@ NEXUS_Error NEXUS_Surface_GetMemory(NEXUS_SurfaceHandle surface, NEXUS_SurfaceMe
     pMemory->palette = surfaceLocal->lockedPalette;
     pMemory->pitch = surfaceLocal->status.pitch;
     pMemory->numPaletteEntries = surfaceLocal->status.numPaletteEntries;
-    pMemory->bufferSize = surfaceLocal->status.height * surfaceLocal->status.pitch;
+    pMemory->bufferSize = surfaceLocal->status.bufferSize;
     BKNI_ReleaseMutex(g_NexusSurfaceLocal.lockState);
     return NEXUS_SUCCESS;
 }

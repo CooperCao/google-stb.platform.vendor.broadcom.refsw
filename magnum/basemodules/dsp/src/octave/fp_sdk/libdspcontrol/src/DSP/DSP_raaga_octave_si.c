@@ -53,6 +53,7 @@
 #include "libdspcontrol/DSPLOG.h"
 
 #include "DSP_octave_maestro.h"
+#include "DSP_raaga_inttypes.h"
 #include "DSP_raaga_octave.h"
 #include "DSP_raaga_octave_atu.h"
 #include "DSP_raaga_mem_si.h"
@@ -74,11 +75,6 @@
 #if FEATURE_IS(ENDIANESS, BIG)
 #  error "Big endian platforms not properly supported at the moment"
 #endif
-
-
-/* Workaround for the missing inttypes.h */
-#define PRIx32      "x"
-#define PRIx64      "llx"
 
 
 

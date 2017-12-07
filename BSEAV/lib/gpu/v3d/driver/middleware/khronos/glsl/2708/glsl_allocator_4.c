@@ -108,7 +108,7 @@ typedef uint32_t OP_SRC_T;
 static uint32_t get_special_input_choice(OP_SRC_T input)
 {
    uint32_t result = input >> 11;
-   vcos_assert(result == CHOICE_A || result == CHOICE_B || result == CHOICE_EITHER);
+   assert(result == CHOICE_A || result == CHOICE_B || result == CHOICE_EITHER);
    return result;
 }
 static uint32_t get_special_input_row(OP_SRC_T input)
@@ -301,8 +301,8 @@ static OP_DEST_T get_dest_without_pack(OP_DEST_T dest)
 }
 static void dest_set(OP_DEST_T *dest, OP_DEST_T location)
 {
-   vcos_assert(dest_is_uncertain(*dest));
-   vcos_assert(get_dest_pack(location) == 0);
+   assert(dest_is_uncertain(*dest));
+   assert(get_dest_pack(location) == 0);
 
    *dest = get_dest_pack(*dest) + location;
 }
@@ -569,7 +569,7 @@ static bool prefer_b;
 
 static uint32_t get_op_timestamp(OP_T op)
 {
-   vcos_assert(op / 2 < MAX_INSTRUCTIONS);
+   assert(op / 2 < MAX_INSTRUCTIONS);
    return op / 2;
 }
 
@@ -580,7 +580,7 @@ static uint32_t get_op_half(OP_T op)
 
 static OP_STRUCT_T *get_op_struct(OP_T op)
 {
-   vcos_assert(op < 2 * MAX_INSTRUCTIONS);
+   assert(op < 2 * MAX_INSTRUCTIONS);
    return &op_struct[op / 2][op % 2];
 }
 
@@ -591,21 +591,21 @@ static INSTR_STRUCT_T *get_op_instr(OP_T op)
 
 static OP_T op_from_timestamp(uint32_t timestamp, uint32_t half)
 {
-   vcos_assert(timestamp < MAX_INSTRUCTIONS);
-   vcos_assert(half <= 1);
+   assert(timestamp < MAX_INSTRUCTIONS);
+   assert(half <= 1);
    return timestamp * 2 + half;
 }
 
 static INSTR_STRUCT_T *get_instr(uint32_t timestamp)
 {
-   vcos_assert(timestamp < MAX_INSTRUCTIONS);
+   assert(timestamp < MAX_INSTRUCTIONS);
    return &instr_struct[timestamp];
 }
 
 static OP_STRUCT_T *get_instr_op_struct(uint32_t timestamp, uint32_t half)
 {
-   vcos_assert(timestamp < MAX_INSTRUCTIONS);
-   vcos_assert(half <= 1);
+   assert(timestamp < MAX_INSTRUCTIONS);
+   assert(half <= 1);
    return &op_struct[timestamp][half];
 }
 
@@ -645,13 +645,13 @@ static OP_SRC_T input_from_op(OP_T op, UNPACK_T unpack)
 
 static OP_SRC_T input_from_instr_r4(uint32_t timestamp, UNPACK_T unpack, bool actually_care)
 {
-   if (actually_care) vcos_assert(get_instr(timestamp)->move_r4 == (OP_T)MOVE_STILL_THERE);
+   if (actually_care) assert(get_instr(timestamp)->move_r4 == (OP_T)MOVE_STILL_THERE);
    return INPUT_FIRST_R4 + timestamp * 32 + unpack;
 }
 
 static OP_SRC_T input_from_instr_r5(uint32_t timestamp, UNPACK_T unpack, bool actually_care)
 {
-   if (actually_care) vcos_assert(get_instr(timestamp)->move_r5 == (OP_T)MOVE_STILL_THERE);
+   if (actually_care) assert(get_instr(timestamp)->move_r5 == (OP_T)MOVE_STILL_THERE);
    return INPUT_FIRST_R5 + timestamp * 32 + unpack;
 }
 
@@ -726,8 +726,8 @@ static OP_SRC_DETAIL_T src_detail_none(void)
 
 static OP_SRC_T input_with_unpack(OP_SRC_T input, UNPACK_T unpack)
 {
-   vcos_assert((input & 31) == 0);
-   vcos_assert(unpack <= 31);
+   assert((input & 31) == 0);
+   assert(unpack <= 31);
    return input | unpack;
 }
 
@@ -753,7 +753,7 @@ static UNPACK_T get_input_unpack(OP_SRC_T input)
 
 static OP_T get_input_op(OP_SRC_T input)
 {
-   vcos_assert(input_is_from_op_dest(input));
+   assert(input_is_from_op_dest(input));
    return (input % 0x1000000) / 32;
 }
 
@@ -896,7 +896,7 @@ static uint32_t find_dest_b(OP_T op)
 
 static CHOICE_T get_dest_choice(OP_DEST_T dest)
 {
-   vcos_assert(!dest_is_uncertain(dest));
+   assert(!dest_is_uncertain(dest));
    if (dest_is_reg_a(dest))
       return CHOICE_A;
    else if (dest_is_reg_b(dest))
@@ -925,11 +925,11 @@ static INSTR_CONFLICT_T get_input_conflict(OP_SRC_T input, CHOICE_T choice, uint
 
       if (choice == CHOICE_STANDARD)
       {
-         vcos_assert(!dest_is_uncertain(dest));
+         assert(!dest_is_uncertain(dest));
          choice = get_dest_choice(dest);
       }
       else
-         vcos_assert(dest_is_uncertain(dest));
+         assert(dest_is_uncertain(dest));
 
       timestamp = get_op_timestamp(op);
 
@@ -966,7 +966,7 @@ static INSTR_CONFLICT_T get_input_conflict(OP_SRC_T input, CHOICE_T choice, uint
    }
    else
    {
-      vcos_assert(choice == CHOICE_STANDARD);
+      assert(choice == CHOICE_STANDARD);
 
       switch (input_without_unpack(input))
       {
@@ -1279,56 +1279,56 @@ static void commit_alu_choice(OP_T op, CHOICE_T choice, Dataflow *dataflow_src)
    uint32_t timestamp;
    OP_DEST_T dest;
 
-   vcos_assert(choice != CHOICE_STANDARD);
+   assert(choice != CHOICE_STANDARD);
 
    instr = get_op_instr(op);
    op_struct = get_op_struct(op);
    timestamp = get_op_timestamp(op);
 
-   vcos_assert(dest_is_uncertain(op_struct->dest));
+   assert(dest_is_uncertain(op_struct->dest));
 
    switch (choice)
    {
    case CHOICE_ACC:
       i = find_dest_acc(op);
-      vcos_assert(i != (uint32_t)~0);
+      assert(i != (uint32_t)~0);
       dest = DEST_ACC(i);
 
-      vcos_assert(acc_is_available[i] && acc_last_used[i] <= timestamp);
-      vcos_assert(acc_node[i] == (uint32_t)~0);
+      assert(acc_is_available[i] && acc_last_used[i] <= timestamp);
+      assert(acc_node[i] == (uint32_t)~0);
       acc_is_available[i] = false;
       acc_last_used[i] = timestamp;
       acc_node[i] = op;
 
-      vcos_assert(op_struct->move == (OP_T)MOVE_NO_DEST);
+      assert(op_struct->move == (OP_T)MOVE_NO_DEST);
       op_struct->move = MOVE_STILL_THERE;
       break;
    case CHOICE_A:
       i = find_dest_a(op);
-      vcos_assert(i != (uint32_t)~0);
+      assert(i != (uint32_t)~0);
       dest = DEST_A(i);
 
-      vcos_assert(a_is_available[i] && a_last_used[i] <= timestamp);
+      assert(a_is_available[i] && a_last_used[i] <= timestamp);
       a_is_available[i] = false;
       a_last_used[i] = timestamp;
       a_scheduler_order[i] = scheduler_order++;
       a_scheduler_node[i] = dataflow_src;
 
-      vcos_assert(op_struct->move == (OP_T)MOVE_NO_DEST);
+      assert(op_struct->move == (OP_T)MOVE_NO_DEST);
       op_struct->move = MOVE_STILL_THERE;
       break;
    case CHOICE_B:
       i = find_dest_b(op);
-      vcos_assert(i != (uint32_t)~0);
+      assert(i != (uint32_t)~0);
       dest = DEST_B(i);
 
-      vcos_assert(b_is_available[i] && b_last_used[i] <= timestamp);
+      assert(b_is_available[i] && b_last_used[i] <= timestamp);
       b_is_available[i] = false;
       b_last_used[i] = timestamp;
       b_scheduler_order[i] = scheduler_order++;
       b_scheduler_node[i] = dataflow_src;
 
-      vcos_assert(op_struct->move == (OP_T)MOVE_NO_DEST);
+      assert(op_struct->move == (OP_T)MOVE_NO_DEST);
       op_struct->move = MOVE_STILL_THERE;
       break;
    default:
@@ -1352,29 +1352,29 @@ static void commit_input_choice(OP_SRC_DETAIL_T input_detail, CHOICE_T choice, O
    if (input_is_from_op_dest(input))
    {
       OP_T op = get_input_op(input);
-      vcos_assert((get_op_struct(op)->move == (OP_T)MOVE_NO_DEST) || (get_op_struct(op)->move == (OP_T)MOVE_STILL_THERE));
+      assert((get_op_struct(op)->move == (OP_T)MOVE_NO_DEST) || (get_op_struct(op)->move == (OP_T)MOVE_STILL_THERE));
       if (dest_is_uncertain(get_op_struct(op)->dest))
          commit_alu_choice(op, choice, input_detail.dataflow_src);
       else
-         vcos_assert(choice == CHOICE_STANDARD);
+         assert(choice == CHOICE_STANDARD);
 
       //assert(*input_detail.op != ~0);
-      vcos_assert(input_detail.op == NULL);
+      assert(input_detail.op == NULL);
    }
    else
    {
-      vcos_assert(choice == CHOICE_STANDARD);
+      assert(choice == CHOICE_STANDARD);
       if (input_is_from_instr(input))
       {
          //assert(*input_detail.op != ~0);
-         vcos_assert(input_detail.op == NULL);
+         assert(input_detail.op == NULL);
       }
       else
       {
          if (input_detail.op)
          {
-            vcos_assert(*input_detail.op == ~0);
-            vcos_assert(consumer != (OP_T)~0);
+            assert(*input_detail.op == ~0);
+            assert(consumer != (OP_T)~0);
             *input_detail.op = consumer;
          }
       }
@@ -1559,14 +1559,14 @@ static void commit_flags_source(OP_SRC_DETAIL_T flags_src_detail, OP_T op)
    if (flags_src_detail.src == (OP_SRC_T)~0)
       return;      /* Nothing to do */
 
-   vcos_assert(input_is_from_op_dest(flags_src_detail.src));
+   assert(input_is_from_op_dest(flags_src_detail.src));
    flags_source = get_input_op(flags_src_detail.src);
 
    source_timestamp = get_op_timestamp(flags_source);
    op_timestamp = get_op_timestamp(op);
    half = get_op_half(flags_source);
 
-   vcos_assert(source_timestamp < op_timestamp);
+   assert(source_timestamp < op_timestamp);
 
    if (flags_node == flags_source)
    {
@@ -1576,8 +1576,8 @@ static void commit_flags_source(OP_SRC_DETAIL_T flags_src_detail, OP_T op)
    }
 
    source_struct = get_op_struct(flags_source);
-   vcos_assert(!source_struct->set_flags);
-   vcos_assert(flags_available <= source_timestamp);
+   assert(!source_struct->set_flags);
+   assert(flags_available <= source_timestamp);
 
    source_struct->set_flags = true;
    flags_node = flags_source;
@@ -1594,7 +1594,7 @@ static void commit_flags_source(OP_SRC_DETAIL_T flags_src_detail, OP_T op)
    else if (flavour_is_mul(source_struct->flavour))
    {
       source_struct = get_instr_op_struct(source_timestamp, 1 - half);
-      vcos_assert(source_struct->flavour == FLAVOUR_UNUSED);
+      assert(source_struct->flavour == FLAVOUR_UNUSED);
       source_struct->flavour = FLAVOUR_NOP;    // If node appears in other half it will be forced to add, and pull flags off us
    }
    else
@@ -1609,7 +1609,7 @@ static void commit_flags_source(OP_SRC_DETAIL_T flags_src_detail, OP_T op)
 static void retire_input(OP_SRC_DETAIL_T input_detail, uint32_t timestamp, OP_T move)
 {
    bool retire = input_detail.retire;
-   vcos_assert((move != (OP_T)MOVE_STILL_THERE) && (move != (OP_T)MOVE_NO_DEST));
+   assert((move != (OP_T)MOVE_STILL_THERE) && (move != (OP_T)MOVE_NO_DEST));
    if (input_detail.is_new)
    {
       OP_SRC_T input;
@@ -1623,16 +1623,16 @@ static void retire_input(OP_SRC_DETAIL_T input_detail, uint32_t timestamp, OP_T 
          uint32_t row;
 
          if (op_struct->move == (OP_T)MOVE_NO_DEST)
-            vcos_assert(move == (OP_T)MOVE_RETIRED);
+            assert(move == (OP_T)MOVE_RETIRED);
          else
          {
-            vcos_assert(op_struct->move == (OP_T)MOVE_STILL_THERE);
+            assert(op_struct->move == (OP_T)MOVE_STILL_THERE);
             dest = op_struct->dest;
 
             if (dest_is_reg_a(dest))
             {
                row = get_dest_index(dest);
-               vcos_assert(!a_is_available[row]);
+               assert(!a_is_available[row]);
                if (a_last_used[row] < timestamp)
                   a_last_used[row] = timestamp;
                if (retire)
@@ -1641,7 +1641,7 @@ static void retire_input(OP_SRC_DETAIL_T input_detail, uint32_t timestamp, OP_T 
             else if (dest_is_reg_b(dest))
             {
                row = get_dest_index(dest);
-               vcos_assert(!b_is_available[row]);
+               assert(!b_is_available[row]);
                if (b_last_used[row] < timestamp)
                   b_last_used[row] = timestamp;
                if (retire)
@@ -1650,8 +1650,8 @@ static void retire_input(OP_SRC_DETAIL_T input_detail, uint32_t timestamp, OP_T 
             else if (dest_is_normal_acc(dest))
             {
                row = get_dest_index(dest);
-               vcos_assert(!acc_is_available[row]);
-               vcos_assert(acc_node[row] == op);
+               assert(!acc_is_available[row]);
+               assert(acc_node[row] == op);
                if (acc_last_used[row] < timestamp)
                   acc_last_used[row] = timestamp;
                if (retire)
@@ -1672,10 +1672,10 @@ static void retire_input(OP_SRC_DETAIL_T input_detail, uint32_t timestamp, OP_T 
          uint32_t input_timestamp = get_input_timestamp(input);
          INSTR_STRUCT_T *instr = get_instr(input_timestamp);
 
-         vcos_assert(instr->move_r4 == (OP_T)MOVE_STILL_THERE);
+         assert(instr->move_r4 == (OP_T)MOVE_STILL_THERE);
 
-         vcos_assert(!acc_is_available[4]);
-         vcos_assert(get_op_timestamp(acc_node[4]) == input_timestamp);
+         assert(!acc_is_available[4]);
+         assert(get_op_timestamp(acc_node[4]) == input_timestamp);
          if (acc_last_used[4] < timestamp)
             acc_last_used[4] = timestamp;
          if (retire)
@@ -1690,10 +1690,10 @@ static void retire_input(OP_SRC_DETAIL_T input_detail, uint32_t timestamp, OP_T 
          uint32_t input_timestamp = get_input_timestamp(input);
          INSTR_STRUCT_T *instr = get_instr(input_timestamp);
 
-         vcos_assert(instr->move_r5 == (OP_T)MOVE_STILL_THERE);
+         assert(instr->move_r5 == (OP_T)MOVE_STILL_THERE);
 
-         vcos_assert(!acc_is_available[5]);
-         vcos_assert(get_op_timestamp(acc_node[5]) == input_timestamp);
+         assert(!acc_is_available[5]);
+         assert(get_op_timestamp(acc_node[5]) == input_timestamp);
          if (acc_last_used[5] < timestamp)
             acc_last_used[5] = timestamp;
          if (retire)
@@ -1819,9 +1819,9 @@ static void free_up_acc(uint32_t i)
    OP_T old_op, new_op;
    OP_SRC_DETAIL_T src_detail;
 
-   vcos_assert(!acc_is_available[i]);
+   assert(!acc_is_available[i]);
 
-   vcos_assert(acc_node[i] != (OP_T)~0);
+   assert(acc_node[i] != (OP_T)~0);
    old_op = acc_node[i];
    if (i < 4)
    {
@@ -1829,8 +1829,8 @@ static void free_up_acc(uint32_t i)
       new_op = op_add_alu(FLAVOUR_MOV, src_detail, src_detail, NULL, 0, false, 0, 0);
       if (failed) return;
 
-      vcos_assert(acc_is_available[i] && acc_node[i] == (OP_T)~0);
-      vcos_assert(get_op_struct(old_op)->move == new_op);
+      assert(acc_is_available[i] && acc_node[i] == (OP_T)~0);
+      assert(get_op_struct(old_op)->move == new_op);
    }
    else if (i == 4)
    {
@@ -1840,8 +1840,8 @@ static void free_up_acc(uint32_t i)
       new_op = op_add_alu(FLAVOUR_MOV, src_detail, src_detail, NULL, 0, false, 0, 0);
       if (failed) return;
 
-      vcos_assert(acc_is_available[i] && acc_node[i] == (OP_T)~0);
-      vcos_assert(get_instr(old_timestamp)->move_r4 == (OP_T)new_op);
+      assert(acc_is_available[i] && acc_node[i] == (OP_T)~0);
+      assert(get_instr(old_timestamp)->move_r4 == (OP_T)new_op);
    }
    else if (i == 5)
    {
@@ -1851,8 +1851,8 @@ static void free_up_acc(uint32_t i)
       new_op = op_add_alu(FLAVOUR_MOV, src_detail, src_detail, NULL, 0, false, 0, 0);
       if (failed) return;
 
-      vcos_assert(acc_is_available[i] && acc_node[i] == (OP_T)~0);
-      vcos_assert(get_instr(old_timestamp)->move_r5 == new_op);
+      assert(acc_is_available[i] && acc_node[i] == (OP_T)~0);
+      assert(get_instr(old_timestamp)->move_r5 == new_op);
    }
    else
       UNREACHABLE();
@@ -1887,8 +1887,8 @@ static OP_T op_add_alu(OP_FLAVOUR_T flavour, OP_SRC_DETAIL_T left_detail, OP_SRC
     * The default behaviour here is to copy twice but this is illegal (too many
     * VPM reads), so we trap this at a higher level
     */
-   vcos_assert(get_input_unpack(left_detail.src) == UNPACK_NONE || input_without_unpack(left_detail.src) != INPUT_VPM);
-   vcos_assert(get_input_unpack(right_detail.src) == UNPACK_NONE || input_without_unpack(right_detail.src) != INPUT_VPM);
+   assert(get_input_unpack(left_detail.src) == UNPACK_NONE || input_without_unpack(left_detail.src) != INPUT_VPM);
+   assert(get_input_unpack(right_detail.src) == UNPACK_NONE || input_without_unpack(right_detail.src) != INPUT_VPM);
 
    i = 0;
    while(1)
@@ -1996,7 +1996,7 @@ static OP_T op_add_alu(OP_FLAVOUR_T flavour, OP_SRC_DETAIL_T left_detail, OP_SRC
    {
       if (!acc_is_available[5])
       {
-         vcos_assert(allow_mov);
+         assert(allow_mov);
          free_up_acc(5);
          if (failed) return 0;
       }
@@ -2005,7 +2005,7 @@ static OP_T op_add_alu(OP_FLAVOUR_T flavour, OP_SRC_DETAIL_T left_detail, OP_SRC
    }
 
    last_timestamp = first_timestamp + FORWARDTRACK;
-   vcos_assert(last_timestamp <= MAX_INSTRUCTIONS);
+   assert(last_timestamp <= MAX_INSTRUCTIONS);
 
    /* See whether this is a relocation instruction, i.e. whether we preserve our input so it can be used later */
    is_relocation = (flavour == FLAVOUR_MOV) && get_input_unpack(left_detail.src) == 0;
@@ -2101,11 +2101,11 @@ static OP_T op_add_alu(OP_FLAVOUR_T flavour, OP_SRC_DETAIL_T left_detail, OP_SRC
 
                   if (reads_varying)
                   {
-                     vcos_assert(instr->move_r5 == (OP_T)MOVE_NO_DEST);
+                     assert(instr->move_r5 == (OP_T)MOVE_NO_DEST);
                      instr->move_r5 = MOVE_STILL_THERE;
 
-                     vcos_assert(acc_is_available[5] && acc_last_used[5] <= timestamp);
-                     vcos_assert(acc_node[5] == (OP_T)~0);
+                     assert(acc_is_available[5] && acc_last_used[5] <= timestamp);
+                     assert(acc_node[5] == (OP_T)~0);
                      acc_is_available[5] = false;
                      acc_last_used[5] = timestamp;
                      acc_node[5] = op_result;
@@ -2171,7 +2171,7 @@ static uint32_t instr_add_sig(INSTR_SIG_T sig, OP_SRC_T *deps, uint32_t dep_coun
          thrsw timestamp is for last instruction of previous block.
          Things that depend on it can then be placed in the first instruction of new block.
       */
-      vcos_assert(first_timestamp > 0);
+      assert(first_timestamp > 0);
       first_timestamp--;
    }
 
@@ -2186,7 +2186,7 @@ static uint32_t instr_add_sig(INSTR_SIG_T sig, OP_SRC_T *deps, uint32_t dep_coun
    }
 
    last_timestamp = first_timestamp + FORWARDTRACK;
-   vcos_assert(last_timestamp <= MAX_INSTRUCTIONS);
+   assert(last_timestamp <= MAX_INSTRUCTIONS);
 
    for (timestamp = first_timestamp; timestamp < last_timestamp; timestamp++)
    {
@@ -2222,13 +2222,13 @@ static uint32_t instr_add_sig(INSTR_SIG_T sig, OP_SRC_T *deps, uint32_t dep_coun
 
       if (sig == SIG_GET_COL || sig == SIG_TMU0 || sig == SIG_TMU1)
       {
-         vcos_assert(acc_is_available[4] && acc_last_used[4] <= timestamp);
-         vcos_assert(acc_node[4] == (OP_T)~0);
+         assert(acc_is_available[4] && acc_last_used[4] <= timestamp);
+         assert(acc_node[4] == (OP_T)~0);
          acc_is_available[4] = false;
          acc_last_used[4] = timestamp;
          acc_node[4] = op_from_timestamp(timestamp, 0);   /* TODO: this is badness. We don't know which op it is. */
 
-         vcos_assert(instr->move_r4 == (OP_T)MOVE_NO_DEST);
+         assert(instr->move_r4 == (OP_T)MOVE_NO_DEST);
          instr->move_r4 = MOVE_STILL_THERE;
       }
 
@@ -2236,14 +2236,14 @@ static uint32_t instr_add_sig(INSTR_SIG_T sig, OP_SRC_T *deps, uint32_t dep_coun
       {
          for (i = 0; i <= 5; i++)
          {
-            vcos_assert(acc_is_available[i] && acc_last_used[i] < timestamp+1);
+            assert(acc_is_available[i] && acc_last_used[i] < timestamp+1);
             acc_last_used[i] = timestamp+1;
          }
-         vcos_assert(flags_available < timestamp+1);
+         assert(flags_available < timestamp+1);
          flags_available = timestamp+1;
          flags_node = ~0;
 
-         vcos_assert((last_thrsw == (OP_T)~0) || (timestamp - 2 > last_thrsw));
+         assert((last_thrsw == (OP_T)~0) || (timestamp - 2 > last_thrsw));
          last_thrsw = timestamp - 2;
       }
 
@@ -2291,7 +2291,7 @@ static OP_T op_add_output(OP_SRC_DETAIL_T input_detail, OP_DEST_T dest, uint32_t
       {
          /* TODO: this is ugly and messy. Move the input if it's the same as the r4 node we're moving. */
          bool input_is_r4 = input_is_from_instr_r4(input);
-         vcos_assert(!input_is_r4 || get_input_timestamp(input) == get_op_timestamp(acc_node[4]));
+         assert(!input_is_r4 || get_input_timestamp(input) == get_op_timestamp(acc_node[4]));
 
          free_up_acc(4);
          if (failed) return 0;
@@ -2319,13 +2319,13 @@ static OP_T op_add_output(OP_SRC_DETAIL_T input_detail, OP_DEST_T dest, uint32_t
          OP_T new_op;
 
          /* Move flags_source */
-         vcos_assert(allow_mov);
-         vcos_assert(get_input_unpack(flags_source.src) == 0);
+         assert(allow_mov);
+         assert(get_input_unpack(flags_source.src) == 0);
          raw = src_detail_without_unpack(flags_source, true);
          new_op = op_add_alu(FLAVOUR_MOV, raw, raw, NULL, 0, false, DECISION_ADD(DEFAULT_HALF), flags_available);
          if (failed) return 0;
          flags_source = src_detail_from_op(new_op, flags_source.retire, 0);
-         vcos_assert(check_flags_source(flags_source));
+         assert(check_flags_source(flags_source));
 
          /* TODO: this is ugly and messy. Move the input if it's the same as the flags node we've just moved. */
          if (input_is_flags_source)
@@ -2352,7 +2352,7 @@ static OP_T op_add_output(OP_SRC_DETAIL_T input_detail, OP_DEST_T dest, uint32_t
       instr = get_op_instr(op);
       op_struct = get_op_struct(op);
 
-      vcos_assert(dest != DEST_UNCERTAIN);
+      assert(dest != DEST_UNCERTAIN);
 
       conflict = instr->conflict;
    }
@@ -2374,7 +2374,7 @@ static OP_T op_add_output(OP_SRC_DETAIL_T input_detail, OP_DEST_T dest, uint32_t
       OP_FLAVOUR_T flavour;
       uint32_t pack_type;
 
-      vcos_assert(allow_mov);
+      assert(allow_mov);
 
       pack_type = get_pack_type(get_dest_pack(dest));
       if (pack_type == PACK_TYPE_MUL)
@@ -2383,7 +2383,7 @@ static OP_T op_add_output(OP_SRC_DETAIL_T input_detail, OP_DEST_T dest, uint32_t
          flavour = FLAVOUR_FMIN;
       else
       {
-         vcos_assert(pack_type == PACK_TYPE_A || pack_type == PACK_TYPE_A_I || pack_type == PACK_TYPE_NONE);
+         assert(pack_type == PACK_TYPE_A || pack_type == PACK_TYPE_A_I || pack_type == PACK_TYPE_NONE);
          flavour = FLAVOUR_MOV;
       }
 
@@ -2393,8 +2393,8 @@ static OP_T op_add_output(OP_SRC_DETAIL_T input_detail, OP_DEST_T dest, uint32_t
       return op;
    }
 
-   vcos_assert(input_detail.detail0 == (uint32_t)~0 && input_detail.detail1 == (uint32_t)~0);
-   vcos_assert(op_struct->dest == DEST_UNCERTAIN);
+   assert(input_detail.detail0 == (uint32_t)~0 && input_detail.detail1 == (uint32_t)~0);
+   assert(op_struct->dest == DEST_UNCERTAIN);
 
    instr->conflict = conflict;
    op_struct->dest = dest;
@@ -2403,13 +2403,13 @@ static OP_T op_add_output(OP_SRC_DETAIL_T input_detail, OP_DEST_T dest, uint32_t
 
    if (dest_is_sfu(dest))
    {
-      vcos_assert(acc_is_available[4] && acc_last_used[4] <= get_op_timestamp(op));
-      vcos_assert(acc_node[4] == (OP_T)~0);
+      assert(acc_is_available[4] && acc_last_used[4] <= get_op_timestamp(op));
+      assert(acc_node[4] == (OP_T)~0);
       acc_is_available[4] = false;
       acc_last_used[4] = get_op_timestamp(op);
       acc_node[4] = op;
 
-      vcos_assert(instr->move_r4 == (OP_T)MOVE_NO_DEST);
+      assert(instr->move_r4 == (OP_T)MOVE_NO_DEST);
       instr->move_r4 = MOVE_STILL_THERE;
    }
 
@@ -2431,7 +2431,7 @@ static OP_T op_join_output(OP_SRC_DETAIL_T input_detail, OP_SRC_DETAIL_T join_de
       input_without_unpack(join_detail.src) != INPUT_UNIFORM)
       join_detail.retire = false;
 
-   vcos_assert(dest_is_uncertain(pack));
+   assert(dest_is_uncertain(pack));
 
    if (join_detail.retire && input_is_from_op_dest(join_detail.src))
    {
@@ -2467,10 +2467,10 @@ static OP_T op_join_output(OP_SRC_DETAIL_T input_detail, OP_SRC_DETAIL_T join_de
       return op_join_output(input_detail, join_detail, pack, deps, dep_count, cond, flags_source, false);
    }
 
-   vcos_assert(join_struct->move == (OP_T)MOVE_STILL_THERE);
+   assert(join_struct->move == (OP_T)MOVE_STILL_THERE);
    join_struct->move = MOVE_RETIRED;
 
-   vcos_assert(dep_count < MAX_DEPS);
+   assert(dep_count < MAX_DEPS);
    khrn_memcpy(new_deps, deps, sizeof(OP_SRC_T) * dep_count);
    new_deps[dep_count] = join_detail.src;
 
@@ -2478,13 +2478,13 @@ static OP_T op_join_output(OP_SRC_DETAIL_T input_detail, OP_SRC_DETAIL_T join_de
    if (failed) return 0;
    result_struct = get_op_struct(result);
 
-   vcos_assert(result_struct->move == (OP_T)MOVE_NO_DEST);
+   assert(result_struct->move == (OP_T)MOVE_NO_DEST);
    result_struct->move = MOVE_STILL_THERE;
    if (dest_is_normal_acc(join_struct->dest))
    {
       /* accumulator now refers to something different */
       uint32_t row = get_dest_index(join_struct->dest);
-      vcos_assert(acc_node[row] == get_input_op(join_detail.src));
+      assert(acc_node[row] == get_input_op(join_detail.src));
       acc_node[row] = result;
    }
 
@@ -2626,45 +2626,45 @@ static void input_to_mux_code(
 
       if (unpack != UNPACK_NONE)
       {
-         vcos_assert(row == 4);
-         vcos_assert(*pm == (uint32_t)~0 || *pm == 1);
+         assert(row == 4);
+         assert(*pm == (uint32_t)~0 || *pm == 1);
          *pm = 1;
 
-         vcos_assert(*unp == (uint32_t)~0 || *unp == (unpack & 7));
+         assert(*unp == (uint32_t)~0 || *unp == (unpack & 7));
          *unp = unpack & 7;
       }
    }
    else if (choice == CHOICE_A)
    {
-      vcos_assert(row < 64);
-      vcos_assert(conflict & CONFLICT_READ_A);
+      assert(row < 64);
+      assert(conflict & CONFLICT_READ_A);
 
-      vcos_assert(*raddr_a == (uint32_t)~0 || *raddr_a == row);
+      assert(*raddr_a == (uint32_t)~0 || *raddr_a == row);
       *raddr_a = row;
       *mux = 6;
 
       if (unpack != UNPACK_NONE)
       {
-         vcos_assert(*pm == (uint32_t)~0 || *pm == 0);
+         assert(*pm == (uint32_t)~0 || *pm == 0);
          *pm = 0;
 
-         vcos_assert(*unp == (uint32_t)~0 || *unp == (unpack & 7));
+         assert(*unp == (uint32_t)~0 || *unp == (unpack & 7));
          *unp = unpack & 7;
       }
    }
    else if (choice == CHOICE_B)
    {
-      vcos_assert(row < 64);
-      vcos_assert(conflict & CONFLICT_READ_B);
-      vcos_assert(unpack == UNPACK_NONE);
-      vcos_assert(*raddr_b == (uint32_t)~0 || *raddr_b == row);
+      assert(row < 64);
+      assert(conflict & CONFLICT_READ_B);
+      assert(unpack == UNPACK_NONE);
+      assert(*raddr_b == (uint32_t)~0 || *raddr_b == row);
       *raddr_b = row;
       *mux = 7;
    }
    else if (choice == CHOICE_EITHER)
    {
-      vcos_assert(row < 64);
-      vcos_assert(unpack == UNPACK_NONE);
+      assert(row < 64);
+      assert(unpack == UNPACK_NONE);
       if (*raddr_a == row)
          choice = CHOICE_A;
       else if (*raddr_b == row)
@@ -2693,18 +2693,18 @@ static void input_to_mux_code(
    /* We carefully avoid acc here */
    if (row == 32)
    {
-      vcos_assert((*unif0 == (uint32_t)~0 && *unif1 == (uint32_t)~0) || (*unif0 == detail0 && *unif1 == detail1));
+      assert((*unif0 == (uint32_t)~0 && *unif1 == (uint32_t)~0) || (*unif0 == detail0 && *unif1 == detail1));
       *unif0 = detail0;
       *unif1 = detail1;
    }
    else if (row == 35)
    {
-      vcos_assert(*vary == (uint32_t)~0 || *vary == (uint32_t)detail0);
-      vcos_assert(detail1 == (uint32_t)~0);
+      assert(*vary == (uint32_t)~0 || *vary == (uint32_t)detail0);
+      assert(detail1 == (uint32_t)~0);
       *vary = detail0;
    }
    else
-      vcos_assert(detail0 == (uint32_t)~0 && detail1 == (uint32_t)~0);
+      assert(detail0 == (uint32_t)~0 && detail1 == (uint32_t)~0);
 }
 
 static void dest_to_waddr(
@@ -2720,7 +2720,7 @@ static void dest_to_waddr(
 {
    if (dest_is_normal_acc(dest))
    {
-      vcos_assert(get_dest_index(dest) < 4);
+      assert(get_dest_index(dest) < 4);
       *waddr = 32 + get_dest_index(dest);
    }
    else if (dest_is_a(dest) || dest_is_b(dest) || dest_is_either(dest))
@@ -2739,17 +2739,17 @@ static void dest_to_waddr(
       uint32_t our_pack = get_dest_pack(dest) & 0x0f;
       uint32_t our_pm = (get_dest_pack(dest) & 0x30) == 0x30;
 
-      vcos_assert(*pack == (uint32_t)~0);
+      assert(*pack == (uint32_t)~0);
       *pack = our_pack;
 
-      vcos_assert(*pm == (uint32_t)~0 || *pm == our_pm);
+      assert(*pm == (uint32_t)~0 || *pm == our_pm);
       *pm = our_pm;
    }
 
    if (dest_is_texture_write(dest))
    {
       uint32_t tmu = dest >= DEST_EITHER(60);
-      vcos_assert(*unif0 == (uint32_t)~0 && *unif1 == (uint32_t)~0);
+      assert(*unif0 == (uint32_t)~0 && *unif1 == (uint32_t)~0);
       *unif0 = dest_detail0 + current_tex_param[tmu];
       *unif1 = dest_detail1;
 
@@ -2805,7 +2805,7 @@ static uint32_t generate(uint32_t *output)
          bool bad = false;
          i++;
 
-         vcos_assert(i <= last_used_timestamp + 1);
+         assert(i <= last_used_timestamp + 1);
 
          if (get_instr(i)->sig != SIG_UNUSED && get_instr(i)->sig != SIG_GET_COL)
             continue;
@@ -2916,8 +2916,8 @@ static uint32_t generate(uint32_t *output)
       }
 
       /* last_used_timestamp is a uint32_t, so its not valid to say (last_used_timestamp - 2) > 0 */
-      vcos_assert(thrend_timestamp >= ((last_used_timestamp >= 2) ? (last_used_timestamp - 2) : 0));
-      vcos_assert(sbdone_timestamp >= last_used_timestamp);
+      assert(thrend_timestamp >= ((last_used_timestamp >= 2) ? (last_used_timestamp - 2) : 0));
+      assert(sbdone_timestamp >= last_used_timestamp);
       last_used_timestamp = thrend_timestamp + 2;
 
       instr = get_instr(thrend_timestamp);
@@ -2925,12 +2925,12 @@ static uint32_t generate(uint32_t *output)
          instr->sig = SIG_GET_COL_THREND;
       else
       {
-         vcos_assert(instr->sig == SIG_UNUSED);
+         assert(instr->sig == SIG_UNUSED);
          instr->sig = SIG_THREND;
       }
 
       instr = get_instr(sbdone_timestamp);
-      vcos_assert(instr->sig == SIG_UNUSED);
+      assert(instr->sig == SIG_UNUSED);
       instr->sig = SIG_SB_DONE;
 
       if (!khrn_workarounds.SBWAIT)
@@ -3057,7 +3057,7 @@ static uint32_t generate(uint32_t *output)
 
       if (i == last_thrsw)
       {
-         vcos_assert(instr->sig == SIG_THRSW);
+         assert(instr->sig == SIG_THRSW);
          sig = sig_to_code(SIG_LAST_THRSW);
       }
       else
@@ -3068,19 +3068,19 @@ static uint32_t generate(uint32_t *output)
          sf = 1;
       if (op1->set_flags)
       {
-         vcos_assert(op0->flavour == FLAVOUR_UNUSED);
+         assert(op0->flavour == FLAVOUR_UNUSED);
          sf = 1;
       }
 
-      vcos_assert(mul_b <= 7 && mul_a <= 7 && add_b <= 7 && add_a <= 7 && raddr_b <= 63 && raddr_a <= 63 && op_add <= 31 && op_mul <= 7);
-      vcos_assert(waddr_mul <= 63 && waddr_add <= 63 && ws <= 1 && sf <= 1 && cond_mul <= 7 && cond_add <= 7 && pack <= 15 && pm <= 1 && unpack <= 7 && sig <= 15);
+      assert(mul_b <= 7 && mul_a <= 7 && add_b <= 7 && add_a <= 7 && raddr_b <= 63 && raddr_a <= 63 && op_add <= 31 && op_mul <= 7);
+      assert(waddr_mul <= 63 && waddr_add <= 63 && ws <= 1 && sf <= 1 && cond_mul <= 7 && cond_add <= 7 && pack <= 15 && pm <= 1 && unpack <= 7 && sig <= 15);
 
       *(output++) = mul_b | mul_a << 3 | add_b << 6 | add_a << 9 | raddr_b << 12 | raddr_a << 18 | op_add << 24 | op_mul << 29;
       *(output++) = waddr_mul | waddr_add << 6 | ws << 12 | sf << 13 | cond_mul << 14 | cond_add << 17 | pack << 20 | pm << 24 | unpack << 25 | sig << 28;
 
       if (unif0 != (uint32_t)~0 || unif1 != (uint32_t)~0)
       {
-         vcos_assert((umap - uniform_map) / 2 < MAX_UNIFORMS);
+         assert((umap - uniform_map) / 2 < MAX_UNIFORMS);
          *(umap++) = unif0;
          *(umap++) = unif1;
       }
@@ -3088,14 +3088,14 @@ static uint32_t generate(uint32_t *output)
       {
          if (vary >= 32)   /* Don't write out point coord varyings (0 and 1) */
          {
-            vcos_assert(varying_count < MAX_UNIFORMS);
+            assert(varying_count < MAX_UNIFORMS);
             varying_map[varying_count] = vary - 32;
             varying_count++;
          }
       }
    }
 
-   vcos_assert(current_tex_param[0] == BACKEND_UNIFORM_TEX_PARAM0 && current_tex_param[1] == BACKEND_UNIFORM_TEX_PARAM0);
+   assert(current_tex_param[0] == BACKEND_UNIFORM_TEX_PARAM0 && current_tex_param[1] == BACKEND_UNIFORM_TEX_PARAM0);
    uniform_count = (umap - uniform_map) / 2;
 
    return (output - output_start) / 2;
@@ -3103,7 +3103,7 @@ static uint32_t generate(uint32_t *output)
 
 static OP_T find_node(Dataflow *dataflow)
 {
-   vcos_assert(dataflow->slot != ~0);
+   assert(dataflow->slot != ~0);
    return dataflow->slot;
 }
 
@@ -3193,7 +3193,7 @@ static OP_SRC_DETAIL_T find_src(Dataflow *dataflow, bool track, bool actually_ca
          break;
       case DATAFLOW_VARYING:
          /* TODO: get rid of this +32 thing */
-         vcos_assert((dataflow->u.linkable_value.row <= 1) || (dataflow->u.linkable_value.row >= 32 && dataflow->u.linkable_value.row < 64));
+         assert((dataflow->u.linkable_value.row <= 1) || (dataflow->u.linkable_value.row >= 32 && dataflow->u.linkable_value.row < 64));
          detail0 = dataflow->u.linkable_value.row;
          src = INPUT_VARYING;
          break;
@@ -3222,7 +3222,7 @@ static OP_SRC_DETAIL_T find_src(Dataflow *dataflow, bool track, bool actually_ca
          src = input_from_instr_r4(get_op_timestamp(find_node(dataflow)), 0, !track && actually_care);
          break;
       case DATAFLOW_VARYING_C:
-         vcos_assert(dataflow->iodependencies.first && !dataflow->iodependencies.first->next);
+         assert(dataflow->iodependencies.first && !dataflow->iodependencies.first->next);
          src = input_from_instr_r5(get_op_timestamp(find_node(dataflow->iodependencies.first->dataflow)), 0, !track && actually_care);
          break;
       case DATAFLOW_FRAG_GET_COL:
@@ -3272,7 +3272,7 @@ static OP_SRC_DETAIL_T find_src(Dataflow *dataflow, bool track, bool actually_ca
          OP_STRUCT_T *op_struct = get_op_struct(dataflow->slot);
          if (actually_care)
          {
-            vcos_assert(op_struct->flavour == FLAVOUR_MOV && get_input_unpack(op_struct->left.src) == UNPACK_NONE);
+            assert(op_struct->flavour == FLAVOUR_MOV && get_input_unpack(op_struct->left.src) == UNPACK_NONE);
          }
 #endif
          src = input_from_op(dataflow->slot, 0);
@@ -3309,7 +3309,7 @@ static OP_SRC_DETAIL_T find_src(Dataflow *dataflow, bool track, bool actually_ca
             break;
 
          op = NULL;
-         vcos_assert(move != (OP_T)MOVE_RETIRED);
+         assert(move != (OP_T)MOVE_RETIRED);
          if (move == (OP_T)MOVE_NO_DEST) break;
          if (move == (OP_T)MOVE_STILL_THERE) break;
          //if (get_op_timestamp(move) >= get_op_timestamp(consumer)) break;
@@ -3385,7 +3385,7 @@ bool glsl_allocator_init(uint32_t type, bool is_threaded, uint32_t num_attribute
       b_scheduler_node[15] = NULL;
    }
 
-   vcos_assert(!is_threaded || type & GLSL_BACKEND_TYPE_FRAGMENT);
+   assert(!is_threaded || type & GLSL_BACKEND_TYPE_FRAGMENT);
    shader_type = type;
    shader_is_threaded = is_threaded;
 
@@ -3440,7 +3440,7 @@ static uint32_t get_textunit(Dataflow *sampler)
 {
    if (sampler == NULL)
       return 0;     /* TODO: indexed lookups should be spread over both units */
-   vcos_assert(sampler->flavour == DATAFLOW_CONST_SAMPLER);
+   assert(sampler->flavour == DATAFLOW_CONST_SAMPLER);
    return (sampler->u.const_sampler.location & 0x80000000) ? 1 : 0;
 }
 
@@ -3449,7 +3449,7 @@ static void add_iodependencies(Dataflow *dataflow, OP_SRC_T *deps, uint32_t *dep
    DataflowChainNode *node;
    for (node = dataflow->iodependencies.first; node; node = node->next)
    {
-      vcos_assert(*dep_count < MAX_DEPS);
+      assert(*dep_count < MAX_DEPS);
       deps[*dep_count] = find_src(node->dataflow, false, false).src;
       (*dep_count)++;
    }
@@ -3501,7 +3501,7 @@ void glsl_allocator_add_node(Dataflow *dataflow)
    dep_count = 0;
    for (node = dataflow->iodependencies.first; node; node = node->next)
    {
-      vcos_assert(dep_count < MAX_DEPS);
+      assert(dep_count < MAX_DEPS);
       deps[dep_count] = find_src(node->dataflow, false, false).src;
       dep_count++;
    }
@@ -3597,7 +3597,7 @@ void glsl_allocator_add_node(Dataflow *dataflow)
             b_scheduler_node[get_dest_index(result_struct->dest)] = dataflow;
          }
 
-         vcos_assert(dataflow->slot == ~0);
+         assert(dataflow->slot == ~0);
          dataflow->slot = result;
          return;
       }
@@ -3664,7 +3664,7 @@ void glsl_allocator_add_node(Dataflow *dataflow)
          sig = true; sig_code = SIG_GET_COL; break;
       case DATAFLOW_FRAG_SUBMIT_STENCIL:
          output = true; op = DEST_EITHER(43); source = dataflow->d.fragment_set.param;
-         vcos_assert(!dataflow->d.fragment_set.discard);
+         assert(!dataflow->d.fragment_set.discard);
          break;
       case DATAFLOW_FRAG_SUBMIT_Z:
          output = true; op = DEST_EITHER(44); source = dataflow->d.fragment_set.param;
@@ -3695,7 +3695,7 @@ void glsl_allocator_add_node(Dataflow *dataflow)
          break;
       case DATAFLOW_TMU_SWAP:
          output = true; op = DEST_EITHER(36); source = dataflow->d.fragment_set.param;
-         vcos_assert(!dataflow->d.fragment_set.discard);
+         assert(!dataflow->d.fragment_set.discard);
          break;
       case DATAFLOW_VERTEX_SET:
          output = true; op = DEST_EITHER(48); source = dataflow->d.vertex_set.param; break;
@@ -3756,7 +3756,7 @@ void glsl_allocator_add_node(Dataflow *dataflow)
          result = op_add_output(src_detail, op, ~0, ~0, deps, dep_count, COND_ALWAYS, src_detail_none(), true);
       }
 
-      vcos_assert(dataflow->slot == ~0);
+      assert(dataflow->slot == ~0);
       dataflow->slot = result;
 
       return;
@@ -3783,7 +3783,7 @@ void glsl_allocator_add_node(Dataflow *dataflow)
 
       result = op_add_output(find_src(source, true, true), op, dest_detail0, dest_detail1, deps, dep_count, cond, flags_src, true);
 
-      vcos_assert(dataflow->slot == ~0);
+      assert(dataflow->slot == ~0);
       dataflow->slot = result;
 
       return;
@@ -3793,7 +3793,7 @@ void glsl_allocator_add_node(Dataflow *dataflow)
    {
       result = instr_add_sig(sig_code, deps, dep_count);
 
-      vcos_assert(dataflow->slot == ~0);
+      assert(dataflow->slot == ~0);
       dataflow->slot = op_from_timestamp(result, 0);    /* TODO: bad */
 
       return;
@@ -3820,7 +3820,7 @@ void glsl_allocator_add_node(Dataflow *dataflow)
 
    result = op_add_alu(op, find_src(left, true, true), find_src(right, true, true), deps, dep_count, true, 0, 0);
 
-   vcos_assert(dataflow->slot == ~0);
+   assert(dataflow->slot == ~0);
    dataflow->slot = result;
 
    return;
@@ -3842,7 +3842,7 @@ bool glsl_allocator_add_input_dependency(Dataflow *dataflow)
    dep_count = 0;
    for (node = dataflow->iodependencies.first; node; node = node->next)
    {
-      vcos_assert(dep_count < MAX_DEPS);
+      assert(dep_count < MAX_DEPS);
       deps[dep_count] = find_src(node->dataflow, false, false).src;
       dep_count++;
    }
@@ -3869,8 +3869,8 @@ bool glsl_allocator_finish()
    }
 
    generated_instruction_count = generate(generated_instructions);
-   vcos_assert(generated_instruction_count <= MAX_INSTRUCTIONS);
-   vcos_assert(!finished);
+   assert(generated_instruction_count <= MAX_INSTRUCTIONS);
+   assert(!finished);
    finished = true;
 
    if ((line_capture_fragment) && (shader_type & GLSL_BACKEND_TYPE_FRAGMENT)) glsl_allocator_dump();
@@ -3887,7 +3887,7 @@ bool glsl_allocator_finish()
 
 void glsl_allocator_dump(void)
 {
-   vcos_assert(finished);
+   assert(finished);
 
    /*DEBUG*/
    {
@@ -3917,37 +3917,37 @@ void glsl_allocator_dump(void)
 
 uint32_t *glsl_allocator_get_shader_pointer(void)
 {
-   vcos_assert(finished);
+   assert(finished);
    return generated_instructions;
 }
 
 uint32_t glsl_allocator_get_shader_size(void)
 {
-   vcos_assert(finished);
+   assert(finished);
    return 8 * generated_instruction_count;
 }
 
 uint32_t *glsl_allocator_get_unif_pointer(void)
 {
-   vcos_assert(finished);
+   assert(finished);
    return uniform_map;
 }
 
 uint32_t glsl_allocator_get_unif_count(void)
 {
-   vcos_assert(finished);
+   assert(finished);
    return uniform_count;
 }
 
 uint32_t *glsl_allocator_get_varying_pointer(void)
 {
-   vcos_assert(finished);
+   assert(finished);
    return varying_map;
 }
 
 uint32_t glsl_allocator_get_varying_count(void)
 {
-   vcos_assert(finished);
+   assert(finished);
    return varying_count;
 }
 
@@ -3961,11 +3961,11 @@ void glsl_allocator_mark_failed_nodes_on_stack(void) {
    for (i = 0; i < 32; i++)
    {
       if (!a_is_available[i] && a_scheduler_node[i]) {
-         vcos_assert(failed);
+         assert(failed);
          a_scheduler_node[i]->phase = BACKEND_PASS_FAILED_ON_STACK;
       }
       if (!b_is_available[i] && b_scheduler_node[i]) {
-         vcos_assert(failed);
+         assert(failed);
          b_scheduler_node[i]->phase = BACKEND_PASS_FAILED_ON_STACK;
       }
    }
@@ -4022,7 +4022,7 @@ Dataflow *glsl_allocator_get_next_scheduler_node(void)
             }
             if (ch->dataflow->phase == BACKEND_PASS_DIVING ) bypass = true;
          }
-         vcos_assert(bypass || found);        /* There must be some dependency left or why is this on the stack? */
+         assert(bypass || found);        /* There must be some dependency left or why is this on the stack? */
       }
       if (!b_is_available[i] && b_scheduler_node[i] && b_scheduler_order[i] < best_order)
       {
@@ -4039,7 +4039,7 @@ Dataflow *glsl_allocator_get_next_scheduler_node(void)
             }
             if (ch->dataflow->phase == BACKEND_PASS_DIVING ) bypass = true;
          }
-         vcos_assert(bypass || found);        /* There must be some dependency left or why is this on the stack? */
+         assert(bypass || found);        /* There must be some dependency left or why is this on the stack? */
       }
    }
 
@@ -4049,6 +4049,6 @@ Dataflow *glsl_allocator_get_next_scheduler_node(void)
 
 void glsl_allocator_finish_scheduler_node(void)
 {
-   vcos_assert(scheduler_have_node);
+   assert(scheduler_have_node);
    scheduler_have_node = false;
 }

@@ -36,7 +36,7 @@ struct khrn_render_state
    union
    {
       GLXX_HW_RENDER_STATE_T glxx;
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
       glxx_compute_render_state glxx_compute;
 #endif
    }
@@ -59,7 +59,7 @@ extern khrn_render_state *khrn_render_state_new(
 
 static inline GLXX_HW_RENDER_STATE_T *khrn_render_state_get_glxx(khrn_render_state *rs);
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 static inline glxx_compute_render_state* khrn_render_state_get_glxx_compute(khrn_render_state* rs);
 #endif
 

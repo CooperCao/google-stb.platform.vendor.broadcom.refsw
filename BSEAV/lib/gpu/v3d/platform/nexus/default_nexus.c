@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  Default Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
 #include "default_nexus.h"
 #include "display_nexus.h"
@@ -17,16 +10,9 @@ DESC
 #include <malloc.h>
 #include <memory.h>
 
-#define UNUSED(X) (void)X
-
 /*****************************************************************************
  * Registration interface
  *****************************************************************************/
-/* Register a display for exclusive use. The client application should not use the display until
- * calling NXPL_UnregisterNexusDisplayPlatform.
- * It will register its own memory, h/w and display APIs suitable for basic exclusive mode rendering on
- * a Nexus display. */
-#ifdef SINGLE_PROCESS
 void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLAYHANDLE display)
 {
    BEGL_DriverInterfaces *data = (BEGL_DriverInterfaces*)malloc(sizeof(BEGL_DriverInterfaces));
@@ -46,32 +32,6 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
       BEGL_RegisterDriverInterfaces(data);
    }
 }
-
-#else
-/* MULTI PROCESS */
-void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLAYHANDLE display /*ignored*/)
-{
-   BEGL_DriverInterfaces *data = (BEGL_DriverInterfaces*)malloc(sizeof(BEGL_DriverInterfaces));
-
-   UNUSED(display);
-
-   memset(data, 0, sizeof(BEGL_DriverInterfaces));
-
-   if (data != NULL)
-   {
-      BEGL_GetDefaultDriverInterfaces(data);
-
-      data->hwInterface      = NXPL_CreateHWInterface(&data->hardwareCallbacks);
-      data->memInterface     = NXPL_CreateMemInterface(data->hwInterface);
-      printf("%s data->hwInterface %p\n", __FUNCTION__, data->hwInterface);
-      data->displayInterface = NXPL_CreateDisplayInterface(data->memInterface, data->hwInterface, &data->displayCallbacks);
-
-      *handle = (NXPL_PlatformHandle)data;
-
-      BEGL_RegisterDriverInterfaces(data);
-   }
-}
-#endif
 
 /* Unregister a display for exclusive use. The client application can then use the Nexus display again. */
 void NXPL_UnregisterNexusDisplayPlatform(NXPL_PlatformHandle handle)

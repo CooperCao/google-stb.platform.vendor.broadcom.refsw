@@ -36,10 +36,15 @@
  * ANY LIMITED REMEDY.
  ****************************************************************************/
 
-#include <inttypes.h>
-#include <stdint.h>
-
 #include "libdspcontrol/CHIP.h"
+#if FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
+#  include "bstd_defs.h"
+#  include "DSP_raaga_inttypes.h"
+#else
+#  include <inttypes.h>
+#  include <stdint.h>
+#endif
+
 #include "libdspcontrol/DSP.h"
 #include "libdspcontrol/DSPLOG.h"
 

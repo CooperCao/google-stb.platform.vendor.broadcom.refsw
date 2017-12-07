@@ -1,16 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  khronos
-Module   :  EGL
-
-FILE DESCRIPTION
-EGL client <-> server interface stuff.
-=============================================================================*/
-
-#ifndef EGL_INT_H
-#define EGL_INT_H
+#include <stdint.h>
 
 typedef enum {
    OPENGL_ES_11,
@@ -24,9 +17,7 @@ typedef uint32_t EGL_SURFACE_ID_T;
 
 // Either a GLES1.1 or GLES2.0 server state
 typedef uint32_t EGL_GL_CONTEXT_ID_T;
-
 typedef uint32_t EGL_VG_CONTEXT_ID_T;
-
 typedef uint32_t EGL_CONTEXT_ID_T;
 
 #define EGL_SERVER_NO_SURFACE 0
@@ -37,5 +28,3 @@ typedef uint32_t EGL_CONTEXT_ID_T;
 #define EGL_SERVER_GL20 2
 
 typedef uint32_t EGL_SYNC_ID_T;
-
-#endif

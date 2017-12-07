@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -60,27 +60,6 @@
 
 BDBG_MODULE(BCHP);
 
-/* Miscellaneous macros. */
-#define BCHP_P_MAJOR_REV_SHIFT          (4)
-
-/* Chip info and features */
-typedef struct BCHP_P_7584_Info
-{
-    uint32_t      ulChipIdReg; /* index into the table. */
-
-    /* Chip Id */
-    uint16_t      usChipId; /* PRODUCT_ID */
-
-    /* Major revision */
-    uint16_t      usMajor;
-
-    /* Minor revision */
-    uint16_t      usMinor;
-
-    /* TODO: Other features or infos if needed */
-} BCHP_P_7584_Info;
-
-
 /* Lookup table for chip features and etc.
  * The are many times when the chip device id register
  * not conforming to the standard numbering convention. We do
@@ -88,68 +67,22 @@ typedef struct BCHP_P_7584_Info
  *
  * TODO: Update this table to support new revisions.
  */
-static const BCHP_P_7584_Info s_aChipInfoTable[] =
+static const BCHP_P_Info s_aChipInfoTable[] =
 {
 #if ((BCHP_VER == BCHP_VER_A0) || (BCHP_VER == BCHP_VER_A1))
     /* A0 code will run on A0, A1 */
    {0x75840000, BCHP_BCM7584, BCHP_MAJOR_A, BCHP_MINOR_0},
-   {0x75830000, BCHP_BCM7583, BCHP_MAJOR_A, BCHP_MINOR_0},
-   {0x75760000, BCHP_BCM7576, BCHP_MAJOR_A, BCHP_MINOR_0},
    {0x75840001, BCHP_BCM7584, BCHP_MAJOR_A, BCHP_MINOR_1},
-   {0x75830001, BCHP_BCM7583, BCHP_MAJOR_A, BCHP_MINOR_1},
-   {0x75760001, BCHP_BCM7576, BCHP_MAJOR_A, BCHP_MINOR_1},
 #else
     #error "Port required"
 #endif
 };
 
-/* Chip context */
-typedef struct BCHP_P_7584_Context
-{
-    uint32_t                           ulBlackMagic;
-    BREG_Handle                        hRegister;
-    const BCHP_P_7584_Info            *pChipInfo;
-    BCHP_P_AvsHandle                  hAvsHandle;
-} BCHP_P_7584_Context;
-
 /* Max entry of lookup table */
 #define BCHP_P_CHIP_INFO_MAX_ENTRY \
-    (sizeof(s_aChipInfoTable) / sizeof(BCHP_P_7584_Info))
-
-/* This macro checks for a validity of a handle, and
- * cast to context pointer. */
-#define BCHP_P_GET_CONTEXT(handle, context) \
-{ \
-    if(!(handle) || \
-       !((handle)->chipHandle) || \
-       (((BCHP_P_7584_Context*)((handle)->chipHandle))->ulBlackMagic != \
-       sizeof(BCHP_P_7584_Context))) \
-    { \
-        BDBG_ERR(("Corrupted context handle")); \
-        (context) = NULL; \
-    } \
-    else \
-    { \
-        (context) = (BCHP_P_7584_Context*)((handle)->chipHandle); \
-    } \
-    BDBG_ASSERT(context); \
-}
+    (sizeof(s_aChipInfoTable) / sizeof(BCHP_P_Info))
 
 /* Static function prototypes */
-static BERR_Code BCHP_P_Close7584
-    ( BCHP_Handle                      hChip );
-
-static BERR_Code BCHP_P_GetChipInfoComformWithBaseClass
-    ( const BCHP_Handle                hChip,
-      uint16_t                        *pusChipId,
-      uint16_t                        *pusChipRev );
-
-static BERR_Code BCHP_P_GetChipInfo
-    ( const BCHP_Handle                hChip,
-      uint16_t                        *pusChipId,
-      uint16_t                        *pusChipMajorRev,
-      uint16_t                        *pusChipMinorRev );
-
 static BERR_Code BCHP_P_GetFeature
     ( const BCHP_Handle                hChip,
       const BCHP_Feature               eFeature,
@@ -157,18 +90,6 @@ static BERR_Code BCHP_P_GetFeature
 
 static BERR_Code BCHP_P_ResetMagnumCores
     ( const BCHP_Handle                hChip );
-
-static void BCHP_P_MonitorPvt
-    ( BCHP_Handle                      hChip,
-      BCHP_AvsSettings                *pSettings );
-
-static BERR_Code BCHP_P_GetAvsData
-    ( BCHP_Handle                      hChip,
-      BCHP_AvsData                    *pData );
-
-static BERR_Code BCHP_P_StandbyMode
-    ( BCHP_Handle                      hChip,
-      bool                             activate );
 
 static void BCHP_P_ResetRaagaCore
     (const BCHP_Handle                 hChip,
@@ -187,132 +108,40 @@ BERR_Code BCHP_Open7584
       BREG_Handle                      hRegister )
 {
     BCHP_P_Context *pChip;
-    BCHP_P_7584_Context *p7584Chip;
-    uint32_t ulChipIdReg;
-    uint32_t ulIdx;
     BERR_Code rc;
 
     BDBG_ENTER(BCHP_Open7584);
-
-    if((!phChip) ||
-       (!hRegister))
-    {
-        BDBG_ERR(("Invalid parameter"));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
 
     /* If error ocurr user get a NULL *phChip */
     *phChip = NULL;
 
     /* Alloc the base chip context. */
-    pChip = (BCHP_P_Context*)(BKNI_Malloc(sizeof(BCHP_P_Context)));
+    pChip = BCHP_P_Open(hRegister, s_aChipInfoTable, BCHP_P_CHIP_INFO_MAX_ENTRY);
     if(!pChip)
     {
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
 
-    /* Clear out the context and set defaults. */
-    BKNI_Memset((void*)pChip, 0x0, sizeof(BCHP_P_Context));
-
-    p7584Chip = (BCHP_P_7584_Context*)
-        (BKNI_Malloc(sizeof(BCHP_P_7584_Context)));
-    if(!p7584Chip)
-    {
-        BKNI_Free(pChip);
-        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-    }
-
-    /* Clear out the context and set defaults. */
-    BKNI_Memset((void*)p7584Chip, 0x0, sizeof(BCHP_P_7584_Context));
-
-    /* Fill up the base chip context. */
-    pChip->chipHandle       = (void*)p7584Chip;
-    pChip->regHandle        = hRegister;
-    pChip->pCloseFunc       = BCHP_P_Close7584;
-    pChip->pGetChipInfoFunc = BCHP_P_GetChipInfoComformWithBaseClass;
     pChip->pGetFeatureFunc  = BCHP_P_GetFeature;
-    pChip->pMonitorPvtFunc  = BCHP_P_MonitorPvt;
-    pChip->pGetAvsDataFunc  = BCHP_P_GetAvsData;
-    pChip->pStandbyModeFunc = BCHP_P_StandbyMode;
-
-    /* Fill up the chip context. */
-    p7584Chip->ulBlackMagic = sizeof(BCHP_P_7584_Context);
-    p7584Chip->hRegister    = hRegister;
-
-    /* Chip Family Register id is use for indexing into the table. */
-    ulChipIdReg = BREG_Read32(hRegister, BCHP_SUN_TOP_CTRL_PRODUCT_ID);
-
-/* decompose 32 bit chip id for use with printf format string %x%c%d
-Example: 0x75840000 becomes "7584A0" */
-#define PRINT_CHIP(CHIPID) \
-    ((CHIPID)>>16), ((((CHIPID)&0xF0)>>4)+'A'), ((CHIPID)&0x0F)
-
-    for(ulIdx = 0; ulIdx < BCHP_P_CHIP_INFO_MAX_ENTRY; ulIdx++)
-    {
-        BDBG_MSG(("Supported Chip Family and revision: %x%c%d", PRINT_CHIP(s_aChipInfoTable[ulIdx].ulChipIdReg)));
-        BDBG_MSG(("Supported Chip ID: %x", s_aChipInfoTable[ulIdx].usChipId));
-        BDBG_MSG((" "));
-    }
-
-    /* Lookup corresponding chip id. */
-    for(ulIdx = 0; ulIdx < BCHP_P_CHIP_INFO_MAX_ENTRY; ulIdx++)
-    {
-        const BCHP_P_7584_Info *compareChipInfo = &s_aChipInfoTable[ulIdx];
-
-        if(compareChipInfo->ulChipIdReg == ulChipIdReg)
-        {
-            /* Chip Information. */
-            p7584Chip->pChipInfo = compareChipInfo;
-            break;
-        }
-        else if (ulIdx == BCHP_P_CHIP_INFO_MAX_ENTRY - 1 && compareChipInfo->usMajor == (ulChipIdReg&0xF0)>>4)
-        {
-            /* This is a future minor revision. We will allow it with a WRN. */
-            BDBG_WRN(("An unknown minor revision %x%c%d has been detected. Certain operations may result in erratic behavior. Please confirm this chip revision is supported with this software.",
-                PRINT_CHIP(ulChipIdReg)));
-            p7584Chip->pChipInfo = compareChipInfo;
-            break;
-        }
-    }
-
-    if(!p7584Chip->pChipInfo)
-    {
-        BKNI_Free(p7584Chip);
-        BKNI_Free(pChip);
-        BDBG_ERR(("*****************************************************************"));
-        BDBG_ERR(("ERROR ERROR ERROR ERROR"));
-        BDBG_ERR(("Unsupported Revision: %x%c%d", PRINT_CHIP(ulChipIdReg)));
-        BDBG_ERR(("*****************************************************************"));
-        phChip = NULL;
-        BDBG_ASSERT(phChip);
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-    BDBG_MSG(("found %x%c%d", PRINT_CHIP(p7584Chip->pChipInfo->ulChipIdReg)));
 
     /* Open BCHP_PWR - but first, do a reset on some of the Magnum controlled cores so
      * that they don't interfere with BCHP_PWR_Open's powering up/down.
      */
     rc = BCHP_P_ResetMagnumCores( pChip );
 
-#if BCHP_PWR_SUPPORT
     /* Open BCHP_PWR */
     rc = BCHP_PWR_Open(&pChip->pwrManager, pChip);
     if (rc) {
         BKNI_Free(pChip);
-        BKNI_Free(p7584Chip);
         return BERR_TRACE(rc);
     }
-#endif
 
     /* Open AVS module */
-    BCHP_P_AvsOpen(&p7584Chip->hAvsHandle, pChip);
-    if(!p7584Chip->hAvsHandle)
+    BCHP_P_AvsOpen(&pChip->hAvsHandle, pChip);
+    if(!pChip->hAvsHandle)
     {
-#if BCHP_PWR_SUPPORT
         BCHP_PWR_Close(pChip->pwrManager);
-#endif
         BKNI_Free(pChip);
-        BKNI_Free(p7584Chip);
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
 
@@ -333,135 +162,19 @@ Example: 0x75840000 becomes "7584A0" */
 }
 
 
-/***************************************************************************
- * {private}
- *
- */
-static BERR_Code BCHP_P_Close7584
-    ( BCHP_Handle                      hChip )
-{
-    BCHP_P_7584_Context *p7584Chip;
-
-    BDBG_ENTER(BCHP_P_Close7584);
-
-    BCHP_P_GET_CONTEXT(hChip, p7584Chip);
-
-    if(!p7584Chip)
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    if (p7584Chip->hAvsHandle) {
-        BCHP_P_AvsClose(p7584Chip->hAvsHandle);
-        p7584Chip->hAvsHandle = NULL;
-    }
-#if BCHP_PWR_SUPPORT
-    /* Note: PWR_Close goes here (after AvsClose) */
-    BCHP_PWR_Close(hChip->pwrManager);
-#endif
-    /* Invalidate the magic number. */
-    p7584Chip->ulBlackMagic = 0;
-
-    BKNI_Free((void*)p7584Chip);
-    BKNI_Free((void*)hChip);
-
-    BDBG_LEAVE(BCHP_P_Close7584);
-    return BERR_SUCCESS;
-}
-
-
-/***************************************************************************
- * {private}
- *
- */
-static BERR_Code BCHP_P_GetChipInfoComformWithBaseClass
-    ( const BCHP_Handle                hChip,
-      uint16_t                        *pusChipId,
-      uint16_t                        *pusChipRev )
-
-{
-    BERR_Code eStatus;
-    uint16_t usMajor=0;
-    uint16_t usMinor=0;
-
-    eStatus = BERR_TRACE(BCHP_P_GetChipInfo(hChip, pusChipId,
-        &usMajor, &usMinor));
-    if(BERR_SUCCESS != eStatus)
-    {
-        return eStatus;
-    }
-
-    if(pusChipRev)
-    {
-        *pusChipRev = ((usMajor << BCHP_P_MAJOR_REV_SHIFT) + usMinor);
-    }
-
-    return BERR_SUCCESS;
-}
-
-
-/***************************************************************************
- * {private}
- *
- */
-static BERR_Code BCHP_P_GetChipInfo
-    ( const BCHP_Handle                hChip,
-      uint16_t                        *pusChipId,
-      uint16_t                        *pusChipMajorRev,
-      uint16_t                        *pusChipMinorRev )
-{
-    const BCHP_P_7584_Context *p7584Chip;
-
-    BDBG_ENTER(BCHP_P_GetChipInfo);
-
-    BCHP_P_GET_CONTEXT(hChip, p7584Chip);
-
-    if(!p7584Chip)
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    if(pusChipId)
-    {
-        *pusChipId = p7584Chip->pChipInfo->usChipId;
-    }
-
-    if(pusChipMajorRev)
-    {
-        *pusChipMajorRev = p7584Chip->pChipInfo->usMajor;
-    }
-
-    if(pusChipMinorRev)
-    {
-        *pusChipMinorRev = p7584Chip->pChipInfo->usMinor;
-    }
-
-    BDBG_LEAVE(BCHP_P_GetChipInfo);
-    return BERR_SUCCESS;
-}
-
-/***************************************************************************
- * {private}
- *
- */
 static BERR_Code BCHP_P_GetFeature
     ( const BCHP_Handle                hChip,
       const BCHP_Feature               eFeature,
       void                            *pFeatureValue )
 {
     BERR_Code            rc = BERR_UNKNOWN;
-    BCHP_P_7584_Context *p7584Chip;
     uint32_t             ulBondStatus;
     uint32_t             uiReg;
     uint32_t             avd_freq;
 
     BDBG_ENTER(BCHP_P_GetFeature);
-
-    /* get base context */
-    BCHP_P_GET_CONTEXT(hChip, p7584Chip);
-
     /* read bond-out status common for many features */
-    ulBondStatus = BREG_Read32(p7584Chip->hRegister,
+    ulBondStatus = BREG_Read32(hChip->regHandle,
         BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_0);
 
     /* which feature? */
@@ -513,7 +226,7 @@ static BERR_Code BCHP_P_GetFeature
 
     case BCHP_Feature_eAVDCoreFreq:
 
-       uiReg = BREG_Read32(p7584Chip->hRegister, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2);
+       uiReg = BREG_Read32(hChip->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2);
        avd_freq = BCHP_GET_FIELD_DATA(uiReg, CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2);
        if(avd_freq == 0)
            *(int *)pFeatureValue = 0;
@@ -525,7 +238,7 @@ static BERR_Code BCHP_P_GetFeature
 
     case BCHP_Feature_eRfmCapable:
         /* RFM capable? (bool) */
-        if(p7584Chip->pChipInfo->usChipId == BCHP_BCM7583)
+        if(hChip->info.productId == 0x7583)
         {
             *(bool *)pFeatureValue = false;
         }
@@ -657,60 +370,6 @@ static BERR_Code BCHP_P_ResetMagnumCores
     BREG_Write32(hChip->regHandle, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR,
          BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, sid_sw_init, 1));
 
-    return BERR_SUCCESS;
-}
-
-/* This gets called regularly to handle the AVS processing */
-static void BCHP_P_MonitorPvt( BCHP_Handle hChip, BCHP_AvsSettings *pSettings )
-{
-    BCHP_P_7584_Context *p7584Chip;
-
-    BDBG_ENTER(BCHP_P_MonitorPvt);
-    BSTD_UNUSED(pSettings);
-
-    /* get base context */
-    BCHP_P_GET_CONTEXT(hChip, p7584Chip);
-
-    if (p7584Chip->hAvsHandle)
-        BCHP_P_AvsMonitorPvt(p7584Chip->hAvsHandle);
-
-    BDBG_LEAVE(BCHP_P_MonitorPvt);
-}
-
-/* This provides the current AVS data */
-static BERR_Code BCHP_P_GetAvsData( BCHP_Handle hChip, BCHP_AvsData *pData )
-{
-    BCHP_P_7584_Context *p7584Chip;
-
-    BDBG_ASSERT(pData);
-
-    BDBG_ENTER(BCHP_GetAVdata);
-
-    /* get base context */
-    BCHP_P_GET_CONTEXT(hChip, p7584Chip);
-
-    if (p7584Chip->hAvsHandle)
-        BCHP_P_AvsGetData(p7584Chip->hAvsHandle, pData);
-
-    BDBG_LEAVE(BCHP_GetAVdata);
-    return BERR_SUCCESS;
-}
-
-static BERR_Code BCHP_P_StandbyMode( BCHP_Handle hChip, bool activate )
-{
-    BCHP_P_7584_Context *p7584Chip;
-
-    BDBG_ENTER(BCHP_P_StandbyMode);
-
-    /* get base context */
-    BCHP_P_GET_CONTEXT(hChip, p7584Chip);
-
-    /* Do anything required for CHP Standby changes */
-
-    if (p7584Chip->hAvsHandle)
-        BCHP_P_AvsStandbyMode(p7584Chip->hAvsHandle, activate);
-
-    BDBG_LEAVE(BCHP_P_StandbyMode);
     return BERR_SUCCESS;
 }
 

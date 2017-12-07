@@ -1,43 +1,6 @@
-/***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom.  All rights reserved.
- *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- *  Except as expressly set forth in the Authorized License,
- *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
- *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
-
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <malloc.h>
 #include <assert.h>
 #include <stdio.h>
@@ -62,7 +25,6 @@
 typedef struct
 {
    bool     useMultisample;
-   bool     usePreservingSwap;
    bool     stretchToFit;
    int      x;
    int      y;
@@ -118,131 +80,131 @@ typedef struct
 
 #define IMAGES 6
 
-#ifdef vc5
-#define BEGL_BufferFormat_eA8B8G8R8_Texture BEGL_BufferFormat_eA8B8G8R8
-#endif
-
 image_ctx* images[IMAGES] = { NULL };
 
-static image_ctx* load_image(char * filename)
+static image_ctx* load_image(const char *filename)
 {
-   FILE *fp;
-   png_structp png_ptr;
-   png_infop info_ptr;
-   png_bytep * row_pointers;
+   /* DONT CHANGE THE SCOPE HERE... GCC4.5 has a bug with goto and you'll get compile
+      errors */
+   png_structp png_ptr = NULL;
+   png_infop info_ptr = NULL;
+   png_byte pixel_depth, color_type;
+   int w, h;
+   png_bytep *row_pointers = NULL;
+   BEGL_PixmapInfoEXT pixInfo = { 0 };
+   EGLint attr_list[] = { EGL_NONE };
 
-   image_ctx * p = malloc(sizeof(image_ctx));
-   if (p)
+   image_ctx *p = (image_ctx *)malloc(sizeof(image_ctx));
+   if (!p)
+      return NULL;
+
+   /* open file and test for it being a png */
+   FILE *fp = fopen(filename, "rb");
+   if (!fp)
+      goto error0;
+
+   char header[8];               /* 8 is the maximum size that can be checked */
+   fread(header, 1, 8, fp);
+   if (png_sig_cmp((png_bytep)header, 0, 8))
+      goto error1;
+
+   /* initialize stuff */
+   png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+   if (!png_ptr)
+      goto error1;
+
+   info_ptr = png_create_info_struct(png_ptr);
+   if (!info_ptr)
+      goto error2;
+
+   if (setjmp(png_jmpbuf(png_ptr)))
+      goto error3;
+
+   png_init_io(png_ptr, fp);
+   png_set_sig_bytes(png_ptr, 8);
+
+   png_read_info(png_ptr, info_ptr);
+   png_set_interlace_handling(png_ptr);
+
+   pixel_depth = png_get_bit_depth(png_ptr, info_ptr) * png_get_channels(png_ptr, info_ptr);
+   color_type  = png_get_color_type(png_ptr, info_ptr);
+
+   if ((color_type == PNG_COLOR_TYPE_GRAY_ALPHA) && (pixel_depth == 0x10))
    {
-      NEXUS_SurfaceMemory  mem;
-      EGLint attr_list[] = { EGL_NONE };
-      BEGL_PixmapInfoEXT      pixInfo = { 0 };
-      png_byte pixel_depth, color_type;
-      int y;
-
-      char header[8];               /* 8 is the maximum size that can be checked */
-
-      /* open file and test for it being a png */
-      fp = fopen(filename, "rb");
-      if (!fp)
-         goto error0;
-      fread(header, 1, 8, fp);
-      if (png_sig_cmp((png_bytep)header, 0, 8))
-         goto error1;
-
-      /* initialize stuff */
-      png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-      if (!png_ptr)
-         goto error1;
-
-      info_ptr = png_create_info_struct(png_ptr);
-      if (!info_ptr)
-         goto error2;
-
-      if (setjmp(png_jmpbuf(png_ptr)))
-         goto error3;
-
-      png_init_io(png_ptr, fp);
-      png_set_sig_bytes(png_ptr, 8);
-
-      png_read_info(png_ptr, info_ptr);
-      png_set_interlace_handling(png_ptr);
-
-      pixel_depth = png_get_bit_depth(png_ptr, info_ptr) * png_get_channels(png_ptr, info_ptr);
-      color_type  = png_get_color_type(png_ptr, info_ptr);
-
-      if ((color_type == PNG_COLOR_TYPE_GRAY_ALPHA) && (pixel_depth == 0x10))
-      {
-         png_set_expand(png_ptr);
-         png_set_gray_to_rgb(png_ptr);
-      }
-      else if ((color_type == PNG_COLOR_TYPE_RGB) && (pixel_depth == 0x18))
-      {
-         png_set_expand(png_ptr);
-         png_set_add_alpha(png_ptr, 0xff, PNG_FILLER_AFTER);
-      }
-
-      png_read_update_info(png_ptr, info_ptr);
-
-      row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * info_ptr->height);
-      if (!row_pointers)
-         goto error3;
-
-      p->egl_image_width = info_ptr->width;
-      p->egl_image_height = info_ptr->height;
-
-      /* create a pixmap */
-      NXPL_GetDefaultPixmapInfoEXT(&pixInfo);
-      pixInfo.width = p->egl_image_width;
-      pixInfo.height = p->egl_image_height;
-      /* need CPU access for the PNG decoder to work */
-      pixInfo.secure = false;
-      pixInfo.format = BEGL_BufferFormat_eA8B8G8R8_Texture;
-      /* this image will have the correct stride for 3d core */
-      if (!NXPL_CreateCompatiblePixmapEXT(nxpl_handle, &p->eglPixmap, &p->nexusSurf, &pixInfo))
-         goto error4;
-
-      /* get a pointer to the underlying nexus surface */
-      NEXUS_Surface_GetMemory(p->nexusSurf, &mem);
-
-      /* load the image upside down for OpenGL */
-      row_pointers[info_ptr->height - 1] = mem.buffer;
-      for (y=info_ptr->height-1; y>0; y--)
-         row_pointers[y-1] = (png_byte*)(row_pointers[y] + mem.pitch);
-
-      /* read file */
-      if (setjmp(png_jmpbuf(png_ptr)))
-         goto error5;
-
-      png_read_image(png_ptr, row_pointers);
-
-      png_read_end(png_ptr, info_ptr);
-
-      free(row_pointers);
-      free(info_ptr);
-      free(png_ptr);
-
-      fclose(fp);
-
-      NEXUS_Surface_Flush(p->nexusSurf);
-
-      /* create the egl image */
-      p->eglimage = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, (EGLClientBuffer)p->eglPixmap, attr_list);
-      if (p->eglimage == EGL_NO_IMAGE_KHR)
-      {
-         printf("eglCreateImageKHR() failed\n");
-         goto error3;
-      }
-
-      /* Bind the EGL image as a texture, and set filtering (no mipmaps) */
-      glGenTextures(1, &p->texture);
-
-      glBindTexture(GL_TEXTURE_2D, p->texture);
-
-      glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, p->eglimage);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      png_set_expand(png_ptr);
+      png_set_gray_to_rgb(png_ptr);
    }
+   else if ((color_type == PNG_COLOR_TYPE_RGB) && (pixel_depth == 0x18))
+   {
+      png_set_expand(png_ptr);
+      png_set_add_alpha(png_ptr, 0xff, PNG_FILLER_AFTER);
+   }
+
+   png_read_update_info(png_ptr, info_ptr);
+
+   w = png_get_image_width(png_ptr, info_ptr);
+   h = png_get_image_height(png_ptr, info_ptr);
+
+   row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * h);
+   if (!row_pointers)
+      goto error3;
+
+   p->egl_image_width = w;
+   p->egl_image_height = h;
+
+   /* create a pixmap */
+   NXPL_GetDefaultPixmapInfoEXT(&pixInfo);
+   pixInfo.width = p->egl_image_width;
+   pixInfo.height = p->egl_image_height;
+   /* need CPU access for the PNG decoder to work */
+   pixInfo.secure = false;
+   pixInfo.format = BEGL_BufferFormat_eA8B8G8R8;
+   /* this image will have the correct stride for 3d core */
+   if (!NXPL_CreateCompatiblePixmapEXT(nxpl_handle, &p->eglPixmap, &p->nexusSurf, &pixInfo))
+      goto error4;
+
+   /* get a pointer to the underlying nexus surface */
+   NEXUS_SurfaceMemory mem;
+   NEXUS_Surface_GetMemory(p->nexusSurf, &mem);
+
+   /* load the image upside down for OpenGL */
+   row_pointers[h - 1] = (png_bytep)mem.buffer;
+   for (int y=h-1; y>0; y--)
+      row_pointers[y-1] = (png_bytep)(row_pointers[y] + mem.pitch);
+
+   /* read file */
+   if (setjmp(png_jmpbuf(png_ptr)))
+      goto error5;
+
+   png_read_image(png_ptr, row_pointers);
+
+   png_read_end(png_ptr, info_ptr);
+
+   free(row_pointers);
+   free(info_ptr);
+   free(png_ptr);
+
+   fclose(fp);
+
+   NEXUS_Surface_Flush(p->nexusSurf);
+
+   /* create the egl image */
+   p->eglimage = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, (EGLClientBuffer)p->eglPixmap, attr_list);
+   if (p->eglimage == EGL_NO_IMAGE_KHR)
+   {
+      printf("eglCreateImageKHR() failed\n");
+      goto error3;
+   }
+
+   /* Bind the EGL image as a texture, and set filtering (no mipmaps) */
+   glGenTextures(1, &p->texture);
+
+   glBindTexture(GL_TEXTURE_2D, p->texture);
+
+   glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, p->eglimage);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
    return p;
 
 error5:
@@ -648,15 +610,6 @@ bool InitEGL(NativeWindowType egl_win, const AppConfig *config)
       return false;
    }
 
-   /* Only use preserved swap if you need the contents of the frame buffer to be preserved from
-    * one frame to the next
-    */
-   if (config->usePreservingSwap)
-   {
-      printf("Using preserved swap.  Application will run slowly.\n");
-      eglSurfaceAttrib(egl_display, egl_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
-   }
-
    /*
       Step 6 - Create a context.
       EGL has to create a context for OpenGL ES. Our OpenGL ES resources
@@ -738,7 +691,6 @@ bool processArgs(int argc, const char *argv[], AppConfig *config)
       return false;
 
    config->useMultisample    = false;
-   config->usePreservingSwap = false;
    config->stretchToFit      = false;
    config->x                 = 0;
    config->y                 = 0;
@@ -755,8 +707,6 @@ bool processArgs(int argc, const char *argv[], AppConfig *config)
 
       if (strcmp(arg, "+m") == 0)
          config->useMultisample = true;
-      else if (strcmp(arg, "+p") == 0)
-         config->usePreservingSwap = true;
       else if (strcmp(arg, "+s") == 0)
          config->stretchToFit = true;
       else if (strncmp(arg, "d=", 2) == 0)
@@ -807,7 +757,7 @@ int CLIENT_MAIN(int argc, const char** argv)
    if (!processArgs(argc, argv, &config))
    {
       const char  *progname = argc > 0 ? argv[0] : "";
-      fprintf(stderr, "Usage: %s [+m] [+p] [+s] [d=WxH] [o=XxY] [bpp=16/24/32] [f=frames] [+secure]\n", progname);
+      fprintf(stderr, "Usage: %s [+m] [+s] [d=WxH] [o=XxY] [bpp=16/24/32] [f=frames] [+secure]\n", progname);
       return 0;
    }
 

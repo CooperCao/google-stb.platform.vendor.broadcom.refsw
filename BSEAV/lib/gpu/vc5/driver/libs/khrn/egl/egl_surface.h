@@ -14,16 +14,14 @@ typedef enum
 }
 egl_surface_colorspace_t;
 
-typedef enum
-{
-   NONPRE,
-   PRE
-}
-egl_surface_alphaformat_t;
+extern GFX_LFMT_T egl_surface_lfmt_to_srgb(GFX_LFMT_T lfmt);
 
 /* Flush any render state writing to the surface's back buffer and return a
  * pointer to dependencies to wait for the writes to complete. */
 extern const v3d_scheduler_deps* egl_surface_flush_back_buffer_writer(EGL_SURFACE_T *surface);
+
+extern bool egl_surface_get_attrib(const EGL_SURFACE_T *surface,
+      EGLint attrib, EGLint *value);
 
 /*
  * Destroy and free the surface if it isn't bound to a context or mapped to a
@@ -31,10 +29,6 @@ extern const v3d_scheduler_deps* egl_surface_flush_back_buffer_writer(EGL_SURFAC
  * Returns true if surface was actually deleted.
  */
 extern bool egl_surface_try_delete(EGL_SURFACE_T *surface);
-
-/* Returns an EGL error code */
-extern EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface,
-      EGLint attrib, EGLAttribKHR value);
 
 /*
  * Get the thread which the context surface is bound to is in (or NULL if it's
@@ -50,6 +44,9 @@ extern EGL_THREAD_T *egl_surface_get_thread(const EGL_SURFACE_T *surface);
 extern khrn_image *egl_surface_get_back_buffer(const EGL_SURFACE_T *surface);
 extern khrn_image *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
       egl_aux_buf_t which);
+
+// Caller must khrn_mem_release() returned pointer
+extern khrn_image *egl_surface_get_back_buffer_with_gl_colorspace(const EGL_SURFACE_T *surface);
 
 extern EGL_SURFACE_T *egl_surface_lock(EGLSurface handle);
 extern void egl_surface_unlock(EGL_SURFACE_T *surface); /* tolerates NULL */

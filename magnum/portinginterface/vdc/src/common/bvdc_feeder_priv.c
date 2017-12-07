@@ -337,7 +337,7 @@ BERR_Code BVDC_P_Feeder_Create
     /* Dram type: There is no mixed dram configuration */
     if(BVDC_P_Feeder_IS_MPEG(pFeeder))
     {
-        pFeeder->eDramType = hSource->hVdc->stMemInfo.memc[0].type;
+        pFeeder->eMapVer = hSource->hVdc->stMemInfo.memc[0].mapVer;
     }
 
     /* All done. now return the new fresh context to user. */
@@ -526,7 +526,8 @@ static void BVDC_P_Feeder_BuildRul_DrainVnet_isr(
 #else
     /* reset sub and connect the module to a drain */
     BVDC_P_SubRul_Drain_isr(&(hFeeder->SubRul), pList,
-        0, 0,
+        bNoCoreReset? 0: hFeeder->ulResetRegAddr,
+        bNoCoreReset? 0: hFeeder->ulResetMask,
         bNoCoreReset? 0: hFeeder->ulVnetResetAddr,
         bNoCoreReset? 0: hFeeder->ulVnetResetMask);
 #endif
@@ -718,6 +719,22 @@ static void BVDC_P_Feeder_BuildMtgRul_isr
     hFeeder->bMtgInterlaced = bInterlaced;
     hFeeder->eMtgFrameRateCode = eFrameRateCode;
     hFeeder->eDspTimeBase = eTimebase;
+}
+
+
+
+/***************************************************************************
+ * Disable MTG trigger
+ */
+void BVDC_P_Feeder_Mtg_DisableTriggers_isr
+    ( BVDC_P_Feeder_Handle             hFeeder )
+{
+    BDBG_OBJECT_ASSERT(hFeeder, BVDC_FDR);
+    BDBG_ASSERT(BVDC_P_Feeder_IS_MPEG(hFeeder) && hFeeder->bMtgSrc);
+
+    BREG_Write32_isr(hFeeder->hSource->hVdc->hRegister,
+        BCHP_MFD_0_MTG_CONTROL + hFeeder->ulRegOffset,
+        BCHP_FIELD_ENUM(MFD_0_MTG_CONTROL, ENABLE, OFF));
 }
 
 /***************************************************************************
@@ -1112,7 +1129,7 @@ static void BVDC_P_Feeder_BuildRulVfd_isr
             BCHP_FIELD_DATA(VFD_0_DCDM_CFG, HALF_VBR_BFR_MODE, bHalfSizeBufMode) |
 #endif
             BCHP_FIELD_ENUM(VFD_0_DCDM_CFG, APPLY_QERR,  Apply_Qerr ) |
-            BCHP_FIELD_ENUM(VFD_0_DCDM_CFG, FIXED_RATE,  Fixed      ) |
+            BCHP_FIELD_DATA(VFD_0_DCDM_CFG, FIXED_RATE,  pPicture->bMosaicMode) |
             BCHP_FIELD_ENUM(VFD_0_DCDM_CFG, COMPRESSION, BPP_10     );
 
         BVDC_P_SUBRUL_ONE_REG(pList, BCHP_VFD_0_DCDM_CFG,
@@ -2040,9 +2057,9 @@ static BERR_Code BVDC_P_Feeder_SetLacCntl_isr
 
         hFeeder->stRegs.ulLacCntl |= (
 #if (BVDC_P_MFD_SUPPORT_MAP_SELECT)
-            ((hFeeder->eDramType == BCHP_DramType_eLPDDR4)
-            ? BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, MAP_SELECT, SEL_MAP8)
-            : BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, MAP_SELECT, SEL_MAP5)) |
+            ((hFeeder->eMapVer < BCHP_ScbMapVer_eMap8)
+            ? BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, MAP_SELECT, SEL_MAP5)
+            : BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, MAP_SELECT, SEL_MAP8)) |
 #endif
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
             BCHP_FIELD_DATA(MFD_0_LAC_CNTL, SEPARATE_FIELD_BUFFER, pFieldData->eBufferFormat) |
@@ -3079,7 +3096,8 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
             else
                 BPXL_GetBytesPerNPixels_isr(pPicture->ePixelFormat, ulWidth, &ulStride);
             ulStride += (pPicture->eCapOrientation == BFMT_Orientation_e2D)
-                ? BVDC_P_CAP_GUARD_MEMORY_2D : BVDC_P_CAP_GUARD_MEMORY_3D;
+                ? BVDC_P_GUARD_MEMORY_2D(pPicture->ulMosaicCount)
+                : BVDC_P_GUARD_MEMORY_3D(pPicture->ulMosaicCount);
         }
         else
         {

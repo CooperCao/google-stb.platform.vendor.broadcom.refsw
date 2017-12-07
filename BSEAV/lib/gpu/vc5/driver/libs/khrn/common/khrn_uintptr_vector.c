@@ -3,17 +3,6 @@
  ******************************************************************************/
 #include "khrn_uintptr_vector.h"
 
-void khrn_uintptr_vector_init(khrn_uintptr_vector *vector)
-{
-   memset(vector, 0, sizeof(khrn_uintptr_vector));
-}
-
-void khrn_uintptr_vector_destroy(khrn_uintptr_vector *vector)
-{
-   free(vector->data);
-   memset(vector, 0, sizeof(khrn_uintptr_vector));
-}
-
 bool khrn_uintptr_vector_push_back(khrn_uintptr_vector *vector, uintptr_t elem)
 {
    if (vector->size == vector->capacity)

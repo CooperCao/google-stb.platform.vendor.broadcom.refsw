@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -178,6 +178,9 @@ struct BNAV_Indexer_HandleImpl
         unsigned cnt;  /* number of overflows */
         bool review; /* latest hiOverflow.cnt increment is subject review. if bad, decrement. */
     } hiOverflow;
+    struct {
+        uint64_t offset;
+    } priming;
 };
 
 int BNAV_P_FeedPES_VC1(BNAV_Indexer_Handle handle, uint8_t *p_bfr, unsigned size);

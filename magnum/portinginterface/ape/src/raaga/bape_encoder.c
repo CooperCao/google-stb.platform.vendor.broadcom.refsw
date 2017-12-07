@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_HAS_POST_PROCESSING
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_encoder);
@@ -70,6 +70,7 @@ typedef struct BAPE_Encoder
     BAPE_OpusEncodeSettings opusSettings;
     BAPE_Connector input;
     BDSP_StageHandle hStage;
+    BAVC_AudioCompressionStd codec;
 } BAPE_Encoder;
 
 static const char *BAPE_Encoder_P_GetName(BAVC_AudioCompressionStd codec);
@@ -119,7 +120,6 @@ BERR_Code BAPE_Encoder_Create(
     BAPE_EncoderHandle *pHandle             /* [out] */
     )
 {
-    BDSP_StageCreateSettings stageCreateSettings;
     BAPE_EncoderHandle handle;
     BERR_Code errCode;
 
@@ -140,6 +140,7 @@ BERR_Code BAPE_Encoder_Create(
     handle->node.connectors[BAPE_ConnectorFormat_eCompressed].useBufferPool = true;
     handle->node.connectors[BAPE_ConnectorFormat_eCompressed4x].pName = "compressed 4x";
     handle->node.connectors[BAPE_ConnectorFormat_eCompressed4x].useBufferPool = true;
+    handle->codec = BAVC_AudioCompressionStd_eMax;
     handle->settings.codec = BAVC_AudioCompressionStd_eMax;
 
     /* Format and capabilities are set in SetSettings per-codec */
@@ -159,6 +160,7 @@ BERR_Code BAPE_Encoder_Create(
     handle->node.freePathFromInput = BAPE_Encoder_P_FreePathFromInput;
     handle->node.removeInput = BAPE_Encoder_P_RemoveInputCallback;
 
+    #if 0
     /* Create Stage Handle */
     BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioEncode, &stageCreateSettings);
     /* Filter based on application bavc algo list and ape codec table */
@@ -175,6 +177,7 @@ BERR_Code BAPE_Encoder_Create(
     }
     handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage = handle->hStage;
     handle->node.connectors[BAPE_ConnectorFormat_eCompressed4x].hStage = handle->hStage;
+    #endif
 
     /* Init codec settings */
     BAPE_Encoder_P_GetAllDefaultCodecSettings(handle);
@@ -188,7 +191,6 @@ BERR_Code BAPE_Encoder_Create(
     *pHandle = handle;
     return BERR_SUCCESS;
 
-err_stage_create:
 err_settings:
     BAPE_Encoder_Destroy(handle);
     return errCode;
@@ -258,6 +260,7 @@ BERR_Code BAPE_Encoder_SetSettings(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
+    #if 0 /* moved to allocatepath */
     if ( pSettings->codec != handle->settings.codec )
     {        
         errCode = BDSP_Stage_SetAlgorithm(handle->hStage, BAPE_P_GetCodecAudioEncode(pSettings->codec));
@@ -266,6 +269,7 @@ BERR_Code BAPE_Encoder_SetSettings(
             return BERR_TRACE(errCode);
         }
     }
+    #endif
 
     handle->settings = *pSettings;
     BAPE_Connector_P_GetFormat(&handle->node.connectors[BAPE_ConnectorFormat_eCompressed], &format);
@@ -461,7 +465,7 @@ BERR_Code BAPE_Encoder_SetCodecSettings(
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Encoder);
     BDBG_ASSERT(NULL != pSettings);
-    if ( pSettings->codec == handle->settings.codec )
+    if ( pSettings->codec == handle->codec )
     {
         codecsEqual = true;
     }
@@ -478,7 +482,7 @@ BERR_Code BAPE_Encoder_SetCodecSettings(
     case BAVC_AudioCompressionStd_eAacAdts:
     case BAVC_AudioCompressionStd_eAacLoas:
         handle->aacSettings = pSettings->codecSettings.aac;
-        switch ( handle->settings.codec )
+        switch ( handle->codec )
         {
         case BAVC_AudioCompressionStd_eAacAdts:
         case BAVC_AudioCompressionStd_eAacLoas:
@@ -491,7 +495,7 @@ BERR_Code BAPE_Encoder_SetCodecSettings(
     case BAVC_AudioCompressionStd_eAacPlusAdts:
     case BAVC_AudioCompressionStd_eAacPlusLoas:
         handle->aacPlusSettings = pSettings->codecSettings.aacPlus;
-        switch ( handle->settings.codec )
+        switch ( handle->codec )
         {
         case BAVC_AudioCompressionStd_eAacPlusAdts:
         case BAVC_AudioCompressionStd_eAacPlusLoas:
@@ -503,7 +507,7 @@ BERR_Code BAPE_Encoder_SetCodecSettings(
         break;
     case BAVC_AudioCompressionStd_eMpegL1:
     case BAVC_AudioCompressionStd_eMpegL2:        
-        switch ( handle->settings.codec )
+        switch ( handle->codec )
         {
         case BAVC_AudioCompressionStd_eMpegL1:
         case BAVC_AudioCompressionStd_eMpegL2:
@@ -685,7 +689,7 @@ static void BAPE_Encoder_P_InputSampleRateChange_isr(BAPE_PathNode *pNode, BAPE_
     hEncoder = pNode->pHandle;
     BDBG_OBJECT_ASSERT(hEncoder, BAPE_Encoder);
 
-    codec = hEncoder->settings.codec;
+    codec = hEncoder->codec;
 
     BDBG_MSG(("InputSampleRateChange codec %s, rate %u", BAPE_P_GetCodecName(codec), sampleRate));
     if ( sampleRate == 48000 )
@@ -775,8 +779,10 @@ static BERR_Code BAPE_Encoder_P_AllocatePathFromInput(struct BAPE_PathNode *pNod
 {
     BERR_Code errCode;
     unsigned output, input;
+    BDSP_StageCreateSettings stageCreateSettings;
     BAPE_EncoderHandle handle;
     BDSP_DataType dataType;
+    BAVC_AudioCompressionStd codec;
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
     BDBG_ASSERT(NULL != pConnection->pSource->hStage);
@@ -784,20 +790,23 @@ static BERR_Code BAPE_Encoder_P_AllocatePathFromInput(struct BAPE_PathNode *pNod
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_Encoder);
 
+    /* pull the codec from the settings */
+    codec = handle->settings.codec;
+
     /* if we don't have any 4x connections, downgrade to AC3 */
-    if ( handle->settings.codec == BAVC_AudioCompressionStd_eAc3Plus )
+    if ( codec == BAVC_AudioCompressionStd_eAc3Plus )
     {
         if ( BLST_SQ_FIRST(&pNode->connectors[BAPE_ConnectorFormat_eCompressed4x].connectionList) == NULL )
         {
             BDBG_MSG(("Falling back to AC3 only Encode"));
-            handle->settings.codec = BAVC_AudioCompressionStd_eAc3;
+            codec = BAVC_AudioCompressionStd_eAc3;
         }
     }
 
     dataType = BAPE_DSP_P_GetDataTypeFromConnector(handle->input);
     /* Dolby transcoder only supports pulse or DDRE as it's source.  Check for pulse here, DDRE is handled in bape_dolby_digital_reencode.c */
-    if ( handle->settings.codec == BAVC_AudioCompressionStd_eAc3 ||
-         handle->settings.codec == BAVC_AudioCompressionStd_eAc3Plus )
+    if ( codec == BAVC_AudioCompressionStd_eAc3 ||
+         codec == BAVC_AudioCompressionStd_eAc3Plus )
     {
         if ( pConnection->pSource->pParent->type == BAPE_PathNodeType_eDecoder )
         {
@@ -827,22 +836,53 @@ static BERR_Code BAPE_Encoder_P_AllocatePathFromInput(struct BAPE_PathNode *pNod
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
     }
-    errCode = BDSP_Stage_AddOutputStage(pConnection->pSource->hStage, 
+
+    if ( !pConnection->pSource->pParent->deviceContext )
+    {
+        return BERR_TRACE(BERR_NOT_INITIALIZED);
+    }
+
+    /* Create Stage Handle */
+    BDSP_Stage_GetDefaultCreateSettings(pConnection->pSource->pParent->deviceContext, BDSP_AlgorithmType_eAudioEncode, &stageCreateSettings);
+    /* Filter based on application bavc algo list and ape codec table */
+    BAPE_P_PopulateSupportedBDSPAlgos( BDSP_AlgorithmType_eAudioEncode, NULL, 0,
+        (const bool *)stageCreateSettings.algorithmSupported,
+        stageCreateSettings.algorithmSupported);
+
+    /* TODO: Expose supported algorithms option for application? */
+    errCode = BDSP_Stage_Create(pConnection->pSource->pParent->deviceContext, &stageCreateSettings, &handle->hStage);
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+    handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage = handle->hStage;
+    handle->node.connectors[BAPE_ConnectorFormat_eCompressed4x].hStage = handle->hStage;
+
+    /* set the encoder algo */
+    errCode = BDSP_Stage_SetAlgorithm(handle->hStage, BAPE_P_GetCodecAudioEncode(codec));
+    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+    handle->codec = codec;
+
+    errCode = BDSP_Stage_AddOutputStage(pConnection->pSource->hStage,
                                         dataType,
                                         handle->hStage,
                                         &output, &input);
-    if ( errCode )
-    {
-        return BERR_TRACE(errCode);
-    }
+    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
 
     errCode = BAPE_Encoder_P_ApplyDspSettings(handle);
-    if ( errCode )
-    {
-        return BERR_TRACE(errCode);
-    }
+    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
 
-    return BERR_SUCCESS;    
+    return BERR_SUCCESS;
+cleanup:
+    if ( handle->hStage )
+    {
+        BDSP_Stage_RemoveAllInputs(handle->hStage);
+        BDSP_Stage_RemoveAllOutputs(handle->hStage);
+        BDSP_Stage_Destroy(handle->hStage);
+        handle->hStage = NULL;
+    }
+    return errCode;
 }
 
 static void BAPE_Encoder_P_StopPathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
@@ -852,8 +892,13 @@ static void BAPE_Encoder_P_StopPathFromInput(struct BAPE_PathNode *pNode, struct
     BSTD_UNUSED(pConnection);
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_Encoder);
-    BDSP_Stage_RemoveAllInputs(handle->hStage);
-    BDSP_Stage_RemoveAllOutputs(handle->hStage);
+    if ( handle->hStage )
+    {
+        BDSP_Stage_RemoveAllInputs(handle->hStage);
+        BDSP_Stage_RemoveAllOutputs(handle->hStage);
+        BDSP_Stage_Destroy(handle->hStage);
+        handle->hStage = NULL;
+    }
 }
 
 static void BAPE_Encoder_P_FreePathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
@@ -878,9 +923,9 @@ static BERR_Code BAPE_Encoder_P_ApplyAc3Settings(BAPE_EncoderHandle handle)
     }
 
 #if BDSP_MS12_SUPPORT
-    userConfig.ui32Mode = (handle->settings.codec == BAVC_AudioCompressionStd_eAc3Plus) ? 8 : 9;
+    userConfig.ui32Mode = (handle->codec == BAVC_AudioCompressionStd_eAc3Plus) ? 8 : 9;
     userConfig.ui32DolbyCertificationFlag = (handle->ac3Settings.certificationMode) ? 1 : 0;
-    BDBG_ERR(("%s - setting userConfig ui32Mode=%d, ui32DolbyCertificationFlag=%d", __FUNCTION__, userConfig.ui32Mode, userConfig.ui32DolbyCertificationFlag));
+    BDBG_ERR(("%s - setting userConfig ui32Mode=%d, ui32DolbyCertificationFlag=%d", BSTD_FUNCTION, userConfig.ui32Mode, userConfig.ui32DolbyCertificationFlag));
 #else
     userConfig.eSpdifHeaderEnable = handle->ac3Settings.spdifHeaderEnabled?BDSP_AF_P_eEnable:BDSP_AF_P_eDisable;
 #endif
@@ -907,7 +952,7 @@ static void BAPE_Encoder_P_GetDefaultAc3Settings(BAPE_Handle deviceHandle, BAPE_
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, algo) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(algo, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(algo, &userConfig, sizeof(userConfig)));
 
 #if BDSP_MS12_SUPPORT
     ac3Settings->certificationMode = (userConfig.ui32DolbyCertificationFlag == 1) ? true : false;
@@ -945,7 +990,7 @@ static void BAPE_Encoder_P_GetDefaultDtsSettings(BAPE_Handle deviceHandle, BAPE_
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eDtsCoreEncode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDtsCoreEncode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDtsCoreEncode, &userConfig, sizeof(userConfig)));
     dtsSettings->spdifHeaderEnabled = (userConfig.ui32SpdifHeaderEnable == 0)?false:true;
 }
 
@@ -958,13 +1003,13 @@ static BERR_Code BAPE_Encoder_P_ApplyAacSettings(BAPE_EncoderHandle handle)
     unsigned format;
     unsigned maxBitRate;
 
-    switch ( handle->settings.codec )
+    switch ( handle->codec )
     {
     case BAVC_AudioCompressionStd_eAacAdts:
     case BAVC_AudioCompressionStd_eAacLoas:
         pSettings = &handle->aacSettings;
         sbr=0;
-        format = (handle->settings.codec == BAVC_AudioCompressionStd_eAacAdts)?1:2;
+        format = (handle->codec == BAVC_AudioCompressionStd_eAacAdts)?1:2;
         maxBitRate = 320000;
         break;
     default:
@@ -972,7 +1017,7 @@ static BERR_Code BAPE_Encoder_P_ApplyAacSettings(BAPE_EncoderHandle handle)
     case BAVC_AudioCompressionStd_eAacPlusLoas:
         pSettings = &handle->aacPlusSettings;
         sbr=1;
-        format = (handle->settings.codec == BAVC_AudioCompressionStd_eAacPlusAdts)?1:2;
+        format = (handle->codec == BAVC_AudioCompressionStd_eAacPlusAdts)?1:2;
         maxBitRate = 52000;
         break;
     }
@@ -985,7 +1030,7 @@ static BERR_Code BAPE_Encoder_P_ApplyAacSettings(BAPE_EncoderHandle handle)
 
     if ( pSettings->bitRate < 16000 || pSettings->bitRate > maxBitRate )
     {
-        BDBG_ERR(("Bit Rate for codec %u (%s) must be between 16000 and %u bps.", handle->settings.codec, BAPE_P_GetCodecName(handle->settings.codec), maxBitRate));
+        BDBG_ERR(("Bit Rate for codec %u (%s) must be between 16000 and %u bps.", handle->codec, BAPE_P_GetCodecName(handle->codec), maxBitRate));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1024,7 +1069,7 @@ static BERR_Code BAPE_Encoder_P_ApplyAacSettings(BAPE_EncoderHandle handle)
     /* In the case of AAC-LC/AAC-LC+SBR aka AAC+ backed in ADTS set the Encode type to MPEG-2
        due to compatability with certain receivers/TVs. Also this keeps things in line for
        SCTE 193-1 and ISO/IEC 13818-1 */
-    switch ( handle->settings.codec )
+    switch ( handle->codec )
     {
         case BAVC_AudioCompressionStd_eAacAdts:
         case BAVC_AudioCompressionStd_eAacPlusAdts:
@@ -1071,7 +1116,7 @@ static void BAPE_Encoder_P_GetDefaultAacSettings(BAPE_Handle deviceHandle, BAPE_
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eAacEncode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAacEncode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAacEncode, &userConfig, sizeof(userConfig)));
     aacSettings->bitRate = 128000;
     BDBG_CASSERT(BDSP_Raaga_Audio_AacEncodeBitRate_e16kbps == 16000);  /* Just in case they ever change the rate enum */
     if ( userConfig.ui32bEncodeMono )
@@ -1106,7 +1151,7 @@ static void BAPE_Encoder_P_GetDefaultAacPlusSettings(BAPE_Handle deviceHandle, B
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eAacEncode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAacEncode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAacEncode, &userConfig, sizeof(userConfig)));
     aacPlusSettings->bitRate = (unsigned)userConfig.eAacEncodeBitRate;
     BDBG_CASSERT(BDSP_Raaga_Audio_AacEncodeBitRate_e16kbps == 16000);  /* Just in case they ever change the rate enum */
     if ( userConfig.ui32bEncodeMono )
@@ -1147,7 +1192,7 @@ static BERR_Code BAPE_Encoder_P_ApplyMp3Settings(BAPE_EncoderHandle handle)
 
     if ( handle->mp3Settings.bitRate < 32000 || handle->mp3Settings.bitRate > 320000 )
     {
-        BDBG_ERR(("Bit Rate for codec %u (%s) must be between 32000 and 320000 bps.", handle->settings.codec, BAPE_P_GetCodecName(handle->settings.codec)));
+        BDBG_ERR(("Bit Rate for codec %u (%s) must be between 32000 and 320000 bps.", handle->codec, BAPE_P_GetCodecName(handle->codec)));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1245,7 +1290,7 @@ static void BAPE_Encoder_P_GetDefaultMp3Settings(BAPE_Handle deviceHandle, BAPE_
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eMpegAudioEncode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eMpegAudioEncode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eMpegAudioEncode, &userConfig, sizeof(userConfig)));
     mp3Settings->bitRate = (unsigned)userConfig.eMp3EncodeBitRate * 1000;
     BDBG_CASSERT(BDSP_Raaga_Audio_Mp3EncodeBitRate_e32kbps == 32);  /* Just in case they ever change the rate enum */
     mp3Settings->privateBit = (userConfig.ePrivateBit == BDSP_AF_P_eEnable)?true:false;
@@ -1283,7 +1328,7 @@ static BERR_Code BAPE_Encoder_P_ApplyG711G726Settings(BAPE_EncoderHandle handle)
         return BERR_TRACE(errCode);
     }
 
-    if ( handle->settings.codec == BAVC_AudioCompressionStd_eG711 )
+    if ( handle->codec == BAVC_AudioCompressionStd_eG711 )
     {
         /* G.711 */
         BAPE_DSP_P_SET_VARIABLE(userConfig, eCompressionType, (handle->g711Settings.compressionMode == BAPE_G711G726CompressionMode_eUlaw)?BDSP_Raaga_Audio_eCompressionType_uLaw_disableG726:BDSP_Raaga_Audio_eCompressionType_aLaw_disableG726);
@@ -1327,7 +1372,7 @@ static void BAPE_Encoder_P_GetDefaultG711Settings(BAPE_Handle deviceHandle, BAPE
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eG711Encode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eG711Encode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eG711Encode, &userConfig, sizeof(userConfig)));
 
     switch ( userConfig.eCompressionType )
     {
@@ -1349,7 +1394,7 @@ static void BAPE_Encoder_P_GetDefaultG726Settings(BAPE_Handle deviceHandle, BAPE
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eG726Encode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eG726Encode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eG726Encode, &userConfig, sizeof(userConfig)));
 
     switch ( userConfig.eCompressionType )
     {
@@ -1423,7 +1468,7 @@ static void BAPE_Encoder_P_GetDefaultG729Settings(BAPE_Handle deviceHandle, BAPE
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eG729Encode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eG729Encode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eG729Encode, &userConfig, sizeof(userConfig)));
 
     g729Settings->dtxEnabled = userConfig.ui32DtxEnable ? true : false;
     switch ( userConfig.ui32Bitrate )
@@ -1479,7 +1524,7 @@ static void BAPE_Encoder_P_GetDefaultG723_1Settings(BAPE_Handle deviceHandle, BA
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eG723_1Encode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eG723_1Encode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eG723_1Encode, &userConfig, sizeof(userConfig)));
 
     g723_1Settings->vadEnabled = userConfig.UseVx ? true : false;
     g723_1Settings->hpfEnabled = userConfig.UseHp ? true : false;
@@ -1523,7 +1568,7 @@ static void BAPE_Encoder_P_GetDefaultIlbcSettings(BAPE_Handle deviceHandle, BAPE
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eiLBCEncode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eiLBCEncode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eiLBCEncode, &userConfig, sizeof(userConfig)));
 
     ilbcSettings->frameLength = userConfig.mode;
 }
@@ -1611,7 +1656,7 @@ static void BAPE_Encoder_P_GetDefaultIsacSettings(BAPE_Handle deviceHandle, BAPE
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eiSACEncode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eiSACEncode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eiSACEncode, &userConfig, sizeof(userConfig)));
 
     isacSettings->frameLength = userConfig.ui16frameLen;
     isacSettings->codingMode = (userConfig.ui16CodingMode == 1) ? BAPE_IsacCodingMode_eIndependent : BAPE_IsacCodingMode_eAdaptive;
@@ -1727,7 +1772,7 @@ static void BAPE_Encoder_P_GetDefaultOpusSettings(BAPE_Handle deviceHandle, BAPE
     if ( !BAPE_DSP_P_AlgorithmSupported(deviceHandle, BDSP_Algorithm_eOpusEncode) )
         return;
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eOpusEncode, &userConfig, sizeof(userConfig)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eOpusEncode, &userConfig, sizeof(userConfig)));
 
     opusSettings->bitRate = userConfig.ui32BitRate;
     opusSettings->frameSize = userConfig.ui32FrameSize;
@@ -1765,7 +1810,7 @@ static BERR_Code BAPE_Encoder_P_ApplyDspSettings(BAPE_EncoderHandle handle)
 {
     BDSP_Algorithm encodeType;
     BDBG_OBJECT_ASSERT(handle, BAPE_Encoder);
-    encodeType = BAPE_P_GetCodecAudioEncode(handle->settings.codec);
+    encodeType = BAPE_P_GetCodecAudioEncode(handle->codec);
     switch ( encodeType )
     {
     case BDSP_Algorithm_eAc3Encode:

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "interface/khronos/common/khrn_options.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow_optimize_visitor.h"
@@ -34,7 +26,7 @@ void Accept(void *me, DFlowNode *node)
       NodeList_const_iterator piter;
       const NodeList          *parents;
 
-      vcos_assert(node->m_children.m_size == 1);
+      assert(node->m_children.m_size == 1);
       child = node->m_children.m_head->m_node;
 
       if (DFlowNode_Parents(child)->m_size > 1)

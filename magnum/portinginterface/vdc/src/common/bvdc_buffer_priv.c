@@ -958,6 +958,7 @@ BERR_Code BVDC_P_Buffer_Create
         pPicture->hBuffer    = (BVDC_P_Buffer_Handle)pBuffer;
         pPicture->ulBufferId = i;
 
+#if BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT /* alloc DBV or TCH metadata buffer */
         if(hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bDbvToneMapping ||
            hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bTpToneMapping) {
@@ -978,6 +979,8 @@ BERR_Code BVDC_P_Buffer_Create
             }
         }
 #endif
+#endif
+
         BLST_CQ_INSERT_TAIL(pBuffer->pBufList, pPicture, link);
     }
     /* All done. now return the new fresh context to user. */
@@ -990,6 +993,7 @@ oom_err:
     {
         pPicture = BLST_CQ_FIRST(pBuffer->pBufList);
         BLST_CQ_REMOVE_HEAD(pBuffer->pBufList, link);
+#if BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
         if(hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bDbvToneMapping ||
            hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bTpToneMapping) {
@@ -1006,6 +1010,7 @@ oom_err:
 #endif
             }
         }
+#endif
 #endif
         BKNI_Free(pPicture);
     }
@@ -1032,6 +1037,7 @@ BERR_Code BVDC_P_Buffer_Destroy
     {
         pPicture = BLST_CQ_FIRST(hBuffer->pBufList);
         BLST_CQ_REMOVE_HEAD(hBuffer->pBufList, link);
+#if BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
         /* TODO: mosaic mode */
         {
@@ -1048,6 +1054,7 @@ BERR_Code BVDC_P_Buffer_Destroy
 #endif
             }
         }
+#endif
 #endif
         BKNI_Free(pPicture);
     }
@@ -2116,7 +2123,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
         else
         {
             BDBG_ASSERT(eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase);
-            BDBG_MODULE_MSG(BVDC_BUF_MTGW,("Win[%d]: Use current phase %d, B[%d]\n",
+            BDBG_MODULE_MSG(BVDC_BUF_MTGW,("Win[%d]: Use current phase %d, B[%d]",
                     hWindow->eId, hWindow->hBuffer->pCurWriterBuf->ulMadOutPhase, hWindow->hBuffer->pCurWriterBuf->ulBufferId));
         }
         goto done;
@@ -2790,8 +2797,8 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
          * desired delay (vysnc delay - 1).
          * Note, this decision is before advancing the read pointer! */
         ulGap = BVDC_P_Buffer_GetCurrentDelay_isr(hWindow);
-        bRepeat = (ulGap < (hWindow->hBuffer->ulVsyncDelay + (VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stCurInfo.pFmtInfo->eVideoFmt) ? 1: 0))) ?
-                    true : false;
+        bRepeat = (ulGap < hWindow->hBuffer->ulVsyncDelay) ? true : false;
+
     }
     else
     {

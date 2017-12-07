@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "load_texture.h"
 
 #include <stdio.h>
@@ -133,9 +131,6 @@ void FreePKM(PKMImage *data)
    memset(data, 0, sizeof(PKMImage));
 }
 
-
-
-
 static unsigned short dither_rgb565(unsigned char r8, unsigned char g8, unsigned char b8,
                                     unsigned int x, unsigned int y)
 {
@@ -184,7 +179,6 @@ static unsigned short dither_rgb565(unsigned char r8, unsigned char g8, unsigned
    return r << 11 | g << 5 | b;
 }
 
-
 static unsigned short dither_rgb5551(unsigned char r8, unsigned char g8, unsigned char b8, unsigned char a8,
                                      unsigned int x, unsigned int y)
 {
@@ -225,7 +219,6 @@ static unsigned short dither_rgb5551(unsigned char r8, unsigned char g8, unsigne
    assert(r >= 0 && g >= 0 && b >= 0 && r < 32 && g < 32 && b < 32);
    return r << 11 | g << 6 | b << 1 | a;
 }
-
 
 static unsigned short dither_rgb4444(unsigned char r8, unsigned char g8, unsigned char b8, unsigned char a8,
                                      unsigned int x, unsigned int y)
@@ -274,36 +267,26 @@ static unsigned short dither_rgb4444(unsigned char r8, unsigned char g8, unsigne
    return r << 12 | g << 8 | b << 4 | a;
 }
 
-
-
-
-
-
-
 int LoadPNG(const char *fname, int dest_format, PNGImage *pngdata)
 {
    int status = 0;
-   int y;
-   png_structp png_ptr;
-   png_infop info_ptr = NULL;    /* needs to be initialized to NULL - error1 path */
-   png_bytep * row_pointers;
-   char header[8];               /* 8 is the maximum size that can be checked */
 
    /* open file and test for it being a png */
    FILE *fp = fopen(fname, "rb");
    if (!fp)
       goto error0;
+
+   char header[8];               /* 8 is the maximum size that can be checked */
    fread(header, 1, 8, fp);
    if (png_sig_cmp((png_bytep)header, 0, 8))
       goto error0;
 
    /* initialize stuff */
-   png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-
+   png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
    if (!png_ptr)
       goto error1;
 
-   info_ptr = png_create_info_struct(png_ptr);
+   png_infop info_ptr = png_create_info_struct(png_ptr);
    if (!info_ptr)
       goto error1;
 
@@ -318,31 +301,37 @@ int LoadPNG(const char *fname, int dest_format, PNGImage *pngdata)
    png_set_interlace_handling(png_ptr);
    png_read_update_info(png_ptr, info_ptr);
 
-   if ((info_ptr->color_type == PNG_COLOR_TYPE_GRAY_ALPHA) && (info_ptr->pixel_depth == 0x10))
+   png_byte pixel_depth = png_get_bit_depth(png_ptr, info_ptr) * png_get_channels(png_ptr, info_ptr);
+   png_byte color_type = png_get_color_type(png_ptr, info_ptr);
+
+   if ((color_type == PNG_COLOR_TYPE_GRAY_ALPHA) && (pixel_depth == 0x10))
    {
       png_set_expand(png_ptr);
       png_set_gray_to_rgb(png_ptr);
       png_read_update_info(png_ptr, info_ptr);
    }
-   else if ((info_ptr->color_type == PNG_COLOR_TYPE_RGB) && (info_ptr->pixel_depth == 0x18))
+   else if ((color_type == PNG_COLOR_TYPE_RGB) && (pixel_depth == 0x18))
    {
       png_set_expand(png_ptr);
       png_set_add_alpha(png_ptr, 0xff, PNG_FILLER_AFTER);
       png_read_update_info(png_ptr, info_ptr);
    }
 
-   row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * info_ptr->height);
+   int w = png_get_image_width(png_ptr, info_ptr);
+   int h = png_get_image_height(png_ptr, info_ptr);
+
+   png_bytep *row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * h);
    if (!row_pointers)
       goto error1;
 
    /* allocate enough memory for the entire image */
-   row_pointers[info_ptr->height - 1] = (png_byte*)malloc(info_ptr->height * info_ptr->rowbytes);
-   if (!row_pointers[info_ptr->height - 1])
+   row_pointers[h - 1] = (png_byte*)malloc(h * png_get_rowbytes(png_ptr,info_ptr));
+   if (!row_pointers[h - 1])
       goto error2;
 
    /* load the image upside down for OpenGL */
-   for (y=info_ptr->height-1; y>0; y--)
-      row_pointers[y-1] = (png_byte*)(row_pointers[y] + info_ptr->rowbytes);
+   for (int y=h-1; y>0; y--)
+      row_pointers[y-1] = (png_byte*)(row_pointers[y] + png_get_rowbytes(png_ptr,info_ptr));
 
    /* read file */
    if (setjmp(png_jmpbuf(png_ptr)))
@@ -354,143 +343,123 @@ int LoadPNG(const char *fname, int dest_format, PNGImage *pngdata)
 
    fclose(fp);
 
-   pngdata->mWidth = info_ptr->width;
-   pngdata->mHeight = info_ptr->height;
+   pngdata->mWidth = w;
+   pngdata->mHeight = h;
    pngdata->mFormat = (DEST_FORMAT)dest_format;
 
    /* convert our GL_RGBA to something else */
    if (dest_format == DF_565)
    {
-      unsigned short * out;
-      unsigned char * in;
-      unsigned int x, y;
+      pngdata->mStride = w * sizeof(unsigned short);
 
-      pngdata->mStride = info_ptr->width * sizeof(unsigned short);
-
-      in = (unsigned char *)row_pointers[info_ptr->height - 1];
-      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * info_ptr->height);
-      out = (unsigned short*)pngdata->mBytes;
+      unsigned char *in = (unsigned char *)row_pointers[h - 1];
+      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * h);
+      unsigned short *out = (unsigned short*)pngdata->mBytes;
 
       if (!pngdata->mBytes)
          goto error3;
 
       /* dither and truncate */
-      for (y = 0; y < info_ptr->height; y++)
+      for (int y = 0; y < h; y++)
       {
-         for (x = 0; x < info_ptr->width; x++)
+         for (int x = 0; x < w; x++)
          {
-            unsigned char *ptr = &in[4 * (y * info_ptr->width + x)];
-            out[y * info_ptr->width + x] = dither_rgb565(ptr[0], ptr[1], ptr[2], x, y);
+            unsigned char *ptr = &in[4 * (y * w + x)];
+            out[y * w + x] = dither_rgb565(ptr[0], ptr[1], ptr[2], x, y);
          }
       }
    }
    else if (dest_format == DF_4444)
    {
-      unsigned short * out;
-      unsigned char * in;
-      unsigned int x, y;
+      pngdata->mStride = w * sizeof(unsigned short);
 
-      pngdata->mStride = info_ptr->width * sizeof(unsigned short);
-
-      in = (unsigned char *)row_pointers[info_ptr->height - 1];
-      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * info_ptr->height);
-      out = (unsigned short*)pngdata->mBytes;
+      unsigned char *in = (unsigned char *)row_pointers[h - 1];
+      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * h);
+      unsigned short *out = (unsigned short*)pngdata->mBytes;
       if (!out)
          goto error3;
 
       /* dither and truncate */
-      for (y = 0; y < info_ptr->height; y++)
+      for (int y = 0; y < h; y++)
       {
-         for (x = 0; x < info_ptr->width; x++)
+         for (int x = 0; x < w; x++)
          {
-            unsigned char *ptr = &in[4 * (y * info_ptr->width + x)];
-            out[y * info_ptr->width + x] = dither_rgb4444(ptr[0], ptr[1], ptr[2], ptr[3], x, y);
+            unsigned char *ptr = &in[4 * (y * w + x)];
+            out[y * w + x] = dither_rgb4444(ptr[0], ptr[1], ptr[2], ptr[3], x, y);
          }
       }
    }
    else if (dest_format == DF_5551)
    {
-      unsigned short * out;
-      unsigned char * in;
-      unsigned int x, y;
+      pngdata->mStride = w * sizeof(unsigned short);
 
-      pngdata->mStride = info_ptr->width * sizeof(unsigned short);
-
-      in = (unsigned char *)row_pointers[info_ptr->height - 1];
-      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * info_ptr->height);
-      out = (unsigned short*)pngdata->mBytes;
+      unsigned char *in = (unsigned char *)row_pointers[h - 1];
+      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * h);
+      unsigned short *out = (unsigned short*)pngdata->mBytes;
       if (!out)
          goto error3;
 
       /* dither and truncate */
-      for (y = 0; y < info_ptr->height; y++)
+      for (int y = 0; y < h; y++)
       {
-         for (x = 0; x < info_ptr->width; x++)
+         for (int x = 0; x < w; x++)
          {
-            unsigned char *ptr = &in[4 * (y * info_ptr->width + x)];
-            out[y * info_ptr->width + x] = dither_rgb5551(ptr[0], ptr[1], ptr[2], ptr[3], x, y);
+            unsigned char *ptr = &in[4 * (y * w + x)];
+            out[y * w + x] = dither_rgb5551(ptr[0], ptr[1], ptr[2], ptr[3], x, y);
          }
       }
    }
    else if (dest_format == DF_8888)
    {
-      pngdata->mStride = info_ptr->width * 4 * sizeof(unsigned char);
-      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * info_ptr->height);
+      pngdata->mStride = w * 4 * sizeof(unsigned char);
+      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * h);
       if (!pngdata->mBytes)
          goto error3;
-      memcpy(pngdata->mBytes, row_pointers[info_ptr->height - 1], pngdata->mStride * info_ptr->height);
+      memcpy(pngdata->mBytes, row_pointers[h - 1], pngdata->mStride * h);
    }
    else if (dest_format == DF_888)
    {
-      unsigned char * out;
-      unsigned char * in;
-      unsigned int x, y;
-
       /* GL uses default packing of 4 bytes */
-      pngdata->mStride = ((info_ptr->width * 3) + 3) & ~0x3;
+      pngdata->mStride = ((w * 3) + 3) & ~0x3;
 
-      in = (unsigned char *)row_pointers[info_ptr->height - 1];
-      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * info_ptr->height);
-      out = (unsigned char*)pngdata->mBytes;
+      unsigned char *in = (unsigned char *)row_pointers[h - 1];
+      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * h);
+      unsigned char *out = (unsigned char*)pngdata->mBytes;
       if (!out)
          goto error3;
 
       /* dither and truncate */
-      for (y = 0; y < info_ptr->height; y++)
+      for (int y = 0; y < h; y++)
       {
-         for (x = 0; x < info_ptr->width; x++)
+         for (int x = 0; x < w; x++)
          {
             out[x * 3] = in[x * 4];
             out[x * 3 + 1] = in[x * 4 + 1];
             out[x * 3 + 2] = in[x * 4 + 2];
          }
-         in = in + (info_ptr->width * 4);
+         in = in + (w * 4);
          out = out + pngdata->mStride;
       }
    }
    else if (dest_format == DF_ALPHA)
    {
-      unsigned char * out;
-      unsigned char * in;
-      unsigned int x, y;
-
       /* GL uses default packing of 4 bytes */
-      pngdata->mStride = (info_ptr->width + 3) & ~0x3;
+      pngdata->mStride = (w + 3) & ~0x3;
 
-      in = (unsigned char *)row_pointers[info_ptr->height - 1];
-      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * info_ptr->height);
-      out = (unsigned char*)pngdata->mBytes;
+      unsigned char *in = (unsigned char *)row_pointers[h - 1];
+      pngdata->mBytes = (unsigned char *)malloc(pngdata->mStride * h);
+      unsigned char *out = (unsigned char*)pngdata->mBytes;
       if (!out)
          goto error3;
 
       /* just take the alpha */
-      for (y = 0; y < info_ptr->height; y++)
+      for (int y = 0; y < h; y++)
       {
-         for (x = 0; x < info_ptr->width; x++)
+         for (int x = 0; x < w; x++)
          {
             out[x] = in[x * 4 + 3];
          }
-         in = in + (info_ptr->width * 4);
+         in = in + (w * 4);
          out = out + pngdata->mStride;
       }
    }
@@ -500,7 +469,7 @@ int LoadPNG(const char *fname, int dest_format, PNGImage *pngdata)
    status = 1;
 
 error3:
-   free(row_pointers[info_ptr->height - 1]);
+   free(row_pointers[h - 1]);
 error2:
    free(row_pointers);
 error1:

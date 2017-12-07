@@ -351,6 +351,7 @@ BSAGElib_P_Rpc_HSIReceiveCallback_isr(
     BSAGElib_RpcAck ack;
     const uint8_t *pAckBuf = NULL;
     uint32_t ackBufLen = 0;
+    BSAGElib_RpcMessage_eType type;
 
     rc = BHSI_Receive_isrsafe(hSAGElib->hHsi, (uint8_t *)&rsCh, sizeof(rsCh), &recv_length);
     if (rc != BERR_SUCCESS) {
@@ -367,14 +368,26 @@ BSAGElib_P_Rpc_HSIReceiveCallback_isr(
         return;
     }
 
-    switch (rsCh.type) {
-    case BSAGElib_RpcMessage_eResponse:
-        BSAGElib_P_Rpc_HandleResponse_isr(hSAGElib, &rsCh.response);
-        break;
-    case BSAGElib_RpcMessage_eCallbackRequest:
+    type = rsCh.type;
+
+    /* only callbackRequest requires an ack buffer, process the request before sending the ack
+       BUT do not delay sending the ack in the other cases */
+    if (type == BSAGElib_RpcMessage_eCallbackRequest) {
         pAckBuf = (uint8_t *)&ack;
         ackBufLen = sizeof(ack);
         ack.rc = BSAGElib_P_Rpc_HandleCallbackRequest_isr(hSAGElib, &rsCh.callbackRequest);
+    }
+
+    /* Send Ack */
+    rc = BHSI_Ack_isrsafe(hSAGElib->hHsi, pAckBuf, ackBufLen);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s: error sending the Ack to SAGE [type=%u]", BSTD_FUNCTION, type));
+        /* keep going */
+    }
+
+    switch (type) {
+    case BSAGElib_RpcMessage_eResponse:
+        BSAGElib_P_Rpc_HandleResponse_isr(hSAGElib, &rsCh.response);
         break;
     case BSAGElib_RpcMessage_eIndication:
         BSAGElib_P_Rpc_HandleIndication_isr(hSAGElib, &rsCh.indication);
@@ -382,12 +395,12 @@ BSAGElib_P_Rpc_HSIReceiveCallback_isr(
     case BSAGElib_RpcMessage_eTATerminate:
         BSAGElib_P_Rpc_HandleTATerminate_isr(hSAGElib, &rsCh.taTerminate);
         break;
+    case BSAGElib_RpcMessage_eCallbackRequest:
+        /* BSAGElib_P_Rpc_HandleCallbackRequest_isr() already called */
+        /* fall through */
     default:
         return;
     }
-
-    /* Send Ack */
-    BHSI_Ack_isrsafe(hSAGElib->hHsi, pAckBuf, ackBufLen);
 }
 #endif
 

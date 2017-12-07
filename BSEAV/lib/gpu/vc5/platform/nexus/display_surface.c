@@ -4,6 +4,7 @@
 #include "private_nexus.h"
 #include "nexus_platform.h"
 #include "display_helpers.h"
+#include "nexus_heap_selection.h"
 
 #define NXPL_INFO_MAGIC 0x4A694D5F
 
@@ -14,85 +15,51 @@ bool isNXPL_Surface(NXPL_Surface *s)
 
 bool CreateSurface(NXPL_Surface *s,
    BEGL_BufferFormat format,
-   uint32_t width, uint32_t height,
+   uint32_t width, uint32_t height, uint32_t miplevels,
    bool secure,
    const char *desc)
 {
    if (s)
    {
-      NEXUS_SurfaceCreateSettings    surfSettings;
-      uint32_t                       bytes;
-
+      NEXUS_SurfaceCreateSettings surfSettings;
       NEXUS_Surface_GetDefaultCreateSettings(&surfSettings);
 
       if (!BeglToNexusFormat(&surfSettings.pixelFormat, format))
          return false;
 
-      surfSettings.width = width;
-      surfSettings.height = height;
+      // Note we allow NEXUS_Surface_Create to allocate the memory as
+      // it will calculate the required size for UIF surfaces as well as
+      // raster and we don't want to duplicate the logic for that here.
 
-      bytes = width * height * BeglFormatNumBytes(format);
+      surfSettings.width     = width;
+      surfSettings.height    = height;
+      // NEXUS surface creation specifies the mip level number at the beginning
+      // of the surface, not the number of miplevels.
+      surfSettings.mipLevel  = miplevels - 1;
+      surfSettings.heap      = secure ? GetSecureHeap() : GetDisplayHeap(0);
+      surfSettings.alignment = 12; // log2(4096)
 
-#ifndef SINGLE_PROCESS
-      NEXUS_HeapHandle unsecureHeap = NULL;
-      NEXUS_HeapHandle secureHeap = NULL;
+      s->surface = NEXUS_Surface_Create(&surfSettings);
+      if (s->surface != NULL)
       {
-         NEXUS_ClientConfiguration clientConfig;
-         NEXUS_Platform_GetClientConfiguration(&clientConfig);
+         NEXUS_SurfaceMemoryProperties memProperties;
+         NEXUS_Surface_GetMemoryProperties(s->surface, &memProperties);
 
-         if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
-            unsecureHeap = clientConfig.heap[0];
+         NEXUS_Addr offset;
+         NEXUS_MemoryBlock_LockOffset(memProperties.pixelMemory, &offset);
+         s->physicalOffset = offset;
+         // Secure memory can't be mapped as the ARM will try to access it
+         if (!secure)
+            NEXUS_MemoryBlock_Lock(memProperties.pixelMemory, &s->cachedPtr);
          else
-#ifdef NXCLIENT_SUPPORT
-            unsecureHeap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-#else
-            /* NEXUS_Platform_GetFramebufferHeap() is not callable under NEXUS_CLIENT_SUPPORT=y */
-            unsecureHeap = NULL;
-#endif
+            s->cachedPtr = NULL;
 
-#ifdef NXCLIENT_SUPPORT
-         secureHeap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
-#else
-         /* not available in NEXUS_CLIENT_SUPPORT=y mode */
-         secureHeap = NULL;
-#endif
-      }
-      NEXUS_HeapHandle  heap = secure ? secureHeap : unsecureHeap;
+         s->magic  = NXPL_INFO_MAGIC;
+         s->fence  = -1;
+         s->format = format;
+         s->secure = secure;
 
-#else
-      /* Framebuffer heap 0 is always GFD accessible */
-      NEXUS_HeapHandle  heap = NEXUS_Platform_GetFramebufferHeap(secure ? NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE : 0);
-#endif
-
-      surfSettings.pixelMemory = NEXUS_MemoryBlock_Allocate(heap, bytes, 4096, NULL);
-
-      surfSettings.pixelMemoryOffset = 0;
-
-      if (surfSettings.pixelMemory != NULL)
-      {
-         s->surface = NEXUS_Surface_Create(&surfSettings);
-         if (s->surface != NULL)
-         {
-            NEXUS_Addr offset;
-            NEXUS_MemoryBlock_LockOffset(surfSettings.pixelMemory, &offset);
-            s->physicalOffset = offset;
-            // Secure memory can't be mapped as the ARM will try to access it
-            if (!secure)
-               NEXUS_MemoryBlock_Lock(surfSettings.pixelMemory, &s->cachedPtr);
-            else
-               s->cachedPtr = NULL;
-
-            s->magic = NXPL_INFO_MAGIC;
-            s->fence  = -1;
-            s->format = format;
-            s->secure = secure;
-
-            return true;
-         }
-         else
-         {
-            NEXUS_MemoryBlock_Free(surfSettings.pixelMemory);
-         }
+         return true;
       }
    }
 
@@ -101,14 +68,7 @@ bool CreateSurface(NXPL_Surface *s,
 
 void DestroySurface(NXPL_Surface *s)
 {
+   // Will destroy the memory backing the surface as well
    if (s && s->surface)
-   {
-      NEXUS_SurfaceMemoryProperties memProperties;
-      NEXUS_Surface_GetMemoryProperties(s->surface, &memProperties);
-
       NEXUS_Surface_Destroy(s->surface);
-
-      /* This will also unmap and unlock the memory block - no need to do that explicitly */
-      NEXUS_MemoryBlock_Free(memProperties.pixelMemory);
-   }
 }

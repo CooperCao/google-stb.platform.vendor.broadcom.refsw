@@ -1,25 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  External interface
-File     :  $RCSfile$
-Revision :  $Revision$
-
-FILE DESCRIPTION
-External interface.
-=============================================================================*/
-
-#include "middleware/khronos/common/khrn_misc.h"
-#include "middleware/khronos/gl11/gl11_server.h"
-#include "middleware/khronos/gl20/gl20_server.h"
-#ifndef NO_OPENVG
-#include "middleware/khronos/vg/vg_server.h"
-#endif /* NO_OPENVG */
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/egl/egl_server.h"
+#include "middleware/khronos/common/khrn_hw.h"
 
-void khrn_misc_fifo_finish_impl(void) /* todo: misleading name? */
+void khrn_misc_fifo_finish_impl(void)
 {
    khrn_hw_common_finish();
 }

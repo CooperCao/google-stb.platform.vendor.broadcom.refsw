@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011 Broadcom Corporation
- * 
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,41 +9,33 @@
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *  
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
  * Except as expressly set forth in the Authorized License,
- *  
+ *
  * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
  * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *  
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  * USE OR PERFORMANCE OF THE SOFTWARE.
- * 
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- * 
  * Module Description:
- * 
- * Revision History:
- * 
- * $brcm_Log: $
  * 
  *****************************************************************************/
 #include <stdlib.h>
@@ -114,9 +106,9 @@ int main(int argc, char *argv[])
 
    		test_partial_sha1();
 
-    /*printf("\n\n\t%s - Number of test cases that failed = '%u'\n", __FUNCTION__, error_count);
-    printf("\t%s - Number of test cases that failed = '%u'\n", __FUNCTION__, error_count);
-    printf("\t%s - Exiting\n", __FUNCTION__);*/
+    /*printf("\n\n\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
+    printf("\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
+    printf("\t%s - Exiting\n", BSTD_FUNCTION);*/
 
     /*pthread_join(thread[i], NULL);*/
     }
@@ -168,28 +160,28 @@ void test_partial_sha1()
     							0x7e, 0xdd, 0xc8, 0x61, 0x32, 0x19, 0x9e, 0xce,
     							0x3b, 0x9e, 0xa0, 0xcc, 0x00, 0x00, 0x00, 0x00,
     							0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	/*printf("\n\t%s - Partial SHA-1 test ^^^^^ tid = (%p)\n", __FUNCTION__, pthread_self());*/
+	/*printf("\n\t%s - Partial SHA-1 test ^^^^^ tid = (%p)\n", BSTD_FUNCTION, pthread_self());*/
 
 	for(i=0; i<3; i++)
 	{
 		switch(i)
 		{
 			case 0:
-				/*printf("\t%s - Partial SHA-1 Init\n", __FUNCTION__);*/
+				/*printf("\t%s - Partial SHA-1 Init\n", BSTD_FUNCTION);*/
 				pCurrData = pBuf;
 				curr_data_size = 8;
 				partialSha1Type = DrmCommon_PartialSha1Type_Init;
 			break;
 
 			case 1:
-				/*printf("\t%s - Partial SHA-1 Update\n", __FUNCTION__);*/
+				/*printf("\t%s - Partial SHA-1 Update\n", BSTD_FUNCTION);*/
 				pCurrData = &pBuf[8];
 				curr_data_size = 16;
 				partialSha1Type = DrmCommon_PartialSha1Type_Update;
 			break;
 
 			case 2:
-				/*printf("\t%s - Partial SHA-1 Finalize\n", __FUNCTION__);*/
+				/*printf("\t%s - Partial SHA-1 Finalize\n", BSTD_FUNCTION);*/
 				pCurrData = &pBuf[24];
 				curr_data_size = 8;
 				partialSha1Type = DrmCommon_PartialSha1Type_Finalize;
@@ -199,7 +191,7 @@ void test_partial_sha1()
 		DRM_Common_SwPartialSha1(pBuf, pShaBuf, 32, partialSha1Type, &context);
 	}
 
-	/*printf("\t%s - Calculated Full SHA-1 :\n\t\t", __FUNCTION__);
+	/*printf("\t%s - Calculated Full SHA-1 :\n\t\t", BSTD_FUNCTION);
 	for(i = 0; i < 20; i++)
 	{
 	   printf("0x%02x ", pShaBuf[i]);
@@ -233,7 +225,7 @@ void test_sha1()
     							0x7e, 0xdd, 0xc8, 0x61, 0x32, 0x19, 0x9e, 0xce,
     							0x3b, 0x9e, 0xa0, 0xcc, 0x00, 0x00, 0x00, 0x00,
     							0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	printf("\n\t%s - Entered SHA-1 test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+	printf("\n\t%s - Entered SHA-1 test ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION);
 	DRM_Common_SwSha1(pBuf, pShaBuf, 32);
 
 	printf("\tMain - Calculated SHA-1 :\n\t\t");

@@ -39,6 +39,16 @@
 #ifndef BDSP_ARM_H_
 #define BDSP_ARM_H_
 
+#include "btee.h"
+#include "bchp.h"
+#include "bint.h"
+#include "bbox.h"
+#include "breg_mem.h"
+#include "bmma.h"
+#include "btmr.h"
+#include "bimg.h"
+#include "bdsp_types.h"
+#include "bdsp.h"
 
 /***************************************************************************
 Summary:
@@ -61,45 +71,6 @@ typedef struct BDSP_ArmSettings
     BDSP_Arm_DebugTypeSettings debugSettings[BDSP_Arm_DebugType_eLast]; /* Debug information for the different types of debug logs */
 #endif
 } BDSP_ArmSettings;
-
-/*********************************************************************
-Summary:
-    This structure contain elements that is returned by
-        CalcThreshold_BlockTime_AudOffset API.
-
-Description:
-
-        ui32Threshold and ui32BlockTime goes to FW and
-        ui32AudOffset goes to Application and TSM user cfg
-
-See Also:
-**********************************************************************/
-typedef struct BDSP_ARM_CTB_Output
-{
-    uint32_t ui32Threshold;                                 /* Interms of samples */
-    uint32_t ui32BlockTime;                                 /* Interms of Time (msec)  */
-    uint32_t ui32AudOffset;                                 /* AudOffset in Time (msec) */
-
-}BDSP_ARM_CTB_Output;
-
-
-typedef struct BDSP_ARM_CTB_Input
-{
-    BDSP_AudioTaskDelayMode audioTaskDelayMode;
-    BDSP_TaskRealtimeMode realtimeMode;
-}BDSP_ARM_CTB_Input;
-
-/***************************************************************************
-Summary:
-Firmware download status.
-***************************************************************************/
-typedef struct BDSP_Arm_DownloadStatus
-{
-    void    *pBaseAddress;      /* Pointer to base of downloaded firmware executables */
-    dramaddr_t physicalAddress;   /* Physical memory offset of downloaded firmware executables */
-    size_t   length;            /* Length of executables in bytes */
-} BDSP_Arm_DownloadStatus;
-
 
 /***************************************************************************
 Summary:
@@ -134,12 +105,4 @@ BERR_Code BDSP_Arm_Open(
 void BDSP_Arm_GetDefaultSettings(
     BDSP_ArmSettings *pSettings     /* [out] */
     );
-
-BERR_Code BDSP_Arm_GetDownloadStatus(
-    BDSP_Handle handle,
-    BDSP_Arm_DownloadStatus *pStatus /* [out] */
-    );
-
-BERR_Code BDSP_Arm_Initialize(BDSP_Handle handle);
-
 #endif /* BDSP_ARM_H_ */

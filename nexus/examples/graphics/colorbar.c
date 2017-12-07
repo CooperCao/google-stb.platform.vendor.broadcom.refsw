@@ -37,6 +37,7 @@
  ***************************************************************************/
 #include "nexus_platform.h"
 #include <stdio.h>
+#include <string.h>
 
 #if NEXUS_HAS_GRAPHICS2D
 #include "nexus_surface.h"

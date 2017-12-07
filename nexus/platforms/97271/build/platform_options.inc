@@ -40,12 +40,6 @@
 # this file is included by nexus/platform/common/build/platform_modules.inc
 # you can define your platform's options here
 
-ifeq ($(NEXUS_HDMI_INPUT_SUPPORT),n)
-NEXUS_HDMI_INPUT_SUPPORT := n
-else
-NEXUS_HDMI_INPUT_SUPPORT ?=y
-endif
-
 export NEXUS_FRONTEND_3158  ?= y
 export NEXUS_FRONTEND_315x_OOB ?=y
 export NEXUS_FRONTEND_3461  ?= y

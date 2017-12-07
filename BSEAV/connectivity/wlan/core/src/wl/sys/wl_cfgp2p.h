@@ -36,7 +36,8 @@ typedef struct wifi_p2p_ie wifi_wfd_ie_t;
 typedef enum {
 	P2PAPI_BSSCFG_PRIMARY, /**< maps to driver's primary bsscfg */
 	P2PAPI_BSSCFG_DEVICE, /**< maps to driver's P2P device discovery bsscfg */
-	P2PAPI_BSSCFG_CONNECTION, /**< maps to driver's P2P connection bsscfg */
+	P2PAPI_BSSCFG_CONNECTION1, /**< maps to driver's P2P connection bsscfg */
+	P2PAPI_BSSCFG_CONNECTION2,
 	P2PAPI_BSSCFG_MAX
 } p2p_bsscfg_type_t;
 
@@ -54,49 +55,33 @@ typedef enum {
 /** vendor ies max buffer length for probe response or beacon */
 #define VNDR_IES_MAX_BUF_LEN	1400
 /** normal vendor ies buffer length */
-#define VNDR_IES_BUF_LEN		512
-
-/* Structure to hold all saved P2P and WPS IEs for a BSSCFG */
-struct p2p_saved_ie {
-	u8  p2p_probe_req_ie[VNDR_IES_BUF_LEN];
-	u8  p2p_probe_res_ie[VNDR_IES_MAX_BUF_LEN];
-	u8  p2p_assoc_req_ie[VNDR_IES_BUF_LEN];
-	u8  p2p_assoc_res_ie[VNDR_IES_BUF_LEN];
-	u8  p2p_beacon_ie[VNDR_IES_MAX_BUF_LEN];
-	u32 p2p_probe_req_ie_len;
-	u32 p2p_probe_res_ie_len;
-	u32 p2p_assoc_req_ie_len;
-	u32 p2p_assoc_res_ie_len;
-	u32 p2p_beacon_ie_len;
-};
+#define VNDR_IES_BUF_LEN 		512
 
 struct p2p_bss {
 	s32 bssidx;
 	struct net_device *dev;
-	struct p2p_saved_ie saved_ie;
 	void *private_data;
+	struct ether_addr mac_addr;
 };
 
 struct p2p_info {
 	bool on;    /**< p2p on/off switch */
 	bool scan;
 	int16 search_state;
-	bool vif_created;
 	s8 vir_ifname[IFNAMSIZ];
 	unsigned long status;
-	struct ether_addr dev_addr;
-	struct ether_addr int_addr;
 	struct p2p_bss bss[P2PAPI_BSSCFG_MAX];
 	struct timer_list listen_timer;
 	wl_p2p_sched_t noa;
 	wl_p2p_ops_t ops;
 	wlc_ssid_t ssid;
+	s8 p2p_go_count;
 };
 
 #define MAX_VNDR_IE_NUMBER	10
 
 struct parsed_vndr_ie_info {
-	char *ie_ptr;
+	const char *ie_ptr;
 	u32 ie_len;	/**< total length including id & length field */
 	vndr_ie_t vndrie;
 };
@@ -125,6 +110,7 @@ enum wl_cfgp2p_status {
 
 #define wl_to_p2p_bss_ndev(cfg, type)		((cfg)->p2p->bss[type].dev)
 #define wl_to_p2p_bss_bssidx(cfg, type)		((cfg)->p2p->bss[type].bssidx)
+#define wl_to_p2p_bss_macaddr(cfg, type)     &((cfg)->p2p->bss[type].mac_addr)
 #define wl_to_p2p_bss_saved_ie(cfg, type)	((cfg)->p2p->bss[type].saved_ie)
 #define wl_to_p2p_bss_private(cfg, type)		((cfg)->p2p->bss[type].private_data)
 #define wl_to_p2p_bss(cfg, type)			((cfg)->p2p->bss[type])
@@ -155,9 +141,9 @@ enum wl_cfgp2p_status {
 		if (wl_dbg_level & WL_DBG_ERR) {				\
 			printk(KERN_INFO CFGP2P_ERROR_TEXT "%s : ", __func__);	\
 			printk args;						\
-			dhd_log_dump_print("[%s] %s: ",	\
+			DHD_LOG_DUMP_WRITE("[%s] %s: ",	\
 			dhd_log_dump_get_timestamp(), __func__);	\
-			dhd_log_dump_print args;	\
+			DHD_LOG_DUMP_WRITE args;	\
 		}									\
 	} while (0)
 #else
@@ -200,7 +186,8 @@ enum wl_cfgp2p_status {
 		add_timer(timer); \
 	} while (0);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)) && !defined(WL_CFG80211_P2P_DEV_IF)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)) && \
+	 !defined(WL_CFG80211_P2P_DEV_IF)
 #define WL_CFG80211_P2P_DEV_IF
 
 #ifdef WL_ENABLE_P2P_IF
@@ -230,10 +217,6 @@ enum wl_cfgp2p_status {
 #error Disable 'WL_ENABLE_P2P_IF', if 'WL_CFG80211_P2P_DEV_IF' is enabled \
 	or kernel version is 3.8.0 or above
 #endif /* WL_ENABLE_P2P_IF && (WL_CFG80211_P2P_DEV_IF || (LINUX_VERSION >= VERSION(3, 8, 0))) */
-
-#if !defined(WLP2P) && (defined(WL_ENABLE_P2P_IF) || defined(WL_CFG80211_P2P_DEV_IF))
-#error WLP2P not defined
-#endif /* !WLP2P && (WL_ENABLE_P2P_IF || WL_CFG80211_P2P_DEV_IF) */
 
 #if defined(WL_CFG80211_P2P_DEV_IF)
 #define bcm_struct_cfgdev	struct wireless_dev
@@ -274,7 +257,8 @@ wl_cfgp2p_ifdisable(struct bcm_cfg80211 *cfg, struct ether_addr *mac);
 extern s32
 wl_cfgp2p_ifdel(struct bcm_cfg80211 *cfg, struct ether_addr *mac);
 extern s32
-wl_cfgp2p_ifchange(struct bcm_cfg80211 *cfg, struct ether_addr *mac, u8 if_type, chanspec_t chspec);
+wl_cfgp2p_ifchange(struct bcm_cfg80211 *cfg, struct ether_addr *mac, u8 if_type,
+	chanspec_t chspec, s32 conn_idx);
 
 extern s32
 wl_cfgp2p_ifidx(struct bcm_cfg80211 *cfg, struct ether_addr *mac, s32 *index);
@@ -313,8 +297,6 @@ wl_cfgp2p_set_management_ie(struct bcm_cfg80211 *cfg, struct net_device *ndev, s
 extern s32
 wl_cfgp2p_clear_management_ie(struct bcm_cfg80211 *cfg, s32 bssidx);
 
-extern s32
-wl_cfgp2p_find_idx(struct bcm_cfg80211 *cfg, struct net_device *ndev, s32 *index);
 extern struct net_device *
 wl_cfgp2p_find_ndev(struct bcm_cfg80211 *cfg, s32 bssidx);
 extern s32
@@ -339,8 +321,7 @@ wl_cfgp2p_tx_action_frame(struct bcm_cfg80211 *cfg, struct net_device *dev,
 	wl_af_params_t *af_params, s32 bssidx);
 
 extern void
-wl_cfgp2p_generate_bss_mac(struct ether_addr *primary_addr, struct ether_addr *out_dev_addr,
-	struct ether_addr *out_int_addr);
+wl_cfgp2p_generate_bss_mac(struct bcm_cfg80211 *cfg, struct ether_addr *primary_addr);
 
 extern void
 wl_cfg80211_change_ifaddr(u8* buf, struct ether_addr *p2p_int_addr, u8 element_id);
@@ -372,7 +353,7 @@ wl_cfgp2p_retreive_p2pattrib(void *buf, u8 element_id);
 extern u8*
 wl_cfgp2p_find_attrib_in_all_p2p_Ies(u8 *parse, u32 len, u32 attrib);
 
-extern u8 *
+extern const u8 *
 wl_cfgp2p_retreive_p2p_dev_addr(wl_bss_info_t *bi, u32 bi_length);
 
 extern s32
@@ -383,6 +364,18 @@ wl_cfgp2p_unregister_ndev(struct bcm_cfg80211 *cfg);
 
 extern bool
 wl_cfgp2p_is_ifops(const struct net_device_ops *if_ops);
+
+extern u32
+wl_cfgp2p_vndr_ie(struct bcm_cfg80211 *cfg, u8 *iebuf, s32 pktflag,
+	s8 *oui, s32 ie_id, const s8 *data, s32 datalen, const s8* add_del_cmd);
+
+extern int wl_cfgp2p_get_conn_idx(struct bcm_cfg80211 *cfg);
+
+extern
+int wl_cfg_multip2p_operational(struct bcm_cfg80211 *cfg);
+
+extern
+int wl_cfgp2p_vif_created(struct bcm_cfg80211 *cfg);
 
 #if defined(WL_CFG80211_P2P_DEV_IF)
 extern struct wireless_dev *

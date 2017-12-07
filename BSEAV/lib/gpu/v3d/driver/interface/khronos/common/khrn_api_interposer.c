@@ -3,6 +3,8 @@
  ******************************************************************************/
 #if defined(REMOTE_API_LOGGING) || defined(BCG_MULTI_THREADED)
 
+#include "interface/khronos/include/EGL/eglplatform.h"
+
 #include "interface/khronos/common/khrn_client_mangle.h" /* Mangle the names when we include the headers */
 
 #include "interface/khronos/common/khrn_int_common.h"
@@ -38,11 +40,11 @@ static EventData    s_queue[QUEUE_LEN];
 
 void khrn_init_api_interposer(void);
 
-extern BEGL_DriverInterfaces* BEGLint_GetDriverInterfaces(void);
 static void GetTime(uint64_t *now)
 {
    BEGL_HWInfo info;
-   BEGLint_GetDriverInterfaces()->hwInterface->GetInfo(BEGLint_GetDriverInterfaces()->hwInterface->context, &info);
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   driverInterfaces->hwInterface->GetInfo(driverInterfaces->hwInterface->context, &info);
 
    *now = info.time;
 }
@@ -394,6 +396,9 @@ typedef struct {
    bool (*remote_eglImageUpdateParameterivBRCM)(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, const EGLint *params);
    bool (*remote_eglImageUpdateParameteriBRCM)(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, EGLint param);
 #endif
+   bool (*remote_eglGetPlatformDisplayEXT)(EGLenum platform, void *native_display, const EGLint *attrib_list);
+   bool (*remote_eglCreatePlatformWindowSurfaceEXT)(EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
+   bool (*remote_eglCreatePlatformPixmapSurfaceEXT)(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
 
 } REMOTE_API_TABLE;
 
@@ -524,7 +529,7 @@ static void LogError(void)
                locked_thread->cached_gl_error = err;
          }
          else
-            vcos_assert(0);
+            assert(0);
 
          /* Tell remote logger that we have an error */
          logger.remote_error(err);
@@ -545,7 +550,7 @@ static void LogEGLError(void)
                locked_thread->cached_egl_error = err;
          }
          else
-            vcos_assert(0);
+            assert(0);
 
          /* Tell remote logger that we have an error */
          logger.remote_error(err);
@@ -2214,136 +2219,14 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetSyncAttribKHR(EGLDisplay dpy, EGLSyncKHR syn
 EGLAPI EGLBoolean EGLAPIENTRY eglImageUpdateParameterivBRCM(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, const EGLint *params) EGLBooleanFunc(eglImageUpdateParameterivBRCM, (dpy, image, pname, params))
 EGLAPI EGLBoolean EGLAPIENTRY eglImageUpdateParameteriBRCM(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, EGLint param) EGLBooleanFunc(eglImageUpdateParameteriBRCM, (dpy, image, pname, param))
 #endif
+EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplayEXT(EGLenum platform, void *native_display, const EGLint *attrib_list) EGLDisplayFunc(eglGetPlatformDisplayEXT, (platform, native_display, attrib_list))
+EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT(EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list) EGLSurfaceFunc(eglCreatePlatformWindowSurfaceEXT, (dpy, config, native_window, attrib_list))
+EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list) EGLSurfaceFunc(eglCreatePlatformPixmapSurfaceEXT, (dpy, config, native_pixmap, attrib_list))
 
 EGLAPI __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddress(const char *procname)
 {
    return Real(eglGetProcAddress)(procname);
 }
-
-#ifndef NO_OPENVG
-VG_API_CALL VGErrorCode VG_API_ENTRY vgGetError(void) returningVGFunc(VGErrorCode, vgGetError, ())
-VG_API_CALL void VG_API_ENTRY vgFlush(void) voidVGFunc(vgFlush, ())
-VG_API_CALL void VG_API_ENTRY vgFinish(void) voidVGFunc(vgFinish, ())
-
-/* Getters and Setters */
-VG_API_CALL void VG_API_ENTRY vgSetf (VGParamType type, VGfloat value) voidVGFunc(vgSetf , (type, value))
-VG_API_CALL void VG_API_ENTRY vgSeti (VGParamType type, VGint value) voidVGFunc(vgSeti , (type, value))
-VG_API_CALL void VG_API_ENTRY vgSetfv(VGParamType type, VGint count, const VGfloat * values) voidVGFunc(vgSetfv, (type, count, values))
-VG_API_CALL void VG_API_ENTRY vgSetiv(VGParamType type, VGint count, const VGint * values) voidVGFunc(vgSetiv, (type, count, values))
-
-VG_API_CALL VGfloat VG_API_ENTRY vgGetf(VGParamType type) returningVGFunc(VGfloat, vgGetf, (type))
-VG_API_CALL VGint VG_API_ENTRY vgGeti(VGParamType type) returningVGFunc(VGint, vgGeti, (type))
-VG_API_CALL VGint VG_API_ENTRY vgGetVectorSize(VGParamType type) returningVGFunc(VGint, vgGetVectorSize, (type))
-VG_API_CALL void VG_API_ENTRY vgGetfv(VGParamType type, VGint count, VGfloat * values) voidVGFunc(vgGetfv, (type, count, values))
-VG_API_CALL void VG_API_ENTRY vgGetiv(VGParamType type, VGint count, VGint * values) voidVGFunc(vgGetiv, (type, count, values))
-
-VG_API_CALL void VG_API_ENTRY vgSetParameterf(VGHandle object, VGint paramType, VGfloat value) voidVGFunc(vgSetParameterf, (object, paramType, value))
-VG_API_CALL void VG_API_ENTRY vgSetParameteri(VGHandle object, VGint paramType, VGint value) voidVGFunc(vgSetParameteri, (object, paramType, value))
-VG_API_CALL void VG_API_ENTRY vgSetParameterfv(VGHandle object, VGint paramType, VGint count, const VGfloat * values) voidVGFunc(vgSetParameterfv, (object, paramType, count, values))
-VG_API_CALL void VG_API_ENTRY vgSetParameteriv(VGHandle object, VGint paramType, VGint count, const VGint * values) voidVGFunc(vgSetParameteriv, (object, paramType, count, values))
-
-VG_API_CALL VGfloat VG_API_ENTRY vgGetParameterf(VGHandle object, VGint paramType) returningVGFunc(VGfloat, vgGetParameterf, (object, paramType))
-VG_API_CALL VGint VG_API_ENTRY vgGetParameteri(VGHandle object, VGint paramType) returningVGFunc(VGint, vgGetParameteri, (object, paramType))
-VG_API_CALL VGint VG_API_ENTRY vgGetParameterVectorSize(VGHandle object, VGint paramType)  returningVGFunc(VGint, vgGetParameterVectorSize, (object, paramType))
-VG_API_CALL void VG_API_ENTRY vgGetParameterfv(VGHandle object, VGint paramType, VGint count, VGfloat * values) voidVGFunc(vgGetParameterfv, (object, paramType, count, values))
-VG_API_CALL void VG_API_ENTRY vgGetParameteriv(VGHandle object, VGint paramType, VGint count, VGint * values) voidVGFunc(vgGetParameteriv, (object, paramType, count, values))
-
-/* Matrix Manipulation */
-VG_API_CALL void VG_API_ENTRY vgLoadIdentity(void) voidVGFunc(vgLoadIdentity, ())
-VG_API_CALL void VG_API_ENTRY vgLoadMatrix(const VGfloat * m) voidVGFunc(vgLoadMatrix, (m))
-VG_API_CALL void VG_API_ENTRY vgGetMatrix(VGfloat * m) voidVGFunc(vgGetMatrix, (m))
-VG_API_CALL void VG_API_ENTRY vgMultMatrix(const VGfloat * m) voidVGFunc(vgMultMatrix, (m))
-VG_API_CALL void VG_API_ENTRY vgTranslate(VGfloat tx, VGfloat ty) voidVGFunc(vgTranslate, (tx, ty))
-VG_API_CALL void VG_API_ENTRY vgScale(VGfloat sx, VGfloat sy) voidVGFunc(vgScale, (sx, sy))
-VG_API_CALL void VG_API_ENTRY vgShear(VGfloat shx, VGfloat shy) voidVGFunc(vgShear, (shx, shy))
-VG_API_CALL void VG_API_ENTRY vgRotate(VGfloat angle) voidVGFunc(vgRotate, (angle))
-
-/* Masking and Clearing */
-VG_API_CALL void VG_API_ENTRY vgMask(VGHandle mask, VGMaskOperation operation, VGint x, VGint y, VGint width, VGint height) voidVGFunc(vgMask, (mask, operation, x, y, width, height))
-VG_API_CALL void VG_API_ENTRY vgRenderToMask(VGPath path, VGbitfield paintModes, VGMaskOperation operation) voidVGFunc(vgRenderToMask, (path, paintModes, operation))
-VG_API_CALL VGMaskLayer VG_API_ENTRY vgCreateMaskLayer(VGint width, VGint height) returningVGFunc(VGMaskLayer, vgCreateMaskLayer, (width, height))
-VG_API_CALL void VG_API_ENTRY vgDestroyMaskLayer(VGMaskLayer maskLayer) voidVGFunc(vgDestroyMaskLayer, (maskLayer))
-VG_API_CALL void VG_API_ENTRY vgFillMaskLayer(VGMaskLayer maskLayer, VGint x, VGint y, VGint width, VGint height, VGfloat value) voidVGFunc(vgFillMaskLayer, (maskLayer, x, y, width, height, value))
-VG_API_CALL void VG_API_ENTRY vgCopyMask(VGMaskLayer maskLayer, VGint dx, VGint dy, VGint sx, VGint sy, VGint width, VGint height) voidVGFunc(vgCopyMask, (maskLayer, dx, dy, sx, sy, width, height))
-VG_API_CALL void VG_API_ENTRY vgClear(VGint x, VGint y, VGint width, VGint height) voidVGFunc(vgClear, (x, y, width, height))
-
-/* Paths */
-VG_API_CALL VGPath VG_API_ENTRY vgCreatePath(VGint pathFormat, VGPathDatatype datatype, VGfloat scale, VGfloat bias, VGint segmentCapacityHint, VGint coordCapacityHint, VGbitfield capabilities) returningVGFunc(VGPath, vgCreatePath, (pathFormat, datatype, scale, bias, segmentCapacityHint, coordCapacityHint, capabilities))
-VG_API_CALL void VG_API_ENTRY vgClearPath(VGPath path, VGbitfield capabilities) voidVGFunc(vgClearPath, (path, capabilities))
-VG_API_CALL void VG_API_ENTRY vgDestroyPath(VGPath path) voidVGFunc(vgDestroyPath, (path))
-VG_API_CALL void VG_API_ENTRY vgRemovePathCapabilities(VGPath path, VGbitfield capabilities) voidVGFunc(vgRemovePathCapabilities, (path, capabilities))
-VG_API_CALL VGbitfield VG_API_ENTRY vgGetPathCapabilities(VGPath path) returningVGFunc(VGbitfield, vgGetPathCapabilities, (path))
-VG_API_CALL void VG_API_ENTRY vgAppendPath(VGPath dstPath, VGPath srcPath) voidVGFunc(vgAppendPath, (dstPath, srcPath))
-VG_API_CALL void VG_API_ENTRY vgAppendPathData(VGPath dstPath, VGint numSegments, const VGubyte * pathSegments, const void * pathData) voidVGFunc(vgAppendPathData, (dstPath, numSegments, pathSegments, pathData))
-VG_API_CALL void VG_API_ENTRY vgModifyPathCoords(VGPath dstPath, VGint startIndex, VGint numSegments, const void * pathData) voidVGFunc(vgModifyPathCoords, (dstPath, startIndex, numSegments, pathData))
-VG_API_CALL void VG_API_ENTRY vgTransformPath(VGPath dstPath, VGPath srcPath) voidVGFunc(vgTransformPath, (dstPath, srcPath))
-VG_API_CALL VGboolean VG_API_ENTRY vgInterpolatePath(VGPath dstPath, VGPath startPath, VGPath endPath, VGfloat amount) returningVGFunc(VGboolean, vgInterpolatePath, (dstPath, startPath, endPath, amount))
-VG_API_CALL VGfloat VG_API_ENTRY vgPathLength(VGPath path, VGint startSegment, VGint numSegments) returningVGFunc(VGfloat, vgPathLength, (path, startSegment, numSegments))
-VG_API_CALL void VG_API_ENTRY vgPointAlongPath(VGPath path, VGint startSegment, VGint numSegments, VGfloat distance, VGfloat * x, VGfloat * y, VGfloat * tangentX, VGfloat * tangentY) voidVGFunc(vgPointAlongPath, (path, startSegment, numSegments, distance, x, y, tangentX, tangentY))
-VG_API_CALL void VG_API_ENTRY vgPathBounds(VGPath path, VGfloat * minX, VGfloat * minY, VGfloat * width, VGfloat * height) voidVGFunc(vgPathBounds, (path, minX, minY, width, height))
-VG_API_CALL void VG_API_ENTRY vgPathTransformedBounds(VGPath path, VGfloat * minX, VGfloat * minY, VGfloat * width, VGfloat * height) voidVGFunc(vgPathTransformedBounds, (path, minX, minY, width, height))
-VG_API_CALL void VG_API_ENTRY vgDrawPath(VGPath path, VGbitfield paintModes) voidVGFunc(vgDrawPath, (path, paintModes))
-
-/* Paint */
-VG_API_CALL VGPaint VG_API_ENTRY vgCreatePaint(void) returningVGFunc(VGPaint, vgCreatePaint, ())
-VG_API_CALL void VG_API_ENTRY vgDestroyPaint(VGPaint paint) voidVGFunc(vgDestroyPaint, (paint))
-VG_API_CALL void VG_API_ENTRY vgSetPaint(VGPaint paint, VGbitfield paintModes) voidVGFunc(vgSetPaint, (paint, paintModes))
-VG_API_CALL VGPaint VG_API_ENTRY vgGetPaint(VGPaintMode paintMode) returningVGFunc(VGPaint, vgGetPaint, (paintMode))
-VG_API_CALL void VG_API_ENTRY vgSetColor(VGPaint paint, VGuint rgba) voidVGFunc(vgSetColor, (paint, rgba))
-VG_API_CALL VGuint VG_API_ENTRY vgGetColor(VGPaint paint) returningVGFunc(VGuint, vgGetColor, (paint))
-VG_API_CALL void VG_API_ENTRY vgPaintPattern(VGPaint paint, VGImage pattern) voidVGFunc(vgPaintPattern, (paint, pattern))
-
-/* Images */
-VG_API_CALL VGImage VG_API_ENTRY vgCreateImage(VGImageFormat format, VGint width, VGint height, VGbitfield allowedQuality) returningVGFunc(VGImage, vgCreateImage, (format, width, height, allowedQuality))
-VG_API_CALL void VG_API_ENTRY vgDestroyImage(VGImage image) voidVGFunc(vgDestroyImage, (image))
-VG_API_CALL void VG_API_ENTRY vgClearImage(VGImage image, VGint x, VGint y, VGint width, VGint height) voidVGFunc(vgClearImage, (image, x, y, width, height))
-VG_API_CALL void VG_API_ENTRY vgImageSubData(VGImage image, const void * data, VGint dataStride, VGImageFormat dataFormat, VGint x, VGint y, VGint width, VGint height) voidVGFunc(vgImageSubData, (image, data, dataStride, dataFormat, x, y, width, height))
-VG_API_CALL void VG_API_ENTRY vgGetImageSubData(VGImage image, void * data, VGint dataStride, VGImageFormat dataFormat, VGint x, VGint y, VGint width, VGint height) voidVGFunc(vgGetImageSubData, (image, data, dataStride, dataFormat, x, y, width, height))
-VG_API_CALL VGImage VG_API_ENTRY vgChildImage(VGImage parent, VGint x, VGint y, VGint width, VGint height) returningVGFunc(VGImage, vgChildImage, (parent, x, y, width, height))
-VG_API_CALL VGImage VG_API_ENTRY vgGetParent(VGImage image) returningVGFunc(VGImage, vgGetParent, (image))
-VG_API_CALL void VG_API_ENTRY vgCopyImage(VGImage dst, VGint dx, VGint dy, VGImage src, VGint sx, VGint sy, VGint width, VGint height, VGboolean dither) voidVGFunc(vgCopyImage, (dst, dx, dy, src, sx, sy, width, height, dither))
-VG_API_CALL void VG_API_ENTRY vgDrawImage(VGImage image) voidVGFunc(vgDrawImage, (image))
-VG_API_CALL void VG_API_ENTRY vgSetPixels(VGint dx, VGint dy, VGImage src, VGint sx, VGint sy, VGint width, VGint height) voidVGFunc(vgSetPixels, (dx, dy, src, sx, sy, width, height))
-VG_API_CALL void VG_API_ENTRY vgWritePixels(const void * data, VGint dataStride, VGImageFormat dataFormat, VGint dx, VGint dy, VGint width, VGint height) voidVGFunc(vgWritePixels, (data, dataStride, dataFormat, dx, dy, width, height))
-VG_API_CALL void VG_API_ENTRY vgGetPixels(VGImage dst, VGint dx, VGint dy, VGint sx, VGint sy, VGint width, VGint height) voidVGFunc(vgGetPixels, (dst, dx, dy, sx, sy, width, height))
-VG_API_CALL void VG_API_ENTRY vgReadPixels(void * data, VGint dataStride, VGImageFormat dataFormat, VGint sx, VGint sy, VGint width, VGint height) voidVGFunc(vgReadPixels, (data, dataStride, dataFormat, sx, sy, width, height))
-VG_API_CALL void VG_API_ENTRY vgCopyPixels(VGint dx, VGint dy, VGint sx, VGint sy, VGint width, VGint height) voidVGFunc(vgCopyPixels, (dx, dy, sx, sy, width, height))
-
-/* Text */
-VG_API_CALL VGFont VG_API_ENTRY vgCreateFont(VGint glyphCapacityHint) returningVGFunc(VGFont, vgCreateFont, (glyphCapacityHint))
-VG_API_CALL void VG_API_ENTRY vgDestroyFont(VGFont font) voidVGFunc(vgDestroyFont, (font))
-VG_API_CALL void VG_API_ENTRY vgSetGlyphToPath(VGFont font, VGuint glyphIndex, VGPath path, VGboolean isHinted, VGfloat glyphOrigin [2], VGfloat escapement[2]) voidVGFunc(vgSetGlyphToPath, (font, glyphIndex, path, isHinted, glyphOrigin, escapement))
-VG_API_CALL void VG_API_ENTRY vgSetGlyphToImage(VGFont font, VGuint glyphIndex, VGImage image, VGfloat glyphOrigin [2], VGfloat escapement[2]) voidVGFunc(vgSetGlyphToImage, (font, glyphIndex, image, glyphOrigin, escapement))
-VG_API_CALL void VG_API_ENTRY vgClearGlyph(VGFont font,VGuint glyphIndex) voidVGFunc(vgClearGlyph, (font, glyphIndex))
-VG_API_CALL void VG_API_ENTRY vgDrawGlyph(VGFont font, VGuint glyphIndex, VGbitfield paintModes, VGboolean allowAutoHinting) voidVGFunc(vgDrawGlyph, (font, glyphIndex, paintModes, allowAutoHinting))
-VG_API_CALL void VG_API_ENTRY vgDrawGlyphs(VGFont font, VGint glyphCount, const VGuint *glyphIndices, const VGfloat *adjustments_x, const VGfloat *adjustments_y, VGbitfield paintModes, VGboolean allowAutoHinting) voidVGFunc(vgDrawGlyphs, (font, glyphCount, glyphIndices, adjustments_x, adjustments_y, paintModes, allowAutoHinting))
-
-/* Image Filters */
-VG_API_CALL void VG_API_ENTRY vgColorMatrix(VGImage dst, VGImage src, const VGfloat * matrix) voidVGFunc(vgColorMatrix, (dst, src, matrix))
-VG_API_CALL void VG_API_ENTRY vgConvolve(VGImage dst, VGImage src, VGint kernelWidth, VGint kernelHeight, VGint shiftX, VGint shiftY, const VGshort * kernel, VGfloat scale, VGfloat bias, VGTilingMode tilingMode) voidVGFunc(vgConvolve, (dst, src, kernelWidth, kernelHeight, shiftX, shiftY, kernel, scale, bias, tilingMode))
-VG_API_CALL void VG_API_ENTRY vgSeparableConvolve(VGImage dst, VGImage src, VGint kernelWidth, VGint kernelHeight, VGint shiftX, VGint shiftY, const VGshort * kernelX, const VGshort * kernelY, VGfloat scale, VGfloat bias, VGTilingMode tilingMode) voidVGFunc(vgSeparableConvolve, (dst, src, kernelWidth, kernelHeight, shiftX, shiftY, kernelX, kernelY, scale, bias, tilingMode))
-VG_API_CALL void VG_API_ENTRY vgGaussianBlur(VGImage dst, VGImage src, VGfloat stdDeviationX, VGfloat stdDeviationY, VGTilingMode tilingMode) voidVGFunc(vgGaussianBlur, (dst, src, stdDeviationX, stdDeviationY, tilingMode))
-VG_API_CALL void VG_API_ENTRY vgLookup(VGImage dst, VGImage src, const VGubyte * redLUT, const VGubyte * greenLUT, const VGubyte * blueLUT, const VGubyte * alphaLUT, VGboolean outputLinear, VGboolean outputPremultiplied) voidVGFunc(vgLookup, (dst, src, redLUT, greenLUT, blueLUT, alphaLUT, outputLinear, outputPremultiplied))
-VG_API_CALL void VG_API_ENTRY vgLookupSingle(VGImage dst, VGImage src, const VGuint * lookupTable, VGImageChannel sourceChannel, VGboolean outputLinear, VGboolean outputPremultiplied) voidVGFunc(vgLookupSingle, (dst, src, lookupTable, sourceChannel, outputLinear, outputPremultiplied))
-
-/* Hardware Queries */
-VG_API_CALL VGHardwareQueryResult VG_API_ENTRY vgHardwareQuery(VGHardwareQueryType key, VGint setting) returningVGFunc(VGHardwareQueryResult, vgHardwareQuery, (key, setting))
-
-/* Renderer and Extension Information */
-VG_API_CALL const VGubyte * VG_API_ENTRY vgGetString(VGStringID name) returningVGFunc(const VGubyte *, vgGetString, (name))
-
-VGU_API_CALL VGUErrorCode VGU_API_ENTRY vguLine(VGPath path,VGfloat x0, VGfloat y0,VGfloat x1, VGfloat y1) returningVGFunc(VGUErrorCode, vguLine, (path, x0, y0, x1, y1))
-VGU_API_CALL VGUErrorCode VGU_API_ENTRY vguPolygon(VGPath path, const VGfloat * points, VGint count, VGboolean closed) returningVGFunc(VGUErrorCode, vguPolygon, (path, points, count, closed))
-VGU_API_CALL VGUErrorCode VGU_API_ENTRY vguRect(VGPath path, VGfloat x, VGfloat y, VGfloat width, VGfloat height) returningVGFunc(VGUErrorCode, vguRect, (path, x, y, width, height))
-VGU_API_CALL VGUErrorCode VGU_API_ENTRY vguRoundRect(VGPath path, VGfloat x, VGfloat y, VGfloat width, VGfloat height, VGfloat arcWidth, VGfloat arcHeight) returningVGFunc(VGUErrorCode, vguRoundRect, (path, x, y, width, height, arcWidth, arcHeight))
-VGU_API_CALL VGUErrorCode VGU_API_ENTRY vguEllipse(VGPath path, VGfloat cx, VGfloat cy, VGfloat width, VGfloat height) returningVGFunc(VGUErrorCode, vguEllipse, (path, cx, cy, width, height))
-VGU_API_CALL VGUErrorCode VGU_API_ENTRY vguArc(VGPath path, VGfloat x, VGfloat y, VGfloat width, VGfloat height, VGfloat startAngle, VGfloat angleExtent, VGUArcType arcType) returningVGFunc(VGUErrorCode, vguArc, (path, x, y, width, height, startAngle, angleExtent, arcType))
-VGU_API_CALL VGUErrorCode VGU_API_ENTRY vguComputeWarpQuadToSquare(VGfloat sx0, VGfloat sy0, VGfloat sx1, VGfloat sy1, VGfloat sx2, VGfloat sy2, VGfloat sx3, VGfloat sy3, VGfloat * matrix) returningVGFunc(VGUErrorCode, vguComputeWarpQuadToSquare, (sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, matrix))
-VGU_API_CALL VGUErrorCode VGU_API_ENTRY vguComputeWarpSquareToQuad(VGfloat dx0, VGfloat dy0, VGfloat dx1, VGfloat dy1, VGfloat dx2, VGfloat dy2, VGfloat dx3, VGfloat dy3, VGfloat * matrix) returningVGFunc(VGUErrorCode, vguComputeWarpSquareToQuad, (dx0, dy0, dx1, dy1, dx2, dy2, dx3, dy3, matrix))
-VGU_API_CALL VGUErrorCode VGU_API_ENTRY vguComputeWarpQuadToQuad(VGfloat dx0, VGfloat dy0,  VGfloat dx1, VGfloat dy1, VGfloat dx2, VGfloat dy2,  VGfloat dx3, VGfloat dy3,  VGfloat sx0, VGfloat sy0, VGfloat sx1, VGfloat sy1, VGfloat sx2, VGfloat sy2, VGfloat sx3, VGfloat sy3, VGfloat * matrix) returningVGFunc(VGUErrorCode, vguComputeWarpQuadToQuad, (dx0, dy0,  dx1, dy1, dx2, dy2, dx3, dy3, sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3, matrix))
-
-VG_API_CALL VGImage VG_API_ENTRY vgCreateEGLImageTargetKHR(VGeglImageKHR image) returningVGFunc(VGImage, vgCreateEGLImageTargetKHR, (image))
-#endif /* NO_OPENVG */
 
 #ifdef WIN32
 #include <windows.h>
@@ -2762,6 +2645,9 @@ void khrn_init_api_interposer(void)
       HOOK(glRenderbufferStorageMultisampleEXT);
       HOOK(glFramebufferTexture2DMultisampleEXT);
 #endif
+      HOOK(eglGetPlatformDisplayEXT);
+      HOOK(eglCreatePlatformWindowSurfaceEXT);
+      HOOK(eglCreatePlatformPixmapSurfaceEXT);
 
 #ifndef BCG_MULTI_THREADED
       vcos_mutex_create( &mu_commlock, "LogCommLock" );

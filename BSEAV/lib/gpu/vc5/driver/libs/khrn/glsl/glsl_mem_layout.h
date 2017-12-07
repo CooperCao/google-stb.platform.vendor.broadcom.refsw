@@ -6,8 +6,9 @@
 #include "glsl_common.h"
 #include "glsl_symbols.h"
 
-typedef enum
-{
+EXTERN_C_BEGIN
+
+typedef enum {
    LAYOUT_PRIM_NONMATRIX,
    LAYOUT_PRIM_MATRIX,
    LAYOUT_ARRAY,
@@ -15,8 +16,14 @@ typedef enum
    LAYOUT_FLAVOUR_COUNT
 } MemLayoutFlavour;
 
-struct _MemLayout
-{
+typedef enum {
+   MEM_STD140  = 0,
+   MEM_STD430  = 1,
+   MEM_TMU_OPT = 2,
+   MEM_PACKED  = 3
+} LayoutSpec;
+
+struct _MemLayout {
    unsigned base_alignment;
 
    MemLayoutFlavour flavour;
@@ -49,5 +56,7 @@ struct _MemLayout
 
 MemLayout *glsl_mem_prim_nonmatrix_layout(int stride);
 
-unsigned glsl_mem_calculate_block_layout(MemLayout *layout, const SymbolType *type);
-unsigned glsl_mem_calculate_non_block_layout(MemLayout *layout, const SymbolType *type);
+void glsl_mem_calculate_block_layout(MemLayout *layout, const SymbolType *type, bool for_tmu);
+void glsl_mem_calculate_non_block_layout(MemLayout *layout, const SymbolType *type, LayoutSpec spec);
+
+EXTERN_C_END

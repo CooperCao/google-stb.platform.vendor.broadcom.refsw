@@ -363,60 +363,11 @@ typedef struct BXDM_Picture_PCROffset
    uint32_t bDiscontinuity;   /* True if unmarked discontinuity was detected */
 } BXDM_Picture_PCROffset;
 
-typedef enum BXDM_Picture_Protocol_Level
-{
-   BXDM_Picture_Protocol_Level_eUnknown = 0,
-   BXDM_Picture_Protocol_Level_e00,
-   BXDM_Picture_Protocol_Level_e10,
-   BXDM_Picture_Protocol_Level_e1B,
-   BXDM_Picture_Protocol_Level_e11,
-   BXDM_Picture_Protocol_Level_e12,
-   BXDM_Picture_Protocol_Level_e13,
-   BXDM_Picture_Protocol_Level_e20,
-   BXDM_Picture_Protocol_Level_e21,
-   BXDM_Picture_Protocol_Level_e22,
-   BXDM_Picture_Protocol_Level_e30,
-   BXDM_Picture_Protocol_Level_e31,
-   BXDM_Picture_Protocol_Level_e32,
-   BXDM_Picture_Protocol_Level_e40,
-   BXDM_Picture_Protocol_Level_e41,
-   BXDM_Picture_Protocol_Level_e42,
-   BXDM_Picture_Protocol_Level_e50,
-   BXDM_Picture_Protocol_Level_e51,
-   BXDM_Picture_Protocol_Level_e60,
-   BXDM_Picture_Protocol_Level_e62,
-   BXDM_Picture_Protocol_Level_eLow,
-   BXDM_Picture_Protocol_Level_eMain,
-   BXDM_Picture_Protocol_Level_eHigh,
-   BXDM_Picture_Protocol_Level_eHigh1440,
-
-   BXDM_Picture_Protocol_Level_eMaxLevel
-} BXDM_Picture_Protocol_Level;
-
-typedef enum BXDM_Picture_Profile
-{
-   BXDM_Picture_Profile_eUnknown = 0,
-   BXDM_Picture_Profile_eSimple,
-   BXDM_Picture_Profile_eMain,
-   BXDM_Picture_Profile_eHigh,
-   BXDM_Picture_Profile_eAdavance,
-   BXDM_Picture_Profile_eJizhun,
-   BXDM_Picture_Profile_eSnrScalable,
-   BXDM_Picture_Profile_eSpatiallyScalable,
-   BXDM_Picture_Profile_eAdavanceSimple,
-   BXDM_Picture_Profile_eBaseline,
-   BXDM_Picture_Profile_eMultiHigh,
-   BXDM_Picture_Profile_eStereoHigh,
-   BXDM_Picture_Profile_eMain10,
-
-   BXDM_Picture_Profile_eMaxProfile
-} BXDM_Picture_Profile;
-
 typedef struct BXDM_Picture_Protocol
 {
    BAVC_VideoCompressionStd eProtocol; /* video protocol */
-   BXDM_Picture_Protocol_Level eLevel; /* video protocol level */
-   BXDM_Picture_Profile eProfile;      /* video protocol profile */
+   BAVC_VideoCompressionLevel eLevel; /* video protocol level */
+   BAVC_VideoCompressionProfile eProfile;      /* video protocol profile */
 } BXDM_Picture_Protocol;
 
 /* BXDM_Picture_VideoFormat -

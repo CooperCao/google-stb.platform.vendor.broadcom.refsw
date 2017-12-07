@@ -52,6 +52,7 @@
 #include "hwtimer.h"
 #include "tztask.h"
 #include "scheduler.h"
+#include "svcutils.h"
 
 #include "system.h"
 

@@ -1404,7 +1404,7 @@ wlc_pktq_supr_norm(wlc_info_t *wlc, struct pktq *pktq)
 		ASSERT(spktq_empty(&scratch));
 	}
 
-	spktq_deinit(&scratch);
+	(void)spktq_deinit(&scratch);
 }
 
 /* "normalize" the SCB's PS queue - move packets tagged with WLF3_SUPR flag

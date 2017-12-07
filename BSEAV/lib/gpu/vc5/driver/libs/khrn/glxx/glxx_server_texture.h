@@ -1,8 +1,7 @@
 /******************************************************************************
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef GLXX_SERVER_TEXTURE_H
-#define GLXX_SERVER_TEXTURE_H
+#pragma once
 
 /* The 10 supported TexImage* calls have a lot in common, so they use the same
  * sanity-checking routine.
@@ -43,43 +42,3 @@ uint32_t glxx_get_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state,
       GLXX_TEXTURE_SAMPLER_STATE_T *sampler, GLenum pname, GLint *params);
 uint32_t glxx_get_texparameterf_sampler_internal(GLXX_SERVER_STATE_T *state,
       GLXX_TEXTURE_SAMPLER_STATE_T *sampler, GLenum pname, GLfloat *params);
-
-struct glxx_texture_info
-{
-   GLXX_TEXTURE_T                *texture;
-
-   /*
-    * The sampler associated with the texture, which depends on current
-    * bindings and things, and may be NULL.
-    */
-   GLXX_TEXTURE_SAMPLER_STATE_T  *sampler;
-   bool                          used_in_binning;
-   /* Whether the shader is expecting 32 or 16 bit data back from the TMU */
-   bool                          is_32bit;
-
-   /*
-    * The texture's index, used to find other related information in the
-    * GLXX_SERVER_STATE_T, for example texture_unifs, gedgettypes, and other
-    * strange entities.
-    */
-   unsigned                      index;
-};
-
-/*
- * Iterate over all the textures in the state. *i should be set to zero the
- * first time and then just passed back in unmodified on subsequent calls. Do
- * not use the value for anything. Returns false when all textures have been
- * generated.
- */
-typedef bool (*glxx_texture_iterator_t)(struct glxx_texture_info *info,
-      const GLXX_SERVER_STATE_T *state, unsigned *i);
-
-/*
- * Return an iterator of state that generates the fields in glxx_texture_info
- * for each texture that the state reads from. The iterator returns false when
- * the iteration is complete.
- */
-extern glxx_texture_iterator_t glxx_server_texture_iterator(
-      const GLXX_SERVER_STATE_T *state);
-
-#endif

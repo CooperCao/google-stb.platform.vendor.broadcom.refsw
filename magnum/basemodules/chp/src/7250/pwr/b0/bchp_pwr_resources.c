@@ -1,5 +1,5 @@
  /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 /***************************************************************
@@ -80,12 +79,6 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_AUD_AIO[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_AUD_AIO,
     BDBG_STRING("AUD_AIO")
-}};
-
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_AUD_DAC[] = {{
-    BCHP_PWR_P_ResourceType_eNonLeaf,
-    BCHP_PWR_RESOURCE_AUD_DAC,
-    BDBG_STRING("AUD_DAC")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_RAAGA[] = {{
@@ -772,12 +765,6 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HVD0_CORE_CLK[] = {{
     BDBG_STRING("HW_HVD0_CORE_CLK")
 }};
 
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_AUD_DAC[] = {{
-    BCHP_PWR_P_ResourceType_eNonLeafHw,
-    BCHP_PWR_HW_AUD_DAC,
-    BDBG_STRING("HW_AUD_DAC")
-}};
-
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_RAAGA0_DSP_CLK[] = {{
     BCHP_PWR_P_ResourceType_eNonLeafHw,
     BCHP_PWR_HW_RAAGA0_DSP_CLK,
@@ -1109,7 +1096,6 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_AVD0_CLK,
     BCHP_PWR_P_Resource_AVD0_PWR,
     BCHP_PWR_P_Resource_AUD_AIO,
-    BCHP_PWR_P_Resource_AUD_DAC,
     BCHP_PWR_P_Resource_RAAGA,
     BCHP_PWR_P_Resource_RAAGA0_CLK,
     BCHP_PWR_P_Resource_RAAGA0_DSP,
@@ -1183,7 +1169,6 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_HW_RAAGA0_GISB_CLK,
     BCHP_PWR_P_Resource_HW_VEC_AIO_54_CLK,
     BCHP_PWR_P_Resource_HW_AIO_SRAM,
-    BCHP_PWR_P_Resource_HW_AUD_DAC,
     BCHP_PWR_P_Resource_HW_RAAGA0_SCB_54_CLK,
     BCHP_PWR_P_Resource_HW_RAAGA0_DSP_CLK,
     BCHP_PWR_P_Resource_HW_RAAGA0_SRAM,
@@ -1311,11 +1296,6 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AUD_AIO[] = {
     BCHP_PWR_P_Resource_HW_AIO_SRAM,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH1,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH1,
-    NULL
-};
-
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AUD_DAC[] = {
-    BCHP_PWR_P_Resource_HW_AUD_DAC,
     NULL
 };
 
@@ -1691,7 +1671,6 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MAGNUM_CONTROLLED[] = 
     BCHP_PWR_P_Resource_AUD_PLL0,
     BCHP_PWR_P_Resource_AUD_PLL1,
     BCHP_PWR_P_Resource_AUD_AIO,
-    BCHP_PWR_P_Resource_AUD_DAC,
     BCHP_PWR_P_Resource_RAAGA,
     BCHP_PWR_P_Resource_VDC,
     BCHP_PWR_P_Resource_VDC_STG0,
@@ -1734,14 +1713,6 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HVD0_CPU_CLK[] = {
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HVD0_CORE_CLK[] = {
     BCHP_PWR_P_Resource_MX_HVD_SID0_CORE_SELECT,
-    NULL
-};
-
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AUD_DAC[] = {
-    BCHP_PWR_P_Resource_HW_AIO_CLK,
-    BCHP_PWR_P_Resource_HW_RAAGA0_108_CLK,
-    BCHP_PWR_P_Resource_HW_RAAGA0_GISB_CLK,
-    BCHP_PWR_P_Resource_HW_VEC_AIO_54_CLK,
     NULL
 };
 
@@ -2012,7 +1983,6 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_AVD0_CLK,
     BCHP_PWR_P_Depend_AVD0_PWR,
     BCHP_PWR_P_Depend_AUD_AIO,
-    BCHP_PWR_P_Depend_AUD_DAC,
     BCHP_PWR_P_Depend_RAAGA,
     BCHP_PWR_P_Depend_RAAGA0_CLK,
     BCHP_PWR_P_Depend_RAAGA0_DSP,
@@ -2086,7 +2056,6 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     NULL,
     NULL,
     NULL,
-    BCHP_PWR_P_Depend_HW_AUD_DAC,
     NULL,
     BCHP_PWR_P_Depend_HW_RAAGA0_DSP_CLK,
     NULL,
@@ -2222,9 +2191,6 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
             break;
         case BCHP_PWR_HW_AIO_SRAM:
             BCHP_PWR_P_HW_AIO_SRAM_Control(handle, activate);
-            break;
-        case BCHP_PWR_HW_AUD_DAC:
-            BCHP_PWR_P_HW_AUD_DAC_Control(handle, activate);
             break;
         case BCHP_PWR_HW_RAAGA0_SCB_54_CLK:
             BCHP_PWR_P_HW_RAAGA0_SCB_54_CLK_Control(handle, activate);

@@ -6,6 +6,7 @@ SOURCES =	default_nexus.c \
 			display_nexus.c \
 			display_helpers.c \
 			display_surface.c \
+			../common/debug_helper.cpp \
 			../common/memory_nexus.c \
 			../common/memory_drm.c \
 			../common/sched_nexus.c \

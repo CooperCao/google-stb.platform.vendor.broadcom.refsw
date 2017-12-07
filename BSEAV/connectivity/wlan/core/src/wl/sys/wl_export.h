@@ -92,6 +92,7 @@ extern void wl_update_if(struct wl_info *from_wl, struct wl_info *to_wl, struct 
 	struct wlc_if *to_wlcif);
 int wl_find_if(struct wl_if *wlif);
 extern int wl_rebind_if(struct wl_if *wlif, int idx, bool rebind);
+extern void wl_enable_bridge_if(struct wl_info *wl, struct wlc_if *wlcif, bool enable);
 
 /* contexts in wlif structure. Currently following are valid */
 #define IFCTX_ARPI	(1)

@@ -147,8 +147,8 @@ int ring_peek(
 
     if (ring_bytes(
             pRing,
-            ulRdOffset,
-            pRing->ulWrOffset) < ulSize) {
+            pRing->ulWrOffset,
+            ulRdOffset) < ulSize) {
         return -ENOMSG;
     }
 

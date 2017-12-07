@@ -45,11 +45,11 @@
 #include "breg_mem.h"
 #include "btmr.h"
 #include "bimg.h"
+#include "bdsp_stage.h"
 #include "bdsp_task.h"
 #include "bdsp_raaga_fw_settings.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_status.h"
-
 
 
 /***************************************************************************
@@ -315,5 +315,24 @@ of audio gaps, audio stalls video too. This command avoids this deadlock.
 BERR_Code BDSP_AudioTask_AudioGapFill(
     BDSP_TaskHandle task
     );
+
+/***************************************************************************
+Summary:
+BDSP codec capabilities
+***************************************************************************/
+typedef struct BDSP_CodecCapabilities
+{
+    struct {
+        bool dapv2;         /* Allow eDapv2 processing if set else restrict it */
+        bool ddEncode;      /* Allow DD compressed1x output if set else restrict it */
+        bool ddpEncode51;   /* Allow DDP 5.1 compressed4x  if set else restrict it */
+        bool ddpEncode71;   /* Allow DDP 7.1 compressed4x  if set else restrict it */
+        bool pcm71;         /* Allow DDP 7.1 decoding if set else restrict it */
+    } dolbyMs;
+}BDSP_CodecCapabilities;
+
+void BDSP_GetCodecCapabilities_isrsafe(
+	BDSP_CodecCapabilities *pSetting
+);
 
 #endif

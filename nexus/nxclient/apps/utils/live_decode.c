@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -212,8 +212,6 @@ live_decode_channel_t live_decode_create_channel( live_decode_t decode )
 
     NEXUS_SimpleVideoDecoderPrimer_GetSettings(channel->videoDecoder, &primerSettings);
     primerSettings.ptsStcDiffCorrectionEnabled = true;
-    primerSettings.pastTolerance = 45*500; /* 1/2 second */
-    primerSettings.futureTolerance = 0;
     rc = NEXUS_SimpleVideoDecoderPrimer_SetSettings(channel->videoDecoder, &primerSettings);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 

@@ -1083,30 +1083,30 @@ static BERR_Code BAPE_SpdifOutput_P_SetBurstConfig_IopOut(BAPE_SpdifOutputHandle
     BSTD_UNUSED( pcm );
 
     /* Set Burst type */
-    BAPE_Reg_P_InitFieldList_isr(handle->deviceHandle, &regFieldList);
+    BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
     if ( handle->settings.underflowBurst == BAPE_SpdifBurstType_ePause )
     {
         #if defined BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST_BURST_TYPE_MASK
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, BURST_TYPE, Pause);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, BURST_TYPE, Pause);
         #else
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, TYPE, Pause);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, TYPE, Pause);
         #endif
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, REP_PERIOD, PER_3);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, REP_PERIOD, PER_3);
     }
     else if ( handle->settings.underflowBurst == BAPE_SpdifBurstType_eNull )
     {
         #if defined BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST_BURST_TYPE_MASK
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, BURST_TYPE, Null);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, BURST_TYPE, Null);
         #else
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, TYPE, Null);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, TYPE, Null);
         #endif
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, REP_PERIOD, PER_3);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, REP_PERIOD, PER_3);
     }
     else
     {
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, REP_PERIOD, None);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, REP_PERIOD, None);
     }
-    BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, handle->index));
+    BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST, handle->index));
 
     return BERR_SUCCESS;
 }
@@ -1765,7 +1765,7 @@ static BERR_Code BAPE_SpdifOutput_P_OpenHw_Legacy(BAPE_SpdifOutputHandle handle)
 
     /* Link pauseburst SFIFO to the mixer's second input (actual data will be first input) */
     BAPE_MixerGroup_P_GetInputSettings(handle->hMixer, 1, &mixerInputSettings);
-    BAPE_SfifoGroup_P_GetOutputFciIds(handle->hSfifo, &mixerInputSettings.input);
+    BAPE_SfifoGroup_P_GetOutputFciIds_isrsafe(handle->hSfifo, &mixerInputSettings.input);
     mixerInputSettings.coefficients[0][0][0] = 0;
     mixerInputSettings.coefficients[0][0][1] = 0;
     mixerInputSettings.coefficients[0][1][0] = 0;

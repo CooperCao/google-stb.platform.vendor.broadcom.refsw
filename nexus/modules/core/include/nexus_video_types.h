@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -817,6 +817,109 @@ typedef enum NEXUS_SecureVideo
 #define NEXUS_MAX_VIDEO_WINDOWS 2
 #define NEXUS_MAX_VIDEO_ENCODERS 6
 #define NEXUS_MAX_DISPLAYS 7
+
+/***************************************************************************
+Summary:
+Video protocol level
+****************************************************************************/
+typedef enum NEXUS_VideoProtocolLevel
+{
+   NEXUS_VideoProtocolLevel_eUnknown = 0,
+   NEXUS_VideoProtocolLevel_e00,
+   NEXUS_VideoProtocolLevel_e10,
+   NEXUS_VideoProtocolLevel_e1B,
+   NEXUS_VideoProtocolLevel_e11,
+   NEXUS_VideoProtocolLevel_e12,
+   NEXUS_VideoProtocolLevel_e13,
+   NEXUS_VideoProtocolLevel_e20,
+   NEXUS_VideoProtocolLevel_e21,
+   NEXUS_VideoProtocolLevel_e22,
+   NEXUS_VideoProtocolLevel_e30,
+   NEXUS_VideoProtocolLevel_e31,
+   NEXUS_VideoProtocolLevel_e32,
+   NEXUS_VideoProtocolLevel_e40,
+   NEXUS_VideoProtocolLevel_e41,
+   NEXUS_VideoProtocolLevel_e42,
+   NEXUS_VideoProtocolLevel_e50,
+   NEXUS_VideoProtocolLevel_e51,
+   NEXUS_VideoProtocolLevel_e60,
+   NEXUS_VideoProtocolLevel_e62,
+   NEXUS_VideoProtocolLevel_eLow,
+   NEXUS_VideoProtocolLevel_eMain,
+   NEXUS_VideoProtocolLevel_eHigh,
+   NEXUS_VideoProtocolLevel_eHigh1440,
+   NEXUS_VideoProtocolLevel_eL0,
+   NEXUS_VideoProtocolLevel_eL1,
+   NEXUS_VideoProtocolLevel_eL2,
+   NEXUS_VideoProtocolLevel_eL3,
+   NEXUS_VideoProtocolLevel_e80,
+   NEXUS_VideoProtocolLevel_eMax
+} NEXUS_VideoProtocolLevel;
+
+/***************************************************************************
+Summary:
+Video protocol profile
+****************************************************************************/
+typedef enum NEXUS_VideoProtocolProfile
+{
+   NEXUS_VideoProtocolProfile_eUnknown = 0,
+   NEXUS_VideoProtocolProfile_eSimple,
+   NEXUS_VideoProtocolProfile_eMain,
+   NEXUS_VideoProtocolProfile_eHigh,
+   NEXUS_VideoProtocolProfile_eAdvanced,
+   NEXUS_VideoProtocolProfile_eJizhun,
+   NEXUS_VideoProtocolProfile_eSnrScalable,
+   NEXUS_VideoProtocolProfile_eSpatiallyScalable,
+   NEXUS_VideoProtocolProfile_eAdvancedSimple,
+   NEXUS_VideoProtocolProfile_eBaseline,
+   NEXUS_VideoProtocolProfile_eMultiHigh,
+   NEXUS_VideoProtocolProfile_eStereoHigh,
+   NEXUS_VideoProtocolProfile_eMain10,
+   NEXUS_VideoProtocolProfile_e0,
+   NEXUS_VideoProtocolProfile_e2,
+   NEXUS_VideoProtocolProfile_eMax
+} NEXUS_VideoProtocolProfile;
+
+/* backward compat */
+#define NEXUS_VideoCodecLevel             NEXUS_VideoProtocolLevel
+#define NEXUS_VideoCodecLevel_eUnknown    NEXUS_VideoProtocolLevel_eUnknown
+#define NEXUS_VideoCodecLevel_e00         NEXUS_VideoProtocolLevel_e00
+#define NEXUS_VideoCodecLevel_e10         NEXUS_VideoProtocolLevel_e10
+#define NEXUS_VideoCodecLevel_e1B         NEXUS_VideoProtocolLevel_e1B
+#define NEXUS_VideoCodecLevel_e11         NEXUS_VideoProtocolLevel_e11
+#define NEXUS_VideoCodecLevel_e12         NEXUS_VideoProtocolLevel_e12
+#define NEXUS_VideoCodecLevel_e13         NEXUS_VideoProtocolLevel_e13
+#define NEXUS_VideoCodecLevel_e20         NEXUS_VideoProtocolLevel_e20
+#define NEXUS_VideoCodecLevel_e21         NEXUS_VideoProtocolLevel_e21
+#define NEXUS_VideoCodecLevel_e22         NEXUS_VideoProtocolLevel_e22
+#define NEXUS_VideoCodecLevel_e30         NEXUS_VideoProtocolLevel_e30
+#define NEXUS_VideoCodecLevel_e31         NEXUS_VideoProtocolLevel_e31
+#define NEXUS_VideoCodecLevel_e32         NEXUS_VideoProtocolLevel_e32
+#define NEXUS_VideoCodecLevel_e40         NEXUS_VideoProtocolLevel_e40
+#define NEXUS_VideoCodecLevel_e41         NEXUS_VideoProtocolLevel_e41
+#define NEXUS_VideoCodecLevel_e42         NEXUS_VideoProtocolLevel_e42
+#define NEXUS_VideoCodecLevel_e50         NEXUS_VideoProtocolLevel_e50
+#define NEXUS_VideoCodecLevel_e51         NEXUS_VideoProtocolLevel_e51
+#define NEXUS_VideoCodecLevel_e60         NEXUS_VideoProtocolLevel_e60
+#define NEXUS_VideoCodecLevel_e62         NEXUS_VideoProtocolLevel_e62
+#define NEXUS_VideoCodecLevel_eLow        NEXUS_VideoProtocolLevel_eLow
+#define NEXUS_VideoCodecLevel_eMain       NEXUS_VideoProtocolLevel_eMain
+#define NEXUS_VideoCodecLevel_eHigh       NEXUS_VideoProtocolLevel_eHigh
+#define NEXUS_VideoCodecLevel_eHigh1440   NEXUS_VideoProtocolLevel_eHigh1440
+#define NEXUS_VideoCodecLevel_eMax        NEXUS_VideoProtocolLevel_eMax
+
+#define NEXUS_VideoCodecProfile                    NEXUS_VideoProtocolProfile
+#define NEXUS_VideoCodecProfile_eUnknown           NEXUS_VideoProtocolProfile_eUnknown
+#define NEXUS_VideoCodecProfile_eSimple            NEXUS_VideoProtocolProfile_eSimple
+#define NEXUS_VideoCodecProfile_eMain              NEXUS_VideoProtocolProfile_eMain
+#define NEXUS_VideoCodecProfile_eHigh              NEXUS_VideoProtocolProfile_eHigh
+#define NEXUS_VideoCodecProfile_eAdvanced          NEXUS_VideoProtocolProfile_eAdvanced
+#define NEXUS_VideoCodecProfile_eJizhun            NEXUS_VideoProtocolProfile_eJizhun
+#define NEXUS_VideoCodecProfile_eSnrScalable       NEXUS_VideoProtocolProfile_eSnrScalable
+#define NEXUS_VideoCodecProfile_eSpatiallyScalable NEXUS_VideoProtocolProfile_eSpatiallyScalable
+#define NEXUS_VideoCodecProfile_eAdvancedSimple    NEXUS_VideoProtocolProfile_eAdvancedSimple
+#define NEXUS_VideoCodecProfile_eBaseline          NEXUS_VideoProtocolProfile_eBaseline
+#define NEXUS_VideoCodecProfile_eMax               NEXUS_VideoProtocolProfile_eMax
 
 #ifdef __cplusplus
 }

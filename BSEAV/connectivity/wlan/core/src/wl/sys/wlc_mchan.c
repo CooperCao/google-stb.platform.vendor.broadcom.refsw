@@ -1161,6 +1161,7 @@ wlc_mchan_watchdog(void *context)
 			*/
 			if (wlc_mchan_if_time(wlc, cfg, cfg) != BCME_OK) {
 				mchan->mchan_err_counter++;
+				/* coverity[copy_paste_error] */
 				WL_ERROR(("wl%d:%d:%s: mchan_if_time failed\n",
 					wlc->pub->unit, mchan->mchan_err_counter, __FUNCTION__));
 			}

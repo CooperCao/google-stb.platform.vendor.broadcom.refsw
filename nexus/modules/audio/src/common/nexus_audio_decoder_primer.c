@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,7 +39,7 @@
 #include "priv/nexus_pid_channel_priv.h"
 
 #if BAPE_DSP_SUPPORT
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(nexus_audio_decoder_primer);
@@ -560,8 +560,8 @@ NEXUS_AudioDecoderPrimerHandle NEXUS_AudioDecoderPrimer_Create( const NEXUS_Audi
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 
     #if BAPE_DSP_SUPPORT
-    raveOpenSettings.config.Cdb.Alignment = BDSP_RAAGA_ADDRESS_ALIGN_CDB;
-    raveOpenSettings.config.Itb.Alignment = BDSP_RAAGA_ADDRESS_ALIGN_ITB;
+    raveOpenSettings.config.Cdb.Alignment = BDSP_ADDRESS_ALIGN_CDB;
+    raveOpenSettings.config.Itb.Alignment = BDSP_ADDRESS_ALIGN_ITB;
     #endif
 
     LOCK_TRANSPORT();

@@ -44,13 +44,6 @@ typedef enum {
 } ImageInfoParam;
 #endif
 
-#if !V3D_HAS_LARGE_1D_TEXTURE
-typedef enum {
-  TEXBUFFER_INFO_ARR_ELEM_W_MINUS_1,
-  TEXBUFFER_INFO_LOG2_ARR_ELEM_W
-} TexBufferInfoParam;
-#endif
-
 typedef enum {
    DATAFLOW_CONST,
 
@@ -61,9 +54,13 @@ typedef enum {
    DATAFLOW_LOGICAL_NOT,
    DATAFLOW_CONST_IMAGE,
    DATAFLOW_CONST_SAMPLER,
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   DATAFLOW_SAMPLER_UNNORMS,
+#endif
    DATAFLOW_FTOI_TRUNC,
    DATAFLOW_FTOI_NEAREST,
    DATAFLOW_FTOU,
+   DATAFLOW_ISNAN,
 
    DATAFLOW_BITWISE_NOT,
    DATAFLOW_BITWISE_AND,
@@ -75,6 +72,7 @@ typedef enum {
    DATAFLOW_ROR,
 
    DATAFLOW_ADDRESS_STORE,
+   DATAFLOW_IN_LOAD,
    DATAFLOW_VECTOR_LOAD,
    DATAFLOW_ATOMIC_ADD,
    DATAFLOW_ATOMIC_SUB,
@@ -189,16 +187,13 @@ typedef enum {
    // Buffer loads and stores
    DATAFLOW_ADDRESS,
    DATAFLOW_BUF_SIZE,
+   DATAFLOW_BUF_ARRAY_LENGTH,
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    /* image unit additional params */
    DATAFLOW_IMAGE_INFO_PARAM,
 #endif
 
-#if !V3D_HAS_LARGE_1D_TEXTURE
-   /* texture buffer info */
-   DATAFLOW_TEXBUFFER_INFO_PARAM,
-#endif
    DATAFLOW_GET_FB_MAX_LAYER,
 
    DATAFLOW_FLAVOUR_COUNT
@@ -236,7 +231,7 @@ typedef enum {
    DF_TEXBITS_BSLOD         = (1<<3),
    DF_TEXBITS_I_OFF         = (1<<4),
    DF_TEXBITS_SAMPLER_FETCH = (1<<5),
-#if V3D_HAS_TMU_LOD_QUERY
+#if V3D_VER_AT_LEAST(4,2,13,0)
    DF_TEXBITS_LOD_QUERY     = (1<<6),
 #endif
 
@@ -314,7 +309,7 @@ struct _Dataflow
    union {
       uint32_t raw[4];     /* XXX: Must be the same size as the other members */
 
-      // DATAFLOW_CONST, DATAFLOW_BUF_SIZE
+      // DATAFLOW_CONST, DATAFLOW_BUF_SIZE, DATAFLOW_BUF_ARRAY_LENGTH
       struct {
          const_value value;
       } constant;
@@ -372,12 +367,6 @@ struct _Dataflow
       } image_info_param;
 #endif
 
-#if !V3D_HAS_LARGE_1D_TEXTURE
-      struct {
-         TexBufferInfoParam param;
-      } texbuffer_info_param;
-#endif
-
       //DATAFLOW_LOAD
       struct{
         bool fmt_valid;
@@ -397,6 +386,7 @@ Dataflow *glsl_dataflow_construct_const_float(float value);
 Dataflow *glsl_dataflow_construct_const_image(DataflowType type, const_value location, bool is_32bit);
 Dataflow *glsl_dataflow_construct_linkable_value(DataflowFlavour flavour, DataflowType type, const_value row);
 Dataflow *glsl_dataflow_construct_buffer(DataflowFlavour flavour, DataflowType type, const_value index, const_value offset);
+Dataflow *glsl_dataflow_construct_address_load(DataflowFlavour f, DataflowType type, Dataflow *address);
 Dataflow *glsl_dataflow_construct_vector_load(DataflowType type, Dataflow *address);
 // cond can be NULL
 Dataflow *glsl_dataflow_construct_atomic(DataflowFlavour flavour, DataflowType type, Dataflow *address, Dataflow *arg,
@@ -410,6 +400,11 @@ Dataflow *glsl_dataflow_construct_op(DataflowFlavour flavour, int num_args, Data
 Dataflow *glsl_dataflow_construct_reinterp(Dataflow *operand, DataflowType new_type);
 Dataflow *glsl_dataflow_construct_address(Dataflow *operand);
 Dataflow *glsl_dataflow_construct_buf_size(Dataflow *operand, const_value subtract_offset);
+Dataflow *glsl_dataflow_construct_buf_array_length(Dataflow *operand, const_value subtract);
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+Dataflow *glsl_dataflow_construct_sampler_unnorms(Dataflow *operand);
+#endif
 
 Dataflow *glsl_dataflow_construct_vec4(Dataflow *r, Dataflow *g, Dataflow *b, Dataflow *a);
 Dataflow *glsl_dataflow_construct_get_vec4_component(uint32_t component_index, Dataflow *param, DataflowType type);
@@ -418,8 +413,7 @@ void glsl_dataflow_construct_frag_get_col(Dataflow **out, DataflowType type, int
 void glsl_dataflow_construct_texture_lookup(Dataflow **out, unsigned n_out,
                                             uint32_t bits, Dataflow *image,
                                             Dataflow *coords,
-                                            Dataflow *d, Dataflow *b, Dataflow *off, Dataflow *sampler,
-                                            DataflowType component_type);
+                                            Dataflow *d, Dataflow *b, Dataflow *off, Dataflow *sampler);
 #if V3D_VER_AT_LEAST(4,0,2,0)
 Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *sampler,
                                                Dataflow *x, Dataflow *y, Dataflow *z,
@@ -431,10 +425,6 @@ Dataflow *glsl_dataflow_construct_texture_size(Dataflow *sampler);
 Dataflow *glsl_dataflow_construct_texture_num_levels(Dataflow *sampler);
 Dataflow *glsl_dataflow_construct_external(DataflowType t, int block, int output);
 Dataflow *glsl_dataflow_construct_phi(Dataflow *a, int in_a, Dataflow *b, int in_b);
-
-#if !V3D_HAS_LARGE_1D_TEXTURE
-Dataflow *glsl_construct_texbuffer_info_param(Dataflow *sampler, TexBufferInfoParam param);
-#endif
 
 const char *glsl_dataflow_info_get_name(DataflowFlavour flavour);
 

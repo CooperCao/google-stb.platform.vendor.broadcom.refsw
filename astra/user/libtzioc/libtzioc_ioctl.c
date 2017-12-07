@@ -145,62 +145,6 @@ int _tzioc_ioctl_msg_send(
     return 0;
 }
 
-int _tzioc_ioctl_map_paddr(
-    struct tzioc_client *pClient,
-    uint32_t ulPaddr,
-    uint32_t ulSize,
-    uint32_t ulFlags,
-    uintptr_t *pulVaddr)
-{
-    struct tzioc_ioctl_map_paddr_data mapPaddrData;
-    int err = 0;
-
-    mapPaddrData.hClient = pClient->hKlient;
-    mapPaddrData.paddr = ulPaddr;
-    mapPaddrData.size  = ulSize;
-    mapPaddrData.flags = ulFlags;
-
-    err = ioctl(
-        pClient->fd,
-        TZIOC_IOCTL_MAP_PADDR,
-        (void *)&mapPaddrData);
-
-    if (err)
-        return -EIO;
-
-    if (mapPaddrData.retVal)
-        return mapPaddrData.retVal;
-
-    *pulVaddr = mapPaddrData.vaddr;
-    return 0;
-}
-
-int _tzioc_ioctl_unmap_paddr(
-    struct tzioc_client *pClient,
-    uint32_t ulPaddr,
-    uint32_t ulSize)
-{
-    struct tzioc_ioctl_unmap_paddr_data unmapPaddrData;
-    int err = 0;
-
-    unmapPaddrData.hClient = pClient->hKlient;
-    unmapPaddrData.paddr = ulPaddr;
-    unmapPaddrData.size  = ulSize;
-
-    err = ioctl(
-        pClient->fd,
-        TZIOC_IOCTL_UNMAP_PADDR,
-        (void *)&unmapPaddrData);
-
-    if (err)
-        return -EIO;
-
-    if (unmapPaddrData.retVal)
-        return unmapPaddrData.retVal;
-
-    return 0;
-}
-
 int _tzioc_ioctl_map_paddrs(
     struct tzioc_client *pClient,
     uint8_t ucCount,
@@ -250,5 +194,57 @@ int _tzioc_ioctl_unmap_paddrs(
     if (unmapPaddrsData.retVal)
         return unmapPaddrsData.retVal;
 
+    return 0;
+}
+
+int _tzioc_ioctl_paddr2vaddr(
+    struct tzioc_client *pClient,
+    uintptr_t ulPaddr,
+    uintptr_t *pulVaddr)
+{
+    struct tzioc_ioctl_paddr_to_vaddr_data paddrToVaddrData;
+    int err = 0;
+
+    paddrToVaddrData.hClient = pClient->hKlient;
+    paddrToVaddrData.paddr = ulPaddr;
+
+    err = ioctl(
+        pClient->fd,
+        TZIOC_IOCTL_PADDR_TO_VADDR,
+        (void *)&paddrToVaddrData);
+
+    if (err)
+        return -EIO;
+
+    if (paddrToVaddrData.retVal)
+        return paddrToVaddrData.retVal;
+
+    *pulVaddr = paddrToVaddrData.vaddr;
+    return 0;
+}
+
+int _tzioc_ioctl_vaddr2paddr(
+    struct tzioc_client *pClient,
+    uintptr_t ulVaddr,
+    uintptr_t *pulPaddr)
+{
+    struct tzioc_ioctl_vaddr_to_paddr_data vaddrToPaddrData;
+    int err = 0;
+
+    vaddrToPaddrData.hClient = pClient->hKlient;
+    vaddrToPaddrData.paddr = ulVaddr;
+
+    err = ioctl(
+        pClient->fd,
+        TZIOC_IOCTL_VADDR_TO_PADDR,
+        (void *)&vaddrToPaddrData);
+
+    if (err)
+        return -EIO;
+
+    if (vaddrToPaddrData.retVal)
+        return vaddrToPaddrData.retVal;
+
+    *pulPaddr = vaddrToPaddrData.vaddr;
     return 0;
 }

@@ -40,7 +40,6 @@
 #ifndef BDSP_TASK_H_
 #define BDSP_TASK_H_
 
-
 #include "bchp.h"
 #include "bint.h"
 #include "breg_mem.h"
@@ -50,6 +49,7 @@
 #include "bdsp_context.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_status.h"
+#include "bdsp_raaga_fw_settings.h"
 
 /* Kept as 2 keeping in mind the ping-pong type of arrangement for video encoder */
 #define BDSP_MAX_EXT_INTERRUPT_PER_TASK             2
@@ -79,6 +79,9 @@
 #define BDSP_AF_P_MAX_BLOCKING_TIME              BDSP_AF_P_MAX_AUD_OFFSET   /* AUD_OFFSET has to be >= to the worst case blocking time */
 #define BDSP_AF_P_SAMPLE_PADDING                ((uint32_t)(1024))  /* Padding */
 #define BDSP_AF_P_BLOCKING_TIME                 ((uint32_t)(84))    /* In msec */
+
+#define BDSP_AF_P_MAX_AUD_OFFSET_LOW_DELAY	    ((uint32_t)64)     /* in ms */
+#define BDSP_AF_P_BLOCKING_TIME_LOW_DELAY       ((uint32_t)28)     /* in ms */
 
 #define BDSP_AF_P_MAT_BUF_SIZE                  ((uint32_t)(1536 * 1024 )) /*  In Bytes: Based on experiments done on MLP worst case streams */
 #define BDSP_AF_P_MAT_SAMPRATE_kHz              ((uint32_t)768)

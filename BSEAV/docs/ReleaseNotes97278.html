@@ -271,8 +271,8 @@ Atlas as part of the Reference Software. </p>
 <p class=MsoNormal>In URSR 17.3, audio /DSP support is limited:</p>
 
 <p class=MsoNormal>7278 audio support in this release includes standalone UDC
-(AC3/DDP) and Dolby AAC-HE [Dolby MS12 license required] and MPEG audio decode from TS or ES
-content.  For AAC support, build with BDSP_MS12_SUPPORT=B.</p>
+(AC3/DDP) [Dolby MS12 license required], AAC/AAC-HE, and MPEG audio decode from TS or ES
+content.</p>
 
 <p class=MsoNormal>No other codecs are supported on 7278 in this release. In
 addition, advanced usage cases requiring DspMixer or Transcode are not
@@ -607,13 +607,24 @@ style='font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&n
 
 <p class=MsoNormal style='margin-left:.25in'>&nbsp;</p>
 
-<p class=MsoNormal style='margin-left:.25in'>On the SV, HB, and VMS boards (not the IPA board) it is necessary to disable the 2nd GB of memory on MEMC1 due to the video encoder limitations.  These commands in BOLT should be repeated each time the settop is rebooted. (boot ... is whatever variation of the "boot" command you would use to boot the box.)</p>
+<p class=MsoNormal style='margin-left:.25in'>It is necessary to disable memory on MEMC1 due to the video encoder limitations.  On the SV, HB, and VMS boards, These commands in BOLT should be repeated each time the settop is rebooted. (boot ... is whatever variation of the "boot" command you would use to boot the box.)</p>
 <p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
 font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 BOLT> dt bolt</span></p>
 <p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
 font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-BOLT> dt add prop /memory reg i 0x0 0x40000000 0x0 0x80000000 0x0 0xc0000000 0x0 0x40000000</span></p>
+BOLT> dt add prop /memory reg i 0x0 0x40000000 0x0 0x80000000</span></p>
+<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
+font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+BOLT> boot ...</span></p>
+
+<p class=MsoNormal style='margin-left:.25in'>On the IPA boards, use these commands.</p>
+<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
+font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+BOLT> dt bolt</span></p>
+<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
+font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+BOLT> dt add prop /memory reg i 0x0 0x40000000 0x0 0x40000000</span></p>
 <p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
 font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 BOLT> boot ...</span></p>
@@ -624,8 +635,6 @@ to demonstrate transcoding an AVC file to 480p HEVC. </p>
 <p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
 font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 export B_REFSW_BOXMODE=1001</span></p>
-
-<pre style='background:white'><span style='color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; export video_encoder_verification=1</span></pre>
 
 <p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
 font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -642,9 +651,7 @@ font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp
 
 <p class=MsoNormal style='margin-left:.25in'>where the contents of <span
 style='font-size:10.0pt;font-family:"Courier New";color:black'>transcode_ts-7278a0_box_1001.cfg
-are shown in the following lines. </span><span style='color:black'>video_encoder_verification
-is needed due to a firmware limitation that will be fixed in the next
-release.&nbsp; Adjust PIDs as necessary to match your source file.</span></p>
+ </span><span style='color:black'>are shown in the following lines. Adjust PIDs as necessary to match your source file.</span></p>
 
 <p class=MsoNormal style='margin-left:.25in'><span style='color:black'>Contents
 of transcode_ts-7278a0_box_1001.cfg:</span></p>

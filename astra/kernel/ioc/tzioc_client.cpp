@@ -37,6 +37,7 @@
  ***************************************************************************/
 
 #include "tzioc_client.h"
+#include "tzioc_mem.h"
 
 #include "lib_string.h"
 #include "lib_printf.h"
@@ -202,6 +203,9 @@ struct tzioc_client *TzIoc::TzIocClient::userClientOpen(
 void TzIoc::TzIocClient::userClientClose(
     struct tzioc_client *pClient)
 {
+    // Clean up client memory
+    TzIoc::TzIocMem::cleanupClient(pClient);
+
     spinLockAcquire(&lock);
     __tzioc_user_client_close(pClient);
     spinLockRelease(&lock);

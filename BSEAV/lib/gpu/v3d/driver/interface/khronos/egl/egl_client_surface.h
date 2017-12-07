@@ -1,12 +1,10 @@
 /******************************************************************************
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef EGL_CLIENT_SURFACE_H
-#define EGL_CLIENT_SURFACE_H
+#pragma once
 
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
-#include "interface/khronos/include/VG/openvg.h"
 #include "interface/khronos/egl/egl_int.h"
 
 #include "interface/khronos/common/khrn_client_platform.h"
@@ -105,13 +103,6 @@ typedef struct {
    */
    uint32_t height;
 
-   /*
-      swapchainc
-
-      swapchain count from the underlying window manager
-   */
-   uint32_t swapchainc;
-
    EGL_SURFACE_ID_T serverbuffer;
 
    /*
@@ -169,15 +160,6 @@ typedef struct {
       type == WINDOW
    */
    EGLNativeWindowType win;
-   /*
-      win
-
-      Validity:
-      type == WINDOW
-   */
-   uint32_t internal_handle;              // stores "serverwin"
-
-   /* For PBUFFER types only */
 
    /*
       largest_pbuffer
@@ -237,20 +219,6 @@ typedef struct {
       pixmap is a valid client-side pixmap handle for pixmap P
    */
    EGLNativePixmapType pixmap;
-
-   /*
-      pixmap_server_handle
-
-      Validity:
-      type == PIXMAP
-
-      Invariant:
-      If P is a server-side pixmap then
-         pixmap_server_handle is a valid server-side handle for pixmap P
-      else
-         pixmap_server_handle = [0, -1]
-   */
-   uint32_t pixmap_server_handle[2];
 } EGL_SURFACE_T;
 
 extern EGLint egl_surface_check_attribs(
@@ -258,7 +226,6 @@ extern EGLint egl_surface_check_attribs(
    const EGLint *attrib_list,
    bool *linear,
    bool *premult,
-   bool *single,
    int *width,
    int *height,
    bool *largest_pbuffer,
@@ -274,31 +241,19 @@ extern EGL_SURFACE_T *egl_surface_create(
    EGL_SURFACE_TYPE_T type,
    EGL_SURFACE_COLORSPACE_T colorspace,
    EGL_SURFACE_ALPHAFORMAT_T alphaformat,
-   bool openvg,
    bool secure,
    uint32_t buffers,
    uint32_t width,
    uint32_t height,
-   uint32_t swapchainc,
    EGLConfig config,
    EGLNativeWindowType win,
-   uint32_t serverwin,
+   uintptr_t serverwin,
    bool largest_pbuffer,
    bool mipmap_texture,
    EGLenum texture_format,
    EGLenum texture_target,
-   EGLNativePixmapType pixmap,
-   const uint32_t *pixmap_server_handle);
+   EGLNativePixmapType pixmap);
 
-extern EGL_SURFACE_T *egl_surface_from_vg_image(
-   VGImage vg_handle,
-   EGLSurface name,
-   EGLConfig config,
-   EGLBoolean largest_pbuffer,
-   EGLBoolean mipmap_texture,
-   EGLenum texture_format,
-   EGLenum texture_target,
-   EGLint *error);
 extern void egl_surface_free(EGL_SURFACE_T *surface);
 
 extern EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value);
@@ -309,5 +264,3 @@ extern EGLint egl_surface_get_render_buffer(EGL_SURFACE_T *surface);
 extern EGLint egl_surface_get_mapped_buffer_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value);
 #endif
 extern void egl_surface_maybe_free(EGL_SURFACE_T *surface);
-
-#endif

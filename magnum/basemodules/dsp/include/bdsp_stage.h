@@ -43,7 +43,7 @@
 #include "bdsp_raaga_fw_settings.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_status.h"
-
+#include "bdsp_task.h"
 
 /***************************************************************************
 Summary:
@@ -604,4 +604,36 @@ BERR_Code BDSP_Queue_GetBufferAddr(
     void *pBuffer
     );
 
+
+/*********************************************************************
+Summary:
+    This structure contain elements that is returned by
+        CalcThreshold_BlockTime_AudOffset API.
+
+Description:
+
+        ui32Threshold and ui32BlockTime goes to FW and
+        ui32AudOffset goes to Application and TSM user cfg
+
+See Also:
+**********************************************************************/
+typedef struct BDSP_CTB_Output
+{
+    uint32_t ui32Threshold;                                 /* Interms of samples */
+    uint32_t ui32BlockTime;                                 /* Interms of Time (msec)  */
+    uint32_t ui32AudOffset;                                 /* AudOffset in Time (msec) */
+}BDSP_CTB_Output;
+
+typedef struct BDSP_CTB_Input
+{
+    BDSP_AudioTaskDelayMode 		audioTaskDelayMode;
+    BDSP_TaskRealtimeMode 			realtimeMode;
+    BDSP_Audio_AudioInputSource     eAudioIpSourceType;           /* Capture port Type    */
+}BDSP_CTB_Input;
+
+BERR_Code BDSP_GetAudioDelay_isrsafe(
+    BDSP_CTB_Input   *pCtbInput,
+    BDSP_StageHandle  hStage,
+    BDSP_CTB_Output  *pCTBOutput
+);
 #endif /* BDSP_STAGE_H_ */

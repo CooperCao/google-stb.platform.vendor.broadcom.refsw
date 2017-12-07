@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -86,7 +86,7 @@ bool SecureStreamer::Initialize()
 
 SecureStreamer::~SecureStreamer()
 {
-    LOGD(("SecureStreamer::%s %p enter", __FUNCTION__, (void*)this));
+    LOGD(("SecureStreamer::%s %p enter", BSTD_FUNCTION, (void*)this));
     if (m_playpump) {
         NEXUS_Playpump_Flush(m_playpump);
         NEXUS_Playpump_ClosePidChannel(m_playpump, m_pidChannel);
@@ -112,17 +112,17 @@ SecureStreamer::~SecureStreamer()
 }
 
 bool SecureStreamer::SetupPlaypump(
-    NEXUS_PlaypumpOpenSettings &playpumpOpenSettings)
+    NEXUS_PlaypumpOpenSettings *playpumpOpenSettings)
 {
-    playpumpOpenSettings.dataNotCpuAccessible = true;
+    playpumpOpenSettings->dataNotCpuAccessible = true;
     m_playpumpBuffer = BufferFactory::CreateBuffer(
-        playpumpOpenSettings.fifoSize, NULL, true);
+        playpumpOpenSettings->fifoSize, NULL, true);
     if (m_playpumpBuffer == NULL ) {
         LOGE(("Failed to allocate from Secure Video heap"));
         return false;
     }
 
-    playpumpOpenSettings.memory =
+    playpumpOpenSettings->memory =
         NEXUS_MemoryBlock_FromAddress(m_playpumpBuffer->GetPtr());
 
     return true;
@@ -139,7 +139,7 @@ IBuffer* SecureStreamer::CreateBuffer(uint32_t size, uint8_t* data)
     SecureBuffer* buffer = reinterpret_cast<SecureBuffer*>(
         BufferFactory::CreateBuffer(size, data, true));
     if (buffer == NULL) {
-        LOGE(("%s: failed to create secure buffer", __FUNCTION__));
+        LOGE(("%s: failed to create secure buffer", BSTD_FUNCTION));
         return NULL;
     }
     buffer->SetDmaJob(m_dmaJob);

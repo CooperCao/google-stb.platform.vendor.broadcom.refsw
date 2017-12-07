@@ -76,12 +76,12 @@ khrn_resource_parts_t khrn_blob_resource_parts(const khrn_blob *blob,
    return parts;
 }
 
-static khrn_blob* blob_alloc(unsigned num_mip_levels, unsigned num_array_elems)
+static khrn_blob* blob_alloc(unsigned num_mip_levels)
 {
    khrn_blob *blob;
    size_t struct_size;
 
-   assert(num_mip_levels > 0 && num_array_elems > 0);
+   assert(num_mip_levels > 0);
 
    /* allocate enough space for the struct and desc flexible array */
    struct_size = sizeof(khrn_blob) + (num_mip_levels - 1) *
@@ -112,22 +112,20 @@ static bool blob_init(khrn_blob *blob,
    blob->num_mip_levels = num_mip_levels;
    blob->num_array_elems = num_array_elems;
 
-   size_t descs_size;
    gfx_buffer_desc_gen(blob->desc,
-      &descs_size, &blob->descs_align, blob_usage |
+      &blob->array_pitch, &blob->align, blob_usage |
       (khrn_options.prefer_yflipped ? GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE : 0),
       width, height, depth, num_mip_levels, num_planes, lfmts);
 
    if (blob->num_array_elems > 1)
-      descs_size = gfx_zround_up(descs_size, blob->descs_align);
+      blob->array_pitch = gfx_zround_up(blob->array_pitch, blob->align);
 
-   blob->array_pitch  = descs_size;
    blob->secure = secure;
 
    size_t total_size = blob->array_pitch * blob->num_array_elems;
    if (alloc_storage)
    {
-      blob->res = khrn_resource_create(total_size, blob->descs_align,
+      blob->res = khrn_resource_create(total_size, blob->align,
          GMEM_USAGE_V3D_RW | (secure ? GMEM_USAGE_SECURE : GMEM_USAGE_NONE), "khrn_blob");
    }
    else
@@ -222,7 +220,7 @@ static khrn_blob* blob_create(unsigned width, unsigned height, unsigned depth,
 {
     khrn_blob *blob;
 
-    blob = blob_alloc(num_mip_levels, num_array_elems);
+    blob = blob_alloc(num_mip_levels);
     if (blob == NULL)
        return NULL;
 
@@ -255,7 +253,7 @@ extern khrn_blob* khrn_blob_create_from_storage(gmem_handle_t handle,
 {
    khrn_blob *blob;
 
-   blob = blob_alloc(num_mip_levels, num_array_elems);
+   blob = blob_alloc(num_mip_levels);
    if (blob == NULL)
       return NULL;
 
@@ -277,7 +275,7 @@ khrn_blob* khrn_blob_create_from_resource(khrn_resource *res,
 {
    khrn_blob *blob;
 
-   blob = blob_alloc(num_mip_levels, num_array_elems);
+   blob = blob_alloc(num_mip_levels);
    if (blob == NULL)
       return NULL;
 
@@ -298,6 +296,19 @@ khrn_blob* khrn_blob_create_no_storage(unsigned width, unsigned height,
       lfmts, num_planes, blob_usage, false, secure);
 }
 
+khrn_blob* khrn_blob_shallow_copy(const khrn_blob *other)
+{
+   khrn_blob *blob = blob_alloc(other->num_mip_levels);
+   if (blob)
+   {
+      memcpy(blob, other, offsetof(khrn_blob, desc) +
+         (other->num_mip_levels * sizeof(GFX_BUFFER_DESC_T)));
+      khrn_resource_refinc(blob->res);
+      khrn_mem_set_term(blob, blob_term);
+   }
+   return blob;
+}
+
 bool khrn_blob_alloc_storage(khrn_blob *blob)
 {
    if(blob->res->handle != GMEM_HANDLE_INVALID)
@@ -306,7 +317,7 @@ bool khrn_blob_alloc_storage(khrn_blob *blob)
    return khrn_resource_alloc(
       blob->res,
       blob->array_pitch * blob->num_array_elems,
-      blob->descs_align,
+      blob->align,
       GMEM_USAGE_V3D_RW | (blob->secure ? GMEM_USAGE_SECURE : GMEM_USAGE_NONE),
       "khrn_blob.delayed_storage");
 }

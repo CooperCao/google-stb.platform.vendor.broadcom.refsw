@@ -54,9 +54,13 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_LOGICAL_NOT,         "logical_not",          DF_RET_BOOL,       1, { DF_ARG_BOOL } },
    { DATAFLOW_CONST_IMAGE,         "const_image",          DF_RET_UNDEFINED   },
    { DATAFLOW_CONST_SAMPLER,       "const_sampler",        DF_RET_UNDEFINED   },
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   { DATAFLOW_SAMPLER_UNNORMS,     "sampler_unnorms",      DF_RET_UNDEFINED },
+#endif
    { DATAFLOW_FTOI_TRUNC,          "ftoi_trunc",           DF_RET_INT,        1, { DF_ARG_FLOAT } },
    { DATAFLOW_FTOI_NEAREST,        "ftoi_nearest",         DF_RET_INT,        1, { DF_ARG_FLOAT } },
    { DATAFLOW_FTOU,                "ftou",                 DF_RET_UINT,       1, { DF_ARG_FLOAT } },
+   { DATAFLOW_ISNAN,               "isnan",                DF_RET_BOOL,       1, { DF_ARG_FLOAT } },
 
    { DATAFLOW_BITWISE_NOT,         "bitwise_not",          DF_RET_MATCH_ARG0, 1, { DF_ARG_BITWISE } },
    { DATAFLOW_BITWISE_AND,         "bitwise_and",          DF_RET_MATCH_ARG0, 2, { DF_ARG_BITWISE, DF_ARG_BITWISE } },
@@ -68,6 +72,7 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_ROR,                 "ror",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_BITWISE, DF_ARG_BITWISE } },
 
    { DATAFLOW_ADDRESS_STORE,       "address_store",        DF_RET_UNDEFINED   },
+   { DATAFLOW_IN_LOAD,             "in_load",              DF_RET_UNDEFINED   },
    { DATAFLOW_VECTOR_LOAD,         "vector_load",          DF_RET_UNDEFINED   },
    { DATAFLOW_ATOMIC_ADD,          "atomic_add",           DF_RET_UNDEFINED   },
    { DATAFLOW_ATOMIC_SUB,          "atomic_sub",           DF_RET_UNDEFINED   },
@@ -177,11 +182,9 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
 
    { DATAFLOW_ADDRESS,             "address",              DF_RET_UNDEFINED   },
    { DATAFLOW_BUF_SIZE,            "buf_size",             DF_RET_UNDEFINED   },
+   { DATAFLOW_BUF_ARRAY_LENGTH,    "buf_array_length",     DF_RET_UNDEFINED   },
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    { DATAFLOW_IMAGE_INFO_PARAM,    "image_info_param",     DF_RET_UNDEFINED   },
-#endif
-#if !V3D_HAS_LARGE_1D_TEXTURE
-   { DATAFLOW_TEXBUFFER_INFO_PARAM, "texbuffer_info_param", DF_RET_UNDEFINED  },
 #endif
    { DATAFLOW_GET_FB_MAX_LAYER,    "get_fb_max_layer"    , DF_RET_UINT,        0 },
 };
@@ -318,6 +321,14 @@ Dataflow *glsl_dataflow_construct_vector_load(DataflowType type, Dataflow *addre
    return dataflow;
 }
 
+Dataflow *glsl_dataflow_construct_address_load(DataflowFlavour f, DataflowType type, Dataflow *address)
+{
+   Dataflow *dataflow = dataflow_construct_common(f, type);
+   dataflow->d.unary_op.operand = address;
+   dataflow->dependencies_count = 1;
+   return dataflow;
+}
+
 Dataflow *glsl_dataflow_construct_atomic(DataflowFlavour flavour, DataflowType type, Dataflow *address, Dataflow *arg,
       Dataflow *cond, Dataflow *prev)
 {
@@ -445,6 +456,23 @@ Dataflow *glsl_dataflow_construct_buf_size(Dataflow *operand, const_value subtra
    return dataflow;
 }
 
+Dataflow *glsl_dataflow_construct_buf_array_length(Dataflow *operand, const_value subtract) {
+   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_BUF_ARRAY_LENGTH, DF_UINT);
+   dataflow->d.unary_op.operand = operand;
+   dataflow->u.constant.value   = subtract;
+   dataflow->dependencies_count = 1;
+   return dataflow;
+}
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+Dataflow *glsl_dataflow_construct_sampler_unnorms(Dataflow *operand) {
+   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_SAMPLER_UNNORMS, DF_UINT);
+   dataflow->d.unary_op.operand = operand;
+   dataflow->dependencies_count = 1;
+   return dataflow;
+}
+#endif
+
 Dataflow *glsl_dataflow_convert_type(Dataflow *input, DataflowType out_type) {
    if (out_type == input->type)
       return input;
@@ -534,8 +562,7 @@ Dataflow *glsl_dataflow_construct_vec4(Dataflow *r, Dataflow *g, Dataflow *b, Da
 
 void glsl_dataflow_construct_texture_lookup(Dataflow **out, unsigned n_out,
                                             uint32_t bits, Dataflow *image, Dataflow *coords,
-                                            Dataflow *d, Dataflow *b, Dataflow *off, Dataflow *sampler,
-                                            DataflowType component_type_index)
+                                            Dataflow *d, Dataflow *b, Dataflow *off, Dataflow *sampler)
 {
    Dataflow *dataflow = dataflow_construct_common(DATAFLOW_TEXTURE, DF_VOID);
 
@@ -550,6 +577,17 @@ void glsl_dataflow_construct_texture_lookup(Dataflow **out, unsigned n_out,
 
    dataflow->u.texture.required_components = 0;  /* Set up later */
    dataflow->u.texture.bits = bits;
+
+   DataflowType component_type_index;
+   switch (image->type) {
+      case DF_F_SAMP_IMG:
+      case DF_F_STOR_IMG:     component_type_index = DF_FLOAT; break;
+      case DF_I_SAMP_IMG:
+      case DF_I_STOR_IMG:     component_type_index = DF_INT;   break;
+      case DF_U_SAMP_IMG:
+      case DF_U_STOR_IMG:     component_type_index = DF_UINT;  break;
+      default: unreachable(); component_type_index = DF_VOID;  break;
+   }
 
    for (unsigned i=0; i<n_out; i++)
       out[i] = glsl_dataflow_construct_get_vec4_component(i, dataflow, component_type_index);
@@ -622,16 +660,6 @@ bool glsl_dataflow_affects_memory(DataflowFlavour f) {
           f == DATAFLOW_ATOMIC_OR     || f == DATAFLOW_ATOMIC_XOR ||
           f == DATAFLOW_ATOMIC_XCHG   || f == DATAFLOW_ATOMIC_CMPXCHG;
 }
-
-#if !V3D_HAS_LARGE_1D_TEXTURE
-Dataflow *glsl_construct_texbuffer_info_param(Dataflow *image, TexBufferInfoParam param) {
-   Dataflow *ret = dataflow_construct_common(DATAFLOW_TEXBUFFER_INFO_PARAM, DF_UINT);
-   ret->dependencies_count = 1;
-   ret->d.texbuffer_info_param.image = image;
-   ret->u.texbuffer_info_param.param = param;
-   return ret;
-}
-#endif
 
 bool glsl_dataflow_tex_cfg_implies_bslod(uint32_t tex_cfg_bits) {
    return tex_cfg_bits & ( DF_TEXBITS_FETCH  | DF_TEXBITS_SAMPLER_FETCH |

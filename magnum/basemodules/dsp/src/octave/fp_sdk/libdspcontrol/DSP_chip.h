@@ -53,7 +53,7 @@
  */
 
 #include "libdspcontrol/CHIP.h"
-
+#include "libsyschip/tbuf_chips.h"
 #include "fp_sdk_config.h"
 
 #if !(FEATURE_IS(SW_HOST, RAAGA_MAGNUM) || FEATURE_IS(SW_HOST, RAAGA_ROCKFORD))
@@ -181,6 +181,7 @@ typedef struct
 typedef struct DSP_PARAMETERS_STRUCT
 {
 #if IS_HOST(BM)
+    char *hostname;
     /** The port on localhost where the SCP server (BM targets) is listening. */
     int port;
 #endif
@@ -371,6 +372,9 @@ typedef struct DSP_STRUCT
     /** Dummy entry to avoid "struct has no members" warnings */
     void *dummy;
 #endif
+#if defined (TB_SIZE_SET_BY_HOST)
+    uint32_t tb_buf_len;
+#endif
 } DSP;
 
 
@@ -378,7 +382,7 @@ typedef struct
 {
 #if defined(__FP4014_ONWARDS__) || defined(__FPM1015__)
     uint32_t host_intc_host_irq;
-#if defined(__FP4015_ONWARDS__) || defined(__FPM1015__)
+#if defined(__FP4014_ONWARDS__) || defined(__FPM1015__)
     uint32_t obus_fault;
     uint32_t obus_fault_address;
 #endif

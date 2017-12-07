@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  EGL driver
-Module   :  Abstract H/W Interface
-
-FILE DESCRIPTION
-Defines an abstract interface that will be used to interact with platform h/w.
-=============================================================================*/
-
-#ifndef _BEGL_HWPLATFORM_H__
-#define _BEGL_HWPLATFORM_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #ifndef __cplusplus
 #include <stdint.h>
@@ -173,13 +164,13 @@ typedef struct
    void (*GetPerformanceData)(void *context, BEGL_HWPerfMonitorData *data);
 
    /* Create a fence */
-   void(*FenceOpen)(void *context, int *fd);
+   void (*FenceOpen)(void *context, int *fd, void **p, char type);
 
-   /* Clock the pipeline, trigger all fences waiting at this point */
-   void(*FenceSignal)(int fd);
+   /* Signal a fence (only used for userspace sync) */
+   void (*FenceSignal)(void *context, int fd);
 
-   /* Close a fence */
-   void(*FenceClose)(int fd);
+   /* Fence wait async */
+   void (*FenceWaitAsync)(void *context, int fd, void **v3dfence);
 
 } BEGL_HWInterface;
 
@@ -199,5 +190,3 @@ typedef struct
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _BEGL_HWPLATFORM_H__ */

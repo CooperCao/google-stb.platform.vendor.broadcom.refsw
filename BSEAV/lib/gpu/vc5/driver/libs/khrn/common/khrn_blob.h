@@ -32,7 +32,7 @@ typedef struct khrn_blob
     * how the resource parts are assigned */
    bool foreign_resource;
 
-   size_t descs_align;        /*alignment requirement for descs */
+   size_t align;        /*alignment requirement for resource */
 
    bool   secure;
 
@@ -97,6 +97,8 @@ extern khrn_blob* khrn_blob_create_no_storage(unsigned width, unsigned height,
       unsigned depth, unsigned num_array_elems, unsigned num_mip_levels,
       const GFX_LFMT_T *lfmts, unsigned num_planes,
       gfx_buffer_usage_t blob_usage, bool secure);
+
+extern khrn_blob* khrn_blob_shallow_copy(const khrn_blob *other);
 
 /* this can be used in conjunction with the above function to delay storage
  * allocation till needed; if the blob already has storage, this function does nothing */

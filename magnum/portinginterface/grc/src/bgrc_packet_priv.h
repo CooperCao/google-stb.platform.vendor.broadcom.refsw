@@ -89,6 +89,7 @@ http://jira.broadcom.com/browse/CRM2MC-32
 #else
 #define BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT    (0)
 #endif
+
 /****************************************************************************
 Basic concept and handling:
 
@@ -136,15 +137,7 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 
 /***************************************************************************/
 /*#define BGRC_P_CHECK_RE_ENTRY 1*/
-
-/*#define BGRC_PACKET_P_DEBUG_SW_PKT  1*/ /* print sw pkt name */
-/*#define BGRC_PACKET_P_DEBUG_DESC 1*/    /* print hw pkt */
 /*#define BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE*/
-/*#define BGRC_PACKET_P_DEBUG_SWPKT_FIFO  1*/
-/*#define BGRC_PACKET_P_DEBUG_EXTRA_FLUSH  1*/
-/*#define BGRC_PACKET_P_DEBUG_FORCEDSTDISABLE 1*/
-#define BGRC_PACKET_P_DEBUG_WATCHDOG     1
-#define BGRC_PACKET_P_WORK_AROUND_DCEG_HW_ISSUE   1
 
 /*SWSTB-3670  workaround for 7278A0 blit hw change, hw will be fixed in 7278B0*/
 #if (BGRC_P_VER == BGRC_P_VER_3)
@@ -152,6 +145,13 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 #else
 #define BGRC_PACKET_P_BLIT_WORKAROUND             0
 #endif
+
+#if ((BGRC_P_VER > BGRC_P_VER_1) && (BGRC_P_VER<=BGRC_P_VER_4))
+#define BGRC_PACKET_P_BSTC_WORKAROUND              1
+#else
+#define BGRC_PACKET_P_BSTC_WORKAROUND              0
+#endif
+
 /***************************************************************************/
 /* checkpoint_stress shows 7563, ca
    che_flush_stress shows 7445 need CHECK_SYNC_BLIT_PXL.
@@ -172,6 +172,12 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 
 #define BGRC_PACKET_P_ALIGN_HW_PKT( addr ) \
     (uint8_t *)(((uintptr_t)(addr) + BGRC_PACKET_P_MEMORY_ALIGN_MASK) & (~BGRC_PACKET_P_MEMORY_ALIGN_MASK))
+
+
+/* The start address of the level0 image must be 64byte aligned */
+#define BGRC_P_MIPMAP_SURFACE_ALIGN_BITS   6
+#define BGRC_P_MIPMAP_SURFACE_ALIGN_MASK  ((1 << BGRC_P_MIPMAP_SURFACE_ALIGN_BITS) - 1)
+
 
 /***************************************************************************/
 
@@ -215,23 +221,6 @@ typedef enum
      (((c2) > 0x70000000) && ((c1) < 0x10000000)))
 
 /***************************************************************************/
-#ifdef BGRC_PACKET_P_DEBUG_SW_PKT
-#define BGRC_PACKET_P_DEBUG_PRINT_CTX( value ) BKNI_Printf( "ctx %x: %s", hContext->ulId, value )
-#define BGRC_PACKET_P_DEBUG_PRINT( value ) BKNI_Printf( "%s", value )
-#define BGRC_PACKET_P_DEBUG_PRINT_VALUE( value ) BKNI_Printf( "%08x ", value )
-#else
-#define BGRC_PACKET_P_DEBUG_PRINT_CTX( value )
-#define BGRC_PACKET_P_DEBUG_PRINT( value )
-#define BGRC_PACKET_P_DEBUG_PRINT_VALUE( value )
-#endif
-
-#if defined(BGRC_PACKET_P_DEBUG_DESC)
-#define BGRC_PACKET_P_PRINT_DESC( value ) BKNI_Printf( "\n%s ", value )
-#define BGRC_PACKET_P_PRINT_DESC_VALUE( value ) BKNI_Printf( "%08x ", value )
-#else
-#define BGRC_PACKET_P_PRINT_DESC( value )
-#define BGRC_PACKET_P_PRINT_DESC_VALUE( value )
-#endif
 
 #define BGRC_P_GET_FIELD(regvar, reg, field) \
     (((regvar) & BCHP_M2MC_##reg##_##field##_MASK) >> \
@@ -339,23 +328,6 @@ typedef enum
 #endif
 
 /***************************************************************************/
-#if BGRC_PACKET_P_DEBUG_SWPKT_FIFO
-#define BGRC_P_SWPKT_MSG    BDBG_ERR
-#else
-#define BGRC_P_SWPKT_MSG(a)
-#endif
-#if BGRC_PACKET_P_DEBUG_WATCHDOG
-#define BGRC_P_WATCHDOG_MSG    BDBG_WRN
-#else
-#define BGRC_P_WATCHDOG_MSG(a)
-#endif
-#if BGRC_PACKET_P_DEBUG_FORCEDSTDISABLE
-#define BGRC_P_FORCEDSTDISABLE_MSG    BDBG_ERR
-#else
-#define BGRC_P_FORCEDSTDISABLE_MSG(a)
-#endif
-
-
 
 /***************************************************************************/
 
@@ -699,6 +671,7 @@ typedef struct BGRC_P_PacketContext
     uint32_t SRC_surface_height;
     uint32_t OUTPUT_surface_width;
     uint32_t OUTPUT_surface_height;
+    BMMA_DeviceOffset  ullOutSurfacePlaneAddr;
 
 #if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     uint32_t SRC_surface_format;
@@ -738,7 +711,7 @@ void BGRC_PACKET_P_WriteHwPkt( BGRC_Handle hGrc, BGRC_PacketContext_Handle hCont
 void BGRC_P_CheckHwStatus( BGRC_Handle hGrc );
 
 BM2MC_PACKET_PixelFormat BGRC_PACKET_P_ConvertPixelFormat( BPXL_Format format );
-void BGRC_PACKET_P_ConvertFilterCoeffs( BM2MC_PACKET_FilterCoeffs *coeffs, BGRC_FilterCoeffs filter, size_t src_size, size_t out_size );
+BERR_Code BGRC_PACKET_P_ConvertFilterCoeffs( BM2MC_PACKET_FilterCoeffs *coeffs, BGRC_FilterCoeffs filter, size_t src_size, size_t out_size );
 void BGRC_PACKET_P_ConvertColorMatrix( BM2MC_PACKET_ColorMatrix *matrix_out, const int32_t *matrix_in, size_t shift );
 
 BGRC_PacketContext_Handle bgrc_p_first_context(BGRC_Handle hGrc);

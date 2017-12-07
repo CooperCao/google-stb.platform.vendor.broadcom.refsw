@@ -1,0 +1,4 @@
+bcmvulkan {
+   global: vk*;
+   local: *;
+};

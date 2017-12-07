@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -97,21 +97,21 @@ BDBG_FILE_MODULE(BMRC_MonitorRegion);
 
 typedef enum
 {
-	BMRC_P_Monitor_ScbCommand_eLR = 1,
-	BMRC_P_Monitor_ScbCommand_eLW = 2,
-	BMRC_P_Monitor_ScbCommand_eREF = 3,
-	BMRC_P_Monitor_ScbCommand_eMRS = 4,
-	BMRC_P_Monitor_ScbCommand_eEMRS = 5,
-	BMRC_P_Monitor_ScbCommand_ePALL = 6,
-	BMRC_P_Monitor_ScbCommand_eDR = 7,
-	BMRC_P_Monitor_ScbCommand_eDW = 8,
-	BMRC_P_Monitor_ScbCommand_eMR = 9,
-	BMRC_P_Monitor_ScbCommand_eMW = 10,
-	BMRC_P_Monitor_ScbCommand_eCR = 11,
+    BMRC_P_Monitor_ScbCommand_eLR = 1,
+    BMRC_P_Monitor_ScbCommand_eLW = 2,
+    BMRC_P_Monitor_ScbCommand_eREF = 3,
+    BMRC_P_Monitor_ScbCommand_eMRS = 4,
+    BMRC_P_Monitor_ScbCommand_eEMRS = 5,
+    BMRC_P_Monitor_ScbCommand_ePALL = 6,
+    BMRC_P_Monitor_ScbCommand_eDR = 7,
+    BMRC_P_Monitor_ScbCommand_eDW = 8,
+    BMRC_P_Monitor_ScbCommand_eMR = 9,
+    BMRC_P_Monitor_ScbCommand_eMW = 10,
+    BMRC_P_Monitor_ScbCommand_eCR = 11,
 #if BMRC_MONITOR_P_SCB_PROTOCOL_VER >= 0x50
-	BMRC_P_Monitor_ScbCommand_eLWWR = 12,
+    BMRC_P_Monitor_ScbCommand_eLWWR = 12,
 #endif
-	BMRC_P_Monitor_ScbCommand_eUnknown = 0
+    BMRC_P_Monitor_ScbCommand_eUnknown = 0
 }BMRC_P_Monitor_ScbCommand;
 
 /* some clients have J-word min access length */
@@ -119,10 +119,10 @@ typedef enum
 
 /* SCB Command Table */
 static const struct BMRC_P_Monitor_ScbCommandInfo {
-	BMRC_P_Monitor_ScbCommand eScbCommand;
-	uint32_t ulCommand;
-	uint32_t ulMask;
-	const char *pName;
+    BMRC_P_Monitor_ScbCommand eScbCommand;
+    uint32_t ulCommand;
+    uint32_t ulMask;
+    const char *pName;
 } g_ScbCommandInfoTbl[] =
 {
     {BMRC_P_Monitor_ScbCommand_eLR,   0x000,   0x1E0, "Linear Read - LR"},
@@ -193,7 +193,7 @@ typedef struct BMRC_Monitor_CombinedRegion {
     BMMA_DeviceOffset size; /* size of region could exceed 4GB */
 } BMRC_Monitor_CombinedRegion;
 
-static int BMRC_Monitor_P_AllocatedRegionTree_Compare(const struct BMRC_Monitor_P_AllocatedRegion* node, BMMA_DeviceOffset addr)
+static int BMRC_Monitor_P_AllocatedRegionTree_Compare_isrsafe(const struct BMRC_Monitor_P_AllocatedRegion* node, BMMA_DeviceOffset addr)
 {
     if(addr > node->addr) {
         return 1;
@@ -206,10 +206,10 @@ static int BMRC_Monitor_P_AllocatedRegionTree_Compare(const struct BMRC_Monitor_
 
 
 BLST_AA_TREE_HEAD(BMRC_Monitor_P_AllocatedRegionTree, BMRC_Monitor_P_AllocatedRegion);
-BLST_AA_TREE_GENERATE_INSERT(BMRC_Monitor_P_AllocatedRegionTree, BMMA_DeviceOffset, BMRC_Monitor_P_AllocatedRegion, node, BMRC_Monitor_P_AllocatedRegionTree_Compare)
-BLST_AA_TREE_GENERATE_FIND(BMRC_Monitor_P_AllocatedRegionTree, BMMA_DeviceOffset, BMRC_Monitor_P_AllocatedRegion, node, BMRC_Monitor_P_AllocatedRegionTree_Compare)
+BLST_AA_TREE_GENERATE_INSERT(BMRC_Monitor_P_AllocatedRegionTree, BMMA_DeviceOffset, BMRC_Monitor_P_AllocatedRegion, node, BMRC_Monitor_P_AllocatedRegionTree_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_FIND(BMRC_Monitor_P_AllocatedRegionTree, BMMA_DeviceOffset, BMRC_Monitor_P_AllocatedRegion, node, BMRC_Monitor_P_AllocatedRegionTree_Compare_isrsafe)
 #if BDBG_DEBUG_BUILD
-BLST_AA_TREE_GENERATE_FIND_SOME(BMRC_Monitor_P_AllocatedRegionTree, BMMA_DeviceOffset, BMRC_Monitor_P_AllocatedRegion, node, BMRC_Monitor_P_AllocatedRegionTree_Compare)
+BLST_AA_TREE_GENERATE_FIND_SOME(BMRC_Monitor_P_AllocatedRegionTree, BMMA_DeviceOffset, BMRC_Monitor_P_AllocatedRegion, node, BMRC_Monitor_P_AllocatedRegionTree_Compare_isrsafe)
 #endif
 BLST_AA_TREE_GENERATE_FIRST(BMRC_Monitor_P_AllocatedRegionTree, BMRC_Monitor_P_AllocatedRegion, node)
 BLST_AA_TREE_GENERATE_NEXT(BMRC_Monitor_P_AllocatedRegionTree, BMRC_Monitor_P_AllocatedRegion, node)
@@ -290,7 +290,7 @@ BMRC_P_Monitor_MaskAdd(BMRC_Monitor_P_Clients *mask, BMRC_Client client)
 
 #ifdef BDBG_DEBUG_BUILD
 /* this function builds the hardware client id bit string */
-static const char *BMRC_P_Monitor_BuildClientIdString(const BMRC_Monitor_P_Clients *mask, char *buf, size_t buf_len)
+static const char *BMRC_P_Monitor_BuildClientIdString_isrsafe(const BMRC_Monitor_P_Clients *mask, char *buf, size_t buf_len)
 {
     int i;
     size_t buf_off = 0;
@@ -361,7 +361,6 @@ BMRC_Monitor_Open(BMRC_Monitor_Handle *phMonitor, BREG_Handle hReg, BINT_Handle 
     BKNI_Memset(hMonitor, 0, sizeof(*hMonitor));
     BDBG_OBJECT_SET(hMonitor, BMRC_Monitor);
     BMRC_Monitor_P_MapInit(&hMonitor->map);
-    hMonitor->enabled = !pSettings->startDisabled;
 
     BMRC_GetMaxCheckers(hMrc, &max_checkers);
     if (max_checkers > BMRC_P_MONITOR_MAX_RANGES)
@@ -376,11 +375,11 @@ BMRC_Monitor_Open(BMRC_Monitor_Handle *phMonitor, BREG_Handle hReg, BINT_Handle 
         if ((pSettings->ulNumCheckersToUse != UINT32_C(-1)) &&
             (pSettings->ulNumCheckersToUse > max_checkers))
         {
-            rc = BERR_INVALID_PARAMETER;
+            rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+
             BDBG_ERR(("Not enough checkers available. Num checkers: %d, Max checkers: %d",
                       pSettings->ulNumCheckersToUse, max_checkers));
-            BKNI_Free(hMonitor);
-            return rc;
+            goto err_max_checkers;
         }
 
         hMonitor->stSettings = *pSettings;
@@ -389,14 +388,15 @@ BMRC_Monitor_Open(BMRC_Monitor_Handle *phMonitor, BREG_Handle hReg, BINT_Handle 
     {
         hMonitor->stSettings = s_stDefaultSettings;
     }
+    hMonitor->enabled = !hMonitor->stSettings.startDisabled;
 
     /* create mutex for re-entrant control */
     rc = BERR_TRACE(BKNI_CreateMutex(&(hMonitor->pMutex)));
     if (rc != BERR_SUCCESS)
     {
         BDBG_ERR(("Failed to create mutex."));
-        BKNI_Free(hMonitor);
-        return rc;
+        (void)BERR_TRACE(rc);
+        goto err_mutex;
     }
 
     hMonitor->mrc = hMrc;
@@ -420,7 +420,7 @@ BMRC_Monitor_Open(BMRC_Monitor_Handle *phMonitor, BREG_Handle hReg, BINT_Handle 
     BMMA_PoolAllocator_GetDefaultCreateSettings(&poolSettings);
     poolSettings.allocationSize = sizeof(BMRC_Monitor_P_AllocatedRegion);
     rc = BMMA_PoolAllocator_Create(&hMonitor->poolAllocator, &poolSettings);
-    if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); BKNI_Free(hMonitor); return rc; }
+    if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_allocator; }
 
     /* populate clientinfo array */
     for (i = 0; i < BMRC_Client_eMaxCount; i++)
@@ -451,23 +451,21 @@ BMRC_Monitor_Open(BMRC_Monitor_Handle *phMonitor, BREG_Handle hReg, BINT_Handle 
 
         rc = BMRC_Checker_Create(hMrc, &hChecker);
         if (rc!=BERR_SUCCESS) {
-            BKNI_Free(hMonitor);
-            BMMA_PoolAllocator_Destroy(hMonitor->poolAllocator);
             BDBG_ERR(("Out of checkers on checker create."));
-            return rc;
+            (void)BERR_TRACE(rc);
+            goto err_checker_create;
         }
 
         rc = BMRC_Checker_SetCallback(hChecker, BMRC_P_Monitor_isr, hMonitor, i);
         if (rc!=BERR_SUCCESS) {
-            BMMA_PoolAllocator_Destroy(hMonitor->poolAllocator);
-            BKNI_Free(hMonitor);
-            return rc;
+            (void)BERR_TRACE(rc);
+            goto err_set_callback;
         }
 
         rc = BMRC_Checker_EnableCallback(hChecker);
         if (rc!=BERR_SUCCESS) {
-            BKNI_Free(hMonitor);
-            return rc;
+            (void)BERR_TRACE(rc);
+            goto err_enable_callback;
         }
 
         hMonitor->ahCheckers[i] = hChecker;
@@ -478,6 +476,20 @@ BMRC_Monitor_Open(BMRC_Monitor_Handle *phMonitor, BREG_Handle hReg, BINT_Handle 
     *phMonitor = hMonitor;
 
     return BERR_SUCCESS;
+
+err_enable_callback:
+err_set_callback:
+err_checker_create:
+    for (i=0;i<hMonitor->max_ranges && NULL!=hMonitor->ahCheckers[i];i++) {
+        BMRC_Checker_Destroy(hMonitor->ahCheckers[i]);
+    }
+    BMMA_PoolAllocator_Destroy(hMonitor->poolAllocator);
+err_allocator:
+    BKNI_DestroyMutex(hMonitor->pMutex);
+err_max_checkers:
+err_mutex:
+    BKNI_Free(hMonitor);
+    return rc;
 }
 
 static void BMRC_MonitorRegion_P_Remove(BMRC_Monitor_Handle hMonitor, BMRC_MonitorRegion_Handle hRegion)
@@ -622,6 +634,9 @@ BMRC_P_Monitor_Alloc(void *cnxt, BSTD_DeviceOffset addr, size_t size, const char
     BMRC_P_Monitor_GetClientsByFname(hMonitor, fname, &clients);
 
     region = BMMA_PoolAllocator_Alloc(hMonitor->poolAllocator);
+    if(region==NULL) {
+        (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto done;
+    }
     if(size==0) {
         size = 1; /* region of size 0 is rather confusing, since it doesn't produce any valid inclusive ranges */
     }
@@ -696,7 +711,7 @@ BMRC_P_Monitor_Alloc(void *cnxt, BSTD_DeviceOffset addr, size_t size, const char
 #endif
 
     BKNI_ReleaseMutex(hMonitor->pMutex);
-
+done:
     return;
 }
 
@@ -879,7 +894,7 @@ BMRC_P_Monitor_Program(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMMA_Devic
     BMRC_Monitor_HwBlock_eCPU,
     BMRC_Monitor_HwBlock_eCPU,
         char buffer[256];
-        BDBG_WRN(("ARC %d %s", arc_no, BMRC_P_Monitor_BuildClientIdString(clients, buffer, sizeof(buffer))));
+        BDBG_WRN(("ARC %d %s", arc_no, BMRC_P_Monitor_BuildClientIdString_isrsafe(clients, buffer, sizeof(buffer))));
     }
 #endif
     if(!BMRC_P_Monitor_ProgramRange(hMonitor, arc_no, addr, size)) {
@@ -944,7 +959,7 @@ BMRC_P_Monitor_ProgramAllocated(BMRC_Monitor_Handle hMonitor, unsigned arc_no, B
 }
 
 static void
-BMRC_Monitor_P_Print_One(BMRC_Monitor_Handle hMonitor, unsigned i)
+BMRC_Monitor_P_Print_One_isrsafe(BMRC_Monitor_Handle hMonitor, unsigned i)
 {
     const struct BMRC_Monitor_P_CheckerState *state = &hMonitor->checkerState[i];
     char blocked[8];
@@ -952,9 +967,9 @@ BMRC_Monitor_P_Print_One(BMRC_Monitor_Handle hMonitor, unsigned i)
     char bitmap[1+2*sizeof(state->clients)];
 #endif
     if(state->active) {
-        BDBG_LOG(("ARC[%u%s]: " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT " 0x%s", i, state->exclusive?" EXCL":"", BDBG_UINT64_ARG(state->addr), BDBG_UINT64_ARG(state->addr+state->size), BMRC_P_Monitor_BuildClientIdString(&state->clients, bitmap, sizeof(bitmap))));
+        BDBG_LOG(("ARC[%u%s]: " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT " 0x%s", i, state->exclusive?" EXCL":"", BDBG_UINT64_ARG(state->addr), BDBG_UINT64_ARG(state->addr+state->size), BMRC_P_Monitor_BuildClientIdString_isrsafe(&state->clients, bitmap, sizeof(bitmap))));
         BKNI_Snprintf(blocked, sizeof(blocked),"%s%s", state->accessType&BMRC_AccessType_eWrite?"WR":"", state->accessType&BMRC_AccessType_eRead?" RD":"");
-        BMRC_Monitor_P_PrintBitmap(&hMonitor->map, state->clients.client_masks, BMRC_P_MONITOR_CLIENT_MASK_ARRAY_SIZE, blocked);
+        BMRC_Monitor_P_PrintBitmap_isrsafe(&hMonitor->map, state->clients.client_masks, BMRC_P_MONITOR_CLIENT_MASK_ARRAY_SIZE, blocked);
     }
 }
 
@@ -965,7 +980,7 @@ BMRC_Monitor_Print(BMRC_Monitor_Handle hMonitor)
 
     BDBG_LOG(("%p Range: " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "", (void *)hMonitor, BDBG_UINT64_ARG(hMonitor->mem_low), BDBG_UINT64_ARG(hMonitor->mem_high)));
     for (i=0;i<sizeof(hMonitor->checkerState)/sizeof(hMonitor->checkerState[0]);i++) {
-        BMRC_Monitor_P_Print_One(hMonitor, i);
+        BMRC_Monitor_P_Print_One_isrsafe(hMonitor, i);
     }
     return;
 }
@@ -1106,11 +1121,11 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
         const BMRC_Monitor_P_AllocatedRegion *cur;
         for(i=0,cur=BLST_Q_FIRST(&hMonitor->regions);cur;cur=BLST_Q_NEXT(cur, list)) {
             BDBG_WRN(("region %d, %x..%x, clients %s", i++, cur->addr, cur->addr + cur->size,
-            BMRC_P_Monitor_BuildClientIdString(&cur->clients, buffer, sizeof(buffer))));
+            BMRC_P_Monitor_BuildClientIdString_isrsafe(&cur->clients, buffer, sizeof(buffer))));
         }
     }
 #endif
-    BMRC_Monitor_P_Print_One(hMonitor, arc_no);
+    BMRC_Monitor_P_Print_One_isrsafe(hMonitor, arc_no);
     if(arc_no < hMonitor->max_ranges - hMonitor->numberOfUserRanges) {
         BMRC_Monitor_P_AllocatedRegion *region;
         region = BLST_AA_TREE_FIND_SOME(BMRC_Monitor_P_AllocatedRegionTree,&hMonitor->regions, viol_start);

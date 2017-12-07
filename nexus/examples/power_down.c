@@ -275,6 +275,7 @@ void start_app(void)
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_IrInputSettings irSettings;
     NEXUS_IrInputDataFilter irPattern;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
@@ -343,22 +344,25 @@ void start_app(void)
 
     /* Bring up audio decoders and outputs */
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioCapabilities.numOutputs.dac > 0) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
+    if (audioCapabilities.numOutputs.hdmi > 0) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
 
     /* bring up decoder and connect to display */
     videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
@@ -429,13 +433,17 @@ void stop_app(void)
     }
     destroy_display();
     NEXUS_VideoDecoder_Close(videoDecoder);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-#endif
+
+    if (platformConfig.outputs.audioDacs[0] != NULL) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
+    }
+    if (platformConfig.outputs.spdif[0] != NULL) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
+    }
+    if (platformConfig.outputs.hdmi[0] != NULL) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
     NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
     NEXUS_AudioDecoder_Close(audioDecoder);
     NEXUS_Surface_Destroy(framebufferHD);
     NEXUS_Surface_Destroy(framebufferSD);
@@ -477,6 +485,7 @@ int main(void)
 
     while(1) {
         int i=rand()%modes;
+        int cnt;
 
         rc = BKNI_WaitForEvent(event, 5000);
 
@@ -487,7 +496,16 @@ int main(void)
 
         NEXUS_Platform_GetStandbySettings(&nexusStandbySettings);
         nexusStandbySettings.mode = standby_state[i].mode;
-        rc = NEXUS_Platform_SetStandbySettings(&nexusStandbySettings);
+        for (cnt=0; cnt<10; cnt++) { /* try for 1 second (10 x 100 msec) */
+            nexusStandbySettings.timeout = 100;
+            rc = NEXUS_Platform_SetStandbySettings(&nexusStandbySettings);
+            if(rc == NEXUS_TIMEOUT) {
+                printf("Timeout on SetStandbySettings, wait and try again\n");
+                BKNI_Sleep(100);
+            } else {
+                break;
+            }
+        }
         BDBG_ASSERT(!rc);
 
         if(standby_state[i].mode == NEXUS_PlatformStandbyMode_eOn)

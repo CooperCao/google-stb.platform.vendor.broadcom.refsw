@@ -117,7 +117,7 @@ void CCrypto::operator =(CCrypto &other)
     _data = (uint8_t *)_key;
 } /* = */
 
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
 void CCrypto::removeKey(NEXUS_PidChannelHandle pidChannel)
 {
     if (_keySlot && pidChannel)

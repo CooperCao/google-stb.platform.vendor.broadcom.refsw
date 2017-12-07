@@ -403,6 +403,11 @@ int32_t Remote::ReadAll(int fd, void * buf, size_t count)
          Error0("ERROR reading from socket\n");
          return rc;
       }
+      else if (rc == 0)
+      {
+         Error0("ERROR connection closed\n");
+         return rc;
+      }
       count -= rc;
       pos += rc;
    }

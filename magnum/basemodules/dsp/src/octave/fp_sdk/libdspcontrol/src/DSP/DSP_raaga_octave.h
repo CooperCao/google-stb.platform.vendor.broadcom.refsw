@@ -39,9 +39,15 @@
 #ifndef _DSP_RAAGA_OCTAVE_H_
 #define _DSP_RAAGA_OCTAVE_H_
 
-#include <stdint.h>
-
 #include "libdspcontrol/CHIP.h"
+#include "fp_sdk_config.h"
+
+#if FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
+#  include "bstd_defs.h"
+#else
+#  include <stdint.h>
+#endif
+
 #include "libdspcontrol/DSP.h"
 
 #include "libfp/src/c_utils_internal.h"

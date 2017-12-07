@@ -89,7 +89,8 @@ void SysCalls::init() {
     dispatchTable[SYS_mkdir] = doMkdir;
     dispatchTable[SYS_rmdir] = doRmdir;
     dispatchTable[SYS_dup] = doDup;
-    dispatchTable[SYS_pipe] = notImpl;
+    dispatchTable[SYS_pipe] = doPipe;
+    dispatchTable[SYS_pipe2] = doPipe2;
     dispatchTable[SYS_times] = notImpl;
     dispatchTable[SYS_brk] = doBrk;
     dispatchTable[SYS_setgid] = doSetGid;
@@ -358,7 +359,7 @@ void SysCalls::dispatch() {
         return;
     }
 
-	unsigned int sysCallNum = currTask->userReg(ARCH_SPECIFIC_SYSCALL_NUM_REGISTER);
+    unsigned int sysCallNum = currTask->userReg(ARCH_SPECIFIC_SYSCALL_NUM_REGISTER);
 
     //printf("Task %d %p system call %d\n", currTask->id(), currTask, sysCallNum);
 

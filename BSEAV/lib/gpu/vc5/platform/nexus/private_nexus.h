@@ -66,6 +66,7 @@ typedef struct
    bool                     drm;
    BEGL_SchedInterface     *schedInterface;
    BEGL_DisplayInterface   *displayInterface;
+   NXPL_DisplayContext     *displayContext;
 } NXPL_InternalPlatformHandle;
 
 #endif /* __PRIVATE_NEXUS_H__ */

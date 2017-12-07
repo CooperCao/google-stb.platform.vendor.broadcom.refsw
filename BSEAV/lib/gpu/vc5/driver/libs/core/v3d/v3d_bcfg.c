@@ -11,7 +11,7 @@ void v3d_bcfg_collect(
    struct v3d_bcfg *bcfg,
    const V3D_CL_TILE_BINNING_MODE_CFG_T *i)
 {
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    bcfg->tile_alloc_ibs = v3d_translate_from_tile_alloc_block_size(
       i->tile_alloc_initial_block_size);
    bcfg->tile_alloc_bs = v3d_translate_from_tile_alloc_block_size(
@@ -35,7 +35,7 @@ void v3d_bcfg_collect(
    {
       const V3D_CL_TILE_BINNING_MODE_CFG_PART1_T *part1 = &i->u.part1;
 
-#if !V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       assert(part1->auto_init_tile_state);
 #endif
 
@@ -44,7 +44,7 @@ void v3d_bcfg_collect(
       bcfg->tile_alloc_bs = v3d_translate_from_tile_alloc_block_size(
          part1->tile_alloc_block_size);
 
-#if V3D_HAS_QTS
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (part1->set_tile_state_addr)
 #endif
       {

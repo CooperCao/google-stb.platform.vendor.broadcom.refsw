@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,9 +55,7 @@ extern "C" {
 }
 #endif
 
-#if BDBG_DEBUG_BUILD && !BXDM_DEBUG_FIFO
-
-/* SWSTB-1380: use the debug prints. */
+#if BDBG_DEBUG_BUILD
 
 BERR_Code BXDM_PPDBG_P_OutputLog_isr(
    const BXDM_PictureProvider_Handle hXdmPP,
@@ -141,41 +139,6 @@ void BXDM_PPDBG_P_PrintDMConfig_isr(
    bool bLastCall
    );
 
-void BXDM_MODULE_MSG_pp_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_Debug_MsgType eMessageType,
-   char * format,
-   ...
-   );
-#define BXDM_MODULE_MSG_isr(format) BXDM_MODULE_MSG_pp_isr format
-
-
-#elif BDBG_DEBUG_BUILD && BXDM_DEBUG_FIFO
-
-/* SWSTB-1380: map the debug prints to the debug fifo. */
-
-#define BXDM_PPDBG_P_OutputLog_isr              BXDM_PPDFIFO_P_OutputLog_isr
-#define BXDM_PPDBG_P_OutputSPOLog_isr           BXDM_PPDFIFO_P_OutputSPOLog_isr
-#define BXDM_PPDBG_P_SelectionLog_isr           BXDM_PPDFIFO_P_SelectionLog_isr
-#define BXDM_PPDBG_P_CallbackTriggeredLog_isr   BXDM_PPDFIFO_P_CallbackTriggeredLog_isr
-#define BXDM_PPDBG_P_StateLog_isr               BXDM_PPDFIFO_P_StateLog_isr
-#define BXDM_PPDBG_P_State2Log_isr              BXDM_PPDFIFO_P_State2Log_isr
-#define BXDM_PPDBG_P_StcDeltaLog_isr            BXDM_PPDFIFO_P_StcDeltaLog_isr
-#define BXDM_PPDBG_P_DecoderDropLog_isr         BXDM_PPDFIFO_P_DecoderDropLog_isr
-
-#define BXDM_PPDBG_P_Print_isr                  BXDM_PPDFIFO_P_QueDBG_isr
-#define BXDM_PPDBG_P_PrintMFD_isr               BXDM_PPDFIFO_P_QueMFD_isr
-#define BXDM_PPDBG_P_PrintUnifiedPicture_isr    BXDM_PPDFIFO_P_QueUnifiedPicture_isr
-#define BXDM_PPDBG_P_PrintDMConfig_isr          BXDM_PPDFIFO_P_QueDMConfig_isr
-
-#define BXDM_PPDBG_P_PrintStartDecode_isr       BXDM_PPDFIFO_P_QueStartDecode_isr
-#define BXDM_PPDBG_P_PrintStopDecode_isr        BXDM_PPDFIFO_P_QueStopDecode_isr
-#define BXDM_PPDBG_P_PrintSelectionModeOverride_isr   BXDM_PPDFIFO_P_PrintSelectionModeOverride_isr
-#define BXDM_PPDBG_P_PrintEndSelectionModeOverride_isr   BXDM_PPDFIFO_P_PrintEndSelectionModeOverride_isr
-
-#define BXDM_MODULE_MSG_isr(format) BXDM_PPDFIFO_P_QueString_isr format
-
-
 #else
 /* Non-DEBUG build */
 
@@ -195,8 +158,6 @@ void BXDM_MODULE_MSG_pp_isr(
 #define BXDM_PPDBG_P_PrintMFD_isr( hXdmPP, pLocalState, pMFDPicture )
 #define BXDM_PPDBG_P_PrintUnifiedPicture_isr( hXdmPP, pLocalState, pstPicture )
 #define BXDM_PPDBG_P_PrintDMConfig_isr( hXdmPP, pLocalState, bLastCall )
-
-#define BXDM_MODULE_MSG_isr(format) (void)0
 
 #endif
 

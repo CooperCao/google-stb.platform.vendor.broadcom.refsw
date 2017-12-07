@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,6 +40,7 @@
 ***************************************************************************/
 
 #include "nexus_audio_module.h"
+#include "bdsp.h"
 
 BDBG_MODULE(nexus_audio_dsp_video_decoder);
 
@@ -244,9 +245,9 @@ void NEXUS_DspVideoDecoder_GetRaveSettings_priv(NEXUS_RaveOpenSettings *raveSett
     /* TODO: Need API for this in VDE */
 
     raveSettings->config.Cdb.Length = 256*1024;
-    raveSettings->config.Cdb.Alignment = 6; /* cache line on 4380 */
+    raveSettings->config.Cdb.Alignment = BDSP_ADDRESS_ALIGN_CDB;
     raveSettings->config.Itb.Length = 128*1024;
-    raveSettings->config.Itb.Alignment = 6; /* cache line on 4380 */
+    raveSettings->config.Itb.Alignment = BDSP_ADDRESS_ALIGN_ITB;
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE
     raveSettings->config.Cdb.LittleEndian = true;
 #else

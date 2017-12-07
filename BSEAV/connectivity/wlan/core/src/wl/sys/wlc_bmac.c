@@ -3944,6 +3944,10 @@ BCMUCODEFN(wlc_bmac_attach_dmapio)(wlc_hw_info_t *wlc_hw, bool wme)
 		 */
 		extraheadroom = (BCMSPLITRX_ENAB()) ? 0 : WLRXEXTHDROOM;
 		if (extraheadroom == -1) {
+			/* value of the condition extraheadroom is depended on WLRXEXTHDROOM macro.
+			* WLRXEXTHDROOM could be 0 or other values.
+			*/
+			/* coverity[dead_error_line] */
 			extraheadroom = BCMEXTRAHDROOM;
 		}
 #if defined(BCMPCIEDEV) && defined(WL_MONITOR) && !defined(WL_MONITOR_DISABLED)
@@ -4014,15 +4018,23 @@ BCMUCODEFN(wlc_bmac_attach_dmapio)(wlc_hw_info_t *wlc_hw, bool wme)
 		/* PCIe FD with Split Rx capability uses RX FIFO 1 */
 		extraheadroom = (PKT_CLASSIFY_EN(RX_FIFO1) ? WLRXEXTHDROOM : 0);
 		if (extraheadroom == -1) {
+			/* value of the condition extraheadroom is depended on WLRXEXTHDROOM macro.
+			* WLRXEXTHDROOM could be 0 or other values.
+			*/
+			/* coverity[dead_error_line] */
 			extraheadroom = BCMEXTRAHDROOM;
 		}
 		/* request SW rxhdr space through "extra head room" */
 		if (fifo1_rxen) {
+			/* Can be true if FORCE_RX_FIFO1 defined */
+			/* coverity[dead_error_line] */
 			extraheadroom += WLC_RXHDR_LEN;
 		}
 		/* Since we are splitting up TCM buffers, increase no of descriptors */
 		/* if splitrx is enabled, fifo-1 needs to be inited for rx too */
 		snprintf(name, sizeof(name), rstr_wlD, unit, 1);
+		/* value of condition is different from different compile flag.*/
+		/* coverity[dead_error_line] */
 		di = dma_attach_ext(wlc_hw->dmacommon, osh, name, wlc_hw->sih,
 			(wme ? DMAREG(wlc_hw, DMA_TX, 1) : NULL),
 			(fifo1_rxen ? DMAREG(wlc_hw, DMA_RX, 1) : NULL),
@@ -4058,6 +4070,10 @@ BCMUCODEFN(wlc_bmac_attach_dmapio)(wlc_hw_info_t *wlc_hw, bool wme)
 		 * code out until we need to add more extra headers...
 		 */
 		if (extraheadroom == -1) {
+			/* value of the condition extraheadroom is depended on WLRXEXTHDROOM macro.
+			* WLRXEXTHDROOM could be 0 or other values.
+			*/
+			/* coverity[dead_error_line] */
 			extraheadroom = BCMEXTRAHDROOM;
 		}
 		/* request SW rxhdr space through "extra head room" */
@@ -4068,6 +4084,8 @@ BCMUCODEFN(wlc_bmac_attach_dmapio)(wlc_hw_info_t *wlc_hw, bool wme)
 		/* if splitrx mode 3 is enabled, fifo-2 needs to be inited for rx too */
 		if (wme || fifo2_rxen) {
 			snprintf(name, sizeof(name), rstr_wlD, unit, 2);
+			/* value of condition is different from different compile flag.*/
+			/* coverity[dead_error_line] */
 			di = dma_attach_ext(wlc_hw->dmacommon, osh, name, wlc_hw->sih,
 				(wme ? DMAREG(wlc_hw, DMA_TX, 2):NULL),
 				(fifo2_rxen ? DMAREG(wlc_hw, DMA_RX, 2) : NULL),
@@ -12262,11 +12280,11 @@ struct wlc_txs_hist
 };
 
 #if defined(WLC_UC_TXS_TIMESTAMP)
-#define WLC_TXS_HIST_LEN(hist_len, pkg_size)  (OFFSETOF(struct wlc_txs_hist, pkg) + \
-					       (hist_len) * (pkg_size + sizeof(uint64)))
+#define WLC_TXS_HIST_LEN(hist_len, pkg_size)  ((uint32)(OFFSETOF(struct wlc_txs_hist, pkg)) + \
+					       (uint32)((hist_len) * (pkg_size + sizeof(uint64))))
 #else
-#define WLC_TXS_HIST_LEN(hist_len, pkg_size)  (OFFSETOF(struct wlc_txs_hist, pkg) + \
-					       (hist_len) * (pkg_size))
+#define WLC_TXS_HIST_LEN(hist_len, pkg_size)  ((uint32)(OFFSETOF(struct wlc_txs_hist, pkg)) + \
+					       (uint32)((hist_len) * (pkg_size)))
 #endif
 
 #if defined(BCMDBG) || defined(BCMDBG_DUMP)
@@ -12479,7 +12497,7 @@ BCMATTACHFN(wlc_bmac_txs_hist_attach)(wlc_hw_info_t *wlc_hw)
 	wlc_txs_hist_t *txs_hist;
 	uint16 len;
 	uint16 pkg_size;
-	uint alloc_size;
+	uint32 alloc_size;
 
 	/* compile time configurable history length */
 	len = WLC_UC_TXS_HIST_LEN;
@@ -12515,7 +12533,7 @@ BCMATTACHFN(wlc_bmac_txs_hist_detach)(wlc_hw_info_t *wlc_hw)
 {
 	wlc_txs_hist_t *txs_hist;
 	uint16 pkg_size;
-	uint alloc_size;
+	uint32 alloc_size;
 
 	txs_hist = wlc_hw->txs_hist;
 	if (txs_hist == NULL) {
@@ -16250,22 +16268,26 @@ BCMINITFN(wlc_bmac_btc_param_init)(wlc_hw_info_t *wlc_hw)
 	/* cache the pointer to the BTCX shm block, which won't change after coreinit */
 	wlc_hw->btc->bt_shm_addr = 2 * wlc_bmac_read_shm(wlc_hw, M_BTCX_BLK_PTR(wlc));
 
-	if (wlc_hw->btc->bt_shm_addr == 0)
+	if (wlc_hw->btc->bt_shm_addr == 0) {
 		return;
+	}
 
-		if (wlc->btc_param_vars == NULL) {
+	if (wlc->btc_param_vars == NULL) {
 		/* wlc_btc_param_init: wlc->btc_param_vars unavailable */
 			return;
-		}
-		/* go through all btc_params, if they existed in nvram, overwrite shared memory */
-		for (indx = 0; indx < wlc->btc_param_vars->num_entries; indx++)
-			wlc_bmac_write_shm(wlc_hw, wlc_hw->btc->bt_shm_addr +
-				wlc->btc_param_vars->param_list[indx].index * 2,
-				wlc->btc_param_vars->param_list[indx].value);
-		/* go through btc_flags list as copied from nvram and initialize them */
-		if (wlc->btc_param_vars->flags_present) {
-			wlc_hw->btc->flags = wlc->btc_param_vars->flags;
-		}
+	}
+
+	/* go through all btc_params, if they existed in nvram, overwrite shared memory */
+	for (indx = 0; indx < wlc->btc_param_vars->num_entries; indx++) {
+		wlc_bmac_write_shm(wlc_hw, wlc_hw->btc->bt_shm_addr +
+			wlc->btc_param_vars->param_list[indx].index * 2,
+			wlc->btc_param_vars->param_list[indx].value);
+	}
+
+	/* go through btc_flags list as copied from nvram and initialize them */
+	if (wlc->btc_param_vars->flags_present) {
+		wlc_hw->btc->flags = wlc->btc_param_vars->flags;
+	}
 	wlc_bmac_btc_btcflag2ucflag(wlc_hw);
 }
 

@@ -13,7 +13,7 @@ extern void glxx_clear_color_internal(float red, float green, float blue, float 
 extern void glxx_clear_depth_internal(float depth);
 
 GLenum glxx_get_booleans(const GLXX_SERVER_STATE_T *state, GLenum pname, GLboolean *params);
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 GLenum glxx_get_booleans_i(const GLXX_SERVER_STATE_T *state, GLenum pname, GLuint index, GLboolean *params);
 #endif
 GLenum glxx_get_fixeds(const GLXX_SERVER_STATE_T *state, GLenum pname, GLfixed *params);

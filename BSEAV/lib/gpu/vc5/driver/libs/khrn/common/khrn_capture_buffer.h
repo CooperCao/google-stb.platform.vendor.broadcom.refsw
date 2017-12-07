@@ -3,6 +3,8 @@
  ******************************************************************************/
 #pragma once
 
+#if KHRN_DEBUG
+
 EXTERN_C_BEGIN
 
 typedef struct khrn_memaccess khrn_memaccess;
@@ -32,3 +34,5 @@ void khrn_capture_unformatted_buffer(khrn_memaccess* ma, v3d_addr_t begin_addr,
 void khrn_capture_wait(void);
 
 EXTERN_C_END
+
+#endif

@@ -373,14 +373,14 @@ static EGLDisplay egl_get_platform_display_impl(EGLenum platform,
 EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplay(EGLenum platform,
       void *native_display, const EGLAttrib *attrib_list)
 {
-   vcos_unused(attrib_list);
+   unused(attrib_list);
    return egl_get_platform_display_impl(platform, native_display);
 }
 
 EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplayEXT(EGLenum platform,
       void *native_display, const EGLint *attrib_list)
 {
-   vcos_unused(attrib_list);
+   unused(attrib_list);
    return egl_get_platform_display_impl(platform, native_display);
 }
 
@@ -479,7 +479,6 @@ void egl_terminate(void)
    egl_map_move(&images, &egl_display.images);
    egl_map_move(&syncs, &egl_display.syncs);
    egl_syncs_lock_deinit();
-   egl_process_release();
    egl_display.initialized = false;
    vcos_mutex_unlock(&egl_display.lock);
 
@@ -487,36 +486,23 @@ void egl_terminate(void)
    destroy_map(&surfaces, (destructor_t) egl_surface_try_delete);
    destroy_map(&images, (destructor_t) egl_image_refdec);
    destroy_map(&syncs, (destructor_t) egl_sync_refdec);
+
+   egl_process_release();
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglTerminate(EGLDisplay dpy)
 {
-   EGL_THREAD_T *thread = egl_thread_get();
-
-   if (thread == NULL || !egl_initialized(dpy, false))
-   {
-      /* Special case for eglTerminate :
-         "Termination of a display that has already been terminated, or has not yet been
-          initialized, is allowed, but the only effect of such a call is to return EGL_TRUE"
-       */
-      if (thread == NULL || thread->error == EGL_NOT_INITIALIZED)
-      {
-         if (thread != NULL)
-            thread->error = EGL_SUCCESS;
-         return EGL_TRUE;
-      }
-   }
+   EGLint err = EGL_SUCCESS;
 
    if (dpy != egl_platform_get_default_display())
-   {
-      thread->error = EGL_BAD_DISPLAY;
-      return EGL_FALSE;
-   }
+      err = EGL_BAD_DISPLAY;
+   else if (ensure_init_once())
+      egl_terminate();
 
-   egl_terminate();
-
-   thread->error = EGL_SUCCESS;
-   return EGL_TRUE;
+   EGL_THREAD_T *thread = egl_thread_get();
+   if (thread)
+      thread->error = err;
+   return err == EGL_SUCCESS;
 }
 
 EGLAPI const char *EGLAPIENTRY eglQueryString(EGLDisplay dpy, EGLint name)

@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 #include <algorithm>
-#include "vcos_types.h"
+#include "libs/util/common.h"
 
 #define template_T_Tag template<typename T, typename Tag>
 #define template_T_Tag_D template_T_Tag template<typename D>

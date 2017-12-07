@@ -546,6 +546,14 @@ void BAPE_Mixer_GetConnector(
     *pConnector = &handle->pathNode.connectors[0];
 }
 
+bool BAPE_Mixer_Is_Running(
+    BAPE_MixerHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    return (handle->running > 0 || handle->startedExplicitly) ? true : false;
+}
+
 /*************************************************************************/
 const char *BAPE_Mixer_P_MclkSourceToText_isrsafe( BAPE_MclkSource mclkSource )
 {
@@ -857,14 +865,21 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
     {
         BAPE_MixerHandle mixerHandle = pPathNode->pHandle;
         BAPE_OutputPortObject *pOutputPortObject;
-        BAPE_MixerSettings mixerSettings;
+        BAPE_MixerSettings *mixerSettings;
         char mixerIndex[13] = "";
 
-        BAPE_Mixer_GetSettings(mixerHandle, &mixerSettings);
-        if (mixerSettings.type == BAPE_MixerType_eDsp)
-        {
-            BKNI_Snprintf(mixerIndex, sizeof(mixerIndex), "DSP Index: %u",mixerSettings.dspIndex);
+        mixerSettings = BKNI_Malloc(sizeof(BAPE_MixerSettings));
+        if ( NULL == mixerSettings ) {
+            BDBG_ERR(("Unable to allocate memory for Mixer settings"));
+            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
+
+        BAPE_Mixer_GetSettings(mixerHandle, mixerSettings);
+        if (mixerSettings->type == BAPE_MixerType_eDsp)
+        {
+            BKNI_Snprintf(mixerIndex, sizeof(mixerIndex), "DSP Index: %u",mixerSettings->dspIndex);
+        }
+        BKNI_Free(mixerSettings);
         BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s %s(%u) Format:%s Fs:%u MclkSource:%s %s", level*2, "",
                                     (void *) pPathNode, pPathNode->pName, (void *)pPathNode->pHandle,
                                     BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type),

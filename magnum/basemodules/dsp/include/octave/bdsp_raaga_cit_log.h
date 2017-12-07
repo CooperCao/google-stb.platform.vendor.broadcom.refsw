@@ -40,8 +40,6 @@
 
 #include "bdsp_raaga_priv_include.h"
 
-#define BDSP_MAX_CHAR_LENGTH  80
-
 void BDSP_Raaga_P_Analyse_CIT(
 	BDSP_RaagaTask  *pRaagaTask,
 	bool             CitReconfig
@@ -57,40 +55,4 @@ void BDSP_Raaga_P_Analyse_CIT_Stage(
 	BDSP_AF_P_sSTAGE_CONFIG *pStageConfig,
 	BDSP_P_FwBuffer         *pDescriptorMemory
 );
-void BDSP_Raaga_P_Analyse_CIT_TSMConfig(
-	BDSP_MMA_Memory Memory
-);
-void BDSP_Raaga_P_Analyse_CIT_GateOpenConfig(
-	BDSP_MMA_Memory Memory
-);
-void BDSP_Raaga_P_Analyse_CIT_SchedulingConfig(
-	BDSP_MMA_Memory Memory
-);
-void BDSP_Raaga_P_Analyse_CIT_PPMConfig(
-	BDSP_AF_P_sHW_PPM_CONFIG    *psPPMConfig
-);
-void BDSP_Raaga_P_Analyse_CIT_DataAccess(
-	BDSP_AF_P_Port_sDataAccessAttributes *pDataAccessAttributes
-);
-void BDSP_Raaga_P_Analyse_CIT_BufferDetails(
-	BDSP_P_FwBuffer   *pDescriptorMemory,
-	dramaddr_t 		   sCircularBuffer,
-	unsigned           index
-);
-
-extern const char Algorithm2Name[BDSP_Algorithm_eMax][BDSP_MAX_CHAR_LENGTH];
-extern const char PortType[BDSP_AF_P_PortType_eLast][BDSP_MAX_CHAR_LENGTH];
-extern const char DistinctOutputType[BDSP_AF_P_DistinctOpType_eMax][BDSP_MAX_CHAR_LENGTH];
-extern const char BufferType[BDSP_AF_P_BufferType_eLast][BDSP_MAX_CHAR_LENGTH];
-extern const char DataAccessType[BDSP_AF_P_Port_eLast][BDSP_MAX_CHAR_LENGTH];
-extern const char BaseRateMultiplier[BDSP_AF_P_FmmDstFsRate_eInvalid+1][BDSP_MAX_CHAR_LENGTH];
-extern const char FMMContentType [BDSP_AF_P_FmmContentType_eMax][BDSP_MAX_CHAR_LENGTH];
-extern const char GlobalTimeBase [2][BDSP_MAX_CHAR_LENGTH];
-extern const char DelayMode[BDSP_AudioTaskDelayMode_eMax+1][BDSP_MAX_CHAR_LENGTH];
-extern const char DisableEnable[2][BDSP_MAX_CHAR_LENGTH];
-extern const char TrueFalse[2][BDSP_MAX_CHAR_LENGTH];
-extern const char ContextType[BDSP_ContextType_eMax+1][BDSP_MAX_CHAR_LENGTH];
-extern const char SchedulingMode[BDSP_TaskSchedulingMode_eMax+1][BDSP_MAX_CHAR_LENGTH];
-extern const char SchedulingType[BDSP_TaskRealtimeMode_eMax+1][BDSP_MAX_CHAR_LENGTH];
-extern const char TaskType[BDSP_P_TaskType_eLast][BDSP_MAX_CHAR_LENGTH];
 #endif /*BDSP_RAAGA_CIT_LOG_H_*/

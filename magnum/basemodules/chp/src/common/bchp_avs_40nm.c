@@ -213,6 +213,7 @@ struct BCHP_P_AvsContext {
 
     bool initialized; /* flag telling me that this structure has been properly initialized */
     unsigned initialization_step; /* need to break down initialization into multiple steps */
+    unsigned heartbeat;
 
     bool standby; /* set to true to pause the AVS processing (low-power mode) */
     AvsLockType_t lock_type; /* flag to indicate AVS lock is enabled and what type of lock to be processed */
@@ -365,7 +366,7 @@ BERR_Code BCHP_P_AvsMonitorPvt ( BCHP_P_AvsHandle hHandle )
     return BERR_SUCCESS;
 }
 
-BERR_Code BCHP_P_AvsGetData (
+BERR_Code BCHP_P_GetAvsData_isrsafe (
     BCHP_P_AvsHandle hHandle, /* [in] handle supplied from open */
     BCHP_AvsData *pData )     /* [out] location to put data */
 {
@@ -373,7 +374,7 @@ BERR_Code BCHP_P_AvsGetData (
 
     BDBG_ASSERT(pData);
 
-    BDBG_ENTER(BCHP_AvsGetData);
+    BDBG_ENTER(BCHP_P_GetAvsData_isrsafe);
 
     voltage = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_PVT_1P10V_0_MNTR_STATUS);
     voltage = BCHP_GET_FIELD_DATA(voltage, AVS_RO_REGISTERS_0_PVT_1P10V_0_MNTR_STATUS, data);
@@ -382,6 +383,7 @@ BERR_Code BCHP_P_AvsGetData (
     temperature = BREG_Read32(hHandle->hRegister, BCHP_AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS);
     temperature = BCHP_GET_FIELD_DATA(temperature, AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS, data);
     pData->temperature = 418000 - (556 * temperature);
+    pData->heartbeat = hHandle->heartbeat;
 
     pData->voltage1 = 0;
     pData->temperature1 = 0;
@@ -393,7 +395,7 @@ BERR_Code BCHP_P_AvsGetData (
     /* If lock is in place then we won't track until lock removed */
     pData->tracking = hHandle->tracking;
 
-    BDBG_LEAVE(BCHP_AvsGetData);
+    BDBG_LEAVE(BCHP_P_GetAvsData_isrsafe);
     return BERR_SUCCESS;
 }
 
@@ -1379,6 +1381,7 @@ static void AvsUpdate(BCHP_P_AvsHandle handle)
     */
     if (handle->lock_type == eAvsPause) return;
 
+    handle->heartbeat++;
     /* Note: we read and print the values before we make any changes as the change can cause mis-reads on voltage values */
     AvsReadPvt(handle);
 

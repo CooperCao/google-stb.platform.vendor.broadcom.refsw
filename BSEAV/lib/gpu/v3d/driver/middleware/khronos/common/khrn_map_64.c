@@ -1,18 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  64-bit map
-
-FILE DESCRIPTION
-Relocatable uint64_t to MEM_HANDLE_T map.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 
-#define KHRN_GENERIC_MAP_VALUE_NONE MEM_INVALID_HANDLE
-#define KHRN_GENERIC_MAP_VALUE_DELETED ((MEM_HANDLE_T)(MEM_INVALID_HANDLE - 1))
+#define KHRN_GENERIC_MAP_VALUE_NONE MEM_HANDLE_INVALID
+#define KHRN_GENERIC_MAP_VALUE_DELETED ((MEM_HANDLE_T)(MEM_HANDLE_INVALID - 1))
 #define KHRN_GENERIC_MAP_ACQUIRE_VALUE mem_acquire
 #define KHRN_GENERIC_MAP_RELEASE_VALUE mem_release
 

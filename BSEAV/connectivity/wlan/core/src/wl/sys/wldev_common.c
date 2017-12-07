@@ -106,6 +106,30 @@ s32 wldev_ioctl(
 	return ret;
 }
 
+/*
+SET commands :
+cast buffer to non-const  and call the GET function
+*/
+
+s32 wldev_ioctl_set(
+	struct net_device *dev, u32 cmd, const void *arg, u32 len)
+{
+#if defined(STRICT_GCC_WARNINGS) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+	return wldev_ioctl(dev, cmd, (void *)arg, len, 1);
+#if defined(STRICT_GCC_WARNINGS) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+}
+
+s32 wldev_ioctl_get(
+	struct net_device *dev, u32 cmd, void *arg, u32 len)
+{
+	return wldev_ioctl(dev, cmd, (void *)arg, len, 0);
+}
+
 /* Format a iovar buffer, not bsscfg indexed. The bsscfg index will be
  * taken care of in dhd_ioctl_entry. Internal use only, not exposed to
  * wl_iw, wl_cfg80211 and wl_cfgp2p

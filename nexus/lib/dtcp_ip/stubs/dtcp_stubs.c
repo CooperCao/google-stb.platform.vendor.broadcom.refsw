@@ -216,9 +216,9 @@ BERR_Code DtcpAppLib_StreamPacketizeDataWithPcpHeader(void * hStreamHandle, void
  *  \retval BERR_SUCCESS or other error code.
  */
 BERR_Code DtcpAppLib_StreamDepacketizeData(void * hStreamHandle, void * hAkeHandle,
-        unsigned char * encrypted_buf, unsigned int encrypted_buf_size, unsigned char * clear_buf, unsigned int * clear_buf_size, unsigned int * total, bool * pcp_header_found)
+        unsigned char * encrypted_buf, unsigned int encrypted_buf_size, unsigned char * clear_buf, unsigned int * clear_buf_size, unsigned int * total, unsigned * pcp_header_count)
         {BSTD_UNUSED(hStreamHandle); BSTD_UNUSED(hAkeHandle); BSTD_UNUSED(clear_buf); BSTD_UNUSED(clear_buf_size); BSTD_UNUSED(encrypted_buf); BSTD_UNUSED(encrypted_buf_size); BSTD_UNUSED(total);
-        BSTD_UNUSED(pcp_header_found);
+        BSTD_UNUSED(pcp_header_count);
         BDBG_WRN(("%s: This API is not implented for this version of software. If you are a DTLA licensee and intend to use this API, please contact appropriate SQA member to get the DTCP-IP sources\n", BSTD_FUNCTION)); return BERR_NOT_SUPPORTED;}
 
 

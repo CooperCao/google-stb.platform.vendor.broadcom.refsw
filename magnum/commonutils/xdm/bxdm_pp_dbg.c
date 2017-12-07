@@ -67,7 +67,7 @@ BDBG_FILE_MODULE(BXDM_PPTSM);
 BDBG_FILE_MODULE(BXDM_PPVTSM);
 BDBG_FILE_MODULE(BXDM_PPV2);
 
-#if BDBG_DEBUG_BUILD && !BXDM_DEBUG_FIFO
+#if BDBG_DEBUG_BUILD
 
 /*
  * Functions
@@ -541,55 +541,6 @@ BERR_Code BXDM_PPDBG_P_DecoderDropLog_isr(
    return BERR_SUCCESS;
 }
 
-void BXDM_MODULE_MSG_pp_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_Debug_MsgType eMessageType,
-   char * psFormat,
-   ...
-   )
-{
-   va_list argList;
-   char szString[128];
-
-   BDBG_ENTER( BXDM_MODULE_MSG_pp_isr );
-
-   BDBG_ASSERT( hXdmPP );
-
-   va_start( argList, psFormat );
-   BKNI_Vsnprintf(szString, 128, psFormat, argList );
-   va_end(argList);
-
-   switch ( eMessageType )
-   {
-      case BXDM_Debug_MsgType_eQM:   BDBG_MODULE_MSG( BXDM_PPQM, ("%s", szString) );    break;
-      case BXDM_Debug_MsgType_eDBG:  BDBG_MODULE_MSG( BXDM_PPDBG,("%s", szString) );   break;
-      case BXDM_Debug_MsgType_eDBG2: BDBG_MODULE_MSG( BXDM_PPDBG2,("%s", szString) );  break;
-      case BXDM_Debug_MsgType_eDBGC: BDBG_MODULE_MSG( BXDM_PPDBC, ("%s", szString) );   break;
-      case BXDM_Debug_MsgType_eMFD1: BDBG_MODULE_MSG( BXDM_MFD1, ("%s", szString) );    break;
-      case BXDM_Debug_MsgType_eMFD2: BDBG_MODULE_MSG( BXDM_MFD2, ("%s", szString) );    break;
-      case BXDM_Debug_MsgType_eMFD3: BDBG_MODULE_MSG( BXDM_MFD3, ("%s", szString) );    break;
-      case BXDM_Debug_MsgType_eCFG:  BDBG_MODULE_MSG( BXDM_CFG, ("%s", szString) );     break;
-      case BXDM_Debug_MsgType_eFRD:  BDBG_MODULE_MSG( BXDM_PPFRD, ("%s", szString) );   break;
-      case BXDM_Debug_MsgType_eFIC:  BDBG_MODULE_MSG( BXDM_PPFIC, ("%s", szString) );   break;
-      case BXDM_Debug_MsgType_eCB:   BDBG_MODULE_MSG( BXDM_PPCB, ("%s", szString) );    break;
-      case BXDM_Debug_MsgType_eCLIP: BDBG_MODULE_MSG( BXDM_PPCLIP, ("%s", szString) );  break;
-      case BXDM_Debug_MsgType_eOUT:  BDBG_MODULE_MSG( BXDM_PPOUT, ("%s", szString) );   break;
-      case BXDM_Debug_MsgType_eTSM:  BDBG_MODULE_MSG( BXDM_PPTSM, ("%s", szString) );   break;
-      case BXDM_Debug_MsgType_eVTSM: BDBG_MODULE_MSG( BXDM_PPVTSM, ("%s", szString) );  break;
-      case BXDM_Debug_MsgType_ePPV2: BDBG_MODULE_MSG( BXDM_PPV2, ("%s", szString) );    break;
-
-      case BXDM_Debug_MsgType_eUnKnown:
-      default:
-         BDBG_MODULE_MSG( BXDM_PPDBG, ("%s", szString));
-         break;
-   }
-
-   BDBG_LEAVE( BXDM_MODULE_MSG_pp_isr );
-
-   return;
-}
-
-
 BERR_Code BXDM_PPDBG_P_Print_isr(
    const BXDM_PictureProvider_Handle hXdmPP,
    const BXDM_PictureProvider_P_LocalState* pLocalState,
@@ -651,41 +602,66 @@ BERR_Code BXDM_PPDBG_P_Print_isr(
                                           BXDM_P_STCTrickModeToStrLUT[ pLocalState->eSTCTrickMode ] : "error",
                                 hXdmPP->stDMConfig.bPlayback?"pb":"lv"
                                 ));
+      {
+         /* Add the info to the debug fifo. */
+         BXDM_DebugFifo_DebugInfo stDebugInfo;
+
+         stDebugInfo.uiStcSnapshot = pLocalState->uiStcSnapshot;
+         stDebugInfo.iStcJitterCorrectionOffset = hXdmPP->stDMState.stDecode.iStcJitterCorrectionOffset;
+         stDebugInfo.eMonitorRefreshRate = eMonitorRefreshRate;
+         stDebugInfo.stSTCDelta = pLocalState->stSTCDelta;
+         stDebugInfo.iAverageStcDelta = iAverageStcDelta;
+         stDebugInfo.uiAverageFractionBase10 = uiAverageFractionBase10;
+         stDebugInfo.uiSlowMotionRate = pLocalState->uiSlowMotionRate;
+         stDebugInfo.eSTCTrickMode = pLocalState->eSTCTrickMode;
+         stDebugInfo.bPlayback = hXdmPP->stDMConfig.bPlayback;
+
+         BXDM_PPDFIFO_P_QueDBG_isr( hXdmPP, &stDebugInfo );
+      }
 
       /* Print TSM Logs */
       BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stTSMString.szDebugStr));
+      BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, false, "%s", (char *)&pDebugInfo->stTSMString.szDebugStr );
 
       /* Print Decoder Drop Logs */
       if ( true ==  pDebugInfo->bPrintDropCount )
       {
          BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stPendingDropString.szDebugStr));
+         BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, false, (char *)&pDebugInfo->stPendingDropString.szDebugStr );
       }
 
       /* Print picture selecton log */
       BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stInterruptString.szDebugStr));
+      BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, false, "%s", (char *)&pDebugInfo->stInterruptString.szDebugStr );
 
       /* Print stats for Source Polarity Override */
       if ( true == pDebugInfo->bPrintSPO )
       {
          BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stSourcePolarityOverrideString.szDebugStr));
+         BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, false, "%s", (char *)&pDebugInfo->stSourcePolarityOverrideString.szDebugStr );
       }
 
       /* Print stats for Callbacks */
       if ( true == pDebugInfo->bPrintCallbacks )
       {
          BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stCallbackString.szDebugStr));
+         BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, false, "%s", (char *)&pDebugInfo->stCallbackString.szDebugStr );
       }
 
       /* Print State Logs: */
       BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stStateString.szDebugStr));
+      BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, false, "%s", (char *)&pDebugInfo->stStateString.szDebugStr );
 
       /* Print stats for state 2 */
       if ( true == pDebugInfo->bPrintState2 )
       {
          BDBG_MODULE_MSG( BXDM_PPDBG2, ("%s", (char *)&pDebugInfo->stState2String.szDebugStr));
+         BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG2, false, "%s", (char *)&pDebugInfo->stState2String.szDebugStr );
+
       }
 
       BDBG_MODULE_MSG( BXDM_PPDBC, ("%s", (char *)&pDebugInfo->stStcDeltaString.szDebugStr));
+      BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBGC, false, "%s", (char *)&pDebugInfo->stStcDeltaString.szDebugStr );
 
       BKNI_Memset(pDebugInfo, 0, sizeof(BXDM_PPDBG_P_Info));
    }
@@ -708,8 +684,16 @@ void BXDM_PPDBG_P_PrintStartDecode_isr(
    BDBG_MODULE_MSG(BXDM_PPDBG, ("--- %x:[%02x.xxx] BXDM_PictureProvider_StartDecode_isr has been called (hXdmPP:0x%lu) ---",
                               pDebug->uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                              (unsigned long)hXdmPP
-                              ));
+                              (unsigned long)hXdmPP ));
+
+   BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, true,
+            "--- %x:[%02x.xxx] BXDM_PictureProvider_StartDecode_isr has been called (hXdmPP:0x%lu) ---",
+            pDebug->uiVsyncCount,
+            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
+            (unsigned long)hXdmPP );
+
+   return;
+
 }
 
 
@@ -723,8 +707,14 @@ void BXDM_PPDBG_P_PrintStopDecode_isr(
    BDBG_MODULE_MSG(BXDM_PPDBG, ("--- %x:[%02x.xxx] BXDM_PictureProvider_StopDecode_isr has been called (hXdmPP:0x%lu) ---",
                               pDebug->uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                              (unsigned long)hXdmPP
-                              ));
+                              (unsigned long)hXdmPP ));
+
+   BXDM_PPDFIFO_P_QueString_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, true,
+            "--- %x:[%02x.xxx] BXDM_PictureProvider_StopDecode_isr has been called (hXdmPP:0x%lu) ---",
+            pDebug->uiVsyncCount,
+            BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
+            (unsigned long)hXdmPP );
+   return;
 }
 
 
@@ -920,6 +910,9 @@ void BXDM_PPDBG_P_PrintMFD_isr(
                                  ));
 
 
+   /* Add the data to the debug fifo. */
+   BXDM_PPDFIFO_P_QueMFD_isr( hXdmPP, pLocalState, pMFDPicture );
+
    BDBG_LEAVE( BXDM_PPDBG_P_PrintMFD_isr );
 
    return;
@@ -961,6 +954,11 @@ void BXDM_PPDBG_P_PrintUnifiedPicture_isr(
    {
       goto Done;
    }
+
+   /* Add the data to the debug fifo. Note: BXDM_PPDFIFO_P_QueUnifiedPicture_isr checks uiVsyncCountQM,
+   * it needs to be called before uiVsyncCountQM is reset later in this routine. */
+
+   BXDM_PPDFIFO_P_QueUnifiedPicture_isr( hXdmPP, pLocalState, pstPicture );
 
    /* Print once per second or when any of the parameters change. */
 
@@ -1246,6 +1244,9 @@ void BXDM_PPDBG_P_PrintDMConfig_isr(
    {
       uint32_t uiDirtyBitsGroup_1_1, uiDirtyBitsGroup_1_2, uiDirtyBitsGroup_1_3, uiDirtyBitsGroup_1_4;
       uint32_t uiDirtyBitsGroup_2_1, uiDirtyBitsGroup_2_2, uiDirtyBitsGroup_2_3, uiDirtyBitsGroup_2_4 ;
+
+      /* Add the data to the debug fifo. */
+      BXDM_PPDFIFO_P_QueDMConfig_isr( hXdmPP, pLocalState, bLastCall );
 
       uiDirtyBitsGroup_1_1 = uiDirtyBitsGroup_1_2 = uiDirtyBitsGroup_1_3 = uiDirtyBitsGroup_1_4 = hXdmPP->stDMConfig.uiDirtyBits_1;
 

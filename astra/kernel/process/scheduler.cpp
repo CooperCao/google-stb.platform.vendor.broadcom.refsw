@@ -44,6 +44,9 @@
 TzTask *currentTask[MAX_NUM_CPUS];
 
 unsigned long Scheduler::TimeSliceDuration;
+unsigned long Scheduler::TimeSliceStagger;
+unsigned long Scheduler::TimeSliceEDF;
+
 unsigned int Scheduler::sumRunnablePriorities;
 tzutils::PriorityQueue<TzTask> Scheduler::runQueue;
 SpinLock Scheduler::schedLock;
@@ -57,7 +60,6 @@ PerCPU<Timer> Scheduler::edfPreemptionTimer;
 PerCPU<Timer> Scheduler::edfScheduleTimer;
 tzutils::PriorityQueue<TzTask> Scheduler::edfQueue;
 Scheduler::Class Scheduler::scheduleClass;
-unsigned long Scheduler::EDFTimeSlice;
 
 #ifdef TASK_LOG
 tzutils::PriorityQueue<TzTask> Scheduler::idleQueue;
@@ -92,7 +94,8 @@ void Scheduler::init() {
     spinLockInit(&schedLock);
 
     TimeSliceDuration = (TzHwCounter::frequency() / 1000 )* TIME_SLICE_DURATION_MS;
-    EDFTimeSlice      = (TimeSliceDuration / 100) * EDF_SLICE_PERCENT;
+    TimeSliceStagger  = (TimeSliceDuration / 100) * TIME_SLICE_STAGGER_PERCENT;
+    TimeSliceEDF      = (TimeSliceDuration / 100) * TIME_SLICE_EDF_PERCENT;
     //printf("Scheduler Init %ld %ld \n", TimeSliceDuration, TzHwCounter::frequency());
 
     runQueue.init();
@@ -106,12 +109,15 @@ void Scheduler::init() {
 
     edfQueue.init();
 
-    uint64_t timeSchedule = TzHwCounter::timeNow() + Scheduler::TimeSliceDuration;
-    Scheduler::edfScheduleTimer.cpuLocal() = TzTimers::create(timeSchedule, (uint64_t) Scheduler::TimeSliceDuration, edfScheduleTimerFired, nullptr);
+    uint64_t timeNow = TzHwCounter::timeNow();
+    uint64_t timeAlign = timeNow + TimeSliceDuration / 2;
+    timeAlign = timeAlign - timeAlign % TimeSliceDuration + TimeSliceDuration;
 
+    uint64_t timeSchedule =  timeAlign + TimeSliceStagger * arm::smpCpuNum();
+    Scheduler::edfScheduleTimer.cpuLocal() = TzTimers::create(timeSchedule, (uint64_t)TimeSliceDuration, edfScheduleTimerFired, nullptr);
 
-    uint64_t timeStop = TzHwCounter::timeNow() + Scheduler::TimeSliceDuration + EDFTimeSlice;
-    Scheduler::edfPreemptionTimer.cpuLocal() = TzTimers::create(timeStop, (uint64_t) Scheduler::TimeSliceDuration, edfPreemptionTimerFired, nullptr);
+    uint64_t timeStop = timeSchedule + TimeSliceEDF;
+    Scheduler::edfPreemptionTimer.cpuLocal() = TzTimers::create(timeStop, (uint64_t)TimeSliceDuration, edfPreemptionTimerFired, nullptr);
 
 #ifdef TASK_LOG
     idleQueue.init();

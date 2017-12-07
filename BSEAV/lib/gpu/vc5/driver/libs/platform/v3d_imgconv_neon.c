@@ -528,11 +528,11 @@ static bool supports_everything(
    const struct v3d_imgconv_base_tgt *src,
    uint32_t width, uint32_t height)
 {
-   vcos_unused(self);
-   vcos_unused(dst);
-   vcos_unused(src);
-   vcos_unused(width);
-   vcos_unused(height);
+   unused(self);
+   unused(dst);
+   unused(src);
+   unused(width);
+   unused(height);
 
    return true;
 }
@@ -547,10 +547,10 @@ static bool supports_source_origin(
    const struct v3d_imgconv_base_tgt *src,
    uint32_t width, uint32_t height)
 {
-   vcos_unused(self);
-   vcos_unused(dst);
-   vcos_unused(width);
-   vcos_unused(height);
+   unused(self);
+   unused(dst);
+   unused(width);
+   unused(height);
 
    return src->x == 0 && src->y == 0;
 }
@@ -1391,11 +1391,6 @@ static bool is_uif_to_rso_match(GFX_LFMT_T src_lfmt, GFX_LFMT_T dst_lfmt)
       ((src_lfmt & GFX_LFMT_FORMAT_MASK) == (dst_lfmt & GFX_LFMT_FORMAT_MASK)); /* formats match      */
 }
 
-static bool is_clamping(GFX_LFMT_T lfmt)
-{
-   return gfx_lfmt_has_depth(lfmt); // || gfx_lfmt_contains_snorm(lfmt);  Shouldn't need to clamp snorms
-}
-
 static uint32_t lfmt_bpp(GFX_LFMT_T lfmt)
 {
    switch (gfx_lfmt_get_base(&lfmt))
@@ -1460,11 +1455,22 @@ static const CopyAlgorithm_t *find_fast_algorithm(
        !gfx_lfmt_is_2d(src_lfmt))
        return NULL;
 
+   /* The Neon path does not support any special conversions */
+   if (gfx_lfmt_has_depth_stencil(dst_lfmt))
+   {
+      if (dst->conversion == V3D_IMGCONV_CONVERSION_DEPTH_ONLY ||
+          dst->conversion == V3D_IMGCONV_CONVERSION_STENCIL_ONLY)
+         return NULL;
+   }
+
+   if (dst->conversion == V3D_IMGCONV_CONVERSION_CLAMP_DEPTH && gfx_buffer_any_float_depth(&dst->desc))
+      return NULL;
+
    /* First check for exact format matches
       for rso->uif conversions and use the generic n-bit routines
       dst must not be flipped
     */
-   if (is_rso_to_uif_match(src_lfmt, dst_lfmt) && !is_clamping(src_lfmt))
+   if (is_rso_to_uif_match(src_lfmt, dst_lfmt))
    {
       switch (lfmt_bpp(src_lfmt))
       {
@@ -1495,70 +1501,70 @@ static const CopyAlgorithm_t *find_fast_algorithm(
    /* Special cases with fast paths */
    switch ((uint32_t)src_lfmt)
    {
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_BGRA, PRE_NONPRE):
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_BGRA, PRE_NONPRE):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_BGRA):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_BGRA):
       switch ((uint32_t)dst_lfmt)
       {
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA, PRE_NONPRE):
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA, PRE_NONPRE):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA):
          alg = &copy_rso32_to_uif32_rbswap;
          break;
       }
       break;
 
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA, PRE_NONPRE):
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA, PRE_NONPRE):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA):
       switch ((uint32_t)dst_lfmt)
       {
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA, PRE_NONPRE):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA):
          alg = &copy_rso32_to_rso32;
          break;
       }
       break;
 
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX, PRE_NONPRE):
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX, PRE_NONPRE):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX):
       switch ((uint32_t)dst_lfmt)
       {
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX, PRE_NONPRE):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX):
          alg = &copy_rso32_to_rso32;
          break;
 
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA, PRE_NONPRE):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA):
          alg = &copy_rso_r8g8b8x8_to_rso_r8g8b8a8;
          break;
       }
       break;
 
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C8_C8_C8, TYPE_UNORM, CHANNELS_RGB, PRE_NONPRE):
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C8_C8_C8, TYPE_UNORM, CHANNELS_RGB, PRE_NONPRE):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C8_C8_C8, TYPE_UNORM, CHANNELS_RGB):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C8_C8_C8, TYPE_UNORM, CHANNELS_RGB):
       switch ((uint32_t)dst_lfmt)
       {
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX, PRE_NONPRE):
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX, PRE_NONPRE):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBX):
          alg = &copy_rso_c8c8c8_to_uif_c8c8c8x8;
          break;
       }
       break;
 
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C5C6C5, TYPE_UNORM, CHANNELS_BGR, PRE_NONPRE):
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C5C6C5, TYPE_UNORM, CHANNELS_BGR, PRE_NONPRE):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP,  BASE_C5C6C5, TYPE_UNORM, CHANNELS_BGR):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_YFLIP, BASE_C5C6C5, TYPE_UNORM, CHANNELS_BGR):
       switch ((uint32_t)dst_lfmt)
       {
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA, PRE_NONPRE):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_C8_C8_C8_C8, TYPE_UNORM, CHANNELS_RGBA):
          alg = &copy_rso_b5g6r5_to_rso_r8g8b8a8;
          break;
       }
       break;
 
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_ETC1, TYPE_UNORM, CHANNELS_RGB, PRE_NONPRE):
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_ETC2, TYPE_UNORM, CHANNELS_RGB, PRE_NONPRE):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_ETC1, TYPE_UNORM, CHANNELS_RGB):
+   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_ETC2, TYPE_UNORM, CHANNELS_RGB):
       switch ((uint32_t)dst_lfmt)
       {
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_ETC1, TYPE_UNORM, CHANNELS_RGB, PRE_NONPRE):
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_ETC1, TYPE_UNORM, CHANNELS_RGB, PRE_NONPRE):
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_ETC2, TYPE_UNORM, CHANNELS_RGB, PRE_NONPRE):
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_ETC2, TYPE_UNORM, CHANNELS_RGB, PRE_NONPRE):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_ETC1, TYPE_UNORM, CHANNELS_RGB):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_ETC1, TYPE_UNORM, CHANNELS_RGB):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_ETC2, TYPE_UNORM, CHANNELS_RGB):
+      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_ETC2, TYPE_UNORM, CHANNELS_RGB):
          alg = &copy_etc64rso_to_etc64uif;
          break;
       }

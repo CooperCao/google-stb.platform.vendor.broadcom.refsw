@@ -9,6 +9,6 @@
 #include "libs/util/assert_helpers.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include "vcos_types.h" /* for vcos_unused and static inline */
+#include "libs/util/common.h"
 
 #endif

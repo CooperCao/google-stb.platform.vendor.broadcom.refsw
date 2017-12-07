@@ -3281,7 +3281,7 @@ const uint32_t BDSP_IMG_opus_decode_array1[] = {
 	0x21010617,
 	0x762007cf,
 	0x0841440b,
-	0xd6e7c808,
+	0xd6dfc808,
 	0xb60885f8,
 	0xd84e5183,
 	0xe8a14a43,

@@ -373,8 +373,7 @@ NEXUS_P_File_FindAndDeque(struct NEXUS_File_P_Scheduler *sched, struct NEXUS_Fil
         sched->idleThreads++;
         NEXUS_UnlockModule(); /* drop lock */
         BDBG_MSG(("%u: queue is empty", worker->no));
-        /* coverity[check_return] */
-        BKNI_WaitForEvent(sched->signal, 100); /* wait for 100 ms */
+        (void)BKNI_WaitForEvent(sched->signal, 100); /* wait for 100 ms */
         NEXUS_LockModule(); /* restore lock */
         sched->idleThreads--;
         return 0;

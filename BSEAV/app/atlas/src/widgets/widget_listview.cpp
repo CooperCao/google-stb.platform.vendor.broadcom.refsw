@@ -772,9 +772,9 @@ bool CWidgetListView::isFastScroll(B_Time * pTimePrevKeyPress)
 unsigned CWidgetListView::getFastScrollIncrement()
 {
     MListItr <CWidgetListItem> itr(&_widgetList);
-    CWidgetListItem *          pItem      = NULL;
-    int                        numVisible = 0;
-    unsigned                   increment  = 1;
+    CWidgetListItem *          pItem = NULL;
+    int      numVisible              = 0;
+    unsigned increment               = 1;
 
     for (pItem = itr.first(); pItem; pItem = itr.next())
     {

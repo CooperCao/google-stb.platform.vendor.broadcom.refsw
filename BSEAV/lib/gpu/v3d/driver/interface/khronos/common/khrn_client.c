@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of EGL displays.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_client_check_types.h"
 #include "interface/khronos/common/khrn_client.h"
@@ -151,12 +143,6 @@ void client_thread_state_init(CLIENT_THREAD_STATE_T *state)
    state->opengl.draw = 0;
    state->opengl.read = 0;
 
-#ifndef NO_OPENVG
-   state->openvg.context = 0;
-   state->openvg.draw = 0;
-   state->openvg.read = 0;
-#endif /* NO_OPENVG */
-
    state->high_priority = false;
 
    state->merge_pos = 0;
@@ -175,22 +161,15 @@ void client_thread_state_term(CLIENT_THREAD_STATE_T *thread)
 {
    CLIENT_PROCESS_STATE_T *process = CLIENT_GET_PROCESS_STATE();
 
-   if (process) {
+   if (process)
       egl_current_release_surfaces(process, &thread->opengl);
-#ifndef NO_OPENVG
-      egl_current_release_surfaces(process, &thread->openvg);
-#endif /* NO_OPENVG */
-   }
-
-   // TODO: termination
-   platform_term_rpc( thread );
 }
 
 EGL_CONTEXT_T *client_egl_get_context(CLIENT_THREAD_STATE_T *thread, CLIENT_PROCESS_STATE_T *process, EGLContext ctx)
 {
    EGL_CONTEXT_T *context = (EGL_CONTEXT_T *)khrn_pointer_map_lookup(&process->contexts, (uint32_t)(size_t)ctx);
 
-   vcos_assert(!context || !context->is_destroyed);
+   assert(!context || !context->is_destroyed);
 
    if (!context)
       thread->error = EGL_BAD_CONTEXT;
@@ -202,7 +181,7 @@ EGL_SURFACE_T *client_egl_get_surface(CLIENT_THREAD_STATE_T *thread, CLIENT_PROC
 {
    EGL_SURFACE_T *surface = (EGL_SURFACE_T *)khrn_pointer_map_lookup(&process->surfaces, (uint32_t)(size_t)surf);
 
-   vcos_assert (!surface || !surface->is_destroyed);
+   assert (!surface || !surface->is_destroyed);
 
    if (!surface)
       thread->error = EGL_BAD_SURFACE;
@@ -225,7 +204,7 @@ EGL_SURFACE_T *client_egl_get_locked_surface(CLIENT_THREAD_STATE_T *thread, CLIE
 {
    EGL_SURFACE_T *surface = (EGL_SURFACE_T *)khrn_pointer_map_lookup(&process->surfaces, (uint32_t)(size_t)surf);
 
-   vcos_assert (!surface || !surface->is_destroyed);
+   assert (!surface || !surface->is_destroyed);
 
    if (!surface)
       thread->error = EGL_BAD_SURFACE;
@@ -244,37 +223,19 @@ static uint32_t convert_gltype(EGL_CONTEXT_TYPE_T type)
 
 void client_send_make_current(CLIENT_THREAD_STATE_T *thread)
 {
-   uint64_t pid                  = khronos_platform_get_process_id();
    uint32_t gltype               = thread->opengl.context ? convert_gltype(thread->opengl.context->type) : 0;
    EGL_GL_CONTEXT_ID_T servergl  = thread->opengl.context ? thread->opengl.context->servercontext : EGL_SERVER_NO_GL_CONTEXT;
    EGL_SURFACE_ID_T servergldraw = thread->opengl.draw    ? thread->opengl.draw->serverbuffer     : EGL_SERVER_NO_SURFACE;
    EGL_SURFACE_ID_T serverglread = thread->opengl.read    ? thread->opengl.read->serverbuffer     : EGL_SERVER_NO_SURFACE;
-#ifndef NO_OPENVG
-   EGL_VG_CONTEXT_ID_T servervg  = thread->openvg.context ? thread->openvg.context->servercontext : EGL_SERVER_NO_VG_CONTEXT;
-   EGL_SURFACE_ID_T servervgsurf = thread->openvg.draw    ? thread->openvg.draw->serverbuffer     : EGL_SERVER_NO_SURFACE;
-#endif /* NO_OPENVG */
 
-   /*
-      if the size of this call in the merge buffer changes,
-      CLIENT_MAKE_CURRENT_SIZE in khrn_client.h should be updated
-   */
-
-   eglIntMakeCurrent_impl((uint32_t)pid,
-                          (uint32_t)(pid >> 32),
-                          gltype,
+   eglIntMakeCurrent_impl(gltype,
                           servergl,
                           servergldraw,
                           serverglread
-#ifndef NO_OPENVG
-                          ,
-                          servervg,
-                          servervgsurf
-#endif /* NO_OPENVG */
                           );
 }
 
 PLATFORM_TLS_T client_tls;
-PLATFORM_MUTEX_T client_mutex;
 
 bool client_process_attach(void)
 {
@@ -293,16 +254,6 @@ bool client_process_attach(void)
       return false;
    }
 #endif
-
-   status = platform_mutex_create(&client_mutex);
-
-   if (status != KHR_SUCCESS) {
-#ifdef BCG_MULTI_THREADED
-      vcos_mutex_delete(&api_mutex);
-#endif
-      platform_tls_destroy(client_tls);
-      return false;
-   }
 
    process = CLIENT_GET_PROCESS_STATE();
    if (process)
@@ -327,7 +278,7 @@ bool client_process_attach(void)
 
 bool client_thread_attach(PLATFORM_TLS_T tls)
 {
-   CLIENT_THREAD_STATE_T *state = (CLIENT_THREAD_STATE_T *)khrn_platform_malloc(sizeof(CLIENT_THREAD_STATE_T), "CLIENT_THREAD_STATE_T");
+   CLIENT_THREAD_STATE_T *state = (CLIENT_THREAD_STATE_T *)malloc(sizeof(CLIENT_THREAD_STATE_T));
 
    if (!state)
       return false;
@@ -354,8 +305,7 @@ void client_thread_detach(void * tls)
 
    platform_tls_remove(client_tls);
    client_thread_state_term(state);
-   khrn_platform_free(state);
-   platform_maybe_free_process();
+   free(state);
 }
 
 void client_process_detach(void)
@@ -366,7 +316,6 @@ void client_process_detach(void)
 
    client_thread_detach(NULL);
    platform_tls_destroy(client_tls);
-   platform_mutex_destroy(&client_mutex);
 #ifdef BCG_MULTI_THREADED
    vcos_mutex_delete(&api_mutex);
 #endif

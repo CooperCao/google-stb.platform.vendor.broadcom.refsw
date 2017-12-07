@@ -43,7 +43,7 @@ static bool is_allowed_image_unit_format(GLenum internalformat)
    case GL_RGBA8:
    case GL_RGBA8_SNORM:
 
-#if V3D_HAS_GFXH1638_FIX
+#if V3D_VER_AT_LEAST(4,2,13,0)
    case GL_RG32F:
    case GL_RG16F:
    case GL_R11F_G11F_B10F:
@@ -98,82 +98,6 @@ static bool formats_compatible(glxx_image_unit_fmt unit_internalformat, GFX_LFMT
       return true;
 
    return false;
-}
-
-enum glxx_tex_target image_type_to_textarget(GLenum glsl_image_type)
-{
-   enum glxx_tex_target target;
-   switch (glsl_image_type)
-   {
-   case GL_INT_IMAGE_2D:
-   case GL_IMAGE_2D:
-   case GL_UNSIGNED_INT_IMAGE_2D:
-      target = GL_TEXTURE_2D;
-      break;
-   case GL_INT_IMAGE_2D_ARRAY:
-   case GL_IMAGE_2D_ARRAY:
-   case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-      target = GL_TEXTURE_2D_ARRAY;
-      break;
-   case GL_INT_IMAGE_3D:
-   case GL_IMAGE_3D:
-   case GL_UNSIGNED_INT_IMAGE_3D:
-      target = GL_TEXTURE_3D;
-      break;
-   case GL_INT_IMAGE_CUBE:
-   case GL_IMAGE_CUBE:
-   case GL_UNSIGNED_INT_IMAGE_CUBE:
-      target = GL_TEXTURE_CUBE_MAP;
-      break;
-   case GL_INT_IMAGE_CUBE_MAP_ARRAY:
-   case GL_IMAGE_CUBE_MAP_ARRAY:
-   case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
-      target = GL_TEXTURE_CUBE_MAP_ARRAY;
-      break;
-   case GL_INT_IMAGE_BUFFER:
-   case GL_IMAGE_BUFFER:
-   case GL_UNSIGNED_INT_IMAGE_BUFFER:
-      target = GL_TEXTURE_BUFFER;
-      break;
-   default:
-      unreachable();
-   }
-   return target;
-}
-
-GFX_LFMT_TYPE_T image_type_to_lfmt_type(GLenum glsl_image_type)
-{
-   GLenum type;
-   switch (glsl_image_type)
-   {
-   case GL_INT_IMAGE_2D:
-   case GL_INT_IMAGE_2D_ARRAY:
-   case GL_INT_IMAGE_3D:
-   case GL_INT_IMAGE_CUBE:
-   case GL_INT_IMAGE_CUBE_MAP_ARRAY:
-   case GL_INT_IMAGE_BUFFER:
-      type = GFX_LFMT_TYPE_INT;
-      break;
-   case GL_IMAGE_2D:
-   case GL_IMAGE_2D_ARRAY:
-   case GL_IMAGE_3D:
-   case GL_IMAGE_CUBE:
-   case GL_IMAGE_CUBE_MAP_ARRAY:
-   case GL_IMAGE_BUFFER:
-      type = GFX_LFMT_TYPE_FLOAT;
-      break;
-   case GL_UNSIGNED_INT_IMAGE_2D:
-   case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-   case GL_UNSIGNED_INT_IMAGE_3D:
-   case GL_UNSIGNED_INT_IMAGE_CUBE:
-   case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
-   case GL_UNSIGNED_INT_IMAGE_BUFFER:
-      type = GFX_LFMT_TYPE_UINT;
-      break;
-   default:
-      unreachable();
-   }
-   return type;
 }
 
 glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
@@ -238,9 +162,8 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
    if (info->internalformat != image_unit->internalformat)
       goto end;
 
-   enum glxx_tex_target image_tex_target = image_type_to_textarget(info->type);
    enum glxx_tex_target target = calc_image_unit->use_face_layer ? GL_TEXTURE_2D : texture->target;
-   if (image_tex_target != target)
+   if (info->sampler.texture_type != target)
       goto end;
 
    GFX_LFMT_T api_fmt = gfx_api_fmt_from_sized_internalformat(image_unit->internalformat);
@@ -251,7 +174,6 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
    assert(api_fmt == fmts[0]);
    calc_image_unit->fmt = fmts[0];
 
-   GFX_LFMT_TYPE_T lfmt_type = image_type_to_lfmt_type(info->type);
    assert(gfx_lfmt_num_slots_from_type(calc_image_unit->fmt) == 1);
    GFX_LFMT_TYPE_T unit_lfmt_type;
    unit_lfmt_type = calc_image_unit->fmt & GFX_LFMT_TYPE_MASK;
@@ -259,7 +181,7 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
        unit_lfmt_type == GFX_LFMT_TYPE_SNORM ||
        unit_lfmt_type == GFX_LFMT_TYPE_UFLOAT )
       unit_lfmt_type = GFX_LFMT_TYPE_FLOAT;
-   if (lfmt_type != unit_lfmt_type)
+   if (info->lfmt_type != unit_lfmt_type)
       goto end;
 
     /* TODO: get info from the shader if this image is used in an imageStore */
@@ -269,7 +191,7 @@ end:
    return acc;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 static bool is_allowed_access(GLenum access)
 {

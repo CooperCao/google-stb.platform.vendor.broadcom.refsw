@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -624,19 +624,19 @@ BERR_Code BAPE_Crc_P_Start(
         switch (handle->sourceType)
         {
             case BAPE_CrcSourceType_ePlaybackBuffer:
-                /* fci ids from BAPE_SfifoGroup_P_GetOutputFciIds(pConnection->sfifoGroup, &fciIdGroup)
+                /* fci ids from BAPE_SfifoGroup_P_GetOutputFciIds_isrsafe(pConnection->sfifoGroup, &fciIdGroup)
                    Start - BAPE_StandardMixer_P_AllocateConnectionResources()
                    Stop - BAPE_StandardMixer_P_FreeConnectionResources()*/
-                BAPE_Reg_P_UpdateEnum(handle->deviceHandle, BCHP_AUD_MISC_CRC_FCI_BLOCK_ID, AUD_MISC_CRC_FCI_BLOCK_ID, FCI_BLOCK_ID, AIO_BF_PLY);
-                pConnection = BAPE_Connector_P_GetConnectionToSink(handle->inputSettings.source.playbackBuffer.input, &handle->inputSettings.source.playbackBuffer.mixer->pathNode);
-                BAPE_SfifoGroup_P_GetOutputFciIds(pConnection->sfifoGroup, &fciIdGroup);
+                BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_AUD_MISC_CRC_FCI_BLOCK_ID, AUD_MISC_CRC_FCI_BLOCK_ID, FCI_BLOCK_ID, AIO_BF_PLY);
+                pConnection = BAPE_Connector_P_GetConnectionToSink_isrsafe(handle->inputSettings.source.playbackBuffer.input, &handle->inputSettings.source.playbackBuffer.mixer->pathNode);
+                BAPE_SfifoGroup_P_GetOutputFciIds_isrsafe(pConnection->sfifoGroup, &fciIdGroup);
                 handle->resources[i].fciId = fciIdGroup.ids[i];
                 break;
             case BAPE_CrcSourceType_eOutputPort:
                 /* fci ids from BAPE_OutputPortObject.sourceMixerFci
                    Start - BAPE_StandardMixer_P_AllocateResources()
                    Stop - BAPE_StandardMixer_P_FreeResources()*/
-                BAPE_Reg_P_UpdateEnum(handle->deviceHandle, BCHP_AUD_MISC_CRC_FCI_BLOCK_ID, AUD_MISC_CRC_FCI_BLOCK_ID, FCI_BLOCK_ID, AIO_DP0);
+                BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_AUD_MISC_CRC_FCI_BLOCK_ID, AUD_MISC_CRC_FCI_BLOCK_ID, FCI_BLOCK_ID, AIO_DP0);
                 handle->resources[i].fciId = handle->inputSettings.source.outputPort.outputPort->sourceMixerFci.ids[i];
                 break;
             default:
@@ -757,7 +757,7 @@ BERR_Code BAPE_Crc_GetBuffer(
     BKNI_Memset(pBuffers, 0, sizeof(BAPE_BufferDescriptor));
     BKNI_Memset(descriptors, 0, sizeof(BAPE_SimpleBufferDescriptor[BAPE_CHIP_MAX_CRCS]));
 
-    /*BKNI_EnterCriticalSection();*/
+    BKNI_EnterCriticalSection();
     for ( i = 0; i < handle->settings.numChannelPairs; i++ )
     {
         size = BAPE_MIN(size, BAPE_Buffer_Read_isr(handle->resources[i].buffer, &(descriptors[i])));
@@ -773,6 +773,7 @@ BERR_Code BAPE_Crc_GetBuffer(
     {
         BDBG_MSG(("buffers are empty"));
         BKNI_Memset(pBuffers, 0, sizeof(BAPE_BufferDescriptor));
+        BKNI_LeaveCriticalSection();
         return BERR_SUCCESS;
     }
 
@@ -781,7 +782,7 @@ BERR_Code BAPE_Crc_GetBuffer(
     pBuffers->bufferSize = bufferSize;
     pBuffers->wrapBufferSize = wrapBufferSize;
     pBuffers->numBuffers = handle->settings.numChannelPairs;
-    /*BKNI_LeaveCriticalSection();*/
+    BKNI_LeaveCriticalSection();
 
     return BERR_SUCCESS;
 }
@@ -806,7 +807,7 @@ BERR_Code BAPE_Crc_ConsumeData(
         return BERR_SUCCESS;
     }
 
-    /*BKNI_EnterCriticalSection();*/
+    BKNI_EnterCriticalSection();
     for ( i = 0; i < handle->settings.numChannelPairs; i++ )
     {
         size = BAPE_MIN(size, BAPE_Buffer_Read_isr(handle->resources[i].buffer, &descriptor));
@@ -827,7 +828,7 @@ BERR_Code BAPE_Crc_ConsumeData(
             BDBG_WRN(("buffers are out of sync, could only advance %d of %d bytes in buffer[%d]", retSize, size, i));
         }
     }
-    /*BKNI_LeaveCriticalSection();*/
+    BKNI_LeaveCriticalSection();
 
     return BERR_SUCCESS;
 }

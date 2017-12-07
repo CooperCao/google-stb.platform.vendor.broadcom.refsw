@@ -71,6 +71,8 @@ public:
     virtual eRet             setAudioProcessing(eAudioProcessing audioProcessing);
     virtual eAudioProcessing getAudioProcessing(void) { return(_audioProcessing); }
     virtual eRet             updateConnectSettings(NxClient_ConnectSettings * pSettings);
+    virtual eRet             setAudioFade(unsigned level = 100, unsigned duration = 3);
+    virtual eRet             waitAudioFadeComplete(void);
 
 protected:
     unsigned _connectId;

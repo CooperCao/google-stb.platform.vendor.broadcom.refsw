@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,7 +56,7 @@ $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
 B_ZLIB_TOOLCHAIN_ARCH ?= $(B_REFSW_ARCH)
 ZLIB_CONFIG_CFLAGS  := -O2 -fPIC -DZLIB_MAX_WRITE_SIZE=65536
 
-.PHONY: source all clean
+.PHONY: all clean
 
 B_ZLIB_EXTRACT_REDIR :=
 
@@ -64,25 +64,28 @@ ifeq ($(B_REFSW_ZLIB_IS_EXTERNAL),y)
     $(warning B_REFSW_ZLIB_IS_EXTERNAL=${B_REFSW_ZLIB_IS_EXTERNAL} Skipping build of zlib...)
 endif   #  ifeq ($(B_REFSW_ZLIB_IS_EXTERNAL),y)
 
-all : source
-	@if [ ! -d "${ZLIB_SOURCE_PATH}" ]; then \
-		echo "zlib source directory: $(abspath ${ZLIB_SOURCE_PATH}) not found, extracting from tarball..."  ${B_ZLIB_EXTRACT_REDIR}; \
-		if [ ! -e "${ZLIB_TAR_PATH}/${ZLIB_SOURCE_TARBALL}" ]; then \
-			echo "================ Downloading ZLIB tarball  to ${ZLIB_TAR_PATH}"; \
-			mkdir -p ${ZLIB_TAR_PATH}; \
-			B_REFSW_CACHE_DIR=${B_REFSW_CACHE_DIR} $(NEXUS_TOP)/../BSEAV/tools/build/fetch.sh ${ZLIB_BUILD_DIR}/${ZLIB_NAME}.info ${ZLIB_TAR_PATH}; \
-		fi ;\
-	fi
+all : ${ZLIB_LIB_FOLDER}/libz.a
+
+${ZLIB_LIB_FOLDER}/libz.a: ${ZLIB_TAR_PATH}/libz.a
+	@${MAKE} ${MAKE_OPTIONS} -C ${ZLIB_TAR_PATH} BSEAV=$(abspath ${BSEAV_TOP}) install ${MAKE_SUFFIX} > /dev/null
+	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
+		if ls ${ZLIB_LIB_FOLDER}/libz.so.${ZLIB_VER} > /dev/null 2>&1 ; then ${STRIP} ${ZLIB_LIB_FOLDER}/libz.so.${ZLIB_VER} ; fi ; \
+	fi;
+
+${ZLIB_TAR_PATH}/libz.a: ${ZLIB_TAR_PATH}/Makefile
+	@echo "================ Configuring ZLIB==============================="
+	@cd ${ZLIB_TAR_PATH}; \
+	CC="${CC}" \
+	CFLAGS="${ZLIB_CONFIG_CFLAGS}" \
+	./configure \
+	--prefix=${ZLIB_INSTALL_PREFIX} \
+	--shared > /dev/null ;
 
 	@echo "================ Compiling ZLIB==============================="
-	echo "NEXUS_TOP=$(abspath ${NEXUS_TOP})"
-	${MAKE} ${MAKE_OPTIONS} -C ${ZLIB_TAR_PATH} BSEAV=$(abspath ${BSEAV_TOP}) ${MAKE_SUFFIX}
-	if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
-		if ls ${ZLIB_LIB_FOLDER}/*.so > /dev/null 2>&1 ; then ${STRIP} ${ZLIB_LIB_FOLDER}/*.so ; fi ; \
-	fi
+	@${MAKE} ${MAKE_OPTIONS} -C ${ZLIB_TAR_PATH} BSEAV=$(abspath ${BSEAV_TOP}) ${MAKE_SUFFIX} > /dev/null
 	@echo "================ ZLIB Compiled!"
 
-source:
+${ZLIB_TAR_PATH}/Makefile:
 ifneq ($(B_REFSW_ZLIB_IS_EXTERNAL),y)
 	@if [ ! -d "${ZLIB_SOURCE_PATH}" ]; then \
 		echo ""; \
@@ -99,15 +102,11 @@ ifneq ($(B_REFSW_ZLIB_IS_EXTERNAL),y)
 		fi ;\
 		if [ -e "${ZLIB_TAR_PATH}/${ZLIB_SOURCE_TARBALL}" ]; then \
 			echo "================ Extracting ZLIB tarball"; \
+			echo "${ZLIB_SOURCE_PATH}"; \
 			mkdir -p ${ZLIB_SOURCE_PATH}; \
 			echo "ZLIB_TAR_PATH is ${ZLIB_TAR_PATH}"; \
 			echo "ZLIB_SOURCE_TARBALL is ${ZLIB_SOURCE_TARBALL}"; \
 			tar -xpf ${ZLIB_TAR_PATH}/${ZLIB_SOURCE_TARBALL} -C ${ZLIB_SOURCE_PATH}/..; \
-			echo "Copy ${ZLIB_SOURCE_PATH} include files to ${ZLIB_SOURCE_PATH}/include" ; \
-            mkdir -p ${ZLIB_SOURCE_PATH}/include ; \
-			cp -r ${ZLIB_SOURCE_PATH}/*.h ${ZLIB_SOURCE_PATH}/include ; \
-			echo "Copy ${ZLIB_BUILD_DIR}/${ZLIB_NAME} to ${ZLIB_SOURCE_PATH}/.." ; \
-			cp -r ${ZLIB_BUILD_DIR}/${ZLIB_NAME} ${ZLIB_SOURCE_PATH}/.. ; \
 		else \
 			echo "Tarball ${ZLIB_TAR_PATH}/${ZLIB_SOURCE_TARBALL} is missing"; exit 1;\
 		fi ${B_ZLIB_EXTRACT_REDIR};\
@@ -117,7 +116,7 @@ endif   #  ifeq ($(B_REFSW_ZLIB_IS_EXTERNAL),y)
 install_to_nexus_bin: all
 	@echo "================ Installing ZLIB to ${NEXUS_BIN_DIR}"
 	@mkdir -p ${NEXUS_BIN_DIR}
-	@if ls ${ZLIB_LIB_FOLDER}/*.so > /dev/null 2>&1 ; then install -c -m 0755 $(ZLIB_LIB_FOLDER)/*.so* ${NEXUS_BIN_DIR}; fi
+	@if ls ${ZLIB_LIB_FOLDER}/libz.so > /dev/null 2>&1 ; then install -c -m 0755 $(ZLIB_LIB_FOLDER)/libz.so* ${NEXUS_BIN_DIR}; fi
 
 clean :
 	@echo "================ MAKE CLEAN"

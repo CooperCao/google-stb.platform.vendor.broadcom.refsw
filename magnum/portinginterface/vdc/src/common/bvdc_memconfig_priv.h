@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -116,6 +116,13 @@ BERR_Code BVDC_P_MemConfig_GetDefaultDisplaySettings
     ( BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,
       uint32_t                            ulDispIndex,
       BVDC_DispMemConfigSettings         *pDisplay );
+
+void BVDC_P_MemConfig_GetDefaultDeinterlacerSettings
+    ( BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,
+      uint32_t                            ulDispIndex,
+      uint32_t                            ulWinIndex,
+      BVDC_WinMemConfigSettings          *pWindow,
+      bool                                bSd );
 
 BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
     ( BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,

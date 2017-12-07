@@ -8,6 +8,7 @@
 #include "../glsl/glsl_dataflow.h"
 #include "../glsl/glsl_ir_program.h"
 #include "../glxx/glxx_server.h"  /* TODO: For GL11_STATE_T */
+#include "../glxx/glxx_shader_ops.h"
 
 #define GL11_STATE_OFFSET(x) (offsetof(GL11_STATE_T, x)/sizeof(uint32_t))
 
@@ -21,6 +22,8 @@
 uint32_t  gl11_get_live_attr_set(const GL11_CACHE_KEY_T *shader);
 IRShader *gl11_ir_shader_from_nodes(Dataflow **df, int count, int *out_bindings);
 LinkMap  *gl11_link_map_from_bindings(int out_count, const int *out_bindings, int in_count, int unif_count, const int *unif_bindings);
+
+void gl11_load_inputs(GLXX_VEC4_T *inputs, unsigned count);
 
 void gl11_get_cvshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm_out);
 void gl11_get_fshader (const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm_out);

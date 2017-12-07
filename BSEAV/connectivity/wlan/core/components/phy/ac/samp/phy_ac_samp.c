@@ -2448,8 +2448,7 @@ phy_ac_sample_data(phy_type_samp_ctx_t *ctx, wl_sampledata_t *sample_data, void 
 				 * move to where the next sample
 				 * (with alignment pattern '00') starts
 				 */
-				data = wlapi_bmac_templatedata_rreg(pi->sh->physhim);
-
+				(void) wlapi_bmac_templatedata_rreg(pi->sh->physhim);
 				/* wrap around end of fifo if necessary */
 				if (sampi->pfirst == sampi->pstop) {
 					wlapi_bmac_templateptr_wreg(pi->sh->physhim,

@@ -35,19 +35,9 @@ void v3d_tlb_sample_to_decimated_coords(
       not_impl();
       break;
    case V3D_DECIMATE_ALL_SAMPLES:
-      switch (num_samp)
-      {
-      case 1:
-         *x_dec = x_px;
-         *y_dec = y_px;
-         break;
-      case 4:
-         *x_dec = (x_px * 2) + (si & 1);
-         *y_dec = (y_px * 2) + (si >> 1);
-         break;
-      default:
-         unreachable();
-      }
+      assert(num_samp == 4);
+      *x_dec = (x_px * 2) + (si & 1);
+      *y_dec = (y_px * 2) + (si >> 1);
       break;
    default:
       unreachable();
@@ -74,19 +64,9 @@ void v3d_tlb_pixel_from_decimated_coords(
       not_impl();
       break;
    case V3D_DECIMATE_ALL_SAMPLES:
-      switch (num_samp)
-      {
-      case 1:
-         *x_px = x_dec;
-         *y_px = y_dec;
-         break;
-      case 4:
-         *x_px = x_dec / 2;
-         *y_px = y_dec / 2;
-         break;
-      default:
-         unreachable();
-      }
+      assert(num_samp == 4);
+      *x_px = x_dec / 2;
+      *y_px = y_dec / 2;
       break;
    default:
       unreachable();

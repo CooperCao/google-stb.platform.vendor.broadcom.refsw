@@ -490,10 +490,10 @@ struct NEXUS_PidChannel {
 
 
 /* flags for pidchannel destinations */
-#define NEXUS_PIDCHANNEL_P_DESTINATION_RAVE    (0 << 1)
+#define NEXUS_PIDCHANNEL_P_DESTINATION_RAVE    (1 << 0)
 #define NEXUS_PIDCHANNEL_P_DESTINATION_MESSAGE (1 << 1)
-#define NEXUS_PIDCHANNEL_P_DESTINATION_REMUX0  (2 << 1)
-#define NEXUS_PIDCHANNEL_P_DESTINATION_REMUX1  (3 << 1)
+#define NEXUS_PIDCHANNEL_P_DESTINATION_REMUX0  (1 << 2)
+#define NEXUS_PIDCHANNEL_P_DESTINATION_REMUX1  (1 << 3)
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_P_HwPidChannel);
 
@@ -531,6 +531,9 @@ struct NEXUS_P_HwPidChannel {
 #ifndef NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES
     #ifndef BXPT_NUM_MESG_BUFFERS
         /* On devices where BXPT_NUM_MESG_BUFFERS wasn't defined, the hw only supports 128 buffers/handles. */
+        #define NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES 128
+    #elif (BXPT_NUM_MESG_BUFFERS == 0)
+    /* Software only message filtering */
         #define NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES 128
     #else
         /* On other devices, the PID2BUF table size is defined in bxpt_capabilities.h */
@@ -789,6 +792,9 @@ struct NEXUS_Transport_P_State {
 
     NEXUS_TransportModuleInternalSettings moduleSettings;
     NEXUS_TransportModuleSettings settings;
+
+    BKNI_EventHandle pidChannelEvent;
+    NEXUS_MtsifPidChannelState mtsifPidChannelState[NEXUS_NUM_PID_CHANNELS];
 
     struct {
         /* nexus only counts ibp-input errors for now (pbp-input errors are ignored) */

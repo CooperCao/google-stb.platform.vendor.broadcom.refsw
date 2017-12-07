@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -563,9 +563,13 @@ static BIP_Status createMulticastSession(
 
     Session->multicast_address       = multicast_address;
     Session->sessionID               = sessionID;
+    /* coverity[missing_lock] */
     Session->groupSpecificQueryCount = 0;
+    /* coverity[missing_lock] */
     Session->waitingForGroupReport   = false;
+    /* coverity[missing_lock] */
     Session->recievedGroupReport     = false;
+    /* coverity[missing_lock] */
     Session->recievedJoinReport      = false;
     Session->pIGMPContext            = hIgmpListener;
     Session->hMutex = B_Mutex_Create( NULL );

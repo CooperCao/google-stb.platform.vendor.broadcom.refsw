@@ -73,7 +73,7 @@ typedef struct NEXUS_SurfaceMemory
                              flush cached memory. If this surface is the framebuffer, you must also call NEXUS_Display_SetGraphicsFramebuffer
                              to read the updated palette into the graphics feeder. */
     unsigned numPaletteEntries; /* number of entries in palette */
-    size_t  bufferSize;     /* size of the surface buffer */
+    size_t  bufferSize;     /* size of the surface buffer in bytes */
 } NEXUS_SurfaceMemory;
 
 /*
@@ -90,6 +90,7 @@ typedef struct NEXUS_SurfaceStatus {
                             Pitch is based on the number of bytes used for all the pixels in one line along with an optional
                             padding on the right side. This padding maybe required for a variety of reasons (e.g. word alignment).
                             Pitch must be used to calculate the next line of the surface. See the example in the NEXUS_Surface_GetMemory documentation. */
+    unsigned bufferSize;
     unsigned numPaletteEntries; /* number of entries in palette */
 } NEXUS_SurfaceStatus;
 

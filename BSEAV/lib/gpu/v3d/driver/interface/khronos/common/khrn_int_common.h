@@ -17,7 +17,6 @@ extern "C" {
 #define BCG_GCACHE_LINE_SIZE        (256 * 2)
 
 #include <limits.h>
-#define KHDISPATCH_WORKSPACE_SIZE INT_MAX
 
 #ifndef NULL
 # ifdef __cplusplus
@@ -48,7 +47,7 @@ typedef unsigned long long uint64_t;
 #ifdef NDEBUG
    #define verify(X) X
 #else
-   #define verify(X) vcos_assert(X)
+   #define verify(X) assert(X)
 #endif
 
 #if (defined(__GNUC__) || defined(__clang__))

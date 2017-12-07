@@ -195,7 +195,11 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
          /* Have both downsampled and multisample buffer. Multisample buffer is
           * marked as valid so downsampled should be too. Load from multisample
           * buffer. */
+#if KHRN_DEBUG
+         assert(nonms_bufstate == GLXX_BUFSTATE_MEM || khrn_options.no_invalidate_fb);
+#else
          assert(nonms_bufstate == GLXX_BUFSTATE_MEM);
+#endif
          rs->color_load_from_ms[b] = true;
          rs->color_buffer_state[b] = GLXX_BUFSTATE_MEM;
          break;
@@ -288,11 +292,16 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    r_size += V3D_CL_TILE_COORDS_SIZE;
    r_size += V3D_CL_STORE_GENERAL_SIZE;
 #endif
-#if !V3D_HAS_GFXH1636_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    // Workaround GFXH-1320 & GFXH-1636 if occlusion queries were used in this control list.
    bool fill_ocq_cache = rs->fmem.persist->occlusion_query_list != NULL;
    if (fill_ocq_cache)
-      r_size += glxx_fill_ocq_cache_size();
+      r_size += glxx_fill_ocq_cache_size()
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_VER_AT_LEAST(4,0,2,0)
+         + V3D_CL_TILE_COORDS_SIZE
+         + V3D_CL_STORE_GENERAL_SIZE
+#endif
+         ;
 #endif
 
    r_size += V3D_CL_CLEAR_VCD_CACHE_SIZE;
@@ -303,6 +312,10 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, r_size);
    if (!instr)
       return false;
+#if KHRN_GEOMD
+   uint8_t* start_instr = instr;
+   v3d_addr_t start_addr = khrn_fmem_cle_addr(&rs->fmem) - r_size;
+#endif
 
    v3d_depth_type_t depth_type =
       fb->depth.image ? gfx_lfmt_translate_depth_type(khrn_image_plane_lfmt(&fb->depth)) : V3D_DEPTH_TYPE_32F;
@@ -339,7 +352,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
          {
             i.u.color.rt_formats[b].bpp = V3D_RT_BPP_32;
             i.u.color.rt_formats[b].type = V3D_RT_TYPE_8;
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
             i.u.color.rt_formats[b].clamp = V3D_RT_CLAMP_NONE;
 #endif
          }
@@ -396,7 +409,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
       khrn_image const *img = fb->color_ms[b].image ? fb->color_ms[b].image : fb->color[b].image;
       if (img)
       {
-#if !V3D_HAS_RT_CLAMP // If V3D_HAS_RT_CLAMP, v3d_cl_rcfg_clear_colors will do this for us
+#if !V3D_VER_AT_LEAST(4,1,34,0) // If V3D_VER_AT_LEAST(4,1,34,0), v3d_cl_rcfg_clear_colors will do this for us
          /* If the render target is ufloat then clamp negative colours to 0 */
          if ((img->api_fmt & GFX_LFMT_TYPE_MASK) == GFX_LFMT_TYPE_UFLOAT)
             for (int i=0; i<4; i++)
@@ -443,7 +456,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
 
 #ifdef KHRN_GEOMD
    fmem_debug_info_insert(&rs->fmem,
-      khrn_fmem_hw_address(&rs->fmem, instr),
+      start_addr + (instr - start_instr),
       ~0, khrn_hw_render_state_allocated_order(rs));
 #endif
 
@@ -453,7 +466,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    {
       v3d_cl_tile_coords(&instr, 0, 0);
       v3d_cl_end_loads(&instr);
-#if !V3D_HAS_GFXH1636_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
       if ((i == 0) && fill_ocq_cache && !glxx_fill_ocq_cache(&instr, &rs->fmem, rs->installed_fb.width, rs->installed_fb.height))
          return false;
 #endif
@@ -465,7 +478,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
          V3D_DECIMATE_SAMPLE0,
          V3D_PIXEL_FORMAT_SRGB8_ALPHA8,
          /*clear=*/false,
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
          /*chan_reverse=*/false,
          /*rb_swap=*/false,
 #endif
@@ -476,22 +489,27 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
       v3d_cl_end_tile(&instr);
    }
 #else
-   // Note: If you plan to 'optimize' disable depth and stencil clears
-   //       when not needed, be careful with packed depth/stencil
-   v3d_cl_tile_coords(&instr, 0, 0);
-   if (fill_ocq_cache && !glxx_fill_ocq_cache(&instr, &rs->fmem, rs->installed_fb.width, rs->installed_fb.height))
-      return false;
-   v3d_cl_store_general(&instr,
-      V3D_LDST_BUF_NONE,                  // buffer
-      false,                              // raw_mode
-      false,                              // disable_depth_clear
-      false,                              // disable_stencil_clear
-      false,                              // disable_color_clear
-      false,                              // eof
-      true,                               // disable_double_buf_swap
-      V3D_LDST_MEMORY_FORMAT_UIF_NO_XOR,  // memory_format
-      0,                                  // pad
-      0);                                 // addr
+   // GFXH-1668 means we cannot do the ocq cache filling in the first tile on
+   // 3.3, so need two dummy tiles...
+   unsigned dummy_tiles = (fill_ocq_cache && V3D_VER_AT_LEAST(3,3,0,0)) ? 2 : 1;
+   for (unsigned i = 0; i != dummy_tiles; ++i)
+   {
+      bool last = i == (dummy_tiles - 1);
+      v3d_cl_tile_coords(&instr, 0, 0);
+      if (last && fill_ocq_cache && !glxx_fill_ocq_cache(&instr, &rs->fmem, rs->installed_fb.width, rs->installed_fb.height))
+         return false;
+      v3d_cl_store_general(&instr,
+         V3D_LDST_BUF_NONE,                  // buffer
+         false,                              // raw_mode
+         !last,                              // disable_depth_clear
+         !last,                              // disable_stencil_clear
+         !last,                              // disable_color_clear
+         false,                              // eof
+         true,                               // disable_double_buf_swap
+         V3D_LDST_MEMORY_FORMAT_UIF_NO_XOR,  // memory_format
+         0,                                  // pad
+         0);                                 // addr
+   }
 #endif
 
    v3d_cl_clear_vcd_cache(&instr);
@@ -524,7 +542,7 @@ static v3d_size_t calc_tile_state_size(const struct glxx_hw_tile_cfg *tile_cfg, 
 }
 
 static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg, uint32_t num_used_layers,
-      uint8_t *draw_clist_ptr, GLXX_CL_RECORD_T* start_record)
+      GLXX_CL_RECORD_T* start_record)
 {
    log_trace("[create_bin_cl] rs %u, layers %u num_tiles %u x %u, rt count = %u",
       khrn_hw_render_state_allocated_order(rs),
@@ -533,7 +551,7 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
       rs->installed_fb.rt_count);
 
    {
-    #if !V3D_HAS_QTS
+    #if !V3D_VER_AT_LEAST(4,1,34,0)
       // allocate tile state memory
       v3d_addr_t tile_state_addr = khrn_fmem_tile_state_alloc(&rs->fmem, calc_tile_state_size(tile_cfg, num_used_layers));
       if (!tile_state_addr)
@@ -552,6 +570,10 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
       uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, size);
       if (!instr)
          return false;
+#if KHRN_GEOMD
+      uint8_t* start_instr = instr;
+      v3d_addr_t start_addr = khrn_fmem_cle_addr(&rs->fmem) - size;
+#endif
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
       // this must come before bin mode cfg part
@@ -560,7 +582,7 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
       assert(num_used_layers == 1);
 #endif
 
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
       v3d_cl_tile_binning_mode_cfg(&instr,
          v3d_translate_tile_alloc_block_size(c_initial_tile_alloc_block_size),
          v3d_translate_tile_alloc_block_size(c_tile_alloc_block_size),
@@ -572,10 +594,10 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
          rs->installed_fb.height);
 #else
       v3d_cl_tile_binning_mode_cfg_part1(&instr,
-         !V3D_HAS_QTS, // auto_init_tile_state (!V3D_HAS_QTS) / set_tile_state_addr (V3D_HAS_QTS)
+         !V3D_VER_AT_LEAST(4,1,34,0), // auto_init_tile_state (!V3D_VER_AT_LEAST(4,1,34,0)) / set_tile_state_addr (V3D_VER_AT_LEAST(4,1,34,0))
          v3d_translate_tile_alloc_block_size(c_initial_tile_alloc_block_size),
          v3d_translate_tile_alloc_block_size(c_tile_alloc_block_size),
-       #if !V3D_HAS_QTS
+       #if !V3D_VER_AT_LEAST(4,1,34,0)
          tile_state_addr,
        #else
          0,
@@ -590,7 +612,7 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
 
 #ifdef KHRN_GEOMD
       fmem_debug_info_insert(&rs->fmem,
-         khrn_fmem_hw_address(&rs->fmem, instr),
+         start_addr + (instr - start_instr),
          ~0, khrn_hw_render_state_allocated_order(rs));
 #endif
 
@@ -608,11 +630,11 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
    }
 
    // restore historical state for this start point
-   uint8_t* branch_sub_ptr = draw_clist_ptr;
+   v3d_addr_t branch_sub_addr = rs->clist_start;
    if (start_record != NULL)
    {
       // use subroutine address from record
-      branch_sub_ptr = start_record->start_sub_addr;
+      branch_sub_addr = start_record->start_sub_addr;
 
       // apply state from record
       if (!glxx_cl_record_apply(start_record, &rs->fmem))
@@ -625,10 +647,8 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
          return false;
 
       // jump to start of draw control list (if there was anything to draw, otherwise we're just clearing)
-      if (branch_sub_ptr != NULL)
-      {
-         v3d_cl_branch_sub(&instr, khrn_fmem_hw_address(&rs->fmem, branch_sub_ptr));
-      }
+      if (branch_sub_addr != 0)
+         v3d_cl_branch_sub(&instr, branch_sub_addr);
 
       // Terminate tile control lists if necessary
       v3d_cl_flush(&instr);
@@ -773,7 +793,7 @@ static bool create_render_cls(GLXX_HW_RENDER_STATE_T *rs,
          )
       {
          render_common.begin = khrn_fmem_begin_clist(&rs->fmem);
-         if (!create_render_cl_common(rs, tile_cfg, &supertile_cfg, &rcfg, num_cores > 1))
+         if (!render_common.begin || !create_render_cl_common(rs, tile_cfg, &supertile_cfg, &rcfg, num_cores > 1))
             return false;
          render_common.end = khrn_fmem_end_clist(&rs->fmem);
       }
@@ -810,8 +830,7 @@ static bool create_render_cls(GLXX_HW_RENDER_STATE_T *rs,
    return true;
 }
 
-static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg,
-      uint8_t* draw_clist_ptr)
+static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg)
 {
    unsigned max_cores = glxx_hw_render_state_max_bin_subjobs(rs);
    assert(max_cores <=  rs->fmem.br_info.bin_subjobs.num_subjobs);
@@ -880,8 +899,7 @@ static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile
          }
 
          // insert return at split point
-         uint8_t* instr = record->start_sub_addr - V3D_CL_NOP_SIZE;
-         static_assrt(V3D_CL_NOP_SIZE == V3D_CL_RETURN_SIZE);
+         uint8_t* instr = record->ret_sub_ptr;
          v3d_cl_return(&instr);
 
          // split after this record
@@ -899,7 +917,7 @@ static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile
       v3d_subjob *bin_subjobs = rs->fmem.br_info.bin_subjobs.subjobs;
       bin_subjobs[core].start = khrn_fmem_begin_clist(&rs->fmem);
       if (!bin_subjobs[core].start ||
-         !create_bin_cl(rs, tile_cfg, rs->num_used_layers, draw_clist_ptr, record))
+         !create_bin_cl(rs, tile_cfg, rs->num_used_layers, record))
       {
          return false;
       }
@@ -917,7 +935,7 @@ static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile
           * at least one block. */
          V3D_TILE_ALLOC_GRANULARITY;
 
-#if V3D_HAS_QTS
+#if V3D_VER_AT_LEAST(4,1,34,0)
    rs->fmem.br_info.details.bin_tile_state_size = calc_tile_state_size(tile_cfg, rs->num_used_layers);
 #endif
 
@@ -1004,7 +1022,7 @@ static bool create_cls_and_flush(GLXX_HW_RENDER_STATE_T *rs)
    rs->fmem.br_info.render_subjobs.subjobs = alloca(rs->fmem.br_info.render_subjobs.num_subjobs * sizeof(v3d_subjob));
 
    // create the binning control lists for each core
-   if (!create_bin_cls(rs, &tile_cfg, rs->fmem.cle_first))
+   if (!create_bin_cls(rs, &tile_cfg))
       return false;
 
    // create the render control lists
@@ -1031,8 +1049,7 @@ void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
    log_trace_rs(rs, __FUNCTION__);
 
    // we we had any draw commands
-   uint8_t *draw_clist_ptr = rs->fmem.cle_first;
-   if (draw_clist_ptr != NULL)
+   if (rs->clist_start)
    {
 #if V3D_VER_AT_LEAST(4,0,2,0)
       /* write prim counts feedback if we have any prim_gen or prim_written
@@ -1058,10 +1075,9 @@ void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
          goto quit;
       v3d_cl_return(&instr);
       khrn_fmem_end_cle_exact(&rs->fmem, instr);
-   }
 
-   // end the current control list
-   khrn_fmem_end_clist(&rs->fmem);
+      khrn_fmem_end_clist(&rs->fmem);
+   }
 
    if (!create_cls_and_flush(rs))
       goto quit;

@@ -86,7 +86,7 @@ static void print_node(FILE *f, Backflow *backflow)
 #else
             case V3D_QPU_SIG_LDVPM:  fprintf(f, "vpm");     break;
 #endif
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
             case V3D_QPU_SIG_LDUNIFRF:  fprintf(f, "ldunifrf");  break;
             case V3D_QPU_SIG_LDUNIFA:   fprintf(f, "ldunifa");   break;
             case V3D_QPU_SIG_LDUNIFARF: fprintf(f, "ldunifarf"); break;
@@ -265,23 +265,29 @@ static void print_node(FILE *f, Backflow *backflow)
 
    switch (backflow->unif_type) {
       case BACKEND_UNIFORM_UNASSIGNED: break;
-      case BACKEND_UNIFORM_PLAIN:          fprintf(f, "\\nu%d", backflow->unif);   break;
-      case BACKEND_UNIFORM_LITERAL:        fprintf(f, "\\n0x%x", backflow->unif);  break;
-      case BACKEND_UNIFORM_ADDRESS:        fprintf(f, "\\na[%d]", 4 * (backflow->unif & 0xffff) + (backflow->unif >> 16));      break;
-      case BACKEND_UNIFORM_UBO_ADDRESS:    fprintf(f, "\\nubo: %d, o: %d", backflow->unif & 0x1f, backflow->unif >> 5);       break;
-      case BACKEND_UNIFORM_SSBO_ADDRESS:   fprintf(f, "\\nssbo: %d, o: %d", backflow->unif & 0x1f, backflow->unif >> 5);      break;
-      case BACKEND_UNIFORM_ATOMIC_ADDRESS: fprintf(f, "\\natomic: %d, o: %d", backflow->unif >> 16, backflow->unif & 0xffff); break;
-      case BACKEND_UNIFORM_SSBO_SIZE:      fprintf(f, "\\nssbo size: %d", backflow->unif); break;
-      case BACKEND_UNIFORM_UBO_SIZE:       fprintf(f, "\\nubo size: %d", backflow->unif); break;
-      case BACKEND_UNIFORM_TEX_PARAM0:     fprintf(f, "\\ntex_parm 0: %d", backflow->unif); break;
-      case BACKEND_UNIFORM_TEX_PARAM1:     fprintf(f, "\\ntex_parm 1: %d", backflow->unif); break;
-      case BACKEND_UNIFORM_TEX_SIZE_X:     fprintf(f, "\\ntex_size z: %d", backflow->unif); break;
-      case BACKEND_UNIFORM_TEX_SIZE_Y:     fprintf(f, "\\ntex_size y: %d", backflow->unif); break;
-      case BACKEND_UNIFORM_TEX_SIZE_Z:     fprintf(f, "\\ntex_size z: %d", backflow->unif); break;
-      case BACKEND_UNIFORM_TEX_LEVELS:     fprintf(f, "\\ntex_levels: %d", backflow->unif); break;
-      case BACKEND_UNIFORM_IMG_PARAM0:     fprintf(f, "\\nimg_parm 0: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_PLAIN:            fprintf(f, "\\nu%d", backflow->unif);   break;
+      case BACKEND_UNIFORM_LITERAL:          fprintf(f, "\\n0x%x", backflow->unif);  break;
+      case BACKEND_UNIFORM_ADDRESS:          fprintf(f, "\\na[%d]", 4 * (backflow->unif & 0xffff) + (backflow->unif >> 16));      break;
+      case BACKEND_UNIFORM_UBO_ADDRESS:      fprintf(f, "\\nubo: %d, o: %d", backflow->unif & 0x1f, backflow->unif >> 5);       break;
+      case BACKEND_UNIFORM_SSBO_ADDRESS:     fprintf(f, "\\nssbo: %d, o: %d", backflow->unif & 0x1f, backflow->unif >> 5);      break;
+      case BACKEND_UNIFORM_ATOMIC_ADDRESS:   fprintf(f, "\\natomic: %d, o: %d", backflow->unif >> 16, backflow->unif & 0xffff); break;
+      case BACKEND_UNIFORM_SSBO_SIZE:        fprintf(f, "\\nssbo size: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_SSBO_ARRAY_LENGTH:fprintf(f, "\\nssbo array length: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_UBO_SIZE:         fprintf(f, "\\nubo size: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_UBO_ARRAY_LENGTH: fprintf(f, "\\nubo array length: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_PARAM0:       fprintf(f, "\\ntex_parm 0: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_PARAM1:       fprintf(f, "\\ntex_parm 1: %d", backflow->unif); break;
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      case BACKEND_UNIFORM_TEX_PARAM1_UNNORMS:
+                                             fprintf(f, "\\ntex_parm 1 unnorm array: %d", backflow->unif); break;
+#endif
+      case BACKEND_UNIFORM_TEX_SIZE_X:       fprintf(f, "\\ntex_size z: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_SIZE_Y:       fprintf(f, "\\ntex_size y: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_SIZE_Z:       fprintf(f, "\\ntex_size z: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_LEVELS:       fprintf(f, "\\ntex_levels: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_IMG_PARAM0:       fprintf(f, "\\nimg_parm 0: %d", backflow->unif); break;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-      case BACKEND_UNIFORM_IMG_PARAM1:     fprintf(f, "\\nimg_parm 1: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_IMG_PARAM1:       fprintf(f, "\\nimg_parm 1: %d", backflow->unif); break;
       case BACKEND_UNIFORM_TEX_BASE_LEVEL:
       case BACKEND_UNIFORM_TEX_BASE_LEVEL_FLOAT:
       case BACKEND_UNIFORM_IMAGE_ARR_STRIDE:
@@ -290,10 +296,6 @@ static void print_node(FILE *f, Backflow *backflow)
       case BACKEND_UNIFORM_IMAGE_LX_ADDR:
       case BACKEND_UNIFORM_IMAGE_LX_PITCH:
       case BACKEND_UNIFORM_IMAGE_LX_SLICE_PITCH:
-#endif
-#if !V3D_HAS_LARGE_1D_TEXTURE
-      case BACKEND_UNIFORM_TEXBUFFER_LOG2_ARR_ELEM_W:
-      case BACKEND_UNIFORM_TEXBUFFER_ARR_ELEM_W_MINUS_1:
 #endif
       case BACKEND_UNIFORM_IMG_SIZE_X:
       case BACKEND_UNIFORM_IMG_SIZE_Y:

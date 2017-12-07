@@ -41,8 +41,7 @@
 #include "bvdc_mcvp_priv.h"
 #include "bvdc_compositor_priv.h"
 #include "bvdc_memconfig_priv.h"
-
-
+#include "bvdc_common_priv.h"
 #include "bvdc_mcdi_priv.h"
 
 BDBG_MODULE(BVDC_MEMCONFIG);
@@ -62,7 +61,7 @@ static const bool abStg[BVDC_MAX_DISPLAYS] =
     (BCHP_CHIP==7228)  || (BCHP_CHIP==75635) || (BCHP_CHIP==73625) || \
     (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==11360) || \
     (BCHP_CHIP==7271)  || (BCHP_CHIP==73465) || (BCHP_CHIP==7268)  || \
-    (BCHP_CHIP==7260)
+    (BCHP_CHIP==7260)  || (BCHP_CHIP==7255)
     /* stg not supported */
     /*  Disp0    Disp1    Disp2    Disp3    disp4   disp5   disp6 */
             0,       0,       0,       0,       0,      0,       0
@@ -224,7 +223,8 @@ static const uint32_t aaulMemcIndex[BVDC_MAX_DISPLAYS][BVDC_MAX_VIDEO_WINDOWS] =
        (BCHP_CHIP==7364)  || (BCHP_CHIP==7228)  || (BCHP_CHIP==7250)  || \
        (BCHP_CHIP==75635) || (BCHP_CHIP==7586)  || (BCHP_CHIP==73625) || \
        (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==7271)  || \
-       (BCHP_CHIP==73465) || (BCHP_CHIP==7268)  || (BCHP_CHIP==7260))
+       (BCHP_CHIP==73465) || (BCHP_CHIP==7268)  || (BCHP_CHIP==7260)  || \
+       (BCHP_CHIP==7255))
     { BBOX_MemcIndex_0,       BBOX_MemcIndex_0 },
     { BBOX_MemcIndex_0,       BBOX_MemcIndex_0 },
     { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
@@ -300,6 +300,87 @@ BERR_Code BVDC_P_MemConfig_GetDefaultDisplaySettings
 /***************************************************************************
  *
  */
+void BVDC_P_MemConfig_GetDefaultDeinterlacerSettings
+    ( BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,
+      uint32_t                            ulDispIndex,
+      uint32_t                            ulWinIndex,
+      BVDC_WinMemConfigSettings          *pWindow,
+      bool                                bSd )
+{
+    BDBG_ASSERT(pSystemConfigInfo);
+    BDBG_ASSERT(pWindow);
+
+    if(pSystemConfigInfo->ulNumMadUsed < pSystemConfigInfo->ulNumMad)
+    {
+        const BVDC_P_ResourceFeature *pResourceFeature;
+        uint32_t ulDispMappedId;
+        BVDC_P_WindowId eWinId;
+        bool bAddToMadCount;
+
+        /* Map the display index and window index to the appropriate BVDC_P_WindowId. */
+        if (ulDispIndex < BVDC_DisplayId_eDisplay2)
+        {
+            ulDispMappedId = (ulDispIndex * BVDC_DisplayId_eDisplay2);
+        }
+        else
+        {
+            BDBG_ASSERT(ulWinIndex == 0);
+            ulDispMappedId = ulDispIndex + BVDC_DisplayId_eDisplay2;
+        }
+
+        eWinId = ulDispMappedId + ulWinIndex;
+
+        /* Only pertains to video windows */
+        BDBG_ASSERT(eWinId <= BVDC_P_WindowId_eComp6_V0);
+
+        pResourceFeature = BVDC_P_Window_GetResourceFeature_isrsafe(eWinId);
+
+        if (!bSd)
+        {
+            pWindow->eDeinterlacerMode =
+                (pResourceFeature->ulMad != BVDC_P_Able_eInvalid && pResourceFeature->ulMad != BVDC_P_Able_eSd) ?
+                 BVDC_DeinterlacerMode_eBestQuality : BVDC_DeinterlacerMode_eNone;
+                bAddToMadCount = true;
+        }
+        else
+        {
+            if (pResourceFeature->ulMad == BVDC_P_Able_eSd)
+            {
+                pWindow->eDeinterlacerMode = BVDC_DeinterlacerMode_eBestQuality;
+                bAddToMadCount = true;
+            }
+            else
+            {
+                bAddToMadCount = false;
+            }
+        }
+
+        if (bAddToMadCount)
+        {
+            if (pResourceFeature->ulMad >= (BVDC_P_Able_eHd | BVDC_P_Able_eMadr0) && pResourceFeature->ulMad <= (BVDC_P_Able_eHd | BVDC_P_Able_eMadr5))
+            {
+                pSystemConfigInfo->ulNumMadrUsed += BVDC_P_MEMCONFIG_DEINTERLACER_ON(pWindow->eDeinterlacerMode);
+            }
+
+            pSystemConfigInfo->ulNumMadUsed +=
+                    BVDC_P_MEMCONFIG_DEINTERLACER_ON(pWindow->eDeinterlacerMode);
+        }
+
+    }
+    else
+    {
+        pWindow->eDeinterlacerMode = BVDC_DeinterlacerMode_eNone;
+    }
+
+    pWindow->ulMadMemcIndex =
+        BVDC_P_MEMCONFIG_DEINTERLACER_ON(pWindow->eDeinterlacerMode)
+        ? pWindow->ulMemcIndex : BBOX_MemcIndex_Invalid;
+
+}
+
+/***************************************************************************
+ *
+ */
 BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
     ( BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,
       uint32_t                            ulDispIndex,
@@ -349,9 +430,7 @@ BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
 
     /* TODO: table for nrt_stg? */
     BVDC_P_Window_Rts_Init(
-#if BVDC_P_SUPPORT_XCODE_WIN_CAP
         bStg, false,
-#endif
         &bForceCapture, &eSclCapBias, NULL);
 
     pWindow->bSmoothScaling = (eSclCapBias != BVDC_SclCapBias_eAuto)
@@ -375,26 +454,7 @@ BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
             pWindow->bSyncSlip = !bStg;
     }
 
-    if(pSystemConfigInfo->ulNumMadUsed < pSystemConfigInfo->ulNumMad)
-    {
-        const BVDC_P_ResourceFeature *pResourceFeature;
-        pResourceFeature = BVDC_P_Window_GetResourceFeature_isrsafe(ulWinIndex);
-
-        pWindow->eDeinterlacerMode =
-            (pResourceFeature->ulMad != BVDC_P_Able_eInvalid)
-            ? BVDC_DeinterlacerMode_eBestQuality : BVDC_DeinterlacerMode_eNone;
-
-        pSystemConfigInfo->ulNumMadUsed +=
-            BVDC_P_MEMCONFIG_DEINTERLACER_ON(pWindow->eDeinterlacerMode);
-    }
-    else
-    {
-        pWindow->eDeinterlacerMode = BVDC_DeinterlacerMode_eNone;
-    }
-
-    pWindow->ulMadMemcIndex =
-        BVDC_P_MEMCONFIG_DEINTERLACER_ON(pWindow->eDeinterlacerMode)
-        ? pWindow->ulMemcIndex : BBOX_MemcIndex_Invalid;
+    BVDC_P_MemConfig_GetDefaultDeinterlacerSettings(pSystemConfigInfo, ulDispIndex, ulWinIndex, pWindow, false);
 
     pWindow->ulAdditionalBufCnt = 0;
     pWindow->bLipsync = ((ulDispIndex < 2) && (ulWinIndex == 0));
@@ -478,6 +538,7 @@ BERR_Code BVDC_P_MemConfig_Validate
     uint32_t   ulNumCmp = 0, ulNumMad = 0;
     uint32_t   ulMemcIndex = BBOX_MemcIndex_Invalid;
     const BFMT_VideoInfo  *pSrcFmtInfo, *pDispFmtInfo;
+    uint32_t ulNumWindowsWithMad = 0;
 
     BDBG_ASSERT(pMemConfigSettings);
     BDBG_ASSERT(pSystemConfigInfo);
@@ -539,15 +600,27 @@ BERR_Code BVDC_P_MemConfig_Validate
                     pWindow->bIndependentCropping, pWindow->b5060Convert,
                     pWindow->bSlave_24_25_30_Display, pWindow->ulAdditionalBufCnt));
 
+                /* Keep track of number of deinterlacers used. If this  exceeds the total number of available
+                   deinterlacers, it means that there are shared deinerlacers. As such only allocate memory
+                   for the total number of available deinterlacers only. This prevents over-allocation of
+                   memory. */
+                if (pWindow->eDeinterlacerMode != BVDC_DeinterlacerMode_eNone)
+                {
+                    ulNumWindowsWithMad++;
+                }
             }
             else
             {
                 BDBG_MSG(("    Win[%d]: Used(%d)", ulWinIndex, pWindow->bUsed));
             }
 
-            /* Skip if window is not used */
-            if(pWindow->bUsed && BVDC_P_MEMCONFIG_DEINTERLACER_ON(pWindow->eDeinterlacerMode))
+            /* Skip if window is not used and if max number of deinterlacers is reached. */
+            if(pWindow->bUsed &&
+                BVDC_P_MEMCONFIG_DEINTERLACER_ON(pWindow->eDeinterlacerMode) &&
+                (ulNumWindowsWithMad <= pSystemConfigInfo->ulNumMad))
+            {
                 ulNumMad++;
+            }
         }
     }
 
@@ -700,7 +773,7 @@ static BERR_Code BVDC_P_MemConfig_GetWindowCapBufCnt
 
     if(pWinConfigInfo->b5060Convert && !pWinConfigInfo->bSyncLock)
     {
-#if BVDC_ENABLE_50HZ_60HZ_FRAME_CAPTURE
+#if BVDC_ENABLE_50HZ_60HZ_FRAME_CAPTURE || BVDC_ENABLE_60HZ_50HZ_FRAME_CAPTURE
         bFrameCapture = true;
 #endif
         ulCapBufCnt += 1;

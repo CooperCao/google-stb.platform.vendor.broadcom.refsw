@@ -53,9 +53,7 @@
 #include "bstd.h"
 #include "bstd_defs.h"
 
-
-/* Workaround for the missing inttypes.h */
-#define PRIx64      "llx"
+#include "DSP_raaga_inttypes.h"
 
 
 

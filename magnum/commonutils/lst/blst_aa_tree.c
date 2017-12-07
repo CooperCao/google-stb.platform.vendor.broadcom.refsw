@@ -1,23 +1,43 @@
 /***************************************************************************
- *     Copyright (c) 2007 Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * Interface for AA tree, type of binary search tree
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -31,7 +51,7 @@ BDBG_MODULE(blst_aa_tree);
 
 
 void 
-BLST_AAT_P_Init(struct BLST_AA_Tree_Head *tree)
+BLST_AAT_P_Init_isrsafe(struct BLST_AA_Tree_Head *tree)
 {
 	tree->aat_root.aa_node.aan_level = 0;
 	tree->aat_root.aa_node.aan_left = B_AA_LAST_NODE(tree);
@@ -42,7 +62,7 @@ BLST_AAT_P_Init(struct BLST_AA_Tree_Head *tree)
 
 
 struct BLST_AA_Tree_Node *
-BLST_AAT_P_First(const struct BLST_AA_Tree_Head *tree, unsigned off) 
+BLST_AAT_P_First_isrsafe(const struct BLST_AA_Tree_Head *tree, unsigned off)
 {
 	struct BLST_AA_Tree_Node *root = tree->aat_root.aa_node.aan_left;
 	struct BLST_AA_Tree_Node *parent = NULL;
@@ -58,7 +78,7 @@ BLST_AAT_P_First(const struct BLST_AA_Tree_Head *tree, unsigned off)
 }
 
 struct BLST_AA_Tree_Node *
-BLST_AAT_P_Last(const struct BLST_AA_Tree_Head *tree, unsigned off) 
+BLST_AAT_P_Last_isrsafe(const struct BLST_AA_Tree_Head *tree, unsigned off)
 {
 	struct BLST_AA_Tree_Node *root = tree->aat_root.aa_node.aan_left;
 	struct BLST_AA_Tree_Node *parent = NULL;
@@ -74,7 +94,7 @@ BLST_AAT_P_Last(const struct BLST_AA_Tree_Head *tree, unsigned off)
 }
 
 struct BLST_AA_Tree_Node *
-BLST_AAT_P_Next(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, unsigned off)
+BLST_AAT_P_Next_isrsafe(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, unsigned off)
 {
 	struct BLST_AA_Tree_Node *next;
 	node = BLST_AA_TREE_P_NODE(node, off);
@@ -98,7 +118,7 @@ BLST_AAT_P_Next(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, 
 }
 
 struct BLST_AA_Tree_Node *
-BLST_AAT_P_Prev(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, unsigned off)
+BLST_AAT_P_Prev_isrsafe(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, unsigned off)
 {
 	struct BLST_AA_Tree_Node *prev;
 
@@ -123,7 +143,7 @@ BLST_AAT_P_Prev(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, 
 }
 
 static void 
-BLST_AAT_P_Skew(struct BLST_AA_Tree_Node *parent)
+BLST_AAT_P_Skew_isrsafe(struct BLST_AA_Tree_Node *parent)
 {
 	struct BLST_AA_Tree_Node *new_parent = parent->aa_node.aan_left;
 
@@ -147,7 +167,7 @@ BLST_AAT_P_Skew(struct BLST_AA_Tree_Node *parent)
 }
 
 static bool 
-baat_split(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *parent)
+BLST_AAT_P_Split_isrsafe(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *parent)
 {
 	struct BLST_AA_Tree_Node *new_parent = parent->aa_node.aan_right;
 
@@ -171,7 +191,7 @@ baat_split(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *parent)
 
 
 void 
-BLST_AAT_P_Insert_Node(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *new_node, struct BLST_AA_Tree_Node *parent, int cmp)
+BLST_AAT_P_Insert_Node_isrsafe(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *new_node, struct BLST_AA_Tree_Node *parent, int cmp)
 {
 	struct BLST_AA_Tree_Node *node;
 
@@ -186,19 +206,19 @@ BLST_AAT_P_Insert_Node(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node 
 	new_node->aa_node.aan_parent = parent;
 	for(node=parent; node!= B_AA_ROOT_NODE(tree) ; node = node->aa_node.aan_parent) {
 		if(node->aa_node.aan_level != B_AA_NODE_LEVEL(node->aa_node.aan_left) + 1) {
-			BLST_AAT_P_Skew(node);
+			BLST_AAT_P_Skew_isrsafe(node);
 			if( (node->aa_node.aan_level != node->aa_node.aan_right->aa_node.aan_level)) {
 				node = node->aa_node.aan_parent;
 			}
 		}
-		if(!baat_split(tree, node->aa_node.aan_parent)) {
+		if(!BLST_AAT_P_Split_isrsafe(tree, node->aa_node.aan_parent)) {
 			break;
 		}
 	}
 }
 
 void 
-BLST_AAT_P_Remove(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node)
+BLST_AAT_P_Remove_isrsafe(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node)
 {
 	 struct BLST_AA_Tree_Node *leaf;
 	 struct BLST_AA_Tree_Node *parent;
@@ -237,9 +257,9 @@ BLST_AAT_P_Remove(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node
 	 while(parent!=B_AA_ROOT_NODE(tree)) {
 		 if(parent->aa_node.aan_level > B_AA_NODE_LEVEL(parent->aa_node.aan_left)+1) {
 			 parent->aa_node.aan_level--;
-			 if(baat_split(tree, parent)) {
-				 if(baat_split(tree, parent)) {
-					 BLST_AAT_P_Skew(parent->aa_node.aan_parent->aa_node.aan_parent);
+			 if(BLST_AAT_P_Split_isrsafe(tree, parent)) {
+				 if(BLST_AAT_P_Split_isrsafe(tree, parent)) {
+					 BLST_AAT_P_Skew_isrsafe(parent->aa_node.aan_parent->aa_node.aan_parent);
 					 break;
 				 }
 			 }
@@ -247,10 +267,10 @@ BLST_AAT_P_Remove(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node
 		 } else if(parent->aa_node.aan_level <= B_AA_NODE_LEVEL(parent->aa_node.aan_right)+1) {
 			 break;
 		 } else {
-			 BLST_AAT_P_Skew(parent);
+			 BLST_AAT_P_Skew_isrsafe(parent);
 			 if(parent->aa_node.aan_level > parent->aa_node.aan_parent->aa_node.aan_level) {
-				 BLST_AAT_P_Skew(parent);
-				 baat_split(tree, parent->aa_node.aan_parent->aa_node.aan_parent);
+				 BLST_AAT_P_Skew_isrsafe(parent);
+				 BLST_AAT_P_Split_isrsafe(tree, parent->aa_node.aan_parent->aa_node.aan_parent);
 				 break;
 			 }
 			 parent = parent->aa_node.aan_parent->aa_node.aan_parent;

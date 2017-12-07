@@ -111,7 +111,7 @@ DrmRC DrmAssertParam(
 
     if(value >= max)
     {
-        BDBG_ERR(("%s - Invalid '%s' value detected. '%u' exceeds enum limit of '%u'", __FUNCTION__, param_string, value, max));
+        BDBG_ERR(("%s - Invalid '%s' value detected. '%u' exceeds enum limit of '%u'", BSTD_FUNCTION, param_string, value, max));
         rc = Drm_InvalidParameter;
     }
 
@@ -166,7 +166,7 @@ DrmRC DRM_Common_CloseHandle(void)
     DrmRC drmRc = DRM_Common_GetHandle(&drmHnd);
     if (Drm_Success == drmRc)
     {
-        BDBG_MSG(("%s - Closing handles", __FUNCTION__));
+        BDBG_MSG(("%s - Closing handles", BSTD_FUNCTION));
         CommonCrypto_Close(drmHnd->cryptHnd);
         drmHnd->cryptHnd = NULL;
         BKNI_Free(drmHnd);
@@ -201,12 +201,12 @@ DrmRC DRM_Common_Initialize(
 {
     DrmRC rc = Drm_Success;
 
-    BDBG_MSG(("%s - Entered function (init = '%d')", __FUNCTION__, DrmCommon_InitCounter));
+    BDBG_MSG(("%s - Entered function (init = '%d')", BSTD_FUNCTION, DrmCommon_InitCounter));
 
     rc = DRM_Common_BasicInitialize(pCommonDrmSettings);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error calling 'DRM_Common_BasicInitialize'", __FUNCTION__));
+        BDBG_ERR(("%s - Error calling 'DRM_Common_BasicInitialize'", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -216,11 +216,11 @@ DrmRC DRM_Common_Initialize(
         DRM_KeyRegion_SetCustDrmFilePath(key_file);
     }
 
-    BDBG_MSG(("%s - Calling 'DRM_KeyRegion_Init' ...", __FUNCTION__));
+    BDBG_MSG(("%s - Calling 'DRM_KeyRegion_Init' ...", BSTD_FUNCTION));
     rc = DRM_KeyRegion_Init();
 
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function (init = '%d')", __FUNCTION__, DrmCommon_InitCounter));
+    BDBG_MSG(("%s - Exiting function (init = '%d')", BSTD_FUNCTION, DrmCommon_InitCounter));
     return rc;
 }
 
@@ -249,8 +249,8 @@ DrmRC DRM_Common_BasicInitialize(
 
     NEXUS_Memory_GetDefaultAllocationSettings(&memorySettings);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
-    BDBG_WRN(("%s - ******* Initializing Common DRM core (%s) *******", __FUNCTION__, COMMON_DRM_VERSION));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
+    BDBG_WRN(("%s - ******* Initializing Common DRM core (%s) *******", BSTD_FUNCTION, COMMON_DRM_VERSION));
 
     if (drmCommonMutex != 0 || (bErr = BKNI_CreateMutex(&drmCommonMutex)) == BERR_SUCCESS)
     {
@@ -265,10 +265,10 @@ DrmRC DRM_Common_BasicInitialize(
                 eCode = BCRYPT_Open(&g_bcrypt_handle);
                 if(eCode == BCRYPT_STATUS_eOK)
                 {
-                    BDBG_MSG(("%s - Opened BCRYPT, g_bcrypt_handle = '0x%08x' ^^^^^^^^^^^^^^^^^^^^^^^", __FUNCTION__, g_bcrypt_handle));
+                    BDBG_MSG(("%s - Opened BCRYPT, g_bcrypt_handle = '0x%08x' ^^^^^^^^^^^^^^^^^^^^^^^", BSTD_FUNCTION, g_bcrypt_handle));
                 }
                 else {
-                    BDBG_ERR(("%s - Failed to open BCRYPT, rc = '%d' ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__, eCode));
+                    BDBG_ERR(("%s - Failed to open BCRYPT, rc = '%d' ^^^^^^^^^^^^^^^^^^^^^^^\n", BSTD_FUNCTION, eCode));
                     g_bcrypt_handle = 0; /* BSTS cleanup */
                     rc = Drm_BcryptErr;
                     goto ErrorExit;
@@ -285,13 +285,13 @@ DrmRC DRM_Common_BasicInitialize(
             }
         }
         else {
-            BDBG_MSG(("In %s - DRM_Common_AcquireHandle failed", __FUNCTION__));
+            BDBG_MSG(("In %s - DRM_Common_AcquireHandle failed", BSTD_FUNCTION));
             rc = Drm_InitErr;
         }
         BKNI_ReleaseMutex(drmCommonMutex);
     }
     else {
-        BDBG_ERR(("%s - Failed to create mutex, error: %d", __FUNCTION__, bErr));
+        BDBG_ERR(("%s - Failed to create mutex, error: %d", BSTD_FUNCTION, bErr));
         rc = Drm_InitErr;
         goto ErrorExit;
     }
@@ -299,13 +299,13 @@ DrmRC DRM_Common_BasicInitialize(
 
     if(pCommonSettings->heap == NULL)
     {
-        BDBG_MSG(("%s - Using default heap", __FUNCTION__));
+        BDBG_MSG(("%s - Using default heap", BSTD_FUNCTION));
         memorySettings.heap = NULL;
         bUseExternalHeap = false;
     }
     else
     {
-        BDBG_MSG(("%s - Using heap handle specified (0x%08x)", __FUNCTION__, pCommonSettings->heap));
+        BDBG_MSG(("%s - Using heap handle specified (0x%08x)", BSTD_FUNCTION, pCommonSettings->heap));
         memorySettings.heap = pCommonSettings->heap;
         bUseExternalHeap = true;
     }
@@ -313,9 +313,9 @@ DrmRC DRM_Common_BasicInitialize(
     rc = DRM_Common_P_DetermineAskmMode();
 
     DrmCommon_InitCounter++;
-    BDBG_MSG(("%s - incrementing drm common init counter to (0x%08x)", __FUNCTION__, DrmCommon_InitCounter));
+    BDBG_MSG(("%s - incrementing drm common init counter to (0x%08x)", BSTD_FUNCTION, DrmCommon_InitCounter));
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
 
@@ -326,12 +326,12 @@ DrmRC DRM_Common_Finalize()
     DrmRC rc = Drm_Success;
     int i = 0;
 
-    BDBG_MSG(("%s - Entered function (init = '%d')", __FUNCTION__, DrmCommon_InitCounter));
+    BDBG_MSG(("%s - Entered function (init = '%d')", BSTD_FUNCTION, DrmCommon_InitCounter));
 
     /* sanity check */
     if(DrmCommon_InitCounter <= 0)
     {
-        BDBG_MSG(("%s - DrmCommon_InitCounter value is invalid ('%d').  Possible bad thread exit or PMC finalize", __FUNCTION__, DrmCommon_InitCounter));
+        BDBG_MSG(("%s - DrmCommon_InitCounter value is invalid ('%d').  Possible bad thread exit or PMC finalize", BSTD_FUNCTION, DrmCommon_InitCounter));
         return Drm_InvalidParameter;
     }
 
@@ -339,7 +339,7 @@ DrmRC DRM_Common_Finalize()
      * Otherwise skip the clean up and decrement the counter */
     if(DrmCommon_InitCounter == 1)
     {
-        BDBG_MSG(("%s - Cleaning up Common DRM parameters ***************************", __FUNCTION__));
+        BDBG_MSG(("%s - Cleaning up Common DRM parameters ***************************", BSTD_FUNCTION));
 
         if (drmCommonMutex)
             BKNI_AcquireMutex(drmCommonMutex);
@@ -358,12 +358,12 @@ DrmRC DRM_Common_Finalize()
 
         rc = DRM_KeyRegion_UnInit();
         if(rc != Drm_Success){
-            BDBG_ERR(("%s - Error uninitializing keyregion", __FUNCTION__));
+            BDBG_ERR(("%s - Error uninitializing keyregion", BSTD_FUNCTION));
         }
 
         rc = DRM_Common_CloseHandle();
         if(rc != Drm_Success){
-            BDBG_ERR(("%s - Error closing handle", __FUNCTION__));
+            BDBG_ERR(("%s - Error closing handle", BSTD_FUNCTION));
         }
 
         if (drmCommonMutex) {
@@ -374,7 +374,7 @@ DrmRC DRM_Common_Finalize()
     }
 
     DrmCommon_InitCounter--;
-    BDBG_MSG(("%s - Exiting function (init = '%d')", __FUNCTION__, DrmCommon_InitCounter));
+    BDBG_MSG(("%s - Exiting function (init = '%d')", BSTD_FUNCTION, DrmCommon_InitCounter));
 
     return rc;
 }
@@ -389,7 +389,7 @@ DrmRC DRM_Common_AllocKeySlot(NEXUS_SecurityEngine securityEngine,
     /*          Allocate and configure keyslot                                */
     /**************************************************************************/
     /*void*/
-    BDBG_MSG(("In function %s", __FUNCTION__));
+    BDBG_MSG(("In function %s", BSTD_FUNCTION));
     NEXUS_Security_GetDefaultKeySlotSettings(&keySettings);
     keySettings.keySlotEngine = securityEngine; /* NEXUS_SecurityEngine_eM2m,
                                                     NEXUS_SecurityEngine_eCa */
@@ -410,21 +410,21 @@ void DRM_Common_FreeKeySlot(NEXUS_KeySlotHandle keySlotHandle)
 
 void DRM_Common_GetDefaultStructSettings(DrmCommonOperationStruct_t *pDrmCommonOpStruct)
 {
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
     BDBG_ASSERT(pDrmCommonOpStruct != NULL);
 
     BKNI_Memset((uint8_t *)pDrmCommonOpStruct, 0x00, sizeof(DrmCommonOperationStruct_t) );
 
     CommonCrypto_GetDefaultKeyConfigSettings(&pDrmCommonOpStruct->keyConfigSettings);
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return;
 }
 
 
 DrmRC DRM_Common_OperationDma(DrmCommonOperationStruct_t *pDrmCommonOpStruct)
 {
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
     DrmRC drmRc = DRM_Common_AllocKeySlot(NEXUS_SecurityEngine_eM2m,
                                           &pDrmCommonOpStruct->keyConfigSettings.keySlot);
     if (drmRc == Drm_Success)
@@ -434,21 +434,21 @@ DrmRC DRM_Common_OperationDma(DrmCommonOperationStruct_t *pDrmCommonOpStruct)
         {
             drmRc = DRM_Common_M2mOperation(pDrmCommonOpStruct);
         }
-        BDBG_MSG(("%s - Freeing keyslot", __FUNCTION__));
+        BDBG_MSG(("%s - Freeing keyslot", BSTD_FUNCTION));
         NEXUS_Security_FreeKeySlot(pDrmCommonOpStruct->keyConfigSettings.keySlot);
     }
     else {
-        BDBG_ERR(("%s - Allocate keySlot failed ", __FUNCTION__));
+        BDBG_ERR(("%s - Allocate keySlot failed ", BSTD_FUNCTION));
         drmRc = Drm_MemErr;
     }
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return drmRc;
 }
 
 
 DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct)
 {
-    BDBG_MSG(("In function %s", __FUNCTION__));
+    BDBG_MSG(("In function %s", BSTD_FUNCTION));
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
     DRM_Common_Handle drmHnd;
@@ -459,7 +459,7 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
 
 
 #if (COMMON_CRYPTO_ZEUS_VERSION == 42)
-        BDBG_MSG(("%s:COMMON_CRYPTO_ZEUS_VERSION  = %d",__FUNCTION__,COMMON_CRYPTO_ZEUS_VERSION  ));
+        BDBG_MSG(("%s:COMMON_CRYPTO_ZEUS_VERSION  = %d",BSTD_FUNCTION,COMMON_CRYPTO_ZEUS_VERSION  ));
         if((pDrmCommonOpStruct->keyIvSettings.ivSize != 0)&&(pDrmCommonOpStruct->keyIvSettings.keySize==0))
         {
              pDrmCommonOpStruct->byPassKeyConfig= true;
@@ -476,7 +476,7 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
         }
         else
         {
-            BDBG_MSG(("%s:Skipping Key config",__FUNCTION__));
+            BDBG_MSG(("%s:Skipping Key config",BSTD_FUNCTION));
         }
 
         /* Config the keyslot */
@@ -490,7 +490,7 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
                 /* Set default values */
                 CommonCrypto_GetDefaultCipheredKeySettings(&cipheredKeySettings);
 
-                BDBG_MSG(("%s - Configuring/loading HW based key pKeySlot = %p", __FUNCTION__, pDrmCommonOpStruct->keyConfigSettings.keySlot));
+                BDBG_MSG(("%s - Configuring/loading HW based key pKeySlot = %p", BSTD_FUNCTION, pDrmCommonOpStruct->keyConfigSettings.keySlot));
 
                 cipheredKeySettings.keySlot = pDrmCommonOpStruct->keyConfigSettings.keySlot;
                 cipheredKeySettings.keySlotType = pDrmCommonOpStruct->keyConfigSettings.settings.keySlotType;
@@ -498,7 +498,7 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
                 {
                    if(askmMode == 0x03 || askmMode == 0x02 || askmMode == 0x00)
                    {
-                       BDBG_MSG(("case 1--%s - ASKM mode is 0x%02x*******************************", __FUNCTION__,askmMode));
+                       BDBG_MSG(("case 1--%s - ASKM mode is 0x%02x*******************************", BSTD_FUNCTION,askmMode));
                        pDrmCommonOpStruct->pKeyLadderInfo->askmSupport = false;
                        cipheredKeySettings.settings.askmSupport = false;
                        cipheredKeySettings.keySrc = pDrmCommonOpStruct->keySrc;
@@ -506,7 +506,7 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
                    }
                    else if(askmMode == 0x01)
                    {
-                       BDBG_MSG(("case 2--%s - ASKM mode is 0x%02x *******************************", __FUNCTION__,askmMode));
+                       BDBG_MSG(("case 2--%s - ASKM mode is 0x%02x *******************************", BSTD_FUNCTION,askmMode));
                        cipheredKeySettings.settings.askmSupport = true;
                        pDrmCommonOpStruct->pKeyLadderInfo->askmSupport = true;
                        cipheredKeySettings.settings.swizzleType   =  NEXUS_SecuritySwizzleType_eNone;
@@ -514,18 +514,18 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
                    }
                 } else if (pDrmCommonOpStruct->keySrc == CommonCrypto_eCustKey)
                 {
-                       BDBG_MSG(("case 3--%s - ASKM mode is 0x%02x *******************************", __FUNCTION__,askmMode));
+                       BDBG_MSG(("case 3--%s - ASKM mode is 0x%02x *******************************", BSTD_FUNCTION,askmMode));
                        cipheredKeySettings.keySrc = CommonCrypto_eCustKey;
                        cipheredKeySettings.settings.swizzleType   =  NEXUS_SecuritySwizzleType_eSwizzle0;
                 } else
                 {
-                       BDBG_ERR(("case 4--%s - invalid parameters *******************************", __FUNCTION__));
+                       BDBG_ERR(("case 4--%s - invalid parameters *******************************", BSTD_FUNCTION));
                        rc = Drm_CryptoConfigErr;
                 }
                 /* check if caller wants to override keyladder operations (default should be false) */
                 if(pDrmCommonOpStruct->pKeyLadderInfo->overwriteKeyLadderOperation == true)
                 {
-                    BDBG_MSG(("%s - OVERRIDING KEY LADDER OPERATION VALUES *******************************", __FUNCTION__));
+                    BDBG_MSG(("%s - OVERRIDING KEY LADDER OPERATION VALUES *******************************", BSTD_FUNCTION));
                     cipheredKeySettings.settings.KeyLadderOpStruct.SessionKeyOperation = pDrmCommonOpStruct->pKeyLadderInfo->KeyLadderOpStruct.SessionKeyOperation;
                     cipheredKeySettings.settings.KeyLadderOpStruct.SessionKeyOperationKey2 = pDrmCommonOpStruct->pKeyLadderInfo->KeyLadderOpStruct.SessionKeyOperationKey2;
                     cipheredKeySettings.settings.KeyLadderOpStruct.ControlWordKeyOperation = pDrmCommonOpStruct->pKeyLadderInfo->KeyLadderOpStruct.ControlWordKeyOperation;
@@ -534,7 +534,7 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
                 /* check if caller wants to override virtual keyladder settings (default should be false) */
                 if(pDrmCommonOpStruct->pKeyLadderInfo->overwriteVKLSettings == true)
                 {
-                    BDBG_MSG(("%s - OVERRIDING VIRTUAL KEY LADDER VALUES *******************************", __FUNCTION__));
+                    BDBG_MSG(("%s - OVERRIDING VIRTUAL KEY LADDER VALUES *******************************", BSTD_FUNCTION));
                     cipheredKeySettings.settings.VirtualKeyLadderSettings.CustSubMode = pDrmCommonOpStruct->pKeyLadderInfo->VirtualKeyLadderSettings.CustSubMode;
                     cipheredKeySettings.settings.VirtualKeyLadderSettings.VklValue = pDrmCommonOpStruct->pKeyLadderInfo->VirtualKeyLadderSettings.VklValue;
                 }
@@ -554,7 +554,7 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
 
                 if(CommonCrypto_LoadCipheredKey(drmHnd->cryptHnd, &cipheredKeySettings) != NEXUS_SUCCESS)
                 {
-                    BDBG_ERR(("%s - Error loading ciphered key", __FUNCTION__));
+                    BDBG_ERR(("%s - Error loading ciphered key", BSTD_FUNCTION));
                     rc = Drm_CryptoConfigErr;
                 }
             }
@@ -568,11 +568,11 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
                  *         "if (x) { NOP } "? (does the compiler automatically remove it?)
                  */
                 if(pDrmCommonOpStruct->keyIvSettings.keySize != 0){
-                    BDBG_MSG(("%s - Configuring/loading SW based key", __FUNCTION__));
+                    BDBG_MSG(("%s - Configuring/loading SW based key", BSTD_FUNCTION));
                 }
 
                 if(pDrmCommonOpStruct->keyIvSettings.ivSize != 0){
-                    BDBG_MSG(("%s - Configuring/loading IV", __FUNCTION__));
+                    BDBG_MSG(("%s - Configuring/loading IV", BSTD_FUNCTION));
                 }
 
                 clearKeyettings.keySlot = pDrmCommonOpStruct->keyConfigSettings.keySlot;
@@ -581,23 +581,23 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
 
                 if(CommonCrypto_LoadClearKeyIv(drmHnd->cryptHnd, &clearKeyettings)!= NEXUS_SUCCESS)
                 {
-                    BDBG_ERR(("%s - Error loading clear key", __FUNCTION__));
+                    BDBG_ERR(("%s - Error loading clear key", BSTD_FUNCTION));
                     rc = Drm_CryptoConfigErr;
                 }
             }
             if (Drm_Success != rc ){
-                BDBG_ERR(("%s - Error routing key to keyslot", __FUNCTION__));
+                BDBG_ERR(("%s - Error routing key to keyslot", BSTD_FUNCTION));
             }
         }
         else {
-            BDBG_ERR(("%s - Error Alloc&Config keyslot", __FUNCTION__));
+            BDBG_ERR(("%s - Error Alloc&Config keyslot", BSTD_FUNCTION));
         }
     }
     else {
-        BDBG_MSG(("In %s - DRM_Common_AcquireHandle failed", __FUNCTION__));
+        BDBG_MSG(("In %s - DRM_Common_AcquireHandle failed", BSTD_FUNCTION));
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -613,7 +613,7 @@ DrmRC DRM_Common_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct)
     unsigned int i = 0;
 
     /* The mutex is still protecting the DRM Common Handle (resp CommonCrypto handle) table */
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
@@ -660,7 +660,7 @@ DrmRC DRM_Common_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct)
                                  jobBlkSettings,
                                  pDrmCommonOpStruct->num_dma_block) != NEXUS_SUCCESS)
         {
-            BDBG_ERR(("%s - Error with M2M DMA operation", __FUNCTION__));
+            BDBG_ERR(("%s - Error with M2M DMA operation", BSTD_FUNCTION));
             drmRc = Drm_CryptoDmaErr;
             goto ErrorExit;
         }
@@ -674,7 +674,7 @@ DrmRC DRM_Common_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct)
     }
 
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return drmRc;
 }
@@ -689,11 +689,11 @@ DrmRC DRM_Common_GenerateRandomNumber(
     NEXUS_RandomNumberOutput rngOutput;
     NEXUS_Error nxs_rc = NEXUS_SUCCESS;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     if(numberOfBytes > NEXUS_MAX_RANDOM_NUMBER_LENGTH)
     {
-        BDBG_ERR(("%s - Desired number of bytes exceeds maximum limit of '%u'.  Call API '%u' times", __FUNCTION__,
+        BDBG_ERR(("%s - Desired number of bytes exceeds maximum limit of '%u'.  Call API '%u' times", BSTD_FUNCTION,
                         NEXUS_MAX_RANDOM_NUMBER_LENGTH, (numberOfBytes / NEXUS_MAX_RANDOM_NUMBER_LENGTH) ));
         rc = Drm_InvalidParameter;
         goto ErrorExit;
@@ -705,7 +705,7 @@ DrmRC DRM_Common_GenerateRandomNumber(
     nxs_rc = NEXUS_RandomNumber_Generate(&settings, &rngOutput);
     if( (nxs_rc != NEXUS_SUCCESS) || (rngOutput.size != numberOfBytes) )
     {
-        BDBG_ERR(("%s - Error generating '%u' random bytes (only '%u' bytes returned) ", __FUNCTION__, numberOfBytes, rngOutput.size));
+        BDBG_ERR(("%s - Error generating '%u' random bytes (only '%u' bytes returned) ", BSTD_FUNCTION, numberOfBytes, rngOutput.size));
         rc = Drm_CryptoDmaErr;
         goto ErrorExit;
     }
@@ -713,7 +713,7 @@ DrmRC DRM_Common_GenerateRandomNumber(
     BKNI_Memcpy(pBuffer, rngOutput.buffer, numberOfBytes);
 
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     return rc;
 }
@@ -724,7 +724,7 @@ DRM_Common_MemoryAllocate(uint8_t **pBuffer, uint32_t buffer_size)
 {
     DrmRC rc = Drm_Success;
     NEXUS_Error nexerr = NEXUS_SUCCESS;
-    BDBG_MSG(("%s - Entered function (%p)", __FUNCTION__, pBuffer));
+    BDBG_MSG(("%s - Entered function (%p)", BSTD_FUNCTION, pBuffer));
 
     if(bUseExternalHeap == true){
         nexerr = NEXUS_Memory_Allocate(buffer_size, &memorySettings,(void **) pBuffer);
@@ -735,13 +735,13 @@ DRM_Common_MemoryAllocate(uint8_t **pBuffer, uint32_t buffer_size)
 
     if(nexerr != NEXUS_SUCCESS)
     {
-        BDBG_ERR(("%s - Error allocating buffer (%u)", __FUNCTION__, bUseExternalHeap));
+        BDBG_ERR(("%s - Error allocating buffer (%u)", BSTD_FUNCTION, bUseExternalHeap));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
 
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function (%p)", __FUNCTION__, pBuffer));
+    BDBG_MSG(("%s - Exiting function (%p)", BSTD_FUNCTION, pBuffer));
 
     return rc;
 }
@@ -752,11 +752,11 @@ DrmRC DRM_Common_MemoryFree(
 {
     DrmRC rc = Drm_Success;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     NEXUS_Memory_Free(pBuffer);
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     return rc;
 }
@@ -775,7 +775,7 @@ DrmRC DRM_Common_SwSha1(
     BCRYPT_Sha1Sw_t sha1_ctx;
     uint32_t ctx_num = 0;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     if(DRM_Common_P_CheckAndAssignContext(&ctx_num,
                                 (uint32_t)(pthread_self()) ) != 0)
@@ -815,7 +815,7 @@ DrmRC DRM_Common_SwSha1(
 
         if(BCrypt_Sha1Sw (g_bcrypt_handle, &sha1_ctx) != BCRYPT_STATUS_eOK)
         {
-            BDBG_ERR(("%s - Error calling 'BCrypt_Sha1Sw'", __FUNCTION__));
+            BDBG_ERR(("%s - Error calling 'BCrypt_Sha1Sw'", BSTD_FUNCTION));
             rc = Drm_BcryptErr;
             goto ErrorExit;
         }
@@ -824,7 +824,7 @@ DrmRC DRM_Common_SwSha1(
 ErrorExit:
     DRM_Common_P_CheckAndFreeContext(&ctx_num, (uint32_t)pthread_self() );
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -840,15 +840,15 @@ ErrorExit:
 DrmRC DRM_Common_AttachPidChannel(NEXUS_KeySlotHandle keySlot, uint32_t pidChannel)
 {
     DrmRC rc = Drm_Success;
-    BDBG_MSG(("%s - Entering. (0x%04x)...", __FUNCTION__, pidChannel));
+    BDBG_MSG(("%s - Entering. (0x%04x)...", BSTD_FUNCTION, pidChannel));
 
     if(NEXUS_Security_AddPidChannelToKeySlot(keySlot, pidChannel)!= NEXUS_SUCCESS)
     {
-        BDBG_ERR(("%s - Error adding PID channel '%u' to keyslot", __FUNCTION__, pidChannel));
+        BDBG_ERR(("%s - Error adding PID channel '%u' to keyslot", BSTD_FUNCTION, pidChannel));
         rc = Drm_NexusErr;
     }
 
-    BDBG_MSG(("%s - ...Exiting", __FUNCTION__));
+    BDBG_MSG(("%s - ...Exiting", BSTD_FUNCTION));
 
     return rc;
 }
@@ -864,15 +864,15 @@ DrmRC DRM_Common_AttachPidChannel(NEXUS_KeySlotHandle keySlot, uint32_t pidChann
 DrmRC DRM_Common_DetachPidChannel(NEXUS_KeySlotHandle keySlot, uint32_t pidChannel)
 {
     DrmRC rc = Drm_Success;
-    BDBG_MSG(("%s - Entering (0x%04x)...", __FUNCTION__, pidChannel));
+    BDBG_MSG(("%s - Entering (0x%04x)...", BSTD_FUNCTION, pidChannel));
 
     if(NEXUS_Security_RemovePidChannelFromKeySlot(keySlot, pidChannel)!= NEXUS_SUCCESS)
     {
-        BDBG_ERR(("%s - Error removing PID channel '%u' from keyslot", __FUNCTION__, pidChannel));
+        BDBG_ERR(("%s - Error removing PID channel '%u' from keyslot", BSTD_FUNCTION, pidChannel));
         rc = Drm_NexusErr;
     }
 
-    BDBG_MSG(("%s - ...Exiting", __FUNCTION__));
+    BDBG_MSG(("%s - ...Exiting", BSTD_FUNCTION));
 
     return rc;
 }
@@ -890,7 +890,7 @@ DrmRC DRM_Common_DetachPidChannel(NEXUS_KeySlotHandle keySlot, uint32_t pidChann
 static DrmRC DRM_Common_P_DetermineAskmMode(void)
 {
     DrmRC rc = Drm_Success;
-    BDBG_MSG(("%s - Entering function ...", __FUNCTION__));
+    BDBG_MSG(("%s - Entering function ...", BSTD_FUNCTION));
 
     NEXUS_ReadMspParms readMsp;
     int i = 0;
@@ -901,16 +901,16 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
     readMsp.readMspEnum = NEXUS_OtpCmdMsp_eDestinationDisallowKeyA;
     NEXUS_Security_ReadMSP(&readMsp,&mspStruct);
 
-    BDBG_MSG(("%s - mspDataBuf = 0x%02x 0x%02x 0x%02x 0x%02x \n\n", __FUNCTION__,
+    BDBG_MSG(("%s - mspDataBuf = 0x%02x 0x%02x 0x%02x 0x%02x \n\n", BSTD_FUNCTION,
             mspStruct.mspDataBuf[0], mspStruct.mspDataBuf[1], mspStruct.mspDataBuf[2], mspStruct.mspDataBuf[3]));
 
     askmMode = (0x03 & mspStruct.mspDataBuf[3]);
-    BDBG_MSG(("%s - askmMode = '0x%2x'", __FUNCTION__, askmMode));
+    BDBG_MSG(("%s - askmMode = '0x%2x'", BSTD_FUNCTION, askmMode));
 
     rc = DRM_KeyBinding_FetchDeviceIds(&BindStruct);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error fetching device IDs", __FUNCTION__));
+        BDBG_ERR(("%s - Error fetching device IDs", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
@@ -923,7 +923,7 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
     rc = DRM_Common_SwSha256(arg_buffer, digest, 16);
     if(rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error computing SHA", __FUNCTION__));
+        BDBG_ERR(("%s - Error computing SHA", BSTD_FUNCTION));
         goto ErrorExit;
     }
     DRM_MSG_PRINT_BUF("digest", digest, 32);
@@ -931,7 +931,7 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
     BKNI_Memcpy(askmProcInForKey4, &digest[16], 16);
 
 ErrorExit:
-    BDBG_MSG(("%s - ... Exiting function (askmMode = 0x%02x)", __FUNCTION__, askmMode));
+    BDBG_MSG(("%s - ... Exiting function (askmMode = 0x%02x)", BSTD_FUNCTION, askmMode));
     return rc;
 }
 
@@ -949,7 +949,7 @@ DrmRC DRM_Common_SwPartialSha1(
     DrmRC rc = Drm_Success;
     BCRYPT_Sha1Sw_t sha1_ctx;
 
-    BDBG_MSG(("%s - Entered function (type = '%d')\n", __FUNCTION__, partialSha1Type));
+    BDBG_MSG(("%s - Entered function (type = '%d')\n", BSTD_FUNCTION, partialSha1Type));
 
     switch (partialSha1Type)
     {
@@ -961,7 +961,7 @@ DrmRC DRM_Common_SwPartialSha1(
                 goto ErrorExit;
             }
 
-            BDBG_MSG(("%s - INIT, thread_table[%u] = 0x%08x", __FUNCTION__, (*userContext), pthread_self()));
+            BDBG_MSG(("%s - INIT, thread_table[%u] = 0x%08x", BSTD_FUNCTION, (*userContext), pthread_self()));
             sha1_ctx.ulctxnum = (*userContext);
             sha1_ctx.binitctx = true;
             sha1_ctx.bfinal = false;
@@ -969,7 +969,7 @@ DrmRC DRM_Common_SwPartialSha1(
         break;
 
         case DrmCommon_PartialSha1Type_Update: /* UPDATE */
-            BDBG_MSG(("%s - UPDATE ctx = '%u', tid(0x%08x)", __FUNCTION__, (*userContext), pthread_self()));
+            BDBG_MSG(("%s - UPDATE ctx = '%u', tid(0x%08x)", BSTD_FUNCTION, (*userContext), pthread_self()));
             sha1_ctx.ulctxnum = (*userContext);
             sha1_ctx.binitctx = false;
             sha1_ctx.bfinal = false;
@@ -978,7 +978,7 @@ DrmRC DRM_Common_SwPartialSha1(
         break;
 
         case DrmCommon_PartialSha1Type_Finalize: /* FINALIZE */
-            BDBG_MSG(("%s - FINALIZE ctx = '%u', (tid)0x%08x", __FUNCTION__, (*userContext), pthread_self()));
+            BDBG_MSG(("%s - FINALIZE ctx = '%u', (tid)0x%08x", BSTD_FUNCTION, (*userContext), pthread_self()));
             sha1_ctx.ulctxnum = (*userContext);
             sha1_ctx.binitctx = false;
             sha1_ctx.bfinal = true;
@@ -990,7 +990,7 @@ DrmRC DRM_Common_SwPartialSha1(
 
     if(BCrypt_Sha1Sw (g_bcrypt_handle, &sha1_ctx) != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error calling 'BCrypt_Sha1Sw'", __FUNCTION__));
+        BDBG_ERR(("%s - Error calling 'BCrypt_Sha1Sw'", BSTD_FUNCTION));
         rc = Drm_BcryptErr;
     }
 
@@ -999,11 +999,11 @@ DrmRC DRM_Common_SwPartialSha1(
     switch (partialSha1Type)
     {
         case DrmCommon_PartialSha1Type_Init:
-            BDBG_MSG(("%s - Init (after bcrypt call) curr_free_ctx_num = '%u', (tid)0x%08x", __FUNCTION__, drmSha1.curr_free_ctx_num, pthread_self()));
+            BDBG_MSG(("%s - Init (after bcrypt call) curr_free_ctx_num = '%u', (tid)0x%08x", BSTD_FUNCTION, drmSha1.curr_free_ctx_num, pthread_self()));
         break;
 
         case DrmCommon_PartialSha1Type_Update:
-            BDBG_MSG(("%s - Update (after bcrypt call) curr_free_ctx_num = '%u', (tid)0x%08x", __FUNCTION__, drmSha1.curr_free_ctx_num, pthread_self()));
+            BDBG_MSG(("%s - Update (after bcrypt call) curr_free_ctx_num = '%u', (tid)0x%08x", BSTD_FUNCTION, drmSha1.curr_free_ctx_num, pthread_self()));
         break;
 
         case DrmCommon_PartialSha1Type_Finalize:
@@ -1013,13 +1013,13 @@ DrmRC DRM_Common_SwPartialSha1(
                 rc = Drm_BcryptContextErr;
                 goto ErrorExit;
             }
-            BDBG_MSG(("%s - Finalize (after bcrypt call) curr_free_ctx_num = '%u', (tid)0x%08x", __FUNCTION__, drmSha1.curr_free_ctx_num, pthread_self()));
+            BDBG_MSG(("%s - Finalize (after bcrypt call) curr_free_ctx_num = '%u', (tid)0x%08x", BSTD_FUNCTION, drmSha1.curr_free_ctx_num, pthread_self()));
         break;
 
    }
 
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1035,19 +1035,19 @@ static int DRM_Common_P_CheckAndAssignContext(
     if(drmSha1.curr_free_ctx_num == 15)
     {
         rc = -1;
-        BDBG_ERR(("%s - Number of contexts supported exceeded ('%u')", __FUNCTION__, drmSha1.curr_free_ctx_num));
+        BDBG_ERR(("%s - Number of contexts supported exceeded ('%u')", BSTD_FUNCTION, drmSha1.curr_free_ctx_num));
         goto ErrorExit;
     }
 
     if(drmSha1.thread_table[drmSha1.curr_free_ctx_num] != 0)
     {
-        BDBG_MSG(("%s - Current slot (%u) is taken, searching/assiging next available slot", __FUNCTION__, drmSha1.curr_free_ctx_num));
+        BDBG_MSG(("%s - Current slot (%u) is taken, searching/assiging next available slot", BSTD_FUNCTION, drmSha1.curr_free_ctx_num));
         for(i = 0; i<16;i++)
         {
             /* if free slot assign return context, assign thread ID to table */
             if(drmSha1.thread_table[i] == 0)
             {
-                BDBG_MSG(("%s - Found free slot at index (%u)", __FUNCTION__, drmSha1.curr_free_ctx_num));
+                BDBG_MSG(("%s - Found free slot at index (%u)", BSTD_FUNCTION, drmSha1.curr_free_ctx_num));
                 (*return_context) = i;
                 drmSha1.curr_free_ctx_num = i+1;
                 drmSha1.thread_table[i] = thread_id;
@@ -1058,13 +1058,13 @@ static int DRM_Common_P_CheckAndAssignContext(
         if(i == 16)
         {
             rc = -1;
-            BDBG_ERR(("%s - NO FREE SLOT FOUND", __FUNCTION__));
+            BDBG_ERR(("%s - NO FREE SLOT FOUND", BSTD_FUNCTION));
             goto ErrorExit;
         }
     }
     else
     {
-        BDBG_MSG(("%s - Free slot at index (%u)", __FUNCTION__, drmSha1.curr_free_ctx_num));
+        BDBG_MSG(("%s - Free slot at index (%u)", BSTD_FUNCTION, drmSha1.curr_free_ctx_num));
         /* assign return context, increment static context, assign thread ID to table */
         (*return_context) = drmSha1.curr_free_ctx_num;
         drmSha1.thread_table[(*return_context)] = thread_id;
@@ -1086,14 +1086,14 @@ static int DRM_Common_P_CheckAndFreeContext(
 
     if(drmSha1.thread_table[(*return_context)] != thread_id)
     {
-        BDBG_MSG(("%s - thread_table['%u']->'0x%08x' != '0x%08x'  searching rest of table", __FUNCTION__,
+        BDBG_MSG(("%s - thread_table['%u']->'0x%08x' != '0x%08x'  searching rest of table", BSTD_FUNCTION,
                     (*return_context), drmSha1.thread_table[(*return_context)], thread_id));
         for(i = 0; i<16;i++)
         {
             /* if free slot assign return context, assign thread ID to table */
             if(drmSha1.thread_table[i] == thread_id)
             {
-                BDBG_MSG(("%s - Match at index '%u'", __FUNCTION__, i));
+                BDBG_MSG(("%s - Match at index '%u'", BSTD_FUNCTION, i));
                 drmSha1.thread_table[i] = 0;
 
                 /* set 'curr_free_ctx_num' to first available slot */
@@ -1106,7 +1106,7 @@ static int DRM_Common_P_CheckAndFreeContext(
 
                 if(j == 16){
                     rc = -1;
-                    BDBG_ERR(("%s - NO FREE SLOT FOUND...", __FUNCTION__));
+                    BDBG_ERR(("%s - NO FREE SLOT FOUND...", BSTD_FUNCTION));
                     goto ErrorExit;
                 }
             }
@@ -1115,20 +1115,20 @@ static int DRM_Common_P_CheckAndFreeContext(
         if(i == 16)
         {
             rc = -1;
-            BDBG_ERR(("%s - No match found", __FUNCTION__));
+            BDBG_ERR(("%s - No match found", BSTD_FUNCTION));
             goto ErrorExit;
         }
     }
     else
     {
-        BDBG_MSG(("%s - Freeing element at index '%u'", __FUNCTION__, (*return_context)));
+        BDBG_MSG(("%s - Freeing element at index '%u'", BSTD_FUNCTION, (*return_context)));
         drmSha1.thread_table[(*return_context)] = 0;
 
         /* set 'curr_free_ctx_num' to first available slot */
         for(j=0;j<16;j++){
             if(drmSha1.thread_table[j] == 0){
                 drmSha1.curr_free_ctx_num = j;
-                BDBG_MSG(("%s - curr_free_ctx_num '%u'", __FUNCTION__, j));
+                BDBG_MSG(("%s - curr_free_ctx_num '%u'", BSTD_FUNCTION, j));
                 goto ErrorExit;
             }
         }
@@ -1151,7 +1151,7 @@ DrmRC DRM_Common_SwSha256(
     int ctx_num = 1;
     BCRYPT_STATUS_eCode eCode = 0;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     sha256_ctx.ulctxnum = ctx_num;
     sha256_ctx.binitctx = true;
@@ -1161,7 +1161,7 @@ DrmRC DRM_Common_SwSha256(
     sha256_ctx.ulSrcDataLenInByte = size;
     eCode = BCrypt_Sha256Sw (g_bcrypt_handle, &sha256_ctx);
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
 
@@ -1183,20 +1183,20 @@ DrmRC DRM_Common_SwEcdsaVerify(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_ECDSASw_Verify_t     *pBcrypt_ecdsaSwIO = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_ecdsaSwIO = (BCRYPT_ECDSASw_Verify_t*)inoutp_ecdsaSwIO;
 
     errCode = BCrypt_ECDSAVerifySw(g_bcrypt_handle, pBcrypt_ecdsaSwIO);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error verifying ECDSA signature (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error verifying ECDSA signature (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - sigIsValid = '%d'", __FUNCTION__, inoutp_ecdsaSwIO->sigIsValid));
+    BDBG_MSG(("%s - sigIsValid = '%d'", BSTD_FUNCTION, inoutp_ecdsaSwIO->sigIsValid));
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1212,18 +1212,18 @@ DrmRC DRM_Common_SwEcdsaSign(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_ECDSASw_Sign_t   *pBcrypt_ecdsaSwIO = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_ecdsaSwIO = (BCRYPT_ECDSASw_Sign_t*)inoutp_ecdsaSwIO;
 
     errCode = BCrypt_ECDSASignSw(g_bcrypt_handle, pBcrypt_ecdsaSwIO);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error signing ECDSA signature (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error signing ECDSA signature (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1240,18 +1240,18 @@ DrmRC DRM_Common_SwEcdsaMultiply(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_ECDSASw_Multiply_t   *pBcrypt_ecdsaSwIO = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_ecdsaSwIO = (BCRYPT_ECDSASw_Multiply_t*)inoutp_ecdsaSwIO;
 
     errCode = BCrypt_ECDSAMultiplySw(g_bcrypt_handle, pBcrypt_ecdsaSwIO);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error multiplying ECDSA scalar (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error multiplying ECDSA scalar (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1271,18 +1271,18 @@ DrmRC DRM_Common_SwAesEcb(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_AESECBSwCtrl_t *pBcrypt_aesecbSwIO = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_aesecbSwIO = (BCRYPT_S_AESECBSwCtrl_t*)inoutp_aesecbSwIO;
 
     errCode = BCrypt_AESECBSw(g_bcrypt_handle, pBcrypt_aesecbSwIO);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error AES-ECB SW (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error AES-ECB SW (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1298,18 +1298,18 @@ DrmRC DRM_Common_SwAesCbc(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_AESCBCSwCtrl_t *pBcrypt_aescbcSwIO = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_aescbcSwIO = (BCRYPT_S_AESCBCSwCtrl_t*)inoutp_aescbcSwIO;
 
     errCode = BCrypt_AESCBCSw(g_bcrypt_handle, pBcrypt_aescbcSwIO);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error AES-CBC SW (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error AES-CBC SW (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1330,18 +1330,18 @@ DrmRC DRM_Common_SwCmac(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_CMACSwParam_t *pBcrypt_cmacSwIO = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_cmacSwIO = (BCRYPT_S_CMACSwParam_t*)inoutp_cmacSwIO;
 
     errCode = BCrypt_CMACSw(g_bcrypt_handle, pBcrypt_cmacSwIO);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error CMAC SW (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error CMAC SW (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1361,18 +1361,18 @@ DrmRC DRM_Common_SwDesEcb(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_DESECBSwCtrl_t *pBcrypt_desEcbSw = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_desEcbSw = (BCRYPT_S_DESECBSwCtrl_t*)inoutp_desEcbSw;
 
     errCode = BCrypt_DESECBSw(g_bcrypt_handle, pBcrypt_desEcbSw);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error DES-ECB (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error DES-ECB (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1389,18 +1389,18 @@ DrmRC DRM_Common_SwDesCbc(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_DESCBCSwCtrl_t *pBcrypt_desCbcSw = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_desCbcSw = (BCRYPT_S_DESCBCSwCtrl_t*)inoutp_desCbcSw;
 
     errCode = BCrypt_DESCBCSw(g_bcrypt_handle, pBcrypt_desCbcSw);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error DES-CBC (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error DES-CBC (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1419,18 +1419,18 @@ DrmRC DRM_Common_SwDsa(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_DSASwParam_t *pBcrypt_dsaSw = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_dsaSw = (BCRYPT_S_DSASwParam_t*)inoutp_dsaSw;
 
     errCode = BCrypt_DSASw(g_bcrypt_handle, pBcrypt_dsaSw);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error DSA (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error DSA (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1449,18 +1449,18 @@ DrmRC DRM_Common_SwMd5(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_MD5SwParam_t *pBcrypt_md5Sw = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_md5Sw = (BCRYPT_S_MD5SwParam_t*)inoutp_md5Sw;
 
     errCode = BCrypt_MD5Sw(g_bcrypt_handle, pBcrypt_md5Sw);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error MD5 (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error MD5 (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1480,18 +1480,18 @@ DrmRC DRM_Common_SwRc4(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_RC4SwParam_t *pBcrypt_rc4Sw = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_rc4Sw = (BCRYPT_S_RC4SwParam_t*)inoutp_rc4Sw;
 
     errCode = BCrypt_RC4Sw(g_bcrypt_handle, pBcrypt_rc4Sw);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error RC4 (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error RC4 (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
 }
@@ -1505,13 +1505,13 @@ void DRM_Common_SwRc4SetKey (
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     BCrypt_RC4SetKey((BCRYPT_RC4Key_t *)key,
                     keyLen,
                     keyData);
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     BKNI_ReleaseMutex(drmCommonMutex);
     return;
 }
@@ -1531,18 +1531,18 @@ DrmRC DRM_Common_SwRng(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_RNGSwCtrl_t *pBcrypt_rngSw = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_rngSw = (BCRYPT_S_RNGSwCtrl_t*)inoutp_rngSwIO;
 
     errCode = BCrypt_RNGSw(g_bcrypt_handle, pBcrypt_rngSw);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error RNG (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error RNG (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1567,7 +1567,7 @@ DrmRC DRM_Common_GetRSA_From_SubjectPublicKeyInfo(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_RSAKey_t *pBcrypt_rsaSw = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_rsaSw = (BCRYPT_RSAKey_t*)pSwRsaKey;
 
@@ -1575,11 +1575,11 @@ DrmRC DRM_Common_GetRSA_From_SubjectPublicKeyInfo(
 
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error RSA (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error RSA (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1604,20 +1604,20 @@ DrmRC DRM_Common_GetRsa_From_PrivateKeyInfo(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_RSAKey_t *pBcrypt_rsaSw = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     pBcrypt_rsaSw = (BCRYPT_RSAKey_t*)pSwRsaKey;
 
-    BDBG_ERR(("%s -  RSA %d ", __FUNCTION__, __LINE__));
+    BDBG_ERR(("%s -  RSA %d ", BSTD_FUNCTION, __LINE__));
     errCode = BCrypt_GetRSA_From_PrivateKeyInfo(g_bcrypt_handle, buf, length, pBcrypt_rsaSw);
 
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error RSA (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error RSA (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1636,7 +1636,7 @@ DrmRC DRM_Common_SwRsa(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_RSASwParam_t *pBcrypt_rsaSw = NULL;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
     /*Added field 'padType' to  rsaSWIo struct for Adobe. The following is done so that other drms using this API and not
     and not setting padType don't fail*/
 
@@ -1651,11 +1651,11 @@ DrmRC DRM_Common_SwRsa(
 
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error RSA (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error RSA (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1679,7 +1679,7 @@ DrmRC DRM_Common_Swx509ASN1DerDecode(
     DrmRC rc = Drm_Success;
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     errCode = BCrypt_x509ASN1DerDecode(g_bcrypt_handle,
                                         x509Data,
@@ -1687,11 +1687,11 @@ DrmRC DRM_Common_Swx509ASN1DerDecode(
                                         pCertificate);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error x509 DER decode (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error x509 DER decode (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1704,11 +1704,11 @@ void DRM_Common_Swx509Free(
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     BCrypt_x509Free(g_bcrypt_handle, m_pCertificate);
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return;
@@ -1726,7 +1726,7 @@ DrmRC DRM_Common_Swx509GetDigestAlgorithm(
     DrmRC rc = Drm_Success;
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     errCode = BCrypt_x509GetDigestAlgorithm(g_bcrypt_handle,
                                             m_pCertificate,
@@ -1734,11 +1734,11 @@ DrmRC DRM_Common_Swx509GetDigestAlgorithm(
                                             len);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error x509 get digest algorithm (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error x509 get digest algorithm (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1754,18 +1754,18 @@ DrmRC DRM_Common_Swx509GetRsaPublicKey(
     DrmRC rc = Drm_Success;
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     errCode = BCrypt_x509GetRsaPublicKey(g_bcrypt_handle,
                                          m_pCertificate,
                                          (BCRYPT_RSAKey_t*)rsa_key);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error x509 get RSA public key (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error x509 get RSA public key (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1779,11 +1779,11 @@ void DRM_Common_SwRsaPublicKeyFree(
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     BCrypt_publicKeyFree(g_bcrypt_handle, (BCRYPT_RSAKey_t*)rsa_key);
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return;
@@ -1803,7 +1803,7 @@ DrmRC DRM_Common_SwRSAReadPrivateKeyPem(
     DrmRC rc = Drm_Success;
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     errCode = BCrypt_RSAReadPrivateKeyPem(g_bcrypt_handle,
                                           fp_privKeyIn,
@@ -1811,11 +1811,11 @@ DrmRC DRM_Common_SwRSAReadPrivateKeyPem(
                                           p_nSize);
     if(errCode != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error RSA Read Private Key PEM (0x%08x)", __FUNCTION__, errCode));
+        BDBG_ERR(("%s - Error RSA Read Private Key PEM (0x%08x)", BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1830,11 +1830,11 @@ void DRM_Common_SwRsaPrivateKeyFree(
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     BCrypt_privateKeyFree(g_bcrypt_handle, (BCRYPT_RSAKey_t*)rsa_key);
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return;
@@ -1849,15 +1849,15 @@ DrmRC DRM_Common_ConvBinToStr(
 {
     DrmRC rc = Drm_Success;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
     BCRYPT_String_Format_t bcrypt_format = 0; /* decimal default */
 
     if(drm_common_format == DrmCommon_CovertFormat_eDecimal){
-        BDBG_MSG(("%s - input format is decimal", __FUNCTION__));
+        BDBG_MSG(("%s - input format is decimal", BSTD_FUNCTION));
         bcrypt_format = BCRYPT_String_Format_Decimal;
     }
     else{
-        BDBG_MSG(("%s - input format is hex", __FUNCTION__));
+        BDBG_MSG(("%s - input format is hex", BSTD_FUNCTION));
         bcrypt_format = BCRYPT_String_Format_Hex;
     }
 
@@ -1866,14 +1866,14 @@ DrmRC DRM_Common_ConvBinToStr(
                         (unsigned long)byteLen,
                         bcrypt_format,  outStr) != BCRYPT_STATUS_eOK)
     {
-        BDBG_ERR(("%s - Error converting to string", __FUNCTION__));
+        BDBG_ERR(("%s - Error converting to string", BSTD_FUNCTION));
         rc = Drm_BcryptErr;
         goto ErrorExit;
     }
 
 
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function (string = '%s', length ='%u')", __FUNCTION__, outStr, strlen(outStr)));
+    BDBG_MSG(("%s - Exiting function (string = '%s', length ='%u')", BSTD_FUNCTION, outStr, strlen(outStr)));
     return rc;
 }
 
@@ -1890,7 +1890,7 @@ static DrmRC _SwDHPemInit_LOCKED(const char * pem,
     BCRYPT_DH_t *bcryptContext;
 
     if (!pHandle) {
-        BDBG_ERR(("%s - Given context is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Given context is NULL", BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto end;
     }
@@ -1898,7 +1898,7 @@ static DrmRC _SwDHPemInit_LOCKED(const char * pem,
     errCode = BCrypt_DH_FromPem((const uint8_t *)pem, pemLen, &bcryptContext);
     if(errCode != BCRYPT_STATUS_eOK) {
         BDBG_ERR(("%s - Cannot init DH instance with given Pem (0x%08x)",
-                  __FUNCTION__, errCode));
+                  BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
         goto end;
     }
@@ -1915,11 +1915,11 @@ DrmRC DRM_Common_SwDHFromPem(const char * pem,
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     DrmRC rc = _SwDHPemInit_LOCKED(pem, pemLen, pHandle);
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1938,15 +1938,15 @@ DrmRC DRM_Common_SwDHComputeSharedSecret(void * handle,
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
     if (!handle) {
-        BDBG_ERR(("%s - Given context is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Given context is NULL", BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto end_locked;
     }
 
     if (!pSharedSecret || !pSharedSecretLen) {
-        BDBG_ERR(("%s - Given result holders are invalid", __FUNCTION__));
+        BDBG_ERR(("%s - Given result holders are invalid", BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto end_locked;
     }
@@ -1954,7 +1954,7 @@ DrmRC DRM_Common_SwDHComputeSharedSecret(void * handle,
     errCode = BCrypt_DH_ComputeSharedSecret(bcryptContext,
                                             remotePublicKey, keyLen);
     if(errCode != BCRYPT_STATUS_eOK) {
-        BDBG_ERR(("%s - Cannot compute DH shared secret", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot compute DH shared secret", BSTD_FUNCTION));
         rc = Drm_BcryptErr;
         goto end_locked;
     }
@@ -1963,7 +1963,7 @@ DrmRC DRM_Common_SwDHComputeSharedSecret(void * handle,
     *pSharedSecretLen = bcryptContext->sharedSecretLen;
 
 end_locked:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -1978,9 +1978,9 @@ DrmRC DRM_Common_SwDHCleanup(void * handle)
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
     if (!handle) {
-        BDBG_ERR(("%s - Given context is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Given context is NULL", BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto end_locked;
     }
@@ -1989,13 +1989,13 @@ DrmRC DRM_Common_SwDHCleanup(void * handle)
     if(errCode != BCRYPT_STATUS_eOK)
     {
         BDBG_ERR(("%s - Cannot delete DH instance (0x%08x)",
-                  __FUNCTION__, errCode));
+                  BSTD_FUNCTION, errCode));
         rc = Drm_BcryptErr;
         goto end_locked;
     }
 
 end_locked:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -2011,15 +2011,15 @@ DrmRC DRM_Common_SwDHGetPublicKey(void * handle,
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
     if (!handle) {
-        BDBG_ERR(("%s - Given context is NULL", __FUNCTION__));
+        BDBG_ERR(("%s - Given context is NULL", BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto end_locked;
     }
 
     if (!pPublicKey || !pPublicKeyLen) {
-        BDBG_ERR(("%s - Given result holders are invalid", __FUNCTION__));
+        BDBG_ERR(("%s - Given result holders are invalid", BSTD_FUNCTION));
         rc = Drm_InvalidParameter;
         goto end_locked;
     }
@@ -2028,7 +2028,7 @@ DrmRC DRM_Common_SwDHGetPublicKey(void * handle,
     *pPublicKeyLen = bcryptContext->pubKeyLen;
 
 end_locked:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;
@@ -2071,13 +2071,13 @@ DrmRC DRM_Common_FetchDeviceIds(drm_chip_info_t *pStruct)
 
         if(NEXUS_Security_ReadOTP(readOtpEnum, keyType, &readOtpIO) != NEXUS_SUCCESS)
         {
-            BDBG_ERR(("%s - Call to 'NEXUS_Security_ReadOTP' FAILED.", __FUNCTION__));
+            BDBG_ERR(("%s - Call to 'NEXUS_Security_ReadOTP' FAILED.", BSTD_FUNCTION));
             rc = Drm_BindingErr;
             goto ErrorExit;
         }
         else
         {
-            BDBG_MSG(("%s - Call to 'NEXUS_Security_ReadOTP' succeeded. otpKeyIdSize = '0x%08x'", __FUNCTION__, readOtpIO.otpKeyIdSize));
+            BDBG_MSG(("%s - Call to 'NEXUS_Security_ReadOTP' succeeded. otpKeyIdSize = '0x%08x'", BSTD_FUNCTION, readOtpIO.otpKeyIdSize));
             if(count == 0){
                 BKNI_Memcpy(pStruct->devIdA, readOtpIO.otpKeyIdBuf, readOtpIO.otpKeyIdSize);
             }
@@ -2088,7 +2088,7 @@ DrmRC DRM_Common_FetchDeviceIds(drm_chip_info_t *pStruct)
     }//end of for-loop
 
 ErrorExit:
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
 
@@ -2104,7 +2104,7 @@ DrmRC DRM_Common_SwDHFromSecretPem(
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
 
     DrmRC rc;
     DrmSecret * secret = DrmSecretFromId(id);
@@ -2116,7 +2116,7 @@ DrmRC DRM_Common_SwDHFromSecretPem(
         rc = _SwDHInit_LOCKED(secret->id, secret->len, pHandle);
     }
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
 
     BKNI_ReleaseMutex(drmCommonMutex);
     return rc;

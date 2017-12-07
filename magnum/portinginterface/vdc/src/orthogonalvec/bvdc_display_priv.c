@@ -518,11 +518,14 @@ void BVDC_P_Display_Destroy
     /* At this point application should have disabled all the
      * callbacks &slots */
 #if BVDC_P_CMP_CFC_VER >= 3
-    if(hDisplay->stCfcLutList.hMmaBlock) {
-        BMMA_Unlock(hDisplay->stCfcLutList.hMmaBlock, hDisplay->stCfcLutList.pulStart);
-        BMMA_UnlockOffset(hDisplay->stCfcLutList.hMmaBlock, hDisplay->stCfcLutList.ullStartDeviceAddr);
-        BMMA_Free(hDisplay->stCfcLutList.hMmaBlock);
-        hDisplay->stCfcLutList.hMmaBlock = NULL;
+    if(hDisplay->stCfcLutList.hMmaBlock[0]) {
+        int i;
+        for(i = 0; i < BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; i++) {
+            BMMA_Unlock(hDisplay->stCfcLutList.hMmaBlock[i], hDisplay->stCfcLutList.pulStart[i]);
+            BMMA_UnlockOffset(hDisplay->stCfcLutList.hMmaBlock[i], hDisplay->stCfcLutList.ullStartDeviceAddr[i]);
+            BMMA_Free(hDisplay->stCfcLutList.hMmaBlock[i]);
+            hDisplay->stCfcLutList.hMmaBlock[i] = NULL;
+        }
         hDisplay->hCfcHeap  = NULL;
     }
 #if BVDC_P_DBV_SUPPORT
@@ -2415,9 +2418,7 @@ void BVDC_P_Vec_BuildRul_isr
 {
     uint32_t i, limit;
     BVDC_Display_ApplySetting    applySettingHandler;
-    bool bBuildFormatRul =
-        (BVDC_P_ItState_eNotActive  == hDisplay->eItState) ||
-        (BVDC_P_ItState_eSwitchMode == hDisplay->eItState);
+    bool bBuildFormatRul;
     BDBG_ENTER(BVDC_P_Vec_BuildRul_isr);
 
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
@@ -2426,6 +2427,10 @@ void BVDC_P_Vec_BuildRul_isr
     /* Experimental */
     BVDC_P_DCS_Check_isr (hDisplay, eFieldPolarity, 0, pList);
 #endif
+
+    bBuildFormatRul =
+            (BVDC_P_ItState_eNotActive  == hDisplay->eItState) ||
+            (BVDC_P_ItState_eSwitchMode == hDisplay->eItState);
 
 
     /* if bTiming is dirty, IT state _must_ be either switch or inactive mode;
@@ -2465,7 +2470,7 @@ void BVDC_P_Vec_BuildRul_isr
         BVDC_P_CLEAN_ALL_DIRTY(&(hDisplay->stPrevDirty));
     }
 
-
+    hDisplay->stDviChan.bCfcProgrammed = false;
     if (BVDC_P_IS_DIRTY(&(hDisplay->stCurInfo.stDirty)))
     {
         BVDC_P_VEC_MSG(("Display%d: CurDirty = 0x%x", hDisplay->eId, hDisplay->stCurInfo.stDirty));
@@ -2512,7 +2517,7 @@ void BVDC_P_Vec_BuildRul_isr
 
         limit = BVDC_P_MIN(
             BVDC_P_astDisplayEventHndlTblSize,
-            BVDC_P_NUM_DIRTY_BITS(&(hDisplay->stNewInfo.stDirty)));
+            BVDC_P_NUM_DIRTY_BITS(&(hDisplay->stCurInfo.stDirty)));
         for (i=0 ; i < limit ; i++)
         {
             if (BVDC_P_DISPLAY_IS_BIT_DIRTY(&(hDisplay->stCurInfo.stDirty), i))
@@ -2648,6 +2653,7 @@ BERR_Code BVDC_Display_GetItUcodeInfo
             (sizeof(uint32_t)*BVDC_P_DTRAM_TABLE_SIZE) +
             (sizeof(uint32_t)*BVDC_P_DTRAM_TABLE_CHECKSUM_IDX));
 #else
+#if BVDC_P_SUPPORT_ITU656_OUT
     pInfo->ulI656Timestamp =
         BREG_Read32 (
             hReg,
@@ -2658,6 +2664,7 @@ BERR_Code BVDC_Display_GetItUcodeInfo
             hReg,
             BCHP_ITU656_DTG_0_DMC_INSTRUCTIONi_ARRAY_BASE +
                 (sizeof(uint32_t)*BVDC_P_DTRAM_TABLE_CHECKSUM_IDX));
+#endif
     pInfo->ulDviTimestamp =
         BREG_Read32 (
             hReg,

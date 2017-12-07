@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_SECURITY_TYPES_H__
 #define NEXUS_SECURITY_TYPES_H__
@@ -196,9 +195,12 @@ Enumerator to identify a particular Bypass Keyslot.
 
 Description:
 All pid channels for clear data transfers will be associated with a bypass keyslot. By default the system
-automatically configures pid channels that have not been explicitly assocaited with a keyslot to
-the NEXUS_BypassKeySlot_eG2GR keyslot. The client can modify this to NEXUS_BypassKeySlot_eGR2R with the
-function NEXUS_SetPidChannelBypassKeyslot.
+automatically configures pid channels that have not been explicitly associated with a keyslot to
+NEXUS_BypassKeySlot_eG2GR.
+
+See NEXUS_SetPidChannelBypassKeyslot for guidance on how to change a pid channel to NEXUS_BypassKeySlot_eGR2R
+and the requirements for restorig it.
+
 Note: GLR (Global Region) can be accessed from the HOST processor. CRR (Compressed Restricted Region)
 is a memory region that contains compressed media data and can't be accessed from the HOST processor.
 **/

@@ -90,6 +90,7 @@ typedef struct NEXUS_AvsStatus
     signed temperature;   /* last measured temperature in thousands.  To convert use: float celcius = temperature/1000.; */
     bool enabled;         /* AVS is enabled in the bootloader/CFE */
     bool tracking;        /* AVS-tracking is enabled in Nexus system software */
+    unsigned heartbeat;   /* AVS background counter, increments once a second, if alive */
 } NEXUS_AvsStatus;
 
 /*

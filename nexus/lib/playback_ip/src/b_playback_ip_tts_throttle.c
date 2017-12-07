@@ -63,7 +63,7 @@ BDBG_MODULE(b_tts_throttle);
 #define TTS_PWM_STEP_SIZE               47          /* !!! 7Hz !!! (Hz/bit = 4386/0x7fff = 0.13385 Hz/bit, ie. 0.00494 ppm/bit) */
 #define TTS_PWM_STEPS_PER_SLEW          8
 
-#define TTS_MAX_PPM_VALUE               240       /* default to 60 ppm */
+#define TTS_MAX_PPM_VALUE               60
 #define TTS_MIN_PPM_VALUE               (-TTS_MAX_PPM_VALUE)
 
 #if PLAYBACK_IP_GCB_SUPPORT
@@ -81,10 +81,12 @@ BDBG_MODULE(b_tts_throttle);
 #define TTS_MAX_CLOCK_MISMATCH          100         /* default to 100 ppm - eg. server/encoder +/-50ppm, STB +/-50ppm */
 
 #define TTS_BUF_DEPTH_AVERAGING_PERIOD  16      /* this must be multiplied by the TTS_STEP_PERIOD/1000 to get the actual period in seconds */
-#define TTS_DELAYED_START_PERIOD        TTS_BUF_DEPTH_AVERAGING_PERIOD
+#define TTS_DELAYED_START_PERIOD        TTS_BUF_DEPTH_AVERAGING_PERIOD * 2
 #define TTS_TREND_AVERAGING_PERIOD      300
 #define TTS_TREND_SAMPLE_PERIOD         120
 #define TTS_HALT_TASK_TIMEOUT_MSEC      600
+
+#define USEC_SCALE_FACTOR (10) /* convert the usec value to 10usec. */
 
 /* the TTS throttle structure */
 typedef struct B_PlaybackIp_TtsThrottle {
@@ -97,14 +99,13 @@ typedef struct B_PlaybackIp_TtsThrottle {
 
     unsigned *bufSamples;
     unsigned bufHead;
-    unsigned bufTail;
     int bufSamplesSum;
-    uint32_t bufDepthInMsec;
+    uint32_t bufDepthInXsec; /* in usecs*USEC_SCALE_FACTOR to make decay work well.. */
 
     unsigned *avgSamples;
     unsigned avgHead;
-    unsigned avgTail;
-    int avgSamplesSum;
+//    unsigned avgTail;
+    unsigned avgSamplesSum;
     unsigned *trendWindow;
     unsigned trendHead;
     unsigned trendTail;
@@ -241,6 +242,11 @@ void B_PlaybackIp_TtsThrottle_GetSettings(
     )
 {
     BKNI_Memcpy(params, &ttsThrottle->params, sizeof(*params));
+    if (ttsThrottle->params.bufDepthInMsec) {
+        params->initBufDepth = ttsThrottle->params.initBufDepth/(1000*USEC_SCALE_FACTOR);
+        params->minBufDepth = ttsThrottle->params.minBufDepth/(1000*USEC_SCALE_FACTOR);
+        params->maxBufDepth = ttsThrottle->params.maxBufDepth/(1000*USEC_SCALE_FACTOR);
+    }
 }
 
 /**
@@ -254,6 +260,11 @@ void B_PlaybackIp_TtsThrottle_SetSettings(
     BKNI_Memcpy(&ttsThrottle->params, params, sizeof(*params));
 
     ttsThrottle->playPump = ttsThrottle->params.playPump;
+    if (ttsThrottle->params.bufDepthInMsec) {
+        ttsThrottle->params.initBufDepth = params->initBufDepth*1000*USEC_SCALE_FACTOR;
+        ttsThrottle->params.minBufDepth = params->minBufDepth*1000*USEC_SCALE_FACTOR;
+        ttsThrottle->params.maxBufDepth = params->maxBufDepth*1000*USEC_SCALE_FACTOR;
+    }
 }
 
 void B_PlaybackIp_TtsThrottle_Task(
@@ -271,8 +282,8 @@ void B_PlaybackIp_TtsThrottle_Task(
 
         if(ttsThrottle->bufferState == B_PlaybackIpBufferState_ePlaying) {
             B_PlaybackIp_TtsThrottle_Step(ttsThrottle);
-            B_Thread_Sleep(TTS_PWM_STEP_PERIOD);
         }
+        B_Thread_Sleep(TTS_PWM_STEP_PERIOD);
     }
 
     B_Event_Set(ttsThrottle->threadHaltedEvent);
@@ -314,13 +325,13 @@ B_PlaybackIpError B_PlaybackIp_TtsThrottle_Start(
 
     ttsThrottle->periodCount = 0;
     ttsThrottle->bufHead = 0;
-    ttsThrottle->bufTail = 1;
     ttsThrottle->bufSamplesSum = 0;
+    memset(ttsThrottle->bufSamples, 0, TTS_BUF_DEPTH_AVERAGING_PERIOD * sizeof(unsigned));
 
     ttsThrottle->prevMaxBufDepth = ttsThrottle->prevMinBufDepth = 0;
 
     ttsThrottle->avgHead = 0;
-    ttsThrottle->avgTail = 1;
+    memset(ttsThrottle->avgSamples, 0,TTS_TREND_AVERAGING_PERIOD * sizeof(unsigned));
     ttsThrottle->avgSamplesSum = 0;
     ttsThrottle->trendHead = 0;
     ttsThrottle->trendTail = 1;
@@ -488,14 +499,7 @@ void B_PlaybackIp_TtsThrottle_Step(
     NEXUS_Error rc;
     B_Time cur_time;
     int diff_time;
-    size_t curBufDepth;
 
-    if (ttsThrottle->params.bufDepthInMsec) {
-        curBufDepth = ttsThrottle->bufDepthInMsec;
-    }
-    else {
-        curBufDepth = pumpStatus.fifoDepth;
-    }
 
     B_Time_Get(&cur_time);
     diff_time = B_Time_Diff(&cur_time, &ttsThrottle->prevTime);
@@ -504,9 +508,17 @@ void B_PlaybackIp_TtsThrottle_Step(
             ttsThrottle->prevTime = cur_time;
 
             if(ttsThrottle->state == B_PlaybackIp_TtsThrottle_State_Running) {
+                size_t curBufDepth;
                 BDBG_ASSERT(ttsThrottle->playPump);
                 rc = NEXUS_Playpump_GetStatus(ttsThrottle->playPump, &pumpStatus);
                 if (rc) BDBG_WRN(("NEXUS_Playpump_GetStatus returned error: %d", rc));
+
+                if (ttsThrottle->params.bufDepthInMsec) {
+                    curBufDepth = ttsThrottle->bufDepthInXsec;
+                }
+                else {
+                    curBufDepth = pumpStatus.fifoDepth;
+                }
 
                 B_PlaybackIp_TtsThrottle_P_SlowAdjust(ttsThrottle, curBufDepth);
                 if(ttsThrottle->status.pacingErrorCount != pumpStatus.pacingTsRangeError) {
@@ -548,28 +560,26 @@ static void B_PlaybackIp_TtsThrottle_P_SlowAdjust(
     if(ttsThrottle->periodCount < TTS_TREND_AVERAGING_PERIOD) ttsThrottle->periodCount++;
 
     /* average the buffer depth values */
+    ttsThrottle->bufSamplesSum -= ttsThrottle->bufSamples[ttsThrottle->bufHead];
     ttsThrottle->bufSamples[ttsThrottle->bufHead] = fifoDepth;
     ttsThrottle->bufSamplesSum += ttsThrottle->bufSamples[ttsThrottle->bufHead];
     if(ttsThrottle->periodCount <= TTS_BUF_DEPTH_AVERAGING_PERIOD) {
         avgBufDepth = ttsThrottle->bufSamplesSum/(long)(ttsThrottle->periodCount);
     }
     else {
-        ttsThrottle->bufSamplesSum -= ttsThrottle->bufSamples[ttsThrottle->bufTail];
         avgBufDepth = ttsThrottle->bufSamplesSum/(long)(TTS_BUF_DEPTH_AVERAGING_PERIOD);
     }
     ttsThrottle->bufHead++;
     if(ttsThrottle->bufHead>=TTS_BUF_DEPTH_AVERAGING_PERIOD) ttsThrottle->bufHead=0;
-    ttsThrottle->bufTail++;
-    if(ttsThrottle->bufTail>=TTS_BUF_DEPTH_AVERAGING_PERIOD) ttsThrottle->bufTail=0;
 
     ttsThrottle->status.avgBufDepth = avgBufDepth;
     B_PlaybackIp_TtsThrottle_P_TrackModeCheck(ttsThrottle, &trendAvgSample);
 
-    if(ttsThrottle->periodCount == TTS_DELAYED_START_PERIOD-1) {
+    if(ttsThrottle->periodCount == TTS_DELAYED_START_PERIOD) {
         init_buf = ttsThrottle->params.initBufDepth = avgBufDepth;
-        ttsThrottle->prevMaxBufDepth = ttsThrottle->prevMinBufDepth = avgBufDepth;
+        ttsThrottle->prevMaxBufDepth = avgBufDepth + (avgBufDepth/1000);
+        ttsThrottle->prevMinBufDepth = avgBufDepth - (avgBufDepth/1000);
     }
-
     if(ttsThrottle->periodCount >= TTS_DELAYED_START_PERIOD) {
         /* adjust the pacing clock */
         if((signed)avgBufDepth > init_buf) {
@@ -594,8 +604,6 @@ static void B_PlaybackIp_TtsThrottle_P_SlowAdjust(
 
     B_PlaybackIp_TtsThrottle_P_PwmSlew(ttsThrottle);
 
-/* re-enable the ttsThrottle log (before release) */
-#if 1
     {
         NEXUS_PlaypumpStatus pumpStatus;
         NEXUS_Error rc;
@@ -604,27 +612,23 @@ static void B_PlaybackIp_TtsThrottle_P_SlowAdjust(
         rc = NEXUS_Playpump_GetStatus(ttsThrottle->playPump, &pumpStatus);
         if (rc) BDBG_WRN(("NEXUS_Playpump_GetStatus returned error: %d", rc));
 
-        BDBG_WRN(("depth: avg, min, max, bytes, clk_adj %u, %u, %u, %zu, %d clk min: %ld, max: %ld, pcr_err: %d, trend_up: %d, duty: %d, mode: %d",
-              ttsThrottle->status.avgBufDepth,
-              ttsThrottle->prevMinBufDepth,
-              ttsThrottle->prevMaxBufDepth,
-              pumpStatus.fifoDepth,
-              ttsThrottle->status.pacingClockAdjustment,
+
+        if (getenv("ipVerboseLog")) {
+            BDBG_WRN(("tts throttle: ctx, cur, avg, min, max, InBytes, clk_adj %p, %lu, %u, %u, %u, %zu, %d",
+                        (void *)ttsThrottle, fifoDepth, ttsThrottle->status.avgBufDepth,
+                        ttsThrottle->prevMinBufDepth, ttsThrottle->prevMaxBufDepth,
+                        pumpStatus.fifoDepth, ttsThrottle->status.pacingClockAdjustment));
+        }
+        BDBG_MSG(("clk min: %ld, max: %ld, pcr_err: %d, trend_up: %d, duty: %d, mode: %d, bufDepthInXsec: %u, avgSamplesSum: %u",
               ttsThrottle->minPwmValue/TTS_PPM_TO_PWM_CONV_FACTOR,
               ttsThrottle->maxPwmValue/TTS_PPM_TO_PWM_CONV_FACTOR,
-/*                pump_status.ndpcr_two_err, */
-              pumpStatus.started,   /* TODO: temp until dpcrTwoError is added */
+              pumpStatus.pacingTsRangeError,
               ttsThrottle->trendIsUp,
               ttsThrottle->trendDutyCycle,
-              ttsThrottle->wideTrackMode));
+              ttsThrottle->wideTrackMode,
+              ttsThrottle->bufDepthInXsec,
+              ttsThrottle->avgSamplesSum));
     }
-    BDBG_WRN(("tts throttle %p: bufDepth: %u, clock_adj: %d, violation_count: %u, err_count: %u",
-              (void *)ttsThrottle, ttsThrottle->status.avgBufDepth,
-              ttsThrottle->status.pacingClockAdjustment,
-              ttsThrottle->status.bufViolationCount,
-              ttsThrottle->status.pacingErrorCount));
-#else
-#endif
 }
 
 /**
@@ -767,19 +771,17 @@ static void B_PlaybackIp_TtsThrottle_P_CalcTrendDutyCycle(
     )
 {
     /* trend avg values */
+    ttsThrottle->avgSamplesSum -= ttsThrottle->avgSamples[ttsThrottle->avgHead];
     ttsThrottle->avgSamples[ttsThrottle->avgHead] = ttsThrottle->status.avgBufDepth;
     ttsThrottle->avgSamplesSum += ttsThrottle->avgSamples[ttsThrottle->avgHead];
     if(ttsThrottle->periodCount < TTS_TREND_AVERAGING_PERIOD) {
         *trendAvgSample = ttsThrottle->avgSamplesSum/(long)(ttsThrottle->periodCount);
     }
     else {
-        ttsThrottle->avgSamplesSum -= ttsThrottle->avgSamples[ttsThrottle->avgTail];
         *trendAvgSample = ttsThrottle->avgSamplesSum/(long)(TTS_TREND_AVERAGING_PERIOD-1);
     }
     ttsThrottle->avgHead++;
     if(ttsThrottle->avgHead>=TTS_TREND_AVERAGING_PERIOD) ttsThrottle->avgHead=0;
-    ttsThrottle->avgTail++;
-    if(ttsThrottle->avgTail>=TTS_TREND_AVERAGING_PERIOD) ttsThrottle->avgTail=0;
 
     /* trend sampling values */
     ttsThrottle->trendWindow[ttsThrottle->trendHead] = *trendAvgSample;
@@ -868,11 +870,9 @@ B_PlaybackIpError B_PlaybackIp_TtsThrottle_SetCenterFreq(
      */
 
     center_freq = (PWM_CENTER_FREQUENCY+(ttsThrottle->currentPwmValue/48));
-    BDBG_WRN(("adjust center_freq: %d,%u,%u", ((int32_t)center_freq - (int32_t)0x400000) >> 2, center_freq, ttsThrottle->status.avgBufDepth ));
-
     NEXUS_Timebase_GetSettings(timebase, &timebaseSettings);
+    BDBG_MSG(("%s: adjust center_freq to 0x%x ", BSTD_FUNCTION, center_freq));
     timebaseSettings.sourceSettings.freeRun.centerFrequency = center_freq;
-
     return NEXUS_Timebase_SetSettings(timebase, &timebaseSettings);
 }
 
@@ -890,7 +890,7 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
     if (rc) BDBG_WRN(("NEXUS_Playpump_GetStatus returned error: %d", rc));
 
     if (ttsThrottle->params.bufDepthInMsec) {
-        curBufDepth = ttsThrottle->bufDepthInMsec;
+        curBufDepth = ttsThrottle->bufDepthInXsec;
     }
     else {
         curBufDepth = pumpStatus.fifoDepth;
@@ -899,7 +899,7 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
     switch(ttsThrottle->bufferState) {
     case B_PlaybackIpBufferState_eInit:
         if(curBufDepth >= initBufferDepth) {
-            BDBG_WRN(("tts throttle %p: Playpump buffer fullness established %zu (%zu), going to playing state", (void *)ttsThrottle, pumpStatus.fifoDepth, initBufferDepth));
+            BDBG_WRN(("tts throttle %p: Playpump buffer fullness established(in usec): cur=%zu init=%zu), going to playing state", (void *)ttsThrottle, curBufDepth, initBufferDepth));
             B_PlaybackIp_TtsThrottle_Pause(ttsThrottle, false);
             BKNI_Sleep(1); /* this prevents a pacing error at startup */
             NEXUS_Playpump_SuspendPacing(ttsThrottle->playPump, false);
@@ -911,7 +911,7 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
         break;
     case B_PlaybackIpBufferState_ePreCharging:
         if(curBufDepth >= initBufferDepth) {
-            BDBG_WRN(("tts throttle %p: Playpump buffer fullness restored, going to playing state", (void *)ttsThrottle));
+            BDBG_WRN(("tts throttle %p: Playpump buffer fullness restored (in usec): cur=%zu init=%zu, going to playing state", (void *)ttsThrottle, curBufDepth, initBufferDepth));
             B_PlaybackIp_TtsThrottle_Pause(ttsThrottle, false);
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePlaying;
         }
@@ -926,11 +926,11 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePreCharging;
         }
         else if(pumpStatus.fifoDepth==0) {
-            BDBG_WRN(("tts throttle: %p, Playpump buffer underflow, avgBufDepthInMsec=%zu", (void *)ttsThrottle, curBufDepth));
+            BDBG_WRN(("tts throttle: %p, Playpump buffer underflow, avgBufDepthInUsec=%zu", (void *)ttsThrottle, curBufDepth));
             NEXUS_Playpump_SuspendPacing(ttsThrottle->playPump, true);
             NEXUS_Playpump_SuspendPacing(ttsThrottle->playPump, false);
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePreCharging;
-            ttsThrottle->bufDepthInMsec = 0;
+            ttsThrottle->bufDepthInXsec = 0;
         }
         break;
     case B_PlaybackIpBufferState_ePostCharging:
@@ -946,8 +946,9 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
 void
 B_PlaybackIp_TtsThrottle_UpdateBufferDepth(
     B_PlaybackIp_TtsThrottleHandle ttsThrottle,
-    uint32_t bufDepthInMsec
+    uint32_t bufDepthInUsec
     )
 {
-    ttsThrottle->bufDepthInMsec = bufDepthInMsec;
+    BDBG_MSG(("%s: tts throttle: %p, bufDepthInUsec=%u", BSTD_FUNCTION, (void *)ttsThrottle, bufDepthInUsec));
+    ttsThrottle->bufDepthInXsec = bufDepthInUsec*USEC_SCALE_FACTOR;
 }

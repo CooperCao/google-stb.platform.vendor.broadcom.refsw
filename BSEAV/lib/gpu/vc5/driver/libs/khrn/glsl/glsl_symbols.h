@@ -127,6 +127,8 @@ struct _SymbolType {
    } u;
 };
 
+SymbolType *glsl_symbol_type_construct_array(SymbolType *member, unsigned count);
+
 /* Check that a type conversion from one type to another is valid */
 bool glsl_conversion_valid(PrimitiveTypeIndex from, PrimitiveTypeIndex to);
 
@@ -135,31 +137,18 @@ const_value glsl_single_scalar_type_conversion(PrimitiveTypeIndex to_index, Prim
 
 // Returns whether the two types are a match.
 // This is to be used within a single shader.
-bool glsl_shallow_match_nonfunction_types(const SymbolType* a, const SymbolType* b);
+bool glsl_shallow_match_nonfunction_types(const SymbolType *a, const SymbolType *b);
 
 // As above but also between shaders where we cannot rely on canonicality.
 bool glsl_deep_match_nonfunction_types(const SymbolType *a, const SymbolType *b, bool check_prec);
-
-// Finds the function symbol in a Symbol chain that matches the argument types.
-// Note array sizes are part of the type and there is no automatic promotion.
-// Returns NULL if none found.
-Symbol *glsl_resolve_overload_using_arguments(Symbol *head, ExprChain *args);
-
-// Finds the function symbol in a Symbol chain that matches the declaration.
-// Overload resolution is, like glsl_resolve_overload_using_arguments() and as per the GLSL rules,
-// based purely on argument types. However, parameter qualifiers and return type
-// have to match once an overload is found.
-// Returns NULL if none found.
-Symbol *glsl_resolve_overload_using_prototype(Symbol *head, SymbolType *prototype);
 
 // Returns whether there is a sampler or an array anywhere in the type t */
 bool glsl_type_contains(const SymbolType *t, PRIMITIVE_TYPE_FLAGS_T f);
 bool glsl_type_contains_opaque(const SymbolType *t);
 bool glsl_type_contains_array(const SymbolType *t);
 
-// There are type->scalar_count scalars in this type.
 // Gets the PrimitiveTypeIndex of scalar n.
-PrimitiveTypeIndex glsl_get_scalar_value_type_index(const SymbolType* type, unsigned int n);
+PrimitiveTypeIndex glsl_get_scalar_value_type_index(const SymbolType *type, unsigned int n);
 
 //
 // Symbols.
@@ -284,6 +273,22 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol);
 
 //
 // Function call metadata.
+//
+
+// Finds the function symbol in a Symbol chain that matches the argument types.
+// Note array sizes are part of the type and there is no automatic promotion.
+// Returns NULL if none found.
+Symbol *glsl_resolve_overload_using_arguments(Symbol *head, ExprChain *args);
+
+// Finds the function symbol in a Symbol chain that matches the declaration.
+// Overload resolution is, like glsl_resolve_overload_using_arguments() and as per the GLSL rules,
+// based purely on argument types. However, parameter qualifiers and return type
+// have to match once an overload is found.
+// Returns NULL if none found.
+Symbol *glsl_resolve_overload_using_prototype(Symbol *head, SymbolType *prototype);
+
+//
+// Symbol Lists
 //
 
 typedef struct _SymbolListNode {

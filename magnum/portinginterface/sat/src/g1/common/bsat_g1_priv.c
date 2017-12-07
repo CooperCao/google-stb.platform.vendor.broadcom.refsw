@@ -741,9 +741,6 @@ BERR_Code BSAT_g1_P_GetSoftDecisions(BSAT_ChannelHandle h, uint32_t n, int16_t *
 ******************************************************************************/
 BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
 {
-#ifdef BSAT_HAS_DVBS2X
-   BSAT_g1_P_Handle *hDevImpl = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-#endif
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
    uint32_t val;
@@ -775,6 +772,12 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
       {
          BSAT_CHK_RETCODE(BSAT_g1_P_HpEnable(h, false));
       }
+
+#ifndef BSAT_EXCLUDE_AFEC
+      BKNI_EnterCriticalSection();
+      hChn->bAfecRampEnabled = false;
+      BKNI_LeaveCriticalSection();
+#endif
 
 #ifndef BSAT_EXCLUDE_TFEC
       if (hChn->bHasTfec)
@@ -1272,13 +1275,18 @@ BERR_Code BSAT_g1_P_GetSymbolRateScanStatus(BSAT_ChannelHandle h, BSAT_SymbolRat
 ******************************************************************************/
 BERR_Code BSAT_g1_P_SetConfig(BSAT_Handle h, uint32_t addr, uint32_t val)
 {
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(addr);
-   BSTD_UNUSED(val);
+   BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle *)h->pImpl;
+   BERR_Code retCode = BERR_SUCCESS;
 
    BDBG_ENTER(BSAT_g1_P_SetConfig);
+
+   if (addr == BSAT_g1_CONFIG_AFEC_RAMP)
+   {
+      hDev->afecRampSettings = val;
+   }
+
    BDBG_LEAVE(BSAT_g1_P_SetConfig);
-   return BSAT_ERR_NOT_IMPLEMENTED;
+   return retCode;
 }
 
 
@@ -1287,13 +1295,18 @@ BERR_Code BSAT_g1_P_SetConfig(BSAT_Handle h, uint32_t addr, uint32_t val)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_GetConfig(BSAT_Handle h, uint32_t addr, uint32_t *pVal)
 {
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(addr);
-   BSTD_UNUSED(pVal);
+   BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle *)h->pImpl;
+   BERR_Code retCode = BERR_SUCCESS;
 
    BDBG_ENTER(BSAT_g1_P_GetConfig);
+
+   if (addr == BSAT_g1_CONFIG_AFEC_RAMP)
+   {
+      *pVal = hDev->afecRampSettings;
+   }
+
    BDBG_LEAVE(BSAT_g1_P_GetConfig);
-   return BSAT_ERR_NOT_IMPLEMENTED;
+   return retCode;
 }
 
 

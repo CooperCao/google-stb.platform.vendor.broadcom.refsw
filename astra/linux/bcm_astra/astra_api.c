@@ -490,7 +490,7 @@ EXPORT_SYMBOL(astra_file_read);
 
 int astra_call_smc(
     astra_client_handle hClient,
-    uint32_t ucMode)
+    astra_smc_code code)
 {
     struct astra_client *pClient = (struct astra_client *)hClient;
 
@@ -502,7 +502,7 @@ int astra_call_smc(
     /* call astra smc */
     return _astra_call_smc(
         pClient,
-        ucMode);
+        code);
 }
 EXPORT_SYMBOL(astra_call_smc);
 

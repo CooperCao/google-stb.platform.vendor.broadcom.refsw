@@ -4,10 +4,10 @@
 #include "dglenum.h"
 
 #include <string.h>
+#include "libs/util/common.h"
 #include "libs/util/assert_helpers.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include "vcos_types.h"
 
 /* I'm avoiding including any GL header to aid portability */
 

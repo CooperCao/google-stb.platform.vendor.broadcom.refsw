@@ -21,6 +21,7 @@
 
 #include "platform_common.h"
 #include "fence_queue.h"
+#include "../common/debug_helper.h"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -95,15 +96,21 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
    if (s != NULL && (void*)s != (void*)0xFFFFFFFF && info != NULL)
    {
       NEXUS_SurfaceStatus surfStatus;
-
       NEXUS_Surface_GetStatus(s->surface, &surfStatus);
+
+      NEXUS_SurfaceMemory surfMemory;
+      NEXUS_Surface_GetMemory(s->surface, &surfMemory);
+
+      NEXUS_SurfaceCreateSettings surfSettings;
+      NEXUS_Surface_GetCreateSettings(s->surface, &surfSettings);
 
       info->width          = surfStatus.width;
       info->height         = surfStatus.height;
       info->pitchBytes     = surfStatus.pitch;
       info->physicalOffset = s->physicalOffset;
       info->cachedAddr     = s->cachedPtr;
-      info->byteSize       = surfStatus.pitch * surfStatus.height;
+      info->byteSize       = surfMemory.bufferSize;
+      info->miplevels      = surfSettings.mipLevel + 1;
 
       ok = NexusToBeglFormat(&info->format, surfStatus.pixelFormat);
 
@@ -312,6 +319,7 @@ BEGL_DisplayInterface *CreateDisplayInterface(
       if (ctx != NULL)
       {
          memset(ctx, 0, sizeof(NXPL_DisplayContext));
+
 #ifdef NXPL_PLATFORM_EXCLUSIVE
          ctx->display = display;
 #endif
@@ -349,11 +357,6 @@ void DestroyDisplayInterface(BEGL_DisplayInterface *disp)
 {
    if (disp != NULL)
    {
-      NXPL_DisplayContext *ctx = (NXPL_DisplayContext *)disp->context;
-
-      if (ctx != NULL)
-         free(ctx);
-
       memset(disp, 0, sizeof(BEGL_DisplayInterface));
       free(disp);
    }
@@ -558,8 +561,9 @@ void NXPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
    {
       memset(info, 0, sizeof(BEGL_PixmapInfoEXT));
 
-      info->format = BEGL_BufferFormat_INVALID;
-      info->magic  = PIXMAP_INFO_MAGIC;
+      info->format    = BEGL_BufferFormat_INVALID;
+      info->miplevels = 1;
+      info->magic     = PIXMAP_INFO_MAGIC;
    }
 }
 
@@ -572,7 +576,7 @@ bool NXPL_CreateCompatiblePixmapEXT(NXPL_PlatformHandle handle, void **pixmapHan
    {
       assert(info->magic == PIXMAP_INFO_MAGIC);
 
-      ok = CreateSurface(s, info->format, info->width, info->height, info->secure, "Pixmap Surface");
+      ok = CreateSurface(s, info->format, info->width, info->height, info->miplevels, info->secure, "Pixmap Surface");
 
       if (ok)
       {

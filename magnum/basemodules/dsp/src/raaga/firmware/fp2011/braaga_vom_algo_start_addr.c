@@ -48,7 +48,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x30011800,
 
 		/* BDSP_AF_P_AlgoId_eAc3Decode */
-		0x30048048,
+		0x3004804c,
 
 		/* BDSP_AF_P_AlgoId_eAacDecode */
 		0x00000000,
@@ -57,7 +57,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x100c2000,
 
 		/* BDSP_AF_P_AlgoId_eDdpDecode */
-		0x30088060,
+		0x30088064,
 
 		/* BDSP_AF_P_AlgoId_eDdLosslessDecode */
 		0x00000000,

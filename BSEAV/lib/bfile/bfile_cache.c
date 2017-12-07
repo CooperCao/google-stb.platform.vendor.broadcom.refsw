@@ -1,24 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * Linear file cache
- * 
- * Revision History:
  *
- * $brcm_Log: $
- * 
  *******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -26,7 +46,7 @@
 
 BDBG_MODULE(bfile_cache);
 
-#define BDBG_MSG_TRACE(x) /* BDBG_MSG(x) */
+#define BDBG_MSG_TRACE(x) BDBG_MSG(x)
 
 
 void 
@@ -275,7 +295,7 @@ bfile_cached_segment_seek(bfile_cached_segment *segment, uint64_t offset)
 	batom_cursor_from_accum(&segment->cursor, segment->accum);
 	segment->accum_offset = offset;
 	if(offset>segment->segment.len) {
-		BDBG_WRN(("bfile_cached_segment_seek: %#lx outside of bounds %u:%u", (unsigned long)segment, (unsigned)offset, (unsigned)segment->segment.len));
+		BDBG_WRN(("bfile_cached_segment_seek: %p outside of bounds %u:%u", (void *)segment, (unsigned)offset, (unsigned)segment->segment.len));
 	}
 	return;
 }
@@ -316,27 +336,27 @@ b_file_cached_segment_convert_result(bfile_buffer_result buffer_result)
 static void 
 b_file_cached_segment_async_read_complete(void *cntx, batom_t atom, bfile_buffer_result result)
 {
-	bfile_cached_segment *segment = cntx;
+    bfile_segment_async_result async_result;
+    bfile_cached_segment *segment = cntx;
 
     BSTD_UNUSED(result);
     segment->last_read_result = result;
 	if(atom) {
 		batom_accum_add_atom(segment->accum, atom);
-	    BDBG_MSG_TRACE(("%s:%#lx read block data buffer:%#lx at %u size:%u total:%u", "b_file_cached_segment_async_read_complete", (unsigned long)segment, (unsigned long)segment->buffer, (unsigned)(segment->segment.start + segment->accum_offset+segment->async.accum_size), batom_len(atom), batom_accum_len(segment->accum)));
+	    BDBG_MSG_TRACE(("%s:%p read block data buffer:%p at %u size:%u total:%u", "b_file_cached_segment_async_read_complete", (void *)segment, (void *)segment->buffer, (unsigned)(segment->segment.start + segment->accum_offset+segment->async.accum_size), (unsigned)batom_len(atom), (unsigned)batom_accum_len(segment->accum)));
 		batom_cursor_from_accum(&segment->cursor, segment->accum);
 		batom_release(atom);
-		segment->async.read_complete(segment->async.cntx, b_file_cached_segment_convert_result(result));
 	} else {
-        bfile_segment_async_result async_result;
-	    BDBG_MSG_TRACE(("%s:%#lx read block failed buffer:%#lx at %u size:%u accum:%u", "b_file_cached_segment_async_read_complete", (unsigned long)segment, (unsigned long)segment->buffer, (unsigned)(segment->segment.start + segment->accum_offset+segment->async.accum_size), segment->async.load_size, batom_accum_len(segment->accum)));
-        async_result = b_file_cached_segment_convert_result(result);
-        if(async_result==bfile_segment_async_result_eof) {
-            if(batom_accum_len(segment->accum)>=segment->async.reserve_size) {
-                async_result=bfile_segment_async_result_success;
-            }
+	    BDBG_MSG_TRACE(("%s:%p read block failed buffer:%p at %u size:%u accum:%u", "b_file_cached_segment_async_read_complete", (void *)segment, (void *)segment->buffer, (unsigned)(segment->segment.start + segment->accum_offset+segment->async.accum_size), (unsigned)segment->async.load_size, (unsigned)batom_accum_len(segment->accum)));
+    }
+    async_result=b_file_cached_segment_convert_result(result);
+    if(async_result==bfile_segment_async_result_no_data || async_result==bfile_segment_async_result_eof) {
+        if(batom_accum_len(segment->accum)>=segment->async.reserve_size) {
+            async_result=bfile_segment_async_result_success;
         }
-		segment->async.read_complete(segment->async.cntx, b_file_cached_segment_convert_result(result));
-	}
+    }
+    segment->async.read_complete(segment->async.cntx, async_result);
+    return;
 }
 
 bfile_segment_async_result
@@ -365,13 +385,13 @@ bfile_cached_segment_async_reserve(bfile_cached_segment *segment, size_t reserve
 	}
 	if(segment->accum_offset + load_size >  segment->segment.len) { /* don't read outside of segment boundary */
 		if(segment->segment.len <= segment->accum_offset) {
-			BDBG_MSG_TRACE(("%s:%#lx end of data %u:%u", "bfile_cached_segment_async_reserve", (unsigned long)segment, (unsigned)segment->segment.len, (unsigned)segment->accum_offset));
+			BDBG_MSG_TRACE(("%s:%p end of data %u:%u", "bfile_cached_segment_async_reserve", (void *)segment, (unsigned)segment->segment.len, (unsigned)segment->accum_offset));
 			return bfile_segment_async_result_eof;
 		}
 		load_size = segment->segment.len - segment->accum_offset;
 		BDBG_ASSERT(load_size>0);
 	}
-	BDBG_MSG_TRACE(("%s:%#lx reading block data buffer:%#lx at %u size:%u", "bfile_cached_segment_async_reserve", (unsigned long)segment, (unsigned long)segment->buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), load_size));
+	BDBG_MSG_TRACE(("%s:%p reading block data buffer:%p at %u size:%u", "bfile_cached_segment_async_reserve", (void *)segment, (void *)segment->buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), (unsigned)load_size));
 	segment->async.accum_size = accum_size;
 	segment->async.load_size = load_size;
 	segment->async.cntx = cntx;
@@ -379,7 +399,7 @@ bfile_cached_segment_async_reserve(bfile_cached_segment *segment, size_t reserve
 	atom = bfile_buffer_async_read(segment->buffer, segment->segment.start + segment->accum_offset + accum_size, load_size, &segment->last_read_result, b_file_cached_segment_async_read_complete, segment);
 	if(segment->last_read_result == bfile_buffer_result_ok && atom) {
 		batom_accum_add_atom(segment->accum, atom);
-	    BDBG_MSG_TRACE(("%s:%#lx read block data buffer:%#lx at %u size:%u total:%u", "bfile_cached_segment_async_reserve", (unsigned long)segment, (unsigned long)segment->buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), batom_len(atom), batom_accum_len(segment->accum)));
+	    BDBG_MSG_TRACE(("%s:%p read block data buffer:%p at %u size:%u total:%u", "bfile_cached_segment_async_reserve", (void *)segment, (void *)segment->buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), (unsigned)batom_len(atom), (unsigned)batom_accum_len(segment->accum)));
 		batom_cursor_from_accum(&segment->cursor, segment->accum);
 		batom_release(atom);
 		return bfile_segment_async_result_success;
@@ -420,21 +440,21 @@ bfile_cached_segment_reserve_custom_buffer_min(bfile_cached_segment *segment, si
 	}
 	if(segment->accum_offset + load_size >  segment->segment.len) { /* don't read outside of segment boundary */
 		if(segment->segment.len <= segment->accum_offset) {
-			BDBG_MSG_TRACE(("%s:%#lx end of data %u:%u", "bfile_cached_segment_reserve_custom_buffer_min", (unsigned long)segment, (unsigned)segment->segment.len, (unsigned)segment->accum_offset));
+			BDBG_MSG_TRACE(("%s:%p end of data %u:%u", "bfile_cached_segment_reserve_custom_buffer_min", (void *)segment, (unsigned)segment->segment.len, (unsigned)segment->accum_offset));
 			return false;
 		}
 		load_size = segment->segment.len - segment->accum_offset;
 		BDBG_ASSERT(load_size>0);
 	}
-	BDBG_MSG_TRACE(("%s:%#lx reading block data buffer:%#lx at %u size:%u(%u:%u)", "bfile_cached_segment_reserve_custom_buffer_min", (unsigned long)segment, (unsigned long)buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), load_size, reserve_size, min_size));
+	BDBG_MSG_TRACE(("%s:%p reading block data buffer:%p at %u size:%u(%u:%u)", "bfile_cached_segment_reserve_custom_buffer_min", (void *)segment, (void *)buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), (unsigned)load_size, (unsigned)reserve_size, (unsigned)min_size));
 	atom = bfile_buffer_read(buffer, segment->segment.start + segment->accum_offset + accum_size, load_size, &segment->last_read_result);
 	if(atom) {
 		batom_accum_add_atom(segment->accum, atom);
-	    BDBG_MSG_TRACE(("%s:%#lx read block data buffer:%#lx at %u size:%u total:%u", "bfile_cached_segment_reserve_custom_buffer_min", (unsigned long)segment, (unsigned long)buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), batom_len(atom), batom_accum_len(segment->accum)));
+	    BDBG_MSG_TRACE(("%s:%p read block data buffer:%p at %u size:%u total:%u", "bfile_cached_segment_reserve_custom_buffer_min", (void *)segment, (void *)buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), (unsigned)batom_len(atom), (unsigned)batom_accum_len(segment->accum)));
 		batom_cursor_from_accum(&segment->cursor, segment->accum);
 		batom_release(atom);
 	} else {
-	    BDBG_MSG_TRACE(("%s:%#lx read block failed buffer:%#lx at %u size:%u(%u) result:%u accum:%u", "bfile_cached_segment_reserve_custom_buffer_min", (unsigned long)segment, (unsigned long)buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), load_size, min_size, segment->last_read_result, batom_accum_len(segment->accum)));
+	    BDBG_MSG_TRACE(("%s:%p read block failed buffer:%p at %u size:%u(%u) result:%u accum:%u", "bfile_cached_segment_reserve_custom_buffer_min", (void *)segment, (void *)buffer, (unsigned)(segment->segment.start + segment->accum_offset+accum_size), (unsigned)load_size, (unsigned)min_size, segment->last_read_result, (unsigned)batom_accum_len(segment->accum)));
 	}
     return batom_accum_len(segment->accum)>=min_size;
 }

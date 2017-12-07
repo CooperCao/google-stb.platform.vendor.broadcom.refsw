@@ -122,7 +122,6 @@ localclean:
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 .PHONY : examples
 examples: all
-	$(Q_)export WIDEVINE_SUPPORT=$(WIDEVINE_SUPPORT); \
 	$(MAKE) -C ./examples
 
 

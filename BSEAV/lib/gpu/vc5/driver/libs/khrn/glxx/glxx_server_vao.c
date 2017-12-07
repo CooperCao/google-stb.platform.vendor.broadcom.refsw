@@ -19,7 +19,7 @@
 static void glxx_vao_term(void *v, size_t size)
 {
    GLXX_VAO_T *vao = v;
-   vcos_unused(size);
+   unused(size);
 
    KHRN_MEM_ASSIGN(vao->element_array_binding.obj, NULL);
    for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS; i++)

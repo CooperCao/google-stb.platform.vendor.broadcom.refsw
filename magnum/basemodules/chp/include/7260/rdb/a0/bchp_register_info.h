@@ -44,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri May 26 15:56:45 2017
- *                 Full Compile MD5 Checksum  f5e63307e5dcf1369c866f7e71f68daa
+ * Date:           Generated on               Fri Sep 15 15:10:46 2017
+ *                 Full Compile MD5 Checksum  fadda65533ef91f692b9aea88b2e6d59
  *                     (minus title and desc)
- *                 MD5 Checksum               c4c446cddb09eae8aa92810408526a00
+ *                 MD5 Checksum               3f6c833f83bfd224f4634628787eba7a
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1481
+ *                 RDB.pm                     1749
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
+ *                 Script Source              home/pt902453/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pt902453/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -24263,6 +24263,23 @@ BCHP_REGISTER(0x20a74b50, 32,  RW, XPT_MCPB_CH31, DCPM_DATA_ADDR_SLOT_0_LOWER)
 BCHP_REGISTER(0x20a74b54, 32,  RW, XPT_MCPB_CH31, DCPM_DESC_ADDR_SLOT_1)
 BCHP_REGISTER(0x20a74b58, 32,  RW, XPT_MCPB_CH31, DCPM_DATA_ADDR_SLOT_1_UPPER)
 BCHP_REGISTER(0x20a74b5c, 32,  RW, XPT_MCPB_CH31, DCPM_DATA_ADDR_SLOT_1_LOWER)
+BCHP_REGISTER(0x20a78000, 32,  RW, XPT_XPU, TESTREG)
+BCHP_REGISTER(0x20a78004, 32,  RW, XPT_XPU, PSW)
+BCHP_REGISTER(0x20a78008, 32,  RW, XPT_XPU, PSWSH)
+BCHP_REGISTER(0x20a78010, 32,  RW, XPT_XPU, SP)
+BCHP_REGISTER(0x20a78018, 32,  RW, XPT_XPU, PC)
+BCHP_REGISTER(0x20a78020, 32,  RW, XPT_XPU, STACK_0)
+BCHP_REGISTER(0x20a78024, 32,  RW, XPT_XPU, STACK_1)
+BCHP_REGISTER(0x20a78028, 32,  RW, XPT_XPU, STACK_2)
+BCHP_REGISTER(0x20a7802c, 32,  RW, XPT_XPU, STACK_3)
+BCHP_REGISTER(0x20a78030, 32,  RW, XPT_XPU, REG_R0_R1)
+BCHP_REGISTER(0x20a78034, 32,  RW, XPT_XPU, REG_R2_R3)
+BCHP_REGISTER(0x20a78038, 32,  RW, XPT_XPU, REG_R4_R5)
+BCHP_REGISTER(0x20a7803c, 32,  RW, XPT_XPU, REG_R6_R7)
+BCHP_REGISTER(0x20a78040, 32,  RW, XPT_XPU, REG_R8_R9)
+BCHP_REGISTER(0x20a78044, 32,  RW, XPT_XPU, REG_R10_R11)
+BCHP_REGISTER(0x20a78048, 32,  RW, XPT_XPU, REG_R12_R13)
+BCHP_REGISTER(0x20a7804c, 32,  RW, XPT_XPU, REG_R14_R15)
 BCHP_REGISTER(0x20a7f000, 32,  RW, XPT_SECURE_BUS_IF, DUMMY)
 BCHP_REGISTER(0x20b00000, 32,  RO, USB_CAPS, USB_EHCI_CAPS)
 BCHP_REGISTER(0x20b00004, 32,  RO, USB_CAPS, USB_OHCI_CAPS)
@@ -29273,7 +29290,7 @@ BCHP_REGISTER(0x21308f08, 32,  RO, V3D_ERR_0, FDBGB)
 BCHP_REGISTER(0x21308f0c, 32,  RO, V3D_ERR_0, FDBGR)
 BCHP_REGISTER(0x21308f10, 32,  RO, V3D_ERR_0, FDBGS)
 BCHP_REGISTER(0x21308f20, 32,  RO, V3D_ERR_0, STAT)
-BCHP_REGISTER(0x2130a000, 32,  RO, V3D_QPUDBG_0, STS1)
+BCHP_REGISTER(0x2130a000, 32,  RW, V3D_QPUDBG_0, STS1)
 BCHP_REGISTER(0x2130a004, 32,  RO, V3D_QPUDBG_0, STS2)
 BCHP_REGISTER(0x2130a008, 32,  RO, V3D_QPUDBG_0, ALLSTS)
 BCHP_REGISTER(0x2130a00c, 32,  RO, V3D_QPUDBG_0, VER)

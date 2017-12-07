@@ -50,57 +50,6 @@ Summary:
 **/
 typedef struct NEXUS_VideoEncoder *NEXUS_VideoEncoderHandle;
 
-
-/**
-Summary:
-**/
-typedef enum NEXUS_VideoCodecLevel {
-   NEXUS_VideoCodecLevel_eUnknown = 0,
-   NEXUS_VideoCodecLevel_e00,
-   NEXUS_VideoCodecLevel_e10,
-   NEXUS_VideoCodecLevel_e1B,
-   NEXUS_VideoCodecLevel_e11,
-   NEXUS_VideoCodecLevel_e12,
-   NEXUS_VideoCodecLevel_e13,
-   NEXUS_VideoCodecLevel_e20,
-   NEXUS_VideoCodecLevel_e21,
-   NEXUS_VideoCodecLevel_e22,
-   NEXUS_VideoCodecLevel_e30,
-   NEXUS_VideoCodecLevel_e31,
-   NEXUS_VideoCodecLevel_e32,
-   NEXUS_VideoCodecLevel_e40,
-   NEXUS_VideoCodecLevel_e41,
-   NEXUS_VideoCodecLevel_e42,
-   NEXUS_VideoCodecLevel_e50,
-   NEXUS_VideoCodecLevel_e51,
-   NEXUS_VideoCodecLevel_e60,
-   NEXUS_VideoCodecLevel_e62,
-   NEXUS_VideoCodecLevel_eLow,
-   NEXUS_VideoCodecLevel_eMain,
-   NEXUS_VideoCodecLevel_eHigh,
-   NEXUS_VideoCodecLevel_eHigh1440,
-   NEXUS_VideoCodecLevel_eMax
-} NEXUS_VideoCodecLevel;
-
-/**
-Summary:
-**/
-typedef enum NEXUS_VideoCodecProfile
-{
-   NEXUS_VideoCodecProfile_eUnknown = 0,
-   NEXUS_VideoCodecProfile_eSimple,
-   NEXUS_VideoCodecProfile_eMain,
-   NEXUS_VideoCodecProfile_eHigh,
-   NEXUS_VideoCodecProfile_eAdvanced,
-   NEXUS_VideoCodecProfile_eJizhun,
-   NEXUS_VideoCodecProfile_eSnrScalable,
-   NEXUS_VideoCodecProfile_eSpatiallyScalable,
-   NEXUS_VideoCodecProfile_eAdvancedSimple,
-   NEXUS_VideoCodecProfile_eBaseline,
-
-   NEXUS_VideoCodecProfile_eMax
-} NEXUS_VideoCodecProfile;
-
 /**
 Summary:
 **/
@@ -144,6 +93,8 @@ typedef struct NEXUS_VideoEncoderMemory {
     bool interlaced;
     unsigned maxWidth, maxHeight;
     NEXUS_VideoFrameRate maxFrameRate;
+    bool dynamicPictureBuffers; /* If true, alloc from picture buffer at start time (specifically, NEXUS_VideoWindow_AddInput).
+                                   This allows for video/graphics memory sharing at the risk of OOM due to fragmentation. */
 } NEXUS_VideoEncoderMemory;
 
 typedef struct NEXUS_VideoEncoderModuleSettings

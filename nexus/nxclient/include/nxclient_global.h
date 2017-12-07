@@ -54,6 +54,7 @@
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_processing_types.h"
 #include "nexus_audio_mixer.h"
+#include "nexus_audio_equalizer.h"
 #endif
 #include "nexus_core_compat.h"
 
@@ -112,6 +113,13 @@ typedef enum NxClientAudioCodecSupport
     NxClientAudioCodecSupport_eMax
 } NxClientAudioCodecSupport;
 
+typedef struct NxClient_AudioEqualizer
+{
+    unsigned numStages; /* Number of equalizer stages to be applied to output */
+    NEXUS_AudioEqualizerStageSettings stageSettings[NEXUS_MAX_AUDIO_STAGES_PER_EQUALIZER]; /* Stage Settings each stage uses an SRC.
+                                                                                  Best case senario NUM_MAX stages could be set */
+} NxClient_AudioEqualizer;
+
 typedef struct NxClient_AudioOutputSettings
 {
     NxClient_AudioOutputMode outputMode; /* Preferred format. Reverts to ePcm if mode not possible. */
@@ -131,6 +139,7 @@ typedef struct NxClient_AudioOutputSettings
                                                                             Will affect eAuto, ePassthrough, eTranscode as well as how we fall back if things are not supported.
                                                                             As long as the transcode codec is supported (via edid or through this) transcode will could still be possible.
                                                                             Only applies to HDMI and spdif. */
+    NxClient_AudioEqualizer equalizer; /* Equalizer settings */
 } NxClient_AudioOutputSettings;
 
 /**

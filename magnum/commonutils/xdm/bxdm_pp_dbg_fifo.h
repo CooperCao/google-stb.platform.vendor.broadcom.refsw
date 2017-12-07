@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,24 +55,93 @@ extern "C" {
 }
 #endif
 
-#if BDBG_DEBUG_BUILD && BXDM_DEBUG_FIFO
+#if BDBG_DEBUG_BUILD
 
 /*
  * The routines for pulling data off the debug fifo.
  */
-void BXDM_PictureProvider_ReadFifo_isrsafe(
+void BXDM_PictureProvider_Debug_DumpFifo_isrsafe(
    BXDM_PictureProvider_Handle hXdmPP
    );
 
-void BXDM_PictureProvider_PrintEntry_isrsafe(
+void BXDM_PictureProvider_Debug_PrintFifoEntry_isrsafe(
    BXDM_P_DebugFifo_Entry * pstEntry
    );
 
+int BXDM_PictureProvider_Debug_FormatMsg_MFD1_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
+
+int BXDM_PictureProvider_Debug_FormatMsg_MFD2_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
+
+int BXDM_PictureProvider_Debug_FormatMsg_MFD3_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
+
+int BXDM_PictureProvider_Debug_FormatMsg_PPQM_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
+
+int BXDM_PictureProvider_Debug_FormatMsg_PPQM_Bonus_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
+
+int BXDM_PictureProvider_Debug_FormatMsg_PPDBG_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
+
+int BXDM_PictureProvider_Debug_FormatMsg_Config1_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
+
+int BXDM_PictureProvider_Debug_FormatMsg_Config2_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
+
+int BXDM_PictureProvider_Debug_FormatMsg_Config3_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
+
+int BXDM_PictureProvider_Debug_FormatMsg_Config4_isrsafe(
+   const BXDM_P_DebugFifo_Entry * pstEntry,
+   char *szMessage,
+   size_t uiSize
+   );
 
 #else  /* Non-DEBUG build */
 
-#define BXDM_PictureProvider_ReadFifo_isrsafe( hXdmPP )
-#define BXDM_PictureProvider_PrintEntry_isrsafe( pstEntry )
+#define BXDM_PictureProvider_Debug_DumpFifo_isrsafe( hXdmPP )
+#define BXDM_PictureProvider_Debug_PrintFifoEntry_isrsafe( pstEntry )
+#define BXDM_PictureProvider_Debug_FormatMsg_PPDBG_isrsafe( pstEntry, szMessage, uiSize )
+#define BXDM_PictureProvider_Debug_FormatMsg_MFD1_isrsafe( pstEntry, szMessage, uiSize )
+#define BXDM_PictureProvider_Debug_FormatMsg_MFD2_isrsafe( pstEntry, szMessage, uiSize )
+#define BXDM_PictureProvider_Debug_FormatMsg_MFD3_isrsafe( pstEntry, szMessage, uiSize )
+#define BXDM_PictureProvider_Debug_FormatMsg_PPQM_isrsafe( pstEntry, szMessage, uiSize )
+#define BXDM_PictureProvider_Debug_FormatMsg_PPQM_Bonus_isrsafe( pstEntry, szMessage, uiSize )
+#define BXDM_PictureProvider_Debug_FormatMsg_Config1_isrsafe( pstEntry, szMessage, uiSize )
+#define BXDM_PictureProvider_Debug_FormatMsg_Config2_isrsafe( pstEntry, szMessage, uiSize )
+#define BXDM_PictureProvider_Debug_FormatMsg_Config3_isrsafe( pstEntry, szMessage, uiSize )
+#define BXDM_PictureProvider_Debug_FormatMsg_Config4_isrsafe( pstEntry, szMessage, uiSize )
 
 #endif
 

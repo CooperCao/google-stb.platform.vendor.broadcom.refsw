@@ -95,16 +95,13 @@ end:
 void GL_APIENTRY glGetSynciv (GLsync fsync_id, GLenum pname, GLsizei bufSize,
       GLsizei *length, GLint *values)
 {
-   GLXX_SERVER_STATE_T  *state;
-   GLXX_FENCESYNC_T *fsync;
-   unsigned val_count;
    GLenum error = GL_NO_ERROR;
 
-   state = glxx_lock_server_state(OPENGL_ES_3X);
-
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
    {
-      state = glxx_lock_server_state_changed_even_if_reset(OPENGL_ES_3X);
+      /* If the context is lost, we're not going to change it */
+      state = glxx_lock_server_state_unchanged_even_if_reset(OPENGL_ES_3X);
       if (!state)
          return;
 
@@ -116,7 +113,7 @@ void GL_APIENTRY glGetSynciv (GLsync fsync_id, GLenum pname, GLsizei bufSize,
       goto end;
    }
 
-   fsync = glxx_shared_get_fencesync(state->shared, fsync_id);
+   GLXX_FENCESYNC_T *fsync = glxx_shared_get_fencesync(state->shared, fsync_id);
    if (!fsync)
    {
       error = GL_INVALID_VALUE;
@@ -136,7 +133,7 @@ void GL_APIENTRY glGetSynciv (GLsync fsync_id, GLenum pname, GLsizei bufSize,
       goto end;
    }
 
-   val_count = 0;
+   unsigned val_count = 0;
    switch (pname)
    {
       case GL_OBJECT_TYPE:
@@ -194,16 +191,11 @@ GLenum GL_APIENTRY glClientWaitSync (GLsync fsync_id, GLbitfield flags,
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T  *state;
-   GLXX_FENCESYNC_T *fsync;
    GLXX_FENCESYNC_T *fsync_temp = NULL;
    GLenum error = GL_NO_ERROR;
    GLenum result = GL_WAIT_FAILED;
-   int platform_fence;
-   int timeout_ms;
-   enum v3d_fence_status status;
 
-   state = glxx_lock_server_state(OPENGL_ES_3X);
+   GLXX_SERVER_STATE_T* state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return result;
 
@@ -213,7 +205,7 @@ GLenum GL_APIENTRY glClientWaitSync (GLsync fsync_id, GLbitfield flags,
       goto end;
    }
 
-   fsync = glxx_shared_get_fencesync(state->shared, fsync_id);
+   GLXX_FENCESYNC_T* fsync = glxx_shared_get_fencesync(state->shared, fsync_id);
    if (!fsync)
    {
       error = GL_INVALID_VALUE;
@@ -226,8 +218,7 @@ GLenum GL_APIENTRY glClientWaitSync (GLsync fsync_id, GLbitfield flags,
       goto end;
    }
 
-   timeout_ms = nanosec_to_trunc_ms(timeout);
-
+   int timeout_ms = nanosec_to_trunc_ms(timeout);
    if (timeout_ms == 0)
    {
       khrn_fence_flush(fsync->fence);
@@ -235,30 +226,29 @@ GLenum GL_APIENTRY glClientWaitSync (GLsync fsync_id, GLbitfield flags,
       goto end;
    }
 
-   platform_fence = khrn_fence_get_platform_fence(fsync->fence,
-         GLXX_FENCESYNC_SIGNALED_DEPS_STATE, /*force_create=*/false);
-
    /* get a reference to the object in case it gets deleted while we do not
     * hold the lock */
    khrn_mem_acquire(fsync);
    fsync_temp = fsync;
 
+   v3d_scheduler_deps fence_deps;
+   v3d_scheduler_copy_deps(&fence_deps, khrn_fence_get_deps(fsync->fence));
+
    glxx_unlock_server_state();
-   status = v3d_platform_fence_wait_timeout(platform_fence, timeout_ms);
+   bool wait_ok = v3d_scheduler_wait_jobs_timeout(&fence_deps, GLXX_FENCESYNC_SIGNALED_DEPS_STATE, timeout_ms);
    state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+   {
+      khrn_mem_release(fsync_temp);
+      return GL_WAIT_FAILED;
+   }
 
-   /* for the moment, close the fence; in the future, it might be useful to
-    * keep the platform fence in glxx_fencesync and just close it when the last
-    * ref_count of that object get released */
-   v3d_platform_fence_close(platform_fence);
-
-   if (status == V3D_FENCE_TIMEOUT)
+   if (!wait_ok)
    {
       result = GL_TIMEOUT_EXPIRED;
       goto end;
    }
 
-   assert(status == V3D_FENCE_SIGNALED);
    glxx_fencesync_set_signaled(fsync_temp);
    result = GL_CONDITION_SATISFIED;
 

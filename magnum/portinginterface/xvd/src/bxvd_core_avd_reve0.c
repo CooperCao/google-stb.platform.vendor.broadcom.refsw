@@ -712,21 +712,52 @@ BERR_Code BXVD_P_SetupFWMemory_RevE0(BXVD_Handle hXvd)
    BMMA_AllocationSettings sBMMASettings;
 #endif
 
+   uint32_t uiFWBlockOffset = 0;
    BERR_Code rc = BERR_SUCCESS;
 
    BDBG_ENTER(BXVD_P_SetupFWMemory_RevE0);
 
    BDBG_ASSERT(hXvd);
 
-   /* Allocate FW programs memory */
-   if (hXvd->hFirmwareHeap != hXvd->hGeneralHeap)
+#if BXVD_P_FW_HIM_API
+   if ((hXvd->stSettings.uiFirmwareBlockSize != 0) && (hXvd->stSettings.hFirmwareBlock != 0 ))
    {
-      hXvd->uiFWMemSize = BXVD_P_FW_IMAGE_SIZE + BXVD_P_FW_IMAGE_SIGN_SIZE;
+      hXvd->hFWMemBlock = hXvd->stSettings.hFirmwareBlock;
+      hXvd->uiFWMemSize = hXvd->stSettings.uiFirmwareBlockSize;
+      uiFWBlockOffset = hXvd->stSettings.uiFirmwareBlockOffset;
+
+#if BXVD_P_CORE_REVISION_NUM >= 14
+      hXvd->hFWCmdBlock = BMMA_Alloc(hXvd->hFirmwareHeap, 256, 256, NULL);
+
+      if (hXvd->hFWCmdBlock == 0)
+      {
+         BXVD_DBG_ERR(hXvd, ("Insufficient device memory for FW command buffer"));
+         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+      }
+
+      hXvd->uiFWCmdVirtAddr = (unsigned long) BMMA_Lock(hXvd->hFWCmdBlock);
+
+      if (hXvd->uiFWCmdVirtAddr == 0)
+      {
+         BXVD_DBG_ERR(hXvd, ("Insufficient device memory, FW command buffer can not be locked!"));
+         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+      }
+
+      hXvd->FWCmdPhyAddr =  BMMA_LockOffset(hXvd->hFWCmdBlock);
+#endif
    }
    else
+#endif
    {
-      hXvd->uiFWMemSize = BXVD_P_FW_IMAGE_SIZE;
-   }
+      /* Allocate FW programs memory */
+      if (hXvd->hFirmwareHeap != hXvd->hGeneralHeap)
+      {
+         hXvd->uiFWMemSize = BXVD_P_FW_IMAGE_SIZE + BXVD_P_FW_IMAGE_SIGN_SIZE;
+      }
+      else
+      {
+         hXvd->uiFWMemSize = BXVD_P_FW_IMAGE_SIZE;
+      }
 
 #if BXVD_P_FW_HIM_API
       pBMMASettings = NULL;
@@ -738,16 +769,17 @@ BERR_Code BXVD_P_SetupFWMemory_RevE0(BXVD_Handle hXvd)
       pBMMASettings = &sBMMASettings;
 #endif
 
-   hXvd->hFWMemBlock = BMMA_Alloc(hXvd->hFirmwareHeap, hXvd->uiFWMemSize, 4096, pBMMASettings);
+      hXvd->hFWMemBlock = BMMA_Alloc(hXvd->hFirmwareHeap, hXvd->uiFWMemSize, 4096, pBMMASettings);
 
-   if (hXvd->hFWMemBlock == 0)
-   {
-      BXVD_DBG_ERR(hXvd, ("Insufficient device memory for FW program"));
-      return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+      if (hXvd->hFWMemBlock == 0)
+      {
+         BXVD_DBG_ERR(hXvd, ("Insufficient device memory for FW program"));
+         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+      }
    }
 
    /* Allocate FW programs memory */
-   hXvd->uiFWMemBaseVirtAddr = (unsigned long) BMMA_Lock(hXvd->hFWMemBlock);
+   hXvd->uiFWMemBaseVirtAddr = (unsigned long) BMMA_Lock(hXvd->hFWMemBlock) + uiFWBlockOffset;
 
    if (hXvd->uiFWMemBaseVirtAddr == 0)
    {
@@ -755,7 +787,7 @@ BERR_Code BXVD_P_SetupFWMemory_RevE0(BXVD_Handle hXvd)
       return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
    }
 
-   hXvd->FWMemBasePhyAddr = (BXVD_P_PHY_ADDR) BMMA_LockOffset(hXvd->hFWMemBlock);
+   hXvd->FWMemBasePhyAddr = (BXVD_P_PHY_ADDR) BMMA_LockOffset(hXvd->hFWMemBlock) + uiFWBlockOffset;
 
    if (hXvd->FWMemBasePhyAddr == 0)
    {
@@ -764,7 +796,7 @@ BERR_Code BXVD_P_SetupFWMemory_RevE0(BXVD_Handle hXvd)
    }
 
 #if !BXVD_P_FW_HIM_API
-   hXvd->uiFWMemBaseUncachedVirtAddr = (uint32_t) BMMA_GetUncached(hXvd->hFWMemBlock);
+   hXvd->uiFWMemBaseUncachedVirtAddr = (uint32_t) BMMA_GetUncached(hXvd->hFWMemBlock} + uiFWBlockOffset;
 #endif
 
    /* We set the Allocated flag to true, so that we know to free
@@ -1067,12 +1099,21 @@ BERR_Code BXVD_P_TearDownFWMemory_RevE0(BXVD_Handle hXvd)
       BMMA_Free(hXvd->hFWPicMem1Block);
    }
 
-   if (hXvd->hFWMemBlock != NULL)
+   if (hXvd->hFWMemBlock != NULL && hXvd->stSettings.hFirmwareBlock == NULL)
    {
       BMMA_Unlock(hXvd->hFWMemBlock, (void *)hXvd->uiFWMemBaseVirtAddr);
       BMMA_UnlockOffset(hXvd->hFWMemBlock, hXvd->FWMemBasePhyAddr);
       BMMA_Free(hXvd->hFWMemBlock);
    }
+
+#if BXVD_P_FW_HIM_API && (BXVD_P_CORE_REVISION_NUM >= 14)
+   if (hXvd->hFWCmdBlock != NULL)
+   {
+      BMMA_Unlock(hXvd->hFWCmdBlock, (void *) hXvd->uiFWCmdVirtAddr);
+      BMMA_UnlockOffset(hXvd->hFWCmdBlock, hXvd->FWCmdPhyAddr);
+      BMMA_Free(hXvd->hFWCmdBlock);
+   }
+#endif
 
    if (hXvd->hFWDbgBuf_MemBlock != NULL)
    {
@@ -1176,7 +1217,6 @@ BERR_Code BXVD_P_ChipEnable_RevE0(BXVD_Handle hXvd)
                        0);
    }
 
-#define FW_CMD_TIMEOUT 1000
 
 #if !BXVD_POLL_FW_MBX
 

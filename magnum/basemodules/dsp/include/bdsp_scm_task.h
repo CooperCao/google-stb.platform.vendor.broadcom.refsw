@@ -48,7 +48,6 @@
 #include "bdsp_raaga_fw_settings.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_status.h"
-#include "bdsp_raaga_cmdresp_priv.h"
 
 /* API for Host to route SCM commands into Firmware */
 BERR_Code BDSP_Scm_sendScmCommand(

@@ -38,6 +38,7 @@
 
 #include "nexus_platform.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 #if NEXUS_HAS_VIDEO_DECODER && NEXUS_HAS_AUDIO && NEXUS_HAS_PLAYBACK
 #include "nexus_video_decoder.h"

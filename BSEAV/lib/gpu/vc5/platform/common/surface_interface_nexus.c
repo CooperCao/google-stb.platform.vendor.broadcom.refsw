@@ -8,7 +8,7 @@ static bool create_surface(void *context, void *surface, uint32_t width,
       uint32_t height, BEGL_BufferFormat format, bool secure)
 {
    return CreateSurface((NXPL_Surface *) surface, format, width, height,
-         secure, "swapchain surface");
+         /* miplevels */ 1, secure, "swapchain surface");
 }
 
 static void destroy_surface(void *context, void *surface)

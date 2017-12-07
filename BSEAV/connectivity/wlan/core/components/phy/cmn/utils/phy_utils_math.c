@@ -43,10 +43,11 @@ phy_utils_computedB(uint32 *cmplx_pwr, int8 *p_cmplx_pwr_dB, uint8 core)
 				msb = shift_ct;
 		}
 
-		if (msb != 0) {
+		if (msb >= 1)
 			secondmsb = (uint8)((cmplx_pwr[i] >> (msb - 1)) & 1);
+
+		if (msb >= 2)
 			thirdmsb = (uint8)((cmplx_pwr[i] >> (msb - 2)) & 1);
-		}
 
 		p_cmplx_pwr_dB[i] = (int8)(3*msb + 2*secondmsb + thirdmsb);
 		PHY_INFORM(("wlc_phy_compute_dB: p_cmplx_pwr_dB[%d] %d\n", i, p_cmplx_pwr_dB[i]));

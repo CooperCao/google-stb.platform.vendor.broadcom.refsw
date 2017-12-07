@@ -56,6 +56,9 @@ bool NexusToBeglFormat(BEGL_BufferFormat *result, NEXUS_PixelFormat format)
    case NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:
       *result = BEGL_BufferFormat_eBSTC;
       break;
+   case NEXUS_PixelFormat_eUIF_R8_G8_B8_A8:
+      *result = BEGL_BufferFormat_eTILED;
+      break;
 #ifdef YV12_NEXUS_TESTING
    case NEXUS_PixelFormat_eA8_Y8:
       // Note: There is no Nexus equivalent for YV12. We will use a 16-bit format that we don't
@@ -124,6 +127,9 @@ bool BeglToNexusFormat(NEXUS_PixelFormat *result, BEGL_BufferFormat format)
    case BEGL_BufferFormat_eBSTC:
       *result = NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8;
       break;
+   case BEGL_BufferFormat_eTILED:
+      *result = NEXUS_PixelFormat_eUIF_R8_G8_B8_A8;
+      break;
 #ifdef YV12_NEXUS_TESTING
    case BEGL_BufferFormat_eYV12:
       // Note: There is no Nexus equivalent for YV12. We will use a 16-bit format that we don't
@@ -147,6 +153,7 @@ int BeglFormatNumBytes(BEGL_BufferFormat format)
    case BEGL_BufferFormat_eR8G8B8A8:
    case BEGL_BufferFormat_eX8B8G8R8:
    case BEGL_BufferFormat_eR8G8B8X8:
+   case BEGL_BufferFormat_eTILED:
       return 4;
    case BEGL_BufferFormat_eR5G6B5:
    case BEGL_BufferFormat_eR4G4B4A4:

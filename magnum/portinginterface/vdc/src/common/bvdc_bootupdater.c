@@ -114,13 +114,6 @@ BERR_Code BVDC_Open
         BKNI_Memset((void*)&pVdc->stSettings.stHeapSettings, 0x0, sizeof(BVDC_Heap_Settings));
     }
 
-    /* Initialize box modes */
-    eStatus = BBOX_GetConfig(pVdc->stSettings.hBox, &pVdc->stBoxConfig);
-    if (eStatus != BERR_SUCCESS)
-    {
-        BDBG_ERR(("Failed to get Box settings."));
-    }
-
     /* Do we need to swap the CMP/VEC. */
     pVdc->bSwapVec = (
         (pVdc->stSettings.bVecSwap) &&
@@ -452,6 +445,124 @@ BERR_Code BVDC_Source_SetSurface
 }
 
 /***************************************************************************
+ *
+ */
+BERR_Code BVDC_Window_Create
+    ( BVDC_Compositor_Handle           hCompositor,
+      BVDC_Window_Handle              *phWindow,
+      BVDC_WindowId                    eId,
+      BVDC_Source_Handle               hSource,
+      const BVDC_Window_Settings      *pDefSettings )
+{
+    BVDC_Window_Handle hWindow;
+    BERR_Code eRet = BERR_SUCCESS;
+
+    BDBG_ENTER(BVDC_Window_Create);
+
+    BDBG_ASSERT(hCompositor);
+    BDBG_ASSERT(phWindow);
+    BDBG_ASSERT(hSource);
+
+    /* Check internally if we created. */
+    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
+    BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
+
+   /* Make sure the source/compositor is active or created. */
+    if(BVDC_P_STATE_IS_INACTIVE(hSource) ||
+       BVDC_P_STATE_IS_DESTROY(hSource) ||
+       BVDC_P_STATE_IS_INACTIVE(hCompositor) ||
+       BVDC_P_STATE_IS_DESTROY(hCompositor))
+    {
+        BDBG_ERR(("Compositor and/or Source are not active."));
+        return BERR_TRACE(BVDC_ERR_WINDOW_NOT_AVAILABLE);
+    }
+
+    eRet = BVDC_P_Window_Create(hCompositor, phWindow,hSource->eId, eId);
+    if (BERR_SUCCESS != eRet)
+    {
+        return BERR_TRACE(eRet);
+    }
+
+    /* select the corresponding private handle created at BVDC_Open */
+    eRet = BVDC_P_Window_GetPrivHandle(hCompositor, eId, hSource->eId, &hWindow, NULL);
+    if (BERR_SUCCESS != eRet)
+    {
+        return BERR_TRACE(eRet);
+    }
+
+    /* Check if the window is already created or not. */
+    if(!BVDC_P_STATE_IS_INACTIVE(hWindow))
+    {
+        BDBG_ERR(("Window[%d] state = %d", hWindow->eId, hWindow->eState));
+        return BERR_TRACE(BVDC_ERR_WINDOW_ALREADY_CREATED);
+    }
+
+    BDBG_MSG(("Creating window%d", hWindow->eId));
+    BDBG_ASSERT(BVDC_P_STATE_IS_INACTIVE(hWindow));
+
+    if (BVDC_P_SRC_IS_GFX(hSource->eId))
+    {
+        /* this makes gfx surface be validated in next ApplyChanges */
+        hSource->hGfxFeeder->hWindow = hWindow;
+        hSource->hGfxFeeder->stCfc.pColorSpaceOut = &(hWindow->hCompositor->stOutColorSpace);
+    }
+
+    /* Reinitialize context.  But not make it active until apply. */
+    *phWindow = hWindow;
+
+    /* Which heap to use? */
+    if(pDefSettings)
+    {
+        hWindow->hCapHeap = (pDefSettings->hHeap)
+            ? pDefSettings->hHeap  : hCompositor->hVdc->hBufferHeap;
+        hWindow->hDeinterlacerHeap = (pDefSettings->hDeinterlacerHeap)
+            ? pDefSettings->hDeinterlacerHeap : hWindow->hCapHeap;
+    }
+    else
+    {
+        hWindow->hCapHeap = hCompositor->hVdc->hBufferHeap;
+        hWindow->hDeinterlacerHeap = hWindow->hCapHeap;
+    }
+
+    /* Default settings */
+    if(pDefSettings)
+    {
+        bool bBypassDirty;
+
+        hWindow->stSettings = *pDefSettings;
+        /* Do not allow override of number of rect this is read-only
+         * information. */
+        hWindow->hCompositor->hDisplay->stNewInfo.bBypassVideoProcess =
+            pDefSettings->bBypassVideoProcessings;
+
+        bBypassDirty =
+            hWindow->hCompositor->hDisplay->stNewInfo.bBypassVideoProcess ^
+            hWindow->hCompositor->hDisplay->stCurInfo.bBypassVideoProcess;
+        hWindow->hCompositor->hDisplay->stNewInfo.stDirty.stBits.bHdmiCsc |= bBypassDirty;
+    }
+    else
+    {
+        BVDC_Window_GetDefaultSettings(hWindow->eId, &hWindow->stSettings);
+    }
+
+
+    /* Inititial window fields */
+    BVDC_P_Window_Init(*phWindow, hSource);
+
+    /* Keep count of new number of windows that connected to source! */
+    hSource->stNewInfo.ulWindows++;
+    hSource->stNewInfo.stDirty.stBits.bWindowNum = BVDC_P_DIRTY;
+
+    /* Mark as create, awating for apply. */
+    hWindow->eState = BVDC_P_State_eCreate;
+
+    BDBG_MSG(("Window[%d] is BVDC_P_State_eCreate", hWindow->eId));
+
+    BDBG_LEAVE(BVDC_Window_Create);
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
  * {private}
  *
  */
@@ -497,7 +608,6 @@ BERR_Code BVDC_P_Window_Create
 {
     BVDC_P_WindowContext *pWindow;
     BVDC_P_WindowId      eWindowId;
-    uint32_t ulBoxWinId;
 
     BSTD_UNUSED (eSrcId);
     BSTD_UNUSED (eWinId);
@@ -537,12 +647,6 @@ BERR_Code BVDC_P_Window_Create
     pWindow->eId          = eWindowId;
     pWindow->ulRegOffset  = BVDC_P_WIN_GET_REG_OFFSET(eWindowId);
     pWindow->hCompositor  = hCompositor;
-
-    /* Check if BOX has specific deinterlacer allocation */
-    ulBoxWinId = BVDC_P_GetBoxWindowId_isrsafe(eWindowId);
-    BDBG_ASSERT(ulBoxWinId < BBOX_VDC_WINDOW_COUNT_PER_DISPLAY);
-    BSTD_UNUSED (ulBoxWinId);
-
 
     /* (6) create a DestroyDone event. */
     BKNI_CreateEvent(&pWindow->hDestroyDoneEvent);

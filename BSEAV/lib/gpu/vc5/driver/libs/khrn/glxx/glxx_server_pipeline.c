@@ -41,7 +41,7 @@ static void stage_assign(GLXX_SERVER_STATE_T *state, PIPELINE_STAGE *stage, GL20
    program_assign(state, &stage->program, program);
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 static void init_pipeline_stages(PIPELINE_STAGE *stage)
 {
@@ -124,7 +124,7 @@ GL20_PROGRAM_T *glxx_pipeline_get_active_program(const GLXX_SERVER_STATE_T *stat
    return glxx_shared_get_pobject(state->shared, state->pipelines.bound->active_program);
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 /* Is the pipeline in the map? */
 static GLboolean is_pipeline(GLXX_SERVER_STATE_T *state, GLuint pipeline)
@@ -610,7 +610,7 @@ static void combine_glsl_programs(GLSL_PROGRAM_T *result, const GLSL_PROGRAM_T *
    }
 
    for (unsigned i = vprog->num_images; i < num_images; ++i)
-      result->images[i].location += uniform_offset;
+      result->images[i].sampler.location += uniform_offset;
 
    result->ir = ir;
 }
@@ -710,48 +710,107 @@ void adjust_fragment_maps(IR_PROGRAM_T *ir, GLSL_PROGRAM_T *glsl_vprog, GLSL_PRO
    }
 }
 
-static IR_PROGRAM_T *combine_ir_programs(GLSL_PROGRAM_T *glsl_vprog, GLSL_PROGRAM_T *glsl_fprog)
+static const struct {
+   STAGE_T stage;
+   ShaderFlavour flavour;
+} gfx[] = { { GRAPHICS_STAGE_VERTEX,          SHADER_VERTEX          },
+#if GLXX_HAS_TNG
+            { GRAPHICS_STAGE_TESS_CONTROL,    SHADER_TESS_CONTROL    },
+            { GRAPHICS_STAGE_TESS_EVALUATION, SHADER_TESS_EVALUATION },
+            { GRAPHICS_STAGE_GEOMETRY,        SHADER_GEOMETRY        },
+#endif
+            { GRAPHICS_STAGE_FRAGMENT,        SHADER_FRAGMENT        } };
+
+static IR_PROGRAM_T *combine_ir_programs(GLSL_PROGRAM_T **progs)
 {
    IR_PROGRAM_T *result = glsl_ir_program_create();
 
    if (result == NULL)
       return NULL;
 
-   IR_PROGRAM_T   *vprog = glsl_vprog->ir;
-   IR_PROGRAM_T   *fprog = glsl_fprog->ir;
+   for (int i=0; i<countof(gfx); i++) {
+      GLSL_PROGRAM_T *gp = progs[gfx[i].stage];
+      if (!gp) continue;
 
-   result->stage[SHADER_VERTEX].ir   = copy_ir_shader(vprog->stage[SHADER_VERTEX].ir);
-   result->stage[SHADER_FRAGMENT].ir = copy_ir_shader(fprog->stage[SHADER_FRAGMENT].ir);
+      IR_PROGRAM_T *p = gp->ir;
+      result->stage[gfx[i].flavour].ir       = copy_ir_shader(p->stage[gfx[i].flavour].ir);
+      result->stage[gfx[i].flavour].link_map = copy_link_map(p->stage[gfx[i].flavour].link_map);
+   }
 
-   result->stage[SHADER_VERTEX].link_map   = copy_link_map(vprog->stage[SHADER_VERTEX].link_map);
-   result->stage[SHADER_FRAGMENT].link_map = copy_link_map(fprog->stage[SHADER_FRAGMENT].link_map);
+   result->max_known_layers = 1;
+#if GLXX_HAS_TNG
+   if (progs[GRAPHICS_STAGE_GEOMETRY]) {
+      IR_PROGRAM_T* gs_ir = progs[GRAPHICS_STAGE_GEOMETRY]->ir;
+      result->max_known_layers = gs_ir->max_known_layers;
+      result->gs_in            = gs_ir->gs_in;
+      result->gs_out           = gs_ir->gs_out;
+      result->gs_n_invocations = gs_ir->gs_n_invocations;
+      result->gs_max_vertices  = gs_ir->gs_max_vertices;
+   }
+#endif
 
-   memcpy(result->varying, fprog->varying, V3D_MAX_VARYING_COMPONENTS * sizeof(VARYING_INFO_T));
+   memcpy(result->varying, progs[GRAPHICS_STAGE_FRAGMENT]->ir->varying, V3D_MAX_VARYING_COMPONENTS * sizeof(VARYING_INFO_T));
 
-   adjust_fragment_maps(result, glsl_vprog, glsl_fprog);
+   adjust_fragment_maps(result, progs[GRAPHICS_STAGE_VERTEX], progs[GRAPHICS_STAGE_FRAGMENT]);
 
-   result->live_attr_set = vprog->live_attr_set;
-   result->tf_vary_map   = vprog->tf_vary_map;
+   result->live_attr_set = progs[GRAPHICS_STAGE_VERTEX]->ir->live_attr_set;
+   result->tf_vary_map   = progs[GRAPHICS_STAGE_VERTEX]->ir->tf_vary_map;
 
    return result;
 }
 
-static void combine_gl20_program_common(GL20_PROGRAM_COMMON_T *result, GL20_PROGRAM_COMMON_T *vprog, GL20_PROGRAM_COMMON_T *fprog)
+static bool combine_gl20_program_common(GL20_PROGRAM_COMMON_T *result, GL20_PROGRAM_COMMON_T **prog)
 {
+   unsigned* ssbo_binding_point = NULL;
+   gl20_program_dynamic_array* ssbo_dynamic_arrays = NULL;
+   uint32_t* uniform_data = NULL;
+
+   size_t ssbo_binding_point_size = GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS * sizeof(unsigned);
+   ssbo_binding_point = malloc(ssbo_binding_point_size);
+   if (!ssbo_binding_point)
+      goto error;
+   memcpy(ssbo_binding_point, prog[GRAPHICS_STAGE_FRAGMENT]->ssbo_binding_point, ssbo_binding_point_size);
+
+   size_t ssbo_dynamic_arrays_size = prog[GRAPHICS_STAGE_FRAGMENT]->num_ssbo_dynamic_arrays * sizeof(gl20_program_dynamic_array);
+   ssbo_dynamic_arrays = malloc(ssbo_dynamic_arrays_size);
+   if (!ssbo_dynamic_arrays)
+      goto error;
+   memcpy(ssbo_dynamic_arrays, prog[GRAPHICS_STAGE_FRAGMENT]->ssbo_dynamic_arrays, ssbo_dynamic_arrays_size);
+
+   unsigned num_uniforms = 0;
+   for (STAGE_T i = GRAPHICS_STAGE_VERTEX; i < GRAPHICS_STAGE_COUNT; i++) {
+      if (prog[i])
+         num_uniforms += prog[i]->num_scalar_uniforms;
+   }
+   uniform_data = malloc(num_uniforms * sizeof(uint32_t));
+   if (!uniform_data)
+      goto error;
+
+   unsigned offset = 0;
+   for (STAGE_T i = GRAPHICS_STAGE_VERTEX; i < GRAPHICS_STAGE_COUNT; i++) {
+      if (prog[i]) {
+         memcpy(uniform_data + offset, prog[i]->uniform_data, prog[i]->num_scalar_uniforms*sizeof(uint32_t));
+         offset += prog[i]->num_scalar_uniforms;
+      }
+   }
+
    free(result->ubo_binding_point);
    free(result->ssbo_binding_point);
    free(result->uniform_data);
+   free(result->ssbo_dynamic_arrays);
+   result->ubo_binding_point        = NULL;
+   result->ssbo_binding_point       = ssbo_binding_point;
+   result->ssbo_dynamic_arrays      = ssbo_dynamic_arrays;
+   result->uniform_data             = uniform_data;
+   result->num_scalar_uniforms      = num_uniforms;
+   result->num_ssbo_dynamic_arrays  = prog[GRAPHICS_STAGE_FRAGMENT]->num_ssbo_dynamic_arrays;
+   return true;
 
-   unsigned num_uniforms = vprog->num_scalar_uniforms + fprog->num_scalar_uniforms;
-
-   result->ubo_binding_point   = NULL;
-   result->ssbo_binding_point  = malloc(GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS * sizeof(unsigned));
-   memcpy(result->ssbo_binding_point, fprog->ssbo_binding_point, GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS * sizeof(unsigned));
-
-   result->num_scalar_uniforms = num_uniforms;
-   result->uniform_data        = malloc(num_uniforms * sizeof(uint32_t));
-   memcpy(result->uniform_data, vprog->uniform_data, vprog->num_scalar_uniforms*sizeof(uint32_t));
-   memcpy(result->uniform_data + vprog->num_scalar_uniforms, fprog->uniform_data, fprog->num_scalar_uniforms*sizeof(uint32_t));
+error:
+   free(ssbo_binding_point);
+   free(ssbo_dynamic_arrays);
+   free(uniform_data);
+   return false;
 }
 
 static void calculate_ordinals(int *ordinal_map, GLSL_INOUT_T *inouts, unsigned num)
@@ -835,17 +894,6 @@ static bool validate_in_out_interface(GLSL_INOUT_T *outs, unsigned num_outs, GLS
 
 bool glxx_pipeline_validate(const GLXX_PIPELINE_T *pipeline)
 {
-   static const struct {
-      STAGE_T stage;
-      ShaderFlavour flavour;
-   } gfx[] = { { GRAPHICS_STAGE_VERTEX,          SHADER_VERTEX          },
-#if GLXX_HAS_TNG
-               { GRAPHICS_STAGE_TESS_CONTROL,    SHADER_TESS_CONTROL    },
-               { GRAPHICS_STAGE_TESS_EVALUATION, SHADER_TESS_EVALUATION },
-               { GRAPHICS_STAGE_GEOMETRY,        SHADER_GEOMETRY        },
-#endif
-               { GRAPHICS_STAGE_FRAGMENT,        SHADER_FRAGMENT        } };
-
    // Any stage that is attached must have a separable program bound
    for (STAGE_T i=0; i < STAGE_COUNT; i++) {
       GL20_PROGRAM_T *p = pipeline->stage[i].program;
@@ -947,32 +995,34 @@ bool glxx_pipeline_create_graphics_common(GLXX_PIPELINE_T *pipeline)
    if (gl20_vprog == NULL || gl20_fprog == NULL)
       return false;
 
-   GL20_PROGRAM_COMMON_T *gl_vprog = &gl20_vprog->common;
-   GL20_PROGRAM_COMMON_T *gl_fprog = &gl20_fprog->common;
+   GL20_PROGRAM_COMMON_T *gl20_progs[GRAPHICS_STAGE_COUNT];
+   for (STAGE_T i = GRAPHICS_STAGE_VERTEX; i < GRAPHICS_STAGE_COUNT; i++)
+      gl20_progs[i] = pipeline->stage[i].program ? &pipeline->stage[i].program->common : NULL;
 
-   GLSL_PROGRAM_T *glsl_vprog = gl_vprog->linked_glsl_program;
-   GLSL_PROGRAM_T *glsl_fprog = gl_fprog->linked_glsl_program;
+   if (!combine_gl20_program_common(&pipeline->common, gl20_progs))
+      return false;
 
-   IR_PROGRAM_T *ir = combine_ir_programs(glsl_vprog, glsl_fprog);
+   GLSL_PROGRAM_T *glsl_progs[GRAPHICS_STAGE_COUNT];
+   for (STAGE_T i = GRAPHICS_STAGE_VERTEX; i < GRAPHICS_STAGE_COUNT; i++)
+      glsl_progs[i] = gl20_progs[i] ? gl20_progs[i]->linked_glsl_program : NULL;
+
+   IR_PROGRAM_T *ir = combine_ir_programs(glsl_progs);
 
    if (ir == NULL)
       return false;
 
-   /* TODO: check that the interfaces match properly including that the shader versions match */
-   combine_gl20_program_common(&pipeline->common, gl_vprog, gl_fprog);
-
    int *frag_uniforms = ir->stage[SHADER_FRAGMENT].link_map->uniforms;
 
-   for (unsigned i = 0; i < glsl_fprog->num_samplers; ++i) {
-      int location = glsl_fprog->samplers[i].location;
+   for (unsigned i = 0; i < glsl_progs[GRAPHICS_STAGE_FRAGMENT]->num_samplers; ++i) {
+      int location = glsl_progs[GRAPHICS_STAGE_FRAGMENT]->samplers[i].location;
 
-      frag_uniforms[location] -= gl_vprog->num_scalar_uniforms - glsl_vprog->num_samplers;
+      frag_uniforms[location] -= gl20_progs[GRAPHICS_STAGE_VERTEX]->num_scalar_uniforms - glsl_progs[GRAPHICS_STAGE_VERTEX]->num_samplers;
    }
 
    for (int i=0; i<ir->stage[SHADER_FRAGMENT].link_map->num_uniforms; i++)
-      frag_uniforms[i] += gl_vprog->num_scalar_uniforms;
+      frag_uniforms[i] += gl20_progs[GRAPHICS_STAGE_VERTEX]->num_scalar_uniforms;
 
-   combine_glsl_programs(pipeline->common.linked_glsl_program, glsl_vprog, glsl_fprog, ir, gl_vprog->num_scalar_uniforms);
+   combine_glsl_programs(pipeline->common.linked_glsl_program, glsl_progs[GRAPHICS_STAGE_VERTEX], glsl_progs[GRAPHICS_STAGE_FRAGMENT], ir, gl20_progs[GRAPHICS_STAGE_VERTEX]->num_scalar_uniforms);
 
    pipeline->common_is_compute = false;
 
@@ -985,7 +1035,7 @@ bool glxx_pipeline_create_compute_common(GLXX_PIPELINE_T *p) {
    return true;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_APICALL void GL_APIENTRY glValidateProgramPipeline(GLuint pipeline)
 {

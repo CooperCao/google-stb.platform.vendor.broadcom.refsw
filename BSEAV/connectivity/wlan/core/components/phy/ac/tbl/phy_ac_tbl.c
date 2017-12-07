@@ -1489,6 +1489,8 @@ wlc_phy_ac_ht_proprietary_rates(phy_info_t *pi)
 static bool
 wlc_phy_ac_stbc_capable(phy_info_t *pi)
 {
+	/* Macros purposely subtract from 0 for bit mask calculations*/
+	/* coverity[overflow_sink] */
 	return !(ACMAJORREV_1(pi->pubpi->phy_rev) &&
 	(ACMINORREV_0(pi) || ACMINORREV_1(pi)));
 }

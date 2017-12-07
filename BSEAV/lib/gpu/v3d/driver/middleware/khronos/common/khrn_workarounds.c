@@ -47,7 +47,10 @@ static void set_workarounds(uint32_t techRev, uint32_t revision, uint32_t tusPer
 void khrn_init_workarounds(void)
 {
    BEGL_HWInfo info;
-   BEGL_GetDriverInterfaces()->hwInterface->GetInfo(BEGL_GetDriverInterfaces()->hwInterface->context, &info);
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   driverInterfaces->hwInterface->GetInfo(driverInterfaces->hwInterface->context, &info);
    set_workarounds(info.techRev, info.revision, info.textureUnitsPerSlice);
 }
 

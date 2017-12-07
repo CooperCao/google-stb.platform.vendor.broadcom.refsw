@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_DECODER_EXTRA_H__
 #define NEXUS_VIDEO_DECODER_EXTRA_H__
@@ -110,6 +109,9 @@ typedef struct NEXUS_VideoDecoderExtendedStatus
     struct {
         unsigned firmware;
     } version;
+
+    int pidChannelIndex;  /* The source of the video data from Transport. -1 indicates no channel (decoder is stopped) */
+    int stcChannelIndex;  /* The StcChannel that connects audio and video decode to provide lipsync. -1 indicated no STC channel (decoder is stopped) */
 } NEXUS_VideoDecoderExtendedStatus;
 
 /**

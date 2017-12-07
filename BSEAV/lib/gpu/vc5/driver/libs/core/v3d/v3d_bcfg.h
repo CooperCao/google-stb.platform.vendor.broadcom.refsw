@@ -23,7 +23,7 @@ struct v3d_bcfg
    uint32_t tile_h_px;
 
    uint32_t frame_num_layers;
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    uint32_t frame_w_in_pixels;
    uint32_t frame_h_in_pixels;
 #endif

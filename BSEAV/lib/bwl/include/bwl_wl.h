@@ -113,6 +113,7 @@
         at_start_of_line = FALSE;                        \
     }
 
+#if 0
 #define PRCNT_MACSTAT_TX_VER_GE11                        \
 do {                                        \
     /* UCODE SHM counters */                        \
@@ -136,8 +137,12 @@ do {                                        \
     }                                    \
     PRVAL(txtplunfl); PRVAL(txphyerror); PRNL1(); PRNL1();            \
 } while (0)
+#else
+#define PRCNT_MACSTAT_TX_VER_GE11 {}
+#endif
 
 
+#if 0
 #define PRCNT_MACSTAT_RX_VER_GE11                        \
 do {                                        \
     /* rx with goodfcs */                            \
@@ -155,6 +160,9 @@ do {                                        \
     PRVAL(pktengrxducast); PRVAL(pktengrxdmcast);                \
     PRVAL(bcntxcancl);                            \
 } while (0)
+#else
+#define PRCNT_MACSTAT_RX_VER_GE11 {}
+#endif
 
 /** Safe value store for only valid counter values, and when the counter is within len */
 #define SAVALSF(name) wifi_counters.name = dtoh32(cnt->name)
@@ -446,10 +454,12 @@ typedef struct
     int rxf0ovfl;
     int rxf1ovfl;
     int pmqovfl;
+    int rxcrc;
 } wifi_counters_t;
 
 int wl_counters_cbfn(void *ctx, const unsigned char *data, unsigned short int type, unsigned short int len);
 int wl_wowl_pkt(void *wl, void *cmd, char **argv);
 int wl_maclist_2(void *wl, BWL_MAC_ADDRESS *outputList, int outputListLen );
+int wl_cca_get_stats(void *wl, char *cmd_name, char **argv, BWLGetCcaStats_t *BWLGetCcaStats );
 
 #endif /* BWL_WL_H__ */

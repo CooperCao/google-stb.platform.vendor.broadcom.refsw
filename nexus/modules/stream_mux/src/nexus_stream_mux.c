@@ -1021,7 +1021,6 @@ NEXUS_StreamMux_AddSystemDataBuffer(NEXUS_StreamMuxHandle mux, const NEXUS_Strea
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
     }
-    if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto error; }
 
     queuedCount = 0;
     rc = BMUXlib_TS_AddSystemDataBuffers(mux->mux, astSystemDataBuffer, 1, &queuedCount);

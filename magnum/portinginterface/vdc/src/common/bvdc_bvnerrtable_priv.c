@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1373,6 +1373,7 @@ static const BVDC_P_IntCbTbl s_apfErrorHandlers[] =
     BVDC_P_MAKE_INVALID(eCmp_0_G2, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
 
 #elif (BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260)
+
     BVDC_P_MAKE_BVN_ERR(eRdc,      RDC_ERR,      BVNF_INTR2_5_R5F, RDC,           RDC,           RDC_error_status),
 
     BVDC_P_MAKE_BVN_ERR(eMfd_0,    MFD_0,        BVNF_INTR2_5_R5F, MFD_0,         MFD_0,         MFD_0_FEEDER_ERROR_INTERRUPT_STATUS),
@@ -1472,6 +1473,108 @@ static const BVDC_P_IntCbTbl s_apfErrorHandlers[] =
     BVDC_P_MAKE_INVALID(eCmp_6_V0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
 
     BVDC_P_MAKE_BVN_ERR(eCmp_0_V1, CMP0_V1,      BVNB_INTR2_CPU,   CMP_0,         CMP_0,         CMP_0_V1_BVB_IN_STATUS),
+    BVDC_P_MAKE_INVALID(eCmp_1_V1, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_BVN_ERR(eCmp_0_G0, CMP0_G0,      BVNB_INTR2_CPU,   CMP_0,         CMP_0,         CMP_0_G0_BVB_IN_STATUS),
+    BVDC_P_MAKE_BVN_ERR(eCmp_1_G0, CMP1_G0,      BVNB_INTR2_CPU,   CMP_0,         CMP_1,         CMP_0_G0_BVB_IN_STATUS),
+    BVDC_P_MAKE_INVALID(eCmp_2_G0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_3_G0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_4_G0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_5_G0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_6_G0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_INVALID(eCmp_0_G1, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_0_G2, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+#elif (BCHP_CHIP==7255)
+
+    BVDC_P_MAKE_BVN_ERR(eRdc,      RDC_ERR,      BVNF_INTR2_5_R5F, RDC,           RDC,           RDC_error_status),
+
+    BVDC_P_MAKE_BVN_ERR(eMfd_0,    MFD_0,        BVNF_INTR2_5_R5F, MFD_0,         MFD_0,         MFD_0_FEEDER_ERROR_INTERRUPT_STATUS),
+    BVDC_P_MAKE_INVALID(eMfd_1,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMfd_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMfd_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMfd_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMfd_5,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_BVN_ERR(eVfd_0,    VFD_0,        BVNF_INTR2_5_R5F, VFD_0,         VFD_0,         VFD_0_FEEDER_ERROR_INTERRUPT_STATUS),
+    BVDC_P_MAKE_INVALID(eVfd_1,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eVfd_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eVfd_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eVfd_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eVfd_5,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eVfd_6,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eVfd_7,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_BVN_ERR(eScl_0,    SCL_0_ERR,    BVNM_INTR2_0_R5F, SCL_0,         SCL_0,         SCL_0_BVB_IN_STATUS),
+    BVDC_P_MAKE_INVALID(eScl_1,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eScl_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eScl_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eScl_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eScl_5,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eScl_6,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eScl_7,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_BVN_ERR(eDnr_0,    DNR_0_ERR,    BVNM_INTR2_0_R5F, DNR_0,         DNR_0,         DNR_0_BVB_IN_STATUS),
+    BVDC_P_MAKE_INVALID(eDnr_1,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eDnr_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eDnr_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eDnr_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eDnr_5,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eXsrc_0,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eXsrc_1,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eXsrc_2,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eTntd_0,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_BVN_ERR(eMvp_0,    MVP_TOP_0,    BVNM_INTR2_0_R5F, MDI_TOP_0,     MDI_TOP_0,     MDI_TOP_0_BVB_IN_STATUS),
+    BVDC_P_MAKE_INVALID(eMvp_1,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMvp_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMvp_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMvp_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMvp_5,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_BVN_ERR(eMcdi_0,   MDI_0_BVB_IN, BVNM_INTR2_0_R5F, MDI_TOP_0,     MDI_TOP_0,     MDI_TOP_0_BVB_IN_STATUS),
+    BVDC_P_MAKE_INVALID(eMcdi_1,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMcdi_2,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMcdi_3,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMcdi_4,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eMcdi_5,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_INVALID(eMctf_0,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_INVALID(eHscl_0,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eHscl_1,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eHscl_2,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eHscl_3,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eHscl_4,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eHscl_5,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_BVN_ERR(eCap_0,    CAP0,         BVNB_INTR2_CPU,   CAP_0,         CAP_0,         CAP_0_BVB_STATUS),
+    BVDC_P_MAKE_INVALID(eCap_1,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCap_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCap_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCap_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCap_5,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCap_6,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCap_7,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_BVN_ERR(eGfd_0,    GFD0,         BVNB_INTR2_CPU,   GFD_0,         GFD_0,         GFD_0_STATUS),
+    BVDC_P_MAKE_BVN_ERR(eGfd_1,    GFD1,         BVNB_INTR2_CPU,   GFD_0,         GFD_1,         GFD_0_STATUS),
+    BVDC_P_MAKE_INVALID(eGfd_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eGfd_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eGfd_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eGfd_5,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eGfd_6,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_BVN_ERR(eCmp_0_V0, CMP0_V0,      BVNB_INTR2_CPU,   CMP_0,         CMP_0,         CMP_0_V0_BVB_IN_STATUS),
+    BVDC_P_MAKE_INVALID(eCmp_1_V0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_2_V0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_3_V0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_4_V0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_5_V0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+    BVDC_P_MAKE_INVALID(eCmp_6_V0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+
+    BVDC_P_MAKE_INVALID(eCmp_0_V1, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eCmp_1_V1, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
 
     BVDC_P_MAKE_BVN_ERR(eCmp_0_G0, CMP0_G0,      BVNB_INTR2_CPU,   CMP_0,         CMP_0,         CMP_0_G0_BVB_IN_STATUS),

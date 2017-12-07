@@ -55,6 +55,7 @@
 #define BVC5_P_HW_QUEUE_RUNNING  0
 #define BVC5_P_HW_QUEUE_QUEUED   1
 
+
 /* BVC5_P_BinnerState
 
    The software state of the binner unit(s)
@@ -426,11 +427,6 @@ bool BVC5_P_HardwareRenderBlocked(
    uint32_t    uiCoreIndex,
    BVC5_P_InternalJob *pNewJob
 );
-
-void BVC5_P_HardwareReadEventFifos(
-   BVC5_Handle          hVC5,
-   uint32_t             uiCoreIndex
-   );
 
 uint64_t BVC5_P_GetEventTimestamp(
    void

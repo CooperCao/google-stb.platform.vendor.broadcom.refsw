@@ -167,6 +167,7 @@ NEXUS_Error NEXUS_VideoInput_ReadTeletext( NEXUS_VideoInput videoInput, NEXUS_Te
 #else
     BSTD_UNUSED(videoInput);
     BSTD_UNUSED(pLines);
+    BSTD_UNUSED(numLines);
     BSTD_UNUSED(pNumLinesRead);
     return 0;
 #endif
@@ -619,6 +620,7 @@ NEXUS_Error NEXUS_VideoInput_P_SetVbiState( NEXUS_VideoInput videoInput )
 
     return rc;
 #else
+    BSTD_UNUSED(videoInput);
     return 0;
 #endif
 }

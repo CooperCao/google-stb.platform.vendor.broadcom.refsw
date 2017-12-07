@@ -11,6 +11,14 @@
 extern "C" {
 #endif
 
+typedef enum
+{
+   V3D_IMGCONV_CONVERSION_FORMAT = 0,     /* No special conversion required beyond that implied by the source and dest target formats */
+   V3D_IMGCONV_CONVERSION_CLAMP_DEPTH,    /* GL clamping on floating point depth destination targets */
+   V3D_IMGCONV_CONVERSION_DEPTH_ONLY,     /* Vulkan depth only aspect copy to S8D24 destination targets */
+   V3D_IMGCONV_CONVERSION_STENCIL_ONLY,   /* Vulkan stencil only aspect copy to S8D24 destination targets */
+} v3d_imgconv_conversion_op;
+
 /*
  * A container to hold the information about a target for an image
  * conversion. This may be the source or destination image.
@@ -30,6 +38,8 @@ typedef struct v3d_imgconv_base_tgt
    unsigned int z;
    unsigned int start_elem;
    unsigned int array_pitch;
+
+   v3d_imgconv_conversion_op conversion;
 
    unsigned int plane_sizes[GFX_BUFFER_MAX_PLANES];
 } v3d_imgconv_base_tgt;

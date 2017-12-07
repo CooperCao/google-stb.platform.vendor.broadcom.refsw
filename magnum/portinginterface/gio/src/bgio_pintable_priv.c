@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -3653,7 +3653,7 @@ static const BGIO_P_PinMux s_aPinMux[] =
     BGIO_P_PIN_MUX_ENTRY(eAsgpio05, AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_sgpio_05, AON_SGPIO_05),
     BGIO_P_PIN_MUX_ENTRY(eAsgpio06, AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_sgpio_06, AON_SGPIO_06),
     BGIO_P_PIN_MUX_ENTRY(eAsgpio07, AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_sgpio_07, AON_SGPIO_07),
-#elif ((BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260))
+#elif ((BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260) || (BCHP_CHIP==7255))
     BGIO_P_PIN_MUX_ENTRY(eGpio000, SUN_TOP_CTRL_PIN_MUX_CTRL_0, gpio_000, GPIO_000),
     BGIO_P_PIN_MUX_ENTRY(eGpio001, SUN_TOP_CTRL_PIN_MUX_CTRL_1, gpio_001, GPIO_001),
     BGIO_P_PIN_MUX_ENTRY(eGpio002, SUN_TOP_CTRL_PIN_MUX_CTRL_1, gpio_002, GPIO_002),
@@ -4107,7 +4107,7 @@ static const BGIO_P_PinSet s_GioPinSet =
     BGIO_P_PIN_MUX_SET(eGpio000, eGpio031, eGpio032, eGpio063, eInvalid, eInvalid, eGpio064, eGpio095, eGpio096, eGpio124, eInvalid, eInvalid, 2,  0)
 #elif (BCHP_CHIP==7271)
     BGIO_P_PIN_MUX_SET(eGpio000, eGpio031, eGpio032, eGpio063, eInvalid, eInvalid, eGpio064, eGpio082, eInvalid, eInvalid, eInvalid, eInvalid, 2,  0)
-#elif (BCHP_CHIP==7268) || (BCHP_CHIP==7260)
+#elif (BCHP_CHIP==7268) || (BCHP_CHIP==7260) || (BCHP_CHIP==7255)
     BGIO_P_PIN_MUX_SET(eGpio000, eGpio031, eGpio032, eGpio063, eInvalid, eInvalid, eGpio064, eGpio082, eInvalid, eInvalid, eInvalid, eInvalid, 0,  0)
 #elif (BCHP_CHIP==7278)
     BGIO_P_PIN_MUX_SET(eGpio000, eGpio031, eGpio032, eGpio063, eInvalid, eInvalid, eGpio064, eGpio095, eGpio096, eGpio108, eInvalid, eInvalid, 2,  0)

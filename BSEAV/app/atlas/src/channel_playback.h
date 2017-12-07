@@ -84,7 +84,7 @@ public:
     void     updateDescription();
     uint32_t getFrequency(void) { return(_nFrequency); }
     void     setFrequency(uint32_t frequency);
-    int      getProgramNum(void)                  { return(_nProgram); }
+    int      getProgramNum(void)              { return(_nProgram); }
     void     setProgramNum(int nProgram = -1) { _nProgram = nProgram; }
 
 protected:

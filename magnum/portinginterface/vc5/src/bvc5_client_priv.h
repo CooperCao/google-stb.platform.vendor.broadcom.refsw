@@ -239,7 +239,7 @@ BERR_Code BVC5_P_ClientMapGetStats(
 );
 
 /***************************************************************************/
-BERR_Code BVC5_P_ClientMapUpdateStats(
+BERR_Code BVC5_P_ClientMapUpdateStats_isrsafe(
    BVC5_ClientMapHandle    hClientMap,
    uint32_t                uiClientId,
    uint64_t                uiTimeInRendererUs

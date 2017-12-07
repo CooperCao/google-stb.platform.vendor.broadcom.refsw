@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -210,22 +210,22 @@ int main(void)
     sage_rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_COMMONDRM, &sage_platform_status, &sage_platformHandle);
     if (sage_rc != BERR_SUCCESS)
     {
-        printf("%s - Error calling platform_open", __FUNCTION__);
+        printf("%s - Error calling platform_open", BSTD_FUNCTION);
         assert(sage_rc == BERR_SUCCESS);
     }
     if(sage_platform_status == BSAGElib_State_eUninit)
     {
         container = SRAI_Container_Allocate();
-        printf("%s - container %p\n", __FUNCTION__, (void *)container);
+        printf("%s - container %p\n", BSTD_FUNCTION, (void *)container);
         if(container == NULL)
         {
-            printf("%s - Error fetching container", __FUNCTION__);
+            printf("%s - Error fetching container", BSTD_FUNCTION);
             assert(container);
         }
         sage_rc = SRAI_Platform_Init(sage_platformHandle, container);
         if (sage_rc != BERR_SUCCESS)
         {
-            printf("%s - Error calling platform init", __FUNCTION__);
+            printf("%s - Error calling platform init", BSTD_FUNCTION);
             assert(sage_rc == BERR_SUCCESS);
         }
     }

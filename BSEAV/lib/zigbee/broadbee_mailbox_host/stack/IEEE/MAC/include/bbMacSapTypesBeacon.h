@@ -122,9 +122,10 @@ struct _MAC_BeaconRespDescr_t
     /* 32-bit data. */
     MAC_BeaconConfCallback_t *callback;     /*!< Entry point of the confirmation callback function. */
 
+#ifndef _HOST_
     /* Structured data. */
     MacServiceField_t         service;      /*!< MAC requests service field. */
-
+#endif
 };
 #endif /* _MAC_TESTER_ */
 

@@ -157,7 +157,7 @@ static int piff_playback_dma_buffer(CommonCryptoHandle commonCryptoHandle, void 
     NEXUS_DmaJobBlockSettings blkSettings;
     CommonCryptoJobSettings cryptoJobSettings;
 
-    BDBG_MSG(("%s: from=%p, to=%p, size=%u", __FUNCTION__, src, dst, size));
+    BDBG_MSG(("%s: from=%p, to=%p, size=%u", BSTD_FUNCTION, src, dst, size));
 
     NEXUS_DmaJob_GetDefaultBlockSettings(&blkSettings);
     blkSettings.pSrcAddr = src;
@@ -317,14 +317,14 @@ static int decrypt_sample(CommonCryptoHandle commonCryptoHandle,
             aesCtrInfo.bByteOffset = qwOffset % 16 ;
 
             BDBG_MSG(("%s:%d: DRM_Prdy_Reader_Decrypt(..., ..., %p, %u)",
-                      __FUNCTION__, __LINE__, out, num_enc));
+                      BSTD_FUNCTION, __LINE__, out, num_enc));
 
             if(DRM_Prdy_Reader_Decrypt(
                         decryptor,
                         &aesCtrInfo,
                         (uint8_t *)out,
                         num_enc ) != DRM_Prdy_ok) {
-                BDBG_ERR(("%s Reader_Decrypt failed - %d", __FUNCTION__, __LINE__));
+                BDBG_ERR(("%s Reader_Decrypt failed - %d", BSTD_FUNCTION, __LINE__));
                 rc = -1;
                 goto ErrorExit;
             }
@@ -351,14 +351,14 @@ static int decrypt_sample(CommonCryptoHandle commonCryptoHandle,
             piff_playback_dma_buffer(commonCryptoHandle, dst, src, sampleSize, false);
 
             BDBG_MSG(("%s:%d: DRM_Prdy_Reader_Decrypt(..., ..., %p, %u)",
-                      __FUNCTION__, __LINE__, out, sampleSize));
+                      BSTD_FUNCTION, __LINE__, out, sampleSize));
 
             if(DRM_Prdy_Reader_Decrypt(
                         decryptor,
                         &aesCtrInfo,
                         (uint8_t *)out,
                         sampleSize ) != DRM_Prdy_ok) {
-            BDBG_ERR(("%s Reader_Decrypt failed - %d", __FUNCTION__, __LINE__));
+            BDBG_ERR(("%s Reader_Decrypt failed - %d", BSTD_FUNCTION, __LINE__));
             rc = -1;
             goto ErrorExit;
         }
@@ -416,7 +416,7 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
     }
 
     BDBG_MSG(("%s: NEXUS_Playpump_GetBuffer return buffer %p, size %u",
-              __FUNCTION__, playpumpBuffer, bufferSize));
+              BSTD_FUNCTION, playpumpBuffer, bufferSize));
 
     bytes_processed = 0;
     if (frag_info->samples_enc->sample_count != 0) {
@@ -529,7 +529,7 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
                     app->outBufSize += pes_header_len + bmedia_frame_bcma.len + sizeof(uint32_t) + decoder_len;
                 }
             } else {
-                BDBG_WRN(("%s Unsupported track type %d detected", __FUNCTION__, frag_info->trackType));
+                BDBG_WRN(("%s Unsupported track type %d detected", BSTD_FUNCTION, frag_info->trackType));
                 return -1;
             }
 
@@ -602,13 +602,13 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
                     aesCtrInfo.bByteOffset = qwOffset % 16 ;
 
                     BDBG_MSG(("%s:%d: DRM_Prdy_Reader_Decrypt(..., ..., %p, %u)",
-                              __FUNCTION__, __LINE__, out, num_enc));
+                              BSTD_FUNCTION, __LINE__, out, num_enc));
                     if(DRM_Prdy_Reader_Decrypt(
                                 &app->decryptor,
                                 &aesCtrInfo,
                                 (uint8_t *)out,
                                 num_enc ) != DRM_Prdy_ok) {
-                        BDBG_ERR(("%s Reader_Decrypt failed - %d", __FUNCTION__, __LINE__));
+                        BDBG_ERR(("%s Reader_Decrypt failed - %d", BSTD_FUNCTION, __LINE__));
                         return -1;
                     }
 
@@ -629,13 +629,13 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
                 outSize += sampleSize;
 
                 BDBG_MSG(("%s:%d: DRM_Prdy_Reader_Decrypt(..., ..., %p, %u)",
-                          __FUNCTION__, __LINE__, out, sampleSize));
+                          BSTD_FUNCTION, __LINE__, out, sampleSize));
                 if(DRM_Prdy_Reader_Decrypt(
                             &app->decryptor,
                             &aesCtrInfo,
                             (uint8_t *)out,
                             sampleSize ) != DRM_Prdy_ok) {
-                    BDBG_ERR(("%s Reader_Decrypt failed - %d", __FUNCTION__, __LINE__));
+                    BDBG_ERR(("%s Reader_Decrypt failed - %d", BSTD_FUNCTION, __LINE__));
                     return -1;
                 }
 
@@ -646,12 +646,12 @@ static int secure_process_fragment(CommonCryptoHandle commonCryptoHandle, app_ct
             bytes_processed += numOfByteDecrypted + decrypt_offset;
         }
         BDBG_MSG(("%s: NEXUS_Playpump_WriteComplete buffer %p, size %u",
-                  __FUNCTION__, playpumpBuffer, outSize));
+                  BSTD_FUNCTION, playpumpBuffer, outSize));
         NEXUS_Playpump_WriteComplete(playpump, 0, outSize);
     }
 
     if(bytes_processed != payload_size) {
-        BDBG_WRN(("%s the number of bytes %d decrypted doesn't match the actual size %d of the payload, return failure...%d",__FUNCTION__,
+        BDBG_WRN(("%s the number of bytes %d decrypted doesn't match the actual size %d of the payload, return failure...%d",BSTD_FUNCTION,
                     bytes_processed, payload_size, __LINE__));
         rc = -1;
     }
@@ -747,13 +747,13 @@ static int process_fragment(CommonCryptoHandle commonCryptoHandle, app_ctx *app,
                     decrypt_offset = 0;
                 }
             } else {
-                BDBG_WRN(("%s Unsupported track type %d detected", __FUNCTION__, frag_info->trackType));
+                BDBG_WRN(("%s Unsupported track type %d detected", BSTD_FUNCTION, frag_info->trackType));
                 return -1;
             }
 
             if(decrypt_sample(commonCryptoHandle, sampleSize, &frag_info->cursor, pSample, &numOfByteDecrypted,
                         &app->decryptor, frag_info->samples_enc->flags, pOutBuf, decrypt_offset) !=0) {
-                BDBG_ERR(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
+                BDBG_ERR(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
                 return -1;
                 break;
             }
@@ -764,7 +764,7 @@ static int process_fragment(CommonCryptoHandle commonCryptoHandle, app_ctx *app,
     }
 
     if( bytes_processed != payload_size) {
-        BDBG_WRN(("%s the number of bytes %d decrypted doesn't match the actual size %d of the payload, return failure...%d",__FUNCTION__,bytes_processed,payload_size, __LINE__));
+        BDBG_WRN(("%s the number of bytes %d decrypted doesn't match the actual size %d of the payload, return failure...%d",BSTD_FUNCTION,bytes_processed,payload_size, __LINE__));
         rc = -1;
     }
 
@@ -948,17 +948,17 @@ int playback_piff( NEXUS_SimpleVideoDecoderHandle videoDecoder,
     char *pCh_url = NULL;
     char *pCh_data = NULL;
     uint8_t *pResponse = resp_buffer;
-    size_t respLen;
-    size_t respOffset;
-    size_t urlLen;
-    size_t chLen;
+    uint32_t respLen;
+    uint32_t respOffset;
+    uint32_t urlLen;
+    uint32_t chLen;
     piff_parser_handle_t piff_handle;
     bfile_io_read_t fd;
     uint8_t *pssh_data;
     uint32_t pssh_len;
     NEXUS_PlaypumpOpenPidChannelSettings video_pid_settings;
 
-    BDBG_MSG(("%s - %d\n", __FUNCTION__, __LINE__));
+    BDBG_MSG(("%s - %d\n", BSTD_FUNCTION, __LINE__));
     if(piff_file == NULL ) {
         goto clean_exit;
     }
@@ -1147,7 +1147,7 @@ int playback_piff( NEXUS_SimpleVideoDecoderHandle videoDecoder,
     /***********************
      * now ready to decrypt
      ***********************/
-    pssh_data = piff_parser_get_pssh(piff_handle, &pssh_len);
+    pssh_data = piff_parser_get_pssh(piff_handle, (size_t*)&pssh_len);
     if (!pssh_data) {
         BDBG_ERR(("Failed to obtain pssh data"));
         goto clean_exit;
@@ -1841,7 +1841,7 @@ static int gui_init( NEXUS_SurfaceClientHandle surfaceClient )
 
     if (!surfaceClient) return -1;
 
-    BDBG_MSG(("@@@ gui_init surfaceclient %d", (int)surfaceClient));
+    BDBG_MSG(("@@@ gui_init surfaceclient %x", surfaceClient));
     gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, NULL);
     NEXUS_Graphics2D_GetSettings(gfx, &gfxSettings);
     rc = NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);

@@ -28,8 +28,8 @@ static INLINE void OptionalBypass_Constr(OptionalBypass *self)
 
 static INLINE void OptionalBypass_Set(OptionalBypass *self, DFlowNode *node)
 {
-   vcos_assert(self->m_node == NULL);
-   vcos_assert(node != NULL);
+   assert(self->m_node == NULL);
+   assert(node != NULL);
    self->m_node = node;
 }
 
@@ -40,7 +40,7 @@ static INLINE bool OptionalBypass_IsSet(const OptionalBypass *self)
 
 static INLINE DFlowNode *OptionalBypass_Get(OptionalBypass *self)
 {
-   vcos_assert(self->m_node != NULL);
+   assert(self->m_node != NULL);
    return self->m_node;
 }
 
@@ -61,7 +61,7 @@ void NodeResult_Constr(NodeResult *self, DFlowNode *node, const QPUOperand *resu
 
 void NodeResult_Copy(NodeResult *self, const NodeResult *rhs)
 {
-   vcos_assert(rhs != NULL);
+   assert(rhs != NULL);
    self->m_node = rhs->m_node;
    QPUOperand_ConstrCopy(&self->m_result, &rhs->m_result);
 }
@@ -323,8 +323,8 @@ void InstrState_AddUniformRead(InstrState *self, DFlowNode *from)
    }
 
    // Ensure we've not added a uniform in this instruction already
-   //vcos_assert(m_uniforms.size() == m_scheduler->Uniforms().size());
-   vcos_assert(!self->m_isPendingUniform);
+   //assert(m_uniforms.size() == m_scheduler->Uniforms().size());
+   assert(!self->m_isPendingUniform);
    InstrState_AddUniform(self, type, val);
 }
 
@@ -365,7 +365,7 @@ bool InstrState_AddVaryingRead(InstrState *self, DFlowNode *node)
 
    if (vary >= 32)
    {
-      vcos_assert(!self->m_isPendingVarying);
+      assert(!self->m_isPendingVarying);
       self->m_isPendingVarying = true;
       self->m_pendingVarying = vary - 32;
    }
@@ -461,9 +461,9 @@ void InstrState_RetireOp(InstrState *self, DFlowNode *node, const QPUOperand *op
       DFlowNode *child;
 
       // Special handling for bypass nodes (unpacks)
-      vcos_assert(node != NULL);
+      assert(node != NULL);
       child = NodeList_front(DFlowNode_Children(node));
-      vcos_assert(QPUOperand_GetType(&child->m_result) != QPUOperand_BYPASS);
+      assert(QPUOperand_GetType(&child->m_result) != QPUOperand_BYPASS);
       InstrState_RetireOp(self, child, &child->m_result);
    }
    else
@@ -490,7 +490,7 @@ void InstrState_MoveRefCount(InstrState *self, DFlowNode *node, const QPUOperand
          DFlowNode *valueNode = NodeList_front(DFlowNode_Children(node));
          const NodeList *parents = DFlowNode_Parents(node);
 
-         vcos_assert(valueNode == InstrState_GetOwner(self, QPUOperand_ValueRegister(from)));
+         assert(valueNode == InstrState_GetOwner(self, QPUOperand_ValueRegister(from)));
          // We need to retire enough times to cover all our unscheduled parents
          for (iter = NodeList_const_begin(parents); iter != NodeList_const_end(parents); NodeList_const_next(&iter))
          {
@@ -641,7 +641,7 @@ void DFlowNode_Dataflow_Constr(DFlowNode *self, Dataflow *dataFlow, ResetHelper 
 {
    DataflowChainNode *n;
 
-   vcos_assert(dataFlow->bcg_helper == NULL);
+   assert(dataFlow->bcg_helper == NULL);
 
    DFlowNode_Initialize(self, dataFlow->flavour, dataFlow->bool_rep, rh);
 
@@ -723,7 +723,7 @@ DFlowNode *DFlowNode_DuplicateTree(DFlowNode *self)
    if (!self->m_wantReplicate)
       return self;
 
-   vcos_assert(self->m_replicant == NULL);
+   assert(self->m_replicant == NULL);
 
    newNode = (DFlowNode *)bcg_glsl_malloc(sizeof(DFlowNode));
    // TODO DFlowNode_PartialCopy(newNode, self);
@@ -1016,7 +1016,7 @@ void DFlowNode_AddChildren(DFlowNode *self, Dataflow *dataFlow)
       break;
 
    default:
-      vcos_assert(0);
+      assert(0);
       break;
    }
 }
@@ -1033,7 +1033,7 @@ CondCode_Enum DFlowNode_GetCondCode(const DFlowNode *self)
    switch (self->m_boolRep)
    {
    default              :
-   case BOOL_REP_NONE   : vcos_assert(0); return CondCode_NEVER;
+   case BOOL_REP_NONE   : assert(0); return CondCode_NEVER;
    case BOOL_REP_NEG    : return CondCode_NC;
    case BOOL_REP_NEG_N  : return CondCode_NS;
    case BOOL_REP_BOOL_N :
@@ -1068,7 +1068,7 @@ RegA_Pack_Enum DFlowNode_GetRegAPackCode(const DFlowNode *self)
    case DATAFLOW_PACK_COL_G  :
    case DATAFLOW_PACK_COL_B  :
    case DATAFLOW_PACK_COL_A  :
-      vcos_assert(0);   // These are float operations, cannot be done with regA packing
+      assert(0);   // These are float operations, cannot be done with regA packing
       return (RegA_Pack_Enum)(RegA_Pack_8R_S + (self->m_flavour - DATAFLOW_PACK_COL_REPLICATE));
    case DATAFLOW_PACK_16A    :
    case DATAFLOW_PACK_16B    :
@@ -1568,7 +1568,7 @@ DFlowNode_ScheduleStatus DFlowNode_HandleDelayedLoadc(DFlowNode *self, InstrStat
             break;
          }
       }
-      vcos_assert(loadcNode != NULL);
+      assert(loadcNode != NULL);
 
       if (QPUGenericInstr_SetSignal(&state->m_gi, DFlowNode_GetSignal(loadcNode)))
       {
@@ -1634,7 +1634,7 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
       return DFlowNode_ReadSpecialRegister(self, &state, Register_UNIFORM_READ);
 
    case DATAFLOW_UNIFORM_OFFSET    :
-      vcos_assert(0); // Unused?
+      assert(0); // Unused?
       return DFlowNode_NOTHING_TO_SCHEDULE;
 
    // Indexed uniforms
@@ -1653,7 +1653,7 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
 
    // Standard arithmetic functions for the ALU
 	case DATAFLOW_ARITH_NEGATE      :
-      vcos_assert(0);   // Never get these?
+      assert(0);   // Never get these?
       return DFlowNode_NOTHING_TO_SCHEDULE;
 
 	case DATAFLOW_MUL               :
@@ -2037,11 +2037,11 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
    case DATAFLOW_INTRINSIC_CEIL  :
    case DATAFLOW_INTRINSIC_FLOOR :
    case DATAFLOW_INTRINSIC_SIGN  :
-      vcos_assert(0); // Unused?
+      assert(0); // Unused?
       break;
 
    case DATAFLOW_THREADSWITCH:
-      vcos_assert(0); // Thread switch. Only used by old scheduler.
+      assert(0); // Thread switch. Only used by old scheduler.
 	   break;
 
    // TMU configuration
@@ -2186,7 +2186,7 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
    case DATAFLOW_TEX_GET_CMP_G  :
    case DATAFLOW_TEX_GET_CMP_B  :
    case DATAFLOW_TEX_GET_CMP_A  :
-      vcos_assert(0); // Unused
+      assert(0); // Unused
       return DFlowNode_NOTHING_TO_SCHEDULE;
 
    // Fragment coordinate retrieval & varying c
@@ -2339,7 +2339,7 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
 
             // Packing into a background register. We need to assert that our input (also our output) only has us as a child.
             // There are cases where this isn't true, and a MOV should have been added to the graph.
-            vcos_assert(self->m_args[DFlowNode_ARG_BACKGROUND]->m_parents.m_size == 1);
+            assert(self->m_args[DFlowNode_ARG_BACKGROUND]->m_parents.m_size == 1);
 
             if (src == NULL || dest == NULL)
                return DFlowNode_NOT_SCHEDULABLE;
@@ -2431,7 +2431,7 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
          else if (QPUOperand_IsSmallFloat(&operand))
             return DFlowNode_DoConstFloat(self, &state);
          else
-            vcos_assert(0);
+            assert(0);
       }
       return DFlowNode_NOT_SCHEDULABLE;
 
@@ -2607,7 +2607,7 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
                int32_t                 count = 0;
                const NodeList          *parents = DFlowNode_Parents(self);
 
-               vcos_assert(QPUOperand_IsRegister(&operand));
+               assert(QPUOperand_IsRegister(&operand));
 
                // Need to adjust the reference count on the real value to include multiple parented unpacks.
                // In practice this just means adding our parent count - 1 to the underlying ref count.
@@ -2631,7 +2631,7 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
          else if (QPUOperand_IsSmallFloat(&operand))
             return DFlowNode_DoConstFloat(self, &state);
          else
-            vcos_assert(0);
+            assert(0);
       }
       return DFlowNode_NOT_SCHEDULABLE;
 
@@ -2680,7 +2680,7 @@ DFlowNode_ScheduleStatus DFlowNode_TextureWrite(DFlowNode *self, InstrState *sta
    //
    if (self->m_threadSwitch && Scheduler_AllowThreadswitch(sched))
    {
-      vcos_assert(self->m_flavour == DATAFLOW_TEX_SET_COORD_S);
+      assert(self->m_flavour == DATAFLOW_TEX_SET_COORD_S);
 
       switch (self->m_schedPass)
       {
@@ -2765,7 +2765,7 @@ DFlowNode_ScheduleStatus DFlowNode_TextureWrite(DFlowNode *self, InstrState *sta
    unit        = self->m_sampler;
    uniformType = InstrState_GetNextTextureUniform(state, unit);
    // Ensure we've not added a uniform in this instruction already
-   //vcos_assert(state->m_uniforms.size() == state->m_originalUniforms->size());
+   //assert(state->m_uniforms.size() == state->m_originalUniforms->size());
 
    //state->m_uniforms.push_back(Uniform(uniformType,
    //                                    m_args[ARG_SAMPLER]->m_uniform.m_constSampler.m_location & ~0x80000000));
@@ -2814,7 +2814,7 @@ bool DFlowNode_SetConditionFlags(DFlowNode *self, InstrState *state, DFlowNode *
 
    if (QPUGenericInstr_SetMovOpResEx(&state->m_gi, condOp, nop, QPUGenericInstr_ADD, &unitUsed))
    {
-      vcos_assert(unitUsed == QPUGenericInstr_ADD);
+      assert(unitUsed == QPUGenericInstr_ADD);
 
       // Set the flags, and ensure flags aren't read for 1 cycle
       QPUGenericInstr_SetFlags(&state->m_gi, true);
@@ -2891,8 +2891,8 @@ DFlowNode_ScheduleStatus SetupForTwoOperandsInsertExtraMov(DFlowNode *self, cons
    QPUResource             *output;
    QPUOperand              dest;
 
-   vcos_assert(InstrState_IsReadableOp(state, leftOp));
-   vcos_assert(InstrState_IsReadableOp(state, rightOp));
+   assert(InstrState_IsReadableOp(state, leftOp));
+   assert(InstrState_IsReadableOp(state, rightOp));
 
    QPUOperand_ConstrCopy(&movingOp, rightOp);
 
@@ -3830,7 +3830,7 @@ bool DFlowNode_IsTheSameValueAs(const DFlowNode *self, const DFlowNode *other)
 
 void DFlowNode_ReplaceWith(DFlowNode *self, DFlowNode *node)
 {
-   //vcos_assert(IoParents().size() == 0 && IoChildren().size() == 0 && node->IoParents().size() == 0 && node->IoChildren().size() == 0);
+   //assert(IoParents().size() == 0 && IoChildren().size() == 0 && node->IoParents().size() == 0 && node->IoChildren().size() == 0);
    NodeList_iterator iter;
 
    for (iter = NodeList_begin(&self->m_parents); iter != NodeList_end(&self->m_parents); NodeList_next(&iter))

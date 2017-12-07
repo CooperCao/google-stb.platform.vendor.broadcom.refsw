@@ -252,6 +252,7 @@ BIP_RtspSocketHandle BIP_RtspSocket_CreateFromFd(
     BIP_CHECK_ERR_NZ_GOTO( rc, "BKNI_CreateMutex() Failed", error );
 
     /* Set state to idle */
+    /* coverity [missing_lock] */
     hRtspSocket->state = BIP_RtspSocketState_eIdle;
     BDBG_MSG((BIP_MSG_PRE_FMT "hRtspSocket %p" BIP_MSG_PRE_ARG , (void *)hRtspSocket ));
 

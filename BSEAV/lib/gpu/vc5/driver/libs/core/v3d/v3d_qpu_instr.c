@@ -5,6 +5,7 @@
 #include "v3d_qpu_instr.h"
 #include "v3d_limits.h"
 
+#include <inttypes.h>
 #include <string.h>
 #include "vcos_string.h"
 
@@ -39,7 +40,7 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
    case V3D_QPU_MAGIC_WADDR_R4:
       return V3D_QPU_MAGIC_WADDR_CLASS_ACC;
    case V3D_QPU_MAGIC_WADDR_R5QUAD:
-#if V3D_HAS_R5REP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_MAGIC_WADDR_R5REP:
 #endif
       return V3D_QPU_MAGIC_WADDR_CLASS_R5;
@@ -79,6 +80,9 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
 #endif
    case V3D_QPU_MAGIC_WADDR_SYNC:
    case V3D_QPU_MAGIC_WADDR_SYNCU:
+#if V3D_VER_AT_LEAST(4,2,13,0)
+   case V3D_QPU_MAGIC_WADDR_SYNCB:
+#endif
       return V3D_QPU_MAGIC_WADDR_CLASS_SYNC;
    case V3D_QPU_MAGIC_WADDR_RECIP:
    case V3D_QPU_MAGIC_WADDR_RSQRT:
@@ -89,7 +93,7 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
    case V3D_QPU_MAGIC_WADDR_RSQRT2:
 #endif
       return V3D_QPU_MAGIC_WADDR_CLASS_SFU;
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_MAGIC_WADDR_UNIFA:
       return V3D_QPU_MAGIC_WADDR_CLASS_UNIF;
 #endif
@@ -121,7 +125,7 @@ static uint32_t bits32_repl(bool* overflow, uint32_t curbits, uint32_t bits, uin
 const static v3d_qpu_sigbits_t result_write_mask =
                             V3D_QPU_SIG_LDTLB  | V3D_QPU_SIG_LDTLBU |
                             V3D_QPU_SIG_LDVARY | V3D_QPU_SIG_LDTMU
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
                           | V3D_QPU_SIG_LDUNIFRF | V3D_QPU_SIG_LDUNIFARF
 #endif
                            ;
@@ -130,7 +134,7 @@ bool v3d_qpu_sig_has_result_write(v3d_qpu_sigbits_t sigbits) {
    return (sigbits & result_write_mask) != 0;
 }
 
-#if !V3D_HAS_SIG_TO_MAGIC
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 /* Provide default registers for those signals that can use registers but have defaults */
 uint32_t v3d_qpu_sig_default_reg(v3d_qpu_sigbits_t sigbits) {
    uint32_t bit = sigbits & result_write_mask;
@@ -140,7 +144,7 @@ uint32_t v3d_qpu_sig_default_reg(v3d_qpu_sigbits_t sigbits) {
       case V3D_QPU_SIG_LDTLB:  return 3;
       case V3D_QPU_SIG_LDTLBU: return 3;
       case V3D_QPU_SIG_LDTMU:  return 4;
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case V3D_QPU_SIG_LDUNIFRF:  return 5;
       case V3D_QPU_SIG_LDUNIFARF: return 5;
 #endif
@@ -158,7 +162,7 @@ uint64_t v3d_qpu_instr_unused_mask(const struct v3d_qpu_instr *in)
          {
             return gfx_mask64(2) << 4;
          }
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_SIG_TO_MAGIC
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
          else if (v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits) && !in->u.alu.sig.sig_reg)
          {
             return gfx_mask64(6) << 46;
@@ -409,7 +413,7 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
 #if V3D_VER_AT_LEAST(4,0,2,0)
          case 6:  op->opcode = V3D_QPU_OP_VPMWT; break;
 #endif
-#if V3D_HAS_FLAFIRST
+#if V3D_VER_AT_LEAST(4,1,34,0)
          case 7: op->opcode = V3D_QPU_OP_FLAFIRST; break;
 #endif
          default: return false;
@@ -804,7 +808,7 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
 #else
       case V3D_QPU_OP_VPMSETUP: *op_add = 187; *add_b = 3; return true;
 #endif
-#if V3D_HAS_FLAFIRST
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case V3D_QPU_OP_FLAFIRST: *op_add = 187; *add_b = 2; *add_a = 7; return true;
 #endif
 
@@ -949,7 +953,7 @@ static const v3d_qpu_sigbits_t valid_sigs[] = {
 /*  9 */   S(THRSW) |      S(LDVARY),
 /* 10 */                   S(LDVARY) |               S(LDUNIF),
 /* 11 */   S(THRSW) |      S(LDVARY) |               S(LDUNIF),
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
 /* 12 */                                             S(LDUNIFRF),
 /* 13 */   S(THRSW) |                                S(LDUNIFRF),
 #elif !V3D_VER_AT_LEAST(4,0,2,0)
@@ -976,7 +980,7 @@ static const v3d_qpu_sigbits_t valid_sigs[] = {
 #endif
 /* 22 */   S(UCB),
 /* 23 */   S(ROTATE),
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
 /* 24 */                                             S(LDUNIFA),
 /* 25 */                                             S(LDUNIFARF),
 /* 26 */   ~0u,
@@ -1183,7 +1187,7 @@ bool v3d_qpu_instr_try_unpack(struct v3d_qpu_instr *in, uint64_t bits,
          set_err(err, "Unrecognised signal %u", sig);
          return false;
       }
-#if V3D_HAS_SIG_TO_MAGIC
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits)) {
          uint32_t cond = (i1 >> 14) & 0x7f;
          in->u.alu.sig.magic = (cond & 0x40);
@@ -1480,7 +1484,7 @@ bool v3d_qpu_instr_try_pack(struct v3d_qpu_instr const* in, uint64_t* bits)
             {
                return false;
             }
-# if V3D_HAS_SIG_TO_MAGIC
+# if V3D_VER_AT_LEAST(4,1,34,0)
             cond = (in->u.alu.sig.magic ? 0x40 : 0) | in->u.alu.sig.waddr;
 # else
             if (in->u.alu.sig.sig_reg)
@@ -1653,7 +1657,7 @@ v3d_qpu_res_type_t v3d_qpu_res_type_from_opcode(v3d_qpu_opcode_t opcode)
    case V3D_QPU_OP_VPMWT:
    case V3D_QPU_OP_BARRIERID:
 #endif
-#if V3D_HAS_FLAFIRST
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_OP_FLAFIRST:
 #endif
       return V3D_QPU_RES_TYPE_32I;

@@ -119,6 +119,13 @@ typedef enum b_trick_state {
     b_trick_state_mdqt_mode
 } b_trick_state;
 
+enum b_accurate_seek_state {
+    b_accurate_seek_state_idle, /* nothing happens */
+    b_accurate_seek_state_videoPtsQueued, /* target video PTS was obtained */
+    b_accurate_seek_state_videoPtsSet, /* target video PTS was set to the decoder*/
+    b_accurate_seek_state_videoFirstPts /* video FirstPTS callback was received */
+};
+
 typedef struct b_trick_settings {
     b_trick_state state;
     int decode_rate;   /* based on NEXUS_NORMAL_PLAY_SPEED */
@@ -236,7 +243,6 @@ struct NEXUS_Playback {
         } media;
         enum {NEXUS_Playback_P_FrameAdvance_Invalid, NEXUS_Playback_P_FrameAdvance_Forward, NEXUS_Playback_P_FrameAdvance_Reverse} frame_advance; /* this state variable keeps track of compatible frameadvance mode  (e.g. play is compatible with frameforward and 1xrewind compatible with framereverse, and 2xfastforward not compatible with either */
 
-        bool inAccurateSeek;
         bool validPts;
 
         bool seekPositionValid; /* this set during seek, and cleared on about any transition */
@@ -257,6 +263,10 @@ struct NEXUS_Playback {
         struct {
             bool primary, secondary; /* set true if trick mode was settable. avoids extra GetStatus calls. */
         } audioTrick;
+        struct {
+            enum b_accurate_seek_state state;
+            uint32_t videoPts;
+        } accurateSeek;
     } state;
 #if B_PLAYBACK_CAPTURE
     struct {

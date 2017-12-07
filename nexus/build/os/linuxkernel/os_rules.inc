@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,7 +36,7 @@
 #  ANY LIMITED REMEDY.
 #
 # Module Description:
-#   This file defines the OS-specific rules for building in linuxkernel mode.
+#   This file defines the rules to build the Nexus platform
 #
 ############################################################
 
@@ -118,7 +118,10 @@ ifeq ($(LINUX_VER_GE_2_6_31),y)
 	${Q_}# build a dynamic Kbuild file
 	@echo "obj-m += nexus.o" >$(NEXUS_OBJ_DIR)/Kbuild
 	@echo "nexus-y += nexus.o_shipped" >>$(NEXUS_OBJ_DIR)/Kbuild
-	$(MAKE) -C $(LINUX_OUT) M=$(realpath $(NEXUS_OBJ_DIR)) ARCH=$(B_REFSW_LINUX_ARCH) modules PLATFORM=$(NEXUS_PLATFORM) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE) $(NEXUS_DRIVER_KBUILD_ARGS)
+ifneq ($(NEXUS_DRIVER_KBUILD_ARGS),)
+	${Q_}cat $(NEXUS_DRIVER_KBUILD_ARGS) > $(NEXUS_OBJ_DIR)/Module.symvers
+endif
+	$(MAKE) -C $(LINUX_OUT) M=$(realpath $(NEXUS_OBJ_DIR)) ARCH=$(B_REFSW_LINUX_ARCH) modules PLATFORM=$(NEXUS_PLATFORM) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
 else
 	${@_}# do not use kbuild for 2.6.18
 	@$(CP) $^ $@

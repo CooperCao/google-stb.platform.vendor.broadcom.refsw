@@ -38,7 +38,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_MAX_DECODERS || BAPE_CHIP_MAX_DSP_MIXERS
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_dsp_utils);
@@ -164,7 +164,7 @@ BAPE_DolbyMs12Config BAPE_P_GetDolbyMS12Config_isrsafe(void)
     {
         BDSP_CodecCapabilities dspCaps;
 
-        BDSP_Raaga_GetCodecCapabilities(&dspCaps);
+        BDSP_GetCodecCapabilities_isrsafe(&dspCaps);
         /*BDBG_ERR(("ddEncode %d, ddpEncode51 %d, ddpEncode71 %d, pcm71 %d, dapv2 %d",
                   dspCodecCaps.dolbyMs.ddEncode, dspCodecCaps.dolbyMs.ddpEncode51, dspCodecCaps.dolbyMs.ddpEncode71, dspCodecCaps.dolbyMs.pcm71, dspCodecCaps.dolbyMs.dapv2));*/
         if ( dspCaps.dolbyMs.ddpEncode71 && dspCaps.dolbyMs.pcm71 )
@@ -195,14 +195,14 @@ BAPE_DolbyMs12Config BAPE_P_GetDolbyMS12Config_isrsafe(void)
 bool BAPE_P_DolbyCapabilities_Ac3Encode_isrsafe(void)
 {
     BDSP_CodecCapabilities dspCaps;
-    BDSP_Raaga_GetCodecCapabilities(&dspCaps);
+    BDSP_GetCodecCapabilities_isrsafe(&dspCaps);
     return dspCaps.dolbyMs.ddEncode;
 }
 
 bool BAPE_P_DolbyCapabilities_DdpEncode_isrsafe(BAPE_MultichannelFormat format)
 {
     BDSP_CodecCapabilities dspCaps;
-    BDSP_Raaga_GetCodecCapabilities(&dspCaps);
+    BDSP_GetCodecCapabilities_isrsafe(&dspCaps);
     if ( format == BAPE_MultichannelFormat_e7_1 )
     {
         return dspCaps.dolbyMs.ddpEncode71;
@@ -214,7 +214,7 @@ bool BAPE_P_DolbyCapabilities_DdpEncode_isrsafe(BAPE_MultichannelFormat format)
 BAPE_MultichannelFormat BAPE_P_DolbyCapabilities_MultichannelPcmFormat_isrsafe(void)
 {
     BDSP_CodecCapabilities dspCaps;
-    BDSP_Raaga_GetCodecCapabilities(&dspCaps);
+    BDSP_GetCodecCapabilities_isrsafe(&dspCaps);
     if ( dspCaps.dolbyMs.pcm71 )
     {
         return BAPE_MultichannelFormat_e7_1;
@@ -226,7 +226,7 @@ BAPE_MultichannelFormat BAPE_P_DolbyCapabilities_MultichannelPcmFormat_isrsafe(v
 bool BAPE_P_DolbyCapabilities_Dapv2_isrsafe(void)
 {
     BDSP_CodecCapabilities dspCaps;
-    BDSP_Raaga_GetCodecCapabilities(&dspCaps);
+    BDSP_GetCodecCapabilities_isrsafe(&dspCaps);
     return dspCaps.dolbyMs.dapv2;
 }
 
@@ -1123,11 +1123,25 @@ void BAPE_DSP_P_StopPathToOutput(
 
 bool BAPE_DSP_P_AlgorithmSupported(BAPE_Handle hApe, BDSP_Algorithm algorithm)
 {
+    BDSP_Handle dspHandle = NULL;
     BDSP_AlgorithmInfo algoInfo;
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
-    errCode = BDSP_GetAlgorithmInfo(hApe->dspHandle, algorithm, &algoInfo);
+    if ( hApe->dspHandle != NULL )
+    {
+        dspHandle = hApe->dspHandle;
+    }
+    else if ( hApe->armHandle != NULL )
+    {
+        dspHandle = hApe->armHandle;
+    }
+    else
+    {
+        BDBG_WRN(("WARNING - No valid dsp or arm device for audio."));
+        return false;
+    }
+    errCode = BDSP_GetAlgorithmInfo(dspHandle, algorithm, &algoInfo);
     if ( errCode || !algoInfo.supported )
     {
         return false;
@@ -1186,14 +1200,14 @@ BERR_Code BAPE_DSP_P_DeriveTaskStartSettings(
         pStartSettings->schedulingMode = BDSP_TaskSchedulingMode_eSlave;
 
         /* Check if MuxOutput is after DSP Mixer */
-        BAPE_PathNode_P_FindConsumersByType(&hDspMixer->pathNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pMuxOutput);
+        BAPE_PathNode_P_FindConsumersByType_isrsafe(&hDspMixer->pathNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pMuxOutput);
         if ( numFound > 0 )
         {
             /* The settings will affect the mixer task, not this node */
             return BERR_SUCCESS;
         }
     }
-    BAPE_PathNode_P_FindConsumersByType(pNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pMuxOutput);
+    BAPE_PathNode_P_FindConsumersByType_isrsafe(pNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pMuxOutput);
     if ( numFound > 0 )
     {
         BAPE_MuxOutputHandle hMuxOutput;

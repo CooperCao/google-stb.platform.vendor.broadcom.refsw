@@ -87,7 +87,7 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
       return expr;
 
    // Samplers and images are immutable and (because they're only indexed by constants) side-effect free
-   if (glsl_prim_is_prim_sampler_type(expr->type) || glsl_prim_is_prim_image_type(expr->type))
+   if (glsl_prim_is_prim_comb_sampler_type(expr->type) || glsl_prim_is_prim_image_type(expr->type))
       return expr;
 
    if (!make_lvalue && expr_has_no_side_effects(expr)) {
@@ -171,7 +171,7 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
          glsl_nstmt_list_add(nstmts, glsl_nstmt_new_function_call(result, function, args));
          // copy back out params
          // Atomic memory functions don't obey the calling convention here
-         if (!glsl_stdlib_is_stdlib_symbol(function) ||
+         if (!glsl_stdlib_is_stdlib_function(function) ||
              !(glsl_stdlib_function_properties[glsl_stdlib_function_index(function)] & GLSL_STDLIB_PROPERTY_ATOMIC_MEM))
             glsl_nstmt_list_add_list(nstmts, copy_back_params);
          return result;

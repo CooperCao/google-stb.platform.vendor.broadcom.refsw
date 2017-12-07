@@ -3938,6 +3938,8 @@ static BERR_Code AddPidChannelToContext(
     }
     else
     {
+        BXPT_PidChannelDestination dest;
+
         BDBG_MSG(( "AddPidChannelToContext: PidChanNum %u, Context %u", PidChanNum, Context->Index ));
 
         /* For 7002 we need ability to specify pipe for MMSCRAM function */
@@ -3948,9 +3950,10 @@ static BERR_Code AddPidChannelToContext(
         }
 
         PipeShift = UseDecrypted == true ? 5 : 4;
+        dest = UseDecrypted ? BXPT_PidChannelDestination_eRaveRPipe : BXPT_PidChannelDestination_eRaveGPipe;
         lhRave = ( BXPT_Rave_Handle ) Context->vhRave;
         lhXpt = ( BXPT_Handle ) lhRave->lvXpt;
-        BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, PipeShift, true );
+        BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, dest, true );
 
 #if BXPT_SW7425_1323_WORKAROUND
         lhRave->PidChanToContextMap[ PidChanNum ] = Context->Index;
@@ -4372,14 +4375,14 @@ void ClearSpidTable(
         {
             if ( !(LoCxMemEnables & R_MAP) && !(HiCxMemEnables & R_MAP) )
             {
-                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, 5, false );
+                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, BXPT_PidChannelDestination_eRaveRPipe, false );
             }
         }
         else
         {
             if( !(LoCxMemEnables & G_MAP) && !(HiCxMemEnables & G_MAP) )
             {
-                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, 4, false );
+                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, BXPT_PidChannelDestination_eRaveGPipe, false );
             }
         }
     }
@@ -4409,14 +4412,14 @@ void ClearSpidTable(
         {
             if ( !(CxMemAEnables & R_MAP) && !(CxMemBEnables & R_MAP) && !(CxMemCEnables & R_MAP) )
             {
-                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, 5, false );
+                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, BXPT_PidChannelDestination_eRaveRPipe, false );
             }
         }
         else
         {
             if( !(CxMemAEnables & G_MAP) && !(CxMemBEnables & G_MAP) && !(CxMemCEnables & G_MAP) )
             {
-                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, 4, false );
+                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, BXPT_PidChannelDestination_eRaveGPipe, false );
             }
         }
     }
@@ -4571,7 +4574,7 @@ BERR_Code BXPT_Rave_PushPidChannel(
 
     lhRave = ( BXPT_Rave_Handle ) hCtx->vhRave;
     lhXpt = ( BXPT_Handle ) lhRave->lvXpt;
-    BXPT_P_SetPidChannelDestination( lhXpt, SplicePidChannel, 5, true );
+    BXPT_P_SetPidChannelDestination( lhXpt, SplicePidChannel, BXPT_PidChannelDestination_eRaveRPipe, true );
     Done:
     return( ExitCode );
 }

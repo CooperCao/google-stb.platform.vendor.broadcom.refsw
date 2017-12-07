@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -333,13 +333,18 @@ void BIP_HttpSocket_Destroy(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed" ), error, brc, brc );
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket %p: Waiting for HttpSocket Shutdown Event Completion!" BIP_MSG_PRE_ARG, (void *)hHttpSocket ));
-    B_Event_Wait( hHttpSocket->hShutdownEvent, B_WAIT_FOREVER );
+
+    brc = B_Event_Wait( hHttpSocket->hShutdownEvent, B_WAIT_FOREVER );
+    BIP_CHECK_LOGERR((brc == B_ERROR_SUCCESS), ( "B_Event_Wait failed, rc:0x%X", brc ), BIP_ERR_B_OS_LIB, brc );
+
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket %p: Received HttpSocket Shutdown Event, so start destroying the object" BIP_MSG_PRE_ARG, (void *)hHttpSocket ));
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpSocket, brc ));
     httpSocketDestroy( hHttpSocket );
+    return;
+
 error:
     BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpSocket, brc ));
-
     return;
 } /* BIP_HttpSocket_Destroy */
 

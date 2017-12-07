@@ -9,6 +9,8 @@ typedef struct {
    bool bin_mode;
    bool emit_point_size;
    bool z_only_active;
+
+   const GLSL_VARY_MAP_T *vary_map;
 } VertexBackendState;
 
 void glsl_vertex_backend(SchedBlock *block, int block_id,
@@ -16,5 +18,4 @@ void glsl_vertex_backend(SchedBlock *block, int block_id,
                          const LinkMap *link_map,
                          SchedShaderInputs *ins,
                          const VertexBackendState *s,
-                         const bool *shader_outputs_used,
-                         const GLSL_VARY_MAP_T *vary_map);
+                         const bool *shader_outputs_used);

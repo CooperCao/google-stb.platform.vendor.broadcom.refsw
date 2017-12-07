@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  EGL Broadcom driver monitor extension
-
-FILE DESCRIPTION
-Server-side implementation of EGL_BRCM_driver_monitor.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/egl/egl_platform.h"
 #include "middleware/khronos/egl/egl_server.h"
@@ -46,7 +38,7 @@ void eglTermDriverMonitorBRCM_impl()
 {
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
 
-   vcos_assert(state->driver_monitor_refcount > 0);
+   assert(state->driver_monitor_refcount > 0);
 
    state->driver_monitor_refcount--;
 

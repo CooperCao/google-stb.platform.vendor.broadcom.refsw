@@ -70,8 +70,11 @@ IR_PROGRAM_T *glsl_ir_program_create() {
    ret->tess_point_mode = false;
    ret->tess_cw         = false;
 
+   ret->max_known_layers = 1;
    ret->gs_out           = V3D_CL_GEOM_PRIM_TYPE_INVALID;
+   ret->gs_in            = GS_IN_INVALID;
    ret->gs_n_invocations = 0;
+   ret->gs_max_vertices  = 0;
 
    init_vary_map(&ret->tf_vary_map);
 

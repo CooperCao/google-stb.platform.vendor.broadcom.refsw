@@ -269,7 +269,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init_3466_Hab(NEXUS_3466Device *pDevice, cons
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     BHAB_Settings habSettings;
-    uint32_t  familyId;
+    uint32_t  familyId, chipId;
     BHAB_Handle habHandle;
 
     void *regHandle;
@@ -351,8 +351,40 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init_3466_Hab(NEXUS_3466Device *pDevice, cons
     rc = BHAB_ReadRegister(pDevice->hab, BCHP_TM_FAMILY_ID, &familyId);
     if(rc){rc = BERR_TRACE(rc);}
 
+    rc = BHAB_ReadRegister(pDevice->hab, BCHP_TM_PRODUCT_ID, &chipId);
+    if(rc){rc = BERR_TRACE(rc);}
+
     if (pSettings->loadAP)
     {
+        {
+            unsigned magic;
+            unsigned family;
+            unsigned rev;
+            unsigned probedRev;
+            const uint8_t *fw_image = NULL;
+
+            if((familyId >> 16) == 0x3465)
+                fw_image = bcm3465_leap_image;
+            else
+                fw_image = bcm3466_leap_image;
+
+            magic  = (fw_image[ 0] << 24) + (fw_image[ 1] << 16) + (fw_image[ 2] << 8) + (fw_image[ 3]);
+            family = (fw_image[36] << 24) + (fw_image[37] << 16) + (fw_image[38] << 8) + (fw_image[39]);
+            rev    = (fw_image[44] << 24) + (fw_image[45] << 16) + (fw_image[46] << 8) + (fw_image[47]);
+
+            if ((magic != 0xaaaaaaaa) || (family != (familyId >> 16))) {
+                BDBG_WRN(("Possible 3466 firmware corruption, expected values not matched."));
+            }
+
+            probedRev = ((chipId & 0xFF)  == 0x10) ? 0xB0 : 0xA0;
+
+            if (probedRev != 0x00000000) {
+                if (probedRev != rev) {
+                    BDBG_WRN(("Chip revision does not match firmware revision. Does NEXUS_FRONTEND_3466_VER=%X need to be set?", probedRev));
+                }
+            }
+        }
+
         if((familyId >> 16) == 0x3466) {
             rc = BHAB_InitAp(pDevice->hab, bcm3466_leap_image);
             if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -601,6 +633,17 @@ static void NEXUS_Frontend_P_3466_UnTune(void *handle)
     } else {
         if (p3466Device->terrestrial.api.untune)
             p3466Device->terrestrial.api.untune(handle);
+    }
+    if (p3466Device->isTunerPoweredOn[pChannel->chn_num]) {
+        BTNR_PowerSaverSettings pwrSettings;
+        if (NEXUS_SUCCESS == BTNR_GetPowerSaver(p3466Device->tnr[pChannel->chn_num], &pwrSettings)) {
+            BERR_Code rc;
+            pwrSettings.enable = true;
+            rc = BTNR_SetPowerSaver(p3466Device->tnr[pChannel->chn_num], &pwrSettings);
+            if (rc)
+                BDBG_WRN(("Disabling power failed."));
+            p3466Device->isTunerPoweredOn[pChannel->chn_num] = false;
+        }
     }
 }
 

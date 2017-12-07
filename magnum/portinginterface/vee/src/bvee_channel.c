@@ -1371,10 +1371,10 @@ pPpb_Cached->sPictureMetaData.ulSTCSnapshotHi = pPicture->ulSTCSnapshotHi;
 pPpb_Cached->sPictureMetaData.ulPictureId = pPicture->ulPictureId;
 pPpb_Cached->sPictureMetaData.bCadenceLocked = pPicture->bCadenceLocked;
 pPpb_Cached->sPictureMetaData.ePicStruct = (BVENC_VF_sPicStruct)pPicture->ePicStruct;
-pPpb_Cached->sPictureMetaData.ui32BuffAddr2H1VY = (uint32_t)NULL;
-pPpb_Cached->sPictureMetaData.ui32BuffAddr2H1VUV = (uint32_t)NULL;
-pPpb_Cached->sPictureMetaData.ui32BuffAddr2H2VY = (uint32_t)NULL;
-pPpb_Cached->sPictureMetaData.ui32BuffAddr2H2VUV = (uint32_t)NULL;
+pPpb_Cached->sPictureMetaData.ui32BuffAddr2H1VY = 0x00000000;
+pPpb_Cached->sPictureMetaData.ui32BuffAddr2H1VUV = 0x00000000;
+pPpb_Cached->sPictureMetaData.ui32BuffAddr2H2VY = 0x00000000;
+pPpb_Cached->sPictureMetaData.ui32BuffAddr2H2VUV = 0x00000000;
 #endif
 /*
 BDBG_MSG(("VEE Enqueue Luma MMA 0x%x offset = 0x%x pic id = 0x%x PPB = 0x%x", pPicture->hLumaBlock,pPicture->ulLumaOffset ,pPicture->ulPictureId,temp_cappict->uiPpBufferOffset));
@@ -2035,8 +2035,8 @@ BERR_Code
 BVEE_Channel_UserData_AddBuffers_isr(
 BVEE_ChannelHandle hVeeCh,
 const BUDP_Encoder_FieldInfo *pstUserDataFieldInfo, /* Pointer to first field info descriptor */
-size_t uiCount, /* Count of user data field buffer info structs */
-size_t *puiQueuedCount /* Count of user data field info structs queued by encoder (*puiQueuedCount <= uiCount) */
+unsigned uiCount, /* Count of user data field buffer info structs */
+unsigned *puiQueuedCount /* Count of user data field info structs queued by encoder (*puiQueuedCount <= uiCount) */
 )
 {
 BERR_Code rc = BERR_SUCCESS;
