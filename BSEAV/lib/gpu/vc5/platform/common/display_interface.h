@@ -49,6 +49,14 @@ typedef struct DisplayInterface
    bool (*wait_sync)(void *context);
 
    /*
+    * Release previously displayed surfaces, if they're no longer needed.
+    *
+    * This is an optional function used to recycle any previously displayed
+    * surfaces if they're no longer used.
+    */
+   void (*release)(void *context);
+
+   /*
     * Stop the display and release the last displayed surface.
     *
     * This call must block until the last display_fence is signalled
@@ -63,6 +71,8 @@ DisplayInterfaceResult DisplayInterface_Display(
       int *display_fence);
 
 bool DisplayInterface_WaitSync(const DisplayInterface *di);
+
+void DisplayInterface_Release(const DisplayInterface *di);
 
 void DisplayInterface_Stop(const DisplayInterface *di);
 

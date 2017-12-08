@@ -95,6 +95,9 @@
 #undef eglGetPlatformDisplayEXT
 #undef eglCreatePlatformWindowSurfaceEXT
 #undef eglCreatePlatformPixmapSurfaceEXT
+#undef eglBindWaylandDisplayWL
+#undef eglUnbindWaylandDisplayWL
+#undef eglQueryWaylandBufferWL
 
 /* OpenGL ES 1.1 and 2.0 functions */
 

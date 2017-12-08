@@ -83,7 +83,7 @@ CFLAGS += -I./include \
 CFLAGS += $(addprefix -I,${BSAGELIB_INCLUDES})
 CFLAGS += $(addprefix -D,${BSAGELIB_DEFINES})
 
-CFLAGS += -DPIC -fpic
+CFLAGS += -DPIC -fpic -g
 CFLAGS += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
 
 # This is the minimum needed to compile and link with Nexus

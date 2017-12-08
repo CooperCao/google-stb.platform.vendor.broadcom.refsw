@@ -333,7 +333,7 @@ NEXUS_Display_P_DisableVbi(NEXUS_DisplayHandle display)
     return ;
 }
 
-static bool nexus_display_vbi_available(enum nexus_vbi_resources res)
+bool nexus_display_p_vbi_available(enum nexus_vbi_resources res)
 {
     BVBI_Capabilities cap;
     unsigned total = 0, i;
@@ -344,6 +344,10 @@ static bool nexus_display_vbi_available(enum nexus_vbi_resources res)
     }
     BVBI_GetCapabilities(g_NEXUS_DisplayModule_State.vbi, &cap);
     switch (res) {
+    case nexus_vbi_resource_vec_int:
+        return total < cap.ulNumVecEnc;
+    case nexus_vbi_resource_vec_bypass_int:
+        return total < cap.ulNumPassThruEnc;
     case nexus_vbi_resources_cgmse:
         return total < cap.ulNumCgmse;
     default:
@@ -437,7 +441,7 @@ NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
 
     /* CGMS is supported for NTSC and 50/60Hz HD, but not PAL. */
     enabled = (format != NEXUS_VideoFormat_ePal) && display->vbi.settings.cgmsEnabled;
-    if (enabled && !display->vbi.enabled[nexus_vbi_resources_cgmse] && !nexus_display_vbi_available(nexus_vbi_resources_cgmse)) {
+    if (enabled && !display->vbi.enabled[nexus_vbi_resources_cgmse] && !nexus_display_p_vbi_available(nexus_vbi_resources_cgmse)) {
         BDBG_WRN(("no CGMS A encoder available for display %u", display->index));
     }
     else {

@@ -1633,7 +1633,8 @@ const BDSP_Raaga_Audio_GenCdbItbConfigParams BDSP_sDefGenCdbItbConfigSettings =
     0,                                          /* ui32EncSTCAddr */
     0,                                          /* ui32A2PInMilliSeconds */
     BDSP_AF_P_eDisable,                         /* eStcItbEntryEnable */
-    0                                           /* ui32EncSTCAddrUpper */
+    0,                                          /* ui32EncSTCAddrUpper */
+    0                                           /* ui64AVSTCOffset */
 };
 
 

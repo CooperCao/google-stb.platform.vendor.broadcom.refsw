@@ -46,7 +46,7 @@ BERR_Code BDSP_Arm_P_ProcessInitCommand(
 {
     BERR_Code errCode = BERR_SUCCESS;
     BDSP_P_Command sCommand;
-    unsigned i= 0;
+    unsigned i=0, j=0;
     unsigned MemoryRequired  = 0;
     unsigned preemptionLevel = 0;
 
@@ -71,7 +71,7 @@ BERR_Code BDSP_Arm_P_ProcessInitCommand(
 
     sCommand.uCommand.sArmInitCommand.sCustomMMInfo.ui32UserProcessSpawnMemSize = 0; /* Not Used in ARM*/
     sCommand.uCommand.sArmInitCommand.sCustomMMInfo.ui64ProcessSpawnMemStartAddr= 0; /* Future Use*/
-    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_PREEMPTION_LEVELS; preemptionLevel++)
+    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
     {
         sCommand.uCommand.sArmInitCommand.sCustomMMInfo.ui32WorkBufferBlockSizePerLevel[preemptionLevel]=
                         pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size;
@@ -83,13 +83,26 @@ BERR_Code BDSP_Arm_P_ProcessInitCommand(
 
     sCommand.uCommand.sArmInitCommand.sSchedulingInfo.ui32NumCores            = 1;
     sCommand.uCommand.sArmInitCommand.sSchedulingInfo.ui32NumUserProcess      = BDSP_MAX_NUM_USER_PROCESS;
-    sCommand.uCommand.sArmInitCommand.sSchedulingInfo.ui32NumPreemptionLevels = BDSP_MAX_NUM_PREEMPTION_LEVELS;
-    sCommand.uCommand.sArmInitCommand.sSchedulingInfo.ui32NumSchedulingLevels = BDSP_MAX_NUM_SCHED_LEVELS;
+    sCommand.uCommand.sArmInitCommand.sSchedulingInfo.ui32NumSchedulingLevels = pDevice->systemSchedulingInfo.numSchedulingLevels;
 
-    for(i=0; i< BDSP_MAX_NUM_SCHED_LEVELS;i++)
-    {
-        sCommand.uCommand.sArmInitCommand.sSchedulingInfo.ui32PreemptiveThreshold[i] = 0;
-    }
+	for(i=0; i< BDSP_MAX_NUM_SCHED_LEVELS;i++)
+	{
+		for(; j<BDSP_P_TaskType_eLast; j++)
+		{
+			if(pDevice->systemSchedulingInfo.sTaskSchedulingInfo[j].supported)
+			{
+				sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32PreemptiveThreshold[i] =
+						pDevice->systemSchedulingInfo.sTaskSchedulingInfo[j].schedulingThreshold;
+				break;
+			}
+		}
+	}
+
+	BDBG_MSG(("Num Scheduling level = %d", sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32NumSchedulingLevels));
+	for(i =0; i<sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32NumSchedulingLevels; i++)
+	{
+			BDBG_MSG(("Threshold level[%d] = 0x%x", i, sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32PreemptiveThreshold[i]));
+	}
 
     sCommand.uCommand.sArmInitCommand.sTimerInfo.ui32PeriodicTimerInUs = BDSP_PERIODIC_TIMER;
     sCommand.uCommand.sArmInitCommand.sTimerInfo.ui32WatchdogTimerinMs = BDSP_WATCHDOG_TIMER;

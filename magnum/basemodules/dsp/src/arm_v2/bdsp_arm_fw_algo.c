@@ -178,6 +178,7 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
         /* Code Lib name*/                 /* IDS Code Lib name*/
         "/libadec_passthru.so",               "/libaids_ddp.so"
 	},
+#endif
 	{
 		/* Algorithm */
 		BDSP_Algorithm_eAacAdtsDecode,
@@ -226,7 +227,6 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
 		/* Code Lib name*/                /* IDS Code Lib name*/
         "/libadec_passthru.so",               "/libaids_loas.so"
 	},
-#endif
     {
 		/* Algorithm */
 		BDSP_Algorithm_ePcmWavDecode,

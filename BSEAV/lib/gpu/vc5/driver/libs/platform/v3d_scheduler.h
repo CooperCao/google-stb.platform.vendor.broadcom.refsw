@@ -286,6 +286,7 @@ static inline void v3d_scheduler_copy_deps(v3d_scheduler_deps *dst, const v3d_sc
 
 const V3D_HUB_IDENT_T* v3d_scheduler_get_hub_identity(void);
 const V3D_IDENT_T* v3d_scheduler_get_identity(void);
+uint32_t v3d_scheduler_get_ddr_map_ver(void);
 
 /* Create a new scheduler event that can be set/reset/query from the host */
 /* and can be wait on/set/reset from the device (using jobs) */

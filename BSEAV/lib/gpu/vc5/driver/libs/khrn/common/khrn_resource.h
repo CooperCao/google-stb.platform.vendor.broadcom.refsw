@@ -74,6 +74,8 @@ static inline khrn_resource_parts_t khrn_resource_parts(unsigned i, unsigned num
 
 typedef struct khrn_resource
 {
+   uint32_t ref_count;
+
    // KHRN_RESOURCE_BITS_PER_RS bits per render-state to indicate which
    // stages are reading this resource.
    uint64_t readers;
@@ -128,32 +130,42 @@ typedef struct khrn_resource
    v3d_scheduler_deps pre_write;
    v3d_scheduler_deps pre_read;
 
-   gmem_handle_t handle;
-   uint32_t ref_count;
    v3d_size_t align;
+
+   // Applies to first gmem_handle_t
    v3d_size_t synced_start;
    v3d_size_t synced_end;
+
+   // Either all handles are GMEM_HANDLE_INVALID or none are
+   unsigned num_handles;
+   gmem_handle_t handles[];
 } khrn_resource;
 
-/* Creates a resource; the handle contained by a resource gets allocated from
- * gmem with the specified params for size, align, usage_flags and description.
- */
+/* Creates a resource; a single handle is allocated from gmem with the
+ * specified params for size, align, usage_flags and description. */
 khrn_resource* khrn_resource_create(size_t size,
       v3d_size_t align, gmem_usage_flags_t usage_flags, const char *desc);
 
-/* Creates a resource without allocating memory.
- * Memory can be allocated later by calling khrn_resource_alloc. */
-khrn_resource* khrn_resource_create_no_handle(void);
+/* Creates a resource with space for the specified number of gmem handles, but
+ * without allocating any. If num_handles is 1, it can be allocated later by
+ * calling khrn_resource_alloc. */
+khrn_resource* khrn_resource_create_no_storage(unsigned num_handles);
 
-/* Creates a resource with a pre-existing handle.
- * The ownership of the handle is transferred to this object and it will get
+/* Creates a resource with pre-existing handles.
+ * Ownership of the handles is transferred to this object and they will get
  * freed when the last reference of this object gets to 0.
- * Contents of the gmem handle are assume to not be coherent with the CPU.
+ * Contents of the gmem handles are assumed to not be coherent with the CPU.
  * Buffer renaming is disabled for externally provided handles.
  */
-khrn_resource* khrn_resource_create_with_handle(gmem_handle_t handle);
+static inline khrn_resource* khrn_resource_create_with_handle(gmem_handle_t handle);
+khrn_resource* khrn_resource_create_with_handles(unsigned num_handles, const gmem_handle_t *handles);
 
-/* Allocate memory for the resource now. Return false if failed. */
+//! Returns true iff res has associated storage, ie iff any handles are not GMEM_HANDLE_INVALID.
+//! Note that either all handles in a resource are GMEM_HANDLE_INVALID or none are.
+static inline bool khrn_resource_has_storage(const khrn_resource* res);
+
+//! Allocate memory for the resource now. Return false if failed.
+//! May only be called on resources with a single gmem handle.
 bool khrn_resource_alloc(khrn_resource* res, size_t size,
       v3d_size_t align, gmem_usage_flags_t usage_flags, const char *desc);
 
@@ -290,7 +302,8 @@ static inline bool khrn_resource_read_now_would_stall(khrn_resource * resource);
 //! Returns true if CPU write access now would stall.
 static inline bool khrn_resource_write_now_would_stall(khrn_resource* resource);
 
-//! Invalidate the mapped range of this resource gmem handle without waiting or flushing.
+//! Invalidate the mapped range of this resource's gmem handle without waiting or flushing.
+//! May only be called on resources with a single gmem handle.
 void khrn_resource_gmem_invalidate_mapped_range(khrn_resource* res, v3d_size_t start, v3d_size_t length);
 
 //! Perform synchronisation required for CPU access to this resource range now.
@@ -298,6 +311,7 @@ void khrn_resource_gmem_invalidate_mapped_range(khrn_resource* res, v3d_size_t s
 //! might be updated to a new resource in order to avoid stalling.
 //! Parts should cover all the parts which might be written.
 //! Returns CPU mapped pointer to buffer at offset.
+//! May only be called on resources with a single gmem handle.
 void* khrn_resource_begin_access(
    khrn_resource** res_ptr,
    v3d_size_t offset,
@@ -306,6 +320,7 @@ void* khrn_resource_begin_access(
    khrn_resource_parts_t parts);
 
 //! Perform synchronisation required post CPU access of this resource range.
+//! May only be called on resources with a single gmem handle.
 static inline void khrn_resource_end_access(
    khrn_resource* res,
    v3d_size_t offset,
@@ -314,6 +329,7 @@ static inline void khrn_resource_end_access(
 
 //! Perform synchronisation required for CPU read access to this resource range now.
 //! Return CPU mapped pointer to buffer at offset, or NULL on map failure.
+//! May only be called on resources with a single gmem handle.
 void* khrn_resource_read_now(
    khrn_resource* res,
    v3d_size_t offset,
@@ -322,11 +338,15 @@ void* khrn_resource_read_now(
 //! Perform synchronisation required for CPU read access to this resource range now
 //! if it would not stall. Otherwise return the pointer and set read_now to false.
 //! Return CPU mapped pointer to buffer at offset, or NULL on map failure.
+//! May only be called on resources with a single gmem handle.
 void* khrn_resource_try_read_now(
    khrn_resource* res,
    v3d_size_t offset,
    v3d_size_t length,
    bool* read_now);
+
+//! May only be called on resources with a single gmem handle
+static inline v3d_addr_t khrn_resource_get_addr(const khrn_resource *res);
 
 #ifdef __cplusplus
 }

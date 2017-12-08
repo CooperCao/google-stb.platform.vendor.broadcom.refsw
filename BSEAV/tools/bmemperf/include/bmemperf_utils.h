@@ -171,7 +171,8 @@ typedef struct bmemperf_request
     bmemperf_cmd             cmd;
     bmemperf_cmd             cmdSecondary;
     unsigned long int        cmdSecondaryOption;
-    int                      boxmode;
+    short int                boxmode;
+    short int                DtcpIpCfg;
     bmemperf_boxmode_sources source;
     union {
         bmemperf_cmd_overall_stats_data    overall_stats_data;

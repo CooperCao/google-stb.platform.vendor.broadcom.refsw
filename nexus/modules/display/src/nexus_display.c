@@ -901,6 +901,34 @@ err_compositor:
     return rc;
 }
 
+#if NEXUS_VBI_SUPPORT
+NEXUS_Error nexus_display_p_vbi_connect(NEXUS_DisplayHandle  display, const NEXUS_DisplaySettings *pSettings)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    bool vbiAvailable = false;
+
+    if (pSettings->displayType == NEXUS_DisplayType_eBypass)
+    {
+        vbiAvailable = nexus_display_p_vbi_available(nexus_vbi_resource_vec_bypass_int);
+    }
+    else
+    {
+        vbiAvailable = nexus_display_p_vbi_available(nexus_vbi_resource_vec_int);
+    }
+
+    if (vbiAvailable)
+    {
+        rc = NEXUS_Display_P_ConnectVbi(display);
+        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
+    }
+    else
+    {
+        BDBG_MSG(("VBI resource is not available."));
+    }
+
+    return rc;
+}
+#endif
 
 NEXUS_DisplayHandle
 NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
@@ -978,7 +1006,7 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
     if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);goto err_applychanges;}
 
 #if NEXUS_VBI_SUPPORT
-    rc = NEXUS_Display_P_ConnectVbi(display);
+    rc = nexus_display_p_vbi_connect(display, pSettings);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_vbi;}
 #endif
 
@@ -1831,6 +1859,11 @@ NEXUS_Error NEXUS_Display_SetCustomFormatSettings( NEXUS_DisplayHandle display, 
     if (!display->customFormatInfo) {
         /* allocate the data structure and all its linked substructures */
         display->customFormatInfo = BKNI_Malloc(sizeof(BFMT_VideoInfo));
+        if (!display->customFormatInfo) {
+
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+
+        }
         display->customFormatInfo->pCustomInfo = NULL; /* no custom info */
         /* this memory is freed in NEXUS_Display_Close */
     }
@@ -1984,7 +2017,7 @@ NEXUS_Error NEXUS_DisplayModule_Standby_priv(bool enabled, const NEXUS_StandbySe
             if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_apply;}
 
 #if NEXUS_VBI_SUPPORT
-            rc = NEXUS_Display_P_ConnectVbi(display);
+            rc = nexus_display_p_vbi_connect(display, &display->cfg);
             if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_apply;}
 #endif
 
@@ -2284,10 +2317,10 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
             if (rc) return BERR_TRACE(rc);
         }
         rc = BVDC_Window_SetUserCaptureBufferCount(display->encoder.window->vdcState.window, 0);
-        if (rc) {
-            return BERR_TRACE(rc);
-        } else {
+        if (rc == BERR_NOT_SUPPORTED || rc == BERR_SUCCESS) {
             display->encoder.window->cfg.userCaptureBufferCount = 0;
+        } else {
+            return BERR_TRACE(rc);
         }
 #endif
         rc = BVDC_ApplyChanges(pVideo->vdc);

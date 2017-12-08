@@ -35,6 +35,9 @@ extern "C" {
 #define EGL_EGLEXT_PROTOTYPES
 #endif
 
+/* Weston uses EGLuint64KHR  */
+typedef khronos_uint64_t EGLuint64KHR;
+
 /*************************************************************/
 
 /* Header file version number */
@@ -216,6 +219,12 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT (EGLDisplay dpy,
 #endif
 #endif /* EGL_EXT_platform_base */
 
+#ifndef EGL_EXT_platform_wayland
+#define EGL_EXT_platform_wayland 1
+#define EGL_PLATFORM_WAYLAND_EXT          0x31D8
+#endif /* EGL_EXT_platform_wayland */
+
+
 #ifdef __cplusplus
 }
 #endif
@@ -224,6 +233,10 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT (EGLDisplay dpy,
 
 #if defined(ANDROID)
 #include "eglext_android.h"
+#endif
+
+#ifdef WAYLAND
+#include "eglext_wayland.h"
 #endif
 
 #endif

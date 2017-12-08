@@ -3436,6 +3436,8 @@ wlc_dfs_cacstate_init(wlc_dfs_info_t *dfs)
 	if (!wlc->pub->up)
 		return;
 
+	phy_radar_detect_enable((phy_info_t *)WLC_PI(wlc), dfs->radar != 0);
+
 #ifdef BGDFS
 	/* override chanspec with scan core's if scan core is active (eg. in 3+1 mode) */
 	if (BGDFS_ENAB(wlc->pub) && dfs->dfs_scan->status == DFS_SCAN_S_INPROGESS &&

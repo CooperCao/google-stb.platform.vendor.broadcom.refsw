@@ -352,39 +352,38 @@ static void  BDSP_Raaga_P_CrcError_isr(
  }
 
 
-  static void  BDSP_Raaga_P_BitRateChange_isr(
+static void  BDSP_Raaga_P_BitRateChange_isr(
      void *pTaskHandle , BDSP_DSPCHN_P_FwBitRateChangeInfo *pFwBitrateChangeInfo)
- {
+{
 
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
+    BDSP_RaagaStage *pRaagaPrimaryStage;
     BDSP_AudioBitRateChangeInfo  bitrateChangeInfo;
 
-    BDSP_RaagaStage *pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
-
-    BSTD_UNUSED(pFwBitrateChangeInfo);
     BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+    pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
+    BDBG_OBJECT_ASSERT(pRaagaPrimaryStage, BDSP_RaagaStage);
 
-     BDBG_MSG(("BDSP_Raaga_P_BitRateChange_isr: Bit rate change interrupt occured for Task %d",
-                 pRaagaTask->taskId));
+    BDBG_MSG(("BDSP_Raaga_P_BitRateChange_isr: Bit rate change interrupt occured for Task %d",
+             pRaagaTask->taskId));
 
-     /*Prepare the structure for application */
-     /*bitrateChangeInfo.eAlgorithm = pRaagaTask->settings.pBranchInfo[0]->sFwStgInfo[0].eAlgorithm;*/
+    /*Prepare the structure for application */
+    /*bitrateChangeInfo.eAlgorithm = pRaagaTask->settings.pBranchInfo[0]->sFwStgInfo[0].eAlgorithm;*/
 
-     bitrateChangeInfo.eAlgorithm = pRaagaPrimaryStage->algorithm;
+    bitrateChangeInfo.eAlgorithm = pRaagaPrimaryStage->algorithm;
 
-     bitrateChangeInfo.ui32BitRate = pFwBitrateChangeInfo->ui32BitRate;
-     bitrateChangeInfo.ui32BitRateIndex = pFwBitrateChangeInfo->ui32BitRateIndex;
+    bitrateChangeInfo.ui32BitRate = pFwBitrateChangeInfo->ui32BitRate;
+    bitrateChangeInfo.ui32BitRateIndex = pFwBitrateChangeInfo->ui32BitRateIndex;
 
-
-     /* Call the application Stream Info Available  callback function */
-     if(pRaagaTask->audioInterruptHandlers.bitrateChange.pCallback_isr) {
-         pRaagaTask->audioInterruptHandlers.bitrateChange.pCallback_isr (
-             pRaagaTask->audioInterruptHandlers.bitrateChange.pParam1,
-             pRaagaTask->audioInterruptHandlers.bitrateChange.param2,
-             &bitrateChangeInfo);
-     }
-
- }
+    /* Call the application Stream Info Available  callback function */
+    if(pRaagaTask->audioInterruptHandlers.bitrateChange.pCallback_isr)
+    {
+        pRaagaTask->audioInterruptHandlers.bitrateChange.pCallback_isr (
+            pRaagaTask->audioInterruptHandlers.bitrateChange.pParam1,
+            pRaagaTask->audioInterruptHandlers.bitrateChange.param2,
+            &bitrateChangeInfo);
+    }
+}
 
   static void  BDSP_Raaga_P_ModeChange_isr(
       void *pTaskHandle , BDSP_DSPCHN_P_FwModeChangeInfo *pFwModeChangeInfo)
@@ -897,12 +896,14 @@ BERR_Code BDSP_Raaga_P_InterruptInstall (
 {
     BERR_Code       ret = BERR_SUCCESS;
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
-    unsigned int    dspIndex = pRaagaTask->settings.dspIndex;
-    BDSP_Raaga *pDevice = pRaagaTask->pContext->pDevice;
-
-    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+    unsigned int    dspIndex;
+    BDSP_Raaga *pDevice;
 
     BDBG_ENTER (BDSP_Raaga_P_InterruptInstall);
+    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+    pDevice = (BDSP_Raaga *)pRaagaTask->pContext->pDevice;
+    BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+    dspIndex = pRaagaTask->settings.dspIndex;
 
     /* We will create two callbacks for Asynchronous Interrupt & for
        Synchtonous interrupt on both DAP0 as well as on DS1 */
@@ -1288,9 +1289,11 @@ BERR_Code BDSP_Raaga_P_ProcessWatchdogInterrupt(
     BDSP_RaagaContext *pRaagaContext = (BDSP_RaagaContext *)pContextHandle;
     BERR_Code err=BERR_SUCCESS;
     unsigned dspIndex;
-    BDSP_Raaga  *pDevice= pRaagaContext->pDevice;
+    BDSP_Raaga  *pDevice;
 
     BDBG_OBJECT_ASSERT(pRaagaContext, BDSP_RaagaContext);
+    pDevice= (BDSP_Raaga  *)pRaagaContext->pDevice;
+    BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
 
     BKNI_EnterCriticalSection();
     /* BDSP_Raaga_P_ProcessWatchdogInterrupt() should not be called from within
@@ -1379,13 +1382,16 @@ BERR_Code BDSP_Raaga_P_SetAudioInterruptHandlers_isr(
     const BDSP_AudioInterruptHandlers *pHandlers)
 {
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
-    BDSP_RaagaContext *pRaagaContext = (BDSP_RaagaContext *)pRaagaTask->pContext;
-    BDSP_Raaga  *pDevice= pRaagaContext->pDevice;
+    BDSP_RaagaContext *pRaagaContext;
+    BDSP_Raaga  *pDevice;
     BERR_Code err=BERR_SUCCESS;
     BDSP_Raaga_P_Command     sFwCommand;
 
     BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+    pRaagaContext = (BDSP_RaagaContext *)pRaagaTask->pContext;
     BDBG_OBJECT_ASSERT(pRaagaContext, BDSP_RaagaContext);
+    pDevice= (BDSP_Raaga *)pRaagaContext->pDevice;
+    BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
     BDBG_ASSERT(pHandlers);
 
 /*First PTS Interrupt*/

@@ -367,8 +367,8 @@ static void fmem_sync_active_buffers(unsigned num_active_buffers,
    for (unsigned i = 0; i < num_active_buffers; ++i)
    {
       const glxx_tf_active_buffer *active = &active_buffers[i];
-      khrn_fmem_sync(fmem, active->res->handle, V3D_BARRIER_PTB_TF_WRITE, 0);
-      assert(active->addr == gmem_get_addr(active->res->handle));
+      khrn_fmem_sync(fmem, active->res->num_handles, active->res->handles, V3D_BARRIER_PTB_TF_WRITE, 0);
+      assert(active->addr == khrn_resource_get_addr(active->res));
    }
 }
 
@@ -413,14 +413,14 @@ bool glxx_tf_record_enable(GLXX_HW_RENDER_STATE_T *rs,
 
       bool res;
 #if V3D_VER_AT_LEAST(4,0,2,0)
-      if (tf->res->handle == GMEM_HANDLE_INVALID)
-         res = emit_buff_addrs(tf->num_active_buffers, tf->active_buffers, fmem);
+      if (khrn_resource_has_storage(tf->res))
+         res = emit_load_buffers_state(tf->res->handles[0], fmem);
       else
-         res = emit_load_buffers_state(tf->res->handle, fmem);
+         res = emit_buff_addrs(tf->num_active_buffers, tf->active_buffers, fmem);
       res &= emit_specs(ptf, point_size_used, fmem);
 #else
       /* we can't do store/load on previous hw */
-      assert(tf->res->handle == GMEM_HANDLE_INVALID);
+      assert(!khrn_resource_has_storage(tf->res));
 
       res = emit_specs_and_buff_addrs(ptf, point_size_used,
             tf->num_active_buffers, tf->active_buffers, fmem);
@@ -470,19 +470,19 @@ bool glxx_store_tf_buffers_state(GLXX_HW_RENDER_STATE_T *rs)
    if (!tf || !glxx_tf_is_active(tf))
       return true;
 
-   /* we started a new BeginTF on the same tf, no point to store */
-   if (rs->tf.res != tf->res)
+   khrn_resource *res = tf->res;
+
+   if (rs->tf.res != res)
+      /* we started a new BeginTF on the same tf, no point to store */
       return true;
 
-   khrn_resource *res = rs->tf.res;
-
-   if(res->handle == GMEM_HANDLE_INVALID)
+   if(!khrn_resource_has_storage(res))
    {
-      if (!alloc_storage(tf->res))
+      if (!alloc_storage(res))
          return false;
    }
 
-   v3d_addr_t addr = khrn_fmem_sync_and_get_addr(&rs->fmem, res->handle, V3D_BARRIER_PTB_PCF_WRITE, 0);
+   v3d_addr_t addr = khrn_fmem_sync_and_get_addr(&rs->fmem, res->handles[0], V3D_BARRIER_PTB_PCF_WRITE, 0);
 
    uint8_t *instr = khrn_fmem_cle(&rs->fmem, V3D_CL_PRIM_COUNTS_FEEDBACK_SIZE);
    if (!instr)

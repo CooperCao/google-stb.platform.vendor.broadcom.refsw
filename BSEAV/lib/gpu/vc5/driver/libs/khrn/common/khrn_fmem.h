@@ -282,7 +282,7 @@ static inline void khrn_fmem_end_data_exact(khrn_fmem *fmem, void *end)
 #endif
 }
 
-static inline void khrn_fmem_sync(khrn_fmem *fmem, gmem_handle_t handle,
+static inline void khrn_fmem_sync(khrn_fmem *fmem, unsigned num_handles, const gmem_handle_t *handles,
       v3d_barrier_flags bin_rw_flags, v3d_barrier_flags render_rw_flags)
 {
    assert(bin_rw_flags != 0 || render_rw_flags != 0);
@@ -307,14 +307,15 @@ static inline void khrn_fmem_sync(khrn_fmem *fmem, gmem_handle_t handle,
 
 #if KHRN_DEBUG
    if (fmem->persist->memaccess)
-      khrn_memaccess_add_buffer(fmem->persist->memaccess, handle, bin_rw_flags, render_rw_flags);
+      for (unsigned i = 0; i != num_handles; ++i)
+         khrn_memaccess_add_buffer(fmem->persist->memaccess, handles[i], bin_rw_flags, render_rw_flags);
 #endif
 }
 
 static inline v3d_addr_t khrn_fmem_sync_and_get_addr(khrn_fmem *fmem,
       gmem_handle_t handle, v3d_barrier_flags bin_rw_flags, v3d_barrier_flags render_rw_flags)
 {
-   khrn_fmem_sync(fmem, handle, bin_rw_flags, render_rw_flags);
+   khrn_fmem_sync(fmem, 1, &handle, bin_rw_flags, render_rw_flags);
    return gmem_get_addr(handle);
 }
 

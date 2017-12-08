@@ -63,10 +63,33 @@ extern void gfx_buffer_mip_dims(
 
 #define GFX_BUFFER_MAX_PLANES 3
 
+// These match the NEXUS_MatrixCoefficients enums from which the
+// actual color matrices are ultimately determined in the VDC
+typedef enum
+{
+   GFX_BUFFER_COLORIMETRY_DEFAULT,
+   GFX_BUFFER_COLORIMETRY_BT_709,
+   GFX_BUFFER_COLORIMETRY_UNKNOWN,
+   GFX_BUFFER_COLORIMETRY_DVI_FULL_RANGE_RGB,
+   GFX_BUFFER_COLORIMETRY_FCC,
+   GFX_BUFFER_COLORIMETRY_BT_470_2_BG,
+   GFX_BUFFER_COLORIMETRY_SMPTE_170M,
+   GFX_BUFFER_COLORIMETRY_SMPTE_240M,
+   GFX_BUFFER_COLORIMETRY_XVYCC_709,
+   GFX_BUFFER_COLORIMETRY_XVYCC_601,
+   GFX_BUFFER_COLORIMETRY_BT_2020_NCL,
+   GFX_BUFFER_COLORIMETRY_BT_2020_CL,
+   GFX_BUFFER_COLORIMETRY_HDMI_FULL_RANGE_YCBCR
+} gfx_buffer_colorimetry_t;
+
 typedef struct {
    GFX_LFMT_T lfmt;
 
-   /* offset from base pointer to start of memory for plane, in bytes */
+   // Index of region containing this plane
+   // TODO Support for multiple regions is currently quite sparse
+   unsigned region;
+
+   // Offset from region base pointer to start of memory for plane, in bytes
    uint32_t offset;
 
    uint32_t pitch, slice_pitch;
@@ -74,6 +97,7 @@ typedef struct {
 
 typedef struct {
    uint32_t width, height, depth, num_planes;
+   gfx_buffer_colorimetry_t colorimetry;
    GFX_BUFFER_DESC_PLANE_T planes[GFX_BUFFER_MAX_PLANES];
 } GFX_BUFFER_DESC_T;
 
@@ -288,6 +312,14 @@ static inline bool gfx_buffer_any_float_depth(const GFX_BUFFER_DESC_T *desc)
       if (gfx_lfmt_depth_type(desc->planes[i].lfmt) == GFX_LFMT_TYPE_FLOAT)
          return true;
    return false;
+}
+
+static inline bool gfx_buffer_single_region(const GFX_BUFFER_DESC_T *desc)
+{
+   for (unsigned i = 0; i != desc->num_planes; ++i)
+      if (desc->planes[i].region != 0)
+         return false;
+   return true;
 }
 
 EXTERN_C_END

@@ -57,8 +57,7 @@ EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *dri
       term = true;
    else
    {
-      if (driverInterfaces->displayInterface == NULL ||
-         driverInterfaces->hwInterface == NULL ||
+      if (driverInterfaces->hwInterface == NULL ||
          driverInterfaces->memInterface == NULL)
       {
          term = true;
@@ -71,12 +70,16 @@ EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *dri
          vcos_demand(driverInterfaces->hwInterface->GetNotification != NULL);
          vcos_demand(driverInterfaces->hwInterface->SendSync != NULL);
          vcos_demand(driverInterfaces->hwInterface->GetBinMemory != NULL);
-         vcos_demand(driverInterfaces->displayInterface->BufferDequeue != NULL);
-         vcos_demand(driverInterfaces->displayInterface->BufferQueue != NULL);
-         vcos_demand(driverInterfaces->displayInterface->BufferCancel != NULL);
-         vcos_demand(driverInterfaces->displayInterface->SurfaceGetInfo != NULL);
-         vcos_demand(driverInterfaces->displayInterface->WindowPlatformStateCreate != NULL);
-         vcos_demand(driverInterfaces->displayInterface->WindowPlatformStateDestroy != NULL);
+
+         if (driverInterfaces->displayInterface)
+         {
+            vcos_demand(driverInterfaces->displayInterface->BufferDequeue != NULL);
+            vcos_demand(driverInterfaces->displayInterface->BufferQueue != NULL);
+            vcos_demand(driverInterfaces->displayInterface->BufferCancel != NULL);
+            vcos_demand(driverInterfaces->displayInterface->SurfaceGetInfo != NULL);
+            vcos_demand(driverInterfaces->displayInterface->WindowPlatformStateCreate != NULL);
+            vcos_demand(driverInterfaces->displayInterface->WindowPlatformStateDestroy != NULL);
+         }
 
          /* See if we already have a valid memory interface.
             * If not, we need to bring up the driver now.
@@ -248,8 +251,6 @@ static void server_process_attach(void)
 #endif
 
    khrn_init_thread_pool();
-
-   egl_server_platform_init();
 
    /* TODO : pass the "master event" as an argument here, so its clear when it can be deleted */
    /* or better - make the module create its own resources */

@@ -2848,18 +2848,6 @@ void BHDM_HDCP_P_ResetSettings_isr(const BHDM_Handle hHDMI)
 /************/
 /* HDCP 1.x */
 /************/
-#ifndef BHDM_FOR_BOOTUPDATER
-#if BHDM_CONFIG_HDCP_AUTO_RI_PJ_CHECKING_SUPPORT
-	/* Ensure HDMI is not in control of BSCC (I2C) block. This is to prevent I2C got locked
-		by HDMI core in the case ctrl-c was use to terminate the software AND
-		HW Ri/Pj checking was enabled */
-	Register = BREG_Read32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset) ;
-	Register |= BCHP_FIELD_DATA(HDMI_CP_INTEGRITY_CHK_CFG_1, CHECK_MODE, 1);
-	BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset, Register) ;
-	Register &= ~(BCHP_MASK(HDMI_CP_INTEGRITY_CHK_CFG_1, CHECK_MODE));
-	BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset, Register) ;
-#endif
-#endif
 
 	/* write 1 (writing 0 first is not needed) to force core unauthenticated */
 	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP_CTL  + ulOffset) ;

@@ -667,25 +667,6 @@ static BEGL_Error DispCancelSurface(void *context, void *nativeWindow,
    return BEGL_Success;
 }
 
-static bool  DisplayPlatformSupported(void *context, uint32_t platform)
-{
-   BSTD_UNUSED(context);
-   return platform == EGL_PLATFORM_NEXUS_BRCM;
-}
-
-bool DispSetDefaultDisplay(void *context, void *display)
-{
-   BSTD_UNUSED(context);
-   BSTD_UNUSED(display);
-   return true;
-}
-
-static const char *GetClientExtensions(void *context)
-{
-   BSTD_UNUSED(context);
-   return "EGL_BRCM_platform_nexus";
-}
-
 BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
                                              BEGL_SchedInterface *schedIface)
 {
@@ -711,11 +692,8 @@ BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
          disp->GetNextSurface             = DispGetNextSurface;
          disp->DisplaySurface             = DispDisplaySurface;
          disp->CancelSurface              = DispCancelSurface;
-         disp->PlatformSupported          = DisplayPlatformSupported;
-         disp->SetDefaultDisplay          = DispSetDefaultDisplay;
          disp->WindowPlatformStateCreate  = DispWindowStateCreate;
          disp->WindowPlatformStateDestroy = DispWindowStateDestroy;
-         disp->GetClientExtensions        = GetClientExtensions;
 
          /* stash the dfb */
          context->dfb = dfb;
@@ -793,6 +771,7 @@ static DBPL_SurfaceContainer *CreateSurface(IDirectFB *dfb, BEGL_BufferFormat fo
       DFBCHECK(sc->windowsurface->Lock( sc->windowsurface, DSLF_WRITE, &sc->settings.cachedAddr, &sc->settings.pitchBytes));
       DFBCHECK(sc->windowsurface->Unlock( sc->windowsurface ));
 
+      sc->settings.contiguous       = true;
       sc->settings.physicalOffset   = NEXUS_AddrToOffset(sc->settings.cachedAddr);
       sc->settings.byteSize         = sc->settings.pitchBytes * sc->settings.height;
       sc->availableToRenderFence    = 1;

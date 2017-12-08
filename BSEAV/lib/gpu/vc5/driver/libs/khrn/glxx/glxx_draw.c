@@ -195,7 +195,7 @@ static gmem_handle_t alloc_and_sync_dynamic_read(khrn_fmem *fmem,
       return NULL;
    }
 
-   khrn_fmem_sync(fmem, handle, bin_rw_flags, render_rw_flags);
+   khrn_fmem_sync(fmem, 1, &handle, bin_rw_flags, render_rw_flags);
 
    return handle;
 }
@@ -1209,7 +1209,7 @@ static bool get_indices(glxx_hw_indices *indices,
       if (!glxx_hw_tf_aware_sync_res(rs,
             buffer->resource, V3D_BARRIER_CLE_PRIMIND_READ, V3D_BARRIER_NO_ACCESS))
          return false;
-      indices->addr = gmem_get_addr(buffer->resource->handle);
+      indices->addr = khrn_resource_get_addr(buffer->resource);
       indices->size = glxx_buffer_get_size(buffer);
       indices->offset = (v3d_size_t)(uintptr_t)raw_indices;
    }
@@ -1265,11 +1265,11 @@ static bool get_vbs(bool *skip, glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
          return true;
       }
 #endif
-      khrn_resource* resouce = vbo->buffer->resource;
-      if (!glxx_hw_tf_aware_sync_res(rs, resouce, V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ))
+      khrn_resource* res = vbo->buffer->resource;
+      if (!glxx_hw_tf_aware_sync_res(rs, res, V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ))
          return false;
 
-      vbs[i].addr = gmem_get_addr(resouce->handle) + vbo->offset + attr->relative_offset;
+      vbs[i].addr = khrn_resource_get_addr(res) + vbo->offset + attr->relative_offset;
       vbs[i].stride = vbo->stride;
       vbs[i].divisor = vbo->divisor;
    }

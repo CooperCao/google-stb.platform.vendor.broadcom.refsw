@@ -228,6 +228,7 @@ static const int32_t EQ_LPF_butter_2_exp [] = {
     -30, -30, -30, -30, -30, -30
 };
 
+#if 0
 #if !B_REFSW_MINIMAL
 /* Butterworth filter (LPF) order-6 */
 static const int32_t EQ_LPF_butter_3_mant [] = {
@@ -240,6 +241,7 @@ static const int32_t EQ_LPF_butter_3_exp [] = {
     -30, -30, -30, -30, -30, -30,
     -30, -30, -30, -30, -30, -30
 };
+#endif
 #endif
 /************ Tables for Butterworth filter (End) *********************/
 
@@ -262,6 +264,7 @@ static const int32_t EQ_LPF_lriley_2_exp [] = {
     -30, -30, -30, -30, -30, -30
 };
 
+#if 0
 #if !B_REFSW_MINIMAL
 /* Linkwitz-Riley filter (LPF) order-6 */
 static const int32_t EQ_LPF_lriley_3_mant [] = {
@@ -274,6 +277,7 @@ static const int32_t EQ_LPF_lriley_3_exp [] = {
     -30, -30, -30, -30, -30, -30,
     -30, -30, -30, -30, -30, -30
 };
+#endif
 #endif
 /************ Tables for Linkwitz-Riley filter (End) *********************/
 

@@ -65,6 +65,18 @@ typedef struct BDSP_P_TaskInfo
     unsigned numActiveTasks;
 }BDSP_P_TaskInfo;
 
+typedef struct BDSP_P_TaskSchedulingInfo{
+	bool     supported;
+	unsigned schedulingLevel;
+	unsigned schedulingThreshold;
+}BDSP_P_TaskSchedulingInfo;
+
+typedef struct BDSP_P_SystemSchedulingInfo{
+	unsigned numSchedulingLevels;
+	unsigned numPreemptionLevels;
+	BDSP_P_TaskSchedulingInfo sTaskSchedulingInfo[BDSP_P_TaskType_eLast];
+}BDSP_P_SystemSchedulingInfo;
+
 typedef struct BDSP_P_InterTaskBufferDetails{
     BDSP_P_MsgQueueParams   BuffersDetails;
     BDSP_P_MsgQueueHandle   hQueueHandle; /* will be used in case of RDB*/
@@ -165,6 +177,9 @@ typedef struct BDSP_P_StageMemoryInfo
 	BDSP_P_FwBuffer       sInterframe;
 }BDSP_P_StageMemoryInfo;
 
+BERR_Code BDSP_P_PopulateSystemSchedulingDeatils(
+	BDSP_P_SystemSchedulingInfo *pSystemSchedulingInfo
+);
 void BDSP_P_ValidateCodeDownloadSettings(
     unsigned *pmaxAlgorithms
 );
@@ -226,9 +241,10 @@ void BDSP_P_DeleteStartTaskSettings(
 	BDSP_TaskStartSettings *pStartSettings
 );
 BERR_Code BDSP_P_PopulateSchedulingInfo(
-    BDSP_TaskStartSettings  *pTaskStartSettings,
-	BDSP_ContextType         contextType,
-	BDSP_P_StartTaskCommand *psCommand
+    BDSP_TaskStartSettings  	*pTaskStartSettings,
+	BDSP_ContextType         	 contextType,
+	BDSP_P_SystemSchedulingInfo *pSystemSchedulingLevel,
+	BDSP_P_StartTaskCommand 	*psCommand
 );
 void BDSP_P_InitBufferDescriptor(
     BDSP_P_BufferPointer    *pBufferPointer,

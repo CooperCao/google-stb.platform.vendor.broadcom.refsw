@@ -108,11 +108,36 @@ void BVDC_P_Tnt_BuildInit_isr
     return;
 }
 
+int16_t BVDC_P_Tnt_MapSharpnessForHdr_isr
+    ( int16_t                      sSharpness )
+{
+    int16_t sImplSharpness;
+
+    if(sSharpness <= -8192)
+    {
+        sImplSharpness = -32768 +(int16_t)((sSharpness + 32768) * 1 / 3);
+    }
+    else if(sSharpness <= 8192)
+    {
+        sImplSharpness = -24576 + sSharpness + 8192;
+    }
+    else if(sSharpness < 32767)
+    {
+        sImplSharpness = -8192 + (int16_t)((sSharpness - 8192) * 5 / 3);
+    }
+    else
+    {
+        sImplSharpness = 32767;
+    }
+    return sImplSharpness;
+}
+
 void BVDC_P_Tnt_BuildRul_isr
     ( const BVDC_Window_Handle     hWindow,
       BVDC_P_ListInfo             *pList )
 {
     BVDC_P_Window_Info    *pCurInfo;
+    int16_t sImplSharpness;
 
     BDBG_ENTER(BVDC_P_Tnt_BuildRul_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -145,6 +170,17 @@ void BVDC_P_Tnt_BuildRul_isr
         BDBG_MSG(("Building TNT RUL %s In %s Out",
             bIsInputSd ? "SD" : "HD", bIsOutputSd ? "SD" : "HD"));
 
+        if(hWindow->bPqNcl)
+        {
+            sImplSharpness = BVDC_P_Tnt_MapSharpnessForHdr_isr(pCurInfo->sSharpness);
+        }
+        else
+        {
+            sImplSharpness = pCurInfo->sSharpness;
+        }
+        BDBG_MSG(("sSharpness=%d && bPqNcl=%d => sImplSharpness=%d",
+            pCurInfo->sSharpness, hWindow->bPqNcl, sImplSharpness));
+
         /* Setting up the demo mode register */
         if(pCurInfo->stSplitScreenSetting.eSharpness != BVDC_SplitScreenMode_eDisable)
         {
@@ -167,14 +203,14 @@ void BVDC_P_Tnt_BuildRul_isr
         if(bIsInputSd && !bIsOutputSd)
         {
             /* SD in HD out => SD mode */
-            BVDC_P_Sharpness_Calculate_Gain_Value_isr(pCurInfo->sSharpness, 0, 10, 20,
+            BVDC_P_Sharpness_Calculate_Gain_Value_isr(sImplSharpness, 0, 10, 20,
                                                   &ulCtiHGain);
 #if (BVDC_P_SUPPORT_TNT_VER == 6)
-            BVDC_P_Sharpness_Calculate_Gain_Value_isr(pCurInfo->sSharpness, 4, 12, 20,
+            BVDC_P_Sharpness_Calculate_Gain_Value_isr(sImplSharpness, 4, 12, 20,
                                                   &ulGainA);
-            BVDC_P_Sharpness_Calculate_Gain_Value_isr(pCurInfo->sSharpness, 4, 12, 20,
+            BVDC_P_Sharpness_Calculate_Gain_Value_isr(sImplSharpness, 4, 12, 20,
                                                   &ulGainB);
-            BVDC_P_Sharpness_Calculate_Gain_Value_isr(pCurInfo->sSharpness, 4, 12, 20,
+            BVDC_P_Sharpness_Calculate_Gain_Value_isr(sImplSharpness, 4, 12, 20,
                                                   &ulLtiGain);
 
             aulLPeakGain[0] = 0;
@@ -218,14 +254,14 @@ void BVDC_P_Tnt_BuildRul_isr
             /* SD in SD out => HD mode */
             /* HD in SD out => HD mode */
             /* HD in HD out => HD mode */
-            BVDC_P_Sharpness_Calculate_Gain_Value_isr(pCurInfo->sSharpness, 0, 10, 20,
+            BVDC_P_Sharpness_Calculate_Gain_Value_isr(sImplSharpness, 0, 10, 20,
                                                   &ulCtiHGain);
 #if (BVDC_P_SUPPORT_TNT_VER == 6)
-            BVDC_P_Sharpness_Calculate_Gain_Value_isr(pCurInfo->sSharpness, 4, 12, 20,
+            BVDC_P_Sharpness_Calculate_Gain_Value_isr(sImplSharpness, 4, 12, 20,
                                                   &ulGainA);
-            BVDC_P_Sharpness_Calculate_Gain_Value_isr(pCurInfo->sSharpness, 4, 12, 20,
+            BVDC_P_Sharpness_Calculate_Gain_Value_isr(sImplSharpness, 4, 12, 20,
                                                   &ulGainB);
-            BVDC_P_Sharpness_Calculate_Gain_Value_isr(pCurInfo->sSharpness, 4, 12, 20,
+            BVDC_P_Sharpness_Calculate_Gain_Value_isr(sImplSharpness, 4, 12, 20,
                                                   &ulLtiGain);
 
             aulLPeakGain[0] = 0;

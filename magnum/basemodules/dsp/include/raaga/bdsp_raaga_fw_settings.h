@@ -4324,6 +4324,9 @@ typedef struct  BDSP_Raaga_Audio_GenCdbItbConfigParams
     /* The RDB register address to read for encoder's STC clock (Upper)*/
     uint32_t                    ui32EncSTCAddrUpper;
 
+    /* STC Offset between audio and video encoder in 27 MHz domain*/
+    uint64_t                    ui64AVSTCOffset;
+
 } BDSP_Raaga_Audio_GenCdbItbConfigParams;
 
 typedef struct BDSP_Raaga_Audio_SpectrumAnalyserConfigParams

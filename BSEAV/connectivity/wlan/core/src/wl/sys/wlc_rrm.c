@@ -5152,7 +5152,7 @@ wlc_rrm_recv_nrrep(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct scb *scb,
 
 	tlv_len = body_len - DOT11_RM_ACTION_LEN;
 
-	while (tlvs && tlvs->id == DOT11_MNG_NEIGHBOR_REP_ID) {
+	while (tlvs && bcm_valid_tlv(tlvs, tlv_len) && tlvs->id == DOT11_MNG_NEIGHBOR_REP_ID) {
 		nbr_rep_ie = (dot11_neighbor_rep_ie_t *)tlvs;
 
 		if (nbr_rep_ie->len < DOT11_NEIGHBOR_REP_IE_FIXED_LEN) {

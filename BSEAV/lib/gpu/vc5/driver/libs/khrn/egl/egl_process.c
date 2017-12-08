@@ -52,15 +52,7 @@ bool egl_process_init(void)
    vcos_mutex_lock(&egl_process.lock);
 
    if (!egl_process.init)
-   {
-      if (egl_platform_init())
-      {
-         egl_process.init = khrn_process_init();
-
-         if (!egl_process.init)
-            egl_platform_terminate();
-      }
-   }
+      egl_process.init = khrn_process_init();
    egl_process.refs += (unsigned)egl_process.init;
 
    vcos_mutex_unlock(&egl_process.lock);
@@ -95,7 +87,6 @@ void egl_process_release(void)
       if (egl_process.init)
       {
          khrn_process_shutdown();
-         egl_platform_terminate();
          egl_process.init = false;
       }
    }

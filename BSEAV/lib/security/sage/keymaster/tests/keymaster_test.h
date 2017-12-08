@@ -56,11 +56,17 @@
 #define TEST_DELETE_CONTEXT(ctx)                     if (ctx) { KM_Tag_DeleteContext(ctx); ctx = NULL; }
 
 
+#define EXPECT_TRUE(op)                              if (!op) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; }
+
+#define EXPECT_FALSE(op)                             if (op) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; }
+
 #define EXPECT_SUCCESS(op)                           err = op; if (err != BERR_SUCCESS) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); goto done; }
 
-#define EXPECT_FAILURE(op)                           err = op; if (err == BERR_SUCCESS) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; }
+#define EXPECT_SUCCESS_SILENT(op)                    err = op; if (err != BERR_SUCCESS) { BDBG_MSG(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); goto done; }
 
-#define EXPECT_FAILURE_CODE(op, code)                err = op; if (err != code) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; }
+#define EXPECT_FAILURE(op)                           err = op; if (err == BERR_SUCCESS) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; }  else { err = BERR_SUCCESS; }
+
+#define EXPECT_FAILURE_CODE(op, code)                err = op; if (err != code) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; } else { err = BERR_SUCCESS; }
 
 
 

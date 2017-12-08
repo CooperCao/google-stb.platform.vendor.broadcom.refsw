@@ -140,7 +140,7 @@ static void BDSP_Raaga_P_CalculateScratchAndInterStageMemory(
     BDBG_ENTER(BDSP_Raaga_P_CalculateScratchAndInterStageMemory);
     *pMemReqd = 0;
 
-	for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_PREEMPTION_LEVELS; preemptionLevel++)
+	for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
 	{
 		unsigned interStageBufferReqd=0, scratchBufferReqd = 0;
 		for(algorithm=0; algorithm<BDSP_Algorithm_eMax; algorithm++)
@@ -178,7 +178,7 @@ static void BDSP_Raaga_P_CalculateScratchAndInterStageMemory(
 		}
 		BDBG_MSG(("Work Buffer Allocation for Preemption Level %d",preemptionLevel));
 		BDBG_MSG(("Scratch = %d InterStage = %d Total(Scratch + %d Interstage) = %d",scratchBufferReqd,interStageBufferReqd,
-			(BDSP_MAX_BRANCH+1),MemoryRequired));
+			(BDSP_MAX_BRANCH+1),(scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)))));
 	}
 
     *pMemReqd = (MemoryRequired*numCorePerDsp);
@@ -670,7 +670,7 @@ static BERR_Code BDSP_Raaga_P_AssignWorkBufferMemory(
 	unsigned preemptionLevel = 0;
     BDBG_ENTER(BDSP_Raaga_P_AssignWorkBufferMemory);
 
-    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_PREEMPTION_LEVELS; preemptionLevel++)
+    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
     {
         ui32Size = pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size;
         errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
@@ -679,7 +679,8 @@ static BERR_Code BDSP_Raaga_P_AssignWorkBufferMemory(
             BDBG_ERR(("BDSP_Raaga_P_AssignWorkBufferMemory: Unable to allocate RW memory for dsp %d with Preemption level =%d !!!!",dspindex, preemptionLevel));
             goto end;
         }
-        pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].Buffer = Memory;
+        pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].Buffer  = Memory;
+		pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size= ui32Size;
     }
 
 end:
@@ -696,7 +697,7 @@ static BERR_Code BDSP_Raaga_P_ReleaseWorkBufferMemory(
 	unsigned preemptionLevel = 0;
     BDBG_ENTER(BDSP_Raaga_P_ReleaseWorkBufferMemory);
 
-    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_PREEMPTION_LEVELS; preemptionLevel++)
+    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
     {
         errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
 		pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size,

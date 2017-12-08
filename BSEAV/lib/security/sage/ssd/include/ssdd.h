@@ -53,7 +53,7 @@ typedef struct {
 } ssdd_Settings;
 
 typedef struct ssd_sage_operation_s {
-    uint32_t rpmb_partition;
+    bool rpmb_partition;
     uint32_t blockCount;
 } ssd_sage_operation_t;
 

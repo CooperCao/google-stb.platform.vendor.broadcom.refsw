@@ -11,8 +11,147 @@
 
 #include <malloc.h>
 #include <memory.h>
+#include <EGL/egl.h>
+#include <EGL/eglplatform.h>
+#include <EGL/eglext_brcm.h>
 
 #define UNUSED(X) (void)X
+
+static BEGL_DisplayHandle ToBeglDisplayHandle(NEXUS_DISPLAYHANDLE display)
+{
+   return display ? (BEGL_DisplayHandle)display : (BEGL_DisplayHandle)1;
+}
+
+static NEXUS_DISPLAYHANDLE ToNexusDisplayHandle(BEGL_DisplayHandle handle)
+{
+   return handle == (BEGL_DisplayHandle)1 ? NULL : (NEXUS_DISPLAYHANDLE)handle;
+}
+
+static const char * GetClientExtensions(void *context)
+{
+   UNUSED(context);
+   return "EGL_PLATFORM_NEXUS_BRCM";
+}
+
+int32_t GetDisplay(void *context, uint32_t eglPlatform,
+      void *nativeDisplay, const void *attribList, bool isEglAttrib,
+      BEGL_DisplayHandle *handle)
+{
+#ifdef SINGLE_PROCESS
+   NXPL_InternalPlatformHandle *platform = (NXPL_InternalPlatformHandle*)context;
+#endif
+   NEXUS_DISPLAYHANDLE display;
+   UNUSED(isEglAttrib);
+
+   if (attribList)
+      return EGL_BAD_ATTRIBUTE; /* there should be no attributes */
+
+   switch (eglPlatform)
+   {
+   case EGL_PLATFORM_NEXUS_BRCM:
+   case BEGL_DEFAULT_PLATFORM:
+#ifdef SINGLE_PROCESS
+      if (nativeDisplay == EGL_DEFAULT_DISPLAY)
+         display = platform->defaultDisplay;
+      else
+         display = (NEXUS_DISPLAYHANDLE)nativeDisplay;
+#else
+      /* Only a default display is supported in multiprocess mode. */
+      if (nativeDisplay != EGL_DEFAULT_DISPLAY)
+         return EGL_BAD_PARAMETER;
+      display = NULL;
+#endif
+      *handle = ToBeglDisplayHandle(display);
+      return EGL_SUCCESS;
+   default:
+      *handle = NULL;
+      return EGL_BAD_PARAMETER;
+   }
+}
+
+BEGL_Error Initialize(void *context, BEGL_DisplayHandle handle)
+{
+   NXPL_InternalPlatformHandle *platform = (NXPL_InternalPlatformHandle*)context;
+   NEXUS_DISPLAYHANDLE display = ToNexusDisplayHandle(handle);
+
+   if (platform->displayInterface) /* a display is already initialised */
+   {
+      if (display == platform->currentDisplay)
+         return BEGL_Success; /* another eglInitialise() must do nothing and succeed */
+      else
+         return BEGL_Fail; /* only one display is supported */
+   }
+
+   platform->displayContext = (NXPL_DisplayContext *)malloc(
+         sizeof(*platform->displayContext));
+   if (!platform->displayContext)
+      return BEGL_Fail; /* oom */
+
+   platform->displayInterface = CreateDisplayInterface(display,
+         platform->displayContext, platform->schedInterface);
+
+   if (!platform->displayInterface)
+   {
+      free(platform->displayContext);
+      platform->displayContext = NULL;
+      return BEGL_Fail;
+   }
+
+   /* Remember the last initialised display for subsequent calls
+    * to eglInitialize() or eglTerminate()
+    */
+   platform->currentDisplay = display;
+
+   BEGL_RegisterDisplayInterface(platform->displayInterface);
+   return BEGL_Success;
+}
+
+BEGL_Error Terminate(void *context, BEGL_DisplayHandle handle)
+{
+   NXPL_InternalPlatformHandle *platform = (NXPL_InternalPlatformHandle*)context;
+   NEXUS_DISPLAYHANDLE display = ToNexusDisplayHandle(handle);
+
+   if (display != platform->currentDisplay)
+      return BEGL_Fail; /* not our display */
+
+   BEGL_RegisterDisplayInterface(NULL);
+   if (platform->displayInterface)
+   {
+      DestroyDisplayInterface(platform->displayInterface);
+      platform->displayInterface = NULL;
+   }
+   free(platform->displayContext);
+   platform->displayContext = NULL;
+
+   /* platform->currentDisplay = unchanged for subsequent calls
+    * to eglTermiate() - those should succeed but do nothing
+    */
+   return BEGL_Success;
+}
+
+BEGL_InitInterface *CreateNexusInitInterface(NXPL_InternalPlatformHandle *platform)
+{
+   BEGL_InitInterface *init = calloc(1, sizeof(*init));
+   if (init)
+   {
+      init->context = platform;
+      init->GetClientExtensions = GetClientExtensions;
+      init->GetDisplay = GetDisplay;
+      init->Initialize = Initialize;
+      init->Terminate = Terminate;
+   }
+   return init;
+}
+
+void DestroyNexusInitInterface(BEGL_InitInterface *init)
+{
+   if (init)
+   {
+      memset(init, 0, sizeof(*init));
+      free(init);
+   }
+}
+
 
 /*****************************************************************************
  * Registration interface
@@ -26,10 +165,9 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
    NXPL_InternalPlatformHandle *platform = (NXPL_InternalPlatformHandle*)malloc(sizeof(NXPL_InternalPlatformHandle));
    memset(platform, 0, sizeof(NXPL_InternalPlatformHandle));
 
-   platform->displayContext = (NXPL_DisplayContext *)malloc(sizeof(*platform->displayContext));
-
    if (platform != NULL)
    {
+      platform->initInterface = CreateNexusInitInterface(platform);
       platform->memoryInterface = CreateDRMMemoryInterface();
       if (platform->memoryInterface != NULL)
          platform->drm = true;
@@ -37,14 +175,16 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
          platform->memoryInterface = CreateMemoryInterface();
 
       platform->schedInterface  = CreateSchedInterface(platform->memoryInterface);
-      platform->displayInterface = CreateDisplayInterface(display,
-            platform->displayContext, platform->schedInterface);
+      platform->displayInterface = NULL;
+      platform->currentDisplay = NULL;
+      platform->defaultDisplay = display;
 
       *handle = (NXPL_PlatformHandle)platform;
 
       BEGL_RegisterMemoryInterface(platform->memoryInterface);
       BEGL_RegisterSchedInterface(platform->schedInterface);
-      BEGL_RegisterDisplayInterface(platform->displayInterface);
+      BEGL_RegisterInitInterface(platform->initInterface);
+      BEGL_RegisterDisplayInterface(NULL);
    }
 }
 
@@ -65,16 +205,19 @@ void NXPL_UnregisterNexusDisplayPlatform(NXPL_PlatformHandle handle)
       BEGL_RegisterDisplayInterface(NULL);
       BEGL_RegisterMemoryInterface(NULL);
       BEGL_RegisterSchedInterface(NULL);
+      BEGL_RegisterInitInterface(NULL);
 
-      DestroyDisplayInterface(data->displayInterface);
+      if (data->displayInterface)
+         DestroyDisplayInterface(data->displayInterface);
       free(data->displayContext);
+      data->displayContext = NULL;
 
       if (data->drm)
          DestroyDRMMemoryInterface(data->memoryInterface);
       else
          DestroyMemoryInterface(data->memoryInterface);
-
       DestroySchedInterface(data->schedInterface);
+      DestroyNexusInitInterface(data->initInterface);
 
       memset(data, 0, sizeof(NXPL_InternalPlatformHandle));
       free(data);

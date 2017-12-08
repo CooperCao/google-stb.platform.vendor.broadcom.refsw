@@ -13,17 +13,13 @@ struct wl_display;
 
 struct egl_platform_fns
 {
-   /*
-    * One-off platform initialization that happens right at the start when
-    * everything else is initialized in a thread-safe way. Can be NULL.
-    */
-   bool        (*init)(void);
+   EGLint      (*get_display)(EGLenum platform, void *nativeDisplay,
+                  const void *attribList, bool isEglAttrib,
+                  void **handle);
 
-   /*
-    * Check if EGL_EXT_platform_* is supported. If unimplemented the assumed
-    * answer is always true.
-    */
-   bool        (*is_platform_supported)(EGLenum platform);
+   bool        (*initialize)(void *handle);
+
+   void        (*terminate)(void *handle);
 
    /* Convert an internal format to a platform colour format, can be NULL */
    bool        (*color_format)(GFX_LFMT_T lfmt, EGLint *platFormat);
@@ -46,22 +42,6 @@ struct egl_platform_fns
     */
    __eglMustCastToProperFunctionPointerType (*get_proc_address)(
          const char *procname);
-
-   /* Return a default display. Can be NULL. */
-   EGLDisplay  (*get_default_display)(void);
-
-   /*
-    * Set the default display. If this is called after the first call to
-    * get_default_display, then it should return false (and whatever else it
-    * does is undefined).
-    */
-   bool        (*set_default_display)(EGLNativeDisplayType display);
-
-   /*
-    * Any cleanup the platform needs to do when the whole process quits. Can be
-    * NULL.
-    */
-   void        (*terminate)(void);
 
    /*
     * Return true if config can be used to render to pixmap. Can be NULL, in
@@ -141,17 +121,17 @@ struct egl_platform_fns
 extern EGL_PLATFORM_FNS_T *egl_platform_fns(void);
 
 /* These all call into the fns returned by egl_platform_fns */
-extern bool egl_platform_init(void);
+EGLint egl_platform_get_display(EGLenum platform, void *nativeDisplay,
+      const void *attribList, EGL_AttribType attribType,
+      void **handle);
+bool egl_platform_initialize(void *handle);
+void egl_platform_terminate(void *handle);
 
-extern bool egl_platform_supported(EGLenum platform);
 extern bool egl_platform_color_format(GFX_LFMT_T lfmt, EGLint *platFormat);
 extern const char *egl_platform_get_client_extensions(void);
 extern const char *egl_platform_get_display_extensions(void);
 extern __eglMustCastToProperFunctionPointerType egl_platform_get_proc_address(
       const char *procname);
-extern EGLDisplay egl_platform_get_default_display(void);
-extern bool egl_platform_set_default_display(EGLNativeDisplayType display);
-extern void egl_platform_terminate(void);
 extern bool egl_platform_match_pixmap(EGLNativePixmapType pixmap,
       const EGL_CONFIG_T *config);
 

@@ -1422,19 +1422,18 @@ static NEXUS_Error NEXUS_Sage_P_EnableHvd(bool enable)
     uint64_t *size=(uint64_t *)lHandle->pSharedMem[1];
     NEXUS_Addr offset;
     uint32_t size2;
+    bool required;
+
+    NEXUS_Module_Lock(lHandle->internalSettings->security);
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    required=NEXUS_Security_RegionVerification_IsRequired_priv(NEXUS_SecurityRegverRegionID_eVDEC0_OLA);
+#else
+    required=NEXUS_Security_RegionVerification_IsRequired_priv(NEXUS_SecurityRegverRegionID_eAvd0Inner);
+#endif
+    NEXUS_Module_Unlock(lHandle->internalSettings->security);
 
     if(lHandle->apiVer<0x00020009)
     {
-        bool required;
-
-        NEXUS_Module_Lock(lHandle->internalSettings->security);
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-        required=NEXUS_Security_RegionVerification_IsRequired_priv(NEXUS_SecurityRegverRegionID_eVDEC0_OLA);
-#else
-        required=NEXUS_Security_RegionVerification_IsRequired_priv(NEXUS_SecurityRegverRegionID_eAvd0Inner);
-#endif
-        NEXUS_Module_Unlock(lHandle->internalSettings->security);
-
         if(required)
         {
             BDBG_ERR(("SAGE/SVP Binaries must be updated"));
@@ -1447,6 +1446,13 @@ static NEXUS_Error NEXUS_Sage_P_EnableHvd(bool enable)
             rc=NEXUS_SUCCESS;
         }
         goto EXIT;
+    }
+    else {
+        if(required && NEXUS_P_Core_SecureArchIssue_isrsafe() && lHandle->internalSettings->lazyUnmap) {
+            /* see NEXUS_Platform_P_LazyUnmap() logic for required versions */
+            BDBG_ERR(("Linux upgrade required for region verification with HVD FW on this silicon"));
+            BKNI_Fail();
+        }
     }
 
     rc = NEXUS_Sage_SVP_isReady();

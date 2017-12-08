@@ -2603,6 +2603,9 @@ typedef struct  BDSP_Raaga_Audio_GenCdbItbConfigParams
     /* The RDB register address to read for encoder's STC clock (Upper)*/
     uint32_t                    ui32EncSTCAddrUpper;
 
+    /* STC Offset between audio and video encoder in 27 MHz domain*/
+    uint64_t                    ui64AVSTCOffset;
+
 } BDSP_Raaga_Audio_GenCdbItbConfigParams;
 
 /*
@@ -3050,6 +3053,10 @@ typedef struct  BDSP_Raaga_Audio_DpcmrConfigParams
    /* encoded channel mode is locked to 5.1 */
     /* This Parameter need to be set either 1 or 0 .1-to get the 5.1 output from encoder. do a downmix in the PCM Renderer from 7.1 -> 5.1*/
     uint32_t    ui32ChannelLockModeEnable;
+	/* This parameter should be 0, 1 0r 2, 0: Disables phase90 Filter, 1 enables phase90 Hilbert filter, 2 enables phase90 McGrath filter */
+	uint32_t ui32EnablePhase90Filter;
+	uint32_t ui32Phase90Indicated;
+	uint32_t ui32GaplessAcmodTransition;
 }BDSP_Raaga_Audio_DpcmrConfigParams;
 
 

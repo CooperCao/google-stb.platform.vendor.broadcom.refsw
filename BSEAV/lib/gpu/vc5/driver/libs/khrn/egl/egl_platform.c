@@ -5,18 +5,49 @@
 #include "egl_platform.h"
 #include "egl_thread.h"
 
-bool egl_platform_init(void)
+EGLint egl_platform_get_display(EGLenum platform, void *nativeDisplay,
+      const void *attribList, EGL_AttribType attribType,
+      void **handle)
 {
+   /* convert an empty attribute lists into a NULL list for easier handling */
+   if (attribList && egl_attrib_list_item(&attribList, attribType,
+         /*increment=*/false) == EGL_NONE)
+      attribList = NULL;
+
    EGL_PLATFORM_FNS_T *fns = egl_platform_fns();
-   if (!fns->init) return true;
-   return fns->init();
+   if (!fns->get_display)
+   {
+      /* only the default display is supported */
+      if (platform == BEGL_DEFAULT_PLATFORM && !nativeDisplay && !attribList)
+      {
+         *handle = (EGLDisplay *)1;
+         return EGL_SUCCESS;
+      }
+      else
+      {
+         *handle = EGL_NO_DISPLAY;
+         return EGL_BAD_PARAMETER;
+      }
+   }
+   else
+   {
+      return fns->get_display(platform, nativeDisplay, attribList,
+            attribType == attrib_EGLAttrib, handle);
+   }
 }
 
-bool egl_platform_supported(EGLenum platform)
+bool egl_platform_initialize(void *handle)
 {
    EGL_PLATFORM_FNS_T *fns = egl_platform_fns();
-   if (!fns->is_platform_supported) return true;
-   return fns->is_platform_supported(platform);
+   if (!fns->initialize) return true;
+   return fns->initialize(handle);
+}
+
+void egl_platform_terminate(void *handle)
+{
+   EGL_PLATFORM_FNS_T *fns = egl_platform_fns();
+   if (fns->terminate)
+      fns->terminate(handle);
 }
 
 bool egl_platform_color_format(GFX_LFMT_T lfmt, EGLint *platFormat)
@@ -51,29 +82,6 @@ __eglMustCastToProperFunctionPointerType egl_platform_get_proc_address(
    EGL_PLATFORM_FNS_T *fns = egl_platform_fns();
    if (!fns->get_proc_address) return NULL;
    return fns->get_proc_address(procname);
-}
-
-EGLDisplay egl_platform_get_default_display(void)
-{
-   EGL_PLATFORM_FNS_T *fns = egl_platform_fns();
-   if (!fns->get_default_display)
-      return (EGLDisplay) 1;
-   return fns->get_default_display();
-}
-
-bool egl_platform_set_default_display(EGLNativeDisplayType display)
-{
-   EGL_PLATFORM_FNS_T *fns = egl_platform_fns();
-   if (!fns->set_default_display)
-      return false;
-   return fns->set_default_display(display);
-}
-
-void egl_platform_terminate(void)
-{
-   EGL_PLATFORM_FNS_T *fns = egl_platform_fns();
-   if (!fns->terminate) return;
-   fns->terminate();
 }
 
 bool egl_platform_match_pixmap(EGLNativePixmapType pixmap,

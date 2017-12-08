@@ -100,14 +100,16 @@ static BERR_Code SSDTl_Operation(int commandId, int deviceResult, int *SSD_TA_rc
     }
 
     container->basicIn[0] = deviceResult;
-    container->blocks[0].data.ptr = (uint8_t *) sage_operation;
-    container->blocks[0].len = sizeof(*sage_operation);
-    container->blocks[1].data.ptr = (uint8_t *) rpmb_frames;
-    container->blocks[1].len = SSD_VFS_MAX_OPERATION_BLOCKS * sizeof(*rpmb_frames);
+    container->basicIn[1] = sage_operation->rpmb_partition;
+    container->blocks[0].data.ptr = (uint8_t *) rpmb_frames;
+    container->blocks[0].len = SSD_VFS_MAX_OPERATION_BLOCKS * sizeof(*rpmb_frames);
 
     rc = SRAI_Module_ProcessCommand(moduleHandle, commandId, container);
 
     *SSD_TA_rc = container->basicOut[0];
+    sage_operation->rpmb_partition = container->basicOut[1];
+    sage_operation->blockCount = container->basicOut[2];
+
     SRAI_Container_Free(container);
 
     return rc;
@@ -252,19 +254,18 @@ BERR_Code SSDTl_Init(ssdd_Settings *ssdd_settings)
         goto errorExit;
     }
 
-    container->blocks[0].data.ptr = (uint8_t *) sage_operation;
-    container->blocks[0].len = sizeof(*sage_operation);
-    container->blocks[1].data.ptr = (uint8_t *) rpmb_frames;
-    container->blocks[1].len = SSD_VFS_MAX_OPERATION_BLOCKS * sizeof(*rpmb_frames);
-    container->basicIn[0] = 1; /* Connect */
+    container->blocks[0].data.ptr = (uint8_t *) rpmb_frames;
+    container->blocks[0].len = SSD_VFS_MAX_OPERATION_BLOCKS * sizeof(*rpmb_frames);
+    container->basicIn[0] = 1; /* Init */
 
     if (settings.hasRpmb) {
         /*
          * RPMB
          */
-        sage_operation->rpmb_partition = 1;
+        sage_operation->rpmb_partition = true;
 
-        container->basicIn[1] = (settings.formatRpmb) ? SSD_DaemonInit_eFormatPartition : 0;
+        container->basicIn[1] = sage_operation->rpmb_partition;
+        container->basicIn[3] = (settings.formatRpmb) ? SSD_DaemonInit_eFormatPartition : 0;
 
         rc = SRAI_Module_ProcessCommand(moduleHandle, SSD_CommandId_eDaemonInit, container);
         if (rc != BERR_SUCCESS) {
@@ -274,6 +275,9 @@ BERR_Code SSDTl_Init(ssdd_Settings *ssdd_settings)
         }
 
         rc = container->basicOut[0];
+        sage_operation->rpmb_partition = container->basicOut[1];
+        sage_operation->blockCount = container->basicOut[2];
+
         if (rc == BERR_SUCCESS) {
             /* Complete sequence of requested initialisation operations */
             rc = SSDTl_Perform_Full_Operation_Cycle(&SSD_TA_rc);
@@ -292,9 +296,10 @@ BERR_Code SSDTl_Init(ssdd_Settings *ssdd_settings)
     /*
      * VFS
      */
-    sage_operation->rpmb_partition = 0;
+    sage_operation->rpmb_partition = false;
 
-    container->basicIn[1] = (settings.formatVfs) ? SSD_DaemonInit_eFormatPartition : 0;
+    container->basicIn[1] = sage_operation->rpmb_partition;
+    container->basicIn[3] = (settings.formatVfs) ? SSD_DaemonInit_eFormatPartition : 0;
 
     rc = SRAI_Module_ProcessCommand(moduleHandle, SSD_CommandId_eDaemonInit, container);
     if (rc != BERR_SUCCESS) {
@@ -304,6 +309,9 @@ BERR_Code SSDTl_Init(ssdd_Settings *ssdd_settings)
     }
 
     rc = container->basicOut[0];
+    sage_operation->rpmb_partition = container->basicOut[1];
+    sage_operation->blockCount = container->basicOut[2];
+
     if (rc == BERR_SUCCESS) {
         /*  Complete init */
         rc = SSDTl_Perform_Full_Operation_Cycle(&SSD_TA_rc);
@@ -326,10 +334,6 @@ BERR_Code SSDTl_Init(ssdd_Settings *ssdd_settings)
     hasInit = true;
 
 errorExit:
-    if (rc != BERR_SUCCESS) {
-        SSDTl_Uninit();
-    }
-
     SRAI_Container_Free(container);
     return rc;
 }
@@ -343,24 +347,24 @@ void SSDTl_Uninit(void)
 
     container = SRAI_Container_Allocate();
     if (container != NULL) {
-        container->blocks[0].data.ptr = (uint8_t *) sage_operation;
-        container->blocks[0].len = sizeof(*sage_operation);
-        container->blocks[1].data.ptr = (uint8_t *) rpmb_frames;
-        container->blocks[1].len = SSD_VFS_MAX_OPERATION_BLOCKS * sizeof(*rpmb_frames);
+        container->blocks[0].data.ptr = (uint8_t *) rpmb_frames;
+        container->blocks[0].len = SSD_VFS_MAX_OPERATION_BLOCKS * sizeof(*rpmb_frames);
 
         container->basicIn[0] = 0; /* UnInit */
 
         if (settings.hasRpmb) {
             // RPMB
-            sage_operation->rpmb_partition = true;
+            container->basicIn[1] = true;
             rc = SRAI_Module_ProcessCommand(moduleHandle, SSD_CommandId_eDaemonInit, container);
             if (rc != BERR_SUCCESS) {
                 SSDD_Debug_printf("%s - Error sending uninit command for RPMB (0x%08x)\n", BSTD_FUNCTION, rc);
             }
+
+            rc = container->basicOut[0];
         }
 
         // VFS
-        sage_operation->rpmb_partition = false;
+        container->basicIn[1] = false;
         rc = SRAI_Module_ProcessCommand(moduleHandle, SSD_CommandId_eDaemonInit, container);
         if (rc != BERR_SUCCESS) {
             SSDD_Debug_printf("%s - Error sending uninit command for VFS (0x%08x)\n", BSTD_FUNCTION, rc);

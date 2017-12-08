@@ -2,7 +2,7 @@
 
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
-<title>Broadcom 97250 B0 Phase 17.3 Set-Top Unified Reference Software Release (URSR) Release Notes</title>
+<title>Broadcom 97250 B0 Phase 17.4 Set-Top Unified Reference Software Release (URSR) Release Notes</title>
 <style>
 <!--
  /* Style Definitions */
@@ -109,7 +109,7 @@ ul
 <div class=WordSection1>
 
 <h1><a name="_top">
-Broadcom 7250 B0 Set-Top Unified Software Release 17.3
+Broadcom 7250 B0 Set-Top Unified Software Release 17.4
 </a></h1>
 
 <table border=0 cellspacing=0 cellpadding=0 width="100%"
@@ -135,9 +135,9 @@ Broadcom 7250 B0 Set-Top Unified Software Release 17.3
   <td width="52%" valign=top style='width:52.74%;padding:0pt 5.4pt 0pt 5.4pt'>
   <p class=MsoTocHeading>Release Date:</p>
   <p style='margin-top:0pt;margin-right:0pt;margin-bottom:0pt;margin-left:1.75pt;
-  margin-bottom:.0001pt'>September 22, 2017</p>
+  margin-bottom:.0001pt'>November 17, 2017</p>
   <p style='margin-top:0cm;margin-right:0cm;margin-bottom:0cm;margin-left:1.75pt;
-  margin-bottom:.0001pt'>Phase 17.3 Release</p>
+  margin-bottom:.0001pt'>Phase 17.4 Release</p>
   <p class=MsoTocHeading>Platforms Supported:</p>
   <p class=MsoNormal style='margin-left:1.75pt'>7250/72501/72502 B0</p>
   </td>
@@ -174,10 +174,10 @@ Build Instructions to create an initrd 7250b0 Linux Kernel Image
 <li>
 Extract toolchain, root filesystem and Linux kernel tar balls:
 <ul type=none><li><pre>
-tar -C /opt/toolchains -xf stbgcc-4.8-1.6.tar.bz2
-export PATH=/opt/toolchains/stbgcc-4.8-1.6/bin:$PATH
-tar -xf rootfs-4.1-1.12.tar.bz2
-tar -xf stblinux-4.1-1.12.tar.bz2
+tar -C /opt/toolchains -xf stbgcc-6.3-1.1.tar.bz2
+export PATH=/opt/toolchains/stbgcc-6.3-1.1/bin:$PATH
+tar -xf rootfs-4.1-1.14.tar.bz2
+tar -xf stblinux-4.1-1.14.tar.bz2
 cd rootfs
 make vmlinuz-initrd-arm
 </pre></li></ul>
@@ -206,7 +206,7 @@ export LINUX=`pwd`
 Set up PATH environment variable to point to tool chain:
 </li>
 <ul type=none><li><pre>
-export PATH=/opt/toolchains/stbgcc-4.8-1.6/bin:$PATH
+export PATH=/opt/toolchains/stbgcc-6.3-1.1/bin:$PATH
 </pre></li></ul>
 </ul>
 
@@ -229,7 +229,7 @@ Build and Usage Instructions for Atlas
 <li>
 Extract reference software tar ball:
 <ul type=none><li><pre>
-tar -xf refsw_release_unified_20170922.src.tgz
+tar -xf refsw_release_unified_20171117.src.tgz
 </pre></li></ul>
 </li>
 </ul>

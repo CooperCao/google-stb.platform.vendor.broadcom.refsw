@@ -215,8 +215,8 @@ void egl_context_gl_assert_locked(void)
 }
 #endif
 
-EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config_in,
-   EGLContext share_ctx, const EGLint *attrib_list)
+EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLDisplay dpy,
+      EGLConfig config_in, EGLContext share_ctx, const EGLint *attrib_list)
 {
    EGL_GL_CONTEXT_T *ret = NULL;
    EGLint error = EGL_BAD_ALLOC;
@@ -250,7 +250,8 @@ EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config_in,
    egl_context_gl_lock();
    locked = true;
 
-   egl_context_base_init(&ret->base, API_OPENGL, config, debug, robustness, reset_notification, secure);
+   egl_context_base_init(&ret->base, dpy, API_OPENGL, config, debug, robustness,
+         reset_notification, secure);
 
    ret->api = client_api->api;
    ret->server.context = ret;

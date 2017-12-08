@@ -33,6 +33,12 @@ public:
       return item;
    }
 
+   bool Empty()
+   {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      return m_q.empty();
+   }
+
 private:
    std::list<std::unique_ptr<T>> m_q;
    helper::Semaphore m_sem;

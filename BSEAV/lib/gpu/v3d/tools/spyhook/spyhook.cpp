@@ -2786,6 +2786,14 @@ DLLEXPORT bool EGLAPIENTRY remote_eglGetPlatformDisplayEXT(EGLenum platform, voi
 DLLEXPORT bool EGLAPIENTRY remote_eglCreatePlatformWindowSurfaceEXT(EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list) Func(eglCreatePlatformWindowSurfaceEXT, (dpy, config, native_window, attrib_list))
 DLLEXPORT bool EGLAPIENTRY remote_eglCreatePlatformPixmapSurfaceEXT(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list) Func(eglCreatePlatformPixmapSurfaceEXT, (dpy, config, native_pixmap, attrib_list))
 
+#ifdef WAYLAND
+struct wl_display;
+struct wl_resource;
+DLLEXPORT bool EGLAPIENTRY remote_eglBindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display) Func(eglBindWaylandDisplayWL, (dpy, display))
+DLLEXPORT bool EGLAPIENTRY remote_eglUnbindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display) Func(eglUnbindWaylandDisplayWL, (dpy, display))
+DLLEXPORT bool EGLAPIENTRY remote_eglQueryWaylandBufferWL(EGLDisplay dpy, struct wl_resource *buffer, EGLint attribute, EGLint *value) Func(eglQueryWaylandBufferWL, (dpy, buffer, attribute, value))
+#endif
+
 #ifdef __gl3_h_
 /* ES3 specifics */
 DLLEXPORT bool DLLEXPORTENTRY remote_glReadBuffer (GLenum mode) Func(glReadBuffer, (mode))

@@ -144,7 +144,7 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
 #endif
 
       khrn_blob *blob = khrn_blob_create(width_samples, height_samples, 1,
-            1, 1, lfmts, num_planes, flags, secure);
+            1, 1, lfmts, num_planes, flags, secure ? GMEM_USAGE_SECURE : GMEM_USAGE_NONE);
       if (!blob)
          return false;
 

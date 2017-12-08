@@ -186,6 +186,11 @@ export CROSS_COMPILE?=${B_REFSW_CROSS_COMPILE}
 # STBLINUX=1; use for STB
 ###################################################################
 export STBLINUX=1
+###################################################################
+# SHORTER_PATH=0; default target name in wl/linux/obj-{target}
+# SHORTER_PATH=1; reduce path lengths. replace target with chipver
+###################################################################
+export SHORTER_PATH?=0
 
 ###################################################################
 #  Default rule:
@@ -235,7 +240,11 @@ B_WLAN_EPIVER_OOSRC_DIR:=$(B_WLAN_OOSRC_VER_DIR)/src/include
 
 #  Define the out-of-source dir where the wlan driver Makefile lives.
 B_WLAN_DRIVER_BUILD_OOSRC_DIR:=$(B_WLAN_OOSRC_VER_DIR)/src/wl/linux
+ifeq ($(SHORTER_PATH),1)
+B_WLAN_DRIVER_RESULT_OOSRC_DIR:=$(B_WLAN_DRIVER_BUILD_OOSRC_DIR)/obj-${BCHP_VER}-${LINUXVER}
+else
 B_WLAN_DRIVER_RESULT_OOSRC_DIR:=$(B_WLAN_DRIVER_BUILD_OOSRC_DIR)/obj-${BUILDCFG}-${LINUXVER}
+endif
 B_WLAN_DRIVER_RESULT_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_FILE_NAME}
 B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME}
 B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME}

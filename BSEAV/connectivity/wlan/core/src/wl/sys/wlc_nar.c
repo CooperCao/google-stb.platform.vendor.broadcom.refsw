@@ -1515,6 +1515,16 @@ wlc_nar_transmit_packet(void *handle, struct scb *scb, void *pkt, uint prec)
 		NAR_STATS_INC(cubby, KICKSTARTS_IN_TX);
 	}
 
+	if (!PKTC_ENAB(nit->wlc->pub)) {
+		if (SCB_AMPDU(scb)) {
+			nit->ampdu_scb_present = TRUE;	 /* Ask watchdog to keep an eye on this scb */
+			if (prio_is_aggregating) {
+				/* We have not queued this packet, pass it to the next layer (ampdu) */
+				NAR_STATS_INC(cubby, PACKETS_AGGREGATING);
+				SCB_TX_NEXT(TXMOD_NAR, scb, pkt, prec);   /* Pass the packet on */
+			}
+		}
+	}
 	return;
 }
 

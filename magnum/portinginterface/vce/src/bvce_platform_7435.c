@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,8 +41,6 @@
 
 /* base modules */
 #include "bstd.h"           /* standard types */
-#include "berr.h"           /* error code */
-#include "bdbg.h"           /* debug interface */
 #include "bkni.h"           /* kernel interface */
 
 #include "bvce.h"
@@ -370,6 +368,10 @@ BVCE_Platform_P_GetConfig(
       pstPlatformConfig->stWatchdogRegisterDumpList.iInstanceOffset = BVCE_P_REGISTER_BASE + iInstanceRegisterOffset;
       pstPlatformConfig->stWatchdogRegisterDumpList.astRegisters = s_astViceHardwareRegisters;
       pstPlatformConfig->stWatchdogRegisterDumpList.uiCount = s_uiViceHardwareRegistersCount;
+
+      pstPlatformConfig->stHostCPUDebugRegisterDumpList.iInstanceOffset = BCHP_VICE2_ARCSS_ESS_HOSTIF_0_0_HOSTIFi_ARRAY_BASE + iInstanceRegisterOffset;
+      pstPlatformConfig->stHostCPUDebugRegisterDumpList.astRegisters = s_astHostCPUDebugRegisters;
+      pstPlatformConfig->stHostCPUDebugRegisterDumpList.uiCount = s_uiHostCPUDebugRegistersCount;
 
       pstPlatformConfig->stDebug.stCmd.uiBasePointer = BCHP_VICE2_CABAC_0_0_CMD_BUFF_START_ADDR + iInstanceRegisterOffset;
       pstPlatformConfig->stDebug.stCmd.uiEndPointer = BCHP_VICE2_CABAC_0_0_CMD_BUFF_END_ADDR + iInstanceRegisterOffset;

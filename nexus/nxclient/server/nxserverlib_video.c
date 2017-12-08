@@ -768,7 +768,7 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
 
     /* create windows */
     for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
-        if (session->display[j].display) {
+        if (session->display[j].display && !session->display[j].graphicsOnly) {
             /* regular window may already be open */
             if (!session->display[j].window[index][0]) {
                 session->display[j].window[index][0] = NEXUS_VideoWindow_Open(session->display[j].display, index);

@@ -13834,7 +13834,7 @@ wlc_assoc_doioctl(void *ctx, uint32 cmd, void *arg, uint len, struct wlc_if *wlc
 		if ((bcmerror = wlc_iocbandchk(wlc, (int*)arg, len, &band, FALSE)))
 			break;
 
-		if ((val < -100) || (val > WLC_ROAM_TRIGGER_MAX_VALUE)) {
+		if ((val < WLC_NEVER_ROAM_TRIGGER) || (val > WLC_ROAM_TRIGGER_MAX_VALUE)) {
 			bcmerror = BCME_RANGE;
 			break;
 		}

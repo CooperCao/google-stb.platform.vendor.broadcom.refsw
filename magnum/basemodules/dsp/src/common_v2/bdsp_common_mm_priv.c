@@ -244,19 +244,21 @@ BERR_Code BDSP_P_RequestMemory(
     BERR_Code errCode = BERR_SUCCESS;
 
     BDBG_ENTER(BDSP_P_RequestMemory);
-    if((pMemoryPool->ui32UsedSize + ui32Size) > pMemoryPool->ui32Size)
-    {
-        BDBG_ERR(("BDSP_P_RequestMemory: Cannot Assign the requested Size"));
-        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto end;
-    }
+	if(ui32Size)
+	{
+	    if((pMemoryPool->ui32UsedSize + ui32Size) > pMemoryPool->ui32Size)
+	    {
+	        BDBG_ERR(("BDSP_P_RequestMemory: Cannot Assign the requested Size"));
+	        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+	        goto end;
+	    }
 
-    *pMemory = pMemoryPool->Memory;
-    pMemory->offset = pMemory->offset + pMemoryPool->ui32UsedSize;
-    pMemory->pAddr  = (void *)((uint8_t *)pMemory->pAddr + pMemoryPool->ui32UsedSize);
+	    *pMemory = pMemoryPool->Memory;
+	    pMemory->offset = pMemory->offset + pMemoryPool->ui32UsedSize;
+	    pMemory->pAddr  = (void *)((uint8_t *)pMemory->pAddr + pMemoryPool->ui32UsedSize);
 
-    pMemoryPool->ui32UsedSize += ui32Size;
-
+	    pMemoryPool->ui32UsedSize += ui32Size;
+	}
 end:
     BDBG_LEAVE(BDSP_P_RequestMemory);
     return errCode;
@@ -271,16 +273,18 @@ BERR_Code BDSP_P_ReleaseMemory(
     BERR_Code errCode = BERR_SUCCESS;
 
     BDBG_ENTER(BDSP_P_ReleaseMemory);
-    if(pMemoryPool->ui32UsedSize < ui32Size)
-    {
-        BDBG_ERR(("BDSP_P_ReleaseMemory: Trying the release memory more than used"));
-        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto end;
-    }
+	if(ui32Size)
+	{
+	    if(pMemoryPool->ui32UsedSize < ui32Size)
+	    {
+	        BDBG_ERR(("BDSP_P_ReleaseMemory: Trying the release memory more than used"));
+	        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+	        goto end;
+	    }
 
-    pMemoryPool->ui32UsedSize -= ui32Size;
-	BKNI_Memset(pMemory, 0, sizeof(BDSP_MMA_Memory));
-
+	    pMemoryPool->ui32UsedSize -= ui32Size;
+		BKNI_Memset(pMemory, 0, sizeof(BDSP_MMA_Memory));
+	}
 end:
     BDBG_LEAVE(BDSP_P_ReleaseMemory);
     return errCode;

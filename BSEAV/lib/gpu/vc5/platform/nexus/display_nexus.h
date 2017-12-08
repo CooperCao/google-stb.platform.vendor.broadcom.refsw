@@ -6,6 +6,8 @@
 
 #include "default_nexus.h"
 #include "sched_abstract.h"
+#include "berr.h"
+#include "bkni.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,8 +16,8 @@ extern "C" {
 /* NXPL_DisplayContext */
 typedef struct
 {
-   NXPL_DisplayType     displayType;
-   BEGL_SchedInterface *schedIface;
+   NXPL_DisplayType        displayType;
+   BEGL_SchedInterface    *schedIface;
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
    NEXUS_DISPLAYHANDLE  display;

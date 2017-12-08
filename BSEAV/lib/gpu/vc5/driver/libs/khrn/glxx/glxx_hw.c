@@ -1722,7 +1722,7 @@ bool glxx_hw_draw_triangles(GLXX_SERVER_STATE_T *state,
 #if !V3D_VER_AT_LEAST(4,1,34,0)
             attribs_max,
 #endif
-            indices, gmem_get_addr(res->handle) + draw->indirect_offset))
+            indices, khrn_resource_get_addr(res) + draw->indirect_offset))
          goto fail;
    }
 
@@ -2140,7 +2140,7 @@ v3d_addr_t glxx_hw_install_uniforms(
                return 0;
          }
 
-         *ptr = gmem_get_addr(res->handle) + binding->offset + offset;
+         *ptr = khrn_resource_get_addr(res) + binding->offset + offset;
          break;
       }
 
@@ -2638,7 +2638,7 @@ static bool write_gl_shader_record(
 
    if (!khrn_fmem_sync_res(&rs->fmem, link_data->res, V3D_BARRIER_QPU_INSTR_READ, V3D_BARRIER_QPU_INSTR_READ))
       return false;
-   v3d_addr_t code_addr = gmem_get_addr(link_data->res->handle);
+   v3d_addr_t code_addr = khrn_resource_get_addr(link_data->res);
 
    GL20_HW_INDEXED_UNIFORM_T iu;
    iu.valid = false;

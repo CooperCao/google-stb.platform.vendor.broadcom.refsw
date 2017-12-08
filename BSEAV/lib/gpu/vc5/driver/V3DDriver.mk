@@ -64,7 +64,7 @@ endif
 
 ifeq ($(V3D_DEBUG),y)
 
-	# Show a BIG warning about debug mode
+# Show a BIG warning about debug mode
 $(info ****************************************************)
 $(info *****          D E B U G   B U I L D)
 $(info *****)
@@ -134,6 +134,7 @@ CFLAGS += \
 	-DGFX_DEFAULT_DRAM_MAP_MODE=2 \
 	-DKHRN_GLES32_DRIVER=0 \
 	-DV3D_PLATFORM_SIM=0 \
+	-DSECURE_SUPPORT=1 \
 	-Wno-unused-function \
 	-Wno-unused-variable \
 	-Wno-unused-but-set-variable

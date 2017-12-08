@@ -60,6 +60,7 @@ SRAI_TOP  ?= ${SAGE_PUBLIC_TOP}/srai
 
 include ${MAGNUM_TOP}/syslib/sagelib/bsagelib_public.inc
 include ${BSEAV_TOP}/lib/security/sage/keymaster/keymaster.inc
+include ${BSEAV_TOP}/opensource/openssl/openssl.inc
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
@@ -68,7 +69,7 @@ endif
 APP = keymaster_test
 
 # Add example sources
-SRCS := keymaster_test.c keymaster_key_params.c keymaster_crypto_aes.c
+SRCS := $(wildcard *.c)
 
 
 OBJS = ${SRCS:.c=.o}
@@ -79,7 +80,8 @@ APP_INCLUDES  = ${BSAGELIB_INCLUDES} \
                 ${BSEAV_TOP}/lib/security/common_drm/include/tl \
                 ${SAGE_PUBLIC_TOP}/include \
                 ${KEYMASTER_INCLUDES} \
-                ${SAGE_PUBLIC_TOP}/platforms/include
+                ${SAGE_PUBLIC_TOP}/platforms/include \
+                ${B_OPENSSL_INC_INSTALL_DIR}
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 APP_INCLUDE += ${NXCLIENT_INCLUDES}
@@ -91,6 +93,7 @@ include ${NEXUS_TOP}/platforms/${NEXUS_PLATFORM}/build/platform_app.inc
 #srai lib path first to get latest SRAI lib
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai -lsrai
 LDFLAGS += -L${NEXUS_BIN_DIR} -lnexus -lsage_keymaster
+LDFLAGS += -L${B_OPENSSL_LIB_INSTALL_DIR} -lssl -lcrypto
 ifeq ($(NXCLIENT_SUPPORT),y)
 LDFLAGS += ${NXCLIENT_LDFLAGS}
 endif
@@ -126,9 +129,14 @@ export KEYMASTER_OBJDIR
 all: srai prep_keymaster prep_nexus ${APP}
 
 # Implicit rule for building local apps
-${APP}: ${OBJS}
+${APP}: openssl ${OBJS}
 	@echo [Link... $@]
 	${Q_} ${CC} $(addprefix ${KEYMASTER_OBJDIR}/,${OBJS}) -o ${APP} ${LDFLAGS}
+
+.PHONY:  openssl
+openssl:
+	@echo [Build..... OpenSSL]
+	$(Q_)$(MAKE) -C $(B_OPENSSL_BUILD_DIR)
 
 %.o: %.c
 	@echo [Compile... $<]

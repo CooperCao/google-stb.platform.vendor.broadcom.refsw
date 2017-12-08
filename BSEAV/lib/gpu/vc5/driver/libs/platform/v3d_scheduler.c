@@ -23,6 +23,7 @@ typedef struct v3d_scheduler
 {
    V3D_HUB_IDENT_T hub_identity;
    V3D_IDENT_T identity;
+   uint32_t ddr_map_ver;
    bool wait_after_submit;
    bool dump_node_graph;
    char dump_node_graph_filename[VCOS_PROPERTY_VALUE_MAX];
@@ -50,6 +51,7 @@ void v3d_scheduler_init(void)
    v3d_get_info(&info);
    v3d_unpack_hub_ident(&scheduler.hub_identity, info.hubIdent);
    v3d_unpack_ident(&scheduler.identity, info.ident);
+   scheduler.ddr_map_ver = info.ddrMapVer;
 
    unsigned num_cores = gfx_options_uint32("V3D_LIMIT_CORES", 0);
    if (num_cores)
@@ -710,6 +712,11 @@ const V3D_HUB_IDENT_T* v3d_scheduler_get_hub_identity(void)
 const V3D_IDENT_T* v3d_scheduler_get_identity(void)
 {
    return &scheduler.identity;
+}
+
+uint32_t v3d_scheduler_get_ddr_map_ver(void)
+{
+   return scheduler.ddr_map_ver;
 }
 
 bcm_sched_event_id v3d_scheduler_new_event(void)

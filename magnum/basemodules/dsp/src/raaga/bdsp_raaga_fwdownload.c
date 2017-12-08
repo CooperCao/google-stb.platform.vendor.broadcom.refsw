@@ -371,9 +371,9 @@ BERR_Code BDSP_Raaga_P_DumpImage(
     pImgCache = (BDSP_RaagaImgCacheEntry *)BKNI_Malloc(sizeof(BDSP_RaagaImgCacheEntry)*BDSP_IMG_ID_MAX);
     if(pImgCache == NULL)
     {
-        BDBG_ERR((" Cannot allocate memory"));
+        BDBG_ERR(("BDSP_Raaga_P_DumpImage: Cannot allocate memory"));
         errCode=BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        goto end;
+        return errCode;
     }
     pImgCachelocal = pImgCache;
 
@@ -425,6 +425,7 @@ BERR_Code BDSP_Raaga_P_DumpImage(
     *puiCodeSize = uiFwBinSizeWithGuardBand;
 
 end:
+	BKNI_Free(pImgCache);
     BDBG_LEAVE(BDSP_Raaga_P_DumpImage);
     return errCode;
 }

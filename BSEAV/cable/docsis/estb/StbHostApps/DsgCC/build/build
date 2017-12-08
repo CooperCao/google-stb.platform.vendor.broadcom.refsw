@@ -1,5 +1,4 @@
 #!/bin/bash
-
 if [ $ARM_PLATFORM == "yes" ]; then
 	echo "  yes ARM_PLATFORM = $ARM_PLATFORM"
 CROSS_ROOT=`which arm-linux-gcc`
@@ -46,7 +45,7 @@ case $1 in
 		echo "  Building DSGCC using TOOLCHAIN: '$CROSSDEV_ROOT/bin/$ARCH' "
 
 		cd $builddir
-		sh makeapp $2 $3 $4 $5 $6
+		bash makeapp $2 $3 $4 $5 $6
 		cd $targetdir
 		if [ -e $outputfile ]; then
    		    cp -u $outputfile $targetdir/$targetfilename

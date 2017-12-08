@@ -3540,7 +3540,8 @@ BERR_Code BDSP_Arm_P_SendMapCommand(
     if(NULL == pMapTable)
     {
         BDBG_ERR((" Allocated Address for MAP Table is not proper"));
-        return BERR_TRACE (BDSP_ERR_BAD_DEVICE_STATE);
+        err = BERR_TRACE (BDSP_ERR_BAD_DEVICE_STATE);
+        goto end;
     }
     BKNI_Memset(pMapTable, 0,sizeof(BDSP_MAP_Table));
     BKNI_Memset(psCommand,0,sizeof(*psCommand));

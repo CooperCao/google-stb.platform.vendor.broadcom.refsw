@@ -3,6 +3,7 @@
  ******************************************************************************/
 #include <EGL/begl_memplatform.h>
 #include "memory_android.h"
+#include "memory_convert.h"
 #include "nexus_heap_selection.h"
 #include "nexus_platform.h"
 #include "nexus_base_mmap.h"
@@ -85,6 +86,7 @@ typedef struct
    uint32_t                processId;
    char                    alloc_name[PROPERTY_VALUE_MAX];
    bool                    allowsMovable;
+   MemConvertCache         mem_convert_cache;
 
 } ANPL_MemoryContext;
 
@@ -162,6 +164,10 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
    {
       return NULL;
    }
+
+   // Android memory (outside of the MMU) is not coherent
+   if (flags & BEGL_USAGE_COHERENT)
+      return NULL;
 
    if (!data->allowsMovable)
    {
@@ -433,6 +439,34 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
   return 0;
 }
 
+// The memory interface is the only sensible place for this. The display interface is really part
+// of EGL and therefore doesn't exist in Vulkan.
+static BEGL_Error MemConvertSurface(void *context, const BEGL_SurfaceConversionInfo *info,
+                                    bool validateOnly)
+{
+   NEXUS_StripedSurfaceHandle  striped = NULL;
+   NEXUS_SurfaceHandle         surf = NULL;
+   BEGL_Error                  ret;
+   ANPL_MemoryContext         *ctx = (ANPL_MemoryContext*)context;
+
+   if (validateOnly)
+      return MemoryConvertSurface(info, /*striped=*/NULL, /*surf=*/NULL, validateOnly,
+                                  &ctx->mem_convert_cache);
+
+   if (!DisplayAcquireNexusSurfaceHandles(&striped, &surf, info->srcNativeSurface))
+      return BEGL_Fail;
+
+   // Convert the dst memory block handle into something that Nexus understands.
+   BEGL_SurfaceConversionInfo infoCopy = *info;
+   infoCopy.dstMemoryBlock = ((ANPL_MemoryTracker *)(info->dstMemoryBlock))->hdl;
+
+   ret = MemoryConvertSurface(&infoCopy, striped, surf, validateOnly, &ctx->mem_convert_cache);
+
+   DisplayReleaseNexusSurfaceHandles(striped, surf);
+
+   return ret;
+}
+
 //static void DebugHeap(NEXUS_HeapHandle heap)
 //{
 //   NEXUS_MemoryStatus   status;
@@ -475,15 +509,15 @@ BEGL_MemoryInterface *CreateAndroidMemoryInterface(void)
          ctx->processId = (uint32_t)getpid();
 
          mem->context = (void*)ctx;
-         mem->FlushCache = MemFlushCache;
-         mem->GetInfo    = MemGetInfo;
-
-         mem->Alloc         = MemAllocBlock;
-         mem->Free          = MemFreeBlock;
-         mem->Map           = MemMapBlock;
-         mem->Unmap         = MemUnmapBlock;
-         mem->Lock          = MemLockBlock;
-         mem->Unlock        = MemUnlockBlock;
+         mem->FlushCache     = MemFlushCache;
+         mem->GetInfo        = MemGetInfo;
+         mem->Alloc          = MemAllocBlock;
+         mem->Free           = MemFreeBlock;
+         mem->Map            = MemMapBlock;
+         mem->Unmap          = MemUnmapBlock;
+         mem->Lock           = MemLockBlock;
+         mem->Unlock         = MemUnlockBlock;
+         mem->ConvertSurface = MemConvertSurface;
 
          ctx->heaps[0].heap = ctx->useDynamicMMA ? GetDynamicHeap() : GetDefaultHeap();
          if (!ctx->heaps[0].heap)
@@ -528,6 +562,7 @@ void DestroyAndroidMemoryInterface(BEGL_MemoryInterface *mem)
       {
          ANPL_MemoryContext *ctx = (ANPL_MemoryContext*)mem->context;
 
+         MemoryConvertClearCache(&ctx->mem_convert_cache);
          free(ctx);
       }
 

@@ -79,7 +79,7 @@ BDBG_OBJECT_ID(KeymasterTl_Instance);
 
 #define KM_PROCESS_COMMAND(cmd_id)                   err = SRAI_Module_ProcessCommand(handle->moduleHandle, cmd_id, inout); \
                                                      if ((err != BERR_SUCCESS) || (inout->basicOut[0] != BERR_SUCCESS)) { \
-                                                         BDBG_ERR(("%s: Command failed (%x/%x)", BSTD_FUNCTION, err, inout->basicOut[0])); \
+                                                         BDBG_MSG(("%s: Command failed (%x/%x)", BSTD_FUNCTION, err, inout->basicOut[0])); \
                                                          if (err == BERR_SUCCESS) { err = inout->basicOut[0]; } \
                                                          goto done; \
                                                      }
@@ -213,7 +213,7 @@ static BERR_Code _KeymasterTl_SerializeParams(KM_Tag_ContextHandle params, uint8
         }
 
         BDBG_ERR(("%s: Invalid params", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -266,7 +266,7 @@ BERR_Code KeymasterTl_Configure(
 
     if (!handle || !in_params) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -302,7 +302,7 @@ BERR_Code KeymasterTl_AddRngEntropy(
 
     if (!handle || !in_data || !in_data->size || !in_data->buffer) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -341,7 +341,7 @@ BERR_Code KeymasterTl_GenerateKey(
 
     if (!handle || !in_key_params || !out_key_blob) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -429,7 +429,7 @@ BERR_Code KeymasterTl_GetKeyCharacteristics(
     if (!handle || !settings || !settings->in_key_blob.size ||
         !settings->in_key_blob.buffer) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -516,7 +516,7 @@ BERR_Code KeymasterTl_ImportKey(
     if (!handle || !settings || !settings->in_key_params ||
         !settings->in_key_blob.size || !settings->in_key_blob.buffer) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -616,7 +616,7 @@ BERR_Code KeymasterTl_ExportKey(
     if (!handle || !settings || !settings->in_key_blob.size ||
         !settings->in_key_blob.buffer) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -676,7 +676,7 @@ BERR_Code KeymasterTl_ExportKey(
     }
 
     KM_ALLOCATE_BLOCK(settings->out_key_blob.buffer, KM_CMD_EXPORT_COMPLETE_OUT_RET_KEY_BLOB_LEN);
-    BKNI_Memcpy(settings->out_key_blob.buffer, key_blob, KM_CMD_EXPORT_COMPLETE_OUT_RET_KEY_BLOB_LEN);
+    BKNI_Memcpy(settings->out_key_blob.buffer, ret_key_blob, KM_CMD_EXPORT_COMPLETE_OUT_RET_KEY_BLOB_LEN);
     settings->out_key_blob.size = KM_CMD_EXPORT_COMPLETE_OUT_RET_KEY_BLOB_LEN;
     err = BERR_SUCCESS;
 
@@ -715,7 +715,7 @@ BERR_Code KeymasterTl_AttestKey(
 
     if (!handle || !settings || !settings->in_key_blob.size || !settings->in_key_blob.buffer) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -775,9 +775,9 @@ BERR_Code KeymasterTl_AttestKey(
     }
 
     BKNI_Memcpy(&settings->out_cert_chain, cert_chain, sizeof(km_cert_chain_t));
-    KM_ALLOCATE_BLOCK(settings->out_cert_chain_buffer, KM_CMD_ATTEST_COMPLETE_OUT_RET_CERT_CHAIN_BUFFER_LEN);
-    BKNI_Memcpy(settings->out_cert_chain_buffer, cert_chain_buf, KM_CMD_ATTEST_COMPLETE_OUT_RET_CERT_CHAIN_BUFFER_LEN);
-    settings->out_cert_chain_buffer_len = KM_CMD_ATTEST_COMPLETE_OUT_RET_CERT_CHAIN_BUFFER_LEN;
+    KM_ALLOCATE_BLOCK(settings->out_cert_chain_buffer.buffer, KM_CMD_ATTEST_COMPLETE_OUT_RET_CERT_CHAIN_BUFFER_LEN);
+    BKNI_Memcpy(settings->out_cert_chain_buffer.buffer, cert_chain_buf, KM_CMD_ATTEST_COMPLETE_OUT_RET_CERT_CHAIN_BUFFER_LEN);
+    settings->out_cert_chain_buffer.size = KM_CMD_ATTEST_COMPLETE_OUT_RET_CERT_CHAIN_BUFFER_LEN;
     err = BERR_SUCCESS;
 
 done:
@@ -810,7 +810,7 @@ BERR_Code KeymasterTl_UpgradeKey(
 
     if (!handle || !in_key_blob || !in_key_blob->size || !in_key_blob->buffer || !out_key_blob) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -894,7 +894,7 @@ BERR_Code KeymasterTl_DeleteKey(
 
     if (!handle || !in_key_blob || !in_key_blob->size || !in_key_blob->buffer) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -973,7 +973,7 @@ BERR_Code KeymasterTl_CryptoBegin(
     if (!handle || !settings || !settings->in_key_blob.size ||
         !settings->in_key_blob.buffer || !out_operation_handle) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -1065,10 +1065,9 @@ BERR_Code KeymasterTl_CryptoUpdate(
 
     BDBG_ENTER(KeymasterTl_CryptoUpdate);
 
-    if (!handle || !settings || !settings->in_data.size || !settings->in_data.buffer ||
-        !settings->out_data.size || !settings->out_data.buffer) {
+    if (!handle || !settings || !settings->in_data.size || !settings->in_data.buffer) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -1142,7 +1141,7 @@ BERR_Code KeymasterTl_CryptoFinish(
 
     if (!handle || !settings) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 
@@ -1222,7 +1221,7 @@ BERR_Code KeymasterTl_CryptoAbort(
 
     if (!handle) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
-        err = BERR_INVALID_PARAMETER;
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;
     }
 

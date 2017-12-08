@@ -464,7 +464,6 @@ typedef struct TranscodeContext {
     bool                      bypassVideoFilter;
     bool                      bMCPB;
     bool                      dropBardata;
-    bool                      bPrintStatus;
     NEXUS_StreamMuxInterleaveMode interleaveMode;
 
     struct
@@ -528,6 +527,8 @@ static bool g_bOnePtsPerSegment = false;
 static bool g_audioPesPacking = false;
 static bool g_bSparseFrameRate = false;
 static bool g_bEnableFieldPairing = true;
+static bool g_bPrintStatus = false;
+
 static const namevalue_t g_audioChannelFormatStrs[] = {
     {"none", NEXUS_AudioMultichannelFormat_eNone},
     {"stereo", NEXUS_AudioMultichannelFormat_eStereo},
@@ -3245,6 +3246,7 @@ static void xcode_create_systemdata( TranscodeContext  *pContext )
             case NEXUS_VideoCodec_eH264:          vidStreamType = 0x1b; break;
             case NEXUS_VideoCodec_eH265:          vidStreamType = 0x24; break;
             case NEXUS_VideoCodec_eVc1SimpleMain: vidStreamType = 0xea; break;
+            case NEXUS_VideoCodec_eVp9:           vidStreamType = 0x00; break; /* VP9 in TS doesn't actually work, but this is in place for VCE regression testing */
             default:
                 BDBG_ERR(("Video encoder codec %d is not supported!\n", pContext->encodeSettings.encoderVideoCodec));
                 BDBG_ASSERT(0);
@@ -5361,7 +5363,7 @@ static void stop_transcode(
     }
     #endif
 
-    if ( pContext->bPrintStatus ) printStatus( pContext );
+    if ( g_bPrintStatus ) printStatus( pContext );
 
     /* stopped */
     pContext->bStarted = false;
@@ -6490,7 +6492,7 @@ int main(int argc, char **argv)  {
                fprintf(stderr, "Logging enabled (%u ms poll frequency)\n", g_loggerContext.frequency);
             }
             if(!strcmp("-printStatus",argv[i])) {
-               pContext->bPrintStatus = true;
+               g_bPrintStatus = true;
                fprintf(stderr, "Auto Print Status when transcoder is closed\n");
             }
             if(!strcmp("-pcrInterval",argv[i])) {

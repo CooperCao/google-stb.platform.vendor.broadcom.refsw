@@ -100,7 +100,7 @@ typedef struct BGRC_P_Handle
 
 #if BGRC_PACKET_P_BLIT_WORKAROUND
     /* List status to hardware. */
-    BGRC_P_ListStatus             eListStatus;
+    uint32_t             ulNumbersToRun;
 #endif
 
     BMMA_Block_Handle pHwPktFifoBaseAlloc;

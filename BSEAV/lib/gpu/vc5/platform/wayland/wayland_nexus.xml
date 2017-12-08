@@ -1,30 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <protocol name="nexus">
   <copyright>
-    Copyright © 2008-2011 Kristian Høgsberg
-    Copyright © 2010-2011 Intel Corporation
-    Copyright © 2014-2016 Broadcom
-
-    Permission to use, copy, modify, distribute, and sell this
-    software and its documentation for any purpose is hereby granted
-    without fee, provided that\n the above copyright notice appear in
-    all copies and that both that copyright notice and this permission
-    notice appear in supporting documentation, and that the name of
-    the copyright holders not be used in advertising or publicity
-    pertaining to distribution of the software without specific,
-    written prior permission.  The copyright holders make no
-    representations about the suitability of this software for any
-    purpose.  It is provided "as is" without express or implied
-    warranty.
-
-    THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
-    SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-    FITNESS, IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
-    SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
-    AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
-    ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
-    THIS SOFTWARE.
+    Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited
+    and/or its subsidiaries.
   </copyright>
 
   <!-- nexus protocol -->
@@ -32,19 +10,21 @@
 
     <request name="buffer_create">
       <description summary="Create a surface buffer">
-        A wl_buffer object contains one of EGLSurface buffers
+        A wl_buffer object contains one of the swapchain buffers.
       </description>
       <arg name="id" type="new_id" interface="wl_buffer"/>
-      <arg name="width" type="uint"/>
-      <arg name="height" type="uint"/>
-      <arg name="format" type="uint"/>
-      <arg name="secure" type="int"/> <!-- boolean flag -->
+      <arg name="format" type="uint" summary="BEGL_BufferFormat"/>
+      <arg name="width" type="uint" summary="buffer width in pixels"/>
+      <arg name="height" type="uint" summary="buffer height in pixels"/>
+      <arg name="pitch" type="uint" summary="line pitch in bytes"/>
+      <arg name="alignment" type="uint" summary="buffer alignment in bytes"/>
+      <arg name="size" type="uint" summary="total buffer size in bytes"/>
+      <arg name="secure" type="int" summary="boolean flag"/>
     </request>
 
     <event name="buffer_created">
       <arg name="buffer" type="object" interface="wl_buffer"/>
       <arg name="physical" type="array"/>
-      <arg name="pitch" type="uint"/>
     </event>
 
     <event name="buffer_out_of_memory">

@@ -16,10 +16,10 @@ WindowState::WindowState(void *context, BEGL_WindowHandle windowHandle, bool sec
    m_windowHandle(windowHandle),
    m_display(static_cast<NXPL_Display *>(context)->display),
    m_dispQ(),
-   m_worker(std::unique_ptr<nxpl::Worker>(new nxpl::Worker(this))),
    m_gfdbacking(),
    m_isBouncing(false),
-   m_secure(secure)
+   m_secure(secure),
+   m_worker(std::unique_ptr<nxpl::Worker>(new nxpl::Worker(this)))
 {}
 
 WindowState::~WindowState()

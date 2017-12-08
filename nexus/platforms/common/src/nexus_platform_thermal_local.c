@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -109,11 +109,11 @@ static bool NEXUS_Platform_P_ParseThermalEvent_priv(NEXUS_Platform_P_ThermalEven
 	if (!strcmp("SUBSYSTEM", key)) {
 		return !strcmp("thermal", val);
 	}
-	if (!strcmp("TRIPNUM", key)) {
+	if (!strncmp("TRIP", key, 4)) {
 		msg->tripnum = atoi(val);
 		return false;
 	}
-	if (!strcmp("TEMPERATURE", key)) {
+	if (!strncmp("TEMP", key, 4)) {
 		msg->temperature = atoi(val);
 		return false;
 	}

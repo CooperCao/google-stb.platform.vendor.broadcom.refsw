@@ -132,7 +132,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x103cb000,
 
 		/* BDSP_AF_P_AlgoId_eFlacDecode */
-		0x1044bee0,
+		0x1044bed8,
 
 		/* BDSP_AF_P_AlgoId_eMacDecode */
 		0x10453800,
@@ -141,7 +141,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x10474000,
 
 		/* BDSP_AF_P_AlgoId_eiLBCDecode */
-		0x104d9cd4,
+		0x104d9d08,
 
 		/* BDSP_AF_P_AlgoId_eiSACDecode */
 		0x104f4844,
@@ -156,7 +156,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x106ad490,
 
 		/* BDSP_AF_P_AlgoId_eALSDecode */
-		0x106e35ac,
+		0x106e35b4,
 
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
 		0x106e870c,
@@ -294,7 +294,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x00000000,
 
 		/* BDSP_AF_P_AlgoId_eAacHeEncode */
-		0x102dcedc,
+		0x102dcebc,
 
 		/* BDSP_AF_P_AlgoId_eDtsEncode */
 		0x1027a800,
@@ -378,7 +378,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x00000000,
 
 		/* BDSP_AF_P_AlgoId_ePassThru */
-		0x100ffc64,
+		0x100ffcec,
 
 		/* BDSP_AF_P_AlgoId_eMlpPassThru */
 		0x10472000,
@@ -501,7 +501,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x106c8800,
 
 		/* BDSP_AF_P_AlgoId_eAmbisonicsPostProc */
-		0x106cdc7c,
+		0x106cdc70,
 
 		/* BDSP_AF_P_AlgoId_eTsmCorrectionPostProc */
 		0x1076b000,

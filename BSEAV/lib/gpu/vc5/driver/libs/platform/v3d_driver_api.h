@@ -20,6 +20,7 @@ struct v3d_idents
 {
   uint32_t ident[V3D_MAX_CORES * V3D_IDENT_REGISTERS];
   uint32_t hubIdent[V3D_HUB_IDENT_REGISTERS];
+  uint32_t ddrMapVer;
 };
 extern void v3d_get_info(struct v3d_idents *info);
 

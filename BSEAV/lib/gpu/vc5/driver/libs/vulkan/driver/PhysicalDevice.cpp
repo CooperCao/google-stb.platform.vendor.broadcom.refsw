@@ -418,7 +418,6 @@ VkResult PhysicalDevice::EnumerateDeviceExtensionProperties(
    VkExtensionProperties   *pProperties) noexcept
 {
    static VkExtensionProperties exts[] = {
-      { VK_KHR_SWAPCHAIN_EXTENSION_NAME,                    VK_KHR_SWAPCHAIN_SPEC_VERSION                    },
       { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION },
       { VK_KHR_MAINTENANCE1_EXTENSION_NAME,                 VK_KHR_MAINTENANCE1_SPEC_VERSION                 },
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -429,6 +428,8 @@ VkResult PhysicalDevice::EnumerateDeviceExtensionProperties(
 #endif
 #if VK_USE_PLATFORM_ANDROID_KHR
       { VK_ANDROID_NATIVE_BUFFER_EXTENSION_NAME,            VK_ANDROID_NATIVE_BUFFER_SPEC_VERSION            },
+#else
+      { VK_KHR_SWAPCHAIN_EXTENSION_NAME,                    VK_KHR_SWAPCHAIN_SPEC_VERSION                    },
 #endif
    };
 

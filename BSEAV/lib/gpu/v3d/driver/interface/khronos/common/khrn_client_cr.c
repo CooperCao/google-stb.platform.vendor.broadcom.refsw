@@ -175,9 +175,8 @@ static void callback_destroy_sync(KHRN_POINTER_MAP_T *map, uint32_t key, void *v
 
 CLIENT_PROCESS_STATE_T *client_egl_get_process_state(CLIENT_THREAD_STATE_T *thread, EGLDisplay dpy, EGLBoolean check_inited)
 {
-   if ((size_t)dpy == 1) {
-      CLIENT_PROCESS_STATE_T *process = CLIENT_GET_PROCESS_STATE();
-
+   CLIENT_PROCESS_STATE_T *process = CLIENT_GET_PROCESS_STATE();
+   if (process->display == dpy) {
       if (check_inited && !process->inited) {
          thread->error = EGL_NOT_INITIALIZED;
          return NULL;

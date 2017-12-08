@@ -78,6 +78,7 @@
 #include "bchp_xpt_rave.h"
 #include "bchp_xpt_mcpb.h"
 #include "bchp_xpt_mcpb_ch0.h"
+#include "bchp_xpt_mcpb_ch1.h"
 #ifndef BCHP_XPT_MEMDMA_MCPB_CH1_DMA_DESC_CONTROL
 #include "bchp_xpt_memdma_mcpb_ch1.h"
 #endif
@@ -1390,20 +1391,22 @@ int Bsysperf_GetXptData( bmemperf_xpt_details *pxpt ) /* XPT Rave stats. */
         int idx = 0;
         unsigned long int mask = cdbDepth;
         unsigned long int /*uint64_t*/ xptRunStatus;
+        unsigned long int pidOffset = (BCHP_XPT_MCPB_CH1_PARSER_BAND_ID_CTRL-BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL) & 0xffff;
         unsigned long int pktOffset = (BCHP_XPT_MEMDMA_MCPB_CH1_DCPM_LOCAL_PACKET_COUNTER -BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER) & 0xffff;
         unsigned long int outputCount = 0;
         unsigned long int totalPktCnt = 0;
 
         xptRunStatus = bmemperf_readReg32( BCHP_XPT_MCPB_RUN_STATUS_0_31 );
-        /*printf( "~DEBUG~cdbDepth %lu;   cdbSize %lu;   xpt_mcpb_run_status %lx;   pktOffset 0x%lx~", cdbDepth, cdbSize, xptRunStatus, pktOffset );*/
+        /*fprintf( stderr, "%s - cdbDepth %lu; cdbSize %lu; xpt_mcpb_run_status bits 0x%lx;  pktOffset 0x%lx \n", __FUNCTION__, cdbDepth, cdbSize, xptRunStatus, pktOffset );*/
         for( idx=0; idx<32; idx++)
         {
             mask = 1 << idx;
             if ( xptRunStatus & mask )
             {
-                unsigned long int pid = bmemperf_readReg32( BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL              + (idx*4) );
+                unsigned long int pid = bmemperf_readReg32( BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL              + (idx*pidOffset) );
                 unsigned long int pkt = bmemperf_readReg32( BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset) );
 
+                pid = (pid & BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL_PB_PARSER_BAND_ID_MASK ) >> BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL_PB_PARSER_BAND_ID_SHIFT;
                 pxpt->xptPid[idx] = pid;
                 pxpt->xptActive[idx] = 1;
                 pxpt->xptPktCount[idx] = pkt;
@@ -1414,8 +1417,10 @@ int Bsysperf_GetXptData( bmemperf_xpt_details *pxpt ) /* XPT Rave stats. */
                         PRINTFLOG( "%s\n", DateYyyyMmDdHhMmSs() );
                     }
                     totalPktCnt += pkt;
-                    PRINTFLOG( "xpt_mcpb chan %2d is active; pid 0x%lx;   pktCount %ld;   addr 0x%lx;   total %ld \n", idx, pid, pkt,
-                        BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset), totalPktCnt );
+                    outputCount++;
+                    /*fprintf( stderr, "xpt_mcpb chan %2d is active; pid (0x%lx) 0x%lx;   pktCount %ld;   addr 0x%lx;   total %ld \n", idx,
+                        BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + (idx*pidOffset), pid,
+                        pkt, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset), totalPktCnt );*/
                 }
             }
         }
@@ -2860,7 +2865,7 @@ char *Bsysperf_FindLastStr ( const char * buffer, const char * searchStr )
  **/
 void printflog(const char * szFormat, ... )
 {
-    char str[256];
+    char str[BASPMON_CFG_MAX_LINE_LEN];
     unsigned long int nLen = sizeof(str);
     static char sLogFile[128];
     static unsigned char LogFileNameSet = 0;
@@ -3152,13 +3157,21 @@ int Bmemperf_GetCfgFileEntry(
     )
 {
     FILE *fp = NULL;
-    char  oneline[512];
+    char *oneline = NULL;
 
     if ( cfg_filename == NULL || cfg_tagline == NULL || output_buffer == NULL || output_buffer_len <=0 )
     {
         return ( -1 );
     }
-    memset( oneline, 0, sizeof(oneline) );
+    oneline = malloc( BASPMON_CFG_MAX_LINE_LEN );
+    if ( oneline == NULL ) {
+        fprintf( stderr, "%s - could not malloc(%d) for oneline \n", __FUNCTION__, BASPMON_CFG_MAX_LINE_LEN );
+        return ( -1 );
+    }
+    memset( oneline, 0, BASPMON_CFG_MAX_LINE_LEN );
+
+    /*printflog( "\n\n");*/
+    /*printflog( "%s:%u - filename (%s) ... tagline (%s) \n", __FUNCTION__, __LINE__, cfg_filename, cfg_tagline );*/
 
     fp = fopen( cfg_filename, "r" );
     if ( fp == NULL )
@@ -3167,12 +3180,13 @@ int Bmemperf_GetCfgFileEntry(
     }
 
     PRINTF( "%s: tagline (%s)\n", __FUNCTION__, cfg_tagline );
-    while (fgets( oneline, sizeof( oneline ), fp ))
+    while (fgets( oneline, BASPMON_CFG_MAX_LINE_LEN, fp ))
     {
-        PRINTF( "%s: newline (%s)\n", __FUNCTION__, oneline );
+        /*printflog( "%s:%u newline len %d ... (%s)\n", __FUNCTION__, __LINE__, strlen(oneline), oneline );*/
         /* if we found a matching line */
         if ( strstr( oneline, cfg_tagline ) )
         {
+            /*printflog( "%s:%u - line len (%d) \n", __FUNCTION__, __LINE__, strlen(oneline) );*/
             char *bov = strchr( oneline, '"'); /* determine the beginning of the assocated value */
             char *eov = NULL;
             if ( bov )
@@ -3187,10 +3201,12 @@ int Bmemperf_GetCfgFileEntry(
                 break;
             }
         }
-        memset( oneline, 0, sizeof(oneline) );
+        memset( oneline, 0, BASPMON_CFG_MAX_LINE_LEN );
     }
 
     fclose( fp );
+
+    Bsysperf_Free( oneline );
 
     return ( 0 );
 }

@@ -139,6 +139,7 @@ typedef struct
     unsigned long int Telnet_pid;
     char              IpAddr[INET6_ADDRSTRLEN];
     unsigned char     QuitCount;
+    unsigned char     DtcpIpCfg;
     long int          Action; /* 0 => do nothing; 1 => add a stream; 2 stop LIFO stream */
     int               Reset;
     unsigned long int ActiveThreadIndex;
@@ -1845,13 +1846,13 @@ static int bmemperf_client_streamer_search_threads( int socket_fd, int client )
     memset( response, 0, sizeof(response) );
 
     sprintf( hostcmd, "ps -eaf | egrep \"wget|play\" | grep -v grep" );
-    printffile( gRemoteClient[client].LogFile, "%s: client %d ... sending (%s)\n", __FUNCTION__, client, hostcmd );
+    /*printffile( gRemoteClient[client].LogFile, "%s: client %d ... sending (%s)\n", __FUNCTION__, client, hostcmd );*/
     bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
     /*usleep( 50 );*/
     memset( response, 0, sizeof(response) );
     bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response), gRemoteClient[client].LogFile );
-    printffile( gRemoteClient[client].LogFile, "%s: client %d ... for (%s) ... got response length (%d)\n", __FUNCTION__, client, hostcmd, strlen(response) );
-    printffile( gRemoteClient[client].LogFile, "%s: client %d ... (%s)\n", __FUNCTION__, client, response );
+    /*printffile( gRemoteClient[client].LogFile, "%s: client %d ... for (%s) ... got response length (%d)\n", __FUNCTION__, client, hostcmd, strlen(response) );*/
+    /*printffile( gRemoteClient[client].LogFile, "%s: client %d ... (%s)\n", __FUNCTION__, client, response );*/
 
     /* scan the response to extract the pids of running wget threads */
     /*
@@ -1937,7 +1938,7 @@ static void *bmemperf_client_streamer_thread(
     char                  *posBoaServer = NULL;
     char                   BoaServerPath[64];
 #endif
-    char                   ClientStreamerCommandLine[BASPMON_MAX_NUM_CLIENTS][BASPMON_MAX_NUM_STREAMS][128];
+    char                   ClientStreamerCommandLine[BASPMON_MAX_NUM_CLIENTS][BASPMON_MAX_NUM_STREAMS][BASPMON_CFG_MAX_LINE_LEN];
     char                   ClientStreamerTagline[32];
     char                   hostip[INET6_ADDRSTRLEN];
     char                   hostcmd[64];
@@ -1948,6 +1949,7 @@ static void *bmemperf_client_streamer_thread(
     unsigned long int      microseconds_delta = 0;
     unsigned long int      retry_count        = 0;
     long int               recv_error         = 0;
+    unsigned int           baspmon_cfg_filename_idx = 0;
 
     if (data == NULL)
     {
@@ -1959,6 +1961,7 @@ static void *bmemperf_client_streamer_thread(
     memset( &tv1, 0, sizeof(tv1) );
     memset( &tv2, 0, sizeof(tv2) );
     gRemoteClient[client].QuitCount = 0;
+    baspmon_cfg_filename_idx = gRemoteClient[client].DtcpIpCfg;
 
     if ( strlen( gRemoteClient[client].IpAddr ) == 0 )
     {
@@ -1985,15 +1988,15 @@ static void *bmemperf_client_streamer_thread(
     {
         sprintf( ClientStreamerTagline, "ClientStreamerCommandLine%d%d", client, idx );
         /* read the command line template from the configuration file */
-        Bmemperf_GetCfgFileEntry( BASPMON_CFG_FILENAME, ClientStreamerTagline, &ClientStreamerCommandLine[client][idx][0],
+        Bmemperf_GetCfgFileEntry( BASPMON_CFG_FILENAME[baspmon_cfg_filename_idx], ClientStreamerTagline, &ClientStreamerCommandLine[client][idx][0],
                 sizeof(ClientStreamerCommandLine[client][idx]) );
-        printffile( gRemoteClient[client].LogFile, "%s:%lu in (%s) %s is (%s)\n", __FUNCTION__, GETPID, BASPMON_CFG_FILENAME,
-                ClientStreamerTagline, &ClientStreamerCommandLine[client][idx][0] );
+        printffile( gRemoteClient[client].LogFile, "%s:%lu in (%s) %s is (%s) ... dtcp %d\n", __FUNCTION__, GETPID, BASPMON_CFG_FILENAME,
+                ClientStreamerTagline, &ClientStreamerCommandLine[client][idx][0], baspmon_cfg_filename_idx );
     }
 
 RETRY:
     retry_count++;
-    printffile( gRemoteClient[client].LogFile, "\n\n%s:%lu retry_count %lu\n", __FUNCTION__, GETPID, retry_count );
+    /*printffile( gRemoteClient[client].LogFile, "\n\n%s:%lu retry_count %lu\n", __FUNCTION__, GETPID, retry_count );*/
 
     if ( retry_count > 5 ) goto exit;
 
@@ -2005,7 +2008,7 @@ RETRY:
     }
 
     /* connect to the client streamer's telnet server */
-    printffile( gRemoteClient[client].LogFile, "%s:%lu Connecting to (%s) port %d\n", __FUNCTION__, GETPID, hostip, TELNET_PORT );
+    /*printffile( gRemoteClient[client].LogFile, "%s:%lu Connecting to (%s) port %d\n", __FUNCTION__, GETPID, hostip, TELNET_PORT );*/
     if (connect(socket_fd, (struct sockaddr*) &srv, sizeof(srv)) < 0) {
         printffile( gRemoteClient[client].LogFile, "%s:%lu connect() failed\n", __FUNCTION__, GETPID );
         /*perror("connect");*/
@@ -2016,87 +2019,51 @@ RETRY:
 
     memset( response, 0, RESPONSE_SIZE );
     recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "login:", response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
-    printffile( gRemoteClient[client].LogFile, "%s:%lu ... after response login: rc %d\n", __FUNCTION__, GETPID, recv_error );
+    /*printffile( gRemoteClient[client].LogFile, "%s:%lu ... after response login: rc %d\n", __FUNCTION__, GETPID, recv_error );*/
     if ( recv_error != 0 ) goto RETRY;
 
 
-    printffile( gRemoteClient[client].LogFile, "%s:%lu sending User Name (root)\n", __FUNCTION__, GETPID );
+    /*printffile( gRemoteClient[client].LogFile, "%s:%lu sending User Name (root)\n", __FUNCTION__, GETPID );*/
     bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "root\n", 5, gRemoteClient[client].LogFile );
     /*usleep( 50 );*/
     memset( response, 0, RESPONSE_SIZE );
     recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
-    printffile( gRemoteClient[client].LogFile, "%s:%lu ... after response root: rc %d\n", __FUNCTION__, GETPID, recv_error );
+    /*printffile( gRemoteClient[client].LogFile, "%s:%lu ... after response root: rc %d\n", __FUNCTION__, GETPID, recv_error );*/
     if ( recv_error != 0 ) goto RETRY;
-
-#if 0
-    /* not needed if the only app we want to run is wget */
-    /* we need to find out what directory contains the binaries */
-    sprintf( hostcmd, "find / -name \"boa_server\"\n" );
-    noprintffile( gRemoteClient[client].LogFile, "%s:%lu sending (%s)\n", __FUNCTION__, GETPID, hostcmd );
-    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
-    /*usleep( 50 );*/
-    memset( response, 0, RESPONSE_SIZE );
-    recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
-    /*printffile( gRemoteClient[client].LogFile, "%s: got response (%s)\n", __FUNCTION__, response );*/
-    if ( recv_error != 0 ) goto RETRY;
-    posBoaServer = pos = strstr( response, "/boa_server" );
-    if ( pos )
-    {
-        int count = 0;
-
-        memset( &BoaServerPath, 0, sizeof(BoaServerPath) );
-
-        /* search for beginning of boa_server line */
-        while ( pos && pos != response && *pos != '\n' && count < 32 )
-        {
-            pos--;
-            count++; /* failsafe ... do not look more than 32 characters */
-        }
-
-        if ( pos && *pos == '\n' )
-        {
-            pos++; /* Advance past the carriage return char. This should be the beginning of the path to boa_server. */
-            *posBoaServer = '\0';
-            strncpy( BoaServerPath, pos, sizeof(BoaServerPath) - 1 );
-            noprintffile( gRemoteClient[client].LogFile, "%s: BoaServerPath is (%s)\n", __FUNCTION__, BoaServerPath );
-        }
-    }
-#endif
-
 
     /* if we do not receive a request from the browser within 5 seconds, assume they stopped wanting client streamer info and exit */
-    printffile( gRemoteClient[client].LogFile, "%s:%lu client %d ... %d\n", __FUNCTION__, GETPID, client, __LINE__ ); fflush(stderr); fflush(stdout);
+    /*printffile( gRemoteClient[client].LogFile, "%s:%lu client %d ... %d\n", __FUNCTION__, GETPID, client, __LINE__ ); fflush(stderr); fflush(stdout);*/
     while ( ( gRemoteClient[client].QuitCount < 5 ) && ( gRemoteClient[client].Action != BMEMPERF_CMD_CLIENT_TERMINATE ) )
     {
         gettimeofday(&tv1, NULL);
         microseconds1 = (tv1.tv_sec * 1000000LL);
         microseconds1 += tv1.tv_usec;
 
-        printf( "%s:%lu client %d ... gRemoteClientAction %ld ... gRemoteClientQuitCount %u ... gRemoteClientReset %d ... %s\n",
-                __FUNCTION__, GETPID, client, gRemoteClient[client].Action, gRemoteClient[client].QuitCount, gRemoteClient[client].Reset, DateYyyyMmDdHhMmSs() );
-        printffile( gRemoteClient[client].LogFile, "%s:%lu gRemoteClientAction %ld ... gRemoteClientQuitCount %u ... gRemoteClientReset %d ... %s\n",
-                __FUNCTION__, GETPID, gRemoteClient[client].Action, gRemoteClient[client].QuitCount, gRemoteClient[client].Reset, DateYyyyMmDdHhMmSs() );
+        /*printf( "%s:%lu client %d ... gRemoteClientAction %ld ... gRemoteClientQuitCount %u ... gRemoteClientReset %d ... %s\n",
+                __FUNCTION__, GETPID, client, gRemoteClient[client].Action, gRemoteClient[client].QuitCount, gRemoteClient[client].Reset, DateYyyyMmDdHhMmSs() );*/
+        printffile( gRemoteClient[client].LogFile, "%s:%lu gRemoteClientAction %ld ... gRemoteClientQuitCount %u ... gRemoteClientReset %d ... dtcp %d ... %s\n",
+                __FUNCTION__, GETPID, gRemoteClient[client].Action, gRemoteClient[client].QuitCount, gRemoteClient[client].Reset, gRemoteClient[client].DtcpIpCfg, DateYyyyMmDdHhMmSs() );
 
         keepActive += gRemoteClient[client].Action; /* could be plus or minus number */
-        if ( gRemoteClient[client].Action ) printffile( gRemoteClient[client].LogFile, "%s:%lu Action %ld\n", __FUNCTION__, GETPID, gRemoteClient[client].Action );
+        /*if ( gRemoteClient[client].Action ) printffile( gRemoteClient[client].LogFile, "%s:%lu Action %ld\n", __FUNCTION__, GETPID, gRemoteClient[client].Action );*/
 
         if ( gRemoteClient[client].Action == BMEMPERF_CMD_CLIENT_RESET )
         {
             sprintf( hostcmd, "/sbin/reboot" );
-            printffile( gRemoteClient[client].LogFile, "%s:%lu sending (%s)\n", __FUNCTION__, GETPID, hostcmd );
+            /*printffile( gRemoteClient[client].LogFile, "%s:%lu sending (%s)\n", __FUNCTION__, GETPID, hostcmd );*/
             bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
             /*usleep( 50 );*/
             memset( response, 0, RESPONSE_SIZE );
             recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
-            printffile( gRemoteClient[client].LogFile, "%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, strlen(response) );
+            /*printffile( gRemoteClient[client].LogFile, "%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, strlen(response) );*/
             if ( recv_error != 0 ) goto RETRY;
         }
 
         else if ( gRemoteClient[client].Action > 0 ) /* if user requested we start a new stream */
         {
             unsigned long int gThreadIndex = gRemoteClient[client].ActiveThreadIndex;
-            printffile( gRemoteClient[client].LogFile, "%s:%lu need to launch %ld threads ... gRemoteClientActiveThreadIndex %lu\n", __FUNCTION__, GETPID,
-                    gRemoteClient[client].Action, gThreadIndex );
+            /*printffile( gRemoteClient[client].LogFile, "%s:%lu need to launch %ld threads ... gRemoteClientActiveThreadIndex %lu\n", __FUNCTION__, GETPID,
+                    gRemoteClient[client].Action, gThreadIndex );*/
             for( idx=0; idx< gRemoteClient[client].Action; idx++ )
             {
                 char *string_format= NULL;
@@ -2144,36 +2111,36 @@ RETRY:
         {
             int idx=0;
 
-            printffile( gRemoteClient[client].LogFile, "%s:%lu need to kill %ld threads ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__, GETPID,
+            /*printffile( gRemoteClient[client].LogFile, "%s:%lu need to kill %ld threads ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__, GETPID,
                     (long int) abs(gRemoteClient[client].Action), gRemoteClient[client].ActiveThreadIndex );
             printffile( gRemoteClient[client].LogFile, "%s:%lu pids: ", __FUNCTION__, GETPID );
             for( idx=0; idx < gRemoteClient[client].ActiveThreadIndex; idx++ )
             {
                 printffile( gRemoteClient[client].LogFile,  "%ld/%ld ", gRemoteClient[client].ActiveThreadPids[idx], gRemoteClient[client].ActiveThreadReferers[idx] );
             }
-            printffile( gRemoteClient[client].LogFile, "\n");
+            printffile( gRemoteClient[client].LogFile, "\n");*/
 
             for( idx=0; idx< abs(gRemoteClient[client].Action); idx++ )
             {
-                printffile( gRemoteClient[client].LogFile,  "%s:%lu gRemoteClientActiveThreadIndex %ld ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__,
-                    GETPID, gRemoteClient[client].ActiveThreadIndex, gRemoteClient[client].ActiveThreadIndex );
+                /*printffile( gRemoteClient[client].LogFile,  "%s:%lu gRemoteClientActiveThreadIndex %ld ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__,
+                    GETPID, gRemoteClient[client].ActiveThreadIndex, gRemoteClient[client].ActiveThreadIndex );*/
                 if ( ( gRemoteClient[client].ActiveThreadIndex > 0 ) && ( gRemoteClient[client].ActiveThreadIndex <= CLIENT_STREAMER_THREAD_MAX ) )
                 {
-                    printffile( gRemoteClient[client].LogFile,  "%s:%lu gRemoteClientActiveThreadPids[%ld] = %ld\n", __FUNCTION__, GETPID,
-                            gRemoteClient[client].ActiveThreadIndex-1, gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex-1] );
+                    /*printffile( gRemoteClient[client].LogFile,  "%s:%lu gRemoteClientActiveThreadPids[%ld] = %ld\n", __FUNCTION__, GETPID,
+                            gRemoteClient[client].ActiveThreadIndex-1, gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex-1] );*/
                     if ( gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex-1] > 0 )
                     {
                         /* kill the last entry in the table */
                         sprintf( hostcmd, "kill -9 %lu", gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex-1] );
                         gRemoteClient[client].ActiveThreadPids[gRemoteClient[client].ActiveThreadIndex] = 0;
                         gRemoteClient[client].ActiveThreadIndex--;
-                        printffile( gRemoteClient[client].LogFile, "%s:%lu sending (%s) ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__, GETPID,
-                                hostcmd, gRemoteClient[client].ActiveThreadIndex );
+                        /*printffile( gRemoteClient[client].LogFile, "%s:%lu sending (%s) ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__, GETPID,
+                                hostcmd, gRemoteClient[client].ActiveThreadIndex );*/
                         bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
                         /*usleep( 50 );*/
                         memset( response, 0, RESPONSE_SIZE );
                         recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
-                        printffile( gRemoteClient[client].LogFile, "%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, strlen(response) );
+                        /*printffile( gRemoteClient[client].LogFile, "%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, strlen(response) );*/
                         /*printffile( gRemoteClient[client].LogFile, "%s:%lu \n\n(%s) \n\n\n", __FUNCTION__, GETPID, response );*/
                         if ( recv_error != 0 ) goto RETRY;
                     }
@@ -2186,69 +2153,6 @@ RETRY:
         bmemperf_client_streamer_search_threads( socket_fd, client );
 
 #if 0
-        {
-            int   relaunchMax = 0;
-
-            /* if the number of active threads is less than we are expecting, re-launch another wget */
-            relaunchMax = keepActive-gRemoteClient[client].ActiveThreadIndex;
-            if ( relaunchMax > 0 && relaunchMax < CLIENT_STREAMER_THREAD_MAX )
-            {
-                int StreamsDetected[BASPMON_MAX_NUM_STREAMS];
-                memset( StreamsDetected, -1, sizeof(StreamsDetected) );
-
-#if 1
-                printffile( gRemoteClient[client].LogFile,  "%s:%lu Found Referers ... ", __FUNCTION__, GETPID );
-                for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex+1; idx++ )
-                {
-                    printffile( gRemoteClient[client].LogFile,  "%ld ", gRemoteClient[client].ActiveThreadReferers[idx] );
-                }
-                printffile( gRemoteClient[client].LogFile,  "\n" );
-#endif
-
-                /* try to figure out if any previously running streams have died */
-                for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex; idx++ )
-                {
-                    if ( gRemoteClient[client].ActiveThreadReferers[idx] )
-                    {
-                        StreamsDetected[gRemoteClient[client].ActiveThreadReferers[idx] - 1] = gRemoteClient[client].ActiveThreadReferers[idx] ;
-                    }
-                }
-
-#if 1
-                printffile( gRemoteClient[client].LogFile,  "%s:%lu StreamsDetected ... ", __FUNCTION__, GETPID );
-                for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex+1; idx++ )
-                {
-                    printffile( gRemoteClient[client].LogFile,  "%d ", StreamsDetected[idx] );
-                }
-                printffile( gRemoteClient[client].LogFile,  "\n" );
-#endif
-
-                /* loop through again to find any missing Referers */
-                for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex+1; idx++ )
-                {
-                    /* if we could not find a referer for this stream, re-launch it */
-                    if ( StreamsDetected[idx] == -1 && idx > 0 /* do not relaunch playmosaic */ )
-                    {
-                        sprintf( hostcmd, &ClientStreamerCommandLine[client][idx][0], gServerStreamerIpAddr );
-                        printffile( gRemoteClient[client].LogFile, "%s:%lu relaunching [%d] (%s)\n", __FUNCTION__, GETPID, idx, hostcmd );
-                        bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), gRemoteClient[client].LogFile );
-                        /*usleep( 50 );*/
-                        memset( response, 0, RESPONSE_SIZE );
-                        recv_error = bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, RESPONSE_SIZE, gRemoteClient[client].LogFile );
-                        printffile( gRemoteClient[client].LogFile, "%s:%lu got response of (%d) bytes\n", __FUNCTION__, GETPID, strlen(response) );
-                        /*printffile( gRemoteClient[client].LogFile, "%s:%lu \n\n(%s) \n\n\n", __FUNCTION__, GETPID, response );*/
-                        if ( recv_error != 0 ) goto RETRY;
-                    }
-                }
-
-                usleep( 100 );
-
-                /* after we have re-launched one or more threads, scan for active wget pids */
-                bmemperf_client_streamer_search_threads( socket_fd, client );
-            }
-        }
-#endif
-#if 1
         printffile( gRemoteClient[client].LogFile,  "%s:%lu Active Pids (%ld) ... ", __FUNCTION__, GETPID, gRemoteClient[client].ActiveThreadIndex);
         for( idx=0; idx<gRemoteClient[client].ActiveThreadIndex; idx++ )
         {
@@ -2267,18 +2171,18 @@ RETRY:
         /* if it took less than a full second (e.g. 200000 usec) to get all of the data, wait the remaining part of a full second (800000 usec) */
         if ( microseconds_delta < 1000000 )
         {
-            printffile( gRemoteClient[client].LogFile,  "%s:%lu need to usleep(%lu)\n", __FUNCTION__, GETPID, (1000000 - microseconds_delta) );
+            /*printffile( gRemoteClient[client].LogFile,  "%s:%lu need to usleep(%lu)\n", __FUNCTION__, GETPID, (1000000 - microseconds_delta) );*/
             usleep( (1000000 - microseconds_delta) );
         }
 
         /* each time the server gets a request for client streamer data, the server will set this to 0 */
         gRemoteClient[client].QuitCount++;
-        if ( gRemoteClient[client].QuitCount > 1 ) printffile( gRemoteClient[client].LogFile,  "%s:%lu gRemoteClientQuitCount (%u)\n", __FUNCTION__,
-                GETPID, gRemoteClient[client].QuitCount );
+        /*if ( gRemoteClient[client].QuitCount > 1 ) printffile( gRemoteClient[client].LogFile,  "%s:%lu gRemoteClientQuitCount (%u)\n", __FUNCTION__,
+                GETPID, gRemoteClient[client].QuitCount );*/
     }   /* while gRemoteClientQuitCount < 5 */
 
-    printffile( gRemoteClient[client].LogFile,  "%s:%lu sending (%s) ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__, GETPID, "quit",
-            gRemoteClient[client].ActiveThreadIndex );
+    /*printffile( gRemoteClient[client].LogFile,  "%s:%lu sending (%s) ... gRemoteClientActiveThreadIndex %ld\n", __FUNCTION__, GETPID, "quit",
+            gRemoteClient[client].ActiveThreadIndex );*/
     bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "quit", 4, gRemoteClient[client].LogFile );
 
     close( socket_fd );
@@ -2376,7 +2280,8 @@ exit:
  **/
 static int bmemperf_client_streamer_start(
     long int client,
-    long int option
+    long int option,
+    short int DtcpIpCfg
     )
 {
     void                    *(*threadFunc)( void * );
@@ -2393,6 +2298,7 @@ static int bmemperf_client_streamer_start(
             threadFunc   = bmemperf_client_streamer_thread;
             threadOption = client;
             gRemoteClient[client].Action = option;
+            gRemoteClient[client].DtcpIpCfg = DtcpIpCfg;
 
             if (pthread_create( &gRemoteClient[client].ThreadId, NULL, threadFunc, (void *)&threadOption ))
             {
@@ -2578,6 +2484,7 @@ static int Bmemperf_ReadRequest(
             printf( "%s: cmd %u; cmdOption 0x%lx; cmdSecondary 0x%lx\n", __FUNCTION__, pRequest->cmd, (long int) pRequest->cmdSecondary,
                     pRequest->cmdSecondaryOption );
         }
+
         switch (pRequest->cmd) {
             case BMEMPERF_CMD_RESET_ARB_ERRORS:
             {
@@ -2828,11 +2735,13 @@ static int Bmemperf_ReadRequest(
                                     strncpy( gRemoteClient[client].IpAddr, pRequest->request.overall_stats_data.ClientStreamerIpAddr[client], INET6_ADDRSTRLEN - 1 );
                                     strncpy( gServerStreamerIpAddr, pRequest->request.overall_stats_data.ServerStreamerIpAddr, sizeof(gServerStreamerIpAddr) );
 
-                                    bmemperf_client_streamer_start( client, (long int) pRequest->cmdSecondaryOption/10 );
+                                    bmemperf_client_streamer_start( client, (long int) pRequest->cmdSecondaryOption/10, pRequest->DtcpIpCfg );
                                 }
                             }
                             /* if we stop getting requests, the ClientStreamerThread will count up to 5 seconds and then exit */
                             if ( gRemoteClient[client].QuitCount < 5 ) gRemoteClient[client].QuitCount = 0;
+
+                            gRemoteClient[client].DtcpIpCfg = pRequest->DtcpIpCfg;
 
                             /* copy ClientStreamerThread's data into user's response buffer */
                             pResponse->response.overallStats.ClientStreamerThreadCount[client] = gRemoteClient[client].ActiveThreadIndex;

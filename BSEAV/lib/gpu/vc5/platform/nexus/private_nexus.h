@@ -20,6 +20,8 @@
 #include "nxclient.h"
 #endif
 
+#define NXPL_INFO_MAGIC 0x4A694D5F
+
 /* NXPL_NativeWindow */
 typedef struct
 {
@@ -57,16 +59,20 @@ typedef struct
       at presentation time */
    NXPL_NativeWindowInfoEXT   windowInfo;
    BEGL_BufferFormat          format;
+   BEGL_Colorimetry           colorimetry;
    bool                       secure;
 } NXPL_Surface;
 
 typedef struct
 {
+   BEGL_InitInterface      *initInterface;
    BEGL_MemoryInterface    *memoryInterface;
    bool                     drm;
    BEGL_SchedInterface     *schedInterface;
    BEGL_DisplayInterface   *displayInterface;
    NXPL_DisplayContext     *displayContext;
+   NEXUS_DISPLAYHANDLE     defaultDisplay;
+   NEXUS_DISPLAYHANDLE     currentDisplay;
 } NXPL_InternalPlatformHandle;
 
 #endif /* __PRIVATE_NEXUS_H__ */

@@ -1029,6 +1029,8 @@ typedef struct BVDC_P_WindowContext
      * Currently BVDC_P_Cfc_ApplyAttenuationRGB_isr is using it */
     uint64_t                       aullTmpBuf[BVDC_P_WIN_TMP_BUF_SIZE / 8];
 
+    bool                           bPqNcl;
+
 } BVDC_P_WindowContext;
 
 /***************************************************************************

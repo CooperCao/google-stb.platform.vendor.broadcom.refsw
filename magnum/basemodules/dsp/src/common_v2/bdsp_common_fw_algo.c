@@ -54,7 +54,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -72,7 +72,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -90,7 +90,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -108,7 +108,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -126,7 +126,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -144,7 +144,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -162,7 +162,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -180,7 +180,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -198,7 +198,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -216,7 +216,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 		  true,
-		  true,
+		  false,
 		  false
 		}
 	},
@@ -234,7 +234,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 		  true,
-		  true,
+		  false,
 		  false
 		}
 	},
@@ -252,7 +252,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 		  true,
-		  true,
+		  false,
 		  false
 		}
 	},
@@ -271,7 +271,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 		  true,
-		  true,
+		  false,
 		  false
 		}
 	},
@@ -289,7 +289,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 		  true,
-		  true,
+		  false,
 		  false
 		}
 	},
@@ -307,7 +307,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -325,7 +325,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
         /* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
     },
@@ -343,7 +343,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
         /* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
     },
@@ -361,7 +361,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -379,7 +379,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -397,7 +397,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 		/* Preemption levels*/
 		{
 			true,
-			true,
+			false,
 			false
 		}
 	},
@@ -415,7 +415,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
         /* Preemption levels*/
         {
             true,
-            true,
+            false,
             false
         }
     },
@@ -433,7 +433,7 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
         /* Preemption levels*/
         {
             true,
-            true,
+            false,
             false
         }
     },

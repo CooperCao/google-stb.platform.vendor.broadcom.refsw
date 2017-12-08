@@ -24,12 +24,16 @@ static inline char *egl_display_exts_str(char *s_in)
    memcpy(s, "EGL_EXT_create_context_robustness", 33);
    s += 33;
    *(s++) = ' ';
+#if SECURE_SUPPORT
    memcpy(s, "EGL_EXT_protected_content", 25);
    s += 25;
    *(s++) = ' ';
+#endif
+#if SECURE_SUPPORT
    memcpy(s, "EGL_EXT_protected_surface", 25);
    s += 25;
    *(s++) = ' ';
+#endif
    memcpy(s, "EGL_KHR_cl_event2", 17);
    s += 17;
    *(s++) = ' ';
@@ -85,8 +89,12 @@ static inline unsigned egl_display_exts(const char **e_in)
    *(e++) = "EGL_BRCM_gl_framebuffer_image";
    *(e++) = "EGL_BRCM_performance_counters";
    *(e++) = "EGL_EXT_create_context_robustness";
+#if SECURE_SUPPORT
    *(e++) = "EGL_EXT_protected_content";
+#endif
+#if SECURE_SUPPORT
    *(e++) = "EGL_EXT_protected_surface";
+#endif
    *(e++) = "EGL_KHR_cl_event2";
    *(e++) = "EGL_KHR_create_context";
    *(e++) = "EGL_KHR_fence_sync";

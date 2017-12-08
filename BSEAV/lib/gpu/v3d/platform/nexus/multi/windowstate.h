@@ -21,8 +21,8 @@ public:
    WindowState(void *context __attribute__((unused)), BEGL_WindowHandle windowHandle, bool secure) :
       m_windowHandle(windowHandle),
       m_dispQ(),
-      m_worker(std::unique_ptr<nxpl::Worker>(new nxpl::Worker(this))),
-      m_secure(secure) {}
+      m_secure(secure),
+      m_worker(std::unique_ptr<nxpl::Worker>(new nxpl::Worker(this))) {}
    ~WindowState() = default;
 
    bool Init(void *context __attribute__((unused)), unsigned swapbuffers)
@@ -79,9 +79,9 @@ private:
    helper::MessageQueue<nxpl::Bitmap>                       m_freeQ;
    helper::MessageQueue<nxpl::DispItem>                     m_dispQ;
 
-   std::unique_ptr<nxpl::Worker>                            m_worker;
-
    bool                                                     m_secure;
+
+   std::unique_ptr<nxpl::Worker>                            m_worker;
 };
 
 }

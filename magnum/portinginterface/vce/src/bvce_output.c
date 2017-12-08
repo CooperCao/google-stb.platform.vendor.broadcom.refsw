@@ -38,8 +38,6 @@
 
 /* base modules */
 #include "bstd.h"           /* standard types */
-#include "berr.h"           /* error code */
-#include "bdbg.h"           /* debug interface */
 #include "bkni.h"           /* kernel interface */
 
 #include "bvce.h"
@@ -2933,13 +2931,20 @@ BVCE_Output_S_CheckCabacReady(
          if ( true == hVceOutput->state.bCabacInitializedActual )
          {
             uint64_t uiITBReadOffset;
+            uint64_t uiITBValidOffset;
 
             uiITBReadOffset = BREG_ReadAddr(
                        hVceOutput->hVce->handles.hReg,
                        hVceOutput->stRegisters.ITB_Read
                        );
 
-            if ( 0 != ( ( hVceOutput->state.stITBBuffer.stOffset.uiValid - uiITBReadOffset ) % 16 ) )
+            uiITBValidOffset = BREG_ReadAddr(
+                  hVceOutput->hVce->handles.hReg,
+                  hVceOutput->stRegisters.ITB_Valid
+                  );
+
+            if ( ( 0 != ( ( hVceOutput->state.stITBBuffer.stOffset.uiValid - uiITBReadOffset ) % 16 ) )
+                  || ( uiITBValidOffset == uiITBReadOffset ) )
             {
                /* The new frames have not arrived because of stale descriptors being flushed, so
                 * reset the cabac interrupt and wait

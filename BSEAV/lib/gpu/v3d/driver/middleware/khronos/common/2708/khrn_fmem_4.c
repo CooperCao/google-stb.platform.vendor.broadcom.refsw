@@ -346,11 +346,13 @@ static void do_fix_unlock(KHRN_FMEM_T *fmem)
 
 static void do_fix_release(KHRN_FMEM_T *fmem)
 {
-   KHRN_FMEM_FIX_T *f;
-   for (f = fmem->fix_start; f != NULL; f = f->next)
+   KHRN_FMEM_FIX_T *next = NULL;
+   for (KHRN_FMEM_FIX_T *f = fmem->fix_start; f != NULL; f = next)
    {
+      next = f->next;
       for (uint32_t i = 0; i < f->count; i++)
          mem_release(f->mh_handle[i]);
+      free(f);
    }
 }
 

@@ -661,7 +661,7 @@ void NEXUS_HdmiOutputModule_Print(void)
                     hdmiOutput->dbv.supported ? 'Y' : 'N')) ;
 
                 /* Output Dolby Vision */
-                if (hdmiOutput->dbv.enabled)
+                if (hdmiOutput->dbv.state == NEXUS_HdmiOutputDbvState_eEnabled || hdmiOutput->dbv.state == NEXUS_HdmiOutputDbvState_eEnabling)
                 {
                     strOffset += BKNI_Snprintf(pchOutputString+strOffset,
                         sizeof (pchOutputString) - strOffset, "Dolby Vision") ;

@@ -135,6 +135,8 @@ VkResult Instance::EnumerateInstanceLayerProperties(
    return result;
 }
 
+#ifndef VK_USE_PLATFORM_ANDROID_KHR
+
 template<typename T>
 static VkResult CreatePlatformSurfaceKHR(
    Instance                    *instance,
@@ -168,6 +170,8 @@ void Instance::DestroySurfaceKHR(
    log_trace("DestroySurfaceKHR surface = %p", surf);
    destroyObject<VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE>(surf, pAllocator);
 }
+
+#endif
 
 #ifdef VK_USE_PLATFORM_DISPLAY_KHR
 
@@ -234,6 +238,13 @@ VkResult Instance::CreateAndroidSurfaceKHR(
 
    NOT_IMPLEMENTED_YET;
    return result;
+}
+
+void Instance::DestroySurfaceKHR(
+   VkSurfaceKHR                   surface,
+   const VkAllocationCallbacks   *pAllocator) noexcept
+{
+   NOT_IMPLEMENTED_YET;
 }
 
 #endif // VK_USE_PLATFORM_ANDROID_KHR

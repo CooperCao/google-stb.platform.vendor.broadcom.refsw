@@ -81,7 +81,7 @@ static void print_usage(void)
     printf(
         "  -video_cdb SIZE          use 'm' or 'k' suffix, decimal allows\n"
         "  -video_itb SIZE          use 'm' or 'k' suffix, decimal allows\n"
-        "  -video_framerate HZ      video frame rate override (for example 29.97, 30, 59.94, 60)\n"
+        "  -video_framerate HZ      default video frame rate if not in stream (for example 29.97, 30, 59.94, 60)\n"
     );
 }
 
@@ -367,6 +367,7 @@ int main(int argc, const char **argv)
     case crc_type_avd:
         while (num_done < num_decodes) {
             unsigned j;
+            bool any = false;
             for (j=0;j<num_decodes;j++) {
                 NEXUS_PlaybackStatus status;
                 NEXUS_SimpleVideoDecoderHandle videoDecoder;
@@ -381,6 +382,7 @@ int main(int argc, const char **argv)
                     BDBG_ASSERT(!rc);
                     if (num) {
                         unsigned i;
+                        any = true;
                         for (i=0;i<num;i++) {
                             fprintf(decoder[j].file, "AVD CRC %x %x %x; %x %x %x\n", data[i].top.luma, data[i].top.cr, data[i].top.cb, data[i].bottom.luma, data[i].bottom.cr, data[i].bottom.cb);
                         }
@@ -393,6 +395,7 @@ int main(int argc, const char **argv)
                     BDBG_ASSERT(!rc);
                     if (num) {
                         unsigned i;
+                        any = true;
                         for (i=0;i<num;i++) {
                             fprintf(decoder[j].file, "MFD CRC %u,%u %u,%u right=%u,%u, field=%c\n", data[i].idrPictureId, data[i].pictureOrderCount,
                                 data[i].crc[0], data[i].crc[1], data[i].crc[3], data[i].crc[4], data[i].isField?'y':'n');
@@ -405,6 +408,7 @@ int main(int argc, const char **argv)
                     num_done++;
                 }
             }
+            if (!any) BKNI_Sleep(10);
         }
         break;
     default:

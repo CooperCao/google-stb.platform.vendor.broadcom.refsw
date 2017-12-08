@@ -116,7 +116,7 @@ typedef struct BDSP_Raaga_P_DeviceMemoryInfo
     BDSP_P_FwBuffer             KernalMemory[BDSP_RAAGA_MAX_DSP];
     BDSP_P_FwBuffer             TargetBufferMemory[BDSP_RAAGA_MAX_DSP];
     BDSP_P_FwBuffer             DescriptorMemory[BDSP_RAAGA_MAX_DSP];
-	BDSP_P_FwBuffer             WorkBufferMemory[BDSP_RAAGA_MAX_DSP][BDSP_MAX_NUM_PREEMPTION_LEVELS];
+	BDSP_P_FwBuffer             WorkBufferMemory[BDSP_RAAGA_MAX_DSP][BDSP_MAX_NUM_SCHED_LEVELS];
     BDSP_P_MsgQueueParams       cmdQueueParams[BDSP_RAAGA_MAX_DSP];
     BDSP_P_MsgQueueParams       genRspQueueParams[BDSP_RAAGA_MAX_DSP];
 	BDSP_P_MsgQueueParams       debugQueueParams[BDSP_RAAGA_MAX_DSP][BDSP_DebugType_eLast];
@@ -161,6 +161,7 @@ typedef struct BDSP_Raaga
 
     BDSP_Raaga_P_DeviceMemoryInfo memInfo;
 	BDSP_Raaga_P_CodeDownloadInfo codeInfo;
+	BDSP_P_SystemSchedulingInfo   systemSchedulingInfo;
 
     BLST_S_HEAD(BDSP_RaagaContextList, BDSP_RaagaContext) contextList;
     BLST_S_HEAD(BDSP_RaagaExtInterruptList, BDSP_RaagaExternalInterrupt) interruptList;

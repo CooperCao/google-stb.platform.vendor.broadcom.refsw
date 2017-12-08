@@ -43,43 +43,15 @@
 #define BDSP_ARM_MAX_NUM_ROMFS_LIB           13
 #define BDSP_ARM_MAX_REGISTER_REGIONS         4
 
-#define BDSP_MAX_NUM_PREEMPTION_LEVELS        3 /* No.of Preemption levels */
-#define BDSP_MAX_NUM_SYSTEM_LEVELS            2 /* Maximum no.of system scheduling levels , Idle and RP*/
 #define BDSP_MAX_NUM_TASKS                    5 /* Maximum no.of Tasks to run on DSP */
 #define BDSP_NUM_PROCESS_PER_TASK             2 /* Maximum no.of user process per task */
 
-#define BDSP_MAX_NUM_SCHED_LEVELS (BDSP_MAX_NUM_PREEMPTION_LEVELS + BDSP_MAX_NUM_SYSTEM_LEVELS) /* Total scheduling levels */
+#define BDSP_MAX_NUM_SCHED_LEVELS (3) /* Total scheduling levels */
 #define BDSP_MAX_NUM_USER_PROCESS BDSP_MAX_NUM_TASKS * BDSP_NUM_PROCESS_PER_TASK /* No.of user processs */
 
 #define BDSP_PERIODIC_TIMER			2000 /*in micro seconds*/
 #define BDSP_WATCHDOG_TIMER			 400 /*in milli seconds*/
 
-typedef enum BDSP_ARM_P_eRdbVarIndices
-{
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_HOST2DSPCMD_FIFO0_BASEADDR = 0,
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_HOST2DSPCMD_FIFO_ID = 1,
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_HOST2DSPRESPONSE_FIFO_ID = 2,
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_0_BASE_ADDR = 3,
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_0_END_ADDR = 4,
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_0_WRITE_ADDR = 5,
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_0_READ_ADDR = 6,
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_1_BASE_ADDR = 7,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_DBG_CTRL_UART_STATUS = 8,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_DBG_CTRL_UART_RCV_DATA = 9,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_DBG_CTRL_UART_XMIT_DATA = 10,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_DBG_CTRL_UART_CTRL = 11,
-    BDSP_ARM_P_eRdbVarIndices_DSP_TIMERS_TSM_TIMER = 12,
-    BDSP_ARM_P_eRdbVarIndices_DSP_TIMERS_TSM_TIMER_VALUE = 13,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_STATUS_0 = 14,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_SET_0 = 15,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_CLEAR_0 = 16,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_STATUS_1 = 17,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_SET_1 = 18,
-    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_CLEAR_1 = 19,
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_INTH_HOST_SET = 20,
-    BDSP_ARM_P_eRdbVarIndices_Max,
-    BDSP_ARM_P_eRdbVarIndices_Invalid = 0x7fffffff
-}BDSP_ARM_P_eRdbVarIndices;
 
 typedef enum BDSP_ArmDspResp_Type
 {
@@ -225,7 +197,7 @@ typedef struct BDSP_P_CustomMMInfo
 {
     uint64_t ui64WorkBufferStartAddr;
     uint32_t ui32TotalWorkBufferSize; /* Total work buffer memory required for all the processes */
-    uint32_t ui32WorkBufferBlockSizePerLevel[BDSP_MAX_NUM_PREEMPTION_LEVELS]; /* Working buffer block size */
+    uint32_t ui32WorkBufferBlockSizePerLevel[BDSP_MAX_NUM_SCHED_LEVELS]; /* Working buffer block size */
     uint64_t ui64ProcessSpawnMemStartAddr;
     uint32_t ui32UserProcessSpawnMemSize;    /* Memory required to spawn a single user process */
     uint32_t ui32Dummy0;			  /* Element added to make structure size 64 bit aligned*/
@@ -235,11 +207,9 @@ typedef struct BDSP_P_SchedulingInfo
 {
     uint32_t  ui32NumCores;             /* number of cores in the DSP */
     uint32_t  ui32NumUserProcess;       /* number of user processes */
-    uint32_t  ui32NumPreemptionLevels;  /* number of pre-emption levels */
     uint32_t  ui32NumSchedulingLevels;  /* number of scheduling levels */
 
     uint32_t  ui32PreemptiveThreshold[BDSP_MAX_NUM_SCHED_LEVELS]; /* preempt threshold level for each scheduling level*/
-    uint32_t  ui32Dummy0;			  /* Element added to make structure size 64 bit aligned*/
 }BDSP_P_SchedulingInfo;
 
 typedef struct BDSP_P_TimerInfo

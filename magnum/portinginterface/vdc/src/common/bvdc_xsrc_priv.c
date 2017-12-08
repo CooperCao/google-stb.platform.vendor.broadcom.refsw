@@ -224,23 +224,6 @@ void BVDC_P_Xsrc_Init_isr
         default: break;
     }
 
-#if BVDC_P_XSRC_SUPPORT_DERINE
-    if(hXsrc->bDeringing)
-    {
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_DERINGING) &=  ~(
-            BCHP_MASK(XSRC_0_DERINGING, HORIZ_CHROMA_PASS_FIRST_RING ) |
-            BCHP_MASK(XSRC_0_DERINGING, HORIZ_LUMA_PASS_FIRST_RING ) |
-            BCHP_MASK(XSRC_0_DERINGING, HORIZ_CHROMA_DERINGING ) |
-            BCHP_MASK(XSRC_0_DERINGING, HORIZ_LUMA_DERINGING ));
-
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_DERINGING) |=  (
-            BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_CHROMA_PASS_FIRST_RING, ENABLE ) |
-            BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_LUMA_PASS_FIRST_RING, ENABLE ) |
-            BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_CHROMA_DERINGING, ON ) |
-            BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_LUMA_DERINGING,   ON ));
-    }
-#endif
-
 #if BVDC_P_XSRC_SUPPORT_CCA
     if(hXsrc->bCca)
     {
@@ -565,7 +548,6 @@ void BVDC_P_Xsrc_SetInfo_isr
     pXsrcIn = pPicture->pXsrcIn;
     pXsrcOut = pPicture->pXsrcOut;
 
-
     ulDstVSize = pXsrcOut->ulHeight >> (BAVC_Polarity_eFrame!=pPicture->eSrcPolarity);
     /* any following info changed -> re-calculate SCL settings */
     if((hXsrc->ulPrevSrcWidth != pXsrcIn->ulWidth) ||
@@ -574,6 +556,7 @@ void BVDC_P_Xsrc_SetInfo_isr
        (pPicture->eOrigSrcOrientation != hXsrc->ePrevSrcOrientation)    ||
        (pPicture->eDispOrientation  != hXsrc->ePrevDispOrientation)   ||
        (pPicture->bSrc10Bit != hXsrc->bPrevSrc10Bit) ||
+       (hXsrc->hSource->bPqNcl != hXsrc->bPqNcl) ||
        !BVDC_P_XSRC_COMPARE_FIELD_DATA(hXsrc, XSRC_0_ENABLE, SCALER_ENABLE, 1)||
        (pPicture->bMosaicIntra))
     {
@@ -585,6 +568,7 @@ void BVDC_P_Xsrc_SetInfo_isr
         hXsrc->ePrevSrcOrientation  = pPicture->eOrigSrcOrientation;
         hXsrc->ePrevDispOrientation = pPicture->eDispOrientation;
         hXsrc->bPrevSrc10Bit = pPicture->bSrc10Bit;
+        hXsrc->bPqNcl = hXsrc->hSource->bPqNcl;
 
         hXsrc->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
 
@@ -737,6 +721,35 @@ void BVDC_P_Xsrc_SetInfo_isr
             BCHP_FIELD_DATA(XSRC_0_HORIZ_FIR_INIT_PHASE_ACC_R, SIZE,
             lHrzPhsAccInit));
 #endif
+
+#if BVDC_P_XSRC_SUPPORT_DERINE
+        if(hXsrc->bDeringing)
+        {
+            BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_DERINGING) &=  ~(
+                BCHP_MASK(XSRC_0_DERINGING, HORIZ_CHROMA_PASS_FIRST_RING ) |
+                BCHP_MASK(XSRC_0_DERINGING, HORIZ_LUMA_PASS_FIRST_RING ) |
+                BCHP_MASK(XSRC_0_DERINGING, HORIZ_CHROMA_DERINGING ) |
+                BCHP_MASK(XSRC_0_DERINGING, HORIZ_LUMA_DERINGING ));
+
+            if(hXsrc->bPqNcl)
+            {
+                BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_DERINGING) |=  (
+                    BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_CHROMA_PASS_FIRST_RING, ENABLE ) |
+                    BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_LUMA_PASS_FIRST_RING, ENABLE ) |
+                    BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_CHROMA_DERINGING, OFF ) |
+                    BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_LUMA_DERINGING,   OFF ));
+            }
+            else
+            {
+                BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_DERINGING) |=  (
+                    BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_CHROMA_PASS_FIRST_RING, ENABLE ) |
+                    BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_LUMA_PASS_FIRST_RING, ENABLE ) |
+                    BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_CHROMA_DERINGING, ON ) |
+                    BCHP_FIELD_ENUM(XSRC_0_DERINGING, HORIZ_LUMA_DERINGING,   ON ));
+            }
+        }
+#endif
+
 
         /* enable dither for old XSRC HW if true 10-bit source (stream) */
         /* XSRC is only acquired in BVN if connected to a 10-bit MFD    */

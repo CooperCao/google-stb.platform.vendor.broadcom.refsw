@@ -429,7 +429,7 @@ static void get_deps_from_resources(
    {
       khrn_resource* res = (khrn_resource *)khrn_uintptr_vector_item(resources, i);
 
-      if (res->handle == GMEM_HANDLE_INVALID)
+      if (!khrn_resource_has_storage(res))
       {
          /* no point to transfer dependencies since we don't have storage,
           * just unmark us as the user of that resource */
@@ -471,7 +471,7 @@ static void update_resources(
    for (size_t i = 0; i != num_resources; ++i)
    {
       khrn_resource* res = (khrn_resource *)khrn_uintptr_vector_item(resources, i);
-      if (res->handle != GMEM_HANDLE_INVALID)
+      if (khrn_resource_has_storage(res))
          khrn_resource_update_from_rs(res, rs, stage_jobs);
    }
 }
@@ -973,6 +973,8 @@ bool khrn_fmem_record_resource_self_read_conflicting_write(khrn_fmem *fmem,
 bool khrn_fmem_record_preprocess_resource_read(khrn_fmem *fmem,
       khrn_resource* res, v3d_size_t offset, v3d_size_t length)
 {
+   assert(res->num_handles == 1);
+
    if (!khrn_fmem_record_resource_read(fmem, res, KHRN_STAGE_PREPROCESS))
       return false;
 
@@ -980,12 +982,12 @@ bool khrn_fmem_record_preprocess_resource_read(khrn_fmem *fmem,
    if (buf != NULL)
    {
       // Check last used first.
-      if (buf->handle != res->handle)
+      if (buf->handle != res->handles[0])
       {
          // Reverse linear search.
          khrn_fmem_buffer_range* buffers = khrn_vector_data(khrn_fmem_buffer_range, &fmem->persist->preprocess_buffers);
          unsigned b = fmem->persist->preprocess_buffers.size - 1;
-         for (; buffers[b].handle != res->handle; --b)
+         for (; buffers[b].handle != res->handles[0]; --b)
          {
             if (!b)
                goto no_match;
@@ -1005,7 +1007,7 @@ no_match:
    buf = khrn_vector_emplace_back(khrn_fmem_buffer_range, &fmem->persist->preprocess_buffers);
    if (!buf)
       return false;
-   buf->handle = res->handle;
+   buf->handle = res->handles[0];
    buf->start = offset;
    buf->end = offset + length;
    fmem->last_preprocess_buffer = buf;
@@ -1073,7 +1075,7 @@ bool khrn_fmem_sync_res(khrn_fmem *fmem,
          return false;
    }
 
-   khrn_fmem_sync(fmem, res->handle, bin_rw_flags, render_rw_flags);
+   khrn_fmem_sync(fmem, res->num_handles, res->handles, bin_rw_flags, render_rw_flags);
    return true;
 }
 

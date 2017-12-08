@@ -303,8 +303,12 @@ typedef struct BDSP_Raaga_Audio_DtsHdStreamInfo
 
     uint32_t        ui32StatusValid;
 
-    uint32_t       ui32BitRate;
     /* Bit rate of the input stream */
+    uint32_t       ui32BitRate;
+
+    /* Will be used for SPDIF/HDMI status in passthru */
+    uint32_t      ui32SPDIFTransferRate;
+    uint32_t      ui32HDMITransferRate;
 
 } BDSP_Raaga_Audio_DtsHdStreamInfo;
 

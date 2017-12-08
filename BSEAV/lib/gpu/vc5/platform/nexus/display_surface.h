@@ -16,7 +16,6 @@ bool CreateSurface(NXPL_Surface *s,
    const char *desc);
 
 void DestroySurface(NXPL_Surface *s);
-
 bool isNXPL_Surface(NXPL_Surface *s);
 
 #endif /* __DISPLAY_SURFACE_H__ */

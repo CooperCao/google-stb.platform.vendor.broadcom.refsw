@@ -587,6 +587,10 @@ void BVDC_P_Feeder_HandleIsrGfxSurface_isr
       BVDC_P_Source_Info *         pCurSrcInfo,
       BAVC_Polarity                eFieldId );
 
+void BVDC_P_Feeder_ParseColorSpace_isr
+    ( const BAVC_MVD_Field            *pFieldData,
+      bool                            *bPqNcl );
+
 #if BVDC_P_SUPPORT_MTG
 void BVDC_P_Source_MtgCallback_isr
     ( void                            *pvSourceHandle,

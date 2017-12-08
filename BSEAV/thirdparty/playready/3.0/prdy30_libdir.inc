@@ -40,5 +40,14 @@
 # Set directory for installing lib based on architecture
 ARCH_DIR_PRDY30=${B_REFSW_ARCH}
 
+# MIPS directory depends on the version of GCC compiler being used
+ifeq ("$(B_REFSW_ARCH)","mipsel-linux")
+	GCC_GTEQ_485 := $(shell expr `$(CC) -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40805)
+endif
+
 # Set final path
+ifeq ("$(GCC_GTEQ_485)", "1")
+PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/lib/eglibc
+else
 PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/lib
+endif

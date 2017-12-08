@@ -785,7 +785,7 @@ NEXUS_Error b_objdb_set_object_shared(const struct b_objdb_client *client, void 
     BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
     base_object = BLST_AA_TREE_FIND(NEXUS_P_BaseObjectTree, &db->object_tree, base_object_handle);
     if(base_object) {
-        if (base_object->state.client == client || !client) {
+        if (base_object->state.client == client || base_object->state.acquired_client == client || !client) {
             base_object->state.shared = shared;
             result = NEXUS_SUCCESS;
         }

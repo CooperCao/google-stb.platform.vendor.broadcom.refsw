@@ -908,6 +908,8 @@ static void GetInfo(void *context, void *session, struct v3d_idents *info)
       if (n < V3D_MAX_CORES * V3D_IDENT_REGISTERS)
          info->ident[n] = nInfo.uiIdent[n];
    }
+
+   info->ddrMapVer = nInfo.uiDDRMapVer;
 }
 
 static void RegisterUpdateOldestNFID(void *context, void *session, void (*update)(uint64_t))

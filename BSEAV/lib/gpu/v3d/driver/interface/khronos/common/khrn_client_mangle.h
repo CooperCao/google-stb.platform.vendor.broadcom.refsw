@@ -87,6 +87,9 @@
 #define eglGetPlatformDisplayEXT mangled_eglGetPlatformDisplayEXT
 #define eglCreatePlatformWindowSurfaceEXT mangled_eglCreatePlatformWindowSurfaceEXT
 #define eglCreatePlatformPixmapSurfaceEXT mangled_eglCreatePlatformPixmapSurfaceEXT
+#define eglBindWaylandDisplayWL mangled_eglBindWaylandDisplayWL
+#define eglUnbindWaylandDisplayWL mangled_eglUnbindWaylandDisplayWL
+#define eglQueryWaylandBufferWL mangled_eglQueryWaylandBufferWL
 
 /* OpenGL ES 1.1 and 2.0 functions */
 

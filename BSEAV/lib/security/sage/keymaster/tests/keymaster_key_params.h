@@ -60,12 +60,16 @@
                                                                 if (err != BERR_SUCCESS) { BDBG_ERR(("%s:%d  Tag add failed", BSTD_FUNCTION, __LINE__)); goto done; }
 
 #define TEST_TAG_REMOVE(param_handle, find_tag)                 do { km_tag_value_t *tag = KM_Tag_FindFirst(param_handle, find_tag); \
-                                                                     if (tag) { EXPECT_SUCCESS(KM_Tag_Remove(key_params, tag)); KM_Tag_Free(tag); } \
+                                                                     if (tag) { EXPECT_SUCCESS(KM_Tag_Remove(param_handle, tag)); KM_Tag_Free(tag); } \
+                                                                } while (0)
+
+#define TEST_TAG_REMOVE_ENUM(param_handle, find_tag, value)     do { km_tag_value_t *tag = KM_Tag_FindEnum(param_handle, find_tag, value); \
+                                                                     if (tag) { EXPECT_SUCCESS(KM_Tag_Remove(param_handle, tag)); KM_Tag_Free(tag); } \
                                                                 } while (0)
 
 
 /* Fn pointer for key_params functions */
-typedef BERR_Code (*km_key_param_fn)(KM_Tag_ContextHandle key_params, uint32_t key_size);
+typedef BERR_Code (*km_key_param_fn)(KM_Tag_ContextHandle *key_params, uint32_t key_size);
 
 typedef BERR_Code (*km_key_modifier_fn)(KM_Tag_ContextHandle key_params);
 
@@ -76,30 +80,69 @@ BERR_Code km_test_remove_key_size(KM_Tag_ContextHandle key_params);
 /* Remove the KM_TAG_EC_CURVE */
 BERR_Code km_test_remove_curve(KM_Tag_ContextHandle key_params);
 
+/* Add KM_EC_CURVE_P_256 for KM_TAG_EC_CURVE */
+BERR_Code km_test_add_256_curve(KM_Tag_ContextHandle key_params);
+
 /* Remove the KM_TAG_RSA_PUBLIC_EXPONENT */
 BERR_Code km_test_remove_exponent(KM_Tag_ContextHandle key_params);
 
 /* Remove the KM_TAG_ALL_APPLICATIONS */
 BERR_Code km_test_remove_all_apps(KM_Tag_ContextHandle key_params);
 
-/* Add the KM_TAG_KEY_SIZE */
+/* Add default KM_TAG_APPLICATION_ID */
 BERR_Code km_test_add_app_id(KM_Tag_ContextHandle key_params);
 
-/* Remove the KM_TAG_KEY_SIZE */
+/* Add default KM_TAG_APPLICATION_DATA */
 BERR_Code km_test_add_app_data(KM_Tag_ContextHandle key_params);
 
+/* Add KM_DIGEST_SHA1 for KM_TAG_DIGEST */
+BERR_Code km_test_add_sha1_digest(KM_Tag_ContextHandle key_params);
+
+/* Add KM_DIGEST_NONE for KM_TAG_DIGEST */
+BERR_Code km_test_add_none_digest(KM_Tag_ContextHandle key_params);
+
+/* Remove KM_TAG_DIGEST */
+BERR_Code km_test_remove_digest(KM_Tag_ContextHandle key_params);
+
+/* Remove mac length */
+BERR_Code km_test_remove_mac_length(KM_Tag_ContextHandle key_params);
+
+/* Remove KM_TAG_MIN_MAC_LENGTH */
+BERR_Code km_test_remove_min_mac_length(KM_Tag_ContextHandle key_params);
+
+/* Add KM_TAG_MIN_MAC_LENGTH=48 */
+BERR_Code km_test_add_min_mac_length_48(KM_Tag_ContextHandle key_params);
+
+/* Add KM_TAG_MIN_MAC_LENGTH=130 */
+BERR_Code km_test_add_min_mac_length_130(KM_Tag_ContextHandle key_params);
+
+/* Add KM_TAG_MIN_MAC_LENGTH=384 */
+BERR_Code km_test_add_min_mac_length_384(KM_Tag_ContextHandle key_params);
+
+/* Add KM_TAG_KEY_SIZE=1024 */
+BERR_Code km_test_add_key_size_1024(KM_Tag_ContextHandle key_params);
+
+/* Add KM_TAG_KEY_SIZE=256 */
+BERR_Code km_test_add_key_size_256(KM_Tag_ContextHandle key_params);
+
+/* Add KM_TAG_RSA_PUBLIC_EXPONENT=3 */
+BERR_Code km_test_add_exponent_3(KM_Tag_ContextHandle key_params);
+
+BERR_Code km_test_remove_sign_verify(KM_Tag_ContextHandle key_params);
+
+BERR_Code km_test_remove_encrypt_decrypt(KM_Tag_ContextHandle key_params);
 
 /* Add AES key default parameters to tag context handle */
-BERR_Code km_test_aes_add_default_params(KM_Tag_ContextHandle key_params, uint32_t key_size);
+BERR_Code km_test_new_params_with_aes_defaults(KM_Tag_ContextHandle *key_params, uint32_t key_size);
 
 /* Add HMAC key default parameters to tag context handle */
-BERR_Code km_test_hmac_add_default_params(KM_Tag_ContextHandle key_params, uint32_t key_size);
+BERR_Code km_test_new_params_with_hmac_defaults(KM_Tag_ContextHandle *key_params, uint32_t key_size);
 
 /* Add RSA key default parameters to tag context handle */
-BERR_Code km_test_rsa_add_default_params(KM_Tag_ContextHandle key_params, uint32_t key_size);
+BERR_Code km_test_new_params_with_rsa_defaults(KM_Tag_ContextHandle *key_params, uint32_t key_size);
 
 /* Add EC key default parameters to tag context handle */
-BERR_Code km_test_ec_add_default_params(KM_Tag_ContextHandle key_params, uint32_t key_size);
+BERR_Code km_test_new_params_with_ec_defaults(KM_Tag_ContextHandle *key_params, uint32_t key_size);
 
 
 /* Update the tag context handle with secure ID tags (removes ALL_USERS and NO_AUTH tags) */

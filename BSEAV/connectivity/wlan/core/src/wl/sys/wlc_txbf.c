@@ -1040,7 +1040,11 @@ BCMATTACHFN(wlc_txbf_init)(wlc_txbf_info_t *txbf)
 		}
 
 		txbf->bfe_capable = WLC_SU_BFE_CAP_PHY(wlc) ? TXBF_SU_BFE_CAP : 0;
-		txbf->bfe_capable |= WLC_MU_BFE_CAP_PHY(wlc) ?	TXBF_MU_BFE_CAP : 0;
+
+		/* 7271 does not support MU beamformee */
+		if (!D11REV_IS(wlc->pub->corerev, 66)) {
+			txbf->bfe_capable |= WLC_MU_BFE_CAP_PHY(wlc) ?	TXBF_MU_BFE_CAP : 0;
+		}
 
 		txbf->active = FALSE;
 		txbf->sounding_period = BF_SOUND_PERIOD_DFT;

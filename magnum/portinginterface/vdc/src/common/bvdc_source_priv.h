@@ -558,6 +558,8 @@ typedef struct BVDC_P_SourceContext
     /* total amount of pixels */
     uint32_t                  ulPixelCount;
 
+    bool                      bPqNcl;
+
 #if BVDC_P_SUPPORT_MTG
     BVDC_Display_Handle       hDspTimebaseLocked;
     BAVC_Timebase             eTimeBase;

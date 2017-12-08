@@ -5506,6 +5506,14 @@ wlc_allocfrag_txfrag(osl_t *osh, void *sdu, uint offset, uint frag_length,
 	PKTSETFRAGTOTLEN(osh, p1, plen);
 	PKTSETIFINDEX(osh, p1, PKTIFINDEX(osh, sdu));
 
+	/* If incoming sdu is from host, set appropriate flags for new frags too */
+	if (WL_TXSTATUS_GET_FLAGS(WLPKTTAG(sdu)->wl_hdr_information) &
+		WLFC_PKTFLAG_PKTFROMHOST) {
+
+		WL_TXSTATUS_SET_FLAGS(WLPKTTAG(p1)->wl_hdr_information,
+			WLFC_PKTFLAG_PKTFROMHOST);
+	}
+
 	/* Only last fragment should have metadata
 	 * and valid PKTID. Reset metadata and set invalid PKTID
 	 * for other fragments

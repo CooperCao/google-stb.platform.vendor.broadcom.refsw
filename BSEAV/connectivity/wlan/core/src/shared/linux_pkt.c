@@ -148,6 +148,10 @@ static struct sk_buff * BCMFASTPATH
 osl_alloc_skb(osl_t *osh, unsigned int len)
 {
 	struct sk_buff *skb;
+#ifdef STB_SOC_WIFI
+	skb = dev_alloc_skb(len);
+	return skb;
+#else /* !STB_SOC_WIFI */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	gfp_t flags = (in_atomic() || irqs_disabled()) ? GFP_ATOMIC : GFP_KERNEL;
 #if defined(CONFIG_SPARSEMEM) && defined(CONFIG_ZONE_DMA)
@@ -167,6 +171,7 @@ osl_alloc_skb(osl_t *osh, unsigned int len)
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) */
 
 	return skb;
+#endif /* STB_SOC_WIFI */
 }
 
 #ifdef CTFPOOL

@@ -284,6 +284,7 @@ typedef struct BVCE_Platform_P_Config
       BVCE_Platform_P_BoxModeSettings stBox;
 
       BVCE_Platform_P_RegisterList stWatchdogRegisterDumpList;
+      BVCE_Platform_P_RegisterList stHostCPUDebugRegisterDumpList;
 } BVCE_Platform_P_Config;
 
 BERR_Code
@@ -374,6 +375,9 @@ BVCE_Platform_P_OverrideChannelDimensionBounds(
 
 extern const BVCE_Platform_P_Register s_astViceHardwareRegisters[];
 extern const unsigned s_uiViceHardwareRegistersCount;
+
+extern const BVCE_Platform_P_Register s_astHostCPUDebugRegisters[];
+extern const unsigned s_uiHostCPUDebugRegistersCount;
 
 #ifdef __cplusplus
 }

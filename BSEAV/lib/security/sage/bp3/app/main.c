@@ -465,53 +465,79 @@ leave:
     return rc;
 }
 
-NEXUS_OtpKeyType find_otp_select(void)
-{
-  unsigned int OTPCode = 25;
-  NEXUS_ReadOtpIO readOtpIO;
+#if (NEXUS_SECURITY_API_VERSION == 1)
+    NEXUS_OtpKeyType find_otp_select(void)
+    {
+      unsigned int OTPCode = 25;
+      NEXUS_ReadOtpIO readOtpIO;
 
-  unsigned int j = ((NEXUS_OtpCmdReadRegister) OTPCode == NEXUS_OtpCmdReadRegister_eKeyID ||
-      (NEXUS_OtpCmdReadRegister) OTPCode == NEXUS_OtpCmdReadRegister_eKeyHash) ? 0 : 4;
+      unsigned int j = ((NEXUS_OtpCmdReadRegister) OTPCode == NEXUS_OtpCmdReadRegister_eKeyID ||
+          (NEXUS_OtpCmdReadRegister) OTPCode == NEXUS_OtpCmdReadRegister_eKeyHash) ? 0 : 4;
 
-  for (NEXUS_OtpKeyType keyType = NEXUS_OtpKeyType_eA; keyType < NEXUS_OtpKeyType_eSize; keyType++) {
-    if (NEXUS_Security_ReadOTP((NEXUS_OtpCmdReadRegister) OTPCode, (NEXUS_OtpKeyType) keyType,
-        &readOtpIO)) continue;
-    if (j + readOtpIO.otpKeyIdSize > NEXUS_OTP_KEY_ID_LEN) continue;
-    for (unsigned int i = 0; i < readOtpIO.otpKeyIdSize; i++)
-      if (readOtpIO.otpKeyIdBuf[i + j]) goto next;
+      for (NEXUS_OtpKeyType keyType = NEXUS_OtpKeyType_eA; keyType < NEXUS_OtpKeyType_eSize; keyType++) {
+        if (NEXUS_Security_ReadOTP((NEXUS_OtpCmdReadRegister) OTPCode, (NEXUS_OtpKeyType) keyType,
+            &readOtpIO)) continue;
+        if (j + readOtpIO.otpKeyIdSize > NEXUS_OTP_KEY_ID_LEN) continue;
+        for (unsigned int i = 0; i < readOtpIO.otpKeyIdSize; i++)
+          if (readOtpIO.otpKeyIdBuf[i + j]) goto next;
 
-    return keyType;
+        return keyType;
 
-    next:;
-  }
+        next:;
+      }
 
-  return NEXUS_OtpKeyType_eA;
-}
+      return NEXUS_OtpKeyType_eA;
+    }
 
-NEXUS_Error read_otp_id(NEXUS_OtpIdType keyType, uint32_t *otpIdHi, uint32_t *otpIdLo)
-{
-  NEXUS_OtpIdOutput OTP_ID_out;
+    NEXUS_Error read_otp_id(NEXUS_OtpIdType keyType, uint32_t *otpIdHi, uint32_t *otpIdLo)
+    {
+      NEXUS_OtpIdOutput OTP_ID_out;
 
-  NEXUS_Error errCode = NEXUS_Security_ReadOtpId((NEXUS_OtpIdType) keyType, &OTP_ID_out);
+      NEXUS_Error errCode = NEXUS_Security_ReadOtpId((NEXUS_OtpIdType) keyType, &OTP_ID_out);
 
-  if (!errCode) {
-    if (OTP_ID_out.size != 8) {
-      fprintf(stderr, "\n%s failed. Only 8 byte otp id is supported\n", __FUNCTION__);
+      if (!errCode) {
+        if (OTP_ID_out.size != 8) {
+          fprintf(stderr, "\n%s failed. Only 8 byte otp id is supported\n", __FUNCTION__);
+          return errCode;
+        }
+
+        // otpId array are in big endian
+        *otpIdHi = OTP_ID_out.otpId[3] | (uint32_t) OTP_ID_out.otpId[2] << 8 |
+            (uint32_t) OTP_ID_out.otpId[1] << 16 | (uint32_t) OTP_ID_out.otpId[0] << 24;
+
+        *otpIdLo = OTP_ID_out.otpId[7] | (uint32_t)OTP_ID_out.otpId[6] << 8 |
+            (uint32_t) OTP_ID_out.otpId[5] << 16 | (uint32_t) OTP_ID_out.otpId[4] << 24;
+        }
+      else
+        fprintf(stderr, "\n%s failed. Error code: #%d\n", __FUNCTION__, errCode);
+
       return errCode;
     }
+#else
+    NEXUS_Error read_otp_id(unsigned keyIndex, uint32_t *otpIdHi, uint32_t *otpIdLo)
+    {
+        NEXUS_OtpKeyInfo keyInfo;
 
-    // otpId array are in big endian
-    *otpIdHi = OTP_ID_out.otpId[3] | (uint32_t) OTP_ID_out.otpId[2] << 8 |
-        (uint32_t) OTP_ID_out.otpId[1] << 16 | (uint32_t) OTP_ID_out.otpId[0] << 24;
+        NEXUS_Error errCode  = NEXUS_OtpKey_GetInfo(keyIndex, &keyInfo);
 
-    *otpIdLo = OTP_ID_out.otpId[7] | (uint32_t)OTP_ID_out.otpId[6] << 8 |
-        (uint32_t) OTP_ID_out.otpId[5] << 16 | (uint32_t) OTP_ID_out.otpId[4] << 24;
+        if (!errCode)
+        {
+            // keyInfo.id array are in big endian.  Convert to little endian.
+            *otpIdHi = keyInfo.id[3] | (uint32_t) keyInfo.id[2] << 8 |
+                (uint32_t) keyInfo.id[1] << 16 | (uint32_t) keyInfo.id[0] << 24;
+
+            *otpIdLo = keyInfo.id[7] | (uint32_t)keyInfo.id[6] << 8 |
+                (uint32_t) keyInfo.id[5] << 16 | (uint32_t) keyInfo.id[4] << 24;
+        }
+        else
+        {
+            fprintf(stderr, "\n%s failed. Error code: #%d\n", __FUNCTION__, errCode);
+        }
+
+        return errCode;
     }
-  else
-    fprintf(stderr, "\n%s failed. Error code: #%d\n", __FUNCTION__, errCode);
+#endif
 
-  return errCode;
-}
 
 int bp3(int argc, char *argv[])
 {

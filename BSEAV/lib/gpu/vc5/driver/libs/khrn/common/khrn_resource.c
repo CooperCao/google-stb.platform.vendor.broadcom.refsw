@@ -343,7 +343,9 @@ static khrn_resource* rename_for_write_now(
    v3d_size_t length,
    khrn_access_flags_t flags)
 {
-   v3d_size_t size = gmem_get_size(res->handle);
+   assert(res->num_handles == 1);
+
+   v3d_size_t size = gmem_get_size(res->handles[0]);
 
    // If not overwriting the whole resource, then we'll need to wait for CPU read.
    bool discard_all = ((flags & KHRN_ACCESS_INVALIDATE_BUFFER) != 0)
@@ -362,31 +364,31 @@ static khrn_resource* rename_for_write_now(
    gmem_handle_t handle = try_alloc_until(
       size,
       res->align,
-      gmem_get_usage(res->handle),
-      gmem_get_desc(res->handle),
+      gmem_get_usage(res->handles[0]),
+      gmem_get_desc(res->handles[0]),
       !khrn_resource_has_reader_or_writer(res) ? &res->pre_write : NULL);
    if (!handle)
       return NULL;
 
    // Create new resource object.
-   khrn_resource* rename = khrn_resource_create_no_handle();
+   khrn_resource* rename = khrn_resource_create_no_storage(1);
    if (!rename)
    {
       gmem_free(handle);
       return NULL;
    }
-   rename->handle = handle;
+   rename->handles[0] = handle;
    rename->align = res->align;
 
    // If rename buffer can't be mapped, then give up and stall.
-   char* dst = (char*)gmem_map_and_get_ptr(rename->handle);
+   char* dst = (char*)gmem_map_and_get_ptr(rename->handles[0]);
    if (!dst)
       goto error;
 
    // Copy old data into rename buffer if required.
    if (!discard_all)
    {
-      char* src = (char*)gmem_map_and_get_ptr(res->handle);
+      char* src = (char*)gmem_map_and_get_ptr(res->handles[0]);
       if (!src)
          goto error;
 
@@ -411,9 +413,9 @@ static khrn_resource* rename_for_write_now(
 
       // No need to sync the write-range now as this will happen in post-access.
       if (start > 0)
-         gmem_flush_mapped_range(rename->handle, 0, start);
+         gmem_flush_mapped_range(rename->handles[0], 0, start);
       if (end < size)
-         gmem_flush_mapped_range(rename->handle, end, size - end);
+         gmem_flush_mapped_range(rename->handles[0], end, size - end);
    }
 
    return rename;
@@ -423,15 +425,17 @@ error:
    return NULL;
 }
 
-khrn_resource* khrn_resource_create_no_handle(void)
+khrn_resource *khrn_resource_create_no_storage(unsigned num_handles)
 {
-   khrn_resource* res = (khrn_resource*)calloc(1, sizeof(khrn_resource));
+   khrn_resource* res = (khrn_resource*)calloc(1,
+      offsetof(khrn_resource, handles) + (num_handles * sizeof(gmem_handle_t)));
    if (!res)
       return NULL;
 
    res->ref_count = 1;
    res->synced_start = 0u;
    res->synced_end = ~(v3d_size_t)0u;
+   res->num_handles = num_handles;
    return res;
 }
 
@@ -441,7 +445,7 @@ khrn_resource* khrn_resource_create(
    gmem_usage_flags_t usage_flags,
    const char *desc)
 {
-   khrn_resource* res = khrn_resource_create_no_handle();
+   khrn_resource* res = khrn_resource_create_no_storage(1);
    if (res != NULL)
    {
       if (khrn_resource_alloc(res, size, align, usage_flags, desc))
@@ -452,12 +456,12 @@ khrn_resource* khrn_resource_create(
    return NULL;
 }
 
-khrn_resource* khrn_resource_create_with_handle(gmem_handle_t handle)
+khrn_resource* khrn_resource_create_with_handles(unsigned num_handles, const gmem_handle_t *handles)
 {
-   khrn_resource* res = khrn_resource_create_no_handle();
+   khrn_resource* res = khrn_resource_create_no_storage(num_handles);
    if (res != NULL)
    {
-      res->handle = handle;
+      memcpy(res->handles, handles, num_handles * sizeof(gmem_handle_t));
       res->synced_start = ~0u;
       res->synced_end = 0;
       return res;
@@ -468,13 +472,14 @@ khrn_resource* khrn_resource_create_with_handle(gmem_handle_t handle)
 bool khrn_resource_alloc(khrn_resource* res, size_t size,
       v3d_size_t align, gmem_usage_flags_t usage_flags, const char *desc)
 {
-   assert(res->handle == NULL);
+   assert(res->num_handles == 1);
+   assert(res->handles[0] == NULL);
 
    gmem_handle_t handle = try_alloc_until(size, align, usage_flags, desc, NULL);
    if (!handle)
       return false;
 
-   res->handle = handle;
+   res->handles[0] = handle;
    res->align = align;
    return true;
 }
@@ -482,33 +487,37 @@ bool khrn_resource_alloc(khrn_resource* res, size_t size,
 void khrn_resource_destroy(khrn_resource *res)
 {
    assert(res->ref_count == 0);
+   assert(!khrn_resource_has_reader_or_writer(res));
 
-   if (res->handle != NULL)
+   for (unsigned i = 0; i != res->num_handles; ++i)
    {
-      assert(!khrn_resource_has_reader_or_writer(res));
-
-      /* We cannot free the handle right now, we need to wait for the jobs
-       * that are using this resource to complete and for their completion
-       * callbacks to be run.
-       */
-      v3d_scheduler_gmem_deferred_free(&res->pre_write, res->handle);
+      if (res->handles[i] != NULL)
+      {
+         /* We cannot free the handle right now, we need to wait for the jobs
+          * that are using this resource to complete and for their completion
+          * callbacks to be run.
+          */
+         v3d_scheduler_gmem_deferred_free(&res->pre_write, res->handles[i]);
+      }
    }
    free(res);
 }
 
 void khrn_resource_gmem_invalidate_mapped_range(khrn_resource* res, v3d_size_t start, v3d_size_t length)
 {
+   assert(res->num_handles == 1);
+
    v3d_size_t end = start + length;
    assert(end > start);
 
    // Avoid small syncs.
    v3d_size_t const sync_granularity = 1024u;
    start = gfx_zround_down_p2(start, sync_granularity);
-   end = gfx_zmin(gfx_zround_up_p2(end, sync_granularity), gmem_get_size(res->handle));
+   end = gfx_zmin(gfx_zround_up_p2(end, sync_granularity), gmem_get_size(res->handles[0]));
 
    if (res->synced_end <= res->synced_start)
    {
-      gmem_invalidate_mapped_range(res->handle, start, end - start);
+      gmem_invalidate_mapped_range(res->handles[0], start, end - start);
       res->synced_start = start;
       res->synced_end = end;
    }
@@ -516,13 +525,13 @@ void khrn_resource_gmem_invalidate_mapped_range(khrn_resource* res, v3d_size_t s
    {
       if (start < res->synced_start)
       {
-         gmem_invalidate_mapped_range(res->handle, start, res->synced_start - start);
+         gmem_invalidate_mapped_range(res->handles[0], start, res->synced_start - start);
          res->synced_start = start;
       }
 
       if (end > res->synced_end)
       {
-         gmem_invalidate_mapped_range(res->handle, res->synced_end, end - res->synced_end);
+         gmem_invalidate_mapped_range(res->handles[0], res->synced_end, end - res->synced_end);
          res->synced_end = end;
       }
    }
@@ -536,6 +545,7 @@ void* khrn_resource_begin_access(
    khrn_resource_parts_t parts)
 {
    khrn_resource* res = *res_ptr;
+   assert(res->num_handles == 1);
    assert(!res->in_begin_flags);
 
    if (flags & KHRN_ACCESS_WRITE)
@@ -554,7 +564,7 @@ void* khrn_resource_begin_access(
             {
                khrn_resource_refdec(res);
                *res_ptr = rename;
-               return (char*)gmem_get_ptr(rename->handle) + offset;
+               return (char*)gmem_get_ptr(rename->handles[0]) + offset;
             }
          }
 
@@ -569,7 +579,7 @@ void* khrn_resource_begin_access(
       v3d_scheduler_wait_jobs(&res->pre_read, V3D_SCHED_DEPS_COMPLETED);
    }
 
-   void* ptr = gmem_map_and_get_ptr(res->handle);
+   void* ptr = gmem_map_and_get_ptr(res->handles[0]);
    if (!ptr)
       return NULL;
 
@@ -582,8 +592,9 @@ void* khrn_resource_read_now(
    v3d_size_t offset,
    v3d_size_t length)
 {
+   assert(res->num_handles == 1);
    assert(!res->in_begin_flags);
-   void* ptr = gmem_map_and_get_ptr(res->handle);
+   void* ptr = gmem_map_and_get_ptr(res->handles[0]);
    if (!ptr)
       return NULL;
 
@@ -600,8 +611,9 @@ void* khrn_resource_try_read_now(
    v3d_size_t length,
    bool* read_now)
 {
+   assert(res->num_handles == 1);
    assert(!res->in_begin_flags);
-   void* ptr = gmem_map_and_get_ptr(res->handle);
+   void* ptr = gmem_map_and_get_ptr(res->handles[0]);
    if (!ptr)
       return NULL;
 

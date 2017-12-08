@@ -91,6 +91,33 @@
 #define BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(A, B)                                    \
     BDSP_ARM_STAGE_TRAVERSE_LOOP_V1_BEGIN(A, B, macroBrId, macroStId)
 
+typedef enum BDSP_ARM_P_eRdbVarIndices
+{
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_REGISTER_WIDTH = 0,
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_HOST2DSPCMD_FIFO_ID = 1,
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_HOST2DSPRESPONSE_FIFO_ID = 2,
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_0_BASE_ADDR = 3,
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_0_END_ADDR = 4,
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_0_WRITE_ADDR = 5,
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_0_READ_ADDR = 6,
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_1_BASE_ADDR = 7,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_DBG_CTRL_UART_STATUS = 8,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_DBG_CTRL_UART_RCV_DATA = 9,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_DBG_CTRL_UART_XMIT_DATA = 10,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_DBG_CTRL_UART_CTRL = 11,
+    BDSP_ARM_P_eRdbVarIndices_DSP_TIMERS_TSM_TIMER = 12,
+    BDSP_ARM_P_eRdbVarIndices_DSP_TIMERS_TSM_TIMER_VALUE = 13,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_STATUS_0 = 14,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_SET_0 = 15,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_CLEAR_0 = 16,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_STATUS_1 = 17,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_SET_1 = 18,
+    BDSP_ARM_P_eRdbVarIndices_DSP_PERI_SW_MSG_BITS_CLEAR_1 = 19,
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_INTH_HOST_SET = 20,
+    BDSP_ARM_P_eRdbVarIndices_Max,
+    BDSP_ARM_P_eRdbVarIndices_Invalid = 0x7fffffff
+}BDSP_ARM_P_eRdbVarIndices;
+
 typedef struct BDSP_Arm_P_DeviceMemoryInfo
 {
     BDSP_P_MemoryPool           sROMemoryPool;
@@ -98,7 +125,7 @@ typedef struct BDSP_Arm_P_DeviceMemoryInfo
     BDSP_P_MemoryPool           sRWMemoryPool[BDSP_ARM_MAX_DSP];
 
     BDSP_P_FwBuffer             DescriptorMemory[BDSP_ARM_MAX_DSP];
-    BDSP_P_FwBuffer             WorkBufferMemory[BDSP_ARM_MAX_DSP][BDSP_MAX_NUM_PREEMPTION_LEVELS];
+    BDSP_P_FwBuffer             WorkBufferMemory[BDSP_ARM_MAX_DSP][BDSP_MAX_NUM_SCHED_LEVELS];
     BDSP_P_FwBuffer             CfgRegisters[BDSP_ARM_MAX_DSP];
     BDSP_P_FwBuffer             softFifo[BDSP_ARM_MAX_DSP];
     BDSP_P_MsgQueueParams       cmdQueueParams[BDSP_ARM_MAX_DSP];
@@ -148,6 +175,7 @@ typedef struct BDSP_Arm
 
     BDSP_Arm_P_DeviceMemoryInfo memInfo;
     BDSP_Arm_P_CodeDownloadInfo codeInfo;
+	BDSP_P_SystemSchedulingInfo systemSchedulingInfo;
 
     BLST_S_HEAD(BDSP_ArmContextList, BDSP_ArmContext) contextList;
 }BDSP_Arm;
