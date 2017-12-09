@@ -135,6 +135,10 @@ static NEXUS_Error NEXUS_Frontend_P_ConfigureBand(NEXUS_FrontendHandle master, N
     parserConfig.InputBandNumber = inputNum;
     parserConfig.Enable = false; /* BMXT_Dcbg_Start will handle enable/disable of bands */
     parserConfig.mtsifTxSelect = mtsifTxSel;
+    if (mtsifConfig->pidfilter) {
+        parserConfig.AllPass = true;
+        parserConfig.AcceptNulls = true;
+    }
     rc = BMXT_SetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
 
     rc = BMXT_Dcbg_AddParser(bond->hDcbg, parserNum); if (rc) { return BERR_TRACE(NEXUS_UNKNOWN); }
@@ -187,6 +191,13 @@ static NEXUS_Error NEXUS_Frontend_P_DeconfigureAllBands(NEXUS_FrontendHandle mas
             /* re-enable the demodPB of master, since was enabled prior to starting bonding */
             rc = BMXT_GetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
             parserConfig.Enable = true;
+            rc = BMXT_SetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
+        }
+
+        if (mtsifConfig->pidfilter) {
+            rc = BMXT_GetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
+            parserConfig.AllPass = false;
+            parserConfig.AcceptNulls = false;
             rc = BMXT_SetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
         }
         bond->bands[i].frontend->bondingMaster = NULL;

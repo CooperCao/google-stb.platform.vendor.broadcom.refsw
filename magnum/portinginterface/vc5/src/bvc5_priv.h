@@ -105,6 +105,8 @@ typedef struct BVC5_P_Handle
    uint64_t                   ulDbgHeapOffset;
    unsigned                   uDbgHeapSize;
 
+   BCHP_MemoryInfo            sMemInfo;
+
    BINT_Handle                hInt;
    BVC5_OpenParameters        sOpenParams;
 

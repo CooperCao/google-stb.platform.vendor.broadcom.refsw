@@ -40,14 +40,22 @@
 #define BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_SESSION_H_
 
 #include "nexus_base_types.h"
+#if (NEXUS_SECURITY_API_VERSION == 1)
 #include "nexus_otpmsp.h"
 #include "nexus_read_otp_id.h"
+#else
+#include "nexus_otp_key.h"
+#endif
 
 int bp3_session_start(uint8_t **token, uint32_t *size);
 int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize);
 
+#if (NEXUS_SECURITY_API_VERSION == 1)
 NEXUS_OtpKeyType find_otp_select(void);
 NEXUS_Error read_otp_id(NEXUS_OtpIdType keyType, uint32_t *otpIdHi, uint32_t *otpIdLo);
+#else
+
+#endif
 
 #define MAP_MEM_START \
   int memfd = open("/dev/mem", O_RDONLY | O_SYNC); \

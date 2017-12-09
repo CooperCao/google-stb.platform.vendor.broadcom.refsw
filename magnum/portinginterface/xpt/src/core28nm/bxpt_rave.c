@@ -752,6 +752,17 @@ BERR_Code BXPT_Rave_OpenChannel(
     BREG_Write32(lhRave->hReg, BCHP_XPT_RAVE_WRMASK_OPTIMIZATION_DIS_CX_32_47, 0xFFFFFFFF);
 #endif
 
+#ifdef BCHP_XPT_RAVE_MISC_CONTROL3_CRXPT_1164_DIS_MASK
+    Reg = BREG_Read32( lhRave->hReg, BCHP_XPT_RAVE_MISC_CONTROL3 );
+    Reg &= ~(
+        BCHP_MASK( XPT_RAVE_MISC_CONTROL3, CRXPT_1164_DIS )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_RAVE_MISC_CONTROL3, CRXPT_1164_DIS, 1 )
+    );
+    BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_MISC_CONTROL3, Reg );
+#endif
+
     BXPT_P_ReleaseSubmodule(hXpt, BXPT_P_Submodule_eRave);
 
     return ExitCode;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -183,6 +183,13 @@ static const BXVD_P_PlatformReg_RevT0 s_stPlatformReg_HVD0RevT0 =
 #endif
 
    BCHP_HEVD_PCACHE_0_MODE0,             /* uiAVD_PcacheMode */
+#ifdef BCHP_HEVD_PCACHE_0_MODE0_Map8_MASK
+   BCHP_HEVD_PCACHE_0_MODE0_Map8_MASK,
+   BCHP_HEVD_PCACHE_0_MODE0_Map8_SHIFT,
+#else
+   (uint32_t) 0,
+   (uint32_t) 0,
+#endif
    BCHP_HEVD_PCACHE_0_MODE0_Ygran_MASK,  /* uiAVD_PcacheModeYGranMask */
    BCHP_HEVD_PCACHE_0_MODE0_Ygran_SHIFT, /* uiAVD_PcacheModeYGranShift */
    BCHP_HEVD_PCACHE_0_MODE0_Xgran_MASK,  /* uiAVD_PcacheModeXGranMask */
@@ -325,6 +332,13 @@ static const BXVD_P_PlatformReg_RevT0 s_stPlatformReg_HVD1RevT0 =
 #endif
 
    BCHP_HEVD_PCACHE_1_MODE0,             /* uiAVD_PcacheMode */
+#ifdef BCHP_HEVD_PCACHE_0_MODE0_Map8_MASK
+   BCHP_HEVD_PCACHE_0_MODE0_Map8_MASK,
+   BCHP_HEVD_PCACHE_0_MODE0_Map8_SHIFT,
+#else
+   (uint32_t) 0,
+   (uint32_t) 0,
+#endif
    BCHP_HEVD_PCACHE_0_MODE0_Ygran_MASK,  /* uiAVD_PcacheModeYGranMask */
    BCHP_HEVD_PCACHE_0_MODE0_Ygran_SHIFT, /* uiAVD_PcacheModeYGranShift */
    BCHP_HEVD_PCACHE_0_MODE0_Xgran_MASK,  /* uiAVD_PcacheModeXGranMask */
@@ -490,6 +504,13 @@ static const BXVD_P_PlatformReg_RevT0 s_stPlatformReg_HVD0RevT0 =
 #endif
 
    BCHP_HEVD_PCACHE_0_MODE0,             /* uiAVD_PcacheMode */
+#ifdef BCHP_HEVD_PCACHE_0_MODE0_Map8_MASK
+   BCHP_HEVD_PCACHE_0_MODE0_Map8_MASK,
+   BCHP_HEVD_PCACHE_0_MODE0_Map8_SHIFT,
+#else
+   (uint32_t) 0,
+   (uint32_t) 0,
+#endif
    BCHP_HEVD_PCACHE_0_MODE0_Ygran_MASK,  /* uiAVD_PcacheModeYGranMask */
    BCHP_HEVD_PCACHE_0_MODE0_Ygran_SHIFT, /* uiAVD_PcacheModeYGranShift */
    BCHP_HEVD_PCACHE_0_MODE0_Xgran_MASK,  /* uiAVD_PcacheModeXGranMask */
@@ -1120,10 +1141,15 @@ static void BXVD_P_DetermineGroupagePCacheSettings(BXVD_Handle hXvd,
 
    uiPCacheVal = ( hXvd->uiAVD_PCacheRegVal &
                    (~(hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeYGranMask))&
-                   (~(hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeXGranMask)));
+                   (~(hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeXGranMask))&
+                   (~(hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeMap8Mask)));
 
    hXvd->uiAVD_PCacheRegVal = uiPCacheVal | ((uiYGran << hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeYGranShift) |
+#ifdef BCHP_HEVD_PCACHE_0_MODE0_Map8_MASK
+                                             ((hXvd->scbMapVer == BCHP_ScbMapVer_eMap8) << hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeMap8Shift) |
+#endif
                                              (uiXGran << hXvd->stPlatformInfo.stReg.uiAVD_PcacheModeXGranShift));
+
 }
 #endif
 

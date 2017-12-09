@@ -13,6 +13,7 @@
 
 #include <stdbool.h>
 #include <semaphore.h>
+#include <pthread.h>
 
 /*
  * DisplayFramework is a generic implementation of an animation loop
@@ -57,6 +58,7 @@ typedef struct DisplayFramework
    const FenceInterface     *fence_interface;
    const SurfaceInterface   *surface_interface;
    BEGL_WindowInfo           window_info;
+   pthread_mutex_t           window_mutex;
 
    pthread_t                 thread;
    pthread_barrier_t         barrier;
@@ -71,6 +73,12 @@ bool DisplayFramework_Start(DisplayFramework *df,
       uint32_t width, uint32_t height, uint32_t swapchain_count);
 
 void DisplayFramework_Stop(DisplayFramework *df);
+
+void DisplayFramework_GetSize(DisplayFramework *df,
+      uint32_t *width, uint32_t *height);
+
+void DisplayFramework_SetSize(DisplayFramework *df,
+      uint32_t width, uint32_t height);
 
 void *DisplayFramework_GetNextSurface(DisplayFramework *df,
       BEGL_BufferFormat format, bool secure, int *fence);

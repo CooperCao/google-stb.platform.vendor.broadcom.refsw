@@ -287,6 +287,23 @@ end:
     return errCode;
 }
 
+static void BDSP_Arm_P_CloseUserApp(
+    BDSP_Arm *pDevice
+)
+{
+    BDBG_ENTER(BDSP_Arm_P_CloseUserApp);
+
+    BTEE_Connection_Close(pDevice->armDspApp.hConnection);
+
+    /* Close the application */
+    BTEE_Application_Close(pDevice->armDspApp.hApplication);
+
+    /* Close the ArmDsp Client */
+    BTEE_Client_Destroy(pDevice->armDspApp.hClient);
+
+    BDBG_LEAVE(BDSP_Arm_P_CloseUserApp);
+}
+
 BERR_Code BDSP_Arm_P_CheckDspAlive(
     BDSP_Arm *pDevice
 )
@@ -516,6 +533,15 @@ static void BDSP_Arm_P_InitDevice(
             pDevice->taskDetails[dspindex].numActiveTasks= 0;
         }
     }
+
+	errCode = BDSP_P_PopulateSystemSchedulingDeatils(&pDevice->systemSchedulingInfo);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Arm_P_InitDevice: Unable to Program the System Scheduling Information"));
+		errCode = BERR_TRACE(errCode);
+		BDBG_ASSERT(0);
+	}
+
     BDBG_LEAVE(BDSP_Arm_P_InitDevice);
 }
 
@@ -562,7 +588,7 @@ static BERR_Code BDSP_Arm_P_ProgramRDB(
     pAddr = (dramaddr_t *)pDevice->memInfo.sIOMemoryPool[dspIndex].Memory.pAddr;
 
     /* Program the size of the FMM Register access */
-    pAddr[BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_HOST2DSPCMD_FIFO0_BASEADDR] = BDSP_SIZE_OF_FMMREG;
+    pAddr[BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_REGISTER_WIDTH] = BDSP_SIZE_OF_FMMREG;
 
     /*Program the FIFO ID of Host2DSP command Queue Fifo ID */
     offset = pDevice->memInfo.CfgRegisters[dspIndex].Buffer.offset;
@@ -906,6 +932,8 @@ void BDSP_Arm_P_Close(
         BDSP_FreeExternalInterrupt(&pArmExtInterrput->extInterrupt);
     }*/
 
+	BDSP_Arm_P_CloseUserApp(pDevice);
+
     for(dspIndex = 0; dspIndex< pDevice->numDsp; dspIndex++)
     {
         errCode = BDSP_P_DestroyMsgQueue(pDevice->hCmdQueue[dspIndex]);
@@ -1109,9 +1137,6 @@ BERR_Code BDSP_Arm_P_CreateTask(
     pArmTask->pContext = pArmContext;
     pArmTask->createSettings = *pSettings;
 
-    BDBG_ERR(("Reassigning the dspIndex from (%d) to (%d)", pSettings->dspIndex, (pSettings->dspIndex - 6)));
-    pArmTask->createSettings.dspIndex = 0;
-
     BDSP_P_InitTask(&pArmTask->task, pArmTask);
 
     pArmTask->task.destroy = BDSP_Arm_P_DestroyTask;
@@ -1121,13 +1146,13 @@ BERR_Code BDSP_Arm_P_CreateTask(
     pArmTask->task.retreiveGateOpenSettings = NULL;
     if (pArmContext->settings.contextType == BDSP_ContextType_eAudio)
     {
-        pArmTask->task.pause= BDSP_Arm_P_Pause;
+        pArmTask->task.pause  = BDSP_Arm_P_Pause;
         pArmTask->task.resume = BDSP_Arm_P_Resume;
-        pArmTask->task.advance = BDSP_Arm_P_Advance;
+        pArmTask->task.advance= BDSP_Arm_P_Advance;
         pArmTask->task.getAudioInterruptHandlers_isr = BDSP_Arm_P_GetTaskInterruptHandlers_isr;
         pArmTask->task.setAudioInterruptHandlers_isr = BDSP_Arm_P_SetTaskInterruptHandlers_isr;
         pArmTask->task.audioGapFill = BDSP_Arm_P_AudioGapFill;
-        pArmTask->task.freeze = BDSP_Arm_P_Freeze;
+        pArmTask->task.freeze   = BDSP_Arm_P_Freeze;
         pArmTask->task.unfreeze = BDSP_Arm_P_UnFreeze;
     }
     else
@@ -1375,7 +1400,11 @@ BERR_Code BDSP_Arm_P_StartTask(
         goto end;
     }
 
-	errCode = BDSP_P_PopulateSchedulingInfo(&pArmTask->startSettings, pArmTask->pContext->settings.contextType, &sPayload);
+	errCode = BDSP_P_PopulateSchedulingInfo(
+			&pArmTask->startSettings,
+			pArmTask->pContext->settings.contextType,
+			&pArmTask->pContext->pDevice->systemSchedulingInfo,
+			&sPayload);
     if (BERR_SUCCESS != errCode)
     {
         BDBG_ERR(("BDSP_Arm_P_StartTask: Unable to populate Scheduling Info for Task %d",pArmTask->taskParams.taskId));
@@ -2017,7 +2046,7 @@ BERR_Code BDSP_Arm_P_GetDatasyncSettings_isr(
 	BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
 	BDBG_ASSERT(pSettingsBuffer);
 
-	BDSP_MMA_P_CopyDataFromDram((void *)pSettingsBuffer, &pArmStage->stageMemInfo.sDataSyncSettings.Buffer, sizeof(BDSP_AudioTaskDatasyncSettings));
+	BDSP_MMA_P_CopyDataFromDram_isr((void *)pSettingsBuffer, &pArmStage->stageMemInfo.sDataSyncSettings.Buffer, sizeof(BDSP_AudioTaskDatasyncSettings));
 
 	BDBG_LEAVE(BDSP_Arm_P_GetDatasyncSettings_isr);
 	return errCode;
@@ -2070,7 +2099,7 @@ BERR_Code BDSP_Arm_P_GetTsmSettings_isr(
 	BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
 	BDBG_ASSERT(pSettingsBuffer);
 
-	BDSP_MMA_P_CopyDataFromDram((void *)pSettingsBuffer, &pArmStage->stageMemInfo.sTsmSettings.Buffer, sizeof(BDSP_AudioTaskTsmSettings));
+	BDSP_MMA_P_CopyDataFromDram_isr((void *)pSettingsBuffer, &pArmStage->stageMemInfo.sTsmSettings.Buffer, sizeof(BDSP_AudioTaskTsmSettings));
 
 	BDBG_LEAVE(BDSP_Arm_P_GetTsmSettings_isr);
 	return errCode;
@@ -2090,7 +2119,7 @@ BERR_Code BDSP_Arm_P_SetTsmSettings_isr(
 
 	BDSP_MMA_P_CopyDataToDram_isr(&pArmStage->stageMemInfo.sTsmSettings.Buffer, (void *)pSettingsBuffer, sizeof(BDSP_AudioTaskTsmSettings));
 	BDBG_MSG(("TSM RE-CONFIG"));
-	BDSP_P_Analyse_CIT_TSMConfig(pArmStage->stageMemInfo.sTsmSettings.Buffer);
+	BDSP_P_Analyse_CIT_TSMConfig_isr(pArmStage->stageMemInfo.sTsmSettings.Buffer);
 	if(pArmStage->running)
 	{
 		BDSP_ArmTask  *pArmTask = pArmStage->pArmTask;

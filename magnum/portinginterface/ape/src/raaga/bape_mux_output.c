@@ -704,6 +704,10 @@ static BERR_Code BAPE_MuxOutput_P_ApplyDspSettings(
                                          hMuxOutput->nonRealTimeIncrement.IncTrigger == 0 ) ? BDSP_AF_P_eEnable /* RT */ : BDSP_AF_P_eDisable /* NRT */;
         userConfig.eStcItbEntryEnable = BDSP_AF_P_eEnable;  /* Always enable the per-frame STC ITB entry */
 
+        if (userConfig.eSnapshotRequired == BDSP_AF_P_eEnable) {
+            userConfig.ui64AVSTCOffset = hMuxOutput->startSettings.initialStc * (27000/45);
+        }
+
         errCode = BDSP_Stage_SetSettings(hMuxOutput->hStage, &userConfig, sizeof(userConfig));
         if ( errCode )
         {
@@ -844,7 +848,9 @@ void BAPE_MuxOutput_Stop(
 
     BDBG_MSG(("BAPE_MuxOutput_Stop"));
     hMuxOutput->state = BAPE_MuxOutputState_Stopped;
-    hMuxOutput->sendEos = true;
+    if (hMuxOutput->settings.sendEos) { /* User can set to ignore sending the EOS on stop */
+        hMuxOutput->sendEos = true;
+    }
 
     errCode = BAPE_MuxOutput_P_ApplyDspSettings(hMuxOutput);
     if ( errCode )
@@ -852,6 +858,37 @@ void BAPE_MuxOutput_Stop(
         (void)BERR_TRACE(errCode);
         return;
     }
+}
+
+void BAPE_MuxOutput_GetDefaultSettings(
+    BAPE_MuxOutputSettings *pSettings    /* [out] Settings */
+    )
+{
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->sendEos = true;
+}
+
+void BAPE_MuxOutput_GetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_MuxOutputSettings *pSettings
+    )
+{
+    BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memcpy(pSettings, &hMuxOutput->settings, sizeof(BAPE_MuxOutputSettings));
+}
+
+
+BERR_Code BAPE_MuxOutput_SetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    const BAPE_MuxOutputSettings *pSettings
+    )
+{
+    BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memcpy(&hMuxOutput->settings, pSettings, sizeof(BAPE_MuxOutputSettings));
+    return BERR_SUCCESS;
 }
 
 BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
@@ -2555,6 +2592,34 @@ void BAPE_MuxOutput_Stop(
 {
     BSTD_UNUSED(hMuxOutput);
 }
+
+void BAPE_MuxOutput_GetDefaultSettings(
+    BAPE_MuxOutputSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+void BAPE_MuxOutput_GetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_MuxOutputSettings *pSettings
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pSettings);
+}
+
+
+BERR_Code BAPE_MuxOutput_SetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    const BAPE_MuxOutputSettings *pSettings
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
 
 BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
     BAPE_MuxOutputHandle hMuxOutput,

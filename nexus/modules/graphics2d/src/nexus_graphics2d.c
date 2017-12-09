@@ -249,12 +249,12 @@ NEXUS_Graphics2DHandle NEXUS_Graphics2D_Open(unsigned index, const NEXUS_Graphic
 
     if (index == NEXUS_ANY_ID) {
         for(index=0;index<NEXUS_NUM_GRAPHICS2D_CORES;index++) {
-            if(pSettings->mode == (NEXUS_Graphics2DMode)BGRC_GetMode(index))  break;
+            if(pSettings->mode == (NEXUS_Graphics2DMode)BGRC_GetMode_isrsafe(index))  break;
         }
     }
     else
     {
-        if(pSettings->mode != (NEXUS_Graphics2DMode)BGRC_GetMode(index)) {
+        if(pSettings->mode != (NEXUS_Graphics2DMode)BGRC_GetMode_isrsafe(index)) {
             BDBG_WRN(("failed to open m2mc[%d] mode %s: blit/mipmap mode unmatch", index,
                 (pSettings->mode==NEXUS_Graphics2DMode_eBlitter)?"Blitter":"Mipmap"));
             (void)BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL;
@@ -1637,4 +1637,13 @@ void NEXUS_Graphics2D_GetCapabilities(NEXUS_Graphics2DHandle handle, NEXUS_Graph
     pCapabilities->maxVerticalDownScale = capabilities.ulMaxVerDownSclRatio;
     pCapabilities->maxHorizontalDownScale = capabilities.ulMaxHrzDownSclRatio;
     return;
+}
+
+bool NEXUS_Graphics2D_MipmapModeSupported_isrsafe(void)
+{
+    unsigned index;
+    for(index=0;index<NEXUS_NUM_GRAPHICS2D_CORES;index++) {
+        if ((NEXUS_Graphics2DMode)BGRC_GetMode_isrsafe(index) == NEXUS_Graphics2DMode_eMipmap) return true;
+    }
+    return false;
 }

@@ -399,6 +399,11 @@ typedef struct {
    bool (*remote_eglGetPlatformDisplayEXT)(EGLenum platform, void *native_display, const EGLint *attrib_list);
    bool (*remote_eglCreatePlatformWindowSurfaceEXT)(EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
    bool (*remote_eglCreatePlatformPixmapSurfaceEXT)(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
+#ifdef WAYLAND
+   bool (*remote_eglBindWaylandDisplayWL)(EGLDisplay dpy, struct wl_display *display);
+   bool (*remote_eglUnbindWaylandDisplayWL)(EGLDisplay dpy, struct wl_display *display);
+   bool (*remote_eglQueryWaylandBufferWL)(EGLDisplay dpy, struct wl_resource *buffer, EGLint attribute, EGLint *value);
+#endif
 
 } REMOTE_API_TABLE;
 
@@ -2222,7 +2227,11 @@ EGLAPI EGLBoolean EGLAPIENTRY eglImageUpdateParameteriBRCM(EGLDisplay dpy, EGLIm
 EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplayEXT(EGLenum platform, void *native_display, const EGLint *attrib_list) EGLDisplayFunc(eglGetPlatformDisplayEXT, (platform, native_display, attrib_list))
 EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT(EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list) EGLSurfaceFunc(eglCreatePlatformWindowSurfaceEXT, (dpy, config, native_window, attrib_list))
 EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list) EGLSurfaceFunc(eglCreatePlatformPixmapSurfaceEXT, (dpy, config, native_pixmap, attrib_list))
-
+#ifdef WAYLAND
+EGLAPI EGLBoolean EGLAPIENTRY eglBindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display) EGLBooleanFunc(eglBindWaylandDisplayWL, (dpy, display))
+EGLAPI EGLBoolean EGLAPIENTRY eglUnbindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display) EGLBooleanFunc(eglUnbindWaylandDisplayWL, (dpy, display))
+EGLAPI EGLBoolean EGLAPIENTRY eglQueryWaylandBufferWL(EGLDisplay dpy, struct wl_resource *buffer, EGLint attribute, EGLint *value) EGLBooleanFunc(eglQueryWaylandBufferWL, (dpy, buffer, attribute, value))
+#endif
 EGLAPI __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddress(const char *procname)
 {
    return Real(eglGetProcAddress)(procname);
@@ -2648,6 +2657,11 @@ void khrn_init_api_interposer(void)
       HOOK(eglGetPlatformDisplayEXT);
       HOOK(eglCreatePlatformWindowSurfaceEXT);
       HOOK(eglCreatePlatformPixmapSurfaceEXT);
+#ifdef WAYLAND
+      HOOK(eglBindWaylandDisplayWL);
+      HOOK(eglUnbindWaylandDisplayWL);
+      HOOK(eglQueryWaylandBufferWL);
+#endif
 
 #ifndef BCG_MULTI_THREADED
       vcos_mutex_create( &mu_commlock, "LogCommLock" );

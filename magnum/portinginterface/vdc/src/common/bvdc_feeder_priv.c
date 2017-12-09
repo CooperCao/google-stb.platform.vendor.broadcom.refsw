@@ -2249,6 +2249,7 @@ static BERR_Code BVDC_P_Feeder_SetFormatCtrl_isr
 
         /* Set MFD_0_CHROMA_SAMPLING_CNTL, MFD_0_CHROMA_REPOSITION_DERING_ENABLE */
         BVDC_P_Feeder_SetChromaRepEnable_isr(hFeeder, pFieldData);
+        BVDC_P_Feeder_ParseColorSpace_isr(pFieldData, &hFeeder->hSource->bPqNcl);
     }
 
     return BERR_SUCCESS;

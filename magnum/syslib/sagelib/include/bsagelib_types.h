@@ -388,7 +388,12 @@ enum {
 };
 
 
-/* List of ModuleId for each loaderable TA */
+/* Secure Storage Device client module ID */
+enum SSD_Client_ModuleId_e {
+    SSD_ModuleId_eClient = 0x55D
+};
+
+/* List of ModuleId for each loadable TA */
 enum adobe_module {
     Adobe_ModuleId_eDRM = 0x01
 };

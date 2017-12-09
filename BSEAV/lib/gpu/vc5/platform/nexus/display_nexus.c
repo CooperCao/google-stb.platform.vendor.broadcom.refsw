@@ -13,6 +13,7 @@
 #include "display_interface.h"
 #include "display_framework.h"
 #include "../common/surface_interface_nexus.h"
+#include "../common/nexus_heap_selection.h"
 
 #include "display_nexus_exclusive.h"
 #include "display_nexus_multi.h"
@@ -95,27 +96,86 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
    /* TODO : figure out if we can actually verify the surface as a valid NEXUS handle */
    if (s != NULL && (void*)s != (void*)0xFFFFFFFF && info != NULL)
    {
-      NEXUS_SurfaceStatus surfStatus;
-      NEXUS_Surface_GetStatus(s->surface, &surfStatus);
+      if (s->format == BEGL_BufferFormat_eSAND8 || s->format == BEGL_BufferFormat_eSAND10)
+      {
+         if (s->surface == NULL)
+            return BEGL_Fail;
 
-      NEXUS_SurfaceMemory surfMemory;
-      NEXUS_Surface_GetMemory(s->surface, &surfMemory);
+         NEXUS_StripedSurfaceCreateSettings cs;
+         NEXUS_StripedSurface_GetCreateSettings((NEXUS_StripedSurfaceHandle)s->surface, &cs);
 
-      NEXUS_SurfaceCreateSettings surfSettings;
-      NEXUS_Surface_GetCreateSettings(s->surface, &surfSettings);
+         NEXUS_Addr lumaPhys, chromaPhys;
+         NEXUS_MemoryBlock_LockOffset(cs.lumaBuffer, &lumaPhys);
 
-      info->width          = surfStatus.width;
-      info->height         = surfStatus.height;
-      info->pitchBytes     = surfStatus.pitch;
-      info->physicalOffset = s->physicalOffset;
-      info->cachedAddr     = s->cachedPtr;
-      info->byteSize       = surfMemory.bufferSize;
-      info->miplevels      = surfSettings.mipLevel + 1;
+         if (cs.chromaBuffer == cs.lumaBuffer)
+            chromaPhys = lumaPhys;
+         else
+            NEXUS_MemoryBlock_LockOffset(cs.chromaBuffer, &chromaPhys);
 
-      ok = NexusToBeglFormat(&info->format, surfStatus.pixelFormat);
+         uint32_t byteWidth = cs.stripedWidth * (cs.imageWidth + cs.stripedWidth - 1) / cs.stripedWidth;
 
-      /* sanity check */
-      assert(s->format == info->format);
+         info->format         = s->format;
+         info->colorimetry    = s->colorimetry;
+         info->width          = cs.imageWidth;
+         info->height         = cs.imageHeight;
+         info->pitchBytes     = 0;
+         info->contiguous     = true;   // Nexus surfaces are always contiguous
+         info->physicalOffset = lumaPhys + cs.lumaBufferOffset;
+         info->chromaOffset   = chromaPhys + cs.chromaBufferOffset;
+         info->cachedAddr     = NULL;   // Sand video can't be mapped
+         info->secure         = false;  // TODO : I can't find a way to determine this here
+         info->miplevels           = 1;
+         info->stripeWidth         = cs.stripedWidth;
+         info->lumaStripedHeight   = cs.lumaStripedHeight;
+         info->chromaStripedHeight = cs.chromaStripedHeight;
+         if (cs.chromaBuffer == cs.lumaBuffer)
+         {
+            info->lumaAndChromaInSameAllocation = true;
+            info->chromaByteSize = byteWidth * cs.chromaStripedHeight;
+            // byteSize represents the combined luma/chroma buffer when lumaAndChromaInSameAllocation
+            info->byteSize = info->chromaOffset - info->physicalOffset + info->chromaByteSize;
+         }
+         else
+         {
+            info->lumaAndChromaInSameAllocation = false;
+            // When chroma & luma are in different allocations, byteSize is just for luma
+            info->byteSize = byteWidth * cs.lumaStripedHeight;
+            info->chromaByteSize = byteWidth * cs.chromaStripedHeight;
+         }
+
+         NEXUS_MemoryBlock_UnlockOffset(cs.lumaBuffer);
+         if (cs.chromaBuffer == cs.lumaBuffer)
+            NEXUS_MemoryBlock_UnlockOffset(cs.chromaBuffer);
+
+         ok = true;
+      }
+      else
+      {
+         NEXUS_SurfaceStatus surfStatus;
+         NEXUS_Surface_GetStatus(s->surface, &surfStatus);
+
+         NEXUS_SurfaceMemory surfMemory;
+         NEXUS_Surface_GetMemory(s->surface, &surfMemory);
+
+         NEXUS_SurfaceCreateSettings surfSettings;
+         NEXUS_Surface_GetCreateSettings(s->surface, &surfSettings);
+
+         info->colorimetry    = s->colorimetry;
+         info->width          = surfStatus.width;
+         info->height         = surfStatus.height;
+         info->pitchBytes     = surfStatus.pitch;
+         info->contiguous     = true; // Nexus surfaces are always contiguous
+         info->physicalOffset = s->physicalOffset;
+         info->cachedAddr     = s->cachedPtr;
+         info->secure         = surfMemory.buffer == NULL;
+         info->byteSize       = surfMemory.bufferSize;
+         info->miplevels      = surfSettings.mipLevel + 1;
+
+         ok = NexusToBeglFormat(&info->format, surfStatus.pixelFormat);
+
+         /* sanity check */
+         assert(s->format == info->format);
+      }
    }
 
    return ok ? BEGL_Success : BEGL_Fail;
@@ -187,49 +247,6 @@ static BEGL_Error DispCancelSurface(void *context, void *nativeWindow, void *nat
       return BEGL_Fail;
 }
 
-static bool  DisplayPlatformSupported(void *context, uint32_t platform)
-{
-   BSTD_UNUSED(context);
-   return platform == EGL_PLATFORM_NEXUS_BRCM;
-}
-
-static bool DispSetDefaultDisplay(void *context, void *display)
-{
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-   NXPL_DisplayContext    *ctx = (NXPL_DisplayContext *)context;
-
-   if (display == NULL || display == (void*)0xFFFFFFFF)
-      return false;
-
-   ctx->display = display;
-#endif
-
-   return true;
-}
-
-static void *DispGetDefaultDisplay(void *context)
-{
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-   NXPL_DisplayContext    *ctx = (NXPL_DisplayContext *)context;
-   if (ctx->display == NULL)
-   {
-      /* Headless display mode has a NULL display, but that would map to EGL_NO_DISPLAY during
-         eglGetDisplay, so fake up a display id */
-      return (void *)1;
-   }
-   else
-      return ctx->display;
-
-#else
-   return (void *)1;
-#endif
-}
-
-static const char *GetClientExtensions(void *context)
-{
-   BSTD_UNUSED(context);
-   return "EGL_BRCM_platform_nexus";
-}
 
 /* This is passed a NXPL_NativeWindow, generated from NXPL_CreateNativeWindow() and
    wraps it into an opaque type which can be used elsewhere as a window surface */
@@ -310,7 +327,7 @@ BEGL_DisplayInterface *CreateDisplayInterface(
       NXPL_DisplayContext *ctx,
       struct BEGL_SchedInterface *schedIface)
 {
-   BEGL_DisplayInterface   *disp = (BEGL_DisplayInterface*)malloc(sizeof(BEGL_DisplayInterface));
+   BEGL_DisplayInterface *disp = (BEGL_DisplayInterface*)malloc(sizeof(BEGL_DisplayInterface));
 
    if (disp != NULL)
    {
@@ -334,10 +351,6 @@ BEGL_DisplayInterface *CreateDisplayInterface(
          disp->GetNextSurface             = DispGetNextSurface;
          disp->DisplaySurface             = DispDisplaySurface;
          disp->CancelSurface              = DispCancelSurface;
-         disp->PlatformSupported          = DisplayPlatformSupported;
-         disp->SetDefaultDisplay          = DispSetDefaultDisplay;
-         disp->GetDefaultDisplay          = DispGetDefaultDisplay;
-         disp->GetClientExtensions        = GetClientExtensions;
          disp->WindowPlatformStateCreate  = DispWindowPlatformStateCreate;
          disp->WindowPlatformStateDestroy = DispWindowPlatformStateDestroy;
       }
@@ -553,8 +566,6 @@ uint32_t NXPL_GetClientID(void *native)
 
 #endif /* NXPL_PLATFORM_EXCLUSIVE */
 
-
-
 void NXPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
 {
    if (info != NULL)
@@ -565,6 +576,14 @@ void NXPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
       info->miplevels = 1;
       info->magic     = PIXMAP_INFO_MAGIC;
    }
+}
+
+void NXPL_SetStripedSurface(void *pixmapHandle, NEXUS_StripedSurfaceHandle striped,
+                            BEGL_Colorimetry srcColorimetry)
+{
+   NXPL_Surface *s = (NXPL_Surface*)pixmapHandle;
+   s->surface      = (NEXUS_SurfaceHandle)striped;
+   s->colorimetry  = srcColorimetry;
 }
 
 bool NXPL_CreateCompatiblePixmapEXT(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SurfaceHandle *surface, BEGL_PixmapInfoEXT *info)

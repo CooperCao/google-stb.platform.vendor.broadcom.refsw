@@ -64,8 +64,10 @@ typedef struct {
 	uint8 lna2_gm_ind_2g_tbl[N_LNA12_GAINS];
 	uint8 lna2_gm_ind_5g_tbl[N_LNA12_GAINS];
 	int8 gainlimit_tbl[RXGAIN_CONF_ELEMENTS][MAX_RX_GAINS_PER_ELEM];
-	int8 tia_gain_tbl[N_TIA_GAINS];
-	int8 tia_gainbits_tbl[N_TIA_GAINS];
+	int8 tia_gain_2g_tbl[N_TIA_GAINS];
+	int8 tia_gain_5g_tbl[N_TIA_GAINS];
+	int8 tia_gainbits_2g_tbl[N_TIA_GAINS];
+	int8 tia_gainbits_5g_tbl[N_TIA_GAINS];
 	int8 biq01_gain_tbl[2][N_BIQ01_GAINS];
 	int8 biq01_gainbits_tbl[2][N_BIQ01_GAINS];
 	int8 fast_agc_clip_gains[4];
@@ -126,8 +128,10 @@ typedef enum {
 	LNA12_GAIN_TBL_5G,
 	LNA12_GAIN_BITS_TBL_2G,
 	LNA12_GAIN_BITS_TBL_5G,
-	TIA_GAIN_TBL,
-	TIA_GAIN_BITS_TBL,
+	TIA_GAIN_TBL_2G,
+	TIA_GAIN_TBL_5G,
+	TIA_GAIN_BITS_TBL_2G,
+	TIA_GAIN_BITS_TBL_5G,
 	BIQ01_GAIN_TBL,
 	BIQ01_GAIN_BITS_TBL,
 	GAIN_LIMIT_TBL,
@@ -804,12 +808,20 @@ BCMATTACHFN(phy_ac_populate_rxg_params)(phy_ac_rxgcrs_info_t *rxgcrs_info)
 			}
 		}
 
-		/* TIA Gain and GainBits table */
-		memcpy(rxg_params->tia_gain_tbl,
-				phy_ac_get_rxg_param_tbl(pi, TIA_GAIN_TBL, 0),
+		/* TIA Gain and GainBits table (2G) */
+		memcpy(rxg_params->tia_gain_2g_tbl,
+				phy_ac_get_rxg_param_tbl(pi, TIA_GAIN_TBL_2G, 0),
 				sizeof(int8) * N_TIA_GAINS);
-		memcpy(rxg_params->tia_gainbits_tbl,
-				phy_ac_get_rxg_param_tbl(pi, TIA_GAIN_BITS_TBL, 0),
+		memcpy(rxg_params->tia_gainbits_2g_tbl,
+				phy_ac_get_rxg_param_tbl(pi, TIA_GAIN_BITS_TBL_2G, 0),
+				sizeof(int8) * N_TIA_GAINS);
+
+		/* TIA Gain and GainBits table (5G) */
+		memcpy(rxg_params->tia_gain_5g_tbl,
+				phy_ac_get_rxg_param_tbl(pi, TIA_GAIN_TBL_5G, 0),
+				sizeof(int8) * N_TIA_GAINS);
+		memcpy(rxg_params->tia_gainbits_5g_tbl,
+				phy_ac_get_rxg_param_tbl(pi, TIA_GAIN_BITS_TBL_5G, 0),
 				sizeof(int8) * N_TIA_GAINS);
 
 		/* Copy BIQ01 gain params to structure element */
@@ -1084,10 +1096,16 @@ uint8 ind_2d_tbl)
 			case LNA12_GAIN_BITS_TBL_5G:
 				return (void *)lna12_gainbits_tbl_5g_maj36[ind_2d_tbl];
 
-			case TIA_GAIN_TBL:
+			case TIA_GAIN_TBL_2G:
 				return (void *)tia_gain_tbl_maj36;
 
-			case TIA_GAIN_BITS_TBL:
+			case TIA_GAIN_TBL_5G:
+				return (void *)tia_gain_tbl_maj36;
+
+			case TIA_GAIN_BITS_TBL_2G:
+				return (void *)tia_gainbits_tbl_maj36;
+
+			case TIA_GAIN_BITS_TBL_5G:
 				return (void *)tia_gainbits_tbl_maj36;
 
 			case BIQ01_GAIN_TBL:
@@ -1176,11 +1194,17 @@ uint8 ind_2d_tbl)
 			case LNA12_GAIN_BITS_TBL_5G:
 				return (void *)lna12_gainbits_tbl_5g_maj40[ind_2d_tbl];
 
-			case TIA_GAIN_TBL:
-				return (void *)tia_gain_tbl_maj40;
+			case TIA_GAIN_TBL_2G:
+				return (void *)tia_gain_tbl_2g_maj40;
 
-			case TIA_GAIN_BITS_TBL:
-				return (void *)tia_gainbits_tbl_maj40;
+			case TIA_GAIN_TBL_5G:
+				return (void *)tia_gain_tbl_5g_maj40;
+
+			case TIA_GAIN_BITS_TBL_2G:
+				return (void *)tia_gainbits_tbl_2g_maj40;
+
+			case TIA_GAIN_BITS_TBL_5G:
+				return (void *)tia_gainbits_tbl_5g_maj40;
 
 			case BIQ01_GAIN_TBL:
 				return (void *)biq01_gain_tbl_maj40[ind_2d_tbl];
@@ -2568,7 +2592,7 @@ wlc_phy_rxgainctrl_encode_gain_acphy(phy_info_t *pi, uint8 core, int8 gain_dB,
 		if (IS_28NM_RADIO(pi)) {
 			if (i == 3) {
 				if (clipgain == INIT_GAIN) {
-					min_gains[i] = 28;
+					min_gains[i] = info->rxgainctrl_params[core].gaintbl[i][N_TIA_GAINS - 1];
 				}
 			}
 		}
@@ -2628,7 +2652,7 @@ wlc_phy_rxgainctrl_encode_gain_acphy(phy_info_t *pi, uint8 core, int8 gain_dB,
 			if (i == 3) {
 				if (clipgain == INIT_GAIN) {
 					gidx[i] = 15;
-					gain_this_stage =  28;
+					gain_this_stage = info->rxgainctrl_params[core].gaintbl[i][N_TIA_GAINS - 1];
 					gain_applied += gain_this_stage;
 					gain_needed = gain_needed - gain_this_stage;
 					gaintbl_len = 0;
@@ -7126,8 +7150,13 @@ wlc_phy_rxgainctrl_set_gaintbls_acphy_28nm_ulp(phy_info_t *pi,
 		ACPHY_GAINBITS_TBL_WIDTH, &rxg_params->farrow_shift);
 
 	/* Copy gains from params */
-	memcpy(tia, rxg_params->tia_gain_tbl, sizeof(int8) * N_TIA_GAINS);
-	memcpy(tiabits, rxg_params->tia_gainbits_tbl, sizeof(int8) * N_TIA_GAINS);
+	if (CHSPEC_IS2G(pi->radio_chanspec)) {
+		memcpy(tia, rxg_params->tia_gain_2g_tbl, sizeof(int8) * N_TIA_GAINS);
+		memcpy(tiabits, rxg_params->tia_gainbits_2g_tbl, sizeof(int8) * N_TIA_GAINS);
+	} else {
+		memcpy(tia, rxg_params->tia_gain_5g_tbl, sizeof(int8) * N_TIA_GAINS);
+		memcpy(tiabits, rxg_params->tia_gainbits_5g_tbl, sizeof(int8) * N_TIA_GAINS);
+	}
 
 	if (CHSPEC_IS2G(pi->radio_chanspec)) {
 		memcpy(lna1_gain, rxg_params->lna12_gain_2g_tbl[0], sizeof(int8) * N_LNA12_GAINS);
@@ -8518,13 +8547,48 @@ chanspec_setup_rxgcrs(phy_info_t *pi)
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37))
 				if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
 					uint8 i, core, offset;
+					uint32 gain_tblid;
 					// LNARout settings for ACI Mitigation
 					// 2G Backoff 12dB
-					const uint8 lna1_rout_map_2g_maj37_aci[N_LNA12_GAINS] = {  9,  9,  9,  9,  8, 10};
-					const uint8 lna1_gain_map_2g_maj37_aci[N_LNA12_GAINS] = {  0,  1,  2,  3,  4,  5};
+					const uint8 lna1_gainTable_2g_maj37_aci_bk12[N_LNA12_GAINS] = {-16, -11,  -6,  -1,   6,  11};
+					const uint8 lna1_rout_map_2g_maj37_aci_bk12[N_LNA12_GAINS]  = {  9,   9,   9,   9,   8,  10};
+					const uint8 lna1_gain_map_2g_maj37_aci_bk12[N_LNA12_GAINS]  = {  0,   1,   2,   3,   4,   5};
+					// 5G Backoff 8dB
+					const uint8 lna1_gainTable_5g_maj37_aci_bk8[N_LNA12_GAINS]  = {-13,  -8,  -3,   1,   6,  12};
+					const uint8 lna1_rout_map_5g_maj37_aci_bk8[N_LNA12_GAINS]   = {  5,   5,   5,   6,   5,   5};
+					const uint8 lna1_gain_map_5g_maj37_aci_bk8[N_LNA12_GAINS]   = {  1,   2,   3,   4,   5,   6};
 					// 5G Backoff 12dB
-					const uint8 lna1_rout_map_5g_maj37_aci[N_LNA12_GAINS] = { 11, 11, 11, 11, 11, 11};
-					const uint8 lna1_gain_map_5g_maj37_aci[N_LNA12_GAINS] = {  2,  3,  4,  5,  6,  7};
+					const uint8 lna1_gainTable_5g_maj37_aci_bk12[N_LNA12_GAINS] = {-18, -13,  -8,  -4,   2,   8};
+					const uint8 lna1_rout_map_5g_maj37_aci_bk12[N_LNA12_GAINS]  = { 11,  11,  11,  11,  11,  11};
+					const uint8 lna1_gain_map_5g_maj37_aci_bk12[N_LNA12_GAINS]  = {  2,   3,   4,   5,   6,   7};
+
+					const uint8 *lna1_rout_map_2g_maj37_aci;
+					const uint8 *lna1_gain_map_2g_maj37_aci;
+					const uint8 *lna1_rout_map_5g_maj37_aci;
+					const uint8 *lna1_gain_map_5g_maj37_aci;
+
+					const uint8 *lna1_gainTable_maj37_aci;
+					if (CHSPEC_IS2G(pi->radio_chanspec)) {
+						lna1_gainTable_maj37_aci = lna1_gainTable_2g_maj37_aci_bk12;
+					} else {
+						if (CHSPEC_IS20(pi->radio_chanspec)) {
+							lna1_gainTable_maj37_aci = lna1_gainTable_5g_maj37_aci_bk12;
+						} else {
+							// 40MHz or 80MHz
+							lna1_gainTable_maj37_aci = lna1_gainTable_5g_maj37_aci_bk8;
+						}
+					}
+
+					lna1_rout_map_2g_maj37_aci  = lna1_rout_map_2g_maj37_aci_bk12;
+					lna1_gain_map_2g_maj37_aci  = lna1_gain_map_2g_maj37_aci_bk12;
+					if (CHSPEC_IS20(pi->radio_chanspec)) {
+						lna1_rout_map_5g_maj37_aci	= lna1_rout_map_5g_maj37_aci_bk12;
+						lna1_gain_map_5g_maj37_aci	= lna1_gain_map_5g_maj37_aci_bk12;
+					} else {
+						// 40MHz or 80MHz
+						lna1_rout_map_5g_maj37_aci	= lna1_rout_map_5g_maj37_aci_bk8;
+						lna1_gain_map_5g_maj37_aci	= lna1_gain_map_5g_maj37_aci_bk8;
+					}
 
 					// Setup registers to reduce PER humps when ACI present
 					FOREACH_CORE(pi, core) {
@@ -8540,26 +8604,37 @@ chanspec_setup_rxgcrs(phy_info_t *pi)
 					}
 
 					FOREACH_CORE(pi, core) {
-					    // 2G
+					    // 2G LNARoutACI
 					    for (i = 0; i < N_LNA12_GAINS; i++) {
 					        p_phytbl7_8_buf[i] = (lna1_rout_map_2g_maj37_aci[i] << 3) |
 					                lna1_gain_map_2g_maj37_aci[i];
 					    }
-					    /* 2G index is 0->5 for core0 */
+					    // 2G index is 0->5 for core0
 					    offset = 0 + ACPHY_LNAROUT_CORE_WRT_OFST(pi, core);
 					    wlc_phy_table_write_acphy(pi, ACPHY_TBL_ID_LNAROUTLUTACI,
 					            N_LNA12_GAINS, offset, 8, p_phytbl7_8_buf);
-					}
-					FOREACH_CORE(pi, core) {
-					    // 5G
+
+					    // 5G LNARoutACI
 					    for (i = 0; i < N_LNA12_GAINS; i++) {
 					        p_phytbl7_8_buf[i] = (lna1_rout_map_5g_maj37_aci[i] << 3) |
 					                lna1_gain_map_5g_maj37_aci[i];
 					    }
-					    /* 5G index is 8->13 for core0 */
+					    // 5G index is 8->13 for core0
 					    offset = 8 + ACPHY_LNAROUT_CORE_WRT_OFST(pi, core);
 					    wlc_phy_table_write_acphy(pi, ACPHY_TBL_ID_LNAROUTLUTACI,
 					            N_LNA12_GAINS, offset, 8, p_phytbl7_8_buf);
+
+						// Update the LNA GainTableACI to match the modified LNARout
+						if (core == 0) {
+							gain_tblid =  ACPHY_TBL_ID_GAINACI0;
+						} else if (core == 1) {
+							gain_tblid =  ACPHY_TBL_ID_GAINACI1;
+						} else if (core == 2) {
+							gain_tblid =  ACPHY_TBL_ID_GAINACI2;
+						} else {
+							gain_tblid =  ACPHY_TBL_ID_GAINACI3;
+						}
+						wlc_phy_table_write_acphy(pi, gain_tblid, 6 /* length */, 8 /* offset */, 8 /* width */, lna1_gainTable_maj37_aci);
 					}
 				}
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37)) */
@@ -8618,7 +8693,7 @@ wlc_phy_rxgainctrl_set_gaintbls_acphy_28nm(phy_info_t *pi,
 		pi_ac->rxgcrsi->rxgainctrl_stage_len[ELNA_ID],
 		EXT_LNA_OFFSET, ACPHY_GAINDB_TBL_WIDTH, elna_gainlimits);
 
-	/* LNA1 settting already taken care of by upd_lna1_lna2_gains_acphy */
+	/* LNA1 setting already taken care of by upd_lna1_lna2_gains_acphy */
 
 	/* Put LNA1 bypass index in gainbits */
 	wlc_phy_table_write_acphy(pi, gainbits_tblid, 1,
@@ -8628,12 +8703,22 @@ wlc_phy_rxgainctrl_set_gaintbls_acphy_28nm(phy_info_t *pi,
 	phy_ac_upd_lna1_bypass(pi, core);
 	//}
 	/* TIA setting */
-	memcpy(tia, rxg_params->tia_gain_tbl, sizeof(int8) * N_TIA_GAINS);
-	memcpy(tiabits, rxg_params->tia_gainbits_tbl, sizeof(int8) * N_TIA_GAINS);
+	if (CHSPEC_IS2G(pi->radio_chanspec)) {
+		memcpy(tia, rxg_params->tia_gain_2g_tbl, sizeof(int8) * N_TIA_GAINS);
+		memcpy(tiabits, rxg_params->tia_gainbits_2g_tbl, sizeof(int8) * N_TIA_GAINS);
+	} else {
+		memcpy(tia, rxg_params->tia_gain_5g_tbl, sizeof(int8) * N_TIA_GAINS);
+		memcpy(tiabits, rxg_params->tia_gainbits_5g_tbl, sizeof(int8) * N_TIA_GAINS);
+	}
 	memcpy(tialimit, rxg_params->gainlimit_tbl[TIA_TBL_IND], sizeof(int8) * N_TIA_GAINS);
 	for (i = 0; i < 4; i++) {
-		tia[N_TIA_GAINS+i] = rxg_params->tia_gain_tbl[N_TIA_GAINS-1];
-		tiabits[N_TIA_GAINS+i] = rxg_params->tia_gainbits_tbl[N_TIA_GAINS-1];
+		if (CHSPEC_IS2G(pi->radio_chanspec)) {
+			tia[N_TIA_GAINS+i] = rxg_params->tia_gain_2g_tbl[N_TIA_GAINS-1];
+			tiabits[N_TIA_GAINS+i] = rxg_params->tia_gainbits_2g_tbl[N_TIA_GAINS-1];
+		} else {
+			tia[N_TIA_GAINS+i] = rxg_params->tia_gain_5g_tbl[N_TIA_GAINS-1];
+			tiabits[N_TIA_GAINS+i] = rxg_params->tia_gainbits_5g_tbl[N_TIA_GAINS-1];
+		}
 		tialimit[N_TIA_GAINS+i] = rxg_params->gainlimit_tbl[TIA_TBL_IND][N_TIA_GAINS-1];
 	}
 

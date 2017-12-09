@@ -322,7 +322,7 @@ void V3DPlatformNexusCommon::AllocateSwapchainImages(
          }
 
          gmem_handle_t external = gmem_from_external_memory(
-               nullptr, nullptr, offset, cpuAddr, memReq.size,
+               nullptr, nullptr, offset, cpuAddr, memReq.size, secure, /*contiguous=*/true,
                "VkSwapChainKHR Image");
 
          if (external == GMEM_HANDLE_INVALID)

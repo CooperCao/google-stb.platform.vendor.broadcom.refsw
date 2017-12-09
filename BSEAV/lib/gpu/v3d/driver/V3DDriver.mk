@@ -202,6 +202,7 @@ SOURCES = \
 	interface/khronos/ext/egl_khr_image_client.c \
 	interface/khronos/ext/egl_brcm_flush_client.c \
 	interface/khronos/ext/egl_brcm_driver_monitor_client.c \
+	interface/khronos/ext/egl_wl_bind_display_client.c \
 	interface/khronos/ext/ext_gl_oes_query_matrix.c \
 	interface/khronos/ext/ext_gl_oes_draw_texture.c \
 	interface/khronos/ext/ext_gl_debug_marker.c \
@@ -235,6 +236,7 @@ SOURCES = \
 	middleware/khronos/ext/gl_oes_draw_texture.c \
 	middleware/khronos/ext/egl_brcm_driver_monitor.c \
 	middleware/khronos/ext/egl_khr_image.c \
+	middleware/khronos/ext/egl_wl_bind_display.c \
 	middleware/khronos/gl11/2708/gl11_shader_4.c \
 	middleware/khronos/gl11/2708/gl11_shadercache_4.c \
 	middleware/khronos/gl11/2708/gl11_support_4.c \

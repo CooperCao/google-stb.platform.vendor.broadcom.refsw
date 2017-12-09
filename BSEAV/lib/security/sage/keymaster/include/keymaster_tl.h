@@ -258,8 +258,7 @@ typedef struct KeymasterTl_AttestKeySettings {
     KeymasterTl_DataBlock in_key_blob;
     KM_Tag_ContextHandle in_params;
     km_cert_chain_t out_cert_chain;
-    uint8_t *out_cert_chain_buffer;
-    uint32_t out_cert_chain_buffer_len;
+    KeymasterTl_DataBlock out_cert_chain_buffer;
 } KeymasterTl_AttestKeySettings;
 
 /***************************************************************************

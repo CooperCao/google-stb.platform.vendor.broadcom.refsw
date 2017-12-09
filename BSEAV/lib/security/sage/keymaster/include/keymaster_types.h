@@ -400,7 +400,14 @@ typedef struct {
 /* Block to receive km_tag_value_set_t must be this size */
 #define KM_TAG_VALUE_BLOCK_SIZE     (4096)
 
-#define KM_TAG_MAX_SECURE_IDS       (32)
+/* Used in km_secure_nonce_t */
+#define KM_NONCE_HMAC_KEY_SIZE      8
+
+#define KM_RSA_MAX_KEY_SIZE         3072    /* generate is limited to 1024 */
+
+#define KM_HMAX_MAX_KEY_SIZE        512
+
+#define KM_HMAC_MIN_MAC_LENGTH_BITS 64
 
 #define KM_SHA256_DIGEST_SIZE       (32)
 
@@ -417,7 +424,7 @@ typedef struct {
 typedef struct {
     uint64_t challenge;
     uint64_t counter;
-    uint32_t hmac_key[8];
+    uint32_t hmac_key[KM_NONCE_HMAC_KEY_SIZE];
 } km_secure_nonce_t;
 
 /* Variable size structure to store a keymaster key blob */

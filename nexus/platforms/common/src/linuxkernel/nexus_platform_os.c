@@ -63,6 +63,15 @@
 #include <linux/mm.h>
 #include <linux/kmod.h>
 #include <linux/sched.h>
+
+#define LINUX_EXTRAVERSION(MAJOR,MINOR) ((MAJOR)<<8 | (MINOR))
+#define LINUX_EXTRAVERSION_CODE LINUX_EXTRAVERSION(LINUX_EXTRAVERSION_MAJOR,LINUX_EXTRAVERSION_MINOR)
+
+#if NEXUS_CPU_ARM || NEXUS_CPU_ARM64
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)) || (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,28) && LINUX_EXTRAVERSION_CODE >= LINUX_EXTRAVERSION(1,13))
+#define USE_LIBFDT 1
+#endif
+#endif
 #if USE_LIBFDT
 #include "libfdt.h"
 #include <linux/of_fdt.h>
@@ -152,9 +161,18 @@ interrupt code.
 typedef void (*b_bare_os_special_interrupt_handler)(int linux_irq);
 #define BDBG_MSG_IRQ(X) /*BDBG_MSG(X)*/
 
+#if NEXUS_CPU_ARM || LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
+/*
+MIPS 3.3 and 3.14 uses old API's. MIPS 4.1 and beyond uses new API's.
+All ARM (3.8 and beyond) uses new API's.
+So, for purposes of this code, we'll call these new API's ARM_LINUX_APIS.
+*/
+#define ARM_LINUX_APIS 1
+#endif
+
 #define NUM_IRQS (32*NEXUS_NUM_L1_REGISTERS)
 /* b_bare_os L1 interrupts are 0-based. linux is 1-based. */
-#if NEXUS_CPU_ARM || (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1))
+#if ARM_LINUX_APIS
 #define LINUX_IRQ(i) (i+32)
 #define NEXUS_IRQ(i) (i-32)
 #else
@@ -279,7 +297,7 @@ void NEXUS_Platform_P_UninitOSMem()
     /* nothing required */
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
+#if ARM_LINUX_APIS
 #define NEXUS_PLATFORM_LINUX_PAGE_SIZE 4096
 #if BRCMSTB_H_VERSION < 4
 #include <linux/brcmstb/cma_driver.h>
@@ -343,7 +361,7 @@ void NEXUS_Platform_P_CmaVumap(void* virtAddr)
 #endif
     }
 }
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1) */
+#endif /* ARM_LINUX_APIS */
 
 /* IMPORTANT: the logic in NEXUS_Platform_P_MapMemory must be carefully paired with NEXUS_Platform_P_UnmapMemory */
 void *
@@ -352,7 +370,7 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_AddrType type
     void *addr = NULL;
     bool cached = type==NEXUS_AddrType_eCached;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
+#if ARM_LINUX_APIS
     /* TODO: use #if NEXUS_USE_CMA; provide non-cma mmap */
     addr = NEXUS_Platform_P_CmaVmap(offset, length, type==NEXUS_AddrType_eCached);
     if (!addr) {
@@ -466,7 +484,7 @@ NEXUS_Platform_P_UnmapMemory(void *pMem, size_t length, NEXUS_AddrType memoryMap
 void *
 NEXUS_Platform_P_MapRegisterMemory(unsigned long offset, unsigned long length)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
+#if ARM_LINUX_APIS
     void *addr = NULL;
     addr =  ioremap_nocache(offset, length);
     if (!addr) {
@@ -485,7 +503,7 @@ NEXUS_Platform_P_MapRegisterMemory(unsigned long offset, unsigned long length)
 void
 NEXUS_Platform_P_UnmapRegisterMemory(void *pMem, unsigned long length)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
+#if ARM_LINUX_APIS
     iounmap(pMem);
 #else
     return NEXUS_Platform_P_UnmapMemory(pMem, length, NEXUS_AddrType_eUncached);
@@ -1406,5 +1424,32 @@ bool NEXUS_Platform_P_IsOs64(void)
     return true;
 #else
     return false;
+#endif
+}
+
+bool NEXUS_Platform_P_LazyUnmap(void)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+    return false;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+#if LINUX_EXTRAVERSION_CODE >= LINUX_EXTRAVERSION(1,2)
+    return false;
+#else
+    return true;
+#endif
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
+#if LINUX_EXTRAVERSION_CODE >= LINUX_EXTRAVERSION(1,15)
+    return false;
+#else
+    return true;
+#endif
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
+#if LINUX_EXTRAVERSION_CODE >= LINUX_EXTRAVERSION(1,20)
+    return false;
+#else
+    return true;
+#endif
+#else
+    return true;
 #endif
 }

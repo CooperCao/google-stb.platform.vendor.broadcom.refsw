@@ -36,6 +36,8 @@
  * ANY LIMITED REMEDY.
  * ***************************************************************************/
 
+#include "bstd.h"           /* standard types */
+
 #if ( (BCHP_CHIP == 7278) && (BCHP_VER > BCHP_VER_A0 ) )
 #include "bvce_fw_api_v3.c"
 #else

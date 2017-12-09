@@ -210,7 +210,7 @@ const uint32_t BDSP_IMG_fadectrl_code_array1[] = {
 	0x2101400f,
 	0x740a0317,
 	0x0850021f,
-	0xe1cd371b,
+	0xe1d5371b,
 	0x07b2fe27,
 	0x3d8c0847,
 	0x726c0a4f,

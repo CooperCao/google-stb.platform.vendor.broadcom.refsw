@@ -592,7 +592,6 @@ typedef struct BDSP_AF_P_sPRIMARYSTAGE_INFO
     BDSP_P_MemoryInfo           sDataSyncStatusInfo;
     BDSP_P_MemoryInfo           sTsmStatusInfo;
     BDSP_P_MemoryInfo           sIdsCodeInfo;
-    char                        ui8LibName[BDSP_AF_P_MAX_LIB_NAME_SIZE]; /* IDS shared object name */
 }BDSP_AF_P_sPRIMARYSTAGE_INFO;
 
 typedef struct BDSP_AF_P_sSTAGE_CONFIG
@@ -610,7 +609,6 @@ typedef struct BDSP_AF_P_sSTAGE_CONFIG
     BDSP_P_MemoryInfo       sAlgoCodeInfo;
 
     BDSP_AF_P_sIOConfig     sIOConfig;
-    char                    ui8LibName[BDSP_AF_P_MAX_LIB_NAME_SIZE]; /* Algorithm shared object name */
 }BDSP_AF_P_sSTAGE_CONFIG;
 
 typedef struct BDSP_AF_P_sTASK_CONFIG

@@ -42,18 +42,26 @@ ifndef B_REFSW_TOP
 $(error B_REFSW_TOP must be defined)
 endif
 
-.PHONY: b_nxserver_target_dummy b_nxserver_target_build b_nxserver_target_clean
+ifneq ($(NXCLIENT_SUPPORT),y)
+    $(warning *** Error: NXCLIENT_SUPPORT is not enabled!)
+    $(warning *** Error: Package nxserver must be used with NXCLIENT_SUPPORT!)
+    $(error   Error: Giving up.)
+endif
 
+.PHONY: b_nxserver_target_dummy
 b_nxserver_target_dummy:
 	@echo "Error - please define your default rule before including any b_xxx_targets.inc files"
 	@false
 
+.PHONY: b_nxserver_target_build
 b_nxserver_target_build: $(B_NXSERVER_OTHER_BUILDS)
 	$(Q_)$(MAKE) -C $(B_REFSW_TOP)/nexus/nxclient/server $(sort $(B_NXSERVER_TARGET_MAKEFLAGS))
 
+.PHONY: b_nxserver_target_clean
 b_nxserver_target_clean: $(B_NXSERVER_OTHER_CLEANS)
 	$(Q_)$(MAKE) -C $(B_REFSW_TOP)/nexus/nxclient/server clean $(sort $(B_NXSERVER_TARGET_MAKEFLAGS))
 
+.PHONY: b_nxserver_target_clean_all
 b_nxserver_target_clean_all: b_nxserver_target_clean $(B_NXSERVER_OTHER_CLEAN_ALL)
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}

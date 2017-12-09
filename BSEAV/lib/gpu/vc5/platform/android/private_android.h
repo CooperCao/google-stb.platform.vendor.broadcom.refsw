@@ -11,11 +11,11 @@
 
 typedef struct
 {
+   BEGL_InitInterface      *initInterface;
    BEGL_MemoryInterface    *memoryInterface;
    BEGL_SchedInterface     *schedInterface;
    BEGL_DisplayInterface   *displayInterface;
 
    bool                     drm;
 } ANPL_InternalPlatformHandle;
-
 #endif /* __PRIVATE_ANDROID_H__ */

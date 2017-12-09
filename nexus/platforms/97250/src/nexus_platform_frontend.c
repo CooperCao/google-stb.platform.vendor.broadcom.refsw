@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -152,6 +152,10 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
             BDBG_WRN(("Opening %x...",probeResults.chip.familyId));
             device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
+            if (!device) {
+                BDBG_WRN(("No frontend found."));
+                return NEXUS_SUCCESS;
+            }
 
             NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
             BDBG_MSG(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));

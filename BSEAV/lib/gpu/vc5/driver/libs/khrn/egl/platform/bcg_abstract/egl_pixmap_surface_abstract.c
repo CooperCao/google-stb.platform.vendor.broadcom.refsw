@@ -30,15 +30,11 @@ static EGL_SURFACE_METHODS_T fns;
 
 static void get_dimensions(EGL_SURFACE_T *surface, unsigned *width, unsigned *height)
 {
-   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
+   EGL_PIXMAP_SURFACE_T  *surf = (EGL_PIXMAP_SURFACE_T *)surface;
    BEGL_SurfaceInfo       surfInfo;
 
-   if (platform->SurfaceGetInfo)
+   if (surface_get_info(surf->native_surface, &surfInfo))
    {
-      EGL_PIXMAP_SURFACE_T *surf = (EGL_PIXMAP_SURFACE_T *)surface;
-
-      platform->SurfaceGetInfo(platform->context, surf->native_surface, &surfInfo);
-
       *width  = surfInfo.width;
       *height = surfInfo.height;
    }
@@ -79,7 +75,6 @@ static EGLSurface egl_create_pixmap_surface_impl(
    EGLSurface            ret   = EGL_NO_SURFACE;
    EGL_PIXMAP_SURFACE_T *surface;
    unsigned int          width, height;
-   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
    BEGL_SurfaceInfo      surfaceInfo;
    GFX_LFMT_T            gfx_format;
    unsigned              num_mip_levels;
@@ -99,7 +94,7 @@ static EGLSurface egl_create_pixmap_surface_impl(
    }
 
    /* Validate the pixmap */
-   if (!platform->SurfaceGetInfo || platform->SurfaceGetInfo(platform->context, pixmap, &surfaceInfo) != BEGL_Success)
+   if (!surface_get_info(pixmap, &surfaceInfo))
    {
       error = EGL_BAD_NATIVE_PIXMAP;
       goto end;

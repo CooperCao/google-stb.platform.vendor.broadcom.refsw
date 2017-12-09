@@ -47,6 +47,7 @@
 #if NEXUS_HAS_SAGE
 #include "bchp_cmp_0.h"
 #endif
+#include "bchp_memc_gen_0.h"
 
 BDBG_MODULE(nexus_core);
 BTRC_MODULE(500ms_tick, ENABLE);
@@ -994,4 +995,14 @@ NEXUS_ModulePriority NEXUS_AdjustModulePriority( NEXUS_ModulePriority priority, 
             break;
     }
     return priority;
+}
+
+bool NEXUS_P_Core_SecureArchIssue_isrsafe(void)
+{
+#if NEXUS_CPU_ARM
+    uint32_t value = BREG_Read32(g_pCoreHandles->reg, BCHP_MEMC_GEN_0_CORE_REV_ID);
+    return (BCHP_GET_FIELD_DATA(value, MEMC_GEN_0_CORE_REV_ID, ARCH_REV_ID) < 11 || BCHP_GET_FIELD_DATA(value, MEMC_GEN_0_CORE_REV_ID, CFG_REV_ID) < 2);
+#else
+    return false;
+#endif
 }

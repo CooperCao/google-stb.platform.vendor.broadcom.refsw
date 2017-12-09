@@ -91,6 +91,11 @@ extern bool khrn_image_match_dim_and_fmt(const khrn_image *img,
 extern bool khrn_image_convert(khrn_image *img_dst, const khrn_image *img_src,
       glxx_context_fences *fences, bool secure_context);
 
+extern gmem_usage_flags_t khrn_image_calc_dst_gmem_usage(
+      const khrn_image *src, unsigned width, unsigned height, unsigned depth,
+      unsigned num_array_elems, unsigned num_mip_levels, const GFX_LFMT_T *lfmts,
+      unsigned num_planes, gfx_buffer_usage_t blob_usage, bool secure_context);
+
 extern bool khrn_image_convert_from_ptr_tgt(khrn_image *dst,
       unsigned dst_x, unsigned dst_y, unsigned dst_z,
       unsigned dst_start_elem, const struct v3d_imgconv_ptr_tgt *src,
@@ -168,8 +173,7 @@ static inline void khrn_image_invalidate(khrn_image *img)
  * of that memory for that element for the specified plane;
  * if the image is a slice, it will also add the offset to the start_slice;
  */
-extern unsigned khrn_image_get_offset(const khrn_image *img,
-      unsigned plane);
+extern unsigned khrn_image_get_offset(const khrn_image *img, unsigned plane);
 
 /* return true if this image is one element and one slice; eg: 2D images are
  * always one element and one slice; */

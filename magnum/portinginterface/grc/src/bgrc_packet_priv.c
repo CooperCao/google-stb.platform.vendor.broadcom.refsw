@@ -4147,22 +4147,22 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
 #if BGRC_PACKET_P_BLIT_WORKAROUND
         ulListStatus = BGRC_P_ReadReg32(hGrc, LIST_STATUS);
         bListFinished = BCHP_GET_FIELD_DATA(ulListStatus, M2MC_LIST_STATUS, FINISHED);
-        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("ulListStatus %d bListFinished %d", ulListStatus, bListFinished));
+
         if(bListFinished)
         {
             BGRC_P_WriteReg32( hGrc, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
-            /*BKNI_ResetEvent(hGrc->hListDoneEvent);*/
-            hGrc->eListStatus = BGRC_P_List_eSubmitted;
-            BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus: Submitted"));
         }
         else
         {
-            hGrc->eListStatus = BGRC_P_List_eReadytoSubmit;
-            BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus: ReadytoSubmit"));
+            BKNI_EnterCriticalSection();
+            hGrc->ulNumbersToRun ++;
+            BKNI_LeaveCriticalSection();
         }
+        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("ulListStatus %d bListFinished %d HW offset %x ulNumbersToRun %d",
+            ulListStatus, bListFinished, BGRC_P_GET_UINT64_LOW(ulStartHwPktOffset), hGrc->ulNumbersToRun));
 #else
         BGRC_P_WriteReg32( hGrc, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |

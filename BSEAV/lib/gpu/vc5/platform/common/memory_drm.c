@@ -10,6 +10,8 @@
 #endif
 #include "brcmv3d_drm.h"
 
+#include "memory_convert.h"
+
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
@@ -74,13 +76,16 @@ static const bool use_alloc_desc_str = false;
 
 typedef struct
 {
-   unsigned  dev_num;
-   int       fd;
-   int       l2_cache_size;
-   bool      force_writecombine;
-   bool      clear_on_alloc;
-   uint64_t  pagetable_physaddr;
-   uint32_t  mmu_va_size;
+   unsigned dev_num;
+   int      fd;
+   int      l2_cache_size;
+   bool     force_writecombine;
+   bool     clear_on_alloc;
+   uint64_t pagetable_physaddr;
+   uint32_t mmu_va_size;
+
+   /* For non-mmu based contiguous allocations, which cannot come from DRM/CMA memory */
+   NEXUS_HeapHandle contiguous_heap;
 
    /*
     * For secure memory allocations, which cannot come from DRM/CMA memory
@@ -98,6 +103,10 @@ typedef struct
    int64_t offscreen_heap_translation;
    struct drm_v3d_gem_create_ext secure_offscreen_heap_mapping;
    int64_t secure_offscreen_heap_translation;
+
+   /* Data that the converter might cache */
+   MemConvertCache mem_convert_cache;
+
 } DRM_MemoryContext;
 
 typedef struct
@@ -107,6 +116,7 @@ typedef struct
    uint32_t flags;
    uint32_t real_size;
    bool     secure;
+   bool     contiguous;
    union
    {
       uint64_t mmap_offset;
@@ -273,6 +283,7 @@ static void ClearMemoryBlock(DRM_MemoryContext *ctx, DRM_MemoryBlock *block)
    void *ptr;
 
    BDBG_ASSERT(!block->secure);
+   BDBG_ASSERT(!block->contiguous);
 
    block->mmap_offset = GemMapOffset(ctx->fd, block->handle);
 
@@ -317,6 +328,33 @@ error:
    return NULL;
 }
 
+static DRM_MemoryBlock *AllocateContiguousBlock(DRM_MemoryContext *ctx, size_t numBytes, size_t align, const char *desc)
+{
+   NEXUS_Addr addr;
+   NEXUS_MemoryBlockHandle handle;
+   DRM_MemoryBlock *block;
+
+   handle = NEXUS_MemoryBlock_Allocate_tagged(ctx->contiguous_heap, numBytes, align, NULL, desc, ctx->processId);
+
+   if (!handle)
+      return NULL;
+
+   if (NEXUS_MemoryBlock_LockOffset(handle, &addr) != NEXUS_SUCCESS)
+      goto error;
+
+   block = MemWrapExternal(ctx, addr, numBytes, desc);
+   if (!block)
+      goto error;
+
+   block->contiguous = true;
+   block->nexus_handle = handle;
+   return block;
+
+error:
+   NEXUS_MemoryBlock_Free(handle);
+   return NULL;
+}
+
 /*****************************************************************************
  * Memory interface
  *****************************************************************************/
@@ -328,6 +366,14 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
 
    if (flags & BEGL_USAGE_SECURE)
       return AllocateSecureBlock(ctx, numBytes, alignment, desc);
+
+   if (flags & BEGL_USAGE_CONTIGUOUS)
+   {
+      if (flags & BEGL_USAGE_COHERENT)
+         return NULL; // We don't current have coherent contiguous memory
+
+      return AllocateContiguousBlock(ctx, numBytes, alignment, desc);
+   }
 
    block = (DRM_MemoryBlock*)malloc(sizeof(DRM_MemoryBlock));
    if (!block)
@@ -366,6 +412,7 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
    block->hw_addr = cs.hw_addr;
    block->real_size = cs.size;
    block->secure = false;
+   block->contiguous = false;
    block->mmap_offset = 0;
 
    if (ctx->clear_on_alloc)
@@ -390,7 +437,7 @@ static void MemFreeBlock(void *context, BEGL_MemHandle h)
       fprintf(sLogFile, "F %p (%u)\n", block, block->handle);
 
    CloseGemHandle(ctx->fd, block->handle);
-   if (block->secure)
+   if (block->secure || block->contiguous)
       NEXUS_MemoryBlock_Free(block->nexus_handle);
 
    free(block);
@@ -421,6 +468,7 @@ static BEGL_MemHandle MemWrapExternal(void *context, uint64_t physaddr, size_t l
    block->hw_addr = cs.hw_addr;
    block->real_size = cs.size;
    block->secure = false;
+   block->contiguous = false;
    block->flags = 0;
    block->mmap_offset = 0;
 
@@ -443,6 +491,14 @@ static void *MemMapBlock(void *context, BEGL_MemHandle h, size_t offset, size_t 
    {
       if (use_memory_log)
          fprintf(sLogFile, "M %p (%u) %zu %zu = FAILED SECURE BLOCK\n", block, block->handle, offset, length);
+
+      return NULL;
+   }
+
+   if (block->contiguous)
+   {
+      if (use_memory_log)
+         fprintf(sLogFile, "M %p (%u) %zu %zu = FAILED CONTIGUOUS BLOCK\n", block, block->handle, offset, length);
 
       return NULL;
    }
@@ -623,6 +679,8 @@ static bool ConfigureNexusHeapMappings(DRM_MemoryContext *ctx)
       return false;
    }
 
+   ctx->contiguous_heap = heap;
+
    if (NEXUS_Heap_GetStatus(heap, &memStatus) != NEXUS_SUCCESS)
       goto error;
 
@@ -741,6 +799,44 @@ error:
    return -1;
 }
 
+static void *GetNexusMemoryBlockHandle(BEGL_MemHandle handle)
+{
+   DRM_MemoryBlock *block = (DRM_MemoryBlock *)handle;
+   if (block->secure || block->contiguous)
+      return (void*)block->nexus_handle;
+   else
+      return (void*)handle;
+}
+
+// The memory interface is the only sensible place for this. The display interface is really part
+// of EGL and therefore doesn't exist in Vulkan.
+static BEGL_Error MemConvertSurface(void *context, const BEGL_SurfaceConversionInfo *info,
+                                    bool validateOnly)
+{
+   NEXUS_StripedSurfaceHandle  striped = NULL;
+   NEXUS_SurfaceHandle         surf = NULL;
+   BEGL_Error                  ret;
+   DRM_MemoryContext          *ctx = (DRM_MemoryContext*)context;
+
+   if (validateOnly)
+      return MemoryConvertSurface(info, /*striped=*/NULL, /*surf=*/NULL, validateOnly,
+                                  &ctx->mem_convert_cache);
+
+   if (!DisplayAcquireNexusSurfaceHandles(&striped, &surf, info->srcNativeSurface))
+      return BEGL_Fail;
+
+   // Convert the dst memory block handle into something that Nexus understands (it might be a
+   // DRM_MemoryBlock block for example)
+   BEGL_SurfaceConversionInfo infoCopy = *info;
+   infoCopy.dstMemoryBlock = GetNexusMemoryBlockHandle(info->dstMemoryBlock);
+
+   ret = MemoryConvertSurface(&infoCopy, striped, surf, validateOnly, &ctx->mem_convert_cache);
+
+   DisplayReleaseNexusSurfaceHandles(striped, surf);
+
+   return ret;
+}
+
 BEGL_MemoryInterface *CreateDRMMemoryInterface(void)
 {
    DRM_MemoryContext *ctx;
@@ -791,18 +887,19 @@ BEGL_MemoryInterface *CreateDRMMemoryInterface(void)
    if (ctx->clear_on_alloc)
       fprintf(stderr, "DRM: Clearing memory on alloc\n");
 
-   mem->context      = (void*)ctx;
-   mem->Init         = Init;
-   mem->Term         = Term;
-   mem->FlushCache   = MemFlushCache;
-   mem->GetInfo      = MemGetInfo;
-   mem->Alloc        = MemAllocBlock;
-   mem->Free         = MemFreeBlock;
-   mem->Map          = MemMapBlock;
-   mem->Unmap        = MemUnmapBlock;
-   mem->Lock         = MemLockBlock;
-   mem->Unlock       = MemUnlockBlock;
-   mem->WrapExternal = MemWrapExternal;
+   mem->context           = (void*)ctx;
+   mem->Init              = Init;
+   mem->Term              = Term;
+   mem->FlushCache        = MemFlushCache;
+   mem->GetInfo           = MemGetInfo;
+   mem->Alloc             = MemAllocBlock;
+   mem->Free              = MemFreeBlock;
+   mem->Map               = MemMapBlock;
+   mem->Unmap             = MemUnmapBlock;
+   mem->Lock              = MemLockBlock;
+   mem->Unlock            = MemUnlockBlock;
+   mem->WrapExternal      = MemWrapExternal;
+   mem->ConvertSurface    = MemConvertSurface;
 
    return mem;
 
@@ -823,6 +920,8 @@ void DestroyDRMMemoryInterface(BEGL_MemoryInterface *mem)
    if (mem)
    {
       DRM_MemoryContext *ctx = (DRM_MemoryContext*)mem->context;
+
+      MemoryConvertClearCache(&ctx->mem_convert_cache);
 
       /* ctx->fd close is now done in Term() */
       free(ctx);

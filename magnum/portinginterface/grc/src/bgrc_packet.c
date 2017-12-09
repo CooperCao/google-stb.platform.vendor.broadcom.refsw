@@ -654,7 +654,7 @@ void BGRC_GetCapabilities
 }
 
 /**************************************************************************/
-BGRC_Mode BGRC_GetMode
+BGRC_Mode BGRC_GetMode_isrsafe
     ( uint32_t                       ulDeviceIdx)
 {
     BGRC_Mode eMode=BGRC_eBlitter;
@@ -1135,24 +1135,6 @@ BERR_Code BGRC_Packet_AdvancePackets(
     BDBG_OBJECT_ASSERT(hGrc, BGRC);
     BGRC_P_ENTER(hGrc);
 
-#if BGRC_PACKET_P_BLIT_WORKAROUND
-    if(hGrc->eListStatus ==BGRC_P_List_eReadytoSubmit)
-    {
-        /*BKNI_ResetEvent(hGrc->hListDoneEvent);*/
-        BGRC_P_WriteReg32( hGrc, LIST_CTRL,
-            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
-                BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
-                BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
-        hGrc->eListStatus = BGRC_P_List_eSubmitted;
-        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus ReadytoSubmit => Submitted"));
-    }
-    else
-    {
-        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus %s => Finished", hGrc->eListStatus?"Submitted":"Finished"));
-        hGrc->eListStatus = BGRC_P_List_eFinished;
-    }
-#endif
-
     hCurrContext = bgrc_p_first_context(hGrc);
 
     /* loop through contexts */
@@ -1189,6 +1171,25 @@ BERR_Code BGRC_Packet_AdvancePackets(
         BLST_D_REMOVE(&hGrc->context_list, hLastContext, context_link);
         BLST_D_INSERT_HEAD(&hGrc->context_list, hLastContext, context_link);
     }
+
+#if BGRC_PACKET_P_BLIT_WORKAROUND
+    if(hGrc->ulNumbersToRun)
+    {
+        uint32_t ulListStatus = BGRC_P_ReadReg32(hGrc, LIST_STATUS);
+        bool bListFinished = BCHP_GET_FIELD_DATA(ulListStatus, M2MC_LIST_STATUS, FINISHED);
+        if(bListFinished)
+        {
+            BGRC_P_WriteReg32( hGrc, LIST_CTRL,
+                BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
+                    BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
+                    BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
+            BKNI_EnterCriticalSection();
+            hGrc->ulNumbersToRun --;
+            BKNI_LeaveCriticalSection();
+            BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("ulNumbersToRun %d", hGrc->ulNumbersToRun));
+        }
+    }
+#endif
 
     BGRC_P_LEAVE(hGrc);
     return err;

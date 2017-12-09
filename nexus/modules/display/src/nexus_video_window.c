@@ -672,14 +672,15 @@ NEXUS_VideoWindow_P_SetVdcSettings(NEXUS_VideoWindowHandle window, const NEXUS_V
         else
         {
             rc = BVDC_Window_SetUserCaptureBufferCount(windowVdc, settings->userCaptureBufferCount);
-            if (rc)
-            {
+            if (rc == BERR_NOT_SUPPORTED) {
+                window->cfg.userCaptureBufferCount = 0;
+            }
+            else if (rc == BERR_SUCCESS) {
+                window->cfg.userCaptureBufferCount = settings->userCaptureBufferCount;
+            }
+            else {
                 rc = BERR_TRACE(rc);
                 goto err_windowCfg;
-            }
-            else
-            {
-                window->cfg.userCaptureBufferCount = settings->userCaptureBufferCount;
             }
         }
     }

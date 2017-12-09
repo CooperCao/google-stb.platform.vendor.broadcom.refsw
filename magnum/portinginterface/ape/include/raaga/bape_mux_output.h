@@ -133,6 +133,7 @@ typedef struct BAPE_MuxOutputStartSettings
                                                                    Important: This field requires the 
                                                                    MuxOutput to be started prior to
                                                                    starting any inputs. */
+    uint32_t initialStc; /* Initial STC value for NRT Transcode in 45Khz.  Default is 0. */
 } BAPE_MuxOutputStartSettings;
 
 /***************************************************************************
@@ -173,6 +174,42 @@ See Also:
 ***************************************************************************/
 void BAPE_MuxOutput_Stop(
     BAPE_MuxOutputHandle hMuxOutput
+    );
+
+/***************************************************************************
+Summary:
+    Run-time settings for a MuxOutput object
+***************************************************************************/
+typedef struct BAPE_MuxOutputSettings
+{
+    bool sendEos; /* If false the EOS will not be sent when BAPE_MuxOutput_Stop
+                       is called. Default is true. */
+} BAPE_MuxOutputSettings;
+
+/***************************************************************************
+Summary:
+    Get Default Run-time Settings for a MuxOutput object
+***************************************************************************/
+void BAPE_MuxOutput_GetDefaultSettings(
+    BAPE_MuxOutputSettings *pSettings    /* [out] Settings */
+    );
+
+/***************************************************************************
+Summary:
+    Get Run-time Settings for a MuxOutput object
+***************************************************************************/
+void BAPE_MuxOutput_GetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_MuxOutputSettings *pSettings
+    );
+
+/***************************************************************************
+Summary:
+    Apply Run-time Settings for a MuxOutput object
+***************************************************************************/
+BERR_Code BAPE_MuxOutput_SetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    const BAPE_MuxOutputSettings *pSettings
     );
 
 /***************************************************************************

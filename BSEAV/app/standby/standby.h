@@ -124,7 +124,7 @@ typedef struct B_StandbyNexusHandles {
     NEXUS_VideoWindowHandle windowHD[MAX_CONTEXTS];
     NEXUS_VideoWindowHandle windowSD[MAX_CONTEXTS];
     NEXUS_Graphics2DHandle gfx2d;
-    NEXUS_SurfaceHandle framebufferHD, framebufferSD, offscreenHD, offscreenSD;
+    NEXUS_SurfaceHandle framebufferHD, framebufferSD, offscreen;
     NEXUS_StcChannelHandle stcChannel[MAX_CONTEXTS];
     NEXUS_PidChannelHandle videoPidChannel[MAX_CONTEXTS], audioPidChannel[MAX_CONTEXTS];
     NEXUS_VideoDecoderHandle videoDecoder[MAX_CONTEXTS];
@@ -313,8 +313,8 @@ void stc_channel_open(unsigned id);
 void stc_channel_close(unsigned id);
 void graphics2d_open(void);
 void graphics2d_close(void);
-void graphics2d_setup(void);
-void graphics2d_destroy(void);
+void surface_create(void);
+void surface_destroy(void);
 void graphics3d_open(void);
 void graphics3d_close(void);
 void decoder_open(unsigned id);
@@ -354,4 +354,5 @@ void stop_live_context(unsigned id);
 int start_play_context(unsigned id);
 void stop_play_context(unsigned id);
 void stop_decodes(void);
+void set_window_scale(bool gfx_enabled);
 #endif

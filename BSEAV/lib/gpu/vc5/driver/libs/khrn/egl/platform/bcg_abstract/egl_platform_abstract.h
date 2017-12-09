@@ -13,6 +13,7 @@ extern "C"
 
 typedef struct bcg_platform_data
 {
+   BEGL_InitInterface initInterface;
    BEGL_DisplayInterface displayInterface;
 } BCG_PLATFORM_DATA_T;
 

@@ -11,7 +11,10 @@
 
 #define EGL_PLATFORM_WIN_NONE 0xffffffff
 
-void egl_server_platform_init(void);
+extern EGLDisplay egl_server_platform_get_display(EGLenum platform,
+      void *native_display, const EGLint *attrib_list, EGLint *error);
+EGLint egl_server_platform_init(EGLDisplay display);
+EGLint egl_server_platform_term(EGLDisplay display);
 
 /*
    Used on platforms with server-side pixmaps. Retrieves all of the relevant
@@ -26,7 +29,6 @@ extern bool egl_server_platform_cancel(BEGL_WindowState *windowState, void * opa
 extern bool egl_server_platform_create_window_state(BEGL_WindowState **windowState, uintptr_t window, bool secure);
 extern void egl_server_platform_destroy_window_state(BEGL_WindowState  *windowState);
 
-extern EGLDisplay egl_server_platform_set_display(EGLenum platform, void *native_display);
 extern void *egl_server_platform_get_native_buffer(EGLenum target, EGLClientBuffer *egl_buffer);
 extern MEM_HANDLE_T egl_server_platform_image_wrap(EGLenum target, void *native_buffer);
 extern MEM_HANDLE_T egl_server_platform_image_new(EGLenum target, void *native_buffer, EGLint *error);

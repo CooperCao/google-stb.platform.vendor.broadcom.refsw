@@ -309,6 +309,11 @@ BERR_Code BVC5_Open(
 
    BVC5_P_DRMOpen(hVC5->sOpenParams.uiDRMDevice);
 
+   /* Determine memory properties */
+   BCHP_GetMemoryInfo(hVC5->hChp, &hVC5->sMemInfo);
+   BDBG_ASSERT(!hVC5->sMemInfo.memc[1].valid || hVC5->sMemInfo.memc[0].mapVer == hVC5->sMemInfo.memc[1].mapVer);
+   BDBG_ASSERT(!hVC5->sMemInfo.memc[2].valid || hVC5->sMemInfo.memc[0].mapVer == hVC5->sMemInfo.memc[2].mapVer);
+
    /* "Create" the hardware */
 #if defined(BVC5_HARDWARE_SIMPENROSE)
    err = BVC5_P_SimpenroseInit(hVC5, &hVC5->hSimpenrose);
@@ -490,6 +495,14 @@ void BVC5_GetInfo(
    BKNI_AcquireMutex(hVC5->hModuleMutex);
 
    BVC5_P_HardwareGetInfo(hVC5, pInfo);
+
+   switch (hVC5->sMemInfo.memc[0].mapVer)
+   {
+   case BCHP_ScbMapVer_eMap2 : pInfo->uiDDRMapVer = 2; break;
+   case BCHP_ScbMapVer_eMap5 : pInfo->uiDDRMapVer = 5; break;
+   case BCHP_ScbMapVer_eMap8 : pInfo->uiDDRMapVer = 8; break;
+   default                   : BDBG_ASSERT(0);
+   }
 
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
    BDBG_LEAVE(BVC5_GetInfo);

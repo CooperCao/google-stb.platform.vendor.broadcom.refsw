@@ -42,6 +42,7 @@
 #include "priv/nexus_sage_priv.h"
 #include "bhsm.h"
 #include "nexus_sage_image.h"
+#include "priv/nexus_sage_audio.h"
 #include "nexus_security_client.h"
 #include "bsagelib_boot.h"
 #include "bkni.h"
@@ -1425,5 +1426,79 @@ error:
     {
         NEXUS_Memory_Free(pDest);
     }
+    return rc;
+}
+
+NEXUS_Error NEXUS_Sage_SecureLog_Attach(uint32_t TA_Id)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+void NEXUS_Sage_SecureLog_Detach(uint32_t TA_Id)
+{
+    BSTD_UNUSED ( TA_Id );
+}
+
+NEXUS_Error NEXUS_Sage_SecureLog_GetBuffer(void *pSecureLogBuffCtx,uint32_t logBuffCtxSize,
+                        void *pLogBufferAddr,
+                        uint32_t logBufferSize,
+                        NEXUS_Sage_SecureLog_BufferId bufferId)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+NEXUS_Error NEXUS_Sage_SecureLog_StartCaptureOK()
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+void NEXUS_SageAudio_GetDefaultOpenSettings_priv(
+    NEXUS_SageAudioOpenSettings *pSettings /* out */
+    )
+{
+    BSTD_UNUSED ( pSettings );
+}
+
+NEXUS_SageAudioHandle NEXUS_SageAudio_Open_priv(
+    const NEXUS_SageAudioOpenSettings *pSettings /* Pass NULL for default settings */
+    )
+{
+    return NULL;
+}
+
+void NEXUS_SageAudio_Close_priv(
+    NEXUS_SageAudioHandle hSageAudio
+    )
+{
+    BSTD_UNUSED ( hSageAudio );
+}
+
+void NEXUS_SageAudio_GetDefaultStartSettings_priv(
+    NEXUS_SageAudioStartSettings *pSettings /* out */
+    )
+{
+    BSTD_UNUSED ( pSettings );
+}
+
+NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSageAudio,
+                                       const NEXUS_SageAudioStartSettings* pSettings)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+NEXUS_Error NEXUS_SageAudio_Stop_priv(NEXUS_SageAudioHandle hSageAudio)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+NEXUS_Error NEXUS_SageAudio_GetStatus_priv(NEXUS_SageAudioHandle  hSageAudio,
+                                           NEXUS_SageAudioStatus* sageAudioStatus)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
     return rc;
 }

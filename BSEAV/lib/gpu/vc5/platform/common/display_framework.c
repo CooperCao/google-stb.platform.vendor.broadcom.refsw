@@ -97,27 +97,27 @@ bool DisplayFramework_Start(DisplayFramework *df,
    df->window_info.height = height;
    df->window_info.swapchain_count = swapchain_count;
 
-   if (SwapchainCreate(&df->swapchain, fence_interface, surface_interface, swapchain_count))
-   {
-      if (sem_init(&df->latency, 0, MAX_DISPLAY_LATENCY) == 0)
-      {
-         if (pthread_barrier_init(&df->barrier, NULL, 2) == 0)
-         {
-            if (pthread_create(&df->thread, NULL, display_thread_func, df) == 0)
-            {
-               /* Wait for thread to really start */
-               pthread_barrier_wait(&df->barrier);
+   if (!SwapchainCreate(&df->swapchain, fence_interface, surface_interface, swapchain_count))
+      goto no_swapchain;
+   if (pthread_mutex_init(&df->window_mutex, NULL) != 0)
+      goto no_mutex;
+   if (sem_init(&df->latency, 0, MAX_DISPLAY_LATENCY) != 0)
+      goto no_sem;
+   if (pthread_barrier_init(&df->barrier, NULL, 2) != 0)
+      goto no_barrier;
+   if (pthread_create(&df->thread, NULL, display_thread_func, df) != 0)
+      goto no_thread;
 
-               pthread_barrier_destroy(&df->barrier);
-               return true;
-            }
-            pthread_barrier_destroy(&df->barrier);
-         }
-         sem_destroy(&df->latency);
-      }
-      SwapchainDestroy(&df->swapchain);
-   }
-   return false;
+   /* Wait for thread to really start */
+   pthread_barrier_wait(&df->barrier);
+   pthread_barrier_destroy(&df->barrier);
+   return true;
+
+   no_thread: pthread_barrier_destroy(&df->barrier);
+   no_barrier: sem_destroy(&df->latency);
+   no_sem: pthread_mutex_destroy(&df->window_mutex);
+   no_mutex: SwapchainDestroy(&df->swapchain);
+   no_swapchain: return false;
 }
 
 void DisplayFramework_Stop(DisplayFramework *df)
@@ -140,7 +140,26 @@ void DisplayFramework_Stop(DisplayFramework *df)
       SwapchainDestroy(&df->swapchain);
 
       sem_destroy(&df->latency);
+      pthread_mutex_destroy(&df->window_mutex);
    }
+}
+
+void DisplayFramework_GetSize(DisplayFramework *df,
+      uint32_t *width, uint32_t *height)
+{
+   pthread_mutex_lock(&df->window_mutex);
+   *width = df->window_info.width;
+   *height = df->window_info.height;
+   pthread_mutex_unlock(&df->window_mutex);
+}
+
+void DisplayFramework_SetSize(DisplayFramework *df,
+      uint32_t width, uint32_t height)
+{
+   pthread_mutex_lock(&df->window_mutex);
+   df->window_info.width = width;
+   df->window_info.height = height;
+   pthread_mutex_unlock(&df->window_mutex);
 }
 
 void *DisplayFramework_GetNextSurface(DisplayFramework *df,
@@ -149,13 +168,17 @@ void *DisplayFramework_GetNextSurface(DisplayFramework *df,
    assert(df != NULL);
    assert(format != BEGL_BufferFormat_INVALID);
 
+   pthread_mutex_lock(&df->window_mutex);
    BEGL_PixmapInfo requested = {
          .width = df->window_info.width,
          .height = df->window_info.height,
          .format = format,
    };
+   pthread_mutex_unlock(&df->window_mutex);
 
    sem_wait(&df->latency);
+
+   DisplayInterface_Release(df->display_interface);
 
    SwapchainSurface *surface = SwapchainDequeueRenderSurface(
          &df->swapchain, &requested, secure);

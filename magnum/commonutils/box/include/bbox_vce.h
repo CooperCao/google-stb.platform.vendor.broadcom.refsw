@@ -54,6 +54,7 @@ extern "C" {
    _instance, /* uiInstance */\
    _channels, /* uiChannels */\
    _memcIndex, /* uiMemcIndex */\
+   _memcIndex, /* uiFirmwareMemcIndex */\
    _videoFormat, /* eVideoFormat */\
    16, /* uiPixelAlignment */\
 }
@@ -93,11 +94,52 @@ extern "C" {
    _instance, _channels, _memcIndex, BFMT_VideoFmt_e1080p\
    )
 
+#define BBOX_VCE_CHANNEL_INFO_V2( _instance, _channels, _memcIndex, _fwMemcIndex, _videoFormat ) \
+{\
+   _instance, /* uiInstance */\
+   _channels, /* uiChannels */\
+   _memcIndex, /* uiMemcIndex */\
+   _fwMemcIndex, /* uiFirmwareMemcIndex */\
+   _videoFormat, /* eVideoFormat */\
+   16, /* uiPixelAlignment */\
+}
+
+#define BBOX_VCE_CHANNEL_INFO_720p25_V2( _instance, _channels, _memcIndex, _fwMemcIndex )\
+   BBOX_VCE_CHANNEL_INFO_V2(\
+      _instance, _channels, _memcIndex, _fwMemcIndex, BFMT_VideoFmt_e720p_25Hz\
+   )
+
+#define BBOX_VCE_CHANNEL_INFO_720p30_V2( _instance, _channels, _memcIndex, _fwMemcIndex )\
+   BBOX_VCE_CHANNEL_INFO_V2(\
+      _instance, _channels, _memcIndex, _fwMemcIndex, BFMT_VideoFmt_e720p_30Hz\
+   )
+
+#define BBOX_VCE_CHANNEL_INFO_720p60_V2( _instance, _channels, _memcIndex, _fwMemcIndex )\
+   BBOX_VCE_CHANNEL_INFO_V2(\
+      _instance, _channels, _memcIndex, _fwMemcIndex, BFMT_VideoFmt_e720p\
+   )
+
+#define BBOX_VCE_CHANNEL_INFO_1080p25_V2( _instance, _channels, _memcIndex, _fwMemcIndex )\
+   BBOX_VCE_CHANNEL_INFO_V2(\
+      _instance, _channels, _memcIndex, _fwMemcIndex, BFMT_VideoFmt_e1080p_25Hz\
+   )
+
+#define BBOX_VCE_CHANNEL_INFO_1080p30_V2( _instance, _channels, _memcIndex, _fwMemcIndex )\
+   BBOX_VCE_CHANNEL_INFO_V2(\
+      _instance, _channels, _memcIndex, _fwMemcIndex, BFMT_VideoFmt_e1080p_30Hz\
+   )
+
+#define BBOX_VCE_CHANNEL_INFO_1080p60_V2( _instance, _channels, _memcIndex, _fwMemcIndex )\
+   BBOX_VCE_CHANNEL_INFO_V2(\
+   _instance, _channels, _memcIndex, _fwMemcIndex, BFMT_VideoFmt_e1080p\
+   )
+
 typedef struct BBOX_Vce_Channel_Capabilities
 {
    uint8_t uiInstance;
    uint8_t uiChannels; /* A bit mask indicating which channels are valid */
-   uint8_t uiMemcIndex;
+   uint8_t uiMemcIndex; /* Picture Buffer MEMC Index */
+   uint8_t uiFirmwareMemcIndex; /* Firmware MEMC Index */
    BFMT_VideoFmt eVideoFormat;
    uint8_t uiPixelAlignment; /* height and width must me a multiple of uiPixelAlignment */
 } BBOX_Vce_Channel_Capabilities;

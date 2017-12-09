@@ -1,12 +1,12 @@
-# make the Nexus platform layer for Wayland client
-#
+# make the wayland-egl client library
 
-LIBNAME = bcm_wayland_egl
+LIBNAME = wayland-egl
 
 include wayland_paths.mk
 
 CFLAGS += \
-	$(WAYLAND_CFLAGS)
+	$(WAYLAND_CFLAGS) \
+	-DWL_HIDE_DEPRECATED
 
 LDFLAGS += $(WAYLAND_LIBS)
 

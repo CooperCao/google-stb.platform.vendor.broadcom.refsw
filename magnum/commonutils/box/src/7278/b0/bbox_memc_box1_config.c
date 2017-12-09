@@ -50,7 +50,7 @@
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Thu Oct 19 20:05:21 2017 GMT
+ *   at: Tue Nov  7 03:48:42 2017 GMT
  *   by: fm945799
  *   for: Box 7278B0_box1_box_mid_performance_sm
  *         MemC 0 (32-bit LPDDR4@1600MHz) w/486MHz clock
@@ -80,35 +80,35 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20171019200521_7278B0_box1_box_mid_performance_sm[] = {
+static const uint32_t aulMemc0_20171107034842_7278B0_box1_box_mid_performance_sm[] = {
            0x80edc028,  /*   0: XPT_WR_TUNER_RS RR 7833.33333333333ns */
            0x80721016,  /*   1: XPT_WR_CARD_RS RR 3760ns */
            0x804bb03c,  /*   2: XPT_WR_CDB RR 2497.56097560976ns */
-           0x80e6e04a,  /*   3: XPT_WR_ITB_MSG RR 7605.56257901391ns */
-           0x80c4c047,  /*   4: XPT_RD_RS RR 6482.75862068965ns */
-           0x80721042,  /*   5: XPT_RD_CARD_RS RR 3760ns */
-           0x81b46051,  /*   6: XPT_RD_PB RR 14371.9298245614ns */
+           0x80e6e04b,  /*   3: XPT_WR_ITB_MSG RR 7605.56257901391ns */
+           0x80c4c048,  /*   4: XPT_RD_RS RR 6482.75862068965ns */
+           0x80721043,  /*   5: XPT_RD_CARD_RS RR 3760ns */
+           0x81b46052,  /*   6: XPT_RD_PB RR 14371.9298245614ns */
            0x8058603d,  /*   7: XPT_WR_MEMDMA RR 2913.82113821138ns */
-           0x80ca2048,  /*   8: XPT_RD_MEMDMA RR 6660.16260162602ns */
+           0x80ca2049,  /*   8: XPT_RD_MEMDMA RR 6660.16260162602ns */
            0x3ffff0ff,  /*   9: UNASSIGNED off */
-           0x81413050,  /*  10: SYSPORT_WR RR 10580ns */
-           0x8141304f,  /*  11: SYSPORT_RD RR 10580ns */
+           0x81413051,  /*  10: SYSPORT_WR RR 10580ns */
+           0x81413050,  /*  11: SYSPORT_RD RR 10580ns */
            0x3ffff0ff,  /*  12: UNASSIGNED off */
            0x3ffff0ff,  /*  13: UNASSIGNED off */
            0x3ffff0ff,  /*  14: UNASSIGNED off */
-           0x80b09045,  /*  15: HIF_PCIe1 RR 5818.18181818182ns */
+           0x80b09046,  /*  15: HIF_PCIe1 RR 5818.18181818182ns */
            0x3ffff0ff,  /*  16: UNASSIGNED off */
-           0x80ca2049,  /*  17: SATA RR 6660.16260162602ns */
+           0x80ca204a,  /*  17: SATA RR 6660.16260162602ns */
            0x3ffff0ff,  /*  18: UNASSIGNED off */
            0x3ffff0ff,  /*  19: UNASSIGNED off */
            0x3ffff0ff,  /*  20: UNASSIGNED off */
            0x3ffff0ff,  /*  21: UNASSIGNED off */
            0x85eea033,  /*  22: BSP RR 50000ns */
-           0x80c34046,  /*  23: SAGE RR 6820ns */
-           0x81ca6052,  /*  24: FLASH_DMA RR 16000ns */
-           0x80b09044,  /*  25: HIF_PCIe RR 5818.18181818182ns */
-           0x809b6043,  /*  26: SDIO_EMMC RR 5120ns */
-           0x8136e04e,  /*  27: SDIO_CARD RR 10240ns */
+           0x80c34047,  /*  23: SAGE RR 6820ns */
+           0x81ca6053,  /*  24: FLASH_DMA RR 16000ns */
+           0x80b09045,  /*  25: HIF_PCIe RR 5818.18181818182ns */
+           0x809b6044,  /*  26: SDIO_EMMC RR 5120ns */
+           0x8136e04f,  /*  27: SDIO_CARD RR 10240ns */
            0x3ffff0ff,  /*  28: UNASSIGNED off */
            0x047f1031,  /*  29: MCIF_RD_0 37900ns */
            0x047f1032,  /*  30: MCIF_WR_0 37900ns */
@@ -116,9 +116,9 @@ static const uint32_t aulMemc0_20171019200521_7278B0_box1_box_mid_performance_sm
            0xbffff0ff,  /*  32: UART_DMA_WR RR */
            0x3ffff0ff,  /*  33: UNASSIGNED off */
            0x3ffff0ff,  /*  34: UNASSIGNED off */
-           0x80ffc04d,  /*  35: USB_X_WRITE_0 RR 8928.57142857143ns */
-           0x80ffc04b,  /*  36: USB_X_READ_0 RR 8928.57142857143ns */
-           0x80ffc04c,  /*  37: USB_X_CTRL_0 RR 8928.57142857143ns */
+           0x80ffc04e,  /*  35: USB_X_WRITE_0 RR 8928.57142857143ns */
+           0x80ffc04c,  /*  36: USB_X_READ_0 RR 8928.57142857143ns */
+           0x80ffc04d,  /*  37: USB_X_CTRL_0 RR 8928.57142857143ns */
            0x3ffff0ff,  /*  38: UNASSIGNED off */
            0x3ffff0ff,  /*  39: UNASSIGNED off */
            0x8013f035,  /*  40: RAAGA RR 700ns */
@@ -126,16 +126,16 @@ static const uint32_t aulMemc0_20171019200521_7278B0_box1_box_mid_performance_sm
            0x3ffff0ff,  /*  42: UNASSIGNED off */
            0x3ffff0ff,  /*  43: UNASSIGNED off */
            0x00d2a022,  /*  44: AUD_AIO 6940ns */
-           0x3ffff05c,  /*  45: VICE_CME0 off */
+           0x3ffff05d,  /*  45: VICE_CME0 off */
            0x3ffff060,  /*  46: VICE_CME1 off */
            0x3ffff061,  /*  47: VICE_FME off */
            0x3ffff0ff,  /*  48: UNASSIGNED off */
-           0x3ffff05d,  /*  49: VICE_IMD0 off */
-           0x3ffff05e,  /*  50: VICE_IMD1 off */
+           0x3ffff05e,  /*  49: VICE_IMD0 off */
+           0x3ffff05f,  /*  50: VICE_IMD1 off */
            0x3ffff06a,  /*  51: VICE_DBLK off */
            0xbfffe034,  /*  52: VICE_CABAC0 RR 800000ns */
            0x8117502a,  /*  53: VICE_CABAC1 RR 9200ns */
-           0xbffff05f,  /*  54: VICE_ARCSS0 off */
+           0x8067c042,  /*  54: VICE_ARCSS0 RR 3625ns */
            0x3ffff026,  /*  55: VICE_VIP0_INST0 off */
            0x3ffff02b,  /*  56: VICE_VIP1_INST0 off */
            0x3ffff027,  /*  57: VICE_VIP0_INST1 off */
@@ -253,17 +253,17 @@ static const uint32_t aulMemc0_20171019200521_7278B0_box1_box_mid_performance_sm
            0x8058e041,  /* 169: HVD1_ILCPU_p2 RR 2931ns */
            0x00689011,  /* 170: HVD1_ILSI_p2 3448ns */
            0x3ffff0ff,  /* 171: UNASSIGNED off */
-           0x82d31055,  /* 172: ASP_WR_ARCSS_DDMA1 RR 23809.5238095238ns */
-           0x8334d058,  /* 173: ASP_WR_ARCSS_DDMA2 RR 27027.027027027ns */
+           0x82d31056,  /* 172: ASP_WR_ARCSS_DDMA1 RR 23809.5238095238ns */
+           0x8334d059,  /* 173: ASP_WR_ARCSS_DDMA2 RR 27027.027027027ns */
            0x806fd015,  /* 174: ASP_WR_EDPKT_AVIN RR 3686.99029700481ns */
-           0x838b1059,  /* 175: ASP_WR_EPKT_AVRTR RR 29866.6666666667ns */
-           0x82d31054,  /* 176: ASP_RD_ARCSS_DDMA1 RR 23809.5238095238ns */
-           0x8334d057,  /* 177: ASP_RD_ARCSS_DDMA2 RR 27027.027027027ns */
-           0x83097056,  /* 178: ASP_RD_MCPB_AVOUT RR 25600ns */
-           0xa398605b,  /* 179: ASP_RD_EDPKT_AVHDR RR 300000ns */
+           0x838b105a,  /* 175: ASP_WR_EPKT_AVRTR RR 29866.6666666667ns */
+           0x82d31055,  /* 176: ASP_RD_ARCSS_DDMA1 RR 23809.5238095238ns */
+           0x8334d058,  /* 177: ASP_RD_ARCSS_DDMA2 RR 27027.027027027ns */
+           0x83097057,  /* 178: ASP_RD_MCPB_AVOUT RR 25600ns */
+           0xa398605c,  /* 179: ASP_RD_EDPKT_AVHDR RR 300000ns */
            0xbffff0ff,  /* 180: USB_BDC RR */
            0x8222a02f,  /* 181: WIFI_SYSPORT_WR RR 18000ns */
-           0x8222a053,  /* 182: WIFI_SYSPORT_RD RR 18000ns */
+           0x8222a054,  /* 182: WIFI_SYSPORT_RD RR 18000ns */
            0x3ffff0ff,  /* 183: UNASSIGNED off */
            0x3ffff0ff,  /* 184: UNASSIGNED off */
            0x3ffff0ff,  /* 185: UNASSIGNED off */
@@ -331,42 +331,42 @@ static const uint32_t aulMemc0_20171019200521_7278B0_box1_box_mid_performance_sm
            0x3ffff0ff,  /* 247: UNASSIGNED off */
            0xbffff0ff,  /* 248: MEMC_TRACELOG RR */
            0xbffff0ff,  /* 249: MEMC_DTU_SCRUBBER RR */
-           0x8bdd605a,  /* 250: MEMC_ZQCS RR 100000ns */
+           0x8bdd605b,  /* 250: MEMC_ZQCS RR 100000ns */
            0xbffff0ff,  /* 251: MEMC_MSA RR */
            0xbffff0ff,  /* 252: MEMC_DIS0 RR */
            0xbffff0ff,  /* 253: MEMC_DIS1 RR */
            0xbffff0ff,  /* 254: MEMC_DRAM_INIT_ZQCS RR */
            0x00767017   /* 255: REFRESH 3904ns */
          };
-static const uint32_t aulMemc1_20171019200521_7278B0_box1_box_mid_performance_sm[] = {
+static const uint32_t aulMemc1_20171107034842_7278B0_box1_box_mid_performance_sm[] = {
            0x3ffff028,  /*   0: XPT_WR_TUNER_RS off */
            0x3ffff016,  /*   1: XPT_WR_CARD_RS off */
            0x3ffff03c,  /*   2: XPT_WR_CDB off */
-           0x3ffff04a,  /*   3: XPT_WR_ITB_MSG off */
-           0x3ffff047,  /*   4: XPT_RD_RS off */
-           0x3ffff042,  /*   5: XPT_RD_CARD_RS off */
-           0x3ffff051,  /*   6: XPT_RD_PB off */
+           0x3ffff04b,  /*   3: XPT_WR_ITB_MSG off */
+           0x3ffff048,  /*   4: XPT_RD_RS off */
+           0x3ffff043,  /*   5: XPT_RD_CARD_RS off */
+           0x3ffff052,  /*   6: XPT_RD_PB off */
            0x8058603d,  /*   7: XPT_WR_MEMDMA RR 2913.82113821138ns */
-           0x80ca2048,  /*   8: XPT_RD_MEMDMA RR 6660.16260162602ns */
+           0x80ca2049,  /*   8: XPT_RD_MEMDMA RR 6660.16260162602ns */
            0x3ffff0ff,  /*   9: UNASSIGNED off */
-           0x81413050,  /*  10: SYSPORT_WR RR 10580ns */
-           0x8141304f,  /*  11: SYSPORT_RD RR 10580ns */
+           0x81413051,  /*  10: SYSPORT_WR RR 10580ns */
+           0x81413050,  /*  11: SYSPORT_RD RR 10580ns */
            0x3ffff0ff,  /*  12: UNASSIGNED off */
            0x3ffff0ff,  /*  13: UNASSIGNED off */
            0x3ffff0ff,  /*  14: UNASSIGNED off */
-           0x80b09045,  /*  15: HIF_PCIe1 RR 5818.18181818182ns */
+           0x80b09046,  /*  15: HIF_PCIe1 RR 5818.18181818182ns */
            0x3ffff0ff,  /*  16: UNASSIGNED off */
-           0x80ca2049,  /*  17: SATA RR 6660.16260162602ns */
+           0x80ca204a,  /*  17: SATA RR 6660.16260162602ns */
            0x3ffff0ff,  /*  18: UNASSIGNED off */
            0x3ffff0ff,  /*  19: UNASSIGNED off */
            0x3ffff0ff,  /*  20: UNASSIGNED off */
            0x3ffff0ff,  /*  21: UNASSIGNED off */
            0x85eea033,  /*  22: BSP RR 50000ns */
-           0x80c34046,  /*  23: SAGE RR 6820ns */
-           0x81ca6052,  /*  24: FLASH_DMA RR 16000ns */
-           0x80b09044,  /*  25: HIF_PCIe RR 5818.18181818182ns */
-           0x809b6043,  /*  26: SDIO_EMMC RR 5120ns */
-           0x8136e04e,  /*  27: SDIO_CARD RR 10240ns */
+           0x80c34047,  /*  23: SAGE RR 6820ns */
+           0x81ca6053,  /*  24: FLASH_DMA RR 16000ns */
+           0x80b09045,  /*  25: HIF_PCIe RR 5818.18181818182ns */
+           0x809b6044,  /*  26: SDIO_EMMC RR 5120ns */
+           0x8136e04f,  /*  27: SDIO_CARD RR 10240ns */
            0x3ffff0ff,  /*  28: UNASSIGNED off */
            0x3ffff031,  /*  29: MCIF_RD_0 off */
            0x3ffff032,  /*  30: MCIF_WR_0 off */
@@ -374,9 +374,9 @@ static const uint32_t aulMemc1_20171019200521_7278B0_box1_box_mid_performance_sm
            0x3ffff0ff,  /*  32: UART_DMA_WR off */
            0x3ffff0ff,  /*  33: UNASSIGNED off */
            0x3ffff0ff,  /*  34: UNASSIGNED off */
-           0x80ffc04d,  /*  35: USB_X_WRITE_0 RR 8928.57142857143ns */
-           0x80ffc04b,  /*  36: USB_X_READ_0 RR 8928.57142857143ns */
-           0x80ffc04c,  /*  37: USB_X_CTRL_0 RR 8928.57142857143ns */
+           0x80ffc04e,  /*  35: USB_X_WRITE_0 RR 8928.57142857143ns */
+           0x80ffc04c,  /*  36: USB_X_READ_0 RR 8928.57142857143ns */
+           0x80ffc04d,  /*  37: USB_X_CTRL_0 RR 8928.57142857143ns */
            0x3ffff0ff,  /*  38: UNASSIGNED off */
            0x3ffff0ff,  /*  39: UNASSIGNED off */
            0x3ffff035,  /*  40: RAAGA off */
@@ -384,16 +384,16 @@ static const uint32_t aulMemc1_20171019200521_7278B0_box1_box_mid_performance_sm
            0x3ffff0ff,  /*  42: UNASSIGNED off */
            0x3ffff0ff,  /*  43: UNASSIGNED off */
            0x3ffff022,  /*  44: AUD_AIO off */
-           0x8064205c,  /*  45: VICE_CME0 RR 3500ns */
+           0x8064205d,  /*  45: VICE_CME0 RR 3500ns */
            0x8316c060,  /*  46: VICE_CME1 RR 27600ns */
-           0x8112b061,  /*  47: VICE_FME RR 9590ns */
+           0x0112b061,  /*  47: VICE_FME 9590ns */
            0x3ffff0ff,  /*  48: UNASSIGNED off */
-           0x80d2705d,  /*  49: VICE_IMD0 RR 7350ns */
-           0x80d2705e,  /*  50: VICE_IMD1 RR 7350ns */
+           0x80d2705e,  /*  49: VICE_IMD0 RR 7350ns */
+           0x80d2705f,  /*  50: VICE_IMD1 RR 7350ns */
            0x800b006a,  /*  51: VICE_DBLK RR 0ns */
            0x3ffff034,  /*  52: VICE_CABAC0 off */
            0x3ffff02a,  /*  53: VICE_CABAC1 off */
-           0x8067c05f,  /*  54: VICE_ARCSS0 RR 3625ns */
+           0x3ffff042,  /*  54: VICE_ARCSS0 off */
            0x80e14026,  /*  55: VICE_VIP0_INST0 RR 7420ns */
            0x812c402b,  /*  56: VICE_VIP1_INST0 RR 9890ns */
            0x80e14027,  /*  57: VICE_VIP0_INST1 RR 7420ns */
@@ -511,17 +511,17 @@ static const uint32_t aulMemc1_20171019200521_7278B0_box1_box_mid_performance_sm
            0x3ffff041,  /* 169: HVD1_ILCPU_p2 off */
            0x3ffff011,  /* 170: HVD1_ILSI_p2 off */
            0x3ffff0ff,  /* 171: UNASSIGNED off */
-           0x3ffff055,  /* 172: ASP_WR_ARCSS_DDMA1 off */
-           0x3ffff058,  /* 173: ASP_WR_ARCSS_DDMA2 off */
+           0x3ffff056,  /* 172: ASP_WR_ARCSS_DDMA1 off */
+           0x3ffff059,  /* 173: ASP_WR_ARCSS_DDMA2 off */
            0x3ffff015,  /* 174: ASP_WR_EDPKT_AVIN off */
-           0x3ffff059,  /* 175: ASP_WR_EPKT_AVRTR off */
-           0x3ffff054,  /* 176: ASP_RD_ARCSS_DDMA1 off */
-           0x3ffff057,  /* 177: ASP_RD_ARCSS_DDMA2 off */
-           0x3ffff056,  /* 178: ASP_RD_MCPB_AVOUT off */
-           0x3ffff05b,  /* 179: ASP_RD_EDPKT_AVHDR off */
+           0x3ffff05a,  /* 175: ASP_WR_EPKT_AVRTR off */
+           0x3ffff055,  /* 176: ASP_RD_ARCSS_DDMA1 off */
+           0x3ffff058,  /* 177: ASP_RD_ARCSS_DDMA2 off */
+           0x3ffff057,  /* 178: ASP_RD_MCPB_AVOUT off */
+           0x3ffff05c,  /* 179: ASP_RD_EDPKT_AVHDR off */
            0xbffff0ff,  /* 180: USB_BDC RR */
            0x3ffff02f,  /* 181: WIFI_SYSPORT_WR off */
-           0x3ffff053,  /* 182: WIFI_SYSPORT_RD off */
+           0x3ffff054,  /* 182: WIFI_SYSPORT_RD off */
            0x3ffff0ff,  /* 183: UNASSIGNED off */
            0x3ffff0ff,  /* 184: UNASSIGNED off */
            0x3ffff0ff,  /* 185: UNASSIGNED off */
@@ -589,7 +589,7 @@ static const uint32_t aulMemc1_20171019200521_7278B0_box1_box_mid_performance_sm
            0x3ffff0ff,  /* 247: UNASSIGNED off */
            0xbffff0ff,  /* 248: MEMC_TRACELOG RR */
            0xbffff0ff,  /* 249: MEMC_DTU_SCRUBBER RR */
-           0x8bdd605a,  /* 250: MEMC_ZQCS RR 100000ns */
+           0x8bdd605b,  /* 250: MEMC_ZQCS RR 100000ns */
            0xbffff0ff,  /* 251: MEMC_MSA RR */
            0xbffff0ff,  /* 252: MEMC_DIS0 RR */
            0xbffff0ff,  /* 253: MEMC_DIS1 RR */
@@ -598,7 +598,7 @@ static const uint32_t aulMemc1_20171019200521_7278B0_box1_box_mid_performance_sm
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20171019200521_7278B0_box1_box_mid_performance_sm[] = {
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20171107034842_7278B0_box1_box_mid_performance_sm[] = {
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80740d05}, /* HVD0_PFRI (gHVC0) 218040.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x40000296}, /* d: 4; p: 662.29375 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x00001620}, /* 5664 */
@@ -613,15 +613,15 @@ static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20171019200521_7278B0_box1_
   {BCHP_MEMC_GEN_1_PFRI_2_THROTTLE_THRESH1,     0x00000159}  /* 60% * 576 */
 };
 
-static const uint32_t* const paulMemc_box1[] = { &aulMemc0_20171019200521_7278B0_box1_box_mid_performance_sm[0], &aulMemc1_20171019200521_7278B0_box1_box_mid_performance_sm[0]};
+static const uint32_t* const paulMemc_box1[] = { &aulMemc0_20171107034842_7278B0_box1_box_mid_performance_sm[0], &aulMemc1_20171107034842_7278B0_box1_box_mid_performance_sm[0]};
 
 const BBOX_Rts stBoxRts_7278B0_box1_box_mid_performance_sm_box1 = {
-  "20171019200521_7278B0_box1_box_mid_performance_sm_box1",
+  "20171107034842_7278B0_box1_box_mid_performance_sm_box1",
   7278,
   1,
   2,
   256,
   (const uint32_t**)&paulMemc_box1[0],
   12,
-  stBoxRts_PfriClient_20171019200521_7278B0_box1_box_mid_performance_sm
+  stBoxRts_PfriClient_20171107034842_7278B0_box1_box_mid_performance_sm
 };

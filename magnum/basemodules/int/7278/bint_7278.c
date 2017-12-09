@@ -660,8 +660,9 @@ static void BINT_P_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift 
 
 #ifdef BINT_P_STD_RO_STATUS_CASES
     BINT_P_STD_RO_STATUS_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
-        intEnable |= 1ul<<shift;
+        /* BINT_P_STD_RO_STATUS_MASK_SET registers are write only and only updates IRQs where a 1 is written.
+         * This means you don't need to do a read status, modify then write. */
+        intEnable = 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_SET, intEnable );
         break;
 #else
@@ -718,8 +719,9 @@ static void BINT_P_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shif
 
 #ifdef BINT_P_STD_RO_STATUS_CASES
     BINT_P_STD_RO_STATUS_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
-        intEnable |= 1ul<<shift;
+        /* BINT_P_STD_RO_STATUS_MASK_CLEAR registers are write only and only updates IRQs where a 1 is written.
+         * This means you don't need to do a read status, modify then write. */
+        intEnable = 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_CLEAR, intEnable );
         break;
 #else

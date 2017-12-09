@@ -678,13 +678,14 @@ wlc_bsscfg_macgen(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 		 */
 		bcopy(&wlc->pub->cur_etheraddr, &mbss->vether_base, ETHER_ADDR_LEN);
 		/* avoid collision */
-		mbss->vether_base.octet[5] += 1;
+		mbss->vether_base.octet[5] &= ~(WLC_MBSS_UCIDX_MASK(wlc->pub->corerev));
 
 		/* force locally administered address */
 		ETHER_SET_LOCALADDR(&mbss->vether_base);
 	}
 
 	bcopy(&mbss->vether_base, &newmac, ETHER_ADDR_LEN);
+	newmac.octet[5] |= (WLC_MBSS_UCIDX_MASK(wlc->pub->corerev) & (cfg->cur_etheraddr.octet[5] + 1));
 
 	/* brute force attempt to make a MAC for this interface,
 	 * the user didn't provide one.

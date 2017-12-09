@@ -1766,6 +1766,10 @@ static void NEXUS_HdmiOutput_P_RxRemoved(void *pContext)
         }
     }
 
+#if NEXUS_DBV_SUPPORT
+    NEXUS_HdmiOutput_P_DbvConnectionChanged(output);
+#endif
+
     /* Connected -> disconnected or Connected -> powered down.  Disable output and fire callback */
     if ((!output->tmdsDataEnabled)
     &&  (output->videoConnected))
@@ -3185,7 +3189,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetVendorSpecificInfoFrame(
     /* i.e. payload length < BAVC_HDMI_PB_LENGTH - 3 byte IEEE RegID - 1 byte checksum */
 
 #if NEXUS_DBV_SUPPORT
-    if (handle->dbv.enabled)
+    if (handle->dbv.state == NEXUS_HdmiOutputDbvState_eEnabled || handle->dbv.state == NEXUS_HdmiOutputDbvState_eEnabling)
     {
         NEXUS_HdmiOutput_P_SetDolbyVisionVendorSpecificInfoFrame(handle);
     }

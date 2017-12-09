@@ -1474,11 +1474,11 @@ int main(int argc, const char *argv[])
             ? NEXUS_VideoFormat_ePal : NEXUS_VideoFormat_eNtsc;
         displaySD = NEXUS_Display_Open(1, &compositeDisplaySettings);
         rc = NEXUS_Display_AddOutput(displaySD, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-        BDBG_ASSERT(!rc);
+        if (rc) BERR_TRACE(rc); /* keep going */
 #if NEXUS_NUM_656_OUTPUTS
         if (opts.common.useCcir656Output && platformConfig.outputs.ccir656[0] && displaySD) {
            rc = NEXUS_Display_AddOutput(displaySD, NEXUS_Ccir656Output_GetConnector( platformConfig.outputs.ccir656[0]));
-           BDBG_ASSERT(!rc);
+           if (rc) BERR_TRACE(rc); /* keep going */
         }
 #endif
     }
@@ -1487,7 +1487,7 @@ int main(int argc, const char *argv[])
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     if (opts.common.useComponentOutput) {
         rc = NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
-        BDBG_ASSERT(!rc);
+        if (rc) BERR_TRACE(rc); /* keep going */
     }
 #endif
 #if NEXUS_HAS_HDMI_OUTPUT

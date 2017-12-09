@@ -3,18 +3,12 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
 <meta name=Generator content="Microsoft Word 14 (filtered)">
-<title>Broadcom 97278 A0 Phase 17.3 Set-Top Unified Reference Software Release
-(URSR) Release Notes</title>
+<title>Broadcom 97278 A0/B0 Phase 17.4 Set-Top Unified Reference Software
+Release (URSR) Release Notes</title>
 <style>
 <!--
  /* Font Definitions */
  @font-face
-	{font-family:Wingdings;
-	panose-1:5 0 0 0 0 0 0 0 0 0;}
-@font-face
-	{font-family:Wingdings;
-	panose-1:5 0 0 0 0 0 0 0 0 0;}
-@font-face
 	{font-family:Cambria;
 	panose-1:2 4 5 3 5 4 6 3 2 4;}
 @font-face
@@ -31,6 +25,13 @@ h1
 	margin-right:0in;
 	margin-left:0in;
 	font-size:24.0pt;
+	font-family:"Times New Roman","serif";
+	font-weight:bold;}
+h2
+	{mso-style-link:"Heading 2 Char";
+	margin-right:0in;
+	margin-left:0in;
+	font-size:18.0pt;
 	font-family:"Times New Roman","serif";
 	font-weight:bold;}
 h4
@@ -154,6 +155,12 @@ span.gmailmsg
 	{mso-style-name:gmailmsg;}
 span.gmail-m-5047815134937865191gmailmsg
 	{mso-style-name:gmail-m_-5047815134937865191gmailmsg;}
+span.Heading2Char
+	{mso-style-name:"Heading 2 Char";
+	mso-style-link:"Heading 2";
+	font-family:"Cambria","serif";
+	color:#4F81BD;
+	font-weight:bold;}
 .MsoChpDefault
 	{font-size:10.0pt;}
 @page WordSection1
@@ -185,7 +192,7 @@ href="#where_to_start"><span style='color:#0070C0'>Where to Start</span></a></sp
 
 <div>
 
-<p><a name=top><strong>Broadcom 97278/7278 A0 Phase 17.3 </strong></a><strong>Set-Top
+<p><a name=top><strong>Broadcom 97278/7278 A0/B0 Phase 17.4 </strong></a><strong>Set-Top
 Unified Reference Software Release Notes</strong></p>
 
 <p><strong>Release Date: </strong></p>
@@ -194,20 +201,23 @@ Unified Reference Software Release Notes</strong></p>
 
 <p>September 22, 2017</p>
 
-<p>Phase 17.3 Release </p>
+<p>Phase 17.4 Release </p>
 
 </blockquote>
 
 <p><strong>Platforms Supported: </strong></p>
 
-<p class=MsoNormal style='text-indent:.5in'>97278SV BCM7278 A0 Revision</p>
-<p class=MsoNormal style='text-indent:.5in'>97278HB BCM7278 A0 Revision</p>
-<p class=MsoNormal style='text-indent:.5in'>97278VMS BCM7278 A0 Revision</p>
-<p class=MsoNormal style='text-indent:.5in'>97278IPA BCM7278 A0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278SV BCM7278 A0/B0 Revision</p>
+
+<p class=MsoNormal style='text-indent:.5in'>97278HB BCM7278 A0/B0 Revision</p>
+
+<p class=MsoNormal style='text-indent:.5in'>97278VMS BCM7278 A0/B0 Revision</p>
+
+<p class=MsoNormal style='text-indent:.5in'>97278IPA BCM7278 A0/B0 Revision</p>
 
 <p class=MsoNormal style='text-indent:.5in'>&nbsp;</p>
 
-<p class=MsoNormal><b>BCM7278 A0 Supported boards</b> </p>
+<p class=MsoNormal><b>BCM7278 A0/B0 Supported boards</b> </p>
 
 <table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0>
  <tr>
@@ -258,88 +268,78 @@ Note&#8221; for more details.</a></p>
 <a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
 
 <p class=MsoNormal>Read BroadcomReferencePlatformSetup.pdf for an overview.<br>
-Read Atlas_User_Guide.pdf for information on configuring the Linux environment
-on your Build Server and Set-Top, and information on building and installing
-Atlas as part of the Reference Software. </p>
+Read Atlas_User_Guide.pdf for information on configuring the Linux environment on
+your Build Server and Set-Top, and information on building and installing Atlas
+as part of the Reference Software. </p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal><strong>Important Notes about Limitations</strong></p>
+<p class=MsoNormal><strong>Important Notes Limitations</strong></p>
+
+<p class=MsoNormal><span style='color:blue'>In order to prevent confusion, due
+to the variety of configurations for different chip part numbers, BOLT
+bootloader is no longer bundled with the Reference Software release, and should
+be requested separately. For this release, 97278 was tested with BOLT v1.34.</span></p>
+
+<p class=MsoNormal>In URSR 17.4, Audio/DSP supports MS12 v1.3.1:</p>
+
+<p class=MsoNormal>7278 audio support in this release includes UDC (AC3/DDP)
+[Dolby MS12 license required], AAC/AAC-HE, MPEG and PCMWAV audio decode from TS
+or ES content, as well as Dolby MS12 processing associated with MS12 Configs A,
+B, C, D. Note that AC4 decoding is not supported in this release.</p>
+
+<p class=MsoNormal>7278 audio support also includes AAC stereo encoder.</p>
+
+<p class=MsoNormal>No other codecs are supported on 7278 in this release.</p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal>In URSR 17.3, audio /DSP support is limited:</p>
+<p class=MsoNormal>Security (NEXUS_SECURITY_SUPPORT) support is preliminary in
+this release. &nbsp;BCM7278 uses a new &#8220;secv2&#8221; API.&nbsp; Build
+with NEXUS_SECURITY_SUPPORT=n if necessary.</p>
 
-<p class=MsoNormal>7278 audio support in this release includes standalone UDC
-(AC3/DDP) [Dolby MS12 license required], AAC/AAC-HE, and MPEG audio decode from TS or ES
-content.</p>
+<p class=MsoNormal>SAGE (SAGE_SUPPORT) is not supported in this release. </p>
 
-<p class=MsoNormal>No other codecs are supported on 7278 in this release. In
-addition, advanced usage cases requiring DspMixer or Transcode are not
-supported on 7278 in this release.</p>
-
-<p class=MsoNormal>&nbsp;</p>
-
-<p class=MsoNormal>Security (NEXUS_SECURITY_SUPPORT, SAGE_SUPPORT) is not
-supported in this release. </p>
-
-<p class=MsoNormal>Nexus Power Management (NEXUS_POWER_MANAGEMENT=y) is not
-supported in this release.</p>
+<p class=MsoNormal>Nexus Power Management (NEXUS_POWER_MANAGEMENT=y) is supported
+in this release, but standby (S1,S2,S3) is not.</p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal>Nexus Video Encoder (VIDEO_ENCODER_SUPPORT=y) has
-preliminary support in this release.&nbsp; Transcoding with audio<br>
-is not supported, because audio mixer and audio encoder are not yet supported.&nbsp;
-Video encoder limitations:</p>
+<p class=MsoNormal>Nexus Video Encoder (VIDEO_ENCODER_SUPPORT=y) is defaulted on for use with Box Mode 1
+ in this release.  Transcoding with audio is supported but has received limited testing.  Current video encoder limitations are shown below in "Known Issues".</p><br>
 
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>HW: AVC/MPEG2 only supports I-only GOP structure (workaround
-using <span style='color:black'>numP=0, example below</span>)</p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>HW: High bitrate streaming may not function properly due to the
-SW needing to swap endianness of the CDB on-the-fly</p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>FW/SW: Frame rates lower than 14.985 are not supported<br>
-<br>
-</p>
 
 <p class=MsoNormal>HDR 2.0 features supported in this release:</p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>HDR Metadata Extraction</p>
+Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>HDR Metadata Extraction</p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>HDR10 pass-through</p>
+Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>HDR10 pass-through</p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>HLG pass-through</p>
+Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>HLG pass-through</p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>SDR --&gt; HDR conversion</p>
+Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>SDR --&gt; HDR conversion</p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>HDR10 --&gt; SDR conversion</p>
+Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>HDR10 --&gt; SDR conversion</p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>HLG --&gt; HDR10 conversion</p>
+Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>HLG --&gt; HDR10 conversion</p>
 
 <p><strong>Quick Build Instructions</strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar -xvjf rootfs-4.1-1.12.tar.bz2 </li>
- <li class=MsoNormal># tar -xvjf stblinux-4.1-1.12.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf rootfs-4.1-1.14.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.14.tar.bz2 </li>
  <li class=MsoNormal># cd rootfs </li>
  <li class=MsoNormal># make vmlinuz-initrd-arm <i>(For 32-bit version of the
      kernel build)</i></li>
@@ -347,8 +347,8 @@ Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nb
      kernel build)</i></li>
  <li class=MsoNormal># cd ../linux </li>
  <li class=MsoNormal>export LINUX=`pwd` </li>
- <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-4.8-1.6.tar.bz2 </li>
- <li class=MsoNormal>PATH=/opt/toolchains/ stbgcc-4.8-1.6/bin:$PATH </li>
+ <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-6.3-1.1.tar.bz2 </li>
+ <li class=MsoNormal>PATH=/opt/toolchains/ stbgcc-6.3-1.1/bin:$PATH </li>
  <li class=MsoNormal>export B_REFSW_ARCH=arm-linux </li>
  <li class=MsoNormal>or <span style='font-size:7.0pt;color:black'>&nbsp;<span
      class=apple-converted-space>&nbsp;</span></span><span style='color:black'><span
@@ -361,9 +361,9 @@ Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nb
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal>BOLT&gt; boot -z
-     &lt;network_location&gt;:41-1.12/vmlinuz-initrd-arm </li>
+     &lt;network_location&gt;:41-1.14/vmlinuz-initrd-arm </li>
  <li class=MsoNormal>BOLT&gt; boot -z
-     &lt;network_location&gt;:41-1.12/vmlinuz-initrd-arm64&nbsp; - This command
+     &lt;network_location&gt;:41-1.14/vmlinuz-initrd-arm64&nbsp; - This command
      will boot 64 bit kernel instead of 32 bit kernel. </li>
 </ul>
 
@@ -374,18 +374,18 @@ Symbol'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nb
 <p class=MsoNormal>&nbsp;</p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; flash
-     &lt;network_location&gt;:41-1.12/vmlinuz-initrd-arm flash0.kernel </li>
+ <li class=MsoNormal>BOLT&gt; flash &lt;network_location&gt;:41-1.14/vmlinuz-initrd-arm
+     flash0.kernel </li>
 </ul>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-size:
 10.0pt;font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Or BOLT&gt; flash &lt;network_location&gt;:41-1.12/vmlinuz-initrd-arm64
+</span>Or BOLT&gt; flash &lt;network_location&gt;:41-1.14/vmlinuz-initrd-arm64
 flash0.kernel&nbsp; - For 64 bit kernel</p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot -z flash0.kernel:&quot;
-     </li>
+ <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot -z
+     flash0.kernel:&quot; </li>
  <li class=MsoNormal>BOLT&gt; reboot</li>
 </ul>
 
@@ -404,29 +404,37 @@ style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>
 
 <p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
 style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Select
-option 1 for flashing the noninitrd kernel to the flash. Again run
-&quot;stbutil&quot; and select 2 to flash rootfs into the flash.</p>
+option 8 for flashing the noninitrd kernel and rootfs to the eMMC flash. </p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
 style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
-the board with &quot;boot flash0.kernel 'ubi.mtd=flash1.rootfs0
-rootfstype=ubifs root=ubi0:rootfs rw'&quot; </p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
-style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>In
-case you want to run any application on the startup then, copy the application
-binaries in /data/bin of the flash. Copy the streams in /data/media. Edit
-/etc/profile and put the commands you want to run after the boot. Save the
-file.</p>
+the board with &quot;boot emmcflash0.kernel: 'root=/dev/mmcblk0p6 rootwait rw
+bmem=582m@2490m bmem=572m@13764m brcm_cma=256m@13508m'&quot; </p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
 style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Set
-the STARTUP variable to &quot;boot flash0.kernel 'ubi.mtd=flash1.rootfs0
-rootfstype=ubifs root=ubi0:rootfs rw'&quot; </p>
+the STARTUP or a function key variable to &quot;boot emmcflash0.kernel:
+'root=/dev/mmcblk0p6 rootwait rw bmem=582m@2490m bmem=572m@13764m
+brcm_cma=256m@13508m'&quot; </p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
 style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
 the board.</p>
+
+<br><p class=MsoNormal>Note:&nbsp; The bmem and brcm_cma are required for the brcmv3d
+driver, to allow the MMU for the 3D graphics core to access memory.&nbsp; If 3D
+graphics is not used,<br>
+those statements can be omitted from the boot command.&nbsp; They can be
+adjusted as recommended by messages during Nexus boot.&nbsp; The example given
+is adjusted to work for both Box Mode 1 and Box Mode 2.&nbsp; If 3D graphics is
+used with Box Mode 2, it may be helpful to add another brcm_cma statement in
+MEMC0 memory, such as brcm_cma=256m@2234m.</p>
+<p>For BCM97278IPA, with "ZD" chip for internal development, a board issue
+causes the "v7-32" global address map to be selected.  If you don't see the message
+"v7-64 Memory Map Variant detected." and encounter heap allocation problems during Nexus initialization,
+an alternative set of boot parameters, 'bmem=582m@1466m bmem=549m@3547m brcm_cma=256m@3291m' may be needed.</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </p>
 
 <p class=MsoNormal>&nbsp;</p>
 
@@ -459,7 +467,7 @@ options required to build the software. </p>
   <p class=MsoNormal>97278</p>
   </td>
   <td style='padding:0in 0in 0in 0in'>
-  <p class=MsoNormal><b>A0</b></p>
+  <p class=MsoNormal><b>A0/B0</b></p>
   </td>
   <td style='padding:0in 0in 0in 0in'>
   <p class=MsoNormal>See &#8220;Quick Build Instructions&#8221; on how to setup
@@ -470,19 +478,19 @@ options required to build the software. </p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal>
-  <strong>
-    There are multiple box modes available which contain the RTS to support the different variants and features of this chip.<br>
-    Information on the available box modes has been moved to a <span style='color:#0070C0'><a href="7278A0_box_mode_comparison.html"><span style='color:#0070C0'>new HTML table</a></span>.</p>
-    <br>
-    The table below contains information about the temporary box modes.
-  </strong>
-</p>
+<p class=MsoNormal><strong>There are multiple box modes available which contain
+the RTS to support the different variants and features of this chip.</strong><b><br>
+<strong>Information on the available box modes has been moved to a <span
+style='color:#0070C0'><a href="7278A0_box_mode_comparison.html"><span
+style='color:#0070C0'>new HTML table</span></a>. </span><span style='color:
+black'>At this time box modes are the same for A0 and B0 chip versions.</span></strong></b></p>
 
+<p class=MsoNormal><b><span style='color:#0070C0'><br>
+<strong>The table below contains information about the temporary box modes.&nbsp;
+These box modes were created to address limitations for video encoder (ViCE)
+hardware in BCM7278A0.&nbsp; For B0, Box Mode 1 can be used. </strong></span></b></p>
 
-
-
-<p class=MsoNormal><b>&nbsp;</b></p>
+<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
 
 <table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="96%"
  style='width:96.24%'>
@@ -525,206 +533,85 @@ options required to build the software. </p>
   <td width="50%" valign=top style='width:50.02%;padding:0in 0in 0in 0in;
   height:9.45pt'>
   <p class=MsoNormal style='text-align:justify'>Two 1080p60 decoders, UHD with
-  MAIN (no PIP), SD (graphics only), No Multi-PIP support, No HDMI input, One transcode
-  to 1080p30</p>
+  MAIN (no PIP), SD (graphics only), No Multi-PIP support, No HDMI input, One
+  transcode to 1080p30</p>
   </td>
  </tr>
 </table>
 
 <p class=MsoNormal><span lang=EN-GB style='color:#1F497D'>&nbsp;</span></p>
 
-<p class=MsoNormal><strong>Instructions to build nexus playback utility and use
-it to decode and display a UHD stream </strong></p>
+<p class=MsoNormal><strong><span style='color:black'>Instructions to build
+nexus playback utility and use it to decode and display a UHD stream </span></strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar xvfz refsw_release_97278_20170922.src.tgz </li>
- <li class=MsoNormal>#cd nexus/utils </li>
- <li class=MsoNormal>#make install </li>
+ <li class=MsoNormal style='color:black'># tar xvfz
+     refsw_release_97278_20170922.src.tgz </li>
+ <li class=MsoNormal style='color:black'>#cd nexus/utils </li>
+ <li class=MsoNormal style='color:black'>#make install </li>
 </ul>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>Connect UHD 4K TV to HDMI </li>
- <li class=MsoNormal>#nexus playback -display_format 3840x2160p60 -component
-     off -max_video 3840,2160 -probe &lt;stream_name &gt;</li>
+ <li class=MsoNormal style='color:black'>Connect UHD 4K TV to HDMI </li>
+ <li class=MsoNormal style='color:black'>#nexus playback -display_format
+     3840x2160p60 -component off -max_video 3840,2160 -probe &lt;stream_name
+     &gt;</li>
 </ul>
 
-<p class=MsoNormal>&nbsp;</p>
+<p class=MsoNormal><span style='color:black'>&nbsp;</span></p>
 
-<p class=MsoNormal style='margin-left:.5in'>&nbsp;</p>
+<p class=MsoNormal style='margin-left:.5in'><span style='color:black'>&nbsp;</span></p>
 
-<p class=MsoNormal><b>Instructions to build atlas and use it to play UHD stream
-</b></p>
-
-<ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar xvfz refsw_release_97278_20170922.src.tgz</li>
- <li class=MsoNormal>#cd BSEAV/app/atlas/build </li>
- <li class=MsoNormal>#make install </li>
-</ul>
+<p class=MsoNormal><b><span style='color:black'>Instructions to build atlas
+and use it to play UHD stream </span></b></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>Connect UHD 4K TV to HDMI</li>
- <li class=MsoNormal>Mount the USB/SATA containing the 4kX2k stream as
-     /data/videos </li>
+ <li class=MsoNormal style='color:black'># tar xvfz
+     refsw_release_97278_20170922.src.tgz</li>
+ <li class=MsoNormal style='color:black'>#cd BSEAV/app/atlas/build </li>
+ <li class=MsoNormal style='color:black'>#make install </li>
 </ul>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>Run the following commands to run atlas after extracting
-     the tarball from obj.97278/BSEAV/bin dir.</li>
- <li class=MsoNormal>#start install </li>
- <li class=MsoNormal>#start atlas </li>
- <li class=MsoNormal>From the menu, select Playback -&gt; 4kp60 stream. </li>
- <li class=MsoNormal>Using the remote control for the board, select Menu -&gt;
-     Display -&gt; Format -&gt; 2160p 60Hz. You should be able to see the
-     stream playback in 4Kp60 display format.</li>
+ <li class=MsoNormal style='color:black'>Connect UHD 4K TV to HDMI</li>
+ <li class=MsoNormal style='color:black'>Mount the USB/SATA containing the
+     4kX2k stream as /data/videos </li>
 </ul>
 
-<p class=MsoNormal><b>&nbsp;</b></p>
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='color:black'>Run the following commands to run
+     atlas after extracting the tarball from obj.97278/BSEAV/bin dir.</li>
+ <li class=MsoNormal style='color:black'>#start install </li>
+ <li class=MsoNormal style='color:black'>#start atlas </li>
+ <li class=MsoNormal style='color:black'>From the menu, select Playback -&gt;
+     4kp60 stream. </li>
+ <li class=MsoNormal style='color:black'>Using the remote control for the
+     board, select Menu -&gt; Display -&gt; Format -&gt; 2160p 60Hz. You should
+     be able to see the stream playback in 4Kp60 display format.</li>
+</ul>
 
-<p class=MsoNormal><b>Instructions to test/demonstrate video encoder </b></p>
+<p class=MsoNormal><b><span style='color:black'>&nbsp;</span></b></p>
 
-<p class=MsoNormal style='margin-left:.25in'>Although there are limitations,
-video encoding can be demonstrated.&nbsp; Audio encoding / transcoding is not
-yet working.&nbsp; You must use one of the temporary box modes that support
-video encoder.&nbsp; At runtime, export B_REFSW_BOXMODE=1000 for the
-&#8220;headless&#8221; (no display) box mode, or export B_REFSW_BOXMODE=1001
-for the box mode which supports a display.&nbsp; See
-nexus/platforms/97278/docs/7278_TEMP_box1000.pdf or
-nexus/platforms/97278/docs/7278_TEMP_box1001.pdf for details.&nbsp; <br>
-<br>
-On the build server, compile using the following steps.</p>
+<h1><strong>Known Issues</strong></h1>
+<table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="1" style="left:10px;top:1287px" width="1280px" id="TABLE1A">
+<colgroup><col span="1" style="width: 15%;"><col span="1" style="width: 85%;"></colgroup>
+<tr style="background:#99CCCC">
+<th>Jira Ticket</th>
+<th>Description</th>
+</tr>
+<tr valign="top"><td></td><td></td></tr>
+</table>
 
-<p class=MsoListParagraph style='margin-left:.75in;text-indent:-.25in'><span
-style='font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>#export VIDEO_ENCODER_SUPPORT=y</p>
 
-<p class=MsoListParagraph style='margin-left:.75in;text-indent:-.25in'><span
-style='font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>#cd rockford/unittests/nexus</p>
+<h2><a name=features><span style='color:black'>Features </span></a></h2>
 
-<p class=MsoListParagraph style='margin-left:.75in;text-indent:-.25in'><span
-style='font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>#make install</p>
+<p class=MsoNormal><span style='color:black'><a href="#_top">(Top)</a></span></p>
 
-<p class=MsoNormal style='margin-left:.25in'>&nbsp;</p>
+<p><strong><span style='color:black'>Information on Features has been
+consolidated in the <a href="ReleaseNotes.html"><span style='color:black'>generic
+ReleaseNotes.html</span></a>.</span></strong></p>
 
-<p class=MsoNormal style='margin-left:.25in'>It is necessary to disable memory on MEMC1 due to the video encoder limitations.  On the SV, HB, and VMS boards, These commands in BOLT should be repeated each time the settop is rebooted. (boot ... is whatever variation of the "boot" command you would use to boot the box.)</p>
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-BOLT> dt bolt</span></p>
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-BOLT> dt add prop /memory reg i 0x0 0x40000000 0x0 0x80000000</span></p>
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-BOLT> boot ...</span></p>
-
-<p class=MsoNormal style='margin-left:.25in'>On the IPA boards, use these commands.</p>
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-BOLT> dt bolt</span></p>
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-BOLT> dt add prop /memory reg i 0x0 0x40000000 0x0 0x40000000</span></p>
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-BOLT> boot ...</span></p>
-
-<p class=MsoNormal style='margin-left:.25in'>On the settop, run the following
-to demonstrate transcoding an AVC file to 480p HEVC. </p>
-
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-export B_REFSW_BOXMODE=1001</span></p>
-
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-nexus unittests/encoder/transcode_ts -scr 120 &lt;
-transcode_ts-7278a0_box_1001.cfg</span></p>
-
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
-
-<p class=MsoNormal style='margin-left:.25in'>where the contents of <span
-style='font-size:10.0pt;font-family:"Courier New";color:black'>transcode_ts-7278a0_box_1001.cfg
- </span><span style='color:black'>are shown in the following lines. Adjust PIDs as necessary to match your source file.</span></p>
-
-<p class=MsoNormal style='margin-left:.25in'><span style='color:black'>Contents
-of transcode_ts-7278a0_box_1001.cfg:</span></p>
-
-<pre style='margin-left:.5in;background:white'><span style='color:black'>Source=file</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Path=/data/videos/avatar_AVC_15M.ts</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Stream=ts</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Vcodec=avc</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Vpid=257</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Pcrpid=257</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Audio=0</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Output=/data/videos/file.mpg</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>customFormat=0</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>format=480p</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>framerate=29.97</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>maxBitrate=2000000</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>numP=29</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>numB=0</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>encodeCodec=hevc</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>profile=high</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>level=4.0</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>nrt=1</span></pre>
-
-<p class=MsoNormal style='margin-left:.25in'>On the settop, run the following to
-demonstrate transcoding an AVC file to 480p AVC. </p>
-
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-export B_REFSW_BOXMODE=1001</span></p>
-
-<p class=MsoNormal style='background:white'><span style='font-size:10.0pt;
-font-family:"Courier New";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-nexus unittests/encoder/transcode_ts -scr 120 &lt;
-transcode_ts-7278a0_box_1001.avc.cfg&nbsp;&nbsp; </span></p>
-
-<p class=MsoNormal style='margin-left:.25in'><span style='color:black'>Adjust
-PIDs as necessary to match your source file.&nbsp; numP=0 is needed due to a
-hardware limitation that will be fixed in rev. B0.</span></p>
-
-<p class=MsoNormal style='margin-left:.25in'><span style='color:black'>Contents
-of transcode_ts-7278a0_box_1001.avc.cfg:</span></p>
-
-<pre style='margin-left:.5in;background:white'><span style='color:black'>Source=file</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Path=/data/videos/avatar_AVC_15M.ts</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Stream=ts</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Vcodec=avc</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Vpid=257</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Pcrpid=257</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Audio=0</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>Output=/data/videos/file.mpg</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>customFormat=0</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>format=480p</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>framerate=29.97</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>maxBitrate=2000000</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>numP=0</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>numB=0</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>encodeCodec=avc</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>profile=high</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>level=4.0</span></pre><pre
-style='margin-left:.5in;background:white'><span style='color:black'>nrt=1</span></pre>
-
-<p class=MsoNormal style='margin-left:.25in'><span style='color:black'>&nbsp;</span></p>
-
-<h2>
-<a name="features">
-Features
-</a></h2>
-<p class=MsoNormal><a href="#_top">(Top)</a></p>
-<p>
-  <strong>
-    Information on Features has been consolidated in the <span style='color:#0070C0'><a href="ReleaseNotes.html"><span style='color:#0070C0'>generic ReleaseNotes.html</a></span>.</p>
-  </strong>
-</p>
+</div>
 
 </div>
 

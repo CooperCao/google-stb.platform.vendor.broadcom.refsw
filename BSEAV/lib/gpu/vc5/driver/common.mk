@@ -9,7 +9,6 @@ V3D_VER_AT_LEAST_4_1_0 := $(shell expr `printf "%d%2.2d%2.2d\n" $(V3D_TECH_VERSI
 COMMON_SRC_FILES :=                                             \
 	libs/khrn/common/khrn_int_hash.c                            \
 	libs/khrn/common/khrn_options.c                             \
-	libs/khrn/glxx/glxx_client_skin.c                           \
 	libs/util/dglenum/dglenum.c                                 \
 	libs/util/log/log.c                                         \
 	libs/khrn/glsl/glsl_unique_index_queue.c                    \
@@ -75,6 +74,11 @@ COMMON_SRC_FILES :=                                             \
 	libs/khrn/glsl/glsl_inline_asm.c                            \
 	libs/khrn/glsl/glsl_sim_scheduler.c                         \
 	libs/khrn/glsl/glsl_stable_sort.cpp                         \
+	libs/khrn/glsl/prepro/glsl_prepro_directive.c               \
+	libs/khrn/glsl/prepro/glsl_prepro_expand.c                  \
+	libs/khrn/glsl/prepro/glsl_prepro_token.c                   \
+	libs/khrn/glsl/prepro/glsl_prepro_eval.c                    \
+	libs/khrn/glsl/prepro/glsl_prepro_macro.c                   \
 	libs/util/desc_map/desc_map.c                               \
 	libs/util/gfx_util/gfx_util_conv.c                          \
 	libs/util/gfx_util/gfx_util_morton.c                        \
@@ -129,6 +133,7 @@ COMMON_SRC_FILES :=                                             \
 	libs/platform/v3d_scheduler.c                               \
 	libs/platform/v3d_scheduler_graph.c                         \
 	libs/platform/v3d_imgconv_tfu.c                             \
+	libs/platform/v3d_imgconv_m2mc.c                            \
 	libs/platform/v3d_parallel.c                                \
 	libs/platform/bcg_abstract/gmem_abstract.c                  \
 	libs/platform/bcg_abstract/gmem_talloc.c                    \
@@ -146,10 +151,10 @@ COMMON_GENERATED_SRC_FILES :=                                   \
 	glsl_primitive_types.auto.c                                 \
 	glsl_stdlib.auto.c
 
-GLES_GENERATED_SRC_FILES :=                                     \
+GLES_GENERATED_SRC_FILES :=                                    \
 	glsl_lexer.c                                                \
-	glsl_numbers.c                                              \
 	glsl_parser.c                                               \
+	glsl_numbers.c                                              \
 	glsl_version.c
 
 # sources for stdlib
@@ -216,6 +221,7 @@ AUTO_FILES =                                                    \
 
 # Sources specific to GLES
 GLES_SRC_FILES :=                                                          \
+	libs/khrn/glxx/glxx_client_skin.c                                      \
 	libs/khrn/common/khrn_fmem.c                                           \
 	libs/khrn/common/khrn_fmem_pool.c                                      \
 	libs/khrn/common/khrn_fmem_debug_info.c                                \
@@ -279,11 +285,6 @@ GLES_SRC_FILES :=                                                          \
 	libs/khrn/gl20/gl20_program.c                                          \
 	libs/khrn/gl20/gl20_server.c                                           \
 	libs/khrn/gl20/gl20_shader.c                                           \
-	libs/khrn/glsl/prepro/glsl_prepro_directive.c                          \
-	libs/khrn/glsl/prepro/glsl_prepro_eval.c                               \
-	libs/khrn/glsl/prepro/glsl_prepro_expand.c                             \
-	libs/khrn/glsl/prepro/glsl_prepro_token.c                              \
-	libs/khrn/glsl/prepro/glsl_prepro_macro.c                              \
 	libs/khrn/glxx/glxx_ez.c                                               \
 	libs/khrn/glxx/glxx_hw.c                                               \
 	libs/khrn/glxx/glxx_inner.c                                            \
@@ -426,5 +427,8 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/platforms/V3DPlatformNexusExclusive.cpp  \
 	libs/vulkan/driver/platforms/V3DPlatformNxClient.cpp        \
 	libs/vulkan/driver/platforms/V3DPlatformWayland.cpp         \
+	libs/vulkan/driver/platforms/V3DPlatformAndroid.cpp         \
 	../platform/common/memory_drm.c                             \
+	../platform/common/memory_convert.c                         \
+	../platform/common/display_helpers.c                        \
 	../platform/common/sched_nexus.c

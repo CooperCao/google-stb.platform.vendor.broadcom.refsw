@@ -60,6 +60,7 @@ struct egl_context_base
    EGLDisplay              display;
    egl_api_t               api;
    bool                    valid;
+   bool                    attached;
    bool                    debug;
    bool                    robustness;
    bool                    secure;
@@ -85,7 +86,7 @@ struct egl_context_base
 };
 
 /* Common initialization for a context. */
-extern void egl_context_base_init(EGL_CONTEXT_T *context,
+extern void egl_context_base_init(EGL_CONTEXT_T *context, EGLDisplay dpy,
       egl_api_t api, const EGL_CONFIG_T *config, bool debug,
       bool robustness, bool reset_notification,
       bool secure);

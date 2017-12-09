@@ -534,6 +534,7 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
 NEXUS_HeapHandle NEXUS_Heap_LookupForOffset_isrsafe(
     NEXUS_Addr offset
     );
+bool NEXUS_P_Core_SecureArchIssue_isrsafe(void);
 
 #ifdef __cplusplus
 }

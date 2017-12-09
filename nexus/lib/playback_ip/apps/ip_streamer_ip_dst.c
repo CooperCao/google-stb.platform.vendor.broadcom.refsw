@@ -351,7 +351,7 @@ openNexusIpDstWithTimeshift(
 
     NEXUS_Record_GetSettings(ipDst->recordHandle, &recordSettings);
     recordSettings.recpump = ipDst->recpumpHandle;
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     if (ipStreamerCfg->pvrEncryptionEnabled) {
         ipStreamerCtx->pvrEncKeyHandle = _createKeyHandle(NEXUS_SecurityOperation_eEncrypt);
         if (!ipStreamerCtx->pvrEncKeyHandle) {
@@ -527,7 +527,7 @@ openNexusIpDstWithTimeshift(
         liveStreamingSettings.securitySettings.settings.dtcpIp.emiValue = ipStreamerCfg->emiValue;
     }
 #endif
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     if (ipStreamerCfg->pvrEncryptionEnabled) {
         liveStreamingSettings.securitySettings.enableDecryption = true;
         liveStreamingSettings.securitySettings.dmaHandle = ipStreamerCtx->globalCtx->globalCfg.dmaHandle;
@@ -696,7 +696,7 @@ openNexusIpDstWithoutTimeshift(
               recpumpOpenSettings.index.dataReadyThreshold, recpumpOpenSettings.index.atomSize ));
     NEXUS_Recpump_GetStatus(ipDst->recpumpHandle, &recpumpStatus );
 
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     if (ipStreamerCfg->pvrEncryptionEnabled) {
         ipStreamerCtx->pvrEncKeyHandle = _createKeyHandle(NEXUS_SecurityOperation_eEncrypt);
         if (!ipStreamerCtx->pvrEncKeyHandle) {
@@ -788,7 +788,7 @@ openNexusIpDstWithoutTimeshift(
         liveStreamingSettings.securitySettings.settings.dtcpIp.emiValue = ipStreamerCfg->emiValue;
     }
 #endif
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     if (ipStreamerCfg->pvrEncryptionEnabled) {
         liveStreamingSettings.securitySettings.enableDecryption = true;
         liveStreamingSettings.securitySettings.dmaHandle = ipStreamerCtx->globalCtx->globalCfg.dmaHandle;
@@ -1002,7 +1002,7 @@ closeNexusIpDstWithTimeshift(
     if (remove(ipStreamerCtx->cfg.indexFileName) != 0) {
         BDBG_WRN(("Failed to remove timeshift file %s", ipStreamerCtx->cfg.indexFileName));
     }
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     if (ipStreamerCtx->pvrEncKeyHandle)
         NEXUS_Security_FreeKeySlot(ipStreamerCtx->pvrEncKeyHandle);
     if (ipStreamerCtx->pvrDecKeyHandle && !ipStreamerCtx->cfg.pvrDecKeyHandle)
@@ -1030,7 +1030,7 @@ closeNexusIpDstWithoutTimeshift(
     if (ipStreamerCtx->ipDst->liveStreamingHandle != NULL) {
         B_PlaybackIp_LiveStreamingClose(ipStreamerCtx->ipDst->liveStreamingHandle);
     }
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     if (ipStreamerCtx->pvrEncKeyHandle)
         NEXUS_Security_FreeKeySlot(ipStreamerCtx->pvrEncKeyHandle);
     if (ipStreamerCtx->pvrDecKeyHandle && !ipStreamerCtx->cfg.pvrDecKeyHandle)

@@ -2178,6 +2178,12 @@ static BERR_Code BAPE_Decoder_P_Start(
                 BDBG_MSG(("Setting App/SFx Decoder %p to output 48k since DDRE is attached", (void *)handle));
                 fixedOutputRate = 48000;
             }
+            else if (BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && handle->ddre &&
+                     (handle->startSettings.mixingMode == BAPE_DecoderMixingMode_eStandalone || handle->startSettings.mixingMode == BAPE_DecoderMixingMode_eDescription) &&
+                     !BAVC_CODEC_IS_DOLBY(pSettings->codec)) {
+                BDBG_MSG(("Setting Non-Dolby Primary Decoder %p to output 48k since MS12 DDRE is attached", (void *)handle));
+                fixedOutputRate = 48000;
+            }
             else if (BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && handle->ddre && BAVC_CODEC_IS_AAC(pSettings->codec))
             {
                 BDBG_MSG(("Setting Decoder %p to output the content samplerate for AAC since DDRE is attached", (void *)handle));

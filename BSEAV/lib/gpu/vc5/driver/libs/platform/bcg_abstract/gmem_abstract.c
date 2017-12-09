@@ -241,7 +241,8 @@ gmem_alloc_item* gmem_alloc_internal(size_t size, v3d_size_t align, gmem_usage_f
    align = gfx_zround_up_p2(align, s_context.non_coherent_atom_size);
    size = gfx_zround_up_p2(size, s_context.non_coherent_atom_size);
 
-   if (s_context.talloc && (usage_flags & GMEM_USAGE_HINT_DYNAMIC) && !(usage_flags & GMEM_USAGE_SECURE))
+   if (s_context.talloc && (usage_flags & GMEM_USAGE_HINT_DYNAMIC) &&
+       !(usage_flags & GMEM_USAGE_SECURE) && !(usage_flags & GMEM_USAGE_CONTIGUOUS))
    {
       if (talloc_alloc(s_context.talloc, size, align, &item->cpu_ptr, &item->v3d_addr))
       {
@@ -338,7 +339,8 @@ gmem_handle_t gmem_alloc_and_map(size_t size, v3d_size_t align, gmem_usage_flags
 /* Wrap a device offset and cached ptr in a gmem_handle */
 gmem_handle_t gmem_from_external_memory(GMEM_TERM_T external_term, void *external_context,
                                         uint64_t physOffset, void *cpu_ptr,
-                                        size_t length, const char *desc)
+                                        size_t length, bool secure, bool contiguous,
+                                        const char *desc)
 {
    gmem_alloc_item   *item = NULL;
 
@@ -369,18 +371,23 @@ gmem_handle_t gmem_from_external_memory(GMEM_TERM_T external_term, void *externa
    }
    else
    {
-      item->v3d_addr = physOffset;
+      /* We can only directly address external memory contained within the 32bit address space */
+      if (((physOffset + length - 1) >> 32) != 0)
+         goto error;
+
+      item->v3d_addr = (v3d_addr_t)physOffset;
       item->memory_handle = 0;
    }
 
    item->type = GMEM_ALLOC_EXTERNAL;
 
-   /* Test for a secure buffer */
-   item->usage_flags = GMEM_USAGE_V3D_RW | (cpu_ptr == NULL ? GMEM_USAGE_SECURE : 0);
+   /* Apply usage flags */
+   item->usage_flags = GMEM_USAGE_V3D_RW | (secure ? GMEM_USAGE_SECURE : 0);
+   item->usage_flags |= (contiguous ? GMEM_USAGE_CONTIGUOUS : 0);
 
-   log_trace("%s physOffset=0x%08X%08X, cpu_ptr=%p, length=%zd, desc='%s', item=%p, usage=0x%x", __FUNCTION__,
+   log_trace("%s physOffset=0x%08X%08X, cpu_ptr=%p, length=%zd, secure=%u, desc='%s', item=%p, usage=0x%x", __FUNCTION__,
                   (uint32_t)(physOffset >> 32), (uint32_t)(physOffset & 0xFFFFFFFF), cpu_ptr,
-                   length, desc ? desc : "<null>", item, item->usage_flags);
+                   length, secure, desc ? desc : "<null>", item, item->usage_flags);
 
    /* Insert after (dummy) head of alloc-list */
    if (s_context.alloc_list.next != NULL)
@@ -403,6 +410,25 @@ error:
    vcos_mutex_unlock(&s_context.api_mutex);
 
    return GMEM_HANDLE_INVALID;
+}
+
+void *gmem_get_external_context(gmem_handle_t handle)
+{
+   if (handle == GMEM_HANDLE_INVALID)
+      return NULL;
+
+   gmem_alloc_item *item = gmem_validate_handle(handle);
+
+   if (item->type == GMEM_ALLOC_EXTERNAL)
+      return item->external_context;
+
+   return NULL;
+}
+
+BEGL_MemHandle gmem_get_platform_handle(gmem_handle_t handle)
+{
+   gmem_alloc_item *item = gmem_validate_handle(handle);
+   return item->memory_handle;
 }
 
 void gmem_free_internal(gmem_handle_t handle)
@@ -674,4 +700,13 @@ uint64_t gmem_get_platform_token(void)
    if (!mem_interface_has_get_info())
       return 0;
    return mem_interface_get_info(BEGL_MemPlatformToken);
+}
+
+bool gmem_convert_surface(BEGL_SurfaceConversionInfo *info, bool validateOnly)
+{
+   if (s_context.mem_iface.ConvertSurface == NULL)
+      return false;
+
+   return s_context.mem_iface.ConvertSurface(s_context.mem_iface.context,
+                                             info, validateOnly) == BEGL_Success;
 }

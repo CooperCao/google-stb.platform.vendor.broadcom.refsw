@@ -69,6 +69,9 @@ static bool gfx_buffer_equal_internal(const GFX_BUFFER_DESC_T *lhs,
       else if (lhs_lfmt != rhs_lfmt)
          return false;
 
+      if (lhs->planes[i].region != rhs->planes[i].region)
+         return false;
+
       if (lhs->planes[i].offset != rhs->planes[i].offset)
          return false;
 
@@ -279,19 +282,18 @@ uint32_t gfx_buffer_lt_width_in_ut(
    const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
 {
    const GFX_BUFFER_DESC_PLANE_T *p = &desc->planes[plane_i];
-   GFX_LFMT_BASE_DETAIL_T bd;
-   uint32_t w_in_ut_min, w_in_ut_from_pitch;
 
    assert(gfx_lfmt_is_lt(p->lfmt));
 
+   GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, p->lfmt);
 
-   w_in_ut_min = gfx_udiv_round_up(desc->width, gfx_lfmt_ut_w_2d(&bd));
+   uint32_t w_in_ut_min = gfx_udiv_round_up(desc->width, gfx_lfmt_ut_w_2d(&bd));
    if (desc->height <= gfx_lfmt_ut_h_2d(&bd)) {
       return w_in_ut_min;
    }
 
-   w_in_ut_from_pitch = gfx_udiv_exactly(p->pitch,
+   uint32_t w_in_ut_from_pitch = gfx_udiv_exactly(p->pitch,
       bd.ut_w_in_blocks_2d * bd.bytes_per_block);
    /* If this fires, it means that p->pitch is too small for the size of the
     * image */
@@ -379,19 +381,18 @@ uint32_t gfx_buffer_rso_padded_width(
    const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
 {
    const GFX_BUFFER_DESC_PLANE_T *p = &desc->planes[plane_i];
-   GFX_LFMT_BASE_DETAIL_T bd;
-   uint32_t w_block_pad, w_from_pitch;
 
    assert(gfx_lfmt_is_rso(p->lfmt));
 
+   GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, p->lfmt);
 
-   w_block_pad = gfx_uround_up(desc->width, bd.block_w);
+   uint32_t w_block_pad = gfx_uround_up(desc->width, bd.block_w);
    if (desc->height <= bd.block_h) {
       return w_block_pad;
    }
 
-   w_from_pitch = gfx_udiv_exactly(p->pitch, bd.bytes_per_block) * bd.block_w;
+   uint32_t w_from_pitch = gfx_udiv_exactly(p->pitch, bd.bytes_per_block) * bd.block_w;
    /* Note that we allow w_from_pitch < w_block_pad. This is possible with VG
     * texture upload data. */
    return gfx_umax(w_block_pad, w_from_pitch);
@@ -401,16 +402,16 @@ uint32_t gfx_buffer_sand_padded_height(
    const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
 {
    const GFX_BUFFER_DESC_PLANE_T *p = &desc->planes[plane_i];
-   GFX_LFMT_BASE_DETAIL_T bd;
-   uint32_t h_from_pitch;
 
    assert(gfx_lfmt_is_sand_family(p->lfmt));
 
+   GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, p->lfmt);
 
    assert(p->pitch > 0);
-   h_from_pitch = gfx_udiv_exactly(p->pitch, bd.bytes_per_block) * bd.block_h;
+   uint32_t h_from_pitch = gfx_udiv_exactly(p->pitch, bd.bytes_per_block) * bd.block_h;
    assert(h_from_pitch >= desc->height);
+
    return h_from_pitch;
 }
 

@@ -1,0 +1,1244 @@
+AIO
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_VCXO0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_VCXO0_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_VCXO0_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_VCXO0_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_VCXO0_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_VCXO0_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_VCXO1_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_VCXO1_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_VCXO1_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_VCXO1_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_VCXO1_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_VCXO1_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_AIO_RAAGA0:DSP_CLOCK_ENABLE_AIO_RAAGA0:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:POST_DIVIDER_HOLD_CH5:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:CLOCK_DIS_CH5:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:MDIV_CH5:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0:DSP_CLOCK_ENABLE_RAAGA0:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:POST_DIVIDER_HOLD_CH5:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:CLOCK_DIS_CH5:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:MDIV_CH5:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0:SYSTEM_108_CLOCK_ENABLE_RAAGA0:HighIsOn
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0:SYSTEM_GISB_CLOCK_ENABLE_RAAGA0:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_AIO:AIO_ALTERNATE_108_CLOCK_ENABLE_AIO:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_AIO:AIO_ALTERNATE_SCB_CLOCK_ENABLE_AIO:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE:VEC_AIO_SYSTEMPORT_54_CLOCK_ENABLE:HighIsOn
+
+
+ASP
+|_______CLKGEN_ASP_TOP_INST_CLOCK_ENABLE:ASPT54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_ASP_TOP_INST_CLOCK_ENABLE:ASPT_ASP_540_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOn
+|                       |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_XPT_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_XPT_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_ASP_TOP_INST_CLOCK_ENABLE:ASPT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_ASP_TOP_INST_CLOCK_ENABLE:ASPT_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_ASP_TOP_INST_CLOCK_ENABLE:ASPT_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_ASP_SEC_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SECTOP_INST_CLOCK_ENABLE_SECTOP_ASP:ASP_SECTOP_PIPELINE_CLOCK_ENABLE_SECTOP_ASP:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+AVS
+|_______CLKGEN_SYS_CTRL_INST_CLOCK_DISABLE:DISABLE_AVSTOP_PVTMON_CLOCK:HighIsOff
+
+
+Aon_108_Clock
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SYS_AON_INST_CLOCK_DISABLE:DISABLE_MSPI_108_CLOCK:HighIsOff
+
+
+BDC
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE_BDC:USB0_108_CLOCK_ENABLE_BDC:HighIsOn
+
+
+BVN
+|_______CLKGEN_ASP_TOP_INST_CLOCK_ENABLE:ASPT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_648_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_BVN_MIDDLE_TOP_INST_CLOCK_ENABLE:BVNT54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_MVP_TOP_INST_CLOCK_ENABLE:BVND_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_MVP_TOP_INST_CLOCK_ENABLE:BVNT_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+CPU
+|_______CLKGEN_ORION_TOP_INST_CLOCK_ENABLE:ORION_CPU_C_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_ORION_TOP_INST_CLOCK_ENABLE:ORION_CPU_SECURE_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_ORION_TOP_INST_CLOCK_ENABLE:ORION_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_ORION_TOP_INST_CLOCK_ENABLE:ORION_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_0_4K:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_CPU_PLL_DIV_4K:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_CPU_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_1_4K:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_CPU_PLL_DIV_4K:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_CPU_PLL_DIV:PDIV:PREDIV
+
+
+CPU/SysIF
+|_______CLKGEN_ORION_TOP_INST_CLOCK_DISABLE:DISABLE_CPU_SLOWCPU_CLOCK:HighIsOff
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+Cg
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+DVPHR0
+|_______CLKGEN_ASP_TOP_INST_CLOCK_ENABLE:ASPT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HR_INST_CLOCK_ENABLE0:DVPHR_108_CLOCK_ENABLE0:HighIsOn
+|_______CLKGEN_DVP_HR_INST_CLOCK_ENABLE2:DVPHR_108_CLOCK_ENABLE2:HighIsOn
+|_______CLKGEN_DVP_HR_INST_CLOCK_ENABLE:DVPHR_27_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HR_INST_CLOCK_ENABLE:DVPHR_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HR_INST_CLOCK_ENABLE:DVPHR_648_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HR_INST_CLOCK_ENABLE:DVPHR_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HR_INST_CLOCK_ENABLE:DVPHR_RBUS_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+DVPHT0
+|_______CLKGEN_ASP_TOP_INST_CLOCK_ENABLE:ASPT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HT_INST_CLOCK_ENABLE:DVPHT_108_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HT_INST_CLOCK_ENABLE:DVPHT_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HT_INST_CLOCK_ENABLE:DVPHT_648_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HT_INST_CLOCK_ENABLE:DVPHT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_DVP_HT_INST_CLOCK_ENABLE:DVPHT_IIC_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+HIF
+|_______CLKGEN_HIF_INST_CLOCK_DISABLE:DISABLE_PAD_OUTPUT_EBI_CLOCK:HighIsOff
+|_______CLKGEN_HIF_INST_CLOCK_ENABLE:HIF_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+HVD0
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_108_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_ASP_SEC_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_CORE_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+HVD0_CPU
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_CPU_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+HVD1
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_ASP_SEC_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_HVD1_TOP_INST_CLOCK_ENABLE:HVD1_108_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_HVD1_TOP_INST_CLOCK_ENABLE:HVD1_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_HVD1_TOP_INST_CLOCK_ENABLE:HVD1_CORE_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_HVD1_TOP_INST_CLOCK_ENABLE:HVD1_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_HVD1_TOP_INST_CLOCK_ENABLE:HVD1_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+HVD1_CPU
+|_______CLKGEN_HVD1_TOP_INST_CLOCK_ENABLE:HVD1_CPU_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+ITU656
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_DISABLE:DISABLE_VEC_ITU656_0_CLOCK:HighIsOff
+|       |_______CLKGEN_ITU656_0_MUX_SELECT:VEC_ITU656_0_CLOCK
+|               |_______CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                               |_______CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                                       |_______CLKGEN_PLL_VCXO0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_VCXO0_PLL_DIV:PDIV:PREDIV
+|                                                       |_______CLKGEN_PLL_VCXO0_PLL_RESET:RESETD:HighIsOff
+|                                                               |_______CLKGEN_PLL_VCXO0_PLL_RESET:RESETA:HighIsOff
+|                                                                       |_______CLKGEN_PLL_VCXO0_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                               |_______CLKGEN_PLL_VCXO0_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|               |_______CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                               |_______CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                                       |_______CLKGEN_PLL_VCXO1_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_VCXO1_PLL_DIV:PDIV:PREDIV
+|                                                       |_______CLKGEN_PLL_VCXO1_PLL_RESET:RESETD:HighIsOff
+|                                                               |_______CLKGEN_PLL_VCXO1_PLL_RESET:RESETA:HighIsOff
+|                                                                       |_______CLKGEN_PLL_VCXO1_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                               |_______CLKGEN_PLL_VCXO1_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC:VEC_BVB_216_CLOCK_ENABLE_VEC:HighIsOn
+
+
+M2MC0
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0:GFX_M2MC0_CLOCK_ENABLE_M2MC0:HighIsOn
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0:GFX_M2MC0_GISB_CLOCK_ENABLE_M2MC0:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0:GFX_M2MC0_SCB_CLOCK_ENABLE_M2MC0:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+M2MC1
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0:GFX_M2MC0_CLOCK_ENABLE_M2MC0:HighIsOn
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0:GFX_M2MC0_GISB_CLOCK_ENABLE_M2MC0:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC0:GFX_M2MC0_SCB_CLOCK_ENABLE_M2MC0:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+MEMSYS0
+|_______CLKGEN_MEMSYS_32_0_INST_CLOCK_ENABLE:MEMSYS0_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_MEMSYS_32_0_INST_CLOCK_ENABLE:MEMSYS0_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_MEMSYS_32_0_INST_CLOCK_ENABLE:MEMSYS0_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+MEMSYS1
+|_______CLKGEN_MEMSYS_32_1_INST_CLOCK_ENABLE:MEMSYS1_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_MEMSYS_32_1_INST_CLOCK_ENABLE:MEMSYS1_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_MEMSYS_32_1_INST_CLOCK_ENABLE:MEMSYS1_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+MM_M2MC0
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC1:GFX_M2MC1_GISB_CLOCK_ENABLE_M2MC1:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_M2MC1:GFX_M2MC1_SCB_CLOCK_ENABLE_M2MC1:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_MM_M2MC0:GFX_MM_M2MC0_CLOCK_ENABLE_MM_M2MC0:HighIsOn
+|       |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4:POST_DIVIDER_HOLD_CH4:HighIsOff
+|               |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4:CLOCK_DIS_CH4:HighIsOff
+|                       |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4:MDIV_CH4:POSTDIV
+|                               |_______CLKGEN_PLL_XPT_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_XPT_PLL_DIV:PDIV:PREDIV
+
+
+PAD
+|_______CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SC0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SC0_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_SC0_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_SC0_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_SC0_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_SC0_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SC1_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SC1_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_SC1_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_SC1_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_SC1_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_SC1_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+PCIE0
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE0:PCIE0_108_CLOCK_ENABLE_PCIE0:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE0:PCIE0_54_CLOCK_ENABLE_PCIE0:HighIsOn
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE0:PCIE0_GISB_CLOCK_ENABLE_PCIE0:HighIsOn
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE0:PCIE0_SCB_CLOCK_ENABLE_PCIE0:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+PCIE1
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE1:PCIE1_108_CLOCK_ENABLE_PCIE1:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE1:PCIE1_54_CLOCK_ENABLE_PCIE1:HighIsOn
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE1:PCIE1_GISB_CLOCK_ENABLE_PCIE1:HighIsOn
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_PCIE1:PCIE1_SCB_CLOCK_ENABLE_PCIE1:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+POTP
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PROD_OTP_INST_CLOCK_DISABLE:DISABLE_POTP_JTAGOTP_CLOCK_SPARE_CLOCK:HighIsOff
+|_______CLKGEN_PROD_OTP_INST_CLOCK_ENABLE:POTP_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_PROD_OTP_INST_CLOCK_ENABLE:POTP_GISB_CLOCK_ENABLE:HighIsOn
+
+
+RAAGA0
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0:SYSTEM_108_CLOCK_ENABLE_RAAGA0:HighIsOn
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0:SYSTEM_54_CLOCK_ENABLE_RAAGA0:HighIsOn
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0:SYSTEM_GISB_CLOCK_ENABLE_RAAGA0:HighIsOn
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0:SYSTEM_SCB_CLOCK_ENABLE_RAAGA0:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+RAAGA0_CPU
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_AIO_RAAGA0:DSP_CLOCK_ENABLE_AIO_RAAGA0:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:POST_DIVIDER_HOLD_CH5:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:CLOCK_DIS_CH5:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:MDIV_CH5:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0:DSP_CLOCK_ENABLE_RAAGA0:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:POST_DIVIDER_HOLD_CH5:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:CLOCK_DIS_CH5:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5:MDIV_CH5:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+SATA3
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_SATA3:SATA3_54_CLOCK_ENABLE_SATA3:HighIsOn
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_SATA3:SATA3_GISB_CLOCK_ENABLE_SATA3:HighIsOn
+|_______CLKGEN_SATA3_PCIE_TOP_INST_CLOCK_ENABLE_SATA3:SATA3_SCB_CLOCK_ENABLE_SATA3:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+SC0
+|_______CLKGEN_SYS_CTRL_INST_CLOCK_DISABLE:DISABLE_SC0_CLOCK:HighIsOff
+|       |_______CLKGEN_SMARTCARD_MUX_SELECT:SC0_CLOCK
+
+
+SC1
+|_______CLKGEN_SYS_CTRL_INST_CLOCK_DISABLE:DISABLE_SC1_CLOCK:HighIsOff
+|       |_______CLKGEN_SMARTCARD_MUX_SELECT:SC1_CLOCK
+
+
+SDIO
+|_______CLKGEN_HIF_INST_CLOCK_DISABLE:DISABLE_HIF_SDIO_CARD_CLOCK:HighIsOff
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_4:POST_DIVIDER_HOLD_CH4:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_4:CLOCK_DIS_CH4:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_4:MDIV_CH4:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_HIF_INST_CLOCK_DISABLE:DISABLE_HIF_SDIO_EMMC_CLOCK:HighIsOff
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_4:POST_DIVIDER_HOLD_CH4:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_4:CLOCK_DIS_CH4:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_4:MDIV_CH4:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+SEC
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_ASP_SEC_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_4:POST_DIVIDER_HOLD_CH4:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_4:CLOCK_DIS_CH4:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_4:MDIV_CH4:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_3:POST_DIVIDER_HOLD_CH3:HighIsOff
+|       |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_3:CLOCK_DIS_CH3:HighIsOff
+|               |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_3:MDIV_CH3:POSTDIV
+|                       |_______CLKGEN_PLL_XPT_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_XPT_PLL_DIV:PDIV:PREDIV
+
+
+SECBUS
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE:HVD0_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_HVD1_TOP_INST_CLOCK_ENABLE:HVD1_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VICE_0_INST_CLOCK_ENABLE:VICE_0_GISB_CLOCK_ENABLE:HighIsOn
+
+
+SPI
+|_______CLKGEN_HIF_INST_CLOCK_DISABLE:DISABLE_HIF_SPI_CLOCK:HighIsOff
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3:POST_DIVIDER_HOLD_CH3:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3:CLOCK_DIS_CH3:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3:MDIV_CH3:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+SWITCH
+|_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_DISABLE:DISABLE_SW_25_CLOCK:HighIsOff
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE:SWITCH_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE:SWITCH_GISB_CLOCK_ENABLE:HighIsOn
+
+
+SYSC
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+SYSPORT0
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_GISB_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_GMII_TX_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_RX_SCB_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_RX_SYS_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_SCB_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_TX_SCB_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_TX_SCB_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_TX_SYS_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+SYSPORT0WOL
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_RX_SYS_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT0_TX_SYS_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+SYSPORT1
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT1_GISB_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT1_GMII_TX_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT1_RX_SCB_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT1_RX_SYS_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT1_SCB_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT1_TX_SCB_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT1_TX_SYS_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+SYSPORT1WOL
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT1_RX_SYS_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_SWITCH_TOP_WRAPPER_INST_CLOCK_ENABLE_SYSTEMPORT:SYSTEMPORT1_TX_SYS_CLOCK_ENABLE_SYSTEMPORT:HighIsOn
+|       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+UART0
+|_______CLKGEN_SYS_CTRL_INST_CLOCK_DISABLE:DISABLE_SYSCTRL_UART_0_CLOCK:HighIsOff
+|       |_______CLKGEN_UART_0_CLOCK_MUX_SELECT:SYSCTRL_UART_0_CLOCK
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3:POST_DIVIDER_HOLD_CH3:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3:CLOCK_DIS_CH3:HighIsOff
+|                               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3:MDIV_CH3:POSTDIV
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                               |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5:POST_DIVIDER_HOLD_CH5:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5:CLOCK_DIS_CH5:HighIsOff
+|                               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5:MDIV_CH5:POSTDIV
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+UART1
+|_______CLKGEN_SYS_CTRL_INST_CLOCK_DISABLE:DISABLE_SYSCTRL_UART_1_CLOCK:HighIsOff
+|       |_______CLKGEN_UART_1_CLOCK_MUX_SELECT:SYSCTRL_UART_1_CLOCK
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3:POST_DIVIDER_HOLD_CH3:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3:CLOCK_DIS_CH3:HighIsOff
+|                               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3:MDIV_CH3:POSTDIV
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                               |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5:POST_DIVIDER_HOLD_CH5:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5:CLOCK_DIS_CH5:HighIsOff
+|                               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5:MDIV_CH5:POSTDIV
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+UART2
+|_______CLKGEN_SYS_CTRL_INST_CLOCK_DISABLE:DISABLE_SYSCTRL_UART_2_CLOCK:HighIsOff
+|       |_______CLKGEN_UART_2_CLOCK_MUX_SELECT:SYSCTRL_UART_2_CLOCK
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|                               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3:POST_DIVIDER_HOLD_CH3:HighIsOff
+|                       |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3:CLOCK_DIS_CH3:HighIsOff
+|                               |_______CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_3:MDIV_CH3:POSTDIV
+|                                       |_______CLKGEN_PLL_NETWORK_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_NETWORK_PLL_DIV:PDIV:PREDIV
+|                                                       |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETD:HighIsOff
+|                                                               |_______CLKGEN_PLL_NETWORK_PLL_RESET:RESETA:HighIsOff
+|                                                                       |_______CLKGEN_PLL_NETWORK_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                               |_______CLKGEN_PLL_NETWORK_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5:POST_DIVIDER_HOLD_CH5:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5:CLOCK_DIS_CH5:HighIsOff
+|                               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_5:MDIV_CH5:POSTDIV
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+UPG
+|_______CLKGEN_SYS_CTRL_INST_CLOCK_DISABLE:DISABLE_SYSCTRL_UPG_CLOCK:HighIsOff
+
+
+USB20
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE_AHB:USB0_108_CLOCK_ENABLE_AHB:HighIsOn
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE_AXI:USB0_108_CLOCK_ENABLE_AXI:HighIsOn
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE_BDC:USB0_108_CLOCK_ENABLE_BDC:HighIsOn
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE:USB0_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE:USB0_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE:USB0_SCB_1ST_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE:USB0_SCB_3RD_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+USB30
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE_AHB:USB0_108_CLOCK_ENABLE_AHB:HighIsOn
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE_AXI:USB0_108_CLOCK_ENABLE_AXI:HighIsOn
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE:USB0_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE:USB0_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_USB0_TOP_INST_CLOCK_ENABLE:USB0_SCB_2ND_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+V3D
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_V3D_TOP_INST_CLOCK_ENABLE:V3D_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_V3D_TOP_INST_CLOCK_ENABLE:V3D_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_V3D_TOP_INST_CLOCK_ENABLE:V3D_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+V3D_CPU
+|_______CLKGEN_V3D_TOP_INST_CLOCK_ENABLE:V3D_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_5:POST_DIVIDER_HOLD_CH5:HighIsOff
+|               |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_5:CLOCK_DIS_CH5:HighIsOff
+|                       |_______CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_5:MDIV_CH5:POSTDIV
+|                               |_______CLKGEN_PLL_HVD_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_HVD_PLL_DIV:PDIV:PREDIV
+|                                               |_______CLKGEN_PLL_HVD_PLL_RESET:RESETD:HighIsOff
+|                                                       |_______CLKGEN_PLL_HVD_PLL_RESET:RESETA:HighIsOff
+|                                                               |_______CLKGEN_PLL_HVD_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                                       |_______CLKGEN_PLL_HVD_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+
+
+VDAC
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC:VEC_BVB_216_CLOCK_ENABLE_VDAC:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC:VEC_GISB_CLOCK_ENABLE_VDAC:HighIsOn
+
+
+VEC
+|_______CLKGEN_ASP_TOP_INST_CLOCK_ENABLE:ASPT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_BVB_324_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_BVN_EDGE_TOP_INST_CLOCK_ENABLE:BVNT_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_VCXO0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_VCXO0_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_VCXO0_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_VCXO0_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_VCXO0_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_VCXO0_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_VCXO1_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_VCXO1_PLL_DIV:PDIV:PREDIV
+|                                       |_______CLKGEN_PLL_VCXO1_PLL_RESET:RESETD:HighIsOff
+|                                               |_______CLKGEN_PLL_VCXO1_PLL_RESET:RESETA:HighIsOff
+|                                                       |_______CLKGEN_PLL_VCXO1_PLL_PWRON:PWRON_PLL:HighIsOn
+|                                                               |_______CLKGEN_PLL_VCXO1_PLL_LDO_PWRON:LDO_PWRON_PLL:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE:VEC_AIO_SYSTEMPORT_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC:VEC_BVB_216_CLOCK_ENABLE_VEC:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC:VEC_BVB_324_CLOCK_ENABLE_VEC:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC:VEC_BVB_648_CLOCK_ENABLE_VEC:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC:VEC_BVB_BUS1_CLOCK_ENABLE_VEC:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC:VEC_GISB_CLOCK_ENABLE_VEC:HighIsOn
+|_______CLKGEN_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC:VEC_SCB_CLOCK_ENABLE_VEC:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+VICE20
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VICE_0_INST_CLOCK_ENABLE:VICE_0_108_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_VICE_0_INST_CLOCK_ENABLE:VICE_0_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_VICE_0_INST_CLOCK_ENABLE:VICE_0_BVB_BUS1_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_VICE_0_INST_CLOCK_ENABLE:VICE_0_CORE_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_3:POST_DIVIDER_HOLD_CH3:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_3:CLOCK_DIS_CH3:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_3:MDIV_CH3:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VICE_0_INST_CLOCK_ENABLE:VICE_0_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_VICE_0_INST_CLOCK_ENABLE:VICE_0_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_VICE_0_INST_VEC_STG_CLK_CTRL:VICE_0_VEC_STG_CLK_CTRL:HighIsOn
+
+
+VIP
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+XPT
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_108_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_CORE_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_XPT_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_XPT_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|       |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|               |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                       |_______CLKGEN_PLL_XPT_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_XPT_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SECTOP_INST_CLOCK_ENABLE_SECTOP_XPT:XPT_SECTOP_PIPELINE_CLOCK_ENABLE_SECTOP_XPT:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+
+
+XPT_REMUX
+|_______CLKGEN_CORE_XPT_INST_CLOCK_DISABLE:DISABLE_XPT_20P25_CLOCK:HighIsOff
+|_______CLKGEN_CORE_XPT_INST_CLOCK_DISABLE:DISABLE_XPT_27_CLOCK:HighIsOff
+|_______CLKGEN_CORE_XPT_INST_CLOCK_DISABLE:DISABLE_XPT_40P5_CLOCK:HighIsOff
+|_______CLKGEN_CORE_XPT_INST_CLOCK_DISABLE:DISABLE_XPT_54_CLOCK:HighIsOff
+|_______CLKGEN_CORE_XPT_INST_CLOCK_DISABLE:DISABLE_XPT_81_CLOCK:HighIsOff
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_108_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_54_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_CORE_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_GISB_CLOCK_ENABLE:HighIsOn
+|_______CLKGEN_CORE_XPT_INST_CLOCK_ENABLE:XPT_SCB_CLOCK_ENABLE:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:POST_DIVIDER_HOLD_CH0:HighIsOff
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:CLOCK_DIS_CH0:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_0:MDIV_CH0:POSTDIV
+|                       |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1:POST_DIVIDER_HOLD_CH1:HighIsOff
+|       |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1:CLOCK_DIS_CH1:HighIsOff
+|               |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1:MDIV_CH1:POSTDIV
+|                       |_______CLKGEN_PLL_XPT_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_XPT_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|       |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|               |_______CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                       |_______CLKGEN_PLL_XPT_PLL_DIV:NDIV_INT:MULT
+|                               |_______CLKGEN_PLL_XPT_PLL_DIV:PDIV:PREDIV
+|_______CLKGEN_SECTOP_INST_CLOCK_ENABLE_SECTOP_XPT:XPT_SECTOP_PIPELINE_CLOCK_ENABLE_SECTOP_XPT:HighIsOn
+|       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:POST_DIVIDER_HOLD_CH2:HighIsOff
+|               |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:CLOCK_DIS_CH2:HighIsOff
+|                       |_______CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2:MDIV_CH2:POSTDIV
+|                               |_______CLKGEN_PLL_SYS0_PLL_DIV:NDIV_INT:MULT
+|                                       |_______CLKGEN_PLL_SYS0_PLL_DIV:PDIV:PREDIV

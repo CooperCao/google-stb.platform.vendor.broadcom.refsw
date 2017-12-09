@@ -39,6 +39,10 @@
  *
  ***************************************************************************/
 
+#include "bstd.h"           /* standard types */
+#include "bkni.h"           /* kernel interface */
+#include "bmma.h"
+
 #include "bvce_buffer.h"
 #include "bmma_range.h"
 #include "bdbg.h"

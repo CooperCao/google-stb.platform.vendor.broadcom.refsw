@@ -1489,20 +1489,21 @@ void streamer_stop(unsigned id)
     return;
 }
 
+#define BOX_WIDTH 10
+
 void *graphics2d_thread(void *context)
 {
     NEXUS_Graphics2DFillSettings fillSettings;
     NEXUS_Graphics2DBlitSettings blitSettings;
-    NEXUS_SurfaceCreateSettings surfaceHdSettings, surfaceSdSettings;
+    NEXUS_SurfaceCreateSettings surfaceSettings;
     NEXUS_Error rc;
     unsigned i;
 
     BSTD_UNUSED(context);
 
-    if(g_StandbyNexusHandles.offscreenHD)
-        NEXUS_Surface_GetCreateSettings(g_StandbyNexusHandles.offscreenHD, &surfaceHdSettings);
-    if(g_StandbyNexusHandles.offscreenSD)
-        NEXUS_Surface_GetCreateSettings(g_StandbyNexusHandles.offscreenSD, &surfaceSdSettings);
+    BDBG_ASSERT(g_StandbyNexusHandles.offscreen);
+
+    NEXUS_Surface_GetCreateSettings(g_StandbyNexusHandles.offscreen, &surfaceSettings);
 
     for(i=0;;i++) {
 
@@ -1516,119 +1517,60 @@ void *graphics2d_thread(void *context)
 
         NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
 
-        if(g_StandbyNexusHandles.offscreenHD) {
-            fillSettings.surface = g_StandbyNexusHandles.offscreenHD;
-            fillSettings.rect.x = rand() % (surfaceHdSettings.width - 20);
-            fillSettings.rect.y = rand() % (surfaceHdSettings.height - 20);
-            fillSettings.rect.width = 20;
-            fillSettings.rect.height = 20;
-            fillSettings.color = (0xFF << 24) | rand();
+        fillSettings.surface = g_StandbyNexusHandles.offscreen;
+        fillSettings.rect.x = rand() % (surfaceSettings.width - BOX_WIDTH);
+        fillSettings.rect.y = rand() % (surfaceSettings.height - BOX_WIDTH);
+        fillSettings.rect.width = BOX_WIDTH;
+        fillSettings.rect.height = BOX_WIDTH;
+        fillSettings.color = (0xFF << 24) | rand();
 
-            while (1) {
-                rc = NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-                if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
-                    BKNI_WaitForEvent(g_StandbyNexusHandles.spaceAvailableEvent, BKNI_INFINITE);
-                } else {
-                    break;
-                }
-            }
-        }
-
-        if(g_StandbyNexusHandles.offscreenSD) {
-            fillSettings.surface = g_StandbyNexusHandles.offscreenSD;
-            fillSettings.rect.x = rand() % (surfaceSdSettings.width - 8);
-            fillSettings.rect.y = rand() % (surfaceSdSettings.height - 8);
-            fillSettings.rect.width = 8;
-            fillSettings.rect.height = 8;
-            fillSettings.color = (0xFF << 24) | rand();
-
-            while (1) {
-                rc = NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-                if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
-                    BKNI_WaitForEvent(g_StandbyNexusHandles.spaceAvailableEvent, BKNI_INFINITE);
-                } else {
-                    break;
-                }
+        while (1) {
+            rc = NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
+            if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
+                BKNI_WaitForEvent(g_StandbyNexusHandles.spaceAvailableEvent, BKNI_INFINITE);
+            } else {
+                break;
             }
         }
 
         if (i && i%100==0) {
-
             if(g_DeviceState.decode_started[0]) {
-                if(g_StandbyNexusHandles.offscreenHD) {
-                    fillSettings.surface = g_StandbyNexusHandles.offscreenHD;
-                    fillSettings.rect.x = 0;
-                    fillSettings.rect.y = 0;
-                    fillSettings.rect.width = surfaceHdSettings.width/2;
-                    fillSettings.rect.height = surfaceHdSettings.height/2;
-                    fillSettings.color = 0x00cacaca;
-                    while (1) {
-                        rc = NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-                        if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
-                            BKNI_WaitForEvent(g_StandbyNexusHandles.spaceAvailableEvent, BKNI_INFINITE);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                if(g_StandbyNexusHandles.offscreenSD) {
-                    fillSettings.surface = g_StandbyNexusHandles.offscreenSD;
-                    fillSettings.rect.x = 0;
-                    fillSettings.rect.y = 0;
-                    fillSettings.rect.width = surfaceSdSettings.width/2;
-                    fillSettings.rect.height = surfaceSdSettings.height/2;
-                    fillSettings.color = 0x00cacaca;
-                    while (1) {
-                        rc = NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-                        if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
-                            BKNI_WaitForEvent(g_StandbyNexusHandles.spaceAvailableEvent, BKNI_INFINITE);
-                        } else {
-                            break;
-                        }
+                fillSettings.surface = g_StandbyNexusHandles.offscreen;
+                fillSettings.rect.x = 0;
+                fillSettings.rect.y = 0;
+                fillSettings.rect.width = surfaceSettings.width/2;
+                fillSettings.rect.height = surfaceSettings.height/2;
+                fillSettings.color = 0x00cacaca;
+                while (1) {
+                    rc = NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
+                    if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
+                        BKNI_WaitForEvent(g_StandbyNexusHandles.spaceAvailableEvent, BKNI_INFINITE);
+                    } else {
+                        break;
                     }
                 }
             }
 #if NEXUS_NUM_VIDEO_WINDOWS > 1
             if(g_DeviceState.decode_started[1]) {
-                if(g_StandbyNexusHandles.offscreenHD) {
-                    fillSettings.surface = g_StandbyNexusHandles.offscreenHD;
-                    fillSettings.rect.x = surfaceHdSettings.width/2;
-                    fillSettings.rect.y = surfaceHdSettings.height/2;
-                    fillSettings.rect.width = surfaceHdSettings.width/2;
-                    fillSettings.rect.height = surfaceHdSettings.height/2;
-                    fillSettings.color = 0x00cacaca;
-                    while (1) {
-                        rc = NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-                        if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
-                            BKNI_WaitForEvent(g_StandbyNexusHandles.spaceAvailableEvent, BKNI_INFINITE);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                if(g_StandbyNexusHandles.offscreenSD) {
-                    fillSettings.surface = g_StandbyNexusHandles.offscreenSD;
-                    fillSettings.rect.x = surfaceSdSettings.width/2;
-                    fillSettings.rect.y = surfaceSdSettings.height/2;
-                    fillSettings.rect.width = surfaceSdSettings.width/2;
-                    fillSettings.rect.height = surfaceSdSettings.height/2;
-                    fillSettings.color = 0x00cacaca;
-                    while (1) {
-                        rc = NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-                        if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
-                            BKNI_WaitForEvent(g_StandbyNexusHandles.spaceAvailableEvent, BKNI_INFINITE);
-                        } else {
-                            break;
-                        }
+                fillSettings.surface = g_StandbyNexusHandles.offscreen;
+                fillSettings.rect.x = surfaceSettings.width/2;
+                fillSettings.rect.y = surfaceSettings.height/2;
+                fillSettings.rect.width = surfaceSettings.width/2;
+                fillSettings.rect.height = surfaceSettings.height/2;
+                fillSettings.color = 0x00cacaca;
+                while (1) {
+                    rc = NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
+                    if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
+                        BKNI_WaitForEvent(g_StandbyNexusHandles.spaceAvailableEvent, BKNI_INFINITE);
+                    } else {
+                        break;
                     }
                 }
             }
 #endif
-            if(g_StandbyNexusHandles.offscreenHD) {
+            if(g_StandbyNexusHandles.framebufferHD) {
                 NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
-                blitSettings.source.surface = g_StandbyNexusHandles.offscreenHD;
+                blitSettings.source.surface = g_StandbyNexusHandles.offscreen;
                 blitSettings.output.surface = g_StandbyNexusHandles.framebufferHD;
                 blitSettings.colorOp = NEXUS_BlitColorOp_eCopySource;
                 blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopySource;
@@ -1642,9 +1584,9 @@ void *graphics2d_thread(void *context)
                 }
             }
 
-            if(g_StandbyNexusHandles.offscreenSD) {
+            if(g_StandbyNexusHandles.framebufferSD) {
                 NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
-                blitSettings.source.surface = g_StandbyNexusHandles.offscreenSD;
+                blitSettings.source.surface = g_StandbyNexusHandles.offscreen;
                 blitSettings.output.surface = g_StandbyNexusHandles.framebufferSD;
                 blitSettings.colorOp = NEXUS_BlitColorOp_eCopySource;
                 blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopySource;
@@ -2827,9 +2769,12 @@ void stc_channel_close(unsigned id)
     g_StandbyNexusHandles.stcChannel[id] = NULL;
 }
 
+#define GFX_WIDTH  720
+#define GFX_HEIGHT 480
 void graphics2d_open(void)
 {
     NEXUS_Graphics2DSettings gfxSettings;
+    NEXUS_Graphics2DFillSettings fillSettings;
 
     if(g_StandbyNexusHandles.gfx2d)
         return;
@@ -2845,6 +2790,17 @@ void graphics2d_open(void)
     gfxSettings.packetSpaceAvailable.callback = complete;
     gfxSettings.packetSpaceAvailable.context = g_StandbyNexusHandles.spaceAvailableEvent;
     NEXUS_Graphics2D_SetSettings(g_StandbyNexusHandles.gfx2d, &gfxSettings);
+
+    NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
+    fillSettings.rect.width = GFX_WIDTH;
+    fillSettings.rect.height = GFX_HEIGHT;
+    fillSettings.color = 0xFF0000FF;
+    fillSettings.surface = g_StandbyNexusHandles.offscreen;
+    NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
+    fillSettings.surface = g_StandbyNexusHandles.framebufferHD;
+    NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
+    fillSettings.surface = g_StandbyNexusHandles.framebufferSD;
+    NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
 }
 
 void graphics2d_close(void)
@@ -2860,192 +2816,112 @@ void graphics2d_close(void)
     g_StandbyNexusHandles.spaceAvailableEvent = NULL;
 }
 
-void graphics2d_setup(void)
+void set_window_scale(bool gfx_enabled)
 {
     NEXUS_DisplaySettings displaySettings;
     NEXUS_VideoFormatInfo videoFormatInfo;
     NEXUS_VideoWindowSettings windowSettings;
-    NEXUS_SurfaceCreateSettings createSettings;
-    NEXUS_Graphics2DFillSettings fillSettings;
     NEXUS_GraphicsSettings graphicsSettings;
-    NEXUS_DisplayCapabilities displayCap;
+    NEXUS_SurfaceCreateSettings createSettings;
 
-    NEXUS_GetDisplayCapabilities(&displayCap);
-
-    if(displayCap.display[0].graphics.width &&
-       displayCap.display[0].graphics.height &&
-       g_StandbyNexusHandles.displayHD) {
+    if (g_StandbyNexusHandles.displayHD) {
         NEXUS_Display_GetSettings(g_StandbyNexusHandles.displayHD, &displaySettings);
         NEXUS_VideoFormat_GetInfo(displaySettings.format, &videoFormatInfo);
-        if(g_StandbyNexusHandles.windowHD[0]) {
+        if (g_StandbyNexusHandles.windowHD[0]) {
             NEXUS_VideoWindow_GetSettings(g_StandbyNexusHandles.windowHD[0], &windowSettings);
             windowSettings.position.x = 0;
             windowSettings.position.y = 0;
-            windowSettings.position.width = videoFormatInfo.width/2;
-            windowSettings.position.height = videoFormatInfo.height/2;
+            windowSettings.position.width = gfx_enabled?videoFormatInfo.width/2:videoFormatInfo.width;
+            windowSettings.position.height = gfx_enabled?videoFormatInfo.height/2:videoFormatInfo.height;
             windowSettings.alpha = 0xFF;
             NEXUS_VideoWindow_SetSettings(g_StandbyNexusHandles.windowHD[0], &windowSettings);
         }
-        if(g_StandbyNexusHandles.windowHD[1]) {
+        if (g_StandbyNexusHandles.windowHD[1]) {
             NEXUS_VideoWindow_GetSettings(g_StandbyNexusHandles.windowHD[1], &windowSettings);
             windowSettings.position.x = videoFormatInfo.width/2;
-            windowSettings.position.y = videoFormatInfo.height/2;
+            windowSettings.position.y = gfx_enabled?videoFormatInfo.height/2:0;
             windowSettings.position.width = videoFormatInfo.width/2;
             windowSettings.position.height = videoFormatInfo.height/2;
             windowSettings.alpha = 0xFF;
             NEXUS_VideoWindow_SetSettings(g_StandbyNexusHandles.windowHD[1], &windowSettings);
         }
-
-        NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
-        createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
-        createSettings.width = displayCap.display[0].graphics.width;
-        createSettings.height = displayCap.display[0].graphics.height;
-        createSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
-        g_StandbyNexusHandles.framebufferHD = NEXUS_Surface_Create(&createSettings);
-        g_StandbyNexusHandles.offscreenHD = NEXUS_Surface_Create(&createSettings);
-
-        NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
-        fillSettings.surface = g_StandbyNexusHandles.framebufferHD;
-        fillSettings.rect.width = createSettings.width;
-        fillSettings.rect.height = createSettings.height;
-        fillSettings.color = 0xFF0000FF;
-        NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-        fillSettings.surface = g_StandbyNexusHandles.offscreenHD;
-        NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-
-        NEXUS_Display_GetGraphicsSettings(g_StandbyNexusHandles.displayHD, &graphicsSettings);
-        graphicsSettings.enabled = true;
-        graphicsSettings.position.width = videoFormatInfo.width;
-        graphicsSettings.position.height = videoFormatInfo.height;
-        graphicsSettings.clip.width = createSettings.width;
-        graphicsSettings.clip.height = createSettings.height;
-        NEXUS_Display_SetGraphicsSettings(g_StandbyNexusHandles.displayHD, &graphicsSettings);
-        NEXUS_Display_SetGraphicsFramebuffer(g_StandbyNexusHandles.displayHD, g_StandbyNexusHandles.framebufferHD);
+        if (g_StandbyNexusHandles.framebufferHD) {
+            NEXUS_Surface_GetCreateSettings(g_StandbyNexusHandles.framebufferHD, &createSettings);
+            NEXUS_Display_GetGraphicsSettings(g_StandbyNexusHandles.displayHD, &graphicsSettings);
+            graphicsSettings.enabled = gfx_enabled?true:false;
+            graphicsSettings.position.width = videoFormatInfo.width;
+            graphicsSettings.position.height = videoFormatInfo.height;
+            graphicsSettings.clip.width = createSettings.width;
+            graphicsSettings.clip.height = createSettings.height;
+            NEXUS_Display_SetGraphicsSettings(g_StandbyNexusHandles.displayHD, &graphicsSettings);
+            NEXUS_Display_SetGraphicsFramebuffer(g_StandbyNexusHandles.displayHD, g_StandbyNexusHandles.framebufferHD);
+        }
     }
 
-    if(displayCap.display[1].graphics.width &&
-       displayCap.display[1].graphics.height &&
-       g_StandbyNexusHandles.displaySD) {
+    if (g_StandbyNexusHandles.displaySD) {
         NEXUS_Display_GetSettings(g_StandbyNexusHandles.displaySD, &displaySettings);
         NEXUS_VideoFormat_GetInfo(displaySettings.format, &videoFormatInfo);
-        if(g_StandbyNexusHandles.windowSD[0]) {
+        if (g_StandbyNexusHandles.windowSD[0]) {
             NEXUS_VideoWindow_GetSettings(g_StandbyNexusHandles.windowSD[0], &windowSettings);
             windowSettings.position.x = 0;
             windowSettings.position.y = 0;
-            windowSettings.position.width = videoFormatInfo.width/2;
-            windowSettings.position.height = videoFormatInfo.height/2;
+            windowSettings.position.width = gfx_enabled?videoFormatInfo.width/2:videoFormatInfo.width;
+            windowSettings.position.height = gfx_enabled?videoFormatInfo.height/2:videoFormatInfo.height;
             windowSettings.alpha = 0xFF;
             NEXUS_VideoWindow_SetSettings(g_StandbyNexusHandles.windowSD[0], &windowSettings);
         }
-        if(g_StandbyNexusHandles.windowSD[1]) {
+        if (g_StandbyNexusHandles.windowSD[1]) {
             NEXUS_VideoWindow_GetSettings(g_StandbyNexusHandles.windowSD[1], &windowSettings);
             windowSettings.position.x = videoFormatInfo.width/2;
-            windowSettings.position.y = videoFormatInfo.height/2;
+            windowSettings.position.y = gfx_enabled?videoFormatInfo.height/2:0;
             windowSettings.position.width = videoFormatInfo.width/2;
             windowSettings.position.height = videoFormatInfo.height/2;
             windowSettings.alpha = 0xFF;
             NEXUS_VideoWindow_SetSettings(g_StandbyNexusHandles.windowSD[1], &windowSettings);
         }
-
-        NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
-        createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
-        /* displayCap.display[1].graphics.width and height not reliable for all platforms (7425, 7435)*/
-        createSettings.width =  720;
-        createSettings.height = 576;
-        createSettings.heap = NEXUS_Platform_GetFramebufferHeap(1);
-        g_StandbyNexusHandles.framebufferSD = NEXUS_Surface_Create(&createSettings);
-        g_StandbyNexusHandles.offscreenSD = NEXUS_Surface_Create(&createSettings);
-
-        NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
-        fillSettings.surface = g_StandbyNexusHandles.framebufferSD;
-        fillSettings.rect.width = createSettings.width;
-        fillSettings.rect.height = createSettings.height;
-        fillSettings.color = 0xFF0000FF;
-        NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-        fillSettings.surface = g_StandbyNexusHandles.offscreenSD;
-        NEXUS_Graphics2D_Fill(g_StandbyNexusHandles.gfx2d, &fillSettings);
-
-        NEXUS_Display_GetGraphicsSettings(g_StandbyNexusHandles.displaySD, &graphicsSettings);
-        graphicsSettings.enabled = true;
-        graphicsSettings.position.width = videoFormatInfo.width;
-        graphicsSettings.position.height = videoFormatInfo.height;
-        graphicsSettings.clip.width = createSettings.width;
-        graphicsSettings.clip.height = createSettings.height;
-        NEXUS_Display_SetGraphicsSettings(g_StandbyNexusHandles.displaySD, &graphicsSettings);
-        NEXUS_Display_SetGraphicsFramebuffer(g_StandbyNexusHandles.displaySD, g_StandbyNexusHandles.framebufferSD);
+        if (g_StandbyNexusHandles.framebufferSD) {
+            NEXUS_Surface_GetCreateSettings(g_StandbyNexusHandles.framebufferSD, &createSettings);
+            NEXUS_Display_GetGraphicsSettings(g_StandbyNexusHandles.displaySD, &graphicsSettings);
+            graphicsSettings.enabled = gfx_enabled?true:false;
+            graphicsSettings.position.width = videoFormatInfo.width;
+            graphicsSettings.position.height = videoFormatInfo.height;
+            graphicsSettings.clip.width = createSettings.width;
+            graphicsSettings.clip.height = createSettings.height;
+            NEXUS_Display_SetGraphicsSettings(g_StandbyNexusHandles.displaySD, &graphicsSettings);
+            NEXUS_Display_SetGraphicsFramebuffer(g_StandbyNexusHandles.displaySD, g_StandbyNexusHandles.framebufferSD);
+        }
     }
 }
 
-void graphics2d_destroy(void)
+void surface_create(void)
 {
-    NEXUS_GraphicsSettings graphicsSettings;
-    NEXUS_DisplaySettings displaySettings;
-    NEXUS_VideoFormatInfo videoFormatInfo;
-    NEXUS_VideoWindowSettings windowSettings;
+    NEXUS_SurfaceCreateSettings createSettings;
+    NEXUS_Graphics2DFillSettings fillSettings;
 
-    if(g_StandbyNexusHandles.displayHD) {
-        NEXUS_Display_GetSettings(g_StandbyNexusHandles.displayHD, &displaySettings);
-        NEXUS_VideoFormat_GetInfo(displaySettings.format, &videoFormatInfo);
-        if(g_StandbyNexusHandles.windowHD[0]) {
-            NEXUS_VideoWindow_GetSettings(g_StandbyNexusHandles.windowHD[0], &windowSettings);
-            windowSettings.position.x = 0;
-            windowSettings.position.y = 0;
-            windowSettings.position.width = videoFormatInfo.width;
-            windowSettings.position.height = videoFormatInfo.height;
-            windowSettings.alpha = 0xFF;
-            NEXUS_VideoWindow_SetSettings(g_StandbyNexusHandles.windowHD[0], &windowSettings);
-        }
-        if(g_StandbyNexusHandles.windowHD[1]) {
-            NEXUS_VideoWindow_GetSettings(g_StandbyNexusHandles.windowHD[1], &windowSettings);
-            windowSettings.position.x = videoFormatInfo.width/2;
-            windowSettings.position.y = 0;
-            windowSettings.position.width = videoFormatInfo.width/2;
-            windowSettings.position.height = videoFormatInfo.height/2;
-            windowSettings.alpha = 0xFF;
-            NEXUS_VideoWindow_SetSettings(g_StandbyNexusHandles.windowHD[1], &windowSettings);
-        }
-        NEXUS_Display_GetGraphicsSettings(g_StandbyNexusHandles.displayHD, &graphicsSettings);
-        graphicsSettings.enabled = false;
-        NEXUS_Display_SetGraphicsSettings(g_StandbyNexusHandles.displayHD, &graphicsSettings);
-    }
-    if(g_StandbyNexusHandles.displaySD) {
-        NEXUS_Display_GetSettings(g_StandbyNexusHandles.displaySD, &displaySettings);
-        NEXUS_VideoFormat_GetInfo(displaySettings.format, &videoFormatInfo);
-        if(g_StandbyNexusHandles.windowSD[0]) {
-            NEXUS_VideoWindow_GetSettings(g_StandbyNexusHandles.windowSD[0], &windowSettings);
-            windowSettings.position.x = 0;
-            windowSettings.position.y = 0;
-            windowSettings.position.width = videoFormatInfo.width;
-            windowSettings.position.height = videoFormatInfo.height;
-            windowSettings.alpha = 0xFF;
-            NEXUS_VideoWindow_SetSettings(g_StandbyNexusHandles.windowSD[0], &windowSettings);
-        }
-        if(g_StandbyNexusHandles.windowSD[1]) {
-            NEXUS_VideoWindow_GetSettings(g_StandbyNexusHandles.windowSD[1], &windowSettings);
-            windowSettings.position.x = videoFormatInfo.width/2;
-            windowSettings.position.y = 0;
-            windowSettings.position.width = videoFormatInfo.width/2;
-            windowSettings.position.height = videoFormatInfo.height/2;
-            windowSettings.alpha = 0xFF;
-            NEXUS_VideoWindow_SetSettings(g_StandbyNexusHandles.windowSD[1], &windowSettings);
-        }
-        NEXUS_Display_GetGraphicsSettings(g_StandbyNexusHandles.displaySD, &graphicsSettings);
-        graphicsSettings.enabled = false;
-        NEXUS_Display_SetGraphicsSettings(g_StandbyNexusHandles.displaySD, &graphicsSettings);
-    }
+    NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
+    createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
+    createSettings.width = GFX_WIDTH;
+    createSettings.height = GFX_HEIGHT;
+    createSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
+    g_StandbyNexusHandles.offscreen = NEXUS_Surface_Create(&createSettings);
+    g_StandbyNexusHandles.framebufferHD = NEXUS_Surface_Create(&createSettings);
+    g_StandbyNexusHandles.framebufferSD = NEXUS_Surface_Create(&createSettings);
+}
 
-    if(g_StandbyNexusHandles.offscreenHD)
-        NEXUS_Surface_Destroy(g_StandbyNexusHandles.offscreenHD);
-    g_StandbyNexusHandles.offscreenHD = NULL;
-    if(g_StandbyNexusHandles.framebufferHD)
+void surface_destroy(void)
+{
+    if(g_StandbyNexusHandles.offscreen) {
+        NEXUS_Surface_Destroy(g_StandbyNexusHandles.offscreen);
+        g_StandbyNexusHandles.offscreen = NULL;
+    }
+    if(g_StandbyNexusHandles.framebufferHD) {
         NEXUS_Surface_Destroy(g_StandbyNexusHandles.framebufferHD);
-    g_StandbyNexusHandles.framebufferHD = NULL;
-    if(g_StandbyNexusHandles.offscreenSD)
-        NEXUS_Surface_Destroy(g_StandbyNexusHandles.offscreenSD);
-    g_StandbyNexusHandles.offscreenSD = NULL;
-    if(g_StandbyNexusHandles.framebufferSD)
+        g_StandbyNexusHandles.framebufferHD = NULL;
+    }
+    if(g_StandbyNexusHandles.framebufferSD) {
         NEXUS_Surface_Destroy(g_StandbyNexusHandles.framebufferSD);
-    g_StandbyNexusHandles.framebufferSD = NULL;
+        g_StandbyNexusHandles.framebufferSD = NULL;
+    }
 }
 
 void graphics3d_open(void)
@@ -3676,6 +3552,8 @@ int start_app(void)
     BKNI_CreateEvent(&g_StandbyNexusHandles.s1Event);
     BKNI_CreateEvent(&g_StandbyNexusHandles.signalLockedEvent);
 
+    surface_create();
+
     gpio_open();
     ir_open();
     uhf_open();
@@ -3720,7 +3598,6 @@ void stop_app(void)
 
     /* Bring down system */
     graphics2d_stop();
-    graphics2d_destroy();
     graphics2d_close();
 
     encode_stop(0);
@@ -3755,6 +3632,8 @@ void stop_app(void)
     uhf_close();
     ir_close();
     gpio_close();
+
+    surface_destroy();
 
     if(g_StandbyNexusHandles.event)
         BKNI_DestroyEvent(g_StandbyNexusHandles.event);

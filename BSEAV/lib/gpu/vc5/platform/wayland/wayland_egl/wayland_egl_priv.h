@@ -1,11 +1,9 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef __WAYLAND_EGL_PRIV_H__
-#define __WAYLAND_EGL_PRIV_H__
+#pragma once
 
 #include <wayland-client.h>
-#include <pthread.h>
 
 /* GCC visibility */
 #if defined(__GNUC__) && __GNUC__ >= 4
@@ -15,28 +13,28 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 struct wl_egl_window
 {
-   pthread_mutex_t mutex;
    struct wl_surface *surface;
+
    int width;
    int height;
    int dx;
    int dy;
+
    int attached_width;
    int attached_height;
-   struct resize
-   {
-      void *context;
-      void (*callback)(void *context, struct wl_egl_window * egl_window);
-   } resize;
+
+   void *callback_private;
+   void (*resize_callback)(struct wl_egl_window *, void *);
+   void (*get_attached_size_callback)(struct wl_egl_window *, void *);
+   void (*destroy_window_callback)(void *);
 };
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif /*__WAYLAND_EGL_PRIV_H__*/

@@ -10,12 +10,14 @@
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 #include "libs/core/lfmt/lfmt.h"
 
-typedef struct security_info_t
+typedef struct conversion_info_t
 {
-   bool  secure_context;
-   bool  secure_src;
-   bool  secure_dst;
-} security_info_t;
+   bool secure_context;
+   bool secure_src;
+   bool secure_dst;
+   bool contiguous_src;
+   bool contiguous_dst;
+} conversion_info_t;
 
 typedef bool (*convert_async_t) (
       const struct v3d_imgconv_gmem_tgt *dst, unsigned int dst_off,
@@ -39,7 +41,7 @@ typedef bool (*claim_t) (
       const struct v3d_imgconv_base_tgt *dst,
       const struct v3d_imgconv_base_tgt *src,
       unsigned int width, unsigned int height, unsigned int depth,
-      const security_info_t *sec_info);
+      const conversion_info_t *info);
 
 typedef struct
 {
@@ -52,11 +54,17 @@ typedef struct
 
 extern size_t v3d_imgconv_base_size(const struct v3d_imgconv_base_tgt *base);
 
-extern bool v3d_imgconv_valid_hw_sec_info(const security_info_t *sec_info);
-extern bool v3d_imgconv_valid_cpu_sec_info(const security_info_t *sec_info);
+extern bool v3d_imgconv_valid_hw_conv_info(const conversion_info_t *info);
+extern bool v3d_imgconv_valid_cpu_conv_info(const conversion_info_t *info);
 
+extern bool v3d_imgconv_m2mc_convert_surface(const v3d_imgconv_gmem_tgt *src, uint32_t src_off,
+                                             const v3d_imgconv_gmem_tgt *dst, uint32_t dst_off,
+                                             bool validateOnly);
+
+const v3d_imgconv_methods* get_m2mc_path(void);
 const v3d_imgconv_methods* get_tfu_path(void);
 const v3d_imgconv_methods* get_memcpy_tfu_path(void);
+const v3d_imgconv_methods* get_sand_m2mc_tfu_path(void);
 const v3d_imgconv_methods* get_yv12_tfu_path(void);
 const v3d_imgconv_methods* get_neon_path(void);
 const v3d_imgconv_methods* get_extra_neon_path(void);

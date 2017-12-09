@@ -1,7 +1,7 @@
-diff -rNup openssl-1.0.2g.orig/apps/apps.c openssl-1.0.2g/apps/apps.c
---- openssl-1.0.2g.orig/apps/apps.c	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/apps/apps.c	2016-03-02 17:37:53.728606803 -0800
-@@ -952,6 +952,67 @@ X509_CRL *load_crl(const char *infile, i
+diff -rNup openssl-1.0.2j.orig/apps/apps.c openssl-1.0.2j/apps/apps.c
+--- openssl-1.0.2j.orig/apps/apps.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/apps/apps.c	2017-11-28 16:07:23.579355202 -0800
+@@ -953,6 +953,67 @@ X509_CRL *load_crl(const char *infile, i
      return (x);
  }
  
@@ -69,9 +69,9 @@ diff -rNup openssl-1.0.2g.orig/apps/apps.c openssl-1.0.2g/apps/apps.c
  EVP_PKEY *load_key(BIO *err, const char *file, int format, int maybe_stdin,
                     const char *pass, ENGINE *e, const char *key_descrip)
  {
-diff -rNup openssl-1.0.2g.orig/apps/apps.h openssl-1.0.2g/apps/apps.h
---- openssl-1.0.2g.orig/apps/apps.h	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/apps/apps.h	2016-03-02 17:37:53.728606803 -0800
+diff -rNup openssl-1.0.2j.orig/apps/apps.h openssl-1.0.2j/apps/apps.h
+--- openssl-1.0.2j.orig/apps/apps.h	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/apps/apps.h	2017-11-28 16:07:23.579355202 -0800
 @@ -245,9 +245,11 @@ int app_passwd(BIO *err, char *arg1, cha
  int add_oid_section(BIO *err, CONF *conf);
  X509 *load_cert(BIO *err, const char *file, int format,
@@ -87,18 +87,18 @@ diff -rNup openssl-1.0.2g.orig/apps/apps.h openssl-1.0.2g/apps/apps.h
  EVP_PKEY *load_key(BIO *err, const char *file, int format, int maybe_stdin,
                     const char *pass, ENGINE *e, const char *key_descrip);
  EVP_PKEY *load_pubkey(BIO *err, const char *file, int format, int maybe_stdin,
-diff -rNup openssl-1.0.2g.orig/apps/CA.pl openssl-1.0.2g/apps/CA.pl
---- openssl-1.0.2g.orig/apps/CA.pl	2016-03-01 05:36:56.000000000 -0800
-+++ openssl-1.0.2g/apps/CA.pl	2016-03-02 17:37:53.735606817 -0800
+diff -rNup openssl-1.0.2j.orig/apps/CA.pl openssl-1.0.2j/apps/CA.pl
+--- openssl-1.0.2j.orig/apps/CA.pl	2016-09-26 02:49:51.000000000 -0700
++++ openssl-1.0.2j/apps/CA.pl	2017-11-28 16:07:23.579355202 -0800
 @@ -1,4 +1,4 @@
 -#!/usr/bin/perl
 +#!/usr/local/bin/perl
  #
  # CA - wrapper around ca to make it easier to use ... basically ca requires
  #      some setup stuff to be done before you can use it and this makes
-diff -rNup openssl-1.0.2g.orig/apps/Makefile openssl-1.0.2g/apps/Makefile
---- openssl-1.0.2g.orig/apps/Makefile	2016-03-01 05:36:53.000000000 -0800
-+++ openssl-1.0.2g/apps/Makefile	2016-03-02 17:37:53.735606817 -0800
+diff -rNup openssl-1.0.2j.orig/apps/Makefile openssl-1.0.2j/apps/Makefile
+--- openssl-1.0.2j.orig/apps/Makefile	2016-09-26 02:49:48.000000000 -0700
++++ openssl-1.0.2j/apps/Makefile	2017-11-28 16:07:23.579355202 -0800
 @@ -941,22 +941,21 @@ speed.o: ../include/openssl/dsa.h ../inc
  speed.o: ../include/openssl/ec.h ../include/openssl/ecdh.h
  speed.o: ../include/openssl/ecdsa.h ../include/openssl/engine.h
@@ -161,9 +161,9 @@ diff -rNup openssl-1.0.2g.orig/apps/Makefile openssl-1.0.2g/apps/Makefile
  x509.o: ../e_os.h ../include/openssl/asn1.h ../include/openssl/bio.h
  x509.o: ../include/openssl/bn.h ../include/openssl/buffer.h
  x509.o: ../include/openssl/conf.h ../include/openssl/crypto.h
-diff -rNup openssl-1.0.2g.orig/apps/openssl.cnf openssl-1.0.2g/apps/openssl.cnf
---- openssl-1.0.2g.orig/apps/openssl.cnf	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/apps/openssl.cnf	2016-03-02 17:37:53.735606817 -0800
+diff -rNup openssl-1.0.2j.orig/apps/openssl.cnf openssl-1.0.2j/apps/openssl.cnf
+--- openssl-1.0.2j.orig/apps/openssl.cnf	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/apps/openssl.cnf	2017-11-28 16:07:23.583355202 -0800
 @@ -39,7 +39,8 @@ default_ca	= CA_default		# The default c
  ####################################################################
  [ CA_default ]
@@ -237,9 +237,9 @@ diff -rNup openssl-1.0.2g.orig/apps/openssl.cnf openssl-1.0.2g/apps/openssl.cnf
  
  # SET-ex3			= SET extension number 3
  
-diff -rNup openssl-1.0.2g.orig/crypto/asn1/a_d2i_fp.c openssl-1.0.2g/crypto/asn1/a_d2i_fp.c
---- openssl-1.0.2g.orig/crypto/asn1/a_d2i_fp.c	2016-03-01 05:35:05.000000000 -0800
-+++ openssl-1.0.2g/crypto/asn1/a_d2i_fp.c	2016-03-02 17:37:53.736606820 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/asn1/a_d2i_fp.c openssl-1.0.2j/crypto/asn1/a_d2i_fp.c
+--- openssl-1.0.2j.orig/crypto/asn1/a_d2i_fp.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/asn1/a_d2i_fp.c	2017-11-28 16:07:23.583355202 -0800
 @@ -63,6 +63,10 @@
  #include <openssl/asn1_mac.h>
  
@@ -406,9 +406,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/asn1/a_d2i_fp.c openssl-1.0.2g/crypto/asn1
 +	return(ret);
 +	}
 +/********************************************************************************/
-diff -rNup openssl-1.0.2g.orig/crypto/asn1/asn1.h openssl-1.0.2g/crypto/asn1/asn1.h
---- openssl-1.0.2g.orig/crypto/asn1/asn1.h	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/crypto/asn1/asn1.h	2016-03-02 17:37:53.736606820 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/asn1/asn1.h openssl-1.0.2j/crypto/asn1/asn1.h
+--- openssl-1.0.2j.orig/crypto/asn1/asn1.h	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/asn1/asn1.h	2017-11-28 16:07:23.583355202 -0800
 @@ -1019,6 +1019,8 @@ void *ASN1_d2i_bio(void *(*xnew) (void),
                            CHECKED_PPTR_OF(type, x)))
  
@@ -418,9 +418,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/asn1/asn1.h openssl-1.0.2g/crypto/asn1/asn
  int ASN1_i2d_bio(i2d_of_void *i2d, BIO *out, unsigned char *x);
  
  #  define ASN1_i2d_bio_of(type,i2d,out,x) \
-diff -rNup openssl-1.0.2g.orig/crypto/bio/bio_lib.c openssl-1.0.2g/crypto/bio/bio_lib.c
---- openssl-1.0.2g.orig/crypto/bio/bio_lib.c	2016-03-01 05:35:05.000000000 -0800
-+++ openssl-1.0.2g/crypto/bio/bio_lib.c	2016-03-02 17:37:53.736606820 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/bio/bio_lib.c openssl-1.0.2j/crypto/bio/bio_lib.c
+--- openssl-1.0.2j.orig/crypto/bio/bio_lib.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/bio/bio_lib.c	2017-11-28 16:07:23.583355202 -0800
 @@ -140,6 +140,14 @@ void BIO_vfree(BIO *a)
      BIO_free(a);
  }
@@ -436,9 +436,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/bio/bio_lib.c openssl-1.0.2g/crypto/bio/bi
  void BIO_clear_flags(BIO *b, int flags)
  {
      b->flags &= ~flags;
-diff -rNup openssl-1.0.2g.orig/crypto/opensslconf.h openssl-1.0.2g/crypto/opensslconf.h
---- openssl-1.0.2g.orig/crypto/opensslconf.h	2016-03-01 05:36:55.000000000 -0800
-+++ openssl-1.0.2g/crypto/opensslconf.h	2016-03-02 17:37:53.736606820 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/opensslconf.h openssl-1.0.2j/crypto/opensslconf.h
+--- openssl-1.0.2j.orig/crypto/opensslconf.h	2016-09-26 02:49:50.000000000 -0700
++++ openssl-1.0.2j/crypto/opensslconf.h	2017-11-28 16:07:23.583355202 -0800
 @@ -14,6 +14,9 @@ extern "C" {
  #ifndef OPENSSL_NO_GMP
  # define OPENSSL_NO_GMP
@@ -575,9 +575,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/opensslconf.h openssl-1.0.2g/crypto/openss
  #endif
  
  /* These default values were supplied by
-diff -rNup openssl-1.0.2g.orig/crypto/pem/pem.h openssl-1.0.2g/crypto/pem/pem.h
---- openssl-1.0.2g.orig/crypto/pem/pem.h	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/crypto/pem/pem.h	2016-03-02 17:37:53.737606823 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/pem/pem.h openssl-1.0.2j/crypto/pem/pem.h
+--- openssl-1.0.2j.orig/crypto/pem/pem.h	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/pem/pem.h	2017-11-28 16:07:23.583355202 -0800
 @@ -212,7 +212,11 @@ typedef struct pem_ctx_st {
  # ifdef OPENSSL_NO_FP_API
  
@@ -604,7 +604,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem.h openssl-1.0.2g/crypto/pem/pem.h
  
  #  define IMPLEMENT_PEM_write_fp(name, type, str, asn1) \
  int PEM_write_##name(FILE *fp, type *x) \
-@@ -230,6 +241,15 @@ int PEM_write_##name(FILE *fp, type *x) 
+@@ -230,6 +241,15 @@ int PEM_write_##name(FILE *fp, type *x)
  return PEM_ASN1_write((i2d_of_void *)i2d_##asn1,str,fp,x,NULL,NULL,0,NULL,NULL); \
  }
  
@@ -620,7 +620,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem.h openssl-1.0.2g/crypto/pem/pem.h
  #  define IMPLEMENT_PEM_write_fp_const(name, type, str, asn1) \
  int PEM_write_##name(FILE *fp, const type *x) \
  { \
-@@ -260,12 +280,28 @@ type *PEM_read_bio_##name(BIO *bp, type 
+@@ -260,12 +280,28 @@ type *PEM_read_bio_##name(BIO *bp, type
  return PEM_ASN1_read_bio((d2i_of_void *)d2i_##asn1, str,bp,(void **)x,cb,u); \
  }
  
@@ -875,7 +875,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem.h openssl-1.0.2g/crypto/pem/pem.h
  STACK_OF(X509_INFO) *PEM_X509_INFO_read(FILE *fp, STACK_OF(X509_INFO) *sk,
                                          pem_password_cb *cb, void *u);
  
-@@ -449,7 +595,13 @@ void PEM_dek_info(char *buf, const char 
+@@ -449,7 +595,13 @@ void PEM_dek_info(char *buf, const char
  # include <openssl/symhacks.h>
  
  DECLARE_PEM_rw(X509, X509)
@@ -899,7 +899,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem.h openssl-1.0.2g/crypto/pem/pem.h
  DECLARE_PEM_rw(PUBKEY, EVP_PKEY)
  
  int PEM_write_bio_PKCS8PrivateKey_nid(BIO *bp, EVP_PKEY *x, int nid,
-@@ -578,6 +733,12 @@ void ERR_load_PEM_strings(void);
+@@ -579,6 +734,12 @@ void ERR_load_PEM_strings(void);
  # define PEM_F_PEM_X509_INFO_READ                         115
  # define PEM_F_PEM_X509_INFO_READ_BIO                     116
  # define PEM_F_PEM_X509_INFO_WRITE_BIO                    117
@@ -912,9 +912,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem.h openssl-1.0.2g/crypto/pem/pem.h
  
  /* Reason codes. */
  # define PEM_R_BAD_BASE64_DECODE                          100
-diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_info.c openssl-1.0.2g/crypto/pem/pem_info.c
---- openssl-1.0.2g.orig/crypto/pem/pem_info.c	2016-03-01 05:35:05.000000000 -0800
-+++ openssl-1.0.2g/crypto/pem/pem_info.c	2016-03-02 17:37:53.737606823 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/pem/pem_info.c openssl-1.0.2j/crypto/pem/pem_info.c
+--- openssl-1.0.2j.orig/crypto/pem/pem_info.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/pem/pem_info.c	2017-11-28 16:07:23.583355202 -0800
 @@ -88,19 +88,216 @@ STACK_OF(X509_INFO) *PEM_X509_INFO_read(
  }
  #endif
@@ -1145,9 +1145,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_info.c openssl-1.0.2g/crypto/pem/p
  
      if (sk == NULL) {
          if ((ret = sk_X509_INFO_new_null()) == NULL) {
-diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_lib.c openssl-1.0.2g/crypto/pem/pem_lib.c
---- openssl-1.0.2g.orig/crypto/pem/pem_lib.c	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/crypto/pem/pem_lib.c	2016-03-02 17:37:53.738606825 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/pem/pem_lib.c openssl-1.0.2j/crypto/pem/pem_lib.c
+--- openssl-1.0.2j.orig/crypto/pem/pem_lib.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/pem/pem_lib.c	2017-11-28 16:07:23.595355202 -0800
 @@ -82,6 +82,23 @@ static int load_iv(char **fromp, unsigne
  static int check_pem(const char *nm, const char *name);
  int pem_check_suffix(const char *pem_str, const char *suffix);
@@ -1172,7 +1172,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_lib.c openssl-1.0.2g/crypto/pem/pe
  int PEM_def_callback(char *buf, int num, int w, void *key)
  {
  #ifdef OPENSSL_NO_FP_API
-@@ -177,6 +194,24 @@ void *PEM_ASN1_read(d2i_of_void *d2i, co
+@@ -183,6 +200,24 @@ void *PEM_ASN1_read(d2i_of_void *d2i, co
      BIO_free(b);
      return (ret);
  }
@@ -1197,7 +1197,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_lib.c openssl-1.0.2g/crypto/pem/pe
  #endif
  
  static int check_pem(const char *nm, const char *name)
-@@ -271,6 +306,52 @@ static int check_pem(const char *nm, con
+@@ -277,6 +312,52 @@ static int check_pem(const char *nm, con
      return 0;
  }
  
@@ -1250,7 +1250,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_lib.c openssl-1.0.2g/crypto/pem/pe
  int PEM_bytes_read_bio(unsigned char **pdata, long *plen, char **pnm,
                         const char *name, BIO *bp, pem_password_cb *cb,
                         void *u)
-@@ -332,6 +413,25 @@ int PEM_ASN1_write(i2d_of_void *i2d, con
+@@ -338,6 +419,25 @@ int PEM_ASN1_write(i2d_of_void *i2d, con
      BIO_free(b);
      return (ret);
  }
@@ -1276,7 +1276,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_lib.c openssl-1.0.2g/crypto/pem/pe
  #endif
  
  int PEM_ASN1_write_bio(i2d_of_void *i2d, const char *name, BIO *bp,
-@@ -436,6 +536,112 @@ int PEM_ASN1_write_bio(i2d_of_void *i2d,
+@@ -442,6 +542,112 @@ int PEM_ASN1_write_bio(i2d_of_void *i2d,
      return (ret);
  }
  
@@ -1389,7 +1389,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_lib.c openssl-1.0.2g/crypto/pem/pe
  int PEM_do_header(EVP_CIPHER_INFO *cipher, unsigned char *data, long *plen,
                    pem_password_cb *callback, void *u)
  {
-@@ -672,6 +878,230 @@ int PEM_read(FILE *fp, char **name, char
+@@ -678,6 +884,230 @@ int PEM_read(FILE *fp, char **name, char
  }
  #endif
  
@@ -1620,7 +1620,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_lib.c openssl-1.0.2g/crypto/pem/pe
  int PEM_read_bio(BIO *bp, char **name, char **header, unsigned char **data,
                   long *len)
  {
-@@ -752,6 +1182,15 @@ int PEM_read_bio(BIO *bp, char **name, c
+@@ -758,6 +1188,15 @@ int PEM_read_bio(BIO *bp, char **name, c
          hl += i;
      }
  
@@ -1636,9 +1636,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_lib.c openssl-1.0.2g/crypto/pem/pe
      bl = 0;
      if (!BUF_MEM_grow(dataB, 1024)) {
          PEMerr(PEM_F_PEM_READ_BIO, ERR_R_MALLOC_FAILURE);
-diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_oth.c openssl-1.0.2g/crypto/pem/pem_oth.c
---- openssl-1.0.2g.orig/crypto/pem/pem_oth.c	2016-03-01 05:35:05.000000000 -0800
-+++ openssl-1.0.2g/crypto/pem/pem_oth.c	2016-03-02 17:37:53.738606825 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/pem/pem_oth.c openssl-1.0.2j/crypto/pem/pem_oth.c
+--- openssl-1.0.2j.orig/crypto/pem/pem_oth.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/pem/pem_oth.c	2017-11-28 16:07:23.595355202 -0800
 @@ -67,6 +67,24 @@
  
  /* Handle 'other' PEMs: not private keys */
@@ -1664,9 +1664,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_oth.c openssl-1.0.2g/crypto/pem/pe
  void *PEM_ASN1_read_bio(d2i_of_void *d2i, const char *name, BIO *bp, void **x,
                          pem_password_cb *cb, void *u)
  {
-diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_pkey.c openssl-1.0.2g/crypto/pem/pem_pkey.c
---- openssl-1.0.2g.orig/crypto/pem/pem_pkey.c	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/crypto/pem/pem_pkey.c	2016-03-02 17:37:53.738606825 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/pem/pem_pkey.c openssl-1.0.2j/crypto/pem/pem_pkey.c
+--- openssl-1.0.2j.orig/crypto/pem/pem_pkey.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/pem/pem_pkey.c	2017-11-28 16:07:23.595355202 -0800
 @@ -210,6 +210,65 @@ int PEM_write_bio_Parameters(BIO *bp, EV
                                pem_str, bp, x, NULL, NULL, 0, 0, NULL);
  }
@@ -1733,7 +1733,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_pkey.c openssl-1.0.2g/crypto/pem/p
  #ifndef OPENSSL_NO_FP_API
  EVP_PKEY *PEM_read_PrivateKey(FILE *fp, EVP_PKEY **x, pem_password_cb *cb,
                                void *u)
-@@ -224,7 +283,25 @@ EVP_PKEY *PEM_read_PrivateKey(FILE *fp, 
+@@ -224,7 +283,25 @@ EVP_PKEY *PEM_read_PrivateKey(FILE *fp,
      BIO_set_fp(b, fp, BIO_NOCLOSE);
      ret = PEM_read_bio_PrivateKey(b, x, cb, u);
      BIO_free(b);
@@ -1760,28 +1760,28 @@ diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_pkey.c openssl-1.0.2g/crypto/pem/p
  }
  
  int PEM_write_PrivateKey(FILE *fp, EVP_PKEY *x, const EVP_CIPHER *enc,
-diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_x509.c openssl-1.0.2g/crypto/pem/pem_x509.c
---- openssl-1.0.2g.orig/crypto/pem/pem_x509.c	2016-03-01 05:35:05.000000000 -0800
-+++ openssl-1.0.2g/crypto/pem/pem_x509.c	2016-03-02 17:37:53.738606825 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/pem/pem_x509.c openssl-1.0.2j/crypto/pem/pem_x509.c
+--- openssl-1.0.2j.orig/crypto/pem/pem_x509.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/pem/pem_x509.c	2017-11-28 16:07:23.595355202 -0800
 @@ -66,3 +66,5 @@
  #include <openssl/pem.h>
  
  IMPLEMENT_PEM_rw(X509, X509, PEM_STRING_X509, X509)
 +/* yexu 10/8/2014 */
 +IMPLEMENT_PEM_rw_buffer(X509, X509, PEM_STRING_X509, X509)
-diff -rNup openssl-1.0.2g.orig/crypto/pem/pem_xaux.c openssl-1.0.2g/crypto/pem/pem_xaux.c
---- openssl-1.0.2g.orig/crypto/pem/pem_xaux.c	2016-03-01 05:35:05.000000000 -0800
-+++ openssl-1.0.2g/crypto/pem/pem_xaux.c	2016-03-02 17:37:53.738606825 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/pem/pem_xaux.c openssl-1.0.2j/crypto/pem/pem_xaux.c
+--- openssl-1.0.2j.orig/crypto/pem/pem_xaux.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/pem/pem_xaux.c	2017-11-28 16:07:23.595355202 -0800
 @@ -68,3 +68,5 @@
  IMPLEMENT_PEM_rw(X509_AUX, X509, PEM_STRING_X509_TRUSTED, X509_AUX)
  IMPLEMENT_PEM_rw(X509_CERT_PAIR, X509_CERT_PAIR, PEM_STRING_X509_PAIR,
                   X509_CERT_PAIR)
 +/* yexu 10/8/2014 */
 +IMPLEMENT_PEM_rw_buffer(X509_AUX, X509, PEM_STRING_X509_TRUSTED, X509_AUX)
-diff -rNup openssl-1.0.2g.orig/crypto/rsa/rsa_gen.c openssl-1.0.2g/crypto/rsa/rsa_gen.c
---- openssl-1.0.2g.orig/crypto/rsa/rsa_gen.c	2016-03-01 05:35:05.000000000 -0800
-+++ openssl-1.0.2g/crypto/rsa/rsa_gen.c	2016-03-02 17:37:53.738606825 -0800
-@@ -247,4 +247,146 @@ static int rsa_builtin_keygen(RSA *rsa, 
+diff -rNup openssl-1.0.2j.orig/crypto/rsa/rsa_gen.c openssl-1.0.2j/crypto/rsa/rsa_gen.c
+--- openssl-1.0.2j.orig/crypto/rsa/rsa_gen.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/rsa/rsa_gen.c	2017-11-28 16:07:23.595355202 -0800
+@@ -247,4 +247,146 @@ static int rsa_builtin_keygen(RSA *rsa,
      }
  
      return ok;
@@ -1928,9 +1928,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/rsa/rsa_gen.c openssl-1.0.2g/crypto/rsa/rs
 +		return(rsa);
  }
 +/********************************************************************************/
-diff -rNup openssl-1.0.2g.orig/crypto/rsa/rsa.h openssl-1.0.2g/crypto/rsa/rsa.h
---- openssl-1.0.2g.orig/crypto/rsa/rsa.h	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/crypto/rsa/rsa.h	2016-03-02 17:37:53.739606827 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/rsa/rsa.h openssl-1.0.2j/crypto/rsa/rsa.h
+--- openssl-1.0.2j.orig/crypto/rsa/rsa.h	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/rsa/rsa.h	2017-11-28 16:07:23.595355202 -0800
 @@ -329,7 +329,9 @@ RSA *RSA_generate_key(int bits, unsigned
  
  /* New version */
@@ -1942,9 +1942,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/rsa/rsa.h openssl-1.0.2g/crypto/rsa/rsa.h
  int RSA_check_key(const RSA *);
          /* next 4 return -1 on error */
  int RSA_public_encrypt(int flen, const unsigned char *from,
-diff -rNup openssl-1.0.2g.orig/crypto/x509/by_file.c openssl-1.0.2g/crypto/x509/by_file.c
---- openssl-1.0.2g.orig/crypto/x509/by_file.c	2016-03-01 05:35:05.000000000 -0800
-+++ openssl-1.0.2g/crypto/x509/by_file.c	2016-03-02 17:37:53.739606827 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/x509/by_file.c openssl-1.0.2j/crypto/x509/by_file.c
+--- openssl-1.0.2j.orig/crypto/x509/by_file.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/x509/by_file.c	2017-11-28 16:07:23.595355202 -0800
 @@ -70,6 +70,12 @@
  
  static int by_file_ctrl(X509_LOOKUP *ctx, int cmd, const char *argc,
@@ -2088,7 +2088,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/x509/by_file.c openssl-1.0.2g/crypto/x509/
  int X509_load_cert_file(X509_LOOKUP *ctx, const char *file, int type)
  {
      int ret = 0;
-@@ -274,4 +391,55 @@ int X509_load_cert_crl_file(X509_LOOKUP 
+@@ -274,4 +391,55 @@ int X509_load_cert_crl_file(X509_LOOKUP
      return count;
  }
  
@@ -2145,9 +2145,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/x509/by_file.c openssl-1.0.2g/crypto/x509/
 +
 +#endif /* OPENSSL_NO_STDIO */
 +
-diff -rNup openssl-1.0.2g.orig/crypto/x509/x509.h openssl-1.0.2g/crypto/x509/x509.h
---- openssl-1.0.2g.orig/crypto/x509/x509.h	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/crypto/x509/x509.h	2016-03-02 17:37:53.739606827 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/x509/x509.h openssl-1.0.2j/crypto/x509/x509.h
+--- openssl-1.0.2j.orig/crypto/x509/x509.h	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/x509/x509.h	2017-11-28 16:07:23.595355202 -0800
 @@ -707,6 +707,8 @@ EVP_PKEY *d2i_PUBKEY_fp(FILE *fp, EVP_PK
  
  # ifndef OPENSSL_NO_BIO
@@ -2157,7 +2157,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/x509/x509.h openssl-1.0.2g/crypto/x509/x50
  int i2d_X509_bio(BIO *bp, X509 *x509);
  X509_CRL *d2i_X509_CRL_bio(BIO *bp, X509_CRL **crl);
  int i2d_X509_CRL_bio(BIO *bp, X509_CRL *crl);
-@@ -1285,6 +1287,9 @@ void ERR_load_X509_strings(void);
+@@ -1287,6 +1289,9 @@ void ERR_load_X509_strings(void);
  # define X509_F_X509_TRUST_ADD                            133
  # define X509_F_X509_TRUST_SET                            141
  # define X509_F_X509_VERIFY_CERT                          127
@@ -2167,9 +2167,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/x509/x509.h openssl-1.0.2g/crypto/x509/x50
  
  /* Reason codes. */
  # define X509_R_AKID_MISMATCH                             110
-diff -rNup openssl-1.0.2g.orig/crypto/x509/x509_vfy.h openssl-1.0.2g/crypto/x509/x509_vfy.h
---- openssl-1.0.2g.orig/crypto/x509/x509_vfy.h	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/crypto/x509/x509_vfy.h	2016-03-02 17:37:53.739606827 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/x509/x509_vfy.h openssl-1.0.2j/crypto/x509/x509_vfy.h
+--- openssl-1.0.2j.orig/crypto/x509/x509_vfy.h	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/x509/x509_vfy.h	2017-11-28 16:07:23.599355202 -0800
 @@ -309,6 +309,10 @@ void X509_STORE_CTX_set_depth(X509_STORE
  # define X509_LOOKUP_load_file(x,name,type) \
                  X509_LOOKUP_ctrl((x),X509_L_FILE_LOAD,(name),(long)(type),NULL)
@@ -2181,7 +2181,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/x509/x509_vfy.h openssl-1.0.2g/crypto/x509
  # define X509_LOOKUP_add_dir(x,name,type) \
                  X509_LOOKUP_ctrl((x),X509_L_ADD_DIR,(name),(long)(type),NULL)
  
-@@ -493,6 +497,8 @@ X509_LOOKUP *X509_STORE_add_lookup(X509_
+@@ -498,6 +502,8 @@ X509_LOOKUP *X509_STORE_add_lookup(X509_
  
  X509_LOOKUP_METHOD *X509_LOOKUP_hash_dir(void);
  X509_LOOKUP_METHOD *X509_LOOKUP_file(void);
@@ -2190,7 +2190,7 @@ diff -rNup openssl-1.0.2g.orig/crypto/x509/x509_vfy.h openssl-1.0.2g/crypto/x509
  
  int X509_STORE_add_cert(X509_STORE *ctx, X509 *x);
  int X509_STORE_add_crl(X509_STORE *ctx, X509_CRL *x);
-@@ -505,9 +511,14 @@ int X509_LOOKUP_ctrl(X509_LOOKUP *ctx, i
+@@ -510,9 +516,14 @@ int X509_LOOKUP_ctrl(X509_LOOKUP *ctx, i
  
  # ifndef OPENSSL_NO_STDIO
  int X509_load_cert_file(X509_LOOKUP *ctx, const char *file, int type);
@@ -2206,9 +2206,9 @@ diff -rNup openssl-1.0.2g.orig/crypto/x509/x509_vfy.h openssl-1.0.2g/crypto/x509
  
  X509_LOOKUP *X509_LOOKUP_new(X509_LOOKUP_METHOD *method);
  void X509_LOOKUP_free(X509_LOOKUP *ctx);
-diff -rNup openssl-1.0.2g.orig/crypto/x509/x_all.c openssl-1.0.2g/crypto/x509/x_all.c
---- openssl-1.0.2g.orig/crypto/x509/x_all.c	2016-03-01 05:35:53.000000000 -0800
-+++ openssl-1.0.2g/crypto/x509/x_all.c	2016-03-02 17:37:53.740606829 -0800
+diff -rNup openssl-1.0.2j.orig/crypto/x509/x_all.c openssl-1.0.2j/crypto/x509/x_all.c
+--- openssl-1.0.2j.orig/crypto/x509/x_all.c	2016-09-26 02:49:07.000000000 -0700
++++ openssl-1.0.2j/crypto/x509/x_all.c	2017-11-28 16:07:23.599355202 -0800
 @@ -170,6 +170,12 @@ X509 *d2i_X509_bio(BIO *bp, X509 **x509)
      return ASN1_item_d2i_bio(ASN1_ITEM_rptr(X509), bp, x509);
  }

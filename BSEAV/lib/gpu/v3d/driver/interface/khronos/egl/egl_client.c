@@ -144,15 +144,15 @@ EGLAPI EGLint EGLAPIENTRY eglGetError(void)
 static EGLDisplay eglGetDisplay_impl(EGLenum platform,
       void *native_display, const EGLint *attrib_list)
 {
-   UNUSED(attrib_list);
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLDisplay display;
+   EGLint error;
+   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
 
    CLIENT_LOCK();
 
+   display = egl_server_platform_get_display(platform, native_display, attrib_list, &error);
    if (thread)
-      thread->error = EGL_SUCCESS;
-   display = egl_server_platform_set_display(platform, native_display);
+      thread->error = error;
 
    CLIENT_UNLOCK();
 
@@ -423,15 +423,49 @@ Also affects global image (and possibly others?)
 
 EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   CLIENT_PROCESS_STATE_T *process = client_egl_get_process_state(thread, dpy, EGL_FALSE);
+   CLIENT_THREAD_STATE_T *thread;
+   CLIENT_PROCESS_STATE_T *process = CLIENT_GET_PROCESS_STATE();
+   EGLint error = EGL_SUCCESS;
 
-   if (!process)
-      return EGL_FALSE;
+   vcos_demand(process != NULL);
 
    CLIENT_LOCK();
 
-   thread->error = EGL_SUCCESS;
+   if (process->display != dpy && process->inited)
+   {
+      /* we don't support simultaneous displays */
+      error = EGL_BAD_DISPLAY;
+      process = NULL;
+   }
+   else if (!process->inited)
+   {
+      if (!process->platform_inited)
+         error = egl_server_platform_init(dpy);
+      else
+         error = EGL_SUCCESS;
+      if (error == EGL_SUCCESS)
+      {
+         process->platform_inited = true;
+         process->display = dpy;
+         client_process_state_init(process);
+      }
+      else
+         process = NULL;
+   }
+   /* else already initialised on this display */
+
+   /* Can't get thread state before a call to egl_server_platform_init()
+    * because that state may get destroyed and re-created in the process
+    * of initialising the new display.
+    */
+   thread = CLIENT_GET_THREAD_STATE();
+   thread->error = error;
+
+   if (!process)
+   {
+      CLIENT_UNLOCK();
+      return EGL_FALSE;
+   }
 
    if (major)
       *major = 1;
@@ -496,21 +530,36 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy, EGLint *major, EGLin
 EGLAPI EGLBoolean EGLAPIENTRY eglTerminate(EGLDisplay dpy)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   CLIENT_PROCESS_STATE_T *process = client_egl_get_process_state(thread, dpy, EGL_FALSE);
+   CLIENT_PROCESS_STATE_T *process = CLIENT_GET_PROCESS_STATE();
 
    EGLBoolean result;
    CLIENT_LOCK();
 
-   if (process) {
+   vcos_demand(process != NULL);
+
+   if (process->display == dpy) {
       /* TODO : what about client tls state, this needs removing */
 
       /* teardown process state and recreate back to initial condition */
       client_process_state_term(process);
-      client_process_state_init(process);
 
-      thread->error = EGL_SUCCESS;
-      result = EGL_TRUE;
+      if (process->context_current_count == 0 && process->platform_inited)
+      {
+         thread->error = egl_server_platform_term(dpy);
+         if (thread->error == EGL_SUCCESS)
+            process->platform_inited = false;
+      }
+      else
+         thread->error = EGL_SUCCESS;
    } else
+   {
+      thread->error = EGL_BAD_DISPLAY;
+   }
+   if (thread->error == EGL_SUCCESS)
+   {
+      result = EGL_TRUE;
+   }
+   else
       result = EGL_FALSE;
 
    /* external egl images may still be in the pipeline */
@@ -601,6 +650,10 @@ EGLAPI const char EGLAPIENTRY * eglQueryString(EGLDisplay dpy, EGLint name)
       result = ""
             "EGL_EXT_client_extensions "
             "EGL_EXT_platform_base "
+#ifdef WAYLAND
+            "EGL_EXT_platform_wayland "
+            "EGL_KHR_platform_wayland "
+#endif
             ;
       return result;
    }
@@ -638,6 +691,9 @@ EGLAPI const char EGLAPIENTRY * eglQueryString(EGLDisplay dpy, EGLint name)
 #endif
 #if EGL_ANDROID_framebuffer_target
             "EGL_ANDROID_framebuffer_target "
+#endif
+#ifdef WAYLAND
+            "EGL_WL_bind_wayland_display "
 #endif
             ;
          break;
@@ -1394,32 +1450,12 @@ EGLAPI EGLBoolean EGLAPIENTRY eglWaitClient(void)
 //TODO: update pixmap surfaces?
 EGLAPI EGLBoolean EGLAPIENTRY eglReleaseThread(void)
 {
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   bool destroy = false;
-
    CLIENT_LOCK();
 
-   CLIENT_PROCESS_STATE_T *process = CLIENT_GET_PROCESS_STATE();
-
-   if (process) {
-      egl_current_release_surfaces(process, &thread->opengl);
-
-      khrn_misc_rpc_flush_impl();
-
-      thread->error = EGL_SUCCESS;
-      destroy = true;
-
-      client_send_make_current(thread);
-   }
+   client_thread_detach(NULL);
 
    CLIENT_UNLOCK();
-
-   if (destroy)
-      platform_hint_thread_finished();
-
    return EGL_TRUE;
-
-   //TODO free thread state?
 }
 
 EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferFromClientBuffer(
@@ -1712,6 +1748,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
 
 void egl_current_release_surfaces(CLIENT_PROCESS_STATE_T *process, EGL_CURRENT_T *current)
 {
+   bool terminate = false;
    if (current->context) {
       EGL_CONTEXT_T *context = current->context;
       assert(context->is_current);
@@ -1724,6 +1761,7 @@ void egl_current_release_surfaces(CLIENT_PROCESS_STATE_T *process, EGL_CURRENT_T
 
       assert(process->context_current_count > 0);
       process->context_current_count--;
+      terminate = process->context_current_count == 0 && !process->inited;
    }
    if (current->draw) {
       EGL_SURFACE_T *draw = current->draw;
@@ -1745,6 +1783,9 @@ void egl_current_release_surfaces(CLIENT_PROCESS_STATE_T *process, EGL_CURRENT_T
 
       egl_surface_maybe_free(read);
    }
+
+   if (terminate)
+      egl_server_platform_term(process->display);
 }
 
 static bool context_and_surface_are_compatible(EGL_CONTEXT_T *context, EGL_SURFACE_T *surface)

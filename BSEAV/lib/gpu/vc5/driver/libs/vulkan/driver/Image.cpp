@@ -186,14 +186,14 @@ void Image::UseImageCreateInfoExtension(const VkImageCreateInfo *pci)
       VkNativeBufferANDROID *nativeBufferA = (VkNativeBufferANDROID *)pci->pNext;
       assert(nativeBufferA->sType == VK_STRUCTURE_TYPE_NATIVE_BUFFER_ANDROID);
 
-      auto hnd =  (struct private_handle_t const*) (nativeBufferA->handle);
+      auto hnd =  (private_handle_t const*) (nativeBufferA->handle);
 
       m_autoDevMemBinding = true;
 
-      // Create a gmem handle form the Gralloc buffer handle
+      // Create a gmem handle from the Gralloc buffer handle
       gmem_handle_t external = gmem_from_external_memory(
                      nullptr, nullptr, hnd->nxSurfacePhysicalAddress, nullptr, hnd->oglSize,
-                     "VK Gralloc Image");
+                     /*secure=*/false, /*contiguous=*/true, "VK Gralloc Image");
 
       // Bound the mem to the image
       m_boundMemory = createObject<DeviceMemory, VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE>(

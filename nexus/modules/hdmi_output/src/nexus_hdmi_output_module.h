@@ -262,6 +262,7 @@ typedef struct NEXUS_HdmiOutput
         bool connected; /* last one */
         bool printDrmInfoFrameChanges;
         NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities processingCaps;
+        NEXUS_TimerHandle offTimer;
     } drm;
 
     NEXUS_HdmiVendorSpecificInfoFrame vsif;
@@ -271,7 +272,7 @@ typedef struct NEXUS_HdmiOutput
     BHDM_EDID_AudioDescriptor supportedAudioFormats[BAVC_AudioCompressionStd_eMax];
 
 #if NEXUS_DBV_SUPPORT
-    NEXUS_HdmiOutputDbvState dbv;
+    NEXUS_HdmiOutputDbvData dbv;
 #endif
 } NEXUS_HdmiOutput;
 

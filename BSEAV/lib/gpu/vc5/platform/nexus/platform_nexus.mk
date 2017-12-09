@@ -4,14 +4,15 @@ LIBNAME = nxpl
 
 SOURCES =	default_nexus.c \
 			display_nexus.c \
-			display_helpers.c \
 			display_surface.c \
 			../common/debug_helper.cpp \
 			../common/memory_nexus.c \
 			../common/memory_drm.c \
+			../common/memory_convert.c \
 			../common/sched_nexus.c \
 			../common/display_framework.c \
 			../common/display_interface.c \
+			../common/display_helpers.c \
 			../common/event.c \
 			../common/fence_interface.c \
 			../common/fence_queue.c \

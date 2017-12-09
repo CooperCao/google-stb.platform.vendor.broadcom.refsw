@@ -224,11 +224,13 @@ void V3DPlatformWayland::AttachSwapchain(
       assert(image.m_buffer.info.byteSize >= memReq.size);
       assert((image.m_buffer.info.physicalOffset & (memReq.alignment - 1)) == 0);
 
-      NEXUS_FlushCache(image.m_buffer.info.cachedAddr, memReq.size);
+      constexpr bool secure = false;
+      if (!secure)
+         NEXUS_FlushCache(image.m_buffer.info.cachedAddr, memReq.size);
 
       gmem_handle_t external = gmem_from_external_memory(nullptr, nullptr,
             image.m_buffer.info.physicalOffset, image.m_buffer.info.cachedAddr,
-            memReq.size, "Wayland swapchain");
+            memReq.size, secure, /*contiguous=*/true, "Wayland swapchain");
       try
       {
          DeviceMemory *devMem = createObject<DeviceMemory,

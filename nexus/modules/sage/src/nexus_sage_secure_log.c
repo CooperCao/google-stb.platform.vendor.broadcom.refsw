@@ -303,16 +303,16 @@ NEXUS_Error NEXUS_Sage_P_SecureLog_Init(const NEXUS_SageModuleSettings *pSetting
 
     if(!pSettings->imageExists[secureLogTAImg.id])
     {
-        BDBG_ERR(("%s - IMG %s Do not exist", BSTD_FUNCTION, secureLogTAImg.name));
-        rc = BERR_TRACE(BSAGE_ERR_BFM_BIN_FILE_LENGTH_SC);
+        BDBG_MSG(("%s - IMG %s Does not exist", BSTD_FUNCTION, secureLogTAImg.name));
+        rc = NEXUS_NOT_AVAILABLE;
         goto EXIT;
     }
     secure_log_status = nexus_sage_secure_log_TA_found;
 
     if(!pSettings->imageExists[secureLogCertificateImg.id])
     {
-        BDBG_ERR(("%s - IMG %s Do not exist", BSTD_FUNCTION, secureLogCertificateImg.name));
-        rc = BERR_TRACE(BSAGE_ERR_BFM_BIN_FILE_LENGTH_SC);
+        BDBG_MSG(("%s - IMG %s Does not exist", BSTD_FUNCTION, secureLogCertificateImg.name));
+        rc = NEXUS_NOT_AVAILABLE;
         goto EXIT;
     }
     secure_log_status = nexus_sage_secure_log_certificate_found;
@@ -520,9 +520,9 @@ NEXUS_Error NEXUS_Sage_SecureLog_Attach(uint32_t TA_Id)
 
     if(!lHandle)
     {
-        BDBG_ERR(( "%s SecureLog not init !",BSTD_FUNCTION));
-        rc = BERR_TRACE(NEXUS_NOT_INITIALIZED);
-        return NEXUS_NOT_INITIALIZED;
+        BDBG_MSG(( "%s SecureLog not initialized !",BSTD_FUNCTION));
+        rc = NEXUS_NOT_INITIALIZED;
+        goto EXIT;
     }
 
     BKNI_ResetEvent(lHandle->response);
@@ -558,9 +558,9 @@ void NEXUS_Sage_SecureLog_Detach(uint32_t TA_Id)
 
     if(!lHandle)
     {
-        BDBG_ERR(( "%s SecureLog not init !",BSTD_FUNCTION));
-        rc = BERR_TRACE(NEXUS_NOT_INITIALIZED);
-        return;
+        BDBG_MSG(( "%s SecureLog not initialized !",BSTD_FUNCTION));
+        rc = NEXUS_NOT_INITIALIZED;
+        goto EXIT;
     }
 
     BKNI_ResetEvent(lHandle->response);

@@ -17,11 +17,6 @@
  */
 #include "interface/khronos/common/abstract/khrn_client_platform_filler_abstract.h"
 
-/*
-   workaround for broken platforms which don't detect threads exiting
-*/
-extern void platform_hint_thread_finished(void);
-
 #define PLATFORM_WIN_NONE     UINTPTR_MAX
 
 static INLINE uintptr_t platform_get_handle(EGLNativeWindowType win)

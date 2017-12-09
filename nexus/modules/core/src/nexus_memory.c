@@ -118,6 +118,14 @@ static bool NEXUS_Heap_P_OutOfMemory(void *context, size_t size, const BMMA_Allo
     return false;
 }
 
+static size_t NEXUS_CoreModule_P_AlignSize(size_t v, unsigned alignment)
+{
+    size_t r;
+    r = v + (alignment - 1);
+    r -= r%alignment;
+    return r;
+}
+
 static void *NEXUS_CoreModule_P_Mmap(void *context, void *state, BMMA_DeviceOffset base, size_t length)
 {
     void *ptr;
@@ -130,7 +138,9 @@ static void *NEXUS_CoreModule_P_Mmap(void *context, void *state, BMMA_DeviceOffs
     }
     if((heap->settings.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED)==NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) {
         struct NEXUS_MemoryMapNode *memoryMap = state;
-        NEXUS_Error rc = NEXUS_P_MemoryMap_Map(memoryMap, base, length);
+        NEXUS_Error rc;
+        length = NEXUS_CoreModule_P_AlignSize(length, 4096);
+        rc = NEXUS_P_MemoryMap_Map(memoryMap, base, length);
         if(rc!=NEXUS_SUCCESS) {
             rc = BERR_TRACE(rc);
             return NULL;
@@ -163,7 +173,7 @@ static void NEXUS_CoreModule_P_Unmap(void *context, void *state, void *ptr, size
             NEXUS_FlushCache(ptr, length);
         }
 #endif
-
+        length = NEXUS_CoreModule_P_AlignSize(length, 4096);
         NEXUS_P_MemoryMap_Unmap(memoryMap, length);
     }
     return;
@@ -211,7 +221,7 @@ static BERR_Code nexus_memory_p_dtu_alloc(NEXUS_HeapHandle heap, BMMA_DeviceOffs
     BDTU_RemapSettings *remapSettings;
     unsigned total = 0;
     size_t last_remapped_addr = 0;
-    BDBG_WRN(("dtu_alloc BA " BDBG_UINT64_FMT " (MEMC%u), size %u MB from %s:%u", BDBG_UINT64_ARG(base), heap->settings.memcIndex, (unsigned)(size/1024/1024), fname, line));
+    BDBG_MSG(("dtu_alloc BA " BDBG_UINT64_FMT " (MEMC%u), size %u MB from %s:%u", BDBG_UINT64_ARG(base), heap->settings.memcIndex, (unsigned)(size/1024/1024), fname, line));
 
     if (base & (_2MB-1)) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -289,7 +299,7 @@ static void nexus_memory_p_dtu_free(NEXUS_HeapHandle heap, BMMA_DeviceOffset bas
         return;
     }
     BDTU_GetDefaultRemapSettings(remapSettings);
-    BDBG_WRN(("dtu_free BA " BDBG_UINT64_FMT ", size %u MB", BDBG_UINT64_ARG(base), (unsigned)(size/1024/1024)));
+    BDBG_MSG(("dtu_free BA " BDBG_UINT64_FMT ", size %u MB", BDBG_UINT64_ARG(base), (unsigned)(size/1024/1024)));
     for (i=0;i<size;i+=_2MB) {
         uint64_t deviceAddr;
         BERR_Code rc;
