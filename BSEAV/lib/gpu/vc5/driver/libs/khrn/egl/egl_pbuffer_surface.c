@@ -203,7 +203,7 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
    EGL_PBUFFER_SURFACE_T *surface = NULL;
    EGLSurface ret = EGL_NO_SURFACE;
    unsigned level;
-   static gfx_buffer_usage_t flags ;
+   static gfx_buffer_usage_t flags;
    khrn_blob *blob = NULL;
 
    /* width and height should be in the attrib_list */
@@ -269,13 +269,13 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
 
       blob = khrn_blob_create(surface->base.width, surface->base.height,
             1, 1, surface->num_images, &color_lfmt, 1, flags,
-            surface->base.secure);
+            surface->base.secure ? GMEM_USAGE_SECURE : GMEM_USAGE_NONE);
       if (!blob) goto end;
    }
    else
    {
       blob = khrn_blob_create(surface->base.width, surface->base.height,
-            1, 1, 1, &color_lfmt, 1, flags, surface->base.secure);
+            1, 1, 1, &color_lfmt, 1, flags, surface->base.secure ? GMEM_USAGE_SECURE : GMEM_USAGE_NONE);
       if (!blob) goto end;
    }
 

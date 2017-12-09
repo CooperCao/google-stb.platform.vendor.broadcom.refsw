@@ -426,6 +426,7 @@ void BVDC_P_Pep_BuildRul_isr
       bool                         bInitial )
 {
     BVDC_P_Window_DirtyBits       *pCurDirty;
+    bool bPqNcl = false;
 
     BDBG_ENTER(BVDC_P_Pep_BuildRul_isr);
     if(!hWindow)
@@ -456,8 +457,15 @@ void BVDC_P_Pep_BuildRul_isr
         pCurDirty->stBits.bCabAdjust = BVDC_P_CLEAN;
     }
 
-    if(hWindow->bTntAvail && (pCurDirty->stBits.bTntAdjust|| bInitial))
+    if(hWindow->pMainCfc)
     {
+        bPqNcl = (hWindow->pMainCfc->stColorSpaceIn.stAvcColorSpace.eColorTF == BAVC_P_ColorTF_eBt2100Pq &&
+                  hWindow->pMainCfc->stColorSpaceIn.stAvcColorSpace.eColorFmt == BAVC_P_ColorFormat_eYCbCr) ? true : false;
+    }
+
+    if(hWindow->bTntAvail && (pCurDirty->stBits.bTntAdjust || (bPqNcl != hWindow->bPqNcl) || bInitial))
+    {
+        hWindow->bPqNcl = bPqNcl;
         if(bInitial)
         {
             BVDC_P_Tnt_BuildInit_isr(hWindow, pList);

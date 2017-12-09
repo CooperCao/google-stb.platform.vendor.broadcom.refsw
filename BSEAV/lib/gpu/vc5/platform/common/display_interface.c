@@ -26,6 +26,14 @@ bool DisplayInterface_WaitSync(const DisplayInterface *di)
    return di->wait_sync ? di->wait_sync(di->base.context) : false;
 }
 
+void DisplayInterface_Release(const DisplayInterface *di)
+{
+   assert(di != NULL);
+
+   if (di->release)
+      di->release(di->base.context);
+}
+
 void DisplayInterface_Stop(const DisplayInterface *di)
 {
    assert(di != NULL);

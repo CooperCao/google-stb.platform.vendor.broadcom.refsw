@@ -1,4 +1,4 @@
-# Auto-generated the Wayland Nexus protocol files
+# Auto-generate the Wayland Nexus protocol files
 
 WAYLAND_SCANNER ?= wayland-scanner
 WAYLAND_AUTOGEN_DIR ?= autogen

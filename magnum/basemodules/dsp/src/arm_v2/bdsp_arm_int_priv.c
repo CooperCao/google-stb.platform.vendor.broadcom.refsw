@@ -233,11 +233,12 @@ static void  BDSP_Arm_P_BitrateChange_isr(
 {
 
    BDSP_ArmTask *pArmTask = (BDSP_ArmTask *)pTaskHandle;
+   BDSP_ArmStage *pArmPrimaryStage;
    BDSP_AudioBitRateChangeInfo	bitrateChangeInfo;
 
-   BDSP_ArmStage *pArmPrimaryStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
-
    BDBG_OBJECT_ASSERT(pArmTask, BDSP_ArmTask);
+   pArmPrimaryStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
+   BDBG_OBJECT_ASSERT(pArmPrimaryStage, BDSP_ArmStage);
 
    BDBG_MSG(("BDSP_Arm_P_BitRateChange_isr: Bit rate change event occured for Task %d",pArmTask->taskParams.taskId));
    BDBG_MSG(("Algorithm = %d \t BitRate = %d \t BitRateIndex = %d ",pArmPrimaryStage->eAlgorithm,pBitrateChangeInfo->ui32BitRate, pBitrateChangeInfo->ui32BitRateIndex));
@@ -485,7 +486,6 @@ void BDSP_Arm_P_AstraEventCallback_isr(
 	uint32_t    ui32DeviceId = 0;
     size_t ui32RcvMsgLen = 0;
     BTEE_ConnectionHandle hConnection = NULL;
-	uint32_t    ui32LoopCount = 0;
 
     BDBG_ENTER(BDSP_Arm_P_AstraEventCallback_isr);
 	BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
@@ -493,80 +493,68 @@ void BDSP_Arm_P_AstraEventCallback_isr(
 	BSTD_UNUSED(event);
 	BDBG_MSG(("BDSP_Arm_P_AstraEventCallback_isr: EventCallback received"));
 
-	/* There could be multiple msgs when this isr is called */
-	do
+	errCode = BTEE_Client_ReceiveMessage(
+		pDevice->armDspApp.hClient, 		 /* Client Handle */
+		&hConnection, /* Connection that originated the message */
+		(void *)&sAckInfo,					   /* Pointer to buffer for received message */
+		sizeof(BDSP_ArmDspAck),			 /* Length of message buffer in bytes */
+		&ui32RcvMsgLen,			   /* Returned message length in bytes */
+		0					       /* Timeout in msec.  Pass 0 for no timeout. */
+		);
+	if (BERR_SUCCESS != errCode)
 	{
-		errCode = BTEE_Client_ReceiveMessage(
-			pDevice->armDspApp.hClient, 		 /* Client Handle */
-			&hConnection, /* Connection that originated the message */
-			(void *)&sAckInfo,					   /* Pointer to buffer for received message */
-			sizeof(BDSP_ArmDspAck),			 /* Length of message buffer in bytes */
-			&ui32RcvMsgLen,			   /* Returned message length in bytes */
-			0					       /* Timeout in msec.  Pass 0 for no timeout. */
-			);
-		if (BERR_SUCCESS != errCode)
-		{
-			if(ui32LoopCount)
-			{
-				BDBG_MSG(("BDSP_Arm_P_AstraEventCallback_isr: Received %d msgs",ui32LoopCount));
-			}
-			else
-			{
-				BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: Failed to receive msg"));
-			}
-			goto end;
-		}
-		/* Check if the msg is intentended from armdsp */
-		if(hConnection != pDevice->armDspApp.hConnection)
-		{
-			BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: Received Unknown msg (handl=%p(hA=%p) AckType=%d, params=%d",
-				(void*)hConnection,(void*)pDevice->armDspApp.hConnection,sAckInfo.eAckType,
-				((BDSP_ArmDspAck_Type_eDevice == sAckInfo.eAckType)?sAckInfo.ui32DspIndex:sAckInfo.ui32TaskID)));
-		}
-		if(ui32RcvMsgLen != sizeof(BDSP_ArmDspAck))
-		{
-			BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: Mismatch in size of msg recieved(%d) and expected size (%d)", (unsigned int)ui32RcvMsgLen, (unsigned int)sizeof(BDSP_ArmDspAck)));
-			goto end;
-		}
+		BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: Failed to receive msg"));
+		goto end;
+	}
+	/* Check if the msg is intentended from armdsp */
+	if(hConnection != pDevice->armDspApp.hConnection)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: Received Unknown msg (handl=%p(hA=%p) AckType=%d, params=%d",
+			(void*)hConnection,(void*)pDevice->armDspApp.hConnection,sAckInfo.eAckType,
+			((BDSP_ArmDspAck_Type_eDevice == sAckInfo.eAckType)?sAckInfo.ui32DspIndex:sAckInfo.ui32TaskID)));
+	}
+	if(ui32RcvMsgLen != sizeof(BDSP_ArmDspAck))
+	{
+		BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: Mismatch in size of msg recieved(%d) and expected size (%d)", (unsigned int)ui32RcvMsgLen, (unsigned int)sizeof(BDSP_ArmDspAck)));
+		goto end;
+	}
 
-		if(BDSP_ArmDspAck_Type_eDevice == sAckInfo.eAckType)
+	if(BDSP_ArmDspAck_Type_eDevice == sAckInfo.eAckType)
+	{
+	    BDSP_Arm_P_Dsp2HostGenResp_isr(pDevice,sAckInfo.ui32DspIndex);
+	}
+	else if(BDSP_ArmDspAck_Type_eTask == sAckInfo.eAckType)
+	{
+		ui32TaskId = sAckInfo.ui32TaskID;
+		ui32DeviceId = sAckInfo.ui32DspIndex;
+		pArmTask = pDevice->taskDetails[ui32DeviceId].pTask[ui32TaskId];
+		if(NULL == pArmTask)
 		{
-		    BDSP_Arm_P_Dsp2HostGenResp_isr(pDevice,sAckInfo.ui32DspIndex);
-		}
-		else if(BDSP_ArmDspAck_Type_eTask == sAckInfo.eAckType)
-		{
-			ui32TaskId = sAckInfo.ui32TaskID;
-			ui32DeviceId = sAckInfo.ui32DspIndex;
-			pArmTask = pDevice->taskDetails[ui32DeviceId].pTask[ui32TaskId];
-			if(NULL == pArmTask)
-			{
-				BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: something went wrong and Event callback was called for someother task"));
-				goto end;
-			}
-			if(BDSP_MAX_FW_TASK_PER_DSP <= ui32TaskId)
-			{
-				BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: TaskIndex is %d which is greater than the max allowed index %d ",ui32TaskId,(BDSP_MAX_FW_TASK_PER_DSP-1)));
-				goto end;
-			}
-			/* Handling Response to command */
-			if(BDSP_ArmDspResp_Type_eCmdAck == sAckInfo.ui32RespType)
-			{
-				BDSP_Arm_P_Dsp2TaskSyn_isr(pDevice, pArmTask);
-			}
-			/* Handling of Async events */
-			else if(BDSP_ArmDspResp_Type_eEvent == sAckInfo.ui32RespType)
-			{
-				/* Async msg handler */
-				BDSP_Arm_P_Dsp2TaskAsyn_isr(pDevice, pArmTask);
-			}
-		}
-		else
-		{
-			BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: ACK received from ArmDsp with wrong Ack type (%d)",sAckInfo.eAckType));
+			BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: something went wrong and Event callback was called for someother task"));
 			goto end;
 		}
-	ui32LoopCount++;
-	}while(1);
+		if(BDSP_MAX_FW_TASK_PER_DSP <= ui32TaskId)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: TaskIndex is %d which is greater than the max allowed index %d ",ui32TaskId,(BDSP_MAX_FW_TASK_PER_DSP-1)));
+			goto end;
+		}
+		/* Handling Response to command */
+		if(BDSP_ArmDspResp_Type_eCmdAck == sAckInfo.ui32RespType)
+		{
+			BDSP_Arm_P_Dsp2TaskSyn_isr(pDevice, pArmTask);
+		}
+		/* Handling of Async events */
+		else if(BDSP_ArmDspResp_Type_eEvent == sAckInfo.ui32RespType)
+		{
+			/* Async msg handler */
+			BDSP_Arm_P_Dsp2TaskAsyn_isr(pDevice, pArmTask);
+		}
+	}
+	else
+	{
+		BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: ACK received from ArmDsp with wrong Ack type (%d)",sAckInfo.eAckType));
+		goto end;
+	}
 
 end:
     BDBG_LEAVE(BDSP_Arm_P_AstraEventCallback_isr);
@@ -667,10 +655,11 @@ BERR_Code BDSP_Arm_P_ProcessContextWatchdogInterrupt(
 {
 	BDSP_ArmContext *pArmContext = (BDSP_ArmContext *)pContextHandle;
 	BERR_Code errCode = BERR_SUCCESS;
-	BDSP_Arm  *pDevice= pArmContext->pDevice;
+	BDSP_Arm  *pDevice;
 
 	BDBG_ENTER(BDSP_Arm_P_ProcessContextWatchdogInterrupt);
 	BDBG_OBJECT_ASSERT(pArmContext, BDSP_ArmContext);
+    pDevice= (BDSP_Arm  *)pArmContext->pDevice;
 	BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
 
     BKNI_EnterCriticalSection();
@@ -761,6 +750,7 @@ BERR_Code BDSP_Arm_P_SetTaskInterruptHandlers_isr(
 	BDSP_ArmTask *pArmTask = (BDSP_ArmTask *)pTaskHandle;
 
 	BDBG_ENTER(BDSP_Arm_P_SetTaskInterruptHandlers_isr);
+    BDBG_OBJECT_ASSERT(pArmTask, BDSP_ArmTask);
 
 	/*Sample Rate Change Interrupt*/
 	if((pHandlers->sampleRateChange.pCallback_isr == NULL))

@@ -117,7 +117,7 @@
 #if defined NEXUS_HAS_DMA || defined NEXUS_HAS_XPT_DMA
 #include "nexus_dma.h"
 #endif
-#ifdef NEXUS_HAS_SECURITY
+#if (defined(NEXUS_HAS_SECURITY) && (NEXUS_SECURITY_API_VERSION==1))
 #include "nexus_security.h"
 #endif
 
@@ -244,7 +244,7 @@ unInitLibs(void)
     B_Os_Uninit();
 }
 
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
 NEXUS_KeySlotHandle
 _createKeyHandle(NEXUS_SecurityOperation operationType)
 {

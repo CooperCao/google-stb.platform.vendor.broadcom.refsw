@@ -245,6 +245,7 @@ EGLAPI EGLSurface EGLAPIENTRY eglGetCurrentSurface(EGLint readdraw)
 EGLAPI EGLDisplay EGLAPIENTRY eglGetCurrentDisplay(void)
 {
    EGL_THREAD_T *thread;
+   EGL_CONTEXT_T *context;
    egl_api_t api;
 
    if (!egl_initialized(0, false))
@@ -254,10 +255,11 @@ EGLAPI EGLDisplay EGLAPIENTRY eglGetCurrentDisplay(void)
    api = thread->current_api;
    assert(api >= 0 && api < API_COUNT);
 
-   if (!thread->contexts[api])
+   context = thread->contexts[api];
+   if (!context)
       return EGL_NO_DISPLAY;
 
-   return egl_platform_get_default_display();
+   return context->display;
 }
 
 static EGLint make_current(EGL_THREAD_T *thread, egl_api_t api,

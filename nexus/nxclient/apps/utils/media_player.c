@@ -888,17 +888,17 @@ int media_player_start( media_player_t player, const media_player_start_settings
             videoProgram.settings.sampleAspectRatio.x = probe_results.video[0].sampleAspectRatio.x;
             videoProgram.settings.sampleAspectRatio.y = probe_results.video[0].sampleAspectRatio.y;
 
-            if (probe_results.videoColourMasteringMetadata.valid) {
-                videoProgram.settings.eotf = probe_results.videoColourMasteringMetadata.eotf;
-                memcpy(&videoProgram.settings.masteringDisplayColorVolume, &probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume, sizeof(videoProgram.settings.masteringDisplayColorVolume));
+            if (probe_results.videoColorMasteringMetadata.valid) {
+                videoProgram.settings.eotf = probe_results.videoColorMasteringMetadata.eotf;
+                memcpy(&videoProgram.settings.masteringDisplayColorVolume, &probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume, sizeof(videoProgram.settings.masteringDisplayColorVolume));
                 /* NOTE: contentLightLevel unused */
-                BDBG_LOG(("~ eotf: %u ~", probe_results.videoColourMasteringMetadata.eotf));
+                BDBG_LOG(("~ eotf: %u ~", probe_results.videoColorMasteringMetadata.eotf));
                 BDBG_LOG(("~ Luminance: max: %u, min: %u ~",
-                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.max,
-                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.min));
+                    probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume.luminance.max,
+                    probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume.luminance.min));
                 BDBG_LOG(("~ Luminance: x: %d, y: %d ~",
-                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.x,
-                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.y));
+                    probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume.whitePoint.x,
+                    probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume.whitePoint.y));
             }
 
             /* outside of videoProgram */

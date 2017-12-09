@@ -325,11 +325,12 @@ static void  BDSP_Raaga_P_BitrateChange_isr(
 {
 
    BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
+   BDSP_RaagaStage *pRaagaPrimaryStage;
    BDSP_AudioBitRateChangeInfo	bitrateChangeInfo;
 
-   BDSP_RaagaStage *pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
-
    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+   pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
+   BDBG_OBJECT_ASSERT(pRaagaPrimaryStage, BDSP_RaagaStage);
 
    BDBG_MSG(("BDSP_Raaga_P_BitRateChange_isr: Bit rate change event occured for Task %d",pRaagaTask->taskParams.taskId));
    BDBG_MSG(("Algorithm = %d \t BitRate = %d \t BitRateIndex = %d ",pRaagaPrimaryStage->eAlgorithm,pBitrateChangeInfo->ui32BitRate, pBitrateChangeInfo->ui32BitRateIndex));
@@ -755,10 +756,11 @@ BERR_Code BDSP_Raaga_P_ProcessContextWatchdogInterrupt(
 {
 	BDSP_RaagaContext *pRaagaContext = (BDSP_RaagaContext *)pContextHandle;
 	BERR_Code errCode = BERR_SUCCESS;
-	BDSP_Raaga  *pDevice= pRaagaContext->pDevice;
+	BDSP_Raaga  *pDevice;
 
 	BDBG_ENTER(BDSP_Raaga_P_ProcessContextWatchdogInterrupt);
 	BDBG_OBJECT_ASSERT(pRaagaContext, BDSP_RaagaContext);
+	pDevice= (BDSP_Raaga *)pRaagaContext->pDevice;
 	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
 
     BKNI_EnterCriticalSection();
@@ -795,12 +797,14 @@ BERR_Code BDSP_Raaga_P_TaskInterruptInstall (
 {
 	BERR_Code       errCode = BERR_SUCCESS;
 	BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
-	unsigned int    dspIndex = pRaagaTask->createSettings.dspIndex;
-	BDSP_Raaga      *pDevice = pRaagaTask->pContext->pDevice;
-
-	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+	unsigned int    dspIndex;
+	BDSP_Raaga     *pDevice;
 
 	BDBG_ENTER (BDSP_Raaga_P_TaskInterruptInstall);
+	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+	pDevice = (BDSP_Raaga *)pRaagaTask->pContext->pDevice;
+	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+	dspIndex = pRaagaTask->createSettings.dspIndex;
 
 	/* We will create two callbacks for Asynchronous Interrupt & for
 	Synchtonous interrupt on both DAP0 as well as on DS1 */
@@ -875,13 +879,11 @@ BERR_Code BDSP_Raaga_P_TaskInterruptUninstall (
 	BERR_Code		errCode = BERR_SUCCESS;
 	BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
 
-	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
-
 	BDBG_ENTER (BDSP_Raaga_P_TaskInterruptUninstall);
+	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
    /* We will create two callbacks for Asynchronous Interrupt & for
 	   Synchtonous interrupt on both DAP0 as well as on DS1 */
-
    if(pRaagaTask->interruptCallbacks.hDSPAsync)
    {
 		errCode = BINT_DisableCallback(pRaagaTask->interruptCallbacks.hDSPAsync);
@@ -1080,6 +1082,7 @@ BERR_Code BDSP_Raaga_P_SetTaskInterruptHandlers_isr(
 	BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
 
 	BDBG_ENTER(BDSP_Raaga_P_SetTaskInterruptHandlers_isr);
+	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
 	/*Sample Rate Change Interrupt*/
 	if((pHandlers->sampleRateChange.pCallback_isr == NULL))

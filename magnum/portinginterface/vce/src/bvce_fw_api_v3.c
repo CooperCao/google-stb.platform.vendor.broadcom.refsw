@@ -186,6 +186,7 @@
 
 /* FIXME: this is just to keep the interface, however at this point VP8 does not define any HRD */
 #define VP8_DUMMY_HRD_BUFFER_SIZE          (1000*240000)
+#define VP9_DUMMY_HRD_BUFFER_SIZE          (1000*240000)
 
 #define RESOLUTION_T0_27MHZ_MBPDELAY_MANT       56471
 #define RESOLUTION_T0_27MHZ_MBPDELAY_EXP        17
@@ -861,8 +862,7 @@ BVCE_FW_P_CalcHRDbufferSize(
     switch(Protocol)
     {
     case ENCODING_STD_VP9:
-        /* There is no HRD buffer for VP9. */
-        hrdBufferSize = 0;
+        hrdBufferSize = VP9_DUMMY_HRD_BUFFER_SIZE;
         break;
 
     case ENCODING_STD_HEVC:
@@ -917,7 +917,7 @@ BVCE_FW_P_CalcHRDbufferSize(
         break;
     }
 
-    if( (hrdBufferSize == 0) && (Protocol != ENCODING_STD_VP9))
+    if(hrdBufferSize == 0)
     {
 #ifdef BCHP_CHIP
         BDBG_ASSERT(!"Unsupported Profile or Level");
@@ -1366,14 +1366,14 @@ void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *p
 
     if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V3_0_0_2)
     {
-        pstMemSettings->InputType = ENCODER_INPUT_TYPE_PROGRESSIVE;
+        pstMemSettings->InputType = ENCODER_INPUT_TYPE_INTERLACED;
         pstMemSettings->DramStripeWidth = 256;
         pstMemSettings->X = 32;
         pstMemSettings->Y = 12;
         pstMemSettings->DcxvEnable = 1;
 	pstMemSettings->NewBvnMailboxEnable = 0;
 	pstMemSettings->PageSize = 2;
-		pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBBBBBBP;
+		pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBBP;
     }
     else if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V2_1)
     {
@@ -1413,7 +1413,7 @@ void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *p
 *        Number of macroblocks per stripe height
 *
 ************************************************************************/
-uint32_t BVCE_FW_P_CalcV3NonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, const BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings );
+static uint32_t BVCE_FW_P_CalcV3NonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, const BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings );
 uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, const BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings )
 {
 
@@ -1947,8 +1947,8 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 #define PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE           (10) /*(6)*/
 #define PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE                      (12) /*(9)*/
 
-#define PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE             (6)*2
-#define PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE          (6)
+#define PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE             (6+1)*2
+#define PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE          (6+1)
 #define PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                        (9)*2
 
 #define PREPROCESSOR_PIC_QUEUE_SIZE 4
@@ -1960,10 +1960,10 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 #define		I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE  6
 #define		I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE             9
 
-#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE 6
+#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE (6+1)
 #define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE            9
 
-#define		I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   6
+#define		I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   (6+1)
 #define		I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE              9
 
 #define		I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   6
@@ -1985,16 +1985,16 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 #define		I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE (6)
 #define		I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE               (9)*2
 
-#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE    (6)*2
-#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE (6)
+#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE    (6+1)*2
+#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE (6+1)
 #define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE               (9)*2
 
-#define		I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                (6)*2
-#define		I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE             (6)
+#define		I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                (6+1)*2
+#define		I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE             (6+1)
 #define		I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                           (9)*2
 
-#define		I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                (6)*2
-#define		I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE             (6)
+#define		I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                (6+1)*2
+#define		I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE             (6+1)
 #define		I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                           (9)*2
 
 
@@ -2154,7 +2154,6 @@ uint8_t FreeBuffersQueueDECIMATED_2VNumOfBuff;
 
 uint8_t FreeBuffersQueueORIGINAL_LUMADcxvEn;
 uint8_t FreeBuffersQueueORIGINAL_CHROMADcxvEn;
-uint8_t FreeBuffersQueueORIGINAL_SHIFTED_CHROMADcxvEn;
 uint8_t FreeBuffersQueueDECIMATED_1VDcxvEn;
 uint8_t FreeBuffersQueueDECIMATED_2VDcxvEn;
 
@@ -2211,7 +2210,6 @@ uint8_t NumberOfShiftedChromaPictureBuff;
 
 			FreeBuffersQueueORIGINAL_LUMADcxvEn = DcxvEnable;
 			FreeBuffersQueueORIGINAL_CHROMADcxvEn = DcxvEnable;
-			FreeBuffersQueueORIGINAL_SHIFTED_CHROMADcxvEn = 0;
 			FreeBuffersQueueDECIMATED_1VDcxvEn = DcxvEnable;
 			FreeBuffersQueueDECIMATED_2VDcxvEn = DcxvEnable;
 
@@ -2320,7 +2318,6 @@ uint8_t NumberOfShiftedChromaPictureBuff;
 
 			FreeBuffersQueueORIGINAL_LUMADcxvEn = DcxvEnable;
 			FreeBuffersQueueORIGINAL_CHROMADcxvEn = 0;
-			FreeBuffersQueueORIGINAL_SHIFTED_CHROMADcxvEn = 0;
 			FreeBuffersQueueDECIMATED_1VDcxvEn = DcxvEnable;
 			FreeBuffersQueueDECIMATED_2VDcxvEn = DcxvEnable;
 		    if (pstCoreSettings->eVersion <= BVCE_FW_P_COREVERSION_V3_0_0_2)

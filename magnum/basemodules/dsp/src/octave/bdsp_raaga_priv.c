@@ -210,6 +210,15 @@ static void BDSP_Raaga_P_InitDevice(
 			pDevice->taskDetails[dspindex].numActiveTasks= 0;
 		}
 	}
+
+	errCode = BDSP_P_PopulateSystemSchedulingDeatils(&pDevice->systemSchedulingInfo);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_InitDevice: Unable to Program the System Scheduling Information"));
+		errCode = BERR_TRACE(errCode);
+		BDBG_ASSERT(0);
+	}
+
     BDBG_LEAVE(BDSP_Raaga_P_InitDevice);
 }
 
@@ -1421,7 +1430,11 @@ BERR_Code BDSP_Raaga_P_StartTask(
 		goto end;
 	}
 
-	errCode = BDSP_P_PopulateSchedulingInfo(&pRaagaTask->startSettings, pRaagaTask->pContext->settings.contextType, &sPayload);
+	errCode = BDSP_P_PopulateSchedulingInfo(
+				&pRaagaTask->startSettings,
+				pRaagaTask->pContext->settings.contextType,
+				&pRaagaTask->pContext->pDevice->systemSchedulingInfo,
+				&sPayload);
 	if (BERR_SUCCESS != errCode)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_StartTask: Unable to populate Scheduling Info for Task %d",pRaagaTask->taskParams.taskId));
@@ -2065,7 +2078,7 @@ BERR_Code BDSP_Raaga_P_GetDatasyncSettings_isr(
 	BDBG_OBJECT_ASSERT(pRaagaStage, BDSP_RaagaStage);
 	BDBG_ASSERT(pSettingsBuffer);
 
-	BDSP_MMA_P_CopyDataFromDram((void *)pSettingsBuffer, &pRaagaStage->stageMemInfo.sDataSyncSettings.Buffer, sizeof(BDSP_AudioTaskDatasyncSettings));
+	BDSP_MMA_P_CopyDataFromDram_isr((void *)pSettingsBuffer, &pRaagaStage->stageMemInfo.sDataSyncSettings.Buffer, sizeof(BDSP_AudioTaskDatasyncSettings));
 
 	BDBG_LEAVE(BDSP_Raaga_P_GetDatasyncSettings_isr);
 	return errCode;
@@ -2118,7 +2131,7 @@ BERR_Code BDSP_Raaga_P_GetTsmSettings_isr(
 	BDBG_OBJECT_ASSERT(pRaagaStage, BDSP_RaagaStage);
 	BDBG_ASSERT(pSettingsBuffer);
 
-	BDSP_MMA_P_CopyDataFromDram((void *)pSettingsBuffer, &pRaagaStage->stageMemInfo.sTsmSettings.Buffer, sizeof(BDSP_AudioTaskTsmSettings));
+	BDSP_MMA_P_CopyDataFromDram_isr((void *)pSettingsBuffer, &pRaagaStage->stageMemInfo.sTsmSettings.Buffer, sizeof(BDSP_AudioTaskTsmSettings));
 
 	BDBG_LEAVE(BDSP_Raaga_P_GetTsmSettings_isr);
 	return errCode;
@@ -2138,7 +2151,7 @@ BERR_Code BDSP_Raaga_P_SetTsmSettings_isr(
 
 	BDSP_MMA_P_CopyDataToDram_isr(&pRaagaStage->stageMemInfo.sTsmSettings.Buffer, (void *)pSettingsBuffer, sizeof(BDSP_AudioTaskTsmSettings));
 	BDBG_MSG(("TSM RE-CONFIG"));
-	BDSP_P_Analyse_CIT_TSMConfig(pRaagaStage->stageMemInfo.sTsmSettings.Buffer);
+	BDSP_P_Analyse_CIT_TSMConfig_isr(pRaagaStage->stageMemInfo.sTsmSettings.Buffer);
 	if(pRaagaStage->running)
 	{
 		BDSP_RaagaTask  *pRaagaTask = pRaagaStage->pRaagaTask;

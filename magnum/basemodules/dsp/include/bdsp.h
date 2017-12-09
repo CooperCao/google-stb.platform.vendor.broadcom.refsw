@@ -83,24 +83,23 @@
 #define BDSP_RAAGA_RBUS_RDB_ADDRESS
 #endif
 
+#define BDSP_REGSET_PHY_ADDR_FOR_DSP(offset)     ((offset) + BCHP_PHYSICAL_OFFSET)
+#define BDSP_REGSET_OFFSET_ADDR_FOR_HOST(offset) ((offset) - BCHP_PHYSICAL_OFFSET)
+
 #define BDSP_RAAGA_REGSET_BASE_MASK 0xFFFFF
 #define BDSP_RAAGA_PMEM_BASE_MASK 0x80000000
 
 #ifdef BDSP_RAAGA_RBUS_RDB_ADDRESS
     #define BDSP_RAAGA_REGSET_ADDR_FOR_DSP(offset) offset?( BDSP_RAAGA_PMEM_BASE_MASK + ((offset) & BDSP_RAAGA_REGSET_BASE_MASK)) : (offset)
 #else
-    #define BDSP_RAAGA_REGSET_ADDR_FOR_DSP(offset) ((offset) + BCHP_PHYSICAL_OFFSET)
+    #define BDSP_RAAGA_REGSET_ADDR_FOR_DSP(offset) BDSP_REGSET_PHY_ADDR_FOR_DSP(offset)
 #endif
 
 #ifdef BDSP_RAAGA_RBUS_RDB_ADDRESS
     #define BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(Addr) (((Addr) - BDSP_RAAGA_PMEM_BASE_MASK)+ ((BCHP_RAAGA_DSP_RGR_REG_START) & (~BDSP_RAAGA_REGSET_BASE_MASK)))
 #else
-    #define BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(Addr) ((Addr) - BCHP_PHYSICAL_OFFSET )
+    #define BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(Addr) BDSP_REGSET_OFFSET_ADDR_FOR_HOST(Addr)
 #endif
-
-#define BDSP_REGSET_PHY_ADDR_FOR_DSP(offset)     ((offset) + BCHP_PHYSICAL_OFFSET)
-#define BDSP_REGSET_OFFSET_ADDR_FOR_HOST(offset) ((offset) - BCHP_PHYSICAL_OFFSET)
-
 
 /*=************************ Module Overview ********************************
 BDSP is a magnum basemodule interface to a DSP.  The DSP interface can be

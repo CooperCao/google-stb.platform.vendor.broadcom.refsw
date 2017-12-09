@@ -163,6 +163,8 @@ static KM_Tag_Item* km_tag_make_tag_item(km_tag_value_t *tagValuePair, uint32_t 
 
     outTagValuePair = (km_tag_value_t *)tag_value->tagValueData;
 
+    BDBG_MSG(("%s: adding 0x%x", BSTD_FUNCTION, tagValuePair->tag));
+
     switch (km_tag_get_type(tagValuePair->tag)) {
         /* Group drop through */
     case KM_ENUM:
@@ -431,10 +433,16 @@ void KM_Tag_DeleteContext(KM_Tag_ContextHandle handle)
 
 int32_t KM_Tag_GetNumPairs(KM_Tag_ContextHandle handle)
 {
-    BDBG_ASSERT(handle);
+    int32_t num = 0;
+    if (!handle) {
+        goto done;
+    }
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
     BDBG_ASSERT(handle->num_params >= 0);
-    return (handle->num_params);
+    num = handle->num_params;
+
+done:
+    return num;
 }
 
 BERR_Code KM_Tag_CheckParameterConsitency(KM_Tag_ContextHandle handle)
@@ -671,7 +679,7 @@ done:
     return tag_value;
 }
 
-bool KM_Tag_ContainsEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t enumerated)
+km_tag_value_t* KM_Tag_FindEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t enumerated)
 {
     KM_Tag_Item *tag_item = NULL;
     km_tag_value_t *tag_value = NULL;
@@ -679,8 +687,8 @@ bool KM_Tag_ContainsEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t enu
     BDBG_ASSERT(handle);
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
 
-    if (km_tag_get_type(tag) != KM_ENUM_REP) {
-        BDBG_ERR(("%s: tag not repeatable enum", BSTD_FUNCTION));
+    if ((km_tag_get_type(tag) != KM_ENUM) && (km_tag_get_type(tag) != KM_ENUM_REP)) {
+        BDBG_ERR(("%s: tag not enum", BSTD_FUNCTION));
         goto done;
     }
 
@@ -695,7 +703,12 @@ bool KM_Tag_ContainsEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t enu
     }
 
 done:
-    return (tag_item != NULL);
+    return tag_item ? (tag_item->tagValueData) : NULL;
+}
+
+bool KM_Tag_ContainsEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t enumerated)
+{
+    return (KM_Tag_FindEnum(handle, tag, enumerated) != NULL);
 }
 
 bool KM_Tag_ContainsInteger(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t integer)
@@ -706,8 +719,8 @@ bool KM_Tag_ContainsInteger(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t 
     BDBG_ASSERT(handle);
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
 
-    if (km_tag_get_type(tag) != KM_UINT_REP) {
-        BDBG_ERR(("%s: tag not repeatable integer", BSTD_FUNCTION));
+    if ((km_tag_get_type(tag) != KM_UINT) && (km_tag_get_type(tag) != KM_UINT_REP)) {
+        BDBG_ERR(("%s: tag not integer", BSTD_FUNCTION));
         goto done;
     }
 
@@ -733,8 +746,8 @@ bool KM_Tag_ContainsLongInteger(KM_Tag_ContextHandle handle, km_tag_t tag, uint6
     BDBG_ASSERT(handle);
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
 
-    if (km_tag_get_type(tag) != KM_ULONG_REP) {
-        BDBG_ERR(("%s: tag not repeatable long", BSTD_FUNCTION));
+    if ((km_tag_get_type(tag) != KM_ULONG) && (km_tag_get_type(tag) != KM_ULONG_REP)) {
+        BDBG_ERR(("%s: tag not long", BSTD_FUNCTION));
         goto done;
     }
 
@@ -898,6 +911,7 @@ BERR_Code KM_Tag_Remove(KM_Tag_ContextHandle handle, km_tag_value_t *tag_value_p
     for (tag_item = BLST_D_FIRST(&handle->tagList); tag_item; tag_item = BLST_D_NEXT(tag_item, link)) {
         BDBG_OBJECT_ASSERT(tag_item, KM_Tag_Item);
         if (tag_item == cmp_item) {
+            BDBG_MSG(("%s: removing 0x%x", BSTD_FUNCTION, tag_value_pair->tag));
             BLST_D_REMOVE(&handle->tagList, tag_item, link);
             handle->num_params -= 1;
             err = BERR_SUCCESS;

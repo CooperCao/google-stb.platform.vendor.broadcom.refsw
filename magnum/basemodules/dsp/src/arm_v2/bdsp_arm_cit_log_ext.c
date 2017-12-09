@@ -60,7 +60,7 @@ void BDSP_Arm_P_Analyse_CIT_GlobalTask(
 
 	BDBG_MSG(("TSM UserConfig Offset    = "BDSP_MSG_FMT", Size = %d",
 		BDSP_MSG_ARG(psGlobalTaskConfig->sTsmConfigInfo.BaseAddr), psGlobalTaskConfig->sTsmConfigInfo.Size));
-	BDSP_P_Analyse_CIT_TSMConfig(pArmPrimaryStage->stageMemInfo.sTsmSettings.Buffer);
+	BDSP_P_Analyse_CIT_TSMConfig_isr(pArmPrimaryStage->stageMemInfo.sTsmSettings.Buffer);
 
 	BDBG_MSG(("GateOpen Config Offset   = "BDSP_MSG_FMT", Size = %d",
 		BDSP_MSG_ARG(psGlobalTaskConfig->sGateOpenConfigInfo.BaseAddr), psGlobalTaskConfig->sGateOpenConfigInfo.Size));

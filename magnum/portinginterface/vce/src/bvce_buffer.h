@@ -39,12 +39,6 @@
  *
  ***************************************************************************/
 
-/* base modules */
-#include "bstd.h"           /* standard types */
-#include "berr.h"           /* error code */
-#include "bkni.h"           /* kernel interface */
-#include "bmma.h"
-
 #ifndef BVCE_BUFFER_H_
 #define BVCE_BUFFER_H_
 

@@ -129,18 +129,6 @@ static const  BAVC_VideoCompressionStd  VideoCmprStdList_H264[] =
    BAVC_VideoCompressionStd_eH264
 };
 
-#if !B_REFSW_MINIMAL /* SWSTB-461 */
-static const  BAVC_VideoCompressionStd  VideoCmprStdList_MPEG2[] =
-{
-   BAVC_VideoCompressionStd_eMPEG2
-};
-
-static const  BAVC_VideoCompressionStd  VideoCmprStdList_VC1[] =
-{
-   BAVC_VideoCompressionStd_eVC1
-};
-#endif
-
 /* Default channel settings */
 static const BXVD_ChannelSettings s_stDefaultChannelSettings =
 {

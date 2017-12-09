@@ -59,7 +59,6 @@
 #include "bchp_int_id_memc_l2_2_0.h"
 #endif
 #endif /* BCHP_MEMC_L2_0_REG_START */
-#include "bchp_memc_gen_0.h"
 
 #if NEXUS_HAS_SECURITY
 #include "priv/nexus_security_priv.h"
@@ -118,15 +117,10 @@ static void NEXUS_Platform_P_MemcEventHandler(void * context)
         NEXUS_Module_Unlock(g_NEXUS_platformHandles.security);
     }
 #endif
-#if NEXUS_CPU_ARM
-    {
-    uint32_t value = BREG_Read32(g_pCoreHandles->reg, BCHP_MEMC_GEN_0_CORE_REV_ID);
-    if (BCHP_GET_FIELD_DATA(value, MEMC_GEN_0_CORE_REV_ID, ARCH_REV_ID) < 11 || BCHP_GET_FIELD_DATA(value, MEMC_GEN_0_CORE_REV_ID, CFG_REV_ID) < 2) {
+    if (NEXUS_P_Core_SecureArchIssue_isrsafe()) {
         BDBG_LOG(("Detected SECURE MEMC ARCH violation. Terminating...."));
         BKNI_Fail();
     }
-    }
-#endif
     return;
 }
 

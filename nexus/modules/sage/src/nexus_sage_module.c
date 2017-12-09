@@ -646,12 +646,13 @@ static NEXUS_Error NEXUS_Sage_P_CheckSecureRegions(int heapid, NEXUS_Addr offset
     if (start || end) {
         if ((offset != (NEXUS_Addr)start) || (len != size)) {
             rc = NEXUS_INVALID_PARAMETER;
-            BDBG_ERR(("%s - Error, heap '%s' [ID=%d] cannot be relocated.",
+            BDBG_ERR(("%s - Error, heap '%s' [ID=%d] can only be set once per power up.",
                        BSTD_FUNCTION, heap_str, heapid));
             BDBG_ERR(("%s\tPrevious run configured it at (offset: %#x, size: %u bytes)",
                       BSTD_FUNCTION, start, size));
             BDBG_ERR(("%s\tCurrent run requests it at (offset: " BDBG_UINT64_FMT ", size: %u bytes)",
                       BSTD_FUNCTION, BDBG_UINT64_ARG(offset), len));
+            BDBG_ERR(("%s - A change in '%s' requires a reboot.", BSTD_FUNCTION, heap_str));
             goto end;
         }
 

@@ -2328,6 +2328,9 @@ wlc_ampdu_watchdog(void *hdl)
 					ini->alive = FALSE;
 					ini->dead_cnt = 0;
 				} else {
+					uint16 interval = 1 + ((wlc_apps_get_listen_prd(wlc, scb) *
+						scb->bsscfg->current_bss->beacon_period)/1000);
+
 					if (ini->tx_in_transit)
 						ini->dead_cnt++;
 
@@ -2335,7 +2338,11 @@ wlc_ampdu_watchdog(void *hdl)
 					WLCNTINCR(wlc->pub->_cnt->ampdu_wds);
 					wlc_ampdu_dbg_stats(wlc, scb, ini);
 
-					if (ini->dead_cnt == AMPDU_INI_DEAD_TIMEOUT) {
+					/* using  maximum of listen interval+1 sec
+					 * or AMPDU_INI_DEAD_TIMEOUT
+					 * to avoid packet drop due dead count
+					 */
+					if (ini->dead_cnt == MAX(AMPDU_INI_DEAD_TIMEOUT, interval)) {
 #if defined(AP) && defined(BCMDBG)
 						if (SCB_PS(scb)) {
 							char* mode = "PS";

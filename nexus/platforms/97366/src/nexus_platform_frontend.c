@@ -365,18 +365,22 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             deviceSettings.gpioInterrupt = gpioHandleInt;
 
             device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
-
-            NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
-            for (i=0; i < capabilities.numTuners; i++)
-            {
-                NEXUS_Frontend_GetDefaultOpenSettings(&channelSettings);
-                channelSettings.device = device;
-                channelSettings.channelNumber = i;
-                channelSettings.type = NEXUS_FrontendChannelType_eSatellite;
-                pConfig->frontend[i+tuner_offset] = NEXUS_Frontend_Open(&channelSettings);
-                if ( NULL == (pConfig->frontend[i+tuner_offset]) ) {
-                    BDBG_ERR(("Unable to open external frontend %x demod %d (fe[%d]",probeResults.chip.familyId,i,i+tuner_offset));
-                    continue;
+            if (!device) {
+                BDBG_WRN(("No external sat frontend found."));
+            }
+            else {
+                NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
+                for (i=0; i < capabilities.numTuners; i++)
+                {
+                    NEXUS_Frontend_GetDefaultOpenSettings(&channelSettings);
+                    channelSettings.device = device;
+                    channelSettings.channelNumber = i;
+                    channelSettings.type = NEXUS_FrontendChannelType_eSatellite;
+                    pConfig->frontend[i+tuner_offset] = NEXUS_Frontend_Open(&channelSettings);
+                    if ( NULL == (pConfig->frontend[i+tuner_offset]) ) {
+                        BDBG_ERR(("Unable to open external frontend %x demod %d (fe[%d]",probeResults.chip.familyId,i,i+tuner_offset));
+                        continue;
+                    }
                 }
             }
         }
@@ -422,18 +426,22 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             deviceSettings.gpioInterrupt = gpioHandleInt;
 
             device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
-
-            NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
-            for (i=0; i < capabilities.numTuners; i++)
-            {
-                NEXUS_Frontend_GetDefaultOpenSettings(&channelSettings);
-                channelSettings.device = device;
-                channelSettings.channelNumber = i;
-                channelSettings.type = NEXUS_FrontendChannelType_eSatellite;
-                pConfig->frontend[i+tuner_offset] = NEXUS_Frontend_Open(&channelSettings);
-                if ( NULL == (pConfig->frontend[i+tuner_offset]) ) {
-                    BDBG_ERR(("Unable to open daughtercard %x demod %d (fe[%d]",probeResults.chip.familyId,i,i+tuner_offset));
-                    continue;
+            if (!device) {
+                BDBG_WRN(("No daughtercard frontend found."));
+            }
+            else {
+                NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
+                for (i=0; i < capabilities.numTuners; i++)
+                {
+                    NEXUS_Frontend_GetDefaultOpenSettings(&channelSettings);
+                    channelSettings.device = device;
+                    channelSettings.channelNumber = i;
+                    channelSettings.type = NEXUS_FrontendChannelType_eSatellite;
+                    pConfig->frontend[i+tuner_offset] = NEXUS_Frontend_Open(&channelSettings);
+                    if ( NULL == (pConfig->frontend[i+tuner_offset]) ) {
+                        BDBG_ERR(("Unable to open daughtercard %x demod %d (fe[%d]",probeResults.chip.familyId,i,i+tuner_offset));
+                        continue;
+                    }
                 }
             }
         }

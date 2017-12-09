@@ -28,9 +28,9 @@ static void init_xform_seq(GFX_BUFFER_XFORM_SEQ_T *seq,
 
 static bool claim_conversion(const struct v3d_imgconv_base_tgt *dst,
       const struct v3d_imgconv_base_tgt *src,
-      unsigned int width, unsigned int height, unsigned int depth, const security_info_t *sec_info)
+      unsigned int width, unsigned int height, unsigned int depth, const conversion_info_t *info)
 {
-   return v3d_imgconv_valid_cpu_sec_info(sec_info);
+   return v3d_imgconv_valid_cpu_conv_info(info);
 }
 
 static inline void masked_32bit_write(size_t dst_offset, const void *src, size_t size, void *p, uint32_t mask)

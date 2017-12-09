@@ -60,19 +60,19 @@
 #define BDSP_ARM_IMG_MM_CLIENT_SIZE                                  ((uint32_t)90624)
 
 /*KERNEL_OPS Size requirement*/
-#define BDSP_ARM_IMG_KERNEL_OPS_SIZE                                 ((uint32_t)73728)
+#define BDSP_ARM_IMG_KERNEL_OPS_SIZE                                 ((uint32_t)83968)
 
 /*STAGE_IO Size requirement*/
 #define BDSP_ARM_IMG_STAGE_IO_SIZE                                   ((uint32_t)189440)
 
 /*COMMON_IDS Size requirement*/
-#define BDSP_ARM_IMG_COMMON_IDS_SIZE                                 ((uint32_t)236544)
+#define BDSP_ARM_IMG_COMMON_IDS_SIZE                                 ((uint32_t)238080)
 
 /*INIT_PROCESS Size requirement*/
 #define BDSP_ARM_IMG_INIT_PROCESS_SIZE                               ((uint32_t)28160)
 
 /*SCHEDULING_PROCESS Size requirement*/
-#define BDSP_ARM_IMG_SCHEDULING_PROCESS_SIZE                         ((uint32_t)122368)
+#define BDSP_ARM_IMG_SCHEDULING_PROCESS_SIZE                         ((uint32_t)122880)
 
 /*ROUTING_PROCESS Size requirement*/
 #define BDSP_ARM_IMG_ROUTING_PROCESS_SIZE                            ((uint32_t)66560)
@@ -95,6 +95,12 @@
 /*AIDS_MPEG1 Size requirement*/
 #define BDSP_ARM_IMG_AIDS_MPEG1_SIZE                                 ((uint32_t)27648)
 
+/*AIDS_ADTS Size requirement*/
+#define BDSP_ARM_IMG_AIDS_ADTS_SIZE                                  ((uint32_t)21504)
+
+/*AIDS_LOAS Size requirement*/
+#define BDSP_ARM_IMG_AIDS_LOAS_SIZE                                  ((uint32_t)24064)
+
 /*ADEC_PCMWAV Size requirement*/
 #define BDSP_ARM_IMG_ADEC_PCMWAV_SCRATCH_SIZE                        ((uint32_t)32768)
 #define BDSP_ARM_IMG_ADEC_PCMWAV_SIZE                                ((uint32_t)34304)
@@ -108,6 +114,20 @@
 #define BDSP_ARM_IMG_ADEC_MPEG1_INTER_FRAME_SIZE                     ((uint32_t)10752)
 #define BDSP_ARM_IMG_ADEC_MPEG1_INTER_FRAME_ENCODED_SIZE             ((uint32_t)512)
 #define BDSP_ARM_IMG_ADEC_MPEG1_TABLES_SIZE                          ((uint32_t)15360)
+
+/*ADEC_AACHE Size requirement*/
+#define BDSP_ARM_IMG_ADEC_AACHE_SCRATCH_SIZE                         ((uint32_t)249856)
+#define BDSP_ARM_IMG_ADEC_AACHE_SIZE                                 ((uint32_t)281600)
+#define BDSP_ARM_IMG_ADEC_AACHE_INTER_FRAME_SIZE                     ((uint32_t)185856)
+#define BDSP_ARM_IMG_ADEC_AACHE_INTER_FRAME_ENCODED_SIZE             ((uint32_t)512)
+#define BDSP_ARM_IMG_ADEC_AACHE_TABLES_SIZE                          ((uint32_t)71680)
+
+/*ADEC_PASSTHRU Size requirement*/
+#define BDSP_ARM_IMG_ADEC_PASSTHRU_SCRATCH_SIZE                      ((uint32_t)36864)
+#define BDSP_ARM_IMG_ADEC_PASSTHRU_SIZE                              ((uint32_t)64000)
+#define BDSP_ARM_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE                  ((uint32_t)2048)
+#define BDSP_ARM_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE          ((uint32_t)512)
+#define BDSP_ARM_IMG_ADEC_PASSTHRU_TABLES_SIZE                       ((uint32_t)1536)
 
 /*APP_SRC Size requirement*/
 #define BDSP_ARM_IMG_APP_SRC_SCRATCH_SIZE                            ((uint32_t)45056)

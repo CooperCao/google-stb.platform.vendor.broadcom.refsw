@@ -40,7 +40,7 @@
 #include "bdsp_auth.h"
 
 BDBG_MODULE(bdsp_auth);
-
+BDBG_OBJECT_ID(BDSP_Raaga);
 BERR_Code BDSP_DumpImage(
    unsigned   uiFirmwareId,
    void      *pBuffer,

@@ -9191,6 +9191,9 @@ Summary:
     Enables video to graphics surface capture and sets the max number of
     capture buffers allowed for the user to access at same time.
 
+    Important note: This only works for chips that don't use compressed
+    picture buffers.
+
 Description:
     A video window's video fields/frames can be captured into graphics
     surfaces (aka capture buffers). User can then acquire those surfaces with
@@ -9217,6 +9220,8 @@ Output:
 
 Returns:
     BERR_INVALID_PARAMETER - Invalid function parameters.
+    BERR_NOT_SUPPORTED - As name says due to use of compressed
+    picture buffers
     BERR_SUCCESS - Function succeed
 
 See Also:

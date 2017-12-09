@@ -1009,6 +1009,15 @@ void BVC5_P_HardwareSetDefaultRegisterState(
                 BCHP_FIELD_DATA(V3D_MMUC_CONTROL, ENABLE, 1));
 #endif
 
+   /* Tell V3D what the MAP version is for the memory */
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_HUB_CTL_DRAM_MAP_VERSION,
+                        BCHP_FIELD_DATA(V3D_HUB_CTL_DRAM_MAP_VERSION, DRAM_MAP_VERSION, hVC5->sMemInfo.memc[0].mapVer));
+#elif V3D_VER_AT_LEAST(3,3,0,0)
+   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_GCA_DRAM_MAP_VERSION,
+                        BCHP_FIELD_DATA(V3D_GCA_DRAM_MAP_VERSION, DRAM_MAP_VERSION, hVC5->sMemInfo.memc[0].mapVer));
+#endif
+
 #if USE_GMP_MONITORING
    BVC5_P_SetupGMP_isr(hVC5, uiCoreIndex);
 #endif

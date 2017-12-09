@@ -503,6 +503,9 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
          !((ml->width == 1) && (ml->height == 1) && (ml->depth == 1)) ||
          (mip_level == (num_mip_levels - 1)));
 
+      /* Set a default color conversion */
+      ml->colorimetry = GFX_BUFFER_COLORIMETRY_DEFAULT;
+
       ml->num_planes = num_planes;
 
       for (uint32_t i = 0; i != num_planes; ++i)
@@ -544,6 +547,8 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
             &ml_pad_w_in_blocks, &ml_pad_h_in_blocks, &ml_pad_d_in_blocks,
             ml->height, usage, ml_cfg, i);
          GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&dplane->lfmt);
+
+         dplane->region = 0;
 
          calc_pitches_and_size(&dplane->pitch, &dplane->slice_pitch, &p->ml_sizes[mip_level],
             dplane->lfmt, &p->bd,

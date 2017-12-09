@@ -973,7 +973,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 
        for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
            unsigned vceIndex, channel;
-           unsigned memcIndex, mainMemcIndex;
+           unsigned memcIndex, mainMemcIndex, fwMemcIndex;
            struct {
               unsigned firmware, output, secure, system;
            } heap = {0,0,0,0};
@@ -998,8 +998,9 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             {
                 nexus_p_get_driver_heap(pPlatformSettings, 0, false, &heap.secure);
             }
-
-            rc = nexus_p_get_driver_heap(pPlatformSettings, mainMemcIndex, false, &heap.firmware);
+            fwMemcIndex = preInitState->boxConfig.stVce.stInstance[vceIndex].uiFirmwareMemcIndex;
+            if (fwMemcIndex >= NEXUS_NUM_MEMC) { BKNI_Free(structs); return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
+            rc = nexus_p_get_driver_heap(pPlatformSettings, fwMemcIndex, false, &heap.firmware);
             if (rc) { BKNI_Free(structs); return BERR_TRACE(rc); }
             heap.system = heap.firmware;
 

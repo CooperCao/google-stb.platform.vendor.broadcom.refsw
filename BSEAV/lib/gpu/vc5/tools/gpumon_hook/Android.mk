@@ -29,7 +29,6 @@ LOCAL_C_INCLUDES := \
         $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/ \
         $(V3D_DRIVER_TOP)/platform/android \
         $(V3D_DRIVER_TOP)/platform/common \
-        $(V3D_DRIVER_TOP)/platform/nexus \
         $(ANDROID_TOP)/frameworks/native/libs/arect/include \
         $(ANDROID_TOP)/frameworks/native/libs/nativewindow/include \
         $(ANDROID_TOP)/frameworks/native/libs/nativebase/include

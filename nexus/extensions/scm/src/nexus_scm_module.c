@@ -540,6 +540,8 @@ NEXUS_Error NEXUS_ScmModule_P_Start(void)
     void * img_context = NULL;
     BIMG_Interface img_interface;
 
+    /* clear the boot flag */
+    g_NEXUS_scmModule.booted = 0;
     blImg.raw = &bl;
 
     switch(g_NEXUS_scmModule.instance->channel.type){

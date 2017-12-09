@@ -368,6 +368,11 @@ typedef struct {
    EGLDisplay (*real_eglGetPlatformDisplayEXT)(EGLenum platform, void *native_display, const EGLint *attrib_list);
    EGLSurface (*real_eglCreatePlatformWindowSurfaceEXT)(EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
    EGLSurface (*real_eglCreatePlatformPixmapSurfaceEXT)(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
+#ifdef WAYLAND
+   EGLBoolean (*real_eglBindWaylandDisplayWL)(EGLDisplay dpy, struct wl_display *display);
+   EGLBoolean (*real_eglUnbindWaylandDisplayWL)(EGLDisplay dpy, struct wl_display *display);
+   EGLBoolean (*real_eglQueryWaylandBufferWL)(EGLDisplay dpy, struct wl_resource *buffer, EGLint attribute, EGLint *value);
+#endif
 
    __eglMustCastToProperFunctionPointerType (*real_eglGetProcAddress)(const char *procname);
 

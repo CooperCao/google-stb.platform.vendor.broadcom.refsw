@@ -2095,6 +2095,7 @@ typedef struct BAPE_MuxOutput
     bool sendEos;
     bool sendMetadata;
     BAPE_MuxOutputStartSettings startSettings;
+    BAPE_MuxOutputSettings settings;
     BAVC_XptContextMap contextMap;
     BAPE_MuxOutputCreateSettings createSettings;
     BAPE_Connector input;

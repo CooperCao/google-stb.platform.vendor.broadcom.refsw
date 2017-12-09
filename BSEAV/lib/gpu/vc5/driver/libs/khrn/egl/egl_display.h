@@ -22,6 +22,15 @@ extern bool egl_initialized(EGLDisplay dpy, bool check_display);
 /* Returns true if dpy is a valid display handle. */
 extern bool egl_is_valid_display(EGLDisplay dpy);
 
+/* Get display reference. */
+extern bool egl_display_refinc(EGLDisplay dpy);
+
+/* Put display reference. */
+extern bool egl_display_refdec(EGLDisplay dpy);
+
+/* Get platform display handle or NULL if dpy is not valid display handle */
+extern void *egl_display_platform_handle(EGLDisplay dpy);
+
 /* Normal lookups-- actual objects from client handles */
 extern EGL_CONTEXT_T *egl_get_context(EGLContext context);
 extern EGL_SURFACE_T *egl_get_surface(EGLSurface surface);
@@ -75,7 +84,7 @@ extern EGL_IMAGE_T* egl_unmap_image(EGLImageKHR image);
 extern EGLSyncKHR egl_map_sync(EGL_SYNC_T *sync);
 extern EGL_SYNC_T* egl_unmap_sync(EGLSyncKHR sync_id);
 
-/* Removes the display */
+/* Removes the currently initialised display, if any */
 extern void egl_terminate(void);
 
 #endif /* EGL_DISPLAY_H */

@@ -44,6 +44,8 @@
 #include "bint_7260.h"
 #elif (BCHP_CHIP == 7268)
 #include "bint_7268.h"
+#elif (BCHP_CHIP == 7271)
+#include "bint_7271.h"
 #endif
 #include "bkni.h"
 
@@ -659,6 +661,8 @@ static const BINT_Settings bint_Settings =
     "7260"
 #elif (BCHP_CHIP == 7268)
     "7268"
+#elif (BCHP_CHIP == 7271)
+    "7271"
 #else
     ""
 #endif
@@ -792,8 +796,9 @@ static void BINT_P_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift 
 
 #ifdef BINT_P_STD_RO_STATUS_CASES
     BINT_P_STD_RO_STATUS_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
-        intEnable |= 1ul<<shift;
+        /* BINT_P_STD_RO_STATUS_MASK_SET registers are write only and only updates IRQs where a 1 is written.
+         * This means you don't need to do a read status, modify then write. */
+        intEnable = 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_SET, intEnable );
         break;
 #else
@@ -873,8 +878,9 @@ static void BINT_P_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shif
 
 #ifdef BINT_P_STD_RO_STATUS_CASES
     BINT_P_STD_RO_STATUS_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
-        intEnable |= 1ul<<shift;
+        /* BINT_P_STD_RO_STATUS_MASK_CLEAR registers are write only and only updates IRQs where a 1 is written.
+         * This means you don't need to do a read status, modify then write. */
+        intEnable = 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_CLEAR, intEnable );
         break;
 #else
@@ -983,6 +989,8 @@ const BINT_Settings *BINT_7255_GetSettings( void )
 const BINT_Settings *BINT_7260_GetSettings( void )
 #elif (BCHP_CHIP == 7268)
 const BINT_Settings *BINT_7268_GetSettings( void )
+#elif (BCHP_CHIP == 7271)
+const BINT_Settings *BINT_7271_GetSettings( void )
 #endif
 {
     return &bint_Settings;

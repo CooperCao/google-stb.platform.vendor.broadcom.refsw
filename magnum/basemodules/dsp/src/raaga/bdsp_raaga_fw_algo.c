@@ -5364,7 +5364,7 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
     {
         BDSP_Algorithm_eDtsHdPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "DTS-HD Passthrough", true,
         &BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
-        0, 0xffffffff,
+        sizeof(BDSP_Raaga_Audio_DtsHdStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_DtsHdStreamInfo, ui32StatusValid),
         &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
         {
             2,
@@ -5419,7 +5419,7 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
   {
     BDSP_Algorithm_eDts14BitPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "DTS 14bit Passthrough", true,
     &BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
-    0, 0xffffffff,
+    sizeof(BDSP_Raaga_Audio_DtsHdStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_DtsHdStreamInfo, ui32StatusValid),
     &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
     {
       2,

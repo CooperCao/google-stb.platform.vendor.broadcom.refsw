@@ -58,7 +58,6 @@ typedef enum
 } BEGL_RefCountMode;
 
 typedef void  *BEGL_BufferHandle;     /* Opaque as far as driver is concerned. Only the app/lib knows the actual type. */
-typedef void  *BEGL_DisplayHandle;    /* Opaque 'display' handle (required by EGL) */
 typedef void  *BEGL_WindowHandle;     /* Opaque 'window' handle (required by EGL) */
 
 typedef struct
@@ -181,13 +180,12 @@ typedef struct
    /* used for EGL_NATIVE_VISUAL_ID, returns a platform dependent visual ID from the config */
    BEGL_Error (*GetNativeFormat)(void *context, BEGL_BufferFormat bufferFormat, uint32_t *outNativeFormat);
 
-   /* called when eglGetDisplay() is called.  Used in cases such as X11, so the X display can be passed into the
-      driver.  Could also be used in NEXUS to remove the need for an app to explicitly call it's platform
-      registration */
-   BEGL_Error (*SetDisplay)(void *context, uint32_t platform, void *nativeDisplay);
-
    /* some platforms require resources to be locked/unlocked on taking references */
    BEGL_Error (*SurfaceChangeRefCount)(void *context, uint32_t target, void *buffer, BEGL_RefCountMode incOrDec);
+
+   bool (*BindWaylandDisplay)(void *context, void *egl_display, void *wl_display);
+   bool (*UnbindWaylandDisplay)(void *context, void *egl_display, void *wl_display);
+   bool (*QueryBuffer)(void *context, void *display, void* buffer, int32_t attribute, int32_t *value);
 
 } BEGL_DisplayInterface;
 

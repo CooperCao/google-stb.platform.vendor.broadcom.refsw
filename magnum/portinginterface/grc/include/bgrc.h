@@ -582,7 +582,7 @@ void BGRC_GetCapabilities
 Summary:
 Get the grc's mipmap support character.
 **************************************************************************/
-BGRC_Mode BGRC_GetMode
+BGRC_Mode BGRC_GetMode_isrsafe
     ( uint32_t                         ulDeviceIdx);
 /***************************************************************************
 Summary:

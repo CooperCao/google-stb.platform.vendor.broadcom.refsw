@@ -229,7 +229,7 @@ static struct NEXUS_Platform_P_State
     } mmaps[NEXUS_MAX_HEAPS];
     int proxy_fd;
     bool stop;
-    bool init; /* NEXUS_P_Init called */
+    bool init; /* NEXUS_P_Uninit should be called because either NEXUS_P_Init or NEXUS_Platform_AuthenticatedJoin was called */
     bool platform_init; /* NEXUS_Platform_Init called */
     bool slave;
     struct NEXUS_Platform_P_ProxyScheduler schedulers[NEXUS_ModulePriority_eMax];
@@ -669,7 +669,7 @@ static NEXUS_Error NEXUS_P_Init(void)
     }
 
     BDBG_MSG((">DEBUG_LOG"));
-    BDBG_ASSERT(state->proxy_fd>0);
+    BDBG_ASSERT(state->proxy_fd >= 0);
     BKNI_Snprintf(device_fd, sizeof(device_fd), "%d", state->proxy_fd);
     flags = fcntl(state->proxy_fd, F_GETFD, 0);
     if (flags == (unsigned)-1) {
@@ -725,6 +725,8 @@ err_magnum:
 static void NEXUS_P_Uninit(void)
 {
     struct NEXUS_Platform_P_State *state = &NEXUS_Platform_P_State;
+
+    if (!state->init) return;
 
     if (!state->slave) {
         int urc;
@@ -827,7 +829,7 @@ static void NEXUS_Platform_P_ImageThread(void *context)
 {
     BSTD_UNUSED(context);
     BDBG_MSG(("Image Thread"));
-    BDBG_ASSERT(NEXUS_Platform_P_State.proxy_fd>0);
+    BDBG_ASSERT(NEXUS_Platform_P_State.proxy_fd >= 0);
     Nexus_Platform_P_Image_Handler(NEXUS_Platform_P_State.proxy_fd, IOCTL_PROXY_NEXUS_Image);
     return;
 }
@@ -1559,6 +1561,7 @@ NEXUS_Platform_AuthenticatedJoin(const NEXUS_ClientAuthenticationSettings *pSett
     if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto err_modules;}
 
     state->platform_init = true;
+    state->init = true;
 
     return NEXUS_SUCCESS;
 

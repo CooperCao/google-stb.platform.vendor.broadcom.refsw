@@ -44,10 +44,10 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
-  * Date:           Generated on               Mon May  8 13:48:56 2017
- *                 Full Compile MD5 Checksum  e3d2d93ac32946b714b621823815598b
+ * Date:           Generated on               Tue May  2 14:15:28 2017
+ *                 Full Compile MD5 Checksum  e93b60612a814400a861d8062aa39155
  *                     (minus title and desc)
- *                 MD5 Checksum               d1a3bba6733d12001e1e4f025ab895d5
+ *                 MD5 Checksum               edbb2b5a49ea1cb1948f75b13ea9695b
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
@@ -1857,7 +1857,7 @@
 #define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG_Enable_SHIFT        31
 #define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG_Enable_DEFAULT      0x00000000
 
- /* MEMC_GEN_0 :: PFRI_0_THROTTLE_CONFIG :: AlternateDisable [30:30] */
+/* MEMC_GEN_0 :: PFRI_0_THROTTLE_CONFIG :: AlternateDisable [30:30] */
 #define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG_AlternateDisable_MASK 0x40000000
 #define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG_AlternateDisable_SHIFT 30
 #define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG_AlternateDisable_DEFAULT 0x00000000
@@ -2145,7 +2145,7 @@
 #define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_CONFIG_Enable_SHIFT        31
 #define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_CONFIG_Enable_DEFAULT      0x00000000
 
- /* MEMC_GEN_0 :: PFRI_1_THROTTLE_CONFIG :: AlternateDisable [30:30] */
+/* MEMC_GEN_0 :: PFRI_1_THROTTLE_CONFIG :: AlternateDisable [30:30] */
 #define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_CONFIG_AlternateDisable_MASK 0x40000000
 #define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_CONFIG_AlternateDisable_SHIFT 30
 #define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_CONFIG_AlternateDisable_DEFAULT 0x00000000
@@ -2433,7 +2433,7 @@
 #define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_CONFIG_Enable_SHIFT        31
 #define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_CONFIG_Enable_DEFAULT      0x00000000
 
- /* MEMC_GEN_0 :: PFRI_2_THROTTLE_CONFIG :: AlternateDisable [30:30] */
+/* MEMC_GEN_0 :: PFRI_2_THROTTLE_CONFIG :: AlternateDisable [30:30] */
 #define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_CONFIG_AlternateDisable_MASK 0x40000000
 #define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_CONFIG_AlternateDisable_SHIFT 30
 #define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_CONFIG_AlternateDisable_DEFAULT 0x00000000
@@ -2721,7 +2721,7 @@
 #define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_CONFIG_Enable_SHIFT        31
 #define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_CONFIG_Enable_DEFAULT      0x00000000
 
- /* MEMC_GEN_0 :: PFRI_3_THROTTLE_CONFIG :: AlternateDisable [30:30] */
+/* MEMC_GEN_0 :: PFRI_3_THROTTLE_CONFIG :: AlternateDisable [30:30] */
 #define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_CONFIG_AlternateDisable_MASK 0x40000000
 #define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_CONFIG_AlternateDisable_SHIFT 30
 #define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_CONFIG_AlternateDisable_DEFAULT 0x00000000

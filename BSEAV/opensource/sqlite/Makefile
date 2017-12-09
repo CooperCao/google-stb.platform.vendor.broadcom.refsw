@@ -48,7 +48,7 @@ NEXUS_TOP := $(B_REFSW_TOP)/nexus
 # include cross-compiler definitions
 include ${NEXUS_TOP}/platforms/common/build/platform_app.inc
 include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
-include sqlite.inc
+include ${NEXUS_TOP}/../${THIS_DIR}/sqlite.inc
 
 $(if $(NEXUS_PLATFORM),,  $(error ERROR: NEXUS_PLATFORM is not defined))
 $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))

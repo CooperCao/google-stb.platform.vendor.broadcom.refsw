@@ -74,6 +74,10 @@ bool client_process_state_init(CLIENT_PROCESS_STATE_T *process)
 #endif
 
       process->inited = true;
+
+      /* legacy mode - display initialised before eglInitialize() */
+      if (!process->display)
+         process->display = (EGLDisplay)1;
    }
 
    return true;
@@ -242,7 +246,7 @@ bool client_process_attach(void)
    KHR_STATUS_T            status;
    CLIENT_PROCESS_STATE_T *process;
 
-   status = platform_tls_create(&client_tls, NULL);
+   status = platform_tls_create(&client_tls, client_thread_detach);
    if (status != KHR_SUCCESS) {
       return false;
    }
@@ -254,13 +258,6 @@ bool client_process_attach(void)
       return false;
    }
 #endif
-
-   process = CLIENT_GET_PROCESS_STATE();
-   if (process)
-   {
-      if (!client_process_state_init(process))
-         assert(0);
-   }
 
 #ifndef NDEBUG
    printf("**********************************************************\n"
@@ -305,6 +302,8 @@ void client_thread_detach(void * tls)
 
    platform_tls_remove(client_tls);
    client_thread_state_term(state);
+   khrn_misc_rpc_flush_impl();
+   client_send_make_current(state);
    free(state);
 }
 
@@ -312,9 +311,8 @@ void client_process_detach(void)
 {
    CLIENT_PROCESS_STATE_T *process = CLIENT_GET_PROCESS_STATE();
 
-   client_process_state_term(process);
-
    client_thread_detach(NULL);
+   client_process_state_term(process);
    platform_tls_destroy(client_tls);
 #ifdef BCG_MULTI_THREADED
    vcos_mutex_delete(&api_mutex);

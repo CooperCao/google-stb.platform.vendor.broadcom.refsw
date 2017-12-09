@@ -41,8 +41,6 @@
 
 /* base modules */
 #include "bstd.h"           /* standard types */
-#include "berr.h"           /* error code */
-#include "bdbg.h"           /* debug interface */
 
 #include "bvce_debug_common.h"
 

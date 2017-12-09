@@ -1017,21 +1017,11 @@ static NEXUS_Error nexus_p_start_video_as_graphics(NEXUS_SimpleVideoDecoderHandl
         NEXUS_Graphics2D_GetDefaultOpenSettings(&openSettings);
         openSettings.packetFifoSize = 4096; /* alloc space to destripe 12 mosaics, but also handle full queue */
         openSettings.secure = handle->capture.settings.secure;
-        /* Initially try to get the mipmap graphics deivce for destripe to UIF, if available on the SoC */
-        if (handle->capture.usingUIF) {
+        /* If usingUIF, we prefer NEXUS_Graphics2DMode_eMipmap if we have it. If usingMipmaps, we require it. */
+        if (handle->capture.usingMipmaps || (handle->capture.usingUIF && NEXUS_Graphics2D_MipmapModeSupported_isrsafe())) {
             openSettings.mode = NEXUS_Graphics2DMode_eMipmap;
         }
         videoAsGraphics->gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
-        if (videoAsGraphics->gfx==NULL) {
-            /* If no mipmap device was found and if mipmaps are not actually
-             * required, fallback to using the blitter device for UIF instead
-             */
-            if (openSettings.mode == NEXUS_Graphics2DMode_eMipmap && !handle->capture.usingMipmaps) {
-                openSettings.mode = NEXUS_Graphics2DMode_eBlitter;
-                videoAsGraphics->gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
-            }
-        }
-        /* If we still have no device, then fail */
         if (videoAsGraphics->gfx==NULL) {
             videoAsGraphics->refcnt--;
             return BERR_TRACE(NEXUS_UNKNOWN);

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -328,6 +328,7 @@ typedef struct BVDC_P_XsrcContext
     bool                           bChannelChange;
     /* src width alignment: 1 for 444 format internally, 2 for 422 format internally */
     uint32_t                       ulSrcHrzAlign;
+    bool                           bPqNcl;
 } BVDC_P_XsrcContext;
 
 

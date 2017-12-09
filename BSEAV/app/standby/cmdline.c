@@ -359,14 +359,14 @@ void *commands_thread(void *context)
                 if (!strcmp(buf, "start")) {
                     if(!g_DeviceState.graphics2d_started) {
                         graphics2d_open();
-                        graphics2d_setup();
+                        set_window_scale(true);
                         graphics2d_start();
                     } else
                         printf("Graphics already started\n");
                 } else if (!strcmp(buf, "stop")) {
                     if(g_DeviceState.graphics2d_started) {
                         graphics2d_stop();
-                        graphics2d_destroy();
+                        set_window_scale(false);
                         graphics2d_close();
                     } else
                         printf("Graphics not started\n");
@@ -392,6 +392,7 @@ void *commands_thread(void *context)
                     }
                 }
                 NEXUS_Display_SetSettings(g_StandbyNexusHandles.displayHD, &displaySettings);
+                set_window_scale(g_DeviceState.graphics2d_started);
             } else if (!strncmp(buf, "hdmi", 4)) {
                 buf+=5;
                 if(!strcmp(buf, "on"))

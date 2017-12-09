@@ -122,8 +122,6 @@ private:
    helper::MessageQueue<nxpl::Bitmap>                       m_freeQ;
    helper::MessageQueue<nxpl::DispItem>                     m_dispQ;
 
-   std::unique_ptr<nxpl::Worker>                            m_worker;
-
    helper::MessageQueue<nxpl::Bitmap>                       m_gfdbacking;
    bool                                                     m_isBouncing;
 
@@ -135,6 +133,8 @@ private:
 #if NEXUS_HAS_GRAPHICS2D
    NEXUS_Graphics2DHandle                                   m_gfx;
 #endif
+
+   std::unique_ptr<nxpl::Worker>                            m_worker;
 };
 
 }

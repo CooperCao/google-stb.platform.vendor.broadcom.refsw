@@ -533,7 +533,12 @@ DEBUGS := debug nodebug
 ###########################################################
 
 # Directory name includes target
+ifeq ($(SHORTER_PATH),1)
+OBJDIR=$(ObjPfx)${BCHP_VER}-$(LINUXVER)
+else
 OBJDIR=$(ObjPfx)$(TARGET)-$(LINUXVER)
+endif
+
 
 # Split apart make and config stuff
 INMAKE:= $(filter $(DEBUGS) $(ARCHES),$(subst -,$(space),$(TARGET)))

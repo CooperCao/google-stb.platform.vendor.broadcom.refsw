@@ -102,22 +102,9 @@ ifeq ($(LINUX_VER_GE_2_6),y)
  endif
 endif
 
-ifeq ($(filter ${B_REFSW_ARCH},arm-linux aarch64-linux),${B_REFSW_ARCH})
-ifeq ($(LINUX_VER_GE_3),y)
-    ifeq ($(LINUX_VER_GE_4),y)
-        NEXUS_CFLAGS += -DUSE_LIBFDT=1
-    else
-        ifeq ($(LINUX_VER_GE_3_14_28),y)
-            EXTRAVER := $(shell grep -e '^EXTRAVERSION = -\d*.\d*' $(LINUX)/Makefile | awk -F "-" '{print $$2}')
-            EXTRAVER_MAJOR := $(shell echo $(EXTRAVER) | awk -F "." '{print $$1}')
-            EXTRAVER_MINOR := $(shell echo $(EXTRAVER) | awk -F "." '{print $$2}')
-            ifeq ($(shell test $(EXTRAVER_MAJOR) -ge 1 && test $(EXTRAVER_MINOR) -ge 13 && echo y),y)
-                NEXUS_CFLAGS += -DUSE_LIBFDT=1
-            endif
-        endif
-    endif
-endif
-endif
+EXTRAVERSION := $(shell grep -e '^EXTRAVERSION = -\d*.\d*' $(LINUX)/Makefile | awk -F "^.+ += +-" '{print $$2}')
+NEXUS_CFLAGS += -DLINUX_EXTRAVERSION_MAJOR=$(shell echo $(EXTRAVERSION) | awk -F "[-|.]" '{print $$1}')
+NEXUS_CFLAGS += -DLINUX_EXTRAVERSION_MINOR=$(shell echo $(EXTRAVERSION) | awk -F "[-|.]" '{print $$2}' | awk -F "[a-z]+" '{print $$1}')
 
 # Separate MIPS and ARM here
 ifneq ($(filter ${B_REFSW_ARCH}, aarch64-linux arm-linux), ${B_REFSW_ARCH})

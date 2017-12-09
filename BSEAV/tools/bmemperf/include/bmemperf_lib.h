@@ -59,7 +59,7 @@
 #define PATH_PROCNET_IGMP            "/proc/net/igmp"
 #define PATH_PROCNET_IGMP_MAX        4096
 #define MAX_LENGTH_GETPIDOF_CMD      128
-#define BASPMON_CFG_FILENAME         "baspmon.cfg"
+#define BASPMON_CFG_MAX_LINE_LEN     1024
 #define BPROBE_CFG_FILENAME          "bprobe.cfg"
 #define BASPMON_MAX_NUM_STREAMS      24
 #define BMEMPERF_PID_CHANNEL_MAX     768
@@ -68,6 +68,8 @@
 #define POWER_PROBE_LIST_DAT_FILENAME "power_probe_list.dat"
 #define POWER_PROBE_BASPMON          0
 #define POWER_PROBE_BPROBE           100
+
+static char __attribute__ ((unused)) BASPMON_CFG_FILENAME[2][24] = { "baspmon.cfg", "baspmon_dtcpIp.cfg" };
 
 typedef struct
 {

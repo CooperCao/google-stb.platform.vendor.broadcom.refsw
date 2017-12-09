@@ -645,7 +645,7 @@ static int v3d_alloc_hw_page(struct v3d_alloc_block *alloc_block,
 			     struct v3d_page_allocation *page)
 {
 	unsigned block_page_nr;
-	unsigned long paddr;
+	phys_addr_t paddr;
 
 	block_page_nr = ffz(alloc_block->alloc_map);
 	alloc_block->alloc_map |= BIT(block_page_nr);

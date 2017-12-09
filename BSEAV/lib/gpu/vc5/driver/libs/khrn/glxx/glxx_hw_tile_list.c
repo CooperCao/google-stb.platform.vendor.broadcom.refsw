@@ -13,6 +13,10 @@ static bool prep_tlb_ldst(struct v3d_tlb_ldst_params *ls, uint32_t *layer_stride
 {
    const khrn_image *img = img_plane->image;
    khrn_blob *blob = img->blob;
+   assert(img->level < blob->num_mip_levels);
+   const GFX_BUFFER_DESC_T *desc = &blob->desc[img->level];
+   assert(img_plane->plane_idx < desc->num_planes);
+   const GFX_BUFFER_DESC_PLANE_T *plane = &desc->planes[img_plane->plane_idx];
 
    assert(tlb_ms || !img_ms);
    assert(load || store);
@@ -20,27 +24,26 @@ static bool prep_tlb_ldst(struct v3d_tlb_ldst_params *ls, uint32_t *layer_stride
    if (!khrn_blob_alloc_storage(blob))
       return false;
 
+   assert(plane->region < blob->res->num_handles);
    uint32_t render_rw_flags =
       (load ? V3D_BARRIER_TLB_IMAGE_READ : 0) |
       (store ? V3D_BARRIER_TLB_IMAGE_WRITE : 0);
-   v3d_addr_t base_addr = khrn_fmem_sync_and_get_addr(&rs->fmem, blob->res->handle,
+   v3d_addr_t base_addr = khrn_fmem_sync_and_get_addr(&rs->fmem, blob->res->handles[plane->region],
          /*bin_rw_flags=*/0, render_rw_flags);
 
    v3d_dither_t dither = V3D_DITHER_OFF;
    if (color && rs->dither && !khrn_options.force_dither_off)
    {
-      GFX_LFMT_T lfmt = khrn_image_plane_lfmt(img_plane);
-      if (gfx_lfmt_alpha_bits(lfmt) > 2)
+      if (gfx_lfmt_alpha_bits(plane->lfmt) > 2)
          dither = V3D_DITHER_RGBA;
       else
          dither = V3D_DITHER_RGB;
    }
 
-   assert(img->level < blob->num_mip_levels);
    assert(img->start_elem < blob->num_array_elems);
    gfx_buffer_translate_tlb_ldst(ls,
          base_addr + (img->start_elem * blob->array_pitch),
-         &blob->desc[img->level], img_plane->plane_idx, img->start_slice, color,
+         desc, img_plane->plane_idx, img->start_slice, color,
          tlb_ms, img_ms, dither);
 
 #if V3D_VER_AT_LEAST(4,0,2,0)

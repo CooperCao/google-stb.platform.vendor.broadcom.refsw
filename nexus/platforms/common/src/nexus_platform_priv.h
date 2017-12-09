@@ -530,6 +530,7 @@ void NEXUS_Platform_P_DestroyTeeInstance(BTEE_InstanceHandle teeHandle);
 
 void NEXUS_Platform_GetDefaultClientConfiguration(NEXUS_ClientConfiguration *pConfig);
 bool NEXUS_Platform_P_IsOs64(void);
+bool NEXUS_Platform_P_LazyUnmap(void);
 
 NEXUS_Error nexus_platform_p_add_proc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void));
 void nexus_platform_p_remove_proc(NEXUS_ModuleHandle module, const char *filename);

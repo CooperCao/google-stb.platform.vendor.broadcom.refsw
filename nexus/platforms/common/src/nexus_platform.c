@@ -805,6 +805,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         sageInternalSettings.videoDecoderFirmware.block = state->videoDecoderSettings.firmware.block;
         sageInternalSettings.videoDecoderFirmware.size = state->videoDecoderSettings.firmware.size;
 #endif
+        sageInternalSettings.lazyUnmap = NEXUS_Platform_P_LazyUnmap();
         g_NEXUS_platformHandles.sage = NEXUS_SageModule_Init(&pSettings->sageModuleSettings, &sageInternalSettings);
         if (!g_NEXUS_platformHandles.sage) {
             BDBG_ERR(("Unable to init sage"));
@@ -2099,7 +2100,13 @@ void NEXUS_Platform_P_SweepModules(void)
 #if (NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM) && (BCHP_PWR_RESOURCE_M2MC0 || BCHP_PWR_RESOURCE_M2MC1 || BCHP_PWR_RESOURCE_GRAPHICS3D)
 static NEXUS_Error NEXUS_Platform_P_SetThermalScaling(BCHP_PWR_ResourceId resourceId, unsigned thermalPoint, unsigned maxThermalPoints)
 {
-#if BCHP_CHIP != 7271 && BCHP_CHIP != 7268 && BCHP_CHIP != 7260
+#if ((BCHP_CHIP == 7260) && (BCHP_VER < BCHP_VER_B0)) /* Not available on 7260 A0 */
+    BSTD_UNUSED(resourceId);
+    BSTD_UNUSED(thermalPoint);
+    BSTD_UNUSED(maxThermalPoints);
+    BDBG_WRN(("Thermal Scaling is disabled on this platform!!"));
+    return NEXUS_SUCCESS;
+#else
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned clkRate, clkRateCur, clkRateMin, clkRateMax;
 
@@ -2121,12 +2128,6 @@ static NEXUS_Error NEXUS_Platform_P_SetThermalScaling(BCHP_PWR_ResourceId resour
     }
 
     return rc;
-#else
-    BSTD_UNUSED(resourceId);
-    BSTD_UNUSED(thermalPoint);
-    BSTD_UNUSED(maxThermalPoints);
-    BDBG_WRN(("Thermal Scaling is disabled on this platform!!"));
-    return NEXUS_SUCCESS;
 #endif
 }
 #endif

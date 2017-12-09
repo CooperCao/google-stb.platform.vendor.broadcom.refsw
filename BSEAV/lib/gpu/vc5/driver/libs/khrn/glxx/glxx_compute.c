@@ -174,7 +174,7 @@ static bool dispatch_compute(GLXX_SERVER_STATE_T* state, glxx_compute_num_work_g
    v3d_addr_t unifs_addr = build_shader_uniforms(rs, state, link_data, &image_like_uniforms, num_work_groups, ir_program->cs_shared_block_size);
    if (!unifs_addr)
       goto end;
-   v3d_addr_t code_addr = gmem_get_addr(link_data->res->handle) + link_data->fs.code_offset;
+   v3d_addr_t code_addr = khrn_resource_get_addr(link_data->res) + link_data->fs.code_offset;
 
    glxx_compute_dispatch* dispatch = khrn_vector_emplace_back(glxx_compute_dispatch, &rs->fmem.persist->compute_dispatches);
    if (!dispatch)

@@ -1156,6 +1156,20 @@ void BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(
     }
 }
 
+void BVDC_P_Feeder_ParseColorSpace_isr(
+    const BAVC_MVD_Field            *pFieldData,
+    bool                            *bPqNcl )
+{
+    BAVC_TransferCharacteristics  eTransferCharacteristics =
+        (pFieldData->ePreferredTransferCharacteristics == BAVC_TransferCharacteristics_eArib_STD_B67)?
+        BAVC_TransferCharacteristics_eArib_STD_B67 : pFieldData->eTransferCharacteristics;
+    BAVC_P_ColorTF eColorTF = BVDC_P_AvcTransferCharacteristicsToTF_isrsafe(eTransferCharacteristics);
+    BAVC_P_ColorFormat eColorFmt =
+            (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pFieldData->eMatrixCoefficients)?
+            BAVC_P_ColorFormat_eYCbCr_CL : BAVC_P_ColorFormat_eYCbCr;
+    *bPqNcl = (eColorTF == BAVC_P_ColorTF_eBt2100Pq && eColorFmt == BAVC_P_ColorFormat_eYCbCr) ? true : false;
+}
+
 /* copy input color space info from BAVC_MVD_Field or pXvdFieldData to
  * mosaic colorSpace array in picture node
  */

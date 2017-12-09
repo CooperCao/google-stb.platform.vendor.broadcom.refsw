@@ -1285,6 +1285,54 @@ wpa_cipher_enabled(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, int cipher)
 	return ret;
 }
 
+static int
+wpa_mcast_cipher_allowed(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, int cipher)
+{
+	int ret = 0;
+	bool mixed = FALSE;
+	uint32 wsec = bsscfg->wsec;
+
+	(void)wlc;
+
+	switch (cipher) {
+	case WPA_CIPHER_NONE:
+		/* XXX - When would this be ever be exercised? */
+		ret = !WSEC_ENABLED(wsec);
+		break;
+	case WPA_CIPHER_WEP_40:
+	case WPA_CIPHER_WEP_104:
+		ret = WSEC_WEP_ENABLED(wsec);
+		if (ret && wlc_keymgmt_tkip_cm_enabled(wlc->keymgmt, bsscfg)) {
+			WL_WSEC(("wl%d: TKIP countermeasures in effect\n", wlc->pub->unit));
+			ret = 0;
+		}
+		break;
+	case WPA_CIPHER_TKIP:
+		ret = WSEC_TKIP_ENABLED(wsec);
+		if (ret && wlc_keymgmt_tkip_cm_enabled(wlc->keymgmt, bsscfg)) {
+			WL_WSEC(("wl%d: TKIP countermeasures in effect\n", wlc->pub->unit));
+			ret = 0;
+		}
+		break;
+	case WPA_CIPHER_AES_CCM:
+		mixed = WSEC_AES_ENABLED(wsec) && WSEC_TKIP_ENABLED(wsec);
+		/* Do not allow CCMP for group cipher in mixed mode */
+		if (mixed) {
+			WL_WSEC(("wl%d: Reject CCMP for group cipher in mixed mode\n",
+				wlc->pub->unit));
+			ret = 0;
+		} else {
+			ret = WSEC_AES_ENABLED(wsec);
+		}
+		break;
+	case WPA_CIPHER_AES_OCB:
+	default:
+		ret = 0;
+		break;
+	}
+	return ret;
+}
+
 #define WPA_OUI_OK(oui) (bcmp(WPA_OUI, (oui), 3) == 0)
 
 static int
@@ -1319,7 +1367,7 @@ wlc_check_wpaie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, uint8 *wpaie, uint32 *aut
 		return 0;
 	}
 	/* There's a group suite, so check it. */
-	if (!WPA_OUI_OK(wpaie+8) || !wpa_cipher_enabled(wlc, bsscfg, wpaie[11])) {
+	if (!WPA_OUI_OK(wpaie+8) || !wpa_mcast_cipher_allowed(wlc, bsscfg, wpaie[11])) {
 		WL_ERROR(("wl%d: WPA group cipher %02x:%02x:%02x:%d not enabled\n",
 			wlc->pub->unit, wpaie[8], wpaie[9], wpaie[10], wpaie[11]));
 		return 1;
@@ -1421,7 +1469,7 @@ wlc_check_wpa2ie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, bcm_tlv_t *wpa2ie, struc
 	/* There's an mcast cipher, so check it. */
 	mcast = (wpa_suite_mcast_t *)&wpa2ie->data[WPA2_VERSION_LEN];
 	if (bcmp(mcast->oui, WPA2_OUI, DOT11_OUI_LEN) ||
-	    !wpa_cipher_enabled(wlc, bsscfg, mcast->type)) {
+		!wpa_mcast_cipher_allowed(wlc, bsscfg, mcast->type)) {
 		WL_ERROR(("wl%d: WPA2 mcast cipher %02x:%02x:%02x:%d not enabled\n",
 			wlc->pub->unit, mcast->oui[0], mcast->oui[1], mcast->oui[2],
 			mcast->type));
@@ -1598,7 +1646,7 @@ wlc_check_osenie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, bcm_tlv_t *osenie,
 	mcast = (wpa_suite_mcast_t *)&osenie->data[WFA_OUI_LEN + 1];
 	if (bcmp(mcast->oui, WPA2_OUI, DOT11_OUI_LEN) ||
 		(mcast->type != WPA_CIPHER_TPK &&
-		!wpa_cipher_enabled(wlc, bsscfg, mcast->type))) {
+		!wpa_mcast_cipher_allowed(wlc, bsscfg, mcast->type))) {
 		WL_ERROR(("wl%d: OSEN mcast cipher %02x:%02x:%02x:%d not enabled\n",
 			wlc->pub->unit, mcast->oui[0], mcast->oui[1], mcast->oui[2],
 			mcast->type));

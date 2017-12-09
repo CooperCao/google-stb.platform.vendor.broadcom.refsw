@@ -64,14 +64,6 @@ void platform_tls_remove(PLATFORM_TLS_T tls)
    vcos_tls_set(tls, NULL);
 }
 
-/* ----------------------------------------------------------------------
- * workaround for broken platforms which don't detect threads exiting
- * -------------------------------------------------------------------- */
-void platform_hint_thread_finished(void)
-{
-   client_thread_detach(NULL);
-}
-
 bool platform_match_pixmap_api_support(EGLNativePixmapType pixmap, uint32_t api_support)
 {
    UNUSED(pixmap);

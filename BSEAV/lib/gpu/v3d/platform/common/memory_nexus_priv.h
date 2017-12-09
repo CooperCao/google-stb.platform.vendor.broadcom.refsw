@@ -5,9 +5,9 @@
 
 #define STRIP_HEIGHT 16
 
-#include "default_nexus.h"
 #include "nexus_memory.h"
 #include "nexus_platform.h"
+#include <EGL/eglplatform.h>
 
 enum
 {

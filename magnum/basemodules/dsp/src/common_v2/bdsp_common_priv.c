@@ -40,6 +40,59 @@
 
 BDBG_MODULE(bdsp_common_priv);
 
+BERR_Code BDSP_P_PopulateSystemSchedulingDeatils(
+	BDSP_P_SystemSchedulingInfo *pSystemSchedulingInfo
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned index = 0, level = 0, threshold = 0, numpreemptionLevels = 0;
+	BDBG_ENTER(BDSP_P_PopulateSystemSchedulingDeatils);
+
+	BKNI_Memset((void *)pSystemSchedulingInfo, 0, sizeof(BDSP_P_SystemSchedulingInfo));
+	for(index=0; index<BDSP_P_TaskType_eLast; index++)
+	{
+		pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingLevel = 0xFF;
+		pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingThreshold = 0xFF;
+	}
+
+	/* Depending on BOX mode/device settings, derive the supported task types*/
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eInterruptBased].supported = false;
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eRealtime].supported       = true;
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eAssuredRate].supported    = false;
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eOnDemand].supported       = false;
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eAFAP].supported           = true;
+
+	for(index=0; index<BDSP_P_TaskType_eLast; index++)
+	{
+		if(pSystemSchedulingInfo->sTaskSchedulingInfo[index].supported)
+		{
+			pSystemSchedulingInfo->numSchedulingLevels++;
+			pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingLevel = level;
+			level++;
+		}
+	}
+
+	/* TO DO: Need to expand this feature */
+	for(index=0; index<BDSP_P_TaskType_eLast; index++)
+	{
+		if(pSystemSchedulingInfo->sTaskSchedulingInfo[index].supported)
+		{
+			/* We support only RT and AFAP modes and have kept them at same levels (RT won't preempt NRT) */
+			pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingThreshold = threshold;
+			numpreemptionLevels = 1;
+		}
+	}
+
+	pSystemSchedulingInfo->numPreemptionLevels = numpreemptionLevels;
+	BDBG_MSG(("Num Scheduling levels = %d, Num Preemption Levels = %d", pSystemSchedulingInfo->numSchedulingLevels, pSystemSchedulingInfo->numPreemptionLevels));
+	for(index=0; index<BDSP_P_TaskType_eLast; index++)
+	{
+		BDBG_MSG(("TASK TYPE[%s]:\t%s,\tLEVEL: 0x%x,\tTHRESHOLD: 0x%x",TaskType[index], DisableEnable[pSystemSchedulingInfo->sTaskSchedulingInfo[index].supported],
+			pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingLevel, pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingThreshold));
+	}
+	BDBG_LEAVE(BDSP_P_PopulateSystemSchedulingDeatils);
+	return errCode;
+}
 void BDSP_P_ValidateCodeDownloadSettings(
     unsigned *pmaxAlgorithms
 )
@@ -480,9 +533,10 @@ void BDSP_P_DeleteStartTaskSettings(
 }
 
 BERR_Code BDSP_P_PopulateSchedulingInfo(
-    BDSP_TaskStartSettings  *pTaskStartSettings,
-	BDSP_ContextType         contextType,
-	BDSP_P_StartTaskCommand *psCommand
+    BDSP_TaskStartSettings  	*pTaskStartSettings,
+	BDSP_ContextType         	 contextType,
+	BDSP_P_SystemSchedulingInfo *pSystemSchedulingLevel,
+	BDSP_P_StartTaskCommand 	*psCommand
 )
 {
 	BERR_Code errCode = BERR_SUCCESS;
@@ -510,21 +564,25 @@ BERR_Code BDSP_P_PopulateSchedulingInfo(
                 (pTaskStartSettings->audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLow))
 			{
 				psCommand->eTaskType = BDSP_P_TaskType_eInterruptBased;
-				psCommand->ui32SchedulingLevel= 1;
+				psCommand->ui32SchedulingLevel =
+					pSystemSchedulingLevel->sTaskSchedulingInfo[BDSP_P_TaskType_eInterruptBased].schedulingLevel;
 			}
 			else
 			{
 				psCommand->eTaskType = BDSP_P_TaskType_eRealtime;
-				psCommand->ui32SchedulingLevel= 0;
+				psCommand->ui32SchedulingLevel =
+					pSystemSchedulingLevel->sTaskSchedulingInfo[BDSP_P_TaskType_eRealtime].schedulingLevel;
 			}
 			break;
 		case BDSP_TaskRealtimeMode_eNonRealTime:
 			psCommand->eTaskType = BDSP_P_TaskType_eAFAP;
-			psCommand->ui32SchedulingLevel= 1;
+			psCommand->ui32SchedulingLevel =
+				pSystemSchedulingLevel->sTaskSchedulingInfo[BDSP_P_TaskType_eAFAP].schedulingLevel;
 			break;
 		case BDSP_TaskRealtimeMode_eOnDemand:
 			psCommand->eTaskType = BDSP_P_TaskType_eOnDemand;
-			psCommand->ui32SchedulingLevel= 2;
+			psCommand->ui32SchedulingLevel =
+				pSystemSchedulingLevel->sTaskSchedulingInfo[BDSP_P_TaskType_eOnDemand].schedulingLevel;
 			break;
 		default:
 			BDBG_ERR(("BDSP_P_PopulateSchedulingInfo: Invalid Tasktype being Set"));

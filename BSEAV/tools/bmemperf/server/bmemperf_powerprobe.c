@@ -99,7 +99,7 @@ int bmemperf_get_response (
     int                  i;
     struct timeval       timeout = {0, 100000};
 
-    if(logfile) printffile( logfile, "%s: from %s ... socket_fd %d ... look for (%s)\n", __FUNCTION__, Caller, socket_fd, ExpectedResponse );
+    /*if(logfile) printffile( logfile, "%s: from %s ... socket_fd %d ... look for (%s)\n", __FUNCTION__, Caller, socket_fd, ExpectedResponse );*/
     fflush(stderr);fflush(stdout);
     /* clear the master_fdset and temp sets */
     FD_ZERO(&master_fdset);
@@ -197,7 +197,7 @@ int bmemperf_get_response (
                                         printf( "Aborted response ...\n(%s) \n", &ActualResponse[ response_len - 80 ] );
                                         return 0;
                                     }
-                                    printf( "FinalResponse ... len %d ... returning\n==========\n", (unsigned)strlen(ActualResponse) );
+                                    /*printf( "FinalResponse ... len %d ... returning\n==========\n", (unsigned)strlen(ActualResponse) );*/
                                     return 0;
                                 }
                                 else if ( strstr( ActualResponse, "Terminated" ) )

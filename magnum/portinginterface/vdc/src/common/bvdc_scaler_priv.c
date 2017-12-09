@@ -860,6 +860,7 @@ void BVDC_P_Scaler_SetInfo_isr
     uint32_t ulVsr = 0;
     BVDC_P_CtOutput  eOutputType;
     BVDC_P_Rect  *pSclIn, *pSclOut, *pSclCut;
+    bool bPqNcl;
 
     BDBG_ENTER(BVDC_P_Scaler_SetInfo_isr);
     BDBG_OBJECT_ASSERT(hScaler, BVDC_SCL);
@@ -869,16 +870,15 @@ void BVDC_P_Scaler_SetInfo_isr
     pSclCut = &pPicture->stSclCut;
     pSclOut = pPicture->pSclOut;
 
+    bPqNcl = (pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorTF == BAVC_P_ColorTF_eBt2100Pq &&
+              pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorFmt == BAVC_P_ColorFormat_eYCbCr) ? true : false;
+
     /* any following info changed -> re-calculate SCL settings */
     /* TODO: This need optimization */
     if(!BVDC_P_RECT_CMP_EQ(pSclOut, &hScaler->stPrevSclOut)   ||
        !BVDC_P_RECT_CMP_EQ(pSclCut, &hScaler->stPrevSclCut)   ||
        !BVDC_P_RECT_CMP_EQ(pSclIn,  &hScaler->stPrevSclIn)    ||
        (hScaler->hWindow->stCurInfo.stSclSettings.bSclVertDejagging       != hScaler->stSclSettings.bSclVertDejagging      ) ||
-       (hScaler->hWindow->stCurInfo.stSclSettings.bSclHorzLumaDeringing   != hScaler->stSclSettings.bSclHorzLumaDeringing  ) ||
-       (hScaler->hWindow->stCurInfo.stSclSettings.bSclVertLumaDeringing   != hScaler->stSclSettings.bSclVertLumaDeringing  ) ||
-       (hScaler->hWindow->stCurInfo.stSclSettings.bSclHorzChromaDeringing != hScaler->stSclSettings.bSclHorzChromaDeringing) ||
-       (hScaler->hWindow->stCurInfo.stSclSettings.bSclVertChromaDeringing != hScaler->stSclSettings.bSclVertChromaDeringing) ||
        (hScaler->hWindow->stCurInfo.stSclSettings.ulSclDejaggingCore      != hScaler->stSclSettings.ulSclDejaggingCore     ) ||
        (hScaler->hWindow->stCurInfo.stSclSettings.ulSclDejaggingGain      != hScaler->stSclSettings.ulSclDejaggingGain     ) ||
        (hScaler->hWindow->stCurInfo.stSclSettings.ulSclDejaggingHorz      != hScaler->stSclSettings.ulSclDejaggingHorz     ) ||
@@ -894,6 +894,7 @@ void BVDC_P_Scaler_SetInfo_isr
        (pPicture->eSrcOrientation        != hScaler->ePrevSrcOrientation)    ||
        (pPicture->eOrigSrcOrientation    != hScaler->ePrevOrigSrcOrientation)    ||
        (pPicture->eDispOrientation       != hScaler->ePrevDispOrientation)   ||
+       (bPqNcl != hScaler->bPqNcl) ||
        ((pPicture->eSrcPolarity == BAVC_Polarity_eFrame) !=
         (hScaler->ePrevSrcPolarity == BAVC_Polarity_eFrame)) ||
        ((pPicture->eDstPolarity == BAVC_Polarity_eFrame) !=
@@ -922,6 +923,7 @@ void BVDC_P_Scaler_SetInfo_isr
         hScaler->ePrevCtInputType = hScaler->hWindow->stCurInfo.hSource->stCurInfo.eCtInputType;
         hScaler->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
         hScaler->bHandleFldInv = pPicture->stFlags.bHandleFldInv;
+        hScaler->bPqNcl = bPqNcl;
 
         /* -----------------------------------------------------------------------
          * 1). Init some regitsers first, they might be modified later basing on
@@ -1413,31 +1415,23 @@ void BVDC_P_Scaler_SetInfo_isr
                 BCHP_FIELD_DATA(SCL_0_DERINGING, DEMO_MODE,
                     (BVDC_SplitScreenMode_eDisable != hScaler->hWindow->stCurInfo.stSplitScreenSetting.eDeRinging)) |
 #if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_8)
-                ((hScaler->stSclSettings.bSclVertChromaDeringing)
-                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_CHROMA_PASS_FIRST_RING, ENABLE)
-                : BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_CHROMA_PASS_FIRST_RING, DISABLE) ) |
-                ((hScaler->stSclSettings.bSclVertLumaDeringing)
-                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_LUMA_PASS_FIRST_RING, ENABLE)
-                : BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_LUMA_PASS_FIRST_RING, DISABLE)   ) |
-                ((hScaler->stSclSettings.bSclHorzChromaDeringing)
-                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_CHROMA_PASS_FIRST_RING, ENABLE)
-                : BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_CHROMA_PASS_FIRST_RING, DISABLE)) |
-                ((hScaler->stSclSettings.bSclHorzLumaDeringing)
-                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_LUMA_PASS_FIRST_RING, ENABLE)
-                : BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_LUMA_PASS_FIRST_RING, DISABLE)  ) |
+                ((hScaler->bPqNcl)
+                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_CHROMA_PASS_FIRST_RING, DISABLE)
+                : BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_CHROMA_PASS_FIRST_RING, ENABLE) ) |
+                ((hScaler->bPqNcl)
+                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_LUMA_PASS_FIRST_RING, DISABLE)
+                : BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_LUMA_PASS_FIRST_RING, ENABLE)   ) |
+                ((hScaler->bPqNcl)
+                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_CHROMA_PASS_FIRST_RING, DISABLE)
+                : BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_CHROMA_PASS_FIRST_RING, ENABLE)) |
+                ((hScaler->bPqNcl)
+                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_LUMA_PASS_FIRST_RING, DISABLE)
+                : BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_LUMA_PASS_FIRST_RING, ENABLE)  ) |
 #endif
-                ((hScaler->stSclSettings.bSclVertChromaDeringing)
-                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_CHROMA_DERINGING, ON)
-                : BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_CHROMA_DERINGING, OFF) ) |
-                ((hScaler->stSclSettings.bSclVertLumaDeringing)
-                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_LUMA_DERINGING, ON)
-                : BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_LUMA_DERINGING, OFF)   ) |
-                ((hScaler->stSclSettings.bSclHorzChromaDeringing)
-                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_CHROMA_DERINGING, ON)
-                : BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_CHROMA_DERINGING, OFF)) |
-                ((hScaler->stSclSettings.bSclHorzLumaDeringing)
-                ? BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_LUMA_DERINGING, ON)
-                : BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_LUMA_DERINGING, OFF)) );
+                BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_CHROMA_DERINGING,  ON) |
+                BCHP_FIELD_ENUM(SCL_0_DERINGING, VERT_LUMA_DERINGING,    ON) |
+                BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_CHROMA_DERINGING, ON) |
+                BCHP_FIELD_ENUM(SCL_0_DERINGING, HORIZ_LUMA_DERINGING,   ON) );
 
             BVDC_P_SCL_GET_REG_DATA(SCL_0_DERING_DEMO_SETTING) =  (
                 ((BVDC_SplitScreenMode_eLeft == hScaler->hWindow->stCurInfo.stSplitScreenSetting.eDeRinging)

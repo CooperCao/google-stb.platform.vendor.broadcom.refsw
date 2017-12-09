@@ -61,7 +61,7 @@ typedef struct BDSP_P_AlgorithmInfo
 	size_t				tsmStatusBufferSize;
     unsigned    		maxChannelsSupported;
 	size_t 			    samplesPerChannel;
-	bool                bPreemptionLevelSupported[BDSP_MAX_NUM_PREEMPTION_LEVELS];
+	bool                bPreemptionLevelSupported[BDSP_MAX_NUM_SCHED_LEVELS];
 } BDSP_P_AlgorithmInfo;
 
 typedef struct BDSP_P_AlgorithmCodeInfo

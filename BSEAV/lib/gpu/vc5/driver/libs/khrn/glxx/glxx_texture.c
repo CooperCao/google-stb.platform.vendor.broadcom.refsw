@@ -272,7 +272,7 @@ static khrn_blob* create_blob(enum glxx_tex_target target, unsigned width,
 
    return khrn_blob_create(width, height, depth, num_array_elems,
          num_mip_levels, lfmts, num_planes, usage,
-         secure);
+         secure ? GMEM_USAGE_SECURE : GMEM_USAGE_NONE);
 }
 
 /* The definition of a main blob depends on the texture target:
@@ -534,18 +534,24 @@ end:
    return ok;
 }
 
+static bool convertable(GFX_LFMT_T lfmt)
+{
+   return gfx_lfmt_is_rso(lfmt) || gfx_lfmt_is_sand_family(lfmt);
+}
+
 static khrn_image* get_image_for_texturing(EGL_IMAGE_T *egl_image,
       glxx_context_fences *fences)
 {
    khrn_image *image = egl_image_get_image(egl_image);
+
    const GFX_BUFFER_DESC_T *desc = &image->blob->desc[image->level];
 
-   bool is_rso = gfx_lfmt_is_rso(desc->planes[0].lfmt);
+   bool needs_conversion = convertable(desc->planes[0].lfmt);
 
    for (unsigned int p = 1; p < desc->num_planes; p++)
-      assert(is_rso == gfx_lfmt_is_rso(desc->planes[p].lfmt));
+      assert(needs_conversion == convertable(desc->planes[p].lfmt));
 
-   if (!is_rso)
+   if (!needs_conversion)
    {
       khrn_mem_acquire(image);
       return image;
@@ -557,7 +563,7 @@ static khrn_image* get_image_for_texturing(EGL_IMAGE_T *egl_image,
 
    /* normally we just want a new image with the same format as the rso image,
     * but suitable for texturing;
-    * in the case of YV12/ YUV we want a conversion to rgba + suitable image
+    * in the case of YV12/YUV we want a conversion to rgba + suitable image
     * for texturing;
     */
    if (gfx_lfmt_has_y(desc->planes[0].lfmt))
@@ -582,9 +588,17 @@ static khrn_image* get_image_for_texturing(EGL_IMAGE_T *egl_image,
    /* we only make a 2D blob */
    glxx_lfmt_add_dim(dst_fmts, dst_num_planes, 2);
 
-   khrn_blob* dst_blob = khrn_blob_create(desc->width, desc->height, 1, 1, 1,
-         dst_fmts, dst_num_planes, GFX_BUFFER_USAGE_V3D_TEXTURE |
-         GFX_BUFFER_USAGE_V3D_RENDER_TARGET, image->blob->secure);
+   gfx_buffer_usage_t usage = GFX_BUFFER_USAGE_V3D_TEXTURE | GFX_BUFFER_USAGE_V3D_RENDER_TARGET;
+
+      /* Determine what type of gmem allocation we will need for the image conversion
+    * This factors in the secure status and any contiguous memory requirements */
+   gmem_usage_flags_t gmem_usage = khrn_image_calc_dst_gmem_usage(image,
+                                             desc->width, desc->height, 1, 1, 1,
+                                             dst_fmts, dst_num_planes, usage,
+                                             in_secure_context());
+
+   khrn_blob *dst_blob = khrn_blob_create(desc->width, desc->height, 1, 1, 1,
+                                          dst_fmts, dst_num_planes, usage, gmem_usage);
 
    khrn_image *dst_image = NULL;
    if (dst_blob)
@@ -832,12 +846,6 @@ bool glxx_texture_image(GLXX_TEXTURE_T *texture, unsigned face, unsigned level,
       GLXX_BUFFER_T *pixel_buffer, const void *pixels,
       glxx_context_fences *fences, GLenum *error, bool secure_texture)
 {
-   GFX_LFMT_T dst_fmts[GFX_BUFFER_MAX_PLANES], src_lfmt, api_fmt;
-   GFX_BUFFER_DESC_T src_desc;
-   unsigned dim, dst_num_planes, num_array_elems;
-   bool ok;
-   struct glxx_pixels_info src_info;
-
    assert(face < MAX_FACES && level < KHRN_MAX_MIP_LEVELS);
    assert(texture->immutable_format == GFX_LFMT_NONE);
    *error = GL_NO_ERROR;
@@ -854,51 +862,58 @@ bool glxx_texture_image(GLXX_TEXTURE_T *texture, unsigned face, unsigned level,
       return true;
    }
 
-   api_fmt = gfx_api_fmt_from_internalformat(type, internalformat);
+   GFX_LFMT_T api_fmt = gfx_api_fmt_from_internalformat(type, internalformat);
+
+   unsigned dst_num_planes;
+   GFX_LFMT_T dst_fmts[GFX_BUFFER_MAX_PLANES];
    glxx_hw_fmts_from_api_fmt(&dst_num_planes, dst_fmts, api_fmt);
 
+   unsigned num_array_elems;
    glxx_tex_transform_dim_for_target(texture->target, &width, &height,
          &depth, &num_array_elems);
 
    /* guess FBO creation.  Create in protected space */
    bool secure = (pixel_buffer == NULL && pixels == NULL && secure_texture);
 
-   ok = texture_check_or_create_image(texture, face, level, width, height,
+   if (!texture_check_or_create_image(texture, face, level, width, height,
             depth, num_array_elems, dst_fmts, dst_num_planes, api_fmt, fences,
-            secure);
-
-   if (!ok)
+            secure))
    {
       *error = GL_OUT_OF_MEMORY;
       return false;
    }
 
+   struct glxx_pixels_info src_info;
    glxx_get_pack_unpack_info(pack_unpack, false, width, height, fmt,
          type, &src_info);
 
-   dim = get_target_num_dimensions(texture->target);
-   src_lfmt = gfx_lfmt_from_externalformat(fmt, type, internalformat);
+   unsigned dim = get_target_num_dimensions(texture->target);
+   GFX_LFMT_T src_lfmt = gfx_lfmt_from_externalformat(fmt, type, internalformat);
    gfx_lfmt_set_dims(&src_lfmt, gfx_lfmt_dims_to_enum(dim));
    src_lfmt = gfx_lfmt_to_rso(src_lfmt);
 
+   GFX_BUFFER_DESC_T src_desc = {0};
    src_desc.width = width;
    src_desc.height = height;
    src_desc.depth = depth;
    src_desc.num_planes = 1;
    src_desc.planes[0].lfmt = src_lfmt;
-   src_desc.planes[0].offset = 0;
    src_desc.planes[0].pitch = src_info.stride;
-   src_desc.planes[0].slice_pitch = depth > 1 ? src_info.slice_pitch : 0;
+   if (depth > 1)
+      src_desc.planes[0].slice_pitch = src_info.slice_pitch;
 
-   ok = upload_data(texture->img[face][level], 0, 0, 0, 0, num_array_elems,
+   if (!upload_data(texture->img[face][level], 0, 0, 0, 0, num_array_elems,
          &src_desc, src_info.offset, src_info.slice_pitch, pixel_buffer, pixels,
-         fences, error);
-   if (!ok)
+         fences, error))
       return false;
 
-   ok = es1_update_mipmaps(texture, level, fences);
-   if (!ok) *error = GL_OUT_OF_MEMORY;
-   return ok;
+   if (!es1_update_mipmaps(texture, level, fences))
+   {
+      *error = GL_OUT_OF_MEMORY;
+      return false;
+   }
+
+   return true;
 }
 
 /* internal format is a sized internal format or compressed;
@@ -1893,7 +1908,7 @@ static bool record_tex_usage_and_get_hw_params(
 
    const GFX_BUFFER_DESC_PLANE_T *img_base_plane = &blob_base->desc[img_base->level].planes[plane];
 
-   v3d_addr_t base_addr = gmem_get_addr(blob_base->res->handle) +
+   v3d_addr_t base_addr = khrn_resource_get_addr(blob_base->res) +
       (img_base->start_elem * blob_base->array_pitch);
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -2606,50 +2621,46 @@ bool glxx_texture_subimage(GLXX_TEXTURE_T *texture, unsigned face, unsigned leve
       unsigned width, unsigned height, unsigned depth,
       glxx_context_fences *fences, GLenum *error)
 {
-   khrn_image *img;
-   GFX_BUFFER_DESC_T src_desc;
-   unsigned dim, num_array_elems, start_elem;
-   bool ok;
-   GFX_LFMT_T src_lfmt, dst_fmt;
-   bool is_srgb;
-   struct glxx_pixels_info src_info;
-
    *error = GL_NO_ERROR;
 
-   img = texture->img[face][level];
+   khrn_image *img = texture->img[face][level];
    assert(img);
 
-   dim = get_target_num_dimensions(texture->target);
+   unsigned dim = get_target_num_dimensions(texture->target);
+
+   unsigned num_array_elems;
    glxx_tex_transform_dim_for_target(texture->target, &width, &height, &depth,
          &num_array_elems);
 
+   unsigned start_elem;
    glxx_tex_transform_offsets_for_target(texture->target, &dst_x, &dst_y,
          &dst_z, &start_elem);
 
+   struct glxx_pixels_info src_info;
    glxx_get_pack_unpack_info(pack_unpack, false, width, height, fmt, type,
          &src_info);
 
    /* get the srgb from the dst image */
-   dst_fmt = gfx_lfmt_fmt(khrn_image_get_lfmt(img, 0));
-   is_srgb = gfx_lfmt_contains_srgb(dst_fmt);
+   GFX_LFMT_T dst_fmt = gfx_lfmt_fmt(khrn_image_get_lfmt(img, 0));
+   bool is_srgb = gfx_lfmt_contains_srgb(dst_fmt);
 
-   src_lfmt = gfx_lfmt_from_format_type(fmt, type, is_srgb);
+   GFX_LFMT_T src_lfmt = gfx_lfmt_from_format_type(fmt, type, is_srgb);
    gfx_lfmt_set_dims(&src_lfmt, gfx_lfmt_dims_to_enum(dim));
    src_lfmt = gfx_lfmt_to_rso(src_lfmt);
 
+   GFX_BUFFER_DESC_T src_desc = {0};
    src_desc.width = width;
    src_desc.height = height;
    src_desc.depth = depth;
    src_desc.num_planes = 1;
    src_desc.planes[0].lfmt = src_lfmt;
-   src_desc.planes[0].offset = 0;
    src_desc.planes[0].pitch = src_info.stride;
-   src_desc.planes[0].slice_pitch = depth > 1 ? src_info.slice_pitch : 0;
+   if (depth > 1)
+      src_desc.planes[0].slice_pitch = src_info.slice_pitch;
 
-   ok = upload_data(img, dst_x, dst_y, dst_z, start_elem, num_array_elems,
+   return upload_data(img, dst_x, dst_y, dst_z, start_elem, num_array_elems,
          &src_desc, src_info.offset, src_info.slice_pitch, pixel_buffer, pixels,
          fences, error);
-   return ok;
 }
 
 static void get_compressed_src_desc(GFX_LFMT_T src_lfmt, unsigned width,
@@ -2657,21 +2668,20 @@ static void get_compressed_src_desc(GFX_LFMT_T src_lfmt, unsigned width,
       GFX_BUFFER_DESC_T *src_desc, unsigned *src_array_pitch)
 {
    GFX_LFMT_BASE_DETAIL_T bd;
-   unsigned  pitch, slice_pitch;
-
    gfx_lfmt_base_detail(&bd, src_lfmt);
 
-   pitch = gfx_udiv_round_up(width, bd.block_w) * bd.bytes_per_block;
-   slice_pitch = gfx_udiv_round_up(height, bd.block_h) * pitch;
+   unsigned pitch = gfx_udiv_round_up(width, bd.block_w) * bd.bytes_per_block;
+   unsigned slice_pitch = gfx_udiv_round_up(height, bd.block_h) * pitch;
 
+   memset(src_desc, 0, sizeof(*src_desc));
    src_desc->width = width;
    src_desc->height = height;
    src_desc->depth = depth;
    src_desc->num_planes = 1;
    src_desc->planes[0].lfmt = src_lfmt;
-   src_desc->planes[0].offset = 0;
    src_desc->planes[0].pitch = pitch;
-   src_desc->planes[0].slice_pitch = depth > 1 ? slice_pitch : 0;
+   if (depth > 1)
+      src_desc->planes[0].slice_pitch = slice_pitch;
 
    *src_array_pitch = slice_pitch;
 }
@@ -2683,10 +2693,6 @@ bool glxx_texture_compressed_image(GLXX_TEXTURE_T *texture,
       const void *pixels, glxx_context_fences *fences,
       GLenum *error)
 {
-   unsigned num_array_elems, src_array_pitch, size_plane;
-   GFX_BUFFER_DESC_T src_desc;
-   bool ok;
-
    *error = GL_NO_ERROR;
 
    assert(face < MAX_FACES && level < KHRN_MAX_MIP_LEVELS);
@@ -2701,6 +2707,7 @@ bool glxx_texture_compressed_image(GLXX_TEXTURE_T *texture,
    if (width == 0 || height == 0 || depth == 0)
       return true;
 
+   unsigned num_array_elems;
    glxx_tex_transform_dim_for_target(texture->target, &width, &height, &depth,
          &num_array_elems);
 
@@ -2710,12 +2717,15 @@ bool glxx_texture_compressed_image(GLXX_TEXTURE_T *texture,
 
    GFX_LFMT_T src_lfmt = gfx_lfmt_to_rso(api_fmt);
    glxx_lfmt_add_dim(&src_lfmt, 1, get_target_num_dimensions(texture->target));
+
+   GFX_BUFFER_DESC_T src_desc;
+   unsigned src_array_pitch;
    get_compressed_src_desc(src_lfmt, width, height, depth, num_array_elems,
          &src_desc, &src_array_pitch);
 
    /* check that image_size is consistent with format, dimensions and contents
     * of the compressed image */
-   size_plane = gfx_buffer_size_plane(&src_desc, 0);
+   unsigned size_plane = gfx_buffer_size_plane(&src_desc, 0);
    if (image_size != size_plane * num_array_elems)
    {
       *error = GL_INVALID_VALUE;
@@ -2723,26 +2733,27 @@ bool glxx_texture_compressed_image(GLXX_TEXTURE_T *texture,
    }
 
    /* Internal format always == API format for compressed formats */
-   ok = texture_check_or_create_image(texture, face, level, width, height,
+   if (!texture_check_or_create_image(texture, face, level, width, height,
          depth, num_array_elems, &api_fmt, 1, api_fmt, fences,
-         false);
-
-   if (!ok)
+         false))
    {
       *error = GL_OUT_OF_MEMORY;
       return false;
    }
 
-   ok = upload_data(texture->img[face][level],
+   if (!upload_data(texture->img[face][level],
          0, 0, 0, 0, num_array_elems,
          &src_desc, 0, src_array_pitch, pixel_buffer, pixels,
-         fences, error);
-   if (!ok)
+         fences, error))
       return false;
 
-   ok = es1_update_mipmaps(texture, level, fences);
-   if (!ok) *error = GL_OUT_OF_MEMORY;
-   return ok;
+   if (!es1_update_mipmaps(texture, level, fences))
+   {
+      *error = GL_OUT_OF_MEMORY;
+      return false;
+   }
+
+   return true;
 }
 
 bool glxx_texture_compressed_subimage(GLXX_TEXTURE_T *texture, unsigned face,
@@ -2751,49 +2762,50 @@ bool glxx_texture_compressed_subimage(GLXX_TEXTURE_T *texture, unsigned face,
       GLenum fmt, unsigned image_size, GLXX_BUFFER_T *pixel_buffer, const
       void *pixels, glxx_context_fences *fences, GLenum *error)
 {
-   khrn_image *img;
-   GFX_LFMT_T src_lfmt;
-   unsigned dim, num_array_elems, start_elem;
-   unsigned src_array_pitch, size_plane;
-   GFX_BUFFER_DESC_T src_desc;
-   bool ok;
-
    *error = GL_NO_ERROR;
 
-   img = texture->img[face][level];
+   khrn_image *img = texture->img[face][level];
    assert(img);
 
+   unsigned num_array_elems;
    glxx_tex_transform_dim_for_target(texture->target, &width, &height, &depth,
          &num_array_elems);
+
+   unsigned start_elem;
    glxx_tex_transform_offsets_for_target(texture->target, &dst_x, &dst_y, &dst_z,
          &start_elem);
 
-   dim = get_target_num_dimensions(texture->target);
-   src_lfmt = gfx_lfmt_fmt(khrn_image_get_lfmt(img, 0));
+   unsigned dim = get_target_num_dimensions(texture->target);
+   GFX_LFMT_T src_lfmt = gfx_lfmt_fmt(khrn_image_get_lfmt(img, 0));
    glxx_lfmt_add_dim(&src_lfmt, 1, dim);
    src_lfmt = gfx_lfmt_to_rso(src_lfmt);
 
+   GFX_BUFFER_DESC_T src_desc;
+   unsigned src_array_pitch;
    get_compressed_src_desc(src_lfmt, width, height, depth, num_array_elems,
          &src_desc, &src_array_pitch);
 
    /* check that image_size is consistent with format, dimensions and contents
     * of the compressed image */
-   size_plane = gfx_buffer_size_plane(&src_desc, 0);
+   unsigned size_plane = gfx_buffer_size_plane(&src_desc, 0);
    if (image_size != size_plane * num_array_elems)
    {
       *error = GL_INVALID_VALUE;
       return false;
    }
 
-   ok = upload_data(texture->img[face][level], dst_x, dst_y, dst_z, start_elem,
+   if (!upload_data(texture->img[face][level], dst_x, dst_y, dst_z, start_elem,
          num_array_elems, &src_desc, 0, src_array_pitch, pixel_buffer,
-         pixels, fences, error);
-   if (!ok)
+         pixels, fences, error))
       return false;
 
-   ok = es1_update_mipmaps(texture, level, fences);
-   if (!ok) *error = GL_OUT_OF_MEMORY;
-   return ok;
+   if (!es1_update_mipmaps(texture, level, fences))
+   {
+      *error = GL_OUT_OF_MEMORY;
+      return false;
+   }
+
+   return true;
 }
 
 static bool is_luminance_or_alpha(GFX_LFMT_T lfmt)
@@ -3024,7 +3036,7 @@ static bool usage_ok(const khrn_image *image)
       return ok;
 
    for (unsigned int p = 0; p < desc->num_planes; p++)
-      ok = ok && gfx_lfmt_is_rso(desc->planes[p].lfmt);
+      ok = ok && convertable(desc->planes[p].lfmt);
 
    return ok;
 }

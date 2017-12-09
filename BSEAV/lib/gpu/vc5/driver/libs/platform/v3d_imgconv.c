@@ -22,34 +22,52 @@ typedef struct gmem_to_gmem_job_data
    unsigned int         path;
 } gmem_to_gmem_job_data;
 
-static void build_sec_info(bool secure_context, gmem_handle_t src, gmem_handle_t dst, security_info_t *sec_info)
+static void build_conv_info(bool secure_context, const gmem_handle_t src[GFX_BUFFER_MAX_PLANES],
+                            const gmem_handle_t dst[GFX_BUFFER_MAX_PLANES], conversion_info_t *info)
 {
-   assert(sec_info != NULL);
+   assert(info != NULL);
 
-   sec_info->secure_context = secure_context;
-   sec_info->secure_src     = src == GMEM_HANDLE_INVALID ? false : gmem_get_usage(src) & GMEM_USAGE_SECURE;
-   sec_info->secure_dst     = dst == GMEM_HANDLE_INVALID ? false : gmem_get_usage(dst) & GMEM_USAGE_SECURE;
+   info->secure_context = secure_context;
+   info->secure_src     = false;
+   info->secure_dst     = false;
+   info->contiguous_src = true;
+   info->contiguous_dst = true;
+
+   for (uint32_t p = 0; p < GFX_BUFFER_MAX_PLANES; p++)
+   {
+      if (src != NULL && src[p] != GMEM_HANDLE_INVALID)
+      {
+         info->secure_src     = info->secure_src     || (gmem_get_usage(src[p]) & GMEM_USAGE_SECURE);
+         info->contiguous_src = info->contiguous_src && (gmem_get_usage(src[p]) & GMEM_USAGE_CONTIGUOUS);
+      }
+
+      if (dst != NULL && dst[p] != GMEM_HANDLE_INVALID)
+      {
+         info->secure_dst     = info->secure_dst     || (gmem_get_usage(dst[p]) & GMEM_USAGE_SECURE);
+         info->contiguous_dst = info->contiguous_dst && (gmem_get_usage(dst[p]) & GMEM_USAGE_CONTIGUOUS);
+      }
+   }
 }
 
-bool v3d_imgconv_valid_hw_sec_info(const security_info_t *sec_info)
+bool v3d_imgconv_valid_hw_conv_info(const conversion_info_t *info)
 {
-   if (sec_info->secure_context)
+   if (info->secure_context)
    {
-      if (!sec_info->secure_dst)
+      if (!info->secure_dst)
          return false;
    }
    else
    {
-      if (sec_info->secure_dst || sec_info->secure_src)
+      if (info->secure_dst || info->secure_src)
          return false;
    }
 
    return true;
 }
 
-bool v3d_imgconv_valid_cpu_sec_info(const security_info_t *sec_info)
+bool v3d_imgconv_valid_cpu_conv_info(const conversion_info_t *info)
 {
-   return !(sec_info->secure_dst || sec_info->secure_src);
+   return !(info->secure_dst || info->secure_src);
 }
 
 size_t v3d_imgconv_base_size(const struct v3d_imgconv_base_tgt *base)
@@ -65,7 +83,9 @@ static void *v3d_imgconv_map_pre_cpu_access(
    const v3d_imgconv_gmem_tgt *tgt,
    size_t offset)
 {
-   void *ptr = gmem_map_and_get_ptr(tgt->handle);
+   assert(gfx_buffer_single_region(&tgt->base.desc));
+
+   void *ptr = gmem_map_and_get_ptr(tgt->handles[0]);
    if (!ptr)
       return NULL;
 
@@ -83,9 +103,11 @@ static void v3d_imgconv_sync_pre_cpu_access(
    /* sync per plane range */
    for (unsigned p = 0; p < tgt->base.desc.num_planes; p++)
    {
+      const GFX_BUFFER_DESC_PLANE_T *plane = &tgt->base.desc.planes[p];
+      assert(plane->region < countof(tgt->handles));
       gmem_invalidate_mapped_range(
-         tgt->handle,
-         tgt->base.desc.planes[p].offset + offset,
+         tgt->handles[plane->region],
+         plane->offset + offset,
          tgt->base.plane_sizes[p]);
    }
 }
@@ -112,9 +134,11 @@ static void v3d_imgconv_sync_post_cpu_write(
    /* sync per plane range */
    for (unsigned p = 0; p < tgt->base.desc.num_planes; p++)
    {
+      const GFX_BUFFER_DESC_PLANE_T *plane = &tgt->base.desc.planes[p];
+      assert(plane->region < countof(tgt->handles));
       gmem_flush_mapped_range(
-         tgt->handle,
-         tgt->base.desc.planes[p].offset + offset,
+         tgt->handles[plane->region],
+         plane->offset + offset,
          tgt->base.plane_sizes[p]);
    }
 }
@@ -136,14 +160,16 @@ static void init_base_tgt(struct v3d_imgconv_base_tgt *tgt,
       tgt->plane_sizes[p] = gfx_buffer_size_plane(desc, p);
 }
 
-void v3d_imgconv_init_gmem_tgt(struct v3d_imgconv_gmem_tgt *tgt,
-      gmem_handle_t handle, size_t offset,
+void v3d_imgconv_init_gmem_tgt_multi_region(struct v3d_imgconv_gmem_tgt *tgt,
+      unsigned num_handles, const gmem_handle_t *handles, size_t offset,
       const v3d_scheduler_deps *deps, const GFX_BUFFER_DESC_T *desc,
       unsigned int x, unsigned int y, unsigned int z, unsigned int start_elem,
       unsigned int array_pitch)
 {
    init_base_tgt(&tgt->base, desc, x, y, z, start_elem, array_pitch);
-   tgt->handle = handle;
+   assert(num_handles <= countof(tgt->handles));
+   for (unsigned i = 0; i != countof(tgt->handles); ++i)
+      tgt->handles[i] = (i < num_handles) ? handles[i] : GMEM_HANDLE_INVALID;
    tgt->offset = offset;
    tgt->deps = *deps;
 }
@@ -177,7 +203,7 @@ static void add_path(const v3d_imgconv_methods **list, bool is_sync_list,
    }
 }
 
-#define MAX_PATHS 6
+#define MAX_PATHS 8
 static const v3d_imgconv_methods* conv_path[MAX_PATHS];
 static const v3d_imgconv_methods* conv_path_sync[MAX_PATHS];
 static VCOS_ONCE_T paths_initialized = VCOS_ONCE_INIT;
@@ -196,7 +222,9 @@ static void init_conv_paths(void)
     */
    i = 0;
    add_path(conv_path, false, &i, get_tfu_path());
-   add_path(conv_path, false, &i, get_yv12_tfu_path());  /* YV12->Y/CbCr + async */
+   add_path(conv_path, false, &i, get_m2mc_path());
+   add_path(conv_path, false, &i, get_sand_m2mc_tfu_path()); /* SAND->RGBA   + async */
+   add_path(conv_path, false, &i, get_yv12_tfu_path());      /* YV12->Y/CbCr + async */
    add_path(conv_path, false, &i, get_neon_path());
    add_path(conv_path, false, &i, get_extra_neon_path());
    add_path(conv_path, false, &i, get_c_path());
@@ -340,6 +368,44 @@ end:
    return false;
 }
 
+/* Determine gmem usage flags for a potential conversion */
+gmem_usage_flags_t v3d_imgconv_calc_dst_gmem_usage(
+   const v3d_imgconv_base_tgt *dst_base,
+   const v3d_imgconv_gmem_tgt *src,
+   bool secure_context)
+{
+   vcos_once(&paths_initialized, init_conv_paths);
+
+   gmem_handle_t dst_handles[GFX_BUFFER_MAX_PLANES] = { 0 };
+
+   conversion_info_t info;
+   build_conv_info(secure_context, src->handles, dst_handles, &info);
+   info.secure_dst = info.secure_src;
+
+   gmem_usage_flags_t ret = info.secure_src ? GMEM_USAGE_SECURE : GMEM_USAGE_NONE;
+
+   /* Run over all the claims, favoring non-contiguous memory first, then contiguous */
+   for (unsigned p = 0; p < MAX_PATHS && conv_path[p]; p++)
+   {
+      /* Can we claim with non-contiguous dst memory? */
+      info.contiguous_dst = false;
+      if (conv_path[p]->claim(dst_base, &src->base, src->base.desc.width, src->base.desc.height,
+                              src->base.desc.depth, &info))
+      {
+         return ret;
+      }
+      else
+      {
+         /* Does a contiguous memory claim work? */
+         info.contiguous_dst = true;
+         if (conv_path[p]->claim(dst_base, &src->base, src->base.desc.width, src->base.desc.height,
+                                 src->base.desc.depth, &info))
+            return ret | GMEM_USAGE_CONTIGUOUS;
+      }
+   }
+   return ret;
+}
+
 /* Convert an image from gmem to gmem (can use hardware) */
 bool v3d_imgconv_convert(
       const struct v3d_imgconv_gmem_tgt *dst,
@@ -359,8 +425,8 @@ bool v3d_imgconv_convert(
 
    vcos_once(&paths_initialized, init_conv_paths);
 
-   security_info_t sec_info;
-   build_sec_info(secure_context, src->handle, dst->handle, &sec_info);
+   conversion_info_t info;
+   build_conv_info(secure_context, src->handles, dst->handles, &info);
 
    for (unsigned i = 0; i < num_elems; i++)
    {
@@ -370,7 +436,7 @@ bool v3d_imgconv_convert(
       bool conv_done = false;
       for (unsigned p = 0; !conv_done && p < MAX_PATHS && conv_path[p]; p++)
       {
-         if (!conv_path[p]->claim(&dst->base, &src->base, width, height, depth, &sec_info))
+         if (!conv_path[p]->claim(&dst->base, &src->base, width, height, depth, &info))
             continue;
 
          uint64_t cur_job = 0;
@@ -381,6 +447,9 @@ bool v3d_imgconv_convert(
 
             if (conv_path[p]->convert_prep != NULL)
             {
+               if (!gfx_buffer_single_region(&src->base.desc))
+                  continue; // TODO Multi-region support
+
                /* Make a scratch buffer for our intermediate prep stage.
                 * call_prep_func will create the scratch buffer of the correct format
                 * for the following async conversion */
@@ -390,7 +459,7 @@ bool v3d_imgconv_convert(
                                           width, height, depth, &completion_fn, &completion_data))
                   continue;   // Try next algorithm
 
-               /* Set up the dest buffer deps to be used by the aync job */
+               /* Set up the dest buffer deps to be used by the async job */
                v3d_scheduler_deps dst_deps;
                v3d_scheduler_copy_deps(&dst_deps, &dst->deps);
 
@@ -431,6 +500,9 @@ bool v3d_imgconv_convert(
          {
             /* No direct async path available, schedule a CPU conversion */
             assert(conv_path[p]->convert_sync); /* we must have one convert fct */
+
+            if (!gfx_buffer_single_region(&src->base.desc) || !gfx_buffer_single_region(&dst->base.desc))
+               continue; // TODO Multi-region support
 
             uint64_t job = 0;
             if (!cpu_convert_gmem_to_gmem(&job, dst, src, dst_off, src_off, width, height, depth, p))
@@ -569,7 +641,7 @@ static bool call_async_func(
                            width, height, depth, &completion_fn, &completion_data))
       goto end;
 
-   assert(scratch.handle != GMEM_HANDLE_INVALID);
+   assert(scratch.handles[0] != GMEM_HANDLE_INVALID);
 
    /* start async task to convert the gmem copy */
    src_off = 0; /* we only copied one element to scratch */
@@ -616,8 +688,8 @@ bool v3d_imgconv_convert_from_ptr(
 
    vcos_once(&paths_initialized, init_conv_paths);
 
-   security_info_t sec_info;
-   build_sec_info(secure_context, GMEM_HANDLE_INVALID, dst->handle, &sec_info);
+   conversion_info_t info;
+   build_conv_info(secure_context, NULL, dst->handles, &info);
 
    v3d_scheduler_deps out_deps;
    memset(&out_deps, 0, sizeof(out_deps));
@@ -631,7 +703,7 @@ bool v3d_imgconv_convert_from_ptr(
       bool conv_done = false;
       for (unsigned p = 0; !conv_done && p < MAX_PATHS && conv_path_sync[p]; p++)
       {
-         if (!conv_path_sync[p]->claim(&dst->base, &src->base, width, height, depth, &sec_info))
+         if (!conv_path_sync[p]->claim(&dst->base, &src->base, width, height, depth, &info))
             continue;
 
          if (conv_path_sync[p]->convert_async != NULL)
@@ -648,6 +720,9 @@ bool v3d_imgconv_convert_from_ptr(
          else
          {
             assert(conv_path_sync[p]->convert_sync); /* we must have one convert fct */
+
+            if (!gfx_buffer_single_region(&dst->base.desc))
+               continue; // TODO Multi-region support
 
             /* wait for pending jobs and start synchronous conversion */
             if (!deps_completed)
@@ -684,7 +759,7 @@ end:
    return ok;
 }
 
-/* Convert from gmem into CPU memory (cannot used hardware) */
+/* Convert from gmem into CPU memory (cannot use hardware) */
 bool v3d_imgconv_convert_to_ptr(
       const struct v3d_imgconv_ptr_tgt *dst,
       const struct v3d_imgconv_gmem_tgt *src,
@@ -696,8 +771,8 @@ bool v3d_imgconv_convert_to_ptr(
 {
    vcos_once(&paths_initialized, init_conv_paths);
 
-   security_info_t sec_info;
-   build_sec_info(secure_context, src->handle, GMEM_HANDLE_INVALID, &sec_info);
+   conversion_info_t info;
+   build_conv_info(secure_context, src->handles, NULL, &info);
 
    v3d_scheduler_deps deps;
    v3d_scheduler_copy_deps(&deps, &src->deps);
@@ -714,7 +789,7 @@ bool v3d_imgconv_convert_to_ptr(
          if (conv_path_sync[p]->convert_sync == NULL)
             continue;
 
-         if (!conv_path_sync[p]->claim(&dst->base, &src->base, width, height, depth, &sec_info))
+         if (!conv_path_sync[p]->claim(&dst->base, &src->base, width, height, depth, &info))
             continue;
 
          void *src_data = v3d_imgconv_map_and_sync_pre_cpu_access(src, src_off);

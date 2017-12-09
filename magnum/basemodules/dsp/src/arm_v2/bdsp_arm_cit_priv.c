@@ -428,10 +428,9 @@ static void BDSP_Arm_P_CreatePortBufferDetails(
 {
     BERR_Code errCode = BERR_SUCCESS;
     unsigned i=0, j=0, numbuffers =0;
-	BDSP_MMA_Memory descriptorMemory[BDSP_AF_P_NumPortBuffers_MAX][BDSP_AF_P_MAX_CHANNELS];
-	BDSP_AF_P_sCIRCULAR_BUFFER *pDescriptor[BDSP_AF_P_NumPortBuffers_MAX][BDSP_AF_P_MAX_CHANNELS];
+	BDSP_MMA_Memory descriptorMemory[BDSP_AF_P_MAX_CHANNELS];
+	BDSP_AF_P_sCIRCULAR_BUFFER *pDescriptor[BDSP_AF_P_MAX_CHANNELS];
 
-    BKNI_Memset((void *)&descriptorMemory[0][0],0,(sizeof(BDSP_MMA_Memory)*BDSP_AF_P_MAX_CHANNELS*BDSP_AF_P_NumPortBuffers_MAX));
 	BDBG_ENTER(BDSP_Arm_P_CreatePortBufferDetails);
     for(i=0; i<pPortDetials->numPortBuffers; i++)
     {
@@ -454,18 +453,19 @@ static void BDSP_Arm_P_CreatePortBufferDetails(
                 BDBG_ASSERT(0);
                 break;
         }
+		BKNI_Memset((void *)&descriptorMemory[0],0,(sizeof(BDSP_MMA_Memory)*BDSP_AF_P_MAX_CHANNELS));
         BDSP_Arm_P_AssignDescriptor((void *)pDevice,
                                     dspIndex,
-                                    &descriptorMemory[i][0],
+                                    &descriptorMemory[0],
                                     numbuffers);
         for(j=0;j<numbuffers;j++)
         {
-            pDescriptor[i][j] = (BDSP_AF_P_sCIRCULAR_BUFFER *)descriptorMemory[i][j].pAddr;
+            pDescriptor[j] = (BDSP_AF_P_sCIRCULAR_BUFFER *)descriptorMemory[j].pAddr;
         }
         errCode = BDSP_Arm_P_PopulatePortBufferDescriptors(
                                     pConnectionDetails,
                                     eConnectionType,
-                                    pDescriptor[i][0],
+                                    pDescriptor[0],
                                     numbuffers,
                                     i);
         if(errCode != BERR_SUCCESS)
@@ -475,8 +475,8 @@ static void BDSP_Arm_P_CreatePortBufferDetails(
         }
         for(j=0;j<numbuffers;j++)
         {
-            pPortDetials->IoBuffer[i][j]= descriptorMemory[i][j].offset;
-            BDSP_MMA_P_FlushCache(descriptorMemory[i][j], sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
+            pPortDetials->IoBuffer[i][j]= descriptorMemory[j].offset;
+            BDSP_MMA_P_FlushCache(descriptorMemory[j], sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
         }
     }
 	BDBG_LEAVE(BDSP_Arm_P_CreatePortBufferDetails);
@@ -962,7 +962,6 @@ static BERR_Code BDSP_Arm_P_FillStageConfig(
 		pStageConfig->sInterFrameInfo.Size     	   = psAlgoCodeInfo->interFrameSize;
 		pStageConfig->sLookUpTableInfo.BaseAddr    = pCodeInfo->imgInfo[BDSP_ARM_IMG_ID_TABLE(pArmConnectStage->eAlgorithm)].Buffer.offset;
 		pStageConfig->sLookUpTableInfo.Size		   = pCodeInfo->imgInfo[BDSP_ARM_IMG_ID_TABLE(pArmConnectStage->eAlgorithm)].ui32Size;/*Use the size of binary downloaded*/
-        BKNI_Memcpy((void *)&pStageConfig->ui8LibName[0], (void *)psAlgoCodeInfo->pCodeLibName, (sizeof(char)*BDSP_AF_P_MAX_LIB_NAME_SIZE));
 
 		errCode = BDSP_Arm_P_PopulateIOConfiguration(pArmConnectStage, &pStageConfig->sIOConfig, &tocIndex);
 		if(errCode != BERR_SUCCESS)
@@ -1048,7 +1047,6 @@ static BERR_Code BDSP_Arm_P_FillPrimaryStageInfo(
 	pPrimaryStageInfo->sIdsCodeInfo.Size    		= pCodeInfo->imgInfo[BDSP_ARM_IMG_ID_IDS(pArmPrimaryStage->eAlgorithm)].ui32Size;
 	pPrimaryStageInfo->sSamplingFrequencyLutInfo.BaseAddr = pArmTask->taskMemInfo.sSampleRateLUTMemory.Buffer.offset;
 	pPrimaryStageInfo->sSamplingFrequencyLutInfo.Size     = pArmTask->taskMemInfo.sSampleRateLUTMemory.ui32Size;
-    BKNI_Memcpy((void *)&pPrimaryStageInfo->ui8LibName[0], (void *)psAlgoCodeInfo->pIdsLibName, (sizeof(char)*BDSP_AF_P_MAX_LIB_NAME_SIZE));
 
 	errCode = BDSP_Arm_P_PopulateHwPPMConfig(pArmPrimaryStage, &pPrimaryStageInfo->sPPMConfig[0]);
 	if(errCode != BERR_SUCCESS)

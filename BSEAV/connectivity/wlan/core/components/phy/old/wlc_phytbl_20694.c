@@ -4412,7 +4412,7 @@ const chan_info_radio20694_rffe_t chan_tune_20694_rev9_AUX[] = {
 
 /* 2G LNA1 and LNA2 Gain dB table for maj40 */
 int8 BCMATTACHDATA(lna12_gain_tbl_2g_maj40)[2][N_LNA12_GAINS] = {
-	{-6, -1,  5, 11, 18, 24}, /* LNA1 Table: Modified to match the LNARout table values */
+	{-8, -3,  5, 11, 17, 24}, /* LNA1 Table */
 	{ 0,  0,  0,  0,  0,  0}, /* LNA2 Table */
 };
 
@@ -4424,7 +4424,7 @@ int8 BCMATTACHDATA(lna12_gainbits_tbl_2g_maj40)[2][N_LNA12_GAINS] = {
 
 /* 5G LNA1 and LNA2 Gain dB table for maj40 */
 int8 BCMATTACHDATA(lna12_gain_tbl_5g_maj40)[2][N_LNA12_GAINS] = {
-	{-8, -4,  2,  8, 16, 22}, /* LNA1 Table: Modified to match the LNARout table values */
+	{-6, -2,  4, 10, 16, 22}, /* LNA1 Table */
 	{ 0,  0,  0,  0,  0,  0}, /* LNA2 Table */
 };
 
@@ -4434,12 +4434,19 @@ int8 BCMATTACHDATA(lna12_gainbits_tbl_5g_maj40)[2][N_LNA12_GAINS] = {
 	{3, 3, 3, 3, 3, 3}, /* LNA2 Table */
 };
 
-/* TIA Gain table for maj40 */
-int8 BCMATTACHDATA(tia_gain_tbl_maj40)[N_TIA_GAINS] =
-	{10, 13, 17, 20, 23, 26, 29, 29, 29, 29, 29, 28};
+/* 2G TIA Gain table for maj40 */
+int8 BCMATTACHDATA(tia_gain_tbl_2g_maj40)[N_TIA_GAINS] =
+	{ 8, 11, 14, 17, 20, 23, 26, 26, 26, 26, 26, 25};
 
-/* TIA GainBits table for maj40 */
-int8 BCMATTACHDATA(tia_gainbits_tbl_maj40)[N_TIA_GAINS] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 15};
+/* 5G TIA Gain table for maj40 */
+int8 BCMATTACHDATA(tia_gain_tbl_5g_maj40)[N_TIA_GAINS] =
+	{12, 15, 18, 21, 24, 27, 30, 30, 30, 30, 30, 29};
+
+/* 2G TIA GainBits table for maj40 */
+int8 BCMATTACHDATA(tia_gainbits_tbl_2g_maj40)[N_TIA_GAINS] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 15};
+
+/* 5G TIA GainBits table for maj40 */
+int8 BCMATTACHDATA(tia_gainbits_tbl_5g_maj40)[N_TIA_GAINS] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 15};
 
 /* BIQ01 Gain table for maj40 */
 int8 BCMATTACHDATA(biq01_gain_tbl_maj40)[2][N_BIQ01_GAINS] = {
@@ -4454,9 +4461,9 @@ int8 BCMATTACHDATA(biq01_gainbits_tbl_maj40)[2][N_BIQ01_GAINS] = {
 };
 
 /* LNA1 gm and rout mapping table for maj37 */
-uint8 BCMATTACHDATA(lna1_rout_map_2g_maj37)[N_LNA12_GAINS] = {  9,  9,  9, 10, 6, 0};
+uint8 BCMATTACHDATA(lna1_rout_map_2g_maj37)[N_LNA12_GAINS] = { 10, 10,  9, 10, 7, 0};
 uint8 BCMATTACHDATA(lna1_gain_map_2g_maj37)[N_LNA12_GAINS] = {  2,  3,  4,  5, 5, 5};
-uint8 BCMATTACHDATA(lna1_rout_map_5g_maj37)[N_LNA12_GAINS] = { 11, 11, 11, 11, 7, 0};
+uint8 BCMATTACHDATA(lna1_rout_map_5g_maj37)[N_LNA12_GAINS] = { 10, 10, 10, 10, 7, 0};
 uint8 BCMATTACHDATA(lna1_gain_map_5g_maj37)[N_LNA12_GAINS] = {  4,  5,  6,  7, 7, 7};
 
 #if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20694))

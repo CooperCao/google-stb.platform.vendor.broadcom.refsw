@@ -54,134 +54,133 @@ BDBG_MODULE(keymaster_key_params);
 
 #define GCM_MIN_MAC_SIZE   128
 
-#define HMAC_MIN_MAC_SIZE  128
+#define HMAC_MIN_MAC_SIZE  64
 
 #define DEFAULT_APP_ID     "MyAppId"
 #define DEFAULT_APP_DATA   "MyAppData"
 
 
-BERR_Code km_test_aes_add_default_params(KM_Tag_ContextHandle key_params, uint32_t key_size)
+BERR_Code km_test_new_params_with_aes_defaults(KM_Tag_ContextHandle *key_params, uint32_t key_size)
 {
     BERR_Code err;
     BDBG_ASSERT(key_params);
 
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_AES);
-    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, key_size);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_ENCRYPT);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_DECRYPT);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PADDING, KM_PAD_NONE);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_BLOCK_MODE, KM_MODE_CTR);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_BLOCK_MODE, KM_MODE_GCM);
-    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MIN_MAC_LENGTH, GCM_MIN_MAC_SIZE);
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_CALLER_NONCE, true);
+    EXPECT_SUCCESS(KM_Tag_NewContext(key_params));
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_AES);
+    TEST_TAG_ADD_INTEGER(*key_params, KM_TAG_KEY_SIZE, key_size);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_ENCRYPT);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_DECRYPT);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PADDING, KM_PAD_NONE);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PADDING, KM_PAD_PKCS7);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_BLOCK_MODE, KM_MODE_CTR);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_BLOCK_MODE, KM_MODE_GCM);
+    TEST_TAG_ADD_INTEGER(*key_params, KM_TAG_MIN_MAC_LENGTH, GCM_MIN_MAC_SIZE);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_CALLER_NONCE, true);
 
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_USERS, true);
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_NO_AUTH_REQUIRED, true);
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_APPLICATIONS, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_ALL_USERS, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_NO_AUTH_REQUIRED, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_ALL_APPLICATIONS, true);
     err = BERR_SUCCESS;
 
 done:
     return err;
 }
 
-BERR_Code km_test_hmac_add_default_params(KM_Tag_ContextHandle key_params, uint32_t key_size)
+BERR_Code km_test_new_params_with_hmac_defaults(KM_Tag_ContextHandle *key_params, uint32_t key_size)
 {
     BERR_Code err;
     BDBG_ASSERT(key_params);
 
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_HMAC);
-    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, key_size);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
-    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MIN_MAC_LENGTH, HMAC_MIN_MAC_SIZE);
+    EXPECT_SUCCESS(KM_Tag_NewContext(key_params));
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_HMAC);
+    TEST_TAG_ADD_INTEGER(*key_params, KM_TAG_KEY_SIZE, key_size);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
+    TEST_TAG_ADD_INTEGER(*key_params, KM_TAG_MIN_MAC_LENGTH, HMAC_MIN_MAC_SIZE);
 
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_USERS, true);
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_NO_AUTH_REQUIRED, true);
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_APPLICATIONS, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_ALL_USERS, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_NO_AUTH_REQUIRED, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_ALL_APPLICATIONS, true);
     err = BERR_SUCCESS;
 
 done:
     return err;
 }
 
-BERR_Code km_test_rsa_add_default_params(KM_Tag_ContextHandle key_params, uint32_t key_size)
+BERR_Code km_test_new_params_with_rsa_defaults(KM_Tag_ContextHandle *key_params, uint32_t key_size)
 {
     BERR_Code err;
     BDBG_ASSERT(key_params);
 
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_RSA);
-    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, key_size);
-    TEST_TAG_ADD_LONG_INTEGER(key_params, KM_TAG_RSA_PUBLIC_EXPONENT, 65537ULL);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_ENCRYPT);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_DECRYPT);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PADDING, KM_PAD_NONE);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_SIGN);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_ENCRYPT);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PADDING, KM_PAD_RSA_PSS);
+    EXPECT_SUCCESS(KM_Tag_NewContext(key_params));
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_RSA);
+    TEST_TAG_ADD_INTEGER(*key_params, KM_TAG_KEY_SIZE, key_size);
+    TEST_TAG_ADD_LONG_INTEGER(*key_params, KM_TAG_RSA_PUBLIC_EXPONENT, 65537ULL);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_ENCRYPT);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_DECRYPT);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PADDING, KM_PAD_NONE);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_SIGN);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_ENCRYPT);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PADDING, KM_PAD_RSA_PSS);
 
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_USERS, true);
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_NO_AUTH_REQUIRED, true);
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_APPLICATIONS, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_ALL_USERS, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_NO_AUTH_REQUIRED, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_ALL_APPLICATIONS, true);
     err = BERR_SUCCESS;
 
 done:
     return err;
 }
 
-BERR_Code km_test_ec_add_default_params(KM_Tag_ContextHandle key_params, uint32_t key_size)
+BERR_Code km_test_new_params_with_ec_defaults(KM_Tag_ContextHandle *key_params, uint32_t key_size)
 {
     BERR_Code err;
     BDBG_ASSERT(key_params);
 
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_EC);
-    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, key_size);
+    EXPECT_SUCCESS(KM_Tag_NewContext(key_params));
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_EC);
+    TEST_TAG_ADD_INTEGER(*key_params, KM_TAG_KEY_SIZE, key_size);
     switch (key_size) {
     case 224:
-        TEST_TAG_ADD_ENUM(key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_224);
+        TEST_TAG_ADD_ENUM(*key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_224);
         break;
     case 256:
-        TEST_TAG_ADD_ENUM(key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_256);
+        TEST_TAG_ADD_ENUM(*key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_256);
         break;
     case 384:
-        TEST_TAG_ADD_ENUM(key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_384);
+        TEST_TAG_ADD_ENUM(*key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_384);
         break;
     case 521:
-        TEST_TAG_ADD_ENUM(key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_521);
+        TEST_TAG_ADD_ENUM(*key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_521);
         break;
     default:
         /* Don't error, just don't put in the curve */
         break;
     }
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
-    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
 
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_USERS, true);
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_NO_AUTH_REQUIRED, true);
-    TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_APPLICATIONS, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_ALL_USERS, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_NO_AUTH_REQUIRED, true);
+    TEST_TAG_ADD_BOOL(*key_params, KM_TAG_ALL_APPLICATIONS, true);
     err = BERR_SUCCESS;
 
 done:
@@ -206,6 +205,16 @@ BERR_Code km_test_remove_curve(KM_Tag_ContextHandle key_params)
     BERR_Code err;
     BDBG_ASSERT(key_params);
     TEST_TAG_REMOVE(key_params, KM_TAG_EC_CURVE);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_add_256_curve(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_ADD_ENUM(key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_256);
 
 done:
     return err;
@@ -246,6 +255,138 @@ BERR_Code km_test_add_app_data(KM_Tag_ContextHandle key_params)
     BERR_Code err;
     BDBG_ASSERT(key_params);
     TEST_TAG_ADD_BYTES(key_params, KM_TAG_APPLICATION_DATA, strlen(DEFAULT_APP_DATA), (uint8_t*)DEFAULT_APP_DATA);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_add_sha1_digest(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_add_none_digest(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_remove_digest(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_REMOVE(key_params, KM_TAG_DIGEST);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_remove_mac_length(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_REMOVE(key_params, KM_TAG_MAC_LENGTH);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_remove_min_mac_length(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_REMOVE(key_params, KM_TAG_MIN_MAC_LENGTH);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_add_min_mac_length_48(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MIN_MAC_LENGTH, 48);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_add_min_mac_length_130(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MIN_MAC_LENGTH, 130);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_add_min_mac_length_384(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MIN_MAC_LENGTH, 384);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_add_key_size_1024(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, 1024);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_add_key_size_256(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, 256);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_add_exponent_3(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_ADD_LONG_INTEGER(key_params, KM_TAG_RSA_PUBLIC_EXPONENT, 3);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_remove_sign_verify(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_REMOVE_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
+    TEST_TAG_REMOVE_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
+
+done:
+    return err;
+}
+
+BERR_Code km_test_remove_encrypt_decrypt(KM_Tag_ContextHandle key_params)
+{
+    BERR_Code err;
+    BDBG_ASSERT(key_params);
+    TEST_TAG_REMOVE_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_ENCRYPT);
+    TEST_TAG_REMOVE_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_DECRYPT);
 
 done:
     return err;

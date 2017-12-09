@@ -248,7 +248,7 @@ static void *NEXUS_Platform_P_SageSecureLogThread(void *pParam)
 
     if ( NEXUS_SUCCESS != NEXUS_Sage_SecureLog_StartCaptureOK() )
     {
-        BDBG_ERR(("%s %d secure log not enabled",BSTD_FUNCTION,__LINE__));
+        BDBG_MSG(("%s %d secure log not enabled",BSTD_FUNCTION,__LINE__));
         goto exit;
     }
 

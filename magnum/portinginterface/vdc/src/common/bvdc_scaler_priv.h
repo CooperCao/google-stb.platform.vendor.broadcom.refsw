@@ -737,6 +737,8 @@ typedef struct BVDC_P_ScalerContext
     /* src width alignment: 1 for 444 format internally, 2 for 422 format internally */
     uint32_t                       ulSrcHrzAlign;
 
+    bool                           bPqNcl;
+
 } BVDC_P_ScalerContext;
 
 

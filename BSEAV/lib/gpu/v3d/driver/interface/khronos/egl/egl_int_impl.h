@@ -95,3 +95,11 @@ extern bool eglInitDriverMonitorBRCM_impl(EGLint hw_bank, EGLint l3c_bank);
 extern void eglTermDriverMonitorBRCM_impl(void);
 extern void eglGetDriverMonitorXMLBRCM_impl(EGLint bufSize, char *xmlStats);
 #endif
+
+#ifdef WAYLAND
+struct wl_display;
+struct wl_resource;
+extern  EGLBoolean eglBindWaylandDisplayWL_impl(EGLDisplay dpy, struct wl_display *display);
+extern  EGLBoolean eglUnbindWaylandDisplayWL_impl(EGLDisplay dpy, struct wl_display *display);
+extern  EGLBoolean eglQueryWaylandBufferWL_impl(EGLDisplay dpy, struct wl_resource *buffer, EGLint attribute, EGLint *value);
+#endif

@@ -386,9 +386,8 @@
   <version>1.0</version>
   <kernel version="26" default="OLD_MIPS">2.6.37-3.5</kernel>
   <kernel version="33" default="MIPS">3.3-4.2</kernel>
-  <kernel version="314">3.14-1.18</kernel>
-  <kernel version="41" default="BMIPS,ARM">4.1-1.12</kernel>
-  <kernel version="49" default="ARM64" toolchain="_63">4.9-1.1</kernel>
-  <kernel version="nightly" default="97278B0">4.9-20171027</kernel>
+  <kernel version="314">3.14-1.20</kernel>
+  <kernel version="41" default="ARM,BMIPS,97271B0">4.1-1.15</kernel>
+  <kernel version="49" default="ARM64">4.9-1.2</kernel>
 </kernels>
 </plat>

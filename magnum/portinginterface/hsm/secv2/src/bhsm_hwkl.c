@@ -1,0 +1,226 @@
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
+#include "bstd.h"
+#include "bhsm.h"
+#include "bhsm_keyslot.h"
+#include "bhsm_keyslot_priv.h"
+#include "bhsm_keyladder_priv.h"
+#include "bhsm_priv.h"
+#include "bhsm_bsp_msg.h"
+#include "bsp_types.h"
+#include "bhsm_p_keyslot.h"
+#include "bhsm_p_hwkl.h"
+#include "bhsm_hwkl.h"
+
+BDBG_MODULE(BHSM);
+/*
+Description:
+    Route a key to the the keyslot from HW Keyladder
+*/
+BERR_Code BHSM_Keyslot_RouteHWKlEntryKey ( BHSM_KeyslotHandle handle,
+                                      BHSM_KeyslotBlockEntry entry,  /* block (cps/ca/cpd) and entry (odd/even/clear) */
+                                      const BHSM_KeyslotRouteKey *pKey )
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BHSM_P_HwklRouteKey bspConfig;
+    BHSM_KeyslotDetails details;
+
+    BDBG_ENTER( BHSM_Keyslot_RouteHWKlEntryKey );
+
+    BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
+
+    rc = BHSM_P_Keyslot_GetDetails( handle, entry, &details );
+    if(rc != BERR_SUCCESS) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    bspConfig.in.blockType = details.blockType;
+    bspConfig.in.entryType = details.polarity;
+
+    bspConfig.in.keySlotType = details.slotType;
+    bspConfig.in.keySlotNumber = details.number;
+
+    bspConfig.in.keyMode = 0 /*Bsp_KeyMode_eRegular */;
+
+    bspConfig.in.modeWords[0] = details.ctrlWord0;
+    bspConfig.in.modeWords[1] = details.ctrlWord1;
+    bspConfig.in.modeWords[2] = details.ctrlWord2;
+    bspConfig.in.modeWords[3] = details.ctrlWord3;
+
+    if(details.externalIvValid)
+    {
+        bspConfig.in.extIvPtr = details.externalIvOffset;
+    }
+
+    bspConfig.in.keyLayer = pKey->keyLadderLayer;
+
+    rc = BHSM_P_Hwkl_RouteKey( details.hHsm, &bspConfig );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+    BDBG_LEAVE( BHSM_Keyslot_RouteHWKlEntryKey );
+    return BERR_SUCCESS;
+}
+
+BERR_Code  BHSM_Keyslot_GenerateHwKlRootKey( BHSM_KeyLadderHandle handle, const BHSM_KeyLadderLevelKey *pKey )
+{
+    BHSM_P_HwklRootConfig bspConfig;
+    BHSM_KeyLadderSettings settings;
+    BERR_Code rc = BERR_SUCCESS;
+
+    BDBG_ENTER( BHSM_Keyslot_GenerateHwKlRootKey );
+
+    if(! BHSM_P_KeyLadder_CheckConfigured(handle) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    BHSM_KeyLadder_GetSettings( handle, &settings );
+
+    BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
+
+    bspConfig.in.moduleId =  settings.hwkl.moduleId;
+    bspConfig.in.hwklLength =  settings.hwkl.numlevels;
+    switch( settings.hwkl.algorithm )
+    {
+        case BHSM_CryptographicAlgorithm_eDvbCsa2:   {  bspConfig.in.hwklDestinationAlg = 0x0; break; }
+        case BHSM_CryptographicAlgorithm_eMulti2:    { bspConfig.in.hwklDestinationAlg = 0x1; break; }
+        case BHSM_CryptographicAlgorithm_eDes:       { bspConfig.in.hwklDestinationAlg = 0x2; break; }
+        case BHSM_CryptographicAlgorithm_e3DesAba:   { bspConfig.in.hwklDestinationAlg = 0x3; break; }
+        case BHSM_CryptographicAlgorithm_e3DesAbc:   { bspConfig.in.hwklDestinationAlg = 0x4; break; }
+        case BHSM_CryptographicAlgorithm_eDvbCsa3:   { bspConfig.in.hwklDestinationAlg = 0x5; break; }
+        case BHSM_CryptographicAlgorithm_eAes128:    { bspConfig.in.hwklDestinationAlg = 0x6; break; }
+        case BHSM_CryptographicAlgorithm_eAes192:    { bspConfig.in.hwklDestinationAlg = 0x7; break; }
+        case BHSM_CryptographicAlgorithm_eC2:       { bspConfig.in.hwklDestinationAlg = 0x9; break; }
+        case BHSM_CryptographicAlgorithm_eCss:      { bspConfig.in.hwklDestinationAlg = 0xa; break; }
+        case BHSM_CryptographicAlgorithm_eM6Ke:     { bspConfig.in.hwklDestinationAlg = 0xb; break; }
+        case BHSM_CryptographicAlgorithm_eM6S:      { bspConfig.in.hwklDestinationAlg = 0xc; break; }
+        case BHSM_CryptographicAlgorithm_eRc4:      { bspConfig.in.hwklDestinationAlg = 0xd; break; }
+        case BHSM_CryptographicAlgorithm_eMsMultiSwapMac: { bspConfig.in.hwklDestinationAlg = 0xe; break; }
+        case BHSM_CryptographicAlgorithm_eWmDrmPd:  { bspConfig.in.hwklDestinationAlg = 0xf; break; }
+        case BHSM_CryptographicAlgorithm_eAes128G:  { bspConfig.in.hwklDestinationAlg = 0x10; break; }
+        case BHSM_CryptographicAlgorithm_eHdDvd:    { bspConfig.in.hwklDestinationAlg = 0x11; break; }
+        case BHSM_CryptographicAlgorithm_eBrDvd:    { bspConfig.in.hwklDestinationAlg = 0x12; break; }
+        case BHSM_CryptographicAlgorithm_eReserved19:{ bspConfig.in.hwklDestinationAlg = 0x13; break; }
+        default: {return BERR_TRACE( BERR_INVALID_PARAMETER );}
+    }
+    switch( settings.root.type ) {
+        case BHSM_KeyLadderRootType_eCustomerKey: {
+            bspConfig.in.rootKeySrc = 0;  /*Bsp_RootKeySrc_eCusKey*/
+            break;
+        }
+        case BHSM_KeyLadderRootType_eOtpDirect:
+        case BHSM_KeyLadderRootType_eOtpAskm: {
+            bspConfig.in.rootKeySrc = settings.root.otpKeyIndex+1;
+            break;
+        }
+        case BHSM_KeyLadderRootType_eGlobalKey: {
+            bspConfig.in.rootKeySrc = 9;  /*Bsp_RootKeySrc_eAskmGlobalKey*/
+            break;
+        }
+        default: {
+            return BERR_TRACE( BERR_INVALID_PARAMETER );
+        }
+    }
+    switch( settings.operation ){
+        case BHSM_CryptographicOperation_eEncrypt:    { bspConfig.in.hwklOperation = 1; break; }
+        case BHSM_CryptographicOperation_eDecrypt:    { bspConfig.in.hwklOperation = 0; break; }
+        default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    }
+
+    if( ( settings.root.type == BHSM_KeyLadderRootType_eOtpAskm ) ||
+        ( settings.root.type == BHSM_KeyLadderRootType_eGlobalKey ) )
+    {
+        bspConfig.in.caVendorId            = (uint16_t)settings.root.askm.caVendorId;
+        bspConfig.in.askmTdesKlRootKeySwapEnable = settings.root.askm.swapKey?1:0;
+        bspConfig.in.stbOwnerIdSel         = (uint8_t)settings.root.askm.stbOwnerSelect;
+        switch( settings.root.askm.caVendorIdScope )
+        {
+            case BHSM_KeyladderCaVendorIdScope_eChipFamily: bspConfig.in.askmMaskKeySel = 0; break;
+            case BHSM_KeyladderCaVendorIdScope_eFixed:      bspConfig.in.askmMaskKeySel = 2; break;
+            default: return BERR_TRACE( BERR_INVALID_PARAMETER );
+        }
+
+        if( settings.root.type == BHSM_KeyLadderRootType_eGlobalKey )
+        {
+            bspConfig.in.globalKeyIndex = settings.root.globalKey.index;
+
+            switch( settings.root.globalKey.owner )
+            {
+                case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp0: { bspConfig.in.globalKeyOwnerIdSelect = 0;  break; }
+                case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp1: { bspConfig.in.globalKeyOwnerIdSelect = 1;  break; }
+                case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eOne:  { bspConfig.in.globalKeyOwnerIdSelect = 2;  break; }
+                default: { BERR_TRACE( BERR_INVALID_PARAMETER ); }
+            }
+        }
+    }
+
+    BHSM_Mem32cpy( bspConfig.in.procIn, pKey->ladderKey, sizeof(bspConfig.in.procIn) );
+
+    rc = BHSM_P_Hwkl_RootConfig( BHSM_P_KeyLadder_GetHsmHandle(handle), &bspConfig );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+    BDBG_LEAVE( BHSM_Keyslot_GenerateHwKlRootKey );
+    return BERR_SUCCESS;
+}
+
+BERR_Code  BHSM_Keyslot_GenerateHwKlLevelKey( BHSM_KeyLadderHandle handle, const BHSM_KeyLadderLevelKey *pKey )
+{
+    BHSM_P_HwklLayerSet bspConfig;
+    BHSM_KeyLadderSettings settings;
+    BERR_Code rc = BERR_SUCCESS;
+
+    BDBG_ENTER( _GenerateLevelKey );
+
+    if(! BHSM_P_KeyLadder_CheckConfigured(handle) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    BHSM_KeyLadder_GetSettings( handle, &settings );
+
+    BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
+
+    bspConfig.in.destinationKeyLayer = pKey->level;
+
+    switch( settings.operation ){
+        case BHSM_CryptographicOperation_eEncrypt:    { bspConfig.in.hwklOperation = 1; break; }
+        case BHSM_CryptographicOperation_eDecrypt:    { bspConfig.in.hwklOperation = 0; break; }
+        default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    }
+
+    BHSM_Mem32cpy( bspConfig.in.procIn, pKey->ladderKey, BHSM_KEYLADDER_LADDER_KEY_SIZE );
+
+    rc = BHSM_P_Hwkl_LayerSet(  BHSM_P_KeyLadder_GetHsmHandle(handle), &bspConfig );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+    BDBG_LEAVE( _GenerateLevelKey );
+    return BERR_SUCCESS;
+}

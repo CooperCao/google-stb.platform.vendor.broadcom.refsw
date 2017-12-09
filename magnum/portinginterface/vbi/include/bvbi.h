@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -496,7 +496,9 @@ typedef struct BVBI_Capabilities
                                 ITU-R 656. */
     uint32_t ulNumWssE_656;  /* Number of WSS/VPS cores that are specifically
                                 for ITU-R 656 output. */
-    bool bTteHasSerO;        /* TTX core has serial output capability. */
+    bool     bTteHasSerO;      /* TTX core has serial output capability. */
+    uint32_t ulNumVecEnc;      /* Number of VEC VBI encoder cores */
+    uint32_t ulNumPassThruEnc; /* Number of 656 VBI encoder cores */
 
 } BVBI_Capabilities;
 

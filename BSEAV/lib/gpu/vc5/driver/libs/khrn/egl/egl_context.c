@@ -22,7 +22,8 @@ EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy,
    if (!egl_initialized(dpy, true))
       return EGL_NO_CONTEXT;
 
-   error = egl_context_gl_create((EGL_GL_CONTEXT_T**)&context, config, share_ctx, attrib_list);
+   error = egl_context_gl_create((EGL_GL_CONTEXT_T**)&context, dpy, config,
+         share_ctx, attrib_list);
    if (error != EGL_SUCCESS)
       goto end;
 

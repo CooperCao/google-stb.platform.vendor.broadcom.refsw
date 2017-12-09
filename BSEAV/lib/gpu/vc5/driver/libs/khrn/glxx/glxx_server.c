@@ -1979,15 +1979,13 @@ static void read_pixels(int x, int y, GLsizei width, GLsizei height,
    glxx_get_pack_unpack_info(&state->pixel_store_state, true, width,
          height, format, type, &dst_info);
 
-   GFX_BUFFER_DESC_T dst_desc;
+   GFX_BUFFER_DESC_T dst_desc = {0};
    dst_desc.width = width;
    dst_desc.height = height;
    dst_desc.depth = 1;
    dst_desc.num_planes = 1;
    dst_desc.planes[0].lfmt = dst_lfmt;
-   dst_desc.planes[0].offset = 0;
    dst_desc.planes[0].pitch = dst_info.stride;
-   dst_desc.planes[0].slice_pitch = 0;
 
    size_t buf_offset = 0;
    void *dst_ptr;

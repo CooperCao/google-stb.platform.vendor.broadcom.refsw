@@ -295,7 +295,7 @@ struct b_session {
     } video;
     struct {
         NEXUS_DisplayHandle display;
-    } component;
+    } component, composite;
     struct {
         NEXUS_SimpleEncoderServerHandle server;
         /* streaming */
@@ -311,6 +311,7 @@ struct b_session {
         NEXUS_VideoFormatInfo formatInfo;
         nxclient_t crc_client;
         NEXUS_SurfaceHandle graphic; /* for NxClient_SlaveDisplayMode_eGraphics */
+        bool graphicsOnly;
     } display[NXCLIENT_MAX_DISPLAYS];
     NxClient_PictureQualitySettings pictureQualitySettings;
 #if NEXUS_HAS_HDMI_OUTPUT

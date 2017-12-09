@@ -205,8 +205,8 @@ km_tag_value_t* KM_Tag_FindNth(KM_Tag_ContextHandle handle, km_tag_t tag, uint32
 
 /***************************************************************************
 Summary:
-Returns true if the tag/value pair is found. Can only be called on KM_ENUM_REP
-types. Does not update the current pointer, like find and find next.
+Returns true if the tag/value pair is found. Does not update the current
+pointer, like find and find next.
 
 See Also:
 KM_Tag_Find()
@@ -215,8 +215,17 @@ bool KM_Tag_ContainsEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t enu
 
 /***************************************************************************
 Summary:
-Returns true if the tag/value pair is found. Can only be called on KM_UINT_REP
-types. Does not update the current pointer, like find and find next.
+Same as above except it returns the tag.
+
+See Also:
+KM_Tag_Find()
+***************************************************************************/
+km_tag_value_t* KM_Tag_FindEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t enumerated);
+
+/***************************************************************************
+Summary:
+Returns true if the tag/value pair is found. Does not update the current
+pointer, like find and find next.
 
 See Also:
 KM_Tag_Find()
@@ -225,8 +234,8 @@ bool KM_Tag_ContainsInteger(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t 
 
 /***************************************************************************
 Summary:
-Returns true if the tag/value pair is found. Can only be called on KM_ULONG_REP
-types. Does not update the current pointer, like find and find next.
+Returns true if the tag/value pair is found. Does not update the current
+pointer, like find and find next.
 
 See Also:
 KM_Tag_Find()
@@ -303,12 +312,13 @@ Summary:
 Remove a tag from the context. This works based on the result of
 KM_Tag_FindFirst, KM_Tag_FindNext or KM_Tag_FindNth. NOT KM_Tag_Dup. Note
 that this does not free the tag_value_pair. It will have to be freed
-by the caller.
+by the caller by calling KM_Tag_Free.
 
 See Also:
 KM_Tag_FindFirst()
 KM_Tag_FindNext()
 KM_Tag_FindNth()
+KM_Tag_Free()
 ***************************************************************************/
 BERR_Code KM_Tag_Remove(KM_Tag_ContextHandle handle, km_tag_value_t *tag_value_pair);
 

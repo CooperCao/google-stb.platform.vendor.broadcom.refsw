@@ -134,6 +134,11 @@ static INLINE CLIENT_THREAD_STATE_T *CLIENT_GET_THREAD_STATE(void)
 struct CLIENT_PROCESS_STATE {
 
    /*
+    * EGL display this state belongs to
+    */
+   EGLDisplay display;
+
+   /*
    number of current contexts across all threads in this process. this is valid
    even if !inited
    */
@@ -151,6 +156,17 @@ struct CLIENT_PROCESS_STATE {
    Only client_process_state_init/client_process_state_term modify this value
    */
    bool inited;
+
+   /*
+   platform_inited
+
+   It specifies whether BEGL display platform has been initialised.
+   Initialisation happens in eglInitialise() but termination may be deferred
+   past the eglTerminate() if any thread still holds a current context.
+   Platform termination can happen in eglTerminate(), eglMakeCurrent(),
+   eglReleaseThread() or in the thread-local storage destructor.
+   */
+   bool platform_inited;
 
    /*
    contexts

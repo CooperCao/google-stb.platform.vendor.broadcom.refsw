@@ -40,12 +40,12 @@
 
 BDBG_MODULE(bdsp_buf);
 
-void BDSP_P_Analyse_CIT_TSMConfig(
+void BDSP_P_Analyse_CIT_TSMConfig_isr(
 	BDSP_MMA_Memory Memory
 )
 {
 	BDSP_AudioTaskTsmSettings *pTsmSettings;
-	BDBG_ENTER(BDSP_P_Analyse_CIT_TSMConfig);
+	BDBG_ENTER(BDSP_P_Analyse_CIT_TSMConfig_isr);
 
 	pTsmSettings = (BDSP_AudioTaskTsmSettings *)Memory.pAddr;
 	BDBG_MSG(("TSM CONFIG"));
@@ -66,7 +66,7 @@ void BDSP_P_Analyse_CIT_TSMConfig(
 	BDBG_MSG(("\t TSM Log Enable        = %s",DisableEnable[pTsmSettings->eTsmLogEnable]));
 	BDBG_MSG(("\t ASTM Enable           = %s",DisableEnable[pTsmSettings->eAstmEnable]));
 	BDBG_MSG(("-------------------- "));
-	BDBG_LEAVE(BDSP_P_Analyse_CIT_TSMConfig);
+	BDBG_LEAVE(BDSP_P_Analyse_CIT_TSMConfig_isr);
 }
 
 void BDSP_P_Analyse_CIT_GateOpenConfig(

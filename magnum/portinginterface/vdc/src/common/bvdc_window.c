@@ -2998,8 +2998,15 @@ BERR_Code BVDC_Window_SetUserCaptureBufferCount
     ( BVDC_Window_Handle        hWindow,
       unsigned int              uiCaptureBufferCount )
 {
+    BERR_Code eRet = BERR_SUCCESS;
     BDBG_ENTER(BVDC_Window_SetUserCaptureBufferCount);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+
+#if BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM
+    BSTD_UNUSED(hWindow);
+    BSTD_UNUSED(uiCaptureBufferCount);
+    eRet = BERR_NOT_SUPPORTED;
+#else
 
     if (uiCaptureBufferCount > BVDC_P_MAX_USER_CAPTURE_BUFFER_COUNT)
     {
@@ -3011,8 +3018,9 @@ BERR_Code BVDC_Window_SetUserCaptureBufferCount
     /* set dirty bit */
     hWindow->stNewInfo.stDirty.stBits.bUserCaptureBuffer = BVDC_P_DIRTY;
 
+#endif
     BDBG_LEAVE(BVDC_Window_SetUserCaptureBufferCount);
-    return BERR_SUCCESS;
+    return eRet;
 }
 
 /***************************************************************************
@@ -3029,6 +3037,14 @@ BERR_Code BVDC_Window_GetBuffer
     BDBG_ASSERT(pCapturedImage);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
+#if BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM
+    BSTD_UNUSED(hWindow);
+    BSTD_UNUSED(stCaptPic);
+
+    pCapturedImage->captureBuffer.hPixels = NULL;
+    pCapturedImage->rCaptureBuffer.hPixels = NULL;
+    eRet = BERR_NOT_SUPPORTED;
+#else
     BKNI_EnterCriticalSection();
     eRet = BVDC_P_Window_CapturePicture_isr(hWindow, &stCaptPic);
     BKNI_LeaveCriticalSection();
@@ -3074,9 +3090,10 @@ BERR_Code BVDC_Window_GetBuffer
         pCapturedImage->captureBuffer.hPixels = NULL;
         pCapturedImage->rCaptureBuffer.hPixels = NULL;
     }
+#endif
 
     BDBG_LEAVE(BVDC_Window_GetBuffer);
-    return BERR_TRACE(eRet);
+    return eRet;
 }
 
 /***************************************************************************
@@ -3092,6 +3109,11 @@ BERR_Code BVDC_Window_ReturnBuffer
     BDBG_ASSERT(pCapturedImage);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
+#if BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM
+    BSTD_UNUSED(hWindow);
+    BSTD_UNUSED(pCapturedImage);
+    eRet = BERR_NOT_SUPPORTED;
+#else
     BKNI_EnterCriticalSection();
     eRet = BVDC_P_Window_ReleasePicture_isr(hWindow, &pCapturedImage->captureBuffer);
     BKNI_LeaveCriticalSection();
@@ -3120,9 +3142,10 @@ BERR_Code BVDC_Window_ReturnBuffer
             pCapturedImage->rCaptureBuffer.hPixels = NULL;
         }
     }
+#endif
 
     BDBG_LEAVE(BVDC_Window_ReturnBuffer);
-    return BERR_SUCCESS;
+    return eRet;
 }
 
 /***************************************************************************

@@ -16,6 +16,24 @@
 #include <cutils/log.h>
 #endif
 
+static BEGL_InitInterface     s_initInterface;
+
+/* Register application level overrides for any or all of the abstract API calls made by the 3D driver. */
+EGLAPI void EGLAPIENTRY BEGL_RegisterInitInterface(BEGL_InitInterface *iface)
+{
+   if (iface)
+   {
+      vcos_demand(iface->GetDisplay != NULL);
+      vcos_demand(iface->Initialize != NULL);
+      vcos_demand(iface->Terminate != NULL);
+      s_initInterface = *iface;
+   }
+   else
+   {
+      memset(&s_initInterface, 0, sizeof(s_initInterface));
+   }
+}
+
 BEGL_BufferFormat format_to_abstract_bufferformat(KHRN_IMAGE_FORMAT_T format)
 {
    BEGL_BufferFormat ret;
@@ -187,14 +205,107 @@ MEM_HANDLE_T egl_server_platform_create_pixmap_info(void *platform_pixmap, bool 
    return mh_image;
 }
 
-void egl_server_platform_init(void)
-{
-}
-
 static EGLDisplay egl_server_platform_default_display(void)
 {
    /* return the first display */
    return (EGLDisplay)1;
+}
+
+EGLDisplay egl_server_platform_get_display(EGLenum platform,
+      void *native_display, const EGLint *attrib_list, EGLint *error)
+{
+   EGLDisplay display;
+
+   if (s_initInterface.GetDisplay)
+   {
+      BEGL_DisplayHandle handle;
+      BEGL_Error res;
+
+      res = s_initInterface.GetDisplay(s_initInterface.context, platform,
+            native_display, attrib_list, &handle);
+      if (res == BEGL_Success)
+      {
+         display = (EGLDisplay)handle;
+         *error = EGL_SUCCESS;
+      }
+      else /* BEGL_Fail means that platform parameter was invalid */
+      {
+         display = EGL_NO_DISPLAY;
+         *error = EGL_BAD_PARAMETER;
+      }
+   }
+   else if (platform == BEGL_DEFAULT_PLATFORM)
+   {
+      /* legacy mode for default platform: only default display is available */
+      if (native_display == EGL_DEFAULT_DISPLAY)
+         display = egl_server_platform_default_display();
+      else
+         display = EGL_NO_DISPLAY;
+      *error = EGL_SUCCESS;
+   }
+   else
+   {
+      /* legacy mode for non-default platform */
+      display = EGL_NO_DISPLAY;
+      *error = EGL_BAD_PARAMETER;
+   }
+   return display;
+}
+
+EGLint egl_server_platform_init(EGLDisplay display)
+{
+   EGLint error;
+
+   if (s_initInterface.Initialize)
+   {
+      BEGL_DisplayHandle handle = (BEGL_DisplayHandle)display;
+      if (handle)
+      {
+         if (s_initInterface.Initialize(s_initInterface.context,
+               handle) == BEGL_Success)
+            error = EGL_SUCCESS;
+         else
+            error = EGL_NOT_INITIALIZED;
+      }
+      else
+         error = EGL_BAD_DISPLAY;
+   }
+   else if (display == egl_server_platform_default_display())
+   {
+      /* legacy mode for default display: platform was already initialised */
+      error = EGL_SUCCESS;
+   }
+   else
+   {
+      /* legacy mode for non-default display */
+      error = EGL_BAD_DISPLAY;
+   }
+   return error;
+}
+
+EGLint egl_server_platform_term(EGLDisplay display)
+{
+   EGLint error;
+
+   if (s_initInterface.Terminate)
+   {
+      BEGL_DisplayHandle handle = (BEGL_DisplayHandle)display;
+      if (s_initInterface.Terminate(s_initInterface.context, handle) == BEGL_Success)
+         error = EGL_SUCCESS;
+      else
+         error = EGL_BAD_DISPLAY;
+   }
+   else if (display == egl_server_platform_default_display())
+   {
+      /* legacy mode for default display: platform will be terminated later */
+      error = EGL_SUCCESS;
+   }
+   else
+   {
+      /* legacy mode for non-default display */
+      error = EGL_BAD_DISPLAY;
+   }
+   return error;
 }
 
 bool egl_server_platform_create_window_state(BEGL_WindowState **windowState, uintptr_t window, bool secure)
@@ -416,29 +527,6 @@ MEM_HANDLE_T egl_server_platform_image_new(EGLenum target, void *native_buffer, 
       *error = EGL_BAD_MATCH;
       return MEM_HANDLE_INVALID;
    }
-}
-
-EGLDisplay egl_server_platform_set_display(EGLenum platform, void *native_display)
-{
-   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
-
-   if ((driverInterfaces->displayInterface != NULL) &&
-      (driverInterfaces->displayInterface->SetDisplay != NULL))
-   {
-      BEGL_Error res;
-
-      res = driverInterfaces->displayInterface->SetDisplay(
-            driverInterfaces->displayInterface->context, platform,
-            native_display);
-      if (res != BEGL_Success)
-         return EGL_NO_DISPLAY;
-      return egl_server_platform_default_display();
-   }
-   else if (platform == BEGL_DEFAULT_PLATFORM
-         && native_display == EGL_DEFAULT_DISPLAY)
-      return egl_server_platform_default_display();
-   else
-      return EGL_NO_DISPLAY;
 }
 
 uint32_t egl_server_platform_get_color_format(KHRN_IMAGE_FORMAT_T format)

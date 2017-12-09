@@ -6,6 +6,19 @@
 #include "vcos_atomic.h"
 #include "libs/platform/v3d_scheduler.h"
 
+static inline khrn_resource* khrn_resource_create_with_handle(gmem_handle_t handle)
+{
+   return khrn_resource_create_with_handles(1, &handle);
+}
+
+static inline bool khrn_resource_has_storage(const khrn_resource* res)
+{
+   bool has_storage = res->handles[0] != GMEM_HANDLE_INVALID;
+   for (unsigned i = 1; i != res->num_handles; ++i)
+      assert(has_storage == (res->handles[i] != GMEM_HANDLE_INVALID));
+   return has_storage;
+}
+
 static inline bool khrn_resource_has_reader(khrn_resource const* resource)
 {
    return resource->readers != 0;
@@ -64,6 +77,8 @@ static inline void khrn_resource_end_access(
    v3d_size_t length,
    khrn_access_flags_t map_flags)
 {
+   assert(res->num_handles == 1);
+
    assert(start + length >= length);
 
    // Assert that data was synced to CPU.
@@ -73,8 +88,14 @@ static inline void khrn_resource_end_access(
    if (map_flags & KHRN_ACCESS_WRITE)
    {
       gmem_flush_mapped_range(
-         res->handle,
+         res->handles[0],
          start,
          length);
    }
+}
+
+static inline v3d_addr_t khrn_resource_get_addr(const khrn_resource *res)
+{
+   assert(res->num_handles == 1);
+   return gmem_get_addr(res->handles[0]);
 }

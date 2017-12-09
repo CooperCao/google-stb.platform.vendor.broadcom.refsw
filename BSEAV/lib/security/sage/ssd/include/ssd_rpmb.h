@@ -53,11 +53,16 @@ enum rpmb_op_type {
     MMC_RPMB_READ_RESP = 0x05
 };
 
+#define SSD_RPMB_FRAME_STUFF_SIZE (196)
+#define SSD_RPMB_FRAME_KEYMAC_SIZE (32)
+#define SSD_RPMB_FRAME_DATA_SIZE (256)
+#define SSD_RPMB_FRAME_NONCE_SIZE (16)
+
 typedef struct ssd_rpmb_frame_s {
-    uint8_t  stuff[196];
-    uint8_t  key_mac[32];
-    uint8_t  data[256];
-    uint8_t  nonce[16];
+    uint8_t  stuff[SSD_RPMB_FRAME_STUFF_SIZE];
+    uint8_t  key_mac[SSD_RPMB_FRAME_KEYMAC_SIZE];
+    uint8_t  data[SSD_RPMB_FRAME_DATA_SIZE];
+    uint8_t  nonce[SSD_RPMB_FRAME_NONCE_SIZE];
     uint32_t write_counter;
     uint16_t addr;
     uint16_t block_count;

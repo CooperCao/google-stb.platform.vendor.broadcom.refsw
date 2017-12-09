@@ -1599,3 +1599,8 @@ bool NEXUS_Platform_P_IsOs64(void)
     }
     return result;
 }
+
+bool NEXUS_Platform_P_LazyUnmap(void)
+{
+    return false;
+}

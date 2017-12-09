@@ -38,8 +38,6 @@
 
 /* base modules */
 #include "bstd.h"           /* standard types */
-#include "berr.h"           /* error code */
-#include "bdbg.h"           /* debug interface */
 #include "bkni.h"           /* kernel interface */
 
 #include "btmr.h"
@@ -466,6 +464,7 @@ BVCE_S_AllocateDeviceMemory(
    BERR_Code rc = BERR_SUCCESS;
 
    /* Allocate memory */
+#if ( BVCE_P_CORE_MAJOR <= 2 )
    {
       BVCE_P_Buffer_AllocSettings stAllocSettings;
 
@@ -491,6 +490,9 @@ BVCE_S_AllocateDeviceMemory(
       (unsigned long) BVCE_P_Buffer_GetSize( hVce->hCabacCmdBuffer ),
       BDBG_UINT64_ARG(BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->hCabacCmdBuffer ))
       ));
+#else
+   BSTD_UNUSED( hVce );
+#endif
 
    return BERR_TRACE( rc );
 }
@@ -502,16 +504,20 @@ BVCE_S_FreeDeviceMemory(
          )
 {
    /* Free Memory */
+#if ( BVCE_P_CORE_MAJOR <= 2 )
    if ( NULL != hVce->hCabacCmdBuffer )
    {
       BDBG_MODULE_MSG( BVCE_MEMORY, ("Free CABAC CMD Memory Buffer: %08lx bytes @ "BDBG_UINT64_FMT,
          (unsigned long) BVCE_P_Buffer_GetSize( hVce->hCabacCmdBuffer ),
          BDBG_UINT64_ARG(BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->hCabacCmdBuffer ))
          ));
-   }
 
-   BVCE_P_Buffer_Free ( hVce->hCabacCmdBuffer );
-   hVce->hCabacCmdBuffer = NULL;
+      BVCE_P_Buffer_Free ( hVce->hCabacCmdBuffer );
+      hVce->hCabacCmdBuffer = NULL;
+   }
+#else
+   BSTD_UNUSED( hVce );
+#endif
 }
 
 static
@@ -1910,8 +1916,10 @@ BVCE_S_SendCommand_Init(
    hVce->fw.stCommand.type.stInit.DeviceEndianess = 0;
 #endif
 
+#if ( BVCE_P_CORE_MAJOR <= 2 )
    hVce->fw.stCommand.type.stInit.DeviceSG_CABACCmdBuffPtr = (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->hCabacCmdBuffer ); /* Only used on 32-bit VICEv2, so safe to cast to 32-bit */
    hVce->fw.stCommand.type.stInit.DeviceSG_CABACCmdBuffSize = BVCE_P_Buffer_GetSize( hVce->hCabacCmdBuffer );
+#endif
 
    hVce->fw.stCommand.type.stInit.VerificationModeFlags = 0;
    hVce->fw.stCommand.type.stInit.VerificationModeFlags |= hVce->stOpenSettings.bVerificationMode ? INIT_CMD_VERIFICATION_MODE_MASK : 0;
@@ -4313,6 +4321,11 @@ BVCE_Debug_S_DumpRegisters_impl(
        hVce->handles.hReg,
        &hVce->stPlatformConfig.stWatchdogRegisterDumpList
        );
+
+    BVCE_Platform_P_DumpRegisterList(
+       hVce->handles.hReg,
+       &hVce->stPlatformConfig.stHostCPUDebugRegisterDumpList
+       );
 #else
     BSTD_UNUSED( hVce );
 #endif
@@ -4432,6 +4445,7 @@ BVCE_Channel_Debug_S_DumpState_impl(
          BVCE_Debug_P_CloseLog( hLog );
       }
 
+#if ( BVCE_P_CORE_MAJOR <= 2 )
       /* CMD Buffer */
       if ( ( true == pstDumpStateSettings->bDumpCmdBuffer ) && ( 0 != hVceCh->hVce->stPlatformConfig.stDebug.stCmd.uiBasePointer ) )
       {
@@ -4451,6 +4465,7 @@ BVCE_Channel_Debug_S_DumpState_impl(
             BVCE_P_Buffer_UnlockAddress( hVceCh->hVce->hCabacCmdBuffer );
          }
       }
+#endif
 
       /* BIN Buffer */
       if ( ( true == pstDumpStateSettings->bDumpBinBuffer ) && ( 0 != hVceCh->hVce->stPlatformConfig.stDebug.stBin[hVceCh->stOpenSettings.uiInstance].uiBasePointer ) )
@@ -6881,9 +6896,10 @@ BVCE_Channel_UserData_AddBuffers_isr(
 
    *puiQueuedCount = 0;
 
-   if ( BAVC_VideoCompressionStd_eVP8 == hVceCh->stStartEncodeSettings.stProtocolInfo.eProtocol )
+   if ( ( BAVC_VideoCompressionStd_eVP8 == hVceCh->stStartEncodeSettings.stProtocolInfo.eProtocol )
+         || ( BAVC_VideoCompressionStd_eVP9 == hVceCh->stStartEncodeSettings.stProtocolInfo.eProtocol ) )
    {
-      BDBG_MODULE_WRN( BVCE_USERDATA, ("User data not allowed with VP8") );
+      BDBG_MODULE_WRN( BVCE_USERDATA, ("User data not allowed with VP8/VP9") );
       rc = BERR_TRACE( BERR_INVALID_PARAMETER );
    }
    else if ( BVCE_P_Status_eStarted == hVceCh->eStatus )
@@ -7369,7 +7385,9 @@ BVCE_GetMemoryConfig(
         || ( ( NULL != pstPlatformSettings )
            && ( BVCE_Platform_P_IsInstanceSupported( pstPlatformSettings->hBox, pstPlatformSettings->uiInstance ) ) ) )
    {
+#if ( BVCE_P_CORE_MAJOR <= 2 )
       pstMemoryConfig->uiSecureMemSize = MIN_CMD_BUFFER_SIZE_IN_BYTES;
+#endif
       pstMemoryConfig->uiGeneralMemSize = BVCE_P_DEFAULT_DEBUG_LOG_SIZE * BVCE_PLATFORM_P_NUM_ARC_CORES;
       pstMemoryConfig->uiGeneralMemSize += BVCE_P_MAX_DEBUG_FIFO_COUNT * sizeof( BVCE_P_DebugFifo_Entry );
       {
@@ -7642,6 +7660,9 @@ BVCE_Power_Standby(
 
       /* Dump VCE HW Registers to Console */
       BVCE_Debug_DumpRegisters(hVce);
+#if BVCE_P_ASSERT_ON_WATCHDOG
+      BDBG_ASSERT(0);
+#endif
    }
 #endif
 

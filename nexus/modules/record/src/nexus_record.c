@@ -52,6 +52,12 @@
 
 BDBG_MODULE(nexus_record);
 
+/**
+This is an aggressive debug mode for record.
+It should not be used in a real system.
+#define B_VALIDATE_NAV_ENTRIES 1
+**/
+
 #define BDBG_MSG_TRACE(x) /* BDBG_MSG(x) */
 
 typedef struct NEXUS_Record_P_PidChannel {
@@ -559,14 +565,9 @@ NEXUS_Record_P_Overflow(void *context)
     return;
 }
 
-/**
-This is an aggressive debug mode for record.
-It should not be used in a real system.
-#define B_VALIDATE_NAV_ENTRIES 1
-**/
 #if B_VALIDATE_NAV_ENTRIES
 #include "../src/bcmindexerpriv.h"
-static bool validate_entry(BNAV_Entry *entry)
+static bool validate_entry(unsigned index, BNAV_Entry *entry)
 {
     /* some of these ranges are excessive, but we're mainly looking for corruptions which should have wildly
     different values */
@@ -575,7 +576,7 @@ static bool validate_entry(BNAV_Entry *entry)
         return false;
     }
     if (BNAV_get_seqHdrStartOffset(entry) > 10 * 1000000) { /* GOP byte size */
-        BDBG_ERR(("invalid BNAV_get_seqHdrStartOffset: %d", BNAV_get_seqHdrStartOffset(entry)));
+        BDBG_ERR(("invalid BNAV_get_seqHdrStartOffset: %ld", BNAV_get_seqHdrStartOffset(entry)));
         return false;
     }
     if (BNAV_get_refFrameOffset(entry) > 500) { /* # of pictures in a GOP */
@@ -589,8 +590,18 @@ static bool validate_entry(BNAV_Entry *entry)
     /* NOTE: we're not checking file offset. to do this right for N records, we would need a data structure.
     checking for frameSize should be sufficient. */
     if (BNAV_get_frameSize(entry) > 1000000) { /* largest I frame would be MPEG HD */
-        BDBG_ERR(("invalid BNAV_get_frameSize: %d", BNAV_get_frameSize(entry)));
+        BDBG_ERR(("invalid BNAV_get_frameSize: %ld", BNAV_get_frameSize(entry)));
         return false;
+    }
+    if (index > 0) {
+        if (BNAV_get_timestamp(entry) == 0) {
+            BDBG_ERR(("invalid zero timestamp for index %u", index));
+            return false;
+        }
+        if (BNAV_get_frameOffset(entry) == 0) {
+            BDBG_ERR(("invalid zero offset for index %u", index));
+            return false;
+        }
     }
     return true;
 }
@@ -608,7 +619,7 @@ NEXUS_Record_P_WriteNav(const void *p_bfr, unsigned long numEntries, unsigned lo
     bool fail = false;
     unsigned i;
     for (i=0;i<numEntries;i++) {
-        if (!validate_entry(&((BNAV_Entry*)p_bfr)[i]))
+        if (!validate_entry(record->picturesIndexed+i, &((BNAV_Entry*)p_bfr)[i]))
             fail = true;
     }
 #endif

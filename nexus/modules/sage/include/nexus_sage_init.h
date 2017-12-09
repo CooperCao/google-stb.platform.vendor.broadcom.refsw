@@ -65,6 +65,7 @@ typedef struct NEXUS_SageModuleInternalSettings
         NEXUS_MemoryBlockHandle block;
         unsigned size;
     } videoDecoderFirmware;
+    bool lazyUnmap;
 } NEXUS_SageModuleInternalSettings;
 
 

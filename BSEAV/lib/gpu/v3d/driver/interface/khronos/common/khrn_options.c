@@ -78,7 +78,7 @@ void khrn_init_options(void)
    khrn_options.glsl_debug_on = false;
    khrn_options.glsl_optimizations_on = true;
    khrn_options.disable_tweaks = false;
-#ifdef ANDROID
+#if defined(ANDROID) || defined(WAYLAND)
    khrn_options.shadow_egl_images = true;
 #else
    khrn_options.shadow_egl_images = false;
