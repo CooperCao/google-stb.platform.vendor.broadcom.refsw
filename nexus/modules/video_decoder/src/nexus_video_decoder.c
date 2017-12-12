@@ -4327,8 +4327,7 @@ static void NEXUS_P_SetVideoDecoderCapabilities(void)
 static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVideoDecoderLite, const BXDM_DisplayInterruptInfo *pstDisplayInterruptInfo, BAVC_MFD_Picture **pMFDPicture, BXDM_Picture *pstDispPicture, BAVC_Polarity SrcPolarity)
 {
     BAVC_MFD_Picture *pCurrentMFDPicture;
-    *pMFDPicture = &pVideoDecoderLite->pMFDPicture[0];
-    pCurrentMFDPicture = *pMFDPicture;
+    *pMFDPicture = pCurrentMFDPicture = &pVideoDecoderLite->MFDPicture;
 
     if (pstDispPicture)
     {
@@ -4382,6 +4381,8 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
         pCurrentMFDPicture->ulDisplayVerticalSize = pCurrentMFDPicture->ulSourceVerticalSize; /* needs to be the post cropped value */
 
 
+        pCurrentMFDPicture->ulIdrPicID = 0;
+        pCurrentMFDPicture->int32_PicOrderCnt = 0;
         if (pstDispPicture->stPOC.bValid == true)
         {
             pCurrentMFDPicture->ulIdrPicID = pstDispPicture->stPOC.uiPictureId;
@@ -4414,6 +4415,23 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
         pCurrentMFDPicture->ulChannelId = 0;
         pCurrentMFDPicture->bPictureRepeatFlag = 0;
 
+        pCurrentMFDPicture->eMatrixCoefficients = BAVC_MatrixCoefficients_eUnknown;
+        pCurrentMFDPicture->eColorPrimaries = BAVC_ColorPrimaries_eUnknown;
+        pCurrentMFDPicture->eTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown;
+        pCurrentMFDPicture->ePreferredTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown; /* SWSTB-1629 */
+
+        pCurrentMFDPicture->ulAvgContentLight = 0;
+        pCurrentMFDPicture->ulMaxContentLight = 0;
+        pCurrentMFDPicture->stDisplayPrimaries[0].ulX = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[0].ulY = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[1].ulX = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[1].ulY = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[2].ulX = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[2].ulY = 0xFFFFFFFF;
+        pCurrentMFDPicture->stWhitePoint.ulX          = 0xFFFFFFFF;
+        pCurrentMFDPicture->stWhitePoint.ulY          = 0xFFFFFFFF;
+        pCurrentMFDPicture->ulMaxDispMasteringLuma    = 0xFFFFFFFF;
+        pCurrentMFDPicture->ulMinDispMasteringLuma    = 0xFFFFFFFF;
 
         pCurrentMFDPicture->bValidAfd = pstDispPicture->stActiveFormatDescription.bValid;
         pCurrentMFDPicture->ulAfd = pstDispPicture->stActiveFormatDescription.uiValue;
@@ -4429,10 +4447,37 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
             pCurrentMFDPicture->eChrominanceInterpolationMode  = BAVC_InterpolationMode_eField;
         }
 
-        pCurrentMFDPicture->eColorPrimaries = pstDispPicture->stDisplayInfo.eColorPrimaries;
-        pCurrentMFDPicture->eMatrixCoefficients = pstDispPicture->stDisplayInfo.eMatrixCoefficients;
-        pCurrentMFDPicture->eTransferCharacteristics = pstDispPicture->stDisplayInfo.eTransferCharacteristics;
+        if ( pstDispPicture->stDisplayInfo.bValid )
+        {
+            const BXDM_Picture_DisplayInfo * pDisplayInfo = &pstDispPicture->stDisplayInfo;
+            const BXDM_Picture_HDR * pHDRInfo = &pstDispPicture->stHDR;
 
+            pCurrentMFDPicture->eMatrixCoefficients = pDisplayInfo->eMatrixCoefficients;
+            pCurrentMFDPicture->eColorPrimaries = pDisplayInfo->eColorPrimaries;
+            if ((BAVC_MatrixCoefficients_eItu_R_BT_470_2_BG == pDisplayInfo->eMatrixCoefficients) &&
+                (BAVC_ColorPrimaries_eSmpte_170M == pDisplayInfo->eColorPrimaries || BAVC_ColorPrimaries_eItu_R_BT_470_2_M == pDisplayInfo->eColorPrimaries ||
+                BFMT_NTSC_HEIGHT == pCurrentMFDPicture->ulDisplayVerticalSize))
+            {
+                pCurrentMFDPicture->eMatrixCoefficients = BAVC_MatrixCoefficients_eSmpte_170M;
+            }
+
+            pCurrentMFDPicture->eTransferCharacteristics          = pDisplayInfo->eTransferCharacteristics;
+            pCurrentMFDPicture->ePreferredTransferCharacteristics = pHDRInfo->uiTransferCharacteristics;
+
+            /* HEVC HDR Metadata */
+            if ( BAVC_VideoCompressionStd_eH265 == pstDispPicture->stProtocol.eProtocol )
+            {
+                pCurrentMFDPicture->ulAvgContentLight    = pHDRInfo->ulAvgContentLight;
+                pCurrentMFDPicture->ulMaxContentLight    = pHDRInfo->ulMaxContentLight;
+
+                pCurrentMFDPicture->stDisplayPrimaries[0]    = pHDRInfo->stDisplayPrimaries[0];
+                pCurrentMFDPicture->stDisplayPrimaries[1]    = pHDRInfo->stDisplayPrimaries[1];
+                pCurrentMFDPicture->stDisplayPrimaries[2]    = pHDRInfo->stDisplayPrimaries[2];
+                pCurrentMFDPicture->stWhitePoint             = pHDRInfo->stWhitePoint;
+                pCurrentMFDPicture->ulMaxDispMasteringLuma   = pHDRInfo->ulMaxDispMasteringLuma;
+                pCurrentMFDPicture->ulMinDispMasteringLuma   = pHDRInfo->ulMinDispMasteringLuma;
+            }
+        }
 
         if ( true == pstDispPicture->stBufferInfo.stChromaLocation[pCurrentMFDPicture->eSourcePolarity].bValid )
         {
@@ -4466,8 +4511,6 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
 
         pCurrentMFDPicture->ulLumaRangeRemapping = 0x08;
         pCurrentMFDPicture->ulChromaRangeRemapping = 0x08;
-
-
 
         if (pstDispPicture->stRangeRemapping.bValid)
         {
@@ -4816,8 +4859,7 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     BXDM_DisplayInterruptHandler_AddPictureProviderInterface_Settings addPictureProviderSettings;
 
     videoDecoder->externalTsm.stopped = false;
-    videoDecoder->externalTsm.pMFDPicture = &videoDecoder->externalTsm.MFDPicture;
-    BKNI_Memset( videoDecoder->externalTsm.pMFDPicture, 0, sizeof ( BAVC_MFD_Picture ));
+    BKNI_Memset(&videoDecoder->externalTsm.MFDPicture, 0, sizeof ( BAVC_MFD_Picture ));
 
     BDBG_MSG(("NEXUS_VideoDecoder_Initialize_Queue "));
 
@@ -5216,6 +5258,8 @@ static void NEXUS_VideoDecoder_P_ReturnOutstandingFrames_Avd(
         }
         /* Return active picture */
         DML_P_ReleasePic_isr(&videoDecoder->externalTsm,&videoDecoder->externalTsm.displayPic);
+        videoDecoder->externalTsm.displayPic.valid = false;
+        videoDecoder->externalTsm.displayPic.pDispPicture = NULL;
 
         BKNI_LeaveCriticalSection();
     }
