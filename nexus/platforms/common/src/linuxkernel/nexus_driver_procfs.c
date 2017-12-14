@@ -580,9 +580,9 @@ read:   brcm_proc_config_read,
 write:  brcm_proc_config_write
 };
 
-static struct proc_dir_entry *nexus_p_create_proc(struct proc_dir_entry *parent, const char *name, const struct file_operations *fops, void *context)
+static struct proc_dir_entry *nexus_p_create_proc(struct proc_dir_entry *parent, const char *name, const struct file_operations *fops, void *context, umode_t mode)
 {
-    return proc_create_data(name, S_IFREG|S_IRUGO, parent, fops, context);
+    return proc_create_data(name, mode, parent, fops, context);
 }
 
 int nexus_driver_proc_init(void)
@@ -603,13 +603,15 @@ int nexus_driver_proc_init(void)
 #if BDBG_DEBUG_BUILD
     brcm_debug_entry = nexus_p_create_proc(brcm_dir_entry, "debug",
                         &read_fops_debug,
-                        NULL);
+                        NULL,
+                        S_IFREG|S_IRUGO);
     if (!brcm_debug_entry) goto error;
 #endif
 
     brcm_config_entry = nexus_p_create_proc(brcm_dir_entry, "config",
                         &read_fops_config,
-                        NULL);
+                        NULL,
+                        S_IFREG|S_IRUGO|S_IWUGO);
     if (!brcm_config_entry) goto error;
 
     return 0;
@@ -691,7 +693,8 @@ int nexus_driver_proc_register_status(const char *filename, NEXUS_ModuleHandle h
 
     p = nexus_p_create_proc(brcm_dir_entry, filename,
             &read_fops_seq_dbgprint,
-            &g_proc_data[i]);
+            &g_proc_data[i],
+            S_IFREG|S_IRUGO);
     if (!p) { g_proc_data[i].filename = NULL; return -1; }
 #endif
     return 0;
