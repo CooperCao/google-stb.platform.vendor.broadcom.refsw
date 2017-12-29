@@ -77,9 +77,10 @@ NEXUS_Error NEXUS_VideoDecoder_GetUserDataBuffer(NEXUS_VideoDecoderHandle videoD
 
 void NEXUS_VideoDecoder_UserDataReadComplete(NEXUS_VideoDecoderHandle videoDecoder, unsigned size)
 {
-    unsigned userDataBufferSize = videoDecoder->openSettings.openSettings.userDataBufferSize;
+    unsigned userDataBufferSize;
 
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    userDataBufferSize = videoDecoder->openSettings.openSettings.userDataBufferSize;
     if (size > videoDecoder->userdata.lastGetBufferSize) {
         BDBG_ERR(("invalid UserDataReadComplete %d > %d", size, videoDecoder->userdata.lastGetBufferSize));
         /* flush so that app has chance of recovery */
@@ -436,6 +437,16 @@ static void NEXUS_VideoDecoder_P_ParseUserdata_isr(NEXUS_VideoDecoderHandle vide
     return;
 }
 
+NEXUS_PicturePolarity NEXUS_P_PicturePolarity_FromMagnum_isrsafe(BAVC_Polarity polarity)
+{
+    switch (polarity) {
+    case BAVC_Polarity_eTopField: return NEXUS_PicturePolarity_eTopField;
+    case BAVC_Polarity_eBotField: return NEXUS_PicturePolarity_eBottomField;
+    default:
+    case BAVC_Polarity_eFrame:    return NEXUS_PicturePolarity_eFrame;
+    }
+}
+
 void NEXUS_VideoDecoder_P_UserdataReady_isr(void *data, int unused, void *not_used)
 {
     BERR_Code rc = BXVD_ERR_USERDATA_NONE;
@@ -472,12 +483,11 @@ void NEXUS_VideoDecoder_P_UserdataReady_isr(void *data, int unused, void *not_us
             pad = 4 - ((sizeof(header) + info.ui32UserDataBufSize) % 4);
             if (pad == 4) pad = 0;
 
-            BDBG_CASSERT(BAVC_Polarity_eFrame == (BAVC_Polarity)NEXUS_PicturePolarity_eFrame);
-            BDBG_CASSERT(BAVC_USERDATA_Type_eSlice == (BAVC_USERDATA_Type)NEXUS_UserDataType_eSlice);
+            BDBG_CASSERT(BAVC_USERDATA_Type_eMax == (BAVC_USERDATA_Type)NEXUS_UserDataType_eMax);
             BDBG_CASSERT(BAVC_USERDATA_PictureCoding_eB == (BAVC_PictureCoding)NEXUS_PictureCoding_eB);
 
             header.blockSize = sizeof(header) + info.ui32UserDataBufSize + pad;
-            header.polarity = info.eSourcePolarity;
+            header.polarity = NEXUS_P_PicturePolarity_FromMagnum_isrsafe(info.eSourcePolarity);
             header.type = info.eUserDataType;
             header.topFieldFirst = info.bTopFieldFirst;
             header.repeatFirstField = info.bRepeatFirstField;

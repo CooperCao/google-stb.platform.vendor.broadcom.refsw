@@ -67,10 +67,10 @@ extern void wlc_csa_reset_all(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg);
 extern void wlc_csa_do_csa(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg,
 	wl_chan_switch_t *cs, bool docs);
 
-#ifdef AP
+#if (defined AP) || (defined CLIENT_CSA)
 extern int wlc_csa_do_channel_switch(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg,
 	chanspec_t chanspec, uint8 mode, uint8 count, uint8 reg_class, uint8 frame_type);
-#endif /* AP */
+#endif /* (defined AP) || (defined CLIENT_CSA) */
 
 /* IE build/parse */
 #ifdef WL11AC

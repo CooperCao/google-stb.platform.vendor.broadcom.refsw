@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
-      const uint32_t *f_shader, const uint32_t *f_unif,
+      v3d_addr_t fshader_addr, v3d_addr_t funif_addr,
       const glxx_rect *rect, float clear_depth_val);
 
 #ifdef __cplusplus

@@ -771,6 +771,7 @@ endif
 #ifdef WLLX
 ifeq ($(WLLX),1)
         WLFILES_SRC += src/wl/sys/wl_linux.c
+        WLFILES_SRC += src/wl/sys/wl_linux_vendor.c
 endif
 #endif
 
@@ -3021,6 +3022,10 @@ endif
 
 ifeq ($(NVRAM_MACADDR),1)
 	WLFLAGS += -DNVRAM_MACADDR
+endif
+
+ifeq ($(NVRAM_FLASH),1)
+        WLFLAGS += -DNVRAM_FLASH
 endif
 
 ifeq ($(WL_AUTH_SHARED_OPEN),1)

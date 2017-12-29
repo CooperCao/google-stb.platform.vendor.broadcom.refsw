@@ -635,7 +635,6 @@ wlc_recv(wlc_info_t *wlc, void *p)
 		if (!is_amsdu) {
 			/* toss this frame after evaluating the stats */
 			wlc_stamon_monitor(wlc, wrxh, p, NULL);
-			goto toss;
 		}
 	} else {
 		if (full_status)
@@ -4774,6 +4773,13 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 			WL_ASSOC(("wl%d: %s: invalid class %d frame from unknown station %s\n",
 				wlc->pub->unit, __FUNCTION__, class,
 				bcm_ether_ntoa(&h->a2, eabuf)));
+
+#ifdef WL_STA_MONITOR
+			if (STAMON_ENAB(wlc->pub) && STA_MONITORING(wlc, &h->a2)) {
+				goto done;
+			}
+#endif /* WL_STA_MONITOR */
+
 		}
 		else
 			WL_ASSOC(("wl%d: %s: invalid class %d frame from non-authenticated "
@@ -4862,6 +4868,12 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 		/* do not send a disassoc if we are on the way to associating since
 		 * our disassoc and an incoming assoc response may cross paths
 		 */
+#ifdef WL_STA_MONITOR
+		if (STAMON_ENAB(wlc->pub) && STA_MONITORING(wlc, &h->a2)) {
+			goto done;
+		}
+#endif /* WL_STA_MONITOR */
+
 		if (!ETHER_ISMULTI(&h->a1) && !(scb->state & PENDING_ASSOC) &&
 		    (rx_bandunit == (int) wlc->band->bandunit)) {
 

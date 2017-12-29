@@ -43,6 +43,7 @@
 #include "bbox_priv.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
+#include "bbox_rts_priv.h"
 #include "bbox_priv_modes.h"
 #include "bchp_common.h"
 #include "bchp_memc_arb_0.h"
@@ -441,6 +442,8 @@ BERR_Code BBOX_P_Vdc_SelfCheck
     /* Check each entry in MEMC table against appropriate entries in BBOX_Vdc_Capabilities */
     for (i=0; i<BBOX_VDC_DISPLAY_COUNT; i++)
     {
+        BAVC_SourceId eSrc;
+
         /* Check HDMI CFC memc index entries for CMP 0 and 1 only */
         if (i==0 || i==1)
         {
@@ -457,6 +460,26 @@ BERR_Code BBOX_P_Vdc_SelfCheck
                 BDBG_ERR(("CMP CFC allocation in MEMC %d doesn't correspond to display %d entry.",
                     pMemConfig->stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex, i));
                 eStatus = BERR_INVALID_PARAMETER;
+            }
+
+            for (eSrc = BAVC_SourceId_eMpeg0; eSrc <= BAVC_SourceId_eMpegMax; eSrc++)
+            {
+                if (pVdcCap->astSource[eSrc].bAvailable)
+                {
+                    /* This check suffices if one source is HDR capable ie., 10bpp source and one CMP has HDR MEMC client set. */
+                    if ((pMemConfig->stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[i] != BBOX_MemcIndex_Invalid ||
+                         pMemConfig->stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex  != BBOX_MemcIndex_Invalid) &&
+                        pVdcCap->astDisplay[i].bAvailable &&
+                        pVdcCap->astSource[eSrc].eBpp < BBOX_Vdc_Bpp_e10bit)
+                    {
+                        BDBG_ERR(("HDMI/CMP CFC allocation doesn't correspond to any MPEG source that is HDR capable."));
+                        eStatus = BERR_INVALID_PARAMETER;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
         }
 
@@ -617,26 +640,34 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
 
     if (hBox)
     {
-        uint32_t ulBoxId;
-        BBOX_Vdc_Capabilities *pstVdcCap;
-        BBOX_MemConfig *pstMemConfig;
+        uint32_t ulBoxId = hBox->stBoxConfig.stBox.ulBoxId;
+        BBOX_Vdc_Capabilities *pstVdcCap = NULL;
+        BBOX_MemConfig *pstMemConfig = NULL;
 
         pstVdcCap = (BBOX_Vdc_Capabilities *)BKNI_Malloc(sizeof(BBOX_Vdc_Capabilities));
-        pstMemConfig = (BBOX_MemConfig *)BKNI_Malloc(sizeof(BBOX_MemConfig));
-
-        for (ulBoxId=1; ulBoxId<=BBOX_MODES_SUPPORTED; ulBoxId++)
+        if (!pstVdcCap)
         {
-            BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Validating box mode %d", ulBoxId));
-             /* VDC */
-            /* Set defaults. */
-            BBOX_P_Vdc_SetDefaultCapabilities(pstVdcCap);
+            BDBG_ERR(("Failed to allocate memory."));
+            eStatus = BERR_OUT_OF_SYSTEM_MEMORY;
+            goto BBOX_Validate_Done;
 
-            eStatus = BBOX_P_ValidateId(ulBoxId);
-            if (eStatus == BBOX_ID_NOT_SUPPORTED)
-            {
-                continue;
-            }
+        }
+        pstMemConfig = (BBOX_MemConfig *)BKNI_Malloc(sizeof(BBOX_MemConfig));
+        if (!pstMemConfig)
+        {
+            BDBG_ERR(("Failed to allocate memory."));
+            eStatus = BERR_OUT_OF_SYSTEM_MEMORY;
+            goto BBOX_Validate_Done;
+        }
 
+        /* Set defaults. */
+        BBOX_P_Vdc_SetDefaultCapabilities(pstVdcCap);
+
+        /* Set default config settings  */
+        BBOX_P_SetDefaultMemConfig(pstMemConfig);
+
+        if (ulBoxId != 0)
+        {
             /* Set box specific limits */
             eStatus = BBOX_P_Vdc_SetCapabilities(ulBoxId, pstVdcCap);
             if (eStatus != BERR_SUCCESS)
@@ -644,30 +675,36 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
                 goto BBOX_Validate_Done;
             }
 
-            eStatus = BBOX_P_GetMemConfig(ulBoxId, pstMemConfig);
+            eStatus = BBOX_P_SetMemConfig(ulBoxId, pstMemConfig);
             if (eStatus != BERR_SUCCESS)
             {
                 goto BBOX_Validate_Done;
             }
+         }
 
-            /* Check memc assignment against BOX config */
-            eStatus = BBOX_P_Vdc_SelfCheck(pstMemConfig, pstVdcCap);
-            if (eStatus != BERR_SUCCESS)
-            {
-                eStatus = BERR_INVALID_PARAMETER;
-                goto BBOX_Validate_Done;
-            }
+        /* Check memc assignment against BOX config */
+        eStatus = BBOX_P_Vdc_SelfCheck(pstMemConfig, pstVdcCap);
+        if (eStatus != BERR_SUCCESS)
+        {
+            eStatus = BERR_INVALID_PARAMETER;
+            goto BBOX_Validate_Done;
         }
 
-        BKNI_Free(pstVdcCap);
-        BKNI_Free(pstMemConfig);
+BBOX_Validate_Done:
+        if (pstVdcCap)
+        {
+            BKNI_Free(pstVdcCap);
+        }
+        if (pstMemConfig)
+        {
+            BKNI_Free(pstMemConfig);
+        }
     }
     else
     {
         BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Box mode 0 doesn't require validation."));
     }
 
-BBOX_Validate_Done:
     return eStatus;
 }
 

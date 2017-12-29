@@ -40,6 +40,7 @@ void gl20_program_common_term(GL20_PROGRAM_COMMON_T *common)
    free(common->uniform_data);
    free(common->ubo_binding_point);
    free(common->ssbo_binding_point);
+   free(common->ssbo_dynamic_arrays);
 }
 
 void gl20_program_init(GL20_PROGRAM_T *program, int32_t name)
@@ -48,7 +49,7 @@ void gl20_program_init(GL20_PROGRAM_T *program, int32_t name)
    assert(program->vertex   == NULL);
    assert(program->fragment == NULL);
 
-   assert(program->mh_info == KHRN_MEM_HANDLE_INVALID);
+   assert(program->info == NULL);
    assert(program->bindings == NULL);
 
    program->sig                 = SIG_PROGRAM;
@@ -67,7 +68,7 @@ void gl20_program_init(GL20_PROGRAM_T *program, int32_t name)
 
    gl20_program_common_init(&program->common);
 
-   KHRN_MEM_ASSIGN(program->mh_info, KHRN_MEM_HANDLE_EMPTY_STRING);
+   KHRN_MEM_ASSIGN(program->info, khrn_mem_empty_string);
 
    program->debug_label = NULL;
 }
@@ -76,7 +77,7 @@ void gl20_program_term(void *v, size_t size)
 {
    GL20_PROGRAM_T *program = v;
 
-   vcos_unused(size);
+   unused(size);
 
    free_binding_array(program->bindings, program->num_bindings);
 
@@ -85,7 +86,7 @@ void gl20_program_term(void *v, size_t size)
    for (int i = 0; i < GLXX_CONFIG_MAX_TF_INTERLEAVED_COMPONENTS; ++i)
       free(program->transform_feedback.name[i]);
 
-   KHRN_MEM_ASSIGN(program->mh_info, KHRN_MEM_HANDLE_INVALID);
+   KHRN_MEM_ASSIGN(program->info, NULL);
 
    free(program->debug_label);
 }
@@ -191,11 +192,11 @@ void gl20_program_release(GL20_PROGRAM_T *program)
 }
 
 void gl20_program_save_error(GL20_PROGRAM_T *program, const char *error) {
-   khrn_mem_handle_t handle = khrn_mem_strdup(error);
+   char *dup = khrn_mem_strdup(error);
 
-   if (handle != KHRN_MEM_HANDLE_INVALID) {
-      KHRN_MEM_ASSIGN(program->mh_info, handle);
-      khrn_mem_release(handle);
+   if (dup) {
+      KHRN_MEM_ASSIGN(program->info, dup);
+      khrn_mem_release(dup);
    }
 }
 
@@ -335,10 +336,23 @@ static bool save_linked_program_data(GL20_PROGRAM_T *program, GLSL_PROGRAM_T *pr
    uint32_t *uniform_data        = calloc(num_scalar_uniforms,                            sizeof(uint32_t));
    unsigned *ubo_binding_point   = calloc(GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS,        sizeof(unsigned));
    unsigned *ssbo_binding_point  = calloc(GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS, sizeof(unsigned));
-   if(!uniform_data || !ubo_binding_point || !ssbo_binding_point) {
+
+   // Find the last buffer ID used to lookup dynamic array size.
+   unsigned num_ssbo_dynamic_arrays = 0;
+   for (unsigned b = 0; b != program_ir->num_buffer_blocks; ++b) {
+      const GLSL_BLOCK_T* block = &program_ir->buffer_blocks[b];
+      num_ssbo_dynamic_arrays = gfx_umax(num_ssbo_dynamic_arrays, block->index + block->array_length);
+   }
+
+   gl20_program_dynamic_array* ssbo_dynamic_arrays = NULL;
+   if (num_ssbo_dynamic_arrays != 0)
+      ssbo_dynamic_arrays = calloc(num_ssbo_dynamic_arrays, sizeof(gl20_program_dynamic_array));
+
+   if(!uniform_data || !ubo_binding_point || !ssbo_binding_point || (num_ssbo_dynamic_arrays && !ssbo_dynamic_arrays)) {
       free(uniform_data);
       free(ubo_binding_point);
       free(ssbo_binding_point);
+      free(ssbo_dynamic_arrays);
       return false;
    }
 
@@ -347,6 +361,7 @@ static bool save_linked_program_data(GL20_PROGRAM_T *program, GLSL_PROGRAM_T *pr
    free(common->uniform_data);
    free(common->ubo_binding_point);
    free(common->ssbo_binding_point);
+   free(common->ssbo_dynamic_arrays);
    glsl_program_free(common->linked_glsl_program);
 
    common->linked_glsl_program = program_ir;
@@ -354,25 +369,38 @@ static bool save_linked_program_data(GL20_PROGRAM_T *program, GLSL_PROGRAM_T *pr
    common->num_scalar_uniforms = num_scalar_uniforms;
    common->ubo_binding_point   = ubo_binding_point;
    common->ssbo_binding_point  = ssbo_binding_point;
+   common->ssbo_dynamic_arrays = ssbo_dynamic_arrays;
+   common->num_ssbo_dynamic_arrays = num_ssbo_dynamic_arrays;
 
    for (unsigned int i = 0; i < program_ir->num_ubo_bindings; i++) {
       unsigned block_index = program_ir->ubo_binding[i].id;
-      common->ubo_binding_point[block_index] = program_ir->ubo_binding[i].binding;
+      ubo_binding_point[block_index] = program_ir->ubo_binding[i].binding;
    }
 
    for (unsigned int i = 0; i < program_ir->num_ssbo_bindings; i++) {
       unsigned block_index = program_ir->ssbo_binding[i].id;
-      common->ssbo_binding_point[block_index] = program_ir->ssbo_binding[i].binding;
+      ssbo_binding_point[block_index] = program_ir->ssbo_binding[i].binding;
    }
 
    for (unsigned int i = 0; i < program_ir->num_sampler_bindings; i++) {
       unsigned loc = program_ir->sampler_binding[i].id;
-      common->uniform_data[loc] = program_ir->sampler_binding[i].binding;
+      uniform_data[loc] = program_ir->sampler_binding[i].binding;
    }
 
    for (unsigned int i = 0; i < program_ir->num_image_bindings; i++) {
       unsigned loc = program_ir->image_binding[i].id;
-      common->uniform_data[loc] = program_ir->image_binding[i].binding;
+      uniform_data[loc] = program_ir->image_binding[i].binding;
+   }
+
+   // Fill out the mapping of SSBO to dynamic-array info.
+   if (ssbo_dynamic_arrays != NULL) {
+      for (unsigned b = 0; b != program_ir->num_buffer_blocks; ++b) {
+         const GLSL_BLOCK_T* block = &program_ir->buffer_blocks[b];
+         for (unsigned i = 0; i != block->array_length; ++i) {
+            ssbo_dynamic_arrays[block->index + i].offset = block->dynamic_array_offset;
+            ssbo_dynamic_arrays[block->index + i].stride = block->dynamic_array_stride;
+         }
+      }
    }
 
    // Transform feedback
@@ -470,7 +498,7 @@ end:
 
 void gl20_program_link(GL20_PROGRAM_T *program)
 {
-   KHRN_MEM_ASSIGN(program->mh_info, KHRN_MEM_HANDLE_EMPTY_STRING);
+   KHRN_MEM_ASSIGN(program->info, khrn_mem_empty_string);
 
    GLSL_PROGRAM_T *program_ir;
    if (program->compute != NULL) program_ir = link_compute(program);
@@ -533,7 +561,7 @@ int gl20_is_program(GL20_PROGRAM_T *program)
 
 bool gl20_validate_program(GLXX_SERVER_STATE_T *state, GL20_PROGRAM_COMMON_T *program)
 {
-   vcos_unused(state);
+   unused(state);
 
    /*TODO */
    return program->link_status;

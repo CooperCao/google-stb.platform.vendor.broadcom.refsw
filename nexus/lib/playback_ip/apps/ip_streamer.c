@@ -574,9 +574,13 @@ parserIpStreamerOptions(
         }
 
         if((ipStreamerGlobalCfg->streamingCfg[i].streamingProtocol == B_PlaybackIpProtocol_eRtp) ||(ipStreamerGlobalCfg->streamingCfg[i].streamingProtocol == B_PlaybackIpProtocol_eUdp)) {
-                inet_aton(ipStreamerGlobalCfg->streamingCfg[i].streamingIpAddress, &sin_temp_addr);
-            ipStreamerGlobalCfg->multicastEnable = IN_MULTICAST(ntohl(sin_temp_addr.s_addr));
+            if (inet_aton(ipStreamerGlobalCfg->streamingCfg[i].streamingIpAddress, &sin_temp_addr) == 0)
+            {
+                BDBG_MSG(("inet_aton failed: invalid address %s", ipStreamerGlobalCfg->streamingCfg[i].streamingIpAddress));
+                goto error;
+            }
 
+            ipStreamerGlobalCfg->multicastEnable = IN_MULTICAST(ntohl(sin_temp_addr.s_addr));
         }
     }
     return 0;

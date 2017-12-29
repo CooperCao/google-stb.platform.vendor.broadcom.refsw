@@ -17,6 +17,7 @@ typedef struct SwapchainSurface
    BEGL_PixmapInfo   pixmap_info;
    bool              secure;
    unsigned          swap_interval;
+   unsigned          age;
    int               render_fence;
    int               display_fence;
    struct list       link;
@@ -31,6 +32,7 @@ typedef struct Swapchain
    struct queue render_queue;
    struct queue display_queue;
 
+   unsigned num_surfaces;
    SwapchainSurface *surfaces;
 } Swapchain;
 

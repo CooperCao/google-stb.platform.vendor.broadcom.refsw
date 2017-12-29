@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012-13 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -417,7 +417,7 @@ The load data statistics will be reset when the client data has been retrieved.
 NEXUS_Error NEXUS_Graphicsv3d_GetLoadData(
    NEXUS_Graphicsv3dClientLoadData *pLoadData,     /* [out] attr{nelem=uiNumClients;nelem_out=pValidClients;null_allowed=y} */
    uint32_t                         uiNumClients,
-   uint32_t                         *pValidClients
+   uint32_t                        *pValidClients
    );
 
 /**
@@ -428,24 +428,20 @@ Returns -1 if fences are not supported or a valid file descriptor if they are
 **/
 NEXUS_Error NEXUS_Graphicsv3d_FenceOpen(
    NEXUS_Graphicsv3dHandle          gfx,
-   int *fd                                         /* [out] file handle */
+   int *fd,                                        /* [out] file handle */
+   void **p,                                       /* [out] internal fence */
+   char cType,                                     /* [in] marker to distinguish where the fence was made */
+   int iPid                                        /* [in] creator process - as it might not be this one */
    );
 
 /**
 Summary:
-Move the fence timeline
+Async wait on a fence.
 **/
-NEXUS_Error NEXUS_Graphicsv3d_FenceSignal(
-   int fd
-   );
-
-/**
-Summary:
-Close a fence.  Done automatically when it triggers, but the user
-may want to kill an unsignalled fence.
-**/
-void NEXUS_Graphicsv3d_FenceClose(
-   int fd
+NEXUS_Error NEXUS_Graphicsv3d_FenceWaitAsync(
+   NEXUS_Graphicsv3dHandle          gfx,
+   int fd,                                         /* [in] file handle */
+   void **pV3dFence                                /* [out] internal async fence */
    );
 
 /**

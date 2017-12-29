@@ -90,6 +90,7 @@ void probe_media_get_default_request(struct probe_request *request)
     request->decrypt.algo = NEXUS_SecurityAlgorithm_eMax;
 }
 
+#if NEXUS_HAS_PLAYBACK
 static void probe_p_parse_mkv_block(void *data, unsigned len, struct probe_results *results)
 {
     bmkv_TrackEntryVideoColour colour;
@@ -105,70 +106,71 @@ static void probe_p_parse_mkv_block(void *data, unsigned len, struct probe_resul
         bmkv_element_print(bmkv_TrackEntryVideoColour_desc.entries, BDBG_eLog, 0, bmkv_TrackEntryVideoColour_desc.bmkv_parser_desc_name, &colour);
 
         if(colour.validate.MaxCLL) {
-            results->videoColourMasteringMetadata.contentLightLevel.max = (unsigned)colour.MaxCLL;
+            results->videoColorMasteringMetadata.contentLightLevel.max = (unsigned)colour.MaxCLL;
         }
         if(colour.validate.MaxFALL) {
-            results->videoColourMasteringMetadata.contentLightLevel.maxFrameAverage = (unsigned)colour.MaxFALL;
+            results->videoColorMasteringMetadata.contentLightLevel.maxFrameAverage = (unsigned)colour.MaxFALL;
         }
 
         if(colour.validate.TransferCharacteristics) {
-            results->videoColourMasteringMetadata.eotf =
+            results->videoColorMasteringMetadata.eotf =
                 (colour.TransferCharacteristics == 16) ? NEXUS_VideoEotf_eHdr10 : ((colour.TransferCharacteristics == 18) ? NEXUS_VideoEotf_eHlg : NEXUS_VideoEotf_eInvalid);
         }
 
         if(colour.validate.MasteringMetadata) {
-            results->videoColourMasteringMetadata.valid = true;
+            results->videoColorMasteringMetadata.valid = true;
 
             pmeta = &BMKV_TABLE_ELEM(colour.MasteringMetadata, bmkv_TrackEntryVideoColourMasteringMetadata, 0);
 
             if(pmeta->validate.PrimaryRChromaticityX) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.redPrimary.x = (int)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.redPrimary.x = (int)
                     ((pmeta->PrimaryRChromaticityX/2.0)*10000.0);
             }
             if(pmeta->validate.PrimaryRChromaticityY) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.redPrimary.y = (int)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.redPrimary.y = (int)
                     ((pmeta->PrimaryRChromaticityY/2.0)*10000.0);
             }
 
             if(pmeta->validate.PrimaryGChromaticityX) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.greenPrimary.x = (int)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.greenPrimary.x = (int)
                     ((pmeta->PrimaryGChromaticityX/2.0)*10000.0);
             }
             if(pmeta->validate.PrimaryGChromaticityY) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.greenPrimary.y = (int)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.greenPrimary.y = (int)
                     ((pmeta->PrimaryGChromaticityY/2.0)*10000.0);
             }
 
             if(pmeta->validate.PrimaryBChromaticityX) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.bluePrimary.x = (int)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.bluePrimary.x = (int)
                     ((pmeta->PrimaryBChromaticityX/2.0)*10000.0);
             }
             if(pmeta->validate.PrimaryBChromaticityY) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.bluePrimary.y = (int)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.bluePrimary.y = (int)
                     ((pmeta->PrimaryBChromaticityY/2.0)*10000.0);
             }
 
             if(pmeta->validate.WhitePointChromaticityX) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.x = (int)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.whitePoint.x = (int)
                     ((pmeta->WhitePointChromaticityX/2.0)*10000.0);
             }
             if(pmeta->validate.WhitePointChromaticityY) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.y = (int)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.whitePoint.y = (int)
                     ((pmeta->WhitePointChromaticityY/2.0)*10000.0);
             }
 
             if(pmeta->validate.LuminanceMax) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.max = (unsigned)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.luminance.max = (unsigned)
                     pmeta->LuminanceMax;
             }
             if(pmeta->validate.LuminanceMin) {
-                results->videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.min = (unsigned)
+                results->videoColorMasteringMetadata.masteringDisplayColorVolume.luminance.min = (unsigned)
                     (pmeta->LuminanceMin*10000.0);
             }
         }
         bmkv_element_shutdown(bmkv_TrackEntryVideoColour_desc.entries, &colour);
     }
 }
+#endif
 
 int probe_media_request(const struct probe_request *request, struct probe_results *results)
 {

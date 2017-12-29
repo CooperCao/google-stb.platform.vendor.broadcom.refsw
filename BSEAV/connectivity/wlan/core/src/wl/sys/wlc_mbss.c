@@ -678,13 +678,14 @@ wlc_bsscfg_macgen(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 		 */
 		bcopy(&wlc->pub->cur_etheraddr, &mbss->vether_base, ETHER_ADDR_LEN);
 		/* avoid collision */
-		mbss->vether_base.octet[5] += 1;
+		mbss->vether_base.octet[5] &= ~(WLC_MBSS_UCIDX_MASK(wlc->pub->corerev));
 
 		/* force locally administered address */
 		ETHER_SET_LOCALADDR(&mbss->vether_base);
 	}
 
 	bcopy(&mbss->vether_base, &newmac, ETHER_ADDR_LEN);
+	newmac.octet[5] |= (WLC_MBSS_UCIDX_MASK(wlc->pub->corerev) & (cfg->cur_etheraddr.octet[5] + 1));
 
 	/* brute force attempt to make a MAC for this interface,
 	 * the user didn't provide one.
@@ -764,6 +765,16 @@ mbss_bsscfg_up(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 		}
 	}
 
+	/* not primary and not macgen, we validate bsscfg cur_etheraddr to save vether_base */
+	if ((cfg != wlc->cfg) && (idx == WLC_MAXBSSCFG)) {
+		result = wlc_mbss_validate_mac(wlc, cfg, &cfg->cur_etheraddr);
+		if (result != BCME_OK) {
+			WL_ERROR(("wl%d.%d: %s: unable to validate MAC address\n",
+				wlc->pub->unit, WLC_BSSCFG_IDX(cfg), __FUNCTION__));
+			return result;
+		}
+	}
+
 	bmi = BSS_MBSS_INFO(mbss, cfg);
 	ASSERT(bmi != NULL);
 
@@ -798,6 +809,9 @@ mbss_bsscfg_up(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 	} else {
 		cfg->flags |= (WLC_BSSCFG_HW_BCN | WLC_BSSCFG_HW_PRB);
 	}
+
+	/* write to BSSID for wlc_BSSinit */
+	bcopy(&cfg->cur_etheraddr, &cfg->target_bss->BSSID, ETHER_ADDR_LEN);
 
 	return result;
 }

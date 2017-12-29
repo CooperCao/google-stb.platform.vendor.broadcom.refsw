@@ -132,11 +132,12 @@ static void playbackIpStreamerCallback(
     BIP_UdpStreamerHandle hUdpStreamer = appCtx;
 
     BDBG_ASSERT(hUdpStreamer);
-    BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer:state %p: %s, got eventId %d from PBIP: Defer the callback"
-                BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state), eventId ));
     if (hUdpStreamer)
     {
+        BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer);
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer:state %p: %s, got eventId %d from PBIP: Defer the callback"
+                    BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state), eventId ));
+
         B_Mutex_Lock( hUdpStreamer->hStateMutex );
         hUdpStreamer->state = BIP_UdpStreamerState_eStreamingDone;
         hUdpStreamer->playbackIpState.pbipEndOfStreamingCallback.callback = &playbackIpStreamerCallbackViaArbTimer;

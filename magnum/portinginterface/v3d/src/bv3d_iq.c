@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,7 +43,7 @@
 
 typedef struct BV3D_P_IQInstruction
 {
-   BV3D_Instruction * psInstruction;
+   BV3D_Instruction *psInstruction;
    BLST_Q_ENTRY(BV3D_P_IQInstruction)      sChain;
 } BV3D_P_IQInstruction;
 
@@ -101,7 +101,7 @@ BERR_Code BV3D_P_IQPush(
    BV3D_Instruction *psInstruction
 )
 {
-   BV3D_P_IQInstruction * pIQInstruction;
+   BV3D_P_IQInstruction *pIQInstruction;
 
    if ((hIQ == NULL) || (psInstruction == NULL))
       return BERR_INVALID_PARAMETER;
@@ -119,11 +119,11 @@ BERR_Code BV3D_P_IQPush(
 }
 
 /***************************************************************************/
-BV3D_Instruction * BV3D_P_IQPop(
+BV3D_Instruction *BV3D_P_IQPop(
    BV3D_IQHandle hIQ
 )
 {
-   BV3D_P_IQInstruction * pIQInstruction;
+   BV3D_P_IQInstruction *pIQInstruction;
    BV3D_Instruction *psInstruction = NULL;
 
    if (hIQ == NULL)
@@ -145,11 +145,11 @@ BV3D_Instruction * BV3D_P_IQPop(
 }
 
 /***************************************************************************/
-BV3D_Instruction * BV3D_P_IQTop(
+BV3D_Instruction *BV3D_P_IQTop(
    BV3D_IQHandle hIQ
 )
 {
-   BV3D_P_IQInstruction * pIQInstruction;
+   BV3D_P_IQInstruction *pIQInstruction;
    BV3D_Instruction *psInstruction;
 
    if (hIQ == NULL)
@@ -226,7 +226,7 @@ uint32_t BV3D_P_IQGetSize(
 /***************************************************************************/
 bool BV3D_P_JobQFindBinOrWaitBinAndMoveToTop(BV3D_IQHandle hIQ, bool secure)
 {
-   BV3D_P_IQInstruction * pIQInstruction;
+   BV3D_P_IQInstruction *pIQInstruction;
    BV3D_Instruction *psInstruction = NULL;
 
    for (pIQInstruction = BLST_Q_FIRST(&hIQ->sQueue);

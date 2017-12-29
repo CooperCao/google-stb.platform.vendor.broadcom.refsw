@@ -133,9 +133,10 @@ private:
       float       f;
       void       *p;
       Data() {}
-      Data(uint32_t x) : i(x) {}
-      Data(float x) : f(x) {}
-      Data(void *x) : p(x) {}
+      Data(uint32_t x)  : i(x) {}
+      Data(float x)     : f(x) {}
+      Data(void *x)     : p(x) {}
+      Data(long int x)  : p((void*)x) {}
    };
    Data m_data;
    uint32_t    m_numBytes;

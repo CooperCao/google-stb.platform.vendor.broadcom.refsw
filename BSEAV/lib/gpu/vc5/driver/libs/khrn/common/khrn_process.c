@@ -27,13 +27,13 @@
 #include "libs/platform/v3d_scheduler.h"
 #include "libs/platform/v3d_driver_api.h"
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 #include "libs/compute/compute.h"
 #endif
 
 static struct statics {
    gmem_handle_t dummy_texture_handle;
-#if !V3D_HAS_GFXH1636_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    gmem_handle_t dummy_ocq_buffer;
 #endif
    bool initialized;
@@ -59,7 +59,7 @@ const GLXX_TEXTURE_SAMPLER_STATE_T *khrn_get_image_unit_default_sampler(void)
    return &statics.image_unit_default_sampler;
 }
 
-#if !V3D_HAS_GFXH1636_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 gmem_handle_t khrn_get_dummy_ocq_buffer(void)
 {
    return statics.dummy_ocq_buffer;
@@ -108,7 +108,7 @@ static void khrn_statics_shutdown(struct statics *s)
 {
    gmem_free(s->dummy_texture_handle);
    s->dummy_texture_handle = 0;
-#if !V3D_HAS_GFXH1636_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    gmem_free(s->dummy_ocq_buffer);
    s->dummy_ocq_buffer = 0;
 #endif
@@ -125,7 +125,9 @@ static void init_image_unit_default_sampler(GLXX_TEXTURE_SAMPLER_STATE_T *sample
    sampler->compare_mode = GL_NONE;
    sampler->compare_func = GL_LEQUAL;
    sampler->unnormalised_coords = false;
+#if V3D_VER_AT_LEAST(4,0,2,0)
    memset(sampler->border_color, 0, sizeof(sampler->border_color));
+#endif
    sampler->debug_label = NULL;
 }
 
@@ -154,7 +156,7 @@ static bool khrn_statics_init(struct statics *s)
 
    gmem_flush_mapped_buffer(s->dummy_texture_handle);
 
-#if !V3D_HAS_GFXH1636_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    /* GFXH-1320 & GFXH-1636 workaround: create a dummy occlusion query buffer sized for each way in the cache. */
    s->dummy_ocq_buffer = gmem_alloc(
       V3D_OCCLUSION_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN * 8,
@@ -209,11 +211,11 @@ void khrn_process_shutdown(void)
       khrn_statics_shutdown(&statics);
       khrn_mem_term();
       khrn_fmem_client_pool_deinit();
-#if !V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       khrn_tile_state_deinit();
 #endif
       v3d_parallel_term();
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_USE_CSD
       compute_term();
 #endif
       v3d_platform_shutdown();
@@ -236,7 +238,7 @@ bool khrn_process_init(void)
    demand_msg(v3d_platform_init(), "Failed to initialise platform");
    v3d_check_ident(v3d_scheduler_get_identity(), 0);
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_USE_CSD
    compute_init();
 #endif
 
@@ -265,7 +267,7 @@ bool khrn_process_init(void)
          {
             if (khrn_statics_init(&statics))
             {
-             #if !V3D_HAS_QTS
+             #if !V3D_VER_AT_LEAST(4,1,34,0)
                khrn_tile_state_init();
              #endif
                return true;
@@ -277,7 +279,7 @@ bool khrn_process_init(void)
       v3d_parallel_term();
    }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_USE_CSD
    compute_term();
 #endif
    v3d_platform_shutdown();

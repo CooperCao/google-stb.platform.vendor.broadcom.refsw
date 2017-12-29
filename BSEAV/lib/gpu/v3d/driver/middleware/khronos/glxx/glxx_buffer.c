@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 1.1 vertex buffer structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_util.h"
 
@@ -48,7 +40,7 @@ static bool write_would_block(GLXX_BUFFER_INNER_T *item)
 
 static void glxx_buffer_inner_init(GLXX_BUFFER_INNER_T *item)
 {
-   vcos_assert(item->mh_storage == MEM_INVALID_HANDLE);
+   assert(item->mh_storage == MEM_HANDLE_INVALID);
    MEM_ASSIGN(item->mh_storage, MEM_ZERO_SIZE_HANDLE);
 
    khrn_interlock_init(&item->interlock);
@@ -58,7 +50,7 @@ static void glxx_buffer_inner_init(GLXX_BUFFER_INNER_T *item)
 void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name)
 {
    uint32_t i;
-   vcos_assert(buffer);
+   assert(buffer);
 
    buffer->name = name;
 
@@ -91,7 +83,7 @@ void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name)
 
 static void glxx_buffer_inner_term(GLXX_BUFFER_INNER_T *item)
 {
-   MEM_ASSIGN(item->mh_storage, MEM_INVALID_HANDLE);
+   MEM_ASSIGN(item->mh_storage, MEM_HANDLE_INVALID);
 
    khrn_interlock_term(&item->interlock);
 }
@@ -140,7 +132,7 @@ void glxx_buffer_term(MEM_HANDLE_T handle)
 static bool glxx_buffer_inner_data(GLXX_BUFFER_INNER_T *item, int32_t size, const void *data, bool is_new_item)
 {
    uint32_t current_size;
-   vcos_assert(size >= 0);
+   assert(size >= 0);
 
    khrn_interlock_write_immediate(&item->interlock);
 
@@ -166,7 +158,7 @@ static bool glxx_buffer_inner_data(GLXX_BUFFER_INNER_T *item, int32_t size, cons
       handle = mem_alloc_ex((uint32_t)size, 4, flags,
          "GLXX_BUFFER_INNER_T.storage", MEM_COMPACT_DISCARD);
 
-      if (handle == MEM_INVALID_HANDLE)
+      if (handle == MEM_HANDLE_INVALID)
       {
          MEM_ASSIGN(item->mh_storage, MEM_ZERO_SIZE_HANDLE);
          return false;
@@ -190,7 +182,7 @@ static bool glxx_buffer_inner_data(GLXX_BUFFER_INNER_T *item, int32_t size, cons
 
 bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLenum usage)
 {
-   vcos_assert(size >= 0);
+   assert(size >= 0);
 
    if(write_would_block(&buffer->pool[buffer->current_item]))
    {
@@ -253,8 +245,8 @@ bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLe
 
 static void glxx_buffer_inner_subdata(GLXX_BUFFER_INNER_T *item, int32_t offset, int32_t size, const void *data)
 {
-   vcos_assert(offset >= 0 && size >= 0 && (uint32_t)offset + (uint32_t)size <= mem_get_size(item->mh_storage));
-   vcos_assert(data);
+   assert(offset >= 0 && size >= 0 && (uint32_t)offset + (uint32_t)size <= mem_get_size(item->mh_storage));
+   assert(data);
 
    khrn_interlock_write_immediate(&item->interlock);
 
@@ -266,8 +258,8 @@ static void glxx_buffer_inner_subdata(GLXX_BUFFER_INNER_T *item, int32_t offset,
 
 void glxx_buffer_subdata(GLXX_BUFFER_T *buffer, int32_t offset, int32_t size, const void *data)
 {
-   vcos_assert(offset >= 0 && size >= 0);
-   vcos_assert(data);
+   assert(offset >= 0 && size >= 0);
+   assert(data);
 
    //if write_would_block(buffer->pool[buffer->current_item]
    //we pick one of the other pool items, copy the entirety of the current item

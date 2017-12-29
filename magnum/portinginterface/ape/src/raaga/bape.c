@@ -47,7 +47,7 @@
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_clkgen.h"
 #if BAPE_DSP_SUPPORT
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 #if BCHP_PWR_SUPPORT
@@ -186,7 +186,7 @@ static unsigned BAPE_P_CalculateBufferSize(
         break;
     }
 
-    BDSP_RAAGA_SIZE_ALIGN(bufferSize);
+    BDSP_SIZE_ALIGN(bufferSize);
 
     return bufferSize;
 }
@@ -291,8 +291,16 @@ BERR_Code BAPE_Open(
     handle->memHandle = memHandle;
     handle->intHandle = intHandle;
     handle->tmrHandle = tmrHandle;
+    #if BDSP_RAAGA_AUDIO_SUPPORT
     handle->dspHandle = dspHandle;
+    #else
+    BSTD_UNUSED(dspHandle);
+    #endif
+    #if BDSP_ARM_AUDIO_SUPPORT
     handle->armHandle = armHandle;
+    #else
+    BSTD_UNUSED(armHandle);
+    #endif
     handle->settings = *pSettings;
     BLST_S_INIT(&handle->mixerList);
 
@@ -369,7 +377,7 @@ BERR_Code BAPE_Open(
                 errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
                 goto err_buffer;
             }
-            pNode->block = BMMA_Alloc(memHandle, bufferSize, BDSP_RAAGA_ADDRESS_ALIGN, NULL);
+            pNode->block = BMMA_Alloc(memHandle, bufferSize, BDSP_ADDRESS_ALIGN, NULL);
             if ( NULL == pNode->block )
             {
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -401,6 +409,7 @@ BERR_Code BAPE_Open(
     }
 
 #if BAPE_DSP_SUPPORT
+    #if BDSP_RAAGA_AUDIO_SUPPORT
     if ( handle->dspHandle )
     {
         BDSP_ContextCreateSettings dspContextSettings;
@@ -460,6 +469,7 @@ BERR_Code BAPE_Open(
         }
         #endif
     }
+    #endif
 
     #if BDSP_ARM_AUDIO_SUPPORT
     if ( handle->armHandle )
@@ -554,12 +564,14 @@ err_timer:
     }
 err_arm_context:
 #endif
+#if BDSP_RAAGA_AUDIO_SUPPORT
     if ( handle->dspContext )
     {
         BDSP_Context_Destroy(handle->dspContext);
         handle->dspContext = NULL;
     }
 err_context:
+#endif
 #endif
 err_buffer:
     /* Remove and free all buffers and nodes */
@@ -1731,7 +1743,7 @@ void BAPE_GetCapabilities(
 {
 #if BAPE_DSP_SUPPORT
     BDSP_Handle hDsp;
-    unsigned i;
+    unsigned i,j;
 #endif
 
     BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
@@ -1804,141 +1816,162 @@ void BAPE_GetCapabilities(
     #ifdef BAPE_CHIP_MAX_STCS
     pCaps->numStcs = BAPE_CHIP_MAX_STCS;
     #endif
+    #ifdef BAPE_CHIP_MAX_SRCS
+    pCaps->numSrcs = BAPE_CHIP_MAX_SRCS;
+    #endif
+    #ifdef BAPE_CHIP_P_MAX_SRC_IIR_CHUNKS
+    pCaps->numEqualizerStages = BAPE_CHIP_P_MAX_SRC_IIR_CHUNKS;
+    #endif
+
+    pCaps->deviceIndexBase[BAPE_DEVICE_TYPE_DSP] = BAPE_DEVICE_INVALID;
+    pCaps->deviceIndexBase[BAPE_DEVICE_TYPE_ARM] = BAPE_DEVICE_INVALID;
 
 #if BAPE_DSP_SUPPORT
-    hDsp = hApe->dspHandle;
-    if ( hDsp )
+    for ( j = 0; j < BAPE_DEVICE_TYPE_MAX; j++ )
     {
-        BERR_Code errCode;
-        BDSP_Status dspStatus;
-        const BAPE_CodecAttributes *pAttributes;
-        BDSP_AlgorithmInfo algorithmInfo;
-
-        BDSP_GetStatus(hDsp, &dspStatus);
-        pCaps->numDsps = dspStatus.numDsp;
-        BKNI_Snprintf(pCaps->dsp.versionInfo, sizeof(pCaps->dsp.versionInfo),
-                      "%dp%dp%dp%d",dspStatus.firmwareVersion.majorVersion,
-                      dspStatus.firmwareVersion.minorVersion,
-                      dspStatus.firmwareVersion.branchVersion,
-                      dspStatus.firmwareVersion.branchSubVersion);
-
-        for ( i = 0; i < BAVC_AudioCompressionStd_eMax; i++ )
+        if ( j == BAPE_DEVICE_TYPE_DSP )
         {
-            pAttributes = BAPE_P_GetCodecAttributes_isrsafe(i);
-            BDBG_ASSERT(NULL != pAttributes);
-            if ( pAttributes->decodeAlgorithm != BDSP_Algorithm_eMax )
-            {
-                errCode = BDSP_GetAlgorithmInfo(hDsp, pAttributes->decodeAlgorithm, &algorithmInfo);
-                if ( BERR_SUCCESS == errCode )
-                {
-                    if ( algorithmInfo.supported )
-                    {
-                        pCaps->dsp.codecs[i].decode = true;
-                    }
-                }
-            }
-            if ( pAttributes->encodeAlgorithm != BDSP_Algorithm_eMax )
-            {
-                errCode = BDSP_GetAlgorithmInfo(hDsp, pAttributes->encodeAlgorithm, &algorithmInfo);
-                if ( BERR_SUCCESS == errCode )
-                {
-                    if ( algorithmInfo.supported )
-                    {
-                        pCaps->dsp.codecs[i].encode = true;
-                        pCaps->dsp.encoder = true;
-                    }
-                }
-            }
-            if ( pAttributes->passthroughAlgorithm != BDSP_Algorithm_eMax )
-            {
-                errCode = BDSP_GetAlgorithmInfo(hDsp, pAttributes->passthroughAlgorithm, &algorithmInfo);
-                if ( BERR_SUCCESS == errCode )
-                {
-                    if ( algorithmInfo.supported )
-                    {
-                        pCaps->dsp.codecs[i].passthrough = true;
-                    }
-                }
-            }
+            hDsp = hApe->dspHandle;
+            pCaps->deviceIndexBase[BAPE_DEVICE_TYPE_DSP] = BAPE_DEVICE_DSP_FIRST;
+        }
+        else if ( j == BAPE_DEVICE_TYPE_ARM )
+        {
+            hDsp = hApe->armHandle;
+            pCaps->deviceIndexBase[BAPE_DEVICE_TYPE_ARM] = BAPE_DEVICE_ARM_FIRST;
         }
 
-        for ( i = 0; i < BDSP_Algorithm_eMax; i++ )
+        if ( hDsp )
         {
-            errCode = BDSP_GetAlgorithmInfo(hDsp, i, &algorithmInfo);
-            if ( BERR_SUCCESS == errCode && true == algorithmInfo.supported )
+            BERR_Code errCode;
+            BDSP_Status dspStatus;
+            const BAPE_CodecAttributes *pAttributes;
+            BDSP_AlgorithmInfo algorithmInfo;
+
+            BDSP_GetStatus(hDsp, &dspStatus);
+            pCaps->numDevices[j] = dspStatus.numDsp;
+            BKNI_Snprintf(pCaps->dsp[j].versionInfo, sizeof(pCaps->dsp[j].versionInfo),
+                          "%dp%dp%dp%d",dspStatus.firmwareVersion.majorVersion,
+                          dspStatus.firmwareVersion.minorVersion,
+                          dspStatus.firmwareVersion.branchVersion,
+                          dspStatus.firmwareVersion.branchSubVersion);
+
+            for ( i = 0; i < BAVC_AudioCompressionStd_eMax; i++ )
             {
-                switch ( i )
+                pAttributes = BAPE_P_GetCodecAttributes_isrsafe(i);
+                BDBG_ASSERT(NULL != pAttributes);
+                if ( pAttributes->decodeAlgorithm != BDSP_Algorithm_eMax )
                 {
-                case BDSP_Algorithm_eBrcmAvl:
-                    pCaps->dsp.autoVolumeLevel = true;
-                    break;
-                case BDSP_Algorithm_eDsola:
-                    pCaps->dsp.decodeRateControl = true;
-                    break;
-                case BDSP_Algorithm_eSrsTruVolume:
-                    pCaps->dsp.truVolume = true;
-                    break;
-                case BDSP_Algorithm_eBrcm3DSurround:
-                    pCaps->dsp._3dSurround = true;
-                    break;
-                case BDSP_Algorithm_eMixer:
-                    pCaps->dsp.mixer = true;
-                    break;
-                case BDSP_Algorithm_eDDPEncode:
-                case BDSP_Algorithm_eDdre:
-                    pCaps->dsp.dolbyDigitalReencode = true;
-                    break;
-                case BDSP_Algorithm_eDpcmr:
-                case BDSP_Algorithm_eDv258:
-                    pCaps->dsp.dolbyVolume = true;
-                    break;
-                case BDSP_Algorithm_eGenCdbItb:
-                    pCaps->dsp.muxOutput = true;
-                    break;
-                case BDSP_Algorithm_eBtscEncoder:
-                    pCaps->dsp.rfEncoder.supported = true;
-                    pCaps->dsp.rfEncoder.encodings[BAPE_RfAudioEncoding_eBtsc] = true;
-                    break;
-                case BDSP_Algorithm_eSpeexAec:
-                    pCaps->dsp.echoCanceller.supported = true;
-                    pCaps->dsp.echoCanceller.algorithms[BAPE_EchoCancellerAlgorithm_eSpeex] = true;
-                    break;
-                case BDSP_Algorithm_eKaraoke:
-                    pCaps->dsp.karaoke = true;
-                    break;
-                case BDSP_Algorithm_eVocalPP:
-                    pCaps->dsp.processing[BAPE_PostProcessorType_eKaraokeVocal] = true;
-                    break;
-                case BDSP_Algorithm_eFadeCtrl:
-                    pCaps->dsp.processing[BAPE_PostProcessorType_eFade] = true;
-                    break;
-                case BDSP_Algorithm_eMixerDapv2:
-                    pCaps->dsp.dapv2 = true;
-                    break;
-                case BDSP_Algorithm_eTsmCorrection:
-                    pCaps->dsp.processing[BAPE_PostProcessorType_eAdvancedTsm] = true;
-                    break;
-                case BDSP_Algorithm_eAmbisonics:
-                    pCaps->dsp.processing[BAPE_PostProcessorType_eAmbisonic] = true;
-                    break;
-                default:
-                    break;
+                    errCode = BDSP_GetAlgorithmInfo(hDsp, pAttributes->decodeAlgorithm, &algorithmInfo);
+                    if ( BERR_SUCCESS == errCode )
+                    {
+                        if ( algorithmInfo.supported )
+                        {
+                            pCaps->dsp[j].codecs[i].decode = true;
+                        }
+                    }
+                }
+                if ( pAttributes->encodeAlgorithm != BDSP_Algorithm_eMax )
+                {
+                    errCode = BDSP_GetAlgorithmInfo(hDsp, pAttributes->encodeAlgorithm, &algorithmInfo);
+                    if ( BERR_SUCCESS == errCode )
+                    {
+                        if ( algorithmInfo.supported )
+                        {
+                            pCaps->dsp[j].codecs[i].encode = true;
+                            pCaps->dsp[j].encoder = true;
+                        }
+                    }
+                }
+                if ( pAttributes->passthroughAlgorithm != BDSP_Algorithm_eMax )
+                {
+                    errCode = BDSP_GetAlgorithmInfo(hDsp, pAttributes->passthroughAlgorithm, &algorithmInfo);
+                    if ( BERR_SUCCESS == errCode )
+                    {
+                        if ( algorithmInfo.supported )
+                        {
+                            pCaps->dsp[j].codecs[i].passthrough = true;
+                        }
+                    }
                 }
             }
-        }
 
-        /* special cases */
-        {
-            /* disable DDP encode in MS12 config C */
-            if ( pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3Plus].encode && !BAPE_P_DolbyCapabilities_DdpEncode(BAPE_MultichannelFormat_e5_1) )
+            for ( i = 0; i < BDSP_Algorithm_eMax; i++ )
             {
-                pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3Plus].encode = false;
+                errCode = BDSP_GetAlgorithmInfo(hDsp, i, &algorithmInfo);
+                if ( BERR_SUCCESS == errCode && true == algorithmInfo.supported )
+                {
+                    switch ( i )
+                    {
+                    case BDSP_Algorithm_eBrcmAvl:
+                        pCaps->dsp[j].autoVolumeLevel = true;
+                        break;
+                    case BDSP_Algorithm_eDsola:
+                        pCaps->dsp[j].decodeRateControl = true;
+                        break;
+                    case BDSP_Algorithm_eSrsTruVolume:
+                        pCaps->dsp[j].truVolume = true;
+                        break;
+                    case BDSP_Algorithm_eBrcm3DSurround:
+                        pCaps->dsp[j]._3dSurround = true;
+                        break;
+                    case BDSP_Algorithm_eMixer:
+                        pCaps->dsp[j].mixer = true;
+                        break;
+                    case BDSP_Algorithm_eDDPEncode:
+                    case BDSP_Algorithm_eDdre:
+                        pCaps->dsp[j].dolbyDigitalReencode = true;
+                        break;
+                    case BDSP_Algorithm_eDv258:
+                        pCaps->dsp[j].dolbyVolume = true;
+                        break;
+                    case BDSP_Algorithm_eGenCdbItb:
+                        pCaps->dsp[j].muxOutput = true;
+                        break;
+                    case BDSP_Algorithm_eBtscEncoder:
+                        pCaps->dsp[j].rfEncoder.supported = true;
+                        pCaps->dsp[j].rfEncoder.encodings[BAPE_RfAudioEncoding_eBtsc] = true;
+                        break;
+                    case BDSP_Algorithm_eSpeexAec:
+                        pCaps->dsp[j].echoCanceller.supported = true;
+                        pCaps->dsp[j].echoCanceller.algorithms[BAPE_EchoCancellerAlgorithm_eSpeex] = true;
+                        break;
+                    case BDSP_Algorithm_eKaraoke:
+                        pCaps->dsp[j].karaoke = true;
+                        break;
+                    case BDSP_Algorithm_eVocalPP:
+                        pCaps->dsp[j].processing[BAPE_PostProcessorType_eKaraokeVocal] = true;
+                        break;
+                    case BDSP_Algorithm_eFadeCtrl:
+                        pCaps->dsp[j].processing[BAPE_PostProcessorType_eFade] = true;
+                        break;
+                    case BDSP_Algorithm_eMixerDapv2:
+                        pCaps->dsp[j].dapv2 = true;
+                        break;
+                    case BDSP_Algorithm_eTsmCorrection:
+                        pCaps->dsp[j].processing[BAPE_PostProcessorType_eAdvancedTsm] = true;
+                        break;
+                    case BDSP_Algorithm_eAmbisonics:
+                        pCaps->dsp[j].processing[BAPE_PostProcessorType_eAmbisonic] = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
             }
 
-            if ( pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3].encode &&
-                 (BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 || BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11) )
+            /* special cases */
             {
-                pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3].encode = false;
+                /* disable DDP encode in MS12 config C */
+                if ( pCaps->dsp[j].codecs[BAVC_AudioCompressionStd_eAc3Plus].encode && !BAPE_P_DolbyCapabilities_DdpEncode(BAPE_MultichannelFormat_e5_1) )
+                {
+                    pCaps->dsp[j].codecs[BAVC_AudioCompressionStd_eAc3Plus].encode = false;
+                }
+
+                if ( pCaps->dsp[j].codecs[BAVC_AudioCompressionStd_eAc3].encode &&
+                     (BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 || BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11) )
+                {
+                    pCaps->dsp[j].codecs[BAVC_AudioCompressionStd_eAc3].encode = false;
+                }
             }
         }
     }

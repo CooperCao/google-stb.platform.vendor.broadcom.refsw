@@ -91,11 +91,11 @@ BERR_Code BDSP_Raaga_P_ComputeLoadbleSection(
 	else
 	{
 		unsigned AlgorithmSize = 0;
-		BDSP_Raaga_P_LoadableImageInfo *pLoadableImageInfo;
+		BDSP_P_LoadableImageInfo *pLoadableImageInfo;
 		BDSP_AlgorithmType algoType;
 		const BDSP_P_AlgorithmInfo *pAlgoInfo;
 		pLoadableImageInfo = &pRaaga->codeInfo.sLoadableImageInfo;
-		BKNI_Memset(pLoadableImageInfo, 0, sizeof(BDSP_Raaga_P_LoadableImageInfo));
+		BKNI_Memset(pLoadableImageInfo, 0, sizeof(BDSP_P_LoadableImageInfo));
 		for(algoType=0; algoType<BDSP_AlgorithmType_eMax; algoType++)
 		{
 			pLoadableImageInfo->sAlgoTypeSplitInfo[algoType].numImageBlock = pRaaga->deviceSettings.maxAlgorithms[algoType];
@@ -107,7 +107,7 @@ BERR_Code BDSP_Raaga_P_ComputeLoadbleSection(
 			pAlgoSupportInfo = BDSP_Raaga_P_LookupAlgorithmSupportInfo(algorithm);
 			if(pAlgoSupportInfo->supported)
 			{
-				pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(algorithm);
+				pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
 				AlgorithmSize += pRaaga->codeInfo.imgInfo[BDSP_IMG_ID_CODE(algorithm)].ui32Size;
 				AlgorithmSize += pRaaga->codeInfo.imgInfo[BDSP_IMG_ID_IDS(algorithm)].ui32Size;
 				AlgorithmSize += pRaaga->codeInfo.imgInfo[BDSP_IMG_ID_TABLE(algorithm)].ui32Size;
@@ -151,93 +151,6 @@ BERR_Code BDSP_Raaga_P_ComputeLoadbleSection(
 	return errCode;
 }
 
-BERR_Code BDSP_Raaga_P_AssignAlgoSize(
-	const BIMG_Interface *pImageInterface,
-	void 			    **pImageContext,
-	BDSP_P_FwBuffer      *pImgInfo
-)
-{
-	BERR_Code errCode = BERR_SUCCESS;
-	unsigned i=0;
-	BDSP_Algorithm algorithm;
-	BDSP_P_FwBuffer *pTempImgInfo;
-	const BDSP_P_AlgorithmSupportInfo *pAlgoSupportInfo;
-	const BDSP_P_AlgorithmInfo        *pAlgoInfo;
-
-	BDBG_ENTER(BDSP_Raaga_P_AssignAlgoSize);
-	BKNI_Memset(pImgInfo, 0, (sizeof(BDSP_P_FwBuffer)*BDSP_IMG_ID_MAX));
-	for (i=0; i < BDSP_SystemImgId_eMax; i++)
-	{
-		pTempImgInfo = &pImgInfo[i];
-		errCode = BDSP_Raaga_P_GetFWSize(pImageInterface, pImageContext, i, &pTempImgInfo->ui32Size);
-		if(errCode != BERR_SUCCESS)
-		{
-			BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for Resident Algo %d",i));
-			goto end;
-		}
-		BDBG_MSG(("Size of Resident Algo(%d) %d", i, pTempImgInfo->ui32Size));
-	}
-
-	for(algorithm = 0; algorithm < BDSP_Algorithm_eMax; algorithm++)
-	{
-		pAlgoSupportInfo = BDSP_Raaga_P_LookupAlgorithmSupportInfo(algorithm);
-		if(pAlgoSupportInfo->supported)
-		{
-			pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(algorithm);
-			BDBG_MSG(("Algorithm(%d) %s is supported and hence accounted for sizing and assigning",pAlgoInfo->algorithm, pAlgoInfo->pName));
-
-			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_CODE(algorithm)];
-			errCode = BDSP_Raaga_P_GetFWSize(pImageInterface, pImageContext, BDSP_IMG_ID_CODE(algorithm), &pTempImgInfo->ui32Size);
-			if(errCode != BERR_SUCCESS)
-			{
-				BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for Code of Algorithm(%d) %s",algorithm, pAlgoInfo->pName));
-				goto end;
-			}
-		    BDBG_MSG(("\t Code Size  %d",pTempImgInfo->ui32Size));
-
-			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_IDS(algorithm)];
-			if(pAlgoInfo->idsCodeSize)
-			{
-				errCode = BDSP_Raaga_P_GetFWSize(pImageInterface, pImageContext, BDSP_IMG_ID_IDS(algorithm), &pTempImgInfo->ui32Size);
-				if(errCode != BERR_SUCCESS)
-				{
-					BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for IDS Code of Algorithm(%d) %s",algorithm, pAlgoInfo->pName));
-					goto end;
-				}
-			}
-			BDBG_MSG(("\t IDS Code Size  %d",pTempImgInfo->ui32Size));
-
-			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_TABLE(algorithm)];
-			if(pAlgoInfo->romTableSize)
-			{
-				errCode = BDSP_Raaga_P_GetFWSize(pImageInterface, pImageContext, BDSP_IMG_ID_TABLE(algorithm), &pTempImgInfo->ui32Size);
-				if(errCode != BERR_SUCCESS)
-				{
-					BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for Table of Algorithm(%d) %s",algorithm, pAlgoInfo->pName));
-					goto end;
-				}
-			}
-			BDBG_MSG(("\t ROM Table Size %d",pTempImgInfo->ui32Size));
-
-			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_IFRAME(algorithm)];
-			if(pAlgoInfo->compressedInterFrameSize)
-			{
-				errCode = BDSP_Raaga_P_GetFWSize(pImageInterface, pImageContext, BDSP_IMG_ID_IFRAME(algorithm), &pTempImgInfo->ui32Size);
-				if(errCode != BERR_SUCCESS)
-				{
-					BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for Interframe of Algorithm(%d) %s",algorithm, pAlgoInfo->pName));
-					goto end;
-				}
-			}
-			BDBG_MSG(("\t Compressed Interframe Size  %d",pTempImgInfo->ui32Size));
-		}
-	}
-
-end:
-	BDBG_LEAVE(BDSP_Raaga_P_AssignAlgoSize);
-	return errCode;
-}
-
 BERR_Code BDSP_Raaga_P_ComputeLoadbleSection_APITool(
 	const BDSP_RaagaSettings      *pSettings,
 	const BDSP_RaagaUsageOptions  *pUsage,
@@ -271,10 +184,10 @@ BERR_Code BDSP_Raaga_P_ComputeLoadbleSection_APITool(
 	else
 	{
 		unsigned AlgorithmSize = 0;
-		BDSP_Raaga_P_LoadableImageInfo *pLoadableImageInfo;
+		BDSP_P_LoadableImageInfo *pLoadableImageInfo;
 		BDSP_AlgorithmType algoType;
 		pLoadableImageInfo = &pCodeDownloadInfo->sLoadableImageInfo;
-		BKNI_Memset(pLoadableImageInfo, 0, sizeof(BDSP_Raaga_P_LoadableImageInfo));
+		BKNI_Memset(pLoadableImageInfo, 0, sizeof(BDSP_P_LoadableImageInfo));
 		for(algoType=0; algoType<BDSP_AlgorithmType_eMax; algoType++)
 		{
 			pLoadableImageInfo->sAlgoTypeSplitInfo[algoType].numImageBlock = pSettings->maxAlgorithms[algoType];
@@ -285,7 +198,7 @@ BERR_Code BDSP_Raaga_P_ComputeLoadbleSection_APITool(
 			AlgorithmSize = 0;
 			if(pUsage->Codeclist[algorithm])
 			{
-				pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(algorithm);
+				pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
 				AlgorithmSize += pCodeDownloadInfo->imgInfo[BDSP_IMG_ID_CODE(algorithm)].ui32Size;
 				AlgorithmSize += pCodeDownloadInfo->imgInfo[BDSP_IMG_ID_IDS(algorithm)].ui32Size;
 				AlgorithmSize += pCodeDownloadInfo->imgInfo[BDSP_IMG_ID_TABLE(algorithm)].ui32Size;
@@ -328,6 +241,95 @@ BERR_Code BDSP_Raaga_P_ComputeLoadbleSection_APITool(
 	return errCode;
 }
 
+BERR_Code BDSP_Raaga_P_AssignAlgoSize(
+	const BIMG_Interface *pImageInterface,
+	void 			    **pImageContext,
+	BDSP_P_FwBuffer      *pImgInfo
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned i=0;
+	BDSP_Algorithm algorithm;
+	BDSP_P_FwBuffer *pTempImgInfo;
+	const BDSP_P_AlgorithmSupportInfo *pAlgoSupportInfo;
+	const BDSP_P_AlgorithmInfo        *pAlgoInfo;
+	const BDSP_P_AlgorithmCodeInfo    *pAlgoCodeInfo;
+
+	BDBG_ENTER(BDSP_Raaga_P_AssignAlgoSize);
+	BKNI_Memset(pImgInfo, 0, (sizeof(BDSP_P_FwBuffer)*BDSP_IMG_ID_MAX));
+	for (i=0; i < BDSP_SystemImgId_eMax; i++)
+	{
+		pTempImgInfo = &pImgInfo[i];
+		errCode = BDSP_P_GetFWSize(pImageInterface, pImageContext, i, &pTempImgInfo->ui32Size);
+		if(errCode != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for Resident Algo %d",i));
+			goto end;
+		}
+		BDBG_MSG(("Size of Resident Algo(%d) %d", i, pTempImgInfo->ui32Size));
+	}
+
+	for(algorithm = 0; algorithm < BDSP_Algorithm_eMax; algorithm++)
+	{
+		pAlgoSupportInfo = BDSP_Raaga_P_LookupAlgorithmSupportInfo(algorithm);
+		if(pAlgoSupportInfo->supported)
+		{
+			pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
+            pAlgoCodeInfo = BDSP_Raaga_P_LookupAlgorithmCodeInfo(algorithm);
+			BDBG_MSG(("Algorithm(%d) %s is supported and hence accounted for sizing and assigning",pAlgoInfo->algorithm, pAlgoInfo->pName));
+
+			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_CODE(algorithm)];
+			errCode = BDSP_P_GetFWSize(pImageInterface, pImageContext, BDSP_IMG_ID_CODE(algorithm), &pTempImgInfo->ui32Size);
+			if(errCode != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for Code of Algorithm(%d) %s",algorithm, pAlgoInfo->pName));
+				goto end;
+			}
+		    BDBG_MSG(("\t Code Size  %d",pTempImgInfo->ui32Size));
+
+			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_IDS(algorithm)];
+			if(pAlgoCodeInfo->idsCodeSize)
+			{
+				errCode = BDSP_P_GetFWSize(pImageInterface, pImageContext, BDSP_IMG_ID_IDS(algorithm), &pTempImgInfo->ui32Size);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for IDS Code of Algorithm(%d) %s",algorithm, pAlgoInfo->pName));
+					goto end;
+				}
+			}
+			BDBG_MSG(("\t IDS Code Size  %d",pTempImgInfo->ui32Size));
+
+			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_TABLE(algorithm)];
+			if(pAlgoCodeInfo->romTableSize)
+			{
+				errCode = BDSP_P_GetFWSize(pImageInterface, pImageContext, BDSP_IMG_ID_TABLE(algorithm), &pTempImgInfo->ui32Size);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for Table of Algorithm(%d) %s",algorithm, pAlgoInfo->pName));
+					goto end;
+				}
+			}
+			BDBG_MSG(("\t ROM Table Size %d",pTempImgInfo->ui32Size));
+
+			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_IFRAME(algorithm)];
+			if(pAlgoCodeInfo->compressedInterFrameSize)
+			{
+				errCode = BDSP_P_GetFWSize(pImageInterface, pImageContext, BDSP_IMG_ID_IFRAME(algorithm), &pTempImgInfo->ui32Size);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Raaga_P_AssignAlgoSize: Error Deriving size for Interframe of Algorithm(%d) %s",algorithm, pAlgoInfo->pName));
+					goto end;
+				}
+			}
+			BDBG_MSG(("\t Compressed Interframe Size  %d",pTempImgInfo->ui32Size));
+		}
+	}
+
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_AssignAlgoSize);
+	return errCode;
+}
+
 BERR_Code BDSP_Raaga_P_AssignAlgoSize_APITool(
 	const BDSP_RaagaUsageOptions  *pUsage,
 	BDSP_P_FwBuffer 	          *pImgInfo
@@ -338,6 +340,7 @@ BERR_Code BDSP_Raaga_P_AssignAlgoSize_APITool(
 	BDSP_Algorithm algorithm;
 	BDSP_P_FwBuffer *pTempImgInfo;
 	const BDSP_P_AlgorithmInfo *pAlgoInfo;
+	const BDSP_P_AlgorithmCodeInfo *pAlgoCodeInfo;
 	BDBG_ENTER(BDSP_Raaga_P_AssignAlgoSize_APITool);
 
 	BKNI_Memset(pImgInfo, 0, (sizeof(BDSP_P_FwBuffer)*BDSP_IMG_ID_MAX));
@@ -352,109 +355,29 @@ BERR_Code BDSP_Raaga_P_AssignAlgoSize_APITool(
 	{
 		if(pUsage->Codeclist[algorithm])
 		{
-			pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(algorithm);
+			pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
+            pAlgoCodeInfo = BDSP_Raaga_P_LookupAlgorithmCodeInfo(algorithm);
 			BDBG_MSG(("Algorithm(%d) %s is supported and hence accounted for sizing and assigning",pAlgoInfo->algorithm, pAlgoInfo->pName));
 			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_CODE(algorithm)];
-			pTempImgInfo->ui32Size = pAlgoInfo->algoCodeSize;
+			pTempImgInfo->ui32Size = pAlgoCodeInfo->algoCodeSize;
 			BDBG_MSG(("\t Code Size  %d",pTempImgInfo->ui32Size));
 
 			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_IDS(algorithm)];
-			pTempImgInfo->ui32Size = pAlgoInfo->idsCodeSize;
+			pTempImgInfo->ui32Size = pAlgoCodeInfo->idsCodeSize;
 			BDBG_MSG(("\t IDS Code Size  %d",pTempImgInfo->ui32Size));
 
 			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_TABLE(algorithm)];
-			pTempImgInfo->ui32Size = pAlgoInfo->romTableSize;
+			pTempImgInfo->ui32Size = pAlgoCodeInfo->romTableSize;
 			BDBG_MSG(("\t ROM Table Size %d",pTempImgInfo->ui32Size));
 
 			pTempImgInfo = &pImgInfo[BDSP_IMG_ID_IFRAME(algorithm)];
-			pTempImgInfo->ui32Size = pAlgoInfo->compressedInterFrameSize;
+			pTempImgInfo->ui32Size = pAlgoCodeInfo->compressedInterFrameSize;
 			BDBG_MSG(("\t Interframe Size  %d",pTempImgInfo->ui32Size));
 		}
 	}
 
 	BDBG_LEAVE(BDSP_Raaga_P_AssignAlgoSize_APITool);
 	return errCode;
-}
-
-BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
-        const BIMG_Interface *iface,
-        void *pImgContext,
-        BDSP_MMA_Memory *pMemory,
-        unsigned firmware_id
-)
-{
-    void *image = NULL;
-    const void *data = NULL;
-    void *context = pImgContext;
-    uint8_t *pMemAddr;
-
-    uint32_t ui32Size = 0, ui32numOfChunks = 0,ui32ChunkLen = 0;
-    uint32_t ui32Count = 0;
-    uint32_t uiSizeCopied=0;
-    BERR_Code rc = BERR_SUCCESS;
-
-    BDBG_ASSERT(iface);
-    BDBG_ASSERT(pImgContext);
-
-     rc = iface->open(context, &image, firmware_id);
-    if (rc != BERR_SUCCESS)
-    {
-      BDBG_ERR(("Error in Opening the Image Interface"));
-      return BERR_TRACE(rc);
-    }
-
-    rc = iface->next(image, 0, &data, 8);
-    if (rc != BERR_SUCCESS)
-    {
-      BDBG_ERR(("Error in fetching next chunk in Image Interface"));
-      iface->close(image);
-      return BERR_TRACE(rc);
-    }
-
-    ui32Size =((uint32_t *) data)[0];
-    ui32numOfChunks = ((uint32_t *) data)[1];
-    pMemAddr = (uint8_t *)pMemory->pAddr;
-
-   BDBG_MSG(("Downloading Algorithm at PhyAddr = "BDSP_MSG_FMT,BDSP_MSG_ARG(pMemory->offset)));
-
-    BDBG_MSG(("Total Size = %d",ui32Size));
-    for (ui32Count = 1;ui32Count <= ui32numOfChunks; ui32Count++)
-    {
-      /* The implementation of image interface has to be such that there is
-        one header array and then there are firmware binary arrays each having
-        bytes of size BDSP_IMG_CHUNK_SIZE. But the last array most probably will
-        not have a size equal to exactly BDSP_IMG_CHUNK_SIZE. So we are testing
-        for the last chunk here and getting the size based on the total firmware
-        binary size and number of chunks*/
-
-      ui32ChunkLen = (ui32Count == ui32numOfChunks) ?  \
-          (ui32Size - ((ui32Count - 1)*BDSP_IMG_CHUNK_SIZE)): BDSP_IMG_CHUNK_SIZE;
-
-      BDBG_ASSERT(ui32ChunkLen <= BDSP_IMG_CHUNK_SIZE);
-      BDBG_MSG(("ui32Count = %d, ui32numOfChunks = %d , ui32ChunkLen =%d,pAddress = %p",
-                ui32Count,ui32numOfChunks,ui32ChunkLen,pMemAddr));
-
-      rc = iface->next(image, ui32Count, &data, ui32ChunkLen);
-      if (rc != BERR_SUCCESS)
-      {
-          BDBG_ERR(("Error in fetching next chunk in Image Interface"));;
-          iface->close(image);
-          return BERR_TRACE(rc);
-      }
-
-      BKNI_Memcpy((void *)pMemAddr,data,ui32ChunkLen);
-
-      pMemAddr +=ui32ChunkLen;
-      uiSizeCopied +=  ui32ChunkLen;
-    }
-
-    if(uiSizeCopied != ui32Size)
-    {
-      BDBG_ERR(("FW Image (Id =%#x) not downloaded properly",firmware_id));
-    }
-
-    iface->close(image);
-    return BERR_SUCCESS;
 }
 
 BERR_Code BDSP_Raaga_P_RequestImg(
@@ -474,10 +397,10 @@ BERR_Code BDSP_Raaga_P_RequestImg(
         pImgCache->Buffer = *pMemory;
         if( bDownload == true )
         {
-            errCode = BDSP_Raaga_P_CopyFWImageToMem(pImageInterface,
-                                                    pImageContext,
-                                                    pMemory,
-                                                    imageId);
+            errCode = BDSP_P_CopyFWImageToMem(pImageInterface,
+                                            pImageContext,
+                                            pMemory,
+                                            imageId);
             if (errCode != BERR_SUCCESS)
             {
 				BDBG_ERR(("BDSP_Raaga_P_RequestImg: Error in copying the firmware Image %d",imageId));
@@ -497,7 +420,9 @@ Function: BDSP_Raaga_P_DownloadResidentCode
 Description : Resident code is downloaded into Raaga code and data space
 
 **********************************************************/
-static BERR_Code BDSP_Raaga_P_DownloadResidentCode(void *pDevice)
+static BERR_Code BDSP_Raaga_P_DownloadResidentCode(
+    void *pDevice
+)
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	unsigned imageId =0;
@@ -516,7 +441,7 @@ static BERR_Code BDSP_Raaga_P_DownloadResidentCode(void *pDevice)
 			continue;
 		}
 		BDBG_MSG(("BDSP_Raaga_P_DownloadResidentCode: Memory Requested for Image (%d) is %d",imageId, pImgInfo->ui32Size));
-		errCode = BDSP_Raaga_P_RequestMemory(&pRaaga->memInfo.sROMemoryPool, pImgInfo->ui32Size, &Memory);
+		errCode = BDSP_P_RequestMemory(&pRaaga->memInfo.sROMemoryPool, pImgInfo->ui32Size, &Memory);
 		if(errCode != BERR_SUCCESS)
 		{
 			BDBG_ERR(("BDSP_Raaga_P_DownloadResidentCode: Unable to get RO memory to download Image %d",imageId));
@@ -542,7 +467,9 @@ end:
 	return errCode;
 }
 
-static BERR_Code BDSP_Raaga_P_PreLoadFirmwareImages(void *pDevice)
+static BERR_Code BDSP_Raaga_P_PreLoadFirmwareImages(
+    void *pDevice
+)
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	unsigned imageId =0;
@@ -561,7 +488,7 @@ static BERR_Code BDSP_Raaga_P_PreLoadFirmwareImages(void *pDevice)
 			continue;
 		}
 		BDBG_MSG(("BDSP_Raaga_P_PreLoadFirmwareImages: Memory Requested for Image (%d) is %d",imageId, pImgInfo->ui32Size));
-		errCode = BDSP_Raaga_P_RequestMemory(&pRaaga->memInfo.sROMemoryPool, pImgInfo->ui32Size, &Memory);
+		errCode = BDSP_P_RequestMemory(&pRaaga->memInfo.sROMemoryPool, pImgInfo->ui32Size, &Memory);
 		if(errCode != BERR_SUCCESS)
 		{
 			BDBG_ERR(("BDSP_Raaga_P_PreLoadFirmwareImages: Unable to get RO memory to download Image %d",imageId));
@@ -587,7 +514,9 @@ end:
 	return errCode;
 }
 
-static BERR_Code BDSP_Raaga_P_PreLoadPostProcessImages(void *pDevice)
+static BERR_Code BDSP_Raaga_P_PreLoadPostProcessImages(
+    void *pDevice
+)
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	BDSP_Raaga *pRaaga = (BDSP_Raaga *)pDevice;
@@ -596,7 +525,7 @@ static BERR_Code BDSP_Raaga_P_PreLoadPostProcessImages(void *pDevice)
 	BDSP_MMA_Memory Memory;
 	unsigned imageId;
 	BDSP_P_FwBuffer *pImgInfo;
-	BDSP_Raaga_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo;
+	BDSP_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo;
 
 	BDBG_ENTER(BDSP_Raaga_P_PreLoadPostProcessImages);
 	BDBG_OBJECT_ASSERT(pRaaga, BDSP_Raaga);
@@ -658,13 +587,15 @@ end:
 	return errCode;
 }
 
-static BERR_Code BDSP_Raaga_P_AssignMemoryForDynamicDownload(void *pDevice)
+static BERR_Code BDSP_Raaga_P_AssignMemoryForDynamicDownload(
+    void *pDevice
+)
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	BDSP_Raaga *pRaaga = (BDSP_Raaga *)pDevice;
 	BDSP_MMA_Memory Memory;
 	unsigned i = 0;
-	BDSP_Raaga_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo;
+	BDSP_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo;
 	BDSP_AlgorithmType algoType;
 
 	BDBG_ENTER(BDSP_Raaga_P_AssignMemoryForDynamicDownload);
@@ -675,7 +606,7 @@ static BERR_Code BDSP_Raaga_P_AssignMemoryForDynamicDownload(void *pDevice)
 		pAlgoTypeSplitInfo = &pRaaga->codeInfo.sLoadableImageInfo.sAlgoTypeSplitInfo[algoType];
 		for(i=0;i<pAlgoTypeSplitInfo->numImageBlock;i++)
 		{
-			errCode = BDSP_Raaga_P_RequestMemory(&pRaaga->memInfo.sROMemoryPool, pAlgoTypeSplitInfo->maxImageSize, &Memory);
+			errCode = BDSP_P_RequestMemory(&pRaaga->memInfo.sROMemoryPool, pAlgoTypeSplitInfo->maxImageSize, &Memory);
 			if(errCode != BERR_SUCCESS)
 			{
 				BDBG_ERR(("BDSP_Raaga_P_AssignMemoryForDynamicDownload: Unable to get RO memory to split for Algotype %d, size = %d, Number of Images = %d",
@@ -693,7 +624,9 @@ end:
 	return errCode;
 }
 
-BERR_Code BDSP_Raaga_P_DownloadCode(void *pDevice)
+BERR_Code BDSP_Raaga_P_DownloadCode(
+    void *pDevice
+)
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	BDSP_Raaga *pRaaga = (BDSP_Raaga *)pDevice;
@@ -739,13 +672,13 @@ end:
 	return errCode;
 }
 
-static BDSP_Raaga_P_ImageBlockInfo* BDSP_Raaga_P_GetFreeImageBlock(
+static BDSP_P_ImageBlockInfo* BDSP_Raaga_P_GetFreeImageBlock(
 	BDSP_Algorithm algorithm,
-	BDSP_Raaga_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo
-	)
+	BDSP_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo
+)
 {
-	BDSP_Raaga_P_ImageBlockInfo *pImageBlockInfo = NULL;
-	unsigned freshIndex=BDSP_RAAGA_MAX_DOWNLOAD_BUFFERS, ReUseIndex=BDSP_RAAGA_MAX_DOWNLOAD_BUFFERS;
+	BDSP_P_ImageBlockInfo *pImageBlockInfo = NULL;
+	unsigned freshIndex=BDSP_MAX_DOWNLOAD_BUFFERS, ReUseIndex=BDSP_MAX_DOWNLOAD_BUFFERS;
 	unsigned index=0;
 	BDBG_ENTER(BDSP_Raaga_P_GetFreeImageBlock);
 
@@ -767,12 +700,12 @@ static BDSP_Raaga_P_ImageBlockInfo* BDSP_Raaga_P_GetFreeImageBlock(
 		}
 	}
 
-	if(freshIndex != BDSP_RAAGA_MAX_DOWNLOAD_BUFFERS)
+	if(freshIndex != BDSP_MAX_DOWNLOAD_BUFFERS)
 	{
 		BDBG_MSG(("BDSP_Raaga_P_GetFreeImageBlock: Using the Fresh Image Block (%d)", freshIndex));
 		pImageBlockInfo = &pAlgoTypeSplitInfo->sImageBlockInfo[freshIndex];
 	}
-	else if(ReUseIndex != BDSP_RAAGA_MAX_DOWNLOAD_BUFFERS)
+	else if(ReUseIndex != BDSP_MAX_DOWNLOAD_BUFFERS)
 	{
 		BDBG_MSG(("BDSP_Raaga_P_GetFreeImageBlock: Reusing the Image Block (%d)", ReUseIndex));
 		pImageBlockInfo = &pAlgoTypeSplitInfo->sImageBlockInfo[ReUseIndex];
@@ -796,7 +729,7 @@ BERR_Code BDSP_Raaga_P_DownloadAlgorithm(
 	BDSP_Raaga *pRaaga = (BDSP_Raaga *)pDevice;
 	const BDSP_P_AlgorithmSupportInfo *pAlgoSupportInfo;
 	const BDSP_P_AlgorithmInfo *pAlgoInfo;
-	BDSP_Raaga_P_ImageBlockInfo *pImageBlockInfo;
+	BDSP_P_ImageBlockInfo *pImageBlockInfo;
 	BDSP_MMA_Memory Memory;
 	BDSP_P_FwBuffer *pImgInfo;
 	unsigned imageId =0;
@@ -810,7 +743,7 @@ BERR_Code BDSP_Raaga_P_DownloadAlgorithm(
 
 	if(pAlgoSupportInfo->supported)
 	{
-		pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(algorithm);
+		pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
 		if(pAlgoInfo->type == BDSP_AlgorithmType_eAudioProcessing)
 		{
 			BDBG_MSG(("BDSP_Raaga_P_DownloadAlgorithm: PostProcesses are downloaded at Open, Algorithm(%d) requested %s",algorithm,pAlgoInfo->pName));
@@ -820,7 +753,7 @@ BERR_Code BDSP_Raaga_P_DownloadAlgorithm(
 		pImageBlockInfo = BDSP_Raaga_P_GetFreeImageBlock(algorithm, &pRaaga->codeInfo.sLoadableImageInfo.sAlgoTypeSplitInfo[pAlgoInfo->type]);
 		if(pImageBlockInfo == NULL)
 		{
-			BDBG_ERR(("BDSP_Raaga_P_DownloadAlgorithm: Couldn't Find a free Buffer to downaload algorithm(%d) %s",algorithm, pAlgoInfo->pName));
+			BDBG_ERR(("BDSP_Raaga_P_DownloadAlgorithm: Couldn't Find a free Buffer to download algorithm(%d) %s",algorithm, pAlgoInfo->pName));
 			errCode = BERR_NOT_SUPPORTED;
 			goto end;
 		}
@@ -891,14 +824,14 @@ BERR_Code BDSP_Raaga_P_ReleaseAlgorithm(
     BERR_Code errCode = BERR_SUCCESS;
 	BDSP_Raaga *pRaaga = (BDSP_Raaga *)pDevice;
 	const BDSP_P_AlgorithmInfo *pAlgoInfo;
-	BDSP_Raaga_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo;
-	BDSP_Raaga_P_ImageBlockInfo *pImageBlockInfo;
+	BDSP_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo;
+	BDSP_P_ImageBlockInfo *pImageBlockInfo;
 	unsigned index = 0;
 
 	BDBG_ENTER(BDSP_Raaga_P_ReleaseAlgorithm);
 	BDBG_OBJECT_ASSERT(pRaaga, BDSP_Raaga);
 
-	pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(algorithm);
+	pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
 	BDBG_MSG(("BDSP_Raaga_P_ReleaseAlgorithm: Algorithm(%d) %s", algorithm, pAlgoInfo->pName));
 	if(pAlgoInfo->type == BDSP_AlgorithmType_eAudioProcessing)
 	{
@@ -928,4 +861,114 @@ BERR_Code BDSP_Raaga_P_ReleaseAlgorithm(
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_ReleaseAlgorithm);
 	return errCode;
+}
+
+BERR_Code BDSP_Raaga_P_GetDownloadStatus(
+    void                *pDeviceHandle,
+    BDSP_DownloadStatus *pStatus /* [out] */
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+    BDSP_Raaga *pDevice;
+
+    BDBG_ENTER(BDSP_Raaga_P_GetDownloadStatus);
+    /* Assert the function arguments*/
+    BDBG_ASSERT(pDeviceHandle);
+    pDevice = (BDSP_Raaga *)pDeviceHandle;
+
+    /*If Firmware authentication is Disabled*/
+    if(pDevice->deviceSettings.authenticationEnabled==false)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_GetDownloadStatus should be called only if bFwAuthEnable is true"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    pStatus->pBaseAddress    = pDevice->memInfo.sROMemoryPool.Memory.pAddr;
+    pStatus->physicalAddress = pDevice->memInfo.sROMemoryPool.Memory.offset;
+    pStatus->length          = pDevice->memInfo.sROMemoryPool.ui32Size;
+
+    BDBG_LEAVE(BDSP_Raaga_P_GetDownloadStatus);
+
+    return errCode;
+}
+
+BERR_Code BDSP_Raaga_P_DumpImage(
+    void       *pBuffer,
+    unsigned    uiBufferSize,
+    void      **pvCodeStart,
+    unsigned   *puiCodeSize,
+    const BIMG_Interface *pImageInterface,
+    void **pImageContext
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    BDSP_P_FwBuffer *pImgCache, *pImgCachelocal;
+    unsigned i = 0, totalSize = 0;
+    BDSP_MMA_Memory Memory;
+
+    BDBG_ENTER(BDSP_Raaga_P_DumpImage);
+    *pvCodeStart = NULL;
+    *puiCodeSize = 0;
+
+    pImgCache = (BDSP_P_FwBuffer *)BKNI_Malloc(sizeof(BDSP_P_FwBuffer)*BDSP_IMG_ID_MAX);
+    if(pImgCache == NULL)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_DumpImage: Cannot allocate memory"));
+        errCode=BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        return errCode;
+    }
+    pImgCachelocal = pImgCache;
+
+    BKNI_Memset((void *)pImgCache, 0, (sizeof(BDSP_P_FwBuffer)*BDSP_IMG_ID_MAX));
+    errCode = BDSP_Raaga_P_AssignAlgoSize(pImageInterface, pImageContext, pImgCache);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_DumpImage: Couldn't assign algo sizes"));
+        goto end;
+    }
+    for(i=0; i < BDSP_IMG_ID_MAX; i++)
+    {
+        BDBG_MSG((" IMG[%d] : size = %d", i ,pImgCachelocal->ui32Size));
+		totalSize += pImgCachelocal->ui32Size;
+        pImgCachelocal++;
+    }
+
+    if(totalSize > uiBufferSize )
+    {
+        BDBG_ERR((" Allocated memory for binary download less than the required memory. "));
+        BDBG_ERR((" Please increase the define value at bdsp_auth.h. "));
+        BDBG_ERR((" Allocated Size = %d Required size = %d Diff(required - allocated ) = %d", uiBufferSize, totalSize, totalSize- uiBufferSize));
+        errCode=BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto end;
+    }
+
+    BKNI_Memset(pBuffer, 0, totalSize);
+    Memory.pAddr = pBuffer;
+    Memory.offset = 0;
+    for(i=0; i < BDSP_IMG_ID_MAX; i++)
+    {
+        pImgCachelocal = pImgCache+i;
+        if(pImgCachelocal->ui32Size)
+        {
+            errCode = BDSP_Raaga_P_RequestImg(pImageInterface,
+                        pImageContext,
+                        pImgCachelocal,
+                        i,
+                        true,
+                        &Memory);
+            if(errCode != BERR_SUCCESS)
+            {
+                BDBG_ERR(("BDSP_Raaga_P_DumpImage: Couldn't download binary for Image Id %d", i));
+                goto end;
+            }
+            Memory.pAddr = (void *)((uint8_t *)Memory.pAddr+pImgCachelocal->ui32Size);
+        }
+    }
+
+    *pvCodeStart = pBuffer;
+    *puiCodeSize = totalSize;
+end:
+	BKNI_Free(pImgCache);
+    BDBG_LEAVE(BDSP_Raaga_P_DumpImage);
+    return errCode;
 }

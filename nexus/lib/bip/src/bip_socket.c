@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -516,7 +516,7 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
         if (rc != 0 ) {
             BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Got data! Firing callback!" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
-            rc = BIP_Arb_AddDeferredCallback(hSocket->setSettingsApi.hArb, &hSocket->settings.dataReadyCallback);
+            BIP_Arb_AddDeferredCallback(hSocket->setSettingsApi.hArb, &hSocket->settings.dataReadyCallback);
             hSocket->recv.dataReadyCallbackState = BIP_SocketCallbackState_eTriggered;
         }
     }
@@ -587,7 +587,7 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
             /* If our send state isn't Idle, fail the request.  Actually, the Arb shouldn't allow this case to occur. */
             if (hSocket->send.state != BIP_SocketSendState_eIdle) {
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_RejectRequest(). Current send.state:%ld " BIP_MSG_PRE_ARG, (void *)hSocket, (long int)hSocket->send.state ));
-                rc = BIP_Arb_RejectRequest(hArb, BIP_ERR_ALREADY_IN_PROGRESS);
+                BIP_Arb_RejectRequest(hArb, BIP_ERR_ALREADY_IN_PROGRESS);
             }
             else /* The receive state is Idle, go ahead and start a new send. */
             {
@@ -742,7 +742,7 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
         if (rc != 0 ) {
             BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Socket has room! Firing callback!" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
-            rc = BIP_Arb_AddDeferredCallback(hSocket->setSettingsApi.hArb, &hSocket->settings.writeReadyCallback);
+            BIP_Arb_AddDeferredCallback(hSocket->setSettingsApi.hArb, &hSocket->settings.writeReadyCallback);
             hSocket->send.writeReadyCallbackState = BIP_SocketCallbackState_eTriggered;
         }
     }
@@ -1194,13 +1194,13 @@ void BIP_Socket_Destroy(
     }
 
     if (hSocket->recv.hIoChecker) {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying recv hIoChecker:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->recv.hIoChecker ));
         BIP_IoChecker_Destroy(hSocket->recv.hIoChecker);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed recv hIoChecker:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->recv.hIoChecker ));
     }
 
     if (hSocket->send.hIoChecker) {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying send hIoChecker:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->send.hIoChecker ));
         BIP_IoChecker_Destroy(hSocket->send.hIoChecker);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed send hIoChecker:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->send.hIoChecker ));
     }
 
     if (hSocket->hObjectShutdownEvent) {
@@ -1209,33 +1209,33 @@ void BIP_Socket_Destroy(
     }
 
     if (hSocket->hObjectLock) {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying hObjectLock:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->hObjectLock ));
         B_Mutex_Destroy( hSocket->hObjectLock );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hObjectLock:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->hObjectLock ));
     }
 
     if (hSocket->sendApi.hArb) {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->sendApi.hArb ));
         BIP_Arb_Destroy(hSocket->sendApi.hArb);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->sendApi.hArb ));
     }
 
     if (hSocket->hRecvArbList) {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying hRecvArbList:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->hRecvArbList ));
         BIP_ArbList_Destroy(hSocket->hRecvArbList);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hRecvArbList:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->hRecvArbList ));
     }
 
     if (hSocket->setSettingsApi.hArb) {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->setSettingsApi.hArb ));
         BIP_Arb_Destroy(hSocket->setSettingsApi.hArb);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->setSettingsApi.hArb ));
     }
 
     if (hSocket->getSettingsApi.hArb) {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->getSettingsApi.hArb ));
         BIP_Arb_Destroy(hSocket->getSettingsApi.hArb);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->getSettingsApi.hArb ));
     }
 
     if (hSocket->shutdownApi.hArb) {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->shutdownApi.hArb ));
         BIP_Arb_Destroy(hSocket->shutdownApi.hArb);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->shutdownApi.hArb ));
     }
 
     BDBG_ASSERT( BLST_Q_EMPTY( &hSocket->recvArbQueueHead));
@@ -1247,7 +1247,6 @@ void BIP_Socket_Destroy(
     BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Freeing object memory" BIP_MSG_PRE_ARG, (void *)hSocket ));
     B_Os_Free( hSocket );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destruction complete." BIP_MSG_PRE_ARG, (void *)hSocket ));
     return;
 
 error_locked:

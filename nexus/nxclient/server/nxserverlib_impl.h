@@ -295,7 +295,7 @@ struct b_session {
     } video;
     struct {
         NEXUS_DisplayHandle display;
-    } component;
+    } component, composite;
     struct {
         NEXUS_SimpleEncoderServerHandle server;
         /* streaming */
@@ -311,6 +311,7 @@ struct b_session {
         NEXUS_VideoFormatInfo formatInfo;
         nxclient_t crc_client;
         NEXUS_SurfaceHandle graphic; /* for NxClient_SlaveDisplayMode_eGraphics */
+        bool graphicsOnly;
     } display[NXCLIENT_MAX_DISPLAYS];
     NxClient_PictureQualitySettings pictureQualitySettings;
 #if NEXUS_HAS_HDMI_OUTPUT
@@ -322,7 +323,9 @@ struct b_session {
             struct b_hdmi_drm_selector selector;
             bool inputValid;
             NEXUS_HdmiDynamicRangeMasteringInfoFrame input;
+#if NEXUS_HAS_VIDEO_DECODER
             NEXUS_VideoDecoderDynamicRangeMetadataType dynamicMetadataType;
+#endif
             struct
             {
                 NEXUS_HdmiOutputDolbyVisionMode outputMode;
@@ -405,12 +408,6 @@ struct b_stc {
     unsigned score;
 };
 
-enum b_special_mode {
-    b_special_mode_none,
-    b_special_mode_linked_decoder2,
-    b_special_mode_max
-};
-
 enum b_standby_state {
     b_standby_state_none,
     b_standby_state_pending,
@@ -432,7 +429,6 @@ struct b_server {
     unsigned nextId[b_resource_max];
     struct {
         NEXUS_VideoDecoderCapabilities cap;
-        enum b_special_mode special_mode;
     } videoDecoder;
     struct {
         NEXUS_DisplayCapabilities cap;

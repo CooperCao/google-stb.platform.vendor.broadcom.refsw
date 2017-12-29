@@ -22,7 +22,8 @@ EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy,
    if (!egl_initialized(dpy, true))
       return EGL_NO_CONTEXT;
 
-   error = egl_context_gl_create((EGL_GL_CONTEXT_T**)&context, config, share_ctx, attrib_list);
+   error = egl_context_gl_create((EGL_GL_CONTEXT_T**)&context, dpy, config,
+         share_ctx, attrib_list);
    if (error != EGL_SUCCESS)
       goto end;
 
@@ -87,11 +88,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQueryContext(EGLDisplay dpy,
       if (context->draw == NULL)
          *value = EGL_NONE;
       else
-      {
-         EGLAttribKHR attrib;
-         if (egl_surface_base_get_attrib(context->draw, EGL_RENDER_BUFFER, &attrib))
-            *value = (EGLint)attrib;
-      }
+         verif(egl_surface_get_attrib(context->draw, EGL_RENDER_BUFFER, value) == EGL_SUCCESS);
       break;
 
    default:

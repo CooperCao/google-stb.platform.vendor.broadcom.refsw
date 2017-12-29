@@ -413,4 +413,4 @@ void CPanelWps::processNotification(CNotification & notification)
     }
     break;
     } /* switch */
-} /* processNotification */
+}     /* processNotification */

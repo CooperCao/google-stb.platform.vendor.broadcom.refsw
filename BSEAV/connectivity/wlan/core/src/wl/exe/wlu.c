@@ -6279,10 +6279,12 @@ parsecis(char *b, char **argv, int sromrev)
 		} else if (srv->tag == HNBU_MACADDR2) {
 			if ((p = find_pattern(argv, "macaddr2", NULL))) {
 				newtuple(&b[cnt], &cnt, CISTPL_BRCM_HNBU, srv);
-				if (!wl_ether_atoe(p, (struct ether_addr*)&b[cnt]))
+				if (!wl_ether_atoe(p, (struct ether_addr*)&b[cnt])) {
 					printf("Argument does not look like a MAC "
 						"address: %s\n", p);
-					cnt += sizeof(struct ether_addr);
+				}
+
+				cnt += sizeof(struct ether_addr);
 			}
 		} else if (srv->tag == HNBU_CCODE) {
 			bool found = FALSE;
@@ -7393,11 +7395,15 @@ wl_msglevel(void *wl, cmd_t *cmd, char **argv)
 			}
 			/* not an integer if not all the string was parsed by strtoul */
 			if (*endptr != '\0') {
-				for (i = 0; (val = dbg_msg[i].value); i++)
-					if (stricmp(dbg_msg[i].string, s) == 0)
+				for (i = 0; (val = dbg_msg[i].value); i++) {
+					if (stricmp(dbg_msg[i].string, s) == 0) {
 						break;
-					if (!val)
-						goto usage;
+					}
+				}
+
+				if (!val) {
+					goto usage;
+				}
 			}
 			if (**argv == '-')
 				msglevel_del |= val;
@@ -23961,11 +23967,15 @@ wl_monitor_promisc_level(void *wl, cmd_t *cmd, char **argv)
 		}
 		/* not an integer if not all the string was parsed by strtoul */
 		if (*endptr != '\0') {
-			for (i = 0; (val = wl_monpromisc_level_msgs[i].value); i++)
-				if (stricmp(wl_monpromisc_level_msgs[i].string, s) == 0)
+			for (i = 0; (val = wl_monpromisc_level_msgs[i].value); i++) {
+				if (stricmp(wl_monpromisc_level_msgs[i].string, s) == 0) {
 					break;
-				if (!val)
-					goto usage;
+				}
+			}
+
+			if (!val) {
+				goto usage;
+			}
 		}
 		if (**argv == '-')
 			promiscbitmap_del |= val;

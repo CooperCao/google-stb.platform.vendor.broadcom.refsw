@@ -332,7 +332,7 @@ void v3d_calc_tlb_ldst_buffer_desc(
    const struct v3d_rcfg *rcfg, v3d_ldst_buf_t buf,
    const struct v3d_tlb_ldst_params *ls)
 {
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GFX_LFMT_T lfmt = gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
       ls->memory_format, ls->pixel_format, ls->chan_reverse, ls->rb_swap, ls->flipy);
 #elif V3D_VER_AT_LEAST(4,0,2,0)
@@ -344,6 +344,7 @@ void v3d_calc_tlb_ldst_buffer_desc(
    GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, lfmt);
 
+   memset(desc, 0, sizeof(*desc));
    v3d_tlb_pixel_to_decimated_coords(
       &desc->width, &desc->height,
       rcfg->frame_width_px, ls->flipy ? ls->flipy_height_px : rcfg->frame_height_px,
@@ -351,10 +352,8 @@ void v3d_calc_tlb_ldst_buffer_desc(
    desc->depth = 1;
    desc->num_planes = 1;
    desc->planes[0].lfmt = lfmt;
-   desc->planes[0].offset = 0;
    uint32_t pitch = calc_tlb_ldst_pitch(ls, lfmt, &bd, desc->width, desc->height);
    desc->planes[0].pitch = pitch;
-   desc->planes[0].slice_pitch = 0;
 
    assert(ls->addr);
    assert(v3d_addr_aligned(ls->addr, gfx_buffer_get_align(lfmt, GFX_BUFFER_ALIGN_MIN)));

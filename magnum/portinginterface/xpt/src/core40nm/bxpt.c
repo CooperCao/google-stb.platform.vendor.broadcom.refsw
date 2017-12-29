@@ -400,23 +400,9 @@ BERR_Code BXPT_Open(
         ** On some devices, not all PID channels have a message buffer. HasMessageBuffer
         ** will be updated below, when we init the message buffer table
         */
-#ifdef ENABLE_PLAYBACK_MUX
-    #if BXPT_SW7425_1323_WORKAROUND
-        PidChannelTableEntry InitEntry = { false, false, false, 0, 0, false, false, false, 0, false, false };
-    #else
-        PidChannelTableEntry InitEntry = { false, false, false, 0, 0, false, false, false, 0 };
-    #endif
-#else /*ENABLE_PLAYBACK_MUX*/
-    #if BXPT_SW7425_1323_WORKAROUND
-        PidChannelTableEntry InitEntry = { false, false, false, 0, 0, false, 0, false, false  };
-    #else
-        PidChannelTableEntry InitEntry = { false, false, false, 0, 0, false, 0 };
-    #endif
-#endif /*ENABLE_PLAYBACK_MUX*/
-
         BXPT_PidChannel_CC_Config DefaultCcConfig = { true, true, false, 0 };
 
-        lhXpt->PidChannelTable[ i ] = InitEntry;
+        BKNI_Memset(&lhXpt->PidChannelTable[ i ], 0, sizeof(lhXpt->PidChannelTable[ i ]));
 
         BREG_Write32( hRegister, BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + ( 4 * i ), 1 << 28 );
         BREG_Write32( hRegister, BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + ( 4 * i ), 0 );
@@ -435,7 +421,6 @@ BERR_Code BXPT_Open(
         lhXpt->MesgBufferIsInitialized[ i ] = false;
 
         lhXpt->PidChannelTable[ i ].HasMessageBuffer = true;
-        lhXpt->PidChannelTable[ i ].MessageBuffercount = 0;
 
         lhXpt->MesgIntrCallbacks[ i ].Callback = ( BINT_CallbackFunc ) NULL;
         lhXpt->OverflowIntrCallbacks[ i ].Callback = ( BINT_CallbackFunc ) NULL;
@@ -2241,14 +2226,12 @@ bool PidChannelHasDestination(
         return false;
 }
 
-BERR_Code BXPT_P_ClearAllPidChannelDestinations(
+void BXPT_P_ClearAllPidChannelDestinations(
     BXPT_Handle hXpt,
     unsigned int PidChannelNum
     )
 {
     uint32_t Reg, RegAddr;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
 
 #ifdef ENABLE_PLAYBACK_MUX
     BKNI_EnterCriticalSection();
@@ -2262,52 +2245,65 @@ BERR_Code BXPT_P_ClearAllPidChannelDestinations(
     Reg &= ~BCHP_MASK( XPT_FE_SPID_TABLE_i, PID_DESTINATION );
     BREG_Write32( hXpt->hRegister, RegAddr, Reg );
 
+    BKNI_Memset(hXpt->PidChannelTable[ PidChannelNum ].destRefCnt, 0, sizeof(hXpt->PidChannelTable[ PidChannelNum ].destRefCnt));
+
 #ifdef ENABLE_PLAYBACK_MUX
     /*leave pid table protected area*/
     BKNI_LeaveCriticalSection();
 #endif /*ENABLE_PLAYBACK_MUX*/
-    return ExitCode;
 }
 
-BERR_Code BXPT_P_SetPidChannelDestination(
+void BXPT_P_SetPidChannelDestination(
     BXPT_Handle hXpt,
     unsigned int PidChannelNum,
-    unsigned SelectedDestination,
+    BXPT_PidChannelDestination SelectedDestination,
     bool EnableIt
     )
 {
     uint32_t Reg, RegAddr, CurrentDestinations;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
 
     RegAddr = BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + ( PidChannelNum * SPID_CHNL_STEPSIZE );
     Reg = BREG_Read32( hXpt->hRegister, RegAddr );
     CurrentDestinations = BCHP_GET_FIELD_DATA( Reg, XPT_FE_SPID_TABLE_i, PID_DESTINATION );
     Reg &= ~BCHP_MASK( XPT_FE_SPID_TABLE_i, PID_DESTINATION );
 
+    BDBG_MSG(("BXPT_P_SetPidChannelDestination %u, dest %u, enable %u", PidChannelNum, SelectedDestination, EnableIt));
     if( EnableIt )
     {
+        if (hXpt->PidChannelTable[ PidChannelNum ].destRefCnt[SelectedDestination]++ == 0) {
         CurrentDestinations |= ( 1ul << SelectedDestination );  /* Enable the pipe */
         Reg |= BCHP_FIELD_DATA( XPT_FE_SPID_TABLE_i, PID_DESTINATION, CurrentDestinations );
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
 
         /* TODO: Enable PID channel if it was requested */
         if( hXpt->PidChannelTable[ PidChannelNum ].EnableRequested == true )
-            SetChannelEnable( hXpt, PidChannelNum, true );
+        SetChannelEnable( hXpt, PidChannelNum, true );
+        }
     }
     else
     {
+        if (hXpt->PidChannelTable[ PidChannelNum ].destRefCnt[SelectedDestination] == 0) {
+            BDBG_WRN(("unbalanced BXPT_P_SetPidChannelDestination for PidChannelNum %u, dest %u", PidChannelNum, SelectedDestination));
+        }
+        else if (--hXpt->PidChannelTable[ PidChannelNum ].destRefCnt[SelectedDestination] == 0) {
         CurrentDestinations &= ~( 1ul << SelectedDestination ); /* Clear pipe enables */
 
         /* Disable PID channel if there are no other destinations selected */
         if( !CurrentDestinations )
-            SetChannelEnable( hXpt, PidChannelNum, false );
+        SetChannelEnable( hXpt, PidChannelNum, false );
 
         Reg |= BCHP_FIELD_DATA( XPT_FE_SPID_TABLE_i, PID_DESTINATION, CurrentDestinations );
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+        }
     }
 
-    return ExitCode;
+    /* verify HW and SW state match */
+    if (((CurrentDestinations & (1ul << SelectedDestination )) != 0) != (hXpt->PidChannelTable[ PidChannelNum ].destRefCnt[SelectedDestination] != 0)) {
+        BDBG_ERR(("invalid PID_DESTINATION for PidChannelNum %u, enable %u, dest %#x, reg %#x, refcnt %u", PidChannelNum,
+            EnableIt,
+            1 << SelectedDestination, CurrentDestinations,
+            hXpt->PidChannelTable[ PidChannelNum ].destRefCnt[SelectedDestination]));
+    }
 }
 
 bool IsPidDuplicated(

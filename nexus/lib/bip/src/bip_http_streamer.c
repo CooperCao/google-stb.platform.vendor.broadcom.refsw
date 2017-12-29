@@ -120,11 +120,11 @@ static void httpStreamerEndOfStreamingCallback( void *hObject, int value )
     if (bipStatus != BIP_SUCCESS) { return; }
 
     BDBG_ASSERT(hHttpStreamer);
-    BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer);
-
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer:state %p: %d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, hHttpStreamer->state ));
     if (hHttpStreamer)
     {
+        BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer);
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer:state %p: %d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, hHttpStreamer->state ));
+
         B_Mutex_Lock( hHttpStreamer->hStateMutex );
         hHttpStreamer->state = BIP_HttpStreamerState_eStreamingDone;
         B_Mutex_Unlock( hHttpStreamer->hStateMutex );
@@ -1262,9 +1262,9 @@ void BIP_HttpStreamer_PrintStatus(
     BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
 
     BDBG_ASSERT( hHttpStreamer );
-    BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
+    if ( !hHttpStreamer ) goto error_locked;
 
-    if ( !hHttpStreamer ) return;
+    BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
     /* Serialize access to Settings state among another thread calling the same _GetSettings API. */
     hArb = hHttpStreamer->printStatusApi.hArb;

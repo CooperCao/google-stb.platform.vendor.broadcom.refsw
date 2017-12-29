@@ -41,11 +41,27 @@ typedef struct
 {
    GLXX_TEXTURE_UNIF_T tex[GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS];
    GLXX_TEXTURE_UNIF_T img[GLXX_CONFIG_MAX_IMAGE_UNITS];
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   unsigned num_tex;
+   unsigned num_img;
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   uint16_t unnorm[(GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS + 15)/16 + 1/*padding for unaligned load*/];
+#endif
 } glxx_hw_image_like_uniforms;
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+// Limit of 16 comes from unnorm bitfield having 16-bit words.
+static_assrt(GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS <= 16);
+#endif
 
 extern bool glxx_compute_image_like_uniforms(
    GLXX_SERVER_STATE_T *state, glxx_render_state *rs,
-   glxx_hw_image_like_uniforms *image_like_uniforms, GLSL_BACKEND_CFG_T *key);
+   glxx_hw_image_like_uniforms *image_like_uniforms);
+
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+extern void glxx_copy_gadgettypes_to_shader_key(GLSL_BACKEND_CFG_T* cfg, const glxx_hw_image_like_uniforms *image_like_uniforms);
+#endif
 
 extern GLXX_LINK_RESULT_DATA_T *glxx_get_shaders(
    GLXX_SERVER_STATE_T *state, const GLSL_BACKEND_CFG_T *key);
@@ -94,7 +110,7 @@ typedef struct
    v3d_addr_t addr;
    uint32_t stride;
    uint32_t divisor;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    uint32_t max_index;
 #endif
 } glxx_hw_vb;
@@ -104,7 +120,7 @@ extern bool glxx_hw_draw_triangles(GLXX_SERVER_STATE_T *state,
       const glxx_hw_draw *draw,
       const glxx_hw_indices *indices,
       const GLXX_ATTRIB_CONFIG_T *attribs, const glxx_hw_vb *vbs
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       , const glxx_attribs_max *attribs_max
 #endif
       );
@@ -147,7 +163,7 @@ extern void glxx_assign_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *a, const GLXX_HW_F
 extern bool glxx_draw_rect(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs,
       const GLXX_CLEAR_T *clear, const glxx_rect *rect);
 
-uint32_t *glxx_draw_rect_vertex_data(uint32_t *vdata_max_index, khrn_fmem *fmem,
+v3d_addr_t glxx_draw_rect_vertex_data(uint32_t *vdata_max_index, khrn_fmem *fmem,
       const glxx_rect *rect, uint32_t z);
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
@@ -156,7 +172,7 @@ bool glxx_workaround_gfxh_1313(uint8_t** instr_ptr, khrn_fmem* fmem,
    uint32_t fb_width, uint32_t fb_height);
 #endif
 
-#if !V3D_HAS_GFXH1636_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 uint32_t glxx_fill_ocq_cache_size(void);
 bool glxx_fill_ocq_cache(uint8_t** instr_ptr, khrn_fmem* fmem,
    uint32_t fb_width, uint32_t fb_height);
@@ -167,7 +183,7 @@ extern bool glxx_hw_tf_aware_sync_res(GLXX_HW_RENDER_STATE_T *rs,
 
 typedef struct glxx_hw_ubo_load_batch
 {
-   khrn_mem_handle_t uniform_map;
+   const GLXX_UNIFORM_MAP_T *uniform_map;
    uint32_t* dst_ptr;
    uint32_t const* src_ptr;
    glxx_shader_ubo_load const* loads;

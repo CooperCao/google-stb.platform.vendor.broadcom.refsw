@@ -1,5 +1,5 @@
 ##############################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ##############################################################################
 
 ############################################################
@@ -109,16 +108,16 @@ NEXUS_CFLAGS += -I$(ANDROID)/system/core/include \
 	-I$(ANDROID)/dalvik/libnativehelper/include \
 	-I$(ANDROID)/frameworks/base/include \
 	-I$(ANDROID)/external/skia/include \
-	-I$(ANDROID)/out/target/product/${ANDROID_PRODUCT_OUT}/obj/include \
+	-I$(ANDROID)/out/target/product/${LOCAL_PRODUCT_OUT}/obj/include \
 	-I$(ANDROID)/bionic/libc/include \
 	-I$(ANDROID)/bionic/libstdc++/include \
 	-I$(ANDROID)/bionic/libm/include \
 	-I$(ANDROID)/bionic/libthread_db/include \
 	-I$(ANDROID)/bionic/libm \
-	-I$(ANDROID)/out/target/product/${ANDROID_PRODUCT_OUT}/obj/SHARED_LIBRARIES/libm_intermediates \
+	-I$(ANDROID)/out/target/product/${LOCAL_PRODUCT_OUT}/obj/SHARED_LIBRARIES/libm_intermediates \
 	-I$(ANDROID)/frameworks/native/include \
 	-I$(ANDROID)/bionic/libc/kernel/uapi \
-	-I$(LINUX)/include
+	-I$(ANDROID)/bionic/libc/kernel/android/uapi
 
 # includes - arch specific - only arm/aarch64 supported.
 ifeq ($(B_REFSW_ARCH), aarch64-linux)

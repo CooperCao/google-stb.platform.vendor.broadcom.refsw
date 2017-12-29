@@ -5873,16 +5873,14 @@ wlc_fbtap_write_ric_ie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 			/* Include RDE in MIC calculations. */
 			_ric_ie_count += 1;
 			count = rde->rd_count;
-
 			for (i = 0; i < count; i++) {
 				ie = (bcm_tlv_t*)ricptr;
 				if (!found) {
 					/* if tspec is accepted 1 resource descriptor is sent
 						Refer 802.11r 11A.11.3.2 for state machine
 					*/
-					status = wlc_cac_ap_write_ricdata(wlc, bsscfg, scb,
-						(uint8 *)ie, ie->len + TLV_HDR_LEN, &ftcbparm);
-					if (!status) {
+					if (!wlc_cac_ap_write_ricdata(wlc, bsscfg, scb,
+						(uint8 *)ie, ie->len + TLV_HDR_LEN, &ftcbparm)) {
 						ftcbparm.fbtric.rde_id = rde->rde_id;
 						/* length of a single Resource request in RIC */
 						cp_len = wlc_ier_calc_len(wlc->ier_ric, bsscfg,

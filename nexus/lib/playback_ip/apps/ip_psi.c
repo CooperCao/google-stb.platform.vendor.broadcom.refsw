@@ -82,12 +82,14 @@ static void convertEPIDToPsi( B_PlaybackIpPsiInfo *psi, EPID *pEpid, IP_PSI_Trac
 {
    if (type == IP_PSI_TrackType_eVideo) {
       psi->mpegType = NEXUS_TransportType_eTs;
+      /* coverity [mixed_enums] */
       psi->videoCodec = pEpid->streamType;
       psi->videoPid = pEpid->pid;
       psi->psiValid = true;
    }
    else if (type == IP_PSI_TrackType_eAudio ) {
       psi->mpegType = NEXUS_TransportType_eTs;
+      /* coverity [mixed_enums] */
       psi->audioCodec = pEpid->streamType;
       psi->audioPid = pEpid->pid;
       psi->psiValid = true;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,19 +58,34 @@ void SysCalls::doKill(TzTask *currTask) {
     unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
     unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
 
-    TzTask *target = TzTask::taskFromId((int)arg0);
-    if (target == nullptr) {
-        currTask->writeUserReg(TzTask::UserRegs::r0, -EINVAL);
-        return;
+    int pid = (unsigned int)arg0;
+    int rv = 0;
+
+    if (pid > 0) { // signal to a specific task pointed by pid
+        TzTask *target = TzTask::taskFromId((int)arg0);
+        if (target == nullptr) {
+            currTask->writeUserReg(TzTask::UserRegs::r0, -EINVAL);
+            return;
+        }
+
+        if (arg1 >= TzTask::NumSignals) {
+            currTask->writeUserReg(TzTask::UserRegs::r0, -EINVAL);
+            return;
+        }
+
+        rv = target->sigQueue((int)arg1);
     }
+    else { // signal to targeted process group whose pgid is -pid
+        int pgid = 0;
+        if (!pid) pgid = currTask->processGroup();// zero pid refers to current process group
+        else pgid = -pid;
 
-    if (arg1 >= TzTask::NumSignals) {
-        currTask->writeUserReg(TzTask::UserRegs::r0, -EINVAL);
-        return;
+        if (arg1 >= TzTask::NumSignals) {
+            currTask->writeUserReg(TzTask::UserRegs::r0, -EINVAL);
+            return;
+        }
+        rv = ProcessGroup::signalGroup(pgid, arg1);
     }
-
-    int rv = target->sigQueue((int)arg1);
-
     currTask->writeUserReg(TzTask::UserRegs::r0, rv);
 }
 

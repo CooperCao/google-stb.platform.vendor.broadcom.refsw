@@ -47,6 +47,7 @@
 #if NEXUS_HAS_SAGE
 #include "bchp_cmp_0.h"
 #endif
+#include "bchp_memc_gen_0.h"
 
 BDBG_MODULE(nexus_core);
 BTRC_MODULE(500ms_tick, ENABLE);
@@ -161,6 +162,7 @@ NEXUS_Error NEXUS_GetAvsDomainStatus(
 
     pStatus->enabled     = data.enabled;
     pStatus->tracking    = data.tracking;
+    pStatus->heartbeat   = data.heartbeat;
     switch (domain) {
     case NEXUS_AvsDomain_eMain :
         pStatus->voltage      = data.voltage;
@@ -288,6 +290,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
 
     BMMA_PoolAllocator_GetDefaultCreateSettings(&poolSettings);
     poolSettings.allocationSize = sizeof(struct NEXUS_MemoryBlock);
+    poolSettings.maxBlockSize = 32768;
     rc = BMMA_PoolAllocator_Create(&g_NexusCore.memoryBlockPool, &poolSettings);
     if(rc!=BERR_SUCCESS) {
         rc = BERR_TRACE(rc);
@@ -367,11 +370,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
 #endif
 
 #if !BMEM_DEPRECATED
-    rc = BMEM_GetDefaultSettings(&mem_module_settings);
-    if (rc!=BERR_SUCCESS) {
-        rc = BERR_TRACE(rc);
-        goto err_mem_cfg;
-    }
+    BMEM_GetDefaultSettings(&mem_module_settings);
     mem_module_settings.flush = NEXUS_FlushCache;
     mem_module_settings.flush_isr = NEXUS_FlushCache_isr;
     rc = BMEM_Open(&g_NexusCore.publicHandles.mem, &mem_module_settings);
@@ -596,7 +595,9 @@ err_mma:
     BMEM_Close(g_NexusCore.publicHandles.mem);
 err_mem:
 #endif
+#if NEXUS_HAS_SAGE
 err_mem_cfg:
+#endif
     BCHP_Close(g_NexusCore.publicHandles.chp);
 err_boxloadrts:
 err_chp:
@@ -610,8 +611,6 @@ err_heap_handle_pool:
 err_module:
 err_params:
     return NULL;
-    /* coverity[unreachable] */
-    goto err_mem_cfg; /* never reached, silences compiler warning about unused label */
 }
 
 void NEXUS_CoreModule_PostInit(void)
@@ -852,6 +851,8 @@ void NEXUS_KeySlot_GetFastInfo( NEXUS_KeySlotHandle keyslot, NEXUS_KeySlotFastIn
 void NEXUS_KeySlot_GetInfo( NEXUS_KeySlotHandle keyHandle, NEXUS_SecurityKeySlotInfo *pKeyslotInfo )
 {
   #if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_API_VERSION==2)
+    BSTD_UNUSED(keyHandle);
+    BKNI_Memset(pKeyslotInfo, 0, sizeof(*pKeyslotInfo));
     (void)BERR_TRACE(NEXUS_NOT_SUPPORTED); /* use NEXUS_KeySlot_GetInfomation */
     return;
   #else
@@ -994,4 +995,14 @@ NEXUS_ModulePriority NEXUS_AdjustModulePriority( NEXUS_ModulePriority priority, 
             break;
     }
     return priority;
+}
+
+bool NEXUS_P_Core_SecureArchIssue_isrsafe(void)
+{
+#if NEXUS_CPU_ARM
+    uint32_t value = BREG_Read32(g_pCoreHandles->reg, BCHP_MEMC_GEN_0_CORE_REV_ID);
+    return (BCHP_GET_FIELD_DATA(value, MEMC_GEN_0_CORE_REV_ID, ARCH_REV_ID) < 11 || BCHP_GET_FIELD_DATA(value, MEMC_GEN_0_CORE_REV_ID, CFG_REV_ID) < 2);
+#else
+    return false;
+#endif
 }

@@ -45,6 +45,7 @@
 #include "bbox.h"
 #include "bfmt.h"
 #include "bbox_priv.h"
+#include "bbox_rts_priv.h"
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
@@ -55,6 +56,13 @@
 #include "bbox_vdc_box4_config.h"
 #include "bbox_vdc_box5_config.h"
 #include "bbox_vdc_box6_config.h"
+
+#include "bbox_rts_box1.h"
+#include "bbox_rts_box2.h"
+#include "bbox_rts_box3.h"
+#include "bbox_rts_box4.h"
+#include "bbox_rts_box5.h"
+#include "bbox_rts_box6.h"
 
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
@@ -173,7 +181,7 @@ void BBOX_P_Vdc_SetXcodeCapabilities
     }
 }
 
-BERR_Code BBOX_P_GetMemConfig
+BERR_Code BBOX_P_SetMemConfig
     ( uint32_t               ulBoxId,
       BBOX_MemConfig        *pBoxMemConfig )
 {
@@ -182,34 +190,41 @@ BERR_Code BBOX_P_GetMemConfig
     eStatus = BBOX_P_ValidateId(ulBoxId);
     if (eStatus != BERR_SUCCESS) return eStatus;
 
+    /* Set default config settings  */
+    BBOX_P_SetDefaultMemConfig(pBoxMemConfig);
+
     switch (ulBoxId)
     {
         case 1:
-            BBOX_P_GetBox1MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox1MemConfig(pBoxMemConfig);
             break;
         case 2:
-            BBOX_P_GetBox2MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox2MemConfig(pBoxMemConfig);
             break;
         case 3:
-            BBOX_P_GetBox3MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox3MemConfig(pBoxMemConfig);
             break;
         case 4:
-            BBOX_P_GetBox4MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox4MemConfig(pBoxMemConfig);
             break;
         case 5:
-            BBOX_P_GetBox5MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox5MemConfig(pBoxMemConfig);
             break;
         case 6:
-            BBOX_P_GetBox6MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox6MemConfig(pBoxMemConfig);
             break;
+        default:
+            BDBG_ERR(("There is no box mode %d MEMC configuration.", ulBoxId));
+            eStatus = BBOX_MEM_CFG_UNINITIALIZED;
     }
-    return BERR_SUCCESS;
+    return eStatus;
 }
 
 BERR_Code BBOX_P_GetRtsConfig
     ( const uint32_t         ulBoxId,
       BBOX_Rts              *pBoxRts )
 {
+    BERR_Code eStatus = BERR_SUCCESS;
     switch (ulBoxId)
     {
         case 1:
@@ -230,7 +245,11 @@ BERR_Code BBOX_P_GetRtsConfig
         case 6:
             BBOX_P_GetBox6Rts(pBoxRts);
             break;
+        default:
+            BDBG_ERR(("There is no box mode %d RTS configuration.", ulBoxId));
+            eStatus = BBOX_RTS_CFG_UNINITIALIZED;
     }
-    return BERR_SUCCESS;
+
+    return eStatus;
 }
 /* end of file */

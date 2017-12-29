@@ -303,24 +303,22 @@ static void NEXUS_Platform_P_UninitModules(void)
 #if NEXUS_HAS_VIDEO_DECODER
 static void NEXUS_Platform_P_InitVideoDecoder(void *context)
 {
-    NEXUS_VideoDecoderModuleInternalSettings videoDecoderSettings;
-    BSTD_UNUSED(context);
+    NEXUS_VideoDecoderModuleInternalSettings *pVideoDecoderSettings = context;
     BDBG_MSG((">VIDEO_DECODER"));
-    NEXUS_VideoDecoderModule_GetDefaultInternalSettings(&videoDecoderSettings);
     BDBG_ASSERT(g_NEXUS_platformHandles.transport);
-    videoDecoderSettings.transport = g_NEXUS_platformHandles.transport;
-    videoDecoderSettings.core = g_NEXUS_platformHandles.core;
-    videoDecoderSettings.security = g_NEXUS_platformHandles.security;
-    videoDecoderSettings.secureHeap = g_pCoreHandles->heap[NEXUS_VIDEO_SECURE_HEAP].nexus;
+    pVideoDecoderSettings->transport = g_NEXUS_platformHandles.transport;
+    pVideoDecoderSettings->core = g_NEXUS_platformHandles.core;
+    pVideoDecoderSettings->security = g_NEXUS_platformHandles.security;
+    pVideoDecoderSettings->secureHeap = g_pCoreHandles->heap[NEXUS_VIDEO_SECURE_HEAP].nexus;
 #if NEXUS_NUM_ZSP_VIDEO_DECODERS || NEXUS_NUM_DSP_VIDEO_DECODERS
     BDBG_ASSERT(g_NEXUS_platformHandles.audio);
-    videoDecoderSettings.audio = g_NEXUS_platformHandles.audio;
+    pVideoDecoderSettings->audio = g_NEXUS_platformHandles.audio;
 #endif
 #if NEXUS_NUM_SID_VIDEO_DECODERS && NEXUS_HAS_PICTURE_DECODER
     BDBG_ASSERT(g_NEXUS_platformHandles.pictureDecoder);
-    videoDecoderSettings.pictureDecoder = g_NEXUS_platformHandles.pictureDecoder;
+    pVideoDecoderSettings->pictureDecoder = g_NEXUS_platformHandles.pictureDecoder;
 #endif
-    g_NEXUS_platformHandles.videoDecoder = NEXUS_VideoDecoderModule_Init(&videoDecoderSettings, &g_NEXUS_platformSettings.videoDecoderModuleSettings);
+    g_NEXUS_platformHandles.videoDecoder = NEXUS_VideoDecoderModule_Init(pVideoDecoderSettings, &g_NEXUS_platformSettings.videoDecoderModuleSettings);
     if (!g_NEXUS_platformHandles.videoDecoder) {
         BDBG_ERR(("Unable to init VideoDecoder"));
     }
@@ -579,6 +577,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_VIDEO_ENCODER
         NEXUS_VideoEncoderModuleInternalSettings videoEncoderSettings;
 #endif
+#if NEXUS_HAS_VIDEO_DECODER
+        NEXUS_VideoDecoderModuleInternalSettings videoDecoderSettings;
+#endif
         NEXUS_ModuleSettings moduleSettings;
     } *state = NULL;
     NEXUS_ModuleHandle handle;
@@ -611,8 +612,8 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         && (structSizeCheck != sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformSettings)) + sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformConfiguration)))
 #endif
         ) {
-        BDBG_ERR(("NEXUS_Platform failed with struct size mismatch (nexus=%u, caller=%u). Please recompile application and/or nexus.",
-            (unsigned)NEXUS_P_GET_STRUCT_SIZES(), structSizeCheck));
+        BDBG_ERR(("%s failed with struct size mismatch (nexus=%u, caller=%u). Please recompile application and/or nexus.",
+            "NEXUS_Platform", (unsigned)NEXUS_P_GET_STRUCT_SIZES(), structSizeCheck));
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
@@ -789,13 +790,22 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.security, g_NEXUS_platformSettings.securitySettings.common.standbyLevel, NEXUS_SecurityModule_Uninit, NEXUS_SecurityModule_Standby_priv);
 #endif
 
+#if NEXUS_HAS_VIDEO_DECODER
+    NEXUS_VideoDecoderModule_GetDefaultInternalSettings(&state->videoDecoderSettings, &g_NEXUS_platformSettings.videoDecoderModuleSettings);
+#endif
+
 #if NEXUS_HAS_SAGE
     BDBG_MSG((">SAGE"));
     {
         NEXUS_SageModuleInternalSettings sageInternalSettings;
         NEXUS_SageModule_GetDefaultInternalSettings(&sageInternalSettings);
-
         sageInternalSettings.security = g_NEXUS_platformHandles.security;
+        sageInternalSettings.transport = g_NEXUS_platformHandles.transport;
+#if NEXUS_HAS_VIDEO_DECODER
+        sageInternalSettings.videoDecoderFirmware.block = state->videoDecoderSettings.firmware.block;
+        sageInternalSettings.videoDecoderFirmware.size = state->videoDecoderSettings.firmware.size;
+#endif
+        sageInternalSettings.lazyUnmap = NEXUS_Platform_P_LazyUnmap();
         g_NEXUS_platformHandles.sage = NEXUS_SageModule_Init(&pSettings->sageModuleSettings, &sageInternalSettings);
         if (!g_NEXUS_platformHandles.sage) {
             BDBG_ERR(("Unable to init sage"));
@@ -1141,9 +1151,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_VIDEO_DECODER
     /* video decoder requires transport and secure heap. so we can launch as early as here. */
 #if MULTITHREADED_INIT
-    videoDecoderThread = NEXUS_Thread_Create("video_decoder_init", NEXUS_Platform_P_InitVideoDecoder, NULL, NULL);
+    videoDecoderThread = NEXUS_Thread_Create("video_decoder_init", NEXUS_Platform_P_InitVideoDecoder, &state->videoDecoderSettings, NULL);
 #else
-    NEXUS_Platform_P_InitVideoDecoder(NULL);
+    NEXUS_Platform_P_InitVideoDecoder(&state->videoDecoderSettings);
     if (!g_NEXUS_platformHandles.videoDecoder) {
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
@@ -1476,10 +1486,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     }
 #endif
 
-#if NEXUS_POWER_MANAGEMENT
-    /* We could be initializing after S3 cold boot, in which case we want to reset the wake up status.*/
-    NEXUS_Platform_P_SetStandbySettings(&g_NEXUS_platformSettings.standbySettings, false);
-#endif
     g_NEXUS_CallbackMonitorTimer = NEXUS_ScheduleTimerByPriority(Internal, 100, NEXUS_P_Platform_CallbackMonitor, NULL);
     BDBG_ASSERT(g_NEXUS_CallbackMonitorTimer);
 
@@ -2094,7 +2100,13 @@ void NEXUS_Platform_P_SweepModules(void)
 #if (NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM) && (BCHP_PWR_RESOURCE_M2MC0 || BCHP_PWR_RESOURCE_M2MC1 || BCHP_PWR_RESOURCE_GRAPHICS3D)
 static NEXUS_Error NEXUS_Platform_P_SetThermalScaling(BCHP_PWR_ResourceId resourceId, unsigned thermalPoint, unsigned maxThermalPoints)
 {
-#if BCHP_CHIP != 7271 && BCHP_CHIP != 7268 && BCHP_CHIP != 7260
+#if ((BCHP_CHIP == 7260) && (BCHP_VER < BCHP_VER_B0)) /* Not available on 7260 A0 */
+    BSTD_UNUSED(resourceId);
+    BSTD_UNUSED(thermalPoint);
+    BSTD_UNUSED(maxThermalPoints);
+    BDBG_WRN(("Thermal Scaling is disabled on this platform!!"));
+    return NEXUS_SUCCESS;
+#else
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned clkRate, clkRateCur, clkRateMin, clkRateMax;
 
@@ -2116,12 +2128,6 @@ static NEXUS_Error NEXUS_Platform_P_SetThermalScaling(BCHP_PWR_ResourceId resour
     }
 
     return rc;
-#else
-    BSTD_UNUSED(resourceId);
-    BSTD_UNUSED(thermalPoint);
-    BSTD_UNUSED(maxThermalPoints);
-    BDBG_WRN(("Thermal Scaling is disabled on this platform!!"));
-    return NEXUS_SUCCESS;
 #endif
 }
 #endif

@@ -148,6 +148,8 @@ phy_ac_mu_group_set(phy_type_mu_ctx_t *ctx, uint16 mu_group, uint8 user_pos, uin
 	 */
 	reg_addr = ACPHY_GidLutVal0_3(pi->pubpi->phy_rev);
 	if (reg_addr == INVALID_ADDRESS) {
+		/* value of condition reg_addr could be INVALID_ADDRESS with other builds */
+		/* coverity[dead_error_line] */
 		return BCME_UNSUPPORTED;
 	}
 	reg_addr += (mu_group / MU_GROUPS_PER_REG);

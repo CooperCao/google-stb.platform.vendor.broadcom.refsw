@@ -41,6 +41,7 @@ APPS = \
     security_skey_app \
     security_keyslot_aes_ecb_app \
     security_keyslot_aes_cbc_app \
+    security_keyslot_aes_cbc_iv_64_app \
     security_keyslot_des_app \
     security_keyslot_tdes_app \
     security_keyslot_external_keyiv_app \
@@ -58,9 +59,15 @@ EXTRA_SRC += security_utils.c
 EXTRA_OBJS += security_utils.o
 
 include ../../Makefile.inc
-
+# Keyslot apps
 $(BINDIR)/security_keyslot_des_app     $(BINDIR)/security_keyslot_des_app:     $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_tdes_app    $(BINDIR)/security_keyslot_tdes_app:    $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_aes_cbc_app $(BINDIR)/security_keyslot_aes_ecb_app: $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_aes_cbc_app $(BINDIR)/security_keyslot_aes_cbc_app: $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_aes_cbc_iv_64_app $(BINDIR)/security_keyslot_aes_cbc_iv_64_app: $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_external_keyiv_app $(BINDIR)/security_keyslot_external_keyiv_app: $(EXTRA_SRC)
+# Keyladder apps
+$(BINDIR)/security_keyladder_aes_ecb_app $(BINDIR)/security_keyladder_aes_ecb_app: $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_otp_askm_key_app $(BINDIR)/security_keyladder_otp_askm_key_app: $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_otp_customer_key_app $(BINDIR)/security_keyladder_otp_customer_key_app: $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_otp_global_key_app $(BINDIR)/security_keyladder_otp_global_key_app: $(EXTRA_SRC)

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,7 +51,7 @@
 #endif
 
 /* These platforms have basic ASKM support */
-#define BHSM_ZEUS_VERSION BHSM_ZEUS_VERSION_CALC_3(BHSM_ZEUS_VER_MAJOR,BHSM_ZEUS_VER_MINOR,BHSM_ZEUS_VER_SUBMINOR)
+#define BHSM_ZEUS_VERSION BHSM_ZEUS_VERSION_CALC(BHSM_ZEUS_VER_MAJOR,BHSM_ZEUS_VER_MINOR)
 
 /*    DEPRECATED  The following are replaced by BHSM_ZEUS_VERSION, BHSM_ZEUS_VER_MAJOR, and BHSM_ZEUS_VER_MINOR */
 #define HSM_IS_ASKM 1

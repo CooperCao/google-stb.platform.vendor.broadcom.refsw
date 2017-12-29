@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -72,7 +72,7 @@ BLST_D_HEAD(BGIO_P_Pin_Context_Head, BGIO_P_Pin_Context);
 #else
 #define BGIO_P_AON_BASE                0
 #endif
-#define BGIO_P_NUM_CTRL_SETS           3
+#define BGIO_P_NUM_CTRL_SETS           6
 
 /***************************************************************************
  * BGIO main Context

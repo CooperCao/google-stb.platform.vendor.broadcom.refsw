@@ -76,6 +76,7 @@ struct b_objdb {
     BLST_S_HEAD(NEXUS_P_ObjDbModuleHead, b_objdb_module) module_list;
     struct NEXUS_P_BaseObjectTree object_tree;
     struct NEXUS_P_BaseObjectIdTree id_tree;
+    struct NEXUS_P_BaseObjectOrderTree cleanupObjects;
 #if BDBG_DEBUG_BUILD
     struct NEXUS_P_BaseClassDesciptorInfoTree class_tree;
 #endif
@@ -84,7 +85,7 @@ struct b_objdb {
 
 #if BDBG_DEBUG_BUILD
 BDBG_OBJECT_ID(NEXUS_P_BaseClassDesciptorInfo);
-static int NEXUS_P_NEXUS_BaseClassDescriptor_Compare(const struct NEXUS_P_BaseClassDesciptorInfo* node, const NEXUS_BaseClassDescriptor *key)
+static int NEXUS_P_NEXUS_BaseClassDescriptor_Compare_isrsafe(const struct NEXUS_P_BaseClassDesciptorInfo* node, const NEXUS_BaseClassDescriptor *key)
 {
     if(key > node->class) {
         return 1;
@@ -95,13 +96,13 @@ static int NEXUS_P_NEXUS_BaseClassDescriptor_Compare(const struct NEXUS_P_BaseCl
     }
 }
 
-BLST_AA_TREE_GENERATE_FIND(NEXUS_P_BaseClassDesciptorInfoTree, const NEXUS_BaseClassDescriptor *, NEXUS_P_BaseClassDesciptorInfo, node, NEXUS_P_NEXUS_BaseClassDescriptor_Compare)
-BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseClassDesciptorInfoTree, const NEXUS_BaseClassDescriptor *, NEXUS_P_BaseClassDesciptorInfo, node, NEXUS_P_NEXUS_BaseClassDescriptor_Compare)
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_BaseClassDesciptorInfoTree, const NEXUS_BaseClassDescriptor *, NEXUS_P_BaseClassDesciptorInfo, node, NEXUS_P_NEXUS_BaseClassDescriptor_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseClassDesciptorInfoTree, const NEXUS_BaseClassDescriptor *, NEXUS_P_BaseClassDesciptorInfo, node, NEXUS_P_NEXUS_BaseClassDescriptor_Compare_isrsafe)
 BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseClassDesciptorInfoTree, NEXUS_P_BaseClassDesciptorInfo, node)
 BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_BaseClassDesciptorInfoTree, NEXUS_P_BaseClassDesciptorInfo, node)
 #endif
 
-static int NEXUS_P_BaseObject_Compare(const struct NEXUS_BaseObject* node, const struct NEXUS_BaseObject *key)
+static int NEXUS_P_BaseObject_Compare_isrsafe(const struct NEXUS_BaseObject* node, const struct NEXUS_BaseObject *key)
 {
     if(key > node) {
         return 1;
@@ -112,13 +113,13 @@ static int NEXUS_P_BaseObject_Compare(const struct NEXUS_BaseObject* node, const
     }
 }
 
-BLST_AA_TREE_GENERATE_FIND(NEXUS_P_BaseObjectTree , void *, NEXUS_BaseObject, node, NEXUS_P_BaseObject_Compare)
-BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseObjectTree, void *, NEXUS_BaseObject, node, NEXUS_P_BaseObject_Compare)
-BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseObjectTree, NEXUS_BaseObject, node)
-BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_BaseObjectTree, NEXUS_BaseObject, node)
-BLST_AA_TREE_GENERATE_NEXT(NEXUS_P_BaseObjectTree, NEXUS_BaseObject, node)
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_BaseObjectTree , void *, NEXUS_BaseObject, node.live.object, NEXUS_P_BaseObject_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseObjectTree, void *, NEXUS_BaseObject, node.live.object, NEXUS_P_BaseObject_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseObjectTree, NEXUS_BaseObject, node.live.object)
+BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_BaseObjectTree, NEXUS_BaseObject, node.live.object)
+BLST_AA_TREE_GENERATE_NEXT(NEXUS_P_BaseObjectTree, NEXUS_BaseObject, node.live.object)
 
-static int NEXUS_P_BaseObject_CompareId(const struct NEXUS_BaseObject* node, NEXUS_BaseObjectId id)
+static int NEXUS_P_BaseObject_CompareId_isrsafe(const struct NEXUS_BaseObject* node, NEXUS_BaseObjectId id)
 {
     if(id > node->id) {
         return 1;
@@ -129,9 +130,30 @@ static int NEXUS_P_BaseObject_CompareId(const struct NEXUS_BaseObject* node, NEX
     }
 }
 
-BLST_AA_TREE_GENERATE_FIND(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObjectId, NEXUS_BaseObject, nodeId, NEXUS_P_BaseObject_CompareId)
-BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObjectId, NEXUS_BaseObject, nodeId, NEXUS_P_BaseObject_CompareId)
-BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObject, nodeId)
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObjectId, NEXUS_BaseObject, node.live.id, NEXUS_P_BaseObject_CompareId_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObjectId, NEXUS_BaseObject, node.live.id, NEXUS_P_BaseObject_CompareId_isrsafe)
+BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObject, node.live.id)
+
+
+struct NEXUS_P_BaseObjectOrder_Key {
+    unsigned order;
+    const struct NEXUS_BaseObject *object;
+};
+
+static int NEXUS_P_BaseObject_CompareOrder_isrsafe(const struct NEXUS_BaseObject* node, const struct NEXUS_P_BaseObjectOrder_Key *key)
+{
+    /*  reverse order, entries with largest order are first */
+    if(key->order > node->state.order) {
+        return -1;
+    } else if(key->order < node->state.order) {
+        return 1;
+    } else {
+        return NEXUS_P_BaseObject_Compare_isrsafe(node, key->object);
+    }
+}
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseObjectOrderTree, const struct NEXUS_P_BaseObjectOrder_Key *, NEXUS_BaseObject, node.cleanup.order, NEXUS_P_BaseObject_CompareOrder_isrsafe)
+BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseObjectOrderTree, NEXUS_BaseObject, node.cleanup.order)
+BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_BaseObjectOrderTree, NEXUS_BaseObject, node.cleanup.order)
 
 static struct b_objdb s_nexus_objdb;
 
@@ -141,6 +163,7 @@ static NEXUS_Error _b_objdb_init(struct b_objdb *db)
 
     BLST_AA_TREE_INIT(NEXUS_P_BaseObjectTree, &db->object_tree);
     BLST_AA_TREE_INIT(NEXUS_P_BaseObjectIdTree, &db->id_tree);
+    BLST_AA_TREE_INIT(NEXUS_P_BaseObjectOrderTree, &db->cleanupObjects);
     db->last_id = NEXUS_BASEOBJECT_MIN_ID;
 #if BDBG_DEBUG_BUILD
     BLST_AA_TREE_INIT(NEXUS_P_BaseObjectIdTree, &db->class_tree);
@@ -246,12 +269,12 @@ static int b_objdb_insert(struct b_objdb_module *db, const NEXUS_BaseClassDescri
     bool acquiring = operation==NEXUS_Object_P_RegisterUnregister_eAutoAcquire || operation == NEXUS_Object_P_RegisterUnregister_eRegisterAcquire;
     const struct b_objdb_client *client = b_objdb_get_client();
 
+    if (!client) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     BDBG_OBJECT_ASSERT(db, b_objdb_module);
     base_object = (void *)((uint8_t *)handle + p_class->offset);
+    BDBG_OBJECT_ASSERT(base_object, NEXUS_BaseObject);
     BDBG_MSG(("%s %s:%p client=%p %u %p", acquiring?"acquire":"insert", p_class->type_name, (void *)handle, (void *)client, (unsigned)operation, (void *)base_object->state.objdb_class));
     BDBG_ASSERT(db->class_list);
-    if (!client) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    BDBG_OBJECT_ASSERT(base_object, NEXUS_BaseObject);
     if(base_object->state.objdb_class==NULL) {
         if(operation!=NEXUS_Object_P_RegisterUnregister_eAutoAcquire) {
             const struct b_objdb_class *objdb_class;
@@ -420,6 +443,9 @@ And because we remove unconditionally, these BDBG_WRN's are only for internal de
             BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
             BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object);
             BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectIdTree, &db->db->id_tree, base_object);
+            if(base_object->state.inCleanup) {
+                BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectOrderTree, &db->db->cleanupObjects, base_object);
+            }
 #if BDBG_DEBUG_BUILD
             {
                 struct NEXUS_P_BaseClassDesciptorInfo *info = BLST_AA_TREE_FIND(NEXUS_P_BaseClassDesciptorInfoTree, &db->db->class_tree, p_class);
@@ -532,11 +558,9 @@ int  b_objdb_verify_and_acquire(const NEXUS_BaseClassDescriptor *p_class, void *
     return rc;
 }
 
-static int b_objdb_module_get_newest_entry_locked(struct b_objdb_module *db_module, const struct b_objdb_client *client, NEXUS_BaseObject **object)
+static void b_objdb_module_get_newest_entry_locked(struct NEXUS_P_BaseObjectOrderTree *cleanupObjects, struct b_objdb_module *db_module, const struct b_objdb_client *client)
 {
     struct b_objdb *db;
-    NEXUS_BaseObject *newest=NULL;
-    int rc = -1;
     NEXUS_BaseObject *base_object;
 
     BDBG_OBJECT_ASSERT(db_module, b_objdb_module);
@@ -544,12 +568,19 @@ static int b_objdb_module_get_newest_entry_locked(struct b_objdb_module *db_modu
     BDBG_OBJECT_ASSERT(db, b_objdb);
     BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
 
+    BLST_AA_TREE_INIT(NEXUS_P_BaseObjectOrderTree, cleanupObjects);
     for(base_object=BLST_AA_TREE_FIRST(NEXUS_P_BaseObjectTree, &db->object_tree);
         base_object;
         base_object=BLST_AA_TREE_NEXT(NEXUS_P_BaseObjectTree, &db->object_tree, base_object)) {
+        struct NEXUS_P_BaseObjectOrder_Key key;
         const struct b_objdb_class *objdb_class;
+
         BDBG_OBJECT_ASSERT(base_object, NEXUS_BaseObject);
         BDBG_ASSERT(base_object->state.objdb_class);
+
+        if (base_object->state.client != client && base_object->state.acquired_client != client) {
+            continue;
+        }
 
         /* use match in objdb class to filter per-module objects */
         for(objdb_class = db_module->class_list;objdb_class->base_class!=NULL;objdb_class++) {
@@ -560,20 +591,13 @@ static int b_objdb_module_get_newest_entry_locked(struct b_objdb_module *db_modu
         if(objdb_class->base_class == NULL) {
             continue; /* object from another module */
         }
-        if (base_object->state.client != client && base_object->state.acquired_client != client) {
-            continue;
-        }
-        if (newest==NULL || newest->state.order < base_object->state.order ) { /* find entry with maximum order */
-            newest = base_object;
-        }
-    }
-    if (newest) {
-        *object = newest;
-        rc = 0;
+        base_object->state.inCleanup = true;
+        key.object = base_object;
+        key.order = base_object->state.order;
+        BLST_AA_TREE_INSERT(NEXUS_P_BaseObjectOrderTree, cleanupObjects, &key, base_object);
     }
     BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
-
-    return rc;
+    return;
 }
 
 static void b_objdb_module_uninit_entry_locked(struct b_objdb_module *db, NEXUS_BaseObject *base_object, const struct b_objdb_client *client)
@@ -606,6 +630,7 @@ static void b_objdb_module_uninit_entry_locked(struct b_objdb_module *db, NEXUS_
         BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
         BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object);
         BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectIdTree, &db->db->id_tree, base_object);
+        BDBG_ASSERT(!base_object->state.inCleanup); /* it should be already cleared and removed by b_objdb_module_uninit_client_objects */
         BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
         base_object->state.objdb_class = NULL;
         db->cancel_callbacks_locked(db->cancel_callbacks_context, handle, NULL);
@@ -621,6 +646,9 @@ void b_objdb_module_uninit_client_objects(struct b_objdb_module *db, struct b_ob
 {
     struct b_objdb_client *temp_client = NULL;
     NEXUS_P_ThreadInfo *info = NEXUS_P_ThreadInfo_Get();
+    unsigned objects_cleaned=0;
+
+    BDBG_MSG((">b_objdb_module_uninit_client_objects:%p(%p)'%s'", (void *)db, (void *)client, db->name));
 
     /* we need to temporarily change the client to the one being cleaned up. */
     if (info) {
@@ -628,19 +656,27 @@ void b_objdb_module_uninit_client_objects(struct b_objdb_module *db, struct b_ob
         info->client = client;
     }
     NEXUS_Module_Lock(db->module);
+    b_objdb_module_get_newest_entry_locked(&db->db->cleanupObjects, db, client);
     for(;;) {
-        NEXUS_BaseObject *object=NULL;
-        if (!b_objdb_module_get_newest_entry_locked(db, client, &object)) {
-            b_objdb_module_uninit_entry_locked(db, object, client);
+        NEXUS_BaseObject *object;
+        BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
+        object=BLST_AA_TREE_FIRST(NEXUS_P_BaseObjectOrderTree, &db->db->cleanupObjects);
+        if(object) {
+            object->state.inCleanup = false;
+            BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectOrderTree, &db->db->cleanupObjects, object);
         }
-        else {
+        BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
+        if(object==NULL) {
             break;
         }
+        b_objdb_module_uninit_entry_locked(db, object, client);
+        objects_cleaned++;
     }
     NEXUS_Module_Unlock(db->module);
     if (info) {
         info->client = temp_client;
     }
+    BDBG_MSG(("<b_objdb_module_uninit_client_objects:%p(%p)'%s' -> cleaned:%u", (void *)db, (void *)client, db->name, objects_cleaned));
     return;
 }
 
@@ -749,7 +785,7 @@ NEXUS_Error b_objdb_set_object_shared(const struct b_objdb_client *client, void 
     BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
     base_object = BLST_AA_TREE_FIND(NEXUS_P_BaseObjectTree, &db->object_tree, base_object_handle);
     if(base_object) {
-        if (base_object->state.client == client) {
+        if (base_object->state.client == client || base_object->state.acquired_client == client || !client) {
             base_object->state.shared = shared;
             result = NEXUS_SUCCESS;
         }

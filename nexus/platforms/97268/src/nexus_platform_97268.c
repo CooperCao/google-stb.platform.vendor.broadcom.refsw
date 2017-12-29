@@ -64,16 +64,10 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
     case 6:
     case 7:
     case 8:
-        pSettings->videoDecoder[0].mosaic.maxNumber = 3;
-        pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
-        pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
-        pSettings->videoDecoder[0].mosaic.colorDepth = 10;
-        pSettings->videoDecoder[1].mosaic.maxNumber = 1;
-        pSettings->videoDecoder[1].mosaic.maxWidth = 1920;
-        pSettings->videoDecoder[1].mosaic.maxHeight = 1088;
-        pSettings->videoDecoder[1].mosaic.colorDepth = 10;
-        break;
     case 9:
+    case 10:
+    case 11:
+    case 12:
         pSettings->videoDecoder[0].mosaic.maxNumber = 3;
         pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
         pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
@@ -95,12 +89,6 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
     BSTD_UNUSED(boxMode);
-#if BCHP_VER == BCHP_VER_B0
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.base = 0;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.length = 512*1024*1024;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.valid = true;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.first = true;
-#endif
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 160*MB;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 96*MB;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*MB;
@@ -114,7 +102,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 
 #if NEXUS_CPU_ARM64
     const char *mode = "64 bit";
-#elif NEXUS_CPU_ARM
+#else /* NEXUS_CPU_ARM */
     const char *mode = "32 bit compatibility";
 #endif
 

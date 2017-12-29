@@ -59,7 +59,7 @@ void BBOX_P_Vdc_SetBox18DisplayCapabilities
 
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display5, Video0, DISREGARD, false, Disregard, Disregard, Disregard, 1,                  1,                  AutoDisable);
 
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display6, Video0, DISREGARD, false, Disregard, Disregard, Disregard, 1,                  1,                  AutoDisable);
+        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display6, Video0, HD_MR4,    false, Disregard, Disregard, Disregard, 1,                  1,                  AutoDisable);
 }
 
 void BBOX_P_Vdc_SetBox18DeinterlacerCapabilities

@@ -43,16 +43,21 @@
 #include "priv/nexus_sage_priv.h"
 #include "bhsm.h"
 #include "nexus_sage_image.h"
+#if (NEXUS_SECURITY_API_VERSION==1)
 #include "nexus_security_client.h"
+#endif
 #include "bsagelib_boot.h"
 #include "bkni.h"
 #include "bchp_bsp_glb_control.h"
 #include "priv/bsagelib_shared_types.h"
 #include "priv/nexus_security_regver_priv.h"
+#if (NEXUS_SECURITY_API_VERSION==1)
 #include "bhsm_verify_reg.h"
+#endif
 
 #include "nexus_dma.h"
 #include "nexus_memory.h"
+#include "priv/nexus_sage_audio.h"
 
 NEXUS_SageModule_P_Handle g_NEXUS_sageModule;
 
@@ -63,9 +68,14 @@ BDBG_MODULE(nexus_sage_module);
 #define NEXUS_SAGE_RSA2048_SIZE    256
 
 
-#define _REGION_MAP_MAX_NUM 8
+#define _REGION_MAP_MAX_NUM 12
 
-#define SAGE_RESET_REG BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eReset)
+#define SAGE_RESET_REG       BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eReset)
+#define SAGE_CRR_START_REG   BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eCRRStartOffset)
+#define SAGE_CRR_END_REG     BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eCRREndOffset)
+#define SAGE_SRR_START_REG   BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSRRStartOffset)
+#define SAGE_SRR_END_REG     BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSRREndOffset)
+
 #define SAGE_RESETVAL_DOWN  0x1FF1FEED /* Defined in multiple places */
 
 static struct {
@@ -91,16 +101,15 @@ static struct {
 /****************************************
  * Local functions
  ****************************************/
-static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, NEXUS_Addr *offset, uint32_t *len, uint32_t *max_free);
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
 static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(NEXUS_Addr offset, uint32_t len, NEXUS_Addr boundary);
 #endif
 static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void);
-static NEXUS_Error NEXUS_SageModule_P_InitializeTimer(void);
 static void NEXUS_SageModule_P_MemoryBlockFree(NEXUS_SageMemoryBlock *block, int clear);
 static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(NEXUS_SageMemoryBlock *block, size_t size);
 static void NEXUS_Sage_P_CleanBootVars(void);
 static NEXUS_Error NEXUS_Sage_P_MonitorBoot(void);
+static NEXUS_Error NEXUS_Sage_P_CheckSecureRegions(int heapid, NEXUS_Addr offset, uint32_t len);
 
 /****************************************
  * Macros
@@ -141,6 +150,16 @@ static void NEXUS_Sage_P_Module_Unlock_Security(void)
 {
     NEXUS_Module_Unlock(g_sage_module.internalSettings.security);
 }
+/* Lock transport */
+void NEXUS_Sage_P_Module_Lock_Transport(void)
+{
+    NEXUS_Module_Lock(g_sage_module.internalSettings.transport);
+}
+/* unlock transport*/
+void NEXUS_Sage_P_Module_Unlock_Transport(void)
+{
+    NEXUS_Module_Unlock(g_sage_module.internalSettings.transport);
+}
 /* .lock_sage : BSAGElib_Sync_LockCallback prototype */
 static void NEXUS_Sage_P_Module_Lock_Sage(void)
 {
@@ -152,13 +171,13 @@ static void NEXUS_Sage_P_Module_Unlock_Sage(void)
     NEXUS_Module_Unlock(g_NEXUS_sageModule.moduleHandle);
 }
 
-void NEXUS_SageModule_Print(void)
+static void NEXUS_SageModule_Print(void)
 {
 #if BDBG_DEBUG_BUILD
     int SageBooted;
     NEXUS_SageStatus status;
 
-    if ( &g_NEXUS_sageModule.hSAGElib != NULL) {
+    if ( g_NEXUS_sageModule.hSAGElib != NULL) {
         BSAGElib_ImageInfo bootloaderInfo, frameworkInfo;
         BSAGElib_Boot_GetBinariesInfo(g_NEXUS_sageModule.hSAGElib,
                                       &bootloaderInfo, &frameworkInfo);
@@ -179,6 +198,7 @@ void NEXUS_SageModule_Print(void)
        BDBG_LOG(("Uncompressed Restricted Region is %s.", status.urr.secured ? "SECURED" : "OPEN"));
     }
     NEXUS_Sage_P_PrintSvp();
+    NEXUS_Sage_P_PrintSecureLog();
 #endif
 }
 
@@ -220,6 +240,7 @@ end:
 
 void NEXUS_Sage_P_SAGELogUninit(void)
 {
+#if (NEXUS_SECURITY_API_VERSION==1)
     BSAGElib_SageLogBuffer *pSageLogBuffer = NULL;
     uint8_t *pCRRBuffer = NULL,*pEncAESKeyBuffer = NULL;
 
@@ -243,10 +264,16 @@ void NEXUS_Sage_P_SAGELogUninit(void)
         g_sage_module.pSageLogBuffer = NULL;
     }
     return;
+#else
+    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
+    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    return;
+#endif
 }
 
 static NEXUS_Error NEXUS_Sage_P_SAGELogInit(void)
 {
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Error rc = NEXUS_SUCCESS;
     BSAGElib_SageLogBuffer *pSageLogBuffer = NULL;
     uint8_t *pCRRBuffer = NULL,*pEncAESKeyBuffer = NULL;
@@ -320,6 +347,10 @@ handle_err:
         g_sage_module.pSageLogBuffer = NULL;
     }
     return rc;
+#else
+    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
+    return 0;
+#endif
 }
 static NEXUS_Error NEXUS_Sage_P_SAGElibInit(void)
 {
@@ -400,6 +431,7 @@ void NEXUS_Sage_P_VarCleanup(void)
 
 static NEXUS_Error NEXUS_Sage_P_WaitSageRegion(void)
 {
+#if (NEXUS_SECURITY_API_VERSION==1)
     uint8_t count=0;
     NEXUS_SecurityRegionInfoQuery  regionSatus;
     BERR_Code rc=NEXUS_SUCCESS;
@@ -428,6 +460,10 @@ static NEXUS_Error NEXUS_Sage_P_WaitSageRegion(void)
 
 EXIT:
     return rc;
+#else
+    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif
 }
 
 /****************************************
@@ -450,24 +486,6 @@ void NEXUS_SageModule_GetDefaultSettings(NEXUS_SageModuleSettings *pSettings)
 void NEXUS_SageModule_GetDefaultInternalSettings(NEXUS_SageModuleInternalSettings *pInternalSettings)
 {
     BKNI_Memset(pInternalSettings, 0, sizeof(*pInternalSettings));
-}
-
-/* Init the timer Module */
-static NEXUS_Error NEXUS_SageModule_P_InitializeTimer(void)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-
-    BTMR_TimerSettings timerSettings = { BTMR_Type_eSharedFreeRun, NULL, NULL, 0, false };
-    if(BTMR_CreateTimer(g_pCoreHandles->tmr, &g_NEXUS_sageModule.hTimer, &timerSettings) != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BTMR_CreateTimer failure", BSTD_FUNCTION));
-        rc = NEXUS_NOT_INITIALIZED;
-    }
-    else {
-        g_NEXUS_sageModule.timerMax = BTMR_ReadTimerMax();
-        /* failure is acceptable here */
-    }
-
-    return rc;
 }
 
 /* Free a memory block allocated using NEXUS_SageModule_P_MemoryBlockAllocate() */
@@ -505,7 +523,7 @@ err:
 }
 
 /* Retrieve heap's offset and length parameters */
-static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, NEXUS_Addr *offset, uint32_t *len, uint32_t *max_free)
+NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, NEXUS_Addr *offset, uint32_t *len, uint32_t *max_free)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
@@ -545,6 +563,14 @@ static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, NEXUS_Addr *
             goto end;
         }
 #endif
+
+        if ((heapid == NEXUS_SAGE_SECURE_HEAP) ||
+            (heapid == NEXUS_VIDEO_SECURE_HEAP)) {
+            rc = NEXUS_Sage_P_CheckSecureRegions(heapid, memoryStatus.offset, memoryStatus.size);
+            if (rc != NEXUS_SUCCESS) {
+                goto end;
+            }
+        }
     }
     else {
         /* Only warn about manditory heaps */
@@ -582,6 +608,53 @@ static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(NEXUS_Addr offset, uint32
     return rc;
 }
 #endif
+
+/* Check if Secure heap CRR and SRR are consistent to what's in GlobalSRAM */
+static NEXUS_Error NEXUS_Sage_P_CheckSecureRegions(int heapid, NEXUS_Addr offset, uint32_t len)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    uint32_t start = 0;
+    uint32_t end = 0;
+    uint32_t size = 0;
+    const char *heap_str = NULL;
+
+    switch (heapid) {
+    case NEXUS_VIDEO_SECURE_HEAP:
+        start = BREG_Read32(g_pCoreHandles->reg, SAGE_CRR_START_REG);
+        end = BREG_Read32(g_pCoreHandles->reg, SAGE_CRR_END_REG);
+        heap_str = "CRR (NEXUS_VIDEO_SECURE_HEAP)";
+        break;
+    case NEXUS_SAGE_SECURE_HEAP:
+        start = BREG_Read32(g_pCoreHandles->reg, SAGE_SRR_START_REG);
+        end = BREG_Read32(g_pCoreHandles->reg, SAGE_SRR_END_REG);
+        heap_str = "SRR (NEXUS_SAGE_SECURE_HEAP)";
+        break;
+    default:
+        rc = NEXUS_NOT_SUPPORTED;
+        BDBG_ERR(("%s: Unsupported secure region", BSTD_FUNCTION));
+        goto end;
+    }
+    if (start || end) {
+        /* translate size and offset per Zeus architecture */
+        size = RESTRICTED_REGION_SIZE(start,end);
+        start = RESTRICTED_REGION_OFFSET(start);
+        if ((offset != (NEXUS_Addr)start) || (len != size)) {
+            rc = NEXUS_INVALID_PARAMETER;
+            BDBG_ERR(("%s - Error, heap '%s' [ID=%d] can only be set once per power up.",
+                       BSTD_FUNCTION, heap_str, heapid));
+            BDBG_ERR(("%s\tPrevious run configured it at (offset: %#x, size: %u bytes)",
+                      BSTD_FUNCTION, start, size));
+            BDBG_ERR(("%s\tCurrent run requests it at (offset: " BDBG_UINT64_FMT ", size: %u bytes)",
+                      BSTD_FUNCTION, BDBG_UINT64_ARG(offset), len));
+            BDBG_ERR(("%s - A change in '%s' requires a reboot.", BSTD_FUNCTION, heap_str));
+            goto end;
+        }
+
+    }
+
+end:
+    return rc;
+}
 
 BERR_Code
 NEXUS_SageModule_P_AddRegion(
@@ -672,6 +745,13 @@ static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void)
         rc = BERR_SUCCESS; /* this is not fatal */
     }
 
+    /* Add FWRR */
+    rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_FIRMWARE_HEAP, &offset, &size, NULL);
+    if (rc == NEXUS_SUCCESS && offset && size) {
+        rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Fwrr, offset, size);
+        if (rc != NEXUS_SUCCESS) { goto err; }
+    }
+
 err:
     return rc;
 }
@@ -728,10 +808,6 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     rc = NEXUS_Sage_P_ConfigureAlloc();
     if(rc != NEXUS_SUCCESS) {  goto err; }
 
-    /* configure timer for message timestamp and SAGE start time */
-    rc = NEXUS_SageModule_P_InitializeTimer();
-    if (rc != NEXUS_SUCCESS) { goto err; }
-
     g_sage_module.regionMapNum = 0;
     g_sage_module.pRegionMap = NEXUS_Sage_P_Malloc(sizeof(*g_sage_module.pRegionMap) * _REGION_MAP_MAX_NUM);
     if (g_sage_module.pRegionMap == NULL) {
@@ -768,7 +844,7 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     if(rc != NEXUS_SUCCESS) {  goto err; }
 
     /* Set URR regions (accounting for adjacent buffers) */
-    rc = NEXUS_Sage_P_SvpInit();
+    rc = NEXUS_Sage_P_SvpInit(&g_sage_module.internalSettings);
     if (rc != NEXUS_SUCCESS) { goto err; }
     NEXUS_Sage_P_SvpSetRegions();
 
@@ -864,7 +940,6 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     rc = NEXUS_Sage_P_SvpStart();
     if(rc != NEXUS_SUCCESS) { goto err; }
 
-
     /* If chip type is ZB or customer specific, then the default IDs stand */
     if (g_NEXUS_sageModule.chipInfo.chipType == BSAGElib_ChipType_eZS) {
         blImg.id = SAGE_IMAGE_FirmwareID_eBootLoader_Development;
@@ -887,8 +962,8 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     if(rc != NEXUS_SUCCESS) { goto err; }
 
     /* Get start timer */
-    BTMR_ReadTimer(g_NEXUS_sageModule.hTimer, &g_NEXUS_sageModule.initTimeUs);
-    BDBG_MSG(("%s - Initial timer value: %u", BSTD_FUNCTION, g_NEXUS_sageModule.initTimeUs));
+    NEXUS_Time_Get(&g_NEXUS_sageModule.initTime);
+
     rc = NEXUS_Sage_P_SAGELogInit();
     if (rc != NEXUS_SUCCESS) { goto err; }
 
@@ -955,15 +1030,38 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
         goto err;
     }
 
-    NEXUS_Sage_P_SvpInitDelayed();
+    NEXUS_Sage_P_SecureLog_Init(&g_sage_module.settings);
+    NEXUS_Sage_P_SvpInitDelayed(NULL);
 
     /* Install BP3 TA.  Initialize the platform and BP3 module.  Read and process bp3.bin if it exists and not provisioning.  */
+#if (BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0)
+    rc= NEXUS_SUCCESS;
+#else
     rc = NEXUS_Sage_P_BP3Init(&g_sage_module.settings);
+#endif
     if (rc != NEXUS_SUCCESS)
     {
         rc = BERR_TRACE(rc);
         goto err;
     }
+
+#if 0 /* HOLD OFF until SARM TA is fully implemented */
+    /* Install SARM TA.  Initialize the platform and SARM module.  */
+    rc = NEXUS_Sage_P_SARMInit(&g_sage_module.settings);
+    if (rc != NEXUS_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+        goto err;
+    }
+
+    {
+        /* Remove - test only */
+        NEXUS_SageAudioOpenSettings pSettings;
+        NEXUS_SageAudioHandle sHandle;
+        NEXUS_SageAudio_GetDefaultOpenSettings_priv(&pSettings);
+        sHandle = NEXUS_SageAudio_Open_priv(&pSettings);
+    }
+#endif
 
     if(reconnect)
     {
@@ -1032,8 +1130,11 @@ void NEXUS_SageModule_Uninit(void)
 
     NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyModeOn);
 
-    NEXUS_Sage_P_BP3Uninit();
+    NEXUS_Sage_P_SecureLog_Uninit();
 
+#if (BCHP_CHIP != 7278 || BCHP_VER != BCHP_VER_A0)
+    NEXUS_Sage_P_BP3Uninit();
+#endif
     NEXUS_Sage_P_SvpStop(false);
     NEXUS_Sage_P_SvpUninit();
 
@@ -1067,11 +1168,6 @@ void NEXUS_SageModule_Uninit(void)
     if (g_sage_module.pRegionMap != NULL) {
         NEXUS_Memory_Free(g_sage_module.pRegionMap);
         g_sage_module.pRegionMap = NULL;
-    }
-
-    if (g_NEXUS_sageModule.hTimer) {
-        BTMR_DestroyTimer(g_NEXUS_sageModule.hTimer);
-        g_NEXUS_sageModule.hTimer = NULL;
     }
 
     NEXUS_Sage_P_VarCleanup();
@@ -1184,7 +1280,11 @@ err:
 }
 
 /* SAGE boot timing */
+#if (BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0)
+#define SAGE_MAX_BOOT_TIME_US (30 * 1000 * 1000)
+#else
 #define SAGE_MAX_BOOT_TIME_US (15 * 1000 * 1000)
+#endif
 #define SAGE_STEP_BOOT_TIME_US (50 * 1000)
 /* Check is SAGE software is ready.
  * If not, waits for 15 seconds max to see if it becomes ready. */
@@ -1200,24 +1300,14 @@ NEXUS_Sage_P_MonitorBoot(void)
     int totalBootTimeUs;
     int alreadyConsumedBootTimeUs;
     int overheadUs;
-    uint32_t timer;
+    NEXUS_Time now;
     uint32_t lastStatus=0x42;
     BSAGElib_BootState bootState = {BSAGElibBootStatus_eNotStarted, 0};
 
     /* This will calculate the time already consumed by the SAGE init process before we reach this point */
-    if(BTMR_ReadTimer(g_NEXUS_sageModule.hTimer, &timer) != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BTMR_ReadTimer failure", BSTD_FUNCTION));
-        goto err;
-    }
+    NEXUS_Time_Get(&now);
     /* compute already comsumed time. */
-    if (g_NEXUS_sageModule.initTimeUs < timer) {
-        totalBootTimeUs = timer - g_NEXUS_sageModule.initTimeUs;
-    } else { /* timer < g_NEXUS_sageModule.timerMax) ; timer wraps */
-        /* if real total boot time > g_NEXUS_sageModule.timerMax (SAGE-side is probably hanging),
-         * it may end up in SAGE_MAX_BOOT_TIME_US micro seconds before timeout
-         * as total boot time computation will be false due to wrong wrap. */
-        totalBootTimeUs = ((g_NEXUS_sageModule.timerMax - g_NEXUS_sageModule.initTimeUs) + timer);
-    }
+    totalBootTimeUs = NEXUS_Time_Diff(&now, &g_NEXUS_sageModule.initTime) * 1000;
 
     alreadyConsumedBootTimeUs = totalBootTimeUs;
     /* Read Global SRAM registers for SAGE boot status every SAGE_STEP_BOOT_TIME_US us.

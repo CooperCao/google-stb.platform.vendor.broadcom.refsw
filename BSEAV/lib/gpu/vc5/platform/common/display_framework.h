@@ -12,6 +12,8 @@
 #include <EGL/begl_displayplatform.h>
 
 #include <stdbool.h>
+#include <semaphore.h>
+#include <pthread.h>
 
 /*
  * DisplayFramework is a generic implementation of an animation loop
@@ -55,10 +57,12 @@ typedef struct DisplayFramework
    const DisplayInterface   *display_interface;
    const FenceInterface     *fence_interface;
    const SurfaceInterface   *surface_interface;
-   BEGL_WindowInfo                  window_info;
+   BEGL_WindowInfo           window_info;
+   pthread_mutex_t           window_mutex;
 
-   pthread_t                        thread;
-   pthread_barrier_t                barrier;
+   pthread_t                 thread;
+   pthread_barrier_t         barrier;
+   sem_t                     latency;
    Swapchain                 swapchain;
 } DisplayFramework;
 
@@ -70,8 +74,14 @@ bool DisplayFramework_Start(DisplayFramework *df,
 
 void DisplayFramework_Stop(DisplayFramework *df);
 
+void DisplayFramework_GetSize(DisplayFramework *df,
+      uint32_t *width, uint32_t *height);
+
+void DisplayFramework_SetSize(DisplayFramework *df,
+      uint32_t width, uint32_t height);
+
 void *DisplayFramework_GetNextSurface(DisplayFramework *df,
-      BEGL_BufferFormat format, bool secure, int *fence);
+      BEGL_BufferFormat format, bool secure, int *fence, unsigned *age);
 
 void DisplayFramework_DisplaySurface(DisplayFramework *df,
       void *surface, int fence, uint32_t swap_interval);

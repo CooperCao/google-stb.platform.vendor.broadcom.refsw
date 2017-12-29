@@ -99,6 +99,7 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
     this->priority = parentTask.priority;
     totalRunTime = 0;
     cumRunTime = 0;
+    taskRunTime = 0;
     slotTimeSlice = 0;
     lastScheduledAt = TzHwCounter::timeNow();
     startedAt = TzHwCounter::timeNow();
@@ -180,17 +181,28 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
 
     if (flags & CLONE_SIGHAND) {
         signals = parentTask.signals;
-        signalsCloned = true;
-
         sigParamsStack = parentTask.sigParamsStack;
+        sigParamsStackUser = parentTask.sigParamsStackUser;
         sigParamsStackTop = parentTask.sigParamsStackTop;
         sigParamsStackMax = parentTask.sigParamsStackMax;
-
         signalled = false;
+        signalsCloned = true;
     }
     else {
         inheritSignalState(parentTask);
         signalsCloned = false;
+    }
+
+    /*
+     * Prepare TLS region
+     */
+    if (flags & CLONE_SETTLS) {
+        threadInfo = tls;
+        threadInfoCloned = false;
+    }
+    else {
+        threadInfo = parentTask.threadInfo;
+        threadInfoCloned = true;
     }
 
     /*
@@ -210,11 +222,6 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
         return;
     }
 
-    /*
-     * Prepare TLS region
-     */
-    threadInfo = tls;
-
     for (int i=0; i<NUM_SAVED_CPU_REGS; i++) {
         savedRegs[i] = parentTask.savedRegs[i];
     }
@@ -226,14 +233,21 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
     savedRegs[SAVED_REG_R0] = 0;
     savedRegs[SAVED_REG_SP] = (unsigned long)stackKernel;
 
+#ifdef __aarch64__
+    if (!threadInfoCloned)
+        savedRegs[SAVED_REG_TPIDR_EL0] = (unsigned long)threadInfo;
+#endif
+
     if (vmCloned)
         savedRegs[SAVED_REG_SP_USR] = (unsigned long)stack;
 
     savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
     savedNeonRegBase = &savedNeonRegs[NUM_SAVED_NEON_REGS];
 
-    // copy parent task user stack
-    copyParentStack();
+    if (!vmCloned) {
+        // copy parent task user stack
+        copyParentStack();
+    }
 
     spinLockInit(&lock);
 
@@ -260,6 +274,9 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
     brkCurr = parentTask.brkCurr;;
     brkMax = parentTask.brkMax;
     mmapMaxVa = parentTask.mmapMaxVa;
+    ProcessGroup::addGroupMember(parentTask.pgid, this);
+    pgid = parentTask.pgid;
+    createUContext();
 
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?

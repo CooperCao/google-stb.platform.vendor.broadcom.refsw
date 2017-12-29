@@ -1129,6 +1129,16 @@ BERR_Code BVDC_Source_SetOrientation
         BVDC_P_Source_Info *pCurInfo = &hSource->stCurInfo;
         BVDC_P_Source_DirtyBits *pNewDirty = &pNewInfo->stDirty;
 
+#if (!BVDC_P_SUPPORT_3D)
+        if(eOrientation != BFMT_Orientation_e2D)
+        {
+            BDBG_ERR(("==================================================================="));
+            BDBG_ERR(("3D orientation %d Override NOT supported", eOrientation));
+            BDBG_ERR(("==================================================================="));
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+        }
+#endif
+
 #if (BVDC_P_DCX_3D_WORKAROUND)
         if(eOrientation != BFMT_Orientation_e2D)
         {
@@ -1158,7 +1168,6 @@ BERR_Code BVDC_Source_SetOrientation
 
     BDBG_LEAVE(BVDC_Source_SetOrientation);
     return BERR_SUCCESS;
-
 }
 
 #if !B_REFSW_MINIMAL

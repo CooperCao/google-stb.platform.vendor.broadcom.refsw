@@ -766,10 +766,10 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
 
         BIP_HttpStreamer_GetDefaultOutputSettings(&streamerOutputSettings);
 
-/* this is slow because pacing is on */
+        /* this is slow because pacing is on */
 #if 0
         /* disable pid information in http headers.  atlas client will have to probe for pids.
-           this is so multiple audio pids can be detected by the client. */
+         * this is so multiple audio pids can be detected by the client. */
         streamerOutputSettings.disableAvHeadersInsertion = true;
 #endif
 

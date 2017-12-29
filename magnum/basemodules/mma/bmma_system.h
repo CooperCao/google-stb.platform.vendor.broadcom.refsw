@@ -249,9 +249,9 @@ void BMMA_Block_Acquire(BMMA_Handle allocator, BMMA_Block_Handle block);
 
 /***************************************************************************
 Summary:
-    BMMA_Block_Release is the same as BMMA_Block_Free
+    BMMA_Block_Release is the same as BMMA_Free
 ****************************************************************************/
-#define BMMA_Block_Release(b) BMMA_Block_Free(b)
+#define BMMA_Block_Release(b) BMMA_Free(b)
 
 /***************************************************************************
 Summary:

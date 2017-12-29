@@ -5,6 +5,7 @@
 #include <EGL/eglext.h>
 #include <EGL/eglext_wayland.h>
 
+#include "../../egl_display.h"
 #include "egl_platform_abstract.h"
 
 /* Implementation of the functions defined in the wl_bind_display extension
@@ -17,26 +18,32 @@
  */
 
 EGLAPI EGLBoolean EGLAPIENTRY eglBindWaylandDisplayWL(
-      EGLDisplay dpy,
-      struct wl_display *display)
+      EGLDisplay dpy, struct wl_display *wl_display)
 {
+   if (!egl_initialized(dpy, true))
+      return EGL_FALSE;
+   void *handle = egl_display_platform_handle(dpy);
+
    if (!g_bcgPlatformData.displayInterface.BindWaylandDisplay)
       return EGL_FALSE;
 
    return g_bcgPlatformData.displayInterface.BindWaylandDisplay(
-         g_bcgPlatformData.displayInterface.context, dpy, display) ?
+         g_bcgPlatformData.displayInterface.context, handle, wl_display) ?
                EGL_TRUE : EGL_FALSE;
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglUnbindWaylandDisplayWL(
-      EGLDisplay dpy,
-      struct wl_display *display)
+      EGLDisplay dpy, struct wl_display *wl_display)
 {
+   if (!egl_initialized(dpy, true))
+      return EGL_FALSE;
+   void *handle = egl_display_platform_handle(dpy);
+
    if (!g_bcgPlatformData.displayInterface.UnbindWaylandDisplay)
       return EGL_FALSE;
 
    return g_bcgPlatformData.displayInterface.UnbindWaylandDisplay(
-         g_bcgPlatformData.displayInterface.context, dpy, display) ?
+         g_bcgPlatformData.displayInterface.context, handle, wl_display) ?
                EGL_TRUE : EGL_FALSE;
 }
 
@@ -46,13 +53,17 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQueryWaylandBufferWL(
       EGLint attribute,
       EGLint *value)
 {
+   if (!egl_initialized(dpy, true))
+      return EGL_FALSE;
+   void *handle = egl_display_platform_handle(dpy);
+
    if (!g_bcgPlatformData.displayInterface.QueryBuffer || !value)
       return EGL_FALSE;
 
    int32_t out_value; /* in case EGLint is not int32_t */
    bool result = g_bcgPlatformData.displayInterface.QueryBuffer(
-         g_bcgPlatformData.displayInterface.context, dpy, buffer, attribute,
-         &out_value);
+         g_bcgPlatformData.displayInterface.context, handle, buffer,
+         attribute, &out_value);
    *value = out_value;
    return result ? EGL_TRUE : EGL_FALSE;
 }

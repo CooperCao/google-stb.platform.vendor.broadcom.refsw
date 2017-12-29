@@ -59,6 +59,12 @@
 #include <pthread.h>
 #include <dirent.h>
 
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <ifaddrs.h>
+
+
 #include "bmemperf.h"
 #include "bmemperf_cgi.h"
 #include "bmemperf_info.h"
@@ -72,6 +78,7 @@
 #include "bchp_xpt_rave.h"
 #include "bchp_xpt_mcpb.h"
 #include "bchp_xpt_mcpb_ch0.h"
+#include "bchp_xpt_mcpb_ch1.h"
 #ifndef BCHP_XPT_MEMDMA_MCPB_CH1_DMA_DESC_CONTROL
 #include "bchp_xpt_memdma_mcpb_ch1.h"
 #endif
@@ -1384,20 +1391,22 @@ int Bsysperf_GetXptData( bmemperf_xpt_details *pxpt ) /* XPT Rave stats. */
         int idx = 0;
         unsigned long int mask = cdbDepth;
         unsigned long int /*uint64_t*/ xptRunStatus;
+        unsigned long int pidOffset = (BCHP_XPT_MCPB_CH1_PARSER_BAND_ID_CTRL-BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL) & 0xffff;
         unsigned long int pktOffset = (BCHP_XPT_MEMDMA_MCPB_CH1_DCPM_LOCAL_PACKET_COUNTER -BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER) & 0xffff;
         unsigned long int outputCount = 0;
         unsigned long int totalPktCnt = 0;
 
         xptRunStatus = bmemperf_readReg32( BCHP_XPT_MCPB_RUN_STATUS_0_31 );
-        /*printf( "~DEBUG~cdbDepth %lu;   cdbSize %lu;   xpt_mcpb_run_status %lx;   pktOffset 0x%lx~", cdbDepth, cdbSize, xptRunStatus, pktOffset );*/
+        /*fprintf( stderr, "%s - cdbDepth %lu; cdbSize %lu; xpt_mcpb_run_status bits 0x%lx;  pktOffset 0x%lx \n", __FUNCTION__, cdbDepth, cdbSize, xptRunStatus, pktOffset );*/
         for( idx=0; idx<32; idx++)
         {
             mask = 1 << idx;
             if ( xptRunStatus & mask )
             {
-                unsigned long int pid = bmemperf_readReg32( BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL              + (idx*4) );
+                unsigned long int pid = bmemperf_readReg32( BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL              + (idx*pidOffset) );
                 unsigned long int pkt = bmemperf_readReg32( BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset) );
 
+                pid = (pid & BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL_PB_PARSER_BAND_ID_MASK ) >> BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL_PB_PARSER_BAND_ID_SHIFT;
                 pxpt->xptPid[idx] = pid;
                 pxpt->xptActive[idx] = 1;
                 pxpt->xptPktCount[idx] = pkt;
@@ -1408,8 +1417,10 @@ int Bsysperf_GetXptData( bmemperf_xpt_details *pxpt ) /* XPT Rave stats. */
                         PRINTFLOG( "%s\n", DateYyyyMmDdHhMmSs() );
                     }
                     totalPktCnt += pkt;
-                    PRINTFLOG( "xpt_mcpb chan %2d is active; pid 0x%lx;   pktCount %ld;   addr 0x%lx;   total %ld \n", idx, pid, pkt,
-                        BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset), totalPktCnt );
+                    outputCount++;
+                    /*fprintf( stderr, "xpt_mcpb chan %2d is active; pid (0x%lx) 0x%lx;   pktCount %ld;   addr 0x%lx;   total %ld \n", idx,
+                        BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + (idx*pidOffset), pid,
+                        pkt, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (idx*pktOffset), totalPktCnt );*/
                 }
             }
         }
@@ -2854,7 +2865,7 @@ char *Bsysperf_FindLastStr ( const char * buffer, const char * searchStr )
  **/
 void printflog(const char * szFormat, ... )
 {
-    char str[256];
+    char str[BASPMON_CFG_MAX_LINE_LEN];
     unsigned long int nLen = sizeof(str);
     static char sLogFile[128];
     static unsigned char LogFileNameSet = 0;
@@ -2878,7 +2889,7 @@ void printflog(const char * szFormat, ... )
     va_end(arg_ptr);
 
     if ( strlen( sLogFile ) ) {
-        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND) );
+        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND), 0777 );
         if ( fd ) {
             write ( fd, str, strlen(str) );
             close ( fd );
@@ -2919,7 +2930,7 @@ void printffile(const char *sLogFile, const char * szFormat, ... )
     va_end(arg_ptr);
 
     if ( strlen( sLogFile ) ) {
-        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND) );
+        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND), 0777 );
         if ( fd ) {
             write ( fd, str, strlen(str) );
             close ( fd );
@@ -3146,13 +3157,21 @@ int Bmemperf_GetCfgFileEntry(
     )
 {
     FILE *fp = NULL;
-    char  oneline[512];
+    char *oneline = NULL;
 
     if ( cfg_filename == NULL || cfg_tagline == NULL || output_buffer == NULL || output_buffer_len <=0 )
     {
         return ( -1 );
     }
-    memset( oneline, 0, sizeof(oneline) );
+    oneline = malloc( BASPMON_CFG_MAX_LINE_LEN );
+    if ( oneline == NULL ) {
+        fprintf( stderr, "%s - could not malloc(%d) for oneline \n", __FUNCTION__, BASPMON_CFG_MAX_LINE_LEN );
+        return ( -1 );
+    }
+    memset( oneline, 0, BASPMON_CFG_MAX_LINE_LEN );
+
+    /*printflog( "\n\n");*/
+    /*printflog( "%s:%u - filename (%s) ... tagline (%s) \n", __FUNCTION__, __LINE__, cfg_filename, cfg_tagline );*/
 
     fp = fopen( cfg_filename, "r" );
     if ( fp == NULL )
@@ -3161,12 +3180,13 @@ int Bmemperf_GetCfgFileEntry(
     }
 
     PRINTF( "%s: tagline (%s)\n", __FUNCTION__, cfg_tagline );
-    while (fgets( oneline, sizeof( oneline ), fp ))
+    while (fgets( oneline, BASPMON_CFG_MAX_LINE_LEN, fp ))
     {
-        PRINTF( "%s: newline (%s)\n", __FUNCTION__, oneline );
+        /*printflog( "%s:%u newline len %d ... (%s)\n", __FUNCTION__, __LINE__, strlen(oneline), oneline );*/
         /* if we found a matching line */
         if ( strstr( oneline, cfg_tagline ) )
         {
+            /*printflog( "%s:%u - line len (%d) \n", __FUNCTION__, __LINE__, strlen(oneline) );*/
             char *bov = strchr( oneline, '"'); /* determine the beginning of the assocated value */
             char *eov = NULL;
             if ( bov )
@@ -3181,10 +3201,12 @@ int Bmemperf_GetCfgFileEntry(
                 break;
             }
         }
-        memset( oneline, 0, sizeof(oneline) );
+        memset( oneline, 0, BASPMON_CFG_MAX_LINE_LEN );
     }
 
     fclose( fp );
+
+    Bsysperf_Free( oneline );
 
     return ( 0 );
 }
@@ -3629,34 +3651,6 @@ void Bmemperf_ChangeCpuState(
     system( line );
 }
 
-#ifdef BMEMCONFIG_BOXMODE_SUPPORTED
-int Bmemperf_GetProductIdMemc(
-    void
-    )
-{
-    unsigned int idx     = 0;
-    int          numMemc = 1;
-    char         *lProductIdStr = getProductIdStr();
-
-    /* loop through global array to find the specified boxmode */
-    for (idx = 0; idx < ( sizeof( g_bmemconfig_box_info )/sizeof( g_bmemconfig_box_info[0] )); idx++)
-    {
-        PRINTF( "~DEBUG~%s: g_bmemconfig_box_info[%d].strProductId is %s ... comparing with %s~\n", __FUNCTION__, idx,
-                g_bmemconfig_box_info[idx].strProductId, lProductIdStr );
-        /* some 7439 IDs have 7252s (boxmode 24) and some have 7252S (boxmode 2, 3, 4, 9, 27) */
-        if ( lProductIdStr && strcasecmp ( g_bmemconfig_box_info[idx].strProductId, lProductIdStr ) == 0 )
-        {
-            numMemc = g_bmemconfig_box_info[idx].numMemc;
-            PRINTF( "~DEBUG~%s: match at boxmode %u; numMemc %u ~\n", __FUNCTION__, idx, numMemc );
-            break;
-        }
-    }
-
-    /* we did not find the specified product id */
-    return( numMemc );
-}  /* getBoxModeMemc */
-#endif /* BMEMCONFIG_BOXMODE_SUPPORTED*/
-
 /**
  *  Function: This function will format an integer to output an indicator for kilo, mega, or giga.
  **/
@@ -3686,3 +3680,104 @@ char *formatul(
 
     return( outString );
 }                                                          /* formatul */
+
+unsigned long int delta_time_microseconds(
+    unsigned long int seconds,
+    unsigned long int microseconds
+    )
+{
+    struct timeval         tv2;
+    unsigned long long int microseconds1      = 0;
+    unsigned long long int microseconds2      = 0;
+    unsigned long int      microseconds_delta = 0;
+
+    memset( &tv2, 0, sizeof( tv2 ));
+
+    gettimeofday( &tv2, NULL );
+    microseconds1      = ( seconds * 1000000LL );       /* q-scale shift the seconds left to allow for addition of microseconds */
+    microseconds1     += microseconds;
+    microseconds2      = ( tv2.tv_sec * 1000000LL );       /* q-scale shift the seconds left to allow for addition of microseconds */
+    microseconds2     += tv2.tv_usec;                      /* add in microseconds */
+    microseconds_delta = ( microseconds2 - microseconds1 );
+    /*printf( "now: %lu.%06lu ... input: %lu.%06lu ... elapsed time %lu milliseconds\n", tv2.tv_sec, tv2.tv_usec, seconds, microseconds, microseconds_delta/1000 );*/
+
+    return( microseconds_delta );
+}
+
+/**
+ *  Function: This function will determine the IP address of the specified interface name.
+ *            If the address is found, it will be copied into the specified user buffer.
+ **/
+int get_my_ip_addr_from_ifname( const char *ifname, char *ipaddr, int ipaddr_len )
+{
+    int fd = 0;
+    struct ifreq ifr;
+
+    if ( ifname && strlen(ifname) )
+    {
+        fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+        if ( fd )
+        {
+            ifr.ifr_addr.sa_family = AF_INET; /* I want to get an IPv4 IP address */
+
+            strncpy(ifr.ifr_name, ifname, IFNAMSIZ-1);
+
+            ioctl(fd, SIOCGIFADDR, &ifr);
+
+            close(fd);
+
+            if ( ipaddr && ipaddr_len > strlen( inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr)) )
+            {
+                strncpy( ipaddr, inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr), ipaddr_len-1 );
+            }
+        }
+    }
+
+    return 0;
+}
+
+/**
+ *  Function: This function will find the IP4 addresses of all network interfaces.
+ **/
+int get_my_ip4_addr_all( unsigned long int list[], int list_max )
+{
+    int             ifa_count = 0;
+    struct ifaddrs *ifaddr, *ifa;
+    int             s, n;
+    char            host[NI_MAXHOST];
+
+    if (getifaddrs( &ifaddr ) == -1)
+    {
+        fprintf( stderr, "getifaddrs() failed\n" );
+        return -1;
+    }
+
+    /* loop through all of the interfaces found */
+    for (ifa = ifaddr, n = 0; ifa != NULL; ifa = ifa->ifa_next, n++)
+    {
+        if (ifa->ifa_addr == NULL) continue;
+
+        if (( ifa->ifa_addr->sa_family == AF_INET ) || ( ifa->ifa_addr->sa_family == AF_INET6 ))
+        {
+            s = getnameinfo( ifa->ifa_addr, ( ifa->ifa_addr->sa_family == AF_INET ) ? sizeof( struct sockaddr_in ) : sizeof( struct sockaddr_in6 ),
+                    host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST );
+            if (s != 0)
+            {
+                fprintf( stderr, "getnameinfo() failed: %s\n", gai_strerror( s ));
+                return -1;
+            }
+
+            if ( strcmp( host, "127.0.0.1" ) == 0 ) printf( "%-6s <%s> %lX\n", ifa->ifa_name, host, (unsigned long int) inet_addr(host) );
+            if ( ifa_count < list_max && inet_addr(host) != 0x100007F ) /* ignore local addr 127.0.0.1 */
+            {
+                list[ifa_count] = inet_addr(host);
+
+                ifa_count++;
+            }
+        }
+    }
+
+    freeifaddrs( ifaddr );
+    return 0;
+}

@@ -56,8 +56,14 @@ Configuration parameters for the timeshifting buffer
 */
 typedef struct NEXUS_FifoRecordLimit {
     off_t soft; /* Maximum file size in bytes. must be greater than maximum file size needed to store data recorded within "interval".
-                   For data, calculated as max bitrate of stream (Mbps) * 1024 * 1024 / 8 * interval.
-                   For index, calulated as max framerate * 32 (bytes per picture) * interval; but should be much larger because it's low bitrate. */
+
+                   For data, calculated as max bitrate of stream (Mbps) * 1024 * 1024 / 8 * interval. Stream data is high bitrate, so it's worth
+                   trying to set data.soft to be what you need.
+
+                   For index, calculated as max framerate * 32 (bytes per picture) * interval. Because index data is small compared
+                   to stream data, we recommend you don't set index.soft too tight. Give it plenty of extra space, like twice as much.
+                   For example, if interval is 30 minutes, that's 60fps * 60 * 30 * 32 bytes = 3456000, but set index.soft = 3456000 * 2.
+                   32 bytes per picture come from size of one NAV entry made by bcmindexer. */
     off_t hard; /* unused */
 } NEXUS_FifoRecordLimit;
 

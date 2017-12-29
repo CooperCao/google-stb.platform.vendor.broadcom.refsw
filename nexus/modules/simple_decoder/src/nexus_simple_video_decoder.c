@@ -92,12 +92,20 @@ struct NEXUS_SimpleVideoAsGraphics
     bool checkpointPending;
 };
 
+enum nexus_video_as_graphics {
+    nexus_video_as_graphics_unsecure,
+    nexus_video_as_graphics_secure,
+    nexus_video_as_graphics_unsecure_mipmap,
+    nexus_video_as_graphics_secure_mipmap,
+    nexus_video_as_graphics_max
+};
+
 struct NEXUS_SimpleVideoDecoderServer
 {
     NEXUS_OBJECT(NEXUS_SimpleVideoDecoderServer);
     BLST_S_ENTRY(NEXUS_SimpleVideoDecoderServer) link;
     BLST_S_HEAD(NEXUS_SimpleVideoDecoder_P_List, NEXUS_SimpleVideoDecoder) decoders;
-    struct NEXUS_SimpleVideoAsGraphics videoAsGraphics[2];
+    struct NEXUS_SimpleVideoAsGraphics videoAsGraphics[nexus_video_as_graphics_max];
     struct {
         NEXUS_SimpleVideoDecoderHandle handle;
         NEXUS_VideoInput videoInput;
@@ -134,6 +142,8 @@ struct NEXUS_SimpleVideoDecoder
     struct {
         NEXUS_SimpleVideoDecoderStartCaptureSettings settings;
         bool started;
+        bool usingUIF;
+        bool usingMipmaps;
         struct nexus_captured_surface destripe[NEXUS_SIMPLE_DECODER_MAX_SURFACES];
         unsigned wptr, rptr, total; /* wptr moves on empty -> striped, rptr moves on user -> empty */
         bool displayConnected;
@@ -329,6 +339,12 @@ static void NEXUS_SimpleVideoDecoder_P_ReleaseResources( NEXUS_SimpleVideoDecode
     }
     NEXUS_SimpleVideoDecoder_StopAndFree(handle);
     NEXUS_SimpleVideoDecoder_SetStcChannel(handle, NULL);
+    NEXUS_TaskCallback_Set(handle->resourceChangedCallback, NULL);
+    if (handle->serverSettings.videoDecoder) {
+        NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.videoDecoder);
+        NEXUS_VideoDecoder_Clear_priv(handle->serverSettings.videoDecoder);
+        NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.videoDecoder);
+    }
 }
 
 static void NEXUS_SimpleVideoDecoder_P_Release( NEXUS_SimpleVideoDecoderHandle handle )
@@ -985,13 +1001,26 @@ void NEXUS_SimpleVideoDecoder_GetDefaultStartCaptureSettings(NEXUS_SimpleVideoDe
 
 static NEXUS_Error nexus_p_start_video_as_graphics(NEXUS_SimpleVideoDecoderHandle handle)
 {
-    struct NEXUS_SimpleVideoAsGraphics *videoAsGraphics = &handle->server->videoAsGraphics[handle->capture.settings.secure?1:0];
+    struct NEXUS_SimpleVideoAsGraphics *videoAsGraphics;
+    enum nexus_video_as_graphics blitter_type;
+
+    if (handle->capture.settings.secure) {
+        blitter_type = handle->capture.usingUIF ? nexus_video_as_graphics_secure_mipmap : nexus_video_as_graphics_secure;
+    }
+    else {
+        blitter_type = handle->capture.usingUIF ? nexus_video_as_graphics_unsecure_mipmap : nexus_video_as_graphics_unsecure;
+    }
+    videoAsGraphics = &handle->server->videoAsGraphics[blitter_type];
     if (videoAsGraphics->refcnt++ == 0) {
         NEXUS_Graphics2DSettings gfxSettings;
         NEXUS_Graphics2DOpenSettings openSettings;
         NEXUS_Graphics2D_GetDefaultOpenSettings(&openSettings);
         openSettings.packetFifoSize = 4096; /* alloc space to destripe 12 mosaics, but also handle full queue */
         openSettings.secure = handle->capture.settings.secure;
+        /* If usingUIF, we prefer NEXUS_Graphics2DMode_eMipmap if we have it. If usingMipmaps, we require it. */
+        if (handle->capture.usingMipmaps || (handle->capture.usingUIF && NEXUS_Graphics2D_MipmapModeSupported_isrsafe())) {
+            openSettings.mode = NEXUS_Graphics2DMode_eMipmap;
+        }
         videoAsGraphics->gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
         if (videoAsGraphics->gfx==NULL) {
             videoAsGraphics->refcnt--;
@@ -1028,6 +1057,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StartCapture(NEXUS_SimpleVideoDecoderHandle
 {
     NEXUS_Error rc;
     unsigned i;
+    unsigned mipLevel;
 
     if (handle->clientStarted==false) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED); /* require user to start decode before capture, though this is not strictly required */
@@ -1040,6 +1070,8 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StartCapture(NEXUS_SimpleVideoDecoderHandle
     handle->capture.started = true;
     handle->capture.stats.pictures = 0;
     handle->capture.stats.overflows = 0;
+    handle->capture.usingUIF = false;
+    handle->capture.usingMipmaps = false;
 
     if (pSettings->displayEnabled != handle->startSettings.displayEnabled && handle->started) {
         nexus_simplevideodecoder_p_stop(handle);
@@ -1048,9 +1080,34 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StartCapture(NEXUS_SimpleVideoDecoderHandle
         if (rc) { rc = BERR_TRACE(rc); goto err_start; }
     }
 
+    mipLevel = 0;
     BKNI_Memset(handle->capture.destripe, 0, sizeof(handle->capture.destripe));
     for (i=0;i<NEXUS_SIMPLE_DECODER_MAX_SURFACES;i++) {
+        NEXUS_SurfaceCreateSettings createSettings;
         if (!handle->capture.settings.surface[i]) break;
+
+        /* Determine if the destripe images are UIF and if so if they are
+         * mipmapped or not, so we can pick the correct graphics mode for the
+         * destripe.
+         *
+         * Also do not allow a mixture of UIF and non-UIF images or images with
+         * different mip levels to be used
+         */
+        NEXUS_Surface_GetCreateSettings(handle->capture.settings.surface[i], &createSettings);
+        if (createSettings.pixelFormat == NEXUS_PixelFormat_eUIF_R8_G8_B8_A8) {
+            if (i == 0) {
+                handle->capture.usingUIF = true;
+                mipLevel = createSettings.mipLevel;
+            } else {
+                if (!handle->capture.usingUIF || mipLevel != createSettings.mipLevel) {
+                     rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                     goto err_start;
+                }
+            }
+        } else {
+            if (handle->capture.usingUIF) { rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_start; }
+        }
+
         handle->capture.destripe[i].surface = handle->capture.settings.surface[i];
         BDBG_ASSERT(handle->capture.destripe[i].state == nexus_captured_surface_empty);
     }
@@ -1060,7 +1117,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StartCapture(NEXUS_SimpleVideoDecoderHandle
         goto err_total;
     }
     handle->capture.rptr = handle->capture.wptr = 0;
-
+    handle->capture.usingMipmaps = mipLevel > 0;
     rc = nexus_p_start_video_as_graphics(handle);
     if (rc) {BERR_TRACE(rc); goto err_opengfx;}
 

@@ -50,7 +50,7 @@ static void renderbuffer_term(void *v, size_t size)
 {
    GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)v;
 
-   vcos_unused(size);
+   unused(size);
 
    KHRN_MEM_ASSIGN(renderbuffer->image, NULL);
    egl_image_refdec(renderbuffer->source);
@@ -144,7 +144,7 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
 #endif
 
       khrn_blob *blob = khrn_blob_create(width_samples, height_samples, 1,
-            1, 1, lfmts, num_planes, flags, secure);
+            1, 1, lfmts, num_planes, flags, secure ? GMEM_USAGE_SECURE : GMEM_USAGE_NONE);
       if (!blob)
          return false;
 
@@ -227,11 +227,8 @@ GL_APICALL void GL_APIENTRY glEGLImageTargetRenderbufferStorageOES(GLenum target
    EGL_IMAGE_T *egl_image = NULL;
    GLenum error = GL_NO_ERROR;
    khrn_image *khr_image;
-   bool locked = false;
 
-   if (!egl_context_gl_lock())
-      goto end;
-   locked = true;
+   egl_context_gl_lock();
 
    state = egl_context_gl_server_state(NULL);
    if (!state)
@@ -273,6 +270,5 @@ end:
       glxx_server_state_set_error(state, error);
    }
 
-   if (locked)
-      egl_context_gl_unlock();
+   egl_context_gl_unlock();
 }

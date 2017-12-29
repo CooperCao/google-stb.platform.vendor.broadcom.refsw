@@ -238,6 +238,22 @@ static void adjust_lfmt_and_padding(
    case GFX_LFMT_SWIZZLING_RSO:
       if (usage & GFX_BUFFER_USAGE_V3D_TEXTURE)
          *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, bd->ut_w_in_blocks_1d);
+
+      if(usage & GFX_BUFFER_USAGE_V3D_TLB)
+      {
+         switch(gfx_lfmt_get_base(lfmt))
+         {
+            case GFX_LFMT_BASE_BSTC:
+            case GFX_LFMT_BASE_BSTCYFLIP:
+               /* TLB reads BSTC buffers in blocks of 8x8 pixels (2x2 blocks) */
+               *padded_w_in_blocks = gfx_uround_up(*padded_w_in_blocks, 2);
+               *padded_h_in_blocks = gfx_uround_up(*padded_h_in_blocks, 2);
+               break;
+
+            default:
+               break;
+         }
+      }
       break;
    case GFX_LFMT_SWIZZLING_LT:
       *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, bd->ut_w_in_blocks_2d);
@@ -355,7 +371,7 @@ void gfx_buffer_desc_gen(
       NULL);
 }
 
-#if !V3D_HAS_ASTC_PAD_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 static uint32_t dodgy_astc_l1_dim(uint32_t l0_dim, uint32_t block_dim)
 {
    uint32_t const l0_blocks = gfx_udiv_round_up(l0_dim, block_dim);
@@ -441,7 +457,7 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
 
       gfx_lfmt_base_detail(&p->bd, plane_lfmts[i]);
 
-#if !V3D_HAS_ASTC_PAD_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
       if(gfx_lfmt_is_astc_family(plane_lfmts[i]))
       {
          p->l1_width = dodgy_astc_l1_dim(width, p->bd.block_w);
@@ -487,6 +503,9 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
          !((ml->width == 1) && (ml->height == 1) && (ml->depth == 1)) ||
          (mip_level == (num_mip_levels - 1)));
 
+      /* Set a default color conversion */
+      ml->colorimetry = GFX_BUFFER_COLORIMETRY_DEFAULT;
+
       ml->num_planes = num_planes;
 
       for (uint32_t i = 0; i != num_planes; ++i)
@@ -528,6 +547,8 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
             &ml_pad_w_in_blocks, &ml_pad_h_in_blocks, &ml_pad_d_in_blocks,
             ml->height, usage, ml_cfg, i);
          GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&dplane->lfmt);
+
+         dplane->region = 0;
 
          calc_pitches_and_size(&dplane->pitch, &dplane->slice_pitch, &p->ml_sizes[mip_level],
             dplane->lfmt, &p->bd,

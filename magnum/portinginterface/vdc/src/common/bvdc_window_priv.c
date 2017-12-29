@@ -110,7 +110,7 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
 {
     /*              win_id    c  f  s  m  p  ids... */
 #if (BCHP_CHIP==7358) || (BCHP_CHIP==7552) || \
-    (BCHP_CHIP==7360) || \
+    (BCHP_CHIP==7360) || (BCHP_CHIP==7255) || \
     (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || (BCHP_CHIP==7362) || \
     (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625)
     BVDC_P_MAKE_RES(Comp0_V0, 1, 1, 1, 0, 1, Cap0, Vfd0, Scl0, Unknown),
@@ -235,7 +235,7 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
     BVDC_P_MAKE_RES(Comp6_G0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
 };
 
-#define FTR_SD     (0)
+#define FTR_SD     (BVDC_P_Able_eSd)
 #define FTR_HD     (BVDC_P_Able_eHd)
 #define FTR_M0     (BVDC_P_Able_eMem0)
 #define FTR_M1     (BVDC_P_Able_eMem1)
@@ -352,6 +352,18 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
     /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ },
     /*Comp0_V1*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ },
     /*Comp1_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___  },
+    /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp2_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp3_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp4_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp5_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp6_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+
+#elif (BCHP_CHIP==7255)
+    /*            ulCap;  ulVfd;  ulScl;  ulMad;  ulAnr; */
+    /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ },
+    /*Comp0_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp1_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___  },
     /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp2_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp3_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
@@ -767,6 +779,13 @@ static const BVDC_P_Window_SelectedId s_aaWindowIdSelectTable
      * turn it off. Cross reference SW7425-2140 */
 #define BVDC_P_DO_PULLDOWN(sourceVertRate, displayVertRate) \
     (displayVertRate > sourceVertRate)
+#elif BVDC_ENABLE_60HZ_50HZ_FRAME_CAPTURE
+    /* Enabling frame capture for 60Hz source to 50Hz display
+     * will improve picture quality. However, it will require
+     * more capture memory and system bandwidth. By default we
+     * turn it off. Cross reference SWSTB-7037 */
+#define BVDC_P_DO_PULLDOWN(sourceVertRate, displayVertRate) \
+    (displayVertRate < sourceVertRate)
 #else
 #define BVDC_P_DO_PULLDOWN(sourceVertRate, displayVertRate) \
     (((displayVertRate * 10) / (sourceVertRate)) >= ((50 * 10) / 30) ? 1 : 0)
@@ -1097,6 +1116,55 @@ BERR_Code BVDC_P_Window_Create
     pWindow->stResourceRequire  = s_aResourceRequireTable[eWindowId];
     pWindow->stResourceFeature  = s_aResourceFeatureTable[eWindowId];
 
+#if BVDC_P_SUPPORT_TNT
+    if(BVDC_P_WindowId_eComp0_V0 ==eWindowId)
+    {
+        pWindow->bTntAvail = true;
+        pWindow->ulTntRegOffset = 0;
+    }
+    if(BVDC_P_SUPPORT_TNT == 2)
+    {
+        /* either TNT_CMP_0_V0 and TNT_CMP_0_V1 or TNT_CMP_1_V0 */
+        pWindow->ulTntRegOffset =
+#if BCHP_TNT_CMP_0_V1_REG_START
+            (BVDC_P_WindowId_eComp0_V1==(eWindowId)) ? BCHP_TNT_CMP_0_V1_REG_START - BCHP_TNT_CMP_0_V0_REG_START :
+#elif BCHP_TNT_CMP_1_V0_REG_START
+            (BVDC_P_WindowId_eComp1_V0==(eWindowId)) ? BCHP_TNT_CMP_1_V0_REG_START - BCHP_TNT_CMP_0_V0_REG_START :
+#endif
+            0;
+        pWindow->bTntAvail =
+            (BVDC_P_WindowId_eComp0_V0==(eWindowId)) ? true :
+#if BCHP_TNT_CMP_0_V1_REG_START
+            (BVDC_P_WindowId_eComp0_V1==(eWindowId)) ? true :
+#elif BCHP_TNT_CMP_1_V0_REG_START
+            (BVDC_P_WindowId_eComp1_V0==(eWindowId)) ? true :
+#endif
+            false;
+    }
+#endif
+
+#if BVDC_P_SUPPORT_MASK_DITHER
+    if(BVDC_P_WindowId_eComp0_V0 ==eWindowId)
+    {
+        pWindow->bMaskAvail = true;
+        pWindow->ulMaskRegOffset = 0;
+    }
+    if(BVDC_P_SUPPORT_MASK_DITHER == 2)
+    {
+        pWindow->ulMaskRegOffset =
+#if BCHP_MASK_1_REG_START
+            (BVDC_P_WindowId_eComp1_V0==(eWindowId)) ? BCHP_MASK_1_REG_START - BCHP_MASK_0_REG_START :
+#endif
+            0;
+        pWindow->bMaskAvail =
+            (BVDC_P_WindowId_eComp0_V0==(eWindowId)) ? true :
+#if BCHP_MASK_1_REG_START
+            (BVDC_P_WindowId_eComp1_V0==(eWindowId)) ? true :
+#endif
+            false;
+    }
+#endif
+
     /* Check if BOX has specific deinterlacer allocation */
     pBoxVdc = &hCompositor->hVdc->stBoxConfig.stVdc;
     ulBoxWinId = BVDC_P_GetBoxWindowId_isrsafe(eWindowId);
@@ -1279,14 +1347,6 @@ void BVDC_P_Window_Destroy
     if(hWindow->stResourceRequire.bRequirePep)
     {
         BVDC_P_Pep_Destroy(hWindow->stCurResource.hPep);
-        BKNI_Free((void *)hWindow->stNewInfo.pulCabTable);
-        BKNI_Free((void *)hWindow->stCurInfo.pulCabTable);
-        BKNI_Free((void *)hWindow->stNewInfo.pulLabCbTbl);
-        BKNI_Free((void *)hWindow->stCurInfo.pulLabCbTbl);
-        BKNI_Free((void *)hWindow->stNewInfo.pulLabCrTbl);
-        BKNI_Free((void *)hWindow->stCurInfo.pulLabCrTbl);
-        BKNI_Free((void *)hWindow->stNewInfo.pulLabLumaTbl);
-        BKNI_Free((void *)hWindow->stCurInfo.pulLabLumaTbl);
     }
 
     /* [4] Free scaler block */
@@ -1352,10 +1412,8 @@ void BVDC_P_Window_Destroy
  */
 void BVDC_P_Window_Rts_Init
     (
-#if BVDC_P_SUPPORT_XCODE_WIN_CAP
       bool                             bCmpXcode,
       bool                             bDispNrtStg,
-#endif
       bool                            *pbForceCapture,
       BVDC_SclCapBias                 *peSclCapBias,
       uint32_t                        *pulBandwidthDelta )
@@ -1364,11 +1422,7 @@ void BVDC_P_Window_Rts_Init
     uint32_t         ulBandwidthDelta;
     BVDC_SclCapBias  eSclCapBias;
 
-#if BVDC_P_SUPPORT_XCODE_WIN_CAP
     bForceCapture    =!(bCmpXcode || bDispNrtStg);
-#else
-    bForceCapture    = true;
-#endif
     eSclCapBias      = BVDC_SclCapBias_eAuto;
     ulBandwidthDelta = BVDC_P_BW_DEFAULT_DELTA;
 
@@ -1434,10 +1488,6 @@ void BVDC_P_Window_Init
     BVDC_P_Window_Info *pNewInfo, *pCurInfo;
     BVDC_P_Window_DirtyBits *pNewDirty;
     /* coverity[result_independent_of_operands: FALSE] */
-    uint32_t *pulCurCabTable = NULL,   *pulNewCabTable = NULL;
-    uint32_t *pulCurLabCbTbl = NULL,   *pulNewLabCbTbl = NULL;
-    uint32_t *pulCurLabCrTbl = NULL,   *pulNewLabCrTbl = NULL;
-    uint32_t *pulCurLabLumaTbl = NULL, *pulNewLabLumaTbl = NULL;
     const BBOX_Vdc_Capabilities *pBoxVdcCap;
     const BBOX_Vdc_Display_Capabilities *pBoxVdcDispCap;
     uint32_t ulBoxWinId;
@@ -1533,19 +1583,6 @@ void BVDC_P_Window_Init
     hWindow->pMainCfc = &hWindow->astMosaicCfc[0];
     hWindow->pDemoCfc = &hWindow->astMosaicCfc[1];
 
-    /* save old PEP tables */
-    if(hWindow->stCurInfo.pulCabTable)
-    {
-        pulCurCabTable   = hWindow->stCurInfo.pulCabTable;
-        pulNewCabTable   = hWindow->stNewInfo.pulCabTable;
-        pulCurLabCbTbl   = hWindow->stCurInfo.pulLabCbTbl;
-        pulNewLabCbTbl   = hWindow->stNewInfo.pulLabCbTbl;
-        pulCurLabCrTbl   = hWindow->stCurInfo.pulLabCrTbl;
-        pulNewLabCrTbl   = hWindow->stNewInfo.pulLabCrTbl;
-        pulCurLabLumaTbl = hWindow->stCurInfo.pulLabLumaTbl;
-        pulNewLabLumaTbl = hWindow->stNewInfo.pulLabLumaTbl;
-    }
-
     /* Initial new/current public states */
     pNewInfo = &hWindow->stNewInfo;
     pCurInfo = &hWindow->stCurInfo;
@@ -1623,51 +1660,6 @@ void BVDC_P_Window_Init
     pNewInfo->bSharpnessEnable       = false;
     pNewInfo->bUserSharpnessConfig   = false;
 
-#if (BVDC_P_SUPPORT_TNT_VER < 5)         /* TNT HW base */
-    pNewInfo->ulLumaGain             = 0;
-    pNewInfo->ulSharpnessPeakSetting = 0;
-    pNewInfo->ulSharpnessPeakScale   = 0;
-
-    /* user sharpness config */
-    BVDC_P_Window_Sharpness_Init(hWindow, &pNewInfo->stSharpnessConfig);
-#endif
-
-    /* Contrast stretch parameters */
-    pNewInfo->bContrastStretch                         = false;
-    pNewInfo->stContrastStretch.ulShift                = BVDC_P_PEP_FIX_FRACTIONAL_SHIFT;
-    pNewInfo->stContrastStretch.iGain                  = BVDC_P_PEP_ITOFIX(1);
-    pNewInfo->stContrastStretch.ulPwmMaxApl              = 130;
-    pNewInfo->stContrastStretch.ulPwmMinApl              = 70;
-    pNewInfo->stContrastStretch.ulPwmMinPercent          = 40;
-    pNewInfo->stContrastStretch.ulDcLoThresh             = 1;
-    pNewInfo->stContrastStretch.ulDcHiThresh             = 3;
-    pNewInfo->stContrastStretch.ulHiThreshBlendMin       = 250;
-    pNewInfo->stContrastStretch.ulHiThreshBlendRng       = 130;
-    pNewInfo->stContrastStretch.ulLoThreshBlendMin       = 90;
-    pNewInfo->stContrastStretch.ulLoThreshBlendRng       = 40;
-    pNewInfo->stContrastStretch.ulHiThreshRatio          = 500;
-    pNewInfo->stContrastStretch.ulLoThreshRatio          = 500;
-    pNewInfo->stContrastStretch.bInterpolateTables       = true;
-    pNewInfo->stContrastStretch.bBypassSat               = false;
-
-    pNewInfo->stContrastStretch.pvCustomParams           = NULL;
-    pNewInfo->stContrastStretch.pfCallback               = NULL;
-    pNewInfo->stContrastStretch.pvParm1                  = NULL;
-    pNewInfo->stContrastStretch.iParm2                   = 0;
-    pNewInfo->bUserLabLuma = false;
-    pNewInfo->bUserLabCbCr = false;
-
-    /* blue stretch */
-    pNewInfo->bBlueStretch = false;
-    pNewInfo->stBlueStretch.ulBlueStretchOffset = 300;
-    pNewInfo->stBlueStretch.ulBlueStretchSlope  = 4;
-
-    /* Cab parameter */
-    pNewInfo->ulFleshtone           = 0;
-    pNewInfo->ulGreenBoost          = 0;
-    pNewInfo->ulBlueBoost           = 0;
-    pNewInfo->bUserCabEnable        = false;
-
     /* Mosaic mode */
     pNewInfo->bClearRect            = false;
     pNewInfo->bMosaicMode           = false;
@@ -1676,10 +1668,6 @@ void BVDC_P_Window_Init
     BPXL_ConvertPixel_RGBtoYCbCr(BPXL_eA8_Y8_Cb8_Cr8, BPXL_eA8_R8_G8_B8,
         BPXL_MAKE_PIXEL(BPXL_eA8_R8_G8_B8, 0x00, 255, 255, 255),
         (unsigned int*)&pNewInfo->ulMaskColorYCrCb);
-
-    /* CMS paramters */
-    BVDC_P_PEP_CMS_DISABLE(&pNewInfo->stSatGain);
-    BVDC_P_PEP_CMS_DISABLE(&pNewInfo->stHueGain);
 
     /* Demo mode */
     pNewInfo->stSplitScreenSetting.eHue             = BVDC_SplitScreenMode_eDisable;
@@ -1825,10 +1813,8 @@ void BVDC_P_Window_Init
      * be overwritten by public API. */
     /* Check if destination rectangle is bigger than BOX limits */
     BVDC_P_Window_Rts_Init(
-#if BVDC_P_SUPPORT_XCODE_WIN_CAP
         BVDC_P_DISPLAY_USED_STG(hWindow->hCompositor->hDisplay->eMasterTg),
         BVDC_P_DISPLAY_NRT_STG(hWindow->hCompositor->hDisplay),
-#endif
         &pNewInfo->bForceCapture, &pNewInfo->eSclCapBias, &pNewInfo->ulBandwidthDelta);
 
     pBoxVdcCap     = &hWindow->hCompositor->hVdc->stBoxConfig.stVdc;
@@ -1871,83 +1857,13 @@ void BVDC_P_Window_Init
     /* Clear out user's states. */
     BKNI_Memcpy(pCurInfo, pNewInfo, sizeof(BVDC_P_Window_Info));
 
-    if(hWindow->stResourceRequire.bRequirePep)
-    {
-        if(pulCurCabTable)
-        {
-            /* restore PEP table pointers to Current */
-            hWindow->stCurInfo.pulCabTable   = pulCurCabTable;
-            hWindow->stNewInfo.pulCabTable   = pulNewCabTable;
-            hWindow->stCurInfo.pulLabCbTbl   = pulCurLabCbTbl;
-            hWindow->stNewInfo.pulLabCbTbl   = pulNewLabCbTbl;
-            hWindow->stCurInfo.pulLabCrTbl   = pulCurLabCrTbl;
-            hWindow->stNewInfo.pulLabCrTbl   = pulNewLabCrTbl;
-            hWindow->stCurInfo.pulLabLumaTbl = pulCurLabLumaTbl;
-            hWindow->stNewInfo.pulLabLumaTbl = pulNewLabLumaTbl;
-
-            /* copy New PEP tables to Current */
-            BKNI_Memcpy(hWindow->stCurInfo.pulCabTable,   hWindow->stNewInfo.pulCabTable,   BVDC_P_CAB_TABLE_SIZE * sizeof(uint32_t));
-            BKNI_Memcpy(hWindow->stCurInfo.pulLabCbTbl,   hWindow->stNewInfo.pulLabCbTbl,   BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-            BKNI_Memcpy(hWindow->stCurInfo.pulLabCrTbl,   hWindow->stNewInfo.pulLabCrTbl,   BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-            BKNI_Memcpy(hWindow->stCurInfo.pulLabLumaTbl, hWindow->stNewInfo.pulLabLumaTbl, BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-        }
-        else
-        {
-            /* first time allocate PEP tables */
-            pCurInfo->pulCabTable   = (uint32_t *)(BKNI_Malloc(BVDC_P_CAB_TABLE_SIZE * sizeof(uint32_t)));
-            pNewInfo->pulCabTable   = (uint32_t *)(BKNI_Malloc(BVDC_P_CAB_TABLE_SIZE * sizeof(uint32_t)));
-            pCurInfo->pulLabCbTbl   = (uint32_t *)(BKNI_Malloc(BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t)));
-            pNewInfo->pulLabCbTbl   = (uint32_t *)(BKNI_Malloc(BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t)));
-            pCurInfo->pulLabCrTbl   = (uint32_t *)(BKNI_Malloc(BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t)));
-            pNewInfo->pulLabCrTbl   = (uint32_t *)(BKNI_Malloc(BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t)));
-            pCurInfo->pulLabLumaTbl = (uint32_t *)(BKNI_Malloc(BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t)));
-            pNewInfo->pulLabLumaTbl = (uint32_t *)(BKNI_Malloc(BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t)));
-        }
-    }
-
     /* Default CFC */
     BVDC_P_Window_InitCfcs(hWindow);
 
     return;
 }
 
-#if (BVDC_P_SUPPORT_TNT_VER < 5)         /* TNT HW base */
-/***************************************************************************
- * {private}
- * user sharpness config
- */
-void BVDC_P_Window_Sharpness_Init
-    ( BVDC_Window_Handle               hWindow,
-      BVDC_SharpnessSettings          *pSharpnessConfig )
-{
-    BSTD_UNUSED(hWindow);
-    BDBG_ASSERT(pSharpnessConfig);
-
-    pSharpnessConfig->ulLumaCtrlCore         = 0x8;
-    pSharpnessConfig->ulLumaCtrlGain         = 0;
-    pSharpnessConfig->ulLumaCtrlBlur         = 0;
-    pSharpnessConfig->bLumaCtrlSoften        = false;
-    pSharpnessConfig->bLumaCtrlHOnly         = false;
-    pSharpnessConfig->ulLumaPeakingHAvoid    = 0x10;
-    pSharpnessConfig->ulLumaPeakingVAvoid    = 0x10;
-    pSharpnessConfig->ulLumaPeakingPeakLimit = 0x7f;
-    pSharpnessConfig->ulLumaPeakingPeakValue = 0;
-    pSharpnessConfig->ulChromaCtrlCore       = 0x10;
-    pSharpnessConfig->bChromaCtrlWideChroma  = true;
-    pSharpnessConfig->ulChromaCtrlFalseColor = 0;
-    pSharpnessConfig->ulChromaCtrlGain       = 0x3f;
-    pSharpnessConfig->bChromaCtrlHOnly       = true;
-    pSharpnessConfig->ulWideLumaCtrlCore     = 0x8;
-    pSharpnessConfig->ulWideLumaCtrlMode     = 2;
-    pSharpnessConfig->ulSimpleLumaCtrlCore   = 2;
-    pSharpnessConfig->bSimpleLumaCtrlMode    = true;
-
-    return;
-}
-#endif
-
 #if BVDC_P_SUPPORT_MOSAIC_MODE
-
 /***************************************************************************
  * {private}
  *
@@ -2076,12 +1992,13 @@ BERR_Code BVDC_P_Window_ValidateChanges
     const BBOX_Vdc_Capabilities *pBoxVdc;
     uint32_t ulBoxWinId;
     BVDC_DisplayId eDisplayId;
-    BVDC_P_WindowId eWindowId = hWindow->eId;
+    BVDC_P_WindowId eWindowId;
     uint32_t ulBoxWindowHeightFraction, ulBoxWindowWidthFraction;
     BDBG_ENTER(BVDC_P_Window_ValidateChanges);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
     BDBG_OBJECT_ASSERT(hWindow->stNewInfo.hSource, BVDC_SRC);
     BDBG_OBJECT_ASSERT(hWindow->hCompositor->hDisplay, BVDC_DSP);
+    eWindowId = hWindow->eId;
     hCompositor = hWindow->hCompositor;
     hDisplay = hCompositor->hDisplay;
     hResource = hCompositor->hVdc->hResource;
@@ -2956,148 +2873,17 @@ BERR_Code BVDC_P_Window_ValidateChanges
         pNewDirty->stBits.bColorKeyAdjust = BVDC_P_DIRTY;
     }
 
-    if(hWindow->eId == BVDC_P_WindowId_eComp0_V0 &&
-        ((pNewInfo->sSharpness       != pCurInfo->sSharpness ||
-          pNewInfo->bSharpnessEnable != pCurInfo->bSharpnessEnable ||
-          (!BVDC_P_RECT_CMP_EQ(&pNewInfo->stDstRect, &pCurInfo->stDstRect)) ||
+    if(hWindow->bTntAvail &&
+       ((pNewInfo->sSharpness       != pCurInfo->sSharpness ||
+         pNewInfo->bSharpnessEnable != pCurInfo->bSharpnessEnable ||
+         (!BVDC_P_RECT_CMP_EQ(&pNewInfo->stDstRect, &pCurInfo->stDstRect)) ||
           hWindow->stNewInfo.hSource->stNewInfo.stDirty.stBits.bResume) &&
          pNewInfo->bUserSharpnessConfig != true))
     {
 #if BVDC_P_SUPPORT_TNT
-#if (BVDC_P_SUPPORT_TNT_VER == 5)            /* TNT2 HW base */
-        if (BVDC_P_Tnt_InterpolateSharpness(hWindow, pNewInfo->sSharpness) != BERR_SUCCESS)
-            return BERR_TRACE(BERR_INVALID_PARAMETER);
-#endif
         pNewDirty->stBits.bTntAdjust = BVDC_P_DIRTY;
 #endif
     }
-
-#if BVDC_P_SUPPORT_PEP
-    if(BVDC_P_WindowId_eComp0_V0 == hWindow->eId)
-    {
-        /* User loaded LAB table can't be used concurrently with dynamic */
-        /* contrast stretch feature since they are sharing the LAB table */
-        if(pNewInfo->bUserLabLuma && pNewInfo->bContrastStretch)
-        {
-            BDBG_ERR(("User LAB table can't be used concurent with other features in the LAB block"));
-            return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-        }
-        /* User loaded CAB table can't be used concurrently with other CAB */
-        /* related features: auto flesh, green boost, blue boost and CMS */
-        if(pNewInfo->bUserCabEnable &&
-           (BVDC_P_PEP_CMS_IS_ENABLE(&pNewInfo->stSatGain, &pNewInfo->stHueGain) ||
-            (pNewInfo->ulFleshtone  != 0) ||
-            (pNewInfo->ulBlueBoost  != 0) ||
-            (pNewInfo->ulGreenBoost != 0)))
-        {
-            BDBG_ERR(("User CAB table can't be used concurent with other features in the CAB block"));
-            return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-        }
-        /* Since CMS and auto flesh, green boost and blue boost are */
-        /* sharing the CAB table, they can't be turned on concurrently  */
-        if(BVDC_P_PEP_CMS_IS_ENABLE(&pNewInfo->stSatGain, &pNewInfo->stHueGain) &&
-           ((pNewInfo->ulFleshtone  != 0) ||
-            (pNewInfo->ulBlueBoost  != 0) ||
-            (pNewInfo->ulGreenBoost != 0)))
-        {
-            BDBG_ERR(("CMS can't be turned on concurent with other features in the CAB block"));
-            return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-        }
-
-        if(pNewInfo->bContrastStretch != pCurInfo->bContrastStretch ||
-           pNewInfo->bUserLabLuma != pCurInfo->bUserLabLuma)
-        {
-            pNewDirty->stBits.bLabAdjust = BVDC_P_DIRTY;
-        }
-        if(pNewInfo->bBlueStretch != pCurInfo->bBlueStretch ||
-           pNewInfo->stBlueStretch.ulBlueStretchOffset != pCurInfo->stBlueStretch.ulBlueStretchOffset ||
-           pNewInfo->stBlueStretch.ulBlueStretchSlope != pCurInfo->stBlueStretch.ulBlueStretchSlope)
-        {
-            pNewDirty->stBits.bLabAdjust = BVDC_P_DIRTY;
-        }
-        if(pNewInfo->bUserLabLuma)
-        {
-            uint32_t id;
-
-            for(id = 0; id < BVDC_P_LAB_TABLE_SIZE; id++)
-            {
-                if(*(pNewInfo->pulLabLumaTbl + id) != *(pCurInfo->pulLabLumaTbl + id))
-                {
-                    pNewDirty->stBits.bLabAdjust = BVDC_P_DIRTY;
-                    break;
-                }
-            }
-        }
-        if(pNewInfo->bUserLabCbCr)
-        {
-            uint32_t id;
-
-            for(id = 0; id < BVDC_P_LAB_TABLE_SIZE; id++)
-            {
-                if(*(pNewInfo->pulLabCbTbl + id) != *(pCurInfo->pulLabCbTbl + id) ||
-                   *(pNewInfo->pulLabCrTbl + id) != *(pCurInfo->pulLabCrTbl + id))
-                {
-                    pNewDirty->stBits.bLabAdjust = BVDC_P_DIRTY;
-                    break;
-                }
-            }
-        }
-
-        if((!BVDC_P_PEP_CMS_COMPARE_EQ(&pNewInfo->stSatGain, &pCurInfo->stSatGain) ||
-            !BVDC_P_PEP_CMS_COMPARE_EQ(&pNewInfo->stHueGain, &pCurInfo->stHueGain)) ||
-           (BVDC_P_PEP_CMS_IS_ENABLE(&pNewInfo->stSatGain, &pNewInfo->stHueGain) &&
-            !BVDC_P_RECT_CMP_EQ(&pNewInfo->stDstRect, &pCurInfo->stDstRect)))
-        {
-            if(BVDC_P_PEP_CMS_IS_ENABLE(&pNewInfo->stSatGain, &pNewInfo->stHueGain))
-            {
-                BDBG_MSG(("Compose CMS"));
-                BVDC_P_Pep_Cms(hWindow->stCurResource.hPep, &pNewInfo->stSatGain,
-                    &pNewInfo->stHueGain,
-                    VIDEO_FORMAT_IS_HD(hDisplay->stNewInfo.pFmtInfo->eVideoFmt),
-                    pNewInfo->pulCabTable);
-            }
-            pNewDirty->stBits.bCabAdjust = BVDC_P_DIRTY;
-        }
-
-        if((pNewInfo->ulFleshtone  != pCurInfo->ulFleshtone)   ||
-           (pNewInfo->ulBlueBoost  != pCurInfo->ulBlueBoost)   ||
-           (pNewInfo->ulGreenBoost != pCurInfo->ulGreenBoost))
-        {
-            if((pNewInfo->ulFleshtone  != 0) ||
-               (pNewInfo->ulBlueBoost  != 0) ||
-               (pNewInfo->ulGreenBoost != 0))
-            {
-
-                /* Calculate CAB table */
-                BDBG_MSG(("Composed CAB table for new Fleshtone = %d, BlueBoost = %d, GreenBoost = %d",
-                    pNewInfo->ulFleshtone, pNewInfo->ulBlueBoost, pNewInfo->ulGreenBoost));
-                BVDC_P_Pep_ComposeCabTable(pNewInfo->ulFleshtone,
-                                           pNewInfo->ulGreenBoost,
-                                           pNewInfo->ulBlueBoost,
-                                           pNewInfo->pulCabTable);
-            }
-            pNewDirty->stBits.bCabAdjust = BVDC_P_DIRTY;
-        }
-
-        if(pNewInfo->bUserCabEnable != pCurInfo->bUserCabEnable)
-        {
-            pNewDirty->stBits.bCabAdjust = BVDC_P_DIRTY;
-        }
-        if(pNewInfo->bUserCabEnable)
-        {
-            uint32_t id;
-
-            for(id = 0; id < BVDC_P_CAB_TABLE_SIZE; id++)
-            {
-                if(*(pNewInfo->pulCabTable + id) != *(pCurInfo->pulCabTable + id))
-                {
-                    pNewDirty->stBits.bCabAdjust = BVDC_P_DIRTY;
-                    break;
-                }
-            }
-        }
-    }
-#endif /* BVDC_P_SUPPORT_PEP */
 
     /* Checking against dst size changed. Since PEP demo mode is only */
     /* available for Win0 CMP0, don't need to check for other windows */
@@ -3127,15 +2913,16 @@ BERR_Code BVDC_P_Window_ValidateChanges
         {
             pNewDirty->stBits.bLabAdjust = BVDC_P_DIRTY;
         }
-        if((pNewInfo->stSplitScreenSetting.eSharpness !=
-            pCurInfo->stSplitScreenSetting.eSharpness) ||
-           ((pNewInfo->stSplitScreenSetting.eSharpness != BVDC_SplitScreenMode_eDisable) &&
-            (!BVDC_P_RECT_CMP_EQ(&pNewInfo->stDstRect, &pCurInfo->stDstRect))))
-        {
+    }
+    if(hWindow->bTntAvail &&
+       ((pNewInfo->stSplitScreenSetting.eSharpness !=
+        pCurInfo->stSplitScreenSetting.eSharpness) ||
+       ((pNewInfo->stSplitScreenSetting.eSharpness != BVDC_SplitScreenMode_eDisable) &&
+        (!BVDC_P_RECT_CMP_EQ(&pNewInfo->stDstRect, &pCurInfo->stDstRect)))))
+    {
 #if BVDC_P_SUPPORT_TNT
-            pNewDirty->stBits.bTntAdjust = BVDC_P_DIRTY;
+        pNewDirty->stBits.bTntAdjust = BVDC_P_DIRTY;
 #endif
-        }
     }
 
 #if BVDC_P_SUPPORT_HIST
@@ -3147,7 +2934,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
        (pNewRect->ulBottom != pCurRect->ulBottom) ||
        (!BVDC_P_Hist_Level_Cmp(&pNewInfo->stLumaRect.aulLevelThres[0], &pCurInfo->stLumaRect.aulLevelThres[0])) ||
        (pNewInfo->stLumaRect.eNumBins != pCurInfo->stLumaRect.eNumBins) ||
-       (pNewInfo->bContrastStretch != pCurInfo->bContrastStretch) ||
        (!BVDC_P_RECT_CMP_EQ(&pNewInfo->stDstRect, &pCurInfo->stDstRect) ||
        (hCompositor->stNewInfo.pFmtInfo->bInterlaced != hCompositor->stCurInfo.pFmtInfo->bInterlaced)))
     {
@@ -3505,11 +3291,15 @@ static void BVDC_P_Window_SetMiscellaneous_isr
       const BVDC_P_Window_Info        *pWinInfo )
 {
 #if (BDBG_DEBUG_BUILD)
-    BVDC_P_WindowId eV0Id = BVDC_P_CMP_GET_V0ID(hWindow->hCompositor);
+    BVDC_P_WindowId eV0Id;
 #endif
     BDBG_ENTER(BVDC_P_Window_SetMiscellaneous_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
     BDBG_OBJECT_ASSERT(hWindow->hCompositor, BVDC_CMP);
+
+#if (BDBG_DEBUG_BUILD)
+    eV0Id = BVDC_P_CMP_GET_V0ID(hWindow->hCompositor);
+#endif
 
     if(BVDC_P_WIN_IS_GFX_WINDOW(hWindow->eId))
     {
@@ -5043,7 +4833,8 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         pPicture->ulOrigPTS                      = pMvdFieldData->ulOrigPTS;
         pPicture->ulChannelId                    = pMvdFieldData->ulChannelId;
         pPicture->ulPictureIdx                   = ulPictureIdx;
-        pPicture->PicComRulInfo.bNoCoreReset     = true;
+        /* don't reset bvn blocks for non-transcode paths */
+        pPicture->PicComRulInfo.bNoCoreReset     = !hWindow->hCompositor->hDisplay->stCurInfo.bEnableStg;
 
         /*Mailbox data for ViCE2*/
         /*@@@ handle from hdmi input*/
@@ -6452,7 +6243,6 @@ static void BVDC_P_Window_AcquireBvnResources_isr
 
         BVDC_P_Window_Compression_Init_isr(hWindow->bIs10BitCore, hWindow->bSupportDcxm,
         NULL, &hWindow->stMadCompression, hWindow->stCurResource.hMcvp->eDcxCore);
-
     }
 
 #if (BVDC_P_SUPPORT_XSRC)
@@ -6937,45 +6727,11 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
 BERR_Code BVDC_P_Window_AbortChanges
     ( BVDC_Window_Handle               hWindow )
 {
-    uint32_t *pulNewCabTable = NULL;
-    uint32_t *pulNewLabCbTbl = NULL;
-    uint32_t *pulNewLabCrTbl = NULL;
-    uint32_t *pulNewLabLumaTbl = NULL;
-
     BDBG_ENTER(BVDC_P_Window_ApplyChanges_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* save old PEP tables in New */
-    if(hWindow->stNewInfo.pulCabTable)
-    {
-        pulNewCabTable   = hWindow->stNewInfo.pulCabTable;
-        pulNewLabCbTbl   = hWindow->stNewInfo.pulLabCbTbl;
-        pulNewLabCrTbl   = hWindow->stNewInfo.pulLabCrTbl;
-        pulNewLabLumaTbl = hWindow->stNewInfo.pulLabLumaTbl;
-    }
-
     /* copy stCurInfo to stNewInfo here !!! */
     hWindow->stNewInfo = hWindow->stCurInfo;
-
-    if(hWindow->stResourceRequire.bRequirePep)
-    {
-        if(pulNewCabTable)
-        {
-            /* restore PEP table pointers to New */
-            /* Note: if making changes here, make sure to keep it's */
-            /* symmetry in UpdateUserState_isr */
-            hWindow->stNewInfo.pulCabTable   = pulNewCabTable;
-            hWindow->stNewInfo.pulLabCbTbl   = pulNewLabCbTbl;
-            hWindow->stNewInfo.pulLabCrTbl   = pulNewLabCrTbl;
-            hWindow->stNewInfo.pulLabLumaTbl = pulNewLabLumaTbl;
-
-            /* copy PEP tables from Current to New */
-            BKNI_Memcpy(hWindow->stNewInfo.pulCabTable,   hWindow->stCurInfo.pulCabTable,   BVDC_P_CAB_TABLE_SIZE * sizeof(uint32_t));
-            BKNI_Memcpy(hWindow->stNewInfo.pulLabCbTbl,   hWindow->stCurInfo.pulLabCbTbl,   BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-            BKNI_Memcpy(hWindow->stNewInfo.pulLabCrTbl,   hWindow->stCurInfo.pulLabCrTbl,   BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-            BKNI_Memcpy(hWindow->stNewInfo.pulLabLumaTbl, hWindow->stCurInfo.pulLabLumaTbl, BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-        }
-    }
 
     BDBG_LEAVE(BVDC_P_Window_AbortChanges);
     return BERR_SUCCESS;
@@ -7411,10 +7167,6 @@ void BVDC_P_Window_UpdateUserState_isr
     ( BVDC_Window_Handle               hWindow )
 {
     BVDC_P_PictureNode *pBufferFromUser = NULL;
-    uint32_t *pulCurCabTable = NULL;
-    uint32_t *pulCurLabCbTbl = NULL;
-    uint32_t *pulCurLabCrTbl = NULL;
-    uint32_t *pulCurLabLumaTbl = NULL;
 
     BDBG_ENTER(BVDC_P_Window_UpdateUserState_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -7441,15 +7193,6 @@ void BVDC_P_Window_UpdateUserState_isr
             pBufferFromUser = hWindow->stCurInfo.pBufferFromUser;
         }
 
-        /* save old PEP tables in Current */
-        if(hWindow->stResourceRequire.bRequirePep)
-        {
-            pulCurCabTable   = hWindow->stCurInfo.pulCabTable;
-            pulCurLabCbTbl   = hWindow->stCurInfo.pulLabCbTbl;
-            pulCurLabCrTbl   = hWindow->stCurInfo.pulLabCrTbl;
-            pulCurLabLumaTbl = hWindow->stCurInfo.pulLabLumaTbl;
-        }
-
         /* copy stNewInfo to stCurInfo here !!! */
         hWindow->stCurInfo = hWindow->stNewInfo;
 
@@ -7462,23 +7205,6 @@ void BVDC_P_Window_UpdateUserState_isr
         sizeof(uint32_t) * hWindow->stCurInfo.ulMosaicCount);
     }
 #endif
-        if(hWindow->stResourceRequire.bRequirePep)
-        {
-            /* restore PEP table pointers to Current */
-            /* Note: if making changes here, make sure to keep it's */
-            /* symmetry in AbortChanges */
-            hWindow->stCurInfo.pulCabTable   = pulCurCabTable;
-            hWindow->stCurInfo.pulLabCbTbl   = pulCurLabCbTbl;
-            hWindow->stCurInfo.pulLabCrTbl   = pulCurLabCrTbl;
-            hWindow->stCurInfo.pulLabLumaTbl = pulCurLabLumaTbl;
-
-            /* copy PEP tables */
-            BKNI_Memcpy(hWindow->stCurInfo.pulCabTable,   hWindow->stNewInfo.pulCabTable,   BVDC_P_CAB_TABLE_SIZE * sizeof(uint32_t));
-            BKNI_Memcpy(hWindow->stCurInfo.pulLabCbTbl,   hWindow->stNewInfo.pulLabCbTbl,   BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-            BKNI_Memcpy(hWindow->stCurInfo.pulLabCrTbl,   hWindow->stNewInfo.pulLabCrTbl,   BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-            BKNI_Memcpy(hWindow->stCurInfo.pulLabLumaTbl, hWindow->stNewInfo.pulLabLumaTbl, BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
-        }
-
         if(pCurDirty->stBits.bUserReleaseBuffer)
         {
             hWindow->stCurInfo.pBufferFromUser = pBufferFromUser;
@@ -10841,6 +10567,7 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
         pDstFmtInfo->ulVertFreq, (BFMT_FREQ_FACTOR/2), BFMT_FREQ_FACTOR);
 
     bUseMadAtWriter = BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode);
+
     if((!bInterlace) && BVDC_P_DO_PULLDOWN(ulSrcVertRate, ulDspVertRate))
     {
         /* P2I frame rate conversion case: frame capture -> fields playback,
@@ -10864,7 +10591,7 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
              bUseMadAtWriter &&
              BVDC_P_VNET_USED_SCALER_AT_WRITER(hWindow->stVnetMode))
     {
-        /* This is only for 50i to 60i frame rate conversion case with the
+        /* This is only for 50i to 60i and vice-versa frame rate conversion case with the
            deinterlacer and SCL at the writer. */
         bCapInterlaced = false;
         bDoPulldown = true;
@@ -15119,7 +14846,8 @@ void BVDC_P_Window_CalculateCsc_isr
                                            pCsc,
                                            pYCbCrToRGB,
                                            pRGBToYCbCr,
-                                           pCurInfo->bUserCsc);
+                                           pCurInfo->bUserCsc,
+                                           (void *)&hWindow->aullTmpBuf[0]);
     }
 
     /* apply adjustment to secondary color matrix */
@@ -15159,7 +14887,8 @@ void BVDC_P_Window_CalculateCsc_isr
                                            pDemoCsc,
                                            pYCbCrToRGB,
                                            pRGBToYCbCr,
-                                           pCurInfo->bUserCsc);
+                                           pCurInfo->bUserCsc,
+                                           (void *)&hWindow->aullTmpBuf[0]);
     }
     BDBG_LEAVE(BVDC_P_Window_CalculateCsc_isr);
     return;
@@ -15241,7 +14970,8 @@ void BVDC_P_Window_CalculateMosaicCsc_isr
                                            pCsc,
                                            pYCbCrToRGB,
                                            pRGBToYCbCr,
-                                           pCurInfo->bUserCsc);
+                                           pCurInfo->bUserCsc,
+                                           (void *)&hWindow->aullTmpBuf[0]);
     }
     BDBG_LEAVE(BVDC_P_Window_CalculateMosaicCsc_isr);
     return;

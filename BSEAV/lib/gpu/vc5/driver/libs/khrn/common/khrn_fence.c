@@ -138,11 +138,10 @@ void khrn_fence_deps_add(khrn_fence *fence, v3d_scheduler_deps const* deps)
    v3d_scheduler_merge_deps(&fence->deps, deps);
 }
 
-int khrn_fence_get_platform_fence(khrn_fence *fence,
-      v3d_sched_deps_state deps_state, bool force_create)
+const v3d_scheduler_deps* khrn_fence_get_deps(khrn_fence *fence)
 {
    khrn_fence_flush(fence);
-   return v3d_scheduler_create_fence(&fence->deps, deps_state, force_create);
+   return &fence->deps;
 }
 
 static bool record_fence_to_signal(khrn_render_state *rs, void *param)

@@ -571,6 +571,10 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglDestroyImageKHR(EGLDisplay dpy, EGLImageK
 #if EGL_KHR_image_pixmap
 #endif /* EGL_KHR_image_pixmap*/
 
+#if EGL_KHR_partial_update
+DLLEXPORT EGLBoolean DLLEXPORTENTRY eglSetDamageRegionKHR(EGLDisplay dpy, EGLSurface surface, EGLint *rects, EGLint n_rects){ return sAPIClassTable.map_eglSetDamageRegionKHR(dpy, surface, rects, n_rects); }
+#endif /* EGL_KHR_partial_update*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
 
@@ -850,6 +854,9 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglGetPerfCounterDataBRCM(EGLint dataBufferB
 #if EGL_BRCM_platform_nexus
 #endif /* EGL_BRCM_platform_nexus*/
 
+#if EGL_EXT_buffer_age
+#endif /* EGL_EXT_buffer_age*/
+
 #if EGL_EXT_client_extensions
 #endif /* EGL_EXT_client_extensions*/
 
@@ -886,6 +893,9 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglQueryWaylandBufferWL(EGLDisplay dpy, stru
 #if GL_BRCM_mirror_clamp_to_edge
 #endif /* GL_BRCM_mirror_clamp_to_edge*/
 
+#if GL_BRCM_no_perspective
+#endif /* GL_BRCM_no_perspective*/
+
 #if GL_BRCM_polygon_mode
 DLLEXPORT void DLLEXPORTENTRY glPolygonModeBRCM(GLenum mode){ sAPIClassTable.map_glPolygonModeBRCM(mode); }
 #endif /* GL_BRCM_polygon_mode*/
@@ -894,11 +904,20 @@ DLLEXPORT void DLLEXPORTENTRY glPolygonModeBRCM(GLenum mode){ sAPIClassTable.map
 DLLEXPORT void DLLEXPORTENTRY glProvokingVertexBRCM(GLenum mode){ sAPIClassTable.map_glProvokingVertexBRCM(mode); }
 #endif /* GL_BRCM_provoking_vertex*/
 
+#if GL_BRCM_sampler_fetch
+#endif /* GL_BRCM_sampler_fetch*/
+
+#if GL_BRCM_shader_framebuffer_fetch_depth_stencil
+#endif /* GL_BRCM_shader_framebuffer_fetch_depth_stencil*/
+
 #if GL_BRCM_texture_1D
 DLLEXPORT void DLLEXPORTENTRY glTexImage1DBRCM(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels){ sAPIClassTable.map_glTexImage1DBRCM(target, level, internalformat, width, border, format, type, pixels); }
 DLLEXPORT void DLLEXPORTENTRY glTexSubImage1DBRCM(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid *pixels){ sAPIClassTable.map_glTexSubImage1DBRCM(target, level, xoffset, width, format, type, pixels); }
 DLLEXPORT void DLLEXPORTENTRY glTexStorage1DBRCM(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width){ sAPIClassTable.map_glTexStorage1DBRCM(target, levels, internalformat, width); }
 #endif /* GL_BRCM_texture_1D*/
+
+#if GL_BRCM_texture_gather_lod
+#endif /* GL_BRCM_texture_gather_lod*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

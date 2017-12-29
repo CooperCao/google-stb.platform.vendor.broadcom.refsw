@@ -152,7 +152,7 @@ ifeq ($(NEXUS_MODE),driver)
 ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
 EXTRA_CLEAN += astra_drv_clean
 NEXUS_DRIVER_EXTRADEPS += astra_drv_install
-NEXUS_DRIVER_KBUILD_ARGS += KBUILD_EXTRA_SYMBOLS=$(realpath $(NEXUS_OBJ_DIR))/bcm_astra.symvers
+NEXUS_DRIVER_KBUILD_ARGS += $(realpath $(NEXUS_OBJ_DIR))/bcm_astra.symvers
 endif
 endif
 
@@ -219,6 +219,16 @@ ifeq ($(NEXUS_WKTMR),y)
 EXTRA_CLEAN += wakeupdriver_clean
 EXTRA_INSTALL += wakeupdriver_install
 endif
+ifneq ($(NEXUS_SPI_SUPPORT),n)
+ifeq ($(NEXUS_SHARED_SPI),y)
+EXTRA_CLEAN += spidriver_clean
+EXTRA_INSTALL += spidriver_install
+ifeq ($(NEXUS_MODE),driver)
+NEXUS_DRIVER_EXTRADEPS += spidriver_install
+NEXUS_DRIVER_KBUILD_ARGS += $(realpath $(NEXUS_OBJ_DIR))/spi_drv.symvers
+endif
+endif
+endif
 ifeq ($(filter ${B_REFSW_ARCH},arm-linux aarch64-linux),${B_REFSW_ARCH})
 ifeq ($(RF4CE_SUPPORT),y)
 EXTRA_CLEAN += zigbeedriver_clean zigbeeprocess_clean
@@ -227,6 +237,13 @@ endif
 endif
 endif
 endif
+endif
+
+libbacktrace_clean:
+	${MAKE} -C ${BSEAV}/opensource/libbacktrace clean
+
+ifeq (${NEXUS_WITH_LIBBACKTRACE},y)
+EXTRA_CLEAN += libbacktrace_clean
 endif
 
 EXTRA_INSTALL += install_scripts
@@ -243,7 +260,7 @@ EXTRA_CLEAN += brcmv3d_clean
 EXTRA_INSTALL += brcmv3d_install
 ifeq ($(NEXUS_MODE),driver)
 NEXUS_DRIVER_EXTRADEPS += brcmv3d_install
-NEXUS_DRIVER_KBUILD_ARGS += KBUILD_EXTRA_SYMBOLS=$(realpath $(NEXUS_OBJ_DIR))/brcmv3d.symvers
+NEXUS_DRIVER_KBUILD_ARGS += $(realpath $(NEXUS_OBJ_DIR))/brcmv3d.symvers
 endif
 endif
 endif
@@ -284,14 +301,14 @@ $(ASTRA_LIB):
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.libbcm_astra --no-print-directory
 
 .PHONY: astra_clean astra_install astra_drv_clean astra_drv_install
-astra_install: astra
+astra_install: astra ${NEXUS_BIN_DIR}/exists
 	@echo "[Install... astra to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${ASTRA_LIB} ${NEXUS_BIN_DIR}
 
 astra_clean:
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.libbcm_astra clean > /dev/null
 
-astra_drv_install: astra_drv
+astra_drv_install: astra_drv ${NEXUS_BIN_DIR}/exists
 	@echo "[Install... astra driver to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${ASTRA_DRV} ${NEXUS_BIN_DIR}
 	${Q_}$(CP) $(ASTRA_SYMVERS) ${NEXUS_OBJ_DIR}/bcm_astra.symvers
@@ -308,11 +325,29 @@ ${WAKEUPDRIVER}: $(BSEAV)/linux/driver/wakeup/wakeup_driver.c
 	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/wakeup B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} --no-print-directory
 
 .PHONY: wakeupdriver_clean wakeupdriver_install
-wakeupdriver_install: wakeupdriver
+wakeupdriver_install: wakeupdriver ${NEXUS_BIN_DIR}/exists
 	@echo "[Install... wakeupdriver to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${WAKEUPDRIVER} ${NEXUS_BIN_DIR}
 wakeupdriver_clean:
 	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/wakeup B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} clean --no-print-directory > /dev/null
+
+# spidriver rules
+.PHONY: spidriver
+SPIDRIVER:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/spi/$(NEXUS_P_DRIVER_ARCH)/spi_drv.ko
+SPIDRIVER_SYMVERS:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/spi/$(NEXUS_P_DRIVER_ARCH)/Module.symvers
+
+spidriver: ${SPIDRIVER}
+${SPIDRIVER}: $(BSEAV)/linux/driver/spi/spi_driver.c
+	@echo "[Build.... spidriver${NEXUS_P_DRIVER_B_REFSW_ARCH}]"
+	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/spi B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} --no-print-directory
+
+.PHONY: spidriver_clean spidriver_install
+spidriver_install: spidriver ${NEXUS_BIN_DIR}/exists
+	@echo "[Install...spidriver to $(realpath ${NEXUS_BIN_DIR})]"
+	${Q_}$(CP) ${SPIDRIVER} ${NEXUS_BIN_DIR}
+	${Q_}$(CP) ${SPIDRIVER_SYMVERS} ${NEXUS_OBJ_DIR}/spi_drv.symvers
+spidriver_clean:
+	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/spi B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} clean --no-print-directory > /dev/null
 
 # brcmv3d DRM driver rules
 .PHONY: brcmv3d
@@ -325,7 +360,7 @@ ${BRCMV3D}: $(BSEAV)/linux/driver/brcmv3d/v3d_drv.c
 	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/brcmv3d B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} --no-print-directory
 
 .PHONY: brcmv3d_clean brcmv3d_install
-brcmv3d_install: brcmv3d
+brcmv3d_install: brcmv3d ${NEXUS_BIN_DIR}/exists
 	@echo "[Install... brcmv3d DRM driver]"
 	${Q_}$(CP) ${BRCMV3D} ${NEXUS_BIN_DIR}
 	${Q_}$(CP) ${BRCMV3D_SYMVERS} ${NEXUS_OBJ_DIR}/brcmv3d.symvers
@@ -342,7 +377,7 @@ zigbeeprocess:
 	${Q_}$(CP) $(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/obj.$(NEXUS_PLATFORM)/SoC_mailboxHost.elf ${ZIGBEEPROCESS}
 
 .PHONY: zigbeeprocess_clean zigbeeprocess_install
-zigbeeprocess_install: zigbeeprocess
+zigbeeprocess_install: zigbeeprocess ${NEXUS_BIN_DIR}/exists
 	@echo "[Install... zigbeeprocess to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${ZIGBEEPROCESS} ${NEXUS_BIN_DIR}
 zigbeeprocess_clean:
@@ -357,7 +392,7 @@ ${ZIGBEEDRIVER}: $(BSEAV)/linux/driver/zigbee/zigbee_driver.c
 	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/zigbee B_REFSW_DEBUG=$(B_REFSW_DEBUG) BCHP_CHIP=$(BCHP_CHIP) --no-print-directory
 
 .PHONY: zigbeedriver_clean zigbeedriver_install
-zigbeedriver_install: zigbeedriver
+zigbeedriver_install: zigbeedriver ${NEXUS_BIN_DIR}/exists
 	@echo "[Install... zigbeedriver to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${ZIGBEEDRIVER} ${NEXUS_BIN_DIR}
 zigbeedriver_clean:
@@ -378,6 +413,9 @@ EXTRA_CLEAN += fw_signature_clean
 # generic install and clean rules
 ifeq ($(NEXUS_P_START_MULTIPASS),y)
 install:
+ifeq (${NEXUS_WITH_LIBBACKTRACE},y)
+	${Q_}$(MAKE) -C ${BSEAV}/opensource/libbacktrace >/dev/null
+endif
 ifneq ($(NEXUS_CLIENT_ONLY),y)
 	@echo "[Build..... $(NEXUS_P_FIRST_PASS_NAME)]"
 	${Q_}$(MAKE) -f $(NEXUS_PLATFORM_BUILDDIR)/Makefile NEXUS_P_IS_MULTIPASS=y $(NEXUS_P_FIRST_PASS_PARAMS)
@@ -391,9 +429,11 @@ ifneq ($(NEXUS_CLIENT_ONLY),y)
 	@echo "[Clean $(NEXUS_P_FIRST_PASS_NAME)]"
 	${Q_}$(MAKE) -f $(NEXUS_PLATFORM_BUILDDIR)/Makefile NEXUS_P_IS_MULTIPASS=y $(NEXUS_P_FIRST_PASS_PARAMS) clean
 endif
+	${Q_}if [ -d ${B_REFSW_OBJ_ROOT} ]; then find ${B_REFSW_OBJ_ROOT} -type d -empty -delete; fi
 else
 install: nexus_install $(EXTRA_INSTALL)
 clean: nexus_clean $(EXTRA_CLEAN)
+	${Q_}if [ -d ${B_REFSW_OBJ_ROOT} ]; then find ${B_REFSW_OBJ_ROOT} -type d -empty -delete; fi
 endif
 
 nexus_install $(EXTRA_INSTALL): prep_dir

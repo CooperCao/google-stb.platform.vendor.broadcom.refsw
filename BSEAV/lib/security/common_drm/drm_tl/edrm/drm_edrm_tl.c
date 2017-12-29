@@ -88,7 +88,7 @@ DRM_EdrmTl_Initialize(
     if ( !hEdrmTl || !key_file )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -96,7 +96,7 @@ DRM_EdrmTl_Initialize(
     if (rc != Drm_Success || handle == NULL)
     {
         rc = Drm_MemErr;
-        BDBG_ERR(("%s -  Error Allocating drm Memory for context", __FUNCTION__));
+        BDBG_ERR(("%s -  Error Allocating drm Memory for context", BSTD_FUNCTION));
         goto ErrorExit;
     }
     drmCmnInit.drmCommonInit.heap = NULL;
@@ -125,19 +125,19 @@ DRM_EdrmTl_Initialize(
         drmCmnInit.ta_bin_file_path = bdrm_get_ta_edrm_bin_file_path();
     }
 #endif
-    BDBG_MSG(("%s TA bin file %s ",__FUNCTION__, drmCmnInit.ta_bin_file_path));
+    BDBG_MSG(("%s TA bin file %s ",BSTD_FUNCTION, drmCmnInit.ta_bin_file_path));
 
     rc = DRM_Common_TL_Initialize(&drmCmnInit);
     if (rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module", __FUNCTION__));
+        BDBG_ERR(("%s - Error initializing module", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -151,7 +151,7 @@ DRM_EdrmTl_Initialize(
 #endif
     if (rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Error initializing module (0x%08x)", BSTD_FUNCTION, container->basicOut[0]));
         goto ErrorExit;
     }
 
@@ -176,7 +176,7 @@ void DRM_EdrmTl_Finalize(DRM_EdrmTlHandle hEdrmTl)
 {
     if ( !hEdrmTl )
     {
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         return;
     }
 
@@ -212,7 +212,7 @@ DrmRC DRM_EdrmTl_GetDeviceCertificate(
     if ( !hEdrmTl || !cert )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -221,7 +221,7 @@ DrmRC DRM_EdrmTl_GetDeviceCertificate(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -231,7 +231,7 @@ DrmRC DRM_EdrmTl_GetDeviceCertificate(
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(certLength, SRAI_MemoryType_Shared);
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating buffer for certificate", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating buffer for certificate", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -244,7 +244,7 @@ DrmRC DRM_EdrmTl_GetDeviceCertificate(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during GetDeviceCertificate operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during GetDeviceCertificate operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -259,7 +259,7 @@ DrmRC DRM_EdrmTl_GetDeviceCertificate(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -292,7 +292,7 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
     if ( !hEdrmTl )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -301,7 +301,7 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -309,7 +309,7 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(MAX(EDRM_CERT_SIZE,EDRM_PUBLIC_KEY_SIZE), SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating buffer for certificate and pubkey", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating buffer for certificate and pubkey", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -320,7 +320,7 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
     sage_rc = SRAI_Module_ProcessCommand(pCtx->moduleHandle, DrmEdrmTl_CommandId_GetDevicePublicKey, container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during GetDevicePublicKey operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during GetDevicePublicKey operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -329,7 +329,7 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
         rc = DRM_Common_MemoryAllocate(&pPublicKey, container->blocks[0].len);
         if (rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Error allocating buffer for pubkey", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating buffer for pubkey", BSTD_FUNCTION));
             goto ErrorExit;
         }
         BKNI_Memcpy(pPublicKey, container->blocks[0].data.ptr, container->blocks[0].len);
@@ -340,7 +340,7 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
     }
     else
     {
-        BDBG_ERR(("%s - GetDevicePublicKey was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - GetDevicePublicKey was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 
@@ -350,7 +350,7 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
     sage_rc = SRAI_Module_ProcessCommand(pCtx->moduleHandle, DrmEdrmTl_CommandId_GetDeviceCertificate, container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during GetDeviceCertificate operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during GetDeviceCertificate operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -360,7 +360,7 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
         rc = DRM_Common_MemoryAllocate(&pCert, container->blocks[0].len);
         if (rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Error allocating buffer for cert", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating buffer for cert", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -373,14 +373,14 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
         rc = DRM_Common_Swx509ASN1DerDecode(pCert, container->blocks[0].len, &pCertificate);
         if (rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Error converting cert to internal form", __FUNCTION__));
+            BDBG_ERR(("%s - Error converting cert to internal form", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
         rc = DRM_Common_Swx509GetRsaPublicKey(pCertificate, &rsa_key);
         if (rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Error extracting pubkey from cert", __FUNCTION__));
+            BDBG_ERR(("%s - Error extracting pubkey from cert", BSTD_FUNCTION));
             goto ErrorExit;
         }
 
@@ -394,7 +394,7 @@ DrmRC DRM_EdrmTl_VerifyPublicKey(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
         goto ErrorExit;
     }
 

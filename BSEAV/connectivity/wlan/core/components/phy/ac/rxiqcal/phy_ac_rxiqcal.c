@@ -2559,7 +2559,10 @@ phy_ac_rxiqcal_rx_fdiqi_lin_reg(phy_ac_rxiqcal_info_t *rxiqcali, acphy_rx_fdiqi_
 
 		if (pi->u.pi_acphy->rxiqcali->fdiqi->enabled) {
 			/* sanity check: Sf2 = sum of freq^2 > 0 */
-			ASSERT(Sf2 > 0);
+			if (Sf2 <= 0) {
+				ASSERT(0);
+				return;
+			}
 
 			refBW = (CHSPEC_IS80(pi->radio_chanspec) ||
 				PHY_AS_80P80(pi, pi->radio_chanspec)) ? 30 :
@@ -3032,6 +3035,7 @@ wlc_phy_turnon_rxlogen_20694(phy_info_t *pi, uint8 *sr_reg)
 		MOD_RADIO_REG_20694(pi, RF, LOGEN5G_REG3, core, div5g_bias_tx_pu, 1);
 		MOD_RADIO_REG_20694(pi, RF, LOGEN5G_REG2, core, div5g_txbuf_pu, 1);
 
+		/* coverity[result_independent_of_operands] */
 		MOD_RADIO_REG_20694(pi, RF, LOGEN_OVR2, core, ovr_div5g_bias_rx_pu, 1);
 		MOD_RADIO_REG_20694(pi, RF, LOGEN_CFG1, core, ovr_div5g_rxbuf_pu, 1);
 		MOD_RADIO_REG_20694(pi, RF, LOGEN5G_REG3, core, div5g_bias_rx_pu, 1);
@@ -3054,6 +3058,8 @@ wlc_phy_turnoff_rxlogen_20694(phy_info_t *pi, uint8 *sr_reg)
 		MOD_RADIO_REG_20694(pi, RF, LOGEN_OVR2, core, ovr_div5g_bias_rx_pu, 0);
 		MOD_RADIO_REG_20694(pi, RF, LOGEN_CFG1, core, ovr_div5g_rxbuf_pu, 0);
 		MOD_RADIO_REG_20694(pi, RF, LOGEN5G_REG3, core, div5g_bias_rx_pu, 0);
+
+		/* coverity[result_independent_of_operands] */
 		MOD_RADIO_REG_20694(pi, RF, LOGEN5G_REG2, core, div5g_rxbuf_pu, 0);
 	}
 }

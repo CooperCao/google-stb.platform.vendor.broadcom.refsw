@@ -40,7 +40,7 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
-#include "bbox_vdc_box7_config.h"
+#include "bbox_rts_box7.h"
 
 BDBG_MODULE(BBOX_RTS_BOX7);
 BDBG_OBJECT_ID(BBOX_RTS_BOX7);

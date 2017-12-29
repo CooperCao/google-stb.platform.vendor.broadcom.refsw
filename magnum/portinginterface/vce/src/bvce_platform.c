@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,8 +39,6 @@
  *
  ***************************************************************************/
 #include "bstd.h"           /* standard types */
-#include "berr.h"           /* error code */
-#include "bdbg.h"           /* debug interface */
 #include "bkni.h"           /* kernel interface */
 #include "bint.h"
 
@@ -182,6 +180,56 @@ BVCE_Platform_P_DumpRegisterList(
 
    BDBG_LEAVE( BVCE_Platform_P_DumpRegisterRangeList );
 }
+
+#define BVCE_P_ARC_STATUS_OFFSET (0x00 * 4)
+#define BVCE_P_ARC_DEBUG_OFFSET (0x5 * 4)
+#define BVCE_P_ARC_PC_OFFSET (0x06 * 4)
+#define BVCE_P_ARC_STATUS32_OFFSET (0x0A * 4)
+#define BVCE_P_ARC_STATUS32_L1_OFFSET (0x0B * 4)
+#define BVCE_P_ARC_STATUS32_L2_OFFSET (0x0C * 4)
+
+const BVCE_Platform_P_Register s_astHostCPUDebugRegisters[] =
+{
+#if BDBG_DEBUG_BUILD
+      { BVCE_P_ARC_STATUS_OFFSET, BDBG_STRING("Z N C V E2 E1 H R PC[25:2] - ARC Status"), BDBG_STRING("ARC Status - PC is 25:2")
+#if BCHP_REGISTER_HAS_64_BIT
+            , false
+#endif
+      },
+      { BVCE_P_ARC_DEBUG_OFFSET, BDBG_STRING("LD SH BH UB R[27:24] ZZ R[22:12] IS R[10:2] FH SS - ARC Debug"), BDBG_STRING("ARC Debug")
+#if BCHP_REGISTER_HAS_64_BIT
+            , false
+#endif
+      },
+      { BVCE_P_ARC_PC_OFFSET, BDBG_STRING("PC[31:1] 0 - ARC PC"), BDBG_STRING("ARC PC")
+#if BCHP_REGISTER_HAS_64_BIT
+            , false
+#endif
+      },
+      { BVCE_P_ARC_STATUS32_OFFSET, BDBG_STRING("R[31:13] L Z N C V U DE AE A2 A1 E2 E1 H - Status 32"), BDBG_STRING("ARC Status 32")
+#if BCHP_REGISTER_HAS_64_BIT
+            , false
+#endif
+      },
+      { BVCE_P_ARC_STATUS32_L1_OFFSET, BDBG_STRING("R[31:13] L Z N C V U DE AE A2 A1 E2 E1 R - Status 32 L1"), BDBG_STRING("ARC Status 32 L1")
+#if BCHP_REGISTER_HAS_64_BIT
+            , false
+#endif
+      },
+      { BVCE_P_ARC_STATUS32_L2_OFFSET, BDBG_STRING("R[31:13] L Z N C V U DE AE A2 A1 E2 E1 R - Status 32 L2"), BDBG_STRING("ARC Status 32 L2")
+#if BCHP_REGISTER_HAS_64_BIT
+            , false
+#endif
+      },
+#else
+      {0, "", ""},
+#endif
+};
+#if BDBG_DEBUG_BUILD
+const unsigned s_uiHostCPUDebugRegistersCount = 6;
+#else
+const unsigned s_uiHostCPUDebugRegistersCount = 0;
+#endif
 
 #if ( BVCE_PLATFORM_P_BOX_MODE_SUPPORT != 0 )
 
@@ -334,7 +382,6 @@ typedef struct BVCE_VideoFormatEntry
    BVCE_VideoFormatInfo stInfo;
 } BVCE_VideoFormatEntry;
 
-#if ( BVCE_P_CORE_MAJOR < 3 )
 static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
 {
    { 0,
@@ -400,73 +447,6 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
       },
    },
 };
-#else
-static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
-{
-   { 0,
-      { BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */\
-         {
-            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30 }, }, /* Bounds[eInterlaced] */
-            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60 }, }, /* Bounds[eProgressive] */
-         }
-      }
-   },
-   { BFMT_VideoFmt_e720p_25Hz,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
-         {
-            { 720, 576, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e25, }, }, /* Bounds[eInterlaced] */
-            { 1280, 720, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e720p_30Hz,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
-         {
-            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1280, 720, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e720p,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
-         {
-            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1280, 720, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, },  /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e1080p_25Hz,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
-         {
-            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eInterlaced] */
-            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e1080p_30Hz,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
-         {
-            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-   { BFMT_VideoFmt_e1080p,
-      {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
-         {
-            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1920, 1088, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
-         }
-      },
-   },
-};
-#endif
 
 static
 const BVCE_VideoFormatInfo*
@@ -625,6 +605,5 @@ BVCE_Platform_P_OverrideChannelDimensionBounds(
       BKNI_Free( pstBoxConfig );
    }
 }
-
 #else
 #endif

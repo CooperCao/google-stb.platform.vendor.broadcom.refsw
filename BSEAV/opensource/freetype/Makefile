@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,33 +63,39 @@ ifeq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
     $(warning B_REFSW_FREETYPE_IS_EXTERNAL=${B_REFSW_FREETYPE_IS_EXTERNAL} Skipping build of freetype...)
 endif   #  ifeq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
 
-all : source
+all : build
 	@if [ ! -d "${FREETYPE_SOURCE_PATH}" ]; then \
 		echo "Freetype source directory: $(abspath ${FREETYPE_SOURCE_PATH}) not found, extracting from tarball..."  ${B_FREETYPE_EXTRACT_REDIR}; \
 		if [ ! -e "${FREETYPE_TAR_PATH}/${FREETYPE_SOURCE_TARBALL}" ]; then \
-			echo "================ Downloading OPENSSL tarball  to ${FREETYPE_TAR_PATH}"; \
+			echo "================ Downloading FREETYPE tarball  to ${FREETYPE_TAR_PATH}"; \
 			mkdir -p ${FREETYPE_TAR_PATH}; \
 			B_REFSW_CACHE_DIR=${B_REFSW_CACHE_DIR} $(NEXUS_TOP)/../BSEAV/tools/build/fetch.sh ${FREETYPE_BUILD_DIR}/${FREETYPE_NAME}.info ${FREETYPE_TAR_PATH}; \
 		fi ;\
 	fi
 
-	@echo "================ Configuring FREETYPE 2.3.12 ============================="
+build: source
+	@echo "================ Configuring FREETYPE $(FREETYPE_VER) ============================="
 	@if [ ! -e "${FREETYPE_TAR_PATH}/config.mk" ]; then \
 		echo "================ Configure FREETYPE"; \
 		cd ${FREETYPE_TAR_PATH}; \
-		./configure --host=${B_REFSW_ARCH} >/dev/null 2>&1 ; \
-		echo "================ Configuring FREETYPE 2.3.12 complete ===================="; \
+		export PKG_CONFIG_PATH="$(FREETYPE_INSTALL_PREFIX)/lib/pkgconfig"; \
+		./configure --host=${B_REFSW_ARCH} \
+		--prefix=$(FREETYPE_INSTALL_PREFIX) \
+		--with-harfbuzz=no \
+		--enable-static --enable-shared  > /dev/null; \
+		echo "================ Configuring FREETYPE $(FREETYPE_VER) complete ===================="; \
 	else \
-		echo "================ FREETYPE 2.3.12 already configured"; \
+		echo "================ FREETYPE $(FREETYPE_VER) already configured"; \
 	fi
 
-	@echo "================ Compiling FREETYPE 2.3.12 ==============================="
+	@echo "================ Compiling FREETYPE $(FREETYPE_VER) ==============================="
 	echo "NEXUS_TOP=$(abspath ${NEXUS_TOP})"
-	${MAKE} ${MAKE_OPTIONS} -C ${FREETYPE_TAR_PATH} NEXUS_TOP=$(abspath ${NEXUS_TOP}) ${MAKE_SUFFIX}
+	${MAKE} ${MAKE_OPTIONS} -C ${FREETYPE_TAR_PATH} NEXUS_TOP=$(abspath ${NEXUS_TOP}) ${MAKE_SUFFIX} > /dev/null
+	${MAKE} ${MAKE_OPTIONS} -C ${FREETYPE_TAR_PATH} BSEAV=$(abspath ${BSEAV_TOP}) install ${MAKE_SUFFIX} > /dev/null
 	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
-		if ls ${FREETYPE_LIB_FOLDER}/*.so > /dev/null 2>&1 ; then ${STRIP} ${FREETYPE_LIB_FOLDER}/*.so ; fi \
+		if ls ${FREETYPE_LIB_FOLDER}/libfreetype.so.${FREETYPE_INSTALL_VER} > /dev/null 2>&1 ; then ${STRIP} ${FREETYPE_LIB_FOLDER}/libfreetype.so.${FREETYPE_INSTALL_VER} ; fi \
 	fi
-	@echo "================ FREETYPE 2.3.12 Compiled!"
+	@echo "================ FREETYPE $(FREETYPE_VER) Compiled!"
 
 source:
 ifneq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
@@ -100,21 +106,21 @@ ifneq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
 		echo "FREETYPE_SOURCE_DIRECTORY is ${FREETYPE_SOURCE_DIRECTORY}"; \
 		echo "$(B_REFSW_ARCH).$(DEBUG_SUFFIX)"; \
 		if [ ! -e "${FREETYPE_TAR_PATH}/${FREETYPE_SOURCE_TARBALL}" ]; then \
-			echo "================ Downloading FREETYPE 2.3.12 tarball  to ${FREETYPE_TAR_PATH}"; \
+			echo "================ Downloading FREETYPE $(FREETYPE_VER) tarball  to ${FREETYPE_TAR_PATH}"; \
 			mkdir -p ${FREETYPE_TAR_PATH}; \
 			echo "${FREETYPE_BUILD_DIR}/${FREETYPE_NAME}"; \
 			echo "${FREETYPE_TAR_PATH}"; \
 			B_REFSW_CACHE_DIR=${B_REFSW_CACHE_DIR} $(NEXUS_TOP)/../BSEAV/tools/build/fetch.sh ${FREETYPE_BUILD_DIR}/${FREETYPE_NAME}.info ${FREETYPE_TAR_PATH}; \
 		fi ;\
 		if [ -e "${FREETYPE_TAR_PATH}/${FREETYPE_SOURCE_TARBALL}" ]; then \
-			echo "================ Extracting FREETYPE 2.3.12 tarball"; \
+			echo "================ Extracting FREETYPE $(FREETYPE_VER) tarball"; \
 			echo "${FREETYPE_SOURCE_PATH}"; \
 			mkdir -p ${FREETYPE_SOURCE_PATH}; \
 			echo "FREETYPE_TAR_PATH is ${FREETYPE_TAR_PATH}"; \
 			echo "FREETYPE_SOURCE_TARBALL is ${FREETYPE_SOURCE_TARBALL}"; \
 			tar -xpf ${FREETYPE_TAR_PATH}/${FREETYPE_SOURCE_TARBALL} -C ${FREETYPE_SOURCE_PATH}/..; \
-			echo "Copy ${FREETYPE_BUILD_DIR}/${FREETYPE_NAME} to ${FREETYPE_SOURCE_PATH}/.." ; \
-			cp -r ${FREETYPE_BUILD_DIR}/${FREETYPE_NAME} ${FREETYPE_SOURCE_PATH}/.. ; \
+#			echo "Copy ${FREETYPE_BUILD_DIR}/${FREETYPE_NAME} to ${FREETYPE_SOURCE_PATH}/.." ; \
+#			cp -r ${FREETYPE_BUILD_DIR}/${FREETYPE_NAME} ${FREETYPE_SOURCE_PATH}/.. ; \
 		else \
 			echo "Tarball ${FREETYPE_TAR_PATH}/${FREETYPE_SOURCE_TARBALL} is missing"; exit 1;\
 		fi ${B_FREETYPE_EXTRACT_REDIR};\
@@ -122,9 +128,9 @@ ifneq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
 endif   #  ifeq ($(B_REFSW_FREETYPE_IS_EXTERNAL),y)
 
 install_to_nexus_bin: all
-	@echo "================ Installing FREETYPE 2.3.12 to ${NEXUS_BIN_DIR}"
+	@echo "================ Installing FREETYPE $(FREETYPE_VER) to ${NEXUS_BIN_DIR}"
 	@mkdir -p ${NEXUS_BIN_DIR}
-	@install -c -m 0755 $(FREETYPE_LIB_FOLDER)/*.so* ${NEXUS_BIN_DIR}
+	@install -c -m 0755 $(FREETYPE_LIB_FOLDER)/libfreetype.so* ${NEXUS_BIN_DIR}
 
 clean :
 	@echo "================ MAKE CLEAN"

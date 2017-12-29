@@ -175,8 +175,14 @@ BSAGElib_P_Rpc_HandleResponse_isr(
 
     remote = BSAGElib_P_Rpc_FindRemoteById_isr(hSAGElib, message->instanceId);
     if (!remote) {
-        BDBG_WRN(("%s: Cannot find remote bounded to id #%u",
-                  BSTD_FUNCTION, message->instanceId));
+        if (message->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT) {
+            BDBG_WRN(("%s: Cannot find remote bounded to id #%u",
+                      BSTD_FUNCTION, message->instanceId));
+        }
+        else {
+            BDBG_MSG(("%s: got reply from SYSTEM_CRIT on a module that no longer exists: id #%u",
+                      BSTD_FUNCTION, message->instanceId));
+        }
         return;
     }
 
@@ -351,6 +357,7 @@ BSAGElib_P_Rpc_HSIReceiveCallback_isr(
     BSAGElib_RpcAck ack;
     const uint8_t *pAckBuf = NULL;
     uint32_t ackBufLen = 0;
+    BSAGElib_RpcMessage_eType type;
 
     rc = BHSI_Receive_isrsafe(hSAGElib->hHsi, (uint8_t *)&rsCh, sizeof(rsCh), &recv_length);
     if (rc != BERR_SUCCESS) {
@@ -367,14 +374,26 @@ BSAGElib_P_Rpc_HSIReceiveCallback_isr(
         return;
     }
 
-    switch (rsCh.type) {
-    case BSAGElib_RpcMessage_eResponse:
-        BSAGElib_P_Rpc_HandleResponse_isr(hSAGElib, &rsCh.response);
-        break;
-    case BSAGElib_RpcMessage_eCallbackRequest:
+    type = rsCh.type;
+
+    /* only callbackRequest requires an ack buffer, process the request before sending the ack
+       BUT do not delay sending the ack in the other cases */
+    if (type == BSAGElib_RpcMessage_eCallbackRequest) {
         pAckBuf = (uint8_t *)&ack;
         ackBufLen = sizeof(ack);
         ack.rc = BSAGElib_P_Rpc_HandleCallbackRequest_isr(hSAGElib, &rsCh.callbackRequest);
+    }
+
+    /* Send Ack */
+    rc = BHSI_Ack_isrsafe(hSAGElib->hHsi, pAckBuf, ackBufLen);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s: error sending the Ack to SAGE [type=%u]", BSTD_FUNCTION, type));
+        /* keep going */
+    }
+
+    switch (type) {
+    case BSAGElib_RpcMessage_eResponse:
+        BSAGElib_P_Rpc_HandleResponse_isr(hSAGElib, &rsCh.response);
         break;
     case BSAGElib_RpcMessage_eIndication:
         BSAGElib_P_Rpc_HandleIndication_isr(hSAGElib, &rsCh.indication);
@@ -382,12 +401,12 @@ BSAGElib_P_Rpc_HSIReceiveCallback_isr(
     case BSAGElib_RpcMessage_eTATerminate:
         BSAGElib_P_Rpc_HandleTATerminate_isr(hSAGElib, &rsCh.taTerminate);
         break;
+    case BSAGElib_RpcMessage_eCallbackRequest:
+        /* BSAGElib_P_Rpc_HandleCallbackRequest_isr() already called */
+        /* fall through */
     default:
         return;
     }
-
-    /* Send Ack */
-    BHSI_Ack_isrsafe(hSAGElib->hHsi, pAckBuf, ackBufLen);
 }
 #endif
 
@@ -589,8 +608,7 @@ BSAGElib_P_Rpc_RemoveRemote(
         /* When going to S3, BSAGElib_P_Rpc_RemoveRemote will be intentionally called without
         * closing the platform in order to free resources, but leave the platform running (as
         * it is needed for S3) */
-        if(remote->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT)
-        {
+        if(remote->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT) {
             BDBG_ERR(("%s hSAGElib=%p hSAGElibClient=%p remote=%p platformId=%u moduleId=%u instanceId=%u is open",
                       BSTD_FUNCTION, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote,
                       remote->platformId, remote->moduleId, remote->message->instanceId));
@@ -600,6 +618,12 @@ BSAGElib_P_Rpc_RemoveRemote(
             }
             else if (remote->platformId != 0) {
                 BSAGElib_Rai_Platform_Close(remote, NULL);
+            }
+        }
+        else {
+            /* in the case of SYSTEM_CRIT, handle uninit of modules (for S2) */
+            if (remote->moduleId != 0) {
+                BSAGElib_Rai_Module_Uninit(remote, NULL);
             }
         }
     }
@@ -889,9 +913,11 @@ BSAGElib_Rpc_SendCommand(
     }
 
     switch (command->systemCommandId) {
+    case BSAGElib_SystemCommandId_eModuleInit:
     case BSAGElib_SystemCommandId_ePlatformOpen:
         remote->open = true;
         break;
+    case BSAGElib_SystemCommandId_eModuleUninit:
     case BSAGElib_SystemCommandId_ePlatformClose:
         remote->open = false;
         break;

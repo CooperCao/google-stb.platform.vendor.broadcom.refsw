@@ -187,6 +187,32 @@ done:
 }
 
 
+typedef enum BHDM_HDCP_P_VersionSelect
+{
+	BHDM_HDCP_P_VersionSelect_e1_x = 0,
+	BHDM_HDCP_P_VersionSelect_e2_2 ,
+	BHDM_HDCP_P_VersionSelect_eMax
+} BHDM_HDCP_P_VersionSelect ;
+
+static void BHDM_HDCP_P_GetHdcpVersionSelect(const BHDM_Handle hHDMI, uint8_t *uiHdcpVersionSelect)
+{
+#if BHDM_CONFIG_HAS_HDCP22
+    BREG_Handle hRegister;
+    uint32_t Register, ulOffset;
+
+    hRegister = hHDMI->hRegister;
+    ulOffset = hHDMI->ulOffset;
+
+    Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset);
+    *uiHdcpVersionSelect = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT) ;
+#else
+	BSTD_UNUSED(hHDMI) ;
+	*uiHdcpVersionSelect = BHDM_HDCP_P_VersionSelect_e1_x ;
+#endif
+}
+
+
+
 /******************************************************************************
 bool BHDM_HDCP_P_RegisterAccessAllowed
     check that
@@ -201,6 +227,7 @@ static bool BHDM_HDCP_P_RegisterAccessAllowed(
 {
     bool authenticated ;
     bool accessAllowed = true ;
+    uint8_t uiHdcpVersionUsed ;
     BERR_Code rc ;
 
     rc = BHDM_HDCP_IsLinkAuthenticated(hHDMI, &authenticated) ;
@@ -222,13 +249,14 @@ static bool BHDM_HDCP_P_RegisterAccessAllowed(
         goto done ;
     }
 
-    if (((hHDMI->HdcpVersion >= BHDM_HDCP_Version_e2_2) && (offset < BHDM_HDCP_2_2_OFFSET_START))
-    ||  ((hHDMI->HdcpVersion < BHDM_HDCP_Version_e2_2) && (offset >= BHDM_HDCP_2_2_OFFSET_START)))
+    BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI, &uiHdcpVersionUsed) ;
+    if (((uiHdcpVersionUsed == BHDM_HDCP_P_VersionSelect_e2_2) && (offset < BHDM_HDCP_2_2_OFFSET_START))
+    ||  ((uiHdcpVersionUsed == BHDM_HDCP_P_VersionSelect_e1_x) && (offset >= BHDM_HDCP_2_2_OFFSET_START)))
     {
         accessAllowed = false ;
         BDBG_MSG(("Tx%d Disable access to HDCP %s register %#x while HDCP %s link is enabled",
-            hHDMI->eCoreId, (hHDMI->HdcpVersion >= BHDM_HDCP_Version_e2_2) ? "1.x" : "2.x",
-            offset, (hHDMI->HdcpVersion >= BHDM_HDCP_Version_e2_2) ? "2.x" : "1.x")) ;
+            hHDMI->eCoreId, (uiHdcpVersionUsed >= BHDM_HDCP_P_VersionSelect_e2_2) ? "1.x" : "2.x",
+            offset, (uiHdcpVersionUsed >= BHDM_HDCP_P_VersionSelect_e2_2) ? "2.x" : "1.x")) ;
         goto done ;
     }
 
@@ -1024,7 +1052,6 @@ BERR_Code BHDM_HDCP_XmitEncrypted(
     BERR_Code   rc = BERR_SUCCESS;
     BREG_Handle hRegister ;
     uint32_t    Register, ulOffset ;
-    uint16_t JRate ;
     bool bEnableHdcp1_1OptionalFeatures = false ;
 
     BDBG_ENTER(BHDM_HDCP_XmitEncrypted) ;
@@ -1046,30 +1073,32 @@ BERR_Code BHDM_HDCP_XmitEncrypted(
     }
     else
     {
-        BDBG_MSG(("Tx%d: Using HDCP 1.1 with Optional Features", hHDMI->eCoreId)) ;
+        /* If option Pj checking desired and
+        the number of Pj link failures <= the max failures allow, enable HDCP 1.1 with optional features */
+        if ((hHDMI->HdcpOptions.PjChecking)
+        && (hHDMI->HdcpOptions.numPjFailures <= BHDM_HDCP_MAX_PJ_LINK_FAILURES_BEFORE_DISABLE_HDCP_1_1))
+        {
+            uint16_t JRate ;
 
-       /* If option Pj checking desired and
-       the number of Pj link failures <= the max failures allow, enable HDCP 1.1 with optional features */
-       if ((hHDMI->HdcpOptions.PjChecking)
-       &&	(hHDMI->HdcpOptions.numPjFailures <= BHDM_HDCP_MAX_PJ_LINK_FAILURES_BEFORE_DISABLE_HDCP_1_1))
-       {
+            Register = BREG_Read32(hRegister, BCHP_HDMI_CP_INTEGRITY_CFG + ulOffset) ;
+            JRate = BCHP_GET_FIELD_DATA(Register, HDMI_CP_INTEGRITY_CFG, J_RATE_7_0) ;
             bEnableHdcp1_1OptionalFeatures = true ;
-       }
+            BDBG_MSG(("Tx%d: Using HDCP 1.1 with Optional Features (Pj Rate: %d",
+                hHDMI->eCoreId, JRate)) ;
+        }
+        else
+        {
+             BDBG_WRN(("HDCP 1.x Optional Features are supported, but are currently disabled")) ;
+        }
 
         /* enable ReKey on Vsync for HDCP 1.1 Receivers */
         Register = BREG_Read32(hRegister, BCHP_HDMI_CP_INTEGRITY_CFG + ulOffset) ;
-        JRate = BCHP_GET_FIELD_DATA(Register, HDMI_CP_INTEGRITY_CFG, J_RATE_7_0) ;
-        BDBG_MSG(("Tx%d: Pj Rate: %d frames",  hHDMI->eCoreId, JRate)) ;
-
-        Register &= ~BCHP_MASK(HDMI_CP_INTEGRITY_CFG, I_ALWAYS_REKEY_ON_VSYNC) ;
-        Register |= BCHP_FIELD_DATA(HDMI_CP_INTEGRITY_CFG, I_ALWAYS_REKEY_ON_VSYNC, 1) ;
+            Register &= ~BCHP_MASK(HDMI_CP_INTEGRITY_CFG, I_ALWAYS_REKEY_ON_VSYNC) ;
+            Register |= BCHP_FIELD_DATA(HDMI_CP_INTEGRITY_CFG, I_ALWAYS_REKEY_ON_VSYNC, 1) ;
         BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CFG + ulOffset, Register) ;
     }
 
     BHDM_HDCP_P_ConfigureHdcp1_1Features(hHDMI, bEnableHdcp1_1OptionalFeatures) ;
-
-    BSTD_UNUSED(JRate);
-
 
     /* enable (toggle) the Vsync for encryption */
     Register = BREG_Read32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset) ;
@@ -2160,40 +2189,59 @@ BERR_Code BHDM_HDCP_WriteTxKsvFIFO(
     return rc ;
 }
 
+
 /******************************************************************************
 BERR_Code BHDM_HDCP_IsLinkAuthenticated
 Summary: Check if the current link is authenticated.
 *******************************************************************************/
 BERR_Code BHDM_HDCP_IsLinkAuthenticated(const BHDM_Handle hHDMI, bool *bAuthenticated)
 {
+	BERR_Code rc = BERR_SUCCESS ;
 #if BHDM_CONFIG_HAS_HDCP22
-    uint32_t Register, ulOffset;
-    BREG_Handle hRegister;
-    uint8_t uiAuthenticatedOK = 0 ;
-    uint8_t uiHdcp2Authenticated = 0 ;
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
+	uint8_t uiHdcpVersionUsed ;
+	uint8_t uiAuthenticatedOK = 0 ;
+	uint8_t uiHdcp2Authenticated = 0 ;
 
-    BDBG_ENTER(BHDM_HDCP_IsLinkAuthenticated);
-    BDBG_OBJECT_ASSERT(hHDMI, HDMI);
+	BDBG_ENTER(BHDM_HDCP_IsLinkAuthenticated);
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI);
 
-    hRegister = hHDMI->hRegister;
-    ulOffset = hHDMI->ulOffset;
+	hRegister = hHDMI->hRegister;
+	ulOffset = hHDMI->ulOffset;
 
-    if (hHDMI->HdcpVersion == BHDM_HDCP_Version_e2_2)
-    {
-        Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_STATUS + ulOffset);
-        uiAuthenticatedOK = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_STATUS, AUTHENTICATED_OK);
+	BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI, &uiHdcpVersionUsed) ;
 
-        Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
-        uiHdcp2Authenticated = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED) ;
+	switch (uiHdcpVersionUsed)
+	{
+	case BHDM_HDCP_P_VersionSelect_e1_x :
+		*bAuthenticated = hHDMI->HDCP_AuthenticatedLink == 1 ;
 
-        *bAuthenticated = (uiAuthenticatedOK && uiHdcp2Authenticated);
+		break ;
 
-	BDBG_MSG(("hdcp2tx_status.authenticated_ok: %d ", uiAuthenticatedOK)) ;
-	BDBG_MSG(("hdcp2tx_auth_ctl.hdcp2_authenticated: %d", uiHdcp2Authenticated)) ;
-    }
-    else {
-        *bAuthenticated = hHDMI->HDCP_AuthenticatedLink == 1 ;
-    }
+	case BHDM_HDCP_P_VersionSelect_e2_2 :
+		Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_STATUS + ulOffset);
+		uiAuthenticatedOK = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_STATUS, AUTHENTICATED_OK);
+
+		Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+		uiHdcp2Authenticated = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED) ;
+
+		*bAuthenticated = (uiAuthenticatedOK && uiHdcp2Authenticated);
+
+		BDBG_MSG(("hdcp2tx_status.authenticated_ok: %d ", uiAuthenticatedOK)) ;
+		BDBG_MSG(("hdcp2tx_auth_ctl.hdcp2_authenticated: %d", uiHdcp2Authenticated)) ;
+
+		break ;
+
+	default :
+		BDBG_ERR(("Unknown/Unsupported HDCP Version: %d", uiHdcpVersionUsed)) ;
+		rc = BERR_TRACE(BERR_UNKNOWN) ;
+		*bAuthenticated = 0 ;
+		goto done ;
+	}
+
+done:
+
 #else
 
     BDBG_ENTER(BHDM_HDCP_IsLinkAuthenticated);
@@ -2203,7 +2251,7 @@ BERR_Code BHDM_HDCP_IsLinkAuthenticated(const BHDM_Handle hHDMI, bool *bAuthenti
 #endif
 
     BDBG_LEAVE(BHDM_HDCP_IsLinkAuthenticated);
-    return BERR_SUCCESS;
+    return rc ;
 }
 
 
@@ -2848,18 +2896,6 @@ void BHDM_HDCP_P_ResetSettings_isr(const BHDM_Handle hHDMI)
 /************/
 /* HDCP 1.x */
 /************/
-#ifndef BHDM_FOR_BOOTUPDATER
-#if BHDM_CONFIG_HDCP_AUTO_RI_PJ_CHECKING_SUPPORT
-	/* Ensure HDMI is not in control of BSCC (I2C) block. This is to prevent I2C got locked
-		by HDMI core in the case ctrl-c was use to terminate the software AND
-		HW Ri/Pj checking was enabled */
-	Register = BREG_Read32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset) ;
-	Register |= BCHP_FIELD_DATA(HDMI_CP_INTEGRITY_CHK_CFG_1, CHECK_MODE, 1);
-	BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset, Register) ;
-	Register &= ~(BCHP_MASK(HDMI_CP_INTEGRITY_CHK_CFG_1, CHECK_MODE));
-	BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset, Register) ;
-#endif
-#endif
 
 	/* write 1 (writing 0 first is not needed) to force core unauthenticated */
 	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP_CTL  + ulOffset) ;

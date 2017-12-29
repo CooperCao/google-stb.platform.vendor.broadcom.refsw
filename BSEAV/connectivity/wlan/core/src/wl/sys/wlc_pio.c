@@ -519,7 +519,11 @@ _wlc_pio4_rx(pio_info_t *pt)
 	if (WL_RXHDR_LEN(pt->pub->corerev) % 4) {
 		ASSERT((WL_RXHDR_LEN(pt->pub->corerev) % 4) == 2);
 		*((uint16 *)va32) = R_REG(pt->wlc->osh, (volatile uint16 *)dptr);
+	/* va32 is overwritten in consequent instructions,	*/
+	/* therefore, comment out for 7271			*/
+#ifndef STB_SOC_WIFI
 		va32 = (uint32 *)((int8*)va32 + 2);
+#endif  /* STB_SOC_WIFI */
 	}
 
 	/* toss bad packet before read/pass up whole frame */

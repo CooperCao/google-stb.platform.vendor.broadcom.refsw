@@ -1,68 +1,79 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-******************************************************************************/
-/*******************************************************************
-*               Do Not Edit Directly
-* Auto-Generated from RTS environment:
-*   at: Mon Mar 30 21:40:36 2015 GMT
-*   by: chuck
-*   for: Box 74371_1stb
-*         MemC 0 (32-bit DDR3@800MHz) w/324MHz clock
-*******************************************************************/
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *
+ * API Description:
+ *
+ * Revision History:
+ *
+ * $brcm_Log: $
+ *
+ ******************************************************************************
+ *
+ *                            Do Not Edit Directly
+ * Auto-Generated from RTS environment:
+ *   at: Fri Sep  8 18:28:38 2017 GMT
+ *   by: cm902429
+ *   for: Box 74371_1stb
+ *         MemC 0 (32-bit DDR3@800MHz) w/324MHz clock
+ *
+ *   Run from /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/rts_shell_v3.pl
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7439A0/rev5/BCM7439A0.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7439A0/rev5/BCM7439A0MemoryTiming.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/MEMC_b1r8_timing_CLwc.lib
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/VideoDecoder_rNb.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/library_tools.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/Vice_v2b.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7439A0/rev5/BCM7439A0BvnLib.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7439A0/rev5/BCM7439A0Client.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7439A0/rev5/BCM7439A0ClientTime.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7439A0/rev5/BCM7439A0Display.cfg
+ *
+ *****************************************************************************/
 
 #include "bchp_memc_gen_0.h"  /* located in /TBD directory */
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20150330214036_74371_1stb[] = {
+static const uint32_t aulMemc0_20170908182838_74371_1stb[] = {
            0x0079c015,  /*   0: XPT_WR_RS 6020ns */
            0x80f78032,  /*   1: XPT_WR_XC RR 12230ns */
            0x8114b01c,  /*   2: XPT_WR_CDB RR 13670ns */
@@ -318,19 +329,23 @@ static const uint32_t aulMemc0_20150330214036_74371_1stb[] = {
            0xbffff0ff,  /* 252: MEMC_DIS0 RR */
            0xbffff0ff,  /* 253: MEMC_DIS1 RR */
            0xbffff0ff,  /* 254: MEMC_DRAM_INIT_ZQCS RR */
-           0x009e1019,  /* 255: REFRESH 7812.5ns */
+           0x009dd019   /* 255: REFRESH 7800ns */
          };
 
 
-static const uint32_t * const paulMemc_box1[] = { &aulMemc0_20150330214036_74371_1stb[0],};
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20170908182838_74371_1stb[] = {
+    {BCHP_MEMC_GEN_0_PFRI_0_PAGE_BRK_INTR_INFO_0,      0x80700905}
+};
+
+static const uint32_t* const paulMemc_box1[] = { &aulMemc0_20170908182838_74371_1stb[0]};
 
 const BBOX_Rts stBoxRts_74371_1stb_box1 = {
-  "20150330214036_74371_1stb_box1",
+  "20170908182838_74371_1stb_box1",
   74371,
   1,
   1,
   256,
-  (const uint32_t **)&paulMemc_box1[0],
-  0,
-  NULL,
+  (const uint32_t**)&paulMemc_box1[0],
+  1,
+  stBoxRts_PfriClient_20170908182838_74371_1stb
 };

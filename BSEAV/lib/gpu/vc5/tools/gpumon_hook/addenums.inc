@@ -1436,6 +1436,10 @@ AddEnum(EGL_IMAGE_PRESERVED_KHR);
 #if EGL_KHR_image_pixmap
 #endif /* EGL_KHR_image_pixmap*/
 
+#if EGL_KHR_partial_update
+AddEnum(EGL_BUFFER_AGE_KHR);
+#endif /* EGL_KHR_partial_update*/
+
 #if EGL_KHR_platform_android
 AddEnum(EGL_PLATFORM_ANDROID_KHR);
 #endif /* EGL_KHR_platform_android*/
@@ -1946,6 +1950,10 @@ AddEnum(EGL_MAX_COUNTER_STRING_LEN_BRCM);
 AddEnum(EGL_PLATFORM_NEXUS_BRCM);
 #endif /* EGL_BRCM_platform_nexus*/
 
+#if EGL_EXT_buffer_age
+AddEnum(EGL_BUFFER_AGE_EXT);
+#endif /* EGL_EXT_buffer_age*/
+
 #if EGL_EXT_client_extensions
 #endif /* EGL_EXT_client_extensions*/
 
@@ -1991,6 +1999,9 @@ AddEnum(EGL_TEXTURE_Y_XUXV_WL);
 AddEnum(GL_MIRROR_CLAMP_TO_EDGE_BRCM);
 #endif /* GL_BRCM_mirror_clamp_to_edge*/
 
+#if GL_BRCM_no_perspective
+#endif /* GL_BRCM_no_perspective*/
+
 #if GL_BRCM_polygon_mode
 AddEnum(GL_POINT_BRCM);
 AddEnum(GL_LINE_BRCM);
@@ -2002,6 +2013,12 @@ AddEnum(GL_FIRST_VERTEX_CONVENTION_BRCM);
 AddEnum(GL_LAST_VERTEX_CONVENTION_BRCM);
 AddEnum(GL_PROVOKING_VERTEX_BRCM);
 #endif /* GL_BRCM_provoking_vertex*/
+
+#if GL_BRCM_sampler_fetch
+#endif /* GL_BRCM_sampler_fetch*/
+
+#if GL_BRCM_shader_framebuffer_fetch_depth_stencil
+#endif /* GL_BRCM_shader_framebuffer_fetch_depth_stencil*/
 
 #if GL_BRCM_texture_1D
 AddEnum(GL_TEXTURE_1D_BRCM);
@@ -2015,6 +2032,9 @@ AddEnum(GL_UNSIGNED_INT_SAMPLER_1D_ARRAY_BRCM);
 AddEnum(GL_TEXTURE_BINDING_1D_BRCM);
 AddEnum(GL_TEXTURE_BINDING_1D_ARRAY_BRCM);
 #endif /* GL_BRCM_texture_1D*/
+
+#if GL_BRCM_texture_gather_lod
+#endif /* GL_BRCM_texture_gather_lod*/
 
 #if GL_BRCM_texture_norm16
 AddEnum(GL_R16_BRCM);

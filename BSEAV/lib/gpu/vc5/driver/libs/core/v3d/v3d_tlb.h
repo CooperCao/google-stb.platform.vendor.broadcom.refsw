@@ -12,7 +12,7 @@ EXTERN_C_BEGIN
 static inline bool v3d_tlb_rt_type_use_rw_cfg_16(v3d_rt_type_t rt)
 {
    switch (rt) {
-#if V3D_HAS_TLB_WR_CONVERT
+#if V3D_VER_AT_LEAST(4,2,13,0)
       case V3D_RT_TYPE_8:
       case V3D_RT_TYPE_8I:
       case V3D_RT_TYPE_8UI:
@@ -70,7 +70,7 @@ static inline bool v3d_tlb_rt_type_is_int(v3d_rt_type_t rt)
 
 static inline uint8_t v3d_tlb_config_color(unsigned rt, bool is_16, bool is_int, uint32_t vec_sz, bool per_sample)
 {
-#if !V3D_HAS_TLB_WR_CONVERT
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    assert(!is_16 || !is_int);
 #endif
 
@@ -86,7 +86,7 @@ static inline uint8_t v3d_tlb_config_color(unsigned rt, bool is_16, bool is_int,
       cfg.num_words = vec_sz;
       cfg.all_samples_same_data = !per_sample;
       cfg.rt = rt;
-#if !V3D_HAS_TLB_WR_CONVERT
+#if !V3D_VER_AT_LEAST(4,2,13,0)
       cfg.as_int = is_int;
 #endif
       return v3d_pack_tlb_config_color_32(&cfg);

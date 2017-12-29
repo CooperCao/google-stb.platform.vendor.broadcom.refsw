@@ -700,7 +700,7 @@ eRet CVideo::generateIndex()
     if (NULL != file)
     {
         /* nav index file already exists */
-        BDBG_MSG(("Nav index exists for %s",strIndexName.s()));
+        BDBG_MSG(("Nav index exists for %s", strIndexName.s()));
         goto close_file;
     }
 
@@ -730,9 +730,9 @@ error:
     CHECK_BOS_WARN("unable to remove TEMP index nav file", ret, retOS);
 
     /* create empty nav file so atlas won't repeatedly try failing nav generation */
-    file = fopen(strIndexNamePath,"w");
+    file = fopen(strIndexNamePath, "w");
 close_file:
-    if(file != NULL )
+    if (file != NULL)
     {
         fclose(file);
         file = NULL;
@@ -869,7 +869,7 @@ eRet CPlaybackList::writeInfo(
 
     xmlElemInfo->addAttr(XML_ATT_FILENAME, pVideo->getVideoName());
     xmlElemInfo->addAttr(XML_ATT_SIZE, MString(pVideo->getSize()));
-    if(pVideo->getIndexName().isEmpty() == false)
+    if (pVideo->getIndexName().isEmpty() == false)
     {
         xmlElemInfo->addAttr(XML_ATT_INDEXNAME, pVideo->getIndexName());
     }
@@ -1171,7 +1171,8 @@ error:
         fin = NULL;
     }
     /* CVideo is put in the list then freed when list is destroyed */
-    /* coverity[resource_leak] */
+
+    /* coverity[leaked_storage] */
     return(retVal);
 } /* createInfo */
 

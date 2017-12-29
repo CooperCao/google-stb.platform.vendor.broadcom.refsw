@@ -5,7 +5,6 @@ vertex:
   vec4 textureCubeLod(samplerCube sampler, vec3 coord, float lod);
   out highp   vec4  gl_Position;
   out highp   float gl_PointSize;
-  out mediump float gl_PointSize;
   in highp    int   gl_VertexID;
   in highp    int   gl_InstanceID;
 
@@ -26,6 +25,10 @@ tess-c:
 
 
 tess-e:
+# These two are fake:
+  out highp vec4  gl_Position;
+  out highp float gl_PointSize;
+
   in highp int  gl_PatchVerticesIn;
   in highp int  gl_PrimitiveID;
   in highp vec3 gl_TessCoord;
@@ -39,6 +42,10 @@ geometry:
 
   in highp int gl_PrimitiveIDIn;
   in highp int gl_InvocationID;
+
+# These two are fake:
+  out highp vec4  gl_Position;
+  out highp float gl_PointSize;
 
   out highp int gl_PrimitiveID;
   flat out highp int gl_Layer;
@@ -64,7 +71,6 @@ fragment:
 
   out mediump vec4  gl_FragColor;
   out mediump vec4  gl_FragData[gl_MaxDrawBuffers];
-  in  mediump vec4  gl_FragCoord;
   in  highp   vec4  gl_FragCoord;
   in          bool  gl_FrontFacing;
   out highp   float gl_FragDepth;

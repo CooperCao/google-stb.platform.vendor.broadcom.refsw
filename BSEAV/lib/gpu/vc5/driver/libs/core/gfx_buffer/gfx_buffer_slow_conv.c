@@ -22,7 +22,6 @@ size_t gfx_buffer_block_offset(
 
    assert((dims >= 2) || (y_in_blocks == 0));
    assert((dims >= 3) || (z_in_blocks == 0));
-   vcos_unused_in_release(dims);
 
    if (gfx_lfmt_get_yflip(&plane->lfmt))
    {
@@ -151,9 +150,10 @@ size_t gfx_buffer_block_offset(
 }
 
 static void read_block(void *block,
-   const GFX_BUFFER_BLIT_TGT_FUNC_T *src, size_t offset,
+   const GFX_BUFFER_BLIT_TGT_FUNC_T *src, unsigned region, size_t offset,
    const GFX_LFMT_BASE_DETAIL_T *src_bd)
 {
+   // TODO Support for region
    if (src->read)
       src->read(block, offset, src_bd->bytes_per_block, src->p);
    else
@@ -161,10 +161,11 @@ static void read_block(void *block,
 }
 
 static void write_block(
-   const GFX_BUFFER_BLIT_TGT_FUNC_T *dst, size_t offset,
+   const GFX_BUFFER_BLIT_TGT_FUNC_T *dst, unsigned region, size_t offset,
    const GFX_LFMT_BASE_DETAIL_T *dst_bd,
    const void *block)
 {
+   // TODO Support for region
    if (dst->write)
       dst->write(offset, block, dst_bd->bytes_per_block, dst->p);
    else
@@ -190,7 +191,7 @@ static void get_px_and_apply_xform_seq(GFX_LFMT_BLOCK_T *dst_px,
 
    src_px.fmt = gfx_buffer_xform_seq_i(xform_seq, 0)->dst_fmts[0];
    assert(src_px.fmt == gfx_lfmt_fmt(src_plane->lfmt));
-   read_block(&src_px.u, src, src_block_offset, &src_bd);
+   read_block(&src_px.u, src, src_plane->region, src_block_offset, &src_bd);
 
    gfx_buffer_apply_xform_seq_single_block(dst_px, &src_px, xform_seq, x, y, z);
 }
@@ -374,7 +375,6 @@ void gfx_buffer_subsample_func(
       bool has_float = gfx_lfmt_contains_float(fmt);
 
       assert(has_norm ^ has_float);
-      vcos_unused_in_release(has_norm);
       assert(!(has_float && has_srgb));
 
       gfx_buffer_xform_seq_init(&xform_seq_up, &src->desc);
@@ -439,7 +439,7 @@ void gfx_buffer_subsample_func(
 
             gfx_buffer_apply_xform_seq_single_block(&out_px, &blend_px, &xform_seq_down, x, y, z);
 
-            write_block(dst, dst_block_offset, &bd, &out_px.u);
+            write_block(dst, dst_plane->region, dst_block_offset, &bd, &out_px.u);
          }
       }
    }
@@ -519,7 +519,8 @@ static void load_arrs(
 
    for (uint32_t p = 0; p != src->desc.num_planes; ++p)
    {
-      assert(arrs[p].fmt == gfx_lfmt_fmt(src->desc.planes[p].lfmt));
+      const GFX_BUFFER_DESC_PLANE_T *plane = &src->desc.planes[p];
+      assert(arrs[p].fmt == gfx_lfmt_fmt(plane->lfmt));
 
       uint32_t bt_begin_x_in_blocks = gfx_udiv_exactly(x, bds[p].block_w);
       uint32_t bt_begin_y_in_blocks = gfx_udiv_exactly(y, bds[p].block_h);
@@ -545,10 +546,10 @@ static void load_arrs(
                else
                {
                   size_t block_offset = gfx_buffer_block_offset(
-                     &src->desc.planes[p], &bds[p],
+                     plane, &bds[p],
                      bt_x_in_blocks, bt_y_in_blocks, bt_z_in_blocks,
                      src->desc.height);
-                  read_block(d, src, block_offset, &bds[p]);
+                  read_block(d, src, plane->region, block_offset, &bds[p]);
                }
             }
          }
@@ -583,7 +584,8 @@ static void store_arrs(
 
    for (uint32_t p = 0; p != dst->desc.num_planes; ++p)
    {
-      assert(arrs[p].fmt == gfx_lfmt_fmt(dst->desc.planes[p].lfmt));
+      const GFX_BUFFER_DESC_PLANE_T *plane = &dst->desc.planes[p];
+      assert(arrs[p].fmt == gfx_lfmt_fmt(plane->lfmt));
 
       uint32_t bt_begin_x_in_blocks = gfx_udiv_exactly(x, bds[p].block_w);
       uint32_t bt_begin_y_in_blocks = gfx_udiv_exactly(y, bds[p].block_h);
@@ -616,10 +618,10 @@ static void store_arrs(
                uint32_t x_in_blocks = bt_x_in_blocks - bt_begin_x_in_blocks;
 
                size_t block_offset = gfx_buffer_block_offset(
-                  &dst->desc.planes[p], &bds[p],
+                  plane, &bds[p],
                   bt_x_in_blocks, bt_y_in_blocks, bt_z_in_blocks,
                   dst->desc.height);
-               write_block(dst, block_offset, &bds[p],
+               write_block(dst, plane->region, block_offset, &bds[p],
                   gfx_lfmt_block_arr_elem(&arrs[p], x_in_blocks, y_in_blocks, z_in_blocks));
             }
          }

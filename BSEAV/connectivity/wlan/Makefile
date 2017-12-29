@@ -104,7 +104,8 @@ ifeq ($(B_REFSW_VERBOSE),)
                                -e "^Making .*\.depend$$"                            \
                                -e "^test -r .* .$$"                                 \
                                -e "^  CC \[M\] .*\.o$$"                             \
-                               -e "^\# Strip off debugging symbols" |               \
+                               -e "^\# Strip off debugging symbols"                 \
+                               -e "error:" -e "In function"         |               \
         sed -u                                                                      \
                 -e  "s/^Making .\(.*\)\.depend$$/[Depends... \1 (WLAN)]/ "          \
                 -e  "s/^test -r \(.*\) ||.*$$/[Symlinking... \1 (WLAN)]/ "          \
@@ -185,6 +186,11 @@ export CROSS_COMPILE?=${B_REFSW_CROSS_COMPILE}
 # STBLINUX=1; use for STB
 ###################################################################
 export STBLINUX=1
+###################################################################
+# SHORTER_PATH=0; default target name in wl/linux/obj-{target}
+# SHORTER_PATH=1; reduce path lengths. replace target with chipver
+###################################################################
+export SHORTER_PATH?=0
 
 ###################################################################
 #  Default rule:
@@ -232,9 +238,13 @@ B_WLAN_DRIVER_RESULT_IGS_FILE_NAME:=igs.ko
 B_WLAN_EPIVER_OOSRC_FILE:=$(B_WLAN_OOSRC_VER_DIR)/src/include/epiver.h
 B_WLAN_EPIVER_OOSRC_DIR:=$(B_WLAN_OOSRC_VER_DIR)/src/include
 
-#  Define the out-of-source dir where the wlan driver Makefile lives.
+# Define the out-of-source dir where the wlan driver Makefile lives.
 B_WLAN_DRIVER_BUILD_OOSRC_DIR:=$(B_WLAN_OOSRC_VER_DIR)/src/wl/linux
+ifeq ($(SHORTER_PATH),1)
+B_WLAN_DRIVER_RESULT_OOSRC_DIR:=$(B_WLAN_DRIVER_BUILD_OOSRC_DIR)/obj-${BCHP_VER}-${LINUXVER}
+else
 B_WLAN_DRIVER_RESULT_OOSRC_DIR:=$(B_WLAN_DRIVER_BUILD_OOSRC_DIR)/obj-${BUILDCFG}-${LINUXVER}
+endif
 B_WLAN_DRIVER_RESULT_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_FILE_NAME}
 B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME}
 B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME}
@@ -242,9 +252,17 @@ B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_
 # Then the "wl" utility executable:
 B_WLAN_WLEXE_INSTALL_FILE_NAME:=wl
 B_WLAN_WLEXE_RESULT_FILE_NAME:=${B_WLAN_WLEXE_INSTALL_FILE_NAME}${TARGETARCH_FOR_WL}
-#  Define the out-of-source dir where the "wl" Makefile lives.
+# Define the out-of-source dir where the "wl" Makefile lives.
 B_WLAN_WLEXE_RESULT_OOSRC_DIR:=${B_WLAN_OOSRC_VER_DIR}/src/wl/exe
 B_WLAN_WLEXE_RESULT_OOSRC_PATH?=${B_WLAN_WLEXE_RESULT_OOSRC_DIR}/${B_WLAN_WLEXE_RESULT_FILE_NAME}
+
+# Then the "nvram" utility executable:
+B_WLAN_NVRAMEXE_RESULT_FILE_NAME_LIST:=nvram libnvram.so nvramd
+B_WLAN_ENVRAM_RESULT_FILE_NAME_LIST:=envram envrams
+# Define the out-of-source dir where the nvram Makefile lives.
+B_WLAN_ROUTER_OOSRC_DIR:=${B_WLAN_OOSRC_VER_DIR}/components/router
+B_WLAN_NVRAMEXE_BUILD_OOSRC_DIR:=${B_WLAN_ROUTER_OOSRC_DIR}/nvram
+B_WLAN_ENVRAM_BUILD_OOSRC_DIR:=${B_WLAN_ROUTER_OOSRC_DIR}/envram
 
 B_WLAN_UTILS_RESULT_OOSRC_DIR?=${B_WLAN_OOSRC_DIR}/utils
 B_WLAN_UTILS_RESULT_OOSRC_PATH_LIST:=$(patsubst %.c,%,$(wildcard ${B_WLAN_UTILS_RESULT_OOSRC_DIR}/*.c))
@@ -276,6 +294,8 @@ endif
 B_WLAN_DRIVER_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_FILE_NAME})
 B_WLAN_DRIVER_INSTALL_PATH_LIST+=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${BUILDCFG}-wl.ko)
 B_WLAN_WLEXE_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_WLEXE_INSTALL_FILE_NAME})
+B_WLAN_NVRAMEXE_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_NVRAMEXE_RESULT_FILE_NAME_LIST},${dir}/${file}))
+B_WLAN_ENVRAM_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_ENVRAM_RESULT_FILE_NAME_LIST},${dir}/${file}))
 B_WLAN_IGS_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME})
 B_WLAN_EMF_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME})
 B_WLAN_NVRAM_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_NVRAM_RESULT_FILE_NAME_LIST},${dir}/${file}))
@@ -313,6 +333,14 @@ build_wlexe: build_epiver
 	${Q_}${MAKE} -C ${B_WLAN_WLEXE_RESULT_OOSRC_DIR} TARGETARCH=${TARGETARCH_FOR_WL} CC=$(B_REFSW_CROSS_COMPILE)gcc STRIP=${B_REFSW_CROSS_COMPILE}strip ${B_WLAN_WLEXE_MAKE_REDIR}
 	$(B_TRACE_RECIPE_END)
 
+#  Submake the nvram executable.
+.PHONY: build_components_router
+build_components_router: build_epiver
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "[Submake... $(notdir ${B_WLAN_ROUTER_OOSRC_DIR}) (WLAN)]"
+	${Q_}${MAKE} -C ${B_WLAN_ROUTER_OOSRC_DIR} TARGETARCH=${TARGETARCH_FOR_WL} CC=$(B_REFSW_CROSS_COMPILE)gcc LD=$(B_REFSW_CROSS_COMPILE)ld STRIP=${B_REFSW_CROSS_COMPILE}strip ${B_WLAN_WLEXE_MAKE_REDIR}
+	$(B_TRACE_RECIPE_END)
+
 #  Submake the wowl plat driver.
 .PHONY: build_platdriver
 build_platdriver:
@@ -325,7 +353,7 @@ build_platdriver:
 #  Then as long as the marker file is newer than all source files, we don't need to do
 #  any submakes.
 .PHONY: build_wlan_all
-build_wlan_all:  build_wldriver build_wlexe build_platdriver
+build_wlan_all: build_wldriver build_wlexe build_platdriver
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Creating WLAN marker file..."
 	${Q_}$(shell date >${B_WLAN_LAST_BUILD_MARKER_FILE})
@@ -344,7 +372,7 @@ $(foreach result_dir,${B_WLAN_INSTALL_DIR_LIST},$(eval $(call nvram_copy_templat
 #  Define the recipe for installing an nvram file.
 ${B_WLAN_NVRAM_INSTALL_PATH_LIST}:
 	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Install... $(notdir $@)  to $(dir $@) (WLAN)]"
+	@echo "[Install... $(notdir $@) to $(dir $@) (WLAN)]"
 	${Q_}${MKDIR} -p $(dir $@)
 	${Q_}$(CP) -dfp  ${B_WLAN_NVRAM_INSRC_DIR}/$(notdir $@) $(dir $@)
 	$(B_TRACE_RECIPE_END)
@@ -392,6 +420,25 @@ ${B_WLAN_WLEXE_INSTALL_PATH_LIST}:  ${B_WLAN_WLEXE_RESULT_OOSRC_PATH}
 	$(B_TRACE_RECIPE_END)
 
 ###################################################################
+#  WLAN nvram executable
+###################################################################
+#  Each installed binary is copied from its post-build location in the out-of-source tree.
+${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST}: build_components_router
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "[Install... $(notdir ${@}) to $(dir $@) (WLAN)]"
+	${Q_}$(MKDIR) -p $(dir $@)
+	${Q_}$(CP) -dfp  ${B_WLAN_NVRAMEXE_BUILD_OOSRC_DIR}/$(notdir $@) $@
+	$(B_TRACE_RECIPE_END)
+
+#  Each installed binary is copied from its post-build location in the out-of-source tree.
+${B_WLAN_ENVRAM_INSTALL_PATH_LIST}: build_components_router
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "[Install... $(notdir ${@}) to $(dir $@) (WLAN)]"
+	${Q_}$(MKDIR) -p $(dir $@)
+	${Q_}$(CP) -dfp  ${B_WLAN_ENVRAM_BUILD_OOSRC_DIR}/$(notdir $@) $@
+	$(B_TRACE_RECIPE_END)
+
+###################################################################
 #  WLAN driver
 ###################################################################
 #  Wait for the driver to get built if any source files have changed.
@@ -432,12 +479,19 @@ ${B_WLAN_EMF_INSTALL_PATH_LIST}:
 ###################################################################
 #  The "install" target just lists all of the installed files as its prerequisites.
 .PHONY: install
-install:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST}  ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
+install:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST}  ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST}  ${B_WLAN_ENVRAM_INSTALL_PATH_LIST}  ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Done."
 	$(B_TRACE_RECIPE_END)
 
-driver:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST}
+# The "driver" intended for Coverity just builds driver related files
+driver: build_wldriver build_platdriver
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "Done."
+	$(B_TRACE_RECIPE_END)
+
+# The "utils" intended for Coverity just builds app/util related files
+utils:  build_wlexe  ${B_WLAN_UTILS_INSTALL_PATH_LIST}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Done."
 	$(B_TRACE_RECIPE_END)
@@ -449,7 +503,7 @@ clean:
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Cleaning..."
 	$(Q_)$(RM) -rf ${B_WLAN_OOSRC_VER_DIR}
-	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST}  ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST}  ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
+	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST}  ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST}  ${B_WLAN_ENVRAM_INSTALL_PATH_LIST}  ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST}  ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/connectivity/wlan/wakeonwlan clean
 	$(B_TRACE_RECIPE_END)
 
@@ -484,6 +538,10 @@ ifeq (${B_WLAN_MAKEFILE_ENABLE_DEBUG},y)
     B_WLAN_WLEXE_RESULT_FILE_NAME       \
     B_WLAN_WLEXE_INSTALL_PATH_LIST      \
     B_WLAN_WLEXE_RESULT_OOSRC_PATH      \
+    B_WLAN_NVRAMEXE_RESULT_FILE_NAME_LIST        \
+    B_WLAN_NVRAMEXE_INSTALL_PATH_LIST   \
+    B_WLAN_ENVRAM_RESULT_FILE_NAME_LIST \
+    B_WLAN_ENVRAM_INSTALL_PATH_LIST     \
     B_WLAN_NVRAM_INSRC_PATH_LIST        \
     B_WLAN_NVRAM_RESULT_FILE_NAME_LIST  \
     B_WLAN_NVRAM_INSRC_DIR              \

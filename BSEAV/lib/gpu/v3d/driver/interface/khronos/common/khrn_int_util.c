@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Util
-
-FILE DESCRIPTION
-Misc utility functions.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "interface/khronos/common/khrn_int_util.h"
@@ -25,7 +17,7 @@ void khrn_clip_range(
    int32_t max_x0;
    int32_t max_x1;
 
-   vcos_assert((*l0_io >= 0) && (l1 >= 0));
+   assert((*l0_io >= 0) && (l1 >= 0));
 
    min_x0 = *min_x0_io;
    l0 = *l0_io;
@@ -59,7 +51,7 @@ void khrn_clip_range2(
    int32_t max_ax1;
    int32_t max_bx1;
 
-   vcos_assert((*l0_io >= 0) && (al1 >= 0) && (bl1 >= 0));
+   assert((*l0_io >= 0) && (al1 >= 0) && (bl1 >= 0));
 
    min_ax0 = *min_ax0_io;
    min_bx0 = *min_bx0_io;
@@ -95,7 +87,7 @@ void khrn_clip_range2(
    }
 
    l0 = _max(_subs(max_ax0, min_ax0), 0);
-   vcos_assert(l0 == _max(_subs(max_bx0, min_bx0), 0));
+   assert(l0 == _max(_subs(max_bx0, min_bx0), 0));
 
    *min_ax0_io = (l0 == 0) ? min_ax1 : min_ax0;
    *min_bx0_io = (l0 == 0) ? min_bx1 : min_bx0;

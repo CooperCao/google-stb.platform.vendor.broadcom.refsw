@@ -55,6 +55,9 @@
 #include "media_probe.h"
 #include "nxapps_cmdline.h"
 
+#include "bcmplayer.h"
+
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -229,6 +232,84 @@ static void convert_to_scan_results(tspsimgr_scan_results *pscan_results, const 
     }
 }
 
+/**
+Reading the existing file size inside NEXUS_Record is easy.
+Reading the timestamp is difficult. It would require punching through several layers.
+Instead, to support the appended record feature, we will require the app to pass in both the file size and the timestamp.
+They are relatively easy to get outside of nexus. */
+int get_stats_from_previous_recording(const char *fname, const char *index, uint64_t *offset, unsigned *timestamp)
+{
+    BNAV_Player_Settings cfg;
+    BNAV_Player_Handle bcmplayer;
+    BNAV_Player_Position position;
+    FILE *file;
+    NEXUS_Error rc;
+    uint64_t fsize, trunc;
+    long firstIndex, lastIndex;
+
+    /* read data file size. this will allow indexing to resume with correct offsets. */
+    file = fopen(fname, "r");
+    if (!file) return BERR_TRACE(-1);
+    fseek(file, 0, SEEK_END);
+    fsize = ftello(file);
+    fclose(file);
+
+    /* data file must be truncated to a satisfy both packet (188) and direct I/O page (4096) alignment.
+       see NEXUS_Record_StartAppend() header for why this is necessary */
+    trunc = fsize%(uint64_t)(188/4*4096);
+    rc = truncate(fname, fsize-trunc);
+    if (rc) return BERR_TRACE(-1);
+    BDBG_WRN(("truncate %s %u -> %u", fname, (unsigned)fsize, (unsigned)(fsize-trunc)));
+    *offset = fsize-trunc;
+    BDBG_ASSERT((*offset)%188==0);
+    BDBG_ASSERT((*offset)%4096==0);
+
+
+    /* read last timestamp from the existing index. this will allow indexing to resume with continuously incrementing timestamps */
+    file = fopen(index, "r");
+    if (!file) return BERR_TRACE(-1);
+
+    fseek(file, 0, SEEK_END);
+    fsize = ftello(file);
+
+    BNAV_Player_GetDefaultSettings(&cfg);
+    cfg.videoPid = 1; /* don't care */
+    cfg.filePointer = file;
+    cfg.readCb = (BP_READ_CB)fread;
+    cfg.tellCb = (BP_TELL_CB)ftell;
+    cfg.seekCb = (BP_SEEK_CB)fseek;
+    rc = BNAV_Player_Open(&bcmplayer, &cfg);
+    if (rc) return BERR_TRACE(rc);
+
+    /* read them back to learn navVersion for BNAV_GetEntrySize */
+    BNAV_Player_GetSettings(bcmplayer, &cfg);
+
+    /* index file may contain an entry that points to an offset that we just truncated */
+    trunc = 0;
+    rc = BNAV_Player_DefaultGetBounds(bcmplayer, file, &firstIndex, &lastIndex);
+    if (rc) return BERR_TRACE(rc);
+    while (1) {
+        rc = BNAV_Player_GetPositionInformation(bcmplayer, lastIndex-(long)trunc, &position);
+        if (rc) return BERR_TRACE(rc);
+        *timestamp = position.timestamp;
+        if ((uint64_t)position.offsetLo < *offset) {
+            break;
+        }
+        else if (++trunc) {
+            BDBG_WRN(("removing nav entry %ld with offset %lu", position.index, position.offsetLo));
+        }
+    }
+
+    BNAV_Player_Close(bcmplayer);
+    fclose(file);
+
+    rc = truncate(index, fsize-trunc*BNAV_GetEntrySize(cfg.navVersion));
+    if (rc) return BERR_TRACE(-1);
+
+    return 0;
+}
+
+
 static int start_record(struct recordContext *recContext)
 {
 #define MAX_PIDS 8
@@ -251,14 +332,7 @@ static int start_record(struct recordContext *recContext)
             return -1;
         }
     } else {
-#if NEXUS_HAS_FRONTEND
-        NEXUS_FrontendAcquireSettings settings;
-        NEXUS_Frontend_GetDefaultAcquireSettings(&settings);
-        settings.capabilities.qam = (recContext->settings.tune_settings.source == channel_source_qam);
-        settings.capabilities.ofdm = (recContext->settings.tune_settings.source == channel_source_ofdm);
-        settings.capabilities.satellite = (recContext->settings.tune_settings.source == channel_source_sat);
-        recContext->handles.frontend = NEXUS_Frontend_Acquire(&settings);
-#endif
+        recContext->handles.frontend = acquire_frontend(&recContext->settings.tune_settings);
         rc = tune(recContext->handles.parserBand, recContext->handles.frontend, &recContext->settings.tune_settings, false);
         if (rc) return BERR_TRACE(rc);
     }
@@ -387,16 +461,11 @@ static int start_record(struct recordContext *recContext)
 
     if (recContext->settings.append) {
         NEXUS_RecordAppendSettings appendSettings;
-        struct stat st;
-        rc = stat(recContext->settings.filename, &st);
-        if (rc) {
-            return BERR_TRACE(rc);
-        }
-        BDBG_WRN(("appending to %s, size %u MB", recContext->settings.filename, (unsigned)(st.st_size/1024/1024)));
         NEXUS_Record_GetDefaultAppendSettings(&appendSettings);
-        appendSettings.startingOffset = st.st_size;
+        get_stats_from_previous_recording(recContext->settings.filename, recContext->settings.indexname, &appendSettings.startingOffset, &appendSettings.timestamp);
         rc = NEXUS_Record_StartAppend(recContext->handles.record, recContext->handles.file, &appendSettings);
         BDBG_ASSERT(!rc);
+
     }
     else {
         rc = NEXUS_Record_Start(recContext->handles.record, recContext->handles.file);

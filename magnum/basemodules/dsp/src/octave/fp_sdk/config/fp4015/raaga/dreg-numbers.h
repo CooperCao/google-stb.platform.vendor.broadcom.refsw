@@ -42,7 +42,8 @@
 
   Generated for
     - machine architecture: fp4015
-    - binutils release: 6.6.1
+    - binutils release: 6.8
+    - excluded features: MPU_DTCM
 */
 
 #ifndef GENERATED_DREG_HEADER_H
@@ -197,8 +198,6 @@
 #define DIR_PROTD_TOP_10                         149
 #define DIR_PROTD_BOT_11                         150
 #define DIR_PROTD_TOP_11                         151
-#define DIR_PROTDTCM_U                           152
-#define DIR_PROTDTCM_P                           153
 #define DIR_PROTIO_U                             154
 #define DIR_PROTIO_P                             155
 #define DIR_PROTD_STATUS_PC                      156
@@ -1317,9 +1316,31 @@
 #define DIR_VALIDITY_MASK1 0xffff00ff
 #define DIR_VALIDITY_MASK2 0xffffffff
 #define DIR_VALIDITY_MASK3 0x0001ffff
-#define DIR_VALIDITY_MASK4 0xffffffff
+#define DIR_VALIDITY_MASK4 0xfcffffff
 #define DIR_VALIDITY_MASK5 0x1fc3c000
 #define DIR_VALIDITY_MASK6 0x07fff7ff
 #define DIR_VALIDITY_MASK7 0x00000000
+
+
+/*
+ DREG validity range
+*/
+
+#define DIR_VALID_MIN      0
+#define DIR_VALID_MAX      218
+
+
+/*
+ DREG readable bitmasks - directives that can be read by privileged code
+*/
+
+#define DIR_READABLE_MASK0 0xffffffff
+#define DIR_READABLE_MASK1 0x9ce700ff
+#define DIR_READABLE_MASK2 0xdffcce73
+#define DIR_READABLE_MASK3 0x0000fffd
+#define DIR_READABLE_MASK4 0x7cffffff
+#define DIR_READABLE_MASK5 0x0dc3c000
+#define DIR_READABLE_MASK6 0x07fff7ff
+#define DIR_READABLE_MASK7 0x00000000
 
 #endif

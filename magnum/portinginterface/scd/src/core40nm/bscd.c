@@ -1,43 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -907,7 +903,7 @@ BERR_Code BSCD_Channel_Open(
                         BREG_Write32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,
                                 (ulVal |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_onoff_gpio_058_SHIFT)));
-#elif (BCHP_CHIP == 7260)
+#elif (BCHP_CHIP == 7260) || (BCHP_CHIP==7255)
                         ulVal = BREG_Read32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
                         ulVal &= ~(BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_013_MASK |
                                    BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_014_MASK |
@@ -2746,7 +2742,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
 											BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1,ulValue );
 											break;
                                 }
-#elif (BCHP_CHIP == 7260)
+#elif (BCHP_CHIP == 7260) || (BCHP_CHIP == 7255)
                                 switch (in_channelHandle->ucChannelNumber) {
                                 case 0:
                                     /* Set GPIO_020 for SC0_VPP output */
@@ -2813,7 +2809,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (93 - 88), 0);
 #elif (BCHP_CHIP==7344)
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_AON_DATA_LO, 1 << 8, 0);
-#elif (BCHP_CHIP==7145)||(BCHP_CHIP==7366)||(BCHP_CHIP==7439)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)||(BCHP_CHIP==7260)||(BCHP_CHIP==7278)
+#elif (BCHP_CHIP==7145)||(BCHP_CHIP==7366)||(BCHP_CHIP==7439)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)||(BCHP_CHIP==7260)||(BCHP_CHIP==7278) ||(BCHP_CHIP==7255)
             ulValue =  BREG_Read32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
@@ -2840,7 +2836,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (93 - 88), 1 << (93 - 88));
 #elif (BCHP_CHIP==7429)||(BCHP_CHIP==7241)||(BCHP_CHIP==74295)
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (86 - 64 + 4), 1 << (86 - 64 + 4));
-#elif (BCHP_CHIP==7439)||(BCHP_CHIP==7366)||(BCHP_CHIP==7145)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)||(BCHP_CHIP==7260)||(BCHP_CHIP==7278)
+#elif (BCHP_CHIP==7439)||(BCHP_CHIP==7366)||(BCHP_CHIP==7145)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)||(BCHP_CHIP==7260)||(BCHP_CHIP==7278)||(BCHP_CHIP==7255)
             ulValue =  BCHP_SCA_SC_IF_CMD_3_vpp_MASK | BREG_Read32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
@@ -2856,7 +2852,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
         case  BSCD_VccLevel_e1P8V:
 #if (BCHP_CHIP==7250)
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (92 - 64), 0);
-#elif (BCHP_CHIP == 7260)
+#elif (BCHP_CHIP == 7260) || (BCHP_CHIP==7255)
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_HI, 1 << (34 - 32), 0);
 #else
             BDBG_WRN(("1.8V is not supported in BRCM ref board, please add customer code here."));
@@ -2889,6 +2885,9 @@ BERR_Code BSCD_Channel_SetVccLevel(
 					break;
 				case BSCD_VccLevel_e1P8V:
 					BDBG_WRN(("1.8V is not supported in BRCM ref board, please set your own pin mux."));
+					break;
+				default:
+					BERR_TRACE(BERR_INVALID_PARAMETER);
 					break;
 			}
 		}

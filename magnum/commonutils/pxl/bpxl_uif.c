@@ -153,13 +153,13 @@ static uint32_t BPXL_Uif_P_ChooseUbPad(
     * - Only very tall and narrow images will be unnecessarily padded. Such
     *   images are rare. */
 
-    uint32_t ulPageinUBRows, ul15PageinUBRows, ulPcInUBRows, ulPcm;
-    ulPageinUBRows = pMemoryInfo->ulPageinUBRows;
+    uint32_t ulPc15InUBRows, ul15PageinUBRows, ulPcInUBRows, ulPcm;
+    ulPc15InUBRows = pMemoryInfo->ulPc15InUBRows;
     ul15PageinUBRows = pMemoryInfo->ul15PageinUBRows;
     ulPcInUBRows = pMemoryInfo->ulPcInUBRows;
 
-    BDBG_ASSERT(ulPageinUBRows);
-    ulPcm = ulHeight % ulPageinUBRows;
+    BDBG_ASSERT(ulPcInUBRows);
+    ulPcm = ulHeight % ulPcInUBRows;
     if (ulPcm == 0)
       /* (b) Already an exact multiple of the page cache size. XOR rule will be
        * triggered. */
@@ -167,7 +167,7 @@ static uint32_t BPXL_Uif_P_ChooseUbPad(
     else if (ulPcm < ul15PageinUBRows)
     {
       /* Just over (n * page cache size) */
-      if (ulHeight < ulPageinUBRows)
+      if (ulHeight < ulPcInUBRows)
          /* (a) n = 0 special case: assuming at least 4 banks, page cache
           * covers more than two columns, so even without padding there will be
           * no close bank conflicts */
@@ -176,7 +176,7 @@ static uint32_t BPXL_Uif_P_ChooseUbPad(
          /* (a) Pad just enough to keep a half-page distance between  conflicting pages */
          return (ul15PageinUBRows - ulPcm);
     }
-    else if (ulPcm > ul15PageinUBRows)
+    else if (ulPcm > ulPc15InUBRows)
       /* (b) Just under (n * page cache size). Pad up to an exact multiple.
        * This will trigger the XOR rule. */
       return (ulPcInUBRows - ulPcm);
@@ -203,7 +203,7 @@ static void BPXL_Uif_P_AdjustPadding(
             uint32_t padded_height_in_ub = BPXL_Uif_P_udiv_round_up(ulPaddedH, BPXL_UIF_UB_H_IN_BLOCKS_2D);
             padded_height_in_ub += BPXL_Uif_P_ChooseUbPad(padded_height_in_ub, pMemoryInfo);
 
-            *pulPaddedH = padded_height_in_ub * BPXL_UIF_UB_H_IN_BLOCKS_2D;
+            ulPaddedH = padded_height_in_ub * BPXL_UIF_UB_H_IN_BLOCKS_2D;
             ulPaddedW = BPXL_P_ALIGN_UP(ulPaddedW, BPXL_UIF_UCOL_W_IN_BLOCKS_2D);
 
             /* XOR mode should not be enabled unless padded height is a multiple

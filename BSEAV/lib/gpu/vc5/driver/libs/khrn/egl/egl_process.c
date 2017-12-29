@@ -6,6 +6,7 @@
 #include "libs/util/demand.h" /* TODO Shouldn't be using demand in production code... */
 #include "egl_process.h"
 #include "egl_platform.h"
+#include "egl_context_gl.h"
 #include "../common/khrn_process.h"
 
 LOG_DEFAULT_CAT("egl_process")
@@ -26,6 +27,9 @@ static void init_once(void)
    {
       log_error("Fatal: unable to init once egl_display");
    }
+
+   // Create the gl context lock for that process
+   egl_context_gl_create_lock();
 }
 
 static bool ensure_init_once(void)
@@ -48,15 +52,7 @@ bool egl_process_init(void)
    vcos_mutex_lock(&egl_process.lock);
 
    if (!egl_process.init)
-   {
-      if (egl_platform_init())
-      {
-         egl_process.init = khrn_process_init();
-
-         if (!egl_process.init)
-            egl_platform_terminate();
-      }
-   }
+      egl_process.init = khrn_process_init();
    egl_process.refs += (unsigned)egl_process.init;
 
    vcos_mutex_unlock(&egl_process.lock);
@@ -91,7 +87,6 @@ void egl_process_release(void)
       if (egl_process.init)
       {
          khrn_process_shutdown();
-         egl_platform_terminate();
          egl_process.init = false;
       }
    }

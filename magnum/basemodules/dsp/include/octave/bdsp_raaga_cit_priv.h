@@ -43,13 +43,13 @@
 BERR_Code BDSP_Raaga_P_GenCit(
 	BDSP_RaagaTask* pRaagaTask
 );
-
+BERR_Code BDSP_Raaga_P_ReconfigCit(
+	BDSP_RaagaStage 		 *pRaagaStage,
+	bool					  bInputAdded,
+	BDSP_P_ConnectionDetails *pStageConnectionDetails,
+	unsigned                  index
+);
 BERR_Code BDSP_Raaga_P_CleanupCit(
 	BDSP_RaagaTask *pRaagaTask
-);
-void BDSP_Raaga_P_GetInterStagePortIndex(
-	BDSP_RaagaStage          *pRaagaStage,
-	BDSP_AF_P_DistinctOpType  eDistinctOpType,
-	unsigned                 *pIndex
 );
 #endif /*BDSP_RAAGA_CIT_PRIV_H__*/

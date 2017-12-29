@@ -432,7 +432,8 @@ typedef enum BGRC_FilterCoeffs
     BGRC_FilterCoeffs_eBlurry,           /* 3-point filtering */
     BGRC_FilterCoeffs_eAntiFlutter,      /* Anti-Flutter filtering */
     BGRC_FilterCoeffs_eAntiFlutterBlurry,/* Blurry Anti-Flutter filtering */
-    BGRC_FilterCoeffs_eAntiFlutterSharp  /* Sharp Anti-Flutter filtering */
+    BGRC_FilterCoeffs_eAntiFlutterSharp, /* Sharp Anti-Flutter filtering */
+    BGRC_FilterCoeffs_eMax
 } BGRC_FilterCoeffs;
 
 /***************************************************************************
@@ -482,6 +483,17 @@ typedef struct BGRC_Capabilities
     uint32_t ulMaxHrzDownSclRatio;
     uint32_t ulMaxVerDownSclRatio;
 } BGRC_Capabilities;
+
+/***************************************************************************
+Summary:
+    This structure describes the grc is a m2mc or mipmap
+***************************************************************************/
+typedef enum BGRC_Mode
+{
+    BGRC_eBlitter,
+    BGRC_eMipmap,
+    BGRC_eMax
+} BGRC_Mode;
 
 /***************************************************************************
 Summary:
@@ -566,6 +578,12 @@ void BGRC_GetCapabilities
     ( BGRC_Handle                      hGrc,
       BGRC_Capabilities               *pCapabilities );
 
+/***************************************************************************
+Summary:
+Get the grc's mipmap support character.
+**************************************************************************/
+BGRC_Mode BGRC_GetMode_isrsafe
+    ( uint32_t                         ulDeviceIdx);
 /***************************************************************************
 Summary:
     Opens the graphics compositor module.

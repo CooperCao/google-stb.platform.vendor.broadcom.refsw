@@ -69,7 +69,7 @@ static void compile(ShaderFlavour flavour, int sourcec, const char** sourcev)
             if (0 == strcmp(h->name, "main"))
             {
                // This is good enough as main cannot be overloaded.
-               vcos_assert(NULL == h->u.function_instance.next_overload);
+               assert(NULL == h->u.function_instance.next_overload);
                shader_main = decl->statement;
                break;
             }
@@ -162,14 +162,14 @@ static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_
    char* name;
    bool active = false;
 
-   vcos_assert(context->vert_scalar_values || context->frag_scalar_values);
+   assert(context->vert_scalar_values || context->frag_scalar_values);
 
    for (i = 0; i < array_length; i++)
       for (j = 0; j < scalar_count; j++)
       {
          if (context->vert_scalar_values)
          {
-            vcos_assert(DATAFLOW_UNIFORM == context->vert_scalar_values[i * scalar_count + j]->flavour || DATAFLOW_CONST_SAMPLER == context->vert_scalar_values[i * scalar_count + j]->flavour);
+            assert(DATAFLOW_UNIFORM == context->vert_scalar_values[i * scalar_count + j]->flavour || DATAFLOW_CONST_SAMPLER == context->vert_scalar_values[i * scalar_count + j]->flavour);
 
             if (in_array ||
                 context->vert_scalar_values[i * scalar_count + j]->dependents.count > 0 ||
@@ -182,7 +182,7 @@ static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_
          }
          if (context->frag_scalar_values)
          {
-            vcos_assert(DATAFLOW_UNIFORM == context->frag_scalar_values[i * scalar_count + j]->flavour || DATAFLOW_CONST_SAMPLER == context->frag_scalar_values[i * scalar_count + j]->flavour);
+            assert(DATAFLOW_UNIFORM == context->frag_scalar_values[i * scalar_count + j]->flavour || DATAFLOW_CONST_SAMPLER == context->frag_scalar_values[i * scalar_count + j]->flavour);
 
             if (context->frag_scalar_values[i * scalar_count + j]->dependents.count > 0 || context->frag_scalar_values[i * scalar_count + j]->iodependents.count > 0)
             {
@@ -197,7 +197,7 @@ static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_
       name = glsl_sb_copy_out_fast(&context->sb);
 
       context->program->uniforms[context->program->num_uniforms].type = type;
-      context->program->uniforms[context->program->num_uniforms].u.name = name;
+      context->program->uniforms[context->program->num_uniforms].name = name;
       context->program->uniforms[context->program->num_uniforms].row = context->row;
       context->program->uniforms[context->program->num_uniforms].array_length = array_length;
       context->program->uniforms[context->program->num_uniforms].is_array = is_array;
@@ -207,11 +207,11 @@ static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_
             unsigned location;
 
             if (context->frag_scalar_values) {
-               vcos_assert(context->frag_scalar_values[i]->flavour == DATAFLOW_CONST_SAMPLER);
+               assert(context->frag_scalar_values[i]->flavour == DATAFLOW_CONST_SAMPLER);
                location = context->frag_scalar_values[i]->u.const_sampler.location;
 
                if (location != (unsigned int)SAMPLER_LOCATION_UNDEFINED) {
-                  vcos_assert(location < GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS);
+                  assert(location < GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS);
 
                   context->program->samplers[location].uniform = context->program->num_uniforms;
                   context->program->samplers[location].array_index = i;
@@ -224,11 +224,11 @@ static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_
             }
 
             if (context->vert_scalar_values) {
-               vcos_assert(context->vert_scalar_values[i]->flavour == DATAFLOW_CONST_SAMPLER);
+               assert(context->vert_scalar_values[i]->flavour == DATAFLOW_CONST_SAMPLER);
                location = context->vert_scalar_values[i]->u.const_sampler.location;
 
                if (location != (unsigned int)SAMPLER_LOCATION_UNDEFINED) {
-                  vcos_assert(location < GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS);
+                  assert(location < GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS);
 
                   context->program->samplers[location].uniform = context->program->num_uniforms;
                   context->program->samplers[location].array_index = i;
@@ -245,14 +245,14 @@ static void pack_array(pack_uniform_t* context, GLenum type, unsigned int array_
             {
                if (context->vert_scalar_values)
                {
-                  vcos_assert(context->vert_scalar_values[i * scalar_count + j]->flavour == DATAFLOW_UNIFORM);
+                  assert(context->vert_scalar_values[i * scalar_count + j]->flavour == DATAFLOW_UNIFORM);
 
                   context->vert_scalar_values[i * scalar_count + j]->u.linkable_value.row = context->row + i * scalar_count + j;
                   context->vert_scalar_values[i * scalar_count + j]->u.linkable_value.name = name;
                }
                if (context->frag_scalar_values)
                {
-                  vcos_assert(context->frag_scalar_values[i * scalar_count + j]->flavour == DATAFLOW_UNIFORM);
+                  assert(context->frag_scalar_values[i * scalar_count + j]->flavour == DATAFLOW_UNIFORM);
 
                   context->frag_scalar_values[i * scalar_count + j]->u.linkable_value.row = context->row + i * scalar_count + j;
                   context->frag_scalar_values[i * scalar_count + j]->u.linkable_value.name = name;
@@ -395,7 +395,7 @@ static INLINE int get_binding(slang_program* program, const char *name)
 
 static INLINE int get_attribute_blocks(SymbolType *type)
 {
-   vcos_assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
+   assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
 
    switch (type->u.primitive_type.index) {
    case PRIM_FLOAT:
@@ -417,7 +417,7 @@ static INLINE int get_attribute_blocks(SymbolType *type)
 
 static INLINE int get_attribute_row_offset(SymbolType *type, int index)
 {
-   vcos_assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
+   assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
 
    switch (type->u.primitive_type.index) {
    case PRIM_FLOAT:
@@ -439,7 +439,7 @@ static INLINE int get_attribute_row_offset(SymbolType *type, int index)
 
 static INLINE int get_attribute_mask(SymbolType *type)
 {
-   vcos_assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
+   assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
 
    switch (type->u.primitive_type.index) {
    case PRIM_FLOAT:
@@ -467,7 +467,7 @@ static void bind_attribute(slang_program *program, DataflowSource* v_attribute, 
    int i;
    int mask;
 
-   vcos_assert(binding >= 0 && binding <= 8);
+   assert(binding >= 0 && binding <= 8);
 
    if (binding + get_attribute_blocks(v_attribute->source->type) > 8 || program->num_attributes == SLANG_MAX_NUM_ATTRIBUTES) {
       // attribute doesn't fit into the top half of the VRF in its chosen binding position
@@ -476,7 +476,7 @@ static void bind_attribute(slang_program *program, DataflowSource* v_attribute, 
    }
 
    // Success. Fill in an attribute entry
-   program->attributes[program->num_attributes].u.name = v_attribute->source->name;
+   program->attributes[program->num_attributes].name = v_attribute->source->name;
    program->attributes[program->num_attributes].row = binding * 4;
    program->attributes[program->num_attributes].type = get_gl_type(v_attribute->source->type);
    program->num_attributes++;
@@ -525,14 +525,14 @@ static void pack_uniforms(ShaderFlavour flavour, pack_uniform_t *context, MapNod
       DataflowSource *uniform       = (DataflowSource *)node->v;
       DataflowSource *other_uniform = NULL;
 
-      vcos_assert(uniform != NULL);
+      assert(uniform != NULL);
 
       // If this is the first shader of the program then check the other shader too
       if (pack_first) {
          other_uniform = (DataflowSource *)glsl_map_get(other_shader_dataflow_sources->uniforms,
                                                         uniform->source->name, true);
          // We shouldn't have seen any variables before if this is the first pack
-         vcos_assert(!uniform->handled && (!other_uniform || !other_uniform->handled));
+         assert(!uniform->handled && (!other_uniform || !other_uniform->handled));
       }
 
       if (other_uniform)
@@ -766,7 +766,7 @@ bool glsl_compile_and_link(slang_program* program)
          }
 
          // Assert that neither has been handled before.
-         vcos_assert(!v_varying->handled && !f_varying->handled);
+         assert(!v_varying->handled && !f_varying->handled);
 
          // Check that the types match.
          if (!glsl_deep_match_nonfunction_types(f_varying->source->type, v_varying->source->type))
@@ -801,8 +801,8 @@ bool glsl_compile_and_link(slang_program* program)
             // Record the slot that this varying will be accessible from in the fragment shader.
             // and that it must be written to in the vertex shader
 
-            vcos_assert(f_varying->initial_scalar_values[i]->slot == -1);
-            vcos_assert(v_varying->initial_scalar_values[i]->slot == -1);
+            assert(f_varying->initial_scalar_values[i]->slot == -1);
+            assert(v_varying->initial_scalar_values[i]->slot == -1);
 
             f_varying->initial_scalar_values[i]->slot = DATAFLOW_SLOT_SPM | scalar_row;
             v_varying->initial_scalar_values[i]->slot = DATAFLOW_SLOT_VRF | scalar_row;

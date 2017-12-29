@@ -230,17 +230,19 @@ error:
 
 void CChannelBip::getStats(void)
 {
-    BIP_PlayerStatus    pStatus;
-    BIP_Status          bipStatus = BIP_SUCCESS;
-    MUrl                mUrl(_url.s());
-    MString             protocol = mUrl.protocol();
+    BIP_PlayerStatus pStatus;
+    BIP_Status       bipStatus = BIP_SUCCESS;
+    MUrl             mUrl(_url.s());
+    MString          protocol = mUrl.protocol();
+
     BDBG_INT64_DEC_BUF(buf);
 
-    if( (_pPlayer != NULL) && (protocol.strncmp("rtp") > -1)) {
-        bipStatus = BIP_Player_GetStatus(_pPlayer,&pStatus);
-        if ( bipStatus != BIP_SUCCESS)
+    if ((_pPlayer != NULL) && (protocol.strncmp("rtp") > -1))
+    {
+        bipStatus = BIP_Player_GetStatus(_pPlayer, &pStatus);
+        if (bipStatus != BIP_SUCCESS)
         {
-            BDBG_ERR(("Failed BIP_Player_GetStatus(), bipStatus = %d",bipStatus));
+            BDBG_ERR(("Failed BIP_Player_GetStatus(), bipStatus = %d", bipStatus));
             goto error;
         }
         BDBG_WRN(("--------------------------------------------------"));
@@ -267,8 +269,8 @@ void CChannelBip::getStats(void)
     }
     notifyObservers(eNotify_ChannelStatsShown, NULL);
 error:
-  return;
-}
+    return;
+} /* getStats */
 
 BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
 {
@@ -317,7 +319,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
 
         BDBG_MSG(("In Disconnected state, start Connect processing on URL=%s", BIP_String_GetString(_pUrl)));
         BIP_Player_GetDefaultConnectSettings(&settings);
-        settings.pUserAgent       = "Atlas BIP Player";
+        settings.pUserAgent = "Atlas BIP Player";
         if (BIP_String_GetLength(_pInterfaceName))
         {
             settings.pNetworkInterfaceName = BIP_String_GetString(_pInterfaceName);
@@ -360,7 +362,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
                     goto error;
                 }
                 /* SWSTB-3854: This is an issue in BIP , We must sleep to give BIP engouh time to get ready
-                   for Prepare. */
+                 * for Prepare. */
                 BKNI_Sleep(500);
                 BDBG_MSG(("Media Probe processing started.."));
                 setState(BMediaPlayerState_eWaitingForProbe);
@@ -368,8 +370,8 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             else
             {
                 /* SWSTB-3854: This is an issue in BIP , We must sleep to give BIP engouh time to get ready
-                   for Prepare. Without delay when _enableDynamicTrackEnable is set to false resources are not
-                   released quickly. */
+                 * for Prepare. Without delay when _enableDynamicTrackEnable is set to false resources are not
+                 * released quickly. */
                 BKNI_Sleep(1000);
                 BDBG_MSG((" Dynamic Tracks , use pids in pidMgr, Skip to Prepare"));
                 setState(BMediaPlayerState_eWaitingForPrepare);
@@ -415,23 +417,26 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             if (!_enableDynamicTrackSelection)
             {
                 /* send this info to the player because we are in Dynamic mode now. Pids are set! */
-                playerSettings.enableDynamicTrackSelection                                    = false;
-                if(_pidMgr.getPid(0, ePidType_Video)) {
-                    playerSettings.videoTrackId                                               = (_pidMgr.getPid(0, ePidType_Video))->getPid();
-                    playerSettings.videoTrackSettings.pidTypeSettings.video.codec             = (_pidMgr.getPid(0, ePidType_Video))->getVideoCodec();
+                playerSettings.enableDynamicTrackSelection = false;
+                if (_pidMgr.getPid(0, ePidType_Video))
+                {
+                    playerSettings.videoTrackId = (_pidMgr.getPid(0, ePidType_Video))->getPid();
+                    playerSettings.videoTrackSettings.pidTypeSettings.video.codec = (_pidMgr.getPid(0, ePidType_Video))->getVideoCodec();
                 }
-                if(_pidMgr.getPid(0, ePidType_Audio)) {
-                    playerSettings.audioTrackId                                               = (_pidMgr.getPid(0, ePidType_Audio))->getPid();
+                if (_pidMgr.getPid(0, ePidType_Audio))
+                {
+                    playerSettings.audioTrackId = (_pidMgr.getPid(0, ePidType_Audio))->getPid();
                     playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = (_pidMgr.getPid(0, ePidType_Audio))->getAudioCodec();
                 }
 
-                if(!_pidMgr.getPid(0, ePidType_Video) && !_pidMgr.getPid(0, ePidType_Audio)) {
+                if (!_pidMgr.getPid(0, ePidType_Video) && !_pidMgr.getPid(0, ePidType_Audio))
+                {
                     BDBG_ERR((" No Audio of Video Pids! _enableDynamicTrackSelection is set"));
                     goto error;
                 }
 
                 /* Add PCR pid only for Transport TS  */
-                if ((_pidMgr.getTransportType() == NEXUS_TransportType_eTs )&& _pidMgr.getPid(0, ePidType_Pcr) )
+                if ((_pidMgr.getTransportType() == NEXUS_TransportType_eTs) && _pidMgr.getPid(0, ePidType_Pcr))
                 {
                     /* All fields should have been copied over, but overwrite the PCR field */
                     _playerStreamInfo.mpeg2Ts.pcrPid = (_pidMgr.getPid(0, ePidType_Pcr))->getPid();
@@ -480,11 +485,13 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
 
             {
                 CPid * videoPid = _pidMgr.getPid(0, ePidType_Video);
-                if (videoPid) {
+                if (videoPid)
+                {
                     videoPid->dump();
                 }
                 CPid * audioPid = _pidMgr.getPid(0, ePidType_Audio);
-                if(audioPid) {
+                if (audioPid)
+                {
                     audioPid->dump();
                 }
                 if (!prepareStatus.hVideoPidChannel && !prepareStatus.hAudioPidChannel)
@@ -518,7 +525,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             BIP_Player_GetDefaultStartSettings(&playerStartSettings);
 
             /* give bip player the simple decoder start settings if available.  this
-               will allow bip player to then stop/start decoders if necessary */
+             * will allow bip player to then stop/start decoders if necessary */
             if ((NULL != _pAudioDecode) && (NULL != _pAudioDecode->getStartSettings()))
             {
                 NEXUS_SimpleAudioDecoderStartSettings * pAudioStartSettings = _pAudioDecode->getStartSettings();
@@ -910,17 +917,17 @@ eRet CChannelBip::setAudioProgram(unsigned pid)
 
     if (_pPlayer)
     {
-         /* send this info to the player because we are in Dynamic mode now. Pids are set! */
+        /* send this info to the player because we are in Dynamic mode now. Pids are set! */
         BIP_Player_GetSettings(_pPlayer, &playerSettings);
-        playerSettings.enableDynamicTrackSelection                                = false;
-        playerSettings.audioTrackId                                               = pPid->getPid();
+        playerSettings.enableDynamicTrackSelection = false;
+        playerSettings.audioTrackId                = pPid->getPid();
         playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = pPid->getAudioCodec();
 
         status = BIP_Player_SetSettings(_pPlayer, &playerSettings);
         CHECK_BIP_ERROR_GOTO("setAudioProgram failure", ret, status, error);
 
         /* BIP is going to change the nexus audio pid so we will update our copy of
-           it here - we will need it in case we need to stop/start decode */
+         * it here - we will need it in case we need to stop/start decode */
         {
             BIP_Status       retBip = BIP_SUCCESS;
             BIP_PlayerStatus statusPlayer;
@@ -1202,7 +1209,7 @@ eRet CChannelBip::initialize(PROGRAM_INFO_T * pProgramInfo)
     setHeight(pProgramInfo->maxHeight[0]);
 #endif
     /* set this flag to indicate we are not using the BIP mediaInfo extraction
-       the channel has the PIDS and there is no need to re-probe */
+     * the channel has the PIDS and there is no need to re-probe */
     _enableDynamicTrackSelection = false;
 
 error:
@@ -1335,7 +1342,7 @@ eRet CChannelBip::unTune(
         _enableDynamicTrackSelection = true;
 
         /* we must reset STC to ref count of pids when we do an untune */
-        if(_pStc != NULL )
+        if (_pStc != NULL)
         {
             NEXUS_SimpleStcChannelSettings settings;
             _pStc->getDefaultSettings(&settings);
@@ -1420,7 +1427,7 @@ error:
 eRet CChannelBip::closePids()
 {
     /* BIP handles pids internally.  cchannelbip will have a copy of the pids/handles
-       but should not create or free them */
+     * but should not create or free them */
     return(eRet_Ok);
 }
 

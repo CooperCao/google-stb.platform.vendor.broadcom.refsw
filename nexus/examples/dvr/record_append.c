@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -68,6 +68,7 @@ int get_stats_from_previous_recording(const char *fname, const char *index, uint
     FILE *file;
     NEXUS_Error rc;
     uint64_t fsize, trunc;
+    long firstIndex, lastIndex;
 
     /* read data file size. this will allow indexing to resume with correct offsets. */
     file = fopen(fname, "r");
@@ -102,11 +103,15 @@ int get_stats_from_previous_recording(const char *fname, const char *index, uint
     rc = BNAV_Player_Open(&bcmplayer, &cfg);
     if (rc) return BERR_TRACE(rc);
 
+    /* read them back to learn navVersion for BNAV_GetEntrySize */
+    BNAV_Player_GetSettings(bcmplayer, &cfg);
+
     /* index file may contain an entry that points to an offset that we just truncated */
     trunc = 0;
+    rc = BNAV_Player_DefaultGetBounds(bcmplayer, file, &firstIndex, &lastIndex);
+    if (rc) return BERR_TRACE(rc);
     while (1) {
-        BNAV_Player_GetSettings(bcmplayer, &cfg);
-        rc = BNAV_Player_GetPositionInformation(bcmplayer, cfg.lastIndex-(long)trunc, &position);
+        rc = BNAV_Player_GetPositionInformation(bcmplayer, lastIndex-(long)trunc, &position);
         if (rc) return BERR_TRACE(rc);
         *timestamp = position.timestamp;
         if ((uint64_t)position.offsetLo < *offset) { 
@@ -120,7 +125,7 @@ int get_stats_from_previous_recording(const char *fname, const char *index, uint
     BNAV_Player_Close(bcmplayer);
     fclose(file);
 
-    rc = truncate(index, fsize-trunc*32);
+    rc = truncate(index, fsize-trunc*BNAV_GetEntrySize(cfg.navVersion));
     if (rc) return BERR_TRACE(-1);
 
     return 0;

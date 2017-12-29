@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -74,7 +74,7 @@ typedef uint32_t B_NEXUS_COMPAT_TYPE(unsigned_long);
 #define NEXUS_P_COMPAT_FIELD_ARRAY_1(DIR, rc, src, dst, type, field, size, KIND) {unsigned _n_array;for(_n_array=0;_n_array<size;_n_array++) {NEXUS_P_COMPAT_FIELD(DIR, rc, src, dst, type, field[_n_array], KIND) }}
 #define NEXUS_P_COMPAT_FIELD_ARRAY_2(DIR, rc, src, dst, type, field, size1, size2, KIND) {unsigned _n_array_1;for(_n_array_1=0;_n_array_1<size1;_n_array_1++) {unsigned _n_array_2;for(_n_array_2=0;_n_array_2<size2;_n_array_2++) {NEXUS_P_COMPAT_FIELD(DIR, rc, src, dst, type, field[_n_array_1][_n_array_2], KIND) }}}
 
-#define NEXUS_P_COMPAT_COPY_UNION(field) BDBG_CASSERT(sizeof(&__src->field)==sizeof(&__dst->field)); BKNI_Memcpy(&__dst->field, &__src->field, sizeof(__src->field));
+#define NEXUS_P_COMPAT_COPY_UNION(field) BDBG_CASSERT(sizeof(__src->field)==sizeof(__dst->field)); BKNI_Memcpy(&__dst->field, &__src->field, sizeof(__src->field));
 
 void *NxClient_P_Compat_From_Handle(B_NEXUS_COMPAT_TYPE(ptr) handle);
 NEXUS_Error NxClient_P_Compat_From_size_t(const B_NEXUS_COMPAT_TYPE(size_t) *src, size_t *dst);

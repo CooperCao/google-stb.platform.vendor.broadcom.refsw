@@ -54,7 +54,7 @@ static inline bool v3d_rt_formats_equal(
    const V3D_RT_FORMAT_T *a, const V3D_RT_FORMAT_T *b)
 {
    return (a->bpp == b->bpp) && (a->type == b->type)
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
       && (a->clamp == b->clamp)
 #endif
       ;
@@ -116,7 +116,7 @@ static inline v3d_pixel_format_t v3d_pixel_format_raw_mode(v3d_pixel_format_t pi
 }
 #endif
 
-#if !V3D_HAS_TLB_SWIZZLE
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static inline bool v3d_pixel_format_equiv_for_store(
    v3d_pixel_format_t a, v3d_pixel_format_t b)
 {
@@ -182,8 +182,8 @@ void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
 #endif
    );
 
-#if V3D_HAS_RT_CLAMP
-# if V3D_HAS_RT_INT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
+# if V3D_VER_AT_LEAST(4,2,13,0)
 extern uint32_t v3d_apply_rt_int_clamp(uint32_t wr, v3d_rt_type_t rt_type, v3d_rt_clamp_t clamp);
 # endif
 extern uint32_t v3d_apply_rt_clamp(uint32_t w, v3d_rt_type_t type, v3d_rt_clamp_t clamp);
@@ -353,7 +353,7 @@ struct v3d_tlb_ldst_params
    v3d_memory_format_t memory_format;
 #if V3D_VER_AT_LEAST(4,0,2,0)
    v3d_pixel_format_t pixel_format;
-# if V3D_HAS_TLB_SWIZZLE
+# if V3D_VER_AT_LEAST(4,1,34,0)
    bool load_alpha_to_one;
    bool chan_reverse;
    bool rb_swap;
@@ -523,7 +523,7 @@ static inline uint32_t v3d_cl_per_patch_depth_to_width(uint32_t depth)
 }
 #endif
 
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static inline void v3d_cl_set_depth_offset(uint8_t **ptr, float factor, float units, float clamp, uint32_t depth_bits)
 #else
 static inline void v3d_cl_set_depth_offset(uint8_t **ptr, float factor, float units, uint32_t depth_bits)
@@ -534,7 +534,7 @@ static inline void v3d_cl_set_depth_offset(uint8_t **ptr, float factor, float un
    if (depth_bits == 16)
       units *= (1 << 8);
 
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_depth_offset(ptr, factor, units, clamp);
 #else
    v3d_cl_depth_offset(ptr, factor, units);

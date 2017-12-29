@@ -75,7 +75,7 @@ BDBG_P_InitializeTimeStamp(void)
 /****************************************************************************
 ****************************************************************************/
 void
-BDBG_P_GetTimeStamp(char *timeStamp, int size_t)
+BDBG_P_GetTimeStamp_isrsafe(char *timeStamp, int size_t)
 {
     ULONG currentTicks;
     int hours, minutes, seconds;
@@ -145,7 +145,7 @@ BDBG_P_OsUninit(void)
 /****************************************************************************
 ****************************************************************************/
 void 
-BDBG_P_Lock(void)
+BDBG_P_Lock_isrsafe(void)
 {
     UBYTE ucosError;
 
@@ -169,7 +169,7 @@ BDBG_P_Lock(void)
 /****************************************************************************
 ****************************************************************************/
 void 
-BDBG_P_Unlock(void)
+BDBG_P_Unlock_isrsafe(void)
 {
     BERR_Code rc;
     uint32_t mutexCount;

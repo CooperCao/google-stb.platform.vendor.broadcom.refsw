@@ -41,18 +41,18 @@
 BDBG_MODULE(bdsp_raaga_mm);
 
 void BDSP_Raaga_P_CalculateInitMemory(
-	unsigned *pMemReqd
+    unsigned *pMemReqd
 )
 {
     BDBG_ENTER(BDSP_Raaga_P_CalculateInitMemory);
     *pMemReqd = 0;
 
     /*Memory for Command Queue, accounting for maximun commands per task(10) for max (12) tasks in a single DSP*/
-    *pMemReqd += (BDSP_RAAGA_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_Command)*BDSP_RAAGA_MAX_FW_TASK_PER_DSP);
+    *pMemReqd += (BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Command)*BDSP_MAX_FW_TASK_PER_DSP);
     /* Memory for Generic Response Queue, Maximum of (10) responses from the DSP */
-    *pMemReqd += (BDSP_RAAGA_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_Response));
+    *pMemReqd += (BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Response));
 
-	BDBG_MSG(("Init Memory = %d",*pMemReqd));
+    BDBG_MSG(("Init Memory = %d",*pMemReqd));
     BDBG_LEAVE(BDSP_Raaga_P_CalculateInitMemory);
 }
 
@@ -65,7 +65,7 @@ void BDSP_Raaga_P_CalculateDebugMemory(
     unsigned MemoryRequired = 0;
     BDBG_ENTER(BDSP_Raaga_P_CalculateDebugMemory);
 
-    for (index = 0; index < BDSP_Raaga_DebugType_eLast; index++)
+    for (index = 0; index < BDSP_DebugType_eLast; index++)
     {
         if(pSettings->debugSettings[index].enabled)
         {
@@ -73,12 +73,30 @@ void BDSP_Raaga_P_CalculateDebugMemory(
         }
         else
         {
-            MemoryRequired += 4;
+            MemoryRequired += BDSP_MIN_DEBUG_BUFFER_SIZE;
+        }
+
+        if(BDSP_DebugType_eTargetPrintf == index)
+        {
+            /* For Shared Target print buffer to bet set in kernel
+             * In case of Target Print We need 2 buffers, one for application and one to set in firmware
+             * This will be removed when there is new API support in fp_sdk to read directly from Target print buffer */
+            if(pSettings->debugSettings[index].enabled)
+            {
+                MemoryRequired += pSettings->debugSettings[index].bufferSize;
+            }
+            else
+            {
+                /* Make sure you are not allocating any memory. If you add any Memory here we should assign equal memory as well.
+                 * Otherwise, Kernel memory alignment will change  */
+                MemoryRequired +=  BDSP_MIN_DEBUG_BUFFER_SIZE;
+            }
         }
     }
 
+
     *pMemReqd = MemoryRequired;
-	BDBG_MSG(("Debug Memory = %d",MemoryRequired));
+    BDBG_MSG(("Debug Memory = %d",MemoryRequired));
     BDBG_LEAVE(BDSP_Raaga_P_CalculateDebugMemory);
 }
 
@@ -92,19 +110,20 @@ static void BDSP_Raaga_P_CalculateProcessRWMemory(
     *pMemReqd = 0;
 
     MemoryRequired += BDSP_IMG_KERNEL_RW_IMG_SIZE;
-    MemoryRequired += (BDSP_IMG_USER_PROCESS_SPAWN_MEM_SIZE*BDSP_RAAGA_MAX_NUM_USER_PROCESS);
+    MemoryRequired += (BDSP_IMG_USER_PROCESS_SPAWN_MEM_SIZE*BDSP_MAX_NUM_USER_PROCESS);
     MemoryRequired += BDSP_IMG_DEFAULT_MM_PROC_HEAP_SIZE;
-	MemoryRequired += BDSP_IMG_INIT_PROCESS_MEM_SIZE;
+    MemoryRequired += BDSP_IMG_INIT_PROCESS_MEM_SIZE;
     MemoryRequired += BDSP_IMG_TOPLEVEL_PROCESS_MEM_SIZE;
 
     *pMemReqd = MemoryRequired;
-	BDBG_MSG(("Process RW Memory = %d",MemoryRequired));
+    BDBG_MSG(("Process RW Memory = %d",MemoryRequired));
 
     BDBG_LEAVE(BDSP_Raaga_P_CalculateProcessRWMemory);
 }
 
 static void BDSP_Raaga_P_CalculateScratchAndInterStageMemory(
     BDSP_Raaga *pDevice,
+    unsigned    dspIndex,
     unsigned    numCorePerDsp,
     unsigned   *pMemReqd,
     bool        ifMemApiTool,
@@ -115,17 +134,19 @@ static void BDSP_Raaga_P_CalculateScratchAndInterStageMemory(
 	unsigned preemptionLevel = 0;
 	BDSP_Algorithm algorithm;
 	const BDSP_P_AlgorithmInfo *pAlgoInfo;
+	const BDSP_P_AlgorithmCodeInfo *pAlgoCodeInfo;
 	bool supported = false;
 
     BDBG_ENTER(BDSP_Raaga_P_CalculateScratchAndInterStageMemory);
     *pMemReqd = 0;
 
-	for(preemptionLevel=0; preemptionLevel<BDSP_RAAGA_MAX_NUM_PREEMPTION_LEVELS; preemptionLevel++)
+	for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
 	{
 		unsigned interStageBufferReqd=0, scratchBufferReqd = 0;
 		for(algorithm=0; algorithm<BDSP_Algorithm_eMax; algorithm++)
 		{
-			pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(algorithm);
+			pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
+            pAlgoCodeInfo = BDSP_Raaga_P_LookupAlgorithmCodeInfo(algorithm);
 
 			if(ifMemApiTool)
 			{
@@ -142,23 +163,22 @@ static void BDSP_Raaga_P_CalculateScratchAndInterStageMemory(
 
 			if((supported)&&(pAlgoInfo->bPreemptionLevelSupported[preemptionLevel]))
 			{
-				if(scratchBufferReqd < pAlgoInfo->scratchBufferSize)
-					scratchBufferReqd = pAlgoInfo->scratchBufferSize;
-				if(interStageBufferReqd < (pAlgoInfo->maxChannelsSupported*pAlgoInfo->samplesPerChannel*4))
-					interStageBufferReqd = (pAlgoInfo->maxChannelsSupported*pAlgoInfo->samplesPerChannel*4);
+				if(scratchBufferReqd < pAlgoCodeInfo->scratchBufferSize)
+					scratchBufferReqd = pAlgoCodeInfo->scratchBufferSize;
+				if(interStageBufferReqd < ((pAlgoInfo->maxChannelsSupported*pAlgoInfo->samplesPerChannel*4)+INTERSTAGE_EXTRA_SIZE_ALIGNED))
+					interStageBufferReqd = ((pAlgoInfo->maxChannelsSupported*pAlgoInfo->samplesPerChannel*4)+INTERSTAGE_EXTRA_SIZE_ALIGNED);
 			}
 		}
-		MemoryRequired += (scratchBufferReqd+
-			((interStageBufferReqd + INTERSTAGE_EXTRA_SIZE_ALIGNED) *(BDSP_RAAGA_MAX_BRANCH+1)));
+		MemoryRequired += (scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)));
 		if(!ifMemApiTool)
 		{
 			/* Normal Path */
-			pDevice->memInfo.WorkBufferMemory[preemptionLevel].ui32Size = (scratchBufferReqd+
-					((interStageBufferReqd + INTERSTAGE_EXTRA_SIZE_ALIGNED)*(BDSP_RAAGA_MAX_BRANCH+1)));
+			pDevice->memInfo.WorkBufferMemory[dspIndex][preemptionLevel].ui32Size =
+			              (scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)));
 		}
 		BDBG_MSG(("Work Buffer Allocation for Preemption Level %d",preemptionLevel));
 		BDBG_MSG(("Scratch = %d InterStage = %d Total(Scratch + %d Interstage) = %d",scratchBufferReqd,interStageBufferReqd,
-			(BDSP_RAAGA_MAX_BRANCH+1),MemoryRequired));
+			(BDSP_MAX_BRANCH+1),(scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)))));
 	}
 
     *pMemReqd = (MemoryRequired*numCorePerDsp);
@@ -166,31 +186,17 @@ static void BDSP_Raaga_P_CalculateScratchAndInterStageMemory(
     BDBG_LEAVE(BDSP_Raaga_P_CalculateScratchAndInterStageMemory);
 }
 
-static void BDSP_Raaga_P_CalculateDescriptorMemory(
-	unsigned *pMemReqd
-)
-{
-    unsigned MemoryRequired = 0;
-
-    BDBG_ENTER(BDSP_Raaga_P_CalculateDescriptorMemory);
-    *pMemReqd = 0;
-
-	MemoryRequired = (BDSP_RAAGA_MAX_DESCRIPTORS * sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
-    *pMemReqd = MemoryRequired;
-
-	BDBG_MSG(("Descriptor Memory = %d",MemoryRequired));
-    BDBG_LEAVE(BDSP_Raaga_P_CalculateDescriptorMemory);
-}
-
 void BDSP_Raaga_P_CalculateStageMemory(
 	unsigned    *pMemReqd,
+	BDSP_AlgorithmType  algoType,
     bool        ifMemApiTool,
 	const BDSP_RaagaUsageOptions *pUsage
 )
 {
 	const BDSP_P_AlgorithmSupportInfo *pAlgoSupportInfo;
 	const BDSP_P_AlgorithmInfo        *pAlgoInfo;
-	unsigned i = 0;
+	const BDSP_P_AlgorithmCodeInfo    *pAlgoCodeInfo;
+    unsigned i = 0;
 	unsigned MemoryRequired = 0, tempSize = 0;
 	bool supported = false;
 
@@ -213,21 +219,25 @@ void BDSP_Raaga_P_CalculateStageMemory(
 		}
 		if(supported)
 		{
-			pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(i);
-			tempSize += pAlgoInfo->interFrameSize;
-			tempSize += (pAlgoInfo->algoUserConfigSize*2); /* Host copy  and DSP copy*/
-			tempSize += pAlgoInfo->algoStatusBufferSize;
-			tempSize += pAlgoInfo->idsStatusBufferSize;
-			tempSize += pAlgoInfo->tsmStatusBufferSize;
-			tempSize += sizeof(BDSP_AudioTaskDatasyncSettings);
-			tempSize += sizeof(BDSP_AudioTaskTsmSettings);
-			tempSize += BDSP_MAX_HOST_DSP_L2C_SIZE; /* Hole memory to beat Cache coherency*/
+			pAlgoInfo = BDSP_P_LookupAlgorithmInfo(i);
+            pAlgoCodeInfo = BDSP_Raaga_P_LookupAlgorithmCodeInfo(i);
+            if(pAlgoInfo->type == algoType)
+            {
+                tempSize += pAlgoCodeInfo->interFrameSize;
+                tempSize += (pAlgoInfo->algoUserConfigSize*2); /* Host copy  and DSP copy*/
+                tempSize += pAlgoInfo->algoStatusBufferSize;
+                tempSize += pAlgoInfo->idsStatusBufferSize;
+                tempSize += pAlgoInfo->tsmStatusBufferSize;
+                tempSize += sizeof(BDSP_AudioTaskDatasyncSettings);
+                tempSize += sizeof(BDSP_AudioTaskTsmSettings);
+                tempSize += BDSP_MAX_HOST_DSP_L2C_SIZE; /* Hole memory to beat Cache coherency*/
+            }
 			if(tempSize > MemoryRequired)
 				MemoryRequired = tempSize;
 		}
     }
 
-	MemoryRequired = BDSP_RAAGA_ALIGN_SIZE(MemoryRequired, 4096);  /* Align the size to 4k */
+	MemoryRequired = BDSP_ALIGN_SIZE(MemoryRequired, 4096);  /* Align the size to 4k */
 	BDBG_MSG(("BDSP_Raaga_P_CalculateStageMemory: Memory Allocated for Stage = %d", MemoryRequired));
 	*pMemReqd = MemoryRequired;
 
@@ -244,16 +254,17 @@ void BDSP_Raaga_P_CalculateTaskMemory(
 	*pMemReqd = 0;
 
 	MemoryRequired += BDSP_IMG_MP_AP_SHARED_MEMORY_SIZE;
-	MemoryRequired += (BDSP_RAAGA_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_Response));
-	MemoryRequired += (BDSP_RAAGA_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_AsynMsg));
+	MemoryRequired += (BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Response));
+	MemoryRequired += (BDSP_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_P_AsynMsg));
 	MemoryRequired += sizeof(BDSP_AF_P_sTASK_CONFIG); /* CIT Memory */
 	MemoryRequired += sizeof(BDSP_AF_P_sTASK_CONFIG); /* CIT Re-Config Memory */
 	MemoryRequired += sizeof(BDSP_AF_P_sOpSamplingFreq); /*Sample Rate LUT*/
 	MemoryRequired += sizeof(BDSP_AF_P_sTASK_SCHEDULING_CONFIG);
 	MemoryRequired += sizeof(BDSP_AF_P_sTASK_GATEOPEN_CONFIG);
+    MemoryRequired += sizeof(BDSP_AF_P_sSTC_TRIGGER_CONFIG);
 	MemoryRequired += BDSP_MAX_HOST_DSP_L2C_SIZE;/* Hole memory to beat Cache coherency*/
 
-	MemoryRequired = BDSP_RAAGA_ALIGN_SIZE(MemoryRequired, 4096);  /* Align the size to 4k */
+	MemoryRequired = BDSP_ALIGN_SIZE(MemoryRequired, 4096);  /* Align the size to 4k */
 	*pMemReqd = MemoryRequired;
 
 	BDBG_MSG(("BDSP_Raaga_P_CalculateTaskMemory: Memory Allocated for Task = %d", MemoryRequired));
@@ -262,7 +273,9 @@ void BDSP_Raaga_P_CalculateTaskMemory(
 
 void BDSP_Raaga_P_CalculateDeviceRWMemory(
     BDSP_Raaga *pDevice,
-    unsigned   *pMemReqd)
+    unsigned    dspIndex,
+    unsigned   *pMemReqd
+)
 {
     unsigned MemoryRequired = 0;
 
@@ -270,20 +283,19 @@ void BDSP_Raaga_P_CalculateDeviceRWMemory(
 
     BDSP_Raaga_P_CalculateInitMemory(&MemoryRequired);
     *pMemReqd += MemoryRequired;
-
     BDSP_Raaga_P_CalculateDebugMemory(&pDevice->deviceSettings, &MemoryRequired);
     *pMemReqd += MemoryRequired;
 
-    BDSP_Raaga_P_CalculateScratchAndInterStageMemory(pDevice, pDevice->numCorePerDsp, &MemoryRequired, false, NULL);
+    BDSP_Raaga_P_CalculateScratchAndInterStageMemory(pDevice, dspIndex, pDevice->numCorePerDsp, &MemoryRequired, false, NULL);
     *pMemReqd += MemoryRequired;
 
     BDSP_Raaga_P_CalculateProcessRWMemory(&MemoryRequired);
     *pMemReqd += MemoryRequired;
 
-    BDSP_Raaga_P_CalculateDescriptorMemory(&MemoryRequired);
+    BDSP_P_CalculateDescriptorMemory(&MemoryRequired);
     *pMemReqd += MemoryRequired;
 
-	*pMemReqd = BDSP_RAAGA_ALIGN_SIZE(*pMemReqd, 4096);/* Align the size to 4k */
+    *pMemReqd = BDSP_ALIGN_SIZE(*pMemReqd, 4096);/* Align the size to 4k */
 
 	BDBG_MSG(("BDSP_Raaga_P_CalculateDeviceRWMemory: Memory Allocated for Device RW = %d", *pMemReqd));
 	BDBG_LEAVE(BDSP_Raaga_P_CalculateDeviceRWMemory);
@@ -308,106 +320,113 @@ void BDSP_Raaga_P_CalculateDeviceROMemory(
 	*pMemReqd += LoadableMemorySize;
 
 	*pMemReqd += 1024;
-	*pMemReqd = BDSP_RAAGA_ALIGN_SIZE(*pMemReqd,4096);
+	*pMemReqd = BDSP_ALIGN_SIZE(*pMemReqd,4096);
 
 	BDBG_MSG(("BDSP_Raaga_P_CalculateDeviceROMemory: Memory Allocated for Device RO = %d", *pMemReqd));
 	BDBG_LEAVE(BDSP_Raaga_P_CalculateDeviceROMemory);
 }
 
-BERR_Code BDSP_Raaga_P_RequestMemory(
-    BDSP_P_MemoryPool *pMemoryPool,
-    uint32_t ui32Size,
-    BDSP_MMA_Memory *pMemory
-)
-{
-    BERR_Code errCode = BERR_SUCCESS;
-
-    BDBG_ENTER(BDSP_Raaga_P_RequestMemory);
-    if((pMemoryPool->ui32UsedSize + ui32Size) > pMemoryPool->ui32Size)
-    {
-        BDBG_ERR(("BDSP_Raaga_P_RequestMemory: Cannot Assign the requested Size"));
-        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto end;
-    }
-
-    *pMemory = pMemoryPool->Memory;
-    pMemory->offset = pMemory->offset + pMemoryPool->ui32UsedSize;
-    pMemory->pAddr  = (void *)((uint8_t *)pMemory->pAddr + pMemoryPool->ui32UsedSize);
-
-    pMemoryPool->ui32UsedSize += ui32Size;
-
-end:
-    BDBG_LEAVE(BDSP_Raaga_P_RequestMemory);
-    return errCode;
-}
-
-BERR_Code BDSP_Raaga_P_ReleaseMemory(
-    BDSP_P_MemoryPool *pMemoryPool,
-    uint32_t ui32Size,
-    BDSP_MMA_Memory *pMemory
-)
-{
-    BERR_Code errCode = BERR_SUCCESS;
-
-    BDBG_ENTER(BDSP_Raaga_P_ReleaseMemory);
-    if(pMemoryPool->ui32UsedSize < ui32Size)
-    {
-        BDBG_ERR(("BDSP_Raaga_P_ReleaseMemory: Trying the release memory more than used"));
-        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto end;
-    }
-
-    pMemoryPool->ui32UsedSize -= ui32Size;
-	BKNI_Memset(pMemory, 0, sizeof(BDSP_MMA_Memory));
-
-end:
-    BDBG_LEAVE(BDSP_Raaga_P_ReleaseMemory);
-    return errCode;
-}
-
-static BERR_Code BDSP_Raaga_P_AssignSharedKernalMemory(
+static BERR_Code BDSP_Raaga_P_AssignKernalMemory(
     BDSP_Raaga *pDevice,
     unsigned dspindex
 )
 {
     BERR_Code errCode = BERR_SUCCESS;
     BDSP_MMA_Memory Memory;
-    BDBG_ENTER(BDSP_Raaga_P_AssignSharedKernalMemory);
+    BDBG_ENTER(BDSP_Raaga_P_AssignKernalMemory);
 
-    errCode = BDSP_Raaga_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], BDSP_IMG_KERNEL_RW_IMG_SIZE, &Memory);
-    if(errCode)
+    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], BDSP_IMG_KERNEL_RW_IMG_SIZE, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_Raaga_P_AssignSharedKernalMemory: Unable to Assign Shared Kernal Memory for dsp %d!!!!",dspindex));
+        BDBG_ERR(("BDSP_Raaga_P_AssignKernalMemory: Unable to Assign Kernal Memory for dsp %d!!!!",dspindex));
         goto end;
     }
-    pDevice->memInfo.SharedKernalMemory[dspindex].Buffer   = Memory;
-    pDevice->memInfo.SharedKernalMemory[dspindex].ui32Size = BDSP_IMG_KERNEL_RW_IMG_SIZE;
+    pDevice->memInfo.KernalMemory[dspindex].Buffer   = Memory;
+    pDevice->memInfo.KernalMemory[dspindex].ui32Size = BDSP_IMG_KERNEL_RW_IMG_SIZE;
 
 end:
-	BDBG_LEAVE(BDSP_Raaga_P_AssignSharedKernalMemory);
+	BDBG_LEAVE(BDSP_Raaga_P_AssignKernalMemory);
     return errCode;
 }
 
-static BERR_Code BDSP_Raaga_P_ReleaseSharedKernalMemory(
+static BERR_Code BDSP_Raaga_P_ReleaseKernalMemory(
     BDSP_Raaga *pDevice,
     unsigned dspindex
 )
 {
     BERR_Code errCode = BERR_SUCCESS;
-    BDBG_ENTER(BDSP_Raaga_P_ReleaseSharedKernalMemory);
+    BDBG_ENTER(BDSP_Raaga_P_ReleaseKernalMemory);
 
-    errCode = BDSP_Raaga_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
-		pDevice->memInfo.SharedKernalMemory[dspindex].ui32Size,
-		&pDevice->memInfo.SharedKernalMemory[dspindex].Buffer);
-    if(errCode)
+    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+		pDevice->memInfo.KernalMemory[dspindex].ui32Size,
+		&pDevice->memInfo.KernalMemory[dspindex].Buffer);
+    if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_Raaga_P_DeAssignSharedKernalMemory: Unable to DeAssign Shared Kernal Memory for dsp %d!!!!",dspindex));
+        BDBG_ERR(("BDSP_Raaga_P_DeAssignKernalMemory: Unable to DeAssign Kernal Memory for dsp %d!!!!",dspindex));
         goto end;
     }
-    pDevice->memInfo.SharedKernalMemory[dspindex].ui32Size = 0;
+    pDevice->memInfo.KernalMemory[dspindex].ui32Size = 0;
 
 end:
-	BDBG_LEAVE(BDSP_Raaga_P_ReleaseSharedKernalMemory);
+	BDBG_LEAVE(BDSP_Raaga_P_ReleaseKernalMemory);
+    return errCode;
+}
+
+static BERR_Code BDSP_Raaga_P_AssignTargetBufferMemory(
+    BDSP_Raaga *pDevice,
+    unsigned dspIndex
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    BDSP_MMA_Memory Memory;
+    BDBG_ENTER(BDSP_Raaga_P_AssignTargetBufferMemory);
+
+    /* For Shared Target print buffer to bet set in kernel */
+    if(pDevice->deviceSettings.debugSettings[BDSP_DebugType_eTargetPrintf].enabled)
+    {
+        errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspIndex], pDevice->deviceSettings.debugSettings[BDSP_DebugType_eTargetPrintf].bufferSize, &Memory);
+        if(errCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_AssignTargetBufferMemory: Unable to Assign Target buffer Memory for dsp %d!!!!",dspIndex));
+            goto end;
+        }
+
+        pDevice->memInfo.TargetBufferMemory[dspIndex].Buffer   = Memory;
+        pDevice->memInfo.TargetBufferMemory[dspIndex].ui32Size = pDevice->deviceSettings.debugSettings[BDSP_DebugType_eTargetPrintf].bufferSize;
+    }
+    else
+    {
+        BKNI_Memset((void *) &pDevice->memInfo.TargetBufferMemory[dspIndex], 0, sizeof(BDSP_P_FwBuffer));
+    }
+
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_AssignTargetBufferMemory);
+    return errCode;
+}
+
+static BERR_Code BDSP_Raaga_P_ReleaseTargetBufferMemory(
+    BDSP_Raaga *pDevice,
+    unsigned dspIndex
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    BDBG_ENTER(BDSP_Raaga_P_ReleaseTargetBufferMemory);
+
+    if(pDevice->deviceSettings.debugSettings[BDSP_DebugType_eTargetPrintf].enabled)
+    {
+        errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspIndex],
+		    pDevice->memInfo.TargetBufferMemory[dspIndex].ui32Size,
+		    &pDevice->memInfo.TargetBufferMemory[dspIndex].Buffer);
+        if(errCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_ReleaseTargetBufferMemory: Unable to release target buffer Memory for dsp %d!!!!",dspIndex));
+            goto end;
+        }
+    }
+    pDevice->memInfo.TargetBufferMemory[dspIndex].ui32Size = 0;
+
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_ReleaseTargetBufferMemory);
     return errCode;
 }
 
@@ -422,14 +441,14 @@ static BERR_Code BDSP_Raaga_P_AssignInitMemory(
     BDBG_ENTER(BDSP_Raaga_P_AssignInitMemory);
 
     errCode = BDSP_Raaga_P_AssignFreeFIFO(pDevice,dspindex,&(pDevice->memInfo.cmdQueueParams[dspindex].ui32FifoId), 1);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to find free fifo for CMD QUEUE for dsp %d!!!!",dspindex));
         goto end;
     }
-    ui32Size = BDSP_RAAGA_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_Command)*BDSP_RAAGA_MAX_FW_TASK_PER_DSP;
-    errCode = BDSP_Raaga_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
-    if(errCode)
+    ui32Size = BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Command)*BDSP_MAX_FW_TASK_PER_DSP;
+    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to allocate RW memory for CMD QUEUE for dsp %d!!!!",dspindex));
         goto end;
@@ -438,14 +457,14 @@ static BERR_Code BDSP_Raaga_P_AssignInitMemory(
     pDevice->memInfo.cmdQueueParams[dspindex].Memory   = Memory;
 
     errCode = BDSP_Raaga_P_AssignFreeFIFO(pDevice,dspindex,&(pDevice->memInfo.genRspQueueParams[dspindex].ui32FifoId), 1);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to find free fifo for GENERIC RESPONSE QUEUE for dsp %d!!!!",dspindex));
         goto end;
     }
-    ui32Size = (BDSP_RAAGA_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_Response));
-    errCode = BDSP_Raaga_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
-    if(errCode)
+    ui32Size = (BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Response));
+    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to allocate RW memory for GENERIC RESPONSE QUEUE for dsp %d!!!!",dspindex));
         goto end;
@@ -467,15 +486,15 @@ static BERR_Code BDSP_Raaga_P_ReleaseInitMemory(
     BDBG_ENTER(BDSP_Raaga_P_ReleaseInitMemory);
 
     errCode = BDSP_Raaga_P_ReleaseFIFO(pDevice,dspindex,&(pDevice->memInfo.cmdQueueParams[dspindex].ui32FifoId), 1);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_ReleaseInitMemory: Unable to release fifo for CMD QUEUE for dsp %d!!!!",dspindex));
         goto end;
     }
-    errCode = BDSP_Raaga_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
 		pDevice->memInfo.cmdQueueParams[dspindex].ui32Size,
 		&pDevice->memInfo.cmdQueueParams[dspindex].Memory);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_ReleaseInitMemory: Unable to release RW memory for CMD QUEUE for dsp %d!!!!",dspindex));
         goto end;
@@ -483,16 +502,16 @@ static BERR_Code BDSP_Raaga_P_ReleaseInitMemory(
 	pDevice->memInfo.cmdQueueParams[dspindex].ui32Size 	= 0;
 
     errCode = BDSP_Raaga_P_ReleaseFIFO(pDevice,dspindex,&(pDevice->memInfo.genRspQueueParams[dspindex].ui32FifoId), 1);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_ReleaseInitMemory: Unable to release fifo for GENERIC RESPONSE QUEUE for dsp %d!!!!",dspindex));
         goto end;
     }
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+	errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
 		pDevice->memInfo.genRspQueueParams[dspindex].ui32Size,
 		&pDevice->memInfo.genRspQueueParams[dspindex].Memory);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseInitMemory: Unable to release RW memory for GENERIC RESPONSE QUEUE for dsp %d!!!!",dspindex));
 		goto end;
@@ -514,11 +533,11 @@ static BERR_Code BDSP_Raaga_P_AssignDescriptorMemory(
     BDSP_MMA_Memory Memory;
     BDBG_ENTER(BDSP_Raaga_P_AssignDescriptorMemory);
 
-    ui32Size = (BDSP_RAAGA_MAX_DESCRIPTORS * sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
-    errCode = BDSP_Raaga_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
-    if(errCode)
+    ui32Size = (BDSP_MAX_DESCRIPTORS * sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
+    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to allocate RW memory for Descriptors for dsp %d!!!!",dspindex));
+        BDBG_ERR(("BDSP_Raaga_P_AssignDescriptorMemory: Unable to allocate RW memory for Descriptors for dsp %d!!!!",dspindex));
         goto end;
     }
     pDevice->memInfo.DescriptorMemory[dspindex].ui32Size = ui32Size;
@@ -537,10 +556,10 @@ static BERR_Code BDSP_Raaga_P_ReleaseDescriptorMemory(
     BERR_Code errCode = BERR_SUCCESS;
     BDBG_ENTER(BDSP_Raaga_P_ReleaseDescriptorMemory);
 
-    errCode = BDSP_Raaga_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
 		pDevice->memInfo.DescriptorMemory[dspindex].ui32Size,
 		&pDevice->memInfo.DescriptorMemory[dspindex].Buffer);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_ReleaseDescriptorMemory: Unable to Release RW memory for Descriptors for dsp %d!!!!",dspindex));
         goto end;
@@ -562,7 +581,7 @@ static BERR_Code BDSP_Raaga_P_AssignDebugMemory(
 	BDSP_MMA_Memory Memory;
 	BDBG_ENTER(BDSP_Raaga_P_AssignDebugMemory);
 
-	for(index = 0; index < BDSP_Raaga_DebugType_eLast;index++)
+	for(index = 0; index < BDSP_DebugType_eLast;index++)
 	{
 		if(pDevice->deviceSettings.debugSettings[index].enabled)
 		{
@@ -575,16 +594,16 @@ static BERR_Code BDSP_Raaga_P_AssignDebugMemory(
 			*/
 			switch(index)
 			{
-				case BDSP_Raaga_DebugType_eDramMsg:
+				case BDSP_DebugType_eDramMsg:
 					pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_DRAM_FIFO;
 					break;
-				case BDSP_Raaga_DebugType_eUart:
+				case BDSP_DebugType_eUart:
 					pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_UART_FIFO;
 					break;
-				case BDSP_Raaga_DebugType_eCoreDump:
+				case BDSP_DebugType_eCoreDump:
 					pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_CORE_FIFO;
 					break;
-				case BDSP_Raaga_DebugType_eTargetPrintf:
+				case BDSP_DebugType_eTargetPrintf:
 #ifdef FIREPATH_BM
 					pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId =
 										(BCHP_PHYSICAL_OFFSET | BCHP_RAAGA_DSP_FP_MISC_0_CORESTATE_SYS_MBX0);
@@ -595,8 +614,8 @@ static BERR_Code BDSP_Raaga_P_AssignDebugMemory(
 					break;
 			}
 			ui32Size = pDevice->deviceSettings.debugSettings[index].bufferSize;
-			errCode  = BDSP_Raaga_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
-			if(errCode)
+			errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+            if(errCode != BERR_SUCCESS)
 			{
 				BDBG_ERR(("BDSP_Raaga_P_AssignDebugMemory: Unable to allocate RW memory for Debug type %d for dsp %d!!!!",index, dspindex));
 				goto end;
@@ -619,24 +638,79 @@ static BERR_Code BDSP_Raaga_P_ReleaseDebugMemory(
 	unsigned index =0;
 	BDBG_ENTER(BDSP_Raaga_P_ReleaseDebugMemory);
 
-	for(index = 0; index < BDSP_Raaga_DebugType_eLast;index++)
+	for(index = 0; index < BDSP_DebugType_eLast;index++)
 	{
 		if(pDevice->deviceSettings.debugSettings[index].enabled)
 		{
-			errCode = BDSP_Raaga_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+			errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
 				pDevice->memInfo.debugQueueParams[dspindex][index].ui32Size,
 				&pDevice->memInfo.debugQueueParams[dspindex][index].Memory);
-			if(errCode)
+            if(errCode != BERR_SUCCESS)
 			{
-				BDBG_ERR(("BDSP_Raaga_P_ReleaseInitMemory: Unable to release RW memory for Debug type %d for dsp %d!!!!",index,dspindex));
+				BDBG_ERR(("BDSP_Raaga_P_ReleaseDebugMemory: Unable to release RW memory for Debug type %d for dsp %d!!!!",index,dspindex));
 				goto end;
 			}
 			pDevice->memInfo.debugQueueParams[dspindex][index].ui32Size	= 0;
-			pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_FIFO_INVALID;
+			pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_FIFO_INVALID;
 		}
 	}
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_ReleaseDebugMemory);
+	return errCode;
+}
+
+static BERR_Code BDSP_Raaga_P_AssignWorkBufferMemory(
+    BDSP_Raaga *pDevice,
+    unsigned dspindex
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    uint32_t ui32Size = 0;
+    BDSP_MMA_Memory Memory;
+	unsigned preemptionLevel = 0;
+    BDBG_ENTER(BDSP_Raaga_P_AssignWorkBufferMemory);
+
+    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
+    {
+        ui32Size = pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size;
+        errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+        if(errCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_AssignWorkBufferMemory: Unable to allocate RW memory for dsp %d with Preemption level =%d !!!!",dspindex, preemptionLevel));
+            goto end;
+        }
+        pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].Buffer  = Memory;
+		pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size= ui32Size;
+    }
+
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_AssignWorkBufferMemory);
+	return errCode;
+}
+
+static BERR_Code BDSP_Raaga_P_ReleaseWorkBufferMemory(
+    BDSP_Raaga *pDevice,
+    unsigned dspindex
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+	unsigned preemptionLevel = 0;
+    BDBG_ENTER(BDSP_Raaga_P_ReleaseWorkBufferMemory);
+
+    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
+    {
+        errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+		pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size,
+		&pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].Buffer);
+        if(errCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_ReleaseWorkBufferMemory: Unable to Release RW memory for dsp %d with Preemption level =%d !!!!",dspindex, preemptionLevel));
+            goto end;
+        }
+	pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size = 0;
+    }
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_ReleaseWorkBufferMemory);
 	return errCode;
 }
 
@@ -649,33 +723,50 @@ BERR_Code BDSP_Raaga_P_AssignDeviceRWMemory(
 
     BDBG_ENTER(BDSP_Raaga_P_AssignDeviceRWMemory);
 
-    errCode = BDSP_Raaga_P_AssignSharedKernalMemory(pDevice, dspindex);
-    if(errCode)
+    errCode = BDSP_Raaga_P_AssignKernalMemory(pDevice, dspindex);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Shared Kernal Memory for dsp %d!!!!",dspindex));
         goto end;
     }
 
+    /* Make sure to assign Target buffer Memory right after Kernel Memory.
+     * As the Target Buffer start addr ( Firmware virtual address) starts right after Kernel RW Memory
+     * This requirement will go, once redesign happens to handle Secure and non secure regions */
+    errCode = BDSP_Raaga_P_AssignTargetBufferMemory(pDevice, dspindex);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Shared Target Buffer Memory for dsp %d!!!!",dspindex));
+        goto end;
+    }
+
     errCode = BDSP_Raaga_P_AssignInitMemory(pDevice, dspindex);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Init Memory for dsp %d!!!!",dspindex));
         goto end;
     }
 
 	errCode = BDSP_Raaga_P_AssignDebugMemory(pDevice, dspindex);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Debug Memory for dsp %d!!!!",dspindex));
 		goto end;
 	}
 
 	errCode = BDSP_Raaga_P_AssignDescriptorMemory(pDevice, dspindex);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Descriptor Memory for dsp %d!!!!",dspindex));
 		goto end;
 	}
+
+    errCode = BDSP_Raaga_P_AssignWorkBufferMemory(pDevice, dspindex);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Work Buffer Memory for dsp %d!!!!",dspindex));
+        goto end;
+    }
 
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_AssignDeviceRWMemory);
@@ -691,33 +782,47 @@ BERR_Code BDSP_Raaga_P_ReleaseDeviceRWMemory(
 
     BDBG_ENTER(BDSP_Raaga_P_ReleaseDeviceRWMemory);
 
-    errCode = BDSP_Raaga_P_ReleaseSharedKernalMemory(pDevice, dspindex);
-    if(errCode)
+    errCode = BDSP_Raaga_P_ReleaseKernalMemory(pDevice, dspindex);
+    if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release Shared Kernal Memory for dsp %d!!!!",dspindex));
+        BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release Kernal Memory for dsp %d!!!!",dspindex));
+        goto end;
+    }
+
+    errCode = BDSP_Raaga_P_ReleaseTargetBufferMemory(pDevice, dspindex);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release target buffer Memory for dsp %d!!!!",dspindex));
         goto end;
     }
 
     errCode = BDSP_Raaga_P_ReleaseDebugMemory(pDevice, dspindex);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release Debug Memory for dsp %d!!!!",dspindex));
         goto end;
     }
 
     errCode = BDSP_Raaga_P_ReleaseInitMemory(pDevice, dspindex);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release Init Memory for dsp %d!!!!",dspindex));
         goto end;
     }
 
 	errCode = BDSP_Raaga_P_ReleaseDescriptorMemory(pDevice, dspindex);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release Descriptor Memory for dsp %d!!!!",dspindex));
 		goto end;
 	}
+
+    errCode = BDSP_Raaga_P_ReleaseWorkBufferMemory(pDevice, dspindex);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release Workbuffer Memory for dsp %d!!!!",dspindex));
+        goto end;
+    }
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_ReleaseDeviceRWMemory);
     return errCode;
@@ -741,17 +846,17 @@ BERR_Code BDSP_Raaga_P_AssignTaskMemory(
 	dspIndex = pRaagaTask->createSettings.dspIndex;
 
 	/*Host Copy of Async Response Queue */
-	pRaagaTask->taskMemInfo.hostAsyncQueue.pAddr = BKNI_Malloc(BDSP_RAAGA_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_AsynMsg));
+	pRaagaTask->taskMemInfo.hostAsyncQueue.pAddr = (void *)BKNI_Malloc(BDSP_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_P_AsynMsg));
 	if(NULL == pRaagaTask->taskMemInfo.hostAsyncQueue.pAddr)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to allocate BKNI Memory for Async buffer copy of HOST %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
-	pRaagaTask->taskMemInfo.hostAsyncQueue.ui32Size = (BDSP_RAAGA_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_AsynMsg));
+	pRaagaTask->taskMemInfo.hostAsyncQueue.ui32Size = (BDSP_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_P_AsynMsg));
 
     ui32Size = sizeof(BDSP_AF_P_sTASK_CONFIG);
-	errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	errCode  = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign RW memory for CIT Buffer of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
@@ -760,18 +865,18 @@ BERR_Code BDSP_Raaga_P_AssignTaskMemory(
 	pRaagaTask->taskMemInfo.sCITMemory.ui32Size= ui32Size;
 
 	ui32Size = sizeof(BDSP_AF_P_sTASK_CONFIG);
-	errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	errCode  = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign RW memory for CIT Reconfig Buffer of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
-	pRaagaTask->taskMemInfo.sCITReConfigMemory.Buffer  = Memory;
-	pRaagaTask->taskMemInfo.sCITReConfigMemory.ui32Size= ui32Size;
+	pRaagaTask->taskMemInfo.sHostCITMemory.Buffer  = Memory;
+	pRaagaTask->taskMemInfo.sHostCITMemory.ui32Size= ui32Size;
 
 	ui32Size = sizeof(BDSP_AF_P_sOpSamplingFreq);
-	errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	errCode  = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign RW memory for Sample Rate LUT of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
@@ -780,8 +885,8 @@ BERR_Code BDSP_Raaga_P_AssignTaskMemory(
 	pRaagaTask->taskMemInfo.sSampleRateLUTMemory.ui32Size= ui32Size;
 
 	ui32Size = sizeof(BDSP_AF_P_sTASK_SCHEDULING_CONFIG);
-	errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	errCode  = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign RW memory for Scheduling Config of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
@@ -790,8 +895,8 @@ BERR_Code BDSP_Raaga_P_AssignTaskMemory(
 	pRaagaTask->taskMemInfo.sSchedulingConfigMemory.ui32Size= ui32Size;
 
 	ui32Size = sizeof(BDSP_AF_P_sTASK_GATEOPEN_CONFIG);
-	errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	errCode  = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign RW memory for Gate Open Config of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
@@ -799,9 +904,20 @@ BERR_Code BDSP_Raaga_P_AssignTaskMemory(
 	pRaagaTask->taskMemInfo.sGateOpenConfigMemory.Buffer	= Memory;
 	pRaagaTask->taskMemInfo.sGateOpenConfigMemory.ui32Size  = ui32Size;
 
+
+	ui32Size = sizeof(BDSP_AF_P_sSTC_TRIGGER_CONFIG);
+	errCode  = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign RW memory for STC Trigger Config of Task %d",pRaagaTask->taskParams.taskId));
+		goto end;
+	}
+	pRaagaTask->taskMemInfo.sStcTriggerConfigMemory.Buffer	  = Memory;
+	pRaagaTask->taskMemInfo.sStcTriggerConfigMemory.ui32Size  = ui32Size;
+
     ui32Size = BDSP_MAX_HOST_DSP_L2C_SIZE;
-    errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
-    if(errCode)
+    errCode  = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign Cache Hole Memory of Task %d",pRaagaTask->taskParams.taskId));
         goto end;
@@ -810,14 +926,14 @@ BERR_Code BDSP_Raaga_P_AssignTaskMemory(
     pRaagaTask->taskMemInfo.sCacheHole.Buffer   = Memory;
 
     errCode = BDSP_Raaga_P_AssignFreeFIFO(pDevice, dspIndex,&(pRaagaTask->taskMemInfo.syncQueueParams.ui32FifoId), 1);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to find free fifo for SYNC QUEUE of TASK %d",pRaagaTask->taskParams.taskId));
         goto end;
     }
-    ui32Size = (BDSP_RAAGA_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_Response));
-    errCode = BDSP_Raaga_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
-    if(errCode)
+    ui32Size = (BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Response));
+    errCode = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign RW memory for SYNC QUEUE of Task %d",pRaagaTask->taskParams.taskId));
         goto end;
@@ -826,14 +942,14 @@ BERR_Code BDSP_Raaga_P_AssignTaskMemory(
     pRaagaTask->taskMemInfo.syncQueueParams.Memory   = Memory;
 
 	errCode = BDSP_Raaga_P_AssignFreeFIFO(pDevice, dspIndex,&(pRaagaTask->taskMemInfo.asyncQueueParams.ui32FifoId), 1);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to find free fifo for ASYNC QUEUE of TASK %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
-	ui32Size = (BDSP_RAAGA_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Raaga_P_AsynMsg));
-	errCode = BDSP_Raaga_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	ui32Size = (BDSP_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_P_AsynMsg));
+	errCode = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign RW memory for ASYNC QUEUE of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
@@ -842,8 +958,8 @@ BERR_Code BDSP_Raaga_P_AssignTaskMemory(
 	pRaagaTask->taskMemInfo.asyncQueueParams.Memory	  = Memory;
 
 	ui32Size = BDSP_IMG_MP_AP_SHARED_MEMORY_SIZE;
-	errCode = BDSP_Raaga_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	errCode = BDSP_P_RequestMemory(&pRaagaTask->taskMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignTaskMemory: Unable to assign RW memory for MP Shared Memory of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
@@ -877,60 +993,70 @@ BERR_Code BDSP_Raaga_P_ReleaseTaskMemory(
 		pRaagaTask->taskMemInfo.hostAsyncQueue.ui32Size = 0;
 	}
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
 		pRaagaTask->taskMemInfo.sCITMemory.ui32Size,
 		&pRaagaTask->taskMemInfo.sCITMemory.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release CIT Memory of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
 	pRaagaTask->taskMemInfo.sCITMemory.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
-		pRaagaTask->taskMemInfo.sCITReConfigMemory.ui32Size,
-		&pRaagaTask->taskMemInfo.sCITReConfigMemory.Buffer);
-	if(errCode)
+	errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+		pRaagaTask->taskMemInfo.sHostCITMemory.ui32Size,
+		&pRaagaTask->taskMemInfo.sHostCITMemory.Buffer);
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release CIT ReConfig Memory of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
-	pRaagaTask->taskMemInfo.sCITReConfigMemory.ui32Size = 0;
+	pRaagaTask->taskMemInfo.sHostCITMemory.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
 		pRaagaTask->taskMemInfo.sSampleRateLUTMemory.ui32Size,
 		&pRaagaTask->taskMemInfo.sSampleRateLUTMemory.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release Sample Rate LUT of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
 	pRaagaTask->taskMemInfo.sSampleRateLUTMemory.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
 		pRaagaTask->taskMemInfo.sSchedulingConfigMemory.ui32Size,
 		&pRaagaTask->taskMemInfo.sSchedulingConfigMemory.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release Scheduling Config of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
 	pRaagaTask->taskMemInfo.sSchedulingConfigMemory.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
 		pRaagaTask->taskMemInfo.sGateOpenConfigMemory.ui32Size,
 		&pRaagaTask->taskMemInfo.sGateOpenConfigMemory.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release Gate Open Config of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
 	pRaagaTask->taskMemInfo.sGateOpenConfigMemory.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+		pRaagaTask->taskMemInfo.sStcTriggerConfigMemory.ui32Size,
+		&pRaagaTask->taskMemInfo.sStcTriggerConfigMemory.Buffer);
+    if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release Stc Trigger Config of Task %d",pRaagaTask->taskParams.taskId));
+		goto end;
+	}
+	pRaagaTask->taskMemInfo.sStcTriggerConfigMemory.ui32Size = 0;
+
+	errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
 		pRaagaTask->taskMemInfo.sCacheHole.ui32Size,
 		&pRaagaTask->taskMemInfo.sCacheHole.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release Cache Hole Memory of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
@@ -938,15 +1064,15 @@ BERR_Code BDSP_Raaga_P_ReleaseTaskMemory(
 	pRaagaTask->taskMemInfo.sCacheHole.ui32Size = 0;
 
     errCode = BDSP_Raaga_P_ReleaseFIFO(pDevice,dspIndex,&(pRaagaTask->taskMemInfo.syncQueueParams.ui32FifoId), 1);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release fifo for SYNC QUEUE of Task %d",pRaagaTask->taskParams.taskId));
         goto end;
     }
-    errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+    errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
 		pRaagaTask->taskMemInfo.syncQueueParams.ui32Size,
 		&pRaagaTask->taskMemInfo.syncQueueParams.Memory);
-    if(errCode)
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release RW memory for SYNC QUEUE of Task %d",pRaagaTask->taskParams.taskId));
         goto end;
@@ -954,25 +1080,25 @@ BERR_Code BDSP_Raaga_P_ReleaseTaskMemory(
 	pRaagaTask->taskMemInfo.syncQueueParams.ui32Size = 0;
 
 	errCode = BDSP_Raaga_P_ReleaseFIFO(pDevice,dspIndex,&(pRaagaTask->taskMemInfo.asyncQueueParams.ui32FifoId), 1);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release fifo for ASYNC QUEUE of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
 		pRaagaTask->taskMemInfo.asyncQueueParams.ui32Size,
 		&pRaagaTask->taskMemInfo.asyncQueueParams.Memory);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release RW memory for ASYNC QUEUE of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
 	}
 	pRaagaTask->taskMemInfo.asyncQueueParams.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaTask->taskMemInfo.sMemoryPool,
 		pRaagaTask->taskMemInfo.sMPSharedMemory.ui32Size,
 		&pRaagaTask->taskMemInfo.sMPSharedMemory.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseTaskMemory: Unable to release RW memory for MP Shared of Task %d",pRaagaTask->taskParams.taskId));
 		goto end;
@@ -990,18 +1116,20 @@ BERR_Code BDSP_Raaga_P_AssignStageMemory(
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	BDSP_RaagaStage *pRaagaStage = (BDSP_RaagaStage *)pStage;
-	const BDSP_P_AlgorithmInfo *pAlgoInfo;
-	uint32_t ui32Size =0;
+	const BDSP_P_AlgorithmInfo     *pAlgoInfo;
+	const BDSP_P_AlgorithmCodeInfo *pAlgoCodeInfo;
+    uint32_t ui32Size =0;
 	BDSP_MMA_Memory Memory;
 
 	BDBG_ENTER(BDSP_Raaga_P_AssignStageMemory);
 	BDBG_OBJECT_ASSERT(pRaagaStage, BDSP_RaagaStage);
 
-	pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(pRaagaStage->eAlgorithm);
+	pAlgoInfo = BDSP_P_LookupAlgorithmInfo(pRaagaStage->eAlgorithm);
+    pAlgoCodeInfo = BDSP_Raaga_P_LookupAlgorithmCodeInfo(pRaagaStage->eAlgorithm);
 
 	ui32Size = sizeof(BDSP_AudioTaskDatasyncSettings);
-	errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	errCode  = BDSP_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
         BDBG_ERR(("BDSP_Raaga_P_AssignStageMemory: Unable to assign DataSync Config memory for Stage(%d) %s",pRaagaStage->eAlgorithm,pAlgoInfo->pName));
 		goto end;
@@ -1010,8 +1138,8 @@ BERR_Code BDSP_Raaga_P_AssignStageMemory(
 	pRaagaStage->stageMemInfo.sDataSyncSettings.ui32Size= ui32Size;
 
 	ui32Size = sizeof(BDSP_AudioTaskTsmSettings);
-	errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	errCode  = BDSP_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
         BDBG_ERR(("BDSP_Raaga_P_AssignStageMemory: Unable to assign TSM Config memory for Stage(%d) %s",pRaagaStage->eAlgorithm,pAlgoInfo->pName));
 		goto end;
@@ -1020,8 +1148,8 @@ BERR_Code BDSP_Raaga_P_AssignStageMemory(
 	pRaagaStage->stageMemInfo.sTsmSettings.ui32Size= ui32Size;
 
 	ui32Size = pAlgoInfo->algoUserConfigSize;
-	errCode = BDSP_Raaga_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
-    if(errCode)
+	errCode = BDSP_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignStageMemory: Unable to assign Host UserConfig memory for Stage(%d) %s",pRaagaStage->eAlgorithm,pAlgoInfo->pName));
         goto end;
@@ -1031,8 +1159,8 @@ BERR_Code BDSP_Raaga_P_AssignStageMemory(
 
 	/* Allocation of 512 bytes of hole memory to beat Cache Coherancy*/
 	ui32Size = BDSP_MAX_HOST_DSP_L2C_SIZE;
-	errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
-    if(errCode)
+	errCode  = BDSP_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignStageMemory: Unable to assign Cache Hole memory for Stage(%d) %s",pRaagaStage->eAlgorithm,pAlgoInfo->pName));
         goto end;
@@ -1041,8 +1169,8 @@ BERR_Code BDSP_Raaga_P_AssignStageMemory(
 	pRaagaStage->stageMemInfo.sCacheHole.ui32Size= ui32Size;
 
 	ui32Size = pAlgoInfo->algoUserConfigSize;
-	errCode  = BDSP_Raaga_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
-    if(errCode)
+	errCode  = BDSP_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignStageMemory: Unable to assign UserConfig memory for Stage(%d) %s",pRaagaStage->eAlgorithm,pAlgoInfo->pName));
         goto end;
@@ -1051,8 +1179,8 @@ BERR_Code BDSP_Raaga_P_AssignStageMemory(
 	pRaagaStage->stageMemInfo.sAlgoUserConfig.ui32Size= ui32Size;
 
 	ui32Size = pAlgoInfo->algoStatusBufferSize;
-	errCode = BDSP_Raaga_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
-    if(errCode)
+	errCode = BDSP_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignStageMemory: Unable to assign Status memory for Stage(%d) %s",pRaagaStage->eAlgorithm,pAlgoInfo->pName));
         goto end;
@@ -1061,8 +1189,8 @@ BERR_Code BDSP_Raaga_P_AssignStageMemory(
 	pRaagaStage->stageMemInfo.sAlgoStatus.ui32Size= ui32Size;
 
 	ui32Size = pAlgoInfo->idsStatusBufferSize;
-	errCode = BDSP_Raaga_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
-    if(errCode)
+	errCode = BDSP_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignStageMemory: Unable to assign IDS Status memory for Stage(%d) %s",pRaagaStage->eAlgorithm,pAlgoInfo->pName));
         goto end;
@@ -1071,8 +1199,8 @@ BERR_Code BDSP_Raaga_P_AssignStageMemory(
 	pRaagaStage->stageMemInfo.sIdsStatus.ui32Size= ui32Size;
 
 	ui32Size = pAlgoInfo->tsmStatusBufferSize;
-	errCode = BDSP_Raaga_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
-    if(errCode)
+	errCode = BDSP_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignStageMemory: Unable to assign TSM Status memory for Stage(%d) %s",pRaagaStage->eAlgorithm,pAlgoInfo->pName));
         goto end;
@@ -1080,9 +1208,9 @@ BERR_Code BDSP_Raaga_P_AssignStageMemory(
 	pRaagaStage->stageMemInfo.sTsmStatus.Buffer  = Memory;
 	pRaagaStage->stageMemInfo.sTsmStatus.ui32Size= ui32Size;
 
-	ui32Size = pAlgoInfo->interFrameSize;
-	errCode = BDSP_Raaga_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
-	if(errCode)
+	ui32Size = pAlgoCodeInfo->interFrameSize;
+	errCode = BDSP_P_RequestMemory(&pRaagaStage->stageMemInfo.sMemoryPool, ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_AssignStageMemory: Unable to assign Interframe memory for Stage(%d) %s",pRaagaStage->eAlgorithm,pAlgoInfo->pName));
 		goto end;
@@ -1104,90 +1232,90 @@ BERR_Code BDSP_Raaga_P_ReleaseStageMemory(
 
 	BDBG_ENTER(BDSP_Raaga_P_ReleaseStageMemory);
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
 		pRaagaStage->stageMemInfo.sDataSyncSettings.ui32Size,
 		&pRaagaStage->stageMemInfo.sDataSyncSettings.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseStageMemory: Unable to release IDS Settings memory for Stage(%d)",pRaagaStage->eAlgorithm));
 		goto end;
 	}
 	pRaagaStage->stageMemInfo.sDataSyncSettings.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
 		pRaagaStage->stageMemInfo.sTsmSettings.ui32Size,
 		&pRaagaStage->stageMemInfo.sTsmSettings.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseStageMemory: Unable to release TSM Settings memory for Stage(%d)",pRaagaStage->eAlgorithm));
 		goto end;
 	}
 	pRaagaStage->stageMemInfo.sTsmSettings.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
 		pRaagaStage->stageMemInfo.sHostAlgoUserConfig.ui32Size,
 		&pRaagaStage->stageMemInfo.sHostAlgoUserConfig.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseStageMemory: Unable to release Host UserConfig memory for Stage(%d)",pRaagaStage->eAlgorithm));
 		goto end;
 	}
 	pRaagaStage->stageMemInfo.sHostAlgoUserConfig.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
 		pRaagaStage->stageMemInfo.sCacheHole.ui32Size,
 		&pRaagaStage->stageMemInfo.sCacheHole.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseStageMemory: Unable to release Cache Hole memory for Stage(%d)",pRaagaStage->eAlgorithm));
 		goto end;
 	}
 	pRaagaStage->stageMemInfo.sCacheHole.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
 		pRaagaStage->stageMemInfo.sAlgoUserConfig.ui32Size,
 		&pRaagaStage->stageMemInfo.sAlgoUserConfig.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseStageMemory: Unable to release UserConfig memory for Stage(%d)",pRaagaStage->eAlgorithm));
 		goto end;
 	}
 	pRaagaStage->stageMemInfo.sAlgoUserConfig.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
 		pRaagaStage->stageMemInfo.sAlgoStatus.ui32Size,
 		&pRaagaStage->stageMemInfo.sAlgoStatus.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseStageMemory: Unable to release Algo Status memory for Stage(%d)",pRaagaStage->eAlgorithm));
 		goto end;
 	}
 	pRaagaStage->stageMemInfo.sAlgoStatus.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
 		pRaagaStage->stageMemInfo.sIdsStatus.ui32Size,
 		&pRaagaStage->stageMemInfo.sIdsStatus.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseStageMemory: Unable to release IDS Status memory for Stage(%d)",pRaagaStage->eAlgorithm));
 		goto end;
 	}
 	pRaagaStage->stageMemInfo.sIdsStatus.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
 		pRaagaStage->stageMemInfo.sTsmStatus.ui32Size,
 		&pRaagaStage->stageMemInfo.sTsmStatus.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseStageMemory: Unable to release TSM Status memory for Stage(%d)",pRaagaStage->eAlgorithm));
 		goto end;
 	}
 	pRaagaStage->stageMemInfo.sTsmStatus.ui32Size = 0;
 
-	errCode = BDSP_Raaga_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
+	errCode = BDSP_P_ReleaseMemory(&pRaagaStage->stageMemInfo.sMemoryPool,
 		pRaagaStage->stageMemInfo.sInterframe.ui32Size,
 		&pRaagaStage->stageMemInfo.sInterframe.Buffer);
-	if(errCode)
+    if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleaseStageMemory: Unable to release Interframe memory for Stage(%d)",pRaagaStage->eAlgorithm));
 		goto end;
@@ -1218,7 +1346,7 @@ BERR_Code BDSP_Raaga_P_AssignDescriptor(
 
 	while(allocatedDescriptors != numDescriptors)
 	{
-		for(;index<BDSP_RAAGA_MAX_DESCRIPTORS; index++)
+		for(;index<BDSP_MAX_DESCRIPTORS; index++)
 		{
 			if(pDevice->hardwareStatus.descriptor[dspIndex][index]== false)
 			{
@@ -1226,7 +1354,7 @@ BERR_Code BDSP_Raaga_P_AssignDescriptor(
 				break;
 			}
 		}
-		if(index < BDSP_RAAGA_MAX_DESCRIPTORS)
+		if(index < BDSP_MAX_DESCRIPTORS)
 		{
 			pDevice->hardwareStatus.descriptor[dspIndex][index]=true;
 			Memory = pDevice->memInfo.DescriptorMemory[dspIndex].Buffer;
@@ -1299,7 +1427,9 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	unsigned NumDsp = BDSP_RAAGA_MAX_DSP, NumCores = BDSP_RAAGA_MAX_CORE_PER_DSP;
-	unsigned MemoryRequired = 0, index = 0, NumStages = 0;
+	unsigned MemoryRequired = 0, InterTaskMemory = 0, index = 0;
+    unsigned NumChannels = 0;
+	BDSP_AF_P_DistinctOpType distinctOp;
 	BDBG_ENTER(BDSP_Raaga_P_GetMemoryEstimate);
 
 	/* Initialise the values */
@@ -1341,7 +1471,7 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 		BDBG_MSG(("Loadble code  = %d (%d KB) (%d MB)",LoadableCode, (LoadableCode/1024), (LoadableCode/(1024*1024))));
 
 		pEstimate->FirmwareMemory += 1024;
-		pEstimate->FirmwareMemory = BDSP_RAAGA_ALIGN_SIZE(pEstimate->FirmwareMemory,4096);
+		pEstimate->FirmwareMemory = BDSP_ALIGN_SIZE(pEstimate->FirmwareMemory,4096);
 		BDBG_MSG(("Total RO Memory = %d (%d KB) (%d MB)", pEstimate->FirmwareMemory, (pEstimate->FirmwareMemory/1024), (pEstimate->FirmwareMemory/(1024*1024))));
 		BKNI_Free(pCodeInfo);
 	}
@@ -1363,33 +1493,110 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 			pEstimate->GeneralMemory += MemoryRequired;
 			BDBG_MSG(("Process RW Memory = %d (%d KB) (%d MB)",MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
 
-			BDSP_Raaga_P_CalculateScratchAndInterStageMemory(NULL, NumCores, &MemoryRequired, true, pUsage);
+			BDSP_Raaga_P_CalculateScratchAndInterStageMemory(NULL, index, NumCores, &MemoryRequired, true, pUsage);
 			pEstimate->GeneralMemory += MemoryRequired;
 			BDBG_MSG(("Work buffer Memory = %d (%d KB) (%d MB)",MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
 
-			BDSP_Raaga_P_CalculateDescriptorMemory(&MemoryRequired);
+			BDSP_P_CalculateDescriptorMemory(&MemoryRequired);
 			pEstimate->GeneralMemory += MemoryRequired;
 			BDBG_MSG(("Descriptor Memory = %d (%d KB) (%d MB)",MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
 
-			pEstimate->GeneralMemory = BDSP_RAAGA_ALIGN_SIZE(pEstimate->GeneralMemory, 4096);/* Align the size to 4k */
+			pEstimate->GeneralMemory = BDSP_ALIGN_SIZE(pEstimate->GeneralMemory, 4096);/* Align the size to 4k */
 		}
 		BDBG_MSG(("Total RW Memory(%d DSP) = %d (%d KB) (%d MB)",NumDsp, pEstimate->GeneralMemory, (pEstimate->GeneralMemory/1024), (pEstimate->GeneralMemory/(1024*1024))));
 
 		/* Task Memory */
 		BDSP_Raaga_P_CalculateTaskMemory(&MemoryRequired);
-		pEstimate->GeneralMemory += (MemoryRequired*BDSP_RAAGA_MAX_FW_TASK_PER_DSP);
-		BDBG_MSG(("Per Task Memory(%d Tasks) = %d (%d KB) (%d MB)",BDSP_RAAGA_MAX_FW_TASK_PER_DSP,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+		pEstimate->GeneralMemory += (MemoryRequired*BDSP_MAX_FW_TASK_PER_DSP);
+		BDBG_MSG(("Per Task Memory(%d Tasks) = %d (%d KB) (%d MB)",BDSP_MAX_FW_TASK_PER_DSP,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+
+        /* Memory Allocation for Inter-task buffer */
+        BDSP_P_GetDistinctOpTypeAndNumChans(pUsage->IntertaskBufferDataType, &NumChannels, &distinctOp);
+        BDSP_P_CalculateInterTaskMemory(&InterTaskMemory, NumChannels);
+        BDBG_MSG(("Per InterTask Memory = %d (%d KB) (%d MB)", InterTaskMemory, (InterTaskMemory/1024), (InterTaskMemory/(1024*1024))));
 
 		/* Stage Memory*/
-		BDSP_Raaga_P_CalculateStageMemory(&MemoryRequired, true, (BDSP_RaagaUsageOptions *)pUsage);
-		NumStages = pUsage->NumAudioDecoders + pUsage->NumAudioPostProcesses +
-					pUsage->NumAudioEncoders + pUsage->NumAudioMixers +
-					pUsage->NumAudioPassthru + pUsage->NumAudioEchocancellers +
-					pUsage->NumVideoDecoders + pUsage->NumVideoEncoders;
+        /* Memory Allocation associated with Decoder */
+        if(pUsage->NumAudioDecoders)
+        {
+            BDSP_Raaga_P_CalculateStageMemory(&MemoryRequired, BDSP_AlgorithmType_eAudioDecode, true, pUsage);
+            MemoryRequired = (MemoryRequired*pUsage->NumAudioDecoders);
+            BDBG_MSG(("Decode Stage Memory(%d Stages) = %d (%d KB) (%d MB)",pUsage->NumAudioDecoders,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+        }
 
-		pEstimate->GeneralMemory += MemoryRequired*NumStages;
-		BDBG_MSG(("Per Stage Memory(%d Stages) = %d (%d KB) (%d MB)",NumStages,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
-		/* TO DO - InterTask Buffer Memory Accounting*/
+        /* Memory Allocation associated with Post Processing */
+        if(pUsage->NumAudioPostProcesses)
+        {
+            BDSP_Raaga_P_CalculateStageMemory(&MemoryRequired, BDSP_AlgorithmType_eAudioProcessing, true, pUsage);
+            MemoryRequired = (MemoryRequired*pUsage->NumAudioPostProcesses);
+            BDBG_MSG(("P.P Stage Memory(%d Stages) = %d (%d KB) (%d MB)",pUsage->NumAudioPostProcesses,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+        }
+
+        /* Memory Allocation associated with Passthru */
+        if(pUsage->NumAudioPassthru)
+        {
+            BDSP_Raaga_P_CalculateStageMemory(&MemoryRequired, BDSP_AlgorithmType_eAudioPassthrough, true, pUsage);
+            MemoryRequired = (MemoryRequired*pUsage->NumAudioPassthru);
+            BDBG_MSG(("Passthru Stage Memory(%d Stages) = %d (%d KB) (%d MB)",pUsage->NumAudioPassthru,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+        }
+
+        /* Memory Allocation associated with Audio Encoder */
+        if(pUsage->NumAudioEncoders)
+        {
+            BDSP_Raaga_P_CalculateStageMemory(&MemoryRequired, BDSP_AlgorithmType_eAudioEncode, true, pUsage);
+            MemoryRequired = (MemoryRequired*pUsage->NumAudioEncoders);
+            BDBG_MSG(("Encoder Stage Memory(%d Stages) = %d (%d KB) (%d MB)",pUsage->NumAudioEncoders,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+        }
+
+        /* Memory Allocation associated with Mixer
+             We estimate that we can connect atmost 4 Intertask buffers per Mixer*/
+        if(pUsage->NumAudioMixers)
+        {
+            BDSP_Raaga_P_CalculateStageMemory(&MemoryRequired, BDSP_AlgorithmType_eAudioMixer, true, pUsage);
+            MemoryRequired = (MemoryRequired*pUsage->NumAudioMixers);
+            BDBG_MSG(("Mixer Stage Memory(%d Stages) = %d (%d KB) (%d MB)",pUsage->NumAudioMixers,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+
+            MemoryRequired = (InterTaskMemory*pUsage->NumAudioMixers*BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER);
+            BDBG_MSG(("Mixer InterTask Memory(%d InterTask buffers) = %d (%d KB) (%d MB)",BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER,MemoryRequired,(MemoryRequired/1024),(MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+        }
+
+        /* Memory Allocation associated with Echocanceller
+             We estimate that we can connect atmost 1 Intertask buffers per Echocanceller*/
+        if(pUsage->NumAudioEchocancellers)
+        {
+            BDSP_Raaga_P_CalculateStageMemory(&MemoryRequired, BDSP_AlgorithmType_eAudioEchoCanceller, true, pUsage);
+            MemoryRequired = (MemoryRequired*pUsage->NumAudioEchocancellers);
+            BDBG_MSG(("EchoCanceller Stage Memory(%d Stages) = %d (%d KB) (%d MB)",pUsage->NumAudioEchocancellers,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+
+            MemoryRequired = (InterTaskMemory*pUsage->NumAudioEchocancellers*BDSP_MAX_INTERTASKBUFFER_INPUT_TO_ECHOCANCELLER);
+            BDBG_MSG(("EchoCanceller InterTask Memory(%d InterTask buffers) = %d (%d KB) (%d MB)",BDSP_MAX_INTERTASKBUFFER_INPUT_TO_ECHOCANCELLER,MemoryRequired,(MemoryRequired/1024),(MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+        }
+
+        /* Memory Allocation associated with Video Decoder */
+        if(pUsage->NumVideoDecoders)
+        {
+            BDSP_Raaga_P_CalculateStageMemory(&MemoryRequired, BDSP_AlgorithmType_eVideoDecode, true, pUsage);
+            MemoryRequired = (MemoryRequired*pUsage->NumVideoDecoders);
+            BDBG_MSG(("Video Decoder Stage Memory(%d Stages) = %d (%d KB) (%d MB)",pUsage->NumVideoDecoders,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+        }
+
+        /* Memory Allocation associated with Video Encoder */
+        if(pUsage->NumVideoEncoders)
+        {
+            BDSP_Raaga_P_CalculateStageMemory(&MemoryRequired, BDSP_AlgorithmType_eVideoEncode, true, pUsage);
+            MemoryRequired = (MemoryRequired*pUsage->NumVideoEncoders);
+            BDBG_MSG(("Video Encoder Stage Memory(%d Stages) = %d (%d KB) (%d MB)",pUsage->NumVideoEncoders,MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
+            pEstimate->GeneralMemory += MemoryRequired;
+        }
 	}
 	BDBG_MSG(("Memory Required FIRMWARE = %d bytes(%d KB)  GENERAL = %d bytes(%d KB)",pEstimate->FirmwareMemory,(pEstimate->FirmwareMemory/1024),
 					pEstimate->GeneralMemory,(pEstimate->GeneralMemory/1024)));

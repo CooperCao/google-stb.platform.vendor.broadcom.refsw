@@ -7,9 +7,10 @@
 #include "glsl_fastmem.h"
 #include "glsl_ir_shader.h"
 #include "glsl_binary_shader.h"
-#include "libs/core/v3d/v3d_qpu_instr.h"
 #include "glsl_backend_uniforms.h"
 #include "glsl_backend_reg.h"
+
+#include "libs/core/v3d/v3d_qpu_instr.h"
 
 typedef struct backflow_s Backflow;
 
@@ -158,18 +159,9 @@ struct tmu_dep_s {
 
 #define BACKFLOW_DEP_COUNT 4
 struct backflow_s {
-   uint32_t phase; /* not visited, stacked or complete */
    uint32_t age;
-
-   backend_reg reg;       /* Which register (acc or rf) result is in */
-   uint32_t io_timestamp; /* Timestamp of first use. iodeps can come after this */
-   uint32_t remaining_dependents;
-
    struct tmu_dep_s *tmu_deps;
 
-   /* These should not be written by the backend because they won't be set
-    * up again properly before the next try if threading fails.
-    */
    SchedNodeType type;
    union {
       struct {
@@ -192,7 +184,6 @@ struct backflow_s {
    uint32_t unif;
 
    struct backflow_s *dependencies[BACKFLOW_DEP_COUNT];
-   BackflowChain data_dependents;
 
    BackflowIODepChain io_dependencies;
    bool any_io_dependents;
@@ -217,6 +208,15 @@ struct tmu_lookup_s {
    /* Temporary used only in fix_tmu_dependencies */
    bool done;
 };
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+typedef struct ldunifa_lookup
+{
+   struct ldunifa_lookup* next;
+   Backflow* write_unifa;
+   Backflow* last_ldunifa;
+} ldunifa_lookup;
+#endif
 
 /* TODO: This structure is kind of poorly thought out. It really needs to be
  * made less stage-specific and better defined.                               */
@@ -287,6 +287,9 @@ typedef struct {
    Backflow *last_vpm_read;      /* TODO: Employ a better strategy than having all      */
    Backflow *first_vpm_write;    /*       reads/writes in the first/last thread section */
 #endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   ldunifa_lookup* ldunifa_lookups;
+#endif
 } SchedBlock;
 
 Backflow *create_sig(uint32_t sigbits);
@@ -296,6 +299,7 @@ Backflow *create_node(BackflowFlavour flavour, SchedNodeUnpack unpack, uint32_t 
 
 Backflow *tr_external(int block, int output, ExternalList **list);
 
+void glsl_iodep_offset(Backflow *consumer, Backflow *supplier, int io_timestamp_offset);
 void glsl_iodep(Backflow *consumer, Backflow *supplier);
 
 bool glsl_sched_node_requires_regfile(const Backflow *node);
@@ -306,6 +310,7 @@ void tr_read_tlb(bool ms, uint32_t rt_num, bool is_16, bool is_int, uint32_t req
 
 void fragment_shader_inputs(SchedShaderInputs *ins,
                             uint32_t primitive_type,
+                            bool ignore_centroids,
                             const VARYING_INFO_T *varying);
 
 unsigned vertex_shader_inputs(SchedShaderInputs *ins,
@@ -314,17 +319,3 @@ unsigned vertex_shader_inputs(SchedShaderInputs *ins,
 SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
                             const bool *output_active, SchedShaderInputs *ins,
                             const struct glsl_backend_cfg *key, const bool *per_quad);
-
-typedef struct {
-   int size;
-   int used;
-
-   Backflow **nodes;
-} BackflowPriorityQueue;
-
-extern void glsl_backflow_priority_queue_init(BackflowPriorityQueue *queue, int size);
-extern void glsl_backflow_priority_queue_term(BackflowPriorityQueue *queue);
-extern void glsl_backflow_priority_queue_heapify(BackflowPriorityQueue *queue);
-
-extern void glsl_backflow_priority_queue_push(BackflowPriorityQueue *queue, Backflow *node);
-extern Backflow *glsl_backflow_priority_queue_pop(BackflowPriorityQueue *queue);

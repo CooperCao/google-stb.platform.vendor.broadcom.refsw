@@ -12,7 +12,9 @@ void v3d_sched_graph_add_node(const struct bcm_sched_job *job);
 
 void v3d_sched_graph_add_bin_render_dep(uint64_t bin, uint64_t render);
 
+#if !V3D_PLATFORM_SIM
 void v3d_sched_graph_add_fence(
    int fence,
    const struct bcm_sched_dependencies *completed_deps,
    const struct bcm_sched_dependencies *finalised_deps);
+#endif

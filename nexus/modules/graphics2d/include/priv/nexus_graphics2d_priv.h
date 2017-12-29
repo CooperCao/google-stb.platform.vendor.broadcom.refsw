@@ -51,6 +51,8 @@ extern "C" {
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Graphics2D);
 
+bool NEXUS_Graphics2D_MipmapModeSupported_isrsafe(void);
+
 #ifdef __cplusplus
 }
 #endif

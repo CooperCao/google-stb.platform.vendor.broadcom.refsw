@@ -263,13 +263,6 @@ typedef enum
     TB_SEEK_END     /**< end of buffers position */
 } TB_seek_whence;
 
-
-typedef struct
-{
-    uint8_t *data;
-    size_t   length;
-} TB_locked_data_descriptor;
-
 #endif  /* !FEATURE_IS(TB_VARIANT, NONE) */
 
 

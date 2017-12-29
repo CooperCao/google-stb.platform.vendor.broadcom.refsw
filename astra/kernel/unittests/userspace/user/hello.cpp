@@ -39,6 +39,7 @@
 #include "libhello.h"
 #include <iostream>
 #include <dlfcn.h>
+#include "ata_helper.h"
 
 int main() {
     using std::cout;
@@ -46,7 +47,7 @@ int main() {
 
     void* hello = dlopen("./lib/libhello.so", RTLD_LAZY);
     if (!hello) {
-        cerr << "Cannot load library: " << dlerror() << '\n';
+        ATA_LogErr("Cannot load library: %s", dlerror());
         return 1;
     }
 
@@ -59,14 +60,14 @@ int main() {
     hello_t create_hello = (hello_t) dlsym(hello, "create");
     const char* dlsym_error = dlerror();
     if (dlsym_error) {
-        cerr << "Cannot load symbol create: " << dlsym_error << '\n';
+        ATA_LogErr("Cannot load symbol create: %s", dlsym_error);
         return 1;
     }
 
     hello_d destroy_hello= (hello_d) dlsym(hello, "destroy");
     dlsym_error = dlerror();
     if (dlsym_error) {
-        cerr << "Cannot load symbol destroy: " << dlsym_error << '\n';
+        ATA_LogErr("Cannot load symbol destroy: %s",dlsym_error);
         return 1;
     }
 

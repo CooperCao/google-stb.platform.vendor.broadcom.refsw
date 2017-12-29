@@ -37,82 +37,24 @@
  *****************************************************************************/
 
 /* base modules */
-#include "bstd.h"           /* standard types */
-#include "bdbg.h"           /* debug interface */
-#include "berr.h"           /* error code */
-#include "bkni.h"           /* kernel interface */
-
 #include "bdsp_auth.h"
-#include "bdsp_raaga.h"
-#include "bdsp_raaga_img.h"
-#include "bdsp_raaga_fwdownload.h"
 
 BDBG_MODULE(bdsp_auth);
-
-BERR_Code
-BDSP_DumpImage(
-   unsigned uiFirmwareId,
-   void *pBuffer,
-   unsigned uiBufferSize,
-   void **pvCodeStart,
-   unsigned *puiCodeSize
+BDBG_OBJECT_ID(BDSP_Raaga);
+BERR_Code BDSP_DumpImage(
+   unsigned   uiFirmwareId,
+   void      *pBuffer,
+   unsigned   uiBufferSize,
+   void     **pvCodeStart,
+   unsigned  *puiCodeSize
 )
 {
-    BERR_Code rc = BERR_SUCCESS;
-    BDSP_RaagaImgCacheEntry ImgCache[BDSP_IMG_ID_MAX];
-    const BDSP_RaagaUsageOptions Usage;
-    bool bUseBDSPMacro = true;
-    unsigned i;
-    unsigned uiFwBinSize, uiFwBinSizeWithGuardBand;
-    BDSP_MMA_Memory Memory;
-
-    BSTD_UNUSED( uiFirmwareId );
-
-    *pvCodeStart = NULL;
-    *puiCodeSize = 0;
-
-    /* Find all the sizes for supported binaries */
-
-    BKNI_Memset( ImgCache, 0, (sizeof(BDSP_RaagaImgCacheEntry)*BDSP_IMG_ID_MAX));
-    uiFwBinSize = BDSP_Raaga_P_AssignAlgoSizes(
-                &BDSP_IMG_Interface,
-                (void **)BDSP_IMG_Context,
-                ImgCache,
-                &Usage,
-                bUseBDSPMacro);
-
-    for(i=0; i < BDSP_IMG_ID_MAX ; i ++ )
-        BDBG_MSG((" %d : size = %d", i ,ImgCache[i].size));
-
-    /* Guard band required for Raaga Code access */
-    uiFwBinSizeWithGuardBand = uiFwBinSize + BDSP_CODE_DWNLD_GUARD_BAND_SIZE;
-
-    if( uiFwBinSizeWithGuardBand > uiBufferSize )
+    BERR_Code errCode = BERR_SUCCESS;
+    BSTD_UNUSED(uiFirmwareId);
+    errCode = BDSP_Raaga_P_DumpImage(pBuffer, uiBufferSize, pvCodeStart, puiCodeSize, &BDSP_IMG_Interface, (void **)BDSP_IMG_Context);
+    if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR((" Allocated memory for binary download less than the required memory. "));
-        BDBG_ERR((" Please increase the define value at bdsp_auth.h. "));
-        BDBG_ERR((" Allocated Size = %d firmware size = %d Diff(required - allocated ) = %d", uiBufferSize, uiFwBinSizeWithGuardBand, uiFwBinSizeWithGuardBand- uiBufferSize  ));
-        rc=BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        goto error;
+        BDBG_ERR(("BDSP_DumpImage: Dump of the binary not successful"));
     }
-
-    BKNI_Memset( pBuffer, 0, uiFwBinSizeWithGuardBand );
-
-    Memory.pAddr = pBuffer;
-    Memory.offset = 0;
-    rc = BDSP_Raaga_P_PreLoadFwImages(
-                &BDSP_IMG_Interface,
-                (void **)BDSP_IMG_Context,
-                ImgCache,
-                &Memory,
-                uiFwBinSize);
-
-    if(rc != BERR_SUCCESS)
-        goto error;
-
-    *pvCodeStart = pBuffer;
-    *puiCodeSize = uiFwBinSizeWithGuardBand;
-
-error:
-   return rc;
+    return errCode;
 }

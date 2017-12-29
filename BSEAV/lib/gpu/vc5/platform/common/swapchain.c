@@ -3,6 +3,8 @@
  ******************************************************************************/
 #include "swapchain.h"
 
+#include "debug_helper.h"
+
 #include <string.h>
 #include <assert.h>
 
@@ -13,6 +15,7 @@ static void init_surface(Swapchain *swapchain, SwapchainSurface *surface)
    surface->pixmap_info.format = BEGL_BufferFormat_INVALID;
    surface->secure = false;
    surface->swap_interval = 1;
+   surface->age = 0;
    surface->display_fence = swapchain->fence_interface->invalid_fence;
    surface->render_fence = swapchain->fence_interface->invalid_fence;
 }
@@ -32,6 +35,7 @@ static bool create_surface(Swapchain *swapchain,
       surface->pixmap_info.height = requested->height;
       surface->pixmap_info.format = requested->format;
       surface->secure = secure;
+      surface->age = 0;
       return true;
    }
    return false;
@@ -64,6 +68,8 @@ static bool resize_surface(Swapchain *swapchain,
 
 static bool init_surfaces(Swapchain *swapchain, size_t num_surfaces)
 {
+   swapchain->num_surfaces = num_surfaces;
+
    if (queue_init(&swapchain->render_queue)
          && queue_init(&swapchain->display_queue))
    {
@@ -135,11 +141,15 @@ void SwapchainPoison(Swapchain *swapchain)
    queue_poison(&swapchain->display_queue);
 }
 
-static SwapchainSurface *deque_surface(struct queue *queue)
+static SwapchainSurface *dequeue_surface(struct queue *queue)
 {
-   struct list * item = queue_dequeue(queue); /* block */
+   struct list *item;
+   platform_dbg_message_add("%s %d", __FUNCTION__, __LINE__);
+   item = queue_dequeue(queue); /* block */
    SwapchainSurface *surface = item ? list_entry(item,
          SwapchainSurface, link) : NULL;
+   platform_dbg_message_add("%s %d - surface %p surface->render_fence %d surface->display_fence %d",
+         __FUNCTION__, __LINE__, surface, surface ? surface->render_fence : -1, surface ? surface->display_fence : -1);
    return surface;
 }
 
@@ -153,7 +163,7 @@ SwapchainSurface *SwapchainDequeueRenderSurface(
    assert(requested->height > 0);
    assert(requested->format != BEGL_BufferFormat_INVALID);
 
-   SwapchainSurface *surface = deque_surface(&swapchain->render_queue);
+   SwapchainSurface *surface = dequeue_surface(&swapchain->render_queue);
 
    if (surface->pixmap_info.width != requested->width
          || surface->pixmap_info.height != requested->height
@@ -172,6 +182,7 @@ void SwapchainEnqueueDisplaySurface(Swapchain *swapchain,
    assert(swapchain != NULL);
    assert(surface != NULL);
 
+   platform_dbg_message_add("%s %d - surface %p", __FUNCTION__, __LINE__, surface);
    queue_enqueue(&swapchain->display_queue, &surface->link);
 }
 
@@ -179,7 +190,7 @@ SwapchainSurface *SwapchainDequeueDisplaySurface(
       Swapchain *swapchain)
 {
    assert(swapchain != NULL);
-   return  deque_surface(&swapchain->display_queue);
+   return dequeue_surface(&swapchain->display_queue);
 }
 
 void SwapchainEnqueueRenderSurface(Swapchain *swapchain,
@@ -188,5 +199,6 @@ void SwapchainEnqueueRenderSurface(Swapchain *swapchain,
    assert(swapchain != NULL);
    assert(surface != NULL);
 
+   platform_dbg_message_add("%s %d - surface %p", __FUNCTION__, __LINE__, surface);
    queue_enqueue(&swapchain->render_queue, &surface->link);
 }

@@ -84,7 +84,7 @@
 #include "mpod_headend_comm.h"
 #include "mpod_host_property.h"
 
-#if NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
 #include "nexus_security.h"
 #endif
 
@@ -130,7 +130,7 @@ static Cablecard g_cablecard;
 static B_MPOD_SAS_HANDLE SasConnections[32]; /* max 32 connections allowed by the Host 2.0 spec */
 static uint8_t SasData[8] = {0xde,0xad, 0xbe, 0xef, 0x01, 0x23, 0x45, 0x67};
 static cablecard_program_info pg_info[MAX_CABLECARD_ROUTE];
-#if NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
 static NEXUS_KeySlotHandle keyslot[MAX_CABLECARD_ROUTE];
 #endif
 
@@ -1275,7 +1275,7 @@ void removeKeyCb(
     uint8_t ltsid
     )
 {
-#if NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     int i;
     NEXUS_Error rc;
     
@@ -1328,7 +1328,7 @@ void progKeyCb(
     uint8_t ltsid
     )
 {
-#if NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     int i;
     NEXUS_Error rc;
     NEXUS_SecurityClearKey ClearKey;

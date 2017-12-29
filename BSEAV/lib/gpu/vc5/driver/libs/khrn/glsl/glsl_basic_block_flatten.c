@@ -54,8 +54,8 @@ static Map *find_loops(const BasicBlockList *basic_blocks)
 static Map *create_guards(const BasicBlockList *basic_blocks)
 {
    Map *guard_symbols = glsl_map_new();
-   bool *uncond = glsl_safemem_malloc(glsl_basic_block_list_count(basic_blocks) * sizeof(bool));
-   glsl_find_unconditional_blocks(basic_blocks, uncond);
+   struct abstract_cfg *cfg = glsl_alloc_abstract_cfg(basic_blocks);
+   bool *uncond = glsl_alloc_uncond_blocks(cfg);
 
    int id = 0;
    for (const BasicBlockList *node = basic_blocks; node; node = node->next, id++) {
@@ -70,6 +70,7 @@ static Map *create_guards(const BasicBlockList *basic_blocks)
    }
 
    glsl_safemem_free(uncond);
+   glsl_free_abstract_cfg(cfg);
    return guard_symbols;
 }
 
@@ -322,7 +323,7 @@ static bool copy_basic_blocks(flatten_context_t *ctx, bool is_loop_head, BasicBl
    return true;
 }
 
-BasicBlock *glsl_basic_block_flatten(BasicBlock *entry, Map *block_age_offsets)
+static BasicBlock *flatten(BasicBlock *entry, Map *block_age_offsets)
 {
    BasicBlockList *basic_blocks = glsl_basic_block_get_reverse_postorder_list(entry);
    Map *guard_symbols = create_guards(basic_blocks);
@@ -414,8 +415,8 @@ static void copy_basic_block_simple(BasicBlock *dst_block, const BasicBlock *src
 static Map *create_guard_vals(const BasicBlockList *basic_blocks)
 {
    Map *guard_vals = glsl_map_new();
-   bool *uncond = glsl_safemem_malloc(glsl_basic_block_list_count(basic_blocks) * sizeof(bool));
-   glsl_find_unconditional_blocks(basic_blocks, uncond);
+   struct abstract_cfg *cfg = glsl_alloc_abstract_cfg(basic_blocks);
+   bool *uncond = glsl_alloc_uncond_blocks(cfg);
 
    int id = 0;
    for (const BasicBlockList *node = basic_blocks; node; node = node->next, id++) {
@@ -427,6 +428,7 @@ static Map *create_guard_vals(const BasicBlockList *basic_blocks)
    }
 
    glsl_safemem_free(uncond);
+   glsl_free_abstract_cfg(cfg);
    return guard_vals;
 }
 
@@ -454,7 +456,7 @@ void flatten_into(BasicBlock *entry, Map *block_age_offsets) {
    glsl_map_delete(guards);
 }
 
-bool glsl_basic_block_flatten_a_bit(BasicBlock *entry, Map *block_age_offsets) {
+static bool flatten_a_bit(BasicBlock *entry, Map *block_age_offsets) {
    BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(entry);
    int head, exit;
 
@@ -489,4 +491,25 @@ bool glsl_basic_block_flatten_a_bit(BasicBlock *entry, Map *block_age_offsets) {
    b_head->fallthrough_target = fallthrough;
 
    return true;
+}
+
+BasicBlock *glsl_basic_block_flatten(BasicBlock *entry) {
+   BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(entry);
+   Map *offsets = glsl_map_new();
+   for (BasicBlockList *n = l ; n != NULL; n=n->next) {
+      int *offset = malloc_fast(sizeof(int));
+      *offset = 1000;
+      glsl_map_put(offsets, n->v, offset);
+   }
+
+   /* XXX We skip this code flattening for massive numbers of blocks because it is slow */
+   int c = glsl_basic_block_list_count(l);
+   if (c < 1000)
+      while (flatten_a_bit(entry, offsets)) /* Do nothing */;
+
+   entry = flatten(entry, offsets);
+
+   glsl_map_delete(offsets);
+
+	return entry;
 }

@@ -562,6 +562,16 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+#if (!BVDC_P_SUPPORT_3D)
+    if(BFMT_IS_3D_MODE(pFmtInfo->eVideoFmt))
+    {
+        BDBG_ERR(("==================================================================="));
+        BDBG_ERR(("3D Format NOT supported"));
+        BDBG_ERR(("==================================================================="));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+#endif
+
 #if (BVDC_P_DCX_3D_WORKAROUND)
     if(BFMT_IS_3D_MODE(pFmtInfo->eVideoFmt))
     {
@@ -1301,18 +1311,24 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
 
 #if BVDC_P_CMP_CFC_VER >= 3
     /* VEC_HDMI CFC LUT allocated only when required, but released until VDC close. */
-    if(pNewHdmi->stSettings.hCfcHeap && !hDisplay->stCfcLutList.hMmaBlock) {
+    if(pNewHdmi->stSettings.hCfcHeap && !hDisplay->stCfcLutList.hMmaBlock[0]) {
+        int i;
         hDisplay->hCfcHeap = pNewHdmi->stSettings.hCfcHeap;
-        hDisplay->stCfcLutList.hMmaBlock = BMMA_Alloc(pNewHdmi->stSettings.hCfcHeap,
-            BVDC_P_HDMI_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
-        if( !hDisplay->stCfcLutList.hMmaBlock )
-        {
-            BDBG_ERR(( "Out of Device Memory" ));
-            BDBG_ASSERT(0);
+        /* double buffer LUT buffers */
+        for(i = 0; i < BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; i++) {
+            hDisplay->stCfcLutList.hMmaBlock[i] = BMMA_Alloc(pNewHdmi->stSettings.hCfcHeap,
+                BVDC_P_HDMI_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
+            if( !hDisplay->stCfcLutList.hMmaBlock[i] )
+            {
+                BDBG_ERR(( "Out of Device Memory" ));
+                BDBG_ASSERT(0);
+            }
+            hDisplay->stCfcLutList.pulStart[i] = BMMA_Lock(hDisplay->stCfcLutList.hMmaBlock[i]);
+            hDisplay->stCfcLutList.ullStartDeviceAddr[i] = BMMA_LockOffset(hDisplay->stCfcLutList.hMmaBlock[i]);
+            BDBG_MSG(("VEC_HDMI_CFC LUT pulStart[%d] = %p", i, (void*)hDisplay->stCfcLutList.pulStart[i]));
         }
-        hDisplay->stCfcLutList.pulStart =
-            hDisplay->stCfcLutList.pulCurrent     = BMMA_Lock(hDisplay->stCfcLutList.hMmaBlock);
-        hDisplay->stCfcLutList.ullStartDeviceAddr = BMMA_LockOffset(hDisplay->stCfcLutList.hMmaBlock);
+        hDisplay->stCfcLutList.ulIndex    = 0;
+        hDisplay->stCfcLutList.pulCurrent = hDisplay->stCfcLutList.pulStart[0];
     }
 #endif
     BDBG_LEAVE(BVDC_P_Display_SetHdmiSettings);
@@ -2705,6 +2721,14 @@ BERR_Code BVDC_Display_SetOrientation
 {
     BDBG_ENTER(BVDC_Display_SetOrientation);
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
+
+#if (!BVDC_P_SUPPORT_3D)
+    if(eOrientation!=BFMT_Orientation_e2D)
+    {
+        BDBG_WRN(("3D VIDEO/GRAPHICS NOT SUPPORTED BY THIS CHIP orientation eOrientation %d", eOrientation));
+        return BERR_INVALID_PARAMETER;
+    }
+#endif
 
     hDisplay->stNewInfo.eOrientation = eOrientation;
     hDisplay->hCompositor->stNewInfo.eOrientation = eOrientation;

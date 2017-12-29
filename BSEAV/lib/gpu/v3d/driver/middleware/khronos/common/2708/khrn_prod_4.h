@@ -1,19 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Common hardware/simpenrose interface
-
-FILE DESCRIPTION
-Drivers use this interface to interact with hardware/simpenrose.
-=============================================================================*/
-
-#ifndef KHRN_PROD_4_H
-#define KHRN_PROD_4_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/common/khrn_hw.h"
-#include "middleware/khronos/egl/egl_disp.h"
 #include "interface/khronos/common/khrn_int_util.h"
 #include "interface/khronos/common/khrn_options.h"
 
@@ -242,5 +232,3 @@ extern void khrn_hw_term(void);
 #define KHRN_HW_SPECIAL_BIN_MEM_SIZE ((MEM_HANDLE_T)3)
 
 extern void khrn_hw_wait(void);
-
-#endif

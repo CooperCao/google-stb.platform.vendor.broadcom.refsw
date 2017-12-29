@@ -287,12 +287,12 @@ static BERR_Code BI2C_P_ReadCmd
     uint32_t            bscRegAddr, readCmdWord, bufferIndex, lval = 0, i;
     size_t              cnt;
 
-    BDBG_MSG(("chipAddr = 0x%x, subAddr = %d, numSubAddrBytes = %d, pData = %p, ack = %d, noStop = %d",
-                (unsigned) chipAddr, subAddr, numSubAddrBytes, (void *) pData, ack, noStop));
-
     BDBG_ASSERT( hChn );
     BDBG_OBJECT_ASSERT(hChn, BI2C_P_ChannelHandle);
     BDBG_ASSERT( pData );
+
+    BDBG_MSG(("chipAddr = 0x%x, subAddr = %d, numSubAddrBytes = %d, pData = %p, ack = %d, noStop = %d",
+                (unsigned) chipAddr, subAddr, numSubAddrBytes, (void *) pData, ack, noStop));
 
     /* Get I2C handle from channel handle */
     hDev = hChn->hI2c;
@@ -1506,6 +1506,10 @@ static BERR_Code BI2C_P_WriteCmd
     uint32_t            bscRegAddr, writeCmdWord, bufferIndex, maxTxfrSize, lval = 0, i;
     size_t              cnt;
 
+    BDBG_ASSERT( hChn );
+    BDBG_OBJECT_ASSERT(hChn, BI2C_P_ChannelHandle);
+    BDBG_ASSERT( pData );
+
     BDBG_MSG(("BI2C_P_WriteCmd:  ch=%d, clkRate=%d, chipAddr=0x%x, numSubAddrBytes=%d SubAddr=0x%x, numBytes=%d, pData=0x%x",
         hChn->chnNo, hChn->chnSettings.clkRate, chipAddr, numSubAddrBytes, subAddr, (unsigned) numBytes, *(uint8_t *)pData));
     #ifdef BI2C_DEBUG
@@ -1515,10 +1519,6 @@ static BERR_Code BI2C_P_WriteCmd
             BDBG_MSG(("%d:  0x%x", i, *(pData+i)));
     }
     #endif
-
-    BDBG_ASSERT( hChn );
-    BDBG_OBJECT_ASSERT(hChn, BI2C_P_ChannelHandle);
-    BDBG_ASSERT( pData );
 
     /* Get I2C handle from channel handle */
     hDev = hChn->hI2c;

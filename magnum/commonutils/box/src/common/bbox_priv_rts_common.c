@@ -40,11 +40,13 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
+#include "bbox_rts_priv.h"
 #include "bbox_priv.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
 #include "bbox_priv_modes.h"
 #include "bchp_memc_clients.h"
+#include "bchp_memc_clients_chip_map.h"
 #include "bchp_memc_arb_0.h"
 
 #ifdef BCHP_MEMC_ARB_1_REG_START
@@ -89,6 +91,115 @@ static const BBOX_MemcClientEntry g_astMemcClientTbl[] = {
 #undef BCHP_P_MEMC_DEFINE_CLIENT
 };
 
+void BBOX_P_SetRdcMemc
+    ( BBOX_MemConfig *pBoxMemConfig,
+      BBOX_MemcIndex  eMemcIndex )
+{
+    BDBG_ASSERT(pBoxMemConfig);
+
+    pBoxMemConfig->stVdcMemcIndex.ulRdcMemcIndex = eMemcIndex;
+}
+
+void BBOX_P_SetDviCfcMemc
+    ( BBOX_MemConfig *pBoxMemConfig,
+      BBOX_MemcIndex  eMemcIndex )
+{
+    BDBG_ASSERT(pBoxMemConfig);
+
+    pBoxMemConfig->stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[0] = eMemcIndex;
+    pBoxMemConfig->stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[1] = BBOX_MemcIndex_Invalid;
+}
+
+void BBOX_P_SetVideoWinMemc
+    ( BBOX_MemConfig     *pBoxMemConfig,
+      BBOX_Vdc_DisplayId  display,
+      BBOX_Vdc_WindowId   window,
+      BBOX_MemcIndex      eWinMemcIndex,
+      BBOX_MemcIndex      eDeinterlacerMemcIndex )
+{
+    BDBG_ASSERT(pBoxMemConfig);
+    BDBG_ASSERT(display != BBOX_VDC_DISREGARD);
+    BDBG_ASSERT(window <= BBOX_Vdc_Window_eVideo1);
+
+    pBoxMemConfig->stVdcMemcIndex.astDisplay[display].aulVidWinCapMemcIndex[window] = (uint32_t)eWinMemcIndex;
+    pBoxMemConfig->stVdcMemcIndex.astDisplay[display].aulVidWinMadMemcIndex[window] = (uint32_t)eDeinterlacerMemcIndex;
+}
+
+void BBOX_P_SetGfxWinMemc
+    ( BBOX_MemConfig     *pBoxMemConfig,
+      BBOX_Vdc_DisplayId  display,
+      BBOX_Vdc_WindowId   window,
+      BBOX_MemcIndex      eGfdMemcIndex )
+{
+    BDBG_ASSERT(pBoxMemConfig);
+    BDBG_ASSERT(display != BBOX_VDC_DISREGARD);
+    BDBG_ASSERT(window >= BBOX_Vdc_Window_eGfx0 && window <= BBOX_Vdc_Window_eGfx2);
+
+    pBoxMemConfig->stVdcMemcIndex.astDisplay[display].aulGfdWinMemcIndex[window-BBOX_Vdc_Window_eGfx0] = (uint32_t)eGfdMemcIndex;
+}
+
+void BBOX_P_SetHdrVideoAndGfxMemc
+    ( BBOX_MemConfig     *pBoxMemConfig,
+      BBOX_Vdc_DisplayId  display,
+      BBOX_MemcIndex      eCmpCfcMemcIndex,
+      BBOX_MemcIndex      eGfdCfcMemcIndex )
+{
+    BDBG_ASSERT(pBoxMemConfig);
+    BDBG_ASSERT(display != BBOX_VDC_DISREGARD);
+
+    pBoxMemConfig->stVdcMemcIndex.astDisplay[display].ulCmpCfcMemcIndex = (uint32_t)eCmpCfcMemcIndex;
+    pBoxMemConfig->stVdcMemcIndex.astDisplay[display].ulGfdCfcMemcIndex = (uint32_t)eGfdCfcMemcIndex;
+}
+
+void BBOX_P_SetNumMemc
+    ( BBOX_MemConfig     *pBoxMemConfig,
+      uint32_t            ulNumMemc )
+{
+    BDBG_ASSERT(pBoxMemConfig);
+
+    pBoxMemConfig->ulNumMemc = ulNumMemc;
+}
+
+void BBOX_P_SetDramRefreshRate
+    ( BBOX_MemConfig          *pBoxMemConfig,
+      BBOX_DramRefreshRate     eRefreshRate )
+{
+    BDBG_ASSERT(pBoxMemConfig);
+
+    pBoxMemConfig->eRefreshRate = eRefreshRate;
+}
+
+void BBOX_P_SetDefaultMemConfig
+    ( BBOX_MemConfig     *pMemConfig )
+{
+    uint32_t i, j;
+
+    pMemConfig->stVdcMemcIndex.ulRdcMemcIndex = 0;
+
+    for (i=0; i<BBOX_VDC_HDMI_DISPLAY_COUNT; i++)
+    {
+        pMemConfig->stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[i] = BBOX_MemcIndex_Invalid;
+    }
+
+    for (i=0; i<BBOX_VDC_DISPLAY_COUNT; i++)
+    {
+        for (j=0; j<BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY; j++)
+        {
+            pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] = BBOX_MemcIndex_Invalid;
+            pMemConfig->stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j] = BBOX_MemcIndex_Invalid;
+        }
+        for (j=0; j<BBOX_VDC_GFX_WINDOW_COUNT_PER_DISPLAY; j++)
+        {
+            pMemConfig->stVdcMemcIndex.astDisplay[i].aulGfdWinMemcIndex[j] = BBOX_MemcIndex_Invalid;
+        }
+
+        pMemConfig->stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex = BBOX_MemcIndex_Invalid;
+        pMemConfig->stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex = BBOX_MemcIndex_Invalid;
+    }
+    pMemConfig->ulNumMemc = BBOX_INVALID_NUM_MEMC;
+    pMemConfig->eRefreshRate = BBOX_DramRefreshRate_e1x;
+}
+
 BERR_Code BBOX_P_LoadRts
     ( const BREG_Handle          hReg,
       const uint32_t             ulBoxId,
@@ -96,7 +207,6 @@ BERR_Code BBOX_P_LoadRts
 {
     BERR_Code eStatus = BERR_SUCCESS;
     BBOX_Rts stBoxRts;
-    uint32_t ulRefreshClient;
 
     BDBG_ASSERT(eRefreshRate < BBOX_DramRefreshRate_eInvalid);
 
@@ -130,7 +240,6 @@ BERR_Code BBOX_P_LoadRts
             for (i=0;i<stBoxRts.ulNumMemc;i++)
             {
                 uint32_t ulMemcBaseAddr = 0x0;
-                BDBG_ASSERT(stBoxRts.paulMemc[i][0]);
 
 #ifdef BCHP_MEMC_ARB_0_REG_START
                 if (i==0)
@@ -153,68 +262,107 @@ BERR_Code BBOX_P_LoadRts
 
                 BDBG_ASSERT(ulMemcBaseAddr);
 
+                if (stBoxRts.paulMemc == NULL)
+                {
+                    BDBG_ERR(("Box mode %d RTS MEMC Client list is uninitialized.", ulBoxId));
+                    if (stBoxRts.pchRtsVersion)
+                    {
+                        BDBG_ERR(("RTS configuration version %s", stBoxRts.pchRtsVersion));
+                    }
+                    eStatus = BBOX_RTS_CFG_UNINITIALIZED;
+                    goto done;
+                }
 
                 for (j=0;j<stBoxRts.ulNumMemcEntries;j++)
                 {
+                    if(stBoxRts.paulMemc[i] == NULL)
+                    {
+                        BDBG_ERR(("Box mode %d RTS MEMC %d Client list is uninitialized.", ulBoxId, i));
+                        if (stBoxRts.pchRtsVersion)
+                        {
+                            BDBG_ERR(("RTS configuration version %s", stBoxRts.pchRtsVersion));
+                        }
+                        eStatus = BBOX_RTS_CFG_UNINITIALIZED;
+                        goto done;
+                    }
                     BREG_Write32(hReg, ulMemcBaseAddr+(j*4), stBoxRts.paulMemc[i][j]);
                     BDBG_MODULE_MSG(BBOX_MEMC, ("MEMC_%d[%d] = 0x%x", i, j, stBoxRts.paulMemc[i][j]));
-
                 }
 
-                ulRefreshClient = BCHP_MemcClient_eMax;
-
-                BBOX_P_GetMemConfig(ulBoxId, &boxMemCfg);
-
-                for(k=0; g_astMemcClientTbl[k].eClient < BCHP_MemcClient_eMax; k++)
+                eStatus = BBOX_P_SetMemConfig(ulBoxId, &boxMemCfg);
+                if (eStatus != BERR_SUCCESS)
                 {
-                    unsigned uRefRateFactor = boxMemCfg.eRefreshRate/eRefreshRate;
+                     goto done;
+                }
+                else
+                {
+                    uint32_t ulRefreshClient = BCHP_MemcClient_eMax;
 
-                    BCHP_MemcClient eClient = g_astMemcClientTbl[k].eClient;
-
-#if (BCHP_CHIP==7435)
-                    if (eClient == BCHP_MemcClient_eREF)
+                    for(k=0; g_astMemcClientTbl[k].eClient < BCHP_MemcClient_eMax; k++)
                     {
-                       ulRefreshClient = k;
-                    }
+                        unsigned uRefRateFactor = boxMemCfg.eRefreshRate/eRefreshRate;
+
+                        BCHP_MemcClient eClient = g_astMemcClientTbl[k].eClient;
+
+#if BCHP_P_MEMC_CLIENT_EXISTS_REFRESH
+
+                        if (eClient == BCHP_MemcClient_eREFRESH)
+                        {
+                           ulRefreshClient = k;
+                        }
+#elif BCHP_P_MEMC_CLIENT_EXISTS_REF
+                        if (eClient == BCHP_MemcClient_eREF)
+                        {
+                           ulRefreshClient = k;
+                        }
 #else
-                    if (eClient == BCHP_MemcClient_eREFRESH)
-                    {
-                       ulRefreshClient = k;
-                    }
+                        BSTD_UNUSED(eClient);
+                        BDBG_WRN(("%d doesn't have a DRAM refresh SCB client", BCHP_CHIP));
+                        break;
 #endif
 
-                    /* Update REFRESH client blockout if requested by upper layer SW */
-                    if (uRefRateFactor > 1 && (ulRefreshClient != BCHP_MemcClient_eMax))
-                    {
-                        uint32_t ulRefreshClientId = INVALID, ulHiTempBlockOut;
-
-                        if (i==0)
+                        /* Update REFRESH client blockout if requested by upper layer SW */
+                        if (uRefRateFactor > 1 && (ulRefreshClient != BCHP_MemcClient_eMax))
                         {
-                            ulRefreshClientId = g_astMemcClientTbl[k].ulMemc0Id;
-                        }
+                            uint32_t ulRefreshClientId = INVALID, ulHiTempBlockOut;
+
+                            if (i==0)
+                            {
+                                ulRefreshClientId = g_astMemcClientTbl[k].ulMemc0Id;
+                            }
 #if BCHP_P_MEMC_COUNT > 1
-                        else if (i==1)
-                        {
-                            ulRefreshClientId = g_astMemcClientTbl[k].ulMemc1Id;
-                        }
+                            else if (i==1)
+                            {
+                                ulRefreshClientId = g_astMemcClientTbl[k].ulMemc1Id;
+                            }
 #if BCHP_P_MEMC_COUNT > 2
-                        else if (i==2)
-                        {
-                            ulRefreshClientId = g_astMemcClientTbl[k].ulMemc2Id;
-                        }
+                            else if (i==2)
+                            {
+                                ulRefreshClientId = g_astMemcClientTbl[k].ulMemc2Id;
+                            }
 #endif
 #endif
-                        if (ulRefreshClientId != (unsigned)INVALID)
-                        {
-                            ulHiTempBlockOut = (stBoxRts.paulMemc[i][ulRefreshClientId] * uRefRateFactor) - 1 ;
-                            BREG_Write32(hReg, ulMemcBaseAddr+(ulRefreshClientId*4), ulHiTempBlockOut);
-                            BDBG_MODULE_MSG(BBOX_MEMC, ("Modifying MEMC_%d REFRESH client to 0x%x", i, ulHiTempBlockOut));
+                            if (ulRefreshClientId != (unsigned)INVALID)
+                            {
+                                ulHiTempBlockOut = (stBoxRts.paulMemc[i][ulRefreshClientId] * uRefRateFactor) - 1 ;
+                                BREG_Write32(hReg, ulMemcBaseAddr+(ulRefreshClientId*4), ulHiTempBlockOut);
+                                BDBG_MODULE_MSG(BBOX_MEMC, ("Modifying MEMC_%d REFRESH client to 0x%x", i, ulHiTempBlockOut));
+                            }
                         }
                     }
                 }
             }
 
-
+            if (stBoxRts.pastPfriClient == NULL)
+            {
+                BDBG_ERR(("Box mode %d RTS PFRI Client list is uninitialized.", ulBoxId));
+                if (stBoxRts.pchRtsVersion)
+                {
+                    BDBG_ERR(("RTS configuration version %s", stBoxRts.pchRtsVersion));
+                }
+                eStatus = BBOX_RTS_CFG_UNINITIALIZED;
+                goto done;
+            }
 
             for (i=0;i<stBoxRts.ulNumPfriClients;i++)
             {

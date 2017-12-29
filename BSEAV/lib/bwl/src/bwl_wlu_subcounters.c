@@ -300,6 +300,7 @@ int wl_counters_cbfn(void *ctx, const unsigned char *data, unsigned short int ty
             SAVALSF(rxnondata);
             SAVALSF(rxbadcm);
             SAVALSF(rxfragerr);
+            SAVALSF(rxcrc);
 #endif /* OLDWAY */
             break;
         }
@@ -320,7 +321,7 @@ int wl_counters_cbfn(void *ctx, const unsigned char *data, unsigned short int ty
             for (i = 0; i < NFIFO; i++) {
                 PRVAL_FMTSTR1(txfunfl, "%u ", cnt->txfunfl[i]);
             }
-            PRVAL(txtplunfl); PRVAL(txphyerror); PRNL1();
+            /*PRVAL(txtplunfl); PRVAL(txphyerror); PRNL1();*/
             PRNL1();
 
             PRVAL(rxstrt); PRVAL(rxbadplcp); PRVAL(rxcrsglitch);
@@ -361,11 +362,12 @@ int wl_counters_cbfn(void *ctx, const unsigned char *data, unsigned short int ty
             /*printf("%s() WL_CNT_XTLV_LT40_UCODE_V1 \n", __FUNCTION__ );*/
             wl_cnt_lt40mcst_v1_t *cnt = (wl_cnt_lt40mcst_v1_t *)data;
             if (len != sizeof(wl_cnt_lt40mcst_v1_t)) {
-                printf("type %d: cnt struct length mismatch! %d != %d\n",
-                    type, len, (int)sizeof(wl_cnt_lt40mcst_v1_t));
+                printf("type %d: cnt struct length mismatch! %d != %d; cnt (%p)\n",
+                    type, len, (int)sizeof(wl_cnt_lt40mcst_v1_t), cnt );
             }
             PRCNT_MACSTAT_TX_VER_GE11;
             /* rx start and those that do not end well */
+#if 0
             PRVAL(rxstrt); PRVAL(rxbadplcp); PRVAL(rxcrsglitch);
             PRVAL(rxtoolate); PRVAL(rxnodelim); PRNL1();
             PRVAL(bphy_badplcp); PRVAL(bphy_rxcrsglitch); PRNL1();
@@ -377,17 +379,19 @@ int wl_counters_cbfn(void *ctx, const unsigned char *data, unsigned short int ty
             PRVAL(dbgoff46); PRVAL(dbgoff47);
             PRVAL(dbgoff48); PRVAL(phywatch); PRNL1();
             PRNL1();
+#endif
             break;
         }
         case WL_CNT_XTLV_GE40_UCODE_V1: {
             /*printf("%s() WL_CNT_XTLV_GE40_UCODE_V1 \n", __FUNCTION__ );*/
             wl_cnt_ge40mcst_v1_t *cnt = (wl_cnt_ge40mcst_v1_t *)data;
             if (len != sizeof(wl_cnt_ge40mcst_v1_t)) {
-                printf("type %d: cnt struct length mismatch! %d != %d\n",
-                    type, len, (int)sizeof(wl_cnt_ge40mcst_v1_t));
+                printf("type %d: cnt struct length mismatch! %d != %d; cnt (%p)\n",
+                    type, len, (int)sizeof(wl_cnt_ge40mcst_v1_t), cnt );
             }
             PRCNT_MACSTAT_TX_VER_GE11;
             /* rx start and those that do not end well */
+#if 0
             PRVAL(rxstrt); PRVAL(rxbadplcp); PRVAL(rxcrsglitch);
             PRVAL(rxtoolate); PRVAL(rxnodelim); PRNL1();
             PRVAL(rxdrop20s); PRVAL(bphy_badplcp); PRVAL(bphy_rxcrsglitch); PRNL1();
@@ -397,6 +401,7 @@ int wl_counters_cbfn(void *ctx, const unsigned char *data, unsigned short int ty
             PRCNT_MACSTAT_RX_VER_GE11;
             PRVAL(missbcn_dbg); PRNL1();
             PRNL1();
+#endif
             break;
         }
         case WL_CNT_XTLV_GE64_UCODEX_V1: {

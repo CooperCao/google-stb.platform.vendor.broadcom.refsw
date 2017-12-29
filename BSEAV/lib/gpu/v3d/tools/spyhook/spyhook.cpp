@@ -33,6 +33,8 @@
 #include <setjmp.h>
 #include <assert.h>
 
+#include <mutex>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifndef WIN32
@@ -96,7 +98,7 @@ struct DriverEvent
 typedef std::vector<DriverEvent> EventBlock;
 
 static EventBlock       sEventBlock;
-static MutexHandle      sEventMutex;
+std::mutex              sEventMutex;
 
 static PFNEGLINITDRIVERMONITORBRCMPROC    sEglInitDriverMonitorBRCM   = 0;
 static PFNEGLGETDRIVERMONITORXMLBRCMPROC  sEglGetDriverMonitorXMLBRCM = 0;
@@ -106,7 +108,7 @@ static Packet *sCurPacket = NULL;
 static bool    sEnabled = true;
 static bool    sOrphaned = false;
 static bool    sSendNextRet = true;
-static uint32_t sBottleneckMode = Control::eUnset;
+static int     sBottleneckMode = Control::eUnset;
 static uint32_t sPerfNumFrames = 1;
 static float    sPerfNumSeconds = 0.0f;
 static uint32_t sFrameCnt = 0;
@@ -114,7 +116,8 @@ static uint32_t sTimeStampMs = 0;
 static bool     sCaptureEvents = false;
 
 static bool    sCaptureStream = false;
-static Archive *sCaptureArchive = NULL;
+
+static std::unique_ptr<Archive> sCaptureArchive;
 
 static std::map< uint32_t, std::vector<uint32_t> > varset;
 
@@ -151,125 +154,17 @@ static void Packetize()
 {
 }
 
-template <typename T1>
-void Packetize(T1 u)
+template <typename T>
+void Packetize(T u)
 {
    sCurPacket->AddItem(u);
 }
 
-template <typename T1, typename T2>
-void Packetize(T1 t1, T2 t2)
+template<typename T, typename... Args>
+void Packetize(T u, Args... args)
 {
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-}
-
-template <typename T1, typename T2, typename T3>
-void Packetize(T1 t1, T2 t2, T3 t3)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-}
-
-template <typename T1, typename T2, typename T3, typename T4>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9, T10 t10)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-   sCurPacket->AddItem(t10);
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11>
-void Packetize(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8, T9 t9, T10 t10, T11 t11)
-{
-   sCurPacket->AddItem(t1);
-   sCurPacket->AddItem(t2);
-   sCurPacket->AddItem(t3);
-   sCurPacket->AddItem(t4);
-   sCurPacket->AddItem(t5);
-   sCurPacket->AddItem(t6);
-   sCurPacket->AddItem(t7);
-   sCurPacket->AddItem(t8);
-   sCurPacket->AddItem(t9);
-   sCurPacket->AddItem(t10);
-   sCurPacket->AddItem(t11);
+   sCurPacket->AddItem(u);
+   Packetize(args...);
 }
 
 static uint32_t TextureSize(uint32_t w, uint32_t h, uint32_t format, uint32_t type, uint32_t unpackAlignment)
@@ -321,7 +216,7 @@ static uint32_t UnpackAlignment()
    return v[0];
 }
 
-static Remote *remote = NULL;
+static std::unique_ptr<Remote> remote;
 
 static bool PostPacketize(Packet *p);
 
@@ -466,7 +361,7 @@ static void GetEventData(const Packet SPY_UNUSED &packet)
    {
       uint32_t s, ns;
 
-      plLockMutex(&sEventMutex);
+      std::lock_guard<std::mutex> lock(sEventMutex);
 
       uint32_t num = sEventBlock.size();
 
@@ -492,8 +387,6 @@ static void GetEventData(const Packet SPY_UNUSED &packet)
       }
 
       sEventBlock.clear();
-
-      plUnlockMutex(&sEventMutex);
    }
    else
    {
@@ -502,9 +395,10 @@ static void GetEventData(const Packet SPY_UNUSED &packet)
       p.AddItem(0);
       p.AddItem(PacketItem(0));                  // Number of events
 
-      plLockMutex(&sEventMutex);
-      sEventBlock.clear();
-      plUnlockMutex(&sEventMutex);
+      {
+         std::lock_guard<std::mutex> lock(sEventMutex);
+         sEventBlock.clear();
+      }
    }
 
    if (remote)
@@ -775,7 +669,7 @@ static void SetCapture(bool tf, const char *processName)
 #endif
 
       printf("********** CAPTURING TO %s ********* \n", file);
-      sCaptureArchive = new Archive(file);
+      sCaptureArchive = std::unique_ptr<Archive>(new Archive(file));
       if (sCaptureArchive->Connect())
       {
          // Catch ctrl-c so we can ensure the capture buffers are flushed
@@ -804,8 +698,7 @@ static void ChangePort(const Packet &packet)
    if (packet.NumItems() > 2)
       capture = packet.Item(2).GetBoolean();
 
-   delete remote;
-   remote = new Remote(port);
+   remote = std::unique_ptr<Remote>(new Remote(port));
    if (remote->Connect())
    {
       printf("GPU Monitor initialized on port %d\n", port);
@@ -1103,7 +996,7 @@ static void BackTrace(const Packet SPY_UNUSED &packet)
 
    if (remote)
       dataPacket.Send(remote);
-#elif __arm__
+#else
    // Backtrace only available in glibc.  Make change in the above when we move
    Packet dataPacket(eBACKTRACE);
    if (remote)
@@ -1129,7 +1022,7 @@ static bool PostPacketize(Packet *p)
       return true;
    }
 
-   if (remote == NULL)
+   if (remote == nullptr)
       return false;
 
    bool gotDone = false;
@@ -1164,7 +1057,7 @@ static bool PostPacketize(Packet *p)
          case Control::eBottleneck     : SetBottleneckMode(retPacket); break;
          case Control::eGetPerfData    : GetPerfData(retPacket); break;
          case Control::eGetEventData   : GetEventData(retPacket); break;
-         case Control::eDisconnect     : sOrphaned = true; gotDone = true; delete remote; remote = NULL; break;
+         case Control::eDisconnect     : sOrphaned = true; gotDone = true; remote = nullptr; break;
          case Control::eChangePort     : ChangePort(retPacket); gotDone = true; break;
          case Control::eGetState       : GetState(retPacket); break;
          case Control::eGetMemory      : GetMemory(retPacket); break;
@@ -1474,8 +1367,6 @@ DLLEXPORT bool DLLEXPORTENTRY remote_log_initialize(REAL_GL_API_TABLE *table, ui
 
    memset(&sRealFuncs, 0, sizeof(REAL_GL_API_TABLE));
 
-   plCreateMutex(&sEventMutex);
-
    if (majorVer != REMOTE_API_MAJOR_VER || minorVer != REMOTE_API_MINOR_VER)
    {
       printf("GPU Monitor DLL version (API ver = %d.%d) does not match GL driver version (API ver = %d.%d). Monitoring disabled.\n\n",
@@ -1502,7 +1393,7 @@ DLLEXPORT bool DLLEXPORTENTRY remote_log_initialize(REAL_GL_API_TABLE *table, ui
       sEglGetDriverMonitorXMLBRCM = (PFNEGLGETDRIVERMONITORXMLBRCMPROC)Real(eglGetProcAddress)("eglGetDriverMonitorXMLBRCM");
       sEglTermDriverMonitorBRCM =   (PFNEGLTERMDRIVERMONITORBRCMPROC  )Real(eglGetProcAddress)("eglTermDriverMonitorBRCM");
 
-      remote = new Remote(28015);
+      remote = std::unique_ptr<Remote>(new Remote(28015));
       if (remote->Connect())
       {
          printf("GPU Monitor initializing...\n");
@@ -1638,9 +1529,10 @@ DLLEXPORT void DLLEXPORTENTRY remote_event_notify(EventData *ev)
       if (ev->desc != NULL)
          event.desc = ev->desc;
 
-      plLockMutex(&sEventMutex);
-      sEventBlock.push_back(event);
-      plUnlockMutex(&sEventMutex);
+      {
+         std::lock_guard<std::mutex> lock(sEventMutex);
+         sEventBlock.push_back(event);
+      }
    }
 }
 
@@ -2889,6 +2781,18 @@ DLLEXPORT bool EGLAPIENTRY remote_eglImageUpdateParameterivBRCM(EGLDisplay dpy, 
    FuncExtra1(eglImageUpdateParameterivBRCM, (dpy, image, pname, params),
               ((void*)params, (pname == EGL_IMAGE_UPDATE_CONTROL_CHANGED_REGION_BRCM ? 4 : 1) * sizeof(EGLint)))
 DLLEXPORT bool EGLAPIENTRY remote_eglImageUpdateParameteriBRCM(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, EGLint param) Func(eglImageUpdateParameteriBRCM, (dpy, image, pname, param))
+
+DLLEXPORT bool EGLAPIENTRY remote_eglGetPlatformDisplayEXT(EGLenum platform, void *native_display, const EGLint *attrib_list) Func(eglGetPlatformDisplayEXT, (platform, native_display, attrib_list))
+DLLEXPORT bool EGLAPIENTRY remote_eglCreatePlatformWindowSurfaceEXT(EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list) Func(eglCreatePlatformWindowSurfaceEXT, (dpy, config, native_window, attrib_list))
+DLLEXPORT bool EGLAPIENTRY remote_eglCreatePlatformPixmapSurfaceEXT(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list) Func(eglCreatePlatformPixmapSurfaceEXT, (dpy, config, native_pixmap, attrib_list))
+
+#ifdef WAYLAND
+struct wl_display;
+struct wl_resource;
+DLLEXPORT bool EGLAPIENTRY remote_eglBindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display) Func(eglBindWaylandDisplayWL, (dpy, display))
+DLLEXPORT bool EGLAPIENTRY remote_eglUnbindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display) Func(eglUnbindWaylandDisplayWL, (dpy, display))
+DLLEXPORT bool EGLAPIENTRY remote_eglQueryWaylandBufferWL(EGLDisplay dpy, struct wl_resource *buffer, EGLint attribute, EGLint *value) Func(eglQueryWaylandBufferWL, (dpy, buffer, attribute, value))
+#endif
 
 #ifdef __gl3_h_
 /* ES3 specifics */

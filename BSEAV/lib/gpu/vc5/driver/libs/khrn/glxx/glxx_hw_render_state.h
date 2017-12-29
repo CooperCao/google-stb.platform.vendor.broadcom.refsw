@@ -79,7 +79,7 @@ typedef enum
    // variable sized states
    GLXX_CL_STATE_VIEWPORT = GLXX_CL_STATE_NUM_FIXED_SIZE,
    GLXX_CL_STATE_FLAT_SHADING_FLAGS,
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GLXX_CL_STATE_NOPERSPECTIVE_FLAGS,
 #endif
    GLXX_CL_STATE_CENTROID_FLAGS,
@@ -110,10 +110,10 @@ static const uint8_t GLXX_CL_STATE_SIZE[GLXX_CL_STATE_NUM] =
    // variable sized states (these are maximums)
    [GLXX_CL_STATE_VIEWPORT]            = (V3D_CL_CLIP_SIZE + V3D_CL_CLIPPER_XY_SIZE + V3D_CL_VIEWPORT_OFFSET_SIZE +
                                           V3D_CL_CLIPPER_Z_SIZE + V3D_CL_CLIPZ_SIZE),
-   [GLXX_CL_STATE_FLAT_SHADING_FLAGS]  = GLXX_NUM_SHADING_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
-   [GLXX_CL_STATE_CENTROID_FLAGS]      = GLXX_NUM_SHADING_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
-#if V3D_HAS_VARY_NO_PERSP
-   [GLXX_CL_STATE_NOPERSPECTIVE_FLAGS] = GLXX_NUM_SHADING_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
+   [GLXX_CL_STATE_FLAT_SHADING_FLAGS]  = V3D_MAX_VARY_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
+   [GLXX_CL_STATE_CENTROID_FLAGS]      = V3D_MAX_VARY_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   [GLXX_CL_STATE_NOPERSPECTIVE_FLAGS] = V3D_MAX_VARY_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
    [GLXX_CL_STATE_BLEND_CFG]           = GLXX_MAX_RENDER_TARGETS * V3D_CL_BLEND_CFG_SIZE,
@@ -133,7 +133,8 @@ typedef struct
 {
    // cumulative binning cycle count estimate of all draw calls up to start_sub_addr in control list
    uint64_t bin_cost_cumulative;
-   uint8_t *start_sub_addr;
+   uint8_t* ret_sub_ptr;
+   v3d_addr_t start_sub_addr;
    bool z_prepass_stopped;
 
    // ptrs/sizes refer to state that should be applied before resuming at start_sub_addr
@@ -161,6 +162,8 @@ typedef struct glxx_hw_render_state
       glxx_render_state base;
       khrn_fmem fmem;
    };
+
+   v3d_addr_t clist_start;
 
    // Renderstate needs a copy of the hw fb as it was at the time renderstate was prepared,
    // as the framebuffer can be changed after that before the renderstate gets flushed.
@@ -196,12 +199,12 @@ typedef struct glxx_hw_render_state
    bool                    dither;
 
    // flags previously set on this render-state
-   uint32_t                prev_flat_shading_flags[GLXX_NUM_SHADING_FLAG_WORDS];
-   uint32_t                prev_centroid_flags[GLXX_NUM_SHADING_FLAG_WORDS];
+   uint32_t                prev_flat_shading_flags[V3D_MAX_VARY_FLAG_WORDS];
+   uint32_t                prev_centroid_flags[V3D_MAX_VARY_FLAG_WORDS];
    bool                    flat_shading_flags_set;
    bool                    centroid_flags_set;
-#if V3D_HAS_VARY_NO_PERSP
-   uint32_t                prev_noperspective_flags[GLXX_NUM_SHADING_FLAG_WORDS];
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   uint32_t                prev_noperspective_flags[V3D_MAX_VARY_FLAG_WORDS];
    bool                    noperspective_flags_set;
 #endif
 

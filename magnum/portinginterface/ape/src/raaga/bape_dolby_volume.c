@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_HAS_POST_PROCESSING
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_dolby_volume);
@@ -55,6 +55,7 @@ BDBG_OBJECT_ID(BAPE_DolbyVolume);
 typedef struct BAPE_DolbyVolume
 {
     BDBG_OBJECT(BAPE_DolbyVolume)
+    BAPE_Handle deviceHandle;
     BAPE_PathNode node;
     BAPE_DolbyVolumeSettings settings;
     BAPE_Connector input;
@@ -74,7 +75,7 @@ void BAPE_DolbyVolume_GetDefaultSettings(
 
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDv258, (void *)&dspSettings, sizeof(dspSettings));
+    BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDv258, (void *)&dspSettings, sizeof(dspSettings));
 
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->enabled = (dspSettings.i32DolbyVolumeEnable == 0) ? false : true;
@@ -107,7 +108,6 @@ BERR_Code BAPE_DolbyVolume_Create(
     BAPE_DolbyVolumeSettings defaults;
     BAPE_FMT_Descriptor format;
     BAPE_FMT_Capabilities caps;
-    BDSP_StageCreateSettings stageCreateSettings;
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
@@ -126,8 +126,9 @@ BERR_Code BAPE_DolbyVolume_Create(
     }
     BKNI_Memset(handle, 0, sizeof(BAPE_DolbyVolume));
     BDBG_OBJECT_SET(handle, BAPE_DolbyVolume);
+    handle->deviceHandle = deviceHandle;
     handle->settings = *pSettings;
-    BAPE_P_InitPathNode(&handle->node, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDolbyVolume, 1, deviceHandle, handle);
+    BAPE_P_InitPathNode(&handle->node, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDolbyVolume, 1, handle->deviceHandle, handle);
     handle->node.pName = "Dolby Volume";
 
     handle->node.connectors[0].useBufferPool = true;
@@ -157,21 +158,9 @@ BERR_Code BAPE_DolbyVolume_Create(
     handle->node.stopPathFromInput = BAPE_DolbyVolume_P_StopPathFromInput;
     handle->node.removeInput = BAPE_DolbyVolume_P_RemoveInputCallback;
 
-    BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
-    BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
-    stageCreateSettings.algorithmSupported[BDSP_Algorithm_eDv258] = true;
-    errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hStage);
-    if ( errCode )
-    {
-        errCode = BERR_TRACE(errCode);
-        goto err_stage_create;
-    }
-    handle->node.connectors[0].hStage = handle->hStage;    
-
     *pHandle = handle;
     return BERR_SUCCESS;
 
-err_stage_create:
 err_connector_format:
 err_caps:
     BAPE_DolbyVolume_Destroy(handle);
@@ -188,6 +177,7 @@ void BAPE_DolbyVolume_Destroy(
     if ( handle->hStage )
     {
         BDSP_Stage_Destroy(handle->hStage);
+        handle->hStage = NULL;
     }
     BDBG_OBJECT_DESTROY(handle, BAPE_DolbyVolume);
     BKNI_Free(handle);
@@ -301,11 +291,45 @@ static BERR_Code BAPE_DolbyVolume_P_AllocatePathFromInput(struct BAPE_PathNode *
     BERR_Code errCode;
     unsigned input, output;
     BAPE_DolbyVolumeHandle handle;
+    BDSP_StageCreateSettings stageCreateSettings;
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
     BDBG_ASSERT(NULL != pConnection->pSource->hStage);
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_DolbyVolume);
+
+    /* inherit the device context from the parent if possible */
+    if ( pConnection->pSource->pParent->deviceContext != NULL )
+    {
+        pNode->deviceContext = pConnection->pSource->pParent->deviceContext;
+    }
+    else
+    {
+        if ( handle->deviceHandle->dspContext != NULL )
+        {
+            pNode->deviceContext = handle->deviceHandle->dspContext;
+        }
+        else if ( handle->deviceHandle->armContext != NULL )
+        {
+            pNode->deviceContext = handle->deviceHandle->armContext;
+        }
+        else
+        {
+            BDBG_ERR(("No available device context"));
+            return BERR_TRACE(BERR_NOT_AVAILABLE);
+        }
+    }
+
+    BDSP_Stage_GetDefaultCreateSettings(pNode->deviceContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
+    BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
+    stageCreateSettings.algorithmSupported[BDSP_Algorithm_eDv258] = true;
+    errCode = BDSP_Stage_Create(pNode->deviceContext, &stageCreateSettings, &handle->hStage);
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+    handle->node.connectors[0].hStage = handle->hStage;
+
     errCode = BDSP_Stage_AddOutputStage(pConnection->pSource->hStage, 
                                         BAPE_DSP_P_GetDataTypeFromConnector(handle->input),
                                         handle->hStage,
@@ -329,31 +353,34 @@ static BERR_Code BAPE_DolbyVolume_P_ApplyDspSettings(BAPE_DolbyVolumeHandle hand
     BERR_Code errCode;
     BDSP_Raaga_Audio_DV258ConfigParams userConfig;
 
-    errCode = BDSP_Stage_GetSettings(handle->hStage, &userConfig, sizeof(userConfig));
-    if ( errCode )
+    if ( handle->hStage )
     {
-        return BERR_TRACE(errCode);
-    }
+        errCode = BDSP_Stage_GetSettings(handle->hStage, &userConfig, sizeof(userConfig));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
 
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32DolbyVolumeEnable, handle->settings.enabled?1:0);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32Pregain, handle->settings.preGain);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32InputReferenceLevel, handle->settings.inputReferenceLevel);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32OutputReferenceLevel, handle->settings.outputReferenceLevel);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32CalibrationOffset, handle->settings.calibrationOffset);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32ResetNowFlag, handle->settings.reset?1:0);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32VlmMdlEnable, handle->settings.volumeModelerEnabled?1:0);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32DigitalVolumeLevel, handle->settings.digitalVolumeLevel);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32AnalogVolumeLevel, handle->settings.analogVolumeLevel);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32EnableMidsideProc, handle->settings.midsideProcessingEnabled?1:0);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32HalfmodeFlag, handle->settings.halfModeEnabled?1:0);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32LvlEnable, handle->settings.volumeLevelerEnabled?1:0);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32LvlAmount, handle->settings.volumeLevelerAmount);
-    BAPE_DSP_P_SET_VARIABLE(userConfig, i32LimiterEnable, handle->settings.limiterEnabled?1:0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32DolbyVolumeEnable, handle->settings.enabled?1:0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32Pregain, handle->settings.preGain);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32InputReferenceLevel, handle->settings.inputReferenceLevel);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32OutputReferenceLevel, handle->settings.outputReferenceLevel);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32CalibrationOffset, handle->settings.calibrationOffset);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32ResetNowFlag, handle->settings.reset?1:0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32VlmMdlEnable, handle->settings.volumeModelerEnabled?1:0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32DigitalVolumeLevel, handle->settings.digitalVolumeLevel);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32AnalogVolumeLevel, handle->settings.analogVolumeLevel);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32EnableMidsideProc, handle->settings.midsideProcessingEnabled?1:0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32HalfmodeFlag, handle->settings.halfModeEnabled?1:0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32LvlEnable, handle->settings.volumeLevelerEnabled?1:0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32LvlAmount, handle->settings.volumeLevelerAmount);
+        BAPE_DSP_P_SET_VARIABLE(userConfig, i32LimiterEnable, handle->settings.limiterEnabled?1:0);
 
-    errCode = BDSP_Stage_SetSettings(handle->hStage, &userConfig, sizeof(userConfig));
-    if ( errCode )
-    {
-        return BERR_TRACE(errCode);
+        errCode = BDSP_Stage_SetSettings(handle->hStage, &userConfig, sizeof(userConfig));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
     }
 
     return BERR_SUCCESS;
@@ -366,8 +393,15 @@ static void BAPE_DolbyVolume_P_StopPathFromInput(struct BAPE_PathNode *pNode, st
     BSTD_UNUSED(pConnection);
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_DolbyVolume);
-    BDSP_Stage_RemoveAllInputs(handle->hStage);
-    BDSP_Stage_RemoveAllOutputs(handle->hStage);
+    if ( handle->hStage )
+    {
+        BDSP_Stage_RemoveAllInputs(handle->hStage);
+        BDSP_Stage_RemoveAllOutputs(handle->hStage);
+        BDSP_Stage_Destroy(handle->hStage);
+        handle->hStage = NULL;
+        handle->node.connectors[0].hStage = NULL;
+        handle->node.deviceContext = NULL;
+    }
 }
 
 static void BAPE_DolbyVolume_P_RemoveInputCallback(struct BAPE_PathNode *pNode, BAPE_PathConnector *pConnector)

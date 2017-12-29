@@ -10,6 +10,7 @@ void __attribute__ ((destructor)) v3d_android_unload(void);
 /* These functions are defined in libnxwrap. */
 void* nxwrap_create_client(void **wrap);
 void nxwrap_destroy_client(void *wrap);
+void nxwrap_rmlmk(void *wrap);
 
 static RSOANPL_PlatformHandle s_platformHandle;
 static void *nexus_client = NULL;
@@ -55,4 +56,10 @@ void v3d_android_unload(void)
 
    nxwrap_destroy_client(nxwrap);
    nxwrap = NULL;
+}
+
+void v3d_android_rmlmk(void)
+{
+   if (nxwrap)
+      nxwrap_rmlmk(nxwrap);
 }

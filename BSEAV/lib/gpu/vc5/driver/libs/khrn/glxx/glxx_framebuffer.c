@@ -168,7 +168,7 @@ void framebuffer_term(void *v, size_t size)
 {
    GLXX_FRAMEBUFFER_T *fb = (GLXX_FRAMEBUFFER_T *)v;
    unsigned i;
-   vcos_unused(size);
+   unused(size);
 
    for (i = 0; i < GLXX_ATT_COUNT; i++)
       attachment_reset(&fb->attachment[i]);
@@ -336,91 +336,70 @@ static void fb_attach_fb_default(GLXX_FRAMEBUFFER_T *fb,
    }
 }
 
-#ifndef NDEBUG
-
 /* We need to have:
  * - a color image
  * - depth and stencil images are optional
  * - if we multisample (aux_samples > 0), we must have a multisample image
  * - if we multimsaple, size of each aux_buffer must be aux_sample * size of color_image;
  */
-static void consistent_for_default_fb(const EGL_SURFACE_T *surface)
+static void check_consistent_for_default_fb(const EGL_SURFACE_T *surface)
 {
-   unsigned width, height;
-   khrn_image *color0;
-   khrn_image *aux_bufs[3];
+#ifndef NDEBUG
+   khrn_image *color = egl_surface_get_back_buffer(surface);
+   unsigned width = khrn_image_get_width(color);
+   unsigned height = khrn_image_get_height(color);
 
-   color0 = egl_surface_get_back_buffer(surface);
-   aux_bufs[0] = egl_surface_get_aux_buffer(surface, AUX_MULTISAMPLE);
-   aux_bufs[1] = egl_surface_get_aux_buffer(surface, AUX_DEPTH);
-   aux_bufs[2] = egl_surface_get_aux_buffer(surface, AUX_STENCIL);
-
-   width = khrn_image_get_width(color0);
-   height = khrn_image_get_height(color0);
-
-   assert(width <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE &&
-         height <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
+   assert(width <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
+   assert(height <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
 
    glxx_ms_mode ms_mode = glxx_samples_to_ms_mode(surface->config->samples);
-   unsigned scale  = glxx_ms_mode_get_scale(ms_mode);
+   unsigned scale = glxx_ms_mode_get_scale(ms_mode);
+
+   khrn_image *aux_bufs[] = {
+      egl_surface_get_aux_buffer(surface, AUX_MULTISAMPLE),
+      egl_surface_get_aux_buffer(surface, AUX_DEPTH),
+      egl_surface_get_aux_buffer(surface, AUX_STENCIL)};
 
    if (ms_mode != GLXX_NO_MS)
-   {
       /* if we multisample, we must have a multisample aux image */
-      if (!aux_bufs[0])
-         assert(0);
-   }
+      assert(aux_bufs[0]);
 
-   for (unsigned i = 0; i < 3; i++)
+   for (unsigned i = 0; i < countof(aux_bufs); i++)
    {
-      unsigned aux_width, aux_height;
-
       if (aux_bufs[i])
       {
-         aux_width = khrn_image_get_width(aux_bufs[i]);
-         aux_height = khrn_image_get_height(aux_bufs[i]);
+         unsigned aux_width = khrn_image_get_width(aux_bufs[i]);
+         unsigned aux_height = khrn_image_get_height(aux_bufs[i]);
          /* we would normally check for equality here, but in the pbuffer case
           * with mimmap levels we do not re-create the depth and stencil , so
           * as long as they are big enough, we are ok */
-         if (aux_width < (scale * width))
-            assert(0);
-         if (aux_height < (scale * height))
-            assert(0);
+         assert(aux_width >= (scale * width));
+         assert(aux_height >= (scale * height));
       }
    }
 
-   /* if both depth and stencil are present, they must point to the same image
-    */
+   /* if both depth and stencil are present, they must point to the same image */
    if (aux_bufs[1] && aux_bufs[2])
-   {
-      khrn_image_equal(aux_bufs[1], aux_bufs[2]);
-   }
-}
+      assert(khrn_image_equal(aux_bufs[1], aux_bufs[2]));
 #endif
+}
 
 void glxx_fb_attach_egl_surface(GLXX_FRAMEBUFFER_T *fb,
       const EGL_SURFACE_T *surface)
 {
-   khrn_image *color0, *ms_color0, *depth, *stencil;
-
-   /* we want this check only in debug */
-#ifndef NDEBUG
-   consistent_for_default_fb(surface);
-#endif
+   check_consistent_for_default_fb(surface);
 
    glxx_fb_detach(fb);
 
    glxx_ms_mode ms_mode = glxx_samples_to_ms_mode(surface->config->samples);
    bool ms = ms_mode != GLXX_NO_MS;
 
-   color0 = egl_surface_get_back_buffer(surface);
+   khrn_image *color = egl_surface_get_back_buffer_with_gl_colorspace(surface);
+   khrn_image *ms_color = egl_surface_get_aux_buffer(surface, AUX_MULTISAMPLE);
+   khrn_image *depth = egl_surface_get_aux_buffer(surface, AUX_DEPTH);
+   khrn_image *stencil = egl_surface_get_aux_buffer(surface, AUX_STENCIL);
 
-   ms_color0 = egl_surface_get_aux_buffer(surface, AUX_MULTISAMPLE);
-   depth = egl_surface_get_aux_buffer(surface, AUX_DEPTH);
-   stencil = egl_surface_get_aux_buffer(surface, AUX_STENCIL);
-
-   fb_attach_fb_default(fb, GL_COLOR_ATTACHMENT0, color0, ms_color0,
-         ms_mode);
+   fb_attach_fb_default(fb, GL_COLOR_ATTACHMENT0, color, ms_color, ms_mode);
 
    /* if we multisample, depth and stencil are multisampled images */
    if (depth)
@@ -429,6 +408,8 @@ void glxx_fb_attach_egl_surface(GLXX_FRAMEBUFFER_T *fb,
    if(stencil)
       fb_attach_fb_default(fb, GL_STENCIL_ATTACHMENT, ms ? NULL : stencil,
            ms ? stencil : NULL, ms_mode);
+
+   KHRN_MEM_ASSIGN(color, NULL);
 }
 
 void glxx_fb_detach_renderbuffer(GLXX_FRAMEBUFFER_T *fb,

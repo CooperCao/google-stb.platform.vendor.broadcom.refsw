@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
     if(key == 'c')
         resetType = 1;
     BroadBee_ZRC_Restore_Factory_Settings(resetType);
-    printf("\nPress any key to exist\n");
+    printf("\nPress any key to exit\n");
     getchar();
     printf("Completed 'rf4ce_reset' application successfully.\n");
 

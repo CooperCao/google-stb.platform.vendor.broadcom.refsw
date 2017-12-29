@@ -132,7 +132,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x103cb000,
 
 		/* BDSP_AF_P_AlgoId_eFlacDecode */
-		0x1044bee0,
+		0x1044bec0,
 
 		/* BDSP_AF_P_AlgoId_eMacDecode */
 		0x10453800,
@@ -141,7 +141,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x10474000,
 
 		/* BDSP_AF_P_AlgoId_eiLBCDecode */
-		0x104d9cd4,
+		0x104d9cd0,
 
 		/* BDSP_AF_P_AlgoId_eiSACDecode */
 		0x104f4844,
@@ -150,16 +150,16 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x10529800,
 
 		/* BDSP_AF_P_AlgoId_eDolbyAacheDecode */
-		0x105f5800,
+		0x105f8000,
 
 		/* BDSP_AF_P_AlgoId_eOpusDecode */
-		0x106ad490,
+		0x106b0378,
 
 		/* BDSP_AF_P_AlgoId_eALSDecode */
-		0x106e35ac,
+		0x106e856c,
 
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
-		0x106e870c,
+		0x106ed710,
 
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos */
 		0x00000000,
@@ -378,7 +378,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x00000000,
 
 		/* BDSP_AF_P_AlgoId_ePassThru */
-		0x100ffc64,
+		0x100ffcec,
 
 		/* BDSP_AF_P_AlgoId_eMlpPassThru */
 		0x10472000,
@@ -474,7 +474,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x10343800,
 
 		/* BDSP_AF_P_AlgoId_eDpcmrPostProc */
-		0x103562f0,
+		0x103562f4,
 
 		/* BDSP_AF_P_AlgoId_eGenCdbItbPostProc */
 		0x102bb800,
@@ -489,22 +489,22 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x10527000,
 
 		/* BDSP_AF_P_AlgoId_eMixerDapv2PostProc */
-		0x1066d000,
+		0x1066f800,
 
 		/* BDSP_AF_P_AlgoId_eOutputFormatterPostProc */
-		0x106c5000,
+		0x106ca000,
 
 		/* BDSP_AF_P_AlgoId_eVocalPostProc */
-		0x106c7000,
+		0x106cc000,
 
 		/* BDSP_AF_P_AlgoId_eFadeCtrlPostProc */
-		0x106c8800,
+		0x106cd800,
 
 		/* BDSP_AF_P_AlgoId_eAmbisonicsPostProc */
-		0x106cdc7c,
+		0x106d2c7c,
 
 		/* BDSP_AF_P_AlgoId_eTsmCorrectionPostProc */
-		0x1076b000,
+		0x10770000,
 
 		/* BDSP_AF_P_AlgoId_eEndOfPpAlgos */
 		0x00000000,
@@ -513,7 +513,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x1036e800,
 
 		/* BDSP_AF_P_AlgoId_eMixerDapv2FrameSync */
-		0x10666000,
+		0x10668800,
 
 		/* BDSP_AF_P_AlgoId_eEndOfPpFsAlgos */
 		0x00000000,

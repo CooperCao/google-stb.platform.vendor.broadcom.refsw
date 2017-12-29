@@ -55,6 +55,7 @@
 #include "nexus_base_os.h" // for NEXUS_GetEnv
 
 #include "sage_app_utils.h"
+#include "bp3_session.h"
 
 extern char bp3_bin_file_name[];
 extern char bp3_bin_file_path[];
@@ -96,7 +97,7 @@ static int SAGE_Write_Log_File(uint8_t** logBuff, uint32_t* logSize)
     }
     if (rc)
     {
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
     }
     return rc;
 }
@@ -130,7 +131,7 @@ static int SAGE_Write_BP3_Bin_File(uint8_t** bp3BinBuff, uint32_t* bp3BinSize, c
     }
     if (rc)
     {
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
     }
     return rc;
 }
@@ -198,7 +199,7 @@ end:
             SRAI_Memory_Free(buff);
             buff = NULL;
         }
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
     }
     *binBuff = buff;
     *binSize = size;
@@ -274,12 +275,12 @@ int bp3_session_start(uint8_t **token, uint32_t *size)
       pBp3SessionToken = NULL;
       if (rc)
       {
-          fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+          fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
       }
       return rc;
 }
 
-int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t *status)
+int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize)
 {
     int       rc = 0;
     uint32_t *pCcfStatus = NULL;
@@ -292,6 +293,10 @@ int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_
     size_t    filePathLength = 0;
     uint8_t  *pExistingBp3Bin = NULL;
     uint32_t  existingBp3BinSize = 0;
+
+    if (logBuf == NULL)
+      // log file not wanted. Must be some kind of error!
+      goto leave;
 
     if (ccfBuf) {
       if (pEncryptedCcfBuff) SRAI_Memory_Free(pEncryptedCcfBuff);
@@ -339,7 +344,7 @@ int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_
     }
     if (BKNI_Snprintf(bp3binFilePath, filePathLength, "%s/%s", bp3_bin_file_path, bp3_bin_file_name) != (int)(filePathLength-1))
     {
-        BDBG_ERR(("%s - Cannot build final bp3.bin path", __FUNCTION__));
+        BDBG_ERR(("%s - Cannot build final bp3.bin path", BSTD_FUNCTION));
         rc = -1;
         goto leave;
     }
@@ -365,7 +370,7 @@ int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_
         BDBG_LOG(("oem provisioning"));
     }
 
-    ccfStatusSize = 20; // 4 byte status * max IP owners
+    ccfStatusSize = sizeof(uint32_t) * 5; // 4 byte status * max IP owners
     pCcfStatus = (uint32_t *)SRAI_Memory_Allocate(ccfStatusSize, SRAI_MemoryType_Shared);
     if (pCcfStatus == NULL)
     {
@@ -384,17 +389,24 @@ int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_
             &bp3LogBinSize,
             pCcfStatus,
             ccfStatusSize);
-    if (*pCcfStatus != BERR_SUCCESS)
+
+    if (bp3LogBinSize > 0)
     {
-        BDBG_ERR(("BP3 provisioning failed"));
-        rc = -2;
-        goto leave;
+      // add padding size to log file
+      bp3LogBinSize += 16 - (bp3LogBinSize % 16);
+      // caller must free logBuf. For example, in bp3_host app, it's freed in hnd_get_log()
+      *logBuf = (uint8_t*) malloc(sizeof(uint8_t) * bp3LogBinSize);
+      if (*logBuf == NULL)
+      {
+        BDBG_ERR(("failed to allocate buffer for BP3 log file"));
+      }
+      else
+      {
+        memcpy(*logBuf, pBp3LogBinBuff, bp3LogBinSize);
+        *logSize = bp3LogBinSize;
+      }
     }
-    // add padding size to log file
-    bp3LogBinSize += 16 - (bp3LogBinSize % 16);
-    *logBuf = (uint8_t*) malloc(sizeof(uint8_t) * bp3LogBinSize);
-    memcpy(*logBuf, pBp3LogBinBuff, bp3LogBinSize);
-    *logSize = bp3LogBinSize;
+
     if (rc != BERR_SUCCESS)
     {
         BDBG_ERR(("BP3 provisioning failed"));
@@ -409,7 +421,20 @@ leave:
     }
     if (pCcfStatus)
     {
-        if (status) *status = *pCcfStatus;
+        if (status)
+        {
+          // caller must free *status. For example, in bp3_host app, it's freed in hnd_post_bp3()
+          *status = (uint32_t*) malloc(ccfStatusSize);
+          if (*status == NULL)
+          {
+            BDBG_ERR(("failed to allocate buffer for BP3 IP owner status"));
+          }
+          else
+          {
+            memcpy(*status, pCcfStatus, ccfStatusSize);
+            if (statusSize) *statusSize = ccfStatusSize / sizeof(uint32_t);
+          }
+        }
         SRAI_Memory_Free((uint8_t *)pCcfStatus);
         pCcfStatus = NULL;
     }
@@ -435,10 +460,118 @@ leave:
     }
     if (rc)
     {
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
     }
     return rc;
 }
+
+#if (NEXUS_SECURITY_API_VERSION == 1)
+    NEXUS_OtpKeyType find_otp_select(void)
+    {
+      unsigned int OTPCode = 25;
+      NEXUS_ReadOtpIO readOtpIO;
+
+      unsigned int j = ((NEXUS_OtpCmdReadRegister) OTPCode == NEXUS_OtpCmdReadRegister_eKeyID ||
+          (NEXUS_OtpCmdReadRegister) OTPCode == NEXUS_OtpCmdReadRegister_eKeyHash) ? 0 : 4;
+
+      for (NEXUS_OtpKeyType keyType = NEXUS_OtpKeyType_eA; keyType < NEXUS_OtpKeyType_eSize; keyType++) {
+        if (NEXUS_Security_ReadOTP((NEXUS_OtpCmdReadRegister) OTPCode, (NEXUS_OtpKeyType) keyType,
+            &readOtpIO)) continue;
+        if (j + readOtpIO.otpKeyIdSize > NEXUS_OTP_KEY_ID_LEN) continue;
+        for (unsigned int i = 0; i < readOtpIO.otpKeyIdSize; i++)
+          if (readOtpIO.otpKeyIdBuf[i + j]) goto next;
+
+        return keyType;
+
+        next:;
+      }
+      // always return OTP Key A for now instead of OTP Key with SAGE key ladder rights.
+      return NEXUS_OtpKeyType_eA;
+    }
+
+    NEXUS_Error read_otp_id(NEXUS_OtpIdType keyType, uint32_t *otpIdHi, uint32_t *otpIdLo)
+    {
+      NEXUS_OtpIdOutput OTP_ID_out;
+
+      NEXUS_Error errCode = NEXUS_Security_ReadOtpId((NEXUS_OtpIdType) keyType, &OTP_ID_out);
+
+      if (!errCode) {
+        if (OTP_ID_out.size != 8) {
+          fprintf(stderr, "\n%s failed. Only 8 byte otp id is supported\n", __FUNCTION__);
+          return errCode;
+        }
+
+        // otpId array are in big endian
+        *otpIdHi = OTP_ID_out.otpId[3] | (uint32_t) OTP_ID_out.otpId[2] << 8 |
+            (uint32_t) OTP_ID_out.otpId[1] << 16 | (uint32_t) OTP_ID_out.otpId[0] << 24;
+
+        *otpIdLo = OTP_ID_out.otpId[7] | (uint32_t)OTP_ID_out.otpId[6] << 8 |
+            (uint32_t) OTP_ID_out.otpId[5] << 16 | (uint32_t) OTP_ID_out.otpId[4] << 24;
+        }
+      else
+        fprintf(stderr, "\n%s failed. Error code: #%d\n", __FUNCTION__, errCode);
+
+      return errCode;
+    }
+#else
+    BP3_Otp_KeyType find_otp_select(void)
+    {
+        unsigned int i;
+        NEXUS_OtpKeyInfo keyInfo;
+        BP3_Otp_KeyType keyType;
+
+        for (i=BP3_OTPKeyTypeA; i< BP3_OTPKeyMax; i++)
+        {
+            NEXUS_Error errCode = NEXUS_OtpKey_GetInfo(i, &keyInfo);
+            if (!errCode)
+            {
+                if (keyInfo.sageKeyLadderAllow)
+                {
+                    keyType = i;
+                    goto End;
+                }
+                else if (i == BP3_OTPKeyTypeH)
+                {
+                    fprintf(stderr, "%s failed to find key \n", __FUNCTION__);
+                    keyType = BP3_OTPKeyTypeA;
+                }
+            }
+            else
+            {
+                fprintf(stderr, "%s failed to get OTP key info %d\n", __FUNCTION__, errCode);
+                goto End;
+            }
+        }
+
+End:
+        // always return OTP Key A for now instead of OTP Key with SAGE key ladder rights.
+        return BP3_OTPKeyTypeA;
+    }
+
+    NEXUS_Error read_otp_id(unsigned keyIndex, uint32_t *otpIdHi, uint32_t *otpIdLo)
+    {
+        NEXUS_OtpKeyInfo keyInfo;
+
+        NEXUS_Error errCode = NEXUS_OtpKey_GetInfo(keyIndex, &keyInfo);
+
+        if (!errCode)
+        {
+            // keyInfo.id array are in big endian.  Convert to little endian.
+            *otpIdHi = keyInfo.id[3] | (uint32_t) keyInfo.id[2] << 8 |
+                (uint32_t) keyInfo.id[1] << 16 | (uint32_t) keyInfo.id[0] << 24;
+
+            *otpIdLo = keyInfo.id[7] | (uint32_t)keyInfo.id[6] << 8 |
+                (uint32_t) keyInfo.id[5] << 16 | (uint32_t) keyInfo.id[4] << 24;
+        }
+        else
+        {
+            fprintf(stderr, "\n%s failed. Error code: #%d\n", __FUNCTION__, errCode);
+        }
+
+        return errCode;
+    }
+#endif
+
 
 int bp3(int argc, char *argv[])
 {
@@ -459,7 +592,7 @@ int bp3(int argc, char *argv[])
         goto leave;
     }
 
-    rc = bp3_session_end(NULL, 0, &logBuff, &logSize, NULL);
+    rc = bp3_session_end(NULL, 0, &logBuff, &logSize, NULL, NULL);
     if (rc)
       goto leave;
 
@@ -473,7 +606,7 @@ leave_nexus:
       free(logBuff);
     if (rc)
     {
-        fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
     }
     return rc;
 }

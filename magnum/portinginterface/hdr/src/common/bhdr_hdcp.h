@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -202,6 +202,15 @@ void BHDR_HDCP_LoadRepeaterKsvFifo(
 
 
 #if BHDR_CONFIG_HDCP2X_SUPPORT
+
+typedef struct
+{
+	bool bAuthenticated;
+	bool bEncrypted;
+
+} BHDR_HDCP_Hdcp2xAuthenticationStatus;
+
+
 /**************************************************************************
 Summary:
 	Update Hdcp2.x RxCaps
@@ -264,11 +273,30 @@ Returns:
 	none
 
 **************************************************************************/
-BERR_Code BHDR_HDCP_GetHdcp2xEncryptionStatus(
+BERR_Code BHDR_HDCP_GetHdcp2xAuthenticationStatus(
 	const BHDR_Handle hHDR,
-	bool *bEncrypted
+	BHDR_HDCP_Hdcp2xAuthenticationStatus *pAuthenticationStatus
 );
 
+
+
+/**************************************************************************
+Summary:
+	Issue a REAUTH_REQ to the upstream HDCP2.x transmitter
+
+Description:
+	This function basically send a REAUTH_REQ to the upstream HDCP 2.x transmitter
+	requesting a restart of HDCP authentication
+
+Input:
+	hHDR - HDMI Rx Handle
+
+Returns:
+	none
+**************************************************************************/
+BERR_Code BHDR_HDCP_SendHdcp2xReAuthREQ(
+	const BHDR_Handle hHDR
+);
 
 /**************************************************************************
 Summary:

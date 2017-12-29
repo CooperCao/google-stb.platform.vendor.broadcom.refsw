@@ -3,12 +3,17 @@
  ******************************************************************************/
 #include "assert.h"
 
+#include "nexus_heap_selection.h"
 #include "nexus_memory.h"
 #include "nexus_platform.h"
 #include "nexus_base_mmap.h"
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
 #endif
+#include "fatal_error.h"
+
+#include "memory_convert.h"
+#include "../nexus/private_nexus.h"
 
 #include <EGL/egl.h>
 #include <ctype.h>
@@ -53,13 +58,14 @@ typedef struct
 
 typedef struct
 {
-   NXPL_HeapMapping        heapMap;
-   NXPL_HeapMapping        heapMapSecure;
-   uint32_t                numHeaps;
-   int                     l2_cache_size;
-   bool                    useDynamicMMA;
-   int                     heapGrow;
-   uint32_t                processId;
+   NXPL_HeapMapping heapMap;
+   NXPL_HeapMapping heapMapSecure;
+   uint32_t         numHeaps;
+   int              l2_cache_size;
+   bool             useDynamicMMA;
+   int              heapGrow;
+   uint32_t         processId;
+   MemConvertCache  mem_convert_cache;
 } NXPL_MemoryContext;
 
 /* Not a complete implementation, just enough to match what nx_ashmem is doing */
@@ -279,16 +285,7 @@ static void MemFlushCache(void *context, BEGL_MemHandle handle, void *pCached, s
       fprintf(sLogFile, "C %u %p %u\n", (uint32_t)handle, pCached, numBytes);
 #endif
 
-   /* Avoid Nexus ARM cache flush using broken set/way approach for flushes >= 3MB */
-   while (numBytes > 0)
-   {
-      size_t const maxBytesThisTime = 2*1024*1024;
-      size_t numBytesThisTime = numBytes < maxBytesThisTime ? numBytes : maxBytesThisTime;
-
-      NEXUS_FlushCache(pCached, numBytesThisTime);
-      pCached = (uint8_t*)pCached + numBytesThisTime;
-      numBytes -= numBytesThisTime;
-   }
+   NEXUS_FlushCache(pCached, numBytes);
 }
 
 /* Retrieve some information about the memory system */
@@ -341,6 +338,30 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
   return 0;
 }
 
+// The memory interface is the only sensible place for this. The display interface is really part
+// of EGL and therefore doesn't exist in Vulkan.
+static BEGL_Error MemConvertSurface(void *context, const BEGL_SurfaceConversionInfo *info,
+                                    bool validateOnly)
+{
+   NEXUS_StripedSurfaceHandle  striped = NULL;
+   NEXUS_SurfaceHandle         surf = NULL;
+   BEGL_Error                  ret;
+   NXPL_MemoryContext         *ctx = (NXPL_MemoryContext*)context;;
+
+   if (validateOnly)
+      return MemoryConvertSurface(info, /*striped=*/NULL, /*surf=*/NULL, validateOnly,
+                                  &ctx->mem_convert_cache);
+
+   if (!DisplayAcquireNexusSurfaceHandles(&striped, &surf, info->srcNativeSurface))
+      return BEGL_Fail;
+
+   ret = MemoryConvertSurface(info, striped, surf, validateOnly, &ctx->mem_convert_cache);
+
+   DisplayReleaseNexusSurfaceHandles(striped, surf);
+
+   return ret;
+}
+
 //static void DebugHeap(NEXUS_HeapHandle heap)
 //{
 //   NEXUS_MemoryStatus   status;
@@ -384,44 +405,32 @@ BEGL_MemoryInterface *CreateMemoryInterface(void)
          mem->FlushCache = MemFlushCache;
          mem->GetInfo    = MemGetInfo;
 
-         mem->Alloc         = MemAllocBlock;
-         mem->Free          = MemFreeBlock;
-         mem->Map           = MemMapBlock;
-         mem->Unmap         = MemUnmapBlock;
-         mem->Lock          = MemLockBlock;
-         mem->Unlock        = MemUnlockBlock;
+         mem->Alloc          = MemAllocBlock;
+         mem->Free           = MemFreeBlock;
+         mem->Map            = MemMapBlock;
+         mem->Unmap          = MemUnmapBlock;
+         mem->Lock           = MemLockBlock;
+         mem->Unlock         = MemUnlockBlock;
+         mem->ConvertSurface = MemConvertSurface;
 
-#ifndef SINGLE_PROCESS
+         if (ctx->useDynamicMMA)
          {
-            NEXUS_ClientConfiguration clientConfig;
-            NEXUS_Platform_GetClientConfiguration(&clientConfig);
-
-            if (ctx->useDynamicMMA)
-               ctx->heapMap.heap = clientConfig.heap[4];
-            else if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
-               ctx->heapMap.heap = clientConfig.heap[0];
-            else
-#ifdef NXCLIENT_SUPPORT
-               ctx->heapMap.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-#else
-               /* NEXUS_Platform_GetFramebufferHeap() is not callable under NEXUS_CLIENT_SUPPORT=y */
-               ctx->heapMap.heap = NULL;
-#endif
-
-#ifdef NXCLIENT_SUPPORT
-            ctx->heapMapSecure.heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
-#else
-            /* not available in NEXUS_CLIENT_SUPPORT=y mode */
+            ctx->heapMap.heap       = GetDynamicHeap();
             ctx->heapMapSecure.heap = NULL;
-#endif
          }
-#else
-         /* If you change this, then the heap must also change in nexus_platform.c
-            With refsw NEXUS_OFFSCREEN_SURFACE is the only heap guaranteed to be valid for v3d to use */
-         ctx->heapMap.heap    = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-         ctx->heapMapSecure.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
-#endif
+         else
+         {
+            ctx->heapMap.heap       = GetDefaultHeap();
+            ctx->heapMapSecure.heap = GetSecureHeap();
+         }
+
+         if (!ctx->heapMap.heap)
+            FATAL_ERROR("Could not get Nexus heap\n");
+
          NEXUS_Heap_GetStatus(ctx->heapMap.heap, &memStatus);
+         if (((memStatus.offset + memStatus.size - 1) >> 32) != 0)
+            FATAL_ERROR("Graphics heap not contained inside 32bit address space\n");
+
          ctx->heapMap.heapStartCached = memStatus.addr;
          ctx->heapMap.heapStartPhys = memStatus.offset;
          ctx->heapMap.heapSize = memStatus.size;
@@ -433,11 +442,17 @@ BEGL_MemoryInterface *CreateMemoryInterface(void)
             ctx->heapMap.heapSize,
             ctx->l2_cache_size);
 
-         NEXUS_Heap_GetStatus(ctx->heapMapSecure.heap, &memStatus);
-         ctx->heapMapSecure.heapStartCached = memStatus.addr;
-         ctx->heapMapSecure.heapStartPhys = memStatus.offset;
-         ctx->heapMapSecure.heapSize = memStatus.size;
-         ctx->l2_cache_size = memStatus.alignment;
+         if (ctx->heapMapSecure.heap)
+         {
+            NEXUS_Heap_GetStatus(ctx->heapMapSecure.heap, &memStatus);
+            if (((memStatus.offset + memStatus.size - 1) >> 32) != 0)
+               FATAL_ERROR("Secure graphics heap not contained inside 32bit address space\n");
+
+            ctx->heapMapSecure.heapStartCached = memStatus.addr;
+            ctx->heapMapSecure.heapStartPhys = memStatus.offset;
+            ctx->heapMapSecure.heapSize = memStatus.size;
+            ctx->l2_cache_size = memStatus.alignment;
+         }
 
          DEBUG_PRINTF("NXPL : NXPL_CreateMemInterface() INFO.\nVirtual (cached) %p, Physical 0x%08x, Size %d, Alignment %d\n",
             ctx->heapMapSecure.heapStartCached,
@@ -465,6 +480,7 @@ void DestroyMemoryInterface(BEGL_MemoryInterface *mem)
       {
          NXPL_MemoryContext *ctx = (NXPL_MemoryContext*)mem->context;
 
+         MemoryConvertClearCache(&ctx->mem_convert_cache);
          free(ctx);
       }
 

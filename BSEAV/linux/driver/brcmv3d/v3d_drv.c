@@ -645,7 +645,7 @@ static int v3d_alloc_hw_page(struct v3d_alloc_block *alloc_block,
 			     struct v3d_page_allocation *page)
 {
 	unsigned block_page_nr;
-	unsigned long paddr;
+	phys_addr_t paddr;
 
 	block_page_nr = ffz(alloc_block->alloc_map);
 	alloc_block->alloc_map |= BIT(block_page_nr);
@@ -1548,6 +1548,7 @@ static const struct of_device_id v3d_drm_of_table[] = {
 	{ .compatible = "brcm,v3d-v3.3.0.0", .data = &v3d_v3_3_0_0 },
 	{ .compatible = "brcm,v3d-v3.3.1.0", .data = &v3d_v3_3_1_0 },
 	{ .compatible = "brcm,v3d-v4.0.2.0", .data = &v3d_v3_3_1_0 },
+	{ .compatible = "brcm,v3d-v4.1.34.0",.data = &v3d_v3_3_1_0 },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, v3d_drm_of_table);

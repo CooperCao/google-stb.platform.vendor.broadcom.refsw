@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,7 +58,7 @@ BDBG_MODULE(BVBI);
 * Forward declarations of static (private) functions
 ***************************************************************************/
 static void BVBI_P_A656_Enc_Init (BREG_Handle hReg);
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex);
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex);
 
 
 /***************************************************************************
@@ -108,7 +108,7 @@ BERR_Code BVBI_P_A656_Enc_Program (
     BDBG_ENTER(BVBI_P_A656_Enc_Program);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -311,7 +311,7 @@ static void BVBI_P_A656_Enc_Init (BREG_Handle hReg)
 /***************************************************************************
  *
  */
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex)
 {
     uint32_t ulCoreOffset = 0xFFFFFFFF;
 

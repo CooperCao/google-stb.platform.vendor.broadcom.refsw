@@ -53,11 +53,7 @@
 #  include <stdlib.h>
 #else
 #  include "bstd_defs.h"
-
-/* Workaround for the missing inttypes.h */
-#define PRIx32      "x"
-#define PRId32      "d"
-#define PRIu32      "u"
+#  include "DSP/DSP_raaga_inttypes.h"
 #endif
 
 #include "libdspcontrol/COMMON.h"

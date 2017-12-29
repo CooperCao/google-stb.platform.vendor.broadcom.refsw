@@ -571,7 +571,7 @@ static int astra_tdrv_msg_hello(void)
     }
 
     /* switch to TZOS */
-    astra_call_smc(ptdrv->hClient, 0x83000007);
+    astra_call_smc(ptdrv->hClient, ASTRA_SMC_CODE_SWITCH);
 
     /* wait for rpy or timeout */
     timeout = 10;
@@ -666,7 +666,7 @@ static int astra_tdrv_mem_alloc(void)
             spin_unlock(&ptdrv->msgLock);
 
             /* switch to TZOS */
-            astra_call_smc(ptdrv->hClient, 0x83000007);
+            astra_call_smc(ptdrv->hClient, ASTRA_SMC_CODE_SWITCH);
 
             /* wait for rpy or timeout */
             timeout = 10;

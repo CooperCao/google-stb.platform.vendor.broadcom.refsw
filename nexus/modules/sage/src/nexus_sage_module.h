@@ -56,6 +56,9 @@
 #include "btmr.h"
 #include "bavc_types.h"
 
+#include "blst_list.h"
+#include "blst_squeue.h"
+
 #include "bsagelib.h"
 #include "bsagelib_rpc.h"
 
@@ -72,8 +75,15 @@ extern "C" {
 #define NEXUS_MODULE_NAME sage
 #define NEXUS_MODULE_SELF g_NEXUS_sageModule.moduleHandle
 
+typedef struct NEXUS_SageIndicationContext_s {
+    BLST_SQ_ENTRY(NEXUS_SageIndicationContext_s) link;
+    /* struct { struct SAGE_P_IndicationContext_s *sq_next; } link; */
+    uint32_t id;
+    uint32_t value;
+} NEXUS_SageIndicationContext;
 
 /* SageChannel context */
+typedef BLST_SQ_HEAD(NEXUS_SageIndicationQueueHead_s, NEXUS_SageIndicationContext_s) NEXUS_SageIndicationQueueHead;
 typedef struct NEXUS_SageChannel {
     NEXUS_OBJECT(NEXUS_SageChannel);
     BLST_D_ENTRY(NEXUS_SageChannel) link; /* member of a linked list */
@@ -96,6 +106,12 @@ typedef struct NEXUS_SageChannel {
     /* TA termination indication callback */
     NEXUS_IsrCallbackHandle taTerminateCallback;
 
+    /* SAGE indication [id, value] callback */
+    NEXUS_IsrCallbackHandle indicationCallback;
+
+    /* Queue of indications to consume.
+       See NEXUS_SageChannel_GetNextIndication() */
+    NEXUS_SageIndicationQueueHead indications;
 } NEXUS_SageChannel;
 
 /* Sage instance context */
@@ -125,8 +141,7 @@ typedef struct NEXUS_SageModule_P_Handle
     NEXUS_ModuleHandle moduleSecurityHandle;
 
     /* Timer */
-    BTMR_TimerHandle hTimer; /* timer handle to read timestamps */
-    unsigned timerMax;       /* value retrieve by BTMR_ReadTimerMax() */
+    NEXUS_Time initTime;
     unsigned initTimeUs;     /* Initialization timestamp in micro sec. */
 
     BSAGElib_ChipInfo chipInfo;
@@ -201,8 +216,6 @@ void NEXUS_SageModule_P_PrivClean(void);
 /* when transiting into S3, hsm is closed, on resume the handle needs to be refreshed */
 NEXUS_Error NEXUS_Sage_P_SAGElibUpdateHsm(bool set);
 
-void NEXUS_SageModule_Print(void);
-
 NEXUS_Error NEXUS_Sage_P_Status(NEXUS_SageStatus *pStatus);
 
 /*pBuff size should be equal to CRRBuffsize + 16bytes for AES enc alignment*/
@@ -219,6 +232,10 @@ NEXUS_Error Nexus_SageModule_P_Img_Create(const char *id, void **ppContext, BIMG
 void Nexus_SageModule_P_Img_Destroy(void *pContext);
 NEXUS_Error NEXUS_SageModule_P_Load(NEXUS_SageImageHolder *holder, BIMG_Interface *img_interface, void *img_context);
 void NEXUS_Sage_P_PrintSvp(void);
+
+void NEXUS_Sage_P_Module_Lock_Transport(void);
+void NEXUS_Sage_P_Module_Unlock_Transport(void);
+
 extern const struct NEXUS_SageSvpHwBlock {
     const char *achName;
 } g_NEXUS_SvpHwBlockTbl[];
@@ -226,6 +243,8 @@ extern const struct NEXUS_SageSvpHwBlock {
 #define SAGE_ALIGN_SIZE (4096)
 #define RoundDownP2(VAL, PSIZE) ((VAL) & (~(PSIZE-1)))
 #define RoundUpP2(VAL, PSIZE)   RoundDownP2((VAL) + PSIZE-1, PSIZE)
+
+NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, NEXUS_Addr *offset, uint32_t *len, uint32_t *max_free);
 
 #ifdef __cplusplus
 }

@@ -59,6 +59,9 @@ extern "C" {
 
 typedef struct NEXUS_VideoDecoderSecureBootContext
 {
+    bool set; /* one shot */
+    BAFL_BootInfo avdBootInfo;
+    BAFL_FirmwareInfo astFirmwareInfo[3]; /* [3] hardcoded to match bxvd_platform_revn0.c code */
     unsigned deviceID;
     bool bVichRegSet;
 
@@ -68,13 +71,17 @@ typedef struct NEXUS_VideoDecoderSecureBootContext
 }   NEXUS_VideoDecoderSecureBootContext;
 
 /* retrieve function pointers to enable region verification and register protection */
-void NEXUS_VideoDecoder_P_GetSecurityCallbacks ( BXVD_Settings *pSettings /*out*/,
-                                           unsigned deviceId );
+void NEXUS_VideoDecoder_P_GetSecurityCallbacks(
+    BXVD_Settings *pSettings, /*in/out*/
+    unsigned deviceId
+    );
 
 /* disable region verification for the video decoder firmwares associated with the specified device id */
 void NEXUS_VideoDecoder_P_DisableFwVerification(
     unsigned deviceId
     );
+
+NEXUS_Error NEXUS_VideoDecoder_P_BootDecoders(void);
 
 #ifdef __cplusplus
 }

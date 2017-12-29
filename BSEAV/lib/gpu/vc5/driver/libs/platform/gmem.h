@@ -5,7 +5,7 @@
 
 #include "libs/core/v3d/v3d_addr.h"
 #include "libs/util/log/log.h"
-#include "vcos_types.h"
+#include "libs/util/common.h"
 #include <stdbool.h>
 
 /* gmem_handle_t is a platform-specific opaque type.
@@ -31,6 +31,9 @@ typedef enum
 
    /* Secure usage tells the allocator to grab memory from the secure heap. */
    GMEM_USAGE_SECURE = 1 << 7,
+
+   /* External h/w blocks don't go via the MMU. Memory used by these blocks must be contiguous */
+   GMEM_USAGE_CONTIGUOUS = 1 << 8,
 } gmem_usage_flags_t;
 
 #define GMEM_USAGE_V3D_RW (GMEM_USAGE_V3D_READ | GMEM_USAGE_V3D_WRITE)

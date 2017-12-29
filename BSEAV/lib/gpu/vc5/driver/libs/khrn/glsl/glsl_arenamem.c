@@ -33,7 +33,8 @@ struct mem_record {
 };
 
 
-const char *basename(const char *filename) {
+/* TODO: This is basically a copy of POSIX basename. Use that instead? */
+const char *file_basename(const char *filename) {
    const char *p;
    const char *ret;
 
@@ -57,7 +58,7 @@ ArenaAlloc *glsl_arena_create_debug(size_t hunk_size, const char *file, int line
    ret->hunks       = NULL;
    ret->hunk_size   = hunk_size;
 #ifdef GLSL_MEMORY_DEBUG
-   ret->origin_file = basename(file);
+   ret->origin_file = file_basename(file);
    ret->origin_line = line;
 #endif
 
@@ -191,7 +192,7 @@ void glsl_arena_print(const ArenaAlloc *a) {
       }
       ++hunk_count;
       glsl_alloc_tracker_print(tracker);
-      printf("Total allocations: %5d Total bytes: %8u\n", alloc_count, offset);
+      printf("Total allocations: %5d Total bytes: %8zu\n", alloc_count, offset);
       glsl_alloc_tracker_free(tracker);
    }
 }

@@ -99,7 +99,7 @@ endif
 
 APPS = $(BASIC_BUILD_APPS) $(CUSTOM_BUILD_APPS)
 
-.PHONY: all clean clean_apps tr69c clean_tr69c dcclib clean_dcclib install server clean_server
+.PHONY: all clean clean_apps tr69c clean_tr69c dcclib clean_dcclib install server
 .PHONY: $(APPS)
 .PHONY: freetype clean_freetype
 
@@ -336,16 +336,20 @@ $1: $$(BINDIR)/$1
 endef
 $(foreach app, $(CUSTOM_BUILD_APPS), $(eval $(call custom_apprule,$(strip $(app)))))
 
-clean: clean_server clean_apps $(EXTRA_CLEAN_RULES)
+clean: clean_apps $(EXTRA_CLEAN_RULES)
+	${Q_}if [ -d ${B_REFSW_OBJ_ROOT} ]; then find ${B_REFSW_OBJ_ROOT} -type d -empty -delete; fi
 
 clean_apps:
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server clean_apps
 	-$(RM) -r $(BINDIR)
+	${Q_}if [ -d ${B_REFSW_OBJ_ROOT} ]; then find ${B_REFSW_OBJ_ROOT} -type d -empty -delete; fi
+
+ROCKFORD_NXCLIENT_TESTS := $(NEXUS_TOP)/../rockford/unittests/nexus/nxclient/tests
 
 # install everything on "all", even if not rebuilding, to facilitate B_REFSW_ARCH switches
 all: $(EXTRA_BUILD_RULES) $(APPS)
 	@echo [Install... nxclient apps to $(realpath ${NEXUS_BIN_DIR})]
-	${Q_}cd $(NEXUS_TOP)/nxclient/apps/tests;for FILE in `ls`; do $(CP) $$FILE ${NEXUS_BIN_DIR}; chmod a+x ${NEXUS_BIN_DIR}/$$FILE; done
+	if [ -d $(ROCKFORD_NXCLIENT_TESTS) ]; then cd $(ROCKFORD_NXCLIENT_TESTS);for FILE in `ls`; do $(CP) $$FILE ${NEXUS_BIN_DIR}; chmod a+x ${NEXUS_BIN_DIR}/$$FILE; done; fi
 	${Q_}$(MKDIR) ${NEXUS_BIN_DIR}/nxclient
 	${Q_}$(CP) $(NEXUS_TOP)/nxclient/apps/resources/* ${NEXUS_BIN_DIR}/nxclient
 	${Q_}$(CP) $(addprefix $(BINDIR)/,$(APPS)) $(NEXUS_BIN_DIR)

@@ -99,6 +99,17 @@ BDBG_MODULE(BVC5_P);
 static void BVC5_P_HardwareClean(BVC5_Handle hVC5, uint32_t uiCleans);
 static void BVC5_P_HardwareResetV3D(BVC5_Handle hVC5);
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+static void BVC5_P_HardwareReadEventFifos_isr(
+   BVC5_Handle          hVC5,
+   uint32_t             uiCoreIndex
+   );
+static void BVC5_P_HardwareReadEventFifosHub_isr(
+   BVC5_Handle          hVC5,
+   uint32_t             uiCoreIndex
+   );
+#endif
+
 uint32_t BVC5_P_ReadRegister(
    BVC5_Handle  hVC5,
    uint32_t     uiCoreIndex,
@@ -998,6 +1009,15 @@ void BVC5_P_HardwareSetDefaultRegisterState(
                 BCHP_FIELD_DATA(V3D_MMUC_CONTROL, ENABLE, 1));
 #endif
 
+   /* Tell V3D what the MAP version is for the memory */
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_HUB_CTL_DRAM_MAP_VERSION,
+                        BCHP_FIELD_DATA(V3D_HUB_CTL_DRAM_MAP_VERSION, DRAM_MAP_VERSION, hVC5->sMemInfo.memc[0].mapVer));
+#elif V3D_VER_AT_LEAST(3,3,0,0)
+   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_GCA_DRAM_MAP_VERSION,
+                        BCHP_FIELD_DATA(V3D_GCA_DRAM_MAP_VERSION, DRAM_MAP_VERSION, hVC5->sMemInfo.memc[0].mapVer));
+#endif
+
 #if USE_GMP_MONITORING
    BVC5_P_SetupGMP_isr(hVC5, uiCoreIndex);
 #endif
@@ -1331,9 +1351,28 @@ static bool BVC5_P_IssueBinJob(
 
    if (!psJob->bAbandon && psRenderJob != NULL && pBinJob->uiNumSubJobs > 0)
    {
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      uint32_t uiTsAddr;
+      BVC5_P_TileState *psTileState;
+      BMMA_Heap_Handle hMMAHeap;
+#endif
       BDBG_ASSERT(pBinJob->uiStart[uiCoreIndex] != 0);
       BDBG_ASSERT(pBinJob->uiEnd[uiCoreIndex] != 0);
       BDBG_ASSERT(pBinJob->uiStart[uiCoreIndex] != pBinJob->uiEnd[uiCoreIndex]);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      psTileState = (pBinJob->sBase.bSecure) ? &hVC5->sTileState[1] : &hVC5->sTileState[0];
+      hMMAHeap = (pBinJob->sBase.bSecure && hVC5->hSecureMMAHeap) ? hVC5->hSecureMMAHeap : hVC5->hMMAHeap;
+
+      if (pBinJob->uiTileStateSize > psTileState->uiTileStateSize)
+      {
+         if (!BVC5_P_AllocTileState(psTileState, hMMAHeap, pBinJob->uiTileStateSize))
+         {
+            BKNI_Printf("%s : FATAL : Unable to grow tile state\n", BSTD_FUNCTION);
+            return false; /* Couldn't get enough tile state memory */
+         }
+      }
+#endif
 
       hBinBlock = BVC5_P_BinMemArrayAdd(&psRenderJob->jobData.sRender.sBinMemArray,
                                         psJob->jobData.sBin.uiMinInitialBinBlockSize, &uiPhysical);
@@ -1356,7 +1395,10 @@ static bool BVC5_P_IssueBinJob(
       if (pBinJob->sBase.uiPagetablePhysAddr != 0)
          uiPhysical = BVC5_P_TranslateBinAddress(hVC5, uiPhysical, pBinJob->sBase.bSecure);
 
-      /* BKNI_Printf("Bin memory physical address %x\n", uiPhysical); */
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      uiTsAddr = BVC5_P_TranslateBinAddress(hVC5, psTileState->uiTileStateOffset, pBinJob->sBase.bSecure);
+      BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_0_CT0QTS, uiTsAddr | BCHP_FIELD_DATA(V3D_CLE_0_CT0QTS, CTQTSEN, 1));
+#endif
 
       /* Setup the memory for this bin job and kick it off */
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0QMA, uiPhysical);
@@ -1376,6 +1418,7 @@ static bool BVC5_P_IssueBinJob(
       {
          BVC5_P_EventInfo *psEventInfo;
 
+         BKNI_EnterCriticalSection();
          psEventInfo = BVC5_P_GetMessage(&hVC5->sEventMonitor.sBinJobQueueCLE);
          BVC5_P_PopulateEventInfo(hVC5, hVC5->sOpenParams.bGPUMonDeps, /*bCopyTFU=*/false, psJob, psEventInfo);
          BVC5_P_SendMessage(&hVC5->sEventMonitor.sBinJobQueueCLE, psEventInfo);
@@ -1383,6 +1426,7 @@ static bool BVC5_P_IssueBinJob(
          psEventInfo = BVC5_P_GetMessage(&hVC5->sEventMonitor.sBinJobQueuePTB);
          BVC5_P_PopulateEventInfo(hVC5, hVC5->sOpenParams.bGPUMonDeps, /*bCopyTFU=*/false, psJob, psEventInfo);
          BVC5_P_SendMessage(&hVC5->sEventMonitor.sBinJobQueuePTB, psEventInfo);
+         BKNI_LeaveCriticalSection();
       }
 #else
       {
@@ -1486,6 +1530,7 @@ static void BVC5_P_IssueRenderJob(
       {
          BVC5_P_EventInfo *psEventInfo;
 
+         BKNI_EnterCriticalSection();
          psEventInfo = BVC5_P_GetMessage(&hVC5->sEventMonitor.sRenderJobQueueCLE);
          BVC5_P_PopulateEventInfo(hVC5, hVC5->sOpenParams.bGPUMonDeps, /*bCopyTFU=*/false, psJob, psEventInfo);
          BVC5_P_SendMessage(&hVC5->sEventMonitor.sRenderJobQueueCLE, psEventInfo);
@@ -1493,13 +1538,18 @@ static void BVC5_P_IssueRenderJob(
          psEventInfo = BVC5_P_GetMessage(&hVC5->sEventMonitor.sRenderJobQueueTLB);
          BVC5_P_PopulateEventInfo(hVC5, hVC5->sOpenParams.bGPUMonDeps, /*bCopyTFU=*/false, psJob, psEventInfo);
          BVC5_P_SendMessage(&hVC5->sEventMonitor.sRenderJobQueueTLB, psEventInfo);
+         BKNI_LeaveCriticalSection();
       }
 
       if (hVC5->bCollectLoadStats)
       {
-         BVC5_P_EventInfo *psEventInfo = BVC5_P_GetMessage(&hVC5->sEventMonitor.sRenderJobQueueCLELoadStats);
+         BVC5_P_EventInfo *psEventInfo;
+
+         BKNI_EnterCriticalSection();
+         psEventInfo = BVC5_P_GetMessage(&hVC5->sEventMonitor.sRenderJobQueueCLELoadStats);
          BVC5_P_PopulateEventInfo(hVC5, hVC5->sOpenParams.bGPUMonDeps, /*bCopyTFU=*/false, psJob, psEventInfo);
          BVC5_P_SendMessage(&hVC5->sEventMonitor.sRenderJobQueueCLELoadStats, psEventInfo);
+         BKNI_LeaveCriticalSection();
       }
 #else
       /* Job is issued straight away so record start.  In the other case, we record the start when the previous job
@@ -1628,9 +1678,13 @@ static void BVC5_P_IssueTFUJob(
 #if V3D_VER_AT_LEAST(3,3,0,0)
    if (hVC5->sEventMonitor.bActive)
    {
-      BVC5_P_EventInfo *psEventInfo = BVC5_P_GetMessage(&hVC5->sEventMonitor.sQueueTFU);
+      BVC5_P_EventInfo *psEventInfo;
+
+      BKNI_EnterCriticalSection();
+      psEventInfo = BVC5_P_GetMessage(&hVC5->sEventMonitor.sQueueTFU);
       BVC5_P_PopulateEventInfo(hVC5, hVC5->sOpenParams.bGPUMonDeps, /*bCopyTFU=*/true, psJob, psEventInfo);
       BVC5_P_SendMessage(&hVC5->sEventMonitor.sQueueTFU, psEventInfo);
+      BKNI_LeaveCriticalSection();
    }
 #else
    {
@@ -2056,6 +2110,9 @@ void BVC5_P_InterruptHandler_isr(
    uint32_t    uiEnable;
    uint32_t    uiIntStatus;
    uint32_t    uiCoreIndex = 0; /* TODO */
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   int         i;
+#endif
 
    BSTD_UNUSED(iValue);
 
@@ -2127,6 +2184,10 @@ void BVC5_P_InterruptHandler_isr(
          /* See above if you need to add BFC handling */
       }
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      for (i = 0; i < BVC5_P_HW_QUEUE_STAGES; i++)
+         BVC5_P_HardwareReadEventFifos_isr(hVC5, uiCoreIndex);
+#endif
       __sync_fetch_and_or(&hVC5->uiInterruptReason, uiIntStatus);
 
       BKNI_SetEvent_isr(hVC5->hSchedulerWakeEvent);
@@ -2168,6 +2229,9 @@ void BVC5_P_InterruptHandlerHub_isr(
    uint32_t    uiEnable;
    uint32_t    uiIntStatus;
    uint32_t    uiCoreIndex = 0; /* TODO */
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   int         i;
+#endif
 
    BSTD_UNUSED(iValue);
 
@@ -2261,6 +2325,9 @@ void BVC5_P_InterruptHandlerHub_isr(
          }
 #endif
       }
+
+      for (i = 0; i < BVC5_P_HW_QUEUE_STAGES; i++)
+         BVC5_P_HardwareReadEventFifosHub_isr(hVC5, uiCoreIndex);
 #endif
 
       BKNI_SetEvent_isr(hVC5->hSchedulerWakeEvent);
@@ -2566,7 +2633,7 @@ typedef struct BVC5_P_PerformanceStats
    bool valid;
 } BVC5_P_PerformanceStats;
 
-static void BVC5_P_LogData(
+static void BVC5_P_LogData_isr(
    BVC5_Handle                hVC5,
    uint32_t                   uiCoreIndex,
    BVC5_P_PerformanceStats   *psStats,
@@ -2576,36 +2643,36 @@ static void BVC5_P_LogData(
 {
    if (psStats->valid)
    {
-      BVC5_P_EventInfo *psEventInfo = BVC5_P_ReceiveMessage(psQueue);
+      BVC5_P_EventInfo *psEventInfo = BVC5_P_ReceiveMessage_isrsafe(psQueue);
       if (psEventInfo)
       {
          uint64_t uiDuration = psStats->end - psStats->begin;
-         BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, iTrack, iEvent, BVC5_EventBegin, psEventInfo, psEventInfo->uiTimeStamp);
-         BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, iTrack, iEvent, BVC5_EventEnd, psEventInfo, psEventInfo->uiTimeStamp + uiDuration);
-         BVC5_P_ReleaseMessage(psQueue, psEventInfo);
+         BVC5_P_AddCoreJobEvent_isr(hVC5, uiCoreIndex, iTrack, iEvent, BVC5_EventBegin, psEventInfo, psEventInfo->uiTimeStamp);
+         BVC5_P_AddCoreJobEvent_isr(hVC5, uiCoreIndex, iTrack, iEvent, BVC5_EventEnd, psEventInfo, psEventInfo->uiTimeStamp + uiDuration);
+         BVC5_P_ReleaseMessage_isrsafe(psQueue, psEventInfo);
       }
    }
 }
 
-static void BVC5_P_LogTFUData(
+static void BVC5_P_LogTFUData_isr(
    BVC5_Handle                hVC5,
    BVC5_P_PerformanceStats   *psStats,
    BVC5_P_JobQueue           *psQueue)
 {
    if (psStats->valid)
    {
-      BVC5_P_EventInfo *psEventInfo = BVC5_P_ReceiveMessage(psQueue);
+      BVC5_P_EventInfo *psEventInfo = BVC5_P_ReceiveMessage_isrsafe(psQueue);
       if (psEventInfo)
       {
          uint64_t uiDuration = psStats->end - psStats->begin;
-         BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventBegin, psEventInfo, psEventInfo->uiTimeStamp);
-         BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventEnd, psEventInfo, psEventInfo->uiTimeStamp + uiDuration);
-         BVC5_P_ReleaseMessage(psQueue, psEventInfo);
+         BVC5_P_AddTFUJobEvent_isr(hVC5, BVC5_EventBegin, psEventInfo, psEventInfo->uiTimeStamp);
+         BVC5_P_AddTFUJobEvent_isr(hVC5, BVC5_EventEnd, psEventInfo, psEventInfo->uiTimeStamp + uiDuration);
+         BVC5_P_ReleaseMessage_isrsafe(psQueue, psEventInfo);
       }
    }
 }
 
-static uint64_t BVC5_P_GetData(
+static uint64_t BVC5_P_GetData_isr(
    BVC5_Handle          hVC5,
    uint32_t             uiCoreIndex,
    uint32_t             uiRegHI,
@@ -2613,12 +2680,12 @@ static uint64_t BVC5_P_GetData(
 )
 {
    uint64_t val;
-   val = (uint64_t)BVC5_P_ReadRegister(hVC5, uiCoreIndex, uiRegLO);
-   val = val | ((uint64_t)BVC5_P_ReadRegister(hVC5, uiCoreIndex, uiRegHI) << 32);
+   val = (uint64_t)BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, uiRegLO);
+   val = val | ((uint64_t)BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, uiRegHI) << 32);
    return val / hVC5->sEventMonitor.uiCyclesPerUs;
 }
 
-static uint64_t BVC5_P_GetNonCoreData(
+static uint64_t BVC5_P_GetNonCoreData_isr(
    BVC5_Handle          hVC5,
    uint32_t             uiRegHI,
    uint32_t             uiRegLO
@@ -2626,22 +2693,22 @@ static uint64_t BVC5_P_GetNonCoreData(
 {
    uint64_t val;
    /* Must read the LO part first as this latches the HI result */
-   val = (uint64_t)BVC5_P_ReadNonCoreRegister(hVC5, uiRegLO);
-   val = val | ((uint64_t)BVC5_P_ReadNonCoreRegister(hVC5, uiRegHI) << 32);
+   val = (uint64_t)BVC5_P_ReadNonCoreRegister_isr(hVC5, uiRegLO);
+   val = val | ((uint64_t)BVC5_P_ReadNonCoreRegister_isr(hVC5, uiRegHI) << 32);
    return val / hVC5->sEventMonitor.uiCyclesPerUs;
 }
 
-#define GetStats(res, counterRegS, counterRegE)\
+#define GetStats_isr(res, counterRegS, counterRegE)\
 do {\
-   res.begin = BVC5_P_GetData(hVC5, uiCoreIndex, BCHP_V3D_CLE_##counterRegS##HI, BCHP_V3D_CLE_##counterRegS##LO);\
-   res.end = BVC5_P_GetData(hVC5, uiCoreIndex, BCHP_V3D_CLE_##counterRegE##HI, BCHP_V3D_CLE_##counterRegE##LO);\
+   res.begin = BVC5_P_GetData_isr(hVC5, uiCoreIndex, BCHP_V3D_CLE_##counterRegS##HI, BCHP_V3D_CLE_##counterRegS##LO);\
+   res.end = BVC5_P_GetData_isr(hVC5, uiCoreIndex, BCHP_V3D_CLE_##counterRegE##HI, BCHP_V3D_CLE_##counterRegE##LO);\
    res.valid = true;\
 } while(0)
 
-#define GetTFUStats(res, counterRegS, counterRegE)\
+#define GetTFUStats_isr(res, counterRegS, counterRegE)\
 do {\
-   res.begin = BVC5_P_GetNonCoreData(hVC5, BCHP_V3D_TFU_##counterRegS##HI, BCHP_V3D_TFU_##counterRegS##LO);\
-   res.end = BVC5_P_GetNonCoreData(hVC5, BCHP_V3D_TFU_##counterRegE##HI, BCHP_V3D_TFU_##counterRegE##LO);\
+   res.begin = BVC5_P_GetNonCoreData_isr(hVC5, BCHP_V3D_TFU_##counterRegS##HI, BCHP_V3D_TFU_##counterRegS##LO);\
+   res.end = BVC5_P_GetNonCoreData_isr(hVC5, BCHP_V3D_TFU_##counterRegE##HI, BCHP_V3D_TFU_##counterRegE##LO);\
    res.valid = true;\
 } while(0)
 
@@ -2651,11 +2718,10 @@ enum
    BVC5_PTB_BIN = 1,
    BVC5_CLE_RENDER = 2,
    BVC5_TLB_RENDER = 3,
-   BVC5_TFU = 4,
-   BVC5_PC_LAST = 5   /* LAST VALUE */
+   BVC5_PC_LAST = 4   /* LAST VALUE */
 };
 
-void BVC5_P_HardwareReadEventFifos(
+static void BVC5_P_HardwareReadEventFifos_isr(
    BVC5_Handle          hVC5,
    uint32_t             uiCoreIndex
    )
@@ -2665,7 +2731,7 @@ void BVC5_P_HardwareReadEventFifos(
 
    if (hVC5->bCollectLoadStats || hVC5->sEventMonitor.bActive)
    {
-      uint32_t status = BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CCNTCS);
+      uint32_t status = BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_CLE_CCNTCS);
 
       /* Create a mask for all the fifo not-empty bits */
       const uint32_t hasDataMask =
@@ -2687,41 +2753,47 @@ void BVC5_P_HardwareReadEventFifos(
       {
          /* We have some event data to handle in the fifos and they are enabled */
          if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CBEND_NE, 1))
-            GetStats(stats[BVC5_CLE_BIN], CCBS, CCBE);
+            GetStats_isr(stats[BVC5_CLE_BIN], CCBS, CCBE);
 
          if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, PBEND_NE, 1))
-            GetStats(stats[BVC5_PTB_BIN], CPBS, CPBE);
+            GetStats_isr(stats[BVC5_PTB_BIN], CPBS, CPBE);
 
          if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CREND_NE, 1))
-            GetStats(stats[BVC5_CLE_RENDER], CCRS, CCRE);
+            GetStats_isr(stats[BVC5_CLE_RENDER], CCRS, CCRE);
 
          if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, TREND_NE, 1))
-            GetStats(stats[BVC5_TLB_RENDER], CTRS, CTRE);
+            GetStats_isr(stats[BVC5_TLB_RENDER], CTRS, CTRE);
       }
 
       if (hVC5->bCollectLoadStats && stats[BVC5_TLB_RENDER].valid)
       {
-         BVC5_P_EventInfo *psEventInfo = BVC5_P_ReceiveMessage(&hVC5->sEventMonitor.sRenderJobQueueCLELoadStats);
+         BVC5_P_EventInfo *psEventInfo = BVC5_P_ReceiveMessage_isrsafe(&hVC5->sEventMonitor.sRenderJobQueueCLELoadStats);
          if (psEventInfo)
          {
-            BVC5_P_ClientMapUpdateStats(hVC5->hClientMap, psEventInfo->uiClientId, stats[BVC5_TLB_RENDER].end - stats[BVC5_TLB_RENDER].begin);
-            BVC5_P_ReleaseMessage(&hVC5->sEventMonitor.sRenderJobQueueCLELoadStats, psEventInfo);
+            BVC5_P_ClientMapUpdateStats_isrsafe(hVC5->hClientMap, psEventInfo->uiClientId, stats[BVC5_TLB_RENDER].end - stats[BVC5_TLB_RENDER].begin);
+            BVC5_P_ReleaseMessage_isrsafe(&hVC5->sEventMonitor.sRenderJobQueueCLELoadStats, psEventInfo);
          }
       }
 
       if (hVC5->sEventMonitor.bActive)
       {
-         BVC5_P_LogData(hVC5, uiCoreIndex, &stats[BVC5_CLE_BIN], &hVC5->sEventMonitor.sBinJobQueueCLE, BVC5_P_EVENT_MONITOR_CORE_CLE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING);
-         BVC5_P_LogData(hVC5, uiCoreIndex, &stats[BVC5_PTB_BIN], &hVC5->sEventMonitor.sBinJobQueuePTB, BVC5_P_EVENT_MONITOR_CORE_PTB_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING);
-         BVC5_P_LogData(hVC5, uiCoreIndex, &stats[BVC5_CLE_RENDER], &hVC5->sEventMonitor.sRenderJobQueueCLE, BVC5_P_EVENT_MONITOR_CORE_CLE_RDR_TRACK, BVC5_P_EVENT_MONITOR_RENDERING);
-         BVC5_P_LogData(hVC5, uiCoreIndex, &stats[BVC5_TLB_RENDER], &hVC5->sEventMonitor.sRenderJobQueueTLB, BVC5_P_EVENT_MONITOR_CORE_TLB_RDR_TRACK, BVC5_P_EVENT_MONITOR_RENDERING);
+         BVC5_P_LogData_isr(hVC5, uiCoreIndex, &stats[BVC5_CLE_BIN], &hVC5->sEventMonitor.sBinJobQueueCLE, BVC5_P_EVENT_MONITOR_CORE_CLE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING);
+         BVC5_P_LogData_isr(hVC5, uiCoreIndex, &stats[BVC5_PTB_BIN], &hVC5->sEventMonitor.sBinJobQueuePTB, BVC5_P_EVENT_MONITOR_CORE_PTB_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING);
+         BVC5_P_LogData_isr(hVC5, uiCoreIndex, &stats[BVC5_CLE_RENDER], &hVC5->sEventMonitor.sRenderJobQueueCLE, BVC5_P_EVENT_MONITOR_CORE_CLE_RDR_TRACK, BVC5_P_EVENT_MONITOR_RENDERING);
+         BVC5_P_LogData_isr(hVC5, uiCoreIndex, &stats[BVC5_TLB_RENDER], &hVC5->sEventMonitor.sRenderJobQueueTLB, BVC5_P_EVENT_MONITOR_CORE_TLB_RDR_TRACK, BVC5_P_EVENT_MONITOR_RENDERING);
       }
    }
+}
 
+static void BVC5_P_HardwareReadEventFifosHub_isr(
+   BVC5_Handle          hVC5,
+   uint32_t             uiCoreIndex
+   )
+{
    if (hVC5->sEventMonitor.bActive)
    {
       /* Now do the same for the TFU counters */
-      uint32_t status = BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_CCCS);
+      uint32_t status = BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_TFU_CCCS);
 
       const uint32_t hasTFUDataMask =
          BCHP_FIELD_DATA(V3D_TFU_CCCS, TFU_END_NE, 1);
@@ -2729,14 +2801,13 @@ void BVC5_P_HardwareReadEventFifos(
       if ((status & BCHP_FIELD_DATA(V3D_TFU_CCCS, CCNT_EN, 1)) &&
           (status & hasTFUDataMask))
       {
-         GetTFUStats(stats[BVC5_TFU], SCC, ECC);
-         BVC5_P_LogTFUData(hVC5, &stats[BVC5_TFU], &hVC5->sEventMonitor.sQueueTFU);
+         BVC5_P_PerformanceStats stats;
+         GetTFUStats_isr(stats, SCC, ECC);
+         BVC5_P_LogTFUData_isr(hVC5, &stats, &hVC5->sEventMonitor.sQueueTFU);
       }
    }
 }
-#endif
 
-#if V3D_VER_AT_LEAST(3,3,0,0)
 void BVC5_P_HardwareClearEventFifos(
    BVC5_Handle hVC5,
    uint32_t    uiCoreIndex

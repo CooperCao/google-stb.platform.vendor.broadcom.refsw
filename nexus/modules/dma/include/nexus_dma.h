@@ -278,14 +278,15 @@ DMA Job Block Descriptor
 ***************************************************************************/
 typedef struct NEXUS_DmaJobBlockSettings
 {
-    const void *pSrcAddr;   /* attr{memory=cached} Source address */
-    void *pDestAddr;        /* attr{memory=cached} Destination address - may be the same as source address */
+    const void *pSrcAddr;   /* attr{memory=cached} Source address. This must be Nexus heap memory, not operating system memory. */
+    void *pDestAddr;        /* attr{memory=cached} Destination address. This must be Nexus heap memory, not operating system memory.
+                                May be the same as source address */
     size_t blockSize;       /* in bytes */
 
-    bool cached;            /* Use cache flush on source and destination addresses.
-                               Requires that device memory have server-side memory mapping.
-                               Source flush happens before read; destination flush happens before and after write;
-                               therefore, you can be more efficient and flexible by setting this false and calling
+    bool cached;            /* Do cache flush on pSrcAddr and pDestAddr addresses in the driver. This is not recommended.
+                               It requires that device memory have server-side memory mapping, and many heaps do not have this.
+                               If set, pSrcAddr flush will happen before DMA read and pDestAddr flush will happen will happen before and
+                               after DMA write, which is possibly inefficient. You can be more efficient by setting cached=false and calling
                                NEXUS_FlushCache in your app only as required. See above for general rules for cache flush. */
     bool resetCrypto;       /* Should the crypto operation reset on this block? This flag has an effect only when paired with scatterGatherCryptoStart */
 

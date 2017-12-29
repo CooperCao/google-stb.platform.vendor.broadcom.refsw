@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,19 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * API Description:
- *   API name: CommonCrypto
- *    Specific APIs related to common crypto.
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
-***************************************************************************/
+ ******************************************************************************/
+
 
 #ifndef COMMON_CRYPTO_H__
 #define COMMON_CRYPTO_H__
@@ -86,18 +75,29 @@ typedef enum CommonCryptoKeySrc
     CommonCrypto_eMax
 }CommonCryptoKeySrc;
 
+#if (NEXUS_SECURITY_API_VERSION==1)
 typedef struct CommonCryptoKeyLadderOperationStruct
 {
-	NEXUS_SecurityOperation SessionKeyOperation;
-	NEXUS_SecurityOperation SessionKeyOperationKey2;
-	NEXUS_SecurityOperation ControlWordKeyOperation;
+    NEXUS_SecurityOperation SessionKeyOperation;
+    NEXUS_SecurityOperation SessionKeyOperationKey2;
+    NEXUS_SecurityOperation ControlWordKeyOperation;
 }CommonCryptoKeyLadderOperationStruct;
 
 typedef struct CommonCryptoVKLSettings
 {
-	NEXUS_SecurityVirtualKeyladderID VklValue; /* ignored on Zeus 3.0 and up */
-	NEXUS_SecurityCustomerSubMode CustSubMode;
+    NEXUS_SecurityVirtualKeyladderID VklValue; /* ignored on Zeus 3.0 and up */
+    NEXUS_SecurityCustomerSubMode CustSubMode;
 }CommonCryptoVKLSettings;
+
+#else
+typedef struct CommonCryptoKeyLadderOperationStruct
+{
+    NEXUS_CryptographicOperation SessionKeyOperation;
+    NEXUS_CryptographicOperation SessionKeyOperationKey2;
+    NEXUS_CryptographicOperation ControlWordKeyOperation;
+}CommonCryptoKeyLadderOperationStruct;
+
+#endif
 
 /***************************************************************************
 Summary:
@@ -126,7 +126,11 @@ CommonCrypto_LoadClearKeyIv()
 typedef struct CommonCryptoClearKeySettings
 {
     NEXUS_KeySlotHandle keySlot;          /* Key slot where the key will be loaded. */
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeyType keySlotType;    /* Key destination entry type */
+#else
+    NEXUS_KeySlotPolarity keySlotType;           /* Key destination entry type */
+#endif
     CommonCryptoKeyIvSettings settings; /* Key/IV information to load in the key slot. */
 }CommonCryptoClearKeySettings;
 
@@ -152,12 +156,15 @@ typedef struct CommonCryptoKeyLadderSettings
     CommonCryptoKeyLadderOperationStruct KeyLadderOpStruct;
 
     bool overwriteVKLSettings;  /* Not used */
+#if (NEXUS_SECURITY_API_VERSION==1)
     CommonCryptoVKLSettings VirtualKeyLadderSettings;
-
     /* SWSECURITY-195 */
     NEXUS_SecurityKeyladderID keyladderID;
-	NEXUS_SecurityKeyladderType keyladderType;
-	NEXUS_SecuritySwizzleType swizzleType;
+    NEXUS_SecurityKeyladderType keyladderType;
+    NEXUS_SecuritySwizzleType swizzleType;
+#else
+    unsigned keyladderID; /*necessary?*/
+#endif
 	bool askmSupport;
 	bool aesKeySwap;
 }CommonCryptoKeyLadderSettings;
@@ -174,7 +181,11 @@ typedef struct CommonCryptoCipheredKeySettings
 {
     NEXUS_KeySlotHandle keySlot;          /* Key slot where the key will be loaded. */
     CommonCryptoKeySrc keySrc;      /* Origin of the key, either CommonCrypto_eCustKey or CommonCrypto_eOtpKey. */
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeyType keySlotType;    /* Key destination entry type */
+#else
+    NEXUS_KeySlotPolarity keySlotType;           /* Key destination entry type */
+#endif
     CommonCryptoKeyLadderSettings settings; /* Key Ladder information used to load the key. */
 }CommonCryptoCipheredKeySettings;
 
@@ -189,26 +200,45 @@ CommonCrypto_LoadKeyConfig()
 ***************************************************************************/
 typedef struct CommonCryptoAlgorithmSettings
 {
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityOperation opType;              /* Operation to perfrom */
     NEXUS_SecurityAlgorithm algType;             /* Crypto algorithm */
     NEXUS_SecurityAlgorithmVariant algVariant;   /* Cipher chain mode for selected cipher */
     NEXUS_SecurityKeyType keySlotType;           /* Key destination entry type */
     NEXUS_SecurityTerminationMode termMode;      /* Termination Type for residual block to be ciphered */
+#else
+    NEXUS_CryptographicOperation opType;         /* Operation to perfrom */
+    NEXUS_CryptographicAlgorithm algType;        /* Crypto algorithm */
+    NEXUS_CryptographicAlgorithmMode algVariant; /* Cipher chain mode for selected cipher */
+    NEXUS_KeySlotPolarity keySlotType;           /* Key destination entry type */
+    NEXUS_KeySlotTerminationMode termMode;       /* Termination Type for residual block to be ciphered */
+#endif
     bool enableExtKey;                           /* Flag used to enable external key loading during dma transfer on the key slot.
                                                     true = key will prepend data in the dma descriptors. */
     bool enableExtIv;                            /* Flag used to enable external IV loading during dma transfer on the key slot.
                                                     true = iv will prepend data in the dma descriptors. */
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityAesCounterSize aesCounterSize; /* This member is required for AES counter mode  */
     NEXUS_SecurityCounterMode    aesCounterMode; /* for Zeus 3.0 and later */
     NEXUS_SecuritySolitarySelect solitaryMode;
 
     NEXUS_SecurityKey2Select maskKey2Select;         /* For 40-nm platforms */
+#else
+    unsigned aesCounterSize;                                /* For algorithm modes predicated on a counter, this parameter spcifies
+                                                        the size of the counter in bits. Supported values are 32, 64, 96 and 128 bits.*/
+    NEXUS_CounterMode aesCounterMode;
+    NEXUS_KeySlotTerminationSolitaryMode solitaryMode;
+#endif
     uint32_t caVendorID;                         /* Conditional Access Vendor ID - assigned by Broadcom for cipher
                                                     key selection/computation */
     unsigned askmModuleID;                       /* Used in ASKM mode for key2 generation - one-to-one mapped into
                                                     Customer Submode */
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityIVMode ivMode;                 /* Initialization Vector (IV) type - to be used by the selected cipher */
     NEXUS_SecurityOtpId stbOwnerID;              /* Source for  STB owner ID - used in ASKM mode for key2 generation */
+#else
+    NEXUS_KeyLadderStbOwnerIdSelect stbOwnerID;  /* Source for  STB owner ID - used in ASKM mode for key2 generation */
+#endif
     bool  enableMaskKey2Select;                  /* Test Key2 to be used for cipher key generation when set.
                                                     (For debugging purposes only) */
 }CommonCryptoAlgorithmSettings;
@@ -302,6 +332,7 @@ void CommonCrypto_Close(
     CommonCryptoHandle handle
     );
 
+#if (NEXUS_SECURITY_API_VERSION==1)
 /***************************************************************************
 Summary:
 Get default key ladder operation settings.
@@ -314,7 +345,7 @@ with default settings used during the key3 and key4 generation.
 void CommonCrypto_GetDefaultKeyLadderSettings(
 		CommonCryptoKeyLadderSettings *pSettings    /* [out] default settings */
     );
-
+#endif
 /***************************************************************************
 Summary:
 Get current module settings.
@@ -324,7 +355,7 @@ This functions is used to retrive the current module settings
 ***************************************************************************/
 void CommonCrypto_GetSettings(
     CommonCryptoHandle handle,
-    CommonCryptoSettings *pSettings /* [out] */ 
+    CommonCryptoSettings *pSettings /* [out] */
     );
 
 
@@ -337,9 +368,10 @@ This function is used to nodify the module current settings.
 ***************************************************************************/
 NEXUS_Error CommonCrypto_SetSettings(
     CommonCryptoHandle handle,
-    const CommonCryptoSettings *pSettings 
+    const CommonCryptoSettings *pSettings
     );
 
+#if (NEXUS_SECURITY_API_VERSION==1)
 /***************************************************************************
 Summary:
 Get default key configuration settings.
@@ -351,13 +383,13 @@ This is required in order to make application code resilient to the addition of 
 void CommonCrypto_GetDefaultKeyConfigSettings(
     CommonCryptoKeyConfigSettings *pSettings    /* [out] default settings */
     );
-
+#endif
 /***************************************************************************
 Summary:
 Loads the key configuration into the secure processor.
 
 Description:
-This function loads the key configuration into a key slot of the secure processor. 
+This function loads the key configuration into a key slot of the secure processor.
 It must be called before a key can be loaded in the key slot using either CommonCrypto_LoadClearKeyIv()
 or CommonCrypto_LoadCipheredKey().
 ***************************************************************************/
@@ -366,6 +398,7 @@ NEXUS_Error CommonCrypto_LoadKeyConfig(
     const CommonCryptoKeyConfigSettings *pSettings
     );
 
+#if (NEXUS_SECURITY_API_VERSION==1)
 
 /***************************************************************************
 Summary:
@@ -378,13 +411,12 @@ This is required in order to make application code resilient to the addition of 
 void CommonCrypto_GetDefaultClearKeySettings(
     CommonCryptoClearKeySettings *pSettings    /* [out] default settings */
     );
-
 /***************************************************************************
 Summary:
 Loads a cleartext key into a key slot.
 
 Description:
-This function loads a clear text key  into a key slot of the secure processor. 
+This function loads a clear text key  into a key slot of the secure processor.
 Note that before a key can be loaded in a key slot,the key slot must first be configured by
 calling CommonCrypto_LoadKeyConfig().
 ***************************************************************************/
@@ -404,7 +436,6 @@ This is required in order to make application code resilient to the addition of 
 void CommonCrypto_GetDefaultCipheredKeySettings(
     CommonCryptoCipheredKeySettings *pSettings    /* [out] default settings */
     );
-
 /***************************************************************************
 Summary:
 Uses the keyladder to load a key into a key slot.
@@ -445,6 +476,7 @@ NEXUS_Error CommonCrypto_SetupKey(
     CommonCryptoHandle handle,
     const CommonCryptoKeySettings *pSettings
     );
+#endif
 
 
 /***************************************************************************
@@ -480,7 +512,7 @@ This functions do a DMA transfer.
 
 Description:
 This function creates and start a blocking dma transfer. Them it will use a pooling loop to wait for the transfer to complete.
-Special care must be taken by the caller to avoid calling this function in time critical code. 
+Special care must be taken by the caller to avoid calling this function in time critical code.
 ***************************************************************************/
 NEXUS_Error CommonCrypto_DmaXfer(
     CommonCryptoHandle handle,

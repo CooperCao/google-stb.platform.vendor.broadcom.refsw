@@ -89,21 +89,21 @@ DRM_DtcpIpTl_Initialize(
     if ( !hDtcpIpTl || !key_file )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
     rc = DRM_Common_MemoryAllocate((uint8_t**)&handle, sizeof(DRM_DrmDtcpIpTl_P_Context_t));
     if (rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module", __FUNCTION__));
+        BDBG_ERR(("%s - Error initializing module", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     if (handle == NULL)
     {
         rc = Drm_MemErr;
-        BDBG_ERR(("%s -  Error Allocating drm Memory for context", __FUNCTION__));
+        BDBG_ERR(("%s -  Error Allocating drm Memory for context", BSTD_FUNCTION));
         goto ErrorExit;
     }
     drmCmnInit.drmCommonInit.heap = NULL;
@@ -128,7 +128,7 @@ DRM_DtcpIpTl_Initialize(
     }
 #endif
 
-    BDBG_MSG(("%s TA bin file %s ",__FUNCTION__, drmCmnInit.ta_bin_file_path));
+    BDBG_MSG(("%s TA bin file %s ",BSTD_FUNCTION, drmCmnInit.ta_bin_file_path));
 #ifdef USE_UNIFIED_COMMON_DRM
     drmCmnInit.drmType = 0;
 #else
@@ -138,14 +138,14 @@ DRM_DtcpIpTl_Initialize(
     rc = DRM_Common_TL_Initialize(&drmCmnInit);
     if (rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module", __FUNCTION__));
+        BDBG_ERR(("%s - Error initializing module", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -161,7 +161,7 @@ DRM_DtcpIpTl_Initialize(
 #endif
     if (rc != Drm_Success)
     {
-        BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Error initializing module (0x%08x)", BSTD_FUNCTION, container->basicOut[0]));
         goto ErrorExit;
     }
 
@@ -186,7 +186,7 @@ void DRM_DtcpIpTl_Finalize(DRM_DtcpIpTlHandle hDtcpIpTl)
 {
     if ( !hDtcpIpTl )
     {
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         return;
     }
 
@@ -221,7 +221,7 @@ DrmRC DRM_DtcpIpTl_GetRNG(
     if ( !hDtcpIpTl || !r )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -230,7 +230,7 @@ DrmRC DRM_DtcpIpTl_GetRNG(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -240,7 +240,7 @@ DrmRC DRM_DtcpIpTl_GetRNG(
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(len, SRAI_MemoryType_Shared);
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -253,7 +253,7 @@ DrmRC DRM_DtcpIpTl_GetRNG(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during GetRNG operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during GetRNG operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -267,7 +267,7 @@ DrmRC DRM_DtcpIpTl_GetRNG(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -297,7 +297,7 @@ DrmRC DRM_DtcpIpTl_GetRNGMax(
     if ( !hDtcpIpTl || !r || !max)
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -306,7 +306,7 @@ DrmRC DRM_DtcpIpTl_GetRNGMax(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -316,7 +316,7 @@ DrmRC DRM_DtcpIpTl_GetRNGMax(
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(len, SRAI_MemoryType_Shared);
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -329,7 +329,7 @@ DrmRC DRM_DtcpIpTl_GetRNGMax(
         container->blocks[1].data.ptr = SRAI_Memory_Allocate(len, SRAI_MemoryType_Shared);
         if (container->blocks[1].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -345,7 +345,7 @@ DrmRC DRM_DtcpIpTl_GetRNGMax(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during GetRNG operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during GetRNG operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -359,7 +359,7 @@ DrmRC DRM_DtcpIpTl_GetRNGMax(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -393,7 +393,7 @@ DrmRC DRM_DtcpIpTl_GetDeviceCertificate(
     if ( !hDtcpIpTl || !cert || !dtlaPublicKey)
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -402,7 +402,7 @@ DrmRC DRM_DtcpIpTl_GetDeviceCertificate(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -412,7 +412,7 @@ DrmRC DRM_DtcpIpTl_GetDeviceCertificate(
         container->blocks[0].data.ptr = SRAI_Memory_Allocate(certLength, SRAI_MemoryType_Shared);
         if (container->blocks[0].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -422,7 +422,7 @@ DrmRC DRM_DtcpIpTl_GetDeviceCertificate(
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(DTCP_PUBLIC_KEY_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -436,7 +436,7 @@ DrmRC DRM_DtcpIpTl_GetDeviceCertificate(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during GetRNG operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during GetRNG operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -455,7 +455,7 @@ DrmRC DRM_DtcpIpTl_GetDeviceCertificate(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -493,7 +493,7 @@ DrmRC DtcpIpTl_EncDecOperation(
     NEXUS_DmaJobHandle hDmaJob;
     NEXUS_DmaJobStatus jobStatus;
 
-    BDBG_MSG(("%s - Entering function", __FUNCTION__));
+    BDBG_MSG(("%s - Entering function", BSTD_FUNCTION));
     BSTD_UNUSED(hDtcpIpTl);
 
     if ( !dtcpIpDmaHandle || !dtcpIpKeyHandle || !pSrc || !pDst || !src_length )
@@ -506,7 +506,7 @@ DrmRC DtcpIpTl_EncDecOperation(
     if(src_length % 16 != 0)
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s - Source length  of '%u' bytes is invalid for crypto operation, must be 16-byte aligned", __FUNCTION__, src_length));
+        BDBG_ERR(("%s - Source length  of '%u' bytes is invalid for crypto operation, must be 16-byte aligned", BSTD_FUNCTION, src_length));
         goto ErrorExit;
     }
 
@@ -518,7 +518,7 @@ DrmRC DtcpIpTl_EncDecOperation(
 
     if ( (hDmaJob = NEXUS_DmaJob_Create (dtcpIpDmaHandle, &dmaJobSetting)) == NULL )
     {
-        BDBG_ERR(("%s - NEXUS_DmaJob_Create failed\n", __FUNCTION__));
+        BDBG_ERR(("%s - NEXUS_DmaJob_Create failed\n", BSTD_FUNCTION));
         rc = Drm_NexusErr;
         goto ErrorExit;
     }
@@ -546,7 +546,7 @@ DrmRC DtcpIpTl_EncDecOperation(
             {
                 retCode = NEXUS_DmaJob_GetStatus(hDmaJob, &jobStatus);
                  if(retCode != NEXUS_SUCCESS) {
-                    BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, retCode = %d\n", __FUNCTION__, retCode));
+                    BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, retCode = %d\n", BSTD_FUNCTION, retCode));
                     rc = Drm_NexusErr;
                     goto ErrorExit;
                 }
@@ -564,7 +564,7 @@ DrmRC DtcpIpTl_EncDecOperation(
 ErrorExit:
     if(hDmaJob != NULL) NEXUS_DmaJob_Destroy (hDmaJob);
 
-    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
 
@@ -581,7 +581,7 @@ DrmRC DRM_DtcpIpTl_UpdateKeyIv(
     if ( !hDtcpIpTl || !keyIv )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -590,7 +590,7 @@ DrmRC DRM_DtcpIpTl_UpdateKeyIv(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -598,7 +598,7 @@ DrmRC DRM_DtcpIpTl_UpdateKeyIv(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_AES_IV_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -613,18 +613,18 @@ DrmRC DRM_DtcpIpTl_UpdateKeyIv(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DrmDtcpIpTl_CommandId_UpdateKeyIv operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DrmDtcpIpTl_CommandId_UpdateKeyIv operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
 
     rc = (DrmRC)container->basicOut[0];
     if (rc == Drm_Success) {
-        BDBG_ERR(("%s - KeyIv updated", __FUNCTION__));
+        BDBG_ERR(("%s - KeyIv updated", BSTD_FUNCTION));
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -657,7 +657,7 @@ DrmRC DRM_DtcpIpTl_ModAdd(
     if ( !hDtcpIpTl || !r  || !a || !b || !m)
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -666,7 +666,7 @@ DrmRC DRM_DtcpIpTl_ModAdd(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -674,7 +674,7 @@ DrmRC DRM_DtcpIpTl_ModAdd(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_RTT_MK_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -685,7 +685,7 @@ DrmRC DRM_DtcpIpTl_ModAdd(
         container->blocks[1].data.ptr = SRAI_Memory_Allocate(size_a, SRAI_MemoryType_Shared);
         if (container->blocks[1].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -698,7 +698,7 @@ DrmRC DRM_DtcpIpTl_ModAdd(
         container->blocks[2].data.ptr = SRAI_Memory_Allocate(size_b, SRAI_MemoryType_Shared);
         if (container->blocks[2].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -711,7 +711,7 @@ DrmRC DRM_DtcpIpTl_ModAdd(
         container->blocks[3].data.ptr = SRAI_Memory_Allocate(size_m, SRAI_MemoryType_Shared);
         if (container->blocks[3].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -734,7 +734,7 @@ DrmRC DRM_DtcpIpTl_ModAdd(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_ModAdd operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_ModAdd operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -748,7 +748,7 @@ DrmRC DRM_DtcpIpTl_ModAdd(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -790,7 +790,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac(
     if ( !hDtcpIpTl || !AuthKey  || !RttN || !MacValue )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -799,7 +799,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -807,7 +807,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_AUTH_KEY_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -817,7 +817,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac(
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(DTCP_RTT_N_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -827,7 +827,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac(
     container->blocks[2].data.ptr = SRAI_Memory_Allocate(DTCP_RTT_MAC_DATA_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[2].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -839,7 +839,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_ComputeRttMac operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_ComputeRttMac operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -853,7 +853,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -892,7 +892,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac_Alt(
     if ( !hDtcpIpTl || !AuthKey  || !RttN || !MacValue )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -901,7 +901,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac_Alt(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -909,7 +909,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac_Alt(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_EXCHANGE_KEY_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -919,7 +919,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac_Alt(
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(DTCP_RTT_MK_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -929,7 +929,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac_Alt(
     container->blocks[2].data.ptr = SRAI_Memory_Allocate(DTCP_CONT_KEY_CONF_MAC_DATA_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[2].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -943,7 +943,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac_Alt(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DrmDtcpIpTl_CommandId_ComputeRttMac_2 operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DrmDtcpIpTl_CommandId_ComputeRttMac_2 operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -957,7 +957,7 @@ DrmRC DRM_DtcpIpTl_ComputeRttMac_Alt(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -997,7 +997,7 @@ DrmRC DRM_DtcpIpTl_CheckOverFlow(
     if ( !hDtcpIpTl || !a  || !b || !retVal )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -1006,7 +1006,7 @@ DrmRC DRM_DtcpIpTl_CheckOverFlow(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1014,7 +1014,7 @@ DrmRC DRM_DtcpIpTl_CheckOverFlow(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_CONTENT_KEY_NONCE_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1024,7 +1024,7 @@ DrmRC DRM_DtcpIpTl_CheckOverFlow(
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(DTCP_CONT_KEY_CONF_R_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1039,7 +1039,7 @@ DrmRC DRM_DtcpIpTl_CheckOverFlow(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during B_DTCP_IP_CheckOverFlow operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during B_DTCP_IP_CheckOverFlow operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1050,7 +1050,7 @@ DrmRC DRM_DtcpIpTl_CheckOverFlow(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -1084,7 +1084,7 @@ DrmRC DRM_DtcpIpTl_GetFirstPhaseValue(
     if ( !hDtcpIpTl || !pXv  || !pXk )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -1093,7 +1093,7 @@ DrmRC DRM_DtcpIpTl_GetFirstPhaseValue(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1101,7 +1101,7 @@ DrmRC DRM_DtcpIpTl_GetFirstPhaseValue(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_EC_DH_FIRST_PHASE_VALUE_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1110,7 +1110,7 @@ DrmRC DRM_DtcpIpTl_GetFirstPhaseValue(
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(DTCP_DH_FIRST_PHASE_SECRET_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1122,7 +1122,7 @@ DrmRC DRM_DtcpIpTl_GetFirstPhaseValue(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_GetFirstPhaseValue operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_GetFirstPhaseValue operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1137,7 +1137,7 @@ DrmRC DRM_DtcpIpTl_GetFirstPhaseValue(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -1171,7 +1171,7 @@ DrmRC DRM_DtcpIpTl_GetSharedSecret(
     if ( !hDtcpIpTl || !pYv  || !pXk || !pKauth)
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -1180,7 +1180,7 @@ DrmRC DRM_DtcpIpTl_GetSharedSecret(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1188,7 +1188,7 @@ DrmRC DRM_DtcpIpTl_GetSharedSecret(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_AUTH_KEY_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1197,7 +1197,7 @@ DrmRC DRM_DtcpIpTl_GetSharedSecret(
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(DTCP_DH_FIRST_PHASE_SECRET_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1207,7 +1207,7 @@ DrmRC DRM_DtcpIpTl_GetSharedSecret(
     container->blocks[2].data.ptr = SRAI_Memory_Allocate(DTCP_EC_DH_FIRST_PHASE_VALUE_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[2].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1220,7 +1220,7 @@ DrmRC DRM_DtcpIpTl_GetSharedSecret(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_GetSharedSecret operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_GetSharedSecret operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1234,7 +1234,7 @@ DrmRC DRM_DtcpIpTl_GetSharedSecret(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -1272,7 +1272,7 @@ DrmRC DRM_DtcpIpTl_SignData_BinKey(
     if ( !hDtcpIpTl || !pSignature  || !pBuffer || !len )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -1281,7 +1281,7 @@ DrmRC DRM_DtcpIpTl_SignData_BinKey(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1289,7 +1289,7 @@ DrmRC DRM_DtcpIpTl_SignData_BinKey(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_SIGNATURE_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1300,7 +1300,7 @@ DrmRC DRM_DtcpIpTl_SignData_BinKey(
         container->blocks[1].data.ptr = SRAI_Memory_Allocate(len, SRAI_MemoryType_Shared);
         if (container->blocks[1].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -1314,7 +1314,7 @@ DrmRC DRM_DtcpIpTl_SignData_BinKey(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_SignData_BinKey operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_SignData_BinKey operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1328,7 +1328,7 @@ DrmRC DRM_DtcpIpTl_SignData_BinKey(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -1365,7 +1365,7 @@ DrmRC DRM_DtcpIpTl_VerifyData_BinKey(
     if ( !hDtcpIpTl || !pSignature  || !pBuffer || !len || !BinKey || !valid )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -1374,7 +1374,7 @@ DrmRC DRM_DtcpIpTl_VerifyData_BinKey(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1382,7 +1382,7 @@ DrmRC DRM_DtcpIpTl_VerifyData_BinKey(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_SIGNATURE_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1394,7 +1394,7 @@ DrmRC DRM_DtcpIpTl_VerifyData_BinKey(
         container->blocks[1].data.ptr = SRAI_Memory_Allocate(len, SRAI_MemoryType_Shared);
         if (container->blocks[1].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+            BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
             rc = Drm_MemErr;
             goto ErrorExit;
         }
@@ -1405,7 +1405,7 @@ DrmRC DRM_DtcpIpTl_VerifyData_BinKey(
     container->blocks[2].data.ptr = SRAI_Memory_Allocate(DTCP_PUBLIC_KEY_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[2].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1423,7 +1423,7 @@ DrmRC DRM_DtcpIpTl_VerifyData_BinKey(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_VerifyData_BinKey operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_VerifyData_BinKey operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1434,7 +1434,7 @@ DrmRC DRM_DtcpIpTl_VerifyData_BinKey(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -1475,7 +1475,7 @@ DrmRC DRM_DtcpIpTl_CreateContentKey(
     if ( !hDtcpIpTl || !aExchangeKey  || !aNonce || !aCipherKey || !aCipherIv )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -1487,7 +1487,7 @@ DrmRC DRM_DtcpIpTl_CreateContentKey(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1496,7 +1496,7 @@ DrmRC DRM_DtcpIpTl_CreateContentKey(
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(DTCP_EXCHANGE_KEY_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[0].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1506,7 +1506,7 @@ DrmRC DRM_DtcpIpTl_CreateContentKey(
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(DTCP_CONTENT_KEY_NONCE_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[1].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1517,7 +1517,7 @@ DrmRC DRM_DtcpIpTl_CreateContentKey(
     container->blocks[2].data.ptr = SRAI_Memory_Allocate(DTCP_AES_KEY_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[2].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1526,7 +1526,7 @@ DrmRC DRM_DtcpIpTl_CreateContentKey(
     container->blocks[3].data.ptr = SRAI_Memory_Allocate(DTCP_AES_IV_SIZE, SRAI_MemoryType_Shared);
     if (container->blocks[3].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating src buffer", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating src buffer", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1540,7 +1540,7 @@ DrmRC DRM_DtcpIpTl_CreateContentKey(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_VerifyData_BinKey operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DRM_DtcpIpTl_VerifyData_BinKey operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1557,7 +1557,7 @@ DrmRC DRM_DtcpIpTl_CreateContentKey(
     }
     else
     {
-        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", __FUNCTION__, rc));
+        BDBG_ERR(("%s - Command was sent succuessfully but actual operation failed (0x%08x)", BSTD_FUNCTION, rc));
     }
 
 ErrorExit:
@@ -1599,7 +1599,7 @@ DrmRC DRM_DtcpIpTl_FreeKeySlot(
     if ( !hDtcpIpTl )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("%s Invalid Parameter ", __FUNCTION__  ));
+        BDBG_ERR(("%s Invalid Parameter ", BSTD_FUNCTION  ));
         goto ErrorExit;
     }
 
@@ -1608,7 +1608,7 @@ DrmRC DRM_DtcpIpTl_FreeKeySlot(
     container = SRAI_Container_Allocate();
     if (container == NULL)
     {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
         rc = Drm_MemErr;
         goto ErrorExit;
     }
@@ -1620,7 +1620,7 @@ DrmRC DRM_DtcpIpTl_FreeKeySlot(
         container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error during DrmDtcpIpTl_CommandId_FreeKeySlot operation", __FUNCTION__));
+        BDBG_ERR(("%s - Error during DrmDtcpIpTl_CommandId_FreeKeySlot operation", BSTD_FUNCTION));
         rc = Drm_Err;
         goto ErrorExit;
     }

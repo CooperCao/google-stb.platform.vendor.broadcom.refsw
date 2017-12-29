@@ -44,6 +44,7 @@
 #if NEXUS_HAS_SAGE
 #include "priv/nexus_sage_priv.h"
 #endif
+#include "bchp_common.h"
 
 BDBG_MODULE(nexus_graphics2d);
 BTRC_MODULE(nexus_graphics2d_blit, ENABLE);
@@ -53,7 +54,16 @@ struct Graphics2DData g_NEXUS_graphics2DData;
 
 #define BDBG_PRINT_OP(x)    /* BDBG_MSG(x) */
 
-static struct NEXUS_Graphics2DEngine g_grcInstance[NEXUS_NUM_2D_ENGINES];
+#ifdef BCHP_MM_M2MC0_REG_START
+#define NEXUS_NUM_MIPMAP_ENGINES               (1)
+#else
+#define NEXUS_NUM_MIPMAP_ENGINES               (0)
+#endif
+
+#define NEXUS_NUM_GRAPHICS2D_CORES (NEXUS_NUM_2D_ENGINES + NEXUS_NUM_MIPMAP_ENGINES)
+
+
+static struct NEXUS_Graphics2DEngine g_grcInstance[NEXUS_NUM_GRAPHICS2D_CORES];
 
 static BERR_Code NEXUS_Graphics2D_PacketCallback_isr( BGRC_Handle grc, void *data );
 static void NEXUS_Graphics2D_P_PacketAdvance( void *context );
@@ -68,7 +78,7 @@ static void NEXUS_Graphics2DModule_P_Print(void)
 {
 #if BDBG_DEBUG_BUILD
     unsigned i;
-    for (i=0; i<NEXUS_NUM_2D_ENGINES; i++) {
+    for (i=0; i<NEXUS_NUM_GRAPHICS2D_CORES; i++) {
         struct NEXUS_Graphics2DEngine *engine = &g_grcInstance[i];
         if (engine->grc) {
             NEXUS_Graphics2DHandle gfx;
@@ -127,7 +137,7 @@ void NEXUS_Graphics2DModule_Uninit(void)
 
     NEXUS_LockModule();
     /* check if handles left open */
-    for (i=0;i<NEXUS_NUM_2D_ENGINES;i++) {
+    for (i=0;i<NEXUS_NUM_GRAPHICS2D_CORES;i++) {
         struct NEXUS_Graphics2DEngine *engine = &g_grcInstance[i];
         NEXUS_Graphics2DHandle gfx;
         /* coverity[use_after_free] */
@@ -161,7 +171,7 @@ static NEXUS_Error NEXUS_Graphics2D_P_OpenGrc(unsigned index)
 #else
     grcSettings.ulDeviceNum = index;
 #endif
-    if (grcSettings.ulDeviceNum >= NEXUS_MAX_GRAPHICS2D_CORES) {
+    if (grcSettings.ulDeviceNum >= NEXUS_NUM_GRAPHICS2D_CORES) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
     grcSettings.ulPacketMemoryMax = g_NEXUS_graphics2DData.settings.core[grcSettings.ulDeviceNum].hwFifoSize;
@@ -226,26 +236,34 @@ NEXUS_Graphics2DHandle NEXUS_Graphics2D_Open(unsigned index, const NEXUS_Graphic
     NEXUS_HeapHandle heap;
     unsigned surfaceFifoSize;
 
-    if (index == NEXUS_ANY_ID) {
-#if 0
-        static unsigned next_index = 0;
-        /* very simple mechanism to spread contexts across multiple HW blitters with NEXUS_ANY_ID */
-        index = (next_index++%NEXUS_NUM_2D_ENGINES);
-#else
-        index = 0;
-#endif
-    }
-    if (index >= NEXUS_NUM_2D_ENGINES) {
-        BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        return NULL;
-    }
-
     rc = NEXUS_CLIENT_RESOURCES_ACQUIRE(graphics2d,Count,NEXUS_ANY_ID);
     if (rc) { rc = BERR_TRACE(rc); return NULL; }
 
     if(!pSettings){
         NEXUS_Graphics2D_GetDefaultOpenSettings(&defaultOpenSettings);
         pSettings = &defaultOpenSettings;
+    }
+
+    BDBG_CASSERT(NEXUS_Graphics2DMode_eMax == (NEXUS_Graphics2DMode)BGRC_eMax);
+    BDBG_ASSERT(pSettings->mode < NEXUS_Graphics2DMode_eMax);
+
+    if (index == NEXUS_ANY_ID) {
+        for(index=0;index<NEXUS_NUM_GRAPHICS2D_CORES;index++) {
+            if(pSettings->mode == (NEXUS_Graphics2DMode)BGRC_GetMode_isrsafe(index))  break;
+        }
+    }
+    else
+    {
+        if(pSettings->mode != (NEXUS_Graphics2DMode)BGRC_GetMode_isrsafe(index)) {
+            BDBG_WRN(("failed to open m2mc[%d] mode %s: blit/mipmap mode unmatch", index,
+                (pSettings->mode==NEXUS_Graphics2DMode_eBlitter)?"Blitter":"Mipmap"));
+            (void)BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL;
+        }
+    }
+
+    if (index >= NEXUS_NUM_GRAPHICS2D_CORES) {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
     }
 
     if(pSettings->maxOperations == 0) { (void)BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
@@ -821,6 +839,12 @@ NEXUS_Error NEXUS_Graphics2D_Blit(NEXUS_Graphics2DHandle gfx, const NEXUS_Graphi
         BGRClib_GetDefaultBlitParams(&gfx->blitData.blitParams);
     }
 
+    if (out.format == BM2MC_PACKET_PixelFormat_eUIF_R8_G8_B8_A8)
+    {
+       NEXUS_SurfaceCreateSettings createSettings;
+       NEXUS_Surface_GetCreateSettings(pSettings->output.surface, &createSettings);
+       gfx->blitData.blitParams.miplevel = createSettings.mipLevel;
+    }
     switch (pSettings->colorOp) {
     case NEXUS_BlitColorOp_eCopySource:
         colorOp = BGRCLib_BlitColorOp_eCopySource;
@@ -1144,6 +1168,12 @@ NEXUS_Error NEXUS_Graphics2D_FastBlit( NEXUS_Graphics2DHandle gfx,
     gfx->blitData.blitParams.constantColor = constantColor;
     gfx->blitData.blitParams.colorKeySelect = BGRC_Output_ColorKeySelection_eTakeBlend;
 
+    if (out.format == BM2MC_PACKET_PixelFormat_eUIF_R8_G8_B8_A8)
+    {
+       NEXUS_SurfaceCreateSettings createSettings;
+       NEXUS_Surface_GetCreateSettings(outputSurface, &createSettings);
+       gfx->blitData.blitParams.miplevel = createSettings.mipLevel;
+    }
     BDBG_PRINT_OP(("fastblit source=" BDBG_UINT64_FMT "(%u,%u,%u,%u) output=" BDBG_UINT64_FMT "(%u,%u,%u,%u) op=%u,%u,%#x",
         BDBG_UINT64_ARG(src.address),
         pSourceRect?pSourceRect->x:0, pSourceRect?pSourceRect->y:0, pSourceRect?pSourceRect->width:0, pSourceRect?pSourceRect->height:0,
@@ -1476,7 +1506,7 @@ NEXUS_Error NEXUS_Graphics2DModule_Standby_priv(bool enabled, const NEXUS_Standb
     BSTD_UNUSED(pSettings);
 
     if (!enabled) {
-        for (i=0; i<NEXUS_NUM_2D_ENGINES; i++) {
+        for (i=0; i<NEXUS_NUM_GRAPHICS2D_CORES; i++) {
             struct NEXUS_Graphics2DEngine *engine = &g_grcInstance[i];
 
             if (NULL==engine->grc) { continue; }
@@ -1486,7 +1516,7 @@ NEXUS_Error NEXUS_Graphics2DModule_Standby_priv(bool enabled, const NEXUS_Standb
         }
     } else {
         /* power down */
-        for (i=0; i<NEXUS_NUM_2D_ENGINES; i++) {
+        for (i=0; i<NEXUS_NUM_GRAPHICS2D_CORES; i++) {
             struct NEXUS_Graphics2DEngine *engine = &g_grcInstance[i];
             NEXUS_Graphics2DHandle gfx;
             BGRC_Packet_Status grcStatus;
@@ -1607,4 +1637,13 @@ void NEXUS_Graphics2D_GetCapabilities(NEXUS_Graphics2DHandle handle, NEXUS_Graph
     pCapabilities->maxVerticalDownScale = capabilities.ulMaxVerDownSclRatio;
     pCapabilities->maxHorizontalDownScale = capabilities.ulMaxHrzDownSclRatio;
     return;
+}
+
+bool NEXUS_Graphics2D_MipmapModeSupported_isrsafe(void)
+{
+    unsigned index;
+    for(index=0;index<NEXUS_NUM_GRAPHICS2D_CORES;index++) {
+        if ((NEXUS_Graphics2DMode)BGRC_GetMode_isrsafe(index) == NEXUS_Graphics2DMode_eMipmap) return true;
+    }
+    return false;
 }

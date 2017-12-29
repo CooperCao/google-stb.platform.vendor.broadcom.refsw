@@ -136,7 +136,7 @@ public:
     virtual CSimpleVideoDecode * videoDecodeCreate(eWindowType windowType);
     virtual CSimpleAudioDecode * audioDecodeCreate(eWindowType windowType);
     virtual COutputHdmi *        outputHdmiCreate(void);
-    virtual CVideoWindow *       videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, eWindowType windowType);
+    virtual eRet                 videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow **ppVideoWindow, eWindowType windowType);
     virtual void                 videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow);
     virtual eRet                 mosaicInitialize(void);
     virtual void                 mosaicUninitialize(void);

@@ -21,8 +21,8 @@ extern void egl_syncs_lock_deinit(void);
 
 extern EGL_SYNC_T* egl_sync_create(EGLenum type, EGLenum condition, const
       khrn_fence *fence);
-extern EGL_SYNC_T* egl_sync_create_from_fd(EGLenum type, EGLenum condition,
-      int fd);
+extern EGL_SYNC_T* egl_sync_create_from_job(EGLenum type, EGLenum condition,
+      uint64_t job_id);
 extern EGL_SYNC_T* egl_sync_create_from_cl_event(EGLenum type, EGLenum condition,
       void *cl_event);
 

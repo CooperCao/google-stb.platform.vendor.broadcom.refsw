@@ -4,6 +4,7 @@
 #include "vcos.h"
 #include "../common/khrn_process.h"
 #include "../common/khrn_record.h"
+#include "libs/util/common.h"
 #include "../glxx/glxx_server.h"
 #include "egl_context_gl.h"
 #include "../glxx/glxx_hw.h"
@@ -11,8 +12,10 @@
 #include "egl_surface_base.h"
 
 static VCOS_REENTRANT_MUTEX_T gl_lock;
-static bool gl_lock_created = false;
-static VCOS_ONCE_T gl_once = VCOS_ONCE_INIT;
+
+#ifndef NDEBUG
+static thread_local int locked_count;
+#endif
 
 struct egl_gl_context
 {
@@ -34,11 +37,12 @@ static EGL_CONTEXT_METHODS_T fns;
  * 4. Because completion callbacks can come from anywhere, in particular from
  *    either inside or outside the GL, the GL lock has to be recursive.
  */
-static void init_lock(void)
+
+
+void egl_context_gl_create_lock(void)
 {
    if (vcos_reentrant_mutex_create(&gl_lock, "GLXX") != VCOS_SUCCESS)
       exit(EXIT_FAILURE);
-   gl_lock_created = true;
 }
 
 static void flush(EGL_CONTEXT_T *context, bool wait)
@@ -48,11 +52,9 @@ static void flush(EGL_CONTEXT_T *context, bool wait)
 
    if (ctx->base.valid)
    {
-      if (egl_context_gl_lock())
-      {
-         glxx_server_state_flush(&ctx->server, wait);
-         egl_context_gl_unlock();
-      }
+      egl_context_gl_lock();
+      glxx_server_state_flush(&ctx->server, wait);
+      egl_context_gl_unlock();
    }
 }
 
@@ -130,7 +132,7 @@ static EGLint extract_attribs(const EGLint *attrib_list, const CLIENT_API_T **ap
 
    const EGLint supported_flags = EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR |
                                   EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR;
-   const int max_supported_minor[] = { -1, 1, 0, KHRN_GLES32_DRIVER ? 2 : KHRN_GLES31_DRIVER ? 1 : 0 };
+   const int max_supported_minor[] = { -1, 1, 0, KHRN_GLES32_DRIVER ? 2 : V3D_VER_AT_LEAST(3,3,0,0) ? 1 : 0 };
 
    /* Default values */
    EGLint major = 1;
@@ -190,25 +192,18 @@ static EGLint extract_attribs(const EGLint *attrib_list, const CLIENT_API_T **ap
    return EGL_SUCCESS;
 }
 
-bool egl_context_gl_lock(void)
+void egl_context_gl_lock(void)
 {
-   if (gl_lock_created)
-   {
-      vcos_reentrant_mutex_lock(&gl_lock);
+   vcos_reentrant_mutex_lock(&gl_lock);
 #ifndef NDEBUG
-      EGL_THREAD_T *thread = egl_thread_get();
-      thread->locked_count++;
+   locked_count += 1;
 #endif
-   }
-   return gl_lock_created;
 }
 
 void egl_context_gl_unlock(void)
 {
 #ifndef NDEBUG
-   EGL_THREAD_T *thread = egl_thread_get();
-   thread->locked_count--;
-   assert(thread->locked_count >= 0);
+   locked_count -= 1;
 #endif
    vcos_reentrant_mutex_unlock(&gl_lock);
 }
@@ -216,13 +211,12 @@ void egl_context_gl_unlock(void)
 #ifndef NDEBUG
 void egl_context_gl_assert_locked(void)
 {
-   const EGL_THREAD_T *thread = egl_thread_get();
-   assert(thread->locked_count > 0);
+   assert(locked_count > 0);
 }
 #endif
 
-EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config,
-   EGLContext share_ctx, const EGLint *attrib_list)
+EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLDisplay dpy,
+      EGLConfig config_in, EGLContext share_ctx, const EGLint *attrib_list)
 {
    EGL_GL_CONTEXT_T *ret = NULL;
    EGLint error = EGL_BAD_ALLOC;
@@ -235,10 +229,8 @@ EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config,
    bool debug = false;
    bool secure = false;
 
-   if (vcos_once(&gl_once, init_lock))
-      goto end;
-
-   if (!egl_config_is_valid(config))
+   const EGL_CONFIG_T *config = egl_config_validate(config_in);
+   if (!config)
    {
       error = EGL_BAD_CONFIG;
       goto end;
@@ -255,11 +247,11 @@ EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config,
    ret->base.fns = &fns;
    ret->base.type = EGL_CONTEXT_TYPE_GL;
 
-   if (!egl_context_gl_lock())
-      goto end;
+   egl_context_gl_lock();
    locked = true;
 
-   egl_context_base_init(&ret->base, API_OPENGL, config, debug, robustness, reset_notification, secure);
+   egl_context_base_init(&ret->base, dpy, API_OPENGL, config, debug, robustness,
+         reset_notification, secure);
 
    ret->api = client_api->api;
    ret->server.context = ret;
@@ -294,26 +286,20 @@ end:
 
 bool convert_image(EGL_CONTEXT_T *context, khrn_image *dst, khrn_image *src)
 {
-   if (egl_context_gl_lock())
-   {
-      GLXX_SERVER_STATE_T *state = &((EGL_GL_CONTEXT_T *)context)->server;
-      bool ok = khrn_image_convert(dst, src, &state->fences, context->secure);
-      egl_context_gl_unlock();
-      return ok;
-   }
-   else
-      return false;
+   egl_context_gl_lock();
+   GLXX_SERVER_STATE_T *state = &((EGL_GL_CONTEXT_T *)context)->server;
+   bool ok = khrn_image_convert(dst, src, &state->fences, context->secure);
+   egl_context_gl_unlock();
+   return ok;
 }
 
 void invalidate_draw(EGL_CONTEXT_T *context,
    bool color, bool color_ms, bool other_aux)
 {
-   if (egl_context_gl_lock())
-   {
-      GLXX_SERVER_STATE_T *state = &((EGL_GL_CONTEXT_T *)context)->server;
-      glxx_hw_invalidate_default_draw_framebuffer(state, color, color_ms, other_aux, other_aux);
-      egl_context_gl_unlock();
-   }
+   egl_context_gl_lock();
+   GLXX_SERVER_STATE_T *state = &((EGL_GL_CONTEXT_T *)context)->server;
+   glxx_hw_invalidate_default_draw_framebuffer(state, color, color_ms, other_aux, other_aux);
+   egl_context_gl_unlock();
 }
 
 static EGL_GL_CONTEXT_T *current_context(void)
@@ -407,11 +393,9 @@ static void attach(EGL_CONTEXT_T *context, EGL_SURFACE_T *draw,
 
    if (ctx->base.valid)
    {
-      if (egl_context_gl_lock())
-      {
-         glxx_server_attach_surfaces(&ctx->server, read, draw);
-         egl_context_gl_unlock();
-      }
+      egl_context_gl_lock();
+      glxx_server_attach_surfaces(&ctx->server, read, draw);
+      egl_context_gl_unlock();
    }
 }
 
@@ -422,11 +406,9 @@ static void detach(EGL_CONTEXT_T *context)
 
    if (ctx->base.valid)
    {
-      if (egl_context_gl_lock())
-      {
-         glxx_server_detach_surfaces(&ctx->server);
-         egl_context_gl_unlock();
-      }
+      egl_context_gl_lock();
+      glxx_server_detach_surfaces(&ctx->server);
+      egl_context_gl_unlock();
    }
 
    egl_context_base_detach(context);
@@ -462,11 +444,9 @@ static void invalidate(EGL_CONTEXT_T *context)
    if (ctx->base.valid)
    {
       ctx->base.valid = false;
-      if (egl_context_gl_lock())
-      {
-         glxx_server_state_destroy(&ctx->server);
-         egl_context_gl_unlock();
-      }
+      egl_context_gl_lock();
+      glxx_server_state_destroy(&ctx->server);
+      egl_context_gl_unlock();
    }
 }
 

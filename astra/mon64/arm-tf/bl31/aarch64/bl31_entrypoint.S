@@ -43,7 +43,6 @@
 	 */
 
 func bl31_entrypoint
-
 #if !RESET_TO_BL31
 	/* ---------------------------------------------------------------
 	 * Preceding bootloader has populated x0 with a pointer to a
@@ -107,7 +106,7 @@ func bl31_entrypoint
 	sub	x20, x19, x20
 
 	/* Adjust SP to load address before MMU is enabled */
-	add sp, sp, x20
+	add	sp, sp, x20
 
 	/* ---------------------------------------------
 	 * Perform platform specific early arch. setup
@@ -115,16 +114,17 @@ func bl31_entrypoint
 	 */
 	bl	bl31_early_platform_setup
 
-	mov x0, x20
+	mov	x0, x20
 	bl	bl31_plat_arch_setup
 
 	/* Restore SP to link address after MMU is enabled */
-	sub sp, sp, x20
+	sub	sp, sp, x20
 
 	/* ---------------------------------------------
 	 * Jump to main function.
 	 * ---------------------------------------------
 	 */
+	mov	x0, x20
 	ldr	x20, =bl31_main
 	blr	x20
 
@@ -147,7 +147,7 @@ func bl31_entrypoint
 	sub	x1, x1, x0
 	blr	x20
 
-	ldr x20, =el3_exit
+	ldr	x20, =el3_exit
 	br	x20
 endfunc bl31_entrypoint
 
@@ -183,6 +183,13 @@ func bl31_warm_entrypoint
 		_init_c_runtime=0				\
 		_exception_vectors=runtime_exceptions
 
+	adr	x19, bl31_warm_entrypoint
+	ldr	x20, =bl31_warm_entrypoint
+	sub	x20, x19, x20
+
+	/* Adjust SP to load address before MMU is enabled */
+	add	sp, sp, x20
+
 	/* --------------------------------------------
 	 * Enable the MMU with the DCache disabled. It
 	 * is safe to use stacks allocated in normal
@@ -200,10 +207,15 @@ func bl31_warm_entrypoint
 	 * issues.
 	 * --------------------------------------------
 	 */
-	mov     x0, #DISABLE_DCACHE
-	bl      bl31_plat_enable_mmu
+	mov     x0, xzr
+	bl      enable_mmu_el3
 
-	bl	psci_warmboot_entrypoint
+	/* Restore SP to link address after MMU is enabled */
+	sub	sp, sp, x20
 
-	b	el3_exit
+	ldr	x20, =psci_warmboot_entrypoint
+	blr	x20
+
+	ldr	x20, =el3_exit
+	br	x20
 endfunc bl31_warm_entrypoint

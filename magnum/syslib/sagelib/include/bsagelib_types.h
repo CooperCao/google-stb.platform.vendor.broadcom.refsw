@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,9 +85,9 @@ The two following are the only standard ones present in all systems.
 #define BSAGE_PLATFORM_ID_BP3            (0x11B)
 #define BSAGE_PLATFORM_ID_SECURE_RSA     (0x11C)
 #define BSAGE_PLATFORM_ID_HDCP14         (0x11D)
-#define BSAGE_PLATFORM_ID_RESERVED12     (0x11E)
-#define BSAGE_PLATFORM_ID_RESERVED13     (0x11F)
-#define BSAGE_PLATFORM_ID_RESERVED14     (0x120)
+#define BSAGE_PLATFORM_ID_SARM           (0x11E)
+#define BSAGE_PLATFORM_ID_SSD            (0x11F)
+#define BSAGE_PLATFORM_ID_KEYMASTER      (0x120)
 #define BSAGE_PLATFORM_ID_RESERVED15     (0x121)
 #define BSAGE_PLATFORM_ID_RESERVED16     (0x122)
 #define BSAGE_PLATFORM_ID_RESERVED17     (0x123)
@@ -160,9 +160,23 @@ Description:
 
 #define BSAGE_ERR_TA_TERMINATED                    BERR_MAKE_CODE(BERR_SAGElib_ID, 43)
 
+/* region misconfiguration error codes */
+#define BSAGE_ERR_XRR_NOT_RESTRICTED               BERR_MAKE_CODE(BERR_SAGElib_ID, 44)
+#define BSAGE_ERR_CRR_NOT_RESTRICTED               BERR_MAKE_CODE(BERR_SAGElib_ID, 45)
+
+/* shared memory blocks must be 4k aligned */
+#define BSAGE_ERR_ACQUIRE_SHARED_MEMORY            BERR_MAKE_CODE(BERR_SAGElib_ID, 46)
+
+/* Error during initialization phase while loading the TA */
+#define BSAGE_ERR_TA_LOAD_INIT                     BERR_MAKE_CODE(BERR_SAGElib_ID, 47)
+
+/* Unsupported crypto version */
+#define BSAGE_ERR_CRYPTO_VERSION                   BERR_MAKE_CODE(BERR_SAGElib_ID, 48)
+
+/* SAGE OS Binding Error */
+#define BSAGE_ERR_TA_BINDING                       BERR_MAKE_CODE(BERR_SAGElib_ID, 49)
+
 #define BSAGE_INSUFFICIENT_HDCP_VERSION            BERR_MAKE_CODE(BERR_SAGElib_ID, 100)
-
-
 
 /* String definitions of return codes*/
 #define BSAGE_ERR_HSM_STRING                   "An error has occurred in HSM"
@@ -224,7 +238,27 @@ Description:
 
 #define BSAGE_ERR_TA_TERMINATED_STRING                     "TA had been Terminated by SAGE Framework because of an error"
 
+/* region misconfiguration error codes */
+#define BSAGE_ERR_XRR_NOT_RESTRICTED_STRING                "XRR is not restricted/configured"
+
+/* region misconfiguration error codes */
+#define BSAGE_ERR_CRR_NOT_RESTRICTED_STRING                "CRR is not restricted/configured"
+
 #define BSAGE_INSUFFICIENT_HDCP_VERSION_STRING              "Insufficient HDCP version."
+
+/* shared memory block is not aligned */
+#define BSAGE_ERR_ACQUIRE_SHARED_MEMORY_STRING            "Shared (GLR/CRR/XRR) memory block cannot be acquired. Alignment must be 4096"
+
+/* Unsupported crypto version */
+#define BSAGE_ERR_TA_LOAD_INIT_STRING            "TA Load/Init failure"
+
+/* Unsupported crypto version */
+#define BSAGE_ERR_CRYPTO_VERSION_STRING            "The crypto lib version required by the TA is not supported by SSF"
+
+/* SAGE OS Binding Error */
+#define BSAGE_ERR_TA_BINDING_STRING               "TA Load failure: Load Time Binding between TA & SSF failed"
+
+/********  PLEASE REMEMBER TO ADD NEW ERR CODES TO BSAGElib_Tools_ReturnCodeToString *********/
 
 /**
 Summary:
@@ -354,7 +388,12 @@ enum {
 };
 
 
-/* List of ModuleId for each loaderable TA */
+/* Secure Storage Device client module ID */
+enum SSD_Client_ModuleId_e {
+    SSD_ModuleId_eClient = 0x55D
+};
+
+/* List of ModuleId for each loadable TA */
 enum adobe_module {
     Adobe_ModuleId_eDRM = 0x01
 };
@@ -384,6 +423,21 @@ enum widevine_module {
 #define BSAGELIB_SOURCE_HDCP22 0x2
 #define BSAGELIB_SOURCE_TIMER 0x3
 #define BSAGELIB_SOURCE_GENERIC 0x4
+
+/* Secure Log module IDs  */
+typedef enum Secure_Log_ModuleId_e{
+    Secure_Log_ModuleId = 0x01
+}Secure_Log_ModuleId_e;
+
+enum {
+    /* Secure_Log command IDs */
+    Secure_Log_CommandId_eConfigureBuffer = 0x001,
+    Secure_Log_CommandId_eAttach,
+    Secure_Log_CommandId_eDetach,
+    Secure_Log_CommandId_eGetBuffer,
+    Secure_Log_CommandId_eGetBufferTA
+};
+
 #endif
 
 #ifdef __cplusplus

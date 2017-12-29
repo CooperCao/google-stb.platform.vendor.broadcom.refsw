@@ -129,6 +129,54 @@ static bool BVC5_P_InitMmuSafePage(
    return true;
 }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+bool BVC5_P_AllocTileState(
+   BVC5_P_TileState *psTileState,
+   BMMA_Heap_Handle hMMAHeap,
+   uint32_t size
+)
+{
+   /* round to 1MB */
+   const uint32_t omb = (1024 * 1024) -1;
+   /* never allow size of 0 */
+   if (size == 0)
+      size = 1;
+   size = (size + omb) & (~omb);
+
+   /* already allocated, so free first */
+   if (psTileState->hTileState != NULL)
+      BVC5_P_FreeTileState(psTileState);
+
+   psTileState->hTileState = BMMA_Alloc(hMMAHeap, size, 256, NULL);
+   if (psTileState->hTileState == NULL)
+      return false;
+
+   psTileState->uiTileStateOffset = BMMA_LockOffset(psTileState->hTileState);
+   if (psTileState->uiTileStateOffset == 0)
+   {
+      BMMA_Free(psTileState->hTileState);
+      psTileState->hTileState = NULL;
+      psTileState->uiTileStateSize = 0;
+      return false;
+   }
+
+   psTileState->uiTileStateSize = size;
+
+   return true;
+}
+
+void BVC5_P_FreeTileState(
+   BVC5_P_TileState *psTileState
+)
+{
+   /* Unlock is part of free */
+   if (psTileState->hTileState)
+      BMMA_Free(psTileState->hTileState);
+   psTileState->uiTileStateOffset = 0;
+   psTileState->uiTileStateSize = 0;
+}
+#endif
+
 /***************************************************************************/
 BERR_Code BVC5_Open(
    BVC5_Handle          *phVC5,
@@ -172,6 +220,24 @@ BERR_Code BVC5_Open(
       err = BERR_OUT_OF_DEVICE_MEMORY;
       goto exit;
    }
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   /* initial size 1MB */
+   if (!BVC5_P_AllocTileState(&hVC5->sTileState[0], hMMAHeap, 1024 * 1024))
+   {
+      err = BERR_OUT_OF_DEVICE_MEMORY;
+      goto exit;
+   }
+
+   if (hSecureMMAHeap)
+   {
+      if (!BVC5_P_AllocTileState(&hVC5->sTileState[1], hSecureMMAHeap, 1024 * 1024))
+      {
+         err = BERR_OUT_OF_DEVICE_MEMORY;
+         goto exit;
+      }
+   }
+#endif
 
    /* Parameters */
    hVC5->sOpenParams = *sOpenParams;
@@ -242,6 +308,11 @@ BERR_Code BVC5_Open(
    }
 
    BVC5_P_DRMOpen(hVC5->sOpenParams.uiDRMDevice);
+
+   /* Determine memory properties */
+   BCHP_GetMemoryInfo(hVC5->hChp, &hVC5->sMemInfo);
+   BDBG_ASSERT(!hVC5->sMemInfo.memc[1].valid || hVC5->sMemInfo.memc[0].mapVer == hVC5->sMemInfo.memc[1].mapVer);
+   BDBG_ASSERT(!hVC5->sMemInfo.memc[2].valid || hVC5->sMemInfo.memc[0].mapVer == hVC5->sMemInfo.memc[2].mapVer);
 
    /* "Create" the hardware */
 #if defined(BVC5_HARDWARE_SIMPENROSE)
@@ -365,6 +436,11 @@ BERR_Code BVC5_Close(
    if (hVC5->hMmuSafePage)
       BMMA_Free(hVC5->hMmuSafePage);
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_P_FreeTileState(&hVC5->sTileState[0]);
+   BVC5_P_FreeTileState(&hVC5->sTileState[1]);
+#endif
+
 #ifdef BVC5_HARDWARE_REAL
    /* remove IRQ handler */
    if (hVC5->callback_intctl != NULL)
@@ -419,6 +495,14 @@ void BVC5_GetInfo(
    BKNI_AcquireMutex(hVC5->hModuleMutex);
 
    BVC5_P_HardwareGetInfo(hVC5, pInfo);
+
+   switch (hVC5->sMemInfo.memc[0].mapVer)
+   {
+   case BCHP_ScbMapVer_eMap2 : pInfo->uiDDRMapVer = 2; break;
+   case BCHP_ScbMapVer_eMap5 : pInfo->uiDDRMapVer = 5; break;
+   case BCHP_ScbMapVer_eMap8 : pInfo->uiDDRMapVer = 8; break;
+   default                   : BDBG_ASSERT(0);
+   }
 
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
    BDBG_LEAVE(BVC5_GetInfo);
@@ -1679,15 +1763,13 @@ BERR_Code BVC5_SetGatherLoadData(
 
    BKNI_AcquireMutex(hVC5->hModuleMutex);
 
-   if (hVC5->sOpenParams.bUseClockGating || hVC5->sOpenParams.bUsePowerGating)
-   {
-      BKNI_Printf("ERROR: %s, power gating and clock gating need to be disabled for performance counters to function\n"
-                  "       disable via 'export V3D_USE_POWER_GATING=0' & 'export V3D_USE_CLOCK_GATING=0' prior to launch\n",
-                  BSTD_FUNCTION);
-      err = BERR_NOT_AVAILABLE;
-   }
-   else
-      hVC5->bCollectLoadStats = bCollect;
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   BKNI_EnterCriticalSection();
+#endif
+   hVC5->bCollectLoadStats = bCollect;
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   BKNI_LeaveCriticalSection();
+#endif
 
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
 
@@ -1718,10 +1800,16 @@ BERR_Code BVC5_GetLoadData(
 
    if (hVC5->bCollectLoadStats)
    {
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      BKNI_EnterCriticalSection();
+#endif
       if (pLoadData != NULL && uiNumClients > 0)
          BVC5_P_ClientMapGetStats(hVC5->hClientMap, pLoadData, uiNumClients, pValidClients, true);
       else
          *pValidClients = BVC5_P_ClientMapSize(hVC5->hClientMap);
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      BKNI_LeaveCriticalSection();
+#endif
    }
    else
    {

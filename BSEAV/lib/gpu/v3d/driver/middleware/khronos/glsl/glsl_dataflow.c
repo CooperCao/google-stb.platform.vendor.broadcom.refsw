@@ -113,7 +113,7 @@ static void stack_free(void)
 {
    STACK_FRAME_T *frame = used_frames;
 
-   vcos_assert(frame);
+   assert(frame);
 
    used_frames = frame->next;
 
@@ -163,8 +163,8 @@ DataflowChain* glsl_dataflow_chain_remove_node(DataflowChain* chain, DataflowCha
    if (chain->last == node) chain->last = node->prev;
 
    if (chain->count == 0) {
-      vcos_assert(!chain->first);
-      vcos_assert(!chain->last);
+      assert(!chain->first);
+      assert(!chain->last);
    }
 
    // Update node.
@@ -371,9 +371,9 @@ Dataflow* glsl_dataflow_construct_linkable_value_offset(DataflowFlavour flavour,
    UNUSED_NDEBUG(flavour);
    UNUSED(type_index);
 
-   vcos_assert(DATAFLOW_UNIFORM_OFFSET == flavour); // only uniforms can be accessed dynamically
+   assert(DATAFLOW_UNIFORM_OFFSET == flavour); // only uniforms can be accessed dynamically
    UNUSED_NDEBUG(linkable_value);
-   vcos_assert(linkable_value == NULL);
+   assert(linkable_value == NULL);
    pseudo_sampler = NULL;
    gadget_set_t = NULL;
 
@@ -632,8 +632,8 @@ Dataflow* glsl_dataflow_construct_binary_op(DataflowFlavour flavour, Dataflow* l
    Dataflow* dataflow;
    BOOL_REP_T rep = BOOL_REP_NONE;
 
-   vcos_assert(left);
-   vcos_assert(right);
+   assert(left);
+   assert(right);
 
    if (left->flavour == DATAFLOW_CONST_FLOAT && right->flavour == DATAFLOW_CONST_FLOAT) {
       // constant folding for floats
@@ -974,7 +974,7 @@ Dataflow* glsl_dataflow_construct_binary_op(DataflowFlavour flavour, Dataflow* l
          left = boolify(left, &left_rep);
          right = boolify(right, &right_rep);
 
-         vcos_assert((left_rep == BOOL_REP_BOOL || left_rep == BOOL_REP_BOOL_N) && (right_rep == BOOL_REP_BOOL || right_rep == BOOL_REP_BOOL_N));
+         assert((left_rep == BOOL_REP_BOOL || left_rep == BOOL_REP_BOOL_N) && (right_rep == BOOL_REP_BOOL || right_rep == BOOL_REP_BOOL_N));
          l1 = left_rep == BOOL_REP_BOOL;
          r1 = right_rep == BOOL_REP_BOOL;
          if (flavour == DATAFLOW_LOGICAL_AND &&  l1 &&  r1) {
@@ -1145,12 +1145,12 @@ Dataflow* glsl_dataflow_construct_cond_op(Dataflow* cond, Dataflow* true_value, 
 
       if (true_value->u.const_bool.value) {
          // We're a mov
-         vcos_assert(!false_value->u.const_bool.value);
+         assert(!false_value->u.const_bool.value);
 
          return cond;
       } else {
          // We're a not
-         vcos_assert(false_value->u.const_bool.value);
+         assert(false_value->u.const_bool.value);
 
          return glsl_dataflow_construct_unary_op(DATAFLOW_LOGICAL_NOT, cond);
       }
@@ -1199,7 +1199,7 @@ Dataflow* glsl_dataflow_construct_cond_op(Dataflow* cond, Dataflow* true_value, 
 
    dataflow = dataflow_construct_common(DATAFLOW_CONDITIONAL);
 
-   vcos_assert(dataflow_is_bool(cond));
+   assert(dataflow_is_bool(cond));
 
    if (dataflow_is_bool(true_value))
    {
@@ -1348,7 +1348,7 @@ Dataflow* glsl_dataflow_construct_vertex_set(DataflowFlavour flavour, Dataflow* 
 {
    Dataflow* dataflow;
 
-   vcos_assert(flavour == DATAFLOW_VERTEX_SET || flavour == DATAFLOW_VPM_READ_SETUP || flavour == DATAFLOW_VPM_WRITE_SETUP);
+   assert(flavour == DATAFLOW_VERTEX_SET || flavour == DATAFLOW_VPM_READ_SETUP || flavour == DATAFLOW_VPM_WRITE_SETUP);
 
    dataflow = dataflow_construct_common(flavour);
 
@@ -1420,7 +1420,7 @@ Dataflow *glsl_dataflow_construct_pack(DataflowFlavour flavour, Dataflow *operan
 
    dataflow = dataflow_construct_common(flavour);
 
-   vcos_assert(DATAFLOW_PACK_COL_R == flavour ||
+   assert(DATAFLOW_PACK_COL_R == flavour ||
       DATAFLOW_PACK_COL_G == flavour ||
       DATAFLOW_PACK_COL_B == flavour ||
       DATAFLOW_PACK_COL_A == flavour ||
@@ -1710,7 +1710,7 @@ Dataflow* glsl_dataflow_construct_varying_tree(Dataflow* varying)
    Dataflow *c;
    Dataflow *dataflow;
 
-   vcos_assert(varying->flavour == DATAFLOW_VARYING);
+   assert(varying->flavour == DATAFLOW_VARYING);
 
    w = glsl_dataflow_construct_fragment_get(DATAFLOW_FRAG_GET_W);
    c = glsl_dataflow_construct_fragment_get(DATAFLOW_VARYING_C);
@@ -1732,7 +1732,7 @@ Dataflow* glsl_dataflow_construct_varying_non_perspective_tree(Dataflow* varying
    Dataflow *c;
    Dataflow *dataflow;
 
-   vcos_assert(varying->flavour == DATAFLOW_VARYING);
+   assert(varying->flavour == DATAFLOW_VARYING);
 
    w = glsl_dataflow_construct_const_float(float_to_bits(1.0f));
    c = glsl_dataflow_construct_fragment_get(DATAFLOW_VARYING_C);
@@ -1754,7 +1754,7 @@ Dataflow* glsl_dataflow_construct_unpack(DataflowFlavour flavour, Dataflow* para
 
    dataflow = dataflow_construct_common(flavour);
 
-   vcos_assert(
+   assert(
       flavour == DATAFLOW_UNPACK_COL_R ||
       flavour == DATAFLOW_UNPACK_COL_G ||
       flavour == DATAFLOW_UNPACK_COL_B ||
@@ -1785,7 +1785,7 @@ Dataflow* glsl_dataflow_construct_unpack_placeholder(DataflowFlavour flavour, Da
 
    dataflow = dataflow_construct_common(flavour);
 
-   vcos_assert(
+   assert(
       flavour == DATAFLOW_UNPACK_PLACEHOLDER_R ||
       flavour == DATAFLOW_UNPACK_PLACEHOLDER_B);
 
@@ -1807,7 +1807,7 @@ Dataflow* glsl_dataflow_construct_uniform_address(Dataflow* uniform, uint32_t si
 
    dataflow = dataflow_construct_common(DATAFLOW_UNIFORM_ADDRESS);
 
-   vcos_assert(DATAFLOW_UNIFORM == uniform->flavour);
+   assert(DATAFLOW_UNIFORM == uniform->flavour);
 
    // Add this node to the lists of dependents of the nodes it depends on.
    glsl_dataflow_add_dependent(uniform, dataflow);
@@ -1858,7 +1858,7 @@ static Dataflow *boolify(Dataflow *dataflow, BOOL_REP_T *rep_out)
 {
    BOOL_REP_T rep;
 
-   vcos_assert(dataflow_is_bool(dataflow));
+   assert(dataflow_is_bool(dataflow));
 
    rep = glsl_dataflow_get_bool_rep(dataflow);
 
@@ -1926,7 +1926,7 @@ static Dataflow *boolify(Dataflow *dataflow, BOOL_REP_T *rep_out)
 
 BOOL_REP_T glsl_dataflow_get_bool_rep(Dataflow *dataflow)
 {
-   vcos_assert(dataflow->bool_rep != BOOL_REP_NONE);
+   assert(dataflow->bool_rep != BOOL_REP_NONE);
    return dataflow->bool_rep;
 }
 
@@ -2113,7 +2113,7 @@ static void expr_evaluate_lvalue(Expr* expr, Dataflow ***result, int offset, int
             int member_scalar_count;
 
             // All subscripts used as lvalues must be indexed by constants.
-            vcos_assert(expr->u.subscript.subscript->constant_index_expression);
+            assert(expr->u.subscript.subscript->constant_index_expression);
             if (expr->u.subscript.subscript->compile_time_value)
             {
                index = *(const_int*)expr->u.subscript.subscript->compile_time_value;
@@ -2121,9 +2121,9 @@ static void expr_evaluate_lvalue(Expr* expr, Dataflow ***result, int offset, int
             else
             {
                Dataflow *dataflow;
-               vcos_assert(expr->u.subscript.subscript->type->scalar_count == 1);
+               assert(expr->u.subscript.subscript->type->scalar_count == 1);
                expr_calculate_dataflow(&dataflow, expr->u.subscript.subscript);
-               vcos_assert(dataflow->flavour == DATAFLOW_CONST_INT);
+               assert(dataflow->flavour == DATAFLOW_CONST_INT);
                index = dataflow->u.const_int.value;
             }
 
@@ -2163,7 +2163,7 @@ static void expr_evaluate_lvalue(Expr* expr, Dataflow ***result, int offset, int
             int field_no = expr->u.field_selector_struct.field_no;
             int scalar_count_offset;
 
-            vcos_assert(SYMBOL_STRUCT_TYPE == expr->u.field_selector_struct.aggregate->type->flavour);
+            assert(SYMBOL_STRUCT_TYPE == expr->u.field_selector_struct.aggregate->type->flavour);
 
             for (i = 0, scalar_count_offset = 0; i < field_no; i++)
             {
@@ -2180,12 +2180,12 @@ static void expr_evaluate_lvalue(Expr* expr, Dataflow ***result, int offset, int
             Dataflow **aggregate_scalar_values[4];
             int i;
 
-            vcos_assert(expr->u.field_selector_swizzle.aggregate->type->scalar_count <= 4);
+            assert(expr->u.field_selector_swizzle.aggregate->type->scalar_count <= 4);
 
             expr_evaluate_lvalue(expr->u.field_selector_swizzle.aggregate, aggregate_scalar_values, 0, expr->u.field_selector_swizzle.aggregate->type->scalar_count);
 
             for (i = 0; i < count; i++) {
-               vcos_assert(expr->u.field_selector_swizzle.swizzle_slots[i + offset] != SWIZZLE_SLOT_UNUSED);
+               assert(expr->u.field_selector_swizzle.swizzle_slots[i + offset] != SWIZZLE_SLOT_UNUSED);
 
                result[i] = aggregate_scalar_values[expr->u.field_selector_swizzle.swizzle_slots[i + offset]];
             }
@@ -2514,7 +2514,7 @@ static void statement_calculate_dataflow_iterator(Symbol* loop_index, Statement 
             expr_calculate_dataflow(&scalar_value, precond->u.expr.expr);
          } else {
             Symbol* var;
-            vcos_assert(precond->flavour == STATEMENT_VAR_DECL);
+            assert(precond->flavour == STATEMENT_VAR_DECL);
             // Evaluate initializer and assign it to the symbol
             glsl_statement_accept_prefix(precond, &f, sprev_calculate_dataflow, NULL);
             var = precond->u.var_decl.var;
@@ -2588,7 +2588,7 @@ static Statement* sprev_calculate_dataflow(Statement* statement, void* data)
 
       case STATEMENT_VAR_DECL:
          {
-            vcos_assert(SYMBOL_VAR_INSTANCE == statement->u.var_decl.var->flavour);
+            assert(SYMBOL_VAR_INSTANCE == statement->u.var_decl.var->flavour);
 
             // If there's an initializer, and the variable is non-const,
             // save the dataflow graphs (for each scalar value in the initializer) in the variable.
@@ -2759,7 +2759,7 @@ static Dataflow *build_uniform_offset(Expr *expr, Dataflow **linkable_value, boo
       int i;
 
       // Assert that only uniforms can have non-constant indexing.
-      vcos_assert(SYMBOL_VAR_INSTANCE == expr->u.instance.symbol->flavour &&
+      assert(SYMBOL_VAR_INSTANCE == expr->u.instance.symbol->flavour &&
              TYPE_QUAL_UNIFORM == expr->u.instance.symbol->u.var_instance.type_qual);
 
       for (i = 0; i < n; i++)
@@ -2822,15 +2822,15 @@ static INLINE void expr_calculate_dataflow_subscript(Dataflow** scalar_values, E
       if (symbol->flavour == SYMBOL_PARAM_INSTANCE)
       {
          ExprChain *args;
-         vcos_assert(calling_function_stack[calling_function_stack_top] != NULL);
+         assert(calling_function_stack[calling_function_stack_top] != NULL);
          args = calling_function_stack[calling_function_stack_top]->u.function_call.args;
          if (args != NULL) {
             unsigned int i;
             ExprChainNode *node = args->first;
-            vcos_assert(symbol->u.var_instance.param_index < (unsigned int)args->count);
+            assert(symbol->u.var_instance.param_index < (unsigned int)args->count);
             for (i=0; i<symbol->u.var_instance.param_index; i++)
                node=node->next;
-            vcos_assert(node && node->expr);
+            assert(node && node->expr);
             expr->u.subscript.subscript->constant_index_expression = node->expr->constant_index_expression;
          }
       }
@@ -2843,7 +2843,7 @@ static INLINE void expr_calculate_dataflow_subscript(Dataflow** scalar_values, E
       if (!expr->u.subscript.subscript->compile_time_value)
       {
          Dataflow *dataflow;
-         vcos_assert(expr->u.subscript.subscript->type->scalar_count == 1);
+         assert(expr->u.subscript.subscript->type->scalar_count == 1);
          expr_calculate_dataflow(&dataflow, expr->u.subscript.subscript);
 
          if (dataflow->flavour == DATAFLOW_CONDITIONAL)
@@ -2863,9 +2863,9 @@ static INLINE void expr_calculate_dataflow_subscript(Dataflow** scalar_values, E
       else
       {
          Dataflow *dataflow;
-         vcos_assert(expr->u.subscript.subscript->type->scalar_count == 1);
+         assert(expr->u.subscript.subscript->type->scalar_count == 1);
          expr_calculate_dataflow(&dataflow, expr->u.subscript.subscript);
-         vcos_assert(dataflow->flavour == DATAFLOW_CONST_INT);
+         assert(dataflow->flavour == DATAFLOW_CONST_INT);
          expr_index = dataflow->u.const_int.value;
       }
 
@@ -2975,7 +2975,7 @@ static INLINE void expr_calculate_dataflow_prim_constructor_call(Dataflow** scal
    PrimitiveTypeIndex out_scalar_type_index;
    PrimitiveTypeIndex in_scalar_type_index;
 
-   vcos_assert(SYMBOL_PRIMITIVE_TYPE == expr->type->flavour);
+   assert(SYMBOL_PRIMITIVE_TYPE == expr->type->flavour);
    out_scalar_type_index = primitiveScalarTypeIndices[expr->type->u.primitive_type.index];
 
    d = primitiveTypeSubscriptDimensions[expr->type->u.primitive_type.index];
@@ -2990,7 +2990,7 @@ static INLINE void expr_calculate_dataflow_prim_constructor_call(Dataflow** scal
             expr_calculate_dataflow(arg_scalar_values, args->first->expr);
             dataflow_line_num = expr->line_num;
 
-            vcos_assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
+            assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
             in_scalar_type_index = primitiveScalarTypeIndices[args->first->expr->type->u.primitive_type.index];
 
             // Convert first component of first arg.
@@ -3010,7 +3010,7 @@ static INLINE void expr_calculate_dataflow_prim_constructor_call(Dataflow** scal
             expr_calculate_dataflow(arg_scalar_values, args->first->expr);
             dataflow_line_num = expr->line_num;
 
-            vcos_assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
+            assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
             in_scalar_type_index = primitiveScalarTypeIndices[args->first->expr->type->u.primitive_type.index];
 
             // Convert first component of first arg.
@@ -3036,7 +3036,7 @@ static INLINE void expr_calculate_dataflow_prim_constructor_call(Dataflow** scal
             expr_calculate_dataflow(arg_scalar_values, args->first->expr);
             dataflow_line_num = expr->line_num;
 
-            vcos_assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
+            assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
             in_scalar_type_index = primitiveScalarTypeIndices[args->first->expr->type->u.primitive_type.index];
 
             // Convert first component of first arg.
@@ -3066,7 +3066,7 @@ static INLINE void expr_calculate_dataflow_prim_constructor_call(Dataflow** scal
             expr_calculate_dataflow(arg_scalar_values, args->first->expr);
 
             // Find first arg dimension.
-            vcos_assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
+            assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
             arg_d = primitiveTypeSubscriptDimensions[args->first->expr->type->u.primitive_type.index];
 
             // Fill.
@@ -3100,7 +3100,7 @@ static INLINE void expr_calculate_dataflow_prim_constructor_call(Dataflow** scal
                expr_calculate_dataflow(arg_scalar_values, arg->expr);
                dataflow_line_num = expr->line_num;
 
-               vcos_assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
+               assert(SYMBOL_PRIMITIVE_TYPE == args->first->expr->type->flavour);
                in_scalar_type_index = primitiveScalarTypeIndices[arg->expr->type->u.primitive_type.index];
 
                while (arg_offset < arg->expr->type->scalar_count && offset < expr->type->scalar_count)
@@ -3149,7 +3149,7 @@ static INLINE void expr_calculate_dataflow_field_selector_swizzle(Dataflow** sca
 
    for (i = 0; i < MAX_SWIZZLE_FIELD_COUNT && expr->u.field_selector_swizzle.swizzle_slots[i] != SWIZZLE_SLOT_UNUSED; i++)
    {
-      vcos_assert(expr->u.field_selector_swizzle.swizzle_slots[i] < expr->u.field_selector_swizzle.aggregate->type->scalar_count);
+      assert(expr->u.field_selector_swizzle.swizzle_slots[i] < expr->u.field_selector_swizzle.aggregate->type->scalar_count);
 
       scalar_values[i] = aggregate_scalar_values[expr->u.field_selector_swizzle.swizzle_slots[i]];
    }
@@ -3334,8 +3334,8 @@ static INLINE void expr_calculate_dataflow_binary_op_arithmetic(Dataflow** scala
       // All operations are component-wise except EXPR_MUL involving at least one matrix (cases 1 and 4).
 
       /* There are only floating point matrix types */
-      vcos_assert( !(left_flags & PRIM_MATRIX_TYPE) || (left_flags & PRIM_FLOAT_TYPE) );
-      vcos_assert( !(right_flags & PRIM_MATRIX_TYPE) || (right_flags & PRIM_FLOAT_TYPE) );
+      assert( !(left_flags & PRIM_MATRIX_TYPE) || (left_flags & PRIM_FLOAT_TYPE) );
+      assert( !(right_flags & PRIM_MATRIX_TYPE) || (right_flags & PRIM_FLOAT_TYPE) );
 
       // Case 1.
       if (left->type == right->type)
@@ -3390,8 +3390,8 @@ static INLINE void expr_calculate_dataflow_binary_op_arithmetic(Dataflow** scala
 
             for (i = 0; i < expr->type->scalar_count; i++)
             {
-               vcos_assert(left_scalar_values[i]);
-               vcos_assert(right_scalar_values[i]);
+               assert(left_scalar_values[i]);
+               assert(right_scalar_values[i]);
 
                scalar_values[i] = glsl_dataflow_construct_binary_op(
                   dataflow_flavour,
@@ -3405,7 +3405,7 @@ static INLINE void expr_calculate_dataflow_binary_op_arithmetic(Dataflow** scala
          }
       }
 
-      vcos_assert( ((left_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_FLOAT_TYPE)) ||
+      assert( ((left_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_FLOAT_TYPE)) ||
                    ((left_flags & PRIM_INT_TYPE)   && (right_flags & PRIM_INT_TYPE))     );
 
       // Cases 2 and 3.
@@ -3592,8 +3592,8 @@ static INLINE void expr_calculate_dataflow_binary_op_divide(Dataflow** scalar_va
       // All division operations are component-wise.
 
       /* There are only floating point matrix types */
-      vcos_assert( !(left_flags & PRIM_MATRIX_TYPE) || (left_flags & PRIM_FLOAT_TYPE) );
-      vcos_assert( !(right_flags & PRIM_MATRIX_TYPE) || (right_flags & PRIM_FLOAT_TYPE) );
+      assert( !(left_flags & PRIM_MATRIX_TYPE) || (left_flags & PRIM_FLOAT_TYPE) );
+      assert( !(right_flags & PRIM_MATRIX_TYPE) || (right_flags & PRIM_FLOAT_TYPE) );
 
       // Case 1.
       if (left->type == right->type)
@@ -3618,7 +3618,7 @@ static INLINE void expr_calculate_dataflow_binary_op_divide(Dataflow** scalar_va
       }
 
       /* Left and right types should match float/int */
-      vcos_assert( ( (left_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_FLOAT_TYPE) ) ||
+      assert( ( (left_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_FLOAT_TYPE) ) ||
                    ( (left_flags & PRIM_INT_TYPE)   && (right_flags & PRIM_INT_TYPE)   )    );
 
       // Cases 2 and 3.
@@ -3645,7 +3645,7 @@ static INLINE void expr_calculate_dataflow_binary_op_divide(Dataflow** scalar_va
                                            DATAFLOW_INTRINSIC_RCP,
                                            right_scalar_values[0]);
 
-         vcos_assert ( (right_flags & PRIM_SCALAR_TYPE) &&
+         assert ( (right_flags & PRIM_SCALAR_TYPE) &&
                        (left_flags & (PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE)) );
 
          for (i = 0; i < expr->type->scalar_count; i++)
@@ -3706,8 +3706,8 @@ static void expr_calculate_dataflow_binary_op_common(Dataflow** scalar_values, E
    }
 
    // This code assumes we do not act on vectors.
-   vcos_assert(1 == left->type->scalar_count);
-   vcos_assert(1 == right->type->scalar_count);
+   assert(1 == left->type->scalar_count);
+   assert(1 == right->type->scalar_count);
 
    // Recurse.
    expr_calculate_dataflow(&left_scalar_value, left);
@@ -3776,8 +3776,8 @@ static void expr_calculate_dataflow_binary_op_short_circuit(Dataflow** scalar_va
    right = expr->u.binary_op.right;
 
    // This code assumes we do not act on vectors.
-   vcos_assert(1 == left->type->scalar_count);
-   vcos_assert(1 == right->type->scalar_count);
+   assert(1 == left->type->scalar_count);
+   assert(1 == right->type->scalar_count);
 
    // Recurse.
    expr_calculate_dataflow(&left_scalar_value, left);
@@ -3868,7 +3868,7 @@ static INLINE void expr_calculate_dataflow_binary_op_equality(Dataflow** scalar_
       right_scalar_values[0]);
 
    // Fold in the rest.
-   vcos_assert(left->type->scalar_count == right->type->scalar_count);
+   assert(left->type->scalar_count == right->type->scalar_count);
    for (i = 1; i < left->type->scalar_count; i++)
    {
       Dataflow* cmp = glsl_dataflow_construct_binary_op(
@@ -3967,7 +3967,7 @@ static INLINE void expr_calculate_dataflow_affix(Dataflow** scalar_values, Expr*
 
    Dataflow* one = NULL;
 
-   vcos_assert(expr->type->flavour == SYMBOL_PRIMITIVE_TYPE);
+   assert(expr->type->flavour == SYMBOL_PRIMITIVE_TYPE);
 
    switch (primitiveTypeFlags[expr->type->u.primitive_type.index] & (PRIM_INT_TYPE | PRIM_FLOAT_TYPE))
    {
@@ -4166,7 +4166,7 @@ static INLINE void expr_calculate_dataflow_function_call(Dataflow** scalar_value
       }
    }
 
-   vcos_assert(!node);
+   assert(!node);
 }
 
 void glsl_init_samplers(void)
@@ -4226,7 +4226,7 @@ static INLINE void expr_calculate_dataflow_texture_lookup(Dataflow** scalar_valu
 
 
             // Assert that we're returning a vec4 (i.e. rgba).
-            vcos_assert(&primitiveTypes[PRIM_VEC4] == expr->type);
+            assert(&primitiveTypes[PRIM_VEC4] == expr->type);
 
             // Gather args.
             sampler_expr = expr->u.intrinsic.args->first->expr;
@@ -4235,35 +4235,35 @@ static INLINE void expr_calculate_dataflow_texture_lookup(Dataflow** scalar_valu
             switch (expr->flavour)
             {
                case EXPR_INTRINSIC_TEXTURE_2D_BIAS:
-                  vcos_assert(&primitiveTypes[PRIM_SAMPLER2D] == sampler_expr->type ||
+                  assert(&primitiveTypes[PRIM_SAMPLER2D] == sampler_expr->type ||
                           &primitiveTypes[PRIM_SAMPLEREXTERNAL] == sampler_expr->type);
-                  vcos_assert(&primitiveTypes[PRIM_VEC2] == coord_expr->type);
-                  vcos_assert(&primitiveTypes[PRIM_FLOAT] == bias_or_lod_expr->type);
+                  assert(&primitiveTypes[PRIM_VEC2] == coord_expr->type);
+                  assert(&primitiveTypes[PRIM_FLOAT] == bias_or_lod_expr->type);
                   texture_type = TEXTURE_2D;
                   lookup_type = LOOKUP_BIAS;
                   break;
 
                case EXPR_INTRINSIC_TEXTURE_2D_LOD:
-                  vcos_assert(&primitiveTypes[PRIM_SAMPLER2D] == sampler_expr->type ||
+                  assert(&primitiveTypes[PRIM_SAMPLER2D] == sampler_expr->type ||
                           &primitiveTypes[PRIM_SAMPLEREXTERNAL] == sampler_expr->type);
-                  vcos_assert(&primitiveTypes[PRIM_VEC2] == coord_expr->type);
-                  vcos_assert(&primitiveTypes[PRIM_FLOAT] == bias_or_lod_expr->type);
+                  assert(&primitiveTypes[PRIM_VEC2] == coord_expr->type);
+                  assert(&primitiveTypes[PRIM_FLOAT] == bias_or_lod_expr->type);
                   texture_type = TEXTURE_2D;
                   lookup_type = LOOKUP_LOD;
                   break;
 
                case EXPR_INTRINSIC_TEXTURE_CUBE_BIAS:
-                  vcos_assert(&primitiveTypes[PRIM_SAMPLERCUBE] == sampler_expr->type);
-                  vcos_assert(&primitiveTypes[PRIM_VEC3] == coord_expr->type);
-                  vcos_assert(&primitiveTypes[PRIM_FLOAT] == bias_or_lod_expr->type);
+                  assert(&primitiveTypes[PRIM_SAMPLERCUBE] == sampler_expr->type);
+                  assert(&primitiveTypes[PRIM_VEC3] == coord_expr->type);
+                  assert(&primitiveTypes[PRIM_FLOAT] == bias_or_lod_expr->type);
                   texture_type = TEXTURE_CUBE;
                   lookup_type = LOOKUP_BIAS;
                   break;
 
                case EXPR_INTRINSIC_TEXTURE_CUBE_LOD:
-                  vcos_assert(&primitiveTypes[PRIM_SAMPLERCUBE] == sampler_expr->type);
-                  vcos_assert(&primitiveTypes[PRIM_VEC3] == coord_expr->type);
-                  vcos_assert(&primitiveTypes[PRIM_FLOAT] == bias_or_lod_expr->type);
+                  assert(&primitiveTypes[PRIM_SAMPLERCUBE] == sampler_expr->type);
+                  assert(&primitiveTypes[PRIM_VEC3] == coord_expr->type);
+                  assert(&primitiveTypes[PRIM_FLOAT] == bias_or_lod_expr->type);
                   texture_type = TEXTURE_CUBE;
                   lookup_type = LOOKUP_LOD;
                   break;
@@ -4453,7 +4453,7 @@ static void expr_calculate_dataflow(Dataflow** scalar_values, Expr* expr)
 {
    STACK_CHECK();
 
-   vcos_assert(scalar_values);
+   assert(scalar_values);
 
    if (expr->compile_time_value)
    {
@@ -4652,7 +4652,7 @@ void glsl_dataflow_priority_queue_heapify(DataflowPriorityQueue* queue)
 
 void glsl_dataflow_priority_queue_push(DataflowPriorityQueue* queue, Dataflow *node)
 {
-   vcos_assert(queue->used < queue->size);
+   assert(queue->used < queue->size);
 
    queue->nodes[queue->used] = node;
 
@@ -4693,7 +4693,7 @@ typedef struct
 
 static void *stuff_alloc(GLSL_COPY_CONTEXT_T *stuff, uint32_t size)
 {
-   if (stuff->mh_out_blob == MEM_INVALID_HANDLE)
+   if (stuff->mh_out_blob == MEM_HANDLE_INVALID)
    {
       return malloc_fast(size);
    }
@@ -4704,7 +4704,7 @@ static void *stuff_alloc(GLSL_COPY_CONTEXT_T *stuff, uint32_t size)
       {
          verify(mem_resize(stuff->mh_out_blob, mem_get_size(stuff->mh_out_blob) + 1024));   /* TODO: out of memory */
       }
-      vcos_assert(stuff->alloc_amount + size <= mem_get_size(stuff->mh_out_blob));
+      assert(stuff->alloc_amount + size <= mem_get_size(stuff->mh_out_blob));
       result = (void *)stuff->alloc_amount;
       stuff->alloc_amount += size;
       return result;
@@ -4713,7 +4713,7 @@ static void *stuff_alloc(GLSL_COPY_CONTEXT_T *stuff, uint32_t size)
 
 static void *stuff_out_lock(GLSL_COPY_CONTEXT_T *stuff, void *handle)
 {
-   if (stuff->mh_out_blob == MEM_INVALID_HANDLE)
+   if (stuff->mh_out_blob == MEM_HANDLE_INVALID)
       return handle;
    else
       return ((char *)mem_lock(stuff->mh_out_blob, NULL)) + (size_t)handle;
@@ -4723,7 +4723,7 @@ static void stuff_out_unlock(GLSL_COPY_CONTEXT_T *stuff, void *handle)
 {
    UNUSED(handle);
 
-   if (stuff->mh_out_blob != MEM_INVALID_HANDLE)
+   if (stuff->mh_out_blob != MEM_HANDLE_INVALID)
       mem_unlock(stuff->mh_out_blob);
 }
 
@@ -4763,18 +4763,18 @@ static Dataflow *copy(GLSL_COPY_CONTEXT_T *stuff, Dataflow *dataflow_in)
 
    dataflow = (Dataflow *)stuff_in_translate(stuff, dataflow_in);
 
-   vcos_assert(dataflow);
+   assert(dataflow);
 
    if (dataflow->flavour == stuff->input_flavour)
    {
-      vcos_assert(dataflow->flavour == DATAFLOW_ATTRIBUTE || dataflow->flavour == DATAFLOW_VARYING);
-      vcos_assert((uint32_t)dataflow->u.linkable_value.row < stuff->num_inputs);
+      assert(dataflow->flavour == DATAFLOW_ATTRIBUTE || dataflow->flavour == DATAFLOW_VARYING);
+      assert((uint32_t)dataflow->u.linkable_value.row < stuff->num_inputs);
       result = stuff->inputs[dataflow->u.linkable_value.row];
-      vcos_assert(result);
+      assert(result);
    }
    else if (dataflow->copy && !stuff->revert)
    {
-      vcos_assert(dataflow->copy != (Dataflow *)~0);
+      assert(dataflow->copy != (Dataflow *)~0);
       result = dataflow->copy;
    }
    else if (!dataflow->copy && stuff->revert)
@@ -4842,7 +4842,7 @@ static Dataflow *copy(GLSL_COPY_CONTEXT_T *stuff, Dataflow *dataflow_in)
             Dataflow *sampler = copy(stuff, dataflow->d.binary_op.right);
             int loc = sampler->u.const_sampler.location;
 
-            vcos_assert(loc >= 0 && loc < GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS);
+            assert(loc >= 0 && loc < GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS);
 
             swap = stuff->texture_rb_swap[loc];
             if ((dataflow->flavour == DATAFLOW_UNPACK_PLACEHOLDER_R) ^ swap)
@@ -4878,7 +4878,7 @@ static Dataflow *copy(GLSL_COPY_CONTEXT_T *stuff, Dataflow *dataflow_in)
          {
             stuff_chain_append(stuff, &df.iodependencies, out_iodep);
 
-            if (stuff->mh_out_blob == MEM_INVALID_HANDLE)
+            if (stuff->mh_out_blob == MEM_HANDLE_INVALID)
             {
                glsl_dataflow_chain_append(&out_iodep->iodependents, result);
             }
@@ -4889,12 +4889,12 @@ static Dataflow *copy(GLSL_COPY_CONTEXT_T *stuff, Dataflow *dataflow_in)
 
       if (stuff->revert)
       {
-         vcos_assert(dataflow->copy != NULL);
+         assert(dataflow->copy != NULL);
          dataflow->copy = NULL;
          return NULL;
       }
 
-      vcos_assert(dataflow->copy == (Dataflow *)~0);
+      assert(dataflow->copy == (Dataflow *)~0);
       dataflow->copy = result;
 
       init_backend_fields(&df);
@@ -4904,7 +4904,7 @@ static Dataflow *copy(GLSL_COPY_CONTEXT_T *stuff, Dataflow *dataflow_in)
       stuff->dependent = olddep;
    }
 
-   if (stuff->mh_out_blob == MEM_INVALID_HANDLE && stuff->dependent)
+   if (stuff->mh_out_blob == MEM_HANDLE_INVALID && stuff->dependent)
    {
       glsl_dataflow_chain_append(&result->dependents, stuff->dependent);
    }
@@ -4923,8 +4923,8 @@ MEM_HANDLE_T glsl_dataflow_copy_to_relocatable(uint32_t count, Dataflow **datafl
    stuff.input_flavour = DATAFLOW_FLAVOUR_COUNT;
    stuff.mh_out_blob = mem_alloc_ex(1024, 4, MEM_FLAG_RESIZEABLE|MEM_FLAG_HINT_GROW, "GLSL_COPY_CONTEXT_T.mh_blob", MEM_COMPACT_DISCARD);
 
-   if (stuff.mh_out_blob == MEM_INVALID_HANDLE)
-      return MEM_INVALID_HANDLE;
+   if (stuff.mh_out_blob == MEM_HANDLE_INVALID)
+      return MEM_HANDLE_INVALID;
 
    stuff.alloc_amount = 4;    /* waste some memory to avoid NULL being returned */
    stuff.in_offset = in_offset;
@@ -4950,7 +4950,7 @@ void glsl_dataflow_copy(uint32_t count, Dataflow **dataflow_out, Dataflow **data
    stuff.inputs = inputs;
    stuff.num_inputs = num_inputs;
    stuff.input_flavour = input_flavour;
-   stuff.mh_out_blob = MEM_INVALID_HANDLE;
+   stuff.mh_out_blob = MEM_HANDLE_INVALID;
    stuff.alloc_amount = 0;
    stuff.in_offset = in_offset;
    stuff.revert = false;

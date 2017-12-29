@@ -24,7 +24,7 @@
 
 LOG_DEFAULT_CAT("glxx_draw")
 
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static bool calc_attribs_max(glxx_attribs_max *attribs_max,
       const GLXX_VAO_T *vao, uint32_t attribs_live, unsigned base_instance);
 #endif
@@ -168,19 +168,15 @@ static void hw_draw_params_from_raw(glxx_hw_draw *draw, const GLXX_DRAW_RAW_T *r
    draw->indirect_offset = (v3d_size_t)(uintptr_t)raw->indirect;
 }
 
-/* Return whether any currently active attribute has no buffer bound */
-static bool have_client_vertex_pointers(const GLXX_VAO_T *vao, uint32_t attribs_live)
+static bool all_enabled_attrs_have_vbo_bound(const GLXX_VAO_T *vao)
 {
-   for (unsigned i = 0; attribs_live != 0; ++i, attribs_live >>= 1)
+   for (unsigned i = 0; i != GLXX_CONFIG_MAX_VERTEX_ATTRIBS; ++i)
    {
-      if (attribs_live & 1)
-      {
-         const GLXX_ATTRIB_CONFIG_T *attr = &vao->attrib_config[i];
-         if (attr->enabled && vao->vbos[attr->vbo_index].buffer == NULL)
-            return true;
-      }
+      const GLXX_ATTRIB_CONFIG_T *attr = &vao->attrib_config[i];
+      if (attr->enabled && !vao->vbos[attr->vbo_index].buffer)
+         return false;
    }
-   return false;
+   return true;
 }
 
 static gmem_handle_t alloc_and_sync_dynamic_read(khrn_fmem *fmem,
@@ -199,7 +195,7 @@ static gmem_handle_t alloc_and_sync_dynamic_read(khrn_fmem *fmem,
       return NULL;
    }
 
-   khrn_fmem_sync(fmem, handle, bin_rw_flags, render_rw_flags);
+   khrn_fmem_sync(fmem, 1, &handle, bin_rw_flags, render_rw_flags);
 
    return handle;
 }
@@ -212,11 +208,12 @@ static v3d_addr_t dynamic_read_copy(khrn_fmem *fmem,
    // Try to put ver small allocations in fmem blocks first.
    if (size < 1024)
    {
-      void* ptr = khrn_fmem_data(fmem, size, align);
+      v3d_addr_t addr;
+      void* ptr = khrn_fmem_data(&addr, fmem, size, align);
       if (ptr)
       {
          memcpy(ptr, data, size);
-         return khrn_fmem_hw_address(fmem, ptr);
+         return addr;
       }
    }
 
@@ -372,7 +369,7 @@ static bool get_client_vbs(
       curr->merged = ~0u;
       vbs[i].stride = attr->stride;
       vbs[i].divisor = vbo->divisor;
-    #if V3D_HAS_ATTR_MAX_INDEX
+    #if V3D_VER_AT_LEAST(4,1,34,0)
       vbs[i].max_index = attrib_max;
     #endif
 
@@ -608,32 +605,27 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const glxx_hw_draw *dr
 
    if (draw->is_indirect)
    {
-      GLXX_BUFFER_T *indirect_buffer = state->bound_buffer[GLXX_BUFTGT_DRAW_INDIRECT].obj;
       GLXX_VAO_T *vao = state->vao.bound;
-      const size_t sizeof_indirect = (draw->is_draw_arrays ? 4 : 5)*sizeof(uint32_t);
-      size_t data_required = (draw->num_indirect == 0) ? 0 :
-         ((draw->num_indirect-1)*draw->indirect_stride + sizeof_indirect);
-      /* Pass 0xffffffff as the mask because any enabled attrib will give an error */
-      /* TODO: This weird masking is a bit shonky */
-      bool client_side_vertices = have_client_vertex_pointers(vao, gfx_mask(GLXX_CONFIG_MAX_VERTEX_ATTRIBS));
-
-      if (indirect_buffer == NULL) {
-         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-         return false;
-      }
-
-      v3d_size_t indirect_bufsize = glxx_buffer_get_size(indirect_buffer);
-
-      if (vao->name == 0 ||
-          indirect_bufsize < draw->indirect_offset ||
-          indirect_bufsize - draw->indirect_offset < data_required ||
-          client_side_vertices)
+      GLXX_BUFFER_T *indirect_buffer = state->bound_buffer[GLXX_BUFTGT_DRAW_INDIRECT].obj;
+      if (vao->name == 0 || !all_enabled_attrs_have_vbo_bound(vao) || !indirect_buffer)
       {
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
          return false;
       }
 
-      if (draw->indirect_offset & 3) {
+      v3d_size_t indirect_bufsize = glxx_buffer_get_size(indirect_buffer);
+      const size_t sizeof_indirect = (draw->is_draw_arrays ? 4 : 5)*sizeof(uint32_t);
+      size_t data_required = (draw->num_indirect == 0) ? 0 :
+         ((draw->num_indirect-1)*draw->indirect_stride + sizeof_indirect);
+      if (indirect_bufsize < draw->indirect_offset ||
+          indirect_bufsize - draw->indirect_offset < data_required)
+      {
+         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+         return false;
+      }
+
+      if (draw->indirect_offset & 3)
+      {
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
          return false;
       }
@@ -733,7 +725,7 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const glxx_hw_draw *dr
    return true;
 }
 
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 /* Clamp draw parameters to make sure we never exceed buffer bounds */
 static bool clamp_draw_count(glxx_hw_draw *draw, const void *raw_indices,
       const GLXX_VAO_T *vao, unsigned int max_index)
@@ -898,7 +890,7 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state,
 
    uint32_t attribs_live = glxx_get_attribs_live(state);
 
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    glxx_attribs_max attribs_max;
    if (!calc_attribs_max(&attribs_max, vao, attribs_live, draw->baseinstance))
       goto end; //nothing to do
@@ -935,7 +927,7 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state,
 
    if (!glxx_hw_draw_triangles(state, rs, draw, &indices,
             state->vao.bound->attrib_config, vbs
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
             ,&attribs_max
 #endif
       ))
@@ -1086,7 +1078,7 @@ GL_API void GL_APIENTRY glDrawRangeElements(GLenum mode, GLuint start, GLuint en
    glxx_unlock_server_state();
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_APICALL void GL_APIENTRY glDrawArraysIndirect(GLenum mode, const GLvoid *indirect)
 {
@@ -1143,7 +1135,7 @@ static bool get_max_buffer_index(uint32_t *max_index,
       return false;    //Not even the first vertex will fit in the buffer
    else if(actual_stride == 0)
    {
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
       //hw ignores max_index if stride is 0
       *max_index = 0;
 #else
@@ -1160,7 +1152,7 @@ static bool get_max_buffer_index(uint32_t *max_index,
    return true;
 }
 
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static bool calc_attribs_max(glxx_attribs_max *attribs_max,
       const GLXX_VAO_T *vao, uint32_t attribs_live, unsigned base_instance)
 {
@@ -1217,7 +1209,7 @@ static bool get_indices(glxx_hw_indices *indices,
       if (!glxx_hw_tf_aware_sync_res(rs,
             buffer->resource, V3D_BARRIER_CLE_PRIMIND_READ, V3D_BARRIER_NO_ACCESS))
          return false;
-      indices->addr = gmem_get_addr(buffer->resource->handle);
+      indices->addr = khrn_resource_get_addr(buffer->resource);
       indices->size = glxx_buffer_get_size(buffer);
       indices->offset = (v3d_size_t)(uintptr_t)raw_indices;
    }
@@ -1235,7 +1227,7 @@ static bool get_indices(glxx_hw_indices *indices,
       indices->offset = 0;
    }
 
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (!draw->is_indirect)
       assert(indices->offset < indices->size); //checked by clamp_draw_count
 #endif
@@ -1265,7 +1257,7 @@ static bool get_vbs(bool *skip, glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
          continue;
       }
 
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (!get_max_buffer_index(&vbs[i].max_index, glxx_buffer_get_size(vbo->buffer), vbo->offset +
                attr->relative_offset, attr->total_size, vbo->stride))
       {
@@ -1273,18 +1265,28 @@ static bool get_vbs(bool *skip, glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
          return true;
       }
 #endif
-      khrn_resource* resouce = vbo->buffer->resource;
-      if (!glxx_hw_tf_aware_sync_res(rs, resouce, V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ))
+      khrn_resource* res = vbo->buffer->resource;
+      if (!glxx_hw_tf_aware_sync_res(rs, res, V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ))
          return false;
 
-      vbs[i].addr = gmem_get_addr(resouce->handle) + vbo->offset + attr->relative_offset;
+      vbs[i].addr = khrn_resource_get_addr(res) + vbo->offset + attr->relative_offset;
       vbs[i].stride = vbo->stride;
       vbs[i].divisor = vbo->divisor;
    }
 
    if (client_attribs_live != 0)
    {
-      assert(vao->name == 0);    // Client-side pointers only valid if the default VAO is bound.
+      if (vao->name != 0)
+      {
+         // There is an active and enabled attribute with no associated VBO.
+         // The client-side pointer in the VAO should be used instead, however,
+         // as it is impossible for any VAO but the default (0) to have
+         // client-side pointers, we know it is NULL. Abort the draw call early
+         // here.
+         log_warn("%s: active and enabled attrib without storage or buffer bound", __FUNCTION__);
+         return false;
+      }
+
       assert(!draw->is_indirect);
 
       uint32_t min_index;
@@ -1360,7 +1362,7 @@ static bool create_and_record_drawtex_attribs(
       vb->addr = gmem_get_addr(v_handle);
       vb->stride = stride;
       vb->divisor = 0;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
       assert(vertex_count > 0);
       vb->max_index = (vertex_count -1);
 #endif
@@ -1386,7 +1388,7 @@ static bool create_and_record_drawtex_attribs(
          vb->addr = gmem_get_addr(v_handle) + (sizeof(float) * (v_size + prec_txt_enabled * t_size));
          vb->stride = stride;
          vb->divisor = 0;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
          assert(vertex_count > 0);
          vb->max_index = (vertex_count -1);
 #endif
@@ -1525,7 +1527,7 @@ bool glxx_drawtex(GLXX_SERVER_STATE_T *state, float x_s, float y_s, float z_w,
       gl11_cache_uniforms(state, &rs->fmem);
    }
 
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    glxx_attribs_max attribs_max = {
       .index = GLXX_CONFIG_MAX_ELEMENT_INDEX,
       .instance = INT_MAX };
@@ -1557,7 +1559,7 @@ bool glxx_drawtex(GLXX_SERVER_STATE_T *state, float x_s, float y_s, float z_w,
    }
 
    if (!glxx_hw_draw_triangles(state, rs, &draw, NULL, attribs, vbs
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          , &attribs_max
 #endif
          ))

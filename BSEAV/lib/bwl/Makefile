@@ -52,13 +52,8 @@ BWL_SRC_DIR = $(NEXUS_TOP)/../BSEAV/lib/bwl/src
 CONNECTIVITY_OBJ = $(NEXUS_TOP)/../$(B_REFSW_OBJ_DIR)/BSEAV/connectivity
 CONNECTIVITY_SRC = $(NEXUS_TOP)/../BSEAV/connectivity
 
-WLAN_DRIVER_PATH_TEST = $(shell echo $(WLAN_DRIVER_PATH))
-ifdef WLAN_DRIVER_PATH
+WLAN_DRIVER_PATH ?= BSEAV/connectivity/wlan/core
 all: ${BWL_OBJ_DIR} bwl_build_objs $(BWL_OBJ_DIR)/libbwl.a
-else
-all:
-	@echo [Please define WLAN_DRIVER_PATH before compiling BWL. E.g.:  export WLAN_DRIVER_PATH="BSEAV/connectivity/wlan/core" ]
-endif
 
 clean:
 	@echo [Clean ... $(BWL_OBJ_DIR)]
@@ -242,8 +237,17 @@ BWL_CFLAGS += -DNO_WIFI_SECDMA
 BWL_CFLAGS += -DNO_DUALSOFTAP
 BWL_CFLAGS += -I$(BWL_SRC_DIR)/../include
 
-CC := $(B_REFSW_ARCH)-gcc
-AR := $(B_REFSW_ARCH)-ar
+ifeq ($(filter ${B_REFSW_ARCH}, arm-linux ), ${B_REFSW_ARCH})
+B_REFSW_CROSS_COMPILE ?= arm-linux-
+else
+ifeq ($(filter ${B_REFSW_ARCH}, mipsel-linux ), ${B_REFSW_ARCH})
+B_REFSW_CROSS_COMPILE ?= mipsel-linux-
+else
+B_REFSW_CROSS_COMPILE =
+endif
+endif
+CC := $(B_REFSW_CROSS_COMPILE)gcc
+AR := $(B_REFSW_CROSS_COMPILE)ar
 
 ${BWL_OBJ_DIR}:
 	@mkdir -p $@
@@ -277,6 +281,5 @@ bwl_build_objs: $(BWL_OBJ_DIR)/bcmwifi_channels.o $(BWL_OBJ_DIR)/bwl.o $(BWL_OBJ
 $(BWL_OBJ_DIR)/libbwl.a: $(BWL_OBJ_DIR)/bwl.o $(BWL_OBJ_DIR)/bwl_utils.o $(BWL_OBJ_DIR)/bwl_linux.o $(BWL_OBJ_DIR)/bcmwifi_channels.o $(BWL_OBJ_DIR)/bwl_wlu_subcounters.o
 	@echo [Building ... $(notdir $@)]
 	@$(AR) rcs $(BWL_OBJ_DIR)/libbwl.a $(BWL_OBJ_DIR)/bwl.o $(BWL_OBJ_DIR)/bwl_utils.o $(BWL_OBJ_DIR)/bwl_linux.o $(BWL_OBJ_DIR)/bcmwifi_channels.o $(BWL_OBJ_DIR)/bwl_wlu_subcounters.o
-###	@cp -f $(BWL_OBJ_DIR)/libbwl.a ${NEXUS_BIN_DIR}
 
 -include *.d

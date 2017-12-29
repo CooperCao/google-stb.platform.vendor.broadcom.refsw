@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -157,7 +157,7 @@
 
 /* define max CPB size according to level fo H264 */
 #define H264_MAX_CPB_LEVEL_10  (1000*175)
-#define H264_MAX_CPB_LEVEL_1b  (1000*350)
+#define H264_MAX_CPB_LEVEL_10b (1000*350)
 #define H264_MAX_CPB_LEVEL_11  (1000*500)
 #define H264_MAX_CPB_LEVEL_12  (1000*1000)
 #define H264_MAX_CPB_LEVEL_13  (1000*2000)
@@ -876,6 +876,7 @@ BVCE_FW_P_CalcHRDbufferSize(
         switch(Level)
         {
         case ENCODING_AVC_LEVEL_10: hrdBufferSize = H264_MAX_CPB_LEVEL_10; break;
+        case ENCODING_AVC_LEVEL_10b: hrdBufferSize = H264_MAX_CPB_LEVEL_10b; break;
         case ENCODING_AVC_LEVEL_11: hrdBufferSize = H264_MAX_CPB_LEVEL_11; break;
         case ENCODING_AVC_LEVEL_12: hrdBufferSize = H264_MAX_CPB_LEVEL_12; break;
         case ENCODING_AVC_LEVEL_13: hrdBufferSize = H264_MAX_CPB_LEVEL_13; break;
@@ -1087,7 +1088,30 @@ static int16_t arcDivide16(int16_t numerator, int16_t denominator)
     return(var_out);
 }
 
+/************************************************************************
+*  START OF DRAM BUFFER SIZE CALCULATIONS
+************************************************************************/
 
+
+#define DIV64_ROUND(x)   ( ((x) + 32) >> 6 )
+#define DIV64_ROUNDUP(x) ( ((x) + 63) >> 6 )
+#define DIV64_TRUNC(x)   ( (x) >> 6 )
+
+#define DIV128_ROUND(x)   ( ((x) + 64) >> 7 )
+#define DIV128_ROUNDUP(x) ( ((x) + 127) >> 7 )
+#define DIV128_TRUNC(x)   ( (x) >> 7 )
+
+#define DIV256_ROUND(x)   ( ((x) + 128) >> 8 )
+#define DIV256_ROUNDUP(x) ( ((x) + 255) >> 8 )
+#define DIV256_TRUNC(x)   ( (x) >> 8 )
+
+#ifndef MAX
+#define MAX(a,b)                (((a) > (b)) ? (a) : (b))
+#endif
+
+#ifndef MIN
+#define MIN(a,b)                (((a) < (b)) ? (a) : (b))
+#endif
 
 
 /************************************************************************
@@ -1109,15 +1133,11 @@ static uint8_t bvceEpmCalcWidthInStripes(uint32_t PictureWidthInPels,uint32_t Dr
 
     if (DramStripeWidth==128)
     {
-        WidthInStripes=(PictureWidthInPels>>7);
-        if ((PictureWidthInPels-(WidthInStripes<<7))>0)
-            WidthInStripes++;
+        WidthInStripes = DIV128_ROUNDUP(PictureWidthInPels);
     }
     else /* DramStripeWidth==256 */
     {
-        WidthInStripes=(PictureWidthInPels>>8);
-        if ((PictureWidthInPels-(WidthInStripes<<8))>0)
-            WidthInStripes++;
+        WidthInStripes = DIV256_ROUNDUP(PictureWidthInPels);
     }
 
     return(WidthInStripes);
@@ -1218,6 +1238,9 @@ static uint8_t bvceEpmCalcNMBY(uint32_t PictureHeightInMbs, uint32_t X, uint32_t
 
 #define MULT16(x)       ( (x) << 4 )
 #define MULT8(x)        ( (x) << 3 )
+
+
+
 
 /************************************************************************
 * Function: EpmCalcStripeBufferSize
@@ -1337,14 +1360,16 @@ void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *p
     pstMemSettings->MaxPictureWidthInPels = HOR_SIZE_IN_PELS_1080P;
     pstMemSettings->MaxPictureHeightInPels = VER_SIZE_IN_PELS_1080P;
 
-    /* TODO - need to figure out worst case for V3 */
+
     if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V3_0_0_2)
     {
-        pstMemSettings->InputType = ENCODER_INPUT_TYPE_PROGRESSIVE;
+        pstMemSettings->InputType = ENCODER_INPUT_TYPE_INTERLACED;
         pstMemSettings->DramStripeWidth = 256;
         pstMemSettings->X = 32;
         pstMemSettings->Y = 12;
         pstMemSettings->DcxvEnable = 0;
+    pstMemSettings->NewBvnMailboxEnable = 0;
+    pstMemSettings->PageSize = 2;
     }
     else if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V2_1)
     {
@@ -1352,6 +1377,8 @@ void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *p
         pstMemSettings->X = 32;
         pstMemSettings->Y = 12;
         pstMemSettings->DcxvEnable = 1;
+    pstMemSettings->NewBvnMailboxEnable = 0;
+    pstMemSettings->PageSize = 2;
     }
     else
     {
@@ -1359,6 +1386,8 @@ void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *p
         pstMemSettings->X = 16;
         pstMemSettings->Y = 6;
         pstMemSettings->DcxvEnable = 0;
+    pstMemSettings->NewBvnMailboxEnable = 0;
+    pstMemSettings->PageSize = 2;
     }
 }
 
@@ -1378,6 +1407,7 @@ void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *p
 *        Number of macroblocks per stripe height
 *
 ************************************************************************/
+static uint32_t BVCE_FW_P_CalcV3NonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, const BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings );
 uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, const BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings )
 {
 
@@ -1417,6 +1447,16 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
     uint8_t EPM_NUMBER_OF_DECIMATED_PICTURE_QUEUES;
     uint8_t EPM_NUMBER_OF_CSC_QUEUES;
     uint8_t EPM_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES;
+
+
+    if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V3_0_0_2)
+    {
+    uint32_t DramBuffSize;
+
+    DramBuffSize = BVCE_FW_P_CalcV3NonSecureMem ( pstCoreSettings, pstMemSettings );
+    return(DramBuffSize);
+    }
+
 
 
     InputType = pstMemSettings->InputType;
@@ -1524,11 +1564,11 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
           BufferSize = Non_dcxv_BufferSize;
 
         /*save start address and buffer size for on the fly address calculation */
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size */
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<EPM_NUMBER_OF_ORIGINAL_PICTURE_QUEUES ; StackPointer++)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1536,11 +1576,11 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_2h1v_luma_buffer+size_of_2h2v_luma_buffer;
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<EPM_NUMBER_OF_DECIMATED_PICTURE_QUEUES ; StackPointer++)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1548,11 +1588,11 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_csc_buffer*4;/*In progressive mode there are only two references*/
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<EPM_NUMBER_OF_CSC_QUEUES ; StackPointer++)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1560,11 +1600,11 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_reconstructed_luma+size_of_reconstructed_chroma;
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<EPM_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES ; StackPointer++)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1634,11 +1674,11 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<EPM_NUMBER_OF_ORIGINAL_PICTURE_QUEUES ; StackPointer++)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1646,26 +1686,15 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_2h1v_luma_buffer+size_of_2h2v_luma_buffer;
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<EPM_NUMBER_OF_DECIMATED_PICTURE_QUEUES ; StackPointer++)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
-        if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V3_0_0_2 )
-        {
-            /* Allocate collocated pixels buffer */
-            BufferSize = 32*12* ((max_horizontal_size_in_pels + 63) >> 6) * max_vertical_size_in_pels;
 
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
-            CurrAddress = CurrAddress + BufferSize;
-
-            /* Allocate CABAC probabilites for VP9 ( not required for interlaced mode which is not supported in VP9 ) */
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
-            CurrAddress = CurrAddress + (5 * VP9_CTX_TABLE_SIZE);
-        }
 
         return(CurrAddress);
     }
@@ -1722,36 +1751,36 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_luma_buffer+size_of_420_chroma_buffer;
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
 
         for (StackPointer=0; StackPointer<(EPM_NUMBER_OF_ORIGINAL_PICTURE_QUEUES<<1) ; StackPointer+=2)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
-        /*Allocate Stack of buffers for the Original Shifted 4:2:2 top field Chroma*/
+        /* Allocate Stack of buffers for the Original Shifted 4:2:2 top field Chroma */
         BufferSize=size_of_shifted_422_chroma_buffer;
 
-        /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        /* save start address and buffer size for on the fly address calculation */
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<(EPM_NUMBER_OF_ORIGINAL_PICTURE_QUEUES) ; StackPointer+=1)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
-        /*Allocate stack of buffers for the Decimated picture*/
+        /* Allocate stack of buffers for the Decimated picture */
         BufferSize=size_of_2h1v_luma_buffer+size_of_2h2v_luma_buffer;
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<(EPM_NUMBER_OF_DECIMATED_PICTURE_QUEUES<<1) ; StackPointer+=2)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1759,11 +1788,11 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_csc_buffer*4;/*In progressive mode there are only two references*/
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<EPM_NUMBER_OF_CSC_QUEUES ; StackPointer++)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1771,11 +1800,11 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_reconstructed_luma+size_of_reconstructed_chroma;
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<EPM_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES ; StackPointer++)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1837,11 +1866,11 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_luma_buffer+size_of_420_chroma_buffer;
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<(EPM_NUMBER_OF_ORIGINAL_PICTURE_QUEUES<<1) ; StackPointer+=2)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1849,11 +1878,11 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_shifted_422_chroma_buffer;
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<(EPM_NUMBER_OF_ORIGINAL_PICTURE_QUEUES) ; StackPointer+=1)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
@@ -1861,28 +1890,535 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         BufferSize=size_of_2h1v_luma_buffer+size_of_2h2v_luma_buffer;
 
         /*save start address and buffer size for on the fly address calculation*/
-        CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+        CurrAddress = ((CurrAddress+4095) & 0xfffff000);
 
         for (StackPointer=0; StackPointer<(EPM_NUMBER_OF_DECIMATED_PICTURE_QUEUES<<1) ; StackPointer+=2)
         {
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000); /*TODO align according to page size*/
+            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
             CurrAddress=CurrAddress+BufferSize;
         }
 
 
-        if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V3_0_0_2 )
-        {
-            BufferSize = 5 * max_horizontal_size_in_mbs * max_vertical_size_in_mbs;
-
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
-            CurrAddress = CurrAddress + BufferSize;
-            CurrAddress = ((CurrAddress+4095) & 0xfffff000);
-            CurrAddress = CurrAddress + BufferSize;
-         }
-
          return(CurrAddress);
        }
 }
+
+/************************************************************************
+* Function: BVCE_FW_P_CalcV3NonSecureMem
+*
+* Calculates the amount of non-secure memory that is necessary for ViCE2 FW
+* to operate depending on various input parameters.
+*
+* Params:
+*       InputType               - Input Type: ENCODER_INPUT_TYPE_INTERLACED or ENCODER_INPUT_TYPE_PROGRESSIVE
+*       DramStripeWidth         - Stripe Width in bytes
+*       MaxPictureWidthInPels   - Max picture H resolution allowed
+*       MaxPictureHeightInPels  - Max picture V resolution allowed
+*
+* Returns:
+*        Number of macroblocks per stripe height
+*
+************************************************************************/
+#define MASK64_52MSB(x) (((((x) >> 32) & 0xFFFFFFFF) << 32) | ((x) & 0xFFFFF000))
+#define ALIGN12BIT64(x) MASK64_52MSB(x+4095)
+#define ALIGN12BIT32(x) ((x+4095) & 0xFFFFF000)
+#define MAX_1H1V_WIDTH  640
+#define MAX_1H1V_HEIGHT 360
+
+#define V3_EPM_MAX_NUMBER_OF_CSC_QUEUES                    (3)
+#define V3_EPM_MAX_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES  (3)
+
+#define PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE           (6)
+#define PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE                      (9)
+
+#define PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE             (6)*2
+#define PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE          (6)
+#define PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                        (9)*2
+
+#define PREPROCESSOR_PIC_QUEUE_SIZE 4
+
+#if PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE > PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE
+#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE
+#else
+#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE
+#endif
+
+#if PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE > PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE
+#define PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE
+#else
+#define PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE
+#endif
+
+static uint64_t bvceV3EpmAlignJword(uint64_t UnalignedNumber);
+static uint8_t bvceV3EpmCalcNMBY(uint32_t PictureHeightInMbs, uint32_t X, uint32_t Y, uint32_t DramConfigPageSize, uint16_t StripeWidth);
+/*
+static uint8_t bvceV3EpmCalcDcxvNMBY(uint32_t PictureHeightInMbs, uint32_t IsDcxvBuf, uint32_t IsInterlace, uint32_t IsChroma, uint32_t X, uint32_t Y, uint32_t DramConfigPageSize, uint16_t StripeWidth);
+*/
+static uint32_t bvceV3EpmCalcStripeBufferSize(uint32_t PictureWidthInPels, uint32_t PictureHeightInPels, uint32_t IsDcxvBuf, uint32_t IsInterlace, uint32_t StripeWidth, uint32_t X, uint32_t Y, uint8_t DramConfigPageSize);
+
+
+uint32_t BVCE_FW_P_CalcV3NonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSettings, const BVCE_FW_P_NonSecureMemSettings_t *pstMemSettings )
+{
+uint64_t CurrAddr;
+uint32_t StripeWidth;
+uint32_t MaxWidthInPel;
+uint32_t MaxHeightInPel;
+uint8_t IsProgressive;
+
+uint16_t MaxWidthInMbs, MaxHeightInMbs;
+uint32_t CscBuffSize;
+uint32_t ReconstructedLumaBuffSize;
+uint32_t ReconstructedChromaBuffSize;
+uint32_t BuffSize;
+uint32_t CollocatedBuffSize;
+
+uint16_t codedHeight;
+uint16_t mvHeight;
+uint32_t PictureWidthInMBs;
+uint32_t tmvpPitch;
+
+
+uint8_t CscFreeBuffersQueueMaxNumOfRefs;
+uint8_t CscFreeBuffersQueueNumOfBuff;
+uint8_t WrPtr;
+uint8_t ReconstructedFreeBuffersQueueNumOfBuff;
+uint8_t CollocatedFreeBuffersQueueNumOfBuff;
+
+uint8_t DramConfigPageSize;
+
+uint8_t DcxvEnable;
+uint32_t X,Y;
+
+    DramConfigPageSize = pstMemSettings->PageSize -1;
+    CurrAddr = 0x2000; /* add 4k due to alignment */
+    IsProgressive = !pstMemSettings->InputType;
+    StripeWidth = pstMemSettings->DramStripeWidth;
+    X = pstMemSettings->X;
+    Y = pstMemSettings->Y;
+    MaxWidthInPel = pstMemSettings->MaxPictureWidthInPels;
+    MaxHeightInPel = pstMemSettings->MaxPictureHeightInPels;
+    DcxvEnable = pstMemSettings->DcxvEnable;
+
+
+        MaxWidthInMbs = DIV16_ROUNDUP(MaxWidthInPel);
+        MaxHeightInMbs = DIV16_ROUNDUP(MaxHeightInPel);
+
+        CscBuffSize = 4 * MaxWidthInMbs*MaxHeightInMbs;
+        CscBuffSize = ALIGN12BIT32(CscBuffSize);
+
+
+
+        ReconstructedLumaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , MaxHeightInPel , NonDCXVBuffer , !IsProgressive , StripeWidth , X , Y, DramConfigPageSize);
+        ReconstructedLumaBuffSize = ALIGN12BIT32(ReconstructedLumaBuffSize);
+        ReconstructedChromaBuffSize =         bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , DIV2_ROUND(MaxHeightInPel) , NonDCXVBuffer , !IsProgressive , StripeWidth , X , Y, DramConfigPageSize);
+        ReconstructedChromaBuffSize = ALIGN12BIT32(ReconstructedChromaBuffSize);
+
+        /* Allocated stack of buffers for the CSC */
+
+        CscFreeBuffersQueueMaxNumOfRefs = (2 << (!IsProgressive)); /* 4 CME refs for interlace. 2 for progressive */
+
+        BuffSize = CscBuffSize*CscFreeBuffersQueueMaxNumOfRefs;
+
+        /* save start address and buffer size for on the fly address calculation */
+
+        CurrAddr = ALIGN12BIT64(CurrAddr);
+
+        CscFreeBuffersQueueNumOfBuff = V3_EPM_MAX_NUMBER_OF_CSC_QUEUES;
+
+        for (WrPtr = 0; WrPtr < CscFreeBuffersQueueNumOfBuff; WrPtr++)
+        {
+            CurrAddr = ALIGN12BIT64(CurrAddr);
+            CurrAddr = CurrAddr + BuffSize;
+        }
+
+
+        /* Allocate stack of buffers for the Reconstructed */
+
+        CurrAddr = ALIGN12BIT64(CurrAddr);
+        BuffSize = ReconstructedLumaBuffSize + ReconstructedChromaBuffSize;
+        ReconstructedFreeBuffersQueueNumOfBuff = V3_EPM_MAX_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES;
+
+
+        for (WrPtr = 0; WrPtr < ReconstructedFreeBuffersQueueNumOfBuff; WrPtr++)
+        {
+            CurrAddr = ALIGN12BIT64(CurrAddr);
+            CurrAddr = CurrAddr + BuffSize;
+        }
+
+        /* allocate collocated buffer */
+
+        CurrAddr = ALIGN12BIT64(CurrAddr);
+        CollocatedFreeBuffersQueueNumOfBuff = ReconstructedFreeBuffersQueueNumOfBuff;
+
+        codedHeight = (MaxHeightInPel + 63) & 0xFFC0;
+        mvHeight = codedHeight / 8;
+        PictureWidthInMBs = DIV16_ROUNDUP(MaxWidthInPel);
+        tmvpPitch = (12 * ((PictureWidthInMBs + 3) >> 2));
+        CollocatedBuffSize = (32 * tmvpPitch)*mvHeight;
+
+        CollocatedBuffSize = ALIGN12BIT32(CollocatedBuffSize);
+        CurrAddr = CurrAddr + CollocatedBuffSize * CollocatedFreeBuffersQueueNumOfBuff;
+
+        CurrAddr = ALIGN12BIT64(CurrAddr);
+
+
+        if (!pstMemSettings->NewBvnMailboxEnable)
+        {
+
+
+uint8_t Ptr;
+
+uint32_t LumaBuffSize;
+uint32_t ChromaBuffSize;
+uint32_t Decimated1h1vBufferSize;
+uint32_t Decimated1h2vBufferSize;
+uint32_t Decimated2h1vBufferSize;
+uint32_t Decimated2h2vBufferSize;
+
+uint32_t Decimated1vBufferSize;
+uint32_t Decimated2vBufferSize;
+
+uint8_t FreeBuffersQueueORIGINAL_LUMANumOfBuff;
+uint8_t FreeBuffersQueueORIGINAL_CHROMANumOfBuff;
+uint8_t FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff;
+uint8_t FreeBuffersQueueDECIMATED_1VNumOfBuff;
+uint8_t FreeBuffersQueueDECIMATED_2VNumOfBuff;
+
+uint8_t FreeBuffersQueueORIGINAL_LUMADcxvEn;
+uint8_t FreeBuffersQueueORIGINAL_CHROMADcxvEn;
+uint8_t FreeBuffersQueueDECIMATED_1VDcxvEn;
+uint8_t FreeBuffersQueueDECIMATED_2VDcxvEn;
+
+
+
+
+        if (IsProgressive == 1)
+        {
+            FreeBuffersQueueORIGINAL_LUMANumOfBuff = PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+            FreeBuffersQueueORIGINAL_CHROMANumOfBuff = PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+            FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff = 0;
+            FreeBuffersQueueDECIMATED_1VNumOfBuff = PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+            FreeBuffersQueueDECIMATED_2VNumOfBuff = PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+
+            FreeBuffersQueueORIGINAL_LUMADcxvEn = DcxvEnable;
+            FreeBuffersQueueORIGINAL_CHROMADcxvEn = DcxvEnable;
+            FreeBuffersQueueDECIMATED_1VDcxvEn = DcxvEnable;
+            FreeBuffersQueueDECIMATED_2VDcxvEn = DcxvEnable;
+
+            if (pstCoreSettings->eVersion <= BVCE_FW_P_COREVERSION_V3_0_0_2)
+            {
+                        FreeBuffersQueueDECIMATED_1VDcxvEn = 0;
+                        FreeBuffersQueueDECIMATED_2VDcxvEn = 0;
+            }
+
+
+            LumaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , MaxHeightInPel , FreeBuffersQueueORIGINAL_LUMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+            ChromaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueORIGINAL_CHROMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+
+            Decimated1h1vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , MAX_1H1V_HEIGHT , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+            Decimated2h1vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , MaxHeightInPel , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+
+
+            Decimated1h2vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , DIV2_ROUNDUP(MAX_1H1V_HEIGHT) , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+            Decimated2h2vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueDECIMATED_2VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+
+            Decimated1vBufferSize = MAX(Decimated2h1vBufferSize, Decimated1h1vBufferSize);
+            Decimated2vBufferSize = MAX(Decimated2h2vBufferSize, Decimated1h2vBufferSize);
+
+
+
+            /* Allocate Luma Buffers */
+            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_LUMANumOfBuff; Ptr++)
+            {
+                CurrAddr = ALIGN12BIT64(CurrAddr);
+                CurrAddr = CurrAddr + LumaBuffSize;
+            }
+
+
+
+            /* Allocate Chroma Buffers */
+            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_CHROMANumOfBuff; Ptr++)
+            {
+                CurrAddr = ALIGN12BIT64(CurrAddr);
+                CurrAddr = CurrAddr + ChromaBuffSize;
+            }
+
+
+            /* Allocate Decimated 1V Buffers */
+            for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_1VNumOfBuff; Ptr++)
+            {
+                CurrAddr = ALIGN12BIT64(CurrAddr);
+                CurrAddr = CurrAddr + Decimated1vBufferSize;
+            }
+
+
+            /* Allocate Decimated 2V Buffers */
+            for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_2VNumOfBuff; Ptr++)
+            {
+                CurrAddr = ALIGN12BIT64(CurrAddr);
+                CurrAddr = CurrAddr + Decimated2vBufferSize;
+            }
+        }
+        else
+        {
+            FreeBuffersQueueORIGINAL_LUMANumOfBuff = PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
+            FreeBuffersQueueORIGINAL_CHROMANumOfBuff = PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
+            FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff = PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
+            FreeBuffersQueueDECIMATED_1VNumOfBuff = PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
+            FreeBuffersQueueDECIMATED_2VNumOfBuff = PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
+
+            FreeBuffersQueueORIGINAL_LUMADcxvEn = DcxvEnable;
+            FreeBuffersQueueORIGINAL_CHROMADcxvEn = 0;
+            FreeBuffersQueueDECIMATED_1VDcxvEn = DcxvEnable;
+            FreeBuffersQueueDECIMATED_2VDcxvEn = DcxvEnable;
+            if (pstCoreSettings->eVersion <= BVCE_FW_P_COREVERSION_V3_0_0_2)
+            {
+                        FreeBuffersQueueDECIMATED_1VDcxvEn = 0;
+                        FreeBuffersQueueDECIMATED_2VDcxvEn = 0;
+            }
+
+
+            LumaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , MaxHeightInPel , FreeBuffersQueueORIGINAL_LUMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+            ChromaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueORIGINAL_CHROMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+
+            Decimated1h1vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , MAX_1H1V_HEIGHT , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+            Decimated2h1vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , MaxHeightInPel , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+
+            Decimated1h2vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , DIV2_ROUNDUP(MAX_1H1V_HEIGHT) , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+            Decimated2h2vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueDECIMATED_2VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+
+            Decimated1vBufferSize = MAX(Decimated2h1vBufferSize, Decimated1h1vBufferSize);
+            Decimated2vBufferSize = MAX(Decimated2h2vBufferSize, Decimated1h2vBufferSize);
+
+
+
+            /* Allocate Luma Buffers */
+            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_LUMANumOfBuff; Ptr += 2)
+            {
+                CurrAddr = ALIGN12BIT64(CurrAddr);
+                CurrAddr = CurrAddr + LumaBuffSize;
+            }
+
+
+            /* Allocate Chroma Buffers */
+            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_CHROMANumOfBuff; Ptr += 2)
+            {
+                CurrAddr = ALIGN12BIT64(CurrAddr);
+                CurrAddr = CurrAddr + ChromaBuffSize;
+            }
+
+
+            /* Allocate Shifted Chroma Buffers */
+            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff; Ptr++)
+            {
+                CurrAddr = ALIGN12BIT64(CurrAddr);
+                CurrAddr = CurrAddr + ChromaBuffSize;
+            }
+
+
+            /* Allocate Decimated 1V Buffers */
+            for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_1VNumOfBuff; Ptr += 2)
+            {
+                CurrAddr = ALIGN12BIT64(CurrAddr);
+                CurrAddr = CurrAddr + Decimated1vBufferSize;
+            }
+
+
+            /* Allocate Decimated 2V Buffers */
+            for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_2VNumOfBuff; Ptr += 2)
+            {
+                CurrAddr = ALIGN12BIT64(CurrAddr);
+                CurrAddr = CurrAddr + Decimated2vBufferSize;
+            }
+        }
+
+        }
+
+        return (uint32_t) CurrAddr;
+}
+
+/************************************************************************
+* Function: bvceV3EpmAlignJword
+*
+* Actions: align a number to Jword(unit of 256bits).
+*
+* Params:
+*        UnalignedNumber
+*
+* Returns:
+*        Aligned number
+*
+************************************************************************/
+#define MASK64_59MSB(x) (((((x) >> 32) & 0xFFFFFFFF) << 32) | ((x) & 0xFFFFFFE0))
+
+static uint64_t bvceV3EpmAlignJword(uint64_t UnalignedNumber)
+{
+
+    uint64_t AlignedNumber;
+    AlignedNumber = MASK64_59MSB(UnalignedNumber + 31);
+    return(AlignedNumber);
+}
+
+/************************************************************************
+* Function: bvceV3EpmCalcNMBY
+*
+* Actions: find the number of macroblocs in stripe height
+*
+* Params:
+*        PictureHeightInMbs: hight of picture in macroblock units
+*
+* Returns:
+*        Number of macroblocks per stripe height
+*
+************************************************************************/
+static uint8_t bvceV3EpmCalcNMBY(uint32_t PictureHeightInMbs, uint32_t X, uint32_t Y, uint32_t DramConfigPageSize, uint16_t StripeWidth)
+{
+    uint16_t n;
+    uint16_t VertMbsPerPage;
+    uint16_t PageSize;
+
+    n = 0;
+    PageSize = (1 << (DramConfigPageSize + 11));
+    VertMbsPerPage = MAX(1, ((PageSize / StripeWidth) >> 4));
+
+    while (1)
+    {
+        n++;
+        if (((X * (uint32_t)n + Y) * VertMbsPerPage) >= PictureHeightInMbs)
+            return(((X * (uint32_t)n + Y) * VertMbsPerPage));
+    }
+}
+
+
+/************************************************************************
+* Function: EpmV3CalcDcxvNMBY
+*
+* Actions: find the number of macroblocs in stripe height
+*
+* Params:
+*        PictureHeightInMbs: hight of picture in Mbs
+*        IsDcxvBuf: 1-DCXV buff 0-none DCXV buff
+*        IsInterlace: 1-Interlace  0-not interlace
+*        IsChroma: 1- chroma buff 0 -luma buff
+*
+* Returns:
+*        Number of macroblocks per stripe height
+*
+************************************************************************/
+#define V3_DCXV_STRIPE_WIDTH 64
+#define V3_DCXV_PADDED_LINE 2
+#define V3_DCXV_COMP_RATIO 2
+
+#define V3_DCXVLumaBuffer            0
+#define V3_DCXVChromaBuffer          1
+
+#define V3_DCXVBuffer                1
+#define V3_NonDCXVBuffer             0
+
+#if 0
+static uint8_t bvceV3EpmCalcDcxvNMBY(uint32_t PictureHeightInMbs, uint32_t IsDcxvBuf, uint32_t IsInterlace, uint32_t IsChroma, uint32_t X, uint32_t Y, uint32_t DramConfigPageSize, uint16_t StripeWidth)
+{
+    uint8_t Nmby;
+    uint32_t DcxvPaddingHeight;
+    uint32_t BuffereHeightInPels;
+    uint32_t PictureHeightInPels;
+
+    PictureHeightInPels = MULT16(PictureHeightInMbs);
+    if (IsChroma == 1)
+        PictureHeightInPels = DIV2_ROUNDUP(PictureHeightInPels);
+
+
+    if (IsInterlace == 1)
+    {
+        DcxvPaddingHeight = V3_DCXV_PADDED_LINE * 2;
+    }
+    else
+    {
+        DcxvPaddingHeight = V3_DCXV_PADDED_LINE;
+    }
+
+    if (IsDcxvBuf == 1)
+    {
+        BuffereHeightInPels = PictureHeightInPels + DcxvPaddingHeight;
+    }
+    else
+    {
+        BuffereHeightInPels = PictureHeightInPels;
+    }
+
+    if (
+        (IsInterlace == 1) &&
+        (IsChroma == 1)
+        )
+    {
+        BuffereHeightInPels = PictureHeightInPels;
+    }
+
+
+    Nmby = bvceV3EpmCalcNMBY(DIV16_ROUNDUP(BuffereHeightInPels), X, Y, DramConfigPageSize, StripeWidth);
+    return(Nmby);
+}
+#endif
+
+/************************************************************************
+* Function: EpmV3CalcStripeBufferSize
+*
+* Actions: find striped format buffer size
+*
+* Params:
+*        PictureWidthInMb, PictureHeightInMbs: picture width and height in mbs
+*        IsDcxvBuff
+*
+* Returns:
+*        buffer size
+*
+************************************************************************/
+static uint32_t bvceV3EpmCalcStripeBufferSize(uint32_t PictureWidthInPels, uint32_t PictureHeightInPels, uint32_t IsDcxvBuf, uint32_t IsInterlace, uint32_t StripeWidth, uint32_t X, uint32_t Y, uint8_t DramConfigPageSize)
+{
+    uint32_t BufferWidthInPels, BuffereHeightInPels;
+    uint32_t BuffSize;
+    uint32_t DcxvPaddingWidth, DcxvPaddingHeight;
+    uint16_t Nmby;
+
+    DcxvPaddingWidth = ((PictureWidthInPels + V3_DCXV_STRIPE_WIDTH - 1) / V3_DCXV_STRIPE_WIDTH) * V3_DCXV_STRIPE_WIDTH - PictureWidthInPels;
+
+    if (IsInterlace == 1)
+    {
+        DcxvPaddingHeight = V3_DCXV_PADDED_LINE * 2;
+    }
+    else
+    {
+        DcxvPaddingHeight = V3_DCXV_PADDED_LINE;
+    }
+
+    if (IsDcxvBuf == 1)
+    {
+        BufferWidthInPels = PictureWidthInPels + DcxvPaddingWidth;
+        BufferWidthInPels = BufferWidthInPels / V3_DCXV_COMP_RATIO;
+        BuffereHeightInPels = PictureHeightInPels + DcxvPaddingHeight;
+    }
+    else
+    {
+        BufferWidthInPels = PictureWidthInPels;
+        BuffereHeightInPels = PictureHeightInPels;
+    }
+
+
+
+    Nmby = bvceV3EpmCalcNMBY(DIV16_ROUNDUP(BuffereHeightInPels), X, Y, DramConfigPageSize, StripeWidth);
+
+
+    BuffSize = (uint32_t) bvceV3EpmAlignJword(bvceEpmCalcWidthInStripes(BufferWidthInPels, StripeWidth) * StripeWidth * MULT16(Nmby));
+    BuffSize = ((BuffSize + 4095) & 0xfffff000);
+
+
+
+    return(BuffSize);
+
+
+
+}
+
 
 /*********************************************************************
 *  FrameRate_e BVCE_FW_P_FrameRateCodeToFramRate( FrameRateCode_e FrameRateCode )

@@ -797,11 +797,13 @@ NEXUS_VideoImageInput_P_PushSurface_queue(NEXUS_VideoImageInputHandle imageInput
     unsigned height;
     NEXUS_VideoInput_P_Link *link;
     BPXL_Format magnumPixelFormat;
+    BMMA_Block_Handle hLuma, hChroma;
+    BMMA_DeviceOffset ullLumaOffset, ullChromaOffset;
     struct NEXUS_VideoImageInput_P_PushSurface_queue_State *state = &imageInput->functionState.NEXUS_VideoImageInput_P_PushSurface_queue;
 
     BDBG_OBJECT_ASSERT(imageInput, NEXUS_VideoImageInput);
 
-    if(image==NULL && pSettings->stripedSurface==NULL) {
+    if(image==NULL && pSettings && pSettings->stripedSurface==NULL) {
         /* Passing in NULL, flushes the pipeline, first set current feeder to NULL */
         NEXUS_VideoImageInput_P_ShutdownFeeder(imageInput);
         goto done; /* shortcut */
@@ -917,6 +919,12 @@ doQueue:
         state->pic.ulOrigPTS = pSettings->pts;
 
         NEXUS_Module_Unlock(video->modules.surface);
+    } else {
+        hLuma   = NEXUS_MemoryBlock_GetBlock_priv(state->stripeSettings.lumaBuffer);
+        hChroma = NEXUS_MemoryBlock_GetBlock_priv(state->stripeSettings.chromaBuffer);
+        /* lock device memory before passing into VDC */
+        ullLumaOffset = BMMA_LockOffset(hLuma);
+        ullChromaOffset = BMMA_LockOffset(hChroma);
     }
 
     BKNI_EnterCriticalSection();
@@ -935,10 +943,12 @@ doQueue:
             BAVC_VideoBitDepth_e10Bit : BAVC_VideoBitDepth_e8Bit;
         state->pic.pstMfdPic->ulLuminanceNMBY = state->stripeSettings.lumaStripedHeight/16;
         state->pic.pstMfdPic->ulChrominanceNMBY = state->stripeSettings.chromaStripedHeight/16;
-        state->pic.pstMfdPic->hLuminanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(state->stripeSettings.lumaBuffer);
-        state->pic.pstMfdPic->hChrominanceFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(state->stripeSettings.chromaBuffer);
+        state->pic.pstMfdPic->hLuminanceFrameBufferBlock   = hLuma;
+        state->pic.pstMfdPic->hChrominanceFrameBufferBlock = hChroma;
         state->pic.pstMfdPic->ulLuminanceFrameBufferBlockOffset = state->stripeSettings.lumaBufferOffset;
         state->pic.pstMfdPic->ulChrominanceFrameBufferBlockOffset = state->stripeSettings.chromaBufferOffset;
+        imageInput->feeder[imageInput->quePic].lumaOffset = ullLumaOffset;
+        imageInput->feeder[imageInput->quePic].chromaOffset = ullChromaOffset;
     }
     imageInput->feeder[imageInput->quePic].usrSurface = image? image : (NEXUS_SurfaceHandle)pSettings->stripedSurface;
     imageInput->feeder[imageInput->quePic].surface.frame  = frame;
@@ -952,11 +962,6 @@ doQueue:
     imageInput->waitingPics++;
     BKNI_LeaveCriticalSection();
 
-    /* lock device memory before passing into VDC */
-    if(!image) { /* striped video surface */
-        imageInput->feeder[imageInput->quePic].lumaOffset = BMMA_LockOffset(state->pic.pstMfdPic->hLuminanceFrameBufferBlock);
-        imageInput->feeder[imageInput->quePic].chromaOffset = BMMA_LockOffset(state->pic.pstMfdPic->hChrominanceFrameBufferBlock);
-    }
     BDBG_MSG(("xx_PushSurf image=%p timestamp=0x%8x curPic=%d quePic=%d waitPics=%d", (void *)image , pSettings->pts, imageInput->curPic, imageInput->quePic, imageInput->waitingPics ));
     BKNI_SetEvent(imageInput->event); /* synchronise adding pictures with isr */
 
@@ -1651,8 +1656,26 @@ static NEXUS_Error NEXUS_VideoImageInput_P_PushSurface_xdm(
     case NEXUS_PicturePullDown_eFrame:
         state->xdmPicture.stBufferInfo.ePulldown = BXDM_Picture_PullDown_eFrameX1;
         break;
+    case NEXUS_PicturePullDown_eTop:
+        state->xdmPicture.stBufferInfo.ePulldown = BXDM_Picture_PullDown_eTop;
+        break;
+    case NEXUS_PicturePullDown_eBottom:
+        state->xdmPicture.stBufferInfo.ePulldown = BXDM_Picture_PullDown_eBottom;
+        break;
+    case NEXUS_PicturePullDown_eTopBottom:
+        state->xdmPicture.stBufferInfo.ePulldown = BXDM_Picture_PullDown_eTopBottom;
+        break;
+    case NEXUS_PicturePullDown_eBottomTop:
+        state->xdmPicture.stBufferInfo.ePulldown = BXDM_Picture_PullDown_eBottomTop;
+        break;
+    case NEXUS_PicturePullDown_eTopBottomTop:
+        state->xdmPicture.stBufferInfo.ePulldown = BXDM_Picture_PullDown_eTopBottomTop;
+        break;
+    case NEXUS_PicturePullDown_eBottomTopBottom:
+        state->xdmPicture.stBufferInfo.ePulldown = BXDM_Picture_PullDown_eBottomTopBottom;
+        break;
     default:
-        state->xdmPicture.stBufferInfo.ePulldown = pSettings->pullDown;
+        BERR_TRACE(NEXUS_INVALID_PARAMETER); /* keep going */
         break;
     }
     state->xdmPicture.stBufferInfo.eSourceFormat = pSettings->sourceFormat;

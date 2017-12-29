@@ -48,13 +48,6 @@ ARCH_DIR_DRMROOTFS=mips
 endif
 
 #set final path
-ifeq ($(ANDROID_BUILD),y)
-DRMROOTFS_LIBDIR = lib/android/
-else
-
 ifneq ($(ARCH_DIR_DRMROOTFS),)
-# We need to build drmrootfs for kernel mode and user mode since playready 2.0 relies on it.
 DRMROOTFS_LIBDIR = lib/$(ARCH_DIR_DRMROOTFS)/${B_REFSW_OS}
-endif
-
 endif

@@ -93,13 +93,6 @@ typedef enum DecodeSource {
     DecodeSource_eFrontend
 } DecodeSource;
 
-static unsigned b_get_time(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return tv.tv_sec*1000 + tv.tv_usec/1000;
-}
-
 int main(int argc, const char *argv[])
 {
     NEXUS_PlatformSettings platformSettings;
@@ -117,7 +110,6 @@ int main(int argc, const char *argv[])
     NEXUS_AudioDecoderStartSettings audioProgram;
     struct util_opts_t opts;
     NEXUS_Error rc;
-    unsigned start;
     FrontendSettings frontendSettings;
     DecodeSource source = DecodeSource_eStreamer;
     struct decoder_bitrate audio_bitrate;
@@ -311,7 +303,6 @@ int main(int argc, const char *argv[])
     }
 
     /* Start Decoders */
-    start = b_get_time();
     if (opts.common.audioPid) {
         decoder_bitrate_control_audio(&audio_bitrate, audioDecoder, true);
         rc = NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);

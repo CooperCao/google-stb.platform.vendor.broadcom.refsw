@@ -6,9 +6,6 @@ BUILD_DYNAMIC ?= 1
 
 PROFILING?=0
 
-#disable OpenVG
-NO_OPENVG?=1
-
 ifeq ($(VERBOSE),)
 Q := @
 endif
@@ -69,7 +66,6 @@ CFLAGS += \
 	-DASSERT_ON_ALLOC_FAIL \
 	-DV3D_LEAN \
 	-DMUST_SET_ALPHA \
-	-DBCG_VC4_FAST_ATOMICS \
 	-DBCG_MULTI_THREADED \
 	-D_XOPEN_SOURCE=600 \
 	-D_GNU_SOURCE \
@@ -89,11 +85,6 @@ endif
 
 CFLAGS_AUTOGEN = \
 	-Wno-sign-compare
-
-ifeq ($(NO_OPENVG),1)
-CFLAGS += \
-	-DNO_OPENVG
-endif
 
 ifeq ($(NO_REMOTE_LOGGING),1)
 	# Do nothing
@@ -211,6 +202,7 @@ SOURCES = \
 	interface/khronos/ext/egl_khr_image_client.c \
 	interface/khronos/ext/egl_brcm_flush_client.c \
 	interface/khronos/ext/egl_brcm_driver_monitor_client.c \
+	interface/khronos/ext/egl_wl_bind_display_client.c \
 	interface/khronos/ext/ext_gl_oes_query_matrix.c \
 	interface/khronos/ext/ext_gl_oes_draw_texture.c \
 	interface/khronos/ext/ext_gl_debug_marker.c \
@@ -222,7 +214,6 @@ SOURCES = \
 	middleware/khronos/common/2708/khrn_image_4.c \
 	middleware/khronos/common/2708/khrn_hw_4.c \
 	middleware/khronos/common/2708/khrn_fmem_4.c \
-	middleware/khronos/common/2708/khrn_copy_buffer_4.c \
 	middleware/khronos/common/2708/khrn_prod_4.c \
 	middleware/khronos/common/2708/khrn_tfconvert_4.c \
 	middleware/khronos/common/khrn_tformat.c \
@@ -236,15 +227,16 @@ SOURCES = \
 	middleware/khronos/common/khrn_color.c \
 	middleware/khronos/common/khrn_bf_dummy.c \
 	middleware/khronos/common/khrn_workarounds.c \
+	middleware/khronos/common/khrn_debug_helper.cpp \
 	middleware/khronos/egl/abstract_server/egl_platform_abstractserver.c \
 	middleware/khronos/egl/abstract_server/egl_platform_abstractpixmap.c \
-	middleware/khronos/egl/egl_disp.c \
 	middleware/khronos/egl/egl_server.c \
 	middleware/khronos/ext/gl_oes_query_matrix.c \
 	middleware/khronos/ext/gl_oes_egl_image.c \
 	middleware/khronos/ext/gl_oes_draw_texture.c \
 	middleware/khronos/ext/egl_brcm_driver_monitor.c \
 	middleware/khronos/ext/egl_khr_image.c \
+	middleware/khronos/ext/egl_wl_bind_display.c \
 	middleware/khronos/gl11/2708/gl11_shader_4.c \
 	middleware/khronos/gl11/2708/gl11_shadercache_4.c \
 	middleware/khronos/gl11/2708/gl11_support_4.c \
@@ -317,36 +309,8 @@ SOURCES = \
 	interface/vcos/generic/vcos_log.c
 
 ifneq ("$(wildcard tools/v3d/v3d_debug/v3d_debug.c)","")
-SOURCES +=
+SOURCES += \
 	tools/v3d/v3d_debug/v3d_debug.c
-endif
-
-SOURCES_VG = \
-	interface/khronos/vg/vg_int_mat3x3.c \
-	interface/khronos/vg/vg_client.c \
-	middleware/khronos/vg/2708/vg_tess_4.c \
-	middleware/khronos/vg/2708/vg_shader_md_4.c \
-	middleware/khronos/vg/2708/vg_shader_fd_4.c \
-	middleware/khronos/vg/2708/vg_segment_lengths_4.c \
-	middleware/khronos/vg/2708/vg_path_4.c \
-	middleware/khronos/vg/2708/vg_hw_4.c \
-	middleware/khronos/vg/2708/vg_bf_4.c \
-	middleware/khronos/vg/vg_tess.c \
-	middleware/khronos/vg/vg_set.c \
-	middleware/khronos/vg/vg_server.c \
-	middleware/khronos/vg/vg_segment_lengths.c \
-	middleware/khronos/vg/vg_scissor.c \
-	middleware/khronos/vg/vg_ramp.c \
-	middleware/khronos/vg/vg_path.c \
-	middleware/khronos/vg/vg_paint.c \
-	middleware/khronos/vg/vg_mask_layer.c \
-	middleware/khronos/vg/vg_image.c \
-	middleware/khronos/vg/vg_hw.c \
-	middleware/khronos/vg/vg_font.c \
-	middleware/khronos/vg/vg_bf.c
-
-ifneq ($(NO_OPENVG),1)
-SOURCES += ${SOURCES_VG}
 endif
 
 ifeq ($(BUILD_DYNAMIC),1)
@@ -373,15 +337,23 @@ OUTDIR :
 
 # $(1) = src
 # $(2) = obj
+# $(3) = compiler + flags
 define CCompileRule
 OBJS += $(2)
 $(2) : $(1)
 	$(Q)echo Compiling $(1)
-	$(Q)$(CC) -c $(CFLAGS) -o "$(2)" "$(1)"
+	$(Q)$(3) -c -o "$(2)" "$(1)"
 
 endef
 
-$(foreach src,$(SOURCES),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o)))
+ifeq ("$(GCCGTEQ_40800)", "1")
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++11
+else
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++0x
+endif
+
+$(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 # $(1) = src
 # $(2) = obj
@@ -398,11 +370,12 @@ $(foreach src,$(AUTO_FILES),$(eval $(call CCompileRule_Autogen,$(src),$(OBJDIR)/
 # $(1) = src
 # $(2) = d
 # $(3) = obj
+# $(4) = compiler + flags
 define DependRule_C
 $(2) : $(1) | OUTDIR $(AUTO_FILES)
 	$(Q)echo Making depends for $(1)
 	$(Q)touch $(2).tmp
-	$(Q)$(CC) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(CFLAGS) $(1)
+	$(Q)$(4) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(1)
 	$(Q)sed 's/D:/\/\/D/g' < $(2).tmp | sed 's/C:/\/\/C/g' > $(2)
 	$(Q)rm -f $(2).tmp
 
@@ -412,9 +385,12 @@ endef
 
 ifneq ($(MAKECMDGOALS),clean)
 $(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call DependRule_C,$(src),$(OBJDIR)/$(basename $(notdir $(src))).d,\
-              $(OBJDIR)/$(basename $(notdir $(src))).o)))
+              $(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval $(call DependRule_C,$(src),$(OBJDIR)/$(basename $(notdir $(src))).d,\
+              $(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 $(foreach src,$(filter %.c,$(SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
 endif
 
 ifeq ($(KHRN_AUTOCLIF),1)
@@ -427,12 +403,12 @@ ifeq ($(KHRN_AUTOCLIF),1)
 $(LIBDIR)/libv3ddriver.so: $(PRE_BUILD_RULES) $(OBJS) $(LIBDIR)/libautoclif.a
 	$(Q)echo Linking ... libv3ddriver.so
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS) $(LIBDIR)/libautoclif.a
+	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS) $(LIBDIR)/libautoclif.a
 else
 $(LIBDIR)/libv3ddriver.so: $(PRE_BUILD_RULES) $(OBJS)
 	$(Q)echo Linking ... libv3ddriver.so
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS)
+	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS)
 endif
 
 $(LIBDIR)/libv3ddriver.a: $(PRE_BUILD_RULES) $(OBJS)

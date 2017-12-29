@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 
 #include "nexus_video_decoder_module.h"
@@ -51,12 +50,13 @@ NEXUS_Error NEXUS_VideoDecoder_P_GetExtendedStatus_Avd( NEXUS_VideoDecoderHandle
     NEXUS_Error rc;
     NEXUS_RaveStatus raveStatus;
     BXVD_RevisionInfo info;
+    NEXUS_PidChannelStatus pidChanStatus;
+    NEXUS_StcChannelStatus stcChanStatus;
 
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
 
-    BDBG_CASSERT(BAVC_Polarity_eFrame == (BAVC_Polarity)NEXUS_PicturePolarity_eFrame);
-    pStatus->interruptPolarity = videoDecoder->last_field.eInterruptPolarity;
-    pStatus->sourcePolarity = videoDecoder->last_field.eSourcePolarity;
+    pStatus->interruptPolarity = NEXUS_P_PicturePolarity_FromMagnum_isrsafe(videoDecoder->last_field.eInterruptPolarity);
+    pStatus->sourcePolarity = NEXUS_P_PicturePolarity_FromMagnum_isrsafe(videoDecoder->last_field.eSourcePolarity);
 
     pStatus->isMpeg1 = videoDecoder->last_field.eMpegType == BAVC_MpegType_eMpeg1;
     pStatus->isYCbCr422 = videoDecoder->last_field.eYCbCrType == BAVC_YCbCrType_e4_2_2;
@@ -101,6 +101,23 @@ NEXUS_Error NEXUS_VideoDecoder_P_GetExtendedStatus_Avd( NEXUS_VideoDecoderHandle
     if (rc) return BERR_TRACE(rc);
     pStatus->version.firmware = info.ulDecoderFwRev;
 
+	if(videoDecoder->startSettings.pidChannel)
+	{
+        rc =  NEXUS_PidChannel_GetStatus(videoDecoder->startSettings.pidChannel, &pidChanStatus);
+        if (rc) return BERR_TRACE(rc);
+        pStatus->pidChannelIndex = (int) pidChanStatus.pidChannelIndex;
+	}
+    else
+        pStatus->pidChannelIndex = -1; /* No channel, decoder is stopped. */
+    if(videoDecoder->startSettings.stcChannel)
+    {
+        rc =  NEXUS_StcChannel_GetStatus(videoDecoder->startSettings.stcChannel, &stcChanStatus);
+        if (rc) return BERR_TRACE(rc);
+        pStatus->stcChannelIndex = (int) stcChanStatus.index;
+    }
+    else
+        pStatus->stcChannelIndex = -1;
+
     return 0;
 }
 
@@ -130,9 +147,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetExtendedSettings_Avd( NEXUS_VideoDecoderHand
         rc = NEXUS_VideoDecoder_P_SetUserdata(videoDecoder);
         if (rc) return BERR_TRACE(rc);
     }
-
-    rc = NEXUS_VideoDecoder_P_SetLowLatencySettings(videoDecoder);
-    if (rc) return BERR_TRACE(rc);
 
     return 0;
 }
@@ -326,4 +340,3 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetExtendedSettings_NotImplemented( NEXUS_Video
     }
     return NEXUS_SUCCESS;
 }
-

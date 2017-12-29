@@ -94,8 +94,12 @@ extern "C" {
 #define BSID_RAVE_CDB_LENGTH                                      (3*1024*1024/2)
 #define BSID_RAVE_ITB_LENGTH                                           (512*1024)
 
-#define BSID_RAVE_CDB_ALIGNMENT                                                 4 /* bits: pow 2 - why does CDB need an alignment? */
-#define BSID_RAVE_ITB_ALIGNMENT                                                 4 /* bits: pow 2 - ITB entries are 4 x 32-bit words = 16 bytes */
+/* NOTE: since SID's motion decode is essentially acting as a video decoder (especially from nexus' point-of-view)
+         we need to specify the same alignment restrictions to ensure that Rave's bounds checks will pass
+         Since the video decoder specifies an ITB alignment of 128 bytes, we indicate "7" even though each
+         entry is only 16 bytes. Similarly for CDB buffering (requires 256-byte alignment) */
+#define BSID_RAVE_CDB_ALIGNMENT                                                 8 /* bits: pow 2 - why does CDB need an alignment? */
+#define BSID_RAVE_ITB_ALIGNMENT                                                 7 /* bits: pow 2 - ITB entries are 4 x 32-bit words = 16 bytes */
 
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
 #define BSID_RAVE_CDB_ENDIAN                                                false

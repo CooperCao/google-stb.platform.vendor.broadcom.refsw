@@ -53,14 +53,21 @@ typedef struct {
    V3D_TF_SPEC_T     spec[V3D_MAX_TF_SPECS];
 } GLXX_PROGRAM_TFF_POST_LINK_T;
 
+typedef struct gl20_program_dynamic_array {
+   uint32_t offset;
+   uint32_t stride;
+} gl20_program_dynamic_array;
+
 /* Data that is common between pipelines and normal programs */
 typedef struct GL20_PROGRAM_COMMON_T_ {
-   unsigned       *ubo_binding_point;
-   unsigned       *ssbo_binding_point;
-   unsigned        num_scalar_uniforms;
-   uint32_t       *uniform_data;
+   unsigned                   *ubo_binding_point;
+   unsigned                   *ssbo_binding_point;
+   uint32_t                   *uniform_data;
+   gl20_program_dynamic_array *ssbo_dynamic_arrays;
+   GLSL_PROGRAM_T             *linked_glsl_program;
 
-   GLSL_PROGRAM_T *linked_glsl_program;
+   unsigned num_scalar_uniforms;
+   unsigned num_ssbo_dynamic_arrays;
 
    // We need to be able to have a failed link leave the linked program
    // in place for SSOs -- failed link does not break the pipelines for
@@ -90,7 +97,7 @@ typedef struct GL20_PROGRAM_T_ {
    GL20_SHADER_T      *geometry;
 #endif
    GL20_SHADER_T      *compute;
-   khrn_mem_handle_t   mh_info;
+   const char         *info;
    char               *debug_label;
 
    GLSL_BINDING_T     *bindings;

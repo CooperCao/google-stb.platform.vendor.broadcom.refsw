@@ -297,15 +297,13 @@ IpPrimerSessionStart(int sessionIndex, IpChannel *ipChannel, DecodeSessionHandle
     ipSession->primer = NEXUS_VideoDecoderPrimer_Open(decodeSession->videoDecoder);
     BDBG_ASSERT(ipSession->primer != NULL);
     NEXUS_VideoDecoderPrimer_GetSettings(ipSession->primer, &primerSettings);
-    primerSettings.pastTolerance = 1500; /* amount of time willing to race */
-    primerSettings.futureTolerance = 0;
     primerSettings.ptsStcDiffCorrectionEnabled = true;
     rc = NEXUS_VideoDecoderPrimer_SetSettings(ipSession->primer, &primerSettings);
     BDBG_ASSERT(!rc);
     /* start priming */
     rc = NEXUS_VideoDecoderPrimer_Start(ipSession->primer, &ipSession->videoProgram);
     BDBG_ASSERT(!rc);
-    BDBG_WRN(("############## primer %p started: pastTolerance=%d, futureTolerance=%d\n", (void *)ipSession->primer, primerSettings.pastTolerance, primerSettings.futureTolerance));
+    BDBG_WRN(("############## primer %p started", (void *)ipSession->primer));
 
     /* start IP session: all other modules (playpump, decoder, primer) must be started before this */
     /* update IP Session Settings */
@@ -503,7 +501,6 @@ decodeSessionInit(void)
 
     /* Bring up display */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
-    displaySettings.format = NEXUS_VideoFormat_e1080i;
     displaySettings.format = NEXUS_VideoFormat_eNtsc;
     decodeSession->display = NEXUS_Display_Open(0, &displaySettings);
     BDBG_ASSERT(decodeSession->display);

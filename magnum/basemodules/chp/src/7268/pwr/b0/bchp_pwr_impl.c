@@ -1,5 +1,5 @@
  /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -129,8 +129,8 @@ static void BCHP_PWR_P_DV_AVX_CTRL_CH3_div_Control(BCHP_Handle handle, unsigned 
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV);
     if(!set) {
-        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV);
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT);
+        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV);
     }
 }
 
@@ -261,8 +261,85 @@ static void BCHP_PWR_P_DV_RAAGA_CTRL_CH0_div_Control(BCHP_Handle handle, unsigne
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_DIV);
     if(!set) {
-        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_RAAGA_PLL_DIV, NDIV_INT);
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_RAAGA_PLL_DIV, PDIV);
+        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_RAAGA_PLL_DIV, NDIV_INT);
+    }
+}
+
+static void BCHP_PWR_P_DV_V3D_CTRL_CH0_div_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
+{
+    uint32_t reg;
+
+    BDBG_MSG(("DV_V3D_CTRL_CH0_div: %s", set?"write":"read"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0);
+    if(!set) {
+        *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0);
+    } else {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, *postdiv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0, reg);
+    }
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_DIV);
+    if(!set) {
+        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_V3D_PLL_DIV, PDIV);
+        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_V3D_PLL_DIV, NDIV_INT);
+    }
+}
+
+static void BCHP_PWR_P_DV_XPT_CTRL_CH0_div_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
+{
+    uint32_t reg;
+
+    BDBG_MSG(("DV_XPT_CTRL_CH0_div: %s", set?"write":"read"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0);
+    if(!set) {
+        *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0);
+    } else {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, *postdiv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, reg);
+    }
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV);
+    if(!set) {
+        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT);
+        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV);
+    }
+}
+
+static void BCHP_PWR_P_DV_XPT_CTRL_CH1_div_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
+{
+    uint32_t reg;
+
+    BDBG_MSG(("DV_XPT_CTRL_CH1_div: %s", set?"write":"read"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1);
+    if(!set) {
+        *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1);
+    }
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV);
+    if(!set) {
+        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV);
+        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT);
+    }
+}
+
+static void BCHP_PWR_P_DV_XPT_CTRL_CH4_div_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
+{
+    uint32_t reg;
+
+    BDBG_MSG(("DV_XPT_CTRL_CH4_div: %s", set?"write":"read"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4);
+    if(!set) {
+        *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4);
+    } else {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4, *postdiv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, reg);
+    }
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV);
+    if(!set) {
+        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT);
+        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV);
     }
 }
 
@@ -278,6 +355,21 @@ static void BCHP_PWR_P_HW_AIO_Control(BCHP_Handle handle, bool activate)
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_AIO, reg);
+}
+
+static void BCHP_PWR_P_HW_AIO_RAAGA0_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_AIO_RAAGA0: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0);
+    mask = (BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_108_CLOCK_ENABLE_RAAGA0_MASK |
+            BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_54_CLOCK_ENABLE_RAAGA0_MASK |
+            BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_GISB_CLOCK_ENABLE_RAAGA0_MASK);
+    reg &= ~mask;
+    reg |= activate?mask:0;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0, reg);
 }
 
 static void BCHP_PWR_P_HW_AIO_SRAM_Control(BCHP_Handle handle, bool activate)
@@ -307,6 +399,19 @@ static void BCHP_PWR_P_HW_AIO_SRAM_Control(BCHP_Handle handle, bool activate)
     }
 }
 
+static void BCHP_PWR_P_HW_AIO_VEC_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_AIO_VEC: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO);
+    mask = BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO_SYSTEM_54_CLOCK_ENABLE_VEC_AIO_MASK;
+    reg &= ~mask;
+    reg |= activate?mask:0;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO, reg);
+}
+
 static void BCHP_PWR_P_HW_AVX_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle handle, bool activate)
 {
     uint32_t mask, reg;
@@ -314,8 +419,8 @@ static void BCHP_PWR_P_HW_AVX_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle
     BDBG_MSG(("HW_AVX_CH_CTRL_CH_0_POST_DIV_HOLD_CH0: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0);
-    mask = (BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK |
-            BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK);
+    mask = (BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK |
+            BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0, reg);
@@ -342,8 +447,8 @@ static void BCHP_PWR_P_HW_AVX_CH_CTRL_CH_2_POST_DIV_HOLD_CH2_Control(BCHP_Handle
     BDBG_MSG(("HW_AVX_CH_CTRL_CH_2_POST_DIV_HOLD_CH2: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2);
-    mask = (BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK |
-            BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK);
+    mask = (BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK |
+            BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2, reg);
@@ -370,8 +475,8 @@ static void BCHP_PWR_P_HW_AVX_CH_CTRL_CH_4_POST_DIV_HOLD_CH4_Control(BCHP_Handle
     BDBG_MSG(("HW_AVX_CH_CTRL_CH_4_POST_DIV_HOLD_CH4: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4);
-    mask = (BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK |
-            BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK);
+    mask = (BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK |
+            BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4, reg);
@@ -384,9 +489,9 @@ static void BCHP_PWR_P_HW_BVN_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_BVN: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE);
-    mask = (BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_BVNT_SCB_CLOCK_ENABLE_MASK |
+    mask = (BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_BVNT_BVB_648_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_BVNT54_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_BVNT_BVB_648_CLOCK_ENABLE_MASK);
+            BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_BVNT_SCB_CLOCK_ENABLE_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE, reg);
@@ -399,8 +504,8 @@ static void BCHP_PWR_P_HW_BVN_DVPHR0_DVPHT0_VEC_Control(BCHP_Handle handle, bool
     BDBG_MSG(("HW_BVN_DVPHR0_DVPHT0_VEC: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE);
-    mask = (BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_BVNT_BVB_324_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_BVNT_GISB_CLOCK_ENABLE_MASK);
+    mask = (BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_BVNT_GISB_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE_BVNT_BVB_324_CLOCK_ENABLE_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_BVN_TOP_INST_CLOCK_ENABLE, reg);
@@ -459,8 +564,8 @@ static void BCHP_PWR_P_HW_CPU_CH_CTRL_CH_2_POST_DIV_HOLD_CH2_Control(BCHP_Handle
     BDBG_MSG(("HW_CPU_CH_CTRL_CH_2_POST_DIV_HOLD_CH2: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2);
-    mask = (BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK |
-            BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK);
+    mask = (BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK |
+            BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2, reg);
@@ -501,8 +606,8 @@ static void BCHP_PWR_P_HW_CPU_CH_CTRL_CH_5_POST_DIV_HOLD_CH5_Control(BCHP_Handle
     BDBG_MSG(("HW_CPU_CH_CTRL_CH_5_POST_DIV_HOLD_CH5: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5);
-    mask = (BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5_POST_DIVIDER_HOLD_CH5_MASK |
-            BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5_CLOCK_DIS_CH5_MASK);
+    mask = (BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5_CLOCK_DIS_CH5_MASK |
+            BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5_POST_DIVIDER_HOLD_CH5_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5, reg);
@@ -568,21 +673,6 @@ static void BCHP_PWR_P_HW_CTRL_SC1_PWRDN_REQ_Control(BCHP_Handle handle, bool ac
         BKNI_Delay(55);
 }
 
-static void BCHP_PWR_P_HW_CTRL_V3D_PWRDN_REQ_Control(BCHP_Handle handle, bool activate)
-{
-    uint32_t mask, reg;
-
-    BDBG_MSG(("HW_CTRL_V3D_PWRDN_REQ: %s", activate?"on":"off"));
-
-    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL);
-    mask = BCHP_CLKGEN_CLKGEN_INST_CTRL_bit_blast_V3D_PWRDN_PLL_REQ_MASK;
-    reg &= ~mask;
-    reg |= activate?0:mask;
-    BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
-    if(activate)
-        BKNI_Delay(55);
-}
-
 static void BCHP_PWR_P_HW_CTRL_VCXO0_PWRDN_REQ_Control(BCHP_Handle handle, bool activate)
 {
     uint32_t mask, reg;
@@ -625,9 +715,9 @@ static void BCHP_PWR_P_HW_DVPHR0_Control(BCHP_Handle handle, bool activate)
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_DISABLE, reg);
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE);
-    mask = (BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_BVB_648_CLOCK_ENABLE_MASK |
+    mask = (BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_54_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_HD_DVI_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_54_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_BVB_648_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_BVB_324_CLOCK_ENABLE_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
@@ -696,10 +786,10 @@ static void BCHP_PWR_P_HW_DVPHT0_Control(BCHP_Handle handle, bool activate)
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_DISABLE, reg);
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE);
-    mask = (BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE_DVPHT_BVB_324_CLOCK_ENABLE_MASK |
+    mask = (BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE_DVPMHT_54_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE_DVPMHT_108_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE_DVPHT_648_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE_DVPMHT_54_CLOCK_ENABLE_MASK);
+            BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE_DVPHT_BVB_324_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE_DVPHT_648_CLOCK_ENABLE_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_DVP_MHT_INST_CLOCK_ENABLE, reg);
@@ -713,15 +803,15 @@ static void BCHP_PWR_P_HW_HVD0_Control(BCHP_Handle handle, bool activate)
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE);
     mask = (BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_HVDP0_SCB_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_HVDP0_54_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_HVDP0_108_CLOCK_ENABLE_MASK);
+            BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_HVDP0_108_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_HVDP0_54_CLOCK_ENABLE_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE, reg);
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE);
-    mask = (BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE_HVDS0_54_CLOCK_ENABLE_MASK |
+    mask = (BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE_HVDS0_108_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE_HVDS0_SCB_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE_HVDS0_108_CLOCK_ENABLE_MASK);
+            BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE_HVDS0_54_CLOCK_ENABLE_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_HVDS0_TOP_INST_CLOCK_ENABLE, reg);
@@ -877,21 +967,6 @@ static void BCHP_PWR_P_HW_RAAGA0_Control(BCHP_Handle handle, bool activate)
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0, reg);
 }
 
-static void BCHP_PWR_P_HW_RAAGA0_AIO_Control(BCHP_Handle handle, bool activate)
-{
-    uint32_t mask, reg;
-
-    BDBG_MSG(("HW_RAAGA0_AIO: %s", activate?"on":"off"));
-
-    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0);
-    mask = (BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_108_CLOCK_ENABLE_RAAGA0_MASK |
-            BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_GISB_CLOCK_ENABLE_RAAGA0_MASK |
-            BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0_SYSTEM_54_CLOCK_ENABLE_RAAGA0_MASK);
-    reg &= ~mask;
-    reg |= activate?mask:0;
-    BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE_RAAGA0, reg);
-}
-
 static void BCHP_PWR_P_HW_RAAGA0_SRAM_Control(BCHP_Handle handle, bool activate)
 {
     uint32_t mask, reg;
@@ -926,8 +1001,8 @@ static void BCHP_PWR_P_HW_RAAGA_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Hand
     BDBG_MSG(("HW_RAAGA_CH_CTRL_CH_0_POST_DIV_HOLD_CH0: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0);
-    mask = (BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK |
-            BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK);
+    mask = (BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK |
+            BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0, reg);
@@ -961,6 +1036,19 @@ static void BCHP_PWR_P_HW_SC1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0, reg);
 }
 
+static void BCHP_PWR_P_HW_SECBUS_SID_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_SECBUS_SID: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE);
+    mask = BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_HVDP0_GISB_SID_CLOCK_ENABLE_MASK;
+    reg &= ~mask;
+    reg |= activate?mask:0;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE, reg);
+}
+
 static void BCHP_PWR_P_HW_SID_Control(BCHP_Handle handle, bool activate)
 {
     uint32_t mask, reg;
@@ -968,8 +1056,7 @@ static void BCHP_PWR_P_HW_SID_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_SID: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE);
-    mask = (BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_HVDP0_GISB_SID_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_HVDP0_SCB_SID_CLOCK_ENABLE_MASK);
+    mask = BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE_HVDP0_SCB_SID_CLOCK_ENABLE_MASK;
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_HVDP0_TOP_INST_CLOCK_ENABLE, reg);
@@ -1192,9 +1279,9 @@ static void BCHP_PWR_P_HW_V3D_Control(BCHP_Handle handle, bool activate)
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE);
     mask = (BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE_V3D_GISB_2ND_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE_V3D_GISB_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE_V3D_SCB_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE_V3D_54_CLOCK_ENABLE_MASK);
+            BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE_V3D_54_CLOCK_ENABLE_MASK |
+            BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE_V3D_GISB_CLOCK_ENABLE_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_V3D_TOP_INST_CLOCK_ENABLE, reg);
@@ -1214,6 +1301,50 @@ static void BCHP_PWR_P_HW_V3D_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0, reg);
 }
 
+static void BCHP_PWR_P_HW_V3D_LDO_PWRON_LDO_PWRON_PLL_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_V3D_LDO_PWRON_LDO_PWRON_PLL: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_LDO_PWRON);
+    mask = BCHP_CLKGEN_PLL_V3D_PLL_LDO_PWRON_LDO_PWRON_PLL_MASK;
+    reg &= ~mask;
+    reg |= activate?mask:0;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_LDO_PWRON, reg);
+}
+
+static void BCHP_PWR_P_HW_V3D_PWRON_PWRON_PLL_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_V3D_PWRON_PWRON_PLL: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_PWRON);
+    mask = BCHP_CLKGEN_PLL_V3D_PLL_PWRON_PWRON_PLL_MASK;
+    reg &= ~mask;
+    reg |= activate?mask:0;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_PWRON, reg);
+    if(activate)
+        BKNI_Delay(5);
+}
+
+static void BCHP_PWR_P_HW_V3D_RESET_RESETD_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_V3D_RESET_RESETD: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_RESET);
+    mask = (BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETD_MASK |
+            BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETA_MASK);
+    reg &= ~mask;
+    reg |= activate?0:mask;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_RESET, reg);
+    if(activate)
+        BKNI_Delay(30);
+}
+
 static void BCHP_PWR_P_HW_VCXO0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle handle, bool activate)
 {
     uint32_t mask, reg;
@@ -1221,8 +1352,8 @@ static void BCHP_PWR_P_HW_VCXO0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Hand
     BDBG_MSG(("HW_VCXO0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0);
-    mask = (BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK |
-            BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK);
+    mask = (BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK |
+            BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0, reg);
@@ -1235,8 +1366,8 @@ static void BCHP_PWR_P_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1_Control(BCHP_Hand
     BDBG_MSG(("HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1);
-    mask = (BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1_POST_DIVIDER_HOLD_CH1_MASK |
-            BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1_CLOCK_DIS_CH1_MASK);
+    mask = (BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1_CLOCK_DIS_CH1_MASK |
+            BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1_POST_DIVIDER_HOLD_CH1_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_1, reg);
@@ -1249,8 +1380,8 @@ static void BCHP_PWR_P_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Hand
     BDBG_MSG(("HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0);
-    mask = (BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK |
-            BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK);
+    mask = (BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK |
+            BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0, reg);
@@ -1287,8 +1418,8 @@ static void BCHP_PWR_P_HW_VDAC_Control(BCHP_Handle handle, bool activate)
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_DISABLE, reg);
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC);
-    mask = (BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC_QDAC_BVB_216_CLOCK_ENABLE_VDAC_MASK |
-            BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC_SYSTEM_BVB_216_CLOCK_ENABLE_VDAC_MASK);
+    mask = (BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC_SYSTEM_BVB_216_CLOCK_ENABLE_VDAC_MASK |
+            BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC_QDAC_BVB_216_CLOCK_ENABLE_VDAC_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VDAC, reg);
@@ -1301,27 +1432,14 @@ static void BCHP_PWR_P_HW_VEC_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_VEC: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC);
-    mask = (BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_SYSTEM_BVB_324_CLOCK_ENABLE_VEC_MASK |
+    mask = (BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_SYSTEM_SCB_CLOCK_ENABLE_VEC_MASK |
             BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_SYSTEM_BVB_216_CLOCK_ENABLE_VEC_MASK |
-            BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_SYSTEM_SCB_CLOCK_ENABLE_VEC_MASK |
+            BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_SYSTEM_108_CLOCK_ENABLE_VEC_MASK |
             BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_SYSTEM_BVB_648_CLOCK_ENABLE_VEC_MASK |
-            BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_SYSTEM_108_CLOCK_ENABLE_VEC_MASK);
+            BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_SYSTEM_BVB_324_CLOCK_ENABLE_VEC_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC, reg);
-}
-
-static void BCHP_PWR_P_HW_VEC_AIO_Control(BCHP_Handle handle, bool activate)
-{
-    uint32_t mask, reg;
-
-    BDBG_MSG(("HW_VEC_AIO: %s", activate?"on":"off"));
-
-    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO);
-    mask = BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO_SYSTEM_54_CLOCK_ENABLE_VEC_AIO_MASK;
-    reg &= ~mask;
-    reg |= activate?mask:0;
-    BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VEC_AIO, reg);
 }
 
 static void BCHP_PWR_P_HW_VEC_SRAM_Control(BCHP_Handle handle, bool activate)
@@ -1358,8 +1476,8 @@ static void BCHP_PWR_P_HW_VIP_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_VIP: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP);
-    mask = (BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP_SYSTEM_BVB_216_CLOCK_ENABLE_VIP_MASK |
-            BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP_SYSTEM_SCB_CLOCK_ENABLE_VIP_MASK);
+    mask = (BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP_SYSTEM_SCB_CLOCK_ENABLE_VIP_MASK |
+            BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP_SYSTEM_BVB_216_CLOCK_ENABLE_VIP_MASK);
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_VEC_AIO_GFX_TOP_INST_CLOCK_ENABLE_VIP, reg);
@@ -1399,8 +1517,8 @@ static void BCHP_PWR_P_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle
     BDBG_MSG(("HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0);
-    mask = (BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK |
-            BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK);
+    mask = (BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK |
+            BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, reg);
@@ -1413,8 +1531,8 @@ static void BCHP_PWR_P_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4_Control(BCHP_Handle
     BDBG_MSG(("HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4);
-    mask = (BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK |
-            BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK);
+    mask = (BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK |
+            BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, reg);
@@ -1427,11 +1545,11 @@ static void BCHP_PWR_P_HW_XPT_REMUX_Control(BCHP_Handle handle, bool activate)
     BDBG_MSG(("HW_XPT_REMUX: %s", activate?"on":"off"));
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE);
-    mask = (BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_DISABLE_XPT_27_CLOCK_MASK |
-            BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_DISABLE_XPT_81_CLOCK_MASK |
+    mask = (BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_DISABLE_XPT_81_CLOCK_MASK |
+            BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_DISABLE_XPT_54_CLOCK_MASK |
             BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_DISABLE_XPT_40P5_CLOCK_MASK |
             BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_DISABLE_XPT_20P25_CLOCK_MASK |
-            BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_DISABLE_XPT_54_CLOCK_MASK);
+            BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE_DISABLE_XPT_27_CLOCK_MASK);
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_CORE_XPT_HIF_INST_CLOCK_DISABLE, reg);

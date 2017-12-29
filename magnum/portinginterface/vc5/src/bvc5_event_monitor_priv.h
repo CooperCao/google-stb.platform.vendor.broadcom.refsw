@@ -103,8 +103,6 @@ typedef struct BVC5_P_EventBuffer
    bool         bOverflow;
 } BVC5_P_EventBuffer;
 
-#define BVC5_P_JOB_FIFO_LEN 2
-
 /* only keep a limited set of state required for event tracking */
 typedef struct BVC5_P_EventInfo
 {
@@ -126,7 +124,7 @@ typedef struct BVC5_P_EventInfo
 
 typedef struct BVC5_P_Fifo
 {
-   BVC5_P_EventInfo       *psEventInfo[BVC5_P_JOB_FIFO_LEN];
+   BVC5_P_EventInfo       *psEventInfo[BVC5_P_HW_QUEUE_STAGES];
    uint8_t                uiWriteIndx;
    uint8_t                uiReadIndx;
    uint8_t                uiCount;
@@ -135,7 +133,7 @@ typedef struct BVC5_P_Fifo
 typedef struct BVC5_P_JobQueue
 {
    /* main storage */
-   BVC5_P_EventInfo       sEventInfo[BVC5_P_JOB_FIFO_LEN];
+   BVC5_P_EventInfo       sEventInfo[BVC5_P_HW_QUEUE_STAGES];
 
    BVC5_P_Fifo            sFreeFifo;
    BVC5_P_Fifo            sSendFifo;
@@ -191,6 +189,13 @@ bool BVC5_P_AddFlushEvent(
    uint64_t       uiTimestamp
    );
 
+bool BVC5_P_AddTFUJobEvent_isr(
+   BVC5_Handle          hVC5,
+   BVC5_EventType       eEventType,
+   BVC5_P_EventInfo    *psEventInfo,
+   uint64_t             uiTimestamp
+   );
+
 bool BVC5_P_AddTFUJobEvent(
    BVC5_Handle          hVC5,
    BVC5_EventType       eEventType,
@@ -208,6 +213,18 @@ bool BVC5_P_AddCoreEvent(
    uint64_t       uiTimestamp
    );
 
+bool BVC5_P_AddCoreEventCJD_isr(
+   BVC5_Handle             hVC5,
+   uint32_t                uiCore,
+   uint32_t                uiTrack,
+   uint32_t                uiEventIndex,
+   BVC5_EventType          eEventType,
+   uint32_t                uiClientId,
+   uint64_t                uiJobId,
+   BVC5_SchedDependencies *psDeps,
+   uint64_t                uiTimestamp
+   );
+
 bool BVC5_P_AddCoreEventCJD(
    BVC5_Handle             hVC5,
    uint32_t                uiCore,
@@ -218,6 +235,16 @@ bool BVC5_P_AddCoreEventCJD(
    uint64_t                uiJobId,
    BVC5_SchedDependencies *psDeps,
    uint64_t                uiTimestamp
+   );
+
+bool BVC5_P_AddCoreJobEvent_isr(
+   BVC5_Handle          hVC5,
+   uint32_t             uiCore,
+   uint32_t             uiTrack,
+   uint32_t             uiEventIndex,
+   BVC5_EventType       eEventType,
+   BVC5_P_EventInfo    *psEventInfo,
+   uint64_t             uiTimestamp
    );
 
 bool BVC5_P_AddCoreJobEvent(
@@ -254,11 +281,11 @@ void BVC5_P_SendMessage(
    BVC5_P_EventInfo   *psEventInfo
    );
 
-BVC5_P_EventInfo *BVC5_P_ReceiveMessage(
+BVC5_P_EventInfo *BVC5_P_ReceiveMessage_isrsafe(
    BVC5_P_JobQueue    *psQueue
    );
 
-void BVC5_P_ReleaseMessage(
+void BVC5_P_ReleaseMessage_isrsafe(
    BVC5_P_JobQueue    *psQueue,
    BVC5_P_EventInfo   *psEventInfo
    );

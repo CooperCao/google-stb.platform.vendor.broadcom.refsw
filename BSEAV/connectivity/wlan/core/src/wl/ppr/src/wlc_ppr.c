@@ -1108,7 +1108,7 @@ static uint32 ppr_pwrs_size(uint32 hdr)
 /** Initialization routine */
 void ppr_init(ppr_t* pprptr, wl_tx_bw_t bw)
 {
-	memset(pprptr, (int8)WL_RATE_DISABLED, ppr_size(bw));
+	memset(pprptr, WL_RATE_DISABLED & 0xff, ppr_size(bw));
 	pprptr->hdr = 0;
 	pprptr->hdr |= (bw & PPR_HDR_CUR_BW_MASK);
 	pprptr->hdr |= ((bw << PPR_HDR_ALLOC_BW_SHIFT) & PPR_HDR_ALLOC_BW_MASK);
@@ -1118,7 +1118,7 @@ void ppr_init(ppr_t* pprptr, wl_tx_bw_t bw)
 /** Reinitialization routine for opaque PPR struct */
 void ppr_clear(ppr_t* pprptr)
 {
-	memset((uchar*)&pprptr->ppr_bw, (int8)WL_RATE_DISABLED,
+	memset((uchar*)&pprptr->ppr_bw, WL_RATE_DISABLED & 0xff,
 		ppr_pwrs_size(pprptr->hdr));
 }
 
@@ -1271,7 +1271,7 @@ int ppr_get_dsss(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_chains_t tx_chains,
 	if (cnt == 0) {
 		PPR_ERROR(("%s: Failed ppr_t:%p BW:%d TX_Chain:%d rateset:%p\n",
 			__FUNCTION__, pprptr, bw, tx_chains, dsss));
-		memset(dsss->pwr, (int8)WL_RATE_DISABLED, sizeof(*dsss));
+		memset(dsss->pwr, WL_RATE_DISABLED & 0xff, sizeof(*dsss));
 	}
 	return cnt;
 }
@@ -1297,7 +1297,7 @@ int ppr_get_ofdm(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_mode_t mode, wl_tx_chains_t
 	if (cnt == 0) {
 		PPR_ERROR(("%s: Failed ppr_t:%p BW:%d mode:%d TX_Chain:%d rateset:%p\n",
 			__FUNCTION__, pprptr, bw, mode, tx_chains, ofdm));
-		memset(ofdm->pwr, (int8)WL_RATE_DISABLED, sizeof(*ofdm));
+		memset(ofdm->pwr, WL_RATE_DISABLED & 0xff, sizeof(*ofdm));
 	}
 	return cnt;
 }
@@ -1326,7 +1326,7 @@ int ppr_get_ht_mcs(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_nss_t Nss, wl_tx_mode_t m
 	if (cnt == 0) {
 		PPR_ERROR(("%s: Failed ppr_t:%p BW:%d Nss:%d mode:%d TX_Chain:%d rateset:%p\n",
 			__FUNCTION__, pprptr, bw, Nss, mode, tx_chains, mcs));
-		memset(mcs->pwr, (int8)WL_RATE_DISABLED, sizeof(*mcs));
+		memset(mcs->pwr, WL_RATE_DISABLED & 0xff, sizeof(*mcs));
 	}
 
 	return cnt;
@@ -1353,7 +1353,7 @@ int ppr_get_vht_mcs(ppr_t* pprptr, wl_tx_bw_t bw, wl_tx_nss_t Nss, wl_tx_mode_t 
 	if (cnt == 0) {
 		PPR_ERROR(("%s: Failed ppr_t:%p BW:%d Nss:%d mode:%d TX_Chain:%d rateset:%p\n",
 			__FUNCTION__, pprptr, bw, Nss, mode, tx_chains, mcs));
-		memset(mcs->pwr, (int8)WL_RATE_DISABLED, sizeof(*mcs));
+		memset(mcs->pwr, WL_RATE_DISABLED & 0xff, sizeof(*mcs));
 	}
 	return cnt;
 }

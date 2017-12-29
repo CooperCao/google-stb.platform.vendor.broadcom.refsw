@@ -365,7 +365,7 @@ static const batom_vec b_mkv_aux_header = BATOM_VEC_INITIALIZER((void *)b_mkv_au
 static void
 b_mkv_data_atom_free(batom_t atom, void *user)
 {
-	BDBG_MSG_TRACE(("b_mkv_data_atom_free:%#lx", (unsigned long)atom));
+	BDBG_MSG_TRACE(("b_mkv_data_atom_free:%p", (void *)atom));
 	BSTD_UNUSED(atom);
 	BSTD_UNUSED(user);
 	return;
@@ -473,14 +473,14 @@ b_mkv_player_fill_segment(bmkv_player_t player, const bmkv_SeekElement *seek, bm
 	bfile_buffer_result read_result;
 	off_t offset;
 
-	BDBG_MSG_TRACE(("%s:%#lx reading seek target %u id %#x", "b_mkv_player_fill_segment", (unsigned long)player, (unsigned)seek->SeekPosition, (unsigned)id));
+	BDBG_MSG_TRACE(("%s:%p reading seek target %u id %#x", "b_mkv_player_fill_segment", (void *)player, (unsigned)seek->SeekPosition, (unsigned)id));
 	if(!seek->validate.SeekPosition) {
 		goto err_validate;
 	}
 	offset = (off_t)seek->SeekPosition + player->mkv_file.segment.start;
 	atom = bfile_buffer_read(player->index_buffer, offset, B_MKV_MAX_ELEMENT_HEAD, &read_result);
 	if(!atom) {
-		BDBG_MSG(("%s:%#lx can't read seek target %u", "b_mkv_player_fill_segment", (unsigned long)player, (unsigned)seek->SeekPosition));
+		BDBG_MSG(("%s:%p can't read seek target %u", "b_mkv_player_fill_segment", (void *)player, (unsigned)seek->SeekPosition));
 		goto err_read;
 	}
 	batom_cursor_from_atom(&cursor, atom);
@@ -488,7 +488,7 @@ b_mkv_player_fill_segment(bmkv_player_t player, const bmkv_SeekElement *seek, bm
 		goto err_header;
 	}
 	if(header.id != id) {
-		BDBG_WRN(("%s:%#lx reading seek target %u unexpected id %#x(%#x)", "b_mkv_player_fill_segment", (unsigned long)player, (unsigned)seek->SeekPosition, (unsigned)header.id, (unsigned)id));
+		BDBG_WRN(("%s:%p reading seek target %u unexpected id %#x(%#x)", "b_mkv_player_fill_segment", (void *)player, (unsigned)seek->SeekPosition, (unsigned)header.id, (unsigned)id));
 		goto err_id; /* unexpected id */
 	}
 	batom_release(atom);
@@ -535,7 +535,7 @@ static void
 b_mkv_player_index_error(bmkv_player_t player)
 {
 	player->status.index_error_cnt++;
-	BDBG_MSG_TRACE(("b_mkv_player_index_error:%#lx index_error:%u", (unsigned long)player, (unsigned long)player->status.index_error_cnt));
+	BDBG_MSG_TRACE(("b_mkv_player_index_error:%p index_error:%u", (void *)player, (unsigned)player->status.index_error_cnt));
 	player->config.error_detected(player->config.cntx);
 	return;
 }
@@ -544,7 +544,7 @@ static void
 b_mkv_player_data_error(bmkv_player_t player)
 {
 	player->status.data_error_cnt++;
-	BDBG_MSG_TRACE(("b_mkv_player_data_error:%#lx data_error:%u", (unsigned long)player, (unsigned long)player->status.data_error_cnt));
+	BDBG_MSG_TRACE(("b_mkv_player_data_error:%p data_error:%u", (void *)player, (unsigned)player->status.data_error_cnt));
 	player->config.error_detected(player->config.cntx);
 	return;
 }
@@ -579,15 +579,15 @@ b_mkv_player_next_cluster(bmkv_player_t player, bool sequential, bool *endofstre
 	bfile_cached_segment_seek(&player->cluster.cache, 0);
     *endofstream = false;
 
-	BDBG_MSG_TRACE(("%s:%#lx %s segment.len:%u", "b_mkv_player_next_cluster", (unsigned long)player, sequential?"sequential":"", (unsigned)player->seek_table.cache.segment.len));
+	BDBG_MSG_TRACE(("%s:%p %s segment.len:%u", "b_mkv_player_next_cluster", (void *)player, sequential?"sequential":"", (unsigned)player->seek_table.cache.segment.len));
 	while(sequential && player->seek_table.cache.segment.len) {
 		bmkv_SeekElement seek;
         bmkv_element_parse_result parse_result;
 
-		BDBG_MSG_TRACE(("%s:%#lx locating cluster in the seek table %u(%u):%u", "b_mkv_player_next_cluster", (unsigned long)player, (unsigned)player->seek_table.cache.accum_offset+batom_cursor_pos(&player->seek_table.cache.cursor), (unsigned)player->seek_table.cache.segment.len, (unsigned)(player->seek_table.cache.segment.start)));
+		BDBG_MSG_TRACE(("%s:%p locating cluster in the seek table %u(%u):%u", "b_mkv_player_next_cluster", (void *)player, (unsigned)(player->seek_table.cache.accum_offset+batom_cursor_pos(&player->seek_table.cache.cursor)), (unsigned)player->seek_table.cache.segment.len, (unsigned)(player->seek_table.cache.segment.start)));
 
 		if(!bfile_cached_segment_reserve_min(&player->seek_table.cache, B_MKV_PLAYER_MAX_SEEK_ENTRY, B_MKV_PLAYER_MIN_SEEK_ENTRY)) {
-			BDBG_MSG(("%s:%#lx reached end of cluster_seekhead", "b_mkv_player_next_cluster", (unsigned long)player));
+			BDBG_MSG(("%s:%p reached end of cluster_seekhead", "b_mkv_player_next_cluster", (void *)player));
 			break;
 		}
 		player->cluster.seek_table_offset = bfile_cached_segment_tell(&player->seek_table.cache);
@@ -629,7 +629,7 @@ b_mkv_player_next_cluster(bmkv_player_t player, bool sequential, bool *endofstre
 		if(!bmkv_parse_header(&player->cluster.cache.cursor, &header)) {
 			goto err_header;
 		}
-        BDBG_MSG_TRACE(("%s:%p id:%#lx size:%lu", "b_mkv_player_next_cluster", (void *)player, (unsigned long)header.id, (unsigned long)header.size));
+        BDBG_MSG_TRACE(("%s:%p id:%#x size:%lu", "b_mkv_player_next_cluster", (void *)player, (unsigned)header.id, (unsigned long)header.size));
         if(header.id==BMKV_INVALID_ID) {
             goto err_id;
         }
@@ -967,7 +967,7 @@ b_mkv_player_frame_buf_alloc_persistent(bmkv_player_t player, size_t size)
 static void
 b_mkv_player_frame_buf_clear(bmkv_player_t player)
 {
-    BDBG_MSG_TRACE(("b_mkv_player_frame_buf_clear:%p used %u[%u]", (void *)player, player->frame_buf_off, sizeof(player->frame_buf)));
+    BDBG_MSG_TRACE(("b_mkv_player_frame_buf_clear:%p used %u[%u]", (void *)player, player->frame_buf_off, (unsigned)sizeof(player->frame_buf)));
     player->frame_buf_off = 0;
     return;
 }
@@ -1308,7 +1308,7 @@ b_mkv_player_prepare_vorbis_track(bmkv_player_t player, struct b_mkv_player_trac
     if(BATOM_IS_EOF(&cursor)) { goto error; }
 
     if(packet_count!=B_MKV_VORBIS_HEADERS-1) {
-        BDBG_WRN(("%s:%#lx invalid packet_count:%u(%u)",  "b_mkv_player_prepare_vorbis_track", (unsigned long)player, packet_count, 2));
+        BDBG_WRN(("%s:%p invalid packet_count:%u(%u)",  "b_mkv_player_prepare_vorbis_track", (void *)player, packet_count, 2));
         goto error;
     }
     packet_size[packet_count] = 0;
@@ -1534,14 +1534,14 @@ b_mkv_player_map_tracks(bmkv_player_t player)
         track->pts_reorder_enabled = false;
         bmkv_file_parser_process_encoding_info(mkv_track, &track->encoding_info);
         if(!track->encoding_info.supported && !bmkv_IsTrackAuxiliary(mkv_track)) {
-            BDBG_WRN(("%s:%#lx unsupported encoding for track %u", "b_mkv_player_map_tracks", (unsigned long)player, mkv_track->TrackNumber));
+            BDBG_WRN(("%s:%p unsupported encoding for track %u", "b_mkv_player_map_tracks", (void *)player, mkv_track->TrackNumber));
             continue;
         }
         if(mkv_track->validate.Video) {
             const bmkv_TrackEntryVideo *video;
 
             if(mkv_track->Video.nelems!=1) {
-                BDBG_WRN(("%s:%#lx unsupported video entry %u:'%s'", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
+                BDBG_WRN(("%s:%p unsupported video entry %u:'%s'", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
                 continue;
             }
             video = &BMKV_TABLE_ELEM(mkv_track->Video,bmkv_TrackEntryVideo, 0);
@@ -1559,7 +1559,7 @@ b_mkv_player_map_tracks(bmkv_player_t player)
             } else if(bmkv_IsTrackVideoHevc(mkv_track)) {
                 BDBG_MSG(("%s:%p HEVC video track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 if(b_mkv_player_prepare_hevc_track(player, track, mkv_track, video)) {
-                    BDBG_MSG(("%s:%#lx HEVC video track %u:(%#lx) NALU len:%u", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track, track->codec.hevc.meta.lengthSize));
+                    BDBG_MSG(("%s:%p HEVC video track %u:(%p) NALU len:%u", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track, track->codec.hevc.meta.lengthSize));
                     track->codec_type = b_mkv_codec_type_hevc;
                 } else {
                     BDBG_WRN(("%s:%p invalid HEVC video track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
@@ -1568,21 +1568,21 @@ b_mkv_player_map_tracks(bmkv_player_t player)
             } else if(bmkv_IsTrackVideoMpeg1(mkv_track) || bmkv_IsTrackVideoMpeg2(mkv_track)) {
                 track->codec_type = b_mkv_codec_type_unknown;
             } else if(bmkv_IsTrackVideoMpeg4Asp(mkv_track)) {
-                BDBG_MSG(("%s:%#lx MPEG4 ASP video track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p MPEG4 ASP video track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 track->codec_type = b_mkv_codec_type_mpeg4asp;
                 track->pts_reorder_enabled = player->config.reorder_timestamps;
             } else if(bmkv_IsTrackVideoVp8(mkv_track)) {
-                BDBG_MSG(("%s:%#lx VP8 video track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p VP8 video track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 track->bounded_pes = true;
                 track->codec_type = b_mkv_codec_type_vp8;
             } else if(bmkv_IsTrackVideoVp9(mkv_track)) {
-                BDBG_MSG(("%s:%#lx VP9 video track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p VP9 video track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 track->bounded_pes = true;
                 track->codec_type = b_mkv_codec_type_vp9;
             } else if(bmkv_IsTrackVideoVFW(mkv_track)) {
-                BDBG_MSG(("%s:%#lx VFW video track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p VFW video track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 if(!b_mkv_player_prepare_vfw_track(player, track, mkv_track, video)) {
-                    BDBG_WRN(("%s:%#lx VFW video track invalid format %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                    BDBG_WRN(("%s:%p VFW video track invalid format %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                     continue;
                 }
 
@@ -1590,7 +1590,7 @@ b_mkv_player_map_tracks(bmkv_player_t player)
                     track->codec_type = b_mkv_codec_type_vfw_mpeg4asp;
                 } else if(BMEDIA_FOURCC_VC1AP_CODEC(track->codec.vfw.bitmap_info.biCompression)) {
                     if(!b_mkv_player_prepare_vfw_vc1ap_track(player, track, mkv_track, video)) {
-                        BDBG_WRN(("%s:%#lx VFW video track invalid format %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                        BDBG_WRN(("%s:%p VFW video track invalid format %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                         continue;
                     }
                     track->codec_type = b_mkv_codec_type_vfw_vc1_ap;
@@ -1603,17 +1603,17 @@ b_mkv_player_map_tracks(bmkv_player_t player)
                     track->pts_reorder_enabled = false;
                     track->bounded_pes = true;
                 } else {
-                    BDBG_WRN(("%s:%#lx VFW video track invalid format %u:(%#lx) " BMEDIA_FOURCC_FORMAT, "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track, BMEDIA_FOURCC_ARG(track->codec.vfw.bitmap_info.biCompression)));
+                    BDBG_WRN(("%s:%p VFW video track invalid format %u:(%p) " BMEDIA_FOURCC_FORMAT, "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track, BMEDIA_FOURCC_ARG(track->codec.vfw.bitmap_info.biCompression)));
                     continue;
                 }
 
             } else {
-                BDBG_WRN(("%s:%#lx unsupported video track %u:'%s'", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
+                BDBG_WRN(("%s:%p unsupported video track %u:'%s'", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
                 continue;
             }
 
             if(track->pts_reorder_enabled && !b_mkv_player_track_initialize_pts_reorder_queue(player, track, mkv_track)) {
-                BDBG_WRN(("%s:%#lx Unable to enable PTS reorder queue %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_WRN(("%s:%p Unable to enable PTS reorder queue %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 continue;
             }
         } else if(mkv_track->validate.Audio) {
@@ -1622,50 +1622,50 @@ b_mkv_player_map_tracks(bmkv_player_t player)
 
             track->bounded_pes = true;
             if(mkv_track->Audio.nelems!=1) {
-                BDBG_WRN(("%s:%#lx unsupported audio entry %u:'%s'", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
+                BDBG_WRN(("%s:%p unsupported audio entry %u:'%s'", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
                 continue;
             }
             audio = &BMKV_TABLE_ELEM(mkv_track->Audio,bmkv_TrackEntryAudio, 0);
             BDBG_ASSERT(audio);
             if( !(audio->validate.SamplingFrequency && audio->validate.Channels)) {
-                BDBG_WRN(("%s:%#lx unsupported audio information %u:'%s'", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
+                BDBG_WRN(("%s:%p unsupported audio information %u:'%s'", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
                 continue;
             }
 
             if(bmkv_IsTrackAudioMkvAac(mkv_track)) {
 
-                BDBG_MSG(("%s:%#lx MKV AAC audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p MKV AAC audio track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 if(!b_mkv_player_prepare_mkvaac_track(player, track, mkv_track, audio)) {
-                    BDBG_WRN(("%s:%#lx MKV AAC audio track invalid format %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                    BDBG_WRN(("%s:%p MKV AAC audio track invalid format %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                     continue;
                 }
                 track->codec_type = b_mkv_codec_type_aac;
             } else if(bmkv_IsTrackAudioAac(mkv_track, &aac_info)) {
-                BDBG_MSG(("%s:%#lx AAC audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p AAC audio track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 bmedia_adts_header_init_aac(&track->codec.aac, &aac_info);
                 track->codec_type = b_mkv_codec_type_aac;
             } else if(bmkv_IsTrackAudioAc3(mkv_track) || bmkv_IsTrackAudioAc3Plus(mkv_track)) {
                 bool ac3_plus = bmkv_IsTrackAudioAc3Plus(mkv_track);
-                BDBG_MSG(("%s:%#lx AC3%s audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, ac3_plus?"+":"", (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p AC3%s audio track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, ac3_plus?"+":"", (unsigned)mkv_track->TrackNumber, (void *)track));
                 track->codec_type = ac3_plus? b_mkv_codec_type_ac3: b_mkv_codec_type_ac3_plus;
                 track->codec.ac3.frame_sync = b_mkv_ac3_frame_sync_unknown;
             } else if(bmkv_IsTrackAudioDts(mkv_track)) {
-                BDBG_MSG(("%s:%#lx DTS audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p DTS audio track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 track->codec_type = b_mkv_codec_type_dts;
             } else if(bmkv_IsTrackAudioMpeg1Layer3(mkv_track) || bmkv_IsTrackAudioMpeg1Layer1_2(mkv_track)) {
-                BDBG_MSG(("%s:%#lx MPEG audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p MPEG audio track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 track->codec_type = b_mkv_codec_type_mpeg_audio;
             } else if(bmkv_IsTrackAudioVorbis(mkv_track)) {
-                BDBG_MSG(("%s:%#lx Vorbis audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p Vorbis audio track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 if(!b_mkv_player_prepare_vorbis_track(player, track, mkv_track, audio)) {
-                    BDBG_WRN(("%s:%#lx Vorbis audio track invalid format %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                    BDBG_WRN(("%s:%p Vorbis audio track invalid format %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                     continue;
                 }
                 track->codec_type = b_mkv_codec_type_vorbis;
             } else if(bmkv_IsTrackAudioOpus(mkv_track)) {
-                BDBG_MSG(("%s:%#lx Vorbis audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p Vorbis audio track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 if(!b_mkv_player_prepare_opus_track(player, track, mkv_track, audio)) {
-                    BDBG_WRN(("%s:%#lx Opus audio track invalid format %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                    BDBG_WRN(("%s:%p Opus audio track invalid format %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                     continue;
                 }
                 track->codec_type = b_mkv_codec_type_opus;
@@ -1681,7 +1681,7 @@ b_mkv_player_map_tracks(bmkv_player_t player)
                 batom_cursor cursor;
                 bmedia_waveformatex wf;
 
-                BDBG_MSG(("%s:%#lx ACM audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p ACM audio track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 BATOM_VEC_INIT(&vec, mkv_track->CodecPrivate.data,  mkv_track->CodecPrivate.data_len);
                 batom_cursor_from_vec(&cursor, &vec, 1);
                 if (bmedia_read_waveformatex(&wf, &cursor)) {
@@ -1690,23 +1690,23 @@ b_mkv_player_map_tracks(bmkv_player_t player)
                     } else if(BMEDIA_WAVFMTEX_AUDIO_DTS(&wf)) {
                         track->codec_type = b_mkv_codec_type_dts;
                     } else {
-                        BDBG_WRN(("%s:%#lx unsupported audio track %u:%u", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, wf.wFormatTag));
+                        BDBG_WRN(("%s:%p unsupported audio track %u:%u", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, wf.wFormatTag));
                     }
                 } else {
-                    BDBG_WRN(("%s:%#lx invalid audio track %u:'%s'", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
+                    BDBG_WRN(("%s:%p invalid audio track %u:'%s'", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
                 }
             } else {
-                BDBG_WRN(("%s:%#lx unsupported audio track %u:'%s'", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
+                BDBG_WRN(("%s:%p unsupported audio track %u:'%s'", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, mkv_track->CodecID));
                 continue;
             }
         } else {
             if(bmkv_IsTrackAuxiliary(mkv_track)){
-                BDBG_MSG(("%s:%#lx auxilary track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                BDBG_MSG(("%s:%p auxilary track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
                 track->bounded_pes = true;
                 track->codec_type = b_mkv_codec_type_auxilary;
             }
             else{
-                BDBG_WRN(("%s:%#lx unknown track %u type", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber));
+                BDBG_WRN(("%s:%p unknown track %u type", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber));
                 continue;
             }
         }
@@ -1769,7 +1769,7 @@ bmkv_player_create(bfile_io_read_t fd, const bmedia_player_config *config, const
 	buffer_cfg.fd = fd;
 	player->index_buffer = bfile_buffer_create(player->factory, &buffer_cfg);
 	if(!player->index_buffer) {
-		BDBG_ERR(("%s: %#lx can't create buffer", "bmkv_player_create", (unsigned long)player));
+		BDBG_ERR(("%s: %p can't create buffer", "bmkv_player_create", (void *)player));
 		goto err_buf;
 	}
 
@@ -1922,14 +1922,14 @@ b_mkv_player_parse_Block(bmkv_player_t player, batom_cursor *cursor, unsigned bl
 		goto err_eof;
 	}
 
-    BDBG_MSG_TRACE(("%s:%#lx track:%u", "b_mkv_player_parse_Block", (unsigned long)player, (unsigned)player->cluster.group.data.track));
-    BDBG_MSG_TRACE(("%s:%#lx Timecode:%d", "b_mkv_player_parse_Block", (unsigned long)player, (int)player->cluster.group.data.timecode));
-    BDBG_MSG_TRACE(("%s:%#lx Flags:%#x %s %s lacing %s %s", "b_mkv_player_parse_Block", (unsigned long)player, (unsigned)player->cluster.group.data.flags, (player->cluster.group.data.flags&0x80)?"KEY":"", (player->cluster.group.data.flags&0x10)?"INVISIBLE":"", type[0x3&(player->cluster.group.data.flags>>1)], (player->cluster.group.data.flags&0x1)?"DISCARDABLE":""));
+    BDBG_MSG_TRACE(("%s:%p track:%u", "b_mkv_player_parse_Block", (void *)player, (unsigned)player->cluster.group.data.track));
+    BDBG_MSG_TRACE(("%s:%p Timecode:%d", "b_mkv_player_parse_Block", (void *)player, (int)player->cluster.group.data.timecode));
+    BDBG_MSG_TRACE(("%s:%p Flags:%#x %s %s lacing %s %s", "b_mkv_player_parse_Block", (void *)player, (unsigned)player->cluster.group.data.flags, (player->cluster.group.data.flags&0x80)?"KEY":"", (player->cluster.group.data.flags&0x10)?"INVISIBLE":"", type[0x3&(player->cluster.group.data.flags>>1)], (player->cluster.group.data.flags&0x1)?"DISCARDABLE":""));
 
 	payload_size = blockSize - (batom_cursor_pos(cursor) - elem_start);
 	i = 0x3&(player->cluster.group.data.flags>>1);
 	if(i==0) { /* no lacing */
-		BDBG_MSG_TRACE(("%#s:%#lx no lacing frame[0]=%u", "b_mkv_player_parse_Block", (unsigned long)player, (unsigned)payload_size));
+		BDBG_MSG_TRACE(("%s:%p no lacing frame[0]=%u", "b_mkv_player_parse_Block", (void *)player, (unsigned)payload_size));
 		if(bmkv_BlockGroup_alloc(&player->cluster.group, 1)<0) {
 			goto err_alloc;
 		}
@@ -1942,13 +1942,13 @@ b_mkv_player_parse_Block(bmkv_player_t player, batom_cursor *cursor, unsigned bl
 			goto err_eof;
 		}
 		nframes++;
-		BDBG_MSG_TRACE(("%#s:%#lx nframes=%d", "b_mkv_player_parse_Block", (unsigned long)player, nframes));
+		BDBG_MSG_TRACE(("%s:%p nframes=%d", "b_mkv_player_parse_Block", (void *)player, nframes));
 		if(bmkv_BlockGroup_alloc(&player->cluster.group, (unsigned)nframes)<0) {
 			goto err_alloc;
 		}
 		if(i==2) { /* fixed-size lacing */
 			frame_size = (payload_size-1)/nframes;
-            BDBG_MSG_TRACE(("%#s:%#lx fixed-size frames[0..%u]=%u", "b_mkv_player_parse_Block", (unsigned long)player, nframes-1, frame_size));
+            BDBG_MSG_TRACE(("%s:%p fixed-size frames[0..%u]=%u", "b_mkv_player_parse_Block", (void *)player, nframes-1, frame_size));
 			for(i=0;i<nframes-1;i++) {
 				player->cluster.group.data.frames[i] = frame_size;
 			}
@@ -1958,7 +1958,7 @@ b_mkv_player_parse_Block(bmkv_player_t player, batom_cursor *cursor, unsigned bl
 				player->cluster.group.data.frames[0] = frame_size;
 				for(i=1;i<nframes-1;i++) {
 					frame_size = frame_size+(int)bmkv_parse_signed64(cursor);
-                    BDBG_MSG_TRACE(("%#s:%#lx EBML frame[%u]=%u", "b_mkv_player_parse_Block", (unsigned long)player, i, frame_size));
+                    BDBG_MSG_TRACE(("%s:%p EBML frame[%u]=%u", "b_mkv_player_parse_Block", (void *)player, i, frame_size));
 					player->cluster.group.data.frames[i] = frame_size;
 				}
 			} else { /* i==1 ->  Xiph lacing */
@@ -1974,7 +1974,7 @@ b_mkv_player_parse_Block(bmkv_player_t player, batom_cursor *cursor, unsigned bl
 						frame_size += (unsigned)byte;
 					} while(byte==0xFF);
 					player->cluster.group.data.frames[i]=frame_size;
-                    BDBG_MSG_TRACE(("%#s:%#lx Xiph frame[%u]=%u", "b_mkv_player_parse_Block", (unsigned long)player, i, frame_size));
+                    BDBG_MSG_TRACE(("%s:%p Xiph frame[%u]=%u", "b_mkv_player_parse_Block", (void *)player, i, frame_size));
 				}
 			}
 		}
@@ -1984,7 +1984,7 @@ b_mkv_player_parse_Block(bmkv_player_t player, batom_cursor *cursor, unsigned bl
 			payload_size -= player->cluster.group.data.frames[i];
 		}
 		player->cluster.group.data.frames[nframes-1] = payload_size;
-        BDBG_MSG_TRACE(("%#s:%#lx last frame[%u]=%u", "b_mkv_player_parse_Block", (unsigned long)player, nframes-1, payload_size));
+        BDBG_MSG_TRACE(("%s:%p last frame[%u]=%u", "b_mkv_player_parse_Block", (void *)player, nframes-1, (unsigned)payload_size));
 	}
 	return true;
 
@@ -1996,7 +1996,7 @@ err_eof:
 static bool
 b_mkv_player_parse_SimpleBlock(bmkv_player_t player, batom_cursor *cursor)
 {
-    BDBG_MSG_TRACE(("b_mkv_player_parse_SimpleBlock: %#lx", (unsigned long)player));
+    BDBG_MSG_TRACE(("b_mkv_player_parse_SimpleBlock: %p", (void *)player));
     return b_mkv_player_parse_Block(player, cursor, player->cluster.mkv_cluster.SimpleBlock);
 }
 
@@ -2033,14 +2033,14 @@ b_mkv_player_next_block_blockgroup(bmkv_player_t player, bool parse_payload)
 {
 	size_t elem_offset;
 	size_t parse_offset;
-	BDBG_MSG_TRACE(("%s:%#lx", "b_mkv_player_next_block_blockgroup", (unsigned long)player));
+	BDBG_MSG_TRACE(("%s:%p", "b_mkv_player_next_block_blockgroup", (void *)player));
 	bmkv_BlockGroup_init(&player->cluster.group);
 	elem_offset = batom_cursor_pos(&player->cluster.cache.cursor);
 	parse_offset = elem_offset;
 	do {
 		batom_cursor block_data;
 
-		BDBG_MSG_TRACE(("%s:%p parsing group %u..%u", "b_mkv_player_next_block_blockgroup", (void *)player, (unsigned)parse_offset-elem_offset, (unsigned)player->cluster.mkv_cluster.BlockGroup));
+		BDBG_MSG_TRACE(("%s:%p parsing group %u..%u", "b_mkv_player_next_block_blockgroup", (void *)player, (unsigned)(parse_offset-elem_offset), (unsigned)player->cluster.mkv_cluster.BlockGroup));
 		if(!bmkv_BlockGroup_parse(&player->cluster.cache.cursor, player->cluster.mkv_cluster.BlockGroup-(parse_offset-elem_offset), &player->cluster.group)) {
 			BDBG_WRN(("%s:%p error parsing BlockGroup %u..%u", "b_mkv_player_next_block_blockgroup", (void *)player, (unsigned)(parse_offset-elem_offset), (unsigned)player->cluster.mkv_cluster.BlockGroup));
 			b_mkv_player_data_error(player);
@@ -2081,7 +2081,7 @@ static void
 b_mkv_player_return_no_data(bmkv_player_t player)
 {
 	bmedia_player_entry entry;
-    BDBG_MSG(("b_mkv_player_return_no_data:%#lx", (unsigned long)player));
+    BDBG_MSG(("b_mkv_player_return_no_data:%p", (void *)player));
     bmedia_player_init_entry(&entry);
     player->cluster.async.continuation_active = true;
     player->cluster.async.busy = false;
@@ -2097,7 +2097,7 @@ b_mkv_player_next_block_blockgroup_complete(void *p, bfile_segment_async_result 
 {
 	bmkv_player_t player = p;
 
-	BDBG_MSG_TRACE(("b_mkv_player_next_block_blockgroup_complete:%#lx %u", (unsigned long)player, (unsigned)async_result));
+	BDBG_MSG_TRACE(("b_mkv_player_next_block_blockgroup_complete:%p %u", (void *)player, (unsigned)async_result));
 	BDBG_OBJECT_ASSERT(player, bmkv_player_t);
 
 	switch(async_result) {
@@ -2172,7 +2172,7 @@ err_parse_simpleblock:
 static bfile_segment_async_result
 b_mkv_player_next_block_async(bmkv_player_t player, bool parse_payload, void (*block_complete)(bmkv_player_t player, bfile_segment_async_result result))
 {
-	BDBG_MSG_TRACE(("%s:%p parsing block data at %u %s %s", "b_mkv_player_next_block_async", (unsigned long)player, (unsigned)(player->cluster.cache.segment.start + player->cluster.cache.accum_offset), player->cluster.mkv_cluster.validate.BlockGroup?"BlockGroup":"",player->cluster.mkv_cluster.validate.SimpleBlock?"SimpleBlock":""));
+	BDBG_MSG_TRACE(("%s:%p parsing block data at %u %s %s", "b_mkv_player_next_block_async", (void *)player, (unsigned)(player->cluster.cache.segment.start + player->cluster.cache.accum_offset), player->cluster.mkv_cluster.validate.BlockGroup?"BlockGroup":"",player->cluster.mkv_cluster.validate.SimpleBlock?"SimpleBlock":""));
 	player->cluster.block_valid = false;
 	player->cluster.async.next_block.parse_payload = parse_payload;
 	player->cluster.async.next_block.block_complete = block_complete;
@@ -2197,7 +2197,7 @@ err_parse_blockgroup:
 static void
 b_mkv_player_fetch_block_data(bmkv_player_t player,bfile_segment_async_result async_result)
 {
-	BDBG_MSG_TRACE(("b_mkv_player_fetch_block_data:%#lx", (unsigned long)player));
+	BDBG_MSG_TRACE(("b_mkv_player_fetch_block_data:%p %u", (void *)player, async_result));
 	if(async_result==bfile_segment_async_result_error) {
 		player->cluster.fetch_block_result = b_mkv_fetch_block_result_err_block;
 	}
@@ -2209,25 +2209,25 @@ static bfile_segment_async_result
 b_mkv_player_fetch_block_parse_async(bmkv_player_t player)
 {
 	bfile_segment_async_result async_result;
-	BDBG_MSG_TRACE(("%s:%#lx", "b_mkv_player_fetch_block_parse_async", (unsigned long)player));
+	BDBG_MSG_TRACE(("%s:%p", "b_mkv_player_fetch_block_parse_async", (void *)player));
 	if(!bmkv_Cluster_parse(&player->cluster.cache.cursor, (size_t)(player->cluster.cache.segment.len - bfile_cached_segment_tell(&player->cluster.cache)), &player->cluster.mkv_cluster)) {
-		BDBG_WRN(("%s:%#lx error parsing cluster %u..%u at:%lu", "b_mkv_player_fetch_block_parse_async", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+		BDBG_WRN(("%s:%p error parsing cluster %u..%u at:%lu", "b_mkv_player_fetch_block_parse_async", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		player->cluster.fetch_block_result = b_mkv_fetch_block_result_err_parse_cluster;
 		goto error;
 	}
 	if( ! (player->cluster.mkv_cluster.validate.BlockGroup || player->cluster.mkv_cluster.validate.SimpleBlock)) {
-   		BDBG_WRN(("%s:%#lx error no data in block %u..%u at:%lu", "b_mkv_player_fetch_block_parse_async", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+		BDBG_WRN(("%s:%p error no data in block %u..%u at:%lu", "b_mkv_player_fetch_block_parse_async", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		player->cluster.fetch_block_result = b_mkv_fetch_block_result_err_no_data;
 		goto error;
 	}
 	async_result = b_mkv_player_next_block_async(player, player->cluster.async.fetch_block.parse_payload, b_mkv_player_fetch_block_data);
 	if(async_result==bfile_segment_async_result_error) {
-		BDBG_WRN(("%s:%#lx error parsing block %u..%u at:%lu", "b_mkv_player_fetch_block_parse_async", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+		BDBG_WRN(("%s:%p error parsing block %u..%u at:%lu", "b_mkv_player_fetch_block_parse_async", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		b_mkv_player_data_error(player);
 		player->cluster.fetch_block_result = b_mkv_fetch_block_result_err_read;
 		goto error;
 	}
-	BDBG_MSG_TRACE(("%s:%#lx -> %u", "b_mkv_player_fetch_block_parse_async", (unsigned long)player, (unsigned)async_result));
+	BDBG_MSG_TRACE(("%s:%p -> %u", "b_mkv_player_fetch_block_parse_async", (void *)player, (unsigned)async_result));
 	return async_result;
 error:
 	return bfile_segment_async_result_error;
@@ -2249,7 +2249,7 @@ b_mkv_player_fetch_block_header_complete(void *p, bfile_segment_async_result asy
 {
 	bmkv_player_t player = p;
 
-	BDBG_MSG_TRACE(("%s:%#lx %u", "b_mkv_player_fetch_block_header_complete", (unsigned long)player, (unsigned)async_result));
+	BDBG_MSG_TRACE(("%s:%p %u", "b_mkv_player_fetch_block_header_complete", (void *)player, (unsigned)async_result));
 	BDBG_OBJECT_ASSERT(player, bmkv_player_t);
 
     BDBG_ASSERT(async_result!=bfile_segment_async_result_async);
@@ -2268,7 +2268,7 @@ b_mkv_player_fetch_block_header_complete(void *p, bfile_segment_async_result asy
     case bfile_segment_async_result_async:
         break;
     case bfile_segment_async_result_error:
-        BDBG_WRN(("%s:%#lx error reading data %u..%u at:%lu", "b_mkv_player_fetch_block_header_complete", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+        BDBG_WRN(("%s:%p error reading data %u..%u at:%lu", "b_mkv_player_fetch_block_header_complete", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		b_mkv_player_data_error(player);
         /* fall through */
 	case bfile_segment_async_result_eof:
@@ -2276,7 +2276,7 @@ b_mkv_player_fetch_block_header_complete(void *p, bfile_segment_async_result asy
         b_mkv_player_frame_async_step(b_mkv_frame_step_block, player, async_result);
         break;
     case bfile_segment_async_result_no_data:
-        BDBG_ERR(("%s: %#lx unexpected 'no_data'","b_mkv_player_fetch_block_header_complete", (unsigned long)player));
+        BDBG_ERR(("%s: %p unexpected 'no_data'","b_mkv_player_fetch_block_header_complete", (void *)player));
         break;
     }
 	return;
@@ -2292,7 +2292,7 @@ static bfile_segment_async_result
 b_mkv_player_fetch_block_async(bmkv_player_t player, bool parse_payload, void (*block_complete)(bmkv_player_t player, bfile_segment_async_result result))
 {
 	bfile_segment_async_result async_result;
-	BDBG_MSG_TRACE(("%s:%#lx", "b_mkv_player_fetch_block_async", (unsigned long)player));
+	BDBG_MSG_TRACE(("%s:%p", "b_mkv_player_fetch_block_async", (void *)player));
 
 	player->cluster.fetch_block_result = b_mkv_fetch_block_result_err_read;
 	player->cluster.async.fetch_block.parse_payload = parse_payload;
@@ -2304,7 +2304,7 @@ b_mkv_player_fetch_block_async(bmkv_player_t player, bool parse_payload, void (*
 		return b_mkv_player_fetch_block_parse_async(player);
 	} else {
 		if(async_result==bfile_segment_async_result_error) {
-   			BDBG_WRN(("%s:%#lx error reading data %u..%u at:%lu", "b_mkv_player_fetch_block_async", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+			BDBG_WRN(("%s:%p error reading data %u..%u at:%lu", "b_mkv_player_fetch_block_async", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		}
 		return async_result;
 	}
@@ -2315,7 +2315,7 @@ b_mkv_player_fetch_block_async(bmkv_player_t player, bool parse_payload, void (*
 static int
 b_mkv_player_next_block(bmkv_player_t player, bool parse_payload)
 {
-	BDBG_MSG_TRACE(("%s:%#lx parsing block data at %u", "b_mkv_player_next_block", (unsigned long)player, (unsigned)(player->cluster.cache.segment.start + player->cluster.cache.accum_offset)));
+	BDBG_MSG_TRACE(("%s:%p parsing block data at %u", "b_mkv_player_next_block", (void *)player, (unsigned)(player->cluster.cache.segment.start + player->cluster.cache.accum_offset)));
 	player->cluster.block_valid = false;
 	if(player->cluster.mkv_cluster.validate.BlockGroup) {
 		if(!b_mkv_player_cluster_reserve(player, player->cluster.mkv_cluster.BlockGroup)) { goto err_read; }
@@ -2338,21 +2338,21 @@ b_mkv_player_fetch_block(bmkv_player_t player, bool parse_payload)
     size_t segment_remaining = player->cluster.cache.segment.len - bfile_cached_segment_tell(&player->cluster.cache);
 
     if(!b_mkv_player_cluster_reserve(player, B_MKV_MAX_ELEMENT_HEAD < segment_remaining ? B_MKV_MAX_ELEMENT_HEAD : segment_remaining)) {
-        BDBG_WRN(("%s:%#lx error reading data %u..%u at:%lu", "b_mkv_player_fetch_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+        BDBG_WRN(("%s:%p error reading data %u..%u at:%lu", "b_mkv_player_fetch_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
         return b_mkv_fetch_block_result_err_read;
     }
     if(!bmkv_Cluster_parse(&player->cluster.cache.cursor, segment_remaining, &player->cluster.mkv_cluster)) {
-        BDBG_WRN(("%s:%#lx error parsing cluster %u..%u at:%lu", "b_mkv_player_fetch_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+        BDBG_WRN(("%s:%p error parsing cluster %u..%u at:%lu", "b_mkv_player_fetch_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		b_mkv_player_data_error(player);
         return b_mkv_fetch_block_result_err_parse_cluster;
     }
     if( !(player->cluster.mkv_cluster.validate.BlockGroup || player->cluster.mkv_cluster.validate.SimpleBlock) ) {
-        BDBG_WRN(("%s:%#lx error no data in block %u..%u at:%lu", "b_mkv_player_fetch_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+        BDBG_WRN(("%s:%p error no data in block %u..%u at:%lu", "b_mkv_player_fetch_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
         return b_mkv_fetch_block_result_err_no_data;
     }
     rc = b_mkv_player_next_block(player, parse_payload);
     if(rc!=0) {
-        BDBG_WRN(("%s:%#lx error parsing block %u..%u at:%lu", "b_mkv_player_fetch_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+        BDBG_WRN(("%s:%p error parsing block %u..%u at:%lu", "b_mkv_player_fetch_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		b_mkv_player_data_error(player);
         return b_mkv_fetch_block_result_err_block;
     }
@@ -2370,17 +2370,17 @@ b_mkv_player_copy_nal(bmkv_player_t player, batom_accum_t src, batom_cursor *src
         batom_cursor *frame_cursor = src_cursor;
         batom_cursor nal;
         size_t left=player->cluster.group.data.frames[i];
-        BDBG_MSG_TRACE(("%s:%p avc frame %u","b_mkv_player_copy_nal", (void *)player, left));
+        BDBG_MSG_TRACE(("%s:%p avc frame %u","b_mkv_player_copy_nal", (void *)player, (unsigned)left));
 
         /* batom_cursor_dump(frame_cursor, "NAL"); */
         if(nalu_len>0) {
             while(left>nalu_len) {
-                size_t nal_len;
+                unsigned nal_len;
 
                 /* batom_cursor_dump(frame_cursor,"NAL"); */
                 left -= nalu_len;
                 nal_len = batom_cursor_vword_be(frame_cursor, nalu_len);
-                BDBG_MSG_TRACE(("%s:%p avc nal %u:%u","b_mkv_player_copy_nal", (void *)player, nal_len, left));
+                BDBG_MSG_TRACE(("%s:%p avc nal %u:%u","b_mkv_player_copy_nal", (void *)player, nal_len, (unsigned)left));
                 if(nal_len>left) {
                     BDBG_WRN(("%s:%p invalid nal len %u:%u","b_mkv_player_copy_nal", (void *)player, (unsigned)nal_len, (unsigned)left));
                     break;
@@ -2616,7 +2616,7 @@ b_mkv_player_ac3_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cu
         temp = batom_cursor_uint16_be(&block);
         if(!BATOM_IS_EOF(&block)) {
             track->codec.ac3.frame_sync = temp==B_AC3_SYNC ? b_mkv_ac3_frame_sync_present : b_mkv_ac3_frame_sync_missing;
-            BDBG_MSG(("b_mkv_player_ac3_block;%#lx track:%u frame sync %s %#x", (unsigned long)player, track->track_no, track->codec.ac3.frame_sync==b_mkv_ac3_frame_sync_present?"present":"missing", temp));
+            BDBG_MSG(("b_mkv_player_ac3_block;%p track:%u frame sync %s %#x", (void *)player, track->track_no, track->codec.ac3.frame_sync==b_mkv_ac3_frame_sync_present?"present":"missing", temp));
         }
     }
     dst = player->accum_dest;
@@ -3098,7 +3098,7 @@ b_mkv_player_decompress_block(bmkv_player_t player, batom_accum_t src, batom_cur
         size_t skipped;
         batom_accum_t frame = *pframe;
 
-        BDBG_MSG_TRACE(("%s:%#x header stripping adding %u bytes","b_mkv_player_decompress_block", (unsigned long)player, track->encoding_info.ContentCompSettings.data_len));
+        BDBG_MSG_TRACE(("%s:%p header stripping adding %u bytes","b_mkv_player_decompress_block", (void *)player, (unsigned)track->encoding_info.ContentCompSettings.data_len));
         for(i=0;i<player->cluster.group.data.nframes;i++) {
             size_t frame_size=player->cluster.group.data.frames[i];
 
@@ -3168,7 +3168,7 @@ b_mkv_player_make_frame(bmkv_player_t player, struct b_mkv_player_track *track, 
         player->cluster.seek_to_index = false;
         BDBG_ASSERT(player->seek_table.index);
         if(player->status.position >= bmedia_index_next(player->seek_table.index)+player->status.bounds.first) {
-            BDBG_MSG(("%s:%#lx saving seek_table index entry %u->%u", "b_mkv_player_make_frame",  (unsigned long)player, (unsigned)player->status.position, (unsigned)player->cluster.seek_table_offset));
+            BDBG_MSG(("%s:%p saving seek_table index entry %u->%u", "b_mkv_player_make_frame",  (void *)player, (unsigned)player->status.position, (unsigned)player->cluster.seek_table_offset));
             bmedia_index_add(player->seek_table.index, player->status.position-player->status.bounds.first, &player->cluster.seek_table_offset);
         }
     }
@@ -3324,7 +3324,7 @@ b_mkv_player_make_frame(bmkv_player_t player, struct b_mkv_player_track *track, 
             entry->atom = batom_from_accum(player->accum_dest, NULL, NULL);
         }
     } else {
-        BDBG_WRN(("%s:%#lx parsing error track %u:%s at %u", "b_mkv_player_make_frame", (unsigned long)player, (unsigned)track->track_no, track->mkv_track->CodecID, (unsigned)(player->cluster.cache.segment.start + bfile_cached_segment_tell(&player->cluster.cache))));
+        BDBG_WRN(("%s:%p parsing error track %u:%s at %u", "b_mkv_player_make_frame", (void *)player, (unsigned)track->track_no, track->mkv_track->CodecID, (unsigned)(player->cluster.cache.segment.start + bfile_cached_segment_tell(&player->cluster.cache))));
         batom_accum_clear(player->accum_dest);
     }
     if(make_pes_stream && entry->atom && (track->first_frame || b_mkv_player_is_a_keyframe(player))) {
@@ -3362,31 +3362,31 @@ b_mkv_player_next_forward_block(bmkv_player_t player, bmedia_player_entry *entry
 		timestamp = b_mkv_player_track_timestamp(player, track, player->cluster.group.data.timecode);
 		if(track->seek_sync) {
                     if(timestamp < player->cluster.seek_target) {
-			BDBG_MSG_TRACE(("%s:%#lx track:%u dropping block for sync %u:%u", "b_mkv_player_next_forward_block", (unsigned long)player, (unsigned)track->track_no, (unsigned)timestamp, (unsigned)player->cluster.seek_target));
+			BDBG_MSG_TRACE(("%s:%p track:%u dropping block for sync %u:%u", "b_mkv_player_next_forward_block", (void *)player, (unsigned)track->track_no, (unsigned)timestamp, (unsigned)player->cluster.seek_target));
 			break;
                     }
-                    BDBG_MSG_TRACE(("%s:%#lx track:%u synced after seek %u:%u", "b_mkv_player_next_forward_block", (unsigned long)player, (unsigned)track->track_no, (unsigned)timestamp, (unsigned)player->cluster.seek_target));
+                    BDBG_MSG_TRACE(("%s:%p track:%u synced after seek %u:%u", "b_mkv_player_next_forward_block", (void *)player, (unsigned)track->track_no, (unsigned)timestamp, (unsigned)player->cluster.seek_target));
                     track->seek_sync = false;
                 }
 
                 if(player->status.direction>0) {
 		    if(track->mkv_track->validate.Video && b_mkv_player_is_a_keyframe(player)) {
 			if( (!track->seek_sync) && timestamp < player->status.position+player->status.direction) {
-                            BDBG_MSG_TRACE(("%s:%#lx filtering out block; track:%u %u:%u", "b_mkv_player_next_forward_block", (unsigned long)player, (unsigned)track->track_no, (unsigned)entry->timestamp, (unsigned)(player->status.position + player->status.direction)));
+                            BDBG_MSG_TRACE(("%s:%p filtering out block; track:%u %u:%u", "b_mkv_player_next_forward_block", (void *)player, (unsigned)track->track_no, (unsigned)entry->timestamp, (unsigned)(player->status.position + player->status.direction)));
                             break;
                         }
-                        BDBG_MSG(("%s:%#lx passing track:%u for fast forward", "b_mkv_player_next_forward_block", (unsigned long)player, (unsigned)track->track_no));
+                        BDBG_MSG(("%s:%p passing track:%u for fast forward", "b_mkv_player_next_forward_block", (void *)player, (unsigned)track->track_no));
                     } else {
-                        BDBG_MSG_TRACE(("%s:%#lx filtering out %s track:%u in fast forward", "b_mkv_player_next_forward_block", (unsigned long)player, track->mkv_track->validate.Video?"Video":"", (unsigned)track->track_no));
+                        BDBG_MSG_TRACE(("%s:%p filtering out %s track:%u in fast forward", "b_mkv_player_next_forward_block", (void *)player, track->mkv_track->validate.Video?"Video":"", (unsigned)track->track_no));
                         break;
                     }
                 }
 		if(player->cluster.resync_video) {
 		    if(track->mkv_track->validate.Video && b_mkv_player_is_a_keyframe(player)) {
 			player->cluster.resync_video = false;
-			BDBG_MSG(("%s:%#lx found video key frame", "b_mkv_player_next_forward_block", (unsigned long)player));
+			BDBG_MSG(("%s:%p found video key frame", "b_mkv_player_next_forward_block", (void *)player));
 		    } else {
-			BDBG_MSG_TRACE(("%s:%#lx waiting for key frame", "b_mkv_player_next_forward_block", (unsigned long)player));
+			BDBG_MSG_TRACE(("%s:%p waiting for key frame", "b_mkv_player_next_forward_block", (void *)player));
 			break;
                     }
                 }
@@ -3410,7 +3410,7 @@ b_mkv_player_next_forward_block(bmkv_player_t player, bmedia_player_entry *entry
     if(player->cluster.block_valid) {
         bmkv_BlockGroup_shutdown(&player->cluster.group);
     }
-    BDBG_MSG_TRACE(("%s:%#lx next block %u..%u", "b_mkv_player_next_forward_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len));
+    BDBG_MSG_TRACE(("%s:%p next block %u..%u", "b_mkv_player_next_forward_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len));
     return rc;
 }
 
@@ -3479,7 +3479,7 @@ err_frame:
 	case b_mkv_fetch_block_result_err_no_data:
 	case b_mkv_fetch_block_result_err_parse_cluster:
     case b_mkv_fetch_block_result_err_block:
-		BDBG_MSG(("%s:%#lx end of cluster %u..%u at:%lu", "b_mkv_player_next_forward_async_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+		BDBG_MSG(("%s:%p end of cluster %u..%u at:%lu", "b_mkv_player_next_forward_async_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		player->cluster.cluster_valid = false;
         return b_mkv_frame_step_cluster;
 
@@ -3504,14 +3504,14 @@ b_mkv_player_next_async_cluster(bmkv_player_t player, bool sequential)
 {
     player->cluster.fetch_block_result = b_mkv_fetch_block_result_success;
     if(player->cluster.cluster_valid && bfile_cached_segment_tell(&player->cluster.cache) >= player->cluster.cache.segment.len) {
-        BDBG_MSG(("%s:%#lx end of cluster %u..%u at:%lu", "b_mkv_player_next_async_cluster", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+        BDBG_MSG(("%s:%p end of cluster %u..%u at:%lu", "b_mkv_player_next_async_cluster", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
         player->cluster.cluster_valid = false;
     }
     if(!player->cluster.cluster_valid) {
         bool endofstream;
         int rc = b_mkv_player_next_cluster(player, sequential, &endofstream);
         if(rc!=0) {
-	        BDBG_MSG(("%s:%#lx error fetching cluster %u..%u at:%lu", "b_mkv_player_next_async_cluster", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+	        BDBG_MSG(("%s:%p error fetching cluster %u..%u at:%lu", "b_mkv_player_next_async_cluster", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
             if(!endofstream) {
                 goto err_cluster;
             } else {
@@ -3533,10 +3533,10 @@ err_cluster:
 static bfile_segment_async_result
 b_mkv_player_next_forward_async_step(b_mkv_frame_step state, bmkv_player_t player, bfile_segment_async_result async_result)
 {
-    BDBG_MSG_TRACE(("%s:>%#lx %u:%u", "b_mkv_player_next_forward_async_step", (unsigned long)player, (unsigned)state, (unsigned)async_result));
+    BDBG_MSG_TRACE(("%s:>%p %u:%u", "b_mkv_player_next_forward_async_step", (void *)player, (unsigned)state, (unsigned)async_result));
     for(;;) {
         /* since we can't use mutually recursive functions because of stack-grow, instead use loop with multiple entry points */
-        BDBG_MSG_TRACE(("%s:%#lx  (%u:%u)", "b_mkv_player_next_forward_async_step", (unsigned long)player, (unsigned)state, (unsigned)async_result));
+        BDBG_MSG_TRACE(("%s:%p  (%u:%u)", "b_mkv_player_next_forward_async_step", (void *)player, (unsigned)state, (unsigned)async_result));
         switch(state) {
         case b_mkv_frame_step_cluster:
             async_result = b_mkv_player_next_async_cluster(player, true);
@@ -3561,7 +3561,7 @@ b_mkv_player_next_forward_async_step(b_mkv_frame_step state, bmkv_player_t playe
         }
         continue;
 done:
-        BDBG_MSG_TRACE(("%s:<%#lx -> %u", "b_mkv_player_next_forward_async_step", (unsigned long)player, (unsigned)async_result));
+        BDBG_MSG_TRACE(("%s:<%p -> %u", "b_mkv_player_next_forward_async_step", (void *)player, (unsigned)async_result));
         return async_result;
     }
 }
@@ -3579,7 +3579,7 @@ static int
 b_mkv_player_next_forward(bmkv_player_t player, bmedia_player_entry *entry)
 {
 	int rc=0;
-	BDBG_MSG_TRACE(("%s>:%#lx", "b_mkv_player_next_forward", (unsigned long)player));
+	BDBG_MSG_TRACE(("%s>:%p", "b_mkv_player_next_forward", (void *)player));
 	entry->atom = NULL;
 	for(;;) {
         b_mkv_fetch_block_result block_result;
@@ -3590,7 +3590,7 @@ b_mkv_player_next_forward(bmkv_player_t player, bmedia_player_entry *entry)
             bool endofstream;
 			rc = b_mkv_player_next_cluster(player, true, &endofstream);
 			if(rc!=0) {
-		        BDBG_MSG(("%s:%#lx error fetching cluster %u..%u at:%lu", "b_mkv_player_next_forward", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+		        BDBG_MSG(("%s:%p error fetching cluster %u..%u at:%lu", "b_mkv_player_next_forward", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 				goto err_cluster;
 			}
 			BDBG_ASSERT(player->cluster.cluster_valid);
@@ -3616,7 +3616,7 @@ b_mkv_player_next_forward(bmkv_player_t player, bmedia_player_entry *entry)
         }
         rc = b_mkv_player_next_forward_block(player, entry);
 		if(entry->atom || rc!=0) {
-			BDBG_MSG_TRACE(("%s>:%#lx -> %d", "b_mkv_player_next_forward", (unsigned long)player, rc));
+			BDBG_MSG_TRACE(("%s>:%p -> %d", "b_mkv_player_next_forward", (void *)player, rc));
 			return rc;
 		}
 		continue;
@@ -3624,7 +3624,7 @@ err_block:
 err_parse_cluster:
 err_no_data:
 end_of_data:
-		BDBG_MSG(("%s:%#lx end of cluster %u..%u at:%lu", "b_mkv_player_next_forward", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+		BDBG_MSG(("%s:%p end of cluster %u..%u at:%lu", "b_mkv_player_next_forward", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		player->cluster.cluster_valid = false;
 	}
 err_cluster:
@@ -3633,7 +3633,7 @@ err_eof:
 
     /* Try to extract any entries from internal buffers, even of file error, this would cause to tread [some] file errors as end of stream */
     rc = b_mkv_player_next_forward_complete(player, entry);
-	BDBG_MSG_TRACE(("%s>:%#lx -> %d", "b_mkv_player_next_forward", (unsigned long)player, rc));
+	BDBG_MSG_TRACE(("%s>:%p -> %d", "b_mkv_player_next_forward", (void *)player, rc));
 	return rc;
 }
 
@@ -3644,14 +3644,14 @@ b_mkv_player_cue_seek_prepare(bmkv_player_t player, bmedia_player_pos pos)
 	uint64_t offset;
 
 	if(!player->cue.index || !player->cue.validate) {
-		BDBG_WRN(("%s:%#lx can't seek/rewind without an index", "b_mkv_player_cue_seek_prepare", (unsigned long)player));
+		BDBG_WRN(("%s:%p can't seek/rewind without an index", "b_mkv_player_cue_seek_prepare", (void *)player));
 		goto error;
 	}
 	player->cue.index_pos = bmedia_index_get(player->cue.index, pos - player->status.bounds.first, &offset);
 	if(player->cue.index_pos==BMEDIA_PLAYER_INVALID) {
 		offset = 0;
 	} else {
-		BDBG_MSG_TRACE(("%s:%#lx index pos:%u(%u) offset:%u", "b_mkv_player_cue_seek_prepare", (unsigned long)player, (unsigned)player->cue.index_pos,(unsigned)pos, (unsigned)offset));
+		BDBG_MSG_TRACE(("%s:%p index pos:%u(%u) offset:%u", "b_mkv_player_cue_seek_prepare", (void *)player, (unsigned)player->cue.index_pos,(unsigned)pos, (unsigned)offset));
 	}
 	BKNI_Memset(&player->cue.mkv_track_pos, 0, sizeof(player->cue.mkv_track_pos));
 	player->cue.index_pos = bmedia_index_next(player->cue.index) + player->status.bounds.first;
@@ -3675,17 +3675,17 @@ b_mkv_player_cue_next(bmkv_player_t player)
 
 		result = b_mkv_player_load_index_entry(player, &CuePoint);
 		if(result!=b_mkv_result_success) {
-			BDBG_MSG(("%s:%#lx can't load entry (%u)", "b_mkv_player_cue_next", (unsigned long)player, result));
+			BDBG_MSG(("%s:%p can't load entry (%u)", "b_mkv_player_cue_next", (void *)player, result));
             if(result==b_mkv_result_error) {
-			    BDBG_WRN(("%s:%#lx can't load entry", "b_mkv_player_cue_next", (unsigned long)player));
+			    BDBG_WRN(("%s:%p can't load entry", "b_mkv_player_cue_next", (void *)player));
             }
 			goto err_load;
 		}
 		if( CuePoint.validate.CueTime) {
 			bmedia_player_pos mkv_pos = b_mkv_player_timestamp(player, CuePoint.CueTime);
-			BDBG_MSG_TRACE(("%s:%#lx mkv_pos:%u", "b_mkv_player_cue_next", (unsigned long)player, (unsigned)mkv_pos));
+			BDBG_MSG_TRACE(("%s:%p mkv_pos:%u", "b_mkv_player_cue_next", (void *)player, (unsigned)mkv_pos));
 			if(mkv_pos>=player->cue.index_pos) {
-				BDBG_MSG(("%s:%#lx saving cue index entry %u->%u", "b_mkv_player_cue_next", (unsigned long)player, (unsigned)mkv_pos, (unsigned)offset));
+				BDBG_MSG(("%s:%p saving cue index entry %u->%u", "b_mkv_player_cue_next", (void *)player, (unsigned)mkv_pos, (unsigned)offset));
 				bmedia_index_add(player->cue.index, mkv_pos-player->status.bounds.first, &offset);
 				player->cue.index_pos = bmedia_index_next(player->cue.index);
 			}
@@ -3720,7 +3720,7 @@ b_mkv_player_cue_seek(bmkv_player_t player, bmedia_player_pos pos)
 		if(result!=b_mkv_result_success) {
 			break;
 		}
-		BDBG_MSG_TRACE(("%s:%#lx position:%u destination:%u", "b_mkv_player_cue_seek", (unsigned long)player, (unsigned)player->cue.mkv_pos, (unsigned)pos));
+		BDBG_MSG_TRACE(("%s:%p position:%u destination:%u", "b_mkv_player_cue_seek", (void *)player, (unsigned)player->cue.mkv_pos, (unsigned)pos));
 		if(player->cue.mkv_pos >= pos) {
 			return b_mkv_result_success;
 		}
@@ -3742,7 +3742,7 @@ b_mkv_player_next_rewind_refill(bmkv_player_t player, bmedia_player_pos *pbase_p
 	if(rewind_jump < B_MKV_PLAYER_REWIND_STEP) {
 		rewind_jump = B_MKV_PLAYER_REWIND_STEP;
 	}
-	BDBG_MSG_TRACE(("%s>:%#lx rewind_jump:%u position:%u base_pos:%u LIFO:%u", "b_mkv_player_next_rewind_refill", (unsigned long)player, (unsigned)rewind_jump, (unsigned)player->status.position, (unsigned)base_pos, (unsigned)BLIFO_READ_PEEK(&player->trick.rewind_frames)));
+	BDBG_MSG_TRACE(("%s>:%p rewind_jump:%u position:%u base_pos:%u LIFO:%u", "b_mkv_player_next_rewind_refill", (void *)player, (unsigned)rewind_jump, (unsigned)player->status.position, (unsigned)base_pos, (unsigned)BLIFO_READ_PEEK(&player->trick.rewind_frames)));
 
     while(BLIFO_READ_PEEK(&player->trick.rewind_frames)==0) { /* loop to fetch key frames locations */
 
@@ -3758,7 +3758,7 @@ b_mkv_player_next_rewind_refill(bmkv_player_t player, bmedia_player_pos *pbase_p
         } else {
 	        pos = player->status.bounds.first;
         }
-        BDBG_MSG_TRACE(("%s:%#lx position:%u destination:%u", "b_mkv_player_next_rewind_refill", (unsigned long)player, (unsigned)player->status.position, (unsigned)pos));
+        BDBG_MSG_TRACE(("%s:%p position:%u destination:%u", "b_mkv_player_next_rewind_refill", (void *)player, (unsigned)player->status.position, (unsigned)pos));
         BDBG_ASSERT(pos>=player->status.bounds.first); /* we shall not jump outside of file limits */
         if(b_mkv_player_cue_seek(player, pos) != b_mkv_result_success) {
             goto err_seek;
@@ -3766,7 +3766,7 @@ b_mkv_player_next_rewind_refill(bmkv_player_t player, bmedia_player_pos *pbase_p
 	    while(BLIFO_WRITE_PEEK(&player->trick.rewind_frames)) {
 	        key = BLIFO_WRITE(&player->trick.rewind_frames);
 		    BDBG_ASSERT(player->cue.mkv_track_pos.validate.CueClusterPosition);
-            BDBG_MSG_TRACE(("%s:%#lx cue %u:%u %s", "b_mkv_player_next_rewind_refill", (unsigned long)player, (unsigned)player->cue.mkv_pos, (unsigned)player->status.position, player->cluster.resync_video?"resync":""));
+            BDBG_MSG_TRACE(("%s:%p cue %u:%u %s", "b_mkv_player_next_rewind_refill", (void *)player, (unsigned)player->cue.mkv_pos, (unsigned)player->status.position, player->cluster.resync_video?"resync":""));
 		    if( (player->cue.mkv_pos > player->status.position) ||
 		        (player->cue.mkv_pos == player->status.position && !player->cluster.resync_video)) {  /* after sync allow exact match */
                 /* don't fill duplicate frames */
@@ -3775,7 +3775,7 @@ b_mkv_player_next_rewind_refill(bmkv_player_t player, bmedia_player_pos *pbase_p
             key->time = player->cue.mkv_pos;
 		    key->cluster_off = player->cue.mkv_track_pos.CueClusterPosition;
 		    BLIFO_WRITE_COMMIT(&player->trick.rewind_frames,1);
-            BDBG_MSG_TRACE(("%s:%#lx saving frame[%u:%u] position:%u offset:%u", "b_mkv_player_next_rewind_refill", (unsigned long)player, BLIFO_READ_PEEK(&player->trick.rewind_frames), B_MKV_PLAYER_TRICK_ENTRIES, (unsigned)key->time, (unsigned)key->cluster_off));
+            BDBG_MSG_TRACE(("%s:%p saving frame[%u:%u] position:%u offset:%u", "b_mkv_player_next_rewind_refill", (void *)player, (unsigned)BLIFO_READ_PEEK(&player->trick.rewind_frames), B_MKV_PLAYER_TRICK_ENTRIES, (unsigned)key->time, (unsigned)key->cluster_off));
             if(b_mkv_player_cue_next(player)!=b_mkv_result_success) {
 		        break;
             }
@@ -3805,7 +3805,7 @@ static int
 b_mkv_player_next_rewind_block(bmkv_player_t player, bmedia_player_entry *entry, const b_mkv_key_frame_entry *key, bool *end_of_frames)
 {
     int rc=0;
-    BDBG_MSG_TRACE(("%s:%#lx %s block track:%u timecode:%u", "b_mkv_player_next_rewind_block", (unsigned long)player, player->cluster.block_valid?"":"invalid", (unsigned)player->cluster.group.data.track, (unsigned)(player->cluster.group.data.timecode+player->cluster.mkv_cluster.Timecode)));
+    BDBG_MSG_TRACE(("%s:%p %s block track:%u timecode:%u", "b_mkv_player_next_rewind_block", (void *)player, player->cluster.block_valid?"":"invalid", (unsigned)player->cluster.group.data.track, (unsigned)(player->cluster.group.data.timecode+player->cluster.mkv_cluster.Timecode)));
     if(player->cluster.block_valid && player->cluster.mkv_cluster.validate.Timecode) {
         struct b_mkv_player_track *track;
 	    for(track=BLST_S_FIRST(&player->tracks);track;track=BLST_S_NEXT(track, next)) {
@@ -3815,12 +3815,12 @@ b_mkv_player_next_rewind_block(bmkv_player_t player, bmedia_player_entry *entry,
             }
 		    if(track->mkv_track->validate.Video && b_mkv_player_is_a_keyframe(player)) {
                 timestamp = b_mkv_player_track_timestamp(player, track, player->cluster.group.data.timecode);
-                BDBG_MSG_TRACE(("%s:%#lx video frame %u(%u:%u)", "b_mkv_player_next_rewind_block", (unsigned long)player, (unsigned)timestamp, (unsigned)key->time, (unsigned)player->status.position));
+                BDBG_MSG_TRACE(("%s:%p video frame %u(%u:%u)", "b_mkv_player_next_rewind_block", (void *)player, (unsigned)timestamp, (unsigned)key->time, (unsigned)player->status.position));
 			    if(timestamp > player->status.position) {
 			        goto end_of_frames;
                 }
                 if(timestamp >= key->time) {
-                    BDBG_MSG(("%s:%#lx selected video frame %u(%u:%u)", "b_mkv_player_next_rewind_block", (unsigned long)player, (unsigned)timestamp, (unsigned)key->time, (unsigned)player->status.position));
+                    BDBG_MSG(("%s:%p selected video frame %u(%u:%u)", "b_mkv_player_next_rewind_block", (void *)player, (unsigned)timestamp, (unsigned)key->time, (unsigned)player->status.position));
                     b_mkv_player_parse_block_payload(player);
                     if(player->cluster.block_valid) {
                         track->seek_sync = false;
@@ -3844,7 +3844,7 @@ b_mkv_player_next_rewind_block(bmkv_player_t player, bmedia_player_entry *entry,
     }
     *end_of_frames = false;
     bmkv_BlockGroup_shutdown(&player->cluster.group);
-    BDBG_MSG_TRACE(("%s:%#lx next block %u..%u", "b_mkv_player_next_rewind_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len));
+    BDBG_MSG_TRACE(("%s:%p next block %u..%u", "b_mkv_player_next_rewind_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len));
 
     return rc;
 end_of_frames:
@@ -3891,7 +3891,7 @@ err_frame:
 	case b_mkv_fetch_block_result_err_no_data:
     case b_mkv_fetch_block_result_err_block:
 	case b_mkv_fetch_block_result_err_eof:
-		BDBG_MSG(("%s:%#lx end of cluster %u..%u at:%lu", "b_mkv_player_next_forward_async_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+		BDBG_MSG(("%s:%p end of cluster %u..%u at:%lu", "b_mkv_player_next_forward_async_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		player->cluster.cluster_valid = false;
         if(player->cluster.fetch_block_result==b_mkv_fetch_block_result_err_block) {
             return b_mkv_frame_step_cluster;
@@ -3910,10 +3910,10 @@ b_mkv_player_next_rewind_async_step(b_mkv_frame_step state, bmkv_player_t player
 	bmedia_player_pos pos;
     bmedia_player_pos last_refill_pos = BMEDIA_PLAYER_INVALID;
 	b_mkv_key_frame_entry *key;
-    BDBG_MSG_TRACE(("%s:>%#lx %u:%u", "b_mkv_player_next_rewind_async_step", (unsigned long)player, (unsigned)state, (unsigned)async_result));
+    BDBG_MSG_TRACE(("%s:>%p %u:%u", "b_mkv_player_next_rewind_async_step", (void *)player, (unsigned)state, (unsigned)async_result));
 
     for(;;) {
-        BDBG_MSG_TRACE(("%s:>%#lx (%u:%u)", "b_mkv_player_next_rewind_async_step", (unsigned long)player, (unsigned)state, (unsigned)async_result));
+        BDBG_MSG_TRACE(("%s:>%p (%u:%u)", "b_mkv_player_next_rewind_async_step", (void *)player, (unsigned)state, (unsigned)async_result));
         switch(state) {
         case b_mkv_frame_step_rewind_refill:
             async_result = bfile_segment_async_result_success;
@@ -3931,13 +3931,13 @@ b_mkv_player_next_rewind_async_step(b_mkv_frame_step state, bmkv_player_t player
     		    if(key->time <= pos) {
                     break;
                 }
-			    BDBG_MSG_TRACE(("%s:%#lx filtering out key entry %u(%u:%u)", "b_mkv_player_next_rewind_async_step", (unsigned long)player, (unsigned)key->time, (unsigned)pos, (unsigned)player->status.position));
+			    BDBG_MSG_TRACE(("%s:%p filtering out key entry %u(%u:%u)", "b_mkv_player_next_rewind_async_step", (void *)player, (unsigned)key->time, (unsigned)pos, (unsigned)player->status.position));
                 key = NULL; /* Invalidate key here incase the LIFO is emptied before a valid frame is found */
             }
             if(key==NULL) {
                 BDBG_ASSERT(BLIFO_READ_PEEK(&player->trick.rewind_frames)==0);
                 if (pos==last_refill_pos) {
-                    BDBG_MSG_TRACE(("%s:%#lx Unable to find a frame before time %u %u:%u", "b_mkv_player_next_rewind_async_step", (unsigned long)player, (unsigned)pos, (unsigned)last_refill_pos, (unsigned)player->status.position));
+                    BDBG_MSG_TRACE(("%s:%p Unable to find a frame before time %u %u:%u", "b_mkv_player_next_rewind_async_step", (void *)player, (unsigned)pos, (unsigned)last_refill_pos, (unsigned)player->status.position));
                     async_result = bfile_segment_async_result_error;
                     goto done;
                 }
@@ -3966,7 +3966,7 @@ b_mkv_player_next_rewind_async_step(b_mkv_frame_step state, bmkv_player_t player
         }
         continue;
 done:
-        BDBG_MSG_TRACE(("%s:<%#lx -> %u", "b_mkv_player_next_rewind_async_step", (unsigned long)player, (unsigned)async_result));
+        BDBG_MSG_TRACE(("%s:<%p -> %u", "b_mkv_player_next_rewind_async_step", (void *)player, (unsigned)async_result));
         return async_result;
     }
 }
@@ -4008,13 +4008,13 @@ b_mkv_player_next_rewind(bmkv_player_t player, bmedia_player_entry *entry)
 			BLIFO_READ_COMMIT(&player->trick.rewind_frames,1);
 			BDBG_ASSERT(key);
 			if(key->time > pos) {
-				BDBG_MSG_TRACE(("%s:%#lx filtering out key entry %u(%u:%u)", "b_mkv_player_next_rewind", (unsigned long)player, (unsigned)key->time, (unsigned)pos, (unsigned)player->status.position));
+				BDBG_MSG_TRACE(("%s:%p filtering out key entry %u(%u:%u)", "b_mkv_player_next_rewind", (void *)player, (unsigned)key->time, (unsigned)pos, (unsigned)player->status.position));
 				continue;
 			}
 			player->cluster.offset_next = player->mkv_file.segment.start + key->cluster_off;
 			rc = b_mkv_player_next_cluster(player, false, &endofstream);
 			if(rc!=0) {
-		        BDBG_MSG(("%s:%#lx error fetching cluster %u..%u at:%lu", "b_mkv_player_next_rewind", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+		        BDBG_MSG(("%s:%p error fetching cluster %u..%u at:%lu", "b_mkv_player_next_rewind", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 				goto err_cluster;
 			}
 			BDBG_ASSERT(player->cluster.cluster_valid);
@@ -4038,7 +4038,7 @@ b_mkv_player_next_rewind(bmkv_player_t player, bmedia_player_entry *entry)
                 rc = b_mkv_player_next_rewind_block(player, entry, key, &end_of_frames);
                 if(end_of_frames) { goto end_of_frames; }
                 if(entry->atom || rc!=0) {
-			        BDBG_MSG_TRACE(("%s<:%#lx position:%u LIFO:%u", "b_mkv_player_next_rewind", (unsigned long)player, (unsigned)player->status.position, (unsigned)BLIFO_READ_PEEK(&player->trick.rewind_frames)));
+			        BDBG_MSG_TRACE(("%s<:%p position:%u LIFO:%u", "b_mkv_player_next_rewind", (void *)player, (unsigned)player->status.position, (unsigned)BLIFO_READ_PEEK(&player->trick.rewind_frames)));
 				    return rc;
 				}
 				continue;
@@ -4050,7 +4050,7 @@ end_of_frames:
 			}
 		}
         if (pos==last_refill_pos) {
-            BDBG_MSG_TRACE(("%s:%#lx Unable to find a frame before time %u %u:%u", "b_mkv_player_next_rewind", (unsigned long)player, (unsigned)pos, (unsigned)last_refill_pos, (unsigned)player->status.position));
+            BDBG_MSG_TRACE(("%s:%p Unable to find a frame before time %u %u:%u", "b_mkv_player_next_rewind", (void *)player, (unsigned)pos, (unsigned)last_refill_pos, (unsigned)player->status.position));
             goto err_refill;
         }
         last_refill_pos = pos;
@@ -4091,12 +4091,12 @@ b_mkv_player_next_fastforward_seek(bmkv_player_t player, bool *endofstream)
         }
     }
 	while( player->cue.mkv_pos < pos) {
-		BDBG_MSG_TRACE(("%s:%#lx filtering out frame position:%u offset:%u", "b_mkv_player_next_fastforward_seek", (unsigned long)player, (unsigned)player->cue.mkv_pos, (unsigned)player->cue.mkv_track_pos.CueClusterPosition));
+		BDBG_MSG_TRACE(("%s:%p filtering out frame position:%u offset:%u", "b_mkv_player_next_fastforward_seek", (void *)player, (unsigned)player->cue.mkv_pos, (unsigned)player->cue.mkv_track_pos.CueClusterPosition));
 		if(b_mkv_player_cue_next(player)!=b_mkv_result_success) {
 			goto err_seek;
 		}
 	}
-	BDBG_MSG_TRACE(("%s:%#lx frame position:%u offset:%u", "b_mkv_player_next_fastforward_seek", (unsigned long)player, (unsigned)player->cue.mkv_pos, (unsigned)player->cue.mkv_track_pos.CueClusterPosition));
+	BDBG_MSG_TRACE(("%s:%p frame position:%u offset:%u", "b_mkv_player_next_fastforward_seek", (void *)player, (unsigned)player->cue.mkv_pos, (unsigned)player->cue.mkv_track_pos.CueClusterPosition));
 
 	player->cluster.offset_next = player->mkv_file.segment.start + player->cue.mkv_track_pos.CueClusterPosition;
     return pos;
@@ -4111,7 +4111,7 @@ b_mkv_player_next_fastforward_block(bmkv_player_t player, bmedia_player_entry *e
 {
     int rc=0;
 
-    BDBG_MSG_TRACE(("%s:%#lx %s block track:%u timecode:%u", "b_mkv_player_next_fastforward_block", (unsigned long)player, player->cluster.block_valid?"":"invalid", (unsigned)player->cluster.group.data.track, (unsigned)(player->cluster.group.data.timecode+player->cluster.mkv_cluster.Timecode)));
+    BDBG_MSG_TRACE(("%s:%p %s block track:%u timecode:%u", "b_mkv_player_next_fastforward_block", (void *)player, player->cluster.block_valid?"":"invalid", (unsigned)player->cluster.group.data.track, (unsigned)(player->cluster.group.data.timecode+player->cluster.mkv_cluster.Timecode)));
     if(player->cluster.block_valid && player->cluster.mkv_cluster.validate.Timecode) {
         struct b_mkv_player_track *track;
 	    for(track=BLST_S_FIRST(&player->tracks);track;track=BLST_S_NEXT(track, next)) {
@@ -4121,9 +4121,9 @@ b_mkv_player_next_fastforward_block(bmkv_player_t player, bmedia_player_entry *e
             }
             if(track->mkv_track->validate.Video && b_mkv_player_is_a_keyframe(player)) {
                 timestamp = b_mkv_player_track_timestamp(player, track, player->cluster.group.data.timecode);
-                BDBG_MSG_TRACE(("%s:%#lx video frame %u(%u:%u)", "b_mkv_player_next_fastforward_block", (unsigned long)player, (unsigned)timestamp, (unsigned)pos, (unsigned)player->status.position));
+                BDBG_MSG_TRACE(("%s:%p video frame %u(%u:%u)", "b_mkv_player_next_fastforward_block", (void *)player, (unsigned)timestamp, (unsigned)pos, (unsigned)player->status.position));
 			    if(timestamp >= pos) {
-                    BDBG_MSG(("%s:%#lx selected video frame %u(%u:%u)", "b_mkv_player_next_fastforward_block", (unsigned long)player, (unsigned)timestamp, (unsigned)pos, (unsigned)player->status.position));
+                    BDBG_MSG(("%s:%p selected video frame %u(%u:%u)", "b_mkv_player_next_fastforward_block", (void *)player, (unsigned)timestamp, (unsigned)pos, (unsigned)player->status.position));
 				    b_mkv_player_parse_block_payload(player);
 				    if(player->cluster.block_valid) {
 				        track->seek_sync = false;
@@ -4147,7 +4147,7 @@ b_mkv_player_next_fastforward_block(bmkv_player_t player, bmedia_player_entry *e
             }
             break;
         }
-        BDBG_MSG_TRACE(("%s:%#lx next block %u..%u", "b_mkv_player_next_fastforward_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len));
+        BDBG_MSG_TRACE(("%s:%p next block %u..%u", "b_mkv_player_next_fastforward_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len));
     }
     bmkv_BlockGroup_shutdown(&player->cluster.group);
     return rc;
@@ -4171,7 +4171,7 @@ b_mkv_player_next_fastforward(bmkv_player_t player, bmedia_player_entry *entry)
     }
 	rc = b_mkv_player_next_cluster(player, false, &endofstream);
 	if(rc!=0) {
-        BDBG_MSG(("%s:%#lx error fetching cluster %u..%u at:%lu", "b_mkv_player_next_fastforward", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+        BDBG_MSG(("%s:%p error fetching cluster %u..%u at:%lu", "b_mkv_player_next_fastforward", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
         if(!endofstream) {
             goto err_cluster;
         } else {
@@ -4245,7 +4245,7 @@ err_frame:
 	case b_mkv_fetch_block_result_err_parse_cluster:
 	case b_mkv_fetch_block_result_err_no_data:
     case b_mkv_fetch_block_result_err_block:
-		BDBG_MSG(("%s:%#lx end of cluster %u..%u at:%lu", "b_mkv_player_next_forward_async_block", (unsigned long)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
+		BDBG_MSG(("%s:%p end of cluster %u..%u at:%lu", "b_mkv_player_next_forward_async_block", (void *)player, (unsigned)bfile_cached_segment_tell(&player->cluster.cache), (unsigned)player->cluster.cache.segment.len, (unsigned long)player->cluster.cache.segment.start));
 		player->cluster.cluster_valid = false;
         return b_mkv_frame_step_cluster;
 
@@ -4259,11 +4259,11 @@ err_frame:
 static bfile_segment_async_result
 b_mkv_player_next_fastforward_async_step(b_mkv_frame_step state, bmkv_player_t player, bfile_segment_async_result async_result)
 {
-    BDBG_MSG_TRACE(("%s:>%#lx %u:%u", "b_mkv_player_next_fastforward_async_step", (unsigned long)player, (unsigned)state, (unsigned)async_result));
+    BDBG_MSG_TRACE(("%s:>%p %u:%u", "b_mkv_player_next_fastforward_async_step", (void *)player, (unsigned)state, (unsigned)async_result));
 
     for(;;) {
         /* since we can't use mutually recursive functions because of stack-grow, instead use loop with multiple entry points */
-        BDBG_MSG_TRACE(("%s:%#lx  (%u:%u)", "b_mkv_player_next_fastforward_async_step", (unsigned long)player, (unsigned)state, (unsigned)async_result));
+        BDBG_MSG_TRACE(("%s:%p  (%u:%u)", "b_mkv_player_next_fastforward_async_step", (void *)player, (unsigned)state, (unsigned)async_result));
         switch(state) {
         case b_mkv_frame_step_cluster:
             async_result = b_mkv_player_next_async_cluster(player, false);
@@ -4285,7 +4285,7 @@ b_mkv_player_next_fastforward_async_step(b_mkv_frame_step state, bmkv_player_t p
         }
         continue;
 done:
-        BDBG_MSG_TRACE(("%s:<%#lx -> %u", "b_mkv_player_next_fastforward_async_step", (unsigned long)player, (unsigned)async_result));
+        BDBG_MSG_TRACE(("%s:<%p -> %u", "b_mkv_player_next_fastforward_async_step", (void *)player, (unsigned)async_result));
         return async_result;
     }
 }
@@ -4314,13 +4314,13 @@ err_seek:
     return bfile_segment_async_result_error;
 }
 
-static int
+static void
 b_mkv_player_make_eos_packet(bmkv_player_t player, bmedia_player_entry *entry)
 {
     struct b_mkv_player_track *track;
     batom_accum_t dst = player->accum_dest;
 
-    BDBG_MSG(("b_mkv_player_make_eos_packet: %#lx", (unsigned long)player));
+    BDBG_MSG(("b_mkv_player_make_eos_packet: %p", (void *)player));
     bmedia_player_init_entry(entry);
     batom_accum_clear(player->accum_dest);
     for(track=BLST_S_FIRST(&player->tracks);track;track=BLST_S_NEXT(track, next)) {
@@ -4377,7 +4377,7 @@ b_mkv_player_make_eos_packet(bmkv_player_t player, bmedia_player_entry *entry)
         }
         batom_accum_add_vec(dst, eos_vec);
         batom_accum_add_vec(dst, &bmedia_eos_stuffing);
-        if(track->codec_type==b_mkv_codec_type_vp8) {
+        if(track->codec_type==b_mkv_codec_type_vp8 || track->codec_type==b_mkv_codec_type_vp9) {
             if(track->pes_info.stream_id>=2) {
                 batom_accum_add_range(dst, pes_hdr, pes_hdr_len);
             }
@@ -4386,41 +4386,57 @@ b_mkv_player_make_eos_packet(bmkv_player_t player, bmedia_player_entry *entry)
         }
     }
     batom_accum_add_vec(dst, &bmedia_eos_stuffing);
+    entry->type = bmedia_player_entry_type_atom;
 err_alloc:
     entry->length = batom_accum_len(dst);
     entry->atom = batom_from_accum(dst, NULL, NULL);
-    entry->type = bmedia_player_entry_type_atom;
     entry->content = bmedia_player_entry_content_payload;
     entry->timestamp = player->status.position;
     b_mkv_player_frame_buf_clear(player);
-    return 0;
+    return;
+}
+
+static void b_mkv_player_return_eos(bmkv_player_t player, bmedia_player_entry *entry)
+{
+    entry->type = bmedia_player_entry_type_end_of_stream;
+    if(!player->eof_reached) {
+        b_mkv_player_make_eos_packet(player, entry);
+        player->eof_reached = true;
+    } else {
+        BDBG_MSG(("bmkv_player_next: %p EOF reached", (void *)player));
+    }
+    return;
 }
 
 static void
 b_mkv_player_frame_completed(bmkv_player_t player, bfile_segment_async_result async_result)
 {
-    BDBG_MSG_TRACE(("b_mkv_player_frame_completed: %#lx %u", (unsigned long)player, (unsigned)async_result));
+    BDBG_MSG_TRACE(("b_mkv_player_frame_completed: %p %u", (void *)player, (unsigned)async_result));
     BDBG_ASSERT(player->cluster.async.busy);
     player->cluster.async.busy = false;
     switch(async_result) {
     case bfile_segment_async_result_async:
         BDBG_ASSERT(0);
         break;
-    case bfile_segment_async_result_error:
     case bfile_segment_async_result_eof:
-    	BDBG_MSG_TRACE(("b_mkv_player_frame_completed: %#lx can't read a frame", (unsigned long)player));
-		b_mkv_player_data_error(player);
+        BDBG_MSG_TRACE(("b_mkv_player_frame_completed: %p end of file", (void *)player));
+        bmedia_player_init_entry(&player->cluster.async.frame.entry);
+        b_mkv_player_return_eos(player, &player->cluster.async.frame.entry);
+        break;
+    case bfile_segment_async_result_error:
+        BDBG_MSG_TRACE(("b_mkv_player_frame_completed: %p can't read a frame", (void *)player));
+        b_mkv_player_data_error(player);
         bmedia_player_init_entry(&player->cluster.async.frame.entry);
         player->cluster.async.frame.entry.type = bmedia_player_entry_type_error;
         break;
     case bfile_segment_async_result_no_data:
-        BDBG_ERR(("b_mkv_player_frame_completed: %#lx unexpected 'no_data'",(unsigned long)player));
+        BDBG_ERR(("b_mkv_player_frame_completed: %p unexpected 'no_data'",(void *)player));
         break;
     case bfile_segment_async_result_success:
         BDBG_ASSERT(player->cluster.async.frame.entry.atom);
         break;
     }
-    BDBG_MSG_TRACE(("b_mkv_player_frame_completed: %#lx atom:%#lx len:%u timestamp:%u ", (unsigned long)player, (unsigned long)player->cluster.async.frame.entry.atom, player->cluster.async.frame.entry.atom?batom_len(player->cluster.async.frame.entry.atom):0, (unsigned)player->cluster.async.frame.entry.timestamp));
+    BDBG_MSG_TRACE(("b_mkv_player_frame_completed: %p atom:%p len:%u timestamp:%u ", (void *)player, (void *)player->cluster.async.frame.entry.atom, player->cluster.async.frame.entry.atom?(unsigned)batom_len(player->cluster.async.frame.entry.atom):0, (unsigned)player->cluster.async.frame.entry.timestamp));
 
     player->config.atom_ready(player->config.cntx, &player->cluster.async.frame.entry);
     return;
@@ -4429,7 +4445,7 @@ b_mkv_player_frame_completed(bmkv_player_t player, bfile_segment_async_result as
 static int
 b_mkv_player_next_async_result(bmkv_player_t player, bmedia_player_entry *entry, bfile_segment_async_result async_result)
 {
-    BDBG_MSG_TRACE(("b_mkv_player_next_async_result: %#lx %u", (unsigned long)player, (unsigned)async_result));
+    BDBG_MSG_TRACE(("b_mkv_player_next_async_result: %p %u", (void *)player, (unsigned)async_result));
     switch(async_result) {
     case bfile_segment_async_result_success:
         BDBG_ASSERT(player->cluster.async.frame.entry.atom);
@@ -4449,7 +4465,6 @@ b_mkv_player_next_async_result(bmkv_player_t player, bmedia_player_entry *entry,
     }
 }
 
-
 int
 bmkv_player_next(bmkv_player_t player, bmedia_player_entry *entry)
 {
@@ -4465,7 +4480,7 @@ bmkv_player_next(bmkv_player_t player, bmedia_player_entry *entry)
 
     if(!player->eof_reached) {
         if(player->config.atom_ready && player->cluster.async.continuation_active) {
-            BDBG_MSG(("%#lx: resume async_continuation: %u", (unsigned long)player, (unsigned)player->cluster.async.continuation_type));
+            BDBG_MSG(("%p: resume async_continuation: %u", (void *)player, (unsigned)player->cluster.async.continuation_type));
             player->cluster.async.continuation_active = false;
             switch(player->cluster.async.continuation_type)
             {
@@ -4492,7 +4507,7 @@ bmkv_player_next(bmkv_player_t player, bmedia_player_entry *entry)
                 rc = b_mkv_player_next_async_result(player, entry, async_result);
                 break;
             case bfile_segment_async_result_no_data:
-                BDBG_ERR(("%s: %#lx unexpected 'no_data'","bmkv_player_next", (unsigned long)player));
+                BDBG_ERR(("%s: %p unexpected 'no_data'","bmkv_player_next", (void *)player));
                 entry->type = bmedia_player_entry_type_no_data;
                 break;
             }
@@ -4521,9 +4536,9 @@ bmkv_player_next(bmkv_player_t player, bmedia_player_entry *entry)
             }
         }
         if(entry->type!=bmedia_player_entry_type_async) {
-            BDBG_MSG_TRACE(("bmkv_player_next: %#lx atom:%#lx len:%u timestamp:%u rc:%d", (unsigned long)player, (unsigned long)entry->atom, entry->atom?batom_len(entry->atom):0, (unsigned)entry->timestamp, rc));
+            BDBG_MSG_TRACE(("bmkv_player_next: %p atom:%p len:%u timestamp:%u rc:%d", (void *)player, (void *)entry->atom, entry->atom?(unsigned)batom_len(entry->atom):0, (unsigned)entry->timestamp, rc));
         } else {
-            BDBG_MSG_TRACE(("bmkv_player_next: %#lx ASYNC", (unsigned long)player));
+            BDBG_MSG_TRACE(("bmkv_player_next: %p ASYNC", (void *)player));
         }
     } else {
         entry->type = bmedia_player_entry_type_end_of_stream;
@@ -4531,12 +4546,7 @@ bmkv_player_next(bmkv_player_t player, bmedia_player_entry *entry)
     }
 
 	if(rc==0 && entry->type == bmedia_player_entry_type_end_of_stream ) {
-        if(!player->eof_reached) {
-            player->eof_reached = true;
-            rc = b_mkv_player_make_eos_packet(player, entry);
-        } else {
-		    BDBG_MSG(("bmkv_player_next: %#lx EOF reached", (unsigned long)player));
-        }
+        b_mkv_player_return_eos(player, entry);
 	}
 	return rc;
 }
@@ -4553,11 +4563,11 @@ void
 bmkv_player_get_status(bmkv_player_t player, bmedia_player_status *status)
 {
 	BDBG_OBJECT_ASSERT(player, bmkv_player_t);
-	BDBG_MSG_TRACE(("bmkv_player_get_status:> %#lx", (unsigned long)player));
+	BDBG_MSG_TRACE(("bmkv_player_get_status:> %p", (void *)player));
 	status->bounds = player->status.bounds;
 	status->direction = player->status.direction;
     status->index_error_cnt = player->status.index_error_cnt;
-	BDBG_MSG_TRACE(("bmkv_player_get_status:< %#lx %ld:%ld", (unsigned long)player, (long)status->bounds.first, (long)status->bounds.last));
+	BDBG_MSG_TRACE(("bmkv_player_get_status:< %p %ld:%ld", (void *)player, (long)status->bounds.first, (long)status->bounds.last));
 	return;
 }
 
@@ -4567,13 +4577,13 @@ bmkv_player_set_direction(bmkv_player_t player, bmedia_player_step direction, bm
 	int rc=0;
 	struct b_mkv_player_track *track;
 	BDBG_OBJECT_ASSERT(player, bmkv_player_t);
-	BDBG_MSG_TRACE(("bmkv_player_set_direction:> %#lx %ld", (unsigned long)player, (long)direction));
+	BDBG_MSG_TRACE(("bmkv_player_set_direction:> %p %ld", (void *)player, (long)direction));
 
     player->eof_reached = false;
     player->cluster.async.continuation_active = false;
 
 	if(direction!=0 && !player->cue.validate) {
-		BDBG_MSG_TRACE(("bmkv_player_set_direction: %#lx FF/REW not supported without index", (unsigned long)player));
+		BDBG_MSG_TRACE(("bmkv_player_set_direction: %p FF/REW not supported without index", (void *)player));
 		rc = -1;
 		goto done;
 	}
@@ -4589,7 +4599,7 @@ bmkv_player_set_direction(bmkv_player_t player, bmedia_player_step direction, bm
         }
 	}
 done:
-	BDBG_MSG_TRACE(("bmkv_player_set_direction:< %#lx %ld", (unsigned long)player, (long)rc));
+	BDBG_MSG_TRACE(("bmkv_player_set_direction:< %p %ld", (void *)player, (long)rc));
 	return rc;
 }
 
@@ -4602,7 +4612,7 @@ b_mkv_player_sync_seek_table(bmkv_player_t player)
 	bmkv_SeekElement seek;
 
 	if(!player->seek_table.index) {
-		BDBG_MSG(("b_mkv_player_sync_seek_table:%#lx no seek table", (unsigned long)player));
+		BDBG_MSG(("b_mkv_player_sync_seek_table:%p no seek table", (void *)player));
 		return; /* nothing to sink */
 	}
 	if( player->mkv_file.segment.start == player->cluster.offset_next  ||
@@ -4621,7 +4631,7 @@ b_mkv_player_sync_seek_table(bmkv_player_t player)
 			offset = 0;
 			break;
 		} else {
-			BDBG_MSG_TRACE(("b_mkv_player_sync_seek_table:%#lx index pos:%u(%u) offset:%u", (unsigned long)player, (unsigned)index_pos,(unsigned)pos, (unsigned)offset));
+			BDBG_MSG_TRACE(("b_mkv_player_sync_seek_table:%p index pos:%u(%u) offset:%u", (void *)player, (unsigned)index_pos,(unsigned)pos, (unsigned)offset));
 		}
 		if(index_pos < pos) {
 			break;
@@ -4653,7 +4663,7 @@ b_mkv_player_sync_seek_table(bmkv_player_t player)
 		}
 		/* verify that entry valid and points to the cluster, (assume that clusters are stored in order) */
 		if( seek.validate.SeekID && seek.validate.SeekPosition && seek.SeekID == BMKV_CLUSTER_ID && (player->mkv_file.segment.start+seek.SeekPosition) == (uint64_t)player->cluster.offset_next ) {
-			BDBG_MSG(("b_mkv_player_sync_seek_table:%#lx index found cluster:%u at offset:%u", (unsigned long)player, (unsigned)player->cluster.offset_next, (unsigned)offset));
+			BDBG_MSG(("b_mkv_player_sync_seek_table:%p index found cluster:%u at offset:%u", (void *)player, (unsigned)player->cluster.offset_next, (unsigned)offset));
 			bfile_cached_segment_seek(&player->seek_table.cache, offset); /* seek to found location */
 			break;
 		}
@@ -4661,7 +4671,7 @@ b_mkv_player_sync_seek_table(bmkv_player_t player)
 	}
 	return;
 err_sync:
-	BDBG_WRN(("b_mkv_player_sync_seek_table:%#lx can't find cluster in the seek table, invalidating seek_table", (unsigned long)player));
+	BDBG_WRN(("b_mkv_player_sync_seek_table:%p can't find cluster in the seek table, invalidating seek_table", (void *)player));
 	player->seek_table.cache.segment.len = 0;
 	return;
 }
@@ -4674,9 +4684,9 @@ bmkv_player_seek(bmkv_player_t player, bmedia_player_pos pos)
 	struct b_mkv_player_track *track;
 	BDBG_OBJECT_ASSERT(player, bmkv_player_t);
 
-	BDBG_MSG(("bmkv_player_seek:> %#lx %u(%u)", (unsigned long)player, (unsigned)pos, (unsigned)player->status.position));
+	BDBG_MSG(("bmkv_player_seek:> %p %u(%u)", (void *)player, (unsigned)pos, (unsigned)player->status.position));
 	if(pos<player->status.bounds.first || pos>player->status.bounds.last) {
-		BDBG_WRN(("bmkv_player_seek: %#lx out of bounds %u: %u..%u", (unsigned long)player, (unsigned)pos, (unsigned)player->status.bounds.first, (unsigned)player->status.bounds.last));
+		BDBG_WRN(("bmkv_player_seek: %p out of bounds %u: %u..%u", (void *)player, (unsigned)pos, (unsigned)player->status.bounds.first, (unsigned)player->status.bounds.last));
 	}
     player->eof_reached = false;
     player->cluster.async.continuation_active = false;
@@ -4712,7 +4722,7 @@ bmkv_player_seek(bmkv_player_t player, bmedia_player_pos pos)
 			        goto error;
                 }
 			}
-			BDBG_MSG_TRACE(("bmkv_player_seek:%#lx mkv_pos:%u destination:%u", (unsigned long)player, (unsigned)player->cue.mkv_pos, (unsigned)pos));
+			BDBG_MSG_TRACE(("bmkv_player_seek:%p mkv_pos:%u destination:%u", (void *)player, (unsigned)player->cue.mkv_pos, (unsigned)pos));
 			player->status.position = player->cue.mkv_pos;
 			if(player->cue.mkv_pos >= pos) {
 				goto end_of_seek;
@@ -4740,10 +4750,10 @@ end_of_seek:
 	player->cluster.block_valid = false;
 	player->cluster.seek_target = pos;
 	bfile_cached_segment_set(&player->cluster.cache, 0, 0);
-	BDBG_MSG(("bmkv_player_seek:< %#lx %u:%u cluster:%u", (unsigned long)player, (unsigned)pos, (unsigned)player->status.position, (unsigned)player->cluster.offset_next));
+	BDBG_MSG(("bmkv_player_seek:< %p %u:%u cluster:%u", (void *)player, (unsigned)pos, (unsigned)player->status.position, (unsigned)player->cluster.offset_next));
 	return 0;
 error:
-	BDBG_WRN(("bmkv_player_seek: %#lx %u:%u fails", (unsigned long)player, (unsigned)pos, (unsigned)player->status.position));
+	BDBG_WRN(("bmkv_player_seek:%p %u:%u fails", (void *)player, (unsigned)pos, (unsigned)player->status.position));
 	return -1;
 }
 

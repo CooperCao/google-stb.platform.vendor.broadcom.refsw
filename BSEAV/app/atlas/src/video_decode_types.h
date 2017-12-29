@@ -57,15 +57,16 @@ typedef enum eDynamicRange
 class CPlmDataVideo
 {
 public:
-	CPlmDataVideo(
-		const eWindowType videoWin,
-		const bool        bEnable) :
-	_videoWin(videoWin),
-	_bEnable(bEnable)
-	{}
+    CPlmDataVideo(
+            const eWindowType videoWin,
+            const bool        bEnable
+            ) :
+        _videoWin(videoWin),
+        _bEnable(bEnable)
+    {}
 public:
-	eWindowType _videoWin;
-	bool        _bEnable;
+    eWindowType _videoWin;
+    bool        _bEnable;
 };
 
 #ifdef __cplusplus

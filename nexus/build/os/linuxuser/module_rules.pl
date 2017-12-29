@@ -118,10 +118,10 @@ foreach $moduleUpper (@ARGV) {
         print OUTFILE "ifeq (\$(B_REFSW_ARCH), aarch64-linux)\n";
         print OUTFILE "ifeq (\${NEXUS_P_QEMU_ABIVERIFY},y)\n";
         print OUTFILE "\t\@echo \"[ABI-QEMU.. $moduleLower]\"\n";
-        print OUTFILE "\t\$(Q_)\${CC_AARCH32} -DNEXUS_P_ABI_VERIFY_MODE_PRINT=1 \$(NEXUS_CFLAGS) \$(NEXUS_$moduleUpper\_CFLAGS) \$@.tmp.c -o \$(basename \$@)_aarch32.bin\n";
-        print OUTFILE "\t\${Q_}qemu-arm -L \$(shell dirname \$(dir \$(shell which \${CC})))/arm-linux-gnueabihf/sys-root/ \$(basename \$@)_aarch32.bin >\$(basename \$@)_aarch32.h\n";
+        print OUTFILE "\t\$(Q_)\${CC_AARCH32} -DNEXUS_P_ABI_VERIFY_MODE_PRINT=1  \$(filter-out -funwind-tables, \$(NEXUS_CFLAGS)) \$(NEXUS_$moduleUpper\_CFLAGS) \$@.tmp.c -o \$(basename \$@)_aarch32.bin\n";
+        print OUTFILE "\t\${Q_}qemu-arm -L \$(shell dirname \$(dir \$(shell which \${CC})))/arm-*linux-gnueabihf/sys-root/ \$(basename \$@)_aarch32.bin >\$(basename \$@)_aarch32.h\n";
         print OUTFILE "\t\$(Q_)\${CC} -DNEXUS_P_ABI_VERIFY_MODE_VERIFY=1  \$(NEXUS_CFLAGS) \$(NEXUS_$moduleUpper\_CFLAGS) \$@.tmp.c -o \$(basename \$@)_aarch64.bin\n";
-        print OUTFILE "\t\${Q_}# qemu-aarch64 -L \$(shell dirname \$(dir \$(shell which \${CC})))/aarch64-linux-gnu/sys-root/ \$(basename \$@)_aarch64.bin 2>\$(basename \$@)_aarch64.txt\n";
+        print OUTFILE "\t\${Q_}# qemu-aarch64 -L \$(shell dirname \$(dir \$(shell which \${CC})))/aarch64-*linux-gnu/sys-root/ \$(basename \$@)_aarch64.bin 2>\$(basename \$@)_aarch64.txt\n";
         print OUTFILE "endif\n";
         print OUTFILE "endif\n";
         print OUTFILE "\t\$(Q_)\${MV} \$@.tmp.c \$@\n";

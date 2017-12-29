@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Math
-
-FILE DESCRIPTION
-Standard math functions, possibly optimised for VC.
-=============================================================================*/
-
-#ifndef KHRN_INT_MATH_H
-#define KHRN_INT_MATH_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_int_util.h"
 #include <math.h>
@@ -127,8 +118,6 @@ static INLINE bool nan_ne_(float x, float y)
 
 static INLINE float sqrt_(float x)
 {
-   vcos_assert(!nan_lt_(x, 0.0f));
+   assert(!nan_lt_(x, 0.0f));
    return sqrtf(x);
 }
-
-#endif

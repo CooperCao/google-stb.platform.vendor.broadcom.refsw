@@ -37,14 +37,24 @@
  *****************************************************************************/
 
 #include <iostream>
-
+#include <string.h>
+#include <unistd.h>
+#include "ata_helper.h"
 
 int main(int argc, char **argv) {
 	using namespace std;
-	cout << "From Exec - hello world\n";
+
+	cout << "Process created using " <<argv[1] << " : hello world\n";
 	cout << "argc = " << argc << endl;
 	for (int i=0; i<argc; i++)
 		cout << "\t" << i <<" "<< argv[i] << endl;
+
+	if (!strcmp(argv[1], "posix_spawn")) {
+		int fd = atoi(argv[3]);
+		if (write(fd, "test string\n" , 6) != 6) {
+			ATA_LogErr("posix spawn error on child side\n");
+		}
+	}
 
 	return 0;
 }

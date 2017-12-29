@@ -60,7 +60,7 @@ typedef struct NEXUS_SpiSettings
     /* the following can only be set at Open time */
     uint32_t      baud;                       /* SPI baud rate */
     uint8_t       bitsPerTransfer;            /* number of bits per transfer */
-    bool          lastByteContinueEnable;     /* Deprecated. */
+    bool          lastByteContinueEnable;     /* Deprecated. See NEXUS_Spi_BeginSlaveSelect for an alternative. */
     bool          useUserDtlAndDsclk;         /* Use User specified DTL and DSCLK */
     bool          interruptMode;              /* If true (default), transfers will wait for interrupt, if false transfers will poll for completion */
     unsigned      ebiChipSelect;              /* Deprecated. */
@@ -155,7 +155,7 @@ This deasserts the slave device.
 spiSettings.lastByteContinueEnable = false;
 NEXUS_Spi_SetSettings(spiHandle, &spiSettings);
 ****************************************************************************/
-NEXUS_Error NEXUS_Spi_Write(
+NEXUS_Error NEXUS_Spi_Write( /* attr{local=yes} */
     NEXUS_SpiHandle handle,
     const uint8_t *pWriteData,      /* attr{nelem=length;reserved=8} pointer to write memory location */
     size_t length                   /* size of data in pWriteData[] in bytes */
@@ -170,7 +170,7 @@ The SPI protocol always writes data out as it is reading data in.
 The incoming data is stored in pReadData while the data
 going out is sourced from pWriteData.
 ****************************************************************************/
-NEXUS_Error NEXUS_Spi_Read(
+NEXUS_Error NEXUS_Spi_Read( /* attr{local=yes} */
     NEXUS_SpiHandle handle,
     const uint8_t *pWriteData,      /* attr{nelem=length;reserved=8} pointer to memory location where data is to sent  */
     uint8_t *pReadData,             /* [out] attr{nelem=length;reserved=8} pointer to memory location to store read data  */
@@ -195,7 +195,7 @@ But, NEXUS_Spi_ReadAll would return just the  0x01, 0x56, 0x3, 0x87 in pReadData
 Also, NEXUS_Spi_Read() is limited to read 16, 32, 64 bytes read at a time depending on the hardwared.
 But, NEXUS_Spi_ReadAll() can read any amount of data iteratively, provided sufficient buffer is provided.
 ****************************************************************************/
-NEXUS_Error NEXUS_Spi_ReadAll(
+NEXUS_Error NEXUS_Spi_ReadAll( /* attr{local=yes} */
     NEXUS_SpiHandle handle,
     const uint8_t *pWriteData,      /* attr{nelem=writeLength;reserved=8} pointer to memory location where data is to sent  */
     size_t writeLength,             /* Total number of bytes to write to slave from pWriteData, in bytes */
@@ -203,6 +203,52 @@ NEXUS_Error NEXUS_Spi_ReadAll(
     size_t readLength,              /* Total number of bytes to read from slave into pReadData, in bytes */
     size_t *pActualReadLength       /* [out] actual number. will be less than readLength on timeout. */
     );
+
+/**
+NEXUS_Spi_BeginSlaveSelect returns NEXUS_SUCCESS if the SPI device is acquired for exclusive by
+this channel for "continue after command" or "last byte continue enable" functionality.
+If NEXUS_NOT_AVAILABLE is returned, another caller is using this feature and the app should try again.
+
+Typical call sequence looks like this:
+
+    while (NEXUS_Spi_BeginSlaveSelect(spi) == NEXUS_SPI_BUSY) BKNI_Sleep(100);
+    // continue_after_command is true and no other client can use SPI
+    // call atomic sequence of read and write as needed:
+    NEXUS_Spi_Write(spi);
+    NEXUS_Spi_Read(spi);
+    NEXUS_Spi_Write(spi);
+    // before the last read or write, this must be called:
+    NEXUS_Spi_CompleteSlaveSelect(spi);
+    // one more transaction is needed to clear bus
+    NEXUS_Spi_Read(spi);
+    NEXUS_Spi_EndSlaveSelect(spi);
+    // now it has ended
+
+Until the app calls NEXUS_Spi_EndSlaveSelect or the app terminates, no other caller can use SPI.
+They will block and see errors print every second.
+
+If the app does not call NEXUS_Spi_CompleteSlaveSelect before NEXUS_Spi_EndSlaveSelect,
+or if the app does not do one Read/Write after NEXUS_Spi_CompleteSlaveSelect,
+the SPI bus will not clear the state. Undefined behavior will result.
+
+If the app calls multiple Reads or Writes after NEXUS_Spi_CompleteSlaveSelect but before NEXUS_Spi_EndSlaveSelect,
+only the first Read or Write will have the continue_after_command functionality.
+**/
+#define NEXUS_SPI_BUSY NEXUS_MAKE_ERR_CODE(0x104, 0)
+
+NEXUS_Error NEXUS_Spi_BeginSlaveSelect(
+    NEXUS_SpiHandle handle
+    );
+
+void NEXUS_Spi_CompleteSlaveSelect(
+    NEXUS_SpiHandle handle
+    );
+
+void NEXUS_Spi_EndSlaveSelect(
+    NEXUS_SpiHandle handle
+    );
+
+#include "nexus_spi_private.h"
 
 #ifdef __cplusplus
 }

@@ -37,19 +37,23 @@ BINARY_SHADER_T *glsl_binary_shader_create(ShaderFlavour flavour) {
    ret->unif       = NULL;
    ret->unif_count = 0;
    ret->n_threads  = 0;
-#if V3D_HAS_RELAXED_THRSW
-   ret->single_seg  = true;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   ret->single_seg = true;
 #endif
 
    switch(flavour) {
    case SHADER_FRAGMENT:
       ret->u.fragment.writes_z             = false;
       ret->u.fragment.ez_disable           = false;
+      ret->u.fragment.needs_w              = false;
       ret->u.fragment.tlb_wait_first_thrsw = false;
       ret->u.fragment.per_sample           = false;
       ret->u.fragment.reads_prim_id        = false;
 #if V3D_VER_AT_LEAST(4,0,2,0)
       ret->u.fragment.reads_implicit_varys = false;
+#endif
+#if !V3D_HAS_SRS_CENTROID_FIX
+      ret->u.fragment.ignore_centroids = false;
 #endif
       ret->u.fragment.barrier = false;
       break;
@@ -88,19 +92,34 @@ BINARY_SHADER_T *glsl_binary_shader_create(ShaderFlavour flavour) {
 
 struct find_attribs {
    ATTRIBS_USED_T *attr;
-   const LinkMap *link;
+   const Dataflow *block_df;
+   const LinkMap  *link;
 };
+
+static int find_value(const Dataflow *d, const Dataflow *block_df, const int *in_map) {
+   if (d->flavour == DATAFLOW_CONST) return d->u.constant.value;
+   if (d->flavour == DATAFLOW_ADDRESS) {
+      const Dataflow *pointee = &block_df[d->d.reloc_deps[0]];
+      return in_map[pointee->u.linkable_value.row];
+   }
+   if (d->flavour == DATAFLOW_ADD) {
+      int a = find_value(&block_df[d->d.reloc_deps[0]], block_df, in_map);
+      int b = find_value(&block_df[d->d.reloc_deps[1]], block_df, in_map);
+      if (a == -1 || b == -1) return -1;
+      return a+b;
+   }
+   return -1;
+}
 
 static void dpostv_find_live_attribs(Dataflow *dataflow, void *data)
 {
    struct find_attribs *d = data;
    ATTRIBS_USED_T *attr = d->attr;
 
-   if (dataflow->flavour == DATAFLOW_IN) {
-      int id = dataflow->u.linkable_value.row;
-      assert(id < d->link->num_ins);
-      int row = d->link->ins[id];
-      assert(row < 4*V3D_MAX_ATTR_ARRAYS);
+   if (dataflow->flavour == DATAFLOW_IN_LOAD) {
+      const Dataflow *addr = &d->block_df[d->block_df[dataflow->d.reloc_deps[0]].d.reloc_deps[0]];
+      int row = find_value(addr, d->block_df, d->link->ins);
+      assert(row >= 0 && row < 4*V3D_MAX_ATTR_ARRAYS);
 
       /* This is attribute i, scalar j. We are using at least j scalars of i */
       int i = row / 4;
@@ -135,6 +154,7 @@ static void get_attrib_info(const CFGBlock *b, ATTRIBS_USED_T *attr, const LinkM
 {
    /* Calculate which attributes/vertex_id/instance_id are live */
    struct find_attribs data = { .attr = attr,
+                                .block_df = b->dataflow,
                                 .link = link };
 
    attr->vertexid_used = false;
@@ -144,6 +164,20 @@ static void get_attrib_info(const CFGBlock *b, ATTRIBS_USED_T *attr, const LinkM
       attr->scalars_used[i] = 0;
 
    reloc_visit_block(b, output_active, &data, dpostv_find_live_attribs);
+}
+
+static void dpostv_find_w(Dataflow *dataflow, void *data)
+{
+   bool *found = data;
+   if (dataflow->flavour == DATAFLOW_FRAG_GET_W)
+      *found = true;
+}
+
+static bool reads_w(const CFGBlock *b, const bool *output_active)
+{
+   bool ret = false;
+   reloc_visit_block(b, output_active, &ret, dpostv_find_w);
+   return ret;
 }
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -167,26 +201,25 @@ static bool reads_implicit_varys(const CFGBlock *b, const bool *output_active) {
 
 static void fragment_backend_init(FragmentBackendState *s,
                                   uint32_t backend, bool early_fragment_tests
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
                                   , bool requires_sbwait
 #endif
                                   )
 {
    s->ms                       = !!(backend & GLSL_SAMPLE_MS);
    s->sample_alpha_to_coverage = s->ms && !!(backend & GLSL_SAMPLE_ALPHA);
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    s->sample_mask              = s->ms && !!(backend & GLSL_SAMPLE_MASK);
 #endif
    s->fez_safe_with_discard    = !!(backend & GLSL_FEZ_SAFE_WITH_DISCARD);
    s->early_fragment_tests     = early_fragment_tests;
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    s->requires_sbwait          = requires_sbwait;
 #endif
 
    for (int i=0; i<V3D_MAX_RENDER_TARGETS; i++) {
       uint32_t fb_gadget = glsl_unpack_fb_gadget(backend, i);
-      /* For now, just say that int targets are never 16. TODO: Improve this in the backend */
-      s->rt[i].is_16      = (fb_gadget & GLSL_FB_16) && !(fb_gadget & GLSL_FB_INT);
+      s->rt[i].is_16      = (fb_gadget & GLSL_FB_16);
       s->rt[i].is_int     = (fb_gadget & GLSL_FB_INT);
       s->rt[i].is_present = (fb_gadget & GLSL_FB_PRESENT);
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -197,10 +230,13 @@ static void fragment_backend_init(FragmentBackendState *s,
    s->adv_blend = (backend & GLSL_ADV_BLEND_M) >> GLSL_ADV_BLEND_S;
 }
 
-static void vertex_backend_init(VertexBackendState *s, uint32_t backend, bool bin_mode, bool has_point_size) {
+static void vertex_backend_init(VertexBackendState *s, uint32_t backend, bool bin_mode,
+                                bool has_point_size, const GLSL_VARY_MAP_T *vary_map)
+{
    s->bin_mode        = bin_mode;
    s->emit_point_size = ((backend & GLSL_PRIM_M) == GLSL_PRIM_POINT) && has_point_size;
    s->z_only_active   = !!(backend & GLSL_Z_ONLY_WRITE) && bin_mode;
+   s->vary_map        = vary_map;
 }
 
 static RegList *reg_list_prepend(RegList *p, Backflow *node, uint32_t reg) {
@@ -446,7 +482,7 @@ static iu_sizes copy_preamble(uint64_t *code, umap_entry *unif, ShaderFlavour fl
          s.code = copy_inline_qasm_if(code, s.code, &cs_pad_setmsf_after_barrier_preamble);
          s.unif = copy_inline_umap_if(unif, s.unif, &cs_pad_setmsf_after_barrier_preamble_unif);
       } else {
-         bool one_thread = !V3D_HAS_RELAXED_THRSW && threads == 1;
+         bool one_thread = !V3D_VER_AT_LEAST(4,1,34,0) && threads == 1;
          s.code = copy_inline_qasm_if(code, s.code, one_thread ? &cs_pad_setmsf_unthreaded : &cs_pad_setmsf_threaded);
          s.unif = copy_inline_umap_if(unif, s.unif, &cs_pad_setmsf_unif);
       }
@@ -588,11 +624,227 @@ static void set_shader_per_quadness(const IRShader *sh, bool **per_quad, /* cons
    glsl_safemem_free(visit);
 }
 
-BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavour,
-                                                  bool                     bin_mode,
-                                                  GLSL_VARY_MAP_T          *vary_map,
-                                                  IR_PROGRAM_T             *ir,
-                                                  const GLSL_BACKEND_CFG_T *key)
+/* This requires the 'b' array to be indexed in reverse postorder */
+int find_lthrsw_block(const CFGBlock *b, int n_blocks, bool *does_thrsw) {
+   struct abstract_cfg *cfg = glsl_alloc_abstract_cfg_cfg(b, n_blocks);
+   bool *uncond = glsl_alloc_uncond_blocks(cfg);
+
+   /* Since the 'b' array is in reverse postorder we just need to find the first
+    * unconditional block after the last block using a texture. The fact that we
+    * require unconditional exit blocks means there must be one. */
+   int i;
+   for (i=n_blocks-1; i>=0; i--) {
+      if (does_thrsw[i]) break;
+   }
+   for ( ; i < n_blocks; i++) {
+      if (uncond[i]) break;
+   }
+   assert(i < n_blocks);
+   glsl_safemem_free(uncond);
+   glsl_free_abstract_cfg(cfg);
+   return i;
+}
+
+/* Update all instances of old to be new. Used for merging register classes */
+static void update_alloc_class(int **allocation, const IRShader *sh, const Dataflow *old, unsigned new) {
+   assert(old->flavour == DATAFLOW_EXTERNAL);
+   int old_reg = allocation[old->u.external.block][old->u.external.output];
+   if (old_reg == new) return;
+
+   for (int q = 0; q<sh->num_cfg_blocks; q++)
+      for (int r = 0; r<sh->blocks[q].num_outputs; r++)
+         if (allocation[q][r] == old_reg) allocation[q][r] = new;
+}
+
+static int merge_phi_classes(int **allocation, const IRShader *sh, int b, const Dataflow *phi) {
+   const Dataflow *l = &sh->blocks[b].dataflow[phi->d.reloc_deps[0]];
+   assert(l->flavour == DATAFLOW_EXTERNAL);
+
+   int reg = allocation[l->u.external.block][l->u.external.output];
+   while (phi->flavour == DATAFLOW_PHI) {
+      const Dataflow *l = &sh->blocks[b].dataflow[phi->d.reloc_deps[0]];
+      update_alloc_class(allocation, sh, l, reg);
+      phi = &sh->blocks[b].dataflow[phi->d.reloc_deps[1]];
+   }
+   update_alloc_class(allocation, sh, phi, reg);
+   return reg;
+}
+
+/* Fill allocation in with global register allocation. Return how many registers are needed */
+static unsigned get_greg_classes(const IRShader *sh, /*const*/ SchedBlock **tblocks, int **allocation) {
+   /* Start with everything in a separate register class */
+   unsigned next_class = 0;
+   for (int i=0; i<sh->num_cfg_blocks-1; i++)
+      for (int j=0; j<sh->blocks[i].num_outputs; j++)
+         allocation[i][j] = next_class++;
+
+   for (int j=0; j<sh->blocks[sh->num_cfg_blocks-1].num_outputs; j++)
+      allocation[sh->num_cfg_blocks-1][j] = -1;
+
+   /* Now, wherever two classes appear in the same phi, merge them together */
+   for (int i=0; i<sh->num_cfg_blocks; i++)
+      for (PhiList *p = tblocks[i]->phi_list; p; p=p->next)
+         merge_phi_classes(allocation, sh, i, p->phi);
+
+   /* Compact the register set by removing the holes created above */
+   int *register_mapping = glsl_safemem_malloc(next_class * sizeof(int));
+   unsigned reg = 0;
+   for (unsigned i=0; i<next_class; i++) {
+      register_mapping[i] = -1;
+   }
+   for (int i=0; i<sh->num_cfg_blocks-1; i++) {
+      for (int j=0; j<sh->blocks[i].num_outputs; j++) {
+         if (tblocks[i]->outputs[j] == NULL) continue;
+         if (register_mapping[allocation[i][j]] == -1) register_mapping[allocation[i][j]] = reg++;
+      }
+   }
+
+   for (int i=0; i<sh->num_cfg_blocks-1; i++) {
+      for (int j=0; j<sh->blocks[i].num_outputs; j++) {
+         if (tblocks[i]->outputs[j] != NULL) {
+            allocation[i][j] = register_mapping[allocation[i][j]];
+            assert(allocation[i][j] != -1);
+         } else
+            allocation[i][j] = -1;
+      }
+   }
+   glsl_safemem_free(register_mapping);
+
+   return reg;
+}
+
+static void compute_live_outputs(const IRShader *sh, SchedBlock **tblocks, unsigned n_classes,
+                                 int **allocation, bool **live_out)
+{
+   struct dflow_state *b = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(struct dflow_state));
+
+   struct abstract_cfg *cfg = glsl_alloc_abstract_cfg_cfg(sh->blocks, sh->num_cfg_blocks);
+   int *rpo_id;
+   struct abstract_cfg *rcfg = glsl_alloc_abstract_cfg_reverse(cfg, &rpo_id);
+   glsl_free_abstract_cfg(cfg);
+
+   for (int i=0; i<sh->num_cfg_blocks; i++) {
+      struct dflow_state *bb = &b[rpo_id[i]];
+      bb->gen  = glsl_safemem_calloc(n_classes, sizeof(bool));
+      bb->kill = glsl_safemem_calloc(n_classes, sizeof(bool));
+
+      /* gen is the list of variables that are used in this block */
+      for (ExternalList *l = tblocks[i]->external_list; l; l=l->next) {
+         int c = allocation[l->block][l->output];
+         assert(c != -1);
+         bb->gen[c] = true;
+      }
+      for (int j=0; j<sh->blocks[i].num_outputs; j++) {
+         int c = allocation[i][j];
+         if (c != -1 && !bb->gen[c]) bb->kill[c] = true;   /* By convention we don't allow kill[c] && gen[c] */
+      }
+   }
+
+   bool **in = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool *));
+   for (int i=0; i<sh->num_cfg_blocks; i++)
+      in[i] = glsl_safemem_calloc(n_classes, sizeof(bool));
+
+   bool **out = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool *));
+   for (int i=0; i<sh->num_cfg_blocks; i++)
+      out[rpo_id[i]] = live_out[i];
+
+   /* Because live variables is a reverse problem we use a reverse CFG and
+    * 'out' and 'in' switch roles */
+   glsl_solve_dataflow_equation(rcfg, n_classes, b, out, in);
+
+   glsl_free_abstract_cfg(rcfg);
+   glsl_safemem_free(rpo_id);
+   for (int i=0; i<sh->num_cfg_blocks; i++) {
+      glsl_safemem_free(b[i].gen);
+      glsl_safemem_free(b[i].kill);
+
+      glsl_safemem_free(in[i]);
+   }
+   glsl_safemem_free(b);
+   glsl_safemem_free(in);
+   glsl_safemem_free(out);
+}
+
+static unsigned assign_global_registers(const IRShader *sh, /*const*/ SchedBlock **tblocks, int **allocation, uint64_t *live_out) {
+   for (int i=0; i<sh->num_cfg_blocks; i++)
+      live_out[i] = 0;
+
+   /* Allocate registers so that we get correct phi behaviour */
+   unsigned n_classes = get_greg_classes(sh, tblocks, allocation);
+   if (n_classes == 0) return 0;
+
+   /* Compute liveness information for register merging */
+   bool **out = glsl_safemem_calloc(sh->num_cfg_blocks, sizeof(bool *));
+   for (int i=0; i<sh->num_cfg_blocks; i++)
+      out[i] = glsl_safemem_calloc(n_classes, sizeof(bool));
+
+   compute_live_outputs(sh, tblocks, n_classes, allocation, out);
+
+   /* Now we can merge register that are not simultaneously live */
+   /* Build an interference graph */
+   bool **interfere = glsl_safemem_malloc(n_classes * sizeof(bool *));
+   for (unsigned i=0; i<n_classes; i++) {
+      interfere[i] = glsl_safemem_calloc(n_classes, sizeof(bool));
+   }
+
+   for (int i=0; i<sh->num_cfg_blocks; i++) {
+      for (unsigned r=0; r<n_classes; r++) {
+         if (out[i][r]) {
+            for (unsigned or=r+1; or<n_classes; or++) {
+               if (out[i][or]) interfere[r][or] = interfere[or][r] = true;
+            }
+         }
+      }
+   }
+
+   /* Now colour the graph greedily in register order. */
+   /* TODO: This is best done starting from the most constrained node, but one step at a time */
+   int *colour = glsl_safemem_malloc(n_classes * sizeof(int));
+   for (unsigned i=0; i<n_classes; i++) {
+      uint64_t v = ~0ull;
+
+      for (unsigned j=0; j<i; j++)
+         if (interfere[i][j]) v &= ~(1ull << colour[j]);
+
+      if (v == 0) colour[i] = 65;            /* Fail */
+      else        colour[i] = gfx_lsb64(v);
+   }
+
+   int max_col = 0;
+   for (unsigned i=0; i<n_classes; i++) if (colour[i] > max_col) max_col = colour[i];
+
+   /* Now use the colours to assign physical registers */
+   for (int i=0; i<sh->num_cfg_blocks-1; i++) {
+      for (int j=0; j<sh->blocks[i].num_outputs; j++) {
+         if (tblocks[i]->outputs[j] == NULL) continue;
+         assert(allocation[i][j] != -1);
+         allocation[i][j] = colour[allocation[i][j]];
+      }
+
+      for (unsigned j=0; j<n_classes; j++)
+         if (out[i][j]) live_out[i] |= (1ull << colour[j]);
+   }
+
+   glsl_safemem_free(colour);
+
+   for (unsigned i=0; i<n_classes; i++)
+      glsl_safemem_free(interfere[i]);
+   glsl_safemem_free(interfere);
+
+   for (int i=0; i<sh->num_cfg_blocks; i++)
+      glsl_safemem_free(out[i]);
+   glsl_safemem_free(out);
+
+   return max_col + 1;
+}
+
+bool glsl_binary_shader_from_dataflow(
+   BINARY_SHADER_T              **ret_binary,
+   ShaderFlavour                  flavour,
+   bool                           bin_mode,
+   GLSL_VARY_MAP_T               *vary_map,
+   IR_PROGRAM_T                  *ir,
+   const struct glsl_backend_cfg *key)
 {
    BINARY_SHADER_T *binary = glsl_binary_shader_create(flavour);
    if(!binary) goto failed;
@@ -606,6 +858,13 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
    const IRShader *sh = ir->stage[flavour].ir;
    const LinkMap  *l  = ir->stage[flavour].link_map;
+
+#ifdef KHRN_SHADER_DUMP_IR
+   static int ir_file_no = 0;
+   char ir_fname[1024];
+   snprintf(ir_fname, 1024, "%s%d.ir", glsl_shader_flavour_name(flavour), ir_file_no++);
+   glsl_ir_shader_to_file(sh, ir_fname);
+#endif
 
    bool *shader_outputs_used = glsl_safemem_calloc(sh->num_outputs, sizeof(bool));
    switch (flavour) {
@@ -668,6 +927,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    switch (flavour) {
       case SHADER_FRAGMENT:
       {
+         binary->u.fragment.needs_w = reads_w(&sh->blocks[0], output_translate[0]); // DATAFLOW_FRAG_GET_W must be in first block
          uint32_t prim_varys = key->backend & GLSL_PRIM_M;
 #if V3D_VER_AT_LEAST(4,0,2,0)
          binary->u.fragment.reads_implicit_varys = prim_varys != 0 && reads_implicit_varys(&sh->blocks[0], output_translate[0]);
@@ -675,7 +935,13 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 #else
          if (tsy_barrier || has_compute_padding) prim_varys = 0; // varying consumed by barrier preamble
 #endif
-         fragment_shader_inputs(&ins, prim_varys, ir->varying);
+         bool ignore_centroids = false;
+#if !V3D_HAS_SRS_CENTROID_FIX
+         if ((key->backend & GLSL_SAMPLE_SHADING_ENABLED) != 0 || ir->varyings_per_sample)
+            ignore_centroids = true;
+         binary->u.fragment.ignore_centroids = ignore_centroids;
+#endif
+         fragment_shader_inputs(&ins, prim_varys, ignore_centroids, ir->varying);
          break;
       }
       case SHADER_VERTEX:
@@ -702,13 +968,6 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
       default: unreachable();
    }
-
-#ifdef KHRN_SHADER_DUMP_IR
-   static int ir_file_no = 0;
-   char ir_fname[1024];
-   snprintf(ir_fname, 1024, "%s%d.ir", glsl_shader_flavour_name(flavour), ir_file_no++);
-   glsl_ir_shader_to_file(sh, ir_fname);
-#endif
 
    bool **per_quad = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool *));
    for (int i=0; i<sh->num_cfg_blocks; i++) per_quad[i] = glsl_safemem_malloc(sh->blocks[i].num_dataflow * sizeof(bool));
@@ -756,10 +1015,10 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    }
 
    int lthrsw_block = -1;
-   if (has_thrsw) lthrsw_block = glsl_find_lthrsw_block(sh->blocks, sh->num_cfg_blocks, does_thrsw);
+   if (has_thrsw) lthrsw_block = find_lthrsw_block(sh->blocks, sh->num_cfg_blocks, does_thrsw);
    glsl_safemem_free(does_thrsw);
 
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    bool no_single_seg = is_compute_shader ? !V3D_USE_CSD : flavour == SHADER_FRAGMENT;
    if (!has_thrsw && no_single_seg) {
       lthrsw_block = 0;
@@ -769,21 +1028,24 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    if (!has_thrsw) max_threading = 1;
 #endif
 
+   /* TODO: Do we want to require that the exit is the last block and is unconditional? */
    int final_block_id = sh->num_cfg_blocks-1;
+   assert(sh->blocks[final_block_id].next_if_true  == -1 &&
+          sh->blocks[final_block_id].next_if_false == -1   );
 
    bool shader_needs_tmuwt = false;
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       order_texture_lookups(tblocks[i]);
 
       Backflow *last_read = NULL, *last_write = NULL;
+      bool last_is_write = false;
       for (struct tmu_lookup_s *l = tblocks[i]->tmu_lookups; l; l=l->next) {
-         if (l->read_count == 0) {
-            shader_needs_tmuwt = true;
-            last_write = l->last_write;
-         } else {
-            last_read = l->last_read;
-         }
+         last_is_write = (l->read_count == 0);
+
+         if (l->read_count == 0) last_write = l->last_write;
+         else                    last_read  = l->last_read;
       }
+      if (last_is_write) shader_needs_tmuwt = true;
 
       if (i == final_block_id && shader_needs_tmuwt) {
          Backflow *tmuwt = glsl_backflow_tmuwt();
@@ -802,7 +1064,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    SchedBlock *final_block = tblocks[final_block_id];
    if (flavour == SHADER_FRAGMENT) {
       FragmentBackendState s;
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
       fragment_backend_init(&s, key->backend, ir->early_fragment_tests);
 #else
       bool sbwaited = tsy_barrier || has_compute_padding || (final_block_id != 0 && tblocks[0]->first_tlb_read);
@@ -815,9 +1077,9 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
                             &binary->u.fragment.ez_disable);
    } else if (flavour == SHADER_VERTEX || flavour == SHADER_TESS_EVALUATION) {
       VertexBackendState s;
-      vertex_backend_init(&s, key->backend, bin_mode, l->outs[DF_VNODE_POINT_SIZE] != -1);
+      vertex_backend_init(&s, key->backend, bin_mode, l->outs[DF_VNODE_POINT_SIZE] != -1, vary_map);
       SchedShaderInputs *inputs = final_block_id == 0 ? &ins : NULL;
-      glsl_vertex_backend(final_block, final_block_id, sh, l, inputs, &s, shader_outputs_used, vary_map);
+      glsl_vertex_backend(final_block, final_block_id, sh, l, inputs, &s, shader_outputs_used);
 
       unsigned output_words = (s.bin_mode ? 6 : 4) + (s.emit_point_size ? 1 : 0) +
                               (s.z_only_active ? (s.emit_point_size ? 1 : 2) : 0) + vary_map->n;
@@ -835,97 +1097,15 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
    /* Sort out global register assignment */
    int **register_class = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(int *));
-   for (int i=0; i<sh->num_cfg_blocks; i++) {
+   uint64_t *live_out = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(uint64_t));
+   for (int i=0; i<sh->num_cfg_blocks; i++)
       register_class[i] = glsl_safemem_malloc(sh->blocks[i].num_outputs * sizeof(int));
-      for (int j=0; j<sh->blocks[i].num_outputs; j++) {
-         register_class[i][j] = -1;
-      }
-   }
 
-   /* TODO: Do we want to require that the exit is the last block and is unconditional? */
-   assert(sh->blocks[final_block_id].next_if_true  == -1 &&
-          sh->blocks[final_block_id].next_if_false == -1   );
-
-   unsigned next_class = 0;
-   /* Skip the last block because we don't need to keep those outputs */
-   for (int i=0; i<sh->num_cfg_blocks-1; i++) {
-      for (int j=0; j<sh->blocks[i].num_outputs; j++) {
-         /* We're going to find a register class for block i, output j */
-         /* Search all the phi-lists: */
-         for (int k=0; k<sh->num_cfg_blocks; k++) {
-            for (PhiList *p = tblocks[k]->phi_list; p; p=p->next) {
-               /* If we can find a previous register use that register class */
-               /* TODO: Here we cheat by assuming children are EXTERNALs, they could be PHIs */
-               const Dataflow *phi = p->phi;
-               const Dataflow *l = &sh->blocks[k].dataflow[phi->d.reloc_deps[0]];
-               const Dataflow *r = &sh->blocks[k].dataflow[phi->d.reloc_deps[1]];
-               assert(l->flavour == DATAFLOW_EXTERNAL && r->flavour == DATAFLOW_EXTERNAL);
-               if (l->u.external.block == i && l->u.external.output == j) {
-                  /* This is a phi with something. Is it earlier? */
-                  if (r->u.external.block < i || (r->u.external.block == i && r->u.external.output < j)) {
-                     /* Success! Take this register class */
-                     int class = register_class[r->u.external.block][r->u.external.output];
-                     if (register_class[i][j] != -1 ) {
-                        int old_class = register_class[i][j];
-                        for (int q = 0; q<sh->num_cfg_blocks; q++) {
-                           for (int r = 0; r<sh->blocks[q].num_outputs; r++) {
-                              if (register_class[q][r] == old_class) register_class[q][r] = class;
-                           }
-                        }
-                     } else
-                        register_class[i][j] = class;
-                  }
-               }
-               if (r->u.external.block == i && r->u.external.output == j) {
-                  /* This is a phi with something. Is it earlier? */
-                  if (l->u.external.block < i || (l->u.external.block == i && l->u.external.output < j)) {
-                     /* Success! Take this register class */
-                     int class = register_class[l->u.external.block][l->u.external.output];
-                     if (register_class[i][j] != -1 ) {
-                        int old_class = register_class[i][j];
-                        for (int q = 0; q<sh->num_cfg_blocks; q++) {
-                           for (int r = 0; r<sh->blocks[q].num_outputs; r++) {
-                              if (register_class[q][r] == old_class) register_class[q][r] = class;
-                           }
-                        }
-                     } else
-                        register_class[i][j] = class;
-                  }
-               }
-            }
-         }
-         if (register_class[i][j] == -1) register_class[i][j] = next_class++;
-      }
-   }
-
-   /* Compact the register set by removing the holes created above */
-   int *register_mapping = glsl_safemem_malloc(next_class * sizeof(int));
-   unsigned reg = 0;
-   for (unsigned i=0; i<next_class; i++) {
-      register_mapping[i] = -1;
-   }
-   for (int i=0; i<sh->num_cfg_blocks-1; i++) {
-      for (int j=0; j<sh->blocks[i].num_outputs; j++) {
-         if (tblocks[i]->outputs[j] == NULL) continue;
-         if (register_mapping[register_class[i][j]] == -1) register_mapping[register_class[i][j]] = reg++;
-      }
-   }
-
-   for (int i=0; i<sh->num_cfg_blocks-1; i++) {
-      for (int j=0; j<sh->blocks[i].num_outputs; j++) {
-         if (tblocks[i]->outputs[j] != NULL) {
-            register_class[i][j] = register_mapping[register_class[i][j]];
-            assert(register_class[i][j] != -1);
-         } else
-            register_class[i][j] = -1;
-      }
-   }
-   next_class = reg;
-   glsl_safemem_free(register_mapping);
+   unsigned n_global_regs = assign_global_registers(sh, tblocks, register_class, live_out);
 
    GENERATED_SHADER_T **backend_result = glsl_safemem_malloc(sh->num_cfg_blocks*sizeof(GENERATED_SHADER_T));
    int threads;
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    int min_threads = 2;
 #else
    int min_threads = tsy_barrier ? 2 : 1;
@@ -933,7 +1113,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    for (threads = max_threading; threads >= min_threads; threads /= 2) {
       bool good = true;
 
-      if (next_class > get_max_regfile(threads)) continue;  /* Too many global registers */
+      if (n_global_regs > get_max_regfile(threads)) continue;  /* Too many global registers */
 
       for (int i=0; i<sh->num_cfg_blocks; i++) {
          /* Put together a prescheduled list for this block */
@@ -957,7 +1137,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
          /* This is conservative but checking CFG paths is expensive and this catches common cases */
          bool sbwaited = tsy_barrier || has_compute_padding || (i != 0 && tblocks[0]->first_tlb_read);
-         backend_result[i] = glsl_backend_schedule(tblocks[i], in, out, i != 0 ? next_class : 0,
+         backend_result[i] = glsl_backend_schedule(tblocks[i], in, out, live_out[i],
                                                    flavour, bin_mode, threads, (i == final_block_id),
                                                    (i == lthrsw_block && !sh->blocks[i].barrier), sbwaited);
          if(!backend_result[i]) good = false;
@@ -978,6 +1158,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    for (int i=0; i<sh->num_cfg_blocks; i++)
       glsl_safemem_free(register_class[i]);
    glsl_safemem_free(register_class);
+   glsl_safemem_free(live_out);
 
    if(flavour == SHADER_FRAGMENT) {
       vary_map->n = backend_result[0]->varying_count;
@@ -1041,7 +1222,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
       goto failed;
 
    binary->n_threads = threads;
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    binary->single_seg  = !has_thrsw;
    assert(!binary->single_seg || !no_single_seg);
 #endif
@@ -1108,12 +1289,6 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
    binary->code_size  = instr_count * sizeof(uint64_t);
    binary->unif_count = unif_count;
 
-#ifdef KHRN_SHADER_DUMP
-   printf("%s%s:\n", glsl_shader_flavour_name(flavour), bin_mode ? " (bin)" : "");
-   dqasmc_print_basic(binary->code, instr_count);
-   printf("\n\n");
-#endif
-
    glsl_fastmem_term();
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       glsl_safemem_free(backend_result[i]->instructions);
@@ -1124,12 +1299,33 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 #ifndef NDEBUG
    glsl_safemem_verify();
 #endif
-   return binary;
+
+   // Detect null fragment shader.
+#if V3D_HAS_NULL_FS
+   if (  !is_compute_shader
+      && flavour == SHADER_FRAGMENT
+      && binary->code_size == fs_null.size * sizeof(uint64_t)
+      && !memcmp(binary->code, fs_null.code, binary->code_size))
+   {
+      glsl_binary_shader_free(binary);
+      binary = NULL;
+   }
+#endif
+
+#ifdef KHRN_SHADER_DUMP
+   printf("%s%s:\n", glsl_shader_flavour_name(flavour), bin_mode ? " (bin)" : "");
+   if (binary)
+      dqasmc_print_basic(binary->code, instr_count);
+   printf("\n\n");
+#endif
+
+   *ret_binary = binary;
+   return true;
 
  failed:
    glsl_binary_shader_free(binary);
    glsl_safemem_cleanup();
-   return NULL;
+   return false;
 }
 
 void glsl_binary_shader_free(BINARY_SHADER_T *binary) {

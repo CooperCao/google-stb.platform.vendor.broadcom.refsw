@@ -43,19 +43,19 @@ static khrn_image* image_create(khrn_blob *blob, unsigned level,
       unsigned start_slice, unsigned num_slices,
       GFX_LFMT_T api_fmt)
 {
-    khrn_image *img;
-    assert(khrn_blob_contains_level(blob, level) &&
-                (start_elem + num_array_elems <= blob->num_array_elems) &&
-                (start_slice + num_slices <= blob->desc[0].depth));
+   khrn_image *img;
+   assert(khrn_blob_contains_level(blob, level) &&
+               (start_elem + num_array_elems <= blob->num_array_elems) &&
+               (start_slice + num_slices <= blob->desc[0].depth));
 
-    img = KHRN_MEM_ALLOC_STRUCT(khrn_image);
-    if (img == NULL)
-       return NULL;
+   img = KHRN_MEM_ALLOC_STRUCT(khrn_image);
+   if (img == NULL)
+      return NULL;
 
-    image_init(img, blob, level, start_elem, num_array_elems,
-       start_slice, num_slices, api_fmt);
-    khrn_mem_set_term(img, image_term);
-    return img;
+   image_init(img, blob, level, start_elem, num_array_elems,
+      start_slice, num_slices, api_fmt);
+   khrn_mem_set_term(img, image_term);
+   return img;
 }
 
 khrn_image* khrn_image_create(khrn_blob *blob,
@@ -69,6 +69,21 @@ khrn_image* khrn_image_create_one_elem_slice(khrn_blob *blob,
    unsigned elem, unsigned slice, unsigned level, GFX_LFMT_T api_fmt)
 {
    return image_create(blob, level, elem, 1, slice, 1, api_fmt);
+}
+
+khrn_image* khrn_image_shallow_blob_copy(const khrn_image* other)
+{
+   khrn_image *img = KHRN_MEM_ALLOC_STRUCT(khrn_image);
+   if (img)
+   {
+      *img = *other;
+      img->blob = khrn_blob_shallow_copy(img->blob);
+      if (img->blob)
+         khrn_mem_set_term(img, image_term);
+      else
+         KHRN_MEM_ASSIGN(img, NULL);
+   }
+   return img;
 }
 
 GFX_LFMT_T khrn_image_get_lfmt(const khrn_image *img,
@@ -189,11 +204,9 @@ static void begin_imgconv(struct v3d_imgconv_gmem_tgt *tgt,
       unsigned int x, unsigned int y, unsigned int z,
       unsigned int start_elem, bool write)
 {
-   v3d_scheduler_deps deps;
-   const GFX_BUFFER_DESC_T *desc;
-   khrn_resource *res;
+   khrn_resource *res = khrn_image_get_resource(img);
 
-   res = khrn_image_get_resource(img);
+   v3d_scheduler_deps deps;
    if (write)
       deps = *khrn_resource_begin_submit_writer_jobs(res);
    else
@@ -205,10 +218,17 @@ static void begin_imgconv(struct v3d_imgconv_gmem_tgt *tgt,
       v3d_scheduler_merge_deps(&deps, &fence_to_depend_on->deps);
    }
 
-   desc = &img->blob->desc[img->level];
-   v3d_imgconv_init_gmem_tgt(tgt, img->blob->res->handle, 0, &deps, desc, x, y,
+   v3d_imgconv_init_gmem_tgt_multi_region(tgt,
+      res->num_handles, res->handles, 0, &deps,
+      &img->blob->desc[img->level], x, y,
       img->start_slice + z, img->start_elem + start_elem,
       img->blob->array_pitch);
+
+   /* GL texture uploads require floating point depth values to be clamped
+    * to a valid range as part of the upload process
+    */
+   if (write)
+      tgt->base.conversion = V3D_IMGCONV_CONVERSION_CLAMP_DEPTH;
 }
 
 static void end_imgconv(const khrn_image *img, bool success,
@@ -323,6 +343,32 @@ static void image_unmap(const khrn_image *img, void* ptr, bool write)
       img->start_elem * img->blob->array_pitch,
       img->num_array_elems * img->blob->array_pitch,
       write ? KHRN_ACCESS_WRITE : KHRN_ACCESS_READ);
+}
+
+gmem_usage_flags_t khrn_image_calc_dst_gmem_usage(
+   const khrn_image *src, unsigned width, unsigned height, unsigned depth,
+   unsigned num_array_elems, unsigned num_mip_levels, const GFX_LFMT_T *lfmts,
+   unsigned num_planes, gfx_buffer_usage_t blob_usage, bool secure_context)
+{
+   v3d_imgconv_gmem_tgt src_tgt;
+
+   v3d_scheduler_deps deps;
+   v3d_scheduler_deps_init(&deps);
+
+   khrn_resource *res = khrn_image_get_resource(src);
+   v3d_imgconv_init_gmem_tgt_multi_region(&src_tgt, res->num_handles, res->handles, 0, &deps,
+                                          &src->blob->desc[src->level], 0, 0,
+                                          src->start_slice, src->start_elem,
+                                          src->blob->array_pitch);
+
+   v3d_imgconv_base_tgt dst_base;
+   memset(&dst_base, 0, sizeof(dst_base));
+
+   size_t size, align;
+   gfx_buffer_desc_gen(&dst_base.desc, &size, &align, blob_usage, width, height, depth,
+                       num_mip_levels, num_planes, lfmts);
+
+   return v3d_imgconv_calc_dst_gmem_usage(&dst_base, &src_tgt, secure_context);
 }
 
 bool khrn_image_convert(khrn_image *dst, const khrn_image *src,
@@ -447,7 +493,7 @@ bool khrn_image_subsample(khrn_image *dst, const khrn_image *src,
    for (unsigned i = 0; i < src->num_array_elems; i++)
    {
       // Match TFU...
-#if V3D_HAS_BETTER_FCONV_B
+#if V3D_VER_AT_LEAST(4,1,34,0)
       gfx_buffer_subsample(&dst_b, &src_b, NULL);
 #else
       GFX_BUFFER_XFORM_OPTIONS_TRANSMUTE_T transmute_options;
@@ -478,6 +524,9 @@ bool khrn_image_generate_mipmaps_tfu(khrn_image* src_image,
    GFX_BUFFER_DESC_T const* dst_desc = &dst_blob->desc[dst_images[0]->level];
    GFX_LFMT_T src_lfmt = src_desc->planes[0].lfmt;
    GFX_LFMT_T dst_lfmt = dst_desc->planes[0].lfmt;
+
+   assert(src_blob->res->num_handles == 1);
+   assert(dst_blob->res->num_handles == 1);
 
    // Check dst is same size and format as src.
    // We can cope with different layouts, with work we could also cope
@@ -512,8 +561,8 @@ bool khrn_image_generate_mipmaps_tfu(khrn_image* src_image,
       tfu_cmd.srgb = false;
 
    // Lock v3d addresses for src/dst blobs.
-   gmem_handle_t src_gmemh = src_blob->res->handle;
-   gmem_handle_t dst_gmemh = dst_blob->res->handle;
+   gmem_handle_t src_gmemh = src_blob->res->handles[0];
+   gmem_handle_t dst_gmemh = dst_blob->res->handles[0];
    v3d_addr_t src_addr = gmem_get_addr(src_gmemh);
    v3d_addr_t dst_addr = gmem_get_addr(dst_gmemh);
 

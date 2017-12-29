@@ -4324,6 +4324,9 @@ typedef struct  BDSP_Raaga_Audio_GenCdbItbConfigParams
     /* The RDB register address to read for encoder's STC clock (Upper)*/
     uint32_t                    ui32EncSTCAddrUpper;
 
+    /* STC Offset between audio and video encoder in 27 MHz domain*/
+    uint64_t                    ui64AVSTCOffset;
+
 } BDSP_Raaga_Audio_GenCdbItbConfigParams;
 
 typedef struct BDSP_Raaga_Audio_SpectrumAnalyserConfigParams
@@ -4943,6 +4946,9 @@ typedef struct BDSP_Raaga_Audio_DDPEncConfigParams
        Eg: "Hello" maps to {104, 101, 108, 108, 111, 0}
                 */
     int32_t     i32AddBsi[64];
+
+    /* Enable / Disable Atmos lock [Default : 0 = disabled] */
+    uint32_t    ui32AtmosLockEnabled;
 
 } BDSP_Raaga_Audio_DDPEncConfigParams;
 

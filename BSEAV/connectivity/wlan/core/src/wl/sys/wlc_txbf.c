@@ -1040,7 +1040,11 @@ BCMATTACHFN(wlc_txbf_init)(wlc_txbf_info_t *txbf)
 		}
 
 		txbf->bfe_capable = WLC_SU_BFE_CAP_PHY(wlc) ? TXBF_SU_BFE_CAP : 0;
-		txbf->bfe_capable |= WLC_MU_BFE_CAP_PHY(wlc) ?	TXBF_MU_BFE_CAP : 0;
+
+		/* 7271 does not support MU beamformee */
+		if (!D11REV_IS(wlc->pub->corerev, 66)) {
+			txbf->bfe_capable |= WLC_MU_BFE_CAP_PHY(wlc) ?	TXBF_MU_BFE_CAP : 0;
+		}
 
 		txbf->active = FALSE;
 		txbf->sounding_period = BF_SOUND_PERIOD_DFT;
@@ -2705,9 +2709,13 @@ bool wlc_txbf_bfen(wlc_txbf_info_t *txbf, struct scb *scb,
 		 * and always use all currently enabled txcores
 		 */
 		ntx_steer = (uint8)WLC_BITSCNT(wlc->stf->txchain);
+		WL_TXBF(("%s is_imp:%d ntx_steer:%d\n", __FUNCTION__, is_imp, ntx_steer));
 	} else {
 		/* Number of txbf steering chains is MIN(#active txchains, #bfe sts + 1) */
 		ntx_steer = MIN((uint8)WLC_BITSCNT(wlc->stf->txchain), (bfi->bfe_sts_cap + 1));
+		WL_TXBF(("%s is_imp:%d ntx_steer:%d #bits_txchain:%d bfe_sts_cap+1:%d\n",
+			__FUNCTION__, is_imp, ntx_steer, WLC_BITSCNT(wlc->stf->txchain),
+			(bfi->bfe_sts_cap + 1)));
 	}
 
 	if (D11REV_LE(wlc->pub->corerev, 64) || txbf->bfr_spexp == 0) {
@@ -2747,6 +2755,11 @@ bool wlc_txbf_bfen(wlc_txbf_info_t *txbf, struct scb *scb,
 		return FALSE;
 
 	ntx = wlc_stf_txchain_get(wlc, rspec);
+
+	if (ntx_steer <= 1)
+		WL_ERROR(("%s is_imp:%d ntx_steer:%d #bits_txchain:%d bfe_sts_cap+1:%d\n",
+			__FUNCTION__, is_imp, ntx_steer, WLC_BITSCNT(wlc->stf->txchain), (bfi->bfe_sts_cap + 1)));
+
 	ASSERT(ntx_steer > 1);
 
 	is_ldpc = RSPEC_ISLDPC(txbf_rspec);

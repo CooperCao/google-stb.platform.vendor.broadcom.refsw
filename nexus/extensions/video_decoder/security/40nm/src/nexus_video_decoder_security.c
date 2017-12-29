@@ -36,7 +36,6 @@
  *  ANY LIMITED REMEDY.
 
  ******************************************************************************/
-
 #include "nexus_video_decoder_module.h"
 #include "nexus_video_decoder_security.h"
 #if NEXUS_HAS_SECURITY
@@ -99,17 +98,43 @@ static NEXUS_Error startVideoDecoderUnSecure( unsigned deviceId );
  #define LOCK_SECURITY()  NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleInternalSettings.security);
  #define UNLOCK_SECURITY() NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleInternalSettings.security);
 #endif
-static NEXUS_Error secureFirmwareVideoDecoder(void *pPrivateData, BAFL_BootInfo *pstAVDBootInfo);
-
 
 static NEXUS_Error secureFirmwareVideoDecoder(void *pPrivateData, BAFL_BootInfo *pstAVDBootInfo)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
+    unsigned int i = 0;
+    BAFL_FirmwareInfo *pFirmwareInfo;
     NEXUS_VideoDecoderSecureBootContext *pContext = (NEXUS_VideoDecoderSecureBootContext *)pPrivateData;
 
-    BDBG_ASSERT(pPrivateData);
+    pContext->set = true;
+    pContext->avdBootInfo = *pstAVDBootInfo;
+    pContext->avdBootInfo.pstArc = pContext->astFirmwareInfo;
+
+    /* Fill the next pointer with the avaliable firmware information */
+    /* Expect decoder firmware information is updated in strict serial order */
+    for (pFirmwareInfo = pstAVDBootInfo->pstArc, i = 0; pFirmwareInfo != NULL; pFirmwareInfo = pFirmwareInfo->pNext, i++) {
+
+        BDBG_ASSERT(i < sizeof(pContext->astFirmwareInfo)/sizeof(BAFL_FirmwareInfo));
+
+        BKNI_Memcpy(&pContext->astFirmwareInfo[i], pFirmwareInfo, sizeof(BAFL_FirmwareInfo));
+
+        if (pFirmwareInfo->pNext) {
+            pContext->astFirmwareInfo[i].pNext = &pContext->astFirmwareInfo[i+1];
+        } else {
+            break; /* Not to increase value i. */
+        }
+    }
+
+    BDBG_ASSERT(!pContext->astFirmwareInfo[i].pNext);
+
+    return NEXUS_SUCCESS;
+}
+
+static NEXUS_Error secureFirmwareVideoDecoder_aux(NEXUS_VideoDecoderSecureBootContext *pContext, BAFL_BootInfo *pstAVDBootInfo)
+{
+    NEXUS_Error rc;
+
     BDBG_ASSERT(pstAVDBootInfo);
-    BDBG_ENTER(secureFirmwareVideoDecoder);
+    BDBG_ENTER(secureFirmwareVideoDecoder_aux);
 
     switch( pstAVDBootInfo->eMode )
     {
@@ -117,7 +142,6 @@ static NEXUS_Error secureFirmwareVideoDecoder(void *pPrivateData, BAFL_BootInfo 
         case BAFL_BootMode_eWatchdog: { BDBG_MSG(("Boot Mode: Watchdog (%d)", pstAVDBootInfo->eMode)); break; }
         default:                      { BDBG_MSG(("Boot Mode: Unknown (%d)", pstAVDBootInfo->eMode));         }
     }
-
 
     #if NEXUS_HAS_SECURITY
     rc = verifyFirmwareVideoDecoder( pstAVDBootInfo->pstArc, pContext->deviceID );
@@ -131,7 +155,7 @@ static NEXUS_Error secureFirmwareVideoDecoder(void *pPrivateData, BAFL_BootInfo 
     #endif
     if ( rc != NEXUS_SUCCESS ) { return BERR_TRACE(rc); }
 
-    BDBG_LEAVE(secureFirmwareVideoDecoder);
+    BDBG_LEAVE(secureFirmwareVideoDecoder_aux);
     return rc;
 }
 
@@ -209,8 +233,22 @@ static NEXUS_Error startVideoDecoderUnSecure( unsigned deviceId )
 }
 #endif
 
+NEXUS_Error NEXUS_VideoDecoder_P_BootDecoders(void)
+{
+    NEXUS_Error rc;
+    unsigned i;
+    for (i=0;i<NEXUS_NUM_XVD_DEVICES;i++) {
+        if (gVideoDecoderSecurityContext[i].set) {
+            rc = secureFirmwareVideoDecoder_aux(&gVideoDecoderSecurityContext[i], &gVideoDecoderSecurityContext[i].avdBootInfo);
+            if (rc) return BERR_TRACE(rc);
+            gVideoDecoderSecurityContext[i].set = false;
+        }
+    }
+    return NEXUS_SUCCESS;
+}
+
 /* retrieve function pointers to enable region verification and register protection */
-void NEXUS_VideoDecoder_P_GetSecurityCallbacks( BXVD_Settings *pSettings/*out*/, unsigned deviceId )
+void NEXUS_VideoDecoder_P_GetSecurityCallbacks( BXVD_Settings *pSettings, unsigned deviceId )
 {
     BDBG_ASSERT ( pSettings != NULL );
 
@@ -220,6 +258,7 @@ void NEXUS_VideoDecoder_P_GetSecurityCallbacks( BXVD_Settings *pSettings/*out*/,
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
+
 
     gVideoDecoderSecurityContext[deviceId].deviceID = deviceId;
     pSettings->pAVDBootCallback = secureFirmwareVideoDecoder;
@@ -294,6 +333,8 @@ NEXUS_Error verifyFirmwareVideoDecoder( BAFL_FirmwareInfo *pstArc, unsigned int 
     {
         if( pstArc->stCode.uiSize ) /* if code size is greater than zero*/
         {
+            BSTD_DeviceOffset offset;
+
             rc = getRegionId( &regionId, deviceID, pstArc->uiArcInstance );
             if( rc ) { return BERR_TRACE(rc); }
 
@@ -303,11 +344,22 @@ NEXUS_Error verifyFirmwareVideoDecoder( BAFL_FirmwareInfo *pstArc, unsigned int 
             UNLOCK_SECURITY();
             if( rc ) { return BERR_TRACE(rc);  }
 
-            NEXUS_FlushCache( (const void*)(pstArc->stCode.pStartAddress), pstArc->stCode.uiSize );
+            if (pstArc->stCode.pStartAddress) {
+                NEXUS_FlushCache( (const void*)(pstArc->stCode.pStartAddress), pstArc->stCode.uiSize );
+            }
+
+            /* for on-demand mapping, we require the caller to provide the physaddr. if none, we try to convert. */
+            offset = pstArc->stCode.offset;
+            if (!offset) {
+                offset = NEXUS_AddrToOffset(pstArc->stCode.pStartAddress);
+                if (!offset) {
+                    return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                }
+            }
 
             LOCK_SECURITY();
             rc = NEXUS_Security_RegionVerifyEnable_priv( regionId,
-                                                         NEXUS_AddrToOffset( pstArc->stCode.pStartAddress ),
+                                                         offset,
                                                          pstArc->stCode.uiSize );
             UNLOCK_SECURITY();
             if( rc != NEXUS_SUCCESS ) { return BERR_TRACE(rc); } /*Failed to verify video decoder region */

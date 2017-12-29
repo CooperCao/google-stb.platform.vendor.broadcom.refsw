@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -81,7 +81,7 @@ static const BVDC_P_McdiGameModeInfo s_aMcdiGameModeInfo[] =
     BVDC_P_MAKE_GAMEMODE_INFO(e3Fields_ForceSpatial,  0, 4),
     BVDC_P_MAKE_GAMEMODE_INFO(eMinField_ForceSpatial, 0, 1),
 };
-
+#if (BVDC_P_SUPPORT_MADR_VER > BVDC_P_MADR_VER_6)
 /* Madr game mode delay tables */
 static const BVDC_P_McdiGameModeInfo s_aMadrGameModeInfo[] =
 {
@@ -100,6 +100,7 @@ static const BVDC_P_McdiGameModeInfo s_aMadrGameModeInfo[] =
     BVDC_P_MAKE_GAMEMODE_INFO(e3Fields_ForceSpatial,  0, 4),
     BVDC_P_MAKE_GAMEMODE_INFO(eMinField_ForceSpatial, 0, 0),
 };
+#endif
 
 #include "bchp_mdi_top_0.h"
 #if (BVDC_P_SUPPORT_MCDI_VER != 0)
@@ -344,13 +345,17 @@ static void BVDC_P_Mcdi_BuildRul_Madr_NodeInit_isr
     }
 
     /* set bufs addr into reg */
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset,
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset, ullPixAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_1 + ulRegOffset, ullPixAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_2 + ulRegOffset, ullPixAddr[2]);
 #if (BVDC_P_MADR_VER_7 <= BVDC_P_SUPPORT_MADR_VER)
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset, ullPixAddr);
-#else
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_2 + ulRegOffset, ullPixAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset, ullPixAddr[3]);
 #endif
+
 
 
     /* ********* Step 2: QM buffer ********* */
@@ -385,9 +390,14 @@ static void BVDC_P_Mcdi_BuildRul_Madr_NodeInit_isr
     }
 
 
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset, ullQmAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_2 + ulRegOffset, ullQmAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_3 + ulRegOffset, ullQmAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr[3]);
 
 }
 
@@ -764,15 +774,14 @@ static void BVDC_P_Mcdi_BuildRul_Madr_SetEnable_isr
     BAVC_FrameRateCode             eFrameRate;
     BFMT_Orientation               eOrientation;
     uint32_t                       ulChannelId;
+    uint32_t                       ulRegOffset;
 #if (BVDC_P_SUPPORT_MCDI_SUPERSET)
-    uint32_t  ulRegOffset=hMcdi->ulRegOffset;
     uint32_t  ulRegOsd = BCHP_MDI_TOP_0_OSD_POSITION;
     uint32_t  ulRegModeCtrl0 = BCHP_MDI_TOP_0_MODE_CONTROL_0;
     uint32_t  ulRegModeCtrl1 = BCHP_MDI_FCN_0_MODE_CONTROL_1;
     uint32_t  ulRegItOutPut = BCHP_MDI_FCN_0_IT_OUTPUT_CONTROL;
     uint32_t  ulRegEnable = BCHP_MDI_TOP_0_ENABLE_CONTROL;
 #else
-    uint32_t  ulRegOffset=hMcdi->ulRegOffset1;
     uint32_t  ulRegOsd = BCHP_MDI_TOP_1_OSD_POSITION;
     uint32_t  ulRegModeCtrl0 = BCHP_MDI_TOP_1_MODE_CONTROL_0;
     uint32_t  ulRegModeCtrl1 = BCHP_MDI_FCN_1_MODE_CONTROL_1;
@@ -785,6 +794,11 @@ static void BVDC_P_Mcdi_BuildRul_Madr_SetEnable_isr
 
 
     BDBG_OBJECT_ASSERT(hMcdi, BVDC_MDI);
+#if (BVDC_P_SUPPORT_MCDI_SUPERSET)
+    ulRegOffset  = hMcdi->ulRegOffset;
+#else
+    ulRegOffset  = hMcdi->ulRegOffset1;
+#endif
     bRepeat      = pPicture->stFlags.bPictureRepeatFlag,
     eFrameRate   = pPicture->eFrameRateCode;
     eOrientation = BVDC_P_VNET_USED_MVP_AT_WRITER(pPicture->stVnetMode) ?
@@ -1023,9 +1037,14 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_NodeInit_isr
         }
     }
     /* set bufs addr into reg */
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset,
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset,ullPixAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset, ullPixAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_1 + ulRegOffset, ullPixAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_2 + ulRegOffset, ullPixAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset, ullPixAddr[3]);
 
     /* 7420 x does  not have QM */
     /* Buffer inside each group*/
@@ -1045,9 +1064,14 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_NodeInit_isr
         ullQmAddr[3] = BVDC_P_ADDR_ALIGN_UP(ullQmAddr[2] + ulQmBufSize, BVDC_P_PITCH_ALIGN);
     }
 
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset, ullQmAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_2 + ulRegOffset, ullQmAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_3 + ulRegOffset, ullQmAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr[3]);
 
     if(!bForceSpatial)
     {
@@ -1058,9 +1082,14 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_NodeInit_isr
     }
 
 
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_5 + ulRegOffset,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_0 + ulRegOffset, ullQmAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_5 + ulRegOffset, ullQmAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_6 + ulRegOffset, ullQmAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_7 + ulRegOffset, ullQmAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_0 + ulRegOffset, ullQmAddr[3]);
 
     return;
 }
@@ -1078,17 +1107,20 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_FcbInit_isr
     uint32_t ulRegOffset;
     uint32_t ulModeCtrl;
     uint32_t ulHSize;
-    bool bIsHD=false;
 #if (BVDC_P_SUPPORT_MCDI_VER > BVDC_P_MCDI_VER_3)
-    bool     bForceSpatial = BVDC_P_MAD_SPATIAL(hMcdi->eGameMode);
+    bool     bForceSpatial;
 #endif
-
     uint32_t ulData;
+    bool bIsHD=false;
 
-    ulHSize = pPicture->pMadIn->ulWidth;
     BDBG_OBJECT_ASSERT(hMcdi, BVDC_MDI);
+    ulHSize = pPicture->pMadIn->ulWidth;
     ulRegOffset = hMcdi->ulRegOffset;
     bIsHD = (ulHSize >= BFMT_720P_WIDTH);
+#if (BVDC_P_SUPPORT_MCDI_VER > BVDC_P_MCDI_VER_3)
+    bForceSpatial = BVDC_P_MAD_SPATIAL(hMcdi->eGameMode);
+#endif
+
 
 #if (BVDC_P_SUPPORT_MCDI_VER >= BVDC_P_MCDI_VER_3)
     ulModeCtrl =
@@ -1573,7 +1605,7 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_SetEnable_isr
       BVDC_P_PictureNode            *pPicture,
       bool                           bInit)
 {
-    uint32_t  ulRegOffset=hMcdi->ulRegOffset;
+    uint32_t  ulRegOffset;
     uint32_t  ulModeSel, ulFldType, ulTrickModeSel, ulXmaEnum, ulXmaMode, ulWeaveMode;
     bool      bHardStart = false;
     bool bRev32Pulldown;
@@ -1587,6 +1619,7 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_SetEnable_isr
     uint32_t                       ulConstBlend;
 
     BDBG_OBJECT_ASSERT(hMcdi, BVDC_MDI);
+    ulRegOffset = hMcdi->ulRegOffset;
     bRepeat      = pPicture->stFlags.bPictureRepeatFlag;
     eFrameRate   = pPicture->eFrameRateCode;
     eOrientation = BVDC_P_VNET_USED_MVP_AT_WRITER(pPicture->stVnetMode) ?

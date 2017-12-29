@@ -1153,7 +1153,7 @@ static bool is_valid_server_cap(const GLXX_SERVER_STATE_T *state, GLenum cap)
    case GL_SAMPLE_SHADING:
 #endif
    case GL_SAMPLE_MASK:
-      return KHRN_GLES31_DRIVER && !IS_GL_11(state);
+      return V3D_VER_AT_LEAST(3,3,0,0) && !IS_GL_11(state);
 
    default:
       return false;
@@ -1315,7 +1315,7 @@ static void set_enabled(GLenum cap, bool enabled)
       state->dirty.cfg = KHRN_RENDER_STATE_SET_ALL;
       break;
    case GL_SAMPLE_MASK:
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
       state->dirty.sample_state = KHRN_RENDER_STATE_SET_ALL;
 #endif
       state->sample_mask.enable = !!enabled;
@@ -1852,7 +1852,7 @@ GL_API void GL_APIENTRY glPatchParameteri(GLenum pname, GLint value)
 #endif
 
 
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 GL_API void GL_APIENTRY glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat limit)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
@@ -1875,7 +1875,7 @@ GL_API void GL_APIENTRY glPolygonOffset(GLfloat factor, GLfloat units)
       return;
 
    state->dirty.polygon_offset = KHRN_RENDER_STATE_SET_ALL;
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    state->polygon_offset.limit = 0.0f;
 #endif
    state->polygon_offset.factor = factor;
@@ -1890,7 +1890,7 @@ GL_API void GL_APIENTRY glPolygonOffsetx(GLfixed factor, GLfixed units)
       return;
 
    state->dirty.polygon_offset = KHRN_RENDER_STATE_SET_ALL;
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    state->polygon_offset.limit = 0.0f;
 #endif
    state->polygon_offset.factor = fixed_to_float(factor);
@@ -1922,9 +1922,14 @@ static GLenum readpixels_check_internals(const GLXX_FRAMEBUFFER_T *fb, int x,
    return GL_NO_ERROR;
 }
 
-static void read_pixels(GLXX_SERVER_STATE_T *state, int x, int y, GLsizei width, GLsizei height,
+static void read_pixels(int x, int y, GLsizei width, GLsizei height,
    GLenum format, GLenum type, GLsizei buf_size, void *pixels)
 {
+   PROFILE_FUNCTION_MT("GL");
+
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state) return;
+
    khrn_image *src = NULL;     /* Used in error handler at 'end' */
 
    GLXX_BUFFER_T *pixel_buffer = state->bound_buffer[GLXX_BUFTGT_PIXEL_PACK].obj;
@@ -1974,15 +1979,13 @@ static void read_pixels(GLXX_SERVER_STATE_T *state, int x, int y, GLsizei width,
    glxx_get_pack_unpack_info(&state->pixel_store_state, true, width,
          height, format, type, &dst_info);
 
-   GFX_BUFFER_DESC_T dst_desc;
+   GFX_BUFFER_DESC_T dst_desc = {0};
    dst_desc.width = width;
    dst_desc.height = height;
    dst_desc.depth = 1;
    dst_desc.num_planes = 1;
    dst_desc.planes[0].lfmt = dst_lfmt;
-   dst_desc.planes[0].offset = 0;
    dst_desc.planes[0].pitch = dst_info.stride;
-   dst_desc.planes[0].slice_pitch = 0;
 
    size_t buf_offset = 0;
    void *dst_ptr;
@@ -2054,51 +2057,33 @@ end:
    KHRN_MEM_ASSIGN(src, NULL);
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
+
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
    GLenum format, GLenum type, void *pixels)
 {
-   PROFILE_FUNCTION_MT("GL");
-
-   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
-   if (!state) return;
-
-   read_pixels(state, x, y, width, height, format, type, INT_MAX, pixels);
-
-   glxx_unlock_server_state();
-}
-
-static void GL_APIENTRY read_n_pixels(GLint x, GLint y, GLsizei width, GLsizei height,
-      GLenum format, GLenum type, GLsizei buf_size, void *pixels)
-{
-   PROFILE_FUNCTION_MT("GL");
-
-   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
-   if (!state) return;
-
-   read_pixels(state, x, y, width, height, format, type, buf_size, pixels);
-
-   glxx_unlock_server_state();
+   read_pixels(x, y, width, height, format, type, INT_MAX, pixels);
 }
 
 GL_API void GL_APIENTRY glReadnPixelsEXT(GLint x, GLint y, GLsizei width, GLsizei height,
    GLenum format, GLenum type, GLsizei buf_size, void *pixels)
 {
-   read_n_pixels(x, y, width, height, format, type, buf_size, pixels);
+   read_pixels(x, y, width, height, format, type, buf_size, pixels);
 }
 
 GL_API void GL_APIENTRY glReadnPixelsKHR(GLint x, GLint y, GLsizei width, GLsizei height,
    GLenum format, GLenum type, GLsizei buf_size, void *pixels)
 {
-   read_n_pixels(x, y, width, height, format, type, buf_size, pixels);
+   read_pixels(x, y, width, height, format, type, buf_size, pixels);
 }
 
 #if KHRN_GLES32_DRIVER
-GL_APICALL void GL_APIENTRY glReadnPixels(GLint x, GLint y, GLsizei width, GLsizei height,
-                                          GLenum format, GLenum type, GLsizei bufSize, void *data)
+GL_API void GL_APIENTRY glReadnPixels(GLint x, GLint y, GLsizei width, GLsizei height,
+                                      GLenum format, GLenum type, GLsizei buf_size, void *pixels)
 {
-   read_n_pixels(x, y, width, height, format, type, buf_size, pixels);
+   read_pixels(x, y, width, height, format, type, buf_size, pixels);
 }
 #endif
 
@@ -2126,7 +2111,7 @@ GL_API void GL_APIENTRY glSampleCoveragex(GLclampx value, GLboolean invert)
    glxx_unlock_server_state();
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_API void GL_APIENTRY glSampleMaski(GLuint maskNumber, GLbitfield mask)
 {
@@ -2138,7 +2123,7 @@ GL_API void GL_APIENTRY glSampleMaski(GLuint maskNumber, GLbitfield mask)
       goto end;
    }
 
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    state->dirty.sample_state = KHRN_RENDER_STATE_SET_ALL;
 #endif
    state->sample_mask.mask[maskNumber] = mask;
@@ -2497,7 +2482,7 @@ void glintAttribPointer_GL11(GLXX_SERVER_STATE_T *state, GLuint index, GLint siz
    vertex_attrib_pointer(state, index, size, type, normalized, stride, ptr, false);
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 static void vertex_attrib_format(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset, bool integer)
 {
@@ -2577,7 +2562,7 @@ GL_API void GL_APIENTRY glVertexAttribIPointer(GLuint index, GLint size, GLenum 
    glxx_unlock_server_state();
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_API void GL_APIENTRY glVertexAttribBinding (GLuint attribindex, GLuint bindingindex)
 {
@@ -3000,7 +2985,7 @@ GL20_PROGRAM_T *glxx_server_get_active_program(GLXX_SERVER_STATE_T *state)
    return NULL;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 static void primitive_bounding_box(float minX, float minY, float minZ, float minW,
                                    float maxX, float maxY, float maxZ, float maxW)
 {
@@ -3025,7 +3010,7 @@ GL_API void GL_APIENTRY glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLflo
    primitive_bounding_box(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
 }
 #endif
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 GL_API void GL_APIENTRY glPrimitiveBoundingBoxEXT(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW,
                                                   GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW)
 {

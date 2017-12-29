@@ -361,9 +361,9 @@ eRet CThumb::getStillSurface(
         unsigned            height
         )
 {
-    eRet                               ret            = eRet_Ok;
-    NEXUS_Error                        nerror         = NEXUS_SUCCESS;
-    NEXUS_StripedSurfaceHandle         stripedSurface = NULL;
+    eRet                       ret            = eRet_Ok;
+    NEXUS_Error                nerror         = NEXUS_SUCCESS;
+    NEXUS_StripedSurfaceHandle stripedSurface = NULL;
 
     nerror = NEXUS_StillDecoder_GetStripedSurface(pStillDecode->getStillVideoDecode(), &stripedSurface);
     CHECK_NEXUS_ERROR_GOTO("unable to get striped surface", ret, nerror, error);

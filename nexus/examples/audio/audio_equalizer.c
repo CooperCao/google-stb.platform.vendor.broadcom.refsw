@@ -59,6 +59,7 @@
 #include "nexus_spdif_output.h"
 #include "nexus_composite_output.h"
 #include "nexus_component_output.h"
+#include "nexus_audio_mixer.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
@@ -67,7 +68,18 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#if NEXUS_HAS_PLAYBACK
+#define ENABLE_PLAYBACK     1
+#if ENABLE_PLAYBACK
+#include "nexus_playback.h"
+#include "nexus_file.h"
+#endif
+#endif
+
 /* the following define the input file and its characteristics -- these will vary by input file */
+#if ENABLE_PLAYBACK
+static const char *fname = "/mnt/streams/streamer/bugs_toys2_jurassic_q64_cd.mpg";
+#endif
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
 #define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
 #define AUDIO_CODEC NEXUS_AudioCodec_eAc3
@@ -79,9 +91,17 @@ int main(void)
 	int tmp;
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
-    NEXUS_InputBand inputBand;
-    NEXUS_ParserBand parserBand;
+    #if ENABLE_PLAYBACK
+    NEXUS_FilePlayHandle file;
+    NEXUS_PlaypumpHandle playpump;
+    NEXUS_PlaybackHandle playback;
+    NEXUS_PlaybackSettings playbackSettings;
+    NEXUS_PlaybackPidChannelSettings playbackPidSettings;
+#else
+    NEXUS_ParserBand parserBand = NEXUS_ParserBand_e0;
     NEXUS_ParserBandSettings parserBandSettings;
+    NEXUS_InputBand inputBand;
+#endif
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_PidChannelHandle videoPidChannel, audioPidChannel;
@@ -93,8 +113,8 @@ int main(void)
     NEXUS_AudioDecoderHandle pcmDecoder, compressedDecoder;
     NEXUS_AudioDecoderStartSettings audioProgram;
 
-	NEXUS_AudioEqualizerHandle	eqForDac= NULL;
-	NEXUS_AudioEqualizerStageHandle	eqStgForDac;
+	NEXUS_AudioEqualizerHandle	eqforHdmi= NULL;
+	NEXUS_AudioEqualizerStageHandle	eqStgForHdmi;
     NEXUS_AudioEqualizerSettings eqSettings;
     NEXUS_AudioEqualizerStageSettings eqStgSettings;
 
@@ -105,6 +125,9 @@ int main(void)
     NEXUS_AudioOutputHandle audioDacHandle = NULL;
     NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
     NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
+
+    NEXUS_AudioMixerHandle mixer, mixerDac;
+    NEXUS_AudioMixerSettings mixerSettings;
         
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
@@ -147,110 +170,11 @@ int main(void)
     }
     #endif
 
-    /* For this example, get data from a streamer input. The input band is platform-specific.
-    See nexus/examples/frontend for input from a demodulator. */
-    NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
-
-    /* Map a parser band to the streamer input band. */
-    parserBand = NEXUS_ParserBand_Open(NEXUS_ANY_ID);
-    NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
-    parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
-    parserBandSettings.sourceTypeSettings.inputBand = inputBand;
-    parserBandSettings.transportType = TRANSPORT_TYPE;
-    NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
-
-    /* Open the audio and video pid channels */
-    videoPidChannel = NEXUS_PidChannel_Open(parserBand, VIDEO_PID, NULL);
-    audioPidChannel = NEXUS_PidChannel_Open(parserBand, AUDIO_PID, NULL);
-
-    /* Open the StcChannel to do lipsync with the PCR */
-    NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
-    stcSettings.timebase = NEXUS_Timebase_e0;
-    stcSettings.mode = NEXUS_StcChannelMode_ePcr; /* live */
-    stcSettings.modeSettings.pcr.pidChannel = videoPidChannel; /* PCR happens to be on video pid */
-    stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
-
-
-	/************ Create equalizer **********/
-    NEXUS_AudioEqualizer_GetDefaultSettings(&eqSettings);
-
-    eqForDac = NEXUS_AudioEqualizer_Create(&eqSettings);
-    assert(NULL != eqForDac);
-
-    printf("\n\t Enter Type of Equalizer: ");
-    printf("\n 1 for ToneControl");
-    printf("\n 2 for FiveBand");
-    printf("\n 3 for SevenBand");
-    printf("\n 4 for Subsonic");
-    printf("\n 5 for Subwoofer\n");
-    scanf("%d", &tmp);
-
-    switch ( tmp )
-    {
-    default:
-    case 1:
-        eqType = NEXUS_AudioEqualizerStageType_eToneControl;
-        break;
-    case 2:
-        eqType = NEXUS_AudioEqualizerStageType_eFiveBand;
-        break;
-    case 3:
-        eqType = NEXUS_AudioEqualizerStageType_eSevenBand;
-        break;
-    case 4:
-        eqType = NEXUS_AudioEqualizerStageType_eSubsonic;
-        break;
-    case 5:
-        eqType = NEXUS_AudioEqualizerStageType_eSubwoofer;
-        break;
-    }
-
-    NEXUS_AudioEqualizerStage_GetDefaultSettings(eqType,&eqStgSettings);
-
-    eqStgForDac = NEXUS_AudioEqualizerStage_Create(&eqStgSettings);
-    assert(NULL != eqStgForDac);
-    
-    errCode = NEXUS_AudioEqualizer_AddStage(eqForDac, eqStgForDac);
-    assert(errCode == NEXUS_SUCCESS);
-
     /* Bring up audio decoders and outputs */
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
     compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
-    if (audioDacHandle) {
 
-        errCode = NEXUS_AudioOutput_SetEqualizer(
-            audioDacHandle,
-            eqForDac);
-        assert(errCode == NEXUS_SUCCESS);
-
-        NEXUS_AudioOutput_AddInput(
-            audioDacHandle,
-            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-    }
-    if (audioSpdifHandle) {
-        if ( AUDIO_CODEC == NEXUS_AudioCodec_eAc3 )
-        {
-            /* Only pass through AC3 */
-            NEXUS_AudioOutput_AddInput(
-                audioSpdifHandle,
-                NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-        }
-        else
-        {
-            NEXUS_AudioOutput_AddInput(
-                audioSpdifHandle,
-                NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-        }
-    }
-    #if NEXUS_NUM_HDMI_OUTPUTS
-    if (audioHdmiHandle) {
-        NEXUS_AudioOutput_AddInput(
-            audioHdmiHandle,
-            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-    }
-    #endif
-
-    /* Bring up display and outputs */
+        /* Bring up display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.format = NEXUS_VideoFormat_eNtsc;
     display = NEXUS_Display_Open(0, &displaySettings);
@@ -283,6 +207,157 @@ int main(void)
     vdecode = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
     NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(vdecode));
 
+    #if ENABLE_PLAYBACK
+    playpump = NEXUS_Playpump_Open(0, NULL);
+    assert(playpump);
+    playback = NEXUS_Playback_Create();
+    assert(playback);
+
+    file = NEXUS_FilePlay_OpenPosix(fname, NULL);
+    if (!file) {
+        fprintf(stderr, "can't open file:%s\n", fname);
+        return -1;
+    }
+    #else
+    /* For this example, get data from a streamer input. The input band is platform-specific.
+    See nexus/examples/frontend for input from a demodulator. */
+    NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
+
+    /* Map a parser band to the streamer input band. */
+    parserBand = NEXUS_ParserBand_Open(NEXUS_ANY_ID);
+    NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
+    parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
+    parserBandSettings.sourceTypeSettings.inputBand = inputBand;
+    parserBandSettings.transportType = TRANSPORT_TYPE;
+    NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
+    #endif
+
+    NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
+
+    #if ENABLE_PLAYBACK
+    /* configure stc channel */
+    stcSettings.timebase = NEXUS_Timebase_e0;
+    stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+    stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
+
+    /* connect playpump and playback */
+    NEXUS_Playback_GetSettings(playback, &playbackSettings);
+    playbackSettings.stcChannel = stcChannel;
+    playbackSettings.playpump = playpump;
+    playbackSettings.playpumpSettings.transportType = TRANSPORT_TYPE;
+    NEXUS_Playback_SetSettings(playback, &playbackSettings);
+
+    /* Open the audio and video pid channels */
+    NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
+    playbackPidSettings.pidTypeSettings.video.codec = VIDEO_CODEC; /* must be told codec for correct handling */
+    playbackPidSettings.pidTypeSettings.video.index = true;
+    playbackPidSettings.pidTypeSettings.video.decoder = vdecode;
+    videoPidChannel = NEXUS_Playback_OpenPidChannel(playback, VIDEO_PID, &playbackPidSettings);
+    NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
+    playbackPidSettings.pidTypeSettings.audio.primary = pcmDecoder;
+    audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, AUDIO_PID, &playbackPidSettings);
+    printf("audioPidChannel %p, videoPidChannel %p\n", (void*)audioPidChannel, (void*)videoPidChannel);
+
+    #else
+    /* Open the audio and video pid channels */
+    videoPidChannel = NEXUS_PidChannel_Open(parserBand, VIDEO_PID, NULL);
+    audioPidChannel = NEXUS_PidChannel_Open(parserBand, AUDIO_PID, NULL);
+
+    /* Open the StcChannel to do lipsync with the PCR */
+    stcSettings.timebase = NEXUS_Timebase_e0;
+    stcSettings.mode = NEXUS_StcChannelMode_ePcr; /* live */
+    stcSettings.modeSettings.pcr.pidChannel = videoPidChannel; /* PCR happens to be on video pid */
+    stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
+    #endif
+
+
+	/************ Create equalizer **********/
+    NEXUS_AudioEqualizer_GetDefaultSettings(&eqSettings);
+
+    eqforHdmi = NEXUS_AudioEqualizer_Create(&eqSettings);
+    assert(NULL != eqforHdmi);
+
+    printf("\n\t Enter Type of Equalizer: ");
+    printf("\n 1 for ToneControl");
+    printf("\n 2 for FiveBand");
+    printf("\n 3 for SevenBand");
+    printf("\n 4 for Subsonic");
+    printf("\n 5 for Subwoofer\n");
+    scanf("%d", &tmp);
+
+    switch ( tmp )
+    {
+    default:
+    case 1:
+        eqType = NEXUS_AudioEqualizerStageType_eToneControl;
+        break;
+    case 2:
+        eqType = NEXUS_AudioEqualizerStageType_eFiveBand;
+        break;
+    case 3:
+        eqType = NEXUS_AudioEqualizerStageType_eSevenBand;
+        break;
+    case 4:
+        eqType = NEXUS_AudioEqualizerStageType_eSubsonic;
+        break;
+    case 5:
+        eqType = NEXUS_AudioEqualizerStageType_eSubwoofer;
+        break;
+    }
+
+    NEXUS_AudioEqualizerStage_GetDefaultSettings(eqType,&eqStgSettings);
+    switch ( tmp )
+    {
+    default:
+        break;
+    case 2:
+        eqStgSettings.modeSettings.fiveBand.gain1000Hz = 10;
+        eqStgSettings.modeSettings.fiveBand.gain3000Hz = -10;
+        break;
+    }
+    eqStgForHdmi = NEXUS_AudioEqualizerStage_Create(&eqStgSettings);
+    assert(NULL != eqStgForHdmi);
+    
+    errCode = NEXUS_AudioEqualizer_AddStage(eqforHdmi, eqStgForHdmi);
+    assert(errCode == NEXUS_SUCCESS);
+
+
+    /* Bring up audio outputs */
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
+        errCode = NEXUS_AudioOutput_SetEqualizer(
+            audioHdmiHandle,
+            eqforHdmi);
+        assert(errCode == NEXUS_SUCCESS);
+
+
+        NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
+        mixerSettings.fixedOutputFormatEnabled = true;
+        mixerSettings.fixedOutputFormat = NEXUS_AudioMultichannelFormat_eStereo;
+        mixer = NEXUS_AudioMixer_Open(&mixerSettings);
+
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioMixer_GetConnector(mixer));
+
+    }
+    #endif
+
+    if (audioDacHandle){
+            NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
+        mixerSettings.fixedOutputFormatEnabled = true;
+        mixerSettings.fixedOutputFormat = NEXUS_AudioMultichannelFormat_eStereo;
+        mixerDac = NEXUS_AudioMixer_Open(&mixerSettings);
+
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioMixer_GetConnector(mixerDac));
+
+    }
+
+
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up
     the audio outputs. */
     NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
@@ -294,6 +369,17 @@ int main(void)
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
 
+    printf("STARTING MIXER Press Enter to start decode\n");
+    NEXUS_AudioMixer_Start(mixer);
+
+    scanf("%d", &tmp);
+
+
+
+    NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    NEXUS_AudioMixer_AddInput(mixerDac, NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+
+
     /* Start Decoders */
     NEXUS_VideoDecoder_Start(vdecode, &videoProgram);
     NEXUS_AudioDecoder_Start(pcmDecoder, &audioProgram);
@@ -302,6 +388,12 @@ int main(void)
         /* Only pass through AC3 */
         NEXUS_AudioDecoder_Start(compressedDecoder, &audioProgram);
     }
+
+    #if ENABLE_PLAYBACK
+    /* Start playback */
+    NEXUS_Playback_Start(playback, file, NULL);
+    #endif
+
 
 #if 1
     printf("Press q to quit\n");
@@ -394,8 +486,8 @@ int main(void)
         NEXUS_AudioDecoder_Stop(compressedDecoder);
     }
 
-    NEXUS_AudioEqualizer_Destroy(eqForDac);
-    NEXUS_AudioEqualizerStage_Destroy(eqStgForDac);
+    NEXUS_AudioEqualizer_Destroy(eqforHdmi);
+    NEXUS_AudioEqualizerStage_Destroy(eqStgForHdmi);
     NEXUS_AudioDecoder_Close(pcmDecoder);
     NEXUS_AudioDecoder_Close(compressedDecoder);
     NEXUS_VideoDecoder_Stop(vdecode);

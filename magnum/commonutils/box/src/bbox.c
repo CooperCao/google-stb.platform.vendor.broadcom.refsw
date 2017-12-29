@@ -44,6 +44,7 @@
 #include "breg_mem.h"            /* Chip register access memory mapped */
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
+#include "bbox_rts_priv.h"
 #include "bbox_priv.h"
 #include "bbox_vdc.h"
 
@@ -52,7 +53,9 @@ BDBG_MODULE(BBOX);
 BDBG_FILE_MODULE(BBOX_CFG);
 BDBG_OBJECT_ID(BBOX_BOX);
 
-void BBOX_P_PrintBoxConfig
+#ifndef BBOX_FOR_BOOTUPDATER
+
+static void BBOX_P_PrintBoxConfig
     ( BBOX_Config                     *pBoxConfig )
 {
 #define BBOX_VDC_DEFAULT "VDC default"
@@ -61,12 +64,53 @@ void BBOX_P_PrintBoxConfig
     BBOX_Vdc_Capabilities *pBoxVdcCap;
     uint32_t i, j;
     uint32_t ulXcodeCapVfd, ulXcodeGfd;
+    const BBOX_MemConfig stMemConfig = pBoxConfig->stMemConfig;
 
     BDBG_ASSERT(pBoxConfig);
 
     pBoxVdcCap = &pBoxConfig->stVdc;
 
-    BDBG_MODULE_MSG(BBOX_CFG, ("-- Box Mode %d VDC limits --", pBoxConfig->stBox.ulBoxId));
+    BDBG_MODULE_MSG(BBOX_CFG, ("BOX MODE %d", pBoxConfig->stBox.ulBoxId));
+    BDBG_MODULE_MSG(BBOX_CFG, ("    MEMC Client : MEMC Index Configuration"));
+    BDBG_MODULE_MSG(BBOX_CFG, ("        Number of MEMCs   : %d", stMemConfig.ulNumMemc));
+    BDBG_MODULE_MSG(BBOX_CFG, ("        DRAM Refresh Rate : %dx", stMemConfig.eRefreshRate));
+
+    for (i=0; i<BBOX_VDC_HDMI_DISPLAY_COUNT; i++)
+    {
+        if (stMemConfig.stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[i] != BBOX_MemcIndex_Invalid)
+            BDBG_MODULE_MSG(BBOX_CFG, ("        HDMI Tx %d CFC                : MEMC %d", i, stMemConfig.stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[i]));
+    }
+
+    for (i=0; i<BBOX_VDC_DISPLAY_COUNT; i++)
+    {
+        if (pBoxVdcCap->astDisplay[i].bAvailable == true)
+            BDBG_MODULE_MSG(BBOX_CFG, ("        Display %d :", i));
+
+        for (j=0; j<BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY; j++)
+        {
+            if (stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j] != BBOX_MemcIndex_Invalid)
+                BDBG_MODULE_MSG(BBOX_CFG, ("            Video Win %d CAP/VFD      : MEMC %d", j,
+                    stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j]));
+            if (stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j] != BBOX_MemcIndex_Invalid)
+                BDBG_MODULE_MSG(BBOX_CFG, ("            Video Win %d Deinterlacer : MEMC %d", j,
+                    stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j]));
+        }
+        for (j=0; j<BBOX_VDC_GFX_WINDOW_COUNT_PER_DISPLAY; j++)
+        {
+            if (stMemConfig.stVdcMemcIndex.astDisplay[i].aulGfdWinMemcIndex[j] != BBOX_MemcIndex_Invalid)
+                BDBG_MODULE_MSG(BBOX_CFG, ("            Graphics Win %d           : MEMC %d", j,
+                    stMemConfig.stVdcMemcIndex.astDisplay[i].aulGfdWinMemcIndex[j]));
+        }
+
+        if (stMemConfig.stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex != BBOX_MemcIndex_Invalid)
+            BDBG_MODULE_MSG(BBOX_CFG, ("            CMP CFC                  : MEMC %d",
+                stMemConfig.stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex));
+        if (stMemConfig.stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex != BBOX_MemcIndex_Invalid)
+            BDBG_MODULE_MSG(BBOX_CFG, ("            GFD CFC                  : MEMC %d",
+                stMemConfig.stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex));
+    }
+
+    BDBG_MODULE_MSG(BBOX_CFG, ("    VDC limits:"));
 
     /* Print source limits */
     for (i=0; i<BAVC_SourceId_eMax; i++)
@@ -74,160 +118,166 @@ void BBOX_P_PrintBoxConfig
         uint32_t ulWidth, ulHeight;
         BBOX_Vdc_Colorspace eColorSpace;
 
-        BDBG_MODULE_MSG(BBOX_CFG, ("    Source %d:", i));
-        BDBG_MODULE_MSG(BBOX_CFG, ("        available: %s", (pBoxVdcCap->astSource[i].bAvailable == true) ? "true" : "false"));
-        BDBG_MODULE_MSG(BBOX_CFG, ("        Mtg: %s", (pBoxVdcCap->astSource[i].bMtgCapable == true) ? "true" : "false"));
-        BDBG_MODULE_MSG(BBOX_CFG, ("        bpp: %x", pBoxVdcCap->astSource[i].eBpp));
-        BDBG_MODULE_MSG(BBOX_CFG, ("        compressed: %s", (pBoxVdcCap->astSource[i].bCompressed == true) ? "true" : "false"));
+        if (pBoxVdcCap->astSource[i].bAvailable == true)
+        {
+            BDBG_MODULE_MSG(BBOX_CFG, ("        Source %d:", i));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            available: %s", (pBoxVdcCap->astSource[i].bAvailable == true) ? "true" : "false"));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            Mtg: %s", (pBoxVdcCap->astSource[i].bMtgCapable == true) ? "true" : "false"));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            bpp: %x", pBoxVdcCap->astSource[i].eBpp));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            compressed: %s", (pBoxVdcCap->astSource[i].bCompressed == true) ? "true" : "false"));
 
-        eColorSpace = pBoxVdcCap->astSource[i].eColorSpace;
-        if (eColorSpace == BBOX_VDC_DISREGARD)
-        {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        colorspace: %s", BBOX_VDC_DEFAULT));
-        }
-        else
-        {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        colorspace: %d", eColorSpace));
-        }
-        ulWidth = pBoxVdcCap->astSource[i].stSizeLimits.ulWidth;
-        ulHeight = pBoxVdcCap->astSource[i].stSizeLimits.ulHeight;
-        if (ulWidth == BBOX_VDC_DISREGARD && ulHeight == BBOX_VDC_DISREGARD)
-        {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        width: %s, height: %s", BBOX_VDC_DEFAULT, BBOX_VDC_DEFAULT));
-        }
-        else
-        {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        width: %d, height: %d", ulWidth, ulHeight));
+            eColorSpace = pBoxVdcCap->astSource[i].eColorSpace;
+            if (eColorSpace == BBOX_VDC_DISREGARD)
+            {
+                BDBG_MODULE_MSG(BBOX_CFG, ("            colorspace: %s", BBOX_VDC_DEFAULT));
+            }
+            else
+            {
+                BDBG_MODULE_MSG(BBOX_CFG, ("            colorspace: %d", eColorSpace));
+            }
+            ulWidth = pBoxVdcCap->astSource[i].stSizeLimits.ulWidth;
+            ulHeight = pBoxVdcCap->astSource[i].stSizeLimits.ulHeight;
+            if (ulWidth == BBOX_VDC_DISREGARD && ulHeight == BBOX_VDC_DISREGARD)
+            {
+                BDBG_MODULE_MSG(BBOX_CFG, ("            width: %s, height: %s", BBOX_VDC_DEFAULT, BBOX_VDC_DEFAULT));
+            }
+            else
+            {
+                BDBG_MODULE_MSG(BBOX_CFG, ("            width: %d, height: %d", ulWidth, ulHeight));
+            }
         }
     }
 
     /* Print display and window limits */
     for (i=0; i<BBOX_VDC_DISPLAY_COUNT; i++)
     {
-        BDBG_MODULE_MSG(BBOX_CFG, ("    Display %d:", i));
-        BDBG_MODULE_MSG(BBOX_CFG, ("        available: %s", (pBoxVdcCap->astDisplay[i].bAvailable == true) ? "true" : "false"));
-        BDBG_MODULE_MSG(BBOX_CFG, ("        max format: %d", pBoxVdcCap->astDisplay[i].eMaxVideoFmt));
-        BDBG_MODULE_MSG(BBOX_CFG, ("        max HDMI format: %d", pBoxVdcCap->astDisplay[i].eMaxHdmiDisplayFmt));
-        BDBG_MODULE_MSG(BBOX_CFG, ("        mosaic mode class: %d", pBoxVdcCap->astDisplay[i].eMosaicModeClass));
-        if (pBoxVdcCap->astDisplay[i].stStgEnc.ulStgId == BBOX_FTR_INVALID)
+        if (pBoxVdcCap->astDisplay[i].bAvailable == true)
         {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        Stg %s:", BBOX_VDC_FTR_INVALID));
-            BDBG_MODULE_MSG(BBOX_CFG, ("        Stg available: no"));
-            BDBG_MODULE_MSG(BBOX_CFG, ("        Stg Core: %s; Stg Channel: %s", BBOX_VDC_FTR_INVALID, BBOX_VDC_FTR_INVALID));
-        }
-        else
-        {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        Stg %d:", pBoxVdcCap->astDisplay[i].stStgEnc.ulStgId));
-            BDBG_MODULE_MSG(BBOX_CFG, ("        Stg available: %s", (pBoxVdcCap->astDisplay[i].stStgEnc.bAvailable == true) ? "true" : "false"));
-            BDBG_MODULE_MSG(BBOX_CFG, ("        Stg Core: %d; Stg Channel: %d", pBoxVdcCap->astDisplay[i].stStgEnc.ulEncoderCoreId,
-                pBoxVdcCap->astDisplay[i].stStgEnc.ulEncoderChannel));
-        }
-
-        for (j=0; j<BBOX_VDC_WINDOW_COUNT_PER_DISPLAY; j++)
-        {
-            uint32_t ulWidthFraction, ulHeightFraction, ulMad;
-            BBOX_Vdc_Resource_Capture eCap;
-            BBOX_Vdc_Resource_Feeder eVfd;
-            BBOX_Vdc_Resource_Scaler eScl;
-            BBOX_Vdc_SclCapBias eSclCapBias;
-            bool bSrcSideDeinterlacer;
-
-            BDBG_MODULE_MSG(BBOX_CFG, ("        Window %d:", j));
-            BDBG_MODULE_MSG(BBOX_CFG, ("            available: %s", (pBoxVdcCap->astDisplay[i].astWindow[j].bAvailable == true) ? "true" : "false"));
-
-            ulWidthFraction = pBoxVdcCap->astDisplay[i].astWindow[j].stSizeLimits.ulWidthFraction;
-            ulHeightFraction = pBoxVdcCap->astDisplay[i].astWindow[j].stSizeLimits.ulHeightFraction;
-            if (ulWidthFraction == BBOX_VDC_DISREGARD && ulHeightFraction == BBOX_VDC_DISREGARD)
+            BDBG_MODULE_MSG(BBOX_CFG, ("        Display %d:", i));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            available: %s", (pBoxVdcCap->astDisplay[i].bAvailable == true) ? "true" : "false"));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            max format: %d", pBoxVdcCap->astDisplay[i].eMaxVideoFmt));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            max HDMI format: %d", pBoxVdcCap->astDisplay[i].eMaxHdmiDisplayFmt));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            mosaic mode class: %d", pBoxVdcCap->astDisplay[i].eMosaicModeClass));
+            if (pBoxVdcCap->astDisplay[i].stStgEnc.ulStgId == BBOX_FTR_INVALID)
             {
-                BDBG_MODULE_MSG(BBOX_CFG, ("            width fraction = %s, height fraction = %s", BBOX_VDC_DEFAULT, BBOX_VDC_DEFAULT));
+                BDBG_MODULE_MSG(BBOX_CFG, ("            Stg %s:", BBOX_VDC_FTR_INVALID));
+                BDBG_MODULE_MSG(BBOX_CFG, ("            Stg available: no"));
+                BDBG_MODULE_MSG(BBOX_CFG, ("            Stg Core: %s; Stg Channel: %s", BBOX_VDC_FTR_INVALID, BBOX_VDC_FTR_INVALID));
             }
             else
             {
-                BDBG_MODULE_MSG(BBOX_CFG, ("            width fraction = %d, height fraction = %d", ulWidthFraction, ulHeightFraction));
+                BDBG_MODULE_MSG(BBOX_CFG, ("            Stg %d:", pBoxVdcCap->astDisplay[i].stStgEnc.ulStgId));
+                BDBG_MODULE_MSG(BBOX_CFG, ("            Stg available: %s", (pBoxVdcCap->astDisplay[i].stStgEnc.bAvailable == true) ? "true" : "false"));
+                BDBG_MODULE_MSG(BBOX_CFG, ("            Stg Core: %d; Stg Channel: %d", pBoxVdcCap->astDisplay[i].stStgEnc.ulEncoderCoreId,
+                    pBoxVdcCap->astDisplay[i].stStgEnc.ulEncoderChannel));
             }
 
-            eSclCapBias = pBoxVdcCap->astDisplay[i].astWindow[j].eSclCapBias;
-            if (eSclCapBias == BBOX_VDC_DISREGARD)
+            for (j=0; j<BBOX_VDC_WINDOW_COUNT_PER_DISPLAY; j++)
             {
-                BDBG_MODULE_MSG(BBOX_CFG, ("            scl-cap bias: %s", BBOX_VDC_DEFAULT));
-            }
-            else
-            {
-                BDBG_MODULE_MSG(BBOX_CFG, ("            scl-cap bias: %d", eSclCapBias));
-            }
+                uint32_t ulWidthFraction, ulHeightFraction, ulMad;
+                BBOX_Vdc_Resource_Capture eCap;
+                BBOX_Vdc_Resource_Feeder eVfd;
+                BBOX_Vdc_Resource_Scaler eScl;
+                BBOX_Vdc_SclCapBias eSclCapBias;
 
-            ulMad = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.ulMad;
-            if (ulMad == BBOX_FTR_INVALID)
-            {
-                BDBG_MODULE_MSG(BBOX_CFG, ("            deinterlacer: invalid"));
-            }
-            else
-            {
-                if (ulMad == BBOX_VDC_DISREGARD)
+                if (pBoxVdcCap->astDisplay[i].astWindow[j].bAvailable == true)
                 {
-                    BDBG_MODULE_MSG(BBOX_CFG, ("            deinterlacer: %s", BBOX_VDC_DEFAULT));
-                }
-                else
-                {
-                    BDBG_MODULE_MSG(BBOX_CFG, ("            deinterlacer: %x", ulMad));
-                }
-            }
+                    BDBG_MODULE_MSG(BBOX_CFG, ("            Window %d:", j));
+                    BDBG_MODULE_MSG(BBOX_CFG, ("                available: %s", (pBoxVdcCap->astDisplay[i].astWindow[j].bAvailable == true) ? "true" : "false"));
 
-            bSrcSideDeinterlacer = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.bSrcSideDeinterlacer;
-            BDBG_MODULE_MSG(BBOX_CFG, ("            src side deinterlacer: %s", !bSrcSideDeinterlacer ? "false" : "true"));
+                    ulWidthFraction = pBoxVdcCap->astDisplay[i].astWindow[j].stSizeLimits.ulWidthFraction;
+                    ulHeightFraction = pBoxVdcCap->astDisplay[i].astWindow[j].stSizeLimits.ulHeightFraction;
+                    if (ulWidthFraction == BBOX_VDC_DISREGARD && ulHeightFraction == BBOX_VDC_DISREGARD)
+                    {
+                        BDBG_MODULE_MSG(BBOX_CFG, ("                width fraction = %s, height fraction = %s", BBOX_VDC_DEFAULT, BBOX_VDC_DEFAULT));
+                    }
+                    else
+                    {
+                        BDBG_MODULE_MSG(BBOX_CFG, ("                width fraction = %d, height fraction = %d", ulWidthFraction, ulHeightFraction));
+                    }
 
-            eCap = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eCap;
-            if (eCap == BBOX_Vdc_Resource_Capture_eUnknown)
-            {
-                BDBG_MODULE_MSG(BBOX_CFG, ("            capture: invalid"));
-            }
-            else
-            {
-                if (eCap == BBOX_VDC_DISREGARD)
-                {
-                    BDBG_MODULE_MSG(BBOX_CFG, ("            capture: %s", BBOX_VDC_DEFAULT));
-                }
-                else
-                {
-                    BDBG_MODULE_MSG(BBOX_CFG, ("            capture: %x", eCap));
-                }
-            }
+                    eSclCapBias = pBoxVdcCap->astDisplay[i].astWindow[j].eSclCapBias;
+                    if (eSclCapBias == BBOX_VDC_DISREGARD)
+                    {
+                        BDBG_MODULE_MSG(BBOX_CFG, ("                scl-cap bias: %s", BBOX_VDC_DEFAULT));
+                    }
+                    else
+                    {
+                        BDBG_MODULE_MSG(BBOX_CFG, ("                scl-cap bias: %d", eSclCapBias));
+                    }
 
-            eVfd = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eVfd;
-            if (eVfd == BBOX_Vdc_Resource_Feeder_eUnknown)
-            {
-                BDBG_MODULE_MSG(BBOX_CFG, ("            feeder: invalid"));
-            }
-            else
-            {
-                if (eVfd == BBOX_VDC_DISREGARD)
-                {
-                    BDBG_MODULE_MSG(BBOX_CFG, ("            feeder: %s", BBOX_VDC_DEFAULT));
-                }
-                else
-                {
-                    BDBG_MODULE_MSG(BBOX_CFG, ("            feeder: %x", eVfd));
-                }
-            }
+                    ulMad = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.ulMad;
+                    if (ulMad == BBOX_FTR_INVALID)
+                    {
+                        BDBG_MODULE_MSG(BBOX_CFG, ("                deinterlacer: invalid"));
+                    }
+                    else
+                    {
+                        if (ulMad == BBOX_VDC_DISREGARD)
+                        {
+                            BDBG_MODULE_MSG(BBOX_CFG, ("                deinterlacer: %s", BBOX_VDC_DEFAULT));
+                        }
+                        else
+                        {
+                            BDBG_MODULE_MSG(BBOX_CFG, ("                deinterlacer: %x", ulMad));
+                        }
+                    }
 
-            eScl = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eScl;
-            if (eScl == BBOX_Vdc_Resource_Scaler_eUnknown)
-            {
-                BDBG_MODULE_MSG(BBOX_CFG, ("            scaler: invalid"));
-            }
-            else
-            {
-                if (eScl == BBOX_VDC_DISREGARD)
-                {
-                    BDBG_MODULE_MSG(BBOX_CFG, ("            scaler: %s", BBOX_VDC_DEFAULT));
-                }
-                else
-                {
-                    BDBG_MODULE_MSG(BBOX_CFG, ("            scaler: %x", eScl));
-                }
-            }
+                    BDBG_MODULE_MSG(BBOX_CFG, ("                src side deinterlacer: %s",
+                        !pBoxVdcCap->astDisplay[i].astWindow[j].stResource.bSrcSideDeinterlacer ? "false" : "true"));
 
+                    eCap = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eCap;
+                    if (eCap == BBOX_Vdc_Resource_Capture_eUnknown)
+                    {
+                        BDBG_MODULE_MSG(BBOX_CFG, ("                capture: invalid"));
+                    }
+                    else
+                    {
+                        if (eCap == BBOX_VDC_DISREGARD)
+                        {
+                            BDBG_MODULE_MSG(BBOX_CFG, ("                capture: %s", BBOX_VDC_DEFAULT));
+                        }
+                        else
+                        {
+                            BDBG_MODULE_MSG(BBOX_CFG, ("                capture: %x", eCap));
+                        }
+                    }
 
+                    eVfd = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eVfd;
+                    if (eVfd == BBOX_Vdc_Resource_Feeder_eUnknown)
+                    {
+                        BDBG_MODULE_MSG(BBOX_CFG, ("                feeder: invalid"));
+                    }
+                    else
+                    {
+                        if (eVfd == BBOX_VDC_DISREGARD)
+                        {
+                            BDBG_MODULE_MSG(BBOX_CFG, ("                feeder: %s", BBOX_VDC_DEFAULT));
+                        }
+                        else
+                        {
+                            BDBG_MODULE_MSG(BBOX_CFG, ("                feeder: %x", eVfd));
+                        }
+                    }
+
+                    eScl = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eScl;
+                    if (eScl == BBOX_Vdc_Resource_Scaler_eUnknown)
+                    {
+                        BDBG_MODULE_MSG(BBOX_CFG, ("                scaler: invalid"));
+                    }
+                    else
+                    {
+                        if (eScl == BBOX_VDC_DISREGARD)
+                        {
+                            BDBG_MODULE_MSG(BBOX_CFG, ("                scaler: %s", BBOX_VDC_DEFAULT));
+                        }
+                        else
+                        {
+                            BDBG_MODULE_MSG(BBOX_CFG, ("                scaler: %x", eScl));
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -236,7 +286,7 @@ void BBOX_P_PrintBoxConfig
     {
         uint32_t ulWidth, ulHeight, ulHsclThreshold;
 
-        BDBG_MODULE_MSG(BBOX_CFG, ("    Deinterlacer %d:", i));
+        BDBG_MODULE_MSG(BBOX_CFG, ("        Deinterlacer %d:", i));
 
         ulWidth = pBoxVdcCap->astDeinterlacer[i].stPictureLimits.ulWidth;
         ulHeight = pBoxVdcCap->astDeinterlacer[i].stPictureLimits.ulHeight;
@@ -244,20 +294,20 @@ void BBOX_P_PrintBoxConfig
 
         if (ulWidth == BBOX_VDC_DISREGARD && ulHeight == BBOX_VDC_DISREGARD)
         {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        width: %s, height: %s", BBOX_VDC_DEFAULT, BBOX_VDC_DEFAULT));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            width: %s, height: %s", BBOX_VDC_DEFAULT, BBOX_VDC_DEFAULT));
         }
         else
         {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        width: %d, height: %d", ulWidth, ulHeight));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            width: %d, height: %d", ulWidth, ulHeight));
         }
 
         if (ulHsclThreshold == BBOX_VDC_DISREGARD)
         {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        HSCL threshold: %s", BBOX_VDC_DEFAULT));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            HSCL threshold: %s", BBOX_VDC_DEFAULT));
         }
         else
         {
-            BDBG_MODULE_MSG(BBOX_CFG, ("        HSCL threshold: %d", pBoxVdcCap->astDeinterlacer[i].ulHsclThreshold));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            HSCL threshold: %d", pBoxVdcCap->astDeinterlacer[i].ulHsclThreshold));
         }
     }
 
@@ -267,20 +317,20 @@ void BBOX_P_PrintBoxConfig
     /* Print  transcode limits */
     if (ulXcodeCapVfd == BBOX_VDC_DISREGARD)
     {
-        BDBG_MODULE_MSG(BBOX_CFG, ("    Xcode cap-vfd: %s", BBOX_VDC_DEFAULT));
+        BDBG_MODULE_MSG(BBOX_CFG, ("        Xcode cap-vfd: %s", BBOX_VDC_DEFAULT));
     }
     else
     {
-        BDBG_MODULE_MSG(BBOX_CFG, ("    Xcode cap-vfd: %d", pBoxVdcCap->stXcode.ulNumXcodeCapVfd));
+        BDBG_MODULE_MSG(BBOX_CFG, ("        Xcode cap-vfd: %d", pBoxVdcCap->stXcode.ulNumXcodeCapVfd));
     }
 
     if (ulXcodeGfd == BBOX_VDC_DISREGARD)
     {
-        BDBG_MODULE_MSG(BBOX_CFG, ("    Xcode gfd: %s", BBOX_VDC_DEFAULT));
+        BDBG_MODULE_MSG(BBOX_CFG, ("        Xcode gfd: %s", BBOX_VDC_DEFAULT));
     }
     else
     {
-        BDBG_MODULE_MSG(BBOX_CFG, ("    Xcode gfd: %d", pBoxVdcCap->stXcode.ulNumXcodeGfd));
+        BDBG_MODULE_MSG(BBOX_CFG, ("        Xcode gfd: %d", pBoxVdcCap->stXcode.ulNumXcodeGfd));
     }
 }
 
@@ -321,6 +371,7 @@ BERR_Code BBOX_Open
     }
     else
     {
+        BDBG_ERR(("Box mode %d is not supported.", pBoxSettings->ulBoxId));
         goto BBOX_Open_Done;
     }
 
@@ -330,7 +381,7 @@ BERR_Code BBOX_Open
     *phBox = (BBOX_Handle)pBox;
 
 #if (BDBG_DEBUG_BUILD)
-    BBOX_P_Vdc_ValidateBoxModes(*phBox);
+    eStatus = BBOX_P_Vdc_ValidateBoxModes(*phBox);
 #endif
 
 BBOX_Open_Done:
@@ -390,8 +441,7 @@ BERR_Code BBOX_GetConfig
             goto BBOX_GetConfig_Done;
         }
 
-        /* Get memconfig settings  */
-        eStatus = BBOX_P_GetMemConfig(pBoxConfig->stBox.ulBoxId, &pBoxConfig->stMemConfig);
+        eStatus = BBOX_P_SetMemConfig(pBoxConfig->stBox.ulBoxId, &pBoxConfig->stMemConfig);
         if (eStatus != BERR_SUCCESS)
         {
             goto BBOX_GetConfig_Done;
@@ -432,7 +482,9 @@ BERR_Code BBOX_GetConfig
             goto BBOX_GetConfig_Done;
         }
 
-        eStatus = BBOX_P_GetMemConfig(hBox->stBoxConfig.stBox.ulBoxId, &hBox->stBoxConfig.stMemConfig);
+        BBOX_P_SetDefaultMemConfig( &pBoxConfig->stMemConfig);
+
+        eStatus = BBOX_P_SetMemConfig(hBox->stBoxConfig.stBox.ulBoxId, &hBox->stBoxConfig.stMemConfig);
         if (eStatus != BERR_SUCCESS)
         {
             goto BBOX_GetConfig_Done;
@@ -524,6 +576,8 @@ BERR_Code BBOX_LoadRts
                         hBox->stBoxConfig.stMemConfig.eRefreshRate : pSettings->eRefreshRate;
 
         err = BBOX_P_LoadRts(hReg, hBox->stBoxConfig.stBox.ulBoxId, eRefreshRate);
+#else
+        BSTD_UNUSED(pSettings);
 #endif
         if (err != BERR_SUCCESS)
         {
@@ -539,4 +593,45 @@ BBOX_LoadRts_Done:
     BDBG_LEAVE(BBOX_LoadRts);
     return err;
 }
+
+#else /* #ifndef BBOX_FOR_BOOTUPDATER */
+
+BERR_Code BBOX_GetConfig
+    ( BBOX_Handle                      hBox,
+      BBOX_Config                     *pBoxConfig )
+{
+    BSTD_UNUSED (hBox);
+    BSTD_UNUSED (pBoxConfig);
+    return BERR_SUCCESS;
+}
+
+BERR_Code BBOX_Open
+    ( BBOX_Handle                     *phBox,          /* [out] BOX handle */
+      const BBOX_Settings             *pBoxSettings ) /* [in]  */
+{
+    BSTD_UNUSED (pBoxSettings);
+    *phBox = NULL;
+    return BERR_SUCCESS;
+}
+
+BERR_Code BBOX_Close
+    ( BBOX_Handle                      hBox ) /* [in] BOX handle to close */
+{
+    BSTD_UNUSED (hBox);
+    return BERR_SUCCESS;
+}
+
+BERR_Code BBOX_LoadRts
+    ( BBOX_Handle                      hBox,
+      const BREG_Handle                hReg,
+      const BBOX_LoadRtsSettings *pSettings )
+{
+    BSTD_UNUSED (hBox);
+    BSTD_UNUSED (hReg);
+    BSTD_UNUSED (pSettings);
+    return BERR_SUCCESS;
+}
+
+#endif /* #ifndef BBOX_FOR_BOOTUPDATER */
+
 /* end of file */

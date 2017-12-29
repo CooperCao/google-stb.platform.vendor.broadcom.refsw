@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-common GL ES 1.1 and 2.0 code for
-shaders as dataflow graphs and passing them to the compiler backend.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/glsl_dataflow.h"
 #include "middleware/khronos/glsl/glsl_backend.h"
@@ -651,7 +642,7 @@ static GLXX_VEC4_T * fetch_attribute(uint32_t * vpm_setup_count, int * vpm_space
       return glxx_u4(uniform_index);
    }
 
-   vcos_assert(size >= 1 && size <= 4);
+   assert(size >= 1 && size <= 4);
    result = glxx_vec4(glxx_cfloat(0.0f), glxx_cfloat(0.0f), glxx_cfloat(0.0f), glxx_cfloat(1.0f));
 
    vpm = *dep;
@@ -662,13 +653,13 @@ static GLXX_VEC4_T * fetch_attribute(uint32_t * vpm_setup_count, int * vpm_space
    if(*vpm_space<0)
    {
       //read everything from the vpm
-      vcos_assert(*vpm_setup_count <= 3);
+      assert(*vpm_setup_count <= 3);
       *vpm_space = 15 - offset;
       //do another VPM_read_setup
       vpm = vertex_set((glxx_ustandard(BACKEND_UNIFORM_VPM_READ_SETUP + *vpm_setup_count)), DATAFLOW_VPM_READ_SETUP, vpm);
       *vpm_setup_count += 1;
    }
-   vcos_assert(vpm!=NULL);
+   assert(vpm!=NULL);
 
    switch (type)
    {
@@ -790,7 +781,7 @@ Dataflow *glxx_fetch_all_attributes(
       {
          GLXX_VEC4_T *vec;
          //live and enabled
-         vcos_assert(attribs_live & 15<<(4*i) && abstract[i].type != 0);
+         assert(attribs_live & 15<<(4*i) && abstract[i].type != 0);
          //printf("i%d: s%d,t%d,n%d,u%d\n",i,abstract[i].size, abstract[i].type, abstract[i].norm, uniform_index[i]);
          vec = fetch_attribute(&vpm_setup_count,&vpm_space, abstract[i].size, abstract[i].type, abstract[i].norm, uniform_index[i], &dep);
          attrib[4*i] = vec->x;
@@ -1013,7 +1004,7 @@ static Dataflow * alpha_coverage_pattern(Dataflow * alpha, Dataflow * index)
       1/5 [ 1 3 ]
           [ 4 2 ] */
 
-   vcos_assert(COVERAGE_PATTERN_PIXEL_DIM == 1);
+   assert(COVERAGE_PATTERN_PIXEL_DIM == 1);
    return glxx_less(glxx_mul(alpha,glxx_cfloat(5.0f)),
          glxx_cond(glxx_less(index,glxx_cfloat(1.0f)),glxx_cfloat(1.0f),
          glxx_cond(glxx_less(index,glxx_cfloat(2.0f)),glxx_cfloat(3.0f),
@@ -1027,7 +1018,7 @@ static Dataflow * alpha_coverage_pattern(Dataflow * alpha, Dataflow * index)
            [4 12  2 10]
            [16 8 14  6]
    */
-   vcos_assert(COVERAGE_PATTERN_PIXEL_DIM == 2);
+   assert(COVERAGE_PATTERN_PIXEL_DIM == 2);
    return glxx_less(glxx_mul(alpha,glxx_cfloat(17.0f)),
          glxx_cond(glxx_less(index,glxx_cfloat(1.0f)),glxx_cfloat(1.0f),
          glxx_cond(glxx_less(index,glxx_cfloat(2.0f)),glxx_cfloat(9.0f),
@@ -1195,7 +1186,7 @@ Dataflow *glxx_backend(GLXX_HW_BLEND_T blend, GLXX_VEC4_T *color, Dataflow *disc
 
       if (blend.sample_coverage && blend.ms)
       {
-         vcos_assert(0.0f <= blend.sample_coverage_v.value && 1.0f>=blend.sample_coverage_v.value);
+         assert(0.0f <= blend.sample_coverage_v.value && 1.0f>=blend.sample_coverage_v.value);
          coverage = blend.sample_coverage_v.invert ? glxx_cfloat(1.0f - blend.sample_coverage_v.value) : glxx_cfloat(blend.sample_coverage_v.value);
       }
 
@@ -1279,10 +1270,10 @@ bool glxx_schedule(Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, MEM_HAN
       uniform_map_size = 8 * glsl_allocator_get_unif_count();
       huniform_map = mem_alloc_ex(uniform_map_size, 4, 0, "uniform map", MEM_COMPACT_DISCARD);
 
-      if (hcode == MEM_INVALID_HANDLE || huniform_map == MEM_INVALID_HANDLE)
+      if (hcode == MEM_HANDLE_INVALID || huniform_map == MEM_HANDLE_INVALID)
       {
-         if (hcode != MEM_INVALID_HANDLE) mem_release(hcode);
-         if (huniform_map != MEM_INVALID_HANDLE) mem_release(huniform_map);
+         if (hcode != MEM_HANDLE_INVALID) mem_release(hcode);
+         if (huniform_map != MEM_HANDLE_INVALID) mem_release(huniform_map);
          return false;
       }
 
@@ -1395,7 +1386,7 @@ Dataflow *glxx_vertex_backend(Dataflow *x, Dataflow *y, Dataflow *z, Dataflow *w
    {
       for (i = 0; i < vary_count; i++)
       {
-         vcos_assert(vertex_vary[vary_map[i]] != NULL);
+         assert(vertex_vary[vary_map[i]] != NULL);
          dep = glxx_vpmw(vertex_vary[vary_map[i]], dep);
       }
    }

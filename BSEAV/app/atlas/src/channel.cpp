@@ -118,10 +118,10 @@ CChannel::CChannel(
     _pAudioDecode(NULL),
     _dynamicRange(eDynamicRange_Unknown)
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    ,_bPlm(true)
+    , _bPlm(true)
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
-    ,_bPlmGfx(true)
+    , _bPlmGfx(true)
 #endif
 {
     _pidMgr.initialize(_pCfg);
@@ -174,10 +174,10 @@ CChannel::CChannel(const CChannel & ch) :
     _pAudioDecode(NULL),
     _dynamicRange(eDynamicRange_Unknown)
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    ,_bPlm(true)
+    , _bPlm(true)
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
-    ,_bPlmGfx(true)
+    , _bPlmGfx(true)
 #endif
 {
     _geomVideoWindowPercent = MRect(0, 0, 0, 0);
@@ -340,11 +340,18 @@ void CChannel::dump(bool bForce)
 } /* dump */
 
 /* rectGeometryPercent range: 0-1000 = 0-100.0% */
-eRet CChannel::addImageLabel(MString strImagePath, MRect rectGeometryPercent, unsigned zOrder, MString strText, MString strGlobal)
+eRet CChannel::addImageLabel(
+        MString  strImagePath,
+        MRect    rectGeometryPercent,
+        unsigned zOrder,
+        MString  strText,
+        MString  strGlobal
+        )
 {
     eRet ret = eRet_Ok;
 
     CLabelData * pLabelData = new CLabelData();
+
     CHECK_PTR_ERROR_GOTO("unable to allocate label data", pLabelData, ret, eRet_OutOfMemory, error);
 
     if (false == strImagePath.isEmpty())
@@ -364,7 +371,7 @@ eRet CChannel::addImageLabel(MString strImagePath, MRect rectGeometryPercent, un
     _labelList.add(pLabelData);
 error:
     return(ret);
-}
+} /* addImageLabel */
 
 eRet CChannel::readXML(MXmlElement * xmlElemChannel)
 {
@@ -416,7 +423,7 @@ eRet CChannel::readXML(MXmlElement * xmlElemChannel)
     _bPlmGfx = ("false" == MString(xmlElemChannel->attrValue(XML_ATT_PLM_GFX))) ? false : true;
 #endif
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    _bPlm    = ("false" == MString(xmlElemChannel->attrValue(XML_ATT_PLM))) ? false : true;
+    _bPlm = ("false" == MString(xmlElemChannel->attrValue(XML_ATT_PLM))) ? false : true;
 #endif
     /* handle any <label> tags and attributes */
     {
@@ -455,10 +462,10 @@ error:
 
 void CChannel::writeXML(MXmlElement * xmlElemChannel)
 {
-    eRet ret = eRet_Ok;
+    eRet  ret             = eRet_Ok;
     MRect rectGeomPercent = getVideoWindowGeometryPercent();
-    float f = 0.0;
-    char strFloat[8];
+    float f               = 0.0;
+    char  strFloat[8];
 
     BDBG_ASSERT(NULL != xmlElemChannel);
 
@@ -484,21 +491,21 @@ void CChannel::writeXML(MXmlElement * xmlElemChannel)
     xmlElemChannel->addAttr(XML_ATT_PLM_GFX, (true == _bPlmGfx) ? "true" : "false");
 #endif
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    xmlElemChannel->addAttr(XML_ATT_PLM,     (true == _bPlm) ? "true" : "false");
+    xmlElemChannel->addAttr(XML_ATT_PLM, (true == _bPlm) ? "true" : "false");
 #endif
 
     /* add channel labels */
     {
-        CLabelData * pLabelData         = NULL;
+        CLabelData * pLabelData = NULL;
         MRect        rectGeomPercent;
 
         /* first channel label may be a blank label behind video window used to
-           punch through the background image.  if so we will skip it and not
-           save it since it will be auto recreated in readXml() */
+         * punch through the background image.  if so we will skip it and not
+         * save it since it will be auto recreated in readXml() */
         if (NULL != (pLabelData = _labelList.first()))
         {
             if ((pLabelData->_rectGeometryPercent == MRect(0, 0, 1000, 1000)) &&
-                (pLabelData->_zorder              == 0) &&
+                (pLabelData->_zorder == 0) &&
                 (pLabelData->_strImagePath.isEmpty()))
             {
                 /* found video window blank label - skip */
@@ -552,7 +559,7 @@ void CChannel::writeXML(MXmlElement * xmlElemChannel)
 
 error:
     return;
-}
+} /* writeXML */
 
 bool CChannel::isRecording(void)
 {
@@ -785,14 +792,14 @@ eRet CChannel::openPids(
     pPcrPid   = getPid(0, ePidType_Pcr);
 
     /* open pids */
-    if (pVideoPid && false == pVideoPid->isOpen())
+    if (pVideoPid && (false == pVideoPid->isOpen()))
     {
         CHECK_PTR_ERROR_GOTO("missing parser band - tune failed", pParserBand, ret, eRet_InvalidState, error);
         ret = pVideoPid->open(pParserBand);
         CHECK_ERROR_GOTO("open video pid channel failed", ret, error);
     }
 
-    if (pAudioPid && false == pAudioPid->isOpen())
+    if (pAudioPid && (false == pAudioPid->isOpen()))
     {
         CHECK_PTR_ERROR_GOTO("missing parser band - tune failed", pParserBand, ret, eRet_InvalidState, error);
         ret = pAudioPid->open(pParserBand);
@@ -800,14 +807,14 @@ eRet CChannel::openPids(
     }
 
     /* only open pcr pid channel if it is different from audio/video pids */
-    if(pPcrPid == NULL)
+    if (pPcrPid == NULL)
     {
         BDBG_ERR(("PCR IS NULL"));
         ret = eRet_ExternalError;
         goto error;
     }
 
-    if (pPcrPid && pPcrPid->isUniquePcrPid() && (false == pPcrPid->isOpen()) )
+    if (pPcrPid && pPcrPid->isUniquePcrPid() && (false == pPcrPid->isOpen()))
     {
         CHECK_PTR_ERROR_GOTO("missing parser band - tune failed", pParserBand, ret, eRet_InvalidState, error);
         ret = pPcrPid->open(pParserBand);
@@ -882,14 +889,14 @@ void CChannel::getStats(void)
 }
 
 /* verify that channel audio/video pids match pids in given program info.
-   absence of cchannel pids or program info pids will always return false. */
+ * absence of cchannel pids or program info pids will always return false. */
 bool CChannel::verify(PROGRAM_INFO_T * pProgramInfo)
 {
-    bool bValidVideo = false;
-    bool bValidAudio = false;
-    CPid * pVideoPid = getPid(0, ePidType_Video);
-    CPid * pAudioPid = getPid(0, ePidType_Audio);
-    int i = 0;
+    bool   bValidVideo = false;
+    bool   bValidAudio = false;
+    CPid * pVideoPid   = getPid(0, ePidType_Video);
+    CPid * pAudioPid   = getPid(0, ePidType_Audio);
+    int    i           = 0;
 
     if (NULL != pVideoPid)
     {
@@ -916,15 +923,16 @@ bool CChannel::verify(PROGRAM_INFO_T * pProgramInfo)
     }
 
     return(bValidVideo && bValidAudio);
-}
+} /* verify */
 
 /* set the video window size and position as a percentage of the actual video size. video window
-   size is applied when decode is started (see CChannel::decodeChannel()) */
+ * size is applied when decode is started (see CChannel::decodeChannel()) */
 void CChannel::setVideoWindowGeometryPercent(
-                    unsigned percentX,
-                    unsigned percentY,
-                    unsigned percentW,
-                    unsigned percentH)
+        unsigned percentX,
+        unsigned percentY,
+        unsigned percentW,
+        unsigned percentH
+        )
 {
     _geomVideoWindowPercent.setX(percentX);
     _geomVideoWindowPercent.setY(percentY);

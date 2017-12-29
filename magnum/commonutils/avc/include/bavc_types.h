@@ -825,24 +825,23 @@ See Also:
 ****************************************************************************/
 typedef enum BAVC_AudioSamplingRate
 {
-    BAVC_AudioSamplingRate_e32k=0,    /* 32K Sample rate */
-    BAVC_AudioSamplingRate_e44_1k,    /* 44.1K Sample rate */
-    BAVC_AudioSamplingRate_e48k,      /* 48K Sample rate */
-    BAVC_AudioSamplingRate_e96k,      /* 96K Sample rate */
+    BAVC_AudioSamplingRate_eUnknown,  /* Unknown sample rate */
+    BAVC_AudioSamplingRate_e8k,       /* 8K Sample rate */
+    BAVC_AudioSamplingRate_e11_025k,  /* 11.025K Sample rate */
+    BAVC_AudioSamplingRate_e12k,      /* 12K Sample rate */
     BAVC_AudioSamplingRate_e16k,      /* 16K Sample rate */
     BAVC_AudioSamplingRate_e22_05k,   /* 22.05K Sample rate */
     BAVC_AudioSamplingRate_e24k,      /* 24K Sample rate */
+    BAVC_AudioSamplingRate_e32k,      /* 32K Sample rate */
+    BAVC_AudioSamplingRate_e44_1k,    /* 44.1K Sample rate */
+    BAVC_AudioSamplingRate_e48k,      /* 48K Sample rate */
     BAVC_AudioSamplingRate_e64k,      /* 64K Sample rate */
     BAVC_AudioSamplingRate_e88_2k,    /* 88.2K Sample rate */
-    BAVC_AudioSamplingRate_e128k,     /* 12896K Sample rate */
+    BAVC_AudioSamplingRate_e96k,      /* 96K Sample rate */
+    BAVC_AudioSamplingRate_e128k,     /* 128K Sample rate */
     BAVC_AudioSamplingRate_e176_4k,   /* 176.4K Sample rate */
-    BAVC_AudioSamplingRate_e192k,     /* 19296K Sample rate */
-    BAVC_AudioSamplingRate_e8k,       /* 8K Sample rate */
-    BAVC_AudioSamplingRate_e12k,      /* 12K Sample rate */
-    BAVC_AudioSamplingRate_e11_025k,  /* 11.025K Sample rate */
-
-    BAVC_AudioSamplingRate_eUnknown   /* Unknown sample rate */
-
+    BAVC_AudioSamplingRate_e192k,     /* 192K Sample rate */
+    BAVC_AudioSamplingRate_eMax
 }BAVC_AudioSamplingRate;
 
 
@@ -859,7 +858,8 @@ typedef enum BAVC_AudioBits
 {
     BAVC_AudioBits_e16=0,
     BAVC_AudioBits_e20,
-    BAVC_AudioBits_e24
+    BAVC_AudioBits_e24,
+    BAVC_AudioBits_eMax
 
 } BAVC_AudioBits ;
 
@@ -936,8 +936,8 @@ typedef enum BAVC_USERDATA_Type
     BAVC_USERDATA_Type_eEntryPoint, /* VC1 user data coming in entry point layer */
     BAVC_USERDATA_Type_eField,       /* VC1 user data coming in picture field layer */
     BAVC_USERDATA_Type_eFrame,       /* VC1 user data coming in picture frame layer */
-    BAVC_USERDATA_Type_eSlice        /* VC1 user data coming in slice layer */
-
+    BAVC_USERDATA_Type_eSlice,       /* VC1 user data coming in slice layer */
+    BAVC_USERDATA_Type_eMax
 } BAVC_USERDATA_Type;
 
 
@@ -996,8 +996,8 @@ typedef enum BAVC_PTSType
     BAVC_PTSType_eCoded,
     BAVC_PTSType_eInterpolatedFromValidPTS,
     BAVC_PTSType_eHostProgrammedPTS,
-    BAVC_PTSType_eInterpolatedFromInvalidPTS
-
+    BAVC_PTSType_eInterpolatedFromInvalidPTS,
+    BAVC_PTSType_eMax
 } BAVC_PTSType;
 
 /***************************************************************************
@@ -1127,6 +1127,11 @@ typedef enum BAVC_VideoCompressionProfile
     BAVC_VideoCompressionProfile_eSpatiallyScalable,
     BAVC_VideoCompressionProfile_eAdvancedSimple,
     BAVC_VideoCompressionProfile_eBaseline,
+    BAVC_VideoCompressionProfile_eMultiHighProfile,
+    BAVC_VideoCompressionProfile_eStereoHighProfile,
+    BAVC_VideoCompressionProfile_eMain10,
+    BAVC_VideoCompressionProfile_e0,
+    BAVC_VideoCompressionProfile_e2,
 
     BAVC_VideoCompressionProfile_eMax
 
@@ -1170,6 +1175,11 @@ typedef enum BAVC_VideoCompressionLevel
     BAVC_VideoCompressionLevel_eMain,
     BAVC_VideoCompressionLevel_eHigh,
     BAVC_VideoCompressionLevel_eHigh1440,
+    BAVC_VideoCompressionLevel_eL0,
+    BAVC_VideoCompressionLevel_eL1,
+    BAVC_VideoCompressionLevel_eL2,
+    BAVC_VideoCompressionLevel_eL3,
+    BAVC_VideoCompressionLevel_e80,
 
     BAVC_VideoCompressionLevel_eMax
 

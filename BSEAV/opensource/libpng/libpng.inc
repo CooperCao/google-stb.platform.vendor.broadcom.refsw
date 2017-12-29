@@ -1,5 +1,5 @@
 ############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,18 +43,27 @@ else
     DEBUG_SUFFIX=release
 endif
 
-LIBPNG_VER?=1.2.8
+LIBPNG_VER?=1.6.23
+LIBPNG_INSTALL_VER=16
+LIBPNG_INSTALL_VER_FULL=16.23
 
 LIBPNG_NAME:=libpng-$(LIBPNG_VER)
-LIBPNG_SOURCE_TARBALL:=$(LIBPNG_NAME).tar.bz
+LIBPNG_SOURCE_TARBALL:=$(LIBPNG_NAME).tar.gz
 LIBPNG_SOURCE_DIRECTORY:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/opensource)
 LIBPNG_SOURCE_PATH:=${LIBPNG_SOURCE_DIRECTORY}/${LIBPNG_NAME}
 LIBPNG_TAR_PATH:=${LIBPNG_SOURCE_DIRECTORY}/${LIBPNG_NAME}
 LIBPNG_BUILD_DIR:=$(abspath $(NEXUS_TOP)/../BSEAV/opensource/libpng)
-LIBPNG_LIB_FOLDER:=${LIBPNG_TAR_PATH}
+LIBPNG_INSTALL_TARGET := $(abspath $(B_REFSW_OBJ_ROOT)/target)
+LIBPNG_PREFIX=usr/local
+LIBPNG_INSTALL_PREFIX := ${LIBPNG_INSTALL_TARGET}/${LIBPNG_PREFIX}
+LIBPNG_LIB_FOLDER:=${LIBPNG_INSTALL_PREFIX}/lib
+LIBPNG_INC_FOLDER:=${LIBPNG_INSTALL_PREFIX}/include
+LIBPNG_BIN_FOLDER:=${LIBPNG_INSTALL_PREFIX}/bin
 
-LIBPNG_CFLAGS:= -D_REENTRANT -I${LIBPNG_TAR_PATH}
+
+LIBPNG_CFLAGS:= -D_REENTRANT -I${LIBPNG_INC_FOLDER}/libpng16
 LIBPNG_LDFLAGS:= -L$(LIBPNG_LIB_FOLDER) -lpng
+LIBPNG_STATIC_LDFLAGS:= -L$(LIBPNG_LIB_FOLDER) -l:libpng.a
 
 #  Where to store downloaded open-source files for local sharing
 B_REFSW_CACHE_DIR ?= $(realpath /projects/stbdev/open-source)

@@ -48,6 +48,7 @@
 
 #if NEXUS_HAS_HDMI_INPUT
 #include "priv/nexus_hdmi_input_priv.h"
+#include "nexus_hdmi_input_hdcp.h"
 #endif
 
 #endif
@@ -276,6 +277,9 @@ static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp2x(NEXUS_HdmiOutputHandle output)
 
     /* Default content stream type to type1 */
     output->hdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType1;
+    BKNI_EnterCriticalSection();
+    output->pendingDisableAuthentication_isr = false;
+    BKNI_LeaveCriticalSection();
 
     return BERR_SUCCESS;
 
@@ -622,6 +626,12 @@ void NEXUS_HdmiOutput_P_HdcpNotifyHotplug(NEXUS_HdmiOutputHandle output)
     {
        NEXUS_HdmiOutput_P_UpdateHdcpState(output);
     }
+    else
+    {
+        BKNI_EnterCriticalSection();
+            output->pendingDisableAuthentication_isr = false;
+        BKNI_LeaveCriticalSection();
+    }
 }
 
 static void NEXUS_HdmiOutput_P_RiCallback(void *pContext)
@@ -721,30 +731,68 @@ done:
 static void NEXUS_HdmiOutput_P_Hdcp2xEncryptionEnableCallback(void *pContext)
 {
     NEXUS_HdmiOutputHandle output = pContext;
+    BHDCPlib_Hdcp2x_AuthenticationStatus stAuthenticationStatus;
+    BERR_Code rc = BERR_SUCCESS;
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
 
-    BDBG_MSG(("%s: Ready to enable HDCP2.x encryption", BSTD_FUNCTION));
-
-    /* additional delay to give the HW time to update the AUTHENTICATED_OK status after
-    HDCP2_AUTHENTICATED was updated by SW at the time receive OK_TO_ENC_EN interrupt */
-    BKNI_Sleep(50);
-
-    /* Enable encryption */
-    NEXUS_HdmiOutput_EnableHdcpEncryption(output);
-
-	/* get/upload downstream device list if in repeater mode */
-	if (output->hdmiInput) {
-		NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(output);
+    rc = BHDCPlib_Hdcp2x_GetAuthenticationStatus(output->hdcpHandle, &stAuthenticationStatus);
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Error retrieving HDCP2.x authentication status"));
+        rc = BERR_TRACE(rc);
+        goto done;
     }
 
-    /* fire success call back */
-    NEXUS_TaskCallback_Fire(output->hdcpSuccessCallback);
 
-    /* fire stateChange call back */
-    NEXUS_TaskCallback_Fire(output->hdcpStateChangedCallback);
+    if (stAuthenticationStatus.eHdcpState != BHDCPlib_State_eLinkAuthenticated)
+    {
+        BDBG_MSG(("Not yet authenticated with attached Rx. Skip request to enable encryption"));
 
-    output->hdcpMonitor.hdcp22.auth.passCounter++ ;
+        /* upload downstream device list if in repeater mode, if fail downstream authentication due to repeater authentication errors */
+        if ((stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterDepthExceeded)
+         || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRxDevicesExceeded)
+         || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterAuthenticationError))
+        {
+            if (output->hdmiInput) {
+                NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(output);
+            }
+        }
+        goto done;
+    }
+    else
+    {
+        BDBG_MSG(("%s: Ready to enable HDCP2.x encryption", BSTD_FUNCTION));
 
+        /* additional delay to give the HW time to update the AUTHENTICATED_OK status after
+        HDCP2_AUTHENTICATED was updated by SW at the time receive OK_TO_ENC_EN interrupt */
+        BKNI_Sleep(50);
+
+        /* get/upload downstream device list if in repeater mode */
+        if (output->hdmiInput) {
+            NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(output);
+        }
+
+        /* Enable encryption */
+        rc = NEXUS_HdmiOutput_EnableHdcpEncryption(output);
+        if (rc) {
+            BDBG_ERR(("Error enabling HDCP 2.2 encryption due to changes in authentication status"));
+            rc = BERR_TRACE(rc);
+
+            /* fire failure callback - this should be deprecated. Keep it for backward compatibility */
+            NEXUS_TaskCallback_Fire(output->hdcpFailureCallback);
+        }
+        else
+        {
+            /* fire success call back  - this should be deprecated. Keep it for backward compatibility */
+            NEXUS_TaskCallback_Fire(output->hdcpSuccessCallback);
+            output->hdcpMonitor.hdcp22.auth.passCounter++ ;
+        }
+
+        /* fire stateChange call back */
+        NEXUS_TaskCallback_Fire(output->hdcpStateChangedCallback);
+    }
+
+done:
     return;
 }
 
@@ -802,16 +850,33 @@ static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
     **  OR
     **    + FAILED to authenticate with downstream devices due to errors in downstream ReceiverId List
     **********/
-    if ((stAuthenticationStatus.linkAuthenticated)
-    || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterDepthExceeded)
+#if NEXUS_HAS_HDMI_INPUT
+    if ((stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterDepthExceeded)
     || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRxDevicesExceeded)
     || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterAuthenticationError))
     {
         /* get/upload downstream device list if in repeater mode */
-        if (output->hdmiInput) {
-            NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(output);
+        if (output->hdmiInput)
+        {
+            NEXUS_HdmiInputHdcpStatus hdmiInputHdcpStatus;
+            rc = NEXUS_HdmiInput_HdcpGetStatus(output->hdmiInput, &hdmiInputHdcpStatus) ;
+            if (rc) {
+                BERR_TRACE(rc);
+                return;
+            }
+
+            if((hdmiInputHdcpStatus.version == NEXUS_HdcpVersion_e2x)
+            && (hdmiInputHdcpStatus.hdcpState != NEXUS_HdmiInputHdcpState_eAuthenticated)
+            && (hdmiInputHdcpStatus.hdcpState != NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated))
+            {
+                output->forceSendRxIdList = true;
+            }
+            else {
+                NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(output);
+            }
         }
     }
+#endif
 
     if (stAuthenticationStatus.linkAuthenticated == false)
     {
@@ -827,6 +892,8 @@ static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
             output->hdcpMonitor.hdcp22.auth.failCounter++ ;
         }
     }
+
+    return;
 }
 
 
@@ -1015,11 +1082,9 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
 )
 {
     NEXUS_Error errCode = NEXUS_SUCCESS;
-    NEXUS_Hdcp2xReceiverIdListData stReceiverIdListData;
-    BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
     BHDCPlib_Hdcp2x_AuthenticationStatus stAuthenticationStatus;
-    bool uploadReceiverIdList = false;
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+
 
 #if NEXUS_HAS_HDMI_INPUT
     if (input)
@@ -1037,7 +1102,6 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
 
         if (!handle->hdmiInput) {
             NEXUS_OBJECT_ACQUIRE(handle, NEXUS_HdmiInput, input);
-            uploadReceiverIdList = true;
         }
     }
     else
@@ -1051,16 +1115,17 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
 
     handle->hdmiInput = input;
 
-    /**********
-    ** For backward compatibility for URSR 16.2 - 16.4. API behavior:
-    **     + set rx <--> tx link
-    **     + do the work to upload the ReceiverId List
-    **               -this action is only for pre 17.1 URSR.
-    **          -starting from URSR 17.1, the upload take place when the authentication status get updated.
-    **
-    **********/
-    if (uploadReceiverIdList)
+    if (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2)
     {
+
+        /**********
+        ** For backward compatibility for URSR 16.2 - 16.4. API behavior:
+        **     + set rx <--> tx link
+        **     + do the work to upload the ReceiverId List
+        **          -this action is only for pre 17.1 URSR.
+        **          -starting from URSR 17.1, the upload take place when the authentication status get updated.
+        **
+        **********/
         errCode = BHDCPlib_Hdcp2x_GetAuthenticationStatus(handle->hdcpHandle, &stAuthenticationStatus);
         if (errCode != BERR_SUCCESS)
         {
@@ -1072,59 +1137,56 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
         if ((stAuthenticationStatus.linkAuthenticated)
         || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterDepthExceeded)
         || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRxDevicesExceeded)
-        || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterAuthenticationError))
+        || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterAuthenticationError)
+        || handle->forceSendRxIdList)
         {
-            /* First, get downstream info from hdcplib */
-            errCode = BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(handle->hdcpHandle, &hdcp2xReceiverIdListData);
-            if (errCode != BERR_SUCCESS)
-            {
-                errCode = BERR_TRACE(errCode);
-                goto done;
-            }
-
-            /* save all data */
-            stReceiverIdListData.deviceCount = (unsigned) hdcp2xReceiverIdListData.deviceCount;
-            stReceiverIdListData.depth = (unsigned) hdcp2xReceiverIdListData.depth;
-            stReceiverIdListData.maxDevsExceeded = hdcp2xReceiverIdListData.maxDevsExceeded > 0;
-            stReceiverIdListData.maxCascadeExceeded = hdcp2xReceiverIdListData.maxCascadeExceeded > 0;
-            stReceiverIdListData.hdcp2xLegacyDeviceDownstream = hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream > 0;
-            stReceiverIdListData.hdcp1DeviceDownstream = hdcp2xReceiverIdListData.hdcp1DeviceDownstream > 0;
-
-            if (hdcp2xReceiverIdListData.deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
-            {
-                /* ignore the rest of the list, if any */
-                BKNI_Memcpy(stReceiverIdListData.rxIdList, &hdcp2xReceiverIdListData.rxIdList,
-                    BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
-            }
-            else
-            {
-                /*****************
-                * If downstream device is repeater device, the ReceiverIdList will
-                * contain 1 additional entry, which is the ReceiverId of the repeater device.
-                * This additional entry is not accounted in the device count
-                *******************/
-                BKNI_Memcpy(stReceiverIdListData.rxIdList, &hdcp2xReceiverIdListData.rxIdList,
-                    (hdcp2xReceiverIdListData.deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater)*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
-            }
-
-            /* Now upload it to the upstream transmitter */
-            NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-            errCode = NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(handle->hdmiInput, &stReceiverIdListData, hdcp2xReceiverIdListData.downstreamIsRepeater > 0);
-            NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-            if (errCode != NEXUS_SUCCESS)
-            {
-                errCode = BERR_TRACE(errCode);
-                goto done;
+            if (handle->hdmiInput) {
+                NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(handle);
+                handle->forceSendRxIdList = false;
             }
         }
+    }
+    else {
+        NEXUS_HdmiHdcpDownStreamInfo downStream  ;
+        NEXUS_HdmiHdcpKsv *pKsvs ;
+        unsigned returnedDevices;
+
+        /* HDCP 1.x */
+        NEXUS_HdmiOutput_HdcpGetDownstreamInfo(handle, &downStream) ;
+
+        /* allocate space to hold ksvs for the downstream devices */
+        pKsvs = BKNI_Malloc((downStream.devices) * NEXUS_HDMI_HDCP_KSV_LENGTH) ;
+        if (!pKsvs)
+        {
+            BDBG_ERR(("Unable to allocate memory for downstream KSVs."));
+            errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+            goto done;
+        }
+
+        errCode = NEXUS_HdmiOutput_HdcpGetDownstreamKsvs(handle, pKsvs, downStream.devices, &returnedDevices) ;
+        if (errCode) {
+            errCode = BERR_TRACE(errCode);
+            BKNI_Free(pKsvs) ;
+            goto done;
+        }
+
+        /* Now upload it to the upstream transmitter */
+        NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+        errCode = NEXUS_HdmiInput_HdcpLoadKsvFifo(handle->hdmiInput, &downStream, pKsvs, downStream.devices) ;
+        NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+        if (errCode != NEXUS_SUCCESS)
+        {
+            errCode = BERR_TRACE(errCode);
+            BKNI_Free(pKsvs) ;
+            goto done;
+        }
+
+        BKNI_Free(pKsvs) ;
     }
 
 #else
     BSTD_UNUSED(input);
-    BSTD_UNUSED(hdcp2xReceiverIdListData);
-    BSTD_UNUSED(stReceiverIdListData);
     BSTD_UNUSED(stAuthenticationStatus);
-    BSTD_UNUSED(uploadReceiverIdList);
     errCode = NEXUS_NOT_SUPPORTED;
     BERR_TRACE(errCode);
     goto done;
@@ -1267,7 +1329,10 @@ NEXUS_Error NEXUS_HdmiOutput_SetHdcpSettings(
     /* Store Settings */
     handle->hdcpSettings = *pSettings;
 
-    if (hdcpVersionSelect == NEXUS_HdmiOutputHdcpVersion_e1_x) {
+    if ((hdcpVersionSelect == NEXUS_HdmiOutputHdcpVersion_e1_x)
+    || ((hdcpVersionSelect == NEXUS_HdmiOutputHdcpVersion_eAuto)
+        && (handle->eHdcpVersion < BHDM_HDCP_Version_e2_2)))
+    {
         /* May need to enable encryption if the setting changed.  Check now */
         if ( pSettings->transmitEncrypted )
         {
@@ -1479,6 +1544,14 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         /******************/
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
         handle->hdcpMonitor.hdcp22.auth.attemptCounter++ ;
+
+        if (handle->pendingDisableAuthentication_isr)
+        {
+            BDBG_LOG(("Pending DisableAuthentication from previous HPD event. Skip authentication"));
+            errCode = BERR_SUCCESS;
+            goto done;
+        }
+
 #endif
         if (linkAuthenticated)
         {
@@ -1604,6 +1677,7 @@ NEXUS_Error NEXUS_HdmiOutput_EnableHdcpEncryption(
     )
 {
     NEXUS_HdmiOutputState state;
+    BERR_Code rc = BERR_SUCCESS;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -1619,15 +1693,17 @@ NEXUS_Error NEXUS_HdmiOutput_EnableHdcpEncryption(
     if ((handle->eHdcpVersion == BHDM_HDCP_Version_e1_1)
     || (handle->eHdcpVersion == BHDM_HDCP_Version_e1_1_Optional_Features))
     {
-        return NEXUS_HdmiOutput_StartHdcpAuthentication(handle);
+        rc = NEXUS_HdmiOutput_StartHdcpAuthentication(handle);
+        goto done;
     }
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
     BDBG_WRN(("Enabling HDCP2.2 encryption"));
-    BHDCPlib_Hdcp2x_EnableEncryption(handle->hdcpHandle, true);
+    rc = BHDCPlib_Hdcp2x_EnableEncryption(handle->hdcpHandle, true);
 #endif
 
-    return BERR_SUCCESS;
+done:
+    return rc;
 }
 
 
@@ -1705,7 +1781,7 @@ static void NEXUS_HdmiOutput_P_HdcpKeepAliveTimerCallback(void *pContext)
     rc = NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdcpStatus);
     if (rc) BERR_TRACE(rc);
 
-    if ((hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled || hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eLinkAuthenticated)) {
+    if (hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled) {
         return;
     }
 

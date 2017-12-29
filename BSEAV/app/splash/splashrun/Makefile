@@ -43,6 +43,7 @@ APPS = splashrun
 
 export NEXUS_POWER_MANAGEMENT=n
 export NEXUS_FILE_MUX_SUPPORT=n
+export BBOX_USE_BOX_MODE_0_RTS ?= y
 
 # These are the only supported targets
 PHONY := \

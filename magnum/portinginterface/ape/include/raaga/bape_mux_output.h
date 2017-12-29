@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,6 +55,8 @@ Summary:
 ***************************************************************************/
 typedef struct BAPE_MuxOutput *BAPE_MuxOutputHandle;
 
+#define BAPE_INVALID_DEVICE_INDEX ((unsigned)-1)
+
 /***************************************************************************
 Summary:
     Creation Settings for a MuxOutput object
@@ -79,6 +81,11 @@ typedef struct BAPE_MuxOutputCreateSettings
     } itb, cdb;
     bool useRDB;                        /* If true we will use the ptrs provided
                                            and not the rave to handle mux output. */
+    unsigned dspIndex;                  /* DSP Device Index for this Mux. This should match the Encoder/Mixer
+                                           that will feed the mux. Use a value of BAPE_INVALID_DEVICE_INDEX
+                                           to have APE attempt to figure this out automatically. NOTE in cases
+                                           where the MUX is started before the upstream chain, this may need
+                                           to be explicitly specified by the application. */
 } BAPE_MuxOutputCreateSettings;
 
 
@@ -126,6 +133,7 @@ typedef struct BAPE_MuxOutputStartSettings
                                                                    Important: This field requires the 
                                                                    MuxOutput to be started prior to
                                                                    starting any inputs. */
+    uint32_t initialStc; /* Initial STC value for NRT Transcode in 45Khz.  Default is 0. */
 } BAPE_MuxOutputStartSettings;
 
 /***************************************************************************
@@ -166,6 +174,42 @@ See Also:
 ***************************************************************************/
 void BAPE_MuxOutput_Stop(
     BAPE_MuxOutputHandle hMuxOutput
+    );
+
+/***************************************************************************
+Summary:
+    Run-time settings for a MuxOutput object
+***************************************************************************/
+typedef struct BAPE_MuxOutputSettings
+{
+    bool sendEos; /* If false the EOS will not be sent when BAPE_MuxOutput_Stop
+                       is called. Default is true. */
+} BAPE_MuxOutputSettings;
+
+/***************************************************************************
+Summary:
+    Get Default Run-time Settings for a MuxOutput object
+***************************************************************************/
+void BAPE_MuxOutput_GetDefaultSettings(
+    BAPE_MuxOutputSettings *pSettings    /* [out] Settings */
+    );
+
+/***************************************************************************
+Summary:
+    Get Run-time Settings for a MuxOutput object
+***************************************************************************/
+void BAPE_MuxOutput_GetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_MuxOutputSettings *pSettings
+    );
+
+/***************************************************************************
+Summary:
+    Apply Run-time Settings for a MuxOutput object
+***************************************************************************/
+BERR_Code BAPE_MuxOutput_SetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    const BAPE_MuxOutputSettings *pSettings
     );
 
 /***************************************************************************

@@ -325,5 +325,15 @@ extern uint _varsz;
 #define LINUX_FLASH_POLICY "linux_flash_policy"
 
 #endif /* defined(DUAL_IMAGE||CONFIG_DUAL_IMAGE)||__CONFIG_DUAL_IMAGE_FLASH_SUPPORT__ */
+#ifdef NVRAM_FLASH
+#define PA5G_STR "pa5g"
+#define PA2G_STR "pa2g"
+#define SROMREV_STR "sromrev"
+#define DEVPATH_JTAG_BUS_FORMAT "sb/%u/"
+#define DEVPATH_PCI_BUS_FORMAT "pci/%u/%u/"
+#define DEVPATH_PCMCIA_BUS_FORMAT "pc/%u/%u/"
+
+#define FLASHPDATA(p) (char*)(p+ sizeof(struct nvram_header))
+#endif /* NVRAM_FLASH */
 
 #endif /* _bcmnvram_h_ */

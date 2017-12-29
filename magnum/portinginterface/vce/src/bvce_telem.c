@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,8 +37,6 @@
  *****************************************************************************/
 /* base modules */
 #include "bstd.h"           /* standard types */
-#include "berr.h"           /* error code */
-#include "bdbg.h"           /* debug interface */
 #include "bkni.h"           /* kernel interface */
 
 #include "bvce_telem.h"
@@ -218,17 +216,17 @@ BERR_Code
 BVCE_Telem_Parse(
    BVCE_Telem_Handle hVCETelem,
    const uint8_t *pInputBuffer0, /* [in] */
-   size_t uiInputLength0, /* [in] */
+   unsigned uiInputLength0, /* [in] */
    const uint8_t *pInputBuffer1, /* [in] */
-   size_t uiInputLength1, /* [in] */
-   size_t *puiInputLengthRead, /* out */
+   unsigned uiInputLength1, /* [in] */
+   unsigned *puiInputLengthRead, /* out */
    char *szOutputBuffer,   /* [out] pointer to buffer where log is copied to */
-   size_t uiOutputLength,  /* [in] maximum number of bytes to copy to buffer */
-   size_t *puiOutputLengthWritten  /* [out] number of bytes copied from debug log */
+   unsigned uiOutputLength,  /* [in] maximum number of bytes to copy to buffer */
+   unsigned *puiOutputLengthWritten  /* [out] number of bytes copied from debug log */
    )
 {
    BERR_Code rc = BERR_SUCCESS;
-   size_t uiTotalBytesToRead = uiInputLength0 + uiInputLength1;
+   unsigned uiTotalBytesToRead = uiInputLength0 + uiInputLength1;
    BDBG_ENTER( BVCE_Telem_Parse );
 
    BDBG_ASSERT( hVCETelem );

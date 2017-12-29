@@ -135,6 +135,7 @@ void DSP_initParameters(DSP_PARAMETERS *params __attribute__((unused)))
 
 #if IS_HOST(BM)
     params->port = 0;
+    params->hostname = NULL;
 #endif
 
 #if defined(RAAGA) && (FEATURE_IS(SW_HOST, RAAGA_MAGNUM) || FEATURE_IS(SW_HOST, RAAGA_ROCKFORD))

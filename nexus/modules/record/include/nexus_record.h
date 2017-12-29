@@ -112,6 +112,14 @@ typedef struct NEXUS_RecordSettings
                                 appear in the index timestamps. */
     unsigned pollingTimer;   /* Internal timer use to poll recpump for low-bitrate streams.
                                 This works in conjunction with recpump.data.dataReadyThreshold. Units of milliseconds. */
+    struct {
+        struct {
+            unsigned fifoDepth; /* Units of bytes. If set, do not write data to NEXUS_FileRecord. Instead, discard data from Recpump
+                                to maintain that fifo depth in CDB and ITB. This can be set to a non-zero value before Start.
+                                Once set to zero, all data will be written to File and it can't be set back to non-zero.
+                                Should be greater than dataReadyThreshold. */
+        } data, index;
+    } priming;
 } NEXUS_RecordSettings;
 
 /**

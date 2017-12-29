@@ -61,8 +61,7 @@ b_libpng_target_dummy:
 	@false
 
 b_libpng_target_build: $(B_LIBPNG_OTHER_BUILDS)
-	@echo [Build..... libpng]
-	$(Q_)$(MAKE) -C $(BSEAV)/opensource/libpng $(sort $(B_LIBPNG_TARGET_MAKEFLAGS))
+	$(Q_)DESTDIR= $(MAKE) -C $(BSEAV)/opensource/libpng $(sort $(B_LIBPNG_TARGET_MAKEFLAGS))
 
 b_libpng_target_clean: $(B_LIBPNG_OTHER_CLEANS)
 
@@ -72,6 +71,6 @@ b_libpng_target_clean_all: b_libpng_target_clean $(B_LIBPNG_OTHER_CLEAN_ALL)
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
-B_LIBPNG_BUILD_FILES += $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/libpng/libpng.a
+B_LIBPNG_BUILD_FILES += $(B_REFSW_OBJ_ROOT)/target/usr/local/lib/libpng.a
 
 endif #B_LIBPNG_TARGETS_DEFINED

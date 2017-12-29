@@ -286,6 +286,10 @@ nexus_img_ioctl(unsigned int cmd, unsigned long arg)
         break;
     case BIMG_Ioctl_Ack_Type_Wait:
         if(b_interfaces.ioctl.req.sequence_no==0) {
+            /* BIMG_Ioctl_Ack_Type_Wait is used in two ways: the initial synchronization with nexus_img_wait_until_ready(),
+            and the retry if the BKNI_WaitForEvent below times out. But we only BKNI_SetEvent on the first case.
+            So incrementing sequence_no here ensures they are not confused. */
+            b_interfaces.ioctl.req.sequence_no++;
             BKNI_SetEvent(b_interfaces.ack);
             BDBG_MSG(("start req"));
         }
@@ -360,7 +364,8 @@ Nexus_IMG_Driver_Open(void *context, void **image, unsigned image_id)
         if(acquired) {
             break;
         }
-        BKNI_WaitForEvent(b_interfaces.close, 100);
+        rc = BKNI_WaitForEvent(b_interfaces.close, 100);
+        if (rc) break;
     }
     if(!acquired) {
         BDBG_ERR(("user/kernel BIMG proxy is already used"));

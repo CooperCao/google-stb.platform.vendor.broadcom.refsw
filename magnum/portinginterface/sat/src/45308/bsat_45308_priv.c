@@ -88,7 +88,11 @@ BERR_Code BSAT_45308_P_Open(BSAT_Handle *h, BCHP_Handle hChip, void *pReg, BINT_
 
    retCode = BSAT_45308_P_GetTotalChannels(hDev, &numChannels);
    if (retCode != BERR_SUCCESS)
+   {
+      BKNI_Free(hImplDev);
+      BKNI_Free(hDev);
       return retCode;
+   }
    hDev->totalChannels = (uint8_t)numChannels;
 
    hDev->pChannels = (BSAT_P_ChannelHandle **)BKNI_Malloc(numChannels * sizeof(BSAT_P_ChannelHandle *));

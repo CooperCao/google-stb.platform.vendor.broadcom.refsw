@@ -119,6 +119,10 @@ typedef struct BVCE_P_GetFeatureInfo
 #error CORE_VERSION not defined
 #endif
 
+#ifndef BVCE_P_CORE_FREQUENCY
+#error BVCE_P_CORE_FREQUENCY not defined
+#endif
+
 #define BVCE_P_MAX_MEMC 3
 
 extern const BVCE_P_GetFeatureInfo BVCE_P_MemcLUT[BVCE_PLATFORM_P_NUM_ENCODE_INSTANCES];
@@ -280,6 +284,7 @@ typedef struct BVCE_Platform_P_Config
       BVCE_Platform_P_BoxModeSettings stBox;
 
       BVCE_Platform_P_RegisterList stWatchdogRegisterDumpList;
+      BVCE_Platform_P_RegisterList stHostCPUDebugRegisterDumpList;
 } BVCE_Platform_P_Config;
 
 BERR_Code
@@ -370,6 +375,9 @@ BVCE_Platform_P_OverrideChannelDimensionBounds(
 
 extern const BVCE_Platform_P_Register s_astViceHardwareRegisters[];
 extern const unsigned s_uiViceHardwareRegistersCount;
+
+extern const BVCE_Platform_P_Register s_astHostCPUDebugRegisters[];
+extern const unsigned s_uiHostCPUDebugRegistersCount;
 
 #ifdef __cplusplus
 }

@@ -65,7 +65,7 @@
 
 
 
-#if !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
+#if defined(__FIREPATH__) && !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
 #  include <libfp/c_utils.h>
 #  include <stdint.h>
 
@@ -76,8 +76,7 @@
  * External software exception request and Host interrupt controller and OBUSFAULT registers  -  0x100 - 0x15b
  * PC trace and Profiling registers                                                           -  0x180 - 0x1cf
  */
-typedef struct
-__attribute__((packed))
+typedef struct __packed
 {
 #ifndef DOXYGEN
     volatile uint32_t corectrl_core_enable;                   /* 0x000 */
@@ -177,12 +176,12 @@ __attribute__((packed))
 } Misc_Block;
 
 
-#if defined(__FIREPATH__) && NUM_CORES == 1 && NUM_SUBSYSTEMS == 1
+#if NUM_CORES == 1 && NUM_SUBSYSTEMS == 1
 __absolute __align(4)
 extern Misc_Block taddr_Misc_Block;
 #endif
 
-#endif  /* !defined(ASMCPP) && !defined(__LINKER_SCRIPT__) */
+#endif  /* defined(__FIREPATH__) && !defined(ASMCPP) && !defined(__LINKER_SCRIPT__) */
 
 
 /**
@@ -347,17 +346,17 @@ ASSERT(PROTI_TOP_ADDRESS_MASK == PROTD_TOP_ADDRESS_MASK, "Error: PROTI_TOP_ADDRE
 #  define ADDR_TO_PROT_TOP(addr)            ((addr) == 0 ? 0 : ((addr) - 1) & PROTI_TOP_ADDRESS_MASK)
 /** @} */
 
-#  if CHIP_HAS_DATA_CACHE
+#  if CORE_HAS_DREG_FEATURE_MPU_ICA || CORE_HAS_DREG_FEATURE_MPU_DCA
 /**
- * Constants for a "closed" (inaccessible) PROTD region.
+ * Constants for a "closed" (inaccessible) PROTD/PROTI region.
  * @{
  */
-#    define PROTD_ALWAYS_CLOSED_BOT   (0xffffffff & PROTD_TOP_ADDRESS_MASK)
-#    define PROTD_ALWAYS_CLOSED_TOP   0
+#    define PROT_ALWAYS_CLOSED_BOT      (0xffffffff & PROTD_TOP_ADDRESS_MASK)
+#    define PROT_ALWAYS_CLOSED_TOP      0
 /** @} */
-#  endif
+#  endif /* CORE_HAS_DREG_FEATURE_MPU_DCA */
 
-#  if CHIP_HAS_DTCM
+#  if CORE_HAS_DREG_FEATURE_MPU_ICA || CORE_HAS_DREG_FEATURE_MPU_DCA
 /**
  * Linker scripts macros for marking DTCM protection regions boundaries.
  * They require the taddr_dtcm_prot and tsize_dtcm_prot symbols to be defined to work properly.
@@ -388,24 +387,24 @@ ASSERT(PROTI_TOP_ADDRESS_MASK == PROTD_TOP_ADDRESS_MASK, "Error: PROTI_TOP_ADDRE
 /*
  * DTCM-based support.
  */
-#  if CHIP_HAS_DTCM
+#  if CORE_HAS_DREG_FEATURE_MPU_DTCM
 #    if !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
 /**
  * DTCM protection boundaries and masks symbols.
  * @{
  */
-extern int __begin_protected_dtcm, __end_protected_dtcm;
-extern int __begin_unprotected_dtcm, __end_unprotected_dtcm;
-extern int __system_scenario_dtcm_mask_bot, __system_scenario_dtcm_mask_top;
-extern int __user_scenario_dtcm_mask_bot, __user_scenario_dtcm_mask_top;
+extern char __begin_protected_dtcm, __end_protected_dtcm;
+extern char __begin_unprotected_dtcm, __end_unprotected_dtcm;
+extern char __system_scenario_dtcm_mask_bot, __system_scenario_dtcm_mask_top;
+extern char __user_scenario_dtcm_mask_bot, __user_scenario_dtcm_mask_top;
 /** @} */
 #    endif
-#  endif /* CHIP_HAS_DTCM */
+#  endif /* CORE_HAS_DREG_FEATURE_MPU_DTCM */
 
 /*
  * DCMEM-based support.
  */
-#  if CHIP_HAS_DATA_CACHE
+#  if CORE_HAS_DREG_FEATURE_MPU_DCA
 /**
  * One PROTD region is reserved to cover the SDK "protected" data/bss.
  * @{
@@ -421,19 +420,19 @@ extern int __user_scenario_dtcm_mask_bot, __user_scenario_dtcm_mask_top;
 #        error "CLASSIC_MEMORY_PROTECTION_PROTD_REGION < 0, please check the SoC configuration file"
 #      endif
 #    endif
-#  endif /* CHIP_HAS_DATA_CACHE */
+#  endif /* CORE_HAS_DREG_FEATURE_MPU_DCA */
 
 #else  /* CLASSIC_MEMORY_PROTECTION */
 
-#  if CHIP_HAS_DTCM
+#  if CORE_HAS_DREG_FEATURE_MPU_DTCM
 #    if !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
 /**
  * DTCM loose protection boundaries and masks symbols - just wrapping (with
  * region size granularity) existing data / bss.
  * @{
  */
-extern int __begin_allowed_dtcm, __end_allowed_dtcm;
-extern int __allowed_dtcm_mask_bot, __allowed_dtcm_mask_top;
+extern char __begin_allowed_dtcm, __end_allowed_dtcm;
+extern char __allowed_dtcm_mask_bot, __allowed_dtcm_mask_top;
 /** @} */
 #    endif
 #  endif

@@ -24,7 +24,7 @@ u = disable UBO fetch optimization
 /* backend */
 #define GLSL_SAMPLE_MS       (1<<0)
 #define GLSL_SAMPLE_ALPHA    (1<<1)
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 # define GLSL_SAMPLE_MASK     (1<<2)
 # define GLSL_SAMPLE_OPS_M    (0x7<<0)
 #else
@@ -81,6 +81,9 @@ static inline uint32_t glsl_unpack_fb_gadget(uint32_t packed, int i) {
 #define GLSL_ADV_BLEND_HSL_COLOR      14
 #define GLSL_ADV_BLEND_HSL_LUMINOSITY 15
 
+#if !V3D_HAS_SRS_CENTROID_FIX
+#define GLSL_SAMPLE_SHADING_ENABLED    (1<<30)
+#endif
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
 

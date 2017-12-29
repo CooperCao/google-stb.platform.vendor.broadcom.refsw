@@ -87,7 +87,7 @@ void v3d_pixel_format_to_rt_format(
 {
    /* See http://confluence.broadcom.com/x/qwLKB */
 
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    rt_format->clamp = V3D_RT_CLAMP_NONE;
 #endif
 
@@ -95,7 +95,7 @@ void v3d_pixel_format_to_rt_format(
 
    case V3D_PIXEL_FORMAT_A1_BGR5:
    case V3D_PIXEL_FORMAT_A1_BGR5_AM:
-#if V3D_HAS_TLB_RGB5_A1
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_RGB5_A1:
 #endif
    case V3D_PIXEL_FORMAT_ABGR4:
@@ -104,7 +104,7 @@ void v3d_pixel_format_to_rt_format(
    case V3D_PIXEL_FORMAT_RGB8:
    case V3D_PIXEL_FORMAT_RG8:
    case V3D_PIXEL_FORMAT_R8:
-#if !V3D_HAS_TLB_SWIZZLE
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_RGBX8:
 #endif
    case V3D_PIXEL_FORMAT_BSTC:
@@ -127,19 +127,19 @@ void v3d_pixel_format_to_rt_format(
    case V3D_PIXEL_FORMAT_SRGB8_ALPHA8:
    case V3D_PIXEL_FORMAT_SRGB8:
    case V3D_PIXEL_FORMAT_RGB10_A2:
-#if !V3D_HAS_TLB_SWIZZLE
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_SRGBX8:
 #endif
       rt_format->type = V3D_RT_TYPE_16F;
       rt_format->bpp = V3D_RT_BPP_64;
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
       rt_format->clamp = V3D_RT_CLAMP_NORM;
 #endif
       break;
    case V3D_PIXEL_FORMAT_R11F_G11F_B10F:
       rt_format->type = V3D_RT_TYPE_16F;
       rt_format->bpp = V3D_RT_BPP_64;
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
       rt_format->clamp = V3D_RT_CLAMP_POS;
 #endif
       break;
@@ -239,7 +239,7 @@ void v3d_pack_clear_color(uint32_t packed[4], const uint32_t c[4],
    const V3D_RT_FORMAT_T *rt_format)
 {
    uint32_t col[4] = { c[0], c[1], c[2], c[3] };
-#if V3D_HAS_RT_INT_CLAMP
+#if V3D_VER_AT_LEAST(4,2,13,0)
    for (int i=0; i<4; i++)
       col[i] = v3d_apply_rt_int_clamp(col[i], rt_format->type, rt_format->clamp);
 #endif
@@ -318,7 +318,7 @@ void v3d_pack_clear_color(uint32_t packed[4], const uint32_t c[4],
       unreachable();
    }
 
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    for (unsigned i = 0; i != v3d_rt_bpp_words(rt_format->bpp); ++i)
       packed[i] = v3d_apply_rt_clamp(packed[i], rt_format->type, rt_format->clamp);
 #endif
@@ -354,8 +354,8 @@ void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
 #endif
 }
 
-#if V3D_HAS_RT_CLAMP
-# if V3D_HAS_RT_INT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
+# if V3D_VER_AT_LEAST(4,2,13,0)
 uint32_t v3d_apply_rt_int_clamp(uint32_t wr, v3d_rt_type_t rt_type, v3d_rt_clamp_t clamp)
 {
    /* All non-int clamp modes are handled later */
@@ -401,7 +401,7 @@ uint32_t v3d_apply_rt_clamp(uint32_t w, v3d_rt_type_t type, v3d_rt_clamp_t clamp
       }
       return res;
    }
-#if V3D_HAS_RT_INT_CLAMP
+#if V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_RT_CLAMP_INT:
       return w;   /* This has been handled earlier */
 #endif
@@ -548,7 +548,6 @@ void v3d_cl_log_cat_instr(
    char buf[256];
    size_t offset = VCOS_SAFE_SPRINTF(buf, 0, "%s   ", line_prefix);
    assert(offset < sizeof(buf));
-   vcos_unused_in_release(offset);
    struct v3d_basic_log_cat_printer p;
    v3d_basic_log_cat_printer_init(&p, cat, level, buf);
    v3d_cl_print_instr(packed_instr, &p.base.base);
@@ -565,20 +564,37 @@ size_t v3d_cl_sprint_plist_fmt(char *buf, size_t buf_size, size_t offset,
 
 void v3d_cl_write_vary_flags(uint8_t **instr, const uint32_t *flags, v3d_cl_flag_set_func set, v3d_cl_flag_zero_func zero)
 {
-   v3d_flags_action_t lower_action = V3D_FLAGS_ACTION_ZERO;
+   v3d_flags_action_t lower_action = flags[0] ? V3D_FLAGS_ACTION_SET : V3D_FLAGS_ACTION_ZERO;
+   bool higher_set = lower_action == V3D_FLAGS_ACTION_SET;
+
    for (uint32_t i = 0; i < V3D_MAX_VARY_FLAG_WORDS; i++)
    {
-      assert((flags[i] & ~gfx_mask(V3D_VARY_FLAGS_PER_WORD)) == 0);
+      uint32_t mask = gfx_mask(gfx_umin(V3D_VARY_FLAGS_PER_WORD,
+         V3D_MAX_VARYING_COMPONENTS - (i * V3D_VARY_FLAGS_PER_WORD)));
+      assert((flags[i] & ~mask) == 0);
 
-      if (flags[i] != 0)
+      if (flags[i] != (higher_set ? mask : 0))
       {
-         set(instr, i, lower_action, V3D_FLAGS_ACTION_ZERO, flags[i]);
+         if (i != (V3D_MAX_VARY_FLAG_WORDS - 1))
+            higher_set = flags[i + 1] != 0;
+         set(instr, i, lower_action, higher_set ? V3D_FLAGS_ACTION_SET : V3D_FLAGS_ACTION_ZERO, flags[i]);
          lower_action = V3D_FLAGS_ACTION_KEEP;
       }
    }
 
-   if (lower_action != V3D_FLAGS_ACTION_KEEP)
+   switch (lower_action)
+   {
+   case V3D_FLAGS_ACTION_ZERO:
       zero(instr);
+      break;
+   case V3D_FLAGS_ACTION_SET:
+      set(instr, 0, V3D_FLAGS_ACTION_SET, V3D_FLAGS_ACTION_SET, gfx_mask(V3D_VARY_FLAGS_PER_WORD));
+      break;
+   case V3D_FLAGS_ACTION_KEEP:
+      break;
+   default:
+      unreachable();
+   }
 }
 
 void v3d_cl_viewport_offset_from_rect(uint8_t **cl,
@@ -586,7 +602,7 @@ void v3d_cl_viewport_offset_from_rect(uint8_t **cl,
 {
    int off_x = ((2 * x) + (int)width) * 128;
    int off_y = ((2 * y) + (int)height) * 128;
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    int coarse_off_x = (off_x - (int)(width * 128)) >> (6 + 8);
    int coarse_off_y = (off_y - (int)(height * 128)) >> (6 + 8);
    v3d_cl_viewport_offset(cl,

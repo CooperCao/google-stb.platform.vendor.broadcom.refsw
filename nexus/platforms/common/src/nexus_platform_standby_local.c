@@ -524,7 +524,7 @@ void NEXUS_Platform_P_UninitWakeupDriver(void)
 
 #endif /* #if !defined(NEXUS_BASE_OS_linuxkernel) */
 
-#if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
+#if NEXUS_POWER_MANAGEMENT
 static bool NEXUS_Platform_P_IsActiveStandbyScheduler(NEXUS_ModulePriority priority)
 {
     bool activeStandby;
@@ -607,6 +607,7 @@ NEXUS_Error NEXUS_Platform_P_DeactivateSchedulers(NEXUS_StandbyMode standbyMode,
         NEXUS_Time now;
         unsigned active_count;
         long timeDiff;
+        NEXUS_Scheduler_State lastState[NEXUS_ModulePriority_eMax];
 
         /* wait for schedulers to go idle */
         for(active_count=0,i=0;i<NEXUS_ModulePriority_eMax;i++) {
@@ -617,6 +618,7 @@ NEXUS_Error NEXUS_Platform_P_DeactivateSchedulers(NEXUS_StandbyMode standbyMode,
                 if(status.state != NEXUS_Scheduler_State_eIdle) {
                     active_count++;
                 }
+                lastState[i] = status.state;
             }
         }
         NEXUS_Time_Get(&now);
@@ -626,6 +628,12 @@ NEXUS_Error NEXUS_Platform_P_DeactivateSchedulers(NEXUS_StandbyMode standbyMode,
             return NEXUS_SUCCESS;
         }
         if((unsigned)timeDiff > timeout) {
+            BDBG_ERR(("unable to deactivate schedulers for standby after %u msec", timeout));
+            for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+                if(deactivate->set[i]) {
+                    BDBG_ERR(("  scheduler %u: state %u", i, lastState[i]));
+                }
+            }
             /* recover state of schedulers we have tried to stop */
             NEXUS_Platform_P_ActivateSchedulers(deactivate);
             return BERR_TRACE(NEXUS_TIMEOUT);
@@ -633,4 +641,4 @@ NEXUS_Error NEXUS_Platform_P_DeactivateSchedulers(NEXUS_StandbyMode standbyMode,
         BKNI_Sleep(10);
     }
 }
-#endif /* #if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT */
+#endif /* #if NEXUS_POWER_MANAGEMENT */

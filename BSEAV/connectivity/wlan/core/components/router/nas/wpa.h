@@ -164,7 +164,8 @@ typedef struct wpa_suppl {
 #ifdef BCMSUPPL
 	/* need to differentiate message 1 and 3 in 4 way handshake */
 	eapol_sup_pk_state_t pk_state;
-#endif
+	uint8 eapol_temp_ptk[TKIP_PTK_LEN];     /* Temp PTK */
+#endif /* BCMSUPPL */
 #ifdef WLHOSTFBT
 	supp_ft_t ft_info;
 #endif /* WLHOSTFBT */

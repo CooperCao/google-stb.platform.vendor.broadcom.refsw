@@ -71,6 +71,9 @@
 BDBG_MODULE(nexus_platform_server);
 
 #if NEXUS_SERVER_SUPPORT
+#if NEXUS_HAS_SOCKET_DRIVER
+#error "Not supported"
+#endif
 
 #define BDBG_MSG_TRACE(X) /* BDBG_MSG(X) */
 
@@ -286,6 +289,7 @@ NEXUS_Error NEXUS_Platform_P_InitServer(void)
     rc = BKNI_CreateMutex(&server->callback_free_lock);
     if(rc!=BERR_SUCCESS) {
         rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        BKNI_Free(server); /* This is not assigned to g_server yet so UninitServer() won't free it */
         goto error;
     }
     g_server = server;
@@ -330,6 +334,7 @@ NEXUS_Error NEXUS_Platform_P_InitServer(void)
         rc = BKNI_CreateMutex(&channel->mutex);
         if(rc!=BERR_SUCCESS) {
             rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            BKNI_Free(channel);
             goto error;
         }
         channel->server = server;
@@ -902,7 +907,12 @@ static void nexus_server_thread(void *context)
                                 NEXUS_Error nrc = nexus_p_read_interface(client, &interface);
                                 if (nrc == NEXUS_SUCCESS) {
                                     b_objdb_set_client(&client->client_state.client);
-                                    NEXUS_StartCallbacks(interface);
+                                    if(b_objdb_verify_any_object(interface)==NEXUS_SUCCESS) {
+                                        /* start production of callbacks for this interface */
+                                        NEXUS_StartCallbacks(interface);
+                                    } else {
+                                        /* XXX NEXUS_StartCallbacks could be used with bad handle, in particularly XXX_Close, is paired with auto generated Stop>Start callbacks, where Start called _after_ obhect was already destroyed */
+                                    }
                                     b_objdb_set_client(NULL);
                                 }
                             }

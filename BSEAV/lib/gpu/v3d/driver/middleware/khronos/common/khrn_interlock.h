@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Interlock system
-
-FILE DESCRIPTION
-Interlock system to ensure correct ordering of reads/writes.
-=============================================================================*/
-
-#ifndef KHRN_INTERLOCK_H
-#define KHRN_INTERLOCK_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 /* should define KHRN_INTERLOCK_USER_T, KHRN_INTERLOCK_USER_NONE,
  * KHRN_INTERLOCK_USER_TEMP, KHRN_INTERLOCK_USER_WRITING, and
@@ -47,5 +38,4 @@ extern void khrn_interlock_read_immediate(KHRN_INTERLOCK_T *interlock);
 extern void khrn_interlock_write_immediate(KHRN_INTERLOCK_T *interlock);
 
 extern void khrn_interlock_flush(KHRN_INTERLOCK_USER_T user);
-
-#endif
+extern bool khrn_interlock_would_flush(KHRN_INTERLOCK_USER_T user);

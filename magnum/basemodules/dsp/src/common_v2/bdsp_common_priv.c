@@ -36,9 +36,104 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#include "bdsp_common_priv.h"
+#include "bdsp_common_priv_include.h"
 
 BDBG_MODULE(bdsp_common_priv);
+
+BERR_Code BDSP_P_PopulateSystemSchedulingDeatils(
+	BDSP_P_SystemSchedulingInfo *pSystemSchedulingInfo
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned index = 0, level = 0, threshold = 0, numpreemptionLevels = 0;
+	BDBG_ENTER(BDSP_P_PopulateSystemSchedulingDeatils);
+
+	BKNI_Memset((void *)pSystemSchedulingInfo, 0, sizeof(BDSP_P_SystemSchedulingInfo));
+	for(index=0; index<BDSP_P_TaskType_eLast; index++)
+	{
+		pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingLevel = 0xFF;
+		pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingThreshold = 0xFF;
+	}
+
+	/* Depending on BOX mode/device settings, derive the supported task types*/
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eInterruptBased].supported = false;
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eRealtime].supported       = true;
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eAssuredRate].supported    = false;
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eOnDemand].supported       = false;
+	pSystemSchedulingInfo->sTaskSchedulingInfo[BDSP_P_TaskType_eAFAP].supported           = true;
+
+	for(index=0; index<BDSP_P_TaskType_eLast; index++)
+	{
+		if(pSystemSchedulingInfo->sTaskSchedulingInfo[index].supported)
+		{
+			pSystemSchedulingInfo->numSchedulingLevels++;
+			pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingLevel = level;
+			level++;
+		}
+	}
+
+	/* TO DO: Need to expand this feature */
+	for(index=0; index<BDSP_P_TaskType_eLast; index++)
+	{
+		if(pSystemSchedulingInfo->sTaskSchedulingInfo[index].supported)
+		{
+			/* We support only RT and AFAP modes and have kept them at same levels (RT won't preempt NRT) */
+			pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingThreshold = threshold;
+			numpreemptionLevels = 1;
+		}
+	}
+
+	pSystemSchedulingInfo->numPreemptionLevels = numpreemptionLevels;
+	BDBG_MSG(("Num Scheduling levels = %d, Num Preemption Levels = %d", pSystemSchedulingInfo->numSchedulingLevels, pSystemSchedulingInfo->numPreemptionLevels));
+	for(index=0; index<BDSP_P_TaskType_eLast; index++)
+	{
+		BDBG_MSG(("TASK TYPE[%s]:\t%s,\tLEVEL: 0x%x,\tTHRESHOLD: 0x%x",TaskType[index], DisableEnable[pSystemSchedulingInfo->sTaskSchedulingInfo[index].supported],
+			pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingLevel, pSystemSchedulingInfo->sTaskSchedulingInfo[index].schedulingThreshold));
+	}
+	BDBG_LEAVE(BDSP_P_PopulateSystemSchedulingDeatils);
+	return errCode;
+}
+void BDSP_P_ValidateCodeDownloadSettings(
+    unsigned *pmaxAlgorithms
+)
+{
+    unsigned i=0;
+
+    for(i=0;i<BDSP_AlgorithmType_eMax ; i++ )
+    {
+        if (pmaxAlgorithms[i] > BDSP_MAX_DOWNLOAD_BUFFERS )
+        {
+            BDBG_ERR(("Maximum number of Algorithms for Algorithm type(%d) is %d which is exceeding downloading limits(%d)",
+                i,pmaxAlgorithms[i],BDSP_MAX_DOWNLOAD_BUFFERS));
+            BDBG_ASSERT(0);
+        }
+    }
+}
+
+unsigned BDSP_P_GetFreeTaskId(
+    BDSP_P_TaskInfo *pTaskInfo
+)
+{
+    unsigned taskId =0;
+    for (taskId = 0 ; taskId < BDSP_MAX_FW_TASK_PER_DSP; taskId++)
+    {
+        if (pTaskInfo->taskId[taskId] == false)
+        {
+            pTaskInfo->taskId[taskId] = true;
+            return taskId;
+        }
+    }
+    return BDSP_P_INVALID_TASK_ID;
+}
+
+void BDSP_P_ReleaseTaskId(
+    BDSP_P_TaskInfo *pTaskInfo,
+    unsigned        *taskId
+)
+{
+    pTaskInfo->taskId[*taskId] = false;
+    *taskId = BDSP_P_INVALID_TASK_ID;
+}
 
 void BDSP_P_GetDistinctOpTypeAndNumChans(
     BDSP_DataType dataType, /* [in] */
@@ -245,4 +340,294 @@ BERR_Code BDSP_P_InterframeRunLengthDecode(
     }
     BDBG_LEAVE(BDSP_P_InterframeRunLengthDecode);
     return rc;
+}
+
+void BDSP_P_GetInterStagePortIndex(
+	BDSP_P_StageConnectionInfo *pStageConnectionInfo,
+	BDSP_AF_P_DistinctOpType    eDistinctOpType,
+	unsigned                   *pIndex
+)
+{
+	int32_t index = 0;
+	unsigned firstFreeIndex = BDSP_AF_P_MAX_OP_FORKS;
+	BDBG_ENTER(BDSP_P_GetInterStagePortIndex);
+	for(index=(BDSP_AF_P_MAX_OP_FORKS-1); index >= 0; index--)
+	{
+		if(pStageConnectionInfo->sInterStagePortInfo[index].ePortDataType == eDistinctOpType)
+		{
+			*pIndex = index;
+			goto end;
+		}
+		if(pStageConnectionInfo->sInterStagePortInfo[index].ePortDataType == BDSP_AF_P_DistinctOpType_eMax)
+		{
+			firstFreeIndex = index;
+		}
+	}
+	if(firstFreeIndex == BDSP_AF_P_MAX_OP_FORKS)
+	{
+		BDBG_ERR(("BDSP_P_GetInterStagePortIndex: Not able to derive the index"));
+		BDBG_ASSERT(0);
+	}
+	else
+	{
+		*pIndex = firstFreeIndex;
+	}
+end:
+	BDBG_MSG(("InterStage Port Index = %d",*pIndex));
+	BDBG_LEAVE(BDSP_P_GetInterStagePortIndex);
+}
+
+void BDSP_P_GetInterTaskPortIndex(
+	BDSP_Stage                 *pStage,
+	BDSP_P_StageConnectionInfo *pStageConnectionInfo,
+	BDSP_AF_P_DistinctOpType    eDistinctOpType,
+	unsigned                   *pIndex
+)
+{
+	int32_t index = 0;
+    BDSP_P_InterTaskBuffer *pIntertaskBuffer;
+	BDBG_ENTER(BDSP_P_GetInterTaskPortIndex);
+	for(index = 0; index < BDSP_AF_P_MAX_OP_FORKS; index++)
+	{
+	    if(pStageConnectionInfo->sStageOutput[index].eConnectionType == BDSP_ConnectionType_eInterTaskBuffer)
+        {
+            pIntertaskBuffer = (BDSP_P_InterTaskBuffer *)pStageConnectionInfo->sStageOutput[index].connectionHandle.interTask.hInterTask->pInterTaskBufferHandle;
+            if((pIntertaskBuffer->distinctOp == eDistinctOpType)&&(pIntertaskBuffer->srcHandle == pStage))
+            {
+                *pIndex = index;
+                goto end;
+            }
+        }
+	}
+    if(index >= BDSP_AF_P_MAX_OP_FORKS)
+    {
+		BDBG_ERR(("BDSP_P_GetInterTaskPortIndex: Not able to derive the index"));
+		BDBG_ASSERT(0);
+    }
+end:
+	BDBG_MSG(("InterTask Port Index = %d",*pIndex));
+	BDBG_LEAVE(BDSP_P_GetInterTaskPortIndex);
+}
+
+#if !B_REFSW_MINIMAL
+BERR_Code BDSP_P_GetDefaultDatasyncSettings(
+        void *pDeviceHandle,
+        void *pSettingsBuffer,        /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+)
+{
+    BDBG_ENTER(BDSP_P_GetDefaultDatasyncSettings);
+    if(sizeof(BDSP_AudioTaskDatasyncSettings) != settingsBufferSize)
+    {
+        BDBG_ERR(("BDSP_P_GetDefaultDatasyncSettings: settingsBufferSize (%lu) is not equal to Config size (%lu) of DataSync ",
+            (unsigned long)settingsBufferSize,(unsigned long)sizeof(BDSP_AudioTaskDatasyncSettings)));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    BKNI_Memcpy((void *)(volatile void *)pSettingsBuffer,(void *)&BDSP_sDefaultFrameSyncSettings,settingsBufferSize);
+
+    BSTD_UNUSED(pDeviceHandle);
+    BDBG_LEAVE(BDSP_P_GetDefaultDatasyncSettings);
+    return BERR_SUCCESS;
+}
+#endif /*!B_REFSW_MINIMAL*/
+
+BERR_Code BDSP_P_GetDefaultTsmSettings(
+        void *pDeviceHandle,
+        void *pSettingsBuffer,        /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+)
+{
+    BDBG_ENTER(BDSP_P_GetDefaultTsmSettings);
+    if(sizeof(BDSP_AudioTaskTsmSettings) != settingsBufferSize)
+    {
+        BDBG_ERR(("BDSP_P_GetDefaultTsmSettings: settingsBufferSize (%lu) is not equal to Config size (%lu) of DataSync ",
+            (unsigned long)settingsBufferSize,(unsigned long)sizeof(BDSP_AudioTaskTsmSettings)));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    BKNI_Memcpy((void *)(volatile void *)pSettingsBuffer,(void *)&BDSP_sDefaultTSMSettings,settingsBufferSize);
+
+    BSTD_UNUSED(pDeviceHandle);
+    BDBG_LEAVE(BDSP_P_GetDefaultTsmSettings);
+    return BERR_SUCCESS;
+}
+
+BERR_Code BDSP_P_CopyStartTaskSettings(
+    BDSP_ContextType        contextType,
+	BDSP_TaskStartSettings *pBDSPStartSettings,
+	BDSP_TaskStartSettings *pAPPStartSettings
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+
+	BDBG_ENTER(BDSP_P_CopyStartTaskSettings);
+
+    BKNI_Memcpy((void *)pBDSPStartSettings, (void *)pAPPStartSettings, sizeof(BDSP_TaskStartSettings));
+
+	/*Pointers provided by PI are allocated by them respectively and should not hold them*/
+	pBDSPStartSettings->pSampleRateMap      = NULL;
+	pBDSPStartSettings->psVDecoderIPBuffCfg = NULL;
+	pBDSPStartSettings->psVEncoderIPConfig  = NULL;
+
+	if(BDSP_ContextType_eVideo == contextType )
+	{
+		if(NULL == pAPPStartSettings->psVDecoderIPBuffCfg)
+		{
+			BDBG_ERR(("BDSP_P_CopyStartTaskSettings: Input Config structure not provided for Video Decode Task by PI"));
+			errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+			return errCode;
+		}
+		pBDSPStartSettings->psVDecoderIPBuffCfg = (BDSP_sVDecoderIPBuffCfg *)BKNI_Malloc(sizeof(BDSP_sVDecoderIPBuffCfg));
+		BKNI_Memcpy((void*)pBDSPStartSettings->psVDecoderIPBuffCfg,
+			(void *)pAPPStartSettings->psVDecoderIPBuffCfg,
+			sizeof(BDSP_sVDecoderIPBuffCfg));
+		goto end;
+	}
+
+	if(BDSP_ContextType_eVideoEncode == contextType )
+	{
+		if(NULL == pAPPStartSettings->psVEncoderIPConfig)
+		{
+			BDBG_ERR(("BDSP_P_CopyStartTaskSettings: Input Config structure not provided for Video Encode Task by PI"));
+			errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+			return errCode;
+		}
+		pBDSPStartSettings->psVEncoderIPConfig = (BDSP_sVEncoderIPConfig *)BKNI_Malloc(sizeof(BDSP_sVEncoderIPConfig));
+		BKNI_Memcpy((void*)pBDSPStartSettings->psVEncoderIPConfig,
+			(void *)pAPPStartSettings->psVEncoderIPConfig,
+			sizeof(BDSP_sVEncoderIPConfig));
+		goto end;
+	}
+	if(BDSP_ContextType_eAudio == contextType )
+	{
+		/* If APE doesnt provide the Sample Rate Map table then BDSP will internally fill it. No error handling required*/
+		if(NULL != pAPPStartSettings->pSampleRateMap)
+		{
+			pBDSPStartSettings->pSampleRateMap = (BDSP_AF_P_sOpSamplingFreq *)BKNI_Malloc(sizeof(BDSP_AF_P_sOpSamplingFreq));
+			BKNI_Memcpy((void*)pBDSPStartSettings->pSampleRateMap,
+				(void *)pAPPStartSettings->pSampleRateMap,
+				sizeof(BDSP_AF_P_sOpSamplingFreq));
+		}
+	}
+
+end:
+	BDBG_LEAVE(BDSP_P_CopyStartTaskSettings);
+	return errCode;
+}
+
+void BDSP_P_DeleteStartTaskSettings(
+	BDSP_TaskStartSettings *pStartSettings
+)
+{
+	BDBG_ENTER(BDSP_P_DeleteStartTaskSettings);
+
+	/* Release the Memory used to store the input Configuration*/
+	if(pStartSettings->pSampleRateMap)
+		BKNI_Free(pStartSettings->pSampleRateMap);
+	if(pStartSettings->psVDecoderIPBuffCfg)
+		BKNI_Free(pStartSettings->psVDecoderIPBuffCfg);
+	if(pStartSettings->psVEncoderIPConfig)
+		BKNI_Free(pStartSettings->psVEncoderIPConfig);
+
+	BKNI_Memset((void *)pStartSettings, 0, sizeof(BDSP_TaskStartSettings));
+	BDBG_LEAVE(BDSP_P_DeleteStartTaskSettings);
+}
+
+BERR_Code BDSP_P_PopulateSchedulingInfo(
+    BDSP_TaskStartSettings  	*pTaskStartSettings,
+	BDSP_ContextType         	 contextType,
+	BDSP_P_SystemSchedulingInfo *pSystemSchedulingLevel,
+	BDSP_P_StartTaskCommand 	*psCommand
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+
+	BDBG_ENTER(BDSP_P_PopulateSchedulingInfo);
+
+	switch(pTaskStartSettings->schedulingMode)
+	{
+		case BDSP_TaskSchedulingMode_eStandalone:
+		case BDSP_TaskSchedulingMode_eMaster:
+			psCommand->eSchedulingMode = BDSP_P_SchedulingMode_eMaster;
+			break;
+		case BDSP_TaskSchedulingMode_eSlave:
+			psCommand->eSchedulingMode = BDSP_P_SchedulingMode_eSlave;
+			break;
+		default:
+			BDBG_ERR(("BDSP_P_PopulateSchedulingInfo: Invalid Scheduling mode being Set"));
+			errCode = BERR_INVALID_PARAMETER;
+			goto end;
+	}
+	switch(pTaskStartSettings->realtimeMode)
+	{
+		case BDSP_TaskRealtimeMode_eRealTime:
+			if((contextType == BDSP_ContextType_eVideoEncode)||
+                (pTaskStartSettings->audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLow))
+			{
+				psCommand->eTaskType = BDSP_P_TaskType_eInterruptBased;
+				psCommand->ui32SchedulingLevel =
+					pSystemSchedulingLevel->sTaskSchedulingInfo[BDSP_P_TaskType_eInterruptBased].schedulingLevel;
+			}
+			else
+			{
+				psCommand->eTaskType = BDSP_P_TaskType_eRealtime;
+				psCommand->ui32SchedulingLevel =
+					pSystemSchedulingLevel->sTaskSchedulingInfo[BDSP_P_TaskType_eRealtime].schedulingLevel;
+			}
+			break;
+		case BDSP_TaskRealtimeMode_eNonRealTime:
+			psCommand->eTaskType = BDSP_P_TaskType_eAFAP;
+			psCommand->ui32SchedulingLevel =
+				pSystemSchedulingLevel->sTaskSchedulingInfo[BDSP_P_TaskType_eAFAP].schedulingLevel;
+			break;
+		case BDSP_TaskRealtimeMode_eOnDemand:
+			psCommand->eTaskType = BDSP_P_TaskType_eOnDemand;
+			psCommand->ui32SchedulingLevel =
+				pSystemSchedulingLevel->sTaskSchedulingInfo[BDSP_P_TaskType_eOnDemand].schedulingLevel;
+			break;
+		default:
+			BDBG_ERR(("BDSP_P_PopulateSchedulingInfo: Invalid Tasktype being Set"));
+			errCode = BERR_INVALID_PARAMETER;
+			goto end;
+	}
+
+end:
+	BDBG_LEAVE(BDSP_P_PopulateSchedulingInfo);
+	return errCode;
+}
+
+void BDSP_P_InitBufferDescriptor(
+    BDSP_P_BufferPointer    *pBufferPointer,
+    BDSP_MMA_Memory         *pMemory,
+    unsigned                 size
+)
+{
+    BDBG_ENTER(BDSP_P_InitBufferDescriptor);
+    pBufferPointer->BaseOffset = pMemory->offset;
+    pBufferPointer->ReadOffset = pMemory->offset;
+    pBufferPointer->WriteOffset= pMemory->offset;
+    pBufferPointer->EndOffset  = pMemory->offset+size;
+    BDBG_LEAVE(BDSP_P_InitBufferDescriptor);
+}
+
+void BDSP_P_InitDramBuffer(
+    BDSP_P_FwBuffer   *pDescriptorMemory,
+    dramaddr_t         bufferDescriptorAddr,
+    dramaddr_t         BaseOffset
+)
+{
+    BDSP_AF_P_sCIRCULAR_BUFFER *pCircularBuffer;
+    BDSP_MMA_Memory Memory;
+    BDBG_ENTER(BDSP_P_InitDramBuffer);
+    pCircularBuffer = (BDSP_AF_P_sCIRCULAR_BUFFER *)BDSP_MMA_P_GetVirtualAddressfromOffset(
+                            pDescriptorMemory,
+                            bufferDescriptorAddr);
+    pCircularBuffer->ReadAddr = BaseOffset;
+    pCircularBuffer->WriteAddr= BaseOffset;
+    Memory       = pDescriptorMemory->Buffer;
+
+    Memory.pAddr = (void *)pCircularBuffer;
+    Memory.offset= bufferDescriptorAddr;
+    BDSP_MMA_P_FlushCache(Memory, sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
+
+    BDBG_LEAVE(BDSP_P_InitDramBuffer);
 }

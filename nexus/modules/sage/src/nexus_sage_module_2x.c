@@ -42,6 +42,7 @@
 #include "priv/nexus_sage_priv.h"
 #include "bhsm.h"
 #include "nexus_sage_image.h"
+#include "priv/nexus_sage_audio.h"
 #include "nexus_security_client.h"
 #include "bsagelib_boot.h"
 #include "bkni.h"
@@ -111,12 +112,10 @@ static struct {
 /****************************************
  * Local functions
  ****************************************/
-static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, uint32_t *offset, uint32_t *len, uint32_t *max_free);
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
 static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(uint32_t offset, uint32_t len, uint32_t boundary);
 #endif
 static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void);
-static NEXUS_Error NEXUS_SageModule_P_InitializeTimer(void);
 static void NEXUS_SageModule_P_MemoryBlockFree(NEXUS_SageMemoryBlock *block, int clear);
 static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(NEXUS_SageMemoryBlock *block, size_t size, NEXUS_MemoryAllocationSettings *allocSettings);
 static void NEXUS_Sage_P_CleanBootVars(void);
@@ -440,24 +439,6 @@ void NEXUS_SageModule_GetDefaultInternalSettings(NEXUS_SageModuleInternalSetting
     BKNI_Memset(pInternalSettings, 0, sizeof(*pInternalSettings));
 }
 
-/* Init the timer Module */
-static NEXUS_Error NEXUS_SageModule_P_InitializeTimer(void)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-
-    BTMR_TimerSettings timerSettings = { BTMR_Type_eSharedFreeRun, NULL, NULL, 0, false };
-    if(BTMR_CreateTimer(g_pCoreHandles->tmr, &g_NEXUS_sageModule.hTimer, &timerSettings) != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BTMR_CreateTimer failure", BSTD_FUNCTION));
-        rc = NEXUS_NOT_INITIALIZED;
-    }
-    else {
-        g_NEXUS_sageModule.timerMax = BTMR_ReadTimerMax();
-        /* failure is acceptable here */
-    }
-
-    return rc;
-}
-
 /* Free a memory block allocated using NEXUS_SageModule_P_MemoryBlockAllocate() */
 static void NEXUS_SageModule_P_MemoryBlockFree(NEXUS_SageMemoryBlock *block, int clear)
 {
@@ -493,7 +474,7 @@ err:
 }
 
 /* Retrieve heap's offset and length parameters */
-static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, uint32_t *offset, uint32_t *len, uint32_t *max_free)
+NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, NEXUS_Addr *offset, uint32_t *len, uint32_t *max_free)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
@@ -570,18 +551,33 @@ static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void)
     NEXUS_MemoryAllocationSettings allocSettings;
     uint32_t sage_max_free = 0;
     uint32_t secure_video_max_free = 0;
+    NEXUS_Addr offset;
 
     rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_SAGE_SECURE_HEAP,
-                                              &g_sage_module.restricted1Offset,
+                                              &offset,
                                               &g_sage_module.restricted1Len,
                                               &sage_max_free);
     if (rc != NEXUS_SUCCESS) { goto err; }
+    g_sage_module.restricted1Offset=(uint32_t)offset;
+    if(g_sage_module.restricted1Offset!=offset)
+    {
+        BDBG_ERR(("%s: SRR offset overflow", __FUNCTION__));
+        rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto err;
+    }
 
     rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_VIDEO_SECURE_HEAP,
-                                              &g_sage_module.restricted2Offset,
+                                              &offset,
                                               &g_sage_module.restricted2Len,
                                               &secure_video_max_free);
     if (rc != NEXUS_SUCCESS) { goto err; }
+    g_sage_module.restricted2Offset=(uint32_t)offset;
+    if(g_sage_module.restricted2Offset!=offset)
+    {
+        BDBG_ERR(("%s: CRR offset overflow", __FUNCTION__));
+        rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto err;
+    }
 
     /* Allocate the whole SAGE heap (for monitor Adresse Range Checker) */
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
@@ -637,6 +633,7 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     unsigned heapIndex;
     unsigned clientHeapIndex = 0;
     int booted = 0;
+    NEXUS_Addr offset;
 
     BDBG_ASSERT(!g_NEXUS_sageModule.moduleHandle);
     BDBG_ASSERT(pSettings);
@@ -667,16 +664,19 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     rc = NEXUS_Sage_P_ConfigureAlloc();
     if(rc != NEXUS_SUCCESS) {  goto err; }
 
-    /* configure timer for message timestamp and SAGE start time */
-    rc = NEXUS_SageModule_P_InitializeTimer();
-    if (rc != NEXUS_SUCCESS) { goto err; }
-
     /* get general heap boundaries */
     rc = NEXUS_SageModule_P_GetHeapBoundaries(SAGE_FULL_HEAP,
-                                              &g_sage_module.generalHeapOffset,
+                                              &offset,
                                               &g_sage_module.generalHeapLen,
                                               NULL);
     if (rc != NEXUS_SUCCESS) { goto err; }
+    g_sage_module.generalHeapOffset=(uint32_t)offset;
+    if(g_sage_module.generalHeapOffset!=offset)
+    {
+        BDBG_ERR(("%s: General heap offset overflow", __FUNCTION__));
+        rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto err;
+    }
 
     /* Retrieves picture heap buffer boundaries. */
     for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
@@ -721,10 +721,17 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
         break;
     default:
         rc = NEXUS_SageModule_P_GetHeapBoundaries(g_sage_module.settings.clientHeapIndex,
-                                                  &g_sage_module.clientHeapOffset,
+                                                  &offset,
                                                   &g_sage_module.clientHeapLen,
                                                   NULL);
         if (rc != NEXUS_SUCCESS) { goto err; }
+        g_sage_module.settings.clientHeapIndex=(uint32_t)offset;
+        if(g_sage_module.settings.clientHeapIndex!=offset)
+        {
+            BDBG_ERR(("%s: Client heap offset overflow", __FUNCTION__));
+            rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            goto err;
+        }
         break;
     }
 
@@ -806,7 +813,7 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     blImg.raw = &bl;
 
     /* Init SVP */
-    NEXUS_Sage_P_SvpInit();
+    NEXUS_Sage_P_SvpInit(&g_sage_module.internalSettings);
 
     /* If chip type is ZB or customer specific, then the default IDs stand */
     if (g_NEXUS_sageModule.chipInfo.chipType == BSAGElib_ChipType_eZS) {
@@ -830,8 +837,8 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     if(rc != NEXUS_SUCCESS) { goto err; }
 
     /* Get start timer */
-    BTMR_ReadTimer(g_NEXUS_sageModule.hTimer, &g_NEXUS_sageModule.initTimeUs);
-    BDBG_MSG(("%s - Initial timer value: %u", BSTD_FUNCTION, g_NEXUS_sageModule.initTimeUs));
+    NEXUS_Time_Get(&g_NEXUS_sageModule.initTime);
+
     rc = NEXUS_Sage_P_SAGELogInit();
     if (rc != NEXUS_SUCCESS) { goto err; }
 
@@ -941,11 +948,6 @@ void NEXUS_SageModule_Uninit(void)
     }
 
     NEXUS_SageModule_P_MemoryBlockFree(&g_sage_module.sageSecureHeap, false);
-
-    if (g_NEXUS_sageModule.hTimer) {
-        BTMR_DestroyTimer(g_NEXUS_sageModule.hTimer);
-        g_NEXUS_sageModule.hTimer = NULL;
-    }
 
     NEXUS_Sage_P_VarCleanup();
     NEXUS_UnlockModule();
@@ -1065,26 +1067,16 @@ NEXUS_Sage_P_MonitorBoot(void)
     int totalBootTimeUs;
     int alreadyConsumedBootTimeUs;
     int overheadUs;
-    uint32_t timer;
+    NEXUS_Time now;
     uint32_t lastStatus=0x42;
     BSAGElib_BootState bootState;
 
     g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
 
     /* This will calculate the time already consumed by the SAGE init process before we reach this point */
-    if(BTMR_ReadTimer(g_NEXUS_sageModule.hTimer, &timer) != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BTMR_ReadTimer failure", BSTD_FUNCTION));
-        goto err;
-    }
+    NEXUS_Time_Get(&now);
     /* compute already comsumed time. */
-    if (g_NEXUS_sageModule.initTimeUs < timer) {
-        totalBootTimeUs = timer - g_NEXUS_sageModule.initTimeUs;
-    } else { /* timer < g_NEXUS_sageModule.timerMax) ; timer wraps */
-        /* if real total boot time > g_NEXUS_sageModule.timerMax (SAGE-side is probably hanging),
-         * it may end up in SAGE_MAX_BOOT_TIME_US micro seconds before timeout
-         * as total boot time computation will be false due to wrong wrap. */
-        totalBootTimeUs = ((g_NEXUS_sageModule.timerMax - g_NEXUS_sageModule.initTimeUs) + timer);
-    }
+    totalBootTimeUs = NEXUS_Time_Diff(&now, &g_NEXUS_sageModule.initTime) * 1000;
 
     alreadyConsumedBootTimeUs = totalBootTimeUs;
     /* Read Global SRAM registers for SAGE boot status every SAGE_STEP_BOOT_TIME_US us.
@@ -1434,5 +1426,79 @@ error:
     {
         NEXUS_Memory_Free(pDest);
     }
+    return rc;
+}
+
+NEXUS_Error NEXUS_Sage_SecureLog_Attach(uint32_t TA_Id)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+void NEXUS_Sage_SecureLog_Detach(uint32_t TA_Id)
+{
+    BSTD_UNUSED ( TA_Id );
+}
+
+NEXUS_Error NEXUS_Sage_SecureLog_GetBuffer(void *pSecureLogBuffCtx,uint32_t logBuffCtxSize,
+                        void *pLogBufferAddr,
+                        uint32_t logBufferSize,
+                        NEXUS_Sage_SecureLog_BufferId bufferId)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+NEXUS_Error NEXUS_Sage_SecureLog_StartCaptureOK()
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+void NEXUS_SageAudio_GetDefaultOpenSettings_priv(
+    NEXUS_SageAudioOpenSettings *pSettings /* out */
+    )
+{
+    BSTD_UNUSED ( pSettings );
+}
+
+NEXUS_SageAudioHandle NEXUS_SageAudio_Open_priv(
+    const NEXUS_SageAudioOpenSettings *pSettings /* Pass NULL for default settings */
+    )
+{
+    return NULL;
+}
+
+void NEXUS_SageAudio_Close_priv(
+    NEXUS_SageAudioHandle hSageAudio
+    )
+{
+    BSTD_UNUSED ( hSageAudio );
+}
+
+void NEXUS_SageAudio_GetDefaultStartSettings_priv(
+    NEXUS_SageAudioStartSettings *pSettings /* out */
+    )
+{
+    BSTD_UNUSED ( pSettings );
+}
+
+NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSageAudio,
+                                       const NEXUS_SageAudioStartSettings* pSettings)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+NEXUS_Error NEXUS_SageAudio_Stop_priv(NEXUS_SageAudioHandle hSageAudio)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+NEXUS_Error NEXUS_SageAudio_GetStatus_priv(NEXUS_SageAudioHandle  hSageAudio,
+                                           NEXUS_SageAudioStatus* sageAudioStatus)
+{
+    NEXUS_Error     rc = NEXUS_SUCCESS;
     return rc;
 }

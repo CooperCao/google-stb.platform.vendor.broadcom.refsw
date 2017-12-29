@@ -36,24 +36,39 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-
 AUTH_MODULES += BDSP_AUTH
-
-BDSP_AUTH_INCLUDES += \
-    $(MAGNUM)/basemodules/dsp/include \
-    $(MAGNUM)/basemodules/dsp/include/raaga \
-    $(MAGNUM)/basemodules/dsp/src/raaga \
-    $(MAGNUM)/basemodules/dsp/src
-
-# Common image file(s)
-BDSP_AUTH_SOURCES +=	\
-		     $(MAGNUM)/basemodules/dsp/src/raaga/bdsp_raaga_fw_settings.c \
-		     $(MAGNUM)/basemodules/dsp/src/raaga/bdsp_raaga_fw_algo.c \
-		     $(MAGNUM)/basemodules/dsp/src/raaga/bdsp_raaga_fwdownload.c \
-		     $(MAGNUM)/basemodules/dsp/src/bdsp_auth.c
 
 BDSP_AUTH_DEFINES += BDSP_AUTH=y
 BDSP_IMG_ONLY = y
 
 # Include Raaga files
 include $(MAGNUM)/basemodules/dsp/bdsp.inc
+
+# Common image file(s)
+ifneq ($(BDSP_RAAGA_FP_VER),fp4015)
+BDSP_AUTH_INCLUDES += \
+    $(MAGNUM)/basemodules/dsp/include \
+    $(MAGNUM)/basemodules/dsp/include/raaga \
+    $(MAGNUM)/basemodules/dsp/src/raaga \
+    $(MAGNUM)/basemodules/dsp/src
+
+BDSP_AUTH_SOURCES +=	\
+		     $(MAGNUM)/basemodules/dsp/src/raaga/bdsp_raaga_fw_settings.c \
+		     $(MAGNUM)/basemodules/dsp/src/raaga/bdsp_raaga_fw_algo.c \
+		     $(MAGNUM)/basemodules/dsp/src/raaga/bdsp_raaga_fwdownload.c \
+		     $(MAGNUM)/basemodules/dsp/src/bdsp_auth.c
+else
+BDSP_AUTH_INCLUDES += \
+    $(MAGNUM)/basemodules/dsp/include \
+    $(MAGNUM)/basemodules/dsp/include/octave \
+    $(MAGNUM)/basemodules/dsp/include/common_v2
+
+BDSP_AUTH_SOURCES +=	\
+		     $(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_fw_settings.c \
+		     $(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_fw_algo.c \
+		     $(MAGNUM)/basemodules/dsp/src/octave/bdsp_common_fwdownload_priv.c \
+		     $(MAGNUM)/basemodules/dsp/src/octave/bdsp_common_mm_priv.c \
+		     $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_fw_algo.c \
+		     $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_fwdownload_priv.c \
+		     $(MAGNUM)/basemodules/dsp/src/bdsp_auth.c
+endif

@@ -150,6 +150,8 @@ extern "C" {
 
 enum nexus_vbi_resources
 {
+    nexus_vbi_resource_vec_int,
+    nexus_vbi_resource_vec_bypass_int,
     nexus_vbi_resources_cgmse,
     nexus_vbi_resources_max
 };
@@ -430,6 +432,7 @@ Display VBI functions
 BERR_Code NEXUS_Display_P_ConnectVbi(NEXUS_DisplayHandle display);
 void NEXUS_Display_P_DisconnectVbi(NEXUS_DisplayHandle display);
 void NEXUS_Display_P_DisableVbi(NEXUS_DisplayHandle display);
+bool nexus_display_p_vbi_available(enum nexus_vbi_resources res);
 BERR_Code NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format);
 BERR_Code NEXUS_Display_P_VbiData_isr(NEXUS_DisplayHandle display, BVBI_Field_Handle vbiData);
 #endif

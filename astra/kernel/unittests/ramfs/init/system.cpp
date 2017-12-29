@@ -93,7 +93,7 @@ void System::init(const void *devTree) {
     printf("Root FS mounted\n");
 
     /* Unmap the bootstrap part of the kernel */
-    PageTable::kernelPageTable()->unmapBootstrap(devTree);
+    //PageTable::kernelPageTable()->unmapBootstrap(devTree);
 
     PageTable::kernelPageTable()->dump();
     printf("System init done\n");

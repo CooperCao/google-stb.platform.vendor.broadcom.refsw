@@ -68,8 +68,8 @@ endif
 include ../../../../../nexus/build/os/ucos/os_tools.inc
 
 # OFFICIAL RELEASE VERSION
-BOLT_DIR_NAME = bolt_v1.31
-CFE_DIR_NAME = CFE_17_3
+BOLT_DIR_NAME = bolt_v1.33
+CFE_DIR_NAME = CFE_17_4
 
 NEXUS_DIR = $(shell cd "../../../../../nexus" && ${PWD})
 BSEAV_DIR = $(shell cd "../../../../../BSEAV" && ${PWD})

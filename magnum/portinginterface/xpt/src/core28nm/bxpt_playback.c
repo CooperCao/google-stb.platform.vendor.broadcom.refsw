@@ -107,10 +107,9 @@
 #define MCPB_TOP_WRITE( handle, regname, bitfield, val ) \
     { \
         uint32_t LocalReg; \
-        LocalReg = BXPT_Playback_P_ReadReg( handle, BCHP_##regname ); \
-        LocalReg &= ~( BCHP_MASK( regname, bitfield ) ); \
-        LocalReg |= ( BCHP_FIELD_DATA( regname, bitfield, val ) ); \
-        BXPT_Playback_P_WriteReg( handle, BCHP_##regname, LocalReg ); \
+        LocalReg = BREG_Read32( handle->hRegister, BCHP_##regname ); \
+		BCHP_SET_FIELD_DATA(LocalReg, regname, bitfield, val); \
+        BREG_Write32( handle->hRegister, BCHP_##regname, LocalReg ); \
     };
 
 #define MCPB_TOP_CHNL_WRITE( handle, regname, bitfield, val ) \
@@ -390,7 +389,7 @@ BERR_Code BXPT_Playback_GetChannelDefaultSettings(
         ChannelSettings->Use32BitTimestamps = false;
 
         /* Defaults, to keep existing behavior. */
-        ChannelSettings->PesBasedPacing = false;
+        ChannelSettings->DescBasedPacing = false;
         ChannelSettings->Use8WordDesc = false;
     }
 
@@ -611,7 +610,7 @@ BERR_Code BXPT_Playback_SetChannelSettings(
 
     if( hPb->settings.PcrBasedPacing )
         pacingType = 1;
-    else if ( hPb->settings.PesBasedPacing )
+    else if ( hPb->settings.DescBasedPacing )
         pacingType = 2;
 
     gpcSelect = hPb->settings.PacingCounter ? hPb->settings.PacingCounter->Index : 0;
@@ -734,6 +733,10 @@ BERR_Code BXPT_Playback_GetLastCompletedDescriptorAddress(
         DescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_MCPB_CH0_DCPM_DESC_ADDR, DESC_ADDRESS );
         DescAddr <<= 4;  /* Convert to byte-address. */
         UserSpaceDescAddr = (uint8_t*) hPb->mma.descPtr + (DescAddr - hPb->mma.descOffset); /* offset -> cached address */
+    }
+    else
+    {
+        ExitCode = BERR_NOT_AVAILABLE;
     }
 
     *LastCompletedDesc = ( BXPT_PvrDescriptor * ) UserSpaceDescAddr;
@@ -1718,10 +1721,6 @@ void BXPT_Playback_P_EnableInterrupts(
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_OOS_INTR_MASK |
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_TS_PARITY_ERR_INTR_MASK |
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_TEI_INTR_MASK |
-        BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_ASF_LEN_ERR_INTR_MASK |
-        BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_ASF_COMPRESSED_DATA_RECEIVED_INTR_MASK |
-        BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_ASF_PROTOCOL_ERR_INTR_MASK |
-        BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_ASF_PADDING_LEN_ERR_INTR_MASK |
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_TS_RANGE_ERR_INTR_MASK |
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_PES_NEXT_TS_RANGE_ERR_INTR_MASK |
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_PAUSE_AT_DESC_READ_INTR_MASK |
@@ -2179,4 +2178,27 @@ BERR_Code BXPT_Set_SkipRepeatSetting(
 
     Done:
     return exitCode;
+}
+
+BERR_Code BXPT_Playback_GetLastCompletedDataAddress(
+    BXPT_Playback_Handle hPb,                   /* [in] Handle for the playback channel */
+    BMMA_DeviceOffset *LastCompletedDataAddress /* [out] Address of the last completed data buffer. */
+    )
+{
+    uint64_t Reg;
+
+    *LastCompletedDataAddress = 0;
+    Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_MCPB_CH0_DCPM_STATUS );
+    if( BCHP_GET_FIELD_DATA( Reg, XPT_MCPB_CH0_DCPM_STATUS, DATA_ADDR_CUR_DESC_ADDR_STATUS ) )
+    {
+        /* A descriptor & data address update has completed. Status is good. */
+#ifdef BCHP_XPT_MCPB_CH0_DCPM_DATA_ADDR
+        Reg = BXPT_Playback_P_ReadAddr( hPb, BCHP_XPT_MCPB_CH0_DCPM_DATA_ADDR );
+        *LastCompletedDataAddress = (BMMA_DeviceOffset)Reg;
+#else
+        Reg = BXPT_Playback_P_ReadAddr( hPb, BCHP_XPT_MCPB_CH0_DCPM_DATA_ADDR_LOWER );
+        *LastCompletedDataAddress = (BMMA_DeviceOffset)Reg;
+#endif
+    }
+    return BERR_SUCCESS;
 }

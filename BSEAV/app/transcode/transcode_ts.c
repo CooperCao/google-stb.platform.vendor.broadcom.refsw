@@ -464,7 +464,6 @@ typedef struct TranscodeContext {
     bool                      bypassVideoFilter;
     bool                      bMCPB;
     bool                      dropBardata;
-    bool                      bPrintStatus;
     NEXUS_StreamMuxInterleaveMode interleaveMode;
 
     struct
@@ -526,6 +525,10 @@ static int g_simulDecoderMaster = 0;
 static unsigned g_pcrInterval = 50;
 static bool g_bOnePtsPerSegment = false;
 static bool g_audioPesPacking = false;
+static bool g_bSparseFrameRate = false;
+static bool g_bEnableFieldPairing = true;
+static bool g_bPrintStatus = false;
+
 static const namevalue_t g_audioChannelFormatStrs[] = {
     {"none", NEXUS_AudioMultichannelFormat_eNone},
     {"stereo", NEXUS_AudioMultichannelFormat_eStereo},
@@ -836,17 +839,16 @@ static void userdataCallback(void *context, int param)
 
         /* 2) call UDP to parse cc data; */
         while (offset < toBeParsed->ui32UserDataBufSize) {
-            BERR_Code rc;
             unsigned i;
             size_t bytesParsed = 0;
             uint8_t ccCount = 0;
             BUDP_DCCparse_ccdata *ccData = pContext->ccData;
 
             if (pContext->codec == NEXUS_VideoCodec_eH264) {
-                rc = BUDP_DCCparse_SEI_isr(toBeParsed, offset, &bytesParsed, &ccCount, ccData);
+                BUDP_DCCparse_SEI_isr(toBeParsed, offset, &bytesParsed, &ccCount, ccData);
             }
             else {
-                rc = BUDP_DCCparse_isr(toBeParsed, offset, &bytesParsed, &ccCount, ccData);
+                BUDP_DCCparse_isr(toBeParsed, offset, &bytesParsed, &ccCount, ccData);
             }
 
             for( i = 0; i < ccCount; i++ )
@@ -1251,7 +1253,7 @@ void xcode_loopback_setup( TranscodeContext  *pContext )
     }
     if (!pContext->filePlayLoopback) {
         fprintf(stderr, "can't open file: %s, index %s\n", pEncodeSettings->fname, pContext->indexfname);
-        BDBG_ASSERT(0);
+        exit(1);
     }
 
     NEXUS_Playback_GetSettings(pContext->playbackLoopback, &playbackSettings);
@@ -3244,6 +3246,7 @@ static void xcode_create_systemdata( TranscodeContext  *pContext )
             case NEXUS_VideoCodec_eH264:          vidStreamType = 0x1b; break;
             case NEXUS_VideoCodec_eH265:          vidStreamType = 0x24; break;
             case NEXUS_VideoCodec_eVc1SimpleMain: vidStreamType = 0xea; break;
+            case NEXUS_VideoCodec_eVp9:           vidStreamType = 0x00; break; /* VP9 in TS doesn't actually work, but this is in place for VCE regression testing */
             default:
                 BDBG_ERR(("Video encoder codec %d is not supported!\n", pContext->encodeSettings.encoderVideoCodec));
                 BDBG_ASSERT(0);
@@ -3436,7 +3439,7 @@ static void xcode_av_sync(
         }
         else
         {
-            pVideoEncoderConfig->enableFieldPairing = pContext->encodeSettings.enableFieldPairing;
+            pVideoEncoderConfig->enableFieldPairing = g_bEnableFieldPairing;
 
             /* 0 to use default rate buffer delay; */
             pVideoEncoderStartConfig->rateBufferDelay = 0;
@@ -3505,7 +3508,6 @@ static void xcode_av_sync(
 
     /* store the encoder A2P delay based on the bounds and av sync for mux resource allocation */
     pContext->encodeDelay = Dee;
-
 }
 
 static void xcode_index_filename(char *indexFile, const char *mediaFile )
@@ -4288,7 +4290,7 @@ static int open_transcode(
                 if(g_bSimulXcode) g_simulDecoderMaster = pContext->contextId;
                 do {
                     decId = g_bDecoderZeroUp? decoderId : (cap.numVideoDecoders-decoderId-1);
-                    if(cap.videoDecoder[decId].feeder.index != (unsigned)(-1)) {
+                    if(cap.memory[decId].used && cap.videoDecoder[decId].feeder.index != (unsigned)(-1)) {
                         pContext->videoDecoder = NEXUS_VideoDecoder_Open(decId,
                             &openSettings); /* take default capabilities */
                     }
@@ -4453,7 +4455,7 @@ static int open_transcode(
             pContext->file = NEXUS_FilePlay_OpenPosix(pInputSettings->fname, srcIndexFileName[0]? srcIndexFileName : NULL);
             if (!pContext->file) {
                 fprintf(stderr, "can't open file:%s\n", pInputSettings->fname);
-                return -1;
+                exit(1);
             }
 
             /* file source could run in RT or NRT mode.
@@ -4776,6 +4778,7 @@ static int open_transcode(
      */
     NEXUS_VideoEncoder_GetSettings(pContext->videoEncoder, &videoEncoderConfig);
     videoEncoderConfig.variableFrameRate = pContext->bVariableFrameRate;
+    videoEncoderConfig.sparseFrameRate = g_bSparseFrameRate;
     videoEncoderConfig.frameRate = pEncodeSettings->encoderFrameRate;
     videoEncoderConfig.bitrateMax = pEncodeSettings->encoderBitrate;
     videoEncoderConfig.bitrateTarget = pEncodeSettings->vbr? pEncodeSettings->encoderTargetBitrate : 0;
@@ -5360,7 +5363,7 @@ static void stop_transcode(
     }
     #endif
 
-    if ( pContext->bPrintStatus ) printStatus( pContext );
+    if ( g_bPrintStatus ) printStatus( pContext );
 
     /* stopped */
     pContext->bStarted = false;
@@ -5488,7 +5491,10 @@ static void start_transcode(
         pContext->fileTranscode = NEXUS_FileRecord_OpenPosix(pContext->encodeSettings.fname,
             pContext->indexfname[0]? pContext->indexfname : NULL);
     }
-    assert(pContext->fileTranscode);
+    if (!pContext->fileTranscode) {
+        fprintf(stderr, "can't create file: %s, %s\n", pContext->encodeSettings.fname, pContext->indexfname);
+        exit(1);
+    }
 
     /* Start record of stream mux output */
     NEXUS_Record_Start(pContext->record, pContext->fileTranscode);
@@ -6005,6 +6011,7 @@ void print_usage(void) {
             printf("  -3d       - enable 3D encode\n");
             printf("  -seamless 1080p|720p - seamless transcode format switch up to 1080p or 720p\n");
             printf("  -vfr      - enable variable frame rate transcode\n");
+            printf("  -sfr      - enable sparse frame rate transcode\n");
             printf("  -sd       - enable CVBS debug display for source decoder.\n");
             printf("  -openGop  - enable open GOP encode.\n");
             printf("  -dynamicGop - enable new GOP on scene change.\n");
@@ -6299,6 +6306,10 @@ int main(int argc, char **argv)  {
                 pContext->bVariableFrameRate = true;
                 fprintf(stderr, "Variable frame rate video encode.\n");
             }
+            if(!strcmp("-sfr",argv[i])) {
+                g_bSparseFrameRate = true;
+                fprintf(stderr, "Sparse frame rate video encode.\n");
+            }
             if(!strcmp("-dynamicGop",argv[i])) {
                 pContext->encodeSettings.newGopOnSceneChange = true;
                 fprintf(stderr, "Enabled new GOP on scene change.\n");
@@ -6481,7 +6492,7 @@ int main(int argc, char **argv)  {
                fprintf(stderr, "Logging enabled (%u ms poll frequency)\n", g_loggerContext.frequency);
             }
             if(!strcmp("-printStatus",argv[i])) {
-               pContext->bPrintStatus = true;
+               g_bPrintStatus = true;
                fprintf(stderr, "Auto Print Status when transcoder is closed\n");
             }
             if(!strcmp("-pcrInterval",argv[i])) {
@@ -6514,9 +6525,8 @@ int main(int argc, char **argv)  {
                   return -1;
                }
             }
-            pContext->encodeSettings.enableFieldPairing = true;
             if(!strcmp("-itfpoff",argv[i])) {
-               pContext->encodeSettings.enableFieldPairing = false;
+               g_bEnableFieldPairing = false;
                 fprintf(stderr, "Disable field pairing (ITFP).\n");
             }
         }
@@ -6688,6 +6698,7 @@ again:
         BDBG_WRN(("bitrate switch to 2Mbps"));
         NEXUS_VideoEncoder_GetSettings(pContext->videoEncoder, &videoEncoderConfig);
         videoEncoderConfig.variableFrameRate = pContext->bVariableFrameRate;
+        videoEncoderConfig.sparseFrameRate = g_bSparseFrameRate;
         videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e30;
         videoEncoderConfig.streamStructure.framesP = 29;
         videoEncoderConfig.streamStructure.framesB = 0;
@@ -6706,6 +6717,7 @@ again:
         BDBG_WRN(("bitrate switch to 10 Mbps"));
         NEXUS_VideoEncoder_GetSettings(pContext->videoEncoder, &videoEncoderConfig);
         videoEncoderConfig.variableFrameRate = pContext->bVariableFrameRate;
+        videoEncoderConfig.sparseFrameRate = g_bSparseFrameRate;
         videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e60;
         videoEncoderConfig.streamStructure.framesP = 29;
         videoEncoderConfig.streamStructure.framesB = 0;

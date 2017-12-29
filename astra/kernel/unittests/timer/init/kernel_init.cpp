@@ -53,7 +53,7 @@
 
 extern "C" void tzKernelSecondary();
 
-#define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
+#define assert(cond) if (!(cond)) { ATA_LogErr("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
 static WaitQueue wq;
 
@@ -110,7 +110,7 @@ int testTask(void *task, void *ctx) {
         numCycles++;
     }
 
-    success_msg("Timer interrupt and context switch test passed\n");
+    ATA_LogSuccess(" Timer interrupt and context switch test passed\n");
 
     while (true)
         wq.wait((TzTask *)task);
@@ -128,7 +128,7 @@ void timerCreationTests() {
     // Create a large number of timers
     for (int i=0; i<numTimers; i++)
         timers[i] = TzTimers::create(now+((i+3)*freq), timerFired, nullptr);
-    success_msg("Timer creation ok\n");
+    ATA_LogMsg("Success: Timer creation ok\n");
 
     // Destroy half of them
     for (int i=1; i<numTimers; i+=2)
@@ -137,7 +137,7 @@ void timerCreationTests() {
     // Create another set of timers to replace the destroyed ones
     for (int i=1; i<numTimers; i+=2)
         timers[i] = TzTimers::create(now+((i+3)*freq), timerFired, nullptr);
-    success_msg("Timer destruction and re-creation ok\n");
+    ATA_LogMsg("Success: Timer destruction and re-creation ok\n");
 
     activeTimers = 10;
 }
@@ -180,11 +180,11 @@ void tzKernelSecondary() {
 }
 
 void kernelHalt(const char *reason) {
-    err_msg("%s\n", reason);
+    ATA_LogErr("%s\n", reason);
     while (true) {}
 }
 
 extern "C" void __cxa_pure_virtual() {
-    err_msg("Pure virtual function called !\n");
+    ATA_LogErr("Pure virtual function called !\n");
     kernelHalt("Pure virtual function call");
 }

@@ -176,9 +176,8 @@ void NEXUS_InputClient_Release( NEXUS_InputClientHandle client )
     client->acquired = false;
     NEXUS_CLIENT_RESOURCES_RELEASE(inputClient,IdList,client->client_id);
 
-    /* must clear out client's state */
+    NEXUS_TaskCallback_Clear(client->codeAvailableCallback);
     client->settings.codeAvailable.callback = NULL;
-    NEXUS_InputClient_SetSettings(client, &client->settings);
 }
 
 void NEXUS_InputRouter_GetClientSettings( NEXUS_InputRouterHandle router, NEXUS_InputClientHandle client, NEXUS_InputRouterClientSettings *pSettings )

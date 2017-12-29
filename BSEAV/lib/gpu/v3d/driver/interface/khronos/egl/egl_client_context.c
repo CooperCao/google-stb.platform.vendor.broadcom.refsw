@@ -4,10 +4,6 @@
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "interface/khronos/glxx/glxx_client.h"
-#ifndef NO_OPENVG
-#include "interface/khronos/vg/vg_client.h"
-#endif /* NO_OPENVG */
-
 #include "interface/khronos/egl/egl_client_context.h"
 #include "interface/khronos/egl/egl_client_surface.h"
 #include "interface/khronos/egl/egl_int_impl.h"
@@ -57,7 +53,7 @@ EGLint egl_context_check_attribs(const EGLint *attrib_list, EGLint max_version, 
 EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name, EGLDisplay display,
    EGLConfig config, EGL_CONTEXT_TYPE_T type, bool secure)
 {
-   EGL_CONTEXT_T *context = (EGL_CONTEXT_T *)khrn_platform_malloc(sizeof(EGL_CONTEXT_T), "EGL_CONTEXT_T");
+   EGL_CONTEXT_T *context = (EGL_CONTEXT_T *)malloc(sizeof(EGL_CONTEXT_T));
    if (!context)
       return 0;
 
@@ -75,58 +71,21 @@ EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
    context->secure = secure;
 
    switch (type) {
-#ifndef NO_OPENVG
-   case OPENVG:
-   {
-      VG_CLIENT_SHARED_STATE_T *shared_state;
-      if (share_context) {
-         shared_state = ((VG_CLIENT_STATE_T *)share_context->state)->shared_state;
-         vg_client_shared_state_acquire(shared_state);
-      } else {
-         shared_state = vg_client_shared_state_alloc();
-         if (!shared_state) {
-            khrn_platform_free(context);
-            return 0;
-         }
-      }
-
-      context->state = vg_client_state_alloc(shared_state);
-      vg_client_shared_state_release(shared_state);
-      if (!context->state) {
-         khrn_platform_free(context);
-         return 0;
-      }
-
-      CLIENT_GET_THREAD_STATE();
-         /* uint64_t pid = khronos_platform_get_process_id(); */ /* unused */
-      context->servercontext = eglIntCreateVG_impl(share_context ? share_context->servercontext : 0,
-                                                   share_context ? share_context->type : OPENVG/*ignored*/);
-
-      if (!context->servercontext) {
-         vg_client_state_free((VG_CLIENT_STATE_T *)context->state);
-         khrn_platform_free(context);
-         return 0;
-      }
-
-      break;
-   }
-#endif /* NO_OPENVG */
    case OPENGL_ES_11:
    {
-      GLXX_CLIENT_STATE_T *state = (GLXX_CLIENT_STATE_T *)khrn_platform_malloc(sizeof(GLXX_CLIENT_STATE_T), "GLXX_CLIENT_STATE_T");
+      GLXX_CLIENT_STATE_T *state = (GLXX_CLIENT_STATE_T *)malloc(sizeof(GLXX_CLIENT_STATE_T));
       if (!state) {
-         khrn_platform_free(context);
+         free(context);
          return 0;
       }
 
       context->state = state;
       if (gl11_client_state_init(state)) {
-         CLIENT_GET_THREAD_STATE();
          context->servercontext = eglIntCreateGLES11_impl(share_context ? share_context->servercontext : 0,
                                                           share_context ? share_context->type : OPENGL_ES_11/*ignored*/);
          if (!context->servercontext) {
             glxx_client_state_free(state);
-            khrn_platform_free(context);
+            free(context);
             return 0;
          }
       }
@@ -134,21 +93,20 @@ EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
    }
    case OPENGL_ES_20:
    {
-      GLXX_CLIENT_STATE_T *state = (GLXX_CLIENT_STATE_T *)khrn_platform_malloc(sizeof(GLXX_CLIENT_STATE_T), "GLXX_CLIENT_STATE_T");
+      GLXX_CLIENT_STATE_T *state = (GLXX_CLIENT_STATE_T *)malloc(sizeof(GLXX_CLIENT_STATE_T));
       if (!state) {
-         khrn_platform_free(context);
+         free(context);
          return 0;
       }
 
       context->state = state;
 
       if (gl20_client_state_init(state)) {
-         CLIENT_GET_THREAD_STATE();
          context->servercontext = eglIntCreateGLES20_impl(share_context ? share_context->servercontext : 0,
                                                           share_context ? share_context->type : OPENGL_ES_20/*ignored*/);
          if (!context->servercontext) {
             glxx_client_state_free(state);
-            khrn_platform_free(context);
+            free(context);
             return 0;
          }
       }
@@ -164,19 +122,12 @@ EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
 
 void egl_context_term(EGL_CONTEXT_T *context)
 {
-   CLIENT_GET_THREAD_STATE();
    /* If we're current then there should still be a reference to us */
    /* (if this wasn't the case we should call egl_context_release_surfaces here) */
-   vcos_assert(!context->is_current);
-   vcos_assert(context->is_destroyed);
+   assert(!context->is_current);
+   assert(context->is_destroyed);
 
    switch (context->type) {
-#ifndef NO_OPENVG
-   case OPENVG:
-      eglIntDestroyVG_impl(context->servercontext);
-      vg_client_state_free((VG_CLIENT_STATE_T *)context->state);
-      break;
-#endif
    case OPENGL_ES_11:
    case OPENGL_ES_20:
       eglIntDestroyGL_impl(context->servercontext);
@@ -266,7 +217,7 @@ EGLBoolean egl_context_get_attrib(EGL_CONTEXT_T *context, EGLint attrib, EGLint 
  */
 void egl_context_maybe_free(EGL_CONTEXT_T *context)
 {
-   vcos_assert(context);
+   assert(context);
 
    if (!context->is_destroyed)
       return;
@@ -275,5 +226,5 @@ void egl_context_maybe_free(EGL_CONTEXT_T *context)
       return;
 
    egl_context_term(context);
-   khrn_platform_free(context);
+   free(context);
 }

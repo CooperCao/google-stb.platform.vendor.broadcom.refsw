@@ -208,9 +208,9 @@ static void consoleWrapperThread(void *data)
 
 static BIP_Status launchConsoleThread(BIP_ConsoleHandle hConsole, BIP_SocketHandle hSocket)
 {
-    BIP_ConsoleAppHandle    hConsoleApp;
+    BIP_ConsoleAppHandle    hConsoleApp = NULL;
     BIP_SocketStatus        socketStatus;
-    BIP_Status              brc;
+    BIP_Status              brc = BIP_SUCCESS;
 
     /* Allocate a context structure for the ConsoleApp thread.  This structure
      * is free by the consoleWrapperThread after the real ConsoleApp thread
@@ -239,7 +239,6 @@ static BIP_Status launchConsoleThread(BIP_ConsoleHandle hConsole, BIP_SocketHand
     hConsoleApp->threadFunc = hConsole->createSettings.consoleAppThreadFunction;
     hConsoleApp->pThreadParam = hConsole->createSettings.pConsoleAppThreadParam;
 
-
 #if 1  /* ==================== GARYWASHERE - Start of Original Code ==================== */
     /* Use these for testing. */
     hConsoleApp->threadFunc = consoleAppThread;
@@ -249,16 +248,14 @@ static BIP_Status launchConsoleThread(BIP_ConsoleHandle hConsole, BIP_SocketHand
     BLST_Q_INSERT_TAIL(&hConsole->consoleAppListHead, hConsoleApp, consoleAppListNext);
 
     hConsoleApp->hThread = B_Thread_Create("BIP_Cons", consoleWrapperThread, (void *)hConsoleApp, NULL);
-    if (NULL == hConsoleApp->hThread) {
-        BDBG_ERR(( BIP_MSG_PRE_FMT "B_Thread_Create() failed" BIP_MSG_PRE_ARG));
-        goto error;
-    }
+    BIP_CHECK_GOTO(( hConsoleApp->hThread != NULL ), ("B_Thread_Create() failed"), error, BIP_ERR_B_OS_LIB, brc );
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "Created hThread=%p" BIP_MSG_PRE_ARG, (void *)hConsoleApp->hThread));
     return (BIP_SUCCESS);
 
 error:
-    return (BIP_ERR_B_OS_LIB);
+    if (hConsoleApp) { B_Os_Free(hConsoleApp);}
+    return (brc);
 }
 
 
@@ -743,7 +740,7 @@ void BIP_Console_Destroy(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Console_Destroy" ), error, brc, brc );
 
 error:
-    /* Now free the HttpServer's resources. */
+    /* Now free the Console's resources. */
     bipConsoleDestroy( hConsole );
 
 } /* BIP_Console_Destroy */

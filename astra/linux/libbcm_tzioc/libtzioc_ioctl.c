@@ -170,13 +170,13 @@ int _tzioc_ioctl_mem_free(
 
 int _tzioc_ioctl_call_smc(
     struct tzioc_client *pClient,
-    uint32_t ucMode)
+    uint32_t ulCallnum)
 {
     struct tzioc_ioctl_call_smc_data callSmcData;
     int err = 0;
 
     callSmcData.hClient = pClient->hKlient;
-    callSmcData.mode = ucMode;
+    callSmcData.callnum = ulCallnum;
 
     err = ioctl(
         pClient->fd,

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "bgui.h"
 #include "nexus_types.h"
@@ -69,7 +68,7 @@ struct bgui
 static void complete1(void *context, int param)
 {
     BSTD_UNUSED(param);
-    BDBG_LOG(("%s: context=%p gfxClosed=%d", __FUNCTION__, context, s_gfxClosed));
+    BDBG_LOG(("%s: context=%p gfxClosed=%d", BSTD_FUNCTION, context, s_gfxClosed));
     if (!s_gfxClosed)
         BKNI_SetEvent((BKNI_EventHandle)context);
 }
@@ -77,7 +76,7 @@ static void complete1(void *context, int param)
 static void complete2(void *context, int param)
 {
     BSTD_UNUSED(param);
-    BDBG_LOG(("%s: context=%p surfaceReleased=%d", __FUNCTION__, context, s_surfaceDestroyed));
+    BDBG_LOG(("%s: context=%p surfaceReleased=%d", BSTD_FUNCTION, context, s_surfaceDestroyed));
     if (!s_surfaceDestroyed)
         BKNI_SetEvent((BKNI_EventHandle)context);
 }
@@ -197,7 +196,7 @@ void bgui_destroy(bgui_t gui)
     }
 #endif
     BKNI_Free(gui);
-    BDBG_LOG(("%s: Done", __FUNCTION__));
+    BDBG_LOG(("%s: Done", BSTD_FUNCTION));
 }
 
 NEXUS_SurfaceHandle bgui_surface(bgui_t gui)

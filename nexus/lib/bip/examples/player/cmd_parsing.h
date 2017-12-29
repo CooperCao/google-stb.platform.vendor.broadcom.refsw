@@ -166,6 +166,7 @@ typedef struct AppCtx
     bool                            enableAudioPrimer;
     unsigned                        trackGroupIndex;
     bool                            bufDepthInMsec;
+    bool                            sineTone;
 } AppCtx;
 
 void unInitAppCtx( AppCtx *pAppCtx);

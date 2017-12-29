@@ -206,6 +206,10 @@ static void wlc_phy_txpwr_ppr_bit_ext_mcs8and9(ppr_vht_mcs_rateset_t* vht,
 #endif
 void phy_ac_tssi_low_rate_adc_setup(phy_info_t *pi);
 
+#ifdef STB_SOC_WIFI
+static int phy_ac_tpc_rateset_fill(int8 *pwr, int8 value, int size);
+#endif
+
 /* Register/unregister ACPHY specific implementation to common layer. */
 phy_ac_tpc_info_t *
 BCMATTACHFN(phy_ac_tpc_register_impl)(phy_info_t *pi, phy_ac_info_t *aci, phy_tpc_info_t *ti)
@@ -4823,7 +4827,11 @@ wlc_phy_txpwr_apply_srom11(phy_info_t *pi, uint8 band, chanspec_t chanspec,
 	{
 		ppr_ofdm_rateset_t	ofdm20_offset_2g;
 		ppr_vht_mcs_rateset_t	mcs20_offset_2g;
+#ifdef STB_SOC_WIFI
+		phy_ac_tpc_rateset_fill(mcs20_offset_2g.pwr, WL_RATE_DISABLED, sizeof(mcs20_offset_2g.pwr));
+#else
 		memset(&mcs20_offset_2g, WL_RATE_DISABLED, sizeof(mcs20_offset_2g));
+#endif
 
 		/* 2G - OFDM_20 */
 		wlc_phy_txpwr_srom_convert_ofdm(sr11->ofdm_2g.bw20, tmp_max_pwr, &ofdm20_offset_2g);
@@ -4865,8 +4873,13 @@ wlc_phy_txpwr_apply_srom11(phy_info_t *pi, uint8 band, chanspec_t chanspec,
 			ppr_ofdm_rateset_t	ofdm40_offset_2g = {{0, }};
 			ppr_vht_mcs_rateset_t	mcs40_offset_2g;
 			ppr_vht_mcs_rateset_t	mcs20in40_offset_2g;
+#ifdef STB_SOC_WIFI
+			phy_ac_tpc_rateset_fill(mcs40_offset_2g.pwr, WL_RATE_DISABLED, sizeof(mcs40_offset_2g.pwr));
+			phy_ac_tpc_rateset_fill(mcs20in40_offset_2g.pwr, WL_RATE_DISABLED, sizeof(mcs20in40_offset_2g.pwr));
+#else
 			memset(&mcs40_offset_2g, WL_RATE_DISABLED, sizeof(mcs40_offset_2g));
 			memset(&mcs20in40_offset_2g, WL_RATE_DISABLED, sizeof(mcs20in40_offset_2g));
+#endif
 
 			/* 2G - CCK */
 			wlc_phy_txpwr_srom_convert_cck(sr11->cck.bw20in40,
@@ -4924,7 +4937,11 @@ wlc_phy_txpwr_apply_srom11(phy_info_t *pi, uint8 band, chanspec_t chanspec,
 		int bitN = (band == 1) ? 4 : ((band == 2) ? 8 : 12);
 		ppr_ofdm_rateset_t	ofdm20_offset_5g;
 		ppr_vht_mcs_rateset_t	mcs20_offset_5g;
+#ifdef STB_SOC_WIFI
+		phy_ac_tpc_rateset_fill(mcs20_offset_5g.pwr, WL_RATE_DISABLED, sizeof(mcs20_offset_5g.pwr));
+#else
 		memset(&mcs20_offset_5g, WL_RATE_DISABLED, sizeof(mcs20_offset_5g));
+#endif
 
 		/* 5G 11agnac_20IN20 */
 		nibbles = sr11->offset_5g[band5g] & 0xf;		/* 0LSB */
@@ -4956,7 +4973,11 @@ wlc_phy_txpwr_apply_srom11(phy_info_t *pi, uint8 band, chanspec_t chanspec,
 		} else {
 			ppr_ofdm_rateset_t	ofdm40_offset_5g = {{0, }};
 			ppr_vht_mcs_rateset_t	mcs40_offset_5g = {{0, }};
+#ifdef STB_SOC_WIFI
+			phy_ac_tpc_rateset_fill(mcs40_offset_5g.pwr, WL_RATE_DISABLED, sizeof(mcs40_offset_5g.pwr));
+#else
 			memset(&mcs40_offset_5g, WL_RATE_DISABLED, sizeof(mcs40_offset_5g));
+#endif
 
 			/* 5G 11nac 40IN40 */
 			nibbles = (sr11->offset_5g[band5g] >> 4) & 0xf; /* 1LSB */
@@ -4989,8 +5010,13 @@ wlc_phy_txpwr_apply_srom11(phy_info_t *pi, uint8 band, chanspec_t chanspec,
 				ppr_ofdm_rateset_t	ofdm20in40_offset_5g;
 				ppr_ofdm_rateset_t	ofdmdup40_offset_5g;
 				ppr_vht_mcs_rateset_t	mcs20in40_offset_5g;
+#ifdef STB_SOC_WIFI
+				phy_ac_tpc_rateset_fill(mcs20in40_offset_5g.pwr, WL_RATE_DISABLED,
+					sizeof(mcs20in40_offset_5g.pwr));
+#else
 				memset(&mcs20in40_offset_5g, WL_RATE_DISABLED,
 					sizeof(mcs20in40_offset_5g));
+#endif
 
 				/* 5G 11agnac_20IN40 */
 				nibbles = wlc_phy_make_byte(sr11->offset_20in40_h >> bitN,
@@ -5025,11 +5051,19 @@ wlc_phy_txpwr_apply_srom11(phy_info_t *pi, uint8 band, chanspec_t chanspec,
 				ppr_vht_mcs_rateset_t	mcs80_offset_5g;
 				ppr_vht_mcs_rateset_t	mcs20in80_offset_5g;
 				ppr_vht_mcs_rateset_t	mcs40in80_offset_5g;
+#ifdef STB_SOC_WIFI
+				phy_ac_tpc_rateset_fill(mcs80_offset_5g.pwr, WL_RATE_DISABLED, sizeof(mcs80_offset_5g.pwr));
+				phy_ac_tpc_rateset_fill(mcs20in80_offset_5g.pwr, WL_RATE_DISABLED,
+					sizeof(mcs20in80_offset_5g.pwr));
+				phy_ac_tpc_rateset_fill(mcs40in80_offset_5g.pwr, WL_RATE_DISABLED,
+					sizeof(mcs40in80_offset_5g.pwr));
+#else
 				memset(&mcs80_offset_5g, WL_RATE_DISABLED, sizeof(mcs80_offset_5g));
 				memset(&mcs20in80_offset_5g, WL_RATE_DISABLED,
 					sizeof(mcs20in80_offset_5g));
 				memset(&mcs40in80_offset_5g, WL_RATE_DISABLED,
 					sizeof(mcs40in80_offset_5g));
+#endif
 
 				/* 5G 11nac 80IN80 */
 				nibbles = (sr11->offset_5g[band5g] >> 8) & 0xf; /* 2LSB */
@@ -7739,3 +7773,25 @@ phy_ac_tssi_low_rate_adc_setup(phy_info_t *pi)
 	ACPHY_REG_LIST_EXECUTE(pi);
 	return;
 }
+
+#ifdef STB_SOC_WIFI
+/* The 'memset' is not supposed to set the value WL_RATE_DISABLED which is -128,
+*  so using this function to replace it.
+*/
+static int phy_ac_tpc_rateset_fill(int8 *pwr, int8 value, int size)
+{
+	int ii;
+
+	if (!pwr) {
+		ASSERT(0);
+		return -1;
+	}
+
+	for (ii = 0; ii < size; ii++) {
+		pwr[ii] = value;
+	}
+
+	return 0;
+}
+#endif
+

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,12 +50,13 @@ extern "C" {
 
 
 /* chip specific defines */
-#if (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260)
+#if (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || \
+    (BCHP_CHIP == 7260) || (BCHP_CHIP == 7255)
 #define BMRC_P_MEMC_NUM 1
 
 #define BMRC_P_MEMC_0_CHECKER_COUNT_MAX 8
-#define BMRC_P_MEMC_1_CHECKER_COUNT_MAX 8
-#define BMRC_P_MEMC_2_CHECKER_COUNT_MAX 8
+#define BMRC_P_MEMC_1_CHECKER_COUNT_MAX 0
+#define BMRC_P_MEMC_2_CHECKER_COUNT_MAX 0
 #define BMRC_P_CLIENTS_MAX 256
 #define BMRC_P_CHECKER_USE_MEMC_GEN_VER 0
 #define BMRC_P_CHECKER_USE_MEMC_ARC_VER 1

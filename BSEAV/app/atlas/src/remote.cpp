@@ -308,7 +308,7 @@ eRet CRemote::removeEvent(CRemoteEvent * pEvent)
     }
 
     return(ret);
-}
+} /* removeEvent */
 
 static void nexusIrCallback(
         void * context,

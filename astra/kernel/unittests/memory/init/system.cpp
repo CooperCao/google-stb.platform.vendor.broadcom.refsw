@@ -52,6 +52,7 @@
 #include "hwtimer.h"
 #include "tztask.h"
 #include "scheduler.h"
+#include "svcutils.h"
 
 #include "system.h"
 
@@ -82,7 +83,7 @@ void System::init(const void *devTree) {
     TzMem::init(tzDevTree);
 
     /* Unmap the bootstrap part of the kernel */
-    PageTable::kernelPageTable()->unmapBootstrap(devTree);
+    //PageTable::kernelPageTable()->unmapBootstrap(devTree);
 
     PageTable::kernelPageTable()->dump();
     printf("System init done\n");

@@ -206,7 +206,7 @@ typedef struct BDSP_Arm_P_TaskCallBacks
     BDSP_Arm_P_TaskCallBacks    interruptCallbacks;
 
     BDSP_ARM_CIT_P_Output   citOutput;
-    BDSP_ARM_CTB_Output     ctbOutput;
+    BDSP_CTB_Output     ctbOutput;
     BDSP_Arm_P_MsgQueueHandle hAsyncMsgQueue; /* Asynchronous message queue belonging to this task */
     BDSP_Arm_P_MsgQueueHandle hSyncMsgQueue; /* Synchronous message queue belonging to this task */
     BDSP_Arm_P_TaskMemoryInfo taskMemGrants; /* Memory for contiguous Async Msgs */
@@ -215,6 +215,49 @@ typedef struct BDSP_Arm_P_TaskCallBacks
     BDSP_MMA_Memory FeedbackBuffer;             /* Feedback buffer between Tasks(Master writes-Slaves read) */
     BDSP_Arm_MapTableEntry       sTaskMapTable[BDSP_ARM_MAX_ALLOC_TASK];
 } BDSP_ArmTask;
+
+struct BDSP_ArmStage;
+
+/***************************************************************************
+Summary:
+Capture pointers structure
+***************************************************************************/
+typedef struct BDSP_ArmCapturePointerInfo
+{
+    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER outputBufferPtr; /* Structure containing pointers to the output buffers
+                                                   from which the data has to be captured */
+    uint32_t    ui32StartWriteAddr;
+
+    BDSP_AF_P_CIRCULAR_BUFFER captureBufferPtr; /* Structure containing the pointers to the intermediate
+                                                    buffer into which the captured data is written */
+    dramaddr_t shadowRead; /* The shadow read pointer for the output buffer */
+    dramaddr_t lastWrite; /* The last value of the write pointer; will be used for capture error detection*/
+    BDSP_MMA_Memory CaptureBufferMemory;
+    BDSP_MMA_Memory OutputBufferMemory;
+} BDSP_ArmCapturePointerInfo;
+
+
+typedef struct BDSP_ArmCapture
+{
+    BDBG_OBJECT(BDSP_ArmCapture)
+    BDSP_AudioCapture    capture;
+    struct BDSP_ArmStage *pStage;
+    BDSP_Arm      *pDevice;
+
+    BLST_S_ENTRY(BDSP_ArmCapture) node;
+    BMMA_Heap_Handle hHeap; /* Heap from which the capture buffers need to be allocated */
+    BDSP_AF_P_BufferType eBuffType; /* The buffer type of the the output buffer (RAVE, FMM, DRAM etc ...) */
+    bool updateRead; /* If true then the read pointers of the output buffer are updated in the capture
+                          thread. This can be set to true when there is not consumer for the output data */
+    bool enabled; /* Flag to indicate whether the capture is enabled or disabled */
+    uint8_t numBuffers; /* Number of valid buffers */
+    uint8_t maxBuffers; /* Maximum number of buffers */
+
+    bool StartCapture;
+    BDSP_MMA_Memory captureBuffer;
+    BDSP_ArmCapturePointerInfo capPtrs[BDSP_AF_P_MAX_CHANNELS]; /* Capture pointer info for all the output capture ports */
+} BDSP_ArmCapture;
+
 
 typedef struct BDSP_ArmStage
 {
@@ -259,7 +302,7 @@ typedef struct BDSP_ArmStage
     BDSP_Arm_MapTableEntry       sStageMapTable[BDSP_ARM_MAX_ALLOC_STAGE];
 
     /* Capture information for the stage */
-    /*BLST_S_HEAD(BDSP_ArmCaptureList, BDSP_ArmCapture) captureList;*/
+    BLST_S_HEAD(BDSP_ArmCaptureList, BDSP_ArmCapture) captureList;
 }BDSP_ArmStage;
 
 /* ======= APIs ========== */
@@ -517,4 +560,133 @@ BDSP_ARM_STAGE_TRAVERSE_LOOP_V1_BEGIN(A, B, macroBrId, macroStId)
 
 /*extern  const BDSP_ARM_VOM_Algo_Start_Addr                      BDSP_ARM_sAlgoStartAddr;*/
 extern  const BDSP_AF_P_sNODE_INFO                          BDSP_ARM_sNodeInfo [BDSP_ARM_AF_P_AlgoId_eMax+1];
+
+BERR_Code BDSP_Arm_P_GetDownloadStatus(
+    void  *pDeviceHandle,
+    BDSP_DownloadStatus *pStatus /* [out] */
+);
+BERR_Code BDSP_Arm_P_Initialize(
+    void  *pDeviceHandle
+);
+
+BERR_Code BDSP_Arm_P_InitAudioCaptureInfo(
+    BDSP_ArmCapture *pArmCapture, /* [in] capture handle*/
+    const BDSP_AudioCaptureCreateSettings *pSettings /* [in] capture create settings */
+    );
+
+
+BERR_Code BDSP_Arm_P_GetAudioOutputPointers(
+    BDSP_StageSrcDstDetails *pDstDetails, /* [in] Desination details of the output port to be captured */
+    BDSP_ArmCapture *pArmCap /* [out] Capture Handle */
+    );
+
+BERR_Code BDSP_Arm_P_AudioCaptureCreate(
+    void *pTaskHandle,
+    const BDSP_AudioCaptureCreateSettings *pCaptureCreateSettings,
+    BDSP_AudioCaptureHandle *pCapture);
+
+void BDSP_Arm_P_AudioCaptureDestroy (
+    void *pCapHandle
+    );
+
+BERR_Code BDSP_Arm_P_AudioCaptureAddToStage(
+    void *pCapHandle,
+    void *pStageHandle,
+    unsigned outputId,
+    const BDSP_StageAudioCaptureSettings *pSettings
+    );
+
+void BDSP_Arm_P_AudioCaptureRemoveFromStage(
+    void *pCapHandle,
+    void *pStageHandle
+    );
+
+/***************************************************************************
+Summary:
+Function to copy data from output buffer to intermediate buffers
+***************************************************************************/
+BERR_Code BDSP_Arm_P_ProcessAudioCapture(
+    void *pDevice /* [in] task handle */
+    );
+
+/***************************************************************************
+Summary:
+Function that returns the pointers from where the data can be read and
+written to file.
+***************************************************************************/
+BERR_Code BDSP_Arm_P_AudioCaptureGetBuffer(
+    void *pCapHandle,   /* [in] capture handle */
+    BDSP_BufferDescriptor *pBuffers     /* [out] pointer to the structure
+                        with address and size of the intermediate buffer from
+                        which the data can be written into the file */
+    );
+
+/***************************************************************************
+Summary:
+Function to update the read pointers for the intermediate buffers.
+***************************************************************************/
+BERR_Code BDSP_Arm_P_AudioCaptureConsumeData(
+    void *pCapture, /* [in] capture handle */
+    uint32_t numBytes /* [in] sizes of data read from each intermediate buffer */
+    );
+
+/***************************************************************************
+Summary:
+Function to determine the buffer depth as one continuous chunk based on the
+buffer type and a specified read pointer
+***************************************************************************/
+uint32_t BDSP_Arm_P_GetAudioBufferDepthLinear(
+    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer, /* [in] pointer to circular buffer */
+    uint32_t ui32ShadowRead, /* [in] read pointer */
+    BDSP_AF_P_BufferType eType, /* [in] buffer type */
+    BREG_Handle hReg
+    ); /* [in] register handle */
+
+/***************************************************************************
+Summary:
+Function to determine the free space as one continuous chunk based on the
+buffer type
+***************************************************************************/
+size_t BDSP_Arm_P_GetAudioCaptureBufferFreeSpaceLinear(
+    BDSP_AF_P_CIRCULAR_BUFFER *pBuffer /* [in] pointer to circular buffer */
+    );
+
+/***************************************************************************
+Summary:
+Function to detect a capture error by checking if the write pointer has
+overtaken the shadow read pointer
+***************************************************************************/
+bool BDSP_Arm_P_DetectAudioCaptureError(
+    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer, /* [in] pointer to circular buffer */
+    uint32_t ui32ShadowRead, /* shadow read pointer value */
+    uint32_t ui32LastWrite, /* last read value of the write pointer */
+    BDSP_AF_P_BufferType eType, /* [in] buffer type */
+    BREG_Handle hReg /* [in] register handle */
+    );
+
+/***************************************************************************
+Summary:
+Function to update the shadow read pointer with the bytes read and snapshot
+write pointer
+***************************************************************************/
+void BDSP_Arm_P_GetUpdatedShadowReadAndLastWrite(
+    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer, /* [in] pointer to circular buffer */
+    dramaddr_t *pShadowRead, /* [in/out] shadow read pointer */
+    dramaddr_t *pLastWrite, /* [out] snapshot of the write pointer */
+    BDSP_AF_P_BufferType eType, /* [in] buffer type */
+    uint32_t bytesRead, /* [in] number of bytes to update the shadow read with */
+    BREG_Handle hReg /* [in] register handle */
+    );
+
+/***************************************************************************
+Summary:
+Function to update the output buffer read pointer
+***************************************************************************/
+void BDSP_Arm_P_UpdateReadPointer(
+    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer, /* [out] pointer to circular buffer */
+    BDSP_AF_P_BufferType eType, /* [in] buffer type */
+    dramaddr_t ui32ReadAddr, /* Value of read pointer to update with */
+    BREG_Handle hReg /* [in] register handle */
+    );
+
 #endif /* BDSP_ARM_PRIV_H_ */

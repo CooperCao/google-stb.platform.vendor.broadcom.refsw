@@ -575,7 +575,7 @@ getStreamGopInfo(
             idx->frameRepeat = 1;
         else
             idx->frameRepeat = 4;
-        idx->minISpeed = idx->msPerGop/ AVC_FRAME_TIME;
+        /*  idx->minISpeed = idx->msPerGop/ AVC_FRAME_TIME;  */
         idx->minISpeed = 1;
     }
     else {

@@ -125,6 +125,7 @@ typedef struct BVC5_Info
 {
    uint32_t    uiIdent[BVC5_MAX_CORES * BVC5_MAX_IDENTS];
    uint32_t    uiHubIdent[BVC5_MAX_HUB_IDENTS];
+   uint32_t    uiDDRMapVer;
 } BVC5_Info;
 
 typedef enum BVC5_JobType
@@ -213,6 +214,7 @@ typedef struct BVC5_JobBin
    uint32_t                uiOffset;
    uint32_t                uiFlags;
    uint32_t                uiMinInitialBinBlockSize;
+   uint32_t                uiTileStateSize;
 } BVC5_JobBin;
 
 typedef struct BVC5_JobRender

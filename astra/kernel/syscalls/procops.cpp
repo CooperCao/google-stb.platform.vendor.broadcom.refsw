@@ -79,11 +79,6 @@ void SysCalls::doWait4(TzTask *currTask) {
     unsigned long arg2 = currTask->userReg(TzTask::UserRegs::r2);
 
     int pid = (int)arg0;
-    if ((pid < -1) || (pid == 0)) {
-        err_msg("Process groups not implemented\n");
-        currTask->writeUserReg(TzTask::UserRegs::r0, -ENOSYS);
-        return;
-    }
 
     int status = 0;
     int options = (int)arg2;
@@ -147,6 +142,8 @@ void SysCalls::doExecve(TzTask *currTask) {
         return;
     }
     for (int i=0; i<TzTask::TaskStartInfo::MAX_NUM_ARGS; i++) {
+        kArgv[i] = 0;
+
         if (kuArgv[i] == 0)
             break;
     }
@@ -234,6 +231,20 @@ void SysCalls::doSetGid(TzTask *currTask) {
     currTask->writeUserReg(TzTask::UserRegs::r0, rv);
 }
 
+void SysCalls::doSetPgid(TzTask *currTask) {
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
+
+    int rv = currTask->setPgId((unsigned int) arg0, (unsigned int)arg1);
+    currTask->writeUserReg(TzTask::UserRegs::r0, rv);
+}
+
+void SysCalls::doGetPgid(TzTask *currTask) {
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+
+    int rv = currTask->getPgId((unsigned int)arg0);
+    currTask->writeUserReg(TzTask::UserRegs::r0, rv);
+}
 
 void SysCalls::doGetUid(TzTask *currTask) {
     uint16_t rv = currTask->owner();
@@ -261,7 +272,7 @@ void SysCalls::doNice(TzTask *currTask) {
 }
 
 
-static uint8_t taskDestructionStack[1024 * MAX_NUM_CPUS];
+static uint8_t taskDestructionStack[1024 * MAX_NUM_CPUS] __attribute__ ((aligned (16)));
 void SysCalls::doExit(TzTask *currTask) {
 
     int tc = currTask->userReg(TzTask::UserRegs::r0);

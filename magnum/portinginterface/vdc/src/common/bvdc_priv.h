@@ -391,8 +391,10 @@ typedef struct BVDC_P_Context
     /* Xcode GFD counter */
     uint32_t                       ulXcodeGfd;        /* tracks number of used xcode GFD*/
 
+#ifndef BVDC_FOR_BOOTUPDATER
     /* Box mode */
     BBOX_Config                    stBoxConfig;
+#endif
 
     BVDC_P_MosaicCanvasCoverage    stMosaicCoverageTbl[BVDC_P_MAX_DISPLAY_COUNT];
 

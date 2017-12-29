@@ -40,12 +40,18 @@
 #include "tztask.h"
 #include "tzioc.h"
 #include "hwtimer.h"
+#include "gic.h"
+#include "utils/vector.h"
+#include "tracelog.h"
 
 TzTask *currentTask[MAX_NUM_CPUS];
 
 unsigned long Scheduler::TimeSliceDuration;
-unsigned int Scheduler::sumRunnablePriorities;
-tzutils::PriorityQueue<TzTask> Scheduler::runQueue;
+unsigned long Scheduler::TimeSliceStagger;
+unsigned long Scheduler::TimeSliceEDF;
+
+PerCPU<unsigned int> Scheduler::sumRunnablePriorities;
+PerCPU<tzutils::PriorityQueue<TzTask>> Scheduler::runQueue;
 SpinLock Scheduler::schedLock;
 
 PerCPU<Timer> Scheduler::preemptionTimer;
@@ -55,13 +61,12 @@ PerCPU<uint64_t> Scheduler::cfsGlobalSlot;
 PerCPU<uint64_t> Scheduler::edfGlobalSlot;
 PerCPU<Timer> Scheduler::edfPreemptionTimer;
 PerCPU<Timer> Scheduler::edfScheduleTimer;
-tzutils::PriorityQueue<TzTask> Scheduler::edfQueue;
-Scheduler::Class Scheduler::scheduleClass;
-unsigned long Scheduler::EDFTimeSlice;
+PerCPU<tzutils::PriorityQueue<TzTask>> Scheduler::edfQueue;
+PerCPU<Scheduler::Class> Scheduler::scheduleClass;
 
 #ifdef TASK_LOG
-tzutils::PriorityQueue<TzTask> Scheduler::idleQueue;
-uint64_t cfsPrintTime = 0;
+PerCPU<tzutils::PriorityQueue<TzTask>> Scheduler::idleQueue;
+Timer dumpTimer;
 #endif
 
 extern "C" void preemptionTimerFired(Timer t, void *ctx) {
@@ -88,56 +93,91 @@ extern "C" void edfPreemptionTimerFired(Timer t, void *ctx) {
     Scheduler::scheduleClassType(Scheduler::Class::CFS_Class);
 }
 
+#ifdef TASK_LOG
+extern "C" void dumpTimerFired(Timer t, void *ctx) {
+    UNUSED(t);
+    UNUSED(ctx);
+    TraceLog::stop();
+    TraceLog::inval();
+    TraceLog::start();
+}
+#endif
+
+
 void Scheduler::init() {
     spinLockInit(&schedLock);
 
     TimeSliceDuration = (TzHwCounter::frequency() / 1000 )* TIME_SLICE_DURATION_MS;
-    EDFTimeSlice      = (TimeSliceDuration / 100) * EDF_SLICE_PERCENT;
+    TimeSliceStagger  = (TimeSliceDuration / 100) * TIME_SLICE_STAGGER_PERCENT;
+    TimeSliceEDF      = (TimeSliceDuration / 100) * TIME_SLICE_EDF_PERCENT;
     //printf("Scheduler Init %ld %ld \n", TimeSliceDuration, TzHwCounter::frequency());
 
-    runQueue.init();
+    runQueue.cpuLocal().init();
     preemptionTimer.cpuLocal() = INVALID_TIMER;
-    scheduleClass = Class::CFS_Class;
+    scheduleClass.cpuLocal() = Class::CFS_Class;
 
-    sumRunnablePriorities = 0;
+    sumRunnablePriorities.cpuLocal() = 0;
     startWorldRunTime.cpuLocal() = 0;
     cfsGlobalSlot.cpuLocal() = 0;
     edfGlobalSlot.cpuLocal() = 0;
 
-    edfQueue.init();
+    edfQueue.cpuLocal().init();
+
+    uint64_t timeNow = TzHwCounter::timeNow();
+    uint64_t timeAlign = timeNow + TimeSliceDuration / 2;
+    timeAlign = timeAlign - timeAlign % TimeSliceDuration + TimeSliceDuration;
+
+    uint64_t timeSchedule =  timeAlign + TimeSliceStagger * arm::smpCpuNum();
+    Scheduler::edfScheduleTimer.cpuLocal() = TzTimers::create(timeSchedule, (uint64_t)TimeSliceDuration, edfScheduleTimerFired, nullptr);
+
+    uint64_t timeStop = timeSchedule + TimeSliceEDF;
+    Scheduler::edfPreemptionTimer.cpuLocal() = TzTimers::create(timeStop, (uint64_t)TimeSliceDuration, edfPreemptionTimerFired, nullptr);
+
+#ifdef TASK_LOG
+    idleQueue.cpuLocal().init();
+    dumpTimer = TzTimers::create((TzHwCounter::timeNow()+(TzHwCounter::frequency()*5)), (uint64_t) TzHwCounter::frequency()*5, dumpTimerFired, nullptr);
+#endif
+    printf("Scheduler init done \n");
+}
+
+void Scheduler::initSecondaryCpu() {
+    runQueue.cpuLocal().init();
+    preemptionTimer.cpuLocal() = INVALID_TIMER;
+    scheduleClass.cpuLocal() = Class::CFS_Class;
+
+    sumRunnablePriorities.cpuLocal() = 0;
+    startWorldRunTime.cpuLocal() = 0;
+    cfsGlobalSlot.cpuLocal() = 0;
+    edfGlobalSlot.cpuLocal() = 0;
+
+    edfQueue.cpuLocal().init();
 
     uint64_t timeSchedule = TzHwCounter::timeNow() + Scheduler::TimeSliceDuration;
     Scheduler::edfScheduleTimer.cpuLocal() = TzTimers::create(timeSchedule, (uint64_t) Scheduler::TimeSliceDuration, edfScheduleTimerFired, nullptr);
 
 
-    uint64_t timeStop = TzHwCounter::timeNow() + Scheduler::TimeSliceDuration + EDFTimeSlice;
+    uint64_t timeStop = TzHwCounter::timeNow() + Scheduler::TimeSliceDuration + TimeSliceEDF;
     Scheduler::edfPreemptionTimer.cpuLocal() = TzTimers::create(timeStop, (uint64_t) Scheduler::TimeSliceDuration, edfPreemptionTimerFired, nullptr);
-
 #ifdef TASK_LOG
-    idleQueue.init();
+    idleQueue.cpuLocal().init();
 #endif
+    printf("Secondary scheduler init done \n");
 
-    printf("Scheduler init done \n");
-}
-
-void Scheduler::initSecondaryCpu() {
-    preemptionTimer.cpuLocal() = INVALID_TIMER;
 }
 
 void Scheduler::addTask(TzTask *task) {
     SpinLocker locker(&schedLock);
-
     if (task->type == TzTask::Type::EDF_Task) {
-        edfQueue.remove(task->id());
-        edfQueue.enqueue(task);
+        edfQueue.cpuLocal().remove(task->id());
+        edfQueue.cpuLocal().enqueue(task);
     }
     else {
-        sumRunnablePriorities += task->priority;
-        runQueue.remove(task->id());
-        runQueue.enqueue(task);
+        sumRunnablePriorities.cpuLocal() += task->priority;
+        runQueue.cpuLocal().remove(task->id());
+        runQueue.cpuLocal().enqueue(task);
     }
 #ifdef TASK_LOG
-        idleQueue.remove(task->id());
+        idleQueue.cpuLocal().remove(task->id());
 #endif
 
 }
@@ -147,17 +187,17 @@ void Scheduler::removeTask(TzTask *task) {
 
     TzTask *T = nullptr;
     if (task->type == TzTask::Type::EDF_Task) {
-        T = edfQueue.remove(task->id());
+        T = edfQueue.cpuLocal().remove(task->id());
     }
     else {
-        T = runQueue.remove(task->id());
+        T = runQueue.cpuLocal().remove(task->id());
         if ( T != nullptr)
-            sumRunnablePriorities -= task->priority;
+            sumRunnablePriorities.cpuLocal() -= task->priority;
     }
 
 #ifdef TASK_LOG
     if ( T != nullptr)
-        idleQueue.enqueue(task);
+        idleQueue.cpuLocal().enqueue(task);
 #endif
 }
 
@@ -173,42 +213,38 @@ void Scheduler::currTaskStopped() {
 
 void Scheduler::scheduleClassType(Scheduler::Class classType) {
 
-    scheduleClass = classType;
+    scheduleClass.cpuLocal() = classType;
 }
 
 Scheduler::Class Scheduler::scheduleClassType() {
 
-    return scheduleClass;
+    return scheduleClass.cpuLocal();
 }
+
+#ifdef TASK_LOG
+void Scheduler::updateTaskLog(uint64_t worldRunTime){
+    int cpuNum = arm::smpCpuNum();
+    edfQueue.cpuLocal().populateTaskInfo(worldRunTime,cpuNum);
+    runQueue.cpuLocal().populateTaskInfo(worldRunTime,cpuNum);
+    idleQueue.cpuLocal().populateTaskInfo(worldRunTime,cpuNum);
+}
+#endif
 
 void Scheduler::updateTimeSlice() {
 
     const int cpuNum = arm::smpCpuNum();
-    if (cpuNum != 0) {
-        return ;
-    }
+
+    TzTask *currTask = currentTask[cpuNum];
 
 #ifdef TASK_LOG // To print the CPU %
         uint64_t nowTime = TzHwCounter::timeNow();
         uint64_t worldRunTime = nowTime - Scheduler::startWorldRunTime.cpuLocal();
-        //if(((worldRunTime & 0xFFFFFFFF) - (cfsPrintTime & 0xFFFFFFFF)) >= TzHwCounter::frequency()*10){
-        //  cfsPrintTime = worldRunTime;
-
-        if( worldRunTime >= TzHwCounter::frequency()*10){
-
-            runQueue.printRunValue("cfsQueue", worldRunTime);
-            edfQueue.printRunValue("edfQueue", worldRunTime);
-            idleQueue.printRunValue("idlQueue", worldRunTime);
-            runQueue.resetRunValue(0);
-            edfQueue.resetRunValue(0);
-            idleQueue.resetRunValue(0);
+    /* Dump every 200ms */
+    if((worldRunTime >= (TzHwCounter::frequency()/5))){
+        updateTaskLog(worldRunTime);
             Scheduler::startWorldRunTime.cpuLocal() = nowTime;
-
         }
-        //runQueue.print();
 #endif
-
-    TzTask *currTask = currentTask[cpuNum];
 
     /* Update for all Tasks even though it might not be in runnable state anymore */
     if(currTask != nullptr)
@@ -216,6 +252,7 @@ void Scheduler::updateTimeSlice() {
         uint64_t taskRunTime = TzHwCounter::timeNow() - currTask->lastScheduledAt;
         currTask->totalRunTime += taskRunTime;
         currTask->cumRunTime += taskRunTime;
+        currTask->taskRunTime += taskRunTime;
 
         /* Reset the lastScheduledAt so that we don't add taskRunTime twice if it were to come here again in the same schedule run */
         /* This happens when EDF task is not present */
@@ -235,7 +272,7 @@ void Scheduler::updateTimeSlice() {
                     //printf("Old Task Update Slot\n");
                     currTask->slotTimeSlice = cfsGlobalSlot.cpuLocal();
                 }
-            }else{
+            }else if(currTask->type == TzTask::Type::EDF_Task){
                 if(currTask->slotTimeSlice < edfGlobalSlot.cpuLocal()){
                     //printf("Old Task Update Slot\n");
                     currTask->slotTimeSlice = edfGlobalSlot.cpuLocal();
@@ -247,11 +284,11 @@ void Scheduler::updateTimeSlice() {
         /* Remove & Enqueue task to make sure it bubbles up/down according to the schedule slot that was changed above */
         /* Enqueue task only if remove succeeded: Task might not be in runQueue (runnable state) */
         if(currTask->type == TzTask::Type::CFS_Task){
-            if(runQueue.remove(currTask->id()) != nullptr)
-                runQueue.enqueue(currTask);
-        }else{
-            if(edfQueue.remove(currTask->id()) != nullptr)
-                edfQueue.enqueue(currTask);
+            if(runQueue.cpuLocal().remove(currTask->id()) != nullptr)
+                runQueue.cpuLocal().enqueue(currTask);
+        }else if(currTask->type == TzTask::Type::EDF_Task){
+            if(edfQueue.cpuLocal().remove(currTask->id()) != nullptr)
+                edfQueue.cpuLocal().enqueue(currTask);
         }
         //printf("-->CurrTask %d Type %d Slot (%d / %d) 0x%x%x / 0x%x%x \n",currTask->id(), currTask->type, (int)(currTask->slotTimeSlice & 0xffffffff),
         //(int)(cfsGlobalSlot.cpuLocal() & 0xffffffff), (int)(currTask->pqValue() >> 32), (int)(currTask->pqValue() & 0xffffffff),
@@ -263,20 +300,11 @@ void Scheduler::updateTimeSlice() {
 TzTask *Scheduler::cfsSchedule() {
     SpinLocker locker(&schedLock);
 
-    // Run the scheduler algorithm only on boot CPU
-    // On other CPUs, simply pick the normal world
-    // proxy task. This way all TZ OS tasks are limited
-    // to a single CPU.
     const int cpuNum = arm::smpCpuNum();
-    if (cpuNum != 0) {
-        TzTask *nextTask = TzTask::nwProxy();
-        return nextTask;
-    }
-
     currTaskStopped();
     updateTimeSlice();
 
-    TzTask *nextTask = runQueue.dequeue();
+    TzTask *nextTask = runQueue.cpuLocal().dequeue();
     if (nextTask == nullptr)
         return nullptr;
 
@@ -289,15 +317,13 @@ TzTask *Scheduler::cfsSchedule() {
         cfsGlobalSlot.cpuLocal() = nextTask->slotTimeSlice;
 
     }
-    //runQueue.print();
-    if (runQueue.head() != nullptr)
+    if (runQueue.cpuLocal().head() != nullptr)
     {
-
-        nextTask->quantaRunTime = (nextTask->priority * TimeSliceDuration)/sumRunnablePriorities;
+        nextTask->quantaRunTime = (nextTask->priority * TimeSliceDuration)/sumRunnablePriorities.cpuLocal();
         uint64_t remainingRunTime = (uint64_t)(nextTask->quantaRunTime  - nextTask->pqValue());
         uint64_t timerRunTime = nextTask->lastScheduledAt + remainingRunTime;
 
-        //printf("Quanta %d %d %d \n",nextTask->priority,(unsigned int)TimeSliceDuration,(unsigned int) sumRunnablePriorities);
+        //printf("Quanta %d %d %d %d \n",nextTask->id(),nextTask->priority,(unsigned int)TimeSliceDuration,(unsigned int) sumRunnablePriorities.cpuLocal());
         preemptionTimer.cpuLocal() = TzTimers::create(timerRunTime, preemptionTimerFired, nullptr);
 
     }
@@ -312,9 +338,9 @@ TzTask *Scheduler::cfsSchedule() {
 
     currentTask[cpuNum] = nextTask;
 
-    sumRunnablePriorities -= nextTask->priority;
+    sumRunnablePriorities.cpuLocal() -= nextTask->priority;
 
-    if (nextTask == TzTask::nwProxy()) {
+    if ((nextTask == TzTask::nwProxy())&&(cpuNum == 0)) {
         // Notify tzioc in normal world for processing.
         // This code can only be reached on the boot CPU.
         TzIoc::notify();
@@ -330,22 +356,11 @@ TzTask *Scheduler::cfsSchedule() {
 TzTask *Scheduler::edfSchedule() {
     SpinLocker locker(&schedLock);
 
-    // Run the scheduler algorithm only on boot CPU
-    // On other CPUs, simply pick the normal world
-    // proxy task. This way all TZ OS tasks are limited
-    // to a single CPU.
-
     const int cpuNum = arm::smpCpuNum();
-    if (cpuNum != 0) {
-        TzTask *nextTask = TzTask::nwProxy();
-        return nextTask;
-    }
-
     currTaskStopped();
-
     updateTimeSlice();
 
-    TzTask *nextTask = edfQueue.dequeue();
+    TzTask *nextTask = edfQueue.cpuLocal().dequeue();
     if (nextTask == nullptr){
         Scheduler::scheduleClassType(Scheduler::Class::CFS_Class);
         return nullptr;
@@ -360,14 +375,12 @@ TzTask *Scheduler::edfSchedule() {
         edfGlobalSlot.cpuLocal() = nextTask->slotTimeSlice;
     }
 
-    if (runQueue.head() != nullptr)
+    if (runQueue.cpuLocal().head() != nullptr)
     {
 
         nextTask->quantaRunTime = (TimeSliceDuration / 100) * nextTask->priority;
         uint64_t remainingRunTime = (uint64_t)(nextTask->quantaRunTime  - nextTask->pqValue());
         uint64_t timerRunTime = nextTask->lastScheduledAt + remainingRunTime;
-
-
         preemptionTimer.cpuLocal() = TzTimers::create(timerRunTime, preemptionTimerFired, nullptr);
 
     }
@@ -381,12 +394,11 @@ TzTask *Scheduler::edfSchedule() {
 
     currentTask[cpuNum] = nextTask;
 
-    if (nextTask == TzTask::nwProxy()) {
+    if ((nextTask == TzTask::nwProxy())&&(cpuNum == 0)) {
         // Notify tzioc in normal world for processing.
         // This code can only be reached on the boot CPU.
         TzIoc::notify();
     }
-
     return nextTask;
 
 }

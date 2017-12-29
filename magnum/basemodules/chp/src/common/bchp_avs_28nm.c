@@ -219,11 +219,11 @@ typedef enum {
 #endif
 } AVS_MSG_IDX;
 
-static uint32_t vreg_addr[] = {
+static const uint32_t vreg_addr[] = {
     (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_VOLT0),
     (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_VOLT1)
 };
-static uint32_t treg_addr[] = {
+static const uint32_t treg_addr[] = {
     (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_TEMP0),
     (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_TEMP1)
 };
@@ -232,7 +232,7 @@ static uint32_t treg_addr[] = {
  * If the firmware is running then it is updating the current data in the above locations.
  * If it is not running (i.e. above locations are always zero) then get the data ourselves.
  */
-static void AvsGetData(BCHP_P_AvsHandle hHandle, unsigned *voltage0, unsigned *voltage1, signed *temperature, bool *firmware_running, unsigned *heartbeat)
+static void GetAvsData(BCHP_P_AvsHandle hHandle, unsigned *voltage0, unsigned *voltage1, signed *temperature, bool *firmware_running, unsigned *heartbeat)
 {
     uint32_t v_reg0;
     uint32_t v_reg1;
@@ -246,14 +246,12 @@ static void AvsGetData(BCHP_P_AvsHandle hHandle, unsigned *voltage0, unsigned *v
     *heartbeat = BREG_Read32(hHandle->hRegister, BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_HEARTBEAT);
 
     {
-        uint32_t revision = BREG_Read32(hHandle->hRegister, BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_REVISION);
-
-        BDBG_MSG(("AVS: v0=%08x v1=%08x  t0=%08x t1=%08x  rev=%c.%c.%c.%c  beat=%08x",
+        BDBG_MSG(("v0=%08x v1=%08x  t0=%08x t1=%08x  rev=%08x  beat=%08x",
             *voltage0,
             *voltage1,
             *temperature,
             BREG_Read32(hHandle->hRegister, treg_addr[1]),
-            (revision >> 24), (revision >> 16) & 0xff, (revision >> 8) & 0xff, revision & 0xff,
+            BREG_Read32(hHandle->hRegister, BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_REVISION),
             *heartbeat
         ));
     }
@@ -326,7 +324,7 @@ BERR_Code BCHP_P_AvsMonitorPvt ( BCHP_P_AvsHandle hHandle )
 #endif
 #endif
 
-    AvsGetData(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
+    GetAvsData(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
 
     /* We don't do any "processing", just report the current status */
     /* This is to help people to build reports containing periodic temperature and voltage status */
@@ -341,7 +339,7 @@ BERR_Code BCHP_P_AvsMonitorPvt ( BCHP_P_AvsHandle hHandle )
     return BERR_SUCCESS;
 }
 
-BERR_Code BCHP_P_AvsGetData (
+BERR_Code BCHP_P_GetAvsData_isrsafe (
     BCHP_P_AvsHandle hHandle, /* [in] handle supplied from open */
     BCHP_AvsData *pData )     /* [out] location to put data */
 {
@@ -353,9 +351,9 @@ BERR_Code BCHP_P_AvsGetData (
 
     BDBG_ASSERT(pData);
 
-    BDBG_ENTER(BCHP_AvsGetData);
+    BDBG_ENTER(BCHP_P_GetAvsData_isrsafe);
 
-    AvsGetData(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
+    GetAvsData(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
 
     pData->voltage = voltage0;
     pData->temperature = temperature;
@@ -363,10 +361,11 @@ BERR_Code BCHP_P_AvsGetData (
     pData->tracking = firmware_running?true:false;
     pData->voltage1 = voltage1;
     pData->temperature1 = temperature;
+    pData->heartbeat = heartbeat;
 
     BDBG_MSG(("voltage0=%d  voltage1=%d  temperature=%d  heartbeat=%d", pData->voltage, pData->voltage1, pData->temperature, heartbeat));
 
-    BDBG_LEAVE(BCHP_AvsGetData);
+    BDBG_LEAVE(BCHP_P_GetAvsData_isrsafe);
     return BERR_SUCCESS;
 }
 

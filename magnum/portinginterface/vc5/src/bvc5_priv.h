@@ -85,6 +85,15 @@
 #define BVC5_CACHE_FLUSH_ALL (BVC5_CACHE_FLUSH_CORE | BVC5_CACHE_FLUSH_HUB)
 #define BVC5_CACHE_CLEAN_ALL (BVC5_CACHE_CLEAN_CORE | BVC5_CACHE_CLEAN_HUB)
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+typedef struct BVC5_P_TileState
+{
+   BMMA_Block_Handle          hTileState;
+   BMMA_DeviceOffset          uiTileStateOffset;
+   uint32_t                   uiTileStateSize;
+} BVC5_P_TileState;
+#endif
+
 
 typedef struct BVC5_P_Handle
 {
@@ -95,6 +104,8 @@ typedef struct BVC5_P_Handle
    BMMA_Heap_Handle           hSecureMMAHeap;
    uint64_t                   ulDbgHeapOffset;
    unsigned                   uDbgHeapSize;
+
+   BCHP_MemoryInfo            sMemInfo;
 
    BINT_Handle                hInt;
    BVC5_OpenParameters        sOpenParams;
@@ -170,6 +181,10 @@ typedef struct BVC5_P_Handle
    BMMA_Block_Handle          hMmuSafePage;
    BMMA_DeviceOffset          uiMmuSafePageOffset;
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_P_TileState           sTileState[2];             /* 0 = unsecure, 1 = secure */
+#endif
+
    bool                       bCollectLoadStats;         /* Do we want to gather load statistics for each client?                */
 } BVC5_P_Handle;
 
@@ -186,5 +201,17 @@ uint32_t BVC5_P_TranslateBinAddress(
    uint32_t    uiAddr,
    bool        bSecure
 );
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+bool BVC5_P_AllocTileState(
+   BVC5_P_TileState *psTileState,
+   BMMA_Heap_Handle hMMAHeap,
+   uint32_t size
+);
+
+void BVC5_P_FreeTileState(
+   BVC5_P_TileState *psTileState
+);
+#endif
 
 #endif /* BVC5_PRIV_H__ */

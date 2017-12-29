@@ -682,6 +682,10 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
     if (!playpump) {
         NEXUS_ParserBand_P_SetEnable(parserBand);
         parserBand->pidChannels++;
+        if (parserBand->settings.sourceType == NEXUS_ParserBandSourceType_eMtsif) {
+            pTransport->mtsifPidChannelState[index] = NEXUS_MtsifPidChannelState_eChanged;
+            BKNI_SetEvent(pTransport->pidChannelEvent);
+        }
     }
     return pidChannel;
 
@@ -762,6 +766,11 @@ static void NEXUS_P_HwPidChannel_P_Finalizer(NEXUS_P_HwPidChannel *pidChannel)
         BKNI_EnterCriticalSection();
         BLST_S_REMOVE(&pTransport->pidChannels, pidChannel, NEXUS_P_HwPidChannel, link);
         BKNI_LeaveCriticalSection();
+
+        if (pTransport->mtsifPidChannelState[index] == NEXUS_MtsifPidChannelState_eChanged) {
+            pTransport->mtsifPidChannelState[index] = NEXUS_MtsifPidChannelState_eClosed;
+            BKNI_SetEvent(pTransport->pidChannelEvent);
+        }
     }
 
     NEXUS_OBJECT_DESTROY(NEXUS_P_HwPidChannel, pidChannel);
@@ -1368,6 +1377,11 @@ NEXUS_Error NEXUS_PidChannel_ChangePid( NEXUS_PidChannelHandle pidChannel, unsig
     rc = BXPT_ConfigurePidChannel(pTransport->xpt, hwPidChannel->status.pidChannelIndex, pid, nexus_p_xpt_parser_band(hwPidChannel));
     if (rc) return BERR_TRACE(rc);
     hwPidChannel->status.pid = pid;
+
+    if (hwPidChannel->parserBand && hwPidChannel->parserBand->settings.sourceType == NEXUS_ParserBandSourceType_eMtsif) {
+        pTransport->mtsifPidChannelState[hwPidChannel->status.pidChannelIndex] = NEXUS_MtsifPidChannelState_eChanged;
+        BKNI_SetEvent(pTransport->pidChannelEvent);
+    }
     return NEXUS_SUCCESS;
 }
 

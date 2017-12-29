@@ -252,7 +252,7 @@ ifeq ($(CPUTEST_SUPPORT),y)
 include $(BSEAV)/opensource/jpeg/b_libjpeg_targets.inc
 LIBJPEG_BUILD: b_libjpeg_target_build
 LIBJPEG_CLEAN: b_libjpeg_target_clean_all
-CFLAGS += -DJPEG_SUPPORT -DCPUTEST_SUPPORT -I$(B_REFSW_OBJ_ROOT)/BSEAV/opensource/jpeg-6b
+CFLAGS += -DJPEG_SUPPORT -DCPUTEST_SUPPORT -I$(JPEG_INC_FOLDER)
 endif
 endif
 
@@ -1292,6 +1292,9 @@ clean-snmp-proxy:
 #intentionally left empty
 endif
 
+################
+##### SI_SUPPORT
+################
 ifeq ($(SI_SUPPORT),y)
 # This builds and cleans the si libs
 silib:
@@ -1307,6 +1310,9 @@ clean-silib:
 #intentionally left empty
 endif # SI_SUPPORT
 
+#######################
+##### PERFTOOLS_SUPPORT
+#######################
 ifeq ($(PERFTOOLS_SUPPORT),y)
 perftools: api
 	${Q_}$(MAKE) -C $(BSYSPERF_DIR)
@@ -1319,6 +1325,13 @@ perftools:
 #intentionally left empty
 clean-perftools:
 #intentionally left empty
+endif
+
+#######################
+##### BDSP_MS12_SUPPORT
+#######################
+ifeq ($(BDSP_MS12_SUPPORT),y)
+CXXFLAGS += -DBDSP_MS12_SUPPORT
 endif
 
 ifeq ($(NETAPP_SUPPORT),y)
@@ -1504,6 +1517,11 @@ install-wlan-files:
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wl $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlinstall $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wl.ko $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/nvram $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/nvramd $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/envram $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/envrams $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/libnvram.so $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/libnl-3.so* $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/libnl-genl-3.so* $(STAGING_DIR)
 	${Q_}$(CP)  ../scripts/atlas_wlan_prep.sh $(STAGING_DIR)

@@ -8,9 +8,8 @@
 #include "glsl_backflow.h"
 #include "glsl_binary_shader.h"
 #include "glsl_backend_reg.h"
+#include "glsl_map.h"
 
-#define MAX_INSTRUCTIONS 20000
-#define MAX_VARYINGS     128
 #define MAX_STACK        4096
 
 /* Legacy magic uniform encodings */
@@ -22,30 +21,36 @@
 
 typedef enum {
    CONFLICT_NONE           = 0,
-   CONFLICT_UNIF           = (1<<0),
-   CONFLICT_ADDFLAG        = (1<<1),
-   CONFLICT_MULFLAG        = (1<<2),
-   CONFLICT_SETFLAG        = (1<<3),
-   CONFLICT_TMU_W          = (1<<4),
-   CONFLICT_TMU_R          = (1<<5),
-   CONFLICT_TMU_C          = (1<<6),
-   CONFLICT_TLB_R          = (1<<7),
-   CONFLICT_TLB_W          = (1<<8),
-   CONFLICT_VPM            = (1<<9),
-   CONFLICT_SFU            = (1<<10),
-   CONFLICT_FIRST_INSTR    = (1<<11),
-   CONFLICT_THRSW_SIGNAL   = (1<<12),  // instruction signalling thrsw
-   CONFLICT_THRSW_DELAY_1  = (1<<13),  // thrsw delay slot 1
-   CONFLICT_THRSW_DELAY_2  = (1<<14),  // thrsw delay slot 2
-   CONFLICT_POST_THRSW     = (1<<15),  // first instruction after thrsw
-   CONFLICT_VARY           = (1<<16),
-   CONFLICT_MSF            = (1<<17),
-   CONFLICT_UNIFRF         = (1<<18),
+   CONFLICT_UNIF           = (1<<0),   // uniform stream read only
+   CONFLICT_UNIFA          = (1<<1),   // unifa read only
+   CONFLICT_ADDFLAG        = (1<<2),
+   CONFLICT_MULFLAG        = (1<<3),
+   CONFLICT_SETFLAG        = (1<<4),
+   CONFLICT_TMU_W          = (1<<5),
+   CONFLICT_TMU_R          = (1<<6),
+   CONFLICT_TMU_C          = (1<<7),
+   CONFLICT_TMUWT          = (1<<8),
+   CONFLICT_TLB_R          = (1<<9),
+   CONFLICT_TLB_W          = (1<<10),
+   CONFLICT_VPM            = (1<<11),
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   CONFLICT_VPMWT          = (1<<12),
+#endif
+   CONFLICT_SFU            = (1<<13),
+   CONFLICT_FIRST_INSTR    = (1<<14),
+   CONFLICT_THRSW_SIGNAL   = (1<<15),  // instruction signalling thrsw
+   CONFLICT_THRSW_DELAY_1  = (1<<16),  // thrsw delay slot 1
+   CONFLICT_THRSW_DELAY_2  = (1<<17),  // thrsw delay slot 2
+   CONFLICT_POST_THRSW     = (1<<18),  // first instruction after thrsw
+   CONFLICT_VARY           = (1<<19),
+   CONFLICT_MSF            = (1<<20),
+   CONFLICT_UNIFRF         = (1<<21),
+   CONFLICT_UNIFA_W        = (1<<22),  // write to unifa
+#if V3D_VER_AT_LEAST(4,1,34,0) && !V3D_VER_AT_LEAST(4,2,13,0)
+   CONFLICT_ADJ_UNIF       = (1<<23),  // adjacent uniform stream read
+   CONFLICT_ADJ_UNIFA      = (1<<24),  // adjacent uniform unifa read
+#endif
 } QBEConflict;
-
-#define PHASE_UNVISITED 0
-#define PHASE_STACKED   1
-#define PHASE_COMPLETE  2
 
 static inline unsigned get_max_regfile(unsigned threading) {
    return gfx_umin((V3D_VER_AT_LEAST(4,0,2,0) ? 128u : 64u) / threading, 64u);
@@ -80,8 +85,13 @@ static inline bool cs_is_setf(uint32_t cs) { return cs_is_push(cs) || cs_is_updt
 static inline bool cs_is_cond(uint32_t cs) { return cs>=16 && cs<=19; }
 static inline bool is_cond_setf(uint32_t cs) { return cs<=19; } /* Any valid cond_setf */
 
-typedef enum
-{
+typedef enum {
+   PHASE_UNVISITED = 0,
+   PHASE_STACKED,
+   PHASE_COMPLETE
+} QBEPhase;
+
+typedef enum {
    MOV_EXCUSE_NONE                  = 0,
    MOV_EXCUSE_OUTPUT                = 1,
    MOV_EXCUSE_IR                    = 2,
@@ -97,6 +107,16 @@ typedef enum
 extern const char *mov_excuse_strings[];
 
 typedef struct {
+   QBEPhase phase;
+
+   backend_reg reg;       /* Which register (acc or rf) result is in */
+   uint32_t io_timestamp; /* Timestamp of first use. iodeps can come after this */
+   uint32_t remaining_dependents;
+   BackflowChain data_dependents;
+} BackendNodeState;
+
+
+typedef struct {
    bool used;
    BackflowFlavour op;
    SchedNodeUnpack unpack[2];
@@ -107,8 +127,7 @@ typedef struct {
    MOV_EXCUSE mov_excuse; /* For debugging optimisations - if there's a mov here then why? */
 } GLSL_OP_T;
 
-typedef struct _INSTR_T
-{
+typedef struct _INSTR_T {
    QBEConflict       conflicts;
    v3d_qpu_sigbits_t sigbits;
    uint64_t unif;
@@ -130,7 +149,7 @@ typedef struct {
     * of the last read from the register, which is also the first time at   *
     * which a write is permitted. If reg_user!=NULL then this will probably *
     * require a mov to save the value for future users.                     */
-   Backflow *user;
+   BackendNodeState *user;
 
    uint32_t written;
    uint32_t available;
@@ -144,7 +163,7 @@ typedef struct
    uint32_t  unif_count;
    uint32_t *unifs;
    uint32_t  varying_count;
-   uint32_t  varyings[MAX_VARYINGS];
+   uint32_t  varyings[V3D_MAX_VARYING_COMPONENTS];
 } GENERATED_SHADER_T;
 
 void order_texture_lookups(SchedBlock *block);
@@ -153,7 +172,7 @@ bool get_max_threadability(struct tmu_lookup_s *tmu_lookups, int *max_threads);
 extern GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
                                                  RegList *presched,
                                                  RegList *outputs,
-                                                 int blackout,
+                                                 uint64_t blackout,
                                                  ShaderFlavour type,
                                                  bool bin_mode,
                                                  int threads,
@@ -166,10 +185,12 @@ extern GENERATED_SHADER_T *glsl_backend(BackflowChain *iodeps,
                                         bool bin_mode,
                                         uint32_t thrsw_count,
                                         uint32_t threadability,
-                                        BackflowPriorityQueue *sched_queue,
+                                        Backflow **sched_queue,
+                                        unsigned sched_count,
                                         RegList *presched,
                                         RegList *outputs,
+                                        Map *state_map,
                                         Backflow *branch_cond,
-                                        int blackout,
+                                        uint64_t blackout,
                                         bool last,
                                         bool lthrsw);

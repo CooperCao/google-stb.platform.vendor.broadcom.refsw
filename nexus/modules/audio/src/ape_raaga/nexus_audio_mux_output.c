@@ -35,7 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 ***************************************************************************/
-
+#include "bdsp.h"
 #include "nexus_audio_module.h"
 #include "priv/nexus_audio_mux_output_priv.h"
 
@@ -119,6 +119,7 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
     NEXUS_RaveStatus raveStatus;
     NEXUS_AudioMuxOutputHandle handle;
     BAPE_MuxOutputCreateSettings createSettings;
+    BAPE_MuxOutputSettings muxSettings;
     BAPE_MuxOutputInterruptHandlers interrupts;
     NEXUS_HeapHandle nexusHeap;
     BERR_Code errCode;
@@ -146,6 +147,8 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
     NEXUS_OBJECT_REGISTER(NEXUS_AudioOutput, &handle->connector, Open);
     handle->connector.pName = handle->name;
     NEXUS_CallbackDesc_Init(&handle->settings.overflow);
+    BAPE_MuxOutput_GetDefaultSettings(&muxSettings);
+    handle->settings.sendEos = muxSettings.sendEos;
 
     cdbLength = g_cdbItbCfg.Cdb.Length;
     itbLength = g_cdbItbCfg.Itb.Length;
@@ -211,9 +214,9 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
 
     mmaHeap = NEXUS_Heap_GetMmaHandle(heap);
 
-    handle->cdb.mmaBlock = BMMA_Alloc(mmaHeap, cdbLength, 8, NULL);
+    handle->cdb.mmaBlock = BMMA_Alloc(mmaHeap, cdbLength, BDSP_ADDRESS_ALIGN_CDB, NULL);
     if (!handle->cdb.mmaBlock) {BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err_cdb_alloc;}
-    handle->itb.mmaBlock = BMMA_Alloc(mmaHeap, itbLength, 8, NULL);
+    handle->itb.mmaBlock = BMMA_Alloc(mmaHeap, itbLength, BDSP_ADDRESS_ALIGN_ITB, NULL);
     if (!handle->itb.mmaBlock) {BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err_itb_alloc;}
 #endif
 
@@ -429,6 +432,7 @@ NEXUS_Error NEXUS_AudioMuxOutput_Start(
         startSettings.stcIndex = stcChannelIndex;
     }
     startSettings.presentationDelay = pSettings->presentationDelay;
+    startSettings.initialStc = pSettings->initialStc;
 #if NEXUS_AUDIO_MUX_USE_RAVE
     LOCK_TRANSPORT();
     /* Reset RAVE pointers prior to start */
@@ -762,10 +766,18 @@ NEXUS_Error NEXUS_AudioMuxOutput_SetSettings(
     const NEXUS_AudioMuxOutputSettings *pSettings
     )
 {
+    BAPE_MuxOutputSettings muxSettings;
+    NEXUS_Error errCode = BERR_SUCCESS;
     NEXUS_OBJECT_ASSERT(NEXUS_AudioMuxOutput, handle);
     NEXUS_IsrCallback_Set(handle->overflowCallback, &pSettings->overflow);
     handle->settings = *pSettings;
-    return BERR_SUCCESS;
+    BAPE_MuxOutput_GetSettings(handle->muxOutput, &muxSettings);
+    muxSettings.sendEos = handle->settings.sendEos;
+    errCode = BAPE_MuxOutput_SetSettings(handle->muxOutput, &muxSettings);
+    if (errCode) {
+        BERR_TRACE(errCode);
+    }
+    return errCode;
 }
 
 static void NEXUS_AudioMuxOutput_P_Overflow_isr(void *pParam1, int param2)

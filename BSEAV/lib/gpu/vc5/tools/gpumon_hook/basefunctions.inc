@@ -1065,6 +1065,11 @@ static EGLBoolean base_eglDestroyImageKHR(EGLDisplay dpy, EGLImageKHR image)
 #if EGL_KHR_image_pixmap
 #endif /* EGL_KHR_image_pixmap*/
 
+#if EGL_KHR_partial_update
+static EGLBoolean base_eglSetDamageRegionKHR(EGLDisplay dpy, EGLSurface surface, EGLint *rects, EGLint n_rects)
+   FuncRet(EGL, EGLBoolean , eglSetDamageRegionKHR, (dpy, surface, rects, n_rects))
+#endif /* EGL_KHR_partial_update*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
 
@@ -1443,6 +1448,9 @@ static EGLBoolean base_eglGetPerfCounterDataBRCM(EGLint dataBufferBytes, void *d
 #if EGL_BRCM_platform_nexus
 #endif /* EGL_BRCM_platform_nexus*/
 
+#if EGL_EXT_buffer_age
+#endif /* EGL_EXT_buffer_age*/
+
 #if EGL_EXT_client_extensions
 #endif /* EGL_EXT_client_extensions*/
 
@@ -1485,6 +1493,9 @@ static EGLBoolean base_eglQueryWaylandBufferWL(EGLDisplay dpy, struct wl_resourc
 #if GL_BRCM_mirror_clamp_to_edge
 #endif /* GL_BRCM_mirror_clamp_to_edge*/
 
+#if GL_BRCM_no_perspective
+#endif /* GL_BRCM_no_perspective*/
+
 #if GL_BRCM_polygon_mode
 static void base_glPolygonModeBRCM(GLenum mode)
    Func(GL, glPolygonModeBRCM, (mode))
@@ -1495,6 +1506,12 @@ static void base_glProvokingVertexBRCM(GLenum mode)
    Func(GL, glProvokingVertexBRCM, (mode))
 #endif /* GL_BRCM_provoking_vertex*/
 
+#if GL_BRCM_sampler_fetch
+#endif /* GL_BRCM_sampler_fetch*/
+
+#if GL_BRCM_shader_framebuffer_fetch_depth_stencil
+#endif /* GL_BRCM_shader_framebuffer_fetch_depth_stencil*/
+
 #if GL_BRCM_texture_1D
 static void base_glTexImage1DBRCM(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
    Func(GL, glTexImage1DBRCM, (target, level, internalformat, width, border, format, type, pixels))
@@ -1503,6 +1520,9 @@ static void base_glTexSubImage1DBRCM(GLenum target, GLint level, GLint xoffset, 
 static void base_glTexStorage1DBRCM(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
    Func(GL, glTexStorage1DBRCM, (target, levels, internalformat, width))
 #endif /* GL_BRCM_texture_1D*/
+
+#if GL_BRCM_texture_gather_lod
+#endif /* GL_BRCM_texture_gather_lod*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

@@ -12,7 +12,6 @@
 #include "middleware/khronos/common/khrn_interlock.h"
 #include "middleware/khronos/common/khrn_mem.h"
 #include "interface/khronos/common/khrn_client.h"
-extern void khdispatch_send_async(uint32_t command, uint64_t pid, uint32_t sem);
 #include "middleware/khronos/glxx/glxx_texture.h"
 #include "interface/khronos/common/khrn_int_ids.h"
 #include "middleware/khronos/gl11/gl11_server.h"
@@ -23,21 +22,9 @@ extern void khdispatch_send_async(uint32_t command, uint64_t pid, uint32_t sem);
 #include "middleware/khronos/glxx/glxx_framebuffer.h"
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"
 #include "middleware/khronos/glxx/glxx_server.h"
-#ifndef NO_OPENVG
-#include "middleware/khronos/vg/vg_server.h"
-#include "middleware/khronos/vg/vg_font.h"
-#include "middleware/khronos/vg/vg_image.h"
-#include "middleware/khronos/vg/vg_mask_layer.h"
-#include "middleware/khronos/vg/vg_paint.h"
-#include "middleware/khronos/vg/vg_path.h"
-#include "middleware/khronos/vg/vg_ramp.h"
-#include "middleware/khronos/vg/vg_hw.h"
-#endif /* NO_OPENVG */
 #include "middleware/khronos/egl/egl_server.h"
 #include "middleware/khronos/egl/egl_platform.h"
-#include "middleware/khronos/egl/egl_disp.h"
 #include "middleware/khronos/common/2708/khrn_render_state_4.h"
-#include "middleware/khronos/common/2708/khrn_copy_buffer_4.h"
 #include "interface/khronos/egl/egl_client_surface.h"
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
@@ -56,7 +43,6 @@ extern void khdispatch_send_async(uint32_t command, uint64_t pid, uint32_t sem);
 #endif
 
 static BEGL_DriverInterfaces  s_driverInterfacesStruct;
-static BEGL_DriverInterfaces *s_driverInterfaces = &s_driverInterfacesStruct;
 
 static void server_process_attach(void);
 static void server_process_detach(void);
@@ -64,7 +50,6 @@ static void server_process_detach(void);
 /* register the driver interface */
 EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *driverInterfaces)
 {
-   bool bad = false;
    bool term = false;
 
    /* Sanity check that the relevant driver interfaces are present */
@@ -72,94 +57,70 @@ EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *dri
       term = true;
    else
    {
-      if (driverInterfaces->displayInterface == NULL ||
-         driverInterfaces->hwInterface == NULL ||
+      if (driverInterfaces->hwInterface == NULL ||
          driverInterfaces->memInterface == NULL)
       {
          term = true;
       }
       else
       {
-         /* Must have these */
-         if (driverInterfaces->hwInterface->GetInfo == NULL ||
-             driverInterfaces->hwInterface->SendJob == NULL ||
-             driverInterfaces->hwInterface->GetNotification == NULL ||
-             driverInterfaces->hwInterface->SendSync == NULL ||
-             driverInterfaces->hwInterface->GetBinMemory == NULL ||
-             driverInterfaces->displayInterface->BufferCreate == NULL ||
-             driverInterfaces->displayInterface->BufferDestroy == NULL ||
-             driverInterfaces->displayInterface->BufferDisplay == NULL ||
-             driverInterfaces->displayInterface->BufferGetCreateSettings == NULL ||
-             driverInterfaces->displayInterface->BufferGet == NULL ||
-             driverInterfaces->displayInterface->BufferAccess == NULL ||
-             driverInterfaces->displayInterface->WindowGetInfo == NULL ||
-             driverInterfaces->displayInterface->WindowUndisplay == NULL)
-            bad = true;
+         /* get it to break instantly to simplify error conditions later */
+         vcos_demand(driverInterfaces->hwInterface->GetInfo != NULL);
+         vcos_demand(driverInterfaces->hwInterface->SendJob != NULL);
+         vcos_demand(driverInterfaces->hwInterface->GetNotification != NULL);
+         vcos_demand(driverInterfaces->hwInterface->SendSync != NULL);
+         vcos_demand(driverInterfaces->hwInterface->GetBinMemory != NULL);
 
-         if (driverInterfaces->displayInterface->WindowPlatformStateCreate != NULL &&
-             driverInterfaces->displayInterface->WindowPlatformStateDestroy == NULL)
-             bad = true;
-
-         if (driverInterfaces->displayInterface->WindowPlatformStateCreate == NULL &&
-            driverInterfaces->displayInterface->WindowPlatformStateDestroy != NULL)
-            bad = true;
-
-         if (bad)
+         if (driverInterfaces->displayInterface)
          {
-            printf("******* ERROR : BEGL_RegisterDriverInterfaces: Platform layer interfaces are incomplete or are an older version. ******\n");
-            exit(1);
+            vcos_demand(driverInterfaces->displayInterface->BufferDequeue != NULL);
+            vcos_demand(driverInterfaces->displayInterface->BufferQueue != NULL);
+            vcos_demand(driverInterfaces->displayInterface->BufferCancel != NULL);
+            vcos_demand(driverInterfaces->displayInterface->SurfaceGetInfo != NULL);
+            vcos_demand(driverInterfaces->displayInterface->WindowPlatformStateCreate != NULL);
+            vcos_demand(driverInterfaces->displayInterface->WindowPlatformStateDestroy != NULL);
          }
-         else
+
+         /* See if we already have a valid memory interface.
+            * If not, we need to bring up the driver now.
+            * If we do, and this is the same, we do nothing.
+            * If we do, but this is different - try to close & restart driver */
+         if (s_driverInterfacesStruct.memInterface == NULL)
          {
-            /* See if we already have a valid memory interface.
-             * If not, we need to bring up the driver now.
-             * If we do, and this is the same, we do nothing.
-             * If we do, but this is different - try to close & restart driver */
-            if (s_driverInterfaces->memInterface == NULL)
-            {
-               s_driverInterfacesStruct = *driverInterfaces;
+            s_driverInterfacesStruct = *driverInterfaces;
 
-               /* Now we can bring up the driver proper */
-               server_process_attach();
-               client_process_attach();
+            /* Now we can bring up the driver proper */
+            server_process_attach();
+            client_process_attach();
 #ifndef NDEBUG
-               {
-                  GLubyte revStr[16];
-                  glintGetCoreRevision_impl(16, revStr);
-                  printf("VideoCore IV HW (V3D-%s)\n", revStr);
-               }
+            {
+               GLubyte revStr[16];
+               glintGetCoreRevision_impl(16, revStr);
+               printf("VideoCore IV HW (V3D-%s)\n", revStr);
+            }
 #endif
-            }
-            else if (s_driverInterfaces->memInterface != driverInterfaces->memInterface)
-            {
-               /* Uh oh, memory interface has changed - better start again.
-                  I wouldn't normally expect any applications to hit this path! */
-               client_process_detach();
-               server_process_detach();
+         }
+         else if (s_driverInterfacesStruct.memInterface != driverInterfaces->memInterface)
+         {
+            /* Uh oh, memory interface has changed - better start again.
+               I wouldn't normally expect any applications to hit this path! */
+            client_process_detach();
+            server_process_detach();
 
-               s_driverInterfacesStruct = *driverInterfaces;
+            s_driverInterfacesStruct = *driverInterfaces;
 
-               server_process_attach();
-               client_process_attach();
-            }
-            else if (s_driverInterfaces->displayInterface != driverInterfaces->displayInterface)
-            {
-               /* display interface has changed, re-register the eglconfig types */
-               if ((driverInterfaces != NULL) &&
-                   (driverInterfaces->displayInterface != NULL) &&
-                   (driverInterfaces->displayInterface->IsSupported != NULL) &&
-                   (driverInterfaces->displayInterface->IsSupported(driverInterfaces->displayInterface, BEGL_BufferFormat_eA8B8G8R8_TFormat) == BEGL_Success))
-                  /* install TFormat configs */
-                  egl_config_install_configs(1);
-               else
-                  /* install RSO configs (default) */
-                  egl_config_install_configs(0);
-
-               s_driverInterfacesStruct = *driverInterfaces;
-            }
+            server_process_attach();
+            client_process_attach();
+         }
+         else if (s_driverInterfacesStruct.displayInterface != driverInterfaces->displayInterface)
+         {
+            /* install RSO configs (default) */
+            egl_config_install_configs(0);
 
             s_driverInterfacesStruct = *driverInterfaces;
          }
+
+         s_driverInterfacesStruct = *driverInterfaces;
       }
    }
 
@@ -169,22 +130,17 @@ EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *dri
       client_process_detach();
       server_process_detach();
 
-      memset(s_driverInterfaces, 0, sizeof(BEGL_DriverInterfaces));
+      memset(&s_driverInterfacesStruct, 0, sizeof(BEGL_DriverInterfaces));
    }
-}
-
-extern BEGL_DriverInterfaces* BEGLint_GetDriverInterfaces(void)
-{
-   return s_driverInterfaces;
 }
 
 EGLAPI BEGL_DriverInterfaces* EGLAPIENTRY BEGL_GetDriverInterfaces(void)
 {
-   return BEGLint_GetDriverInterfaces();
+   return &s_driverInterfacesStruct;
 }
 
 extern BEGL_BufferHandle BEGLint_PixmapCreateCompatiblePixmap(BEGL_PixmapInfoEXT *pixmapInfo);
-extern void BEGLint_intBufferGetRequirements(BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
+extern void BEGLint_intBufferGetRequirements(const BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings *bufferConstrainedRequirements);
 extern void khrn_job_callback(void);
 
 EGLAPI void EGLAPIENTRY BEGL_GetDefaultDriverInterfaces(BEGL_DriverInterfaces *driverInterfaces)
@@ -215,57 +171,22 @@ void egl_server_surface_term(MEM_HANDLE_T handle)
 {
    EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(handle, NULL);
 
-   int i;
-   BEGL_WindowState  *windowState = NULL;
-
    if (surface != NULL)
    {
-      if (surface->display_thread_state.platform_state != NULL)
-      {
-         khrn_hw_common_finish();
-         egl_disp_destroy_display_thread(&surface->display_thread_state);
-      }
+      khrn_hw_common_finish();
 
-      if (surface->mh_color[0] != MEM_INVALID_HANDLE) {
+      if (surface->mh_color[0] != MEM_HANDLE_INVALID) {
          ((KHRN_IMAGE_T *)mem_lock(surface->mh_color[0], NULL))->flags &= ~IMAGE_FLAG_BOUND_CLIENTBUFFER;
          mem_unlock(surface->mh_color[0]);
       }
 
-      for (i = 0; i < EGL_MAX_BUFFERS; i++)
-      {
-         if (surface->mh_color[i] != MEM_INVALID_HANDLE)
-         {
-            KHRN_IMAGE_T *image = mem_lock(surface->mh_color[i], NULL);
-            if (image != NULL && image->window_state != NULL && image->window_state->window == (BEGL_WindowHandle)surface->win)
-            {
-               vcos_assert(windowState == NULL || windowState == image->window_state);
-               windowState = image->window_state;
-            }
-            mem_unlock(surface->mh_color[i]);
-         }
-         MEM_ASSIGN(surface->mh_color[i], MEM_INVALID_HANDLE);
-      }
+      for (int i = 0; i < EGL_MAX_BUFFERS; i++)
+         MEM_ASSIGN(surface->mh_color[i], MEM_HANDLE_INVALID);
 
-      MEM_ASSIGN(surface->mh_depth, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(surface->mh_color_multi, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(surface->mh_ds_multi, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(surface->mh_mask, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(surface->mh_preserve, MEM_INVALID_HANDLE);
-
-      MEM_ASSIGN(surface->mh_bound_texture, MEM_INVALID_HANDLE);
-
-      if (windowState != NULL)
-      {
-         BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
-         if (driverInterfaces != NULL &&
-             driverInterfaces->displayInterface != NULL &&
-             driverInterfaces->displayInterface->WindowPlatformStateDestroy != NULL)
-         {
-            driverInterfaces->displayInterface->WindowPlatformStateDestroy(s_driverInterfaces->displayInterface->context,
-               windowState->platformState);
-         }
-         free((void *)windowState);
-      }
+      MEM_ASSIGN(surface->mh_depth, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(surface->mh_color_multi, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(surface->mh_ds_multi, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(surface->mh_bound_texture, MEM_HANDLE_INVALID);
    }
 
    mem_unlock(handle);
@@ -290,26 +211,19 @@ static void server_process_attach(void)
    /* TODO : ADD DEINIT or we leak */
    vcos_demand(VCOS_SUCCESS == vcos_init());
 
-   if ((s_driverInterfaces != NULL) && (s_driverInterfaces->memInterface != NULL))
-      mem_init(s_driverInterfaces->memInterface);
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   if (driverInterfaces->memInterface != NULL)
+      mem_init(driverInterfaces->memInterface);
    else
       return;
 
-   /* now we have a handle to the platform layer, grab the correct format for the egl context */
-   if ((s_driverInterfaces != NULL) &&
-       (s_driverInterfaces->displayInterface != NULL) &&
-       (s_driverInterfaces->displayInterface->IsSupported != NULL) &&
-       (s_driverInterfaces->displayInterface->IsSupported(s_driverInterfaces->displayInterface, BEGL_BufferFormat_eA8B8G8R8_TFormat) == BEGL_Success))
-      /* install TFormat configs */
-      egl_config_install_configs(1);
-   else
-      /* install RSO configs (default) */
-      egl_config_install_configs(0);
+   /* install RSO configs (default) */
+   egl_config_install_configs(0);
 
-   if ((s_driverInterfaces != NULL) &&
-      (s_driverInterfaces->displayInterface != NULL) &&
-      (s_driverInterfaces->displayInterface->DefaultOrientation != NULL) &&
-      (s_driverInterfaces->displayInterface->DefaultOrientation(s_driverInterfaces->displayInterface) == BEGL_Success))
+   if ((driverInterfaces->displayInterface != NULL) &&
+      (driverInterfaces->displayInterface->DefaultOrientation != NULL) &&
+      (driverInterfaces->displayInterface->DefaultOrientation(driverInterfaces->displayInterface) == BEGL_Success))
    {
       /* reset any workarounds for orientation, reset to default (bottom up) */
       khrn_workarounds.FB_BOTTOM_UP = false;
@@ -337,8 +251,6 @@ static void server_process_attach(void)
 #endif
 
    khrn_init_thread_pool();
-
-   egl_server_platform_init();
 
    /* TODO : pass the "master event" as an argument here, so its clear when it can be deleted */
    /* or better - make the module create its own resources */
@@ -387,19 +299,11 @@ void egl_server_shutdown(void)
       now we destroy all egl objects
    */
 
-   MEM_ASSIGN(state->glcontext, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(state->gldrawsurface, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(state->glreadsurface, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(state->vgcontext, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(state->vgsurface, MEM_INVALID_HANDLE);
-
-#ifndef NO_OPENVG
-   /*
-      vg might be marked for termination...
-   */
-
-   vg_maybe_term();
-#endif
+   MEM_ASSIGN(state->glcontext, MEM_HANDLE_INVALID);
+   MEM_ASSIGN(state->gldrawsurface, MEM_HANDLE_INVALID);
+   MEM_ASSIGN(state->glreadsurface, MEM_HANDLE_INVALID);
+   MEM_ASSIGN(state->vgcontext, MEM_HANDLE_INVALID);
+   MEM_ASSIGN(state->vgsurface, MEM_HANDLE_INVALID);
 
    /*
       at this point, the system is completely idle and empty
@@ -422,17 +326,64 @@ void egl_server_unlock()
 {
    GL11_FORCE_UNLOCK_SERVER_STATE();
    GL20_FORCE_UNLOCK_SERVER_STATE();
-#ifndef NO_OPENVG
-   vg_unlock();
-#endif /* NO_OPENVG */
+}
+
+static MEM_HANDLE_T get_back_buffer(void *p)
+{
+   EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)p;
+   return surface->mh_color[surface->back_buffer_index];
+}
+
+static MEM_HANDLE_T get_back_buffer_window_surface(void *p)
+{
+   EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)p;
+   MEM_HANDLE_T himage = MEM_HANDLE_INVALID;
+
+   if (surface->mh_active_image == MEM_HANDLE_INVALID)
+   {
+      int fd = -1;
+      void *platform_pixmap = egl_server_platform_dequeue(surface->native_window_state, surface->colorformat, &fd);
+
+      himage = egl_server_platform_create_pixmap_info(platform_pixmap, true);
+
+      MEM_ASSIGN(surface->mh_active_image, himage);
+
+      /* image not wrapped to KHRN_IMAGE_T somehow, just return */
+      if (surface->mh_active_image == MEM_HANDLE_INVALID)
+      {
+         egl_server_platform_cancel(surface->native_window_state, platform_pixmap, fd);
+         goto error;
+      }
+
+      KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(surface->mh_active_image, NULL);
+      KHRN_IMAGE_FORMAT_T format = image->format;
+      if (!khrn_image_is_ok_for_render_target(format, false))
+      {
+         egl_server_platform_cancel(surface->native_window_state, platform_pixmap, fd);
+         mem_unlock(surface->mh_active_image);
+         MEM_ASSIGN(surface->mh_active_image, MEM_HANDLE_INVALID);
+      }
+
+      /* do this late when everything is OK */
+      /* turns native fence into a v3d async job which can be waited on in the scheduler */
+      image->v3dfence = khrn_fence_wait_async(fd);
+      image->platform_pixmap = platform_pixmap;
+
+      mem_unlock(surface->mh_active_image);
+   }
+
+error:
+   if (himage != MEM_HANDLE_INVALID)
+      mem_release(himage);
+
+   return surface->mh_active_image;
 }
 
 static EGL_SURFACE_ID_T create_surface_internal(
-   uint32_t win,
+   uintptr_t win,
    uint32_t buffers,
    uint32_t width,
    uint32_t height,
-   uint32_t swapchainc,
    bool secure,
    KHRN_IMAGE_FORMAT_T colorformat,
    KHRN_IMAGE_FORMAT_T depthstencilformat,
@@ -445,7 +396,7 @@ static EGL_SURFACE_ID_T create_surface_internal(
    MEM_HANDLE_T hpixmapimage,      /*floating KHRN_IMAGE_T*/
    uint32_t type)
 {
-   EGL_SERVER_SURFACE_T *surface;
+   UNUSED(maskformat);
 
    /* todo: these flags aren't entirely correct... */
 
@@ -475,67 +426,56 @@ static EGL_SURFACE_ID_T create_surface_internal(
    if (win != EGL_PLATFORM_WIN_NONE)
       image_create_flags |= IMAGE_CREATE_FLAG_PAD_ROTATE;
 
-   MEM_HANDLE_T hcommon_storage = MEM_INVALID_HANDLE;
-   EGL_SURFACE_ID_T result = 0;
-
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
 
    MEM_HANDLE_T shandle = MEM_ALLOC_STRUCT_EX(EGL_SERVER_SURFACE_T, MEM_COMPACT_DISCARD);                   // check, egl_server_surface_term
-   if (shandle == MEM_INVALID_HANDLE)
-      return result;
+   if (shandle == MEM_HANDLE_INVALID)
+      return 0;
 
    mem_set_term(shandle, egl_server_surface_term, NULL);
 
-   surface = (EGL_SERVER_SURFACE_T *)mem_lock(shandle, NULL);
+   EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(shandle, NULL);
 
    if (mipmap) {
-      vcos_assert(width > 0 && height > 0);
-      vcos_assert(width <= EGL_CONFIG_MAX_WIDTH && height <= EGL_CONFIG_MAX_HEIGHT);
+      assert(width > 0 && height > 0);
+      assert(width <= EGL_CONFIG_MAX_WIDTH && height <= EGL_CONFIG_MAX_HEIGHT);
       buffers = _max(_msb(width), _msb(height)) + 1;
    }
 
-   vcos_assert(buffers > 0);
-   vcos_assert(buffers <= EGL_MAX_BUFFERS);
-   vcos_assert(!mipmap || win == EGL_PLATFORM_WIN_NONE);
-   vcos_assert(mipmap || win != EGL_PLATFORM_WIN_NONE || buffers == 1);
+   assert(buffers > 0);
+   assert(buffers <= EGL_MAX_BUFFERS);
+   assert(!mipmap || win == EGL_PLATFORM_WIN_NONE);
+   assert(mipmap || win != EGL_PLATFORM_WIN_NONE || buffers == 1);
 
    surface->name = state->next_surface;
    surface->mipmap = mipmap;
-   surface->win = win;
-   surface->swapchainc = swapchainc;
    surface->buffers = buffers;
    surface->back_buffer_index = 0;
-   vcos_assert(surface->mh_bound_texture == MEM_INVALID_HANDLE);
+   assert(surface->mh_bound_texture == MEM_HANDLE_INVALID);
    surface->swap_interval = 1;
-   surface->pid = state->pid;
    surface->config_depth_bits = config_depth_bits;
    surface->config_stencil_bits = config_stencil_bits;
+   surface->native_window_state = NULL;
+   surface->get_back_buffer = get_back_buffer;
+   surface->mh_active_image = MEM_HANDLE_INVALID;
+   surface->colorformat = colorformat;    /* keep to validate the dequeue is OK */
 
-   if (hpixmapimage != MEM_INVALID_HANDLE) {
-      // Can't combine pixmap wrapping with any of the following features
-      vcos_assert(buffers == 1);
-      vcos_assert(!mipmap);
-      vcos_assert(win == EGL_PLATFORM_WIN_NONE);
-#ifndef NO_OPENVG
-      vcos_assert(vgimagehandle == MEM_INVALID_HANDLE);
-#else
+   EGL_SURFACE_ID_T result = 0;
+   MEM_HANDLE_T hcommon_storage = MEM_HANDLE_INVALID;
+   if (hpixmapimage != MEM_HANDLE_INVALID) {
+      /* Can't combine pixmap wrapping with any of the following features */
+      assert(type == PIXMAP);
+      assert(buffers == 1);
+      assert(!mipmap);
+      assert(win == EGL_PLATFORM_WIN_NONE);
       UNUSED(vgimagehandle);
-#endif /* NO_OPENVG */
-
-      /*TODO: accept handle-based images as well as wrapped ones? */
-
       MEM_ASSIGN(surface->mh_color[0], hpixmapimage);
    } else {
-      uint32_t i;
-      uint32_t offset = 0;
-      BEGL_WindowState *platformState = NULL;
-
-      if (mipmap)
-      {
+      /* PBUFFER or WINDOW */
+      if (mipmap) {
          uint32_t size = 0;
-         for (i = 0; i < buffers; i++)
-         {
-            uint32_t w,h;
+         for (uint32_t i = 0; i < buffers; i++) {
+            uint32_t w, h;
             w = _max(width >> i, 1);
             h = _max(height >> i, 1);
             size += khrn_image_get_size(colorformat, w, h);
@@ -545,108 +485,51 @@ static EGL_SURFACE_ID_T create_surface_internal(
             flags |= MEM_FLAG_SECURE;
          hcommon_storage = mem_alloc_ex(size, 4096, flags,
             "EGL_SERVER_SURFACE_T mipmapped storage", MEM_COMPACT_DISCARD);
-         if (hcommon_storage == MEM_INVALID_HANDLE)
+         if (hcommon_storage == MEM_HANDLE_INVALID)
             goto final;
       }
-      if (type == WINDOW)
-      {
-         if (!egl_server_platform_create_window_state(&platformState, win))
+
+      if (type == WINDOW) {
+         if (!egl_server_platform_create_window_state(&surface->native_window_state, win, secure))
             goto final;
+         surface->get_back_buffer = get_back_buffer_window_surface;
+      } else {
 
-         egl_disp_create_display_thread(&surface->display_thread_state, platformState);
-      }
+         /* NOTE: PBUFFER only create surfaces upfront */
 
-      for (i = 0; i < buffers; i++) {
-#ifndef NO_OPENVG
-         if (i == 0 && vgimagehandle != MEM_INVALID_HANDLE) {
-            VG_IMAGE_T *vgimage = (VG_IMAGE_T *)mem_lock(vgimagehandle, NULL);
-            MEM_ASSIGN(surface->mh_color[i], vgimage->image);
-            mem_unlock(vgimagehandle);
-         } else
-#endif /* NO_OPENVG */
-         {
-            uint32_t w,h;
+         uint32_t offset = 0;
+         for (uint32_t i = 0; i < buffers; i++) {
+
+            uint32_t w, h;
             MEM_HANDLE_T himage;
             if (mipmap) {
                w = _max(width >> i, 1);
                h = _max(height >> i, 1);
-            } else {
+            }
+            else {
                w = width;
                h = height;
             }
 
-            if (hcommon_storage != MEM_INVALID_HANDLE)
-            {
+            if (hcommon_storage != MEM_HANDLE_INVALID) {
                himage = khrn_image_create_from_storage(
                   colorformat, w, h,
                   khrn_image_get_stride(colorformat, w),
-                  MEM_INVALID_HANDLE,
+                  MEM_HANDLE_INVALID,
                   hcommon_storage,
                   offset,
                   IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RENDER_TARGET, secure); /* todo: are these flags right? should IMAGE_CREATE_FLAG_INVALID be included? */
                offset += khrn_image_get_size(colorformat, w, h);
             }
             else
-            {
-               /* We must only use the abstract API to make our buffer if the buffer is genuinely going to stay
-                * an RSO buffer. We need to check whether that's actually the case. */
-               KHRN_IMAGE_FORMAT_T final_format = colorformat;
-               uint32_t            pw = w;
-               uint32_t            ph = h;
-               uint32_t            align = 0;
+               himage = khrn_image_create(colorformat, w, h, color_image_create_flags, secure);
 
-               khrn_image_platform_fudge(&final_format, &pw, &ph, &align, color_image_create_flags);
-
-               if (platform_supported_format(final_format))
-               {
-                  KHRN_IMAGE_T *image;
-                  BEGL_BufferUsage usage = BEGL_BufferUsage_eSwapChain0;
-                  uint32_t pixmap;
-                  EGLint error;
-
-                  if (type == WINDOW)
-                  {
-                     if (i < 3)
-                        usage = BEGL_BufferUsage_eSwapChain0 + i;
-                     else
-                        /* the platform layer only supports up to triple buffering ATM */
-                        vcos_assert(0);
-                  }
-                  else
-                     usage = BEGL_BufferUsage_ePixmap;
-
-                  /* wrap surfaces, if possible, when creating a window */
-                  if (type == WINDOW)
-                  {
-                     pixmap = egl_server_platform_get_buffer(colorformat, w, h, color_image_create_flags,
-                        platformState, usage, secure);
-                  }
-                  else
-                  {
-                     ANDROID_LOGD("%s: swapchain_count = %d, type = %d\n", __FUNCTION__, swapchainc, type);
-
-                     pixmap = egl_server_platform_create_buffer(colorformat, w, h, color_image_create_flags,
-                        platformState, usage, secure);
-                  }
-                  himage = egl_server_platform_create_pixmap_info(pixmap, &error);
-                  /* Store the opaque buffer handle */
-                  image = mem_lock(himage, NULL);
-                  image->opaque_buffer_handle = (void*)pixmap;
-                  image->window_state = platformState;
-
-                  if (type == WINDOW)
-                     image->display_thread_state = &surface->display_thread_state;
-
-                  mem_unlock(himage);
-               }
-               else
-                  himage = khrn_image_create(colorformat, w, h, color_image_create_flags, secure);
-            }
-            if (himage == MEM_INVALID_HANDLE)
+            if (himage == MEM_HANDLE_INVALID)
                goto final;
 
             MEM_ASSIGN(surface->mh_color[i], himage);
             mem_release(himage);
+
          }
       }
    }
@@ -669,53 +552,49 @@ static EGL_SURFACE_ID_T create_surface_internal(
       himage = image_create(depthstencilformat, width, height,
          image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE, secure);
 
-      if (himage == MEM_INVALID_HANDLE)
+      if (himage == MEM_HANDLE_INVALID)
          goto final;
 
       MEM_ASSIGN(surface->mh_depth, himage);
       mem_release(himage);
    } else
-      vcos_assert(surface->mh_depth == MEM_INVALID_HANDLE);
+      assert(surface->mh_depth == MEM_HANDLE_INVALID);
 
-   if (multisampleformat != IMAGE_FORMAT_INVALID)
-   {
-      bool color = false;
-      bool depth = false;
-
-      if (multisampleformat == DEPTH_COL_64_TLBD)
+   if (multisampleformat != IMAGE_FORMAT_INVALID) {
+      bool color, depth;
+      switch (multisampleformat)
       {
+      case DEPTH_COL_64_TLBD:
          color = true;
          depth = true;
-      }
-      else if (multisampleformat == COL_32_TLBD)
-      {
+         break;
+      case COL_32_TLBD:
          color = true;
          depth = false;
-      }
-      else // DEPTH_32_TLBD
-      {
+         break;
+      case DEPTH_32_TLBD:
+      default:
          color = false;
          depth = true;
+         break;
       }
 
-      if (color)
-      {
+      if (color) {
          MEM_HANDLE_T himage = glxx_image_create_ms(COL_32_TLBD,
             width, height,
             (color_image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE) & ~IMAGE_CREATE_FLAG_TEXTURE, secure);
-         if (himage == MEM_INVALID_HANDLE)
+         if (himage == MEM_HANDLE_INVALID)
             goto final;
 
          MEM_ASSIGN(surface->mh_color_multi, himage);
          mem_release(himage);
       }
 
-      if (depth)
-      {
+      if (depth) {
          MEM_HANDLE_T himage = glxx_image_create_ms(DEPTH_32_TLBD,
             width, height,
             image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE, secure);
-         if (himage == MEM_INVALID_HANDLE)
+         if (himage == MEM_HANDLE_INVALID)
             goto final;
 
          MEM_ASSIGN(surface->mh_ds_multi, himage);
@@ -724,19 +603,9 @@ static EGL_SURFACE_ID_T create_surface_internal(
    }
    else
    {
-      vcos_assert(surface->mh_color_multi == MEM_INVALID_HANDLE);
-      vcos_assert(surface->mh_ds_multi == MEM_INVALID_HANDLE);
+      assert(surface->mh_color_multi == MEM_HANDLE_INVALID);
+      assert(surface->mh_ds_multi == MEM_HANDLE_INVALID);
    }
-
-   if (maskformat != IMAGE_FORMAT_INVALID) {
-      MEM_HANDLE_T himage = khrn_image_create(maskformat, width, height, image_create_flags, secure);
-      if (himage == MEM_INVALID_HANDLE)
-         goto final;
-
-      MEM_ASSIGN(surface->mh_mask, himage);
-      mem_release(himage);
-   } else
-      vcos_assert(surface->mh_mask == MEM_INVALID_HANDLE);
 
    if (khrn_map_insert(&state->surfaces, state->next_surface, shandle))
       result = state->next_surface++;
@@ -744,203 +613,36 @@ static EGL_SURFACE_ID_T create_surface_internal(
 final:
    mem_unlock(shandle);
    mem_release(shandle);
-   if (hcommon_storage != MEM_INVALID_HANDLE)
+   if (hcommon_storage != MEM_HANDLE_INVALID)
       mem_release(hcommon_storage);
 
    return result;
 }
 
-static int euclidean_gcd(int a, int b)
-{
-   if (b > a) {
-      int t = a;
-      a = b;
-      b = t;
-   }
-
-   while (b != 0) {
-      int m = a % b;
-      a = b;
-      b = m;
-   }
-
-   return a;
-}
-
-int eglIntCreateSurface_impl(
-   uint32_t win,
+EGL_SURFACE_ID_T eglIntCreateSurface_impl(
+   uintptr_t win,
    uint32_t buffers,
    uint32_t width,
    uint32_t height,
-   uint32_t swapchainc,
    bool secure,
    KHRN_IMAGE_FORMAT_T colorformat,
    KHRN_IMAGE_FORMAT_T depthstencilformat,
    KHRN_IMAGE_FORMAT_T maskformat,
    KHRN_IMAGE_FORMAT_T multisampleformat,
-   uint32_t largest_pbuffer,
    uint32_t mipmap,
    uint32_t config_depth_bits,
    uint32_t config_stencil_bits,
-   uint32_t type,
-   uint32_t *results)
+   uint32_t type)
 {
-   uint32_t max;
-   uint32_t i;
-   EGL_SURFACE_ID_T surface;
-
-   if (largest_pbuffer && width && height) {
-      uint32_t gcd = euclidean_gcd(width, height);
-
-      width /= gcd;
-      height /= gcd;
-
-      max = _min(_min(EGL_CONFIG_MAX_WIDTH / width, EGL_CONFIG_MAX_HEIGHT / height), gcd);
-   } else
-      max = 1;
-
-   surface = 0;
-
-   for (i = max; i > 0 && !surface; i--) {
-      surface = create_surface_internal(win, buffers, width*i, height*i, swapchainc, secure, colorformat,
-                                        depthstencilformat, maskformat, multisampleformat,
-                                        mipmap, config_depth_bits, config_stencil_bits, MEM_INVALID_HANDLE,
-                                        MEM_INVALID_HANDLE, type);
-
-      results[0] = width*i;
-      results[1] = height*i;
-   }
-
-   results[2] = surface;
-
-   return 3;
+    return create_surface_internal(win, buffers, width, height, secure, colorformat,
+      depthstencilformat, maskformat, multisampleformat,
+      mipmap, config_depth_bits, config_stencil_bits, MEM_HANDLE_INVALID,
+      MEM_HANDLE_INVALID, type);
 }
-
-#ifndef NO_OPENVG
-
-/*
-   return true if vgimage_format is compatible with config_format, ie the pixel
-   format (ignoring premultiplied/linear flags) is the same
-*/
-
-static bool compatible_formats(KHRN_IMAGE_FORMAT_T config_format, KHRN_IMAGE_FORMAT_T vgimage_format)
-{
-   config_format = khrn_image_no_layout_format(config_format);
-   config_format = khrn_image_no_colorspace_format(config_format);
-
-   vgimage_format = khrn_image_no_layout_format(vgimage_format);
-   vgimage_format = khrn_image_no_colorspace_format(vgimage_format);
-
-   return config_format == vgimage_format;
-}
-
-/*
-   results
-   0  EGL_SURFACE_ID_T  Handle to new surface (0 on failure)
-   1  EGLInt            Error code
-   2  EGLInt            Width
-   3  EGLInt            Height
-   4  KHRN_IMAGE_FORMAT_T    Format (may differ from the requested one in PRE or LIN)
-
-   We always return 5 so that the RPC knows to transmit 5 return values.
-*/
-
-int eglIntCreatePbufferFromVGImage_impl(
-   VGImage vg_handle,
-   KHRN_IMAGE_FORMAT_T colorformat,
-   KHRN_IMAGE_FORMAT_T depthstencilformat,
-   KHRN_IMAGE_FORMAT_T maskformat,
-   KHRN_IMAGE_FORMAT_T multisampleformat,
-   uint32_t mipmap,
-   uint32_t config_depth_bits,
-   uint32_t config_stencil_bits,
-   uint32_t *results)
-{
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-   results[0] = 0;
-
-   if (state->vgcontext != MEM_INVALID_HANDLE) {
-      VG_SERVER_STATE_T *server = VG_LOCK_SERVER_STATE();
-      MEM_HANDLE_T imagehandle = vg_get_image(server, vg_handle, (EGLint *)(results + 1) /* error code */);
-
-      if (imagehandle != MEM_INVALID_HANDLE) {
-         if (vg_is_image(imagehandle)) {
-            /* at this point, if the pixel format of the image is ok for
-             * rendering to, the whole image is ok for rendering to and has the
-             * IMAGE_FLAG_RENDER_TARGET flag set. so if the compatible_formats
-             * call below succeeds, we know the image is ok to use as the color
-             * buffer of a surface (which is the whole point of this function) */
-
-            VG_IMAGE_T *vgimage = (VG_IMAGE_T *)mem_lock(imagehandle, NULL);
-            if (vg_image_leak(vgimage)) {
-               KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(vgimage->image, NULL);
-               uint32_t width = vgimage->image_width;
-               uint32_t height = vgimage->image_height;
-               uint32_t buffers = mipmap ? _msb(_max(width, height)) + 1 : 1;
-               KHRN_IMAGE_FORMAT_T actualformat = vgimage->image_format;
-
-               if (!compatible_formats(colorformat, actualformat)) {
-                  results[1] = EGL_BAD_MATCH;
-               } else if (image->flags & (IMAGE_FLAG_BOUND_CLIENTBUFFER|IMAGE_FLAG_BOUND_EGLIMAGE)) {
-                  /*
-                   * TODO: we are forbidden from binding to a pbuffer when it's
-                   * already bound to a different pbuffer.
-                   * But what about binding to a pbuffer when it's already an EGLImage
-                   * sibling?
-                   */
-                  results[1] = EGL_BAD_ACCESS;
-               } else {
-                  results[0] = create_surface_internal(
-                     EGL_PLATFORM_WIN_NONE,
-                     buffers,
-                     width,
-                     height,
-                     0,
-                     false,
-                     colorformat,
-                     depthstencilformat,
-                     maskformat,
-                     multisampleformat,
-                     mipmap,
-                     config_depth_bits,
-                     config_stencil_bits,
-                     imagehandle,
-                     MEM_INVALID_HANDLE,
-                     PIXMAP);
-
-                  if (results[0]) {
-                     image->flags |= IMAGE_FLAG_BOUND_CLIENTBUFFER;
-                     results[2] = width;
-                     results[3] = height;
-                     results[4] = actualformat;
-                  }
-                  else
-                     results[1] = EGL_BAD_ALLOC;
-               }
-
-               mem_unlock(vgimage->image);
-            } else
-               results[1] = EGL_BAD_ALLOC;
-            mem_unlock(imagehandle);
-         } else {
-            /* child images cannot be render targets */
-            results[1] = EGL_BAD_MATCH;
-         }
-      }
-
-      VG_UNLOCK_SERVER_STATE();
-   } else {
-      results[1] = EGL_BAD_PARAMETER;       //TODO: what error to return if we don't have an OpenVG context at all?
-   }
-
-   return 5;
-}
-
-#endif /* NO_OPENVG */
 
 /*
    EGL_SURFACE_ID_T eglIntCreateWrappedSurface_impl(
-      uint32_t handle_0, uint32_t handle_1,
+      void *pixmap,
       KHRN_IMAGE_FORMAT_T depthstencilformat,
       KHRN_IMAGE_FORMAT_T maskformat,
       uint32_t multisample)
@@ -956,28 +658,21 @@ int eglIntCreatePbufferFromVGImage_impl(
 */
 
 EGL_SURFACE_ID_T eglIntCreateWrappedSurface_impl(
-   uint32_t handle_0, uint32_t handle_1,
+   void *platform_pixmap,
    KHRN_IMAGE_FORMAT_T depthstencilformat,
    KHRN_IMAGE_FORMAT_T maskformat,
    KHRN_IMAGE_FORMAT_T multisample,
    uint32_t config_depth_bits,
    uint32_t config_stencil_bits)
 {
-   MEM_HANDLE_T himage;
-   EGLint error;
-   UNUSED(handle_1);
-   vcos_assert(handle_1 == -1);
-
-   himage = egl_server_platform_create_pixmap_info(handle_0, &error);
-
-   if (himage != MEM_INVALID_HANDLE) {
+   MEM_HANDLE_T himage = egl_server_platform_create_pixmap_info(platform_pixmap, false);
+   if (himage != MEM_HANDLE_INVALID) {
       KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
       EGL_SURFACE_ID_T result = create_surface_internal(
          EGL_PLATFORM_WIN_NONE,
          1,
          image->width,
          image->height,
-         0,
          false,
          image->format,
          depthstencilformat,
@@ -986,7 +681,7 @@ EGL_SURFACE_ID_T eglIntCreateWrappedSurface_impl(
          0,
          config_depth_bits,
          config_stencil_bits,
-         MEM_INVALID_HANDLE,
+         MEM_HANDLE_INVALID,
          himage,
          PIXMAP);
       mem_unlock(himage);
@@ -1001,7 +696,7 @@ static MEM_HANDLE_T create_shared_context(void)
 {
    MEM_HANDLE_T handle = MEM_ALLOC_STRUCT_EX(GLXX_SHARED_T, MEM_COMPACT_DISCARD);                                // check, glxx_shared_term
 
-   if (handle != MEM_INVALID_HANDLE) {
+   if (handle != MEM_HANDLE_INVALID) {
       mem_set_term(handle, glxx_shared_term, NULL);
 
       if (glxx_shared_init((GLXX_SHARED_T *)mem_lock(handle, NULL)))
@@ -1009,7 +704,7 @@ static MEM_HANDLE_T create_shared_context(void)
       else {
          mem_unlock(handle);
          mem_release(handle);
-         handle = MEM_INVALID_HANDLE;
+         handle = MEM_HANDLE_INVALID;
       }
    }
 
@@ -1018,14 +713,14 @@ static MEM_HANDLE_T create_shared_context(void)
 
 static MEM_HANDLE_T get_shared_context(EGL_SERVER_STATE_T *state, EGL_GL_CONTEXT_ID_T share_id, EGL_CONTEXT_TYPE_T share_type)
 {
-   MEM_HANDLE_T result = MEM_INVALID_HANDLE;
+   MEM_HANDLE_T result = MEM_HANDLE_INVALID;
 
    switch (share_type) {
    case OPENGL_ES_11:
    {
       GLXX_SERVER_STATE_T *server;
       MEM_HANDLE_T handle = khrn_map_lookup(&state->glcontexts, share_id);
-      vcos_assert(handle != MEM_INVALID_HANDLE);
+      assert(handle != MEM_HANDLE_INVALID);
       server = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
       result = server->mh_shared;
       mem_unlock(handle);
@@ -1035,24 +730,12 @@ static MEM_HANDLE_T get_shared_context(EGL_SERVER_STATE_T *state, EGL_GL_CONTEXT
    {
       GLXX_SERVER_STATE_T *server;
       MEM_HANDLE_T handle = khrn_map_lookup(&state->glcontexts, share_id);
-      vcos_assert(handle != MEM_INVALID_HANDLE);
+      assert(handle != MEM_HANDLE_INVALID);
       server = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
       result = server->mh_shared;
       mem_unlock(handle);
       break;
    }
-#ifndef NO_OPENVG
-   case OPENVG:
-   {
-      VG_SERVER_STATE_T *server;
-      MEM_HANDLE_T handle = khrn_map_lookup(&state->vgcontexts, share_id);
-      vcos_assert(handle != MEM_INVALID_HANDLE);
-      server = (VG_SERVER_STATE_T *)mem_lock(handle, NULL);
-      result = server->shared_state;
-      mem_unlock(handle);
-      break;
-   }
-#endif /* NO_OPENVG */
    default:
       UNREACHABLE();
    }
@@ -1074,13 +757,13 @@ EGL_GL_CONTEXT_ID_T eglIntCreateGLES11_impl(EGL_GL_CONTEXT_ID_T share_id, EGL_CO
 
    MEM_HANDLE_T shandle, handle;
    if (share_id) {
-      vcos_assert(share_type == OPENGL_ES_11 || share_type == OPENGL_ES_20);
+      assert(share_type == OPENGL_ES_11 || share_type == OPENGL_ES_20);
       shandle = get_shared_context(state, share_id, share_type);
       mem_acquire(shandle);
    } else
       shandle = create_shared_context();
 
-   if (shandle == MEM_INVALID_HANDLE)
+   if (shandle == MEM_HANDLE_INVALID)
       return 0;
 
    /*
@@ -1088,7 +771,7 @@ EGL_GL_CONTEXT_ID_T eglIntCreateGLES11_impl(EGL_GL_CONTEXT_ID_T share_id, EGL_CO
    */
 
    handle = MEM_ALLOC_STRUCT_EX(GLXX_SERVER_STATE_T, MEM_COMPACT_DISCARD);                     // check, glxx_server_state_term
-   if (handle == MEM_INVALID_HANDLE) {
+   if (handle == MEM_HANDLE_INVALID) {
       mem_release(shandle);
       return 0;
    }
@@ -1097,7 +780,7 @@ EGL_GL_CONTEXT_ID_T eglIntCreateGLES11_impl(EGL_GL_CONTEXT_ID_T share_id, EGL_CO
 
    server = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
 
-   if (!gl11_server_state_init(server, state->next_context, state->pid, shandle)) {
+   if (!gl11_server_state_init(server, state->next_context, shandle)) {
       mem_unlock(handle);
       mem_release(handle);
       mem_release(shandle);
@@ -1127,13 +810,13 @@ EGL_GL_CONTEXT_ID_T eglIntCreateGLES20_impl(EGL_GL_CONTEXT_ID_T share, EGL_CONTE
 
    MEM_HANDLE_T shandle, handle;
    if (share) {
-      vcos_assert(share_type == OPENGL_ES_11 || share_type == OPENGL_ES_20);
+      assert(share_type == OPENGL_ES_11 || share_type == OPENGL_ES_20);
       shandle = get_shared_context(state, share, share_type);
       mem_acquire(shandle);
    } else
       shandle = create_shared_context();
 
-   if (shandle == MEM_INVALID_HANDLE)
+   if (shandle == MEM_HANDLE_INVALID)
       return 0;
 
    /*
@@ -1141,14 +824,14 @@ EGL_GL_CONTEXT_ID_T eglIntCreateGLES20_impl(EGL_GL_CONTEXT_ID_T share, EGL_CONTE
    */
 
    handle = MEM_ALLOC_STRUCT_EX(GLXX_SERVER_STATE_T, MEM_COMPACT_DISCARD);                     // check, glxx_server_state_term
-   if (handle == MEM_INVALID_HANDLE) {
+   if (handle == MEM_HANDLE_INVALID) {
       mem_release(shandle);
       return 0;
    }
 
    mem_set_term(handle, glxx_server_state_term, NULL);
 
-   if (!gl20_server_state_init((GLXX_SERVER_STATE_T *)mem_lock(handle, NULL), state->next_context, state->pid, shandle)) {
+   if (!gl20_server_state_init((GLXX_SERVER_STATE_T *)mem_lock(handle, NULL), state->next_context, shandle)) {
       mem_unlock(handle);
       mem_release(handle);
       mem_release(shandle);
@@ -1165,55 +848,59 @@ EGL_GL_CONTEXT_ID_T eglIntCreateGLES20_impl(EGL_GL_CONTEXT_ID_T share, EGL_CONTE
    return result;
 }
 
-#ifndef NO_OPENVG
-
-EGL_VG_CONTEXT_ID_T eglIntCreateVG_impl(EGL_VG_CONTEXT_ID_T share, EGL_CONTEXT_TYPE_T share_type)
+static bool write_would_block(KHRN_INTERLOCK_T *interlock)
 {
-   EGL_GL_CONTEXT_ID_T result = 0;
-
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
-   /*
-      create and initialize shared state structure
-      or obtain one from the specified context
-   */
-
-   MEM_HANDLE_T shared_state_handle, handle;
-   if (share) {
-      vcos_assert(share_type == OPENVG);
-      shared_state_handle = get_shared_context(state, share, share_type);
-      mem_acquire(shared_state_handle);
-   } else
-      shared_state_handle = vg_server_shared_state_alloc();
-
-   if (shared_state_handle == MEM_INVALID_HANDLE)
-      return 0;
-
-   handle = vg_server_state_alloc(shared_state_handle, state->pid);
-   mem_release(shared_state_handle);
-
-   if (handle == MEM_INVALID_HANDLE)
-      return 0;
-
-   if (khrn_map_insert(&state->vgcontexts, state->next_context, handle))
-      result = state->next_context++;
-
-   mem_release(handle);
-
-   return result;
+   /* Write will block if interlock would block, OR if the current interlock is still in flight in hardware */
+   return khrn_interlock_write_would_block(interlock) ||
+      interlock->pos > khrn_get_last_done_seq();
 }
-
-#endif /* NO_OPENVG */
 
 // Disassociates surface or context objects from their handles. The objects
 // themselves still exist as long as there is a reference to them. In
 // particular, if you delete part of a triple buffer group, the remaining color
 // buffers plus the ancillary buffers all survive.
 
-
 int eglIntDestroySurface_impl(EGL_SURFACE_ID_T s)
 {
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
+
+   MEM_HANDLE_T mh_surface = khrn_map_lookup(&state->surfaces, s);
+   EGL_SERVER_SURFACE_T *surface = mem_lock(mh_surface, NULL);
+
+   if (surface->native_window_state) {
+      if (surface->mh_active_image) {
+
+         /* complete any pending writes to the buffer */
+         KHRN_IMAGE_T *image = mem_lock(surface->mh_active_image, NULL);
+
+         bool deps = write_would_block(&image->interlock);
+         khrn_interlock_write_immediate(&image->interlock);
+
+         void *platform_pixmap = image->platform_pixmap;
+         void *v3dfence = (void *)(uintptr_t)vcos_atomic_exchange((unsigned int *)&image->v3dfence, (unsigned int)((uintptr_t)NULL));
+
+         mem_unlock(surface->mh_active_image);
+         MEM_ASSIGN(surface->mh_active_image, MEM_HANDLE_INVALID);
+
+         if (v3dfence)
+            khrn_issue_fence_wait_job(v3dfence);
+
+         int fd = -1;
+         void *internal = NULL;
+
+         if (deps)
+            khrn_create_fence(&fd, &internal, 'C');
+
+         // Issue a job to sync the pipe and actually display the buffer
+         khrn_issue_swapbuffers_job(fd, internal, 'C');
+
+         egl_server_platform_cancel(surface->native_window_state, platform_pixmap, fd);
+      }
+
+      egl_server_platform_destroy_window_state(surface->native_window_state);
+   }
+
+   mem_unlock(mh_surface);
 
    khrn_map_delete(&state->surfaces, s);
 
@@ -1227,95 +914,16 @@ void eglIntDestroyGL_impl(EGL_GL_CONTEXT_ID_T c)
    khrn_map_delete(&state->glcontexts, c);
 }
 
-#ifndef NO_OPENVG
-void eglIntDestroyVG_impl(EGL_VG_CONTEXT_ID_T c)
-{
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-   khrn_map_delete(&state->vgcontexts, c);
-}
-#endif /* NO_OPENVG */
-
-void destroy_glcontext_callback(KHRN_MAP_T *map, uint32_t key, MEM_HANDLE_T value, void *pid)
-{
-   MEM_TERM_T term = mem_get_term(value);
-
-   bool todestroy = false;
-
-   UNUSED(map);
-
-   if (term == glxx_server_state_term) {
-      todestroy = ((GLXX_SERVER_STATE_T *)mem_lock(value, NULL))->pid == *(uint64_t *)pid;
-      mem_unlock(value);
-   } else
-      UNREACHABLE();
-
-   if (todestroy) {
-      EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-      khrn_map_delete(&state->glcontexts, key);
-   }
-}
-
-#ifndef NO_OPENVG
-void destroy_vgcontext_callback(KHRN_MAP_T *map, uint32_t key, MEM_HANDLE_T value, void *pid)
-{
-   bool todestroy;
-   UNUSED(map);
-
-   todestroy = ((VG_SERVER_STATE_T *)mem_lock(value, NULL))->pid == *(uint64_t *)pid;
-   mem_unlock(value);
-
-   if (todestroy) {
-      EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-      khrn_map_delete(&state->vgcontexts, key);
-   }
-}
-#endif /* NO_OPENVG */
-
-#if EGL_KHR_image
-void destroy_eglimage_callback(KHRN_MAP_T *map, uint32_t key, MEM_HANDLE_T value, void *pid)
-{
-   bool todestroy;
-   UNUSED(map);
-
-   todestroy = ((EGL_IMAGE_T *)mem_lock(value, NULL))->pid == *(uint64_t *)pid;
-   mem_unlock(value);
-
-   if (todestroy) {
-      EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-      khrn_map_delete(&state->eglimages, key);
-   }
-}
-#endif
-
 static void detach_buffers_from_gl(uint32_t glversion, MEM_HANDLE_T handle)
 {
-   if (handle != MEM_INVALID_HANDLE) {
+   if (handle != MEM_HANDLE_INVALID) {
       switch (glversion) {
       case EGL_SERVER_GL11:
-      {
-         GLXX_SERVER_STATE_T *state = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
-
-         MEM_ASSIGN(state->mh_draw, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_read, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_depth, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_color_multi, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_ds_multi, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_preserve, MEM_INVALID_HANDLE);
-
-         mem_unlock(handle);
-         break;
-      }
       case EGL_SERVER_GL20:
       {
          GLXX_SERVER_STATE_T *state = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
-
-         MEM_ASSIGN(state->mh_draw, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_read, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_depth, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_color_multi, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_ds_multi, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->mh_preserve, MEM_INVALID_HANDLE);
-
+         glxx_server_state_set_buffers(state, MEM_HANDLE_INVALID, MEM_HANDLE_INVALID, MEM_HANDLE_INVALID,
+            MEM_HANDLE_INVALID, MEM_HANDLE_INVALID, 0, 0);
          mem_unlock(handle);
          break;
       }
@@ -1326,29 +934,22 @@ static void detach_buffers_from_gl(uint32_t glversion, MEM_HANDLE_T handle)
 }
 
 static void attach_buffers_to_gl(uint32_t glversion,
-                                 MEM_HANDLE_T handle,
-                                 MEM_HANDLE_T draw,
-                                 uint32_t swapchainc,
-                                 MEM_HANDLE_T read,
-                                 MEM_HANDLE_T depth,
-                                 MEM_HANDLE_T color_multi,
-                                 MEM_HANDLE_T ds_multi,
-                                 MEM_HANDLE_T preserveBuf,
-                                 uint32_t config_depth_bits,
-                                 uint32_t config_stencil_bits)
+   MEM_HANDLE_T handle,
+   MEM_HANDLE_T draw,
+   MEM_HANDLE_T read,
+   MEM_HANDLE_T depth,
+   MEM_HANDLE_T color_multi,
+   MEM_HANDLE_T ds_multi,
+   uint32_t config_depth_bits,
+   uint32_t config_stencil_bits)
 {
-   if (handle != MEM_INVALID_HANDLE) {
+   if (handle != MEM_HANDLE_INVALID) {
       switch (glversion) {
       case EGL_SERVER_GL11:
       case EGL_SERVER_GL20:
       {
          GLXX_SERVER_STATE_T *state = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
-
-         state->config_depth_bits = config_depth_bits;
-         state->config_stencil_bits = config_stencil_bits;
-
-         glxx_server_state_set_buffers(state, draw, swapchainc, read, depth, color_multi, ds_multi, preserveBuf);
-
+         glxx_server_state_set_buffers(state, draw, read, depth, color_multi, ds_multi, config_depth_bits, config_stencil_bits);
          mem_unlock(handle);
          break;
       }
@@ -1360,42 +961,31 @@ static void attach_buffers_to_gl(uint32_t glversion,
 
 static void update_gl_buffers(EGL_SERVER_STATE_T *state)
 {
-   if (state->glcontext != MEM_INVALID_HANDLE) {
+   if (state) {
       EGL_SERVER_SURFACE_T *dsurface = (EGL_SERVER_SURFACE_T *)mem_lock(state->gldrawsurface, NULL);
       EGL_SERVER_SURFACE_T *rsurface = (EGL_SERVER_SURFACE_T *)mem_lock(state->glreadsurface, NULL);
 
-      attach_buffers_to_gl(
-         state->glversion,
-         state->glcontext,
-         dsurface->mh_color[dsurface->back_buffer_index],
-         dsurface->swapchainc,
-         rsurface->mh_color[rsurface->back_buffer_index],
-         dsurface->mh_depth,
-         dsurface->mh_color_multi,
-         dsurface->mh_ds_multi,
-         dsurface->mh_preserve,
-         dsurface->config_depth_bits,
-         dsurface->config_stencil_bits);
+      if (dsurface && rsurface) {
+
+         MEM_HANDLE_T draw = dsurface->get_back_buffer(dsurface);
+         MEM_HANDLE_T read = rsurface->get_back_buffer(rsurface);
+
+         attach_buffers_to_gl(
+            state->glversion,
+            state->glcontext,
+            draw,
+            read,
+            dsurface->mh_depth,
+            dsurface->mh_color_multi,
+            dsurface->mh_ds_multi,
+            dsurface->config_depth_bits,
+            dsurface->config_stencil_bits);
+      }
 
       mem_unlock(state->gldrawsurface);
       mem_unlock(state->glreadsurface);
    }
 }
-
-#ifndef NO_OPENVG
-
-static void update_vg_buffers(EGL_SERVER_STATE_T *state)
-{
-   if (state->vgsurface == MEM_INVALID_HANDLE) {
-      vg_buffers_changed(MEM_INVALID_HANDLE, 0, MEM_INVALID_HANDLE);
-   } else {
-      EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(state->vgsurface, NULL);
-      vg_buffers_changed(surface->mh_color[surface->back_buffer_index], surface->swapchainc, surface->mh_mask);
-      mem_unlock(state->vgsurface);
-   }
-}
-
-#endif /* NO_OPENVG */
 
 // Selects the given process id for all operations. Most resource creation is
 //  associated with the currently selected process id
@@ -1406,25 +996,11 @@ static void update_vg_buffers(EGL_SERVER_STATE_T *state)
 // by the client. It is not necessary to flush when switching threads
 // If any of the surfaces have been resized then the color and ancillary buffers
 //  are freed and recreated in the new size.
-void eglIntMakeCurrent_impl(uint32_t pid_0, uint32_t pid_1,
-   uint32_t glversion, EGL_GL_CONTEXT_ID_T gc,
-   EGL_SURFACE_ID_T gdraw, EGL_SURFACE_ID_T gread
-#ifndef NO_OPENVG
-   , EGL_VG_CONTEXT_ID_T vc, EGL_SURFACE_ID_T vsurf
-#endif /* NO_OPENVG */
-   )
+void eglIntMakeCurrent_impl(uint32_t glversion, EGL_GL_CONTEXT_ID_T gc,
+   EGL_SURFACE_ID_T gdraw, EGL_SURFACE_ID_T gread)
 {
-#ifndef NO_OPENVG
-   MEM_HANDLE_T chandle, shandle;
-   bool surface_changed, context_changed;
-#endif /* NO_OPENVG */
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
    /* uint32_t thread_id = rtos_get_thread_id(); */
-
-#ifdef WANT_ARM_LINUX
-   khrn_misc_set_connection_pid(pid_0, pid_1);
-#endif
-   state->pid = ((uint64_t)pid_1 << 32) | pid_0;
 
    //GL
    if (gc != EGL_SERVER_NO_GL_CONTEXT) {
@@ -1432,13 +1008,13 @@ void eglIntMakeCurrent_impl(uint32_t pid_0, uint32_t pid_1,
       MEM_HANDLE_T dhandle = khrn_map_lookup(&state->surfaces, gdraw);
       MEM_HANDLE_T rhandle = khrn_map_lookup(&state->surfaces, gread);
 
-      vcos_assert(chandle != MEM_INVALID_HANDLE && dhandle != MEM_INVALID_HANDLE && rhandle != MEM_INVALID_HANDLE);
+      assert(chandle != MEM_HANDLE_INVALID && dhandle != MEM_HANDLE_INVALID && rhandle != MEM_HANDLE_INVALID);
 
       if (chandle != state->glcontext || dhandle != state->gldrawsurface || rhandle != state->glreadsurface)
       {
          detach_buffers_from_gl(state->glversion, state->glcontext);
 
-         vcos_assert(glversion == EGL_SERVER_GL11 || glversion == EGL_SERVER_GL20);
+         assert(glversion == EGL_SERVER_GL11 || glversion == EGL_SERVER_GL20);
 
          GL11_FORCE_UNLOCK_SERVER_STATE();
          GL20_FORCE_UNLOCK_SERVER_STATE();
@@ -1451,57 +1027,28 @@ void eglIntMakeCurrent_impl(uint32_t pid_0, uint32_t pid_1,
       }
 
    } else {
-      vcos_assert(gdraw == EGL_SERVER_NO_SURFACE);
-      vcos_assert(gread == EGL_SERVER_NO_SURFACE);
-      if (state->glcontext != MEM_INVALID_HANDLE) {
+      assert(gdraw == EGL_SERVER_NO_SURFACE);
+      assert(gread == EGL_SERVER_NO_SURFACE);
+      if (state->glcontext != MEM_HANDLE_INVALID) {
          detach_buffers_from_gl(state->glversion, state->glcontext);
          GL11_FORCE_UNLOCK_SERVER_STATE();
          GL20_FORCE_UNLOCK_SERVER_STATE();
          state->glversion = 0;
-         MEM_ASSIGN(state->glcontext, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->gldrawsurface, MEM_INVALID_HANDLE);
-         MEM_ASSIGN(state->glreadsurface, MEM_INVALID_HANDLE);
+         MEM_ASSIGN(state->glcontext, MEM_HANDLE_INVALID);
+         MEM_ASSIGN(state->gldrawsurface, MEM_HANDLE_INVALID);
+         MEM_ASSIGN(state->glreadsurface, MEM_HANDLE_INVALID);
       }
    }
-
-#ifndef NO_OPENVG
-   /*VG */
-   chandle = (vc == EGL_SERVER_NO_VG_CONTEXT) ? MEM_INVALID_HANDLE : khrn_map_lookup(&state->vgcontexts, vc);
-   shandle = (vsurf == EGL_SERVER_NO_SURFACE) ? MEM_INVALID_HANDLE : khrn_map_lookup(&state->surfaces, vsurf);
-
-   vcos_assert((chandle == MEM_INVALID_HANDLE) == (shandle == MEM_INVALID_HANDLE));
-
-   surface_changed = state->vgsurface != shandle;
-   context_changed = state->vgcontext != chandle;
-
-   if (context_changed) {
-      VG_FORCE_UNLOCK_SERVER_STATE();
-      MEM_ASSIGN(state->vgcontext, chandle);
-   }
-   if (surface_changed) {
-      MEM_ASSIGN(state->vgsurface, shandle);
-   }
-
-   if (surface_changed) {
-      update_vg_buffers(state);
-   } else if (context_changed) {
-      vg_state_changed();
-   }
-#endif
 }
 
 static void flush_gl(uint32_t glversion, MEM_HANDLE_T handle, bool wait)
 {
-   if (handle != MEM_INVALID_HANDLE) {
+   if (handle != MEM_HANDLE_INVALID) {
       switch (glversion) {
       case EGL_SERVER_GL11:
       case EGL_SERVER_GL20:
       {
-         GLXX_SERVER_STATE_T *state = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
-
-         glxx_server_state_flush(state, wait);
-
-         mem_unlock(handle);
+         glxx_server_state_flush(wait);
          break;
       }
       default:
@@ -1519,17 +1066,10 @@ static void flush_gl(uint32_t glversion, MEM_HANDLE_T handle, bool wait)
 int eglIntFlushAndWait_impl(uint32_t flushgl, uint32_t flushvg)
 {
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-#ifdef NO_OPENVG
    UNUSED(flushvg);
-#endif
 
    if (flushgl)
       flush_gl(state->glversion, state->glcontext, true);
-#ifndef NO_OPENVG
-   if (flushvg && (state->vgcontext != MEM_INVALID_HANDLE)) {
-      vgFinish_impl();
-   }
-#endif /* NO_OPENVG */
 
    return 0;
 }
@@ -1537,173 +1077,104 @@ int eglIntFlushAndWait_impl(uint32_t flushgl, uint32_t flushvg)
 void eglIntFlush_impl(uint32_t flushgl, uint32_t flushvg)
 {
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-#ifdef NO_OPENVG
    UNUSED(flushvg);
-#endif
 
    if (flushgl)
       flush_gl(state->glversion, state->glcontext, false);
-#ifndef NO_OPENVG
-   if (flushvg && (state->vgcontext != MEM_INVALID_HANDLE)) {
-      vgFlush_impl();
-   }
-#endif /* NO_OPENVG */
 }
 
-void eglIntSwapBuffers_impl(EGL_SURFACE_ID_T s, uint32_t width, uint32_t height, uint32_t handle, uint32_t preserve, uint32_t position)
+bool eglIntBackBufferDims_impl(EGL_SURFACE_ID_T s, uint32_t *width, uint32_t *height)
 {
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
    MEM_HANDLE_T shandle = khrn_map_lookup(&state->surfaces, s);
    EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(shandle, NULL);
-   MEM_HANDLE_T ihandle;
-   KHRN_IMAGE_T *image;
-   bool         swapIntervalAllowed = true;
-   uint32_t     swapInterval = 1;
-   MEM_HANDLE_T currentImageHandle;
-   KHRN_IMAGE_T *currentImage;
-   bool         multisampled = (surface->mh_color_multi != MEM_INVALID_HANDLE);
+
+   MEM_HANDLE_T mh_color = surface->get_back_buffer(surface);
+   if (mh_color != MEM_HANDLE_INVALID) {
+      KHRN_IMAGE_T *color = (KHRN_IMAGE_T *)mem_lock(mh_color, NULL);
+      if (width)
+         *width = color->width;
+      if (height)
+         *height = color->height;
+      mem_unlock(mh_color);
+      return true;
+   }
+   return false;
+}
+
+void eglIntSwapBuffers_impl(EGL_SURFACE_ID_T s)
+{
+   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
+   MEM_HANDLE_T shandle = khrn_map_lookup(&state->surfaces, s);
+   EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(shandle, NULL);
 
    INCR_DRIVER_COUNTER(num_swaps);
 
-   /* BCG_EGLIMAGE_CONVERTER : Increment the nominal frame counter. It's used for sync'ing EGLimage conversions. */
-   if (state->glcontext != MEM_INVALID_HANDLE)
+   vcos_demand(surface->buffers >= 1);
+
+   if (state->glcontext != MEM_HANDLE_INVALID)   /* This is a swap-chain */
    {
       GLXX_SERVER_STATE_T *glstate = (GLXX_SERVER_STATE_T *)mem_lock(state->glcontext, NULL);
-      glstate->frame_number++;
+      glxx_hw_invalidate_frame(glstate, false, true, true, true, true);
       mem_unlock(state->glcontext);
    }
 
-   egl_server_platform_set_position(handle, position, width, height);
-
-   vcos_assert(surface->win != EGL_PLATFORM_WIN_NONE);   //TODO: is having this EGL_PLATFORM_WIN_NONE thing messy?
-   vcos_assert(surface->buffers >= 1);
-
-   if (surface->buffers > 1 && state->glcontext != MEM_INVALID_HANDLE)   /* This is a swap-chain */
+   MEM_HANDLE_T mh_back_buffer = surface->get_back_buffer(surface);
+   void *v3dfence = NULL;
+   void *platform_pixmap = NULL;
+   bool deps = false;
+   if (mh_back_buffer != MEM_HANDLE_INVALID)
    {
-      bool         invalidateMS;
-      GLXX_SERVER_STATE_T *glstate;
-      KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(surface->mh_color[surface->back_buffer_index], NULL);
-
-      /* Do we need to destroy the preserve buffer? */
-      if (!(preserve && !multisampled) || src->width != width || src->height != height)
-         MEM_ASSIGN(surface->mh_preserve, MEM_INVALID_HANDLE);
-
-      /* Check if we need to create the preserve buffer */
-      if (preserve && !multisampled)
-      {
-         /* We need a preserve buffer */
-         if (surface->mh_preserve == MEM_INVALID_HANDLE)
-         {
-            MEM_HANDLE_T himage;
-
-            KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
-               ((src->flags & IMAGE_FLAG_TEXTURE) ? IMAGE_CREATE_FLAG_TEXTURE : 0) |
-               ((src->flags & IMAGE_FLAG_RSO_TEXTURE) ? IMAGE_CREATE_FLAG_RSO_TEXTURE : 0) |
-               ((src->flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
-               ((src->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
-
-            /* if the src image is secure, then propagate to the preserve buffer */
-            himage = khrn_image_create(src->format, src->width, src->height, image_create_flags, src->secure);
-
-            MEM_ASSIGN(surface->mh_preserve, himage);
-            mem_release(himage);
-         }
-      }
-
-      mem_unlock(surface->mh_color[surface->back_buffer_index]);
-
-      /* Auxiliary buffers are not usually preserved. The exception is the multisample buffer which is
-         preserved when in preserve mode. */
-      invalidateMS = !(multisampled && preserve);
-
-      glstate = (GLXX_SERVER_STATE_T *)mem_lock(state->glcontext, NULL);
-      glxx_hw_invalidate_frame(glstate, false, true, true, invalidateMS, !preserve || multisampled, true);
-      mem_unlock(state->glcontext);
-   }
-#ifndef NO_OPENVG
-   else if (surface->buffers > 1 && state->vgcontext != MEM_HANDLE_INVALID)
-   {
-      vg_be_install_framebuffer();
-   }
-#endif /* NO_OPENVG */
-
-   currentImageHandle = surface->mh_color[surface->back_buffer_index];
-   currentImage = (KHRN_IMAGE_T *)mem_lock(currentImageHandle, NULL);
-   vcos_assert(currentImage->alreadyLocked > 0);
-   vcos_atomic_decrement(&currentImage->alreadyLocked);
-   mem_unlock(surface->mh_color[surface->back_buffer_index]);
-
-   /* No swapInterval support for single buffering */
-   if (surface->buffers == 1)
-      swapIntervalAllowed = false;
-
-   /* We're going to write this buffer */
-   khrn_interlock_write(&currentImage->interlock, KHRN_INTERLOCK_USER_NONE);
-
-   if (swapIntervalAllowed)
-      swapInterval = surface->swap_interval;
-
-   surface->win = handle;
-   surface->back_buffer_index = (surface->back_buffer_index + 1) % surface->buffers;
-   /* (non-single-buffered surfaces) don't wait for the next buffer to come off
-    * the display -- the interlock system will handle this */
-
-   ihandle = surface->mh_color[surface->back_buffer_index];
-   image = (KHRN_IMAGE_T *)mem_lock(ihandle, NULL);
-
-   /* Update the swap interval in the image */
-   image->swap_interval = swapInterval;
-
-   /* on an abstract platform, the buffers ARE provided from the underlying windowing system.
-      Don't provide any resize in this case, as its not appropriate.  It's up to the window manager to do it */
-
-   /* The contents of the buffers becomes undefined so mark the interlocks to prevent loads */
-   if (surface->buffers > 1)
-   {
-      if (!multisampled || !preserve)
-         khrn_interlock_invalidate(&image->interlock);
-
-      if (surface->mh_color_multi)
-      {
-         KHRN_IMAGE_T *color_multi = (KHRN_IMAGE_T *)mem_lock(surface->mh_color_multi, NULL);
-         khrn_interlock_invalidate(&color_multi->interlock);
-         mem_unlock(surface->mh_color_multi);
-      }
-      if (surface->mh_ds_multi)
-      {
-         KHRN_IMAGE_T *ds_multi = (KHRN_IMAGE_T *)mem_lock(surface->mh_ds_multi, NULL);
-         khrn_interlock_invalidate(&ds_multi->interlock);
-         mem_unlock(surface->mh_ds_multi);
-      }
-      if (surface->mh_depth)
-      {
-         KHRN_IMAGE_T *depth = (KHRN_IMAGE_T *)mem_lock(surface->mh_depth, NULL);
-         khrn_interlock_invalidate(&depth->interlock);
-         mem_unlock(surface->mh_depth);
-      }
+      KHRN_IMAGE_T *color = (KHRN_IMAGE_T *)mem_lock(mh_back_buffer, NULL);
+      /* We're going to write this buffer */
+      deps = write_would_block(&color->interlock);
+      khrn_interlock_write(&color->interlock, KHRN_INTERLOCK_USER_NONE);
+      platform_pixmap = color->platform_pixmap;
+      v3dfence = (void *)(uintptr_t)vcos_atomic_exchange((unsigned int *)&color->v3dfence, (unsigned int)((uintptr_t)NULL));
+      mem_unlock(mh_back_buffer);
    }
 
-   mem_unlock(ihandle);
+   if (surface->mh_color_multi)
+   {
+      KHRN_IMAGE_T *color_multi = (KHRN_IMAGE_T *)mem_lock(surface->mh_color_multi, NULL);
+      khrn_interlock_invalidate(&color_multi->interlock);
+      mem_unlock(surface->mh_color_multi);
+   }
+   if (surface->mh_ds_multi)
+   {
+      KHRN_IMAGE_T *ds_multi = (KHRN_IMAGE_T *)mem_lock(surface->mh_ds_multi, NULL);
+      khrn_interlock_invalidate(&ds_multi->interlock);
+      mem_unlock(surface->mh_ds_multi);
+   }
+   if (surface->mh_depth)
+   {
+      KHRN_IMAGE_T *depth = (KHRN_IMAGE_T *)mem_lock(surface->mh_depth, NULL);
+      khrn_interlock_invalidate(&depth->interlock);
+      mem_unlock(surface->mh_depth);
+   }
+
    mem_unlock(shandle);
 
-   if (surface->buffers > 1)
-   {
-      // Setup a delayed copy which will copy the rendered frame to the preserve buffer as soon as it
-      // completes rendering.
-      if (preserve && !multisampled)
-         khrn_delayed_copy_buffer(surface->mh_preserve, currentImageHandle);
+   if (v3dfence)
+      khrn_issue_fence_wait_job(v3dfence);
 
-      // Issue a job to sync the pipe and actually display the buffer
-      khrn_issue_swapbuffers_job(currentImageHandle);
+   int fd = -1;
+   void *internal = NULL;
 
-      // Buffers have swapped around, so need to make sure we're rendering into
-      // the right ones.
+   if (deps)
+      khrn_create_fence(&fd, &internal, 'S');
+
+   // Issue a job to sync the pipe and actually display the buffer
+   khrn_issue_swapbuffers_job(fd, internal, 'S');
+
+   egl_server_platform_queue(surface->native_window_state, platform_pixmap, surface->swap_interval, fd);
+
+   MEM_ASSIGN(surface->mh_active_image, MEM_HANDLE_INVALID);
+
+   // Buffers have swapped around, so need to make sure we're rendering into
+   // the right ones.
+   if (state->glcontext != MEM_HANDLE_INVALID)
       update_gl_buffers(state);
-#ifndef NO_OPENVG
-      if (state->vgsurface == shandle)
-         update_vg_buffers(state);
-#endif /* NO_OPENVG */
-   }
 }
 
 void eglIntSelectMipmap_impl(EGL_SURFACE_ID_T s, int level)
@@ -1712,7 +1183,7 @@ void eglIntSelectMipmap_impl(EGL_SURFACE_ID_T s, int level)
    MEM_HANDLE_T shandle = khrn_map_lookup(&state->surfaces, s);
    EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(shandle, NULL);
 
-   vcos_assert(surface->mipmap);
+   assert(surface->mipmap);
 
    // If the value of this attribute is outside the range of supported
    // mipmap levels, the closest valid mipmap level is selected for rendering.
@@ -1727,10 +1198,54 @@ void eglIntSelectMipmap_impl(EGL_SURFACE_ID_T s, int level)
 
    // Buffers have swapped around, so need to make sure we're rendering into
    // the right ones.
-   update_gl_buffers(state);
-#ifndef NO_OPENVG
-   if (state->vgsurface == shandle) { update_vg_buffers(state); }
-#endif /* NO_OPENVG */
+   if (state->glcontext != MEM_HANDLE_INVALID)
+      update_gl_buffers(state);
+}
+
+int eglIntCopyBuffers_impl(EGL_SURFACE_ID_T s, void *platform_pixmap)
+{
+   MEM_HANDLE_T himage = egl_server_platform_create_pixmap_info(platform_pixmap, false);
+   if (himage == MEM_HANDLE_INVALID)
+      return EGL_BAD_NATIVE_PIXMAP;
+
+   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
+   MEM_HANDLE_T shandle = khrn_map_lookup(&state->surfaces, s);
+   EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(shandle, NULL);
+   int error = EGL_SUCCESS;
+
+   MEM_HANDLE_T mh_back_buffer = surface->get_back_buffer(surface);
+   KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(mh_back_buffer, NULL);
+   KHRN_IMAGE_T *dst = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
+
+   if (mh_back_buffer == MEM_HANDLE_INVALID) {
+      error = EGL_BAD_MATCH;
+      goto end;
+   }
+
+   if (src->width != dst->width || src->height != dst->height) {
+      error = EGL_BAD_MATCH;
+      goto end;
+   }
+
+   KHRN_IMAGE_WRAP_T dst_wrap, src_wrap;
+   khrn_image_lock_wrap(src, &src_wrap);
+   khrn_image_lock_wrap(dst, &dst_wrap);
+   khrn_image_wrap_copy_region(
+      &dst_wrap, 0, 0,
+      src->width, dst->width,
+      &src_wrap, 0, 0,
+      IMAGE_CONV_GL);
+   khrn_image_unlock_wrap(src);
+   khrn_image_unlock_wrap(dst);
+
+end:
+   mem_unlock(mh_back_buffer);
+   mem_unlock(shandle);
+
+   mem_unlock(himage);
+   mem_release(himage);
+
+   return error;
 }
 
 void eglIntGetColorData_impl(EGL_SURFACE_ID_T s, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, int32_t stride, uint32_t y_offset, void *data)
@@ -1747,23 +1262,24 @@ void eglIntGetColorData_impl(EGL_SURFACE_ID_T s, KHRN_IMAGE_FORMAT_T format, uin
       flags |= IMAGE_FLAG_DISPLAY;
       stride = -stride;
    }
-   khrn_image_interlock_wrap(&dst_wrap, format, width, height, stride, flags, false, data, NULL);
+   khrn_image_wrap(&dst_wrap, format, width, height, stride, flags, false, data);
 
    //TODO: we currently expect the client to flush before calling this
    //I've added a khrn_interlock_read_immediate below. Can we remove the flush on the client?
 
    // TODO will this handle all necessary conversions correctly?
    // Will it handle images of different sizes?
-   src = (KHRN_IMAGE_T *)mem_lock(surface->mh_color[surface->back_buffer_index], NULL);
+   MEM_HANDLE_T mh_back_buffer = surface->get_back_buffer(surface);
+   src = (KHRN_IMAGE_T *)mem_lock(mh_back_buffer, NULL);
    khrn_interlock_read_immediate(&src->interlock);
-   khrn_image_lock_interlock_wrap(src, &src_wrap, NULL);
+   khrn_image_lock_wrap(src, &src_wrap);
    khrn_image_wrap_copy_region(
       &dst_wrap, 0, 0,
       width, height,
       &src_wrap, 0, y_offset,
       IMAGE_CONV_GL);
    khrn_image_unlock_wrap(src);
-   mem_unlock(surface->mh_color[surface->back_buffer_index]);
+   mem_unlock(mh_back_buffer);
 
    mem_unlock(shandle);
 }
@@ -1782,15 +1298,16 @@ void eglIntSetColorData_impl(EGL_SURFACE_ID_T s, KHRN_IMAGE_FORMAT_T format, uin
       flags |= IMAGE_FLAG_DISPLAY;
       stride = -stride;
    }
-   khrn_image_interlock_wrap(&src_wrap, format, width, height, stride, flags, false, (void *)data, NULL); /* casting away constness here, but we won't actually modify */
+   khrn_image_wrap(&src_wrap, format, width, height, stride, flags, false, (void *)data); /* casting away constness here, but we won't actually modify */
 
    // TODO will this handle all necessary conversions correctly?
    // Will it handle images of different sizes?
-   dst = (KHRN_IMAGE_T *)mem_lock(surface->mh_color[surface->back_buffer_index], NULL);
+   MEM_HANDLE_T mh_back_buffer = surface->get_back_buffer(surface);
+   dst = (KHRN_IMAGE_T *)mem_lock(mh_back_buffer, NULL);
    if (!dst->secure)
    {
       khrn_interlock_write_immediate(&dst->interlock);
-      khrn_image_lock_interlock_wrap(dst, &dst_wrap, NULL);
+      khrn_image_lock_wrap(dst, &dst_wrap);
       khrn_image_wrap_copy_region(
          &dst_wrap, 0, y_offset,
          width, height,
@@ -1798,15 +1315,15 @@ void eglIntSetColorData_impl(EGL_SURFACE_ID_T s, KHRN_IMAGE_FORMAT_T format, uin
          IMAGE_CONV_GL);
       khrn_image_unlock_wrap(dst);
    }
-   mem_unlock(surface->mh_color[surface->back_buffer_index]);
+   mem_unlock(mh_back_buffer);
 
    mem_unlock(shandle);
 }
 
 static MEM_HANDLE_T get_active_gl_texture_2d(EGL_SERVER_STATE_T *state)
 {
-   MEM_HANDLE_T result = MEM_INVALID_HANDLE;
-   if (state->glcontext != MEM_INVALID_HANDLE) {
+   MEM_HANDLE_T result = MEM_HANDLE_INVALID;
+   if (state->glcontext != MEM_HANDLE_INVALID) {
       switch (state->glversion) {
       case EGL_SERVER_GL11:
       case EGL_SERVER_GL20:
@@ -1834,11 +1351,11 @@ bool eglIntBindTexImage_impl(EGL_SURFACE_ID_T s)
    KHRN_IMAGE_T *image0 = (KHRN_IMAGE_T *)mem_lock(surface->mh_color[0], NULL);
 
    /* We permit IMAGE_FLAG_BOUND_CLIENTBUFFER */
-   vcos_assert(!(image0->flags & IMAGE_FLAG_BOUND_EGLIMAGE));
+   assert(!(image0->flags & IMAGE_FLAG_BOUND_EGLIMAGE));
    if (!(image0->flags & IMAGE_FLAG_BOUND_TEXIMAGE)) {
-      if (thandle != MEM_INVALID_HANDLE) {
+      if (thandle != MEM_HANDLE_INVALID) {
          GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(thandle, NULL);
-         vcos_assert(texture->target != GL_TEXTURE_CUBE_MAP);
+         assert(texture->target != GL_TEXTURE_CUBE_MAP);
          glxx_texture_bind_images(texture, surface->buffers, surface->mh_color, TEXTURE_STATE_BOUND_TEXIMAGE, shandle, surface->back_buffer_index);
          mem_unlock(thandle);
 
@@ -1861,14 +1378,14 @@ void eglIntReleaseTexImage_impl(EGL_SURFACE_ID_T s)
    MEM_HANDLE_T shandle = khrn_map_lookup(&state->surfaces, s);
    EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(shandle, NULL);
 
-   if (surface->mh_bound_texture != MEM_INVALID_HANDLE)
+   if (surface->mh_bound_texture != MEM_HANDLE_INVALID)
    {
       MEM_HANDLE_T thandle = surface->mh_bound_texture;
       GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(thandle, NULL);
       glxx_texture_release_teximage(texture);   // this will remove IMAGE_FLAG_BOUND_TEXIMAGE from all images
       mem_unlock(thandle);
 
-      MEM_ASSIGN(surface->mh_bound_texture, MEM_INVALID_HANDLE);
+      MEM_ASSIGN(surface->mh_bound_texture, MEM_HANDLE_INVALID);
    }
 
    mem_unlock(shandle);
@@ -1967,8 +1484,6 @@ static int egl_server_surface_walk(EGL_SERVER_SURFACE_T *surface, int size)
    usage += get_mem_usage(surface->mh_depth);
    usage += get_mem_usage(surface->mh_color_multi);
    usage += get_mem_usage(surface->mh_ds_multi);
-   usage += get_mem_usage(surface->mh_mask);
-   usage += get_mem_usage(surface->mh_preserve);
 
    usage += get_mem_usage(surface->mh_bound_texture);
 
@@ -2001,7 +1516,6 @@ static int gl11_server_state_walk(GLXX_SERVER_STATE_T *state, int size)
    usage += get_mem_usage(state->mh_depth);
    usage += get_mem_usage(state->mh_color_multi);
    usage += get_mem_usage(state->mh_ds_multi);
-   usage += get_mem_usage(state->mh_preserve);
 
    usage += get_mem_usage(state->mh_cache);
 
@@ -2041,61 +1555,8 @@ static int gl20_server_state_walk(GLXX_SERVER_STATE_T *state, int size)
    usage += get_mem_usage(state->mh_depth);
    usage += get_mem_usage(state->mh_color_multi);
    usage += get_mem_usage(state->mh_ds_multi);
-   usage += get_mem_usage(state->mh_preserve);
 
    usage += get_mem_usage(state->mh_cache);
-
-   return usage;
-}
-
-static int gl20_bindings_walk(GL20_BINDING_T *base, int size)
-{
-   int usage = 0;
-   int i, count = size / sizeof(GL20_BINDING_T);
-
-   vcos_assert(size % sizeof(GL20_BINDING_T) == 0);
-
-   for (i = 0; i < count; i++)
-      usage += get_mem_usage(base[i].mh_name);
-
-   return usage;
-}
-
-static int gl20_uniform_info_walk(GL20_UNIFORM_INFO_T *base, int size)
-{
-   int usage = 0;
-   int i, count = size / sizeof(GL20_UNIFORM_INFO_T);
-
-   vcos_assert(size % sizeof(GL20_UNIFORM_INFO_T) == 0);
-
-   for (i = 0; i < count; i++)
-      usage += get_mem_usage(base[i].mh_name);
-
-   return usage;
-}
-
-static int gl20_attrib_info_walk(GL20_ATTRIB_INFO_T *base, int size)
-{
-   int usage = 0;
-   int i, count = size / sizeof(GL20_ATTRIB_INFO_T);
-
-   vcos_assert(size % sizeof(GL20_ATTRIB_INFO_T) == 0);
-
-   for (i = 0; i < count; i++)
-      usage += get_mem_usage(base[i].mh_name);
-
-   return usage;
-}
-
-static int gl20_shader_sources_walk(MEM_HANDLE_T *base, int size)
-{
-   int usage = 0;
-   int i, count = size / sizeof(MEM_HANDLE_T);
-
-   vcos_assert(size % sizeof(MEM_HANDLE_T) == 0);
-
-   for (i = 0; i < count; i++)
-      usage += get_mem_usage(base[i]);
 
    return usage;
 }
@@ -2109,7 +1570,6 @@ static int gl20_program_walk(GL20_PROGRAM_T *program, int size)
 
    usage += get_mem_usage(program->mh_vertex);
    usage += get_mem_usage(program->mh_fragment);
-   usage += get_mem_usage(program->mh_bindings);
    usage += get_mem_usage(program->result.mh_blob);
 
    for (i = 0; i < GL20_LINK_RESULT_CACHE_SIZE; i++)
@@ -2121,25 +1581,6 @@ static int gl20_program_walk(GL20_PROGRAM_T *program, int size)
       usage += get_mem_usage(program->result.cache[i].data.mh_cuniform_map);
       usage += get_mem_usage(program->result.cache[i].data.mh_funiform_map);
    }
-
-   usage += get_mem_usage(program->mh_sampler_info);
-   usage += get_mem_usage(program->mh_uniform_info);
-   usage += get_mem_usage(program->mh_uniform_data);
-   usage += get_mem_usage(program->mh_attrib_info);
-   usage += get_mem_usage(program->mh_info);
-
-   return usage;
-}
-
-static int gl20_shader_walk(GL20_SHADER_T *shader, int size)
-{
-   int usage = 0;
-   UNUSED(size);
-
-   usage += get_mem_usage(shader->mh_sources_current);
-   usage += get_mem_usage(shader->mh_sources_compile);
-
-   usage += get_mem_usage(shader->mh_info);
 
    return usage;
 }
@@ -2166,120 +1607,7 @@ static int glxx_framebuffer_walk(GLXX_FRAMEBUFFER_T *framebuffer, int size)
    return usage;
 }
 
-#ifndef NO_OPENVG
-
-static int vg_font_walk(VG_FONT_T *font, int size)
-{
-   int usage = 0;
-   uint32_t i;
-   UNUSED(size);
-
-   VG_FONT_LOCKED_T font_locked;
-
-   vg_font_lock(font, &font_locked);
-   for (i = 0; i != (font_locked.capacity * 2); ++i)
-      if (font_locked.entries[i] != SLOT_NONE)
-         usage += get_mem_usage(font_locked.slots[font_locked.entries[i]].object);
-   vg_font_unlock(font);
-
-   usage += get_mem_usage(font->entries);
-   usage += get_mem_usage(font->slots);
-
-   return usage;
-}
-
-static int vg_image_walk(VG_IMAGE_T *image, int size)
-{
-   int usage = 0;
-   UNUSED(size);
-
-   usage += get_mem_usage(image->image);
-
-   return usage;
-}
-
-static int vg_child_image_walk(VG_CHILD_IMAGE_T *child_image, int size)
-{
-   int usage = 0;
-   UNUSED(size);
-
-   usage += get_mem_usage(child_image->parent);
-
-   return usage;
-}
-
-static int vg_mask_layer_walk(VG_MASK_LAYER_T *mask_layer, int size)
-{
-   int usage = 0;
-   UNUSED(size);
-
-   usage += get_mem_usage(mask_layer->image);
-
-   return usage;
-}
-
-static int vg_paint_walk(VG_PAINT_T *paint, int size)
-{
-   int usage = 0;
-   UNUSED(size);
-
-   usage += get_mem_usage(paint->pattern);
-
-   if (paint->ramp != MEM_INVALID_HANDLE) {
-      VG_RAMP_T *ramp = (VG_RAMP_T *)mem_lock(paint->ramp, NULL);
-      usage += get_mem_usage(ramp->data);
-      mem_unlock(paint->ramp);
-   }
-
-   usage += get_mem_usage(paint->ramp_stops);
-
-   return usage;
-}
-
-static int vg_path_walk(VG_PATH_T *path, int size)
-{
-   int usage = 0;
-   UNUSED(size);
-
-   usage += get_mem_usage(path->coords);
-   usage += get_mem_usage(path->segments);
-
-   return usage;
-}
-
-static void set_iterator(VG_SET_T *map, MEM_HANDLE_T handle, void *p)
-{
-   UNUSED(map);
-
-   *(int *)p += get_mem_usage(handle);
-}
-
-static int vg_server_shared_state_walk(VG_SERVER_SHARED_STATE_T *shared_state, int size)
-{
-   int usage = 0;
-   UNUSED(size);
-
-   vg_set_iterate(&shared_state->objects, set_iterator, &usage);
-
-   return usage;
-}
-
-static int vg_server_state_walk(VG_SERVER_STATE_T *state, int size)
-{
-   int usage = 0;
-   UNUSED(size);
-
-   usage += get_mem_usage(state->shared_state);
-
-   usage += get_mem_usage(state->stroke_paint);
-   usage += get_mem_usage(state->fill_paint);
-
-   usage += get_mem_usage(state->scissor.scissor);
-
-   return usage;
-}
-
-#endif /* NO_OPENVG */
+static void egl_server_sync_term(MEM_HANDLE_T handle);
 
 USAGE_RESOLVE_T resolves[] = {
    {khrn_image_term, (USAGE_WALK_T)image_walk},
@@ -2293,31 +1621,10 @@ USAGE_RESOLVE_T resolves[] = {
    {glxx_server_state_term, (USAGE_WALK_T)gl11_server_state_walk},
 
    {glxx_server_state_term, (USAGE_WALK_T)gl20_server_state_walk},
-   {gl20_bindings_term, (USAGE_WALK_T)gl20_bindings_walk},
-   {gl20_uniform_info_term, (USAGE_WALK_T)gl20_uniform_info_walk},
-   {gl20_attrib_info_term, (USAGE_WALK_T)gl20_attrib_info_walk},
-   {gl20_shader_sources_term, (USAGE_WALK_T)gl20_shader_sources_walk},
    {gl20_program_term, (USAGE_WALK_T)gl20_program_walk},
-   {gl20_shader_term, (USAGE_WALK_T)gl20_shader_walk},
    {glxx_renderbuffer_term, (USAGE_WALK_T)glxx_renderbuffer_walk},
    {glxx_framebuffer_term, (USAGE_WALK_T)glxx_framebuffer_walk},
-
-#ifndef NO_OPENVG
-   {vg_font_bprint_term, NULL},
-   {vg_font_term, (USAGE_WALK_T)vg_font_walk},
-   {vg_image_bprint_term, NULL},
-   {vg_image_term, (USAGE_WALK_T)vg_image_walk},
-   {vg_child_image_bprint_term, (USAGE_WALK_T)vg_child_image_walk},
-   {vg_child_image_term, (USAGE_WALK_T)vg_child_image_walk},
-   {vg_mask_layer_bprint_term, NULL},
-   {vg_mask_layer_term, (USAGE_WALK_T)vg_mask_layer_walk},
-   {vg_paint_bprint_term, NULL},
-   {vg_paint_term, (USAGE_WALK_T)vg_paint_walk},
-   {vg_path_bprint_term, NULL},
-   {vg_path_term, (USAGE_WALK_T)vg_path_walk},
-   {vg_server_shared_state_term, (USAGE_WALK_T)vg_server_shared_state_walk},
-   {vg_server_state_term, (USAGE_WALK_T)vg_server_state_walk},
-#endif /* NO_OPENVG */
+   {egl_server_sync_term, NULL},
 
    {NULL, NULL}
 };
@@ -2354,7 +1661,14 @@ static int get_mem_usage(MEM_HANDLE_T handle)
    return usage;
 }
 
-EGL_SYNC_ID_T eglIntCreateSync_impl(uint32_t type, int32_t condition, int32_t status, uint32_t sem)
+static void egl_server_sync_term(MEM_HANDLE_T handle)
+{
+   EGL_SERVER_SYNC_T *sync = (EGL_SERVER_SYNC_T *)mem_lock(handle, NULL);
+   vcos_semaphore_delete(&sync->sem);
+   mem_unlock(handle);
+}
+
+EGL_SYNC_ID_T eglIntCreateSync_impl(uint32_t type, int32_t condition, int32_t status)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGL_SERVER_SYNC_T     *sync;
@@ -2362,80 +1676,50 @@ EGL_SYNC_ID_T eglIntCreateSync_impl(uint32_t type, int32_t condition, int32_t st
    EGL_SERVER_STATE_T    *state = EGL_GET_SERVER_STATE();
 
    MEM_HANDLE_T shandle = MEM_ALLOC_STRUCT_EX(EGL_SERVER_SYNC_T, MEM_COMPACT_DISCARD);                   // check
-   if (shandle == MEM_INVALID_HANDLE)
+   if (shandle == MEM_HANDLE_INVALID)
       return result;
 
    sync = (EGL_SERVER_SYNC_T *)mem_lock(shandle, NULL);
 
+   if (vcos_semaphore_create(&sync->sem, "egl sync object", 0) != VCOS_SUCCESS) {
+      mem_unlock(shandle);
+      mem_release(shandle);
+      return MEM_HANDLE_INVALID;
+   }
+
+   mem_set_term(shandle, egl_server_sync_term, NULL);
+
    sync->type = type;
    sync->condition = condition;
    sync->status = status;
-   sync->pid = state->pid;
-   sync->sem = sem;
-   /* grab HW counter of when the sync was created (NOT tied to interlock system, but uses the same counter */
-   sync->sequence = khrn_get_last_issued_seq() + 1;
 
-   lockCallback();
    if (khrn_map_insert(&state->syncs, state->next_sync, shandle))
       result = state->next_sync++;
-   unlockCallback();
 
    mem_unlock(shandle);
    mem_release(shandle);
 
    if (type == EGL_SYNC_FENCE_KHR) {
-#ifndef NO_OPENVG
-      if (thread->bound_api != EGL_OPENVG_API)
-#endif /* NO_OPENVG */
-      {
-         GLXX_HW_FRAMEBUFFER_T fb;
-         GLXX_HW_RENDER_STATE_T *rs;
-         GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-         rs = glxx_install_framebuffer(state, &fb, false);
-         if (rs) {
-            if (rs->drawn)
-               rs->fence_active = true;
-            else {
-               /* nothing in the pipeline, so just signal */
-               sync->status = EGL_SIGNALED_KHR;
-               khdispatch_send_async(ASYNC_COMMAND_POST, sync->pid, sync->sem);
-               /* just kill what we have just created, so it doesnt create render jobs with nothing in */
-               glxx_hw_discard_frame(rs);
-            }
-         } else {
-            sync->status = EGL_SIGNALED_KHR;
-            khdispatch_send_async(ASYNC_COMMAND_POST, sync->pid, sync->sem);
-         }
+      if (state->glcontext != MEM_HANDLE_INVALID) {
+         GLXX_SERVER_STATE_T *glstate = GLXX_LOCK_SERVER_STATE();
+         bool inserted = glxx_hw_insert_sync(glstate, shandle);
          GLXX_UNLOCK_SERVER_STATE();
+         if (!inserted)
+            goto end;
       }
-#ifndef NO_OPENVG
-      else {
-         EGL_SERVER_SURFACE_T *surface = mem_lock(state->vgsurface, NULL);
-
-         vg_be_fence_sync_used(surface->mh_color[surface->back_buffer_index]);
-
-         mem_unlock(state->vgsurface);
-      }
-#endif /* NO_OPENVG */
    }
 
    return result;
+
+end:
+   khrn_map_delete(&state->syncs, result);
+   return 0;
 }
 
 void eglIntDestroySync_impl(EGL_SYNC_ID_T s)
 {
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-   MEM_HANDLE_T handle;
-   EGL_SERVER_SYNC_T *sync;
-
-   lockCallback();
-   handle = khrn_map_lookup(&state->syncs, s);
-   sync = (EGL_SERVER_SYNC_T *)mem_lock(handle, NULL);
-   khdispatch_send_async(ASYNC_COMMAND_DESTROY, sync->pid, sync->sem);  //tell host to delete semaphore
-   mem_unlock(handle);
-
    khrn_map_delete(&state->syncs, s);
-   unlockCallback();
 }
 
 void eglSyncGetAttrib_impl(EGL_SYNC_ID_T s, int32_t attrib, int32_t * value)
@@ -2444,7 +1728,6 @@ void eglSyncGetAttrib_impl(EGL_SYNC_ID_T s, int32_t attrib, int32_t * value)
    MEM_HANDLE_T handle;
    EGL_SERVER_SYNC_T *sync;
 
-   lockCallback();
    handle = khrn_map_lookup(&state->syncs, s);
    sync = (EGL_SERVER_SYNC_T *)mem_lock(handle, NULL);
 
@@ -2461,31 +1744,30 @@ void eglSyncGetAttrib_impl(EGL_SYNC_ID_T s, int32_t attrib, int32_t * value)
    }
 
    mem_unlock(handle);
-   unlockCallback();
 }
 
-static void egl_khr_sync_callback(KHRN_MAP_T *map, uint32_t key, MEM_HANDLE_T value, void *used)
-{
-   EGL_SERVER_SYNC_T *sync = (EGL_SERVER_SYNC_T *)mem_lock(value, NULL);
-   uint64_t *sequence = (uint64_t *)used;
-
-   UNUSED(map);
-   UNUSED(key);
-
-   if ((sync->status != EGL_SIGNALED_KHR) &&
-       (sync->sequence <= *sequence)) {
-      khdispatch_send_async(ASYNC_COMMAND_POST, sync->pid, sync->sem);
-      sync->status = EGL_SIGNALED_KHR;
-   }
-
-   mem_unlock(value);
-}
-
-void egl_khr_fence_update(uint64_t job_sequence)
+int eglIntSyncWaitTimeout_impl(EGL_SYNC_ID_T s, uint32_t timeout)
 {
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
 
-   if (state->syncs.entries) {
-      khrn_map_iterate(&state->syncs, egl_khr_sync_callback, &job_sequence);
+   glxx_server_state_flush(false);
+
+   MEM_HANDLE_T handle = khrn_map_lookup(&state->syncs, s);
+   VCOS_SEMAPHORE_T *sem = NULL;
+   if (handle) {
+      EGL_SERVER_SYNC_T *sync = (EGL_SERVER_SYNC_T *)mem_lock(handle, NULL);
+      /* no wait whilst callbacks are locked */
+      sem = &sync->sem;
    }
+   mem_unlock(handle);
+
+   int res = VCOS_EINVAL;
+   if (sem) {
+      if (timeout == 0xFFFFFFFF)
+         res = vcos_semaphore_wait(sem);
+      else
+         res = vcos_semaphore_wait_timeout(sem, timeout);
+   }
+
+   return res;
 }

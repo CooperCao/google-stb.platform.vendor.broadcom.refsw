@@ -197,12 +197,12 @@ typedef enum NEXUS_PlaybackHostTrickMode
     NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqtIP,/* smooth rewind for MPEG/AVC/HEVC, IP only for better performance. mode_modifier should be -1. */
     NEXUS_PlaybackHostTrickMode_eTimeSkip,  /* Host trick mode that attempts to give a constant trick mode rate by adapting to GOP size changes.
                                                mode_modifier is the number of milliseconds between pictures that bcmplayer should try to output. */
-    NEXUS_PlaybackHostTrickMode_eMax,
-
-    /* aliases */
-    NEXUS_PlaybackHostTrickMode_ePlayGop = NEXUS_PlaybackHostTrickMode_ePlayDqt,
-    NEXUS_PlaybackHostTrickMode_ePlayGopIP = NEXUS_PlaybackHostTrickMode_ePlayDqtIP
+    NEXUS_PlaybackHostTrickMode_eMax
 } NEXUS_PlaybackHostTrickMode;
+
+/* backward compat */
+#define NEXUS_PlaybackHostTrickMode_ePlayGop NEXUS_PlaybackHostTrickMode_ePlayDqt
+#define NEXUS_PlaybackHostTrickMode_ePlayGopIP NEXUS_PlaybackHostTrickMode_ePlayDqtIP
 
 /*
 Summary:

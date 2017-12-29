@@ -256,7 +256,7 @@ uintptr_t _tzioc_offset2vaddr(
         return (uintptr_t)-1;
 }
 
-uintptr_t _tzioc_vaddr2offset(
+uint32_t _tzioc_vaddr2offset(
     struct tzioc_client *pClient,
     uintptr_t ulVaddr)
 {
@@ -264,47 +264,7 @@ uintptr_t _tzioc_vaddr2offset(
         ulVaddr <  (uintptr_t)pClient->psmem + pClient->smemSize)
         return ulVaddr - (uintptr_t)pClient->psmem;
     else
-        return (uintptr_t)-1;
-}
-
-void *_tzioc_map_paddr(
-    struct tzioc_client *pClient,
-    uintptr_t ulPaddr,
-    uint32_t ulSize,
-    uint32_t ulFlags)
-{
-    uintptr_t ulVaddr;
-    int err = 0;
-
-    err = _tzioc_ioctl_map_paddr(
-        pClient,
-        ulPaddr,
-        ulSize,
-        ulFlags,
-        &ulVaddr);
-
-    if (err) {
-        LOGE("failed to map physical address range");
-        return 0;
-    }
-    return (void *)ulVaddr;
-}
-
-void _tzioc_unmap_paddr(
-    struct tzioc_client *pClient,
-    uintptr_t ulPaddr,
-    uint32_t ulSize)
-{
-    int err = 0;
-
-    err = _tzioc_ioctl_unmap_paddr(
-        pClient,
-        ulPaddr,
-        ulSize);
-
-    if (err) {
-        LOGE("failed to unmap physical address range");
-    }
+        return (uint32_t)-1;
 }
 
 int _tzioc_map_paddrs(
@@ -343,4 +303,42 @@ int _tzioc_unmap_paddrs(
         return err;
     }
     return 0;
+}
+
+uintptr_t _tzioc_paddr2vaddr(
+    struct tzioc_client *pClient,
+    uintptr_t ulPaddr)
+{
+    uintptr_t ulVaddr;
+    int err = 0;
+
+    err = _tzioc_ioctl_paddr2vaddr(
+        pClient,
+        ulPaddr,
+        &ulVaddr);
+
+    if (err) {
+        LOGE("failed to convert physical address to virtual address");
+        return (uintptr_t)-1;
+    }
+    return ulVaddr;
+}
+
+uintptr_t _tzioc_vaddr2paddr(
+    struct tzioc_client *pClient,
+    uintptr_t ulVaddr)
+{
+    uintptr_t ulPaddr;
+    int err = 0;
+
+    err = _tzioc_ioctl_vaddr2paddr(
+        pClient,
+        ulVaddr,
+        &ulPaddr);
+
+    if (err) {
+        LOGE("failed to convert virtual address to physical address");
+        return (uintptr_t)-1;
+    }
+    return ulPaddr;
 }

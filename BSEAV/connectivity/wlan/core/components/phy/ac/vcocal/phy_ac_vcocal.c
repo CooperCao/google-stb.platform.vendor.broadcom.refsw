@@ -936,6 +936,8 @@ wlc_phy_20694_radio_vcocal(phy_info_t *pi, uint8 cal_mode, uint8 coupling_mode)
 		// Fast switch option!
 		// Normal operation: update slope & offset if error > thres
 		MOD_RADIO_REG_20694(pi, RFP, PLL_VCOCAL1, 0, rfpll_vcocal_enableCal, 0x0);
+
+		/* coverity[result_independent_of_operands] */
 		MOD_RADIO_REG_20694(pi, RFP, PLL_VCOCAL1, 0, rfpll_vcocal_enableCal, 0x1);
 		MOD_RADIO_REG_20694(pi, RFP, PLL_VCOCAL1, 0, rfpll_vcocal_rst_n, 0x1);
 		MOD_RADIO_REG_20694(pi, RFP, PLL_CFG2, 0, rfpll_rst_n, 0x0);
@@ -1073,6 +1075,8 @@ wlc_phy_radio20694_vcocal_isdone(phy_info_t *pi, bool set_delay, bool cache_calc
 			MOD_RADIO_REG_20694(pi, RFP, XTAL6, 0, xtal_pu_caldrv, 0x0);
 			/* power off vcocal_clk */
 			MOD_RADIO_REG_20694(pi, RFP, PLL_CFG6, 0, rfpll_vcocal_clk_pu, 0x0);
+
+			/* coverity[result_independent_of_operands] */
 			MOD_RADIO_REG_20694(pi, RFP, PLL_OVR1, 0, ovr_rfpll_vcocal_clk_pu, 0x0);
 
 			wlapi_bmac_write_shm(pi->sh->physhim, (shmoff + 0x44), (0x1000 | maincap));

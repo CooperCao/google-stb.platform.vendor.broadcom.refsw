@@ -53,6 +53,7 @@
 #include "nexus_audio_encoder.h"
 #include "nexus_audio_mixer.h"
 #include "nexus_audio_output.h"
+#include "nexus_audio_capture.h"
 #include "nexus_spdif_output.h"
 #include "nexus_composite_output.h"
 #include "nexus_component_output.h"
@@ -69,6 +70,10 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#if NEXUS_HAS_SYNC_CHANNEL
+#include "nexus_sync_channel.h"
+#endif
+
 
 BDBG_MODULE(dolby_ms11);
 
@@ -98,6 +103,70 @@ static void print_usage(void);
 
 static NEXUS_PlatformConfiguration platformConfig;
 
+typedef struct captureCallbackParameters
+{
+    NEXUS_AudioCaptureHandle capture;
+    FILE *pFile;
+} captureCallbackParameters;
+
+static void capture_callback(void *pParam, int param)
+{
+    NEXUS_AudioCaptureHandle capture;
+    FILE *pFile;
+    NEXUS_Error errCode;
+    captureCallbackParameters *captureCBParams;
+
+    captureCBParams = (captureCallbackParameters *) pParam ;
+    capture = captureCBParams->capture ;
+    pFile = captureCBParams->pFile ;
+
+    for ( ;; )
+    {
+        void *pBuffer;
+        size_t bufferSize;
+
+        /* Check available buffer space */
+        errCode = NEXUS_AudioCapture_GetBuffer(capture, (void **)&pBuffer, &bufferSize);
+        if ( errCode )
+        {
+            fprintf(stderr, "Error getting capture buffer\n");
+            NEXUS_AudioCapture_Stop(capture);
+            return;
+        }
+
+        if ( bufferSize > 0 )
+        {
+            /* Write samples to disk */
+            if ( pFile )
+            {
+                if ( 1 != fwrite(pBuffer, bufferSize, 1, pFile) )
+                {
+                    fprintf(stderr, "Error writing to disk\n");
+                    NEXUS_AudioCapture_Stop(capture);
+                    return;
+                }
+            }
+            else
+            {
+                fprintf(stderr, "Warning: no output file opened\n");
+            }
+
+            fprintf(stderr, "Data callback - Wrote %d bytes\n", (int)bufferSize);
+            errCode = NEXUS_AudioCapture_ReadComplete(capture, bufferSize);
+            if ( errCode )
+            {
+                fprintf(stderr, "Error committing capture buffer\n");
+                NEXUS_AudioCapture_Stop(capture);
+                return;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     NEXUS_PlatformSettings platformSettings;
@@ -114,7 +183,7 @@ int main(int argc, char **argv)
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_VideoWindowHandle window;
-    NEXUS_VideoDecoderHandle videoDecoder;
+    NEXUS_VideoDecoderHandle videoDecoder = NULL;
     NEXUS_VideoDecoderStartSettings videoProgram;
     NEXUS_AudioDecoderHandle primaryDecoder = NULL;
     NEXUS_AudioDecoderHandle secondaryDecoder = NULL;
@@ -139,6 +208,7 @@ int main(int argc, char **argv)
     bool dv258Enabled = false;
     bool mixerEnabled = false;
     bool secondary = false;
+    bool captureStereo = false;
     unsigned advTsmEnabled = 0xffffffff;
     char *fname = NULL;
     unsigned audioPid = INVALID_PID;
@@ -149,12 +219,22 @@ int main(int argc, char **argv)
     NEXUS_VideoCodec videoCodec = NEXUS_VideoCodec_eMax;
     NEXUS_TransportType transportType = NEXUS_TransportType_eTs;
     NEXUS_AudioDecoderDolbyDrcMode drcMode = NEXUS_AudioDecoderDolbyDrcMode_eMax;
+    FILE *pFileSt = NULL;
+    NEXUS_AudioCaptureHandle captureSt = NULL;
+    NEXUS_AudioCaptureStartSettings captureStartSettings;
+    NEXUS_AudioCaptureOpenSettings captureOpenSettings;
+    captureCallbackParameters captureCBParams;
     NEXUS_AudioCapabilities audioCapabilities;
     NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioI2sOutputHandle = NULL;
     NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
     NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
     NEXUS_AudioProcessorHandle advancedTsm = NULL;
     bool done = false;
+    #if NEXUS_HAS_SYNC_CHANNEL
+    NEXUS_SyncChannelHandle sync;
+    NEXUS_SyncChannelSettings syncSettings;
+    #endif
 
     while (curarg < argc) {
         if (!strcmp("--help", argv[curarg]) ||
@@ -204,6 +284,9 @@ int main(int argc, char **argv)
             }
             else if ( !strcmp(argv[curarg], "aacplus") || !strcmp(argv[curarg], "aac_loas") || !strcmp(argv[curarg], "aacplus_loas") ) {
                 primaryAudioCodec = secondaryAudioCodec = NEXUS_AudioCodec_eAacPlusLoas;
+            }
+            else if ( !strcmp(argv[curarg], "mp3") ) {
+                primaryAudioCodec = secondaryAudioCodec = NEXUS_AudioCodec_eMp3;
             }
             else {
                 BDBG_ERR(("Codec %s is not supported by this application", argv[curarg]));
@@ -270,6 +353,12 @@ int main(int argc, char **argv)
             }
             curarg++;
         }
+        else if (!strcmp("-capture_stereo", argv[curarg])) {
+            captureStereo = true;
+        }
+        else if (!strcmp("-es", argv[curarg])) {
+            transportType = NEXUS_TransportType_eEs;
+        }
         else {
             printf("Unknown param: %s\n", argv[curarg]);
             return -1;
@@ -318,6 +407,11 @@ int main(int argc, char **argv)
         audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
     }
 
+    if (audioCapabilities.numOutputs.i2s > 0 )
+    {
+        audioI2sOutputHandle = NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]);
+    }
+
     if (audioCapabilities.numOutputs.spdif > 0)
     {
         audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
@@ -342,6 +436,12 @@ int main(int argc, char **argv)
     stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eFirstAvailable;
     stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
 
+    /* Open the SyncChannel for lipsync */
+    #if NEXUS_HAS_SYNC_CHANNEL
+    NEXUS_SyncChannel_GetDefaultSettings(&syncSettings);
+    sync = NEXUS_SyncChannel_Create(&syncSettings);
+    #endif
+
     /* Configure Playback */
     NEXUS_Playback_GetSettings(playback, &playbackSettings);
     playbackSettings.playpump = playpump;
@@ -361,8 +461,11 @@ int main(int argc, char **argv)
 #endif
     display = NEXUS_Display_Open(0, &displaySettings);
     window = NEXUS_VideoWindow_Open(display, 0);
-    videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
-    NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+    if ( transportType != NEXUS_TransportType_eEs )
+    {
+        videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
+        NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+    }
 
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
@@ -388,17 +491,39 @@ int main(int argc, char **argv)
 
 
     /* Open the audio and video pid channels */
-    NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
-    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
-    playbackPidSettings.pidTypeSettings.video.codec = videoCodec;
-    playbackPidSettings.pidTypeSettings.video.index = true;
-    playbackPidSettings.pidTypeSettings.video.decoder = videoDecoder;
-    videoPidChannel = NEXUS_Playback_OpenPidChannel(playback, videoPid, &playbackPidSettings);
+    if ( videoDecoder )
+    {
+        NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+        playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
+        playbackPidSettings.pidTypeSettings.video.codec = videoCodec;
+        playbackPidSettings.pidTypeSettings.video.index = true;
+        playbackPidSettings.pidTypeSettings.video.decoder = videoDecoder;
+        videoPidChannel = NEXUS_Playback_OpenPidChannel(playback, videoPid, &playbackPidSettings);
 
-    NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
-    videoProgram.codec = videoCodec;
-    videoProgram.pidChannel = videoPidChannel;
-    videoProgram.stcChannel = stcChannel;
+        NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
+        videoProgram.codec = videoCodec;
+        videoProgram.pidChannel = videoPidChannel;
+        videoProgram.stcChannel = stcChannel;
+    }
+
+    /* open Audio capture */
+    if ( captureStereo )
+    {
+        pFileSt = fopen("captureSt.pcm", "wb+");
+        if ( NULL == pFileSt )
+        {
+            fprintf(stderr, "Unable to open file '%s' for writing\n", "captureSt.pcm");
+            return 0;
+        }
+        NEXUS_AudioCapture_GetDefaultOpenSettings(&captureOpenSettings);
+        captureOpenSettings.format = NEXUS_AudioCaptureFormat_e24BitStereo;
+        captureSt = NEXUS_AudioCapture_Open(0, &captureOpenSettings);
+        if ( NULL == captureSt )
+        {
+            fprintf(stderr, "Unable to open capture channel\n");
+            return 0;
+        }
+    }
 
     /* Bring up the primary audio decoder */
     NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioOpenSettings);
@@ -558,6 +683,11 @@ int main(int argc, char **argv)
             NEXUS_AudioOutput_AddInput(audioDacHandle,
                                        NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
         }
+        if (audioI2sOutputHandle)
+        {
+            NEXUS_AudioOutput_AddInput(audioI2sOutputHandle,
+                                       NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
+        }
         if (audioSpdifHandle) {
             NEXUS_AudioOutput_AddInput(audioSpdifHandle,
                                        NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
@@ -568,6 +698,11 @@ int main(int argc, char **argv)
                                        NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eMultichannel));
         }
         #endif
+        if ( captureSt )
+        {
+            NEXUS_AudioOutput_AddInput(NEXUS_AudioCapture_GetConnector(captureSt),
+                                       NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
+        }
     }
     else if ( mixer )
     {
@@ -577,12 +712,21 @@ int main(int argc, char **argv)
                                        outputConnector);
         }
         #endif
+        if ( captureSt )
+        {
+            fprintf(stderr, "Warning: output capture not supported in direct mixer mode\n");
+        }
     }
     else
     {
         if ( audioDacHandle )
         {
             NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                       NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo));
+        }
+        if (audioI2sOutputHandle)
+        {
+            NEXUS_AudioOutput_AddInput(audioI2sOutputHandle,
                                        NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo));
         }
         if (audioSpdifHandle) {
@@ -595,6 +739,11 @@ int main(int argc, char **argv)
                                        NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo));
         }
         #endif
+        if ( captureSt )
+        {
+            NEXUS_AudioOutput_AddInput(NEXUS_AudioCapture_GetConnector(captureSt),
+                                       NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eStereo));
+        }
     }
 
 
@@ -623,8 +772,44 @@ int main(int argc, char **argv)
         secondaryAudioProgram.stcChannel = stcChannel;
     }
 
+    /* Add sync channel */
+
+    /* Audio */
+    #if NEXUS_HAS_SYNC_CHANNEL
+    NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
+    syncSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(primaryDecoder, NEXUS_AudioConnectorType_eMultichannel);
+    NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
+    if (secondary)
+    {
+        NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
+        syncSettings.audioInput[1] = NEXUS_AudioDecoder_GetConnector(secondaryDecoder, NEXUS_AudioConnectorType_eMultichannel);
+        NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
+    }
+    #endif
+
+    /* Video */
+    #if NEXUS_HAS_SYNC_CHANNEL
+    NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
+    syncSettings.videoInput = NEXUS_VideoDecoder_GetConnector(videoDecoder);
+    NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
+    #endif
+
+    /* Start the capture -- no data will be received until the decoder starts */
+    if ( captureSt )
+    {
+        NEXUS_AudioCapture_GetDefaultStartSettings(&captureStartSettings);
+        captureStartSettings.dataCallback.callback = capture_callback;
+        captureCBParams.capture = captureSt;
+        captureCBParams.pFile = pFileSt;
+        captureStartSettings.dataCallback.context = &captureCBParams;
+        NEXUS_AudioCapture_Start(captureSt, &captureStartSettings);
+    }
+
     /* Start Decoders */
-    NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
+    if ( videoDecoder )
+    {
+        NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
+    }
 
     NEXUS_AudioDecoder_Start(primaryDecoder, &primaryAudioProgram);
     if (secondary)
@@ -678,11 +863,26 @@ int main(int argc, char **argv)
 
     /* Stop */
     NEXUS_Playback_Stop(playback);
-    NEXUS_VideoDecoder_Stop(videoDecoder);
+    if ( videoDecoder )
+    {
+        NEXUS_VideoDecoder_Stop(videoDecoder);
+    }
     NEXUS_AudioDecoder_Stop(primaryDecoder);
     if (secondary)
     {
         NEXUS_AudioDecoder_Stop(secondaryDecoder);
+    }
+    if ( captureSt )
+    {
+        NEXUS_AudioCapture_Stop(captureSt);
+        NEXUS_AudioCapture_Close(captureSt);
+        captureSt = NULL;
+        if ( pFileSt )
+        {
+            fflush(pFileSt);
+            fclose(pFileSt);
+            pFileSt = NULL;
+        }
     }
 
     /* Teardown */
@@ -701,6 +901,9 @@ int main(int argc, char **argv)
     }
     if (audioDacHandle) {
         NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+    }
+    if (audioI2sOutputHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioI2sOutputHandle);
     }
 
     if (ddre)
@@ -733,7 +936,10 @@ int main(int argc, char **argv)
     }
     NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);
-    NEXUS_VideoDecoder_Close(videoDecoder);
+    if ( videoDecoder )
+    {
+        NEXUS_VideoDecoder_Close(videoDecoder);
+    }
     NEXUS_StcChannel_Close(stcChannel);
     NEXUS_Platform_Uninit();
 

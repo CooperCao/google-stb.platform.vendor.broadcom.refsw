@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2004-2014 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ************************************************************/
+
+ ******************************************************************************/
 #include "nexus_platform_module.h"
 #include "nexus_platform_sage_log.h"
 #if NEXUS_HAS_SAGE
@@ -231,6 +221,115 @@ exit:
     pthread_exit(NULL);
     return NULL;
 }
+
+#define UINT32_SWAP(value) ( ((value) << 24) | (((value) << 8) & 0x00ff0000) | (((value) >> 8) & 0x0000ff00) | ((value) >> 24) )
+
+#define UINT32_TO_BE(value) UINT32_SWAP(value)
+#define BE_TO_UINT32(value) UINT32_SWAP(value)
+
+static bool g_sageSecureLogThreadDone;
+static pthread_t g_sageSecureLogThread;
+
+#define SAGE_SECURE_LOG_PATH_MAX 128
+static void *NEXUS_Platform_P_SageSecureLogThread(void *pParam)
+{
+    const char *pEnv = "secure_log";
+    NEXUS_Error errCode;
+    FILE *pFile=NULL;
+    char pathname[SAGE_SECURE_LOG_PATH_MAX];
+    NEXUS_Sage_Secure_Log_TlBufferContext *pBuffContext = NULL;
+    uint8_t *pLogBuffAddr = NULL;
+    uint32_t logBuffCtxSize = sizeof(NEXUS_Sage_Secure_Log_TlBufferContext);
+    uint32_t logBufferSize = SAGE_SECURE_LOG_BUFFER_SIZE;
+
+    NEXUS_MemoryAllocationSettings allocSettings;
+
+    BSTD_UNUSED(pParam);
+
+    if ( NEXUS_SUCCESS != NEXUS_Sage_SecureLog_StartCaptureOK() )
+    {
+        BDBG_MSG(("%s %d secure log not enabled",BSTD_FUNCTION,__LINE__));
+        goto exit;
+    }
+
+    snprintf(pathname, sizeof(pathname), "%s.bin", pEnv);
+    pFile = fopen(pathname, "wb+");
+    if ( NULL == pFile )
+    {
+        BDBG_ERR(("%s %d file %s open Failed",BSTD_FUNCTION,__LINE__,pathname));
+        goto exit;
+    }
+
+    /* alloc from heap just in case app is expecting it. */
+    NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
+    allocSettings.alignment = 4096;
+    errCode = NEXUS_Memory_Allocate(logBufferSize, &allocSettings, (void **)&pLogBuffAddr);
+    if ( errCode != NEXUS_SUCCESS )
+    {
+        BDBG_ERR(("NEXUS_Memory_Allocate Failed"));
+        goto exit;
+    }
+    errCode = NEXUS_Memory_Allocate (logBuffCtxSize, &allocSettings, (void **)&pBuffContext);
+    if ( errCode != NEXUS_SUCCESS )
+    {
+        BDBG_ERR(("NEXUS_Memory_Allocate Failed"));
+        goto exit;
+    }
+
+    while ( false == g_sageSecureLogThreadDone )
+    {
+        BKNI_Sleep(1000);
+        BKNI_Memset(pBuffContext,0,logBuffCtxSize);
+        BKNI_Memset(pLogBuffAddr,0,logBufferSize);
+        errCode = NEXUS_Sage_SecureLog_GetBuffer(
+                                                (uint8_t *)pBuffContext,logBuffCtxSize,
+                                                pLogBuffAddr,    logBufferSize,
+                                                NEXUS_Sage_SecureLog_BufferId_eFirstAvailable);
+
+        if(errCode == NEXUS_SUCCESS)
+        {
+
+            if(pBuffContext->secHead.secure_logtotal_cnt > 0)
+            {
+                uint32_t buflen,datalen;
+
+                buflen = BE_TO_UINT32(pBuffContext->secHead.secure_logbuf_len);
+                datalen = BE_TO_UINT32(pBuffContext->secHead.secure_logtotal_cnt);
+
+                if( buflen >  datalen + 15)
+                {
+                    buflen = (datalen/16 + 1)*16;
+                }
+
+                BDBG_MSG(("buflen 0x%x(<0x%x) datalen 0x%x",buflen,logBufferSize,datalen));
+
+                pBuffContext->secHead.secure_logbuf_len = UINT32_TO_BE(buflen);
+
+                fwrite((uint8_t*)pBuffContext ,sizeof(*pBuffContext),1,pFile);
+                fwrite((uint8_t*)pLogBuffAddr,buflen,1,pFile);
+                fflush(pFile);
+            }
+        }
+    }
+
+exit:
+    if(pLogBuffAddr != NULL)
+    {
+        NEXUS_Memory_Free(pLogBuffAddr);
+    }
+    if(pBuffContext != NULL)
+    {
+        NEXUS_Memory_Free(pBuffContext);
+    }
+    if(pFile != NULL)
+    {
+        fclose(pFile);
+        pFile = NULL;
+    }
+
+    pthread_exit(NULL);
+    return NULL;
+}
 #endif
 
 NEXUS_Error NEXUS_Platform_P_InitSageLog(void)
@@ -242,6 +341,10 @@ NEXUS_Error NEXUS_Platform_P_InitSageLog(void)
         {
             return BERR_TRACE(BERR_OS_ERROR);
         }
+    }
+    if ( pthread_create(&g_sageSecureLogThread, NULL, NEXUS_Platform_P_SageSecureLogThread, NULL) )
+    {
+        return BERR_TRACE(BERR_OS_ERROR);
     }
 #endif
     return BERR_SUCCESS;
@@ -256,6 +359,13 @@ void NEXUS_Platform_P_UninitSageLog(void)
         pthread_join(g_sageLogThread, NULL);
         g_sageLogThread = (pthread_t)NULL;
         g_sageLogThreadDone = false;
+    }
+    if ( (pthread_t) NULL != g_sageSecureLogThread )
+    {
+        g_sageSecureLogThreadDone = true;
+        pthread_join(g_sageSecureLogThread, NULL);
+        g_sageSecureLogThread = (pthread_t)NULL;
+        g_sageSecureLogThreadDone = false;
     }
 #endif
 }

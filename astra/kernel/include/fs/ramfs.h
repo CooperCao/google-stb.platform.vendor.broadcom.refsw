@@ -140,6 +140,7 @@ namespace RamFS {
         TzMem::VirtAddr rfsAllocPage();
         void rfsFreePage(TzMem::VirtAddr );
 
+    protected:
         bool checkPermissions(int permsBit);
 
     private:

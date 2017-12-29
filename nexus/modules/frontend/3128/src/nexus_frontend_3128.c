@@ -284,7 +284,7 @@ done:
     return;
 }
 
-static void NEXUS_Tuner_P_3128_Callback(void *pParam)
+static void NEXUS_Tuner_P_3128_Callback_isr(void *pParam)
 {
     NEXUS_3128 *pDevice;
     BDBG_ASSERT(NULL != pParam);
@@ -904,7 +904,7 @@ static NEXUS_Error NEXUS_Frontend_P_Init3128(NEXUS_3128 *pDevice)
                 if(pDevice->ifDacHandle){
                     ((NEXUS_3128Channel *)pDevice->ifDacHandle->pDeviceHandle)->chn_num = pDevice->ifDacChannelNumber;
                 }
-                rc = BTNR_InstallCallback(pDevice->tnr[pDevice->ifDacChannelNumber], BTNR_Callback_eIfDacAcquireComplete, (BTNR_CallbackFunc)NEXUS_Tuner_P_3128_Callback, pDevice);
+                rc = BTNR_InstallCallback(pDevice->tnr[pDevice->ifDacChannelNumber], BTNR_Callback_eIfDacAcquireComplete, (BTNR_CallbackFunc)NEXUS_Tuner_P_3128_Callback_isr, pDevice);
                 if(rc){rc = BERR_TRACE(rc); goto done;}
 
                 rc = BTNR_InstallCallback(pDevice->tnr[pDevice->ifDacChannelNumber], BTNR_Callback_eIfDacStatusReady, (BTNR_CallbackFunc)NEXUS_Frontend_P_3128_TunerAsyncStatusCallback_isr, pDevice);

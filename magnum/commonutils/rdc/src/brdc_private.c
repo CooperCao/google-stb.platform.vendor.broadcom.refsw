@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -197,7 +197,7 @@ Output:
 Returns:
 
 ****************************************************************************/
-BERR_Code BRDC_Slot_P_GetNextSlot
+BERR_Code BRDC_Slot_P_GetNextSlot_isr
 (
     BRDC_Handle   hRdc,
     BRDC_SlotId  *pSlotId
@@ -206,7 +206,7 @@ BERR_Code BRDC_Slot_P_GetNextSlot
     BERR_Code    err = BERR_SUCCESS;
     BRDC_SlotId  eSlotId;
 
-    BDBG_ENTER(BRDC_Slot_P_GetNextSlot);
+    BDBG_ENTER(BRDC_Slot_P_GetNextSlot_isr);
 
     for( eSlotId = BRDC_SlotId_eSlot0; eSlotId < hRdc->ulMaxAvailableSlot; eSlotId++ )
     {
@@ -221,7 +221,7 @@ BERR_Code BRDC_Slot_P_GetNextSlot
     err = BERR_TRACE(BRDC_SLOT_ERR_ALL_USED);
 
 done:
-    BDBG_LEAVE(BRDC_Slot_P_GetNextSlot);
+    BDBG_LEAVE(BRDC_Slot_P_GetNextSlot_isr);
     return err;
 }
 
@@ -491,17 +491,17 @@ Output:
 Returns:
 
 See Also:
-    BRDC_P_ReleaseSync
+    BRDC_P_ReleaseSync_isr
     BRDC_P_ArmSync_isr
 ****************************************************************************/
-BERR_Code BRDC_P_AcquireSync
+BERR_Code BRDC_P_AcquireSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                        *pulId )
 {
 #if (BRDC_P_MAX_SYNC)
     uint32_t i;
     BERR_Code rc = BERR_SUCCESS;
-    BDBG_ENTER(BRDC_P_AcquireSync);
+    BDBG_ENTER(BRDC_P_AcquireSync_isr);
 
     BDBG_ASSERT(hRdc);
     BDBG_ASSERT(pulId);
@@ -526,7 +526,7 @@ BERR_Code BRDC_P_AcquireSync
         rc = BERR_INVALID_PARAMETER;
     }
 
-    BDBG_LEAVE(BRDC_P_AcquireSync);
+    BDBG_LEAVE(BRDC_P_AcquireSync_isr);
     return rc;
 #else
     BSTD_UNUSED(hRdc);
@@ -551,12 +551,12 @@ Output:
 Returns:
 
 ****************************************************************************/
-BERR_Code BRDC_P_ReleaseSync
+BERR_Code BRDC_P_ReleaseSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                         ulId )
 {
 #if (BRDC_P_MAX_SYNC)
-    BDBG_ENTER(BRDC_P_ReleaseSync);
+    BDBG_ENTER(BRDC_P_ReleaseSync_isr);
 
     BDBG_ASSERT(hRdc);
     if(ulId >= BRDC_P_MAX_SYNC) {
@@ -565,7 +565,7 @@ BERR_Code BRDC_P_ReleaseSync
     /* disarm the sync */
     BRDC_P_ArmSync_isr(hRdc, ulId, false);
     hRdc->abSyncUsed[ulId] = false;
-    BDBG_LEAVE(BRDC_P_ReleaseSync);
+    BDBG_LEAVE(BRDC_P_ReleaseSync_isr);
 #else
     BSTD_UNUSED(hRdc);
     BSTD_UNUSED(ulId);
@@ -589,7 +589,7 @@ Output:
 Returns:
 
 See Also:
-    BRDC_P_AcquireSync
+    BRDC_P_AcquireSync_isr
 ****************************************************************************/
 BERR_Code BRDC_P_ArmSync_isr
     ( BRDC_Handle                      hRdc,
@@ -608,7 +608,7 @@ BERR_Code BRDC_P_ArmSync_isr
 
     ulAddr = BCHP_RDC_sync_0_arm + (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm) * ulSyncId;
     ulReg = BCHP_FIELD_DATA(RDC_sync_0_arm, arm, bArm);
-    BRDC_P_Write32(hRdc, ulAddr, ulReg);
+    BRDC_P_Write32_isr(hRdc, ulAddr, ulReg);
     BDBG_MSG(("RDC_sync_%u is %s", ulSyncId, bArm? "armed" : "disarmed"));
 
     BDBG_LEAVE(BRDC_P_ArmSync_isr);

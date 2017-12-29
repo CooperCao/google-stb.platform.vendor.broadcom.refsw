@@ -52,6 +52,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <errno.h>
+
+#ifdef DIF_MULTI_THREAD
+#include <pthread.h>
+#endif
 
 #include "nxclient.h"
 #include "nexus_surface_client.h"
@@ -82,7 +87,8 @@ BDBG_MODULE(playback_dif);
 #define REPACK_VIDEO_PES_ID 0xE0
 #define REPACK_AUDIO_PES_ID 0xC0
 
-#define BUF_SIZE (1024 * 1024 * 2) /* 2MB */
+#define BUF_SIZE (1024 * 1024 * 4) /* 4MB */
+#define VIDEO_PLAYPUMP_BUF_SIZE (1024 * 1024 * 2) /* 2MB */
 
 #define CALCULATE_PTS(t) (((uint64_t)(t) / 10000LL) * 45LL)
 
@@ -115,10 +121,18 @@ public:
     IStreamer* audioStreamer[MAX_MOSAICS];
     int video_decode_hdr[MAX_MOSAICS];
 
+#ifdef DIF_MULTI_THREAD
+    uint8_t *pAvccHdr[MAX_MOSAICS];
+    uint8_t *pPayload[MAX_MOSAICS];
+    uint8_t *pAudioHeaderBuf[MAX_MOSAICS];
+    uint8_t *pVideoHeaderBuf[MAX_MOSAICS];
+    pthread_t playback_thread[MAX_MOSAICS];
+#else
     uint8_t *pAvccHdr;
     uint8_t *pPayload;
     uint8_t *pAudioHeaderBuf;
     uint8_t *pVideoHeaderBuf;
+#endif
 
     FILE *fp_mp4[MAX_MOSAICS];
     char* file[MAX_MOSAICS];
@@ -135,6 +149,7 @@ public:
 
     // Session Type - only for Wv3x
     SessionType sessionType[MAX_MOSAICS];
+    std::string license[MAX_MOSAICS];
 
     uint64_t last_video_fragment_time;
     uint64_t last_audio_fragment_time;
@@ -156,11 +171,12 @@ AppContext::AppContext()
 {
     gui = NULL;
 
+#ifndef DIF_MULTI_THREAD
     pAvccHdr = NULL;
     pPayload = NULL;
     pAudioHeaderBuf = NULL;
     pVideoHeaderBuf = NULL;
-
+#endif
 
     for (int i = 0; i < MAX_MOSAICS; i++) {
         file[i] = NULL;
@@ -182,6 +198,13 @@ AppContext::AppContext()
         mosaic[i].zorder = ZORDER_TOP;
         mosaic[i].done = false;
         sessionType[i] = session_type_eTemporary;
+        license[i].clear();
+#ifdef DIF_MULTI_THREAD
+        pAvccHdr[i] = NULL;
+        pPayload[i] = NULL;
+        pAudioHeaderBuf[i] = NULL;
+        pVideoHeaderBuf[i] = NULL;
+#endif
     }
     event = NULL;
 
@@ -191,7 +214,7 @@ AppContext::AppContext()
 
 AppContext::~AppContext()
 {
-    LOGW(("%s: start cleaning up", __FUNCTION__));
+    LOGW(("%s: start cleaning up", BSTD_FUNCTION));
     for (int i = 0; i < MAX_MOSAICS; i++) {
         if (videoDecoder[i]) {
             NEXUS_SimpleVideoDecoder_Stop(videoDecoder[i]);
@@ -201,10 +224,12 @@ AppContext::~AppContext()
         }
     }
 
+#ifndef DIF_MULTI_THREAD
     if (pAvccHdr) NEXUS_Memory_Free(pAvccHdr);
     if (pPayload) NEXUS_Memory_Free(pPayload);
     if (pAudioHeaderBuf) NEXUS_Memory_Free(pAudioHeaderBuf);
     if (pVideoHeaderBuf) NEXUS_Memory_Free(pVideoHeaderBuf);
+#endif
 
     for (int i = 0; i < MAX_MOSAICS; i++) {
         if(parser[i]) {
@@ -240,6 +265,14 @@ AppContext::~AppContext()
         if (stcChannel[i] != NULL) {
             NEXUS_SimpleStcChannel_Destroy(stcChannel[i]);
         }
+
+        license[i].clear();
+#ifdef DIF_MULTI_THREAD
+        if (pAvccHdr[i]) NEXUS_Memory_Free(pAvccHdr[i]);
+        if (pPayload[i]) NEXUS_Memory_Free(pPayload[i]);
+        if (pAudioHeaderBuf[i]) NEXUS_Memory_Free(pAudioHeaderBuf[i]);
+        if (pVideoHeaderBuf[i]) NEXUS_Memory_Free(pVideoHeaderBuf[i]);
+#endif
     }
     if (connectId != 0xFFFF) {
         NxClient_Disconnect(connectId);
@@ -357,11 +390,11 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
     uint32_t bytes_processed = 0;
     uint32_t last_bytes_processed = 0;
     if (frag_info->samples_info->sample_count == 0) {
-        LOGE(("%s: No samples", __FUNCTION__));
+        LOGE(("%s: No samples", BSTD_FUNCTION));
         return -1;
     }
 
-    LOGD(("%s: #samples=%d",__FUNCTION__, frag_info->samples_info->sample_count));
+    LOGD(("%s: #samples=%d",BSTD_FUNCTION, frag_info->samples_info->sample_count));
     for (unsigned i = 0; i < frag_info->samples_info->sample_count; i++) {
         uint32_t numOfByteDecrypted = 0;
         size_t sampleSize = 0;
@@ -375,7 +408,11 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             /* H.264 Decoder configuration parsing */
             size_t avcc_hdr_size;
             size_t nalu_len = 0;
+#ifdef DIF_MULTI_THREAD
+            parse_avcc_config(s_app.pAvccHdr[index], &avcc_hdr_size, &nalu_len, (uint8_t*)decoder_data, decoder_len);
+#else
             parse_avcc_config(s_app.pAvccHdr, &avcc_hdr_size, &nalu_len, (uint8_t*)decoder_data, decoder_len);
+#endif
 
             bmedia_pes_info_init(&pes_info, REPACK_VIDEO_PES_ID);
             frag_duration = s_app.last_video_fragment_time +
@@ -386,17 +423,31 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
 
             if (s_app.video_decode_hdr[index] == 0) {
+#ifdef DIF_MULTI_THREAD
+                pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf[index],
+                    (sampleSize + avcc_hdr_size - nalu_len + sizeof(bmp4_nal)), &pes_info);
+#else
                 pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
                     (sampleSize + avcc_hdr_size - nalu_len + sizeof(bmp4_nal)), &pes_info);
+#endif
             } else {
+#ifdef DIF_MULTI_THREAD
+                pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf[index],
+                    sampleSize - nalu_len + sizeof(bmp4_nal), &pes_info);
+#else
                 pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
                     sampleSize - nalu_len + sizeof(bmp4_nal), &pes_info);
+#endif
             }
 
             if (pes_header_len > 0) {
                 IBuffer* output =
                     streamer->GetBuffer(pes_header_len);
+#ifdef DIF_MULTI_THREAD
+                output->Copy(0, s_app.pVideoHeaderBuf[index], pes_header_len);
+#else
                 output->Copy(0, s_app.pVideoHeaderBuf, pes_header_len);
+#endif
                 BufferFactory::DestroyBuffer(output);
                 bytes_processed += pes_header_len;
             }
@@ -404,7 +455,11 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             if (s_app.video_decode_hdr[index] == 0) {
                 IBuffer* output =
                     streamer->GetBuffer(avcc_hdr_size);
+#ifdef DIF_MULTI_THREAD
+                output->Copy(0, s_app.pAvccHdr[index], avcc_hdr_size);
+#else
                 output->Copy(0, s_app.pAvccHdr, avcc_hdr_size);
+#endif
                 BufferFactory::DestroyBuffer(output);
                 bytes_processed += avcc_hdr_size;
                 s_app.video_decode_hdr[index] = 1;
@@ -433,7 +488,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             }
             if (numOfByteDecrypted != sampleSize)
             {
-                LOGE(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
+                LOGE(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
                 BufferFactory::DestroyBuffer(input);
                 BufferFactory::DestroyBuffer(decOutput);
                 return -1;
@@ -452,17 +507,30 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             pes_info.pts_valid = true;
             pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
 
+#ifdef DIF_MULTI_THREAD
+            pes_header_len = bmedia_pes_header_init(s_app.pAudioHeaderBuf[index],
+                (sampleSize + BMEDIA_ADTS_HEADER_SIZE), &pes_info);
+#else
             pes_header_len = bmedia_pes_header_init(s_app.pAudioHeaderBuf,
                 (sampleSize + BMEDIA_ADTS_HEADER_SIZE), &pes_info);
+#endif
 
             /* AAC information parsing */
             bmedia_info_aac *info_aac = (bmedia_info_aac *)decoder_data;
+#ifdef DIF_MULTI_THREAD
+            parse_esds_config(s_app.pAudioHeaderBuf[index] + pes_header_len, info_aac, sampleSize);
+#else
             parse_esds_config(s_app.pAudioHeaderBuf + pes_header_len, info_aac, sampleSize);
+#endif
 
             if (streamer) {
                 IBuffer* output =
                     streamer->GetBuffer(pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
+#ifdef DIF_MULTI_THREAD
+                output->Copy(0, s_app.pAudioHeaderBuf[index], pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
+#else
                 output->Copy(0, s_app.pAudioHeaderBuf, pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
+#endif
                 bytes_processed += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
                 BufferFactory::DestroyBuffer(output);
             }
@@ -481,7 +549,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 }
                 if (numOfByteDecrypted != sampleSize)
                 {
-                    LOGE(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
+                    LOGE(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
                     BufferFactory::DestroyBuffer(input);
                     BufferFactory::DestroyBuffer(decOutput);
                     return -1;
@@ -491,7 +559,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 bytes_processed += numOfByteDecrypted;
             }
         } else {
-            LOGW(("%s Unsupported track type %d detected", __FUNCTION__, frag_info->trackType));
+            LOGW(("%s Unsupported track type %d detected", BSTD_FUNCTION, frag_info->trackType));
             return -1;
         }
 
@@ -511,7 +579,7 @@ static void play_callback(void *context, int param)
 
 static void wait_for_drain()
 {
-    LOGW(("%s: start", __FUNCTION__));
+    LOGW(("%s: start", BSTD_FUNCTION));
     NEXUS_Error rc;
     NEXUS_PlaypumpStatus playpumpStatus;
     int drained = 0;
@@ -545,7 +613,7 @@ static void wait_for_drain()
             break;
         BKNI_Sleep(100);
     }
-    LOGW(("%s: video playpump was drained", __FUNCTION__));
+    LOGW(("%s: video playpump was drained", BSTD_FUNCTION));
 
     drained = 0;
     for (int i = 0; i < s_app.num_mosaics; i++) {
@@ -576,7 +644,7 @@ static void wait_for_drain()
             break;
         BKNI_Sleep(100);
     }
-    LOGW(("%s: audio playpump was drained", __FUNCTION__));
+    LOGW(("%s: audio playpump was drained", BSTD_FUNCTION));
 
     drained = 0;
     for (int i = 0; i < s_app.num_mosaics; i++) {
@@ -608,7 +676,7 @@ static void wait_for_drain()
             break;
         BKNI_Sleep(100);
     }
-    LOGW(("%s: video decoder was drained", __FUNCTION__));
+    LOGW(("%s: video decoder was drained", BSTD_FUNCTION));
 
     drained = 0;
     for (int i = 0; i < s_app.num_mosaics; i++) {
@@ -641,7 +709,7 @@ static void wait_for_drain()
 
         BKNI_Sleep(100);
     }
-    LOGW(("%s: audio decoder was drained", __FUNCTION__));
+    LOGW(("%s: audio decoder was drained", BSTD_FUNCTION));
 
     // wait for 1 sec to stabilize
     BKNI_Sleep(1000);
@@ -769,33 +837,80 @@ static void setup_streamers()
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_SimpleStcChannelSettings stcSettings;
+    NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
     NEXUS_PlaypumpSettings playpumpSettings;
     NEXUS_Error rc;
 
     // Create Streamers
     for (int i = 0; i < s_app.num_mosaics; i++) {
         s_app.videoStreamer[i] = StreamerFactory::CreateStreamer(!secure_video);
-        if (i == 0) // FIXME: set up audio only for the first one
-            s_app.audioStreamer[i] = StreamerFactory::CreateStreamer(!secure_video);
         if (s_app.videoStreamer[i] == NULL) {
             exit(EXIT_FAILURE);
         }
+        if (i == 0) {
+            // FIXME: set up audio only for the first one
+            s_app.audioStreamer[i] = StreamerFactory::CreateStreamer(!secure_video);
+            if (s_app.audioStreamer[i] == NULL) {
+                exit(EXIT_FAILURE);
+            }
+        }
 
-        if (s_app.mosaic[i].rect.height > 576)
-            s_app.videoPlaypump[i] = s_app.videoStreamer[i]->OpenPlaypump(true);
-        else
-            s_app.videoPlaypump[i] = s_app.videoStreamer[i]->OpenPlaypump(false);
+        // Increase playpump buffer size for video
+        s_app.videoStreamer[i]->GetDefaultPlaypumpOpenSettings(&playpumpOpenSettings);
+        playpumpOpenSettings.fifoSize = VIDEO_PLAYPUMP_BUF_SIZE;
+        s_app.videoPlaypump[i] = s_app.videoStreamer[i]->OpenPlaypump(&playpumpOpenSettings);
 
-        if (s_app.audioStreamer[i])
-            s_app.audioPlaypump[i] = s_app.audioStreamer[i]->OpenPlaypump(false);
+        if (s_app.videoPlaypump[i] == NULL ) {
+            LOGE(("Failed to open video playpump[%d]", i));
+            exit(EXIT_FAILURE);
+        }
+
+        if (s_app.audioStreamer[i]) {
+            // Use default playpump open settings
+            s_app.audioPlaypump[i] = s_app.audioStreamer[i]->OpenPlaypump(NULL);
+
+            if (s_app.audioPlaypump[i] == NULL ) {
+                LOGE(("Failed to open audio playpump[%d]", i));
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 
-    LOGD(("%s - %d\n", __FUNCTION__, __LINE__));
+    LOGD(("%s - %d\n", BSTD_FUNCTION, __LINE__));
 
     NEXUS_Platform_GetClientConfiguration(&clientConfig);
     NEXUS_Memory_GetDefaultAllocationSettings(&memSettings);
     memSettings.heap = clientConfig.heap[1]; /* heap 1 is the eFull heap for the nxclient. */
 
+#ifdef DIF_MULTI_THREAD
+    for (int i = 0; i < s_app.num_mosaics; i++) {
+        s_app.pAvccHdr[i] = NULL;
+        if (NEXUS_Memory_Allocate(BMP4_MAX_PPS_SPS, &memSettings, (void **)&s_app.pAvccHdr[i]) != NEXUS_SUCCESS) {
+            fprintf(stderr,"NEXUS_Memory_Allocate failed");
+            exit(EXIT_FAILURE);
+        }
+
+        s_app.pPayload[i] = NULL;
+        if (NEXUS_Memory_Allocate(BUF_SIZE, &memSettings, (void **)&s_app.pPayload[i]) != NEXUS_SUCCESS) {
+            fprintf(stderr,"NEXUS_Memory_Allocate failed");
+            exit(EXIT_FAILURE);
+        }
+
+        s_app.pAudioHeaderBuf[i] = NULL;
+        if (NEXUS_Memory_Allocate(BMEDIA_PES_HEADER_MAX_SIZE + BMP4_MAX_PPS_SPS,
+            &memSettings, (void **)&s_app.pAudioHeaderBuf[i]) != NEXUS_SUCCESS) {
+            fprintf(stderr,"NEXUS_Memory_Allocate failed");
+            exit(EXIT_FAILURE);
+        }
+
+        s_app.pVideoHeaderBuf[i] = NULL;
+        if (NEXUS_Memory_Allocate(BMEDIA_PES_HEADER_MAX_SIZE + BMP4_MAX_PPS_SPS,
+            &memSettings, (void **)&s_app.pVideoHeaderBuf[i]) != NEXUS_SUCCESS) {
+            fprintf(stderr,"NEXUS_Memory_Allocate failed");
+            exit(EXIT_FAILURE);
+        }
+    }
+#else
     s_app.pAvccHdr = NULL;
     if (NEXUS_Memory_Allocate(BMP4_MAX_PPS_SPS, &memSettings, (void **)&s_app.pAvccHdr) != NEXUS_SUCCESS) {
         fprintf(stderr,"NEXUS_Memory_Allocate failed");
@@ -821,6 +936,7 @@ static void setup_streamers()
         fprintf(stderr,"NEXUS_Memory_Allocate failed");
         exit(EXIT_FAILURE);
     }
+#endif
 
     BKNI_CreateEvent(&s_app.event);
 
@@ -988,7 +1104,7 @@ static void setup_decryptors()
             decryptorDrmType = parserDrmType;
             if (decryptorDrmType == drm_type_eWidevine ||
                 decryptorDrmType == drm_type_eWidevine3x) {
-                BDBG_WRN(("%s: defaulting to WV with GooglePlay License server", __FUNCTION__));
+                BDBG_WRN(("%s: defaulting to WV with GooglePlay License server", BSTD_FUNCTION));
                 s_app.useGooglePlayLicServer[i] = true;
             }
         }
@@ -1025,6 +1141,18 @@ static void setup_decryptors()
         if (!s_app.decryptor[i]->Initialize(psshDataStr)) {
             LOGE(("Failed to initialize Decryptor"));
             exit(EXIT_FAILURE);
+        }
+
+        // New API - Load
+        if (s_app.sessionType[i] == session_type_ePersistent &&
+            !s_app.license[i].empty()) {
+            if (s_app.decryptor[i]->Load(s_app.license[i])) {
+                LOGW(("Successfully loaded persistent license: %s", s_app.license[i].c_str()));
+                continue;
+            } else {
+                LOGW(("Failed to load persistent license: %s", s_app.license[i].c_str()));
+                LOGW(("Continuing to acquire a license..."));
+            }
         }
 
         // New API - GenerateKeyRequest
@@ -1068,17 +1196,30 @@ static void setup_decryptors()
 
 }
 
-void playback_loop()
+#ifdef DIF_MULTI_THREAD
+void* playback(void* arg)
+#else
+void* playback_loop()
+#endif
 {
     mp4_parse_frag_info frag_info;
     void *decoder_data;
     uint32_t decoder_len;
-
     int done_count = 0;
+#ifdef DIF_MULTI_THREAD
+    int i = (intptr_t)arg;
+    LOGW(("playback thread starting stream %d", i));
+#endif
     for (;;) {
+#ifndef DIF_MULTI_THREAD
         for (int i = 0; i < s_app.num_mosaics; i++) {
+#endif
             if (!s_app.mosaic[i].done) {
+#ifdef DIF_MULTI_THREAD
+                decoder_data = s_app.parser[i]->GetFragmentData(frag_info, s_app.pPayload[i], decoder_len);
+#else
                 decoder_data = s_app.parser[i]->GetFragmentData(frag_info, s_app.pPayload, decoder_len);
+#endif
                 if (decoder_data == NULL) {
                     s_app.mosaic[i].done = true;
                     done_count++;
@@ -1090,13 +1231,21 @@ void playback_loop()
                     exit(EXIT_FAILURE);
             }
             if (shouldExit)
-                return;
+                goto end;
+#ifdef DIF_MULTI_THREAD
+            if (done_count >= 1) {
+#else
             if (done_count >= s_app.num_mosaics) {
+#endif
                 wait_for_drain();
-                return;
+                goto end;
             }
+#ifndef DIF_MULTI_THREAD
         }
+#endif
     }
+end:
+    return NULL;
 }
 
 static void rewind_parsers()
@@ -1121,8 +1270,9 @@ static void print_usage(char* command)
     LOGE(("        -pr3x:g <file> Set DRM type as playready 3.x and use GooglePlay license server"));
     LOGE(("        -wv <file> Set DRM type as widevine"));
     LOGE(("        -wv3x <file> Set DRM type as widevine 3x"));
-    LOGE(("        -wv3x:1 <file> Set DRM type as widevine 3x and session type as persistent"));
-    LOGE(("        -wv3x:2 <file> Set DRM type as widevine 3x and session type as persistent usage record"));
+    LOGE(("        -wv3x:p <file> Set DRM type as widevine 3x and session type as persistent"));
+    LOGE(("        -wv3x:p:<license> <file> Load persistent license for widevine 3x session"));
+    LOGE(("        -wv3x:pur <file> Set DRM type as widevine 3x and session type as persistent usage record"));
     LOGE(("        -loop N    Set # of playback loops"));
     LOGE(("        -secure    Use secure video picture buffers (URR)"));
     LOGE(("        -n N       Set # of mosaics, max=%d", MAX_MOSAICS));
@@ -1207,10 +1357,15 @@ int main(int argc, char* argv[])
                 print_usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
-            if (strcmp(argv[i], "-wv3x:1") == 0) {
-                s_app.sessionType[num_files] = session_type_ePersistent;
-            } else if (strcmp(argv[i], "-wv3x:2") == 0) {
+            if (strncmp(argv[i], "-wv3x:pur", 9) == 0) {
                 s_app.sessionType[num_files] = session_type_ePersistentUsageRecord;
+            } else if (strncmp(argv[i], "-wv3x:p", 7) == 0) {
+                s_app.sessionType[num_files] = session_type_ePersistent;
+                if (strncmp(argv[i], "-wv3x:p:", 8) == 0 &&
+                    strlen(argv[i]) > 8) {
+                    s_app.license[num_files].assign(&argv[i][8]);
+                    LOGW(("Persistent License: %s", s_app.license[num_files].c_str()));
+                }
             }
             s_app.useGooglePlayLicServer[num_files] = true;
             s_app.parserDrmType[num_files] = drm_type_eWidevine;
@@ -1291,7 +1446,24 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i < num_loops; i++) {
         LOGW(("Playback Loop: %d starting", i));
+#ifndef DIF_MULTI_THREAD
         playback_loop();
+#else
+        LOGW(("Spawning %d threads", s_app.num_mosaics));
+        for (int j = 0; j < s_app.num_mosaics; j++) {
+            if(pthread_create(&s_app.playback_thread[j], NULL, playback, (void*)(intptr_t)j)) {
+                LOGE(("Error creating thread %d errno=%d", j, errno));
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        for (int j = 0; j < s_app.num_mosaics; j++) {
+            if (pthread_join(s_app.playback_thread[j], NULL)) {
+                LOGE(("Error joining thread %d errno=%d", j, errno));
+                exit(EXIT_FAILURE);
+            }
+        }
+#endif
         if (shouldExit)
             break;
         LOGW(("Playback Loop: %d done", i));

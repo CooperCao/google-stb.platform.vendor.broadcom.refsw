@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -794,7 +794,7 @@ BERR_Code BVDC_GetCapabilities
         pCapabilities->ulNumCmp = BVDC_P_GetNumCmp(hVdc->pFeatures);
         pCapabilities->ulNumMad = BVDC_P_SUPPORT_MCVP;
         pCapabilities->ulNumDnr = BVDC_P_SUPPORT_DNR;
-        pCapabilities->ulNumPep = BVDC_P_SUPPORT_PEP;
+        pCapabilities->ulNumPep = 0;
         pCapabilities->ulNumTab = BVDC_P_SUPPORT_TNT;
         pCapabilities->ulNumDac = BVDC_P_MAX_DACS;
         pCapabilities->ulNumRfm = BVDC_P_SUPPORT_RFM_OUTPUT;

@@ -1,5 +1,5 @@
 /******************************************************************************
-  * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+  * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
   *
   * This program is the proprietary software of Broadcom and/or its licensors,
   * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,7 +36,7 @@
   * ANY LIMITED REMEDY.
   *****************************************************************************/
 
-#define BDSP_RAAGA_MAJOR_VERSION       14
-#define BDSP_RAAGA_MINOR_VERSION       10
+#define BDSP_RAAGA_MAJOR_VERSION       15
+#define BDSP_RAAGA_MINOR_VERSION       6
 #define BDSP_RAAGA_BRANCH_VERSION      0
 #define BDSP_RAAGA_BRANCH_SUBVERSION   0

@@ -45,6 +45,8 @@
 #include "bavc_types.h"
 #include "bsagelib_types.h"
 #include "nexus_sage_types.h"
+#include "nexus_sage_init.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,10 +78,10 @@ NEXUS_Error NEXUS_Sage_UpdateHeaps(void);
 NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList);
 void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList);
 NEXUS_Error NEXUS_Sage_P_SvpEnterS3(void);
-NEXUS_Error NEXUS_Sage_P_SvpInit(void);
+NEXUS_Error NEXUS_Sage_P_SvpInit(NEXUS_SageModuleInternalSettings *internalSettings);
 NEXUS_Error NEXUS_Sage_P_SvpStart(void);
 void NEXUS_Sage_P_SvpStop(bool reset);
-void NEXUS_Sage_P_SvpInitDelayed(void);
+void NEXUS_Sage_P_SvpInitDelayed(void *pParam);
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
 void NEXUS_Sage_P_SvpUninit(bool reset);
 #else
@@ -92,6 +94,8 @@ void NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyMode standbyMode);
 NEXUS_Error NEXUS_Sage_P_SystemCritRestartCheck(void *pSettings);
 NEXUS_Error NEXUS_SageModule_P_AddRegion(uint32_t id, NEXUS_Addr offset, uint32_t size);
 NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void);
+NEXUS_Error NEXUS_Sage_P_SARMInit(NEXUS_SageModuleSettings *pSettings);
+void NEXUS_Sage_P_SARMUninit(void);
 
 #ifdef NEXUS_SAGE_SVP_TEST
 NEXUS_Error NEXUS_Sage_P_SecureCores_test(const BAVC_CoreList *pCoreList, bool add);
@@ -109,6 +113,10 @@ typedef struct NEXUS_SageImageHolder {
 } NEXUS_SageImageHolder;
 
 NEXUS_Error NEXUS_Sage_LoadImage_priv(NEXUS_SageImageHolder *holder);
+
+NEXUS_Error NEXUS_Sage_P_SecureLog_Init(const NEXUS_SageModuleSettings *pSettings);
+void NEXUS_Sage_P_SecureLog_Uninit(void);
+void NEXUS_Sage_P_PrintSecureLog(void);
 
 #ifdef __cplusplus
 }

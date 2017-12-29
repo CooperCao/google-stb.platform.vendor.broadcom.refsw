@@ -38,7 +38,6 @@
 
 #if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_API_VERSION==2)
 
-#include "nexus_memory.h"
 #include "nexus_security.h"
 #include "nexus_keyslot.h"
 #include "security_utils.h"
@@ -53,7 +52,6 @@ int main(
     NEXUS_KeySlotAllocateSettings keyslotAllocSettings;
     NEXUS_KeySlotSettings keyslotSettings;
     NEXUS_KeySlotEntrySettings keyslotEntrySettings;
-    NEXUS_KeySlotEntrySettings settings;
     NEXUS_KeySlotBlockEntry entry;
     NEXUS_KeySlotKey slotKey;
     unsigned      data_size, key_size;
@@ -75,18 +73,16 @@ int main(
     keyslotHandle = NEXUS_KeySlot_Allocate( &keyslotAllocSettings );
     if( !keyslotHandle ) {
         BDBG_ERR( ( "\nError: Can't allocate keyslot\n" ) );
-        return -1;
+        return NEXUS_NOT_AVAILABLE;
     }
 
     /* Configure the keyslot. */
     NEXUS_KeySlot_GetSettings( keyslotHandle, &keyslotSettings );
 
     rc = NEXUS_KeySlot_SetSettings( keyslotHandle, &keyslotSettings );
-    if( rc != NEXUS_SUCCESS ) {
-        return BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
-    /* Configure a key entry to encry. */
+    /* Configure a key entry to encrypt. */
     entry = NEXUS_KeySlotBlockEntry_eCpsClear;
     NEXUS_KeySlot_GetEntrySettings( keyslotHandle, entry, &keyslotEntrySettings );
 
@@ -97,9 +93,7 @@ int main(
     keyslotEntrySettings.gPipeEnable = true;
 
     rc = NEXUS_KeySlot_SetEntrySettings( keyslotHandle, entry, &keyslotEntrySettings );
-    if( rc != NEXUS_SUCCESS ) {
-        return BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
     BDBG_LOG( ( "Loads the clear key to key entry #%d.\n", entry ) );
 
@@ -109,9 +103,7 @@ int main(
     BKNI_Memcpy( slotKey.key, clearKey_128, key_size );
 
     rc = NEXUS_KeySlot_SetEntryKey( keyslotHandle, entry, &slotKey );
-    if( rc != NEXUS_SUCCESS ) {
-        return BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
     /* Using clear key as the root key to encrypt the plain text, cipher is pDest. */
     data_size = sizeof( plainText );
@@ -123,9 +115,7 @@ int main(
     BKNI_Memset( pDest, 0, data_size );
 
     rc = securityUtil_DmaTransfer( keyslotHandle, pSrc, pDest, NEXUS_DmaDataFormat_eBlock, data_size, false );
-    if( rc != NEXUS_SUCCESS ) {
-        BERR_TRACE( rc );
-    }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
     else {
         if( BKNI_Memcmp( pDest, CipherText_Aes_128_Ecb, data_size ) ) {
             BDBG_ERR( ( "    Test FAILED!\n" ) );
@@ -135,10 +125,11 @@ int main(
         }
     }
 
-    if( pSrc )
-        NEXUS_Memory_Free( pSrc );
-    if( pDest )
-        NEXUS_Memory_Free( pDest );
+exit:
+
+    if( pSrc ) NEXUS_Memory_Free( pSrc );
+    if( pDest ) NEXUS_Memory_Free( pDest );
+    if (keyslotHandle) NEXUS_KeySlot_Free( keyslotHandle );
 
     securityUtil_PlatformUnInit( );
 

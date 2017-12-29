@@ -140,7 +140,7 @@ int main(int argc, char **argv)
     }
     #endif
     rc = NEXUS_KeySlot_SetSettings( keyslotHandle, &keyslotSettings );
-    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( rc ); }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
     NEXUS_KeySlot_GetEntrySettings( keyslotHandle,
                                     NEXUS_KeySlotBlockEntry_eCpsClear,
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
     rc = NEXUS_KeySlot_SetEntrySettings( keyslotHandle,
                                          NEXUS_KeySlotBlockEntry_eCpsClear,
                                          &keyslotEntrySettings );
-    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( rc ); }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
     slotKey.size = sizeof(key);
 	BKNI_Memcpy( slotKey.key, key, slotKey.size );
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
     rc = NEXUS_KeySlot_SetEntryKey( keyslotHandle,
                                     NEXUS_KeySlotBlockEntry_eCpsClear,
                                     &slotKey );
-    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( rc ); }
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 
 	/* Open DMA handle */
     dma = NEXUS_Dma_Open(0, NULL);
@@ -204,12 +204,6 @@ int main(int argc, char **argv)
     NEXUS_DmaJob_Destroy( dmaJob );
     NEXUS_Dma_Close( dma );
     BKNI_DestroyEvent( dmaEvent );
-    NEXUS_KeySlot_Free( keyslotHandle );
-
-    if( pSrc )
-        NEXUS_Memory_Free( pSrc );
-    if( pDest )
-        NEXUS_Memory_Free( pDest );
 
     if( BKNI_Memcmp( pDest, ciphertext, sizeof(plaintext) ) )
 	{
@@ -222,6 +216,12 @@ int main(int argc, char **argv)
 	{
 		printf("    PASSED!\n");
 	}
+
+exit:
+
+    if( pSrc ) NEXUS_Memory_Free( pSrc );
+    if( pDest ) NEXUS_Memory_Free( pDest );
+    if (keyslotHandle) NEXUS_KeySlot_Free( keyslotHandle );
 
     NEXUS_Platform_Uninit();
     return 0;

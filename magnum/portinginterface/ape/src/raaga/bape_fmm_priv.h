@@ -459,7 +459,7 @@ void BAPE_SfifoGroup_P_SetSampleRate_isr(
 Summary:
 Get FCI Connection IDs for this group
 ***************************************************************************/
-void BAPE_SfifoGroup_P_GetOutputFciIds(
+void BAPE_SfifoGroup_P_GetOutputFciIds_isrsafe(
     BAPE_SfifoGroupHandle handle,
     BAPE_FciIdGroup *pFciGroup      /* [out] */
     );

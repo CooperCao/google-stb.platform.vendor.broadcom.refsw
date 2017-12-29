@@ -68,7 +68,7 @@ static bool is_target_3d(GLenum target)
       return true;
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case GL_TEXTURE_CUBE_MAP_ARRAY:
-      return (KHRN_GLES31_DRIVER ? true : false);
+      return (V3D_VER_AT_LEAST(3,3,0,0) ? true : false);
 #endif
    default:
       return false;
@@ -91,156 +91,6 @@ GLXX_TEXTURE_T* glxx_server_get_active_texture(const GLXX_SERVER_STATE_T *state,
       enum glxx_tex_target target)
 {
    return glxx_textures_get_texture(&state->bound_texture[state->active_texture], target);
-}
-
-static enum glxx_tex_target convert_sampler_to_tex_target(GLenum sampler_type)
-{
-   switch (sampler_type)
-   {
-      case GL_SAMPLER_2D:
-      case GL_SAMPLER_2D_SHADOW:
-      case GL_INT_SAMPLER_2D:
-      case GL_UNSIGNED_INT_SAMPLER_2D:
-         return GL_TEXTURE_2D;
-
-      case GL_SAMPLER_EXTERNAL_OES:
-         return GL_TEXTURE_EXTERNAL_OES;
-
-      case GL_SAMPLER_CUBE:
-      case GL_SAMPLER_CUBE_SHADOW:
-      case GL_INT_SAMPLER_CUBE:
-      case GL_UNSIGNED_INT_SAMPLER_CUBE:
-         return GL_TEXTURE_CUBE_MAP;
-
-      case GL_SAMPLER_2D_MULTISAMPLE:
-      case GL_INT_SAMPLER_2D_MULTISAMPLE:
-      case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
-         return GL_TEXTURE_2D_MULTISAMPLE;
-
-      case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-      case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-      case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-         return GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-
-      case GL_SAMPLER_3D:
-      case GL_INT_SAMPLER_3D:
-      case GL_UNSIGNED_INT_SAMPLER_3D:
-         return GL_TEXTURE_3D;
-
-      case GL_SAMPLER_2D_ARRAY:
-      case GL_SAMPLER_2D_ARRAY_SHADOW:
-      case GL_INT_SAMPLER_2D_ARRAY:
-      case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-         return GL_TEXTURE_2D_ARRAY;
-
-      case GL_SAMPLER_1D_BRCM:
-      case GL_INT_SAMPLER_1D_BRCM:
-      case GL_UNSIGNED_INT_SAMPLER_1D_BRCM:
-         return GL_TEXTURE_1D_BRCM;
-
-      case GL_SAMPLER_1D_ARRAY_BRCM:
-      case GL_INT_SAMPLER_1D_ARRAY_BRCM:
-      case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY_BRCM:
-         return GL_TEXTURE_1D_ARRAY_BRCM;
-
-      case GL_SAMPLER_CUBE_MAP_ARRAY:
-      case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
-      case GL_INT_SAMPLER_CUBE_MAP_ARRAY:
-      case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
-         return GL_TEXTURE_CUBE_MAP_ARRAY;
-
-      case GL_SAMPLER_BUFFER:
-      case GL_INT_SAMPLER_BUFFER:
-      case GL_UNSIGNED_INT_SAMPLER_BUFFER:
-         return GL_TEXTURE_BUFFER;
-
-      default:
-         break;
-   }
-
-   assert(0);
-   return 0;
-}
-
-static bool gl11_server_iterate_textures(
-      struct glxx_texture_info *info,
-      const GLXX_SERVER_STATE_T *state, unsigned *i)
-{
-   GLenum uniform_type;
-   enum glxx_tex_target target;
-   GLXX_TEXTURE_T *texture = NULL;
-   GLXX_TEXTURE_SAMPLER_STATE_T *sampler = NULL;
-   unsigned index = 0;
-
-   for ( ; *i < GL11_CONFIG_MAX_TEXTURE_UNITS && texture == NULL; (*i)++)
-   {
-      if (!(state->gl11.shaderkey.texture[*i] & GL11_TEX_ENABLE))
-         continue;
-
-      if (state->gl11.texunits[*i].target_enabled_2D)
-         uniform_type = GL_SAMPLER_2D;
-      else
-         uniform_type = GL_SAMPLER_EXTERNAL_OES;
-
-      index = *i;
-      target = convert_sampler_to_tex_target(uniform_type);
-      texture = glxx_textures_get_texture(state->bound_texture + *i, target);
-      sampler = state->bound_sampler[*i];
-   }
-
-   info->used_in_binning = false;
-   info->is_32bit = false;
-   info->texture = texture;
-   info->sampler = sampler;
-   info->index = index;
-
-   return texture != NULL;
-}
-
-static bool gl20_server_iterate_textures(
-      struct glxx_texture_info *info,
-      const GLXX_SERVER_STATE_T *state, unsigned *i)
-{
-   enum glxx_tex_target target;
-   GLXX_TEXTURE_T *texture = NULL;
-   GLXX_TEXTURE_SAMPLER_STATE_T *sampler = NULL;
-   GL20_PROGRAM_COMMON_T *program_common = gl20_program_common_get(state);
-   unsigned num_samplers = program_common->linked_glsl_program->num_samplers;
-   GLSL_SAMPLER_T *sampler_info = program_common->linked_glsl_program->samplers;
-   bool used_in_binning = false, is_32bit = false;
-   unsigned index = 0;
-
-   for ( ; *i < num_samplers && texture == NULL; (*i)++)
-   {
-      int j = program_common->uniform_data[sampler_info[*i].location];
-
-      if (j < 0 || j >= GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS)
-         continue;
-
-      index = *i;
-      target = convert_sampler_to_tex_target(sampler_info[*i].type);
-      texture = glxx_textures_get_texture(&state->bound_texture[j], target);
-      sampler = state->bound_sampler[j];
-      used_in_binning = !!sampler_info[*i].in_binning;
-      is_32bit = sampler_info[*i].is_32bit;
-   }
-
-   info->texture = texture;
-   info->sampler = sampler;
-   info->used_in_binning = used_in_binning;
-   info->is_32bit = is_32bit;
-   info->index = index;
-
-   return texture != NULL;
-}
-
-glxx_texture_iterator_t glxx_server_texture_iterator(
-      const GLXX_SERVER_STATE_T *state)
-{
-   if (IS_GL_11(state))
-      return gl11_server_iterate_textures;
-   else
-      return gl20_server_iterate_textures;
 }
 
 static int get_target_dimensions(GLenum target)
@@ -278,8 +128,10 @@ static bool is_supported_teximage_target(const GLXX_SERVER_STATE_T *state, GLenu
 
    switch(target)
    {
+#if V3D_VER_AT_LEAST(4,0,2,0)
       case GL_TEXTURE_1D_BRCM:
       case GL_TEXTURE_1D_ARRAY_BRCM:
+#endif
       case GL_TEXTURE_2D:
       case GL_TEXTURE_3D:
       case GL_TEXTURE_2D_ARRAY:
@@ -292,7 +144,7 @@ static bool is_supported_teximage_target(const GLXX_SERVER_STATE_T *state, GLenu
          return true;
 #if V3D_VER_AT_LEAST(4,0,2,0)
       case GL_TEXTURE_CUBE_MAP_ARRAY:
-         return  (KHRN_GLES31_DRIVER ? true : false);
+         return  (V3D_VER_AT_LEAST(3,3,0,0) ? true : false);
 #endif
       default:
          return false;
@@ -635,6 +487,7 @@ end:
    glxx_unlock_server_state();
 }
 
+#if V3D_VER_AT_LEAST(4,0,2,0)
 GL_APICALL void GL_APIENTRY glTexImage1DBRCM(GLenum target, GLint level, GLint internalformat,
             GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
@@ -642,6 +495,7 @@ GL_APICALL void GL_APIENTRY glTexImage1DBRCM(GLenum target, GLint level, GLint i
    texImageX(target, level, internalformat, width, 1, 1, border,
          format, type, pixels, 1);
 }
+#endif
 
 GL_API void GL_APIENTRY glTexImage2D(GLenum target, GLint level, GLint internalformat,
       GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
@@ -775,12 +629,14 @@ end:
    glxx_unlock_server_state();
 }
 
+#if V3D_VER_AT_LEAST(4,0,2,0)
 GL_API void GL_APIENTRY glTexStorage1DBRCM(GLenum target, GLsizei levels,
       GLenum internalformat, GLsizei width)
 {
    PROFILE_FUNCTION_MT("GL");
    texstorage(target, levels, internalformat, width, 1, 1, 1);
 }
+#endif
 
 GL_API void GL_APIENTRY glTexStorage2D(GLenum target, GLsizei levels,
       GLenum internalformat, GLsizei width, GLsizei height)
@@ -852,7 +708,7 @@ static bool texstorage_ms_internal_check(GLXX_SERVER_STATE_T *state, GLenum targ
    return true;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_API void GL_APIENTRY glTexStorage2DMultisample(GLenum target, GLsizei samples,
       GLenum internalformat, GLsizei width, GLsizei height,
@@ -941,7 +797,7 @@ GL_API void GL_APIENTRY glTexStorage3DMultisample(GLenum target, GLsizei samples
 
 #endif
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_API void GL_APIENTRY glTexStorage3DMultisampleOES(GLenum target, GLsizei samples,
       GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth,
@@ -1497,7 +1353,9 @@ static bool is_wrap(GLenum target, int i)
          return true;
       break;
    case GL_CLAMP_TO_EDGE:
+#if V3D_VER_AT_LEAST(4,0,2,0)
    case GL_CLAMP_TO_BORDER:
+#endif
    case GL_MIRROR_CLAMP_TO_EDGE_BRCM:
       return true;
    }
@@ -1527,8 +1385,11 @@ bool glxx_is_float_texparam(GLenum pname)
 
 bool glxx_is_vector_texparam(GLenum pname)
 {
-   return (pname == GL_TEXTURE_BORDER_COLOR) ||
-          (pname == GL_TEXTURE_CROP_RECT_OES);
+   return
+#if V3D_VER_AT_LEAST(4,0,2,0)
+      (pname == GL_TEXTURE_BORDER_COLOR) ||
+#endif
+      (pname == GL_TEXTURE_CROP_RECT_OES);
 }
 
 void glxx_texparameterf_sampler_internal(GLXX_SERVER_STATE_T *state,
@@ -1665,6 +1526,7 @@ void glxx_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state,
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
+#if V3D_VER_AT_LEAST(4,0,2,0)
    case GL_TEXTURE_BORDER_COLOR:
       if (!IS_GL_11(state))
       {
@@ -1676,6 +1538,7 @@ void glxx_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state,
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
+#endif
    default:
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
@@ -1713,13 +1576,15 @@ static bool is_texparam(GLenum pname) {
    case GL_TEXTURE_SWIZZLE_A:
    case GL_TEXTURE_BASE_LEVEL:
    case GL_TEXTURE_MAX_LEVEL:
+#if V3D_VER_AT_LEAST(4,0,2,0)
    case GL_TEXTURE_BORDER_COLOR:
+#endif
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
    case GL_TEXTURE_SRGB_DECODE_EXT:
    case GL_TEXTURE_PROTECTED_EXT:
       return true;
    case GL_DEPTH_STENCIL_TEXTURE_MODE:
-      return KHRN_GLES31_DRIVER ? true : false;
+      return V3D_VER_AT_LEAST(3,3,0,0) ? true : false;
 
    default:
       return false;
@@ -1758,7 +1623,9 @@ void glxx_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum target, GLenu
    case GL_TEXTURE_WRAP_R:
    case GL_TEXTURE_COMPARE_MODE:
    case GL_TEXTURE_COMPARE_FUNC:
+#if V3D_VER_AT_LEAST(4,0,2,0)
    case GL_TEXTURE_BORDER_COLOR:
+#endif
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
    case GL_TEXTURE_SRGB_DECODE_EXT:
       if (glxx_tex_target_is_multisample(texture->target))
@@ -1888,10 +1755,12 @@ GL_API void GL_APIENTRY glTexParameterfv(GLenum target, GLenum pname, const GLfl
    {
       int iparams[4];
       for (int i=0; i < (glxx_is_vector_texparam(pname) ? 4 : 1); i++) {
+#if V3D_VER_AT_LEAST(4,0,2,0)
          /* XXX: Border colour is weirdly either float or int */
          if (pname == GL_TEXTURE_BORDER_COLOR)
             iparams[i] = gfx_float_to_bits(params[i]);
          else
+#endif
             iparams[i] = gfx_float_to_int32(params[i]);
       }
       glxx_texparameter_internal(state, target, pname, iparams);
@@ -1999,6 +1868,7 @@ end:
    glxx_unlock_server_state();
 }
 
+#if V3D_VER_AT_LEAST(4,0,2,0)
 GL_API void GL_APIENTRY glTexSubImage1DBRCM(GLenum target, GLint level, GLint xoffset,
       GLsizei width, GLenum format, GLenum type, const GLvoid* orig_pixels)
 {
@@ -2006,6 +1876,7 @@ GL_API void GL_APIENTRY glTexSubImage1DBRCM(GLenum target, GLint level, GLint xo
    texSubImageX(target, level, xoffset, 0, 0, width, 1, 1,
          format, type, orig_pixels, 1);
 }
+#endif
 
 GL_API void GL_APIENTRY glTexSubImage2D(GLenum target, GLint level, GLint
       xoffset, GLint yoffset, GLsizei width, GLsizei height,
@@ -2167,7 +2038,7 @@ end:
    glxx_unlock_server_state();
 }
 
-#if (V3D_VER_AT_LEAST(3,3,0,0) && KHRN_GLES31_DRIVER) || KHRN_GLES32_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0) || KHRN_GLES32_DRIVER
 static bool is_allowed_texbuffer_internalformat(GLenum internalformat)
 {
    switch(internalformat)
@@ -2271,7 +2142,7 @@ end:
 }
 #endif
 
-#if V3D_VER_AT_LEAST(3,3,0,0) && KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0)
 GL_APICALL void GL_APIENTRY glTexBufferEXT(GLenum target, GLenum internalformat, GLuint buffer)
 {
    texBufferRange(target, internalformat, buffer, false, 0, 0);

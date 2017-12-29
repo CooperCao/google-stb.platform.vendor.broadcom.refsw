@@ -68,7 +68,7 @@ int SAGE_BP3Platform_Install(uint8_t* taBinBuff, uint32_t taBinSize)
     sage_rc = SRAI_Platform_Install(SAGE_PLATFORM_ID_BP3, taBinBuff, taBinSize);
     if (sage_rc != BERR_SUCCESS) {
         rc = 1;
-        printf("%s: Cannot Install Platform\n",__FUNCTION__);
+        printf("%s: Cannot Install Platform\n",BSTD_FUNCTION);
     }
     return rc;
 }
@@ -109,7 +109,7 @@ int SAGE_BP3Platform_Init(void)
                                  &hBP3Platform);
     if (sage_rc != BERR_SUCCESS) {
         rc = 1;
-        printf("%s: Cannot Open Platform\n",__FUNCTION__);
+        printf("%s: Cannot Open Platform\n",BSTD_FUNCTION);
         goto end;
     }
 
@@ -122,7 +122,7 @@ int SAGE_BP3Platform_Init(void)
         if (sage_rc != BERR_SUCCESS)
         {
             rc = 2;
-            printf("%s: Failed to initialize BP3 platform.\n",__FUNCTION__);
+            printf("%s: Failed to initialize BP3 platform.\n",BSTD_FUNCTION);
             goto end;
         }
     }

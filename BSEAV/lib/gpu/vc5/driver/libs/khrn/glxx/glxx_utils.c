@@ -174,9 +174,7 @@ bool glxx_is_color_renderable_from_api_fmt(GFX_LFMT_T fmt)
 {
    bool res = false;
 
-   GFX_LFMT_T fmt_pre_masked_out = fmt & GFX_LFMT_FORMAT_MASK & ~GFX_LFMT_PRE_MASK;
-
-   switch (fmt_pre_masked_out)
+   switch (fmt & GFX_LFMT_FORMAT_MASK)
    {
    case GFX_LFMT_R8_G8_B8_A8_SRGB_SRGB_SRGB_UNORM:
    case GFX_LFMT_R10G10B10A2_UINT:
@@ -230,7 +228,7 @@ bool glxx_is_depth_renderable_from_api_fmt(GFX_LFMT_T fmt)
 {
    bool res = false;
 
-   switch (fmt & GFX_LFMT_FORMAT_MASK & ~GFX_LFMT_PRE_MASK)
+   switch (fmt & GFX_LFMT_FORMAT_MASK)
    {
    case GFX_LFMT_D32_FLOAT:
    case GFX_LFMT_D24X8_UNORM:
@@ -247,7 +245,7 @@ bool glxx_is_depth_renderable_from_api_fmt(GFX_LFMT_T fmt)
 
 bool glxx_is_stencil_renderable_from_api_fmt(GFX_LFMT_T fmt)
 {
-   switch (fmt & GFX_LFMT_FORMAT_MASK & ~GFX_LFMT_PRE_MASK)
+   switch (fmt & GFX_LFMT_FORMAT_MASK)
    {
     case GFX_LFMT_S8_UINT:
     case GFX_LFMT_S8D24_UINT_UNORM:

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Image
-
-FILE DESCRIPTION
-Platform-specific image stuff.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "middleware/khronos/common/khrn_image.h"
@@ -25,7 +17,7 @@ Platform-specific image stuff.
 
 bool khrn_image_is_ok_for_render_target(KHRN_IMAGE_FORMAT_T format, bool ignore_mem_layout)
 {
-   vcos_assert(khrn_image_is_color(format));
+   assert(khrn_image_is_color(format));
 
    format = khrn_image_no_layout_format(format);
    format = khrn_image_no_colorspace_format(format);
@@ -55,12 +47,12 @@ bool khrn_image_is_ok_for_render_target(KHRN_IMAGE_FORMAT_T format, bool ignore_
 
 bool khrn_image_can_use_as_render_target(KHRN_IMAGE_T *image)
 {
-   vcos_assert(khrn_image_is_ok_for_render_target(image->format, true));
+   assert(khrn_image_is_ok_for_render_target(image->format, true));
    if (/* check the memory layout */
       !khrn_image_is_ok_for_render_target(image->format, false) ||
       (image->stride & (KHRN_HW_TLB_ALIGN - 1)) ||
       (khrn_image_get_align(image) < KHRN_HW_TLB_ALIGN)) {
-      vcos_assert(!(image->flags & IMAGE_FLAG_RENDER_TARGET));
+      assert(!(image->flags & IMAGE_FLAG_RENDER_TARGET));
       return false;
    }
    image->flags |= IMAGE_FLAG_RENDER_TARGET;
@@ -94,7 +86,7 @@ void khrn_image_platform_fudge(
    if (flags & IMAGE_CREATE_FLAG_RENDER_TARGET) {
       /* if it looks like a color buffer, check it's one of the supported
        * formats */
-      vcos_assert(!khrn_image_is_color(*format) ||
+      assert(!khrn_image_is_color(*format) ||
          (*format == A_8_RSO) || /* A_8_RSO used for mask buffers */
          (*format == COL_32_TLBD) || /* COL_32_TLBD used for multisample buffers */
          khrn_image_is_ok_for_render_target(*format, false));

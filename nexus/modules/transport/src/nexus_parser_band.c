@@ -409,36 +409,6 @@ static NEXUS_Error NEXUS_ParserBand_P_SetInterrupts(NEXUS_ParserBandHandle parse
         parserBand->ccErrorInt = NULL;
     }
 
-    if (pSettings->teiError.callback) {
-        if (!parserBand->teiErrorInt) {
-            BDBG_WRN(("create tei callback %p", (void *)parserBand));
-            rc = BINT_CreateCallback(&parserBand->teiErrorInt, g_pCoreHandles->bint, BXPT_INT_ID_PARSER_TRANSPORT_ERROR(parserBand->hwIndex), NEXUS_ParserBand_P_TEIError_isr, parserBand, 0);
-            if (rc) return BERR_TRACE(rc);
-            rc = BINT_EnableCallback(parserBand->teiErrorInt);
-            if (rc) return BERR_TRACE(rc);
-        }
-    }
-    else if (parserBand->teiErrorInt) {
-        BINT_DisableCallback(parserBand->teiErrorInt);
-        BINT_DestroyCallback(parserBand->teiErrorInt);
-        parserBand->teiErrorInt = NULL;
-    }
-
-    if (pSettings->lengthError.callback) {
-        if (!parserBand->lengthErrorInt) {
-            BDBG_WRN(("create length callback %p", (void *)parserBand));
-            rc = BINT_CreateCallback(&parserBand->lengthErrorInt, g_pCoreHandles->bint, BXPT_INT_ID_PARSER_LENGTH_ERROR(parserBand->hwIndex), NEXUS_ParserBand_P_LengthError_isr, parserBand, 0);
-            if (rc) return BERR_TRACE(rc);
-            rc = BINT_EnableCallback(parserBand->lengthErrorInt);
-            if (rc) return BERR_TRACE(rc);
-        }
-    }
-    else if (parserBand->lengthErrorInt) {
-        BINT_DisableCallback(parserBand->lengthErrorInt);
-        BINT_DestroyCallback(parserBand->lengthErrorInt);
-        parserBand->lengthErrorInt = NULL;
-    }
-
     NEXUS_IsrCallback_Set(parserBand->ccErrorCallback, &pSettings->ccError );
     NEXUS_IsrCallback_Set(parserBand->teiErrorCallback, &pSettings->teiError);
     NEXUS_IsrCallback_Set(parserBand->lengthErrorCallback, &pSettings->lengthError);
@@ -487,6 +457,35 @@ static NEXUS_Error NEXUS_ParserBand_P_Init(unsigned index)
     parserBand->ccErrorCallback = NEXUS_IsrCallback_Create(parserBand, NULL);
     parserBand->lengthErrorCallback = NEXUS_IsrCallback_Create(parserBand, NULL);
     rc = NEXUS_ParserBand_P_SetSettings(parserBand, &parserBandSettings);
+
+    BDBG_MSG(("create tei callback %p", (void *)parserBand));
+    rc = BINT_CreateCallback(&parserBand->teiErrorInt, g_pCoreHandles->bint, BXPT_INT_ID_PARSER_TRANSPORT_ERROR(parserBand->hwIndex), NEXUS_ParserBand_P_TEIError_isr, parserBand, 0);
+    if (rc) {rc = BERR_TRACE(rc); goto Error;}
+    rc = BINT_EnableCallback(parserBand->teiErrorInt);
+    if (rc) {rc = BERR_TRACE(rc); goto Error;}
+
+    BDBG_MSG(("create length callback %p", (void *)parserBand));
+    rc = BINT_CreateCallback(&parserBand->lengthErrorInt, g_pCoreHandles->bint, BXPT_INT_ID_PARSER_LENGTH_ERROR(parserBand->hwIndex), NEXUS_ParserBand_P_LengthError_isr, parserBand, 0);
+    if (rc) {rc = BERR_TRACE(rc); goto Error;}
+    rc = BINT_EnableCallback(parserBand->lengthErrorInt);
+    if (rc) {rc = BERR_TRACE(rc); goto Error;}
+
+    return NEXUS_SUCCESS;
+
+    Error:
+    if(parserBand->teiErrorInt)
+    {
+        BINT_DisableCallback(parserBand->teiErrorInt);
+        BINT_DestroyCallback(parserBand->teiErrorInt);
+    }
+    if(parserBand->lengthErrorInt)
+    {
+        BINT_DisableCallback(parserBand->lengthErrorInt);
+        BINT_DestroyCallback(parserBand->lengthErrorInt);
+    }
+    NEXUS_OBJECT_DESTROY(NEXUS_ParserBand, parserBand);
+	BKNI_Free(parserBand);
+    pTransport->parserBand[index] = NULL;
     return rc;
 }
 
@@ -638,6 +637,8 @@ NEXUS_Error NEXUS_ParserBand_GetStatus(NEXUS_ParserBand parserBand, NEXUS_Parser
     BDBG_OBJECT_ASSERT(handle, NEXUS_ParserBand);
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     pStatus->index = handle->hwIndex;
+    pStatus->teiErrors = handle->teiErrorCount;
+    pStatus->syncErrors = handle->lengthErrorCount;    /* HW: this will provide the sync info */
 
     /* sum rsbuff overflows */
     if (handle->hwIndex < 32) {

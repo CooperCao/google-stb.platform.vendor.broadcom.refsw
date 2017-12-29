@@ -48,6 +48,7 @@
 #include "console.h"
 
 #include "fs/ramfs.h"
+#include "tzpipe.h"
 
 #include "lib_printf.h"
 
@@ -57,8 +58,14 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
     if (!exeFile->isExecutable())
         return -ENOEXEC;
 
+    // destroy signal state before deleting image
+    if (!signalsCloned) {
+        terminateSignalState();
+    }
+    destroyUContext();
+
     // Destroy the current elf image
-    if (image != nullptr) {
+    if ((!vmCloned) && (image != nullptr)) {
         delete image;
         image = NULL;
     }
@@ -71,6 +78,7 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
         err_msg("Could not load elf image\n");
         return -ENOEXEC;
     }
+    vmCloned = false;
 
     int numArgs = 0;
     int numEnvs = 0;
@@ -119,6 +127,10 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
                 RamFS::File::close((RamFS::File *)files[i].file);
             else if (files[i].type == Directory)
                 RamFS::Directory::close((RamFS::Directory *)files[i].dir);
+            else if (files[i].type == MQueue)
+                MsgQueue::close((MsgQueue *)files[i].queue);
+            else if (files[i].type == IpcPipe)
+                Pipe::close((Pipe *)files[i].file, files[i].read);
 
             files[i].data = nullptr;
             files[i].offset = 0;
@@ -133,5 +145,9 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
 
     // Change the working directory
     currWorkDir = exeDir;
+
+    // init signal state on new process
+    initSignalState();
+    createUContext();
     return 0;
 }

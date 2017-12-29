@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Declaration of client-side GL state structures and include of Khronos GL header files.
-=============================================================================*/
-
-#ifndef GLXX_CLIENT_H
-#define GLXX_CLIENT_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_client.h"
 #include "interface/khronos/common/khrn_client_cache.h"
@@ -92,10 +83,10 @@ static INLINE GLXX_CLIENT_STATE_T *glxx_get_client_state(CLIENT_THREAD_STATE_T *
 {
    EGL_CONTEXT_T *context = thread->opengl.context;
    GLXX_CLIENT_STATE_T * state;
-   vcos_assert(context != NULL);
-   vcos_assert(context->type == OPENGL_ES_11 || context->type == OPENGL_ES_20);
+   assert(context != NULL);
+   assert(context->type == OPENGL_ES_11 || context->type == OPENGL_ES_20);
    state = (GLXX_CLIENT_STATE_T *)context->state;
-   vcos_assert(context->type == state->type);
+   assert(context->type == state->type);
    return state;
 }
 
@@ -123,7 +114,7 @@ static INLINE bool is_opengles_11_or_20(CLIENT_THREAD_STATE_T *thread)
    // else at the moment.
    EGL_CONTEXT_T *context = thread->opengl.context;
    if (context) {
-      vcos_assert(context->type == OPENGL_ES_11 || context->type == OPENGL_ES_20);
+      assert(context->type == OPENGL_ES_11 || context->type == OPENGL_ES_20);
    }
    return context != NULL;
 }
@@ -133,4 +124,3 @@ static INLINE bool is_opengles_secure(CLIENT_THREAD_STATE_T *thread)
    EGL_CONTEXT_T *context = thread->opengl.context;
    return context && context->secure;
 }
-#endif

@@ -1,42 +1,40 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #include "bstd.h"
@@ -502,6 +500,34 @@ BERR_Code BSID_Open(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+   /* Check for Image Interface/Context */
+#if !(BSID_USE_CUSTOM_IMAGE)
+    if ((psOpenSettings->pImgInterface != &BSID_ImageInterface)
+        || (psOpenSettings->pImgContext != BSID_ImageContext))
+    {
+       BDBG_WRN(("*******************"));
+       BDBG_WRN(("You've linked in the default SID BIMG interface and context."));
+       BDBG_WRN(("However, you are providing your own version(s) to BSID_Open()."));
+       BDBG_WRN(("You should compile with BSID_USE_CUSTOM_IMAGE=1 to prevent linkage"));
+       BDBG_WRN(("of the default BIMG interface and context to reduce the binary size"));
+       BDBG_WRN(("*******************"));
+    }
+#endif
+
+    if ((psOpenSettings->pImgInterface == NULL) ||
+        (psOpenSettings->pImgContext == NULL))
+    {
+       BDBG_ERR(("*******************"));
+       BDBG_ERR(("You've compiled with BSID_USE_CUSTOM_IMAGE=1 "));
+       BDBG_ERR(("However, you have NOT provided your own version(s) of"));
+       BDBG_ERR(("the BIMG interface and context to BSID_Open()."));
+       BDBG_ERR(("If you want to use the default BIMG, use BSID_USE_CUSTOM_IMAGE=0"));
+       BDBG_ERR(("Otherwise, you MUST provide your own implementation of BIMG."));
+       BDBG_ERR(("*******************"));
+       BDBG_LEAVE(BSID_Open);
+       return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
     /* allocate device handle */
     hSid = (BSID_Handle)BKNI_Malloc(sizeof(BSID_P_Context));
     if (hSid == NULL)
@@ -530,33 +556,6 @@ BERR_Code BSID_Open(
     /* Watchdog */
     hSid->fWatchdogCallback_isr = psOpenSettings->p_WatchdogFunc_isr;
     hSid->pWatchdogCallbackData = psOpenSettings->pWatchdogData;
-
-   /* Check for Image Interface/Context */
-#if !(BSID_USE_CUSTOM_IMAGE)
-    if ((psOpenSettings->pImgInterface != &BSID_ImageInterface)
-        || (psOpenSettings->pImgContext != BSID_ImageContext))
-    {
-       BDBG_WRN(("*******************"));
-       BDBG_WRN(("You've linked in the default SID BIMG interface and context."));
-       BDBG_WRN(("However, you are providing your own version(s) to BSID_Open()."));
-       BDBG_WRN(("You should compile with BSID_USE_CUSTOM_IMAGE=1 to prevent linkage"));
-       BDBG_WRN(("of the default BIMG interface and context to reduce the binary size"));
-       BDBG_WRN(("*******************"));
-    }
-#endif
-
-    if ((psOpenSettings->pImgInterface == NULL) ||
-        (psOpenSettings->pImgContext == NULL))
-    {
-       BDBG_ERR(("*******************"));
-       BDBG_ERR(("You've compiled with BSID_USE_CUSTOM_IMAGE=1 "));
-       BDBG_ERR(("However, you have NOT provided your own version(s) of"));
-       BDBG_ERR(("the BIMG interface and context to BSID_Open()."));
-       BDBG_ERR(("If you want to use the default BIMG, use BSID_USE_CUSTOM_IMAGE=0"));
-       BDBG_ERR(("Otherwise, you MUST provide your own implementation of BIMG."));
-       BDBG_ERR(("*******************"));
-       return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
 
     hSid->pImgInterface = psOpenSettings->pImgInterface;
     hSid->pImgContext = psOpenSettings->pImgContext;
@@ -1180,7 +1179,7 @@ void BSID_GetDefaultOpenChannelSettings(
         {
             ps_OpenChannelSettings->u_ChannelSpecific.motion.ui32_OutputBuffersNumber    = 3;
             ps_OpenChannelSettings->u_ChannelSpecific.motion.ui32_OutputMaxWidth         = 1920;
-            ps_OpenChannelSettings->u_ChannelSpecific.motion.ui32_OutputMaxWidth         = 1080;
+            ps_OpenChannelSettings->u_ChannelSpecific.motion.ui32_OutputMaxHeight        = 1080;
             ps_OpenChannelSettings->u_ChannelSpecific.motion.hOutputBuffersMmaHeap       = NULL;
         }
         break;

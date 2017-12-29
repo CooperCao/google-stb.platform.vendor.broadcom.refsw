@@ -1,8 +1,7 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef GLXX_HW_H
-#define GLXX_HW_H
+#pragma once
 
 #define DRAW_TEX_LOGGING 0
 
@@ -82,7 +81,7 @@ static INLINE bool glxx_hw_blend_enabled(GLXX_HW_BLEND_T blend)
 
 extern bool glxx_hw_clear(bool color, bool depth, bool stencil, GLXX_SERVER_STATE_T *state);
 extern void glxx_hw_finish(void);
-extern void glxx_hw_finish_context(GLXX_SERVER_STATE_T *state, bool wait);
+extern void glxx_hw_finish_context(bool wait);
 extern void glxx_hw_term(void);
 extern bool glxx_hw_draw_triangles(GLsizei count, GLenum type, uint32_t indices_offset,
                                    GLXX_SERVER_STATE_T *state,
@@ -94,10 +93,10 @@ extern bool glxx_hw_draw_triangles(GLsizei count, GLenum type, uint32_t indices_
                                    uint32_t interlock_count,
                                    bool secure);
 extern void glxx_hw_invalidate_frame(GLXX_SERVER_STATE_T *state, bool color, bool depth, bool stencil, bool multisample,
-                                     bool preserveBuf, bool main_buffer);
+                                     bool main_buffer);
 extern bool glxx_hw_get_attr_live(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *attrib);
 extern bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs, bool secure);
 
 extern bool glxx_schedule_during_link(GLXX_SERVER_STATE_T *state, void *prog);
 
-#endif
+extern bool glxx_hw_insert_sync(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T handle);

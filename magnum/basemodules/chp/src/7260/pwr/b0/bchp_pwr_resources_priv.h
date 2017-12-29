@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 /***************************************************************************
@@ -53,68 +54,68 @@
 
 /* Private power resource IDs */
 #define BCHP_PWR_HW_AIO                                                     0xff000001
-#define BCHP_PWR_HW_AIO_SRAM                                                0xff000002
-#define BCHP_PWR_HW_AUD_DAC                                                 0xff000003
-#define BCHP_PWR_HW_AUD_PLL0                                                0xff000004
-#define BCHP_PWR_HW_AUD_PLL1                                                0xff000005
-#define BCHP_PWR_HW_AVX_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                      0xff000006
-#define BCHP_PWR_HW_AVX_CH_CTRL_CH_1_POST_DIV_HOLD_CH1                      0xff000007
-#define BCHP_PWR_HW_AVX_CH_CTRL_CH_2_POST_DIV_HOLD_CH2                      0xff000008
-#define BCHP_PWR_HW_AVX_CH_CTRL_CH_3_POST_DIV_HOLD_CH3                      0xff000009
-#define BCHP_PWR_HW_AVX_CH_CTRL_CH_4_POST_DIV_HOLD_CH4                      0xff00000a
-#define BCHP_PWR_HW_BVN                                                     0xff00000b
-#define BCHP_PWR_HW_BVN_DVPHT0_VEC                                          0xff00000c
-#define BCHP_PWR_HW_BVN_SRAM                                                0xff00000d
-#define BCHP_PWR_HW_CPU_CH_CTRL_CH_2_POST_DIV_HOLD_CH2                      0xff00000e
-#define BCHP_PWR_HW_CPU_CH_CTRL_CH_3_POST_DIV_HOLD_CH3                      0xff00000f
-#define BCHP_PWR_HW_CPU_CH_CTRL_CH_4_POST_DIV_HOLD_CH4                      0xff000010
-#define BCHP_PWR_HW_CPU_CH_CTRL_CH_5_POST_DIV_HOLD_CH5                      0xff000011
-#define BCHP_PWR_HW_CTRL_AVX_PWRDN_REQ                                      0xff000012
-#define BCHP_PWR_HW_CTRL_RAAGA_PWRDN_REQ                                    0xff000013
-#define BCHP_PWR_HW_CTRL_SC0_PWRDN_REQ                                      0xff000014
-#define BCHP_PWR_HW_CTRL_SC1_PWRDN_REQ                                      0xff000015
-#define BCHP_PWR_HW_CTRL_V3D_PWRDN_REQ                                      0xff000016
-#define BCHP_PWR_HW_CTRL_VCXO0_PWRDN_REQ                                    0xff000017
-#define BCHP_PWR_HW_CTRL_VCXO1_PWRDN_REQ                                    0xff000018
-#define BCHP_PWR_HW_DVPHT0                                                  0xff000019
-#define BCHP_PWR_HW_HDMI_TX0_PHY                                            0xff00001a
-#define BCHP_PWR_HW_HVD0_SRAM                                               0xff00001b
-#define BCHP_PWR_HW_HVDP0                                                   0xff00001c
-#define BCHP_PWR_HW_HVDP0_SECBUS                                            0xff00001d
-#define BCHP_PWR_HW_HVDP0_SID                                               0xff00001e
-#define BCHP_PWR_HW_M2MC0                                                   0xff00001f
-#define BCHP_PWR_HW_M2MC0_SRAM                                              0xff000020
-#define BCHP_PWR_HW_RAAGA0                                                  0xff000021
-#define BCHP_PWR_HW_RAAGA0_AIO                                              0xff000022
+#define BCHP_PWR_HW_AIO_RAAGA0                                              0xff000002
+#define BCHP_PWR_HW_AIO_SRAM                                                0xff000003
+#define BCHP_PWR_HW_AIO_VEC                                                 0xff000004
+#define BCHP_PWR_HW_AUD_PLL0                                                0xff000005
+#define BCHP_PWR_HW_AUD_PLL1                                                0xff000006
+#define BCHP_PWR_HW_AVX_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                      0xff000007
+#define BCHP_PWR_HW_AVX_CH_CTRL_CH_1_POST_DIV_HOLD_CH1                      0xff000008
+#define BCHP_PWR_HW_AVX_CH_CTRL_CH_2_POST_DIV_HOLD_CH2                      0xff000009
+#define BCHP_PWR_HW_AVX_CH_CTRL_CH_3_POST_DIV_HOLD_CH3                      0xff00000a
+#define BCHP_PWR_HW_AVX_CH_CTRL_CH_4_POST_DIV_HOLD_CH4                      0xff00000b
+#define BCHP_PWR_HW_BVN                                                     0xff00000c
+#define BCHP_PWR_HW_BVN_DVPHT0_VEC                                          0xff00000d
+#define BCHP_PWR_HW_BVN_SRAM                                                0xff00000e
+#define BCHP_PWR_HW_CPU_CH_CTRL_CH_2_POST_DIV_HOLD_CH2                      0xff00000f
+#define BCHP_PWR_HW_CPU_CH_CTRL_CH_3_POST_DIV_HOLD_CH3                      0xff000010
+#define BCHP_PWR_HW_CPU_CH_CTRL_CH_4_POST_DIV_HOLD_CH4                      0xff000011
+#define BCHP_PWR_HW_CPU_CH_CTRL_CH_5_POST_DIV_HOLD_CH5                      0xff000012
+#define BCHP_PWR_HW_CTRL_AVX_PWRDN_REQ                                      0xff000013
+#define BCHP_PWR_HW_CTRL_RAAGA_PWRDN_REQ                                    0xff000014
+#define BCHP_PWR_HW_CTRL_SC0_PWRDN_REQ                                      0xff000015
+#define BCHP_PWR_HW_CTRL_SC1_PWRDN_REQ                                      0xff000016
+#define BCHP_PWR_HW_CTRL_V3D_PWRDN_REQ                                      0xff000017
+#define BCHP_PWR_HW_CTRL_VCXO0_PWRDN_REQ                                    0xff000018
+#define BCHP_PWR_HW_CTRL_VCXO1_PWRDN_REQ                                    0xff000019
+#define BCHP_PWR_HW_DVPHT0                                                  0xff00001a
+#define BCHP_PWR_HW_HDMI_TX0_PHY                                            0xff00001b
+#define BCHP_PWR_HW_HVD0_SRAM                                               0xff00001c
+#define BCHP_PWR_HW_HVDP0                                                   0xff00001d
+#define BCHP_PWR_HW_HVDP0_SECBUS                                            0xff00001e
+#define BCHP_PWR_HW_HVDP0_SID                                               0xff00001f
+#define BCHP_PWR_HW_M2MC0                                                   0xff000020
+#define BCHP_PWR_HW_M2MC0_SRAM                                              0xff000021
+#define BCHP_PWR_HW_RAAGA0                                                  0xff000022
 #define BCHP_PWR_HW_RAAGA0_SRAM                                             0xff000023
 #define BCHP_PWR_HW_RAAGA_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                    0xff000024
 #define BCHP_PWR_HW_SC0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                      0xff000025
 #define BCHP_PWR_HW_SC1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                      0xff000026
-#define BCHP_PWR_HW_SID                                                     0xff000027
-#define BCHP_PWR_HW_SID_SRAM                                                0xff000028
-#define BCHP_PWR_HW_STB_CORE_XPT_HIF_XPT_CORE                               0xff000029
-#define BCHP_PWR_HW_STB_HVDP0_HVDP0_CORE                                    0xff00002a
-#define BCHP_PWR_HW_STB_HVDP0_HVDP0_CPU                                     0xff00002b
-#define BCHP_PWR_HW_STB_HVDP0_HVDP0_SID                                     0xff00002c
-#define BCHP_PWR_HW_STB_HVDS0_HVDS0_CORE                                    0xff00002d
-#define BCHP_PWR_HW_STB_HVDS0_HVDS0_CPU                                     0xff00002e
-#define BCHP_PWR_HW_STB_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0               0xff00002f
-#define BCHP_PWR_HW_STB_RAAGA_DSP_0_RAAGA0_DSP_RAAGA0                       0xff000030
-#define BCHP_PWR_HW_STB_SECSECXPT_XPT_SECPIPELINE_SECXPT                    0xff000031
-#define BCHP_PWR_HW_STB_SYS_CTRL_SC0                                        0xff000032
-#define BCHP_PWR_HW_STB_SYS_CTRL_SC1                                        0xff000033
-#define BCHP_PWR_HW_STB_V3D_V3D                                             0xff000034
-#define BCHP_PWR_HW_STB_VEC_AIO_GFX_M2MC0_SYSTEM_M2MC0                      0xff000035
-#define BCHP_PWR_HW_STB_VEC_AIO_GFX_VEC_ITU656_0                            0xff000036
-#define BCHP_PWR_HW_V3D                                                     0xff000037
-#define BCHP_PWR_HW_V3D_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                      0xff000038
-#define BCHP_PWR_HW_VCXO0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                    0xff000039
-#define BCHP_PWR_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1                    0xff00003a
-#define BCHP_PWR_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                    0xff00003b
-#define BCHP_PWR_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1                    0xff00003c
-#define BCHP_PWR_HW_VDAC                                                    0xff00003d
-#define BCHP_PWR_HW_VEC                                                     0xff00003e
-#define BCHP_PWR_HW_VEC_AIO                                                 0xff00003f
+#define BCHP_PWR_HW_SECBUS_SID                                              0xff000027
+#define BCHP_PWR_HW_SID                                                     0xff000028
+#define BCHP_PWR_HW_SID_SRAM                                                0xff000029
+#define BCHP_PWR_HW_STB_CORE_XPT_HIF_XPT_CORE                               0xff00002a
+#define BCHP_PWR_HW_STB_HVDP0_HVDP0_CORE                                    0xff00002b
+#define BCHP_PWR_HW_STB_HVDP0_HVDP0_CPU                                     0xff00002c
+#define BCHP_PWR_HW_STB_HVDP0_HVDP0_SID                                     0xff00002d
+#define BCHP_PWR_HW_STB_HVDS0_HVDS0_CORE                                    0xff00002e
+#define BCHP_PWR_HW_STB_HVDS0_HVDS0_CPU                                     0xff00002f
+#define BCHP_PWR_HW_STB_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0               0xff000030
+#define BCHP_PWR_HW_STB_RAAGA_DSP_0_RAAGA0_DSP_RAAGA0                       0xff000031
+#define BCHP_PWR_HW_STB_SECSECXPT_XPT_SECPIPELINE_SECXPT                    0xff000032
+#define BCHP_PWR_HW_STB_SYS_CTRL_SC0                                        0xff000033
+#define BCHP_PWR_HW_STB_SYS_CTRL_SC1                                        0xff000034
+#define BCHP_PWR_HW_STB_V3D_V3D                                             0xff000035
+#define BCHP_PWR_HW_STB_VEC_AIO_GFX_M2MC0_SYSTEM_M2MC0                      0xff000036
+#define BCHP_PWR_HW_STB_VEC_AIO_GFX_VEC_ITU656_0                            0xff000037
+#define BCHP_PWR_HW_V3D                                                     0xff000038
+#define BCHP_PWR_HW_V3D_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                      0xff000039
+#define BCHP_PWR_HW_VCXO0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                    0xff00003a
+#define BCHP_PWR_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1                    0xff00003b
+#define BCHP_PWR_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0                    0xff00003c
+#define BCHP_PWR_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1                    0xff00003d
+#define BCHP_PWR_HW_VDAC                                                    0xff00003e
+#define BCHP_PWR_HW_VEC                                                     0xff00003f
 #define BCHP_PWR_HW_VEC_SRAM                                                0xff000040
 #define BCHP_PWR_HW_VIP                                                     0xff000041
 #define BCHP_PWR_HW_VIP_SRAM                                                0xff000042
@@ -147,6 +148,10 @@
 #define BCHP_PWR_DV_CPU_CTRL_CH4_div                                        0xff00005d
 #define BCHP_PWR_DV_CPU_CTRL_CH5_div                                        0xff00005e
 #define BCHP_PWR_DV_RAAGA_CTRL_CH0_div                                      0xff00005f
+#define BCHP_PWR_DV_V3D_CTRL_CH0_div                                        0xff000060
+#define BCHP_PWR_DV_XPT_CTRL_CH0_div                                        0xff000061
+#define BCHP_PWR_DV_XPT_CTRL_CH1_div                                        0xff000062
+#define BCHP_PWR_DV_XPT_CTRL_CH4_div                                        0xff000063
 
 /* This is the link between the public and private interface */
 void BCHP_PWR_P_HW_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool activate);
@@ -154,12 +159,12 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate);
 void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mux, bool set);
 void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set);
 
-#define BCHP_PWR_P_NUM_NONLEAFS     47
-#define BCHP_PWR_P_NUM_NONLEAFSHW   33
-#define BCHP_PWR_P_NUM_LEAFS        38
+#define BCHP_PWR_P_NUM_NONLEAFS     46
+#define BCHP_PWR_P_NUM_NONLEAFSHW   36
+#define BCHP_PWR_P_NUM_LEAFS        35
 #define BCHP_PWR_P_NUM_MUXES        14
-#define BCHP_PWR_P_NUM_DIVS         10
-#define BCHP_PWR_P_NUM_ALLNODES     142
-#define BCHP_PWR_NUM_P_PMAPSETTINGS 14
+#define BCHP_PWR_P_NUM_DIVS         14
+#define BCHP_PWR_P_NUM_ALLNODES     145
+#define BCHP_PWR_NUM_P_PMAPSETTINGS 19
 
 #endif

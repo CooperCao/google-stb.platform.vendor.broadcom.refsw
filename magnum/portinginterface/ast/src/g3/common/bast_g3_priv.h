@@ -397,6 +397,8 @@ typedef struct BAST_g3_P_Handle
    bool                  bBcm3445;           /* TRUE = has bcm3445 LNA */
 #endif
    bool                  bOpen;              /* true if AST PI has been openned successfully */
+   uint16_t              tuner_kvco_cal_capcntl_table[BAST_TUNER_KVCO_CAL_TABLE_SIZE];
+   uint8_t               tuner_kvco_cal_kvcocntl_table[BAST_TUNER_KVCO_CAL_TABLE_SIZE];
    uint8_t               numInternalTuners;  /* number of internal tuners on this chip */
 #ifndef BAST_EXCLUDE_BCM3445
    uint8_t               bcm3445Address;     /* i2c address of bcm3445 */
@@ -640,8 +642,6 @@ typedef struct BAST_g3_P_ChannelHandle
    uint16_t             tunerAgcAmpThresh;   /* value of BB/LNA AGC amplitude thresholds */
    uint16_t             tunerAgcLoopCoeff;   /* value of BB/LNA AGC loop coefficients */
 #endif
-   uint16_t             tuner_kvco_cal_capcntl_table[BAST_TUNER_KVCO_CAL_TABLE_SIZE];
-   uint8_t              tuner_kvco_cal_kvcocntl_table[BAST_TUNER_KVCO_CAL_TABLE_SIZE];
    uint8_t              dftFreqEstimateStatus; /* used in DFT freq estimate algorithm */
    uint8_t              blindScanCurrMode;   /* used in blind acquisition */
    uint8_t              blindScanModes;      /* config parameter used to specify which modes to scan */

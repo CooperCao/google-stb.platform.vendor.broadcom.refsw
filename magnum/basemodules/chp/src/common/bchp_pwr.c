@@ -238,7 +238,7 @@ static void BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
                 }
             }
             if (handle->openSettings.pMapSettings[i].reg == 0) {
-                BDBG_WRN(("Pmap Setting Not Found : Shift %x\t\tMask %x\tReg %x", handle->pwrManager->pMapSettings[j].shift, handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].reg));
+                BDBG_MSG(("Pmap Setting Not Found : Shift %x\t\tMask %x\tReg %x", handle->pwrManager->pMapSettings[j].shift, handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].reg));
             }
         }
 #endif
@@ -397,9 +397,7 @@ void BCHP_PWR_Close(BCHP_PWR_Handle handle)
     if (handle->pMapSettings) {
         BKNI_Free(handle->pMapSettings);
     }
-    if (handle) {
-        BKNI_Free(handle);
-    }
+    BKNI_Free(handle);
     BDBG_MSG(("BCHP_PWR_Close: <"));
 }
 
@@ -675,6 +673,7 @@ BERR_Code BCHP_PWR_AcquireResource(BCHP_Handle handle, BCHP_PWR_ResourceId resou
 #endif
     handle->pwrManager->pubRefcnt[idx]++;
 
+    /* coverity[sleep] */
     rc = BCHP_PWR_P_AcquireResource(handle, resource, false);
 
     if (rc!=BERR_SUCCESS) {
@@ -731,6 +730,7 @@ BERR_Code BCHP_PWR_ReleaseResource(BCHP_Handle handle, BCHP_PWR_ResourceId resou
 #endif
         handle->pwrManager->pubRefcnt[idx]--;
 
+        /* coverity[sleep] */
         rc = BCHP_PWR_P_ReleaseResource(handle, resource, false);
         if (rc!=BERR_SUCCESS) {
             BDBG_ERR(("Release resource %#x (%s) failed. refcnt %u", resource->id, resource->name, refcnt));
@@ -901,6 +901,7 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
             if(resource->type == BCHP_PWR_P_ResourceType_eLeaf || resource->type == BCHP_PWR_P_ResourceType_eNonLeafHw) {
                 /* Does it matter if we don't traverse the tree and blindly power On? */
                 if (refcnt[idx]>0) {
+                    /* coverity[sleep] */
                     BCHP_PWR_P_HW_Control(handle, resource, true);
                 }
             }
@@ -913,6 +914,7 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
         BDBG_ASSERT(resource->type != BCHP_PWR_P_ResourceType_eNonLeaf);
         idx = BCHP_PWR_P_GetInternalIndex(resource->id);
         if (refcnt[idx]==0) { /* node that should be powered down, according to the SW state */
+            /* coverity[sleep] */
             BCHP_PWR_P_AcquireResource(handle, resource, false); /* if the HW is actually turned on, the Acquire call is only needed to increment the refcnt */
         }
     }
@@ -922,6 +924,7 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
         BDBG_ASSERT(resource->type != BCHP_PWR_P_ResourceType_eNonLeaf);
         idx = BCHP_PWR_P_GetInternalIndex(resource->id);
         if (refcnt[idx]==0) { /* node that should be powered down, according to the SW state */
+            /* coverity[sleep] */
             BCHP_PWR_P_ReleaseResource(handle, resource, false);
             BDBG_MSG(("Resume: clock %s powered down", resource->name));
         }

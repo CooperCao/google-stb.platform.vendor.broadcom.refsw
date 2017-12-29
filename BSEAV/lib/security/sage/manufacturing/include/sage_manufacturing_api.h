@@ -53,9 +53,11 @@
 #define MEDIAROOM_MASK  (0x10)
 
 /*define value used to indicated type of DRM bin file used in tool*/
-#define DRM_BIN_FILE_TYPE_3 (3)
-#define DRM_BIN_FILE_TYPE_2 (2)
-#define DRM_BIN_FILE_TYPE_1 (1)
+#define DRM_BIN_FILE_TYPE_3_PRIME (4)
+#define DRM_BIN_FILE_TYPE_3       (3)
+#define DRM_BIN_FILE_TYPE_2       (2)
+#define DRM_BIN_FILE_TYPE_1       (1)
+#define DRM_BIN_FILE_TYPE_0       (0)
 
 typedef enum SAGE_Manufacturing_OTP_Index
 {

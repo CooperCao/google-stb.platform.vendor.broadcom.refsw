@@ -450,7 +450,7 @@ struct GLXX_SERVER_STATE_T_
    GLenum front_face;
 
    struct {
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
       float limit;
 #endif
       float factor;
@@ -649,14 +649,11 @@ static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_with_changed(
    uint32_t api, bool changed, bool null_state_if_reset)
 {
    GLXX_SERVER_STATE_T *state = NULL;
-   bool locked = false;
 #if WANT_PROFILING
    uint32_t lock_time = profile_get_tick_count();
 #endif
 
-   if (!egl_context_gl_lock())
-      goto end;
-   locked = true;
+   egl_context_gl_lock();
 
    state = egl_context_gl_server_state(NULL);
    if (!state) goto end;
@@ -669,7 +666,7 @@ static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_with_changed(
 
    if (egl_context_gl_notification(state->context))
    {
-      bool gpu_aborted =  vcos_atomic_load_bool(state->shared->gpu_aborted, VCOS_MEMORY_ORDER_RELAXED);
+      bool gpu_aborted = vcos_atomic_load_bool(state->shared->gpu_aborted, VCOS_MEMORY_ORDER_RELAXED);
       if (gpu_aborted)
       {
          if (null_state_if_reset)
@@ -691,7 +688,7 @@ static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_with_changed(
 #endif
 
 end:
-   if (!state && locked)
+   if (!state)
       egl_context_gl_unlock();
    return state;
 }
@@ -704,11 +701,6 @@ static inline GLXX_SERVER_STATE_T *glxx_lock_server_state(uint32_t api)
 static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_unchanged(uint32_t api)
 {
    return glxx_lock_server_state_with_changed(api, /*changed=*/false, /*NULL state if GFX reset*/true);
-}
-
-static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_changed_even_if_reset(uint32_t api)
-{
-   return glxx_lock_server_state_with_changed(api, /*changed=*/true, /*NULL state if GFX reset*/false);
 }
 
 static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_unchanged_even_if_reset(uint32_t api)

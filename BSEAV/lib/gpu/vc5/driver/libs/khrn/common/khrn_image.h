@@ -51,6 +51,8 @@ extern khrn_image* khrn_image_create(khrn_blob* blob,
 extern khrn_image* khrn_image_create_one_elem_slice(khrn_blob* blob,
       unsigned elem, unsigned slice, unsigned level, GFX_LFMT_T api_fmt);
 
+extern khrn_image* khrn_image_shallow_blob_copy(const khrn_image* other);
+
 extern GFX_LFMT_T khrn_image_get_lfmt(const khrn_image *img,
       unsigned plane);
 
@@ -88,6 +90,11 @@ extern bool khrn_image_match_dim_and_fmt(const khrn_image *img,
  * and same number of slices */
 extern bool khrn_image_convert(khrn_image *img_dst, const khrn_image *img_src,
       glxx_context_fences *fences, bool secure_context);
+
+extern gmem_usage_flags_t khrn_image_calc_dst_gmem_usage(
+      const khrn_image *src, unsigned width, unsigned height, unsigned depth,
+      unsigned num_array_elems, unsigned num_mip_levels, const GFX_LFMT_T *lfmts,
+      unsigned num_planes, gfx_buffer_usage_t blob_usage, bool secure_context);
 
 extern bool khrn_image_convert_from_ptr_tgt(khrn_image *dst,
       unsigned dst_x, unsigned dst_y, unsigned dst_z,
@@ -166,8 +173,7 @@ static inline void khrn_image_invalidate(khrn_image *img)
  * of that memory for that element for the specified plane;
  * if the image is a slice, it will also add the offset to the start_slice;
  */
-extern unsigned khrn_image_get_offset(const khrn_image *img,
-      unsigned plane);
+extern unsigned khrn_image_get_offset(const khrn_image *img, unsigned plane);
 
 /* return true if this image is one element and one slice; eg: 2D images are
  * always one element and one slice; */
@@ -176,5 +182,18 @@ extern bool khrn_image_is_one_elem_slice(const khrn_image *img);
 /* return true if img1 and img2 are equal (they wrap the same blob, refer to
  * the same slice and element in the blob, and have the same number of slices and elements */
 extern bool khrn_image_equal(const khrn_image *img1, const khrn_image *img2);
+
+static inline
+const GFX_BUFFER_DESC_PLANE_T *khrn_image_get_desc_plane(const khrn_image *img, unsigned plane)
+{
+   assert(plane < img->blob->desc[img->level].num_planes);
+   return &img->blob->desc[img->level].planes[plane];
+}
+
+static inline
+const GFX_BUFFER_DESC_T *khrn_image_get_desc(const khrn_image *img)
+{
+   return &img->blob->desc[img->level];
+}
 
 #endif

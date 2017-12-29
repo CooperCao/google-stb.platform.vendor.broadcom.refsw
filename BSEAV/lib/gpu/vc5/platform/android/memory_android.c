@@ -3,11 +3,14 @@
  ******************************************************************************/
 #include <EGL/begl_memplatform.h>
 #include "memory_android.h"
+#include "memory_convert.h"
+#include "nexus_heap_selection.h"
 #include "nexus_platform.h"
 #include "nexus_base_mmap.h"
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
 #endif
+#include "fatal_error.h"
 
 #include <EGL/egl.h>
 #include <ctype.h>
@@ -18,6 +21,7 @@
 
 #include "nx_ashmem.h"
 #include <fcntl.h>
+#include <linux/brcmstb/proc_info_proxy.h>
 
 /* default block size */
 #define BLOCK_SIZE (16*1024*1024)
@@ -70,6 +74,7 @@ typedef struct
 {
    int fd;
    NEXUS_MemoryBlockHandle hdl;
+   uint32_t size;
 
 } ANPL_MemoryTracker;
 
@@ -83,6 +88,8 @@ typedef struct
    uint32_t                processId;
    char                    alloc_name[PROPERTY_VALUE_MAX];
    bool                    allowsMovable;
+   MemConvertCache         mem_convert_cache;
+   int                     tracker;
 
 } ANPL_MemoryContext;
 
@@ -160,6 +167,10 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
    {
       return NULL;
    }
+
+   // Android memory (outside of the MMU) is not coherent
+   if (flags & BEGL_USAGE_COHERENT)
+      return NULL;
 
    if (!data->allowsMovable)
    {
@@ -259,6 +270,15 @@ alloc_default:
    }
 
    memTracker->hdl = block;
+   memTracker->size = numBytes;
+
+   if (data->tracker >= 0) {
+      struct proxy_info_memtrack memtrack;
+      memtrack.pid = getpid();
+      memtrack.size = numBytes;
+      memtrack.act = 1;
+      ioctl(data->tracker, PROC_INFO_IOCTL_PROXY_SET_MEMTRACK, &memtrack);
+   }
 
    /*PRINTF("Alloc block = %p\n", block);*/
    return (BEGL_MemHandle) memTracker;
@@ -267,8 +287,7 @@ alloc_default:
 static void MemFreeBlock(void *context, BEGL_MemHandle handle)
 {
    ANPL_MemoryTracker *memTracker = (ANPL_MemoryTracker*)handle;
-
-   UNUSED(context);
+   ANPL_MemoryContext *data = (ANPL_MemoryContext*)context;
 
 #ifdef LOG_MEMORY_PATTERN
    if (sLogFile)
@@ -283,6 +302,14 @@ static void MemFreeBlock(void *context, BEGL_MemHandle handle)
    else
    {
       NEXUS_MemoryBlock_Free(memTracker->hdl);
+   }
+
+   if (data->tracker >= 0) {
+      struct proxy_info_memtrack memtrack;
+      memtrack.pid = getpid();
+      memtrack.size = memTracker->size;
+      memtrack.act = -1;
+      ioctl(data->tracker, PROC_INFO_IOCTL_PROXY_SET_MEMTRACK, &memtrack);
    }
 
    free(memTracker);
@@ -379,16 +406,7 @@ static void MemFlushCache(void *context, BEGL_MemHandle handle, void *pCached, s
       fprintf(sLogFile, "C %u %p %u\n", (uint32_t)handle, pCached, numBytes);
 #endif
 
-   /* Avoid Nexus ARM cache flush using broken set/way approach for flushes >= 3MB */
-   while (numBytes > 0)
-   {
-      size_t const maxBytesThisTime = 2*1024*1024;
-      size_t numBytesThisTime = numBytes < maxBytesThisTime ? numBytes : maxBytesThisTime;
-
-      NEXUS_FlushCache(pCached, numBytesThisTime);
-      pCached = (uint8_t*)pCached + numBytesThisTime;
-      numBytes -= numBytesThisTime;
-   }
+   NEXUS_FlushCache(pCached, numBytes);
 }
 
 /* Retrieve some information about the memory system */
@@ -440,6 +458,34 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
   return 0;
 }
 
+// The memory interface is the only sensible place for this. The display interface is really part
+// of EGL and therefore doesn't exist in Vulkan.
+static BEGL_Error MemConvertSurface(void *context, const BEGL_SurfaceConversionInfo *info,
+                                    bool validateOnly)
+{
+   NEXUS_StripedSurfaceHandle  striped = NULL;
+   NEXUS_SurfaceHandle         surf = NULL;
+   BEGL_Error                  ret;
+   ANPL_MemoryContext         *ctx = (ANPL_MemoryContext*)context;
+
+   if (validateOnly)
+      return MemoryConvertSurface(info, /*striped=*/NULL, /*surf=*/NULL, validateOnly,
+                                  &ctx->mem_convert_cache);
+
+   if (!DisplayAcquireNexusSurfaceHandles(&striped, &surf, info->srcNativeSurface))
+      return BEGL_Fail;
+
+   // Convert the dst memory block handle into something that Nexus understands.
+   BEGL_SurfaceConversionInfo infoCopy = *info;
+   infoCopy.dstMemoryBlock = ((ANPL_MemoryTracker *)(info->dstMemoryBlock))->hdl;
+
+   ret = MemoryConvertSurface(&infoCopy, striped, surf, validateOnly, &ctx->mem_convert_cache);
+
+   DisplayReleaseNexusSurfaceHandles(striped, surf);
+
+   return ret;
+}
+
 //static void DebugHeap(NEXUS_HeapHandle heap)
 //{
 //   NEXUS_MemoryStatus   status;
@@ -475,6 +521,10 @@ BEGL_MemoryInterface *CreateAndroidMemoryInterface(void)
 
          memset(ctx, 0, sizeof(ANPL_MemoryContext));
 
+         ctx->tracker = open("/dev/bcmpip", O_RDWR);
+         if (ctx->tracker < 0)
+            ALOGE("failed to allocate tracker");
+
          ctx->useDynamicMMA = UseDynamicMMAHeap(&ctx->heapGrow);
          ctx->allowsMovable = UseMovableBlocks();
 
@@ -482,33 +532,19 @@ BEGL_MemoryInterface *CreateAndroidMemoryInterface(void)
          ctx->processId = (uint32_t)getpid();
 
          mem->context = (void*)ctx;
-         mem->FlushCache = MemFlushCache;
-         mem->GetInfo    = MemGetInfo;
+         mem->FlushCache     = MemFlushCache;
+         mem->GetInfo        = MemGetInfo;
+         mem->Alloc          = MemAllocBlock;
+         mem->Free           = MemFreeBlock;
+         mem->Map            = MemMapBlock;
+         mem->Unmap          = MemUnmapBlock;
+         mem->Lock           = MemLockBlock;
+         mem->Unlock         = MemUnlockBlock;
+         mem->ConvertSurface = MemConvertSurface;
 
-         mem->Alloc         = MemAllocBlock;
-         mem->Free          = MemFreeBlock;
-         mem->Map           = MemMapBlock;
-         mem->Unmap         = MemUnmapBlock;
-         mem->Lock          = MemLockBlock;
-         mem->Unlock        = MemUnlockBlock;
-
-#ifndef SINGLE_PROCESS
-         {
-            NEXUS_ClientConfiguration clientConfig;
-            NEXUS_Platform_GetClientConfiguration(&clientConfig);
-
-            if (ctx->useDynamicMMA)
-               ctx->heaps[0].heap = clientConfig.heap[4];
-            else if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
-               ctx->heaps[0].heap = clientConfig.heap[0];
-            else
-               ctx->heaps[0].heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-         }
-#else
-         /* If you change this, then the heap must also change in nexus_platform.c
-            With refsw NEXUS_OFFSCREEN_SURFACE is the only heap guaranteed to be valid for v3d to use */
-         ctx->heaps[0].heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-#endif
+         ctx->heaps[0].heap = ctx->useDynamicMMA ? GetDynamicHeap() : GetDefaultHeap();
+         if (!ctx->heaps[0].heap)
+            FATAL_ERROR("Could not get Nexus heap\n");
 
          property_get("ro.nexus.ashmem.devname", device, NULL);
          if (strlen(device))
@@ -516,7 +552,6 @@ BEGL_MemoryInterface *CreateAndroidMemoryInterface(void)
             strcpy(ctx->alloc_name, "/dev/");
             strcat(ctx->alloc_name, device);
          }
-
          NEXUS_Heap_GetStatus(ctx->heaps[0].heap, &memStatus);
          ctx->heaps[0].heapStartCached = memStatus.addr;
          ctx->heaps[0].heapStartPhys = memStatus.offset;
@@ -548,6 +583,13 @@ void DestroyAndroidMemoryInterface(BEGL_MemoryInterface *mem)
       if (mem->context != NULL)
       {
          ANPL_MemoryContext *ctx = (ANPL_MemoryContext*)mem->context;
+
+         MemoryConvertClearCache(&ctx->mem_convert_cache);
+
+         if (ctx->tracker >= 0) {
+            close(ctx->tracker);
+            ctx->tracker = -1;
+         }
 
          free(ctx);
       }

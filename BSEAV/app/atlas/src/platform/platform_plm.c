@@ -49,10 +49,14 @@
 BDBG_MODULE(platform_plm);
 
 struct lRangeAdjStore {
-    unsigned vid[MAX_MOSAICS];
-} g_lRangeAdjStore={{0}};
+    unsigned   vid[MAX_MOSAICS];
+} g_lRangeAdjStore = { { 0 } };
 
-void platform_plm_get_vid_lra(unsigned inputIndex, unsigned rectIndex, bool *enabled)
+void platform_plm_get_vid_lra(
+        unsigned inputIndex,
+        unsigned rectIndex,
+        bool *   enabled
+        )
 {
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     uint32_t reg;
@@ -68,17 +72,21 @@ void platform_plm_get_vid_lra(unsigned inputIndex, unsigned rectIndex, bool *ena
 #if BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_MASK
     lRangeAdj = BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LRANGE_ADJ);
 #else
-    lRangeAdj = rectIndex&1?BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ):BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ);
+    lRangeAdj = rectIndex&1 ? BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ) : BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ);
 #endif
     *enabled = (lRangeAdj != LRANGE_ADJ_DISABLE);
-#else
+#else /* if HAS_VID_NL_LUMA_RANGE_ADJ */
     BSTD_UNUSED(inputIndex);
     BSTD_UNUSED(rectIndex);
-#endif
-}
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
+} /* platform_plm_get_vid_lra */
 
 #include <stdio.h>
-void platform_plm_set_vid_lra(unsigned inputIndex, unsigned rectIndex, bool enabled)
+void platform_plm_set_vid_lra(
+        unsigned inputIndex,
+        unsigned rectIndex,
+        bool     enabled
+        )
 {
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     uint32_t reg;
@@ -94,32 +102,47 @@ void platform_plm_set_vid_lra(unsigned inputIndex, unsigned rectIndex, bool enab
 #if BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_MASK
     curLRangeAdj = BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LRANGE_ADJ);
 #else
-    curLRangeAdj = rectIndex&1?BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ):BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ);
+    curLRangeAdj = rectIndex&1 ? BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ) : BCHP_GET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ);
 #endif
-    if(enabled)
+    if (enabled)
+    {
         lRangeAdj = g_lRangeAdjStore.vid[rectIndex];
+    }
     else
+    {
         lRangeAdj = LRANGE_ADJ_DISABLE;
-    if(lRangeAdj != curLRangeAdj) {
+    }
+    if (lRangeAdj != curLRangeAdj)
+    {
 #if BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_MASK
         BCHP_SET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LRANGE_ADJ, lRangeAdj);
 #else
-        if(rectIndex&1)
+        if (rectIndex&1)
+        {
             BCHP_SET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT1_SEL_LRANGE_ADJ, lRangeAdj);
+        }
         else
+        {
             BCHP_SET_FIELD_DATA(reg, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ, lRangeAdj);
-#endif
+        }
+#endif /* if BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LRANGE_ADJ_MASK */
         NEXUS_Platform_WriteRegister(BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE + 4*rectDelta + (inputIndex*VID_NLCONFIG_INDEX_DELTA), reg);
     }
-    if(curLRangeAdj != LRANGE_ADJ_DISABLE)
+    if (curLRangeAdj != LRANGE_ADJ_DISABLE)
+    {
         g_lRangeAdjStore.vid[rectIndex] = curLRangeAdj;
-#else
+    }
+#else /* if HAS_VID_NL_LUMA_RANGE_ADJ */
     BSTD_UNUSED(inputIndex);
     BSTD_UNUSED(rectIndex);
-#endif
-}
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
+} /* platform_plm_set_vid_lra */
 
-void platform_plm_get_gfx_lra(unsigned inputIndex, unsigned rectIndex, bool *enabled)
+void platform_plm_get_gfx_lra(
+        unsigned inputIndex,
+        unsigned rectIndex,
+        bool *   enabled
+        )
 {
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
     uint32_t reg;
@@ -127,13 +150,17 @@ void platform_plm_get_gfx_lra(unsigned inputIndex, unsigned rectIndex, bool *ena
 
     NEXUS_Platform_ReadRegister(BCHP_GFD_0_NL_CSC_CTRL, &reg);
     lRangeAdj = BCHP_GET_FIELD_DATA(reg, GFD_0_NL_CSC_CTRL, LRANGE_ADJ_EN);
-    *enabled = (lRangeAdj == BCHP_GFD_0_NL_CSC_CTRL_LRANGE_ADJ_EN_ENABLE);
-#endif
+    *enabled  = (lRangeAdj == BCHP_GFD_0_NL_CSC_CTRL_LRANGE_ADJ_EN_ENABLE);
+#endif /* if HAS_GFX_NL_LUMA_RANGE_ADJ */
     BSTD_UNUSED(inputIndex);
     BSTD_UNUSED(rectIndex);
 }
 
-void platform_plm_set_gfx_lra(unsigned inputIndex, unsigned rectIndex, bool enabled)
+void platform_plm_set_gfx_lra(
+        unsigned inputIndex,
+        unsigned rectIndex,
+        bool     enabled
+        )
 {
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
     uint32_t reg;
@@ -141,17 +168,22 @@ void platform_plm_set_gfx_lra(unsigned inputIndex, unsigned rectIndex, bool enab
 
     NEXUS_Platform_ReadRegister(BCHP_GFD_0_NL_CSC_CTRL, &reg);
     curLRangeAdj = BCHP_GET_FIELD_DATA(reg, GFD_0_NL_CSC_CTRL, LRANGE_ADJ_EN);
-    if(enabled)
+    if (enabled)
+    {
         lRangeAdj = 1;
+    }
     else
+    {
         lRangeAdj = 0;
-    if(lRangeAdj != curLRangeAdj) {
+    }
+    if (lRangeAdj != curLRangeAdj)
+    {
         BCHP_SET_FIELD_DATA(reg, GFD_0_NL_CSC_CTRL, LRANGE_ADJ_EN, lRangeAdj);
         NEXUS_Platform_WriteRegister(BCHP_GFD_0_NL_CSC_CTRL, reg);
     }
-#else
+#else /* if HAS_GFX_NL_LUMA_RANGE_ADJ */
     BSTD_UNUSED(lra);
-#endif
+#endif /* if HAS_GFX_NL_LUMA_RANGE_ADJ */
     BSTD_UNUSED(inputIndex);
     BSTD_UNUSED(rectIndex);
-}
+} /* platform_plm_set_gfx_lra */

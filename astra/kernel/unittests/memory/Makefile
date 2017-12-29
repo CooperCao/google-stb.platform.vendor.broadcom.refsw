@@ -36,38 +36,20 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-# build environment
-TZ_DIR ?= ../../..
-include $(TZ_DIR)/kernel/default.inc
-
-# directories and files
+# build env
+TZ_TOP := ../../..
+TZ_MOD := kernel/unittests/memory
 TZ_IMG := memory_tests
 
-TZ_KERNEL_DIR := $(TZ_DIR)/kernel
-TZ_KERNEL_LIB := $(B_REFSW_OBJ_ROOT)/bin/libkernel.a
+include $(TZ_TOP)/build/build_env.mk
 
-# use local init module
+# build src
+# use local init module (to build image)
 SRC_DIRS := init
 INC_DIRS := init
-BASE_OBJ_DIR := $(B_REFSW_OBJ_ROOT)/kernel/unittests/memory
-BIN_DIRS := $(BASE_OBJ_DIR)/bin/init
+BIN_DIRS := $(TZ_OBJ_DIR)/init
 
-SOURCES_ASM-$(CFG_ARM32_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a32.S))
-SOURCES_ASM-$(CFG_ARM64_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a64.S))
-OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM-y))
-DEPS        := $(patsubst %.S,%.d,$(SOURCES_ASM-y))
-
-SOURCES_C   := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.c))
-OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
-DEPS        += $(patsubst %.c,%.d,$(SOURCES_C))
-
-SOURCES_CPP := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
-OBJS        += $(patsubst %.cpp,%.o,$(SOURCES_CPP))
-DEPS        += $(patsubst %.cpp,%.d,$(SOURCES_CPP))
-
-# Create out of build (OOB) objects
-OOB_OBJS			:= $(patsubst %.o, $(BASE_OBJ_DIR)/bin/%.o,$(OBJS))
-OOB_DEPS			:= $(patsubst %.d, $(BASE_OBJ_DIR)/bin/%.d,$(DEPS))
+include $(TZ_TOP)/build/build_src.mk
 
 # build flags
 DEPENDFLAGS := -MD -MP
@@ -77,7 +59,7 @@ INCLUDES    += -I$(TZ_KERNEL_DIR)/api
 INCLUDES    += -I$(TZ_KERNEL_DIR)/api/arch/$(ARCH_DIR)
 INCLUDES    += -I$(TZ_KERNEL_DIR)/include
 INCLUDES    += -I$(TZ_KERNEL_DIR)/include/arm
-INCLUDES    += -I$(TZ_KERNEL_DIR)/platform/$(TZ_PLATFORM)
+INCLUDES    += -I$(TZ_KERNEL_DIR)/platform/$(TZ_PLATFORM)/include
 INCLUDES    += -I$(TZ_KERNEL_DIR)/platform/$(TZ_PLATFORM)/include/$(ARCH_DIR)
 INCLUDES    += -I$(TZ_KERNEL_DIR)/3rd_party/libfdt
 
@@ -128,28 +110,12 @@ CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
 CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS)
 CPPFLAGS    += -std=c++11 -D__EXCEPTIONS=0 -fno-rtti -fno-exceptions
 
-vpath %.S   $(SRC_DIRS)
-vpath %.c   $(SRC_DIRS)
-vpath %.cpp $(SRC_DIRS)
-
-define make-goal
-$1/%.o: %.c
-	$(TZ_ARMGNU)-gcc $(CFLAGS) -c $$< -o $$@
-$1/%.o: %.S
-	$(TZ_ARMGNU)-gcc $(ASFLAGS) -c $$< -o $$@
-$1/%.o: %.cpp
-	$(TZ_ARMGNU)-g++ $(CPPFLAGS) -c $$< -o $$@
-endef
-
 # build rules
-.PHONY: kernel checkplatform checkdirs
+.PHONY: checkplatform checkdirs libkernel $(TZ_IMG) $(USER_APPS) $(USER_LIBS)
 
-all: kernel checkplatform checkdirs $(BASE_OBJ_DIR)/$(TZ_IMG).bin $(BASE_OBJ_DIR)/$(TZ_IMG).elf.lst
+all: $(TZ_IMG)
 
--include $(OOB_DEPS)
-
-kernel:
-	$(MAKE) -C $(TZ_KERNEL_DIR)
+$(TZ_IMG): checkplatform checkdirs $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 
 checkplatform:
 	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
@@ -159,20 +125,19 @@ checkdirs: $(BIN_DIRS)
 $(BIN_DIRS):
 	mkdir -p $@
 
-$(BASE_OBJ_DIR)/$(TZ_IMG).bin: $(BASE_OBJ_DIR)/$(TZ_IMG).elf
-	$(TZ_ARMGNU)-objcopy $(BASE_OBJ_DIR)/$(TZ_IMG).elf -O binary $(BASE_OBJ_DIR)/$(TZ_IMG).bin
+$(TZ_OBJ_DIR)/$(TZ_IMG).bin: $(TZ_OBJ_DIR)/$(TZ_IMG).elf
+	$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 
-$(BASE_OBJ_DIR)/$(TZ_IMG).elf.lst: $(BASE_OBJ_DIR)/$(TZ_IMG).elf
-	@echo generating listing: $@
-	$(TZ_ARMGNU)-objdump -d $< | $(TZ_ARMGNU)-c++filt > $@
+$(TZ_OBJ_DIR)/$(TZ_IMG).elf: $(OBJS) libkernel link_$(ARCH)_tz.ld
+	$(TZ_ARMGNU)-g++ -nostartfiles -static $(OBJS) $(TZ_KERNEL_OBJ_DIR)/libkernel.a -Tlink_$(ARCH)_tz.ld -o $@
 
-$(BASE_OBJ_DIR)/$(TZ_IMG).elf: $(OOB_OBJS) $(TZ_KERNEL_LIB) link_$(ARCH)_tz.ld
-	$(TZ_ARMGNU)-g++ -nostartfiles -static $(OOB_OBJS) $(TZ_KERNEL_LIB) -Tlink_$(ARCH)_tz.ld -o $@
+libkernel:
+	$(MAKE) -C $(TZ_KERNEL_DIR) libkernel
 
 clean:
-	$(RM) -r $(BASE_OBJ_DIR)
+	$(RM) -r $(TZ_OBJ_DIR)
 
 distclean: clean
 	$(MAKE) -C $(TZ_KERNEL_DIR) clean
 
-$(foreach bdir,$(BIN_DIRS),$(eval $(call make-goal,$(bdir))))
+include $(TZ_TOP)/build/build_rules.mk

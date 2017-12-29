@@ -50,7 +50,7 @@
 
 extern "C" void tzKernelSecondary();
 
-#define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) { asm volatile("wfi":::);} }
+#define assert(cond) if (!(cond)) { ATA_LogErr("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) { asm volatile("wfi":::);} }
 
 static const int NumTestFiles = 32;
 static IFile *files[NumTestFiles];
@@ -126,7 +126,7 @@ void fileCreationTests() {
         RamFS::File::destroy(files[i]);
     }
 
-    success_msg("file creation tests passed\n");
+    ATA_LogMsg("Success: file creation tests passed\n");
 }
 
 void fileWriteTests() {
@@ -145,7 +145,7 @@ void fileWriteTests() {
     for (int i=0; i<4096; i++)
         assert(pageBuffer[i] == 0xae);
 
-    success_msg("page write test passed\n");
+    ATA_LogMsg("Success: page write test passed\n");
 
     for (int i=4096; i<4196; i++)
         pageBuffer[i] = 0xae;
@@ -157,7 +157,7 @@ void fileWriteTests() {
     for (int i=0; i<4196; i++)
         assert(pageBuffer[i] == 0xae);
 
-    success_msg("page + partial write test passed\n");
+    ATA_LogMsg("Success: page + partial write test passed\n");
 
     for (int i=0; i<8192; i++)
         pageBuffer[i] = 0xcd;
@@ -169,7 +169,7 @@ void fileWriteTests() {
     for (int i=0; i<4096; i++)
         assert(pageBuffer[i] == 0xcd);
 
-    success_msg("2-page write test passed\n");
+    ATA_LogMsg("Success: 2-page write test passed\n");
 
     for (int i=0; i<8704; i++)
         pageBuffer[i] = 0xcd;
@@ -181,7 +181,7 @@ void fileWriteTests() {
     for (int i=0; i<8704; i++)
         assert(pageBuffer[i] == 0xcd);
 
-    success_msg("2-page + partial write test passed\n");
+    ATA_LogMsg("Success: 2-page + partial write test passed\n");
 
     for (int i=0; i<12288; i++)
         pageBuffer[i] = 0xef;
@@ -193,7 +193,7 @@ void fileWriteTests() {
     for (int i=0; i<12288; i++)
         assert(pageBuffer[i] == 0xef);
 
-    success_msg("3-page write test passed\n");
+    ATA_LogMsg("Success: 3-page write test passed\n");
 
     for (int i=0; i<12799; i++)
         pageBuffer[i] = 0xbf;
@@ -205,7 +205,7 @@ void fileWriteTests() {
     for (int i=0; i<12799; i++)
         assert(pageBuffer[i] == 0xbf);
 
-    success_msg("3-page + partial write test passed\n");
+    ATA_LogMsg("Success: 3-page + partial write test passed\n");
 
     RamFS::File::destroy(fp);
 }
@@ -234,7 +234,7 @@ void fileScatterWriteTests() {
             buffer[i] = 0;
     }
 
-    success_msg("scatter write: span segment and page boundaries - passed\n");
+    ATA_LogMsg("Success: scatter write: span segment and page boundaries - passed\n");
 
     for (int i=0; i<4096; i++)
         buffer[i] = 0x34;
@@ -254,7 +254,7 @@ void fileScatterWriteTests() {
                 buffer[i] = 0;
     }
 
-    success_msg("scatter write: at segment and page boundaries - passed\n");
+    ATA_LogMsg("Success: scatter write: at segment and page boundaries - passed\n");
 
     for (int i=0; i<4096; i++)
         buffer[i] = 0x56;
@@ -274,11 +274,11 @@ void fileScatterWriteTests() {
                 buffer[i] = 0;
     }
 
-    success_msg("scatter write: at segment and page boundaries - passed\n");
+    ATA_LogMsg("Success: scatter write: at segment and page boundaries - passed\n");
 
     RamFS::File::destroy(fp);
 
-    success_msg("scatter write tests passed\n");
+    ATA_LogMsg("Success: scatter write tests passed\n");
 }
 
 void ramfsTests() {
@@ -320,7 +320,7 @@ void ramfsTests() {
     assert(file == nullptr);
     assert(dir == nullptr);
 
-    success_msg("directory resolution tests passed\n");
+    ATA_LogMsg("Success: directory resolution tests passed\n");
 
     root->resolvePath("/unittests/timer//init/", &dir, &file);
     rc = dir->removeFile("kernel_init.cpp");
@@ -352,7 +352,7 @@ void ramfsTests() {
     assert(rc == 0);
 
     ((RamFS::Directory *)root)->print();
-    success_msg("file and directory deletion tests passed\n");
+    ATA_LogMsg("Success: file and directory deletion tests passed\n");
 }
 
 void tzKernelInit(const void *devTree) {
@@ -375,7 +375,7 @@ void tzKernelInit(const void *devTree) {
     fileWriteTests();
     fileScatterWriteTests();
 
-    success_msg("All done\n");
+    ATA_LogSuccess("All done\n");
 }
 
 void tzKernelSecondary() {
@@ -388,11 +388,11 @@ void tzKernelSecondary() {
 }
 
 void kernelHalt(const char *reason) {
-    err_msg("%s\n", reason);
+    ATA_LogErr("%s\n", reason);
     while (true) {}
 }
 
 extern "C" void __cxa_pure_virtual() {
-    err_msg("Pure virtual function called !\n");
+    ATA_LogErr("Pure virtual function called !\n");
     kernelHalt("Pure virtual function call");
 }

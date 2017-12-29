@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -69,7 +69,7 @@ NEXUS_Error NxClient_Join(const NxClient_JoinSettings *pSettings)
     int rc = 0;
     /* init the server with default params.
     require statically-initialized mutex to avoid race on refcnt. */
-    pthread_mutex_lock(&g_joinMutex);
+    (void)pthread_mutex_lock(&g_joinMutex);
     if (!g_state.external_init && !g_state.refcnt) {
         struct nxserver_settings settings;
         g_state.server = nxserverlib_get_singleton();
@@ -80,7 +80,7 @@ NEXUS_Error NxClient_Join(const NxClient_JoinSettings *pSettings)
         else {
             g_state.server = nxserver_init(0, NULL, false);
             if (!g_state.server) {
-                pthread_mutex_unlock(&g_joinMutex);
+                (void)pthread_mutex_unlock(&g_joinMutex);
                 fprintf(stderr, "### nxserver_init failed\n");
                 return -1;
             }
@@ -88,7 +88,7 @@ NEXUS_Error NxClient_Join(const NxClient_JoinSettings *pSettings)
         nxserverlib_get_settings(g_state.server, &settings);
         g_state.mutex = settings.lock;
     }
-    pthread_mutex_unlock(&g_joinMutex);
+    (void)pthread_mutex_unlock(&g_joinMutex);
 
     LOCK();
     if (!g_state.client) {

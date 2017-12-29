@@ -260,7 +260,7 @@ int _astra_file_read(
 
 int _astra_call_smc(
     struct astra_client *pClient,
-    uint32_t ucMode);
+    astra_smc_code code);
 
 int _astra_event_poll(
     struct astra_client *pClient,

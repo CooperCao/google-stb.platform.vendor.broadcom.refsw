@@ -46,58 +46,30 @@
 #define BDSP_RAAGA_P_FIFO_READ_OFFSET    (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_READ_ADDR  -BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR)
 #define BDSP_RAAGA_P_FIFO_WRITE_OFFSET   (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_WRITE_ADDR -BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR)
 
-typedef struct BDSP_Raaga_P_MsgQueueParams
-{
-    BDSP_MMA_Memory Memory;
-    uint32_t ui32Size;
-    uint32_t ui32FifoId;  /* Fifo Id for this message queue */
-} BDSP_Raaga_P_MsgQueueParams;
-
-typedef struct BDSP_Raaga_P_MsgQueue
-{
-    BREG_Handle hRegister;  /* Register Handle */
-    uint32_t ui32FifoId;    /* Fifo Id for this message queue */
-    uint32_t ui32DspOffset; /* DSP Register Offset */
-    uint32_t ui32Size;      /* Size of the Buffer */
-    BDSP_MMA_Memory Memory; /*MMA descriptor for the Buffer*/
-    BDSP_P_BufferPointer Address; /*Structure describing the pointers of the Actual Buffer*/
-} BDSP_Raaga_P_MsgQueue;
-
-typedef struct BDSP_Raaga_P_MsgQueue *BDSP_Raaga_P_MsgQueueHandle;
-
-BERR_Code BDSP_Raaga_P_CreateMsgQueue(
-    BDSP_Raaga_P_MsgQueueParams    *psMsgQueueParams,    /* [in]*/
-    BREG_Handle                     hRegister,           /* [in] */
-    uint32_t                        ui32DspOffset,       /* [in] */
-    BDSP_Raaga_P_MsgQueueHandle     *hMsgQueue
-);
 BERR_Code BDSP_Raaga_P_InitMsgQueue(
-    BDSP_Raaga_P_MsgQueueHandle hMsgQueue
-);
-BERR_Code BDSP_Raaga_P_DestroyMsgQueue(
-    BDSP_Raaga_P_MsgQueueHandle    hMsgQueue
+    BDSP_P_MsgQueueHandle hMsgQueue
 );
 BERR_Code BDSP_Raaga_P_SendCommand_isr(
-    BDSP_Raaga_P_MsgQueueHandle    hMsgQueue, /*[in]*/
-    const BDSP_Raaga_P_Command    *psCommand  /*[in]*/
+    BDSP_P_MsgQueueHandle       hMsgQueue, /*[in]*/
+    const BDSP_P_Command *psCommand  /*[in]*/
 );
 BERR_Code BDSP_Raaga_P_SendCommand(
-    BDSP_Raaga_P_MsgQueueHandle    hMsgQueue, /*[in]*/
-    const BDSP_Raaga_P_Command    *psCommand  /*[in]*/
+    BDSP_P_MsgQueueHandle       hMsgQueue, /*[in]*/
+    const BDSP_P_Command *psCommand  /*[in]*/
 );
 BERR_Code BDSP_Raaga_P_ReadMsg_isr(
-    BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,  /*[in]*/
-    void                        *pMsg,       /*[out]*/
-    unsigned int                 uiMsgSize   /*[in]*/
+    BDSP_P_MsgQueueHandle  hMsgQueue,  /*[in]*/
+    void                  *pMsg,       /*[out]*/
+    unsigned int           uiMsgSize   /*[in]*/
 );
 BERR_Code BDSP_Raaga_P_GetResponse(
-    BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,  /*[in]*/
-    void                        *pMsgBuf,    /*[out]*/
-    unsigned int                 uiMsgSize   /*[in]*/
+    BDSP_P_MsgQueueHandle  hMsgQueue,  /*[in]*/
+    void                  *pMsgBuf,    /*[out]*/
+    unsigned int           uiMsgSize   /*[in]*/
 );
 BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
-    BDSP_Raaga_P_MsgQueueHandle    hMsgQueue,  /*[in]*/
-    void                        *pMsgBuf,   /*[in]*/
-    unsigned int                *puiNumMsgs /*[out]*/
+    BDSP_P_MsgQueueHandle    hMsgQueue,  /*[in]*/
+    void                    *pMsgBuf,   /*[in]*/
+    unsigned int            *puiNumMsgs /*[out]*/
 );
 #endif /*BDSP_RAAGA_FWINTERFACE_PRIV_H_*/

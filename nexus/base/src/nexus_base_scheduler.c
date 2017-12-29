@@ -459,7 +459,7 @@ NEXUS_P_CallbackCommon_Init(struct NEXUS_CallbackCommon *callback, NEXUS_ModuleH
 
 #define NEXUS_P_CALLBACK_DESC_COOKIE_VALUE 0xCA11BACC
 void
-NEXUS_CallbackDesc_Init(NEXUS_CallbackDesc *desc)
+NEXUS_CallbackDesc_Init_isrsafe(NEXUS_CallbackDesc *desc)
 {
     BDBG_ASSERT(desc);
     desc->callback = NULL;
@@ -468,7 +468,7 @@ NEXUS_CallbackDesc_Init(NEXUS_CallbackDesc *desc)
     desc->private_cookie = NEXUS_P_CALLBACK_DESC_COOKIE_VALUE;
     return;
 }
-NEXUS_CallbackDesc NEXUS_P_CallbackDescByValue(void)
+NEXUS_CallbackDesc NEXUS_P_CallbackDescByValue_isrsafe(void)
 {
     NEXUS_CallbackDesc desc;
     NEXUS_CallbackDesc_Init(&desc);
@@ -600,7 +600,19 @@ NEXUS_Module_IsrCallback_Set(NEXUS_IsrCallbackHandle callback, const NEXUS_Callb
     }
     else {
         callback->common.desc.callback = NULL;
+        callback->common.stopped = false;
     }
+    BKNI_LeaveCriticalSection();
+    return;
+}
+
+void
+NEXUS_Module_IsrCallback_Clear(NEXUS_IsrCallbackHandle callback)
+{
+    BDBG_OBJECT_ASSERT(callback, NEXUS_IsrCallback);
+    BKNI_EnterCriticalSection();
+    callback->common.desc.callback = NULL;
+    callback->common.stopped = false;
     BKNI_LeaveCriticalSection();
     return;
 }
@@ -700,7 +712,19 @@ NEXUS_Module_TaskCallback_Set(NEXUS_TaskCallbackHandle callback, const NEXUS_Cal
     }
     else {
         callback->common.desc.callback = NULL;
+        callback->common.stopped = false;
     }
+    NEXUS_UnlockModule();
+    return;
+}
+
+void
+NEXUS_Module_TaskCallback_Clear(NEXUS_TaskCallbackHandle callback)
+{
+    BDBG_OBJECT_ASSERT(callback, NEXUS_TaskCallback);
+    NEXUS_LockModule();
+    callback->common.desc.callback = NULL;
+    callback->common.stopped = false;
     NEXUS_UnlockModule();
     return;
 }
@@ -840,6 +864,7 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
                 else if (scheduler->current.callback && !callback->common.deleted && desc.callback) {
                     BDBG_MSG_TRACE(("NEXUS_P_Scheduler_IsrCallbacks: %#lx callback: %#lx (%#lx, %u)", (unsigned long)scheduler,
                         (unsigned long)desc.callback, (unsigned long)desc.context, (unsigned)desc.param));
+                    /* coverity[sleep] - any callback within nexus/magnum that sleeps will trigger coverity warning here */
                     desc.callback(desc.context, desc.param);
                 }
                 BKNI_ReleaseMutex(scheduler->callback_lock);
@@ -971,6 +996,7 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
             i++;
             callback->common.armed = false;
             if (desc.callback) {
+                /* coverity[sleep] - any callback within nexus/magnum that sleeps will trigger coverity warning here */
                 desc.callback(desc.context, desc.param);
                 BDBG_MSG_TRACE(("NEXUS_P_SchedulerGetRequest: %#lx callback %#lx(%#lx, %u)", (unsigned long)scheduler, (unsigned long)desc.callback, (unsigned long)desc.context, (unsigned)desc.param));
             }

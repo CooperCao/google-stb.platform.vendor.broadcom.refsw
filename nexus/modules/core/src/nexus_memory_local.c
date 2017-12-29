@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -121,7 +121,7 @@ void NEXUS_MemoryBlock_Release_local(NEXUS_MemoryBlockHandle memoryBlock, const 
 }
 #endif
 
-static int NEXUS_P_MemoryMapOffset_Compare(const struct NEXUS_MemoryMapNode * node, NEXUS_Addr offset)
+static int NEXUS_P_MemoryMapOffset_Compare_isrsafe(const struct NEXUS_MemoryMapNode * node, NEXUS_Addr offset)
 {
     if(offset > node->offset) {
         return 1;
@@ -132,8 +132,8 @@ static int NEXUS_P_MemoryMapOffset_Compare(const struct NEXUS_MemoryMapNode * no
     }
 }
 
-BLST_AA_TREE_GENERATE_FIND(NEXUS_P_MemoryMapOffsetTree , NEXUS_Addr, NEXUS_MemoryMapNode, offsetNode, NEXUS_P_MemoryMapOffset_Compare)
-BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_MemoryMapOffsetTree, NEXUS_Addr, NEXUS_MemoryMapNode, offsetNode, NEXUS_P_MemoryMapOffset_Compare)
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_MemoryMapOffsetTree , NEXUS_Addr, NEXUS_MemoryMapNode, offsetNode, NEXUS_P_MemoryMapOffset_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_MemoryMapOffsetTree, NEXUS_Addr, NEXUS_MemoryMapNode, offsetNode, NEXUS_P_MemoryMapOffset_Compare_isrsafe)
 BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_MemoryMapOffsetTree, NEXUS_MemoryMapNode, offsetNode)
 
 void NEXUS_P_MemoryMap_InitNode(struct NEXUS_MemoryMapNode *node)
@@ -261,7 +261,7 @@ void NEXUS_StartCallbacks_tagged(void *interfaceHandle, const char *pFileName, u
     return;
 }
 
-static int NEXUS_P_MemoryBlockAddress_Compare(const struct NEXUS_MemoryBlockLocal * node, void *addr)
+static int NEXUS_P_MemoryBlockAddress_Compare_isrsafe(const struct NEXUS_MemoryBlockLocal * node, void *addr)
 {
     if((char *)addr > (char *)node->memoryMap.lockedMem) {
         return 1;
@@ -272,8 +272,8 @@ static int NEXUS_P_MemoryBlockAddress_Compare(const struct NEXUS_MemoryBlockLoca
     }
 }
 
-BLST_AA_TREE_GENERATE_FIND(NEXUS_P_MemoryBlockAddressTree , void *, NEXUS_MemoryBlockLocal, addressNode, NEXUS_P_MemoryBlockAddress_Compare)
-BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_MemoryBlockAddressTree, void *, NEXUS_MemoryBlockLocal, addressNode, NEXUS_P_MemoryBlockAddress_Compare)
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_MemoryBlockAddressTree , void *, NEXUS_MemoryBlockLocal, addressNode, NEXUS_P_MemoryBlockAddress_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_MemoryBlockAddressTree, void *, NEXUS_MemoryBlockLocal, addressNode, NEXUS_P_MemoryBlockAddress_Compare_isrsafe)
 BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_MemoryBlockAddressTree, NEXUS_MemoryBlockLocal, addressNode)
 
 static struct NEXUS_MemoryBlockLocal *NEXUS_P_MemoryBlock_CreateLocal_locked(NEXUS_MemoryBlockHandle memoryBlock)

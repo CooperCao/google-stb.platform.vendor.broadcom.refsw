@@ -571,8 +571,7 @@ static void vshader(GL11_VERTEX_CARD_T *result, const GL11_CACHE_KEY_T *v,
       glxx_m4_transform(&result->vertex, &unif->projection_modelview, &attr[GL11_IX_VERTEX]);
 
       /* We only need this if (fog_mode || points || have_lights) but doing it
-       * anyway doesn't hurt
-       */
+       * anyway doesn't hurt */
       {
          GLXX_VEC4_T tmp;
          glxx_m4_transform(&tmp, &unif->modelview, &attr[GL11_IX_VERTEX]);
@@ -639,16 +638,8 @@ static void vshader(GL11_VERTEX_CARD_T *result, const GL11_CACHE_KEY_T *v,
    }
 }
 
-static Dataflow *cvshader_attrib(uint32_t row) {
-   return glsl_dataflow_construct_linkable_value(DATAFLOW_IN, DF_FLOAT, row);
-}
-
 void gl11_get_cvshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm_out) {
-   const bool drawtex = !!(v->vertex & GL11_DRAW_TEX);
-   const bool points = v->points;
-   GL11_VERTEX_CARD_T vcard;
-   GLXX_VEC4_T attr[GL11_IX_MAX_ATTRIBS];
-   struct builtin_uniforms_s gl_unifs;
+   glsl_dataflow_begin_construction();
 
    Dataflow *shaded[DF_BLOB_VERTEX_COUNT];
    int unif_count = sizeof(struct builtin_uniforms_s) / sizeof(uint32_t);
@@ -656,18 +647,15 @@ void gl11_get_cvshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **l
 
    memset(shaded, 0, sizeof(Dataflow *) * DF_BLOB_VERTEX_COUNT);
 
-   for (int i=0; i<GL11_IX_MAX_ATTRIBS; i++) {
-      glxx_v_vec4(&attr[i],
-                cvshader_attrib(4*i+0),
-                cvshader_attrib(4*i+1),
-                cvshader_attrib(4*i+2),
-                cvshader_attrib(4*i+3));
-   }
+   GLXX_VEC4_T attr[GL11_IX_MAX_ATTRIBS];
+   gl11_load_inputs(attr, GL11_IX_MAX_ATTRIBS);
 
+   struct builtin_uniforms_s gl_unifs;
    fill_state_uniforms(&gl_unifs, unif_bindings);
 
-   if (!drawtex)
-      vshader(&vcard, v, attr, &gl_unifs, points);
+   GL11_VERTEX_CARD_T vcard;
+   if (!(v->vertex & GL11_DRAW_TEX))
+      vshader(&vcard, v, attr, &gl_unifs, v->points);
    else
       drawtex_vshader(&vcard, v, attr);
 
@@ -677,8 +665,7 @@ void gl11_get_cvshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **l
    shaded[DF_VNODE_W] = vcard.vertex.w;
    shaded[DF_VNODE_POINT_SIZE] = vcard.point_size;
 
-   for (int i = 0; i < GL11_NUM_VARYINGS; i++)
-   {
+   for (int i = 0; i < GL11_NUM_VARYINGS; i++) {
       shaded[DF_VNODE_VARY(4*i+0)] = vcard.varying[i].x;
       shaded[DF_VNODE_VARY(4*i+1)] = vcard.varying[i].y;
       shaded[DF_VNODE_VARY(4*i+2)] = vcard.varying[i].z;
@@ -688,4 +675,6 @@ void gl11_get_cvshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **l
    int out_bindings[DF_BLOB_VERTEX_COUNT];
    *sh_out = gl11_ir_shader_from_nodes(shaded, DF_BLOB_VERTEX_COUNT, out_bindings);
    *lm_out = gl11_link_map_from_bindings(DF_BLOB_VERTEX_COUNT, out_bindings, 4*GL11_IX_MAX_ATTRIBS, unif_count, unif_bindings);
+
+   glsl_dataflow_end_construction();
 }

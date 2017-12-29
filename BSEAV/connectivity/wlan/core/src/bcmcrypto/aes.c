@@ -660,8 +660,14 @@ aes_ccmp_cal_params(const struct dot11_header *h, bool legacy,
 	*aad++ = (uint8)(fc & 0xff);
 	*aad++ = (uint8)((fc >> 8) & 0xff);
 
-	memcpy(aad, (const uchar *)&h->a1, 3*ETHER_ADDR_LEN);
-	aad += 3*ETHER_ADDR_LEN;
+	memcpy(aad, (const uchar *)&h->a1, ETHER_ADDR_LEN);
+	aad += ETHER_ADDR_LEN;
+
+	memcpy(aad, (const uchar *)&h->a2, ETHER_ADDR_LEN);
+	aad += ETHER_ADDR_LEN;
+
+	memcpy(aad, (const uchar *)&h->a3, ETHER_ADDR_LEN);
+	aad += ETHER_ADDR_LEN;
 
 	seq = ltoh16(h->seq);
 	if (!legacy) {

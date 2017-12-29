@@ -56,8 +56,7 @@ static struct NEXUS_AudioOutputHdmiMapping
 
 static void NEXUS_AudioOutput_P_HdmiSettingsChanged(void *pOutput);
 static void NEXUS_AudioOutput_P_HdmiSampleRateChange_isr(void *, int, unsigned);
-#define NEXUS_AudioOutput_P_GetSampleRateEnum NEXUS_AudioOutput_P_GetSampleRateEnum_isr
-static BAVC_AudioSamplingRate NEXUS_AudioOutput_P_GetSampleRateEnum_isr(unsigned sampleRate)
+static BAVC_AudioSamplingRate NEXUS_AudioOutput_P_GetSampleRateEnum_isrsafe(unsigned sampleRate)
 {
     switch ( sampleRate )
     {
@@ -292,7 +291,26 @@ static NEXUS_Error NEXUS_AudioOutput_P_SetHDMISettings(
             maiOutputSettings.channelStatus.professional = pHdmiSettings->audioChannelStatusInfo.professionalMode;
             maiOutputSettings.channelStatus.copyright = pHdmiSettings->audioChannelStatusInfo.swCopyRight;
             maiOutputSettings.channelStatus.categoryCode = pHdmiSettings->audioChannelStatusInfo.categoryCode;
-            maiOutputSettings.channelStatus.clockAccuracy = pHdmiSettings->audioChannelStatusInfo.clockAccuracy;
+
+            switch (pHdmiSettings->audioChannelStatusInfo.clockAccuracy) {
+            case NEXUS_AudioChannelStatusClockAccuracy_eLevel_II:
+                maiOutputSettings.channelStatus.clockAccuracy = 0;
+                break;
+            case NEXUS_AudioChannelStatusClockAccuracy_eLevel_I:
+                maiOutputSettings.channelStatus.clockAccuracy = 0x1;
+                break;
+            case NEXUS_AudioChannelStatusClockAccuracy_eLevel_III:
+                maiOutputSettings.channelStatus.clockAccuracy = 0x2;
+                break;
+            case NEXUS_AudioChannelStatusClockAccuracy_eMismatch:
+                maiOutputSettings.channelStatus.clockAccuracy = 0x3;
+                break;
+            default:
+                BDBG_ERR(("Invalid HDMI clock accuracy value, defaulting to Level II"));
+                maiOutputSettings.channelStatus.clockAccuracy = 0;
+                break;
+            }
+
             maiOutputSettings.channelStatus.separateLeftRight = pHdmiSettings->audioChannelStatusInfo.separateLRChanNum;
             maiOutputSettings.ditherEnabled = pHdmiSettings->audioDitherEnabled;
             maiOutputSettings.underflowBurst = pHdmiSettings->audioBurstType;
@@ -1046,7 +1064,7 @@ static void NEXUS_AudioOutput_P_HdmiSampleRateChange_isr(void *pParam1, int para
     BSTD_UNUSED(param2);
 
 
-    avcRate = NEXUS_AudioOutput_P_GetSampleRateEnum_isr(sampleRate);
+    avcRate = NEXUS_AudioOutput_P_GetSampleRateEnum_isrsafe(sampleRate);
     output=(NEXUS_AudioOutputHandle)pParam1;
     BDBG_OBJECT_ASSERT(output, NEXUS_AudioOutput);
     BDBG_MSG(("%s - HDMI Sample Rate Change %u, output %p", BSTD_FUNCTION, sampleRate, (void *)output));
@@ -1130,7 +1148,7 @@ void NEXUS_AudioOutput_P_SetOutputFormat(NEXUS_AudioOutputHandle output, NEXUS_A
             {
                 if ( pData->sampleRate == BAVC_AudioSamplingRate_eUnknown )
                 {
-                sampleRate = NEXUS_AudioOutput_P_GetSampleRateEnum(pData->settings.defaultSampleRate);
+                sampleRate = NEXUS_AudioOutput_P_GetSampleRateEnum_isrsafe(pData->settings.defaultSampleRate);
                 }
                 else
                 {

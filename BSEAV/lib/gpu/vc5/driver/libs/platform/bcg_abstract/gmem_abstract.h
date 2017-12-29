@@ -16,5 +16,6 @@ extern v3d_addr_t gmem_get_mmu_max_virtual_addr(void);
 extern int64_t gmem_get_mmu_unsecure_bin_translation(void);
 extern int64_t gmem_get_mmu_secure_bin_translation(void);
 extern uint64_t gmem_get_platform_token(void);
+extern bool gmem_convert_surface(BEGL_SurfaceConversionInfo *info, bool validateOnly);
 
 #endif

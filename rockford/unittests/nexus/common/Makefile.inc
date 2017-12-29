@@ -349,18 +349,14 @@ $(BINDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -c -o $@ $^ $(CFLAGS)
 
-.PHONY: install install_only
 install: all install_only
 
 APP_STREAMS = $(addsuffix .str,$(APPS))
 
-install_only:
+install_only: $(EXTRA_INSTALL)
 	$(B_TRACE_RECIPE_BEGIN)
 	$(Q_)mkdir -p $(INSTALL_DIR)
 	$(CP) $(APP_BINS) $(wildcard $(APP_STREAMS) $(APP_CHANNELS)) $(INSTALL_DIR)
-ifneq  ($(CHANNEL_MAP_FILE),)
-	$(CP) $(CHANNEL_MAP_FILE) $(DESTDIR)
-endif
 	$(B_TRACE_RECIPE_END)
 
 print_files:

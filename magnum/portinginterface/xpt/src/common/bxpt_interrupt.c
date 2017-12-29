@@ -129,6 +129,7 @@ static BINT_Id GetMesgReadyIntId(
 
     StatusAddr = BaseAddr + ( MessageBufferNum / 32 ) * BXPT_P_STATUS_REG_STEP;
     StatusShift = ( MessageBufferNum % 32 );
+    BDBG_ASSERT((int)StatusAddr >= BCHP_REGISTER_START); /* cast to int to placate compiler warning if BCHP_REGISTER_START==0 */
     return BCHP_INT_ID_CREATE( StatusAddr, StatusShift );
 }
 
@@ -307,7 +308,9 @@ BERR_Code BXPT_Interrupt_DisableMessageOverflowInt_isr(
 
 #else
 
+#if BCHP_XPT_MSG_REG_START
 #include "bchp_xpt_msg.h"
+#endif
 
 #define INTERRUPT_BITS_PER_REGISTER     ( 32 )
 #define REGISTER_SIZE                   ( 4 )

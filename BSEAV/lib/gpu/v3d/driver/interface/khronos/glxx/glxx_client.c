@@ -114,7 +114,7 @@ GL_API void GL_APIENTRY glBindBuffer (GLenum target, GLuint buffer)
 
    if(IS_OPENGLES_11_OR_20(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       switch (target) {
       case GL_ARRAY_BUFFER:
@@ -250,7 +250,7 @@ GL_API void GL_APIENTRY glClientActiveTexture (GLenum texture)
    if (IS_OPENGLES_11(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (texture >= GL_TEXTURE0 && texture < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS)
          state->active_texture.client = texture;
@@ -627,7 +627,7 @@ static void set_enabled_11(CLIENT_THREAD_STATE_T *thread, GLenum array, GLboolea
 {
    GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-   vcos_assert(state != NULL);
+   assert(state != NULL);
 
    switch (array) {
    case GL_VERTEX_ARRAY:
@@ -665,7 +665,7 @@ GL_APICALL void GL_APIENTRY glDisableVertexAttribArray (GLuint index)
    if (IS_OPENGLES_20(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (index < GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
          state->attrib[index].enabled = GL_FALSE;
@@ -828,7 +828,7 @@ static void draw_arrays_or_elements(GLXX_CLIENT_STATE_T *state, GLenum mode, GLs
    int keys[GLXX_CONFIG_MAX_VERTEX_ATTRIBS+1];
    int send = 0;
 
-   vcos_assert(state != NULL);
+   assert(state != NULL);
 
    if(count<=0)
    {
@@ -977,7 +977,7 @@ GL_APICALL void GL_APIENTRY glEnableVertexAttribArray (GLuint index)
    if (IS_OPENGLES_20(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (index < GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
          state->attrib[index].enabled = GL_TRUE;
@@ -1169,7 +1169,7 @@ static int get_boolean_internal_11(CLIENT_THREAD_STATE_T *thread, GLenum pname, 
 {
    GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-   vcos_assert(state != NULL);
+   assert(state != NULL);
 
    switch (pname) {
    case GL_VERTEX_ARRAY:
@@ -1276,7 +1276,7 @@ static int get_integer_internal_11(CLIENT_THREAD_STATE_T *thread, GLenum pname, 
 {
    GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-   vcos_assert(state != NULL);
+   assert(state != NULL);
 
    switch (pname) {
    case GL_CLIENT_ACTIVE_TEXTURE:
@@ -1381,7 +1381,7 @@ static int get_integer_internal_20(CLIENT_THREAD_STATE_T *thread, GLenum pname, 
 {
    GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-   vcos_assert(state != NULL);
+   assert(state != NULL);
 
    switch (pname) {
    case GL_UNPACK_ALIGNMENT:
@@ -1452,7 +1452,7 @@ GL_API void GL_APIENTRY glGetBooleanv (GLenum pname, GLboolean *params)
          GLuint count = (GLuint) get_float_internal_11(thread, pname, temp);
          GLuint i;
 
-         vcos_assert(count <= 4);
+         assert(count <= 4);
 
          for (i = 0; i < count; i++)
             params[i] = temp[i] != 0.0f;
@@ -1543,7 +1543,7 @@ GL_API void GL_APIENTRY glGetFixedv (GLenum pname, GLfixed *params)
          int count = get_boolean_internal_11(thread, pname, temp);
          int i;
 
-         vcos_assert(count <= 4);
+         assert(count <= 4);
 
          for (i = 0; i < count; i++)
             params[i] = temp[i] ? (GLfixed)float_to_fixed(1.0f) : (GLfixed)float_to_fixed(0.0f);
@@ -1560,7 +1560,7 @@ GL_API void GL_APIENTRY glGetFixedv (GLenum pname, GLfixed *params)
          int count = get_float_internal_11(thread, pname, temp);
          int i;
 
-         vcos_assert(count <= 4);
+         assert(count <= 4);
 
          for (i = 0; i < count; i++)
             params[i] = (GLfixed) float_to_fixed(temp[i]);
@@ -1622,7 +1622,7 @@ GL_API void GL_APIENTRY glGetFloatv (GLenum pname, GLfloat *params)
          GLuint count = (GLuint) get_boolean_internal_11(thread, pname, temp);
          GLuint i;
 
-         vcos_assert(count <= 4);
+         assert(count <= 4);
 
          for (i = 0; i < count; i++)
             params[i] = temp[i] ? 1.0f : 0.0f;
@@ -1708,7 +1708,7 @@ GL_API void GL_APIENTRY glGetIntegerv (GLenum pname, GLint *params)
          GLuint count = (GLuint) get_boolean_internal_11(thread, pname, temp);
          GLuint i;
 
-         vcos_assert(count <= 4);
+         assert(count <= 4);
 
          for (i = 0; i < count; i++)
             params[i] = temp[i] ? 1 : 0;
@@ -1722,7 +1722,7 @@ GL_API void GL_APIENTRY glGetIntegerv (GLenum pname, GLint *params)
          GLuint count = (GLuint) get_float_internal_11(thread, pname, temp);
          GLuint i;
 
-         vcos_assert(count <= 4);
+         assert(count <= 4);
 
          for (i = 0; i < count; i++)
             params[i] = (GLint)floor((4294967295.0f * temp[i] - 1.0f) / 2.0f + 0.5f);
@@ -1738,7 +1738,7 @@ GL_API void GL_APIENTRY glGetIntegerv (GLenum pname, GLint *params)
          GLuint count = (GLuint) get_float_internal_11(thread, pname, temp);
          GLuint i;
 
-         vcos_assert(count <= 4);
+         assert(count <= 4);
 
          for (i = 0; i < count; i++)
             params[i] = (GLint) float_to_int(temp[i]);
@@ -1836,7 +1836,7 @@ GL_API void GL_APIENTRY glGetPointerv (GLenum pname, GLvoid **params)
    if (IS_OPENGLES_11(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       /*
          unhappy about casting away constness here
@@ -1870,7 +1870,7 @@ GL_API void GL_APIENTRY glGetPointerv (GLenum pname, GLvoid **params)
 
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       set_error(state, GL_INVALID_ENUM);
    }
@@ -1919,7 +1919,7 @@ GL_API const GLubyte * GL_APIENTRY glGetString (GLenum name)
       default:
          if (IS_OPENGLES_11(thread)) {
             GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
-            vcos_assert(state != NULL);
+            assert(state != NULL);
 
             switch (name) {
             case GL_VERSION:
@@ -1956,7 +1956,7 @@ GL_API const GLubyte * GL_APIENTRY glGetString (GLenum name)
          }
          else if (IS_OPENGLES_20(thread)) {
             GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
-            vcos_assert(state != NULL);
+            assert(state != NULL);
 
             switch (name) {
             case GL_VERSION:
@@ -2090,7 +2090,7 @@ GL_APICALL void GL_APIENTRY glGetVertexAttribfv (GLuint index, GLenum pname, GLf
    if (IS_OPENGLES_20(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (index < GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
          switch (pname) {
@@ -2136,7 +2136,7 @@ GL_APICALL void GL_APIENTRY glGetVertexAttribiv (GLuint index, GLenum pname, GLi
    if (IS_OPENGLES_20(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (index < GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
          switch (pname) {
@@ -2188,7 +2188,7 @@ GL_APICALL void GL_APIENTRY glGetVertexAttribPointerv (GLuint index, GLenum pnam
    if (IS_OPENGLES_20(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (index < GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
          switch (pname) {
@@ -2236,7 +2236,7 @@ GL_API GLboolean GL_APIENTRY glIsEnabled (GLenum cap)
          GLboolean temp = 0;
          GLuint count = (GLuint) get_boolean_internal_11(thread, cap, &temp);
          UNUSED_NDEBUG(count);
-         vcos_assert(count == 1);
+         assert(count == 1);
 
          return temp;
       }
@@ -2555,7 +2555,7 @@ GL_API void GL_APIENTRY glMultiTexCoord4x (GLenum target, GLfixed s, GLfixed t, 
    if (IS_OPENGLES_11(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (target >= GL_TEXTURE0 && target < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS) {
          state->attrib[target - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].value[0] = fixed_to_float(s);
@@ -2585,7 +2585,7 @@ GL_API void GL_APIENTRY glNormal3x (GLfixed nx, GLfixed ny, GLfixed nz)
    if (IS_OPENGLES_11(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       state->attrib[GL11_IX_NORMAL].value[0] = fixed_to_float(nx);
       state->attrib[GL11_IX_NORMAL].value[1] = fixed_to_float(ny);
@@ -2608,7 +2608,7 @@ GL_API void GL_APIENTRY glNormalPointer (GLenum type, GLsizei stride, const GLvo
    if (IS_OPENGLES_11(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (is_normal_type(type)) {
          if (is_aligned(type, (size_t)pointer) && is_aligned(type, (size_t)stride) && stride >= 0) {
@@ -2661,7 +2661,7 @@ GL_API void GL_APIENTRY glPixelStorei (GLenum pname, GLint param)
    if (IS_OPENGLES_11_OR_20(thread)) {
 
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if ((pname == GL_PACK_ALIGNMENT || pname == GL_UNPACK_ALIGNMENT) && (!is_alignment(param)))
          set_error(state, GL_INVALID_VALUE);
@@ -2743,7 +2743,7 @@ GL_API void GL_APIENTRY glPointSize (GLfloat size)
    if (IS_OPENGLES_11(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       size = clean_float(size);
 
@@ -2763,7 +2763,7 @@ GL_API void GL_APIENTRY glPointSizex (GLfixed size)
    if (IS_OPENGLES_11(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (size > 0)
          state->attrib[GL11_IX_POINT_SIZE].value[0] = fixed_to_float(size);
@@ -3518,7 +3518,7 @@ GL_APICALL void GL_APIENTRY glVertexAttrib4f (GLuint indx, GLfloat x, GLfloat y,
    if (IS_OPENGLES_20(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (indx < GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
          state->attrib[indx].value[0] = clean_float(x);
@@ -3573,7 +3573,7 @@ GL_APICALL void GL_APIENTRY glVertexAttribPointer (GLuint indx, GLint size, GLen
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (indx < GLXX_CONFIG_MAX_VERTEX_ATTRIBS && is_vertex_attrib_size(size) && stride >= 0) {
          if (is_vertex_attrib_type(type) || type == GL_HALF_FLOAT_OES) {
@@ -3613,7 +3613,7 @@ GL_API void GL_APIENTRY glVertexPointer (GLint size, GLenum type, GLsizei stride
    if (IS_OPENGLES_11(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-      vcos_assert(state != NULL);
+      assert(state != NULL);
 
       if (is_vertex_type(type)) {
          if (is_vertex_size(size) && is_aligned(type, (size_t)pointer) && is_aligned(type, (size_t)stride) && stride >= 0) {
@@ -4118,5 +4118,5 @@ int gl20_client_state_init(GLXX_CLIENT_STATE_T *state)
 void glxx_client_state_free(GLXX_CLIENT_STATE_T *state)
 {
    khrn_cache_term(&state->cache);
-   khrn_platform_free(state);
+   free(state);
 }

@@ -51,6 +51,45 @@ uint64_t v3d_scheduler_submit_tfu_job(
    bool secure,
    v3d_sched_completion_fn completion, void *data);
 
+#if V3D_USE_CSD
+
+/* Submits compute shader job.
+ * The job will run after all job specified in deps complete;
+ * If a completion function is supplied, it will be called after this job
+ * completes and deps are finalised.
+ */
+uint64_t v3d_scheduler_submit_compute_job(
+   const v3d_scheduler_deps *deps,
+   v3d_cache_ops cache_ops,
+   const v3d_compute_subjob* subjobs,
+   unsigned num_subjobs,
+   bool secure,
+   v3d_sched_completion_fn completion, void *data);
+
+/* Returns a new kernel object that holds compute subjobs. */
+v3d_compute_subjobs_id v3d_scheduler_new_compute_subjobs(unsigned max_subjobs);
+
+/* Update the subjobs in the kernel object. */
+void v3d_scheduler_update_compute_subjobs(v3d_compute_subjobs_id subjobs_id, const v3d_compute_subjob* subjobs, unsigned num_subjobs);
+
+/* Submits an indirect compute shader job.
+ * The job will run after all job specified in deps complete;
+ * If a completion function is supplied, it will be called after this job
+ * completes and deps are finalised.
+ * The subjobs are stored in a handle created using new_compute_subjobs
+ * and updated using update_compute_subjobs.
+ * This handle is automatically read and deleted by the indirect compute job
+ * once the dependencies for the compute job have been met.
+ */
+uint64_t v3d_scheduler_submit_indirect_compute_job(
+   const v3d_scheduler_deps *deps,
+   v3d_cache_ops cache_ops,
+   v3d_compute_subjobs_id subjobs_id,
+   bool secure,
+   v3d_sched_completion_fn completion, void *data);
+
+#endif
+
 typedef struct
 {
    v3d_size_t tile_alloc_layer_stride;
@@ -64,18 +103,19 @@ typedef struct
                                     // Cleans executed after job execution, before reported completed.
    v3d_empty_tile_mode empty_tile_mode;
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    bool bin_workaround_gfxh_1181;
-   bool bin_no_render_overlap;
-
    bool render_workaround_gfxh_1181;
-   bool render_no_bin_overlap;
+#endif
+   bool bin_no_overlap;                   // If true, do not run this bin job concurrently on the same core with other job types.
+   bool render_no_overlap;                // If true, do not run this render job concurrently on the same core with other job types.
    bool secure;
    bool render_depends_on_bin;            // Make the render job dependent on the bin job. This is
                                           // required if the bin cache cleans must happen before
                                           // render cache flushes.
 
    unsigned min_initial_bin_block_size;
-#if V3D_HAS_QTS
+#if V3D_VER_AT_LEAST(4,1,34,0)
    unsigned bin_tile_state_size;
 #endif
 }v3d_bin_render_details;
@@ -97,11 +137,13 @@ typedef struct
 {
    v3d_subjobs_list subjobs_list;
 
-   void* render_gmp_table;
-   v3d_cache_ops render_cache_ops;
+   void* gmp_table;
+   v3d_cache_ops cache_ops;
    v3d_empty_tile_mode empty_tile_mode;
-   bool render_workaround_gfxh_1181;
-   bool render_no_bin_overlap;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   bool workaround_gfxh_1181;
+#endif
+   bool no_overlap;  // If true, do not run this render job concurrently on the same core with other job types.
    bool secure;
 } V3D_RENDER_INFO_T;
 
@@ -144,23 +186,25 @@ uint64_t v3d_scheduler_submit_barrier_job(
    const v3d_scheduler_deps *deps,
    v3d_cache_ops cache_ops);
 
+#if !V3D_PLATFORM_SIM
+/* Behaves like a fence that has already been signaled. */
+#define V3D_PLATFORM_NULL_FENCE (-1)
+
 /* Creates a fence that will be signaled when all the jobs specified in deps
  * achieve the specified state.
  *
  * Once a fence is created, the caller becomes the owner of this fence.
- * The caller can relinquish ownership of the fence either by closing the fence
- * (v3d_platform_fence_close) or by calling v3d_scheduler_submit_wait_fence.
+ * The caller can relinquish ownership of the fence by calling
+ * v3d_scheduler_submit_wait_fence or using the appropriate platform API.
  *
  * If force_create is false, this function will never fail, though it may block
  * waiting for the jobs to complete if a fence cannot be allocated. If
  * V3D_PLATFORM_NULL_FENCE is returned, that means the jobs specified in deps
- * have achieved the specified state. V3D_PLATFORM_NULL_FENCE can be used with
- * the v3d_platform_fence_* functions and behaves like a fence that has already
- * been signaled, so you generally don't need to handle this return value
- * specially. Be aware though that it may not be accepted by code outside of
- * the GL stack, so eg should not be returned from eglDupNativeFenceFDAndroid.
- * If the fence is to be passed outside of the GL stack, you should specify
- * force_create=true...
+ * have achieved the specified state. V3D_PLATFORM_NULL_FENCE behaves like a
+ * fence that has already been signaled, so you generally don't need to handle
+ * this return value specially. Be aware though that it may not be accepted by
+ * code outside of the GL stack, so eg should not be returned from
+ * eglDupNativeFenceFDAndroid.
  *
  * If force_create is true, this function may fail, returning
  * V3D_PLATFORM_NULL_FENCE. If it succeeds it will always return a real
@@ -173,6 +217,7 @@ int v3d_scheduler_create_fence(const v3d_scheduler_deps *deps,
  * The scheduler gets ownership of the fence and is responsible for closing the
  * fence. */
 uint64_t v3d_scheduler_submit_wait_fence(int fence);
+#endif
 
 /* Submits a null job.
  * A null job is a new job that depends on the specified dependencies;
@@ -241,6 +286,7 @@ static inline void v3d_scheduler_copy_deps(v3d_scheduler_deps *dst, const v3d_sc
 
 const V3D_HUB_IDENT_T* v3d_scheduler_get_hub_identity(void);
 const V3D_IDENT_T* v3d_scheduler_get_identity(void);
+uint32_t v3d_scheduler_get_ddr_map_ver(void);
 
 /* Create a new scheduler event that can be set/reset/query from the host */
 /* and can be wait on/set/reset from the device (using jobs) */

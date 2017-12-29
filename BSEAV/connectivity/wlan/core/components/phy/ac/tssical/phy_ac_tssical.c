@@ -657,6 +657,8 @@ wlc_phy_tssi_radio_setup_acphy_20694(phy_info_t *pi, uint8 for_iqcal)
 
 		/* Selection between auxpga or iqcal(wbpga) */
 		MOD_RADIO_REG_20694(pi, RF, IQCAL_CFG4, core, iqcal2adc, 0x0);
+
+		/* coverity[result_independent_of_operands] */
 		MOD_RADIO_REG_20694(pi, RF, IQCAL_CFG4, core, auxpga2adc, 0x1);
 
 		MOD_RADIO_REG_20694(pi, RF, TESTBUF_OVR1, core, ovr_testbuf_PU, 0x1);

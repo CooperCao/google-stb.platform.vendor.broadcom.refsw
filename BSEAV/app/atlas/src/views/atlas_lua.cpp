@@ -620,7 +620,7 @@ static int atlasLua_GetChannelStats(lua_State * pLua)
 
     BDBG_ASSERT(pThis);
 
-    pAction = new CAction(eNotify_GetChannelStats,     eNotify_ChannelStatsShown, DEFAULT_LUA_EVENT_TIMEOUT);
+    pAction = new CAction(eNotify_GetChannelStats, eNotify_ChannelStatsShown, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
     /* save lua action to queue - this action will be serviced when we get the bwin io callback:
@@ -636,7 +636,8 @@ error:
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
-}
+} /* atlasLua_GetChannelStats */
+
 /* atlas.scanOfdm(
  *      --- required ---
  *      start frequency,   frequency in Hz at which to begin scanning
@@ -1876,7 +1877,7 @@ static int atlasLua_RecordStart(lua_State * pLua)
     if (4 < numArgTotal)
     {
         /* wrong number of arguments */
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
         LUA_ERROR(pLua, "wrong number of arguments: [fileName] [Path] [Security]\n--Security = {des,3des,aes}", error);
 #else
         LUA_ERROR(pLua, "wrong number of arguments: [fileName][Path]", error);
@@ -2002,7 +2003,7 @@ done:
  */
 static int atlasLua_EncodeStart(lua_State * pLua)
 {
-/* disable not supported */
+    /* disable not supported */
 #if 0 /* NEXUS_HAS_VIDEO_ENCODER */
     CLua *           pThis       = getCLua(pLua);
     eRet             err         = eRet_Ok;
@@ -2061,7 +2062,7 @@ done:
  */
 static int atlasLua_EncodeStop(lua_State * pLua)
 {
-/* not supported now */
+    /* not supported now */
 #if 0 /* NEXUS_HAS_VIDEO_ENCODER */
     CLua *    pThis   = getCLua(pLua);
     CAction * pAction = NULL;
@@ -2915,8 +2916,8 @@ static int atlasLua_EnableRemoteIr(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t argNum      = 1;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
-    bool    enable        = false;
-    bool *  pEnable       = NULL;
+    bool    enable      = false;
+    bool *  pEnable     = NULL;
 
     CDataAction <bool> * pAction = NULL;
 
@@ -3031,13 +3032,13 @@ done:
  */
 static int atlasLua_SetPlmVideo(lua_State * pLua)
 {
-    CLua *  pThis        = getCLua(pLua);
-    eRet    err          = eRet_Ok;
-    uint8_t argNum       = 1;
-    uint8_t numArgTotal  = lua_gettop(pLua) - 1;
-    CPlmDataVideo * pPlmData  = NULL;
-    eWindowType videoWin = eWindowType_Max;
-    bool bEnable         = false;
+    CLua *          pThis       = getCLua(pLua);
+    eRet            err         = eRet_Ok;
+    uint8_t         argNum      = 1;
+    uint8_t         numArgTotal = lua_gettop(pLua) - 1;
+    CPlmDataVideo * pPlmData    = NULL;
+    eWindowType     videoWin    = eWindowType_Max;
+    bool            bEnable     = false;
 
     CDataAction <CPlmDataVideo> * pAction = NULL;
 
@@ -3082,6 +3083,7 @@ error:
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetPlmVideo */
+
 #endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
 
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
@@ -3094,12 +3096,12 @@ done:
  */
 static int atlasLua_SetPlmGraphics(lua_State * pLua)
 {
-    CLua *  pThis        = getCLua(pLua);
-    eRet    err          = eRet_Ok;
-    uint8_t argNum       = 1;
-    uint8_t numArgTotal  = lua_gettop(pLua) - 1;
-    CPlmDataGraphics * pPlmData  = NULL;
-    bool bEnable         = false;
+    CLua *             pThis       = getCLua(pLua);
+    eRet               err         = eRet_Ok;
+    uint8_t            argNum      = 1;
+    uint8_t            numArgTotal = lua_gettop(pLua) - 1;
+    CPlmDataGraphics * pPlmData    = NULL;
+    bool               bEnable     = false;
 
     CDataAction <CPlmDataGraphics> * pAction = NULL;
 
@@ -3136,6 +3138,7 @@ error:
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetPlmGraphics */
+
 #endif /* ifdef HAS_GFX_NL_LUMA_RANGE_ADJ */
 
 /* atlas.showPip(
@@ -3907,8 +3910,9 @@ done:
  */
 static int atlasLua_SetPowerMode(lua_State * pLua)
 {
-    CLua *       pThis       = getCLua(pLua);
-    eRet         err         = eRet_Ok;
+    CLua * pThis = getCLua(pLua);
+    eRet   err   = eRet_Ok;
+
 #if POWERSTANDBY_SUPPORT
     uint8_t      argNum      = 1;
     uint8_t      numArgTotal = lua_gettop(pLua) - 1;
@@ -3947,10 +3951,10 @@ error:
     DEL(pAction);
     err = eRet_InvalidParameter;
 done:
-#else
+#else /* if POWERSTANDBY_SUPPORT */
     BDBG_ASSERT(pThis);
     BDBG_WRN((" Power Management is turned off. Please enable NEXUS_POWER_MANAGEMENT=y "));
-#endif
+#endif /* if POWERSTANDBY_SUPPORT */
     LUA_RETURN(err);
 } /* atlasLua_SetPowerMode  */
 
@@ -4867,6 +4871,45 @@ done:
     LUA_RETURN(err);
 } /* atlasLua_ipClientTranscodeProfile */
 
+#define PUSH_STR(tag)                                                           \
+    do                                                                          \
+    {                                                                           \
+        strValue = GET_STR(pThis->getCfg(), tag);                               \
+        lua_pushlstring(pThis->getLuaState(), strValue.s(), strValue.length()); \
+        nRetVals++;                                                             \
+    } while (0);
+
+static int atlasLua_GetConfig(lua_State * pLua)
+{
+    CLua *  pThis  = getCLua(pLua);
+    MString strTag = luaL_checkstring(pLua, 1);
+    MString strValue;
+    int     nRetVals = 0;
+
+    if (strTag == "BOARD_NAME") { PUSH_STR(BOARD_NAME); }
+    else
+    if (strTag == "ATLAS_NAME")
+    {
+        PUSH_STR(ATLAS_NAME);
+    }
+    else
+    if (strTag == "ATLAS_VERSION_MAJOR")
+    {
+        PUSH_STR(ATLAS_VERSION_MAJOR);
+    }
+    else
+    if (strTag == "ATLAS_VERSION_MINOR")
+    {
+        PUSH_STR(ATLAS_VERSION_MINOR);
+    }
+
+    goto done;
+error:
+    luaL_error(pLua, "Atlas Lua Error");
+done:
+    return(nRetVals);
+} /* atlasLua_GetConfig */
+
 static int atlasLua_SetDebugLevel(lua_State * pLua)
 {
     const char * strModule = luaL_checkstring(pLua, 1);
@@ -4998,13 +5041,12 @@ static int atlasLua_Sleep(lua_State * pLua)
 
 static int atlasLua_Help(lua_State * pLua)
 {
-    CLua *    pThis     = getCLua(pLua);
-    int       argNum    = 1;
-    MString   strHelp;
+    CLua *  pThis  = getCLua(pLua);
+    int     argNum = 1;
+    MString strHelp;
 
     BDBG_ASSERT(pThis);
     strHelp = luaL_checkstring(pLua, argNum);
-
 
     return(0);
 }
@@ -5137,6 +5179,7 @@ static const struct luaL_Reg atlasLua[] = {
     { "channelStream",                 atlasLua_ChannelStream                         }, /* stream ip channel from playlist */
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
     { "irRemoteEnable",                atlasLua_EnableRemoteIr                        }, /* enable/disable ir remote handling */
+    { "getConfig",                     atlasLua_GetConfig                             }, /* get configuration variable from atlas.cfg */
     { "setDebugLevel",                 atlasLua_SetDebugLevel                         }, /* set debug level for given module */
     { "runScript",                     atlasLua_RunScript                             }, /* Run given lua script */
     { "debug",                         atlasLua_Debug                                 }, /* Display given debug string on screen and in output log */
@@ -5502,7 +5545,7 @@ void luaShell(void * pParam)
     char *           prompt      = NULL;
     CConfiguration * pCfg        = NULL;
     char *           pScriptName = NULL;
-    const char    *  pLuaHName   = NULL;
+    const char *     pLuaHName   = NULL;
 
     BDBG_ASSERT(NULL != pLua);
 
@@ -5539,7 +5582,7 @@ void luaShell(void * pParam)
 
     /* load past history from file if it exists */
     pLuaHName = GET_STR(pCfg, LUA_HISTORY_FILENAME);
-    if(pLuaHName != NULL)
+    if (pLuaHName != NULL)
     {
         linenoiseHistoryLoad((char *)pLuaHName);
     }
@@ -5682,7 +5725,7 @@ eRet CLua::trigger(CAction * pAction)
 
 bool CLua::handleInput(char * pLine)
 {
-    bool ret = false;
+    bool    ret = false;
     MString strLine(pLine);
 
     BDBG_ASSERT(NULL != getWidgetEngine());
@@ -5724,13 +5767,13 @@ bool CLua::handleInput(char * pLine)
             printf("\tatlas.channelDown()                tune to next lower chanel number\n");
             printf("\tatlas.channelTune()                tune to the given channel\n");
             printf("\tatlas.channelUntune()              untune from the current channel\n");
-        #if NEXUS_HAS_FRONTEND
+#if NEXUS_HAS_FRONTEND
             printf("\tatlas.getChannelStats()            get current Channel Status\n");
             printf("\tatlas.scanQam()                    scan for qam channels\n");
             printf("\tatlas.scanVsb()                    scan for vsb channels\n");
             printf("\tatlas.scanSat()                    scan for sat channels\n");
             printf("\tatlas.scanOfdm()                   scan for ofdm channels\n");
-        #endif /* if NEXUS_HAS_FRONTEND */
+#endif /* if NEXUS_HAS_FRONTEND */
             printf("\tatlas.channelListLoad()            load channel list\n");
             printf("\tatlas.channelListSave()            save current channel list\n");
             printf("\tatlas.channelListDump()            dump current channel list\n");
@@ -5765,9 +5808,9 @@ bool CLua::handleInput(char * pLine)
             printf("IP Streaming:\n");
             printf("\tatlas.playlistDiscovery()          show playlists discovered from other servers\n");
             printf("\tatlas.playlistShow()               show playlist contents\n");
-    #ifdef PLAYBACK_IP_SUPPORT
+#ifdef PLAYBACK_IP_SUPPORT
             printf("\tatlas.channelStream()              stream ip channel from playlist\n");
-    #endif /* ifdef PLAYBACK_IP_SUPPORT */
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
             printf("\tatlas.ipClientTranscodeEnable()    enable/disable BIP transcoding for a given client\n");
             printf("\tatlas.ipClientTranscodeProfile()   set the BIP transcode profile for a given client\n");
         }
@@ -5808,10 +5851,10 @@ bool CLua::handleInput(char * pLine)
             printf("Closed Captions:\n");
             printf("\tatlas.setVbiClosedCaptions()       enable/disable VBI closedCaptions pass-through\n");
             printf("\tatlas.setVbiTeletext()             enable/disable VBI teletext\n");
-    #ifdef DCC_SUPPORT
+#ifdef DCC_SUPPORT
             printf("\tatlas.closedCaptionEnable()        enable/disable closed caption\n");
             printf("\tatlas.closedCaptionMode()          set 608/708 closed caption mode\n");
-    #endif /* ifdef DCC_SUPPORT */
+#endif /* ifdef DCC_SUPPORT */
         }
 
         if ((4 == strLine.length()) || (-1 != strLine.find("vbi")))
@@ -5830,12 +5873,12 @@ bool CLua::handleInput(char * pLine)
 
         if ((4 == strLine.length()) || (-1 != strLine.find("remote")))
         {
-    #if RF4CE_SUPPORT
+#if RF4CE_SUPPORT
             printf("RF4CE Remote:\n");
             printf("\tatlas.rf4ceRemoteAdd()             add RF4CE remote\n");
             printf("\tatlas.rf4ceRemoteRemove()          remove RF4CE remote\n");
             printf("\tatlas.rf4ceRemotesDisplay()        display RF4CE remotes\n");
-    #endif
+#endif /* if RF4CE_SUPPORT */
         }
 
         if ((4 == strLine.length()) || (-1 != strLine.find("wifi")))
@@ -5851,17 +5894,18 @@ bool CLua::handleInput(char * pLine)
         if ((4 == strLine.length()) || (-1 != strLine.find("misc")))
         {
             printf("Misc:\n");
-     #ifdef CPUTEST_SUPPORT
+#ifdef CPUTEST_SUPPORT
             printf("\tatlas.setCpuTestLevel()            set the cpu test level\n");
-    #endif
-    #if HAS_VID_NL_LUMA_RANGE_ADJ
+#endif
+#if HAS_VID_NL_LUMA_RANGE_ADJ
             printf("\tatlas.setPlmVideo()                enable/disable Programmable Luma Mapping for the given video window\n");
-    #endif
-    #if HAS_GFX_NL_LUMA_RANGE_ADJ
+#endif
+#if HAS_GFX_NL_LUMA_RANGE_ADJ
             printf("\tatlas.setPlmGraphics()             enable/disable Programmable Luma Mapping for graphics\n");
-    #endif
+#endif
             printf("\tatlas.irRemoteEnable()             enable/disable ir remote handling\n");
             printf("\tatlas.setPowerMode()               set power mode\n");
+            printf("\tatlas.getConfig()                  get configuration variable from atlas.cfg\n");
             printf("\tatlas.setDebugLevel()              set debug level for given module\n");
             printf("\tatlas.runScript()                  Run given lua script\n");
             printf("\tatlas.debug()                      Display given debug string on screen and in output log\n");
@@ -5874,8 +5918,6 @@ bool CLua::handleInput(char * pLine)
         /* mark as handled so it will not be forwarded on to lua */
         ret = true;
     }
-
-
 
     return(ret);
 } /* handleInput */
@@ -5937,11 +5979,10 @@ void CLua::processNotification(CNotification & notification)
 
     switch (notification.getId())
     {
-
     case eNotify_ChannelStatsShown:
     {
-            BDBG_MSG(("Channel Stats Should show on the Console"));
-            break;
+        BDBG_MSG(("Channel Stats Should show on the Console"));
+        break;
     }
 #if NEXUS_HAS_FRONTEND
     case eNotify_ScanStarted:
@@ -6048,16 +6089,16 @@ void CLua::processNotification(CNotification & notification)
     case eNotify_NetworkWifiConnectState:
     {
 #ifdef WPA_SUPPLICANT_SUPPORT
-        CWifi * pWifi = (CWifi *)notification.getData();
+        CWifi * pWifi             = (CWifi *)notification.getData();
         MString strConnectedState = pWifi->connectedStateToString(pWifi->getConnectedState());
-        int nRetVals = 0;
+        int     nRetVals          = 0;
 
         lua_pushlstring(_pLua, strConnectedState.s(), strConnectedState.length());
         nRetVals++;
 
         /* add 1 to count of return values */
         _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
     }
     break;
 

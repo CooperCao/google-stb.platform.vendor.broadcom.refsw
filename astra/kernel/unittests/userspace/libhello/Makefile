@@ -36,20 +36,68 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-# build environment
-TZ_DIR ?= ../../../..
-include $(TZ_DIR)/kernel/default.inc
+# build env
+TZ_TOP := ../../../..
+TZ_MOD := kernel/unittests/userspace/libhello
+TZ_LIB := libhello
 
-BASE_OBJ_DIR := $(B_REFSW_OBJ_ROOT)/kernel/unittests/userspace
-LIB_DIR := $(BASE_OBJ_DIR)/lib/libhello
+include $(TZ_TOP)/build/build_env.mk
 
-all: $(LIB_DIR) $(LIB_DIR)/libhello.so
+# build src
+SRC_DIRS := .
+INC_DIRS := .
+BIN_DIRS := $(TZ_OBJ_DIR)
 
-$(LIB_DIR):
-	mkdir -p $@
+include $(TZ_TOP)/build/build_src.mk
 
-$(LIB_DIR)/libhello.so: libhello.cpp libhello.h $(LIB_DIR)
-	$(TZ_ARMGNU)-g++ $(COMP_FLAGS) -shared -fPIC -o $(LIB_DIR)/libhello.so libhello.cpp
+# build flags
+DEPENDFLAGS := -MD -MP
+
+INCLUDES    := $(addprefix -I,$(INC_DIRS))
+INCLUDES    += -I$(TZ_KERNEL_DIR)/api
+INCLUDES    += -I$(TZ_KERNEL_DIR)/unittests/utils
+
+BASEFLAGS   := -O2 -g -fpic
+
+WARNFLAGS   := -Wall
+WARNFLAGS   += -Werror
+
+OSFLAGS     += -D__TZOS__
+
+ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
+ASFLAGS     += -g -D__ASSEMBLY__
+
+CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
+CFLAGS      += $(BASEFLAGS) $(WARNFLAGS)
+CFLAGS      += -std=gnu99
+CFLAGS      += -D_POSIX_SOURCE
+
+CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
+CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS)
+CPPFLAGS    += -std=c++11
+CPPFLAGS    += -D_POSIX_SOURCE
+
+LDFLAGS     := -shared
+
+# build rules
+.PHONY: checkplatform checkdirs $(TZ_LIB)
+
+all: $(TZ_LIB)
+
+$(TZ_LIB): checkplatform checkdirs $(TZ_OBJ_DIR)/$(TZ_LIB).so
+
+checkplatform:
+	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
+
+checkdirs: $(BIN_DIRS)
+
+$(BIN_DIRS):
+	@mkdir -p $@
+
+$(TZ_OBJ_DIR)/$(TZ_LIB).so: $(OBJS)
+	$(TZ_ARMGNU)-g++ $(LDFLAGS) $(OBJS) -o $@
 
 clean:
-	$(RM) $(LIB_DIR)/libhello.so
+	$(RM) -r $(TZ_OBJ_DIR)
+
+include $(TZ_TOP)/build/build_rules.mk

@@ -751,14 +751,14 @@ static void NEXUS_Frontend_P_3158_ResetQamStatus(void *handle)
 }
 
 /* IFDAC support functions */
-static void NEXUS_Tuner_P_3158_Callback(void *pParam)
+static void NEXUS_Tuner_P_3158_Callback_isr(void *pParam)
 {
     NEXUS_3158Device *pDevice;
     BDBG_ASSERT(NULL != pParam);
     pDevice = (NEXUS_3158Device *)pParam;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
 
-    BDBG_MSG(("NEXUS_Tuner_P_3158_Callback: pDevice->ifDacAppCallback: %p", (void *)pDevice->ifDacAppCallback));
+    BDBG_MSG(("NEXUS_Tuner_P_3158_Callback_isr: pDevice->ifDacAppCallback: %p", (void *)pDevice->ifDacAppCallback));
     if(pDevice->ifDacAppCallback)
     {
         NEXUS_IsrCallback_Fire_isr(pDevice->ifDacAppCallback);
@@ -2269,7 +2269,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_PostInitAp(NEXUS_FrontendDeviceHandle de
         errCode = BADS_InstallCallback(pDevice->ads_chn[i], BADS_Callback_eSpectrumDataReady, (BADS_CallbackFunc)NEXUS_Frontend_P_3158_spectrumDataReadyCallback, (void*)pDevice->spectrumEvent);
         if (errCode) { errCode = BERR_TRACE(rc); goto done; }
         if (pDevice->ifDacPresent && i==pDevice->ifDacChannelNumber) {
-            rc = BADS_InstallCallback(pDevice->ads_chn[pDevice->ifDacChannelNumber], BADS_Callback_eIfDacAcquireComplete, (BADS_CallbackFunc)NEXUS_Tuner_P_3158_Callback, (void *)pDevice);
+            rc = BADS_InstallCallback(pDevice->ads_chn[pDevice->ifDacChannelNumber], BADS_Callback_eIfDacAcquireComplete, (BADS_CallbackFunc)NEXUS_Tuner_P_3158_Callback_isr, (void *)pDevice);
             if(rc){rc = BERR_TRACE(rc); goto done;}
 
             rc = BADS_InstallCallback(pDevice->ads_chn[pDevice->ifDacChannelNumber], BADS_Callback_eIfDacStatusReady, (BADS_CallbackFunc)NEXUS_Frontend_P_3158_TunerAsyncStatusCallback_isr, (void *)pDevice);

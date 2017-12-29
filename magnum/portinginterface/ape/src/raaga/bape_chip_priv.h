@@ -88,13 +88,6 @@
 #define BAPE_CHIP_MAX_ARM_TASKS (0)
 #endif
 
-
-#define BAPE_CHIP_DSP_FIRST     (1)
-#define BAPE_CHIP_DSP_LAST      (5)
-#define BAPE_CHIP_ARM_FIRST     (6)
-#define BAPE_CHIP_ARM_LAST      (10)
-
-
 /* Max STCs */
 #ifdef BCHP_AUD_FMM_MISC_STC_UPPERi_ARRAY_END
 /* Legacy RDB */

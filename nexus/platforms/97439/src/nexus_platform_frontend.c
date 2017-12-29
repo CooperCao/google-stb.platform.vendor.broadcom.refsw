@@ -246,6 +246,10 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
             BDBG_WRN(("Opening %x...",probeResults.chip.familyId));
             device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
+            if (!device) {
+                BDBG_WRN(("No frontend found."));
+                return NEXUS_SUCCESS;
+            }
 
             NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
             BDBG_MSG(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));
@@ -401,6 +405,10 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
             BDBG_WRN(("Opening %x...",probeResults.chip.familyId));
             device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
+            if (!device) {
+                BDBG_WRN(("No frontend found."));
+                return NEXUS_SUCCESS;
+            }
 
             NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
             BDBG_MSG(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));

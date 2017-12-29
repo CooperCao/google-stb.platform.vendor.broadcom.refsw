@@ -161,13 +161,13 @@ int _astra_ioctl_status_get(
 
 int _astra_ioctl_call_smc(
     astra_kclient_handle hKClient,
-    uint32_t ucMode)
+    astra_smc_code code)
 {
     struct astra_ioctl_call_smc_data callSmcData;
     int err = 0;
 
     callSmcData.hClient = hKClient;
-    callSmcData.mode = ucMode;
+    callSmcData.code = code;
 
     err = ioctl(
         pAstra->fd,

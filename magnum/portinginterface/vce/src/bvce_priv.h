@@ -452,7 +452,7 @@ typedef struct BVCE_P_Buffer_Offsets
 
 typedef struct BVCE_P_VideoBufferDescriptorReleaseMetadata
 {
-   size_t uiShadowLength;
+   unsigned uiShadowLength;
    bool bHasITBEntry;
 } BVCE_P_VideoBufferDescriptorReleaseMetadata;
 
@@ -722,7 +722,9 @@ typedef struct BVCE_P_Context
             bool bResume;
       } channels[BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS];
 
+#if ( BVCE_P_CORE_MAJOR <= 2 )
       BVCE_P_Buffer_Handle hCabacCmdBuffer;
+#endif
 
       BVCE_Platform_P_Config stPlatformConfig;
 
@@ -737,8 +739,8 @@ typedef struct BVCE_P_Context
 
       struct
       {
-         size_t uiElementSize;
-         size_t uiBufferSize;
+         unsigned uiElementSize;
+         unsigned uiBufferSize;
          BVCE_P_Buffer_Handle hBuffer;
 
          void *pBuffer;

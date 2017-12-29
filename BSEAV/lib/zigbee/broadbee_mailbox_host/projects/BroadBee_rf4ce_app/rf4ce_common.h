@@ -44,6 +44,9 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <termios.h>
+#pragma GCC optimize "short-enums"
+#pragma pack(4)
+
 #include "bbMailAPI.h"
 #include "zigbee_api.h"
 #include "zigbee.h"
@@ -205,6 +208,9 @@ void BroadBee_PHY_Reset_Stats();
 void BroadBee_PHY_Get_TxPower();
 void BroadBee_PHY_Set_TxPower(int power);
 void BroadBee_PHY_Select_Antenna(RF4CE_CTRL_ANTENNA selAnt);
+
+#pragma GCC optimize "no-short-enums"
+#pragma pack()
 
 #endif
 

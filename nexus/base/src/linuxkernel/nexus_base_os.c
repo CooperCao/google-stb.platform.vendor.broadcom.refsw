@@ -386,10 +386,10 @@ static struct {
 };
 
 const char *
-NEXUS_GetEnv(const char *name)
+NEXUS_GetEnv_isrsafe(const char *name)
 {
     unsigned i;
-    NEXUS_P_CheckEnv(name);
+    NEXUS_P_CheckEnv_isrsafe(name);
     for(i=0;i<NEXUS_P_OsEnv.count;i++) {
         if (NEXUS_P_OsEnv.env[i].key[0] && NEXUS_P_Base_StrCmp(NEXUS_P_OsEnv.env[i].key, name)==0) {
             return NEXUS_P_OsEnv.env[i].value;
@@ -404,7 +404,7 @@ NEXUS_SetEnv(const char *name, const char *value)
     unsigned i;
     unsigned freeslot = NEXUS_P_OsEnv.count;
 
-    NEXUS_P_CheckEnv(name);
+    NEXUS_P_CheckEnv_isrsafe(name);
     for(i=0;i<NEXUS_P_OsEnv.count;i++) {
         if (!NEXUS_P_OsEnv.env[i].key[0] && freeslot == NEXUS_P_OsEnv.count) {
             freeslot = i;
@@ -469,7 +469,7 @@ NEXUS_atoi(const char *str)
 }
 
 int
-NEXUS_P_Base_StrCmp(const char *str1, const char *str2)
+NEXUS_P_Base_StrCmp_isrsafe(const char *str1, const char *str2)
 {
     int ch1, ch2, diff;
 

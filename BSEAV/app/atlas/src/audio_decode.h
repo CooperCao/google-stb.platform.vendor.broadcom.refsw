@@ -192,6 +192,12 @@ public:
     virtual eRet             setMute(bool bMute);
     virtual uint32_t         getVolume(void);
     virtual eRet             setVolume(uint32_t level);
+    virtual eRet             setAudioFade(unsigned level = 100, unsigned duration = 3);
+    virtual eRet             waitAudioFadeComplete(void) { return(eRet_Ok); }
+    virtual bool             isMaster(void) { return(_bMaster); }
+    virtual void             setMaster(bool bMaster) { _bMaster = bMaster; }
+    virtual NEXUS_AudioDecoderMixingMode getMixingMode(void) { return(_mixingMode); }
+    virtual void             setMixingMode(NEXUS_AudioDecoderMixingMode mixingMode) { _mixingMode = mixingMode; }
     virtual eRet             setDownmix(eAudioDownmix downmix);
     virtual eAudioDownmix    getDownmix(void);
     virtual eRet             setDualMono(eAudioDualMono dualMono);
@@ -216,30 +222,30 @@ public:
     virtual NEXUS_AudioDecoderHandle       getDecoder(void)       { return(_pDecoders[0]->getDecoder()); }
     virtual NEXUS_SimpleAudioDecoderHandle getSimpleDecoder(void) { return(_simpleDecoder); }
 
-    void setResources(void * id, CBoardResources * pResources);
-    void setOutputHdmi(COutputHdmi * pHdmi)         { _pHdmi = pHdmi; }
-    void setOutputSpdif(COutputSpdif * pSpdif)      { _pSpdif = pSpdif; }
-    void setOutputDac(COutputAudioDac * pDac)       { _pDac = pDac; }
-    void setOutputRFM(COutputRFM * pRFM)            { _pRFM = pRFM; }
-    void setOutputDummy(COutputAudioDummy * pDummy) { _pDummy = pDummy; }
-    eRet getStatus(NEXUS_AudioDecoderStatus * pStatus);
-    NEXUS_AudioInput                       getConnector(uint8_t num, NEXUS_AudioConnectorType type);
-    void getSettings(NEXUS_SimpleAudioDecoderServerSettings * pSettings);
-    eRet setSettings(NEXUS_SimpleAudioDecoderServerSettings * pSettings);
-    void     connectEncodeAc3(bool bConnect);
-    void     connectEncodeDts(bool bConnect);
-    void     verifyEncode(NEXUS_AudioCodec codec);
-    eRet     setStc(CStc * pStc);
-    CStc *   getStc(void)              { return(_pStc); }
-    void     setModel(CModel * pModel) { _pModel = pModel; }
-    CModel * getModel(void)            { return(_pModel); }
-    COutputHdmi *  getOutputHdmi(void)                   { return(_pHdmi); }
-    COutputSpdif * getOutputSpdif(void)                  { return(_pSpdif); }
-    void           setWindowType(eWindowType windowType) { _windowType = windowType; }
-    eWindowType    getWindowType(void)                   { return(_windowType); }
-    void           enablePrimer(bool bPrimer)            { _bPrimer = bPrimer; }
-    bool           isPrimerEnabled(void)                 { return(_bPrimer); }
-    NEXUS_SimpleAudioDecoderStartSettings * getStartSettings(void) { return(&_startSettings); }
+    void                                    setResources(void * id, CBoardResources * pResources);
+    void                                    setOutputHdmi(COutputHdmi * pHdmi)         { _pHdmi = pHdmi; }
+    void                                    setOutputSpdif(COutputSpdif * pSpdif)      { _pSpdif = pSpdif; }
+    void                                    setOutputDac(COutputAudioDac * pDac)       { _pDac = pDac; }
+    void                                    setOutputRFM(COutputRFM * pRFM)            { _pRFM = pRFM; }
+    void                                    setOutputDummy(COutputAudioDummy * pDummy) { _pDummy = pDummy; }
+    eRet                                    getStatus(NEXUS_AudioDecoderStatus * pStatus);
+    NEXUS_AudioInput                        getConnector(uint8_t num, NEXUS_AudioConnectorType type);
+    void                                    getSettings(NEXUS_SimpleAudioDecoderServerSettings * pSettings);
+    eRet                                    setSettings(NEXUS_SimpleAudioDecoderServerSettings * pSettings);
+    void                                    connectEncodeAc3(bool bConnect);
+    void                                    connectEncodeDts(bool bConnect);
+    void                                    verifyEncode(NEXUS_AudioCodec codec);
+    eRet                                    setStc(CStc * pStc);
+    CStc *                                  getStc(void)                          { return(_pStc); }
+    void                                    setModel(CModel * pModel)             { _pModel = pModel; }
+    CModel *                                getModel(void)                        { return(_pModel); }
+    COutputHdmi *                           getOutputHdmi(void)                   { return(_pHdmi); }
+    COutputSpdif *                          getOutputSpdif(void)                  { return(_pSpdif); }
+    void                                    setWindowType(eWindowType windowType) { _windowType = windowType; }
+    eWindowType                             getWindowType(void)                   { return(_windowType); }
+    void                                    enablePrimer(bool bPrimer)            { _bPrimer = bPrimer; }
+    bool                                    isPrimerEnabled(void)                 { return(_bPrimer); }
+    NEXUS_SimpleAudioDecoderStartSettings * getStartSettings(void)                { return(&_startSettings); }
 
 protected:
     NEXUS_SimpleAudioDecoderHandle        _simpleDecoder;
@@ -247,32 +253,34 @@ protected:
     NEXUS_Ac3EncodeHandle                 _encodeAc3;
     NEXUS_DtsEncodeHandle                 _encodeDts;
     CAutoVolumeLevel *                    _pAutoVolumeLevel;
-    CDolbyVolume *                        _pDolbyVolume;
-    CTruVolume *                          _pTruVolume;
-    CBoardResources *                     _pBoardResources;
-    CAudioDecode *                        _pDecoders[2];
-    COutputSpdif *                        _pSpdif;            /* DTT TODO: should be a list? */
-    COutputHdmi *                         _pHdmi;             /* DTT TODO: should be a list? */
-    COutputAudioDac *                     _pDac;              /* DTT TODO: should be a list? */
-    COutputRFM *                          _pRFM;              /* DTT TODO: should be a list? */
-    COutputAudioDummy *                   _pDummy;            /* DTT TODO: should be a list? */
-    unsigned                              _numSpdif;
-    unsigned                              _numHdmi;
-    void *                                _resourceId;
-    eAudioDownmix                         _downmix;
-    eAudioDownmix                         _downmixAc3;
-    eAudioDownmix                         _downmixDts;
-    eAudioDownmix                         _downmixAac;
-    eAudioDualMono                        _dualMono;
-    eDolbyDRC                             _dolbyDRC;
-    bool                                  _dolbyDialogNorm;
-    eAudioProcessing                      _audioProcessing;
-    NEXUS_AudioInput                      _stereoInput;
-    bool                                  _bEncodeConnectedDts;
-    bool                                  _bEncodeConnectedAc3;
-    bool                                  _bPrimer;
-    eWindowType                           _windowType;
-    CModel *                              _pModel;
+    CDolbyVolume *      _pDolbyVolume;
+    CTruVolume *        _pTruVolume;
+    CBoardResources *   _pBoardResources;
+    CAudioDecode *      _pDecoders[2];
+    COutputSpdif *      _pSpdif; /* DTT TODO: should be a list? */
+    COutputHdmi *       _pHdmi;  /* DTT TODO: should be a list? */
+    COutputAudioDac *   _pDac;   /* DTT TODO: should be a list? */
+    COutputRFM *        _pRFM;   /* DTT TODO: should be a list? */
+    COutputAudioDummy * _pDummy; /* DTT TODO: should be a list? */
+    unsigned            _numSpdif;
+    unsigned            _numHdmi;
+    void *              _resourceId;
+    eAudioDownmix       _downmix;
+    eAudioDownmix       _downmixAc3;
+    eAudioDownmix       _downmixDts;
+    eAudioDownmix       _downmixAac;
+    eAudioDualMono      _dualMono;
+    eDolbyDRC           _dolbyDRC;
+    bool                _dolbyDialogNorm;
+    eAudioProcessing    _audioProcessing;
+    NEXUS_AudioInput    _stereoInput;
+    bool                _bEncodeConnectedDts;
+    bool                _bEncodeConnectedAc3;
+    bool                _bPrimer;
+    bool                                  _bMaster;
+    NEXUS_AudioDecoderMixingMode          _mixingMode;
+    eWindowType         _windowType;
+    CModel *            _pModel;
 };
 
 #ifdef __cplusplus

@@ -1135,9 +1135,11 @@ int main(int argc, const char *argv[])
     }
     if(opts.common.cdxaFile) {
         cdxaFile = file = Cdxa_File_Attach(file);
+        BDBG_ASSERT(cdxaFile);
     }
     if(opts.common.pcm) {
         pcmFile = file = Pcm_File_Attach(file, &opts.common.pcm_config);
+        BDBG_ASSERT(pcmFile);
     }
     if(opts.playbackMonitor) {
         stickyFile = file = FileIoSticky_Attach(file);
@@ -1176,6 +1178,7 @@ int main(int argc, const char *argv[])
     playbackSettings.endOfStreamCallback.context = endOfStreamEvent;
     playbackSettings.endOfStreamCallback.param = 1;
     playbackSettings.enableStreamProcessing = opts.streamProcessing;
+    playbackSettings.accurateSeek = opts.accurateSeek;
     rc = NEXUS_Playback_SetSettings(playback, &playbackSettings);
     BDBG_ASSERT(!rc);
 
@@ -1471,11 +1474,11 @@ int main(int argc, const char *argv[])
             ? NEXUS_VideoFormat_ePal : NEXUS_VideoFormat_eNtsc;
         displaySD = NEXUS_Display_Open(1, &compositeDisplaySettings);
         rc = NEXUS_Display_AddOutput(displaySD, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-        BDBG_ASSERT(!rc);
+        if (rc) BERR_TRACE(rc); /* keep going */
 #if NEXUS_NUM_656_OUTPUTS
         if (opts.common.useCcir656Output && platformConfig.outputs.ccir656[0] && displaySD) {
            rc = NEXUS_Display_AddOutput(displaySD, NEXUS_Ccir656Output_GetConnector( platformConfig.outputs.ccir656[0]));
-           BDBG_ASSERT(!rc);
+           if (rc) BERR_TRACE(rc); /* keep going */
         }
 #endif
     }
@@ -1484,7 +1487,7 @@ int main(int argc, const char *argv[])
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     if (opts.common.useComponentOutput) {
         rc = NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
-        BDBG_ASSERT(!rc);
+        if (rc) BERR_TRACE(rc); /* keep going */
     }
 #endif
 #if NEXUS_HAS_HDMI_OUTPUT
@@ -1793,6 +1796,7 @@ int main(int argc, const char *argv[])
         NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
         playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
         pcrPidChannel = NEXUS_Playback_OpenPidChannel(playback, opts.common.pcrPid, &playbackPidSettings);
+        BSTD_UNUSED(pcrPidChannel);
     }
 
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up the audio outputs. */
@@ -1868,6 +1872,8 @@ int main(int argc, const char *argv[])
         if(stickyFile) {
             monitor_thread_start(&monitorState);
         }
+#else
+        BSTD_UNUSED(stickyFile);
 #endif
 
     if (opts.avd_crc) {
@@ -2282,14 +2288,15 @@ int main(int argc, const char *argv[])
                                 vstatus.enhancementFifoDepth * 100 / vstatus.enhancementFifoSize);
                     }
 
-                    printf("video %u/%u (%u%%)%s pts=%#x, stc=%#x (diff %d) fps=%sHz, queueDepth=%d %uKbps\n", vstatus.fifoDepth, vstatus.fifoSize,
+                    printf("video %u/%u (%u%%)%s pts=%#x, stc=%#x (diff %d) fps=%sHz, queueDepth=%d %uKbps, profile %s, level %s\n", vstatus.fifoDepth, vstatus.fifoSize,
                         vstatus.fifoSize ? vstatus.fifoDepth * 100 / vstatus.fifoSize : 0,
                         enhancementInfo,
                         vstatus.pts, stc, vstatus.ptsStcDifference,
                         lookup_name(g_videoFrameRateStrs, vstatus.frameRate),
                         vstatus.queueDepth,
-                        (decoder_bitrate_video(&video_bitrate, &vstatus) + 500)/1000
-                        );
+                        (decoder_bitrate_video(&video_bitrate, &vstatus) + 500)/1000,
+                        lookup_name(g_videoCodecProfileStrs, vstatus.protocolProfile),
+                        lookup_name(g_videoCodecLevelStrs, vstatus.protocolLevel));
 
                     rc = NEXUS_VideoDecoder_Get3DTVStatus(videoDecoder, &s3DTVStatus);
                     BDBG_ASSERT(!rc);
@@ -2651,13 +2658,11 @@ int main(int argc, const char *argv[])
                 NEXUS_HdmiOutputHandle hdmiOutput ;
                 NEXUS_HdmiOutputSettings hdmiOutputSettings;
                 NEXUS_HdmiOutputStatus hdmiOutputStatus ;
-                bool bt2020clYccSupport ;
                 bool bt2020nclYccSupport ;
 
                 hdmiOutput = platformConfig.outputs.hdmi[0] ;
 
                 NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus) ;
-                bt2020clYccSupport = hdmiOutputStatus.monitorColorimetry.extendedColorimetrySupported[NEXUS_HdmiEdidColorimetryDbSupport_eBT2020cYCC] ;
                 bt2020nclYccSupport = hdmiOutputStatus.monitorColorimetry.extendedColorimetrySupported[NEXUS_HdmiEdidColorimetryDbSupport_eBT2020YCC] ;
 
 

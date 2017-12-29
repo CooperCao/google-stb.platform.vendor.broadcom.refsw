@@ -744,6 +744,9 @@ liveStreamingThreadFromRaveBuffer(
     char recordFileName[32];
     bool gotErrorInStreamingLoop = false;
     B_PlaybackIpEventIds eventId = B_PlaybackIpEvent_eServerEndofStreamReached;
+    B_Time prev, cur;
+    unsigned diffFeedTime;
+
 #if 0
 #define ENABLE_SW_PACING
 #endif
@@ -760,6 +763,8 @@ liveStreamingThreadFromRaveBuffer(
     streamingFd = liveStreamingSettings->streamingFd;
     liveStreamingHandle->connectionState = B_PlaybackIpConnectionState_eActive;
     fileNameSuffix = liveStreamingHandle->fileNameSuffix;
+
+    B_Time_Get(&prev);
 
     if (enableRecording) {
         memset(recordFileName, 0, sizeof(recordFileName));
@@ -838,7 +843,6 @@ liveStreamingThreadFromRaveBuffer(
         {
             rc = BKNI_WaitForEvent(liveStreamingHandle->dataReadyEvent, liveStreamingHandle->settings.dataReadyTimeoutInterval);
         }
-
 
         if (liveStreamingHandle->stop) {
             BDBG_MSG(("%s: app asked us to stop streaming (handle %p)", BSTD_FUNCTION, (void *)liveStreamingHandle));
@@ -1051,7 +1055,13 @@ liveStreamingThreadFromRaveBuffer(
             break;
         }
 
-        BDBG_MSG(("%s: bytesToRead %zu bytes for streaming fd %d, wrote %zu bytes", BSTD_FUNCTION, bytesToRead, streamingFd, totalBytesRead));
+        B_Time_Get(&cur);
+        diffFeedTime = B_Time_Diff(&cur, &prev);
+        prev = cur;
+        if ( liveStreamingHandle->ipVerboseLog ) {
+            if (diffFeedTime > 100) BDBG_WRN(("Feedtime=%u > 100", diffFeedTime));
+        }
+        BDBG_MSG(("%s: bytesToRead %zu bytes for streaming fd %d, wrote %zu bytes, diffFeedTime=%u totalStreamed=%"PRId64, BSTD_FUNCTION, bytesToRead, streamingFd, totalBytesRead, diffFeedTime, liveStreamingHandle->totalBytesStreamed));
         if (liveStreamingSettings->hlsSession) {
             gopsSentInHlsSegment++;
             if (NEXUS_Recpump_IndexReadComplete(liveStreamingHandle->recpumpHandle, indexBytesRead) != NEXUS_SUCCESS) {

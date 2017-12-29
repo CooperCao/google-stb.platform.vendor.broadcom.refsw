@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_HAS_POST_PROCESSING
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 #if !B_REFSW_MINIMAL
@@ -297,7 +297,7 @@ BERR_Code BAPE_CustomProcessing_SetSettings(
             }
 
             /* Retrieve defaults for this algorithm into our buffer */
-            errCode = BDSP_Raaga_GetDefaultAlgorithmSettings(pSettings->algorithm, handle->pSettings, pSettings->algorithmSettingsSize);
+            errCode = BDSP_GetDefaultAlgorithmSettings(pSettings->algorithm, handle->pSettings, pSettings->algorithmSettingsSize);
             if ( errCode )
             {
                 return BERR_TRACE(BERR_INVALID_PARAMETER);

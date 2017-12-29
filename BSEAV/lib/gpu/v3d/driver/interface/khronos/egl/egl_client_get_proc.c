@@ -90,6 +90,15 @@ EGLAPI __eglMustCastToProperFunctionPointerType EGLAPIENTRY
       if (!strcmp(procname, "eglTermDriverMonitorBRCM"))
          return (__eglMustCastToProperFunctionPointerType)eglTermDriverMonitorBRCM;
 #endif
+
+#ifdef WAYLAND
+      if (!strcmp(procname, "eglBindWaylandDisplayWL"))
+         return (__eglMustCastToProperFunctionPointerType)eglBindWaylandDisplayWL;
+      if (!strcmp(procname, "eglUnbindWaylandDisplayWL"))
+         return (__eglMustCastToProperFunctionPointerType)eglUnbindWaylandDisplayWL;
+      if (!strcmp(procname, "eglQueryWaylandBufferWL"))
+         return (__eglMustCastToProperFunctionPointerType)eglQueryWaylandBufferWL;
+#endif
    }
 
    return res;

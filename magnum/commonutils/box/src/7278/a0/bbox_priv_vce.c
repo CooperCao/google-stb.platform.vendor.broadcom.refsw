@@ -1,5 +1,5 @@
-/******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/***************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bstd.h"                /* standard types */
@@ -48,10 +47,10 @@ BDBG_OBJECT_ID(BBOX_BOX_PRIV_VCE);
 
 const BBOX_Vce_Capabilities BBOX_P_Vce_CapabilitiesLUT[] =
 {
-   /* Box Mode: 1 (1080p30x2) */
+   /* Box Mode: 1 (No Transcode - VCE HW bug) */
    { 1,
       { /* Instance Array */
-         BBOX_VCE_CHANNEL_INFO_1080p30( 0, 0x3, 1 ),
+         BBOX_VCE_CHANNEL_INFO_NO_TRANSCODE( 0, 0x0, 0 ),
       },
    },
    /* Box Mode: 2 (No Transcode) */

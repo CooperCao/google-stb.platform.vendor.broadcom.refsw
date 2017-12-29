@@ -43,15 +43,9 @@ BDBG_MODULE(bdsp_raaga_int);
 static const  BINT_Id DSPGenRespInterruptId[] =
 {
 #if defined BCHP_INT_ID_HOST_MSG
-     BCHP_INT_ID_HOST_MSG
-#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
-    ,BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_HOST_MSG
-#endif
+    BCHP_INT_ID_HOST_MSG
 #else
-     BCHP_INT_ID_RAAGA_DSP_FW_INTH_HOST_MSG
-#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
-    , BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_HOST_MSG
-#endif
+    BCHP_INT_ID_INT2
 #endif
 };
 
@@ -59,14 +53,8 @@ static const  BINT_Id DSPSynInterruptId[] =
 {
 #if defined BCHP_INT_ID_SYNC_MSG
      BCHP_INT_ID_SYNC_MSG
-#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
-    ,BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_SYNC_MSG
-#endif
 #else
-     BCHP_INT_ID_RAAGA_DSP_FW_INTH_SYNC_MSG
-#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
-    , BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_SYNC_MSG
-#endif
+     BCHP_INT_ID_INT0
 #endif
 };
 
@@ -74,14 +62,8 @@ static const  BINT_Id DSPAsynInterruptId[] =
 {
 #if defined BCHP_INT_ID_ASYNC_MSG
      BCHP_INT_ID_ASYNC_MSG
-#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
-    ,BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_ASYNC_MSG
-#endif
 #else
-     BCHP_INT_ID_RAAGA_DSP_FW_INTH_ASYNC_MSG
-#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
-	,BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_ASYNC_MSG
-#endif
+     BCHP_INT_ID_INT1
 #endif
 };
 
@@ -99,6 +81,55 @@ static const  BINT_Id DSPWatchDogInterruptId[] =
 #endif
 #endif
 };
+
+static BERR_Code BDSP_Raaga_P_GetInterruptBit(
+	void *pDevice,
+	unsigned dspIndex,
+	uint32_t *interruptbit
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_Raaga *pRaagaDevice = (BDSP_Raaga *)pDevice;
+	unsigned j = 0;
+
+	/* Find a free interrupt */
+	BKNI_AcquireMutex(pRaagaDevice->deviceMutex);
+	for (j=0; j<BDSP_RAAGA_MAX_INTERRUPTS_PER_DSP; j++)
+	{
+		if (false == pRaagaDevice->hardwareStatus.dspInterrupts[dspIndex][j])
+			break;
+	}
+
+	if (j >= BDSP_RAAGA_MAX_INTERRUPTS_PER_DSP)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_GetFreeInterruptBit: Unable to find free interrupt to dsp!"));
+		*interruptbit = BDSP_RAAGA_MAX_INTERRUPTS_PER_DSP;
+		errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+	}
+	else
+	{
+		pRaagaDevice->hardwareStatus.dspInterrupts[dspIndex][j] = true;
+		*interruptbit = j;
+	}
+	BKNI_ReleaseMutex(pRaagaDevice->deviceMutex);
+
+	return errCode;
+}
+
+static void BDSP_Raaga_P_FreeInterruptBit(
+	void *pDevice,
+	unsigned dspIndex,
+	uint32_t *interruptbit
+)
+{
+	BDSP_Raaga *pRaagaDevice = (BDSP_Raaga *)pDevice;
+
+	/* Find a free interrupt */
+	BKNI_AcquireMutex(pRaagaDevice->deviceMutex);
+	pRaagaDevice->hardwareStatus.dspInterrupts[dspIndex][*interruptbit] = false;
+	BKNI_ReleaseMutex(pRaagaDevice->deviceMutex);
+	*interruptbit = BDSP_RAAGA_MAX_INTERRUPTS_PER_DSP;
+}
 
 static void  BDSP_Raaga_P_FrameSyncUnlock_isr(
 	void *pTaskHandle)
@@ -294,11 +325,12 @@ static void  BDSP_Raaga_P_BitrateChange_isr(
 {
 
    BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
+   BDSP_RaagaStage *pRaagaPrimaryStage;
    BDSP_AudioBitRateChangeInfo	bitrateChangeInfo;
 
-   BDSP_RaagaStage *pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
-
    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+   pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
+   BDBG_OBJECT_ASSERT(pRaagaPrimaryStage, BDSP_RaagaStage);
 
    BDBG_MSG(("BDSP_Raaga_P_BitRateChange_isr: Bit rate change event occured for Task %d",pRaagaTask->taskParams.taskId));
    BDBG_MSG(("Algorithm = %d \t BitRate = %d \t BitRateIndex = %d ",pRaagaPrimaryStage->eAlgorithm,pBitrateChangeInfo->ui32BitRate, pBitrateChangeInfo->ui32BitRateIndex));
@@ -339,7 +371,7 @@ static void  BDSP_Raaga_P_StreamInfoAvailable_isr(
 
 static void  BDSP_Raaga_P_UnlicensedAlgo_isr(
 	 void *pTaskHandle,
-	 BDSP_Raaga_P_UnlicensedAlgoInfo *pUnlicensedAlgoInfo)
+	 BDSP_P_UnlicensedAlgoInfo *pUnlicensedAlgoInfo)
 {
 	 BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
 
@@ -420,7 +452,7 @@ static void BDSP_Raaga_P_Dsp2TaskAsyn_isr(
     BDSP_RaagaTask *pRaagaTask;
     uint32_t    ui32DspId = 0;
     uint32_t    ui32ASyncTaskIds = 0;
-    BDSP_Raaga_P_AsynMsg  *pEventMsg = NULL;
+    BDSP_P_AsynMsg  *pEventMsg = NULL;
 	int  i=0;
 
 	BDBG_ENTER(BDSP_Raaga_P_Dsp2TaskAsyn_isr);
@@ -429,7 +461,7 @@ static void BDSP_Raaga_P_Dsp2TaskAsyn_isr(
 	ui32DspId = iParm2;
     BDBG_MSG (("... Async Message(s) Posted by DSP %d... ", ui32DspId));
 
-    for(i = 0; i < BDSP_RAAGA_MAX_FW_TASK_PER_DSP; i++)
+    for(i = 0; i < BDSP_MAX_FW_TASK_PER_DSP; i++)
     {
 		pRaagaTask = (BDSP_RaagaTask *)pDevice->taskDetails[ui32DspId].pTask[i];
 		if(pRaagaTask == NULL)
@@ -453,7 +485,7 @@ static void BDSP_Raaga_P_Dsp2TaskAsyn_isr(
 
 			BDBG_MSG(("ASYNC MSG Received from Task %d", pRaagaTask->taskParams.taskId));
 
-			pEventMsg = (BDSP_Raaga_P_AsynMsg *)pRaagaTask->taskMemInfo.hostAsyncQueue.pAddr;
+			pEventMsg = (BDSP_P_AsynMsg *)pRaagaTask->taskMemInfo.hostAsyncQueue.pAddr;
 
 			/* Read the message in sEventMsg */
 			BDSP_Raaga_P_GetAsyncMsg_isr(pRaagaTask->hAsyncQueue, pEventMsg, &uiNumMsgs);
@@ -558,7 +590,7 @@ static void BDSP_Raaga_P_Dsp2TaskSyn_isr(
 	ui32DspId = iParm2;
 	BDBG_MSG(("... Sync Message Posted by DSP %d... ", ui32DspId));
 
-	for(i  = 0; i < BDSP_RAAGA_MAX_FW_TASK_PER_DSP; i++)
+	for(i  = 0; i < BDSP_MAX_FW_TASK_PER_DSP; i++)
 	{
 		pRaagaTask = (BDSP_RaagaTask *)pDevice->taskDetails[ui32DspId].pTask[i];
 		if(pRaagaTask == NULL)
@@ -577,7 +609,7 @@ static void BDSP_Raaga_P_Dsp2TaskSyn_isr(
 			BDSP_WriteReg32_isr(pDevice->regHandle,
 				BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_CLEAR_0 + pDevice->dspOffset[ui32DspId],
 				ui32SyncTaskIds);
-			if (pRaagaTask->taskParams.taskId < BDSP_RAAGA_MAX_FW_TASK_PER_DSP)
+			if (pRaagaTask->taskParams.taskId < BDSP_MAX_FW_TASK_PER_DSP)
 			{
 				BKNI_SetEvent(pRaagaTask->hEvent);
 			}
@@ -618,7 +650,10 @@ Returns:
 Note:
 	This comment is common for all the APIs below
 ***************************************************************************/
-static void BDSP_Raaga_P_Watchdog_isr(void *pDeviceHandle,  int iParm2)
+static void BDSP_Raaga_P_Watchdog_isr(
+    void *pDeviceHandle,
+    int   iParm2
+)
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
@@ -672,12 +707,26 @@ static BERR_Code BDSP_Raaga_P_WatchdogRecoverySequence(
 
 	BDBG_ENTER(BDSP_Raaga_P_WatchdogRecoverySequence);
 
-	BDSP_Raaga_P_Open(pDevice);
+	errCode =BDSP_Raaga_P_Open(pDevice);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_WatchdogRecoverySequence: Error in Opening and processing Open for Arm"));
+        errCode = BERR_TRACE(errCode);
+        goto end;
+    }
 
 	errCode = BDSP_Raaga_P_Boot(pDevice);
 	if (errCode!=BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_WatchdogRecoverySequence: Error in Booting Raaga"));
+		errCode= BERR_TRACE(errCode);
+		goto end;
+	}
+
+    errCode = BDSP_Raaga_P_CheckDspAlive(pDevice);
+	if (errCode!=BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_WatchdogRecoverySequence: DSP not alive"));
 		errCode= BERR_TRACE(errCode);
 		goto end;
 	}
@@ -707,10 +756,11 @@ BERR_Code BDSP_Raaga_P_ProcessContextWatchdogInterrupt(
 {
 	BDSP_RaagaContext *pRaagaContext = (BDSP_RaagaContext *)pContextHandle;
 	BERR_Code errCode = BERR_SUCCESS;
-	BDSP_Raaga  *pDevice= pRaagaContext->pDevice;
+	BDSP_Raaga  *pDevice;
 
 	BDBG_ENTER(BDSP_Raaga_P_ProcessContextWatchdogInterrupt);
 	BDBG_OBJECT_ASSERT(pRaagaContext, BDSP_RaagaContext);
+	pDevice= (BDSP_Raaga *)pRaagaContext->pDevice;
 	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
 
     BKNI_EnterCriticalSection();
@@ -747,12 +797,14 @@ BERR_Code BDSP_Raaga_P_TaskInterruptInstall (
 {
 	BERR_Code       errCode = BERR_SUCCESS;
 	BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
-	unsigned int    dspIndex = pRaagaTask->createSettings.dspIndex;
-	BDSP_Raaga      *pDevice = pRaagaTask->pContext->pDevice;
-
-	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+	unsigned int    dspIndex;
+	BDSP_Raaga     *pDevice;
 
 	BDBG_ENTER (BDSP_Raaga_P_TaskInterruptInstall);
+	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+	pDevice = (BDSP_Raaga *)pRaagaTask->pContext->pDevice;
+	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+	dspIndex = pRaagaTask->createSettings.dspIndex;
 
 	/* We will create two callbacks for Asynchronous Interrupt & for
 	Synchtonous interrupt on both DAP0 as well as on DS1 */
@@ -827,13 +879,11 @@ BERR_Code BDSP_Raaga_P_TaskInterruptUninstall (
 	BERR_Code		errCode = BERR_SUCCESS;
 	BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
 
-	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
-
 	BDBG_ENTER (BDSP_Raaga_P_TaskInterruptUninstall);
+	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
    /* We will create two callbacks for Asynchronous Interrupt & for
 	   Synchtonous interrupt on both DAP0 as well as on DS1 */
-
    if(pRaagaTask->interruptCallbacks.hDSPAsync)
    {
 		errCode = BINT_DisableCallback(pRaagaTask->interruptCallbacks.hDSPAsync);
@@ -884,7 +934,7 @@ BERR_Code BDSP_Raaga_P_DeviceInterruptInstall (
 	BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
 
 	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
-	BDBG_ENTER (BDSP_Raaga_P_DeviceInterruptUninstall);
+	BDBG_ENTER (BDSP_Raaga_P_DeviceInterruptInstall);
 
 	errCode = BINT_CreateCallback(
 	                        &pDevice->interruptCallbacks[dspIndex].hWatchdogCallback,
@@ -896,14 +946,14 @@ BERR_Code BDSP_Raaga_P_DeviceInterruptInstall (
 	                        );
 	if(errCode != BERR_SUCCESS)
 	{
-		BDBG_ERR(("Create Watchdog Callback failed for DSP = %d",dspIndex));
+		BDBG_ERR(("BDSP_Raaga_P_DeviceInterruptInstall: Create Watchdog Callback failed for DSP = %d",dspIndex));
 		errCode = BERR_TRACE(errCode);
 		goto err_callback;
 	}
 	errCode = BINT_EnableCallback(pDevice->interruptCallbacks[dspIndex].hWatchdogCallback);
 	if(errCode != BERR_SUCCESS)
 	{
-		BDBG_ERR(("Enable Watchdog Callback failed for DSP = %d",dspIndex));
+		BDBG_ERR(("BDSP_Raaga_P_DeviceInterruptInstall: Enable Watchdog Callback failed for DSP = %d",dspIndex));
 		errCode = BERR_TRACE(errCode);
 		goto err_callback;
 	}
@@ -921,14 +971,14 @@ BERR_Code BDSP_Raaga_P_DeviceInterruptInstall (
 	                        );
 	if(errCode != BERR_SUCCESS)
 	{
-		BDBG_ERR(("Create Generic Response Callback failed for DSP = %d",dspIndex));
+		BDBG_ERR(("BDSP_Raaga_P_DeviceInterruptInstall: Create Generic Response Callback failed for DSP = %d",dspIndex));
 		errCode = BERR_TRACE(errCode);
 		goto err_callback;
 	}
 	errCode = BINT_EnableCallback(pDevice->interruptCallbacks[dspIndex].hGenResp);
 	if(errCode != BERR_SUCCESS)
 	{
-		BDBG_ERR(("Enable Generic Response Callback failed for DSP = %d",dspIndex));
+		BDBG_ERR(("BDSP_Raaga_P_DeviceInterruptInstall: Enable Generic Response Callback failed for DSP = %d",dspIndex));
 		errCode = BERR_TRACE(errCode);
 		goto err_callback;
 	}
@@ -1032,6 +1082,7 @@ BERR_Code BDSP_Raaga_P_SetTaskInterruptHandlers_isr(
 	BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
 
 	BDBG_ENTER(BDSP_Raaga_P_SetTaskInterruptHandlers_isr);
+	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
 	/*Sample Rate Change Interrupt*/
 	if((pHandlers->sampleRateChange.pCallback_isr == NULL))
@@ -1309,5 +1360,137 @@ BERR_Code BDSP_Raaga_P_RestoreInterrupts_isr(
 	BINT_ApplyL2State_isr(pDevice->intHandle,L2Reg );
 
 	BDBG_LEAVE(BDSP_Raaga_P_RestoreInterrupts_isr);
+	return errCode;
+}
+
+/***********************************************************************
+Name        :   BDSP_Raaga_P_AllocateExternalInterrupt
+
+Type        :   PI Interface
+
+Input       :   pDeviceHandle -Device Handle for the Device.
+				dspIndex - Index of the DSP
+				pInterruptHandle - pointer which is returned after allocating the Intterupt
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   Allocate the required memory for thre External interrupt. Provide the Interrupt
+				bit for which the External Interrupt is hoooked, with error handling.
+***********************************************************************/
+BERR_Code BDSP_Raaga_P_AllocateExternalInterrupt(
+	void 						 *pDeviceHandle,
+	uint32_t 					  dspIndex,
+	BDSP_ExternalInterruptHandle *pInterruptHandle /* OUT*/
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
+	BDSP_RaagaExternalInterrupt *pRaagaExtInterrupt;
+	uint32_t interruptbit = 0;
+
+	BDBG_ENTER(BDSP_Raaga_P_AllocateExternalInterrupt);
+	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+
+	pRaagaExtInterrupt = BKNI_Malloc(sizeof(BDSP_RaagaExternalInterrupt));
+	if( NULL == pRaagaExtInterrupt )
+	{
+		BDBG_ERR(("BDSP_Raaga_P_AllocateExternalInterrupt: Unable to allocate memory for External Input"));
+		errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+		goto end;
+	}
+	BKNI_Memset((void *)pRaagaExtInterrupt, 0, sizeof(BDSP_RaagaExternalInterrupt));
+
+	errCode = BDSP_Raaga_P_GetInterruptBit(pDeviceHandle, dspIndex, &interruptbit);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_AllocateExternalInterrupt: Unable to find free interrupt to dsp %d!",dspIndex));
+		errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+		BKNI_Free(pRaagaExtInterrupt);
+		goto end;
+	}
+	/* Got the interrupt bit. Populate interrupt handle now */
+	BDBG_MSG(("Found free interrupt bit number %d of ESR_SI for dsp %d", interruptbit, dspIndex));
+
+	pRaagaExtInterrupt->pDevice  = pDevice;
+	pRaagaExtInterrupt->dspIndex = dspIndex;
+
+	pRaagaExtInterrupt->InterruptInfo.bitNum  = interruptbit;
+	pRaagaExtInterrupt->InterruptInfo.address = BCHP_RAAGA_DSP_ESR_SI_INT_SET + pDevice->dspOffset[dspIndex];
+
+	pRaagaExtInterrupt->extInterrupt.hDsp = &pDevice->device;
+	pRaagaExtInterrupt->extInterrupt.pExtInterruptHandle = (void *)pRaagaExtInterrupt;
+	BDBG_OBJECT_SET(&pRaagaExtInterrupt->extInterrupt, BDSP_ExternalInterrupt);
+
+	BLST_S_INSERT_HEAD(&pDevice->interruptList, pRaagaExtInterrupt, node);
+	BDBG_OBJECT_SET(pRaagaExtInterrupt, BDSP_RaagaExternalInterrupt);
+	*pInterruptHandle = &pRaagaExtInterrupt->extInterrupt;
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_AllocateExternalInterrupt);
+	return errCode;
+}
+
+/***********************************************************************
+Name        :   BDSP_Raaga_P_FreeExternalInterrupt
+
+Type        :   PI Interface
+
+Input       :   pInterruptHandle - Pointer of the Intterupt which needs to be unhooked.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   Unhook the external interrupt and free the memory which was allocated.
+***********************************************************************/
+BERR_Code BDSP_Raaga_P_FreeExternalInterrupt(
+	void *pInterruptHandle
+)
+{
+	BERR_Code errCode =BERR_SUCCESS;
+	BDSP_RaagaExternalInterrupt *pRaagaExtInterrupt = (BDSP_RaagaExternalInterrupt *)pInterruptHandle;
+	BDSP_Raaga *pRaaga = pRaagaExtInterrupt->pDevice;
+	BDBG_ENTER(BDSP_Raaga_P_FreeExternalInterrupt);
+
+	BDBG_OBJECT_ASSERT(pRaagaExtInterrupt, BDSP_RaagaExternalInterrupt);
+
+	/* Free-up the interrupt bit */
+	BDBG_MSG(("Freeing up interrupt bit number %d of ESR_SI for dsp %d", pRaagaExtInterrupt->InterruptInfo.bitNum, pRaagaExtInterrupt->dspIndex));
+	BDSP_Raaga_P_FreeInterruptBit((void *)pRaagaExtInterrupt->pDevice,pRaagaExtInterrupt->dspIndex, &pRaagaExtInterrupt->InterruptInfo.bitNum);
+
+	/* Remove the handle from device's list */
+	BLST_S_REMOVE(&pRaaga->interruptList, pRaagaExtInterrupt, BDSP_RaagaExternalInterrupt, node);
+
+	BDBG_OBJECT_DESTROY(&pRaagaExtInterrupt->extInterrupt, BDSP_ExternalInterrupt);
+	BDBG_OBJECT_DESTROY(pRaagaExtInterrupt, BDSP_RaagaExternalInterrupt);
+	BKNI_Free(pRaagaExtInterrupt);
+
+	BDBG_LEAVE(BDSP_Raaga_P_FreeExternalInterrupt);
+	return errCode;
+}
+
+/***********************************************************************
+Name        :   BDSP_Raaga_P_GetExternalInterruptInfo
+
+Type        :   PI Interface
+
+Input       :   pInterruptHandle - Pointer of the Interrupt information is required by the PI.
+				pInfo - Pointer to which data is filled and returned to PI.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   Return the information for the Interrupt provided by the PI.
+***********************************************************************/
+BERR_Code BDSP_Raaga_P_GetExternalInterruptInfo(
+	void *pInterruptHandle,
+	BDSP_ExternalInterruptInfo **pInfo
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_RaagaExternalInterrupt *pRaagaExtInterrupt = (BDSP_RaagaExternalInterrupt *)pInterruptHandle;
+
+	BDBG_ENTER(BDSP_Raaga_P_GetExternalInterruptInfo);
+	BDBG_OBJECT_ASSERT(pRaagaExtInterrupt, BDSP_RaagaExternalInterrupt);
+
+	*pInfo = &pRaagaExtInterrupt->InterruptInfo;
+
+	BDBG_LEAVE(BDSP_Raaga_P_GetExternalInterruptInfo);
 	return errCode;
 }

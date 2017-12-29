@@ -44,7 +44,8 @@
 typedef enum Utility_ModuleId_e{
     Utility_ModuleId_eHeartbeat = 0x01,
     Utility_ModuleId_eRsa       = 0x02,
-    Utility_ModuleId_eSecureRsa = 0x03
+    Utility_ModuleId_eSecureRsa = 0x03,
+    Utility_ModuleId_eSsce      = 0x04
 }Utility_ModuleId_e;
 
 enum {
@@ -71,13 +72,26 @@ enum {
     SecureRsa_CommandId_eRsaHostUsage      = 0x212,
     SecureRsa_CommandId_eRsaDecryptKey3    = 0x213,
     SecureRsa_CommandId_eRsaDecryptKpk     = 0x214,
+    SecureRsa_CommandId_eRsaLoadPublicKey  = 0x215,
     SecureRsa_CommandId_eKey3Import        = 0x220,
     SecureRsa_CommandId_eKey3Export        = 0x221,
     SecureRsa_CommandId_eKey3Route         = 0x222,
     SecureRsa_CommandId_eKey3Unroute       = 0x223,
     SecureRsa_CommandId_eKey3CalculateHmac = 0x224,
+    SecureRsa_CommandId_eKey3AppendSha     = 0x225,
+    SecureRsa_CommandId_eKey3LoadClearIkr  = 0x226,
+    SecureRsa_CommandId_eKey3IkrDecryptIkr = 0x227,
     SecureRsa_CommandId_eKpkDecryptRsa     = 0x230,
-    SecureRsa_CommandId_eMax
+    SecureRsa_CommandId_eKpkDecryptIkr     = 0x231,
+    SecureRsa_CommandId_eMax,
+
+    /* SSCE command IDs */
+    Ssce_CommandId_eCreateKey         = 0x300,
+    Ssce_CommandId_eLoadKey           = 0x301,
+    Ssce_CommandId_eUpdateCertificate = 0x302,
+    Ssce_CommandId_eRetrieve          = 0x303,
+    Ssce_CommandId_eSign              = 0x304,
+    Ssce_CommandId_eMax
 };
 
 

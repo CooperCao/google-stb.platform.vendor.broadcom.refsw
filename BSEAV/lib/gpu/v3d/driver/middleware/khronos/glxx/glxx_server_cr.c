@@ -1,16 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
-functions in this file had prior to GL 1.1 and 2.0 merging been code reviewed
-in 1.1 branch
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_options.h"
 
@@ -129,8 +119,8 @@ int glxx_get_boolean_internal(GLXX_SERVER_STATE_T *state, GLenum pname, GLboolea
 {
    int result = 0;
 
-   vcos_assert(GL11_CONFIG_MAX_PLANES == 1);
-   vcos_assert(GL11_CONFIG_MAX_LIGHTS == 8);
+   assert(GL11_CONFIG_MAX_PLANES == 1);
+   assert(GL11_CONFIG_MAX_LIGHTS == 8);
 
    switch (pname) {
    case GL_LIGHT_MODEL_TWO_SIDE:
@@ -328,7 +318,7 @@ int glxx_get_boolean_internal(GLXX_SERVER_STATE_T *state, GLenum pname, GLboolea
    case GL_TEXTURE_2D:
    case GL_TEXTURE_EXTERNAL_OES:
       if (IS_GL_11(state)) {
-         vcos_assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
+         assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
          params[0] = state->texunits[state->active_texture - GL_TEXTURE0].target_enabled == pname;
          result = 1;
       }
@@ -465,7 +455,7 @@ int glxx_get_float_internal(GLXX_SERVER_STATE_T *state, GLenum pname, GLfloat *p
 {
    int result = 0;
 
-   vcos_assert(state);
+   assert(state);
 
    switch (pname) {
    case GL_MODELVIEW_MATRIX:
@@ -492,7 +482,7 @@ int glxx_get_float_internal(GLXX_SERVER_STATE_T *state, GLenum pname, GLfloat *p
       if (IS_GL_11(state)) {
          GL11_MATRIX_STACK_T *stack = &state->texunits[state->active_texture - GL_TEXTURE0].stack;
 
-         vcos_assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
+         assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
 
          gl11_matrix_load(params, stack->body[stack->pos]);
          result = 16;
@@ -733,7 +723,7 @@ static int get_texture_binding(GLXX_SERVER_STATE_T *state, GLenum binding)
         return 0;
     }
 
-    vcos_assert(handle != MEM_HANDLE_INVALID);
+    assert(handle != MEM_HANDLE_INVALID);
     ret = ((GLXX_TEXTURE_T *) mem_lock(handle, NULL))->name;
     mem_unlock(handle);
     return ret;
@@ -919,7 +909,7 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
       if (IS_GL_11(state)) {
          GL11_MATRIX_STACK_T *stack = &state->texunits[state->active_texture - GL_TEXTURE0].stack;
 
-         vcos_assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
+         assert(state->active_texture - GL_TEXTURE0 < GL11_CONFIG_MAX_TEXTURE_UNITS);
 
          gl11_matrix_load((float *)params, stack->body[stack->pos]);
          result = 16;
@@ -935,7 +925,7 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
          result = 0;
       }
       else {
-         if (state->bound_buffer.mh_array != MEM_INVALID_HANDLE) {
+         if (state->bound_buffer.mh_array != MEM_HANDLE_INVALID) {
             params[0] = ((GLXX_BUFFER_T *)mem_lock(state->bound_buffer.mh_array, NULL))->name;
             mem_unlock(state->bound_buffer.mh_array);
          } else
@@ -949,7 +939,7 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
          result = 0;
       }
       else {
-         if (state->bound_buffer.mh_element_array != MEM_INVALID_HANDLE) {
+         if (state->bound_buffer.mh_element_array != MEM_HANDLE_INVALID) {
             params[0] = ((GLXX_BUFFER_T *)mem_lock(state->bound_buffer.mh_element_array, NULL))->name;
             mem_unlock(state->bound_buffer.mh_element_array);
          } else
@@ -1370,7 +1360,7 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
       }
       break;
    case GL_SAMPLE_BUFFERS:
-      if (state->mh_color_multi == MEM_INVALID_HANDLE)
+      if (state->mh_color_multi == MEM_HANDLE_INVALID)
          params[0] = 0;
       else
          params[0] = 1;
@@ -1378,7 +1368,7 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
       break;
    case GL_SAMPLES:
       params[0] = 1;
-      if (state->mh_color_multi == MEM_INVALID_HANDLE)
+      if (state->mh_color_multi == MEM_HANDLE_INVALID)
          params[0] = 1;
       else
          params[0] = GLXX_CONFIG_SAMPLES;
@@ -1560,7 +1550,7 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
       break;
    case GL_RENDERBUFFER_BINDING:
       {
-         if (state->mh_bound_renderbuffer != MEM_INVALID_HANDLE) {
+         if (state->mh_bound_renderbuffer != MEM_HANDLE_INVALID) {
             params[0] = ((GLXX_RENDERBUFFER_T *)mem_lock(state->mh_bound_renderbuffer, NULL))->name;
             mem_unlock(state->mh_bound_renderbuffer);
          } else
@@ -1570,7 +1560,7 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
       break;
    case GL_FRAMEBUFFER_BINDING:
       {
-         if (state->mh_bound_framebuffer != MEM_INVALID_HANDLE) {
+         if (state->mh_bound_framebuffer != MEM_HANDLE_INVALID) {
             params[0] = ((GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL))->name;
             mem_unlock(state->mh_bound_framebuffer);
          } else
@@ -1584,7 +1574,7 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
          result = 0;
       }
       else {
-         if (state->mh_program != MEM_INVALID_HANDLE) {
+         if (state->mh_program != MEM_HANDLE_INVALID) {
             params[0] = ((GL20_PROGRAM_T *)mem_lock(state->mh_program, NULL))->name;
             mem_unlock(state->mh_program);
          } else
@@ -1734,7 +1724,7 @@ void glActiveTexture_impl (GLenum texture)
 {
    GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
 
-   vcos_assert(state);
+   assert(state);
 
    if (texture >= GL_TEXTURE0 && (
          (IS_GL_11(state) && texture < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS) ||
@@ -1802,8 +1792,8 @@ void glActiveTexture_impl (GLenum texture)
    Invariants preserved:
 
    All invariants on the shared object buffer map are preserved.
-   mh_element_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
-   mh_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
+   mh_element_array is either MEM_HANDLE_INVALID or a valid handle to a GLXX_BUFFER_T
+   mh_array is either MEM_HANDLE_INVALID or a valid handle to a GLXX_BUFFER_T
 
 */
 
@@ -1812,16 +1802,16 @@ void glBindBuffer_impl (GLenum target, GLuint buffer)
 {
    GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
 
-   vcos_assert(state);
+   assert(state);
 
    if (target == GL_ARRAY_BUFFER || target == GL_ELEMENT_ARRAY_BUFFER) {
-      MEM_HANDLE_T handle = MEM_INVALID_HANDLE;
+      MEM_HANDLE_T handle = MEM_HANDLE_INVALID;
 
       if (buffer) {
          handle = glxx_shared_get_buffer((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), buffer, true);
          mem_unlock(state->mh_shared);
 
-         if (handle == MEM_INVALID_HANDLE) {
+         if (handle == MEM_HANDLE_INVALID) {
             glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
             GLXX_UNLOCK_SERVER_STATE();
@@ -1892,7 +1882,7 @@ void glBindBuffer_impl (GLenum target, GLuint buffer)
    Invariants preserved:
 
    All invariants on the shared object texture map are preserved.
-   mh_bound_texture != MEM_INVALID_HANDLE
+   mh_bound_texture != MEM_HANDLE_INVALID
    mh_bound_texture is a handle to a valid GLXX_TEXTURE_T object
 */
 
@@ -1907,7 +1897,7 @@ void glBindTexture_impl (GLenum target, GLuint texture)
    bool is_cube = false;
    // GLXX_TEXTURE_T *tex; Needed for external
 
-   vcos_assert(state);
+   assert(state);
 
    is_cube = target == GL_TEXTURE_CUBE_MAP;
 
@@ -1931,7 +1921,7 @@ void glBindTexture_impl (GLenum target, GLuint texture)
          error = GL_INVALID_ENUM;
          goto end;
       }
-      vcos_assert(handle != MEM_HANDLE_INVALID);
+      assert(handle != MEM_HANDLE_INVALID);
       //tex = (GLXX_TEXTURE_T *)mem_lock(handle); Needed for external
    } else {
       GLXX_SHARED_T *shared = mem_lock(state->mh_shared, NULL);
@@ -1958,7 +1948,7 @@ void glBindTexture_impl (GLenum target, GLuint texture)
       goto end;
    }
 
-   vcos_assert(handle != MEM_HANDLE_INVALID);
+   assert(handle != MEM_HANDLE_INVALID);
    //mem_unlock(handle); Need to unlock (but only if it has been locked, needs a test -- for external)
 
    if (IS_GL_11(state) && state->texunits[t].target_enabled == target) {
@@ -2002,7 +1992,7 @@ end:
 
    If no error is generated
 
-      returned handle is valid (i.e. not MEM_INVALID_HANDLE)
+      returned handle is valid (i.e. not MEM_HANDLE_INVALID)
       returned handle has been locked by this function
       returned pointer is valid until handle is unlocked
 
@@ -2016,7 +2006,7 @@ GLXX_BUFFER_T *glxx_get_bound_buffer(GLXX_SERVER_STATE_T *state, GLenum target, 
 {
    MEM_HANDLE_T bhandle;
 
-   vcos_assert(handle);
+   assert(handle);
 
    switch (target) {
    case GL_ARRAY_BUFFER:
@@ -2030,7 +2020,7 @@ GLXX_BUFFER_T *glxx_get_bound_buffer(GLXX_SERVER_STATE_T *state, GLenum target, 
       return NULL;
    }
 
-   if (bhandle == MEM_INVALID_HANDLE) {
+   if (bhandle == MEM_HANDLE_INVALID) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       return NULL;
    }
@@ -2519,16 +2509,16 @@ void glDeleteBuffers_impl (GLsizei n, const GLuint *buffers)
          if (buffers[i]) {
             MEM_HANDLE_T hbuffer = glxx_shared_get_buffer(shared, buffers[i], false);
 
-            if (hbuffer != MEM_INVALID_HANDLE) {
+            if (hbuffer != MEM_HANDLE_INVALID) {
                int32_t j;
                if (state->bound_buffer.mh_array == hbuffer)
-                  MEM_ASSIGN(state->bound_buffer.mh_array, MEM_INVALID_HANDLE);
+                  MEM_ASSIGN(state->bound_buffer.mh_array, MEM_HANDLE_INVALID);
                if (state->bound_buffer.mh_element_array == hbuffer)
-                  MEM_ASSIGN(state->bound_buffer.mh_element_array, MEM_INVALID_HANDLE);
+                  MEM_ASSIGN(state->bound_buffer.mh_element_array, MEM_HANDLE_INVALID);
 
                for (j = 0; j < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; j++)
                   if (state->bound_buffer.mh_attrib_array[j] == hbuffer)
-                     MEM_ASSIGN(state->bound_buffer.mh_attrib_array[j], MEM_INVALID_HANDLE);
+                     MEM_ASSIGN(state->bound_buffer.mh_attrib_array[j], MEM_HANDLE_INVALID);
 
                glxx_shared_delete_buffer(shared, buffers[i]);
             }
@@ -2657,7 +2647,7 @@ void glDeleteTextures_impl (GLsizei n, const GLuint *textures)
          if (textures[i]) {
             MEM_HANDLE_T htexture = glxx_shared_get_texture(shared, textures[i]);
 
-            if (htexture != MEM_INVALID_HANDLE) {
+            if (htexture != MEM_HANDLE_INVALID) {
                int j;
                int n = IS_GL_11(state) ? GL11_CONFIG_MAX_TEXTURE_UNITS : GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS;
 
@@ -2796,7 +2786,7 @@ int glxx_get_float_or_fixed_internal(GLXX_SERVER_STATE_T *state, GLenum pname, f
       int count = glxx_get_boolean_internal(state, pname, temp);
       int i;
 
-      vcos_assert(count <= 16);
+      assert(count <= 16);
 
       for (i = 0; i < count; i++)
          params[i] = temp[i] ? 1.0f : 0.0f;
@@ -2809,7 +2799,7 @@ int glxx_get_float_or_fixed_internal(GLXX_SERVER_STATE_T *state, GLenum pname, f
       int count = glxx_get_integer_internal(state, pname, temp);
       int i;
 
-      vcos_assert(count <= 16);
+      assert(count <= 16);
 
       for (i = 0; i < count; i++)
          params[i] = (float)temp[i];

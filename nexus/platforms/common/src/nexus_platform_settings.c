@@ -155,6 +155,15 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.tag[2] = 'R';
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.tag[3] = '\0';
 #endif
+    /* NEXUS_FIRMWARE_HEAP cannot be eSecure because it will be temporarily memory mapped. */
+    pSettings->heap[NEXUS_FIRMWARE_HEAP].memcIndex = 0;
+    pSettings->heap[NEXUS_FIRMWARE_HEAP].memoryType = NEXUS_MEMORY_TYPE_MANAGED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
+#if BCHP_CHIP == 7271 || BCHP_CHIP == 7268
+    pSettings->heap[NEXUS_FIRMWARE_HEAP].placement.first = true;
+    pSettings->heap[NEXUS_FIRMWARE_HEAP].placement.region.valid = true;
+    pSettings->heap[NEXUS_FIRMWARE_HEAP].placement.region.base = 0;
+    pSettings->heap[NEXUS_FIRMWARE_HEAP].placement.region.length = 512 * 1024 * 1024;
+#endif
 
     for(i=0;i<NEXUS_MAX_HEAPS;i++) {
         size_t aligned_size;
@@ -182,6 +191,33 @@ void NEXUS_Platform_P_GetDefaultHeapSettings(NEXUS_PlatformSettings *pSettings, 
     NEXUS_Platform_P_AdjustHeapSettings(pSettings);
     return;
 }
+
+static NEXUS_Error NEXUS_Platform_P_GetPlatformMemory(const NEXUS_Core_PreInitState * preInitState, NEXUS_PlatformMemory *pMemory)
+{
+    NEXUS_Error errCode;
+    unsigned maxDcacheLineSize = g_platformMemory.maxDcacheLineSize; /* save it since it's get populated in global memory, and yet the same global memory passed to this function */
+
+    BKNI_Memset(pMemory, 0, sizeof(*pMemory));
+    pMemory->maxDcacheLineSize = maxDcacheLineSize;
+
+    errCode = NEXUS_Platform_P_GetHostMemory(pMemory);
+    if (errCode) {
+        errCode = BERR_TRACE(errCode);
+        /* fall through */
+    }
+    errCode = NEXUS_Platform_P_CalcSubMemc(preInitState, &pMemory->memoryLayout);
+    if (errCode) {
+        errCode = BERR_TRACE(errCode);
+        /* fall through */
+    }
+    NEXUS_Platform_P_AdjustBmemRegions(pMemory);
+    if (!pMemory->maxDcacheLineSize) {
+        pMemory->maxDcacheLineSize = 4096;
+        BDBG_WRN(("maxDcacheLineSize is 0. increasing to %d for cache coherency.", pMemory->maxDcacheLineSize));
+    }
+    return errCode;
+}
+
 
 void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformSettings *pSettings )
 {
@@ -321,19 +357,11 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
 
     NEXUS_P_GetDefaultMemoryConfigurationSettings(preInitState, pMemConfigSettings);
 
-    BKNI_Memset(pMemory, 0, sizeof(*pMemory));
-
-    errCode = NEXUS_Platform_P_GetHostMemory(pMemory);
+    errCode = NEXUS_Platform_P_GetPlatformMemory(preInitState, pMemory);
     if (errCode) {
         errCode = BERR_TRACE(errCode);
         /* fall through */
     }
-    errCode = NEXUS_Platform_P_CalcSubMemc(preInitState, &pMemory->memoryLayout);
-    if (errCode) {
-        errCode = BERR_TRACE(errCode);
-        /* fall through */
-    }
-    NEXUS_Platform_P_AdjustBmemRegions(pMemory);
     NEXUS_P_GetDefaultMemoryRtsSettings(preInitState, &rtsSettings);
     NEXUS_Platform_P_GetDefaultHeapSettings(pSettings, preInitState->boxMode);
     errCode = NEXUS_P_ApplyMemoryConfiguration(preInitState, pMemConfigSettings, &rtsSettings, pSettings, g_NEXUS_platformModule==NULL? &g_NEXUS_platformInternalSettings : NULL); /* update g_NEXUS_platformInternalSettings if nexus was not initialized */
@@ -570,8 +598,8 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
 
         NEXUS_Heap_GetDefaultMemcSettings(pSettings->heap[i].memcIndex, &pCoreSettings->heapRegion[i]);
         /* if OS reports greater cache line size than BMEM's default, then increase */
-        if (pMemory->max_dcache_line_size > pCoreSettings->heapRegion[i].alignment) {
-            pCoreSettings->heapRegion[i].alignment = pMemory->max_dcache_line_size;
+        if (pMemory->maxDcacheLineSize > pCoreSettings->heapRegion[i].alignment) {
+            pCoreSettings->heapRegion[i].alignment = pMemory->maxDcacheLineSize;
         }
         pCoreSettings->heapRegion[i].memoryType = pSettings->heap[i].memoryType;
         pCoreSettings->heapRegion[i].heapType = pSettings->heap[i].heapType;
@@ -897,4 +925,30 @@ NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged( const NEXUS_PlatformSett
 
     NEXUS_Platform_P_PreUninit();
     return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_Platform_GetMemory_tagged( NEXUS_PlatformMemory *memory, unsigned size)
+{
+    NEXUS_Error rc=NEXUS_SUCCESS;
+    const NEXUS_Core_PreInitState *preInitState;
+
+    preInitState = NEXUS_Platform_P_PreInit();
+    if (!preInitState) {
+        return NEXUS_NOT_SUPPORTED; /* no BERR_TRACE */
+    }
+    if (size != sizeof(*memory)
+#if NEXUS_COMPAT_32ABI
+        && size != sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformMemory))
+#endif
+        ) {
+        BDBG_ERR(("%s failed with struct size mismatch (nexus=%u, caller=%u). Please recompile application and/or nexus.",
+                  "NEXUS_Platform_GetMemory", (unsigned)sizeof(*memory), size));
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto err_sizecheck;
+    }
+    rc = NEXUS_Platform_P_GetPlatformMemory(preInitState, memory);
+
+err_sizecheck:
+    NEXUS_Platform_P_PreUninit();
+    return rc;
 }

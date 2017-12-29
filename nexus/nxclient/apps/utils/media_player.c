@@ -282,6 +282,7 @@ static int media_player_p_connect(media_player_t player)
             }
             connectSettings.simpleVideoDecoder[i].decoderCapabilities.colorDepth = player->colorDepth;
             connectSettings.simpleVideoDecoder[i].decoderCapabilities.fifoSize = player->start_settings.video.fifoSize;
+            connectSettings.simpleVideoDecoder[i].decoderCapabilities.itbFifoSize = player->start_settings.video.itbFifoSize;
             connectSettings.simpleVideoDecoder[i].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
             connectSettings.simpleVideoDecoder[i].windowCapabilities.type = player->start_settings.videoWindowType;
         }
@@ -310,6 +311,7 @@ static int media_player_p_connect(media_player_t player)
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[player->videoProgram.settings.codec] = true;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.colorDepth = player->colorDepth;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.fifoSize = player->start_settings.video.fifoSize;
+            connectSettings.simpleVideoDecoder[0].decoderCapabilities.itbFifoSize = player->start_settings.video.itbFifoSize;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = player->start_settings.video.secure;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
             connectSettings.simpleVideoDecoder[0].windowCapabilities.type = player->start_settings.videoWindowType;
@@ -687,6 +689,14 @@ int media_player_start( media_player_t player, const media_player_start_settings
             probe_results.transportType = psettings->transportType;
             probe_results.video[0].codec = NEXUS_VideoCodec_eMpeg2;
             probe_results.audio[0].codec = NEXUS_AudioCodec_eMpeg;
+            switch (probe_results.transportType) {
+            case NEXUS_TransportType_eMkv:
+            case NEXUS_TransportType_eMp4:
+                probe_results.useStreamAsIndex = true;
+                break;
+            default:
+                break;
+            }
         }
         else {
             struct probe_request probe_request;
@@ -709,6 +719,9 @@ int media_player_start( media_player_t player, const media_player_start_settings
         /* override probe */
         if (psettings->video.codec) {
             probe_results.video[0].codec = psettings->video.codec;
+        }
+        if (psettings->video.colorDepth) {
+            probe_results.video[0].colorDepth = psettings->video.colorDepth;
         }
         if (psettings->video.pid != 0x1fff) {
             probe_results.video[0].pid = psettings->video.pid;
@@ -875,17 +888,17 @@ int media_player_start( media_player_t player, const media_player_start_settings
             videoProgram.settings.sampleAspectRatio.x = probe_results.video[0].sampleAspectRatio.x;
             videoProgram.settings.sampleAspectRatio.y = probe_results.video[0].sampleAspectRatio.y;
 
-            if (probe_results.videoColourMasteringMetadata.valid) {
-                videoProgram.settings.eotf = probe_results.videoColourMasteringMetadata.eotf;
-                memcpy(&videoProgram.settings.masteringDisplayColorVolume, &probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume, sizeof(videoProgram.settings.masteringDisplayColorVolume));
+            if (probe_results.videoColorMasteringMetadata.valid) {
+                videoProgram.settings.eotf = probe_results.videoColorMasteringMetadata.eotf;
+                memcpy(&videoProgram.settings.masteringDisplayColorVolume, &probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume, sizeof(videoProgram.settings.masteringDisplayColorVolume));
                 /* NOTE: contentLightLevel unused */
-                BDBG_LOG(("~ eotf: %u ~", probe_results.videoColourMasteringMetadata.eotf));
+                BDBG_LOG(("~ eotf: %u ~", probe_results.videoColorMasteringMetadata.eotf));
                 BDBG_LOG(("~ Luminance: max: %u, min: %u ~",
-                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.max,
-                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.luminance.min));
+                    probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume.luminance.max,
+                    probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume.luminance.min));
                 BDBG_LOG(("~ Luminance: x: %d, y: %d ~",
-                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.x,
-                    probe_results.videoColourMasteringMetadata.masteringDisplayColorVolume.whitePoint.y));
+                    probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume.whitePoint.x,
+                    probe_results.videoColorMasteringMetadata.masteringDisplayColorVolume.whitePoint.y));
             }
 
             /* outside of videoProgram */
@@ -902,6 +915,8 @@ int media_player_start( media_player_t player, const media_player_start_settings
         }
         videoProgram.smoothResolutionChange = psettings->smoothResolutionChange;
         videoProgram.settings.crcMode = psettings->crcMode;
+        videoProgram.settings.timestampMode = psettings->video.timestampMode;
+        videoProgram.settings.frameRate = psettings->video.frameRate;
         player->videoProgram = videoProgram;
 
         if (player->start_settings.decrypt.algo == NEXUS_SecurityAlgorithm_eMax) {
@@ -949,18 +964,55 @@ int media_player_start( media_player_t player, const media_player_start_settings
 
 #if NEXUS_HAS_AUDIO
     /* apply codec settings */
-    if (player->start_settings.audio.dolbyDrcMode < NEXUS_AudioDecoderDolbyDrcMode_eMax) {
+    {
         NEXUS_AudioDecoderCodecSettings settings;
+        NxClient_AudioProcessingSettings audioProcessingSettings;
+
+        NxClient_GetAudioProcessingSettings(&audioProcessingSettings);
         NEXUS_SimpleAudioDecoder_GetCodecSettings(player->audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, player->audioProgram.primary.codec, &settings);
+
         switch (player->audioProgram.primary.codec) {
-        case NEXUS_AudioCodec_eAc3: settings.codecSettings.ac3.drcMode = player->start_settings.audio.dolbyDrcMode; break;
-        case NEXUS_AudioCodec_eAc3Plus: settings.codecSettings.ac3Plus.drcMode = player->start_settings.audio.dolbyDrcMode; break;
-        /* only line and rf applie for aac/aacplus, but nexus can validate params */
-        case NEXUS_AudioCodec_eAac: settings.codecSettings.aac.drcMode = (NEXUS_AudioDecoderDolbyPulseDrcMode)player->start_settings.audio.dolbyDrcMode; break;
-        case NEXUS_AudioCodec_eAacPlus: settings.codecSettings.aacPlus.drcMode = (NEXUS_AudioDecoderDolbyPulseDrcMode)player->start_settings.audio.dolbyDrcMode; break;
-        default: /* just ignore */ break;
+        case NEXUS_AudioCodec_eAc3:
+            audioProcessingSettings.dolby.ddre.externalPcmMode = false;
+            if (player->start_settings.audio.dolbyDrcMode < NEXUS_AudioDecoderDolbyDrcMode_eMax) {
+                settings.codecSettings.ac3.drcMode = settings.codecSettings.ac3.drcModeDownmix = player->start_settings.audio.dolbyDrcMode;
+            }
+            break;
+        case NEXUS_AudioCodec_eAc3Plus:
+            audioProcessingSettings.dolby.ddre.externalPcmMode = false;
+            if (player->start_settings.audio.dolbyDrcMode < NEXUS_AudioDecoderDolbyDrcMode_eMax) {
+                settings.codecSettings.ac3Plus.drcMode = settings.codecSettings.ac3Plus.drcModeDownmix = player->start_settings.audio.dolbyDrcMode;
+            }
+            break;
+            /* only line and rf applies for aac/aacplus, but nexus can validate params */
+        case NEXUS_AudioCodec_eAacAdts:
+        case NEXUS_AudioCodec_eAacLoas:
+            audioProcessingSettings.dolby.ddre.externalPcmMode = false;
+            if (player->start_settings.audio.dolbyDrcMode < NEXUS_AudioDecoderDolbyDrcMode_eMax) {
+                settings.codecSettings.aac.drcMode = (NEXUS_AudioDecoderDolbyPulseDrcMode)player->start_settings.audio.dolbyDrcMode;
+            }
+            break;
+        case NEXUS_AudioCodec_eAacPlusAdts:
+        case NEXUS_AudioCodec_eAacPlusLoas:
+            audioProcessingSettings.dolby.ddre.externalPcmMode = false;
+            if (player->start_settings.audio.dolbyDrcMode < NEXUS_AudioDecoderDolbyDrcMode_eMax) {
+                settings.codecSettings.aacPlus.drcMode = (NEXUS_AudioDecoderDolbyPulseDrcMode)player->start_settings.audio.dolbyDrcMode;
+            }
+            break;
+        default:
+            audioProcessingSettings.dolby.ddre.externalPcmMode = true;
+            if (player->start_settings.audio.dolbyDrcMode < NEXUS_AudioDecoderDolbyDrcMode_eMax) {
+                audioProcessingSettings.dolby.ddre.drcMode = audioProcessingSettings.dolby.ddre.drcModeDownmix = player->start_settings.audio.dolbyDrcMode;
+            }
+            else {
+                audioProcessingSettings.dolby.ddre.drcMode = NEXUS_AudioDecoderDolbyDrcMode_eLine;
+                audioProcessingSettings.dolby.ddre.drcModeDownmix = NEXUS_AudioDecoderDolbyDrcMode_eRf;
+            }
+            break;
         }
         NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &settings);
+        NxClient_SetAudioProcessingSettings(&audioProcessingSettings);
+
     }
 
     /* special start settings for persistent decode */

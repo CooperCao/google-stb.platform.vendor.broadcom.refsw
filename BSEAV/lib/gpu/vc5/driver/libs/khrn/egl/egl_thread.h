@@ -11,9 +11,6 @@
 
 struct egl_thread
 {
-   // keep a linked list of all threads
-   struct egl_thread  *next;
-
    EGL_CONTEXT_T      *contexts[API_COUNT];
 
    /* The "current context" is contexts[current_api] */
@@ -28,14 +25,6 @@ struct egl_thread
    /* Needed for specific error detection in the extensions */
    bool               perf_counters_acquired;
    bool               events_acquired;
-
-#ifndef NDEBUG
-   /*
-    * Counts how many times the current thread has locked the GL lock. Used
-    * for assertions.
-    */
-   int                locked_count;
-#endif
 };
 
 /*
@@ -52,6 +41,11 @@ extern bool egl_thread_set_error(EGLint error);
  * Get the thread-local storage for the current thread. Create if it doesn't exist.
  */
 extern EGL_THREAD_T *egl_thread_get(void);
+
+/*
+ * Get the egl_thread object if it exists, otherwise return NULL
+ */
+extern EGL_THREAD_T *egl_thread_try_get(void);
 
 /* Get the current context for the current API in the current thread */
 extern EGL_CONTEXT_T *egl_thread_get_context(void);

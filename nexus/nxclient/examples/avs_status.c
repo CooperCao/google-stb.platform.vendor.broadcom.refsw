@@ -72,6 +72,7 @@ int main(void)
             printf("CPU voltage is:   %7.3fV\n",  pStatus.voltage/1000.);
             printf("CPU temp is:      %+7.2fC\n", pStatus.temperature/1000.);
         }
+        printf("AVS heartbeat is: %08x\n",    pStatus.heartbeat);
         printf("\n");
         BKNI_Sleep(1000);
     }

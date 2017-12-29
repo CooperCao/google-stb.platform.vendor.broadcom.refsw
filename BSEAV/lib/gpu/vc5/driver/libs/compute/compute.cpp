@@ -141,7 +141,7 @@ static constexpr unsigned TLB_HEIGHT = 64 / sizeof(uint16_t);
 static_assrt(MAX_SGS == TLB_HEIGHT/2);
 static_assrt(sizeof(unsigned) >= 4);
 
-#if V3D_HAS_NO_PRIM_PACK
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static constexpr unsigned ROW_ROUND_UP = 2;
 #else
 static constexpr unsigned ROW_ROUND_UP = V3D_VPAR;
@@ -183,12 +183,19 @@ struct mem_chunk : intrusive_list<mem_chunk>::hook
    }
 };
 
-struct
+struct compute_runtime
 {
    // Protected by the mutex.
    std::mutex mutex;
    unsigned refs;
    intrusive_list<mem_chunk> chunks;
+
+   // We can't be sure that compute_term was called before unloading the driver,
+   // so prevent static destruction asserting in this case.
+#ifndef NDEBUG
+   ~compute_runtime() { chunks.clear(); }
+#endif
+
 } runtime;
 
 //=============================================================================
@@ -600,7 +607,7 @@ static inline unsigned get_num_instances(instance_config const& cfg, dispatch_ex
 
 static inline unsigned get_per_instance_data_size(unsigned num_instances, unsigned num_varys)
 {
-   return sizeof(uint32_t) * (num_varys * num_instances + 1u/*overspill*/);
+   return sizeof(uint16_t) * (num_varys * num_instances + 1u/*overspill*/);
 }
 
 static unsigned build_per_instance_data(
@@ -612,14 +619,13 @@ static unsigned build_per_instance_data(
    uint8_t const* vary_map,
    unsigned num_varys)
 {
-   // timh-todo: use 16-bit attributes if they fit.
    unsigned num_instances = get_num_instances(cfg, extent);
    unsigned instances_size = get_per_instance_data_size(num_instances, num_varys);
 
-   uint32_t* instances = (uint32_t*)data_alloc(mem, instances_addr, instances_size, V3D_ATTR_ALIGN);
+   uint16_t* instances = (uint16_t*)data_alloc(mem, instances_addr, instances_size, V3D_ATTR_ALIGN);
    if (!instances)
       return 0;
-   uint32_t* instance_end = (uint32_t*)((char*)instances + instances_size);
+   uint16_t* instance_end = (uint16_t*)((char*)instances + instances_size);
 
    unsigned attr_index[3] = { num_varys, num_varys, num_varys };
    for (unsigned v = 0; v != num_varys; ++v)
@@ -636,6 +642,9 @@ static unsigned build_per_instance_data(
    unsigned const end_x = begin_x + extent.size[0];
    unsigned const end_y = begin_y + extent.size[1];
    unsigned const end_z = begin_z + extent.size[2];
+   assert(end_x <= (1 << 16));
+   assert(end_y <= (1 << 16));
+   assert(end_z <= (1 << 16));
 
    // Fill out per instance elements (work-group ID offset in 3D).
    for (unsigned z = begin_z; z != end_z; z += step_z)
@@ -770,7 +779,7 @@ static void write_shader_record_attrs(
    attr0.read_as_int = true;
    attr0.vs_num_reads = 2;
    attr0.stride = sizeof(uint16_t) * 2;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    attr0.max_index = num_vertices - 1;
 #endif
    v3d_pack_shadrec_gl_attr(packed_attrs + attr_words*0, &attr0);
@@ -782,7 +791,7 @@ static void write_shader_record_attrs(
    attr1.type = V3D_ATTR_TYPE_INT;
    attr1.read_as_int = true;
    attr1.vs_num_reads = attr1.size;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    attr1.max_index = 0;
 #endif
    v3d_pack_shadrec_gl_attr(packed_attrs + attr_words*1, &attr1);
@@ -793,12 +802,12 @@ static void write_shader_record_attrs(
    V3D_SHADREC_GL_ATTR_T attr2 = { 0, };
    attr2.addr = instances_addr;
    attr2.size = program.num_varys;
-   attr2.type = V3D_ATTR_TYPE_INT;
+   attr2.type = V3D_ATTR_TYPE_SHORT;
    attr2.read_as_int = true;
    attr2.vs_num_reads = program.num_varys;
    attr2.divisor = 1;
-   attr2.stride = sizeof(uint32_t) * program.num_varys;
-#if V3D_HAS_ATTR_MAX_INDEX
+   attr2.stride = sizeof(uint16_t) * program.num_varys;
+#if V3D_VER_AT_LEAST(4,1,34,0)
    attr2.max_index = num_instances - 1;
 #endif
    v3d_pack_shadrec_gl_attr(packed_attrs + attr_words*2, &attr2);
@@ -827,7 +836,7 @@ static bool write_shader_record(
    shader_record.no_ez = true;
    shader_record.scb_wait_on_first_thrsw = program.scb_wait_on_first_thrsw;
    shader_record.num_varys = program.num_varys + program.has_barrier;
-#if V3D_HAS_NO_PRIM_PACK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    shader_record.no_prim_pack = true;
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -845,7 +854,7 @@ static bool write_shader_record(
 # endif
 #endif
    shader_record.fs.threading = program.threading;
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    shader_record.fs.single_seg  = false;
 #endif
    shader_record.fs.propagate_nans = true;
@@ -913,7 +922,7 @@ static inline bool begin_build_dispatch_extent_inner(
    load_lookup.buffer = V3D_LDST_BUF_COLOR0;
    load_lookup.memory_format = V3D_MEMORY_FORMAT_UIF_NO_XOR;
    load_lookup.flipy = false;
-   load_lookup.decimate = V3D_DECIMATE_ALL_SAMPLES;
+   load_lookup.decimate = V3D_DECIMATE_SAMPLE0;
    load_lookup.pixel_format = V3D_PIXEL_FORMAT_RGBA16UI;
    load_lookup.stride = TLB_HEIGHT / 4; /* Height in UIF-blocks */
    load_lookup.height = 0; /* Not used when !flipy */
@@ -923,7 +932,7 @@ static inline bool begin_build_dispatch_extent_inner(
 #else
    V3D_CL_LOAD_GENERAL_T load_lookup{};
    load_lookup.buffer = V3D_LDST_BUF_COLOR0;
-   load_lookup.raw_mode = true;
+   load_lookup.raw_mode = false;
    load_lookup.memory_format = V3D_LDST_MEMORY_FORMAT_UIF_NO_XOR;
    load_lookup.uif_height_in_ub = TLB_HEIGHT / 4;
    load_lookup.addr = tlb_lookup_addr;
@@ -1262,6 +1271,15 @@ bool compute_build_dispatch(
    return true;
 }
 
+void compute_clear_dispatch(uint8_t* dispatch_in_primary_cl) noexcept
+{
+   for (unsigned i = 0; i != V3D_CL_BRANCH_SIZE; ++i)
+   {
+      static_assrt(V3D_CL_NOP_SIZE == 1);
+      v3d_cl_nop(&dispatch_in_primary_cl);
+   }
+}
+
 bool compute_cl_begin(compute_cl_mem_if const* mem, void* ctx) noexcept
 {
    // Initial state setup for all compute jobs.
@@ -1357,14 +1375,14 @@ bool compute_cl_begin(compute_cl_mem_if const* mem, void* ctx) noexcept
    v3d_cl_zero_all_noperspective(&cl);
 #endif
    v3d_cl_zero_all_flatshade_flags(&cl);
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_sample_state(&cl, 0xf, 1.0f);
 #else
    v3d_cl_sample_state(&cl, 1.0f);
 #endif
    v3d_cl_occlusion_query_counter_enable(&cl, 0);
    v3d_cl_line_width(&cl, 2.0f);
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_viewport_offset(&cl, 0, 0, 0, 0);
 #else
    v3d_cl_viewport_offset(&cl, 0, 0);
@@ -1377,7 +1395,7 @@ bool compute_cl_begin(compute_cl_mem_if const* mem, void* ctx) noexcept
    cfg_bits.cov_update = V3D_COV_UPDATE_NONZERO;
    cfg_bits.depth_test = V3D_COMPARE_FUNC_ALWAYS;
    v3d_cl_cfg_bits_indirect(&cl, &cfg_bits);
-   v3d_cl_color_wmasks(&cl, -1);
+   v3d_cl_color_wmasks(&cl, gfx_mask(V3D_MAX_RENDER_TARGETS * 4));
 #if V3D_VER_AT_LEAST(4,0,2,0)
    v3d_cl_set_instance_id(&cl, 0);
 #endif
@@ -1394,15 +1412,9 @@ v3d_size_t compute_cl_dispatch_size(void) noexcept
 uint8_t* compute_cl_add_dispatch(compute_cl_mem_if const* mem, void* ctx) noexcept
 {
    uint8_t* cl = mem->write_cl(ctx, V3D_CL_BRANCH_SIZE);
-   if (!cl)
-      return NULL;
-   uint8_t* ret = cl;
-   for (unsigned i = 0; i != V3D_CL_BRANCH_SIZE; ++i)
-   {
-      static_assrt(V3D_CL_NOP_SIZE == 1);
-      v3d_cl_nop(&cl);
-   }
-   return ret;
+   if (cl)
+      compute_clear_dispatch(cl);
+   return cl;
 }
 
 void compute_cl_end(compute_cl_mem_if const* mem, void* ctx) noexcept

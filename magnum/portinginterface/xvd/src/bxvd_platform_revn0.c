@@ -1135,7 +1135,7 @@ bool BXVD_P_IsDisplayInfoEqual_HIM_API_isr(BXVD_P_DisplayInfo stDisplayInfo,
 
 #if  BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT
 
-void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
+static void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
                                                uint32_t uiMemPartSize,
                                                uint32_t uiMemBusWidth,
                                                uint32_t uiMemDeviceWidth,
@@ -1303,7 +1303,7 @@ void BXVD_P_DetermineGroupingStripeInfo(BCHP_DramType ddrType,
 
 #else /* !BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT */
 
-void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
+static void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
                                                   uint32_t uiMemPartSize,
                                                   uint32_t uiMemBusWidth,
                                                   uint32_t *puiStripeWidth,
@@ -1430,12 +1430,12 @@ void BXVD_P_DetermineStripeInfo_RevN0( BCHP_DramType ddrType,
 
 #ifdef BCHP_HEVD_PCACHE_0_PFRI_DEBUG_pfri_grouping_present_MASK
 
-void  BXVD_P_DetermineGroupagePCacheSettings(BXVD_Handle hXvd,
-                                             BCHP_DramType ddrType,
-                                             uint32_t uiMemPartSize,
-                                             uint32_t uiMemBusWidth,
-                                             uint32_t uiMemDeviceWidth,
-                                             bool  bDDRGroupageEnabled)
+static void BXVD_P_DetermineGroupagePCacheSettings(BXVD_Handle hXvd,
+                                                   BCHP_DramType ddrType,
+                                                   uint32_t uiMemPartSize,
+                                                   uint32_t uiMemBusWidth,
+                                                   uint32_t uiMemDeviceWidth,
+                                                   bool  bDDRGroupageEnabled)
 {
    uint32_t uiDataWidth;
 
@@ -1572,10 +1572,10 @@ void  BXVD_P_DetermineGroupagePCacheSettings(BXVD_Handle hXvd,
 
 #else /* BCHP_HEVD_PCACHE_0_PFRI_DEBUG_pfri_grouping_present_MASK */
 
-void BXVD_P_DetermineNonGroupagePCacheSettings(BXVD_Handle hXvd,
-                                               BCHP_DramType ddrType,
-                                               uint32_t uiMemPartSize,
-                                               uint32_t uiMemBusWidth)
+static void BXVD_P_DetermineNonGroupagePCacheSettings(BXVD_Handle hXvd,
+                                                      BCHP_DramType ddrType,
+                                                      uint32_t uiMemPartSize,
+                                                      uint32_t uiMemBusWidth)
 {
    uint32_t uiDataWidth;
 
@@ -2013,8 +2013,6 @@ BERR_Code BXVD_P_ChipEnable_RevN0(BXVD_Handle hXvd)
    volatile uint32_t uiFWBootStatus;
 #endif
 
-   uint32_t byteOffset;
-
    BAFL_BootInfo stAVDBootInfo;
 
    BAFL_FirmwareInfo astFirmwareInfo[3];
@@ -2094,11 +2092,24 @@ BERR_Code BXVD_P_ChipEnable_RevN0(BXVD_Handle hXvd)
    BKNI_ResetEvent(hXvd->stDecoderContext.hFWCmdDoneEvent);
 
    /* Write ARC clock freqs to HIM first 3 words*/
-   byteOffset=0;
-   BXVD_P_WRITE_HIM(hXvd, byteOffset, (BXVD_P_AVD_OL_CLK_FREQ * 1000000));
+   BXVD_P_WRITE_HIM(hXvd, (BXVD_P_VDEC_OL_CPU_CLOCK_OFFSET * 4), (BXVD_P_AVD_OL_CLK_FREQ * 1000000));
+   BXVD_P_WRITE_HIM(hXvd, (BXVD_P_VDEC_IL_CPU_CLOCK_OFFSET * 4), (BXVD_P_AVD_IL_CLK_FREQ * 1000000));
+   BXVD_P_WRITE_HIM(hXvd, (BXVD_P_VDEC_BL_CPU_CLOCK_OFFSET * 4), (BXVD_P_AVD_IL_CLK_FREQ * 1000000));
 
-   byteOffset+=4;
-   BXVD_P_WRITE_HIM(hXvd, byteOffset, (BXVD_P_AVD_IL_CLK_FREQ * 1000000));
+   if ((hXvd->stSettings.uiFirmwareBlockSize != 0) && (hXvd->stSettings.hFirmwareBlock != 0 ))
+   {
+      uint32_t uiCmdAddr;
+
+      BXVD_P_WRITE_HIM(hXvd, (BXVD_P_VDEC_OL_CMD_BUFF_SIG_OFFSET * 4), 0xDEADDEAD);
+
+      uiCmdAddr = (uint32_t) (0x00000000FFFFFFFF & hXvd->FWCmdPhyAddr);
+      BXVD_P_WRITE_HIM(hXvd, (BXVD_P_VDEC_OL_CMD_BUFF_ADDR_LO * 4), uiCmdAddr);
+      BDBG_MSG(("CmdAddrLo: %08x", uiCmdAddr));
+
+      uiCmdAddr = (uint32_t) (hXvd->FWCmdPhyAddr >> 32);
+      BXVD_P_WRITE_HIM(hXvd, (BXVD_P_VDEC_OL_CMD_BUFF_ADDR_HI * 4), uiCmdAddr);
+      BDBG_MSG(("CmdAddrHi: %08x", uiCmdAddr));
+   }
 
 #if BXVD_POLL_FW_MBX
    BDBG_ERR(("Booting Video Decoder polling for completion"));
@@ -2124,14 +2135,12 @@ BERR_Code BXVD_P_ChipEnable_RevN0(BXVD_Handle hXvd)
 
       /* Set Outer Loop ARC firmware info */
       astFirmwareInfo[0].uiArcInstance = 0;
-      astFirmwareInfo[0].stCode.pStartAddress = hXvd->astFWBootInfo[0].stCode.pStartAddress;
-      astFirmwareInfo[0].stCode.uiSize = hXvd->astFWBootInfo[0].stCode.uiSize;
+      astFirmwareInfo[0].stCode = hXvd->astFWBootInfo[0].stCode;
       astFirmwareInfo[0].pNext = &astFirmwareInfo[1];
 
       /* Set Inner Loop ARC firmware info */
       astFirmwareInfo[1].uiArcInstance = 1;
-      astFirmwareInfo[1].stCode.pStartAddress = hXvd->astFWBootInfo[1].stCode.pStartAddress;
-      astFirmwareInfo[1].stCode.uiSize = hXvd->astFWBootInfo[1].stCode.uiSize;
+      astFirmwareInfo[1].stCode = hXvd->astFWBootInfo[1].stCode;
       astFirmwareInfo[1].pNext = NULL;
 
 #if BXVD_P_HEVD_DUAL_PIPE_PRESENT
@@ -2141,8 +2150,7 @@ BERR_Code BXVD_P_ChipEnable_RevN0(BXVD_Handle hXvd)
 
          /* Set Inner Loop 2 ARC firmware info */
          astFirmwareInfo[2].uiArcInstance = 2;
-         astFirmwareInfo[2].stCode.pStartAddress = hXvd->astFWBootInfo[2].stCode.pStartAddress;
-         astFirmwareInfo[2].stCode.uiSize = hXvd->astFWBootInfo[2].stCode.uiSize;
+         astFirmwareInfo[2].stCode = hXvd->astFWBootInfo[2].stCode;
          astFirmwareInfo[2].pNext = NULL;
       }
 #endif
@@ -2173,91 +2181,84 @@ BERR_Code BXVD_P_ChipEnable_RevN0(BXVD_Handle hXvd)
       BXVD_Reg_Write32(hXvd,
                        (hXvd->stPlatformInfo.stReg.uiDecode_OuterCPUAux+BXVD_P_ARC_STATUS32),
                        0);
-   }
-
-#if EMULATION
-#define FW_CMD_TIMEOUT 100000
-#else
-#define FW_CMD_TIMEOUT 1000
-#endif
 
 #if !BXVD_POLL_FW_MBX
 
-   rc = BERR_TRACE(BKNI_WaitForEvent(hXvd->stDecoderContext.hFWCmdDoneEvent, FW_CMD_TIMEOUT));
+      rc = BERR_TRACE(BKNI_WaitForEvent(hXvd->stDecoderContext.hFWCmdDoneEvent, FW_CMD_TIMEOUT));
 
 #else
+      uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
 
-   uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
+      loopCount = 0;
+      rc = BERR_TIMEOUT;
 
-   loopCount = 0;
-   rc = BERR_TIMEOUT;
+      BKNI_Printf("Sleep 3 Secs, then start polling for AVD Boot completion\n");
 
-   BKNI_Printf("Sleep 3 Secs, then start polling for AVD Boot completion\n");
-
-   BKNI_Sleep(3000);
-   while (loopCount < 1000)
-   {
-      if (uiVal != 0)
+      BKNI_Sleep(3000);
+      while (loopCount < 1000)
       {
-         uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
-
-         BDBG_MSG(("ARC FW Boot Status = %d", uiFWBootStatus));
-
-         BDBG_MSG(("loopCount:%d, MBX:%d", loopCount, uiVal));
-
-         BDBG_ERR(("ARC FW Boot Status = %d", uiFWBootStatus));
-
-         BDBG_ERR(("loopCount:%d Calling BKNI_Sleep(1000), MBX:%d", loopCount, uiVal));
-#if 1
+         if (uiVal != 0)
          {
-            uint32_t ii;
-            /*  From verify watchdog */
-            BXVD_Reg_Write32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPUDebug, 1);
+            uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
+
+            BDBG_MSG(("ARC FW Boot Status = %d", uiFWBootStatus));
+
+            BDBG_MSG(("loopCount:%d, MBX:%d", loopCount, uiVal));
+
+            BDBG_ERR(("ARC FW Boot Status = %d", uiFWBootStatus));
+
+            BDBG_ERR(("loopCount:%d Calling BKNI_Sleep(1000), MBX:%d", loopCount, uiVal));
+#if 1
+            {
+               uint32_t ii;
+               /*  From verify watchdog */
+               BXVD_Reg_Write32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPUDebug, 1);
 
 #define BXVD_P_ARC_PC 0x18
-            for (ii = 0; ii < 8; ii++)
-            {
-               uint32_t uiOL_pc;
+               for (ii = 0; ii < 8; ii++)
+               {
+                  uint32_t uiOL_pc;
 
-               /* read the AVD OL PC */
-               uiOL_pc = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPUAux+BXVD_P_ARC_PC);
+                  /* read the AVD OL PC */
+                  uiOL_pc = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPUAux+BXVD_P_ARC_PC);
 
-               BXVD_DBG_ERR(hXvd, ("[%d] AVD_%d: OL PC=%08x", ii, hXvd->uDecoderInstance, uiOL_pc));
+                  BXVD_DBG_ERR(hXvd, ("[%d] AVD_%d: OL PC=%08x", ii, hXvd->uDecoderInstance, uiOL_pc));
+               }
             }
-         }
 #endif
-         BKNI_Sleep(1000);
+            BKNI_Sleep(1000);
 
-         loopCount++;
-         uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
+            loopCount++;
+            uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
+         }
+         else
+         {
+            rc = BERR_SUCCESS;
+            break;
+         }
       }
-      else
-      {
-         rc = BERR_SUCCESS;
-         break;
-      }
-   }
 #endif
 
 #if BDBG_DEBUG_BUILD
 
-   /* Read FW boot progress/status from CPU2HostStatus register that was written by FW */
-   uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
+      /* Read FW boot progress/status from CPU2HostStatus register that was written by FW */
+      uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
 
 #endif
 
-   if(BERR_TIMEOUT == rc)
-   {
-      BXVD_DBG_ERR(hXvd, ("ARC FW command response timed out, FW Boot Status = %d", uiFWBootStatus));
+      if(BERR_TIMEOUT == rc)
+      {
+         BXVD_DBG_ERR(hXvd, ("ARC FW command response timed out, FW Boot Status = %d", uiFWBootStatus));
 
-      return BERR_TRACE(rc);
-   }
-   else
-   {
-      BXVD_DBG_MSG(hXvd, ("FW boot successful, FW Boot Status = %d", uiFWBootStatus));
-   }
+         return BERR_TRACE(rc);
+      }
+      else
+      {
+         BXVD_DBG_MSG(hXvd, ("FW boot successful, FW Boot Status = %d", uiFWBootStatus));
+      }
 
-   BKNI_ResetEvent(hXvd->stDecoderContext.hFWCmdDoneEvent);
+      BKNI_ResetEvent(hXvd->stDecoderContext.hFWCmdDoneEvent);
+   }
 
    BDBG_LEAVE(BXVD_P_ChipEnable_RevN0);
    return BERR_TRACE(rc);

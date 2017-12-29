@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
 
     /*--- Init SAGE provisioning & Verify OTP Index usability ---*/
 
-    /* Initialize manufacturing platform and provisioning and validtion modules */
+    /* Initialize manufacturing platform and provisioning and validation modules */
     rc = SAGE_Manufacturing_Init(otp_index);
     if (rc != 0) {
         goto handle_error;
@@ -276,7 +276,7 @@ static int SAGE_Provisioning_ProcessBinFile(const char *path, const struct stat 
     BSTD_UNUSED(sptr);
 
     BDBG_LOG(("\tRead '%s' and send to SAGE for provisioning/binding...", path));
-
+    validationCommand = 0;
     if (type != FTW_F)
     {
         if(strncmp(path, INPUT_FOLDER, strlen(INPUT_FOLDER)) == 0)
@@ -396,7 +396,7 @@ handle_error:
         fptr = NULL;
     }
 
-    if (!prov_status && (drm_binfile_type != DRM_BIN_FILE_TYPE_3))
+    if (!prov_status && (drm_binfile_type != DRM_BIN_FILE_TYPE_3 && drm_binfile_type != DRM_BIN_FILE_TYPE_3_PRIME))
     {
         BDBG_LOG(("\t*** SAGE-side provisioning successfully completed!!! ****"));
         if(((validationCommand & VALIDATION_COMMAND_ValidateHdcp22) & 0xF))
@@ -488,7 +488,7 @@ handle_error:
             }
         }
     }
-    else if(drm_binfile_type == DRM_BIN_FILE_TYPE_3)
+    else if(drm_binfile_type == DRM_BIN_FILE_TYPE_3 || drm_binfile_type == DRM_BIN_FILE_TYPE_3_PRIME)
     {
         if(((validationCommand & VALIDATION_COMMAND_ValidateHdcp22) & 0xF) && !validation_status)
         {

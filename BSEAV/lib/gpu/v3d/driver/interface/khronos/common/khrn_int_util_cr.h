@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-client side API
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 /*
    clean_boolean(int b)
 
@@ -84,7 +77,7 @@ static INLINE float clean_float(float f)
 
 static INLINE float clampf(float x, float l, float u)
 {
-   vcos_assert(l <= u);
+   assert(l <= u);
 
    x = clean_float(x);
 
@@ -134,7 +127,7 @@ static INLINE float fixed_to_float(int f)
 
 static INLINE int clampi(int x, int l, int u)
 {
-   vcos_assert(l <= u);
+   assert(l <= u);
 
    return (int) _max(_min( (int32_t)x, (int32_t)u), (int32_t)l);
 }

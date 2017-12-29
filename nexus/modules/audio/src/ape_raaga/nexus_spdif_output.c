@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -82,7 +82,24 @@ void NEXUS_SpdifOutput_GetDefaultSettings(
     pSettings->channelStatusInfo.professionalMode = defaults.channelStatus.professional;
     pSettings->channelStatusInfo.swCopyRight = defaults.channelStatus.copyright;
     pSettings->channelStatusInfo.categoryCode = defaults.channelStatus.categoryCode;
-    pSettings->channelStatusInfo.clockAccuracy = defaults.channelStatus.clockAccuracy;
+    switch (defaults.channelStatus.clockAccuracy) {
+    case 0:
+        pSettings->channelStatusInfo.clockAccuracy = NEXUS_AudioChannelStatusClockAccuracy_eLevel_II;
+        break;
+    case 1:
+        pSettings->channelStatusInfo.clockAccuracy = NEXUS_AudioChannelStatusClockAccuracy_eLevel_I;
+        break;
+    case 2:
+        pSettings->channelStatusInfo.clockAccuracy = NEXUS_AudioChannelStatusClockAccuracy_eLevel_III;
+        break;
+    case 3:
+        pSettings->channelStatusInfo.clockAccuracy = NEXUS_AudioChannelStatusClockAccuracy_eMismatch;
+        break;
+    default:
+        BDBG_ERR(("Invalid default clock accuracy value, defaulting to Level II"));
+        pSettings->channelStatusInfo.clockAccuracy = NEXUS_AudioChannelStatusClockAccuracy_eLevel_II;
+        break;
+    }
     pSettings->channelStatusInfo.separateLRChanNum = defaults.channelStatus.separateLeftRight;
     pSettings->channelStatusInfo.cgmsA = defaults.channelStatus.cgmsA;
 }
@@ -244,6 +261,24 @@ NEXUS_Error NEXUS_SpdifOutput_SetSettings(
         settings.channelStatus.professional = pSettings->channelStatusInfo.professionalMode;
         settings.channelStatus.copyright = pSettings->channelStatusInfo.swCopyRight;
         settings.channelStatus.categoryCode = pSettings->channelStatusInfo.categoryCode;
+        switch (pSettings->channelStatusInfo.clockAccuracy) {
+        case NEXUS_AudioChannelStatusClockAccuracy_eLevel_II:
+            settings.channelStatus.clockAccuracy = 0;
+            break;
+        case NEXUS_AudioChannelStatusClockAccuracy_eLevel_I:
+            settings.channelStatus.clockAccuracy = 0x1;
+            break;
+        case NEXUS_AudioChannelStatusClockAccuracy_eLevel_III:
+            settings.channelStatus.clockAccuracy = 0x2;
+            break;
+        case NEXUS_AudioChannelStatusClockAccuracy_eMismatch:
+            settings.channelStatus.clockAccuracy = 0x3;
+            break;
+        default:
+            BDBG_ERR(("Invalid spdif clock accuracy value, defaulting to Level II"));
+            settings.channelStatus.clockAccuracy = 0;
+            break;
+        }
         settings.channelStatus.clockAccuracy = pSettings->channelStatusInfo.clockAccuracy;
         settings.channelStatus.cgmsA = pSettings->channelStatusInfo.cgmsA;
     }

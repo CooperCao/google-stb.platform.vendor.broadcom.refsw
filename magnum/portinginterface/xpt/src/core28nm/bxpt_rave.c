@@ -748,8 +748,19 @@ BERR_Code BXPT_Rave_OpenChannel(
 #endif
 
 #ifdef BCHP_XPT_RAVE_WRMASK_OPTIMIZATION_DIS_CX_0_31
-	BREG_Write32(lhRave->hReg, BCHP_XPT_RAVE_WRMASK_OPTIMIZATION_DIS_CX_0_31, 0xFFFFFFFF);
-	BREG_Write32(lhRave->hReg, BCHP_XPT_RAVE_WRMASK_OPTIMIZATION_DIS_CX_32_47, 0xFFFFFFFF);
+    BREG_Write32(lhRave->hReg, BCHP_XPT_RAVE_WRMASK_OPTIMIZATION_DIS_CX_0_31, 0xFFFFFFFF);
+    BREG_Write32(lhRave->hReg, BCHP_XPT_RAVE_WRMASK_OPTIMIZATION_DIS_CX_32_47, 0xFFFFFFFF);
+#endif
+
+#ifdef BCHP_XPT_RAVE_MISC_CONTROL3_CRXPT_1164_DIS_MASK
+    Reg = BREG_Read32( lhRave->hReg, BCHP_XPT_RAVE_MISC_CONTROL3 );
+    Reg &= ~(
+        BCHP_MASK( XPT_RAVE_MISC_CONTROL3, CRXPT_1164_DIS )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_RAVE_MISC_CONTROL3, CRXPT_1164_DIS, 1 )
+    );
+    BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_MISC_CONTROL3, Reg );
 #endif
 
     BXPT_P_ReleaseSubmodule(hXpt, BXPT_P_Submodule_eRave);
@@ -1142,14 +1153,23 @@ BERR_Code BXPT_Rave_EnableContext(
     }
 #endif
 
+    /* Needs to be done BEFORE enabling the context. The bitfield name changed from 7278A0 to B0. */
 #ifdef BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG2_PUSH_AND_RESET_WRMASK_MASK
-    /* Needs to be done BEFORE enabling the context. */
     Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET );
     Reg &= ~(
         BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG2, PUSH_AND_RESET_WRMASK )
     );
     Reg |= (
         BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG2, PUSH_AND_RESET_WRMASK, 1 )
+    );
+    BREG_Write32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET, Reg );
+#elif defined BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG2_RESET_BEFORE_START_MASK
+    Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET );
+    Reg &= ~(
+        BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG2, RESET_BEFORE_START )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG2, RESET_BEFORE_START, 1 )
     );
     BREG_Write32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET, Reg );
 #endif
@@ -1183,6 +1203,13 @@ BERR_Code BXPT_Rave_DisableContext(
 #ifdef BCHP_PWR_RESOURCE_XPT_RAVE
     Reg = BREG_Read32(Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET);
     wasEnabled = BCHP_GET_FIELD_DATA(Reg, XPT_RAVE_CX0_AV_MISC_CONFIG1, CONTEXT_ENABLE);
+#endif
+
+#ifdef BCHP_XPT_RAVE_WRMASK_STOP_VALID_PTR_UPDATE_CX_31_0_WRMASK_STOP_VALID_PTR_UPDATE_CX_31_0_MASK
+    if(Context->Index < 32)
+        BREG_Write32(Context->hReg, BCHP_XPT_RAVE_WRMASK_STOP_VALID_PTR_UPDATE_CX_31_0, 1 << Context->Index);
+    else
+        BREG_Write32(Context->hReg, BCHP_XPT_RAVE_WRMASK_STOP_VALID_PTR_UPDATE_CX_47_32, 1 << (Context->Index - 32));
 #endif
 
     Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET );
@@ -3838,6 +3865,8 @@ static BERR_Code AddPidChannelToContext(
     }
     else
     {
+        BXPT_PidChannelDestination dest;
+
         BDBG_MSG(( "AddPidChannelToContext: PidChanNum %u, Context %u", PidChanNum, Context->Index ));
 
         /* For 7002 we need ability to specify pipe for MMSCRAM function */
@@ -3848,9 +3877,11 @@ static BERR_Code AddPidChannelToContext(
         }
 
         PipeShift = UseDecrypted == true ? 5 : 4;
+        dest = UseDecrypted ? BXPT_PidChannelDestination_eRaveRPipe : BXPT_PidChannelDestination_eRaveGPipe;
         lhRave = ( BXPT_Rave_Handle ) Context->vhRave;
         lhXpt = ( BXPT_Handle ) lhRave->lvXpt;
-        BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, PipeShift, true );
+        BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, dest, true );
+
 
 #ifdef BCHP_XPT_RAVE_CXMEM_LOi_ARRAY_BASE
         /* AV context needs this information for filtering as well. */
@@ -3877,11 +3908,13 @@ static BERR_Code AddPidChannelToContext(
             RegAddr = BCHP_XPT_RAVE_CXMEM_Ai_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
             PipeShift = Context->Index * 2;
         }
+    #ifdef BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE
         else if( Context->Index < CXMEM_B_MAX_CONTEXT )
         {
             RegAddr = BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
             PipeShift = ( Context->Index - CXMEM_A_MAX_CONTEXT ) * 2;
         }
+    #endif
     #ifdef BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE
         else if( Context->Index < CXMEM_C_MAX_CONTEXT )
         {
@@ -4066,6 +4099,7 @@ BERR_Code BXPT_Rave_RemoveAllPidChannels(
                 ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
         }
     }
+#ifdef BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE
     else if( Context->Index < CXMEM_B_MAX_CONTEXT )
     {
         PipeShift = ( Context->Index - CXMEM_A_MAX_CONTEXT ) * 2;
@@ -4080,6 +4114,7 @@ BERR_Code BXPT_Rave_RemoveAllPidChannels(
                 ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
         }
     }
+#endif
 #ifdef BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE
     else if( Context->Index < CXMEM_C_MAX_CONTEXT )
     {
@@ -4156,11 +4191,13 @@ BERR_Code BXPT_Rave_RemovePidChannel(
             RegAddr = BCHP_XPT_RAVE_CXMEM_Ai_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
             PipeShift = Context->Index * 2;
         }
+    #ifdef BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE
         else if( Context->Index < CXMEM_B_MAX_CONTEXT )
         {
             RegAddr = BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
             PipeShift = ( Context->Index - CXMEM_A_MAX_CONTEXT ) * 2;
         }
+    #endif
     #ifdef BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE
         else if( Context->Index < CXMEM_C_MAX_CONTEXT )
         {
@@ -4256,14 +4293,14 @@ void ClearSpidTable(
         {
             if ( !(LoCxMemEnables & R_MAP) && !(HiCxMemEnables & R_MAP) )
             {
-                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, 5, false );
+                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, BXPT_PidChannelDestination_eRaveRPipe, false );
             }
         }
         else
         {
             if( !(LoCxMemEnables & G_MAP) && !(HiCxMemEnables & G_MAP) )
             {
-                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, 4, false );
+                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, BXPT_PidChannelDestination_eRaveGPipe, false );
             }
         }
     }
@@ -4273,8 +4310,13 @@ void ClearSpidTable(
 
     RegAddr1 = BCHP_XPT_RAVE_CXMEM_Ai_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
     CxMemAEnables = BREG_Read32( Context->hReg, RegAddr1 );
+
+    #ifdef BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE
     RegAddr1 = BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
     CxMemBEnables = BREG_Read32( Context->hReg, RegAddr1 );
+    #else
+    CxMemBEnables = 0;
+    #endif
 
     #ifdef BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE
     RegAddr1 = BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
@@ -4293,14 +4335,14 @@ void ClearSpidTable(
         {
             if ( !(CxMemAEnables & R_MAP) && !(CxMemBEnables & R_MAP) && !(CxMemCEnables & R_MAP) )
             {
-                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, 5, false );
+                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, BXPT_PidChannelDestination_eRaveRPipe, false );
             }
         }
         else
         {
             if( !(CxMemAEnables & G_MAP) && !(CxMemBEnables & G_MAP) && !(CxMemCEnables & G_MAP) )
             {
-                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, 4, false );
+                BXPT_P_SetPidChannelDestination( lhXpt, PidChanNum, BXPT_PidChannelDestination_eRaveGPipe, false );
             }
         }
     }
@@ -4507,7 +4549,7 @@ BERR_Code BXPT_Rave_PushPidChannel(
 
     lhRave = ( BXPT_Rave_Handle ) hCtx->vhRave;
     lhXpt = ( BXPT_Handle ) lhRave->lvXpt;
-    BXPT_P_SetPidChannelDestination( lhXpt, SplicePidChannel, 5, true );
+    BXPT_P_SetPidChannelDestination( lhXpt, SplicePidChannel, BXPT_PidChannelDestination_eRaveRPipe, true );
     Done:
     return( ExitCode );
 }
@@ -4804,7 +4846,7 @@ BERR_Code InitContext(
     {
         bool ItbEndian, CdbEndian, SysIsBigEndian;
 
-#if (BCHP_CHIP==7145 || BCHP_CHIP==7364 || BCHP_CHIP == 7250 || (BCHP_CHIP==7439 && BCHP_VER >= BCHP_VER_B0)) || (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7278)
+#if (BCHP_CHIP==7145 || BCHP_CHIP==7364 || BCHP_CHIP == 7250 || (BCHP_CHIP==7439 && BCHP_VER >= BCHP_VER_B0)) || (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7278) || (BCHP_CHIP == 7255)
         BSTD_UNUSED( SysIsBigEndian );
 
         /* Config the CDB */
@@ -5048,13 +5090,15 @@ BERR_Code ClearMem(
 #else
     for( Offset = BCHP_XPT_RAVE_CXMEM_Ai_ARRAY_START; Offset <= BCHP_XPT_RAVE_CXMEM_Ai_ARRAY_END; Offset++ )
         BREG_Write32( hRave->hReg, BCHP_XPT_RAVE_CXMEM_Ai_ARRAY_BASE + ( Offset * 4 ), 0 );
+    #ifdef BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_START
     for( Offset = BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_START; Offset <= BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_END; Offset++ )
         BREG_Write32( hRave->hReg, BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE + ( Offset * 4 ), 0 );
+    #endif
 
     #ifdef BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_START
         for( Offset = BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_START; Offset <= BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_END; Offset++ )
             BREG_Write32( hRave->hReg, BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE + ( Offset * 4 ), 0 );
-    #ifdef BXPT_SW7439_115_WORKAROUND
+#if defined(BXPT_SW7439_115_WORKAROUND) && defined(BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_START)
         BREG_Read32( hRave->hReg, BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE );
     #endif
     #endif

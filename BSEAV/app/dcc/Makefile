@@ -109,8 +109,9 @@ endif
 ifeq ($(FREETYPE_SUPPORT),y)
 FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/opensource/freetype
 include $(FREETYPE_DIR)/b_freetype_targets.inc
+include $(FREETYPE_DIR)/freetype.inc
 CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_SOURCE_PATH)/include
-LDFLAGS += -L$(FREETYPE_LIB_FOLDER) -lfreetype
+LDFLAGS += $(FREETYPE_STATIC_LDFLAGS)
 freetype: b_freetype_target_build
 clean_freetype: b_freetype_target_clean_all
 endif

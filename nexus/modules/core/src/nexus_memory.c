@@ -118,6 +118,14 @@ static bool NEXUS_Heap_P_OutOfMemory(void *context, size_t size, const BMMA_Allo
     return false;
 }
 
+static size_t NEXUS_CoreModule_P_AlignSize(size_t v, unsigned alignment)
+{
+    size_t r;
+    r = v + (alignment - 1);
+    r -= r%alignment;
+    return r;
+}
+
 static void *NEXUS_CoreModule_P_Mmap(void *context, void *state, BMMA_DeviceOffset base, size_t length)
 {
     void *ptr;
@@ -130,7 +138,9 @@ static void *NEXUS_CoreModule_P_Mmap(void *context, void *state, BMMA_DeviceOffs
     }
     if((heap->settings.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED)==NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) {
         struct NEXUS_MemoryMapNode *memoryMap = state;
-        NEXUS_Error rc = NEXUS_P_MemoryMap_Map(memoryMap, base, length);
+        NEXUS_Error rc;
+        length = NEXUS_CoreModule_P_AlignSize(length, 4096);
+        rc = NEXUS_P_MemoryMap_Map(memoryMap, base, length);
         if(rc!=NEXUS_SUCCESS) {
             rc = BERR_TRACE(rc);
             return NULL;
@@ -163,7 +173,7 @@ static void NEXUS_CoreModule_P_Unmap(void *context, void *state, void *ptr, size
             NEXUS_FlushCache(ptr, length);
         }
 #endif
-
+        length = NEXUS_CoreModule_P_AlignSize(length, 4096);
         NEXUS_P_MemoryMap_Unmap(memoryMap, length);
     }
     return;
@@ -211,7 +221,7 @@ static BERR_Code nexus_memory_p_dtu_alloc(NEXUS_HeapHandle heap, BMMA_DeviceOffs
     BDTU_RemapSettings *remapSettings;
     unsigned total = 0;
     size_t last_remapped_addr = 0;
-    BDBG_WRN(("dtu_alloc BA " BDBG_UINT64_FMT " (MEMC%u), size %u MB from %s:%u", BDBG_UINT64_ARG(base), heap->settings.memcIndex, (unsigned)(size/1024/1024), fname, line));
+    BDBG_MSG(("dtu_alloc BA " BDBG_UINT64_FMT " (MEMC%u), size %u MB from %s:%u", BDBG_UINT64_ARG(base), heap->settings.memcIndex, (unsigned)(size/1024/1024), fname, line));
 
     if (base & (_2MB-1)) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -289,7 +299,7 @@ static void nexus_memory_p_dtu_free(NEXUS_HeapHandle heap, BMMA_DeviceOffset bas
         return;
     }
     BDTU_GetDefaultRemapSettings(remapSettings);
-    BDBG_WRN(("dtu_free BA " BDBG_UINT64_FMT ", size %u MB", BDBG_UINT64_ARG(base), (unsigned)(size/1024/1024)));
+    BDBG_MSG(("dtu_free BA " BDBG_UINT64_FMT ", size %u MB", BDBG_UINT64_ARG(base), (unsigned)(size/1024/1024)));
     for (i=0;i<size;i+=_2MB) {
         uint64_t deviceAddr;
         BERR_Code rc;
@@ -972,13 +982,13 @@ struct NEXUS_FileNameNode
     char fileName[sizeof(unsigned)]; /* this is actually of variable size, must be last field */
 };
 
-static int NEXUS_P_MemoryBlockTag_Compare(const struct NEXUS_FileNameNode *node, const char *fileName)
+static int NEXUS_P_MemoryBlockTag_Compare_isrsafe(const struct NEXUS_FileNameNode *node, const char *fileName)
 {
-    return NEXUS_StrCmp(node->fileName, fileName);
+    return NEXUS_StrCmp_isrsafe(node->fileName, fileName);
 }
 
-BLST_AA_TREE_GENERATE_FIND(NEXUS_P_FileNameTree, const char *, NEXUS_FileNameNode, node, NEXUS_P_MemoryBlockTag_Compare)
-BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_FileNameTree, const char *, NEXUS_FileNameNode, node, NEXUS_P_MemoryBlockTag_Compare)
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_FileNameTree, const char *, NEXUS_FileNameNode, node, NEXUS_P_MemoryBlockTag_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_FileNameTree, const char *, NEXUS_FileNameNode, node, NEXUS_P_MemoryBlockTag_Compare_isrsafe)
 BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_FileNameTree, NEXUS_FileNameNode, node)
 BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_FileNameTree, NEXUS_FileNameNode, node)
 
@@ -1502,4 +1512,59 @@ NEXUS_HeapHandle NEXUS_Heap_LookupForOffset_isrsafe(NEXUS_Addr offset)
         }
     }
     return NULL;
+}
+
+struct NEXUS_MemoryBlockToken {
+    NEXUS_OBJECT(NEXUS_MemoryBlockToken);
+    BMMA_Block_Handle block;
+};
+
+NEXUS_OBJECT_CLASS_MAKE(NEXUS_MemoryBlockToken, NEXUS_MemoryBlock_DestroyToken);
+
+NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_Clone( NEXUS_MemoryBlockTokenHandle token )
+{
+    NEXUS_MemoryBlockHandle block;
+    block = NEXUS_MemoryBlock_P_CreateFromMma_priv(token->block);
+    if (!block) {
+        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    }
+    else {
+        BMMA_Block_Acquire(g_NEXUS_pCoreHandles->mma, token->block);
+        NEXUS_OBJECT_UNREGISTER(NEXUS_MemoryBlockToken, token, Destroy);
+        NEXUS_MemoryBlock_DestroyToken(token);
+        NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, block, Create);
+    }
+    return block;
+}
+
+NEXUS_MemoryBlockTokenHandle NEXUS_MemoryBlock_CreateToken( NEXUS_MemoryBlockHandle memoryBlock )
+{
+    NEXUS_MemoryBlockTokenHandle token;
+    NEXUS_Error rc;
+    token = BKNI_Malloc(sizeof(*token));
+    if (!token) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
+    }
+    NEXUS_OBJECT_INIT(NEXUS_MemoryBlockToken, token);
+    token->block = memoryBlock->block;
+    NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlockToken, token, Create);
+    rc = b_objdb_set_object_shared(NULL, token, true);
+    if (rc) {
+        BERR_TRACE(rc);
+        goto err_shared;
+    }
+    BMMA_Block_Acquire(g_NEXUS_pCoreHandles->mma, token->block);
+    return token;
+
+err_shared:
+    BKNI_Free(token);
+    return NULL;
+}
+
+static void NEXUS_MemoryBlockToken_P_Finalizer( NEXUS_MemoryBlockTokenHandle token )
+{
+    BMMA_Block_Release(token->block);
+    NEXUS_OBJECT_DESTROY(NEXUS_MemoryBlockToken, token);
+    BKNI_Free(token);
 }

@@ -195,6 +195,20 @@ typedef enum astra_event {
 
 /*****************************************************************************
 Summary:
+    Astra SMC calling code.
+
+Description:
+    These are Astra defined SMC calling codes. They are NOT the actual SMC
+    calling codes conforming to ARM SMC calling conventions.
+******************************************************************************/
+
+typedef enum astra_smc_code {
+    ASTRA_SMC_CODE_SWITCH,
+    ASTRA_SMC_CODE_MAX
+} astra_smc_code;
+
+/*****************************************************************************
+Summary:
     Prototype of astra client event callback function.
 
 Description:
@@ -753,7 +767,7 @@ Description:
 
 Input:
     hClient - astra local client handle
-    mode - SMC mode (ignored for now)
+    code - SMC calling code
 
 Output:
 
@@ -764,7 +778,7 @@ Returns:
 
 int astra_call_smc(
     astra_client_handle hClient,
-    uint32_t mode);
+    astra_smc_code code);
 
 void astra_uapp_coredump(
     astra_uapp_handle hUapp);

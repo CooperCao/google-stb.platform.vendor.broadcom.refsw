@@ -133,13 +133,13 @@ typedef enum eNotification
     eNotify_ShowPlaylist,            /* command  - show contents of given playlist */
     eNotify_StreamChannel,           /* command  - stream IP channel from remote server */
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    eNotify_SetPlmVideo,             /* command  - set video programmable luma mapping enable/disable */
+    eNotify_SetPlmVideo, /* command  - set video programmable luma mapping enable/disable */
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
-    eNotify_SetPlmGraphics,          /* command  - set graphics programmable luma mapping enable/disable */
+    eNotify_SetPlmGraphics, /* command  - set graphics programmable luma mapping enable/disable */
 #endif
-    eNotify_Debug,                   /* command  - show debug message */
-    eNotify_Exit,                    /* command  - exit atlas */
+    eNotify_Debug, /* command  - show debug message */
+    eNotify_Exit,  /* command  - exit atlas */
 
     eNotify_Error,                /* status   - error occurred */
     eNotify_ErrorVbi,             /* status   - VBI error occurred */
@@ -161,20 +161,20 @@ typedef enum eNotification
 #if DVR_LIB_SUPPORT
     eNotify_TsbStateChanged, /* status   - tsb state has changed */
 #endif
-    eNotify_VolumeChanged,               /* status   - volume level has changed */
-    eNotify_MuteChanged,                 /* status   - mute state has changed */
-    eNotify_PipStateChanged,             /* status   - PIP state has changed */
-    eNotify_RecordStarted,               /* status   - record has started */
-    eNotify_RecordStopped,               /* status   - record has stopped */
-    eNotify_EncodeStarted,               /* status   - encode has started */
-    eNotify_EncodeStopped,               /* status   - encode has stopped */
-    eNotify_VideoSourceChanged,          /* status   - video source has changed */
-    eNotify_VideoStreamChanged,          /* status   - video stream has changed */
+    eNotify_VolumeChanged,      /* status   - volume level has changed */
+    eNotify_MuteChanged,        /* status   - mute state has changed */
+    eNotify_PipStateChanged,    /* status   - PIP state has changed */
+    eNotify_RecordStarted,      /* status   - record has started */
+    eNotify_RecordStopped,      /* status   - record has stopped */
+    eNotify_EncodeStarted,      /* status   - encode has started */
+    eNotify_EncodeStopped,      /* status   - encode has stopped */
+    eNotify_VideoSourceChanged, /* status   - video source has changed */
+    eNotify_VideoStreamChanged, /* status   - video stream has changed */
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    eNotify_VideoPlmChanged,             /* status   - video programmable luma mapping (PLM) changed */
+    eNotify_VideoPlmChanged, /* status   - video programmable luma mapping (PLM) changed */
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
-    eNotify_GraphicsPlmChanged,          /* status   - graphics programmable luma mapping (PLM) changed */
+    eNotify_GraphicsPlmChanged, /* status   - graphics programmable luma mapping (PLM) changed */
 #endif
     eNotify_VideoDecodeStarted,          /* status   - video decode started */
     eNotify_VideoDecodeStopped,          /* status   - video decode stopped */
@@ -239,7 +239,7 @@ typedef enum eNotification
     eNotify_DecodeStopped,            /* status   - a video or audio decode has stopped */
     eNotify_DiscoveredPlaylistsShown, /* status   - a discovered playlist has been displayed on console */
     eNotify_PlaylistShown,            /* status   - a playlist contents has been displayed on console */
-    eNotify_ChannelStatsShown,       /* status   - channel stats has been displayed on console */
+    eNotify_ChannelStatsShown,        /* status   - channel stats has been displayed on console */
 #if RF4CE_SUPPORT
     eNotify_AddRf4ceRemote,
     eNotify_DisplayRf4ceRemotes,

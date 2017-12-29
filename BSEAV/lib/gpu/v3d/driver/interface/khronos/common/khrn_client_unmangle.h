@@ -92,6 +92,12 @@
 #undef eglTermGlobalImageBRCM
 #undef eglImageUpdateParameterivBRCM
 #undef eglImageUpdateParameteriBRCM
+#undef eglGetPlatformDisplayEXT
+#undef eglCreatePlatformWindowSurfaceEXT
+#undef eglCreatePlatformPixmapSurfaceEXT
+#undef eglBindWaylandDisplayWL
+#undef eglUnbindWaylandDisplayWL
+#undef eglQueryWaylandBufferWL
 
 /* OpenGL ES 1.1 and 2.0 functions */
 
@@ -359,14 +365,6 @@
 #undef glFramebufferTexture2DOES
 #undef glGetFramebufferAttachmentParameterivOES
 #undef glGenerateMipmapOES
-
-/* Internal functions */
-#undef egl_surface_create
-#undef egl_surface_from_vg_image
-#undef egl_surface_term
-#undef egl_surface_set_attrib
-#undef egl_context_create
-#undef egl_context_term
 
 #endif
 

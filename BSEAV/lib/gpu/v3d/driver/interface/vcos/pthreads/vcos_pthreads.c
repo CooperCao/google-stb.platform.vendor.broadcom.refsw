@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <sys/param.h>
 #include <sched.h>
+#include <assert.h>
 
 #ifdef HAVE_CMAKE_CONFIG
 #include "cmake_config.h"
@@ -159,7 +160,7 @@ VCOS_STATUS_T vcos_thread_create(VCOS_THREAD_T *thread,
    }
 #endif
 
-   vcos_assert(local_attrs->ta_stackaddr == 0); /* Not possible */
+   assert(local_attrs->ta_stackaddr == 0); /* Not possible */
 
    thread->entry = entry;
    thread->arg = arg;
@@ -330,7 +331,7 @@ int vcos_snprintf(char *buf, size_t buflen, const char *fmt, ...)
 
 int vcos_llthread_running(VCOS_THREAD_T *t) {
    VCOS_UNUSED(t);
-   vcos_assert(0);   // this function only exists as a nasty hack for the video codecs!
+   assert(0);   // this function only exists as a nasty hack for the video codecs!
    return 1;
 }
 
@@ -381,7 +382,7 @@ extern VCOS_STATUS_T vcos_thread_at_exit(void (*pfn)(void*), void *cxt)
    VCOS_THREAD_T *self = vcos_thread_current();
    if (!self)
    {
-      vcos_assert(0);
+      assert(0);
       return VCOS_EINVAL;
    }
    for (i=0; i<VCOS_MAX_EXIT_HANDLERS; i++)
@@ -431,7 +432,7 @@ VCOS_STATUS_T vcos_once(VCOS_ONCE_T *once_control,
       case EINVAL:
          return VCOS_EINVAL;
       default:
-         vcos_assert(0);
+         assert(0);
          return VCOS_EACCESS;
       }
    }

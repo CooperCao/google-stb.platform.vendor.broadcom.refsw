@@ -188,41 +188,6 @@ Uninit board-specific state. See nexus_platform_$(NEXUS_PLATFORM).c.
 **/
 void NEXUS_Platform_P_UninitBoard(void);
 
-typedef struct NEXUS_PlatformOsRegion {
-    NEXUS_Addr base; /* physical address */
-    uint64_t length; /* no region if 0 */
-
-    /* correlation of bmem to MEMC */
-    unsigned memcIndex;
-    unsigned subIndex;
-    bool cma;
-} NEXUS_PlatformOsRegion;
-
-typedef struct NEXUS_PlatformOsReservedRegion {
-    NEXUS_Addr base; /* physical address */
-    uint64_t length; /* no region if 0 */
-    unsigned memcIndex;
-    char     tag[8];
-} NEXUS_PlatformOsReservedRegion;
-
-/**
-Summary:
-Memory layout of the board for each MEMC and each physical addressing region
-
-Description:
-These structure members are arranged to be backward compatible with NEXUS_Platform_P_GetHostMemory, which is implemented per OS.
-**/
-typedef struct NEXUS_PlatformMemory
-{
-    BCHP_MemoryLayout memoryLayout;
-
-    /* OS's report of usable memory by physical address */
-    NEXUS_PlatformOsRegion osRegion[NEXUS_MAX_HEAPS];
-
-    NEXUS_PlatformOsReservedRegion osReservedRegions[NEXUS_MAX_HEAPS];
-
-    unsigned max_dcache_line_size; /* reported by OS. BMEM alignment must be >= this to avoid cache coherency bugs. */
-} NEXUS_PlatformMemory;
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(
     NEXUS_PlatformSettings *pSettings, unsigned boxMode
@@ -255,7 +220,7 @@ Summary:
 Get the memory regions that the OS says can be used by nexus/magnum
 **/
 NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory);
-NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory);
+NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformMemoryLayout *pMemory);
 
 /***************************************************************************
 Summary:
@@ -565,6 +530,7 @@ void NEXUS_Platform_P_DestroyTeeInstance(BTEE_InstanceHandle teeHandle);
 
 void NEXUS_Platform_GetDefaultClientConfiguration(NEXUS_ClientConfiguration *pConfig);
 bool NEXUS_Platform_P_IsOs64(void);
+bool NEXUS_Platform_P_LazyUnmap(void);
 
 NEXUS_Error nexus_platform_p_add_proc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void));
 void nexus_platform_p_remove_proc(NEXUS_ModuleHandle module, const char *filename);

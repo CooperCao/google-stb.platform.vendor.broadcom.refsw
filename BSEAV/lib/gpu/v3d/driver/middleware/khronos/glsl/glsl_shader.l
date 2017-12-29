@@ -16,6 +16,7 @@
 
    #include <stdlib.h>
    #include <string.h>
+   #include <assert.h>
 
    TokenData pptoken;
 
@@ -398,7 +399,7 @@ void glsl_init_lexer(int sourcec, const char * const *sourcev)
 void glsl_include(const char *s)
 {
     /* We don't support including from inside an include */
-    vcos_assert(!including);
+    assert(!including);
     pppush_buffer_state(s_CurrentBufferState);
     pp_scan_string(s);
     including = true;
