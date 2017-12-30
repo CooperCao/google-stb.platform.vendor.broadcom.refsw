@@ -1,4 +1,4 @@
-# make the v3d - non proxy mode
+# make the v3d drivers - non proxy mode
 #
 BUILD_DYNAMIC ?= 1
 
@@ -6,21 +6,31 @@ NEXUS_TOP ?= $(shell cd ../../../../../nexus; pwd)
 MAGNUM_TOP ?= $(shell cd $(NEXUS_TOP)/../magnum; pwd)
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
-include common.mk
+ifeq ($(V3D_VER_AT_LEAST_4_1_0), 1)
+HAS_VULKAN ?= 1
+else
+HAS_VULKAN ?= 0
+endif
 
 # default build mode - release
 
 PROFILING?=0
 
+PYTHON_CMD := python2
+
 ifeq ($(VERBOSE),)
-Q := @
+hide := @
 endif
 
-$(info === Building V3D driver ===)
+ifeq ($(HAS_VULKAN), 1)
+$(info === Building V3D OpenGL ES and Vulkan drivers ===)
+else
+$(info === Building V3D OpenGL ES driver ===)
+endif
 
-PYTHON2GTEQ_20703 := $(shell expr `python2 --version 2>&1 | awk 'BEGIN { FS = "\\\.|\\\ " } { printf("%d%2.2d%2.2d\n", $$2, $$3, $$4) }'` \>= 20703)
+PYTHON2GTEQ_20703 := $(shell expr `$(PYTHON_CMD) --version 2>&1 | awk 'BEGIN { FS = "\\\.|\\\ " } { printf("%d%2.2d%2.2d\n", $$2, $$3, $$4) }'` \>= 20703)
 ifneq ("$(PYTHON2GTEQ_20703)", "1")
-$(error python2 >= 2.7.3 must be available on build machine)
+$(error $(PYTHON_CMD) >= 2.7.3 must be available on build machine)
 endif
 
 GPERFGTEQ_30004 := $(shell expr `gperf -v | head -1 | awk 'BEGIN { FS = "\\\.|\\\ " } { printf("%d%2.2d%2.2d\n", $$3, $$4, $$5) }'` \>= 30004)
@@ -52,20 +62,68 @@ CFLAGS += \
 	-mfpu=neon
 endif
 
-GLSL_INTERMEDIATE = $(abspath $(OBJDIR)/libs/khrn/glsl)
-DGLENUM_INTERMEDIATE = $(abspath $(OBJDIR)/libs/util/dglenum)
+ifeq ($(V3D_DEBUG),y)
+
+# Show a BIG warning about debug mode
+$(info ****************************************************)
+$(info *****          D E B U G   B U I L D)
+$(info *****)
+$(info ***** You are building the V3D driver in debug mode.)
+$(info ***** This will have a LARGE impact on performance.)
+$(info ***** You must build in release mode for correct)
+$(info ***** performance of the V3D driver.)
+$(info ****************************************************)
+
+	ifneq ($(PROFILING),0)
+		CFLAGS += -O3 -g -DNDEBUG
+		LDFLAGS += --export-dynamic
+	else
+		CFLAGS += -O0 -g -fvisibility=hidden
+	endif
+
+	LDFLAGS += -g
+	OBJDIR ?= obj_$(NEXUS_PLATFORM)_debug
+	LIBDIR ?= lib_$(NEXUS_PLATFORM)_debug
+
+else
+
+	CFLAGS += -O3 -DNDEBUG
+
+	ifeq ($(PROFILING),0)
+		CFLAGS += -fvisibility=hidden
+		# Strip
+		LDFLAGS += -s
+	else
+		CFLAGS += -g
+		LDFLAGS += -g --export-dynamic
+	endif
+
+	OBJDIR ?= obj_$(NEXUS_PLATFORM)_release
+	LIBDIR ?= lib_$(NEXUS_PLATFORM)_release
+endif
+
+V3D_OBJDIR := $(abspath $(OBJDIR)/)
+GLSL_INTERMEDIATE_ABS_PATH := $(abspath $(V3D_OBJDIR)/libs/khrn/glsl)
+DGLENUM_INTERMEDIATE_ABS_PATH := $(abspath $(V3D_OBJDIR)/libs/util/dglenum)
+GLSL_INTERMEDIATE_REL_PATH := $(V3D_OBJDIR)/libs/khrn/glsl
+DGLENUM_INTERMEDIATE_REL_PATH := $(V3D_OBJDIR)/libs/util/dglenum
+
+include common.mk
 
 CFLAGS += \
 	-fpic -DPIC \
-	-std=c99 \
+	-std=c99 -fwrapv \
 	-I$(MAGNUM_TOP)/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
 	-I. \
 	-I./libs/core/vcos/include \
+	-I./libs/platform \
 	-I./libs/platform/bcg_abstract \
 	-I./libs/khrn/glsl \
 	-I./libs/khrn/include \
-	-I$(GLSL_INTERMEDIATE) \
-	-I$(DGLENUM_INTERMEDIATE) \
+	-I$(GLSL_INTERMEDIATE_ABS_PATH) \
+	-I$(DGLENUM_INTERMEDIATE_ABS_PATH) \
+	-DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE \
+	-DEMBEDDED_SETTOP_BOX=1 \
 	-Dkhronos_EXPORTS \
 	-D_POSIX_C_SOURCE=200112 \
 	-D_GNU_SOURCE \
@@ -74,15 +132,42 @@ CFLAGS += \
 	-DGFX_DEFAULT_UIF_NUM_BANKS=8 \
 	-DGFX_DEFAULT_UIF_XOR_ADDR=16 \
 	-DGFX_DEFAULT_DRAM_MAP_MODE=2 \
-	-DEMBEDDED_SETTOP_BOX=1 \
-	-DKHRN_GLES31_DRIVER=$(V3D_VER_AT_LEAST_3_3_0) \
 	-DKHRN_GLES32_DRIVER=0 \
-	-DGLSL_310_SUPPORT=1 \
 	-DV3D_PLATFORM_SIM=0 \
 	-DSECURE_SUPPORT=1 \
 	-Wno-unused-function \
 	-Wno-unused-variable \
 	-Wno-unused-but-set-variable
+
+ifeq ($(HAS_VULKAN), 1)
+	CFLAGS += \
+		-I$(MAGNUM_TOP)/portinginterface/vc5/include \
+		-I../platform/common \
+		-I./libs/vulkan/include \
+		-I./libs/vulkan/driver \
+		-I./libs/vulkan/driver/spirv \
+		-I./libs/vulkan/driver/platforms \
+		-DBUILD_VULKAN_ICD=1 \
+		-DVK_USE_PLATFORM_DISPLAY_KHR=1
+
+	CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
+
+	ifeq ($(NXCLIENT_SUPPORT),y)
+		include $(NEXUS_TOP)/nxclient/include/nxclient.inc
+		CFLAGS += $(NXCLIENT_CFLAGS)
+		NXPL_PLATFORM_EXCLUSIVE := n
+	else
+		ifeq ($(NEXUS_CLIENT_SUPPORT),y)
+			LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_CLIENT_LD_LIBRARIES)
+			NXPL_PLATFORM_EXCLUSIVE := n
+		else
+			LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
+			CFLAGS += -DSINGLE_PROCESS
+			CFLAGS += -DNXPL_PLATFORM_EXCLUSIVE
+			NXPL_PLATFORM_EXCLUSIVE := y
+		endif
+	endif
+endif
 
 ifeq ($(BUILD_DYNAMIC),1)
 CFLAGS += -shared
@@ -104,254 +189,97 @@ LDFLAGS += -Wl,-Bsymbolic-functions
 # Add any customer specific ldflags from the command line
 LDFLAGS += $(V3D_EXTRA_LDFLAGS)
 
-ifeq ($(V3D_DEBUG),y)
-
-# Show a BIG warning about debug mode
-$(info ****************************************************)
-$(info *****          D E B U G   B U I L D)
-$(info *****)
-$(info ***** You are building the V3D driver in debug mode.)
-$(info ***** This will have a LARGE impact on performance.)
-$(info ***** You must build in release mode for correct)
-$(info ***** performance of the V3D driver.)
-$(info ****************************************************)
-
-ifneq ($(PROFILING),0)
-CFLAGS += -O3 -g -DNDEBUG
-LDFLAGS += --export-dynamic
-else
-CFLAGS += -O0 -g -fvisibility=hidden
-endif
-
-LDFLAGS += -g
-OBJDIR ?= obj_$(NEXUS_PLATFORM)_debug
-LIBDIR ?= lib_$(NEXUS_PLATFORM)_debug
-
-else
-
-CFLAGS += -O3 -DNDEBUG
-
-ifeq ($(PROFILING),0)
-CFLAGS += -fvisibility=hidden
-# Strip
-LDFLAGS += -s
-else
-CFLAGS += -g
-LDFLAGS += -g --export-dynamic
-endif
-
-OBJDIR ?= obj_$(NEXUS_PLATFORM)_release
-LIBDIR ?= lib_$(NEXUS_PLATFORM)_release
+ifeq ($(HAS_VULKAN), 1)
+VULKAN_TARGETS := $(LIBDIR)/libbcmvulkan_icd.so $(LIBDIR)/bcm.json
 endif
 
 ifeq ($(BUILD_DYNAMIC),1)
-all: $(LIBDIR)/libv3ddriver.so
+all: object_dir $(LIBDIR)/libv3ddriver.so $(VULKAN_TARGETS)
 else
-all: $(LIBDIR)/libv3ddriver.a
+all: object_dir $(LIBDIR)/libv3ddriver.a $(VULKAN_TARGETS)
 endif
 
-define generated_src_dir_exists
-$(Q)mkdir -p $(GLSL_INTERMEDIATE)
-$(Q)mkdir -p $(DGLENUM_INTERMEDIATE)
-endef
+.PHONY : object_dir
+object_dir:
+	$(hide)mkdir -p $(V3D_OBJDIR)
 
-glsl_primitive_types_deps := \
-	libs/khrn/glsl/scripts/build_primitive_types.py \
-	libs/khrn/glsl/scripts/scalar_types.table \
-	libs/khrn/glsl/scripts/sampler_types.table \
-	libs/khrn/glsl/scripts/image_types.table
+V3D_DRIVER_LIBS_REL_PATH = libs
+V3D_DRIVER_LIBS_ABS_PATH = $(CURDIR)/libs
+V3D_DRIVER_TOP_ABS_PATH = $(CURDIR)/..
 
-define glsl_primitive_types_gen
-$(generated_src_dir_exists)
-$(Q)cd libs/khrn/glsl && \
-	python2 \
-		scripts/build_primitive_types.py \
-		-I $(CURDIR)/libs/khrn/glsl \
-		-O $(GLSL_INTERMEDIATE) \
-		scripts/scalar_types.table \
-		scripts/sampler_types.table \
-		scripts/image_types.table;
-endef
+include intermediates.mk
 
-$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.table : \
-	$(glsl_primitive_types_deps)
-		$(glsl_primitive_types_gen)
-
-$(GLSL_INTERMEDIATE)/glsl_primitive_type_index.auto.h \
-$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.h \
-$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.c : \
-	$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.table
-		@
-
-$(GLSL_INTERMEDIATE)/glsl_intrinsic_lookup.auto.c : \
-	libs/khrn/glsl/glsl_intrinsic_lookup.gperf \
-	$(GLSL_INTERMEDIATE)/glsl_primitive_type_index.auto.h
-		$(generated_src_dir_exists)
-		$(Q)gperf libs/khrn/glsl/glsl_intrinsic_lookup.gperf > $(GLSL_INTERMEDIATE)/glsl_intrinsic_lookup.auto.c
-
-$(GLSL_INTERMEDIATE)/glsl_layout.auto.c : libs/khrn/glsl/glsl_layout.gperf
-	$(generated_src_dir_exists)
-	$(Q)gperf libs/khrn/glsl/glsl_layout.gperf > $(GLSL_INTERMEDIATE)/glsl_layout.auto.c
-
-$(GLSL_INTERMEDIATE)/textures.auto.props : \
-	libs/khrn/glsl/scripts/build_texture_functions.py
-		$(generated_src_dir_exists)
-		$(Q)cd libs/khrn/glsl && \
-		python2 \
-			scripts/build_texture_functions.py \
-			-O $(GLSL_INTERMEDIATE);
-
-$(GLSL_INTERMEDIATE)/textures.auto.glsl : \
-	$(GLSL_INTERMEDIATE)/textures.auto.props
-		@
-
-# sources for stdlib from source tree.
-STDLIB_SOURCES := \
-	stdlib/atomics.glsl \
-	stdlib/common.glsl \
-	stdlib/derivatives.glsl \
-	stdlib/exponential.glsl \
-	stdlib/extensions.glsl \
-	stdlib/geometry.glsl \
-	stdlib/geom_shade.glsl \
-	stdlib/hyperbolic.glsl \
-	stdlib/image.glsl \
-	stdlib/integer.glsl \
-	stdlib/matrix.glsl \
-	stdlib/packing.glsl \
-	stdlib/synchronisation.glsl \
-	stdlib/texture_gather.glsl \
-	stdlib/trigonometry.glsl \
-	stdlib/vector_relational.glsl \
-	stdlib/common.inl \
-	stdlib/derivatives.inl \
-	stdlib/exponential.inl \
-	stdlib/geometry.inl \
-	stdlib/hyperbolic.inl \
-	stdlib/integer.inl \
-	stdlib/matrix.inl \
-	stdlib/packing.inl \
-	stdlib/trigonometry.inl \
-	stdlib/vector_relational.inl \
-	stdlib/texture.glsl \
-	stdlib/globals.glsl \
-	stdlib/stages.props \
-	stdlib/v100_only.props \
-	stdlib/v300_only.props \
-	stdlib/v310_only.props \
-	stdlib/v320_only.props \
-	stdlib/extensions.props \
-	stdlib/restrictions.props
-
-STDLIB_AUTO_SOURCES := \
-	$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.table \
-	$(GLSL_INTERMEDIATE)/textures.auto.glsl \
-	$(GLSL_INTERMEDIATE)/textures.auto.props
-
-define glsl_stdlib_auto_gen
-$(generated_src_dir_exists)
-$(Q)cd libs/khrn/glsl && \
-	python2 \
-		$(CURDIR)/libs/khrn/glsl/scripts/build_stdlib.py \
-		-I $(CURDIR)/libs/khrn/glsl \
-		-O $(GLSL_INTERMEDIATE) \
-		$(STDLIB_SOURCES) \
-		$(STDLIB_AUTO_SOURCES)
-endef
-
-$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.c : \
-	libs/khrn/glsl/scripts/build_stdlib.py \
-	$(addprefix libs/khrn/glsl/,$(STDLIB_SOURCES)) $(STDLIB_AUTO_SOURCES)
-		$(glsl_stdlib_auto_gen)
-
-$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.h : \
-$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.c
-	@
-
-
-$(GLSL_INTERMEDIATE)/glsl_parser.output : \
-	libs/khrn/glsl/glsl_parser.y
-		$(generated_src_dir_exists)
-		$(Q)bison -d -o $(GLSL_INTERMEDIATE)/glsl_parser.c libs/khrn/glsl/glsl_parser.y
-
-$(GLSL_INTERMEDIATE)/glsl_parser.c \
-$(GLSL_INTERMEDIATE)/glsl_parser.h : \
-$(GLSL_INTERMEDIATE)/glsl_parser.output
-	@
-
-$(GLSL_INTERMEDIATE)/glsl_lexer.c : libs/khrn/glsl/glsl_lexer.l
-	$(generated_src_dir_exists)
-	$(Q)flex -L -o $(GLSL_INTERMEDIATE)/glsl_lexer.c --never-interactive libs/khrn/glsl/glsl_lexer.l
-
-$(GLSL_INTERMEDIATE)/glsl_numbers.c : libs/khrn/glsl/glsl_numbers.l
-	$(generated_src_dir_exists)
-	$(Q)flex -L -o $(GLSL_INTERMEDIATE)/glsl_numbers.c --never-interactive libs/khrn/glsl/glsl_numbers.l
-
-$(GLSL_INTERMEDIATE)/glsl_version.c : libs/khrn/glsl/glsl_version.l
-	$(generated_src_dir_exists)
-	$(Q)flex -L -o $(GLSL_INTERMEDIATE)/glsl_version.c --never-interactive libs/khrn/glsl/glsl_version.l
-
-$(DGLENUM_INTERMEDIATE)/dglenum_gen.h : \
-		libs/util/dglenum/dglenum_gen.py \
-		libs/khrn/include/GLES3/gl3.h \
-		libs/khrn/include/GLES3/gl3ext_brcm.h
-	$(generated_src_dir_exists)
-	$(Q)python2 libs/util/dglenum/dglenum_gen.py > $(DGLENUM_INTERMEDIATE)/dglenum_gen.h
-
-AUTO_FILES = \
-	$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.table \
-	$(GLSL_INTERMEDIATE)/glsl_primitive_type_index.auto.h \
-	$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.h \
-	$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.c \
-	$(GLSL_INTERMEDIATE)/glsl_intrinsic_lookup.auto.c \
-	$(GLSL_INTERMEDIATE)/textures.auto.glsl \
-	$(GLSL_INTERMEDIATE)/textures.auto.props \
-	$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.c \
-	$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.h \
-	$(GLSL_INTERMEDIATE)/glsl_parser.c \
-	$(GLSL_INTERMEDIATE)/glsl_parser.h \
-	$(GLSL_INTERMEDIATE)/glsl_parser.output \
-	$(GLSL_INTERMEDIATE)/glsl_lexer.c \
-	$(GLSL_INTERMEDIATE)/glsl_numbers.c \
-	$(GLSL_INTERMEDIATE)/glsl_version.c \
-	$(GLSL_INTERMEDIATE)/glsl_layout.auto.c \
-	$(DGLENUM_INTERMEDIATE)/dglenum_gen.h
-
-C_SRC = \
+GLES_SRCS = \
+	$(GLES_SRC_FILES)   \
 	$(COMMON_SRC_FILES) \
-	$(addprefix $(GLSL_INTERMEDIATE)/, $(COMMON_GENERATED_SRC_FILES))
+	$(addprefix $(GLSL_INTERMEDIATE_ABS_PATH)/, $(COMMON_GENERATED_SRC_FILES)) \
+	$(addprefix $(GLSL_INTERMEDIATE_ABS_PATH)/, $(GLES_GENERATED_SRC_FILES))
 
+ifeq ($(HAS_VULKAN), 1)
+VULKAN_SRCS = \
+	$(VULKAN_SRC_FILES) \
+	$(COMMON_SRC_FILES) \
+	$(addprefix $(GLSL_INTERMEDIATE_ABS_PATH)/, $(COMMON_GENERATED_SRC_FILES))
+endif
 
-OBJS0 := $(patsubst %.cpp,%.o,$(filter %.cpp,$(C_SRC)))
-OBJS0 += $(patsubst %.c,%.o,$(filter %.c,$(C_SRC)))
-OBJS := $(addprefix $(OBJDIR)/, $(notdir $(OBJS0)))
+ALL_SRCS = \
+	$(GLES_SRC_FILES)   \
+	$(VULKAN_SRC_FILES) \
+	$(COMMON_SRC_FILES) \
+	$(addprefix $(GLSL_INTERMEDIATE_ABS_PATH)/, $(COMMON_GENERATED_SRC_FILES)) \
+	$(addprefix $(GLSL_INTERMEDIATE_ABS_PATH)/, $(GLES_GENERATED_SRC_FILES))
+
+GLES_OBJS0 := $(patsubst %.cpp,%.o,$(filter %.cpp,$(GLES_SRCS)))
+GLES_OBJS0 += $(patsubst %.c,%.o,$(filter %.c,$(GLES_SRCS)))
+GLES_OBJS := $(addprefix $(V3D_OBJDIR)/, $(notdir $(GLES_OBJS0)))
+
+ifeq ($(HAS_VULKAN), 1)
+VULKAN_OBJS0 := $(patsubst %.cpp,%.o,$(filter %.cpp,$(VULKAN_SRCS)))
+VULKAN_OBJS0 += $(patsubst %.c,%.o,$(filter %.c,$(VULKAN_SRCS)))
+VULKAN_OBJS := $(addprefix $(V3D_OBJDIR)/, $(notdir $(VULKAN_OBJS0)))
+endif
 
 define CCompileRule
 $(2) : $(1) \
 	$(AUTO_FILES)
-		$(Q)echo Compiling $(notdir $(1))
-		$(Q)$(3) -c -MMD -MP -MF"$(2:%.o=%.d)" -MT"$(2:%.o=%.d)" -o "$(2)" "$(1)"
+		$(hide)echo Compiling $(notdir $(1))
+		$(hide)$(3) -c -MMD -MP -MF"$(2:%.o=%.d)" -MT"$(2:%.o=%.d)" -o "$(2)" "$(1)"
 endef
 
-CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++11 -fno-rtti -fno-exceptions
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++11
 
-$(foreach src,$(filter %.c,$(C_SRC)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
-$(foreach src,$(filter %.cpp,$(C_SRC)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
+# Note: The GL driver used to have -fno-rtti & -fno-exceptions for its C++ code
+# Supporting this separately would increase the Makefile complexity further, so I chose to leave these out.
 
-$(LIBDIR)/libv3ddriver.so: $(OBJS)
-	$(Q)echo Linking ... libv3ddriver.so
-	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS)
+$(foreach src,$(filter %.c,$(ALL_SRCS)),$(eval $(call CCompileRule,$(src),$(V3D_OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(ALL_SRCS)),$(eval $(call CCompileRule,$(src),$(V3D_OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
-$(LIBDIR)/libv3ddriver.a: $(OBJS)
-	$(Q)echo Archiving ... libv3ddriver.a
-	$(Q)mkdir -p $(LIBDIR)
-	$(Q)ar -rcs $(LIBDIR)/libv3ddriver.a $(OBJS)
+ifeq ($(HAS_VULKAN), 1)
+$(LIBDIR)/bcm.json: ./libs/vulkan/driver/bcm.json
+	$(hide)mkdir -p $(LIBDIR)
+	$(hide)sed 's,$${ICD_FILEPATH},$(abspath $(LIBDIR)/libbcmvulkan_icd.so),g' ./libs/vulkan/driver/bcm.json > $(LIBDIR)/bcm.json
+
+$(LIBDIR)/libbcmvulkan_icd.so: $(VULKAN_OBJS)
+	$(hide)echo Linking ... libbcmvulkan_icd.so
+	$(hide)mkdir -p $(LIBDIR)
+	$(hide)$(C++) $(LDFLAGS) -shared -o $(LIBDIR)/libbcmvulkan_icd.so $(VULKAN_OBJS)
+endif
+
+$(LIBDIR)/libv3ddriver.so: $(GLES_OBJS)
+	$(hide)echo Linking ... libv3ddriver.so
+	$(hide)mkdir -p $(LIBDIR)
+	$(hide)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/libv3ddriver.so $(GLES_OBJS)
+
+$(LIBDIR)/libv3ddriver.a: $(GLES_OBJS)
+	$(hide)echo Archiving ... libv3ddriver.a
+	$(hide)mkdir -p $(LIBDIR)
+	$(hide)ar -rcs $(LIBDIR)/libv3ddriver.a $(GLES_OBJS)
 
 # clean out the dross
 .phony: clean
 clean:
-	$(Q)rm -f $(AUTO_FILES)
-	$(Q)rm -f $(LIBDIR)/libv3ddriver.so *~ $(OBJS)
-	$(Q)rm -f $(OBJDIR)/*.d
-	$(Q)rm -f $(LIBDIR)/libv3ddriver.a
+	$(hide)rm -f $(AUTO_FILES)
+	$(hide)rm -f $(LIBDIR)/libv3ddriver.so *~ $(GLES_OBJS)
+	$(hide)rm -f $(V3D_OBJDIR)/*.d
+	$(hide)rm -f $(LIBDIR)/libv3ddriver.a
+	$(hide)rm -f $(VULKAN_TARGETS) $(VULKAN_OBJS)

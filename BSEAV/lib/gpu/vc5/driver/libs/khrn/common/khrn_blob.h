@@ -32,14 +32,12 @@ typedef struct khrn_blob
     * how the resource parts are assigned */
    bool foreign_resource;
 
-   size_t descs_align;        /*alignment requirement for descs */
+   size_t align;        /*alignment requirement for resource */
 
    bool   secure;
 
-   /* Note: desc is a flexible array and must be the last member in this data
-    * struct;
-    * decs[0] to desc[num_mip_leves-1] describe the images in this blob */
-   GFX_BUFFER_DESC_T desc[1];
+   /* desc[0] to desc[num_mip_leves-1] describe the images in this blob */
+   GFX_BUFFER_DESC_T desc[];
 
 }khrn_blob;
 
@@ -74,29 +72,35 @@ extern khrn_resource_parts_t khrn_blob_resource_parts(const khrn_blob *blob,
 extern khrn_blob* khrn_blob_create(unsigned width, unsigned height,
       unsigned depth, unsigned num_array_elems, unsigned num_mip_levels,
       const GFX_LFMT_T *lfmts, unsigned num_planes,
-      gfx_buffer_usage_t blob_usage, bool secure);
+      gfx_buffer_usage_t blob_usage, gmem_usage_flags_t gmem_usage);
 
 /* one has to supply as many descs as the number of mipmap levels;
- * for an image that is not an array, array_pitch is the size of handle */
-extern khrn_blob* khrn_blob_create_from_storage(gmem_handle_t handle,
-      const GFX_BUFFER_DESC_T *descs, unsigned num_mip_levels,
-      unsigned num_array_elems, unsigned array_pitch,
-      gfx_buffer_usage_t blob_usage);
-
-/* The same as khrn_blob_create_from_storage but the storage is created
- * obtained from a resource */
+ * for an image that is not an array, array_pitch is the size of handle.
+ * Ownership of res is not transferred; the blob will have a new reference to
+ * the resource. */
 extern khrn_blob* khrn_blob_create_from_resource(khrn_resource *res,
       const GFX_BUFFER_DESC_T *descs, unsigned num_mip_levels,
       unsigned num_array_elems, unsigned array_pitch,
       gfx_buffer_usage_t blob_usage, bool secure);
 
-/*creates a blob as khrn_blob_create but it doesn't allocate storage at this
+/* Similar to creating a new resource with khrn_resource_create_with_handles
+ * then calling khrn_blob_create_from_resource, but the resource will not be
+ * considered foreign (see foreign_resource) */
+extern khrn_blob* khrn_blob_create_from_handles(
+      unsigned num_handles, const gmem_handle_t *handles,
+      const GFX_BUFFER_DESC_T *descs, unsigned num_mip_levels,
+      unsigned num_array_elems, unsigned array_pitch,
+      gfx_buffer_usage_t blob_usage);
+
+/* creates a blob as khrn_blob_create but it doesn't allocate storage at this
  * point for the resource handle; we will allocate the storage at some
  * later point (only if we need to use this blob) */
 extern khrn_blob* khrn_blob_create_no_storage(unsigned width, unsigned height,
       unsigned depth, unsigned num_array_elems, unsigned num_mip_levels,
       const GFX_LFMT_T *lfmts, unsigned num_planes,
       gfx_buffer_usage_t blob_usage, bool secure);
+
+extern khrn_blob* khrn_blob_shallow_copy(const khrn_blob *other);
 
 /* this can be used in conjunction with the above function to delay storage
  * allocation till needed; if the blob already has storage, this function does nothing */

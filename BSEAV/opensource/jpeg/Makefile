@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,11 +46,11 @@ B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
 
 include jpeg.inc
 
-all: jpeg
+.PHONY: all clean
 
-.PHONY: source all clean jpeg
+all: ${JPEG_LIB_FOLDER}/libjpeg.a
 
-source:
+$(JPEG_TAR_PATH)/Makefile:
 	@if [ ! -d "${JPEG_SOURCE_PATH}" ]; then \
 		echo ""; \
 		echo "jpeg source directory: $(abspath ${JPEG_SOURCE_PATH}) not found, extracting from tarball..."  ${B_JPEG_EXTRACT_REDIR}; \
@@ -71,26 +71,38 @@ source:
 			echo "JPEG_TAR_PATH is ${JPEG_TAR_PATH}"; \
 			echo "JPEG_SOURCE_TARBALL is ${JPEG_SOURCE_TARBALL}"; \
 			tar -xpf ${JPEG_TAR_PATH}/${JPEG_SOURCE_TARBALL} -C ${JPEG_TAR_PATH}/..; \
-			echo "Patch $(JPEG_BUILD_DIR)/patch.txt to ${JPEG_TAR_PATH}" ; \
-			patch -d ${JPEG_TAR_PATH} -p1 -i $(JPEG_BUILD_DIR)/patch.txt > /dev/null; \
+			cp ${JPEG_BUILD_DIR}/config.sub ${JPEG_SOURCE_PATH} ; \
 		else \
 			echo "Tarball ${JPEG_TAR_PATH}/${JPEG_SOURCE_TARBALL} is missing"; exit 1;\
 		fi ${B_JPEG_EXTRACT_REDIR};\
 	fi
 
-    .PHONY: config-libjpeg
-config-libjpeg: source
-#speed of machine vs. granularity of creation/modification creates the need for a little sleep here
-	@if [ ! -e $(JPEG_TAR_PATH)/Makefile ]; then \
-		echo [Config.... libjpeg]; \
-		cd $(JPEG_TAR_PATH); RANLIB=$(RANLIB) AR="$(AR) rc" CC='$(CC)' sh ./configure 1> /dev/null; \
-		sleep 1; \
-	fi
+$(JPEG_TAR_PATH)/.libs/libjpeg.a: $(JPEG_TAR_PATH)/Makefile
+	@echo [Config.... libjpeg]
+	@cd $(JPEG_TAR_PATH); \
+	AS=$(AS) \
+	LD=$(LD) \
+	CC="$(CC)" \
+	CXX=$(CXX) \
+	AR=$(AR) \
+	NM=$(NM) \
+	STRIP=$(STRIP) \
+	OBJCOPY=$(OBJCOPY) \
+	OBJDUMP=$(OBJDUMP) \
+	RANLIB=$(RANLIB) \
+	CFLAGS="-fPIC -DPIC -O2" \
+	CXXFLAGS="-fPIC -DPIC -O2" \
+	CPPFLAGS="-fPIC -DPIC -O2" \
+	./configure --build=`./config.guess` --host=${B_REFSW_ARCH} --prefix=$(JPEG_INSTALL_PREFIX) >/dev/null 2>&1;
+	@echo [Build..... libjpeg]
+	@$(MAKE) ${MAKE_OPTIONS} -C $(JPEG_TAR_PATH) > /dev/null;
 
-jpeg: config-libjpeg
-	@if ! $(MAKE) -q -C $(JPEG_TAR_PATH) libjpeg.a; then \
-		echo [Build..... libjpeg]; \
-		$(MAKE) -C $(JPEG_TAR_PATH) libjpeg.a 1>/dev/null; \
+${JPEG_LIB_FOLDER}/libjpeg.a: $(JPEG_TAR_PATH)/.libs/libjpeg.a
+	@echo [Install... libjpeg]
+	@$(MAKE) -C $(JPEG_TAR_PATH) install > /dev/null
+	@cp $(JPEG_TAR_PATH)/jinclude.h $(JPEG_INC_FOLDER)
+	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
+		if ls ${JPEG_LIB_FOLDER}/libjpeg.so.${JPEG_INSTALL_VER} > /dev/null 2>&1 ; then ${STRIP} ${JPEG_LIB_FOLDER}/libjpeg.so.${JPEG_INSTALL_VER}; fi \
 	fi
 
 clean:

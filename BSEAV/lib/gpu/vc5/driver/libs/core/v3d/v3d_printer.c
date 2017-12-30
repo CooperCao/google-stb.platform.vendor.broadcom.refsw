@@ -6,7 +6,7 @@
 
 #include "libs/util/assert_helpers.h"
 #include "libs/util/demand.h"
-#include "vcos.h"
+#include "vcos_string.h"
 #include <stdarg.h>
 
 void v3d_printer_addr_field(struct v3d_printer *root, const char *name, v3d_addr_t value)

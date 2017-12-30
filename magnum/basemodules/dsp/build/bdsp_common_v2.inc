@@ -48,6 +48,15 @@ BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/include/common_v2
 # Include standard files
 ifneq ($(BDSP_IMG_ONLY),y)
 BDSP_SOURCES += \
+        $(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_fw_settings.c \
         $(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_mm_priv.c \
-        $(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_priv.c
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_fwdownload_priv.c \
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_fwinterface_priv.c \
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_fw_algo.c \
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_cit_priv.c \
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_priv.c \
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_cit_log.c \
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_cit_log_buf.c \
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_cit_log_ext.c \
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common.c
 endif

@@ -1,12 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-Specialize generic map for nodevector pointers
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #define khrn_generic_map(X)      NodeVectorMap_##X
 #define KHRN_GENERIC_MAP(X)      NodeVectorMap_##X
@@ -21,7 +16,7 @@ Specialize generic map for nodevector pointers
 
 typedef NodeVector   *NodeVectorPtr;
 
-extern void *NodeVectorMap_Alloc(uint32_t size, const char *ident);
+extern void *NodeVectorMap_Alloc(uint32_t size);
 extern void  NodeVectorMap_Free(void *);
 
 #ifdef KHRN_MAP_C

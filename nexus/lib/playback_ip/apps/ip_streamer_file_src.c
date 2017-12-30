@@ -115,7 +115,7 @@ closeNexusFileSrc(
         BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
     }
 #endif
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     if (ipStreamerCtx->pvrDecKeyHandle)
         NEXUS_Security_FreeKeySlot(ipStreamerCtx->pvrDecKeyHandle);
 #endif
@@ -264,7 +264,7 @@ openNexusFileSrc(
 #else
     BSTD_UNUSED(ipStreamerCfg);
 #endif
-#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
+#if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && (NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1)
     if (!ipStreamerCfg->pvrDecryptionEnabled) {
         /* app hasn't enabled the PVR Decryption, check if it is set for testing purposes */
         ipStreamerCfg->pvrDecryptionEnabled = getEnvVariableValue("pvrDecEnabled", 0);

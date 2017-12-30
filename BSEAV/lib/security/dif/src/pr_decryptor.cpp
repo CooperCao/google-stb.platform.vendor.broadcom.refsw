@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -82,19 +82,19 @@ static void ParsePssh(std::string* pssh, std::string* wrmheader)
     //   finally, the blob of data
     uint32_t* ptr32 = (uint32_t*)pssh->data();
     if (*ptr32 != pssh->size()) {
-        LOGE(("%s: pssh length doesn't match: psshLen=%lu pssh.size=%u", __FUNCTION__, (long unsigned)*ptr32, (uint32_t)pssh->size()));
+        LOGE(("%s: pssh length doesn't match: psshLen=%lu pssh.size=%u", BSTD_FUNCTION, (long unsigned)*ptr32, (uint32_t)pssh->size()));
         return;
     }
 
     uint16_t* ptr16 = (uint16_t*)++ptr32;
     uint16_t recordCount = *ptr16++;
-    LOGD(("%s: recordCount=%u", __FUNCTION__, recordCount));
+    LOGD(("%s: recordCount=%u", BSTD_FUNCTION, recordCount));
 
     for (; recordCount > 0; recordCount--) {
         uint16_t dataType = *ptr16++;
         uint16_t dataLen = *ptr16++;
-        LOGD(("%s: dataType=%u", __FUNCTION__, dataType));
-        LOGD(("%s: dataLen=%u", __FUNCTION__, dataLen));
+        LOGD(("%s: dataType=%u", BSTD_FUNCTION, dataType));
+        LOGD(("%s: dataLen=%u", BSTD_FUNCTION, dataLen));
 
         if (dataType == kWRMHEADERRecord) {
             wrmheader->assign((const char*)ptr16, dataLen);
@@ -109,7 +109,7 @@ static void ParsePssh(std::string* pssh, std::string* wrmheader)
 PlayreadyDecryptor::PlayreadyDecryptor()
     : BaseDecryptor()
 {
-    LOGD(("%s: enter", __FUNCTION__));
+    LOGD(("%s: enter", BSTD_FUNCTION));
     s_sessionNum++;
     m_drmDecryptContext = NULL;
     m_valid = false;
@@ -117,7 +117,7 @@ PlayreadyDecryptor::PlayreadyDecryptor()
 
 PlayreadyDecryptor::~PlayreadyDecryptor()
 {
-    LOGD(("%s: enter", __FUNCTION__));
+    LOGD(("%s: enter", BSTD_FUNCTION));
     DRM_Prdy_Error_e rc = DRM_Prdy_ok;
 
     if (m_drmDecryptContext != NULL) {
@@ -136,12 +136,7 @@ PlayreadyDecryptor::~PlayreadyDecryptor()
 
     if (s_sessionNum == 0) {
         if (s_drmHandle != NULL) {
-            LOGD(("DRM_Prdy_Cleanup_LicenseStores to cleanup license of s_drmHandle:%p\n", (void*)s_drmHandle));
-            rc = DRM_Prdy_Cleanup_LicenseStores(s_drmHandle);
-            if (rc != DRM_Prdy_ok) {
-                LOGE(("DRM_Prdy_Cleanup_LicenseStores failed rc %x", rc));
-            }
-
+            LOGD(("DRM_Prdy_Uninitialize s_drmHandle:%p\n", (void*)s_drmHandle));
             rc = DRM_Prdy_Uninitialize(s_drmHandle);
             if (rc != DRM_Prdy_ok) {
                 LOGE(("DRM_Prdy_Uninitialize failed rc %x", rc));
@@ -151,7 +146,7 @@ PlayreadyDecryptor::~PlayreadyDecryptor()
         }
     }
 
-    LOGD(("%s: leaving", __FUNCTION__));
+    LOGD(("%s: leaving", BSTD_FUNCTION));
 }
 
 bool PlayreadyDecryptor::Initialize(std::string& pssh)
@@ -170,7 +165,7 @@ bool PlayreadyDecryptor::Initialize(std::string& pssh)
         LOGD(("s_drmHandle:%p\n", (void*)s_drmHandle));
 
         if (!s_drmHandle) {
-            LOGE(("\n\n Leave ^^^^^^^^^^^^^^^^ %s::%d Failed to create DRM Handle ^^^^^^^^^^^^^^^^ \n\n", __FUNCTION__, __LINE__));
+            LOGE(("\n\n Leave ^^^^^^^^^^^^^^^^ %s::%d Failed to create DRM Handle ^^^^^^^^^^^^^^^^ \n\n", BSTD_FUNCTION, __LINE__));
             return false;
         }
     }
@@ -181,7 +176,7 @@ bool PlayreadyDecryptor::Initialize(std::string& pssh)
 
     rc = DRM_Prdy_SecureClock_GetStatus(s_drmHandle, &secClkStatus);
     if (rc !=  DRM_Prdy_ok) {
-        LOGE(("%s: DRM_Prdy_SecureClock_GetStatus: 0x%x", __FUNCTION__, rc));
+        LOGE(("%s: DRM_Prdy_SecureClock_GetStatus: 0x%x", BSTD_FUNCTION, rc));
         return false;
     }
 
@@ -195,7 +190,7 @@ bool PlayreadyDecryptor::Initialize(std::string& pssh)
 
     rc = DRM_Prdy_TurnSecureStop(m_DrmHandle, 1);
     if (rc !=  DRM_Prdy_ok) {
-        LOGE(("%s: DRM_Prdy_TurnSecureStop: 0x%x", __FUNCTION__, rc));
+        LOGE(("%s: DRM_Prdy_TurnSecureStop: 0x%x", BSTD_FUNCTION, rc));
         return false;
     } else {
         m_IsSecureStopEnabled = true;
@@ -226,7 +221,7 @@ bool PlayreadyDecryptor::Initialize(std::string& pssh)
             (const uint8_t*)m_wrmheader.data(), m_wrmheader.size());
     }
     if (rc != DRM_Prdy_ok) {
-        LOGE(("%s: DRM_Prdy_Content_SetProperty: 0x%x", __FUNCTION__, rc));
+        LOGE(("%s: DRM_Prdy_Content_SetProperty: 0x%x", BSTD_FUNCTION, rc));
         return false;
     }
 
@@ -252,7 +247,7 @@ bool PlayreadyDecryptor::GenerateKeyRequest(std::string initData, dif_streamer::
               (uint32_t *)&challengeSize);
 
     if ( rc != DRM_Prdy_ok ) {
-        LOGE(("%s: DRM_Prdy_Get_Buffer_Size: 0x%x", __FUNCTION__, rc));
+        LOGE(("%s: DRM_Prdy_Get_Buffer_Size: 0x%x", BSTD_FUNCTION, rc));
         return false;
     }
 
@@ -273,7 +268,7 @@ bool PlayreadyDecryptor::GenerateKeyRequest(std::string initData, dif_streamer::
               &challengeSize);
 
     if (rc != DRM_Prdy_ok) {
-        LOGE(("%s: DRM_Prdy_LicenseAcq_GenerateChallenge: 0x%x", __FUNCTION__, rc));
+        LOGE(("%s: DRM_Prdy_LicenseAcq_GenerateChallenge: 0x%x", BSTD_FUNCTION, rc));
         if (pCh_url)
             BKNI_Free(pCh_url);
         return false;
@@ -300,7 +295,7 @@ bool PlayreadyDecryptor::GenerateKeyRequest(std::string initData, dif_streamer::
         rc =  DRM_Prdy_StoreMgmt_DeleteLicenses(s_drmHandle, NULL, 0, &numDeleted);
 
         if (rc != DRM_Prdy_ok) {
-            LOGE(("%s: DRM_Prdy_StoreMgmt_DeleteLicenses: 0x%x", __FUNCTION__, rc));
+            LOGE(("%s: DRM_Prdy_StoreMgmt_DeleteLicenses: 0x%x", BSTD_FUNCTION, rc));
             if (pCh_url)
                 BKNI_Free(pCh_url);
             return false;
@@ -336,13 +331,13 @@ std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
         m_defaultUrl.assign(url);
     }
 
-    LOGW(("%s: server_url: %s", __FUNCTION__, m_defaultUrl.c_str()));
+    LOGW(("%s: server_url: %s", BSTD_FUNCTION, m_defaultUrl.c_str()));
     CURL *curl;
     CURLcode res;
     curl = curl_easy_init();
 
     if (curl == NULL) {
-        LOGE(("%s: curl_easy_init returned NULL", __FUNCTION__));
+        LOGE(("%s: curl_easy_init returned NULL", BSTD_FUNCTION));
         return drm_msg;
     }
     struct curl_slist *slist = NULL;
@@ -361,27 +356,27 @@ std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)");
     res = curl_easy_perform(curl);
-    LOGW(("%s: s_prBuffer(%d): %s, res: %d", __FUNCTION__, (uint32_t)s_prBuffer.size(), s_prBuffer.c_str(), res));
+    LOGW(("%s: s_prBuffer(%d): %s, res: %d", BSTD_FUNCTION, (uint32_t)s_prBuffer.size(), s_prBuffer.c_str(), res));
 
     if (res != 0) {
-        LOGE(("%s: curl error %d", __FUNCTION__, res));
+        LOGE(("%s: curl error %d", BSTD_FUNCTION, res));
         curl_easy_cleanup(curl);
         return drm_msg;
     }
     size_t body_head = s_prBuffer.find("<soap:Envelope");
     if (body_head == std::string::npos) {
-        LOGE(("%s: no body found in response", __FUNCTION__));
+        LOGE(("%s: no body found in response", BSTD_FUNCTION));
         curl_easy_cleanup(curl);
         return drm_msg;
     }
     drm_msg.clear();
     size_t drm_head = s_prBuffer.find("\r\n\r\n", body_head);
     if (drm_head != std::string::npos) {
-        LOGD(("%s: DRM message found", __FUNCTION__));
+        LOGD(("%s: DRM message found", BSTD_FUNCTION));
         drm_head += 4;
         drm_msg = s_prBuffer.substr(drm_head);
     } else {
-        LOGW(("%s: return body anyway", __FUNCTION__));
+        LOGW(("%s: return body anyway", BSTD_FUNCTION));
         drm_msg = s_prBuffer.substr(body_head);
     }
 
@@ -392,7 +387,7 @@ std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
 #else // USE_CURL
 std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
 {
-    LOGD(("%s: url(%d): %s", __FUNCTION__, url.size(), url.c_str()));
+    LOGD(("%s: url(%d): %s", BSTD_FUNCTION, url.size(), url.c_str()));
 
     uint8_t resp_buffer[64*1024];
     uint8_t *pResponse = resp_buffer;
@@ -411,7 +406,7 @@ std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
         (char*)m_keyMessage.data(), 1, 150, (unsigned char **)&pResponse,
         &respOffset, &respLen);
     if (rc != 0) {
-        LOGE(("%s: DRM_Prdy_http_client_license_post_soap(): 0x%x", __FUNCTION__, rc));
+        LOGE(("%s: DRM_Prdy_http_client_license_post_soap(): 0x%x", BSTD_FUNCTION, rc));
         return drm_msg;
     }
 
@@ -425,7 +420,7 @@ std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
 
 bool PlayreadyDecryptor::AddKey(std::string key)
 {
-    LOGD(("%s enter", __FUNCTION__));
+    LOGD(("%s enter", BSTD_FUNCTION));
     DRM_Prdy_Error_e rc;
 
     if (!m_wrmheader.empty()) {
@@ -434,7 +429,7 @@ bool PlayreadyDecryptor::AddKey(std::string key)
             DRM_Prdy_contentSetProperty_eAutoDetectHeader,
             (const uint8_t*)m_wrmheader.data(), m_wrmheader.size());
         if (rc != DRM_Prdy_ok) {
-            LOGE(("%s: DRM_Prdy_Content_SetProperty: 0x%x", __FUNCTION__, rc));
+            LOGE(("%s: DRM_Prdy_Content_SetProperty: 0x%x", BSTD_FUNCTION, rc));
             return false;
         }
     }
@@ -446,14 +441,14 @@ bool PlayreadyDecryptor::AddKey(std::string key)
         rc = DRM_Prdy_LicenseAcq_ProcessResponseEx(s_drmHandle,
             key.c_str(), key.size(), tmpSessionIdBuf, NULL);
         if (rc != DRM_Prdy_ok) {
-            LOGE(("%s: DRM_Prdy_LicenseAcq_ProcessResponseEx: 0x%x", __FUNCTION__, rc));
+            LOGE(("%s: DRM_Prdy_LicenseAcq_ProcessResponseEx: 0x%x", BSTD_FUNCTION, rc));
             return false;
         }
     } else {
         rc = DRM_Prdy_LicenseAcq_ProcessResponseEx(s_drmHandle,
             key.c_str(), key.size(), NULL, NULL);
         if (rc != DRM_Prdy_ok) {
-            LOGE(("%s: DRM_Prdy_LicenseAcq_ProcessResponseEx: 0x%x", __FUNCTION__, rc));
+            LOGE(("%s: DRM_Prdy_LicenseAcq_ProcessResponseEx: 0x%x", BSTD_FUNCTION, rc));
             return false;
         }
     }
@@ -462,48 +457,48 @@ bool PlayreadyDecryptor::AddKey(std::string key)
         key.c_str(), key.size(), NULL);
 
     if (rc != DRM_Prdy_ok) {
-        LOGE(("%s: DRM_Prdy_LicenseAcq_ProcessResponse: 0x%x", __FUNCTION__, rc));
+        LOGE(("%s: DRM_Prdy_LicenseAcq_ProcessResponse: 0x%x", BSTD_FUNCTION, rc));
         return false;
     }
 #endif // SECURE_CLOCK_FEATURE
 
-    LOGD(("%s: calling DRM_Prdy_Reader_Bind %p\n", __FUNCTION__, (void*)m_drmDecryptContext));
+    LOGD(("%s: calling DRM_Prdy_Reader_Bind %p\n", BSTD_FUNCTION, (void*)m_drmDecryptContext));
     rc = DRM_Prdy_Reader_Bind(s_drmHandle, m_drmDecryptContext);
 
     if (rc != DRM_Prdy_ok) {
-        LOGE(("%s: DRM_Prdy_Reader_Bind: 0x%x\n", __FUNCTION__, rc));
+        LOGE(("%s: DRM_Prdy_Reader_Bind: 0x%x\n", BSTD_FUNCTION, rc));
         return false;
     }
 
-    LOGD(("%s: calling DRM_Prdy_Reader_Commit", __FUNCTION__));
+    LOGD(("%s: calling DRM_Prdy_Reader_Commit", BSTD_FUNCTION));
     rc = DRM_Prdy_Reader_Commit(s_drmHandle);
 
     if (rc != DRM_Prdy_ok) {
-        LOGE(("%s: DRM_Prdy_Reader_Commit: 0x%x\n", __FUNCTION__, rc));
+        LOGE(("%s: DRM_Prdy_Reader_Commit: 0x%x\n", BSTD_FUNCTION, rc));
         return false;
     }
 
     m_valid = true;
 
-    LOGD(("%s leaving", __FUNCTION__));
+    LOGD(("%s leaving", BSTD_FUNCTION));
     return true;
 }
 
 bool PlayreadyDecryptor::GetProtectionPolicy(DRM_Prdy_policy_t *policy)
 {
     DRM_Prdy_Error_e rc;
-    LOGD(("%s enter", __FUNCTION__));
+    LOGD(("%s enter", BSTD_FUNCTION));
     do {
         rc = DRM_Prdy_Get_Protection_Policy(s_drmHandle, policy);
 
         if ((rc != DRM_Prdy_ok) && (rc != DRM_Prdy_no_policy)) {
             LOGE(("Leave %s Error DRM_Prdy_Get_Protection_Policy 0x%08lx",
-                              __FUNCTION__, static_cast<unsigned long>(rc)));
+                              BSTD_FUNCTION, static_cast<unsigned long>(rc)));
             return false;
         }
     } while (rc != DRM_Prdy_no_policy);
 
-    LOGD(("%s leaving", __FUNCTION__));
+    LOGD(("%s leaving", BSTD_FUNCTION));
     return true;
 }
 
@@ -540,7 +535,7 @@ uint32_t PlayreadyDecryptor::DecryptSample(
         clearSize += pSample->entries[i].bytesOfClearData;
         encSize += pSample->entries[i].bytesOfEncData;
     }
-    LOGD(("%s: sampleSize=%u clearSize=%u encSize=%u", __FUNCTION__, sampleSize, clearSize, encSize));
+    LOGD(("%s: sampleSize=%u clearSize=%u encSize=%u", BSTD_FUNCTION, sampleSize, clearSize, encSize));
 
     uint8_t *encrypted_buffer = NULL;
 
@@ -570,12 +565,12 @@ uint32_t PlayreadyDecryptor::DecryptSample(
             rc = DRM_Prdy_Reader_Decrypt(m_drmDecryptContext, &ctrContext,
                 encrypted_buffer, sampleSize);
             if (rc != DRM_Prdy_ok) {
-                LOGE(("%s: %d Reader_Decrypt failed: 0x%x", __FUNCTION__, __LINE__, rc));
+                LOGE(("%s: %d Reader_Decrypt failed: 0x%x", BSTD_FUNCTION, __LINE__, rc));
                 return bytes_processed;
             }
         }
         bytes_processed += sampleSize;
-        LOGD(("%s: bytes_processed=%u", __FUNCTION__, bytes_processed));
+        LOGD(("%s: bytes_processed=%u", BSTD_FUNCTION, bytes_processed));
         return bytes_processed;
     }
 
@@ -590,19 +585,21 @@ uint32_t PlayreadyDecryptor::DecryptSample(
         decrypted_buffer += num_clear;
 #endif
 
-        ctrContext.qwBlockOffset = qwOffset / 16;
-        ctrContext.bByteOffset = qwOffset % 16;
+        if (num_enc > 0) {
+            ctrContext.qwBlockOffset = qwOffset / 16;
+            ctrContext.bByteOffset = qwOffset % 16;
 
 #ifdef USE_PR_DECRYPT_OPAQUE
-        rc = DRM_Prdy_Reader_DecryptOpaque(m_drmDecryptContext, &ctrContext,
-            encrypted_buffer, decrypted_buffer, num_enc);
+            rc = DRM_Prdy_Reader_DecryptOpaque(m_drmDecryptContext, &ctrContext,
+                encrypted_buffer, decrypted_buffer, num_enc);
 #else
-        rc = DRM_Prdy_Reader_Decrypt(m_drmDecryptContext, &ctrContext,
-            encrypted_buffer, num_enc);
+            rc = DRM_Prdy_Reader_Decrypt(m_drmDecryptContext, &ctrContext,
+                encrypted_buffer, num_enc);
 #endif
-        if (rc != DRM_Prdy_ok) {
-            LOGE(("%s: %d Reader_Decrypt failed: 0x%x", __FUNCTION__, __LINE__, rc));
-            return bytes_processed;
+            if (rc != DRM_Prdy_ok) {
+                LOGE(("%s: %d Reader_Decrypt failed: 0x%x", BSTD_FUNCTION, __LINE__, rc));
+                return bytes_processed;
+            }
         }
 
         encrypted_buffer += num_enc;
@@ -610,6 +607,6 @@ uint32_t PlayreadyDecryptor::DecryptSample(
         bytes_processed += num_clear + num_enc;
     }
 
-    LOGD(("%s: bytes_processed=%u", __FUNCTION__, bytes_processed));
+    LOGD(("%s: bytes_processed=%u", BSTD_FUNCTION, bytes_processed));
     return bytes_processed;
 }

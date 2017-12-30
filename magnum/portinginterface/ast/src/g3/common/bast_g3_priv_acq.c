@@ -60,6 +60,7 @@ BDBG_MODULE(bast_g3_priv_acq);
 BERR_Code BAST_g3_P_InitHandleDefault(BAST_Handle h)
 {
    BAST_g3_P_Handle *hDev = (BAST_g3_P_Handle *)(h->pImpl);
+   uint8_t i;
 
 #ifndef BAST_EXCLUDE_FTM
    hDev->bFtmLocalReset = false; /* must initialize this flag independent of ftm init */
@@ -80,6 +81,12 @@ BERR_Code BAST_g3_P_InitHandleDefault(BAST_Handle h)
 #endif
    hDev->dftMinN = 4;
    hDev->bInit = false;
+
+   for (i = 0; i < BAST_TUNER_KVCO_CAL_TABLE_SIZE; i++)
+   {
+      hDev->tuner_kvco_cal_capcntl_table[i] = 0;
+      hDev->tuner_kvco_cal_kvcocntl_table[i] = 0;
+   }
    return BERR_SUCCESS;
 }
 
@@ -91,7 +98,7 @@ BERR_Code BAST_g3_P_InitChannelHandle(BAST_ChannelHandle h)
 {
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
-   int i;
+   uint8_t i;
 
    hChn->baudTimerIsr = NULL;
    hChn->berTimerIsr = NULL;
@@ -128,11 +135,6 @@ BERR_Code BAST_g3_P_InitChannelHandle(BAST_ChannelHandle h)
    hChn->bLastLocked = false;
    hChn->bUndersample = false;
    hChn->timeSinceStableLock = 0;
-   for (i = 0; i < BAST_TUNER_KVCO_CAL_TABLE_SIZE; i++)
-   {
-      hChn->tuner_kvco_cal_capcntl_table[i] = 0;
-      hChn->tuner_kvco_cal_kvcocntl_table[i] = 0;
-   }
 #ifndef BAST_EXCLUDE_SPUR_CANCELLER
    BAST_g3_P_ClearSpurCancellerConfig(h);
 #endif
@@ -242,6 +244,7 @@ BERR_Code BAST_g3_P_InitChannelHandle(BAST_ChannelHandle h)
 }
 
 
+#ifndef BAST_HAS_WFE
 /******************************************************************************
  BAST_g3_P_InitNextChannel_isr()
 ******************************************************************************/
@@ -263,6 +266,7 @@ static BERR_Code BAST_g3_P_InitNextChannel_isr(BAST_ChannelHandle h)
 
    return BAST_g3_P_InitAllChannels_isr(h->pDevice->pChannels[pDev->counter]);
 }
+#endif
 
 
 /******************************************************************************

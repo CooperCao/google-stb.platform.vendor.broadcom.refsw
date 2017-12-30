@@ -68,7 +68,7 @@ do {                                                                            
     _unaligned_data_size_ = (buffer_size % 4);                                                      \
     _word_count_ = (buffer_size - _unaligned_data_size_) >> 2;                                      \
                                                                                                     \
-    BDBG_MSG(("%s: %s: ", __FUNCTION__, buffer_name));                                              \
+    BDBG_MSG(("%s: %s: ", BSTD_FUNCTION, buffer_name));                                             \
     for(_word_no_ = 0; _word_no_ < _word_count_; _word_no_++)                                       \
     {                                                                                               \
         BDBG_MSG(("%02x %02x %02x %02x", ((uint8_t *)(buffer_ptr))[4 * _word_no_],                  \

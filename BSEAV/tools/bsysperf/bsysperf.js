@@ -2640,6 +2640,7 @@ function ProcessResponses ( oResponses )
             ResponseCount++;
 
             if ( GetWifiStatsCountdown ) {
+                if ( GetWifiStatsCountdown > 2 ) GetWifiStatsCountdown = 2; /* CAD debug */
                 GetWifiStatsCountdown--;
                 if (GetWifiStatsCountdown == 0) {
                     GetWifiStats.Value = 1;

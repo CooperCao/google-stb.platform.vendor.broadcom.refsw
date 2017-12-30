@@ -12,6 +12,5 @@ extern const struct desc_map gfx_lfmt_yflip_desc_map;
 extern const struct desc_map gfx_lfmt_base_desc_map;
 extern const struct desc_map gfx_lfmt_type_desc_map;
 extern const struct desc_map gfx_lfmt_channels_desc_map;
-extern const struct desc_map gfx_lfmt_pre_desc_map;
 extern const struct desc_map gfx_lfmt_base_channels_desc_map;
 /* END AUTO-GENERATED CODE (desc_map_decls) */

@@ -10,6 +10,10 @@
 #include <sys/types.h>
 #include <assert.h>
 
+#include <mutex>
+#include <chrono>
+#include <thread>
+
 #ifndef WIN32
 #define THREADED_IO
 #endif
@@ -56,13 +60,14 @@ static uint32_t sFreeBytes = 0;
 static uint8_t *sBuf = 0;
 static uint8_t *sEnd = 0;
 static bool     sDie = false;
-static MutexHandle sIOMutex;
+
+std::mutex sIOMutex;
 
 static uint32_t BytesToWrite(uint8_t **from)
 {
    uint32_t bytesToWrite = 0;
 
-   plLockMutex(&sIOMutex);
+   std::lock_guard<std::mutex> lock(sIOMutex);
 
    if (sFreeBytes != BUFFER_BYTES)
    {
@@ -74,8 +79,6 @@ static uint32_t BytesToWrite(uint8_t **from)
       *from = sRead;
    }
 
-   plUnlockMutex(&sIOMutex);
-
    return bytesToWrite;
 }
 
@@ -83,14 +86,14 @@ static void BufferForWrite(uint8_t *data, uint32_t numBytes)
 {
    while (numBytes > 0)
    {
-      plLockMutex(&sIOMutex);
+      std::unique_lock<std::mutex> IOMutex(sIOMutex);
 
       // Can't buffer anything unless we have some space
       while (sFreeBytes == 0)
       {
-         plUnlockMutex(&sIOMutex);
-         usleep(1000);
-         plLockMutex(&sIOMutex);
+         IOMutex.unlock();
+         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+         IOMutex.lock();
       }
 
       assert(sWrite < sEnd);
@@ -104,28 +107,24 @@ static void BufferForWrite(uint8_t *data, uint32_t numBytes)
       uint8_t *p = sWrite;
 
       // Unlock the buffer for the saving thread while we copy in our new data
-      plUnlockMutex(&sIOMutex);
+      IOMutex.unlock();
 
       memcpy(p, data, bytes);
       data += bytes;
       numBytes -= bytes;
 
-      plLockMutex(&sIOMutex);
+      IOMutex.lock();
 
       sWrite += bytes;
       sFreeBytes -= bytes;
       if (sWrite >= sEnd)
          sWrite = sBuf;
-
-      plUnlockMutex(&sIOMutex);
    }
 }
 
 // Separate file i/o thread to attempt to aid capture performance
-static void *ioThreadMain(void *param)
+void Archive::ioThreadMain()
 {
-   Archive *ar = (Archive*)param;
-
    while (!sDie)
    {
       uint8_t *from;
@@ -133,9 +132,9 @@ static void *ioThreadMain(void *param)
 
       while (bytesToWrite > 0)
       {
-         fwrite(from, bytesToWrite, 1, ar->FilePointer());
+         fwrite(from, bytesToWrite, 1, FilePointer());
 
-         plLockMutex(&sIOMutex);
+         std::unique_lock<std::mutex> IOMutex(sIOMutex);
 
          sFreeBytes += bytesToWrite;
 
@@ -144,15 +143,13 @@ static void *ioThreadMain(void *param)
          if (sRead == sEnd)
             sRead = sBuf;
 
-         plUnlockMutex(&sIOMutex);
+         IOMutex.unlock();
 
          bytesToWrite = BytesToWrite(&from);
       }
 
-      usleep(1000);
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
    }
-
-   return 0;
 }
 #endif
 
@@ -187,19 +184,13 @@ bool Archive::Connect()
          BUFFER_BYTES = atoi(env);
 
       // Make the circular i/o buffer
-      plCreateMutex(&sIOMutex);
       m_buffer = new uint8_t[BUFFER_BYTES];
       sBuf = sRead = sWrite = m_buffer;
       sEnd = m_buffer + BUFFER_BYTES;
       sFreeBytes = BUFFER_BYTES;
 
       // Start the i/o thread
-      int32_t res = pthread_create(&m_ioThread, NULL, ioThreadMain, this);
-      if (res != 0)
-      {
-         Error1("Could not spawn new thread (code %d)", res);
-         return false;
-      }
+      m_ioThread = std::thread([=] { ioThreadMain(); });
 #endif
 
       return true;
@@ -217,15 +208,12 @@ void Archive::Disconnect()
       bool done = false;
       while (!done)
       {
-         plLockMutex(&sIOMutex);
+         std::lock_guard<std::mutex> lock(sIOMutex);
          done = (sFreeBytes == BUFFER_BYTES);
-         plUnlockMutex(&sIOMutex);
       }
 
       sDie = true;
-      pthread_join(m_ioThread, NULL);
-
-      plDestroyMutex(&sIOMutex);
+      m_ioThread.join();
 #endif
       fclose(m_fp);
    }

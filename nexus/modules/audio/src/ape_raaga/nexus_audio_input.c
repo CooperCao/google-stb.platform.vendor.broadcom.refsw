@@ -1790,7 +1790,7 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
         }
 
         /* Determine output mixer based on whether we are using an equalizer or not */
-        if ( pMixerNode->nexusEq )
+        if ( pMixerNode->nexusEq && input->format == NEXUS_AudioInputFormat_ePcmStereo)
         {
             BAPE_EqualizerSettings eqSettings;
             BAPE_Connector apeConnector;
@@ -1855,7 +1855,7 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
     /* Refresh equalizer stages if required.  There may be a more optimal way to do this, but this will work. */
     pMixerNode = pOutputNode->pMixerNode;
     BDBG_ASSERT(NULL != pMixerNode);
-    if ( pMixerNode->nexusEq )
+    if ( pMixerNode->nexusEq && input->format == NEXUS_AudioInputFormat_ePcmStereo )
     {
         BAPE_EqualizerStageHandle *pStages;
         unsigned numStages;
@@ -2918,8 +2918,7 @@ NEXUS_Error NEXUS_AudioInput_P_ExplictlyStartFMMMixers(NEXUS_AudioInputHandle in
               pMixerNode = BLST_Q_NEXT(pMixerNode, mixerNode) )
         {
                 errCode = BAPE_Mixer_Start(pMixerNode->inputMixer);
-                if (errCode != BERR_SUCCESS)
-                {
+                if (errCode != BERR_SUCCESS) {
                     return BERR_TRACE(errCode);
                 }
         }
@@ -2939,9 +2938,10 @@ void NEXUS_AudioInput_P_ExplictlyStopFMMMixers(NEXUS_AudioInputHandle input)
 
         for ( pMixerNode = BLST_Q_FIRST(&pData->mixerList);
               pMixerNode != NULL;
-              pMixerNode = BLST_Q_NEXT(pMixerNode, mixerNode) )
-        {
+              pMixerNode = BLST_Q_NEXT(pMixerNode, mixerNode) ) {
+            if (BAPE_Mixer_Is_Running(pMixerNode->inputMixer)) {
                 BAPE_Mixer_Stop(pMixerNode->inputMixer);
+            }
         }
     }
     return;

@@ -42,7 +42,7 @@
 
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_types.h"
-#include "bdsp_task.h"
+#include "bdsp_stage.h"
 #include "bdsp_raaga_img.h"
 #include "bdsp_raaga.h"
 #include "bdsp_raaga_fwdownload.h"

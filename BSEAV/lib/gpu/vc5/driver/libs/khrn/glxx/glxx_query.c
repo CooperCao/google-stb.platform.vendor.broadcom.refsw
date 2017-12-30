@@ -87,7 +87,7 @@ static void query_term(void *v, size_t size)
    free(query->debug_label);
    query->debug_label = NULL;
 
-   vcos_unused(size);
+   unused(size);
 }
 
 GLXX_QUERY_T* glxx_query_create(unsigned name)

@@ -1,52 +1,31 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-EGL server-side implementation functions.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
-#include "interface/khronos/include/VG/openvg.h"
 #include "interface/khronos/common/khrn_int_image.h"
 #include "interface/khronos/egl/egl_int.h"
 #include "middleware/khronos/common/khrn_mem.h"
 
-extern int eglIntCreateSurface_impl(
-   uint32_t win,
+extern EGL_SURFACE_ID_T eglIntCreateSurface_impl(
+   uintptr_t win,
    uint32_t buffers,
    uint32_t width,
    uint32_t height,
-   uint32_t swapchainc,
    bool secure,
    KHRN_IMAGE_FORMAT_T colorformat,
    KHRN_IMAGE_FORMAT_T depthstencilformat,
    KHRN_IMAGE_FORMAT_T maskformat,
    KHRN_IMAGE_FORMAT_T multisampleformat,
-   uint32_t largest,
    uint32_t mipmap,
    uint32_t config_depth_bits,
    uint32_t config_stencil_bits,
-   uint32_t type,
-   uint32_t *results);
-
-extern int eglIntCreatePbufferFromVGImage_impl(
-   VGImage vg_handle,
-   KHRN_IMAGE_FORMAT_T colorformat,
-   KHRN_IMAGE_FORMAT_T depthstencilformat,
-   KHRN_IMAGE_FORMAT_T maskformat,
-   KHRN_IMAGE_FORMAT_T multisampleformat,
-   uint32_t mipmap,
-   uint32_t config_depth_bits,
-   uint32_t config_stencil_bits,
-   uint32_t *results);
+   uint32_t type);
 
 extern EGL_SURFACE_ID_T eglIntCreateWrappedSurface_impl(
-   uint32_t handle_0, uint32_t handle_1,
+   void *pixmap,
    KHRN_IMAGE_FORMAT_T depthstencilformat,
    KHRN_IMAGE_FORMAT_T maskformat,
    KHRN_IMAGE_FORMAT_T multisample,
@@ -67,9 +46,6 @@ extern EGL_VG_CONTEXT_ID_T eglIntCreateVG_impl(EGL_VG_CONTEXT_ID_T share, EGL_CO
 // to makevcimage or unlock might target the wrong surface)
 extern int eglIntDestroySurface_impl(EGL_SURFACE_ID_T);
 extern void eglIntDestroyGL_impl(EGL_GL_CONTEXT_ID_T);
-#ifndef NO_OPENVG
-extern void eglIntDestroyVG_impl(EGL_VG_CONTEXT_ID_T);
-#endif /* NO_OPENVG */
 
 // Selects the given process id for all operations. Most resource creation is
 //  associated with the currently selected process id
@@ -79,11 +55,7 @@ extern void eglIntDestroyVG_impl(EGL_VG_CONTEXT_ID_T);
 // If the GL context or surfaces have changed then GL will be flushed. Similarly for VG.
 // If any of the surfaces have been resized then the color and ancillary buffers
 //  are freed and recreated in the new size.
-extern void eglIntMakeCurrent_impl(uint32_t pid_0, uint32_t pid_1, uint32_t glversion, EGL_GL_CONTEXT_ID_T, EGL_SURFACE_ID_T, EGL_SURFACE_ID_T
-#ifndef NO_OPENVG
-   , EGL_VG_CONTEXT_ID_T, EGL_SURFACE_ID_T
-#endif
-   );
+extern void eglIntMakeCurrent_impl(uint32_t glversion, EGL_GL_CONTEXT_ID_T, EGL_SURFACE_ID_T, EGL_SURFACE_ID_T);
 
 // Flushes one or both context, and waits for the flushes to complete before returning.
 // Equivalent to:
@@ -92,9 +64,12 @@ extern void eglIntMakeCurrent_impl(uint32_t pid_0, uint32_t pid_1, uint32_t glve
 extern int eglIntFlushAndWait_impl(uint32_t flushgl, uint32_t flushvg);
 extern void eglIntFlush_impl(uint32_t flushgl, uint32_t flushvg);
 
-extern void eglIntSwapBuffers_impl(EGL_SURFACE_ID_T s, uint32_t width, uint32_t height, uint32_t handle, uint32_t preserve, uint32_t position);
+extern bool eglIntBackBufferDims_impl(EGL_SURFACE_ID_T s, uint32_t *width, uint32_t *height);
+
+extern void eglIntSwapBuffers_impl(EGL_SURFACE_ID_T s);
 extern void eglIntSelectMipmap_impl(EGL_SURFACE_ID_T s, int level);
 
+extern int eglIntCopyBuffers_impl(EGL_SURFACE_ID_T s, void *pixmap);
 extern void eglIntGetColorData_impl(EGL_SURFACE_ID_T s, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, int32_t stride, uint32_t y_offset, void *data);
 extern void eglIntSetColorData_impl(EGL_SURFACE_ID_T s, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, int32_t stride, uint32_t y_offset, const void *data);
 
@@ -103,10 +78,11 @@ extern void eglIntReleaseTexImage_impl(EGL_SURFACE_ID_T s);
 
 extern void eglIntSwapInterval_impl(EGL_SURFACE_ID_T s, uint32_t swap_interval);
 
-extern EGL_SYNC_ID_T eglIntCreateSync_impl(uint32_t type, int32_t condition, int32_t status, uint32_t sem);
+extern EGL_SYNC_ID_T eglIntCreateSync_impl(uint32_t type, int32_t condition, int32_t status);
 
 extern void eglIntDestroySync_impl(EGL_SYNC_ID_T);
 extern void eglSyncGetAttrib_impl(EGL_SYNC_ID_T s, int32_t attrib, int32_t *value);
+extern int eglIntSyncWaitTimeout_impl(EGL_SYNC_ID_T s, uint32_t timeout);
 
 #if EGL_KHR_image
 extern int eglCreateImageKHR_impl(uint32_t glversion, EGL_CONTEXT_ID_T ctx, EGLenum target,
@@ -120,10 +96,10 @@ extern void eglTermDriverMonitorBRCM_impl(void);
 extern void eglGetDriverMonitorXMLBRCM_impl(EGLint bufSize, char *xmlStats);
 #endif
 
-#if EGL_BRCM_image_update_control
-extern bool eglImageUpdateParameterBRCM_impl(EGLImageKHR image, EGLenum pname, const EGLint *params);
-MEM_HANDLE_T eglImageUpdateParameterBRCM_lockPhase1(EGLImageKHR image);
-extern bool eglImageUpdateParameterBRCM_lockPhase2(MEM_HANDLE_T heglimage);
-extern void eglImageUpdateParameterBRCM_lockPhase3(MEM_HANDLE_T heglimage, bool phase2ret);
-extern void eglImageUpdateParameterBRCM_lockPhase4(MEM_HANDLE_T heglimage, bool phase2ret);
+#ifdef WAYLAND
+struct wl_display;
+struct wl_resource;
+extern  EGLBoolean eglBindWaylandDisplayWL_impl(EGLDisplay dpy, struct wl_display *display);
+extern  EGLBoolean eglUnbindWaylandDisplayWL_impl(EGLDisplay dpy, struct wl_display *display);
+extern  EGLBoolean eglQueryWaylandBufferWL_impl(EGLDisplay dpy, struct wl_resource *buffer, EGLint attribute, EGLint *value);
 #endif

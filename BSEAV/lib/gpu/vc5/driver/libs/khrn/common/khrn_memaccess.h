@@ -3,9 +3,9 @@
  ******************************************************************************/
 #pragma once
 
+#include "libs/util/common.h"
 #include "libs/core/v3d/v3d_addr.h"
 #include "libs/core/v3d/v3d_barrier.h"
-#include "vcos_types.h"
 #include "gmem.h"
 
 EXTERN_C_BEGIN

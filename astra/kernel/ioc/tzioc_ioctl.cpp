@@ -59,14 +59,14 @@ void TzIoc::TzIocIoctl::init(void *devTree) {
 
     memset(handlers, 0, sizeof(handlers));
 
-    handlers[IOCTL_OFFSET(CLIENT_OPEN )] = clientOpen;
-    handlers[IOCTL_OFFSET(CLIENT_CLOSE)] = clientClose;
-    handlers[IOCTL_OFFSET(CLIENT_GETID)] = clientGetId;
-    handlers[IOCTL_OFFSET(MSG_SEND    )] = msgSend;
-    handlers[IOCTL_OFFSET(MAP_PADDR   )] = mapPaddr;
-    handlers[IOCTL_OFFSET(UNMAP_PADDR )] = unmapPaddr;
-    handlers[IOCTL_OFFSET(MAP_PADDRS  )] = mapPaddrs;
-    handlers[IOCTL_OFFSET(UNMAP_PADDRS)] = unmapPaddrs;
+    handlers[IOCTL_OFFSET(CLIENT_OPEN   )] = clientOpen;
+    handlers[IOCTL_OFFSET(CLIENT_CLOSE  )] = clientClose;
+    handlers[IOCTL_OFFSET(CLIENT_GETID  )] = clientGetId;
+    handlers[IOCTL_OFFSET(MSG_SEND      )] = msgSend;
+    handlers[IOCTL_OFFSET(MAP_PADDRS    )] = mapPaddrs;
+    handlers[IOCTL_OFFSET(UNMAP_PADDRS  )] = unmapPaddrs;
+    handlers[IOCTL_OFFSET(PADDR_TO_VADDR)] = paddr2vaddr;
+    handlers[IOCTL_OFFSET(VADDR_TO_PADDR)] = vaddr2paddr;
 }
 
 int TzIoc::TzIocIoctl::doIoctl(uint32_t cmd, void *arg) {
@@ -246,70 +246,6 @@ int TzIoc::TzIocIoctl::msgSend(void *arg)
     return 0;
 }
 
-int TzIoc::TzIocIoctl::mapPaddr(void *arg)
-{
-    struct tzioc_ioctl_map_paddr_data mapPaddrData;
-
-    SysCalls::copyFromUser(
-        (struct tzioc_ioctl_map_paddr_data *)arg,
-        &mapPaddrData);
-
-    struct tzioc_client *pClient =
-        (struct tzioc_client *)mapPaddrData.hClient;
-
-    if (!pClient ||
-        mapPaddrData.paddr == 0 ||
-        mapPaddrData.size == 0) {
-        printf("Invalid args in TZIOC ioctl map paddr cmd\n");
-        return -EINVAL;
-    }
-
-    mapPaddrData.retVal =
-        TzIocMem::mapPaddr(
-            pClient,
-            mapPaddrData.paddr,
-            mapPaddrData.size,
-            mapPaddrData.flags,
-            &mapPaddrData.vaddr);
-
-    SysCalls::copyToUser(
-        (struct tzioc_ioctl_map_paddr_data *)arg,
-        &mapPaddrData);
-
-    return 0;
-}
-
-int TzIoc::TzIocIoctl::unmapPaddr(void *arg)
-{
-    struct tzioc_ioctl_unmap_paddr_data unmapPaddrData;
-
-    SysCalls::copyFromUser(
-        (struct tzioc_ioctl_unmap_paddr_data *)arg,
-        &unmapPaddrData);
-
-    struct tzioc_client *pClient =
-        (struct tzioc_client *)unmapPaddrData.hClient;
-
-    if (!pClient ||
-        unmapPaddrData.paddr == 0 ||
-        unmapPaddrData.size == 0) {
-        printf("Invalid args in TZIOC ioctl unmap paddr cmd\n");
-        return -EINVAL;
-    }
-
-    unmapPaddrData.retVal =
-        TzIocMem::unmapPaddr(
-            pClient,
-            unmapPaddrData.paddr,
-            unmapPaddrData.size);
-
-    SysCalls::copyToUser(
-        (struct tzioc_ioctl_unmap_paddr_data *)arg,
-        &unmapPaddrData);
-
-    return 0;
-}
-
 int TzIoc::TzIocIoctl::mapPaddrs(void *arg)
 {
     struct tzioc_ioctl_map_paddrs_data mapPaddrsData;
@@ -387,6 +323,66 @@ int TzIoc::TzIocIoctl::unmapPaddrs(void *arg)
     SysCalls::copyToUser(
         (struct tzioc_ioctl_unmap_paddrs_data *)arg,
         &unmapPaddrsData);
+
+    return 0;
+}
+
+int TzIoc::TzIocIoctl::paddr2vaddr(void *arg)
+{
+    struct tzioc_ioctl_paddr_to_vaddr_data paddrToVaddrData;
+
+    SysCalls::copyFromUser(
+        (struct tzioc_ioctl_paddr_to_vaddr_data *)arg,
+        &paddrToVaddrData);
+
+    struct tzioc_client *pClient =
+        (struct tzioc_client *)paddrToVaddrData.hClient;
+
+    if (!pClient ||
+        paddrToVaddrData.paddr == 0) {
+        printf("Invalid args in TZIOC ioctl paddr to vaddr cmd\n");
+        return -EINVAL;
+    }
+
+    paddrToVaddrData.retVal =
+        TzIocMem::paddr2vaddr(
+            pClient,
+            paddrToVaddrData.paddr,
+            &paddrToVaddrData.vaddr);
+
+    SysCalls::copyToUser(
+        (struct tzioc_ioctl_paddr_to_vaddr_data *)arg,
+        &paddrToVaddrData);
+
+    return 0;
+}
+
+int TzIoc::TzIocIoctl::vaddr2paddr(void *arg)
+{
+    struct tzioc_ioctl_vaddr_to_paddr_data vaddrToPaddrData;
+
+    SysCalls::copyFromUser(
+        (struct tzioc_ioctl_vaddr_to_paddr_data *)arg,
+        &vaddrToPaddrData);
+
+    struct tzioc_client *pClient =
+        (struct tzioc_client *)vaddrToPaddrData.hClient;
+
+    if (!pClient ||
+        vaddrToPaddrData.vaddr == 0) {
+        printf("Invalid args in TZIOC ioctl vaddr to paddr cmd\n");
+        return -EINVAL;
+    }
+
+    vaddrToPaddrData.retVal =
+        TzIocMem::vaddr2paddr(
+            pClient,
+            vaddrToPaddrData.vaddr,
+            &vaddrToPaddrData.paddr);
+
+    SysCalls::copyToUser(
+        (struct tzioc_ioctl_vaddr_to_paddr_data *)arg,
+        &vaddrToPaddrData);
 
     return 0;
 }

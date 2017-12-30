@@ -17,6 +17,8 @@
 #include "egl_sync.h"
 #include "egl_client_exts.h"
 #include "egl_display_exts.h"
+#include "../common/khrn_vector.h"
+#include <assert.h>
 
 #define PLATFORM_EXTS_STR_MAX_SIZE (1024)
 
@@ -32,6 +34,7 @@ static char client_extension_string[EGL_CLIENT_EXTS_STR_MAX_SIZE + PLATFORM_EXTS
 
 static struct
 {
+   EGLDisplay     display;
    VCOS_ONCE_T    once;
    bool           once_ok;
    VCOS_MUTEX_T   lock;
@@ -55,16 +58,172 @@ static struct
 }
 egl_display;
 
-static void init_extension_strings(void);
+typedef struct platform_display
+{
+   void *handle;
+   int refs;
+} platform_display;
+
+typedef struct platform_displays
+{
+   khrn_vector displays;
+   VCOS_MUTEX_T lock;
+} platform_displays;
+
+static EGLDisplay add_platform_display(platform_displays *displays,
+      void *handle)
+{
+   vcos_mutex_lock(&displays->lock);
+
+   platform_display *display = khrn_vector_data(platform_display,
+         &displays->displays);
+   size_t i;
+   for (i = 0; i < displays->displays.size; i++)
+      if (display[i].handle == handle)
+         break;
+   if (i == displays->displays.size) /* not found */
+   {
+      platform_display *display = khrn_vector_emplace_back(platform_display,
+            &displays->displays);
+      if (display)
+      {
+         /* vector extended, now i == displays->displays.size - 1 */
+         display->handle = handle;
+
+         /* Reference count == 0 is not a mistake, it's EGL display weirdness.
+          *
+          * An app can eglGetDisplay() and the display handle remains valid
+          * for the entire lifetime of a process. A call to eglInitialize()
+          * initialises the display but a call eglTerminate() only invalidates
+          * resource handles and marks display as uninitialised. Actual release
+          * of resources is done by calling both eglTerminate(dpy) and
+          * eglMakeCurrent(dpy, EGL_NO_CONTEXT, EGL_NO_SURFACE, EGL_NO_SURFACE)
+          * in any order. Once none of display resources is in use the platform
+          * display can be terminated. But the display handle remains valid and
+          * it's allowed to eglInitialise() it again, hence the reference count.
+          */
+         display->refs = 0;
+      }
+   }
+   vcos_mutex_unlock(&displays->lock);
+
+   return i < displays->displays.size ? (EGLDisplay)(i + 1) : EGL_NO_DISPLAY;
+}
+
+static inline platform_display *to_platform_display(platform_displays *displays,
+      EGLDisplay egl_display)
+{
+   assert(vcos_mutex_is_locked(&displays->lock));
+
+   size_t i = (size_t)egl_display - 1;
+   if (i < displays->displays.size)
+      return khrn_vector_data(platform_display, &displays->displays) + i;
+   else
+      return NULL;
+}
+
+static bool get_platform_display(platform_displays *displays,
+      EGLDisplay egl_display)
+{
+   vcos_mutex_lock(&displays->lock);
+
+   platform_display *display = to_platform_display(displays, egl_display);
+   bool got = false;
+   if (display &&
+         (display->refs > 0 || egl_platform_initialize(display->handle)))
+   {
+     ++display->refs;
+     got = true;
+   }
+   vcos_mutex_unlock(&displays->lock);
+   return got;
+}
+
+static bool put_platform_display(platform_displays *displays,
+      EGLDisplay egl_display)
+{
+   vcos_mutex_lock(&displays->lock);
+
+   platform_display *display = to_platform_display(displays, egl_display);
+   bool put = false;
+   if (display)
+   {
+      assert(display->refs > 0);
+      if (display->refs == 1)
+         egl_platform_terminate(display->handle);
+      --display->refs;
+      put = true;
+   }
+   vcos_mutex_unlock(&displays->lock);
+   return put;
+}
+
+static platform_displays s_platform_displays;
+
+static void term_platform_displays(void)
+{
+   platform_display *ptr = khrn_vector_data(platform_display,
+         &s_platform_displays.displays);
+   platform_display *end = ptr + s_platform_displays.displays.size;
+   while (ptr < end)
+   {
+      if (ptr->refs > 0)
+      {
+#ifndef NDEBUG
+         fprintf(stderr,
+               "Warning: Program exit with EGL display still in use!\n"
+               "         Forcing platform display termination.\n");
+#endif
+         egl_platform_terminate(ptr->handle);
+      }
+      ++ptr;
+   }
+   vcos_mutex_delete(&s_platform_displays.lock);
+}
+
+static bool init_platform_displays(void)
+{
+   memset(&s_platform_displays, 0, sizeof(s_platform_displays));
+   if (vcos_mutex_create(&s_platform_displays.lock, "EGL displays lock")
+         != VCOS_SUCCESS)
+      return false;
+   atexit(term_platform_displays);
+   return true;
+}
+
+extern bool egl_display_refinc(EGLDisplay dpy)
+{
+   return get_platform_display(&s_platform_displays, dpy);
+}
+
+extern bool egl_display_refdec(EGLDisplay dpy)
+{
+   return put_platform_display(&s_platform_displays, dpy);
+}
+
+extern void *egl_display_platform_handle(EGLDisplay dpy)
+{
+   vcos_mutex_lock(&s_platform_displays.lock);
+   platform_display *display = to_platform_display(&s_platform_displays, dpy);
+   void *handle = display ? display->handle : NULL;
+   vcos_mutex_unlock(&s_platform_displays.lock);
+   return handle;
+}
+
+static void init_extension_string(char *dest, size_t size,
+   char *(*platform_independent)(char *), const char *platform_specific);
 
 static void init_once(void)
 {
-   egl_display.once_ok = vcos_mutex_create(&egl_display.lock, "egl_display.lock") == VCOS_SUCCESS;
+   egl_display.once_ok = (vcos_mutex_create(&egl_display.lock,
+         "egl_display.lock") == VCOS_SUCCESS) && init_platform_displays();
    if (!egl_display.once_ok)
    {
       log_error("Fatal: unable to init once egl_display");
    }
-   init_extension_strings();
+   init_extension_string(client_extension_string,
+         sizeof(client_extension_string), egl_client_exts_str,
+         egl_platform_get_client_extensions());
 }
 
 static bool ensure_init_once(void)
@@ -86,17 +245,6 @@ static void init_extension_string(char *dest, size_t size,
    }
    else
       assert((s - dest) < (ptrdiff_t)size);
-}
-
-static void init_extension_strings(void)
-{
-   init_extension_string(client_extension_string,
-         sizeof(client_extension_string), egl_client_exts_str,
-         egl_platform_get_client_extensions());
-
-   init_extension_string(egl_display.extension_string,
-         sizeof(egl_display.extension_string), egl_display_exts_str,
-         egl_platform_get_display_extensions());
 }
 
 /*
@@ -266,7 +414,7 @@ bool egl_initialized(EGLDisplay dpy, bool check_display)
    if (!egl_display.initialized)
       err = EGL_NOT_INITIALIZED;
 
-   if (check_display && dpy != egl_platform_get_default_display())
+   if (check_display && dpy != egl_display.display)
       err = EGL_BAD_DISPLAY;
 
    vcos_mutex_unlock(&egl_display.lock);
@@ -277,15 +425,9 @@ bool egl_initialized(EGLDisplay dpy, bool check_display)
 
 bool egl_is_valid_display(EGLDisplay dpy)
 {
-   if (!ensure_init_once())
-      return false;
-
-   vcos_mutex_lock(&egl_display.lock);
-
-   bool valid = dpy == egl_platform_get_default_display();
-
-   vcos_mutex_unlock(&egl_display.lock);
-
+   vcos_mutex_lock(&s_platform_displays.lock);
+   bool valid = (to_platform_display(&s_platform_displays, dpy) != NULL);
+   vcos_mutex_unlock(&s_platform_displays.lock);
    return valid;
 }
 
@@ -329,59 +471,47 @@ EGL_SYNC_T* egl_unmap_sync(EGLImageKHR sync_id)
    return map_remove(&egl_display.syncs, sync_id);
 }
 
-static EGLDisplay egl_get_display(EGLNativeDisplayType display_id)
+static EGLDisplay egl_get_platform_display_impl(EGLenum platform,
+      void *native_display, const void *attrib_list, EGL_AttribType type)
 {
+   EGLDisplay egl_display = EGL_NO_DISPLAY;
+   EGLint error = EGL_NOT_INITIALIZED;
+   if (!ensure_init_once())
+      goto end;
+
    /*
     * In comparison to other functions, eglGetDisplay can be called
     * without egl been initialised therefore don't call egl_initialized
-    * and set the thread error state here: always successful.
+    * and set the thread error state here.
     */
-   egl_thread_set_error(EGL_SUCCESS);
-
-   if (display_id == EGL_DEFAULT_DISPLAY)
-      return egl_platform_get_default_display();
-
-   if (egl_platform_set_default_display(display_id))
-      return display_id;
-
-   return EGL_NO_DISPLAY;
+   void *handle;
+   error = egl_platform_get_display(platform, native_display,
+         attrib_list, type, &handle);
+   if (error == EGL_SUCCESS)
+      egl_display = add_platform_display(&s_platform_displays, handle);
+end:
+   egl_thread_set_error(error);
+   return egl_display;
 }
 
 EGLAPI EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display_id)
 {
-   return egl_get_display(display_id);
-}
-
-static EGLDisplay egl_get_platform_display_impl(EGLenum platform,
-      void *native_display)
-{
-   EGLDisplay display;
-   EGLNativeDisplayType display_id = (EGLNativeDisplayType)native_display;
-
-   if (egl_platform_supported(platform))
-   {
-      display = egl_get_display(display_id);
-   }
-   else
-   {
-      egl_thread_set_error(EGL_BAD_PARAMETER);
-      display = EGL_NO_DISPLAY;
-   }
-   return display;
+   return egl_get_platform_display_impl(BEGL_DEFAULT_PLATFORM, display_id, NULL,
+         attrib_EGLint);
 }
 
 EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplay(EGLenum platform,
       void *native_display, const EGLAttrib *attrib_list)
 {
-   vcos_unused(attrib_list);
-   return egl_get_platform_display_impl(platform, native_display);
+   return egl_get_platform_display_impl(platform, native_display, attrib_list,
+         attrib_EGLAttrib);
 }
 
 EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplayEXT(EGLenum platform,
       void *native_display, const EGLint *attrib_list)
 {
-   vcos_unused(attrib_list);
-   return egl_get_platform_display_impl(platform, native_display);
+   return egl_get_platform_display_impl(platform, native_display, attrib_list,
+         attrib_EGLint);
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy,
@@ -393,12 +523,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy,
       return EGL_FALSE;
    }
 
-   if (dpy != egl_platform_get_default_display())
-   {
-      thread->error = EGL_BAD_DISPLAY;
-      return EGL_FALSE;
-   }
-
    if (!ensure_init_once())
    {
       thread->error = EGL_NOT_INITIALIZED;
@@ -407,10 +531,22 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy,
 
    vcos_mutex_lock(&egl_display.lock);
 
+   if (egl_display.initialized &&  dpy != egl_display.display)
+   {
+      thread->error = EGL_BAD_DISPLAY;
+      vcos_mutex_unlock(&egl_display.lock);
+      return EGL_FALSE;
+   }
+
    if (!egl_display.initialized)
    {
+      bool plat_init = false;
       bool proc_init = false;
       bool slock_init = false;
+
+      plat_init = egl_display_refinc(dpy);
+      if (!plat_init)
+         goto end;
 
       egl_map_init(&egl_display.contexts);
       egl_map_init(&egl_display.surfaces);
@@ -426,6 +562,10 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy,
          goto end;
 
       egl_display.next_handle = 1;
+      egl_display.display = dpy;
+      init_extension_string(egl_display.extension_string,
+            sizeof(egl_display.extension_string), egl_display_exts_str,
+            egl_platform_get_display_extensions());
       egl_display.initialized = true;
 
    end:
@@ -437,6 +577,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy,
          egl_map_destroy(&egl_display.contexts);
          egl_map_destroy(&egl_display.images);
          egl_map_destroy(&egl_display.syncs);
+         if (plat_init) egl_display_refdec(dpy);
          thread->error = EGL_NOT_INITIALIZED;
       }
    }
@@ -468,6 +609,7 @@ static void destroy_map(EGL_MAP_T *map, destructor_t destroy)
 void egl_terminate(void)
 {
    EGL_MAP_T contexts, surfaces, images, syncs;
+   EGLDisplay display;
    vcos_mutex_lock(&egl_display.lock);
    if (!egl_display.initialized)
    {
@@ -479,7 +621,10 @@ void egl_terminate(void)
    egl_map_move(&images, &egl_display.images);
    egl_map_move(&syncs, &egl_display.syncs);
    egl_syncs_lock_deinit();
-   egl_process_release();
+   display = egl_display.display;
+   egl_display.display = EGL_NO_DISPLAY;
+   init_extension_string(egl_display.extension_string,
+         sizeof(egl_display.extension_string), egl_display_exts_str, "");
    egl_display.initialized = false;
    vcos_mutex_unlock(&egl_display.lock);
 
@@ -487,36 +632,24 @@ void egl_terminate(void)
    destroy_map(&surfaces, (destructor_t) egl_surface_try_delete);
    destroy_map(&images, (destructor_t) egl_image_refdec);
    destroy_map(&syncs, (destructor_t) egl_sync_refdec);
+
+   egl_process_release();
+   egl_display_refdec(display);
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglTerminate(EGLDisplay dpy)
 {
+   EGLint err = EGL_SUCCESS;
+
+   if (!egl_is_valid_display(dpy))
+      err = EGL_BAD_DISPLAY;
+   else if (ensure_init_once())
+      egl_terminate();
+
    EGL_THREAD_T *thread = egl_thread_get();
-
-   if (thread == NULL || !egl_initialized(dpy, false))
-   {
-      /* Special case for eglTerminate :
-         "Termination of a display that has already been terminated, or has not yet been
-          initialized, is allowed, but the only effect of such a call is to return EGL_TRUE"
-       */
-      if (thread == NULL || thread->error == EGL_NOT_INITIALIZED)
-      {
-         if (thread != NULL)
-            thread->error = EGL_SUCCESS;
-         return EGL_TRUE;
-      }
-   }
-
-   if (dpy != egl_platform_get_default_display())
-   {
-      thread->error = EGL_BAD_DISPLAY;
-      return EGL_FALSE;
-   }
-
-   egl_terminate();
-
-   thread->error = EGL_SUCCESS;
-   return EGL_TRUE;
+   if (thread)
+      thread->error = err;
+   return err == EGL_SUCCESS;
 }
 
 EGLAPI const char *EGLAPIENTRY eglQueryString(EGLDisplay dpy, EGLint name)

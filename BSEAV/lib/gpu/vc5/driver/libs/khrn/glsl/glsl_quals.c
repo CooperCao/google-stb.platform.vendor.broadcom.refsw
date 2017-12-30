@@ -6,6 +6,7 @@
 #include "glsl_globals.h"
 #include "glsl_builders.h"    /* For create_mixed_lq. TODO: Move here? */
 #include "glsl_primitive_types.auto.h"    /* For making gl_WorkGroupSize */
+#include "glsl_stdlib.auto.h"             /* For making gl_in and gl_out */
 #include "glsl_intern.h"                  /* Ditto */
 #include "glsl_layout.h"
 
@@ -355,6 +356,10 @@ void qualifiers_process_default(QualList *l, SymbolTable *table, DeclDefaultStat
 
       if (seen_gs_size && g_ShaderFlavour == SHADER_GEOMETRY) {
          dflt->input_size = gs_size;
+
+         const Symbol *existing = glsl_symbol_table_lookup(table, glsl_intern("gl_in", false));
+         if (existing == NULL)
+            glsl_stdlib_populate_symbol_table_with_gl_in(table, dflt->input_size);
       }
 
       if (seen_wg_size) {

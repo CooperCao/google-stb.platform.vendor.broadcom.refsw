@@ -51,80 +51,80 @@
 #include "bape_eq_coeff_priv.h"
 
 /* Local functions used in Equalizer */
-static void EQ_convert_analog_to_digital ( const int32_t ptr_mant[],
+static void EQ_convert_analog_to_digital_isrsafe ( const int32_t ptr_mant[],
         const int32_t ptr_exp[],
         int32_t fc,
         int32_t fs,
         int32_t coef_mant[],
         int32_t coef_exp[]);
 
-static int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
+static int32_t EQ_generate_bass_isrsafe (int32_t gain, int32_t fs, int32_t fc,
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[]);
 
-static int32_t EQ_generate_treble (int32_t gain, int32_t fs, int32_t fc,
+static int32_t EQ_generate_treble_isrsafe (int32_t gain, int32_t fs, int32_t fc,
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[]);
 
-static void EQ_int2fix(int32_t inp,
+static void EQ_int2fix_isrsafe(int32_t inp,
         int32_t *mant,
         int32_t *exp);
 
-static int32_t EQ_mul_32_32 (int32_t a,
+static int32_t EQ_mul_32_32_isrsafe (int32_t a,
         int32_t b);
 
-static void EQ_mul (int32_t *dest_mant,
+static void EQ_mul_isrsafe (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t mant,
         int32_t exp,
         int32_t src_mant,
         int32_t src_exp);
 
-static void EQ_add (int32_t *dest_mant,
+static void EQ_add_isrsafe (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t mant,
         int32_t exp,
         int32_t src_mant,
         int32_t src_exp);
 
-static void EQ_add_32_32 (int32_t *dest_mant,
+static void EQ_add_isrsafe_32_32_isrsafe (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t src_mant,
         int32_t src_exp);
 
-static void EQ_renormalise (int32_t *p_mant,
+static void EQ_renormalise_isrsafe (int32_t *p_mant,
         int32_t *p_exp);
 
-static int32_t EQ_div_32_32 (int32_t num,
+static int32_t EQ_div_32_32_isrsafe (int32_t num,
         int32_t den);
 
-static void EQ_div (int32_t *dest_mant,
+static void EQ_div_isrsafe (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t mant,
         int32_t exp,
         int32_t src_mant,
         int32_t src_exp);
 
-static void EQ_sqrt (int32_t *dest_mant,
+static void EQ_sqrt_isrsafe (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t src_mant,
         int32_t src_exp);
 
-static int32_t EQ_sqrt_32 (int32_t in);
+static int32_t EQ_sqrt_32_isrsafe (int32_t in);
 
-static void EQ_cos_sin (int32_t phase,
+static void EQ_cos_sin_isrsafe (int32_t phase,
         int32_t *cos_val,
         int32_t *sin_val);
 
-static void EQ_tan(int32_t f1,
+static void EQ_tan_isrsafe(int32_t f1,
         int32_t f2,
         int32_t *fc_a_mant,
         int32_t *fc_a_exp);
 
-static void EQ_db_2_linear (int32_t *dest_mant,
+static void EQ_db_2_linear_isrsafe (int32_t *dest_mant,
         int32_t *dest_exp,
         int32_t src_mant,
         int32_t src_exp);
 
-static int32_t EQ_db_2_linear_table(int32_t in,
+static int32_t EQ_db_2_linear_table_isrsafe(int32_t in,
         const int32_t table[]);
 
 /* Tables used in equalizer */
@@ -228,6 +228,7 @@ static const int32_t EQ_LPF_butter_2_exp [] = {
     -30, -30, -30, -30, -30, -30
 };
 
+#if 0
 #if !B_REFSW_MINIMAL
 /* Butterworth filter (LPF) order-6 */
 static const int32_t EQ_LPF_butter_3_mant [] = {
@@ -240,6 +241,7 @@ static const int32_t EQ_LPF_butter_3_exp [] = {
     -30, -30, -30, -30, -30, -30,
     -30, -30, -30, -30, -30, -30
 };
+#endif
 #endif
 /************ Tables for Butterworth filter (End) *********************/
 
@@ -262,6 +264,7 @@ static const int32_t EQ_LPF_lriley_2_exp [] = {
     -30, -30, -30, -30, -30, -30
 };
 
+#if 0
 #if !B_REFSW_MINIMAL
 /* Linkwitz-Riley filter (LPF) order-6 */
 static const int32_t EQ_LPF_lriley_3_mant [] = {
@@ -274,6 +277,7 @@ static const int32_t EQ_LPF_lriley_3_exp [] = {
     -30, -30, -30, -30, -30, -30,
     -30, -30, -30, -30, -30, -30
 };
+#endif
 #endif
 /************ Tables for Linkwitz-Riley filter (End) *********************/
 
@@ -347,167 +351,167 @@ int32_t EQ_generate_peq_isrsafe ( int32_t q_int, int32_t fc_int, int32_t dbval_i
     if (q_int < 30)
         q_int = 30;
 
-    EQ_int2fix (dbval_int, &temp1_mant, &temp1_exp);
-    EQ_int2fix (10, &temp2_mant, &temp2_exp);
-    EQ_div (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp2_mant, temp2_exp);
-    EQ_db_2_linear (&g_mant, &g_exp, temp1_mant, temp1_exp);
+    EQ_int2fix_isrsafe (dbval_int, &temp1_mant, &temp1_exp);
+    EQ_int2fix_isrsafe (10, &temp2_mant, &temp2_exp);
+    EQ_div_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp2_mant, temp2_exp);
+    EQ_db_2_linear_isrsafe (&g_mant, &g_exp, temp1_mant, temp1_exp);
 
-    EQ_int2fix (dbval_int * gb_int, &temp1_mant, &temp1_exp);
-    EQ_int2fix (10 * 100, &temp2_mant, &temp2_exp);
-    EQ_div (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp2_mant, temp2_exp);
-    EQ_db_2_linear (&gb_mant, &gb_exp, temp1_mant, temp1_exp);
+    EQ_int2fix_isrsafe (dbval_int * gb_int, &temp1_mant, &temp1_exp);
+    EQ_int2fix_isrsafe (10 * 100, &temp2_mant, &temp2_exp);
+    EQ_div_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp2_mant, temp2_exp);
+    EQ_db_2_linear_isrsafe (&gb_mant, &gb_exp, temp1_mant, temp1_exp);
 
-    EQ_int2fix(fc_int, &fc_mant, &fc_exp);
-    EQ_int2fix(fs_int, &fs_mant, &fs_exp);
-    EQ_int2fix(q_int, &q_mant, &q_exp);
+    EQ_int2fix_isrsafe(fc_int, &fc_mant, &fc_exp);
+    EQ_int2fix_isrsafe(fs_int, &fs_mant, &fs_exp);
+    EQ_int2fix_isrsafe(q_int, &q_mant, &q_exp);
 
-    EQ_int2fix(100, &t1_mant, &t1_exp);
-    EQ_div (&q_mant, &q_exp, q_mant, q_exp, t1_mant, t1_exp);
+    EQ_int2fix_isrsafe(100, &t1_mant, &t1_exp);
+    EQ_div_isrsafe (&q_mant, &q_exp, q_mant, q_exp, t1_mant, t1_exp);
 
-    EQ_int2fix (1, &t1_mant, &t1_exp);
-    EQ_div (&t1_mant, &t1_exp, t1_mant, t1_exp, q_mant, q_exp);
-    EQ_mul (&t2_mant, &t2_exp, t1_mant, t1_exp, t1_mant, t1_exp);
-    EQ_int2fix(4, &temp1_mant, &temp1_exp);
-    EQ_add (&t2_mant, &t2_exp, temp1_mant, temp1_exp, t2_mant, t2_exp);
+    EQ_int2fix_isrsafe (1, &t1_mant, &t1_exp);
+    EQ_div_isrsafe (&t1_mant, &t1_exp, t1_mant, t1_exp, q_mant, q_exp);
+    EQ_mul_isrsafe (&t2_mant, &t2_exp, t1_mant, t1_exp, t1_mant, t1_exp);
+    EQ_int2fix_isrsafe(4, &temp1_mant, &temp1_exp);
+    EQ_add_isrsafe (&t2_mant, &t2_exp, temp1_mant, temp1_exp, t2_mant, t2_exp);
 
-    EQ_sqrt(&t2_mant, &t2_exp, t2_mant, t2_exp);
-    EQ_add (&f1_mant, &f1_exp, t2_mant, t2_exp-1, -t1_mant, t1_exp-1);
-    EQ_mul (&f1_mant, &f1_exp, f1_mant, f1_exp, fc_mant, fc_exp);
+    EQ_sqrt_isrsafe(&t2_mant, &t2_exp, t2_mant, t2_exp);
+    EQ_add_isrsafe (&f1_mant, &f1_exp, t2_mant, t2_exp-1, -t1_mant, t1_exp-1);
+    EQ_mul_isrsafe (&f1_mant, &f1_exp, f1_mant, f1_exp, fc_mant, fc_exp);
 
-    EQ_tan (fc_int, fs_int, &fc_a_mant, &fc_a_exp);
-    EQ_tan (f1_mant >> (-f1_exp-14), fs_int<<14, &f1_a_mant, &f1_a_exp);
+    EQ_tan_isrsafe (fc_int, fs_int, &fc_a_mant, &fc_a_exp);
+    EQ_tan_isrsafe (f1_mant >> (-f1_exp-14), fs_int<<14, &f1_a_mant, &f1_a_exp);
 
     p_mant = 0x6487ED51;
     p_exp = -29;
-    EQ_mul (&fc_a_mant, &fc_a_exp, fc_a_mant, fc_a_exp, fs_mant, fs_exp);
-    EQ_mul (&f1_a_mant, &f1_a_exp, f1_a_mant, f1_a_exp, fs_mant, fs_exp);
-    EQ_div (&fc_a_mant, &fc_a_exp, fc_a_mant, fc_a_exp, p_mant, p_exp);
-    EQ_div (&f1_a_mant, &f1_a_exp, f1_a_mant, f1_a_exp, p_mant, p_exp);
+    EQ_mul_isrsafe (&fc_a_mant, &fc_a_exp, fc_a_mant, fc_a_exp, fs_mant, fs_exp);
+    EQ_mul_isrsafe (&f1_a_mant, &f1_a_exp, f1_a_mant, f1_a_exp, fs_mant, fs_exp);
+    EQ_div_isrsafe (&fc_a_mant, &fc_a_exp, fc_a_mant, fc_a_exp, p_mant, p_exp);
+    EQ_div_isrsafe (&f1_a_mant, &f1_a_exp, f1_a_mant, f1_a_exp, p_mant, p_exp);
 
-    EQ_div (&w0_mant, &w0_exp, fc_mant, fc_exp, fs_mant, fs_exp);
-    EQ_mul (&w0_mant, &w0_exp, w0_mant, w0_exp, p_mant, p_exp+1);
-    EQ_div (&dw_mant, &dw_exp, w0_mant, w0_exp, q_mant, q_exp);
+    EQ_div_isrsafe (&w0_mant, &w0_exp, fc_mant, fc_exp, fs_mant, fs_exp);
+    EQ_mul_isrsafe (&w0_mant, &w0_exp, w0_mant, w0_exp, p_mant, p_exp+1);
+    EQ_div_isrsafe (&dw_mant, &dw_exp, w0_mant, w0_exp, q_mant, q_exp);
 
     p_mant = 0x5FD18E31;
     p_exp = -29;
     p_mant = 0x6487ED51;
     p_exp = -29;
-    EQ_int2fix(1, &g0_mant, &g0_exp);
+    EQ_int2fix_isrsafe(1, &g0_mant, &g0_exp);
 
-    EQ_mul (&t1_mant, &t1_exp, g_mant, g_exp, g_mant, g_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, gb_mant, gb_exp, gb_mant, gb_exp);
-    EQ_add (&t1_mant, &t1_exp, t1_mant, t1_exp, -temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&t1_mant, &t1_exp, g_mant, g_exp, g_mant, g_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, gb_mant, gb_exp, gb_mant, gb_exp);
+    EQ_add_isrsafe (&t1_mant, &t1_exp, t1_mant, t1_exp, -temp1_mant, temp1_exp);
 
-    EQ_mul (&t2_mant, &t2_exp, gb_mant, gb_exp, gb_mant, gb_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, g0_mant, g0_exp, g0_mant, g0_exp);
-    EQ_add (&t2_mant, &t2_exp, t2_mant, t2_exp, -temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&t2_mant, &t2_exp, gb_mant, gb_exp, gb_mant, gb_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, g0_mant, g0_exp, g0_mant, g0_exp);
+    EQ_add_isrsafe (&t2_mant, &t2_exp, t2_mant, t2_exp, -temp1_mant, temp1_exp);
 
-    EQ_mul (&t3_mant, &t3_exp, w0_mant, w0_exp, w0_mant, w0_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, p_mant, p_exp, p_mant, p_exp);
-    EQ_add (&t3_mant, &t3_exp, t3_mant, t3_exp, -temp1_mant, temp1_exp);
-    EQ_mul (&t3_mant, &t3_exp, t3_mant, t3_exp, g0_mant, g0_exp);
-    EQ_mul (&t3_mant, &t3_exp, t3_mant, t3_exp, t3_mant, t3_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, g_mant, g_exp, p_mant, p_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, dw_mant, dw_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp1_mant, temp1_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, t2_mant, t2_exp);
-    EQ_div (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, t1_mant, t1_exp);
-    EQ_add (&t3_mant, &t3_exp, t3_mant, t3_exp, temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&t3_mant, &t3_exp, w0_mant, w0_exp, w0_mant, w0_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, p_mant, p_exp, p_mant, p_exp);
+    EQ_add_isrsafe (&t3_mant, &t3_exp, t3_mant, t3_exp, -temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&t3_mant, &t3_exp, t3_mant, t3_exp, g0_mant, g0_exp);
+    EQ_mul_isrsafe (&t3_mant, &t3_exp, t3_mant, t3_exp, t3_mant, t3_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, g_mant, g_exp, p_mant, p_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, dw_mant, dw_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, t2_mant, t2_exp);
+    EQ_div_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, t1_mant, t1_exp);
+    EQ_add_isrsafe (&t3_mant, &t3_exp, t3_mant, t3_exp, temp1_mant, temp1_exp);
 
-    EQ_mul (&t4_mant, &t4_exp, w0_mant, w0_exp, w0_mant, w0_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, p_mant, p_exp, p_mant, p_exp);
-    EQ_add (&t4_mant, &t4_exp, t4_mant, t4_exp, -temp1_mant, temp1_exp);
-    EQ_mul (&t4_mant, &t4_exp, t4_mant, t4_exp, t4_mant, t4_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, dw_mant, dw_exp, p_mant, p_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp1_mant, temp1_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, t2_mant, t2_exp);
-    EQ_div (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, t1_mant, t1_exp);
-    EQ_add (&t4_mant, &t4_exp, t4_mant, t4_exp, temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&t4_mant, &t4_exp, w0_mant, w0_exp, w0_mant, w0_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, p_mant, p_exp, p_mant, p_exp);
+    EQ_add_isrsafe (&t4_mant, &t4_exp, t4_mant, t4_exp, -temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&t4_mant, &t4_exp, t4_mant, t4_exp, t4_mant, t4_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, dw_mant, dw_exp, p_mant, p_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, t2_mant, t2_exp);
+    EQ_div_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, t1_mant, t1_exp);
+    EQ_add_isrsafe (&t4_mant, &t4_exp, t4_mant, t4_exp, temp1_mant, temp1_exp);
 
-    EQ_div (&g1_mant, &g1_exp, t3_mant, t3_exp, t4_mant, t4_exp);
-    EQ_sqrt(&g1_mant, &g1_exp, g1_mant, g1_exp);
+    EQ_div_isrsafe (&g1_mant, &g1_exp, t3_mant, t3_exp, t4_mant, t4_exp);
+    EQ_sqrt_isrsafe(&g1_mant, &g1_exp, g1_mant, g1_exp);
 
-    EQ_mul (&X_mant, &X_exp, g_mant, g_exp, g_mant, g_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, g1_mant, g1_exp, g1_mant, g1_exp);
-    EQ_add (&X_mant, &X_exp, X_mant, X_exp, -temp1_mant, temp1_exp);
-    EQ_mul (&temp1_mant, &temp1_exp, g_mant, g_exp, g_mant, g_exp);
-    EQ_mul (&temp2_mant, &temp2_exp, g0_mant, g0_exp, g0_mant, g0_exp);
-    EQ_add (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, -temp2_mant, temp2_exp);
-    EQ_div (&X_mant, &X_exp, X_mant, X_exp, temp1_mant, temp1_exp);
-    EQ_sqrt (&X_mant, &X_exp, X_mant, X_exp);
+    EQ_mul_isrsafe (&X_mant, &X_exp, g_mant, g_exp, g_mant, g_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, g1_mant, g1_exp, g1_mant, g1_exp);
+    EQ_add_isrsafe (&X_mant, &X_exp, X_mant, X_exp, -temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, g_mant, g_exp, g_mant, g_exp);
+    EQ_mul_isrsafe (&temp2_mant, &temp2_exp, g0_mant, g0_exp, g0_mant, g0_exp);
+    EQ_add_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, -temp2_mant, temp2_exp);
+    EQ_div_isrsafe (&X_mant, &X_exp, X_mant, X_exp, temp1_mant, temp1_exp);
+    EQ_sqrt_isrsafe (&X_mant, &X_exp, X_mant, X_exp);
 
-    EQ_mul (&t1_mant, &t1_exp, fc_a_mant, fc_a_exp, fc_a_mant, fc_a_exp);
-    EQ_mul (&X_mant, &X_exp, X_mant, X_exp, t1_mant, t1_exp);
+    EQ_mul_isrsafe (&t1_mant, &t1_exp, fc_a_mant, fc_a_exp, fc_a_mant, fc_a_exp);
+    EQ_mul_isrsafe (&X_mant, &X_exp, X_mant, X_exp, t1_mant, t1_exp);
 
-    EQ_add (&t2_mant, &t2_exp, t1_mant, t1_exp, -X_mant, X_exp);
-    EQ_mul (&t2_mant, &t2_exp, t2_mant, t2_exp, t2_mant, t2_exp);
+    EQ_add_isrsafe (&t2_mant, &t2_exp, t1_mant, t1_exp, -X_mant, X_exp);
+    EQ_mul_isrsafe (&t2_mant, &t2_exp, t2_mant, t2_exp, t2_mant, t2_exp);
 
-    EQ_mul (&temp1_mant, &temp1_exp, g1_mant, g1_exp, t1_mant, t1_exp);
-    EQ_mul (&t3_mant, &t3_exp, X_mant, X_exp, g0_mant, g0_exp);
-    EQ_add (&t3_mant, &t3_exp, temp1_mant, temp1_exp, -t3_mant, t3_exp);
-    EQ_mul (&t3_mant, &t3_exp, t3_mant, t3_exp, t3_mant, t3_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, g1_mant, g1_exp, t1_mant, t1_exp);
+    EQ_mul_isrsafe (&t3_mant, &t3_exp, X_mant, X_exp, g0_mant, g0_exp);
+    EQ_add_isrsafe (&t3_mant, &t3_exp, temp1_mant, temp1_exp, -t3_mant, t3_exp);
+    EQ_mul_isrsafe (&t3_mant, &t3_exp, t3_mant, t3_exp, t3_mant, t3_exp);
 
-    EQ_mul (&t4_mant, &t4_exp, g_mant, g_exp, g_mant, g_exp);
-    EQ_mul (&t4_mant, &t4_exp, t2_mant, t2_exp, t4_mant, t4_exp);
-    EQ_add (&t4_mant, &t4_exp, t4_mant, t4_exp, -t3_mant, t3_exp);
-    EQ_div (&v1_mant, &v1_exp, t4_mant, t4_exp, t1_mant, t1_exp);
+    EQ_mul_isrsafe (&t4_mant, &t4_exp, g_mant, g_exp, g_mant, g_exp);
+    EQ_mul_isrsafe (&t4_mant, &t4_exp, t2_mant, t2_exp, t4_mant, t4_exp);
+    EQ_add_isrsafe (&t4_mant, &t4_exp, t4_mant, t4_exp, -t3_mant, t3_exp);
+    EQ_div_isrsafe (&v1_mant, &v1_exp, t4_mant, t4_exp, t1_mant, t1_exp);
 
-    EQ_mul (&t1_mant, &t1_exp, f1_a_mant, f1_a_exp, f1_a_mant, f1_a_exp);
-    EQ_add (&t2_mant, &t2_exp, t1_mant, t1_exp, -X_mant, X_exp);
-    EQ_mul (&t2_mant, &t2_exp, t2_mant, t2_exp, t2_mant, t2_exp);
+    EQ_mul_isrsafe (&t1_mant, &t1_exp, f1_a_mant, f1_a_exp, f1_a_mant, f1_a_exp);
+    EQ_add_isrsafe (&t2_mant, &t2_exp, t1_mant, t1_exp, -X_mant, X_exp);
+    EQ_mul_isrsafe (&t2_mant, &t2_exp, t2_mant, t2_exp, t2_mant, t2_exp);
 
-    EQ_mul (&temp1_mant, &temp1_exp, g1_mant, g1_exp, t1_mant, t1_exp);
-    EQ_mul (&t3_mant, &t3_exp, X_mant, X_exp, g0_mant, g0_exp);
-    EQ_add (&t3_mant, &t3_exp, temp1_mant, temp1_exp, -t3_mant, t3_exp);
-    EQ_mul (&t3_mant, &t3_exp, t3_mant, t3_exp, t3_mant, t3_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, g1_mant, g1_exp, t1_mant, t1_exp);
+    EQ_mul_isrsafe (&t3_mant, &t3_exp, X_mant, X_exp, g0_mant, g0_exp);
+    EQ_add_isrsafe (&t3_mant, &t3_exp, temp1_mant, temp1_exp, -t3_mant, t3_exp);
+    EQ_mul_isrsafe (&t3_mant, &t3_exp, t3_mant, t3_exp, t3_mant, t3_exp);
 
-    EQ_mul (&t4_mant, &t4_exp, gb_mant, gb_exp, gb_mant, gb_exp);
-    EQ_mul (&t4_mant, &t4_exp, t2_mant, t2_exp, t4_mant, t4_exp);
-    EQ_add (&t4_mant, &t4_exp, t4_mant, t4_exp, -t3_mant, t3_exp);
-    EQ_div (&v2_mant, &v2_exp, t4_mant, t4_exp, t1_mant, t1_exp);
+    EQ_mul_isrsafe (&t4_mant, &t4_exp, gb_mant, gb_exp, gb_mant, gb_exp);
+    EQ_mul_isrsafe (&t4_mant, &t4_exp, t2_mant, t2_exp, t4_mant, t4_exp);
+    EQ_add_isrsafe (&t4_mant, &t4_exp, t4_mant, t4_exp, -t3_mant, t3_exp);
+    EQ_div_isrsafe (&v2_mant, &v2_exp, t4_mant, t4_exp, t1_mant, t1_exp);
 
-    EQ_mul (&temp1_mant, &temp1_exp, gb_mant, gb_exp, gb_mant, gb_exp);
-    EQ_mul (&temp2_mant, &temp2_exp, g_mant, g_exp, g_mant, g_exp);
-    EQ_add (&temp1_mant, &temp1_exp, temp2_mant, temp2_exp, -temp1_mant, temp1_exp);
-    EQ_add (&t1_mant, &t1_exp, v2_mant, v2_exp, -v1_mant, v1_exp);
-    EQ_div (&t1_mant, &t1_exp, t1_mant, t1_exp, temp1_mant, temp1_exp);
+    EQ_mul_isrsafe (&temp1_mant, &temp1_exp, gb_mant, gb_exp, gb_mant, gb_exp);
+    EQ_mul_isrsafe (&temp2_mant, &temp2_exp, g_mant, g_exp, g_mant, g_exp);
+    EQ_add_isrsafe (&temp1_mant, &temp1_exp, temp2_mant, temp2_exp, -temp1_mant, temp1_exp);
+    EQ_add_isrsafe (&t1_mant, &t1_exp, v2_mant, v2_exp, -v1_mant, v1_exp);
+    EQ_div_isrsafe (&t1_mant, &t1_exp, t1_mant, t1_exp, temp1_mant, temp1_exp);
 
-    EQ_sqrt (&A_mant, &A_exp, t1_mant, t1_exp);
+    EQ_sqrt_isrsafe (&A_mant, &A_exp, t1_mant, t1_exp);
 
-    EQ_mul (&B_mant, &B_exp, A_mant, A_exp, A_mant, A_exp);
-    EQ_mul (&B_mant, &B_exp, B_mant, B_exp, g_mant, g_exp);
-    EQ_mul (&B_mant, &B_exp, B_mant, B_exp, g_mant, g_exp);
-    EQ_add (&B_mant, &B_exp, B_mant, B_exp, v1_mant, v1_exp);
-    EQ_sqrt (&B_mant, &B_exp, B_mant, B_exp);
+    EQ_mul_isrsafe (&B_mant, &B_exp, A_mant, A_exp, A_mant, A_exp);
+    EQ_mul_isrsafe (&B_mant, &B_exp, B_mant, B_exp, g_mant, g_exp);
+    EQ_mul_isrsafe (&B_mant, &B_exp, B_mant, B_exp, g_mant, g_exp);
+    EQ_add_isrsafe (&B_mant, &B_exp, B_mant, B_exp, v1_mant, v1_exp);
+    EQ_sqrt_isrsafe (&B_mant, &B_exp, B_mant, B_exp);
 
     p_mant = 0x6487ED51;
     p_exp = -29;
-    EQ_div (&fs_mant, &fs_exp, fs_mant, fs_exp, p_mant, p_exp);
-    EQ_div (&X_mant, &X_exp, X_mant, X_exp, fs_mant, fs_exp);
-    EQ_div (&X_mant, &X_exp, X_mant, X_exp, fs_mant, fs_exp);
-    EQ_div (&A_mant, &A_exp, A_mant, A_exp, fs_mant, fs_exp);
-    EQ_div (&B_mant, &B_exp, B_mant, B_exp, fs_mant, fs_exp);
+    EQ_div_isrsafe (&fs_mant, &fs_exp, fs_mant, fs_exp, p_mant, p_exp);
+    EQ_div_isrsafe (&X_mant, &X_exp, X_mant, X_exp, fs_mant, fs_exp);
+    EQ_div_isrsafe (&X_mant, &X_exp, X_mant, X_exp, fs_mant, fs_exp);
+    EQ_div_isrsafe (&A_mant, &A_exp, A_mant, A_exp, fs_mant, fs_exp);
+    EQ_div_isrsafe (&B_mant, &B_exp, B_mant, B_exp, fs_mant, fs_exp);
 
-    EQ_int2fix(1, &t1_mant, &t1_exp);
-    EQ_add (&t2_mant, &t2_exp, t1_mant, t1_exp, X_mant, X_exp);
+    EQ_int2fix_isrsafe(1, &t1_mant, &t1_exp);
+    EQ_add_isrsafe (&t2_mant, &t2_exp, t1_mant, t1_exp, X_mant, X_exp);
 
-    EQ_add (&a0_mant, &a0_exp, t2_mant, t2_exp, A_mant, A_exp);
-    EQ_add (&a1_mant, &a1_exp, -t1_mant, t1_exp+1, X_mant, X_exp+1);
-    EQ_add (&a2_mant, &a2_exp, t2_mant, t2_exp, -A_mant, A_exp);
+    EQ_add_isrsafe (&a0_mant, &a0_exp, t2_mant, t2_exp, A_mant, A_exp);
+    EQ_add_isrsafe (&a1_mant, &a1_exp, -t1_mant, t1_exp+1, X_mant, X_exp+1);
+    EQ_add_isrsafe (&a2_mant, &a2_exp, t2_mant, t2_exp, -A_mant, A_exp);
 
-    EQ_div (&a2_mant, &a2_exp, a2_mant, a2_exp, a0_mant, a0_exp);
-    EQ_div (&a1_mant, &a1_exp, a1_mant, a1_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&a2_mant, &a2_exp, a2_mant, a2_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&a1_mant, &a1_exp, a1_mant, a1_exp, a0_mant, a0_exp);
 
-    EQ_mul (&t1_mant, &t1_exp, g0_mant, g0_exp, X_mant, X_exp);
-    EQ_add (&t2_mant, &t2_exp, t1_mant, t1_exp, g1_mant, g1_exp);
+    EQ_mul_isrsafe (&t1_mant, &t1_exp, g0_mant, g0_exp, X_mant, X_exp);
+    EQ_add_isrsafe (&t2_mant, &t2_exp, t1_mant, t1_exp, g1_mant, g1_exp);
 
-    EQ_add (&b0_mant, &b0_exp, t2_mant, t2_exp, B_mant, B_exp);
-    EQ_add (&b1_mant, &b1_exp, t1_mant, t1_exp+1, -g1_mant, g1_exp+1);
-    EQ_add (&b2_mant, &b2_exp, t2_mant, t2_exp, -B_mant, B_exp);
+    EQ_add_isrsafe (&b0_mant, &b0_exp, t2_mant, t2_exp, B_mant, B_exp);
+    EQ_add_isrsafe (&b1_mant, &b1_exp, t1_mant, t1_exp+1, -g1_mant, g1_exp+1);
+    EQ_add_isrsafe (&b2_mant, &b2_exp, t2_mant, t2_exp, -B_mant, B_exp);
 
-    EQ_div (&b0_mant, &b0_exp, b0_mant, b0_exp, a0_mant, a0_exp);
-    EQ_div (&b1_mant, &b1_exp, b1_mant, b1_exp, a0_mant, a0_exp);
-    EQ_div (&b2_mant, &b2_exp, b2_mant, b2_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&b0_mant, &b0_exp, b0_mant, b0_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&b1_mant, &b1_exp, b1_mant, b1_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&b2_mant, &b2_exp, b2_mant, b2_exp, a0_mant, a0_exp);
 
     b_int[0] = b0_mant >> (-b0_exp - 25);
     b_int[1] = b1_mant >> (-b1_exp - 25);
@@ -619,7 +623,7 @@ int32_t EQ_generate_geq_isrsafe( int32_t fs_int, int32_t req_db_int[5], int32_t 
             req_f[i] = req_db_int[i];
             for(j=0;j<5;j++)
             {
-                req_f[i] += EQ_mul_32_32 (EQ_matr_int[i][j], req_db_int[j]);
+                req_f[i] += EQ_mul_32_32_isrsafe (EQ_matr_int[i][j], req_db_int[j]);
             }
         }
         /* Print the power table */
@@ -638,24 +642,24 @@ int32_t EQ_generate_geq_isrsafe( int32_t fs_int, int32_t req_db_int[5], int32_t 
                 continue;
             }
             if (req_f[i] < 0)
-                mag[i] = EQ_db_2_linear_table(-req_f[i], EQ_pow_table_db_int_neg);
+                mag[i] = EQ_db_2_linear_table_isrsafe(-req_f[i], EQ_pow_table_db_int_neg);
             else
-                mag[i] = EQ_db_2_linear_table(req_f[i], EQ_pow_table_db_int_neg);
+                mag[i] = EQ_db_2_linear_table_isrsafe(req_f[i], EQ_pow_table_db_int_neg);
 
             /* main for loop for generating coefs */
             if (req_f[i] < 0)
             {
                 aa2 = q_inv;
-                aa1 = EQ_mul_32_32 (mag[i], q_inv) << 3;
+                aa1 = EQ_mul_32_32_isrsafe (mag[i], q_inv) << 3;
             }
             else
             {
                 aa1 = q_inv;
-                aa2 = EQ_mul_32_32 (mag[i], q_inv) << 3;
+                aa2 = EQ_mul_32_32_isrsafe (mag[i], q_inv) << 3;
             }
 
-            A1 = EQ_mul_32_32 (aa1, EQ_GEQ_A_table[i][fs_index]) / fac;
-            A2 = EQ_mul_32_32 (aa2, EQ_GEQ_A_table[i][fs_index]) / fac;
+            A1 = EQ_mul_32_32_isrsafe (aa1, EQ_GEQ_A_table[i][fs_index]) / fac;
+            A2 = EQ_mul_32_32_isrsafe (aa2, EQ_GEQ_A_table[i][fs_index]) / fac;
 
             B1 = EQ_GEQ_B_table[i][fs_index] / 2;
             B2 = EQ_GEQ_B_table[i][fs_index] / 2;
@@ -666,19 +670,19 @@ int32_t EQ_generate_geq_isrsafe( int32_t fs_int, int32_t req_db_int[5], int32_t 
             div = 0x10000000 + A2 + B2;
 
             num = -(2*B2 - 0x20000000);
-            a1_int[i] = EQ_div_32_32 (num>>1 , div);
+            a1_int[i] = EQ_div_32_32_isrsafe (num>>1 , div);
 
             num = -(0x10000000 + B2 - A2);
-            a2_int[i] = EQ_div_32_32 (num>>1 , div);
+            a2_int[i] = EQ_div_32_32_isrsafe (num>>1 , div);
 
             num = (0x10000000 + B1 + A1);
-            b0_int[i] = EQ_div_32_32 (num>>1 , div);
+            b0_int[i] = EQ_div_32_32_isrsafe (num>>1 , div);
 
             num = (2*B1 - 0x20000000);
-            b1_int[i] = EQ_div_32_32 (num>>1 , div);
+            b1_int[i] = EQ_div_32_32_isrsafe (num>>1 , div);
 
             num = (0x10000000 + B1 - A1);
-            b2_int[i] = EQ_div_32_32 (num>>1 , div);
+            b2_int[i] = EQ_div_32_32_isrsafe (num>>1 , div);
         }
 
         for (i=0;i<5;i++)
@@ -718,7 +722,7 @@ int32_t EQ_generate_tone_control_isrsafe (int32_t fs, int32_t gain_bass, int32_t
 
     if (type_bass == BAPE_ToneControlEqType_eShelving)
     {
-        EQ_generate_bass (gain_bass, fs, fc_bass,
+        EQ_generate_bass_isrsafe (gain_bass, fs, fc_bass,
                 &b0[1], &b1[1], &b2[1], &a1[1], &a2[1]);
     }
     else
@@ -726,7 +730,7 @@ int32_t EQ_generate_tone_control_isrsafe (int32_t fs, int32_t gain_bass, int32_t
         /* Find the q = fc/Bandwidth */
         int32_t q_mant, q_exp;
         int32_t b[3], a[3];
-        EQ_div (&q_mant, &q_exp, fc_bass * 100, 0, bandwidth_bass, 0);
+        EQ_div_isrsafe (&q_mant, &q_exp, fc_bass * 100, 0, bandwidth_bass, 0);
         q_mant = q_mant >> (-q_exp);
         EQ_generate_peq_isrsafe (q_mant, fc_bass, gain_bass, fs, 70, b, a);
         b0[1] = b[0];
@@ -738,7 +742,7 @@ int32_t EQ_generate_tone_control_isrsafe (int32_t fs, int32_t gain_bass, int32_t
     }
     if (type_treble == BAPE_ToneControlEqType_eShelving)
     {
-        EQ_generate_treble (gain_treble, fs, fc_treble,
+        EQ_generate_treble_isrsafe (gain_treble, fs, fc_treble,
                 &b0[0], &b1[0], &b2[0], &a1[0], &a2[0]);
     }
     else
@@ -746,7 +750,7 @@ int32_t EQ_generate_tone_control_isrsafe (int32_t fs, int32_t gain_bass, int32_t
         /* Find the q = fc/Bandwidth */
         int32_t q_mant, q_exp;
         int32_t b[3], a[3];
-        EQ_div (&q_mant, &q_exp, fc_treble * 100, 0, bandwidth_treble, 0);
+        EQ_div_isrsafe (&q_mant, &q_exp, fc_treble * 100, 0, bandwidth_treble, 0);
         q_mant = q_mant >> (-q_exp);
         EQ_generate_peq_isrsafe (q_mant, fc_treble, gain_treble, fs, 70, b, a);
         b0[0] = b[0];
@@ -870,7 +874,7 @@ int32_t EQ_subwoofer_LPF_isrsafe (int32_t fs, int32_t fc, int32_t type, int32_t 
 
     for (i=0;i<order/2;i++)
     {
-        EQ_convert_analog_to_digital (
+        EQ_convert_analog_to_digital_isrsafe (
                 &ptr_mant [6*i+0],
                 &ptr_exp [6*i+0],
                 fc,
@@ -903,7 +907,7 @@ int32_t EQ_subsonic_HPF_isrsafe (int32_t fs, int32_t fc, int32_t type, int32_t o
 /*********** End of API functions *************/
 
 /* Functions internal to Equalizer module */
-static int32_t EQ_db_2_linear_table(int32_t in, const int32_t table[])
+static int32_t EQ_db_2_linear_table_isrsafe(int32_t in, const int32_t table[])
 {
     int32_t ret, i;
     ret = 0x10000000;
@@ -911,41 +915,41 @@ static int32_t EQ_db_2_linear_table(int32_t in, const int32_t table[])
     {
         if (in & (1 << i))
         {
-            ret = EQ_mul_32_32 (ret, table[i]) << 3;
+            ret = EQ_mul_32_32_isrsafe (ret, table[i]) << 3;
         }
     }
     return ret;
 }
 
-static void EQ_div (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
+static void EQ_div_isrsafe (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
 {
-    EQ_renormalise (&mant, &exp);
-    EQ_renormalise (&src_mant, &src_exp);
-    *dest_mant = EQ_div_32_32 (mant>>1, src_mant);
+    EQ_renormalise_isrsafe (&mant, &exp);
+    EQ_renormalise_isrsafe (&src_mant, &src_exp);
+    *dest_mant = EQ_div_32_32_isrsafe (mant>>1, src_mant);
     *dest_exp = exp - src_exp - 30 + 1;
     return;
 }
 
-static void EQ_add (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
+static void EQ_add_isrsafe (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
 {
-    EQ_renormalise (&mant, &exp);
-    EQ_renormalise (&src_mant, &src_exp);
-    EQ_add_32_32 (&mant, &exp, src_mant, src_exp);
+    EQ_renormalise_isrsafe (&mant, &exp);
+    EQ_renormalise_isrsafe (&src_mant, &src_exp);
+    EQ_add_isrsafe_32_32_isrsafe (&mant, &exp, src_mant, src_exp);
     *dest_exp = exp;
     *dest_mant = mant;
     return;
 }
 
-static void EQ_mul (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
+static void EQ_mul_isrsafe (int32_t *dest_mant, int32_t *dest_exp, int32_t mant, int32_t exp, int32_t src_mant, int32_t src_exp)
 {
-    EQ_renormalise (&mant, &exp);
-    EQ_renormalise (&src_mant, &src_exp);
-    *dest_mant = EQ_mul_32_32 (mant, src_mant);
+    EQ_renormalise_isrsafe (&mant, &exp);
+    EQ_renormalise_isrsafe (&src_mant, &src_exp);
+    *dest_mant = EQ_mul_32_32_isrsafe (mant, src_mant);
     *dest_exp = exp + src_exp + 31;
     return;
 }
 
-static void EQ_int2fix(int32_t inp, int32_t *mant, int32_t *exp)
+static void EQ_int2fix_isrsafe(int32_t inp, int32_t *mant, int32_t *exp)
 {
     int32_t sign;
     int32_t i;
@@ -971,7 +975,7 @@ static void EQ_int2fix(int32_t inp, int32_t *mant, int32_t *exp)
     return;
 }
 
-static int32_t EQ_mul_32_32 (int32_t a, int32_t b)
+static int32_t EQ_mul_32_32_isrsafe (int32_t a, int32_t b)
 {
     int32_t a1, a0, b1, b0;
     int32_t acc;
@@ -1005,7 +1009,7 @@ static int32_t EQ_mul_32_32 (int32_t a, int32_t b)
     return acc;
 }
 
-static void EQ_add_32_32 (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
+static void EQ_add_isrsafe_32_32_isrsafe (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
 {
     int32_t ret = 0;
     if (*dest_mant == 0)
@@ -1060,7 +1064,7 @@ static void EQ_add_32_32 (int32_t *dest_mant, int32_t *dest_exp, int32_t src_man
     return;
 }
 
-static void EQ_renormalise (int32_t *p_mant, int32_t *p_exp)
+static void EQ_renormalise_isrsafe (int32_t *p_mant, int32_t *p_exp)
 {
     int32_t ret = 0;
     int32_t mant, exp;
@@ -1087,7 +1091,7 @@ static void EQ_renormalise (int32_t *p_mant, int32_t *p_exp)
     return;
 }
 
-static int32_t EQ_div_32_32 (int32_t num, int32_t den)
+static int32_t EQ_div_32_32_isrsafe (int32_t num, int32_t den)
 {
     int32_t i, res = 0;
     int32_t begin = 0, end = 0, mid = 0;
@@ -1116,7 +1120,7 @@ static int32_t EQ_div_32_32 (int32_t num, int32_t den)
     {
         mid = (begin + end)/2;
 
-        res = EQ_mul_32_32 (mid, den);
+        res = EQ_mul_32_32_isrsafe (mid, den);
         if (res > num )
             end = mid;
         else
@@ -1127,20 +1131,20 @@ static int32_t EQ_div_32_32 (int32_t num, int32_t den)
     /* The return value should be in 2.30 format. Both are compensated */
 }
 
-static void EQ_sqrt (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
+static void EQ_sqrt_isrsafe (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
 {
-    EQ_renormalise (&src_mant, &src_exp);
+    EQ_renormalise_isrsafe (&src_mant, &src_exp);
     if ((src_exp&1) == 0)
     {
         src_mant = src_mant >> 1;
         src_exp = src_exp + 1;
     }
-    *dest_mant = EQ_sqrt_32 (src_mant);
+    *dest_mant = EQ_sqrt_32_isrsafe (src_mant);
     *dest_exp = (src_exp+1)/2 - 16;
     return;
 }
 
-static int32_t EQ_sqrt_32 (int32_t in)
+static int32_t EQ_sqrt_32_isrsafe (int32_t in)
 {
     int32_t begin = 0, end = 0, mid = 0;
     int32_t i, res = 0;
@@ -1152,7 +1156,7 @@ static int32_t EQ_sqrt_32 (int32_t in)
     for (i=0;i<30;i++)
     {
         mid = (begin+end)/2;
-        res = EQ_mul_32_32 (mid, mid);
+        res = EQ_mul_32_32_isrsafe (mid, mid);
         if (res > in)
             end = mid;
         else
@@ -1164,7 +1168,7 @@ static int32_t EQ_sqrt_32 (int32_t in)
     return end;
 }
 
-static void EQ_tan(int32_t f1, int32_t f2, int32_t *fc_a_mant, int32_t *fc_a_exp)
+static void EQ_tan_isrsafe(int32_t f1, int32_t f2, int32_t *fc_a_mant, int32_t *fc_a_exp)
 {
     int32_t phase = 0;
     int32_t cos_val = 0, sin_val = 0;
@@ -1178,19 +1182,19 @@ static void EQ_tan(int32_t f1, int32_t f2, int32_t *fc_a_mant, int32_t *fc_a_exp
         *fc_a_exp = 0;
     }
 
-    EQ_renormalise (&f1, &f1_exp);
-    EQ_renormalise (&f2, &f2_exp);
-    phase = EQ_div_32_32(f1>>1, f2);
+    EQ_renormalise_isrsafe (&f1, &f1_exp);
+    EQ_renormalise_isrsafe (&f2, &f2_exp);
+    phase = EQ_div_32_32_isrsafe(f1>>1, f2);
     phase = phase >> (f2_exp - f1_exp - 1);
-    EQ_cos_sin (phase, &cos_val, &sin_val);
+    EQ_cos_sin_isrsafe (phase, &cos_val, &sin_val);
 
-    EQ_int2fix (sin_val, &sin_mant, &sin_exp);
-    EQ_int2fix (cos_val, &cos_mant, &cos_exp);
-    EQ_div (fc_a_mant, fc_a_exp, sin_mant, sin_exp, cos_mant, cos_exp);
+    EQ_int2fix_isrsafe (sin_val, &sin_mant, &sin_exp);
+    EQ_int2fix_isrsafe (cos_val, &cos_mant, &cos_exp);
+    EQ_div_isrsafe (fc_a_mant, fc_a_exp, sin_mant, sin_exp, cos_mant, cos_exp);
     return;
 }
 
-static void EQ_cos_sin (int32_t phase, int32_t *cos_val, int32_t *sin_val)
+static void EQ_cos_sin_isrsafe (int32_t phase, int32_t *cos_val, int32_t *sin_val)
 {
     int32_t sign = 0;
     int32_t sv = 0, cv = 0, i;
@@ -1216,11 +1220,11 @@ static void EQ_cos_sin (int32_t phase, int32_t *cos_val, int32_t *sin_val)
             /* Update both sin and cos value */
             /* sin(A+B) = sinA cosB + cosA sinB */
             /* cos(A+B) = cosA cosB - sinA sinB */
-            stemp = EQ_mul_32_32 (sv, EQ_cos_table[i]);
-            stemp += EQ_mul_32_32 (cv, EQ_sin_table[i]);
+            stemp = EQ_mul_32_32_isrsafe (sv, EQ_cos_table[i]);
+            stemp += EQ_mul_32_32_isrsafe (cv, EQ_sin_table[i]);
 
-            ctemp = EQ_mul_32_32 (cv, EQ_cos_table[i]);
-            ctemp -= EQ_mul_32_32 (sv, EQ_sin_table[i]);
+            ctemp = EQ_mul_32_32_isrsafe (cv, EQ_cos_table[i]);
+            ctemp -= EQ_mul_32_32_isrsafe (sv, EQ_sin_table[i]);
 
             sv = stemp << 1;
             cv = ctemp << 1;
@@ -1231,13 +1235,13 @@ static void EQ_cos_sin (int32_t phase, int32_t *cos_val, int32_t *sin_val)
     return;
 }
 
-static void EQ_db_2_linear (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
+static void EQ_db_2_linear_isrsafe (int32_t *dest_mant, int32_t *dest_exp, int32_t src_mant, int32_t src_exp)
 {
     /* Renormalize the db values in 16.16 format */
     int sign = 0, i;
     int32_t val_mant = 0, val_exp = 0;
     int32_t t1_mant = 0, t1_exp = 0;
-    EQ_renormalise (&src_mant, &src_exp);
+    EQ_renormalise_isrsafe (&src_mant, &src_exp);
     if (src_mant != 0)
     {
         src_mant >>= -src_exp - 16;
@@ -1249,27 +1253,27 @@ static void EQ_db_2_linear (int32_t *dest_mant, int32_t *dest_exp, int32_t src_m
         sign = 1;
         src_mant = -src_mant;
     }
-    EQ_int2fix (1, &val_mant, &val_exp);
+    EQ_int2fix_isrsafe (1, &val_mant, &val_exp);
     for (i=0;i<16+10;i++)
     {
         if ((src_mant & (1<<i)) != 0)
         {
             t1_mant = EQ_db2linear_mant_table[i];
             t1_exp = EQ_db2linear_exp_table[i];
-            EQ_mul (&val_mant, &val_exp, val_mant, val_exp, t1_mant, t1_exp);
+            EQ_mul_isrsafe (&val_mant, &val_exp, val_mant, val_exp, t1_mant, t1_exp);
         }
     }
     if (sign)
     {
-        EQ_int2fix (1, &t1_mant, &t1_exp);
-        EQ_div (&val_mant, &val_exp, t1_mant, t1_exp, val_mant, val_exp);
+        EQ_int2fix_isrsafe (1, &t1_mant, &t1_exp);
+        EQ_div_isrsafe (&val_mant, &val_exp, t1_mant, t1_exp, val_mant, val_exp);
     }
     *dest_mant = val_mant;
     *dest_exp = val_exp;
     return;
 }
 
-static void EQ_convert_analog_to_digital (const int32_t ptr_mant[], const int32_t ptr_exp[], int32_t fc, int32_t fs, int32_t coef_mant[], int32_t coef_exp[])
+static void EQ_convert_analog_to_digital_isrsafe (const int32_t ptr_mant[], const int32_t ptr_exp[], int32_t fc, int32_t fs, int32_t coef_mant[], int32_t coef_exp[])
 {
     /*
        The input is an analog filter with normalized frequency.
@@ -1292,17 +1296,17 @@ static void EQ_convert_analog_to_digital (const int32_t ptr_mant[], const int32_
     int32_t fc_mant = 0, fc_exp = 0, fs_mant = 0, fs_exp = 0, fac_mant = 0, fac_exp = 0;
     int32_t pi_mant = 0, pi_exp = 0;
 
-    EQ_int2fix(fs, &fs_mant, &fs_exp);
+    EQ_int2fix_isrsafe(fs, &fs_mant, &fs_exp);
     pi_mant = 0x6487ED51;
     pi_exp = -29;
 
     /* Frequency warping */
-    EQ_tan (fc, fs, &fc_mant, &fc_exp);
-    EQ_mul (&fc_mant, &fc_exp, fc_mant, fc_exp, fs, 0);
-    EQ_div (&fc_mant, &fc_exp, fc_mant, fc_exp, pi_mant, pi_exp);
+    EQ_tan_isrsafe (fc, fs, &fc_mant, &fc_exp);
+    EQ_mul_isrsafe (&fc_mant, &fc_exp, fc_mant, fc_exp, fs, 0);
+    EQ_div_isrsafe (&fc_mant, &fc_exp, fc_mant, fc_exp, pi_mant, pi_exp);
 
-    EQ_div (&fac_mant, &fac_exp, fc_mant, fc_exp, fs_mant, fs_exp);
-    EQ_mul (&fac_mant, &fac_exp, fac_mant, fac_exp, pi_mant, pi_exp);
+    EQ_div_isrsafe (&fac_mant, &fac_exp, fc_mant, fc_exp, fs_mant, fs_exp);
+    EQ_mul_isrsafe (&fac_mant, &fac_exp, fac_mant, fac_exp, pi_mant, pi_exp);
 
     b0_a_exp = ptr_exp[0];
     b1_a_exp = ptr_exp[1];
@@ -1318,33 +1322,33 @@ static void EQ_convert_analog_to_digital (const int32_t ptr_mant[], const int32_
     a1_a_mant = ptr_mant[4];
     a2_a_mant = ptr_mant[5];
 
-    EQ_mul (&b1_a_mant, &b1_a_exp, b1_a_mant, b1_a_exp, fac_mant, fac_exp);
-    EQ_mul (&b2_a_mant, &b2_a_exp, b2_a_mant, b2_a_exp, fac_mant, fac_exp);
-    EQ_mul (&b2_a_mant, &b2_a_exp, b2_a_mant, b2_a_exp, fac_mant, fac_exp);
+    EQ_mul_isrsafe (&b1_a_mant, &b1_a_exp, b1_a_mant, b1_a_exp, fac_mant, fac_exp);
+    EQ_mul_isrsafe (&b2_a_mant, &b2_a_exp, b2_a_mant, b2_a_exp, fac_mant, fac_exp);
+    EQ_mul_isrsafe (&b2_a_mant, &b2_a_exp, b2_a_mant, b2_a_exp, fac_mant, fac_exp);
 
-    EQ_mul (&a1_a_mant, &a1_a_exp, a1_a_mant, a1_a_exp, fac_mant, fac_exp);
-    EQ_mul (&a2_a_mant, &a2_a_exp, a2_a_mant, a2_a_exp, fac_mant, fac_exp);
-    EQ_mul (&a2_a_mant, &a2_a_exp, a2_a_mant, a2_a_exp, fac_mant, fac_exp);
+    EQ_mul_isrsafe (&a1_a_mant, &a1_a_exp, a1_a_mant, a1_a_exp, fac_mant, fac_exp);
+    EQ_mul_isrsafe (&a2_a_mant, &a2_a_exp, a2_a_mant, a2_a_exp, fac_mant, fac_exp);
+    EQ_mul_isrsafe (&a2_a_mant, &a2_a_exp, a2_a_mant, a2_a_exp, fac_mant, fac_exp);
 
-    EQ_add (&b0_mant, &b0_exp, b0_a_mant, b0_a_exp, b1_a_mant, b1_a_exp);
-    EQ_add (&b0_mant, &b0_exp, b0_mant, b0_exp, b2_a_mant, b2_a_exp);
-    EQ_add (&b1_mant, &b1_exp, -b0_a_mant, b0_a_exp+1, b2_a_mant, b2_a_exp+1);
-    EQ_add (&b2_mant, &b2_exp, b0_a_mant, b0_a_exp, -b1_a_mant, b1_a_exp);
-    EQ_add (&b2_mant, &b2_exp, b2_mant, b2_exp, b2_a_mant, b2_a_exp);
+    EQ_add_isrsafe (&b0_mant, &b0_exp, b0_a_mant, b0_a_exp, b1_a_mant, b1_a_exp);
+    EQ_add_isrsafe (&b0_mant, &b0_exp, b0_mant, b0_exp, b2_a_mant, b2_a_exp);
+    EQ_add_isrsafe (&b1_mant, &b1_exp, -b0_a_mant, b0_a_exp+1, b2_a_mant, b2_a_exp+1);
+    EQ_add_isrsafe (&b2_mant, &b2_exp, b0_a_mant, b0_a_exp, -b1_a_mant, b1_a_exp);
+    EQ_add_isrsafe (&b2_mant, &b2_exp, b2_mant, b2_exp, b2_a_mant, b2_a_exp);
 
-    EQ_add (&a0_mant, &a0_exp, a0_a_mant, a0_a_exp, a1_a_mant, a1_a_exp);
-    EQ_add (&a0_mant, &a0_exp, a0_mant, a0_exp, a2_a_mant, a2_a_exp);
-    EQ_add (&a1_mant, &a1_exp, -a0_a_mant, a0_a_exp+1, a2_a_mant, a2_a_exp+1);
-    EQ_add (&a2_mant, &a2_exp, a0_a_mant, a0_a_exp, -a1_a_mant, a1_a_exp);
-    EQ_add (&a2_mant, &a2_exp, a2_mant, a2_exp, a2_a_mant, a2_a_exp);
+    EQ_add_isrsafe (&a0_mant, &a0_exp, a0_a_mant, a0_a_exp, a1_a_mant, a1_a_exp);
+    EQ_add_isrsafe (&a0_mant, &a0_exp, a0_mant, a0_exp, a2_a_mant, a2_a_exp);
+    EQ_add_isrsafe (&a1_mant, &a1_exp, -a0_a_mant, a0_a_exp+1, a2_a_mant, a2_a_exp+1);
+    EQ_add_isrsafe (&a2_mant, &a2_exp, a0_a_mant, a0_a_exp, -a1_a_mant, a1_a_exp);
+    EQ_add_isrsafe (&a2_mant, &a2_exp, a2_mant, a2_exp, a2_a_mant, a2_a_exp);
 
-    EQ_div (&b0_mant, &b0_exp, b0_mant, b0_exp, a0_mant, a0_exp);
-    EQ_div (&b1_mant, &b1_exp, b1_mant, b1_exp, a0_mant, a0_exp);
-    EQ_div (&b2_mant, &b2_exp, b2_mant, b2_exp, a0_mant, a0_exp);
-    EQ_div (&a1_mant, &a1_exp, a1_mant, a1_exp, a0_mant, a0_exp);
-    EQ_div (&a2_mant, &a2_exp, a2_mant, a2_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&b0_mant, &b0_exp, b0_mant, b0_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&b1_mant, &b1_exp, b1_mant, b1_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&b2_mant, &b2_exp, b2_mant, b2_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&a1_mant, &a1_exp, a1_mant, a1_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&a2_mant, &a2_exp, a2_mant, a2_exp, a0_mant, a0_exp);
 
-    EQ_div (&a0_mant, &a0_exp, a0_mant, a0_exp, a0_mant, a0_exp);
+    EQ_div_isrsafe (&a0_mant, &a0_exp, a0_mant, a0_exp, a0_mant, a0_exp);
 
     coef_exp[0] = b0_exp;
     coef_exp[1] = b1_exp;
@@ -1366,7 +1370,7 @@ static void EQ_convert_analog_to_digital (const int32_t ptr_mant[], const int32_
 /* Type - 0 Butterworth filter
    Type - 1 Linkwitz-Riley */
 
-static int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
+static int32_t EQ_generate_bass_isrsafe (int32_t gain, int32_t fs, int32_t fc,
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[])
 {
     int32_t temp1_mant = 0, temp1_exp = 0;
@@ -1400,11 +1404,11 @@ static int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
     }
 
     /* Find the gain value and apply the gain */
-    EQ_int2fix (gain, &temp1_mant, &temp1_exp);
-    EQ_int2fix (10, &temp2_mant, &temp2_exp);
-    EQ_div (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp2_mant, temp2_exp);
-    EQ_db_2_linear (&g_mant, &g_exp, temp1_mant, temp1_exp);
-    EQ_sqrt (&g1_mant, &g1_exp, g_mant, g_exp);
+    EQ_int2fix_isrsafe (gain, &temp1_mant, &temp1_exp);
+    EQ_int2fix_isrsafe (10, &temp2_mant, &temp2_exp);
+    EQ_div_isrsafe (&temp1_mant, &temp1_exp, temp1_mant, temp1_exp, temp2_mant, temp2_exp);
+    EQ_db_2_linear_isrsafe (&g_mant, &g_exp, temp1_mant, temp1_exp);
+    EQ_sqrt_isrsafe (&g1_mant, &g1_exp, g_mant, g_exp);
 
     /* Apply the factor to b1 and b2 */
     coef_a_mant[0] = EQ_bass_control_mant[0];
@@ -1421,10 +1425,10 @@ static int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
     coef_a_exp[4] = EQ_bass_control_exp[4];
     coef_a_exp[5] = EQ_bass_control_exp[5];
 
-    EQ_mul (&coef_a_mant[1], &coef_a_exp[1], coef_a_mant[1], coef_a_exp[1], g1_mant, g1_exp);
-    EQ_mul (&coef_a_mant[2], &coef_a_exp[2], coef_a_mant[2], coef_a_exp[2], g_mant, g_exp);
+    EQ_mul_isrsafe (&coef_a_mant[1], &coef_a_exp[1], coef_a_mant[1], coef_a_exp[1], g1_mant, g1_exp);
+    EQ_mul_isrsafe (&coef_a_mant[2], &coef_a_exp[2], coef_a_mant[2], coef_a_exp[2], g_mant, g_exp);
 
-    EQ_convert_analog_to_digital (
+    EQ_convert_analog_to_digital_isrsafe (
             &coef_a_mant[0],
             &coef_a_exp[0],
             fc,
@@ -1439,7 +1443,7 @@ static int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
         fac_mant = coef_mant[0];
         fac_exp = coef_exp[0];
         for (i=0;i<6;i++)
-            EQ_div (&coef_mant[i], &coef_exp[i], coef_mant[i], coef_exp[i], fac_mant, fac_exp);
+            EQ_div_isrsafe (&coef_mant[i], &coef_exp[i], coef_mant[i], coef_exp[i], fac_mant, fac_exp);
         for (i=0;i<3;i++)
         {
             /* Interchange Numerator and denominator */
@@ -1460,10 +1464,10 @@ static int32_t EQ_generate_bass (int32_t gain, int32_t fs, int32_t fc,
     return 0;
 }
 
-static int32_t EQ_generate_treble (int32_t gain, int32_t fs, int32_t fc,
+static int32_t EQ_generate_treble_isrsafe (int32_t gain, int32_t fs, int32_t fc,
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[])
 {
-    EQ_generate_bass (gain, fs, (fs/2) - fc, b0, b1, b2, a1, a2);
+    EQ_generate_bass_isrsafe (gain, fs, (fs/2) - fc, b0, b1, b2, a1, a2);
     b1[0] = -b1[0];
     a1[0] = -a1[0];
     return 0;

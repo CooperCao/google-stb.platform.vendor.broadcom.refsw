@@ -1613,6 +1613,18 @@ wlc_bmac_doiovar(void *hw, uint32 actionid,
 		int i;
 		uint16 buffer1;
 		int err1;
+#ifdef NVRAM_FLASH
+		char flshdevpath[128];
+		memset(flshdevpath,'\0',sizeof(flshdevpath));
+		if (find_wlanflash_dev(wlc_hw->osh, flshdevpath, sizeof(flshdevpath)) == BCME_OK) {
+			/*
+			* If wlan flash is existed, need to return "NVRAM"
+			* for Island tool to call "nvram set" to write flash.
+			*/
+			*ret_int_ptr = FLASH_DEVICE_NVRAM; /* NVRAM */
+			break;
+		}
+#endif /* NVRAM_FLASH */
 
 		/* intrs off */
 		macintmask = wl_intrsoff(wlc_hw->wlc->wl);
@@ -1667,7 +1679,7 @@ wlc_bmac_doiovar(void *hw, uint32 actionid,
 		wl_intrsrestore(wlc_hw->wlc->wl, macintmask);
 		break;
 	}
-#endif 
+#endif
 
 
 

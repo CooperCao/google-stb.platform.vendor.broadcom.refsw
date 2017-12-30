@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #ifndef _WV_DECRYPTOR_H_
 #define _WV_DECRYPTOR_H_
@@ -134,7 +133,9 @@ public:
 
     virtual void onMessage(const std::string& session_id, Cdm::MessageType message_type, const std::string& message) OVERRIDE;
 
-    void SetKeyId(std::string keyId) { m_keyId.assign(keyId); }
+    virtual bool Load(std::string license) OVERRIDE;
+
+    virtual void SetKeyId(std::string keyId) { m_keyId.assign(keyId); }
 
     bool IsValid() { return m_valid; }
 

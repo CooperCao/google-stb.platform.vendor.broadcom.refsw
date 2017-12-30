@@ -52,6 +52,12 @@
 
 BDBG_MODULE(nexus_record);
 
+/**
+This is an aggressive debug mode for record.
+It should not be used in a real system.
+#define B_VALIDATE_NAV_ENTRIES 1
+**/
+
 #define BDBG_MSG_TRACE(x) /* BDBG_MSG(x) */
 
 typedef struct NEXUS_Record_P_PidChannel {
@@ -114,6 +120,10 @@ struct NEXUS_Record {
     NEXUS_TimerHandle processDataTimer;
     unsigned picturesIndexed;
     NEXUS_RecpumpStatus status;
+    struct {
+        uint64_t offset;
+        unsigned timestamp;
+    } priming;
 };
 
 static void NEXUS_Record_P_DataReadyCallback(void *context);
@@ -176,6 +186,7 @@ NEXUS_Record_Create(void)
     NEXUS_CallbackHandler_Init(record->data.overflow, NEXUS_Record_P_Overflow, record);
     NEXUS_CallbackHandler_Init(record->index.overflow, NEXUS_Record_P_Overflow, record);
     NEXUS_Record_GetDefaultSettings(&record->cfg);
+    record->priming.offset = 0;
     return record;
 err_alloc:
     return NULL;
@@ -218,12 +229,12 @@ NEXUS_Record_P_WriteDone(void *flow_, ssize_t size)
     NEXUS_Error rc;
     NEXUS_Record_P_Playback *play_item;
 
+    BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     if (flow->state != Writing) {
         BDBG_ERR(("Received bad callback from File module"));
         return;
     }
 
-    BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     record = flow->record;
     BDBG_OBJECT_ASSERT(record, NEXUS_Record);
     BDBG_ASSERT(record->cfg.recpump);
@@ -295,18 +306,40 @@ NEXUS_Record_P_DataReadyCallback(void *context)
     const void *buffer;
     size_t size;
     NEXUS_Error rc;
+    NEXUS_RecordHandle record;
 
+    BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     if (flow->state == Writing) {
         return;
     }
 
-    BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     BDBG_OBJECT_ASSERT(flow->record, NEXUS_Record);
+    record = flow->record;
     BDBG_ASSERT(flow->record->cfg.recpump);
 
     if(!flow->record->started) { goto done; }
 
     NEXUS_Time_Get(&flow->callbackTime);
+
+    if (record->cfg.priming.data.fifoDepth) {
+        const void *buffer2;
+        size_t size2;
+        rc = NEXUS_Recpump_GetDataBufferWithWrap(flow->record->cfg.recpump, &buffer, &size, &buffer2, &size2);
+        if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
+        BSTD_UNUSED(buffer2);
+        if (size + size2 > record->cfg.priming.data.fifoDepth) {
+            size = size + size2 - record->cfg.priming.data.fifoDepth;
+            /* TODO: support 130, 134, and 192 packet sizes */
+            size -= size % B_RECORD_ATOM_SIZE;
+            rc = NEXUS_Recpump_DataReadComplete(record->cfg.recpump, size);
+            if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);}
+
+            /* remember amount of data discarded */
+            record->priming.offset += size;
+        }
+        goto done;
+    }
+
     rc = NEXUS_Recpump_GetDataBuffer(flow->record->cfg.recpump, &buffer, &size);
     if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
 
@@ -387,6 +420,7 @@ NEXUS_Record_P_IndexReadyCallback(void *context)
     size_t size;
     NEXUS_Error rc;
     NEXUS_RecordHandle record;
+    unsigned sct_size;
 
     BDBG_OBJECT_ASSERT(flow, NEXUS_Record_P_Flow);
     BDBG_OBJECT_ASSERT(flow->record, NEXUS_Record);
@@ -394,7 +428,25 @@ NEXUS_Record_P_IndexReadyCallback(void *context)
     BDBG_ASSERT(record->cfg.recpump);
 
     if(!record->started) { goto done; }
+    sct_size = (record->entry_size == 6)?sizeof(BSCT_SixWord_Entry):sizeof(BSCT_Entry);
+
     NEXUS_Time_Get(&flow->callbackTime);
+
+    if (record->cfg.priming.index.fifoDepth) {
+        const void *buffer2;
+        size_t size2;
+        rc = NEXUS_Recpump_GetIndexBufferWithWrap(record->cfg.recpump, &buffer, &size, &buffer2, &size2);
+        if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
+        BSTD_UNUSED(buffer2);
+
+        if (size + size2 > record->cfg.priming.index.fifoDepth) {
+            size = size + size2 - record->cfg.priming.index.fifoDepth;
+            size -= size % sct_size;
+            rc = NEXUS_Recpump_IndexReadComplete(record->cfg.recpump, size);
+            if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);}
+        }
+        goto done;
+    }
 
     rc = NEXUS_Recpump_GetIndexBuffer(record->cfg.recpump, &buffer, &size);
     if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto done;}
@@ -409,8 +461,6 @@ NEXUS_Record_P_IndexReadyCallback(void *context)
 
     BDBG_MSG_TRACE(("(%#x) got %d bytes of index from %#lx", (unsigned long)flow->record, (int)size, (unsigned long)buffer));
     if(flow->info.index.indexer) {
-        unsigned sct_size = (record->entry_size == 6)?
-            sizeof(BSCT_SixWord_Entry):sizeof(BSCT_Entry);
         unsigned sct_limit;
         size_t old_size;
 
@@ -515,14 +565,9 @@ NEXUS_Record_P_Overflow(void *context)
     return;
 }
 
-/**
-This is an aggressive debug mode for record.
-It should not be used in a real system.
-#define B_VALIDATE_NAV_ENTRIES 1
-**/
 #if B_VALIDATE_NAV_ENTRIES
 #include "../src/bcmindexerpriv.h"
-static bool validate_entry(BNAV_Entry *entry)
+static bool validate_entry(unsigned index, BNAV_Entry *entry)
 {
     /* some of these ranges are excessive, but we're mainly looking for corruptions which should have wildly
     different values */
@@ -531,7 +576,7 @@ static bool validate_entry(BNAV_Entry *entry)
         return false;
     }
     if (BNAV_get_seqHdrStartOffset(entry) > 10 * 1000000) { /* GOP byte size */
-        BDBG_ERR(("invalid BNAV_get_seqHdrStartOffset: %d", BNAV_get_seqHdrStartOffset(entry)));
+        BDBG_ERR(("invalid BNAV_get_seqHdrStartOffset: %ld", BNAV_get_seqHdrStartOffset(entry)));
         return false;
     }
     if (BNAV_get_refFrameOffset(entry) > 500) { /* # of pictures in a GOP */
@@ -545,8 +590,18 @@ static bool validate_entry(BNAV_Entry *entry)
     /* NOTE: we're not checking file offset. to do this right for N records, we would need a data structure.
     checking for frameSize should be sufficient. */
     if (BNAV_get_frameSize(entry) > 1000000) { /* largest I frame would be MPEG HD */
-        BDBG_ERR(("invalid BNAV_get_frameSize: %d", BNAV_get_frameSize(entry)));
+        BDBG_ERR(("invalid BNAV_get_frameSize: %ld", BNAV_get_frameSize(entry)));
         return false;
+    }
+    if (index > 0) {
+        if (BNAV_get_timestamp(entry) == 0) {
+            BDBG_ERR(("invalid zero timestamp for index %u", index));
+            return false;
+        }
+        if (BNAV_get_frameOffset(entry) == 0) {
+            BDBG_ERR(("invalid zero offset for index %u", index));
+            return false;
+        }
     }
     return true;
 }
@@ -557,18 +612,19 @@ static unsigned long
 NEXUS_Record_P_WriteNav(const void *p_bfr, unsigned long numEntries, unsigned long entrySize, void *fp )
 {
     NEXUS_RecordHandle record = fp;
-    NEXUS_FileWriteHandle index = record->index.file;
+    NEXUS_FileWriteHandle index;
     BNAV_Indexer_Position position;
     ssize_t rc;
 #if B_VALIDATE_NAV_ENTRIES
     bool fail = false;
     unsigned i;
     for (i=0;i<numEntries;i++) {
-        if (!validate_entry(&((BNAV_Entry*)p_bfr)[i]))
+        if (!validate_entry(record->picturesIndexed+i, &((BNAV_Entry*)p_bfr)[i]))
             fail = true;
     }
 #endif
     BDBG_OBJECT_ASSERT(record, NEXUS_Record);
+    index = record->index.file;
 
     BDBG_MSG(("bnav_write %p, %lu", (void *)p_bfr, entrySize*numEntries));
     record->picturesIndexed += numEntries;
@@ -614,6 +670,21 @@ NEXUS_Record_SetSettings(NEXUS_RecordHandle record, const NEXUS_RecordSettings *
     if(settings->recpump==NULL && BLST_S_FIRST(&record->pid_list)) {
         rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto err_settings;
     }
+    if((settings->priming.data.fifoDepth==0) != (settings->priming.index.fifoDepth==0)) {
+        /* must prime for index and data together */
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto err_settings;
+    }
+    if(record->started && !record->cfg.priming.data.fifoDepth && settings->priming.data.fifoDepth) {
+        /* can't re-enable priming after recording to file */
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto err_settings;
+    }
+    if(record->cfg.priming.data.fifoDepth && !settings->priming.data.fifoDepth) {
+        if (record->index.info.index.indexer) {
+            /* we start indexing how */
+            BNAV_Indexer_SetPrimingStart(record->index.info.index.indexer, record->priming.offset);
+        }
+    }
+
     if(settings->recpump) {
         cfg = settings->recpumpSettings;
         NEXUS_Recpump_GetStatus(settings->recpump, &record->status);

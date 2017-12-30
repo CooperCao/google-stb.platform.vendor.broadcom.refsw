@@ -580,23 +580,37 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
               {
                  unsigned uiType = ccData[uiIndex].bIsAnalog ? 0 : 1;
                  bool bDrop = false;
+                 bool bPacketEnd = false;
 
                  if ( false == ccData[uiIndex].bIsAnalog )
                  {
-                    if ( ( 0 == ccData[uiIndex].cc_valid )
-                          || ( 3 == ccData[uiIndex].seq.cc_type ) )
+                    /* If we have pending 708 packet data, then check to see if we are done with the packet */
+                    if ( pstdInfo->type[uiType].uiWriteOffset != pstdInfo->type[uiType].uiShadowWriteOffset )
                     {
-                       pstdInfo->type[uiType].uiWriteOffset = pstdInfo->type[uiType].uiShadowWriteOffset;
+                       if ( ( 1 == ccData[uiIndex].cc_valid )
+                            && ( 3 == ccData[uiIndex].seq.cc_type ) )
+                       {
+                          /* We are starting a new packet, so update the write offset to push out the previous packet */
+                          pstdInfo->type[uiType].uiWriteOffset = pstdInfo->type[uiType].uiShadowWriteOffset;
+                       }
+                       else if ( ( 0 == ccData[uiIndex].cc_valid )
+                                && ( ( 2 == ccData[uiIndex].seq.cc_type )
+                                     || ( 3 == ccData[uiIndex].seq.cc_type ) )
+                                )
+                       {
+                          /* We are ending a previous packet */
+                          bPacketEnd = true;
+                       }
                     }
                  }
 
-                 if ( 0 != ccData[uiIndex].cc_valid )
+                 if ( ( 0 != ccData[uiIndex].cc_valid ) || ( true == bPacketEnd ) )
                  {
                     unsigned uiTempWriteOffset = (pstdInfo->type[uiType].uiShadowWriteOffset + 1) % pContext->createSettings.queueSize;
                     pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiShadowWriteOffset].uiDecodePictureId = pstUserData->ulDecodePictureId;
                     pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiShadowWriteOffset].ccData = ccData[uiIndex];
                     pstdInfo->type[uiType].uiShadowWriteOffset = uiTempWriteOffset;
-                    if ( true == ccData[uiIndex].bIsAnalog ) pstdInfo->type[uiType].uiWriteOffset = pstdInfo->type[uiType].uiShadowWriteOffset;
+                    if ( ( true == ccData[uiIndex].bIsAnalog ) || ( true == bPacketEnd ) ) pstdInfo->type[uiType].uiWriteOffset = pstdInfo->type[uiType].uiShadowWriteOffset;
 
                     /* If the queue is full, we discard the oldest data in the queue */
                     if ( uiTempWriteOffset == pstdInfo->type[uiType].uiReadOffset )
@@ -633,6 +647,8 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
                        ccData[uiIndex].cc_data_2
                        );
                  }
+#else
+                 BSTD_UNUSED(bDrop);
 #endif
               }
            }
@@ -651,7 +667,7 @@ BXUDlib_P_OutputUserData_isr( BXUDlib_P_Context *pContext, uint32_t stgPictureId
     BUDP_Encoder_FieldInfo *pstFieldInfo = (BUDP_Encoder_FieldInfo *) pContext->auiFieldInfo;
     BUDP_Encoder_PacketDescriptor *pstPacketDescriptor = pstFieldInfo->stPacketDescriptor;
 
-    size_t queuedCount;
+    unsigned queuedCount;
     uint8_t i;
 
     userDataAdd_isr = pContext->settings.sinkInterface.userDataAdd_isr;

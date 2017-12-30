@@ -123,7 +123,14 @@ BERR_Code BSAT_g1_P_HpAcquire1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
-   uint32_t timeout = hChn->acqSettings.symbolRate; /* 1 sec timeout on hp lock */
+   uint32_t timeout;
+
+   if (hChn->acqSettings.symbolRate <= 5000000)
+      timeout = hChn->acqSettings.symbolRate;
+   else if (hChn->acqSettings.symbolRate <= 12000000)
+      timeout = hChn->acqSettings.symbolRate >> 1;
+   else
+      timeout = hChn->acqSettings.symbolRate >> 2;
 
    /* configure the HP */
    hChn->bShortFrame = false;
@@ -249,7 +256,9 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
          /* try fine freq first in scan mode */
          mask = BSAT_DVBS2_SCAN_STATE_ENABLED | BSAT_DVBS2_SCAN_STATE_FOUND;
          if ((hChn->dvbs2ScanState & mask) == BSAT_DVBS2_SCAN_STATE_ENABLED)
+         {
             hChn->bEnableFineFreqEst = BSAT_g1_P_HpOkToEnableFineFreqEst_isr(h);
+         }
 
          mask = BSAT_DVBS2_SCAN_STATE_ENABLED | BSAT_DVBS2_SCAN_STATE_FOUND | BSAT_DVBS2_SCAN_STATE_PILOT;
          if ((hChn->dvbs2ScanState & mask) == mask)
@@ -343,7 +352,8 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       }
 
 #ifdef BCHP_SDS_EQ_0_ACM_FIFO
-      if ((hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM) || bDvbs2Pilot)
+      mask = BSAT_DVBS2_SCAN_STATE_ENABLED | BSAT_DVBS2_SCAN_STATE_FOUND | BSAT_DVBS2_SCAN_STATE_PILOT;
+      if (hChn->bEnableFineFreqEst || (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM))
       {
          val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_ACM_FIFO);
          BCHP_SET_FIELD_DATA(val, SDS_EQ_0_ACM_FIFO, acm_fifo_byp, 0);
@@ -357,6 +367,8 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
          }
          BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_ACM_FIFO, val);
       }
+      else
+         BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_ACM_FIFO, 0x0000100C); /* acm_fifo_byp=1, buf_delay=0xC */
 #endif
    }
    else
@@ -387,10 +399,13 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       dafe_average = hChn->configParam[BSAT_g1_CONFIG_HP_CTL] & BSAT_g1_CONFIG_HP_CTL_DAFE_AVERAGE_MASK;
    else if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
       dafe_average = 15;
-   else if (bDvbs2Scan || (!bDvbs2Pilot && (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode) || BSAT_MODE_IS_DVBS2_EXTENDED(hChn->acqSettings.mode))))
+   else if (bDvbs2Scan)
+      dafe_average = 15;
+   else if (!bDvbs2Pilot && (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode) || BSAT_MODE_IS_DVBS2_EXTENDED(hChn->acqSettings.mode)))
       dafe_average = 63; /* optimize later */
    else
       dafe_average = 15; /* should depend on modcod */
+
    if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
       hp_dafe &= ~BCHP_SDS_HP_0_HP_DAFE_use_hns_coefficients_MASK;
    else

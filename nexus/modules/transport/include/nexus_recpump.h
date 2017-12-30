@@ -246,6 +246,10 @@ typedef struct NEXUS_RecpumpSettings
         bool idleEventEnable;       /* Store an event if no other events have occurred for the NEXUS_TransportModuleSettings.tpit.idleEventTimeout duration. */
         bool recordEventEnable;     /* Store an event if no packets have been recorded for the NEXUS_TransportModuleSettings.tpit.recordEventTimeout duration. */
         struct {
+            uint8_t data;           /* data used to corrupt packet if NEXUS_RecpumpTpitFilter.corruptionEnable applies */
+            unsigned start, end;    /* byte offset within packet to apply corruption data */
+        } corruption;
+        struct {
             bool enabled;
             unsigned evenTid;       /* table ID for even ECM packets */
             unsigned oddTid;        /* table ID for odd ECM packets */
@@ -333,7 +337,7 @@ typedef struct NEXUS_RecpumpTpitFilter
 {
     unsigned pid;               /* The PID to build TPIT entries for. Nexus will set this automatically if not allPass. This is included only to make the structure a
                                    passthrough to the lower-level SW. */
-    bool corruptionEnable;      /* Corrupt packet if it matches the filter criterion below. Disabled by default */
+    bool corruptionEnable;      /* Corrupt packet if it matches the filter criterion below. Disabled by default. See NEXUS_RecpumpSettings.tpit.corruption. */
     bool mpegMode;              /* Set true for TS, false for DSS. This is used for the config structure. */
 
     union

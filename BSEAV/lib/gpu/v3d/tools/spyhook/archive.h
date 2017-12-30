@@ -1,23 +1,14 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef __ARCHIVE_H__
-#define __ARCHIVE_H__
+#pragma once
 
 #include "remote.h"
 #include "platform.h"
 
 #include <stdio.h>
 
-#if (defined(__GNUC__) || defined(__clang__))
-#define UNUSED __attribute__((unused))
-#else
-#define UNUSED
-#endif
-
-#ifndef WIN32
-#include <pthread.h>
-#endif
+#include <thread>
 
 class Archive : public Remote
 {
@@ -34,6 +25,8 @@ public:
    FILE        *FilePointer() { return m_fp; }
    uint64_t    BytesWritten() const { return m_bytesWritten; }
 
+   void ioThreadMain();
+
 private:
    std::string m_filename;
    FILE        *m_fp;
@@ -41,9 +34,5 @@ private:
    uint8_t     *m_curPtr;
    uint64_t    m_bytesWritten;
 
-#ifndef WIN32
-   pthread_t   m_ioThread;
-#endif
+   std::thread    m_ioThread;
 };
-
-#endif /* __ARCHIVE_H__ */

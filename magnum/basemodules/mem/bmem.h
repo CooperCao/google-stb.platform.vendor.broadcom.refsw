@@ -208,15 +208,8 @@ typedef struct BMEM_Heap_Settings
 /***************************************************************************
 Summary:
 	Fills in a BMEM_Settings structure with default settings.
-
-Description:
-
-Returns:
-	BERR_SUCCESS - Default settings obtained.
-
-See Also:
 ****************************************************************************/
-BERR_Code BMEM_GetDefaultSettings
+void BMEM_GetDefaultSettings
 (
 	BMEM_Settings *pDefSettings
 );

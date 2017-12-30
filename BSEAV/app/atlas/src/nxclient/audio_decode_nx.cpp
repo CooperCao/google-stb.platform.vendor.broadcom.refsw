@@ -473,8 +473,93 @@ eRet CSimpleAudioDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSet
     eRet ret = eRet_Ok;
 
     pSettings->simpleAudioDecoder.id = getNumber();
+
+#ifndef BDSP_MS12_SUPPORT
+    /* no ms12 mixer and single audio decoder so we will need a primer for non-live channels like playback */
     /* set primer if we are connecting to a window that is not fullscreen. */
     pSettings->simpleAudioDecoder.primer = (_pModel->getFullScreenWindowType() == getWindowType()) ? false : true;
+#endif
 
     return(ret);
 } /* updateConnectSettings */
+
+/* level:0-100, duration:3-60000 msecs - note that setting audio fade before a previous request completes
+   will interrupt the previous request.  if you want any previous fade requests to complete first, see
+   waitAudioFadeComplete(). */
+eRet CSimpleAudioDecodeNx::setAudioFade(unsigned level, unsigned duration)
+{
+    eRet        ret                        = eRet_Ok;
+
+#if BDSP_MS12_SUPPORT
+    NEXUS_SimpleAudioDecoderHandle decoder = getSimpleDecoder();
+    NEXUS_Error nerror                     = NEXUS_SUCCESS;
+
+    BDBG_ASSERT(100 >= level);
+    BDBG_ASSERT((3 <= duration) && (60000 >= duration));
+
+    NEXUS_SimpleAudioDecoder_GetSettings(decoder, &_simpleDecoderSettings);
+
+    _simpleDecoderSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected         = true;
+    _simpleDecoderSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level    = level;
+    _simpleDecoderSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.duration = duration;
+
+    nerror = NEXUS_SimpleAudioDecoder_SetSettings(decoder, &_simpleDecoderSettings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set audio fade", ret, nerror, error);
+    BDBG_MSG(("Setting audio fade level:%d duration:%d", level, duration));
+
+error:
+#endif
+    return(ret);
+} /* setAudioFade */
+
+/* audio fade requests are not queued.  if a fade request occurs before a previous request
+   completes, it will interrupt the previous request.  this method will allow you to wait
+   until a previous fade request completes before starting a new one (if that's what you want to do).
+   audio decode should be started before calling this function.
+*/
+eRet CSimpleAudioDecodeNx::waitAudioFadeComplete()
+{
+    eRet                           ret                  = eRet_Timeout;
+    NEXUS_SimpleAudioDecoderHandle decoder              = getSimpleDecoder();
+    NEXUS_Error                    nerror               = NEXUS_SUCCESS;
+    int                            nNotAvailableRetries = 10;
+    int                            nMaxSleeps           = 100;
+    NEXUS_AudioProcessorStatus     processorStatus;
+
+    /* nNotAvailableRetries will only allow 1 second for retrying unsuccessful calls to GetProcessorStatus()
+       nMaxSleeps will only allow 10 secs waiting for audio fade to become inactive
+       These timeouts are designed to avoid an infinite loop in the case that GetProcessorStatus()
+       either always returns an error (audio decode not started), or the case where it always
+       returns success but audio fade is active forever.
+    */
+
+    if (false == isStarted())
+    {
+        return(eRet_Ok);
+    }
+
+#if BDSP_MS12_SUPPORT
+    for (nMaxSleeps = 0; (0 <= nNotAvailableRetries) && (100 > nMaxSleeps); nMaxSleeps++)
+    {
+        nerror = NEXUS_SimpleAudioDecoder_GetProcessorStatus(decoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, NEXUS_AudioPostProcessing_eFade, &processorStatus);
+        if (NEXUS_SUCCESS != nerror)
+        {
+            BDBG_WRN(("NEXUS_SimpleAudioDecoder_GetProcessorStatus() error:%d - retrying...", __FUNCTION__, nerror));
+            nNotAvailableRetries--;
+        }
+        else
+        {
+            BDBG_MSG(("%s() audio fade active:%d", __FUNCTION__, processorStatus.status.fade.active));
+            if (false == processorStatus.status.fade.active)
+            {
+                ret = eRet_Ok;
+                break;
+            }
+        }
+
+        BKNI_Sleep(100);
+    }
+#endif
+
+    return(ret);
+}

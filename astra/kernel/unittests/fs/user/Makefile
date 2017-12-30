@@ -36,39 +36,34 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-# build environment
-TZ_DIR ?= ../../../..
-include $(TZ_DIR)/kernel/default.inc
+# build env
+TZ_TOP := ../../../..
+TZ_MOD := kernel/unittests/fs/user
+TZ_APP := user
 
-# directories and files
-USER_APP := user
+include $(TZ_TOP)/build/build_env.mk
 
+# build src
 SRC_DIRS := .
 INC_DIRS := .
-BASE_OBJ_DIR := $(B_REFSW_OBJ_ROOT)/kernel/unittests/fs
-BIN_DIR := $(BASE_OBJ_DIR)/user/bin
+LIB_DIRS := .
+BIN_DIRS := $(TZ_OBJ_DIR)
 
-SOURCES_ASM := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.S)))
-OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM))
-DEPS        := $(patsubst %.S,%.d,$(SOURCES_ASM))
+# dependent libs
+DEP_LIBS :=
+INC_DIRS +=
+LIB_DIRS +=
 
-SOURCES_C   := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.c)))
-OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
-DEPS        += $(patsubst %.c,%.d,$(SOURCES_C))
-
-SOURCES_CPP := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp)))
-OBJS        += $(patsubst %.cpp,%.o,$(SOURCES_CPP))
-DEPS        += $(patsubst %.cpp,%.d,$(SOURCES_CPP))
-
-# Create out of build (OOB) objects
-OOB_OBJS	:= $(patsubst %.o, $(BIN_DIR)/%.o,$(OBJS))
-OOB_DEPS	:= $(patsubst %.d, $(BIN_DIR)/%.d,$(DEPS))
+include $(TZ_TOP)/build/build_src.mk
 
 # build flags
 DEPENDFLAGS := -MD -MP
 
 INCLUDES    := $(addprefix -I,$(INC_DIRS))
-INCLUDES    += -I$(TZ_DIR)/kernel/api
+INCLUDES    += -I$(TZ_TOP)/kernel/api
+INCLUDES    += -I$(TZ_TOP)/kernel/api/arch/$(ARCH_DIR)
+INCLUDES    += -I$(TZ_TOP)/kernel/unittests/utils
+
 
 BASEFLAGS   := -O2 -g
 
@@ -90,44 +85,35 @@ CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS)
 CPPFLAGS    += -std=c++11
 CPPFLAGS    += -D_POSIX_SOURCE
 
-LDFLAGS     :=
-
-vpath %.S   $(SRC_DIRS)
-vpath %.c   $(SRC_DIRS)
-vpath %.cpp $(SRC_DIRS)
-
-define make-goal
-$1/%.o: %.c
-	$(TZ_ARMGNU)-gcc $(CFLAGS) -c $$< -o $$@
-$1/%.o: %.S
-	$(TZ_ARMGNU)-gcc $(ASFLAGS) -c $$< -o $$@
-$1/%.o: %.cpp
-	$(TZ_ARMGNU)-g++ $(CPPFLAGS) -c $$< -o $$@
-endef
+LDFLAGS     := $(addprefix -L,$(LIB_DIRS))
 
 # build rules
-.PHONY: checkplatform checkdirs
+.PHONY: checkplatform checkdirs $(TZ_APP) $(DEP_LIBS)
 
-all: checkplatform checkdirs $(BIN_DIR)/$(USER_APP).elf $(BIN_DIR)/$(USER_APP).elf.lst
+all: $(TZ_APP)
 
--include $(OOB_DEPS)
+$(TZ_APP): checkplatform checkdirs $(TZ_OBJ_DIR)/$(TZ_APP).elf
 
 checkplatform:
-	@echo Building for PLATFORM=$(TZ_PLATFORM)...
+	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
 
-checkdirs: $(BIN_DIR)
+checkdirs: $(BIN_DIRS)
 
-$(BIN_DIR):
-	mkdir -p $@
+$(BIN_DIRS):
+	@mkdir -p $@
 
-$(BIN_DIR)/$(USER_APP).elf.lst: $(BIN_DIR)/$(USER_APP).elf
-	@echo generating listing: $@
-	$(TZ_ARMGNU)-objdump -d $< | $(TZ_ARMGNU)-c++filt > $@
+$(TZ_OBJ_DIR)/$(TZ_APP).elf: $(DEP_LIBS) $(OBJS)
+	$(TZ_ARMGNU)-g++ $(LDFLAGS) $(patsubst lib%,-l%,$(DEP_LIBS)) $(OBJS) -o $@
 
-$(BIN_DIR)/$(USER_APP).elf: $(BIN_DIR)/$(OOB_OBJS)
-	$(TZ_ARMGNU)-g++  $(LDFLAGS) -ldl $(OOB_OBJS) -o $@
+$(DEP_LIBS):
+	$(MAKE) -C $(TZ_TOP)/user/$@
 
 clean:
-	$(RM) -r $(BIN_DIR)
+	$(RM) -r $(TZ_OBJ_DIR)
 
-$(foreach bdir,$(BIN_DIR),$(eval $(call make-goal,$(bdir))))
+distclean: clean
+	@for lib in $(DEP_LIBS); do \
+		$(MAKE) -C $(TZ_TOP)/user/$$lib clean; \
+	done
+
+include $(TZ_TOP)/build/build_rules.mk

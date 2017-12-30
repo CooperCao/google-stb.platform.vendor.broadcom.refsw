@@ -7,6 +7,7 @@
 #include "fatal_error.h"
 #include "platform_common.h"
 #include "../nexus/private_nexus.h" /* NXPL_Surface */
+#include "debug_helper.h"
 
 struct buffer
 {
@@ -58,6 +59,9 @@ static void frameBufferCallback(void *context, int param)
    UNUSED(param);
 
    int terminating = __sync_fetch_and_and(&self->terminating, 1);
+
+   platform_dbg_message_add("%s, terminating %s", __FUNCTION__, terminating ? "true" : "false");
+
    if (!terminating)
    {
       /* Buffers were swapped. The surface that was previously on screen is
@@ -68,6 +72,8 @@ static void frameBufferCallback(void *context, int param)
       BKNI_AcquireMutex(self->mutex);
 
       FenceInterface_Signal(self->fenceInterface, self->active.fence);
+
+      platform_dbg_message_add("%s %d - surface = %p", __FUNCTION__, __LINE__, self->active.surface);
 
       self->active.surface = self->pending.surface;
       self->active.fence = self->pending.fence;
@@ -119,6 +125,8 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
 
    ResetEvent(self->vsyncEvent);
 
+   platform_dbg_message_add("%s %d - surface = %p", __FUNCTION__, __LINE__, surface);
+
    NEXUS_Error err = NEXUS_Display_SetGraphicsFramebuffer3D(self->display, &fb3d);
    if (err != NEXUS_SUCCESS)
    {
@@ -142,7 +150,9 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
 static bool wait_sync(void *context)
 {
    display *self = (display *)context;
+   platform_dbg_message_add("%s - WAIT FOR SYNC", __FUNCTION__);
    WaitEvent(self->vsyncEvent);
+   platform_dbg_message_add("%s - GOT SYNC", __FUNCTION__);
    return true;
 }
 
@@ -202,6 +212,7 @@ static void SetDisplayComposition(NEXUS_DISPLAYHANDLE display,
    NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
 
    graphicsSettings.enabled = true;
+   graphicsSettings.visible = true;
    graphicsSettings.position.x = windowInfo->x;
    graphicsSettings.position.y = windowInfo->y;
    if (!windowInfo->stretch)

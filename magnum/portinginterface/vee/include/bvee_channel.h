@@ -595,8 +595,8 @@ BERR_Code
 BVEE_Channel_UserData_AddBuffers_isr(
          BVEE_ChannelHandle hVeeCh,
          const BUDP_Encoder_FieldInfo *pstUserDataFieldInfo, /* Pointer to first field info descriptor */
-         size_t uiCount, /* Count of user data field buffer info structs */
-         size_t *puiQueuedCount /* Count of user data field info structs queued by encoder (*puiQueuedCount <= uiCount) */
+         unsigned uiCount, /* Count of user data field buffer info structs */
+         unsigned *puiQueuedCount /* Count of user data field info structs queued by encoder (*puiQueuedCount <= uiCount) */
          );
 typedef struct BVEE_Channel_UserData_Status
 {

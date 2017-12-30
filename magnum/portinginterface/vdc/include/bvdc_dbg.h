@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -92,6 +92,16 @@ typedef struct
 {
     bool bEnableError;
 } BVDC_Scaler_DebugStatus;
+
+typedef struct
+{
+    uint32_t ulAnalogTs;
+    uint32_t ulAnalogCksum;
+    uint32_t ulDviTs;
+    uint32_t ulDviCksum;
+    uint32_t ul656Ts;
+    uint32_t ul656Cksum;
+} BVDC_Display_UcodeInfo;
 
 BERR_Code BVDC_Dbg_InstallCallback
     ( BVDC_Handle                      hVdc,
@@ -407,6 +417,30 @@ See Also:
 **************************************************************************/
 BVDC_Display_Handle BVDC_Dbg_Compositor_GetDisplayHandle
     ( const BVDC_Compositor_Handle     hCompositor );
+
+/***************************************************************************
+Summary:
+    This function gets the timestamp and checksum of a given display's microcode.
+
+
+Description:
+    Get the timestamps and checksums of a given active display's microcode.
+
+Input:
+    hDisplay - The display handle that application created.
+
+Output:
+    pstUcodeInfo - struct containing the timestamps and checksums
+
+
+Returns:
+
+See Also: BVDC_Display_UcodeInfo
+**************************************************************************/
+void BVDC_Dbg_Display_GetVecUcodeInfo
+    ( const BVDC_Display_Handle     hDisplay,
+      BVDC_Display_UcodeInfo       *pstUcodeInfo );
+
 
 #if (BVDC_BUF_LOG == 1)
 /*****************************************************************************

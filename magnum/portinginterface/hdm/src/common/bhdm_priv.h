@@ -271,7 +271,7 @@ typedef enum BHDM_EDID_P_AudioSampleRate
 
 typedef struct BHDM_EDID_P_AUDIO_FORMATS  {
 	BHDM_EDID_P_AudioFormat EdidAudioFormat ;
-	BAVC_AudioFormat BcmAudioFormat ;
+	BAVC_AudioCompressionStd BcmAudioFormat ;
 } BHDM_EDID_P_AUDIO_FORMATS ;
 
 typedef struct BHDM_EDID_P_AUDIO_SAMPLE_RATES {
@@ -326,7 +326,7 @@ typedef struct _BHDM_EDID_DATA_
 	BHDM_EDID_3D_Structure_ALL BcmSupported3DFormats[BFMT_VideoFmt_eMaxCount] ;
 
 	bool BcmAudioFormatsChecked ;
-	BHDM_EDID_AudioDescriptor BcmSupportedAudioFormats[BAVC_AudioFormat_eMaxCount] ;
+	BHDM_EDID_AudioDescriptor BcmSupportedAudioFormats[BAVC_AudioCompressionStd_eMax] ;
 
 
 	BHDM_EDID_ColorimetryDataBlock ColorimetryDB ;
@@ -788,12 +788,15 @@ void BHDM_P_ResetHDCPI2C_isr(const BHDM_Handle hHDMI);
 
 #endif
 
-const uint8_t * BHDM_EDID_P_GetDebugEdid(void) ;
+const uint8_t * BHDM_EDID_P_GetDebugEdid(const BHDM_Handle hHDMI) ;
 
 const char * BHDM_P_GetVersion(void) ;
 
 const char * BHDM_EDID_DEBUG_CeaAudioSampleRateToStr(
     uint8_t uiCeaSampleRateId) ;
+
+const char * BHDM_EDID_DEBUG_CeaAudioBitDepthToStr(
+    uint8_t uiCeaBitDepth) ;
 
 
 BERR_Code BHDM_P_BREG_I2C_Read(

@@ -66,7 +66,7 @@ struct BMRC_Monitor_P_ClientList {
 void BMRC_Monitor_P_MapInit(struct BMRC_P_MonitorClientMap *map);
 void BMRC_Monitor_P_MapGetClientsByFileName(const struct BMRC_P_MonitorClientMap *map, const char *fname, struct BMRC_Monitor_P_ClientList *clientList);
 void BMRC_Monitor_P_MapGetHwClients(struct BMRC_P_MonitorClientMap *map, struct BMRC_Monitor_P_ClientList *clientList);
-void BMRC_Monitor_P_PrintBitmap(const struct BMRC_P_MonitorClientMap *map, const uint32_t *bitmap, size_t bitmapSize, const char *blockedType);
+void BMRC_Monitor_P_PrintBitmap_isrsafe(const struct BMRC_P_MonitorClientMap *map, const uint32_t *bitmap, size_t bitmapSize, const char *blockedType);
 void BMRC_Monitor_P_SetHwBlocks(const struct BMRC_P_MonitorClientMap *map, const uint8_t *hwBlocks, struct BMRC_Monitor_P_ClientList *clientList, bool add);
 
 #ifdef __cplusplus

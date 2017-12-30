@@ -1,5 +1,5 @@
-/******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ /******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
+ *
  ******************************************************************************/
 
 #ifndef BSAGELIB_PRIV_H_
@@ -57,8 +57,13 @@
 #include "bsagelib_client.h"
 #include "bsagelib_management.h"
 
+#if (BHSM_API_VERSION==1)
 #include "bsp_s_otp_common.h" /* provide BCMD_Otp_CmdMsp_e */
 #include "bsp_s_keycommon.h" /* provide BCMD_VKLID_e */
+#else
+typedef uint32_t BCMD_Otp_CmdMsp_e;
+#include "bhsm_keyladder.h" /* BHSM_KeyLadderHandle */
+#endif
 
 #ifdef SAGE_KO
 #include "bsage.h"
@@ -167,13 +172,23 @@ struct BSAGElib_P_Instance {
 
     uint8_t resetPending;
     uint8_t enablePinmux;
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     BSAGElib_RpcRemoteHandle hStandbyRemote; /* remote used to sent S2 request */
+#endif
+    BSAGElib_RpcRemoteHandle securelog_module; /* for auto attach TAs to secure_log */
+    BSAGElib_InOutContainer *securelogContainer;
+    BKNI_EventHandle         securelog_response;
 
     /* Standby mode */
     BSAGElib_eStandbyMode currentMode;
 
+#if (BHSM_API_VERSION==1)
     BCMD_VKLID_e vkl1;
     BCMD_VKLID_e vkl2;
+#else
+    BHSM_KeyLadderHandle vklHandle1;
+    BHSM_KeyLadderHandle vklHandle2;
+#endif
 
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     char BootImage_BlVerStr[SIZE_OF_BOOT_IMAGE_VERSION_STRING]; /* To hold the string of Boot Loader version */
@@ -230,7 +245,6 @@ void BSAGElib_P_SageVklsUninit(BSAGElib_Handle hSAGElib);
 
 /* Macros */
 #define _EndianSwap(PVAL) (((PVAL)[0] << 24) | ((PVAL)[1] << 16) | ((PVAL)[2] << 8) | ((PVAL)[3]))
-
 #ifdef __cplusplus
 }
 #endif

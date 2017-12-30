@@ -40,36 +40,32 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
-#include "bbox_vdc_box18_config.h"
+#include "bbox_rts_priv.h"
+#include "bbox_rts_box18.h"
 
 BDBG_MODULE(BBOX_RTS_BOX18);
 BDBG_OBJECT_ID(BBOX_RTS_BOX18);
 
-/* Memc Index for box mode 14. BBOX_MemcIndex_Invalid means it's not used */
-static const BBOX_MemConfig stBoxMemConfig_7445D0_box18 =
-{
-   {
-      BBOX_MK_RDC_MEMC_IDX(2),       /* RDC */
-      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
-      {
-         BBOX_MK_WIN_MEMC_IDX(0,       Invalid, 1,       Invalid,       0),  /* disp 0 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 1 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 2 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 3 */
-         BBOX_MK_WIN_MEMC_IDX(1,       Invalid, 1,       Invalid,       0),  /* disp 4 */
-         BBOX_MK_WIN_MEMC_IDX(1,       Invalid, 1,       Invalid,       0),  /* disp 5 */
-         BBOX_MK_WIN_MEMC_IDX(1,       Invalid, 1,       Invalid,       0),  /* disp 6 */
-      }
-   },
-   BBOX_INVALID_NUM_MEMC,
-   BBOX_MK_DRAM_REFRESH_RATE(2x)
-};
-
-void BBOX_P_GetBox18MemConfig
+void BBOX_P_SetBox18MemConfig
     ( BBOX_MemConfig                *pBoxMemConfig )
 {
-    *pBoxMemConfig = stBoxMemConfig_7445D0_box18;
-    pBoxMemConfig->ulNumMemc = stBoxRts_7445_1u3t_box18.ulNumMemc;
+    BBOX_P_SET_RDC_MEMC(pBoxMemConfig, 2);
+
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video0,  0,       1);
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display0,  Gfx0,    0         );
+
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display4,  Video0,  1,       1);
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display4,  Gfx0,    0         );
+
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display5,  Video0,  1,       1);
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display5,  Gfx0,    0         );
+
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display6,  Video0,  1,       1);
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display6,  Gfx0,    0         );
+
+    BBOX_P_SET_NUM_MEMC(pBoxMemConfig, stBoxRts_7445_1u3t_box18.ulNumMemc);
+
+    BBOX_P_SET_DRAM_REFRESH_RATE(pBoxMemConfig, 2x);
 }
 
 void BBOX_P_GetBox18Rts

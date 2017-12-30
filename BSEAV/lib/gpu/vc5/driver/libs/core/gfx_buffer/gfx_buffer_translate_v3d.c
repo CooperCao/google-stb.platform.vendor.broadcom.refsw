@@ -49,7 +49,7 @@ void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
    ls->addr = base_addr + p->offset + (slice * p->slice_pitch);
 
    ls->memory_format = gfx_buffer_translate_memory_format(desc, plane_i);
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    gfx_lfmt_translate_pixel_format(p->lfmt, &ls->pixel_format, &ls->chan_reverse, &ls->rb_swap);
    ls->load_alpha_to_one = !gfx_lfmt_has_alpha(p->lfmt);
 #elif V3D_VER_AT_LEAST(4,0,2,0)
@@ -111,8 +111,15 @@ static v3d_tfu_iformat_t buffer_desc_to_tfu_iformat(const GFX_BUFFER_DESC_T *des
    GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&desc->planes[plane_idx].lfmt);
    if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
    {
-      /* Assume TFU's configured DRAM MAP version is correct... */
-      assert(gfx_lfmt_is_bigend_sand_family((GFX_LFMT_T)swizzling) == V3D_VER_AT_LEAST(3,3,0,0));
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+      if (gfx_lfmt_is_bigend_sand_family(desc->planes[plane_idx].lfmt) ||
+          gfx_lfmt_dram_map_version(swizzling) != 2)
+         return V3D_TFU_IFORMAT_INVALID;
+#else
+      if (!gfx_lfmt_is_bigend_sand_family(desc->planes[plane_idx].lfmt))
+         return V3D_TFU_IFORMAT_INVALID;
+#endif
+
       switch (gfx_lfmt_sandcol_w_in_bytes(swizzling))
       {
       case 128:   tfu_iformat = V3D_TFU_IFORMAT_SAND_128; break;

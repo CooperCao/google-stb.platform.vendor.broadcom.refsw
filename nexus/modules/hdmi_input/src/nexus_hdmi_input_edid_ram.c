@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2011 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_hdmi_input_module.h"
 
 
@@ -58,7 +47,7 @@ NEXUS_Error NEXUS_HdmiInput_LoadEdidData(NEXUS_HdmiInputHandle hdmiInput,
 {
 
 #if BHDR_CONFIG_EDID_RAM
-    BERR_Code rc;
+    BERR_Code rc = BERR_SUCCESS ;
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
     if (hdmiInput->hdr == NULL)
@@ -85,7 +74,13 @@ NEXUS_Error NEXUS_HdmiInput_LoadEdidData(NEXUS_HdmiInputHandle hdmiInput,
         /* allocate memory and copy the new EDID to our hdmiInput handle */
         hdmiInput->stEdidInfo.pDataBytes =
             (uint8_t *) BKNI_Malloc (sizeof (uint8_t)  * numEdidBytes) ;
-        BKNI_Memcpy(hdmiInput->stEdidInfo.pDataBytes, dataBytes, numEdidBytes) ;
+        if (hdmiInput->stEdidInfo.pDataBytes == NULL)
+        {
+            BDBG_ERR(("Unable to alocate memory for hdmi_input EDID")) ;
+            rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY) ;
+            goto done ;
+        }
+         BKNI_Memcpy(hdmiInput->stEdidInfo.pDataBytes, dataBytes, numEdidBytes) ;
     }
     else
     {
@@ -98,7 +93,8 @@ NEXUS_Error NEXUS_HdmiInput_LoadEdidData(NEXUS_HdmiInputHandle hdmiInput,
     rc = BHDR_EDID_RAM_LoadData(hdmiInput->hdr,  &hdmiInput->stEdidInfo) ;
     if (rc) {rc = BERR_TRACE(rc); return rc ;}
 
-    return NEXUS_SUCCESS ;
+done:
+    return rc ;
 #else
     BSTD_UNUSED(hdmiInput) ;
     BSTD_UNUSED(dataBytes) ;

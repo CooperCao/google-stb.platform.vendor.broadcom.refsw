@@ -134,7 +134,7 @@ See Also:
 **********************************************************************/
 typedef struct BDSP_MAP_Table_Entry
 {
-    uint32_t            ui32PageStart;
+    dramaddr_t          ui32PageStart;
     uint32_t            ui32Size;
     BDSP_ARM_AF_P_MemoryMapType eMemMapType;
 }BDSP_MAP_Table_Entry;

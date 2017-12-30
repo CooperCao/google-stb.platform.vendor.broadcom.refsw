@@ -447,7 +447,10 @@ static const BINT_P_IntMap bint_map[] =
     BINT_MAP(2, UPG_BSC_AON, "", UPG_BSC_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
     BINT_MAP(2, UPG_MAIN, "", UPG_MAIN_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
     BINT_MAP(2, UPG_MAIN_AON, "", UPG_MAIN_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3f ),
-    /*BINT_MAP(2, UPG_SPI, "", UPG_SPI_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x1 ),*/
+
+#ifndef BINT_SPI_DISABLED
+    BINT_MAP(2, UPG_SPI, "", UPG_SPI_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x1 ),
+#endif
     BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
 #ifdef BSU_USE_UPG_TIMER
     BINT_MAP(2, UPG_TMR, "", TIMER_TIMER_IS, REGULAR, MASK, 0x8),
@@ -660,8 +663,9 @@ static void BINT_P_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift 
 
 #ifdef BINT_P_STD_RO_STATUS_CASES
     BINT_P_STD_RO_STATUS_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
-        intEnable |= 1ul<<shift;
+        /* BINT_P_STD_RO_STATUS_MASK_SET registers are write only and only updates IRQs where a 1 is written.
+         * This means you don't need to do a read status, modify then write. */
+        intEnable = 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_SET, intEnable );
         break;
 #else
@@ -718,8 +722,9 @@ static void BINT_P_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shif
 
 #ifdef BINT_P_STD_RO_STATUS_CASES
     BINT_P_STD_RO_STATUS_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
-        intEnable |= 1ul<<shift;
+        /* BINT_P_STD_RO_STATUS_MASK_CLEAR registers are write only and only updates IRQs where a 1 is written.
+         * This means you don't need to do a read status, modify then write. */
+        intEnable = 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_CLEAR, intEnable );
         break;
 #else

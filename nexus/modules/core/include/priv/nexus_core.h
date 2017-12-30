@@ -454,6 +454,7 @@ void NEXUS_Heap_GetFreeRegions_priv(NEXUS_HeapHandle heap, NEXUS_MemoryRegion *r
 
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_MemoryBlock);
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_MemoryBlockToken);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_FrontendConnector);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_FrontendConnector);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_KeySlot);
@@ -533,6 +534,7 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
 NEXUS_HeapHandle NEXUS_Heap_LookupForOffset_isrsafe(
     NEXUS_Addr offset
     );
+bool NEXUS_P_Core_SecureArchIssue_isrsafe(void);
 
 #ifdef __cplusplus
 }

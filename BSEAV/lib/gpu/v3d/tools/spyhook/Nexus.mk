@@ -22,8 +22,6 @@ V3D_DIR ?= $(shell cd ../../driver; pwd)
 V3D_PLATFORM_DIR ?= $(shell cd ../../platform; pwd)
 
 CFLAGS += -I. -I$(V3D_DIR)/interface/khronos/include -I$(V3D_DIR)
-## CAUTION: Using higher optimsation levels causes a SEGV when getting state
-#CFLAGS += -O0 -fPIC -DPIC -fvisibility=hidden
 ifeq ($(VC5_GPUMON_HOOK),)
 CFLAGS += \
         -I./../../../vc5/tools/gpumon_hook
@@ -31,6 +29,8 @@ else
 CFLAGS += \
         -I$(VC5_GPUMON_HOOK)
 endif
+## CAUTION: Using higher optimsation levels causes a SEGV when getting state
+#CFLAGS += -O0 -fPIC -DPIC -fvisibility=hidden
 CFLAGS += -O0 -fPIC -DPIC
 CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
 

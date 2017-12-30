@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 
 #ifndef NEXUS_AUDIO_MUX_OUTPUT_H__
@@ -157,6 +148,8 @@ typedef struct NEXUS_AudioMuxOutputStartSettings
     bool nonRealTime;                       /* If true, run in non-real-time mode.  Important: This field requires the 
                                                MuxOutput to be started prior to starting any inputs.  Decoder inputs should
                                                also have NEXUS_AudioDecoderSettings.nonRealTime set to match this field. */
+    uint32_t initialStc;                    /* Initial STC value for NRT Transcode in 45Khz.  Default is 0. */
+
 } NEXUS_AudioMuxOutputStartSettings;
 
 /***************************************************************************
@@ -198,6 +191,8 @@ MuxOutput Settings
 typedef struct NEXUS_AudioMuxOutputSettings
 {
     NEXUS_CallbackDesc overflow;    /* This callback fires if the output buffer overflows */
+    bool sendEos;                   /* If True, MUX EOS will be sent when NEXUS_AudioMuxOutput_Stop
+                                       is called. Default True. */
 } NEXUS_AudioMuxOutputSettings;
 
 /***************************************************************************
@@ -396,4 +391,3 @@ NEXUS_Error NEXUS_AudioMuxOutput_ReadComplete(
 #endif
 
 #endif /* #ifndef NEXUS_AUDIO_MUX_OUTPUT_H__ */
-

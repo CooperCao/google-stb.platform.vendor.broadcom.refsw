@@ -573,14 +573,14 @@ int _astra_file_read(
 
 int _astra_call_smc(
     struct astra_client *pClient,
-    uint32_t ucMode)
+    astra_smc_code code)
 {
     int err = 0;
 
     /* make kernel call SMC */
     err = _astra_ioctl_call_smc(
         pClient->hKClient,
-        ucMode);
+        code);
 
     if (err) {
         LOGE("failed to call SMC");

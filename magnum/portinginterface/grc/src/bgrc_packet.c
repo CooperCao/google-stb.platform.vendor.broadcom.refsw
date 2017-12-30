@@ -67,6 +67,10 @@
 #include "bchp_mm_m2mc0.h"
 #include "bchp_mm_m2mc0_l2.h"
 #include "bchp_int_id_mm_m2mc0_l2.h"
+#endif
+
+/* Needed to determine UIF memory configuration where supported */
+#if (BGRC_P_VER >= BGRC_P_VER_2)
 #include "bchp_memc_ddr_0.h"
 #endif
 
@@ -118,7 +122,7 @@
 #include "bgrc_private.h"
 #include "bgrc_packet_priv.h"
 
-#if (BGRC_P_VER >= BGRC_P_VER_3)
+#if (BGRC_P_VER >= BGRC_P_VER_2)
 #include "bgrc_mmpacket_priv.h"
 #endif
 
@@ -130,6 +134,7 @@
 BDBG_MODULE(BGRC);
 BDBG_FILE_MODULE(BGRC_LISTSTATUS);
 BDBG_FILE_MODULE(BGRC_MIPMAP);
+BDBG_FILE_MODULE(BGRC_SWPKT_FIFO);
 BDBG_OBJECT_ID(BGRC);
 BDBG_OBJECT_ID(BGRC_PacketContext);
 
@@ -206,7 +211,7 @@ BERR_Code BGRC_GetDefaultSettings(
 void BGRC_P_SetMemoryInfo(
     BGRC_Handle hGrc )
 {
-#if (BGRC_P_VER >= BGRC_P_VER_3)
+#if (BGRC_P_VER >= BGRC_P_VER_2)
     uint32_t  ulPage, ulBankValue /* bank value to set register field*/, ulBank /* true bank info*/;
 
     /* PAGE_SIZE
@@ -271,7 +276,7 @@ void BGRC_P_SetMemoryInfo(
     BDBG_MODULE_MSG(BGRC_MIPMAP, ("ulPcInUBRows     %8d ", hGrc->stPxlMemoryInfo.ulPcInUBRows));
     BDBG_MODULE_MSG(BGRC_MIPMAP, ("ulPc15InUBRows   %8d ", hGrc->stPxlMemoryInfo.ulPc15InUBRows));
 
-
+#if (BGRC_P_VER >= BGRC_P_VER_3)
     /* current 7278 setting
     -DGFX_DEFAULT_UIF_PAGE_SIZE=4096 \
     -DGFX_DEFAULT_UIF_NUM_BANKS=8 \
@@ -285,6 +290,11 @@ void BGRC_P_SetMemoryInfo(
             BCHP_FIELD_DATA(MM_M2MC0_MM_M2MC_SYSTEM_CONFIG,XOR_ADDR , 16));
         BDBG_MODULE_MSG(BGRC_MIPMAP, ("ulBank %d ulPage %d", ulBank, ulPage));
     }
+#else
+    BSTD_UNUSED(ulBankValue);
+    BSTD_UNUSED(ulPage);
+#endif /* BGRC_P_VER >= BGRC_P_VER_3 */
+
 #else
     BSTD_UNUSED(hGrc);
 #endif
@@ -535,6 +545,8 @@ BERR_Code BGRC_Open(
             break;
         case BGRC_eM2mcMax:
         default:   /* BGRC_eM2mc0 or Max*/
+            BDBG_OBJECT_DESTROY(hGrc, BGRC);
+            BKNI_Free(hGrc);
             return BERR_TRACE(BERR_INVALID_PARAMETER);
 
 
@@ -641,6 +653,19 @@ void BGRC_GetCapabilities
     pCapabilities->ulMaxVerDownSclRatio = BGRC_P_SCALE_DOWN_MAX_Y;
 }
 
+/**************************************************************************/
+BGRC_Mode BGRC_GetMode_isrsafe
+    ( uint32_t                       ulDeviceIdx)
+{
+    BGRC_Mode eMode=BGRC_eBlitter;
+
+#if BCHP_MM_M2MC0_REG_START
+    eMode = ((BGRC_eM2mcId)ulDeviceIdx == BGRC_eMM_M2mc0)? BGRC_eMipmap :BGRC_eBlitter;
+#else
+	BSTD_UNUSED(ulDeviceIdx);
+#endif
+    return eMode;
+}
 /***************************************************************************/
 void BGRC_Close(
     BGRC_Handle hGrc )
@@ -981,7 +1006,7 @@ static int BGRC_PACKET_P_SwPktBufAvailable(
                     hContext->pSwPktReadPtr = hContext->pSwPktFifoBase;
                     hContext->pSwPktWrapPtr = hContext->pSwPktFifoBase + hContext->ulSwPktFifoSize;
                     buffer_available = hContext->ulSwPktFifoSize;
-                    BGRC_P_SWPKT_MSG(("ctx[%x] sw pkt alloc: reset [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
+                    BDBG_MODULE_MSG(BGRC_SWPKT_FIFO, ("ctx[%x] sw pkt alloc: reset [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
                 }
             }
             else if (((buffer_available < (int)(size_in)) && (buffer_available_wrapped >= (int)size_in)) ||
@@ -991,7 +1016,7 @@ static int BGRC_PACKET_P_SwPktBufAvailable(
                 hContext->pSwPktWrapPtr = hContext->pSwPktWritePtr;
                 hContext->pSwPktWritePtr = hContext->pSwPktFifoBase;
                 buffer_available = buffer_available_wrapped;
-                BGRC_P_SWPKT_MSG(("ctx[%x] sw pkt alloc: wraping %p > rptr %p for %d", hContext->ulId, hContext->pSwPktWrapPtr, hContext->pSwPktReadPtr, size_in));
+                BDBG_MODULE_MSG(BGRC_SWPKT_FIFO, ("ctx[%x] sw pkt alloc: wraping %p > rptr %p for %d", hContext->ulId, hContext->pSwPktWrapPtr, hContext->pSwPktReadPtr, (uint32_t)size_in));
             }
         }
     }
@@ -1076,7 +1101,7 @@ BERR_Code BGRC_Packet_SubmitPackets(
         if (hContext->pSwPktWritePtr == hContext->pSwPktWrapPtr)
         {
             hContext->pSwPktWritePtr = hContext->pSwPktFifoBase;
-            BGRC_P_SWPKT_MSG(("ctx[%x] sw pkt submit: wrap [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
+            BDBG_MODULE_MSG(BGRC_SWPKT_FIFO, ("ctx[%x] sw pkt submit: wrap [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
         }
 
     /*SWSTB-3670  workaround for 7278A0 blit hw change, hw will be fixed in 7278B0*/
@@ -1109,24 +1134,6 @@ BERR_Code BGRC_Packet_AdvancePackets(
     BDBG_ASSERT(hGrc);
     BDBG_OBJECT_ASSERT(hGrc, BGRC);
     BGRC_P_ENTER(hGrc);
-
-#if BGRC_PACKET_P_BLIT_WORKAROUND
-    if(hGrc->eListStatus ==BGRC_P_List_eReadytoSubmit)
-    {
-        /*BKNI_ResetEvent(hGrc->hListDoneEvent);*/
-        BGRC_P_WriteReg32( hGrc, LIST_CTRL,
-            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
-                BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
-                BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
-        hGrc->eListStatus = BGRC_P_List_eSubmitted;
-        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus ReadytoSubmit => Submitted"));
-    }
-    else
-    {
-        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("eListStatus %s => Finished", hGrc->eListStatus?"Submitted":"Finished"));
-        hGrc->eListStatus = BGRC_P_List_eFinished;
-    }
-#endif
 
     hCurrContext = bgrc_p_first_context(hGrc);
 
@@ -1164,6 +1171,25 @@ BERR_Code BGRC_Packet_AdvancePackets(
         BLST_D_REMOVE(&hGrc->context_list, hLastContext, context_link);
         BLST_D_INSERT_HEAD(&hGrc->context_list, hLastContext, context_link);
     }
+
+#if BGRC_PACKET_P_BLIT_WORKAROUND
+    if(hGrc->ulNumbersToRun)
+    {
+        uint32_t ulListStatus = BGRC_P_ReadReg32(hGrc, LIST_STATUS);
+        bool bListFinished = BCHP_GET_FIELD_DATA(ulListStatus, M2MC_LIST_STATUS, FINISHED);
+        if(bListFinished)
+        {
+            BGRC_P_WriteReg32( hGrc, LIST_CTRL,
+                BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
+                    BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
+                    BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
+            BKNI_EnterCriticalSection();
+            hGrc->ulNumbersToRun --;
+            BKNI_LeaveCriticalSection();
+            BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("ulNumbersToRun %d", hGrc->ulNumbersToRun));
+        }
+    }
+#endif
 
     BGRC_P_LEAVE(hGrc);
     return err;
@@ -1292,18 +1318,18 @@ BERR_Code BGRC_Packet_CheckpointWatchdog(BGRC_Handle hGrc, BGRC_PacketContext_Ha
     if (BGRC_PACKET_P_SyncState_eCleared != hContext->eSyncState)
     {
         BGRC_P_CheckHwStatus( hGrc );
-        BGRC_P_WATCHDOG_MSG(("Ctx[%x] watchdog[0]: syncState %d, secure %u", hContext->ulId, hContext->eSyncState, hContext->create_settings.secure));
+        BDBG_WRN(("Ctx[%x] watchdog[0]: syncState %d, secure %u", hContext->ulId, hContext->eSyncState, hContext->create_settings.secure));
         if (!force) return BERR_SUCCESS;
 
         if (BGRC_PACKET_P_SyncState_eSynced != hContext->eSyncState) {
             BGRC_PrintStatus(hGrc);
-            BGRC_P_WATCHDOG_MSG(("Ctx[%x] watchdog[1]", hContext->ulId));
+            BDBG_WRN(("Ctx[%x] watchdog[1]", hContext->ulId));
             BGRC_Packet_PrintStatus(hContext);
             if (hContext->create_settings.secure == hGrc->secure) {
                 BGRC_Packet_AdvancePackets( hGrc, NULL );
                 BGRC_P_CheckHwStatus( hGrc );
                 if (BGRC_PACKET_P_SyncState_eSynced != hContext->eSyncState) {
-                    BGRC_P_WATCHDOG_MSG(("Ctx[%x] watchdog[2]", hContext->ulId));
+                    BDBG_WRN(("Ctx[%x] watchdog[2]", hContext->ulId));
 #if BGRC_USE_WATCHDOG_RESET
                     /* we cannot reset for secure without system failure. */
                     if (!hContext->create_settings.secure) {
@@ -1459,10 +1485,11 @@ BERR_Code BGRC_Packet_ConvertFilter(
     size_t src_size,
     size_t out_size )
 {
+    BERR_Code rc=BERR_SUCCESS;
     BDBG_ASSERT(coeffs);
 
-    BGRC_PACKET_P_ConvertFilterCoeffs( coeffs, filter, src_size, out_size );
-    return BERR_SUCCESS;
+    rc = BGRC_PACKET_P_ConvertFilterCoeffs( coeffs, filter, src_size, out_size );
+    return (rc);
 }
 
 /***************************************************************************/
@@ -1620,7 +1647,7 @@ BERR_Code BGRC_Packet_SetOutputPlanePacket( BGRC_Handle hGrc, void **ppPacket,
             return BERR_TRACE(BERR_INVALID_PARAMETER);
 
         /* The start address of the level0 image must be 64byte aligned */
-        if (((pPlane->address ) & ~(uint64_t)63u) != 0)
+        if (((pPlane->address ) & (uint64_t)BGRC_P_MIPMAP_SURFACE_ALIGN_MASK) != 0)
             return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     BM2MC_PACKET_INIT( pPacket, OutputFeeder, false );

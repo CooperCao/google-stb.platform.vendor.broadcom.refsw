@@ -39,7 +39,12 @@ CFLAGS += \
 	-D_GNU_SOURCE \
 	-I${DIRECTFB_INSTALL_DIRECTFB_INCLUDE_DIR} \
 	-I../nexus \
-	-DDIRECTFB
+	-DDIRECTFB \
+	-Wunused-parameter \
+	-Wsign-compare \
+	-Wclobbered \
+	-Wmissing-braces \
+	-Wparentheses
 
 ifeq ($(SINGLE),1)
 CFLAGS += -DSINGLE_PROCESS
@@ -76,18 +81,18 @@ endif
 LDFLAGS += -L$(LIBDIR) -lv3ddriver
 
 SOURCES = default_directfb.c \
-			../common/hardware_nexus.c \
+			bitmap.cpp \
+			display_directfb.cpp \
 			../common/memory_nexus.c \
 			../common/packet_rgba.c \
 			../common/packet_yv12.c \
-			../common/autoclif.c \
-			display_directfb.c
+			../common/hardware_nexus.cpp \
+			../common/autoclif.c
 
-ifeq ($(BUILD_DYNAMIC),1)
+CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++11 -fno-rtti -fno-exceptions
+
+.PHONY : all
 all: $(LIBDIR)/libdbpl.so
-else
-all: $(LIBDIR)/libdbpl.a
-endif
 
 .phony: OUTDIR
 OUTDIR :
@@ -106,26 +111,30 @@ directfb_check:
 		/bin/false; \
 	fi
 
+OBJS0 := $(patsubst %.cpp,%.o,$(filter %.cpp,$(SOURCES)))
+OBJS0 += $(patsubst %.c,%.o,$(filter %.c,$(SOURCES)))
+OBJS := $(addprefix $(OBJDIR)/, $(notdir $(OBJS0)))
+
 # $(1) = src
 # $(2) = obj
 define CCompileRule
-OBJS += $(2)
 $(2) : $(1)
 	$(Q)echo Compiling $(1)
-	$(Q)$(CC) -c $(CFLAGS) -o "$(2)" "$(1)"
-
+	$(Q)$(3) -c -MMD -MP -MF"$(2:%.o=%.d)" -MT"$(2:%.o=%.d)" -o "$(2)" "$(1)"
 endef
 
-$(foreach src,$(SOURCES),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o)))
+$(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 # $(1) = src
 # $(2) = d
 # $(3) = obj
+# $(4) = compiler version
 define DependRule_C
 $(2) : $(1) | OUTDIR
 	$(Q)echo Making depends for $(1)
 	$(Q)touch $(2).tmp
-	$(Q)$(CC) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(CFLAGS) $(1)
+	$(Q)$(4) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(1)
 	$(Q)sed 's/D:/\/\/D/g' < $(2).tmp | sed 's/C:/\/\/C/g' > $(2)
 	$(Q)rm -f $(2).tmp
 
@@ -137,24 +146,21 @@ PRE_BUILD_RULES += directfb_check
 
 ifneq ($(MAKECMDGOALS),clean)
 $(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call DependRule_C,$(src),$(OBJDIR)/$(basename $(notdir $(src))).d,\
-              $(OBJDIR)/$(basename $(notdir $(src))).o)))
+              $(OBJDIR)/$(basename $(notdir $(src))).o,$(CC) $(CFLAGS))))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval $(call DependRule_C,$(src),$(OBJDIR)/$(basename $(notdir $(src))).d,\
+              $(OBJDIR)/$(basename $(notdir $(src))).o,$(C++) $(CXXFLAGS))))
 
 $(foreach src,$(filter %.c,$(SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
+$(foreach src,$(filter %.cpp,$(SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
 endif
 
 $(LIBDIR)/libdbpl.so: $(PRE_BUILD_RULES) V3DDriver $(OBJS)
 	$(Q)echo Linking ... libdbpl.so
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libdbpl.so $(OBJS)
-
-$(LIBDIR)/libdbpl.a: $(PRE_BUILD_RULES) V3DDriver $(OBJS)
-	$(Q)echo Archiving ... libdbpl.a
-	$(Q)mkdir -p $(LIBDIR)
-	$(Q)ar -rcs $(LIBDIR)/libdbpl.a $(OBJS)
+	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/libdbpl.so $(OBJS)
 
 # clean out the dross
 clean:
 	$(Q)rm -f $(LIBDIR)/libdbpl.so *~ $(OBJS)
-	$(Q)rm -f $(LIBDIR)/libdbpl.a
 	$(Q)rm -f $(OBJDIR)/*.d
 	$(Q)$(MAKE) --no-print-directory -C $(V3D_DIR) -f V3DDriver.mk clean

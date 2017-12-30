@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,6 +63,7 @@ static struct {
     unsigned timeout;
     BLST_S_HEAD(watchdog_callback_list, NEXUS_WatchdogCallback) callbacks;
     uint32_t resetHistory;
+    bool stopTimerOnDestroy;
 } g_watchdog;
 
 static void NEXUS_Watchdog_P_ReadResetHistory(void);
@@ -70,6 +71,7 @@ static void NEXUS_Watchdog_P_ReadResetHistory(void);
 NEXUS_Error NEXUS_Watchdog_P_Init(void)
 {
     BKNI_Memset(&g_watchdog, 0, sizeof(g_watchdog));
+    g_watchdog.stopTimerOnDestroy = true;
     NEXUS_Watchdog_P_ReadResetHistory();
     /* must issue magic stop sequence to get control again */
     NEXUS_Watchdog_StopTimer();
@@ -78,7 +80,9 @@ NEXUS_Error NEXUS_Watchdog_P_Init(void)
 
 void NEXUS_Watchdog_P_Uninit(void)
 {
-    NEXUS_Watchdog_StopTimer();
+    if(g_watchdog.stopTimerOnDestroy) {
+        NEXUS_Watchdog_StopTimer();
+    }
     BKNI_Memset(&g_watchdog, 0, sizeof(g_watchdog));
 }
 
@@ -221,6 +225,7 @@ void NEXUS_WatchdogCallback_GetDefaultSettings( NEXUS_WatchdogCallbackSettings *
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_CallbackDesc_Init(&pSettings->midpointCallback);
+    pSettings->stopTimerOnDestroy = true;
 }
 
 static void nexus_p_watchdog_event(void *context)
@@ -240,6 +245,7 @@ NEXUS_WatchdogCallbackHandle NEXUS_WatchdogCallback_Create( const NEXUS_Watchdog
     }
     NEXUS_OBJECT_INIT(NEXUS_WatchdogCallback, handle);
     BLST_S_INSERT_HEAD(&g_watchdog.callbacks, handle, link);
+    g_watchdog.stopTimerOnDestroy = pSettings->stopTimerOnDestroy;
     handle->settings = *pSettings;
     handle->callback = NEXUS_TaskCallback_Create(handle, NULL);
     if (!handle->callback) {

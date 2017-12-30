@@ -158,6 +158,7 @@ static const struct
 };
 #endif /* (BVDC_P_SUPPORT_VEC_GRPD) */
 
+#if (BDBG_DEBUG_BUILD)
 /* make sure matches with BAVC_MatrixCoefficients */
 static const struct
 {
@@ -207,6 +208,7 @@ static const struct
     {BVDC_P_Output_eUnknown,       BDBG_STRING("BVDC_P_Output_eUnknown")},
     {BVDC_P_Output_eNone,          BDBG_STRING("BVDC_P_Output_eNone")}
 };
+#endif /* BDBG_DEBUG_BUILD */
 
 #if BVDC_P_MAX_DACS
 /*************************************************************************
@@ -3397,6 +3399,9 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
     bool  bDviCscPassThrough;
 #endif
 
+    if(pstChan->bCfcProgrammed) return;
+    else pstChan->bCfcProgrammed = true;
+
     BDBG_ASSERT(stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs].eAvcCs == hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs);
     BDBG_MSG(("Display %d Hdmi %d using %s",
         hDisplay->eId, pstChan->ulDvi, stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs].pcAvcCsStr));
@@ -3450,7 +3455,7 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
         }
 #endif
 
-        BVDC_P_Cfc_ApplyYCbCrColor_isr(&hDisplay->stCfc.stMc, ucCh0, ucCh1, ucCh2);
+        BVDC_P_Cfc_ApplyYCbCrColor_isr(&hDisplay->stCfc.stMc, ucCh0, ucCh1, ucCh2, (void *)&hDisplay->aullTmpBuf[0]);
     }
 
     if((BAVC_MatrixCoefficients_eHdmi_RGB == pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs) ||
@@ -5959,6 +5964,12 @@ static void BVDC_P_Display_Copy_SrcFrameRate_Setting_isr
 {
     hDisplay->stCurInfo.eDropFrame = hDisplay->stNewInfo.eDropFrame;
 
+    /* Reset eSrcFRateCode to trigger re-evaluate bFullRate for src */
+    if(hDisplay->stCurInfo.eDropFrame == BVDC_Mode_eAuto)
+    {
+        hDisplay->hCompositor->eSrcFRateCode = BAVC_FrameRateCode_eUnknown;
+    }
+
     return;
 }
 
@@ -7149,6 +7160,7 @@ void BVDC_P_Display_Alignment_isr
     int32_t lDeltaTs = 0;
     BVDC_Display_Handle hTargetDisplay;
     uint32_t ulCount = 0;
+    BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
 
     switch(hDisplay->eAlignmentState)
     {
@@ -7156,11 +7168,11 @@ void BVDC_P_Display_Alignment_isr
             break;
 
         case BVDC_P_Alignment_eWaitTimeStamp:
+            hTargetDisplay = hDisplay->stCurInfo.hTargetDisplay;
+            BDBG_OBJECT_ASSERT(hTargetDisplay, BVDC_DSP);
             if ((hDisplay->eTimeStampState == BVDC_P_TimeStamp_eAvail) &&
-                (hDisplay->stCurInfo.hTargetDisplay->eTimeStampState == BVDC_P_TimeStamp_eAvail))
+                (hTargetDisplay->eTimeStampState == BVDC_P_TimeStamp_eAvail))
             {
-                hTargetDisplay = hDisplay->stCurInfo.hTargetDisplay;
-                BDBG_OBJECT_ASSERT(hTargetDisplay, BVDC_DSP);
                 if (BVDC_P_Display_CalculateTimeGap_isr(hDisplay, hTargetDisplay, &lDeltaTs))
                 {
                     /* Invalid timestamp. We have to start over again.

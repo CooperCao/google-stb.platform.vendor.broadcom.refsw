@@ -249,7 +249,7 @@ static bool is_program_interface(GLenum programInterface)
    }
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 static int get_active_resources(const GLSL_PROGRAM_T *p, GLenum programInterface)
 {
@@ -371,7 +371,7 @@ static unsigned get_atomic_num_active_vars(const GLSL_PROGRAM_T *p, unsigned ind
    return count;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 static bool interface_valid_for_max_num_active(GLenum interface) {
    return interface == GL_UNIFORM_BLOCK || interface == GL_SHADER_STORAGE_BLOCK || interface == GL_ATOMIC_COUNTER_BUFFER;
@@ -584,7 +584,7 @@ const static GLenum valid_uniform_props[] =
 #endif
 };
 
-const static GLenum valid_uniform_block_props[] =
+const static GLenum valid_buffer_props[] =
 {
    GL_NAME_LENGTH,
    GL_ACTIVE_VARIABLES,
@@ -617,24 +617,7 @@ const static GLenum valid_atomic_props[] =
 #endif
 };
 
-const static GLenum valid_input_props[] =
-{
-   GL_NAME_LENGTH,
-   GL_ARRAY_SIZE,
-   GL_LOCATION,
-   GL_REFERENCED_BY_VERTEX_SHADER,
-   GL_REFERENCED_BY_FRAGMENT_SHADER,
-   GL_REFERENCED_BY_COMPUTE_SHADER,
-   GL_TYPE,
-#if GLXX_HAS_TNG
-   GL_IS_PER_PATCH,
-   GL_REFERENCED_BY_TESS_CONTROL_SHADER,
-   GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
-   GL_REFERENCED_BY_GEOMETRY_SHADER,
-#endif
-};
-
-const static GLenum valid_output_props[] =
+const static GLenum valid_inout_props[] =
 {
    GL_NAME_LENGTH,
    GL_ARRAY_SIZE,
@@ -673,23 +656,6 @@ const static GLenum valid_buffer_var_props[] =
    GL_TOP_LEVEL_ARRAY_SIZE,
    GL_TOP_LEVEL_ARRAY_STRIDE,
    GL_TYPE,
-#if GLXX_HAS_TNG
-   GL_REFERENCED_BY_TESS_CONTROL_SHADER,
-   GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
-   GL_REFERENCED_BY_GEOMETRY_SHADER,
-#endif
-};
-
-const static GLenum valid_ssb_props[] =
-{
-   GL_NAME_LENGTH,
-   GL_ACTIVE_VARIABLES,
-   GL_BUFFER_BINDING,
-   GL_NUM_ACTIVE_VARIABLES,
-   GL_BUFFER_DATA_SIZE,
-   GL_REFERENCED_BY_VERTEX_SHADER,
-   GL_REFERENCED_BY_FRAGMENT_SHADER,
-   GL_REFERENCED_BY_COMPUTE_SHADER,
 #if GLXX_HAS_TNG
    GL_REFERENCED_BY_TESS_CONTROL_SHADER,
    GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
@@ -741,13 +707,13 @@ static GLenum valid_props_combination(GLenum interface, GLenum prop)
    switch (interface)
    {
    case GL_UNIFORM:                     USE_ARRAY(valid_uniform_props); break;
-   case GL_UNIFORM_BLOCK:               USE_ARRAY(valid_uniform_block_props); break;
+   case GL_UNIFORM_BLOCK:               USE_ARRAY(valid_buffer_props); break;
+   case GL_SHADER_STORAGE_BLOCK:        USE_ARRAY(valid_buffer_props); break;
    case GL_ATOMIC_COUNTER_BUFFER:       USE_ARRAY(valid_atomic_props); break;
-   case GL_PROGRAM_INPUT:               USE_ARRAY(valid_input_props); break;
-   case GL_PROGRAM_OUTPUT:              USE_ARRAY(valid_output_props); break;
+   case GL_PROGRAM_INPUT:               USE_ARRAY(valid_inout_props); break;
+   case GL_PROGRAM_OUTPUT:              USE_ARRAY(valid_inout_props); break;
    case GL_TRANSFORM_FEEDBACK_VARYING:  USE_ARRAY(valid_tfv_props); break;
    case GL_BUFFER_VARIABLE:             USE_ARRAY(valid_buffer_var_props); break;
-   case GL_SHADER_STORAGE_BLOCK:        USE_ARRAY(valid_ssb_props); break;
    default:
       return GL_INVALID_ENUM;
    }
@@ -1017,7 +983,7 @@ static unsigned get_program_resource_prop(const GL20_PROGRAM_T *program, GLenum 
    return added;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 static bool interface_valid_for_max_name_length(GLenum interface) {
    return interface == GL_UNIFORM       || interface == GL_BUFFER_VARIABLE      ||
@@ -1124,7 +1090,7 @@ end:
    return indx;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_APICALL GLuint GL_APIENTRY glGetProgramResourceIndex(GLuint p, GLenum programInterface, const GLchar *name)
 {
@@ -1184,7 +1150,7 @@ end:
       glxx_server_state_set_error(state, error);
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_APICALL void GL_APIENTRY glGetProgramResourceName(GLuint p, GLenum programInterface, GLuint index, GLsizei bufSize,
                                                      GLsizei *length, GLchar *name)
@@ -1262,7 +1228,7 @@ end:
    return error == GL_NO_ERROR;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_APICALL void GL_APIENTRY glGetProgramResourceiv(GLuint p, GLenum programInterface, GLuint index, GLsizei propCount,
                                                    const GLenum *props, GLsizei bufSize, GLsizei *length, GLint *params)
@@ -1317,7 +1283,7 @@ end:
    return location;
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GL_APICALL GLint GL_APIENTRY glGetProgramResourceLocation(GLuint p, GLenum programInterface, const GLchar *name)
 {

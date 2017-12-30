@@ -16,6 +16,5 @@ extern void *khrn_process_egl_get(void);  /*EGL_SERVER_STATE_T*/
 extern void *khrn_process_egl_thread(void);  /*EGL_SERVER_THREAD_T*/
 extern void *khrn_process_glxx_lock(void);  /*GLXX_SERVER_STATE_T*/
 extern void khrn_process_glxx_unlock(void);
-extern khrn_mem_handle_t khrn_process_vg_handle(void);  /*VG_SERVER_STATE_T*/
 extern uint64_t khrn_process_pid(void);
 #endif

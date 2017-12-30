@@ -62,6 +62,12 @@
 #if NEXUS_NUM_PLAYPUMPS > 7
 #include "bchp_int_id_xpt_pb7.h"
 #endif
+#else
+#ifdef BXPT_USE_HOST_AGGREGATOR
+    #include "bchp_xpt_mcpb_host_intr_aggregator.h"
+#else
+    #include "bchp_xpt_mcpb_cpu_intr_aggregator.h"
+#endif
 #endif /* BXPT_HAS_MULTICHANNEL_PLAYBACK */
 
 #include "priv/nexus_timebase_priv.h"
@@ -81,6 +87,10 @@ static void NEXUS_Playpump_P_InstallRangeErrIntHandler(NEXUS_PlaypumpHandle p);
 static void NEXUS_Playpump_P_UninstallRangeErrIntHandler(NEXUS_PlaypumpHandle p);
 static NEXUS_Error NEXUS_Playpump_P_SetInterrupts(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings *pSettings);
 static NEXUS_Error NEXUS_Playpump_P_SetPause( NEXUS_PlaypumpHandle p);
+static void NEXUS_Playpump_P_TeiError_isr(void *context, int param);
+#if defined BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_MCPB_MISC_OOS_INTR_DEFAULT || defined BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_STATUS_MCPB_MISC_OOS_INTR_DEFAULT
+static void NEXUS_Playpump_P_OutOfSyncError_isr(void *context, int param);
+#endif
 
 void NEXUS_Playpump_GetDefaultOpenPidChannelSettings_priv(NEXUS_Playpump_OpenPidChannelSettings_priv *pSettings)
 {
@@ -217,11 +227,6 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto error;
     }
-    p->teiErrorCallback = NEXUS_IsrCallback_Create(p, NULL);
-    if(!p->teiErrorCallback) {
-        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        goto error;
-    }
     b_pid_map_init(&p->packetizer_map, NEXUS_P_PACKETIZER_BASE);
 
     BLST_S_INIT(&p->pid_list);
@@ -298,6 +303,28 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
         goto error;
     }
 
+    BDBG_MSG(("create playpump %d tei callback", p->index));
+    p->teiErrorCallback = NEXUS_IsrCallback_Create(p, NULL);
+    if(!p->teiErrorCallback) {
+        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto error;
+    }
+    rc = BINT_CreateCallback(&p->teiErrorInt, g_pCoreHandles->bint,
+    BXPT_Playback_GetIntId(p->xpt_play, BXPT_PbInt_eTeiError),
+    NEXUS_Playpump_P_TeiError_isr, p, 0);
+    if (rc) {rc = BERR_TRACE(rc); goto error;}
+    rc = BINT_EnableCallback(p->teiErrorInt);
+    if (rc) {rc = BERR_TRACE(rc); goto error;}
+
+    #if defined BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_MCPB_MISC_OOS_INTR_DEFAULT || defined BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_STATUS_MCPB_MISC_OOS_INTR_DEFAULT
+    rc = BINT_CreateCallback(&p->outOfSyncErrorInt, g_pCoreHandles->bint,
+    BXPT_Playback_GetIntId(p->xpt_play, BXPT_PbInt_eOutOfSync),
+    NEXUS_Playpump_P_OutOfSyncError_isr, p, 0);
+    if (rc) {rc = BERR_TRACE(rc); goto error;}
+    rc = BINT_EnableCallback(p->outOfSyncErrorInt);
+    if (rc) {rc = BERR_TRACE(rc); goto error;}
+    #endif
+
     rc = NEXUS_Playpump_P_SetParserBand(p, &p->settings);
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto error;}
 
@@ -317,7 +344,7 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
         feed_cfg.numDesc = p->openSettings.numDescriptors;
     }
     feed_cfg.applicationCnxt = p;
-    feed_cfg.useExtndedDesc = pSettings->streamMuxCompatible;
+    feed_cfg.useExtndedDesc = pSettings->streamMuxCompatible || pSettings->descriptorPacingEnabled;
     feed_cfg.descAvaliable_isr = NEXUS_P_Playpump_DescAvail_isr;
     feed_cfg.offsetToCachedAddr = NEXUS_OffsetToCachedAddr;
     feed_cfg.flushCache = NEXUS_FlushCache;
@@ -391,6 +418,15 @@ error:
         if(p->teiErrorCallback) {
             NEXUS_IsrCallback_Destroy(p->teiErrorCallback);
         }
+    if(p->teiErrorInt)
+    {
+       BINT_DisableCallback(p->teiErrorInt);
+       BINT_DestroyCallback(p->teiErrorInt);
+    }
+    if (p->outOfSyncErrorInt) {
+       BINT_DisableCallback(p->outOfSyncErrorInt);
+       BINT_DestroyCallback(p->outOfSyncErrorInt);
+    }
         if(p->dataCallback) {
             NEXUS_TaskCallback_Destroy(p->dataCallback);
         }
@@ -432,8 +468,19 @@ static void NEXUS_Playpump_P_Finalizer(NEXUS_PlaypumpHandle p)
 
     /* force the destroying of the xpt interrupt */
     p->settings.ccError.callback = NULL;
-    p->settings.teiError.callback = NULL;
     NEXUS_Playpump_P_SetInterrupts(p, &p->settings);
+    if(p->teiErrorInt)
+    {
+       BINT_DisableCallback(p->teiErrorInt);
+       BINT_DestroyCallback(p->teiErrorInt);
+       p->teiErrorInt = NULL;
+    }
+    p->settings.teiError.callback = NULL;
+
+    if (p->outOfSyncErrorInt) {
+       BINT_DisableCallback(p->outOfSyncErrorInt);
+       BINT_DestroyCallback(p->outOfSyncErrorInt);
+    }
 
     BPVRlib_Feed_Close(p->play_feed);
     BKNI_DestroyEvent(p->descEvent);
@@ -930,19 +977,28 @@ static NEXUS_Error NEXUS_Playpump_Start_priv(NEXUS_PlaypumpHandle p, bool muxInp
 
 #if BXPT_HAS_TSMUX
     if(muxInput) {
-        cfg.PesBasedPacing = true;
+        cfg.DescBasedPacing = true;
         cfg.Use8WordDesc = true;
-        cfg.PesBasedPacing = true;
         cfg.TimestampMode = BXPT_TimestampMode_e30_2U_Binary;
         cfg.Use32BitTimestamps = true;
         cfg.TimestampEn = false;
     } else {
-        cfg.PesBasedPacing = false;
+        cfg.DescBasedPacing = false;
         cfg.Use8WordDesc = false;
     }
 #else
     BSTD_UNUSED(muxInput);
 #endif
+
+#if BXPT_HAS_MULTICHANNEL_PLAYBACK
+    if(p->openSettings.descriptorPacingEnabled)
+    {
+        cfg.DescBasedPacing = true;
+        cfg.Use8WordDesc = true;
+        cfg.TimestampEn = false;
+    }
+#endif
+
 #if BXPT_HAS_MULTICHANNEL_PLAYBACK
     /* nexus layer pacing counter allocation for non-TSmux playpump! TSmux pacing counter would be alloc'd inside PI */
     if (p->settings.timestamp.pacing && !muxInput) {
@@ -1089,6 +1145,10 @@ void NEXUS_Playpump_Stop(NEXUS_PlaypumpHandle p)
          BXPT_Playback_FreePacingCounter(p->pacingCounter);
      }
 #endif
+
+    /* XPT flush will unpause it, and nexus should not resume pause */
+    p->paused = false;
+
     rc = NEXUS_Playpump_Flush(p);
     if (rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
 
@@ -1209,13 +1269,27 @@ keep_waiting:
 
 }
 
-NEXUS_Error NEXUS_Playpump_WriteComplete(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used)
+void NEXUS_Playpump_GetDefaultWriteCompleteSettings(
+    NEXUS_PlaypumpWriteCompleteSettings *Settings
+    )
+{
+    BDBG_ASSERT(Settings);
+    BKNI_Memset(Settings, 0, sizeof(*Settings));
+}
+
+NEXUS_Error NEXUS_Playpump_WriteCompleteWithSettings(NEXUS_PlaypumpHandle p, unsigned skip, unsigned amount_used, const NEXUS_PlaypumpWriteCompleteSettings *pSettings )
 {
     BERR_Code rc;
     unsigned amount_to_commit = skip + amount_used;
     unsigned amount_to_skip = skip;
+    NEXUS_PlaypumpWriteCompleteSettings settings;
 
     BDBG_OBJECT_ASSERT(p, NEXUS_Playpump);
+
+    if(pSettings)
+        settings = *pSettings;
+    else
+        NEXUS_Playpump_GetDefaultWriteCompleteSettings(&settings);
 
     if (amount_to_commit > p->state.last_size) {
         BDBG_ERR(("GetBuffer returned %u, WriteComplete called with %u,%u(%u)",  (unsigned)p->state.last_size, (unsigned)skip, (unsigned)amount_used, amount_to_commit));
@@ -1238,7 +1312,7 @@ NEXUS_Error NEXUS_Playpump_WriteComplete(NEXUS_PlaypumpHandle p, size_t skip, si
     /* make sure it's in the physical memory so the chip can read it */
     BDBG_MSG_FLOW(("write_complete %#lx:%u %u %#lx", (unsigned long)p->state.last_addr, skip, amount_used, (unsigned long)BFIFO_WRITE(&p->activeFifo)));
 
-    rc = b_playpump_p_add_request(p, amount_to_skip, amount_to_commit - amount_to_skip, NULL);
+    rc = b_playpump_p_add_request(p, amount_to_skip, amount_to_commit - amount_to_skip, NULL, &settings);
     if (rc) return BERR_TRACE(rc);
 
     p->state.last_addr = NULL;
@@ -1251,8 +1325,15 @@ NEXUS_Error NEXUS_Playpump_SubmitScatterGatherDescriptor(NEXUS_PlaypumpHandle p,
 {
     BERR_Code rc;
     unsigned nFree;
+    NEXUS_PlaypumpWriteCompleteSettings settings;
+
     BDBG_OBJECT_ASSERT(p, NEXUS_Playpump);
     BDBG_ASSERT(pNumConsumed);
+
+    if(p->openSettings.descriptorPacingEnabled)
+        settings = pDesc->descriptorSettings;
+    else
+        NEXUS_Playpump_GetDefaultWriteCompleteSettings(&settings);
 
     if (!p->state.running) {
         /* don't print error message, because this is a normal exit from thread processing */
@@ -1271,13 +1352,70 @@ NEXUS_Error NEXUS_Playpump_SubmitScatterGatherDescriptor(NEXUS_PlaypumpHandle p,
 
     BDBG_MSG_FLOW(("submit_sg %#lx: %#lx", (unsigned long)p->state.last_addr, (unsigned long)BFIFO_WRITE(&p->activeFifo)));
 
-    rc = b_playpump_p_add_request(p, 0, numDescriptors*sizeof(NEXUS_PlaypumpScatterGatherDescriptor), pDesc);
+    rc = b_playpump_p_add_request(p, 0, numDescriptors*sizeof(NEXUS_PlaypumpScatterGatherDescriptor), pDesc, &settings);
     if (rc) return BERR_TRACE(rc);
 
     *pNumConsumed = numDescriptors;
 
     return 0;
 }
+
+#if 0
+static void NEXUS_Playpump_P_AdjustFifoDepth(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatus *pStatus)
+{
+    if(!p->state.running) {
+        return;
+    }
+#if B_HAS_MEDIA
+    if(p->state.packetizer==b_play_packetizer_media) {
+        return;
+    }
+#endif
+    if(p->state.packetizer==b_play_packetizer_crypto) {
+        return;
+    }
+    if(p->state.queued_in_hw) {
+        BERR_Code rc;
+        BMMA_DeviceOffset lastCompletedDataAddress;
+        rc = BXPT_Playback_GetLastCompletedDataAddress(p->xpt_play, &lastCompletedDataAddress);
+        if(rc==BERR_SUCCESS) {
+            struct bpvr_queue copyOfactiveFifo = p->activeFifo; /* create copy of FIFO to allow its destructive read */
+            unsigned deltaFifoDepth = 0;
+            bool foundDescriptor=false;
+            while(BFIFO_READ_LEFT(&copyOfactiveFifo)!=0) {
+                const struct bpvr_queue_item *item = BFIFO_READ(&copyOfactiveFifo);
+                BMMA_DeviceOffset descDeviceOffset = NEXUS_AddrToOffset(item->desc.addr);
+                unsigned delta;
+
+
+                if(lastCompletedDataAddress >= (descDeviceOffset + item->skip) && lastCompletedDataAddress< (descDeviceOffset+ item->desc.length)) { /* check if HW running through current descriptor */
+                    delta = (lastCompletedDataAddress - descDeviceOffset);
+                    foundDescriptor = true;
+                } else {
+                    delta = item->desc.length;
+                }
+                deltaFifoDepth+=delta;
+                BDBG_MSG(("%p:adjusting FIFO depth " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT "(" BDBG_UINT64_FMT ") %u->%u", (void *)p, BDBG_UINT64_ARG(descDeviceOffset+item->skip), BDBG_UINT64_ARG(descDeviceOffset+item->desc.length), BDBG_UINT64_ARG(lastCompletedDataAddress), (unsigned)pStatus->fifoDepth,pStatus->fifoDepth>=deltaFifoDepth?(unsigned)pStatus->fifoDepth-deltaFifoDepth:0));
+                if(deltaFifoDepth>pStatus->fifoDepth) {
+                    deltaFifoDepth = 0;
+                    break;
+                }
+                if(foundDescriptor) {
+                    break;
+                }
+                BFIFO_READ_COMMIT(&copyOfactiveFifo, 1);
+            }
+            if(foundDescriptor) {
+                BDBG_MSG(("%p:adjusting FIFO depth (" BDBG_UINT64_FMT ") %u->%u", (void *)p, BDBG_UINT64_ARG(lastCompletedDataAddress), (unsigned)pStatus->fifoDepth, (unsigned)pStatus->fifoDepth-deltaFifoDepth));
+                pStatus->fifoDepth -= deltaFifoDepth;
+            } else {
+                BDBG_MSG(("%p:not found descriptor for " BDBG_UINT64_FMT "", (void *)p, BDBG_UINT64_ARG(lastCompletedDataAddress)));
+            }
+        }
+    }
+    return;
+}
+#endif
 
 NEXUS_Error NEXUS_Playpump_GetStatus(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatus *pStatus)
 {
@@ -1294,11 +1432,12 @@ NEXUS_Error NEXUS_Playpump_GetStatus(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatu
     pStatus->descFifoDepth = BFIFO_READ_LEFT(&p->activeFifo);
     pStatus->index=p->index;
     pStatus->pacingTsRangeError = p->state.pacingTsRangeError;
-    pStatus->syncErrors = 0;
     pStatus->resyncEvents = 0;
     pStatus->streamErrors = 0;
     pStatus->mediaPtsType = NEXUS_PtsType_eInterpolatedFromInvalidPTS;
     pStatus->mediaPts = 0;
+    pStatus->teiErrors = p->state.teiErrors;
+    pStatus->syncErrors = p->state.syncErrors;
 
     /* for scatter-gather, use fifoDepth for sum of payload bytes */
     if (pStatus->fifoDepth==0 && pStatus->descFifoDepth!=0) {
@@ -1566,7 +1705,7 @@ NEXUS_Playpump_P_OpenPidChannel_MuxImpl(NEXUS_PlaypumpHandle p, unsigned pid, co
     pidChannel = NEXUS_PidChannel_P_Create(play_pid->pid_channel);
     if(pidChannel==NULL) {
         NEXUS_Playpump_P_ClosePid(p, play_pid);
-	return NULL;
+    return NULL;
     }
 
 done:
@@ -1726,8 +1865,19 @@ static void NEXUS_Playpump_P_TeiError_isr(void *context, int param)
 {
     NEXUS_PlaypumpHandle p = context;
     BSTD_UNUSED(param);
-    NEXUS_IsrCallback_Fire_isr(p->teiErrorCallback);
+    p->state.teiErrors++;
+    if(p->teiErrorCallback)
+       NEXUS_IsrCallback_Fire_isr(p->teiErrorCallback);
 }
+
+#if defined BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_MCPB_MISC_OOS_INTR_DEFAULT || defined BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_STATUS_MCPB_MISC_OOS_INTR_DEFAULT
+static void NEXUS_Playpump_P_OutOfSyncError_isr(void *context, int param)
+{
+    NEXUS_PlaypumpHandle p = context;
+    BSTD_UNUSED(param);
+    p->state.syncErrors++;
+}
+#endif
 
 static NEXUS_Error NEXUS_Playpump_P_SetInterrupts(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings *pSettings)
 {
@@ -1748,23 +1898,6 @@ static NEXUS_Error NEXUS_Playpump_P_SetInterrupts(NEXUS_PlaypumpHandle p, const 
     else if (p->ccErrorInt) {
         (void)BINT_DestroyCallback(p->ccErrorInt);
         p->ccErrorInt = NULL;
-    }
-
-    /* only enable certain interrupts when their callbacks are desired. this helps typical system performance. */
-    if (pSettings->teiError.callback) {
-        if (!p->teiErrorInt) {
-            BDBG_MSG(("create playpump %d tei callback", p->index));
-            rc = BINT_CreateCallback(&p->teiErrorInt, g_pCoreHandles->bint,
-                BXPT_Playback_GetIntId(p->xpt_play, BXPT_PbInt_eTeiError),
-                NEXUS_Playpump_P_TeiError_isr, p, 0);
-            if (rc) return BERR_TRACE(rc);
-            rc = BINT_EnableCallback(p->teiErrorInt);
-            if (rc) return BERR_TRACE(rc);
-        }
-    }
-    else if (p->teiErrorInt) {
-        (void)BINT_DestroyCallback(p->teiErrorInt);
-        p->teiErrorInt = NULL;
     }
 
     NEXUS_IsrCallback_Set(p->ccErrorCallback, &pSettings->ccError);

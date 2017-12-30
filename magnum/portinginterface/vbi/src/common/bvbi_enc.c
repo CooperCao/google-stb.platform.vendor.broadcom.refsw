@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -278,7 +278,7 @@ BERR_Code BVBI_Encode_Create (
 
     /* Allocating ANCI656 core is another kludge */
 #if (BVBI_NUM_ANCI656_656 > 0) /** { **/
-    if (BVBI_P_is656_isr (pVbi_Enc->eDest))
+    if (BVBI_P_is656_isrsafe (pVbi_Enc->eDest))
     {
         eErr = BVBI_P_Encode_ReserveCore (
             eDest, BVBI_P_SELECT_ANCI,
@@ -1117,7 +1117,7 @@ BERR_Code BVBI_Encode_Data_isr (
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_CC           ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_CC_NOENCODE)    )
         {
-            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
             {
                 #if BVBI_NUM_CCE_656 > 0
                 (void)BVBI_P_CC_Encode_656_Data_isr (
@@ -1149,7 +1149,7 @@ BERR_Code BVBI_Encode_Data_isr (
             if (pVbi_Enc->curr.eVideoFormat != BFMT_VideoFmt_e576p_50Hz)
                 ulData = BVPI_P_CGMS_format_data_isr (ulData);
 
-            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
             {
                 #if BVBI_NUM_CGMSAE_656 > 0
                 (void)BVBI_P_CGMSA_Encode_656_Data_isr (
@@ -1188,7 +1188,7 @@ BERR_Code BVBI_Encode_Data_isr (
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_WSS           ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_WSS_NOENCODE)    )
         {
-            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
             {
                 #if BVBI_NUM_WSE_656 > 0
                 (void)BVBI_P_WSS_Encode_656_Data_isr (
@@ -1217,7 +1217,7 @@ BERR_Code BVBI_Encode_Data_isr (
         {
             (void)BVBI_P_VPS_Encode_Data_isr (
                     pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
+                    BVBI_P_is656_isrsafe(pVbi_Enc->eDest),
                     pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eWSE],
                     polarity,
                     pVbi_Fld->pVPSData );
@@ -1244,7 +1244,7 @@ BERR_Code BVBI_Encode_Data_isr (
                     &pVbi->ttFreelist, clink);
                 pttData = BVBI_P_LCOP_GET_isr (pVbi_Enc, botTTDataO);
             }
-            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
             {
                 #if BVBI_NUM_TTE_656 > 0
                 (void)BVBI_P_TT_Encode_656_Data_isr (
@@ -1274,7 +1274,7 @@ BERR_Code BVBI_Encode_Data_isr (
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_GS                ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_GEMSTAR_NOENCODE)    )
         {
-            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
             {
                 #if BVBI_NUM_GSE_656 > 0
                 (void)BVBI_P_GS_Encode_656_Data_isr (
@@ -1302,7 +1302,7 @@ BERR_Code BVBI_Encode_Data_isr (
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_AMOL              ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_AMOL_NOENCODE   )    )
         {
-            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
             {
                 #if BVBI_NUM_AMOLE_656 > 0
                 (void)BVBI_P_AMOL_Encode_656_Data_isr (
@@ -1332,7 +1332,7 @@ BERR_Code BVBI_Encode_Data_isr (
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_MCC              ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_MCC_NOENCODE   )    )
         {
-            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
             {
                 #if BVBI_NUM_CCE_656 > 0
                 (void)BVBI_P_MCC_Encode_656_Data_isr (
@@ -1363,7 +1363,7 @@ BERR_Code BVBI_Encode_Data_isr (
         {
             (void)BVBI_P_SCTE_Encode_Data_isr (
                     pVbi_Enc->pVbi->hReg,
-                    BVBI_P_is656_isr(pVbi_Enc->eDest),
+                    BVBI_P_is656_isrsafe(pVbi_Enc->eDest),
                     pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eSCTE],
                     currentState->eVideoFormat,
                     polarity,
@@ -1427,7 +1427,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
        encoder cores. Otherwise, the VEC may hang. See PR19719. */
     eErr = BERR_TRACE (BVBI_P_VE_Enc_Program (
         pVbi->hReg,
-        BVBI_P_is656_isr(pVbi_Enc->eDest),
+        BVBI_P_is656_isrsafe(pVbi_Enc->eDest),
         hwCoreIndex[BVBI_P_EncCoreType_eVBIENC],
         cnState->ulActive_Standards,
         cnState->ulActive_656_Standards,
@@ -1467,7 +1467,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
     isActive = ((nextActive & BVBI_P_SELECT_CC) != 0);
     if (force || BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_CC))
     {
-        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+        if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
         {
             #if BVBI_NUM_CCE_656 > 0
             eErr = BERR_TRACE (BVBI_P_CC_Enc_656_Program (
@@ -1510,7 +1510,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
     if (force ||
         BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_CGMSA))
     {
-        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+        if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
         {
             #if BVBI_NUM_CGMSAE_656 > 0
             eErr = BERR_TRACE (BVBI_P_CGMSA_Enc_656_Program (
@@ -1574,7 +1574,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
     if (force ||
         BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_WSS))
     {
-        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+        if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
         {
             #if BVBI_NUM_WSE_656 > 0
             eErr = BERR_TRACE (BVBI_P_WSS_Enc_656_Program (
@@ -1618,7 +1618,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
     {
         eErr = BERR_TRACE (BVBI_P_VPS_Enc_Program (
             pVbi->hReg,
-            BVBI_P_is656_isr(pVbi_Enc->eDest),
+            BVBI_P_is656_isrsafe(pVbi_Enc->eDest),
             hwCoreIndex[BVBI_P_EncCoreType_eWSE],
             isActive,
             cnState->eVideoFormat));
@@ -1646,7 +1646,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
             pVbi_Enc, botTTDataO, &pVbi->ttFreelist, clink);
         pbotData =  BVBI_P_LCOP_GET (pVbi_Enc, botTTDataO);
 
-        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+        if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
         {
             #if BVBI_NUM_TTE_656 > 0
             /* coverity[var_deref_model: FALSE] */
@@ -1700,7 +1700,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
     isActive = ((nextActive & BVBI_P_SELECT_GS) != 0);
     if (force || BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_GS))
     {
-        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+        if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
         {
             #if BVBI_NUM_GSE_656 > 0
             eErr = BERR_TRACE (BVBI_P_GS_Enc_656_Program (
@@ -1746,7 +1746,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
     if (force ||
         BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_AMOL))
     {
-        if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+        if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
         {
             #if BVBI_NUM_AMOLE_656 > 0
             eErr = BERR_TRACE (BVBI_P_AMOL_Enc_656_Program (
@@ -1795,7 +1795,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
         if (force ||
             BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_MCC))
         {
-            if (BVBI_P_is656_isr(pVbi_Enc->eDest))
+            if (BVBI_P_is656_isrsafe(pVbi_Enc->eDest))
             {
                 #if BVBI_NUM_CCE_656 > 0
                 eErr = BERR_TRACE (BVBI_P_MCC_Enc_656_Program (
@@ -1842,7 +1842,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
     {
         eErr = BERR_TRACE (BVBI_P_SCTE_Enc_Program (
             pVbi->hReg,
-            BVBI_P_is656_isr(pVbi_Enc->eDest),
+            BVBI_P_is656_isrsafe(pVbi_Enc->eDest),
             hwCoreIndex[BVBI_P_EncCoreType_eSCTE],
             isActive,
             cnState->eVideoFormat,
@@ -1867,7 +1867,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
 #if (BVBI_NUM_ANCI656_656 > 0) /** { **/
     if (hwCoreIndex[BVBI_P_EncCoreType_eANCI] != 0xFF)
     {
-        if (BVBI_P_is656_isr (pVbi_Enc->eDest))
+        if (BVBI_P_is656_isrsafe (pVbi_Enc->eDest))
         {
             eErr = BERR_TRACE (BVBI_P_A656_Enc_Program (
                 pVbi->hReg,
@@ -2182,7 +2182,7 @@ static BERR_Code BVBI_P_Encode_Set_VBI(
     BDBG_OBJECT_ASSERT (pVbi_Enc, BVBI_ENC);
 
     /* Is VEC path for 656 out? */
-    bIs656 = BVBI_P_is656_isr (pVbi_Enc->eDest);
+    bIs656 = BVBI_P_is656_isrsafe (pVbi_Enc->eDest);
 
     /* Record change to desired state */
     if (bEnabled)
@@ -2286,7 +2286,7 @@ static BERR_Code BVBI_P_Encode_656_Set_VBI(
     BDBG_OBJECT_ASSERT (pVbi_Enc, BVBI_ENC);
 
     /* Is VEC path for 656 out? */
-    bIs656 = BVBI_P_is656_isr (pVbi_Enc->eDest);
+    bIs656 = BVBI_P_is656_isrsafe (pVbi_Enc->eDest);
 
     /* Record change to desired state */
     if (bEnabled)
@@ -2507,7 +2507,7 @@ static void BVBI_P_Encode_ChangesApplied (BVBI_P_Encode_Handle *pVbi_Enc)
 /***************************************************************************
  *
  */
-bool BVBI_P_is656_isr (BAVC_VbiPath eDest)
+bool BVBI_P_is656_isrsafe (BAVC_VbiPath eDest)
 {
     bool bIs656;
 

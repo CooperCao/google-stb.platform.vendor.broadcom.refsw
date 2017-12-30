@@ -96,7 +96,7 @@ typedef uint32_t BDSP_TIME_45KHZ_TICKS;
 Summary:
 Type for declaring dram offset variable
 ***************************************************************************/
-#if (BCHP_CHIP != 7278)
+#ifdef BDSP_32BIT_ARCH
 typedef uint32_t dramaddr_t;
 #define BDSP_MSG_FMT "0x%x"
 #define BDSP_MSG_ARG(x) (unsigned)(x)
@@ -104,7 +104,7 @@ typedef uint32_t dramaddr_t;
 typedef uint64_t dramaddr_t;
 #define BDSP_MSG_FMT BDBG_UINT64_FMT
 #define BDSP_MSG_ARG(x) BDBG_UINT64_ARG(x)
-#endif
+#endif/*BDSP_32BIT_ARCH*/
 /***************************************************************************
 Summary:
 Task Types
@@ -209,6 +209,21 @@ typedef enum BDSP_MMA_Alignment{
     BDSP_MMA_Alignment_Max,
     BDSP_MMA_Alignment_Invalid = 0x7FFFFFFF
 }BDSP_MMA_Alignment;
+
+/***************************************************************************
+Summary:
+    This enumeration defines various debug features that can be enabled in the firmware.
+
+***************************************************************************/
+typedef enum BDSP_DebugType
+{
+    BDSP_DebugType_eDramMsg = 0,
+    BDSP_DebugType_eUart,
+    BDSP_DebugType_eCoreDump,
+    BDSP_DebugType_eTargetPrintf,
+    BDSP_DebugType_eLast,
+    BDSP_DebugType_eInvalid = 0x7FFFFFFF
+} BDSP_DebugType;
 
 typedef struct BDSP_StageCreateSettings
 {

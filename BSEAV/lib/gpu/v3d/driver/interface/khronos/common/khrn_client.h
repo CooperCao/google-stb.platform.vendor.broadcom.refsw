@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-client side API
-=============================================================================*/
-#ifndef KHRN_CLIENT_H
-#define KHRN_CLIENT_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 typedef struct CLIENT_PROCESS_STATE CLIENT_PROCESS_STATE_T;
 typedef struct CLIENT_THREAD_STATE CLIENT_THREAD_STATE_T;
@@ -74,9 +66,6 @@ struct CLIENT_THREAD_STATE {
    */
 
    EGL_CURRENT_T opengl;
-#ifndef NO_OPENVG
-   EGL_CURRENT_T openvg;
-#endif /* NO_OPENVG */
 
    /*
       rpc stuff
@@ -145,6 +134,11 @@ static INLINE CLIENT_THREAD_STATE_T *CLIENT_GET_THREAD_STATE(void)
 struct CLIENT_PROCESS_STATE {
 
    /*
+    * EGL display this state belongs to
+    */
+   EGLDisplay display;
+
+   /*
    number of current contexts across all threads in this process. this is valid
    even if !inited
    */
@@ -162,6 +156,17 @@ struct CLIENT_PROCESS_STATE {
    Only client_process_state_init/client_process_state_term modify this value
    */
    bool inited;
+
+   /*
+   platform_inited
+
+   It specifies whether BEGL display platform has been initialised.
+   Initialisation happens in eglInitialise() but termination may be deferred
+   past the eglTerminate() if any thread still holds a current context.
+   Platform termination can happen in eglTerminate(), eglMakeCurrent(),
+   eglReleaseThread() or in the thread-local storage destructor.
+   */
+   bool platform_inited;
 
    /*
    contexts
@@ -270,64 +275,12 @@ EGL_SURFACE_T *client_egl_get_locked_surface(CLIENT_THREAD_STATE_T *thread, CLIE
    client state
 */
 
-#define CLIENT_MAKE_CURRENT_SIZE 36 /* RPC_CALL8 */
 extern void client_send_make_current(CLIENT_THREAD_STATE_T *thread);
 
-/*
-   big giant lock
-*/
-
-extern PLATFORM_MUTEX_T client_mutex;
-
-/*
-   CLIENT_LOCK()
-
-   Acquires EGL lock.
-
-   Implementation notes:
-
-   TODO make sure this gets reviewed
-
-   Preconditions:
-
-   TODO: check mutex hierarchy methodology
-   Mutex: >(MUTEX_EGL_LOCK)
-   Is being called from a function which _always_ subsequently calls CLIENT_UNLOCK()
-
-   Postconditions:
-
-   Mutex: (MUTEX_EGL_LOCK)
-   Thread owns EGL lock
-*/
-
-static INLINE void CLIENT_LOCK(void)
-{
-      platform_client_lock();
-}
-
-/*
-   CLIENT_UNLOCK()
-
-   Releases EGL lock.
-
-   Implementation notes:
-
-   TODO make sure this gets reviewed
-
-   Preconditions:
-
-   Mutex: (MUTEX_EGL_LOCK)
-   Thread owns EGL lock
-   Is being called from a function which has _always_ previously called CLIENT_LOCK()
-
-   Postconditions:
-   Mutex: >(MUTEX_EGL_LOCK)
-*/
-
-static INLINE void CLIENT_UNLOCK(void)
-{
-    platform_client_release();
-}
+/* BCG have not used these for locking since day 1.  Relying on these for
+   correct behavior is not recommended */
+static INLINE void CLIENT_LOCK(void) { }
+static INLINE void CLIENT_UNLOCK(void) { }
 
 /*
    bool CLIENT_LOCK_AND_GET_STATES(EGLDisplay dpy, CLIENT_THREAD_STATE_T **thread, CLIENT_PROCESS_STATE_T **process)
@@ -390,6 +343,4 @@ extern void client_process_detach(void);
 #ifdef BCG_MULTI_THREADED
 extern CLIENT_THREAD_STATE_T *client_lock_api(void);
 extern void client_unlock_api(void);
-#endif
-
 #endif

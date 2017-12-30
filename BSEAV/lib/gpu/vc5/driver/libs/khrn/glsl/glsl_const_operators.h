@@ -322,6 +322,13 @@ static inline const_value op_floattouint(const_value operand)
    return qpu_ftouz(operand, &carry);
 }
 
+static inline const_value op_isnan(const_value operand)
+{
+   int exponent = operand & (0xff << 23);
+   int mantissa = operand & ((1<<23) - 1);
+   return (exponent == (0xff << 23) && mantissa != 0);
+}
+
 static inline const_value op_floattoint_nearest(const_value operand)
 {
    bool carry; // ignored
@@ -371,7 +378,7 @@ static inline const_value op_clz(const_value ui) {
    if (ui == 0) return 32;
 
    unsigned ret = 0;
-   while (!(ui & 0x800000000)) {
+   while (!(ui & 0x80000000)) {
       ret++;
       ui <<= 1;
    }

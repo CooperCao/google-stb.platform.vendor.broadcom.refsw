@@ -14,7 +14,7 @@ LOG_DEFAULT_CAT("khrn_options")
 struct khrn_options khrn_options;
 static GFX_RAND_STATE_T random_wireframe_state;
 static GFX_RAND_STATE_T random_centroid_state;
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static GFX_RAND_STATE_T random_noperspective_state;
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -59,7 +59,7 @@ void khrn_init_options(void)
 #endif
 
 #if KHRN_DEBUG
-   khrn_options.no_gmp                       = gfx_options_bool("KHRN_NO_GMP", false);
+   khrn_options.no_gmp                       = gfx_options_bool("KHRN_NO_GMP", !IS_DEBUG);
    khrn_options.no_ubo_to_unif               = gfx_options_bool("KHRN_NO_UBO_TO_UNIF", false);
    khrn_options.save_crc_enabled             = gfx_options_bool("KHRN_SAVE_CRCS", false);
    khrn_options.autoclif_enabled             = gfx_options_bool("KHRN_AUTOCLIF", false);
@@ -68,10 +68,12 @@ void khrn_init_options(void)
    gfx_options_str("AUTOCLIF_PREFIX", "rec", khrn_options.autoclif_prefix, sizeof(khrn_options.autoclif_prefix));
    khrn_options.autoclif_bin_block_size      = gfx_options_uint32("AUTOCLIF_BIN_BLOCK_SIZE", 4 * 1024 * 1024);
    khrn_options.flush_after_draw             = gfx_options_bool("KHRN_FLUSH_AFTER_DRAW", false);
+   khrn_options.no_invalidate_fb             = gfx_options_bool("KHRN_NO_INVALIDATE_FB", false);
 #endif
                                                gfx_options_str(   "CHECKSUM_CAPTURE_FILENAME",     "",
                                                      khrn_options.checksum_capture_filename,
                                                      sizeof(khrn_options.checksum_capture_filename));
+   khrn_options.checksum_capture_data        = gfx_options_bool(  "CHECKSUM_CAPTURE_DATA",         true);
    khrn_options.checksum_start_buffer_index  = gfx_options_uint32("CHECKSUM_START_BUFFER_INDEX",   0);
    khrn_options.checksum_end_buffer_index    = gfx_options_uint32("CHECKSUM_END_BUFFER_INDEX",     UINT32_MAX);
 
@@ -88,7 +90,7 @@ void khrn_init_options(void)
    khrn_options.random_centroid              = gfx_options_bool(  "KHRN_RANDOM_CENTROID",          false);
    khrn_options.random_centroid_seed         = gfx_options_uint32("KHRN_RANDOM_CENTROID_SEED",     42);
 
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    khrn_options.force_noperspective          = gfx_options_bool(  "KHRN_FORCE_NOPERSPECTIVE",      false);
    khrn_options.random_noperspective         = gfx_options_bool(  "KHRN_RANDOM_NOPERSPECTIVE",     false);
    khrn_options.random_noperspective_seed    = gfx_options_uint32("KHRN_RANDOM_NOPERSPECTIVE_SEED",42);
@@ -111,7 +113,7 @@ void khrn_init_options(void)
       gfx_rand_init(&random_wireframe_state, khrn_options.random_wireframe_seed);
    if (khrn_options.random_centroid)
       gfx_rand_init(&random_centroid_state, khrn_options.random_centroid_seed);
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (khrn_options.random_noperspective)
       gfx_rand_init(&random_noperspective_state, khrn_options.random_noperspective_seed);
 #endif
@@ -154,7 +156,7 @@ bool khrn_options_make_centroid(void)
    return false;
 }
 
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 bool khrn_options_make_noperspective(void)
 {
    if (khrn_options.force_noperspective)

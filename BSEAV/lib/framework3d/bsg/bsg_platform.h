@@ -330,12 +330,14 @@ public:
       // This implementation is good for most platforms.
       virtual void InitializeContext(Context &context, const ApplicationOptions &options, EGLNativeWindowType nativeWindow)
       {
-         context.Initialize(options, nativeWindow);
+         EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+         context.Initialize(display, options, nativeWindow);
       }
 
       virtual void InitializeContext(Context &context, const ApplicationOptions &options, NativePixmap *nativePixmap)
       {
-         context.Initialize(options, nativePixmap);
+         EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+         context.Initialize(display, options, nativePixmap);
       }
    };
 

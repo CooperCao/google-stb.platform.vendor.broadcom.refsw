@@ -51,7 +51,9 @@ public:
     inline const T& cpuLocal() const {
         return instances[arm::smpCpuNum()];
     }
-
+    inline T& getInstance(int num) {
+        return instances[num];
+    }
 private:
     T instances[MAX_NUM_CPUS];
 };

@@ -249,7 +249,7 @@ bool TB_is_id_valid(TB_id_zipped zipped_id)
 #if NUM_CORES == 1 && NUM_SUBSYSTEMS == 1
     return (zipped_id & ~0x07) == 0 && (zipped_id & 0x07) <= TB_SERVICE_MAX;
 #else
-    return (zipped_id & ~0x0F) == 0 && (zipped_id & 0x0F) <= TB_SERVICE_MAX;
+    return (zipped_id & ~0x0F) == 0 && (zipped_id & 0x07) <= TB_SERVICE_MAX;
 #endif
 }
 

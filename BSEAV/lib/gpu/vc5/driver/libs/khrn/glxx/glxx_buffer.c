@@ -50,7 +50,7 @@ void glxx_buffer_enable(GLXX_BUFFER_T *buffer)
 void glxx_buffer_term(void *v, size_t size)
 {
    GLXX_BUFFER_T *buffer = (GLXX_BUFFER_T *)v;
-   vcos_unused(size);
+   unused(size);
 
    free(buffer->debug_label);
    buffer->debug_label = NULL;
@@ -102,16 +102,9 @@ bool glxx_buffer_data(GLXX_BUFFER_T *buffer, size_t size, const void *data, GLen
       // all done if size 0
       if (size > 0)
       {
-         size_t rounded_size = size;
-#if !V3D_HAS_LARGE_1D_TEXTURE
-         rounded_size = gfx_zround_up(size, GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES);
-         if (rounded_size < size)
-            return false;
-#endif
-
          // attempt to allocate new resource, or fail
          buffer->resource = khrn_resource_create(
-            rounded_size,
+            size,
             V3D_TMU_ML_ALIGN,
             GMEM_USAGE_V3D_RW,
             "GLXX_BUFFER_T.resource");

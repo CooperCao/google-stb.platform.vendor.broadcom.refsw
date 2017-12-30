@@ -22,7 +22,23 @@
 #include "glsl_dataflow.h"
 #include "glsl_symbol_table.h"
 
-#include "glsl_ast_print.h" /* For error message printing */
+#include "glsl_stringbuilder.h" /* For asprintf_fast */
+#include "glsl_ast_print.h"     /* For error message printing */
+
+SymbolType *glsl_symbol_type_construct_array(SymbolType *member, unsigned count) {
+   SymbolType *type                = malloc_fast(sizeof(SymbolType));
+   type->flavour                   = SYMBOL_ARRAY_TYPE;
+   type->scalar_count              = count * member->scalar_count;
+   type->u.array_type.member_type  = member;
+   type->u.array_type.member_count = count;
+
+   if (count != 0)
+      type->name = asprintf_fast("%s[%d]", member->name, type->u.array_type.member_count);
+   else
+      type->name = asprintf_fast("%s[]", member->name);
+
+   return type;
+}
 
 /* Returns whether two types are identical. Relies on canonicalness of types, so
    only works within a shader. */
@@ -383,7 +399,8 @@ bool glsl_type_contains(const SymbolType *t, PRIMITIVE_TYPE_FLAGS_T f) {
 }
 
 bool glsl_type_contains_opaque(const SymbolType *t) {
-   return glsl_type_contains(t, PRIM_IMAGE_TYPE | PRIM_SAMPLER_TYPE | PRIM_ATOMIC_TYPE);
+   return glsl_type_contains(t, PRIM_SAMP_IMAGE_TYPE | PRIM_STOR_IMAGE_TYPE | PRIM_COMB_SAMPLER_TYPE |
+                                PRIM_SAMPLER_TYPE | PRIM_ATOMIC_TYPE);
 }
 
 bool glsl_type_contains_array(const SymbolType *t) {
@@ -543,13 +560,14 @@ void glsl_symbol_construct_var_instance(Symbol *result, const char *name, Symbol
             }
          }
       }
-   } else if (q->sq == STORAGE_UNIFORM) {
-      //Fill in 'block_info' for uniform instance in default block:
+   } else if (q->sq == STORAGE_UNIFORM || (q->sq == STORAGE_IN && (! glsl_stdlib_is_stdlib_symbol(result) || result == glsl_stdlib_get_variable(GLSL_STDLIB_VAR__FLAT__IN__HIGHP__INT__GL_LAYER)))) {
+      //Fill in 'block_info' for instance in default block:
       result->u.var_instance.block_info_valid = true;
       result->u.var_instance.block_info.block_symbol = NULL;
       result->u.var_instance.block_info.layout = malloc_fast(sizeof(MemLayout));
 
-      glsl_mem_calculate_non_block_layout(result->u.var_instance.block_info.layout, type);
+      unsigned layout = (q->sq == STORAGE_IN || q->sq == STORAGE_OUT) ? ((q->sq == STORAGE_IN && g_ShaderFlavour == SHADER_VERTEX) ? MEM_STD140 : MEM_PACKED) : MEM_TMU_OPT;
+      glsl_mem_calculate_non_block_layout(result->u.var_instance.block_info.layout, type, layout);
    }
 }
 
@@ -594,32 +612,26 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol)
       if(!glsl_prim_is_opaque_type(&primitiveTypes[type_index]))
          scalar_values[i] = glsl_dataflow_construct_const_value(glsl_prim_index_to_df_type(type_index), 0);
       else {
-         if (glsl_prim_is_prim_sampler_type(&primitiveTypes[type_index])) {
-            PrimSamplerInfo *psi = glsl_prim_get_sampler_info(type_index);
-            PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
-            DataflowType type;
-            switch (ret_basic_type) {
-               case PRIM_FLOAT:    type = DF_F_SAMP_IMG; break;
-               case PRIM_INT:      type = DF_I_SAMP_IMG; break;
-               case PRIM_UINT:     type = DF_U_SAMP_IMG; break;
-               default: assert(0); type = DF_INVALID;    break;
-            }
-            scalar_values[i++] = glsl_dataflow_construct_const_image(type, -1, false);
-            scalar_values[i]   = glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, -1);
-         } else if (glsl_prim_is_prim_atomic_type(&primitiveTypes[type_index]))
-            scalar_values[i] = glsl_dataflow_construct_const_uint(0);
-         else {
+         if (glsl_prim_is_prim_texture_type(&primitiveTypes[type_index]) ||
+             glsl_prim_is_prim_image_type  (&primitiveTypes[type_index]) ||
+             glsl_prim_is_prim_comb_sampler_type(&primitiveTypes[type_index]))
+         {
             PrimSamplerInfo *psi = glsl_prim_get_image_info(type_index);
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
+            bool is_storage = glsl_prim_is_prim_image_type(&primitiveTypes[type_index]);
             DataflowType type;
             switch (ret_basic_type) {
-               case PRIM_FLOAT:    type = DF_F_STOR_IMG; break;
-               case PRIM_INT:      type = DF_I_STOR_IMG; break;
-               case PRIM_UINT:     type = DF_U_STOR_IMG; break;
+               case PRIM_FLOAT:    type = is_storage ? DF_F_STOR_IMG : DF_F_SAMP_IMG; break;
+               case PRIM_INT:      type = is_storage ? DF_I_STOR_IMG : DF_I_SAMP_IMG; break;
+               case PRIM_UINT:     type = is_storage ? DF_U_STOR_IMG : DF_U_SAMP_IMG; break;
                default: assert(0); type = DF_INVALID;    break;
             }
             scalar_values[i] = glsl_dataflow_construct_const_image(type, -1, false);
-         }
+            if (glsl_prim_is_prim_comb_sampler_type(&primitiveTypes[type_index])) {
+               scalar_values[++i]   = glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, -1);
+            }
+         } else if (glsl_prim_is_prim_atomic_type(&primitiveTypes[type_index]))
+            scalar_values[i] = glsl_dataflow_construct_const_uint(0);
       }
    }
    return scalar_values;

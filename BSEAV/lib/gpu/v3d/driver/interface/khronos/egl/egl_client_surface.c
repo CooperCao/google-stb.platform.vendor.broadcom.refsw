@@ -1,12 +1,13 @@
 /******************************************************************************
-*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_client_platform.h"
 #include "interface/khronos/egl/egl_client_surface.h"
 #include "interface/khronos/egl/egl_client_config.h"
 #include "interface/khronos/common/khrn_client.h"
 #include "interface/khronos/egl/egl_int_impl.h"
+#include "middleware/khronos/egl/egl_platform.h"
 
 #include <stdlib.h>
 
@@ -34,7 +35,7 @@ static struct
 
    We have a small static pool of structures (surface_pool) which we try and allocate out of
    in order to reduce memory fragmentation. When we have run out of space in the pool we
-   resort to khrn_platform_malloc.
+   resort to malloc.
 
    Preconditions:
 
@@ -61,7 +62,7 @@ static EGL_SURFACE_T* egl_surface_pool_alloc(void)
    }
    else
    {
-      return (EGL_SURFACE_T*)khrn_platform_malloc(sizeof(EGL_SURFACE_T), "EGL_SURFACE_T");
+      return (EGL_SURFACE_T*)malloc(sizeof(EGL_SURFACE_T));
    }
 }
 
@@ -75,36 +76,15 @@ static void egl_surface_pool_free(EGL_SURFACE_T* surface)
    }
    else
    {
-      khrn_platform_free((void*)surface);
+      free((void*)surface);
    }
 }
-
-/*
-   EGLBoolean egl_surface_check_attribs_window(const EGLint *attrib_list, EGLBoolean *linear, EGLBoolean *premult, EGLBoolean *single)
-
-   TODO: are we actually supposed to validate our parameters and generate an
-   error if they're wrong? I can't find an explicit mention in the spec about it.
-   (except for EGL_WIDTH and EGL_HEIGHT in pbuffer)
-
-   Preconditions:
-
-   type in {WINDOW, PBUFFER, PIXMAP}
-   attrib_list is NULL or a pointer to an EGL_NONE-terminated list of attribute/value pairs
-   linear, premult are NULL or valid pointers
-   If type == WINDOW then single is NULL or a valid pointer
-   If type == PBUFFER then width, height, largest_pbuffer, texture_format, texture_target, mipmap_texture are NULL or valid pointers
-
-   Postconditions:
-
-   -
-*/
 
 EGLint egl_surface_check_attribs(
    EGL_SURFACE_TYPE_T type,
    const EGLint *attrib_list,
    bool *linear,
    bool *premult,
-   bool *single,
    int *width,
    int *height,
    bool *largest_pbuffer,
@@ -114,6 +94,9 @@ EGLint egl_surface_check_attribs(
    bool *secure
    )
 {
+   UNUSED(linear);
+   UNUSED(premult);
+
    if (!attrib_list)
       return EGL_SUCCESS;
 
@@ -122,25 +105,20 @@ EGLint egl_surface_check_attribs(
       int value = *attrib_list++;
 
       switch (name) {
+
       case EGL_VG_COLORSPACE:
          if (value != EGL_VG_COLORSPACE_sRGB && value != EGL_VG_COLORSPACE_LINEAR)
             return EGL_BAD_ATTRIBUTE;
-         if (value == EGL_VG_COLORSPACE_LINEAR && linear != NULL)
-            *linear = true;
          break;
       case EGL_VG_ALPHA_FORMAT:
          if (value != EGL_VG_ALPHA_FORMAT_NONPRE && value != EGL_VG_ALPHA_FORMAT_PRE)
             return EGL_BAD_ATTRIBUTE;
-         if (value == EGL_VG_ALPHA_FORMAT_PRE && premult != NULL)
-            *premult = true;
          break;
 
       /* For WINDOW types only */
       case EGL_RENDER_BUFFER:
          if (type != WINDOW || (value != EGL_SINGLE_BUFFER && value != EGL_BACK_BUFFER))
             return EGL_BAD_ATTRIBUTE;
-         if (value == EGL_SINGLE_BUFFER && single != NULL)
-            *single = true;
          break;
 
       /* For PBUFFER types only */
@@ -201,41 +179,29 @@ EGL_SURFACE_T *egl_surface_create(
    EGL_SURFACE_TYPE_T type,
    EGL_SURFACE_COLORSPACE_T colorspace,
    EGL_SURFACE_ALPHAFORMAT_T alphaformat,
-   bool openvg,
    bool secure,
    uint32_t buffers,
    uint32_t width,
    uint32_t height,
-   uint32_t swapchainc,
    EGLConfig config,
    EGLNativeWindowType win,
-   uint32_t serverwin,
+   uintptr_t serverwin,
    bool largest_pbuffer,
    bool mipmap_texture,
    EGLenum texture_format,
    EGLenum texture_target,
-   EGLNativePixmapType pixmap,
-   const uint32_t *pixmap_server_handle)
+   EGLNativePixmapType pixmap)
 {
-   KHRN_IMAGE_FORMAT_T color;
-   KHRN_IMAGE_FORMAT_T depth;
-   KHRN_IMAGE_FORMAT_T mask;
-   KHRN_IMAGE_FORMAT_T multi;
-   uint32_t configid;
-   EGLint   config_depth_bits;
-   EGLint   config_stencil_bits;
-   CLIENT_GET_THREAD_STATE();
-
+   UNUSED(colorspace);
+   UNUSED(alphaformat);
    EGL_SURFACE_T *surface = egl_surface_pool_alloc();
 
-   vcos_assert(width > 0 && height > 0);
-   vcos_assert((width <= EGL_CONFIG_MAX_WIDTH && height <= EGL_CONFIG_MAX_HEIGHT) || largest_pbuffer);
+   assert((type == WINDOW) || (width > 0 && height > 0));
+   assert((type == PIXMAP) || (width <= EGL_CONFIG_MAX_WIDTH && height <= EGL_CONFIG_MAX_HEIGHT) || largest_pbuffer);
 
    if (!surface) {
       return 0;
    }
-
-   /* TODO: respect largest_pbuffer? */
 
    surface->name = name;
    surface->type = type;
@@ -245,14 +211,6 @@ EGL_SURFACE_T *egl_surface_create(
 
    surface->config = config;
    surface->win = win;
-   surface->width = width;
-   surface->height = height;
-   surface->swapchainc = swapchainc;
-
-   surface->base_width = width;
-   surface->base_height = height;
-
-   surface->internal_handle = serverwin;
 
    surface->largest_pbuffer = largest_pbuffer;
    surface->mipmap_texture = mipmap_texture;
@@ -260,8 +218,6 @@ EGL_SURFACE_T *egl_surface_create(
    surface->texture_format = texture_format;
    surface->texture_target = texture_target;
    surface->pixmap = pixmap;
-   surface->pixmap_server_handle[0] = 0;
-   surface->pixmap_server_handle[1] = (uint32_t)-1;
    surface->swap_behavior = EGL_BUFFER_DESTROYED;
    surface->multisample_resolve = EGL_MULTISAMPLE_RESOLVE_DEFAULT;
 
@@ -273,170 +229,68 @@ EGL_SURFACE_T *egl_surface_create(
    surface->mapped_buffer = 0;
 #endif
 
-   configid = egl_config_to_id(config);
-   color = egl_config_get_color_format(configid);
-   if (alphaformat == PRE)
-      color = khrn_image_to_premultiplied_format(color);
-   if (colorspace == LINEAR)
-      color = khrn_image_to_linear_format(color);
-   if (openvg)
-      color = khrn_image_to_openvg_format(color);
-
-   depth = egl_config_get_depth_format(configid);
-   mask = egl_config_get_mask_format(configid);
-   multi = egl_config_get_multisample_format(configid);
+   uint32_t configid = egl_config_to_id(config);
+   KHRN_IMAGE_FORMAT_T color = egl_config_get_color_format(configid);
+   KHRN_IMAGE_FORMAT_T depth = egl_config_get_depth_format(configid);
+   KHRN_IMAGE_FORMAT_T mask = egl_config_get_mask_format(configid);
+   KHRN_IMAGE_FORMAT_T multi = egl_config_get_multisample_format(configid);
 
    /* Find depth and stencil bits from chosen config (these may NOT be the same as the underlying format!) */
+   EGLint config_depth_bits, config_stencil_bits;
    egl_config_get_attrib(configid, EGL_DEPTH_SIZE, &config_depth_bits);
    egl_config_get_attrib(configid, EGL_STENCIL_SIZE, &config_stencil_bits);
 
-   vcos_assert(color != IMAGE_FORMAT_INVALID);
+   assert(color != IMAGE_FORMAT_INVALID);
 
    surface->buffers = buffers;
 
-   if (pixmap_server_handle) {
-      vcos_assert(type == PIXMAP);
-      surface->pixmap_server_handle[0] = pixmap_server_handle[0];
-      surface->pixmap_server_handle[1] = pixmap_server_handle[1];
-      surface->serverbuffer = eglIntCreateWrappedSurface_impl(pixmap_server_handle[0],
-                                                              pixmap_server_handle[1],
-                                                              depth,
-                                                              mask,
-                                                              multi,
-                                                              config_depth_bits,
-                                                              config_stencil_bits);
+   if (pixmap) {
+      assert(type == PIXMAP);
+      surface->serverbuffer = eglIntCreateWrappedSurface_impl(
+         (void *)pixmap,
+         depth,
+         mask,
+         multi,
+         config_depth_bits,
+         config_stencil_bits);
    } else {
-      uint32_t results[3];
-
-      eglIntCreateSurface_impl(serverwin,
-                               buffers,
-                               width,
-                               height,
-                               swapchainc,
-                               secure,
-                               color,
-                               depth,
-                               mask,
-                               multi,
-                               largest_pbuffer,
-                               mipmap_texture,
-                               config_depth_bits,
-                               config_stencil_bits,
-                               type,
-                               results);
-      surface->width = results[0];
-      surface->height = results[1];
-      surface->serverbuffer = results[2];
+      surface->serverbuffer = eglIntCreateSurface_impl(
+         serverwin,
+         buffers,
+         width,
+         height,
+         secure,
+         color,
+         depth,
+         mask,
+         multi,
+         mipmap_texture,
+         config_depth_bits,
+         config_stencil_bits,
+         type);
    }
 
-   if (surface->serverbuffer)
-      return surface;
-   else {
+   if (surface->serverbuffer) {
+      /* update dimensions */
+      uint32_t width, height;
+      if (eglIntBackBufferDims_impl(surface->serverbuffer, &width, &height)) {
+         surface->width = width;
+         surface->height = height;
+         surface->base_width = width;
+         surface->base_height = height;
+         return surface;
+      } else {
+         /* failed as image is not suitible as render target */
+         egl_surface_pool_free(surface);
+         return (EGL_SURFACE_T*)-1;
+      }
+   } else {
       /* Server failed to create a surface due to out-of-memory or
          we failed to create the named semaphore object. */
       egl_surface_pool_free(surface);
       return 0;
    }
 }
-
-#ifndef NO_OPENVG
-
-/* Either returns a valid EGL_SURFACE_T, or returns null and sets error appropriately */
-
-EGL_SURFACE_T *egl_surface_from_vg_image(
-   VGImage vg_handle,
-   EGLSurface name,
-   EGLConfig config,
-   EGLBoolean largest_pbuffer,
-   EGLBoolean mipmap_texture,
-   EGLenum texture_format,
-   EGLenum texture_target,
-   EGLint *error)
-{
-   KHRN_IMAGE_FORMAT_T color;
-   KHRN_IMAGE_FORMAT_T depth;
-   KHRN_IMAGE_FORMAT_T mask;
-   KHRN_IMAGE_FORMAT_T multi;
-   uint32_t configid;
-   EGLint   config_depth_bits;
-   EGLint   config_stencil_bits;
-   uint32_t results[5];
-   CLIENT_GET_THREAD_STATE();
-
-   EGL_SURFACE_T *surface = egl_surface_pool_alloc();
-
-   if (!surface) {
-      *error = EGL_BAD_ALLOC;
-      return 0;
-   }
-
-   /* TODO: respect largest_pbuffer? */
-
-   surface->name = name;
-   surface->type = PBUFFER;
-
-   surface->config = config;
-   surface->win = 0;
-
-   surface->largest_pbuffer = largest_pbuffer;
-   surface->mipmap_texture = mipmap_texture;
-   surface->mipmap_level = 0;
-   surface->texture_format = texture_format;
-   surface->texture_target = texture_target;
-   surface->pixmap = 0;
-   surface->pixmap_server_handle[0] = 0;
-   surface->pixmap_server_handle[1] = (uint32_t)-1;
-   surface->context_binding_count = 0;
-   surface->is_destroyed = false;
-
-#if EGL_KHR_lock_surface
-   surface->is_locked = false;
-   surface->mapped_buffer = 0;
-#endif
-
-   configid = egl_config_to_id(config);
-   color = egl_config_get_color_format(configid);
-   depth = egl_config_get_depth_format(configid);
-   mask = egl_config_get_mask_format(configid);
-   multi = egl_config_get_multisample_format(configid);
-
-   /* Find depth and stencil bits from chosen config (these may NOT be the same as the underlying format!) */
-   egl_config_get_attrib(configid, EGL_DEPTH_SIZE, &config_depth_bits);
-   egl_config_get_attrib(configid, EGL_STENCIL_SIZE, &config_stencil_bits);
-
-   vcos_assert(color != IMAGE_FORMAT_INVALID);
-
-   surface->buffers = 1;
-
-   eglIntCreatePbufferFromVGImage_impl(vg_handle,
-                                       color,
-                                       depth,
-                                       mask,
-                                       multi,
-                                       mipmap_texture,
-                                       config_depth_bits,
-                                       config_stencil_bits,
-                                       results);
-
-   if (results[0]) {
-      KHRN_IMAGE_FORMAT_T format = (KHRN_IMAGE_FORMAT_T)results[4];
-
-      surface->serverbuffer = results[0];
-      surface->width = results[2];
-      surface->height = results[3];
-
-      surface->colorspace = khrn_image_is_linear(format) ? LINEAR : SRGB;
-      surface->alphaformat = khrn_image_is_premultiplied(format) ? PRE : NONPRE;
-      *error = EGL_SUCCESS;
-      return surface;
-   } else {
-      *error = results[1];
-      egl_surface_pool_free(surface);
-      return 0;
-   }
-}
-
-#endif /* NO_OPENVG */
 
 /*
    void egl_surface_free(EGL_SURFACE_T *surface)
@@ -452,11 +306,6 @@ EGL_SURFACE_T *egl_surface_from_vg_image(
 
 void egl_surface_free(EGL_SURFACE_T *surface)
 {
-   CLIENT_GET_THREAD_STATE();
-
-   if( surface->type == WINDOW ) {
-      platform_destroy_winhandle( surface->win, surface->internal_handle );
-   }
    /* return value ignored -- read performed to ensure blocking. we want this to
     * block so clients can safely destroy the surface's window as soon as the
     * egl call that destroys the surface returns (usually eglDestroySurface, but
@@ -503,16 +352,7 @@ EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint 
       *value = (EGLint)(intptr_t)surface->config;
       return EGL_TRUE;
    case EGL_HEIGHT:
-#ifndef ANDROID
-      /* pixmaps don't have a win, so don't try and extract from the underlying window system */
-      if (surface->win)
-      {
-         CLIENT_PLATFORM_INFO_T client_info;
-         platform_get_info(surface->win, GI_HEIGHT, &client_info);
-         *value = client_info.height;
-      }
-      else
-#endif
+      if (!eglIntBackBufferDims_impl(surface->serverbuffer, NULL, value))
          *value = surface->height;
       return EGL_TRUE;
    case EGL_HORIZONTAL_RESOLUTION:
@@ -561,16 +401,7 @@ EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint 
          *value = surface->texture_target;
       return EGL_TRUE;
    case EGL_WIDTH:
-#ifndef ANDROID
-      /* pixmaps don't have a win, so don't try and extract from the underlying window system */
-      if (surface->win)
-      {
-         CLIENT_PLATFORM_INFO_T client_info;
-         platform_get_info(surface->win, GI_WIDTH, &client_info);
-         *value = client_info.width;
-      }
-      else
-#endif
+      if (!eglIntBackBufferDims_impl(surface->serverbuffer, value, NULL))
          *value = surface->width;
       return EGL_TRUE;
    default:
@@ -580,7 +411,6 @@ EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint 
 
 EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint value)
 {
-   CLIENT_GET_THREAD_STATE();
    switch (attrib) {
    case EGL_MIPMAP_LEVEL:
       /* If the value of pbuffer attribute EGL_TEXTURE_FORMAT is EGL_NO_TEXTURE,
@@ -632,7 +462,7 @@ EGLint egl_surface_get_mapped_buffer_attrib(EGL_SURFACE_T *surface, EGLint attri
    bool is565;
    uint32_t configid;
 
-   vcos_assert(surface);
+   assert(surface);
 
    configid = egl_config_to_id(surface->config);
 
@@ -649,7 +479,7 @@ EGLint egl_surface_get_mapped_buffer_attrib(EGL_SURFACE_T *surface, EGLint attri
          void *buffer;
          format = egl_config_get_mapped_format(configid); // type juggling to avoid pointer truncation warnings
          size = khrn_image_get_size(format, surface->width, surface->height);
-         buffer = khrn_platform_malloc(size, "EGL_SURFACE_T.mapped_buffer");
+         buffer = malloc(size);
 
          if (!buffer) {
             return EGL_BAD_ALLOC;
@@ -666,7 +496,7 @@ EGLint egl_surface_get_mapped_buffer_attrib(EGL_SURFACE_T *surface, EGLint attri
    }
 
    format = egl_config_get_mapped_format(configid);  // type juggling to avoid pointer truncation warnings
-   vcos_assert(format == RGB_565_RSO || format == ARGB_8888_RSO);
+   assert(format == RGB_565_RSO || format == ARGB_8888_RSO);
    is565 = (format == RGB_565_RSO);       // else 888
 
    switch (attrib) {
@@ -735,7 +565,7 @@ EGLint egl_surface_get_mapped_buffer_attrib(EGL_SURFACE_T *surface, EGLint attri
 
 void egl_surface_maybe_free(EGL_SURFACE_T *surface)
 {
-   vcos_assert(surface);
+   assert(surface);
 
    if (!surface->is_destroyed)
       return;

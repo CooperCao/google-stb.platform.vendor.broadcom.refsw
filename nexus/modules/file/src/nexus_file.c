@@ -152,6 +152,22 @@ err_args:
     return rc;
 }
 
+NEXUS_Error NEXUS_FilePlay_Lock_priv( NEXUS_FilePlayHandle file )
+{
+    if (file->locked) return NEXUS_NOT_AVAILABLE;
+    file->locked = true;
+    return NEXUS_SUCCESS;
+}
+
+void NEXUS_FilePlay_Unlock_priv( NEXUS_FilePlayHandle file )
+{
+    if (file->locked) {
+        file->locked = false;
+    }
+    else {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+}
 
 NEXUS_Error
 NEXUS_FilePlay_GetBounds(NEXUS_FilePlayHandle file, NEXUS_FilePosition *pFirst,  NEXUS_FilePosition *pLast)
@@ -167,6 +183,9 @@ NEXUS_FilePlay_GetBounds(NEXUS_FilePlayHandle file, NEXUS_FilePosition *pFirst, 
     BDBG_ASSERT(pFirst);
     BDBG_ASSERT(pLast);
 
+    rc = NEXUS_FilePlay_Lock_priv(file);
+    if (rc) {BERR_TRACE(rc); goto err_lock;}
+
     rc = NEXUS_P_FilePlay_OpenBcmPlayer(&bcm_player, &bp_info, file);
     if(rc!=NEXUS_SUCCESS) {goto err_player;}
 
@@ -179,6 +198,7 @@ NEXUS_FilePlay_GetBounds(NEXUS_FilePlayHandle file, NEXUS_FilePosition *pFirst, 
     NEXUS_P_FilePlay_ConvertPosition(bp_info.index_entrysize, &first, pFirst);
     NEXUS_P_FilePlay_ConvertPosition(bp_info.index_entrysize, &last, pLast);
     BNAV_Player_Close(bcm_player);
+    NEXUS_FilePlay_Unlock_priv(file);
     return NEXUS_SUCCESS;
 
 err_last:
@@ -186,6 +206,8 @@ err_first:
 err_bounds:
     BNAV_Player_Close(bcm_player);
 err_player:
+    NEXUS_FilePlay_Unlock_priv(file);
+err_lock:
     return rc;
 }
 
@@ -199,6 +221,9 @@ NEXUS_FilePlay_GetLocation( NEXUS_FilePlayHandle file, unsigned long timestamp, 
     long i_frame_index;
     BNAV_Player_Position i_frame_position;
     long index;
+
+    rc = NEXUS_FilePlay_Lock_priv(file);
+    if (rc) {BERR_TRACE(rc); goto err_lock;}
 
     rc = NEXUS_P_FilePlay_OpenBcmPlayer(&bcm_player, &bp_info, file);
     if(rc!=NEXUS_SUCCESS) {goto err_player;}
@@ -214,6 +239,7 @@ NEXUS_FilePlay_GetLocation( NEXUS_FilePlayHandle file, unsigned long timestamp, 
 
     NEXUS_P_FilePlay_ConvertPosition(bp_info.index_entrysize, &i_frame_position, pPosition);
     BNAV_Player_Close(bcm_player);
+    NEXUS_FilePlay_Unlock_priv(file);
     return NEXUS_SUCCESS;
 
 err_position_iframe:
@@ -221,6 +247,8 @@ err_find_iframe:
 err_find_index:
     BNAV_Player_Close(bcm_player);
 err_player:
+    NEXUS_FilePlay_Unlock_priv(file);
+err_lock:
     return rc;
 }
 

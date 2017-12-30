@@ -36,14 +36,16 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-# include default defines
-include default.inc
-
-# directories and files
-TZ_IMG := tz
+# build env
+TZ_TOP := ..
+TZ_MOD := kernel
+TZ_IMG := kernel
 TZ_LIB := libkernel
 
-MODULE_DIRS := \
+include $(TZ_TOP)/build/build_env.mk
+
+# build src
+SUBMOD_DIRS := \
 	arch/$(ARCH_DIR) \
 	arch/$(ARCH_DIR)/timer \
 	arch/$(ARCH_DIR)/gic \
@@ -52,6 +54,7 @@ MODULE_DIRS := \
 	memory \
 	memory/arch/$(ARCH_DIR) \
 	interrupts \
+	interrupts/arch/$(ARCH_DIR) \
 	process \
 	process/arch/$(ARCH_DIR) \
 	ramfs \
@@ -64,49 +67,22 @@ MODULE_DIRS := \
 	crypto \
 	platform/$(TZ_PLATFORM) \
 	tz_kernel_libc \
+	tz_kernel_libc/arch/$(ARCH_DIR) \
 	3rd_party/libfdt \
-	console
+	console \
 
-SRC_DIRS := $(MODULE_DIRS)
-INC_DIRS := $(MODULE_DIRS)
-BIN_DIRS := $(addprefix $(B_REFSW_OBJ_ROOT)/bin/,$(MODULE_DIRS))
+SRC_DIRS := $(SUBMOD_DIRS)
+INC_DIRS := $(SUBMOD_DIRS)
+BIN_DIRS := $(addprefix $(TZ_OBJ_DIR)/,$(SUBMOD_DIRS))
 
-SOURCES_ASM-$(CFG_ARM32_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a32.S))
-SOURCES_ASM-$(CFG_ARM64_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a64.S))
-OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM-y))
-DEPS        := $(patsubst %.S,%.d,$(SOURCES_ASM-y))
-
-SOURCES_C   := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.c))
-OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
-DEPS        += $(patsubst %.c,%.d,$(SOURCES_C))
-
-SOURCES_CPP := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
-OBJS        += $(patsubst %.cpp,%.o,$(SOURCES_CPP))
-DEPS        += $(patsubst %.cpp,%.d,$(SOURCES_CPP))
-
+ifeq ($(MAKECMDGOALS),$(TZ_IMG))
 # use local init module (to build image)
-INIT_DIRS := init
+SRC_DIRS += init
 INC_DIRS += init
-BIN_DIRS += $(B_REFSW_OBJ_ROOT)/bin/init
+BIN_DIRS += $(TZ_OBJ_DIR)/init
+endif
 
-INIT_SOURCES_ASM-$(CFG_ARM32_core) := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*_a32.S))
-INIT_SOURCES_ASM-$(CFG_ARM64_core) := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*_a64.S))
-INIT_OBJS        := $(patsubst %.S,%.o,$(INIT_SOURCES_ASM-y))
-INIT_DEPS        := $(patsubst %.S,%.d,$(INIT_SOURCES_ASM-y))
-
-INIT_SOURCES_C   := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*.c))
-INIT_OBJS        += $(patsubst %.c,%.o,$(INIT_SOURCES_C))
-INIT_DEPS        += $(patsubst %.c,%.d,$(INIT_SOURCES_C))
-
-INIT_SOURCES_CPP := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*.cpp))
-INIT_OBJS        += $(patsubst %.cpp,%.o,$(INIT_SOURCES_CPP))
-INIT_DEPS        += $(patsubst %.cpp,%.d,$(INIT_SOURCES_CPP))
-
-# Create out of build (OOB) objects
-OOB_OBJS			:= $(patsubst %.o, $(B_REFSW_OBJ_ROOT)/bin/%.o,$(OBJS))
-OOB_DEPS			:= $(patsubst %.d, $(B_REFSW_OBJ_ROOT)/bin/%.d,$(DEPS))
-OOB_INIT_OBJS		:= $(patsubst %.o, $(B_REFSW_OBJ_ROOT)/bin/%.o,$(INIT_OBJS))
-OOB_INIT_DEPS		:= $(patsubst %.d, $(B_REFSW_OBJ_ROOT)/bin/%.d,$(INIT_DEPS))
+include $(TZ_TOP)/build/build_src.mk
 
 # build flags
 DEPENDFLAGS := -MD -MP
@@ -117,7 +93,7 @@ INCLUDES    += -Iinclude/arm
 INCLUDES    += -Iapi
 INCLUDES    += -Iapi/arch/$(ARCH_DIR)
 INCLUDES    += -I3rd_party/libfdt
-INCLUDES    += -I$(TZ_DIR)/common/include
+INCLUDES    += -I$(TZ_TOP)/common/include
 INCLUDES    += -Iarch/$(ARCH_DIR)/include
 INCLUDES    += -Iplatform/$(TZ_PLATFORM)
 INCLUDES    += -I platform/$(TZ_PLATFORM)/include
@@ -159,37 +135,30 @@ WARNFLAGS   += -Werror
 
 OSFLAGS     := -D__TZOS__
 
-ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
+ifneq (n,$(BL31))
+KFLAGS      := -DLEGACY_BL31
+endif
+
+ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS) $(KFLAGS)
 ASFLAGS     += -g -D__ASSEMBLY__
 
-CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
+CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS) $(KFLAGS)
 CFLAGS      += $(BASEFLAGS) $(WARNFLAGS)
 CFLAGS      += -std=gnu99 -Wimplicit-function-declaration
 
-CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
+CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS) $(KFLAGS)
 CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS)
 CPPFLAGS    += -std=c++11 -D__EXCEPTIONS=0
 CPPFLAGS    += -fno-rtti -fno-exceptions -fno-use-cxa-atexit
 
-vpath %.S   $(SRC_DIRS) $(INIT_DIRS)
-vpath %.c   $(SRC_DIRS) $(INIT_DIRS)
-vpath %.cpp $(SRC_DIRS) $(INIT_DIRS)
-
-define make-goal
-$1/%.o: %.c
-	$(TZ_ARMGNU)-gcc $(CFLAGS) -c $$< -o $$@
-$1/%.o: %.S
-	$(TZ_ARMGNU)-gcc $(ASFLAGS) -c $$< -o $$@
-$1/%.o: %.cpp
-	$(TZ_ARMGNU)-g++ $(CPPFLAGS) -c $$< -o $$@
-endef
-
 # build rules
-.PHONY: checkplatform checkdirs $(TZ_IMG)
+.PHONY: checkplatform checkdirs $(TZ_LIB) $(TZ_IMG)
 
-all: checkplatform checkdirs $(TZ_IMG)
+all: $(TZ_LIB)
 
--include $(OOB_DEPS) $(OOB_INIT_DEPS)
+$(TZ_LIB): checkplatform checkdirs $(TZ_OBJ_DIR)/$(TZ_LIB).a
+
+$(TZ_IMG): checkplatform checkdirs $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 
 checkplatform:
 	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
@@ -197,45 +166,40 @@ checkplatform:
 checkdirs: $(BIN_DIRS)
 
 $(BIN_DIRS):
-	mkdir -p $@
+	@mkdir -p $@
 
-$(TZ_IMG): $(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).bin
+$(TZ_OBJ_DIR)/$(TZ_LIB).a: $(OBJS)
+	$(TZ_ARMGNU)-ar -cr $@ $(OBJS)
 
-$(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).bin: $(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).elf
-	$(TZ_ARMGNU)-objcopy $(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).elf -O binary $(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).bin
+$(TZ_OBJ_DIR)/$(TZ_IMG).bin: $(TZ_OBJ_DIR)/$(TZ_IMG).elf
+	$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 
-$(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).elf: $(B_REFSW_OBJ_ROOT)/bin/$(TZ_LIB).a $(OOB_INIT_OBJS) link_$(ARCH)_tz.ld
-	$(TZ_ARMGNU)-g++ -nostartfiles -static $(OOB_INIT_OBJS) $(B_REFSW_OBJ_ROOT)/bin/$(TZ_LIB).a -Tlink_$(ARCH)_tz.ld -o $@
-
-$(B_REFSW_OBJ_ROOT)/bin/$(TZ_LIB).a: $(OOB_OBJS)
-	$(TZ_ARMGNU)-ar -cr $@ $(OOB_OBJS)
+$(TZ_OBJ_DIR)/$(TZ_IMG).elf: $(OBJS) link_$(ARCH)_tz.ld
+	$(TZ_ARMGNU)-g++ -nostartfiles -static $(OBJS) -Tlink_$(ARCH)_tz.ld -o $@
 
 clean:
-	$(RM) -r $(B_REFSW_OBJ_ROOT)/bin
+	$(RM) -r $(TZ_OBJ_DIR)
 
-.PHONY:unit_tests
+include $(TZ_TOP)/build/build_rules.mk
 
-unit_tests:
-	$(MAKE) -C unittests/cpuload
-	$(MAKE) -C unittests/fs_userspace
-	$(MAKE) -C unittests/memory
-	$(MAKE) -C unittests/musl_userspace
-	$(MAKE) -C unittests/pthread
-	$(MAKE) -C unittests/ramfs
-	$(MAKE) -C unittests/signals
+.PHONY: unittests clean_unittests
+
+unittests:
 	$(MAKE) -C unittests/timer
+	$(MAKE) -C unittests/memory
+	$(MAKE) -C unittests/ramfs
+	$(MAKE) -C unittests/musl
+	$(MAKE) -C unittests/signals
+	$(MAKE) -C unittests/pthread
+	$(MAKE) -C unittests/fs
 	$(MAKE) -C unittests/userspace
 
-clean_unit_tests:
-	$(MAKE) -C unittests/cpuload clean
-	$(MAKE) -C unittests/fs_userspace clean
-	$(MAKE) -C unittests/memory clean
-	$(MAKE) -C unittests/musl_userspace clean
-	$(MAKE) -C unittests/pthread clean
-	$(MAKE) -C unittests/ramfs clean
-	$(MAKE) -C unittests/signals clean
+clean_unittests:
 	$(MAKE) -C unittests/timer clean
+	$(MAKE) -C unittests/memory clean
+	$(MAKE) -C unittests/ramfs clean
+	$(MAKE) -C unittests/musl clean
+	$(MAKE) -C unittests/signals clean
+	$(MAKE) -C unittests/pthread clean
+	$(MAKE) -C unittests/fs clean
 	$(MAKE) -C unittests/userspace clean
-
-
-$(foreach bdir,$(BIN_DIRS),$(eval $(call make-goal,$(bdir))))

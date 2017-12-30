@@ -102,6 +102,7 @@ typedef struct NEXUS_Graphicsv3dInfo
 {
    uint32_t    uiIdent[NEXUS_GRAPHICSV3D_MAX_CORES * NEXUS_GRAPHICSV3D_MAX_IDENTS];
    uint32_t    uiHubIdent[NEXUS_GRAPHICSV3D_MAX_HUB_IDENTS];
+   uint32_t    uiDDRMapVer;
 } NEXUS_Graphicsv3dInfo;
 
 typedef enum NEXUS_Graphicsv3dJobType
@@ -219,6 +220,7 @@ typedef struct NEXUS_Graphicsv3dJobBin
    uint32_t                            uiOffset;
    uint32_t                            uiFlags;
    uint32_t                            uiMinInitialBinBlockSize;
+   uint32_t                            uiTileStateSize;
 } NEXUS_Graphicsv3dJobBin;
 
 /**

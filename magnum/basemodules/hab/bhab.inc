@@ -100,7 +100,7 @@ BCHP_45308_VER := B0
 endif
 
 ifeq ($(BCHP_45316_VER),)
-BCHP_45316_VER := B0
+BCHP_45316_VER := A0
 endif
 
 BHAB_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_312X_VER)")}')

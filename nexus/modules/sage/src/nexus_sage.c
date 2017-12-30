@@ -42,6 +42,9 @@
 #include "berr.h"
 #include "bkni.h"
 
+#include "blst_list.h"
+#include "blst_squeue.h"
+
 #include "nexus_sage.h"
 #include "bsagelib.h"
 #include "bsagelib_client.h"
@@ -50,9 +53,19 @@
 
 BDBG_MODULE(nexus_sage);
 
+#define SAGE_INDICATION_CONTEXT_INC_SIZE 16
+
+/* a cache of indication context is used accross all instances/channels */
+#define NEXUS_SAGE_INDICATION_CONTEXT_CACHE_INC 24
+#define NEXUS_SAGE_INDICATION_CONTEXT_CACHE_LOW (NEXUS_SAGE_INDICATION_CONTEXT_CACHE_INC/3)
+
 /* Internal global context */
 static struct NEXUS_Sage_P_State {
     int init;               /* init flag. 0 if module is not yet initialized. */
+
+    /* cache of context to use for indications accross all channels */
+    NEXUS_SageIndicationQueueHead indicationsCache;
+    uint32_t indicationsCacheCount;
 } g_sage;
 
 /*
@@ -81,28 +94,67 @@ static void NEXUS_Sage_P_Finalizer(NEXUS_SageHandle sage);
 static void NEXUS_SageChannel_P_Finalizer(NEXUS_SageChannelHandle channel);
 static void NEXUS_Sage_P_ResponseCallback_isr(
     BSAGElib_RpcRemoteHandle handle, void *async_argument, uint32_t async_id, BERR_Code error);
+static void NEXUS_Sage_P_IndicationRecvCallback_isr(
+    BSAGElib_RpcRemoteHandle handle, void *async_argument, uint32_t id, uint32_t value);
 static BERR_Code NEXUS_Sage_P_CallbackRequestCallback_isr(
     BSAGElib_RpcRemoteHandle handle, void *async_argument);
 static void NEXUS_Sage_P_TATerminateCallback_isr(
     BSAGElib_RpcRemoteHandle handle, void *async_argument, uint32_t reason, uint32_t source);
+static NEXUS_Error NEXUS_Sage_P_IndicationContextCacheInc(void);
 
 
 /*
  * Public API
  */
 
+
 /* semi-private : called from nexus_sage_module */
 void NEXUS_Sage_P_Cleanup(void)
 {
     if (g_sage.init) {
-        g_sage.init = 0;
+        NEXUS_SageIndicationContext *pIndicationContext = NULL;
+        /* empty the indication context cache */
+        while ((pIndicationContext = BLST_SQ_FIRST(&g_sage.indicationsCache)) != NULL) {
+            BDBG_ASSERT(g_sage.indicationsCacheCount);
+            BLST_SQ_REMOVE_HEAD(&g_sage.indicationsCache, link);
+            g_sage.indicationsCacheCount--;
+            BKNI_Free(pIndicationContext);
+        }
     }
+
+    g_sage.init = 0;
 }
 
 /* semi-private : called from nexus_sage_module */
 void NEXUS_Sage_P_Init(void)
 {
     BKNI_Memset(&g_sage, 0, sizeof(g_sage));
+
+    BLST_SQ_INIT(&g_sage.indicationsCache);
+}
+
+
+static NEXUS_Error NEXUS_Sage_P_IndicationContextCacheInc(void)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    unsigned i;
+    if (g_sage.indicationsCacheCount <= NEXUS_SAGE_INDICATION_CONTEXT_CACHE_LOW) {
+        for (i = 0; i < NEXUS_SAGE_INDICATION_CONTEXT_CACHE_INC; i++) {
+            NEXUS_SageIndicationContext *pIndicationContext = BKNI_Malloc(sizeof(*pIndicationContext));
+            if (pIndicationContext == NULL) {
+                BDBG_ERR(("OOM? Cannot allocate indication context (%u bytes).",
+                          (unsigned)sizeof(*pIndicationContext)));
+                rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+                goto end;
+            }
+            BKNI_EnterCriticalSection();
+            BLST_SQ_INSERT_HEAD(&g_sage.indicationsCache, pIndicationContext, link);
+            g_sage.indicationsCacheCount++;
+            BKNI_LeaveCriticalSection();
+        }
+    }
+end:
+    return rc;
 }
 
 /* BSAGElib_Rpc_ResponseCallback prototypeCallback, see bsagelib.h */
@@ -115,7 +167,7 @@ static void NEXUS_Sage_P_ResponseCallback_isr(
     BSTD_UNUSED(async_id);
 
     if (!channel) {
-        BDBG_ERR(("%s: retreived channel is NULL", BSTD_FUNCTION));
+        BDBG_ERR(("%s: retrieved channel is NULL", BSTD_FUNCTION));
         return;
     }
 
@@ -129,6 +181,50 @@ static void NEXUS_Sage_P_ResponseCallback_isr(
     }
 }
 
+static void NEXUS_Sage_P_IndicationRecvCallback_isr(
+    BSAGElib_RpcRemoteHandle handle, void *async_argument, uint32_t id, uint32_t value)
+{
+    NEXUS_SageChannelHandle channel = (NEXUS_SageChannelHandle)async_argument;
+    NEXUS_SageIndicationContext *pIndicationContext = NULL;
+
+    BSTD_UNUSED(handle);
+
+    if (!channel) {
+        BDBG_ERR(("%s: retrieved channel is NULL", BSTD_FUNCTION));
+        return;
+    }
+
+    if (channel->indicationCallback == NULL) {
+        BDBG_ERR(("%s: No callback, channel=%p, remote=%p - indication [id=0x%x, value=0x%x] is lost",
+                  BSTD_FUNCTION, (void *)channel, (void *)handle, id, value));
+        return;
+    }
+
+    pIndicationContext = BLST_SQ_FIRST(&g_sage.indicationsCache);
+    if (pIndicationContext == NULL) {
+        BDBG_ERR(("%s: indication overflow! no more context available", BSTD_FUNCTION));
+        BDBG_ERR(("%s: channel=%p, handle=%p - indication [id=0x%x, value=0x%x] is lost",
+                  BSTD_FUNCTION, (void *)channel, (void *)handle, id, value));
+        return;
+    }
+
+    BDBG_ASSERT(g_sage.indicationsCacheCount);
+
+    /* remove it from the cache  */
+    BLST_SQ_REMOVE_HEAD(&g_sage.indicationsCache, link);
+    g_sage.indicationsCacheCount--;
+
+    /* set to received values */
+    pIndicationContext->id = id;
+    pIndicationContext->value = value;
+
+    /* place it inside the channel queue */
+    BLST_SQ_INSERT_HEAD(&channel->indications, pIndicationContext, link);
+
+    /* fire the callback to indicate application layer that an indication is available */
+    NEXUS_IsrCallback_Fire_isr(channel->indicationCallback);
+}
+
 static BERR_Code NEXUS_Sage_P_CallbackRequestCallback_isr(
     BSAGElib_RpcRemoteHandle handle, void *async_argument)
 {
@@ -138,7 +234,7 @@ static BERR_Code NEXUS_Sage_P_CallbackRequestCallback_isr(
     BSTD_UNUSED(handle);
 
     if (!channel) {
-        BDBG_ERR(("%s: retreived channel is NULL", BSTD_FUNCTION));
+        BDBG_ERR(("%s: retrieved channel is NULL", BSTD_FUNCTION));
         rc = BSAGE_ERR_INTERNAL;
         goto end;
     }
@@ -173,7 +269,7 @@ static void NEXUS_Sage_P_TATerminateCallback_isr(
     BSTD_UNUSED(source);
 
     if (!channel) {
-        BDBG_ERR(("%s: retreived channel is NULL", BSTD_FUNCTION));
+        BDBG_ERR(("%s: retrieved channel is NULL", BSTD_FUNCTION));
         goto end;
     }
 
@@ -248,6 +344,10 @@ NEXUS_SageHandle NEXUS_Sage_Open(
 
     BLST_D_INIT(&sage->channels);
 
+    /* populate context cache if required */
+    rc = NEXUS_Sage_P_IndicationContextCacheInc();
+    if (rc != NEXUS_SUCCESS) { goto end; }
+
     /* Nexus Sage is also a SAGElib client. */
     {
         BSAGElib_ClientSettings SAGElibClientSettings;
@@ -257,6 +357,7 @@ NEXUS_SageHandle NEXUS_Sage_Open(
         SAGElibClientSettings.i_rpc.response_isr = NEXUS_Sage_P_ResponseCallback_isr;
         SAGElibClientSettings.i_rpc.callbackRequest_isr = NEXUS_Sage_P_CallbackRequestCallback_isr;
         SAGElibClientSettings.i_rpc.taTerminate_isr = NEXUS_Sage_P_TATerminateCallback_isr;
+        SAGElibClientSettings.i_rpc.indicationRecv_isr = NEXUS_Sage_P_IndicationRecvCallback_isr;
         SAGElib_rc = BSAGElib_OpenClient(g_NEXUS_sageModule.hSAGElib,
                                          &sage->hSAGElibClient,
                                          &SAGElibClientSettings);
@@ -330,6 +431,7 @@ void NEXUS_SageChannel_GetDefaultSettings(
     NEXUS_CallbackDesc_Init(&pSettings->errorCallback);
     NEXUS_CallbackDesc_Init(&pSettings->callbackRequestRecvCallback);
     NEXUS_CallbackDesc_Init(&pSettings->taTerminateCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->indicationCallback);
 }
 
 /* Create a channel on a sage instance */
@@ -420,10 +522,23 @@ NEXUS_SageChannelHandle NEXUS_Sage_CreateChannel(
         NEXUS_IsrCallback_Set(channel->callbackRequestRecvCallback, &pSettings->callbackRequestRecvCallback);
     }
 
+    if (pSettings->indicationCallback.callback) {
+        NEXUS_Callback_GetDefaultSettings(&callbackSettings);
+        channel->indicationCallback = NEXUS_IsrCallback_Create(channel, &callbackSettings);
+        if (channel->indicationCallback == NULL) {
+            BDBG_ERR(("NEXUS_IsrCallback_Create failure for indicationCallback"));
+            (void)BERR_TRACE(NEXUS_OS_ERROR);
+            goto end;
+        }
+        NEXUS_IsrCallback_Set(channel->indicationCallback, &pSettings->indicationCallback);
+    }
+
     channel->sage = sage;
     /* Acquire Sage instance will strengthen Channel <- -> Sage dependency:
      * Sage instance cannot be destroyed until any channel remain */
     NEXUS_OBJECT_ACQUIRE(channel, NEXUS_Sage, channel->sage);
+
+    BLST_SQ_INIT(&channel->indications);
 
     /* insert head in order to act as a LIFO for garbage management */
     BKNI_EnterCriticalSection();
@@ -459,6 +574,19 @@ static void NEXUS_SageChannel_P_Finalizer(NEXUS_SageChannelHandle channel)
 
     BKNI_EnterCriticalSection();
     BLST_D_REMOVE(&channel->sage->channels, channel, link);
+
+    /* remove any pending indication
+       keep the critical section because we are accessing the indicationsCache */
+    {
+        NEXUS_SageIndicationContext *pIndicationContext = NULL;
+        while ((pIndicationContext = BLST_SQ_FIRST(&channel->indications)) != NULL) {
+            /* place it back inside the cache */
+            BLST_SQ_REMOVE_HEAD(&channel->indications, link);
+            BLST_SQ_INSERT_HEAD(&g_sage.indicationsCache, pIndicationContext, link);
+            g_sage.indicationsCacheCount++;
+        }
+    }
+
     BKNI_LeaveCriticalSection();
 
     if (channel->sagelib_remote) {
@@ -479,6 +607,9 @@ static void NEXUS_SageChannel_P_Finalizer(NEXUS_SageChannelHandle channel)
     }
     if (channel->callbackRequestRecvCallback) {
         NEXUS_IsrCallback_Destroy(channel->callbackRequestRecvCallback);
+    }
+    if (channel->indicationCallback) {
+        NEXUS_IsrCallback_Destroy(channel->indicationCallback);
     }
 
     /* channel context is zeroed in NEXUS_OBJECT_DESTROY */
@@ -679,4 +810,44 @@ NEXUS_Error NEXUS_SageChannel_SendResponse(
 end:
     BDBG_LEAVE(NEXUS_SageChannel_SendResponse);
     return ret;
+}
+
+NEXUS_Error NEXUS_SageChannel_GetNextIndication(
+    NEXUS_SageChannelHandle channel,
+    uint32_t *pId,
+    uint32_t *pValue)
+{
+    NEXUS_Error rc = NEXUS_NOT_AVAILABLE;
+    NEXUS_SageIndicationContext *pIndicationContext = NULL;
+
+    NEXUS_OBJECT_ASSERT(NEXUS_SageChannel, channel);
+    BDBG_ASSERT(pId && pValue);
+
+    /* pop first (oldest) element of the Queue */
+    /* those queues are accessed from an ISR, use critical section */
+    BKNI_EnterCriticalSection();
+
+    pIndicationContext = BLST_SQ_FIRST(&channel->indications);
+    if (pIndicationContext) {
+        *pId = pIndicationContext->id;
+        *pValue = pIndicationContext->value;
+        /* remove it from the channel queue */
+        BLST_SQ_REMOVE_HEAD(&channel->indications, link);
+        /* place it back inside the cache
+           HEAD/TAIL doesn't matter for the cache */
+        BLST_SQ_INSERT_HEAD(&g_sage.indicationsCache, pIndicationContext, link);
+        g_sage.indicationsCacheCount++;
+        rc = NEXUS_SUCCESS;
+    }
+
+    BKNI_LeaveCriticalSection();
+
+  /*  BDBG_ERR(("Returning Indication %d %d",*pId, *pValue ));*/
+    /* populate context cache if required
+       ! do not overwrite rc */
+    if (NEXUS_Sage_P_IndicationContextCacheInc() != NEXUS_SUCCESS) {
+        BDBG_WRN(("Cannot increase context cache as required (OOM?)"));
+    }
+
+    return rc;
 }

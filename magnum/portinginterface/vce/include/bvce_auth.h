@@ -39,13 +39,6 @@
 #ifndef BVCE_AUTH_H_
 #define BVCE_AUTH_H_
 
-#include "bstd.h"
-#include "berr.h"
-
-#include "bimg.h"
-#include "bvce_image.h"
-#include "bvce_fw_api_common.h"
-
 BERR_Code
 BVCE_DumpImage(
    unsigned uiFirmwareId,

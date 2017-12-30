@@ -129,9 +129,9 @@ typedef struct BAPE_DolbyDigitalReencodeSettings
     BAPE_DualMonoMode                   dualMonoMode;   /* Dual Mono Processing Mode */
 
     /* MDA configuration */
-    unsigned encoderDeviceIndex;
     bool encoderMixerRequired;
     bool encoderTaskRequired;
+    unsigned encoderDeviceIndex;                        /* Only used if encoderTaskRequired = true. */
 } BAPE_DolbyDigitalReencodeSettings;
 
 /***************************************************************************

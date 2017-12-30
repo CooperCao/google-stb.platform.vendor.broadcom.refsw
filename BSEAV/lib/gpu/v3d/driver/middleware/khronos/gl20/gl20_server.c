@@ -1,31 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 2.0 state machine.
-=============================================================================*/
-/*
-   Khronos spec bugs/ambiguity:
-
-   The following sentence makes no sense:
-   "If texture is not zero,
-   then texture must either name an existing texture object with an target of textarget,
-   or texture must name an existing cube map texture and textarget must
-   be one of: TEXTURE CUBE MAP POSITIVE X, TEXTURE CUBE MAP POSITIVE Y,
-   TEXTURE CUBE MAP POSITIVE Z, TEXTURE CUBE MAP NEGATIVE X,
-   TEXTURE CUBE MAP NEGATIVE Y, or TEXTURE CUBE MAP NEGATIVE Z. Otherwise,
-   INVALID OPERATION is generated."
-
-   I assume it means:
-   "If texture is not zero,
-   then texture must either name an existing 2d texture and textarget must be TEXTURE_2D,
-   or [as before]"
-*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/glxx/glxx_shared.h"
 
@@ -53,21 +28,19 @@ static int get_uniform_internal(GLuint p, GLint location, const void *v, GLboole
 static const char *lock_shader_info_log(GL20_SHADER_T *shader);
 static void unlock_shader_info_log(GL20_SHADER_T *shader);
 
-
-
-bool gl20_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, uint64_t pid, MEM_HANDLE_T shared)
+bool gl20_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDLE_T shared)
 {
    state->type = OPENGL_ES_20;
 
    //initialise common portions of state
-   if(!glxx_server_state_init(state, name, pid, shared))
+   if(!glxx_server_state_init(state, name, shared))
       return false;
 
    //gl 2.0 specific parts
 
    glxx_tweaker_init(&state->tweak_state, true);
 
-   vcos_assert(state->mh_program == MEM_INVALID_HANDLE);
+   assert(state->mh_program == MEM_HANDLE_INVALID);
 
    state->point_size = 1.0f;
 
@@ -88,12 +61,6 @@ void glPointSize_impl_20 (GLfloat size) // S
    GL20_UNLOCK_SERVER_STATE();
 }
 
-
-////
-
-
-
-
 /*
    Get a program pointer from a program name. Optionally retrieve
    the handle to the memory block storing the program structure.
@@ -108,7 +75,7 @@ static GL20_PROGRAM_T *get_program(GLXX_SERVER_STATE_T *state, GLuint p, MEM_HAN
    MEM_HANDLE_T phandle = glxx_shared_get_pobject((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), p);
    mem_unlock(state->mh_shared);
 
-   if (phandle == MEM_INVALID_HANDLE) {
+   if (phandle == MEM_HANDLE_INVALID) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
       return NULL;
@@ -116,10 +83,10 @@ static GL20_PROGRAM_T *get_program(GLXX_SERVER_STATE_T *state, GLuint p, MEM_HAN
 
    program = (GL20_PROGRAM_T *)mem_lock(phandle, NULL);
 
-   vcos_assert(program);
+   assert(program);
 
    if (!gl20_is_program(program)) {
-      vcos_assert(gl20_is_shader((GL20_SHADER_T *)program));
+      assert(gl20_is_shader((GL20_SHADER_T *)program));
 
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
 
@@ -148,7 +115,7 @@ static GL20_SHADER_T *get_shader(GLXX_SERVER_STATE_T *state, GLuint s, MEM_HANDL
    MEM_HANDLE_T shandle = glxx_shared_get_pobject((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), s);
    mem_unlock(state->mh_shared);
 
-   if (shandle == MEM_INVALID_HANDLE) {
+   if (shandle == MEM_HANDLE_INVALID) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
       return NULL;
@@ -156,10 +123,10 @@ static GL20_SHADER_T *get_shader(GLXX_SERVER_STATE_T *state, GLuint s, MEM_HANDL
 
    shader = (GL20_SHADER_T *)mem_lock(shandle, NULL);
 
-   vcos_assert(shader);
+   assert(shader);
 
    if (!gl20_is_shader(shader)) {
-      vcos_assert(gl20_is_program((GL20_PROGRAM_T *)shader));
+      assert(gl20_is_program((GL20_PROGRAM_T *)shader));
 
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
 
@@ -195,7 +162,7 @@ void glAttachShader_impl_20 (GLuint p, GLuint s)
 
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
 
-   vcos_assert(state);
+   assert(state);
 
    program = get_program(state, p, &phandle);
 
@@ -218,7 +185,7 @@ void glAttachShader_impl_20 (GLuint p, GLuint s)
             break;
          }
 
-         if (*pmh_shader != MEM_INVALID_HANDLE)
+         if (*pmh_shader != MEM_HANDLE_INVALID)
             glxx_server_state_set_error(state, GL_INVALID_OPERATION);
          else {
             gl20_shader_acquire(shader);
@@ -238,6 +205,7 @@ void glAttachShader_impl_20 (GLuint p, GLuint s)
 void glBindAttribLocation_impl_20 (GLuint p, GLuint index, const char *name)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   if (!state) return;
 
    if (name)
    {
@@ -388,8 +356,6 @@ GLuint glCreateShader_impl_20 (GLenum type)
    return result;
 }
 
-
-
 static void try_delete_shader(GLXX_SHARED_T *shared, GL20_SHADER_T *shader)
 {
    if (shader->refs == 0 && shader->deleted)
@@ -398,14 +364,14 @@ static void try_delete_shader(GLXX_SHARED_T *shared, GL20_SHADER_T *shader)
 
 static void release_shader(GLXX_SHARED_T *shared, MEM_HANDLE_T handle)
 {
-   if (handle != MEM_INVALID_HANDLE) {
+   if (handle != MEM_HANDLE_INVALID) {
       GL20_SHADER_T *shader;
 
       mem_acquire(handle);
 
       shader = (GL20_SHADER_T *)mem_lock(handle, NULL);
 
-      vcos_assert(gl20_is_shader(shader));
+      assert(gl20_is_shader(shader));
 
       gl20_shader_release(shader);
 
@@ -428,14 +394,14 @@ static void try_delete_program(GLXX_SHARED_T *shared, GL20_PROGRAM_T *program)
 
 static void release_program(GLXX_SHARED_T *shared, MEM_HANDLE_T handle)
 {
-   if (handle != MEM_INVALID_HANDLE) {
+   if (handle != MEM_HANDLE_INVALID) {
       GL20_PROGRAM_T *program;
 
       mem_acquire(handle);
 
       program = (GL20_PROGRAM_T *)mem_lock(handle, NULL);
 
-      vcos_assert(gl20_is_program(program));
+      assert(gl20_is_program(program));
 
       gl20_program_release(program);
 
@@ -467,7 +433,7 @@ void glDeleteProgram_impl_20 (GLuint p)
    if (p) {
       MEM_HANDLE_T handle = glxx_shared_get_pobject(shared, p);
 
-      if (handle != MEM_INVALID_HANDLE) {
+      if (handle != MEM_HANDLE_INVALID) {
          GL20_PROGRAM_T *program;
 
          /* wait to make sure noone is using the buffer */
@@ -516,7 +482,7 @@ void glDeleteShader_impl_20 (GLuint s)
    if (s) {
       MEM_HANDLE_T handle = glxx_shared_get_pobject(shared, s);
 
-      if (handle != MEM_INVALID_HANDLE) {
+      if (handle != MEM_HANDLE_INVALID) {
          GL20_SHADER_T *shader;
 
          mem_acquire(handle);
@@ -524,7 +490,7 @@ void glDeleteShader_impl_20 (GLuint s)
          shader = (GL20_SHADER_T *)mem_lock(handle, NULL);
 
          if (gl20_is_shader(shader)) {
-            shader->deleted = GL_TRUE;
+            shader->deleted = true;
 
             try_delete_shader(shared, shader);
          } else
@@ -561,7 +527,7 @@ void glDetachShader_impl_20 (GLuint p, GLuint s)
 
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
 
-   vcos_assert(state);
+   assert(state);
 
    program = get_program(state, p, &phandle);
 
@@ -592,7 +558,7 @@ void glDetachShader_impl_20 (GLuint p, GLuint s)
             try_delete_shader((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), shader);
             mem_unlock(state->mh_shared);
 
-            MEM_ASSIGN(*pmh_shader, MEM_INVALID_HANDLE);
+            MEM_ASSIGN(*pmh_shader, MEM_HANDLE_INVALID);
          }
 
          mem_unlock(shandle);
@@ -660,55 +626,37 @@ static size_t strzncpy(char *dst, const char *src, size_t len)
 
 void glGetActiveAttrib_impl_20 (GLuint p, GLuint index, GLsizei buf_len, GLsizei *length, GLint *size, GLenum *type, char *buf_ptr)
 {
-   MEM_HANDLE_T phandle;
-   GL20_PROGRAM_T *program;
-
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   if (!state) return;
 
-   vcos_assert(state);
+   MEM_HANDLE_T phandle;
+   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
 
-   program = get_program(state, p, &phandle);
+   if (program == NULL) goto end;       /* get_shader will have set error */
 
-   if (program) {
-      uint32_t count = mem_get_size(program->mh_attrib_info) / sizeof(GL20_ATTRIB_INFO_T);
-
-      vcos_assert(mem_get_size(program->mh_attrib_info) % sizeof(GL20_ATTRIB_INFO_T) == 0);
-
-      if (index < count) {
-         const char *name_ptr;
-#ifndef NDEBUG
-         int32_t name_len;
-#endif
-         size_t chars;
-
-         GL20_ATTRIB_INFO_T *base = (GL20_ATTRIB_INFO_T *)mem_lock(program->mh_attrib_info, NULL);
-         vcos_assert(base);
-
-         name_ptr = (const char *)mem_lock(base[index].mh_name, NULL);
-#ifndef NDEBUG
-         name_len = mem_get_size(base[index].mh_name);
-         vcos_assert(name_ptr);
-         vcos_assert(name_len > 0);
-         vcos_assert(strlen(name_ptr) == (size_t)(name_len - 1));
-         mem_unlock(base[index].mh_name);
-#endif
-
-         chars = strzncpy(buf_ptr, name_ptr, buf_len);
-
-         if (length)
-            *length = (GLsizei)chars;
-         if (size)
-            *size = 1;        // no array or structure attributes
-         if (type)
-            *type = base[index].type;
-
-         mem_unlock(program->mh_attrib_info);
-      } else
-         glxx_server_state_set_error(state, GL_INVALID_VALUE);
-
+   if (index >= program->num_attributes) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
       mem_unlock(phandle);
+      goto end;
    }
 
+   if (buf_len < 0) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      mem_unlock(phandle);
+      goto end;
+   }
+
+   GL20_ATTRIB_INFO_T *base = program->attributes;
+
+   size_t chars = strzncpy(buf_ptr, base[index].name, buf_len);
+
+   if (length) *length = (GLsizei)chars;
+   if (size) *size = 1;        // no array or structure attributes
+   if (type) *type = base[index].type;
+
+   mem_unlock(phandle);
+
+end:
    GL20_UNLOCK_SERVER_STATE();
 }
 
@@ -727,62 +675,38 @@ void glGetActiveAttrib_impl_20 (GLuint p, GLuint index, GLsizei buf_len, GLsizei
 
 void glGetActiveUniform_impl_20 (GLuint p, GLuint index, GLsizei buf_len, GLsizei *length, GLint *size, GLenum *type, char *buf_ptr)
 {
-   MEM_HANDLE_T phandle;
-   GL20_PROGRAM_T *program;
-
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   if (!state) return;
 
-   vcos_assert(state);
+   MEM_HANDLE_T phandle;
+   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
 
-   program = get_program(state, p, &phandle);
+   if (program == NULL) goto end;
 
-   if (program) {
-      uint32_t count = mem_get_size(program->mh_uniform_info) / sizeof(GL20_UNIFORM_INFO_T);
-
-      vcos_assert(mem_get_size(program->mh_uniform_info) % sizeof(GL20_UNIFORM_INFO_T) == 0);
-
-      if (index < count) {
-         const char *name_ptr;
-#ifndef NDEBUG
-         int32_t name_len;
-#endif
-         size_t chars;
-
-         GL20_UNIFORM_INFO_T *base = (GL20_UNIFORM_INFO_T *)mem_lock(program->mh_uniform_info, NULL);
-         vcos_assert(base);
-
-         name_ptr = (const char *)mem_lock(base[index].mh_name, NULL);
-#ifndef NDEBUG
-         name_len = mem_get_size(base[index].mh_name);
-         vcos_assert(name_ptr);
-         vcos_assert(name_len > 0);
-         vcos_assert(strlen(name_ptr) == (size_t)(name_len - 1));
-         mem_unlock(base[index].mh_name);
-#endif
-
-         chars = strzncpy(buf_ptr, name_ptr, buf_len);
-         /* if its an array, append [0] onto the result */
-         if (((int)chars > 0) && (base[index].is_array))
-         {
-            strncat(buf_ptr, "[0]", strlen(buf_ptr));
-            /* recalculate the length */
-            chars = strlen(buf_ptr);
-         }
-
-         if (length)
-            *length = ((int)chars > 0) ? (GLsizei)chars : 0;
-         if (size)
-            *size = base[index].size;
-         if (type)
-            *type = base[index].type;
-
-         mem_unlock(program->mh_uniform_info);
-      } else
-         glxx_server_state_set_error(state, GL_INVALID_VALUE);
-
+   if (index >= program->num_uniforms) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
       mem_unlock(phandle);
+      goto end;
    }
 
+   GL20_UNIFORM_INFO_T *base = program->uniforms;
+   assert(base);
+
+   size_t chars = strzncpy(buf_ptr, base[index].name, buf_len);
+   /* if its an array, append [0] onto the result */
+   if (((int)chars > 0) && (base[index].is_array))
+   {
+      strncat(buf_ptr, "[0]", strlen(buf_ptr));
+      /* recalculate the length */
+      chars = strlen(buf_ptr);
+   }
+
+   if (length) *length = ((int)chars > 0) ? (GLsizei)chars : 0;
+   if (size) *size = base[index].size;
+   if (type) *type = base[index].type;
+
+   mem_unlock(phandle);
+end:
    GL20_UNLOCK_SERVER_STATE();
 }
 
@@ -802,7 +726,7 @@ void glGetAttachedShaders_impl_20 (GLuint p, GLsizei maxcount, GLsizei *pcount, 
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
 
-   vcos_assert(state);
+   assert(state);
 
    if (maxcount >= 0) {
       MEM_HANDLE_T phandle;
@@ -813,7 +737,7 @@ void glGetAttachedShaders_impl_20 (GLuint p, GLsizei maxcount, GLsizei *pcount, 
 
          if (shaders) {
             if (maxcount > 0) {
-               if (program->mh_vertex != MEM_INVALID_HANDLE) {
+               if (program->mh_vertex != MEM_HANDLE_INVALID) {
                   GL20_SHADER_T *vertex = (GL20_SHADER_T *)mem_lock(program->mh_vertex, NULL);
 
                   shaders[count++] = vertex->name;
@@ -824,7 +748,7 @@ void glGetAttachedShaders_impl_20 (GLuint p, GLsizei maxcount, GLsizei *pcount, 
             }
 
             if (maxcount > 0) {
-               if (program->mh_fragment != MEM_INVALID_HANDLE) {
+               if (program->mh_fragment != MEM_HANDLE_INVALID) {
                   GL20_SHADER_T *fragment = (GL20_SHADER_T *)mem_lock(program->mh_fragment, NULL);
 
                   shaders[count++] = fragment->name;
@@ -850,42 +774,38 @@ void glGetAttachedShaders_impl_20 (GLuint p, GLsizei maxcount, GLsizei *pcount, 
 int glGetAttribLocation_impl_20 (GLuint p, const char *name)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-
-   MEM_HANDLE_T phandle;
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   if (!state) return 0;
 
    int result = -1;
+   MEM_HANDLE_T phandle;
+   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   if (program == NULL) goto end;
 
-   if (program) {
-      if (name)
-      {
-         if (program->linked) {
-            uint32_t i;
-            GL20_ATTRIB_INFO_T *base = (GL20_ATTRIB_INFO_T *)mem_lock(program->mh_attrib_info, NULL);
-            uint32_t count = mem_get_size(program->mh_attrib_info) / sizeof(GL20_ATTRIB_INFO_T);
-
-            for (i = 0; i < count; i++) {
-               int b = strcmp((char *)mem_lock(base[i].mh_name, NULL), name);
-               mem_unlock(base[i].mh_name);
-
-               vcos_assert((base[i].offset & 3) == 0);
-
-               if (!b) {
-                  result = base[i].offset >> 2;
-                  break;
-               }
-            }
-
-            mem_unlock(program->mh_attrib_info);
-         } else
-            glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      }
-
+   if (name == NULL) {
       mem_unlock(phandle);
+      goto end;
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   if (!program->linked) {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      mem_unlock(phandle);
+      goto end;
+   }
 
+   for (unsigned i = 0; i < program->num_attributes; i++) {
+      GL20_ATTRIB_INFO_T *base = program->attributes;
+      int b = strcmp(base[i].name, name);
+      assert((base[i].offset & 3) == 0);
+      if (!b) {
+         result = base[i].offset >> 2;
+         break;
+      }
+   }
+
+   mem_unlock(phandle);
+
+end:
+   GL20_UNLOCK_SERVER_STATE();
    return result;
 }
 
@@ -931,34 +851,30 @@ int glGetProgramiv_impl_20 (GLuint p, GLenum pname, GLint *params)
          result = 1;
          break;
       case GL_ATTACHED_SHADERS:
-         params[0] = (program->mh_vertex != MEM_INVALID_HANDLE) + (program->mh_fragment != MEM_INVALID_HANDLE);
+         params[0] = (program->mh_vertex != MEM_HANDLE_INVALID) + (program->mh_fragment != MEM_HANDLE_INVALID);
          result = 1;
          break;
       case GL_INFO_LOG_LENGTH:
-      {
-         params[0] = mem_get_size(program->mh_info);
+         if (program->info_log == NULL)
+            params[0] = 0;
+         else
+            params[0] = strlen(program->info_log) + 1;
          result = 1;
          break;
-      }
       case GL_ACTIVE_UNIFORMS:
-         vcos_assert(mem_get_size(program->mh_uniform_info) % sizeof(GL20_UNIFORM_INFO_T) == 0);
-
-         params[0] = mem_get_size(program->mh_uniform_info) / sizeof(GL20_UNIFORM_INFO_T);
+         params[0] = program->num_uniforms;
          result = 1;
          break;
       case GL_ACTIVE_UNIFORM_MAX_LENGTH:
       {
-         uint32_t max = 0;
-         uint32_t i;
+         GL20_UNIFORM_INFO_T *base = program->uniforms;
+         unsigned count = program->num_uniforms;
 
-         GL20_UNIFORM_INFO_T *base = (GL20_UNIFORM_INFO_T *)mem_lock(program->mh_uniform_info, NULL);
-         uint32_t count = mem_get_size(program->mh_uniform_info) / sizeof(GL20_UNIFORM_INFO_T);
+         assert(base != NULL || count == 0);
 
-         vcos_assert(base != 0 || count == 0);
-         vcos_assert(mem_get_size(program->mh_uniform_info) % sizeof(GL20_UNIFORM_INFO_T) == 0);
-
-         for (i = 0; i < count; i++) {
-            uint32_t size = mem_get_size(base[i].mh_name);
+         size_t max = 0;
+         for (unsigned i = 0; i < count; i++) {
+            uint32_t size = strlen(base[i].name) + 1;
             /* if the element is an array it needs [0] appending to it */
             if (base[i].is_array)
                size += 3;
@@ -966,39 +882,26 @@ int glGetProgramiv_impl_20 (GLuint p, GLenum pname, GLint *params)
             if (size > max)
                max = size;
          }
-
-         mem_unlock(program->mh_uniform_info);
-
          params[0] = max;
          result = 1;
          break;
       }
       case GL_ACTIVE_ATTRIBUTES:
-         vcos_assert(mem_get_size(program->mh_attrib_info) % sizeof(GL20_ATTRIB_INFO_T) == 0);
-
-         params[0] = mem_get_size(program->mh_attrib_info) / sizeof(GL20_ATTRIB_INFO_T);
+         params[0] = program->num_attributes;
          result = 1;
          break;
       case GL_ACTIVE_ATTRIBUTE_MAX_LENGTH:
       {
-         uint32_t max = 0;
-         uint32_t i;
-
-         GL20_ATTRIB_INFO_T *base = (GL20_ATTRIB_INFO_T *)mem_lock(program->mh_attrib_info, NULL);
-         uint32_t count = mem_get_size(program->mh_attrib_info) / sizeof(GL20_ATTRIB_INFO_T);
-
-         vcos_assert(base != 0 || count == 0);
-         vcos_assert(mem_get_size(program->mh_attrib_info) % sizeof(GL20_ATTRIB_INFO_T) == 0);
-
-         for (i = 0; i < count; i++) {
-            uint32_t size = mem_get_size(base[i].mh_name);
+         size_t max = 0;
+         GL20_ATTRIB_INFO_T *base = program->attributes;
+         unsigned count = program->num_attributes;
+         assert(base != NULL || count == 0);
+         for (unsigned i = 0; i < count; i++) {
+            size_t size = strlen(base[i].name) + 1;
 
             if (size > max)
                max = size;
          }
-
-         mem_unlock(program->mh_attrib_info);
-
          params[0] = max;
          result = 1;
          break;
@@ -1021,24 +924,28 @@ int glGetProgramiv_impl_20 (GLuint p, GLenum pname, GLint *params)
 void glGetProgramInfoLog_impl_20 (GLuint p, GLsizei bufsize, GLsizei *length, char *infolog)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   if (!state) return;
 
-   if (bufsize >= 0) {
-      MEM_HANDLE_T phandle;
-      GL20_PROGRAM_T * program = get_program(state, p, &phandle);
-
-      if (program) {
-         size_t chars = strzncpy(infolog, (const char *)mem_lock(program->mh_info, NULL), bufsize);
-         mem_unlock(program->mh_info);
-
-         if (length)
-            *length = _max(0, (GLsizei)chars);
-
-         mem_unlock(phandle);
-      }
-   }
-   else
+   if (bufsize < 0) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
 
+   MEM_HANDLE_T phandle;
+   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+
+   if (program == NULL) goto end;
+
+   size_t chars = 0;
+   if (program->info_log != NULL)
+      chars = strzncpy(infolog, program->info_log, bufsize);
+
+   if (length)
+      *length = _max(0, (GLsizei)chars);
+
+   mem_unlock(phandle);
+
+end:
    GL20_UNLOCK_SERVER_STATE();
 }
 
@@ -1056,7 +963,7 @@ static int32_t get_uniform_length(const char *name)
 {
    int32_t len;
 
-   vcos_assert(name);
+   assert(name);
 
    len = (int32_t)strlen(name);
 
@@ -1080,12 +987,12 @@ static int32_t get_uniform_offset(const char *name, int32_t pos)
    int32_t len;
    int32_t off = 0;
 
-   vcos_assert(name);
-   vcos_assert(pos >= 0);
+   assert(name);
+   assert(pos >= 0);
 
    len = (int32_t)strlen(name);
 
-   vcos_assert(pos <= len);
+   assert(pos <= len);
 
    if (pos < len) {
       if (name[pos++] != '[')
@@ -1134,54 +1041,50 @@ static void location_decode_index(GL20_UNIFORM_INFO_T *info, int32_t count, GLin
 int glGetUniformLocation_impl_20 (GLuint p, const char *name)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   if (!state) return -1;
 
    MEM_HANDLE_T phandle;
-
    GL20_PROGRAM_T *program = get_program(state, p, &phandle);
 
    int result = -1;
 
-   if (program) {
-      if (program->linked) {
-         int32_t len, off;
+   if (program == NULL) goto end;
 
-         len = get_uniform_length(name);
-         if (len > 0)
-            off = get_uniform_offset(name, len);
-         else
-            off = -1;
-
-         if (off >= 0) {
-            uint32_t i;
-            GL20_UNIFORM_INFO_T *base = (GL20_UNIFORM_INFO_T *)mem_lock(program->mh_uniform_info, NULL);
-            uint32_t count = mem_get_size(program->mh_uniform_info) / sizeof(GL20_UNIFORM_INFO_T);
-
-            //if there are no uniforms, program->mh_uniform_info will point to a zero sized handle
-            //so base == 0
-            vcos_assert(base || count == 0);
-            vcos_assert(mem_get_size(program->mh_uniform_info) % sizeof(GL20_UNIFORM_INFO_T) == 0);
-
-            for (i = 0; i < count; i++) {
-               const char *curr = (const char *)mem_lock(base[i].mh_name, NULL);
-               int b = (strlen(curr) == (size_t)len) && !strncmp(curr, name, len) && (off < base[i].size);
-               mem_unlock(base[i].mh_name);
-
-               if (b) {
-                  result = encode_location(base[i].offset, off);
-                  break;
-               }
-            }
-
-            mem_unlock(program->mh_uniform_info);
-         }
-      } else
-         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-
+   if (!program->linked) {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       mem_unlock(phandle);
+      goto end;
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   int32_t off;
+   int32_t len = get_uniform_length(name);
+   if (len > 0)
+      off = get_uniform_offset(name, len);
+   else
+      off = -1;
 
+   if (off >= 0) {
+      GL20_UNIFORM_INFO_T *base = program->uniforms;
+      unsigned count = program->num_uniforms;
+
+      //if there are no uniforms, program->mh_uniform_info will point to a zero sized handle
+      //so base == 0
+      assert(base != NULL || count == 0);
+
+      for (unsigned i = 0; i < count; i++) {
+         const char *curr = base[i].name;
+         int b = (strlen(curr) == (size_t)len) && !strncmp(curr, name, len) && (off < base[i].size);
+
+         if (b) {
+            result = encode_location(base[i].offset, off);
+            break;
+         }
+      }
+   }
+
+   mem_unlock(phandle);
+end:
+   GL20_UNLOCK_SERVER_STATE();
    return result;
 }
 /*
@@ -1221,7 +1124,7 @@ GLboolean glIsProgram_impl_20 (GLuint p)
    MEM_HANDLE_T handle = glxx_shared_get_pobject((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), p);
    mem_unlock(state->mh_shared);
 
-   if (handle == MEM_INVALID_HANDLE)
+   if (handle == MEM_HANDLE_INVALID)
       result = GL_FALSE;
    else {
       result = gl20_is_program((GL20_PROGRAM_T *)mem_lock(handle, NULL));
@@ -1252,7 +1155,7 @@ GLboolean glIsShader_impl_20 (GLuint s)
    MEM_HANDLE_T handle = glxx_shared_get_pobject((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), s);
    mem_unlock(state->mh_shared);
 
-   if (handle == MEM_INVALID_HANDLE)
+   if (handle == MEM_HANDLE_INVALID)
       result = GL_FALSE;
    else {
       result = gl20_is_shader((GL20_SHADER_T *)mem_lock(handle, NULL));
@@ -1361,140 +1264,138 @@ static GLboolean is_compatible_uniform(GL20_UNIFORM_INFO_T *info, GLint stride, 
 static void uniformv_internal(GLint location, GLsizei num, const void *v, GLint stride, GLboolean is_float, GLboolean is_matrix)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   if (!state) return;
 
    if (location == -1) {
       // check the program object
-      if (state->mh_program == MEM_INVALID_HANDLE) {
+      if (state->mh_program == MEM_HANDLE_INVALID) {
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       }
-      // silently do nothing
-   } else if (state->mh_program != MEM_INVALID_HANDLE) {
-      GL20_PROGRAM_T *program = (GL20_PROGRAM_T *)mem_lock(state->mh_program, NULL);
+      goto end;
+   }
 
-      if (program->linked) {
-         int32_t index, offset;
-         uint32_t coercion = 0;
-         uint32_t numTimesStride;
-         GL20_UNIFORM_INFO_T *info = (GL20_UNIFORM_INFO_T *)mem_lock(program->mh_uniform_info, NULL);
-         int32_t count = mem_get_size(program->mh_uniform_info) / sizeof(GL20_UNIFORM_INFO_T);
-
-         vcos_assert(mem_get_size(program->mh_uniform_info) % sizeof(GL20_UNIFORM_INFO_T) == 0);
-
-         location_decode_index(info, count, location, &index, &offset);
-
-         if ((index >= 0) &&
-             (index < count) &&
-             (offset >= 0) &&
-             (offset < info[index].size) &&
-             ((info[index].is_array) || (num == 1)) &&
-             is_compatible_uniform(&info[index], stride, is_float, is_matrix, &coercion)) {
-            uint32_t i;
-            GLint *datain;
-            GLint *data = (GLint *)mem_lock(program->mh_uniform_data, NULL);
-
-            vcos_assert(data);
-
-            if (offset + num > info[index].size)
-               num = info[index].size - offset;
-
-            data += info[index].offset + offset * stride;
-            datain = (GLint*)v;
-
-            numTimesStride = num * stride;
-
-            switch (coercion)
-            {
-            case COERCE_ID:
-               for (i = 0; i < numTimesStride; i++)
-                  *(data++) = *(datain++);
-               break;
-            case COERCE_INT_TO_FLOAT:
-               //TODO: is it acceptable to lose precision by converting ints to floats?
-               for (i = 0; i < numTimesStride; i++)
-                  *(float*)(data++) = (float)*(datain++);
-               break;
-            case COERCE_INT_TO_BOOL:
-               for (i = 0; i < numTimesStride; i++)
-                  *(data++) = *(datain++) ? 1 : 0;
-               break;
-            case COERCE_FLOAT_TO_BOOL:
-               for (i = 0; i < numTimesStride; i++)
-                  *(data++) = (*(float*)(datain++) != 0.0f) ? 1 : 0;
-               break;
-            default:
-               //Unreachable
-               UNREACHABLE();
-            }
-
-            mem_unlock(program->mh_uniform_data);
-         } else {
-            glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-         }
-
-         mem_unlock(program->mh_uniform_info);
-      } else {
-         UNREACHABLE();
-         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      }
-
-      mem_unlock(state->mh_program);
-   } else
+   if (state->mh_program == MEM_HANDLE_INVALID) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      goto end;
+   }
 
+   GL20_PROGRAM_T *program = (GL20_PROGRAM_T *)mem_lock(state->mh_program, NULL);
+
+   if (!program->linked) {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      mem_unlock(state->mh_program);
+      goto end;
+   }
+
+   int32_t index, offset;
+   uint32_t coercion = 0;
+   GL20_UNIFORM_INFO_T *info = program->uniforms;
+   int count = program->num_uniforms;
+
+   location_decode_index(info, count, location, &index, &offset);
+
+   if ((index < 0) ||
+       (index >= count) ||
+       (offset < 0) ||
+       (offset >= info[index].size) ||
+       !((info[index].is_array) || (num == 1)) ||
+      !is_compatible_uniform(&info[index], stride, is_float, is_matrix, &coercion))
+   {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      mem_unlock(state->mh_program);
+      goto end;
+   }
+
+   GLint *dst = program->uniform_data;
+   assert(dst);
+
+   if (offset + num > info[index].size)
+      num = info[index].size - offset;
+
+   dst += info[index].offset + offset * stride;
+   GLint *src = (GLint*)v;
+
+   switch (coercion)
+   {
+   case COERCE_ID:
+      for (int i = 0; i < (num * stride); i++)
+         *(dst++) = *(src++);
+      break;
+   case COERCE_INT_TO_FLOAT:
+      //TODO: is it acceptable to lose precision by converting ints to floats?
+      for (int i = 0; i < (num * stride); i++)
+         *(float*)(dst++) = (float)*(src++);
+      break;
+   case COERCE_INT_TO_BOOL:
+      for (int i = 0; i < (num * stride); i++)
+         *(dst++) = *(src++) ? 1 : 0;
+      break;
+   case COERCE_FLOAT_TO_BOOL:
+      for (int i = 0; i < (num * stride); i++)
+         *(dst++) = (*(float*)(src++) != 0.0f) ? 1 : 0;
+      break;
+   default:
+      //Unreachable
+      UNREACHABLE();
+   }
+
+   mem_unlock(state->mh_program);
+
+end:
    GL20_UNLOCK_SERVER_STATE();
 }
 
-static void uniform_coercion_for_get(GL20_UNIFORM_INFO_T *info, GLboolean is_float, uint32_t *coercion, int *elementcount)
+static void uniform_coercion_for_get(GL20_UNIFORM_INFO_T *info, GLboolean is_float, uint32_t *coercion, int *num_elements)
 {
    switch (info->type) {
    case GL_FLOAT:
    case GL_INT:
-      *elementcount = 1;
+      *num_elements = 1;
       *coercion = is_float ? COERCE_ID : COERCE_FLOAT_TO_INT;
       break;
    case GL_FLOAT_VEC2:
    case GL_INT_VEC2:
-      *elementcount = 2;
+      *num_elements = 2;
       *coercion = is_float ? COERCE_ID : COERCE_FLOAT_TO_INT;
       break;
    case GL_FLOAT_VEC3:
    case GL_INT_VEC3:
-      *elementcount = 3;
+      *num_elements = 3;
       *coercion = is_float ? COERCE_ID : COERCE_FLOAT_TO_INT;
       break;
    case GL_FLOAT_VEC4:
    case GL_INT_VEC4:
-      *elementcount = 4;
+      *num_elements = 4;
       *coercion = is_float ? COERCE_ID : COERCE_FLOAT_TO_INT;
       break;
    case GL_BOOL:
    case GL_SAMPLER_2D:
    case GL_SAMPLER_CUBE:
-      *elementcount = 1;
+      *num_elements = 1;
       *coercion = is_float ? COERCE_INT_TO_FLOAT : COERCE_ID;
       break;
    case GL_BOOL_VEC2:
-      *elementcount = 2;
+      *num_elements = 2;
       *coercion = is_float ? COERCE_INT_TO_FLOAT : COERCE_ID;
       break;
    case GL_BOOL_VEC3:
-      *elementcount = 3;
+      *num_elements = 3;
       *coercion = is_float ? COERCE_INT_TO_FLOAT : COERCE_ID;
       break;
    case GL_BOOL_VEC4:
-      *elementcount = 4;
+      *num_elements = 4;
       *coercion = is_float ? COERCE_INT_TO_FLOAT : COERCE_ID;
       break;
    case GL_FLOAT_MAT2:
-      *elementcount = 4;
+      *num_elements = 4;
       *coercion = is_float ? COERCE_ID : COERCE_FLOAT_TO_INT;
       break;
    case GL_FLOAT_MAT3:
-      *elementcount = 9;
+      *num_elements = 9;
       *coercion = is_float ? COERCE_ID : COERCE_FLOAT_TO_INT;
       break;
    case GL_FLOAT_MAT4:
-      *elementcount = 16;
+      *num_elements = 16;
       *coercion = is_float ? COERCE_ID : COERCE_FLOAT_TO_INT;
       break;
    default:
@@ -1507,72 +1408,70 @@ static void uniform_coercion_for_get(GL20_UNIFORM_INFO_T *info, GLboolean is_flo
 static int get_uniform_internal(GLuint p, GLint location, const void *v, GLboolean is_float)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   if (!state) return 0;
 
    MEM_HANDLE_T phandle;
-
-   int elementcount = 0;
    GL20_PROGRAM_T *program = get_program(state, p, &phandle);
 
-   if (program) {
+   int num_elements = 0;
+   if (program == NULL) goto end;
 
-      if (program->linked) {
-         int32_t index, offset;
-         uint32_t coercion = 0;
-         GL20_UNIFORM_INFO_T *info = (GL20_UNIFORM_INFO_T *)mem_lock(program->mh_uniform_info, NULL);
-         int32_t count = mem_get_size(program->mh_uniform_info) / sizeof(GL20_UNIFORM_INFO_T);
-
-         vcos_assert(info!=0 || count == 0);
-         vcos_assert(mem_get_size(program->mh_uniform_info) % sizeof(GL20_UNIFORM_INFO_T) == 0);
-
-         location_decode_index(info, count, location, &index, &offset);
-
-         if (index >= 0 && index < count && offset >= 0 && offset < info[index].size) {
-            int i;
-            GLint *data, *dataout;
-            uniform_coercion_for_get(&info[index], is_float, &coercion, &elementcount);
-
-            data = (GLint *)mem_lock(program->mh_uniform_data, NULL);
-
-            vcos_assert(data);
-
-            data += info[index].offset + offset * elementcount;
-            dataout = (GLint*)v;
-            for (i = 0; i < elementcount; i++)
-            {
-               switch (coercion)
-               {
-               case COERCE_ID:
-                  *(dataout++) = *(data++);
-                  break;
-               case COERCE_INT_TO_FLOAT:
-                  *(float*)(dataout++) = (float)*(data++);
-                  break;
-               case COERCE_FLOAT_TO_INT:
-                  *(dataout++) = (GLint)*(float*)(data++);
-                  break;
-               default:
-                  //Unreachable
-                  UNREACHABLE();
-               }
-            }
-
-            mem_unlock(program->mh_uniform_data);
-         } else {
-            glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-         }
-
-         mem_unlock(program->mh_uniform_info);
-      } else {
-         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      }
-
+   if (!program->linked) {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       mem_unlock(phandle);
-   } else {
-      elementcount = 0;
+      goto end;
    }
 
+   int32_t index, offset;
+   uint32_t coercion = 0;
+   GL20_UNIFORM_INFO_T *info = program->uniforms;
+   int count = program->num_uniforms;
+
+   assert(info != NULL || count == 0);
+
+   location_decode_index(info, count, location, &index, &offset);
+
+   if ((index < 0) ||
+      (index >= count) ||
+      (offset < 0) ||
+      (offset >= info[index].size)) {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      mem_unlock(phandle);
+      goto end;
+   }
+
+   uniform_coercion_for_get(&info[index], is_float, &coercion, &num_elements);
+
+   GLint *src = (GLint *)program->uniform_data;
+   assert(src);
+
+   src += info[index].offset + offset * num_elements;
+   GLint *dst = (GLint*)v;
+
+   switch (coercion)
+   {
+   case COERCE_ID:
+      for (int i = 0; i < num_elements; i++)
+         *(dst++) = *(src++);
+      break;
+   case COERCE_INT_TO_FLOAT:
+      for (int i = 0; i < num_elements; i++)
+         *(float*)(dst++) = (float)*(src++);
+      break;
+   case COERCE_FLOAT_TO_INT:
+      for (int i = 0; i < num_elements; i++)
+         *(dst++) = (GLint)*(float*)(src++);
+      break;
+   default:
+      //Unreachable
+      UNREACHABLE();
+   }
+
+   mem_unlock(phandle);
+
+end:
    GL20_UNLOCK_SERVER_STATE();
-   return elementcount;
+   return num_elements;
 }
 
 void glUniform1i_impl_20 (GLint location, GLint x)
@@ -1755,7 +1654,7 @@ void glUseProgram_impl_20 (GLuint p) // S
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
 
-   vcos_assert(state);
+   assert(state);
 
    if (p) {
       MEM_HANDLE_T phandle;
@@ -1780,7 +1679,7 @@ void glUseProgram_impl_20 (GLuint p) // S
       release_program((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), state->mh_program);
       mem_unlock(state->mh_shared);
 
-      MEM_ASSIGN(state->mh_program, MEM_INVALID_HANDLE);
+      MEM_ASSIGN(state->mh_program, MEM_HANDLE_INVALID);
    }
 
    GL20_UNLOCK_SERVER_STATE();
@@ -1796,9 +1695,8 @@ void glValidateProgram_impl_20 (GLuint p)
 
    if (program) {
       program->validated = gl20_validate_program(state, program);
-
-      MEM_ASSIGN(program->mh_info, MEM_EMPTY_STRING_HANDLE);
-
+      free(program->info_log);
+      program->info_log = NULL;
       mem_unlock(phandle);
    }
 
@@ -1849,7 +1747,7 @@ void glVertexAttribPointer_impl_20 (GLuint indx)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
 
-   vcos_assert(indx < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+   assert(indx < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
 
    MEM_ASSIGN(state->bound_buffer.mh_attrib_array[indx], state->bound_buffer.mh_array);
 
@@ -1863,7 +1761,7 @@ void glCompileShader_impl_20 (GLuint s)
 
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
 
-   vcos_assert(state);
+   assert(state);
 
    shader = get_shader(state, s, &shandle);
 
@@ -1914,23 +1812,22 @@ int glGetShaderiv_impl_20 (GLuint s, GLenum pname, GLint *params)
          break;
       case GL_INFO_LOG_LENGTH:
       {
-         params[0] = mem_get_size(shader->mh_sources_current) ? mem_get_size(shader->mh_info) : 0;
+         if (shader->info_log == NULL)
+            params[0] = 0;
+         else
+            params[0] = strlen(shader->info_log) + 1;
          result = 1;
          break;
       }
       case GL_SHADER_SOURCE_LENGTH:
       {
-         int i;
-         MEM_HANDLE_T *handles = (MEM_HANDLE_T *)mem_lock(shader->mh_sources_current, NULL);
+         size_t total = 0;
 
-         int count = mem_get_size(shader->mh_sources_current) / sizeof(MEM_HANDLE_T);
-         int total = 0;
+         for (unsigned i = 0; i < shader->sourcec; i++)
+            total += strlen(shader->sourcev[i]);
 
-         for (i = 0; i < count; i++)
-            total += mem_get_size(handles[i]) - 1;
-         if (total > 0)
-            total += 1; //for null termination character
-         mem_unlock(shader->mh_sources_current);
+         /* If there's any source at all, count 1 for the NULL terminator */
+         if (shader->sourcec > 0) total++;
 
          params[0] = total;
          result = 1;
@@ -1951,177 +1848,110 @@ int glGetShaderiv_impl_20 (GLuint s, GLenum pname, GLint *params)
    return result;
 }
 
-
-static const char *lock_shader_info_log(GL20_SHADER_T *shader)
-{
-   return (const char *)mem_lock(shader->mh_info, NULL);
-}
-
-static void unlock_shader_info_log(GL20_SHADER_T *shader)
-{
-   mem_unlock(shader->mh_info);
-}
-
 void glGetShaderInfoLog_impl_20 (GLuint s, GLsizei bufsize, GLsizei *length, char *infolog)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   if (!state) return;
 
-   if (bufsize >= 0) {
-      MEM_HANDLE_T shandle;
-      GL20_SHADER_T *shader = get_shader(state, s, &shandle);
+   MEM_HANDLE_T shandle;
+   GL20_SHADER_T *shader = get_shader(state, s, &shandle);
+   if (shader == NULL) goto end;
 
-      if (shader) {
-         const char *c = lock_shader_info_log(shader);
-
-         size_t chars = strzncpy(infolog, c, bufsize);
-         unlock_shader_info_log(shader);
-
-         if (length)
-            *length = _max(0, (GLsizei)chars);
-
-         mem_unlock(shandle);
-      }
-   }
-   else
+   if (bufsize < 0) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      mem_unlock(shandle);
+      goto end;
+   }
 
+   size_t chars = 0;
+   if (shader->info_log != NULL)
+      chars = strzncpy(infolog, shader->info_log, bufsize);
+
+   if (length)
+      *length = _max(0, (GLsizei)chars);
+
+   mem_unlock(shandle);
+end:
    GL20_UNLOCK_SERVER_STATE();
 }
 
 void glGetShaderSource_impl_20 (GLuint s, GLsizei bufsize, GLsizei *length, char *source)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   MEM_HANDLE_T shandle;
+   uint32_t charswritten = 0;
+   if (!state) return;
 
-   if (bufsize >= 0) {
-      MEM_HANDLE_T shandle;
-      GL20_SHADER_T *shader = get_shader(state, s, &shandle);
-      uint32_t charswritten = 0;
+   GL20_SHADER_T *shader = get_shader(state, s, &shandle);
+   if (shader == NULL) goto end;       /* get_shader will have set error */
 
-      if (shader) {
-         if (shader->mh_sources_current == MEM_INVALID_HANDLE) {
-            glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-         } else if (bufsize > 1) {//need 1 byte for NULL terminator below
-            unsigned int i;
-            MEM_HANDLE_T *handles = (MEM_HANDLE_T *)mem_lock(shader->mh_sources_current, NULL);
-            uint32_t count = mem_get_size(shader->mh_sources_current) / sizeof(MEM_HANDLE_T);
-
-            for (i = 0; i < count; i++) {
-               char *str = (char*)mem_lock(handles[i], NULL);
-               int32_t strlen = mem_get_size(handles[i])/sizeof(char) - 1;
-               vcos_assert(strlen >= 0);
-               vcos_assert(str[strlen] == 0);
-
-               if (charswritten + strlen > (uint32_t)bufsize - 1)
-               {
-                  vcos_assert((int)bufsize - 1 - (int)charswritten >= 0);
-                  khrn_memcpy(source + charswritten, str, bufsize - 1 - charswritten);
-                  charswritten = bufsize - 1;
-                  mem_unlock(handles[i]);
-                  break;
-               }
-               else
-               {
-                  khrn_memcpy(source + charswritten, str, strlen);
-                  charswritten += strlen;
-               }
-               mem_unlock(handles[i]);
-            }
-            mem_unlock(shader->mh_sources_current);
-         }
-         mem_unlock(shandle);
-      }
-      if (length) {
-         *length = charswritten;
-      }
-      if (bufsize > 0) {
-         vcos_assert(charswritten < (uint32_t)bufsize);
-         source[charswritten] = 0;
-      }
-   }
-   else
+   if (bufsize < 0) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-   GL20_UNLOCK_SERVER_STATE();
-}
-
-static MEM_HANDLE_T copy_source_string(const char *string, int length)
-{
-   MEM_HANDLE_T handle;
-
-   if (string) {
-      if (length < 0)
-         handle = mem_strdup_ex(string, MEM_COMPACT_DISCARD);                                                              // check
-      else {
-         handle = mem_alloc_ex(length + 1, 1, MEM_FLAG_NONE, "GL20_SHADER_T.sources_current[i]", MEM_COMPACT_DISCARD);     // check, no term
-
-         if (handle != MEM_INVALID_HANDLE) {
-            char *base = (char *)mem_lock(handle, NULL);
-
-            khrn_memcpy(base, string, length);
-            base[length] = '\0';
-
-            mem_unlock(handle);
-         }
-      }
-   } else {
-      handle = MEM_EMPTY_STRING_HANDLE;
-      mem_acquire(handle);
+      mem_unlock(shandle);
+      goto end;
    }
 
-   return handle;
+   if (bufsize > 1) {//need 1 byte for NULL terminator below
+      for (unsigned i = 0; i < shader->sourcec; i++) {
+         const char *str = shader->sourcev[i];
+         int32_t len = strlen(str);
+         assert(len >= 0);
+         assert(str[len] == 0);
+
+         if (charswritten + len >(uint32_t)bufsize - 1)
+         {
+            assert((int)bufsize - 1 - (int)charswritten >= 0);
+            memcpy(source + charswritten, str, bufsize - 1 - charswritten);
+
+            charswritten = bufsize - 1;
+            break;
+         }
+         else
+         {
+            memcpy(source + charswritten, str, len);
+            charswritten += len;
+         }
+      }
+   }
+   mem_unlock(shandle);
+
+   if (length) {
+      *length = charswritten;
+   }
+   if (bufsize > 0) {
+      assert(charswritten < (uint32_t)bufsize);
+      source[charswritten] = 0;
+   }
+
+end:
+   GL20_UNLOCK_SERVER_STATE();
 }
 
 void glShaderSource_impl_20 (GLuint s, GLsizei count, const char **string, const GLint *length)
 {
    GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   if (!state) return;
 
-   if (count >= 0) {
-      MEM_HANDLE_T shandle;
-
-      GL20_SHADER_T *shader = get_shader(state, s, &shandle);
-
-      if (shader) {
-         if (string) {
-            MEM_HANDLE_T handle = mem_alloc_ex(count * sizeof(MEM_HANDLE_T), 4, MEM_FLAG_NONE, "GL20_SHADER_T.sources_current", MEM_COMPACT_DISCARD);                         // check, gl20_shader_sources_term
-
-            if (handle != MEM_INVALID_HANDLE) {
-               MEM_HANDLE_T *handles;
-               int i;
-
-               mem_set_term(handle, gl20_shader_sources_term, NULL);
-
-               handles = (MEM_HANDLE_T *)mem_lock(handle, NULL);
-
-               for (i = 0; i < count; i++) {
-                  handles[i] = copy_source_string(string[i], length ? length[i] : -1);
-
-                  if (handles[i] == MEM_INVALID_HANDLE) {
-                     mem_unlock(handle);
-                     mem_release(handle);
-
-                     mem_unlock(shandle);
-
-                     glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-
-                     GL20_UNLOCK_SERVER_STATE();
-                     return;
-                  }
-               }
-
-               glxx_tweaker_setshadersource(&state->tweak_state, count, string, length);
-
-               mem_unlock(handle);
-
-               MEM_ASSIGN(shader->mh_sources_current, handle);
-               mem_release(handle);
-            } else
-               glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-         }
-
-         mem_unlock(shandle);
-      }
-   } else
+   if (count < 0) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
 
+   MEM_HANDLE_T shandle;
+   GL20_SHADER_T *shader = get_shader(state, s, &shandle);
+   if (shader == NULL) goto end;       /* get_shader will have set error */
+
+   if (string == NULL) {
+      mem_unlock(shandle);
+      goto end;
+   }
+
+   if (!gl20_shader_set_source(shader, count, string, length))
+      glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+
+   mem_unlock(shandle);
+
+end:
    GL20_UNLOCK_SERVER_STATE();
 }
 

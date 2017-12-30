@@ -70,7 +70,10 @@
 #define ETHER_TYPE_BRCM     0x886c      /* Broadcom Corp. */
 #define WSEC_PSK_LEN        64
 #define MAC_ADDR_LEN        18
-#define BWL_MAX_ANTENNAS 4
+#define BWL_MAX_ANTENNAS    4
+
+#define CCA_THRESH_MILLI    14
+#define ASSERT              assert
 
 #define BWL_DEFAULT_SCAN_DWELL_TIME  (-1)
 
@@ -275,9 +278,9 @@ typedef struct sScanInfo
     bool            bLocked;
     bool            bWPS;
     int32_t         lRate;
-    int32_t         lSnr;
     Bandwidth_t     tBandwidth;
     char            cChanSpec[BWL_CSPEC_LEN+1];
+    int32_t         lSNR;
 } ScanInfo_t;
 
 typedef struct sDptSta
@@ -326,6 +329,15 @@ typedef struct sScanParams
                                  * fetching credentials from hidden AP's
                                  */
 }ScanParams_t;
+
+typedef struct sBWLGetCcaStats
+{
+    unsigned int ChannelRxTimeMsec;
+    unsigned int ChannelTxTimeMsec;
+    unsigned int ChannelActiveTimeMsec;
+    unsigned int ChannelBusyTimeMsec;
+    unsigned int ChannelInUse;
+} BWLGetCcaStats_t;
 
 /*
  * Structure for passing hardware and software
@@ -499,6 +511,7 @@ typedef struct {
     unsigned int rxf0ovfl;
     unsigned int rxf1ovfl;
     unsigned int pmqovfl;
+    unsigned int rxcrc;
 } WiFiCounters_t;
 
 typedef char BWL_MAC_ADDRESS[20];
@@ -916,5 +929,6 @@ char *  BWL_GetDriverVersion( BWL_Handle hBwl );
 int     BWL_ClearCounters( BWL_Handle hBwl );
 int     BWL_SendWakeOnWlan( BWL_Handle hBwl, char *pkt_len, char *destination_frame, char *macAddress, char *pkt_type );
 int     BWL_GetMacAssocList( BWL_Handle hBwl, BWL_MAC_ADDRESS *outputList, int outputListLen );
+int     BWL_GetCcaStats( BWL_Handle hBwl, BWLGetCcaStats_t *BWLGetCcaStats );
 
 #endif /* BWL_H__ */

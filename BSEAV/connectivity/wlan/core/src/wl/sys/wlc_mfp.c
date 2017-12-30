@@ -1187,6 +1187,8 @@ wlc_mfp_rx(wlc_mfp_info_t *mfp, const wlc_bsscfg_t *bsscfg, struct scb *scb,
 			break;
 		}
 		break;
+	/* every switch to have default. Intentional error check */
+	/* coverity[dead_error_begin] */
 	default:
 		ASSERT(0);
 	}

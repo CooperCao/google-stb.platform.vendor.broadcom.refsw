@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,24 +35,17 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
-#if NEXUS_HAS_FRONTEND && NEXUS_HAS_VIDEO_DECODER
+#if NEXUS_HAS_VIDEO_DECODER
 #include "nexus_platform_client.h"
+#include "nexus_platform.h"
 #include "nexus_simple_video_decoder.h"
 #include "nexus_simple_video_decoder_primer.h"
 #include "nexus_simple_audio_decoder.h"
 #include "nexus_core_utils.h"
+#if NEXUS_HAS_FRONTEND
 #include "nexus_frontend.h"
+#endif
 #include "nexus_parser_band.h"
 
 #include <stdio.h>
@@ -80,10 +73,13 @@ static void print_usage(void)
         );
 }
 
+#if NEXUS_HAS_FRONTEND
 static NEXUS_FrontendHandle frontend;
+#endif
 
 static int tune_qam(NEXUS_ParserBand parserBand, unsigned freq)
 {
+#if NEXUS_HAS_FRONTEND
     NEXUS_FrontendAcquireSettings frontendAcquireSettings;
     NEXUS_FrontendQamSettings qamSettings;
     NEXUS_FrontendUserParameters userParams;
@@ -118,6 +114,18 @@ static int tune_qam(NEXUS_ParserBand parserBand, unsigned freq)
 
     rc = NEXUS_Frontend_TuneQam(frontend, &qamSettings);
     BDBG_ASSERT(!rc);
+#else
+    /* use streamer */
+    NEXUS_ParserBandSettings parserBandSettings;
+    int rc;
+
+    NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
+    parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
+    NEXUS_Platform_GetStreamerInputBand(0, &parserBandSettings.sourceTypeSettings.inputBand);
+    parserBandSettings.transportType = NEXUS_TransportType_eTs;
+    rc = NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
+    BDBG_ASSERT(!rc);
+#endif
 
     return 0;
 }
@@ -134,7 +142,7 @@ static void first_pts_passed(void *context, int param)
 int main(int argc, char **argv)  {
     NEXUS_ClientConfiguration clientConfig;
     NEXUS_SimpleVideoDecoderHandle videoDecoder[NUM_VIDEO_DECODES];
-    NEXUS_SimpleVideoDecoderStartSettings videoProgram;
+    NEXUS_SimpleVideoDecoderStartSettings videoProgram[NUM_VIDEO_DECODES];
     NEXUS_SimpleAudioDecoderHandle audioDecoder = NULL;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_PidChannelHandle pcrPidChannel = NULL;
@@ -203,7 +211,6 @@ int main(int argc, char **argv)  {
     if (clientConfig.resources.simpleVideoDecoder.total) {
         for (i=0;i<clientConfig.resources.simpleVideoDecoder.total && i < NUM_VIDEO_DECODES;i++) {
             NEXUS_VideoDecoderSettings settings;
-            NEXUS_VideoDecoderPrimerSettings primerSettings;
 
             videoDecoder[i] = NEXUS_SimpleVideoDecoder_Acquire(clientConfig.resources.simpleVideoDecoder.id[i]);
             if (!videoDecoder[i]) break;
@@ -212,12 +219,6 @@ int main(int argc, char **argv)  {
             settings.firstPtsPassed.callback = first_pts_passed;
             rc = NEXUS_SimpleVideoDecoder_SetSettings(videoDecoder[i], &settings);
             BDBG_ASSERT(!rc);
-
-            NEXUS_SimpleVideoDecoderPrimer_GetSettings(videoDecoder[i], &primerSettings);
-            /* primerSettings.ptsStcDiffCorrectionEnabled = true; */
-            primerSettings.pastTolerance = 500*45;
-            primerSettings.futureTolerance = 0;
-            NEXUS_SimpleVideoDecoderPrimer_SetSettings(videoDecoder[i], &primerSettings);
 
             stcChannel[i] = NEXUS_SimpleStcChannel_Create(NULL);
             BDBG_ASSERT(stcChannel[i]);
@@ -230,7 +231,9 @@ int main(int argc, char **argv)  {
                 NEXUS_ParserBand_SetSettings(parserBand[i], &settings);
             }
         }
+#if NEXUS_HAS_FRONTEND
         NEXUS_Frontend_ReapplyTransportSettings(frontend);
+#endif
 
         /* for a simple example, reduce # of channels to what we can decode and prime. */
         if (i < scan_results.num_programs) {
@@ -252,7 +255,7 @@ int main(int argc, char **argv)  {
 
     /* set up video decoders and primers ahead of channel change */
     for (i=0;i<scan_results.num_programs;i++) {
-        NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
+        NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram[i]);
 
         if (scan_results.program_info[i].pcr_pid) {
             pcrPidChannel = NEXUS_PidChannel_Open(parserBand[i], scan_results.program_info[i].pcr_pid, NULL);
@@ -265,12 +268,12 @@ int main(int argc, char **argv)  {
         }
 
         if (scan_results.program_info[i].num_video_pids) {
-            videoProgram.settings.pidChannel = NEXUS_PidChannel_Open(parserBand[i], scan_results.program_info[i].video_pids[0].pid, NULL);
-            videoProgram.settings.codec = scan_results.program_info[i].video_pids[0].codec;
+            videoProgram[i].settings.pidChannel = NEXUS_PidChannel_Open(parserBand[i], scan_results.program_info[i].video_pids[0].pid, NULL);
+            videoProgram[i].settings.codec = scan_results.program_info[i].video_pids[0].codec;
             NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder[i], stcChannel[i]);
         }
 
-        rc = NEXUS_SimpleVideoDecoder_StartPrimer(videoDecoder[i], &videoProgram);
+        rc = NEXUS_SimpleVideoDecoder_StartPrimer(videoDecoder[i], &videoProgram[i]);
         BDBG_ASSERT(!rc);
     }
 
@@ -304,8 +307,11 @@ int main(int argc, char **argv)  {
             BKNI_Sleep(timeout * 1000);
         }
 
+
+        NEXUS_SimpleVideoDecoder_StopAndFree(videoDecoder[program]);
+
         /* Bring down system */
-        rc = NEXUS_SimpleVideoDecoder_StopDecodeAndStartPrimer(videoDecoder[program]);
+        rc = NEXUS_SimpleVideoDecoder_StartPrimer(videoDecoder[program], &videoProgram[program]);
         BDBG_ASSERT(!rc);
         if (audioDecoder) {
             NEXUS_SimpleAudioDecoder_Stop(audioDecoder);

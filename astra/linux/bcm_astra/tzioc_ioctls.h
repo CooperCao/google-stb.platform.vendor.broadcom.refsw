@@ -142,7 +142,7 @@ struct tzioc_ioctl_call_smc_data {
     int retVal;
 
     uintptr_t hClient;
-    uint32_t mode;
+    uint32_t callnum;
 };
 
 #endif /* TZIOC_IOCTLS_H */

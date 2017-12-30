@@ -44,9 +44,11 @@ struct khrn_options {
    char                 autoclif_prefix[VCOS_PROPERTY_VALUE_MAX]; // Prefix for recorded CLIF filenames. Ignored if autoclif_filename set.
    uint32_t             autoclif_bin_block_size; /* Set the size of the binning memory block in recorded CLIFs */
    bool                 flush_after_draw;
+   bool                 no_invalidate_fb;
 #endif
 
    char                 checksum_capture_filename[VCOS_PROPERTY_VALUE_MAX];
+   bool                 checksum_capture_data;
    uint32_t             checksum_start_buffer_index;
    uint32_t             checksum_end_buffer_index;
 
@@ -81,7 +83,7 @@ struct khrn_options {
    bool random_centroid;
    uint32_t random_centroid_seed;
 
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    bool force_noperspective;
    bool random_noperspective;
    uint32_t random_noperspective_seed;
@@ -111,7 +113,7 @@ extern void khrn_init_options(void);
 extern bool khrn_options_make_wireframe(void);
 extern bool khrn_options_make_wireframe_points(void);
 extern bool khrn_options_make_centroid(void);
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 extern bool khrn_options_make_noperspective(void);
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)

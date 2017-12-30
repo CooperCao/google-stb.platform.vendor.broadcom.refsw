@@ -1,20 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Render state handler
-
-FILE DESCRIPTION
-Handles allocation and flushing of render states.
-=============================================================================*/
-
-#ifndef KHRN_RENDER_STATE_4_H
-#define KHRN_RENDER_STATE_4_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 typedef enum {
    KHRN_RENDER_STATE_TYPE_NONE,
-   KHRN_RENDER_STATE_TYPE_COPY_BUFFER,
    KHRN_RENDER_STATE_TYPE_GLXX,
    KHRN_RENDER_STATE_TYPE_VG
 } KHRN_RENDER_STATE_TYPE_T;
@@ -55,6 +45,7 @@ extern void khrn_render_state_usurp(uint32_t i, KHRN_RENDER_STATE_TYPE_T type);
    flush_except will call flush on all slots except the specified one
 */
 
+extern bool khrn_render_state_would_flush(uint32_t i);
 extern void khrn_render_state_flush(uint32_t i);
 extern void khrn_render_state_flush_all(KHRN_RENDER_STATE_TYPE_T type);
 extern void khrn_render_state_flush_except(uint32_t i);
@@ -66,5 +57,3 @@ extern void khrn_render_state_flush_except(uint32_t i);
 */
 
 extern void khrn_render_state_finish(uint32_t i);
-
-#endif

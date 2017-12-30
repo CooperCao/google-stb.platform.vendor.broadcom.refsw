@@ -9941,6 +9941,10 @@ wlc_wnm_bss_pref_score_product(wlc_bsscfg_t *cfg, wlc_bss_info_t *bi,
 	 * The rssi required for the rate should be less than bcn_rssi.
 	 */
 	for (i = maxrateidx; i > 0; i--) {
+		/* The maximum number of 'nss' is 4, max of 'i' is 7,
+		* so in the maximum case the map_rssi[i] is equal to map->phy_n[3][7] and will not overrunning the array.
+		*/
+		/* coverity[overrun-local: FALSE] */
 		if ((is_2g && map_rssi[i].rssi_2g <= bcn_rssi) ||
 			(!is_2g && map_rssi[i].rssi_5g <= bcn_rssi)) {
 			/* VHT supports all rates till maxrateidx */
@@ -9948,6 +9952,8 @@ wlc_wnm_bss_pref_score_product(wlc_bsscfg_t *cfg, wlc_bss_info_t *bi,
 				break;
 			}
 			/* For HT pass mcs index as rateset has indices */
+			/* false positive: i limited to max of 4*/
+			/* coverity[overrun-call: FALSE] */
 			if (is_ht &&
 				wlc_wnm_rateset_contain_rate(&bi->rateset, (uint8)i, is_ht, nss)) {
 				break;

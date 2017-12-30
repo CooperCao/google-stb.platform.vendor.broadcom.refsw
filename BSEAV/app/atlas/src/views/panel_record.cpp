@@ -74,7 +74,7 @@ CPanelRecord::CPanelRecord(
     _pOk(NULL),
     _pCancel(NULL),
     _result(),
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     _AES(NULL),
     _3DES(NULL),
     _DES(NULL),
@@ -177,7 +177,7 @@ eRet CPanelRecord::initialize(
         _Clear->setCheck(true);
         _security = "none";
 
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
         _AES = new CWidgetCheckButton("CPanelRecord::_AES", getEngine(), this, MRect(0, 0, 0, 22), font12, _pRecordEncryptMenu->getWin());
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _AES, ret, eRet_OutOfMemory, error);
         _pRecordEncryptMenu->addButton(_AES, "AES(Aes128) Encryption");
@@ -236,7 +236,7 @@ void CPanelRecord::uninitialize()
     DEL(_pRecordMode);
 #endif
     DEL(_Clear);
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     DEL(_AES);
     DEL(_3DES);
     DEL(_DES);
@@ -334,7 +334,7 @@ void CPanelRecord::onClick(bwidget_t widget)
 
     if (_Clear->getWidget() == widget)
     {
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
         _AES->setCheck(false);
         _3DES->setCheck(false);
         _DES->setCheck(false);
@@ -342,7 +342,7 @@ void CPanelRecord::onClick(bwidget_t widget)
         _security = "none";
     }
     else
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     if (_AES->getWidget() == widget)
     {
         _Clear->setCheck(false);

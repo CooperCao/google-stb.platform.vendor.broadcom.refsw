@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,7 +36,6 @@
  * ANY LIMITED REMEDY.
  *
  * Module Description:
- *
  ***************************************************************************/
 #include "bvdc_subrul_priv.h"
 #include "bchp_vnet_f.h"
@@ -409,7 +408,7 @@ void BVDC_P_SubRul_UnsetVnet_isr(
         {
             BVDC_P_Resource_ReleaseHwId_isr(pSubRul->hResource, BVDC_P_ResourceType_eFreeCh,
                 BVDC_P_FreeCh_MuxAddr_To_HwId(pSubRul->ulPatchMuxAddr));
-            BDBG_MSG(("ReleaseHwId: eType=%d, ulHwId=%u, Cntr=%d",
+            BDBG_MSG(("ReleaseHwIdFch: eType=%d, ulHwId=%u, Cntr=%d",
                 BVDC_P_ResourceType_eFreeCh,
                 (unsigned int)BVDC_P_FreeCh_MuxAddr_To_HwId(pSubRul->ulPatchMuxAddr),
                 BVDC_P_Resource_GetHwIdAcquireCntr_isr(pSubRul->hResource,
@@ -421,7 +420,7 @@ void BVDC_P_SubRul_UnsetVnet_isr(
         {
             BVDC_P_Resource_ReleaseHwId_isr(pSubRul->hResource, BVDC_P_ResourceType_eLpBck,
                 BVDC_P_LpBack_MuxAddr_To_HwId(pSubRul->ulPatchMuxAddr));
-            BDBG_MSG(("ReleaseHwId: eType=%d, ulHwId=%u, Cntr=%d",
+            BDBG_MSG(("ReleaseHwIdLp: eType=%d, ulHwId=%u, Cntr=%d",
                 BVDC_P_ResourceType_eLpBck,
                 (unsigned int)BVDC_P_LpBack_MuxAddr_To_HwId(pSubRul->ulPatchMuxAddr),
                 BVDC_P_Resource_GetHwIdAcquireCntr_isr(pSubRul->hResource,
@@ -486,12 +485,12 @@ void BVDC_P_SubRul_JoinInVnet_isr(
  *
  * Called by BVDC_P_*_BuildRul_isr to build RUL for droping off from vnet
  */
-void BVDC_P_SubRul_DropOffVnet_isr(
-    BVDC_P_SubRulContext          *pSubRul,
-    BVDC_P_ListInfo               *pList )
+static uint32_t BVDC_P_SubRul_GetVnetRefCnt_isr(
+    BVDC_P_SubRulContext          *pSubRul )
 {
-    uint32_t                       ulHwId;
     BVDC_P_ResourceType            eType;
+    uint32_t                       ulHwId;
+    uint32_t                       ulRefCnt = 0;
 
     /* drop off vnet fron front to back. Drop off before disable module */
     BDBG_ASSERT(pSubRul->ulMuxAddr);
@@ -515,7 +514,33 @@ void BVDC_P_SubRul_DropOffVnet_isr(
         /* Since acquired counter is decremented to 0 when HW is released  */
         /* which is happenning later than this, at this point, if acquired */
         /* counter is 1, that indicates that it can be disabled */
-        if(BVDC_P_Resource_GetHwIdAcquireCntr_isr(pSubRul->hResource, eType, ulHwId) <= 1)
+        ulRefCnt = BVDC_P_Resource_GetHwIdAcquireCntr_isr(pSubRul->hResource, eType, ulHwId);
+    }
+
+    return ulRefCnt;
+}
+
+/***************************************************************************
+ * {private}
+ *
+ * BVDC_P_SubRul_DropOffVnet
+ *
+ * Called by BVDC_P_*_BuildRul_isr to build RUL for droping off from vnet
+ */
+void BVDC_P_SubRul_DropOffVnet_isr(
+    BVDC_P_SubRulContext          *pSubRul,
+    BVDC_P_ListInfo               *pList )
+{
+    /* drop off vnet fron front to back. Drop off before disable module */
+    BDBG_ASSERT(pSubRul->ulMuxAddr);
+    if ((BVDC_P_VnetPatch_eFreeCh == pSubRul->eVnetPatchMode) ||
+        (BVDC_P_VnetPatch_eLpBack == pSubRul->eVnetPatchMode))
+    {
+        /* Only disable LPB or FCH if it is not shared by any other module */
+        /* Since acquired counter is decremented to 0 when HW is released  */
+        /* which is happenning later than this, at this point, if acquired */
+        /* counter is 1, that indicates that it can be disabled */
+        if(BVDC_P_SubRul_GetVnetRefCnt_isr(pSubRul) <= 1)
         {
             BVDC_P_SUBRUL_ONE_REG(pList, pSubRul->ulPatchMuxAddr, 0, BVDC_P_MuxValue_SrcOutputDisabled);
         }
@@ -617,8 +642,8 @@ void BVDC_P_SubRul_Drain_isr(
                 BVDC_P_LpBack_MuxAddr_To_PostMuxValue(pSubRul->ulPatchMuxAddr));
             BVDC_P_SUBRUL_ONE_REG(pList, ulDrainMuxAddr, 0, BVDC_P_MuxValue_SrcOutputDisabled);
 
-            /* reset channel ping-pong after drain the loop back */
-            if(ulVnetFChannelReset)
+            /* reset channel ping-pong after drain the loop back if not shared by another active window */
+            if(ulVnetFChannelReset && (BVDC_P_SubRul_GetVnetRefCnt_isr(pSubRul) <= 1))
             {
                 BVDC_P_SUBRUL_ONE_REG(pList, ulVnetFChannelReset, 0,
                     BVDC_P_LpBack_MuxAddr_To_ChnResetMask(pSubRul->ulPatchMuxAddr, ulVnetFChanLp0ResetMask));

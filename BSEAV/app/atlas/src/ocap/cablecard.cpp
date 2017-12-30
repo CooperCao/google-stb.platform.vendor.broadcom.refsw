@@ -75,7 +75,7 @@
 #ifdef SOFTWARE_RS_MPOD
 #include "mpod_rate_smooth.h"
 #endif
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
 #include "nexus_security.h"
 #endif
 
@@ -770,7 +770,7 @@ int CCablecard::cablecard_disable_program(class CChannel *pChannel)
        B_Mpod_CpRemoveProgram(programIndex);
 	}
 
-#ifdef NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     if(pChannel->getKeySlot())
     {
         B_Event_Wait(keySlotRemoved[programIndex],1000);
@@ -2702,7 +2702,7 @@ void getIDCb(
 	memcpy(info.cardId, cardId, 8);
 }
 
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
 NEXUS_Error configureCAKeySlot(uint8_t *keyData, CChannel *pChannel)
 {
     NEXUS_SecurityClearKey clearKey;
@@ -2796,7 +2796,7 @@ void removeKeyCb(
 {
 
     BDBG_MSG(("%s\n", BSTD_FUNCTION));
-#ifdef NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     unsigned programIndex=0;
     CChannel *pChannel=NULL;
     CPid * pVideoPid = NULL;
@@ -2849,7 +2849,7 @@ void progKeyCb(
     uint8_t ltsid
     )
 {
-#ifdef NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     unsigned programIndex=0;
     CChannel *pChannel=NULL;
     BDBG_MSG(("%s programNumber %u ltsid %u", BSTD_FUNCTION, programNumber, ltsid));

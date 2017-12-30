@@ -54,11 +54,6 @@ LOG_REDIRECT_FILE ?= /dev/null
 target ?= playback
 $(warning target = $(target))
 
-ifeq ($(COMMON_DRM_TOP),)
-COMMON_DRM_TOP := $(BSEAV_TOP)/lib/security/common_drm
-$(warning COMMON_DRM_TOP is not defined! Set it as default: $(COMMON_DRM_TOP))
-endif
-
 ifeq ($(B_REFSW_DEBUG),y)
 BUILD_TYPE ?= debug
 FLAGS += -g
@@ -73,23 +68,12 @@ FLAGS += -O2
 endif
 endif
 
-STANDALONE ?= n
-NXCLIENT_SUPPORT ?= y
-USE_CURL ?= y
-PLAYREADY_TEST := y
-
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
 include $(NEXUS_TOP)/build/nexus_defs.inc
-include $(BSEAV_TOP)/opensource/openssl/openssl.inc
-include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
-include $(COMMON_DRM_TOP)/common_drm.inc
-include $(BSEAV_TOP)/lib/security/bcrypt/bcrypt_libdir.inc
-include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
 
 include $(BSEAV_TOP)/lib/security/dif/dif_libdir.inc
--include $(BSEAV_TOP)/opensource/protobuf/protobuf.inc
 ifeq ($(NXCLIENT_SUPPORT),y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 endif
@@ -142,7 +126,12 @@ else
 TARGET_SRCS := ./$(target)/$(target)_single.cpp
 endif
 
-DEFINES := $(addprefix -D, $(DEFINES))
+DIF_MULTI_THREAD ?= y
+ifeq ($(DIF_MULTI_THREAD),y)
+CFLAGS += -DDIF_MULTI_THREAD
+endif
+
+CXXFLAGS := $(CFLAGS)
 
 INCLUDES += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
 
@@ -164,50 +153,13 @@ TARGET_SINGLE_OBJS := $(patsubst %.c, %.o, $(TARGET_SINGLE_OBJS))
 TARGET_SINGLE_OBJS := $(patsubst ./%, $(OUT_ROOT_DIR)/%, $(TARGET_SINGLE_OBJS))
 endif
 
-ifeq ($(USE_CURL),y)
-include $(BSEAV_TOP)/opensource/curl/curl.inc
-LDFLAGS := $(CURL_LDFLAGS)
-include $(BSEAV_TOP)/opensource/zlib/zlib.inc
-LDFLAGS += $(ZLIB_LDFLAGS)
-endif
-
+LDFLAGS += -L$(NEXUS_BIN_DIR) -lnexus
 ifeq ($(NXCLIENT_SUPPORT),y)
 LDFLAGS += $(NXCLIENT_LDFLAGS)
 endif
 
-ifeq ($(WIDEVINE_SUPPORT),y)
-LDFLAGS_THIRDPARTY_LIB := $(PROTOBUF_LDFLAGS) $(GTEST_LDFLAGS)
-ifeq ($(SAGE_SUPPORT),y)
-LDFLAGS_OEMCRYPTO_CDM_LIB := -L$(NEXUS_BIN_DIR) -lwvcdm -loemcrypto_tl -lsrai
-else
-LDFLAGS_OEMCRYPTO_CDM_LIB := -L$(NEXUS_BIN_DIR) -lwvcdm -loemcrypto
-endif
-endif
-
-ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
-PREBLT_LIB_SUFFIX := 64
-endif
-
-LDFLAGS += $(COMMON_DRM_LDFLAGS)
-LDFLAGS += $(B_OPENSSL_LDFLAGS)
-LDFLAGS += $(LDFLAGS_THIRDPARTY_LIB)
-
-LDFLAGS += $(COMMON_DRM_LDFLAGS)
-LDFLAGS += -L$(NEXUS_BIN_DIR) -lnexus
-LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
-           -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
-LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm$(PREBLT_LIB_SUFFIX)
-LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
-ifeq ($(SAGE_SUPPORT),y)
-include $(BSEAV_TOP)/thirdparty/playready/http/prdyhttp.inc
-LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl
-LDFLAGS += -lplayready30pk
-LDFLAGS += -lplayreadypk$(PREBLT_LIB_SUFFIX)_host
-LDFLAGS += ${PRDY_HTTP_LDFLAGS}
-else
-LDFLAGS += -lplayreadypk
-endif
-TARGET_LDFLAGS += $(LDFLAGS) -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/dif/$(DIF_LIBDIR) -ldif
+LDFLAGS += -ldif
+LDFLAGS += -Wl,-rpath-link=$(NEXUS_BIN_DIR)
 
 .PHONY: clean all $(target)_dif $(target)_dif_single
 
@@ -217,13 +169,13 @@ $(OUT_ROOT_DIR)/%.o: %.c
 	@test -d $(OUT_ROOT_DIR) || mkdir -pm 775 $(OUT_ROOT_DIR)
 	@test -d $(@D) || mkdir -pm 775 $(@D)
 	@echo [Compiling $<]
-	${CC} -c $(FLAGS) $(CFLAGS) $(INCLUDES) $(DEFINES) $< -o $@
+	@${CC} -c $(CFLAGS) $(INCLUDES) $< -o $@
 
 $(OUT_ROOT_DIR)/%.o: %.cpp
 	@test -d $(OUT_ROOT_DIR) || mkdir -pm 775 $(OUT_ROOT_DIR)
 	@test -d $(@D) || mkdir -pm 775 $(@D)
 	@echo [Compiling $<]
-	${CXX} -c $(FLAGS) $(CFLAGS) $(INCLUDES) $(DEFINES) $< -o $@
+	@${CXX} -c $(CXXFLAGS) $(INCLUDES) $< -o $@
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 all: $(target)_dif $(target)_dif_single
@@ -253,7 +205,6 @@ report:
 	@echo bcrypt lib dir is   "$(BCRYPT_LIBDIR)	"
 	@echo drmrootfs lib dir is "$(DRMROOTFS_LIBDIR)"
 	@echo nexus bin dir="$(NEXUS_BIN_DIR)"
-	@echo STAND ALONE TEST = "$(STANDALONE)"
 	@echo NXCLIENT_SUPPORT = "$(NXCLIENT_SUPPORT)"
 	@echo
 	@echo WVCDM_LIBDIR = "$(WVCDM_LIBDIR)"
@@ -283,11 +234,11 @@ clean:
 $(target)_dif: $(TARGET_OBJS) prep_dif
 	@echo "Building $@ ..."
 	@mkdir -p $(OUT_ROOT_DIR)/final/
-	$(CXX) $(CFLAGS) $(INCLUDES) $(DEFINES) $(TARGET_OBJS) $(TARGET_LDFLAGS) $(CDM_API_LDFLAGS) $(LDFLAGS_OEMCRYPTO_CDM_LIB)  -o $(OUT_ROOT_DIR)/final/$@
+	$(CXX) $(TARGET_OBJS) $(LDFLAGS) -o $(OUT_ROOT_DIR)/final/$@
 	@install -m 0755 $(OUT_ROOT_DIR)/final/$@ $(NEXUS_BIN_DIR)
 
 $(target)_dif_single: $(TARGET_SINGLE_OBJS) prep_dif
 	@echo "Building $@ ..."
 	@mkdir -p $(OUT_ROOT_DIR)/final/
-	$(CXX) $(CFLAGS) $(INCLUDES) $(DEFINES) $(TARGET_SINGLE_OBJS) $(TARGET_LDFLAGS) $(CDM_API_LDFLAGS) $(LDFLAGS_OEMCRYPTO_CDM_LIB)  -o $(OUT_ROOT_DIR)/final/$@
+	$(CXX) $(TARGET_SINGLE_OBJS) $(LDFLAGS) -o $(OUT_ROOT_DIR)/final/$@
 	@install -m 0755 $(OUT_ROOT_DIR)/final/$@ $(NEXUS_BIN_DIR)

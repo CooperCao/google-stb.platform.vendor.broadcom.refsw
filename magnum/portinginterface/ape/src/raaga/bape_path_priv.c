@@ -1178,8 +1178,8 @@ void BAPE_Connector_P_RemoveAllConnections(
     }
 }
 
-static void BAPE_PathNode_P_FindConsumers(
-    BAPE_PathNode *pNode,
+static void BAPE_PathConnector_P_FindConsumers_isrsafe(
+    BAPE_PathConnector *pConnector,
     BAPE_PathNodeType type,
     unsigned subtype,
     bool checkSubtype,
@@ -1191,34 +1191,29 @@ static void BAPE_PathNode_P_FindConsumers(
     unsigned connectorNum;
     BAPE_PathConnection *pConnection;
 
-    BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
+    BDBG_OBJECT_ASSERT(pConnector, BAPE_PathConnector);
 
-    for ( connectorNum = 0; connectorNum < pNode->numConnectors; connectorNum++ )
-    {
-        for ( pConnection = BLST_SQ_FIRST(&pNode->connectors[connectorNum].connectionList);
+    for ( pConnection = BLST_SQ_FIRST(&pConnector->connectionList);
               NULL != pConnection;
               pConnection = BLST_SQ_NEXT(pConnection, downstreamNode) )
-        {
-            BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
-            BDBG_OBJECT_ASSERT(pConnection->pSink, BAPE_PathNode);
+    {
+        BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
+        BDBG_OBJECT_ASSERT(pConnection->pSink, BAPE_PathNode);
 
-            if ( pConnection->pSink->type == type )
-            {
-                if ( false == checkSubtype || pConnection->pSink->subtype == subtype )
-                {
-                    if ( *pNumFound < maxConsumers )
-                    {
-                        pConsumers[*pNumFound] = pConnection->pSink;
-                        *pNumFound = (*pNumFound)+1;
-                    }
-                    else
-                    {
-                        return;
-                    }
+        if ( pConnection->pSink->type == type ) {
+            if ( false == checkSubtype || pConnection->pSink->subtype == subtype ) {
+                if ( *pNumFound < maxConsumers ) {
+                    pConsumers[*pNumFound] = pConnection->pSink;
+                    *pNumFound = (*pNumFound)+1;
+                }
+                else {
+                    return;
                 }
             }
-            /* recurse */
-            BAPE_PathNode_P_FindConsumers(pConnection->pSink, type, subtype, checkSubtype, maxConsumers, pNumFound, pConsumers);
+        }
+        /* recurse */
+        for (connectorNum = 0; connectorNum < pConnection->pSink->numConnectors; connectorNum++) {
+            BAPE_PathConnector_P_FindConsumers_isrsafe(&pConnection->pSink->connectors[connectorNum], type, subtype, checkSubtype, maxConsumers, pNumFound, pConsumers);
         }
     }
 }
@@ -1227,7 +1222,7 @@ static void BAPE_PathNode_P_FindConsumers(
 Summary:
 Search for consumers by a type
 ***************************************************************************/
-void BAPE_PathNode_P_FindConsumersByType(
+void BAPE_PathNode_P_FindConsumersByType_isrsafe(
     BAPE_PathNode *pNode,
     BAPE_PathNodeType type,
     unsigned maxConsumers,
@@ -1235,9 +1230,12 @@ void BAPE_PathNode_P_FindConsumersByType(
     BAPE_PathNode **pConsumers   /* [out] Must be an array of at least maxConsumers length */
     )
 {
+    unsigned connectorNum;
     BDBG_ASSERT(NULL != pNumFound);
     *pNumFound = 0;
-    BAPE_PathNode_P_FindConsumers(pNode, type, 0, false, maxConsumers, pNumFound, pConsumers);
+    for (connectorNum = 0; connectorNum < pNode->numConnectors; connectorNum++) {
+        BAPE_PathConnector_P_FindConsumers_isrsafe(&pNode->connectors[connectorNum], type, 0, false, maxConsumers, pNumFound, pConsumers);
+    }
 }
 
 /***************************************************************************
@@ -1253,9 +1251,30 @@ void BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(
     BAPE_PathNode **pConsumers   /* [out] Must be an array of at least maxConsumers length */
     )
 {
+    unsigned connectorNum;
     BDBG_ASSERT(NULL != pNumFound);
     *pNumFound = 0;
-    BAPE_PathNode_P_FindConsumers(pNode, type, subtype, true, maxConsumers, pNumFound, pConsumers);
+    for (connectorNum = 0; connectorNum < pNode->numConnectors; connectorNum++) {
+        BAPE_PathConnector_P_FindConsumers_isrsafe(&pNode->connectors[connectorNum], type, subtype, true, maxConsumers, pNumFound, pConsumers);
+    }
+}
+
+/***************************************************************************
+Summary:
+Search for consumers by a type and subtype using connection
+***************************************************************************/
+void BAPE_PathConnector_P_FindConsumersBySubtype_isrsafe(
+    BAPE_PathConnector *pConnector,
+    BAPE_PathNodeType type,
+    unsigned subtype,
+    unsigned maxConsumers,
+    unsigned *pNumFound,        /* [out] */
+    BAPE_PathNode **pConsumers   /* [out] Must be an array of at least maxConsumers length */
+    )
+{
+    BDBG_ASSERT(NULL != pNumFound);
+    *pNumFound = 0;
+    BAPE_PathConnector_P_FindConsumers_isrsafe(pConnector, type, subtype, true, maxConsumers, pNumFound, pConsumers);
 }
 
 /***************************************************************************
@@ -1278,7 +1297,7 @@ void BAPE_PathNode_P_GetConnectedOutputs_isrsafe(
     *pNumFound = 0;
     
     numMixers = 0;
-    BAPE_PathNode_P_FindConsumers(pNode, BAPE_PathNodeType_eMixer, 0, false, BAPE_CHIP_MAX_MIXERS, &numMixers, mixers);
+    BAPE_PathNode_P_FindConsumersByType_isrsafe(pNode, BAPE_PathNodeType_eMixer, BAPE_CHIP_MAX_MIXERS, &numMixers, mixers);
 
     for ( i = 0; i < numMixers; i++ )
     {
@@ -1398,7 +1417,7 @@ BERR_Code BAPE_PathNode_P_GetDecodersDownstreamDspMixer(BAPE_PathNode * pSourceN
     return BERR_SUCCESS;
 }
 
-BAPE_PathConnection *BAPE_Connector_P_GetConnectionToSink(
+BAPE_PathConnection *BAPE_Connector_P_GetConnectionToSink_isrsafe(
     BAPE_Connector connector,
     BAPE_PathNode *pSink
     )

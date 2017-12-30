@@ -242,7 +242,8 @@ reduce memory allocation.
 typedef struct NxClient_VideoDecoderCapabilities
 {
     /* used at open time, not changeable after */
-    unsigned fifoSize; /* actual fifo should be at least this size */
+    unsigned fifoSize; /* CDB size in bytes */
+    unsigned itbFifoSize; /* ITB size in bytes */
     bool avc51Enabled;
     bool secureVideo;
     unsigned userDataBufferSize; /* Size of userdata buffer in bytes. Increase this for high bitrate userdata applications. */

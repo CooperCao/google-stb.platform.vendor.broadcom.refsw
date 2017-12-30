@@ -365,7 +365,7 @@ void gfx_buffer_xform_rgba_to_la(
    const GFX_BUFFER_XFORM_OPTIONS_T *opts,
    uint32_t x, uint32_t y, uint32_t z)
 {
-   vcos_unused(opts);
+   unused(opts);
 
    assert(num_src_planes == 1);
    assert(src->fmt == GFX_LFMT_R32_G32_B32_A32_FLOAT);

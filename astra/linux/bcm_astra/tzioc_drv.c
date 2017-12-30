@@ -689,14 +689,14 @@ static int tzioc_echo_msg_proc(struct tzioc_msg_hdr *pHdr)
 }
 #endif
 
-int _tzioc_call_smc(uint32_t callnum)
+int _tzioc_call_smc(uint32_t ulCallnum)
 {
 #ifdef __aarch64__
     asm volatile(
         "mov x0, %[cn] \r\n"
         "smc #0\r\n"
         : /* No output registers */
-        : [cn] "r" (callnum)
+        : [cn] "r" (ulCallnum)
         : "x0" /* x0 is clobbered. */
     );
 #else
@@ -704,7 +704,7 @@ int _tzioc_call_smc(uint32_t callnum)
         "mov r0, %[cn] \r\n"
         __SMC(0)
         : /* No output registers */
-        : [cn] "r" (callnum)
+        : [cn] "r" (ulCallnum)
         : "r0" /* r0 is clobbered. */
     );
 #endif

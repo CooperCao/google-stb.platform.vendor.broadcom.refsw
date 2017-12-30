@@ -167,8 +167,6 @@ BERR_Code BV3D_SendJob(
    /* TODO: probably should clear out fields that we want zero -- shouldn't rely on caller */
    *pOurJob = *psJob;
 
-   BDBG_MSG(("SendJob %p (i0=%d), client %d", (void *)pOurJob, pOurJob->sProgram[0].eOperation, pOurJob->uiClientId));
-
    if (pOurJob->bCollectTimeline)
       BKNI_Memset(&pOurJob->sTimelineData, 0, sizeof(BV3D_TimelineData));
 

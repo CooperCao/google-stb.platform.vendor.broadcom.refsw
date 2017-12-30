@@ -622,6 +622,8 @@ static BIP_Status addCaptionServiceDescriptors(
 {
     unsigned i;
     BIP_Status       rc = BIP_SUCCESS;
+    BIP_MediaInfoCaptionServiceDescriptor *pDescriptor = NULL;
+
     BDBG_MSG(("%s: Adding Caption Data ",BSTD_FUNCTION));
     pMediaInfoVideoTrack->captionService.numberOfServices = pTrackMpeg2TS->caption_service.number_of_services;
     for(i=0; i < pTrackMpeg2TS->caption_service.number_of_services ; i++)
@@ -654,9 +656,13 @@ static BIP_Status addCaptionServiceDescriptors(
 
         /* Now the descripror is created add to the descriptor list of VideoTrack.*/
         BIP_MEDIAINFO_CAPTION_SERVICE_DESCRIPTORLIST_INSERT(&pMediaInfoVideoTrack->captionService.pFirstServiceDescriptor, pDescriptor);
+        pDescriptor = NULL;     /* Don't need to free on error. */
     }
 
+    return rc;
+
 error:
+    if (pDescriptor) { B_Os_Free(pDescriptor);}
     return rc;
 }
 
@@ -1476,6 +1482,7 @@ static BIP_Status populateVideoTrackFromXmlTree(
     BIP_Status rc    = BIP_SUCCESS;
     BIP_XmlElement xmlElemCurrentChild = NULL;
     BIP_XmlElement xmlElemSubChild = NULL;
+    BIP_MediaInfoCaptionServiceDescriptor *pDescriptor = NULL;
 
     BDBG_ASSERT(pCurrentTrack);
     BDBG_ASSERT(xmlElemParent);
@@ -1512,8 +1519,6 @@ static BIP_Status populateVideoTrackFromXmlTree(
 
             for(i=0; i < pCurrentTrack->info.video.captionService.numberOfServices ; i++)
             {
-                BIP_MediaInfoCaptionServiceDescriptor *pDescriptor = NULL;
-
                 /* Allocate memory for BIP_MediaInfoCaptionServiceDescriptor */
                 pDescriptor = B_Os_Calloc(1, sizeof(BIP_MediaInfoCaptionServiceDescriptor));
                 BIP_CHECK_GOTO(( pDescriptor!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfoCaptionServiceDescriptor", sizeof(BIP_MediaInfoCaptionServiceDescriptor) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
@@ -1579,6 +1584,7 @@ static BIP_Status populateVideoTrackFromXmlTree(
                 }
                  /* Now the descripror is created add to the descriptor list of VideoTrack.*/
                 BIP_MEDIAINFO_CAPTION_SERVICE_DESCRIPTORLIST_INSERT(&pCurrentTrack->info.video.captionService.pFirstServiceDescriptor, pDescriptor);
+                pDescriptor = NULL;     /* Don't need to free on error. */
             }
         }
 
@@ -1587,7 +1593,10 @@ static BIP_Status populateVideoTrackFromXmlTree(
     {
         BDBG_WRN((BIP_MSG_PRE_FMT "XmlTree contains an empty Video track." BIP_MSG_PRE_ARG));
     }
+    return rc;
+
 error:
+    if (pDescriptor) {B_Os_Free(pDescriptor);}
     return rc;
 }
 
@@ -2134,9 +2143,11 @@ static void populateMediaInfoTrackFromEPID(
 
    pMediaInfoTrack->trackType = type;
    if (type == BIP_MediaInfoTrackType_eVideo) {
+      /* coverity[mixed_enums] */
       pMediaInfoTrack->info.video.codec = pEpid->streamType;
    }
    else if (type == BIP_MediaInfoTrackType_eAudio ) {
+      /* coverity[mixed_enums] */
       pMediaInfoTrack->info.audio.codec = pEpid->streamType;
    }
    else
@@ -3293,7 +3304,7 @@ cleanup_ts_nav:
     else
     {
         BDBG_WRN(( BIP_MSG_PRE_FMT "Can't make Nav for transport type %s, skipping file: %s"
-                   BIP_MSG_PRE_ARG, BIP_ToStr_NEXUS_TransportType(pMediaTrack->trackType), pMediaFileAbsolutePathName));
+                   BIP_MSG_PRE_ARG, BIP_ToStr_NEXUS_TransportType(hMediaInfo->mediaInfoStream.transportType), pMediaFileAbsolutePathName));
         rc =  BIP_ERR_NOT_SUPPORTED;
     }
 

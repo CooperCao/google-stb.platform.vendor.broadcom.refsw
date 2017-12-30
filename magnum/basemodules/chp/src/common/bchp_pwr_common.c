@@ -578,6 +578,7 @@ static void BCHP_PWR_P_HW_AUD_DAC_Control(BCHP_Handle handle, bool activate)
 #endif
 static void BCHP_PWR_P_HW_RFM_PHY_Control(BCHP_Handle handle, bool activate)
 {
+    bool rfmCapable;
 #ifdef BCHP_RFM_SYSCLK_CLKCTL
     uint32_t mask, reg;
 
@@ -586,6 +587,12 @@ static void BCHP_PWR_P_HW_RFM_PHY_Control(BCHP_Handle handle, bool activate)
     if(reg & BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_1_otp_option_rfm_disable_MASK)
     return;
 #endif
+
+    if((BCHP_GetFeature(handle, BCHP_Feature_eRfmCapable, (void*) &rfmCapable) != BERR_SUCCESS) ||
+       !rfmCapable) {
+        BDBG_MSG(("RFM is not supported"));
+        return;
+    }
 
     BDBG_MSG(("HW_RFM_PHY: %s", activate?"on":"off"));
 
@@ -649,6 +656,7 @@ static void BCHP_PWR_P_HW_RFM_PHY_Control(BCHP_Handle handle, bool activate)
 #else
     BSTD_UNUSED(handle);
     BSTD_UNUSED(activate);
+    BSTD_UNUSED(rfmCapable);
 #endif
 }
 #endif

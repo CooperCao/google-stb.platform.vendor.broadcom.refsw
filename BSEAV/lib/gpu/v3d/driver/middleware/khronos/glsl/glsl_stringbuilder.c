@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include <stdlib.h>
@@ -31,7 +24,7 @@ void glsl_sb_reset(StringBuilder* sb)
 
    if (sb->buf)
    {
-      vcos_assert(sb->capacity >= SB_INIT_CAPACITY);
+      assert(sb->capacity >= SB_INIT_CAPACITY);
       sb->buf[0] = '\0';
       return;
    }
@@ -67,7 +60,7 @@ void glsl_sb_append(StringBuilder* sb, const size_t n, const char* format, ...)
          sb->buf = buf_new;
       }
 
-      vcos_assert(capacity_req <= sb->capacity);
+      assert(capacity_req <= sb->capacity);
 
       // Print the string.
       va_start(argp, format);
@@ -75,7 +68,7 @@ void glsl_sb_append(StringBuilder* sb, const size_t n, const char* format, ...)
       va_end(argp);
 
       // Work out the new length.
-      vcos_assert(c <= n);
+      assert(c <= n);
       sb->len += c;
    }
 }

@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Creates GLES1.1 shaders as dataflow graphs and passes them to the compiler
-backend.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/glsl_dataflow.h"
 #include "middleware/khronos/glsl/2708/glsl_allocator_4.h"
@@ -454,7 +445,7 @@ static GLXX_VEC4_T *texture_arg(GLenum src, GLenum op, GLXX_VEC4_T *texture, GLX
    case GL_ONE_MINUS_SRC_COLOR:
       return glxx_sub4(glxx_crep4(1.0f), color);
    case GL_SRC_ALPHA:
-      vcos_assert(color->w != NULL);
+      assert(color->w != NULL);
       return glxx_rep4(color->w);
    case GL_ONE_MINUS_SRC_ALPHA:
       return glxx_rep4(glxx_sub(glxx_cfloat(1.0f), color->w));
@@ -876,7 +867,7 @@ static Dataflow *perform_user_clip(int user_clip, bool egl_output)
 
    scalar = glxx_mul(glxx_dot4(coord, glxx_u4(GLXX_STATE_OFFSET(projected_clip_plane))), glxx_fragment_get(DATAFLOW_FRAG_GET_W));
 
-   vcos_assert(user_clip == -1 || user_clip == 1);
+   assert(user_clip == -1 || user_clip == 1);
    if (user_clip > 0)
       return glxx_less(scalar, glxx_cfloat(0.0f));
    else
@@ -963,12 +954,12 @@ static GLXX_FRAGMENT_CARD_T *fshader(GL11_CACHE_KEY_T *v)
       color = fog(card, v->fog_mode, color);
    if (v->point_smooth)
    {
-      vcos_assert(v->common.primitive_type == 0);
+      assert(v->common.primitive_type == 0);
       color = apply_antialiased_point(card, color, point_x, point_y);
    }
    if (v->line_smooth)
    {
-      vcos_assert(v->common.primitive_type == 1);
+      assert(v->common.primitive_type == 1);
       color = apply_antialiased_line(color, line_x);
    }
 
@@ -996,7 +987,7 @@ bool gl11_hw_emit_shaders(GL11_CACHE_KEY_T *v, GLXX_LINK_RESULT_DATA_T *data, ui
    uint32_t vary_count = 0;
    bool result = true;
 
-   vcos_assert(v->two_side == (v->lighting && v->two_side));
+   assert(v->two_side == (v->lighting && v->two_side));
 
    glsl_fastmem_init();
    if (setjmp(g_ErrorHandlerEnv) != 0)

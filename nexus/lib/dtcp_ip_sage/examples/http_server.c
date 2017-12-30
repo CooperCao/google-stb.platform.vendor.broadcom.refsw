@@ -333,7 +333,7 @@ int handleHttpRequest(int sd, char *filename, struct in_addr *remoteIp)
                 "HTTP/1.1 404 File Not Found\r\n"
                 "\r\n",
                 sizeof(response)-1);
-            nbytes = snprintf(sendbuf, sizeof(sendbuf), response);
+            nbytes = snprintf(sendbuf, sizeof(sendbuf), "%s", response);
 
             printf("HTTP Response \n------------------------\n%s------------------------\n", sendbuf);
 

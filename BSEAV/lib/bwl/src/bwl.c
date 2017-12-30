@@ -449,6 +449,7 @@ static int bwl_parse_bss_info(wl_bss_info_t *bi, ScanInfo_t *pScanInfo)
     pScanInfo->ulChan                   = CHSPEC_CHANNEL( bi->chanspec);
     pScanInfo->ulPrimChan               = wf_chspec_ctlchan( bi->chanspec);
     pScanInfo->lPhyNoise                = bi->phy_noise;
+    pScanInfo->lSNR                     = bi->SNR;
     bi->capability                      = dtoh16(bi->capability);
     pScanInfo->tCredentials.eNetOpMode  = !(bi->capability & DOT11_CAP_IBSS);
 
@@ -1456,6 +1457,7 @@ int32_t BWL_Init
                 err = BWL_ERR_SUCCESS;
             }
         }
+        fclose( fp );
     }
 
     if ( err == BWL_ERR_IOCTL ) return (err);
@@ -5644,9 +5646,21 @@ int32_t BWL_GetCounters
 
     memset( &wifi_counters, 0, sizeof(wifi_counters) );
 
+    /* bcm_unpack_xtlv_buf() ... prints 8 lines to console */
+    /* txallfrm 16691 txback 825110829 txdnlfrm 220
+       txinrtstxop 775159808
+       txfunfl: 3069534208 129152 3197926892 219404 txtplunfl 3197950596 txphyerror 82424
+       rxbadplcp 3197950932 rxcrsglitch 1
+       bphy_rxcrsglitch 48
+       rxfrmtoolong 1
+       rxback 808594993
+       pktengrxducast 3197927312 pktengrxdmcast 1076494336
+    */
+
     if ((err = bcm_unpack_xtlv_buf(&cbfn_info, cntdata, cntinfo->datalen, BCM_XTLV_OPTION_ALIGN32, wl_counters_cbfn))) {
         printf("error %d\n", err);
     }
+
     /* Similar fields are set in bwl_wl_counters.c */
     SAVPCOUNTERS(reset);
     SAVPCOUNTERS(txbyte);
@@ -5669,6 +5683,7 @@ int32_t BWL_GetCounters
     SAVPCOUNTERS(rxf0ovfl);
     SAVPCOUNTERS(rxf1ovfl);
     SAVPCOUNTERS(pmqovfl);
+    SAVPCOUNTERS(rxcrc);
 
 BWL_EXIT:
     if (buf != NULL)
@@ -8746,4 +8761,24 @@ int BWL_GetMacAssocList(
     num_addresses = wl_maclist_2( wl, outputList, outputListLen );
 
     return ( num_addresses );
+}
+
+/* sample command ... wl cca_get_stats */
+int BWL_GetCcaStats(
+    BWL_Handle        hBwl,  /* [in] BWL Handle */
+    BWLGetCcaStats_t *BWLGetCcaStats
+    )
+{
+    char *argv[2];
+    void *wl = hBwl->wl;
+
+    memset( argv, 0, sizeof(argv) );
+
+    /* create argv array like it would be like if user entered commands from the command line */
+    argv[0] = "cca_get_stats";
+    argv[1] = NULL;
+
+    wl_cca_get_stats( wl, argv[0], argv, BWLGetCcaStats );
+
+    return 0;
 }

@@ -120,7 +120,7 @@ struct tzioc_device {
 };
 
 /* exported functions */
-int _tzioc_call_smc(uint32_t callnum);
+int _tzioc_call_smc(uint32_t ulCallnum);
 
 uintptr_t _tzioc_offset2addr(uintptr_t ulOffset);
 uintptr_t _tzioc_addr2offset(uintptr_t ulAddr);

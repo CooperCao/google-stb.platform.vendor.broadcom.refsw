@@ -67,7 +67,8 @@ typedef struct bmpeg4_es_descriptor {
             uint8_t samplingFrequencyIndex;
             uint8_t channelConfiguration;
             unsigned samplingFrequency; /* only valid if samplingFrequencyIndex==0x0F */
-            unsigned aac_info_size;
+            unsigned aac_info_size; /* in bytes */
+            unsigned aac_info_size_bits; /* in bits */
             uint8_t aac_info[3*1024];
         } iso_14496_3;
         struct {
@@ -83,6 +84,13 @@ bmpeg4_parse_es_descriptor(batom_cursor *cursor, bmpeg4_es_descriptor *descripto
 
 bool
 bmedia_info_probe_aac_info(batom_cursor *cursor, bmedia_info_aac *aac);
+
+
+int bmedia_create_loas_packet(void *buf, unsigned buf_len, const void *audioSpecificConfig, unsigned audioSpecificConfig_len_bits, batom_t frame);
+
+unsigned bmpeg4_parse_SamplingRate(batom_bitstream *bs, uint8_t *index);
+unsigned bmpeg4_parse_AudioObjectType(batom_bitstream *bs);
+
 #ifdef __cplusplus
 }
 #endif

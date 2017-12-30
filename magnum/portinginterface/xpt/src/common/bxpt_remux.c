@@ -103,10 +103,18 @@ static BERR_Code fixedOffsetControl(
     return ret;
 }
 
-static BERR_Code AddPidChannel(
+typedef enum mapAction
+{
+	addPidChannel,
+	removePidChannel
+}
+mapAction;
+
+static BERR_Code MapPidChannel(
 	BXPT_Remux_Handle hRmx,				
 	unsigned int PidChannelNum,
-	bool UseRPipe 			
+	bool UseRPipe,
+	mapAction action
 	);
 
 BERR_Code BXPT_Remux_GetTotalChannels(
@@ -330,7 +338,7 @@ BERR_Code BXPT_Remux_AddPidChannelToRemux(
 	BDBG_ASSERT( hRmx );
 	BSTD_UNUSED( RemuxInput );
 
-	return AddPidChannel( hRmx, PidChannelNum, false ); 
+	return MapPidChannel( hRmx, PidChannelNum, false, addPidChannel );
 }
 
 #if (!B_REFSW_MINIMAL)
@@ -343,14 +351,15 @@ BERR_Code BXPT_Remux_AddRPipePidChannelToRemux(
 	BDBG_ASSERT( hRmx );
 	BSTD_UNUSED( RemuxInput );
 
-	return AddPidChannel( hRmx, PidChannelNum, true ); 
+	return MapPidChannel( hRmx, PidChannelNum, true, addPidChannel );
 }
 #endif
 
-BERR_Code AddPidChannel(
+BERR_Code MapPidChannel(
 	BXPT_Remux_Handle hRmx,				
 	unsigned int PidChannelNum,
-	bool UseRPipe 			
+	bool UseRPipe,
+	mapAction action
 	)
 {
 	BERR_Code ExitCode = BERR_SUCCESS;
@@ -362,17 +371,18 @@ BERR_Code AddPidChannel(
 	}
 	else
 	{
-		uint32_t PipeShift;
+
+		BXPT_PidChannelDestination dest;
 
 		/* Set the PID channels enable bit. */
 		switch( hRmx->ChannelNo )
 		{
 			case 0:
-			PipeShift = 0;		/* G pipe */
+			dest = UseRPipe ? BXPT_PidChannelDestination_eRemux0RPipe : BXPT_PidChannelDestination_eRemux0GPipe;
 			break;
 
 			case 1:
-			PipeShift = 2;		/* G pipe */
+			dest = UseRPipe ? BXPT_PidChannelDestination_eRemux1RPipe : BXPT_PidChannelDestination_eRemux1GPipe;
 			break;
 
 			default:
@@ -381,10 +391,7 @@ BERR_Code AddPidChannel(
 			goto Done;
 		}
 
-		if( UseRPipe == true )
-			PipeShift++;
-
-		BXPT_P_SetPidChannelDestination( (BXPT_Handle) hRmx->vhXpt, PidChannelNum, PipeShift, true );
+		BXPT_P_SetPidChannelDestination( (BXPT_Handle) hRmx->vhXpt, PidChannelNum, dest, action == addPidChannel ? true : false );
 	}
 
 	Done:
@@ -455,29 +462,17 @@ BERR_Code BXPT_Remux_RemovePidChannelFromRemux(
 	}
 	else
 	{
-		uint32_t PipeShift;
+		BXPT_PidChannelDestination SelectedDestination = hRmx->ChannelNo ? BXPT_PidChannelDestination_eRemux1GPipe : BXPT_PidChannelDestination_eRemux0GPipe;
+		BXPT_Handle hXpt = hRmx->vhXpt;
 
-		/* Clear the PID channels enable bit. */
-		switch( hRmx->ChannelNo )
-		{
-			case 0:
-			PipeShift = 0;		/* G pipe */
-			break;
-
-			case 1:
-			PipeShift = 2;		/* G pipe */
-			break;
-
-			default:
-			BDBG_ERR(( "ChannelNo %lu invalid!", ( unsigned long ) hRmx->ChannelNo ));
-			ExitCode = BERR_INVALID_PARAMETER;
-			goto Done;
-		}
-
-		BXPT_P_SetPidChannelDestination( (BXPT_Handle) hRmx->vhXpt, PidChannelNum, PipeShift, false );
+		/* Enabling both R and G pipes for the same PID channel to remux would cause CC errors.
+		So just check for a non-zero reference count on the G pipe */
+		if (hXpt->PidChannelTable[ PidChannelNum ].destRefCnt[SelectedDestination])
+			MapPidChannel( hRmx, PidChannelNum, false, removePidChannel );
+		else
+			MapPidChannel( hRmx, PidChannelNum, true, removePidChannel );
 	}
 
-	Done:
 	return( ExitCode );	    
 }
 

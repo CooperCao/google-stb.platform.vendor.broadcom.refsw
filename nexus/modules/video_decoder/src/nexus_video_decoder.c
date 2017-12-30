@@ -48,6 +48,7 @@
 #include "priv/nexus_core.h"
 #include "priv/nexus_core_img_id.h"
 #include "priv/nexus_core_img.h"
+#include "priv/nexus_core_preinit.h"
 
 #include "bchp_xpt_rave.h"
 #include "bxvd_pvr.h"
@@ -58,11 +59,17 @@
 #include "bgrc_packet.h"
 
 #include "nexus_video_decoder_security.h"
+#if NEXUS_HAS_SAGE
+#include "nexus_sage.h"
+#endif
 
 BDBG_MODULE(nexus_video_decoder);
 BDBG_FILE_MODULE(nexus_flow_video_decoder);
 
 #define BDBG_MSG_TRACE(X) /* BDBG_MSG(X) */
+#define BDBG_MSG_APPDM(X) /* BDBG_WRN(X) */
+#define BDBG_MSG_DMLITE(X) /* BDBG_WRN(X) */
+
 
 BTRC_MODULE(ChnChange_Tune, ENABLE);
 BTRC_MODULE(ChnChange_TuneLock, ENABLE);
@@ -91,7 +98,8 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void);
 static NEXUS_Error NEXUS_VideoDecoder_P_SetSettings(NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_VideoDecoderSettings *pSettings, bool force);
 static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle videoDecoder);
 static NEXUS_Error DisplayManagerLite_isr( void* pPrivateContext, const BXDM_DisplayInterruptInfo *pstDisplayInterruptInfo, BAVC_MVD_Picture **pDispMgrToVDC);
-static void NEXUS_VideoDecoder_P_ReturnOutstandingFrames_Avd(NEXUS_VideoDecoderHandle videoDecoder);
+static void NEXUS_VideoDecoder_P_DiscardPicture_isr(NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoDecoderPictureContext *pContext);
+static void NEXUS_VideoDecoder_P_DiscardOutstandingFrames_Avd(NEXUS_VideoDecoderHandle videoDecoder);
 static void NEXUS_VideoDecoder_P_StcChannelStatusChangeEventHandler(void *context);
 
 /* Please refer to the XVD memory spreadsheet for more details on these values. */
@@ -103,10 +111,67 @@ static void NEXUS_VideoDecoder_P_StcChannelStatusChangeEventHandler(void *contex
 /**************************************
 * Module functions
 **************************************/
-void NEXUS_VideoDecoderModule_GetDefaultInternalSettings(NEXUS_VideoDecoderModuleInternalSettings *pSettings)
+void NEXUS_VideoDecoderModule_GetDefaultInternalSettings(NEXUS_VideoDecoderModuleInternalSettings *pSettings, const NEXUS_VideoDecoderModuleSettings *pModuleSettings)
 {
+#if NEXUS_HAS_SAGE
+    BERR_Code rc;
+    unsigned i;
+
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    for (i=0; i<NEXUS_MAX_XVD_DEVICES; i++) {
+        if (pModuleSettings->avdEnabled[i]) {
+            uint32_t size;
+            rc = BXVD_GetDecoderFirmwareSize(g_pCoreHandles->reg, i, &size);
+            if (rc) {
+                /* FW init will fail later with OOM */
+                BERR_TRACE(rc);
+            }
+            else {
+#define XVD_FIRMWARE_ALIGNMENT 4096
+#define ROUND_UP_FIRMWARE_SIZE(SIZE) ((SIZE)+(XVD_FIRMWARE_ALIGNMENT-1)) & ~(XVD_FIRMWARE_ALIGNMENT-1)
+                size = ROUND_UP_FIRMWARE_SIZE(size);
+                pSettings->firmware.size += size;
+            }
+        }
+    }
+    pSettings->firmware.block = NEXUS_MemoryBlock_Allocate(g_pCoreHandles->heap[NEXUS_FIRMWARE_HEAP].nexus, pSettings->firmware.size, XVD_FIRMWARE_ALIGNMENT, NULL);
+    if (!pSettings->firmware.block) {
+        /* FW init will fail later */
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+#else
+    BSTD_UNUSED(pModuleSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+#endif
     return;
+}
+
+unsigned NEXUS_VideoDecoderModule_GetFirmwareSize(const struct NEXUS_Core_PreInitState *preInitState, const NEXUS_VideoDecoderModuleSettings *pModuleSettings)
+{
+#if NEXUS_HAS_SAGE
+    BERR_Code rc;
+    unsigned i;
+    unsigned total = 0;
+    for (i=0; i<NEXUS_MAX_XVD_DEVICES; i++) {
+        if (pModuleSettings->avdEnabled[i]) {
+            uint32_t size;
+            rc = BXVD_GetDecoderFirmwareSize(preInitState->hReg, i, &size);
+            if (rc) {
+                /* FW init will fail later with OOM */
+                BERR_TRACE(rc);
+            }
+            else {
+                size = ROUND_UP_FIRMWARE_SIZE(size);
+                total += size;
+            }
+        }
+    }
+    return total;
+#else
+    BSTD_UNUSED(preInitState);
+    BSTD_UNUSED(pModuleSettings);
+    return 0;
+#endif
 }
 
 void NEXUS_VideoDecoderModule_GetDefaultSettings(NEXUS_VideoDecoderModuleSettings *pSettings)
@@ -381,11 +446,17 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
     BERR_Code rc;
     unsigned i,j;
     const NEXUS_VideoDecoderModuleSettings *pSettings = &g_NEXUS_videoDecoderModuleSettings;
+#if NEXUS_HAS_SAGE
+    unsigned totalFwSize = 0;
+#endif
 
     /* open XVD device, not channels */
     for (i=0; i<NEXUS_MAX_XVD_DEVICES; i++) {
         BXVD_Settings xvdSettings;
         struct NEXUS_VideoDecoderDevice *vDevice = &g_NEXUS_videoDecoderXvdDevices[i];
+#if NEXUS_HAS_SAGE
+        uint32_t fwSize;
+#endif
 
         if (!pSettings->avdEnabled[i]) {
             continue;
@@ -417,8 +488,25 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
         /* TODO: replace pSettings->hostAccessibleHeapIndex with g_pCoreHandles->defaultHeapIndex */
         BDBG_MSG(("BXVD_Open %d: fw heap=%d, avd heap=%d", i, pSettings->hostAccessibleHeapIndex, pSettings->avdHeapIndex[i]));
         xvdSettings.uiAVDInstance = i;
+        /* hFirmwareHeap no longer used for firmware */
         xvdSettings.hFirmwareHeap = g_pCoreHandles->heap[pSettings->hostAccessibleHeapIndex].mma; /* FW always in main heap */
         xvdSettings.hGeneralHeap = xvdSettings.hFirmwareHeap; /* XXX new */
+
+#if NEXUS_HAS_SAGE
+        rc = BXVD_GetDecoderFirmwareSize(g_pCoreHandles->reg, i, &fwSize);
+        if (rc) {
+            BERR_TRACE(rc);
+            goto error;
+        }
+
+        xvdSettings.hFirmwareBlock = NEXUS_MemoryBlock_GetBlock_priv(g_NEXUS_videoDecoderModuleInternalSettings.firmware.block);
+        xvdSettings.uiFirmwareBlockOffset = totalFwSize;
+        xvdSettings.uiFirmwareBlockSize = fwSize;
+        BDBG_MSG(("HVD%u FW at " BDBG_UINT64_FMT ", size %u", i, BDBG_UINT64_ARG(BMMA_LockOffset(xvdSettings.hFirmwareBlock)+xvdSettings.uiFirmwareBlockOffset), xvdSettings.uiFirmwareBlockSize));
+        fwSize = ROUND_UP_FIRMWARE_SIZE(fwSize);
+        totalFwSize += fwSize;
+#endif
+
         if(xvdSettings.stFWMemConfig.uiPictureHeapSize) {
             xvdSettings.hPictureHeap = vDevice->mem;
         }
@@ -475,6 +563,22 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
         {
            rc = BXDM_DisplayInterruptHandler_Create(&vDevice->hXdmDih[j]);
             if (rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
+        }
+    }
+
+#if NEXUS_HAS_SAGE
+    rc = NEXUS_Sage_EnableHvd();
+    if (rc) return BERR_TRACE(rc);
+#endif
+
+    rc = NEXUS_VideoDecoder_P_BootDecoders();
+    if (rc) {BERR_TRACE(rc); goto error;}
+
+    for (i=0; i<NEXUS_MAX_XVD_DEVICES; i++) {
+        struct NEXUS_VideoDecoderDevice *vDevice = &g_NEXUS_videoDecoderXvdDevices[i];
+        if (vDevice->xvd) {
+            rc = BXVD_InitSecureFirmware(vDevice->xvd);
+            if (rc) {BERR_TRACE(rc); goto error;}
         }
     }
 
@@ -538,6 +642,11 @@ void NEXUS_VideoDecoderModule_P_Uninit_Avd(void)
         Nexus_Core_P_Img_Destroy(vDevice->img_context);
 
         NEXUS_VideoDecoder_P_DisableFwVerification(i);
+    }
+
+    if (g_NEXUS_videoDecoderModuleInternalSettings.firmware.block) {
+        NEXUS_MemoryBlock_Free(g_NEXUS_videoDecoderModuleInternalSettings.firmware.block);
+        g_NEXUS_videoDecoderModuleInternalSettings.firmware.block = NULL;
     }
 
     NEXUS_UnlockModule();
@@ -1662,10 +1771,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
 
 
     /* prevent dual decode if a channel is in exclusive mode: 4K, MVC or 3 or 4 HD mosaic. */
-#if ((BCHP_CHIP == 7268) ||  (BCHP_CHIP == 7271))
-    if (g_pCoreHandles->boxConfig->stBox.ulBoxId < 6)
-#endif
-    {
+    if (NEXUS_P_VideoDecoderExclusiveMode_isrsafe(g_pCoreHandles->boxConfig->stBox.ulBoxId, videoDecoder->device->index) == NEXUS_VideoDecoderExclusiveMode_4K) {
         unsigned num4K = 0, numHD = 0, numMvc = 0, num = 0, i;
         char problem[16] = "";
         for (i=0;i<NEXUS_NUM_XVD_CHANNELS;i++) {
@@ -1921,6 +2027,11 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
     if (rc) {rc=BERR_TRACE(rc); goto error;}
 #endif
     NEXUS_VideoDecoder_P_ApplyDisplayInformation(videoDecoder);
+
+    if (videoDecoder->startPts.pending) {
+        rc = NEXUS_VideoDecoder_P_SetStartPts_Avd(videoDecoder, videoDecoder->startPts.pts);
+        if (rc) BERR_TRACE(rc); /* keep going */
+    }
 
     return 0;
 
@@ -2638,6 +2749,17 @@ static void NEXUS_VideoDecoder_P_CheckStatus(void *context)
             }
         }
     }
+
+    /* if HVD0 channel 1 opened, then HVD0 channel 0 cannot be 4Kp60 */
+    if (NEXUS_P_VideoDecoderExclusiveMode_isrsafe(g_pCoreHandles->boxConfig->stBox.ulBoxId, videoDecoder->device->index) == NEXUS_VideoDecoderExclusiveMode_e4Kp60) {
+        if (g_NEXUS_videoDecoderXvdDevices[0].channel[1] && g_NEXUS_videoDecoderXvdDevices[0].channel[1]->dec &&
+            videoDecoder->last_field.ulSourceVerticalSize > 1088) {
+            unsigned refreshRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(videoDecoder->last_field.eFrameRateCode);
+            if (refreshRate >= 59940) {
+                BDBG_WRN(("decoder doesn't support 4Kp60 with second channel"));
+            }
+        }
+    }
 }
 #endif
 
@@ -3044,8 +3166,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_Generic_Body(NEXUS_VideoDecoderHandle vid
         *pPlayback = pidChannelStatus.playback; /* this enabled band hold on vsync playback */
     }
 
-    NEXUS_VideoDecoder_P_SetLowLatencySettings(videoDecoder);
-
     if (videoDecoder->savedRave) {
         /* the rave context is already configured */
         LOCK_TRANSPORT();
@@ -3193,10 +3313,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_Priv_Generic_Epilogue(NEXUS_VideoDecoderH
 
     return NEXUS_SUCCESS;
 }
-
-#if !NEXUS_OTFPVR
-#define NEXUS_VideoDecoder_P_OtfPvr_Activate(videoDecoder, raveStatus, cfg) (NEXUS_SUCCESS)
-#endif
 
 NEXUS_Error NEXUS_VideoDecoder_P_Start_Generic_Epilogue(NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_VideoDecoderStartSettings *pStartSettings)
 {
@@ -3366,10 +3482,12 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
     rc = NEXUS_P_FrameRate_ToMagnum_isrsafe(pStartSettings->frameRate, &cfg.eDefaultFrameRate);
     if(rc!=NEXUS_SUCCESS) {rc = BERR_TRACE(rc); goto err_framerate_tomagnum;}
 
+#if NEXUS_OTFPVR
     if(otfPvr) {
         rc = NEXUS_VideoDecoder_P_OtfPvr_Activate(videoDecoder, &raveStatus, &cfg);
         if(rc!=NEXUS_SUCCESS) {rc = BERR_TRACE(rc); goto err_otfpvr_activate;}
     }
+#endif
 
     BDBG_CWARNING(NEXUS_VideoDecoderProgressiveOverrideMode_eMax == (NEXUS_VideoDecoderProgressiveOverrideMode)BXVD_ProgressiveOverrideMode_eMax);
     cfg.eProgressiveOverrideMode = pStartSettings->progressiveOverrideMode;
@@ -3418,7 +3536,9 @@ err_getdisplaythresholds:
     BXVD_StopDecode(videoDecoder->dec);
 err_startdecode:
 err_rave_status:
+#if NEXUS_OTFPVR
 err_otfpvr_activate:
+#endif
 err_framerate_tomagnum:
     if ( pStartSettings->appDisplayManagement )
     {
@@ -3592,7 +3712,7 @@ void NEXUS_VideoDecoder_P_Stop_priv(NEXUS_VideoDecoderHandle videoDecoder)
     if ( videoDecoder->startSettings.appDisplayManagement )
     {
         videoDecoder->externalTsm.stopped = true;
-        NEXUS_VideoDecoder_P_ReturnOutstandingFrames_Avd(videoDecoder);
+        NEXUS_VideoDecoder_P_DiscardOutstandingFrames_Avd(videoDecoder);
     }
 
     BDBG_MODULE_MSG(nexus_flow_video_decoder, ("stop %p", (void *)videoDecoder));
@@ -3749,9 +3869,9 @@ NEXUS_Error NEXUS_VideoDecoder_P_GetStatus_Avd(NEXUS_VideoDecoderHandle videoDec
     pStatus->numDisplayUnderflows = channelStatus.uiVsyncUnderflowCount;
     pStatus->numWatchdogs = videoDecoder->device->numWatchdogs;
 
-    BDBG_CASSERT(BXVD_Video_Protocol_eLevel_MaxLevel == (BXVD_Video_Protocol_Level)NEXUS_VideoProtocolLevel_eMax);
+    BDBG_CASSERT(BAVC_VideoCompressionLevel_eMax == (BAVC_VideoCompressionLevel)NEXUS_VideoProtocolLevel_eMax);
     pStatus->protocolLevel = channelStatus.eProtocolLevel;
-    BDBG_CASSERT(BXVD_Video_Protocol_eProfile_MaxProfile == (BXVD_Video_Protocol_Profile)NEXUS_VideoProtocolProfile_eMax);
+    BDBG_CASSERT(BAVC_VideoCompressionProfile_eMax == (BAVC_VideoCompressionProfile)NEXUS_VideoProtocolProfile_eMax);
     pStatus->protocolProfile = channelStatus.eProtocolProfile;
 
 #if NEXUS_OTFPVR
@@ -3848,7 +3968,7 @@ void NEXUS_VideoDecoder_P_Reset_Avd( NEXUS_VideoDecoderHandle videoDecoder )
 NEXUS_Error NEXUS_VideoDecoder_P_SetStartPts_Avd( NEXUS_VideoDecoderHandle videoDecoder, uint32_t pts )
 {
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
-    if (videoDecoder->dec && videoDecoder->startSettings.stcChannel) {
+    if (videoDecoder->dec) {
         BERR_Code rc;
 
         BDBG_WRN(("NEXUS_VideoDecoder_SetStartPts %#x", pts));
@@ -3856,7 +3976,13 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetStartPts_Avd( NEXUS_VideoDecoderHandle video
         if (rc) return BERR_TRACE(rc);
         rc = BXVD_SetTSMWaitForValidSTC(videoDecoder->dec);
         if (rc) return BERR_TRACE(rc);
+        videoDecoder->startPts.pending = false;
     }
+    else {
+        videoDecoder->startPts.pending = true;
+        videoDecoder->startPts.pts = pts;
+    }
+    videoDecoder->startPts.waitForStart = true;
     return 0;
 }
 
@@ -3885,6 +4011,27 @@ void NEXUS_VideoDecoder_P_IsCodecSupported_Generic( NEXUS_VideoDecoderHandle vid
     }
 
     *pSupported = videoDecoder->settings.supportedCodecs[codec];
+}
+
+void NEXUS_VideoDecoder_GetCodecCapabilities( NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoCodec codec, NEXUS_VideoDecoderCodecCapabilities *pCodecCapabilities )
+{
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    BKNI_Memset(pCodecCapabilities, 0, sizeof(*pCodecCapabilities));
+    if (videoDecoder->settings.supportedCodecs[codec]) {
+        BAVC_VideoCompressionStd xvdCodec = NEXUS_P_VideoCodec_ToMagnum(codec, NEXUS_TransportType_eTs);
+        pCodecCapabilities->supported = true;
+        pCodecCapabilities->protocolProfile = (NEXUS_VideoProtocolProfile)videoDecoder->device->cap.stCodecCapabilities[xvdCodec].eProfile;
+        pCodecCapabilities->protocolLevel = (NEXUS_VideoProtocolLevel)videoDecoder->device->cap.stCodecCapabilities[xvdCodec].eLevel;
+        switch (videoDecoder->device->cap.stCodecCapabilities[xvdCodec].eBitDepth) {
+        default:
+        case BAVC_VideoBitDepth_e8Bit: pCodecCapabilities->colorDepth = 8; break;
+        case BAVC_VideoBitDepth_e10Bit: pCodecCapabilities->colorDepth = 10; break;
+        }
+        /* reduced by RTS or memconfig */
+        if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth < pCodecCapabilities->colorDepth) {
+            pCodecCapabilities->colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth;
+        }
+    }
 }
 
 #include "bxvd_dbg.h"
@@ -4038,19 +4185,38 @@ NEXUS_Error NEXUS_VideoDecoderModule_Standby_priv(bool enabled, const NEXUS_Stan
         }
     }
 
-    for (avdIndex=0; avdIndex<NEXUS_MAX_XVD_DEVICES; avdIndex++) {
-        if (!g_NEXUS_videoDecoderModuleSettings.avdEnabled[avdIndex]) {
-            continue;
-        }
-        if(enabled) {
+    if (enabled) {
+        for (avdIndex=0; avdIndex<NEXUS_MAX_XVD_DEVICES; avdIndex++) {
+            if (!g_NEXUS_videoDecoderModuleSettings.avdEnabled[avdIndex]) continue;
             rc = BXVD_Standby(g_NEXUS_videoDecoderXvdDevices[avdIndex].xvd);
-
+            if (rc) return BERR_TRACE(rc);
             NEXUS_VideoDecoder_P_DisableFwVerification( avdIndex ); /* disable region verification */
-
-        } else {
-            rc = BXVD_Resume(g_NEXUS_videoDecoderXvdDevices[avdIndex].xvd);
         }
+    }
+    else {
+#if NEXUS_HAS_SAGE
+        NEXUS_Sage_DisableHvd();
+#endif
+
+        for (avdIndex=0; avdIndex<NEXUS_MAX_XVD_DEVICES; avdIndex++) {
+            if (!g_NEXUS_videoDecoderModuleSettings.avdEnabled[avdIndex]) continue;
+            rc = BXVD_Resume(g_NEXUS_videoDecoderXvdDevices[avdIndex].xvd);
+            if (rc) return BERR_TRACE(rc);
+        }
+
+#if NEXUS_HAS_SAGE
+        rc = NEXUS_Sage_EnableHvd();
         if (rc) return BERR_TRACE(rc);
+#endif
+
+        rc = NEXUS_VideoDecoder_P_BootDecoders();
+        if (rc) return BERR_TRACE(rc);
+
+        for (avdIndex=0; avdIndex<NEXUS_MAX_XVD_DEVICES; avdIndex++) {
+            if (!g_NEXUS_videoDecoderModuleSettings.avdEnabled[avdIndex]) continue;
+            rc = BXVD_ResumeRestartDecoder(g_NEXUS_videoDecoderXvdDevices[avdIndex].xvd);
+            if (rc) return BERR_TRACE(rc);
+        }
     }
 #else
     BSTD_UNUSED(enabled);
@@ -4149,8 +4315,11 @@ static void NEXUS_VideoDecoder_P_PPBReceived_isr(void *context, int unused, void
 
 NEXUS_Error NEXUS_VideoDecoder_P_SetCrcFifoSize(NEXUS_VideoDecoderHandle videoDecoder, bool forceDisable)
 {
-    unsigned size = forceDisable?0:videoDecoder->extendedSettings.crcFifoSize;
+    unsigned size;
+
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+
+    size = forceDisable?0:videoDecoder->extendedSettings.crcFifoSize;
 
     if (size != videoDecoder->crc.size && videoDecoder->crc.size) {
         BKNI_EnterCriticalSection();
@@ -4202,16 +4371,6 @@ NEXUS_Error NEXUS_VideoDecoder_GetCrcData( NEXUS_VideoDecoderHandle videoDecoder
     }
     BKNI_LeaveCriticalSection();
     return 0;
-}
-
-NEXUS_Error NEXUS_VideoDecoder_P_SetLowLatencySettings(NEXUS_VideoDecoderHandle videoDecoder)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-
-    /* TODO: move as much pre-computation here as possible to reduce time in isr later */
-    BSTD_UNUSED(videoDecoder);
-
-    return rc;
 }
 
 static void get_stc_count(NEXUS_VideoDecoderCapabilities *pCapabilities)
@@ -4575,37 +4734,21 @@ static BAVC_Polarity DML_P_GetInterruptPolarity_isr( const BXDM_DisplayInterrupt
 
 static bool DML_P_PeekNextPic_isr(NEXUS_VideoDecoderExternalTsmData * pVideoDecoderLite, DML_DispPicStruct *EvalPic)
 {
+    NEXUS_VideoDecoderPictureContext *pContext;
     BXDM_Picture * UnifiedPicture;
 
     EvalPic->pDispPicture = NULL;
     EvalPic->valid = false;
 
-    while ( BFIFO_READ_PEEK(&pVideoDecoderLite->displayPictureQueue.displayFifo) )
+    pContext = BLST_Q_FIRST(&pVideoDecoderLite->displayPictureQueue.queue);
+    if ( pContext )
     {
-        NEXUS_VideoDisplayPictureContext *pContext;
-
-        pContext = BFIFO_READ(&pVideoDecoderLite->displayPictureQueue.displayFifo);
-        BDBG_ASSERT(NULL != pContext);
         UnifiedPicture = pContext->pUnifiedPicture;
-
-        /* Release it if not ment for Display*/
-        if (pContext->dropPicture || UnifiedPicture->stPictureType.bLastPicture)
-        {
-            if ((pVideoDecoderLite->pDecoderPrivateContext!=NULL))
-            {
-                pVideoDecoderLite->decoderInterface.releasePicture_isr(pVideoDecoderLite->pDecoderPrivateContext,  UnifiedPicture, NULL);
-                BDBG_MSG(("Drop () -> %d",UnifiedPicture->uiSerialNumber));
-            }
-            BFIFO_READ_COMMIT(&pVideoDecoderLite->displayPictureQueue.displayFifo, 1);
-        }
-        else
-        {
-            /* Put the Popped picture into NewPic */
-            EvalPic->pDispPicture = UnifiedPicture;
-            EvalPic->valid = true;
-            BDBG_MSG(("DML_P_PeekNextPic_isr Q %p", (void *)pContext));
-            break;
-        }
+        /* Put the Popped picture into NewPic */
+        EvalPic->pDispPicture = UnifiedPicture;
+        EvalPic->valid = true;
+        EvalPic->pContext = pContext;
+        BDBG_MSG(("DML_P_PeekNextPic_isr Q %u", pContext->serialNumber));
     }
 
     return EvalPic->valid;
@@ -4617,11 +4760,28 @@ static void DML_P_ReleasePic_isr(NEXUS_VideoDecoderExternalTsmData * pVideoDecod
     /* Release Pictures to Filter after display*/
     if (RelPic->valid)
     {
-        if ((pVideoDecoderLite->pDecoderPrivateContext!=NULL) && (RelPic->pDispPicture!=NULL))
+        NEXUS_VideoDecoderPictureContext *pContext = RelPic->pContext;
+        BDBG_ASSERT(NULL != pContext);
+        BDBG_ASSERT(pContext->display == NEXUS_VideoDecoderPictureDisplay_eActive);
+        pContext->display = NEXUS_VideoDecoderPictureDisplay_eComplete;
+        if ( pContext->inDecodeQueue )
         {
-            pVideoDecoderLite->decoderInterface.releasePicture_isr(pVideoDecoderLite->pDecoderPrivateContext,  RelPic->pDispPicture, NULL);
-            if (0) BDBG_WRN(("Rel () -> %d",RelPic->pDispPicture->uiSerialNumber));
+            BDBG_MSG_APPDM(("Releasing Frame %u (%p) from Display - Still in Decoder queue", pContext->serialNumber, (void *)pContext->pUnifiedPicture));
         }
+        else
+        {
+            BDBG_ASSERT(!pContext->inFreeQueue);
+            BLST_Q_INSERT_TAIL(&pVideoDecoderLite->freePictureQueue.queue, pContext, freeNode);
+            pVideoDecoderLite->freePictureQueue.count++;
+            BDBG_MSG_APPDM(("Releasing Frame %u (%p) from Display and to XVD freeq=%u", pContext->serialNumber, (void *)pContext->pUnifiedPicture, pVideoDecoderLite->freePictureQueue.count));
+            if ((pVideoDecoderLite->pDecoderPrivateContext!=NULL) && (RelPic->pDispPicture!=NULL))
+            {
+                pVideoDecoderLite->decoderInterface.releasePicture_isr(pVideoDecoderLite->pDecoderPrivateContext,  RelPic->pDispPicture, NULL);
+                if (0) BDBG_WRN(("Rel () -> %d",RelPic->pDispPicture->uiSerialNumber));
+                RelPic->pDispPicture = NULL;
+            }
+        }
+        RelPic->pContext = NULL;
         RelPic->valid = false;
     }
 }
@@ -4630,7 +4790,9 @@ static uint32_t DML_P_GetSrcPolarity_isr(DML_DispPicStruct *DispPic, uint32_t Di
 {
     uint32_t SrcPolarity;
 
-    BDBG_MSG((" DML_P_GetSrcPolarity_isr %d %d %d", DispPic->pDispPicture->uiSerialNumber,DispPic->first_pic,DispPic->repeat_field));
+    BSTD_UNUSED(DisPolarity);
+
+    /*BDBG_MSG((" DML_P_GetSrcPolarity_isr %d %d %d", DispPic->pDispPicture->uiSerialNumber,DispPic->first_pic,DispPic->repeat_field));*/
     switch (DispPic->pDispPicture->stBufferInfo.ePulldown)
     {
     case BXDM_Picture_PullDown_eBottom:
@@ -4707,10 +4869,10 @@ static uint32_t DML_P_GetSrcPolarity_isr(DML_DispPicStruct *DispPic, uint32_t Di
             SrcPolarity = DisPolarity;
     }
 */
-    BDBG_MSG((" Pic %d: SF %d, P %d  O/p %d %d", DispPic->pDispPicture->uiSerialNumber,
+    /*BDBG_MSG((" Pic %d: SF %d, P %d  O/p %d %d", DispPic->pDispPicture->uiSerialNumber,
               DispPic->pDispPicture->stBufferInfo.eSourceFormat,
               DispPic->pDispPicture->stBufferInfo.ePulldown,
-              SrcPolarity,DisPolarity));
+              SrcPolarity,DisPolarity));*/
 
     return SrcPolarity;
 }
@@ -4747,22 +4909,19 @@ static bool DML_P_VerifyNewPicture_isr(BAVC_Polarity DisPolarity,DML_DispPicStru
 
 static void DML_P_MakeNewPicCurrent_isr(NEXUS_VideoDecoderExternalTsmData * pVideoDecoderLite, DML_DispPicStruct *EvalPic, DML_DispPicStruct *DispPic)
 {
-    NEXUS_VideoDisplayPictureContext *pContext;
-    BXDM_Picture * UnifiedPicture;
+    NEXUS_VideoDecoderPictureContext *pContext;
 
-    pContext = BFIFO_READ(&pVideoDecoderLite->displayPictureQueue.displayFifo);
-    BDBG_ASSERT(NULL != pContext);
-
-    UnifiedPicture = pContext->pUnifiedPicture;
-
-    /* Pop the picure from the Queue */
-    BFIFO_READ_COMMIT(&pVideoDecoderLite->displayPictureQueue.displayFifo, 1);
-
-    BDBG_MSG(("DML_P_MakeNewPicCurrent_isr Q %p %p", (void *)EvalPic->pDispPicture,(void *)UnifiedPicture));
+    pContext = EvalPic->pContext;
 
     /* Verify if the peeked Picture is the one on the TOP of the Queue */
-    BDBG_ASSERT(UnifiedPicture == EvalPic->pDispPicture);
+    BDBG_ASSERT(EvalPic->pContext == BLST_Q_FIRST(&pVideoDecoderLite->displayPictureQueue.queue));
+    /* Pop the picure from the Queue */
+    BLST_Q_REMOVE_HEAD(&pVideoDecoderLite->displayPictureQueue.queue, displayNode);
+    BDBG_ASSERT(pVideoDecoderLite->displayPictureQueue.count > 0);
+    pVideoDecoderLite->displayPictureQueue.count--;
+    pContext->display = NEXUS_VideoDecoderPictureDisplay_eActive;
 
+    pVideoDecoderLite->displayPic.pContext = pContext;
     pVideoDecoderLite->displayPic.pDispPicture = EvalPic->pDispPicture;
     pVideoDecoderLite->displayPic.valid = EvalPic->valid;
     pVideoDecoderLite->displayPic.first_pic = true;
@@ -4779,6 +4938,7 @@ static BAVC_Polarity DML_P_PrepareNewPicture_isr(NEXUS_VideoDecoderExternalTsmDa
     {
         DML_P_ReleasePic_isr(pVideoDecoderLite,&pVideoDecoderLite->displayPic);
     }
+
     DML_P_MakeNewPicCurrent_isr(pVideoDecoderLite, EvalPic, &pVideoDecoderLite->displayPic);
     BDBG_MSG(("DML_P_PrepareNewPicture_isr %d %p",pVideoDecoderLite->displayPic.valid, (void *)pVideoDecoderLite->displayPic.pDispPicture));
 
@@ -4818,7 +4978,7 @@ static NEXUS_Error DisplayManagerLite_isr( void* pPrivateContext, const BXDM_Dis
 
         /* Check for new frames from the decoder and space to hold them */
         pVideoDecoderLite->decoderInterface.getPictureCount_isr(videoDecoder->dec, &PictureCount);
-        if ( PictureCount > 0 && BFIFO_WRITE_LEFT(&pVideoDecoderLite->decoderPictureQueue.decodeFifo) > 0 )
+        if ( PictureCount > 0 && pVideoDecoderLite->freePictureQueue.count > 0 )
         {
             NEXUS_IsrCallback_Fire_isr(videoDecoder->dataReadyCallback);
         }
@@ -4854,6 +5014,7 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
+    int i;
     void * pContext;
     BXDM_DisplayInterruptHandler_Handle displayInterrupt;
     BXDM_DisplayInterruptHandler_AddPictureProviderInterface_Settings addPictureProviderSettings;
@@ -4863,8 +5024,22 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
 
     BDBG_MSG(("NEXUS_VideoDecoder_Initialize_Queue "));
 
-    BFIFO_INIT(&videoDecoder->externalTsm.decoderPictureQueue.decodeFifo, videoDecoder->externalTsm.decoderPictureQueue.pictureContexts, NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE);
-    BFIFO_INIT(&videoDecoder->externalTsm.displayPictureQueue.displayFifo, videoDecoder->externalTsm.displayPictureQueue.pictureContexts, NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE);
+    BLST_Q_INIT(&videoDecoder->externalTsm.decoderPictureQueue.queue);
+    videoDecoder->externalTsm.decoderPictureQueue.count = 0;
+    BLST_Q_INIT(&videoDecoder->externalTsm.displayPictureQueue.queue);
+    videoDecoder->externalTsm.displayPictureQueue.count = 0;
+    BLST_Q_INIT(&videoDecoder->externalTsm.freePictureQueue.queue);
+    videoDecoder->externalTsm.freePictureQueue.count = 0;
+    BKNI_Memset(videoDecoder->externalTsm.pictureContexts, 0, sizeof(videoDecoder->externalTsm.pictureContexts));
+    videoDecoder->externalTsm.pictureCounter = 0;
+
+    for ( i = 0; i < NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE; i++ )
+    {
+        BLST_Q_INSERT_TAIL(&videoDecoder->externalTsm.freePictureQueue.queue, &videoDecoder->externalTsm.pictureContexts[i], freeNode);
+        videoDecoder->externalTsm.pictureContexts[i].inFreeQueue = true;
+    }
+    videoDecoder->externalTsm.freePictureQueue.count = NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE;
+
     videoDecoder->externalTsm.numDecoded = 0;
     videoDecoder->externalTsm.numDisplayed = 0;
     videoDecoder->externalTsm.numIFramesDisplayed = 0;
@@ -4923,20 +5098,27 @@ static NEXUS_Error NEXUS_VideoDecoder_P_GetDecodedFrame(
         videoDecoder->externalTsm.decoderInterface.getPictureCount_isr(videoDecoder->dec, &PictureCount);
     }
 
-    BDBG_MSG(("XVD Decoder Pictures %d",PictureCount));
+    /*BDBG_MSG(("XVD Decoder Pictures %d",PictureCount));*/
 
-    if((PictureCount!=0) && BFIFO_WRITE_PEEK(&videoDecoder->externalTsm.decoderPictureQueue.decodeFifo))
+    if((PictureCount!=0) && (pContext = BLST_Q_FIRST(&videoDecoder->externalTsm.freePictureQueue.queue)))
     {
         videoDecoder->externalTsm.decoderInterface.getNextPicture_isr( videoDecoder->dec, &UnifiedPicture);
 
-        SerialNumber = ++videoDecoder->externalTsm.decoderPictureQueue.pictureCounter;
+        SerialNumber = ++videoDecoder->externalTsm.pictureCounter;
 
-        pContext = BFIFO_WRITE(&videoDecoder->externalTsm.decoderPictureQueue.decodeFifo);
+        BLST_Q_REMOVE_HEAD(&videoDecoder->externalTsm.freePictureQueue.queue, freeNode);
+        BDBG_ASSERT(videoDecoder->externalTsm.freePictureQueue.count > 0);
+        videoDecoder->externalTsm.freePictureQueue.count--;
+        pContext->inFreeQueue = false;
         pContext->pUnifiedPicture = (BXDM_Picture *) UnifiedPicture;
         pContext->serialNumber= SerialNumber;
         pContext->pUnifiedPicture->uiSerialNumber = SerialNumber;
+        BLST_Q_INSERT_TAIL(&videoDecoder->externalTsm.decoderPictureQueue.queue, pContext, decodeNode);
+        BDBG_MSG_APPDM(("Frame %u (%p) delivered from XVD", SerialNumber, (void *)UnifiedPicture));
+        videoDecoder->externalTsm.decoderPictureQueue.count++;
+        pContext->inDecodeQueue = true;
+        pContext->display = NEXUS_VideoDecoderPictureDisplay_eNone;
 
-        BFIFO_WRITE_COMMIT(&videoDecoder->externalTsm.decoderPictureQueue.decodeFifo, 1);
         if ( UnifiedPicture->stPictureType.bLastPicture && !videoDecoder->last_field_flag )
         {
             videoDecoder->last_field_flag = true;
@@ -5122,37 +5304,26 @@ static NEXUS_Error NEXUS_VideoDecoder_P_GetDecodedFrameStatus(
     unsigned *pNumEntries
     )
 {
-    unsigned i, num, left;
+    unsigned i, num;
     NEXUS_VideoDecoderPictureContext *pContext;
 
     /* Return contiguous frames */
-    num = BFIFO_READ_PEEK(&handle->externalTsm.decoderPictureQueue.decodeFifo);
+    num = handle->externalTsm.decoderPictureQueue.count;
     if ( num > numEntries )
     {
         num = numEntries;
     }
-    pContext = BFIFO_READ(&handle->externalTsm.decoderPictureQueue.decodeFifo);
-    for ( i = 0; i < num; i++,pContext++,pStatus++ )
+    pContext = BLST_Q_FIRST(&handle->externalTsm.decoderPictureQueue.queue);
+    for ( i = 0; i < num && NULL != pContext; i++,pStatus++ )
     {
         NEXUS_VideoDecoder_P_ContextToStatus(handle, pContext, pStatus);
+        #if 0
+        BDBG_WRN(("GetDecFrame: %u/%u ser %u", i, num, pContext->serialNumber));
+        #endif
+        pContext = BLST_Q_NEXT(pContext, decodeNode);
     }
 
     *pNumEntries = i;
-
-    /* Get entries after wrap */
-    left = BFIFO_READ_LEFT(&handle->externalTsm.decoderPictureQueue.decodeFifo) -
-            BFIFO_READ_PEEK(&handle->externalTsm.decoderPictureQueue.decodeFifo);
-    if ( left > (numEntries-num) )
-    {
-        left = numEntries - num;
-    }
-    pContext = handle->externalTsm.decoderPictureQueue.pictureContexts;
-    for ( i = 0; i < left; i++,pContext++,pStatus++ )
-    {
-        NEXUS_VideoDecoder_P_ContextToStatus(handle, pContext, pStatus);
-    }
-
-    *pNumEntries = *pNumEntries + i;
 
     return NEXUS_SUCCESS;
 }
@@ -5230,36 +5401,70 @@ NEXUS_Error NEXUS_VideoDecoder_GetDecodedFrames_Avd(
     return NEXUS_SUCCESS;
 }
 
-static void NEXUS_VideoDecoder_P_ReturnOutstandingFrames_Avd(
+static void NEXUS_VideoDecoder_P_DiscardPicture_isr(
+    NEXUS_VideoDecoderHandle videoDecoder,
+    NEXUS_VideoDecoderPictureContext *pContext
+    )
+{
+    BDBG_ASSERT(false == pContext->inFreeQueue);
+    BDBG_MSG(("Discard Frame %u", pContext->serialNumber));
+    if ( pContext->inDecodeQueue )
+    {
+        BLST_Q_REMOVE(&videoDecoder->externalTsm.decoderPictureQueue.queue, pContext, decodeNode);
+        BDBG_ASSERT(videoDecoder->externalTsm.decoderPictureQueue.count > 0);
+        videoDecoder->externalTsm.decoderPictureQueue.count--;
+        pContext->inDecodeQueue = false;
+    }
+    switch ( pContext->display )
+    {
+    default:
+    case NEXUS_VideoDecoderPictureDisplay_eNone:
+    case NEXUS_VideoDecoderPictureDisplay_eComplete:
+        break;  /* nothing to clean up */
+    case NEXUS_VideoDecoderPictureDisplay_ePending:
+        BLST_Q_REMOVE(&videoDecoder->externalTsm.displayPictureQueue.queue, pContext, displayNode);
+        BDBG_ASSERT(videoDecoder->externalTsm.displayPictureQueue.count > 0);
+        videoDecoder->externalTsm.displayPictureQueue.count--;
+        break;
+    case NEXUS_VideoDecoderPictureDisplay_eActive:
+        /* This should have been cleaned up before this function is called ... */
+        BDBG_ASSERT(false);
+        break;
+    }
+    pContext->display = NEXUS_VideoDecoderPictureDisplay_eNone;
+
+    BLST_Q_INSERT_TAIL(&videoDecoder->externalTsm.freePictureQueue.queue, pContext, freeNode);
+    pContext->inFreeQueue = true;
+    videoDecoder->externalTsm.freePictureQueue.count++;
+    /* Just drop the picture, don't return to xvd */
+    pContext->pUnifiedPicture = NULL;
+    pContext->serialNumber = 0;
+}
+
+static void NEXUS_VideoDecoder_P_DiscardOutstandingFrames_Avd(
     NEXUS_VideoDecoderHandle videoDecoder
     )
 {
     if ( videoDecoder->startSettings.appDisplayManagement )
     {
-        /* Purge all pending frames from the app queue */
-        NEXUS_VideoDecoderFrameStatus status;
-        unsigned NumEntries;
-        while ( NEXUS_SUCCESS == NEXUS_VideoDecoder_GetDecodedFrames_Avd(videoDecoder, &status, 1, &NumEntries) && NumEntries > 0 )
-        {
-            NEXUS_VideoDecoder_ReturnDecodedFrames_Avd(videoDecoder, NULL, NumEntries);
-        }
-
+        NEXUS_VideoDecoderPictureContext *pContext;
+        int i;
         BKNI_EnterCriticalSection();
 
-        /* Return all pictures pushed into the "display" fifo above */
-        while ( BFIFO_READ_PEEK(&videoDecoder->externalTsm.displayPictureQueue.displayFifo) )
-        {
-            NEXUS_VideoDisplayPictureContext *pContext;
-
-            pContext = BFIFO_READ(&videoDecoder->externalTsm.displayPictureQueue.displayFifo);
-            BDBG_ASSERT(NULL != pContext);
-            BFIFO_READ_COMMIT(&videoDecoder->externalTsm.displayPictureQueue.displayFifo, 1);
-            videoDecoder->externalTsm.decoderInterface.releasePicture_isr(videoDecoder->externalTsm.pDecoderPrivateContext, pContext->pUnifiedPicture, NULL);
-        }
         /* Return active picture */
         DML_P_ReleasePic_isr(&videoDecoder->externalTsm,&videoDecoder->externalTsm.displayPic);
         videoDecoder->externalTsm.displayPic.valid = false;
         videoDecoder->externalTsm.displayPic.pDispPicture = NULL;
+
+        /* Return all pictures pushed into the decode/display fifos */
+        for ( i = 0; i < NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE; i++ )
+        {
+            pContext = &videoDecoder->externalTsm.pictureContexts[i];
+            if ( !pContext->inFreeQueue )
+            {
+                NEXUS_VideoDecoder_P_DiscardPicture_isr(videoDecoder, pContext);
+            }
+        }
 
         BKNI_LeaveCriticalSection();
     }
@@ -5272,6 +5477,7 @@ NEXUS_Error NEXUS_VideoDecoder_ReturnDecodedFrames_Avd(
     )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_VideoDecoderPictureContext *pContext, *pNext;
     unsigned i;
 
     if ( false == videoDecoder->started )
@@ -5286,40 +5492,69 @@ NEXUS_Error NEXUS_VideoDecoder_ReturnDecodedFrames_Avd(
 
     BKNI_EnterCriticalSection();
 
-    if ( numFrames > (unsigned)BFIFO_READ_LEFT(&videoDecoder->externalTsm.decoderPictureQueue.decodeFifo) )
+    if ( numFrames > videoDecoder->externalTsm.decoderPictureQueue.count )
     {
         BKNI_LeaveCriticalSection();
-        BDBG_ERR(("Attempt to return more decoded frames than frames available"));
+        BDBG_ERR(("Attempt to return more decoded frames (%u) than frames available (%u)", numFrames, videoDecoder->externalTsm.decoderPictureQueue.count));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    /* This should never happen.  The queues are the same size. */
-    BDBG_ASSERT(numFrames <= (unsigned)BFIFO_WRITE_LEFT(&videoDecoder->externalTsm.displayPictureQueue.displayFifo));
-
+    pContext = BLST_Q_FIRST(&videoDecoder->externalTsm.decoderPictureQueue.queue);
     for ( i = 0; i < numFrames; i++ )
     {
-        NEXUS_VideoDecoderPictureContext *pDecoderPicture;
-        NEXUS_VideoDisplayPictureContext *pDisplayPicture;
+        bool recycle;
+        bool display;
 
-        pDecoderPicture = BFIFO_READ(&videoDecoder->externalTsm.decoderPictureQueue.decodeFifo);
-        pDisplayPicture = BFIFO_WRITE(&videoDecoder->externalTsm.displayPictureQueue.displayFifo);
+        BDBG_ASSERT(NULL != pContext);
+        pNext = BLST_Q_NEXT(pContext, decodeNode);
 
-        pDisplayPicture->pUnifiedPicture = pDecoderPicture->pUnifiedPicture;
-        pDisplayPicture->serialNumber = pDecoderPicture->serialNumber;
-        pDisplayPicture->dropPicture = (pSettings != NULL) ? !pSettings->display : false;
-
-        BFIFO_READ_COMMIT(&videoDecoder->externalTsm.decoderPictureQueue.decodeFifo, 1);
-        BFIFO_WRITE_COMMIT(&videoDecoder->externalTsm.displayPictureQueue.displayFifo, 1);
-        videoDecoder->externalTsm.numDisplayed++;
-        if ( pDisplayPicture->pUnifiedPicture->stPictureType.eCoding == BXDM_Picture_Coding_eI )
+        if ( pSettings )
         {
-            videoDecoder->externalTsm.numIFramesDisplayed++;
-        }
-
-        if (pSettings != NULL)
-        {
+            recycle = pSettings->recycle;
+            display = pSettings->display;
             ++pSettings;
         }
+        else
+        {
+            recycle = true;
+            display = true;
+        }
+
+        /* Recycling removes from decoder queue immediately */
+        if ( recycle )
+        {
+            BLST_Q_REMOVE(&videoDecoder->externalTsm.decoderPictureQueue.queue, pContext, decodeNode);
+            BDBG_ASSERT(videoDecoder->externalTsm.decoderPictureQueue.count > 0);
+            videoDecoder->externalTsm.decoderPictureQueue.count--;
+            pContext->inDecodeQueue = false;
+            BDBG_MSG_APPDM(("Recycle Requested %u", pContext->serialNumber));
+        }
+        /* If we're displaying and it's not already been marked for display, add to display queue */
+        if ( display && pContext->display == NEXUS_VideoDecoderPictureDisplay_eNone )
+        {
+            BLST_Q_INSERT_TAIL(&videoDecoder->externalTsm.displayPictureQueue.queue, pContext, displayNode);
+            videoDecoder->externalTsm.displayPictureQueue.count++;
+            pContext->display = NEXUS_VideoDecoderPictureDisplay_ePending;
+            BDBG_MSG_APPDM(("Queue Frame %u for display", pContext->serialNumber));
+            videoDecoder->externalTsm.numDisplayed++;
+            if ( pContext->pUnifiedPicture->stPictureType.eCoding == BXDM_Picture_Coding_eI )
+            {
+                videoDecoder->externalTsm.numIFramesDisplayed++;
+            }
+        }
+        /* If the picture is now not in either queue, free it back to xvd */
+        if ( !pContext->inDecodeQueue && (pContext->display == NEXUS_VideoDecoderPictureDisplay_eNone || pContext->display == NEXUS_VideoDecoderPictureDisplay_eComplete) )
+        {
+            BLST_Q_INSERT_TAIL(&videoDecoder->externalTsm.freePictureQueue.queue, pContext, freeNode);
+            videoDecoder->externalTsm.freePictureQueue.count++;
+            pContext->inFreeQueue = true;
+            BDBG_MSG_APPDM(("Return Frame %u (%p) to XVD - displayState %s freeq %u", pContext->serialNumber, (void *)pContext->pUnifiedPicture, pContext->display == NEXUS_VideoDecoderPictureDisplay_eNone ? "none" : "complete", videoDecoder->externalTsm.freePictureQueue.count));
+            videoDecoder->externalTsm.decoderInterface.releasePicture_isr(videoDecoder->externalTsm.pDecoderPrivateContext, pContext->pUnifiedPicture, NULL);
+            pContext->pUnifiedPicture = NULL;
+            pContext->serialNumber = 0;
+        }
+
+        pContext = pNext;
     }
 
     BKNI_LeaveCriticalSection();
@@ -5333,6 +5568,7 @@ void NEXUS_VideoDecoder_GetDefaultReturnFrameSettings(
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->display = true;
+    pSettings->recycle = true;
 }
 
 NEXUS_Error NEXUS_VideoDecoder_GetFifoStatus(
@@ -5481,4 +5717,43 @@ bool NEXUS_VideoDecoderModule_DecoderOpenInSecureHeaps_priv(void)
         if (g_videoDecoders[i] && g_videoDecoders[i]->dec && nexus_p_use_secure_picbuf(g_videoDecoders[i])) return true;
     }
     return false;
+}
+
+void NEXUS_VideoDecoder_Clear_priv(NEXUS_VideoDecoderHandle videoDecoder)
+{
+    NEXUS_ASSERT_MODULE();
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    NEXUS_IsrCallback_Clear(videoDecoder->userdataCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->sourceChangedCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->streamChangedCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->ptsErrorCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->firstPtsCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->firstPtsPassedCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->fifoEmpty.callback);
+    NEXUS_IsrCallback_Clear(videoDecoder->afdChangedCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->decodeErrorCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->fnrtChunkDoneCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->stateChangedCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->playback.firstPtsCallback);
+    NEXUS_IsrCallback_Clear(videoDecoder->playback.firstPtsPassedCallback);
+    /* don't clear not private.streamChangedCallback */
+}
+
+NEXUS_VideoDecoderExclusiveMode NEXUS_P_VideoDecoderExclusiveMode_isrsafe(unsigned boxMode, unsigned avdIndex)
+{
+#if BCHP_CHIP == 7366 || BCHP_CHIP == 7439
+    BSTD_UNUSED(boxMode);
+    /* For these chips, HVD0 4K decode means the second channel is not available */
+    if (avdIndex == 0) {
+        return NEXUS_VideoDecoderExclusiveMode_4K;
+    }
+#elif BCHP_CHIP == 7260
+    if (avdIndex == 0 && boxMode == 4) {
+        return NEXUS_VideoDecoderExclusiveMode_e4Kp60;
+    }
+#else
+    BSTD_UNUSED(boxMode);
+    BSTD_UNUSED(avdIndex);
+#endif
+    return NEXUS_VideoDecoderExclusiveMode_eNone;
 }

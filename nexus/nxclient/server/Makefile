@@ -81,6 +81,7 @@ endif
 endif
 
 clean: clean_nexus clean_apps
+	${Q_}if [ -d ${B_REFSW_OBJ_ROOT} ]; then find ${B_REFSW_OBJ_ROOT} -type d -empty -delete; fi
 
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
 SKIP_NEXUS := y
@@ -113,7 +114,7 @@ NXCLIENT_P_LOCAL_SHARED_LIB := $(BINDIR)/libnxclient_local.so
 
 $(BINDIR)/nxserver $(BINDIR)/nxserverlib_ipc.o $(BINDIR)/nxserverlib_ipc_verify.o: $(NXCLIENT_P_SHARED_LIB)
 
-$(NXCLIENT_P_SHARED_LIB): nexus
+$(NXCLIENT_P_SHARED_LIB): nexus $(BINDIR)/nxclient_local.o $(BINDIR)/nxclient_common.o
 	${Q_}BINDIR=$(BINDIR) NEXUS_TOP=$(NEXUS_TOP) $(MAKE) -f Makefile.lib
 
 ifeq ($(B_REFSW_ANDROID),y)
@@ -124,7 +125,7 @@ LDFLAGS += $(NEXUS_LD_LIBRARIES) -lm
 endif
 
 ifeq ($(B_REFSW_ANDROID),y)
-LDFLAGS += -L${ANDROID_OUT_DIR}/target/product/${ANDROID_PRODUCT_OUT}/system/lib -llog
+LDFLAGS += -L${ANDROID_OUT_DIR}/target/product/${LOCAL_PRODUCT_OUT}/system/lib -llog
 endif
 
 NXSERVER_SRC = \

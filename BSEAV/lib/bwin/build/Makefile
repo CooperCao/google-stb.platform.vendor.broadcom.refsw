@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -95,7 +95,7 @@ SRCS = \
 	bwin_transform.c \
 	bwin_image_bmp.c
 
-CFLAGS += -I$(ZLIB_ODIR)/include
+CFLAGS += $(ZLIB_CFLAGS)
 ifeq ($(PNG_SUPPORT),y)
 
 SRCS += \
@@ -105,13 +105,13 @@ SRCS += \
 B_EXTRA_BUILDS += libpng
 B_EXTRA_CLEANS += clean-libpng
 include $(LIBPNG_DIR)/b_libpng_targets.inc
-CFLAGS += -DPNG_SUPPORT -I$(LIBPNG_SOURCE_PATH)
+CFLAGS += -DPNG_SUPPORT $(LIBPNG_CFLAGS)
 libpng: b_libpng_target_build
 clean-libpng: b_libpng_target_clean_all
 endif
 
 ifeq ($(JPEG_SUPPORT),y)
-CFLAGS += -DJPEG_SUPPORT -I$(LIBJPEG_ODIR)
+CFLAGS += -DJPEG_SUPPORT $(JPEG_CFLAGS)
 SRCS += \
 	bwin_image_jpeg.c
 
@@ -156,7 +156,7 @@ ifeq ($(FREETYPE_SUPPORT),y)
 B_EXTRA_BUILDS += freetype
 B_EXTRA_CLEANS += clean-freetype
 include $(FREETYPE_DIR)/b_freetype_targets.inc
-CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_SOURCE_PATH)/include
+CFLAGS += -DFREETYPE_SUPPORT $(FREETYPE_CFLAGS)
 freetype: b_freetype_target_build
 clean-freetype: b_freetype_target_clean_all
 endif

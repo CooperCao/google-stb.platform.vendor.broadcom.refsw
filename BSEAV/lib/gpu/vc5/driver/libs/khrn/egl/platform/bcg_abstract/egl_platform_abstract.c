@@ -26,6 +26,7 @@
 
 #include "egl_platform_abstract.h"
 #include "egl_image_native_buffer_abstract.h"
+#include "egl_surface_common_abstract.h"
 
 #ifdef ANDROID
 #include "egl_native_fence_sync_android.h"
@@ -47,22 +48,39 @@ void init_expose_fences(void)
 }
 #endif
 
-/* One-off platform initialization that happens right at the start when
- * everything else is initialized in a thread-safe way. */
-static bool init(void)
+EGLint get_display(EGLenum platform, void *nativeDisplay,
+      const void *attribList, bool isEglAttrib, void **handle)
 {
-   return
-         g_bcgPlatformData.displayInterface.Init ?
-               g_bcgPlatformData.displayInterface.Init(
-                     g_bcgPlatformData.displayInterface.context) :
-               true;
+   if (g_bcgPlatformData.initInterface.GetDisplay)
+   {
+      return g_bcgPlatformData.initInterface.GetDisplay(
+            g_bcgPlatformData.initInterface.context, platform, nativeDisplay,
+            attribList, isEglAttrib, handle);
+   }
+   else if (platform == BEGL_DEFAULT_PLATFORM && !nativeDisplay && !attribList)
+   {
+      *handle = (void *)1;
+      return EGL_SUCCESS;
+   }
+   else
+      return EGL_BAD_PARAMETER;
 }
 
-static bool is_platform_supported(EGLenum egl_platform)
+static bool initialize(void * handle)
 {
-   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
-   return platform->PlatformSupported
-         && platform->PlatformSupported(platform->context, egl_platform);
+   if (!g_bcgPlatformData.initInterface.Initialize)
+      return true;
+   return g_bcgPlatformData.initInterface.Initialize(
+         g_bcgPlatformData.initInterface.context,
+         (BEGL_DisplayHandle)handle) == BEGL_Success;
+}
+
+static void terminate(void * handle)
+{
+   if (g_bcgPlatformData.initInterface.Terminate)
+      g_bcgPlatformData.initInterface.Terminate(
+         g_bcgPlatformData.initInterface.context,
+         (BEGL_DisplayHandle)handle);
 }
 
 /* Convert an internal format to a platform colour format. */
@@ -82,7 +100,7 @@ static bool color_format(GFX_LFMT_T lfmt, EGLint *platFormat)
    case GFX_LFMT_X4B4G4R4_UNORM     : begl = BEGL_BufferFormat_eX4B4G4R4;  break;
    case GFX_LFMT_A1B5G5R5_UNORM     : begl = BEGL_BufferFormat_eA1B5G5R5;  break;
    case GFX_LFMT_X1B5G5R5_UNORM     : begl = BEGL_BufferFormat_eX1B5G5R5;  break;
-#if V3D_VER_AT_LEAST(3,3,0,0)
+#if V3D_VER_AT_LEAST(3, 3, 0, 0)
    case GFX_LFMT_BSTC_RGBA_UNORM    : begl = BEGL_BufferFormat_eBSTC;      break;
 #else
    case GFX_LFMT_BSTC_RGBA_UNORM    : return false; /* Not supported before 3.3 */
@@ -91,22 +109,22 @@ static bool color_format(GFX_LFMT_T lfmt, EGLint *platFormat)
    }
 
    if (platform && platform->GetNativeFormat)
-      if (platform->GetNativeFormat(platform->context, begl, (uint32_t*)&retFmt) != BEGL_Success)
-         return false;
+     if (platform->GetNativeFormat(platform->context, begl, (uint32_t*)&retFmt) != BEGL_Success)
+        return false;
 
    *platFormat = retFmt;
 
    return true;
 }
 
-static const char * get_client_extensions(void)
+static const char *get_client_extensions(void)
 {
-   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
+   BEGL_InitInterface *platform = &g_bcgPlatformData.initInterface;
    return platform->GetClientExtensions ?
          platform->GetClientExtensions(platform->context) : NULL;
 }
 
-static const char * get_display_extensions(void)
+static const char *get_display_extensions(void)
 {
    BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
    return platform->GetDisplayExtensions ?
@@ -129,29 +147,6 @@ static __eglMustCastToProperFunctionPointerType get_proc_address(const char *pro
 #undef RETURN_PROC_ADDRESS
 }
 
-static EGLDisplay get_default_display(void)
-{
-   if (!g_bcgPlatformData.displayInterface.GetDefaultDisplay)
-      return (EGLDisplay)1;
-
-   return g_bcgPlatformData.displayInterface.GetDefaultDisplay(g_bcgPlatformData.displayInterface.context);
-}
-
-static bool set_default_display(EGLNativeDisplayType display)
-{
-   if (!g_bcgPlatformData.displayInterface.SetDefaultDisplay)
-      return false;
-
-   return g_bcgPlatformData.displayInterface.SetDefaultDisplay(g_bcgPlatformData.displayInterface.context, display);
-}
-
-/* Any cleanup the platform needs to do when the whole process quits. */
-static void terminate(void)
-{
-   if (g_bcgPlatformData.displayInterface.Terminate)
-      g_bcgPlatformData.displayInterface.Terminate(g_bcgPlatformData.displayInterface.context);
-}
-
 /* Return true if config can be used to render to pixmap. */
 static bool match_pixmap(EGLNativePixmapType pixmap, const EGL_CONFIG_T *config)
 {
@@ -163,8 +158,7 @@ static bool is_valid_android_framebuffer_target(const EGL_CONFIG_T *config, EGLi
 {
    return config->color_api_fmt         == GFX_LFMT_R8_G8_B8_A8_UNORM &&
           config->depth_stencil_api_fmt == GFX_LFMT_NONE &&
-          config->stencil_api_fmt       == GFX_LFMT_NONE &&
-          config->mask_api_fmt          == GFX_LFMT_NONE;
+          config->stencil_api_fmt       == GFX_LFMT_NONE;
 }
 
 static bool is_valid_android_recordable(const EGL_CONFIG_T *config, EGLint attrib)
@@ -199,7 +193,6 @@ static bool config_check_attrib(EGLint attrib, EGLint value)
    case EGL_MATCH_NATIVE_PIXMAP :
    case EGL_NATIVE_BUFFER_ANDROID :
       {
-         BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
          BEGL_SurfaceInfo      surfaceInfo;
          EGLNativePixmapType   pixmap = (EGLNativePixmapType)(uintptr_t)value;
 
@@ -212,8 +205,7 @@ static bool config_check_attrib(EGLint attrib, EGLint value)
          }
 
          /* Check that value is a valid pixmap */
-         if (platform->SurfaceGetInfo &&
-             platform->SurfaceGetInfo(platform->context, pixmap, &surfaceInfo) == BEGL_Success)
+         if (surface_get_info(pixmap, &surfaceInfo))
             return true;
       }
       break;
@@ -264,18 +256,15 @@ static bool wait_native(EGLint engine)
    return true;
 }
 
-
 static EGL_PLATFORM_FNS_T fns =
 {
-   init,
-   is_platform_supported,
+   get_display,
+   initialize,
+   terminate,
    color_format,
    get_client_extensions,
    get_display_extensions,
    get_proc_address,
-   get_default_display,
-   set_default_display,
-   terminate,
    match_pixmap,
    config_get_attrib,
    config_check_attrib,
@@ -307,6 +296,15 @@ EGL_PLATFORM_FNS_T *egl_platform_fns(void)
    return &fns;
 }
 #endif
+
+__attribute__((visibility("default")))
+void BEGL_RegisterInitInterface(BEGL_InitInterface *iface)
+{
+   if (iface != NULL)
+      g_bcgPlatformData.initInterface = *iface;
+   else
+      memset(&g_bcgPlatformData.initInterface, 0, sizeof(BEGL_InitInterface));
+}
 
 __attribute__((visibility("default")))
 void BEGL_RegisterDisplayInterface(BEGL_DisplayInterface *iface)

@@ -1048,7 +1048,7 @@ int wl_android_set_roam_delta(
 {
 	int roam_delta[2];
 
-	sscanf(command, "%*s %5d", &roam_delta[0]);
+	roam_delta[0] = bcm_strtoul(command, NULL, 0);
 	roam_delta[1] = WLC_BAND_ALL;
 
 	return wldev_ioctl(dev, WLC_SET_ROAM_DELTA, roam_delta,
@@ -1081,7 +1081,7 @@ int wl_android_set_roam_scan_period(
 {
 	int roam_scan_period = 0;
 
-	sscanf(command, "%*s %5d", &roam_scan_period);
+	roam_scan_period = bcm_strtoul(command, NULL, 0);
 	return wldev_ioctl(dev, WLC_SET_ROAM_SCAN_PERIOD, &roam_scan_period,
 		sizeof(roam_scan_period), 1);
 }
@@ -1817,13 +1817,14 @@ wl_android_get_fcc_pwr_limit_2g(struct net_device *dev, char *command, int total
 }
 #endif /* FCC_PWR_LIMIT_2G */
 #endif /* CUSTOMER_HW4_PRIVATE_CMD */
+#ifdef WBTEXT
 static int wl_android_wbtext(struct net_device *dev, char *command, int total_len)
 {
-	int error = 0, argc = 0;
+	int error = 0;
 	int data, bytes_written;
 
 	data = bcm_strtoul(command, NULL, 0);
-	if (!argc) {
+	if (data < 0) {
 		error = wldev_iovar_getint(dev, "wnm_bsstrans_resp", &data);
 		if (error) {
 			DHD_ERROR(("%s: Failed to set wbtext error = %d\n",
@@ -1833,9 +1834,6 @@ static int wl_android_wbtext(struct net_device *dev, char *command, int total_le
 				(data == WL_BSSTRANS_POLICY_PRODUCT)? "ENABLED" : "DISABLED");
 		return bytes_written;
 	} else {
-		if (data)
-			data = WL_BSSTRANS_POLICY_PRODUCT;
-
 		error = wldev_iovar_setint(dev, "wnm_bsstrans_resp", data);
 		if (error) {
 			DHD_ERROR(("%s: Failed to set wbtext error = %d\n",
@@ -1844,6 +1842,7 @@ static int wl_android_wbtext(struct net_device *dev, char *command, int total_le
 	}
 	return error;
 }
+#endif /* WBTEXT */
 
 #ifdef PNO_SUPPORT
 #define PNO_PARAM_SIZE 50
@@ -5033,6 +5032,8 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 
 	DHD_INFO(("%s: Android private cmd \"%s\" on %s\n", __FUNCTION__, command, ifr->ifr_name));
 
+	/* The copy_from_user just copies data from user space to kernel space and will not taint 'command'. */
+	/* coverity[tainted_data] */
 	bytes_written = wl_handle_private_cmd(net, command, priv_cmd.total_len);
 	if (bytes_written >= 0) {
 		if ((bytes_written == 0) && (priv_cmd.total_len > 0)) {
@@ -5130,23 +5131,22 @@ static int wl_android_set_wowl_patterns(struct net_device *dev,
 	char *dst;
 	wl_wowl_pattern_t *wl_pattern;
 	/* both offset and mask are uint, so 20 chars is sufficient */
-	char offset [20];
-	char mask [20];
+	char *offset = NULL;
+	char *mask = NULL;
 	char *pattern = NULL;
 
-	if (command == NULL || *command == 0) {
+	if (command && *command) {
+		offset = bcmstrtok(&command, " ", NULL);
+		if (command && *command) {
+			mask = bcmstrtok(&command, " ", NULL);
+			if (command && *command)
+				pattern = bcmstrtok(&command, " ", NULL);
+		}
+	}
+	if (offset == NULL || mask == NULL || pattern == NULL) {
 		error = -1;
 		goto exit;
 	}
-
-	pattern = kzalloc(strlen(command)+1, GFP_KERNEL);
-	if (pattern == NULL) {
-		WL_ERR(("%s: Memory allocation error \n", __FUNCTION__));
-		error = -1;
-		goto exit;
-	}
-
-	sscanf(command, "%*s %20s %20s %260s", offset, mask, pattern);
 
 	arg = (char*) kzalloc(WLC_IOCTL_MAXLEN, GFP_KERNEL);
 	if (arg == NULL) {
@@ -5216,8 +5216,6 @@ static int wl_android_set_wowl_patterns(struct net_device *dev,
 
 exit:
 
-	if (pattern)
-		kfree(pattern);
 	if (arg)
 		kfree(arg);
 
@@ -5612,7 +5610,7 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		priv_cmd.total_len);
 	} else if (strnicmp(command, CMD_ROAMDELTA_SET,
 		strlen(CMD_ROAMDELTA_SET)) == 0) {
-		bytes_written = wl_android_set_roam_delta(net, command,
+		bytes_written = wl_android_set_roam_delta(net, command + strlen(CMD_ROAMDELTA_SET),
 		priv_cmd.total_len);
 	} else if (strnicmp(command, CMD_ROAMDELTA_GET,
 		strlen(CMD_ROAMDELTA_GET)) == 0) {
@@ -5620,7 +5618,7 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		priv_cmd.total_len);
 	} else if (strnicmp(command, CMD_ROAMSCANPERIOD_SET,
 		strlen(CMD_ROAMSCANPERIOD_SET)) == 0) {
-		bytes_written = wl_android_set_roam_scan_period(net, command,
+		bytes_written = wl_android_set_roam_scan_period(net, command + strlen(CMD_ROAMSCANPERIOD_SET),
 		priv_cmd.total_len);
 	} else if (strnicmp(command, CMD_ROAMSCANPERIOD_GET,
 		strlen(CMD_ROAMSCANPERIOD_GET)) == 0) {
@@ -5818,12 +5816,14 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 	else if (strnicmp(command, CMD_SET_AP_WPS_P2P_IE,
 		strlen(CMD_SET_AP_WPS_P2P_IE)) == 0) {
 		int skip = strlen(CMD_SET_AP_WPS_P2P_IE) + 3;
+		/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+		/* coverity[stack_use_overflow] */
 		bytes_written = wl_cfg80211_set_wps_p2p_ie(net, command + skip,
 			priv_cmd.total_len - skip, *(command + skip - 2) - '0');
 	}
 #ifdef WLFBT
 	else if (strnicmp(command, CMD_GET_FTKEY, strlen(CMD_GET_FTKEY)) == 0) {
-		wl_cfg80211_get_fbt_key(net, command);
+		wl_cfg80211_get_fbt_key(net, command, priv_cmd.total_len);
 		bytes_written = FBT_KEYLEN;
 	}
 #endif /* WLFBT */
@@ -6010,18 +6010,17 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		int enable = *(command + strlen(CMD_ROAM_OFFLOAD) + 1) - '0';
 		bytes_written = wl_cfg80211_enable_roam_offload(net, enable);
 	}
-#if defined(DUAL_STA) || defined(AP_PLUS_STA)
 	else if (strnicmp(command, CMD_INTERFACE_CREATE, strlen(CMD_INTERFACE_CREATE)) == 0) {
 		char *name = (command + strlen(CMD_INTERFACE_CREATE) +1);
 		WL_INFORM(("Creating %s interface\n", name));
-		bytes_written = wl_cfg80211_interface_create(net, name);
+		bytes_written = wl_cfg80211_interface_create(net, name,
+				WL_INTERFACE_TYPE_STA, NULL);
 	}
 	else if (strnicmp(command, CMD_INTERFACE_DELETE, strlen(CMD_INTERFACE_DELETE)) == 0) {
 		char *name = (command + strlen(CMD_INTERFACE_DELETE) +1);
 		WL_INFORM(("Deleteing %s interface\n", name));
 		bytes_written = wl_cfg80211_interface_delete(net, name);
 	}
-#endif /* defined(DUAL_STA) || defined(AP_PLUS_STA) */
 	else if (strnicmp(command, CMD_GET_LINK_STATUS, strlen(CMD_GET_LINK_STATUS)) == 0) {
 		bytes_written = wl_android_get_link_status(net, command, priv_cmd.total_len);
 	}
@@ -6039,6 +6038,7 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		char *data = (command + strlen(CMD_DFS_AP_MOVE) +1);
 		bytes_written = wl_cfg80211_dfs_ap_move(net, data, command, priv_cmd.total_len);
 	}
+#ifdef WBTEXT
 	else if (strnicmp(command, CMD_WBTEXT_ENABLE, strlen(CMD_WBTEXT_ENABLE)) == 0) {
 		bytes_written = wl_android_wbtext(net, command + strlen(CMD_WBTEXT_ENABLE), priv_cmd.total_len);
 	}
@@ -6065,6 +6065,7 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		bytes_written = wl_cfg80211_wbtext_delta_config(net, data,
 				command, priv_cmd.total_len);
 	}
+#endif /* WBTEXT */
 #ifdef SET_RPS_CPUS
 	else if (strnicmp(command, CMD_RPSMODE, strlen(CMD_RPSMODE)) == 0) {
 		bytes_written = wl_android_set_rps_cpus(net, command, priv_cmd.total_len);

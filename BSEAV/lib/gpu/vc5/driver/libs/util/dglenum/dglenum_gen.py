@@ -6,14 +6,19 @@ import sys
 re_glenum = re.compile(r'^#define\s+(GL_\w+)\s+([x0-9a-fA-F]+)\b')
 
 glenums = dict()
+
+libs_path = './'
+if len(sys.argv) > 1:
+   libs_path = sys.argv[1] + '/'
+
 for filename in [
-      'libs/khrn/include/GLES2/gl2.h',
-      'libs/khrn/include/GLES2/gl2ext.h',
-      'libs/khrn/include/GLES3/gl3.h',
-      'libs/khrn/include/GLES3/gl31.h',
-      'libs/khrn/include/GLES3/gl32.h',
-      'libs/khrn/include/GLES3/gl3ext.h',
-      'libs/khrn/include/GLES3/gl3ext_brcm.h']:
+      libs_path + 'libs/khrn/include/GLES2/gl2.h',
+      libs_path + 'libs/khrn/include/GLES2/gl2ext.h',
+      libs_path + 'libs/khrn/include/GLES3/gl3.h',
+      libs_path + 'libs/khrn/include/GLES3/gl31.h',
+      libs_path + 'libs/khrn/include/GLES3/gl32.h',
+      libs_path + 'libs/khrn/include/GLES3/gl3ext.h',
+      libs_path + 'libs/khrn/include/GLES3/gl3ext_brcm.h']:
    for line in open(filename):
       m = re_glenum.search(line)
       if m:

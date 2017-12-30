@@ -58,18 +58,6 @@ int _tzioc_ioctl_msg_send(
     struct tzioc_client *pClient,
     struct tzioc_msg_hdr *pHdr);
 
-int _tzioc_ioctl_map_paddr(
-    struct tzioc_client *pClient,
-    uint32_t ulPaddr,
-    uint32_t ulSize,
-    uint32_t ulFlags,
-    uintptr_t *pulVaddr);
-
-int _tzioc_ioctl_unmap_paddr(
-    struct tzioc_client *pClient,
-    uintptr_t ulPaddr,
-    uint32_t ulSize);
-
 int _tzioc_ioctl_map_paddrs(
     struct tzioc_client *pClient,
     uint8_t ucCount,
@@ -79,5 +67,15 @@ int _tzioc_ioctl_unmap_paddrs(
     struct tzioc_client *pClient,
     uint8_t ucCount,
     struct tzioc_mem_region *pRegions);
+
+int _tzioc_ioctl_paddr2vaddr(
+    struct tzioc_client *pClient,
+    uintptr_t ulPaddr,
+    uintptr_t *pulVaddr);
+
+int _tzioc_ioctl_vaddr2paddr(
+    struct tzioc_client *pClient,
+    uintptr_t ulVaddr,
+    uintptr_t *pulPaddr);
 
 #endif /* LIBTZIOC_H */

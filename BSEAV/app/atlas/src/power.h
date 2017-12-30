@@ -86,11 +86,11 @@ public:
     bool operator ==(CMountData &other);
 
 public:
-    int  _nPartition;
-    char _strPartition[16];
-    char _strDrive[16];
-    char _strMountType[16];
-    char _strMountPoint[32];
+    int     _nPartition;
+    char    _strPartition[16];
+    char    _strDrive[16];
+    char    _strMountType[16];
+    char    _strMountPoint[32];
     MString _strDriveGUID;
 };
 
@@ -105,10 +105,10 @@ public:
     virtual ~CPower(void);
 
     virtual eRet       setMode(ePowerMode mode, CGraphics * pGraphics = NULL);
-    virtual ePowerMode getMode(void) { return((ePowerMode)_eMode); }
-    virtual bool       checkPower(void) { return false;}
+    virtual ePowerMode getMode(void)    { return((ePowerMode)_eMode); }
+    virtual bool       checkPower(void) { return(false); }
 
-    eRet       mountDrives(bool bMount, uint32_t nRetries);
+    eRet mountDrives(bool bMount, uint32_t nRetries);
 
     eRet enableMoca(bool bEnable);
     eRet enableEthernet(bool bEnable);

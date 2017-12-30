@@ -273,6 +273,14 @@ GL_APICALL void GL_APIENTRY glFramebufferTexture3DOES (GLenum target, GLenum att
 #define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT                        0x83F1
 #endif
 
+#ifndef GL_EXT_texture_rg
+#define GL_EXT_texture_rg 1
+#define GL_RED_EXT                        0x1903
+#define GL_RG_EXT                         0x8227
+#define GL_R8_EXT                         0x8229
+#define GL_RG8_EXT                        0x822B
+#endif /* GL_EXT_texture_rg */
+
 /*------------------------------------------------------------------------*
  * IMG extension tokens
  *------------------------------------------------------------------------*/

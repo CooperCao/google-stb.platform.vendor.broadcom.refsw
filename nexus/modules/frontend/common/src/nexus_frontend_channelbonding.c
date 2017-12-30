@@ -74,7 +74,7 @@ static NEXUS_Error NEXUS_Frontend_P_ConfigureBand(NEXUS_FrontendHandle master, N
     NEXUS_FrontendDeviceMtsifConfig *mtsifConfig = &master->pGenericDeviceHandle->mtsifConfig;
     BMXT_InputBandConfig inputConfig;
     BMXT_ParserConfig parserConfig;
-    unsigned i, parserNum, inputNum;
+    unsigned i, parserNum, inputNum, mtsifTxSel;
     BERR_Code rc;
     bool isMaster = (master==frontend);
 
@@ -124,7 +124,7 @@ static NEXUS_Error NEXUS_Frontend_P_ConfigureBand(NEXUS_FrontendHandle master, N
     if (i>=NEXUS_MAX_FRONTENDS) {
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
-
+    mtsifTxSel = frontend->mtsif.txOut;
     inputNum = frontend->mtsif.inputBand;
     rc = BMXT_GetInputBandConfig(mtsifConfig->mxt, inputNum, &inputConfig); if (rc) { BERR_TRACE(rc); }
     inputConfig.packetEndDetectEn = true;
@@ -134,6 +134,11 @@ static NEXUS_Error NEXUS_Frontend_P_ConfigureBand(NEXUS_FrontendHandle master, N
     rc = BMXT_GetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
     parserConfig.InputBandNumber = inputNum;
     parserConfig.Enable = false; /* BMXT_Dcbg_Start will handle enable/disable of bands */
+    parserConfig.mtsifTxSelect = mtsifTxSel;
+    if (mtsifConfig->pidfilter) {
+        parserConfig.AllPass = true;
+        parserConfig.AcceptNulls = true;
+    }
     rc = BMXT_SetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
 
     rc = BMXT_Dcbg_AddParser(bond->hDcbg, parserNum); if (rc) { return BERR_TRACE(NEXUS_UNKNOWN); }
@@ -150,7 +155,7 @@ static NEXUS_Error NEXUS_Frontend_P_ConfigureBand(NEXUS_FrontendHandle master, N
     if (!rc) { BERR_TRACE(rc); } /* keep going, though no guarantee it'll work */
 #endif
 
-    BDBG_MSG(("%u: %p:%p, band[%u] demodIB%u, demodPB%u", bond->index, (void*)master, (void*)frontend, i, inputNum, parserNum));
+    BDBG_MSG(("%u: %p:%p, band[%u] demodIB%2u, demodPB%2u, TX%u", bond->index, (void*)master, (void*)frontend, i, inputNum, parserNum, mtsifTxSel));
 done:
     return NEXUS_SUCCESS;
 }
@@ -188,6 +193,13 @@ static NEXUS_Error NEXUS_Frontend_P_DeconfigureAllBands(NEXUS_FrontendHandle mas
             parserConfig.Enable = true;
             rc = BMXT_SetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
         }
+
+        if (mtsifConfig->pidfilter) {
+            rc = BMXT_GetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
+            parserConfig.AllPass = false;
+            parserConfig.AcceptNulls = false;
+            rc = BMXT_SetParserConfig(mtsifConfig->mxt, parserNum, &parserConfig);  if (rc) { BERR_TRACE(rc); }
+        }
         bond->bands[i].frontend->bondingMaster = NULL;
 
 #if NEXUS_FRONTEND_SAT
@@ -208,12 +220,12 @@ NEXUS_Error NEXUS_Frontend_StartBondingGroup(NEXUS_FrontendHandle master, const 
     unsigned i;
     NEXUS_Error rc;
 
+    NEXUS_OBJECT_ASSERT(NEXUS_Frontend, master);
     if (master->pGenericDeviceHandle->openPending) {
         BDBG_ERR(("Device open still pending on frontend %p", (void*)master));
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
 
-    NEXUS_OBJECT_ASSERT(NEXUS_Frontend, master);
     if (master->chbond) {
         BDBG_ERR(("Frontend %p is already being used as bonding group master", (void*)master));
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);

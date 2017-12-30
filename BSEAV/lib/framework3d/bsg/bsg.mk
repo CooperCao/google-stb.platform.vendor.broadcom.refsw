@@ -87,8 +87,7 @@ INCLUDES       += $(V3D_DIR)/interface/khronos/include                \
                   $(V3D_DIR)/libs/platform/bcg_abstract               \
                   $(V3D_DIR)/libs/core/vcos/include                   \
                   $(V3D_DIR)/libs/core/vcos/pthreads                  \
-                  $(V3D_DIR)                                          \
-                  $(FREETYPE_SOURCE_PATH)/include
+                  $(V3D_DIR)
 
 PLATFORM_INCLUDES += $(V3D_PLATFORM_DIR)/nexus                  \
                      $(NEXUS_TOP)/../BSEAV/lib/media            \
@@ -155,19 +154,19 @@ nxpl_lib: v3d_lib
 #################################################
 # Build libz
 #################################################
-$(ZLIB_SOURCE_PATH)/include/zlib.h:
+$(ZLIB_LIB_FOLDER)/libz.so:
 	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/zlib
 
 #################################################
 # Build libpng
 #################################################
-$(LIBPNG_SOURCE_PATH)/png.h:
+$(LIBPNG_LIB_FOLDER)/libpng.so: $(ZLIB_LIB_FOLDER)/libz.so
 	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/libpng
 
 #################################################
 # Build libfreetype
 #################################################
-$(FREETYPE_SOURCE_PATH)/include/ft2build.h:
+$(NEXUS_BIN_DIR)/libfreetype.so: $(LIBPNG_LIB_FOLDER)/libpng.so
 	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/freetype install_to_nexus_bin
 
 #################################################
@@ -211,21 +210,21 @@ endif
 # Generic rules
 #################################################
 
-AUTO_FILES = \
-        $(ZLIB_SOURCE_PATH)/include/zlib.h \
-        $(LIBPNG_SOURCE_PATH)/png.h \
-        $(FREETYPE_SOURCE_PATH)/include/ft2build.h
+OPENSOURCE_LIBS = \
+        $(ZLIB_LIB_FOLDER)/libz.so \
+        $(LIBPNG_LIB_FOLDER)/libpng.so \
+        $(NEXUS_BIN_DIR)/libfreetype.so
 
 # Files that need all the Nexus flags for platform specific code
 $(PLATFORM_OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp \
-	$(AUTO_FILES)
+	$(OPENSOURCE_LIBS)
 		@mkdir -p $(BSG_OBJ_DIR)
 		@echo Compiling $<
 		@$(CXX) $(CFLAGS) $(CXXFLAGS) $(NEXUS_CXXFLAGS) -c $< -o $@
 
 # Files that do not need nexus flags
 $(COMMON_OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp \
-	$(AUTO_FILES)
+	$(OPENSOURCE_LIBS)
 		@mkdir -p $(BSG_OBJ_DIR)
 		@echo Compiling $<
 		@$(CXX) $(CFLAGS) $(CXXFLAGS) -c $< -o $@

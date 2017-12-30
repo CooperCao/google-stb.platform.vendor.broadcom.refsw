@@ -38,7 +38,6 @@
 
 #if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_API_VERSION==2)
 
-#include "nexus_memory.h"
 #include "nexus_security.h"
 #include "nexus_keyslot.h"
 #include "security_utils.h"
@@ -53,7 +52,6 @@ int main(
     NEXUS_KeySlotAllocateSettings keyslotAllocSettings;
     NEXUS_KeySlotSettings keyslotSettings;
     NEXUS_KeySlotEntrySettings keyslotEntrySettings;
-    NEXUS_KeySlotEntrySettings settings;
     NEXUS_KeySlotBlockEntry entry;
     NEXUS_KeySlotKey slotKey;
     unsigned      data_size, key_size;
@@ -86,11 +84,12 @@ int main(
         return BERR_TRACE( rc );
     }
 
-    /* Configure a key entry to encry. */
+    /* Configure a key entry to encrypt. */
     entry = NEXUS_KeySlotBlockEntry_eCpsClear;
     NEXUS_KeySlot_GetEntrySettings( keyslotHandle, entry, &keyslotEntrySettings );
 
     keyslotEntrySettings.algorithm = NEXUS_CryptographicAlgorithm_e3DesAba;
+    keyslotEntrySettings.algorithmMode = NEXUS_CryptographicAlgorithmMode_eEcb; /* simple Ecb mode. */
     keyslotEntrySettings.terminationMode = NEXUS_KeySlotTerminationMode_eClear;
     keyslotEntrySettings.rPipeEnable = true;
     keyslotEntrySettings.gPipeEnable = true;

@@ -146,6 +146,8 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_EventCallbackHandle avRateChangeEventCallback;
     NEXUS_TimerHandle powerTimer;
 
+    bool pendingDisableAuthentication_isr;
+    bool forceSendRxIdList;
     bool hdcpRequiredPostFormatChange;
     bool formatChangeMute;
     bool avMuteSetting;
@@ -216,6 +218,7 @@ typedef struct NEXUS_HdmiOutput
 
     NEXUS_HdmiOutputTxHardwareStatus txHwStatus ;
     NEXUS_HdmiOutputRxHardwareStatus rxHwStatus ;
+    unsigned phyChangeRequestCounter ;
 
     /* HDCP Stats */
     struct {
@@ -261,16 +264,17 @@ typedef struct NEXUS_HdmiOutput
         bool connected; /* last one */
         bool printDrmInfoFrameChanges;
         NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities processingCaps;
+        NEXUS_TimerHandle offTimer;
     } drm;
 
     NEXUS_HdmiVendorSpecificInfoFrame vsif;
     NEXUS_HdmiAviInfoFrame avif;
 
     uint16_t supported3DFormats[BFMT_VideoFmt_eMaxCount];
-    BHDM_EDID_AudioDescriptor supportedAudioFormats[BAVC_AudioFormat_eMaxCount];
+    BHDM_EDID_AudioDescriptor supportedAudioFormats[BAVC_AudioCompressionStd_eMax];
 
 #if NEXUS_DBV_SUPPORT
-    NEXUS_HdmiOutputDbvState dbv;
+    NEXUS_HdmiOutputDbvData dbv;
 #endif
 } NEXUS_HdmiOutput;
 
@@ -326,7 +330,6 @@ void NEXUS_HdmiOutput_P_CheckHdcpVersion(NEXUS_HdmiOutputHandle output);
 
 void NEXUS_HdmiOutput_P_CloseHdcp(NEXUS_HdmiOutputHandle output);
 
-NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_P_GetHandle(unsigned index);
 const char * NEXUS_HdmiOutput_P_ColorSpace_ToText(NEXUS_ColorSpace colorSpace);
 
 /* Proxy conversion */

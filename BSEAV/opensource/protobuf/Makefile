@@ -63,6 +63,13 @@ endif
 
 PROTOBUF_CONFIG_CXXFLAGS?= -O2 -fPIC -Wno-unused-local-typedefs -Wno-maybe-uninitialized -Wno-return-type
 
+# protobuf-2.6.1 is not ready for GCC 6
+GCC_VER := $(shell $(CC) --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | cut -f1 -d.)
+$(warning GCC_VER=$(GCC_VER))
+ifeq ($(shell expr $(GCC_VER) \>= 6), 1)
+    PROTOBUF_CONFIG_CXXFLAGS += -Wno-misleading-indentation -Wno-unused-function
+endif
+
 .PHONY: source all clean build_protoc
 
 B_PROTOBUF_EXTRACT_REDIR :=

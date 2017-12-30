@@ -5,7 +5,7 @@
 #define V3D_SHADREC_H
 
 #include "v3d_gen.h"
-#include "vcos_types.h"
+#include "libs/util/common.h"
 #include "libs/util/assert_helpers.h"
 
 EXTERN_C_BEGIN
@@ -74,7 +74,7 @@ static inline const char *v3d_maybe_desc_shader_type_br(bool render, v3d_shader_
    case V3D_SHADER_TYPE_GEOM:    return render ? "geom_rdr" : "geom_bin";
    case V3D_SHADER_TYPE_FRAG:    return "frag";
    case V3D_SHADER_TYPE_USER:    return "user";
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_SHADER_TYPE_COMPUTE: return "compute";
 #endif
    default:                      return NULL;
@@ -93,7 +93,7 @@ static inline const char *v3d_desc_shader_type_br(bool render, v3d_shader_type_t
 static inline void v3d_shadrec_gl_tg_set_vpm_cfg(V3D_SHADREC_GL_TESS_OR_GEOM_T *sr,
    const V3D_VPM_CFG_TG_T cfg[2])
 {
-#if V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,1,34,0)
    sr->bin = cfg[0];
    sr->render = cfg[1];
 #else
@@ -133,7 +133,7 @@ static inline void v3d_shadrec_gl_tg_set_vpm_cfg(V3D_SHADREC_GL_TESS_OR_GEOM_T *
 static inline void v3d_shadrec_gl_tg_get_vpm_cfg(V3D_VPM_CFG_TG_T cfg[2],
    const V3D_SHADREC_GL_TESS_OR_GEOM_T *sr)
 {
-#if V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,1,34,0)
    cfg[0] = sr->bin;
    cfg[1] = sr->render;
 #else

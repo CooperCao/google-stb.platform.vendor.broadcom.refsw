@@ -1529,9 +1529,9 @@ typedef struct B_PlaybackIp
     char *discard_buf;
     void *buffer;
     void *pBufferWrap;
-    unsigned curBufferDepthInMsec;
-    uint32_t minBufferDepthInMsec;
-    uint32_t maxBufferDepthInMsec;
+    unsigned curBufferDepthInUsec;
+    uint32_t minBufferDepthInUsec;
+    uint32_t maxBufferDepthInUsec;
     size_t buffer_size;
     B_Time lastBufferDepthSampleTime;
     struct B_PlaybackIpItem     *item;
@@ -1616,7 +1616,7 @@ typedef struct B_PlaybackIp
     bool socketClosed; /* set when socket has been closed: mainly used during pause using disconnect/seek method */
     bool firstDataReadCallbackDone; /* set when 1st read callback is done */
     bool waveHeaderInserted; /* set when wave header is inserted */
-    bool dtcpPcpHeaderFound; /* set when DTCP/IP wrapper layer lowers the chunksize to account for PCP header */
+    unsigned dtcpPcpHeaderCount; /* set to # of PCP headers found while decrypting a chunk of data fed to the DTCP/IP library. */
     B_PlaybackIpProtocol mediaTransportProtocol; /* applicable for RTSP sessions only: transport protocol for carrying AV */
     bool disableLiveMode; /* if set, live mode is disabled (i.e. dont timeout select call on a live ip socket) */
     bool sendNextTimeSeekReq; /* set during RVU trick play we need to send the next time seek req to server */

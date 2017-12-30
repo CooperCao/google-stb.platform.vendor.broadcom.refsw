@@ -48,11 +48,6 @@ BDBG_MODULE(bdsp_raaga_fw_algo);
 #define BDSP_AF_P_EXTRA_SAMPLES (8) /* used to put some extra buffer */
 
 const uint32_t BDSP_SystemID_MemoryReqd[BDSP_SystemImgId_eMax] = {
-#if (BCHP_CHIP == 7278)
-    BDSP_IMG_SYSTEM_KERNEL_SIZE,
-    BDSP_IMG_SYSTEM_RDBVARS_SIZE,
-    BDSP_IMG_SYSTEM_ROMFS_SIZE
-#else
     BDSP_IMG_SYSTEM_CODE_SIZE, /*BDSP_SystemImgId_eSystemCode*/
     /*BDSP_IMG_SYSTEM_DATA_SIZE,*/ /*BDSP_SystemImgId_eSystemData*/
     BDSP_IMG_SYSTEM_RDBVARS_SIZE, /*BDSP_SystemImgId_eSystemRdbvars*/
@@ -66,7 +61,6 @@ const uint32_t BDSP_SystemID_MemoryReqd[BDSP_SystemImgId_eMax] = {
     BDSP_IMG_VIDEO_ENCODE_TASK_CODE_SIZE, /*BDSP_SystemImgId_eVideo_Encode_Task_Code*/
     BDSP_IMG_SYSTEM_SCM1_DIGEST_SIZE, /*BDSP_SystemImgId_eScm1_Digest*/
     BDSP_IMG_SYSTEM_SCM2_DIGEST_SIZE, /*BDSP_SystemImgId_eScm2_Digest*/
-#endif
 };
 
 const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
@@ -5370,7 +5364,7 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
     {
         BDSP_Algorithm_eDtsHdPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "DTS-HD Passthrough", true,
         &BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
-        0, 0xffffffff,
+        sizeof(BDSP_Raaga_Audio_DtsHdStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_DtsHdStreamInfo, ui32StatusValid),
         &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
         {
             2,
@@ -5425,7 +5419,7 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
   {
     BDSP_Algorithm_eDts14BitPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "DTS 14bit Passthrough", true,
     &BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
-    0, 0xffffffff,
+    sizeof(BDSP_Raaga_Audio_DtsHdStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_DtsHdStreamInfo, ui32StatusValid),
     &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
     {
       2,
@@ -7499,11 +7493,6 @@ BERR_Code BDSP_Raaga_P_GetFWSize (
     const void *data;
     uint32_t ui32DataSize = 0;
 
-#if (BCHP_CHIP ==7278)
-    uint32_t ui32ReqAlignment = 0;
-    uint32_t ui32AlignExtraSize = 0;
-    uint32_t ui32AlignReqSize = 0;
-#endif
     BDBG_ASSERT(NULL != iface);
     BDBG_ASSERT(NULL != context);
 
@@ -7527,18 +7516,6 @@ BERR_Code BDSP_Raaga_P_GetFWSize (
 
     ui32DataSize = ((uint32_t *) data)[0];
 
-#if (BCHP_CHIP ==7278)
-    BDBG_MSG(("Actual Size : %x", ui32DataSize));
-
-    ui32ReqAlignment = (uint32_t) (1 << 9);
-    ui32AlignExtraSize = ui32DataSize & (ui32ReqAlignment -1);
-    if(ui32AlignExtraSize)
-    {
-        ui32AlignReqSize = ui32ReqAlignment - ui32AlignExtraSize;
-        ui32DataSize += ui32AlignReqSize;
-    }
-    BDBG_MSG(("Aligned Size : %x", ui32DataSize));
-#endif
     *size = ui32DataSize;
 
     iface->close(image);

@@ -42,7 +42,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_MAX_DECODERS
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_decoder_settings);
@@ -174,7 +174,7 @@ static void BAPE_Decoder_P_GetDefaultAc3Settings(BAPE_DecoderHandle handle)
     {
         return;
     }
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(bdspAlgo, &handle->userConfig.ddp, sizeof(handle->userConfig.ddp)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(bdspAlgo, &handle->userConfig.ddp, sizeof(handle->userConfig.ddp)));
 
     handle->ac3Settings.codec = BAVC_AudioCompressionStd_eAc3;
     handle->ac3Settings.codecSettings.ac3.substreamId = handle->userConfig.ddp.ui32SubstreamIDToDecode;
@@ -220,7 +220,7 @@ static void BAPE_Decoder_P_GetDefaultAc4Settings(BAPE_DecoderHandle handle)
     {
         return;
     }
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(bdspAlgo, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(bdspAlgo, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4)));
 
     handle->ac4Settings.codec = BAVC_AudioCompressionStd_eAc4;
     handle->ac4Settings.codecSettings.ac4.drcMode = BAPE_DolbyDrcMode_eLine; /* Default multichannel outputs to Line Mode */
@@ -260,7 +260,7 @@ static void BAPE_Decoder_P_GetDefaultMs12AacSettings(BAPE_DecoderHandle handle)
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDolbyAacheAdtsDecode, &handle->userConfig.aac, sizeof(handle->userConfig.aac)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDolbyAacheAdtsDecode, &handle->userConfig.aac, sizeof(handle->userConfig.aac)));
     handle->aacSettings.codec = BAVC_AudioCompressionStd_eAac;
     handle->aacPlusSettings.codec = BAVC_AudioCompressionStd_eAacPlus;
     handle->aacSettings.codecSettings.aac.drcReferenceLevel = handle->userConfig.aac.ui32RefDialnormLevel;
@@ -283,7 +283,7 @@ static void BAPE_Decoder_P_GetDefaultMs10AacSettings(BAPE_DecoderHandle handle)
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDolbyPulseAdtsDecode, &handle->userConfig.aac, sizeof(handle->userConfig.aac)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDolbyPulseAdtsDecode, &handle->userConfig.aac, sizeof(handle->userConfig.aac)));
     handle->aacSettings.codec = BAVC_AudioCompressionStd_eAac;
     handle->aacPlusSettings.codec = BAVC_AudioCompressionStd_eAacPlus;
     handle->aacSettings.codecSettings.aac.drcReferenceLevel = handle->userConfig.aac.ui32RefDialnormLevel;
@@ -308,7 +308,7 @@ static void BAPE_Decoder_P_GetDefaultLegacyAacSettings(BAPE_DecoderHandle handle
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAacAdtsDecode, &handle->userConfig.aac, sizeof(handle->userConfig.aac)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAacAdtsDecode, &handle->userConfig.aac, sizeof(handle->userConfig.aac)));
     handle->aacSettings.codec = BAVC_AudioCompressionStd_eAac;
     handle->aacPlusSettings.codec = BAVC_AudioCompressionStd_eAacPlus;
     handle->aacSettings.codecSettings.aac.enableSbrDecoding = (handle->userConfig.aac.ui32SbrUserFlag==1) ? true : false;
@@ -351,7 +351,7 @@ static void BAPE_Decoder_P_GetDefaultMpegSettings(BAPE_DecoderHandle handle)
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eMpegAudioDecode, &handle->userConfig.mpeg, sizeof(handle->userConfig.mpeg)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eMpegAudioDecode, &handle->userConfig.mpeg, sizeof(handle->userConfig.mpeg)));
     handle->mpegSettings.codec = BAVC_AudioCompressionStd_eMpegL2;
     handle->mp3Settings.codec = BAVC_AudioCompressionStd_eMpegL3;
     if ( handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 )
@@ -381,7 +381,7 @@ static void BAPE_Decoder_P_GetDefaultWmaProSettings(
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eWmaProDecode, &handle->userConfig.wmaPro, sizeof(handle->userConfig.wmaPro)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eWmaProDecode, &handle->userConfig.wmaPro, sizeof(handle->userConfig.wmaPro)));
 
     handle->wmaProSettings.codec = BAVC_AudioCompressionStd_eWmaPro;
 
@@ -425,7 +425,7 @@ static void BAPE_Decoder_P_GetDefaultDtsSettings(
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDtsHdDecode, &handle->userConfig.dts, sizeof(handle->userConfig.dts)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDtsHdDecode, &handle->userConfig.dts, sizeof(handle->userConfig.dts)));
 
     handle->dtsSettings.codec = BAVC_AudioCompressionStd_eDts;
 
@@ -448,7 +448,7 @@ static void BAPE_Decoder_P_GetDefaultDtsExpressSettings(
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDtsLbrDecode, &handle->userConfig.dtsExpress, sizeof(handle->userConfig.dtsExpress)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDtsLbrDecode, &handle->userConfig.dtsExpress, sizeof(handle->userConfig.dtsExpress)));
 
     handle->dtsExpressSettings.codec = BAVC_AudioCompressionStd_eDtsExpress;
 
@@ -469,7 +469,7 @@ static void BAPE_Decoder_P_GetDefaultAdpcmSettings(
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAdpcmDecode, &handle->userConfig.adpcm, sizeof(handle->userConfig.adpcm)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAdpcmDecode, &handle->userConfig.adpcm, sizeof(handle->userConfig.adpcm)));
 
     handle->adpcmSettings.codec = BAVC_AudioCompressionStd_eAdpcm;
 
@@ -486,7 +486,7 @@ static void BAPE_Decoder_P_GetDefaultIlbcSettings(
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eiLBCDecode, &handle->userConfig.ilbc, sizeof(handle->userConfig.ilbc)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eiLBCDecode, &handle->userConfig.ilbc, sizeof(handle->userConfig.ilbc)));
 
     handle->ilbcSettings.codec = BAVC_AudioCompressionStd_eIlbc;
 
@@ -505,7 +505,7 @@ static void BAPE_Decoder_P_GetDefaultIsacSettings(
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eiSACDecode, &handle->userConfig.isac, sizeof(handle->userConfig.isac)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eiSACDecode, &handle->userConfig.isac, sizeof(handle->userConfig.isac)));
 
     handle->isacSettings.codec = BAVC_AudioCompressionStd_eIsac;
 
@@ -522,7 +522,7 @@ static void BAPE_Decoder_P_GetDefaultAlsSettings(BAPE_DecoderHandle handle)
         return;
     }
 
-    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eALSDecode, &handle->userConfig.als, sizeof(handle->userConfig.als)));
+    BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eALSDecode, &handle->userConfig.als, sizeof(handle->userConfig.als)));
 
     handle->alsSettings.codec = BAVC_AudioCompressionStd_eAls;
 

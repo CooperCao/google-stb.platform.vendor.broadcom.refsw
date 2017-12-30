@@ -100,7 +100,7 @@ typedef struct BGRC_P_Handle
 
 #if BGRC_PACKET_P_BLIT_WORKAROUND
     /* List status to hardware. */
-    BGRC_P_ListStatus             eListStatus;
+    uint32_t             ulNumbersToRun;
 #endif
 
     BMMA_Block_Handle pHwPktFifoBaseAlloc;
@@ -125,10 +125,9 @@ typedef struct BGRC_P_Handle
     int       iGrcLock;  /* to check module re-entry */
 #endif
 
-#ifdef BCHP_MM_M2MC0_REG_START
-    /* memory related info but not in stMemInfo for mipmap only*/
+#if (BGRC_P_VER >= BGRC_P_VER_2)
+    /* memory related info but not in stMemInfo for UIF */
     BPXL_Uif_Memory_Info  stPxlMemoryInfo;
-    /* How many UIF-block rows the "page cache" covers */
 #endif
     BCHP_MemoryInfo stMemInfo;
 }
@@ -278,7 +277,15 @@ BGRC_P_Handle;
 
 #define BGRC_P_SCALE_DOWN_MAX_X          15
 #define BGRC_P_SCALE_DOWN_MAX_Y          15
-#define BGRC_P_SCALE_DOWN_MAX            BGRC_P_MIN(BGRC_P_SCALE_DOWN_MAX_X, BGRC_P_SCALE_DOWN_MAX_Y)
+#if BGRC_PACKET_P_BSTC_WORKAROUND
+#define BGRC_P_SCALE_UP_1BSTC_MAX                   64
+#define BGRC_P_SCALE_UP_2BSTC_MAX                   36
+#define BGRC_P_SCALE_UP_MIPMAP_MAX                  24
+
+#define BGRC_P_SCALE_UP_1BSTC_MAX_FRAC        (BGRC_PACKET_P_SCALER_STEP_FRAC_ONE/BGRC_P_SCALE_UP_1BSTC_MAX)
+#define BGRC_P_SCALE_UP_2BSTC_MAX_FRAC        (BGRC_PACKET_P_SCALER_STEP_FRAC_ONE/BGRC_P_SCALE_UP_2BSTC_MAX)
+#define BGRC_P_SCALE_UP_MIPMAP_MAX_FRAC       (BGRC_PACKET_P_SCALER_STEP_FRAC_ONE/BGRC_P_SCALE_UP_MIPMAP_MAX)
+#endif
 
 #define BGRC_P_MIN( v0, v1 )        (((v0) < (v1)) ? (v0) : (v1))
 

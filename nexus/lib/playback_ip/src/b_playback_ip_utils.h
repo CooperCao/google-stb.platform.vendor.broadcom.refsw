@@ -47,7 +47,8 @@ int B_PlaybackIp_UtilsWaitForSocketData(B_PlaybackIpHandle playback_ip, bool *re
 int
 B_PlaybackIp_UtilsWaitForSocketWriteReady(int fd, int timeout /* in usec */);
 int B_PlaybackIp_UtilsGetPlaypumpBuffer(B_PlaybackIpHandle playback_ip, unsigned int size);
-int B_PlaybackIp_UtilsGetPlaypumpBufferDepthInMsec( B_PlaybackIpHandle playback_ip, unsigned int *pDepthInMsec);
+int B_PlaybackIp_UtilsGetPlaypumpBufferNoSkip(B_PlaybackIpHandle playback_ip, unsigned int *size);
+int B_PlaybackIp_UtilsGetPlaypumpBufferDepthInUsec( B_PlaybackIpHandle playback_ip, unsigned int *pDepthInUsec);
 int B_PlaybackIp_UtilsFlushAvPipeline(B_PlaybackIpHandle playback_ip);
 int B_PlaybackIp_UtilsFlushSocket(B_PlaybackIpHandle playback_ip);
 B_PlaybackIpError B_PlaybackIp_UtilsReadUdpPayloadChunk(

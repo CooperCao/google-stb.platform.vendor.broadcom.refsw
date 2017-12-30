@@ -66,6 +66,8 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         if (pinmux_env_val != 1) {
             return; /* Only enable pin mux if this is set to 1 */
         }
+    } else {
+        return;
     }
 
     NEXUS_Platform_GetStatus(&platformStatus);

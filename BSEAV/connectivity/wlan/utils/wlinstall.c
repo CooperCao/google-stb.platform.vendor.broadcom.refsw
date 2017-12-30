@@ -73,7 +73,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
-
+#include <unistd.h>
 
 #define BOARD_NAME "/proc/device-tree/bolt/board"
 #define SYSFS_GPIO "/sys/class/gpio"
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
     }
     if(board_info[board_index].board_name == NULL)
     {
-        printf("*** Please add support for %s ***\n",buf);
+        printf("*** Add support for %s if PA is controlled through GPIO ***\n",buf);
     }
 
     /* copy nvram file */

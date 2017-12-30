@@ -149,7 +149,7 @@ int SAGE_Utility_Rsa_ProcessBinFile(void)
                             ii, BSAGElib_Crypto_ShaVariant_eSha256,
                             signature, sizeof(signature)) != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error sending Sign command to SAGE (key index = '%u')", __FUNCTION__, ii));
+            BDBG_ERR(("%s - Error sending Sign command to SAGE (key index = '%u')", BSTD_FUNCTION, ii));
             rc = 1;
             goto handle_error;
         }
@@ -163,7 +163,7 @@ int SAGE_Utility_Rsa_ProcessBinFile(void)
                             ii, BSAGElib_Crypto_ShaVariant_eSha256,
                             signature, sizeof(signature)) != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error sending Verify command to SAGE (key index = '%u')", __FUNCTION__, ii));
+            BDBG_ERR(("%s - Error sending Verify command to SAGE (key index = '%u')", BSTD_FUNCTION, ii));
             rc = 1;
             goto handle_error;
         }

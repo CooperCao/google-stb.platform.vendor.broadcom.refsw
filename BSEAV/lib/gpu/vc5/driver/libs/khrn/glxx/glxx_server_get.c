@@ -31,6 +31,7 @@
 #include "vcos.h"
 
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
+#include "libs/core/v3d/v3d_sample_offset.h"
 #include "libs/util/gfx_util/gfx_util_conv.h"
 
 static uint32_t component_bits(GLXX_FRAMEBUFFER_T *fbo, GLenum component);
@@ -46,10 +47,9 @@ static int32_t norm_float_to_int(float f)
 GL_API GLenum GL_APIENTRY glGetError(void)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged_even_if_reset(OPENGL_ES_ANY);
-   GLenum result;
    if (!state) return 0;
 
-   result = state->error;
+   GLenum result = state->error;
 
    state->error = GL_NO_ERROR;
 
@@ -362,7 +362,7 @@ static glxx_get_type_count glxx_get_params_and_type_common(
    case GL_LINE_WIDTH:
       floats[0] = state->line_width;
       return glxx_get_float_1;
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_POLYGON_OFFSET_CLAMP_EXT:
       floats[0] = state->polygon_offset.limit;
       return glxx_get_float_1;
@@ -851,7 +851,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_uint_1;
    case GL_MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS:
    case GL_MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS:
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
    case GL_MAX_COMBINED_COMPUTE_UNIFORM_COMPONENTS:
 #endif
       uints[0] = GLXX_CONFIG_MAX_UNIFORM_SCALARS + GLXX_CONFIG_MAX_SHADER_UNIFORM_BLOCKS * GLXX_CONFIG_MAX_UNIFORM_BLOCK_SIZE / 4;
@@ -993,7 +993,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = 3u;
       return glxx_get_uint_1;
    case GL_MINOR_VERSION:
-      uints[0] = KHRN_GLES32_DRIVER ? 2u : (KHRN_GLES31_DRIVER ? 1u : 0u);
+      uints[0] = KHRN_GLES32_DRIVER ? 2u : (V3D_VER_AT_LEAST(3,3,0,0) ? 1u : 0u);
       return glxx_get_uint_1;
    case GL_NUM_PROGRAM_BINARY_FORMATS:
       uints[0] = 0;
@@ -1049,7 +1049,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       floats[0] = GLXX_CONFIG_MAX_TEXTURE_LOD_BIAS;
       return glxx_get_float_1;
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
    case GL_SAMPLE_MASK:
       booleans[0] = state->sample_mask.enable;
       return glxx_get_bool_1;
@@ -1296,12 +1296,15 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = state->provoking_vtx;
       return glxx_get_uint_1;
 #endif
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
    case GL_TEXTURE_BINDING_1D_BRCM:
       uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_1D_BRCM)->name;
       return glxx_get_uint_1;
    case GL_TEXTURE_BINDING_1D_ARRAY_BRCM:
       uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_1D_ARRAY_BRCM)->name;
       return glxx_get_uint_1;
+#endif
 
 #if KHRN_GLES32_DRIVER
    case GL_MIN_FRAGMENT_INTERPOLATION_OFFSET:
@@ -1322,7 +1325,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       floats[0] = GLXX_CONFIG_MULTISAMPLE_LINE_WIDTH_GRANULARITY;
       return glxx_get_float_1;
 #endif
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_MAX_TEXTURE_BUFFER_SIZE:
       uints[0] = GLXX_CONFIG_MAX_TEXTURE_BUFFER_SIZE;
       return glxx_get_uint_1;
@@ -1650,7 +1653,9 @@ bool glxx_is_int_sampler_texparam(GLXX_SERVER_STATE_T *state, GLenum pname)
       case GL_TEXTURE_WRAP_R:
       case GL_TEXTURE_COMPARE_MODE:
       case GL_TEXTURE_COMPARE_FUNC:
+#if V3D_VER_AT_LEAST(4,0,2,0)
       case GL_TEXTURE_BORDER_COLOR:
+#endif
       case GL_TEXTURE_SRGB_DECODE_EXT:
          return !IS_GL_11(state);
 
@@ -1688,7 +1693,7 @@ bool glxx_is_int_texparam(GLXX_SERVER_STATE_T *state, GLenum target, GLenum pnam
          return !IS_GL_11(state);
       case GL_DEPTH_STENCIL_TEXTURE_MODE:
       case GL_IMAGE_FORMAT_COMPATIBILITY_TYPE:
-         return KHRN_GLES31_DRIVER ? !IS_GL_11(state) : false;
+         return V3D_VER_AT_LEAST(3,3,0,0) ? !IS_GL_11(state) : false;
       default:
          return false;
    }
@@ -1738,11 +1743,13 @@ uint32_t glxx_get_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state, GLXX
          params[0] = so->skip_srgb_decode ? GL_SKIP_DECODE_EXT : GL_DECODE_EXT;
          result = 1;
          break;
+#if V3D_VER_AT_LEAST(4,0,2,0)
       case GL_TEXTURE_BORDER_COLOR:
          for (uint32_t i = 0; i < 4; i++)
             params[i] = so->border_color[i];
          result = 4;
          break;
+#endif
       default:
          unreachable();
    }
@@ -1771,7 +1778,9 @@ uint32_t glxx_get_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum targe
       case GL_TEXTURE_WRAP_R:
       case GL_TEXTURE_COMPARE_MODE:
       case GL_TEXTURE_COMPARE_FUNC:
+#if V3D_VER_AT_LEAST(4,0,2,0)
       case GL_TEXTURE_BORDER_COLOR:
+#endif
       case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
       case GL_TEXTURE_SRGB_DECODE_EXT:
          result = glxx_get_texparameter_sampler_internal(state, &texture->sampler, pname, params);
@@ -1922,9 +1931,11 @@ GL_API void GL_APIENTRY glGetTexParameterfv(GLenum target, GLenum pname, GLfloat
       if (count) {
          assert(count == 1 || count == 4);
          for (uint32_t i = 0; i < count; i++)
+#if V3D_VER_AT_LEAST(4,0,2,0)
             if (pname == GL_TEXTURE_BORDER_COLOR)
                params[i] = gfx_float_from_bits(temp[i]);
             else
+#endif
                params[i] = (GLfloat)temp[i];
       }
    } else {
@@ -2023,7 +2034,7 @@ static bool is_integer_attrib_param(GLenum pname) {
          return true;
       case GL_VERTEX_ATTRIB_BINDING:
       case GL_VERTEX_ATTRIB_RELATIVE_OFFSET:
-         return KHRN_GLES31_DRIVER ? true : false;
+         return V3D_VER_AT_LEAST(3,3,0,0) ? true : false;
       default:
          return false;
    }
@@ -2264,7 +2275,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x_indexed(
       }
    }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
    case GL_SHADER_STORAGE_BUFFER_BINDING:
    case GL_SHADER_STORAGE_BUFFER_START:
    case GL_SHADER_STORAGE_BUFFER_SIZE:
@@ -2464,7 +2475,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x_indexed(
    }
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 GLenum glxx_get_booleans_i(const GLXX_SERVER_STATE_T *state, GLenum pname, GLuint index, GLboolean *params)
 {
@@ -2528,7 +2539,7 @@ GL_API void GL_APIENTRY glGetInternalformativ (GLenum target,
                      glxx_is_depth_renderable_internalformat(internalformat) ||
                      glxx_is_stencil_renderable_internalformat(internalformat);
 
-   if (!renderable || (target != GL_RENDERBUFFER && (!KHRN_GLES31_DRIVER || !glxx_tex_target_is_multisample(target))))
+   if (!renderable || (target != GL_RENDERBUFFER && (!V3D_VER_AT_LEAST(3,3,0,0) || !glxx_tex_target_is_multisample(target))))
    {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
       goto end;
@@ -2563,20 +2574,8 @@ end:
    glxx_unlock_server_state();
 }
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
-/* the order and location of samples in TLB is (in 1/8s from bottom-left):
- *      1 2 3 4 5 6 7
- *     _______________
- *  7  |_|_|3|_|_|_|_|
- *  6  |_|_|_|_|_|_|_|
- *  5  |_|_|_|_|_|_|2|
- *  4  |_|_|_|_|_|_|_|
- *  3  |1| |_|_|_|_|_|
- *  2  |_|_|_|_|_|_|_|
- *  1  |_|_|_|_|0|_|_|
- *
- */
 GL_APICALL void GL_APIENTRY glGetMultisamplefv (GLenum pname, GLuint index,
       GLfloat *val)
 {
@@ -2600,25 +2599,9 @@ GL_APICALL void GL_APIENTRY glGetMultisamplefv (GLenum pname, GLuint index,
    }
    assert(ms_mode == GLXX_4X_MS);
 
-   switch(index)
-   {
-      case 0:
-         val[0] = 5; val[1] = 1;
-         break;
-      case 1:
-         val[0] = 1; val[1] = 3;
-         break;
-      case 2:
-         val[0] = 7; val[1] = 5;
-         break;
-      case 3:
-         val[0] = 3; val[1] = 7;
-         break;
-      default:
-         unreachable();
-   }
-   val[0] *= 1.0/8;
-   val[1] *= 1.0/8;
+   val[0] = 0.125f * (4 + v3d_sample_x_offset(index));
+   val[1] = 0.125f * (4 + v3d_sample_y_offset(index));
+
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);

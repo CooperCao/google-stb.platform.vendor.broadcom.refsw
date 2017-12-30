@@ -21,8 +21,8 @@ BINARY_PROGRAM_T *glsl_binary_program_from_dataflow(IR_PROGRAM_T                
    BINARY_PROGRAM_T *ret = glsl_binary_program_create();
    if(!ret) return NULL;
 
-   ret->fshader = glsl_binary_shader_from_dataflow(SHADER_FRAGMENT, false, &ret->vary_map, ir, key);
-   if (ret->fshader == NULL) goto fail;
+   if (!glsl_binary_shader_from_dataflow(&ret->fshader, SHADER_FRAGMENT, false, &ret->vary_map, ir, key))
+      goto fail;
 
    ShaderFlavour last_vtx = (ir->stage[SHADER_GEOMETRY].ir) ? SHADER_GEOMETRY : (ir->stage[SHADER_TESS_EVALUATION].ir) ? SHADER_TESS_EVALUATION : SHADER_VERTEX;
 
@@ -30,16 +30,20 @@ BINARY_PROGRAM_T *glsl_binary_program_from_dataflow(IR_PROGRAM_T                
    if (!ir->stage[last_vtx].ir)
       return ret;
 
-   ret->vstages[last_vtx][MODE_BIN]    = glsl_binary_shader_from_dataflow(last_vtx, true,  &ir->tf_vary_map, ir, key);
-   ret->vstages[last_vtx][MODE_RENDER] = glsl_binary_shader_from_dataflow(last_vtx, false, &ret->vary_map,   ir, key);
-   if (ret->vstages[last_vtx][MODE_BIN] == NULL || ret->vstages[last_vtx][MODE_RENDER] == NULL) goto fail;
+   if (  !glsl_binary_shader_from_dataflow(&ret->vstages[last_vtx][MODE_BIN], last_vtx, true,  &ir->tf_vary_map, ir, key)
+      || !glsl_binary_shader_from_dataflow(&ret->vstages[last_vtx][MODE_RENDER], last_vtx, false, &ret->vary_map, ir, key)  )
+   {
+      goto fail;
+   }
 
    for (int i=last_vtx-1; i >= SHADER_VERTEX; i--) {
       if (ir->stage[i].ir == NULL) continue;
 
-      ret->vstages[i][MODE_BIN]    = glsl_binary_shader_from_dataflow(i, true,  NULL, ir, key);
-      ret->vstages[i][MODE_RENDER] = glsl_binary_shader_from_dataflow(i, false, NULL, ir, key);
-      if (ret->vstages[i][MODE_BIN] == NULL || ret->vstages[i][MODE_RENDER] == NULL) goto fail;
+      if (  !glsl_binary_shader_from_dataflow(&ret->vstages[i][MODE_BIN], i, true,  NULL, ir, key)
+         || !glsl_binary_shader_from_dataflow(&ret->vstages[i][MODE_RENDER], i, false, NULL, ir, key)  )
+      {
+         goto fail;
+      }
    }
 
 

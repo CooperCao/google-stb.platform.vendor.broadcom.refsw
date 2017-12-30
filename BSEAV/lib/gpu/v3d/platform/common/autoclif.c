@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-
-Project  :  Default Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-Debug interface for internal use only
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "autoclif.h"
 #include "memory_nexus_priv.h"
 

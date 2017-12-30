@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -381,6 +381,10 @@ bool BAPE_FMT_P_IsEqual_isrsafe(
              pDesc1->type == BAPE_DataType_eCompressedRaw) &&
              BAPE_FMT_P_GetAudioCompressionStd_isrsafe(pDesc1) == BAPE_FMT_P_GetAudioCompressionStd_isrsafe(pDesc2) )
         {
+            return true;
+        }
+
+        if (BAPE_FMT_P_IsLinearPcm_isrsafe(pDesc1)) {
             return true;
         }
     }

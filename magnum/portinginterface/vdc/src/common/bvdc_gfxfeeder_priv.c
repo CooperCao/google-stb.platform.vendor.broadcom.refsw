@@ -159,6 +159,7 @@ BERR_Code BVDC_P_GfxFeeder_Create
       BVDC_Source_Handle               hSource)
 {
     BVDC_P_GfxFeederContext *pGfxFeeder = NULL;
+    bool bSupport3D;
 
 #ifdef BCHP_GFD_0_HW_CONFIGURATION
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
@@ -279,6 +280,12 @@ BERR_Code BVDC_P_GfxFeeder_Create
     pGfxFeeder->bSupportVertScl = BVDC_P_GET_FIELD(
         ulHwCfg, GFD_0_HW_CONFIGURATION, VSCL);
 
+#if (BVDC_P_SUPPORT_3D ==0)  /* defined after BVDC_P_SUPPORT_GFD_VER_11 */
+    bSupport3D = BVDC_P_GET_FIELD(ulHwCfg, GFD_0_HW_CONFIGURATION, SUPPORT_3D);
+    BDBG_ASSERT(bSupport3D == b3dSrc);
+#else
+    BSTD_UNUSED(bSupport3D);
+#endif
     pGfxFeeder->stCfc.stCapability.stBits.bMc = 1;
     if (BAVC_SourceId_eGfx0 == pGfxFeeder->eId)
     {
@@ -356,11 +363,14 @@ BERR_Code BVDC_P_GfxFeeder_Destroy
     BDBG_OBJECT_ASSERT(hGfxFeeder, BVDC_GFX);
 
 #if BVDC_P_CMP_CFC_VER >= 3
-    if(hGfxFeeder->stCfcLutList.hMmaBlock) {
-        BMMA_Unlock(hGfxFeeder->stCfcLutList.hMmaBlock, hGfxFeeder->stCfcLutList.pulStart);
-        BMMA_UnlockOffset(hGfxFeeder->stCfcLutList.hMmaBlock, hGfxFeeder->stCfcLutList.ullStartDeviceAddr);
-        BMMA_Free(hGfxFeeder->stCfcLutList.hMmaBlock);
-        hGfxFeeder->stCfcLutList.hMmaBlock = NULL;
+    if(hGfxFeeder->stCfcLutList.hMmaBlock[0]) {
+        int i;
+        for(i = 0; i < BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; i++) {
+            BMMA_Unlock(hGfxFeeder->stCfcLutList.hMmaBlock[i], hGfxFeeder->stCfcLutList.pulStart[i]);
+            BMMA_UnlockOffset(hGfxFeeder->stCfcLutList.hMmaBlock[i], hGfxFeeder->stCfcLutList.ullStartDeviceAddr[i]);
+            BMMA_Free(hGfxFeeder->stCfcLutList.hMmaBlock[i]);
+            hGfxFeeder->stCfcLutList.hMmaBlock[i] = NULL;
+        }
         hGfxFeeder->hCfcHeap  = NULL;
     }
 #endif
@@ -438,21 +448,26 @@ void BVDC_P_GfxFeeder_Init(
     /* GFD CFC LUT allocated only when required, but released until VDC close. */
     if(pSettings && pSettings->hCfcHeap)
     {
-        if(!hGfxFeeder->stCfcLutList.hMmaBlock) {
+        if(!hGfxFeeder->stCfcLutList.hMmaBlock[0]) {
+            int i;
             hGfxFeeder->hCfcHeap = pSettings->hCfcHeap;
-            hGfxFeeder->stCfcLutList.hMmaBlock = BMMA_Alloc(pSettings->hCfcHeap,
-                BVDC_P_GFD_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
-            if( !hGfxFeeder->stCfcLutList.hMmaBlock )
-            {
-                BDBG_ERR(( "Out of Device Memory" ));
-                BDBG_ASSERT(0);
+            /* double buffer LUT buffers */
+            for(i = 0; i < BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; i++) {
+                hGfxFeeder->stCfcLutList.hMmaBlock[i] = BMMA_Alloc(pSettings->hCfcHeap,
+                    BVDC_P_GFD_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
+                if( !hGfxFeeder->stCfcLutList.hMmaBlock[i] )
+                {
+                    BDBG_ERR(( "Out of Device Memory" ));
+                    BDBG_ASSERT(0);
+                }
+                hGfxFeeder->stCfcLutList.pulStart[i] = BMMA_Lock(hGfxFeeder->stCfcLutList.hMmaBlock[i]);
+                hGfxFeeder->stCfcLutList.ullStartDeviceAddr[i] =
+                    BMMA_LockOffset(hGfxFeeder->stCfcLutList.hMmaBlock[i]);
+                BDBG_MSG(("GFD%d locked CFC heap at:"BDBG_UINT64_FMT", pulStart[%d]=%p", hGfxFeeder->eId-BAVC_SourceId_eGfx0,
+                    BDBG_UINT64_ARG(hGfxFeeder->stCfcLutList.ullStartDeviceAddr[i]), i, (void*)hGfxFeeder->stCfcLutList.pulStart[i]));
             }
-            hGfxFeeder->stCfcLutList.pulStart = hGfxFeeder->stCfcLutList.pulCurrent =
-                BMMA_Lock(hGfxFeeder->stCfcLutList.hMmaBlock);
-            hGfxFeeder->stCfcLutList.ullStartDeviceAddr =
-                BMMA_LockOffset(hGfxFeeder->stCfcLutList.hMmaBlock);
-            BDBG_MSG(("GFD%d locked CFC heap at:"BDBG_UINT64_FMT, hGfxFeeder->eId-BAVC_SourceId_eGfx0,
-                BDBG_UINT64_ARG(hGfxFeeder->stCfcLutList.ullStartDeviceAddr)));
+            hGfxFeeder->stCfcLutList.ulIndex    = 0;
+            hGfxFeeder->stCfcLutList.pulCurrent = hGfxFeeder->stCfcLutList.pulStart[0];
         }
     }
 #else
@@ -917,6 +932,7 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
         }
     }
 
+#ifndef BVDC_FOR_BOOTUPDATER
     /* check if BSTC compression is enabled and if so check if the
        new surface's pixel format corresponds. */
     pBoxVdc = &hGfxFeeder->hSource->hVdc->stBoxConfig.stVdc;
@@ -929,6 +945,9 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
                    (hGfxFeeder->eId - BAVC_SourceId_eGfx0), BPXL_ConvertFmtToStr(pNewSur->eInputPxlFmt)));
         return BERR_TRACE((BERR_INVALID_PARAMETER));
     }
+#else
+    BSTD_UNUSED(pBoxVdc);
+#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
     hGfxFeeder->pNewSur = pNewSur;
     pNewCfg->bOrientationOverride = hGfxFeeder->hSource->stNewInfo.bOrientationOverride;
@@ -1352,7 +1371,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     bool  bChangeClipOrField;
     uint32_t  ulFirStepLow, ulFirStepInt;
     uint32_t  *pulCoeffs;
-    uint32_t  ulRulOffset = hGfxFeeder->ulRegOffset;
+    uint32_t  ulRulOffset;
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
     uint32_t  ulEnDejag, ulEnDering, ulEnDemoMode;
     uint32_t  ulEnVscl, ulFilterOrder;
@@ -1366,6 +1385,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
 
     /* init RUL buffer pointers */
     pulRulCur = pList->pulCurrent;
+    ulRulOffset = hGfxFeeder->ulRegOffset;
 
     pGfxSurface = &hGfxFeeder->stGfxSurface;
     pCurCfg = &(hGfxFeeder->stCurCfgInfo);
@@ -1379,11 +1399,13 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
      * note: stDirty.stBits.bClipOrOut will be set if clipRect, out size, or surface size change */
     if ( (stDirty.stBits.bScaleCoeffs | stDirty.stBits.bClipOrOut) && hGfxFeeder->hWindow )
     {
+        BERR_Code rc = BERR_SUCCESS;
         const BVDC_CoefficientIndex *pCtIndex = &hGfxFeeder->hWindow->stCurInfo.stCtIndex;
 
         /* set horizontal scale coeffs */
-        BVDC_P_GfxFeeder_DecideFilterCoeff_isr(pCurCfg->eHorzScaleCoeffs,
+        rc = BVDC_P_GfxFeeder_DecideFilterCoeff_isr(pCurCfg->eHorzScaleCoeffs,
             pCtIndex->ulSclHorzLuma, pCurCfg->ulCntWidth, pCurCfg->ulOutWidth, &pulCoeffs );
+        BDBG_ASSERT(rc==BERR_SUCCESS);
         *pulRulCur++ = BRDC_OP_IMMS_TO_REGS( GFD_NUM_REGS_HSCL_COEFF );
         *pulRulCur++ = BRDC_REGISTER(BCHP_GFD_0_HORIZ_FIR_COEFF_PHASE0_00_01) + ulRulOffset;
         BKNI_Memcpy( (void*) pulRulCur, (void*) pulCoeffs, 4 * GFD_NUM_REGS_HSCL_COEFF );
@@ -2317,7 +2339,8 @@ void BVDC_P_GfxFeeder_UpdateState_isr
                 &hGfxFeeder->stCfc.stMc,
                 pYCbCrToRGB, /* YCbCr->RGB */
                 pRGBToYCbCr, /* RGB->YCbCr */
-                hGfxFeeder->hWindow->stCurInfo.bUserCsc);
+                hGfxFeeder->hWindow->stCurInfo.bUserCsc,
+                (void *)&hGfxFeeder->hWindow->aullTmpBuf[0]);
 #endif /* #ifndef BVDC_FOR_BOOTUPDATER */
         }
     }

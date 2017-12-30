@@ -571,6 +571,10 @@ EGLBoolean (KHRONOS_APIENTRY *real_eglDestroyImageKHR)(EGLDisplay dpy, EGLImageK
 #if EGL_KHR_image_pixmap
 #endif /* EGL_KHR_image_pixmap*/
 
+#if EGL_KHR_partial_update
+EGLBoolean (KHRONOS_APIENTRY *real_eglSetDamageRegionKHR)(EGLDisplay dpy, EGLSurface surface, EGLint *rects, EGLint n_rects);
+#endif /* EGL_KHR_partial_update*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
 
@@ -850,6 +854,9 @@ EGLBoolean (KHRONOS_APIENTRY *real_eglGetPerfCounterDataBRCM)(EGLint dataBufferB
 #if EGL_BRCM_platform_nexus
 #endif /* EGL_BRCM_platform_nexus*/
 
+#if EGL_EXT_buffer_age
+#endif /* EGL_EXT_buffer_age*/
+
 #if EGL_EXT_client_extensions
 #endif /* EGL_EXT_client_extensions*/
 
@@ -886,6 +893,9 @@ EGLBoolean (KHRONOS_APIENTRY *real_eglQueryWaylandBufferWL)(EGLDisplay dpy, stru
 #if GL_BRCM_mirror_clamp_to_edge
 #endif /* GL_BRCM_mirror_clamp_to_edge*/
 
+#if GL_BRCM_no_perspective
+#endif /* GL_BRCM_no_perspective*/
+
 #if GL_BRCM_polygon_mode
 void (KHRONOS_APIENTRY *real_glPolygonModeBRCM)(GLenum mode);
 #endif /* GL_BRCM_polygon_mode*/
@@ -894,11 +904,20 @@ void (KHRONOS_APIENTRY *real_glPolygonModeBRCM)(GLenum mode);
 void (KHRONOS_APIENTRY *real_glProvokingVertexBRCM)(GLenum mode);
 #endif /* GL_BRCM_provoking_vertex*/
 
+#if GL_BRCM_sampler_fetch
+#endif /* GL_BRCM_sampler_fetch*/
+
+#if GL_BRCM_shader_framebuffer_fetch_depth_stencil
+#endif /* GL_BRCM_shader_framebuffer_fetch_depth_stencil*/
+
 #if GL_BRCM_texture_1D
 void (KHRONOS_APIENTRY *real_glTexImage1DBRCM)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels);
 void (KHRONOS_APIENTRY *real_glTexSubImage1DBRCM)(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid *pixels);
 void (KHRONOS_APIENTRY *real_glTexStorage1DBRCM)(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width);
 #endif /* GL_BRCM_texture_1D*/
+
+#if GL_BRCM_texture_gather_lod
+#endif /* GL_BRCM_texture_gather_lod*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

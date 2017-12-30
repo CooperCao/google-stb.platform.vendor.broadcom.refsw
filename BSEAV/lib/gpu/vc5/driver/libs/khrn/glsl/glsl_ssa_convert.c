@@ -133,6 +133,20 @@ static void get_block_info_outputs(BasicBlock **blocks, int n_blocks, Map *block
    }
 }
 
+static StorageQualifier get_symbol_sq(const Symbol *s) {
+   assert(s->flavour == SYMBOL_VAR_INSTANCE || s->flavour == SYMBOL_INTERFACE_BLOCK);
+   if (s->flavour == SYMBOL_VAR_INSTANCE) return s->u.var_instance.storage_qual;
+   else return s->u.interface_block.sq;
+}
+
+static bool is_interface_symbol(const Symbol *s) {
+   if (s->flavour != SYMBOL_VAR_INSTANCE && s->flavour != SYMBOL_INTERFACE_BLOCK)
+      return false;
+
+   StorageQualifier sq = get_symbol_sq(s);
+   return sq == STORAGE_UNIFORM || sq == STORAGE_BUFFER || sq == STORAGE_IN;
+}
+
 static void normalise_ir_format(BasicBlock **blocks, int n_blocks, Map *block_ids, SSABlock *ssa_blocks, Map **output_maps, Map *symbol_ids, Map **phi_args)
 {
    for (int id=0; id<n_blocks; id++) {
@@ -146,13 +160,11 @@ static void normalise_ir_format(BasicBlock **blocks, int n_blocks, Map *block_id
          Dataflow   **df = load->v;
 
          int *ids = glsl_map_get(symbol_ids, s);
-         if (ids != NULL && (s->flavour == SYMBOL_INTERFACE_BLOCK || (s->flavour == SYMBOL_VAR_INSTANCE && s->u.var_instance.storage_qual == STORAGE_UNIFORM)))
+         if (ids != NULL && is_interface_symbol(s))
          {
             Dataflow **v;
-            if (s->flavour == SYMBOL_VAR_INSTANCE || s->u.interface_block.sq == STORAGE_UNIFORM)
-               v = glsl_shader_interface_create_uniform_dataflow(s, ids);
-            else
-               v = glsl_shader_interface_create_buffer_dataflow(s, ids);
+            StorageQualifier sq = get_symbol_sq(s);
+            v = glsl_shader_interface_create_symbol_dataflow(sq, s, ids);
 
             for (unsigned i=0; i<s->type->scalar_count; i++) glsl_map_put(load_map, df[i], v[i]);
             continue;

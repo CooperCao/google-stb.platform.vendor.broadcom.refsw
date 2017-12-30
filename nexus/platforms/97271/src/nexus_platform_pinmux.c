@@ -66,6 +66,8 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         if (pinmux_env_val != 1) {
             return; /* Only enable pin mux if this is set to 1 */
         }
+    } else {
+        return;
     }
 
     NEXUS_Platform_GetStatus(&platformStatus);
@@ -184,7 +186,7 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 #endif
 
 /* set pinmux for PKT3 to enable BCM9TS_DC streamer input. may require board rework. */
-#if 0
+#if 1
     {
     uint32_t reg;
     reg = BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);

@@ -81,7 +81,6 @@ void BVDC_GetDefaultMemConfigSettings
     for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
     {
         BVDC_DispMemConfigSettings  *pDisplay;
-        const BFMT_VideoInfo  *pDispFmtInfo;
 
         pDisplay = (BVDC_DispMemConfigSettings *)(&pMemConfigSettings->stDisplay[ulDispIndex]);
         BDBG_ASSERT(pDisplay);
@@ -89,18 +88,13 @@ void BVDC_GetDefaultMemConfigSettings
         BVDC_P_MemConfig_GetDefaultDisplaySettings(pSystemConfigInfo,
             ulDispIndex, pDisplay);
 
-        pDispFmtInfo = BFMT_GetVideoFormatInfoPtr(pDisplay->eMaxDisplayFormat);
-        BDBG_MSG(("Disp[%d] DEF: Used(%d) %s", ulDispIndex, pDisplay->bUsed,
-            pDispFmtInfo->pchFormatStr));
-        BSTD_UNUSED(pDispFmtInfo);
-
         /* Skip if display is not used */
         if(!pDisplay->bUsed)
         {
             continue;
         }
 
-        /* VIP default not support */
+       /* VIP default not support */
         pDisplay->vip.bUsed = 0;
         pDisplay->vip.stCfgSettings.ulMaxWidth  = 720;
         pDisplay->vip.stCfgSettings.ulMaxHeight = 480;
@@ -110,13 +104,70 @@ void BVDC_GetDefaultMemConfigSettings
         for(ulWinIndex = 0; ulWinIndex < BVDC_MAX_VIDEO_WINDOWS; ulWinIndex++)
         {
             BVDC_WinMemConfigSettings  *pWindow;
-            const BFMT_VideoInfo  *pSrcFmtInfo;
+
+            /* Only displays 0 and 1 have 2 video windows */
+            if ((ulDispIndex >= (uint32_t)BVDC_DisplayId_eDisplay2) && (ulWinIndex > 0))
+                continue;
 
             pWindow = &(pDisplay->stWindow[ulWinIndex]);
             BDBG_ASSERT(pWindow);
 
             BVDC_P_MemConfig_GetDefaultWindowSettings(pSystemConfigInfo,
                 ulDispIndex, ulWinIndex, pWindow);
+        }
+    }
+
+    /* Allocate any remaining available deinterlacers to any path that has a FTR_SD resource */
+    for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
+    {
+        BVDC_DispMemConfigSettings  *pDisplay;
+
+        pDisplay = (BVDC_DispMemConfigSettings *)(&pMemConfigSettings->stDisplay[ulDispIndex]);
+        BDBG_ASSERT(pDisplay);
+
+        if (pSystemConfigInfo->ulNumMadUsed < pSystemConfigInfo->ulNumMad)
+        {
+            for(ulWinIndex = 0; ulWinIndex < BVDC_MAX_VIDEO_WINDOWS; ulWinIndex++)
+            {
+                BVDC_WinMemConfigSettings  *pWindow;
+
+                /* Only displays 0 and 1 have 2 video windows */
+            if ((ulDispIndex >= (uint32_t)BVDC_DisplayId_eDisplay2) && (ulWinIndex > 0))
+                    continue;
+
+                pWindow = &(pDisplay->stWindow[ulWinIndex]);
+                BDBG_ASSERT(pWindow);
+
+                BVDC_P_MemConfig_GetDefaultDeinterlacerSettings(pSystemConfigInfo,
+                    ulDispIndex, ulWinIndex, pWindow, true);
+            }
+        }
+    }
+
+    for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
+    {
+        BVDC_DispMemConfigSettings  *pDisplay;
+        const BFMT_VideoInfo  *pDispFmtInfo;
+
+        pDisplay = (BVDC_DispMemConfigSettings *)(&pMemConfigSettings->stDisplay[ulDispIndex]);
+        BDBG_ASSERT(pDisplay);
+
+        pDispFmtInfo = BFMT_GetVideoFormatInfoPtr(pDisplay->eMaxDisplayFormat);
+        BDBG_MSG(("Disp[%d] DEF: Used(%d) %s", ulDispIndex, pDisplay->bUsed,
+            pDispFmtInfo->pchFormatStr));
+
+        for(ulWinIndex = 0; ulWinIndex < BVDC_MAX_VIDEO_WINDOWS; ulWinIndex++)
+        {
+            BVDC_WinMemConfigSettings  *pWindow;
+            const BFMT_VideoInfo  *pSrcFmtInfo;
+
+            /* Only displays 0 and 1 have 2 video windows */
+            if ((ulDispIndex >= (uint32_t)BVDC_DisplayId_eDisplay2) && (ulWinIndex > 0))
+                continue;
+
+            pWindow = &(pDisplay->stWindow[ulWinIndex]);
+            BDBG_ASSERT(pWindow);
+
             pSrcFmtInfo = BFMT_GetVideoFormatInfoPtr(pWindow->eMaxSourceFormat);
             BDBG_MSG(("    Win[%d] DEF: Used(%d) CapMemc[%d] MadMemc[%d] %s",
                 ulWinIndex, pWindow->bUsed, pWindow->ulMemcIndex,
@@ -131,8 +182,6 @@ void BVDC_GetDefaultMemConfigSettings
                 pWindow->bBoxDetect, pWindow->bArbitraryCropping,
                 pWindow->bIndependentCropping, pWindow->b5060Convert,
                 pWindow->bSlave_24_25_30_Display, pWindow->ulAdditionalBufCnt));
-
-            BSTD_UNUSED(pSrcFmtInfo);
         }
     }
 
@@ -188,8 +237,9 @@ BERR_Code BVDC_GetMemoryConfiguration
         {
             BDBG_MSG(("to compute the mem config for hdmiCfc[%d]: MEMC[%d]",
                 ulDispIndex, pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex));
-            pMemConfig->stMemc[pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex].ulCfcLutSize += BVDC_P_HDMI_CFC_LUT_SIZE;
-            BDBG_MSG(("    VEC_HDMI CFC LUT size = %d", BVDC_P_HDMI_CFC_LUT_SIZE));
+            ulRulSize = BVDC_P_ALIGN_UP(BVDC_P_HDMI_CFC_LUT_SIZE, sizeof(uint32_t))*BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT;
+            pMemConfig->stMemc[pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex].ulCfcLutSize += ulRulSize;/* double-buffer LUT */
+            BDBG_MSG(("    VEC_HDMI CFC LUT size = %u", ulRulSize));
         }
     }
 #endif
@@ -238,10 +288,12 @@ BERR_Code BVDC_GetMemoryConfiguration
         {
             BDBG_MSG(("to compute the mem config for display[%d].cfc: CMP_LUT <- MEMC[%d], GFD LUT <- MEMC[%d]",
                 ulDispIndex, pDisplay->cfc.ulCmpMemcIndex, pDisplay->cfc.ulGfdMemcIndex));
-            pMemConfig->stMemc[pDisplay->cfc.ulCmpMemcIndex].ulCfcLutSize += BVDC_P_CMP_CFC_LUT_SIZE;
-            pMemConfig->stMemc[pDisplay->cfc.ulGfdMemcIndex].ulCfcLutSize += BVDC_P_GFD_CFC_LUT_SIZE;
-            BDBG_MSG(("    CMP CFC LUT size = %d", BVDC_P_CMP_CFC_LUT_SIZE));
-            BDBG_MSG(("    GFD CFC LUT size = %d", BVDC_P_GFD_CFC_LUT_SIZE));
+            ulRulSize = BVDC_P_ALIGN_UP(BVDC_P_CMP_CFC_LUT_SIZE, sizeof(uint32_t))*BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT;
+            pMemConfig->stMemc[pDisplay->cfc.ulCmpMemcIndex].ulCfcLutSize += ulRulSize;
+            BDBG_MSG(("    CMP CFC LUT size = %u", ulRulSize));
+            ulRulSize = BVDC_P_ALIGN_UP(BVDC_P_GFD_CFC_LUT_SIZE, sizeof(uint32_t))*BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT;
+            pMemConfig->stMemc[pDisplay->cfc.ulGfdMemcIndex].ulCfcLutSize += ulRulSize;
+            BDBG_MSG(("    GFD CFC LUT size = %u", ulRulSize));
         }
 #endif
 

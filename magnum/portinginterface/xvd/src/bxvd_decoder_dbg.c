@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -181,16 +181,15 @@ void BXVD_DecoderDbg_P_PrintUnifiedPicture_isrsafe(
 {
    BXDM_Picture * pstPicture;
    bool           bProtocolValid;
-
-#if BXVD_P_PPB_EXTENDED
-   uint32_t uiFlagsExt0 = pstContext->pPPB->flags_ext0;
-#else
-   uint32_t uiFlagsExt0 = 0;
-#endif
+   uint32_t       uiFlagsExt0 = 0;
 
    BDBG_ENTER( BXVD_DecoderDbg_P_PrintUnifiedPicture_isrsafe );
 
    BDBG_ASSERT( pstContext );
+
+#if BXVD_P_PPB_EXTENDED
+   uiFlagsExt0 = pstContext->pPPB->flags_ext0;
+#endif
 
    pstPicture = &(pstContext->stUnifiedPicture);
 

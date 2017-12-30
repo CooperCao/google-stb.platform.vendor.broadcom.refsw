@@ -986,6 +986,11 @@ static BERR_Code BDSP_Raaga_P_FillVideoDecodeGblTaskCfg (
     BDSP_VF_P_sGLOBAL_TASK_CONFIG *psGblTaskCfg;
     BDSP_VF_P_sVDecodeBuffCfg     *psGlobalTaskConfigFromPI;
 
+    BCHP_MemoryInfo memoryInfo;
+    BDSP_RaagaStage *pRaagaPrimaryStage;
+    BDSP_RaagaContext *pRaagaContext;
+    BDSP_Raaga *pRaagaDevice;
+
     BDBG_ENTER(BDSP_Raaga_P_FillVideoDecodeGblTaskCfg);
 
     ui32Error = BERR_SUCCESS;
@@ -997,6 +1002,10 @@ static BERR_Code BDSP_Raaga_P_FillVideoDecodeGblTaskCfg (
 
     /*Update the number if Nodes in the Task*/
     psGblTaskCfg->ui32NumberOfNodesInTask = ui32TotalNodes;
+
+    pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
+    pRaagaContext      = (BDSP_RaagaContext *)pRaagaPrimaryStage->pContext;
+    pRaagaDevice       = (BDSP_Raaga *)pRaagaContext->pDevice;
 
     /* Calculate the PDQ and PRQ Structure Addresses and
             Update it into The Global Config parameters*/
@@ -1037,7 +1046,8 @@ static BERR_Code BDSP_Raaga_P_FillVideoDecodeGblTaskCfg (
     psGlobalTaskConfigFromPI->ui32MaxFrameWidth  = 720;
     psGlobalTaskConfigFromPI->ui32MaxFrameHeight = 576;
 #endif  /* 0 */
-    psGlobalTaskConfigFromPI->ui32StripeWidth    = pRaagaTask->pContext->pDevice->settings.memc[0].stripeWidth;
+    BCHP_GetMemoryInfo(pRaagaDevice->chpHandle, &memoryInfo);
+    psGlobalTaskConfigFromPI->ui32StripeWidth    = memoryInfo.memc[0].ulStripeWidth;
 
     /* DISPLAY FRAME BUFFER CONFIGURATION */
     psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32NumBuffAvl =
@@ -1208,6 +1218,7 @@ static BERR_Code BDSP_Raaga_P_FillVideoEncodeGblTaskCfg(
     BDSP_VF_P_sENC_GLOBAL_TASK_CONFIG *psVideoEncodeGlobalTaskConfig;
     BDSP_VF_P_sVEncodeConfig          *psGlobalEncodeTaskConfig;
 
+    BCHP_MemoryInfo memoryInfo;
     BDSP_RaagaStage *pRaagaPrimaryStage;
     BDSP_RaagaContext *pRaagaContext;
     BDSP_Raaga *pRaagaDevice;
@@ -1257,13 +1268,16 @@ static BERR_Code BDSP_Raaga_P_FillVideoEncodeGblTaskCfg(
     /* Common Parameters */
     psGlobalEncodeTaskConfig->ui32MaxFrameHeight = psVEncoderCfgIp->MaxFrameHeight;
     psGlobalEncodeTaskConfig->ui32MaxFrameWidth  = psVEncoderCfgIp->MaxFrameWidth;
-    psGlobalEncodeTaskConfig->ui32StripeWidth    = pRaagaDevice->settings.memc[0].stripeWidth;
+
+    BCHP_GetMemoryInfo(pRaagaDevice->chpHandle, &memoryInfo);
+    psGlobalEncodeTaskConfig->ui32StripeWidth    = memoryInfo.memc[0].ulStripeWidth;
+
 #if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
-    if ( pRaagaDevice->settings.memc[0].stripeWidth == 128 )
+    if ( memoryInfo.memc[0].ulStripeWidth == 128 )
     {
         ui32DramMap5AddrCfg =0x00080005;
     }
-    else if ( pRaagaDevice->settings.memc[0].stripeWidth == 256 )
+    else if ( memoryInfo.memc[0].ulStripeWidth == 256 )
     {
         ui32DramMap5AddrCfg =0x00090005;
     }

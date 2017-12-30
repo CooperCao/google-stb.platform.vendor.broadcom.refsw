@@ -1085,7 +1085,19 @@ txq_hw_fill(txq_info_t *txqi, txq_t *txq, uint fifo_idx)
 				spktq_enq_head(swq, p);
 				break;
 			}
+#if defined(WL_PM2_RCV_DUR_LIMIT)
+			{
+				wlc_bsscfg_t *cfg;
+				wlc_pm_st_t *pm;
+				cfg = SCB_BSSCFG(scb);
+				pm = cfg->pm;
 
+				if (PM2_RCV_DUR_ENAB(cfg) && (pm->in_pm2_rcv != 1)  && (cfg->pm->PM == PM_FAST)) {
+					spktq_enq_head(swq, p);
+					break;
+				}
+			}
+#endif /* WL_PM2_RCV_DUR_LIMIT */
 			pkttag = WLPKTTAG(p);
 
 			/* We are done with WLF_FIFOPKT regardless */
@@ -5494,6 +5506,14 @@ wlc_allocfrag_txfrag(osl_t *osh, void *sdu, uint offset, uint frag_length,
 	PKTSETFRAGTOTLEN(osh, p1, plen);
 	PKTSETIFINDEX(osh, p1, PKTIFINDEX(osh, sdu));
 
+	/* If incoming sdu is from host, set appropriate flags for new frags too */
+	if (WL_TXSTATUS_GET_FLAGS(WLPKTTAG(sdu)->wl_hdr_information) &
+		WLFC_PKTFLAG_PKTFROMHOST) {
+
+		WL_TXSTATUS_SET_FLAGS(WLPKTTAG(p1)->wl_hdr_information,
+			WLFC_PKTFLAG_PKTFROMHOST);
+	}
+
 	/* Only last fragment should have metadata
 	 * and valid PKTID. Reset metadata and set invalid PKTID
 	 * for other fragments
@@ -5824,7 +5844,11 @@ wlc_hdr_proc(wlc_info_t *wlc, void *sdu, struct scb *scb)
 	if (SFD_ENAB(wlc->pub) && PKTISTXFRAG(wlc->osh, sdu))
 		goto skip_realloc;
 
+	/* use_phdr can vary depending on if DMATXRC defined */
+	/* coverity[dead_error_line] */
 	if ((uint)PKTHEADROOM(osh, sdu) < TXOFF || PKTSHARED(sdu) || (use_phdr && phdr)) {
+		/* use_phdr can vary depending on if DMATXRC defined */
+		/* coverity[dead_error_line] */
 		if (use_phdr && phdr)
 			pkt = phdr;
 		else
@@ -10093,6 +10117,8 @@ wlc_get_txh_info(wlc_info_t* wlc, void* p, wlc_txh_info_t* tx_info)
 
 #ifdef WLTOEHW
 		tsoHdrSize = WLC_TSO_HDR_LEN(wlc, (d11ac_tso_t*)pktHdr);
+		/* value of condition tsoHdrSize is depended on compile flag and macro */
+		/* coverity[dead_error_line] */
 		tx_info->tsoHdrPtr = (void*)((tsoHdrSize != 0) ? pktHdr : NULL);
 		tx_info->tsoHdrSize = tsoHdrSize;
 #else
@@ -11191,7 +11217,7 @@ wlc_tx_fifo_sync_complete(wlc_info_t *wlc, uint fifo_bitmap, uint8 flag)
 #endif /* TXQ_MUX */
 		}
 
-		spktq_deinit(&pkt_list);
+		(void)spktq_deinit(&pkt_list);
 
 #ifdef AP
 		/**

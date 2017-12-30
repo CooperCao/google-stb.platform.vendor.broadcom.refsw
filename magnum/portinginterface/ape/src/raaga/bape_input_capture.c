@@ -1055,12 +1055,14 @@ static void BAPE_InputCapture_P_StopPathToOutput(
 {
     BAPE_PathNode *pSink;
 
-    BAPE_InputCaptureHandle handle = pNode->pHandle;
+    BAPE_InputCaptureHandle handle;
 
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
     BDBG_OBJECT_ASSERT(pConnection->pSource, BAPE_PathConnector);
     BDBG_OBJECT_ASSERT(pConnection->pSink, BAPE_PathNode);
+
+    handle = pNode->pHandle;
 
     /* Stop slaves first */
     for ( pConnection = BLST_SQ_FIRST(&pNode->connectors[0].connectionList);

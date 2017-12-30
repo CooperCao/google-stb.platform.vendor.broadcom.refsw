@@ -36,6 +36,7 @@ nexus_memory.h
 nexus_graphicsv3d.h
 nexus_graphics2d.h
 nexus_picture_decoder.h
+nexus_striped_surface.h
 
 # front end
 nexus_frontend.h

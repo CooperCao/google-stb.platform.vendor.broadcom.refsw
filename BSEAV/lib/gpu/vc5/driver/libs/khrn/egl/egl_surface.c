@@ -11,23 +11,36 @@
 #include "../glxx/glxx_int_config.h"
 #include "libs/util/profile/profile.h"
 
+GFX_LFMT_T egl_surface_lfmt_to_srgb(GFX_LFMT_T lfmt)
+{
+   switch (lfmt & GFX_LFMT_FORMAT_MASK)
+   {
+   case GFX_LFMT_R8_G8_B8_A8_UNORM:
+      return (lfmt & ~GFX_LFMT_TYPE_MASK) | GFX_LFMT_TYPE_SRGB_SRGB_SRGB_UNORM;
+
+   case GFX_LFMT_R8_G8_B8_X8_UNORM:
+   case GFX_LFMT_R8_G8_B8_UNORM:
+      return (lfmt & ~GFX_LFMT_TYPE_MASK) | GFX_LFMT_TYPE_SRGB;
+
+   default:
+      return lfmt; /* ignore sRGB-ness (EGL_KHR_gl_colorspace extension allows that) */
+   }
+}
+
 const v3d_scheduler_deps *egl_surface_flush_back_buffer_writer(EGL_SURFACE_T *surface)
 {
    const v3d_scheduler_deps *deps = NULL;
 
-   if (egl_context_gl_lock())
-   {
-      khrn_resource *resource = khrn_image_get_resource(egl_surface_get_back_buffer(surface));
-      khrn_resource_flush_writer(resource);
-      deps = &resource->pre_read;
-      egl_context_gl_unlock();
-   }
+   egl_context_gl_lock();
+   khrn_resource *resource = khrn_image_get_resource(egl_surface_get_back_buffer(surface));
+   khrn_resource_flush_writer(resource);
+   deps = &resource->pre_read;
+   egl_context_gl_unlock();
 
    return deps;
 }
 
-static bool surface_get_attrib(const EGL_SURFACE_T *surface,
-      EGLint attrib, EGLAttribKHR *value)
+EGLint egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value)
 {
    if (surface->fns->get_attrib)
       return surface->fns->get_attrib(surface, attrib, value);
@@ -35,8 +48,7 @@ static bool surface_get_attrib(const EGL_SURFACE_T *surface,
       return egl_surface_base_get_attrib(surface, attrib, value);
 }
 
-EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface,
-      EGLint attrib, EGLAttribKHR value)
+static EGLint surface_set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLAttribKHR value)
 {
    if (surface->fns->set_attrib)
       return surface->fns->set_attrib(surface, attrib, value);
@@ -44,54 +56,21 @@ EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface,
       return egl_surface_base_set_attrib(surface, attrib, value);
 }
 
-static bool attrib_ignored(EGLint attrib)
-{
-   switch (attrib)
-   {
-   case EGL_LARGEST_PBUFFER:
-   case EGL_TEXTURE_FORMAT:
-   case EGL_TEXTURE_TARGET:
-   case EGL_MIPMAP_TEXTURE:
-   case EGL_MIPMAP_LEVEL:
-      /*
-       * These aren't errors; they just don't do anything for non-pbuffer
-       * surfaces (EGL 1.4 3.5.6)
-       */
-      return true;
-   default:
-      return false;
-   }
-}
-
 EGLAPI EGLBoolean EGLAPIENTRY eglQuerySurface(EGLDisplay dpy, EGLSurface surf,
       EGLint attribute, EGLint *value)
 {
-   EGLint error = EGL_BAD_ATTRIBUTE;
-   EGL_SURFACE_T *surface = NULL;
-
    if (!egl_initialized(dpy, true))
       return EGL_FALSE;
 
-   surface = egl_surface_lock(surf);
+   EGL_SURFACE_T *surface = egl_surface_lock(surf);
+   EGLint error;
    if (!surface)
-   {
       error = EGL_BAD_SURFACE;
-      goto end;
-   }
-
-   EGLAttribKHR attr_value;
-   if (surface_get_attrib(surface, attribute, &attr_value))
-   {
-      *value = (EGLint)attr_value;
-      error = EGL_SUCCESS;
-   }
    else
-   {
-      error = attrib_ignored(attribute) ? EGL_SUCCESS : EGL_BAD_ATTRIBUTE;
-   }
+      error = egl_surface_get_attrib(surface, attribute, value);
 
-end:
    egl_surface_unlock(surface);
+
    egl_thread_set_error(error);
    return error == EGL_SUCCESS;
 }
@@ -99,28 +78,19 @@ end:
 EGLAPI EGLBoolean EGLAPIENTRY eglSurfaceAttrib(EGLDisplay dpy, EGLSurface surf,
       EGLint attribute, EGLint value)
 {
-   EGLint error = EGL_BAD_PARAMETER;
-   EGL_SURFACE_T *surface = NULL;
-
    if (!egl_initialized(dpy, true))
       return EGL_FALSE;
 
-   surface = egl_surface_lock(surf);
+   EGL_SURFACE_T *surface = egl_surface_lock(surf);
    if (!surface)
    {
-      error = EGL_BAD_SURFACE;
-      goto end;
+      egl_thread_set_error(EGL_BAD_SURFACE);
+      return EGL_FALSE;
    }
-
-   error = egl_surface_set_attrib(surface, attribute, value);
-   if ((error == EGL_BAD_ATTRIBUTE) && attrib_ignored(attribute))
-   {
-      error = EGL_SUCCESS;
-   }
-
-end:
-   egl_thread_set_error(error);
+   EGLint error = surface_set_attrib(surface, attribute, value);
    egl_surface_unlock(surface);
+
+   egl_thread_set_error(error);
    return error == EGL_SUCCESS;
 }
 
@@ -157,6 +127,33 @@ khrn_image *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
       egl_aux_buf_t which)
 {
    return egl_surface_base_get_aux_buffer(surface, which);
+}
+
+khrn_image *egl_surface_get_back_buffer_with_gl_colorspace(const EGL_SURFACE_T *surface)
+{
+   khrn_image *img = egl_surface_get_back_buffer(surface);
+   khrn_mem_acquire(img);
+
+   const GFX_BUFFER_DESC_T *desc = &img->blob->desc[img->level];
+   assert(desc->num_planes == 1);
+   GFX_LFMT_T lfmt = desc->planes[0].lfmt;
+
+   GFX_LFMT_T lfmt_with_colorspace = (surface->gl_colorspace == SRGB) ?
+      egl_surface_lfmt_to_srgb(lfmt) : lfmt;
+   if (lfmt_with_colorspace != lfmt)
+   {
+      // Make a shallow copy of the blob so we can fiddle with the format
+      khrn_image *img_with_colorspace = khrn_image_shallow_blob_copy(img);
+      if (img_with_colorspace)
+      {
+         khrn_mem_release(img);
+         img = img_with_colorspace;
+         img->blob->desc[img->level].planes[0].lfmt = lfmt_with_colorspace;
+      }
+      // else: silently fall back to linear colorspace. This is permitted by the EGL spec.
+   }
+
+   return img;
 }
 
 /*
@@ -205,21 +202,17 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
    {
       PROFILE_FUNCTION_MT("GL");
 
-      EGL_SURFACE_T *surface = NULL;
-      EGL_CONTEXT_T *context;
-      bool preserve;
-
       if (!egl_initialized(dpy, true))
          return EGL_FALSE;
 
-      surface = egl_surface_lock(surf);
+      EGL_SURFACE_T *surface = egl_surface_lock(surf);
       if (!surface)
       {
          error = EGL_BAD_SURFACE;
          goto end;
       }
 
-      context = egl_thread_get_context();
+      EGL_CONTEXT_T *context = egl_thread_get_context();
       if (!context || context->draw != surface)
       {
          error = EGL_BAD_SURFACE;
@@ -228,21 +221,16 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
       assert(surface->context == context);
 
       /* Invalidate all auxiliary buffers. Do this before flushing so we can
-       * avoid storing the invalidated buffers out! Note that we always throw
-       * away the multisample color information here, even if the color buffer
-       * is to be preserved across the swap! */
+       * avoid storing the invalidated buffers out! */
       egl_context_invalidate_draw(context, /*color=*/false, /*color_ms=*/true, /*other_aux=*/true);
 
       /* swap_buffers() will:
        * 1. Flush.
        * 2. Queue the back buffer for display.
-       * 3. If preserve=true queue a copy of the back buffer to the next back
-       *    buffer.
-       * 4. Switch to the next back buffer. */
-      preserve = surface->swap_behavior == EGL_BUFFER_PRESERVED;
+       * 3. Switch to the next back buffer. */
       if (surface->fns->swap_buffers)
       {
-         egl_result_t swap_result = surface->fns->swap_buffers(surface, preserve);
+         egl_result_t swap_result = surface->fns->swap_buffers(surface);
 
          switch (swap_result)
          {
@@ -267,12 +255,27 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
          }
       }
 
-      if (!preserve && egl_context_gl_lock())
+      // Getting the new back buffer will update the buffer_age in the surface which we use below.
+      khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
+
+      int buffer_age = surface->buffer_age;
+
+      /* If no-one has ever queried the buffer age on this surface, treating it as undefined
+       * allows later optimizations, so force age to 0. */
+      if (!surface->buffer_age_enabled)
+         buffer_age = 0;
+
+      if (buffer_age == 0)
       {
-         /* Invalidate the new back buffer */
-         khrn_image_invalidate(egl_surface_get_back_buffer(surface));
+         /* Buffers with age 0 have undefined content, so we can invalidate the new back-buffer.
+          * This will prevent unnecessary tile loads of undefined data in certain cases. */
+         egl_context_gl_lock();
+         khrn_image_invalidate(back_buffer);
          egl_context_gl_unlock();
       }
+
+      /* Reset any per-swap state in the surface */
+      egl_surface_base_swap_done(surface, buffer_age);
 
       error = EGL_SUCCESS;
    end:

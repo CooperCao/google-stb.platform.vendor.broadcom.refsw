@@ -49,6 +49,9 @@
 
 BDBG_MODULE(bdsp_arm_priv);
 
+BDBG_OBJECT_ID(BDSP_ArmCapture);
+
+
 BERR_Code   BDSP_Arm_P_CreateTaskQueues(void *pTaskHandle)
 {
     BERR_Code   err = BERR_SUCCESS;
@@ -1031,7 +1034,7 @@ BERR_Code BDSP_Arm_P_CreateContext(
     pArmContext->context.setInterruptHandlers = NULL; /*BDSP_Raaga_P_SetInterruptHandlers*/
     pArmContext->context.processWatchdogInterrupt = BDSP_Arm_P_ProcessWatchdogInterrupt;
     pArmContext->context.createInterTaskBuffer = NULL; /*BDSP_Raaga_P_InterTaskBuffer_Create*/
-    pArmContext->context.createCapture = NULL; /*BDSP_Raaga_P_AudioCaptureCreate;*/
+    pArmContext->context.createCapture = BDSP_Arm_P_AudioCaptureCreate;
 
     /* Support for RDB Queue Addition */
     pArmContext->context.getDefaultQueueSettings = NULL; /*BDSP_Raaga_P_GetDefaultCreateQueueSettings;*/
@@ -2040,11 +2043,11 @@ BERR_Code BDSP_Arm_P_AddQueueOutput(
 
     for(i = 0; i< pRaagaQueue->numBuf; i++)
     {
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32BaseAddr  = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32BaseAddr);
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32EndAddr   = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32EndAddr);
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32ReadAddr  = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32ReadAddr);
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32WrapAddr  = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32EndAddr);
-        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32WriteAddr = BDSP_RAAGA_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32WriteAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32BaseAddr  = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32BaseAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32EndAddr   = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32EndAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32ReadAddr  = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32ReadAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32WrapAddr  = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32EndAddr);
+        pArmStage->sStageOutput[opIndex].IoBuffer.sCircBuffer[i].ui32WriteAddr = BDSP_REGSET_PHY_ADDR_FOR_DSP(pRaagaQueue->FIFOdata[i]->ui32WriteAddr);
 
         errCode = BDSP_Arm_P_InsertEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
                                     &(pArmStage->sStageMapTable[0]),
@@ -3230,7 +3233,6 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
 
     BDBG_ASSERT(NULL != pStageHandle);
     pArmStage = (BDSP_ArmStage *)pStageHandle;
-    pDevice = (BDSP_Arm *)pArmStage->pContext->pDevice;
 
     BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmStage, pStageIterator)
     BSTD_UNUSED(macroStId);
@@ -3248,6 +3250,7 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
             BDBG_ASSERT(0);
         }
 #if 0  /*SR_TBD: Enabled when Interframe download is enabled*/
+        pDevice = (BDSP_Arm *)pArmStage->pContext->pDevice;
         ui32ImgId = BDSP_ARM_IMG_ID_IFRAME(algoId);
 
         pIfAddr_Cached = pIfAddr;
@@ -3263,6 +3266,7 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
 #else
         pIfAddr_Cached = pIfAddr;
         BKNI_Memset((void *)(volatile void*)pIfAddr_Cached, 0, ui32IfBuffSize);
+        BSTD_UNUSED(pDevice);
 #endif /*SR_TBD: Enabled when Interframe download is enabled*/
         BDSP_MMA_P_FlushCache(pStageIterator->sDramInterFrameBuffer.Buffer, ui32IfBuffSize);
 
@@ -3478,9 +3482,9 @@ end:
 }
 
 static BERR_Code BDSP_Arm_P_CalcThresholdZeroFillTimeAudOffset(
-                    BDSP_ARM_CTB_Input              *psCtbInput,
+                    BDSP_CTB_Input              *psCtbInput,
                     void                            *pStageHandle,
-                    BDSP_ARM_CTB_Output             *psCTB_OutputStructure
+                    BDSP_CTB_Output             *psCTB_OutputStructure
                 )
 {
     BERR_Code   err = BERR_SUCCESS;
@@ -3539,7 +3543,8 @@ BERR_Code BDSP_Arm_P_SendMapCommand(
     if(NULL == pMapTable)
     {
         BDBG_ERR((" Allocated Address for MAP Table is not proper"));
-        return BERR_TRACE (BDSP_ERR_BAD_DEVICE_STATE);
+        err = BERR_TRACE (BDSP_ERR_BAD_DEVICE_STATE);
+        goto end;
     }
     BKNI_Memset(pMapTable, 0,sizeof(BDSP_MAP_Table));
     BKNI_Memset(psCommand,0,sizeof(*psCommand));
@@ -3555,6 +3560,7 @@ BERR_Code BDSP_Arm_P_SendMapCommand(
 
     psCommand->uCommand.sMapCommand.ui32NumEntries        = ui32NumEntries;
     /*sCommand.uCommand.sMapCommand.ui32HostMapTableAddr  = physAddress;*/ /*CDN_TBD*/
+    BSTD_UNUSED(physAddress);
 
     BKNI_ResetEvent(pDevice->hDeviceEvent);
     err = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue, psCommand,(void *)NULL);
@@ -3630,6 +3636,7 @@ BERR_Code BDSP_Arm_P_SendUnMapCommand(
 
         psCommand->uCommand.sUnMapCommand.ui32NumEntries        = ui32NumEntries;
         /*sCommand.uCommand.sUnMapCommand.ui32HostUnMapTableAddr= physAddress;*/ /*CDN_TBD*/
+        BSTD_UNUSED(physAddress);
 
         BKNI_ResetEvent(pDevice->hDeviceEvent);
         err = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue, psCommand,(void *)NULL);
@@ -3927,7 +3934,7 @@ BERR_Code BDSP_Arm_P_StartTask(
     BDSP_Arm_P_Response sRsp;
     BDSP_P_MsgType  eMsgType;
     BDSP_P_TaskParamInfo *pTaskParams = NULL;
-    BDSP_ARM_CTB_Input sctbInput;
+    BDSP_CTB_Input sctbInput;
     uint32_t    ui32PhysAddr = 0;
     unsigned    uiSchedulingBufId, uiSchedulingBufDelay = 0, ui32RbufOffset = 0, uiSchedulingBufferThreshold = 0;
     BDSP_AF_P_FmmDstFsRate eschedulingBufferRate = BDSP_AF_P_FmmDstFsRate_eBaseRate;
@@ -4051,23 +4058,23 @@ BERR_Code BDSP_Arm_P_StartTask(
     if( err != BERR_SUCCESS)
         return BERR_TRACE(err);
 
-	/* Download CIT structure into DSP/RUNNING CIT Buffer DRAM */
-	err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sCitStruct.ui32Size);
-	if (BERR_SUCCESS != err)
-	{
-		BDBG_ERR(("Error in Copying data to CIT Buffer DRAM"));
-		err = BERR_TRACE(err);
-		goto err_gen_citinput;
-	}
+    /* Download CIT structure into DSP/RUNNING CIT Buffer DRAM */
+    err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sCitStruct.ui32Size);
+    if (BERR_SUCCESS != err)
+    {
+        BDBG_ERR(("Error in Copying data to CIT Buffer DRAM"));
+        err = BERR_TRACE(err);
+        goto err_gen_citinput;
+    }
 
-	/* Download CIT structure into HOST/SPARE CIT Buffer DRAM */
-	err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sSpareCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sSpareCitStruct.ui32Size);
-	if (BERR_SUCCESS != err)
-	{
-		BDBG_ERR(("Error in Copying data to SPARE CIT Buffer DRAM"));
-		err = BERR_TRACE(err);
-		goto err_gen_citinput;
-	}
+    /* Download CIT structure into HOST/SPARE CIT Buffer DRAM */
+    err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sSpareCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sSpareCitStruct.ui32Size);
+    if (BERR_SUCCESS != err)
+    {
+        BDBG_ERR(("Error in Copying data to SPARE CIT Buffer DRAM"));
+        err = BERR_TRACE(err);
+        goto err_gen_citinput;
+    }
 
     BDSP_Arm_P_Analyse_CIT(pArmTask, false);
     /* Initialize interframe buffers for all the nodes */
@@ -4196,6 +4203,7 @@ BERR_Code BDSP_Arm_P_StartTask(
             eSchedulingBufferType = BDSP_CIT_P_FwStgSrcDstType_eInvalid;
             BSTD_UNUSED(ui32RbufOffset);
             BSTD_UNUSED(uiSchedulingBufId);
+            BSTD_UNUSED(eSchedulingBufferType);
 
             pTaskParams->ui32IndepDelay                = uiSchedulingBufDelay;
             pTaskParams->ui32SchedulingBufferThreshold = uiSchedulingBufferThreshold;
@@ -4551,7 +4559,6 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
 {
     BERR_Code   err = BERR_SUCCESS;
     BDSP_ArmStage *pArmStage;
-    BDSP_Arm *pDevice;
     const BDSP_Arm_P_AlgorithmInfo *pAlgoInfo;
     const BDSP_Arm_P_AlgorithmInfo *pCurrAlgoInfo;
     bool validType;
@@ -4559,7 +4566,6 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
     BDBG_ENTER(BDSP_Arm_P_SetAlgorithm);
     BDBG_ASSERT(NULL != pStageHandle);
     pArmStage = (BDSP_ArmStage *)pStageHandle;
-    pDevice = pArmStage->pContext->pDevice;
     pAlgoInfo = BDSP_Arm_P_LookupAlgorithmInfo(algorithm);
     pCurrAlgoInfo = BDSP_Arm_P_LookupAlgorithmInfo(pArmStage->algorithm);
 
@@ -4671,4 +4677,1033 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
 end:
     BDBG_LEAVE(BDSP_Arm_P_SetAlgorithm);
     return err;
+}
+
+BERR_Code BDSP_Arm_P_GetDownloadStatus(
+    void  *pDeviceHandle,
+    BDSP_DownloadStatus *pStatus /* [out] */
+    )
+{
+
+    BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
+
+    BDBG_ENTER(BDSP_Arm_P_GetDownloadStatus);
+    /* Assert the function arguments*/
+    BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
+
+    /*If Firmware Firmware authentication is Disabled*/
+    if(pDevice->settings.authenticationEnabled==false)
+    {
+        BDBG_ERR(("BDSP_Arm_P_GetDownloadStatus should be called only if bFwAuthEnable is true"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+	pStatus->pBaseAddress = pDevice->pFwHeapMemory;
+	pStatus->physicalAddress = pDevice->FwHeapOffset;
+    /*Size of the executable download */
+    pStatus->length = pDevice->fwHeapSize;
+
+    BDBG_LEAVE(BDSP_Arm_P_GetDownloadStatus);
+
+    return BERR_SUCCESS;
+}
+
+BERR_Code BDSP_Arm_P_Initialize(
+    void  *pDeviceHandle
+)
+{
+    BERR_Code rc = BERR_SUCCESS ;
+    BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
+    BDSP_MAP_Table_Entry MapTable[BDSP_ARM_MAX_ALLOC_DEVICE];
+    uint32_t ui32NumEntries = 0;
+
+    BDBG_ENTER(BDSP_Arm_P_Initialize);
+    /* Assert the function arguments*/
+    BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
+
+    /*If Firmware Firmware authentication is Disabled*/
+    if(pDevice->settings.authenticationEnabled==false)
+    {
+        BDBG_ERR(("BDSP_Arm_StartDsp should be called only if bFwAuthEnable is true"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+	rc = BDSP_Arm_P_StartHbcMonitor(pDevice);
+	if (BERR_SUCCESS != rc) {
+			BDBG_ERR(("failed to start hbc_monitor"));
+			goto err_hbc_start;
+	}
+
+	/* Write the downloaded application code into Astra secure memory */
+	rc = BDSP_Arm_P_DownloadSystemCodeToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eSystemCode);
+	if (BERR_SUCCESS != rc) {
+		BDBG_ERR(("failed to start armdsp_system"));
+		goto err_peer_start;
+	}
+
+    rc = BTEE_Application_Open(
+        pDevice->armDspApp.hClient,
+        "armdsp_system",
+        "armdsp_system.elf",
+        &pDevice->armDspApp.hApplication);
+
+    if (BERR_SUCCESS != rc) {
+        BDBG_ERR(("failed to start armdsp_system"));
+        goto err_peer_start;
+    }
+    BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_DEVICE*sizeof(BDSP_MAP_Table_Entry)));
+    BDSP_Arm_P_RetrieveEntriesToMap(&(pDevice->sDeviceMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_DEVICE);
+    rc = BDSP_Arm_P_SendMapCommand(pDevice, &MapTable[0], ui32NumEntries);
+    if (BERR_SUCCESS != rc)
+    {
+        BDBG_ERR(("BDSP_Arm_P_Initialize: Send ARM MAP Command failed!!!!"));
+        goto err_send_map_cmd;
+    }
+
+err_hbc_start:
+err_peer_start:
+err_send_map_cmd:
+
+    BDBG_LEAVE(BDSP_Arm_P_Initialize);
+    return rc;
+}
+
+/***********************************************************************
+Name        :   BDSP_Arm_P_AudioCaptureCreate
+
+Type        :   PI Interface
+
+Input       :   pContextHandle      -   Handle of the Context for which the capture needs to created.
+				pCaptureCreateSettings  -   Settings of the Creating the capture.
+				pCapture                -   Handle of the Capture which is returned back to PI.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   T.B.D
+***********************************************************************/
+
+BERR_Code BDSP_Arm_P_AudioCaptureCreate(
+	void *pContextHandle,
+	const BDSP_AudioCaptureCreateSettings *pCaptureCreateSettings,
+	BDSP_AudioCaptureHandle *pCapture)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_ArmContext *pArmContext = (BDSP_ArmContext *)pContextHandle;
+	BDSP_ArmCapture *pArmCapture;
+
+    BDBG_ENTER(BDSP_Arm_P_AudioCaptureCreate);
+	BDBG_OBJECT_ASSERT(pArmContext, BDSP_ArmContext);
+	*pCapture = NULL;
+
+	/* Allocate capture structure and add it to the task's capture list */
+	pArmCapture = (BDSP_ArmCapture *)BKNI_Malloc(sizeof(BDSP_ArmCapture));
+	if ( NULL == pArmCapture )
+	{
+		errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+		goto err_malloc_stage;
+	}
+
+	/* Update the capture information using the capture create settings */
+	BKNI_Memset((void *)pArmCapture, 0, sizeof(*pArmCapture));
+	pArmCapture->capture.pCapHandle = pArmCapture;
+	/* Use the heap provided */
+	if (pCaptureCreateSettings->hHeap)
+	{
+		pArmCapture->hHeap = pCaptureCreateSettings->hHeap;
+	}
+	else
+	{
+		pArmCapture->hHeap = pArmContext->pDevice->memHandle;
+	}
+
+	pArmCapture->pDevice = pArmContext->pDevice;
+
+	errCode = BDSP_Arm_P_InitAudioCaptureInfo(pArmCapture, pCaptureCreateSettings);
+
+	pArmCapture->capture.destroy = BDSP_Arm_P_AudioCaptureDestroy;
+	pArmCapture->capture.addToStage = BDSP_Arm_P_AudioCaptureAddToStage;
+	pArmCapture->capture.removeFromStage = BDSP_Arm_P_AudioCaptureRemoveFromStage;
+	pArmCapture->capture.getBuffer = BDSP_Arm_P_AudioCaptureGetBuffer;
+	pArmCapture->capture.consumeData = BDSP_Arm_P_AudioCaptureConsumeData;
+
+	BDBG_OBJECT_SET(pArmCapture, BDSP_ArmCapture);
+
+	*pCapture = &pArmCapture->capture;
+
+err_malloc_stage:
+    BDBG_LEAVE(BDSP_Arm_P_AudioCaptureCreate);
+	return errCode;
+}
+
+void BDSP_Arm_P_AudioCaptureDestroy (
+	void *pCapHandle
+	)
+{
+	BDSP_ArmCapture *pArmCapture = pCapHandle;
+
+    BDBG_ENTER(BDSP_Arm_P_AudioCaptureDestroy);
+	BDBG_OBJECT_ASSERT(pArmCapture, BDSP_ArmCapture);
+
+	if ( NULL != pArmCapture->pStage)
+	{
+		BDBG_ERR(("Please call BDSP_AudioTask_RemoveCapture() before calling BDSP_AudioCapture_Destroy()"));
+		BDBG_ASSERT(NULL == pArmCapture->pStage);
+	}
+
+	pArmCapture->enabled = false;
+	BDSP_MMA_P_FreeMemory(&pArmCapture->captureBuffer);
+	BKNI_Free(pArmCapture);
+    BDBG_LEAVE(BDSP_Arm_P_AudioCaptureDestroy);
+}
+
+BERR_Code BDSP_Arm_P_AudioCaptureAddToStage(
+	void *pCapHandle,
+	void *pStageHandle,
+	unsigned outputId,
+	const BDSP_StageAudioCaptureSettings *pSettings
+	)
+{
+	BERR_Code err = BERR_SUCCESS;
+	int j;
+	BDSP_ArmCapture *pArmCapture = pCapHandle;
+	BDSP_ArmStage *pArmStage = pStageHandle;
+	BDSP_AF_P_CIRCULAR_BUFFER *pBuffer;
+
+    BDBG_ENTER(BDSP_Arm_P_AudioCaptureAddToStage);
+	BDBG_ASSERT(NULL != pSettings);
+	BDBG_ASSERT(NULL != pArmCapture);
+	if ( outputId >= BDSP_AF_P_MAX_OP_FORKS )
+	{
+		return BERR_TRACE(BERR_INVALID_PARAMETER);
+	}
+
+	BKNI_AcquireMutex(pArmCapture->pDevice->captureMutex);
+	BLST_S_INSERT_HEAD(&pArmStage->captureList, pArmCapture, node);
+
+	/* Populate the output buffer type, num buffers and the output buffer pointers */
+	err = BDSP_Arm_P_GetAudioOutputPointers(&pArmStage->sStageOutput[outputId], pArmCapture);
+	if (err != BERR_SUCCESS)
+	{
+		BLST_S_REMOVE(&pArmStage->captureList, pArmCapture, BDSP_ArmCapture, node);
+		BKNI_ReleaseMutex(pArmCapture->pDevice->captureMutex);
+		BDBG_ERR(("Cannot add capture for an invalid output of the stage (%p)", (void *)pArmStage));
+		return BERR_TRACE(BERR_NOT_SUPPORTED);
+	}
+
+	pArmCapture->pStage = pArmStage;
+
+	BKNI_ReleaseMutex(pArmCapture->pDevice->captureMutex);
+
+	pArmCapture->updateRead = pSettings->updateRead;
+
+	/* Initialize the read/write pointers to base */
+	for (j = 0; j < (int)BDSP_AF_P_MAX_CHANNELS; j++)
+	{
+		pBuffer = &pArmCapture->capPtrs[j].captureBufferPtr;
+		pBuffer->pReadPtr = pBuffer->pBasePtr;
+		pBuffer->pWritePtr = pBuffer->pBasePtr;
+	}
+
+	/* Set the shadow read pointers and last write pointer */
+	switch (pArmCapture->eBuffType)
+	{
+		case BDSP_AF_P_BufferType_eFMM:
+		case BDSP_AF_P_BufferType_eRDB:
+		case BDSP_AF_P_BufferType_eRAVE:
+			for(j=0; j<(int)pSettings->numChannelPair; j++)
+			{
+				/* Since the allocation in APE was for pair of channels, BDSP deals with individual channels. Hence splitting the buffer*/
+				pArmCapture->capPtrs[2*j].OutputBufferMemory = pSettings->channelPairInfo[j].outputBuffer;
+				pArmCapture->capPtrs[2*j+1].OutputBufferMemory = pSettings->channelPairInfo[j].outputBuffer;
+				pArmCapture->capPtrs[2*j+1].OutputBufferMemory.pAddr =
+					(void *)((uint8_t *)pArmCapture->capPtrs[2*j+1].OutputBufferMemory.pAddr + (pSettings->channelPairInfo[j].bufferSize/2));
+				pArmCapture->capPtrs[2*j+1].OutputBufferMemory.offset =
+					(pArmCapture->capPtrs[2*j+1].OutputBufferMemory.offset + (pSettings->channelPairInfo[j].bufferSize/2));
+			}
+			for (j = 0; j < pArmCapture->numBuffers; j++)
+			{
+				pArmCapture->capPtrs[j].shadowRead = BREG_Read32(
+					pArmCapture->pStage->pContext->pDevice->regHandle,
+					pArmCapture->capPtrs[j].outputBufferPtr.ui32BaseAddr);
+				pArmCapture->capPtrs[j].lastWrite = BREG_Read32(
+					pArmCapture->pStage->pContext->pDevice->regHandle,
+					pArmCapture->capPtrs[j].outputBufferPtr.ui32WriteAddr);
+			}
+			break;
+		case BDSP_AF_P_BufferType_eDRAM:
+		default:
+			for (j = 0; j < pArmCapture->numBuffers; j++)
+			{
+				pArmCapture->capPtrs[j].shadowRead = pArmCapture->capPtrs[j].outputBufferPtr.ui32BaseAddr;
+				pArmCapture->capPtrs[j].lastWrite = pArmCapture->capPtrs[j].outputBufferPtr.ui32WriteAddr;
+			}
+			break;
+	}
+
+	/* Enable the capture */
+	pArmCapture->enabled = true;
+
+    BDBG_LEAVE(BDSP_Arm_P_AudioCaptureAddToStage);
+	return BERR_SUCCESS;
+}
+
+void BDSP_Arm_P_AudioCaptureRemoveFromStage(
+	void *pCapHandle,
+	void *pStageHandle
+	)
+{
+	BDSP_ArmCapture *pArmCapture = pCapHandle;
+	BDSP_ArmStage *pArmStage = pStageHandle;
+
+	BSTD_UNUSED(pArmStage);
+
+    BDBG_ENTER(BDSP_Arm_P_AudioCaptureRemoveFromStage);
+	BDBG_OBJECT_ASSERT(pArmCapture, BDSP_ArmCapture);
+	/*BDBG_ASSERT(pStageHandle == pArmCapture->pStage);*/
+
+	BKNI_AcquireMutex(pArmCapture->pDevice->captureMutex);
+	/*BLST_S_REMOVE(&pArmStage->captureList, pArmCapture, BDSP_ArmCapture, node);*/
+	BLST_S_REMOVE(&pArmCapture->pStage->captureList, pArmCapture, BDSP_ArmCapture, node);
+	BKNI_ReleaseMutex(pArmCapture->pDevice->captureMutex);
+
+	pArmCapture->enabled = false;
+	pArmCapture->pStage = NULL;
+    BDBG_LEAVE(BDSP_Arm_P_AudioCaptureRemoveFromStage);
+}
+
+static bool BDSP_Arm_P_CheckAudioCaptureIsReady(
+	void *pCapHandle,
+	BREG_Handle hReg)
+{
+
+	BDSP_ArmCapture *pArmCapture = pCapHandle;
+	bool retval = false;
+	int j;
+	dramaddr_t  ui32WriteAddr, ui32StartWriteAddr;
+
+    BDBG_ENTER(BDSP_Arm_P_CheckAudioCaptureIsReady);
+
+	j = pArmCapture->numBuffers - 1;
+
+
+	ui32StartWriteAddr = BREG_Read32(hReg, pArmCapture->capPtrs[j].ui32StartWriteAddr);
+	ui32WriteAddr = BREG_Read32(hReg, pArmCapture->capPtrs[j].outputBufferPtr.ui32WriteAddr);
+
+	if(ui32WriteAddr >= ui32StartWriteAddr)
+	{
+		retval = true;
+	}
+	else
+	{
+		retval = false;
+	}
+
+    BDBG_LEAVE(BDSP_Arm_P_CheckAudioCaptureIsReady);
+	return retval;
+}
+
+
+/***********************************************************************
+Name        :   BDSP_Arm_P_ProcessAudioCapture
+
+Type        :   PI Interface
+
+Input       :   pDevice - Void pointer of the device to be typecasted and used.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   T.B.D
+***********************************************************************/
+
+BERR_Code BDSP_Arm_P_ProcessAudioCapture(
+	void *pDevice /* [in] device handle */
+	)
+{
+	int j;
+	BERR_Code err = BERR_SUCCESS;
+
+	BDSP_Arm *pArmDevice = (BDSP_Arm *)pDevice;
+	BDSP_ArmTask *pArmTask = NULL;
+	BDSP_ArmContext *pArmContext = NULL;
+	BDSP_ArmCapture *pArmCapture = NULL;
+
+	bool retval;
+	size_t opBuffDepth, capBuffSpace, bytesToCopy;
+	uint8_t  *pCaptureWrite, *pCaptureRead, *pCaptureBase;
+
+	BDSP_MMA_Memory ReadMemory, WriteMemory;
+
+    BDBG_ENTER(BDSP_Arm_P_ProcessAudioCapture);
+	BDBG_ASSERT(NULL != pArmDevice);
+
+	/* Need to iterate through all contexts -> tasks -> captures and
+	copy the data from output buffers to capture buffers */
+
+	BKNI_AcquireMutex(pArmDevice->captureMutex);
+	for ( pArmContext = BLST_S_FIRST(&pArmDevice->contextList);
+		pArmContext != NULL;
+		pArmContext = BLST_S_NEXT(pArmContext, node) )
+	{
+		for ( pArmTask = BLST_S_FIRST(&pArmContext->allocTaskList);
+			pArmTask != NULL;
+			pArmTask = BLST_S_NEXT(pArmTask, node) )
+		{
+			if (!(pArmTask->isStopped))
+			{
+				BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmTask->startSettings.primaryStage->pStageHandle, pStageIterator)
+				BSTD_UNUSED(macroStId);
+				BSTD_UNUSED(macroBrId);
+				{
+					for ( pArmCapture = BLST_S_FIRST(&pStageIterator->captureList);
+						pArmCapture != NULL;
+						pArmCapture = BLST_S_NEXT(pArmCapture, node) )
+					{
+						if (pArmCapture->enabled)
+						{
+
+                            if(pArmCapture->eBuffType == BDSP_AF_P_BufferType_eFMM && pArmCapture->StartCapture == false)
+                            {
+                                pArmCapture->StartCapture = BDSP_Arm_P_CheckAudioCaptureIsReady(pArmCapture,
+                                                                        pArmCapture->pStage->pContext->pDevice->regHandle);
+                            }
+                            else
+                            {
+                                pArmCapture->StartCapture = true;
+
+                            }
+                            if(true == pArmCapture->StartCapture)
+                            {
+                                for (j = 0; j < pArmCapture->numBuffers; j++)
+                                {
+                                    /* Detect read crossing shadow read and print debug error */
+                                    retval = BDSP_Arm_P_DetectAudioCaptureError(&pArmCapture->capPtrs[j].outputBufferPtr,
+                                                                     pArmCapture->capPtrs[j].shadowRead,
+                                                                     pArmCapture->capPtrs[j].lastWrite,
+                                                                     pArmCapture->eBuffType,
+                                                                     pArmCapture->pStage->pContext->pDevice->regHandle);
+
+                                    if (retval)
+                                    {
+                                        BDBG_ERR(("!!! Capture error detected for buffer [%d] in capture %p", j, (void *)pArmCapture));
+                                        continue;
+                                    }
+
+                                    /* GetBufferDepth of output buffer */
+                                    opBuffDepth = BDSP_Arm_P_GetAudioBufferDepthLinear(&pArmCapture->capPtrs[j].outputBufferPtr,
+                                                                            pArmCapture->capPtrs[j].shadowRead,
+                                                                            pArmCapture->eBuffType,
+                                                                            pArmCapture->pStage->pContext->pDevice->regHandle);
+
+                                    /* GetFreeSpace to end in the capture buffer */
+                                    capBuffSpace = BDSP_Arm_P_GetAudioCaptureBufferFreeSpaceLinear(&pArmCapture->capPtrs[j].captureBufferPtr);
+
+                                    /* Copy the minimum */
+                                    bytesToCopy = (opBuffDepth < capBuffSpace) ? opBuffDepth : capBuffSpace;
+
+                                    /* Copy the data from the output buffers to the capture buffers */
+                                    pCaptureWrite = pArmCapture->capPtrs[j].captureBufferPtr.pWritePtr;
+
+                                    /* Convert physical offset to virtual address */
+                                    if (pArmCapture->eBuffType == BDSP_AF_P_BufferType_eFMM)
+                                    {
+                                        /* Clear the wrap bit while copying the data from FMM buffers */
+                                        ReadMemory = pArmCapture->capPtrs[j].OutputBufferMemory;
+                                        ReadMemory.pAddr = (void *)((uint8_t *)ReadMemory.pAddr +
+                                                ((pArmCapture->capPtrs[j].shadowRead & 0x7FFFFFFF) -
+                                                BREG_Read32(pArmDevice->regHandle, pArmCapture->capPtrs[j].outputBufferPtr.ui32BaseAddr)));
+                                        WriteMemory = pArmCapture->capPtrs[j].CaptureBufferMemory;
+                                        WriteMemory.pAddr = pCaptureWrite;
+                                    }
+                                    else
+                                    {
+                                        ReadMemory = pArmCapture->capPtrs[j].OutputBufferMemory;
+                                        ReadMemory.pAddr = (void *)((uint8_t *)ReadMemory.pAddr +
+                                                (pArmCapture->capPtrs[j].shadowRead - pArmCapture->capPtrs[j].outputBufferPtr.ui32BaseAddr));
+                                        WriteMemory = pArmCapture->capPtrs[j].CaptureBufferMemory;
+                                        WriteMemory.pAddr = pCaptureWrite;
+                                    }
+                                    BDSP_MMA_P_FlushCache(ReadMemory, bytesToCopy);
+                                    BKNI_Memcpy(WriteMemory.pAddr, ReadMemory.pAddr, bytesToCopy);
+                                    BDSP_MMA_P_FlushCache(WriteMemory, bytesToCopy);
+
+                                    /* Update the capture buffer write pointer and detect capture buffer overflow */
+                                    pCaptureWrite += bytesToCopy;
+                                    pCaptureBase = pArmCapture->capPtrs[j].captureBufferPtr.pBasePtr;
+                                    pCaptureRead = pArmCapture->capPtrs[j].captureBufferPtr.pReadPtr;
+                                    if (pCaptureWrite > pArmCapture->capPtrs[j].captureBufferPtr.pEndPtr)
+                                    {
+                                        BDBG_ERR(("!!! Error in capture logic: non-contiguous capture detected"));
+                                    }
+
+                                    if (pCaptureWrite == pArmCapture->capPtrs[j].captureBufferPtr.pEndPtr)
+                                    {
+                                        if (pCaptureBase == pCaptureRead)
+                                        {
+                                            BDBG_ERR(("!!! Capture buffer overflow for buffer [%d] for capture %p", j, (void *)pArmCapture));
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            pCaptureWrite = pCaptureBase;
+                                        }
+                                    }
+
+                                    pArmCapture->capPtrs[j].captureBufferPtr.pWritePtr = pCaptureWrite;
+
+                                    /* Update the shadow read pointer and last write pointer */
+                                    BDSP_Arm_P_GetUpdatedShadowReadAndLastWrite(&pArmCapture->capPtrs[j].outputBufferPtr,
+                                                                          &pArmCapture->capPtrs[j].shadowRead,
+                                                                          &pArmCapture->capPtrs[j].lastWrite,
+                                                                          pArmCapture->eBuffType,
+                                                                          bytesToCopy,
+                                                                          pArmTask->pContext->pDevice->regHandle);
+
+                                    /* Update the output buffer read pointer in required */
+                                    if (pArmCapture->updateRead)
+                                    {
+                                        BDSP_Arm_P_UpdateReadPointer(&pArmCapture->capPtrs[j].outputBufferPtr,
+                                                               pArmCapture->eBuffType,
+                                                               pArmCapture->capPtrs[j].shadowRead,
+                                                               pArmTask->pContext->pDevice->regHandle);
+                                    }
+                                } /* Looping through numBuffers */
+                            }
+
+
+						} /* if capture is enabled */
+					} /* Looping through captureList*/
+				} /* looping through stage */
+				BDSP_ARM_STAGE_TRAVERSE_LOOP_END(pStageIterator)
+			} /* if Task is running */
+		} /* looping through tasklooping through context */
+	} /* looping through context */
+	BKNI_ReleaseMutex(pArmDevice->captureMutex);
+
+    BDBG_LEAVE(BDSP_Arm_P_ProcessAudioCapture);
+	return err;
+}
+
+BERR_Code BDSP_Arm_P_AudioCaptureGetBuffer(
+	void *pCapture,   /* [in] capture handle */
+	BDSP_BufferDescriptor *pBuffers     /* [out] pointer to buffer descriptor */
+	)
+{
+	int j;
+	uint32_t size, minSize, chunk1 = 0;
+	uint8_t *base = 0, *read = 0, *end = 0, *write = 0;
+	BDSP_ArmCapture *pArmCapture;
+	BERR_Code err = BERR_SUCCESS;
+	BDSP_MMA_Memory Memory;
+	pArmCapture = (BDSP_ArmCapture *)pCapture;
+
+    BDBG_ENTER(BDSP_Arm_P_AudioCaptureGetBuffer);
+	BDBG_ASSERT(NULL != pArmCapture);
+
+	pBuffers->interleaved = false;
+	pBuffers->numBuffers = pArmCapture->numBuffers;
+
+	if (pArmCapture->enabled)
+	{
+		minSize = 0xFFFFFFFF;
+		for (j = 0; j < pArmCapture->numBuffers; j++)
+		{
+			base = pArmCapture->capPtrs[j].captureBufferPtr.pBasePtr;
+			end = pArmCapture->capPtrs[j].captureBufferPtr.pEndPtr;
+			read = pArmCapture->capPtrs[j].captureBufferPtr.pReadPtr;
+			write = pArmCapture->capPtrs[j].captureBufferPtr.pWritePtr;
+
+			size = write - read;
+			chunk1 = size;
+			if (read > write)
+			{
+				chunk1 = end - read;
+				size = chunk1 + (write - base);
+			}
+
+			if (size < minSize)
+			{
+				minSize = size;
+			}
+			Memory = pArmCapture->capPtrs[j].CaptureBufferMemory;
+			Memory.pAddr = (void *)read;
+			pBuffers->buffers[j].buffer = Memory;
+			pBuffers->buffers[j].wrapBuffer = pArmCapture->capPtrs[j].CaptureBufferMemory;
+		}
+
+		/* Use chunk1 size from the last buffer as this
+		is expected to be the same for all buffers */
+		if (minSize <= chunk1)
+		{
+			/* Atleast one buffer did not wrap around */
+			for (j = 0; j < pArmCapture->numBuffers; j++)
+			{
+				pBuffers->buffers[j].wrapBuffer.pAddr = NULL;
+				pBuffers->buffers[j].wrapBuffer.offset=0;
+				pBuffers->buffers[j].wrapBuffer.hBlock= NULL;
+			}
+			pBuffers->bufferSize = minSize;
+			pBuffers->wrapBufferSize = 0;
+		}
+		else
+		{
+			pBuffers->bufferSize = chunk1;
+			pBuffers->wrapBufferSize = minSize - pBuffers->bufferSize;
+		}
+	}
+	else
+	{
+		pBuffers->bufferSize = 0;
+		pBuffers->wrapBufferSize = 0;
+	}
+
+    BDBG_LEAVE(BDSP_Arm_P_AudioCaptureGetBuffer);
+	return err;
+}
+
+BERR_Code BDSP_Arm_P_AudioCaptureConsumeData(
+	void *pCapture, /* [in] capture handle */
+	uint32_t numBytes /* [in] sizes of data read from each intermediate buffer */
+	)
+{
+	int j;
+	uint8_t *pCaptureRead;
+	BDSP_ArmCapture *pArmCapture;
+	BERR_Code err = BERR_SUCCESS;
+
+	pArmCapture = (BDSP_ArmCapture *)pCapture;
+
+    BDBG_ENTER(BDSP_Arm_P_AudioCaptureConsumeData);
+	BDBG_ASSERT(NULL != pArmCapture);
+
+	if (pArmCapture->enabled)
+	{
+		for (j = 0; j < pArmCapture->numBuffers; j++)
+		{
+			pCaptureRead = pArmCapture->capPtrs[j].captureBufferPtr.pReadPtr;
+			pCaptureRead += numBytes;
+			if (pCaptureRead >= pArmCapture->capPtrs[j].captureBufferPtr.pEndPtr)
+			{
+				pCaptureRead = pArmCapture->capPtrs[j].captureBufferPtr.pBasePtr +
+							   (pCaptureRead - pArmCapture->capPtrs[j].captureBufferPtr.pEndPtr);
+			}
+			pArmCapture->capPtrs[j].captureBufferPtr.pReadPtr = pCaptureRead;
+		}
+	}
+
+    BDBG_LEAVE(BDSP_Arm_P_AudioCaptureConsumeData);
+	return err;
+}
+
+uint32_t BDSP_Arm_P_GetAudioBufferDepthLinear(
+	BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer,
+	uint32_t ui32ShadowRead,
+	BDSP_AF_P_BufferType eType,
+	BREG_Handle hReg)
+{
+	uint32_t depth;
+	dramaddr_t ui32BaseAddr, ui32EndAddr, ui32ReadAddr, ui32WriteAddr, ui32WrapAddr;
+
+    BDBG_ENTER(BDSP_Arm_P_GetAudioBufferDepthLinear);
+
+	switch (eType)
+	{
+		case BDSP_AF_P_BufferType_eRAVE:
+			ui32BaseAddr = BREG_Read32(hReg, pBuffer->ui32BaseAddr);
+			ui32EndAddr = BREG_Read32(hReg, pBuffer->ui32EndAddr);
+			ui32ReadAddr = ui32ShadowRead;
+			ui32WriteAddr = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
+			ui32WrapAddr = BREG_Read32(hReg, pBuffer->ui32WrapAddr);
+
+			if (ui32WrapAddr == 0)
+				ui32WrapAddr = ui32EndAddr;
+
+			depth = ui32WriteAddr - ui32ReadAddr;
+			if (ui32WriteAddr < ui32ReadAddr)
+			{
+				/* Return only the contiguous chunk size */
+				depth = (ui32WrapAddr - ui32ReadAddr) + 1;
+			}
+			break;
+
+		case BDSP_AF_P_BufferType_eFMM:
+			ui32BaseAddr = BREG_Read32(hReg, pBuffer->ui32BaseAddr);
+			ui32EndAddr = BREG_Read32(hReg, pBuffer->ui32EndAddr);
+			ui32WriteAddr = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
+			ui32ReadAddr = ui32ShadowRead;
+
+			/* Buffer full condition */
+			if ((ui32ReadAddr ^ ui32WriteAddr) == 0x80000000)
+			{
+				depth = (ui32EndAddr - ui32BaseAddr) + 1;
+			}
+			else
+			{
+				ui32ReadAddr &= 0x7FFFFFFF;
+				ui32WriteAddr &= 0x7FFFFFFF;
+
+				depth = ui32WriteAddr - ui32ReadAddr;
+				if (ui32WriteAddr < ui32ReadAddr)
+				{
+					/* Return only the contiguous chunk size */
+					depth = (ui32EndAddr - ui32ReadAddr) + 1;
+				}
+			}
+
+			break;
+
+		case BDSP_AF_P_BufferType_eRDB:
+			ui32BaseAddr = BREG_Read32(hReg, pBuffer->ui32BaseAddr);
+			ui32EndAddr = BREG_Read32(hReg, pBuffer->ui32EndAddr);
+			ui32ReadAddr = ui32ShadowRead;
+			ui32WriteAddr = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
+
+			depth = ui32WriteAddr - ui32ReadAddr;
+			if (ui32WriteAddr < ui32ReadAddr)
+			{
+				/* Return only the contiguous chunk size */
+				depth = (ui32EndAddr - ui32ReadAddr);
+			}
+			break;
+
+		case BDSP_AF_P_BufferType_eDRAM:
+		default:
+			ui32BaseAddr = pBuffer->ui32BaseAddr;
+			ui32EndAddr = pBuffer->ui32EndAddr;
+			ui32ReadAddr = ui32ShadowRead;
+			ui32WriteAddr = pBuffer->ui32WriteAddr;
+
+			depth = ui32WriteAddr - ui32ReadAddr;
+			if (ui32WriteAddr < ui32ReadAddr)
+			{
+				/* Return only the contiguous chunk size */
+				depth = (ui32EndAddr - ui32ReadAddr);
+			}
+			break;
+	}
+
+    BDBG_LEAVE(BDSP_Arm_P_GetAudioBufferDepthLinear);
+	return depth;
+}
+
+size_t BDSP_Arm_P_GetAudioCaptureBufferFreeSpaceLinear(BDSP_AF_P_CIRCULAR_BUFFER *pBuffer)
+{
+	size_t space;
+	uint8_t *pEndPtr, *pReadPtr, *pWritePtr;
+
+    BDBG_ENTER(BDSP_Arm_P_GetAudioCaptureBufferFreeSpaceLinear);
+
+	pEndPtr = pBuffer->pEndPtr;
+	pReadPtr = pBuffer->pReadPtr;
+	pWritePtr = pBuffer->pWritePtr;
+
+	space = pReadPtr - pWritePtr;
+	if (pWritePtr >= pReadPtr)
+	{
+		space = pEndPtr - pWritePtr;
+	}
+
+    BDBG_LEAVE(BDSP_Arm_P_GetAudioCaptureBufferFreeSpaceLinear);
+	return space;
+}
+
+bool BDSP_Arm_P_DetectAudioCaptureError(
+	BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer,
+	uint32_t ui32ShadowRead,
+	uint32_t ui32LastWrite,
+	BDSP_AF_P_BufferType eType,
+	BREG_Handle hReg)
+{
+	bool retval = false;
+	dramaddr_t ui32WriteAddr;
+
+    BDBG_ENTER(BDSP_Arm_P_DetectAudioCaptureError);
+
+	switch (eType)
+	{
+		case BDSP_AF_P_BufferType_eRAVE:
+			ui32WriteAddr = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
+			break;
+		case BDSP_AF_P_BufferType_eFMM:
+			ui32WriteAddr = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
+			/* Clear the wrap bit */
+			ui32WriteAddr &= 0x7FFFFFFF;
+			ui32ShadowRead &= 0x7FFFFFFF;
+			break;
+		case BDSP_AF_P_BufferType_eRDB:
+			ui32WriteAddr = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
+			break;
+		case BDSP_AF_P_BufferType_eDRAM:
+		default:
+			ui32WriteAddr = pBuffer->ui32WriteAddr;
+			break;
+	}
+
+	/* It is not possible to detect a capture error if shadow read and last write are the same */
+	if (ui32ShadowRead == ui32LastWrite)
+	{
+		retval = false;
+	}
+	else
+	{
+		if (ui32ShadowRead > ui32LastWrite)
+		{
+			if ((ui32WriteAddr > ui32ShadowRead)
+				|| (ui32WriteAddr < ui32LastWrite))
+			{
+				retval = true;
+			}
+		}
+		else
+		{
+			if ((ui32WriteAddr > ui32ShadowRead)
+				&& (ui32WriteAddr < ui32LastWrite))
+			{
+				retval = true;
+			}
+		}
+	}
+
+	if (retval)
+	{
+		BDBG_ERR(("shadow = %x : write = " BDSP_MSG_FMT ": last wr = %x", ui32ShadowRead, BDSP_MSG_ARG(ui32WriteAddr), ui32LastWrite));
+	}
+
+    BDBG_LEAVE(BDSP_Arm_P_DetectAudioCaptureError);
+	return retval;
+}
+
+
+void BDSP_Arm_P_GetUpdatedShadowReadAndLastWrite(
+	BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer,
+	dramaddr_t *pShadowRead,
+	dramaddr_t *pLastWrite,
+	BDSP_AF_P_BufferType eType,
+	uint32_t bytesRead,
+	BREG_Handle hReg)
+{
+	dramaddr_t shadowReadAddr;
+	dramaddr_t baseAddr, endAddr;
+
+    BDBG_ENTER(BDSP_Arm_P_GetUpdatedShadowReadAndLastWrite);
+
+	shadowReadAddr = *pShadowRead + bytesRead;
+
+	switch (eType)
+	{
+		case BDSP_AF_P_BufferType_eRAVE:
+			*pLastWrite = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
+			baseAddr = BREG_Read32(hReg, pBuffer->ui32BaseAddr);
+			endAddr = BREG_Read32(hReg, pBuffer->ui32WrapAddr);
+			if (endAddr == 0)
+			{
+				endAddr = BREG_Read32(hReg, pBuffer->ui32EndAddr);
+			}
+
+			/* TBD: Need to verify if this is correct. Code borrowed from raaga test */
+			if (shadowReadAddr >= endAddr)
+			{
+				shadowReadAddr = baseAddr + (shadowReadAddr - endAddr);
+			}
+			break;
+		case BDSP_AF_P_BufferType_eFMM:
+			*pLastWrite = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
+			/* Clear the wrap bit */
+			*pLastWrite &= 0x7FFFFFFF;
+			baseAddr = BREG_Read32(hReg, pBuffer->ui32BaseAddr);
+			endAddr = BREG_Read32(hReg, pBuffer->ui32EndAddr);
+
+			if ((shadowReadAddr & 0x7FFFFFFF) > endAddr)
+			{
+				shadowReadAddr = baseAddr + (shadowReadAddr - endAddr) - 1;
+				/* Flip bit 31 on a wrap */
+				shadowReadAddr ^= 0x80000000;
+			}
+			break;
+		case BDSP_AF_P_BufferType_eRDB:
+			*pLastWrite = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
+			baseAddr = BREG_Read32(hReg, pBuffer->ui32BaseAddr);
+			endAddr = BREG_Read32(hReg, pBuffer->ui32EndAddr);
+
+			if (shadowReadAddr >= endAddr)
+			{
+				shadowReadAddr = baseAddr + (shadowReadAddr - endAddr);
+			}
+			break;
+		case BDSP_AF_P_BufferType_eDRAM:
+		default:
+			*pLastWrite = pBuffer->ui32WriteAddr;
+			baseAddr = pBuffer->ui32BaseAddr;
+			endAddr = pBuffer->ui32EndAddr;
+			if (shadowReadAddr >= endAddr)
+			{
+				shadowReadAddr = baseAddr + (shadowReadAddr - endAddr);
+			}
+			break;
+	}
+
+	*pShadowRead = shadowReadAddr;
+
+    BDBG_LEAVE(BDSP_Arm_P_GetUpdatedShadowReadAndLastWrite);
+}
+
+void BDSP_Arm_P_UpdateReadPointer(
+	BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer,
+	BDSP_AF_P_BufferType eType,
+	dramaddr_t ui32ReadAddr,
+	BREG_Handle hReg)
+{
+    BDBG_ENTER(BDSP_Arm_P_UpdateReadPointer);
+
+	switch (eType)
+	{
+		case BDSP_AF_P_BufferType_eRAVE:
+		case BDSP_AF_P_BufferType_eFMM:
+		case BDSP_AF_P_BufferType_eRDB:
+			BREG_Write32(hReg, pBuffer->ui32ReadAddr, ui32ReadAddr);
+			break;
+		case BDSP_AF_P_BufferType_eDRAM:
+		default:
+			pBuffer->ui32ReadAddr = ui32ReadAddr;
+			break;
+	}
+
+    BDBG_LEAVE(BDSP_Arm_P_UpdateReadPointer);
+}
+
+BERR_Code BDSP_Arm_P_InitAudioCaptureInfo(BDSP_ArmCapture *pArmCapture, const BDSP_AudioCaptureCreateSettings *pSettings)
+{
+	unsigned j;
+	uint32_t memRequired;
+	BERR_Code err = BERR_SUCCESS;
+	BDSP_MMA_Memory CaptureMemory;
+	uint8_t *ptr, *endptr  = NULL;
+	BDSP_AF_P_CIRCULAR_BUFFER *pBuffer;
+
+	BDBG_ENTER(BDSP_Arm_P_InitAudioCaptureInfo);
+
+	BDBG_ASSERT(NULL != pArmCapture);
+
+	pArmCapture->enabled = false;
+	pArmCapture->maxBuffers = pSettings->maxChannels;
+
+	/* Allocate memory for the worst case output */
+	memRequired = pSettings->maxChannels*pSettings->channelBufferSize;
+
+	/* Allocate the intermediate capture buffers */
+	err = BDSP_MMA_P_AllocateAlignedMemory(pArmCapture->hHeap,
+					(memRequired + 32),
+					&pArmCapture->captureBuffer,
+					BDSP_MMA_Alignment_32bit);
+	if(err != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Unable to Allocate memory for Capture buffers !"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		return err;
+	}
+	CaptureMemory = pArmCapture->captureBuffer;
+	/* Split the allocated space into individual capture buffers */
+	for (j = 0; j < pSettings->maxChannels; j++)
+	{
+		pBuffer = &pArmCapture->capPtrs[j].captureBufferPtr;
+		pArmCapture->capPtrs[j].CaptureBufferMemory = CaptureMemory;
+		ptr = (uint8_t *)CaptureMemory.pAddr;
+		endptr = ptr + pSettings->channelBufferSize;
+		pBuffer->pBasePtr  = ptr;
+		pBuffer->pReadPtr  = ptr;
+		pBuffer->pWritePtr = ptr;
+		pBuffer->pEndPtr   = endptr;
+		pBuffer->pWrapPtr  = endptr;
+		CaptureMemory.pAddr  = (void *)((uint8_t *)CaptureMemory.pAddr + pSettings->channelBufferSize);
+		CaptureMemory.offset = CaptureMemory.offset + pSettings->channelBufferSize;
+	}
+
+	/* Reset the pointers for the rest of the buffers */
+	for ( ; j < BDSP_AF_P_MAX_CHANNELS; j++)
+	{
+		pBuffer = &pArmCapture->capPtrs[j].captureBufferPtr;
+		pBuffer->pBasePtr = 0;
+		pBuffer->pReadPtr = 0;
+		pBuffer->pWritePtr = 0;
+		pBuffer->pEndPtr = 0;
+		pBuffer->pWrapPtr = 0;
+	}
+
+	BDBG_LEAVE(BDSP_Arm_P_InitAudioCaptureInfo);
+	return err;
+}
+
+BERR_Code BDSP_Arm_P_GetAudioOutputPointers(BDSP_StageSrcDstDetails *pDstDetails, BDSP_ArmCapture *pArmCapture)
+{
+	int i, numBuffers;
+	BERR_Code err = BERR_SUCCESS;
+	BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *psCircBuffer;
+	BDSP_P_InterTaskBuffer *pArmInterTaskBuffer;
+
+	if (pDstDetails->eNodeValid != BDSP_AF_P_eValid)
+	{
+		BDBG_ERR(("Cannot add capture for an invalid output of the stage"));
+		return BERR_TRACE(BERR_NOT_SUPPORTED);
+	}
+
+	BDBG_ENTER(BDSP_Arm_P_GetAudioOutputPointers);
+
+	switch (pDstDetails->eConnectionType)
+	{
+		case BDSP_ConnectionType_eFmmBuffer:
+			numBuffers = pDstDetails->connectionDetails.fmm.descriptor.numBuffers;
+			for(i = 0; i < numBuffers; i++)
+			{
+				psCircBuffer = &pArmCapture->capPtrs[i].outputBufferPtr;
+				psCircBuffer->ui32ReadAddr  = pDstDetails->connectionDetails.fmm.descriptor.buffers[i].read;
+				psCircBuffer->ui32WriteAddr = pDstDetails->connectionDetails.fmm.descriptor.buffers[i].write;
+				psCircBuffer->ui32BaseAddr  = pDstDetails->connectionDetails.fmm.descriptor.buffers[i].base;
+				psCircBuffer->ui32EndAddr   = pDstDetails->connectionDetails.fmm.descriptor.buffers[i].end;
+				psCircBuffer->ui32WrapAddr = pDstDetails->connectionDetails.fmm.descriptor.buffers[i].end;
+
+				pArmCapture->capPtrs[i].ui32StartWriteAddr = psCircBuffer->ui32EndAddr + 8;
+			}
+
+			pArmCapture->StartCapture =  false;/** Will only set to true once write pointer is >= start write pointer  **/
+			pArmCapture->eBuffType = BDSP_AF_P_BufferType_eFMM;
+			break;
+
+		case BDSP_ConnectionType_eInterTaskBuffer:
+			pArmInterTaskBuffer = (BDSP_P_InterTaskBuffer *)pDstDetails->connectionDetails.interTask.hInterTask->pInterTaskBufferHandle;
+
+			numBuffers = pArmInterTaskBuffer->numChans;
+			for(i = 0; i < numBuffers; i++)
+			{
+				psCircBuffer = &pArmCapture->capPtrs[i].outputBufferPtr;
+				*psCircBuffer = ((BDSP_AF_P_sIO_BUFFER *)(pArmInterTaskBuffer->IoBufferDesc.pAddr))->sCircBuffer[i];
+			}
+
+			pArmCapture->eBuffType = BDSP_AF_P_BufferType_eDRAM;
+			break;
+
+		case BDSP_ConnectionType_eRaveBuffer:
+			numBuffers = pDstDetails->IoBuffer.ui32NumBuffers;
+
+			for (i = 0; i < numBuffers; i++)
+			{
+				psCircBuffer = &pArmCapture->capPtrs[i].outputBufferPtr;
+				/* The rave pointers are programmed with the chip physical offset added. Masking the same */
+				psCircBuffer->ui32BaseAddr = pDstDetails->IoBuffer.sCircBuffer[i].ui32BaseAddr & 0x0FFFFFFF;
+				psCircBuffer->ui32ReadAddr = pDstDetails->IoBuffer.sCircBuffer[i].ui32ReadAddr & 0x0FFFFFFF;
+				psCircBuffer->ui32WriteAddr = pDstDetails->IoBuffer.sCircBuffer[i].ui32WriteAddr & 0x0FFFFFFF;
+				psCircBuffer->ui32EndAddr = pDstDetails->IoBuffer.sCircBuffer[i].ui32EndAddr & 0x0FFFFFFF;
+				psCircBuffer->ui32WrapAddr = pDstDetails->IoBuffer.sCircBuffer[i].ui32WrapAddr & 0x0FFFFFFF;
+			}
+
+			pArmCapture->eBuffType = BDSP_AF_P_BufferType_eRAVE;
+			break;
+		default:
+			BDBG_ERR(("Output Capture not supported for buffer type (%d)", pDstDetails->eConnectionType));
+			return BERR_TRACE(BERR_INVALID_PARAMETER);
+			break;
+	}
+
+	pArmCapture->numBuffers = numBuffers;
+
+	BDBG_LEAVE(BDSP_Arm_P_GetAudioOutputPointers);
+
+	return err;
 }

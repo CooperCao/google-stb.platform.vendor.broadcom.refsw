@@ -161,7 +161,7 @@ PacketItem::PacketItem(void *a, uint32_t numBytes) :
 }
 
 PacketItem::PacketItem(long int s) :
-   m_type(eINT32), m_data((uint32_t)s), m_numBytes(4)
+   m_type(eVOID_PTR), m_data(s), m_numBytes(s_pointerSize)
 {
 }
 

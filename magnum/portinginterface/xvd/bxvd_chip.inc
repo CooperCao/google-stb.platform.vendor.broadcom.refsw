@@ -81,7 +81,7 @@ endif
 endif
 
 
-ifeq ($(findstring $(BCHP_CHIP), 7278), $(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP), 7278 7255), $(BCHP_CHIP))
 BXVD_CHIP = revt0
 BXVD_DEFINES += BXVD_P_AVD_ARC600
 endif

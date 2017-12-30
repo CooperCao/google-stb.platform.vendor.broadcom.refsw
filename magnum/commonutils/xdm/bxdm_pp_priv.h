@@ -619,6 +619,9 @@ typedef struct BXDM_PictureProvider_P_TSM_Dynamic_Picture_Parms
    uint32_t uiSwPcrOffsetUsedForEvaluation;
    uint32_t uiPtsOffsetUsedForEvaluation;
 
+   /* SWSTB-6858: to prevent a bogus reset of the vPTS. */
+   bool bForceWait;
+
 } BXDM_PictureProvider_P_TSM_Dynamic_Picture_Parms;
 
 typedef struct BXDM_PictureProvider_P_TSM_Picture_Parms

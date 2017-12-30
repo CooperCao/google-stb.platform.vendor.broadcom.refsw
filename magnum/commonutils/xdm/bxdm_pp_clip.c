@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -69,7 +69,7 @@ void BXDM_PPCLIP_P_ClipTimeCallbackTriggerHandler_isr(
         && ( true == pstCurrentClip->stDisplayEvent.bOccurred )
       )
    {
-      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Trigger Clip Start",
+      BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Trigger Clip Start",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -81,7 +81,7 @@ void BXDM_PPCLIP_P_ClipTimeCallbackTriggerHandler_isr(
       if ( BXDM_PictureProvider_ClipTimeType_eClipStartOnly == pstCurrentClip->stTime.eType )
       {
          /* Auto disable clip logic in start only mode */
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Auto-Disable Clip Logic (ClipStartOnly)",
+         BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Auto-Disable Clip Logic (ClipStartOnly)",
                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                    pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -104,7 +104,7 @@ void BXDM_PPCLIP_P_ClipTimeCallbackTriggerHandler_isr(
            && ( true == pstCurrentClip->stStopEvent.bOccurred )
          )
       {
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Trigger Clip Stop",
+         BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Trigger Clip Stop",
                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                    pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -129,7 +129,7 @@ void BXDM_PPCLIP_P_ClipTimeCallbackTriggerHandler_isr(
               )
          )
       {
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Trigger Marker",
+         BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Trigger Marker",
                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                    pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -268,7 +268,7 @@ bool BXDM_PPCLIP_P_ClipTimeTSMHandler_isr(
            )
       )
    {
-      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Start Event:: Start Time:%08x  PTS:%08x",
+      BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Start Event:: Start Time:%08x  PTS:%08x",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -306,7 +306,7 @@ bool BXDM_PPCLIP_P_ClipTimeTSMHandler_isr(
                 || ( BXDM_PictureProvider_ClipTimeType_eClipStartOnly == pstCurrentClip->stTime.eType )
               ) )
       {
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Drop pre-start:: Start Time:%08x  PTS:%08x",
+         BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Drop pre-start:: Start Time:%08x  PTS:%08x",
                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                    pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -322,7 +322,7 @@ bool BXDM_PPCLIP_P_ClipTimeTSMHandler_isr(
                    ) )
       {
          /* Drop pictures after a stop event has occurred */
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Drop post-stop:: Stop Time:%08x  PTS:%08x",
+         BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Drop post-stop:: Stop Time:%08x  PTS:%08x",
                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                    pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -336,7 +336,7 @@ bool BXDM_PPCLIP_P_ClipTimeTSMHandler_isr(
    /* Handle dummy PPBs */
    if ( false == pstPicture->pstUnifiedPicture->stBufferInfo.bValid )
    {
-      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Dummy PPB",
+      BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Dummy PPB",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -403,7 +403,7 @@ void BXDM_PPCLIP_P_ClipTimeTSMTransitionHandler_isr(
          /* Set clip stop time to be the predicted PTS of the next picture from the currently selected picture (i.e. the
             expected start time of the next clip) - 1 */
          pstCurrentClip->stTime.uiStop = uiPredPTS - 1;
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Stop Time Override: 0xFFFFFFFF -> 0x%08x",
+         BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Stop Time Override: 0xFFFFFFFF -> 0x%08x",
                                       hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                       pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -522,7 +522,7 @@ void BXDM_PPCLIP_P_ClipTimeTSMTransitionHandler_isr(
                       || ( ( stEffectivePTS.uiWhole < pstCurrentClip->stTime.uiStop ) /* Case 4: PTS is less than the stop time, but much lesser */
                            && ( ( pstCurrentClip->stTime.uiStop - stEffectivePTS.uiWhole ) > BXDM_PictureProvider_P_CLIPTIME_PTS_WRAP_THRESHOLD ) ) ) )
             {
-               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Stop Event (TSM/vTSM):: Stop Time:%08x PTS:%08x OrigPTS:%08x Duration:%08x",
+               BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Stop Event (TSM/vTSM):: Stop Time:%08x PTS:%08x OrigPTS:%08x Duration:%08x",
                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -542,7 +542,7 @@ void BXDM_PPCLIP_P_ClipTimeTSMTransitionHandler_isr(
             if ( ( true == pstCurrentClip->stMarkerEvent.bOccurred ) /* The marker event has occurred */
                  && ( 0 != pLocalState->uiSlowMotionRate ) ) /* We're not in a pause state */
             {
-               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Stop Event (VSYNC) Stop Time %08x",
+               BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Stop Event (VSYNC) Stop Time %08x",
                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -633,7 +633,7 @@ void BXDM_PPCLIP_P_ClipTimeTSMTransitionHandler_isr(
             /* To trigger the config debug message. */
             hXdmPP->stDMConfig.uiDirtyBits_1 |= BXDM_PictureProvider_P_DIRTY_1_STC_VALID;
 
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Trigger Force PTS Error",
+            BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Trigger Force PTS Error",
                                       hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                       pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -651,7 +651,7 @@ void BXDM_PPCLIP_P_ClipTimeTSMTransitionHandler_isr(
    {
       /* We set the display event to true because we've achieved TSM
        * pass and we'll start displaying the next picture */
-      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Display Event",
+      BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Display Event",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
@@ -672,7 +672,7 @@ void BXDM_PPCLIP_P_ClipTimeQueueTransitionHandler_isr(
    if ( (true == pstPicCntxt->pstUnifiedPicture->stPTS.bValid)
         && ( true == hXdmPP->stDMState.stChannel.stClipInfo.bClipTransition ) )
    {
-      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Exit Clip Transition Mode",
+      BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Exit Clip Transition Mode",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicCntxt->stPicParms.uiPPBIndex & 0xFFF ));
@@ -742,12 +742,12 @@ void BXDM_PPCLIP_P_ClipTimeQueueTransitionHandler_isr(
               && ( false == pstPicCntxt->pstUnifiedPicture->stPTS.bValid )
             )
          {
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Enter Clip Transition",
+            BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Enter Clip Transition",
                                       hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                       pstPicCntxt->stPicParms.uiPPBIndex & 0xFFF ));
 
-            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Clip Transition PTS Override",
+            BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Clip Transition PTS Override",
                                       hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                       pstPicCntxt->stPicParms.uiPPBIndex & 0xFFF ));
@@ -772,7 +772,7 @@ void BXDM_PPCLIP_P_ClipTimeQueueTransitionHandler_isr(
                       0,
                       sizeof( BXDM_PictureProvider_ClipTimeSettings ) );
 
-         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] New Clip (%d: %08x -> %08x)",
+         BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] New Clip (%d: %08x -> %08x)",
                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                    pstPicCntxt->stPicParms.uiPPBIndex & 0xFFF,
@@ -831,7 +831,7 @@ void BXDM_PPCLIP_P_ClipTimeQueueTransitionHandler_isr(
            )
       )
    {
-      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Exiting trick mode transition (stc: %x)",
+      BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Exiting trick mode transition (stc: %x)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                  pstPicCntxt->stPicParms.uiPPBIndex & 0xFFF,
@@ -865,7 +865,7 @@ void BXDM_PPCLIP_P_ClipTimeQueueTransitionHandler_isr(
    if ( hXdmPP->stDMState.stChannel.stClipInfo.uiLastMarker != pstPicCntxt->pstUnifiedPicture->stPictureMarker.uiValue )
    {
       /* We set the marker event */
-      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.%03x] Marker Event Old:%08x  New:%08x",
+      BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.%03x] Marker Event Old:%08x  New:%08x",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicCntxt->stPicParms.uiPPBIndex & 0xFFF,
@@ -890,7 +890,7 @@ void BXDM_PPCLIP_P_ClipTimeTrickModeTransitionHandler_isr(
 {
    BSTD_UNUSED(pLocalState);
 
-   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eCLIP, "%x:[%02x.xxx] Entering trick mode transition (stc: %x)",
+   BDBG_MODULE_MSG( BXDM_PPCLIP, ("%x:[%02x.xxx] Entering trick mode transition (stc: %x)",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               pLocalState->uiAdjustedStc ));

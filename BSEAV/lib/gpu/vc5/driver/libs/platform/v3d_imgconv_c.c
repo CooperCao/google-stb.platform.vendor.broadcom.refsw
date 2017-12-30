@@ -5,9 +5,9 @@
 
 static bool c_path_claim(
    const struct v3d_imgconv_base_tgt *dst, const struct v3d_imgconv_base_tgt *src,
-   unsigned int width, unsigned int height, unsigned int depth, const security_info_t *sec_info)
+   unsigned int width, unsigned int height, unsigned int depth, const conversion_info_t *info)
 {
-   if (!v3d_imgconv_valid_cpu_sec_info(sec_info))
+   if (!v3d_imgconv_valid_cpu_conv_info(info))
       return false;
 
    if (!(dst->desc.num_planes == 1 && src->desc.num_planes == 1))

@@ -27,6 +27,7 @@
 #include "glsl_dataflow_image.h"
 
 #include "libs/util/gfx_util/gfx_util.h"
+#include "libs/core/lfmt/lfmt.h"
 
 #include "../glxx/glxx_int_config.h"
 
@@ -75,8 +76,171 @@ typedef struct {
    unsigned int num_blocks[SHADER_FLAVOUR_COUNT];
 } pack_blocks_t;
 
-static int pack_sampler_array(pack_uniform_t *ctx, const int **ids, int **maps, int n_stages, unsigned int array_length, const SymbolType *type, unsigned unif_loc, bool in_vertex_pipeline)
+static GLenum sampler_type_to_texture_type(GLenum sampler_type)
 {
+   switch (sampler_type)
+   {
+   case GL_SAMPLER_2D:
+   case GL_SAMPLER_2D_SHADOW:
+   case GL_INT_SAMPLER_2D:
+   case GL_UNSIGNED_INT_SAMPLER_2D:
+      return GL_TEXTURE_2D;
+
+   case GL_SAMPLER_EXTERNAL_OES:
+      return GL_TEXTURE_EXTERNAL_OES;
+
+   case GL_SAMPLER_CUBE:
+   case GL_SAMPLER_CUBE_SHADOW:
+   case GL_INT_SAMPLER_CUBE:
+   case GL_UNSIGNED_INT_SAMPLER_CUBE:
+      return GL_TEXTURE_CUBE_MAP;
+
+   case GL_SAMPLER_2D_MULTISAMPLE:
+   case GL_INT_SAMPLER_2D_MULTISAMPLE:
+   case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+      return GL_TEXTURE_2D_MULTISAMPLE;
+
+   case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+   case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+   case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+      return GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+
+   case GL_SAMPLER_3D:
+   case GL_INT_SAMPLER_3D:
+   case GL_UNSIGNED_INT_SAMPLER_3D:
+      return GL_TEXTURE_3D;
+
+   case GL_SAMPLER_2D_ARRAY:
+   case GL_SAMPLER_2D_ARRAY_SHADOW:
+   case GL_INT_SAMPLER_2D_ARRAY:
+   case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+      return GL_TEXTURE_2D_ARRAY;
+
+   case GL_SAMPLER_1D_BRCM:
+   case GL_INT_SAMPLER_1D_BRCM:
+   case GL_UNSIGNED_INT_SAMPLER_1D_BRCM:
+      return GL_TEXTURE_1D_BRCM;
+
+   case GL_SAMPLER_1D_ARRAY_BRCM:
+   case GL_INT_SAMPLER_1D_ARRAY_BRCM:
+   case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY_BRCM:
+      return GL_TEXTURE_1D_ARRAY_BRCM;
+
+   case GL_SAMPLER_CUBE_MAP_ARRAY:
+   case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
+   case GL_INT_SAMPLER_CUBE_MAP_ARRAY:
+   case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
+      return GL_TEXTURE_CUBE_MAP_ARRAY;
+
+   case GL_SAMPLER_BUFFER:
+   case GL_INT_SAMPLER_BUFFER:
+   case GL_UNSIGNED_INT_SAMPLER_BUFFER:
+      return GL_TEXTURE_BUFFER;
+
+   default:
+      return GL_NONE;
+      unreachable();
+   }
+}
+
+static GLenum image_type_to_texture_type(GLenum glsl_image_type)
+{
+   switch (glsl_image_type)
+   {
+   case GL_INT_IMAGE_2D:
+   case GL_IMAGE_2D:
+   case GL_UNSIGNED_INT_IMAGE_2D:
+      return GL_TEXTURE_2D;
+
+   case GL_INT_IMAGE_2D_ARRAY:
+   case GL_IMAGE_2D_ARRAY:
+   case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+      return GL_TEXTURE_2D_ARRAY;
+
+   case GL_INT_IMAGE_3D:
+   case GL_IMAGE_3D:
+   case GL_UNSIGNED_INT_IMAGE_3D:
+      return GL_TEXTURE_3D;
+
+   case GL_INT_IMAGE_CUBE:
+   case GL_IMAGE_CUBE:
+   case GL_UNSIGNED_INT_IMAGE_CUBE:
+      return GL_TEXTURE_CUBE_MAP;
+
+   case GL_INT_IMAGE_CUBE_MAP_ARRAY:
+   case GL_IMAGE_CUBE_MAP_ARRAY:
+   case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
+      return GL_TEXTURE_CUBE_MAP_ARRAY;
+
+   case GL_INT_IMAGE_BUFFER:
+   case GL_IMAGE_BUFFER:
+   case GL_UNSIGNED_INT_IMAGE_BUFFER:
+      return GL_TEXTURE_BUFFER;
+
+   default:
+      unreachable();
+   }
+}
+
+static GFX_LFMT_TYPE_T image_type_to_lfmt_type(GLenum glsl_image_type)
+{
+   GLenum type;
+   switch (glsl_image_type)
+   {
+   case GL_INT_IMAGE_2D:
+   case GL_INT_IMAGE_2D_ARRAY:
+   case GL_INT_IMAGE_3D:
+   case GL_INT_IMAGE_CUBE:
+   case GL_INT_IMAGE_CUBE_MAP_ARRAY:
+   case GL_INT_IMAGE_BUFFER:
+      type = GFX_LFMT_TYPE_INT;
+      break;
+   case GL_IMAGE_2D:
+   case GL_IMAGE_2D_ARRAY:
+   case GL_IMAGE_3D:
+   case GL_IMAGE_CUBE:
+   case GL_IMAGE_CUBE_MAP_ARRAY:
+   case GL_IMAGE_BUFFER:
+      type = GFX_LFMT_TYPE_FLOAT;
+      break;
+   case GL_UNSIGNED_INT_IMAGE_2D:
+   case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+   case GL_UNSIGNED_INT_IMAGE_3D:
+   case GL_UNSIGNED_INT_IMAGE_CUBE:
+   case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
+   case GL_UNSIGNED_INT_IMAGE_BUFFER:
+      type = GFX_LFMT_TYPE_UINT;
+      break;
+   default:
+      unreachable();
+   }
+   return type;
+}
+
+static int pack_sampler_array(
+   pack_uniform_t *ctx,
+   const int **ids,
+   const InterfaceVarFlags **flags,
+   int **maps,
+   int n_stages,
+   unsigned array_length,
+   const SymbolType *type,
+   unsigned unif_loc,
+   bool in_vertex_pipeline)
+{
+   // Find the first dynamically indexed sampler, and treat as an array from that point.
+   unsigned first_dynamically_indexed = ~0u;
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   for (unsigned s = 0; s != n_stages; ++s) {
+      for (unsigned i = 0; i != array_length && i < first_dynamically_indexed; ++i) {
+         if (flags[s] && flags[s][i*2 + 1] & INTERFACE_VAR_SAMPLER_DYNAMIC_INDEXING) {
+            first_dynamically_indexed = i;
+            break;
+         }
+      }
+   }
+#endif
+
    for (unsigned i = 0; i < array_length; i++) {
       /* We're extra agressive about trimming unused samplers, so check each one here */
       bool s_used[SHADER_FLAVOUR_COUNT] = { false, };
@@ -86,7 +250,8 @@ static int pack_sampler_array(pack_uniform_t *ctx, const int **ids, int **maps, 
          any_used = any_used || s_used[j];
       }
 
-      if (!any_used) continue;
+      bool in_array = i >= first_dynamically_indexed;
+      if (!any_used && !in_array) continue;
 
       const unsigned location = ctx->program->num_samplers++;
 
@@ -103,10 +268,17 @@ static int pack_sampler_array(pack_uniform_t *ctx, const int **ids, int **maps, 
          return -1;
       }
 
-      ctx->program->samplers[location].location    = unif_loc + i;
-      ctx->program->samplers[location].type        = get_gl_type(type);
-      ctx->program->samplers[location].is_32bit    = false; /* XXX: Overridden later */
-      ctx->program->samplers[location].in_binning  = in_vertex_pipeline;
+      GLSL_SAMPLER_T sampler = {
+         .location       = unif_loc + i,
+         .texture_type   = sampler_type_to_texture_type(get_gl_type(type)),
+         .is_32bit       = false, /* XXX: Overridden later */
+         .in_binning     = in_vertex_pipeline,
+#if V3D_VER_AT_LEAST(4,0,2,0)
+         .array_size     = i == first_dynamically_indexed ? array_length - i : 0,
+         .in_array       = in_array,
+#endif
+      };
+      ctx->program->samplers[location] = sampler;
 
       if (ctx->binding >= 0) {
          GLSL_LAYOUT_BINDING_T *b = &ctx->program->sampler_binding[ctx->program->num_sampler_bindings++];
@@ -139,11 +311,16 @@ static int pack_image_array(pack_uniform_t *ctx, const int **ids, int **maps, in
       if (location >= GLXX_CONFIG_MAX_IMAGE_UNITS)
          link_error(10, "Too many images, max %d", GLXX_CONFIG_MAX_IMAGE_UNITS);
 
-      ctx->program->images[location].location       = unif_loc + i;
-      ctx->program->images[location].type           = get_gl_type(type);
-      ctx->program->images[location].is_32bit       = false;              /* XXX: Overridden later */
-      ctx->program->images[location].in_binning     = in_vertex_pipeline; /* Remove this? */
-      ctx->program->images[location].internalformat = GL_NONE;            /* Potentially overridden later */
+      GLenum image_type = get_gl_type(type);
+      GLSL_IMAGE_T image = {
+         .sampler.location       = unif_loc + i,
+         .sampler.texture_type   = image_type_to_texture_type(image_type),
+         .sampler.is_32bit       = false,              /* XXX: Overridden later */
+         .sampler.in_binning     = in_vertex_pipeline, /* Remove this? */
+         .lfmt_type              = image_type_to_lfmt_type(image_type),
+         .internalformat         = GL_NONE,           /* Potentially overridden later */
+      };
+      ctx->program->images[location] = image;
 
       if (ctx->binding >= 0) {
          GLSL_LAYOUT_BINDING_T *b = &ctx->program->image_binding[ctx->program->num_image_bindings++];
@@ -264,13 +441,22 @@ static bool used_in_vertex_pipeline(const bool *used) {
           used[SHADER_TESS_EVALUATION] || used[SHADER_GEOMETRY];
 }
 
-static void pack_var_default(pack_uniform_t *context, int offset, const int **ids, int **maps, int n_stages, const bool *used, const struct if_var_t *var) {
+static void pack_var_default(
+   pack_uniform_t *context,
+   int offset,
+   const int **ids,
+   const InterfaceVarFlags **flags,
+   int **maps,
+   int n_stages,
+   const bool *used,
+   const struct if_var_t *var)
+{
    const SymbolType *t = if_var_prim_type(var);
    unsigned array_length = if_var_array_length(var);
 
    /* Now update the dataflow and, if required, the programs sampler info */
-   if (glsl_prim_is_prim_sampler_type(t)) {
-      context->max_offset = pack_sampler_array(context, ids, maps, n_stages,
+   if (glsl_prim_is_prim_comb_sampler_type(t)) {
+      context->max_offset = pack_sampler_array(context, ids, flags, maps, n_stages,
                                                array_length, t,
                                                offset, used_in_vertex_pipeline(used));
    } else if (glsl_prim_is_prim_image_type(t)) {
@@ -282,7 +468,10 @@ static void pack_var_default(pack_uniform_t *context, int offset, const int **id
    }
 
    for (int i=0; i<n_stages; i++) {
-      ids[i] += array_length * t->scalar_count;
+      unsigned count = array_length * t->scalar_count;
+      ids[i] += count;
+      if (flags[i])
+         flags[i] += count;
    }
 }
 
@@ -489,7 +678,7 @@ static void pack_block(pack_blocks_t *ctx, const Symbol *b, const int **ids, int
    GLSL_BLOCK_T *block  = &(ctx->records[ctx->n_records]);
    MemLayout    *layout = malloc_fast(sizeof(MemLayout));
 
-   glsl_mem_calculate_block_layout(layout, type);
+   glsl_mem_calculate_block_layout(layout, type, /*for_tmu*/true);
 
    if (layout->u.struct_layout.size > max_buffer_size(b->u.interface_block.sq))
       link_error(5, "%s block %s too large: %d",
@@ -516,6 +705,17 @@ static void pack_block(pack_blocks_t *ctx, const Symbol *b, const int **ids, int
    block->used_in_gs   = used[SHADER_GEOMETRY];
    block->used_in_fs   = used[SHADER_FRAGMENT];
    block->used_in_cs   = used[SHADER_COMPUTE];
+
+   // Is the last member of this block a dynamically sized array?
+   const MemLayout* last_layout = &layout->u.struct_layout.member_layouts[layout->u.struct_layout.member_count - 1];
+   unsigned last_offset = layout->u.struct_layout.member_offsets[layout->u.struct_layout.member_count - 1];
+   if (last_layout->flavour == LAYOUT_ARRAY && last_layout->u.array_layout.member_count == 0) {
+      block->dynamic_array_stride = last_layout->u.array_layout.stride;
+      block->dynamic_array_offset = last_offset;
+   } else {
+      block->dynamic_array_stride = 0;
+      block->dynamic_array_offset = ~0u;
+   }
 
    if( !block->name || (!block->members && block->num_members > 0)) {
       link_error(2, NULL);
@@ -570,7 +770,7 @@ static void validate_uniforms_match(ShaderInterface **uniforms, int n_stages, in
             const Symbol *u2 = u->symbol;
 
             bool match;
-            if (u1->flavour == SYMBOL_VAR_INSTANCE) {
+            if (u1->flavour == SYMBOL_VAR_INSTANCE || u2->flavour == SYMBOL_VAR_INSTANCE) {
                bool match_prec = true;
 #ifndef GLSL_STRICT
                /* Some broken but important shaders use mismatched precisions. Allow it */
@@ -581,9 +781,16 @@ static void validate_uniforms_match(ShaderInterface **uniforms, int n_stages, in
                   match = match && u1->u.var_instance.prec_qual ==
                                    u2->u.var_instance.prec_qual;
                }
-            } else
-               match = glsl_deep_match_nonfunction_types(u1->u.interface_block.block_data_type,
-                                                         u2->u.interface_block.block_data_type, false);
+            } else {
+               SymbolType *b1 = u1->u.interface_block.block_data_type;
+               SymbolType *b2 = u2->u.interface_block.block_data_type;
+               match = glsl_deep_match_nonfunction_types(b1, b2, false);
+
+               b1 = (b1->flavour == SYMBOL_ARRAY_TYPE) ? b1->u.array_type.member_type : b1;
+               b2 = (b2->flavour == SYMBOL_ARRAY_TYPE) ? b2->u.array_type.member_type : b2;
+               assert(b1->flavour == SYMBOL_BLOCK_TYPE && b2->flavour == SYMBOL_BLOCK_TYPE);
+               match = match && (b1->u.block_type.has_named_instance == b2->u.block_type.has_named_instance);
+            }
 
             // Global variables must have the same type.
             if (!match)
@@ -668,17 +875,18 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
 {
    for (int i=0; i<n_stages; i++) {
       for (int j=0; j<uniforms[i]->n_vars; j++) {
-         bool used[SHADER_FLAVOUR_COUNT] = { false, };
-         int var_n_stages = 0;
-         const int *ids [SHADER_FLAVOUR_COUNT] = { NULL, };
-               int *maps[SHADER_FLAVOUR_COUNT] = { NULL, };
-
          InterfaceVar *uniform = &uniforms[i]->var[j];
          bool already_done = false;
          for (int k=0; k<i; k++) {
             if (interface_var_find(uniforms[k], uniform->symbol->name)) already_done = true;
          }
          if (already_done) continue;
+
+         bool used[SHADER_FLAVOUR_COUNT] = { false, };
+         int var_n_stages = 0;
+         const int *ids [SHADER_FLAVOUR_COUNT] = { NULL, };
+               int *maps[SHADER_FLAVOUR_COUNT] = { NULL, };
+         const InterfaceVarFlags *flags[SHADER_FLAVOUR_COUNT] = { NULL, };
 
          bool has_location = (uniform->symbol->flavour == SYMBOL_VAR_INSTANCE &&
                               uniform->symbol->u.var_instance.layout_loc_specified);
@@ -689,7 +897,10 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
             InterfaceVar *u = interface_var_find(uniforms[k], uniform->symbol->name);
             if (u) {
                used[stages[k]]  = u->active;
-               ids [var_n_stages]   = u->ids;
+               ids[var_n_stages] = u->ids;
+             #if V3D_VER_AT_LEAST(4,0,2,0)
+               flags[var_n_stages] = u->flags;
+             #endif
                maps[var_n_stages++] = stage_maps[k];
                if (u->symbol->u.var_instance.layout_loc_specified) {
                   has_location = true;
@@ -711,7 +922,7 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
             struct if_var_t *vars = glsl_safemem_malloc(num_members * sizeof(struct if_var_t));
 
             MemLayout *layout = malloc_fast(sizeof(MemLayout));
-            glsl_mem_calculate_non_block_layout(layout, uniform->symbol->type);
+            glsl_mem_calculate_non_block_layout(layout, uniform->symbol->type, MEM_TMU_OPT);
             enumerate_members(vars, uniform->symbol->name, uniform->symbol->type, layout, 0);
 
             unsigned locations_required = 0;
@@ -773,7 +984,7 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
                   GLSL_BLOCK_MEMBER_T *unif = &program->default_uniforms.members[index];
                   record_var(unif, &vars[j], offset, used, /*default_block=*/true, atomic_idx);
 
-                  pack_var_default(context, real_offset, ids, maps, var_n_stages, used, &vars[j]);
+                  pack_var_default(context, real_offset, ids, flags, maps, var_n_stages, used, &vars[j]);
                   if (context->binding != -1) context->binding += if_var_array_length(&vars[j]);
                   loc += if_var_array_length(&vars[j]);
                }
@@ -786,14 +997,8 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
    }
 }
 
-void pack_uniforms(GLSL_PROGRAM_T *program, ShaderFlavour *stages, ShaderInterface **uniforms, int **stage_maps, int n_stages)
+static void pack_uniforms(GLSL_PROGRAM_T *program, ShaderFlavour *stages, ShaderInterface **uniforms, int **stage_maps, int n_stages)
 {
-#ifndef NDEBUG
-   for (int i = 0; i < GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS; i++) {
-      program->samplers[i].location = -1;
-   }
-#endif
-
    // Set up context.
    pack_blocks_t  ubo_ctx = { .records   = program->uniform_blocks,
                               .n_records = 0,
@@ -942,15 +1147,6 @@ static void record_inout(unsigned *count, GLSL_INOUT_T *info, const struct if_va
       link_error(2, NULL);
 }
 
-static void record_input(GLSL_PROGRAM_T *program, const InterfaceVar *attribute, int index) {
-   bool used[SHADER_FLAVOUR_COUNT] = { true, false, false, false, false, false };
-   struct if_var_t v;
-   enumerate_in_out_var(&v, attribute->symbol->name, NULL, attribute->symbol->type,
-                            attribute->symbol->u.var_instance.prec_qual,
-                            attribute->symbol->u.var_instance.interp_qual, attribute->symbol->u.var_instance.aux_qual);
-   record_inout(&program->num_inputs, program->inputs, &v, index, used);
-}
-
 static void record_output(GLSL_PROGRAM_T *program, const InterfaceVar *out, int index) {
    bool used[SHADER_FLAVOUR_COUNT] = { false, false, false, false, true, false };
    struct if_var_t v;
@@ -962,33 +1158,35 @@ static void record_output(GLSL_PROGRAM_T *program, const InterfaceVar *out, int 
 
 static inline int row_offset(const SymbolType *type, int index)
 {
+   if (type->flavour == SYMBOL_ARRAY_TYPE)
+      type = type->u.array_type.member_type;
+
    assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
 
-   /* Non-matrices have only 1 column */
+   unsigned vec_sz;
    if (!(primitiveTypeFlags[type->u.primitive_type.index] & PRIM_MATRIX_TYPE))
-      return index;
-   else {
-      /* Column major ordering with each column padded to take a whole vec4 slot */
-      /* col_length = n_rows */
-      int col_length = glsl_prim_matrix_type_subscript_dimensions(type->u.primitive_type.index, 1);
-      int col_no = index / col_length;
-      int col_idx = index % col_length;
-      return col_no * 4 + col_idx;
-   }
+      vec_sz = type->scalar_count;
+   else
+      vec_sz = glsl_prim_matrix_type_subscript_dimensions(type->u.primitive_type.index, 1);
+
+   /* Each array element or matrix column is padded to a 4-boundary */
+   int el_no  = index / vec_sz;
+   int el_idx = index % vec_sz;
+   return el_no * 4 + el_idx;
 }
 
-static void bind_attribute(InterfaceVar *attribute, int binding, int *id_ptr)
+static void bind_attribute(const SymbolType *t, const int *ids, int binding, int *id_ptr)
 {
-   assert(binding >= -1 && binding < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+   assert(binding >= 0 && binding < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
 
    // For every scalar...
-   for (unsigned i = 0; i < attribute->symbol->type->scalar_count; i++)
+   for (unsigned i = 0; i < t->scalar_count; i++)
    {
-      unsigned int scalar_row = binding * 4 + row_offset(attribute->symbol->type, i);
+      unsigned int scalar_row = binding * 4 + row_offset(t, i);
 
       // Write index to dataflow nodes.
-      if (attribute->ids[i] != -1)
-         id_ptr[attribute->ids[i]] = scalar_row;
+      if (ids[i] != -1)
+         id_ptr[ids[i]] = scalar_row;
    }
 }
 
@@ -1076,9 +1274,28 @@ static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T
            (!builtin && attr_locs[i].var->active)     )
       {
          assert(builtin || attr_locs[i].handled);
+         const Symbol *s = attr_locs[i].var->symbol;
+
+         int n = deep_member_count(s->type);
+         struct if_var_t *v = glsl_safemem_malloc(n * sizeof(struct if_var_t));
          int loc = builtin ? -1 : attr_locs[i].loc;
-         record_input(program, attr_locs[i].var, loc);
-         bind_attribute(attr_locs[i].var, loc, id_ptr);
+
+         enumerate_ins_outs(v, s->name, NULL, s->type, s->u.var_instance.prec_qual, s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
+
+         const int *ids = attr_locs[i].var->ids;
+         for (int j=0; j<n; j++) {
+            const bool used[SHADER_FLAVOUR_COUNT] = { true, false, false, false, false, false };
+            record_inout(&program->num_inputs, program->inputs, &v[j], loc, used);
+            if (loc != -1) {
+               bind_attribute(v[j].type, ids, loc, id_ptr);
+
+               int c = s->type->flavour == SYMBOL_ARRAY_TYPE ? s->type->u.array_type.member_count : 1;
+               loc += c;
+            }
+            ids += v[j].type->scalar_count;
+         }
+         glsl_safemem_free(v);
+
       }
    }
 
@@ -1110,27 +1327,26 @@ static void pack_f_in(pack_varying_t *context, const InterfaceVar *f_in)
    unsigned int row = context->num_scalar_varyings;
 
    for (unsigned i = 0; i < f_in->symbol->type->scalar_count; i++) {
-      if (f_in->ids[i] != -1) {
-         // Update the fragment shader link map
+      // Update the fragment shader link map
+      if (f_in->ids[i] != -1)
          context->f_id_ptr[f_in->ids[i]] = row + i;
 
-         // record varying interpolation information
-         switch (f_in->symbol->u.var_instance.interp_qual) {
-            case INTERP_NOPERSPECTIVE:
-               vary_info[row + i].noperspective = true; break;
-            case INTERP_FLAT:
-               vary_info[row + i].flat          = true; break;
-            default:
-               /* No action */ break;
-         }
-         switch (f_in->symbol->u.var_instance.aux_qual) {
-            case AUXILIARY_CENTROID:
-               vary_info[row + i].centroid     = true; break;
-            case AUXILIARY_SAMPLE:
-               context->any_varying_per_sample = true; break;
-            default:
-               /* No action */ break;
-         }
+      // record varying interpolation information
+      switch (f_in->symbol->u.var_instance.interp_qual) {
+         case INTERP_NOPERSPECTIVE:
+            vary_info[row + i].noperspective = true; break;
+         case INTERP_FLAT:
+            vary_info[row + i].flat          = true; break;
+         default:
+            /* No action */ break;
+      }
+      switch (f_in->symbol->u.var_instance.aux_qual) {
+         case AUXILIARY_CENTROID:
+            vary_info[row + i].centroid     = true; break;
+         case AUXILIARY_SAMPLE:
+            context->any_varying_per_sample = true; break;
+         default:
+            /* No action */ break;
       }
    }
 }
@@ -1148,7 +1364,7 @@ static void pack_in_out(pack_varying_t *context, const InterfaceVar *f_in, const
    for (unsigned i = 0; i < v_out->symbol->type->scalar_count; i++)
       context->scalar_varyings[context->num_scalar_varyings + i] = v_out->ids[i];
 
-   if (f_in != NULL) pack_f_in(context, f_in);
+   if (f_in != NULL && f_in->active) pack_f_in(context, f_in);
 
    context->num_scalar_varyings += v_out->symbol->type->scalar_count;
 }
@@ -1628,7 +1844,7 @@ static void extract_sampler_info(GLSL_PROGRAM_T *program, IRShader *sh, int *uni
             bool is_image = glsl_dataflow_type_is_storage_image(d->type);
             if (is_image)
             {
-               program->images[sampler_loc].is_32bit = d->u.const_image.is_32bit;
+               program->images[sampler_loc].sampler.is_32bit = d->u.const_image.is_32bit;
                if (d->u.const_image.format_valid)
                   program->images[sampler_loc].internalformat = glsl_fmt_qualifier_to_gl_enum(d->u.const_image.format);
             }

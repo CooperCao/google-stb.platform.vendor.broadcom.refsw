@@ -93,13 +93,6 @@ typedef enum DecodeSource {
     DecodeSource_eFrontend
 } DecodeSource;
 
-static unsigned b_get_time(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return tv.tv_sec*1000 + tv.tv_usec/1000;
-}
-
 int main(int argc, const char *argv[])
 {
     NEXUS_PlatformSettings platformSettings;
@@ -124,7 +117,7 @@ int main(int argc, const char *argv[])
     NEXUS_AudioDecoderStartSettings audioProgram;
 #if NEXUS_HAS_ASTM
     NEXUS_AstmSettings astmSettings;
-    NEXUS_AstmHandle astm;
+    NEXUS_AstmHandle astm=NULL;
 #endif
 #if NEXUS_HAS_SYNC_CHANNEL
     NEXUS_SyncChannelSettings syncChannelSettings;
@@ -132,7 +125,6 @@ int main(int argc, const char *argv[])
 #endif
     struct util_opts_t opts;
     NEXUS_Error rc;
-    unsigned start;
     FrontendSettings frontendSettings;
     DecodeSource source = DecodeSource_eStreamer;
     struct decoder_bitrate video_bitrate;
@@ -436,6 +428,7 @@ int main(int argc, const char *argv[])
         astmSettings.enableAutomaticLifecycleControl = true;
         astmSettings.enabled = true;
         astm = NEXUS_Astm_Create(&astmSettings);
+        BDBG_ASSERT(astm);
     }
 #endif
 
@@ -453,7 +446,6 @@ int main(int argc, const char *argv[])
     }
 
     /* Start Decoders */
-    start = b_get_time();
     if (opts.common.videoPid) {
         rc = NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
         BDBG_ASSERT(!rc);

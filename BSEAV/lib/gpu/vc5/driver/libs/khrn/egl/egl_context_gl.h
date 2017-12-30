@@ -19,8 +19,10 @@ gl_api_t;
 /*
  * GL contexts are not thread-safe at all, so there is a global per-process
  * lock. Lock/unlock it with these functions.
+ * The lock is created at the initialisation of the egl_process
  */
-extern bool egl_context_gl_lock(void);
+extern void egl_context_gl_create_lock(void);
+extern void egl_context_gl_lock(void);
 extern void egl_context_gl_unlock(void);
 
 #ifndef NDEBUG
@@ -29,8 +31,8 @@ extern void egl_context_gl_assert_locked(void);
 #  define egl_context_gl_assert_locked() do {} while (0)
 #endif
 
-extern EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLConfig config,
-      EGLContext share_ctx, const EGLint *attrib_list);
+extern EGLint egl_context_gl_create(EGL_GL_CONTEXT_T **context, EGLDisplay dpy,
+      EGLConfig config, EGLContext share_ctx, const EGLint *attrib_list);
 
 /*
  * If context is NULL, the current context from the current thread is used if

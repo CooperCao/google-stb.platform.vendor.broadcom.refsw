@@ -13,6 +13,10 @@ static bool prep_tlb_ldst(struct v3d_tlb_ldst_params *ls, uint32_t *layer_stride
 {
    const khrn_image *img = img_plane->image;
    khrn_blob *blob = img->blob;
+   assert(img->level < blob->num_mip_levels);
+   const GFX_BUFFER_DESC_T *desc = &blob->desc[img->level];
+   assert(img_plane->plane_idx < desc->num_planes);
+   const GFX_BUFFER_DESC_PLANE_T *plane = &desc->planes[img_plane->plane_idx];
 
    assert(tlb_ms || !img_ms);
    assert(load || store);
@@ -20,27 +24,26 @@ static bool prep_tlb_ldst(struct v3d_tlb_ldst_params *ls, uint32_t *layer_stride
    if (!khrn_blob_alloc_storage(blob))
       return false;
 
+   assert(plane->region < blob->res->num_handles);
    uint32_t render_rw_flags =
       (load ? V3D_BARRIER_TLB_IMAGE_READ : 0) |
       (store ? V3D_BARRIER_TLB_IMAGE_WRITE : 0);
-   v3d_addr_t base_addr = khrn_fmem_sync_and_get_addr(&rs->fmem, blob->res->handle,
+   v3d_addr_t base_addr = khrn_fmem_sync_and_get_addr(&rs->fmem, blob->res->handles[plane->region],
          /*bin_rw_flags=*/0, render_rw_flags);
 
    v3d_dither_t dither = V3D_DITHER_OFF;
    if (color && rs->dither && !khrn_options.force_dither_off)
    {
-      GFX_LFMT_T lfmt = khrn_image_plane_lfmt(img_plane);
-      if (gfx_lfmt_alpha_bits(lfmt) > 2)
+      if (gfx_lfmt_alpha_bits(plane->lfmt) > 2)
          dither = V3D_DITHER_RGBA;
       else
          dither = V3D_DITHER_RGB;
    }
 
-   assert(img->level < blob->num_mip_levels);
    assert(img->start_elem < blob->num_array_elems);
    gfx_buffer_translate_tlb_ldst(ls,
          base_addr + (img->start_elem * blob->array_pitch),
-         &blob->desc[img->level], img_plane->plane_idx, img->start_slice, color,
+         desc, img_plane->plane_idx, img->start_slice, color,
          tlb_ms, img_ms, dither);
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -166,7 +169,7 @@ static void write_load(uint8_t **instr,
       v3d_ldst_buf_t buf, const struct v3d_tlb_ldst_params *ls, uint32_t layer_offset)
 {
    v3d_cl_load(instr, buf, ls->memory_format, ls->flipy, ls->decimate, ls->pixel_format,
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
          ls->load_alpha_to_one, ls->chan_reverse, ls->rb_swap,
 #endif
          ls->stride, ls->flipy_height_px, ls->addr + layer_offset);
@@ -260,7 +263,7 @@ static void write_store(uint8_t **instr,
 {
    v3d_cl_store(instr, buf, ls->memory_format, ls->flipy, ls->dither,
          ls->decimate, ls->pixel_format, clear,
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
          ls->chan_reverse, ls->rb_swap,
 #endif
          ls->stride, ls->flipy_height_px, ls->addr + layer_offset);
@@ -372,7 +375,7 @@ static bool write_stores_clears_end_and_rcfg(
             V3D_DECIMATE_SAMPLE0,
             V3D_PIXEL_FORMAT_SRGB8_ALPHA8,
             /*clear=*/false,
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
             /*chan_reverse=*/false,
             /*rb_swap=*/false,
 #endif
@@ -385,7 +388,7 @@ static bool write_stores_clears_end_and_rcfg(
     * end. */
    bool clear_all_rts_at_end = (fb_ops->rt_clear_mask & ~rt_store_mask) != 0;
 
-#if V3D_HAS_GFXH1568_FIX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    /* Can enable early depth/stencil clear optimisation in HW if we are not
     * loading or storing depth/stencil. Never enable in double-buffer mode --
     * doesn't make sense. */
@@ -744,7 +747,7 @@ static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
          V3D_CL_ENABLE_Z_ONLY_SIZE +
          (rs->num_z_prepass_bins * V3D_CL_BRANCH_IMPLICIT_TILE_SIZE) +
          V3D_CL_DISABLE_Z_ONLY_SIZE +
-#if !V3D_HAS_TL_START_UNC
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          (rs->fmem.br_info.bin_subjobs.num_subjobs * V3D_CL_PRIM_LIST_FORMAT_SIZE) +
 #endif
          (rs->fmem.br_info.bin_subjobs.num_subjobs * V3D_CL_BRANCH_IMPLICIT_TILE_SIZE));
@@ -771,7 +774,7 @@ static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
 
    for (unsigned i = 0; i != rs->fmem.br_info.bin_subjobs.num_subjobs; ++i)
    {
-#if !V3D_HAS_TL_START_UNC
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       v3d_cl_prim_list_format(&instr, 3, false, false);
 #endif
       v3d_cl_branch_implicit_tile(&instr, i);

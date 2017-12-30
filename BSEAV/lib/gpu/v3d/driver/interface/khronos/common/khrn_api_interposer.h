@@ -10,9 +10,6 @@
 #include "interface/khronos/include/GLES2/gl2ext.h"
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
-#include "interface/khronos/include/VG/openvg.h"
-#include "interface/khronos/include/VG/vgext.h"
-#include "interface/khronos/include/VG/vgu.h"
 
 /* Type of event */
 typedef enum {
@@ -368,6 +365,14 @@ typedef struct {
    EGLBoolean (*real_eglGetSyncAttribKHR)(EGLDisplay dpy, EGLSyncKHR sync, EGLint attribute, EGLint *value);
    EGLBoolean (*real_eglImageUpdateParameterivBRCM)(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, const EGLint *params);
    EGLBoolean (*real_eglImageUpdateParameteriBRCM)(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, EGLint param);
+   EGLDisplay (*real_eglGetPlatformDisplayEXT)(EGLenum platform, void *native_display, const EGLint *attrib_list);
+   EGLSurface (*real_eglCreatePlatformWindowSurfaceEXT)(EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
+   EGLSurface (*real_eglCreatePlatformPixmapSurfaceEXT)(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
+#ifdef WAYLAND
+   EGLBoolean (*real_eglBindWaylandDisplayWL)(EGLDisplay dpy, struct wl_display *display);
+   EGLBoolean (*real_eglUnbindWaylandDisplayWL)(EGLDisplay dpy, struct wl_display *display);
+   EGLBoolean (*real_eglQueryWaylandBufferWL)(EGLDisplay dpy, struct wl_resource *buffer, EGLint attribute, EGLint *value);
+#endif
 
    __eglMustCastToProperFunctionPointerType (*real_eglGetProcAddress)(const char *procname);
 

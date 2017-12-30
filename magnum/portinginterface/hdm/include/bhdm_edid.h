@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -347,7 +347,7 @@ typedef struct BHDM_EDID_BasicData
 
    uint8_t features;      /* Features are not supported; standby,suspend, etc */
 
-	char monitorName[14];              /* NULL-terminated string for the monitor name */
+	char monitorName[BHDM_EDID_DESC_ASCII_STRING_LEN];
 	BHDM_EDID_MonitorRange MonitorRange ;
 	BFMT_VideoFmt eVideoFmt ;
 
@@ -617,6 +617,21 @@ typedef struct _BHDM_EDID_AUDIO_DESCRIPTOR
 	uint8_t AudioChannels ;
 	uint8_t ucCeaSampleRates ;
 	uint8_t ucCeaNBits_BitRate ;  /* number bits or bit rate */
+	bool bSampleRates[BAVC_AudioSamplingRate_eMax] ; /* supported sampling rates */
+	union
+	{
+		struct
+		{
+			bool bBitDepths[BAVC_AudioBits_eMax] ;	/* supported bit depths */
+		} pcm;
+		struct
+		{
+			uint16_t BitRate;  /* BitRate * 8 = max bit rate kHz */
+			uint8_t formatDependentValue; /* value indicating additional info
+			                                 for certain audio formats */
+		} compressed;
+	} dataType;
+
 } BHDM_EDID_AudioDescriptor ;
 
 

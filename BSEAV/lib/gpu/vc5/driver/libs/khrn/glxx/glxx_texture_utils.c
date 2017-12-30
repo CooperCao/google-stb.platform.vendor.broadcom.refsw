@@ -344,8 +344,10 @@ bool glxx_texture_is_tex_target(const GLXX_SERVER_STATE_T *state, GLenum target)
    bool ok;
    switch(target)
    {
+#if V3D_VER_AT_LEAST(4,0,2,0)
       case GL_TEXTURE_1D_BRCM:
       case GL_TEXTURE_1D_ARRAY_BRCM:
+#endif
       case GL_TEXTURE_2D:
       case GL_TEXTURE_EXTERNAL_OES:
       case GL_TEXTURE_3D:
@@ -359,7 +361,7 @@ bool glxx_texture_is_tex_target(const GLXX_SERVER_STATE_T *state, GLenum target)
       case GL_TEXTURE_CUBE_MAP_ARRAY:
 #endif
       case GL_TEXTURE_BUFFER:
-         ok = KHRN_GLES31_DRIVER ? true : false;
+         ok = V3D_VER_AT_LEAST(3,3,0,0) ? true : false;
          break;
       default:
          ok = false;

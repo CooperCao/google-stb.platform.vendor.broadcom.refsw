@@ -1,20 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  vcos
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - memory alloc implementation
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/vcos/vcos.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <assert.h>
 
 typedef struct malloc_header_s {
    uint32_t guardword;
@@ -22,7 +13,6 @@ typedef struct malloc_header_s {
    const char *description;
    void *ptr;
 } MALLOC_HEADER_T;
-
 
 #define MIN_ALIGN sizeof(MALLOC_HEADER_T)
 
@@ -65,9 +55,9 @@ void *vcos_generic_mem_calloc(VCOS_UNSIGNED count, VCOS_UNSIGNED sz, const char 
 void vcos_generic_mem_free(void *ptr)
 {
    MALLOC_HEADER_T *h;
-   vcos_assert(ptr);
+   assert(ptr);
 
    h = ((MALLOC_HEADER_T *)ptr)-1;
-   vcos_assert(h->guardword == GUARDWORDHEAP);
+   assert(h->guardword == GUARDWORDHEAP);
    free(h->ptr);
 }

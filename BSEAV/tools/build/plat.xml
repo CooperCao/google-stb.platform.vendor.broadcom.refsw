@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<plat>
+<platforms>
+  <version>1.0</version>
+  <platform id="93390">
+    <bondouts></bondouts>
+    <revisions>B0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards>
+        <board name="headless">NEXUS_HEADLESS_PLATFORM=y</board>
+    </boards>
+  </platform>
+  <platform id="97228">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97230">
+    <bondouts></bondouts>
+    <revisions>B0</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <kernel_chip>7231</kernel_chip>
+    <kernel_rev>B0</kernel_rev>
+    <boards>
+        <board name="sv"></board>
+        <board name="csff">NEXUS_PLATFORM_7231_CSFF=y</board>
+        <board name="eusff">NEXUS_PLATFORM_7231_EUSFF=y</board>
+        <board name="eusff_v20">NEXUS_PLATFORM_7231_EUSFF_V20=y</board>
+        <board name="fbtsff">NEXUS_PLATFORM_7231_FBTSFF=y</board>
+        <board name="dcsfbtsff">NEXUS_PLATFORM_7231_DCSFBTSFF=y</board>
+    </boards>
+  </platform>
+  <platform id="97231">
+    <bondouts></bondouts>
+    <revisions>B0,B2</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="sv"></board>
+        <board name="csff">NEXUS_PLATFORM_7231_CSFF=y</board>
+        <board name="eusff">NEXUS_PLATFORM_7231_EUSFF=y</board>
+        <board name="eusff_v20">NEXUS_PLATFORM_7231_EUSFF_V20=y</board>
+        <board name="fbtsff">NEXUS_PLATFORM_7231_FBTSFF=y</board>
+        <board name="dcsfbtsff">NEXUS_PLATFORM_7231_DCSFBTSFF=y</board>
+    </boards>
+  </platform>
+  <platform id="97241">
+    <bondouts></bondouts>
+    <revisions>B0</revisions>
+    <kernel_chip>7429</kernel_chip>
+    <kernel_rev>B0</kernel_rev>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="fbtsff">NEXUS_PLATFORM_7241_DCSFBTSFF=y</board>
+        <board name="t2sff">NEXUS_PLATFORM_7241_T2SFF=y</board>
+    </boards>
+  </platform>
+  <platform id="972415">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <kernel_chip>7429</kernel_chip>
+    <kernel_rev>B0</kernel_rev>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="fbtsff">NEXUS_PLATFORM_7241_DCSFBTSFF=y</board>
+        <board name="t2sff">NEXUS_PLATFORM_7241_T2SFF=y</board>
+    </boards>
+  </platform>
+  <platform id="97250">
+    <bondouts>972501</bondouts>
+    <revisions>B0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards>
+      <board name="dgl">NEXUS_USE_7250_DGL=y</board>
+      <board name="cwf">NEXUS_USE_7250_CWF=y</board>
+      <board name="sv">NEXUS_USE_7250_SV=y</board>
+      <board name="sat">NEXUS_USE_72501_SAT=y</board>
+      <board name="usff">NEXUS_USE_7250_USFF=y</board>
+      <board name="sff">NEXUS_USE_72501_SFF=y</board>
+      <board name="acx16">NEXUS_USE_7250_ACX16=y</board>
+      <board name="cd2">NEXUS_USE_7250_CD2=y</board>
+      <board name="t2sff">NEXUS_USE_7251_T2SFF=y</board>
+    </boards>
+  </platform>
+  <platform id="97255">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <cpu_arch>ARM64</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97260">
+    <bondouts></bondouts>
+    <revisions>A0,B0</revisions>
+    <cpu_arch>ARM64</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97268">
+    <bondouts></bondouts>
+    <revisions>B0</revisions>
+    <cpu_arch>ARM64</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97271">
+    <bondouts></bondouts>
+    <revisions>B0</revisions>
+    <cpu_arch>ARM64</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97278">
+    <bondouts></bondouts>
+    <revisions>A0,B0</revisions>
+    <cpu_arch>ARM64</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97344">
+    <bondouts></bondouts>
+    <revisions>B0,B1</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="sv">NEXUS_PLATFORM_7344SV=y</board>
+    </boards>
+  </platform>
+  <platform id="97346">
+    <bondouts></bondouts>
+    <revisions>B0,B1,B2</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="sv">NEXUS_PLATFORM_VER=SV</board>
+        <board name="ext2">NEXUS_PLATFORM_VER=EXT2</board>
+        <board name="sff">NEXUS_PLATFORM_VER=SFF</board>
+        <board name="i2sff">NEXUS_PLATFORM_VER=I2SFF</board>
+        <board name="hr44">NEXUS_PLATFORM_VER=HR44</board>
+        <board name="shr44">NEXUS_PLATFORM_VER=SHR44</board>
+        <board name="hr43">NEXUS_PLATFORM_VER=HR43</board>
+    </boards>
+  </platform>
+  <platform id="973465">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <kernel_chip>7346</kernel_chip>
+    <kernel_rev>B0</kernel_rev>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="sv">NEXUS_PLATFORM_VER=SV</board>
+        <board name="ext2">NEXUS_PLATFORM_VER=EXT2</board>
+        <board name="sff">NEXUS_PLATFORM_VER=SFF</board>
+        <board name="i2sff">NEXUS_PLATFORM_VER=I2SFF</board>
+        <board name="hr44">NEXUS_PLATFORM_VER=HR44</board>
+        <board name="shr44">NEXUS_PLATFORM_VER=SHR44</board>
+        <board name="hr43">NEXUS_PLATFORM_VER=HR43</board>
+    </boards>
+  </platform>
+  <platform id="97358">
+    <bondouts></bondouts>
+    <revisions>A0,A1</revisions>
+    <cpu_arch>OLD_MIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97360">
+    <bondouts></bondouts>
+    <revisions>A0,A1,A2</revisions>
+    <cpu_arch>OLD_MIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97362">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="973625">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <kernel_chip>7362</kernel_chip>
+    <kernel_rev>A0</kernel_rev>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97364">
+    <bondouts></bondouts>
+    <revisions>B0,C0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards default="sff">
+        <board name="sv">NEXUS_USE_7364_SV=y</board>
+        <board name="sff">NEXUS_USE_7364_SFF=y</board>
+    </boards>
+  </platform>
+  <platform id="973649">
+    <nexus_platform>97364</nexus_platform>
+    <revisions>B0,C0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards default="sff">
+        <board name="sv">NEXUS_USE_73649_SV=y</board>
+        <board name="sff">NEXUS_USE_73649_SFF=y</board>
+    </boards>
+  </platform>
+  <platform id="97366">
+    <bondouts></bondouts>
+    <revisions>C0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards default="sff">
+        <board name="sv">NEXUS_USE_7366_SV=y</board>
+        <board name="ext8">NEXUS_USE_7366_SV=y,NEXUS_FRONTEND_45216=y,NEXUS_FRONTEND_45308=y</board>
+        <board name="sff">NEXUS_USE_7366_SFF=y</board>
+    </boards>
+  </platform>
+  <platform id="97399">
+    <bondouts></bondouts>
+    <nexus_platform>97366</nexus_platform>
+    <revisions>C0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards default="sff">
+        <board name="sv">NEXUS_USE_7399_SV=y</board>
+        <board name="sff">NEXUS_USE_7399_SFF=y</board>
+    </boards>
+  </platform>
+  <platform id="97422">
+    <bondouts>93322</bondouts>
+    <revisions>B2</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards default="sv">
+        <board name="vms_sff">NEXUS_USE_7422_VMS_SFF=y</board>
+        <board name="c">NEXUS_USE_7422_C=y</board>
+        <board name="sv">NEXUS_USE_7422_SV_BOARD=y</board>
+        <board name="dbs">NEXUS_PLATFORM_7422_DBS=y</board>
+        <board name="4528_dbs">NEXUS_PLATFORM_4528_DBS=y</board>
+    </boards>
+  </platform>
+  <platform id="97425">
+    <bondouts></bondouts>
+    <revisions>B2</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards default="sv">
+      <board name="vms_sff" options="new_mips">NEXUS_USE_7425_VMS_SFF=y</board>
+      <board name="c" options="new_mips">NEXUS_USE_7425_C=y</board>
+      <board name="sv" options="new_mips">NEXUS_USE_7425_SV_BOARD=y</board>
+      <board name="dbs">NEXUS_PLATFORM_7425_DBS=y</board>
+      <board name="4528_dbs">NEXUS_PLATFORM_4528_DBS=y</board>
+    </boards>
+  </platform>
+  <platform id="97428">
+    <bondouts></bondouts>
+    <revisions>B0</revisions>
+    <kernel_chip>7429</kernel_chip>
+    <kernel_rev>B0</kernel_rev>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="974285">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <kernel_chip>7429</kernel_chip>
+    <kernel_rev>B0</kernel_rev>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97429">
+    <bondouts></bondouts>
+    <revisions>B0</revisions>
+    <cpu_arch>BMIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="974295">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <kernel_chip>7429</kernel_chip>
+    <kernel_rev>B0</kernel_rev>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97435">
+    <bondouts></bondouts>
+    <revisions>B0</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards default="sv">
+      <board name="vms_sff" options="new_mips">NEXUS_USE_7425_VMS_SFF=y</board>
+      <board name="c" options="new_mips">NEXUS_USE_7425_C=y</board>
+      <board name="sv" options="new_mips">NEXUS_USE_7425_SV_BOARD=y</board>
+      <board name="dbs">NEXUS_PLATFORM_7425_DBS=y</board>
+      <board name="4528_dbs">NEXUS_PLATFORM_4528_DBS=y</board>
+    </boards>
+  </platform>
+  <platform id="974371">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards>
+      <board name="sv">NEXUS_USE_74371_SV=y</board>
+      <board name="xid">NEXUS_USE_74371_XID=y</board>
+      <board name="74371_xid">NEXUS_USE_74371_XID=y</board>
+      <board name="usff">NEXUS_USE_7437_USFF=y</board>
+    </boards>
+  </platform>
+  <platform id="97439">
+    <bondouts>97449,97448,97252s,97251s</bondouts>
+    <revisions>B0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards>
+        <board name="vms_sff">NEXUS_USE_7252S_VMS_SFF=y</board>
+        <board name="cwm">NEXUS_USE_7449S_CWM=y</board>
+        <board name="3390_vms">NEXUS_USE_3390_VMS=y</board>
+        <board name="sv">NEXUS_USE_7439_SV=y</board>
+        <board name="sat">NEXUS_USE_7252S_SAT=y</board>
+        <board name="xid">NEXUS_USE_74371_XID=y</board>
+        <board name="7251_sv">NEXUS_USE_7251_SV=y</board>
+        <board name="7251_t2sff">NEXUS_USE_7251_T2SFF=y</board>
+        <board name="sff">NEXUS_USE_7439_SFF=y</board>
+        <board name="dr3">NEXUS_USE_7439_SV=y,NEXUS_USE_7439_DR3=y</board>
+    </boards>
+  </platform>
+  <platform id="97445">
+    <bondouts>97252</bondouts>
+    <revisions>D0,E0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards>
+        <board name="lcc">NEXUS_USE_7445_LCC=y</board>
+        <board name="auto">NEXUS_USE_7445_AUTO=y</board>
+        <board name="vms_sff">NEXUS_USE_7445_VMS_SFF=y</board>
+        <board name="c">NEXUS_USE_7445_C=y</board>
+        <board name="sv">NEXUS_USE_7445_SV=y</board>
+        <board name="dbs">NEXUS_USE_7445_DBS=y</board>
+        <board name="ext24">NEXUS_USE_7445_EXT24=y</board>
+    </boards>
+  </platform>
+  <platform id="97552">
+    <bondouts></bondouts>
+    <revisions>B0</revisions>
+    <cpu_arch>OLD_MIPS</cpu_arch>
+    <boards></boards>
+  </platform>
+  <platform id="97563">
+    <bondouts>975639</bondouts>
+    <revisions>A0</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="dgl">NEXUS_PLATFORM_7563_DGL=y</board>
+        <board name="sff">NEXUS_PLATFORM_75639_SFF=y</board>
+        <board name="rsff4l">NEXUS_PLATFORM_7563_RSFF4L=y</board>
+        <board name="usff2l">NEXUS_PLATFORM_7563_USFF2L=y</board>
+        <board name="ulc">NEXUS_PLATFORM_7563_ULC=y</board>
+        <board name="sv"></board>
+    </boards>
+  </platform>
+  <platform id="975635">
+    <bondouts>975638</bondouts>
+    <revisions>A0</revisions>
+    <kernel_chip>7563</kernel_chip>
+    <kernel_rev>A0</kernel_rev>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="sff">NEXUS_PLATFORM_75639_SFF=y</board>
+        <board name="ulc">NEXUS_PLATFORM_7563_ULC=y</board>
+        <board name="sv"></board>
+    </boards>
+  </platform>
+  <platform id="97584">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="sv">NEXUS_USE_7584_SV=y</board>
+        <board name="sff">NEXUS_USE_7584_SFF=y</board>
+        <board name="wifi">NEXUS_USE_7584_WIFI=y</board>
+    </boards>
+  </platform>
+  <platform id="975845">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <kernel_chip>7584</kernel_chip>
+    <kernel_rev>A0</kernel_rev>
+    <cpu_arch>MIPS</cpu_arch>
+    <boards>
+        <board name="sv">NEXUS_USE_7584_SV=y</board>
+        <board name="sff">NEXUS_USE_7584_SFF=y</board>
+        <board name="wifi">NEXUS_USE_7584_WIFI=y</board>
+    </boards>
+  </platform>
+  <platform id="97586">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <cpu_arch>ARM</cpu_arch>
+    <boards></boards>
+  </platform>
+</platforms>
+<kernels>
+  <version>1.0</version>
+  <kernel version="26" default="OLD_MIPS">2.6.37-3.5</kernel>
+  <kernel version="33" default="MIPS">3.3-4.2</kernel>
+  <kernel version="314">3.14-1.20</kernel>
+  <kernel version="41" default="ARM,BMIPS,97271B0">4.1-1.15</kernel>
+  <kernel version="49" default="ARM64">4.9-1.2</kernel>
+</kernels>
+</plat>

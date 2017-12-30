@@ -201,9 +201,10 @@ typedef struct BSAT_g1_P_Handle
    uint32_t              xtalFreq;              /* crystal freq in Hz */
    uint32_t              chipFamily;            /* FAMILY_ID */
    BSAT_NetworkSpec      networkSpec;           /* network spec */
+   uint32_t              *pSaBuf;               /* memory area for SA data */
+   uint32_t              afecRampSettings;      /* BSAT_g1_CONFIG_AFEC_RAM configuration parameter */
    bool                  bResetDone;            /* true if BSAT PI was just completed reset */
    uint8_t               sdsRevId;              /* SDS core revision ID */
-   uint32_t              *pSaBuf;               /* memory area for SA data */
 #ifdef BSAT_HAS_WFE
    uint8_t               nNotch;                /* number of spurs cancelled by DCO notch filter */
 #endif
@@ -383,6 +384,7 @@ typedef struct BSAT_g1_P_ChannelHandle
    bool                 bAbortAcq;             /* true if acquisition stopped by host */
    bool                 bFlag1;                /* general purpose */
    bool                 bEnableFineFreqEst;    /* true if fine frequency estimation is enabled */
+   bool                 bAfecRampEnabled;      /* true if AFEC ramping is enabled */
    uint8_t              blindScanCurrMode;     /* used in blind acquisition */
    uint8_t              relockCount;           /* number of times relocked without doing reacquisition */
    uint8_t              dvbs2ScanState;        /* used in DVB-S2 modcod scan mode */

@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 /***************************************************************************
@@ -87,10 +88,10 @@
 #define BCHP_PWR_HW_HVD_CH_CTRL_CH_1_POST_DIV_HOLD_CH1            0xff000021
 #define BCHP_PWR_HW_HVD_CH_CTRL_CH_2_POST_DIV_HOLD_CH2            0xff000022
 #define BCHP_PWR_HW_HVD_CH_CTRL_CH_5_POST_DIV_HOLD_CH5            0xff000023
-#define BCHP_PWR_HW_M2MC0                                         0xff000024
-#define BCHP_PWR_HW_M2MC0_SRAM                                    0xff000025
-#define BCHP_PWR_HW_M2MC1                                         0xff000026
-#define BCHP_PWR_HW_MMM2MC0_SRAM                                  0xff000027
+#define BCHP_PWR_HW_M2MC0_M2MC1                                   0xff000024
+#define BCHP_PWR_HW_M2MC0_SRAM_M2MC1_SRAM                         0xff000025
+#define BCHP_PWR_HW_MMM2MC0_SRAM                                  0xff000026
+#define BCHP_PWR_HW_MM_M2MC0                                      0xff000027
 #define BCHP_PWR_HW_NETWORK_CH_CTRL_CH_5_POST_DIV_HOLD_CH5        0xff000028
 #define BCHP_PWR_HW_RAAGA0                                        0xff000029
 #define BCHP_PWR_HW_RAAGA0_AIO                                    0xff00002a
@@ -140,7 +141,10 @@
 #define BCHP_PWR_DV_HVD_CTRL_CH2_div                              0xff000056
 #define BCHP_PWR_DV_HVD_CTRL_CH5_div                              0xff000057
 #define BCHP_PWR_DV_NETWORK_CTRL_CH5_div                          0xff000058
-#define BCHP_PWR_DV_XPT_CTRL_CH4_div                              0xff000059
+#define BCHP_PWR_DV_XPT_CTRL_CH1_div                              0xff000059
+#define BCHP_PWR_DV_XPT_CTRL_CH2_div                              0xff00005a
+#define BCHP_PWR_DV_XPT_CTRL_CH4_div                              0xff00005b
+#define BCHP_PWR_DV_XPT_CTRL_CH5_div                              0xff00005c
 
 /* This is the link between the public and private interface */
 void BCHP_PWR_P_HW_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool activate);
@@ -149,11 +153,11 @@ void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resou
 void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set);
 
 #define BCHP_PWR_P_NUM_NONLEAFS     59
-#define BCHP_PWR_P_NUM_NONLEAFSHW   32
-#define BCHP_PWR_P_NUM_LEAFS        47
+#define BCHP_PWR_P_NUM_NONLEAFSHW   35
+#define BCHP_PWR_P_NUM_LEAFS        44
 #define BCHP_PWR_P_NUM_MUXES        4
-#define BCHP_PWR_P_NUM_DIVS         6
-#define BCHP_PWR_P_NUM_ALLNODES     148
-#define BCHP_PWR_NUM_P_PMAPSETTINGS 6
+#define BCHP_PWR_P_NUM_DIVS         9
+#define BCHP_PWR_P_NUM_ALLNODES     151
+#define BCHP_PWR_NUM_P_PMAPSETTINGS 9
 
 #endif

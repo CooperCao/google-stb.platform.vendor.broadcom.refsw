@@ -781,6 +781,8 @@ typedef enum BCHP_Feature
 	BCHP_Feature_eMemCtrl2DDRDeviceTechCount, /* Size of memory part in MBits ie: 256, 512, 1024 */
 	BCHP_Feature_eMemCtrl2DramWidthCount,	  /* Size of data path 16, 32, 64 bits */
     BCHP_Feature_eAVDCoreFreq                 /* AVD Core freqencey */
+
+    /* *** NOTE: When adding new enums, ensure the correct default is set in BCHP_P_GetDefaultFeature() *** */
 } BCHP_Feature;
 
 /***************************************************************************
@@ -815,7 +817,7 @@ Summary:
 Description:
     The AVS PVT Monitor can collect various pieces of information.
     This is used to return that information to the caller.
-	Note that this data is only valid for 40nm parts that support AVS hardware.
+    Note that this data is only valid for 40nm parts that support AVS hardware.
 
 See Also:
     BCHP_GetAvsData()
@@ -831,6 +833,7 @@ typedef struct {
                           /* to convert use: float centigrade = temperature/1000.; */
     bool enabled;         /* AVS is enabled in the bootloader/CFE */
     bool tracking;        /* AVS-tracking is enabled in Nexus system software */
+    unsigned heartbeat;   /* AVS background counter, increments once a second, if alive */
 } BCHP_AvsData;
 
 
@@ -1033,7 +1036,7 @@ Summary:
 
 Description:
     This can be used to get various data associated with the AVS hardware.
-	This data will only be valid on 40nm parts that support AVS hardware.
+    This data will only be valid on 40nm parts that support AVS hardware.
 
 See Also:
     BCHP_Open
@@ -1042,7 +1045,7 @@ See Also:
 BERR_Code BCHP_GetAvsData_isrsafe(
     BCHP_Handle hChip,   /* [in] Chip handle */
     BCHP_AvsData *pData  /* [out] pointer to location to return data */
-	);
+    );
 
 /***************************************************************************
 Summary:
@@ -1131,7 +1134,7 @@ BERR_Code BCHP_GetMemoryInfo_PreInit(
     );
 
 /* Stripe memory address may be shuffled if the MEMC bus protocol supports it */
-BSTD_DeviceOffset BCHP_ShuffleStripedPixelOffset(BCHP_Handle hChp, unsigned memcIdx, BSTD_DeviceOffset offset);
+BSTD_DeviceOffset BCHP_ShuffleStripedPixelOffset(BCHP_Handle hChp, unsigned memcIdx, unsigned offset);
 
 
 /* BP3 Do NOT Modify Start */

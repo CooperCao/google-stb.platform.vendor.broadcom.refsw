@@ -55,7 +55,7 @@ typedef struct
    v3d_size_t code_offset; // Offset of code for this shader in GLXX_LINK_RESULT_DATA_T.res
    GLXX_UNIFORM_MAP_T *uniform_map;
    v3d_threading_t threading;
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    bool single_seg;
 #endif
 } GLXX_SHADER_DATA_T;
@@ -67,13 +67,14 @@ typedef struct
 #define GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS     (1<<8)   // 2 bits (bin/render)
 #define GLXX_SHADER_FLAGS_FS_WRITES_Z                    (1<<10)
 #define GLXX_SHADER_FLAGS_FS_EARLY_Z_DISABLE             (1<<11)
-#define GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW           (1<<12)
-#define GLXX_SHADER_FLAGS_PER_SAMPLE                     (1<<13)
-#define GLXX_SHADER_FLAGS_TCS_BARRIERS                   (1<<14)
-#define GLXX_SHADER_FLAGS_PRIM_ID_USED                   (1<<15)
-#define GLXX_SHADER_FLAGS_PRIM_ID_TO_FS                  (1<<16)
+#define GLXX_SHADER_FLAGS_FS_NEEDS_W                     (1<<12)
+#define GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW           (1<<13)
+#define GLXX_SHADER_FLAGS_PER_SAMPLE                     (1<<14)
+#define GLXX_SHADER_FLAGS_TCS_BARRIERS                   (1<<15)
+#define GLXX_SHADER_FLAGS_PRIM_ID_USED                   (1<<16)
+#define GLXX_SHADER_FLAGS_PRIM_ID_TO_FS                  (1<<17)
 #if V3D_VER_AT_LEAST(4,0,2,0)
-#define GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS         (1<<17)
+#define GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS         (1<<18)
 #endif
 
 struct attr_rec {
@@ -140,21 +141,24 @@ typedef struct glxx_link_result_data
    };
 #endif
 
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
    struct
    {
       uint16_t wgs_per_sg;       // number of work-groups per super-group.
+    #if V3D_USE_CSD
+      uint8_t max_sg_id;         // maximum number of concurrent super-groups minus 1.
+    #else
       uint16_t max_wgs;          // maximum number of concurrent work-groups.
       bool has_barrier;
+    #endif
       bool allow_concurrent_jobs;
    } cs;
 #endif
 
-#define GLXX_NUM_SHADING_FLAG_WORDS ((GLXX_CONFIG_MAX_VARYING_SCALARS+23)/24)
-   uint32_t varying_centroid[GLXX_NUM_SHADING_FLAG_WORDS];
-   uint32_t varying_flat[GLXX_NUM_SHADING_FLAG_WORDS];
-#if V3D_HAS_VARY_NO_PERSP
-   uint32_t varying_noperspective[GLXX_NUM_SHADING_FLAG_WORDS];
+   uint32_t varying_centroid[V3D_MAX_VARY_FLAG_WORDS];
+   uint32_t varying_flat[V3D_MAX_VARY_FLAG_WORDS];
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   uint32_t varying_noperspective[V3D_MAX_VARY_FLAG_WORDS];
 #endif
 
    struct

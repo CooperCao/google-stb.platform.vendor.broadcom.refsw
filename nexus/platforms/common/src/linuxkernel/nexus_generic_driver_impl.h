@@ -70,6 +70,7 @@ struct nexus_driver_state {
             BDBG_FifoReader_Handle fifo;
         }readers[NEXUS_DRIVER_MAX_LOG_READERS];
         unsigned char buffer[64*1024];
+        void *dynamicBuffer;
     } debugLog;
     b_memory_region_set dynamic_memory;
 

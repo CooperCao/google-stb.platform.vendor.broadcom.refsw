@@ -540,6 +540,7 @@ void B_Scheduler_Run(
                     scheduler->timerChanged = false;
                     BLST_S_REMOVE(&scheduler->timerList, pFirstTimer, B_SchedulerTimer, node);
                 }
+                /* coverity[use] */
                 B_Os_Free(pFirstTimer);
             }
             else if ( timeout > 0 )

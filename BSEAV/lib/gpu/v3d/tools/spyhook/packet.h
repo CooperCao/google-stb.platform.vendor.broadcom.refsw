@@ -67,8 +67,17 @@ public:
    PacketItem(const char *c);
    PacketItem(void *a, uint32_t numBytes);
 
-   void Send(Remote *rem);
-   void Send(Comms *comms);
+   template<class T>
+   void Send(T &rem)
+   {
+      uint32_t t = m_type;
+      rem->Send((uint8_t*)&t, sizeof(t));
+      rem->Send((uint8_t*)&m_numBytes, sizeof(m_numBytes));
+      if (m_numBytes <= 4 && m_type != eBYTE_ARRAY && m_type != eCHAR_PTR)
+         rem->Send((uint8_t*)&m_data, m_numBytes, false);
+      else
+         rem->Send((uint8_t*)m_data, m_numBytes, m_type == eBYTE_ARRAY);
+   }
 
    eDataType Type() const { return m_type; }
 
@@ -146,8 +155,22 @@ public:
 
    std::shared_ptr<uint8_t> AddBuffer(size_t size);
    void AddItem(const PacketItem &item) { m_items.push_back(item); }
-   void Send(Remote *rem);
-   void Send(Comms *comms);
+
+   template<class T>
+   void Send(T &rem)
+   {
+      uint32_t t = m_type;
+      rem->Send((uint8_t*)&t, sizeof(t));
+
+      t = m_items.size();
+      rem->Send((uint8_t*)&t, sizeof(t));
+
+      std::vector<PacketItem>::iterator iter;
+      for (iter = m_items.begin(); iter != m_items.end(); ++iter)
+         (*iter).Send(rem);
+
+      rem->Flush();
+   }
 
    void SetType(ePacketType t) { m_type = t; }
    ePacketType Type() const { return m_type; }

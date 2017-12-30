@@ -249,7 +249,7 @@ void CPid::readXML(MXmlElement * xmlElemPid)
         }
     }
 
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     {
         MXmlElement * xmlElemSecurity = NULL;
 
@@ -499,7 +499,8 @@ void CPid::encrypt(
         _pCrypto->encrypt(encrypt);
         _pCrypto->keySlotConfig();
         _pCrypto->setAlgorithmSettings();
-    } else
+    }
+    else
     {
         BDBG_MSG(("Setting up new Crypto"));
         CCryptoCP * pCrypto = new CCryptoCP("Crypto Pid");

@@ -64,6 +64,9 @@ static uint32_t nextTaskNum = 0;
 SpinLock TzTask::termLock;
 tzutils::Vector<TzTask *> TzTask::tasks;
 
+ObjCacheAllocator<ProcessGroup> ProcessGroup::pgAllocator;
+tzutils::Vector<ProcessGroup *> ProcessGroup::pgList;
+
 PerCPU<TzTask *> TzTask::nwProxyTask;
 
 extern "C" uint32_t smcService(uint32_t);
@@ -83,6 +86,8 @@ void TzTask::initNoTask()
     allocator.init();
     spinLockInit(&termLock);
     tasks.init();
+
+    ProcessGroup::init();
 }
 
 void TzTask::init() {
@@ -92,6 +97,7 @@ void TzTask::init() {
     _regBaseOffset = (uintptr_t)&(((TzTask *) 0)->savedRegBase);
     _neonRegBaseOffset = (uintptr_t)&(((TzTask *) 0)->savedNeonRegBase);
 
+    ProcessGroup::init();
 
     TzTask *nwTask = new TzTask(nswTask, nullptr, NS_WORLD_PRIORITY, "NWOS");
     if (nwTask == nullptr) {
@@ -124,6 +130,7 @@ void TzTask::initSecondaryCpu() {
     }
 
     nwProxyTask.cpuLocal() = nwTask;
+    Scheduler::addTask(nwTask);
 
     // Do not add this task to the scheduler's run queue. The schedule() method
     // in scheduler object running on non-boot CPU,  will automatically pick up this
@@ -172,6 +179,7 @@ TzTask::TzTask(TaskFunction entry, void *ctx, unsigned int priority, const char 
     this->priority = priority;
     totalRunTime = 0;
     cumRunTime = 0;
+    taskRunTime = 0;
     slotTimeSlice = 0;
     lastScheduledAt = TzHwCounter::timeNow();
     startedAt = TzHwCounter::timeNow();
@@ -251,6 +259,11 @@ TzTask::TzTask(TaskFunction entry, void *ctx, unsigned int priority, const char 
 
     createUContext();
 
+    //great new process group for deamon
+    ProcessGroup::create(id());
+    ProcessGroup::addGroupMember(id(), this);
+    pgid = id();
+
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?
     tasks.pushBack(this);
@@ -278,6 +291,7 @@ TzTask::TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir, const
     this->priority = priority;
     totalRunTime = 0;
     cumRunTime = 0;
+    taskRunTime = 0;
     slotTimeSlice = 0;
     lastScheduledAt = TzHwCounter::timeNow();
     startedAt = TzHwCounter::timeNow();
@@ -409,6 +423,11 @@ TzTask::TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir, const
 
     createUContext();
 
+    //create new process group for deamon
+    ProcessGroup::create(id());
+    ProcessGroup::addGroupMember(id(), this);
+    pgid = id();
+
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?
     tasks.pushBack(this);
@@ -436,6 +455,7 @@ TzTask::TzTask(TzTask& parentTask) :
     this->priority = parentTask.priority;
     totalRunTime = 0;
     cumRunTime = 0;
+    taskRunTime = 0;
     slotTimeSlice = 0;
     lastScheduledAt = TzHwCounter::timeNow();
     startedAt = TzHwCounter::timeNow();
@@ -482,6 +502,7 @@ TzTask::TzTask(TzTask& parentTask) :
     // MUSL has moved the parent TLS region to user-space,
     // child inherits the page with AllocOnWrite by default.
     threadInfo = parentTask.threadInfo;
+    threadInfoCloned = true;
 
     for (int i=0; i<NUM_SAVED_CPU_REGS; i++) {
         savedRegs[i] = parentTask.savedRegs[i];
@@ -527,6 +548,9 @@ TzTask::TzTask(TzTask& parentTask) :
 
     createUContext();
 
+    ProcessGroup::addGroupMember(parentTask.pgid, this);
+    pgid = parentTask.pgid;
+
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?
     tasks.pushBack(this);
@@ -549,6 +573,21 @@ void yieldCurrentTask(unsigned int reason, unsigned int spsr) {
     Scheduler::addTask(currTask);
 }
 
+void resumeCurrentTask()
+{
+    TzTask *currTask = currentTask[arm::smpCpuNum()];
+
+    if(currTask->state != TzTask::Wait && currTask->state != TzTask::Defunct){
+        currTask->signalDispatch();
+        COMPILER_BARRIER();
+        Scheduler::updateTimeSlice();
+        Scheduler::removeTask(currTask);
+        currTask->run();
+    }
+    else
+        schedule();
+}
+
 void printReg()
 {
     TzTask *currTask = currentTask[arm::smpCpuNum()];
@@ -567,12 +606,13 @@ bool TzTask::getScheduler(int *policy, int *schedPriority){
 
 bool TzTask::setScheduler(int policy, int schedPriority){
 
-    if((policy != SCHED_OTHER) && (policy != SCHED_DEADLINE))
+    if((policy == SCHED_BATCH) || (policy == SCHED_IDLE))
         policy = SCHED_OTHER;
 
     if(type != policy){
         totalRunTime = 0;
         cumRunTime = 0;
+        taskRunTime = 0;
         slotTimeSlice = 0;
         lastScheduledAt = TzHwCounter::timeNow();
     }
@@ -811,6 +851,73 @@ int TzTask::changeOwner(uint16_t newOwner) {
     return 0;
 }
 
+int TzTask::changeProcessGroup(unsigned int newPgid) {
+    if (newPgid == pgid) return 0;
+
+    ProcessGroup *newPgrp = ProcessGroup::lookUp(newPgid);
+    if (newPgrp == nullptr) {
+        printf(" %s: process group dosen't exist \n", __PRETTY_FUNCTION__);
+        return -EINVAL;
+    }
+
+    int rc = ProcessGroup::removeGroupMember(pgid, this);
+    if (rc < 0) {
+        return rc;
+    }
+
+    rc = ProcessGroup::addGroupMember(newPgid, this);
+    if (rc < 0) {
+        return rc;
+    }
+    pgid = newPgid;
+
+    return 0;
+}
+
+int TzTask::setPgId(unsigned int pid, unsigned int newPgid) {
+    // target current task if pid is zero
+    if (!pid) pid = id();
+
+    TzTask *target = TzTask::taskFromId((int)pid);
+    if (target == nullptr) {
+        return -ESRCH;
+    }
+
+    // check credentials TODO: properly check here target uid
+    if (target->uid != System::UID)
+        return -EPERM;
+
+    //if target task different from current task
+    //then check parent child relation before child exec
+    //if (target->id() != id() && (target->image != image)
+    //    return -EACCES;
+
+    // if newPgid is zero create new process group and assign pid as pgid
+    if (!newPgid) {
+        ProcessGroup::create(pid);
+        target->changeProcessGroup(pid);
+    } else {
+        target->changeProcessGroup(newPgid);
+    }
+
+    return 0;
+}
+
+int TzTask::getPgId(unsigned int pid) {
+    // target current task if pid is zero
+    if (!pid) pid = id();
+
+    TzTask *target = TzTask::taskFromId((int)pid);
+    if (target == nullptr) {
+        return -ESRCH;
+    }
+    // check credentials TODO: properly check here target uid
+    if (target->uid != System::UID)
+        return -EPERM;
+
+    return target->pgid;
+}
+
 int TzTask::pause() {
 
     yield();
@@ -880,4 +987,123 @@ void TzTask::terminationLock() {
 
 void TzTask::terminationUnlock() {
     spinLockRelease(&termLock);
+}
+
+void ProcessGroup::init() {
+    pgAllocator.init();
+    pgList.init();
+
+}
+
+void *ProcessGroup::operator new (size_t sz) {
+    UNUSED(sz);
+    void *rv = pgAllocator.alloc();
+    return rv;
+}
+
+void ProcessGroup::operator delete (void *pgrp) {
+    pgAllocator.free((ProcessGroup *)pgrp);
+}
+
+ProcessGroup::ProcessGroup(int prgrid) {
+    pgid = prgrid;
+    taskList.init();
+    pgList.pushBack(this);
+}
+
+ProcessGroup::~ProcessGroup() {
+    int nc = pgList.numElements();
+    for (int i = 0; i < nc ; i++) {
+        if (pgList[i]->pgid == pgid) {
+            pgList[i] = pgList[nc-1];
+            pgList.popBack(nullptr);
+            break;
+        }
+    }
+}
+
+int ProcessGroup::getIdxFromTid(unsigned int tid) {
+    int numtasks = taskList.numElements();
+    for (int i = 0; i < numtasks; i++) {
+        if (taskList[i]->id() == tid)
+            return i;
+    }
+    return -1;
+}
+
+int ProcessGroup::addGroupMember(int pgid, TzTask* task) {
+    ProcessGroup* pgrp = lookUp(pgid);
+    if (nullptr == pgrp) return -EINVAL;
+
+    // check if it is already added
+    if (pgrp->getIdxFromTid(task->id()) != -1) {
+        return 0;
+    }
+    pgrp->taskList.pushBack(task);
+    return 0;
+}
+
+int ProcessGroup::removeGroupMember(int pgid, TzTask* task) {
+    ProcessGroup* pgrp = lookUp(pgid);
+    if (nullptr == pgrp) return -EINVAL;
+
+    // check if it exist
+    int idx = pgrp->getIdxFromTid(task->id());
+    if (idx == -1) {
+        return 0;
+    }
+    TzTask *bottomTask = nullptr;
+    pgrp->taskList.popBack(&bottomTask);
+
+    int numTasks = pgrp->taskList.numElements();
+    if (!numTasks) {
+        delete pgrp;
+        return 0;
+    }
+
+    pgrp->taskList[idx] = bottomTask;
+    return 0;
+
+}
+
+int ProcessGroup::signalGroup(int sigNum) {
+    if (sigNum >= TzTask::NumSignals) {
+        return -EINVAL;
+    }
+
+    int numTasks = taskList.numElements();
+    for (int i = 0; i < numTasks; i++) {
+        taskList[i]->sigQueue(sigNum);
+    }
+    return 0;
+}
+
+int ProcessGroup::signalGroup(int pgid, int sigNum) {
+    ProcessGroup* pgrp = lookUp(pgid);
+    if (nullptr == pgrp) {
+        printf(" %s : process group dosen't exist \n", __PRETTY_FUNCTION__);
+        return -EINVAL;
+    }
+    return pgrp->signalGroup(sigNum);
+}
+
+ProcessGroup* ProcessGroup::lookUp(int pgid) {
+    int numPgs = pgList.numElements();
+    for (int i = 0; i < numPgs; i++) {
+        if (pgList[i]->pgid == pgid)
+            return pgList[i];
+    }
+    return nullptr;
+}
+
+ProcessGroup* ProcessGroup::create(int pgid) {
+    // check if it is already exist
+    ProcessGroup *epgrp = lookUp(pgid);
+    if (epgrp != nullptr) {
+        printf("%s : Process group id = %d already exist, can't create\n", __PRETTY_FUNCTION__, pgid);
+        return epgrp;
+    }
+    // create new
+    ProcessGroup *pgrp = new ProcessGroup(pgid);
+    return pgrp;
 }

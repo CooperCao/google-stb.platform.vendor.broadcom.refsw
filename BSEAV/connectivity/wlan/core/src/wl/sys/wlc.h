@@ -183,11 +183,11 @@
 
 #define WLC_STA_RETRY_MAX_TIME	3600	/* maximum config value for sta_retry_time (1 hour) */
 
-#define WLC_2G_ROAM_TRIGGER	(-75)	/* Roam trigger for all other radios */
+#define WLC_2G_ROAM_TRIGGER	(-150)	/* Roam trigger for all other radios */
 #define WLC_2G_ROAM_DELTA	(20)	/* Roam delta for all other radios */
-#define WLC_5G_ROAM_TRIGGER	(-75)	/* Roam trigger for all other radios */
+#define WLC_5G_ROAM_TRIGGER	(-150)	/* Roam trigger for all other radios */
 #define WLC_5G_ROAM_DELTA	(15)	/* Roam delta for all other radios */
-#define WLC_AUTO_ROAM_TRIGGER	(-75)	/* This value can dynamically change */
+#define WLC_AUTO_ROAM_TRIGGER	(-150)	/* This value can dynamically change */
 #define WLC_AUTO_ROAM_DELTA	(15)	/* Can also change under motion */
 #define WLC_NEVER_ROAM_TRIGGER	(-150) /* Avoid Roaming by setting a large value */
 #define WLC_NEVER_ROAM_DELTA	(150)  /* Avoid Roaming by setting a large value */
@@ -470,7 +470,8 @@ extern const uint8 prio2fifo[];
 #define	MAXTXFRAMEBURST		MAXTXFRAMEBURST_MAX
 #endif
 
-#define	MAXFRAMEBURST_TXOP	10000		/* Frameburst TXOP in usec */
+#define	MAXFRAMEBURST_TXOP	12000u		/* Frameburst TXOP in usec */
+#define	MAXFRAMEBURST_TXOP_EU	6000u		/* Frameburst TXOP in usec to use in EU (EU-RED) */
 
 #ifdef STA
 /* PM2 tick time in milliseconds and gptimer units */

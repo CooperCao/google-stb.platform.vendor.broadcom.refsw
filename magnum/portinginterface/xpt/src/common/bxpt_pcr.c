@@ -782,15 +782,15 @@ void BXPT_PCR_FreezeIntegrator(
 #else
     uint32_t Reg;
 
+	/* Allow freezing the integrator when there isn't a valid PID channel mapped. This can happen during free-run */
+    Reg = BREG_Read32( hPcr->hRegister, BCHP_XPT_DPCR0_LOOP_CTRL + hPcr->RegOffset );
+    BCHP_SET_FIELD_DATA( Reg, XPT_DPCR0_LOOP_CTRL, FREEZE_INTEGRATOR, Freeze == true ? 1 : 0 );
+    BREG_Write32( hPcr->hRegister, BCHP_XPT_DPCR0_LOOP_CTRL + hPcr->RegOffset, Reg );
+
     if(!hPcr->pidChnlConfigured)
     {
         return; /* Ignore calls if they haven't pidChnlConfigured the hardware. */
     }
-
-    Reg = BREG_Read32( hPcr->hRegister, BCHP_XPT_DPCR0_LOOP_CTRL + hPcr->RegOffset );
-    Reg &= ~( BCHP_MASK( XPT_DPCR0_LOOP_CTRL, FREEZE_INTEGRATOR ));
-    Reg |= BCHP_FIELD_DATA( XPT_DPCR0_LOOP_CTRL, FREEZE_INTEGRATOR, Freeze == true ? 1 : 0 );
-    BREG_Write32( hPcr->hRegister, BCHP_XPT_DPCR0_LOOP_CTRL + hPcr->RegOffset, Reg );
 
     /* Freezing the integrator requires stopping PCR processing, so mark the PCR PID as invalid */
     Reg = BREG_Read32(hPcr->hRegister, BCHP_XPT_DPCR0_PID_CH  + hPcr->RegOffset);

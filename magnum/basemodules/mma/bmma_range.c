@@ -86,7 +86,7 @@ struct  BMMA_RangeAllocator_Block {
 
 BLST_AA_TREE_HEAD(BMMA_RangeAllocator_SizeTree, BMMA_RangeAllocator_Block);
 
-static int BMMA_RangeAllocator_SizeTree_Compare(const struct BMMA_RangeAllocator_Block *node, const BMMA_RangeAllocator_Region *region)
+static int BMMA_RangeAllocator_SizeTree_Compare_isrsafe(const struct BMMA_RangeAllocator_Block *node, const BMMA_RangeAllocator_Region *region)
 {
     if(region->length > node->region.length) {
         return -1;
@@ -102,9 +102,9 @@ static int BMMA_RangeAllocator_SizeTree_Compare(const struct BMMA_RangeAllocator
 }
 
 #if 0
-BLST_AA_TREE_GENERATE_FIND(BMMA_RangeAllocator_SizeTree, const BMMA_RangeAllocator_Region *, BMMA_RangeAllocator_Block, size_node, BMMA_RangeAllocator_SizeTree_Compare)
+BLST_AA_TREE_GENERATE_FIND(BMMA_RangeAllocator_SizeTree, const BMMA_RangeAllocator_Region *, BMMA_RangeAllocator_Block, size_node, BMMA_RangeAllocator_SizeTree_Compare_isrsafe)
 #endif
-BLST_AA_TREE_GENERATE_INSERT(BMMA_RangeAllocator_SizeTree, const BMMA_RangeAllocator_Region *, BMMA_RangeAllocator_Block, size_node, BMMA_RangeAllocator_SizeTree_Compare)
+BLST_AA_TREE_GENERATE_INSERT(BMMA_RangeAllocator_SizeTree, const BMMA_RangeAllocator_Region *, BMMA_RangeAllocator_Block, size_node, BMMA_RangeAllocator_SizeTree_Compare_isrsafe)
 BLST_AA_TREE_GENERATE_REMOVE(BMMA_RangeAllocator_SizeTree, BMMA_RangeAllocator_Block, size_node)
 BLST_AA_TREE_GENERATE_FIRST(BMMA_RangeAllocator_SizeTree, BMMA_RangeAllocator_Block, size_node)
 BLST_AA_TREE_GENERATE_NEXT(BMMA_RangeAllocator_SizeTree, BMMA_RangeAllocator_Block, size_node)
@@ -418,7 +418,7 @@ BMMA_DeviceOffset BMMA_RangeAllocator_GetAllocationBase_isrsafe(BMMA_RangeAlloca
     return addr;
 }
 
-size_t BMMA_RangeAllocator_GetAllocationSize(BMMA_RangeAllocator_Block_Handle b)
+size_t BMMA_RangeAllocator_GetAllocationSize_isrsafe(BMMA_RangeAllocator_Block_Handle b)
 {
     BDBG_OBJECT_ASSERT(b, BMMA_RangeAllocator_Block);
     return b->state.size;
@@ -669,13 +669,14 @@ static BERR_Code BMMA_RangeAllocator_P_SplitFreeBlock(BMMA_RangeAllocator_Handle
 
 BERR_Code BMMA_RangeAllocator_Alloc(BMMA_RangeAllocator_Handle a, BMMA_RangeAllocator_Block_Handle *block, size_t size, const BMMA_RangeAllocator_BlockSettings *settings)
 {
-    unsigned alignment = a->settings.minAlignment;
+    unsigned alignment;
     BERR_Code rc;
     BMMA_RangeAllocator_Block_Handle b;
     BMMA_P_RangeAllocator_Allocation allocation;
     BMMA_RangeAllocator_BlockSettings defaultSettings;
     BDBG_OBJECT_ASSERT(a, BMMA_RangeAllocator);
 
+    alignment = a->settings.minAlignment;
     if(size==0) {
         size = 1;
     }
@@ -813,8 +814,10 @@ static bool BMMA_P_RangeAllocator_TestRelocatable(BMMA_RangeAllocator_Handle a, 
 static BERR_Code BMMA_P_RangeAllocator_Relocate(BMMA_RangeAllocator_Handle a,  BMMA_RangeAllocator_Block_Handle first, BMMA_RangeAllocator_Block_Handle last, BMMA_RangeAllocator_CompactionStatus *status)
 {
     BMMA_RangeAllocator_Block_Handle b;
-    BMMA_RangeAllocator_Block_Handle free = BLST_D_PREV(first, link);
+    BMMA_RangeAllocator_Block_Handle free;
 
+    BDBG_OBJECT_ASSERT(first, BMMA_RangeAllocator_Block);
+    free = BLST_D_PREV(first, link);
     for(b=first;;) {
         BMMA_P_RangeAllocator_Allocation allocation;
         BMMA_RangeAllocator_Region block;

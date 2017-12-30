@@ -5,6 +5,10 @@
 #include "bsg_exception.h"
 #include "bsg_platform_nexus.h"
 
+#ifdef SINGLE_PROCESS
+#include "nexus_init_for_3d.h"
+#endif
+
 #include <math.h>
 #include <malloc.h>
 #include <memory.h>
@@ -227,201 +231,80 @@ static void irCallback(void *pParam, int iParam)
 #endif
 
 #ifdef SINGLE_PROCESS
-static void NexusMemMinimum(NEXUS_MemoryConfigurationSettings *pSettings)
+
+#if NEXUS_HAS_SAGE
+static void NexusInitSecure()
 {
-   unsigned i, j;
-   for (i = 0; i < NEXUS_MAX_DISPLAYS; i++)
-   {
-      for (j = 0; j < NEXUS_NUM_VIDEO_WINDOWS; j++)
-      {
-         pSettings->display[i].window[j].used = i < 1 && j < 1;
-         if (pSettings->display[i].window[j].used)
-         {
-            pSettings->display[i].maxFormat = NEXUS_VideoFormat_e1080i;
-            pSettings->display[i].window[j].convertAnyFrameRate = false;
-            pSettings->display[i].window[j].precisionLipSync = false;
-            pSettings->display[i].window[j].capture = false;
-            pSettings->display[i].window[j].deinterlacer = NEXUS_DeinterlacerMode_eNone;
-         }
-      }
-   }
-
-#if NEXUS_NUM_STILL_DECODES
-   for (i = 0; i < NEXUS_NUM_STILL_DECODES; i++)
-   {
-      pSettings->stillDecoder[i].used = false;
-   }
-#endif
-
-#if NEXUS_HAS_VIDEO_DECODER
-   for (i = 0; i < NEXUS_NUM_VIDEO_DECODERS; i++)
-   {
-      pSettings->videoDecoder[i].used = false;
-   }
-#endif
-
-#if NEXUS_HAS_VIDEO_ENCODER
-   for (i = 0; i < NEXUS_MAX_VIDEO_ENCODERS; i++)
-   {
-      pSettings->videoEncoder[i].used = false;
-   }
-#endif
-}
-
-static bool InitMaxMemConfig(NEXUS_PlatformSettings *platformSettings, NEXUS_MemoryConfigurationSettings *memConfigSettings)
-{
-   NEXUS_Error err = NEXUS_NOT_SUPPORTED;
-
-   /* Bring Nexus up in default config ONLY because we can't find which is the 3D heap without it. */
-   NEXUS_SetEnv("NEXUS_BASE_ONLY_INIT", "y");
-   err = NEXUS_Platform_Init(platformSettings);
-   if (err != NEXUS_SUCCESS)
-   {
-      printf("NEXUS_Platform_Init() failed\n");
-      return false;
-   }
-   NEXUS_SetEnv("NEXUS_BASE_ONLY_INIT", NULL);
-
-   NEXUS_PlatformConfiguration configuration;
-   NEXUS_Platform_GetConfiguration(&configuration);
-
-   NEXUS_HeapHandle heap3D = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-
-   int heap3DIndex = -1;
-   if (configuration.heap[NEXUS_MEMC0_GRAPHICS_HEAP] == heap3D)
-   {
-      heap3DIndex = NEXUS_MEMC0_GRAPHICS_HEAP;
-   }
-#ifdef NEXUS_MEMC1_GRAPHICS_HEAP
-   else if (configuration.heap[NEXUS_MEMC1_GRAPHICS_HEAP] == heap3D)
-   {
-      heap3DIndex = NEXUS_MEMC1_GRAPHICS_HEAP;
-   }
-#endif
-   else
-   {
-      printf("Couldn't find 3D heap\n");
-      NEXUS_Platform_Uninit();
-      return false;
-   }
-
-   /* If we resize the heaps or not, we will reinitialise the platform anyway */
-   NEXUS_Platform_Uninit();
-
-   /* 3D heap is everything left */
-   platformSettings->heap[heap3DIndex].size = -1;
-
-   /* Minimise video memory usage */
-   NEXUS_GetDefaultMemoryConfigurationSettings(memConfigSettings);
-   NexusMemMinimum(memConfigSettings);
-
-   return true;
-}
-
-static void InitializeNexusSingle(bool secure)
-{
-   NEXUS_Error                         err = NEXUS_NOT_SUPPORTED;
-   NEXUS_PlatformSettings              platformSettings;
-   NEXUS_MemoryConfigurationSettings   memConfigSettings;
-
-   char *env = getenv("V3D_USE_MAX_GRAPHICS_MEM");
-   bool maxMem = env != NULL && atoi(env) == 1;
-
+   NEXUS_PlatformSettings platformSettings;
    NEXUS_Platform_GetDefaultSettings(&platformSettings);
    platformSettings.openFrontend = false;
 
+   NEXUS_MemoryConfigurationSettings memConfigSettings;
    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
+   memConfigSettings.videoDecoder[0].secure = NEXUS_SecureVideo_eBoth;
+   for (int j = 0; j < NEXUS_NUM_VIDEO_WINDOWS; j++)
+      memConfigSettings.display[0].window[j].secure = NEXUS_SecureVideo_eBoth;
 
-   bool initWithMemConfig = false;
-   if (maxMem || secure)
-      initWithMemConfig = true;
-
-#if NEXUS_HAS_SAGE
    uint32_t secure_graphics_heap;
-
-   if (secure)
-   {
-      uint32_t secure_graphics_memc;
-
-      memConfigSettings.videoDecoder[0].secure = NEXUS_SecureVideo_eBoth;
-      for (int j = 0; j < NEXUS_NUM_VIDEO_WINDOWS; j++)
-         memConfigSettings.display[0].window[j].secure = NEXUS_SecureVideo_eBoth;
-
+   uint32_t secure_graphics_memc;
 #if defined(NEXUS_MEMC2_SECURE_GRAPHICS_HEAP)
-      secure_graphics_heap = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
-      secure_graphics_memc = 2;
+   secure_graphics_heap = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
+   secure_graphics_memc = 2;
 #elif defined(NEXUS_MEMC1_SECURE_GRAPHICS_HEAP)
-      secure_graphics_heap = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP;
-      secure_graphics_memc = 1;
+   secure_graphics_heap = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP;
+   secure_graphics_memc = 1;
 #elif defined(NEXUS_MEMC0_SECURE_GRAPHICS_HEAP)
-      secure_graphics_heap = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP;
-      secure_graphics_memc = 0;
+   secure_graphics_heap = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP;
+   secure_graphics_memc = 0;
 #elif defined(NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP)
-      secure_graphics_heap = NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP;
-      secure_graphics_memc = 0;
+   secure_graphics_heap = NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP;
+   secure_graphics_memc = 0;
 #endif
-      platformSettings.heap[secure_graphics_heap].size = 64 * 1024 * 1024;
-      platformSettings.heap[secure_graphics_heap].memcIndex = secure_graphics_memc;
-      platformSettings.heap[secure_graphics_heap].heapType = NEXUS_HEAP_TYPE_SECURE_GRAPHICS;
-      platformSettings.heap[secure_graphics_heap].memoryType =
-         NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED |
-         NEXUS_MEMORY_TYPE_MANAGED |
-         NEXUS_MEMORY_TYPE_SECURE;
-   }
-   else
-#endif
-   if (maxMem)
+   platformSettings.heap[secure_graphics_heap].size = 64 * 1024 * 1024;
+   platformSettings.heap[secure_graphics_heap].memcIndex = secure_graphics_memc;
+   platformSettings.heap[secure_graphics_heap].heapType = NEXUS_HEAP_TYPE_SECURE_GRAPHICS;
+   platformSettings.heap[secure_graphics_heap].memoryType =
+      NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED |
+      NEXUS_MEMORY_TYPE_MANAGED |
+      NEXUS_MEMORY_TYPE_SECURE;
+
+   NEXUS_Error err = NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings);
+   if (err != NEXUS_SUCCESS)
    {
-      /* Hackery to maximize the amount of device memory we get if the V3D_USE_MAX_GRAPHICS_MEM env var is set */
-      if (!InitMaxMemConfig(&platformSettings, &memConfigSettings))
-      {
-         printf("Couldn't allocate requested max-memory\n");
-         return;
-      }
+      printf("NEXUS_Platform_MemConfigInit() failed\n");
+      return;
    }
 
-   if (initWithMemConfig)
+   NEXUS_PlatformConfiguration platform_config;
+   NEXUS_MemoryStatus memory_status_0, memory_status_1;
+   NEXUS_Platform_GetConfiguration(&platform_config);
+   /* Ensure secure graphics heap is also GFD0 accessible. In a multiprocess system, clients blit to large offscreen secure graphics heap
+      and NSC copies to GFD0/GFD1 secure graphics. For this example, we keep it simple. */
+   err = NEXUS_Heap_GetStatus(NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE), &memory_status_0);
+   BDBG_ASSERT(!err);
+   err = NEXUS_Heap_GetStatus(NEXUS_Platform_GetFramebufferHeap(0), &memory_status_1);
+   BDBG_ASSERT(!err);
+   if (memory_status_0.memcIndex != memory_status_1.memcIndex)
    {
-      err = NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings);
-      if (err != NEXUS_SUCCESS)
-      {
-         printf("NEXUS_Platform_MemConfigInit() failed\n");
-         return;
-      }
+      printf("Application does not support multiple secure graphics heaps\n");
+      return;
    }
-   else
-   {
-      err = NEXUS_Platform_Init(&platformSettings);
-      if (err != NEXUS_SUCCESS)
-      {
-         printf("NEXUS_Platform_Init() failed\n");
-         return;
-      }
-   }
+   BDBG_ASSERT(platform_config.heap[secure_graphics_heap] == NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE));
+}
+#endif
 
+static void InitializeNexusSingle(bool secure)
+{
 #if NEXUS_HAS_SAGE
    if (secure)
-   {
-      NEXUS_PlatformConfiguration platform_config;
-      NEXUS_MemoryStatus memory_status_0, memory_status_1;
-      NEXUS_Platform_GetConfiguration(&platform_config);
-      /* Ensure secure graphics heap is also GFD0 accessible. In a multiprocess system, clients blit to large offscreen secure graphics heap
-         and NSC copies to GFD0/GFD1 secure graphics. For this example, we keep it simple. */
-      err = NEXUS_Heap_GetStatus(NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE), &memory_status_0);
-      BDBG_ASSERT(!err);
-      err = NEXUS_Heap_GetStatus(NEXUS_Platform_GetFramebufferHeap(0), &memory_status_1);
-      BDBG_ASSERT(!err);
-      if (memory_status_0.memcIndex != memory_status_1.memcIndex)
-      {
-         printf("Application does not support multiple secure graphics heaps\n");
-         return;
-      }
-      BDBG_ASSERT(platform_config.heap[secure_graphics_heap] == NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE));
-   }
+      NexusInitSecure();
+   else
 #endif
+      nexus_init_for_3d();
 
    NEXUS_Memory_PrintHeaps();
 }
+
 #endif
 
 #ifndef SINGLE_PROCESS
@@ -1061,7 +944,7 @@ void Platform::SetStereoscopic(bool on)
       vsi.hdmi3DStructure = NEXUS_HdmiVendorSpecificInfoFrame_3DStructure_eSidexSideHalf;
       NEXUS_HdmiOutput_SetVendorSpecificInfoFrame(hdmiOutput, &vsi);
 #endif
-      NXPL_SetDisplayType(platform_data->m_platformHandle, NXPL_3D_LEFT_RIGHT);
+      //NXPL_SetDisplayType(platform_data->m_platformHandle, NXPL_3D_LEFT_RIGHT);
 
       sentOne = true;
    }
@@ -1078,7 +961,7 @@ void Platform::SetStereoscopic(bool on)
       vsi.hdmiVideoFormat = NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat_eNone;
       NEXUS_HdmiOutput_SetVendorSpecificInfoFrame(hdmiOutput, &vsi);
 #endif
-      NXPL_SetDisplayType(platform_data->m_platformHandle, NXPL_2D);
+      //NXPL_SetDisplayType(platform_data->m_platformHandle, NXPL_2D);
 
       sentOne = true;
    }
@@ -2028,17 +1911,19 @@ NativePixmap::NativePixmap(uint32_t w, uint32_t h, ePixmapFormat format) :
    switch (format)
    {
    case RGB565_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eR5G6B5; break;
+   default:
    case ABGR8888_TEXTURE   : pixInfo.format = BEGL_BufferFormat_eR8G8B8A8; break;
-   case YUV422_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eVUY224_Texture; break;
-   case eYV12_TEXTURE      : pixInfo.format = BEGL_BufferFormat_eYV12_Texture; break;
+   //case YUV422_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eVUY224_Texture; break;
+   //case eYV12_TEXTURE      : pixInfo.format = BEGL_BufferFormat_eYV12_Texture; break;
    }
 #else
    switch (format)
    {
    case RGB565_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eR5G6B5; break;
+   default:
    case ABGR8888_TEXTURE   : pixInfo.format = BEGL_BufferFormat_eA8B8G8R8; break;
-   case YUV422_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eYUV422_Texture; break;
-   case eYV12_TEXTURE      : pixInfo.format = BEGL_BufferFormat_eYV12_Texture; break;
+   //case YUV422_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eYUV422_Texture; break;
+   //case eYV12_TEXTURE      : pixInfo.format = BEGL_BufferFormat_eYV12_Texture; break;
    }
 #endif
 

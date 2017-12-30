@@ -320,7 +320,7 @@ ifneq ($(findstring stb,$(TARGET)),)
     STBLINUX=1
 endif # stb
 
-ifneq ($(findstring wmf,$(TARGET)),)
+ifneq (,$(findstring wmf,$(TARGET))$(findstring stbap,$(TARGET)))
     ifeq ($(KBUILD_EXTRA_SYMBOLS),)
         export BCM_EXTERNAL_WMF_MODULES_REQUIRED=TRUE
         export EMF_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/components/router/emf/igs/$(OBJDIR)/Module.symvers
@@ -486,7 +486,7 @@ LDFLAGS := -r
 MODULES := wl.o
 ifeq ($(call wlan_version_ge,$(BCM_KVERSIONSTRING),2.6),TRUE)
   # Kernel module names in 2.6 kernel have .ko suffix
-  KMODULES:=wl.ko
+  KMODULES?=wl.ko
   ifneq ($(findstring nintendo,$(TARGET)),)
     KMODULES := wlpci.ko
     ifneq ($(findstring nintendo-sdio,$(TARGET)),)
@@ -496,7 +496,7 @@ ifeq ($(call wlan_version_ge,$(BCM_KVERSIONSTRING),2.6),TRUE)
       KMODULES := wl.ko
     endif
   else
-    KMODULES := wl.ko
+    KMODULES ?= wl.ko
   endif
 else # KERNEL < 2.6
   KMODULES:=$(MODULES)
@@ -533,7 +533,12 @@ DEBUGS := debug nodebug
 ###########################################################
 
 # Directory name includes target
+ifeq ($(SHORTER_PATH),1)
+OBJDIR=$(ObjPfx)${BCHP_VER}-$(LINUXVER)
+else
 OBJDIR=$(ObjPfx)$(TARGET)-$(LINUXVER)
+endif
+
 
 # Split apart make and config stuff
 INMAKE:= $(filter $(DEBUGS) $(ARCHES),$(subst -,$(space),$(TARGET)))
@@ -779,7 +784,6 @@ ifeq ($(USB_DISABLE_INT_EP),1)
 endif
 
 ifeq ($(BCM_STA_CFG80211),1)
-	DFLAGS += -DWLP2P
 	DFLAGS += -DUSE_CFG80211
 	DFLAGS += -DWL_CFG80211_STA_EVENT
 	DFLAGS += -DWL_CFG80211_GON_COLLISION

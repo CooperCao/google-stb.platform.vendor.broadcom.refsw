@@ -193,7 +193,7 @@ typedef struct BAPE_FciIdGroup
 Summary:
 Init FCI ID Group
 ***************************************************************************/
-#define BAPE_FciIdGroup_Init(pGroup) \
+#define BAPE_FciIdGroup_Init_isrsafe(pGroup) \
 do \
 { \
     unsigned i; \
@@ -202,6 +202,8 @@ do \
         (pGroup)->ids[i] = BAPE_FCI_ID_INVALID; \
     } \
 } while (0)
+
+#define BAPE_FciIdGroup_Init BAPE_FciIdGroup_Init_isrsafe
 
 /***************************************************************************
 Summary:
@@ -588,7 +590,8 @@ typedef struct BAPE_PathNode
     /* Node Specifics */
     BAPE_PathNodeType type;
     unsigned subtype;
-    unsigned dspIndex;          /* Source Task DSP Index */
+    unsigned deviceIndex;       /* Source Task DSP Index */
+    void* deviceContext;        /* Source Task DSP Context */
     void *pHandle;              /* Pointer to actual object handle */
     BAPE_Handle deviceHandle;
     const char *pName;
@@ -647,7 +650,7 @@ Init a connector
          (node)->subtype=(nodesubtype);\
          (node)->numConnectors=(nConnectors);\
          (node)->deviceHandle=(devHandle);\
-         (node)->dspIndex = BAPE_DSP_ID_INVALID;\
+         (node)->deviceIndex = BAPE_DSP_ID_INVALID;\
          BDBG_OBJECT_ASSERT((devHandle), BAPE_Device);\
          for ( i = 0; i < (nConnectors); i++ ) \
          { \
@@ -824,6 +827,8 @@ typedef struct BAPE_Mixer
     BAPE_LoopbackGroupHandle    loopbackGroup;
     unsigned                    loopbackRunning;
     unsigned                    loopbackDspInput;
+    unsigned                    dspIndex;
+    BDSP_ContextHandle          dspContext;
 #endif
     BLST_S_HEAD(OutputList, BAPE_OutputPortObject) outputList;
     BLST_S_ENTRY(BAPE_Mixer) pllNode;
@@ -1713,7 +1718,9 @@ typedef struct BAPE_Decoder
     BDSP_StageHandle hKaraokeStage;
     BDSP_StageHandle hPassthroughStage;
     BDSP_StageHandle hOutputFormatter;
+    BDSP_ContextHandle dspContext;
     unsigned dspIndex;
+    unsigned dspIndexBase;
     unsigned streamSampleRate;
     unsigned pcmOutputSampleRate;
     BDSP_AF_P_sOpSamplingFreq sampleRateMap;
@@ -2088,6 +2095,7 @@ typedef struct BAPE_MuxOutput
     bool sendEos;
     bool sendMetadata;
     BAPE_MuxOutputStartSettings startSettings;
+    BAPE_MuxOutputSettings settings;
     BAVC_XptContextMap contextMap;
     BAPE_MuxOutputCreateSettings createSettings;
     BAPE_Connector input;
@@ -2102,7 +2110,13 @@ typedef struct BAPE_MuxOutput
     BAPE_OutputDescriptorInfo descriptorInfo;
     BLST_S_ENTRY(BAPE_MuxOutput) deviceListNode;
     BLST_S_ENTRY(BAPE_MuxOutput) decoderListNode;
+    BAPE_Handle deviceHandle;
     BDSP_StageHandle hStage;
+    BDSP_ContextHandle dspContext;
+    unsigned dspIndex;
+    unsigned dspIndexBase;
+    BDSP_ContextHandle allocatedDspContext;
+    unsigned allocatedDspIndex;
     BAPE_MuxOutputInterruptHandlers interrupts;
     BAVC_Xpt_StcSoftIncRegisters nonRealTimeIncrement;
 #endif

@@ -74,12 +74,12 @@ BDBG_MODULE(BVBI);
 /***************************************************************************
 * Forward declarations of static (private) functions
 ***************************************************************************/
-static uint8_t BVBI_P_SetOddParityBit_isr( uint8_t uchByte );
+static uint8_t BVBI_P_SetOddParityBit_isrsafe( uint8_t uchByte );
 #if BVBI_NUM_CCE >= 1
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex);
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex);
 #endif
 #if BVBI_NUM_CCE_656 >= 1
-static uint32_t P_GetCoreOffset_656_isr (uint8_t hwCoreIndex);
+static uint32_t P_GetCoreOffset_656_isrsafe (uint8_t hwCoreIndex);
 #endif
 
 
@@ -96,7 +96,7 @@ void BVBI_P_CC_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
 {
     BDBG_ENTER(BVBI_P_CC_Enc_Init);
 
-    BVBI_P_VIE_SoftReset_isr (hReg, false, hwCoreIndex, BVBI_P_SELECT_CC);
+    BVBI_P_VIE_SoftReset_isrsafe (hReg, false, hwCoreIndex, BVBI_P_SELECT_CC);
 
     BDBG_LEAVE(BVBI_P_CC_Enc_Init);
 }
@@ -110,7 +110,9 @@ void BVBI_P_CC_Enc_656_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
 {
     BDBG_ENTER(BVBI_P_CC_Enc_656_Init);
 
-    BVBI_P_VIE_SoftReset_isr (hReg, true, hwCoreIndex, BVBI_P_SELECT_CC);
+    BKNI_EnterCriticalSection();
+    BVBI_P_VIE_SoftReset_isrsafe (hReg, true, hwCoreIndex, BVBI_P_SELECT_CC);
+    BKNI_LeaveCriticalSection();
 
     BDBG_LEAVE(BVBI_P_CC_Enc_656_Init);
 }
@@ -119,20 +121,20 @@ void BVBI_P_CC_Enc_656_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
 /***************************************************************************
  *
  */
-uint16_t BVBI_P_SetCCParityBits_isr( uint16_t uchData )
+uint16_t BVBI_P_SetCCParityBits_isrsafe( uint16_t uchData )
 {
     union {
         uint16_t d16;
         uint8_t  d8[2];
     } convenience;
 
-    BDBG_ENTER(BVBI_P_SetCCParityBits_isr);
+    BDBG_ENTER(BVBI_P_SetCCParityBits_isrsafe);
 
     convenience.d16 = uchData;
-    convenience.d8[0] = BVBI_P_SetOddParityBit_isr (convenience.d8[0]);
-    convenience.d8[1] = BVBI_P_SetOddParityBit_isr (convenience.d8[1]);
+    convenience.d8[0] = BVBI_P_SetOddParityBit_isrsafe (convenience.d8[0]);
+    convenience.d8[1] = BVBI_P_SetOddParityBit_isrsafe (convenience.d8[1]);
 
-    BDBG_LEAVE(BVBI_P_SetCCParityBits_isr);
+    BDBG_LEAVE(BVBI_P_SetCCParityBits_isrsafe);
     return convenience.d16;
 }
 
@@ -165,7 +167,7 @@ BERR_Code BVBI_P_CC_Enc_Program (
     BDBG_ENTER(BVBI_P_CC_Enc_Program);
 
     /* Determine which core to access */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -359,7 +361,7 @@ BERR_Code BVBI_P_CC_Enc_656_Program (
     BDBG_ENTER(BVBI_P_CC_656_Enc_Program);
 
     /* Determine which core to access */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -527,7 +529,7 @@ uint32_t BVBI_P_CC_Encode_Data_isr (
     BDBG_ENTER(BVBI_P_CC_Encode_Data_isr);
 
     /* Get register offset */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -579,7 +581,7 @@ uint32_t BVBI_P_CC_Encode_656_Data_isr (
     BDBG_ENTER(BVBI_P_CC_Encode_656_Data_isr);
 
     /* Get register offset */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -632,7 +634,7 @@ BERR_Code BVBI_P_CC_Encode_Enable_isr (
     BDBG_ENTER(BVBI_P_CC_Encode_Enable_isr);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -679,7 +681,7 @@ BERR_Code BVBI_P_CC_Encode_656_Enable_isr (
     BDBG_ENTER(BVBI_P_CC_Encode_656_Enable_isr);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -717,7 +719,7 @@ BERR_Code BVBI_P_CC_Encode_656_Enable_isr (
 /***************************************************************************
  *
  */
-static uint8_t BVBI_P_SetOddParityBit_isr( uint8_t uchByte )
+static uint8_t BVBI_P_SetOddParityBit_isrsafe( uint8_t uchByte )
 {
     uint8_t uchOriginalByte = uchByte;
     uint8_t uchParity       = 0;
@@ -740,7 +742,7 @@ static uint8_t BVBI_P_SetOddParityBit_isr( uint8_t uchByte )
 /***************************************************************************
  *
  */
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex)
 {
     uint32_t ulCoreOffset = 0xFFFFFFFF;
 
@@ -773,7 +775,7 @@ static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
 /***************************************************************************
  *
  */
-static uint32_t P_GetCoreOffset_656_isr (uint8_t hwCoreIndex)
+static uint32_t P_GetCoreOffset_656_isrsafe (uint8_t hwCoreIndex)
 {
     uint32_t ulCoreOffset = 0xFFFFFFFF;
 

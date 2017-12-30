@@ -224,7 +224,7 @@ Example:
 Returns:
     <none>
 ****************************************************************************/
-#define BLST_AA_TREE_INIT(name, root) BLST_AAT_P_Init(&(root)->aa_tree)
+#define BLST_AA_TREE_INIT(name, root) BLST_AAT_P_Init_isrsafe(&(root)->aa_tree)
 
 /***************************************************************************
 Summary:
@@ -252,7 +252,7 @@ Returns:
     <none>
 ****************************************************************************/
 #define BLST_AA_TREE_GENERATE_INSERT(name, type_key, type, field, compare) \
-static struct type * name##_BLST_AAT_insert(struct name *tree, type_key key, struct type *new_node) { \
+static struct type * name##_BLST_AAT_Insert_isrsafe(struct name *tree, type_key key, struct type *new_node) { \
     const unsigned off = BLST_AA_TREE_P_OFF(type, field); \
     struct BLST_AA_Tree_Node *node = tree->aa_tree.aat_root.aa_node.aan_left; \
     struct BLST_AA_Tree_Node *parent = &tree->aa_tree.aat_root; int cmp = -1; \
@@ -262,7 +262,7 @@ static struct type * name##_BLST_AAT_insert(struct name *tree, type_key key, str
         if(cmp<0) { node = node->aa_node.aan_left; } \
         else if (cmp>0) { node = node->aa_node.aan_right; } \
         else { return BLST_AA_TREE_P_CAST(node, type, off); } \
-    } BLST_AAT_P_Insert_Node(&tree->aa_tree, BLST_AA_TREE_P_NODE(new_node, off), parent, cmp); return new_node; }
+    } BLST_AAT_P_Insert_Node_isrsafe(&tree->aa_tree, BLST_AA_TREE_P_NODE(new_node, off), parent, cmp); return new_node; }
 
 /***************************************************************************
 Summary:
@@ -289,7 +289,7 @@ Returns:
     o - pointer to the inserted element if insertion was successful
     o - pointer to the element already in the tree, if tree already has element with matching key
 ****************************************************************************/
-#define BLST_AA_TREE_INSERT(name, root, key, elm) name##_BLST_AAT_insert((root), (key), (elm))
+#define BLST_AA_TREE_INSERT(name, root, key, elm) name##_BLST_AAT_Insert_isrsafe((root), (key), (elm))
 
 /***************************************************************************
 Summary:
@@ -315,7 +315,7 @@ Returns:
     <none>
 ****************************************************************************/
 #define BLST_AA_TREE_GENERATE_REMOVE(name, type, field) \
-    static void name##_BLST_AAT_P_Remove(struct name *tree, struct type *node) { BLST_AAT_P_Remove(&tree->aa_tree, BLST_AA_TREE_P_NODE(node, BLST_AA_TREE_P_OFF(type, field)));}
+    static void name##_BLST_AAT_P_Remove_isrsafe(struct name *tree, struct type *node) { BLST_AAT_P_Remove_isrsafe(&tree->aa_tree, BLST_AA_TREE_P_NODE(node, BLST_AA_TREE_P_OFF(type, field)));}
 
 /***************************************************************************
 Summary:
@@ -341,11 +341,11 @@ Example:
 Returns:
     <none>
 ****************************************************************************/
-#define BLST_AA_TREE_REMOVE(name, root, elm) name##_BLST_AAT_P_Remove((root), (elm))
+#define BLST_AA_TREE_REMOVE(name, root, elm) name##_BLST_AAT_P_Remove_isrsafe((root), (elm))
 
 
 #define BLST_AA_TREE_GENERATE_FIND(name, type_key, type, field, compare) \
-static struct type *name##_BLST_AAT_find(const struct name *tree, type_key key) { \
+static struct type *name##_BLST_AAT_Find_isrsafe(const struct name *tree, type_key key) { \
     const unsigned off = BLST_AA_TREE_P_OFF(type, field);\
     const struct BLST_AA_Tree_Node *node;\
     for(node=tree->aa_tree.aat_root.aa_node.aan_left;node!=&tree->aa_tree.aat_root;) { \
@@ -356,10 +356,9 @@ static struct type *name##_BLST_AAT_find(const struct name *tree, type_key key) 
             node = (cmp < 0) ? left : right; \
         } else { return BLST_AA_TREE_P_CAST(node, type, off); } \
     } return NULL; } 
-#define BLST_AA_TREE_FIND(name, head, key) name##_BLST_AAT_find(head, key)
 
 #define BLST_AA_TREE_GENERATE_FIND_SOME(name, type_key, type, field, compare) \
-static struct type *name##_BLST_AAT_find_some(const struct name *tree, type_key key) { \
+static struct type *name##_BLST_AAT_Find_some_isrsafe(const struct name *tree, type_key key) { \
     const unsigned off = BLST_AA_TREE_P_OFF(type, field);\
     const struct BLST_AA_Tree_Node *node;\
     node = tree->aa_tree.aat_root.aa_node.aan_left;\
@@ -376,23 +375,24 @@ static struct type *name##_BLST_AAT_find_some(const struct name *tree, type_key 
     } }
 
 #define BLST_AA_TREE_GENERATE_FIRST(name, type, field) \
-    static struct type * name##_BLST_AAT_P_First(struct name *tree) { return (struct type *)BLST_AAT_P_First(&tree->aa_tree, BLST_AA_TREE_P_OFF(type, field));}
+    static struct type * name##_BLST_AAT_P_First_isrsafe(struct name *tree) { return (struct type *)BLST_AAT_P_First_isrsafe(&tree->aa_tree, BLST_AA_TREE_P_OFF(type, field));}
 
 #define BLST_AA_TREE_GENERATE_LAST(name, type, field) \
-    static struct type * name##_BLST_AAT_P_Last(struct name *tree) { return (struct type *)BLST_AAT_P_Last(&tree->aa_tree, BLST_AA_TREE_P_OFF(type, field));}
+    static struct type * name##_BLST_AAT_P_Last_isrsafe(struct name *tree) { return (struct type *)BLST_AAT_P_Last_isrsafe(&tree->aa_tree, BLST_AA_TREE_P_OFF(type, field));}
 
 #define BLST_AA_TREE_GENERATE_PREV(name, type, field) \
-    static struct type * name##_BLST_AAT_P_Prev(struct name *tree, struct type *node) { return (struct type *)BLST_AAT_P_Prev(&tree->aa_tree, (struct BLST_AA_Tree_Node *)node, BLST_AA_TREE_P_OFF(type, field));}
+    static struct type * name##_BLST_AAT_P_Prev_isrsafe(struct name *tree, struct type *node) { return (struct type *)BLST_AAT_P_Prev_isrsafe(&tree->aa_tree, (struct BLST_AA_Tree_Node *)node, BLST_AA_TREE_P_OFF(type, field));}
 
 #define BLST_AA_TREE_GENERATE_NEXT(name, type, field) \
-    static struct type * name##_BLST_AAT_P_Next(struct name *tree, struct type *node) { return (struct type *)BLST_AAT_P_Next(&tree->aa_tree, (struct BLST_AA_Tree_Node *)node, BLST_AA_TREE_P_OFF(type, field));}
+    static struct type * name##_BLST_AAT_P_Next_isrsafe(struct name *tree, struct type *node) { return (struct type *)BLST_AAT_P_Next_isrsafe(&tree->aa_tree, (struct BLST_AA_Tree_Node *)node, BLST_AA_TREE_P_OFF(type, field));}
 
 
-#define BLST_AA_TREE_FIND_SOME(name, head, key) name##_BLST_AAT_find_some(head, key)
-#define BLST_AA_TREE_FIRST(name, head) name##_BLST_AAT_P_First(head)
-#define BLST_AA_TREE_LAST(name, head) name##_BLST_AAT_P_Last(head)
-#define BLST_AA_TREE_NEXT(name, head, elm) name##_BLST_AAT_P_Next(head, elm)
-#define BLST_AA_TREE_PREV(name, head, elm) name##_BLST_AAT_P_Prev(head, elm)
+#define BLST_AA_TREE_FIND(name, head, key) name##_BLST_AAT_Find_isrsafe(head, key)
+#define BLST_AA_TREE_FIND_SOME(name, head, key) name##_BLST_AAT_Find_some_isrsafe(head, key)
+#define BLST_AA_TREE_FIRST(name, head) name##_BLST_AAT_P_First_isrsafe(head)
+#define BLST_AA_TREE_LAST(name, head) name##_BLST_AAT_P_Last_isrsafe(head)
+#define BLST_AA_TREE_NEXT(name, head, elm) name##_BLST_AAT_P_Next_isrsafe(head, elm)
+#define BLST_AA_TREE_PREV(name, head, elm) name##_BLST_AAT_P_Prev_isrsafe(head, elm)
 
 struct BLST_AA_Tree_Node {
     BLST_AA_TREE_ENTRY(aa_node) aa_node;
@@ -402,13 +402,13 @@ struct BLST_AA_Tree_Head {
     struct BLST_AA_Tree_Node aat_root;
 };
 
-void BLST_AAT_P_Init(struct BLST_AA_Tree_Head *tree);
-struct BLST_AA_Tree_Node *BLST_AAT_P_First(const struct BLST_AA_Tree_Head *tree, unsigned off);
-struct BLST_AA_Tree_Node *BLST_AAT_P_Last(const struct BLST_AA_Tree_Head *tree, unsigned off);
-struct BLST_AA_Tree_Node *BLST_AAT_P_Next(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, unsigned off);
-struct BLST_AA_Tree_Node *BLST_AAT_P_Prev(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, unsigned off);
-void BLST_AAT_P_Insert_Node(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *new_node, struct BLST_AA_Tree_Node *parent, int cmp);
-void BLST_AAT_P_Remove(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node);
+void BLST_AAT_P_Init_isrsafe(struct BLST_AA_Tree_Head *tree);
+struct BLST_AA_Tree_Node *BLST_AAT_P_First_isrsafe(const struct BLST_AA_Tree_Head *tree, unsigned off);
+struct BLST_AA_Tree_Node *BLST_AAT_P_Last_isrsafe(const struct BLST_AA_Tree_Head *tree, unsigned off);
+struct BLST_AA_Tree_Node *BLST_AAT_P_Next_isrsafe(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, unsigned off);
+struct BLST_AA_Tree_Node *BLST_AAT_P_Prev_isrsafe(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node, unsigned off);
+void BLST_AAT_P_Insert_Node_isrsafe(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *new_node, struct BLST_AA_Tree_Node *parent, int cmp);
+void BLST_AAT_P_Remove_isrsafe(struct BLST_AA_Tree_Head *tree, struct BLST_AA_Tree_Node *node);
 
 
 

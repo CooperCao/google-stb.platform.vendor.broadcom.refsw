@@ -9,6 +9,8 @@
 #include "fence_queue.h"
 #include "private_nexus.h" /* NXPL_Surface */
 
+#include "debug_helper.h"
+
 typedef struct display
 {
    const FenceInterface      *fenceInterface;
@@ -41,14 +43,22 @@ static void recycledCallback(void *context, int param)
    UNUSED(param);
 
    int terminating = __sync_fetch_and_and(&self->terminating, 1);
+
+   platform_dbg_message_add("%s, terminating %s", __FUNCTION__, terminating ? "true" : "false");
+
    if (!terminating)
    {
       size_t numRecycled = 1;
       NEXUS_SurfaceHandle surface_list[self->numSurfaces];
       NEXUS_SurfaceClient_RecycleSurface(self->surfaceClient, surface_list, self->numSurfaces, &numRecycled);
+
+      platform_dbg_message_add("%s, numRecycled %d", __FUNCTION__, numRecycled);
+
       pthread_mutex_lock(&self->mutex);
       for (size_t i = 0; i < numRecycled; i++)
       {
+         platform_dbg_message_add("  %s %d - surface_list[%d] = %p", __FUNCTION__, __LINE__, i, surface_list[i]);
+
          int display_fence;
          if (fence_queue_dequeue(&self->fence_queue, &display_fence, false))
             FenceInterface_Signal(self->fenceInterface, display_fence);
@@ -88,6 +98,9 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
    ResetEvent(self->vsyncEvent);
 
    pthread_mutex_lock(&self->mutex);
+
+   platform_dbg_message_add("%s %d - surface = %p", __FUNCTION__, __LINE__, surface);
+
    err = NEXUS_SurfaceClient_PushSurface(self->surfaceClient, surface, NULL, false);
    if (err == NEXUS_SUCCESS)
    {
@@ -109,7 +122,9 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
 static bool wait_sync(void *context)
 {
    display *self = (display *)context;
+   platform_dbg_message_add("%s - WAIT FOR SYNC", __FUNCTION__);
    WaitEvent(self->vsyncEvent);
+   platform_dbg_message_add("%s - GOT SYNC", __FUNCTION__);
    return true;
 }
 

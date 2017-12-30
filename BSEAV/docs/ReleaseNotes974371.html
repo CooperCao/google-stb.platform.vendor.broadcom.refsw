@@ -3,8 +3,8 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
 <meta name=Generator content="Microsoft Word 14 (filtered)">
-<title>Broadcom 97439 Phase 17.3 Set-Top Unified Reference Software Release
-2017/09/22 Release Notes</title>
+<title>Broadcom 97439 Phase 17.4 Set-Top Unified Reference Software Release
+2017/12/19 Release Notes</title>
 <style>
 <!--
  /* Font Definitions */
@@ -132,14 +132,14 @@ Release</a></p>
 <div>
 
 <p><a name=top><strong><span style='font-size:18.0pt'>Broadcom 74371/7437 A0
-Phase 17.3 Release </span></strong></a></p>
+Phase 17.4 Release </span></strong></a></p>
 
 <p><strong>Release Date: </strong></p>
 
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;September 22</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;December 19, 2017</p>
 
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Phase
-17.3</p>
+17.4</p>
 
 <p><strong>Platforms Supported: </strong></p>
 
@@ -160,14 +160,14 @@ installing Brutus as part of the Reference Software. </p>
 <p><strong>Quick Build Instructions to create your own Linux Images</strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar -xvjf rootfs-4.1-1.12.tar.bz2 </li>
- <li class=MsoNormal># tar -xvjf stblinux-4.1-1.12.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf rootfs-4.1-1.15.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.15.tar.bz2 </li>
  <li class=MsoNormal># cd rootfs </li>
  <li class=MsoNormal># make vmlinuz-initrd-arm </li>
  <li class=MsoNormal># cd ../linux </li>
  <li class=MsoNormal>export LINUX=`pwd` </li>
- <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-4.8-1.6.tar.bz2 </li>
- <li class=MsoNormal>PATH=/opt/toolchains/stbgcc-4.8-1.6/bin:$PATH </li>
+ <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-6.3-1.1.tar.bz2 </li>
+ <li class=MsoNormal>PATH=/opt/toolchains/stbgcc-6.3-1.1/bin:$PATH </li>
  <li class=MsoNormal>export B_REFSW_ARCH=arm-linux </li>
 </ul>
 
@@ -175,11 +175,11 @@ installing Brutus as part of the Reference Software. </p>
 
 <p><strong>Quick Build Instruction</strong></p>
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar -xvjf stblinux-4.1-1.12.tar.bz2</li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.15.tar.bz2</li>
  <li class=MsoNormal># cd linux</li>
  <li class=MsoNormal># export LINUX=`pwd`</li>
- <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-4.8-1.6.tar.bz2 </li>
- <li class=MsoNormal>PATH=/opt/toolchains/stbgcc-4.8-1.6/bin:$PATH </li>
+ <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-6.3-1.1.tar.bz2 </li>
+ <li class=MsoNormal>PATH=/opt/toolchains/stbgcc-6.3-1.1/bin:$PATH </li>
  <li class=MsoNormal>export B_REFSW_ARCH=arm-linux </li>
 </ul>
 
@@ -276,7 +276,7 @@ software. </p>
   </td>
   <td width="17%" style='width:17.7%;padding:.75pt .75pt .75pt .75pt;
   height:44.95pt'>
-  <p class=MsoNormal><span style='font-size:10.0pt'>Bolt v1.32</span></p>
+  <p class=MsoNormal><span style='font-size:10.0pt'>Bolt v1.33</span></p>
   </td>
   <td width="23%" style='width:23.98%;padding:.75pt .75pt .75pt .75pt;
   height:44.95pt'>
@@ -305,7 +305,7 @@ software. </p>
   </td>
   <td width="17%" style='width:17.7%;padding:.75pt .75pt .75pt .75pt;
   height:32.8pt'>
-  <p class=MsoNormal><span style='font-size:10.0pt'>&nbsp;Bolt v1.32</span></p>
+  <p class=MsoNormal><span style='font-size:10.0pt'>&nbsp;Bolt v1.33</span></p>
   </td>
   <td width="23%" style='width:23.98%;padding:.75pt .75pt .75pt .75pt;
   height:32.8pt'>
@@ -322,7 +322,7 @@ feature can be exercised using nexus playback or atlas application. </p>
 <p class=MsoNormal>&nbsp;</p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar xvfz refsw_release_974371_20170922.src.tgz</li>
+ <li class=MsoNormal># tar xvfz refsw_release_unified_20171219_docsis3.src.tgz</li>
  <li class=MsoNormal>#cd BSEAV/app/atlas/build </li>
  <li class=MsoNormal>#make install </li>
 </ul>
@@ -339,121 +339,18 @@ feature can be exercised using nexus playback or atlas application. </p>
 <p><strong>Boot instructions</strong> </p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; boot &nbsp;<tftp-server-ipaddress>server:4.1-1.12/vmlinuz-initrd-arm:
+ <li class=MsoNormal>BOLT&gt; boot &nbsp;<tftp-server-ipaddress>server:4.1-1.15/vmlinuz-initrd-arm:
      </li>
 </ul>
 
 <p class=MsoNormal><strong>Set the kernel to autoboot</strong> </p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; flash -noheader <tftp-server-ipaddress>:4.1-1.12/vmlinuz-initrd-arm
+ <li class=MsoNormal>BOLT&gt; flash -noheader <tftp-server-ipaddress>:4.1-1.15/vmlinuz-initrd-arm
      flash1.rootfs0</li>
  <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot flash1.rootfs0&quot;
      </li>
 </ul>
-
-<p><a name=features></a><a name="known_bugs"></a>&nbsp;<b>BOLT </b></p>
-
-<p class=MsoNormal><strong>&nbsp;</strong></p>
-
-<pre style='background:#F0F0F0'>&nbsp;</pre><pre style='background:#F0F0F0'><span
-style='color:black'>&nbsp;</span></pre><pre style='background:#F0F0F0'><span
-style='color:black'>&nbsp;&nbsp;&nbsp; BCM74390000</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>PRID07437100</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>v1.32</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>RR:00000200</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>BFW</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>seclib-1.3</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>BBL v1.0.0</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>AVS init...</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>spare0/rmon_hz=017a7273</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>spare1/rmon_vt=017a7274</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>AVS init OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>select_image: addr_offset: 00020000 part_offset: 00000000 bootStatus: 1b05050b</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>BSECK BFW load mode OTP = 0x0000000f</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>BFW key3 OK, BFW load OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>BFW v1.0.0</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>AVS load:select_image: addr_offset: 00051000 part_offset: 00000000 bootStatus: 2a050b05</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>AVS load_code offset =00051000</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>LOADED</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>I2C @ f0406300.</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>BID: 00000030</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp;</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>using board #c</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>MEMSYS-STD</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>SHMOO 01000006 BLD:8384M HW:hpe1_b1p2 V:1.0.0.6</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>MCB: FLEX</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>AVS start:status=000000ff</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>STB: Current voltage=000003ad(941)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'> temperature=0000f6f2(63218)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'> PV=0000037c(892)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'> MV=000003a7(935)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>AVS FW rev=30323378 [0.2.3.x]</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>DDR0: !@ ffe0d800 &lt;= ffe0b870 MEMSYS-0 @ f0900000 OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>Sdram Scramble OTP = 0x00000001</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>Sdram Scramble OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>COPY CODE... DONE</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>MICH: disable success</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>SSBL</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>PINMUX</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>CACHE FLUSH OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>MMU ON</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>CACHE FLUSH OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>_fbss&nbsp; 070409a8</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>_ebss&nbsp; 070420c0</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>_end&nbsp;&nbsp; 070420e0</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>HEAP @ 07042400</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>STACK @ 09052400</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>ARCH: CONFIG OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>CLR BSS 070409a8 to 070420c0 OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>CLR SRAM&nbsp; OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>CACHE FLUSH OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>CPU CLKSET OK</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>GO!</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp;</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp;&nbsp;&nbsp; ,/</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp; ,'/___, BOLT v1.32v1.32RELEASE</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>.'__&nbsp; ,'&nbsp; (2015-02-12 11:24:12 garpowel@localhost.localdomain)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp;&nbsp; /,'&nbsp;&nbsp;&nbsp; Copyright (C) 2015 Broadcom Corporation</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp; /'</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp;</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>Board: BCM974371XID</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>SYS_CTRL: product=74371, family=7439a0, strap=000000ce,</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>otp @ 0xf0404030 = 0x846004e0: en_cr(0x00000060) en_testport(0x00000080) hdmi_rx_disable(0x00400000) pcie0_disable(0x80000000) rv9_disable(0x00200000) sata_disable(0x04000000) vice2_0_disable(0x00000400)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>otp @ 0xf0404034 = 0x00000059: hdmi_tx1_disable(0x00000001) usb1_disable(0x00000040) usb2_disable(0x00000010) usb3_disable(0x00000008)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>CPU: 1x A15, 1503 MHz</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>RESET CAUSE: 0x000200 software_master (1 of 21 possible causes)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>CS0: CFI SPI, 16MB, 64kB blocks, 256B pages</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>CS1: ONFI NAND, 4096MB, 2048kB blocks, 8192B page, 46B OOB, BCH-40 (1KB sector)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>USB: usb@f0490200 removed</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>USB @ 0xf0480200: IPP is active low, IOC is negative polarity</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>RTS0: 0x901004, 256 clients, ok</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>rts 01 [20150115191145_74371_1stb_box1]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *default</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>AUTOBOOT [waitusb -t=0 -d='USB Disk' &amp;&amp; batch usbdisk0:sysinit.txt]</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>usb: resetting device on bus 0 hub 1 port 1</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>USB: New high speed device connected to bus 0 hub 1 port 1</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>usb: found Ethernet Device 0b95:7720</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>usb: identified ASIX-Based USB-Ethernet Adapter (00:14:d1:da:52:0e)</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>usb: device 'eth2' is now available</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>USB device matching <USB Disk>&nbsp;not found!</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>BOLT&gt; boards</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>a)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AVS&nbsp;&nbsp; BCM974371SV</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>b)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AVS&nbsp;&nbsp; BCM97437SV</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>c)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AVS&nbsp;&nbsp; BCM974371XID *S</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'> AVS is using board defaults, load/run status: 1</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>*** command status = 0</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp;&nbsp;&nbsp; CPU 01</span></pre><pre
-style='background:#F0F0F0'>&nbsp;</pre><pre style='background:#F0F0F0'><span
-style='color:black'>To change boards types Please use the command setboard. Example below will set board b for BCM97437SV</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>BOLT&gt;setboard b</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>*** command status = 0</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp;</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>There is only one boxmode #1 for 74371/7437</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>BOLT&gt; rts</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>rts 01 [20150115191145_74371_1stb_box1]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *default</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>*** command status = 0</span></pre><pre
-style='background:#F0F0F0'><span style='color:black'>&nbsp;&nbsp;&nbsp; CPU 01</span></pre>
 
 <h2 style='margin-top:22.5pt;background:white'>&nbsp;<span style='font-size:
 15.0pt;font-family:"Arial","sans-serif";color:black;font-weight:normal'>74371

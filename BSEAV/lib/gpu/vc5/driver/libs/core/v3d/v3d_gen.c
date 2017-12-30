@@ -6,9 +6,10 @@
 #include "libs/util/gfx_util/gfx_util.h"
 #include "v3d_common.h"
 #include "v3d_gen.h"
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdio.h>
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_threading(v3d_threading_t threading)
 {
    switch (threading) {
@@ -25,7 +26,7 @@ const char *v3d_desc_threading(v3d_threading_t threading)
    return desc;
 }
 #endif
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 v3d_threading_t v3d_translate_threading(uint32_t x)
 {
    switch (x) {
@@ -45,7 +46,7 @@ uint32_t v3d_translate_from_threading(v3d_threading_t x)
    }
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_threading(v3d_threading_t threading)
 {
    switch (threading) {
@@ -61,7 +62,7 @@ const char *v3d_desc_threading(v3d_threading_t threading)
    return desc;
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 v3d_threading_t v3d_translate_threading(uint32_t x)
 {
    switch (x) {
@@ -124,9 +125,6 @@ bool v3d_is_valid_tmu_type(v3d_tmu_type_t tmu_type)
    case V3D_TMU_TYPE_RGBA32I:
    case V3D_TMU_TYPE_RGBA32UI:
    case V3D_TMU_TYPE_RGB10_A2UI:
-#if V3D_HAS_RGB5_A1_REV && !V3D_HAS_TFU_RGB5_A1_REV
-   case V3D_TMU_TYPE_RGB5_A1_REV:
-#endif
    case V3D_TMU_TYPE_R8:
    case V3D_TMU_TYPE_R8_SNORM:
    case V3D_TMU_TYPE_RG8:
@@ -187,7 +185,7 @@ bool v3d_is_valid_tmu_type(v3d_tmu_type_t tmu_type)
    case V3D_TMU_TYPE_C_ASTC_10X10:
    case V3D_TMU_TYPE_C_ASTC_12X10:
    case V3D_TMU_TYPE_C_ASTC_12X12:
-#if V3D_HAS_TFU_RGB5_A1_REV
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_TMU_TYPE_RGB5_A1_REV:
 #endif
    return true;
@@ -219,9 +217,6 @@ const char *v3d_maybe_desc_tmu_type(v3d_tmu_type_t tmu_type)
    case V3D_TMU_TYPE_RGBA32I:                         return "rgba32i";
    case V3D_TMU_TYPE_RGBA32UI:                        return "rgba32ui";
    case V3D_TMU_TYPE_RGB10_A2UI:                      return "rgb10_a2ui";
-#if V3D_HAS_RGB5_A1_REV && !V3D_HAS_TFU_RGB5_A1_REV
-   case V3D_TMU_TYPE_RGB5_A1_REV:                     return "rgb5_a1_rev";
-#endif
    case V3D_TMU_TYPE_R8:                              return "r8";
    case V3D_TMU_TYPE_R8_SNORM:                        return "r8_snorm";
    case V3D_TMU_TYPE_RG8:                             return "rg8";
@@ -282,7 +277,7 @@ const char *v3d_maybe_desc_tmu_type(v3d_tmu_type_t tmu_type)
    case V3D_TMU_TYPE_C_ASTC_10X10:                    return "c_astc_10x10";
    case V3D_TMU_TYPE_C_ASTC_12X10:                    return "c_astc_12x10";
    case V3D_TMU_TYPE_C_ASTC_12X12:                    return "c_astc_12x12";
-#if V3D_HAS_TFU_RGB5_A1_REV
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_TMU_TYPE_RGB5_A1_REV:                     return "rgb5_a1_rev";
 #endif
    default:                                           return NULL;
@@ -370,7 +365,7 @@ bool v3d_is_valid_tfu_type(v3d_tfu_type_t tfu_type)
    case V3D_TFU_TYPE_C_ASTC_10X10:
    case V3D_TFU_TYPE_C_ASTC_12X10:
    case V3D_TFU_TYPE_C_ASTC_12X12:
-#if V3D_HAS_TFU_RGB5_A1_REV
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_TFU_TYPE_RGB5_A1_REV:
 #endif
    return true;
@@ -453,7 +448,7 @@ const char *v3d_maybe_desc_tfu_type(v3d_tfu_type_t tfu_type)
    case V3D_TFU_TYPE_C_ASTC_10X10:                    return "c_astc_10x10";
    case V3D_TFU_TYPE_C_ASTC_12X10:                    return "c_astc_12x10";
    case V3D_TFU_TYPE_C_ASTC_12X12:                    return "c_astc_12x12";
-#if V3D_HAS_TFU_RGB5_A1_REV
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_TFU_TYPE_RGB5_A1_REV:                     return "rgb5_a1_rev";
 #endif
    default:                                           return NULL;
@@ -514,7 +509,7 @@ const char *v3d_desc_tmu_wrap_cfg0(v3d_tmu_wrap_cfg0_t tmu_wrap_cfg0)
    return desc;
 }
 #endif
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_max_aniso(v3d_max_aniso_t max_aniso)
 {
    switch (max_aniso) {
@@ -532,7 +527,7 @@ const char *v3d_desc_max_aniso(v3d_max_aniso_t max_aniso)
    return desc;
 }
 #endif
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 v3d_max_aniso_t v3d_translate_max_aniso(uint32_t x)
 {
    switch (x) {
@@ -568,7 +563,7 @@ const char *v3d_desc_tmu_filter(v3d_tmu_filter_t tmu_filter)
    assert(desc);
    return desc;
 }
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_tmu_mipfilt(v3d_tmu_mipfilt_t tmu_mipfilt)
 {
    switch (tmu_mipfilt) {
@@ -584,7 +579,7 @@ const char *v3d_desc_tmu_mipfilt(v3d_tmu_mipfilt_t tmu_mipfilt)
    return desc;
 }
 #endif
-#if !V3D_HAS_SEP_ANISO_CFG
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_tmu_mipfilt(v3d_tmu_mipfilt_t tmu_mipfilt)
 {
    switch (tmu_mipfilt) {
@@ -601,7 +596,7 @@ const char *v3d_desc_tmu_mipfilt(v3d_tmu_mipfilt_t tmu_mipfilt)
    return desc;
 }
 #endif
-#if !V3D_HAS_SEP_ANISO_CFG
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_tmu_filters(v3d_tmu_filters_t tmu_filters)
 {
    switch (tmu_filters) {
@@ -794,7 +789,7 @@ bool v3d_is_valid_shader_type(v3d_shader_type_t shader_type)
    case V3D_SHADER_TYPE_TESSE:
    case V3D_SHADER_TYPE_GEOM:
    case V3D_SHADER_TYPE_FRAG:
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_SHADER_TYPE_COMPUTE:
 #endif
    case V3D_SHADER_TYPE_USER:
@@ -811,7 +806,7 @@ const char *v3d_maybe_desc_shader_type(v3d_shader_type_t shader_type)
    case V3D_SHADER_TYPE_TESSE:   return "tesse";
    case V3D_SHADER_TYPE_GEOM:    return "geom";
    case V3D_SHADER_TYPE_FRAG:    return "frag";
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_SHADER_TYPE_COMPUTE: return "compute";
 #endif
    case V3D_SHADER_TYPE_USER:    return "user";
@@ -1143,7 +1138,7 @@ bool v3d_is_valid_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr)
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_QPU_MAGIC_WADDR_TMU:
 #endif
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_MAGIC_WADDR_UNIFA:
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -1160,6 +1155,9 @@ bool v3d_is_valid_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr)
 #endif
    case V3D_QPU_MAGIC_WADDR_SYNC:
    case V3D_QPU_MAGIC_WADDR_SYNCU:
+#if V3D_VER_AT_LEAST(4,2,13,0)
+   case V3D_QPU_MAGIC_WADDR_SYNCB:
+#endif
    case V3D_QPU_MAGIC_WADDR_RECIP:
    case V3D_QPU_MAGIC_WADDR_RSQRT:
    case V3D_QPU_MAGIC_WADDR_EXP:
@@ -1213,7 +1211,7 @@ bool v3d_is_valid_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_QPU_MAGIC_WADDR_TMUHSLOD:
 #endif
-#if V3D_HAS_R5REP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_MAGIC_WADDR_R5REP:
 #endif
    return true;
@@ -1236,7 +1234,7 @@ const char *v3d_maybe_desc_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_QPU_MAGIC_WADDR_TMU:        return "tmu";
 #endif
-#if V3D_HAS_LDUNIFRF
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_MAGIC_WADDR_UNIFA:      return "unifa";
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -1253,6 +1251,9 @@ const char *v3d_maybe_desc_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr
 #endif
    case V3D_QPU_MAGIC_WADDR_SYNC:       return "sync";
    case V3D_QPU_MAGIC_WADDR_SYNCU:      return "syncu";
+#if V3D_VER_AT_LEAST(4,2,13,0)
+   case V3D_QPU_MAGIC_WADDR_SYNCB:      return "syncb";
+#endif
    case V3D_QPU_MAGIC_WADDR_RECIP:      return "recip";
    case V3D_QPU_MAGIC_WADDR_RSQRT:      return "rsqrt";
    case V3D_QPU_MAGIC_WADDR_EXP:        return "exp";
@@ -1306,7 +1307,7 @@ const char *v3d_maybe_desc_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_QPU_MAGIC_WADDR_TMUHSLOD:   return "tmuhslod";
 #endif
-#if V3D_HAS_R5REP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_MAGIC_WADDR_R5REP:      return "r5rep";
 #endif
    default:                             return NULL;
@@ -1439,7 +1440,7 @@ bool v3d_is_valid_tsy_op(v3d_tsy_op_t tsy_op)
    case V3D_TSY_OP_INC_SEMAPHORE:
    case V3D_TSY_OP_DEC_SEMAPHORE:
    case V3D_TSY_OP_SET_QUORUM_FREE_ALL:
-#if V3D_HAS_GFXH1659_FIX
+#if V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_TSY_OP_SET_QUORUM_WAIT_INC_CHECK:
 #endif
    case V3D_TSY_OP_IN_DATA:
@@ -1467,7 +1468,7 @@ const char *v3d_maybe_desc_tsy_op(v3d_tsy_op_t tsy_op)
    case V3D_TSY_OP_INC_SEMAPHORE:             return "inc_semaphore";
    case V3D_TSY_OP_DEC_SEMAPHORE:             return "dec_semaphore";
    case V3D_TSY_OP_SET_QUORUM_FREE_ALL:       return "set_quorum_free_all";
-#if V3D_HAS_GFXH1659_FIX
+#if V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_TSY_OP_SET_QUORUM_WAIT_INC_CHECK: return "set_quorum_wait_inc_check";
 #endif
    case V3D_TSY_OP_IN_DATA:                   return "in_data";
@@ -1502,13 +1503,13 @@ bool v3d_is_valid_tlb_rw_color_type(v3d_tlb_rw_color_type_t tlb_rw_color_type)
    {
    case V3D_TLB_RW_COLOR_TYPE_16:
    case V3D_TLB_RW_COLOR_TYPE_16_SWAPPED:
-#if V3D_HAS_TLB_WR_CONVERT
+#if V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_TLB_RW_COLOR_TYPE_32:
 #endif
-#if !V3D_HAS_TLB_WR_CONVERT
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_TLB_RW_COLOR_TYPE_FLOAT32:
 #endif
-#if !V3D_HAS_TLB_WR_CONVERT
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_TLB_RW_COLOR_TYPE_INT32:
 #endif
    return true;
@@ -1521,13 +1522,13 @@ const char *v3d_maybe_desc_tlb_rw_color_type(v3d_tlb_rw_color_type_t tlb_rw_colo
    switch (tlb_rw_color_type) {
    case V3D_TLB_RW_COLOR_TYPE_16:         return "16";
    case V3D_TLB_RW_COLOR_TYPE_16_SWAPPED: return "16_swapped";
-#if V3D_HAS_TLB_WR_CONVERT
+#if V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_TLB_RW_COLOR_TYPE_32:         return "32";
 #endif
-#if !V3D_HAS_TLB_WR_CONVERT
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_TLB_RW_COLOR_TYPE_FLOAT32:    return "float32";
 #endif
-#if !V3D_HAS_TLB_WR_CONVERT
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_TLB_RW_COLOR_TYPE_INT32:      return "int32";
 #endif
    default:                               return NULL;
@@ -1960,7 +1961,7 @@ const char *v3d_desc_rt_type(v3d_rt_type_t rt_type)
    assert(desc);
    return desc;
 }
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 bool v3d_is_valid_rt_clamp(v3d_rt_clamp_t rt_clamp)
 {
    switch (rt_clamp)
@@ -1968,7 +1969,7 @@ bool v3d_is_valid_rt_clamp(v3d_rt_clamp_t rt_clamp)
    case V3D_RT_CLAMP_NONE:
    case V3D_RT_CLAMP_NORM:
    case V3D_RT_CLAMP_POS:
-#if V3D_HAS_RT_INT_CLAMP
+#if V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_RT_CLAMP_INT:
 #endif
    return true;
@@ -1977,17 +1978,17 @@ bool v3d_is_valid_rt_clamp(v3d_rt_clamp_t rt_clamp)
    }
 }
 #endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_rt_clamp(v3d_rt_clamp_t rt_clamp)
 {
    switch (rt_clamp) {
-   case V3D_RT_CLAMP_NONE: return "none";
-   case V3D_RT_CLAMP_NORM: return "norm";
-   case V3D_RT_CLAMP_POS:  return "pos";
-#if V3D_HAS_RT_INT_CLAMP
-   case V3D_RT_CLAMP_INT:  return "int";
+   case V3D_RT_CLAMP_NONE:     return "none";
+   case V3D_RT_CLAMP_NORM:     return "norm";
+   case V3D_RT_CLAMP_POS:      return "pos";
+#if V3D_VER_AT_LEAST(4,2,13,0)
+   case V3D_RT_CLAMP_INT:      return "int";
 #endif
-   default:                return NULL;
+   default:                    return NULL;
    }
 }
 const char *v3d_desc_rt_clamp(v3d_rt_clamp_t rt_clamp)
@@ -2117,10 +2118,10 @@ bool v3d_is_valid_pixel_format(v3d_pixel_format_t pixel_format)
    case V3D_PIXEL_FORMAT_RGBA8UI:
    case V3D_PIXEL_FORMAT_RG8UI:
    case V3D_PIXEL_FORMAT_R8UI:
-#if !V3D_HAS_TLB_SWIZZLE
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_SRGBX8:
 #endif
-#if !V3D_HAS_TLB_SWIZZLE
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_RGBX8:
 #endif
    case V3D_PIXEL_FORMAT_BSTC:
@@ -2139,7 +2140,7 @@ bool v3d_is_valid_pixel_format(v3d_pixel_format_t pixel_format)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_PIXEL_FORMAT_S8:
 #endif
-#if V3D_HAS_TLB_RGB5_A1
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_RGB5_A1:
 #endif
    return true;
@@ -2187,10 +2188,10 @@ const char *v3d_maybe_desc_pixel_format(v3d_pixel_format_t pixel_format)
    case V3D_PIXEL_FORMAT_RGBA8UI:        return "rgba8ui";
    case V3D_PIXEL_FORMAT_RG8UI:          return "rg8ui";
    case V3D_PIXEL_FORMAT_R8UI:           return "r8ui";
-#if !V3D_HAS_TLB_SWIZZLE
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_SRGBX8:         return "srgbx8";
 #endif
-#if !V3D_HAS_TLB_SWIZZLE
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_RGBX8:          return "rgbx8";
 #endif
    case V3D_PIXEL_FORMAT_BSTC:           return "bstc";
@@ -2209,7 +2210,7 @@ const char *v3d_maybe_desc_pixel_format(v3d_pixel_format_t pixel_format)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_PIXEL_FORMAT_S8:             return "s8";
 #endif
-#if V3D_HAS_TLB_RGB5_A1
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_RGB5_A1:        return "rgb5_a1";
 #endif
    default:                              return NULL;
@@ -2288,7 +2289,7 @@ const char *v3d_desc_flags_action(v3d_flags_action_t flags_action)
    assert(desc);
    return desc;
 }
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_bcfg_type(v3d_bcfg_type_t bcfg_type)
 {
    switch (bcfg_type) {
@@ -3032,48 +3033,48 @@ const char *v3d_desc_axi_master_id(v3d_axi_master_id_t axi_master_id)
    assert(desc);
    return desc;
 }
-#if V3D_HAS_GMP_L2T_DEBUG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 bool v3d_is_valid_l2t_master_id(v3d_l2t_master_id_t l2t_master_id)
 {
    switch (l2t_master_id)
    {
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU:
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_VCD:
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU_CONFIG:
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL0_CACHE:
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL1_CACHE:
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL2_CACHE:
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU:
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_CLE:
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_VCD:
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU_CONFIG:
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL0_CACHE:
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL1_CACHE:
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL2_CACHE:
 #endif
    return true;
@@ -3082,47 +3083,47 @@ bool v3d_is_valid_l2t_master_id(v3d_l2t_master_id_t l2t_master_id)
    }
 }
 #endif
-#if V3D_HAS_GMP_L2T_DEBUG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_l2t_master_id(v3d_l2t_master_id_t l2t_master_id)
 {
    switch (l2t_master_id) {
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU:        return "tmu";
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_VCD:        return "vcd";
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU_CONFIG: return "tmu_config";
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL0_CACHE:  return "sl0_cache";
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL1_CACHE:  return "sl1_cache";
 #endif
-#if V3D_HAS_CLE_NOT_IN_L2T
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL2_CACHE:  return "sl2_cache";
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU:        return "tmu";
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_CLE:        return "cle";
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_VCD:        return "vcd";
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU_CONFIG: return "tmu_config";
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL0_CACHE:  return "sl0_cache";
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL1_CACHE:  return "sl1_cache";
 #endif
-#if !V3D_HAS_CLE_NOT_IN_L2T
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL2_CACHE:  return "sl2_cache";
 #endif
    default:                           return NULL;
@@ -3170,16 +3171,16 @@ bool v3d_is_valid_cl_opcode(v3d_cl_opcode_t cl_opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_END_TILE:
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_STORE:
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_LOAD:
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_STORE:
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_LOAD:
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -3203,25 +3204,25 @@ bool v3d_is_valid_cl_opcode(v3d_cl_opcode_t cl_opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TF_DRAW_FLUSH_AND_COUNT:
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_PRIM_LIST:
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST:
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST:
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST:
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST:
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST:
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST:
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -3232,10 +3233,10 @@ bool v3d_is_valid_cl_opcode(v3d_cl_opcode_t cl_opcode)
    case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS:
    case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS:
    case V3D_CL_BASE_VERTEX_BASE_INSTANCE:
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEX_BUFFER_SETUP:
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDIRECT_PRIMITIVE_LIMITS:
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -3281,10 +3282,10 @@ bool v3d_is_valid_cl_opcode(v3d_cl_opcode_t cl_opcode)
    case V3D_CL_NV_SHADER:
 #endif
    case V3D_CL_VG_SHADER:
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER:
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER:
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -3311,7 +3312,7 @@ bool v3d_is_valid_cl_opcode(v3d_cl_opcode_t cl_opcode)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C:
 #endif
-#if V3D_HAS_CLEAN_L1TD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLEAN_L1TD_DEFERRED:
 #endif
    case V3D_CL_STENCIL_CFG:
@@ -3328,50 +3329,50 @@ bool v3d_is_valid_cl_opcode(v3d_cl_opcode_t cl_opcode)
    case V3D_CL_COLOR_WMASKS:
    case V3D_CL_ZERO_ALL_CENTROID_FLAGS:
    case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS:
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS:
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_FLATSHADE_FLAGS:
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_FLATSHADE_FLAGS:
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_NOPERSPECTIVE_FLAGS:
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE:
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE:
 #endif
    case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE:
    case V3D_CL_CFG_BITS:
    case V3D_CL_POINT_SIZE:
    case V3D_CL_LINE_WIDTH:
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET:
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET:
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP:
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET:
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP:
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET:
 #endif
    case V3D_CL_CLIPZ:
@@ -3380,19 +3381,16 @@ bool v3d_is_valid_cl_opcode(v3d_cl_opcode_t cl_opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_NUM_LAYERS:
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG:
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG:
 #endif
-#if !V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG:
-#endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG:
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG:
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -3411,271 +3409,268 @@ bool v3d_is_valid_cl_opcode(v3d_cl_opcode_t cl_opcode)
 const char *v3d_maybe_desc_cl_opcode(v3d_cl_opcode_t cl_opcode)
 {
    switch (cl_opcode) {
-   case V3D_CL_HALT:                                     return "halt";
-   case V3D_CL_NOP:                                      return "nop";
-   case V3D_CL_FLUSH:                                    return "flush";
-   case V3D_CL_FLUSH_ALL_STATE:                          return "flush_all_state";
-   case V3D_CL_START_TILE_BINNING:                       return "start_tile_binning";
-   case V3D_CL_INCR_SEMAPHORE:                           return "incr_semaphore";
-   case V3D_CL_WAIT_SEMAPHORE:                           return "wait_semaphore";
-   case V3D_CL_WAIT_PREV_FRAME:                          return "wait_prev_frame";
-   case V3D_CL_ENABLE_Z_ONLY:                            return "enable_z_only";
-   case V3D_CL_DISABLE_Z_ONLY:                           return "disable_z_only";
-   case V3D_CL_END_Z_ONLY:                               return "end_z_only";
-   case V3D_CL_END_RENDER:                               return "end_render";
-   case V3D_CL_WAIT_TRANSFORM_FEEDBACK:                  return "wait_transform_feedback";
-   case V3D_CL_BRANCH_SUB_AUTOCHAIN:                     return "branch_sub_autochain";
-   case V3D_CL_BRANCH:                                   return "branch";
-   case V3D_CL_BRANCH_SUB:                               return "branch_sub";
-   case V3D_CL_RETURN:                                   return "return";
-   case V3D_CL_CLEAR_VCD_CACHE:                          return "clear_vcd_cache";
-   case V3D_CL_GENERIC_TILE_LIST:                        return "generic_tile_list";
-   case V3D_CL_BRANCH_IMPLICIT_TILE:                     return "branch_implicit_tile";
-   case V3D_CL_BRANCH_EXPLICIT_SUPERTILE:                return "branch_explicit_supertile";
-   case V3D_CL_SUPERTILE_COORDS:                         return "supertile_coords";
+   case V3D_CL_HALT:                                         return "halt";
+   case V3D_CL_NOP:                                          return "nop";
+   case V3D_CL_FLUSH:                                        return "flush";
+   case V3D_CL_FLUSH_ALL_STATE:                              return "flush_all_state";
+   case V3D_CL_START_TILE_BINNING:                           return "start_tile_binning";
+   case V3D_CL_INCR_SEMAPHORE:                               return "incr_semaphore";
+   case V3D_CL_WAIT_SEMAPHORE:                               return "wait_semaphore";
+   case V3D_CL_WAIT_PREV_FRAME:                              return "wait_prev_frame";
+   case V3D_CL_ENABLE_Z_ONLY:                                return "enable_z_only";
+   case V3D_CL_DISABLE_Z_ONLY:                               return "disable_z_only";
+   case V3D_CL_END_Z_ONLY:                                   return "end_z_only";
+   case V3D_CL_END_RENDER:                                   return "end_render";
+   case V3D_CL_WAIT_TRANSFORM_FEEDBACK:                      return "wait_transform_feedback";
+   case V3D_CL_BRANCH_SUB_AUTOCHAIN:                         return "branch_sub_autochain";
+   case V3D_CL_BRANCH:                                       return "branch";
+   case V3D_CL_BRANCH_SUB:                                   return "branch_sub";
+   case V3D_CL_RETURN:                                       return "return";
+   case V3D_CL_CLEAR_VCD_CACHE:                              return "clear_vcd_cache";
+   case V3D_CL_GENERIC_TILE_LIST:                            return "generic_tile_list";
+   case V3D_CL_BRANCH_IMPLICIT_TILE:                         return "branch_implicit_tile";
+   case V3D_CL_BRANCH_EXPLICIT_SUPERTILE:                    return "branch_explicit_supertile";
+   case V3D_CL_SUPERTILE_COORDS:                             return "supertile_coords";
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_CLEAR:                                    return "clear";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_END_LOADS:                                return "end_loads";
+   case V3D_CL_CLEAR:                                        return "clear";
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_END_TILE:                                 return "end_tile";
-#endif
-#if V3D_HAS_TLB_SWIZZLE
-   case V3D_CL_STORE:                                    return "store";
-#endif
-#if V3D_HAS_TLB_SWIZZLE
-   case V3D_CL_LOAD:                                     return "load";
-#endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_STORE:                                    return "store";
-#endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_LOAD:                                     return "load";
-#endif
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_STORE_SUBSAMPLE:                          return "store_subsample";
-#endif
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_STORE_SUBSAMPLE_EX:                       return "store_subsample_ex";
-#endif
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_LOAD:                                     return "load";
-#endif
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_END_TILE:                                 return "end_tile";
-#endif
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_STORE_GENERAL:                            return "store_general";
-#endif
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_LOAD_GENERAL:                             return "load_general";
+   case V3D_CL_END_LOADS:                                    return "end_loads";
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_TF_DRAW_FLUSH_AND_COUNT:                  return "tf_draw_flush_and_count";
+   case V3D_CL_END_TILE:                                     return "end_tile";
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
-   case V3D_CL_INDEXED_PRIM_LIST:                        return "indexed_prim_list";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_STORE:                                        return "store";
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_INDEXED_PRIM_LIST:                        return "indexed_prim_list";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_LOAD:                                         return "load";
 #endif
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_INDEXED_PRIM_LIST:                        return "indexed_prim_list";
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_STORE:                                        return "store";
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
-   case V3D_CL_INDIRECT_INDEXED_PRIM_LIST:               return "indirect_indexed_prim_list";
-#endif
-#if !V3D_HAS_ATTR_MAX_INDEX
-   case V3D_CL_INDIRECT_INDEXED_PRIM_LIST:               return "indirect_indexed_prim_list";
-#endif
-#if V3D_HAS_ATTR_MAX_INDEX
-   case V3D_CL_INDEXED_INSTANCED_PRIM_LIST:              return "indexed_instanced_prim_list";
-#endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_INDEXED_INSTANCED_PRIM_LIST:              return "indexed_instanced_prim_list";
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_LOAD:                                         return "load";
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_INDEXED_INSTANCED_PRIM_LIST:              return "indexed_instanced_prim_list";
-#endif
-   case V3D_CL_VERTEX_ARRAY_PRIMS:                       return "vertex_array_prims";
-   case V3D_CL_INDIRECT_VERTEX_ARRAY_PRIMS:              return "indirect_vertex_array_prims";
-   case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS:             return "vertex_array_instanced_prims";
-   case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS:       return "vertex_array_single_instance_prims";
-   case V3D_CL_BASE_VERTEX_BASE_INSTANCE:                return "base_vertex_base_instance";
-#if V3D_HAS_ATTR_MAX_INDEX
-   case V3D_CL_INDEX_BUFFER_SETUP:                       return "index_buffer_setup";
-#endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_INDIRECT_PRIMITIVE_LIMITS:                return "indirect_primitive_limits";
+   case V3D_CL_STORE_SUBSAMPLE:                              return "store_subsample";
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_INDIRECT_PRIMITIVE_LIMITS:                return "indirect_primitive_limits";
-#endif
-   case V3D_CL_VG_COORD_ARRAY_PRIMS:                     return "vg_coord_array_prims";
-   case V3D_CL_VG_INLINE_PRIMS:                          return "vg_inline_prims";
-   case V3D_CL_COMPRESSED_PRIM_LIST_IID_ZERO:            return "compressed_prim_list_iid_zero";
-   case V3D_CL_COMPRESSED_PRIM_LIST_CURRENT_IID:         return "compressed_prim_list_current_iid";
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_CLIPPED_PRIM_IID_ZERO:                    return "clipped_prim_iid_zero";
+   case V3D_CL_STORE_SUBSAMPLE_EX:                           return "store_subsample_ex";
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_CLIPPED_PRIM_CURRENT_IID:                 return "clipped_prim_current_iid";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_SET_INSTANCE_ID:                          return "set_instance_id";
-#endif
-   case V3D_CL_SET_PRIMITIVE_ID:                         return "set_primitive_id";
-   case V3D_CL_PRIM_LIST_FORMAT:                         return "prim_list_format";
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_SERIAL_NUMBER_LIST_START:                 return "serial_number_list_start";
+   case V3D_CL_LOAD:                                         return "load";
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_GL_SHADER:                                return "gl_shader";
+   case V3D_CL_END_TILE:                                     return "end_tile";
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_NV_SHADER:                                return "nv_shader";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_GL_SHADER:                                return "gl_shader";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_GL_T_SHADER:                              return "gl_t_shader";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_GL_G_SHADER:                              return "gl_g_shader";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_GL_TG_SHADER:                             return "gl_tg_shader";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_NV_SHADER:                                return "nv_shader";
-#endif
-   case V3D_CL_VG_SHADER:                                return "vg_shader";
-#if !V3D_HAS_RELAXED_THRSW
-   case V3D_CL_VG_INLINE_SHADER:                         return "vg_inline_shader";
-#endif
-#if V3D_HAS_RELAXED_THRSW
-   case V3D_CL_VG_INLINE_SHADER:                         return "vg_inline_shader";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_VCM_CACHE_SIZE:                           return "vcm_cache_size";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_PRIM_COUNTS_FEEDBACK:                     return "prim_counts_feedback";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_TRANSFORM_FEEDBACK_BUFFER:                return "transform_feedback_buffer";
-#endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_TRANSFORM_FEEDBACK_SPECS:                 return "transform_feedback_specs";
+   case V3D_CL_STORE_GENERAL:                                return "store_general";
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_VCM_CACHE_SIZE:                           return "vcm_cache_size";
+   case V3D_CL_LOAD_GENERAL:                                 return "load_general";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_TF_DRAW_FLUSH_AND_COUNT:                      return "tf_draw_flush_and_count";
+#endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_INDEXED_PRIM_LIST:                            return "indexed_prim_list";
+#endif
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_INDEXED_PRIM_LIST:                            return "indexed_prim_list";
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_TRANSFORM_FEEDBACK_ENABLE:                return "transform_feedback_enable";
+   case V3D_CL_INDEXED_PRIM_LIST:                            return "indexed_prim_list";
 #endif
-   case V3D_CL_FLUSH_TRANSFORM_FEEDBACK_DATA:            return "flush_transform_feedback_data";
-   case V3D_CL_CLEAR_SLICE_CACHES:                       return "clear_slice_caches";
-   case V3D_CL_FLUSH_L2T:                                return "flush_l2t";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_INDIRECT_INDEXED_PRIM_LIST:                   return "indirect_indexed_prim_list";
+#endif
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_INDIRECT_INDEXED_PRIM_LIST:                   return "indirect_indexed_prim_list";
+#endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_INDEXED_INSTANCED_PRIM_LIST:                  return "indexed_instanced_prim_list";
+#endif
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_INDEXED_INSTANCED_PRIM_LIST:                  return "indexed_instanced_prim_list";
+#endif
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_INDEXED_INSTANCED_PRIM_LIST:                  return "indexed_instanced_prim_list";
+#endif
+   case V3D_CL_VERTEX_ARRAY_PRIMS:                           return "vertex_array_prims";
+   case V3D_CL_INDIRECT_VERTEX_ARRAY_PRIMS:                  return "indirect_vertex_array_prims";
+   case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS:                 return "vertex_array_instanced_prims";
+   case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS:           return "vertex_array_single_instance_prims";
+   case V3D_CL_BASE_VERTEX_BASE_INSTANCE:                    return "base_vertex_base_instance";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_INDEX_BUFFER_SETUP:                           return "index_buffer_setup";
+#endif
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_INDIRECT_PRIMITIVE_LIMITS:                    return "indirect_primitive_limits";
+#endif
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_INDIRECT_PRIMITIVE_LIMITS:                    return "indirect_primitive_limits";
+#endif
+   case V3D_CL_VG_COORD_ARRAY_PRIMS:                         return "vg_coord_array_prims";
+   case V3D_CL_VG_INLINE_PRIMS:                              return "vg_inline_prims";
+   case V3D_CL_COMPRESSED_PRIM_LIST_IID_ZERO:                return "compressed_prim_list_iid_zero";
+   case V3D_CL_COMPRESSED_PRIM_LIST_CURRENT_IID:             return "compressed_prim_list_current_iid";
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_CLIPPED_PRIM_IID_ZERO:                        return "clipped_prim_iid_zero";
+#endif
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_CLIPPED_PRIM_CURRENT_IID:                     return "clipped_prim_current_iid";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_SET_INSTANCE_ID:                              return "set_instance_id";
+#endif
+   case V3D_CL_SET_PRIMITIVE_ID:                             return "set_primitive_id";
+   case V3D_CL_PRIM_LIST_FORMAT:                             return "prim_list_format";
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_SERIAL_NUMBER_LIST_START:                     return "serial_number_list_start";
+#endif
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_GL_SHADER:                                    return "gl_shader";
+#endif
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_NV_SHADER:                                    return "nv_shader";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_GL_SHADER:                                    return "gl_shader";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_GL_T_SHADER:                                  return "gl_t_shader";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_GL_G_SHADER:                                  return "gl_g_shader";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_GL_TG_SHADER:                                 return "gl_tg_shader";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_NV_SHADER:                                    return "nv_shader";
+#endif
+   case V3D_CL_VG_SHADER:                                    return "vg_shader";
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_VG_INLINE_SHADER:                             return "vg_inline_shader";
+#endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_VG_INLINE_SHADER:                             return "vg_inline_shader";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_VCM_CACHE_SIZE:                               return "vcm_cache_size";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_PRIM_COUNTS_FEEDBACK:                         return "prim_counts_feedback";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_TRANSFORM_FEEDBACK_BUFFER:                    return "transform_feedback_buffer";
+#endif
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_TRANSFORM_FEEDBACK_SPECS:                     return "transform_feedback_specs";
+#endif
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_VCM_CACHE_SIZE:                               return "vcm_cache_size";
+#endif
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_TRANSFORM_FEEDBACK_ENABLE:                    return "transform_feedback_enable";
+#endif
+   case V3D_CL_FLUSH_TRANSFORM_FEEDBACK_DATA:                return "flush_transform_feedback_data";
+   case V3D_CL_CLEAR_SLICE_CACHES:                           return "clear_slice_caches";
+   case V3D_CL_FLUSH_L2T:                                    return "flush_l2t";
 #if !V3D_VER_AT_LEAST(3,3,0,0)
-   case V3D_CL_CLEAR_L2C:                                return "clear_l2c";
+   case V3D_CL_CLEAR_L2C:                                    return "clear_l2c";
 #endif
-#if V3D_HAS_CLEAN_L1TD
-   case V3D_CL_CLEAN_L1TD_DEFERRED:                      return "clean_l1td_deferred";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_CLEAN_L1TD_DEFERRED:                          return "clean_l1td_deferred";
 #endif
-   case V3D_CL_STENCIL_CFG:                              return "stencil_cfg";
+   case V3D_CL_STENCIL_CFG:                                  return "stencil_cfg";
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_BLEND_CFG:                                return "blend_cfg";
+   case V3D_CL_BLEND_CFG:                                    return "blend_cfg";
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_BLEND_ENABLES:                            return "blend_enables";
+   case V3D_CL_BLEND_ENABLES:                                return "blend_enables";
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_BLEND_CFG:                                return "blend_cfg";
+   case V3D_CL_BLEND_CFG:                                    return "blend_cfg";
 #endif
-   case V3D_CL_BLEND_CCOLOR:                             return "blend_ccolor";
-   case V3D_CL_COLOR_WMASKS:                             return "color_wmasks";
-   case V3D_CL_ZERO_ALL_CENTROID_FLAGS:                  return "zero_all_centroid_flags";
-   case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS:                 return "zero_all_flatshade_flags";
-#if V3D_HAS_VARY_NO_PERSP
-   case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS:             return "zero_all_noperspective_flags";
+   case V3D_CL_BLEND_CCOLOR:                                 return "blend_ccolor";
+   case V3D_CL_COLOR_WMASKS:                                 return "color_wmasks";
+   case V3D_CL_ZERO_ALL_CENTROID_FLAGS:                      return "zero_all_centroid_flags";
+   case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS:                     return "zero_all_flatshade_flags";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS:                 return "zero_all_noperspective_flags";
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
-   case V3D_CL_CENTROID_FLAGS:                           return "centroid_flags";
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_CENTROID_FLAGS:                               return "centroid_flags";
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
-   case V3D_CL_FLATSHADE_FLAGS:                          return "flatshade_flags";
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_FLATSHADE_FLAGS:                              return "flatshade_flags";
 #endif
-#if V3D_HAS_VARY_NO_PERSP
-   case V3D_CL_CENTROID_FLAGS:                           return "centroid_flags";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_CENTROID_FLAGS:                               return "centroid_flags";
 #endif
-#if V3D_HAS_VARY_NO_PERSP
-   case V3D_CL_FLATSHADE_FLAGS:                          return "flatshade_flags";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_FLATSHADE_FLAGS:                              return "flatshade_flags";
 #endif
-#if V3D_HAS_VARY_NO_PERSP
-   case V3D_CL_NOPERSPECTIVE_FLAGS:                      return "noperspective_flags";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_NOPERSPECTIVE_FLAGS:                          return "noperspective_flags";
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
-   case V3D_CL_SAMPLE_STATE:                             return "sample_state";
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_SAMPLE_STATE:                                 return "sample_state";
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
-   case V3D_CL_SAMPLE_STATE:                             return "sample_state";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_SAMPLE_STATE:                                 return "sample_state";
 #endif
-   case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE:           return "occlusion_query_counter_enable";
-   case V3D_CL_CFG_BITS:                                 return "cfg_bits";
-   case V3D_CL_POINT_SIZE:                               return "point_size";
-   case V3D_CL_LINE_WIDTH:                               return "line_width";
-#if !V3D_HAS_POLY_OFFSET_CLAMP
-   case V3D_CL_DEPTH_OFFSET:                             return "depth_offset";
+   case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE:               return "occlusion_query_counter_enable";
+   case V3D_CL_CFG_BITS:                                     return "cfg_bits";
+   case V3D_CL_POINT_SIZE:                                   return "point_size";
+   case V3D_CL_LINE_WIDTH:                                   return "line_width";
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_DEPTH_OFFSET:                                 return "depth_offset";
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
-   case V3D_CL_DEPTH_OFFSET:                             return "depth_offset";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_DEPTH_OFFSET:                                 return "depth_offset";
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
-   case V3D_CL_CLIP:                                     return "clip";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_CLIP:                                         return "clip";
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
-   case V3D_CL_VIEWPORT_OFFSET:                          return "viewport_offset";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_VIEWPORT_OFFSET:                              return "viewport_offset";
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
-   case V3D_CL_CLIP:                                     return "clip";
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_CLIP:                                         return "clip";
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
-   case V3D_CL_VIEWPORT_OFFSET:                          return "viewport_offset";
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_VIEWPORT_OFFSET:                              return "viewport_offset";
 #endif
-   case V3D_CL_CLIPZ:                                    return "clipz";
-   case V3D_CL_CLIPPER_XY:                               return "clipper_xy";
-   case V3D_CL_CLIPPER_Z:                                return "clipper_z";
+   case V3D_CL_CLIPZ:                                        return "clipz";
+   case V3D_CL_CLIPPER_XY:                                   return "clipper_xy";
+   case V3D_CL_CLIPPER_Z:                                    return "clipper_z";
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_NUM_LAYERS:                               return "num_layers";
+   case V3D_CL_NUM_LAYERS:                                   return "num_layers";
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
-   case V3D_CL_TILE_BINNING_MODE_CFG:                    return "tile_binning_mode_cfg";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_TILE_BINNING_MODE_CFG:                        return "tile_binning_mode_cfg";
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG:                    return "tile_binning_mode_cfg";
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_TILE_BINNING_MODE_CFG:                        return "tile_binning_mode_cfg";
 #endif
-#if !V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG:                    return "tile_binning_mode_cfg";
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CL_TILE_RENDERING_MODE_CFG:                      return "tile_rendering_mode_cfg";
 #endif
-#if V3D_HAS_RT_CLAMP
-   case V3D_CL_TILE_RENDERING_MODE_CFG:                  return "tile_rendering_mode_cfg";
-#endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_TILE_RENDERING_MODE_CFG:                  return "tile_rendering_mode_cfg";
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
+   case V3D_CL_TILE_RENDERING_MODE_CFG:                      return "tile_rendering_mode_cfg";
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   case V3D_CL_TILE_RENDERING_MODE_CFG:                  return "tile_rendering_mode_cfg";
+   case V3D_CL_TILE_RENDERING_MODE_CFG:                      return "tile_rendering_mode_cfg";
 #endif
-   case V3D_CL_MULTICORE_RENDERING_SUPERTILE_CFG:        return "multicore_rendering_supertile_cfg";
-   case V3D_CL_MULTICORE_RENDERING_TILE_LIST_BASE:       return "multicore_rendering_tile_list_base";
-   case V3D_CL_TILE_COORDS:                              return "tile_coords";
-   case V3D_CL_IMPLICIT_TILE_COORDS:                     return "implicit_tile_coords";
-   case V3D_CL_TILE_LIST_INITIAL_BLOCK_SIZE:             return "tile_list_initial_block_size";
-   default:                                              return NULL;
+   case V3D_CL_MULTICORE_RENDERING_SUPERTILE_CFG:            return "multicore_rendering_supertile_cfg";
+   case V3D_CL_MULTICORE_RENDERING_TILE_LIST_BASE:           return "multicore_rendering_tile_list_base";
+   case V3D_CL_TILE_COORDS:                                  return "tile_coords";
+   case V3D_CL_IMPLICIT_TILE_COORDS:                         return "implicit_tile_coords";
+   case V3D_CL_TILE_LIST_INITIAL_BLOCK_SIZE:                 return "tile_list_initial_block_size";
+   default:                                                  return NULL;
    }
 }
 const char *v3d_desc_cl_opcode(v3d_cl_opcode_t cl_opcode)
@@ -3697,6 +3692,7 @@ void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t 
    (*unpacked).no_ez = packed[0] >> 7 & 1;
    (*unpacked).cs_separate_blocks = packed[0] >> 8 & 1;
    (*unpacked).vs_separate_blocks = packed[0] >> 9 & 1;
+   (*unpacked).fs_needs_w = packed[0] >> 10 & 1;
    (*unpacked).scb_wait_on_first_thrsw = packed[0] >> 11 & 1;
    (*unpacked).disable_scb = packed[0] >> 12 & 1;
    (*unpacked).num_varys = gfx_check_urange(packed[0] >> 16 & 255, 0, 64);
@@ -3719,7 +3715,7 @@ void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t 
    (*unpacked).cs.unifs_addr = packed[8];
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).point_size_included = packed[0] & 1;
@@ -3734,6 +3730,7 @@ void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t 
    (*unpacked).no_ez = packed[0] >> 9 & 1;
    (*unpacked).cs_separate_blocks = packed[0] >> 10 & 1;
    (*unpacked).vs_separate_blocks = packed[0] >> 11 & 1;
+   (*unpacked).fs_needs_w = packed[0] >> 12 & 1;
    (*unpacked).sample_rate_shading = packed[0] >> 13 & 1;
    (*unpacked).prim_id_used = packed[0] >> 14 & 1;
    (*unpacked).prim_id_to_fs = packed[0] >> 15 & 1;
@@ -3765,7 +3762,7 @@ void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t 
    (*unpacked).cs.unifs_addr = packed[8];
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW && !V3D_HAS_NO_PRIM_PACK
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).point_size_included = packed[0] & 1;
@@ -3780,55 +3777,7 @@ void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t 
    (*unpacked).no_ez = packed[0] >> 9 & 1;
    (*unpacked).cs_separate_blocks = packed[0] >> 10 & 1;
    (*unpacked).vs_separate_blocks = packed[0] >> 11 & 1;
-   (*unpacked).sample_rate_shading = packed[0] >> 13 & 1;
-   (*unpacked).prim_id_used = packed[0] >> 14 & 1;
-   (*unpacked).prim_id_to_fs = packed[0] >> 15 & 1;
-   (*unpacked).disable_scb = packed[0] >> 16 & 1;
-   (*unpacked).scb_wait_on_first_thrsw = packed[0] >> 17 & 1;
-   (*unpacked).disable_implicit_varys = packed[0] >> 18 & 1;
-   (*unpacked).num_varys = gfx_check_urange(packed[0] >> 24, 0, 64);
-   (*unpacked).cs_output_size.sectors = gfx_unpack_uint_0_is_max(packed[1] & 15, 4);
-   (*unpacked).cs_output_size.min_extra_req = packed[1] >> 4 & 3;
-   (*unpacked).cs_input_size.sectors = packed[1] >> 8 & 15;
-   (*unpacked).cs_input_size.min_req = (packed[1] >> 12 & 3) + 1;
-   (*unpacked).vs_output_size.sectors =
-      gfx_unpack_uint_0_is_max(packed[1] >> 16 & 15, 4);
-   (*unpacked).vs_output_size.min_extra_req = packed[1] >> 20 & 3;
-   (*unpacked).vs_input_size.sectors = packed[1] >> 24 & 15;
-   (*unpacked).vs_input_size.min_req = (packed[1] >> 28 & 3) + 1;
-   (*unpacked).defaults = packed[2];
-   (*unpacked).fs.threading = (v3d_threading_t)(packed[3] & 1);
-   (*unpacked).fs.single_seg = packed[3] >> 1 & 1;
-   (*unpacked).fs.propagate_nans = packed[3] >> 2 & 1;
-   (*unpacked).fs.addr = packed[3] >> 3 << 3;
-   (*unpacked).fs.unifs_addr = packed[4];
-   (*unpacked).vs.threading = (v3d_threading_t)(packed[5] & 1);
-   (*unpacked).vs.single_seg = packed[5] >> 1 & 1;
-   (*unpacked).vs.propagate_nans = packed[5] >> 2 & 1;
-   (*unpacked).vs.addr = packed[5] >> 3 << 3;
-   (*unpacked).vs.unifs_addr = packed[6];
-   (*unpacked).cs.threading = (v3d_threading_t)(packed[7] & 1);
-   (*unpacked).cs.single_seg = packed[7] >> 1 & 1;
-   (*unpacked).cs.propagate_nans = packed[7] >> 2 & 1;
-   (*unpacked).cs.addr = packed[7] >> 3 << 3;
-   (*unpacked).cs.unifs_addr = packed[8];
-}
-#endif
-#if V3D_HAS_NO_PRIM_PACK
-void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t *packed)
-{
-   (*unpacked).point_size_included = packed[0] & 1;
-   (*unpacked).clipping = packed[0] >> 1 & 1;
-   (*unpacked).cs_vertex_id = packed[0] >> 2 & 1;
-   (*unpacked).cs_instance_id = packed[0] >> 3 & 1;
-   (*unpacked).cs_baseinstance = packed[0] >> 4 & 1;
-   (*unpacked).vs_vertex_id = packed[0] >> 5 & 1;
-   (*unpacked).vs_instance_id = packed[0] >> 6 & 1;
-   (*unpacked).vs_baseinstance = packed[0] >> 7 & 1;
-   (*unpacked).z_write = packed[0] >> 8 & 1;
-   (*unpacked).no_ez = packed[0] >> 9 & 1;
-   (*unpacked).cs_separate_blocks = packed[0] >> 10 & 1;
-   (*unpacked).vs_separate_blocks = packed[0] >> 11 & 1;
+   (*unpacked).fs_needs_w = packed[0] >> 12 & 1;
    (*unpacked).sample_rate_shading = packed[0] >> 13 & 1;
    (*unpacked).prim_id_used = packed[0] >> 14 & 1;
    (*unpacked).prim_id_to_fs = packed[0] >> 15 & 1;
@@ -3864,7 +3813,7 @@ void v3d_unpack_shadrec_gl_main(V3D_SHADREC_GL_MAIN_T *unpacked, const uint32_t 
    (*unpacked).cs.unifs_addr = packed[8];
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_geom(V3D_SHADREC_GL_GEOM_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).gs_bin.threading = (v3d_threading_t)(packed[0] & 3);
@@ -3877,7 +3826,7 @@ void v3d_unpack_shadrec_gl_geom(V3D_SHADREC_GL_GEOM_T *unpacked, const uint32_t 
    (*unpacked).gs_render.unifs_addr = packed[3];
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_geom(V3D_SHADREC_GL_GEOM_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).gs_bin.threading = (v3d_threading_t)(packed[0] & 1);
@@ -3892,7 +3841,7 @@ void v3d_unpack_shadrec_gl_geom(V3D_SHADREC_GL_GEOM_T *unpacked, const uint32_t 
    (*unpacked).gs_render.unifs_addr = packed[3];
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_tess(V3D_SHADREC_GL_TESS_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).tcs_bin.threading = (v3d_threading_t)(packed[0] & 3);
@@ -3913,7 +3862,7 @@ void v3d_unpack_shadrec_gl_tess(V3D_SHADREC_GL_TESS_T *unpacked, const uint32_t 
    (*unpacked).tes_render.unifs_addr = packed[7];
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_tess(V3D_SHADREC_GL_TESS_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).tcs_bin.threading = (v3d_threading_t)(packed[0] & 1);
@@ -3938,7 +3887,7 @@ void v3d_unpack_shadrec_gl_tess(V3D_SHADREC_GL_TESS_T *unpacked, const uint32_t 
    (*unpacked).tes_render.unifs_addr = packed[7];
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_tess_or_geom(V3D_SHADREC_GL_TESS_OR_GEOM_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).tess_type = (v3d_cl_tess_type_t)(packed[0] >> 1 & 3);
@@ -3999,7 +3948,7 @@ void v3d_unpack_shadrec_gl_tess_or_geom(V3D_SHADREC_GL_TESS_OR_GEOM_T *unpacked,
    (*unpacked).min_gs_segs_render = (packed[3] >> 29) + 1;
 }
 #endif
-#if V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_tess_or_geom(V3D_SHADREC_GL_TESS_OR_GEOM_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).tess_type = (v3d_cl_tess_type_t)(packed[0] >> 1 & 3);
@@ -4062,7 +4011,7 @@ void v3d_unpack_shadrec_gl_tess_or_geom(V3D_SHADREC_GL_TESS_OR_GEOM_T *unpacked,
    (*unpacked).render.min_gs_segs = (packed[4] >> 27 & 7) + 1;
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_attr(V3D_SHADREC_GL_ATTR_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).addr = packed[0];
@@ -4078,7 +4027,7 @@ void v3d_unpack_shadrec_gl_attr(V3D_SHADREC_GL_ATTR_T *unpacked, const uint32_t 
    (*unpacked).max_index = packed[3] & 0xffffff;
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_gl_attr(V3D_SHADREC_GL_ATTR_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).addr = packed[0];
@@ -4093,7 +4042,7 @@ void v3d_unpack_shadrec_gl_attr(V3D_SHADREC_GL_ATTR_T *unpacked, const uint32_t 
    (*unpacked).stride = packed[2];
 }
 #endif
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_vg(V3D_SHADREC_VG_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).fs.threading = (v3d_threading_t)(packed[1] & 3);
@@ -4102,7 +4051,7 @@ void v3d_unpack_shadrec_vg(V3D_SHADREC_VG_T *unpacked, const uint32_t *packed)
    (*unpacked).fs.unifs_addr = packed[2];
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_shadrec_vg(V3D_SHADREC_VG_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).fs.threading = (v3d_threading_t)(packed[1] & 1);
@@ -4197,7 +4146,7 @@ void v3d_unpack_tmu_param1(V3D_TMU_PARAM1_T *unpacked, uint32_t packed0)
    (*unpacked).sampler_addr = packed0 >> 3 << 3;
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_TMU_LOD_QUERY
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
 {
    (*unpacked).tmuoff_4x = packed0 & 1;
@@ -4211,12 +4160,28 @@ void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
    (*unpacked).op = (v3d_tmu_op_t)(packed0 >> 20 & 15);
 }
 #endif
-#if V3D_HAS_TMU_LOD_QUERY
+#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_HAS_SAMPLER_LOD_DIS
 void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
 {
    (*unpacked).tmuoff_4x = packed0 & 1;
    (*unpacked).bslod = packed0 >> 1 & 1;
    (*unpacked).sample_num = packed0 >> 2 & 3;
+   (*unpacked).gather_comp = packed0 >> 5 & 3;
+   (*unpacked).gather = packed0 >> 7 & 1;
+   (*unpacked).offsets[0] = gfx_sext(packed0 >> 8 & 15, 4);
+   (*unpacked).offsets[1] = gfx_sext(packed0 >> 12 & 15, 4);
+   (*unpacked).offsets[2] = gfx_sext(packed0 >> 16 & 15, 4);
+   (*unpacked).op = (v3d_tmu_op_t)(packed0 >> 20 & 15);
+   (*unpacked).lod_query = packed0 >> 24 & 1;
+}
+#endif
+#if V3D_HAS_SAMPLER_LOD_DIS
+void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
+{
+   (*unpacked).tmuoff_4x = packed0 & 1;
+   (*unpacked).bslod = packed0 >> 1 & 1;
+   (*unpacked).sample_num = packed0 >> 2 & 3;
+   (*unpacked).sampler_lod_dis = packed0 >> 4 & 1;
    (*unpacked).gather_comp = packed0 >> 5 & 3;
    (*unpacked).gather = packed0 >> 7 & 1;
    (*unpacked).offsets[0] = gfx_sext(packed0 >> 8 & 15, 4);
@@ -4237,7 +4202,7 @@ void v3d_unpack_tsy_config(V3D_TSY_CONFIG_T *unpacked, uint8_t packed0)
    (*unpacked).op = (v3d_tsy_op_t)(uint32_t)(packed0 & 31);
    (*unpacked).gfxh_1370_do_not_change = (uint32_t)(packed0 >> 5);
 }
-#if V3D_HAS_TLB_WR_CONVERT
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_tlb_config(V3D_TLB_CONFIG_T *unpacked, uint8_t packed0)
 {
    if ((uint32_t)(packed0 >> 6) == 3)
@@ -4276,47 +4241,7 @@ void v3d_unpack_tlb_config(V3D_TLB_CONFIG_T *unpacked, uint8_t packed0)
    }
 }
 #endif
-#if V3D_HAS_TLB_SAMPLED_READ && !V3D_HAS_TLB_WR_CONVERT
-void v3d_unpack_tlb_config(V3D_TLB_CONFIG_T *unpacked, uint8_t packed0)
-{
-   if ((uint32_t)(packed0 >> 6) == 3)
-   {
-      (*unpacked).type = V3D_TLB_RW_TYPE_COLOR_16;
-      (*unpacked).u.color_16.num_words = (uint32_t)(packed0 & 1) + 1;
-      (*unpacked).u.color_16.no_swap = (uint32_t)(packed0 >> 1 & 1);
-      (*unpacked).u.color_16.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
-      (*unpacked).u.color_16.rt = gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7);
-      assert((uint32_t)(packed0 >> 6) == 3);
-   }
-   else if ((uint32_t)(packed0 >> 7) == 0)
-   {
-      (*unpacked).type = V3D_TLB_RW_TYPE_COLOR_32;
-      (*unpacked).u.color_32.num_words = (uint32_t)(packed0 & 3) + 1;
-      (*unpacked).u.color_32.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
-      (*unpacked).u.color_32.rt = gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7);
-      (*unpacked).u.color_32.as_int = (uint32_t)(packed0 >> 6 & 1);
-      assert((uint32_t)(packed0 >> 7) == 0);
-   }
-   else if ((uint32_t)(packed0 >> 4) == 8)
-   {
-      (*unpacked).type = V3D_TLB_RW_TYPE_Z;
-      (*unpacked).u.z.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
-      (*unpacked).u.z.use_written_z = (uint32_t)(packed0 >> 3 & 1);
-      assert((uint32_t)(packed0 >> 4) == 8);
-   }
-   else if ((uint32_t)(packed0 >> 4) == 9)
-   {
-      (*unpacked).type = V3D_TLB_RW_TYPE_ALPHA_MASK;
-      (*unpacked).u.alpha_mask.all_samples_same_data = (uint32_t)(packed0 >> 2 & 1);
-      assert((uint32_t)(packed0 >> 4) == 9);
-   }
-   else
-   {
-      unreachable();
-   }
-}
-#endif
-#if !V3D_HAS_TLB_SAMPLED_READ
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_tlb_config(V3D_TLB_CONFIG_T *unpacked, uint8_t packed0)
 {
    if ((uint32_t)(packed0 >> 6) == 3)
@@ -4473,7 +4398,7 @@ void v3d_unpack_tmu_tex_extension(V3D_TMU_TEX_EXTENSION_T *unpacked, const uint8
    (*unpacked).xor_dis = (uint32_t)(packed[0] >> 7);
 }
 #endif
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_tmu_sampler(V3D_TMU_SAMPLER_T *unpacked, const uint8_t *packed)
 {
    (*unpacked).magfilt = (v3d_tmu_filter_t)(uint32_t)(packed[0] & 1);
@@ -4495,7 +4420,7 @@ void v3d_unpack_tmu_sampler(V3D_TMU_SAMPLER_T *unpacked, const uint8_t *packed)
    (*unpacked).max_aniso = (v3d_max_aniso_t)(uint32_t)(packed[7] >> 5 & 3);
 }
 #endif
-#if !V3D_HAS_SEP_ANISO_CFG && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_unpack_tmu_sampler(V3D_TMU_SAMPLER_T *unpacked, const uint8_t *packed)
 {
    (*unpacked).filters = (v3d_tmu_filters_t)(uint32_t)(packed[0] & 15);
@@ -4544,7 +4469,7 @@ void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *p
    (*unpacked).halfwrt = packed[4] >> 19 & 1;
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_TL_START_UNC
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).cl_pos = packed[0];
@@ -4569,7 +4494,7 @@ void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *p
    (*unpacked).tg_geom_inst = packed[10] >> 26 & 1;
 }
 #endif
-#if V3D_HAS_TL_START_UNC && !V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,1,34,0) && !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).cl_pos = packed[0];
@@ -4595,7 +4520,7 @@ void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *p
    (*unpacked).tg_geom_inst = packed[10] >> 27 & 1;
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_bin_tile_state(V3D_BIN_TILE_STATE_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).cl_pos = packed[0];
@@ -4635,7 +4560,7 @@ void v3d_unpack_indirect_arrays_record(V3D_INDIRECT_ARRAYS_RECORD_T *unpacked, c
    (*unpacked).first_index = packed[2];
    (*unpacked).base_instance = packed[3];
 }
-#if !V3D_HAS_PSE_WIREFRAME
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_clip_record(V3D_CLIP_RECORD_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).xs = (int32_t)packed[0];
@@ -4647,7 +4572,7 @@ void v3d_unpack_clip_record(V3D_CLIP_RECORD_T *unpacked, const uint32_t *packed)
    (*unpacked).vcoeff[2] = gfx_float_from_bits(packed[6]);
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_clip_record(V3D_CLIP_RECORD_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).xs = (int32_t)packed[0];
@@ -5080,7 +5005,7 @@ void v3d_unpack_cl_compr_ind_d3dpvsf_tri(V3D_CL_COMPR_IND_D3DPVSF_TRI_T *unpacke
       unreachable();
    }
 }
-#if !V3D_HAS_PSE_WIREFRAME
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_cl_compr_ind_line(V3D_CL_COMPR_IND_LINE_T *unpacked, const uint8_t *packed)
 {
    if (v3d_is_valid_line_ind_reuse((v3d_line_ind_reuse_t)(uint32_t)(packed[0] & 3)))
@@ -5151,7 +5076,7 @@ void v3d_unpack_cl_compr_ind_line(V3D_CL_COMPR_IND_LINE_T *unpacked, const uint8
    }
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_cl_compr_ind_line(V3D_CL_COMPR_IND_LINE_T *unpacked, const uint8_t *packed)
 {
    if (v3d_is_valid_line_ind_reuse((v3d_line_ind_reuse_t)(uint32_t)(packed[0] & 3)))
@@ -5217,7 +5142,7 @@ void v3d_unpack_cl_compr_ind_line(V3D_CL_COMPR_IND_LINE_T *unpacked, const uint8
    }
 }
 #endif
-#if !V3D_HAS_PSE_WIREFRAME
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_cl_compr_ind_point(V3D_CL_COMPR_IND_POINT_T *unpacked, const uint8_t *packed)
 {
    if ((uint32_t)(packed[0] & 3) == 0)
@@ -5274,7 +5199,7 @@ void v3d_unpack_cl_compr_ind_point(V3D_CL_COMPR_IND_POINT_T *unpacked, const uin
    }
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_unpack_cl_compr_ind_point(V3D_CL_COMPR_IND_POINT_T *unpacked, const uint8_t *packed)
 {
    if ((uint32_t)(packed[0] & 3) == 0)
@@ -6235,7 +6160,7 @@ void v3d_unpack_intr(V3D_INTR_T *unpacked, uint32_t packed0)
    (*unpacked).qpu[15] = packed0 >> 31;
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_intr(V3D_INTR_T *unpacked, uint32_t packed0)
 {
    (*unpacked).render_done = packed0 & 1;
@@ -6263,7 +6188,7 @@ void v3d_unpack_intr(V3D_INTR_T *unpacked, uint32_t packed0)
    (*unpacked).qpu[15] = packed0 >> 31;
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_intr(V3D_INTR_T *unpacked, uint32_t packed0)
 {
    (*unpacked).render_done = packed0 & 1;
@@ -6292,7 +6217,7 @@ void v3d_unpack_intr(V3D_INTR_T *unpacked, uint32_t packed0)
    (*unpacked).qpu[15] = packed0 >> 31;
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_ct0cs(V3D_CT0CS_T *unpacked, uint32_t packed0)
 {
    (*unpacked).cterr = packed0 >> 3 & 1;
@@ -6303,7 +6228,7 @@ void v3d_unpack_ct0cs(V3D_CT0CS_T *unpacked, uint32_t packed0)
    (*unpacked).ctrsta = packed0 >> 15 & 1;
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_ct0cs(V3D_CT0CS_T *unpacked, uint32_t packed0)
 {
    (*unpacked).ctooberr = packed0 >> 2 & 1;
@@ -6361,7 +6286,7 @@ void v3d_unpack_ct1ptct(V3D_CT1PTCT_T *unpacked, uint32_t packed0)
    (*unpacked).mcs_frame_id = packed0 >> 29 & 1;
    (*unpacked).etstop = packed0 >> 31;
 }
-#if V3D_HAS_QTS
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_ct0qts(V3D_CT0QTS_T *unpacked, uint32_t packed0)
 {
    (*unpacked).enable = packed0 >> 1 & 1;
@@ -6434,19 +6359,11 @@ void v3d_unpack_tfucoef3(V3D_TFUCOEF3_T *unpacked, uint32_t packed0)
    (*unpacked).abb = packed0 & 0xfff;
    (*unpacked).agb = packed0 >> 16 & 0xfff;
 }
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_srqpc(V3D_SRQPC_T *unpacked, uint32_t packed0)
 {
    (*unpacked).threading = (v3d_threading_t)(packed0 & 1);
    (*unpacked).single_seg = packed0 >> 1 & 1;
-   (*unpacked).propagate_nans = packed0 >> 2 & 1;
-   (*unpacked).addr = packed0 >> 3 << 3;
-}
-#endif
-#if V3D_HAS_USH_THR_PNAN && !V3D_HAS_RELAXED_THRSW
-void v3d_unpack_srqpc(V3D_SRQPC_T *unpacked, uint32_t packed0)
-{
-   (*unpacked).threading = (v3d_threading_t)(packed0 & 3);
    (*unpacked).propagate_nans = packed0 >> 2 & 1;
    (*unpacked).addr = packed0 >> 3 << 3;
 }
@@ -6609,7 +6526,7 @@ void v3d_unpack_gmp_vio_type(V3D_GMP_VIO_TYPE_T *unpacked, uint32_t packed0)
    (*unpacked).axi_master_id = (v3d_axi_master_id_t)(packed0 >> 21 & 15);
 }
 #endif
-#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_HAS_GMP_L2T_DEBUG
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_gmp_vio_type(V3D_GMP_VIO_TYPE_T *unpacked, uint32_t packed0)
 {
    (*unpacked).length = (packed0 & 15) + 1;
@@ -6619,7 +6536,7 @@ void v3d_unpack_gmp_vio_type(V3D_GMP_VIO_TYPE_T *unpacked, uint32_t packed0)
    (*unpacked).valid = packed0 >> 31;
 }
 #endif
-#if V3D_HAS_GMP_L2T_DEBUG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_gmp_vio_type(V3D_GMP_VIO_TYPE_T *unpacked, uint32_t packed0)
 {
    (*unpacked).length = (packed0 & 15) + 1;
@@ -6658,13 +6575,13 @@ void v3d_unpack_tsy_control(V3D_TSY_CONTROL_T *unpacked, uint32_t packed0)
    (*unpacked).core_enable[14] = packed0 >> 14 & 1;
    (*unpacked).core_enable[15] = packed0 >> 15 & 1;
 }
-#if !V3D_HAS_TSY_APB_FIX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_tsy_status(V3D_TSY_STATUS_T *unpacked, uint32_t packed0)
 {
    (*unpacked).busy = packed0 & 1;
 }
 #endif
-#if V3D_HAS_TSY_APB_FIX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_tsy_status(V3D_TSY_STATUS_T *unpacked, uint32_t packed0)
 {
    (*unpacked).busy = packed0 & 1;
@@ -6676,7 +6593,7 @@ void v3d_unpack_tsy_tso_data(V3D_TSY_TSO_DATA_T *unpacked, uint32_t packed0)
    (*unpacked).num_waiting = packed0 & 0xffff;
    (*unpacked).quorum = packed0 >> 16;
 }
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_status(V3D_CSD_STATUS_T *unpacked, uint32_t packed0)
 {
    (*unpacked).have_queued_dispatch = packed0 & 1;
@@ -6685,28 +6602,28 @@ void v3d_unpack_csd_status(V3D_CSD_STATUS_T *unpacked, uint32_t packed0)
    (*unpacked).num_completed_dispatches = packed0 >> 4 & 255;
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_cfg0(V3D_CSD_CFG0_T *unpacked, uint32_t packed0)
 {
    (*unpacked).wg_x_offset = packed0 & 0xffff;
    (*unpacked).num_wgs_x = gfx_unpack_uint_0_is_max(packed0 >> 16, 16);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_cfg1(V3D_CSD_CFG1_T *unpacked, uint32_t packed0)
 {
    (*unpacked).wg_y_offset = packed0 & 0xffff;
    (*unpacked).num_wgs_y = gfx_unpack_uint_0_is_max(packed0 >> 16, 16);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_cfg2(V3D_CSD_CFG2_T *unpacked, uint32_t packed0)
 {
    (*unpacked).wg_z_offset = packed0 & 0xffff;
    (*unpacked).num_wgs_z = gfx_unpack_uint_0_is_max(packed0 >> 16, 16);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_cfg3(V3D_CSD_CFG3_T *unpacked, uint32_t packed0)
 {
    (*unpacked).wg_size = gfx_unpack_uint_0_is_max(packed0 & 255, 8);
@@ -6716,13 +6633,13 @@ void v3d_unpack_csd_cfg3(V3D_CSD_CFG3_T *unpacked, uint32_t packed0)
    (*unpacked).overlap_with_prev = packed0 >> 26 & 1;
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_cfg4(V3D_CSD_CFG4_T *unpacked, uint32_t packed0)
 {
    (*unpacked).num_batches = (uint64_t)packed0 + 1;
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_cfg5(V3D_CSD_CFG5_T *unpacked, uint32_t packed0)
 {
    (*unpacked).threading = (v3d_threading_t)(packed0 & 1);
@@ -6731,13 +6648,13 @@ void v3d_unpack_csd_cfg5(V3D_CSD_CFG5_T *unpacked, uint32_t packed0)
    (*unpacked).shader_addr = packed0 >> 3 << 3;
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_cfg6(V3D_CSD_CFG6_T *unpacked, uint32_t packed0)
 {
    (*unpacked).unifs_addr = packed0 >> 2 << 2;
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_cfg(V3D_CSD_CFG_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).wg_x_offset = packed[0] & 0xffff;
@@ -6759,7 +6676,7 @@ void v3d_unpack_csd_cfg(V3D_CSD_CFG_T *unpacked, const uint32_t *packed)
    (*unpacked).unifs_addr = packed[6] >> 2 << 2;
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_id0(V3D_CSD_ID0_T *unpacked, uint32_t packed0)
 {
    (*unpacked).l_idx = packed0 & 255;
@@ -6767,14 +6684,14 @@ void v3d_unpack_csd_id0(V3D_CSD_ID0_T *unpacked, uint32_t packed0)
    (*unpacked).wg_x = packed0 >> 16;
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_id1(V3D_CSD_ID1_T *unpacked, uint32_t packed0)
 {
    (*unpacked).wg_y = packed0 & 0xffff;
    (*unpacked).wg_z = packed0 >> 16;
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_unpack_csd_id(V3D_CSD_ID_T *unpacked, const uint32_t *packed)
 {
    (*unpacked).l_idx = packed[0] & 255;
@@ -6955,7 +6872,7 @@ uint32_t v3d_cl_compr_ind_d3dpvsf_tri_packed_size(v3d_cl_compr_type_t type)
    default:                   unreachable(); return 0;
    }
 }
-#if !V3D_HAS_PSE_WIREFRAME
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 uint32_t v3d_cl_compr_ind_line_packed_size(v3d_cl_compr_type_t type)
 {
    switch (type)
@@ -6971,7 +6888,7 @@ uint32_t v3d_cl_compr_ind_line_packed_size(v3d_cl_compr_type_t type)
    }
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 uint32_t v3d_cl_compr_ind_line_packed_size(v3d_cl_compr_type_t type)
 {
    switch (type)
@@ -6987,7 +6904,7 @@ uint32_t v3d_cl_compr_ind_line_packed_size(v3d_cl_compr_type_t type)
    }
 }
 #endif
-#if !V3D_HAS_PSE_WIREFRAME
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 uint32_t v3d_cl_compr_ind_point_packed_size(v3d_cl_compr_type_t type)
 {
    switch (type)
@@ -7002,7 +6919,7 @@ uint32_t v3d_cl_compr_ind_point_packed_size(v3d_cl_compr_type_t type)
    }
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 uint32_t v3d_cl_compr_ind_point_packed_size(v3d_cl_compr_type_t type)
 {
    switch (type)
@@ -7060,6 +6977,7 @@ void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->boolean_field(printer, "no_ez", packed[0] >> 7 & 1);
    printer->vtbl->boolean_field(printer, "cs_separate_blocks", packed[0] >> 8 & 1);
    printer->vtbl->boolean_field(printer, "vs_separate_blocks", packed[0] >> 9 & 1);
+   printer->vtbl->boolean_field(printer, "fs_needs_w", packed[0] >> 10 & 1);
    printer->vtbl->boolean_field(printer, "scb_wait_on_first_thrsw",
       packed[0] >> 11 & 1);
    printer->vtbl->boolean_field(printer, "disable_scb", packed[0] >> 12 & 1);
@@ -7096,7 +7014,7 @@ void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7112,6 +7030,7 @@ void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->boolean_field(printer, "no_ez", packed[0] >> 9 & 1);
    printer->vtbl->boolean_field(printer, "cs_separate_blocks", packed[0] >> 10 & 1);
    printer->vtbl->boolean_field(printer, "vs_separate_blocks", packed[0] >> 11 & 1);
+   printer->vtbl->boolean_field(printer, "fs_needs_w", packed[0] >> 12 & 1);
    printer->vtbl->boolean_field(printer, "sample_rate_shading",
       packed[0] >> 13 & 1);
    printer->vtbl->boolean_field(printer, "prim_id_used", packed[0] >> 14 & 1);
@@ -7170,7 +7089,7 @@ void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW && !V3D_HAS_NO_PRIM_PACK
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7186,83 +7105,7 @@ void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->boolean_field(printer, "no_ez", packed[0] >> 9 & 1);
    printer->vtbl->boolean_field(printer, "cs_separate_blocks", packed[0] >> 10 & 1);
    printer->vtbl->boolean_field(printer, "vs_separate_blocks", packed[0] >> 11 & 1);
-   printer->vtbl->boolean_field(printer, "sample_rate_shading",
-      packed[0] >> 13 & 1);
-   printer->vtbl->boolean_field(printer, "prim_id_used", packed[0] >> 14 & 1);
-   printer->vtbl->boolean_field(printer, "prim_id_to_fs", packed[0] >> 15 & 1);
-   printer->vtbl->boolean_field(printer, "disable_scb", packed[0] >> 16 & 1);
-   printer->vtbl->boolean_field(printer, "scb_wait_on_first_thrsw",
-      packed[0] >> 17 & 1);
-   printer->vtbl->boolean_field(printer, "disable_implicit_varys",
-      packed[0] >> 18 & 1);
-   printer->vtbl->field(printer, "num_varys", "%" PRIu32 "",
-      gfx_check_urange(packed[0] >> 24, 0, 64));
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "cs_output_size", false);
-   printer->vtbl->field(printer, "sectors", "%" PRIu32 "",
-      gfx_unpack_uint_0_is_max(packed[1] & 15, 4));
-   printer->vtbl->field(printer, "min_extra_req", "%" PRIu32 "",
-      packed[1] >> 4 & 3);
-   printer->vtbl->end(printer);
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "cs_input_size", false);
-   printer->vtbl->field(printer, "sectors", "%" PRIu32 "", packed[1] >> 8 & 15);
-   printer->vtbl->field(printer, "min_req", "%" PRIu32 "",
-      (packed[1] >> 12 & 3) + 1);
-   printer->vtbl->end(printer);
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "vs_output_size", false);
-   printer->vtbl->field(printer, "sectors", "%" PRIu32 "",
-      gfx_unpack_uint_0_is_max(packed[1] >> 16 & 15, 4));
-   printer->vtbl->field(printer, "min_extra_req", "%" PRIu32 "",
-      packed[1] >> 20 & 3);
-   printer->vtbl->end(printer);
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "vs_input_size", false);
-   printer->vtbl->field(printer, "sectors", "%" PRIu32 "", packed[1] >> 24 & 15);
-   printer->vtbl->field(printer, "min_req", "%" PRIu32 "",
-      (packed[1] >> 28 & 3) + 1);
-   printer->vtbl->end(printer);
-   printer->vtbl->addr_field(printer, "defaults", packed[2]);
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "fs", false);
-   printer->vtbl->field(printer, "threading", "%s",
-      v3d_desc_threading((v3d_threading_t)(packed[3] & 1)));
-   printer->vtbl->boolean_field(printer, "single_seg", packed[3] >> 1 & 1);
-   printer->vtbl->boolean_field(printer, "propagate_nans", packed[3] >> 2 & 1);
-   printer->vtbl->addr_field(printer, "addr", packed[3] >> 3 << 3);
-   printer->vtbl->addr_field(printer, "unifs_addr", packed[4]);
-   printer->vtbl->end(printer);
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "vs", false);
-   printer->vtbl->field(printer, "threading", "%s",
-      v3d_desc_threading((v3d_threading_t)(packed[5] & 1)));
-   printer->vtbl->boolean_field(printer, "single_seg", packed[5] >> 1 & 1);
-   printer->vtbl->boolean_field(printer, "propagate_nans", packed[5] >> 2 & 1);
-   printer->vtbl->addr_field(printer, "addr", packed[5] >> 3 << 3);
-   printer->vtbl->addr_field(printer, "unifs_addr", packed[6]);
-   printer->vtbl->end(printer);
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "cs", false);
-   printer->vtbl->field(printer, "threading", "%s",
-      v3d_desc_threading((v3d_threading_t)(packed[7] & 1)));
-   printer->vtbl->boolean_field(printer, "single_seg", packed[7] >> 1 & 1);
-   printer->vtbl->boolean_field(printer, "propagate_nans", packed[7] >> 2 & 1);
-   printer->vtbl->addr_field(printer, "addr", packed[7] >> 3 << 3);
-   printer->vtbl->addr_field(printer, "unifs_addr", packed[8]);
-   printer->vtbl->end(printer);
-   printer->vtbl->end(printer);
-}
-#endif
-#if V3D_HAS_NO_PRIM_PACK
-void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *printer)
-{
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->boolean_field(printer, "point_size_included", packed[0] & 1);
-   printer->vtbl->boolean_field(printer, "clipping", packed[0] >> 1 & 1);
-   printer->vtbl->boolean_field(printer, "cs_vertex_id", packed[0] >> 2 & 1);
-   printer->vtbl->boolean_field(printer, "cs_instance_id", packed[0] >> 3 & 1);
-   printer->vtbl->boolean_field(printer, "cs_baseinstance", packed[0] >> 4 & 1);
-   printer->vtbl->boolean_field(printer, "vs_vertex_id", packed[0] >> 5 & 1);
-   printer->vtbl->boolean_field(printer, "vs_instance_id", packed[0] >> 6 & 1);
-   printer->vtbl->boolean_field(printer, "vs_baseinstance", packed[0] >> 7 & 1);
-   printer->vtbl->boolean_field(printer, "z_write", packed[0] >> 8 & 1);
-   printer->vtbl->boolean_field(printer, "no_ez", packed[0] >> 9 & 1);
-   printer->vtbl->boolean_field(printer, "cs_separate_blocks", packed[0] >> 10 & 1);
-   printer->vtbl->boolean_field(printer, "vs_separate_blocks", packed[0] >> 11 & 1);
+   printer->vtbl->boolean_field(printer, "fs_needs_w", packed[0] >> 12 & 1);
    printer->vtbl->boolean_field(printer, "sample_rate_shading",
       packed[0] >> 13 & 1);
    printer->vtbl->boolean_field(printer, "prim_id_used", packed[0] >> 14 & 1);
@@ -7325,7 +7168,7 @@ void v3d_print_shadrec_gl_main(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_geom(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7346,7 +7189,7 @@ void v3d_print_shadrec_gl_geom(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_geom(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7369,7 +7212,7 @@ void v3d_print_shadrec_gl_geom(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_tess(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7404,7 +7247,7 @@ void v3d_print_shadrec_gl_tess(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_tess(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7443,7 +7286,7 @@ void v3d_print_shadrec_gl_tess(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_tess_or_geom(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7544,7 +7387,7 @@ void v3d_print_shadrec_gl_tess_or_geom(const uint32_t *packed, struct v3d_printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_SEP_BR_TG_PARAMS
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_tess_or_geom(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7656,7 +7499,7 @@ void v3d_print_shadrec_gl_tess_or_geom(const uint32_t *packed, struct v3d_printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_attr(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7678,7 +7521,7 @@ void v3d_print_shadrec_gl_attr(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_gl_attr(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7699,7 +7542,7 @@ void v3d_print_shadrec_gl_attr(const uint32_t *packed, struct v3d_printer *print
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_vg(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7713,7 +7556,7 @@ void v3d_print_shadrec_vg(const uint32_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_shadrec_vg(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7844,7 +7687,7 @@ void v3d_print_tmu_param1(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_TMU_LOD_QUERY
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7866,13 +7709,37 @@ void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_TMU_LOD_QUERY
+#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_HAS_SAMPLER_LOD_DIS
 void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->boolean_field(printer, "tmuoff_4x", packed0 & 1);
    printer->vtbl->boolean_field(printer, "bslod", packed0 >> 1 & 1);
    printer->vtbl->field(printer, "sample_num", "%" PRIu32 "", packed0 >> 2 & 3);
+   printer->vtbl->field(printer, "gather_comp", "%" PRIu32 "", packed0 >> 5 & 3);
+   printer->vtbl->boolean_field(printer, "gather", packed0 >> 7 & 1);
+   printer->vtbl->begin(printer, V3D_PRINTER_ARRAY, "offsets", false);
+   printer->vtbl->field(printer, "0", "%" PRId32 "",
+      gfx_sext(packed0 >> 8 & 15, 4));
+   printer->vtbl->field(printer, "1", "%" PRId32 "",
+      gfx_sext(packed0 >> 12 & 15, 4));
+   printer->vtbl->field(printer, "2", "%" PRId32 "",
+      gfx_sext(packed0 >> 16 & 15, 4));
+   printer->vtbl->end(printer);
+   printer->vtbl->field(printer, "op", "%s",
+      v3d_desc_tmu_op((v3d_tmu_op_t)(packed0 >> 20 & 15)));
+   printer->vtbl->boolean_field(printer, "lod_query", packed0 >> 24 & 1);
+   printer->vtbl->end(printer);
+}
+#endif
+#if V3D_HAS_SAMPLER_LOD_DIS
+void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
+{
+   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
+   printer->vtbl->boolean_field(printer, "tmuoff_4x", packed0 & 1);
+   printer->vtbl->boolean_field(printer, "bslod", packed0 >> 1 & 1);
+   printer->vtbl->field(printer, "sample_num", "%" PRIu32 "", packed0 >> 2 & 3);
+   printer->vtbl->boolean_field(printer, "sampler_lod_dis", packed0 >> 4 & 1);
    printer->vtbl->field(printer, "gather_comp", "%" PRIu32 "", packed0 >> 5 & 3);
    printer->vtbl->boolean_field(printer, "gather", packed0 >> 7 & 1);
    printer->vtbl->begin(printer, V3D_PRINTER_ARRAY, "offsets", false);
@@ -7909,7 +7776,7 @@ void v3d_print_tsy_config(uint8_t packed0, struct v3d_printer *printer)
       (uint32_t)(packed0 >> 5));
    printer->vtbl->end(printer);
 }
-#if V3D_HAS_TLB_WR_CONVERT
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_tlb_config(uint8_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7961,60 +7828,7 @@ void v3d_print_tlb_config(uint8_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_TLB_SAMPLED_READ && !V3D_HAS_TLB_WR_CONVERT
-void v3d_print_tlb_config(uint8_t packed0, struct v3d_printer *printer)
-{
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->begin(printer, V3D_PRINTER_UNION, "u", true);
-   if ((uint32_t)(packed0 >> 6) == 3)
-   {
-      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "color_16", false);
-      printer->vtbl->field(printer, "num_words", "%" PRIu32 "",
-         (uint32_t)(packed0 & 1) + 1);
-      printer->vtbl->boolean_field(printer, "no_swap", (uint32_t)(packed0 >> 1 & 1));
-      printer->vtbl->boolean_field(printer, "all_samples_same_data",
-         (uint32_t)(packed0 >> 2 & 1));
-      printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7));
-      printer->vtbl->end(printer);
-   }
-   else if ((uint32_t)(packed0 >> 7) == 0)
-   {
-      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "color_32", false);
-      printer->vtbl->field(printer, "num_words", "%" PRIu32 "",
-         (uint32_t)(packed0 & 3) + 1);
-      printer->vtbl->boolean_field(printer, "all_samples_same_data",
-         (uint32_t)(packed0 >> 2 & 1));
-      printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_mask(3) - (uint32_t)(packed0 >> 3 & 7));
-      printer->vtbl->boolean_field(printer, "as_int", (uint32_t)(packed0 >> 6 & 1));
-      printer->vtbl->end(printer);
-   }
-   else if ((uint32_t)(packed0 >> 4) == 8)
-   {
-      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "z", false);
-      printer->vtbl->boolean_field(printer, "all_samples_same_data",
-         (uint32_t)(packed0 >> 2 & 1));
-      printer->vtbl->boolean_field(printer, "use_written_z",
-         (uint32_t)(packed0 >> 3 & 1));
-      printer->vtbl->end(printer);
-   }
-   else if ((uint32_t)(packed0 >> 4) == 9)
-   {
-      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "alpha_mask", false);
-      printer->vtbl->boolean_field(printer, "all_samples_same_data",
-         (uint32_t)(packed0 >> 2 & 1));
-      printer->vtbl->end(printer);
-   }
-   else
-   {
-      unreachable();
-   }
-   printer->vtbl->end(printer);
-   printer->vtbl->end(printer);
-}
-#endif
-#if !V3D_HAS_TLB_SAMPLED_READ
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_tlb_config(uint8_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8210,7 +8024,7 @@ void v3d_print_tmu_tex_extension(const uint8_t *packed, struct v3d_printer *prin
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_tmu_sampler(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8247,7 +8061,7 @@ void v3d_print_tmu_sampler(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_SEP_ANISO_CFG && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_print_tmu_sampler(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8321,7 +8135,7 @@ void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_TL_START_UNC
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8355,7 +8169,7 @@ void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_TL_START_UNC && !V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,1,34,0) && !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8390,7 +8204,7 @@ void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_bin_tile_state(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8443,7 +8257,7 @@ void v3d_print_indirect_arrays_record(const uint32_t *packed, struct v3d_printer
    printer->vtbl->field(printer, "base_instance", "%" PRIu32 "", packed[3]);
    printer->vtbl->end(printer);
 }
-#if !V3D_HAS_PSE_WIREFRAME
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_clip_record(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8459,7 +8273,7 @@ void v3d_print_clip_record(const uint32_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_clip_record(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -8976,7 +8790,7 @@ void v3d_print_cl_compr_ind_d3dpvsf_tri(const uint8_t *packed, struct v3d_printe
    printer->vtbl->end(printer);
    printer->vtbl->end(printer);
 }
-#if !V3D_HAS_PSE_WIREFRAME
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_cl_compr_ind_line(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -9064,7 +8878,7 @@ void v3d_print_cl_compr_ind_line(const uint8_t *packed, struct v3d_printer *prin
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_cl_compr_ind_line(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -9142,7 +8956,7 @@ void v3d_print_cl_compr_ind_line(const uint8_t *packed, struct v3d_printer *prin
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_PSE_WIREFRAME
+#if !V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_cl_compr_ind_point(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -9208,7 +9022,7 @@ void v3d_print_cl_compr_ind_point(const uint8_t *packed, struct v3d_printer *pri
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_PSE_WIREFRAME
+#if V3D_VER_AT_LEAST(4,2,13,0)
 void v3d_print_cl_compr_ind_point(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10322,7 +10136,7 @@ void v3d_print_intr(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_intr(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10354,7 +10168,7 @@ void v3d_print_intr(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_intr(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10387,7 +10201,7 @@ void v3d_print_intr(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_ct0cs(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10401,7 +10215,7 @@ void v3d_print_ct0cs(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_ct0cs(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10480,7 +10294,7 @@ void v3d_print_ct1ptct(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->boolean_field(printer, "etstop", packed0 >> 31);
    printer->vtbl->end(printer);
 }
-#if V3D_HAS_QTS
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_ct0qts(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10583,24 +10397,13 @@ void v3d_print_tfucoef3(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->field(printer, "agb", "%" PRIu32 "", packed0 >> 16 & 0xfff);
    printer->vtbl->end(printer);
 }
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_srqpc(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->field(printer, "threading", "%s",
       v3d_desc_threading((v3d_threading_t)(packed0 & 1)));
    printer->vtbl->boolean_field(printer, "single_seg", packed0 >> 1 & 1);
-   printer->vtbl->boolean_field(printer, "propagate_nans", packed0 >> 2 & 1);
-   printer->vtbl->addr_field(printer, "addr", packed0 >> 3 << 3);
-   printer->vtbl->end(printer);
-}
-#endif
-#if V3D_HAS_USH_THR_PNAN && !V3D_HAS_RELAXED_THRSW
-void v3d_print_srqpc(uint32_t packed0, struct v3d_printer *printer)
-{
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->field(printer, "threading", "%s",
-      v3d_desc_threading((v3d_threading_t)(packed0 & 3)));
    printer->vtbl->boolean_field(printer, "propagate_nans", packed0 >> 2 & 1);
    printer->vtbl->addr_field(printer, "addr", packed0 >> 3 << 3);
    printer->vtbl->end(printer);
@@ -10808,7 +10611,7 @@ void v3d_print_gmp_vio_type(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_HAS_GMP_L2T_DEBUG
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_gmp_vio_type(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10822,7 +10625,7 @@ void v3d_print_gmp_vio_type(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_GMP_L2T_DEBUG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_gmp_vio_type(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10874,7 +10677,7 @@ void v3d_print_tsy_control(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
    printer->vtbl->end(printer);
 }
-#if !V3D_HAS_TSY_APB_FIX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_tsy_status(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10882,7 +10685,7 @@ void v3d_print_tsy_status(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_TSY_APB_FIX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_tsy_status(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10898,7 +10701,7 @@ void v3d_print_tsy_tso_data(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->field(printer, "quorum", "%" PRIu32 "", packed0 >> 16);
    printer->vtbl->end(printer);
 }
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_status(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10911,7 +10714,7 @@ void v3d_print_csd_status(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_cfg0(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10921,7 +10724,7 @@ void v3d_print_csd_cfg0(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_cfg1(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10931,7 +10734,7 @@ void v3d_print_csd_cfg1(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_cfg2(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10941,7 +10744,7 @@ void v3d_print_csd_cfg2(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_cfg3(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10956,7 +10759,7 @@ void v3d_print_csd_cfg3(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_cfg4(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10965,7 +10768,7 @@ void v3d_print_csd_cfg4(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_cfg5(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10977,7 +10780,7 @@ void v3d_print_csd_cfg5(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_cfg6(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10985,7 +10788,7 @@ void v3d_print_csd_cfg6(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_cfg(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -11017,7 +10820,7 @@ void v3d_print_csd_cfg(const uint32_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_id0(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -11027,7 +10830,7 @@ void v3d_print_csd_id0(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_id1(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -11036,7 +10839,7 @@ void v3d_print_csd_id1(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CSD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_print_csd_id(const uint32_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -11199,16 +11002,16 @@ uint32_t v3d_cl_instr_size(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_END_TILE: return V3D_CL_END_TILE_SIZE;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_STORE: return V3D_CL_STORE_SIZE;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_LOAD: return V3D_CL_LOAD_SIZE;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_STORE: return V3D_CL_STORE_SIZE;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_LOAD: return V3D_CL_LOAD_SIZE;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11232,25 +11035,25 @@ uint32_t v3d_cl_instr_size(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TF_DRAW_FLUSH_AND_COUNT: return V3D_CL_TF_DRAW_FLUSH_AND_COUNT_SIZE;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_PRIM_LIST: return V3D_CL_INDEXED_PRIM_LIST_SIZE;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: return V3D_CL_INDEXED_PRIM_LIST_SIZE;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: return V3D_CL_INDEXED_PRIM_LIST_SIZE;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: return V3D_CL_INDIRECT_INDEXED_PRIM_LIST_SIZE;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: return V3D_CL_INDIRECT_INDEXED_PRIM_LIST_SIZE;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: return V3D_CL_INDEXED_INSTANCED_PRIM_LIST_SIZE;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: return V3D_CL_INDEXED_INSTANCED_PRIM_LIST_SIZE;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11261,10 +11064,10 @@ uint32_t v3d_cl_instr_size(v3d_cl_opcode_t opcode)
    case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS: return V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS_SIZE;
    case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS: return V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS_SIZE;
    case V3D_CL_BASE_VERTEX_BASE_INSTANCE: return V3D_CL_BASE_VERTEX_BASE_INSTANCE_SIZE;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEX_BUFFER_SETUP: return V3D_CL_INDEX_BUFFER_SETUP_SIZE;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDIRECT_PRIMITIVE_LIMITS: return V3D_CL_INDIRECT_PRIMITIVE_LIMITS_SIZE;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11298,10 +11101,10 @@ uint32_t v3d_cl_instr_size(v3d_cl_opcode_t opcode)
    case V3D_CL_NV_SHADER: return V3D_CL_GL_SHADER_SIZE;
 #endif
    case V3D_CL_VG_SHADER: return V3D_CL_VG_SHADER_SIZE;
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: return V3D_CL_VG_INLINE_SHADER_SIZE;
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: return V3D_CL_VG_INLINE_SHADER_SIZE;
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -11328,7 +11131,7 @@ uint32_t v3d_cl_instr_size(v3d_cl_opcode_t opcode)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: return V3D_CL_CLEAR_L2C_SIZE;
 #endif
-#if V3D_HAS_CLEAN_L1TD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLEAN_L1TD_DEFERRED: return V3D_CL_CLEAN_L1TD_DEFERRED_SIZE;
 #endif
    case V3D_CL_STENCIL_CFG: return V3D_CL_STENCIL_CFG_SIZE;
@@ -11345,44 +11148,44 @@ uint32_t v3d_cl_instr_size(v3d_cl_opcode_t opcode)
    case V3D_CL_COLOR_WMASKS: return V3D_CL_COLOR_WMASKS_SIZE;
    case V3D_CL_ZERO_ALL_CENTROID_FLAGS: return V3D_CL_ZERO_ALL_CENTROID_FLAGS_SIZE;
    case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS: return V3D_CL_ZERO_ALL_FLATSHADE_FLAGS_SIZE;
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS: return V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS_SIZE;
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS: return V3D_CL_VARY_FLAGS_SIZE;
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS:
    case V3D_CL_NOPERSPECTIVE_FLAGS: return V3D_CL_VARY_FLAGS_SIZE;
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: return V3D_CL_SAMPLE_STATE_SIZE;
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: return V3D_CL_SAMPLE_STATE_SIZE;
 #endif
    case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE: return V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE_SIZE;
    case V3D_CL_CFG_BITS: return V3D_CL_CFG_BITS_SIZE;
    case V3D_CL_POINT_SIZE: return V3D_CL_POINT_SIZE_SIZE;
    case V3D_CL_LINE_WIDTH: return V3D_CL_LINE_WIDTH_SIZE;
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: return V3D_CL_DEPTH_OFFSET_SIZE;
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: return V3D_CL_DEPTH_OFFSET_SIZE;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: return V3D_CL_CLIP_SIZE;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: return V3D_CL_VIEWPORT_OFFSET_SIZE;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: return V3D_CL_CLIP_SIZE;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: return V3D_CL_VIEWPORT_OFFSET_SIZE;
 #endif
    case V3D_CL_CLIPZ: return V3D_CL_CLIPZ_SIZE;
@@ -11391,19 +11194,16 @@ uint32_t v3d_cl_instr_size(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_NUM_LAYERS: return V3D_CL_NUM_LAYERS_SIZE;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: return V3D_CL_TILE_BINNING_MODE_CFG_SIZE;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: return V3D_CL_TILE_BINNING_MODE_CFG_SIZE;
 #endif
-#if !V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG: return V3D_CL_TILE_BINNING_MODE_CFG_SIZE;
-#endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: return V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: return V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11451,16 +11251,16 @@ bool v3d_cl_instr_ok_in_bin(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_END_TILE: return false;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_STORE: return false;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_LOAD: return false;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_STORE: return false;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_LOAD: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11484,25 +11284,25 @@ bool v3d_cl_instr_ok_in_bin(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TF_DRAW_FLUSH_AND_COUNT: return true;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_PRIM_LIST: return true;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: return true;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: return true;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: return true;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: return true;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: return true;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: return true;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11513,10 +11313,10 @@ bool v3d_cl_instr_ok_in_bin(v3d_cl_opcode_t opcode)
    case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS: return true;
    case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS: return true;
    case V3D_CL_BASE_VERTEX_BASE_INSTANCE: return true;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEX_BUFFER_SETUP: return true;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDIRECT_PRIMITIVE_LIMITS: return true;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11550,10 +11350,10 @@ bool v3d_cl_instr_ok_in_bin(v3d_cl_opcode_t opcode)
    case V3D_CL_NV_SHADER: return true;
 #endif
    case V3D_CL_VG_SHADER: return true;
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: return true;
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: return true;
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -11580,7 +11380,7 @@ bool v3d_cl_instr_ok_in_bin(v3d_cl_opcode_t opcode)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: return true;
 #endif
-#if V3D_HAS_CLEAN_L1TD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLEAN_L1TD_DEFERRED: return true;
 #endif
    case V3D_CL_STENCIL_CFG: return true;
@@ -11597,44 +11397,44 @@ bool v3d_cl_instr_ok_in_bin(v3d_cl_opcode_t opcode)
    case V3D_CL_COLOR_WMASKS: return true;
    case V3D_CL_ZERO_ALL_CENTROID_FLAGS: return true;
    case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS: return true;
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS: return true;
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS: return true;
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS:
    case V3D_CL_NOPERSPECTIVE_FLAGS: return true;
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: return true;
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: return true;
 #endif
    case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE: return true;
    case V3D_CL_CFG_BITS: return true;
    case V3D_CL_POINT_SIZE: return true;
    case V3D_CL_LINE_WIDTH: return true;
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: return true;
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: return true;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: return true;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: return true;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: return true;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: return true;
 #endif
    case V3D_CL_CLIPZ: return true;
@@ -11643,19 +11443,16 @@ bool v3d_cl_instr_ok_in_bin(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_NUM_LAYERS: return true;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: return true;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: return true;
 #endif
-#if !V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG: return true;
-#endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: return false;
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11703,16 +11500,16 @@ bool v3d_cl_instr_ok_in_render(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_END_TILE: return true;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_STORE: return true;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_LOAD: return true;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_STORE: return true;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_LOAD: return true;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11736,25 +11533,25 @@ bool v3d_cl_instr_ok_in_render(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TF_DRAW_FLUSH_AND_COUNT: return false;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_PRIM_LIST: return false;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: return false;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: return false;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: return false;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: return false;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11765,10 +11562,10 @@ bool v3d_cl_instr_ok_in_render(v3d_cl_opcode_t opcode)
    case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS: return false;
    case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS: return false;
    case V3D_CL_BASE_VERTEX_BASE_INSTANCE: return false;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEX_BUFFER_SETUP: return false;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDIRECT_PRIMITIVE_LIMITS: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11802,10 +11599,10 @@ bool v3d_cl_instr_ok_in_render(v3d_cl_opcode_t opcode)
    case V3D_CL_NV_SHADER: return true;
 #endif
    case V3D_CL_VG_SHADER: return true;
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: return true;
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: return true;
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -11832,7 +11629,7 @@ bool v3d_cl_instr_ok_in_render(v3d_cl_opcode_t opcode)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: return true;
 #endif
-#if V3D_HAS_CLEAN_L1TD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLEAN_L1TD_DEFERRED: return true;
 #endif
    case V3D_CL_STENCIL_CFG: return true;
@@ -11849,44 +11646,44 @@ bool v3d_cl_instr_ok_in_render(v3d_cl_opcode_t opcode)
    case V3D_CL_COLOR_WMASKS: return true;
    case V3D_CL_ZERO_ALL_CENTROID_FLAGS: return true;
    case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS: return true;
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS: return true;
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS: return true;
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS:
    case V3D_CL_NOPERSPECTIVE_FLAGS: return true;
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: return true;
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: return true;
 #endif
    case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE: return true;
    case V3D_CL_CFG_BITS: return true;
    case V3D_CL_POINT_SIZE: return true;
    case V3D_CL_LINE_WIDTH: return true;
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: return true;
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: return true;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: return true;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: return true;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: return true;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: return true;
 #endif
    case V3D_CL_CLIPZ: return true;
@@ -11895,19 +11692,16 @@ bool v3d_cl_instr_ok_in_render(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_NUM_LAYERS: return false;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: return true;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: return false;
 #endif
-#if !V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG: return false;
-#endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: return true;
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: return true;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11955,16 +11749,16 @@ bool v3d_cl_instr_ok_in_tile_list(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_END_TILE: return false;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_STORE: return false;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_LOAD: return false;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_STORE: return false;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_LOAD: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -11988,25 +11782,25 @@ bool v3d_cl_instr_ok_in_tile_list(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TF_DRAW_FLUSH_AND_COUNT: return false;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_PRIM_LIST: return false;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: return false;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: return false;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: return false;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: return false;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -12017,10 +11811,10 @@ bool v3d_cl_instr_ok_in_tile_list(v3d_cl_opcode_t opcode)
    case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS: return false;
    case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS: return false;
    case V3D_CL_BASE_VERTEX_BASE_INSTANCE: return false;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEX_BUFFER_SETUP: return false;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDIRECT_PRIMITIVE_LIMITS: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -12054,10 +11848,10 @@ bool v3d_cl_instr_ok_in_tile_list(v3d_cl_opcode_t opcode)
    case V3D_CL_NV_SHADER: return true;
 #endif
    case V3D_CL_VG_SHADER: return true;
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: return true;
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: return true;
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -12084,7 +11878,7 @@ bool v3d_cl_instr_ok_in_tile_list(v3d_cl_opcode_t opcode)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: return false;
 #endif
-#if V3D_HAS_CLEAN_L1TD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLEAN_L1TD_DEFERRED: return false;
 #endif
    case V3D_CL_STENCIL_CFG: return true;
@@ -12101,44 +11895,44 @@ bool v3d_cl_instr_ok_in_tile_list(v3d_cl_opcode_t opcode)
    case V3D_CL_COLOR_WMASKS: return true;
    case V3D_CL_ZERO_ALL_CENTROID_FLAGS: return true;
    case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS: return true;
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS: return true;
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS: return true;
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS:
    case V3D_CL_NOPERSPECTIVE_FLAGS: return true;
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: return true;
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: return true;
 #endif
    case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE: return true;
    case V3D_CL_CFG_BITS: return true;
    case V3D_CL_POINT_SIZE: return true;
    case V3D_CL_LINE_WIDTH: return true;
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: return true;
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: return true;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: return true;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: return true;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: return true;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: return true;
 #endif
    case V3D_CL_CLIPZ: return true;
@@ -12147,19 +11941,16 @@ bool v3d_cl_instr_ok_in_tile_list(v3d_cl_opcode_t opcode)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_NUM_LAYERS: return false;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: return false;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: return false;
 #endif
-#if !V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG: return false;
-#endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: return false;
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: return false;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -12310,7 +12101,7 @@ void v3d_cl_print_end_tile(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_store(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12341,7 +12132,7 @@ void v3d_cl_print_store(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_load(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12371,7 +12162,7 @@ void v3d_cl_print_load(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_print_store(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12399,7 +12190,7 @@ void v3d_cl_print_store(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_print_load(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12525,7 +12316,7 @@ void v3d_cl_print_tf_draw_flush_and_count(const uint8_t *packed, struct v3d_prin
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_indexed_prim_list(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12544,7 +12335,7 @@ void v3d_cl_print_indexed_prim_list(const uint8_t *packed, struct v3d_printer *p
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_print_indexed_prim_list(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12594,7 +12385,7 @@ void v3d_cl_print_indexed_prim_list(const uint8_t *packed, struct v3d_printer *p
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_indirect_indexed_prim_list(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12615,7 +12406,7 @@ void v3d_cl_print_indirect_indexed_prim_list(const uint8_t *packed, struct v3d_p
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_indirect_indexed_prim_list(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12639,7 +12430,7 @@ void v3d_cl_print_indirect_indexed_prim_list(const uint8_t *packed, struct v3d_p
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_indexed_instanced_prim_list(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12661,7 +12452,7 @@ void v3d_cl_print_indexed_instanced_prim_list(const uint8_t *packed, struct v3d_
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_print_indexed_instanced_prim_list(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12782,7 +12573,7 @@ void v3d_cl_print_base_vertex_base_instance(const uint8_t *packed, struct v3d_pr
       (uint32_t)packed[7] << 24);
    printer->vtbl->end(printer);
 }
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_index_buffer_setup(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12795,7 +12586,7 @@ void v3d_cl_print_index_buffer_setup(const uint8_t *packed, struct v3d_printer *
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_print_indirect_primitive_limits(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12946,7 +12737,7 @@ void v3d_cl_print_vg_shader(const uint8_t *packed, struct v3d_printer *printer)
       (uint32_t)packed[0] | (uint32_t)packed[1] << 8 | (uint32_t)packed[2] << 16 |
       (uint32_t)packed[3] << 24);
 }
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_vg_inline_shader(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -12965,7 +12756,7 @@ void v3d_cl_print_vg_inline_shader(const uint8_t *packed, struct v3d_printer *pr
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_vg_inline_shader(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13094,7 +12885,7 @@ void v3d_cl_print_clear_l2c(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_CLEAN_L1TD
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_clean_l1td_deferred(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13186,9 +12977,9 @@ void v3d_cl_print_blend_ccolor(const uint8_t *packed, struct v3d_printer *printe
 }
 void v3d_cl_print_color_wmasks(const uint8_t *packed, struct v3d_printer *printer)
 {
-   printer->vtbl->field(printer, NULL, "0x%08x",
+   printer->vtbl->field(printer, NULL, "0x%08x", gfx_check_urange(
       (uint32_t)packed[0] | (uint32_t)packed[1] << 8 | (uint32_t)packed[2] << 16 |
-      (uint32_t)packed[3] << 24);
+      (uint32_t)packed[3] << 24, 0, 0xffff));
 }
 void v3d_cl_print_zero_all_centroid_flags(const uint8_t *packed, struct v3d_printer *printer)
 {
@@ -13200,14 +12991,14 @@ void v3d_cl_print_zero_all_flatshade_flags(const uint8_t *packed, struct v3d_pri
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->end(printer);
 }
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_zero_all_noperspective_flags(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_vary_flags(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13222,7 +13013,7 @@ void v3d_cl_print_vary_flags(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_vary_flags(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13237,7 +13028,7 @@ void v3d_cl_print_vary_flags(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_sample_state(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13247,7 +13038,7 @@ void v3d_cl_print_sample_state(const uint8_t *packed, struct v3d_printer *printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_sample_state(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13309,7 +13100,7 @@ void v3d_cl_print_line_width(const uint8_t *packed, struct v3d_printer *printer)
       (uint32_t)packed[0] | (uint32_t)packed[1] << 8 | (uint32_t)packed[2] << 16 |
       (uint32_t)packed[3] << 24));
 }
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_depth_offset(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13320,7 +13111,7 @@ void v3d_cl_print_depth_offset(const uint8_t *packed, struct v3d_printer *printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_depth_offset(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13334,7 +13125,7 @@ void v3d_cl_print_depth_offset(const uint8_t *packed, struct v3d_printer *printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_clip(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13349,7 +13140,7 @@ void v3d_cl_print_clip(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_viewport_offset(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13366,7 +13157,7 @@ void v3d_cl_print_viewport_offset(const uint8_t *packed, struct v3d_printer *pri
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_clip(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13381,7 +13172,7 @@ void v3d_cl_print_clip(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_viewport_offset(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13436,7 +13227,7 @@ void v3d_cl_print_num_layers(const uint8_t *packed, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_tile_binning_mode_cfg(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13447,7 +13238,7 @@ void v3d_cl_print_tile_binning_mode_cfg(const uint8_t *packed, struct v3d_printe
       v3d_desc_tile_alloc_block_size(
       (v3d_tile_alloc_block_size_t)(uint32_t)(packed[0] >> 4 & 3)));
    printer->vtbl->field(printer, "num_rts", "%" PRIu32 "",
-      gfx_check_urange((uint32_t)(packed[1] & 15) + 1, 1, 8));
+      gfx_check_urange((uint32_t)(packed[1] & 15) + 1, 1, 4));
    printer->vtbl->field(printer, "max_bpp", "%s", v3d_desc_rt_bpp(
       (v3d_rt_bpp_t)(uint32_t)(packed[1] >> 4 & 3)));
    printer->vtbl->boolean_field(printer, "ms_mode", (uint32_t)(packed[1] >> 6 & 1));
@@ -13460,58 +13251,7 @@ void v3d_cl_print_tile_binning_mode_cfg(const uint8_t *packed, struct v3d_printe
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
-void v3d_cl_print_tile_binning_mode_cfg(const uint8_t *packed, struct v3d_printer *printer)
-{
-   printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->begin(printer, V3D_PRINTER_UNION, "u", true);
-   if ((uint32_t)(packed[0] & 1) == 0)
-   {
-      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "part1", false);
-      printer->vtbl->boolean_field(printer, "set_tile_state_addr",
-         (uint32_t)(packed[0] >> 1 & 1));
-      printer->vtbl->field(printer, "tile_alloc_initial_block_size", "%s",
-         v3d_desc_tile_alloc_block_size(
-         (v3d_tile_alloc_block_size_t)(uint32_t)(packed[0] >> 2 & 3)));
-      printer->vtbl->field(printer, "tile_alloc_block_size", "%s",
-         v3d_desc_tile_alloc_block_size(
-         (v3d_tile_alloc_block_size_t)(uint32_t)(packed[0] >> 4 & 3)));
-      printer->vtbl->addr_field(printer, "tile_state_addr",
-         ((uint32_t)(packed[0] >> 6) | (uint32_t)packed[1] << 2 |
-         (uint32_t)packed[2] << 10 | (uint32_t)packed[3] << 18) << 6);
-      printer->vtbl->field(printer, "w_in_tiles", "%" PRIu32 "", gfx_check_urange(
-         (uint32_t)packed[4] | (uint32_t)(packed[5] & 15) << 8, 1, 0xfff));
-      printer->vtbl->field(printer, "h_in_tiles", "%" PRIu32 "", gfx_check_urange(
-         (uint32_t)(packed[5] >> 4) | (uint32_t)packed[6] << 4, 1, 0xfff));
-      printer->vtbl->field(printer, "num_rts", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[7] & 15), 0, 8));
-      printer->vtbl->field(printer, "max_bpp", "%s", v3d_desc_rt_bpp(
-         (v3d_rt_bpp_t)(uint32_t)(packed[7] >> 4 & 3)));
-      printer->vtbl->boolean_field(printer, "ms_mode", (uint32_t)(packed[7] >> 6 & 1));
-      printer->vtbl->boolean_field(printer, "double_buffer",
-         (uint32_t)(packed[7] >> 7));
-      printer->vtbl->end(printer);
-   }
-   else if ((uint32_t)(packed[0] & 1) == 1)
-   {
-      printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "part2", false);
-      printer->vtbl->field(printer, "tile_alloc_size", "%" PRIu32 "",
-         ((uint32_t)(packed[0] >> 6) | (uint32_t)packed[1] << 2 |
-         (uint32_t)packed[2] << 10 | (uint32_t)packed[3] << 18) << 6);
-      printer->vtbl->addr_field(printer, "tile_alloc_addr",
-         ((uint32_t)(packed[4] >> 6) | (uint32_t)packed[5] << 2 |
-         (uint32_t)packed[6] << 10 | (uint32_t)packed[7] << 18) << 6);
-      printer->vtbl->end(printer);
-   }
-   else
-   {
-      unreachable();
-   }
-   printer->vtbl->end(printer);
-   printer->vtbl->end(printer);
-}
-#endif
-#if !V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_tile_binning_mode_cfg(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13535,7 +13275,7 @@ void v3d_cl_print_tile_binning_mode_cfg(const uint8_t *packed, struct v3d_printe
       printer->vtbl->field(printer, "h_in_tiles", "%" PRIu32 "", gfx_check_urange(
          (uint32_t)(packed[5] >> 4) | (uint32_t)packed[6] << 4, 1, 0xfff));
       printer->vtbl->field(printer, "num_rts", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[7] & 15), 0, 8));
+         gfx_check_urange((uint32_t)(packed[7] & 15), 0, 4));
       printer->vtbl->field(printer, "max_bpp", "%s", v3d_desc_rt_bpp(
          (v3d_rt_bpp_t)(uint32_t)(packed[7] >> 4 & 3)));
       printer->vtbl->boolean_field(printer, "ms_mode", (uint32_t)(packed[7] >> 6 & 1));
@@ -13562,7 +13302,7 @@ void v3d_cl_print_tile_binning_mode_cfg(const uint8_t *packed, struct v3d_printe
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13571,7 +13311,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "common", false);
       printer->vtbl->field(printer, "num_rts", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 8));
+         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 4));
       printer->vtbl->field(printer, "frame_width", "%" PRIu32 "", gfx_check_urange(
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8, 1, 0xffff));
       printer->vtbl->field(printer, "frame_height", "%" PRIu32 "", gfx_check_urange(
@@ -13646,7 +13386,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "clear_colors_part1", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "clear_col_0", "0x%08x",
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16 |
          (uint32_t)packed[4] << 24);
@@ -13658,7 +13398,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "clear_colors_part2", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "clear_col_1_shift24", "0x%02x",
          (uint32_t)packed[1]);
       printer->vtbl->field(printer, "clear_col_2", "0x%08x",
@@ -13672,7 +13412,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "clear_colors_part3", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "clear_col_3_shift16", "0x%04x",
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8);
       printer->vtbl->end(printer);
@@ -13685,7 +13425,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    printer->vtbl->end(printer);
 }
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -13694,7 +13434,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "common", false);
       printer->vtbl->field(printer, "num_rts", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 8));
+         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 4));
       printer->vtbl->field(printer, "frame_width", "%" PRIu32 "", gfx_check_urange(
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8, 1, 0xffff));
       printer->vtbl->field(printer, "frame_height", "%" PRIu32 "", gfx_check_urange(
@@ -13761,7 +13501,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "clear_colors_part1", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "clear_col_0", "0x%08x",
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16 |
          (uint32_t)packed[4] << 24);
@@ -13773,7 +13513,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "clear_colors_part2", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "clear_col_1_shift24", "0x%02x",
          (uint32_t)packed[1]);
       printer->vtbl->field(printer, "clear_col_2", "0x%08x",
@@ -13787,7 +13527,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "clear_colors_part3", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "clear_col_3_shift16", "0x%04x",
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8);
       printer->vtbl->end(printer);
@@ -13809,7 +13549,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "common", false);
       printer->vtbl->field(printer, "num_rts", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 8));
+         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 4));
       printer->vtbl->field(printer, "frame_width", "%" PRIu32 "", gfx_check_urange(
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8, 1, 0xffff));
       printer->vtbl->field(printer, "frame_height", "%" PRIu32 "", gfx_check_urange(
@@ -13870,7 +13610,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "color", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "internal_bpp", "%s",
          v3d_desc_rt_bpp((v3d_rt_bpp_t)(uint32_t)(packed[1] & 3)));
       printer->vtbl->field(printer, "internal_type", "%s", v3d_desc_rt_type(
@@ -13903,7 +13643,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "clear_colors_part1", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "clear_col_0", "0x%08x",
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16 |
          (uint32_t)packed[4] << 24);
@@ -13915,7 +13655,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "clear_colors_part2", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "clear_col_1_shift24", "0x%02x",
          (uint32_t)packed[1]);
       printer->vtbl->field(printer, "clear_col_2", "0x%08x",
@@ -13929,7 +13669,7 @@ void v3d_cl_print_tile_rendering_mode_cfg(const uint8_t *packed, struct v3d_prin
    {
       printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, "clear_colors_part3", false);
       printer->vtbl->field(printer, "rt", "%" PRIu32 "",
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7));
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3));
       printer->vtbl->field(printer, "clear_col_3_shift16", "0x%04x",
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8);
       printer->vtbl->field(printer, "raster_padded_width_or_nonraster_height",
@@ -14037,16 +13777,16 @@ void v3d_cl_print_instr(const uint8_t *packed_instr, struct v3d_printer *printer
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_END_TILE: v3d_cl_print_end_tile(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_STORE: v3d_cl_print_store(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_LOAD: v3d_cl_print_load(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_STORE: v3d_cl_print_store(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_LOAD: v3d_cl_print_load(packed_instr + 1, printer); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -14070,25 +13810,25 @@ void v3d_cl_print_instr(const uint8_t *packed_instr, struct v3d_printer *printer
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TF_DRAW_FLUSH_AND_COUNT: v3d_cl_print_tf_draw_flush_and_count(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_PRIM_LIST: v3d_cl_print_indexed_prim_list(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: v3d_cl_print_indexed_prim_list(packed_instr + 1, printer); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: v3d_cl_print_indexed_prim_list(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: v3d_cl_print_indirect_indexed_prim_list(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: v3d_cl_print_indirect_indexed_prim_list(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: v3d_cl_print_indexed_instanced_prim_list(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: v3d_cl_print_indexed_instanced_prim_list(packed_instr + 1, printer); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -14099,10 +13839,10 @@ void v3d_cl_print_instr(const uint8_t *packed_instr, struct v3d_printer *printer
    case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS: v3d_cl_print_vertex_array_instanced_prims(packed_instr + 1, printer); break;
    case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS: v3d_cl_print_vertex_array_single_instance_prims(packed_instr + 1, printer); break;
    case V3D_CL_BASE_VERTEX_BASE_INSTANCE: v3d_cl_print_base_vertex_base_instance(packed_instr + 1, printer); break;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEX_BUFFER_SETUP: v3d_cl_print_index_buffer_setup(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDIRECT_PRIMITIVE_LIMITS: v3d_cl_print_indirect_primitive_limits(packed_instr + 1, printer); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -14136,10 +13876,10 @@ void v3d_cl_print_instr(const uint8_t *packed_instr, struct v3d_printer *printer
    case V3D_CL_NV_SHADER: v3d_cl_print_gl_shader(packed_instr + 1, printer); break;
 #endif
    case V3D_CL_VG_SHADER: v3d_cl_print_vg_shader(packed_instr + 1, printer); break;
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: v3d_cl_print_vg_inline_shader(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: v3d_cl_print_vg_inline_shader(packed_instr + 1, printer); break;
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -14166,7 +13906,7 @@ void v3d_cl_print_instr(const uint8_t *packed_instr, struct v3d_printer *printer
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: v3d_cl_print_clear_l2c(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_CLEAN_L1TD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLEAN_L1TD_DEFERRED: v3d_cl_print_clean_l1td_deferred(packed_instr + 1, printer); break;
 #endif
    case V3D_CL_STENCIL_CFG: v3d_cl_print_stencil_cfg(packed_instr + 1, printer); break;
@@ -14183,44 +13923,44 @@ void v3d_cl_print_instr(const uint8_t *packed_instr, struct v3d_printer *printer
    case V3D_CL_COLOR_WMASKS: v3d_cl_print_color_wmasks(packed_instr + 1, printer); break;
    case V3D_CL_ZERO_ALL_CENTROID_FLAGS: v3d_cl_print_zero_all_centroid_flags(packed_instr + 1, printer); break;
    case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS: v3d_cl_print_zero_all_flatshade_flags(packed_instr + 1, printer); break;
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS: v3d_cl_print_zero_all_noperspective_flags(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS: v3d_cl_print_vary_flags(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS:
    case V3D_CL_NOPERSPECTIVE_FLAGS: v3d_cl_print_vary_flags(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: v3d_cl_print_sample_state(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: v3d_cl_print_sample_state(packed_instr + 1, printer); break;
 #endif
    case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE: v3d_cl_print_occlusion_query_counter_enable(packed_instr + 1, printer); break;
    case V3D_CL_CFG_BITS: v3d_cl_print_cfg_bits(packed_instr + 1, printer); break;
    case V3D_CL_POINT_SIZE: v3d_cl_print_point_size(packed_instr + 1, printer); break;
    case V3D_CL_LINE_WIDTH: v3d_cl_print_line_width(packed_instr + 1, printer); break;
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: v3d_cl_print_depth_offset(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: v3d_cl_print_depth_offset(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: v3d_cl_print_clip(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: v3d_cl_print_viewport_offset(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: v3d_cl_print_clip(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: v3d_cl_print_viewport_offset(packed_instr + 1, printer); break;
 #endif
    case V3D_CL_CLIPZ: v3d_cl_print_clipz(packed_instr + 1, printer); break;
@@ -14229,19 +13969,16 @@ void v3d_cl_print_instr(const uint8_t *packed_instr, struct v3d_printer *printer
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_NUM_LAYERS: v3d_cl_print_num_layers(packed_instr + 1, printer); break;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: v3d_cl_print_tile_binning_mode_cfg(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: v3d_cl_print_tile_binning_mode_cfg(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG: v3d_cl_print_tile_binning_mode_cfg(packed_instr + 1, printer); break;
-#endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: v3d_cl_print_tile_rendering_mode_cfg(packed_instr + 1, printer); break;
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: v3d_cl_print_tile_rendering_mode_cfg(packed_instr + 1, printer); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -14341,7 +14078,7 @@ void v3d_cl_unpack_clear(V3D_CL_CLEAR_T *unpacked, const uint8_t *packed)
    (*unpacked).depth_stencil = (uint32_t)(packed[0] >> 1 & 1);
 }
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_store(uint8_t *packed, const V3D_CL_STORE_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).buffer, 4) |
@@ -14383,7 +14120,7 @@ void v3d_cl_unpack_store(V3D_CL_STORE_T *unpacked, const uint8_t *packed)
       (uint32_t)packed[10] << 16 | (uint32_t)packed[11] << 24;
 }
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_load(uint8_t *packed, const V3D_CL_LOAD_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).buffer, 4) |
@@ -14423,7 +14160,7 @@ void v3d_cl_unpack_load(V3D_CL_LOAD_T *unpacked, const uint8_t *packed)
       (uint32_t)packed[10] << 16 | (uint32_t)packed[11] << 24;
 }
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_pack_store(uint8_t *packed, const V3D_CL_STORE_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).buffer, 4) |
@@ -14461,7 +14198,7 @@ void v3d_cl_unpack_store(V3D_CL_STORE_T *unpacked, const uint8_t *packed)
       (uint32_t)packed[10] << 16 | (uint32_t)packed[11] << 24;
 }
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_pack_load(uint8_t *packed, const V3D_CL_LOAD_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).buffer, 4) |
@@ -14593,7 +14330,7 @@ void v3d_cl_unpack_load_general(V3D_CL_LOAD_GENERAL_T *unpacked, const uint8_t *
       (uint32_t)packed[5] << 16) << 8;
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_indexed_prim_list(uint8_t *packed, const V3D_CL_INDEXED_PRIM_LIST_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).prim_mode, 6) |
@@ -14619,7 +14356,7 @@ void v3d_cl_unpack_indexed_prim_list(V3D_CL_INDEXED_PRIM_LIST_T *unpacked, const
       (uint32_t)packed[7] << 16 | (uint32_t)packed[8] << 24;
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_pack_indexed_prim_list(uint8_t *packed, const V3D_CL_INDEXED_PRIM_LIST_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).prim_mode, 6) |
@@ -14695,7 +14432,7 @@ void v3d_cl_unpack_indexed_prim_list(V3D_CL_INDEXED_PRIM_LIST_T *unpacked, const
       (uint32_t)packed[15] << 16 | (uint32_t)packed[16] << 24;
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_indirect_indexed_prim_list(uint8_t *packed, const V3D_CL_INDIRECT_INDEXED_PRIM_LIST_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).prim_mode, 6) |
@@ -14727,7 +14464,7 @@ void v3d_cl_unpack_indirect_indexed_prim_list(V3D_CL_INDIRECT_INDEXED_PRIM_LIST_
    (*unpacked).indirect_stride = (uint32_t)packed[9] << 2;
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_indirect_indexed_prim_list(uint8_t *packed, const V3D_CL_INDIRECT_INDEXED_PRIM_LIST_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).prim_mode, 6) |
@@ -14765,7 +14502,7 @@ void v3d_cl_unpack_indirect_indexed_prim_list(V3D_CL_INDIRECT_INDEXED_PRIM_LIST_
    (*unpacked).indirect_stride = (uint32_t)packed[13] << 2;
 }
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_indexed_instanced_prim_list(uint8_t *packed, const V3D_CL_INDEXED_INSTANCED_PRIM_LIST_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).prim_mode, 6) |
@@ -14797,7 +14534,7 @@ void v3d_cl_unpack_indexed_instanced_prim_list(V3D_CL_INDEXED_INSTANCED_PRIM_LIS
       (uint32_t)packed[11] << 16 | (uint32_t)packed[12] << 24;
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_pack_indexed_instanced_prim_list(uint8_t *packed, const V3D_CL_INDEXED_INSTANCED_PRIM_LIST_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).prim_mode, 6) |
@@ -14990,7 +14727,7 @@ void v3d_cl_unpack_base_vertex_base_instance(V3D_CL_BASE_VERTEX_BASE_INSTANCE_T 
    (*unpacked).base_instance = (uint32_t)packed[4] | (uint32_t)packed[5] << 8 |
       (uint32_t)packed[6] << 16 | (uint32_t)packed[7] << 24;
 }
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_index_buffer_setup(uint8_t *packed, const V3D_CL_INDEX_BUFFER_SETUP_T *unpacked)
 {
    packed[0] = (uint8_t)(*unpacked).addr;
@@ -15010,7 +14747,7 @@ void v3d_cl_unpack_index_buffer_setup(V3D_CL_INDEX_BUFFER_SETUP_T *unpacked, con
       (uint32_t)packed[6] << 16 | (uint32_t)packed[7] << 24;
 }
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_pack_indirect_primitive_limits(uint8_t *packed, const V3D_CL_INDIRECT_PRIMITIVE_LIMITS_T *unpacked)
 {
    packed[0] = (uint8_t)(*unpacked).max_index;
@@ -15219,7 +14956,7 @@ void v3d_cl_unpack_vg_shader(v3d_addr_t *unpacked, const uint8_t *packed)
    *unpacked = (uint32_t)packed[0] | (uint32_t)packed[1] << 8 |
       (uint32_t)packed[2] << 16 | (uint32_t)packed[3] << 24;
 }
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_vg_inline_shader(uint8_t *packed, const V3D_CL_VG_INLINE_SHADER_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).fs.threading, 2) |
@@ -15243,7 +14980,7 @@ void v3d_cl_unpack_vg_inline_shader(V3D_CL_VG_INLINE_SHADER_T *unpacked, const u
       (uint32_t)packed[6] << 16 | (uint32_t)packed[7] << 24;
 }
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_vg_inline_shader(uint8_t *packed, const V3D_CL_VG_INLINE_SHADER_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).fs.threading, 1) |
@@ -15505,17 +15242,17 @@ void v3d_cl_unpack_blend_ccolor(V3D_CL_BLEND_CCOLOR_T *unpacked, const uint8_t *
 }
 void v3d_cl_pack_color_wmasks(uint8_t *packed, const uint32_t *unpacked)
 {
-   packed[0] = (uint8_t)*unpacked;
-   packed[1] = (uint8_t)(*unpacked >> 8);
-   packed[2] = (uint8_t)(*unpacked >> 16);
-   packed[3] = (uint8_t)(*unpacked >> 24);
+   packed[0] = (uint8_t)gfx_check_urange(*unpacked, 0, 0xffff);
+   packed[1] = (uint8_t)(gfx_check_urange(*unpacked, 0, 0xffff) >> 8);
+   packed[2] = (uint8_t)(gfx_check_urange(*unpacked, 0, 0xffff) >> 16);
+   packed[3] = (uint8_t)(gfx_check_urange(*unpacked, 0, 0xffff) >> 24);
 }
 void v3d_cl_unpack_color_wmasks(uint32_t *unpacked, const uint8_t *packed)
 {
-   *unpacked = (uint32_t)packed[0] | (uint32_t)packed[1] << 8 |
-      (uint32_t)packed[2] << 16 | (uint32_t)packed[3] << 24;
+   *unpacked = gfx_check_urange((uint32_t)packed[0] | (uint32_t)packed[1] << 8 |
+      (uint32_t)packed[2] << 16 | (uint32_t)packed[3] << 24, 0, 0xffff);
 }
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_vary_flags(uint8_t *packed, const V3D_CL_VARY_FLAGS_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_check_urange((*unpacked).offset, 0, 2) |
@@ -15534,7 +15271,7 @@ void v3d_cl_unpack_vary_flags(V3D_CL_VARY_FLAGS_T *unpacked, const uint8_t *pack
       (uint32_t)packed[3] << 16;
 }
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_vary_flags(uint8_t *packed, const V3D_CL_VARY_FLAGS_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_check_urange((*unpacked).offset, 0, 2) |
@@ -15553,7 +15290,7 @@ void v3d_cl_unpack_vary_flags(V3D_CL_VARY_FLAGS_T *unpacked, const uint8_t *pack
       (uint32_t)packed[3] << 16;
 }
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_sample_state(uint8_t *packed, const V3D_CL_SAMPLE_STATE_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_float_to_bits((*unpacked).coverage);
@@ -15568,7 +15305,7 @@ void v3d_cl_unpack_sample_state(V3D_CL_SAMPLE_STATE_T *unpacked, const uint8_t *
       (uint32_t)packed[3] << 24);
 }
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_sample_state(uint8_t *packed, const V3D_CL_SAMPLE_STATE_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).mask, 4) | (uint8_t)0;
@@ -15662,7 +15399,7 @@ void v3d_cl_unpack_line_width(float *unpacked, const uint8_t *packed)
       (uint32_t)packed[0] | (uint32_t)packed[1] << 8 | (uint32_t)packed[2] << 16 |
       (uint32_t)packed[3] << 24);
 }
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_depth_offset(uint8_t *packed, const V3D_CL_DEPTH_OFFSET_T *unpacked)
 {
    packed[0] = (uint8_t)(gfx_float_to_bits((*unpacked).factor) >> 16);
@@ -15678,7 +15415,7 @@ void v3d_cl_unpack_depth_offset(V3D_CL_DEPTH_OFFSET_T *unpacked, const uint8_t *
       ((uint32_t)packed[2] | (uint32_t)packed[3] << 8) << 16);
 }
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_depth_offset(uint8_t *packed, const V3D_CL_DEPTH_OFFSET_T *unpacked)
 {
    packed[0] = (uint8_t)(gfx_float_to_bits((*unpacked).factor) >> 16);
@@ -15701,7 +15438,7 @@ void v3d_cl_unpack_depth_offset(V3D_CL_DEPTH_OFFSET_T *unpacked, const uint8_t *
       (uint32_t)packed[7] << 24);
 }
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_clip(uint8_t *packed, const V3D_CL_CLIP_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).x, 16);
@@ -15723,7 +15460,7 @@ void v3d_cl_unpack_clip(V3D_CL_CLIP_T *unpacked, const uint8_t *packed)
       (uint32_t)packed[6] | (uint32_t)packed[7] << 8, 0, 0x1000);
 }
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_viewport_offset(uint8_t *packed, const V3D_CL_VIEWPORT_OFFSET_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).x, 22);
@@ -15749,7 +15486,7 @@ void v3d_cl_unpack_viewport_offset(V3D_CL_VIEWPORT_OFFSET_T *unpacked, const uin
       (uint32_t)(packed[6] >> 6) | (uint32_t)packed[7] << 2, 10);
 }
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_clip(uint8_t *packed, const V3D_CL_CLIP_T *unpacked)
 {
    packed[0] = (uint8_t)gfx_bits((*unpacked).x, 16);
@@ -15771,7 +15508,7 @@ void v3d_cl_unpack_clip(V3D_CL_CLIP_T *unpacked, const uint8_t *packed)
       (uint32_t)packed[6] | (uint32_t)packed[7] << 8, 1, 0x1000);
 }
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_viewport_offset(uint8_t *packed, const V3D_CL_VIEWPORT_OFFSET_T *unpacked)
 {
    packed[0] = (uint8_t)(uint32_t)(*unpacked).x;
@@ -15861,14 +15598,14 @@ void v3d_cl_unpack_num_layers(V3D_CL_NUM_LAYERS_T *unpacked, const uint8_t *pack
    (*unpacked).num_layers = (uint32_t)packed[0] + 1;
 }
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_tile_binning_mode_cfg(uint8_t *packed, const V3D_CL_TILE_BINNING_MODE_CFG_T *unpacked)
 {
    packed[0] = (uint8_t)0 |
       (uint8_t)(gfx_bits((*unpacked).tile_alloc_initial_block_size, 2) << 2) |
       (uint8_t)(gfx_bits((*unpacked).tile_alloc_block_size, 2) << 4) | (uint8_t)0;
    packed[1] = (uint8_t)gfx_pack_uint_minus_1(
-      gfx_check_urange((*unpacked).num_rts, 1, 8), 4) |
+      gfx_check_urange((*unpacked).num_rts, 1, 4), 4) |
       (uint8_t)(gfx_bits((*unpacked).max_bpp, 2) << 4) |
       (uint8_t)(gfx_bits((*unpacked).ms_mode, 1) << 6) |
       (uint8_t)(gfx_bits((*unpacked).double_buffer, 1) << 7);
@@ -15885,7 +15622,7 @@ void v3d_cl_unpack_tile_binning_mode_cfg(V3D_CL_TILE_BINNING_MODE_CFG_T *unpacke
       (v3d_tile_alloc_block_size_t)(uint32_t)(packed[0] >> 2 & 3);
    (*unpacked).tile_alloc_block_size =
       (v3d_tile_alloc_block_size_t)(uint32_t)(packed[0] >> 4 & 3);
-   (*unpacked).num_rts = gfx_check_urange((uint32_t)(packed[1] & 15) + 1, 1, 8);
+   (*unpacked).num_rts = gfx_check_urange((uint32_t)(packed[1] & 15) + 1, 1, 4);
    (*unpacked).max_bpp = (v3d_rt_bpp_t)(uint32_t)(packed[1] >> 4 & 3);
    (*unpacked).ms_mode = (uint32_t)(packed[1] >> 6 & 1);
    (*unpacked).double_buffer = (uint32_t)(packed[1] >> 7);
@@ -15893,100 +15630,7 @@ void v3d_cl_unpack_tile_binning_mode_cfg(V3D_CL_TILE_BINNING_MODE_CFG_T *unpacke
    (*unpacked).h_in_pixels = ((uint32_t)packed[6] | (uint32_t)packed[7] << 8) + 1;
 }
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
-void v3d_cl_pack_tile_binning_mode_cfg(uint8_t *packed, const V3D_CL_TILE_BINNING_MODE_CFG_T *unpacked)
-{
-   if ((*unpacked).type == V3D_BCFG_TYPE_PART1)
-   {
-      assert((*unpacked).type == V3D_BCFG_TYPE_PART1);
-      packed[0] = (uint8_t)0 |
-         (uint8_t)(gfx_bits((*unpacked).u.part1.set_tile_state_addr, 1) << 1) |
-         (uint8_t)(gfx_bits((*unpacked).u.part1.tile_alloc_initial_block_size, 2) <<
-         2) | (uint8_t)(gfx_bits((*unpacked).u.part1.tile_alloc_block_size, 2) << 4) |
-         (uint8_t)(gfx_exact_lsr((*unpacked).u.part1.tile_state_addr, 6) << 6);
-      packed[1] = (uint8_t)(gfx_exact_lsr((*unpacked).u.part1.tile_state_addr, 6) >>
-         2);
-      packed[2] = (uint8_t)(gfx_exact_lsr((*unpacked).u.part1.tile_state_addr, 6) >>
-         10);
-      packed[3] = (uint8_t)(gfx_exact_lsr((*unpacked).u.part1.tile_state_addr, 6) >>
-         18);
-      packed[4] = (uint8_t)gfx_check_urange((*unpacked).u.part1.w_in_tiles, 1, 0xfff);
-      packed[5] =
-         (uint8_t)(gfx_check_urange((*unpacked).u.part1.w_in_tiles, 1, 0xfff) >> 8) |
-         (uint8_t)(gfx_check_urange((*unpacked).u.part1.h_in_tiles, 1, 0xfff) << 4);
-      packed[6] =
-         (uint8_t)(gfx_check_urange((*unpacked).u.part1.h_in_tiles, 1, 0xfff) >> 4);
-      packed[7] = (uint8_t)gfx_check_urange((*unpacked).u.part1.num_rts, 0, 8) |
-         (uint8_t)(gfx_bits((*unpacked).u.part1.max_bpp, 2) << 4) |
-         (uint8_t)(gfx_bits((*unpacked).u.part1.ms_mode, 1) << 6) |
-         (uint8_t)(gfx_bits((*unpacked).u.part1.double_buffer, 1) << 7);
-   }
-   else if ((*unpacked).type == V3D_BCFG_TYPE_PART2)
-   {
-      assert((*unpacked).type == V3D_BCFG_TYPE_PART2);
-      packed[0] = (uint8_t)1 | (uint8_t)0 |
-         (uint8_t)(gfx_exact_lsr((*unpacked).u.part2.tile_alloc_size, 6) << 6);
-      packed[1] = (uint8_t)(gfx_exact_lsr((*unpacked).u.part2.tile_alloc_size, 6) >>
-         2);
-      packed[2] = (uint8_t)(gfx_exact_lsr((*unpacked).u.part2.tile_alloc_size, 6) >>
-         10);
-      packed[3] = (uint8_t)(gfx_exact_lsr((*unpacked).u.part2.tile_alloc_size, 6) >>
-         18);
-      packed[4] = (uint8_t)0 |
-         (uint8_t)(gfx_exact_lsr((*unpacked).u.part2.tile_alloc_addr, 6) << 6);
-      packed[5] = (uint8_t)(gfx_exact_lsr((*unpacked).u.part2.tile_alloc_addr, 6) >>
-         2);
-      packed[6] = (uint8_t)(gfx_exact_lsr((*unpacked).u.part2.tile_alloc_addr, 6) >>
-         10);
-      packed[7] = (uint8_t)(gfx_exact_lsr((*unpacked).u.part2.tile_alloc_addr, 6) >>
-         18);
-   }
-   else
-   {
-      unreachable();
-   }
-}
-void v3d_cl_unpack_tile_binning_mode_cfg(V3D_CL_TILE_BINNING_MODE_CFG_T *unpacked, const uint8_t *packed)
-{
-   if ((uint32_t)(packed[0] & 1) == 0)
-   {
-      (*unpacked).type = V3D_BCFG_TYPE_PART1;
-      assert((uint32_t)(packed[0] & 1) == 0);
-      (*unpacked).u.part1.set_tile_state_addr = (uint32_t)(packed[0] >> 1 & 1);
-      (*unpacked).u.part1.tile_alloc_initial_block_size =
-         (v3d_tile_alloc_block_size_t)(uint32_t)(packed[0] >> 2 & 3);
-      (*unpacked).u.part1.tile_alloc_block_size =
-         (v3d_tile_alloc_block_size_t)(uint32_t)(packed[0] >> 4 & 3);
-      (*unpacked).u.part1.tile_state_addr =
-         ((uint32_t)(packed[0] >> 6) | (uint32_t)packed[1] << 2 |
-         (uint32_t)packed[2] << 10 | (uint32_t)packed[3] << 18) << 6;
-      (*unpacked).u.part1.w_in_tiles = gfx_check_urange(
-         (uint32_t)packed[4] | (uint32_t)(packed[5] & 15) << 8, 1, 0xfff);
-      (*unpacked).u.part1.h_in_tiles = gfx_check_urange(
-         (uint32_t)(packed[5] >> 4) | (uint32_t)packed[6] << 4, 1, 0xfff);
-      (*unpacked).u.part1.num_rts = gfx_check_urange((uint32_t)(packed[7] & 15), 0, 8);
-      (*unpacked).u.part1.max_bpp = (v3d_rt_bpp_t)(uint32_t)(packed[7] >> 4 & 3);
-      (*unpacked).u.part1.ms_mode = (uint32_t)(packed[7] >> 6 & 1);
-      (*unpacked).u.part1.double_buffer = (uint32_t)(packed[7] >> 7);
-   }
-   else if ((uint32_t)(packed[0] & 1) == 1)
-   {
-      (*unpacked).type = V3D_BCFG_TYPE_PART2;
-      assert((uint32_t)(packed[0] & 1) == 1);
-      (*unpacked).u.part2.tile_alloc_size =
-         ((uint32_t)(packed[0] >> 6) | (uint32_t)packed[1] << 2 |
-         (uint32_t)packed[2] << 10 | (uint32_t)packed[3] << 18) << 6;
-      (*unpacked).u.part2.tile_alloc_addr =
-         ((uint32_t)(packed[4] >> 6) | (uint32_t)packed[5] << 2 |
-         (uint32_t)packed[6] << 10 | (uint32_t)packed[7] << 18) << 6;
-   }
-   else
-   {
-      unreachable();
-   }
-}
-#endif
-#if !V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_tile_binning_mode_cfg(uint8_t *packed, const V3D_CL_TILE_BINNING_MODE_CFG_T *unpacked)
 {
    if ((*unpacked).type == V3D_BCFG_TYPE_PART1)
@@ -16009,7 +15653,7 @@ void v3d_cl_pack_tile_binning_mode_cfg(uint8_t *packed, const V3D_CL_TILE_BINNIN
          (uint8_t)(gfx_check_urange((*unpacked).u.part1.h_in_tiles, 1, 0xfff) << 4);
       packed[6] =
          (uint8_t)(gfx_check_urange((*unpacked).u.part1.h_in_tiles, 1, 0xfff) >> 4);
-      packed[7] = (uint8_t)gfx_check_urange((*unpacked).u.part1.num_rts, 0, 8) |
+      packed[7] = (uint8_t)gfx_check_urange((*unpacked).u.part1.num_rts, 0, 4) |
          (uint8_t)(gfx_bits((*unpacked).u.part1.max_bpp, 2) << 4) |
          (uint8_t)(gfx_bits((*unpacked).u.part1.ms_mode, 1) << 6) |
          (uint8_t)(gfx_bits((*unpacked).u.part1.double_buffer, 1) << 7);
@@ -16057,7 +15701,7 @@ void v3d_cl_unpack_tile_binning_mode_cfg(V3D_CL_TILE_BINNING_MODE_CFG_T *unpacke
          (uint32_t)packed[4] | (uint32_t)(packed[5] & 15) << 8, 1, 0xfff);
       (*unpacked).u.part1.h_in_tiles = gfx_check_urange(
          (uint32_t)(packed[5] >> 4) | (uint32_t)packed[6] << 4, 1, 0xfff);
-      (*unpacked).u.part1.num_rts = gfx_check_urange((uint32_t)(packed[7] & 15), 0, 8);
+      (*unpacked).u.part1.num_rts = gfx_check_urange((uint32_t)(packed[7] & 15), 0, 4);
       (*unpacked).u.part1.max_bpp = (v3d_rt_bpp_t)(uint32_t)(packed[7] >> 4 & 3);
       (*unpacked).u.part1.ms_mode = (uint32_t)(packed[7] >> 6 & 1);
       (*unpacked).u.part1.double_buffer = (uint32_t)(packed[7] >> 7);
@@ -16079,14 +15723,14 @@ void v3d_cl_unpack_tile_binning_mode_cfg(V3D_CL_TILE_BINNING_MODE_CFG_T *unpacke
    }
 }
 #endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_RENDERING_MODE_CFG_T *unpacked)
 {
    if ((*unpacked).type == V3D_RCFG_TYPE_COMMON)
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_COMMON);
       packed[0] = (uint8_t)0 | (uint8_t)(gfx_pack_uint_minus_1(
-         gfx_check_urange((*unpacked).u.common.num_rts, 1, 8), 4) << 4);
+         gfx_check_urange((*unpacked).u.common.num_rts, 1, 4), 4) << 4);
       packed[1] = (uint8_t)gfx_check_urange((*unpacked).u.common.frame_width, 1,
          0xffff);
       packed[2] = (uint8_t)(gfx_check_urange((*unpacked).u.common.frame_width, 1,
@@ -16156,7 +15800,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_CLEAR_COLORS_PART1);
       packed[0] = (uint8_t)3 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part1.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part1.rt, 0, 3) << 4);
       packed[1] = (uint8_t)(*unpacked).u.clear_colors_part1.clear_col_0;
       packed[2] = (uint8_t)((*unpacked).u.clear_colors_part1.clear_col_0 >> 8);
       packed[3] = (uint8_t)((*unpacked).u.clear_colors_part1.clear_col_0 >> 16);
@@ -16172,7 +15816,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_CLEAR_COLORS_PART2);
       packed[0] = (uint8_t)4 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part2.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part2.rt, 0, 3) << 4);
       packed[1] = (uint8_t)gfx_bits(
          (*unpacked).u.clear_colors_part2.clear_col_1_shift24, 8);
       packed[2] = (uint8_t)(*unpacked).u.clear_colors_part2.clear_col_2;
@@ -16188,7 +15832,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_CLEAR_COLORS_PART3);
       packed[0] = (uint8_t)5 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part3.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part3.rt, 0, 3) << 4);
       packed[1] = (uint8_t)gfx_bits(
          (*unpacked).u.clear_colors_part3.clear_col_3_shift16, 16);
       packed[2] = (uint8_t)(gfx_bits(
@@ -16211,7 +15855,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_COMMON;
       assert((uint32_t)(packed[0] & 15) == 0);
       (*unpacked).u.common.num_rts =
-         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 8);
+         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 4);
       (*unpacked).u.common.frame_width = gfx_check_urange(
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8, 1, 0xffff);
       (*unpacked).u.common.frame_height = gfx_check_urange(
@@ -16270,7 +15914,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_CLEAR_COLORS_PART1;
       assert((uint32_t)(packed[0] & 15) == 3);
       (*unpacked).u.clear_colors_part1.rt =
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.clear_colors_part1.clear_col_0 =
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16 |
          (uint32_t)packed[4] << 24;
@@ -16282,7 +15926,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_CLEAR_COLORS_PART2;
       assert((uint32_t)(packed[0] & 15) == 4);
       (*unpacked).u.clear_colors_part2.rt =
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.clear_colors_part2.clear_col_1_shift24 = (uint32_t)packed[1];
       (*unpacked).u.clear_colors_part2.clear_col_2 =
          (uint32_t)packed[2] | (uint32_t)packed[3] << 8 | (uint32_t)packed[4] << 16 |
@@ -16295,7 +15939,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_CLEAR_COLORS_PART3;
       assert((uint32_t)(packed[0] & 15) == 5);
       (*unpacked).u.clear_colors_part3.rt =
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.clear_colors_part3.clear_col_3_shift16 =
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8;
    }
@@ -16305,14 +15949,14 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
    }
 }
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
 void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_RENDERING_MODE_CFG_T *unpacked)
 {
    if ((*unpacked).type == V3D_RCFG_TYPE_COMMON)
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_COMMON);
       packed[0] = (uint8_t)0 | (uint8_t)(gfx_pack_uint_minus_1(
-         gfx_check_urange((*unpacked).u.common.num_rts, 1, 8), 4) << 4);
+         gfx_check_urange((*unpacked).u.common.num_rts, 1, 4), 4) << 4);
       packed[1] = (uint8_t)gfx_check_urange((*unpacked).u.common.frame_width, 1,
          0xffff);
       packed[2] = (uint8_t)(gfx_check_urange((*unpacked).u.common.frame_width, 1,
@@ -16373,7 +16017,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_CLEAR_COLORS_PART1);
       packed[0] = (uint8_t)3 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part1.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part1.rt, 0, 3) << 4);
       packed[1] = (uint8_t)(*unpacked).u.clear_colors_part1.clear_col_0;
       packed[2] = (uint8_t)((*unpacked).u.clear_colors_part1.clear_col_0 >> 8);
       packed[3] = (uint8_t)((*unpacked).u.clear_colors_part1.clear_col_0 >> 16);
@@ -16389,7 +16033,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_CLEAR_COLORS_PART2);
       packed[0] = (uint8_t)4 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part2.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part2.rt, 0, 3) << 4);
       packed[1] = (uint8_t)gfx_bits(
          (*unpacked).u.clear_colors_part2.clear_col_1_shift24, 8);
       packed[2] = (uint8_t)(*unpacked).u.clear_colors_part2.clear_col_2;
@@ -16405,7 +16049,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_CLEAR_COLORS_PART3);
       packed[0] = (uint8_t)5 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part3.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part3.rt, 0, 3) << 4);
       packed[1] = (uint8_t)gfx_bits(
          (*unpacked).u.clear_colors_part3.clear_col_3_shift16, 16);
       packed[2] = (uint8_t)(gfx_bits(
@@ -16428,7 +16072,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_COMMON;
       assert((uint32_t)(packed[0] & 15) == 0);
       (*unpacked).u.common.num_rts =
-         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 8);
+         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 4);
       (*unpacked).u.common.frame_width = gfx_check_urange(
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8, 1, 0xffff);
       (*unpacked).u.common.frame_height = gfx_check_urange(
@@ -16477,7 +16121,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_CLEAR_COLORS_PART1;
       assert((uint32_t)(packed[0] & 15) == 3);
       (*unpacked).u.clear_colors_part1.rt =
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.clear_colors_part1.clear_col_0 =
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16 |
          (uint32_t)packed[4] << 24;
@@ -16489,7 +16133,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_CLEAR_COLORS_PART2;
       assert((uint32_t)(packed[0] & 15) == 4);
       (*unpacked).u.clear_colors_part2.rt =
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.clear_colors_part2.clear_col_1_shift24 = (uint32_t)packed[1];
       (*unpacked).u.clear_colors_part2.clear_col_2 =
          (uint32_t)packed[2] | (uint32_t)packed[3] << 8 | (uint32_t)packed[4] << 16 |
@@ -16502,7 +16146,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_CLEAR_COLORS_PART3;
       assert((uint32_t)(packed[0] & 15) == 5);
       (*unpacked).u.clear_colors_part3.rt =
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.clear_colors_part3.clear_col_3_shift16 =
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8;
    }
@@ -16519,7 +16163,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_COMMON);
       packed[0] = (uint8_t)0 | (uint8_t)(gfx_pack_uint_minus_1(
-         gfx_check_urange((*unpacked).u.common.num_rts, 1, 8), 4) << 4);
+         gfx_check_urange((*unpacked).u.common.num_rts, 1, 4), 4) << 4);
       packed[1] = (uint8_t)gfx_check_urange((*unpacked).u.common.frame_width, 1,
          0xffff);
       packed[2] = (uint8_t)(gfx_check_urange((*unpacked).u.common.frame_width, 1,
@@ -16582,7 +16226,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_COLOR);
       packed[0] = (uint8_t)2 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.color.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.color.rt, 0, 3) << 4);
       packed[1] = (uint8_t)gfx_bits((*unpacked).u.color.internal_bpp, 2) |
          (uint8_t)(gfx_bits((*unpacked).u.color.internal_type, 4) << 2) |
          (uint8_t)(gfx_bits((*unpacked).u.color.decimate_mode, 2) << 6);
@@ -16616,7 +16260,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_CLEAR_COLORS_PART1);
       packed[0] = (uint8_t)4 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part1.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part1.rt, 0, 3) << 4);
       packed[1] = (uint8_t)(*unpacked).u.clear_colors_part1.clear_col_0;
       packed[2] = (uint8_t)((*unpacked).u.clear_colors_part1.clear_col_0 >> 8);
       packed[3] = (uint8_t)((*unpacked).u.clear_colors_part1.clear_col_0 >> 16);
@@ -16632,7 +16276,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_CLEAR_COLORS_PART2);
       packed[0] = (uint8_t)5 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part2.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part2.rt, 0, 3) << 4);
       packed[1] = (uint8_t)gfx_bits(
          (*unpacked).u.clear_colors_part2.clear_col_1_shift24, 8);
       packed[2] = (uint8_t)(*unpacked).u.clear_colors_part2.clear_col_2;
@@ -16648,7 +16292,7 @@ void v3d_cl_pack_tile_rendering_mode_cfg(uint8_t *packed, const V3D_CL_TILE_REND
    {
       assert((*unpacked).type == V3D_RCFG_TYPE_CLEAR_COLORS_PART3);
       packed[0] = (uint8_t)6 |
-         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part3.rt, 0, 7) << 4);
+         (uint8_t)(gfx_check_urange((*unpacked).u.clear_colors_part3.rt, 0, 3) << 4);
       packed[1] = (uint8_t)gfx_bits(
          (*unpacked).u.clear_colors_part3.clear_col_3_shift16, 16);
       packed[2] = (uint8_t)(gfx_bits(
@@ -16675,7 +16319,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_COMMON;
       assert((uint32_t)(packed[0] & 15) == 0);
       (*unpacked).u.common.num_rts =
-         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 8);
+         gfx_check_urange((uint32_t)(packed[0] >> 4) + 1, 1, 4);
       (*unpacked).u.common.frame_width = gfx_check_urange(
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8, 1, 0xffff);
       (*unpacked).u.common.frame_height = gfx_check_urange(
@@ -16731,7 +16375,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
    {
       (*unpacked).type = V3D_RCFG_TYPE_COLOR;
       assert((uint32_t)(packed[0] & 15) == 2);
-      (*unpacked).u.color.rt = gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+      (*unpacked).u.color.rt = gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.color.internal_bpp = (v3d_rt_bpp_t)(uint32_t)(packed[1] & 3);
       (*unpacked).u.color.internal_type =
          (v3d_rt_type_t)(uint32_t)(packed[1] >> 2 & 15);
@@ -16760,7 +16404,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_CLEAR_COLORS_PART1;
       assert((uint32_t)(packed[0] & 15) == 4);
       (*unpacked).u.clear_colors_part1.rt =
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.clear_colors_part1.clear_col_0 =
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8 | (uint32_t)packed[3] << 16 |
          (uint32_t)packed[4] << 24;
@@ -16772,7 +16416,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_CLEAR_COLORS_PART2;
       assert((uint32_t)(packed[0] & 15) == 5);
       (*unpacked).u.clear_colors_part2.rt =
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.clear_colors_part2.clear_col_1_shift24 = (uint32_t)packed[1];
       (*unpacked).u.clear_colors_part2.clear_col_2 =
          (uint32_t)packed[2] | (uint32_t)packed[3] << 8 | (uint32_t)packed[4] << 16 |
@@ -16785,7 +16429,7 @@ void v3d_cl_unpack_tile_rendering_mode_cfg(V3D_CL_TILE_RENDERING_MODE_CFG_T *unp
       (*unpacked).type = V3D_RCFG_TYPE_CLEAR_COLORS_PART3;
       assert((uint32_t)(packed[0] & 15) == 6);
       (*unpacked).u.clear_colors_part3.rt =
-         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 7);
+         gfx_check_urange((uint32_t)(packed[0] >> 4), 0, 3);
       (*unpacked).u.clear_colors_part3.clear_col_3_shift16 =
          (uint32_t)packed[1] | (uint32_t)packed[2] << 8;
       (*unpacked).u.clear_colors_part3.raster_padded_width_or_nonraster_height =
@@ -16903,16 +16547,16 @@ void v3d_cl_pack_instr(uint8_t *packed_instr, const V3D_CL_INSTR_T *instr)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_END_TILE: break;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_STORE: v3d_cl_pack_store(packed_instr + 1, &instr->u.store); break;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_LOAD: v3d_cl_pack_load(packed_instr + 1, &instr->u.load); break;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_STORE: v3d_cl_pack_store(packed_instr + 1, &instr->u.store); break;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_LOAD: v3d_cl_pack_load(packed_instr + 1, &instr->u.load); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -16936,25 +16580,25 @@ void v3d_cl_pack_instr(uint8_t *packed_instr, const V3D_CL_INSTR_T *instr)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TF_DRAW_FLUSH_AND_COUNT: break;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_PRIM_LIST: v3d_cl_pack_indexed_prim_list(packed_instr + 1, &instr->u.indexed_prim_list); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: v3d_cl_pack_indexed_prim_list(packed_instr + 1, &instr->u.indexed_prim_list); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: v3d_cl_pack_indexed_prim_list(packed_instr + 1, &instr->u.indexed_prim_list); break;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: v3d_cl_pack_indirect_indexed_prim_list(packed_instr + 1, &instr->u.indirect_indexed_prim_list); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: v3d_cl_pack_indirect_indexed_prim_list(packed_instr + 1, &instr->u.indirect_indexed_prim_list); break;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: v3d_cl_pack_indexed_instanced_prim_list(packed_instr + 1, &instr->u.indexed_instanced_prim_list); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: v3d_cl_pack_indexed_instanced_prim_list(packed_instr + 1, &instr->u.indexed_instanced_prim_list); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -16965,10 +16609,10 @@ void v3d_cl_pack_instr(uint8_t *packed_instr, const V3D_CL_INSTR_T *instr)
    case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS: v3d_cl_pack_vertex_array_instanced_prims(packed_instr + 1, &instr->u.vertex_array_instanced_prims); break;
    case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS: v3d_cl_pack_vertex_array_single_instance_prims(packed_instr + 1, &instr->u.vertex_array_single_instance_prims); break;
    case V3D_CL_BASE_VERTEX_BASE_INSTANCE: v3d_cl_pack_base_vertex_base_instance(packed_instr + 1, &instr->u.base_vertex_base_instance); break;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEX_BUFFER_SETUP: v3d_cl_pack_index_buffer_setup(packed_instr + 1, &instr->u.index_buffer_setup); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDIRECT_PRIMITIVE_LIMITS: v3d_cl_pack_indirect_primitive_limits(packed_instr + 1, &instr->u.indirect_primitive_limits); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -17002,10 +16646,10 @@ void v3d_cl_pack_instr(uint8_t *packed_instr, const V3D_CL_INSTR_T *instr)
    case V3D_CL_NV_SHADER: v3d_cl_pack_gl_shader(packed_instr + 1, &instr->u.gl_shader); break;
 #endif
    case V3D_CL_VG_SHADER: v3d_cl_pack_vg_shader(packed_instr + 1, &instr->u.vg_shader); break;
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: v3d_cl_pack_vg_inline_shader(packed_instr + 1, &instr->u.vg_inline_shader); break;
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: v3d_cl_pack_vg_inline_shader(packed_instr + 1, &instr->u.vg_inline_shader); break;
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -17032,7 +16676,7 @@ void v3d_cl_pack_instr(uint8_t *packed_instr, const V3D_CL_INSTR_T *instr)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: break;
 #endif
-#if V3D_HAS_CLEAN_L1TD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLEAN_L1TD_DEFERRED: break;
 #endif
    case V3D_CL_STENCIL_CFG: v3d_cl_pack_stencil_cfg(packed_instr + 1, &instr->u.stencil_cfg); break;
@@ -17049,44 +16693,44 @@ void v3d_cl_pack_instr(uint8_t *packed_instr, const V3D_CL_INSTR_T *instr)
    case V3D_CL_COLOR_WMASKS: v3d_cl_pack_color_wmasks(packed_instr + 1, &instr->u.color_wmasks); break;
    case V3D_CL_ZERO_ALL_CENTROID_FLAGS: break;
    case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS: break;
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS: break;
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS: v3d_cl_pack_vary_flags(packed_instr + 1, &instr->u.vary_flags); break;
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS:
    case V3D_CL_NOPERSPECTIVE_FLAGS: v3d_cl_pack_vary_flags(packed_instr + 1, &instr->u.vary_flags); break;
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: v3d_cl_pack_sample_state(packed_instr + 1, &instr->u.sample_state); break;
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: v3d_cl_pack_sample_state(packed_instr + 1, &instr->u.sample_state); break;
 #endif
    case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE: v3d_cl_pack_occlusion_query_counter_enable(packed_instr + 1, &instr->u.occlusion_query_counter_enable); break;
    case V3D_CL_CFG_BITS: v3d_cl_pack_cfg_bits(packed_instr + 1, &instr->u.cfg_bits); break;
    case V3D_CL_POINT_SIZE: v3d_cl_pack_point_size(packed_instr + 1, &instr->u.point_size); break;
    case V3D_CL_LINE_WIDTH: v3d_cl_pack_line_width(packed_instr + 1, &instr->u.line_width); break;
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: v3d_cl_pack_depth_offset(packed_instr + 1, &instr->u.depth_offset); break;
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: v3d_cl_pack_depth_offset(packed_instr + 1, &instr->u.depth_offset); break;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: v3d_cl_pack_clip(packed_instr + 1, &instr->u.clip); break;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: v3d_cl_pack_viewport_offset(packed_instr + 1, &instr->u.viewport_offset); break;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: v3d_cl_pack_clip(packed_instr + 1, &instr->u.clip); break;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: v3d_cl_pack_viewport_offset(packed_instr + 1, &instr->u.viewport_offset); break;
 #endif
    case V3D_CL_CLIPZ: v3d_cl_pack_clipz(packed_instr + 1, &instr->u.clipz); break;
@@ -17095,19 +16739,16 @@ void v3d_cl_pack_instr(uint8_t *packed_instr, const V3D_CL_INSTR_T *instr)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_NUM_LAYERS: v3d_cl_pack_num_layers(packed_instr + 1, &instr->u.num_layers); break;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: v3d_cl_pack_tile_binning_mode_cfg(packed_instr + 1, &instr->u.tile_binning_mode_cfg); break;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: v3d_cl_pack_tile_binning_mode_cfg(packed_instr + 1, &instr->u.tile_binning_mode_cfg); break;
 #endif
-#if !V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG: v3d_cl_pack_tile_binning_mode_cfg(packed_instr + 1, &instr->u.tile_binning_mode_cfg); break;
-#endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: v3d_cl_pack_tile_rendering_mode_cfg(packed_instr + 1, &instr->u.tile_rendering_mode_cfg); break;
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: v3d_cl_pack_tile_rendering_mode_cfg(packed_instr + 1, &instr->u.tile_rendering_mode_cfg); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -17156,16 +16797,16 @@ void v3d_cl_unpack_instr(V3D_CL_INSTR_T *instr, const uint8_t *packed_instr)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_END_TILE: break;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_STORE: v3d_cl_unpack_store(&instr->u.store, packed_instr + 1); break;
 #endif
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_LOAD: v3d_cl_unpack_load(&instr->u.load, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_STORE: v3d_cl_unpack_store(&instr->u.store, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_TLB_SWIZZLE && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_LOAD: v3d_cl_unpack_load(&instr->u.load, packed_instr + 1); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -17189,25 +16830,25 @@ void v3d_cl_unpack_instr(V3D_CL_INSTR_T *instr, const uint8_t *packed_instr)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TF_DRAW_FLUSH_AND_COUNT: break;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_PRIM_LIST: v3d_cl_unpack_indexed_prim_list(&instr->u.indexed_prim_list, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: v3d_cl_unpack_indexed_prim_list(&instr->u.indexed_prim_list, packed_instr + 1); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_PRIM_LIST: v3d_cl_unpack_indexed_prim_list(&instr->u.indexed_prim_list, packed_instr + 1); break;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: v3d_cl_unpack_indirect_indexed_prim_list(&instr->u.indirect_indexed_prim_list, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDIRECT_INDEXED_PRIM_LIST: v3d_cl_unpack_indirect_indexed_prim_list(&instr->u.indirect_indexed_prim_list, packed_instr + 1); break;
 #endif
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: v3d_cl_unpack_indexed_instanced_prim_list(&instr->u.indexed_instanced_prim_list, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDEXED_INSTANCED_PRIM_LIST: v3d_cl_unpack_indexed_instanced_prim_list(&instr->u.indexed_instanced_prim_list, packed_instr + 1); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -17218,10 +16859,10 @@ void v3d_cl_unpack_instr(V3D_CL_INSTR_T *instr, const uint8_t *packed_instr)
    case V3D_CL_VERTEX_ARRAY_INSTANCED_PRIMS: v3d_cl_unpack_vertex_array_instanced_prims(&instr->u.vertex_array_instanced_prims, packed_instr + 1); break;
    case V3D_CL_VERTEX_ARRAY_SINGLE_INSTANCE_PRIMS: v3d_cl_unpack_vertex_array_single_instance_prims(&instr->u.vertex_array_single_instance_prims, packed_instr + 1); break;
    case V3D_CL_BASE_VERTEX_BASE_INSTANCE: v3d_cl_unpack_base_vertex_base_instance(&instr->u.base_vertex_base_instance, packed_instr + 1); break;
-#if V3D_HAS_ATTR_MAX_INDEX
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_INDEX_BUFFER_SETUP: v3d_cl_unpack_index_buffer_setup(&instr->u.index_buffer_setup, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_ATTR_MAX_INDEX && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_INDIRECT_PRIMITIVE_LIMITS: v3d_cl_unpack_indirect_primitive_limits(&instr->u.indirect_primitive_limits, packed_instr + 1); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -17255,10 +16896,10 @@ void v3d_cl_unpack_instr(V3D_CL_INSTR_T *instr, const uint8_t *packed_instr)
    case V3D_CL_NV_SHADER: v3d_cl_unpack_gl_shader(&instr->u.gl_shader, packed_instr + 1); break;
 #endif
    case V3D_CL_VG_SHADER: v3d_cl_unpack_vg_shader(&instr->u.vg_shader, packed_instr + 1); break;
-#if !V3D_HAS_RELAXED_THRSW
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: v3d_cl_unpack_vg_inline_shader(&instr->u.vg_inline_shader, packed_instr + 1); break;
 #endif
-#if V3D_HAS_RELAXED_THRSW
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VG_INLINE_SHADER: v3d_cl_unpack_vg_inline_shader(&instr->u.vg_inline_shader, packed_instr + 1); break;
 #endif
 #if V3D_VER_AT_LEAST(4,0,2,0)
@@ -17285,7 +16926,7 @@ void v3d_cl_unpack_instr(V3D_CL_INSTR_T *instr, const uint8_t *packed_instr)
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_CL_CLEAR_L2C: break;
 #endif
-#if V3D_HAS_CLEAN_L1TD
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLEAN_L1TD_DEFERRED: break;
 #endif
    case V3D_CL_STENCIL_CFG: v3d_cl_unpack_stencil_cfg(&instr->u.stencil_cfg, packed_instr + 1); break;
@@ -17302,44 +16943,44 @@ void v3d_cl_unpack_instr(V3D_CL_INSTR_T *instr, const uint8_t *packed_instr)
    case V3D_CL_COLOR_WMASKS: v3d_cl_unpack_color_wmasks(&instr->u.color_wmasks, packed_instr + 1); break;
    case V3D_CL_ZERO_ALL_CENTROID_FLAGS: break;
    case V3D_CL_ZERO_ALL_FLATSHADE_FLAGS: break;
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_ZERO_ALL_NOPERSPECTIVE_FLAGS: break;
 #endif
-#if !V3D_HAS_VARY_NO_PERSP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS: v3d_cl_unpack_vary_flags(&instr->u.vary_flags, packed_instr + 1); break;
 #endif
-#if V3D_HAS_VARY_NO_PERSP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CENTROID_FLAGS:
    case V3D_CL_FLATSHADE_FLAGS:
    case V3D_CL_NOPERSPECTIVE_FLAGS: v3d_cl_unpack_vary_flags(&instr->u.vary_flags, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_FEP_SAMPLE_MASK
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: v3d_cl_unpack_sample_state(&instr->u.sample_state, packed_instr + 1); break;
 #endif
-#if V3D_HAS_FEP_SAMPLE_MASK
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_SAMPLE_STATE: v3d_cl_unpack_sample_state(&instr->u.sample_state, packed_instr + 1); break;
 #endif
    case V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE: v3d_cl_unpack_occlusion_query_counter_enable(&instr->u.occlusion_query_counter_enable, packed_instr + 1); break;
    case V3D_CL_CFG_BITS: v3d_cl_unpack_cfg_bits(&instr->u.cfg_bits, packed_instr + 1); break;
    case V3D_CL_POINT_SIZE: v3d_cl_unpack_point_size(&instr->u.point_size, packed_instr + 1); break;
    case V3D_CL_LINE_WIDTH: v3d_cl_unpack_line_width(&instr->u.line_width, packed_instr + 1); break;
-#if !V3D_HAS_POLY_OFFSET_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: v3d_cl_unpack_depth_offset(&instr->u.depth_offset, packed_instr + 1); break;
 #endif
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_DEPTH_OFFSET: v3d_cl_unpack_depth_offset(&instr->u.depth_offset, packed_instr + 1); break;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: v3d_cl_unpack_clip(&instr->u.clip, packed_instr + 1); break;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: v3d_cl_unpack_viewport_offset(&instr->u.viewport_offset, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_CLIP: v3d_cl_unpack_clip(&instr->u.clip, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_VIEWPORT_OFFSET: v3d_cl_unpack_viewport_offset(&instr->u.viewport_offset, packed_instr + 1); break;
 #endif
    case V3D_CL_CLIPZ: v3d_cl_unpack_clipz(&instr->u.clipz, packed_instr + 1); break;
@@ -17348,19 +16989,16 @@ void v3d_cl_unpack_instr(V3D_CL_INSTR_T *instr, const uint8_t *packed_instr)
 #if V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_NUM_LAYERS: v3d_cl_unpack_num_layers(&instr->u.num_layers, packed_instr + 1); break;
 #endif
-#if V3D_HAS_UNCONSTR_VP_CLIP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: v3d_cl_unpack_tile_binning_mode_cfg(&instr->u.tile_binning_mode_cfg, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_UNCONSTR_VP_CLIP && V3D_HAS_QTS
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_BINNING_MODE_CFG: v3d_cl_unpack_tile_binning_mode_cfg(&instr->u.tile_binning_mode_cfg, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_QTS
-   case V3D_CL_TILE_BINNING_MODE_CFG: v3d_cl_unpack_tile_binning_mode_cfg(&instr->u.tile_binning_mode_cfg, packed_instr + 1); break;
-#endif
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: v3d_cl_unpack_tile_rendering_mode_cfg(&instr->u.tile_rendering_mode_cfg, packed_instr + 1); break;
 #endif
-#if !V3D_HAS_RT_CLAMP && V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0) && V3D_VER_AT_LEAST(4,0,2,0)
    case V3D_CL_TILE_RENDERING_MODE_CFG: v3d_cl_unpack_tile_rendering_mode_cfg(&instr->u.tile_rendering_mode_cfg, packed_instr + 1); break;
 #endif
 #if !V3D_VER_AT_LEAST(4,0,2,0)

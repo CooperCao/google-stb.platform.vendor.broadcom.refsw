@@ -38,11 +38,6 @@
 
 #include "bdsp_raaga_priv_include.h"
 
-#ifdef FIREPATH_BM
-#include "mutex.h"
-extern BEMU_Client_MutexHandle g_hSocketMutex;
-#endif /* FIREPATH_BM */
-
 BDBG_MODULE(bdsp_raaga);
 
 /***********************************************************************
@@ -74,27 +69,33 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 	pSettings->preloadImages         = false;
 
 	/* All debug features will be disabled by default */
-	pSettings->debugSettings[BDSP_Raaga_DebugType_eUart].enabled 		= false;
-	pSettings->debugSettings[BDSP_Raaga_DebugType_eDramMsg].enabled		= false;
-	pSettings->debugSettings[BDSP_Raaga_DebugType_eCoreDump].enabled 	= false;
-	pSettings->debugSettings[BDSP_Raaga_DebugType_eTargetPrintf].enabled= false;
+	pSettings->debugSettings[BDSP_DebugType_eUart].enabled 		= false;
+	pSettings->debugSettings[BDSP_DebugType_eDramMsg].enabled	= false;
+	pSettings->debugSettings[BDSP_DebugType_eCoreDump].enabled 	= false;
+	pSettings->debugSettings[BDSP_DebugType_eTargetPrintf].enabled= false;
 
-	pSettings->debugSettings[BDSP_Raaga_DebugType_eUart].bufferSize 		= 0x1000;  /*     4 KB by default */
-	pSettings->debugSettings[BDSP_Raaga_DebugType_eDramMsg].bufferSize 		= 0x40000; /* 256 KB by default */
-	pSettings->debugSettings[BDSP_Raaga_DebugType_eCoreDump].bufferSize 	= 0x90000; /* 576 KB by default */
-	pSettings->debugSettings[BDSP_Raaga_DebugType_eTargetPrintf].bufferSize = BDSP_IMG_TB_BUF_MEM_SIZE;
+	pSettings->debugSettings[BDSP_DebugType_eUart].bufferSize 		= 0x1000;  /*     4 KB by default */
+	pSettings->debugSettings[BDSP_DebugType_eDramMsg].bufferSize 	= 0x40000; /* 256 KB by default */
+	pSettings->debugSettings[BDSP_DebugType_eCoreDump].bufferSize 	= 0x90000; /* 576 KB by default */
+	pSettings->debugSettings[BDSP_DebugType_eTargetPrintf].bufferSize = BDSP_TARGET_BUF_MEM_SIZE;
 
 	/*initialized to "0" to make sure that the initialization is done properly. Testing cant be done unless a new algoType is explicitly initialized */
 	for(i=0;i < BDSP_AlgorithmType_eMax; i++){
 		pSettings->maxAlgorithms[i]= 0;
 	}
 
-	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioDecode]        = BDSP_RAAGA_MAX_DECODE_CTXT;
-	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioPassthrough]   = BDSP_RAAGA_MAX_PASSTHROUGH_CTXT;
-	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioEncode]        = BDSP_RAAGA_MAX_ENCODE_CTXT;
-	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioMixer]         = BDSP_RAAGA_MAX_MIXER_CTXT;
-	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioEchoCanceller] = BDSP_RAAGA_MAX_ECHOCANCELLER_CTXT;
-	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioProcessing]    = BDSP_RAAGA_MAX_AUDIO_PROCESSING_CTXT;
+        /*initialized to "0" to make sure that the initialization is done properly */
+        for(i=0;i < BDSP_RAAGA_MAX_NUM_HEAPS; i++){
+            pSettings->heap[i].baseAddress = (BSTD_DeviceOffset) 0;
+            pSettings->heap[i].size = (uint64_t) 0;
+        }
+
+	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioDecode]        = BDSP_MAX_DECODE_CTXT;
+	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioPassthrough]   = BDSP_MAX_PASSTHROUGH_CTXT;
+	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioEncode]        = BDSP_MAX_ENCODE_CTXT;
+	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioMixer]         = BDSP_MAX_MIXER_CTXT;
+	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioEchoCanceller] = BDSP_MAX_ECHOCANCELLER_CTXT;
+	pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioProcessing]    = BDSP_MAX_AUDIO_PROCESSING_CTXT;
 	pSettings->maxAlgorithms[BDSP_AlgorithmType_eVideoDecode] = 0;
 	pSettings->maxAlgorithms[BDSP_AlgorithmType_eVideoEncode] = 0;
 	pSettings->maxAlgorithms[BDSP_AlgorithmType_eSecurity] = 0;
@@ -170,21 +171,28 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 	pRaaga->device.getDefaultContextSettings = BDSP_Raaga_P_GetDefaultContextSettings;
 	pRaaga->device.createContext = BDSP_Raaga_P_CreateContext;
 	pRaaga->device.getStatus= BDSP_Raaga_P_GetStatus;
-	pRaaga->device.powerStandby= NULL;
-	pRaaga->device.powerResume= NULL;
+	pRaaga->device.powerStandby= BDSP_Raaga_P_PowerStandby;
+	pRaaga->device.powerResume= BDSP_Raaga_P_PowerResume;
 	pRaaga->device.getAlgorithmInfo= BDSP_Raaga_P_GetAlgorithmInfo;
-	pRaaga->device.allocateExternalInterrupt = NULL;
-	pRaaga->device.freeExternalInterrupt = NULL;
-	pRaaga->device.getExternalInterruptInfo = NULL;
-	pRaaga->device.processAudioCapture = NULL;
+	pRaaga->device.allocateExternalInterrupt = BDSP_Raaga_P_AllocateExternalInterrupt;
+	pRaaga->device.freeExternalInterrupt = BDSP_Raaga_P_FreeExternalInterrupt;
+	pRaaga->device.getExternalInterruptInfo = BDSP_Raaga_P_GetExternalInterruptInfo;
+	pRaaga->device.processAudioCapture = BDSP_Raaga_P_ProcessAudioCapture;
+    pRaaga->device.getDebugBuffer = BDSP_Raaga_P_GetDebugBuffer;
+    pRaaga->device.consumeDebugData = BDSP_Raaga_P_ConsumeDebugData;
+    pRaaga->device.getCoreDumpStatus = BDSP_Raaga_P_GetCoreDumpStatus;
+    pRaaga->device.getDownloadStatus= BDSP_Raaga_P_GetDownloadStatus;
+    pRaaga->device.initialize = BDSP_Raaga_P_Initialize;
+#if !B_REFSW_MINIMAL
+    pRaaga->device.getDefaultDatasyncSettings = BDSP_P_GetDefaultDatasyncSettings;
+#endif /*!B_REFSW_MINIMAL*/
+    pRaaga->device.getDefaultTsmSettings = BDSP_P_GetDefaultTsmSettings;
 
 	/* Init context lists */
 	BLST_S_INIT(&pRaaga->contextList);
-
-#if 0
-	/* Init interrupt list */
+    /* Init interrupt list */
 	BLST_S_INIT(&pRaaga->interruptList);
-#endif /* CDN TODO */
+
 	/* Save Settings and params */
 	pRaaga->deviceSettings = *pSettings;
 	pRaaga->chpHandle = chpHandle;
@@ -210,11 +218,26 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 		Usage.Codeclist[BDSP_Algorithm_eAc3Passthrough]    =true;
 		Usage.Codeclist[BDSP_Algorithm_eAc3PlusDecode]     =true;
 		Usage.Codeclist[BDSP_Algorithm_eAc3PlusPassthrough]=true;
+		Usage.Codeclist[BDSP_Algorithm_eUdcDecode]         =true;
+		Usage.Codeclist[BDSP_Algorithm_eUdcPassthrough]    =true;
 		Usage.Codeclist[BDSP_Algorithm_eSrc]               =true;
+        /*MS12 configurations*/
+		Usage.Codeclist[BDSP_Algorithm_eDpcmr]             =true;
+		Usage.Codeclist[BDSP_Algorithm_eDDPEncode]         =true;
+		Usage.Codeclist[BDSP_Algorithm_eMixerDapv2]        =true;
 
-		Usage.NumAudioDecoders=1;
-		Usage.NumAudioPostProcesses=2;
-		Usage.NumAudioPassthru=1;
+        /*Transcode configurations*/
+		/*Usage.Codeclist[BDSP_Algorithm_eGenCdbItb]         =true;
+		Usage.Codeclist[BDSP_Algorithm_eAacEncode]         =true;
+		Usage.Codeclist[BDSP_Algorithm_eMixer]             =true;*/
+
+		Usage.NumAudioDecoders=4;
+		Usage.NumAudioPostProcesses=4;
+		Usage.NumAudioPassthru=0;
+        Usage.NumAudioEncoders=1;
+        Usage.NumAudioMixers=1;
+        Usage.IntertaskBufferDataType=BDSP_DataType_ePcm7_1;
+
 		BDSP_Raaga_GetMemoryEstimate(pSettings,
 			&Usage,
 			boxHandle,
@@ -222,7 +245,7 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 		BDBG_ERR(("Memory Required FIRMWARE = %d bytes(%d KB)(%d MB)  GENERAL = %d bytes(%d KB)(%d MB)",Estimate.FirmwareMemory,(Estimate.FirmwareMemory/1024),(Estimate.FirmwareMemory/(1024*1024)),
 						Estimate.GeneralMemory,(Estimate.GeneralMemory/1024),(Estimate.GeneralMemory/(1024*1024))));
 	}
-#endif /* This is memory estimate testing */
+#endif /* This is for memory estimate testing */
 
 	errCode = BDSP_Raaga_P_InitDeviceSettings(pRaaga);
 	if(errCode != BERR_SUCCESS)
@@ -281,230 +304,6 @@ open_success:
 	return errCode;
 }
 
-BERR_Code BDSP_Raaga_GetDownloadStatus(
-    BDSP_Handle handle,
-    BDSP_Raaga_DownloadStatus *pStatus /* [out] */
-)
-{
-	BERR_Code errCode = BERR_SUCCESS;
-    BDSP_Raaga *pDevice = (BDSP_Raaga *)handle->pDeviceHandle;
-
-    BDBG_ENTER(BDSP_Raaga_GetDownloadStatus);
-    /* Assert the function arguments*/
-    BDBG_ASSERT(handle->pDeviceHandle);
-
-    /*If Firmware Firmware authentication is Disabled*/
-    if(pDevice->deviceSettings.authenticationEnabled==false)
-    {
-        BDBG_ERR(("BDSP_Raaga_GetDownloadStatus should be called only if bFwAuthEnable is true"));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-
-    pStatus->pBaseAddress    = pDevice->memInfo.sROMemoryPool.Memory.pAddr;
-    pStatus->physicalAddress = pDevice->memInfo.sROMemoryPool.Memory.offset;
-    pStatus->length          = pDevice->memInfo.sROMemoryPool.ui32Size;
-
-    BDBG_LEAVE(BDSP_Raaga_GetDownloadStatus);
-
-    return errCode;
-}
-
-BERR_Code BDSP_Raaga_GetAudioDelay_isrsafe(
-    BDSP_CTB_Input   *pCtbInput,
-    BDSP_StageHandle  hStage,
-    BDSP_CTB_Output  *pCTBOutput
-)
-{
-    BERR_Code errCode = BERR_SUCCESS;
-    BDBG_OBJECT_ASSERT(hStage, BDSP_Stage);
-
-	pCTBOutput->ui32AudOffset = BDSP_AF_P_MAX_AUD_OFFSET;
-	pCTBOutput->ui32BlockTime = BDSP_AF_P_BLOCKING_TIME;
-	pCTBOutput->ui32Threshold = BDSP_AF_P_MAX_THRESHOLD+BDSP_AF_P_SAMPLE_PADDING;
-
-	BSTD_UNUSED(pCtbInput);
-    return errCode;
-}
-
-/***************************************************************************
-Summary:
-Get the codec copability status
-***************************************************************************/
-void BDSP_Raaga_GetCodecCapabilities(
-	BDSP_CodecCapabilities *pSetting
-)
-{
-#ifdef BDSP_MS12_SUPPORT
-    switch (BDSP_MS12_SUPPORT)
-    {
-        case 'A':
-            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'A' "));
-            pSetting->dolbyMs.dapv2 = true;
-            pSetting->dolbyMs.ddEncode = true;
-            pSetting->dolbyMs.ddpEncode51 = true;
-            pSetting->dolbyMs.ddpEncode71 = true;
-            pSetting->dolbyMs.pcm71 = true;
-            break;
-        case 'B':
-            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'B' "));
-            pSetting->dolbyMs.dapv2 = true;
-            pSetting->dolbyMs.ddEncode = true;
-            pSetting->dolbyMs.ddpEncode51 = true;
-            pSetting->dolbyMs.ddpEncode71 = false;
-            pSetting->dolbyMs.pcm71 = false;
-            break;
-        case 'C':
-            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'C' "));
-            pSetting->dolbyMs.dapv2 = false;
-            pSetting->dolbyMs.ddEncode = true;
-            pSetting->dolbyMs.ddpEncode51 = false;
-            pSetting->dolbyMs.ddpEncode71 = false;
-            pSetting->dolbyMs.pcm71 = false;
-            break;
-        case 'D':
-            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'D' "));
-            pSetting->dolbyMs.dapv2 = false;
-            pSetting->dolbyMs.ddEncode = true;
-            pSetting->dolbyMs.ddpEncode51 = true;
-            pSetting->dolbyMs.ddpEncode71 = false;
-            pSetting->dolbyMs.pcm71 = false;
-            break;
-        default:
-            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'C', Displaying MS12 Capabilities as: "));
-            pSetting->dolbyMs.dapv2 = true;
-            pSetting->dolbyMs.ddEncode = true;
-            pSetting->dolbyMs.ddpEncode51 = false;
-            pSetting->dolbyMs.ddpEncode71 = false;
-            pSetting->dolbyMs.pcm71 = false;
-            break;
-    }
-#else
-            pSetting->dolbyMs.dapv2 = false;
-#ifdef BDSP_AC3ENC_SUPPORT
-            pSetting->dolbyMs.ddEncode = true;
-#else
-            pSetting->dolbyMs.ddEncode = false;
-#endif
-            pSetting->dolbyMs.ddpEncode51 = false;
-            pSetting->dolbyMs.ddpEncode71 = false;
-            pSetting->dolbyMs.pcm71 = false;
-#endif
-
-            BDBG_MSG(("pSetting->dolbyMs.dapv2 = %d", pSetting->dolbyMs.dapv2));
-            BDBG_MSG(("pSetting->dolbyMs.ddEncode = %d", pSetting->dolbyMs.ddEncode));
-            BDBG_MSG(("pSetting->dolbyMs.ddpEncode51 = %d", pSetting->dolbyMs.ddpEncode51));
-            BDBG_MSG(("pSetting->dolbyMs.ddpEncode71 = %d", pSetting->dolbyMs.ddpEncode71));
-            BDBG_MSG(("pSetting->dolbyMs.pcm71 = %d", pSetting->dolbyMs.pcm71));
-}
-
-BERR_Code BDSP_Raaga_Initialize(
-	BDSP_Handle handle
-)
-{
-    BERR_Code errCode = BERR_SUCCESS;
-    BDSP_Raaga *pDevice = (BDSP_Raaga *)handle->pDeviceHandle;
-
-    BDBG_ENTER(BDSP_Raaga_Initialize);
-    /* Assert the function arguments*/
-    BDBG_OBJECT_SET(pDevice, BDSP_Raaga);
-
-    /*If Firmware authentication is Disabled*/
-    if(pDevice->deviceSettings.authenticationEnabled==false)
-    {
-        BDBG_ERR(("BDSP_Raaga_Initialize should be called only if bFwAuthEnable is true"));
-        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-        goto end;
-    }
-
-    errCode = BDSP_Raaga_P_Boot(pDevice);
-    if (errCode!=BERR_SUCCESS)
-    {
-        BDBG_ERR(("BDSP_Raaga_Initialize: Error in Booting Raaga"));
-        errCode = BERR_TRACE(errCode);
-        goto end;
-    }
-
-    errCode = BDSP_Raaga_P_CheckDspAlive(pDevice);
-    if (errCode!=BERR_SUCCESS)
-    {
-        BDBG_ERR(("BDSP_Raaga_Initialize: DSP not alive"));
-        errCode = BERR_TRACE(errCode);
-        goto end;
-    }
-
-end:
-    BDBG_LEAVE(BDSP_Raaga_Initialize);
-    return errCode;
-}
-
-BERR_Code BDSP_Raaga_GetDefaultAlgorithmSettings(
-    BDSP_Algorithm algorithm,
-    void *pSettingsBuffer,        /* [out] */
-    size_t settingsBufferSize   /*[In]*/
-)
-{
-    const BDSP_P_AlgorithmInfo *pAlgoInfo;
-	const BDSP_P_AlgorithmSupportInfo *pAlgoSupportInfo;
-    BDBG_ASSERT(NULL != pSettingsBuffer);
-
-	pAlgoSupportInfo = BDSP_Raaga_P_LookupAlgorithmSupportInfo(algorithm);
-    if(false == pAlgoSupportInfo->supported)
-    {
-		BDBG_ERR(("Algorithm Requested(%d) %s is not supported",pAlgoSupportInfo->algorithm, pAlgoSupportInfo->pName));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    pAlgoInfo = BDSP_Raaga_P_LookupAlgorithmInfo(algorithm);
-    if(pAlgoInfo->algoUserConfigSize != settingsBufferSize)
-    {
-        BDBG_ERR(("settingsBufferSize (%lu) provided by PI is not equal to Config size (%lu) required for algorithm %u (%s)",
-            (unsigned long)settingsBufferSize, (unsigned long)pAlgoInfo->algoUserConfigSize, algorithm, pAlgoInfo->pName));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    if (settingsBufferSize > 0)
-    {
-        BDBG_ASSERT(NULL != pAlgoInfo->pDefaultUserConfig);
-        BKNI_Memcpy(pSettingsBuffer, pAlgoInfo->pDefaultUserConfig, settingsBufferSize);
-    }
-
-    return BERR_SUCCESS;
-}
-
-#if !B_REFSW_MINIMAL
-BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
-        void *pSettingsBuffer,        /* [out] */
-        size_t settingsBufferSize   /*[In]*/
-)
-{
-    if(sizeof(BDSP_AudioTaskDatasyncSettings) != settingsBufferSize)
-    {
-        BDBG_ERR(("settingsBufferSize (%lu) is not equal to Config size (%lu) of DataSync ",
-            (unsigned long)settingsBufferSize,(unsigned long)sizeof(BDSP_AudioTaskDatasyncSettings)));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-    BKNI_Memcpy((void *)(volatile void *)pSettingsBuffer,(void *)&BDSP_sDefaultFrameSyncSettings,settingsBufferSize);
-
-    return BERR_SUCCESS;
-}
-#endif /*!B_REFSW_MINIMAL*/
-
-BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
-        void *pSettingsBuffer,        /* [out] */
-        size_t settingsBufferSize   /*[In]*/
-)
-{
-    if(sizeof(BDSP_AudioTaskTsmSettings) != settingsBufferSize)
-    {
-        BDBG_ERR(("settingsBufferSize (%lu) is not equal to Config size (%lu) of DataSync ",
-            (unsigned long)settingsBufferSize,(unsigned long)sizeof(BDSP_AudioTaskTsmSettings)));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-    BKNI_Memcpy((void *)(volatile void *)pSettingsBuffer,(void *)&BDSP_sDefaultTSMSettings,settingsBufferSize);
-
-    return BERR_SUCCESS;
-}
-
 /***********************************************************************
 Name        :   BDSP_Raaga_GetMemoryEstimate
 
@@ -541,199 +340,4 @@ BERR_Code BDSP_Raaga_GetMemoryEstimate(
 	}
 	BDBG_LEAVE(BDSP_Raaga_GetMemoryEstimate);
 	return errCode;
-}
-
-/***********************************************************************
-Name		:	BDSP_Raaga_Open
-
-Type		:	PI Interface
-
-Input		:	handle		-	Device Handle which is returned to the PI.
-				debugtype      -     Describes which debug buffer is being probed by PI.
-				dspIndex		-     For which Dsp the debug buffer is being probed by PI.
-				pBuffer           -     MMA memory handle for PI to copy the data.
-				psize              -     Size returned back to PI to copy.
-Return		:	Error Code to return SUCCESS or FAILURE
-
-Functionality	:
-	1)	Allocate the memory for the Raaga device.
-***********************************************************************/
-BERR_Code BDSP_Raaga_GetDebugBuffer(
-    BDSP_Handle 			handle,
-    BDSP_Raaga_DebugType 	debugType,
-    uint32_t 				dspIndex,
-    BDSP_MMA_Memory 	   *pBuffer,
-    size_t 				   *pSize
-)
-{
-	BERR_Code errCode = BERR_SUCCESS ;
-	BDSP_Raaga *pDevice;
-	uint32_t ui32Offset, ui32RegOffset;
-	BDSP_MMA_Memory Memory;
-    dramaddr_t  BaseAddr, ReadAddr, WriteAddr, EndAddr;
-
-	BDBG_ENTER(BDSP_Raaga_GetDebugBuffer);
-	BDBG_ASSERT(handle->pDeviceHandle);
-	BDBG_ASSERT(pBuffer);
-	BDBG_ASSERT(pSize);
-
-	pDevice = (BDSP_Raaga *)handle->pDeviceHandle;
-	BDBG_ASSERT((dspIndex+1) <= pDevice->numDsp);
-
-	ui32Offset = pDevice->dspOffset[dspIndex];
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-                    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    if(debugType != BDSP_Raaga_DebugType_eTargetPrintf)
-    {
-		ReadAddr = BDSP_ReadReg64(pDevice->regHandle,
-			BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + ui32Offset +
-			(ui32RegOffset * pDevice->memInfo.debugQueueParams[dspIndex][debugType].ui32FifoId)+
-			BDSP_RAAGA_P_FIFO_READ_OFFSET);
-
-		WriteAddr = BDSP_ReadReg64(pDevice->regHandle,
-			BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + ui32Offset +
-			(ui32RegOffset * pDevice->memInfo.debugQueueParams[dspIndex][debugType].ui32FifoId)+
-			BDSP_RAAGA_P_FIFO_WRITE_OFFSET);
-
-		BaseAddr = BDSP_ReadReg64(pDevice->regHandle,
-			BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + ui32Offset +
-			(ui32RegOffset * pDevice->memInfo.debugQueueParams[dspIndex][debugType].ui32FifoId)+
-			BDSP_RAAGA_P_FIFO_BASE_OFFSET);
-
-		EndAddr = BDSP_ReadReg64(pDevice->regHandle,
-			BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + ui32Offset +
-			(ui32RegOffset * pDevice->memInfo.debugQueueParams[dspIndex][debugType].ui32FifoId)+
-			BDSP_RAAGA_P_FIFO_END_OFFSET);
-
-		Memory = pDevice->memInfo.debugQueueParams[dspIndex][debugType].Memory;
-		Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + (ReadAddr - BaseAddr));
-		if(ReadAddr > WriteAddr)
-		{
-			/*Write Pointer has looparound, hence reach just the bottom chunk */
-			*pSize = EndAddr - ReadAddr;
-			BDBG_MSG(("Write Pointer has looped around, reading just the chunk till END"));
-		}
-		else
-		{
-			*pSize = WriteAddr - ReadAddr;
-		}
-		*pBuffer = Memory;
-	}
-	else
-	{
-	    TB_data_descriptor DataDescriptor;
-		unsigned int ReadAmount = 0;
-#ifdef FIREPATH_BM
-        if (0 != BEMU_Client_AcquireMutex(g_hSocketMutex))
-        {
-            BDBG_ERR(("Failed to acquire mutex in BEMU_Client_CloseSocket\n"));
-        }
-#endif /* FIREPATH_BM */
-		TB_peek(&(pDevice->sTbTargetPrint[dspIndex]), &DataDescriptor);
-
-#ifdef FIREPATH_BM
-		BEMU_Client_ReleaseMutex(g_hSocketMutex);
-#endif /* FIREPATH_BM */
-		*pSize = 0;
-		Memory = pDevice->memInfo.debugQueueParams[dspIndex][BDSP_Raaga_DebugType_eTargetPrintf].Memory;
-		while((ReadAmount = TB_read(&DataDescriptor, (void *)((uint8_t *)Memory.pAddr+ *pSize), BDSP_IMG_TB_BUF_MEM_SIZE, true)) > 0)
-		{
-			*pSize += ReadAmount;
-		}
-		if(ReadAmount == BDSP_IMG_TB_BUF_MEM_SIZE)
-		{
-			BDBG_ERR(("SDK Target Printf buffer got Full"));
-		}
-		*pBuffer = Memory;
-	}
-
-	BDBG_MSG(("Read (%lu) bytes of data", (unsigned long)(*pSize)));
-	BDBG_LEAVE(BDSP_Raaga_GetDebugBuffer);
-	return errCode;
-}
-
-BERR_Code BDSP_Raaga_ConsumeDebugData(
-    BDSP_Handle 			handle,
-    BDSP_Raaga_DebugType 	debugType,
-    uint32_t 				dspIndex,
-    size_t 					bytesConsumed
-)
-{
-	BERR_Code errCode = BERR_SUCCESS ;
-	BDSP_Raaga *pDevice;
-	uint32_t ui32Offset, ui32RegOffset;
-    dramaddr_t  BaseAddr, ReadAddr, EndAddr;
-
-	BDBG_ENTER(BDSP_Raaga_ConsumeDebugData);
-    BDBG_ASSERT(handle->pDeviceHandle);
-    pDevice = (BDSP_Raaga *)handle->pDeviceHandle;
-
-	BDBG_ASSERT((dspIndex+1) <= pDevice->numDsp);
-
-	ui32Offset = pDevice->dspOffset[dspIndex];
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-                    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    if(debugType != BDSP_Raaga_DebugType_eTargetPrintf)
-    {
-
-		ReadAddr = BDSP_ReadReg64(pDevice->regHandle,
-			BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + ui32Offset +
-				(ui32RegOffset * pDevice->memInfo.debugQueueParams[dspIndex][debugType].ui32FifoId)+
-				BDSP_RAAGA_P_FIFO_READ_OFFSET);
-
-		BaseAddr = BDSP_ReadReg64(pDevice->regHandle,
-			BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + ui32Offset +
-			(ui32RegOffset * pDevice->memInfo.debugQueueParams[dspIndex][debugType].ui32FifoId)+
-			BDSP_RAAGA_P_FIFO_BASE_OFFSET);
-
-		EndAddr = BDSP_ReadReg64(pDevice->regHandle,
-			BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + ui32Offset +
-			(ui32RegOffset * pDevice->memInfo.debugQueueParams[dspIndex][debugType].ui32FifoId)+
-			BDSP_RAAGA_P_FIFO_END_OFFSET);
-
-		ReadAddr += bytesConsumed;
-		if(ReadAddr >= EndAddr)
-		{
-			/* We never handle looparound read and if write pointer had looped around, PI would only read bottom chunk,
-			     hence adjusting the read to base would sufficient*/
-			ReadAddr = BaseAddr;
-		}
-
-		BDSP_WriteReg64(pDevice->regHandle,
-			BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + ui32Offset +
-				(ui32RegOffset * pDevice->memInfo.debugQueueParams[dspIndex][debugType].ui32FifoId) +
-				BDSP_RAAGA_P_FIFO_READ_OFFSET,
-			ReadAddr); /* read */
-    }
-	else
-	{
-#ifdef FIREPATH_BM
-		if (0 != BEMU_Client_AcquireMutex(g_hSocketMutex))
-		{
-			BDBG_ERR(("Failed to acquire mutex in BEMU_Client_CloseSocket\n"));
-		}
-#endif /* FIREPATH_BM */
-
-		TB_discard(&pDevice->sTbTargetPrint[dspIndex], bytesConsumed);
-
-#ifdef FIREPATH_BM
-		BEMU_Client_ReleaseMutex(g_hSocketMutex);
-#endif /* FIREPATH_BM */
-	}
-	BDBG_ENTER(BDSP_Raaga_ConsumeDebugData);
-	return errCode;
-}
-
-BDSP_Raaga_FwStatus BDSP_Raaga_GetCoreDumpStatus (
-    BDSP_Handle handle,
-    uint32_t dspIndex /* [in] Gives the DSP Id for which the core dump status is required */
-)
-{
-	BSTD_UNUSED(handle);
-	BSTD_UNUSED(dspIndex);
-
-	BDBG_ERR(("BDSP_Raaga_GetCoreDumpStatus: Core Dump is not implemented"));
-	return BDSP_Raaga_FwStatus_eCoreDumpComplete;
 }

@@ -438,7 +438,9 @@ tkip_set_data(wlc_key_t *key, const uint8 *data,
 		} else if (!data) {
 			err = BCME_BADARG;
 			break;
-		} else if (memcmp(tkip_key->key, data, TKIP_KEY_SIZE)) {
+		} else if (memcmp(tkip_key->key, data, TKIP_KEY_TK_SIZE) || 
+				   memcmp(tkip_key->mic_keys.from_ds, data+TKIP_KEY_TK_SIZE, TKIP_KEY_MIC_KEY_SIZE) ||
+				   memcmp(tkip_key->mic_keys.to_ds, data+TKIP_KEY_TK_SIZE+TKIP_KEY_MIC_KEY_SIZE, TKIP_KEY_MIC_KEY_SIZE)) {
 			memset(tkip_key, 0, SIZEOF_TKIP_KEY(key));
 			memcpy(tkip_key->key, data, TKIP_KEY_TK_SIZE);
 			memcpy(tkip_key->mic_keys.from_ds, data+TKIP_KEY_TK_SIZE, TKIP_KEY_MIC_KEY_SIZE);

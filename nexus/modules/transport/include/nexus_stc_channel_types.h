@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   Management of STC Channels that deliver timebases to decoders.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_STCCHANNEL_TYPES_H__
@@ -200,6 +192,9 @@ typedef struct NEXUS_StcChannelStatus
                                   because of ASTM. */
     uint32_t stc;
     bool stcValid;
+    unsigned index;            /* Index of the hardware PCR Offset channel being used. */
+    unsigned stcIndex;         /* Index of the STC Channel (serial STC) */
+    unsigned timebaseIndex;    /* Index of the timebase that drives this STC channel. */
 } NEXUS_StcChannelStatus;
 
 #ifdef __cplusplus

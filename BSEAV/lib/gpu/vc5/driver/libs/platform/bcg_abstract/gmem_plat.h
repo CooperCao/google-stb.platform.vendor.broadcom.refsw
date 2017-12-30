@@ -42,6 +42,8 @@ typedef struct gmem_alloc_item
 
    void*                   cpu_ptr;
    v3d_addr_t              v3d_addr;
+   uint64_t                external_addr;
+
 } gmem_alloc_item;
 
 #ifdef __cplusplus
@@ -50,11 +52,19 @@ extern "C" {
 
 static inline gmem_alloc_item* gmem_validate_handle(gmem_handle_t handle);
 
-/* Wrap an existing platform memory handle in a gmem handle. This is only used for display buffers. */
+/* Wrap an existing platform memory handle in a gmem handle. */
 gmem_handle_t gmem_from_external_memory(GMEM_TERM_T external_term, void *external_context,
-                                               uint64_t physOffset, void *cpu_ptr,
-                                               size_t length, const char *desc);
+                                        uint64_t physOffset, void *cpu_ptr,
+                                        size_t length, bool secure, bool contiguous,
+                                        const char *desc);
 
+uint64_t gmem_get_external_addr(gmem_handle_t handle);
+
+/* Retrieve the external context if there is one. May return NULL. */
+void *gmem_get_external_context(gmem_handle_t handle);
+
+/* Retrieve the platform memory handle */
+BEGL_MemHandle gmem_get_platform_handle(gmem_handle_t handle);
 
 gmem_alloc_item* gmem_alloc_and_map_internal(size_t size, v3d_size_t align, uint32_t usage_flags, const char *desc);
 void gmem_free_internal(gmem_handle_t handle);

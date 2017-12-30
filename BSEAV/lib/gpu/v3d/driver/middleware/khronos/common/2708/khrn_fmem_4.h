@@ -1,17 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Control per-frame memory allocator
-
-FILE DESCRIPTION
-Handles allocation of memory for control lists and associated data that will be
-generated each frame as HW input.
-=============================================================================*/
-
-#ifndef KHRN_FMEM_4_H
-#define KHRN_FMEM_4_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
@@ -27,10 +17,10 @@ typedef struct _KHRN_FMEM_TWEAK_T
 
    MEM_HANDLE_OFFSET_T interlock;
 
-   uint32_t *ramp_location;
    MEM_HANDLE_T ramp_handle;
    uint32_t ramp_i;
 
+   MEM_HANDLE_T sync;
 } KHRN_FMEM_TWEAK_T;
 
 typedef struct
@@ -38,18 +28,20 @@ typedef struct
    KHRN_FMEM_TWEAK_T *start;
    KHRN_FMEM_TWEAK_T *header;
    uint32_t i;
-   MEM_LOCK_T lbh;
 } KHRN_FMEM_TWEAK_LIST_T;
 
-#define TWEAK_COUNT 32
+#define TWEAK_COUNT 128
+
+
 
 typedef struct _KHRN_FMEM_FIX_T
 {
    struct _KHRN_FMEM_FIX_T *next;
    uint32_t count;
-   MEM_HANDLE_OFFSET_T handles[TWEAK_COUNT];
-   uint8_t *locations[TWEAK_COUNT];
-   MEM_LOCK_T lbh;
+
+   MEM_HANDLE_T   mh_handle[TWEAK_COUNT];
+   uint32_t       offset[TWEAK_COUNT];
+   void           *location[TWEAK_COUNT];
 } KHRN_FMEM_FIX_T;
 
 typedef struct KHRN_FMEM
@@ -76,9 +68,8 @@ typedef struct KHRN_FMEM
    KHRN_FMEM_FIX_T *fix_end;
    KHRN_FMEM_TWEAK_LIST_T special;
    KHRN_FMEM_TWEAK_LIST_T interlock;
-#ifndef NO_OPENVG
-   KHRN_FMEM_TWEAK_LIST_T ramp;
-#endif /* NO_OPENVG */
+
+   KHRN_FMEM_TWEAK_LIST_T sync;
 
    KHRN_INTERLOCK_USER_T interlock_user;
 } KHRN_FMEM_T;
@@ -98,13 +89,12 @@ extern bool khrn_fmem_add_special(KHRN_FMEM_T *fmem, uint8_t **p, uint32_t speci
 extern bool khrn_fmem_interlock(KHRN_FMEM_T *fmem, MEM_HANDLE_T handle, uint32_t offset);
 extern void khrn_fmem_start_bin(KHRN_FMEM_T *fmem);
 extern bool khrn_fmem_start_render(KHRN_FMEM_T *fmem);
+extern bool khrn_fmem_sync(KHRN_FMEM_T *fmem, MEM_HANDLE_T handle);
 
 extern bool khrn_fmem_special(KHRN_FMEM_T *fmem, uint32_t *location, uint32_t special_i, uint32_t offset);
 extern bool khrn_fmem_is_here(KHRN_FMEM_T *fmem, uint8_t *p);
 extern bool khrn_fmem_ramp(KHRN_FMEM_T *fmem, uint32_t *location, MEM_HANDLE_T handle, uint32_t offset, uint32_t ramp_i);
-extern bool khrn_fmem_fix_special_0(KHRN_FMEM_T *fmem, uint32_t *location, MEM_HANDLE_T handle, uint32_t offset);
 extern bool khrn_fmem_add_fix_special_0(KHRN_FMEM_T *fmem, uint8_t **p, MEM_HANDLE_T handle, uint32_t offset);
-extern bool khrn_fmem_add_fix_image(KHRN_FMEM_T *fmem, uint8_t **p, MEM_HANDLE_T image_handle, uint32_t offset);
 
 extern void khrn_fmem_prep_for_job(KHRN_FMEM_T *fmem, uint32_t bin_mem, uint32_t bin_mem_size);
 extern void khrn_fmem_prep_for_render_only_job(KHRN_FMEM_T *fmem);
@@ -114,5 +104,3 @@ static INLINE uint32_t khrn_fmem_get_nmem_n(KHRN_FMEM_T *fmem)
 {
    return fmem->nmem_group.n;
 }
-
-#endif

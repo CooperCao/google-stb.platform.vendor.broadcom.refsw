@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include "middleware/khronos/glsl/prepro/glsl_prepro_expand.h"
@@ -136,7 +129,7 @@ static TokenSeq *subst(TokenSeq *is, TokenList *fp, TokenSeqList *ap, TokenList 
 
       if (!found) {
          /* The two lists should have been the same length */
-         vcos_assert(formal == NULL && actual == NULL);
+         assert(formal == NULL && actual == NULL);
 
          os = glsl_tokenseq_construct(is->token, is->hide, os);
          is = is->next;

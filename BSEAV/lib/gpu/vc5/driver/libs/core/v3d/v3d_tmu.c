@@ -38,7 +38,7 @@ v3d_tmu_blend_type_t v3d_maybe_get_tmu_blend_type(
    case V3D_TMU_TYPE_RGB565:
    case V3D_TMU_TYPE_RGBA4:
    case V3D_TMU_TYPE_RGB5_A1:
-#if V3D_HAS_RGB5_A1_REV
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_TMU_TYPE_RGB5_A1_REV:
 #endif
    case V3D_TMU_TYPE_RGB10_A2:
@@ -267,7 +267,7 @@ uint32_t v3d_tmu_get_num_channels(v3d_tmu_type_t type)
    case V3D_TMU_TYPE_RGBA8UI:
    case V3D_TMU_TYPE_RGBA4:
    case V3D_TMU_TYPE_RGB5_A1:
-#if V3D_HAS_RGB5_A1_REV
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_TMU_TYPE_RGB5_A1_REV:
 #endif
    case V3D_TMU_TYPE_RGB10_A2:
@@ -421,8 +421,15 @@ uint32_t v3d_tmu_get_word_read_default(
 
 #endif
 
-uint32_t v3d_tmu_get_word_read_max(v3d_tmu_type_t type, bool gather, bool output_32)
+uint32_t v3d_tmu_get_word_read_max(v3d_tmu_op_class_t op_class, bool is_write,
+   v3d_tmu_type_t type, bool gather, bool output_32)
 {
+   /* Cache ops and regular writes do not return any output */
+   if(op_class == V3D_TMU_OP_CLASS_CACHE || (is_write && op_class == V3D_TMU_OP_CLASS_REGULAR))
+   {
+      return 0;
+   }
+
    /* Full 4 channels available in all cases except for regular S8/S16 lookup... */
    uint32_t num_channels;
    if (!gather &&
@@ -469,7 +476,7 @@ bool v3d_tmu_type_supports_srgb(v3d_tmu_type_t type)
    }
 }
 
-#if !V3D_HAS_SEP_ANISO_CFG
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static void set_filters(struct v3d_tmu_cfg *cfg, v3d_tmu_filters_t filters)
 {
    cfg->aniso_level = 0;
@@ -586,7 +593,7 @@ static void set_whd_elems(struct v3d_tmu_cfg *cfg,
 {
    if (cfg->dims == 1)
    {
-#if V3D_HAS_LARGE_1D_TEXTURE
+#if V3D_VER_AT_LEAST(4,1,34,0)
       uint32_t low = gfx_pack_uint_0_is_max(raw_width, V3D_MAX_TEXTURE_DIM_BITS);
       uint32_t high = gfx_pack_uint_0_is_max(raw_height, V3D_MAX_TEXTURE_DIM_BITS);
 
@@ -663,7 +670,7 @@ static void raw_bcolour(struct v3d_tmu_cfg *cfg,
          cfg->bcolour.u.ui16[2] = (uint16_t)bcolour[1];
          cfg->bcolour.u.ui16[3] = (uint16_t)(bcolour[1] >> 16);
 #endif
-#if !V3D_HAS_SE15_BORDER
+#if !V3D_VER_AT_LEAST(4,2,13,0)
          if ((cfg->bcolour.fmt & ~GFX_LFMT_TYPE_MASK) == GFX_LFMT_R15X1_G15X1_B15X1_A15X1)
          {
             /* Top 2 bits of each channel *must* match as unlike penrose,
@@ -730,7 +737,7 @@ static void calc_miplvls_and_minlvl(struct v3d_tmu_cfg *cfg)
          uint32_t min_lod = gfx_umax(cfg->min_lod, (cfg->base_level << V3D_TMU_F_BITS) + 1);
          switch (cfg->mipfilt)
          {
-#if !V3D_HAS_SEP_ANISO_CFG
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          case V3D_TMU_MIPFILT_BASE:
             cfg->minlvl = cfg->base_level;
             cfg->miplvls = cfg->base_level + 1;
@@ -838,11 +845,16 @@ static void calc_derived_texture(struct v3d_tmu_cfg *cfg)
    }
 }
 
-static void check_config_texture(const struct v3d_tmu_cfg *cfg)
+static void check_config_texture(const struct v3d_tmu_cfg *cfg, bool off_written)
 {
    assert(cfg->texture);
 
-   assert((cfg->dims >= 1) && (cfg->dims <= 3));
+#if V3D_VER_AT_LEAST(4,0,2,0)
+   assert(cfg->dims >= 1);
+#else
+   assert(cfg->dims >= 2); // 1D textures were quite broken on 3.2/3.3 (see eg GFXH-1608)
+#endif
+   assert(cfg->dims <= 3);
    if (cfg->array)
    {
       assert(cfg->dims < 3); // 3D arrays not supported
@@ -859,22 +871,8 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
 
    assert(v3d_addr_aligned(cfg->l0_addr, V3D_TMU_ML_ALIGN));
 
-   uint32_t out_words;
-   switch (cfg->op_class)
-   {
-   case V3D_TMU_OP_CLASS_REGULAR:
-      out_words = cfg->is_write ? 0 : v3d_tmu_get_word_read_max(
-         cfg->type, cfg->gather, cfg->output_32);
-      break;
-   case V3D_TMU_OP_CLASS_ATOMIC:
-      out_words = 1;
-      break;
-   case V3D_TMU_OP_CLASS_CACHE:
-      out_words = 0;
-      break;
-   default:
-      unreachable();
-   }
+   uint32_t out_words = v3d_tmu_get_word_read_max(cfg->op_class, cfg->is_write,
+      cfg->type, cfg->gather, cfg->output_32);
    if (out_words != 0)
       /* Must output at least one word */
       assert(cfg->word_en[0] || cfg->word_en[1] || cfg->word_en[2] || cfg->word_en[3]);
@@ -894,7 +892,7 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
    {
       /* Aniso/mipmapping not supported... */
       assert(cfg->aniso_level == 0);
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       assert(cfg->mipfilt == V3D_TMU_MIPFILT_NEAREST);
 #else
       assert((cfg->mipfilt == V3D_TMU_MIPFILT_BASE) || (cfg->mipfilt == V3D_TMU_MIPFILT_NEAREST));
@@ -909,7 +907,7 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
       assert(cfg->aniso_level == 0);
       assert(cfg->magfilt == V3D_TMU_FILTER_LINEAR);
       assert(cfg->minfilt == V3D_TMU_FILTER_LINEAR);
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       assert(cfg->mipfilt == V3D_TMU_MIPFILT_NEAREST);
 #else
       assert((cfg->mipfilt == V3D_TMU_MIPFILT_BASE) || (cfg->mipfilt == V3D_TMU_MIPFILT_NEAREST));
@@ -947,15 +945,12 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
       assert(!cfg->bslod); /* fetch essentially implies bslod. Don't set them together. */
       assert(!cfg->shadow); /* Shadow compare not supported with fetch */
       assert(!cfg->gather);
-#if V3D_HAS_TMU_LOD_QUERY
-      assert(!cfg->lod_query);
-#endif
    }
 
    if (cfg->aniso_level != 0)
    {
       assert(cfg->dims < 3); /* Aniso not supported with 3D */
-#if !V3D_HAS_SEP_ANISO_CFG
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       assert(!cfg->bslod);
 #endif
    }
@@ -980,11 +975,22 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
       assert(cfg->dims < 3);
    }
 
+   if((cfg->op == V3D_TMU_OP_REGULAR && cfg->is_write) || cfg->op_class == V3D_TMU_OP_CLASS_ATOMIC)
+   {
+      /* Offset slot in the bus is reused for write data in hw */
+      assert(!off_written);
+   }
+
    if ((cfg->op != V3D_TMU_OP_REGULAR) || cfg->is_write)
+   {
       /* Only support atomic/cache/write ops with fetch config */
       assert(cfg->fetch);
+#if V3D_VER_AT_LEAST(4,2,13,0)
+      assert(!cfg->lod_query);
+#endif
+   }
 
-#if !V3D_HAS_GFXH1638_FIX
+#if !V3D_VER_AT_LEAST(4,2,13,0)
    if (cfg->op == V3D_TMU_OP_REGULAR && cfg->is_write)
       assert(cfg->bytes_per_data_word == 4);
 #endif
@@ -1124,7 +1130,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->tex_off_t = p2->offsets[1];
       cfg->tex_off_r = p2->offsets[2];
       cfg->op = p2->op;
-#if V3D_HAS_TMU_LOD_QUERY
+#if V3D_VER_AT_LEAST(4,2,13,0)
       cfg->lod_query = p2->lod_query;
 #endif
    }
@@ -1155,7 +1161,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    cfg->min_lod = cfg->max_lod = (tex_state->base_level << V3D_TMU_F_BITS);
    if (sampler)
    {
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (sampler->aniso_en)
       {
          switch (sampler->max_aniso)
@@ -1176,9 +1182,19 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       set_filters(cfg, sampler->filters);
 #endif
       cfg->compare_func = sampler->compare_func;
-      cfg->min_lod += sampler->min_lod;
-      cfg->max_lod += sampler->max_lod;
-      cfg->fixed_bias = sampler->fixed_bias;
+#if V3D_HAS_SAMPLER_LOD_DIS
+      if (p2 && p2->sampler_lod_dis)
+      {
+         cfg->max_lod += 0xfff;
+         cfg->fixed_bias = 0;
+      }
+      else
+#endif
+      {
+         cfg->min_lod += sampler->min_lod;
+         cfg->max_lod += sampler->max_lod;
+         cfg->fixed_bias = sampler->fixed_bias;
+      }
       set_wraps(cfg, sampler->wrap_s, sampler->wrap_t, sampler->wrap_r);
       cfg->wrap_i = sampler->wrap_i;
    }
@@ -1187,7 +1203,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->aniso_level = 0;
       cfg->magfilt = V3D_TMU_FILTER_LINEAR;
       cfg->minfilt = V3D_TMU_FILTER_LINEAR;
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
 #else
       cfg->mipfilt = V3D_TMU_MIPFILT_BASE;
@@ -1201,14 +1217,16 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
 
    /* Anisotropic filtering not supported with 3D textures. Just disable... */
    /* On old hardware it was also incompatible with bslod */
-   if ((cfg->dims == 3) || (!V3D_HAS_SEP_ANISO_CFG && cfg->bslod))
+   if ((cfg->dims == 3) || (!V3D_VER_AT_LEAST(4,1,34,0) && cfg->bslod))
       cfg->aniso_level = 0;
 
    if (cfg->gather)
    {
       assert(p2->gather_comp < 4);
       cfg->swizzles[0] = cfg->swizzles[p2->gather_comp];
+#if V3D_HAS_GATHER_NO_ANISO /* GFXH-1669 */
       cfg->aniso_level = 0;
+#endif
       cfg->magfilt = V3D_TMU_FILTER_LINEAR;
       cfg->minfilt = V3D_TMU_FILTER_LINEAR;
       cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
@@ -1218,7 +1236,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    if (!cfg->fetch && (tex_state->base_level == tex_state->max_level))
    {
       /* See GFXS-732 */
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
       cfg->min_lod = gfx_umin(cfg->min_lod, (tex_state->base_level << V3D_TMU_F_BITS) + 1);
       cfg->max_lod = gfx_umin(cfg->max_lod, (tex_state->base_level << V3D_TMU_F_BITS) + 1);
@@ -1234,6 +1252,14 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    }
 
    calc_derived_texture(cfg);
+
+#if !V3D_HAS_TMU_UNMASKED_WR
+   if((cfg->op == V3D_TMU_OP_REGULAR && cfg->is_write) || cfg->op_class == V3D_TMU_OP_CLASS_ATOMIC)
+   {
+      /* GFXH-1671 */
+      cfg->pix_mask = true;
+   }
+#endif
 
    /* Need to know blend format for raw_bcolour/gen_bcolour, so do this last... */
    assert((sampler && (sampler->std_bcol == V3D_TMU_STD_BCOL_NON_STD)) == !!bcolour);
@@ -1268,7 +1294,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       gen_bcolour(cfg, one);
    }
 
-   check_config_texture(cfg);
+   check_config_texture(cfg, written->off);
 }
 
 #else
@@ -1456,7 +1482,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    /* Need to know blend format for raw_bcolour, so do this last... */
    raw_bcolour(cfg, border_rrra, bcolour);
 
-   check_config_texture(cfg);
+   check_config_texture(cfg, false);
 }
 
 #endif
@@ -1499,7 +1525,7 @@ void v3d_tmu_cfg_collect_general(struct v3d_tmu_cfg *cfg,
    }
 }
 
-#if V3D_HAS_LARGE_1D_TEXTURE
+#if V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_tmu_get_wh_for_1d_tex_state(uint32_t *w, uint32_t *h,
       uint32_t width_in)
 {

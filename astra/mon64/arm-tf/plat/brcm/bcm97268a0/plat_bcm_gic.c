@@ -32,14 +32,8 @@
 #include <bcm97268a0_def.h>
 
 static const unsigned int bcm_irq_sec_array[] = {
-	BCM_IRQ_SEC_SGI_0,
-	BCM_IRQ_SEC_SGI_1,
-	BCM_IRQ_SEC_SGI_2,
-	BCM_IRQ_SEC_SGI_3,
-	BCM_IRQ_SEC_SGI_4,
-	BCM_IRQ_SEC_SGI_5,
 	BCM_IRQ_SEC_SGI_6,
-	BCM_IRQ_SEC_SGI_7
+        BCM_IRQ_SEC_TIMER
 };
 
 static const struct gicv2_driver_data bcm_gicv2_driver_data = {

@@ -2205,6 +2205,8 @@ wlc_vht_upd_rate_mcsmap(wlc_vht_info_t *vhti, struct scb *scb)
 		cubby_info->rxmcsmap = rxmcsmap;
 	}
 
+	BCM_REFERENCE(cfg);
+
 	wlc_vht_upd_rate_mcsmap_ex(vhti, scb, rxmcsmap);
 	wlc_vht_upd_rate_mcsmap_prop_ex(vhti, scb, rxmcsmap);
 
@@ -3975,6 +3977,8 @@ wlc_vht_prep_rate_info(wlc_vht_info_t *vhti, wlc_d11rxhdr_t *wrxh, uint8 *plcp,
 			case PRXS5_ACPHY_CHBWINNONHT_160MHZ:
 				sts->bw_nonht = WLC_160_MHZ;
 				break;
+			/* Execution could reach this statement with WL11AX build*/
+			/* coverity[dead_error_begin] */
 			default:
 				ASSERT(FALSE);
 		}

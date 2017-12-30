@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -292,13 +292,15 @@ BXVD_DisplayInterruptProvider_S_PictureDataReady_isr(
 
 #if BDBG_DEBUG_BUILD
    BXVD_DisplayInterrupt eDisplayInterrupt = ( BXVD_DisplayInterrupt ) iParam2;
-
-   BDBG_ASSERT( eDisplayInterrupt == hXvdDipCh->stChannelSettings.eDisplayInterrupt );
 #else
    BSTD_UNUSED(iParam2);
 #endif
 
    BDBG_ASSERT( hXvdDipCh );
+
+#if BDBG_DEBUG_BUILD
+   BDBG_ASSERT( eDisplayInterrupt == hXvdDipCh->stChannelSettings.eDisplayInterrupt );
+#endif
 
 #if BXVD_DIP_P_MEASURE_LATENCY
    guiSampleIndex = 0;

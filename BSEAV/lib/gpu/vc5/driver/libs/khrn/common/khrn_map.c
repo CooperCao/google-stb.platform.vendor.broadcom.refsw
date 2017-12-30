@@ -6,6 +6,8 @@
 
 #include <stdlib.h>
 
+#define DELETED_VALUE ((void *)~(uintptr_t)0)
+
 static inline bool is_inited(const khrn_map *map)
 {
    return !!map->storage;
@@ -23,9 +25,9 @@ static inline void free_storage(khrn_map *map)
    map->storage = NULL;
 }
 
-static inline bool is_deleted(khrn_mem_handle_t value)
+static inline bool is_deleted(void *value)
 {
-   return value == KHRN_MEM_HANDLE_UNUSED_VALUE;
+   return value == DELETED_VALUE;
 }
 
 static inline uint32_t hash(uint32_t key, uint32_t capacity)
@@ -55,7 +57,7 @@ static struct khrn_map_entry *get_free_entry(const khrn_map *map, uint32_t key)
    return map->storage + h;
 }
 
-static void raw_insert(khrn_map *map, uint32_t key, khrn_mem_handle_t value)
+static void raw_insert(khrn_map *map, uint32_t key, void *value)
 {
    struct khrn_map_entry *entry = get_free_entry(map, key);
    if (is_deleted(entry->value))
@@ -84,7 +86,7 @@ static bool realloc_storage(khrn_map *map, uint32_t new_capacity)
    return true;
 }
 
-static bool insert_not_present(khrn_map *map, uint32_t key, khrn_mem_handle_t value)
+static bool insert_not_present(khrn_map *map, uint32_t key, void *value)
 {
    assert(value);
    assert(!is_deleted(value));
@@ -143,7 +145,7 @@ void khrn_map_term(khrn_map *map)
    }
 }
 
-bool khrn_map_insert(khrn_map *map, uint32_t key, khrn_mem_handle_t value)
+bool khrn_map_insert(khrn_map *map, uint32_t key, void *value)
 {
    assert(value);
    assert(!is_deleted(value));
@@ -173,7 +175,7 @@ bool khrn_map_delete(khrn_map *map, uint32_t key)
    if (entry)
    {
       khrn_mem_release(entry->value);
-      entry->value = KHRN_MEM_HANDLE_UNUSED_VALUE; /* Deleted */
+      entry->value = DELETED_VALUE;
       ++map->deletes;
       assert(map->entries > 0);
       --map->entries;
@@ -181,7 +183,7 @@ bool khrn_map_delete(khrn_map *map, uint32_t key)
    return !!entry;
 }
 
-khrn_mem_handle_t khrn_map_lookup(const khrn_map *map, uint32_t key)
+void *khrn_map_lookup(const khrn_map *map, uint32_t key)
 {
    struct khrn_map_entry *entry = get_entry(map, key);
    return entry ? entry->value : NULL;

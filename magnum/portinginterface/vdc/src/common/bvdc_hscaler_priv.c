@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,6 +48,8 @@
 #include "bvdc_window_priv.h"
 #include "bvdc_pep_priv.h"
 #include "bvdc_vnet_priv.h"
+
+#if BVDC_P_SUPPORT_HSCL_VER
 
 #include "bchp_hscl_0.h"
 
@@ -711,4 +713,60 @@ void BVDC_P_Hscaler_SetEnable_isr
     return;
 }
 
+#else
+BERR_Code BVDC_P_Hscaler_Create
+    ( BVDC_P_Hscaler_Handle            *phHscaler,
+      BVDC_P_HscalerId                  eHscalerId,
+      BVDC_P_Resource_Handle            hResource,
+      BREG_Handle                       hReg
+)
+{
+    BSTD_UNUSED(phHscaler);
+    BSTD_UNUSED(eHscalerId);
+    BSTD_UNUSED(hResource);
+    BSTD_UNUSED(hReg);
+    return BERR_SUCCESS;
+}
+
+void BVDC_P_Hscaler_Init_isr
+    ( BVDC_P_Hscaler_Handle            hHscaler )
+{
+    BSTD_UNUSED(hHscaler);
+}
+
+void BVDC_P_Hscaler_BuildRul_SrcInit_isr
+    ( BVDC_P_Hscaler_Handle            hHscaler,
+      BVDC_P_ListInfo                 *pList )
+{
+    BSTD_UNUSED(hHscaler);
+    BSTD_UNUSED(pList);
+}
+
+void BVDC_P_Hscaler_SetInfo_isr
+    ( BVDC_P_Hscaler_Handle            hHscaler,
+      BVDC_Window_Handle               hWindow,
+      const BVDC_P_PictureNodePtr      pPicture )
+{
+    BSTD_UNUSED(hHscaler);
+    BSTD_UNUSED(hWindow);
+    BSTD_UNUSED(pPicture);
+
+}
+
+void BVDC_P_Hscaler_Destroy
+    ( BVDC_P_Hscaler_Handle             hHscaler )
+{
+    BSTD_UNUSED(hHscaler);
+}
+
+void BVDC_P_Hscaler_SetEnable_isr
+    ( BVDC_P_Hscaler_Handle            hHscaler,
+      bool                             bEnable,
+      BVDC_P_ListInfo                  *pList)
+{
+    BSTD_UNUSED(hHscaler);
+    BSTD_UNUSED(bEnable);
+    BSTD_UNUSED(pList);
+}
+#endif
 /* End of file. */

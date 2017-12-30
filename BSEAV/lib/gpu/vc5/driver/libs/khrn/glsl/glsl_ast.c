@@ -246,7 +246,7 @@ static void check_args_valid_for_overload(SymbolType *overload, ExprChain *args,
 
 void glsl_ast_validate_function_call(const Expr *e, ShaderFlavour flavour) {
    const Symbol *f = e->u.function_call.function;
-   bool memq_template = glsl_stdlib_is_stdlib_symbol(f) &&
+   bool memq_template = glsl_stdlib_is_stdlib_function(f) &&
                         (glsl_stdlib_function_properties[glsl_stdlib_function_index(f)] & GLSL_STDLIB_PROPERTY_MEMQ_TEMPLATE);
    check_args_valid_for_overload(f->type, e->u.function_call.args, memq_template, flavour);
 }
@@ -669,7 +669,7 @@ static void epostv_validate(Expr *e, void *data) {
       if (called->u.function_instance.function_def == NULL)
          glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, "%s", called->name);
 
-      if (glsl_stdlib_is_stdlib_symbol(called)) {
+      if (glsl_stdlib_is_stdlib_function(called)) {
          if (glsl_stdlib_function_index(called) == GLSL_STDLIB_FN__BARRIER__VOID) {
             bool in_control_flow = (d->loop_depth > 0 || d->selection_depth > 0 || d->switch_depth > 0);
             if (d->flavour == SHADER_TESS_CONTROL && (in_control_flow || !d->in_main || d->seen_return))
@@ -731,7 +731,7 @@ static void epostv_validate(Expr *e, void *data) {
       while (aggregate_type->flavour == SYMBOL_ARRAY_TYPE)
          aggregate_type = aggregate_type->u.array_type.member_type;
 
-      PRIMITIVE_TYPE_FLAGS_T const_req_opaque = shader5 ? PRIM_IMAGE_TYPE : PRIM_IMAGE_TYPE | PRIM_SAMPLER_TYPE;
+      PRIMITIVE_TYPE_FLAGS_T const_req_opaque = shader5 ? PRIM_STOR_IMAGE_TYPE : PRIM_STOR_IMAGE_TYPE | PRIM_COMB_SAMPLER_TYPE;
       bool requires_constant = glsl_type_contains(e->type, const_req_opaque);
 
       if (aggregate_type->flavour == SYMBOL_BLOCK_TYPE) {
@@ -959,7 +959,7 @@ static bool expr_chain_all_primitive_type(const ExprChain *c) {
    return true;
 }
 
-Expr *glsl_expr_construct_function_call(int line_num, Symbol *function, ExprChain *args)
+Expr *glsl_expr_construct_function_call(int line_num, Symbol *f, ExprChain *args)
 {
    // Note that each function symbol points to the last function symbol
    // with the same name.
@@ -967,13 +967,13 @@ Expr *glsl_expr_construct_function_call(int line_num, Symbol *function, ExprChai
    // until we find the correct overload.
 
    /* The symbol is not actually a function */
-   if(function->flavour != SYMBOL_FUNCTION_INSTANCE)
-      glsl_compile_error(ERROR_CUSTOM, 9, line_num, "%s", function->name);
+   if(f->flavour != SYMBOL_FUNCTION_INSTANCE)
+      glsl_compile_error(ERROR_CUSTOM, 9, line_num, "%s", f->name);
 
-   function = glsl_resolve_overload_using_arguments(function, args);
+   Symbol *function = glsl_resolve_overload_using_arguments(f, args);
    if(!function) {
       /* There's no match for the arguments */
-      glsl_compile_error(ERROR_CUSTOM, 11, line_num, NULL);
+      glsl_compile_error(ERROR_CUSTOM, 11, line_num, "%s", f->name);
       return NULL;
    }
 

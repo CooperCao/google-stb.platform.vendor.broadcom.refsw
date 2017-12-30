@@ -65,7 +65,7 @@
 #include "priv/nexus_stc_channel_priv.h"
 #include "bxdm_dih.h"
 #include "bxdm_pp.h"
-#include "bfifo.h"
+#include "blst_queue.h"
 #if NEXUS_OTFPVR
 #include "botf.h"
 #endif
@@ -176,51 +176,46 @@ typedef struct NEXUS_VideoDecoder_P_Xdm {
 
 #define NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE 64
 
+typedef enum NEXUS_VideoDecoderPictureDisplay
+{
+    NEXUS_VideoDecoderPictureDisplay_eNone,
+    NEXUS_VideoDecoderPictureDisplay_ePending,
+    NEXUS_VideoDecoderPictureDisplay_eActive,
+    NEXUS_VideoDecoderPictureDisplay_eComplete,
+    NEXUS_VideoDecoderPictureDisplay_eMax
+} NEXUS_VideoDecoderPictureDisplay;
+
 typedef struct NEXUS_VideoDecoderPictureContext
 {
+   BLST_Q_ENTRY(NEXUS_VideoDecoderPictureContext) decodeNode;
+   BLST_Q_ENTRY(NEXUS_VideoDecoderPictureContext) displayNode;
+   BLST_Q_ENTRY(NEXUS_VideoDecoderPictureContext) freeNode;
 
    unsigned serialNumber;
+
    BXDM_Picture *pUnifiedPicture;
+
+   bool inDecodeQueue;
+   bool inFreeQueue;
+   NEXUS_VideoDecoderPictureDisplay display;
 } NEXUS_VideoDecoderPictureContext;
-
-typedef struct NEXUS_VideoDisplayPictureContext
-{
-
-   unsigned serialNumber;
-   bool dropPicture;
-
-   BXDM_Picture *pUnifiedPicture;
-
-} NEXUS_VideoDisplayPictureContext;
-
 
 typedef struct NEXUS_VideoDecoderPictureQueue
 {
-   BFIFO_HEAD(DecodeFifo, NEXUS_VideoDecoderPictureContext) decodeFifo;
+    BLST_Q_HEAD(DecoderQueue, NEXUS_VideoDecoderPictureContext) queue;
 
-   uint32_t pictureCounter;
-
-   NEXUS_VideoDecoderPictureContext pictureContexts[NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE];
+    unsigned count;
 
 } NEXUS_VideoDecoderPictureQueue;
-
-typedef struct NEXUS_VideoDisplayPictureQueue
-{
-    BFIFO_HEAD(DisplayFifo, NEXUS_VideoDisplayPictureContext) displayFifo;
-
-    uint32_t pictureCounter;
-
-    NEXUS_VideoDisplayPictureContext pictureContexts[NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE];
-
-} NEXUS_VideoDisplayPictureQueue;
 
 /* DM Lite Data Structures */
 typedef struct
 {
-	BXDM_Picture *pDispPicture;
-	bool first_pic;
+    NEXUS_VideoDecoderPictureContext *pContext;
+    BXDM_Picture *pDispPicture;
+    bool first_pic;
     bool repeat_field;
-	bool valid;
+    bool valid;
 } DML_DispPicStruct;
 
 typedef struct NEXUS_VideoDecoder_Xvd {
@@ -232,18 +227,21 @@ typedef struct NEXUS_VideoDecoder_Xvd {
 typedef struct NEXUS_VideoDecoderExternalTsmData
 {
     NEXUS_VideoDecoderPictureQueue decoderPictureQueue;
-    NEXUS_VideoDisplayPictureQueue displayPictureQueue;
+    NEXUS_VideoDecoderPictureQueue displayPictureQueue;
+    NEXUS_VideoDecoderPictureQueue freePictureQueue;
+    NEXUS_VideoDecoderPictureContext pictureContexts[NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE];
 
     BXDM_Decoder_Interface decoderInterface;
     void* pDecoderPrivateContext;
 
     DML_DispPicStruct displayPic;
     BAVC_MFD_Picture MFDPicture;
-	bool stopped;
+    bool stopped;
 
     unsigned numDecoded;      /* total number of decoded pictures since Start */
     unsigned numDisplayed;    /* total number of display pictures since Start */
     unsigned numIFramesDisplayed; /* total number of displayed I-Frames pictures since Start */
+    unsigned pictureCounter;
 } NEXUS_VideoDecoderExternalTsmData;
 
 /* This structure provides the implementation of the NEXUS_VideoDecoderHandle.
@@ -495,6 +493,11 @@ struct NEXUS_VideoDecoder {
 
     NEXUS_Timebase timebase; /* Required for storing the timebase at start time so that it can be retrieved later at isr time */
     NEXUS_VideoDecoderDynamicRangeMetadataType dynamicMetadataType; /* Required for storing dynamic metadata type from BAVC_MFD_Picture, but reporting in NEXUS_VideoDecoderStreamInformation. */
+    struct {
+        bool pending;
+        uint32_t pts;
+        bool waitForStart;
+    } startPts;
 };
 
 /* The NEXUS_VideoDecoderDevice corresponds to an AVD HW block. */
@@ -712,7 +715,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetXvdDisplayInterrupt(NEXUS_VideoDecoderHandle
 NEXUS_Error NEXUS_VideoDecoder_P_SetSimulatedStc_isr(NEXUS_VideoDecoderHandle videoDecoder, uint32_t pts);
 NEXUS_Error NEXUS_VideoDecoder_P_SetUnderflowMode_isr(NEXUS_VideoDecoderHandle videoDecoder, bool underflowMode);
 
-NEXUS_Error NEXUS_VideoDecoder_P_SetLowLatencySettings(NEXUS_VideoDecoderHandle videoDecoder);
 void NEXUS_VideoDecoderPrimer_P_Link(NEXUS_VideoDecoderPrimerHandle primer, NEXUS_VideoDecoderHandle videoDecoder);
 void NEXUS_VideoDecoderPrimer_P_Unlink(NEXUS_VideoDecoderPrimerHandle primer, NEXUS_VideoDecoderHandle videoDecoder);
 NEXUS_Error NEXUS_VideoDecoder_P_SetDiscardThreshold_Avd(NEXUS_VideoDecoderHandle videoDecoder);
@@ -720,6 +722,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetDiscardThreshold_Avd(NEXUS_VideoDecoderHandl
 NEXUS_MemoryBlockHandle NEXUS_VideoDecoder_P_MemoryBlockFromMma(NEXUS_VideoDecoderHandle decoder, BMMA_Block_Handle mma);
 bool nexus_p_use_secure_picbuf(NEXUS_VideoDecoderHandle videoDecoder);
 struct NEXUS_VideoDecoderDevice *nexus_video_decoder_p_any_device(void);
+NEXUS_PicturePolarity NEXUS_P_PicturePolarity_FromMagnum_isrsafe(BAVC_Polarity polarity);
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_StillDecoder);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_VideoDecoderPrimer);
@@ -729,4 +732,3 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_VideoDecoderPrimer);
 #endif
 
 #endif
-

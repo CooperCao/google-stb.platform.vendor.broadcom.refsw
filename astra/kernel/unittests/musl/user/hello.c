@@ -43,7 +43,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
-
+#include <spawn.h>
 #include <time.h>
 #include <sys/time.h>
 
@@ -51,11 +51,70 @@
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
+#include <pthread.h>
+
+#include "ata_helper.h"
 
 #define assert(cond) if (!(cond)) { printf("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (1) {} }
 
 #define NumProcs  4
 static char pages[NumProcs * 4096];
+
+void test_posix_spawn() {
+
+    printf("\n***hello from testPosixSpawn***\n");
+
+    pid_t pid;
+    char *argv[] = {"hello2.elf", "posix_spawn", "10", "11", NULL};
+    char processName[] = "hello2.elf";
+    int status;
+    posix_spawnattr_t attr;
+    posix_spawn_file_actions_t fdActions;
+    int policy;
+    struct sched_param param;
+    int oldFd = atoi(argv[2]), newFd = atoi(argv[3]);
+
+    /* Get the parent's scheduling policy and parameters. */
+    pthread_getschedparam(pthread_self(), &policy, &param);
+
+    /* Initialize the spawn attributes structure. */
+    posix_spawnattr_init(&attr);
+
+    /* Set the child's priority to half of parents. */
+    param.sched_priority /= 2;
+    posix_spawnattr_setschedparam(&attr, &param);
+
+    /* Set the appropriate flag to make the changes take effect. */
+    posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSCHEDPARAM);
+
+    /* initialize file actions */
+    posix_spawn_file_actions_init(&fdActions);
+
+    /* add file open action */
+    posix_spawn_file_actions_addopen(&fdActions, oldFd, "/temp.txt",
+            O_WRONLY | O_CREAT | O_TRUNC, 0644);
+
+    /* add file dup action*/
+    posix_spawn_file_actions_adddup2(&fdActions, oldFd, newFd);
+
+    /* create process */
+    status = posix_spawn(&pid, processName, &fdActions, &attr, argv, NULL);
+    if (status == 0) {
+        printf("SUCCESS: Created child process %s with pid: %i\n",processName, pid);
+
+        if (waitpid(pid, &status, 0) != -1) {
+            printf("[test_posix_spawn] child process exited with return code %d\n", WEXITSTATUS(status));
+        } else {
+            ATA_LogErr("waitpid in posix_spawn: %s ", strerror(errno));
+        }
+
+    } else {
+        ATA_LogErr("posix_spawn:  %s ", strerror(errno));
+        return;
+    }
+
+    printf("posix_spawn test success\n");
+}
 
 void test_fork() {
 
@@ -128,7 +187,7 @@ void test_fork() {
     int status;
     pid_t pid = wait(&status);
     if (pid > 0) {
-        printf("ERROR: wait returned success on no children !\n");
+        ATA_LogErr("wait returned success on no children !");
     }
     else
         printf("SUCCESS: wait returned %d errno %d\n", pid, errno);
@@ -226,7 +285,7 @@ void test_exec() {
 
     pid_t rc = fork();
     if (rc == 0) {
-        char *argv[] = {"hello2.elf", "mary", "had a", "little lamb", NULL};
+        char *argv[] = {"hello2.elf", "execv", "mary", "had a", "little lamb", NULL};
         printf("In child process. Now calling execv\n");
         execv("hello2.elf", argv);
     }
@@ -240,7 +299,7 @@ void test_exec() {
 }
 
 extern void mq_test();
-
+extern void pipe_test();
 int main(int argc, char **argv) {
 
     struct timespec resolution;
@@ -251,11 +310,13 @@ int main(int argc, char **argv) {
 
     mq_test();
 
+    pipe_test();
+
     resolution.tv_sec = 0;
     resolution.tv_nsec = 0;
     rc = clock_getres(CLOCK_REALTIME, &resolution);
     if (rc < 0) {
-        perror("clock_getres failed: ");
+        ATA_LogErr("clock_getres failed: %s ", strerror(errno));
         return -1;
     }
     printf("CLOCK_REALTIME resolution: %d %d\n", (int)resolution.tv_sec, (int)resolution.tv_nsec);
@@ -273,6 +334,8 @@ int main(int argc, char **argv) {
     test_reparent();
     test_exec();
 
-    printf("All tests completed successfully.\n");
+    test_posix_spawn();
+
+    ATA_LogSuccess("All tests completed successfully.\n");
     return 0;
 }

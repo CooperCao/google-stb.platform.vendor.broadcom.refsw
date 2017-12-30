@@ -482,7 +482,7 @@ BKNI_DumpMallocs(void)
 }
 
 BERR_Code 
-BKNI_GetMallocEntryInfo( const void *mem, struct BKNI_MallocEntryInfo *entry)
+BKNI_GetMallocEntryInfo_isrsafe( const void *mem, struct BKNI_MallocEntryInfo *entry)
 {
     const struct BKNI_TrackAllocEntry *allocated;
         
@@ -588,7 +588,7 @@ BKNI_Free_tagged(void *ptr, const char *file, unsigned line)
     return;
 }
 
-BERR_Code BKNI_GetMallocEntryInfo( const void *mem, struct BKNI_MallocEntryInfo *entry)
+BERR_Code BKNI_GetMallocEntryInfo_isrsafe( const void *mem, struct BKNI_MallocEntryInfo *entry)
 {
     BSTD_UNUSED(mem);
     BSTD_UNUSED(entry);

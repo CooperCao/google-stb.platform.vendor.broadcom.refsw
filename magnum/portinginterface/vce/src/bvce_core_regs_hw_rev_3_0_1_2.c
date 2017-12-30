@@ -36,6 +36,7 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
+#include "bstd.h"           /* standard types */
 #include "bvce_platform.h"
 const BVCE_Platform_P_Register s_astViceHardwareRegisters[]=
 {

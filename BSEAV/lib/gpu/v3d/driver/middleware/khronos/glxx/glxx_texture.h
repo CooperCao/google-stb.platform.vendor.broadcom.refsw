@@ -1,8 +1,7 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef GLXX_TEXTURE_H
-#define GLXX_TEXTURE_H
+#pragma once
 
 #include "interface/khronos/include/GLES2/gl2.h"
 
@@ -74,9 +73,9 @@ corner cases. So texture data can be stored in two ways:
 
 For each mipmap image there are four possibilities:
 (0) the image is zero-size. The blob_valid is not set and mh_mipmaps is
-    MEM_INVALID_HANDLE
+    MEM_HANDLE_INVALID
 (1) the image is in the blob. blob_valid is set and mh_mipmaps is
-    MEM_INVALID_HANDLE
+    MEM_HANDLE_INVALID
 (2) the image exists but is not in the blob (i.e. it might be the wrong
     size/format). blob_valid is not set and mh_mipmaps is valid.
 (3) the image is in the blob but is shared with something (or might be).
@@ -126,7 +125,7 @@ typedef struct {
    bool generate_mipmap;
 
    MEM_HANDLE_T mh_mipmaps[TEXTURE_BUFFER_COUNT][LOG2_MAX_TEXTURE_SIZE + 1];   /* floating KHRN_IMAGE_T */
-   uint32_t explicit_mipmaps;   /* how many mh_mipmaps are not equal to MEM_INVALID_HANDLE (saves checking when it's 0) */
+   uint32_t explicit_mipmaps;   /* how many mh_mipmaps are not equal to MEM_HANDLE_INVALID (saves checking when it's 0) */
 
    uint32_t width;
    uint32_t height;
@@ -255,5 +254,3 @@ extern void glxx_texture_has_color_alpha(GLXX_TEXTURE_T *texture, bool *has_colo
 
 /* GL_OES_draw_texture */
 void glxx_texture_set_crop_rect(GLXX_TEXTURE_T *texture, const GLint * params);
-
-#endif

@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef NEXUS_TRANSPORT_PRIV_H__
 #define NEXUS_TRANSPORT_PRIV_H__
 
@@ -103,6 +100,25 @@ void NEXUS_ParserBand_GetMtsifConnections_priv(
     unsigned numEntries,
     unsigned *pNumReturned
     );
+
+typedef enum NEXUS_MtsifPidChannelState {
+    NEXUS_MtsifPidChannelState_eNone = 0,
+    NEXUS_MtsifPidChannelState_eChanged,
+    NEXUS_MtsifPidChannelState_eClosed
+} NEXUS_MtsifPidChannelState;
+
+struct NEXUS_MtsifPidChannelSettings {
+    NEXUS_MtsifPidChannelState state;
+    NEXUS_PidChannelStatus status;
+    NEXUS_FrontendConnectorHandle frontend;
+};
+
+void NEXUS_TransportModule_GetMtsifPidChannels_priv(
+    struct NEXUS_MtsifPidChannelSettings *pSettings,
+    unsigned numEntries,
+    unsigned *pNumReturned
+    );
+void NEXUS_TransportModule_GetPidchannelEvent(BKNI_EventHandle *event);
 
 void NEXUS_ParserBand_P_MtsifErrorStatus_priv(unsigned lengthError, unsigned transportError);
 bool NEXUS_TransportModule_P_IsMtsifEncrypted(void);

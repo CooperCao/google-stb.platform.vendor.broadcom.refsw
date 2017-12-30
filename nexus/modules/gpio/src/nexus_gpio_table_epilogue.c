@@ -45,24 +45,30 @@ NEXUS_Error NEXUS_Gpio_P_GetPinMux(NEXUS_GpioType type, unsigned pin, uint32_t *
 
     switch (type)
     {
+#if NEXUS_HAS_GPIO_PINS
         case NEXUS_GpioType_eStandard:
             total = sizeof(g_gpioTable)/sizeof(g_gpioTable[0]);
             pEntry = g_gpioTable;
             break;
-#if !((BCHP_CHIP == 7250) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7268))
+#endif
+#if NEXUS_HAS_SGPIO_PINS
         case NEXUS_GpioType_eSpecial:
             total = sizeof(g_sgpioTable)/sizeof(g_sgpioTable[0]);
             pEntry = g_sgpioTable;
             break;
 #endif
+#if NEXUS_HAS_AON_GPIO_PINS
         case NEXUS_GpioType_eAonStandard:
             total = sizeof(g_aonGpioTable)/sizeof(g_aonGpioTable[0]);
             pEntry = g_aonGpioTable;
             break;
+#endif
+#if NEXUS_HAS_AON_SGPIO_PINS
         case NEXUS_GpioType_eAonSpecial:
             total = sizeof(g_aonSgpioTable)/sizeof(g_aonSgpioTable[0]);
             pEntry = g_aonSgpioTable;
             break;
+#endif
         default:
             return BERR_TRACE(BERR_INVALID_PARAMETER);
     }

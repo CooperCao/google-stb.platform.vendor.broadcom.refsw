@@ -31,15 +31,22 @@ include .config.plt
 CPU ?=
 MAKE_ARGS ?=
 
-LINUX_VERSION ?= 2_6
-
-ARCH = mips
-PLT ?= mipsel
-
-# Get ARCH from PLT argument
-ifneq ($(findstring arm,$(PLT)),)
-ARCH := arm
+$(if $(LINUX),,    $(error ERROR: LINUX is not defined))
+ifneq ($(findstring arm,${LINUX}),)
+	ifeq ($(findstring arm64,${LINUX}),)
+		ARCH ?= arm64
+		PLT ?= arm
+	else
+		ARCH ?= arm
+		PLT ?= arm
+	endif
+else
+	$(error I do not understand LINUX: ${LINUX})
 endif
+
+$(if $(LINUXVER),,    $(error ERROR: LINUXVER is not defined))
+LINUX_VERSION ?= $(shell echo $(LINUXVER) | cut -d "-" -f 1)
+LINUX_VERSION := $(subst .,_,$(LINUX_VERSION))
 
 # uClibc wrapper
 ifeq ($(CONFIG_UCLIBC),y)
@@ -85,10 +92,14 @@ endif
 export SRCBASE_ROUTER := $(abspath $(BASEDIR)/components/router)
 export SRCBASE_MAIN   := $(abspath $(SRCBASE))
 
+ifeq ($(STBLINUX),1)
+export SRCBASE_SYS    := $(abspath $(SRCBASE))
+else
 ifeq (2_6,$(LINUX_VERSION))
 export SRCBASE_SYS    := $(abspath $(SRCBASE))
 else
 export SRCBASE_SYS    := $(abspath $(SRCBASE)/../../sys/src)
+endif
 endif
 
 # Opensource bases
@@ -375,7 +386,7 @@ obj-$(CONFIG_USBAP) += bmac dongle
 obj-$(CONFIG_DHDAP) += dhd pciefd dhd_monitor
 
 # always build libbcmcrypto
-obj-y += libbcmcrypto
+# obj-y += libbcmcrypto
 
 #
 # Configuration
@@ -391,6 +402,7 @@ obj-$(CONFIG_MADPLAY) += madplay
 obj-$(CONFIG_APLAY) += alsa-utils/aplay
 #endif
 obj-$(CONFIG_NVRAM) += nvram
+obj-$(CONFIG_ENVRAM_UTILITY) += envram
 obj-$(CONFIG_SHARED) += shared
 obj-$(CONFIG_LIBBCM) += libbcm
 obj-$(CONFIG_HTTPD) += httpd
@@ -455,9 +467,6 @@ obj-$(CONFIG_LLD2D) += lltd/wrt54g-linux
 #if defined(BCMDBG)
 obj-$(CONFIG_UTELNETD) += utelnetd
 #endif
-#if defined(ENVRAM)
-obj-$(CONFIG_ENVRAM_UTILITY) += envram
-#endif
 #if defined(PHYMON)
 obj-$(CONFIG_PHYMON_UTILITY) += phymon
 #endif
@@ -519,7 +528,7 @@ endif
 #endif /* __CONFIG_TREND_IQOS__ */
 
 # always build eap dispatcher
-obj-y += eapd/linux
+# obj-y += eapd/linux
 
 ifeq ($(CONFIG_VOIP),y)
 obj-y += voipd
@@ -533,7 +542,7 @@ obj-clean := $(foreach obj,$(obj-y) $(obj-n),$(obj)-clean)
 obj-install := $(foreach obj,$(obj-y),$(obj)-install)
 
 # separate the libraries which need to be built first
-obj-prelibs =$(filter nvram libbcmcrypto shared netconf libupnp libz libid3tag ffmpeg libbcm nfc libsqlite3 libjsonc libxml2 pciefd, $(obj-y))
+obj-prelibs =$(filter nvram envram libbcmcrypto shared netconf libupnp libz libid3tag ffmpeg libbcm nfc libsqlite3 libjsonc libxml2 pciefd, $(obj-y))
 # remaining libraries that are built next
 obj-postlibs := $(filter-out $(obj-prelibs), $(obj-y))
 
@@ -556,8 +565,10 @@ export CONFIG_HSPOT
 export CONFIG_WNM
 export CONFIG_FBT
 
-all: version check_kernel_config obj_prelibs
-	+$(MAKE) $(MAKE_ARGS) post_preplibs
+#all: version check_kernel_config obj_prelibs
+all: version obj_prelibs
+#all: version obj_prelibs
+#	+$(MAKE) $(MAKE_ARGS) post_preplibs
 
 obj_prelibs:
 	+$(MAKE) parallel=true $(MAKE_ARGS) ARCH=$(ARCH) $(obj-prelibs)
@@ -663,7 +674,7 @@ version:  $(SRCBASE)/include/epivers.h
 
 $(SRCBASE)/include/epivers.h:
 	$(MAKE) -C $(SRCBASE)/include
-	$(MAKE) -C $(SRCBASE_SYS)/include
+#	$(MAKE) -C $(SRCBASE_SYS)/include
 ifeq ($(CONFIG_DHDAP),y)
 	$(MAKE) -C $(SRCBASE_DHD)/include
 	$(MAKE) pciefd-version
@@ -876,12 +887,11 @@ oldconfig: oldconf
 
 # Default configurations
 .config:
-ifneq (2_4,$(LINUX_VERSION))
-	cp config/defconfig-2.6 $@
+ifeq ($(STBLINUX),1)
+	cp config/defconfig-stb $@
 else
 	cp config/defconfig $@
 endif
-	+$(MAKE) SRCBASE=$(SRCBASE) LINUXDIR=$(LINUXDIR) oldconfig
 
 $(LINUXDIR)/.config:
 ifneq (2_4,$(LINUX_VERSION))

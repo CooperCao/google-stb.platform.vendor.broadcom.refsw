@@ -242,7 +242,7 @@ void BDTU_GetDefaultRemapSettings( BDTU_RemapSettings *pSettings )
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
-BERR_Code BDTU_P_Remap( BDTU_Handle handle, BSTD_DeviceOffset orgPhysAddr, BSTD_DeviceOffset fromPhysAddr, BSTD_DeviceOffset toPhysAddr )
+static BERR_Code BDTU_P_Remap( BDTU_Handle handle, BSTD_DeviceOffset orgPhysAddr, BSTD_DeviceOffset fromPhysAddr, BSTD_DeviceOffset toPhysAddr )
 {
     unsigned from_bp, to_bp, dp;
     unsigned from_region, to_region, dp_region;
@@ -353,7 +353,7 @@ BERR_Code BDTU_ReadOriginalAddress( BDTU_Handle handle, BSTD_DeviceOffset physAd
     dp = (val & BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_DEVICE_PAGE_MASK) >> BCHP_MEMC_DTU_MAP_STATE_0_MAP_STATEi_DEVICE_PAGE_SHIFT;
 
     /* convert from DP to BA */
-    addr = (dp * _2MB);
+    addr = (BSTD_DeviceOffset)dp * _2MB;
     for (region=0;region<BCHP_MAX_MEMC_REGIONS;region++) {
         if (addr < handle->createSettings.memoryLayout.region[region].size) break;
         addr -= handle->createSettings.memoryLayout.region[region].size;

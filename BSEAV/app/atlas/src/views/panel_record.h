@@ -84,7 +84,7 @@ protected:
     CWidgetButton * _pOk;
     CWidgetButton * _pCancel;
     MString         _result;
-#if NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     CWidgetCheckButton * _AES;
     CWidgetCheckButton * _3DES;
     CWidgetCheckButton * _DES;

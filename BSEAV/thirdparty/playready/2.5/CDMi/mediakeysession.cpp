@@ -23,6 +23,11 @@
 #include "nxclient.h"
 #include "nexus_platform_client.h"
 
+#if SAGE_SUPPORT
+#include "bsagelib_types.h"
+#include "bsagelib_drm_types.h"
+#endif
+
 namespace PRCDMi
 {
 
@@ -683,7 +688,21 @@ CDMi_RESULT CMediaKeySession::Init(
     }
 
     BKNI_Memset(&oemSettings, 0, sizeof(OEM_Settings));
+
+    oemSettings.binFileName = NULL;
+    oemSettings.keyFileName = NULL;
+    oemSettings.keyHistoryFileName = NULL;
+    oemSettings.defaultRWDirName = NULL;
     oemSettings.heap = m_heapSettings.heap;
+
+/* Handle drmType for three cases: Non-SAGE, SAGE2x, SAGE3.2+ */
+#if SAGE_SUPPORT
+#if !SAGE_VERSION_IS_2X
+    oemSettings.drmType = BSAGElib_BinFileDrmType_ePlayready;
+#endif
+#else
+    oemSettings.drmType = 0;
+#endif
 
     m_pOEMContext = Drm_Platform_Initialize(&oemSettings);
     ChkMem(m_pOEMContext);

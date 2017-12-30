@@ -311,7 +311,7 @@ GL_API void GL_APIENTRY glBeginTransformFeedback(GLenum primitiveMode)
    }
 
    assert(tf->res == NULL);
-   tf->res = khrn_resource_create_no_handle();
+   tf->res = khrn_resource_create_no_storage(1);
    if (tf->res == NULL)
    {
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
@@ -336,7 +336,7 @@ GL_API void GL_APIENTRY glBeginTransformFeedback(GLenum primitiveMode)
       if (active->res)
       {
          khrn_resource_refinc(active->res);
-         active->addr = gmem_get_addr(active->res->handle);
+         active->addr = khrn_resource_get_addr(active->res);
       }
       else
       {

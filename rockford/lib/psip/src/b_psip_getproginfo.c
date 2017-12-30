@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2008 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,44 +9,36 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * Description:
 *   API name: PSIP
 *    Library routines for PSIP getproginfo state
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #include "b_os_lib.h"
 #include "b_psip_lib.h"
@@ -512,7 +504,7 @@ void B_PSIP_State_GetProgInfo_Done(
         pJob->apiSettings.dataReadyCallback( B_ERROR_SUCCESS, pJob->apiSettings.dataReadyCallbackParam);
         break;
     case B_PSIP_eStateEvent_TableReceived:
-        BDBG_WRN(("shouldn't get a table received event in this state:%s", __FUNCTION__));
+        BDBG_WRN(("shouldn't get a table received event in this state:%s", BSTD_FUNCTION));
         break;
     case B_PSIP_eStateEvent_Failure:
         pJob->apiSettings.dataReadyCallback( B_ERROR_UNKNOWN, pJob->apiSettings.dataReadyCallbackParam);
@@ -525,7 +517,7 @@ void B_PSIP_State_GetProgInfo_Done(
         pJob->apiSettings.dataReadyCallback( B_ERROR_PSIP_CANCEL, pJob->apiSettings.dataReadyCallbackParam);
         break;
     default:
-        BDBG_ERR(("invalid event:%d received in state:%s:%d", event, __FUNCTION__, __LINE__));
+        BDBG_ERR(("invalid event:%d received in state:%s:%d", event, BSTD_FUNCTION, __LINE__));
         break;
     }
 
@@ -668,7 +660,7 @@ void B_PSIP_State_GetProgInfo_GetETT(
             PSIP_ETT_header ettHeader;
             uint16_t        descMaxLen = MAX_DESC_CHARS;
 
-            BDBG_MSG(("%s success!", __FUNCTION__));
+            BDBG_MSG(("%s success!", BSTD_FUNCTION));
             
             PSIP_ETT_getHeader(pStateData->ettBuffer, &ettHeader);
             B_PSIP_GetStringFromMSS(pJob->apiSettings.siHandle, 
@@ -682,7 +674,7 @@ void B_PSIP_State_GetProgInfo_GetETT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d", 
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -741,7 +733,7 @@ void B_PSIP_State_GetProgInfo_SearchMGT4ETT(
                 tableIndexSkipETT  = (timeDiff / 60 / 60 / 3);
                 targetTableType   += tableIndexSkipETT;
                 BDBG_MSG(("+++++++++++++++++ %s:%d timeDiff in hours:%d skipping ETTs:%d targetTableType:0x%04x", 
-                          __FUNCTION__, __LINE__, timeDiff / 60 / 60, tableIndexSkipETT, targetTableType));
+                          BSTD_FUNCTION, __LINE__, timeDiff / 60 / 60, tableIndexSkipETT, targetTableType));
             }
 
             /* search MGT for requested ETT */
@@ -792,7 +784,7 @@ void B_PSIP_State_GetProgInfo_SearchMGT4ETT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d", 
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -934,7 +926,7 @@ void B_PSIP_State_GetProgInfo_SearchEIT(
         STATE_ENGINE(pJob, event);
         break;
     case B_PSIP_eStateEvent_TableReceived:
-        BDBG_MSG(("%s success!", __FUNCTION__));
+        BDBG_MSG(("%s success!", BSTD_FUNCTION));
         /*
         printEIT(pJob->apiSettings.siHandle, 
                  pJob->stateData.getProgInfoData.eitBuffer, 
@@ -946,7 +938,7 @@ void B_PSIP_State_GetProgInfo_SearchEIT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d", 
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -1015,7 +1007,7 @@ void B_PSIP_State_GetProgInfo_GetEIT(
         STATE_ENGINE(pJob, event);
         break;
     case B_PSIP_eStateEvent_TableReceived:
-        BDBG_MSG(("%s success!", __FUNCTION__));
+        BDBG_MSG(("%s success!", BSTD_FUNCTION));
        /* 
         printEIT(pJob->apiSettings.siHandle, 
                  pJob->stateData.getProgInfoData.eitBuffer, 
@@ -1028,7 +1020,7 @@ void B_PSIP_State_GetProgInfo_GetEIT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d", 
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -1088,7 +1080,7 @@ void B_PSIP_State_GetProgInfo_SearchMGT4EIT(
                 tableIndexSkipEIT  = (timeDiff / 60 / 60 / 3);
                 targetTableType   += tableIndexSkipEIT;
                 BDBG_MSG(("+++++++++++++++++ %s:%d timeDiff in hours:%d skipping EITs:%d targetTableType:0x%04x", 
-                          __FUNCTION__, __LINE__, timeDiff / 60 / 60, tableIndexSkipEIT, targetTableType));
+                          BSTD_FUNCTION, __LINE__, timeDiff / 60 / 60, tableIndexSkipEIT, targetTableType));
             }
 
             /* search MGT for requested EIT */
@@ -1154,7 +1146,7 @@ void B_PSIP_State_GetProgInfo_SearchMGT4EIT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d", 
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -1210,7 +1202,7 @@ void B_PSIP_State_GetProgInfo_GetMGT(
         STATE_ENGINE(pJob, event);
         break;
     case B_PSIP_eStateEvent_TableReceived:
-        BDBG_MSG(("%s success!", __FUNCTION__));
+        BDBG_MSG(("%s success!", BSTD_FUNCTION));
         /*
         printMGT(pJob->apiSettings.siHandle, 
                  pJob->stateData.getProgInfoData.mgtBuffer, 
@@ -1222,7 +1214,7 @@ void B_PSIP_State_GetProgInfo_GetMGT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d", 
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -1392,7 +1384,7 @@ void B_PSIP_State_GetProgInfo_GetSourceId(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d", 
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -1457,7 +1449,7 @@ void B_PSIP_State_GetProgInfo_GetVCT(
         STATE_ENGINE(pJob, event);
         break;
     case B_PSIP_eStateEvent_TableReceived:
-        BDBG_MSG(("%s success!", __FUNCTION__));
+        BDBG_MSG(("%s success!", BSTD_FUNCTION));
         /*
         printVCT(pJob->apiSettings.siHandle, 
                  pJob->stateData.getProgInfoData.vctBuffer, 
@@ -1470,7 +1462,7 @@ void B_PSIP_State_GetProgInfo_GetVCT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d", 
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }
@@ -1529,7 +1521,7 @@ void B_PSIP_State_GetProgInfo_GetSTT(
             PSIP_STT_header header;
             uint32_t        currentTime = 0;
 
-            BDBG_MSG(("%s success!", __FUNCTION__));
+            BDBG_MSG(("%s success!", BSTD_FUNCTION));
             
             /*
             printSTT(pStateData->sttBuffer, 
@@ -1558,7 +1550,7 @@ void B_PSIP_State_GetProgInfo_GetSTT(
         break;
     default:
         BDBG_ERR(("invalid event:%d received in state:%s:%d", 
-                  event, __FUNCTION__, __LINE__));
+                  event, BSTD_FUNCTION, __LINE__));
         break;
     }
 }

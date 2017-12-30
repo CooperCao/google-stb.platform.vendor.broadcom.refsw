@@ -1,25 +1,14 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Various cross-API hardware-specific functions
-=============================================================================*/
-
-#ifndef KHRN_HW_H
-#define KHRN_HW_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_parallel.h"
 #include "middleware/khronos/common/khrn_image.h"
-#include "middleware/khronos/egl/egl_disp.h"
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
 #include "interface/vcos/vcos.h"
-//#include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 
 struct KHRN_FMEM;
 struct GLXX_HW_RENDER_STATE;
@@ -32,7 +21,7 @@ typedef enum
    KHRN_TFCONVERT_DONE,
    KHRN_VG_DONE,
    KHRN_SWAPBUFFERS_DONE,
-   KHRN_COPYBUFFERS_DONE
+   KHRN_FENCE_WAIT_DONE
 } KHRN_CALLBACK_REASONS_T;
 
 bool khrn_hw_common_init(void);
@@ -53,42 +42,20 @@ extern void khrn_wait_for_job_done(uint64_t jobSequenceNumber);
 /* retrieve the performance counters from the job */
 extern void khrn_update_perf_counters(void);
 
-/*
-   void khrn_hw_common_finish()
-
-   Flush all queued stuff. Wait for all flushed stuff to finish.
-
-   Preconditions:
-
-   -
-
-   Postcondtions:
-
-   For all KHRN_IMAGE_T image:
-      image.conceptual_readable_by_master is true
-      image.conceptual_writeable_by_master is true
-   conceptual_buffers_owned_by_master is true
-   conceptual_programs_owned_by_master is true
-*/
-
 static INLINE void khrn_hw_common_finish(void)
 {
    khrn_hw_common_flush();
    khrn_hw_common_wait();
 }
 
-extern void khrn_sync_init(void);
-extern void khrn_sync_display_returned_notify(void); /* called when something comes off the display */
-extern void khrn_specify_event(VCOS_EVENT_T *ev);
-extern int32_t khrn_do_suspend_resume(uint32_t up);
-
 extern void khrn_issue_finish_job(void);
 extern void khrn_issue_bin_render_job(struct GLXX_HW_RENDER_STATE *rs, bool secure);
 extern void khrn_issue_vg_job(struct VG_BE_RENDER_STATE *rs, bool loadFrameUsed, bool storeFrameUsed, bool maskUsed);
 extern void khrn_issue_tfconvert_job(struct KHRN_FMEM *fmem, bool secure);
-extern void khrn_issue_copy_buffer_job(struct KHRN_FMEM *fmem,
-   MEM_HANDLE_T dst, MEM_HANDLE_T src, uint32_t numCLBytes, bool secure);
-extern void khrn_issue_swapbuffers_job(MEM_HANDLE_T image);
+extern void khrn_issue_swapbuffers_job(int fd, void *p, char type);
+extern void khrn_issue_fence_wait_job(void *p);
+extern void khrn_create_fence(int *fd, void **p, char type);
+extern void *khrn_fence_wait_async(int fd);
 
 extern uint64_t khrn_get_last_issued_seq(void);
 extern uint64_t khrn_get_last_done_seq(void);
@@ -195,13 +162,10 @@ typedef struct {
 } KHRN_DRIVER_COUNTERS_T;
 
 extern void khrn_init_driver_counters(int32_t hw_bank, int32_t l3c_bank);
-extern void khrn_update_driver_counters(void);
 extern KHRN_DRIVER_COUNTERS_T *khrn_driver_counters(void);
 
 #if EGL_BRCM_driver_monitor
 #define INCR_DRIVER_COUNTER(counter) khrn_driver_counters()->counter++;
 #else
 #define INCR_DRIVER_COUNTER(counter) ;
-#endif
-
 #endif

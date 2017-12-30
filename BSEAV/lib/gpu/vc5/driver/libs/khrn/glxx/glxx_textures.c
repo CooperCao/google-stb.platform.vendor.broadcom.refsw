@@ -25,12 +25,14 @@ bool glxx_textures_create(GLXX_TEXTURES_T *textures)
    textures->m_2darray = glxx_texture_create(GL_TEXTURE_2D_ARRAY, 0);
    if (textures->m_2darray == NULL)
       goto end;
+#if V3D_VER_AT_LEAST(4,0,2,0)
    textures->m_1d = glxx_texture_create(GL_TEXTURE_1D_BRCM, 0);
    if (textures->m_1d == NULL)
       goto end;
    textures->m_1darray = glxx_texture_create(GL_TEXTURE_1D_ARRAY_BRCM, 0);
    if (textures->m_1darray == NULL)
       goto end;
+#endif
    textures->m_2dmultisample = glxx_texture_create(GL_TEXTURE_2D_MULTISAMPLE, 0);
    if (textures->m_2dmultisample == NULL)
       goto end;
@@ -55,8 +57,10 @@ void glxx_textures_release(GLXX_TEXTURES_T *textures)
    KHRN_MEM_ASSIGN(textures->m_cube_array, NULL);
    KHRN_MEM_ASSIGN(textures->m_3d, NULL);
    KHRN_MEM_ASSIGN(textures->m_2darray, NULL);
+#if V3D_VER_AT_LEAST(4,0,2,0)
    KHRN_MEM_ASSIGN(textures->m_1d, NULL);
    KHRN_MEM_ASSIGN(textures->m_1darray, NULL);
+#endif
    KHRN_MEM_ASSIGN(textures->m_2dmultisample, NULL);
    KHRN_MEM_ASSIGN(textures->m_2dmultisample_array, NULL);
    KHRN_MEM_ASSIGN(textures->m_texbuffer, NULL);
@@ -70,8 +74,10 @@ void glxx_textures_assign(GLXX_TEXTURES_T *tex1, GLXX_TEXTURES_T *tex2)
    KHRN_MEM_ASSIGN(tex1->m_cube_array, tex2->m_cube_array);
    KHRN_MEM_ASSIGN(tex1->m_3d, tex2->m_3d);
    KHRN_MEM_ASSIGN(tex1->m_2darray, tex2->m_2darray);
+#if V3D_VER_AT_LEAST(4,0,2,0)
    KHRN_MEM_ASSIGN(tex1->m_1d, tex2->m_1d);
    KHRN_MEM_ASSIGN(tex1->m_1darray, tex2->m_1darray);
+#endif
    KHRN_MEM_ASSIGN(tex1->m_2dmultisample, tex2->m_2dmultisample);
    KHRN_MEM_ASSIGN(tex1->m_2dmultisample_array, tex2->m_2dmultisample_array);
    KHRN_MEM_ASSIGN(tex1->m_texbuffer, tex2->m_texbuffer);
@@ -101,12 +107,14 @@ GLXX_TEXTURE_T* glxx_textures_get_texture(const GLXX_TEXTURES_T *textures,
    case GL_TEXTURE_2D_ARRAY:
       texture = textures->m_2darray;
       break;
+#if V3D_VER_AT_LEAST(4,0,2,0)
    case GL_TEXTURE_1D_BRCM:
       texture = textures->m_1d;
       break;
    case GL_TEXTURE_1D_ARRAY_BRCM:
       texture = textures->m_1darray;
       break;
+#endif
    case GL_TEXTURE_2D_MULTISAMPLE:
       texture = textures->m_2dmultisample;
       break;
@@ -144,12 +152,14 @@ void glxx_textures_set_texture(GLXX_TEXTURES_T *textures, GLXX_TEXTURE_T *textur
    case GL_TEXTURE_2D_ARRAY:
       KHRN_MEM_ASSIGN(textures->m_2darray, texture);
       break;
+#if V3D_VER_AT_LEAST(4,0,2,0)
    case GL_TEXTURE_1D_BRCM:
       KHRN_MEM_ASSIGN(textures->m_1d, texture);
       break;
    case GL_TEXTURE_1D_ARRAY_BRCM:
       KHRN_MEM_ASSIGN(textures->m_1darray, texture);
       break;
+#endif
    case GL_TEXTURE_2D_MULTISAMPLE:
       KHRN_MEM_ASSIGN(textures->m_2dmultisample, texture);
       break;

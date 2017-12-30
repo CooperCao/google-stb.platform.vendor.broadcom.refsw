@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 2.0 shader structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "middleware/khronos/gl20/gl20_shader.h"
@@ -16,111 +8,132 @@ Implementation of OpenGL ES 2.0 shader structure.
 #include "middleware/khronos/glsl/glsl_compiler.h"
 #include "middleware/khronos/glsl/glsl_fastmem.h"
 
-void gl20_shader_init(GL20_SHADER_T *shader, int32_t name, GLenum type)
-{
-   vcos_assert(shader);
+#include <string.h>
 
-   vcos_assert(shader->mh_sources_current == MEM_INVALID_HANDLE);
-   vcos_assert(shader->mh_sources_compile == MEM_INVALID_HANDLE);
-   vcos_assert(shader->mh_info == MEM_INVALID_HANDLE);
+void gl20_shader_init(GL20_SHADER_T *shader, int32_t name, unsigned type)
+{
+   assert(shader);
+
+   assert(shader->sourcev == NULL);
+   assert(shader->info_log == NULL);
 
    shader->sig = SIG_SHADER;
    shader->refs = 0;
    shader->name = name;
 
-   shader->deleted = GL_FALSE;
-   shader->compiled = GL_FALSE;
+   shader->deleted = false;
+   shader->compiled = false;
 
    shader->type = type;
 
-   MEM_ASSIGN(shader->mh_sources_current, MEM_ZERO_SIZE_HANDLE);
-   MEM_ASSIGN(shader->mh_sources_compile, MEM_ZERO_SIZE_HANDLE);
-   MEM_ASSIGN(shader->mh_info, MEM_EMPTY_STRING_HANDLE);
+   shader->sourcev = NULL;
+   shader->sourcec = 0;
+
+   shader->info_log = NULL;
+}
+
+static void gl20_shader_free_source(GL20_SHADER_T *shader)
+{
+   for (unsigned i = 0; i<shader->sourcec; i++)
+      free(shader->sourcev[i]);
+   free(shader->sourcev);
+
+   shader->sourcev = NULL;
+   shader->sourcec = 0;
+}
+
+static char *copy_source_string(const char *string, int length)
+{
+   char *str = NULL;
+
+   if (string == NULL) string = "";
+
+   if (length < 0)
+      str = strdup(string);
+   else {
+      str = malloc(length + 1);
+
+      if (str != NULL) {
+         memcpy(str, string, length);
+         str[length] = '\0';
+      }
+   }
+
+   return str;
 }
 
 void gl20_shader_term(MEM_HANDLE_T handle)
 {
    GL20_SHADER_T *shader = (GL20_SHADER_T *)mem_lock(handle, NULL);
 
-   MEM_ASSIGN(shader->mh_sources_current, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(shader->mh_sources_compile, MEM_INVALID_HANDLE);
-
-   MEM_ASSIGN(shader->mh_info, MEM_INVALID_HANDLE);
-
-   mem_unlock(handle);
-}
-
-void gl20_shader_sources_term(MEM_HANDLE_T handle)
-{
-   MEM_HANDLE_T *base = (MEM_HANDLE_T *)mem_lock(handle, NULL);
-   uint32_t size = mem_get_size(handle);
-
-   int i, count = size / sizeof(MEM_HANDLE_T);
-
-   vcos_assert(size % sizeof(MEM_HANDLE_T) == 0);
-
-   for (i = 0; i < count; i++)
-      MEM_ASSIGN(base[i], MEM_INVALID_HANDLE);
+   gl20_shader_free_source(shader);
+   free(shader->info_log);
+   shader->info_log = NULL;
 
    mem_unlock(handle);
 }
 
 void gl20_shader_acquire(GL20_SHADER_T *shader)
 {
-   vcos_assert(shader);
-   vcos_assert(shader->refs >= 0);
+   assert(shader);
+   assert(shader->refs >= 0);
 
    shader->refs++;
 
-   vcos_assert(shader->refs >= 0);
+   assert(shader->refs >= 0);
 }
 
 void gl20_shader_release(GL20_SHADER_T *shader)
 {
-   vcos_assert(shader);
-   vcos_assert(shader->refs >= 0);
+   assert(shader);
+   assert(shader->refs >= 0);
 
    shader->refs--;
 
-   vcos_assert(shader->refs >= 0);
+   assert(shader->refs >= 0);
+}
+
+bool gl20_shader_set_source(GL20_SHADER_T *shader, unsigned count,
+   const char * const *string, const int *length)
+{
+   bool out_of_memory = false;
+
+   /* Free any prior source */
+   gl20_shader_free_source(shader);
+
+   shader->sourcev = malloc(count * sizeof(char *));
+   if (shader->sourcev == NULL) return false;
+
+   shader->sourcec = count;
+
+   for (unsigned i = 0; i < count; i++) {
+         shader->sourcev[i] = copy_source_string(string[i], length ? length[i] : -1);
+
+         if (shader->sourcev[i] == NULL)
+            out_of_memory = true;
+   }
+
+   if (out_of_memory)
+      gl20_shader_free_source(shader);
+   return !out_of_memory;
 }
 
 void gl20_shader_compile(GL20_SHADER_T *shader)
 {
-   int sourcec;
-   const char** sourcev;
-
    glsl_fastmem_init();
 
-   MEM_ASSIGN(shader->mh_sources_compile, shader->mh_sources_current);
+   shader->compiled = false;
+   if (!shader->sourcev) goto end;
 
-   sourcec = mem_get_size(shader->mh_sources_compile) / sizeof(MEM_HANDLE_T);
-   sourcev = (const char **)glsl_fastmem_malloc(sourcec * sizeof(char *), false);
+   free(shader->info_log);
+   shader->info_log = NULL;
 
-   if (sourcev)
-   {
-      MEM_HANDLE_T handle;
+   shader->compiled = glsl_compile(shader->type == GL_VERTEX_SHADER ? SHADER_VERTEX : SHADER_FRAGMENT, shader->sourcec, (const char **)shader->sourcev);
 
-      lock_sources_for_compiler(sourcec, sourcev, shader->mh_sources_compile);
+   if (!shader->compiled)
+      shader->info_log = strdup(error_buffer);
 
-      MEM_ASSIGN(shader->mh_info, MEM_EMPTY_STRING_HANDLE);
-
-      if (glsl_compile(shader->type == GL_VERTEX_SHADER ? SHADER_VERTEX : SHADER_FRAGMENT, sourcec, sourcev))
-         shader->compiled = GL_TRUE;
-      else
-         shader->compiled = GL_FALSE;
-
-      handle = mem_strdup_ex(error_buffer, MEM_COMPACT_DISCARD);
-      if (handle != MEM_INVALID_HANDLE) {
-         MEM_ASSIGN(shader->mh_info, handle);
-         mem_release(handle);
-      }
-
-      unlock_sources_for_compiler(shader->mh_sources_compile);
-   }
-   else
-      shader->compiled = GL_FALSE;
-
+end:
    glsl_fastmem_term();
 }
 

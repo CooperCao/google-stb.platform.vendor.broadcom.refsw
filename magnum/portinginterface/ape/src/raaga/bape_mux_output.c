@@ -55,6 +55,7 @@ BDBG_FILE_MODULE(bape_adts);
 BDBG_OBJECT_ID(BAPE_MuxOutput);
 
 #if BAPE_CHIP_HAS_POST_PROCESSING
+#include "bdsp.h"
 #define BAPE_ITB_ENTRY_TYPE_BASE_ADDRESS (0x20)
 #define BAPE_ITB_ENTRY_TYPE_PTS_DTS      (0x21)
 #define BAPE_ITB_ENTRY_TYPE_BIT_RATE     (0x60)
@@ -208,6 +209,9 @@ static void BAPE_MuxOutput_P_FreePathFromInput(struct BAPE_PathNode *pNode, stru
 static void BAPE_MuxOutput_P_RemoveInputCallback(struct BAPE_PathNode *pNode, BAPE_PathConnector *pConnector);
 static void BAPE_MuxOutput_P_ParseItb(BAPE_MuxOutputHandle hMuxOutput, BAPE_FrameItbEntries **pCurrent, BAPE_FrameItbEntries **pNext, BAVC_AudioMetadataDescriptor *pMetadataDescriptor, BAPE_ItbEntry **pMetadata);
 static void BAPE_MuxOutput_P_CopyToHost(void *pDest, void *pSource, size_t numBytes, BMMA_Block_Handle mmaBlock);
+static BERR_Code BAPE_MuxOutput_P_AllocateStageResources(BAPE_MuxOutputHandle hMuxOutput, BDSP_ContextHandle dspContext, unsigned dspIndex);
+static void BAPE_MuxOutput_P_DestroyStageResources(BAPE_MuxOutputHandle hMuxOutput);
+static void BAPE_MuxOutput_P_GetUpstreamDeviceDetails(BAPE_PathConnection * pConnection, unsigned * pDspIndex, BDSP_ContextHandle * pDspContext);
 
 static BERR_Code BAPE_MuxOutput_P_ParseAdtsMetadata(
     BAPE_MuxOutputHandle hMuxOutput,
@@ -233,6 +237,7 @@ void BAPE_MuxOutput_GetDefaultCreateSettings(
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->numDescriptors = BAPE_MUXOUTPUT_MAX_ITBDESCRIPTORS;
+    pSettings->dspIndex = BAPE_INVALID_DEVICE_INDEX;
 }
 
 /***************************************************************************
@@ -247,9 +252,12 @@ BERR_Code BAPE_MuxOutput_Create(
 {
     BAPE_MuxOutputHandle hMuxOutput;
     BERR_Code errCode;
-    BDSP_StageCreateSettings stageCreateSettings;
     BAPE_FMT_Descriptor format;
     BAPE_FMT_Capabilities caps;
+    unsigned dspIndex = BAPE_DEVICE_INVALID;
+    unsigned dspIndexBase = BAPE_DEVICE_INVALID;
+    BDSP_ContextHandle dspContext = NULL;
+    size_t tempSize;
 
     BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
     BDBG_ASSERT(NULL != pSettings);
@@ -267,7 +275,61 @@ BERR_Code BAPE_MuxOutput_Create(
     }
     BKNI_Memset(hMuxOutput, 0, sizeof(BAPE_MuxOutput));
     BDBG_OBJECT_SET(hMuxOutput, BAPE_MuxOutput);
+    hMuxOutput->deviceHandle = hApe;
+    hMuxOutput->dspIndex = BAPE_DEVICE_INVALID;
     hMuxOutput->createSettings = *pSettings;
+
+    if ( pSettings->dspIndex != BAPE_DEVICE_INVALID )
+    {
+        dspIndex = pSettings->dspIndex;
+    }
+    else
+    {
+        dspIndex = BAPE_DEVICE_DSP_FIRST;
+    }
+
+    /* Shift the dsp index to the arm if dsp is not enabled, but arm audio is*/
+    if ( dspIndex <= BAPE_DEVICE_DSP_LAST &&
+         hMuxOutput->deviceHandle->dspHandle == NULL && hMuxOutput->deviceHandle->armHandle != NULL )
+    {
+        dspIndex = BAPE_DEVICE_ARM_FIRST;
+    }
+
+    if ( dspIndex >= BAPE_DEVICE_ARM_FIRST &&
+         ( dspIndex >= (BAPE_DEVICE_ARM_FIRST + hMuxOutput->deviceHandle->numArms) ||
+           hMuxOutput->deviceHandle->armHandle == NULL ) )
+    {
+        BDBG_ERR(("ARM device index %u is not available.  This system has %u ARM Audio Processors, arm handle %p.", dspIndex, hMuxOutput->deviceHandle->numArms, (void*)hMuxOutput->deviceHandle->armHandle));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if ( dspIndex <= BAPE_DEVICE_DSP_LAST && (dspIndex >= hMuxOutput->deviceHandle->numDsps || hMuxOutput->deviceHandle->dspHandle == NULL ) )
+    {
+        BDBG_ERR(("DSP %u is not available.  This system has %u DSPs, dsp handle %p.", dspIndex, hMuxOutput->deviceHandle->numDsps, (void*)hMuxOutput->deviceHandle->dspHandle));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if ( dspIndex >= BAPE_DEVICE_ARM_FIRST )
+    {
+        dspContext = hMuxOutput->deviceHandle->armContext;
+        dspIndexBase = BAPE_DEVICE_ARM_FIRST;
+    }
+    else
+    {
+        dspContext = hMuxOutput->deviceHandle->dspContext;
+        dspIndexBase = BAPE_DEVICE_DSP_FIRST;
+    }
+
+    if ( dspContext == NULL )
+    {
+        BDBG_ERR(("No DSP or ARM device available."));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    hMuxOutput->dspIndex = dspIndex;
+    hMuxOutput->dspIndexBase = dspIndexBase;
+    hMuxOutput->dspContext = dspContext;
+
     /* Technically, this has no output paths, but unless you set 1 below you get a compiler warning */
     BAPE_P_InitPathNode(&hMuxOutput->node, BAPE_PathNodeType_eMuxOutput, 0, 1, hApe, hMuxOutput);
     hMuxOutput->node.pName = "MuxOutput";
@@ -343,7 +405,9 @@ BERR_Code BAPE_MuxOutput_Create(
     hMuxOutput->descriptorInfo.uiCDBBufferShadowReadOffset = hMuxOutput->cdb.offset;
     hMuxOutput->descriptorInfo.uiITBBufferShadowReadOffset = hMuxOutput->itb.offset;
 
-    hMuxOutput->descriptorInfo.descriptors.block = BMMA_Alloc(hMuxOutput->createSettings.heaps.descriptor, sizeof(BAVC_AudioBufferDescriptor)*pSettings->numDescriptors, 0, NULL);
+    tempSize = sizeof(BAVC_AudioBufferDescriptor)*pSettings->numDescriptors;
+    BDSP_SIZE_ALIGN(tempSize);
+    hMuxOutput->descriptorInfo.descriptors.block = BMMA_Alloc(hMuxOutput->createSettings.heaps.descriptor, tempSize, BDSP_ADDRESS_ALIGN, NULL);
     if ( NULL == hMuxOutput->descriptorInfo.descriptors.block )
     {
         errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -356,7 +420,9 @@ BERR_Code BAPE_MuxOutput_Create(
         goto err_cache_descriptors;
     }
 
-    hMuxOutput->descriptorInfo.metadata.block = BMMA_Alloc(hMuxOutput->createSettings.heaps.descriptor, sizeof(BAVC_AudioMetadataDescriptor)*BAPE_MUXOUTPUT_MAX_METADATADESCRIPTORS, 0, NULL);
+    tempSize = sizeof(BAVC_AudioMetadataDescriptor)*BAPE_MUXOUTPUT_MAX_METADATADESCRIPTORS;
+    BDSP_SIZE_ALIGN(tempSize);
+    hMuxOutput->descriptorInfo.metadata.block = BMMA_Alloc(hMuxOutput->createSettings.heaps.descriptor, tempSize, BDSP_ADDRESS_ALIGN, NULL);
     if ( NULL == hMuxOutput->descriptorInfo.metadata.block )
     {
         errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -371,6 +437,7 @@ BERR_Code BAPE_MuxOutput_Create(
 
     BMMA_FlushCache_isrsafe(hMuxOutput->descriptorInfo.metadata.block, hMuxOutput->descriptorInfo.metadata.cached, sizeof(BAVC_AudioMetadataDescriptor)*BAPE_MUXOUTPUT_MAX_METADATADESCRIPTORS);
 
+    #if 0
     /* Create Stage Handle */
     BDSP_Stage_GetDefaultCreateSettings(hApe->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
     BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
@@ -382,14 +449,13 @@ BERR_Code BAPE_MuxOutput_Create(
         goto err_stage_create;
     }
     hMuxOutput->node.connectors[0].hStage = hMuxOutput->hStage;
+    #endif
 
     BLST_S_INSERT_HEAD(&hApe->muxOutputList, hMuxOutput, deviceListNode);
 
     *pHandle = hMuxOutput;
     return BERR_SUCCESS;
 
-err_stage_create:
-    BMMA_Unlock(hMuxOutput->descriptorInfo.metadata.block, hMuxOutput->descriptorInfo.metadata.cached);
 err_cache_metadata:
     BMMA_Free(hMuxOutput->descriptorInfo.metadata.block);
 err_alloc_metadata:
@@ -406,6 +472,166 @@ err_format:
     return errCode;
 }
 
+BERR_Code BAPE_MuxOutput_P_AllocateStageResources(BAPE_MuxOutputHandle hMuxOutput, BDSP_ContextHandle dspContext, unsigned dspIndex)
+{
+    BERR_Code errCode;
+    bool allocate = true;
+    BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
+
+    if ( hMuxOutput->hStage && hMuxOutput->cdb.queue && hMuxOutput->itb.queue )
+    {
+        allocate = false;
+
+        /* check existing resources for device compatibility */
+        if ( dspContext != hMuxOutput->allocatedDspContext || dspIndex != hMuxOutput->allocatedDspIndex )
+        {
+            allocate = true;
+        }
+    }
+
+    if ( allocate )
+    {
+        BDSP_StageCreateSettings stageCreateSettings;
+        unsigned output, tmp;
+
+        BDBG_MSG(("Allocate/Re-Allocate DSP Mux Resources"));
+
+        /* cleanup any remaining resources */
+        BAPE_MuxOutput_P_DestroyStageResources(hMuxOutput);
+
+        /* Allocate Queues */
+        if (hMuxOutput->createSettings.useRDB)
+        {
+            BDSP_QueueCreateSettings queueSettings;
+            uint32_t numBuffers = 1;
+
+            /* CDB */
+            BDSP_Queue_GetDefaultSettings(dspContext, &queueSettings);
+            queueSettings.dataType = BDSP_DataType_eRdbCdb;
+            queueSettings.numBuffers = numBuffers;
+            queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.cdb.size;
+            queueSettings.bufferInfo[0].buffer.hBlock = hMuxOutput->createSettings.cdb.block;
+            queueSettings.bufferInfo[0].buffer.offset = hMuxOutput->cdb.offset;
+            queueSettings.bufferInfo[0].buffer.pAddr = hMuxOutput->cdb.cached;
+
+            BDBG_MSG(("Create CDB Queue, DSP cxt %p, idx %d", (void*)dspContext, (int)dspIndex));
+            errCode = BDSP_Queue_Create(dspContext, dspIndex, &queueSettings, &hMuxOutput->cdb.queue);
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+            /* ITB */
+            BDSP_Queue_GetDefaultSettings(dspContext, &queueSettings);
+            queueSettings.dataType = BDSP_DataType_eRdbItb;
+            queueSettings.numBuffers = numBuffers;
+            queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.itb.size;
+            queueSettings.bufferInfo[0].buffer.hBlock = hMuxOutput->createSettings.itb.block;
+            queueSettings.bufferInfo[0].buffer.offset = hMuxOutput->itb.offset;
+            queueSettings.bufferInfo[0].buffer.pAddr = hMuxOutput->itb.cached;
+
+            BDBG_MSG(("Create ITB Queue, DSP cxt %p, idx %d", (void*)dspContext, (int)dspIndex));
+            errCode = BDSP_Queue_Create(dspContext, dspIndex, &queueSettings, &hMuxOutput->itb.queue);
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+            errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->cdb.queue, numBuffers, &hMuxOutput->cdb.buffer);
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+            errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->itb.queue, numBuffers, &hMuxOutput->itb.buffer);
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+            BDSP_Queue_Flush(hMuxOutput->cdb.queue);
+            BDSP_Queue_Flush(hMuxOutput->itb.queue);
+
+            hMuxOutput->cdb.bufferInterface.base = hMuxOutput->cdb.buffer.ui32BaseAddr;
+            hMuxOutput->cdb.bufferInterface.end = hMuxOutput->cdb.buffer.ui32EndAddr;
+            hMuxOutput->cdb.bufferInterface.read = hMuxOutput->cdb.buffer.ui32ReadAddr;
+            hMuxOutput->cdb.bufferInterface.valid = hMuxOutput->cdb.buffer.ui32WriteAddr;
+            hMuxOutput->cdb.bufferInterface.inclusive = false;
+            hMuxOutput->itb.bufferInterface.base = hMuxOutput->itb.buffer.ui32BaseAddr;
+            hMuxOutput->itb.bufferInterface.end = hMuxOutput->itb.buffer.ui32EndAddr;
+            hMuxOutput->itb.bufferInterface.read = hMuxOutput->itb.buffer.ui32ReadAddr;
+            hMuxOutput->itb.bufferInterface.valid = hMuxOutput->itb.buffer.ui32WriteAddr;
+            hMuxOutput->itb.bufferInterface.inclusive = false;
+        }
+        else
+        {
+            hMuxOutput->cdb.bufferInterface.base = hMuxOutput->contextMap.CDB_Base;
+            hMuxOutput->cdb.bufferInterface.end = hMuxOutput->contextMap.CDB_End;
+            hMuxOutput->cdb.bufferInterface.read = hMuxOutput->contextMap.CDB_Read;
+            hMuxOutput->cdb.bufferInterface.valid = hMuxOutput->contextMap.CDB_Valid;
+            hMuxOutput->cdb.bufferInterface.inclusive = true;
+            hMuxOutput->itb.bufferInterface.base = hMuxOutput->contextMap.ITB_Base;
+            hMuxOutput->itb.bufferInterface.end = hMuxOutput->contextMap.ITB_End;
+            hMuxOutput->itb.bufferInterface.read = hMuxOutput->contextMap.ITB_Read;
+            hMuxOutput->itb.bufferInterface.valid = hMuxOutput->contextMap.ITB_Valid;
+            hMuxOutput->itb.bufferInterface.inclusive = true;
+        }
+
+        /* Update shadow pointers for context to the current read pointer. */
+        hMuxOutput->descriptorInfo.uiCDBBufferShadowReadOffset = BREG_ReadAddr(hMuxOutput->node.deviceHandle->regHandle, hMuxOutput->cdb.bufferInterface.read);
+        hMuxOutput->descriptorInfo.uiITBBufferShadowReadOffset = BREG_ReadAddr(hMuxOutput->node.deviceHandle->regHandle, hMuxOutput->itb.bufferInterface.read);
+
+        /* Reset Descriptor Offsets in case mux didn't consume all previous descriptors */
+        hMuxOutput->descriptorInfo.uiDescriptorWriteOffset = 0;
+        hMuxOutput->descriptorInfo.uiDescriptorReadOffset = 0;
+        hMuxOutput->descriptorInfo.numOutstandingDescriptors = 0;
+
+        /* Create Stage and Make connections */
+        BDSP_Stage_GetDefaultCreateSettings(dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
+        BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
+        stageCreateSettings.algorithmSupported[BDSP_Algorithm_eGenCdbItb] = true;
+        errCode = BDSP_Stage_Create(dspContext, &stageCreateSettings, &hMuxOutput->hStage);
+        if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+        hMuxOutput->node.connectors[0].hStage = hMuxOutput->hStage;
+
+        if (!hMuxOutput->createSettings.useRDB)
+        {
+            errCode = BDSP_Stage_AddRaveOutput(hMuxOutput->hStage, hMuxOutput->createSettings.pContextMap, &output);
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+        }
+        else
+        {
+            errCode = BDSP_Stage_AddQueueOutput(hMuxOutput->hStage, hMuxOutput->cdb.queue, &tmp);
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+            errCode = BDSP_Stage_AddQueueOutput(hMuxOutput->hStage, hMuxOutput->itb.queue, &tmp);
+            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+        }
+
+        hMuxOutput->allocatedDspContext = dspContext;
+        hMuxOutput->allocatedDspIndex = dspIndex;
+    }
+
+    return BERR_SUCCESS;
+
+cleanup:
+    BAPE_MuxOutput_P_DestroyStageResources(hMuxOutput);
+    return errCode;
+}
+
+void BAPE_MuxOutput_P_DestroyStageResources(BAPE_MuxOutputHandle hMuxOutput)
+{
+    BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
+    if ( hMuxOutput->hStage )
+    {
+        BDSP_Stage_RemoveAllInputs(hMuxOutput->hStage);
+        BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
+        BDSP_Stage_Destroy(hMuxOutput->hStage);
+        hMuxOutput->hStage = NULL;
+    }
+    if( hMuxOutput->cdb.queue )
+    {
+        BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
+        hMuxOutput->cdb.queue = NULL;
+    }
+    if ( hMuxOutput->itb.queue )
+    {
+        BDSP_Queue_Destroy(hMuxOutput->itb.queue);
+        hMuxOutput->itb.queue = NULL;
+    }
+    hMuxOutput->node.connectors[0].hStage = NULL;
+    hMuxOutput->allocatedDspContext = NULL;
+    hMuxOutput->allocatedDspIndex = 0;
+}
 
 /***************************************************************************
 Summary:
@@ -423,15 +649,7 @@ void BAPE_MuxOutput_Destroy(
     running = BAPE_PathNode_P_IsActive(&hMuxOutput->node);
     BDBG_ASSERT(false == running);
     BDBG_ASSERT(NULL == hMuxOutput->input);
-    BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
-    if( hMuxOutput->cdb.queue )
-    {
-        BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
-    }
-    if ( hMuxOutput->itb.queue )
-    {
-        BDSP_Queue_Destroy(hMuxOutput->itb.queue);
-    }
+    BAPE_MuxOutput_P_DestroyStageResources(hMuxOutput);
     BLST_S_REMOVE(&hMuxOutput->node.deviceHandle->muxOutputList, hMuxOutput, BAPE_MuxOutput, deviceListNode);
     BMMA_Unlock(hMuxOutput->descriptorInfo.metadata.block, hMuxOutput->descriptorInfo.metadata.cached);
     BMMA_Free(hMuxOutput->descriptorInfo.metadata.block);
@@ -442,10 +660,6 @@ void BAPE_MuxOutput_Destroy(
     BMMA_UnlockOffset(hMuxOutput->createSettings.itb.block, hMuxOutput->itb.offset);
     BMMA_Unlock(hMuxOutput->createSettings.itb.block, hMuxOutput->itb.cached);
 
-    if ( hMuxOutput->hStage )
-    {
-        BDSP_Stage_Destroy(hMuxOutput->hStage);
-    }
     BDBG_OBJECT_DESTROY(hMuxOutput, BAPE_MuxOutput);
     BKNI_Free(hMuxOutput);
 }
@@ -471,27 +685,34 @@ static BERR_Code BAPE_MuxOutput_P_ApplyDspSettings(
 
     BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
 
-    errCode = BDSP_Stage_GetSettings(hMuxOutput->hStage, &userConfig, sizeof(userConfig));
-    if ( errCode )
+    if ( hMuxOutput->hStage )
     {
-        return BERR_TRACE(errCode);
-    }
+        errCode = BDSP_Stage_GetSettings(hMuxOutput->hStage, &userConfig, sizeof(userConfig));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
 
-    userConfig.eEnableEncode = hMuxOutput->state == BAPE_MuxOutputState_Started ? BDSP_AF_P_eEnable : BDSP_AF_P_eDisable;
-    userConfig.ui32EncSTCAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( BAPE_CHIP_GET_STC_ADDRESS(hMuxOutput->startSettings.stcIndex) );
-    #if BAPE_CHIP_HAS_42BIT_STC
-    userConfig.ui32EncSTCAddrUpper = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( BAPE_CHIP_GET_STC_UPPER_ADDRESS(hMuxOutput->startSettings.stcIndex) );
-    #endif
-    userConfig.ui32A2PInMilliSeconds = hMuxOutput->startSettings.presentationDelay;
-    userConfig.eSnapshotRequired = ( hMuxOutput->nonRealTimeIncrement.StcIncLo == 0 &&
-                                     hMuxOutput->nonRealTimeIncrement.StcIncHi == 0 &&
-                                     hMuxOutput->nonRealTimeIncrement.IncTrigger == 0 ) ? BDSP_AF_P_eEnable /* RT */ : BDSP_AF_P_eDisable /* NRT */;
-    userConfig.eStcItbEntryEnable = BDSP_AF_P_eEnable;  /* Always enable the per-frame STC ITB entry */
+        userConfig.eEnableEncode = hMuxOutput->state == BAPE_MuxOutputState_Started ? BDSP_AF_P_eEnable : BDSP_AF_P_eDisable;
+        userConfig.ui32EncSTCAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( BAPE_CHIP_GET_STC_ADDRESS(hMuxOutput->startSettings.stcIndex) );
+        #if BAPE_CHIP_HAS_42BIT_STC
+        userConfig.ui32EncSTCAddrUpper = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( BAPE_CHIP_GET_STC_UPPER_ADDRESS(hMuxOutput->startSettings.stcIndex) );
+        #endif
+        userConfig.ui32A2PInMilliSeconds = hMuxOutput->startSettings.presentationDelay;
+        userConfig.eSnapshotRequired = ( hMuxOutput->nonRealTimeIncrement.StcIncLo == 0 &&
+                                         hMuxOutput->nonRealTimeIncrement.StcIncHi == 0 &&
+                                         hMuxOutput->nonRealTimeIncrement.IncTrigger == 0 ) ? BDSP_AF_P_eEnable /* RT */ : BDSP_AF_P_eDisable /* NRT */;
+        userConfig.eStcItbEntryEnable = BDSP_AF_P_eEnable;  /* Always enable the per-frame STC ITB entry */
 
-    errCode = BDSP_Stage_SetSettings(hMuxOutput->hStage, &userConfig, sizeof(userConfig));
-    if ( errCode )
-    {
-        return BERR_TRACE(errCode);
+        if (userConfig.eSnapshotRequired == BDSP_AF_P_eEnable) {
+            userConfig.ui64AVSTCOffset = hMuxOutput->startSettings.initialStc * (27000/45);
+        }
+
+        errCode = BDSP_Stage_SetSettings(hMuxOutput->hStage, &userConfig, sizeof(userConfig));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
     }
 
     return BERR_SUCCESS;
@@ -514,6 +735,8 @@ BERR_Code BAPE_MuxOutput_Start(
     const BAPE_MuxOutputStartSettings *pSettings
     )
 {
+    unsigned dspIndex = BAPE_INVALID_DEVICE_INDEX;
+    BDSP_ContextHandle dspContext = NULL;
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
@@ -568,144 +791,34 @@ BERR_Code BAPE_MuxOutput_Start(
 
     BDBG_MSG(("BAPE_MuxOutput_Start"));
 
-    if (!hMuxOutput->createSettings.useRDB)
+    /* look for device index from upstream node */
+    BAPE_MuxOutput_P_GetUpstreamDeviceDetails(BLST_S_FIRST(&hMuxOutput->node.upstreamList), &dspIndex, &dspContext);
+
+    /* Use "default" device index determined curing _Create() */
+    if ( dspIndex == BAPE_DEVICE_INVALID || dspContext == NULL )
     {
-        hMuxOutput->cdb.bufferInterface.base = hMuxOutput->contextMap.CDB_Base;
-        hMuxOutput->cdb.bufferInterface.end = hMuxOutput->contextMap.CDB_End;
-        hMuxOutput->cdb.bufferInterface.read = hMuxOutput->contextMap.CDB_Read;
-        hMuxOutput->cdb.bufferInterface.valid = hMuxOutput->contextMap.CDB_Valid;
-        hMuxOutput->cdb.bufferInterface.inclusive = true;
-        hMuxOutput->itb.bufferInterface.base = hMuxOutput->contextMap.ITB_Base;
-        hMuxOutput->itb.bufferInterface.end = hMuxOutput->contextMap.ITB_End;
-        hMuxOutput->itb.bufferInterface.read = hMuxOutput->contextMap.ITB_Read;
-        hMuxOutput->itb.bufferInterface.valid = hMuxOutput->contextMap.ITB_Valid;
-        hMuxOutput->itb.bufferInterface.inclusive = true;
-    }
-    else
-    {
-        BDSP_QueueCreateSettings queueSettings;
-        BAPE_PathConnection *pInputConnection;
-        int dspIndex = -1;
-        uint32_t tmp;
-        uint32_t numBuffers = 1;
-        if (!hMuxOutput->cdb.queue)
-        {
-            for ( pInputConnection = BLST_S_FIRST(&hMuxOutput->node.upstreamList);
-                  pInputConnection != NULL;
-                  pInputConnection = BLST_S_FIRST(&pInputConnection->pSource->pParent->upstreamList) )
-            {
-                if ( pInputConnection->pSource->pParent->type ==  BAPE_PathNodeType_eMixer ||
-                     pInputConnection->pSource->pParent->type == BAPE_PathNodeType_eDecoder )
-                {
-                    dspIndex = pInputConnection->pSource->pParent->dspIndex;
-                    break;
-                }
-            }
-
-            if (dspIndex == -1)
-            { return BERR_TRACE(BERR_INVALID_PARAMETER); }
-
-
-            BDSP_Queue_GetDefaultSettings(hMuxOutput->node.deviceHandle->dspContext, &queueSettings);
-            queueSettings.dataType = BDSP_DataType_eRdbCdb;
-            queueSettings.numBuffers = numBuffers;
-            queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.cdb.size;
-            queueSettings.bufferInfo[0].buffer.hBlock = hMuxOutput->createSettings.cdb.block;
-            queueSettings.bufferInfo[0].buffer.offset = hMuxOutput->cdb.offset;
-            queueSettings.bufferInfo[0].buffer.pAddr = hMuxOutput->cdb.cached;
-
-            errCode = BDSP_Queue_Create(hMuxOutput->node.deviceHandle->dspContext,
-                            dspIndex,
-                            &queueSettings,
-                            &hMuxOutput->cdb.queue);
-            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
-
-            errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->cdb.queue,
-                            numBuffers,
-                            &hMuxOutput->cdb.buffer);
-            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
-
-            errCode = BDSP_Stage_AddQueueOutput(
-                            hMuxOutput->hStage,
-                            hMuxOutput->cdb.queue,
-                            &tmp /*[out]*/
-                            );
-            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
-        }
-
-        if (!hMuxOutput->itb.queue) {
-            BDSP_Queue_GetDefaultSettings(hMuxOutput->node.deviceHandle->dspContext, &queueSettings);
-            queueSettings.dataType = BDSP_DataType_eRdbItb;
-            queueSettings.numBuffers = numBuffers;
-            queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.itb.size;
-            queueSettings.bufferInfo[0].buffer.hBlock = hMuxOutput->createSettings.itb.block;
-            queueSettings.bufferInfo[0].buffer.offset = hMuxOutput->itb.offset;
-            queueSettings.bufferInfo[0].buffer.pAddr = hMuxOutput->itb.cached;
-
-            errCode = BDSP_Queue_Create(hMuxOutput->node.deviceHandle->dspContext,
-                            dspIndex,
-                            &queueSettings,
-                            &hMuxOutput->itb.queue);
-            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
-
-            errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->itb.queue,
-                            numBuffers,
-                            &hMuxOutput->itb.buffer);
-            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
-
-            errCode = BDSP_Stage_AddQueueOutput(
-                            hMuxOutput->hStage,
-                            hMuxOutput->itb.queue,
-                            &tmp /*[out]*/
-                            );
-            if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
-        }
-
-        hMuxOutput->cdb.bufferInterface.base = hMuxOutput->cdb.buffer.ui32BaseAddr;
-        hMuxOutput->cdb.bufferInterface.end = hMuxOutput->cdb.buffer.ui32EndAddr;
-        hMuxOutput->cdb.bufferInterface.read = hMuxOutput->cdb.buffer.ui32ReadAddr;
-        hMuxOutput->cdb.bufferInterface.valid = hMuxOutput->cdb.buffer.ui32WriteAddr;
-        hMuxOutput->cdb.bufferInterface.inclusive = false;
-        hMuxOutput->itb.bufferInterface.base = hMuxOutput->itb.buffer.ui32BaseAddr;
-        hMuxOutput->itb.bufferInterface.end = hMuxOutput->itb.buffer.ui32EndAddr;
-        hMuxOutput->itb.bufferInterface.read = hMuxOutput->itb.buffer.ui32ReadAddr;
-        hMuxOutput->itb.bufferInterface.valid = hMuxOutput->itb.buffer.ui32WriteAddr;
-        hMuxOutput->itb.bufferInterface.inclusive = false;
-
-        /* Flush Queues  - They may have been created by a previous start sequence */
-        BDSP_Queue_Flush(hMuxOutput->cdb.queue);
-        BDSP_Queue_Flush(hMuxOutput->itb.queue);
+        dspIndex = hMuxOutput->dspIndex;
+        dspContext = hMuxOutput->dspContext;
+        BDBG_WRN(("Unable to find DSP index and context from upstream. Defaulting to DSP idx %d, context %p", (int)dspIndex, (void*)dspContext));
     }
 
-    /* Update shadow pointers for context to the current read pointer. */
-    hMuxOutput->descriptorInfo.uiCDBBufferShadowReadOffset = BREG_ReadAddr(hMuxOutput->node.deviceHandle->regHandle, hMuxOutput->cdb.bufferInterface.read);
-    hMuxOutput->descriptorInfo.uiITBBufferShadowReadOffset = BREG_ReadAddr(hMuxOutput->node.deviceHandle->regHandle, hMuxOutput->itb.bufferInterface.read);
+    if ( dspIndex == BAPE_DEVICE_INVALID || dspContext == NULL )
+    {
+        BDBG_ERR(("Unable find an available device for mux."));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
 
-    /* Reset Descriptor Offsets in case mux didn't consume all previous descriptors */
-    hMuxOutput->descriptorInfo.uiDescriptorWriteOffset = 0;
-    hMuxOutput->descriptorInfo.uiDescriptorReadOffset = 0;
-    hMuxOutput->descriptorInfo.numOutstandingDescriptors = 0;
+    errCode = BAPE_MuxOutput_P_AllocateStageResources(hMuxOutput, dspContext, dspIndex);
+    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
 
     /* Start */
     hMuxOutput->state = BAPE_MuxOutputState_Started;
     hMuxOutput->sendEos = false;
     hMuxOutput->sendMetadata = true;
 
-    errCode = BAPE_MuxOutput_P_ApplyDspSettings(hMuxOutput);
-    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
-
     return BERR_SUCCESS;
-
 cleanup:
-    BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
-    if ( hMuxOutput->cdb.queue ) {
-        BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
-        hMuxOutput->cdb.queue = NULL;
-    }
-    if ( hMuxOutput->itb.queue ) {
-        BDSP_Queue_Destroy(hMuxOutput->itb.queue);
-        hMuxOutput->itb.queue = NULL;
-    }
+    BAPE_MuxOutput_P_DestroyStageResources(hMuxOutput);
     return errCode;
 }
 
@@ -735,7 +848,9 @@ void BAPE_MuxOutput_Stop(
 
     BDBG_MSG(("BAPE_MuxOutput_Stop"));
     hMuxOutput->state = BAPE_MuxOutputState_Stopped;
-    hMuxOutput->sendEos = true;
+    if (hMuxOutput->settings.sendEos) { /* User can set to ignore sending the EOS on stop */
+        hMuxOutput->sendEos = true;
+    }
 
     errCode = BAPE_MuxOutput_P_ApplyDspSettings(hMuxOutput);
     if ( errCode )
@@ -743,6 +858,37 @@ void BAPE_MuxOutput_Stop(
         (void)BERR_TRACE(errCode);
         return;
     }
+}
+
+void BAPE_MuxOutput_GetDefaultSettings(
+    BAPE_MuxOutputSettings *pSettings    /* [out] Settings */
+    )
+{
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->sendEos = true;
+}
+
+void BAPE_MuxOutput_GetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_MuxOutputSettings *pSettings
+    )
+{
+    BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memcpy(pSettings, &hMuxOutput->settings, sizeof(BAPE_MuxOutputSettings));
+}
+
+
+BERR_Code BAPE_MuxOutput_SetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    const BAPE_MuxOutputSettings *pSettings
+    )
+{
+    BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memcpy(&hMuxOutput->settings, pSettings, sizeof(BAPE_MuxOutputSettings));
+    return BERR_SUCCESS;
 }
 
 BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
@@ -1428,11 +1574,50 @@ BERR_Code BAPE_MuxOutput_RemoveAllInputs(
     return BERR_SUCCESS;
 }
 
+static void BAPE_MuxOutput_P_GetUpstreamDeviceDetails(
+    BAPE_PathConnection * pConnection,
+    unsigned * pDspIndex,
+    BDSP_ContextHandle * pDspContext
+    )
+{
+    if ( pConnection == NULL )
+    {
+        BDBG_WRN(("Unable to find upstream master task"));
+        *pDspIndex = BAPE_DEVICE_INVALID;
+        *pDspContext = NULL;
+        return;
+    }
+
+    if ( pConnection->pSource->pParent->type ==  BAPE_PathNodeType_eMixer ||
+         pConnection->pSource->pParent->type == BAPE_PathNodeType_eDecoder )
+    {
+        if ( pConnection->pSource->pParent->deviceIndex != BAPE_DEVICE_INVALID &&
+             pConnection->pSource->pParent->deviceContext != NULL )
+        {
+            BDBG_MSG(("Getting DSP details from upstream node %p, type %s",
+                      (void*)pConnection->pSource->pParent,
+                      (pConnection->pSource->pParent->type == BAPE_PathNodeType_eMixer)?"MIXER":"DECODER"));
+            BDBG_MSG(("  Using DSP idx %d, context %p",
+                      (int)pConnection->pSource->pParent->deviceIndex,
+                      (void*)pConnection->pSource->pParent->deviceContext));
+            *pDspIndex = pConnection->pSource->pParent->deviceIndex;
+            *pDspContext = pConnection->pSource->pParent->deviceContext;
+        }
+    }
+    else
+    {
+        /* look for device index from upstream node */
+        BAPE_MuxOutput_P_GetUpstreamDeviceDetails(BLST_S_FIRST(&pConnection->pSource->pParent->upstreamList), pDspIndex, pDspContext);
+    }
+}
+
 static BERR_Code BAPE_MuxOutput_P_AllocatePathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
 {
     BERR_Code errCode;
-    unsigned output, input;
     BAPE_MuxOutputHandle hMuxOutput;
+    unsigned input, output;
+    BDSP_ContextHandle dspContext = NULL;
+    unsigned dspIndex = BAPE_DEVICE_INVALID;
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
     BDBG_ASSERT(NULL != pConnection->pSource->hStage);
@@ -1443,7 +1628,7 @@ static BERR_Code BAPE_MuxOutput_P_AllocatePathFromInput(struct BAPE_PathNode *pN
     {
         BAPE_EncoderHandle encoder = pConnection->pSource->pParent->pHandle;
         BAPE_EncoderSettings encoderSettings;
-        BAPE_Encoder_GetSettings(encoder,&encoderSettings);
+        BAPE_Encoder_GetSettings(encoder, &encoderSettings);
         switch ( encoderSettings.codec )
         {
         case BAVC_AudioCompressionStd_eAc3:
@@ -1455,26 +1640,38 @@ static BERR_Code BAPE_MuxOutput_P_AllocatePathFromInput(struct BAPE_PathNode *pN
         }
     }
 
+    /* if we found a device context upstream, use it. Else use our default */
+    BAPE_MuxOutput_P_GetUpstreamDeviceDetails(pConnection, &dspIndex, &dspContext);
+    if ( dspContext == NULL || dspIndex == BAPE_DEVICE_INVALID )
+    {
+        dspContext = hMuxOutput->dspContext;
+        dspIndex = hMuxOutput->dspIndex - hMuxOutput->dspIndexBase;
+    }
+
+    if ( dspContext == NULL || dspIndex == BAPE_DEVICE_INVALID )
+    {
+        BDBG_ERR(("Unable to find the device context from parent connection or global device contexts"));
+        return BERR_TRACE(BERR_NOT_INITIALIZED);
+    }
+
+    errCode = BAPE_MuxOutput_P_AllocateStageResources(hMuxOutput, dspContext, dspIndex);
+    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
+
+    /* connect input to mux */
     errCode = BDSP_Stage_AddOutputStage(pConnection->pSource->hStage,
                                         BDSP_DataType_eCompressedRaw,
                                         hMuxOutput->hStage,
                                         &output, &input);
-    if ( errCode )
-    {
-        return BERR_TRACE(errCode);
-    }
+    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
 
-    if (!hMuxOutput->createSettings.useRDB)
-    {
-        errCode = BDSP_Stage_AddRaveOutput(hMuxOutput->hStage, hMuxOutput->createSettings.pContextMap, &output);
-        if ( errCode )
-        {
-            return BERR_TRACE(errCode);
-        }
-    }
 
+    errCode = BAPE_MuxOutput_P_ApplyDspSettings(hMuxOutput);
+    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
 
     return BERR_SUCCESS;
+cleanup:
+    BAPE_MuxOutput_P_DestroyStageResources(hMuxOutput);
+    return errCode;
 }
 
 static void BAPE_MuxOutput_P_StopPathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
@@ -1485,7 +1682,10 @@ static void BAPE_MuxOutput_P_StopPathFromInput(struct BAPE_PathNode *pNode, stru
     BSTD_UNUSED(pConnection);
     hMuxOutput = pNode->pHandle;
     BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
-    BDSP_Stage_RemoveAllInputs(hMuxOutput->hStage);
+    if ( hMuxOutput->hStage )
+    {
+        BDSP_Stage_RemoveAllInputs(hMuxOutput->hStage);
+    }
 }
 
 static void BAPE_MuxOutput_P_FreePathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
@@ -2392,6 +2592,34 @@ void BAPE_MuxOutput_Stop(
 {
     BSTD_UNUSED(hMuxOutput);
 }
+
+void BAPE_MuxOutput_GetDefaultSettings(
+    BAPE_MuxOutputSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+void BAPE_MuxOutput_GetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_MuxOutputSettings *pSettings
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pSettings);
+}
+
+
+BERR_Code BAPE_MuxOutput_SetSettings(
+    BAPE_MuxOutputHandle hMuxOutput,
+    const BAPE_MuxOutputSettings *pSettings
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
 
 BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
     BAPE_MuxOutputHandle hMuxOutput,

@@ -537,7 +537,7 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetFilter(NEXUS_SwFilte
     else {
         BLST_S_REMOVE_HEAD(&msg_pst.free_filter, next);
     }
-    
+
     BKNI_Memcpy(f->filt.coefficient, params->filt.coefficient, NEXUS_MESSAGE_FILTER_SIZE);
     BKNI_Memcpy(f->filt.mask, params->filt.mask, NEXUS_MESSAGE_FILTER_SIZE);
     BKNI_Memcpy(f->filt.exclusion, params->filt.exclusion, NEXUS_MESSAGE_FILTER_SIZE);
@@ -794,7 +794,6 @@ void NEXUS_SwFilter_Msg_P_CopyPesData(struct NEXUS_SwFilter_FilterState *filter,
 bdemux_pes_result
 NEXUS_SwFilter_Msg_P_bdemux_parse_pes_hdr(struct NEXUS_SwFilter_FilterState *filter, const uint8_t *pes_header, size_t len)
 {
-    uint32_t pts=0;
     unsigned flags = 0;
     bdemux_pes * pes = &(filter->pes);
 
@@ -815,6 +814,7 @@ NEXUS_SwFilter_Msg_P_bdemux_parse_pes_hdr(struct NEXUS_SwFilter_FilterState *fil
         flags = BDEMUX_PES_DATA_ALIGMENT;
     }
     if (B_GET_BITS(pes_header[7], 7, 6) & 2) {
+        uint32_t pts;
         if (len<14) {
             return bdemux_pes_result_more;
         }
@@ -825,6 +825,7 @@ NEXUS_SwFilter_Msg_P_bdemux_parse_pes_hdr(struct NEXUS_SwFilter_FilterState *fil
          /* pts_14_7 */((uint32_t)pes_header[12]<<6) |
          /* pts_6_0 */B_GET_BITS(pes_header[13], 7, 2);
         flags |= BDEMUX_PES_PTS;
+        BSTD_UNUSED(pts);
     }
     pes->pes_packets++;
     pes->pkt_data_offset = 9+pes_header[8]; /* PES_header_data_length */
@@ -1184,10 +1185,9 @@ static void NEXUS_SwFilter_Msg_P_ParseDssPacket(const uint8_t *buf, ts_packet_t 
 
 void NEXUS_SwFilter_Msg_P_ProcessDssPacket(ts_packet_t * packet, struct ts_pid * pid_state, unsigned pkt_cnt ) {
     uint8_t * current_pos;
-    uint8_t * pBuffer;
     void * new_buffer;
 
-
+    BSTD_UNUSED(pkt_cnt);
 
     if ( pid_state->matched_filter && pid_state->matched_filter->dssMessageType != NEXUS_DssMessageType_eAuxOnlyPackets ) {
         /* check continuity for non Aux pkts */
@@ -1223,8 +1223,6 @@ void NEXUS_SwFilter_Msg_P_ProcessDssPacket(ts_packet_t * packet, struct ts_pid *
         goto ExitFunc;
     }
 
-
-    pBuffer = (uint8_t * )(pid_state->matched_filter->buffer);
     current_pos = (uint8_t *)packet->p_data_byte;
     pid_state->matched_filter = NULL;   /* reset every packet, if have matched filter, let it be reset */
     NEXUS_SwFilter_Msg_P_MatchFilters(current_pos, pid_state);
@@ -1235,7 +1233,7 @@ void NEXUS_SwFilter_Msg_P_ProcessDssPacket(ts_packet_t * packet, struct ts_pid *
             BKNI_Memcpy(pid_state->matched_filter->buffer, current_pos, DSS_PAYLOAD_SIZE );
         }
         else {
-            pBuffer =(uint8_t * )(pid_state->matched_filter->buffer)+(pkt_cnt%4)*DSS_PAYLOAD_SIZE;
+            uint8_t * pBuffer =(uint8_t * )(pid_state->matched_filter->buffer)+(pkt_cnt%4)*DSS_PAYLOAD_SIZE;
             BKNI_Memcpy( pBuffer, current_pos, DSS_PAYLOAD_SIZE );
         }
     }

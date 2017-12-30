@@ -67,6 +67,7 @@ static BERR_Code BSPI_P_WriteAll(void *context, const uint8_t *pWriteData, size_
 static BERR_Code BSPI_P_Write(void *context, const uint8_t *pWriteData, size_t length);
 static BERR_Code BSPI_P_Read(void *context, const uint8_t *pWriteData, uint8_t *pReadData, size_t length);
 static BERR_Code BSPI_P_ReadAll(void *context, const uint8_t *pWriteData, size_t writeLength, uint8_t *pReadData, size_t readLength);
+static BERR_Code BSPI_P_SetSlaveSelect(void *context, bool bEnable);
 
 #define SPI_REG(x)              BCHP_MSPI_##x
 
@@ -164,19 +165,12 @@ typedef struct BSPI_P_ChannelHandle
     uint8_t             clkConfig;
     bool                intMode;
     uint8_t             bitsPerTxfr;
-    bool                continueAfterCommand;       /* Continue after command flag */
     bool                useUserDtlAndDsclk;         /* Use User specified DTL and DSCLK */
     BSPI_AssertSSFunc   assertSSFunc;               /* function to assert SS */
     BSPI_DeassertSSFunc deassertSSFunc;             /* function to deassert SS */
+    bool                continueSlaveSelect;        /* Continue/discontinue asserting the slave select after data transfer.*/
 } BSPI_P_ChannelHandle;
 
-
-
-/*******************************************************************************
-*
-*   Default Module Settings
-*
-*******************************************************************************/
 static void BSPI_P_ACQUIRE_UPG_MUTEX(BSPI_ChannelHandle hChn )
 {
     BSPI_Handle hDev;
@@ -352,6 +346,7 @@ BERR_Code BSPI_GetChannelDefaultSettings(
 	pChnDefSettings->bitsPerTxfr = 8;
 	pChnDefSettings->useUserDtlAndDsclk = false;
 	pChnDefSettings->spiCore = BSPI_SpiCore_Upg;
+	pChnDefSettings->continueSlaveSelect = false;
 
 done:
     return( retCode );
@@ -381,6 +376,7 @@ BERR_Code BSPI_GetChannelDefaultSettings_Ext(
 	pChnDefSettings->bitsPerTxfr = 8;
 	pChnDefSettings->useUserDtlAndDsclk = false;
 	pChnDefSettings->spiCore = BSPI_SpiCore_Upg;
+	pChnDefSettings->continueSlaveSelect = false;
 
 done:
     return( retCode );
@@ -454,6 +450,7 @@ BERR_Code BSPI_OpenChannel(
             hChnDev->clkConfig  = pChnDefSettings->clkConfig;
             hChnDev->bitsPerTxfr = pChnDefSettings->bitsPerTxfr;
             hChnDev->useUserDtlAndDsclk = pChnDefSettings->useUserDtlAndDsclk;
+            hChnDev->continueSlaveSelect = pChnDefSettings->continueSlaveSelect;
             hChnDev->chnNo = channelNo;
 
             hChnDev->assertSSFunc = NULL;
@@ -491,6 +488,11 @@ BERR_Code BSPI_OpenChannel(
                     goto done;
                 }
 
+                retCode = BINT_ClearCallback(hChnDev->hChnCallback);
+                if (retCode) {
+                    retCode = BERR_TRACE(retCode);
+                    goto done;
+                }
                 retCode = BINT_EnableCallback(hChnDev->hChnCallback);
                 if (retCode) {
                     retCode = BERR_TRACE(retCode);
@@ -600,6 +602,7 @@ BERR_Code BSPI_CreateSpiRegHandle(
     }
 
     (*pSpiReg)->context                                  = (void *)hChn;
+    (*pSpiReg)->BREG_SPI_Set_Slave_Select_Func           = BSPI_P_SetSlaveSelect;
     (*pSpiReg)->BREG_SPI_Get_Bits_Per_Transfer_Func      = BSPI_P_GetBitsPerTransfer;
     (*pSpiReg)->BREG_SPI_Multiple_Write_Func             = BSPI_P_Multiple_Write;
     (*pSpiReg)->BREG_SPI_Write_All_Func                  = BSPI_P_WriteAll;
@@ -820,16 +823,6 @@ void BSPI_RegisterSSFunctions (
     hChn->deassertSSFunc = deassertFunc;
 }
 
-void BSPI_SetLastByteContinueEnable(
-    BSPI_ChannelHandle hChn,
-    bool bEnable
-)
-{
-	BSTD_UNUSED(bEnable);
-	BSTD_UNUSED(hChn);
-	BDBG_WRN(("This api is deprecated. Use BREG_SPI_SetContinueAfterCommand() instead."));
-}
-
 void  BSPI_GetDelay(
     BSPI_ChannelHandle hChn,         /* Device channel handle */
     BSPI_Delay *pDelay               /* pointer to DTLConfig */
@@ -959,6 +952,65 @@ done:
     return( retCode );
 }
 
+void BSPI_ContinueSlaveSelect(
+    BSPI_ChannelHandle hChn,              /* Device channel handle */
+    bool bEnable
+)
+{
+    BDBG_OBJECT_ASSERT( hChn, BSPI_P_ChannelHandle );
+
+    hChn->continueSlaveSelect = bEnable;
+}
+
+void BSPI_SetLastByteContinueEnable(
+    BSPI_ChannelHandle hChn,
+    bool bEnable
+)
+{
+	BSTD_UNUSED(bEnable);
+	BSTD_UNUSED(hChn);
+	BDBG_WRN(("This api is deprecated."));
+}
+
+/*******************************************************************************
+*
+*   Private Module Functions
+*
+*******************************************************************************/
+
+BERR_Code BSPI_P_SetSlaveSelect(
+    void *context,              /* Device channel handle */
+    bool bEnable
+)
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    BSPI_Handle         hDev;
+    BSPI_ChannelHandle  hChn;
+    uint32_t            lval = 0;
+
+    hChn = (BSPI_ChannelHandle)context;
+    BDBG_OBJECT_ASSERT( hChn, BSPI_P_ChannelHandle );
+
+    hDev = hChn->hSpi;
+    BSPI_P_ACQUIRE_UPG_MUTEX( hChn );
+
+    hChn->continueSlaveSelect = bEnable;
+
+    /* Set cont_after_cmd bit. */
+    lval = BREG_Read32( hDev->hRegister, (hChn->coreOffset + SPI_REG(SPCR2)));
+    if(bEnable){
+        lval |= 0x80;
+    }
+    else{
+        lval &= 0x7f;
+    }
+    BREG_Write32( hDev->hRegister, (hChn->coreOffset + SPI_REG(SPCR2)), lval);
+
+    BSPI_P_RELEASE_UPG_MUTEX( hChn );
+
+	return retCode;
+}
+
 static BERR_Code BSPI_P_Start(
     BSPI_ChannelHandle hChn         /* Device channel handle */
     )
@@ -976,7 +1028,7 @@ static BERR_Code BSPI_P_Start(
     lval |= SPI_REG(SPCR2_spe_MASK);
 
 #if defined(BCHP_MSPI_SPCR2_cont_after_cmd_MASK)
-	if(hChn->continueAfterCommand) {
+	if(hChn->continueSlaveSelect) {
         lval |= SPI_REG(SPCR2_cont_after_cmd_MASK);
 	}
 	else {
@@ -988,29 +1040,6 @@ static BERR_Code BSPI_P_Start(
     return( retCode );
 }
 
-static void BSPI_P_SetContinueAfterCommand(
-    void *context,              /* Device channel handle */
-    bool bEnable
-)
-{
-    BSPI_ChannelHandle  hChn;
-
-    hChn = (BSPI_ChannelHandle)context;
-    BDBG_OBJECT_ASSERT( hChn, BSPI_P_ChannelHandle );
-
-    if (bEnable == hChn->continueAfterCommand) {
-        BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    hChn->continueAfterCommand = bEnable;
-}
-
-
-/*******************************************************************************
-*
-*   Private Module Functions
-*
-*******************************************************************************/
 void BSPI_P_GetBitsPerTransfer
 (
     void *context,             /* Device channel handle */
@@ -1080,10 +1109,6 @@ BERR_Code BSPI_P_ReadAll
 
         if(i == (readLength+writeLength-1))
         {
-            /* Skip for slower SPI device  */
-            if( 0){
-                BREG_Write32( hDev->hRegister, (hChn->coreOffset + SPI_REG(CDRAM00) + (count * 4)), lval_stop );
-            }
             BREG_Write32( hDev->hRegister, (hChn->coreOffset + SPI_REG(NEWQP)), 0 );
             BREG_Write32( hDev->hRegister, (hChn->coreOffset + SPI_REG(ENDQP)), count );
 
@@ -1091,12 +1116,12 @@ BERR_Code BSPI_P_ReadAll
             /* Wait for SPI to finish */
             BSPI_CHK_RETCODE( retCode, BSPI_P_WaitForCompletion(hChn, MAX_SPI_XFER));
 
-            if(i>=writeLength){
-                for (k=0; k<=count; k++)
-                {
-                    lval = BREG_Read32( hDev->hRegister, (hChn->coreOffset + SPI_REG(RXRAM00) + (k * 8) + 4));
-                    /* j is unsigned and hence pReadData[j++ - writeLength] overwritten till j >= writelength */
-                    pReadData[j++ - writeLength] = (uint8_t)lval;
+            if(i>=writeLength) {
+                for (k=0; k<=count; k++, j++) {
+                    if((signed)(j - writeLength) >= 0) {
+                        lval = BREG_Read32( hDev->hRegister, (hChn->coreOffset + SPI_REG(RXRAM00) + (k * 8) + 4));
+                        pReadData[j - writeLength] = (uint8_t)lval;
+                    }
                 }
             }
             break;
@@ -1111,11 +1136,12 @@ BERR_Code BSPI_P_ReadAll
             BSPI_CHK_RETCODE( retCode, BSPI_P_WaitForCompletion(hChn, MAX_SPI_XFER));
 
             if(i>=writeLength){
-                for (k=0; k<=count; k++)
+                for (k=0; k<=count; k++, j++)
                 {
-                    lval = BREG_Read32( hDev->hRegister, (hChn->coreOffset + SPI_REG(RXRAM00) + (k * 8) + 4));
-                    /* j is unsigned and hence pReadData[j++ - writeLength] overwritten till j >= writelength */
-                    pReadData[j++ - writeLength] = (uint8_t)lval;
+                    if((signed)(j - writeLength) >= 0) {
+                        lval = BREG_Read32( hDev->hRegister, (hChn->coreOffset + SPI_REG(RXRAM00) + (k * 8) + 4));
+                        pReadData[j - writeLength] = (uint8_t)lval;
+                    }
                 }
             }
         }
@@ -1400,11 +1426,11 @@ BERR_Code BSPI_P_Multiple_Write
         goto done;
     }
 
-    BSPI_P_SetContinueAfterCommand(context , true);
+    BSPI_ContinueSlaveSelect(context , true);
 
     for(i=0; i < count; i++){
         if(i == (count - 1))
-            BSPI_P_SetContinueAfterCommand(context , false);
+            BSPI_ContinueSlaveSelect(context , false);
 
         BSPI_CHK_RETCODE( retCode, BSPI_P_WriteAll(context, tempData->data, (size_t)tempData->length));
         tempData++;
@@ -1440,8 +1466,8 @@ BERR_Code BSPI_P_WriteAll
         (*(hChn->assertSSFunc)) ();
     }
 
-    if((hChn->continueAfterCommand == false) && (length > MAX_SPI_XFER)) {
-        hChn->continueAfterCommand = true;
+    if((hChn->continueSlaveSelect == false) && (length > MAX_SPI_XFER)) {
+        hChn->continueSlaveSelect = true;
 		internal = true;
     }
 
@@ -1468,7 +1494,7 @@ BERR_Code BSPI_P_WriteAll
             BREG_Write32( hDev->hRegister, (hChn->coreOffset + SPI_REG(ENDQP)), count );
 
             if(internal) {
-                hChn->continueAfterCommand = false;
+                hChn->continueSlaveSelect = false;
             }
 
             BSPI_P_Start(hChn);
@@ -1826,9 +1852,11 @@ void BSPI_P_HandleInterrupt_Isr
 
     /* Clear interrupt */
     lval = BREG_Read32(hDev->hRegister, (hChn->coreOffset + SPI_REG(MSPI_STATUS)));
-    lval &= ~SPI_REG(MSPI_STATUS_SPIF_MASK);
-    BREG_Write32(hDev->hRegister, (hChn->coreOffset + SPI_REG(MSPI_STATUS)), lval);
+    if (lval & SPI_REG(MSPI_STATUS_SPIF_MASK)) {
+        lval &= ~SPI_REG(MSPI_STATUS_SPIF_MASK);
+        BREG_Write32(hDev->hRegister, (hChn->coreOffset + SPI_REG(MSPI_STATUS)), lval);
 
-    BKNI_SetEvent( hChn->hChnEvent );
+        BKNI_SetEvent( hChn->hChnEvent );
+    }
     return;
 }

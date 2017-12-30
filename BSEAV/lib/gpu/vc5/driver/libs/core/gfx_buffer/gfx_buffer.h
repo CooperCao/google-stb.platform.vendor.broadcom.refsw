@@ -63,10 +63,33 @@ extern void gfx_buffer_mip_dims(
 
 #define GFX_BUFFER_MAX_PLANES 3
 
+// These match the NEXUS_MatrixCoefficients enums from which the
+// actual color matrices are ultimately determined in the VDC
+typedef enum
+{
+   GFX_BUFFER_COLORIMETRY_DEFAULT,
+   GFX_BUFFER_COLORIMETRY_BT_709,
+   GFX_BUFFER_COLORIMETRY_UNKNOWN,
+   GFX_BUFFER_COLORIMETRY_DVI_FULL_RANGE_RGB,
+   GFX_BUFFER_COLORIMETRY_FCC,
+   GFX_BUFFER_COLORIMETRY_BT_470_2_BG,
+   GFX_BUFFER_COLORIMETRY_SMPTE_170M,
+   GFX_BUFFER_COLORIMETRY_SMPTE_240M,
+   GFX_BUFFER_COLORIMETRY_XVYCC_709,
+   GFX_BUFFER_COLORIMETRY_XVYCC_601,
+   GFX_BUFFER_COLORIMETRY_BT_2020_NCL,
+   GFX_BUFFER_COLORIMETRY_BT_2020_CL,
+   GFX_BUFFER_COLORIMETRY_HDMI_FULL_RANGE_YCBCR
+} gfx_buffer_colorimetry_t;
+
 typedef struct {
    GFX_LFMT_T lfmt;
 
-   /* offset from base pointer to start of memory for plane, in bytes */
+   // Index of region containing this plane
+   // TODO Support for multiple regions is currently quite sparse
+   unsigned region;
+
+   // Offset from region base pointer to start of memory for plane, in bytes
    uint32_t offset;
 
    uint32_t pitch, slice_pitch;
@@ -74,6 +97,7 @@ typedef struct {
 
 typedef struct {
    uint32_t width, height, depth, num_planes;
+   gfx_buffer_colorimetry_t colorimetry;
    GFX_BUFFER_DESC_PLANE_T planes[GFX_BUFFER_MAX_PLANES];
 } GFX_BUFFER_DESC_T;
 
@@ -90,30 +114,20 @@ static inline void gfx_buffer_desc_base_details(
    }
 }
 
-/* Adjust base_addr & desc so that the smallest offset in desc is 0 */
-extern void gfx_buffer_desc_rebase(
-   uintptr_t *base_addr, GFX_BUFFER_DESC_T *desc);
-
-extern bool gfx_buffer_equal(const GFX_BUFFER_DESC_T *lhs,
-   const GFX_BUFFER_DESC_T *rhs);
-
-extern bool gfx_buffer_equal_permit_diff_fmt(const GFX_BUFFER_DESC_T *lhs,
-   const GFX_BUFFER_DESC_T *rhs);
-
 extern bool gfx_buffer_equal_with_bases(
-   uintptr_t base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
-   uintptr_t base_addr_rhs, const GFX_BUFFER_DESC_T *rhs);
+   const uint64_t *base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
+   const uint64_t *base_addr_rhs, const GFX_BUFFER_DESC_T *rhs);
 
 extern bool gfx_buffer_equal_with_bases_permit_diff_fmt(
-   uintptr_t base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
-   uintptr_t base_addr_rhs, const GFX_BUFFER_DESC_T *rhs);
+   const uint64_t *base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
+   const uint64_t *base_addr_rhs, const GFX_BUFFER_DESC_T *rhs);
 
 /* desc_2d must be a 2D buffer. desc_3d must be a 3D buffer. Returns true iff
  * desc_2d is equal to a slice within desc_3d (formats are only required to
  * have the same block dims & size; they may be different otherwise). */
 extern bool gfx_buffer_equal_slice_with_bases_permit_diff_fmt(
-   uintptr_t base_addr_2d, const GFX_BUFFER_DESC_T *desc_2d,
-   uintptr_t base_addr_3d, const GFX_BUFFER_DESC_T *desc_3d);
+   uint64_t base_addr_2d, const GFX_BUFFER_DESC_T *desc_2d,
+   uint64_t base_addr_3d, const GFX_BUFFER_DESC_T *desc_3d);
 
 /* Returns number of dimensions (2 for 2D, 3 for 3D, etc) */
 extern uint32_t gfx_buffer_dims(const GFX_BUFFER_DESC_T *desc);
@@ -288,6 +302,14 @@ static inline bool gfx_buffer_any_float_depth(const GFX_BUFFER_DESC_T *desc)
       if (gfx_lfmt_depth_type(desc->planes[i].lfmt) == GFX_LFMT_TYPE_FLOAT)
          return true;
    return false;
+}
+
+static inline bool gfx_buffer_single_region(const GFX_BUFFER_DESC_T *desc)
+{
+   for (unsigned i = 0; i != desc->num_planes; ++i)
+      if (desc->planes[i].region != 0)
+         return false;
+   return true;
 }
 
 EXTERN_C_END

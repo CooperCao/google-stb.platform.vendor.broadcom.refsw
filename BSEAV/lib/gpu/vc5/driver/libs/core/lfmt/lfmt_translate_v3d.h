@@ -25,8 +25,8 @@ extern GFX_LFMT_T gfx_lfmt_translate_from_tfu_oformat(
 
 /** TLB pixel format */
 
-#if V3D_HAS_TLB_SWIZZLE
-/* These only pay attention to format, ignoring premultipliedness */
+#if V3D_VER_AT_LEAST(4,1,34,0)
+/* These only pay attention to format */
 extern bool gfx_lfmt_maybe_translate_pixel_format(GFX_LFMT_T lfmt, v3d_pixel_format_t *pf, bool *reverse, bool *rb_swap);
 extern void gfx_lfmt_translate_pixel_format(GFX_LFMT_T lfmt, v3d_pixel_format_t *pf, bool *reverse, bool *rb_swap);
 
@@ -50,7 +50,7 @@ static inline GFX_LFMT_T gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
 }
 
 #else
-/* These only pay attention to format, ignoring premultipliedness */
+/* These only pay attention to format */
 extern v3d_pixel_format_t gfx_lfmt_maybe_translate_pixel_format(GFX_LFMT_T lfmt);
 extern v3d_pixel_format_t gfx_lfmt_translate_pixel_format(GFX_LFMT_T lfmt);
 
@@ -149,7 +149,7 @@ typedef struct
    v3d_tmu_swizzle_t swizzles[4];
 } GFX_LFMT_TMU_TRANSLATION_T;
 
-/* These only pay attention to format, ignoring premultipliedness.
+/* These only pay attention to format.
  * false is returned on failure. */
 extern bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
    GFX_LFMT_T lfmt

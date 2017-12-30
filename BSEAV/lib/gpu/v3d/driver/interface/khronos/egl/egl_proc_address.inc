@@ -347,6 +347,13 @@ CASE(eglChoosePerfCountersBRCM, 0xca4c1037);
 CASE(eglGetPerfCounterDataBRCM, 0x6c3ee535);
 #endif /* EGL_BRCM_performance_counters*/
 
+// EGL_EXT_client_extensions
+
+// EGL_EXT_platform_base
+CASE(eglGetPlatformDisplayEXT, 0xc01035ae);
+CASE(eglCreatePlatformWindowSurfaceEXT, 0x026bc216);
+CASE(eglCreatePlatformPixmapSurfaceEXT, 0x470711cd);
+
 // GL_EXT_debug_marker
 CASE(glInsertEventMarkerEXT, 0xf49e1fd5);
 CASE(glPushGroupMarkerEXT, 0x666828ef);

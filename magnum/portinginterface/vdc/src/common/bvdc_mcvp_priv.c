@@ -988,10 +988,16 @@ static void BVDC_P_Mcvp_BuildRul_DrainVnet_isr
     BDBG_OBJECT_ASSERT(hMcvp, BVDC_MVP);
 #if (BVDC_P_SUPPORT_MCVP_VER > BVDC_P_MCVP_VER_3)
     BVDC_P_SubRul_Drain_isr(&(hMcvp->SubRul), pList,
+    #if BVDC_P_NO_MADR_SWINIT /* CRBVN-496 */
+        0, 0,
+        bNoCoreReset? 0 : hMcvp->ulVnetResetAddr,
+        bNoCoreReset? 0 : hMcvp->ulVnetResetMask);
+    #else
         bNoCoreReset? 0 : hMcvp->ulCoreResetAddr,
         bNoCoreReset? 0 : hMcvp->ulCoreResetMask,
         bNoCoreReset? 0 : hMcvp->ulVnetResetAddr,
         bNoCoreReset? 0 : hMcvp->ulVnetResetMask);
+    #endif
 #else
     BVDC_P_SubRul_Drain_isr(&(hMcvp->SubRul), pList,
         hMcvp->ulCoreResetAddr, hMcvp->ulCoreResetMask,

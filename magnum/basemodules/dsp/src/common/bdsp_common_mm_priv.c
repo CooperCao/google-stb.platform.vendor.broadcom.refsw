@@ -155,44 +155,6 @@ BERR_Code BDSP_MMA_P_CopyDataFromDram_isr(
     return ret;
 }
 
-BERR_Code BDSP_MMA_P_MemWrite64(
-    BDSP_MMA_Memory  *dest,
-    uint64_t data
-    )
-{
-	BERR_Code ret = BERR_SUCCESS;
-	ret =  BDSP_MMA_P_CopyDataToDram(dest, (void *)&data, 8);
-	return ret;
-}
-
-BERR_Code BDSP_MMA_P_MemWrite64_isr(
-    BDSP_MMA_Memory    *dest,
-    uint64_t    data
-    )
-{
-	BERR_Code ret = BERR_SUCCESS;
-	ret = BDSP_MMA_P_CopyDataToDram_isr(dest, (void *)&data, 8);
-	return ret;
-}
-
-uint64_t BDSP_MMA_P_MemRead64(
-     BDSP_MMA_Memory  *src
-    )
-{
-    uint64_t ui64ValRead;
-    BDSP_MMA_P_CopyDataFromDram((void *)&ui64ValRead, src, 8);
-    return ui64ValRead;
-}
-
-uint64_t BDSP_MMA_P_MemRead64_isr(
-     BDSP_MMA_Memory  *src
-    )
-{
-    uint64_t ui64ValRead;
-    BDSP_MMA_P_CopyDataFromDram_isr((void *)&ui64ValRead, src, 8);
-    return ui64ValRead;
-}
-
 BERR_Code BDSP_MMA_P_MemWrite32(
     BDSP_MMA_Memory  *dest,
     uint32_t data

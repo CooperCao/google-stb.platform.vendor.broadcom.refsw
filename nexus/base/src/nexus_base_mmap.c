@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,17 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_base.h"
 #include "nexus_base_mmap.h"
@@ -160,7 +149,13 @@ NEXUS_AddrToOffset(const void *addr)
             return map[i].offset + ((uint8_t *)addr - (uint8_t *)map[i].uncached);
         }
     }
-    BDBG_WRN(("NEXUS_AddrToOffset: unknown address %#lx", (unsigned long)addr));
+    BDBG_WRN(("NEXUS_AddrToOffset: unknown address %p", addr));
+    for(i=0;i<sizeof(g_NEXUS_P_MemoryMap)/sizeof(*g_NEXUS_P_MemoryMap);i++) {
+        if(map[i].length==0) {
+            break;
+        }
+        BDBG_LOG(("%u: %p -> %p[%p]:%u", i, addr, map[i].cached, map[i].uncached, (unsigned)map[i].length));
+    }
     return 0;
 }
 

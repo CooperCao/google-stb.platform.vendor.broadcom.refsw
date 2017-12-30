@@ -28,7 +28,7 @@ static inline unsigned v3d_tmu_nearest_mip_level(uint32_t lod)
    return level;
 }
 
-#if V3D_HAS_SEP_ANISO_CFG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static inline v3d_max_aniso_t v3d_tmu_translate_max_aniso(float max_aniso)
 {
    if (max_aniso > 8.0f)
@@ -49,6 +49,33 @@ static inline v3d_tmu_filters_t v3d_tmu_filters_anisotropic(float max_aniso)
    if (max_aniso > 2.0f)
       return V3D_TMU_FILTERS_ANISOTROPIC4;
    return V3D_TMU_FILTERS_ANISOTROPIC2;
+}
+static inline bool v3d_tmu_filters_is_anisotropic(v3d_tmu_filters_t filters)
+{
+   switch(filters)
+   {
+   case V3D_TMU_FILTERS_MIN_LIN_MAG_LIN:
+   case V3D_TMU_FILTERS_MIN_LIN_MAG_NEAR:
+   case V3D_TMU_FILTERS_MIN_NEAR_MAG_LIN:
+   case V3D_TMU_FILTERS_MIN_NEAR_MAG_NEAR:
+   case V3D_TMU_FILTERS_MIN_NEAR_MIP_NEAR_MAG_LIN:
+   case V3D_TMU_FILTERS_MIN_NEAR_MIP_NEAR_MAG_NEAR:
+   case V3D_TMU_FILTERS_MIN_NEAR_MIP_LIN_MAG_LIN:
+   case V3D_TMU_FILTERS_MIN_NEAR_MIP_LIN_MAG_NEAR:
+   case V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_LIN:
+   case V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_NEAR:
+   case V3D_TMU_FILTERS_MIN_LIN_MIP_LIN_MAG_LIN:
+   case V3D_TMU_FILTERS_MIN_LIN_MIP_LIN_MAG_NEAR:
+      return false;
+
+   case V3D_TMU_FILTERS_ANISOTROPIC2:
+   case V3D_TMU_FILTERS_ANISOTROPIC4:
+   case V3D_TMU_FILTERS_ANISOTROPIC8:
+   case V3D_TMU_FILTERS_ANISOTROPIC16:
+      return true;
+
+   default: unreachable();
+   }
 }
 #endif
 
@@ -147,9 +174,17 @@ extern uint32_t v3d_tmu_get_word_read_default(
 
 #endif
 
+typedef enum
+{
+   V3D_TMU_OP_CLASS_REGULAR,
+   V3D_TMU_OP_CLASS_ATOMIC,
+   V3D_TMU_OP_CLASS_CACHE
+} v3d_tmu_op_class_t;
+
 /* Get the maximum number of words that can be returned by the TMU with the
  * specified configuration */
-extern uint32_t v3d_tmu_get_word_read_max(v3d_tmu_type_t type, bool gather, bool output_32);
+extern uint32_t v3d_tmu_get_word_read_max(v3d_tmu_op_class_t op, bool is_write,
+   v3d_tmu_type_t type, bool gather, bool output_32);
 
 extern bool v3d_tmu_type_supports_srgb(v3d_tmu_type_t type);
 
@@ -161,10 +196,10 @@ extern void v3d_tmu_calc_mip_levels(GFX_BUFFER_DESC_T *mip_levels,
 
 typedef enum
 {
-   V3D_TMU_OP_CLASS_REGULAR,
-   V3D_TMU_OP_CLASS_ATOMIC,
-   V3D_TMU_OP_CLASS_CACHE
-} v3d_tmu_op_class_t;
+   V3D_TMU_WRESP_TYPE_NONE,
+   V3D_TMU_WRESP_TYPE_WRITE,
+   V3D_TMU_WRESP_TYPE_CACHE,
+} v3d_tmu_wresp_type_t;
 
 struct v3d_tmu_cfg
 {
@@ -194,7 +229,7 @@ struct v3d_tmu_cfg
    int32_t tex_off_t;
    int32_t tex_off_r;
    v3d_tmu_op_t op; /* General too */
-#if V3D_HAS_TMU_LOD_QUERY
+#if V3D_VER_AT_LEAST(4,2,13,0)
    bool lod_query;
 #endif
 
@@ -287,7 +322,7 @@ extern void v3d_tmu_cfg_collect_general(struct v3d_tmu_cfg *cfg,
    const struct v3d_tmu_reg_flags *written,
    const V3D_TMU_GENERAL_CONFIG_T *general_cfg);
 
-#if V3D_HAS_LARGE_1D_TEXTURE
+#if V3D_VER_AT_LEAST(4,1,34,0)
 extern void v3d_tmu_get_wh_for_1d_tex_state(uint32_t *w, uint32_t *h,
       uint32_t width_in);
 #endif

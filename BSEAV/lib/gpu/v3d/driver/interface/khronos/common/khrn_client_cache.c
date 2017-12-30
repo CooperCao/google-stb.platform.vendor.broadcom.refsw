@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Cache
-
-FILE DESCRIPTION
-Implements the client end of the attribute cache.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "interface/khronos/common/khrn_client_cache.h"
@@ -26,8 +18,8 @@ Implements the client end of the attribute cache.
 
 static void link_insert(CACHE_LINK_T *link, CACHE_LINK_T *prev, CACHE_LINK_T *next)
 {
-   vcos_assert(prev->next == next);
-   vcos_assert(next->prev == prev);
+   assert(prev->next == next);
+   assert(next->prev == prev);
 
    link->prev = prev;
    link->next = next;
@@ -160,8 +152,8 @@ int khrn_cache_init(KHRN_CACHE_T *cache)
 
 void khrn_cache_term(KHRN_CACHE_T *cache)
 {
-   khrn_platform_free(cache->tree);
-   khrn_platform_free(cache->data);
+   free(cache->tree);
+   free(cache->data);
 
    khrn_pointer_map_term(&cache->map);
 
@@ -254,12 +246,12 @@ static int grow(KHRN_CACHE_T *cache)
          return 0;
    }
 
-   tree = (uint8_t *)khrn_platform_malloc(1 << (cache->client_depth + 1), "KHRN_CACHE_T.tree");
-   data = (uint8_t *)khrn_platform_malloc(1 << (cache->client_depth + CACHE_LOG2_BLOCK_SIZE), "KHRN_CACHE_T.data");
+   tree = (uint8_t *)malloc(1 << (cache->client_depth + 1));
+   data = (uint8_t *)malloc(1 << (cache->client_depth + CACHE_LOG2_BLOCK_SIZE));
 
    if (!tree || !data) {
-      khrn_platform_free(tree);
-      khrn_platform_free(data);
+      free(tree);
+      free(data);
       return 0;
    }
 
@@ -322,8 +314,8 @@ static int grow(KHRN_CACHE_T *cache)
       free old blocks, update structure
    */
 
-   khrn_platform_free(cache->tree);
-   khrn_platform_free(cache->data);
+   free(cache->tree);
+   free(cache->data);
 
    cache->tree = tree;
    cache->data = data;

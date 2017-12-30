@@ -16,6 +16,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 V3D_DRIVER_TOP := $(BSEAV_TOP)/lib/gpu/v3d
 LOCAL_PATH := $(V3D_DRIVER_TOP)
+LOCAL_PATH := $(subst ${ANDROID}/,,$(LOCAL_PATH))
 
 LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/driver \
@@ -23,10 +24,8 @@ LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/driver/interface/vcos/pthreads \
 	$(V3D_DRIVER_TOP)/driver/interface/vcos/generic \
 	$(BSEAV_TOP)/lib/gpu/vc5/tools/gpumon_hook \
-	$(V3D_DRIVER_TOP)/platform/default_android \
 	$(V3D_DRIVER_TOP)/platform/android \
-	$(V3D_DRIVER_TOP)/platform/nexus \
-	$(ANDROID_TOP)/frameworks/native/libs/arect/include
+	$(V3D_DRIVER_TOP)/platform/nexus
 
 LOCAL_CFLAGS := \
 	-fpic -DPIC \
@@ -39,7 +38,6 @@ LOCAL_CFLAGS := \
 	-DMUST_SET_ALPHA \
 	-DREMOTE_API_LOGGING \
 	-DTIMELINE_EVENT_LOGGING \
-	-DBCG_VC4_FAST_ATOMICS \
 	-DBCG_MULTI_THREADED \
 	-D_XOPEN_SOURCE=600 \
 	-D_GNU_SOURCE \
@@ -49,6 +47,7 @@ LOCAL_CFLAGS := \
 	-DNO_OPENVG
 
 LOCAL_CFLAGS += ${V3D_ANDROID_DEFINES}
+LOCAL_CPPFLAGS += -std=c++11
 LOCAL_LDFLAGS := ${V3D_ANDROID_LD}
 
 PROFILING = 0
@@ -160,7 +159,6 @@ LOCAL_SRC_FILES := \
 	driver/middleware/khronos/common/2708/khrn_image_4.c \
 	driver/middleware/khronos/common/2708/khrn_hw_4.c \
 	driver/middleware/khronos/common/2708/khrn_fmem_4.c \
-	driver/middleware/khronos/common/2708/khrn_copy_buffer_4.c \
 	driver/middleware/khronos/common/2708/khrn_prod_4.c \
 	driver/middleware/khronos/common/2708/khrn_tfconvert_4.c \
 	driver/middleware/khronos/common/khrn_tformat.c \
@@ -174,9 +172,9 @@ LOCAL_SRC_FILES := \
 	driver/middleware/khronos/common/khrn_color.c \
 	driver/middleware/khronos/common/khrn_bf_dummy.c \
 	driver/middleware/khronos/common/khrn_workarounds.c \
+	driver/middleware/khronos/common/khrn_debug_helper.cpp \
 	driver/middleware/khronos/egl/abstract_server/egl_platform_abstractserver.c \
 	driver/middleware/khronos/egl/abstract_server/egl_platform_abstractpixmap.c \
-	driver/middleware/khronos/egl/egl_disp.c \
 	driver/middleware/khronos/egl/egl_server.c \
 	driver/middleware/khronos/ext/gl_oes_query_matrix.c \
 	driver/middleware/khronos/ext/gl_oes_egl_image.c \
@@ -257,9 +255,9 @@ LOCAL_SRC_FILES := \
 	driver/interface/vcos/android/vcos_log.c \
 	driver/android_platform_library_loader.c \
 	platform/android/default_RSO_android.c \
-	platform/android/display_RSO_android.c \
+	platform/android/display_RSO_android.cpp \
 	platform/common/memory_nexus.c \
-	platform/common/hardware_nexus.c \
+	platform/common/hardware_nexus.cpp \
 	platform/common/packet_rgba.c \
 	platform/common/packet_yv12.c \
 	platform/common/autoclif.c
@@ -276,8 +274,11 @@ intermediates := $(call local-intermediates-dir)
 LOCAL_SRC_FILES := $(filter-out $(GENERATED_SRC_FILES), $(LOCAL_SRC_FILES))
 GENERATED_SRC_FILES := $(addprefix $(intermediates)/, $(GENERATED_SRC_FILES))
 LOCAL_GENERATED_SOURCES := $(GENERATED_SRC_FILES)
-GENERATED_SRC_DIR := $(abspath ${intermediates})
-
+ifeq (,$(strip $(OUT_DIR_COMMON_BASE)))
+GENERATED_SRC_DIR := $(ANDROID_TOP)/$(intermediates)
+else
+GENERATED_SRC_DIR := $(intermediates)
+endif
 LOCAL_C_INCLUDES += \
 	$(intermediates)/driver/middleware/khronos/glsl \
 	$(intermediates)/driver
@@ -307,8 +308,12 @@ ifeq ($(KHRN_AUTOCLIF),1)
 LOCAL_STATIC_LIBRARIES += libautoclif
 endif
 
-LOCAL_PROPRIETARY_MODULE := true
-LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+ifeq ($(TARGET_2ND_ARCH),arm)
 LOCAL_MODULE_RELATIVE_PATH := egl
+else
+LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR_SHARED_LIBRARIES)/egl
+endif
+
+LOCAL_C_INCLUDES := $(subst ${ANDROID}/,,$(LOCAL_C_INCLUDES))
 
 include $(BUILD_SHARED_LIBRARY)

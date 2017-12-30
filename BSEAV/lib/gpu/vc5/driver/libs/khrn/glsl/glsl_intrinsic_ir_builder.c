@@ -43,6 +43,7 @@ static const struct intrinsic_ir_info_s intrinsic_ir_info[INTRINSIC_COUNT] = {
    { INTRINSIC_SIN,            DATAFLOW_SIN,            1 },
    { INTRINSIC_COS,            DATAFLOW_COS,            1 },
    { INTRINSIC_TAN,            DATAFLOW_TAN,            1 },
+   { INTRINSIC_ISNAN,          DATAFLOW_ISNAN,          1 },
    { INTRINSIC_ATOMIC_LOAD,    DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_ATOMIC_ADD,     DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_ATOMIC_SUB,     DATAFLOW_FLAVOUR_COUNT, -1 },
@@ -94,40 +95,12 @@ static Dataflow *pack_texture_offsets(int num, Dataflow *const *values)
    return packed;
 }
 
-#if !V3D_HAS_LARGE_1D_TEXTURE
-static bool is_imagebuffer(const PrimSamplerInfo *sampler)
-{
-   return (sampler->type == PRIM_IMAGEBUFFER || sampler->type == PRIM_UIMAGEBUFFER ||
-         sampler->type == PRIM_IIMAGEBUFFER);
-}
-
-static bool is_samplerbuffer(const PrimSamplerInfo *sampler)
-{
-   return (sampler->type == PRIM_SAMPLERBUFFER || sampler->type == PRIM_USAMPLERBUFFER ||
-         sampler->type == PRIM_ISAMPLERBUFFER);
-}
-
-/* translate input coord into an index in array + s coord;  */
-static void texbuffer_translate_coord(Dataflow *sampler, Dataflow *coord,
-      Dataflow **x, Dataflow **elem_no)
-{
-   Dataflow *log2_arr_elem_w = glsl_construct_texbuffer_info_param(
-         sampler, TEXBUFFER_INFO_LOG2_ARR_ELEM_W);
-   Dataflow *arr_elem_w_minus_1 = glsl_construct_texbuffer_info_param(
-         sampler, TEXBUFFER_INFO_ARR_ELEM_W_MINUS_1);
-
-   *elem_no = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, coord, log2_arr_elem_w);
-   *x = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, coord, arr_elem_w_minus_1);
-}
-#endif
-
 static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr) {
    Dataflow *sampler_scalar[2];
    Dataflow *coord_scalar_values [4];
    Dataflow *lod_scalar;
    Dataflow *comp_scalar;
    Dataflow *dref_scalar = NULL;
-   PrimSamplerInfo *sampler_info;
 
    ExprChain *args = expr->u.intrinsic.args;
    Expr *bits      = args->first->expr;
@@ -136,14 +109,10 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
    Expr *lod       = args->first->next->next->next->expr;
    Expr *offset    = NULL, *comp = NULL, *dref = NULL;
 
-   bool is_image = glsl_prim_is_prim_image_type(sampler->type);
-   if (is_image)
-      sampler_info = glsl_prim_get_image_info(sampler->type->u.primitive_type.index);
-   else
-      sampler_info = glsl_prim_get_sampler_info(sampler->type->u.primitive_type.index);
+   PrimSamplerInfo *sampler_info = glsl_prim_get_image_info(sampler->type->u.primitive_type.index);
 
    ExprChainNode *arg = args->first->next->next->next->next;
-   if (sampler_info->shadow) {
+   if (glsl_prim_sampler_is_shadow(sampler->type->u.primitive_type.index)) {
       dref = arg->expr;
       arg = arg->next;
    }
@@ -165,6 +134,7 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
    if (comp) glsl_expr_calculate_dataflow(ctx, &comp_scalar, comp);
    if (dref) glsl_expr_calculate_dataflow(ctx, &dref_scalar, dref);
 
+   bool is_image = glsl_prim_is_prim_image_type(sampler->type);
    int non_idx_coords = sampler_info->coord_count;
    bool array = sampler_info->array;
    bool cube  = sampler_info->cube;
@@ -181,16 +151,6 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
    Dataflow *gadget_c[4] = { NULL, };
    for (int i=0; i<non_idx_coords; i++) gadget_c[i] = coord_scalar_values[i];
    if (array) gadget_c[3] = coord_scalar_values[non_idx_coords];
-
-#if !V3D_HAS_LARGE_1D_TEXTURE
-   if (is_samplerbuffer(sampler_info) || is_imagebuffer(sampler_info)) {
-      Dataflow *pos = gadget_c[0];
-      if (is_image)
-         glsl_imgbuffer_translate_coord(sampler_scalar[0], pos, &gadget_c[0], &gadget_c[3]);
-      else
-         texbuffer_translate_coord(sampler_scalar[0], pos, &gadget_c[0], &gadget_c[3]);
-   }
-#endif
 
    Dataflow *coords = glsl_dataflow_construct_vec4(gadget_c[0], gadget_c[1], gadget_c[2], gadget_c[3]);
 
@@ -223,11 +183,10 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
                            sampler_scalar[1] : NULL;
    if (bits_value & DF_TEXBITS_SAMPLER_FETCH) bits_value |= DF_TEXBITS_FETCH;
 
-   const DataflowType component_type_index = glsl_prim_index_to_df_type(primitiveScalarTypeIndices[sampler_info->return_type]);
    const bool         scalar_result        = expr->type == &primitiveTypes[PRIM_FLOAT];
    glsl_dataflow_construct_texture_lookup(scalar_values, scalar_result ? 1 : 4, bits_value,
                                           sampler_scalar[0], coords, dref_scalar, lod_scalar,
-                                          gadget_offset, df_sampler, component_type_index);
+                                          gadget_offset, df_sampler);
 
    assert(!is_image || !scalar_result);      /* No image load functions return scalars */
 
@@ -245,6 +204,7 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
          else ok = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, ok, c_ok);
       }
 
+      const DataflowType component_type_index = glsl_prim_index_to_df_type(primitiveScalarTypeIndices[sampler_info->return_type]);
       Dataflow *zero = glsl_dataflow_construct_const_value(component_type_index, 0);
       for (int i=0; i<4; i++)
          scalar_values[i] = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, ok, scalar_values[i], zero);
@@ -271,6 +231,7 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
       Dataflow *idx_ok = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN,
          glsl_dataflow_construct_reinterp(gadget_c[3], DF_UINT), num_elems);
 
+      const DataflowType component_type_index = glsl_prim_index_to_df_type(primitiveScalarTypeIndices[sampler_info->return_type]);
       Dataflow *zero = glsl_dataflow_construct_const_value(component_type_index, 0);
       for (int i=0; i<4; i++)
          scalar_values[i] = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, idx_ok,

@@ -106,16 +106,18 @@ static unsigned get_display_index(unsigned encoder)
 }
 
 static void print_usage(void) {
-			printf("\ntranscode_vpx [-h]:\n");
-			printf("\nOptions:\n");
-			printf("  -h          - to print the usage info\n");
-			printf("  -avc        - to encode h264 video\n");
-			printf("  -ivf        - to output IVF file\n");
-			printf("  -nrt        - to encode in RT mode\n");
-			printf("  -in FILE    - to transcode from the input FILE.\n");
-			printf("  -video_size W,H - Encode output size WxH.\n");
-			printf("  -video_bitrate N - Encode output bitrate N bps.\n");
-			print_list_option("video_framerate", g_videoFrameRateStrs);
+            printf("\ntranscode_vpx [-h]:\n");
+            printf("\nOptions:\n");
+            printf("  -h          - to print the usage info\n");
+            printf("  -avc        - to encode h264 video\n");
+            printf("  -vp9        - to encode vp9 video\n");
+            printf("  -ivf        - to output IVF file\n");
+            printf("  -nrt        - to encode in RT mode\n");
+            printf("  -in FILE    - to transcode from the input FILE.\n");
+            printf("  -out FILE    - to transcode to the output FILE.\n");
+            printf("  -video_size W,H - Encode output size WxH.\n");
+            printf("  -video_bitrate N - Encode output bitrate N bps.\n");
+            print_list_option("video_framerate", g_videoFrameRateStrs);
 }
 
 /* include media probe */
@@ -175,11 +177,11 @@ int main(int argc, char **argv)
     bool probe = false;
     bool nonRealTime = false; /* default RT */
     bool avc = false;
+    bool vp9 = false;
     const char *fname = "videos/avatar_AVC_15M.ts";
     const char *outputFile = getenv("IVF_SUPPORT")? "videos/stream.ivf":"videos/stream.pes";/* default PES file output */
 
     int i = 0;
-    char key;
 
     for(i=0; i<argc; i++) {
         if(!strcmp("-h",argv[i])) {
@@ -189,6 +191,10 @@ int main(int argc, char **argv)
         if(!strcmp("-avc",argv[i]) || !strcmp("-264",argv[i]) || !strcmp("-h264",argv[i])) {
             avc = true; /* enabled vp8 encoding */
             fprintf(stderr, "AVC encoding\n");
+        }
+        if(!strcmp("-vp9",argv[i]) || !strcmp("-VP9",argv[i])) {
+            vp9 = true; /* enabled vp8 encoding */
+            fprintf(stderr, "VP9 encoding\n");
         }
         if(!strcmp("-ivf",argv[i])) {
             outputFile = "videos/stream.ivf";
@@ -206,6 +212,10 @@ int main(int argc, char **argv)
 #if !NEXUS_NUM_DSP_VIDEO_ENCODERS || NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
             nonRealTime = true; /* enabled NRT mode by default */
 #endif
+        }
+        if(!strcmp("-out",argv[i]) && (i+1 < argc)) {
+            #define BTST_P_DEFAULT(a, b) {if(a==0) a = b;}
+            outputFile = argv[++i];
         }
         if(!strcmp("-video_size",argv[i]) && (i+1 < argc)) {
             if (sscanf(argv[++i], "%u,%u", &width, &height) != 2) {
@@ -405,6 +415,7 @@ int main(int argc, char **argv)
 #if NEXUS_NUM_DSP_VIDEO_ENCODERS && !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
     videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e29_97;
     videoEncoderConfig.bitrateMax = 400*1000;
+    BSTD_UNUSED(frameRate);
 #else
     videoEncoderConfig.frameRate = frameRate;
     videoEncoderConfig.bitrateMax = bitrate;
@@ -422,8 +433,10 @@ int main(int argc, char **argv)
     videoEncoderStartConfig.bounds.inputDimension.max.width = BTST_INPUT_MAX_WIDTH;
     videoEncoderStartConfig.bounds.inputDimension.max.height = BTST_INPUT_MAX_HEIGHT;
     videoEncoderStartConfig.stcChannel = stcChannelTranscode;
+    BSTD_UNUSED(avc);
+    BSTD_UNUSED(vp9);
 #else
-    videoEncoderStartConfig.codec = avc? NEXUS_VideoCodec_eH264 : NEXUS_VideoCodec_eVp8;
+    videoEncoderStartConfig.codec = avc? NEXUS_VideoCodec_eH264 : vp9? NEXUS_VideoCodec_eVp9 : NEXUS_VideoCodec_eVp8;
     videoEncoderStartConfig.profile = NEXUS_VideoCodecProfile_eMain;
     videoEncoderStartConfig.level = NEXUS_VideoCodecLevel_e31;
     videoEncoderStartConfig.input = displayTranscode;
@@ -478,7 +491,7 @@ int main(int argc, char **argv)
 
     /* Playback state machine is driven from inside Nexus. */
     printf("Press ENTER to continue; type 'q' to quit\n");
-    key = getchar();
+    getchar();
 
     /* Bring down system */
     NEXUS_Playback_Stop(playback);

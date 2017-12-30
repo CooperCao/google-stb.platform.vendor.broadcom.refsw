@@ -712,6 +712,7 @@ enum wlc_iov {
 	IOV_PAY_DECODE_WAR = 118,
 	IOV_SLAVE_RADAR = 119,
 	IOV_PKTALLOCED = 120,
+	IOV_INTF_ENABLE_BRIDGE = 121,
 	IOV_LAST		/* In case of a need to check max ID number */
 };
 
@@ -1133,6 +1134,9 @@ static const bcm_iovar_t wlc_iovars[] = {
 	0, 0, IOVT_BOOL, 0
 	},
 #endif /* SLAVE_RADAR */
+	{"intf_enable_bridge", IOV_INTF_ENABLE_BRIDGE,
+	0, 0, IOVT_BOOL, 0
+	},
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -2196,9 +2200,9 @@ void BCMINITFN(wlc_init)(wlc_info_t *wlc)
 	/* init probe response timeout */
 	wlc_write_shm(wlc, M_PRS_MAXTIME(wlc), wlc->prb_resp_timeout);
 
-	/* init max burst txop (framebursting) */
-	wlc_write_shm(wlc, M_MBURST_TXOP(wlc),
-	              (WLC_HT_GET_RIFS(wlc->hti) ? (EDCF_AC_VO_TXOP_AP << 5) : MAXFRAMEBURST_TXOP));
+	/* limit frameburst txop by country */
+	wlc_ht_frameburst_limit(wlc->hti);
+
 	/* in case rifs was set when not up, need to run war here */
 	phy_misc_tkip_rifs_war(pi, WLC_HT_GET_RIFS(wlc->hti));
 
@@ -9755,6 +9759,8 @@ wlc_bandlock(wlc_info_t *wlc, int val)
 		wlc->bandlocked = TRUE;
 		break;
 	}
+	/* every switch needs a default. Intentional error check */
+	/* coverity[dead_error_begin] */
 	default:
 		ASSERT(0);
 		break;
@@ -10981,7 +10987,7 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 			bcmerror = BCME_EPERM;
 #endif /* EXT_STA */
 
-		if (bcmerror || (AP_ENAB(wlc->pub) == bool_val))
+		if (bcmerror)
 			break;
 
 		if (wasup) {
@@ -10995,25 +11001,27 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		if (bcmerror)
 			break;
 #ifdef BCMCCX
-	        if (CAC_ENAB(wlc->pub) && AP_ENAB(wlc->pub))
-	                wlc->pub->cmn->_cac = FALSE;
+		if (CAC_ENAB(wlc->pub) && AP_ENAB(wlc->pub))
+			wlc->pub->cmn->_cac = FALSE;
 #endif  /* BCMCCX */
 
-	        wlc_ap_upd(wlc, bsscfg);
+		wlc_ap_upd(wlc, bsscfg);
 
-	        /* always turn off WET when switching mode */
-	        wlc->wet = FALSE;
-	        /* always turn off MAC_SPOOF when switching mode */
-	        wlc->mac_spoof = FALSE;
+		if (!APSTA_ENAB(wlc->pub)) {
+			/* always turn off WET when switching mode */
+			wlc->wet = FALSE;
+			/* always turn off MAC_SPOOF when switching mode */
+			wlc->mac_spoof = FALSE;
+		}
 
-	        if (wasup) {
-	                WL_APSTA_UPDN(("wl%d: WLC_SET_AP -> wl_up()\n", wlc->pub->unit));
-	                bcmerror = wl_up(wlc->wl);
-	        }
+		if (wasup) {
+			WL_APSTA_UPDN(("wl%d: WLC_SET_AP -> wl_up()\n", wlc->pub->unit));
+			bcmerror = wl_up(wlc->wl);
+		}
 #ifdef STA
-	        wlc_radio_mpc_upd(wlc);
+        wlc_radio_mpc_upd(wlc);
 #endif /* STA */
-	        break;
+        break;
 	}
 
 	case WLC_GET_AP:
@@ -11244,9 +11252,10 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		/* count of number of bands, followed by each band type */
 		*pval++ = NBANDS(wlc);
 		*pval++ = wlc->band->bandtype;
-		if (NBANDS(wlc) > 1)
+		if (NBANDS(wlc) > 1) {
 			*pval++ = wlc->bandstate[OTHERBANDUNIT(wlc)]->bandtype;
-			break;
+		}
+		break;
 
 	case WLC_GET_BAND:
 		*pval = wlc->bandlocked ? wlc->band->bandtype : WLC_BAND_AUTO;
@@ -13976,6 +13985,10 @@ wlc_doiovar(void *hdl, uint32 actionid,
 		*ret_int_ptr = (int)wlc->pub->cmn->_slvradar;
 		break;
 #endif /* SLAVE_RADAR */
+
+	case IOV_SVAL(IOV_INTF_ENABLE_BRIDGE):
+		wl_enable_bridge_if(wlc->wl, wlcif, bool_val);
+		break;
 
 	default:
 		err = BCME_UNSUPPORTED;

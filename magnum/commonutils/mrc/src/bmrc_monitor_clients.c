@@ -292,7 +292,7 @@ void  BMRC_Monitor_P_MapInit(struct BMRC_P_MonitorClientMap *map)
         }
     }
     for(i=0;i<sizeof(map->clientMap)/sizeof(map->clientMap[0]);i++) {
-        BDBG_MSG_TRACE(("clientMap:[%u] %u(%s):%u(%s)", i, map->clientMap[i].block, hwBlockNames[map->clientMap[i].block], map->clientMap[i].client, BMRC_P_GET_CLIENT_NAME(map->clientMap[i].client)));
+        BDBG_MSG_TRACE(("clientMap:[%u] %u(%s):%u(%s)", i, map->clientMap[i].block, hwBlockNames[map->clientMap[i].block], map->clientMap[i].client, BMRC_P_GET_CLIENT_NAME_isrsafe(map->clientMap[i].client)));
     }
     /* build array of entries */
     for(i=0;i<sizeof(map->clientMapEntry)/sizeof(map->clientMapEntry[0]);i++) {
@@ -309,7 +309,7 @@ void  BMRC_Monitor_P_MapInit(struct BMRC_P_MonitorClientMap *map)
     for(i=0;i<sizeof(map->clientMapEntry)/sizeof(map->clientMapEntry[0]);i++) {
         unsigned entry = map->clientMapEntry[i];
         BSTD_UNUSED(entry);
-        BDBG_MSG_TRACE(("clientMapEntry:[%u(%s)] %d(%s:%s)", i, hwBlockNames[i], entry, hwBlockNames[map->clientMap[entry].block], BMRC_P_GET_CLIENT_NAME(map->clientMap[entry].client)));
+        BDBG_MSG_TRACE(("clientMapEntry:[%u(%s)] %d(%s:%s)", i, hwBlockNames[i], entry, hwBlockNames[map->clientMap[entry].block], BMRC_P_GET_CLIENT_NAME_isrsafe(map->clientMap[entry].client)));
     }
     for(i=0;i<sizeof(map->clientToBlock)/sizeof(map->clientToBlock[0]);i++) {
         map->clientToBlock[i]=BMRC_Monitor_HwBlock_eInvalid;
@@ -404,7 +404,7 @@ void BMRC_Monitor_P_MapGetHwClients(struct BMRC_P_MonitorClientMap *map, struct 
     return;
 }
 
-void BMRC_Monitor_P_PrintBitmap(const struct BMRC_P_MonitorClientMap *map, const uint32_t *bitmap, size_t bitmapSize, const char *blockedType)
+void BMRC_Monitor_P_PrintBitmap_isrsafe(const struct BMRC_P_MonitorClientMap *map, const uint32_t *bitmap, size_t bitmapSize, const char *blockedType)
 {
     int i;
     char buf[80];
@@ -422,7 +422,7 @@ void BMRC_Monitor_P_PrintBitmap(const struct BMRC_P_MonitorClientMap *map, const
             if(bitmap[i] & 1<<bit) {
                 int left = sizeof(buf) - buf_off;
                 unsigned client = i*32 + bit;
-                const char *name = BMRC_P_GET_CLIENT_NAME(client);
+                const char *name = BMRC_P_GET_CLIENT_NAME_isrsafe(client);
                 int rc;
                 BMRC_Monitor_HwBlock block = map->clientToBlock[client];
                 hwBlocks[block/8] |= 1<<(block%8);

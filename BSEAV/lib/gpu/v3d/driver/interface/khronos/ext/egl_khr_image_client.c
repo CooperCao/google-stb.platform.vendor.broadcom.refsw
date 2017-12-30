@@ -1,17 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Client-side implementation of the EGLImage extensions for EGL:
-   EGL_KHR_image
-   EGL_KHR_vg_parent_image
-   EGL_KHR_gl_texture_2D_image
-   EGL_KHR_gl_texture_cubemap_image
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
 #define EGL_EGLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
@@ -24,6 +13,7 @@ Client-side implementation of the EGLImage extensions for EGL:
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
 #include "interface/khronos/include/EGL/eglext_brcm.h"
+#include "interface/khronos/include/EGL/eglext_wayland.h"
 #include "interface/khronos/include/GLES/gl.h"
 
 #if defined(ANDROID)
@@ -49,7 +39,7 @@ EGLAPI EGLImageKHR EGLAPIENTRY eglCreateImageKHR (EGLDisplay dpy, EGLContext ctx
    if (process) {
       EGL_CONTEXT_T *context;
       bool ctx_error;
-      if (target == EGL_NATIVE_PIXMAP_KHR || target == EGL_IMAGE_WRAP_BRCM_BCG || target == EGL_NATIVE_BUFFER_ANDROID) {
+      if (target == EGL_NATIVE_PIXMAP_KHR || target == EGL_IMAGE_WRAP_BRCM_BCG || target == EGL_NATIVE_BUFFER_ANDROID || target == EGL_WAYLAND_BUFFER_WL) {
          context = NULL;
          ctx_error = ctx != EGL_NO_CONTEXT;
       } else {
@@ -75,6 +65,15 @@ EGLAPI EGLImageKHR EGLAPIENTRY eglCreateImageKHR (EGLDisplay dpy, EGLContext ctx
                   } /* else: ignore the actual value -- we always preserve */
                   break;
                }
+#ifdef WAYLAND
+               case EGL_WAYLAND_PLANE_WL:
+               {
+                  EGLint index = *attr_list++;
+                  if (index != 0)
+                     attr_error = true;
+                  break;
+               }
+#endif
                default:
                   attr_error = true;
                }

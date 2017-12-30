@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #include "nexus_core_module.h"
@@ -133,6 +125,7 @@ This code assumes that 0 is not a valid ID. */
 #define BCHP_PWR_RESOURCE_THD_TOP 0
 #endif
 
+#if NEXUS_POWER_MANAGEMENT
 static const unsigned g_powerId[NEXUS_PowerManagementCore_eMax] = {
     BCHP_PWR_RESOURCE_VBI_DEC, /* NEXUS_PowerManagementCore_eVbiDecoder */
     BCHP_PWR_RESOURCE_VDEC, /* NEXUS_PowerManagementCore_eVdec */
@@ -154,6 +147,7 @@ static const unsigned g_powerId[NEXUS_PowerManagementCore_eMax] = {
     BCHP_PWR_RESOURCE_IMAGE_INPUT, /* NEXUS_PowerManagementCore_eImageInput */
     BCHP_PWR_RESOURCE_RFM /* NEXUS_PowerManagementCore_eRfm */
 };
+#endif
 
 void NEXUS_PowerManagement_SetCoreState( NEXUS_PowerManagementCore core, bool poweredUp )
 {

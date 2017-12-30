@@ -902,6 +902,7 @@ static const BHDM_PACKET_ACR_CONFIG BHDM_192KHz_AudioClkValues[] =
 #if BDBG_DEBUG_BUILD
 
 static const char * const AudioSampleRateText[]	= {
+	BDBG_STRING("Unknown"),
 	BDBG_STRING("32kHz"), BDBG_STRING("44.1kHz"), BDBG_STRING("48kHz"),
 	BDBG_STRING("96kHz"), BDBG_STRING("16kHz"), BDBG_STRING("22_05kHz"),
 	BDBG_STRING("24kHz"), BDBG_STRING("64kHz"), BDBG_STRING("88_2kHz"),
@@ -922,9 +923,9 @@ void BHDM_PACKET_ACR_DisplayConfiguration(
 
 	eAudioSamplingRate = hHDMI->DeviceSettings.eAudioSamplingRate ;
 
-	if (eAudioSamplingRate < BAVC_AudioSamplingRate_eUnknown)
+	if (eAudioSamplingRate < BAVC_AudioSamplingRate_eMax)
 	{
-	BDBG_LOG(("Tx%d:   Audio Sample Rate: %s", hHDMI->eCoreId,
+		BDBG_LOG(("Tx%d:   Audio Sample Rate: %s", hHDMI->eCoreId,
 			AudioSampleRateText[eAudioSamplingRate])) ;
 	}
 	else

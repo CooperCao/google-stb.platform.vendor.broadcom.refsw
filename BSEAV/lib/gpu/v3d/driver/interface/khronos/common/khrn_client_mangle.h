@@ -84,6 +84,12 @@
 #define eglTermGlobalImageBRCM mangled_eglTermGlobalImageBRCM
 #define eglImageUpdateParameterivBRCM mangled_eglImageUpdateParameterivBRCM
 #define eglImageUpdateParameteriBRCM mangled_eglImageUpdateParameteriBRCM
+#define eglGetPlatformDisplayEXT mangled_eglGetPlatformDisplayEXT
+#define eglCreatePlatformWindowSurfaceEXT mangled_eglCreatePlatformWindowSurfaceEXT
+#define eglCreatePlatformPixmapSurfaceEXT mangled_eglCreatePlatformPixmapSurfaceEXT
+#define eglBindWaylandDisplayWL mangled_eglBindWaylandDisplayWL
+#define eglUnbindWaylandDisplayWL mangled_eglUnbindWaylandDisplayWL
+#define eglQueryWaylandBufferWL mangled_eglQueryWaylandBufferWL
 
 /* OpenGL ES 1.1 and 2.0 functions */
 
@@ -456,16 +462,6 @@
 #define vguPolygon mangled_vguPolygon
 #define vguRect mangled_vguRect
 #define vguRoundRect mangled_vguRoundRect
-
-#if !defined(REMOTE_API_LOGGING) && !defined(BCG_MULTI_THREADED)
-/* Internal functions */
-#define egl_surface_create mangled_egl_surface_create
-#define egl_surface_from_vg_image mangled_egl_surface_from_vg_image
-#define egl_surface_term mangled_egl_surface_term
-#define egl_surface_set_attrib mangled_egl_surface_set_attrib
-#define egl_context_create mangled_egl_context_create
-#define egl_context_term mangled_egl_context_term
-#endif
 
 #endif   //KHRONOS_NAME_MANGLING
 #endif   //KHRONOS_MANGLED_H

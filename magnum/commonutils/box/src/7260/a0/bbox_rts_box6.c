@@ -43,36 +43,25 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
-#include "bbox_vdc_box6_config.h"
+#include "bbox_rts_priv.h"
+#include "bbox_rts_box6.h"
 
 BDBG_MODULE(BBOX_RTS_BOX6);
 BDBG_OBJECT_ID(BBOX_RTS_BOX6);
 
-/* Memc Index for box mode 6. BBOX_MemcIndex_Invalid means it's not used */
-const BBOX_MemConfig stBoxMemConfig_7260_box6 =
-{
-   {
-      BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
-      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
-      {
-         BBOX_MK_WIN_MEMC_IDX(0,       Invalid, 0,       Invalid, 0      ),  /* disp 0 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, 0      ),  /* disp 1 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 2 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 3 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 4 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 5 */
-         BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 6 */
-      }
-   },
-   BBOX_INVALID_NUM_MEMC,
-   BBOX_MK_DRAM_REFRESH_RATE(1x)
-};
-
-void BBOX_P_GetBox6MemConfig
+void BBOX_P_SetBox6MemConfig
     ( BBOX_MemConfig                *pBoxMemConfig )
 {
-    *pBoxMemConfig = stBoxMemConfig_7260_box6;
-    pBoxMemConfig->ulNumMemc = stBoxRts_UHDp50_1080i50xcode_box6.ulNumMemc;
+    BBOX_P_SET_DVI_CFC_MEMC(pBoxMemConfig, 0);
+
+    BBOX_P_SET_HDR_VIDEO_AND_GFX_MEMC(pBoxMemConfig, Display0,   0,       0);
+
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video0,  0,       0);
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display0,  Gfx0,    0         );
+
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display1,  Gfx0,    0         );
+
+    BBOX_P_SET_NUM_MEMC(pBoxMemConfig, stBoxRts_UHDp50_1080i50xcode_box6.ulNumMemc);
 }
 
 void BBOX_P_GetBox6Rts

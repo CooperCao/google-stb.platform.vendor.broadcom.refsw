@@ -5,7 +5,7 @@
 
 #include "v3d_ver.h"
 #include "v3d_gen.h"
-#include "vcos_types.h"
+#include "libs/util/common.h"
 #include <stdbool.h>
 #include <stdint.h>
 

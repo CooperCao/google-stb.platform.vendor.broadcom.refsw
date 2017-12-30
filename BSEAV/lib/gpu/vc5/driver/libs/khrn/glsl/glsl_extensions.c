@@ -37,7 +37,7 @@ static struct {
    {{"GL_OES_sample_variables",},                      V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_SAMPLE_VARIABLES, NULL},
    {{"GL_OES_shader_multisample_interpolation",},      V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, 0, NULL },
 
-   {{"GL_OES_texture_buffer",          "GL_EXT_texture_buffer",},         V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_TEXTURE_BUFFER, NULL },
+   {{"GL_OES_texture_buffer",          "GL_EXT_texture_buffer",},         V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_TEXTURE_BUFFER, NULL },
    {{"GL_OES_gpu_shader5",             "GL_EXT_gpu_shader5"},             V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_GPU_SHADER5, NULL },
    {{"GL_OES_texture_cube_map_array",  "GL_EXT_texture_cube_map_array"},  V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_TEXTURE_CUBE_MAP_ARRAY, NULL },
    {{"GL_OES_shader_io_blocks",        "GL_EXT_shader_io_blocks"},        false, GLSL_DISABLED, 0, NULL },
@@ -47,8 +47,8 @@ static struct {
    {{"GL_OES_geometry_shader",         "GL_EXT_geometry_shader"},         false, GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_GEOMETRY_SHADER, tng_implies },
    {{"GL_OES_geometry_point_size",     "GL_EXT_geometry_point_size"},     false, GLSL_DISABLED, 0, NULL },
 
-   {{"GL_BRCM_no_perspective",},     V3D_HAS_VARY_NO_PERSP, GLSL_DISABLED, 0, NULL },
-   {{"GL_BRCM_image_formats",},      V3D_HAS_GFXH1638_FIX,  GLSL_DISABLED, 0, NULL },
+   {{"GL_BRCM_no_perspective",},     V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, 0, NULL },
+   {{"GL_BRCM_image_formats",},      V3D_VER_AT_LEAST(4,2,13,0),  GLSL_DISABLED, 0, NULL },
 
    {{"GL_ANDROID_extension_pack_es31a", },     V3D_VER_AT_LEAST(4,0,2,0) && false, GLSL_DISABLED, 0, aep_implies },
 };

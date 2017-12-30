@@ -38,10 +38,12 @@
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 #include "nxclient.h"
 #include "media_player.h"
+#include "nexus_simple_video_decoder.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "namevalue.h"
+#include "nexus_core_utils.h"
 
 BDBG_MODULE(crc);
 
@@ -65,6 +67,35 @@ static void print_usage(void)
         "  -video_type          ", g_videoCodecStrs);
     print_list_option(
         "  -mpeg_type           ", g_transportTypeStrs);
+    printf(
+        "  -colorDepth {8|10}\n"
+        "  -max WIDTH,HEIGHT        max video decoder resolution\n"
+        "  -dqt\n"
+        "  -mdqt\n"
+        "  -zero_delay_output_mode\n"
+        "  -display_timestamp_mode\n"
+        "  -iframe_as_rap\n"
+        "  -ignore_dpb_output_delay\n"
+        "  -ignore_num_reorder_frames\n"
+    );
+    printf(
+        "  -video_cdb SIZE          use 'm' or 'k' suffix, decimal allows\n"
+        "  -video_itb SIZE          use 'm' or 'k' suffix, decimal allows\n"
+        "  -video_framerate HZ      default video frame rate if not in stream (for example 29.97, 30, 59.94, 60)\n"
+    );
+}
+
+static unsigned b_parse_size(const char *parse)
+{
+    if (strchr(parse, 'M') || strchr(parse, 'm')) {
+        return atof(parse)*1024*1024;
+    }
+    else if (strchr(parse, 'K') || strchr(parse, 'k')) {
+        return atof(parse)*1024;
+    }
+    else {
+        return strtoul(parse, NULL, 0);
+    }
 }
 
 enum crc_type
@@ -96,9 +127,16 @@ int main(int argc, const char **argv)
     unsigned displayIndex;
     unsigned i;
     NEXUS_VideoDecoderCrcMode crcMode = NEXUS_VideoDecoderCrcMode_eDefault;
+    media_player_create_settings create_settings;
     media_player_start_settings start_settings;
+    struct {
+        bool dqt, mdqt, zero_delay_output_mode, iframe_as_rap, ignore_dpb_output_delay, ignore_num_reorder_frames;
+    } extra_settings;
+    float video_framerate = 0.0;
 
     memset(decoder, 0, sizeof(decoder));
+    memset(&extra_settings, 0, sizeof(extra_settings));
+    media_player_get_default_create_settings(&create_settings);
     media_player_get_default_start_settings(&start_settings);
     while (curarg < argc) {
         if (!strcmp(argv[curarg], "--help") || !strcmp(argv[curarg], "-h")) {
@@ -130,6 +168,46 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-mpeg_type") && argc>curarg+1) {
             start_settings.transportType = lookup(g_transportTypeStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-colorDepth") && curarg+1 < argc) {
+            start_settings.video.colorDepth = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-dqt")) {
+            extra_settings.dqt = true;
+        }
+        else if (!strcmp(argv[curarg], "-mdqt")) {
+            extra_settings.mdqt = true;
+        }
+        else if (!strcmp(argv[curarg], "-zero_delay_output_mode")) {
+            extra_settings.zero_delay_output_mode = true;
+        }
+        else if (!strcmp(argv[curarg], "-display_timestamp_mode")) {
+            start_settings.video.timestampMode = NEXUS_VideoDecoderTimestampMode_eDisplay;
+        }
+        else if (!strcmp(argv[curarg], "-iframe_as_rap")) {
+            extra_settings.iframe_as_rap = true;
+        }
+        else if (!strcmp(argv[curarg], "-ignore_dpb_output_delay")) {
+            extra_settings.ignore_dpb_output_delay = true;
+        }
+        else if (!strcmp(argv[curarg], "-ignore_num_reorder_frames")) {
+            extra_settings.ignore_num_reorder_frames = true;
+        }
+        else if (!strcmp(argv[curarg], "-video_cdb") && curarg+1 < argc) {
+            start_settings.video.fifoSize = b_parse_size(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-video_itb") && curarg+1 < argc) {
+            start_settings.video.itbFifoSize = b_parse_size(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-video_framerate") && curarg+1 < argc) {
+            sscanf(argv[++curarg], "%f", &video_framerate);
+        }
+        else if (!strcmp(argv[curarg], "-max") && curarg+1 < argc) {
+            int n = sscanf(argv[++curarg], "%u,%u", &create_settings.maxWidth, &create_settings.maxHeight);
+            if (n != 2) {
+                print_usage();
+                return -1;
+            }
         }
         else {
             if (num_decodes == MAX_DECODES) {
@@ -170,26 +248,61 @@ int main(int argc, const char **argv)
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
 
+    if (video_framerate) {
+        NEXUS_LookupFrameRate(video_framerate * 1000, &start_settings.video.frameRate);
+    }
+
     if (num_decodes) {
         if (num_decodes == 1) {
-            player[0] = media_player_create(NULL);
+            player[0] = media_player_create(&create_settings);
             if (!player[0]) return -1;
             decoder[0].file = stdout;
         }
         else {
-            rc = media_player_create_mosaics(player, num_decodes, NULL);
+            rc = media_player_create_mosaics(player, num_decodes, &create_settings);
             if (rc) return -1;
         }
 
         for (i=0;i<num_decodes;i++) {
+            NEXUS_SimpleVideoDecoderHandle videoDecoder = media_player_get_video_decoder(player[i]);
 
             {
                 /* TEMP disable CC for mosaics */
-                NEXUS_SimpleVideoDecoderHandle videoDecoder = media_player_get_video_decoder(player[i]);
                 NEXUS_SimpleVideoDecoderClientSettings settings;
                 NEXUS_SimpleVideoDecoder_GetClientSettings(videoDecoder, &settings);
                 settings.closedCaptionRouting = false;
                 NEXUS_SimpleVideoDecoder_SetClientSettings(videoDecoder, &settings);
+            }
+
+            if (extra_settings.dqt || extra_settings.mdqt) {
+                NEXUS_VideoDecoderTrickState trickState;
+                NEXUS_SimpleVideoDecoder_GetTrickState(videoDecoder, &trickState);
+                if (extra_settings.dqt) {
+                    trickState.dqtEnabled = NEXUS_VideoDecoderDqtMode_eSinglePass;
+                }
+                if (extra_settings.mdqt) {
+                    trickState.dqtEnabled = NEXUS_VideoDecoderDqtMode_eMultiPass;
+                }
+                NEXUS_SimpleVideoDecoder_SetTrickState(videoDecoder, &trickState);
+            }
+
+            if (extra_settings.zero_delay_output_mode || extra_settings.iframe_as_rap ||
+                extra_settings.ignore_dpb_output_delay || extra_settings.ignore_num_reorder_frames) {
+                NEXUS_VideoDecoderExtendedSettings extendedSettings;
+                NEXUS_SimpleVideoDecoder_GetExtendedSettings(videoDecoder, &extendedSettings);
+                if (extra_settings.zero_delay_output_mode) {
+                    extendedSettings.zeroDelayOutputMode = true;
+                }
+                if (extra_settings.iframe_as_rap) {
+                    extendedSettings.treatIFrameAsRap = true;
+                }
+                if (extra_settings.ignore_dpb_output_delay) {
+                    extendedSettings.ignoreDpbOutputDelaySyntax = true;
+                }
+                if (extra_settings.ignore_num_reorder_frames) {
+                    extendedSettings.ignoreNumReorderFramesEqZero = true;
+                }
+                NEXUS_SimpleVideoDecoder_SetExtendedSettings(videoDecoder, &extendedSettings);
             }
 
             start_settings.stream_url = decoder[i].filename;
@@ -254,6 +367,7 @@ int main(int argc, const char **argv)
     case crc_type_avd:
         while (num_done < num_decodes) {
             unsigned j;
+            bool any = false;
             for (j=0;j<num_decodes;j++) {
                 NEXUS_PlaybackStatus status;
                 NEXUS_SimpleVideoDecoderHandle videoDecoder;
@@ -268,6 +382,7 @@ int main(int argc, const char **argv)
                     BDBG_ASSERT(!rc);
                     if (num) {
                         unsigned i;
+                        any = true;
                         for (i=0;i<num;i++) {
                             fprintf(decoder[j].file, "AVD CRC %x %x %x; %x %x %x\n", data[i].top.luma, data[i].top.cr, data[i].top.cb, data[i].bottom.luma, data[i].bottom.cr, data[i].bottom.cb);
                         }
@@ -280,6 +395,7 @@ int main(int argc, const char **argv)
                     BDBG_ASSERT(!rc);
                     if (num) {
                         unsigned i;
+                        any = true;
                         for (i=0;i<num;i++) {
                             fprintf(decoder[j].file, "MFD CRC %u,%u %u,%u right=%u,%u, field=%c\n", data[i].idrPictureId, data[i].pictureOrderCount,
                                 data[i].crc[0], data[i].crc[1], data[i].crc[3], data[i].crc[4], data[i].isField?'y':'n');
@@ -292,6 +408,7 @@ int main(int argc, const char **argv)
                     num_done++;
                 }
             }
+            if (!any) BKNI_Sleep(10);
         }
         break;
     default:

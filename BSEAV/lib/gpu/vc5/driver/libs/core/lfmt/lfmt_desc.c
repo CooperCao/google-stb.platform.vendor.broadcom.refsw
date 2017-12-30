@@ -37,7 +37,6 @@ size_t gfx_lfmt_sprint(char *buf, size_t buf_size, size_t offset, GFX_LFMT_T lfm
    }
 
    APPEND_FIELD(TYPE, type);
-   APPEND_FIELD(PRE, pre);
    APPEND_FIELD(DIMS, dims);
    APPEND_FIELD(SWIZZLING, swizzling);
    APPEND_FIELD(YFLIP, yflip);
@@ -71,7 +70,6 @@ static const struct
    {&gfx_lfmt_base_desc_map,           GFX_LFMT_BASE_MASK},
    {&gfx_lfmt_type_desc_map,           GFX_LFMT_TYPE_MASK},
    {&gfx_lfmt_channels_desc_map,       GFX_LFMT_CHANNELS_MASK},
-   {&gfx_lfmt_pre_desc_map,            GFX_LFMT_PRE_MASK},
    /* Try combos last, or we might end up with a pessimistic mask (and thus
     * refuse something like C8C8_RG) */
    {&gfx_lfmt_base_channels_desc_map,  GFX_LFMT_BASE_MASK | GFX_LFMT_CHANNELS_MASK}};

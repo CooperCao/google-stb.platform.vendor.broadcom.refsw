@@ -11,6 +11,14 @@
 extern "C" {
 #endif
 
+typedef enum
+{
+   V3D_IMGCONV_CONVERSION_FORMAT = 0,     /* No special conversion required beyond that implied by the source and dest target formats */
+   V3D_IMGCONV_CONVERSION_CLAMP_DEPTH,    /* GL clamping on floating point depth destination targets */
+   V3D_IMGCONV_CONVERSION_DEPTH_ONLY,     /* Vulkan depth only aspect copy to S8D24 destination targets */
+   V3D_IMGCONV_CONVERSION_STENCIL_ONLY,   /* Vulkan stencil only aspect copy to S8D24 destination targets */
+} v3d_imgconv_conversion_op;
+
 /*
  * A container to hold the information about a target for an image
  * conversion. This may be the source or destination image.
@@ -31,6 +39,8 @@ typedef struct v3d_imgconv_base_tgt
    unsigned int start_elem;
    unsigned int array_pitch;
 
+   v3d_imgconv_conversion_op conversion;
+
    unsigned int plane_sizes[GFX_BUFFER_MAX_PLANES];
 } v3d_imgconv_base_tgt;
 
@@ -39,24 +49,34 @@ typedef struct v3d_imgconv_base_tgt
  * The container for a gmem backed imgconv target.
  *
  *  base          - The base container.
- *  handle        - The gmem handle.
- *  offset        - Offset into the gmem block where the image begins.
+ *  handles[i]    - The gmem handle for region i.
+ *  offset        - Offset into each handle where region begins.
  *  deps          - The buffers dependencies to wait on before
  *                  performing the conversion.
  */
 typedef struct v3d_imgconv_gmem_tgt
 {
    struct v3d_imgconv_base_tgt base;
-   gmem_handle_t handle;
+   gmem_handle_t handles[GFX_BUFFER_MAX_PLANES];
    size_t offset;
    v3d_scheduler_deps deps;
 } v3d_imgconv_gmem_tgt;
 
-void v3d_imgconv_init_gmem_tgt(struct v3d_imgconv_gmem_tgt *tgt,
-      gmem_handle_t handle, size_t offset,
+void v3d_imgconv_init_gmem_tgt_multi_region(struct v3d_imgconv_gmem_tgt *tgt,
+      unsigned num_handles, const gmem_handle_t *handles, size_t offset,
       const v3d_scheduler_deps *deps, const GFX_BUFFER_DESC_T *desc,
       unsigned int x, unsigned int y, unsigned int z, unsigned int start_elem,
       unsigned int array_pitch);
+
+static inline void v3d_imgconv_init_gmem_tgt(struct v3d_imgconv_gmem_tgt *tgt,
+      gmem_handle_t handle, size_t offset,
+      const v3d_scheduler_deps *deps, const GFX_BUFFER_DESC_T *desc,
+      unsigned int x, unsigned int y, unsigned int z, unsigned int start_elem,
+      unsigned int array_pitch)
+{
+   v3d_imgconv_init_gmem_tgt_multi_region(tgt, 1, &handle, offset,
+      deps, desc, x, y, z, start_elem, array_pitch);
+}
 
 /*
  * The container for a gmem backed imgconv target.
@@ -73,6 +93,14 @@ typedef struct v3d_imgconv_ptr_tgt
 void v3d_imgconv_init_ptr_tgt(struct v3d_imgconv_ptr_tgt *tgt, void *ptr,
       const GFX_BUFFER_DESC_T *desc, unsigned int x, unsigned int y,
       unsigned int z, unsigned int start_elem, unsigned int array_pitch);
+
+/* Returns gmem usage flags for a potential conversion.
+ * Might include secure or contiguous flags for example.
+ */
+gmem_usage_flags_t v3d_imgconv_calc_dst_gmem_usage(
+   const v3d_imgconv_base_tgt *dst_base,
+   const v3d_imgconv_gmem_tgt *src,
+   bool secure_context);
 
 /*
  * Copies one image to another. It may also perform an image conversion.

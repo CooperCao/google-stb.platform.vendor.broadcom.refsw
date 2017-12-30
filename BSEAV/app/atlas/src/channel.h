@@ -107,7 +107,7 @@ class CLabelData
 public:
     CLabelData() :
         _zorder(0),
-        _bGlobal(false) {};
+        _bGlobal(false) {}
     bool operator ==(const CLabelData &other)
     {
         if ((_strImagePath == other._strImagePath) &&
@@ -144,7 +144,7 @@ public:
     virtual eRet            initialize(PROGRAM_INFO_T * pProgramInfo) = 0;
     virtual bool            verify(PROGRAM_INFO_T * pProgramInfo);
     virtual eRet            tune(void * id, CConfig * pResourceLibrary, bool bWaitForLock, unsigned index = ANY_INDEX) = 0;
-    virtual eRet            unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true) = 0;
+    virtual eRet            unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true)    = 0;
     virtual eRet            readXML(MXmlElement * xmlElemChannel);
     virtual void            writeXML(MXmlElement * xmlElemChannel);
     virtual void            updateDescription(void);
@@ -166,7 +166,7 @@ public:
     virtual bool            isPipSwapSupported(void)                       { return(_bPipSwapSupported); }
     virtual eRet            start(CSimpleAudioDecode * pAudioDecode = NULL, CSimpleVideoDecode * pVideoDecode = NULL);
     virtual eRet            finish(void);
-    virtual CPid * getPid(
+    virtual CPid *          getPid(
             unsigned index,
             ePidType type
             ) { return(_pidMgr.getPid(index, type)); } /* Get Pid */
@@ -174,11 +174,11 @@ public:
             unsigned pidNum,
             ePidType type
             ) { return(_pidMgr.findPid(pidNum, type)); }
-    virtual bool     isRecordEnabled(void)      { return(true); }
-    virtual unsigned getWidth(void)             { return(_width); }
-    virtual void     setWidth(unsigned width)   { _width = width; }
-    virtual unsigned getHeight(void)            { return(_height); }
-    virtual void     setHeight(unsigned height) { _height = height; }
+    virtual bool     isRecordEnabled(void)               { return(true); }
+    virtual unsigned getWidth(void)                      { return(_width); }
+    virtual void     setWidth(unsigned width)            { _width = width; }
+    virtual unsigned getHeight(void)                     { return(_height); }
+    virtual void     setHeight(unsigned height)          { _height = height; }
     virtual MRect    getVideoWindowGeometryPercent(void) { return(_geomVideoWindowPercent); }
     virtual void     setVideoWindowGeometryPercent(unsigned percentX, unsigned percentY, unsigned percentW, unsigned percentH);
     virtual void     setVideoWindowGeometryPercent(MRect * pRectPercent);
@@ -204,60 +204,60 @@ public:
             bool,
             long int
             ) { return(eRet_NotSupported); }
-    virtual eRet    applyTrickMode(void)                           { return(eRet_NotSupported); }
-    virtual eRet    trickmode(CPlaybackTrickData * pTrickModeData) { BSTD_UNUSED(pTrickModeData); return(eRet_NotSupported); }
-    virtual int     getTrickModeRate(void)                         { return(_trickModeRate); }
-    virtual eRet    setTrickModeRate(int trickModeRate)            { BSTD_UNUSED(trickModeRate); return(eRet_NotSupported); }
-    virtual eRet    setTrickMode(bool fastFoward)                  { BSTD_UNUSED(fastFoward); return(eRet_NotSupported); }
-    virtual void    setHost(const char * pString)                  { BSTD_UNUSED(pString); }
-    virtual MString getHost(void)                                  { return(""); }
-    virtual MString getDescription(void)                           { return(_strDescription); }
-    virtual MString getDescriptionLong(void)                       { return(_strDescriptionLong); }
-    virtual MString getDescriptionShort(void)                      { return(_strDescriptionShort); }
-    eBoardResource  getType(void)                                  { return(_type); }
-    void            setType(eBoardResource resourceType)           { _type = resourceType; }
-    void            setMajor(unsigned major)                       { _major = major; }
-    unsigned        getMajor(void)                                 { return(_major); }
-    void            setMinor(unsigned minor)                       { _minor = minor; }
-    unsigned        getMinor(void)                                 { return(_minor); }
-    void            setProgramNum(unsigned programNum)             { _programNum = programNum; }
-    unsigned        getProgramNum(void)                            { return(_programNum); }
-    MString         getChannelNum(void)                            { return(MString(_major) + MString(".") + MString(_minor)); }
-    void            setInputBand(CInputBand * pInputBand)          { _pInputBand = pInputBand; }
-    CInputBand *    getInputBand()                                 { return(_pInputBand); }
-    bool            isTuned(void)                                  { return(_tuned); }
-    void            setTransportType(NEXUS_TransportType type)     { _transportType = type; }      /* move */
-    void            setParserBand(CParserBand * pParserBand)       { _pParserBand = pParserBand; } /* move */
-    CParserBand *   getParserBand(void)                            { return(_pParserBand); }       /* move */
-    CPidMgr *       getPidMgr(void)                                { return(&_pidMgr); }
-    bool            isEncrypted(void)                              { return(_pidMgr.isEncrypted()); }  /* Encrypted */
-    void            setRecord(CRecord * pRecord)                   { _pRecord = pRecord; }
-    CRecord *       getRecord(void)                                { return(_pRecord); }
-    CPlaypump *     getPlayback(void)                              { return(_pPlaypump); }
-    bool            isRecording(void);
-    bool            isEncoding(void);
-    eRet            mapInputBand(CInputBand * pInputBand, CParserBand * pParserBand = NULL); /* used my channels */
-    virtual eRet    dupParserBand(CParserBand * pParserBand);
-    int             totalMetadata(void) { return(_metadata.total()); }
-    const char *    getMetadataTag(int index);
-    const char *    getMetadataValue(int index);
-    eChannelTrick   getTrickModeState(void)       { return(_trickModeState); }
-    uint32_t        getNumSubChannels(void)       { return(_numSubChannels); }
-    CChannel *      getParent(void)               { return(_pParent); }
-    void            setParent(CChannel * pParent) { _pParent = pParent; }
-    CLabelData *    getLabelData(uint32_t index) { if (_labelList.total() > (int)index) return(_labelList[index]); else return NULL; }
-    CSimpleVideoDecode * getVideoDecode(void) { return(_pVideoDecode); }
-    CSimpleAudioDecode * getAudioDecode(void) { return(_pAudioDecode); }
+    virtual eRet         applyTrickMode(void)                           { return(eRet_NotSupported); }
+    virtual eRet         trickmode(CPlaybackTrickData * pTrickModeData) { BSTD_UNUSED(pTrickModeData); return(eRet_NotSupported); }
+    virtual int          getTrickModeRate(void)                         { return(_trickModeRate); }
+    virtual eRet         setTrickModeRate(int trickModeRate)            { BSTD_UNUSED(trickModeRate); return(eRet_NotSupported); }
+    virtual eRet         setTrickMode(bool fastFoward)                  { BSTD_UNUSED(fastFoward); return(eRet_NotSupported); }
+    virtual void         setHost(const char * pString)                  { BSTD_UNUSED(pString); }
+    virtual MString      getHost(void)                                  { return(""); }
+    virtual MString      getDescription(void)                           { return(_strDescription); }
+    virtual MString      getDescriptionLong(void)                       { return(_strDescriptionLong); }
+    virtual MString      getDescriptionShort(void)                      { return(_strDescriptionShort); }
+    eBoardResource       getType(void)                                  { return(_type); }
+    void                 setType(eBoardResource resourceType)           { _type = resourceType; }
+    void                 setMajor(unsigned major)                       { _major = major; }
+    unsigned             getMajor(void)                                 { return(_major); }
+    void                 setMinor(unsigned minor)                       { _minor = minor; }
+    unsigned             getMinor(void)                                 { return(_minor); }
+    void                 setProgramNum(unsigned programNum)             { _programNum = programNum; }
+    unsigned             getProgramNum(void)                            { return(_programNum); }
+    MString              getChannelNum(void)                            { return(MString(_major) + MString(".") + MString(_minor)); }
+    void                 setInputBand(CInputBand * pInputBand)          { _pInputBand = pInputBand; }
+    CInputBand *         getInputBand()                                 { return(_pInputBand); }
+    bool                 isTuned(void)                                  { return(_tuned); }
+    void                 setTransportType(NEXUS_TransportType type)     { _transportType = type; }      /* move */
+    void                 setParserBand(CParserBand * pParserBand)       { _pParserBand = pParserBand; } /* move */
+    CParserBand *        getParserBand(void)                            { return(_pParserBand); }       /* move */
+    CPidMgr *            getPidMgr(void)                                { return(&_pidMgr); }
+    bool                 isEncrypted(void)                              { return(_pidMgr.isEncrypted()); }  /* Encrypted */
+    void                 setRecord(CRecord * pRecord)                   { _pRecord = pRecord; }
+    CRecord *            getRecord(void)                                { return(_pRecord); }
+    CPlaypump *          getPlayback(void)                              { return(_pPlaypump); }
+    bool                 isRecording(void);
+    bool                 isEncoding(void);
+    eRet                 mapInputBand(CInputBand * pInputBand, CParserBand * pParserBand = NULL); /* used my channels */
+    virtual eRet         dupParserBand(CParserBand * pParserBand);
+    int                  totalMetadata(void) { return(_metadata.total()); }
+    const char *         getMetadataTag(int index);
+    const char *         getMetadataValue(int index);
+    eChannelTrick        getTrickModeState(void)       { return(_trickModeState); }
+    uint32_t             getNumSubChannels(void)       { return(_numSubChannels); }
+    CChannel *           getParent(void)               { return(_pParent); }
+    void                 setParent(CChannel * pParent) { _pParent = pParent; }
+    CLabelData *         getLabelData(uint32_t index)  { if (_labelList.total() > (int)index) { return(_labelList[index]); } else { return(NULL); } }
+    CSimpleVideoDecode * getVideoDecode(void)          { return(_pVideoDecode); }
+    CSimpleAudioDecode * getAudioDecode(void)          { return(_pAudioDecode); }
     eRet                 addImageLabel(MString strImagePath, MRect rectGeometryPercent = MRect(0, 0, 0, 0), unsigned zOrder = 1, MString strText = "", MString strGlobal = "false");
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    eDynamicRange        getDynamicRange(void) { return(_dynamicRange); }
-    void                 setDynamicRange(eDynamicRange dynamicRange) { _dynamicRange = dynamicRange; }
-    bool                 isPlmEnabled(void) { return(_bPlm); }
-    void                 setPlm(bool bPlm) { _bPlm = bPlm; }
-#endif
+    eDynamicRange getDynamicRange(void)                       { return(_dynamicRange); }
+    void          setDynamicRange(eDynamicRange dynamicRange) { _dynamicRange = dynamicRange; }
+    bool          isPlmEnabled(void)                          { return(_bPlm); }
+    void          setPlm(bool bPlm)                           { _bPlm = bPlm; }
+#endif /* if HAS_VID_NL_LUMA_RANGE_ADJ */
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
-    bool                 isGraphicsPlmEnabled(void) { return(_bPlmGfx); }
-    void                 setGraphicsPlm(bool bPlmGfx) { _bPlmGfx = bPlmGfx; }
+    bool isGraphicsPlmEnabled(void)   { return(_bPlmGfx); }
+    void setGraphicsPlm(bool bPlmGfx) { _bPlmGfx = bPlmGfx; }
 #endif
 
     void addMetadata(
@@ -276,7 +276,7 @@ public:
 #ifdef MPOD_SUPPORT
     void     setSourceId(uint32_t sourceId) { _sourceId = sourceId; }
     uint32_t getSourceId(void)              { return(_sourceId); }
-#ifdef NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     void                setKeySlot(NEXUS_KeySlotHandle keySlot) { _keySlot = keySlot; }
     NEXUS_KeySlotHandle getKeySlot(void)                        { return(_keySlot); }
 #endif
@@ -300,7 +300,7 @@ protected:
     unsigned       _programNum;
 #ifdef MPOD_SUPPORT
     uint32_t _sourceId;
-#ifdef NEXUS_HAS_SECURITY
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
     NEXUS_KeySlotHandle _keySlot;
 #endif
 #endif /* ifdef MPOD_SUPPORT */
@@ -328,8 +328,8 @@ protected:
     int                   _trickModeRate;
     eChannelTrick         _trickModeState;
     bool                  _bTunerRequired;
-    unsigned         _width;
-    unsigned         _height;
+    unsigned              _width;
+    unsigned              _height;
     uint64_t              _durationInMsecs;
     bool                  _bStopAllowed;
     bool                  _bPipSwapSupported;
@@ -344,10 +344,10 @@ protected:
     eDynamicRange         _dynamicRange; /* channels can override a stream dynamic range based on filename */
     MAutoList<CLabelData> _labelList;
 #if HAS_VID_NL_LUMA_RANGE_ADJ
-    bool                  _bPlm;
+    bool _bPlm;
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
-    bool                  _bPlmGfx;
+    bool _bPlmGfx;
 #endif
 };
 

@@ -2685,18 +2685,6 @@ BERR_Code BXPT_P_ApplyParserPsiSettings(
     bool IsPbParser
     );
 
-BERR_Code BXPT_P_SetPidChannelDestination(
-    BXPT_Handle hXpt,
-    unsigned int PidChannelNum,
-    unsigned Destination,
-    bool EnableIt
-    );
-
-BERR_Code BXPT_P_ClearAllPidChannelDestinations(
-    BXPT_Handle hXpt,
-    unsigned int PidChannelNum
-    );
-
 BERR_Code BXPT_P_DisableFilter(
     BXPT_Handle hXpt,
     unsigned int FilterNum,

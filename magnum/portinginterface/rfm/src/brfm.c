@@ -72,8 +72,6 @@ do {                                               \
     }                                              \
 } while(0)
 
-#define DEV_MAGIC_ID ((BERR_RFM_ID<<16) | 0xFACE)
-
 #define MAKE_INT_ID(IntName)   BCHP_INT_ID_##IntName
 #define MAKE_INT_ENUM(IntName) BRFM_IntType_e##IntName
 
@@ -119,6 +117,8 @@ typedef enum
     MAKE_INT_ENUM(Last)
 } BRFM_IntType;
 
+BDBG_OBJECT_ID(BRFM_Handle);
+
 typedef struct
 {
     bool isPowerSaverEnable;
@@ -135,6 +135,7 @@ typedef struct
 typedef struct BRFM_P_Handle
 {
     uint32_t magicId;           /* Used to check if structure is corrupt */
+    BDBG_OBJECT(BRFM_Handle)
     BCHP_Handle hChip;
     BREG_Handle hRegister;
     BINT_Handle hInterrupt;
@@ -216,7 +217,7 @@ static void BRFM_HandleInterrupt_isr(
     BRFM_Handle hDev;
 
     hDev = (BRFM_Handle)pParam1;
-    BDBG_ASSERT(hDev);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     switch ((BRFM_IntType) parm2)
     {
         case MAKE_INT_ENUM(AUDIO_FIFO_UF_INTR):
@@ -885,7 +886,7 @@ BERR_Code BRFM_Open(BRFM_Handle *phRfm, BCHP_Handle hChip, BREG_Handle hRegister
     }
 #endif
 
-    hDev->magicId = DEV_MAGIC_ID;
+    BDBG_OBJECT_SET(hDev, BRFM_Handle);
     hDev->hChip = hChip;
     hDev->hRegister = hRegister;
     hDev->hInterrupt = hInterrupt;
@@ -981,8 +982,7 @@ BERR_Code BRFM_Close(BRFM_Handle hDev)
     unsigned idx;
 
     BDBG_ENTER(BRFM_Close);
-    BDBG_ASSERT(hDev);
-    BDBG_ASSERT(hDev->magicId == DEV_MAGIC_ID);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     if (hDev->otpDisabled) {
         goto free;
     }
@@ -1000,9 +1000,9 @@ BERR_Code BRFM_Close(BRFM_Handle hDev)
     /* always power down on close */
     BRFM_P_SetPowerSaverMode(hDev, true);
 free:
-    hDev->magicId = 0x00; /* clear it to catch improper use */
+    /* hDev->magicId = 0x00; */ /* clear it to catch improper use */
+    BDBG_OBJECT_DESTROY(hDev, BRFM_Handle);
     BKNI_Free((void *) hDev);
-
 done:
     BDBG_LEAVE(BRFM_Close);
     return retCode;
@@ -1075,8 +1075,7 @@ BERR_Code BRFM_EnableRfOutput(BRFM_Handle hDev)
     BERR_Code retCode = BERR_SUCCESS;
 
     BDBG_ENTER(BRFM_EnableRfOutput);
-    BDBG_ASSERT(hDev);
-    BDBG_ASSERT(hDev->magicId == DEV_MAGIC_ID);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
 
     if (hDev->otpDisabled) {
         goto done;
@@ -1101,8 +1100,7 @@ BERR_Code BRFM_DisableRfOutput(BRFM_Handle hDev)
     BERR_Code retCode = BERR_SUCCESS;
 
     BDBG_ENTER(BRFM_DisableRfOutput);
-    BDBG_ASSERT(hDev);
-    BDBG_ASSERT(hDev->magicId == DEV_MAGIC_ID);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     if (hDev->otpDisabled) {
         goto done;
     }
@@ -1148,8 +1146,7 @@ BERR_Code BRFM_SetAudioVolume(BRFM_Handle hDev, int volume)
     uint16_t uRightVal = 0;
 
     BDBG_ENTER(BRFM_SetAudioVolume);
-    BDBG_ASSERT(hDev);
-    BDBG_ASSERT(hDev->magicId == DEV_MAGIC_ID);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     if (hDev->otpDisabled) {
         goto done;
     }
@@ -1298,8 +1295,7 @@ BERR_Code BRFM_SetAudioMute(BRFM_Handle hDev, bool mute)
     uint32_t ulVal;
 
     BDBG_ENTER(BRFM_SetAudioMute);
-    BDBG_ASSERT(hDev);
-    BDBG_ASSERT(hDev->magicId == DEV_MAGIC_ID);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     if (hDev->otpDisabled) {
         goto done;
     }
@@ -1348,8 +1344,7 @@ BERR_Code BRFM_SetAudioEncoding(BRFM_Handle hDev, BRFM_AudioEncoding audioEncodi
     uint16_t uEncMode=0;
 
     BDBG_ENTER(BRFM_SetAudioEncoding);
-    BDBG_ASSERT(hDev);
-    BDBG_ASSERT(hDev->magicId == DEV_MAGIC_ID);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     if (hDev->otpDisabled) {
         goto done;
     }
@@ -1532,8 +1527,7 @@ BERR_Code BRFM_SetModulationType(BRFM_Handle hDev, BRFM_ModulationType modType, 
     bool reset = !hDev->settings.isOutputEnable || modType!=hDev->settings.modType || chNbr!=hDev->settings.outputChannel;
 #endif
     BDBG_ENTER(BRFM_SetModulationType);
-    BDBG_ASSERT(hDev);
-    BDBG_ASSERT(hDev->magicId == DEV_MAGIC_ID);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     if (hDev->otpDisabled) {
         goto done;
     }
@@ -1608,8 +1602,7 @@ BERR_Code BRFM_EnablePowerSaver(BRFM_Handle hDev)
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT(hDev);
-    BDBG_ASSERT(hDev->magicId == DEV_MAGIC_ID);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     BDBG_MSG(("BRFM_EnablePowerSaver:>"));
     if (hDev->otpDisabled) {
         goto done;
@@ -1654,8 +1647,7 @@ BERR_Code BRFM_GetStatus(BRFM_Handle hDev, BRFM_Status *status)
     BERR_Code retCode = BERR_SUCCESS;
 
     BDBG_ENTER(BRFM_GetStatus);
-    BDBG_ASSERT(hDev);
-    BDBG_ASSERT(hDev->magicId == DEV_MAGIC_ID);
+    BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     if (hDev->otpDisabled) {
         goto done;
     }

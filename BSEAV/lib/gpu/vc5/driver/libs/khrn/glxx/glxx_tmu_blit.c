@@ -270,7 +270,7 @@ static GLuint create_program(enum cmp_type cmp_type)
    GLuint program;
 
    static const char *vshader_source =
-      "#version 310 es\n"
+      "#version 300 es\n"
       "in vec2 vertex;\n"
       "in vec2 tex_coord;\n"
       "out vec2 vtex_coord;\n"
@@ -280,7 +280,7 @@ static GLuint create_program(enum cmp_type cmp_type)
       "   vtex_coord = tex_coord;\n"
       "}\n";
 
-   static const char *fshader_version = "#version 310 es\n";
+   static const char *fshader_version = "#version 300 es\n";
    static const char *sampler_decls[N_CMP_TYPES] = {
       "uniform highp sampler2D tex;\n",
       "uniform highp isampler2D tex;\n",
@@ -1085,12 +1085,10 @@ end:
    {
       GLXX_SERVER_STATE_T *state;
 
-      if (egl_context_gl_lock())
-      {
-         state = egl_context_gl_server_state(NULL);
-         glxx_server_state_set_error(state, error);
-         egl_context_gl_unlock();
-      }
+      egl_context_gl_lock();
+      state = egl_context_gl_server_state(NULL);
+      glxx_server_state_set_error(state, error);
+      egl_context_gl_unlock();
    }
 
    /*

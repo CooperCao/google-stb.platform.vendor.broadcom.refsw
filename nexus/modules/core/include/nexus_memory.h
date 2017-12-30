@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
+*
 * API Description:
 *   API name: Memory
 *    Specific APIs related to device memory allocation
@@ -377,6 +378,38 @@ typedef struct NEXUS_HeapRuntimeSettings
 {
     bool secure;
 } NEXUS_HeapRuntimeSettings;
+
+typedef struct NEXUS_MemoryBlockToken *NEXUS_MemoryBlockTokenHandle;
+
+/* NEXUS_MemoryBlock_Clone will return a new NEXUS_MemoryBlockHandle which points
+to the same Nexus device memory as the NEXUS_MemoryBlockHandle used to create the token.
+A successful Clone will also destroy the token.
+
+Once cloned, the underlying device memory will remain allocated until both the new and
+original NEXUS_MemoryBlockHandle are freed.
+*/
+NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_Clone(
+    NEXUS_MemoryBlockTokenHandle token
+    );
+
+/* The created token can be used to clone the MemoryBlock one time.
+NEXUS_MemoryBlockTokenHandle is created as "shareable", which means any other Nexus process
+can use it. The application must communicate NEXUS_MemoryBlockTokenHandle to other processes
+using its own IPC.
+
+The token remains valid until either NEXUS_MemoryBlock_Clone or NEXUS_MemoryBlock_DestroyToken
+is called.
+
+If the NEXUS_MemoryBlockHandle is destroyed before the token is cloned or destroyed, the
+underlying device memory remains allocated.
+*/
+NEXUS_MemoryBlockTokenHandle NEXUS_MemoryBlock_CreateToken( /* attr{destructor=NEXUS_MemoryBlock_DestroyToken} */
+    NEXUS_MemoryBlockHandle memoryBlock
+    );
+
+void NEXUS_MemoryBlock_DestroyToken(
+    NEXUS_MemoryBlockTokenHandle token
+    );
 
 #ifdef __cplusplus
 }

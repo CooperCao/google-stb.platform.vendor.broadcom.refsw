@@ -1,52 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 *
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ******************************************************************************/
 
@@ -56,6 +45,7 @@
 #include "bbox.h"
 #include "bfmt.h"
 #include "bbox_priv.h"
+#include "bbox_rts_priv.h"
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
@@ -85,9 +75,35 @@
 #include "bbox_vdc_box26_config.h"
 #include "bbox_vdc_box27_config.h"
 #include "bbox_vdc_box28_config.h"
-#include "bbox_vdc_box29_config.h"
 #include "bbox_vdc_box30_config.h"
 
+#include "bbox_rts_box1.h"
+#include "bbox_rts_box2.h"
+#include "bbox_rts_box3.h"
+#include "bbox_rts_box4.h"
+#include "bbox_rts_box5.h"
+#include "bbox_rts_box6.h"
+#include "bbox_rts_box7.h"
+#include "bbox_rts_box9.h"
+#include "bbox_rts_box10.h"
+#include "bbox_rts_box12.h"
+#include "bbox_rts_box13.h"
+#include "bbox_rts_box14.h"
+#include "bbox_rts_box16.h"
+#include "bbox_rts_box17.h"
+#include "bbox_rts_box18.h"
+#include "bbox_rts_box19.h"
+#include "bbox_rts_box20.h"
+#include "bbox_rts_box21.h"
+#include "bbox_rts_box22.h"
+#include "bbox_rts_box23.h"
+#include "bbox_rts_box24.h"
+#include "bbox_rts_box25.h"
+#include "bbox_rts_box26.h"
+#include "bbox_rts_box27.h"
+#include "bbox_rts_box28.h"
+#include "bbox_rts_box29.h"
+#include "bbox_rts_box30.h"
 
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
@@ -458,7 +474,7 @@ void BBOX_P_Vdc_SetXcodeCapabilities
     }
 }
 
-BERR_Code BBOX_P_GetMemConfig
+BERR_Code BBOX_P_SetMemConfig
     ( uint32_t               ulBoxId,
       BBOX_MemConfig        *pBoxMemConfig )
 {
@@ -467,95 +483,102 @@ BERR_Code BBOX_P_GetMemConfig
     eStatus = BBOX_P_ValidateId(ulBoxId);
     if (eStatus != BERR_SUCCESS) return eStatus;
 
+    /* Set default config settings  */
+    BBOX_P_SetDefaultMemConfig(pBoxMemConfig);
+
     switch (ulBoxId)
     {
         case 1:
-            BBOX_P_GetBox1MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox1MemConfig(pBoxMemConfig);
             break;
         case 2:
-            BBOX_P_GetBox2MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox2MemConfig(pBoxMemConfig);
             break;
         case 3:
-            BBOX_P_GetBox3MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox3MemConfig(pBoxMemConfig);
             break;
         case 4:
-            BBOX_P_GetBox4MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox4MemConfig(pBoxMemConfig);
             break;
         case 5:
-            BBOX_P_GetBox5MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox5MemConfig(pBoxMemConfig);
             break;
         case 6:
-            BBOX_P_GetBox6MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox6MemConfig(pBoxMemConfig);
             break;
         case 7:
-            BBOX_P_GetBox7MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox7MemConfig(pBoxMemConfig);
             break;
         case 9:
-            BBOX_P_GetBox9MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox9MemConfig(pBoxMemConfig);
             break;
         case 10:
-            BBOX_P_GetBox10MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox10MemConfig(pBoxMemConfig);
             break;
         case 12:
-            BBOX_P_GetBox12MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox12MemConfig(pBoxMemConfig);
             break;
         case 13:
-            BBOX_P_GetBox13MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox13MemConfig(pBoxMemConfig);
             break;
         case 14:
-            BBOX_P_GetBox14MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox14MemConfig(pBoxMemConfig);
             break;
         case 16:
-            BBOX_P_GetBox16MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox16MemConfig(pBoxMemConfig);
             break;
         case 17:
-            BBOX_P_GetBox17MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox17MemConfig(pBoxMemConfig);
             break;
         case 18:
-            BBOX_P_GetBox18MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox18MemConfig(pBoxMemConfig);
             break;
         case 19:
-            BBOX_P_GetBox19MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox19MemConfig(pBoxMemConfig);
             break;
         case 20:
-            BBOX_P_GetBox20MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox20MemConfig(pBoxMemConfig);
             break;
         case 21:
-            BBOX_P_GetBox21MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox21MemConfig(pBoxMemConfig);
             break;
         case 22:
-            BBOX_P_GetBox22MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox22MemConfig(pBoxMemConfig);
             break;
         case 23:
         case 29:
-            BBOX_P_GetBox23MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox23MemConfig(pBoxMemConfig);
             break;
         case 24:
-            BBOX_P_GetBox24MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox24MemConfig(pBoxMemConfig);
             break;
         case 25:
-            BBOX_P_GetBox25MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox25MemConfig(pBoxMemConfig);
             break;
         case 26:
-            BBOX_P_GetBox26MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox26MemConfig(pBoxMemConfig);
             break;
         case 27:
-            BBOX_P_GetBox27MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox27MemConfig(pBoxMemConfig);
             break;
         case 28:
-            BBOX_P_GetBox28MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox28MemConfig(pBoxMemConfig);
             break;
         case 30:
-            BBOX_P_GetBox30MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox30MemConfig(pBoxMemConfig);
             break;
+        default:
+            BDBG_ERR(("There is no box mode %d MEMC configuration.", ulBoxId));
+            eStatus = BBOX_MEM_CFG_UNINITIALIZED;
     }
-    return BERR_SUCCESS;
+    return eStatus;
 }
 
 BERR_Code BBOX_P_GetRtsConfig
     ( const uint32_t         ulBoxId,
       BBOX_Rts              *pBoxRts )
 {
+    BERR_Code eStatus = BERR_SUCCESS;
     switch (ulBoxId)
     {
         case 1:
@@ -639,7 +662,11 @@ BERR_Code BBOX_P_GetRtsConfig
         case 30:
             BBOX_P_GetBox30Rts(pBoxRts);
             break;
+        default:
+            BDBG_ERR(("There is no box mode %d RTS configuration.", ulBoxId));
+            eStatus = BBOX_RTS_CFG_UNINITIALIZED;
     }
-    return BERR_SUCCESS;
+
+    return eStatus;
 }
 /* end of file */

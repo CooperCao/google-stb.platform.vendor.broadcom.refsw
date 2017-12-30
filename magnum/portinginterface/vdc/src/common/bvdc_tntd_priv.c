@@ -492,6 +492,34 @@ uint32_t BVDC_P_Tntd_CalcVertSclRatio_isr
  * {private}
  *
  */
+int16_t BVDC_P_Tntd_MapSharpnessForHdr_isr
+    ( int16_t                      sSharpness )
+{
+    int16_t sImplSharpness;
+
+    if(sSharpness <= -2048)
+    {
+        sImplSharpness = -32768 +(int16_t)((sSharpness + 32768) * 8 / 10);
+    }
+    else if(sSharpness <= 2048)
+    {
+        sImplSharpness = -8192 + sSharpness + 2048;
+    }
+    else if(sSharpness < 32767)
+    {
+        sImplSharpness = -4096 + (int16_t)((sSharpness - 2048) * 12 / 10);
+    }
+    else
+    {
+        sImplSharpness = 32767;
+    }
+    return sImplSharpness;
+}
+
+/***************************************************************************
+ * {private}
+ *
+ */
 void BVDC_P_Tntd_SetInfo_isr
     ( BVDC_P_Tntd_Handle            hTntd,
       const BVDC_P_PictureNodePtr   pPicture )
@@ -503,6 +531,8 @@ void BVDC_P_Tntd_SetInfo_isr
     uint32_t ulSharpness = 0;
     BVDC_P_Rect  *pSclIn;
     BVDC_P_Rect  *pSclOut;
+    bool bPqNcl;
+    int16_t sImplSharpness = hTntd->hWindow->stCurInfo.sSharpness;
 
     BDBG_ENTER(BVDC_P_Tntd_SetInfo_isr);
     BDBG_OBJECT_ASSERT(hTntd, BVDC_TNTD);
@@ -534,11 +564,15 @@ void BVDC_P_Tntd_SetInfo_isr
             (pSclOut->ulHeight) / BVDC_P_FIELD_PER_FRAME;
     }
 
+    bPqNcl = (pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorTF == BAVC_P_ColorTF_eBt2100Pq &&
+              pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorFmt == BAVC_P_ColorFormat_eYCbCr) ? true : false;
+
     if((hTntd->hWindow->stCurInfo.bSharpnessEnable != hTntd->bSharpnessEnable) ||
        (hTntd->hWindow->stCurInfo.sSharpness != hTntd->sSharpness) ||
        (hTntd->hWindow->stCurInfo.stSplitScreenSetting.eSharpness != hTntd->eDemoMode) ||
        (ulWidth  != hTntd->ulPrevWidth) ||
        (ulHeight != hTntd->ulPrevHeight) ||
+       (bPqNcl != hTntd->bPqNcl) ||
        (pPicture->stVnetMode.stBits.bTntdBeforeScl != hTntd->bPrevTntdBeforeScl) ||
        !BVDC_P_TNTD_COMPARE_FIELD_DATA(TNTD_0_TOP_CONTROL, TNTD_ENABLE, 1) ||
        (pPicture->eSrcOrientation        != hTntd->ePrevSrcOrientation) ||
@@ -553,7 +587,13 @@ void BVDC_P_Tntd_SetInfo_isr
         hTntd->bPrevTntdBeforeScl = pPicture->stVnetMode.stBits.bTntdBeforeScl;
         hTntd->ePrevSrcOrientation = pPicture->eSrcOrientation;
         hTntd->ePrevDispOrientation = pPicture->eDispOrientation;
+        hTntd->bPqNcl = bPqNcl;
         hTntd->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
+
+        if(bPqNcl)
+        {
+            sImplSharpness = BVDC_P_Tntd_MapSharpnessForHdr_isr(hTntd->hWindow->stCurInfo.sSharpness);
+        }
 
         BVDC_P_Tntd_SelectConfigTable_isr(ulVertRatio, &hTntd->pConfigTbl);
 
@@ -609,7 +649,7 @@ void BVDC_P_Tntd_SetInfo_isr
 
         /* calculate sharpness value [1, 16] */
         BVDC_P_Sharpness_Calculate_Gain_Value_isr(
-            hTntd->hWindow->stCurInfo.sSharpness, 0, 8, 16, &ulSharpness);
+            sImplSharpness, 0, 8, 16, &ulSharpness);
 
         BVDC_P_TNTD_GET_REG_DATA(TNTD_0_LPEAK_KERNEL_CONTROL_DIR5) &= ~(
             BCHP_MASK(TNTD_0_LPEAK_KERNEL_CONTROL_DIR5, MONO     ) |
@@ -711,8 +751,8 @@ void BVDC_P_Tntd_SetInfo_isr
     if(BVDC_P_RUL_UPDATE_THRESHOLD == hTntd->ulUpdateAll)
     {
         BDBG_MSG(("-------------------------"));
-        BDBG_MSG(("sSharpness=%d => ulSharpness=%d",
-            hTntd->hWindow->stCurInfo.sSharpness, ulSharpness));
+        BDBG_MSG(("sSharpness=%d && bPqNcl =%d => sImplSharpness=%d => ulSharpness=%d",
+            hTntd->hWindow->stCurInfo.sSharpness, bPqNcl, sImplSharpness, ulSharpness));
         BDBG_MSG(("SCL in: %dx%d(%d) - SCL out: %dx%d(%d) => TNTD: %dx%d",
             pSclIn->ulWidth, pSclIn->ulHeight, pPicture->eSrcPolarity,
             pSclOut->ulWidth, pSclOut->ulHeight, pPicture->eDstPolarity,

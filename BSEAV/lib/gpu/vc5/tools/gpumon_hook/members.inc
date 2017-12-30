@@ -571,6 +571,10 @@ EGLBoolean (*map_eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image);
 #if EGL_KHR_image_pixmap
 #endif /* EGL_KHR_image_pixmap*/
 
+#if EGL_KHR_partial_update
+EGLBoolean (*map_eglSetDamageRegionKHR)(EGLDisplay dpy, EGLSurface surface, EGLint *rects, EGLint n_rects);
+#endif /* EGL_KHR_partial_update*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
 
@@ -850,6 +854,9 @@ EGLBoolean (*map_eglGetPerfCounterDataBRCM)(EGLint dataBufferBytes, void *data, 
 #if EGL_BRCM_platform_nexus
 #endif /* EGL_BRCM_platform_nexus*/
 
+#if EGL_EXT_buffer_age
+#endif /* EGL_EXT_buffer_age*/
+
 #if EGL_EXT_client_extensions
 #endif /* EGL_EXT_client_extensions*/
 
@@ -886,6 +893,9 @@ EGLBoolean (*map_eglQueryWaylandBufferWL)(EGLDisplay dpy, struct wl_resource *bu
 #if GL_BRCM_mirror_clamp_to_edge
 #endif /* GL_BRCM_mirror_clamp_to_edge*/
 
+#if GL_BRCM_no_perspective
+#endif /* GL_BRCM_no_perspective*/
+
 #if GL_BRCM_polygon_mode
 void (*map_glPolygonModeBRCM)(GLenum mode);
 #endif /* GL_BRCM_polygon_mode*/
@@ -894,11 +904,20 @@ void (*map_glPolygonModeBRCM)(GLenum mode);
 void (*map_glProvokingVertexBRCM)(GLenum mode);
 #endif /* GL_BRCM_provoking_vertex*/
 
+#if GL_BRCM_sampler_fetch
+#endif /* GL_BRCM_sampler_fetch*/
+
+#if GL_BRCM_shader_framebuffer_fetch_depth_stencil
+#endif /* GL_BRCM_shader_framebuffer_fetch_depth_stencil*/
+
 #if GL_BRCM_texture_1D
 void (*map_glTexImage1DBRCM)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels);
 void (*map_glTexSubImage1DBRCM)(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid *pixels);
 void (*map_glTexStorage1DBRCM)(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width);
 #endif /* GL_BRCM_texture_1D*/
+
+#if GL_BRCM_texture_gather_lod
+#endif /* GL_BRCM_texture_gather_lod*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

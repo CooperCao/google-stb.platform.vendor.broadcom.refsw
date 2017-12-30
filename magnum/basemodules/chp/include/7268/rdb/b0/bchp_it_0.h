@@ -44,14 +44,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon May  1 14:04:34 2017
- *                 Full Compile MD5 Checksum  72ff1615f403dd870dba62731cefa0ee
+ * Date:           Generated on               Thu Jun  1 14:51:27 2017
+ *                 Full Compile MD5 Checksum  9adbc395b049f9d59dc6236c99470286
  *                     (minus title and desc)
- *                 MD5 Checksum               ccc06938d4d906ceb66489d51f076904
+ *                 MD5 Checksum               be65de934022dbbaac2735622a046bdc
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1395
+ *                 RDB.pm                     1485
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -104,7 +104,7 @@
 #define BCHP_IT_0_MSSYNC_PCL                     0x206e01cc /* [RW][32] Master Slave flag select PCL */
 #define BCHP_IT_0_MSYNC_PHASE                    0x206e01d0 /* [RW][32] Master Sync Phase */
 #define BCHP_IT_0_EOF0_LINE                      0x206e01d4 /* [RW][32] Field0 End line number for interlaced format */
-#define BCHP_IT_0_MSSYNC_STATUS                  0x206e01d8 /* [RO][32] \"Status register for MSSYNC\" */
+#define BCHP_IT_0_MSSYNC_STATUS                  0x206e01d8 /* [RO][32] "Status register for MSSYNC" */
 #define BCHP_IT_0_AS_CONTROL                     0x206e02b4 /* [RW][32] Active Space Control register */
 #define BCHP_IT_0_AS_PIXEL_C0_C1                 0x206e02b8 /* [RW][32] Active Space Pixel Value Register */
 #define BCHP_IT_0_AS_PIXEL_C2                    0x206e02bc /* [RW][32] Active Space Pixel Value Register */
@@ -1534,7 +1534,7 @@
 #define BCHP_IT_0_EOF0_LINE_COUNT_DEFAULT                          0x00000000
 
 /***************************************************************************
- *MSSYNC_STATUS - \"Status register for MSSYNC\"
+ *MSSYNC_STATUS - "Status register for MSSYNC"
  ***************************************************************************/
 /* IT_0 :: MSSYNC_STATUS :: reserved0 [31:30] */
 #define BCHP_IT_0_MSSYNC_STATUS_reserved0_MASK                     0xc0000000

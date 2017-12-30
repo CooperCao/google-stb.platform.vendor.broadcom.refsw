@@ -244,10 +244,12 @@ void NEXUS_Sage_P_SvpUninit(bool reset)
 /* Some of the init needs to be delayed until SAGE is running */
 /* TODO: Move some of this (platform open/init, module open/init, into
 * more generic functions that can be used across nexus */
-void NEXUS_Sage_P_SvpInitDelayed(void)
+void NEXUS_Sage_P_SvpInitDelayed(void *pParam)
 {
     BSAGElib_ClientSettings sagelibClientSettings;
     BERR_Code rc;
+
+    BSTD_UNUSED(pParam);
 
     NEXUS_LockModule();
 
@@ -393,10 +395,12 @@ EXIT:
     return;
 }
 
-NEXUS_Error NEXUS_Sage_P_SvpInit(void)
+NEXUS_Error NEXUS_Sage_P_SvpInit(NEXUS_SageModuleInternalSettings *internalSettings)
 {
     NEXUS_ThreadSettings thSettings;
     BERR_Code rc;
+
+    BSTD_UNUSED(internalSettings);
 
     if(lHandle)
     {
@@ -442,13 +446,15 @@ ERROR_EXIT:
 }
 
 /* Not to be called from within SAGE module itself */
-NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
+NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList, NEXUS_SageUrrType type)
 {
 	uint32_t coreListSize;
     NEXUS_Error rc = NEXUS_SUCCESS;
 
     NEXUS_LockModule();
     coreListSize=sizeof(*pCoreList);
+
+    BSTD_UNUSED(type);
 
 #ifdef NEXUS_SAGE_SVP_TEST
     NEXUS_Sage_P_SecureCores_test(pCoreList, true);
@@ -509,13 +515,14 @@ EXIT:
 }
 
 /* Not to be called from within SAGE module itself */
-void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
+void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList, NEXUS_SageUrrType type)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     uint32_t coreListSize=sizeof(*pCoreList);
 
     NEXUS_LockModule();
 
+    BSTD_UNUSED(type);
 #ifdef NEXUS_SAGE_SVP_TEST
     NEXUS_Sage_P_SecureCores_test(pCoreList, false);
 #endif
@@ -575,12 +582,12 @@ EXIT:
 /* Dummy function for 3.x compatibility */
 NEXUS_Error NEXUS_Sage_UpdateHeaps(void)
 {
-    return BERR_SUCCESS;
+    return NEXUS_SUCCESS;
 }
 
 NEXUS_Error NEXUS_Sage_P_SvpEnterS3(void)
 {
-    return BERR_SUCCESS;
+    return NEXUS_SUCCESS;
 }
 void NEXUS_Sage_P_SvpStop(bool reset)
 {
@@ -596,10 +603,22 @@ NEXUS_Error NEXUS_Sage_SecureRemap(unsigned memcIndex, const BDTU_RemapSettings 
 {
     BSTD_UNUSED(memcIndex);
     BSTD_UNUSED(pSettings);
-    return BERR_SUCCESS;
+    return NEXUS_SUCCESS;
 }
 
 void NEXUS_Sage_P_BP3Uninit(void)
 {
-    return BERR_SUCCESS;
+    return;
+}
+
+NEXUS_Error NEXUS_Sage_EnableHvd(void)
+{
+    BDBG_ERR(("%s: NOT SUPPORTED in SAGE 2.x", __FUNCTION__));
+    return NEXUS_SUCCESS;
+}
+
+void NEXUS_Sage_DisableHvd(void)
+{
+    BDBG_ERR(("%s: NOT SUPPORTED in SAGE 2.x", __FUNCTION__));
+    return;
 }

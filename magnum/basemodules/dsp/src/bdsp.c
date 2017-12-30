@@ -270,3 +270,255 @@ BERR_Code BDSP_ProcessAudioCapture(
 
     return ErrCode;
 }
+
+/***************************************************************************
+Summary:
+    Get the debug buffer
+
+Description:
+    This function must be called in a background thread at a frequent
+    interval (e.g. 10ms). for the data to be copied into the host copy of the debug files.
+
+Returns:
+    BERR_SUCCESS - If debug buffer is successful retreived
+
+See Also:
+    BDSP_ConsumeDebugData
+***************************************************************************/
+BERR_Code BDSP_GetDebugBuffer(
+    BDSP_Handle             hDsp,
+    BDSP_DebugType          debugType,
+    uint32_t                dspIndex,
+    BDSP_MMA_Memory        *pBuffer,
+    size_t                 *pSize
+)
+{
+    BERR_Code   ErrCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+
+    if(hDsp->getDebugBuffer)
+    {
+        ErrCode = hDsp->getDebugBuffer(hDsp->pDeviceHandle, debugType, dspIndex, pBuffer, pSize);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return ErrCode;
+}
+
+/***************************************************************************
+Summary:
+    Get the debug buffer
+
+Description:
+    This function must be called in a background thread at a frequent
+    interval (e.g. 10ms). for the data to be consumed by the DSP which was emptied into the host copy of debug files.
+
+Returns:
+    BERR_SUCCESS - If debug buffer is successful consumed
+
+See Also:
+    BDSP_GetDebugBuffer
+***************************************************************************/
+BERR_Code BDSP_ConsumeDebugData(
+    BDSP_Handle             hDsp,
+    BDSP_DebugType          debugType,
+    uint32_t                dspIndex,
+    size_t                  bytesConsumed
+)
+{
+    BERR_Code   ErrCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+
+    if(hDsp->consumeDebugData)
+    {
+        ErrCode = hDsp->consumeDebugData(hDsp->pDeviceHandle, debugType, dspIndex, bytesConsumed);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return ErrCode;
+}
+
+/***************************************************************************
+Summary:
+    Get the Core Dump status
+
+Description:
+    This function is called to determine if CoreDump has been completed or not
+
+Returns:
+    Determines if FW is running, Core dump in progress or Core dump has been completed
+
+See Also:
+    BDSP_GetDebugBuffer
+***************************************************************************/
+
+BDSP_FwStatus BDSP_GetCoreDumpStatus (
+    BDSP_Handle hDsp,
+    uint32_t    dspIndex /* [in] Gives the DSP Id for which the core dump status is required */
+)
+{
+
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+    if(hDsp->consumeDebugData)
+    {
+        return hDsp->getCoreDumpStatus(hDsp->pDeviceHandle, dspIndex);
+    }
+    else
+    {
+        return BDSP_FwStatus_eInvalid;
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the Code download Status
+
+Description:
+    This function is called when we want to Authenticate the Firmware binaries extracted/download before the BOOT.
+
+Returns:
+    BERR_SUCCESS - If the download information is retreived successfully.
+
+See Also:
+    BDSP_Initialize
+***************************************************************************/
+BERR_Code BDSP_GetDownloadStatus(
+    BDSP_Handle hDsp,
+    BDSP_DownloadStatus *pStatus /* [out] */
+)
+{
+    BERR_Code   ErrCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+
+    if(hDsp->getDownloadStatus)
+    {
+        ErrCode = hDsp->getDownloadStatus(hDsp->pDeviceHandle, pStatus);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return ErrCode;
+}
+
+/***************************************************************************
+Summary:
+    Initialize the DSP
+
+Description:
+    This function is called when we want to Authenticate, after the binaries are authenticated, Initilaise the DSP.
+
+Returns:
+    BERR_SUCCESS - If Initiliazation of the DSP is complete.
+
+See Also:
+    BDSP_GetDownloadStatus
+***************************************************************************/
+BERR_Code BDSP_Initialize(
+    BDSP_Handle hDsp
+)
+{
+    BERR_Code   ErrCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+
+    if(hDsp->initialize)
+    {
+        ErrCode = hDsp->initialize(hDsp->pDeviceHandle);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return ErrCode;
+}
+
+
+/***************************************************************************
+Summary:
+   Find the RRR region address
+
+Description:
+   This function is called to get the RRR region address
+
+Returns:
+    BERR_SUCCESS
+
+See Also:
+    BDSP_GetDownloadStatus
+***************************************************************************/
+BERR_Code BDSP_GetRRRAddrRange(
+    BDSP_Handle hDsp,
+    BDSP_DownloadStatus *pAddrRange
+)
+{
+    BERR_Code   ErrCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+
+    if(hDsp->getRRRAddrRange)
+    {
+        ErrCode = hDsp->getRRRAddrRange(hDsp->pDeviceHandle, pAddrRange);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return ErrCode;
+}
+
+#if !B_REFSW_MINIMAL
+BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
+        BDSP_Handle hDsp,
+        void *pSettingsBuffer,      /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+)
+{
+    BERR_Code   ErrCode = BERR_SUCCESS;
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+
+    if(hDsp->getDefaultDatasyncSettings)
+    {
+        ErrCode = hDsp->getDefaultDatasyncSettings(hDsp->pDeviceHandle, pSettingsBuffer, settingsBufferSize);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return ErrCode;
+}
+#endif /*!B_REFSW_MINIMAL*/
+
+BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
+        BDSP_Handle hDsp,
+        void *pSettingsBuffer,      /* [out] */
+        size_t settingsBufferSize   /*[In]*/
+)
+{
+    BERR_Code   ErrCode = BERR_SUCCESS;
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+
+    if(hDsp->getDefaultTsmSettings)
+    {
+        ErrCode = hDsp->getDefaultTsmSettings(hDsp->pDeviceHandle, pSettingsBuffer, settingsBufferSize);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return ErrCode;
+}

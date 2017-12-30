@@ -60,15 +60,16 @@ extern "C" {
  */
 /* #define BVCE_P_DEFAULT_DEBUG_LOG_SIZE (512*1024)*/  /* Is this needed? */
 
-#define BXDM_P_MAX_DEBUG_FIFO_COUNT 1024
+#define BXDM_P_MAX_DEBUG_FIFO_COUNT 128
 #define BXDM_P_MAX_DEBUG_FIFO_STRING_LEN 128
 
 typedef enum BXDM_DebugFifo_EntryType
 {
-   BXDM_DebugFifo_EntryType_eMFD,                           /* MFD data send to XVD on this vsync. */
-   BXDM_DebugFifo_EntryType_eUnifiedPicture,                /* Unified Pictures. */
-   BXDM_DebugFifo_EntryType_eString,                /* Just a string */
-   BXDM_DebugFifo_EntryType_eDebugInfo,               /* Info used by BXDM_PPDBG. */
+   BXDM_DebugFifo_EntryType_eMFD,               /* MFD data send to XVD on this vsync. */
+   BXDM_DebugFifo_EntryType_eUnifiedPicture,    /* Unified Pictures. */
+   BXDM_DebugFifo_EntryType_eString,            /* Just a string */
+   BXDM_DebugFifo_EntryType_eDebugInfo,         /* Info used by BXDM_PPDBG. */
+   BXDM_DebugFifo_EntryType_eConfig,            /* Current XDM config data. */
 
    /* Add new enums ABOVE this line */
    BXDM_DebugFifo_EntryType_eMax
@@ -137,12 +138,6 @@ typedef struct BXDM_DebugFifo_UnifiedPicture
 
 }  BXDM_DebugFifo_UnifiedPicture;
 
-typedef struct BXDM_DebugFifo_UnifiedPictureInfo
-{
-   bool  bPrintAdditional;
-
-} BXDM_DebugFifo_UnifiedPictureInfo;
-
 typedef struct BXDM_DebugFifo_DebugInfo
 {
    unsigned uiStcSnapshot;
@@ -157,172 +152,46 @@ typedef struct BXDM_DebugFifo_DebugInfo
 
 } BXDM_DebugFifo_DebugInfo;
 
+typedef struct BXDM_DebugFifo_Config
+{
+   bool bLastCall;
+   BXDM_PictureProvider_P_Config stConfig;
+
+} BXDM_DebugFifo_Config;
+
 typedef struct BXDM_P_DebugFifo_Entry
 {
    BXDM_DebugFifo_Metadata stMetadata;
 
    union
    {
-      BAVC_MFD_Picture  stMFD;
+      BAVC_MFD_Picture              stMFD;
       BXDM_DebugFifo_UnifiedPicture stUniPic;
-      BXDM_DebugFifo_UnifiedPictureInfo stUniPicInfo;
-      BXDM_DebugFifo_String stString;
-      BXDM_DebugFifo_DebugInfo stDebugInfo;
+      BXDM_DebugFifo_String         stString;
+      BXDM_DebugFifo_DebugInfo      stDebugInfo;
+      BXDM_DebugFifo_Config         stConfigInfo;
 
    } data;
 
 } BXDM_P_DebugFifo_Entry;
 
-
-#if XDM_DEBUG_FIFO
-typedef struct BVCE_P_CommandDebug
-{
-      uint32_t uiCommand;
-      char *szCommandParameterName[HOST_CMD_BUFFER_SIZE/sizeof(uint32_t)];
-      char *szResponseParameterName[HOST_CMD_BUFFER_SIZE/sizeof(uint32_t)];
-      size_t uiCommandSize;
-      size_t uiResponseSize;
-} BVCE_P_CommandDebug;
-
-typedef enum BVCE_DebugFifo_EntryType
-{
-   BVCE_DebugFifo_EntryType_eConfig, /* Encode Configuration */
-   BVCE_DebugFifo_EntryType_eStatus, /* Encode Status */
-   BVCE_DebugFifo_EntryType_eBufferDescriptor, /* Buffer Descriptor */
-   BVCE_DebugFifo_EntryType_eMetadataDescriptor, /* Metadata Descriptor */
-   BVCE_DebugFifo_EntryType_eITB, /* Raw ITB Descriptor */
-   BVCE_DebugFifo_EntryType_eCommand, /* VCE FW Command */
-   BVCE_DebugFifo_EntryType_eResponse, /* VCE FW Response */
-   BVCE_DebugFifo_EntryType_eTrace0, /* VCE Function Trace 0 */
-   BVCE_DebugFifo_EntryType_eTrace1, /* VCE Function Trace 1 */
-
-   /* Add new enums ABOVE this line */
-   BVCE_DebugFifo_EntryType_eMax
-} BVCE_DebugFifo_EntryType;
-
-typedef struct BVCE_DebugFifo_EntryMetadata
-{
-   BVCE_DebugFifo_EntryType eType;
-   unsigned uiInstance;
-   unsigned uiChannel;
-   unsigned uiTimestamp; /* (in milliseconds) */
-} BVCE_DebugFifo_EntryMetadata;
-
-#define BVCE_P_FUNCTION_TRACE_LENGTH 64
-#define BVCE_P_FUNCTION_TRACE_ENTER(_level, _hVce, _uiChannel) BVCE_P_FUNCTION_TRACE(_level, "Enter:", _hVce, _uiChannel);
-#define BVCE_P_FUNCTION_TRACE_LEAVE(_level, _hVce, _uiChannel) BVCE_P_FUNCTION_TRACE(_level, "Leave:", _hVce, _uiChannel);
-#define BVCE_P_FUNCTION_TRACE(_level, _szPrefix, _hVce, _uiChannel) \
-if ( NULL != (_hVce)->stDebugFifo.hDebugFifo )\
-{\
-   BVCE_P_DebugFifo_Entry *pstEntry;\
-   BDBG_Fifo_Token stToken;\
-\
-   pstEntry = (BVCE_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( (_hVce)->stDebugFifo.hDebugFifo, &stToken );\
-   if ( NULL != pstEntry )\
-   {\
-      pstEntry->stMetadata.eType = BVCE_DebugFifo_EntryType_eTrace##_level;\
-      pstEntry->stMetadata.uiInstance = ((BVCE_Handle)(_hVce))->stOpenSettings.uiInstance;\
-      pstEntry->stMetadata.uiChannel = _uiChannel;\
-      pstEntry->stMetadata.uiTimestamp = 0;\
-      ( NULL != (_hVce)->hTimer ) ? BTMR_ReadTimer( (_hVce)->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;\
-      BKNI_Snprintf(pstEntry->data.szFunctionTrace, BVCE_P_FUNCTION_TRACE_LENGTH, "%s%s",_szPrefix,BSTD_FUNCTION);\
-      BDBG_Fifo_CommitBuffer( &stToken );\
-   }\
-}
-
-typedef struct BVCE_P_DebugFifo_Entry
-{
-   BVCE_DebugFifo_EntryMetadata stMetadata;
-
-   union
-   {
-      struct
-      {
-         BVCE_Channel_StartEncodeSettings stStartEncodeSettings;
-         BVCE_Channel_EncodeSettings stEncodeSettings;
-         BVCE_P_SendCommand_ConfigChannel_Settings stSettingsModifiers;
-      } stConfig;
-      BVCE_Channel_Status stStatus;
-      BVCE_P_Output_ITB_IndexEntry stITBDescriptor;
-      BAVC_VideoBufferDescriptor stBufferDescriptor;
-      BAVC_VideoMetadataDescriptor stMetadataDescriptor;
-      uint8_t auiITB[16];
-      BVCE_P_Command stCommand;
-      BVCE_P_Response stResponse;
-      char szFunctionTrace[BVCE_P_FUNCTION_TRACE_LENGTH];
-   } data;
-} BVCE_P_DebugFifo_Entry;
-
-#endif
-
 /*
- * SWSTB-1380: end of code
+ * Functions
  */
 
-#if BDBG_DEBUG_BUILD && BXDM_DEBUG_FIFO
-
-BERR_Code BXDM_PPDFIFO_P_OutputLog_isr(
+void BXDM_PPDFIFO_P_QueString_isr(
    const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_PictureProvider_P_LocalState *pLocalState,
-   const BAVC_MFD_Picture *pMFDPicture
+   const BXDM_Debug_MsgType eMessageType,
+   const bool bNeedFormat,
+   char * format,
+   ...
    );
 
-BERR_Code BXDM_PPDFIFO_P_SelectionLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   BXDM_PPDBG_Selection eSelectionInfo
-   );
-
-BERR_Code BXDM_PPDFIFO_P_OutputSPOLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiOverrideBits
-   );
-
-BERR_Code BXDM_PPDFIFO_P_CallbackTriggeredLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiCallbackTriggeredBits
-   );
-
-BERR_Code BXDM_PPDFIFO_P_StateLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiStateBits
-   );
-
-BERR_Code BXDM_PPDFIFO_P_State2Log_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiStateBits
-   );
-
-BERR_Code BXDM_PPDFIFO_P_StcDeltaLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_PictureProvider_P_LocalState* pLocalState
-   );
-
-BERR_Code BXDM_PPDFIFO_P_DecoderDropLog_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const uint32_t uiPendingDrop
-   );
-
-void BXDM_PPDFIFO_P_QueStartDecode_isr(
-   const BXDM_PictureProvider_Handle hXdmPP
-   );
-
-void BXDM_PPDFIFO_P_QueStopDecode_isr(
-   const BXDM_PictureProvider_Handle hXdmPP
-   );
-
-void BXDM_PPDFIFO_P_PrintSelectionModeOverride_isr(
-   char *pMsg,
-   const BXDM_PictureProvider_Handle hXdmPP,
-   BXDM_PictureProvider_P_Picture_Context *pPicture);
-
-void BXDM_PPDFIFO_P_PrintEndSelectionModeOverride_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   BXDM_PictureProvider_P_Picture_Context *pPicture);
+#if BDBG_DEBUG_BUILD
 
 BERR_Code BXDM_PPDFIFO_P_QueDBG_isr(
    const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_PictureProvider_P_LocalState* pLocalState,
-   bool bForcePrint
+   const BXDM_DebugFifo_DebugInfo * pstDebugInfo
    );
 
 void BXDM_PPDFIFO_P_QueDMConfig_isr(
@@ -341,13 +210,6 @@ void BXDM_PPDFIFO_P_QueUnifiedPicture_isr(
    BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_P_LocalState * pLocalState,
    BXDM_PictureProvider_P_Picture_Context * pstPicture
-   );
-
-void BXDM_PPDFIFO_P_QueString_isr(
-   const BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_Debug_MsgType eMessageType,
-   char * format,
-   ...
    );
 
 BERR_Code BXDM_PPDFIFO_P_Fifo_Create(
@@ -369,26 +231,10 @@ BERR_Code BXDM_PPDFIFO_P_Reader_Destroy(
 #else
 /* Non-DEBUG build */
 
-#define BXDM_PPDFIFO_P_OutputLog_isr( hXdmPP, pLocalState, pMFDPicture )
-#define BXDM_PPDFIFO_P_SelectionLog_isr( hXdmPP, eSelectionInfo )
-#define BXDM_PPDFIFO_P_OutputSPOLog_isr( hXdmPP,uiOverrideBits )
-#define BXDM_PPDFIFO_P_CallbackTriggeredLog_isr( hXdmPP, uiCallbackTriggeredBits )
-#define BXDM_PPDFIFO_P_StateLog_isr( hXdmPP, uiStateBits )
-#define BXDM_PPDFIFO_P_State2Log_isr( hXdmPP, uiStateBits )
-#define BXDM_PPDFIFO_P_StcDeltaLog_isr( hXdmPP, pLocalState )
-#define BXDM_PPDFIFO_P_DecoderDropLog_isr( hXdmPP, uiPendingDrop )
-
-#define BXDM_PPDFIFO_P_QueDBG_isr( hXdmPP, pLocalState, bForcePrint )
+#define BXDM_PPDFIFO_P_QueDBG_isr( hXdmPP, pstDebugInfo )
 #define BXDM_PPDFIFO_P_QueDMConfig_isr( hXdmPP, pLocalState, bLastCall )
 #define BXDM_PPDFIFO_P_QueMFD_isr( hXdmPP, pLocalState, pMFDPicture )
 #define BXDM_PPDFIFO_P_QueUnifiedPicture_isr( hXdmPP, pLocalState, pstPicture )
-/*#define BXDM_PPDFIFO_P_QueString_isr( hXdmPP, pLocalState, format, ... )*/
-#define BXDM_PPDFIFO_P_QueString_isr( hXdmPP, pLocalState, format )
-
-#define BXDM_PPDFIFO_P_QueStartDecode_isr( hXdmPP )
-#define BXDM_PPDFIFO_P_QueStopDecode_isr( hXdmPP )
-#define BXDM_PPDFIFO_P_PrintSelectionModeOverride_isr( pMsg, hXdmPP, pPicture)
-#define BXDM_PPDFIFO_P_PrintEndSelectionModeOverride_isr( hXdmPP, pPicture)
 
 #define BXDM_PPDFIFO_P_Fifo_Create( hXdmPP )
 #define BXDM_PPDFIFO_P_Fifo_Destroy( hXdmPP )

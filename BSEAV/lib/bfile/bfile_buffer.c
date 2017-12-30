@@ -597,12 +597,6 @@ b_file_buffer_read(bfile_buffer_t buf, off_t off, size_t length, bfile_buffer_re
                 if(left==0) {
                     break;
                 }
-                if(seg->size != buf->segment_size) { 
-                    /* if read was not complete, then terminate loop and return */
-                    b_file_buffer_recycle_empty(buf, seg);
-                    *result = bfile_buffer_result_no_data;
-                    break;
-                }
             } else {
                 b_file_buffer_recycle_empty(buf, seg);
                 *result = b_file_buffer_map_read_error(read_result);

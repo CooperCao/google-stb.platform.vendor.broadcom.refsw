@@ -92,13 +92,18 @@ static const BXVD_Settings s_stDefaultSettings =
 {
    0,                         /* Decoder instance (always 0 for 7401, 7118) */
    BXVD_RaveEndianess_eBig,
-   NULL,                      /* Debug timer */
 
    NULL,                      /* Decoder firmware memory heap handle where FW is loaded */
    NULL,                      /* Secure cabac memory heap handle */
    NULL,                      /* General purpose device memory heap handle */
    NULL,                      /* Decoder picture buffer memory heap handle */
    NULL,                      /* Decoder picture buffer 1 memory heap handle */
+
+   NULL,                      /* FirmwareBlock where FW code and data is loaded */
+   0,                         /* FirmwareBlockOffset in block where FW code is to be loaded */
+   0,                         /* FirmwareBlockSize memory allocated for FW to be loaded */
+
+   NULL,                      /* Debug timer */
 
    NULL,                      /* Set the BIMG interface to NULL by default */
    NULL,                      /* Set the BIMG context to NULL by default */
@@ -123,18 +128,6 @@ static const  BAVC_VideoCompressionStd  VideoCmprStdList_H264[] =
 {
    BAVC_VideoCompressionStd_eH264
 };
-
-#if !B_REFSW_MINIMAL /* SWSTB-461 */
-static const  BAVC_VideoCompressionStd  VideoCmprStdList_MPEG2[] =
-{
-   BAVC_VideoCompressionStd_eMPEG2
-};
-
-static const  BAVC_VideoCompressionStd  VideoCmprStdList_VC1[] =
-{
-   BAVC_VideoCompressionStd_eVC1
-};
-#endif
 
 /* Default channel settings */
 static const BXVD_ChannelSettings s_stDefaultChannelSettings =
@@ -426,14 +419,14 @@ BERR_Code BXVD_Open(BXVD_Handle         *phXvd,
    if (pXvd->stSettings.eRaveEndianess < BXVD_RaveEndianess_eMaxValue)
    {
       BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.eRaveEndianess = %s (%d)",
-                               sRaveEndianessNameLUT[pXvd->stSettings.eRaveEndianess],
-                               pXvd->stSettings.eRaveEndianess));
+                          sRaveEndianessNameLUT[pXvd->stSettings.eRaveEndianess],
+                          pXvd->stSettings.eRaveEndianess));
    }
    else
    {
       BXVD_DBG_WRN(pXvd, ("BXVD_Open() - BXVD_Settings.eRaveEndianess = %s (%d)",
-                               "Unknown/Invalid Value!",
-                               pXvd->stSettings.eRaveEndianess));
+                          "Unknown/Invalid Value!",
+                          pXvd->stSettings.eRaveEndianess));
    }
 
    BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.hFirmwareHeap = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.hFirmwareHeap));
@@ -441,6 +434,9 @@ BERR_Code BXVD_Open(BXVD_Handle         *phXvd,
    BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.hGeneralHeap = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.hGeneralHeap));
    BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.hPictureHeap = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.hPictureHeap));
    BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.hPictureHeap1 = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.hPictureHeap1));
+   BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.hFirmwareBlock = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.hFirmwareBlock));
+   BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.uiFirmwareBlockOffset = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.uiFirmwareBlockOffset));
+   BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.uiFirmwareBlockSize = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.uiFirmwareBlockSize));
    BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.pImgInterface = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.pImgInterface));
    BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.pImgContext = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.pImgContext));
    BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.pAVDBootCallback = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.pAVDBootCallback));
@@ -451,14 +447,14 @@ BERR_Code BXVD_Open(BXVD_Handle         *phXvd,
    if (pXvd->stSettings.eDisplayMgrMode < BXVD_DisplayMgrMode_eMaxModes)
    {
       BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.eDisplayMgrMode = %s (%d)",
-                               sDisplayMgrModeNameLUT[pXvd->stSettings.eDisplayMgrMode],
-                               pXvd->stSettings.eDisplayMgrMode));
+                          sDisplayMgrModeNameLUT[pXvd->stSettings.eDisplayMgrMode],
+                          pXvd->stSettings.eDisplayMgrMode));
    }
    else
    {
       BXVD_DBG_WRN(pXvd, ("BXVD_Open() - BXVD_Settings.eDisplayMgrMode = %s (%d)",
-                               "Unknown/Invalid Value!",
-                               pXvd->stSettings.eDisplayMgrMode));
+                          "Unknown/Invalid Value!",
+                          pXvd->stSettings.eDisplayMgrMode));
    }
 
    BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.stFWMemConfig.uiGeneralHeapSize = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.stFWMemConfig.uiGeneralHeapSize));
@@ -712,181 +708,51 @@ BERR_Code BXVD_Open(BXVD_Handle         *phXvd,
    }
 
    rc = BXVD_P_Boot(pXvd);
-   if(rc != BERR_SUCCESS)
+   if (rc != BERR_SUCCESS)
    {
       BXVD_Close(pXvd);
       return BERR_TRACE(rc);
    }
 
-   { /* local block */
-      BXVD_DisplayInterruptProvider_P_ChannelSettings stXvdDipChSettings;
+   /* Only on HVD revision N and later cores */
+#if BXVD_P_CORE_REVISION_NUM >= 14
+   /* If FirmareBlock passed to BXVD_Open, then block must be unlocked so secure processor can now own the memory */
+   if ((pXvd->stSettings.uiFirmwareBlockSize != 0) && (pXvd->stSettings.hFirmwareBlock != 0 ))
+   {
+      BMMA_Unlock(pXvd->hFWMemBlock, (void *)(pXvd->uiFWMemBaseVirtAddr - pXvd->stSettings.uiFirmwareBlockOffset));
+      BMMA_UnlockOffset(pXvd->hFWMemBlock, (pXvd->FWMemBasePhyAddr - pXvd->stSettings.uiFirmwareBlockOffset));
 
-      BDBG_ASSERT( BXVD_DisplayInterrupt_eMax == 3 );
-
-      /* Setup Display Interrupt #0 */
-      rc = BXVD_DisplayInterruptProvider_P_GetDefaultChannelSettings( &stXvdDipChSettings );
-      if (rc != BERR_SUCCESS)
-      {
-         BXVD_Close(pXvd);
-         return BERR_TRACE(rc);
-      }
-
-      stXvdDipChSettings.hXvd = pXvd;
-      stXvdDipChSettings.hInterrupt = pXvd->hInterrupt;
-      stXvdDipChSettings.hRegister = pXvd->hReg;
-      stXvdDipChSettings.interruptId = (BINT_Id) pXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy;
-      stXvdDipChSettings.uiInterruptMaskRegister = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdMaskClear;
-      stXvdDipChSettings.uiInterruptClearRegister = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdClear,
-      stXvdDipChSettings.eDisplayInterrupt = BXVD_DisplayInterrupt_eZero;
-
-#if BXVD_P_RUL_DONE_MASK_64_BITS
-      stXvdDipChSettings.uiInterruptMaskRegister_1 = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdMaskClear;
-      stXvdDipChSettings.uiInterruptClearRegister_1 = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdClear,
-#endif
-
-      BXVD_P_SAVE_DIP_CHANNEL_DISPLAY_INFO_0(stXvdDipChSettings, pXvd);
-
-      rc = BXVD_DisplayInterruptProvider_P_OpenChannel( &pXvd->hXvdDipCh[BXVD_DisplayInterrupt_eZero], &stXvdDipChSettings);
-      if (rc != BERR_SUCCESS)
-      {
-         BXVD_Close(pXvd);
-         return BERR_TRACE(rc);
-      }
-
-      rc = BXDM_DisplayInterruptHandler_Create( &pXvd->hXdmDih[BXVD_DisplayInterrupt_eZero] );
-      if (rc != BERR_SUCCESS)
-      {
-         BXVD_Close(pXvd);
-         return BERR_TRACE(rc);
-      }
-
-      /* Setup Display Interrupt #1 */
-      if ( 0 != pXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy1 )
-      {
-         rc = BXVD_DisplayInterruptProvider_P_GetDefaultChannelSettings( &stXvdDipChSettings );
-         if (rc != BERR_SUCCESS)
-         {
-            BXVD_Close(pXvd);
-            return BERR_TRACE(rc);
-         }
-
-         stXvdDipChSettings.hXvd = pXvd;
-         stXvdDipChSettings.hInterrupt = pXvd->hInterrupt;
-         stXvdDipChSettings.hRegister = pXvd->hReg;
-         stXvdDipChSettings.interruptId = pXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy1;
-         stXvdDipChSettings.uiInterruptMaskRegister = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdMaskClear;
-         stXvdDipChSettings.uiInterruptClearRegister = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdClear,
-
-#if BXVD_P_RUL_DONE_MASK_64_BITS
-         stXvdDipChSettings.uiInterruptMaskRegister_1 = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdMaskClear;
-         stXvdDipChSettings.uiInterruptClearRegister_1 = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdClear,
-#endif
-
-         stXvdDipChSettings.eDisplayInterrupt = BXVD_DisplayInterrupt_eOne;
-
-         BXVD_P_SAVE_DIP_CHANNEL_DISPLAY_INFO_1(stXvdDipChSettings, pXvd);
-
-         rc = BXVD_DisplayInterruptProvider_P_OpenChannel( &pXvd->hXvdDipCh[BXVD_DisplayInterrupt_eOne], &stXvdDipChSettings);
-         if (rc != BERR_SUCCESS)
-         {
-            BXVD_Close(pXvd);
-            return BERR_TRACE(rc);
-         }
-
-         rc = BXDM_DisplayInterruptHandler_Create( &pXvd->hXdmDih[BXVD_DisplayInterrupt_eOne] );
-         if (rc != BERR_SUCCESS)
-         {
-            BXVD_Close(pXvd);
-            return BERR_TRACE(rc);
-         }
-      }
-
-#if BXVD_P_PICTURE_DATA_RDY_2_SUPPORTTED
-      /* Setup Display Interrupt number 2 */
-      if ( 0 != pXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy2 )
-      {
-         rc = BXVD_DisplayInterruptProvider_P_GetDefaultChannelSettings( &stXvdDipChSettings );
-         if (rc != BERR_SUCCESS)
-         {
-            BXVD_Close(pXvd);
-            return BERR_TRACE(rc);
-         }
-
-         stXvdDipChSettings.hXvd = pXvd;
-         stXvdDipChSettings.hInterrupt = pXvd->hInterrupt;
-         stXvdDipChSettings.hRegister = pXvd->hReg;
-         stXvdDipChSettings.interruptId = pXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy2;
-         stXvdDipChSettings.uiInterruptMaskRegister = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdMaskClear;
-         stXvdDipChSettings.uiInterruptClearRegister = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdClear;
-
-#if BXVD_P_RUL_DONE_MASK_64_BITS
-         stXvdDipChSettings.uiInterruptMaskRegister_1 = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdMaskClear;
-         stXvdDipChSettings.uiInterruptClearRegister_1 = pXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdClear;
-#endif
-
-         stXvdDipChSettings.eDisplayInterrupt = BXVD_DisplayInterrupt_eTwo;
-
-         BXVD_P_SAVE_DIP_CHANNEL_DISPLAY_INFO_2(stXvdDipChSettings, pXvd);
-
-         rc = BXVD_DisplayInterruptProvider_P_OpenChannel( &pXvd->hXvdDipCh[BXVD_DisplayInterrupt_eTwo], &stXvdDipChSettings);
-         if (rc != BERR_SUCCESS)
-         {
-            BXVD_Close(pXvd);
-            return BERR_TRACE(rc);
-         }
-
-         rc = BXDM_DisplayInterruptHandler_Create( &pXvd->hXdmDih[BXVD_DisplayInterrupt_eTwo] );
-         if (rc != BERR_SUCCESS)
-         {
-            BXVD_Close(pXvd);
-            return BERR_TRACE(rc);
-         }
-      }
-#endif
+      pXvd->uiFWMemBaseVirtAddr = 0;
+      pXvd->FWMemBasePhyAddr = 0;
    }
+#endif
 
    rc = BXVD_P_SetupFWSubHeap(pXvd);
-   if(rc != BERR_SUCCESS)
+   if (rc != BERR_SUCCESS)
    {
       BXVD_Close(pXvd);
       return BERR_TRACE(rc);
    }
 
    rc = BXVD_Status_Open(pXvd, &pXvd->hXvdStatus);
-   if(rc != BERR_SUCCESS)
+   if (rc != BERR_SUCCESS)
    {
       BXVD_Close(pXvd);
       return BERR_TRACE(rc);
    }
 
-   rc = BXVD_P_SetupStillPictureCompatibilityMode(pXvd);
-   if(rc != BERR_SUCCESS)
+   if (pXvd->stSettings.pAVDBootCallback == NULL)
    {
-      BXVD_Close(pXvd);
-      return BERR_TRACE(rc);
-   }
+      rc = BXVD_P_OpenPartTwo(pXvd);
 
-#if BXVD_P_FW_DEBUG_DRAM_LOGGING
-   /* Enable debug logging, with PDR_isr routine reading and printing log */
-   BXVD_DBG_ControlDecoderDebugLog(pXvd, BXVD_DBG_DebugLogging_eStart);
-#endif
-
-#if BXVD_P_POWER_MANAGEMENT
-   /* If a channel is open for Still Picture Compatibility Mode, don't hibernate */
-   if ( !pXvd->bStillPictureCompatibilityMode )
-   {
-      /* Put decoder in hibernate state */
-      BXVD_P_SetHibernateState(pXvd, true);
+      if (rc != BERR_SUCCESS)
+      {
+         return BERR_TRACE(rc);
+      }
    }
-#endif
-   /* Get the firmware revision */
-   BXVD_GetRevision(pXvd, &(pXvd->sRevisionInfo));
-   BXVD_DBG_WRN(pXvd, ("BXVD_Open() - Hardware revision: %c, Firmware revision: %lx", BXVD_P_CORE_REVISION, pXvd->sRevisionInfo.ulDecoderFwRev));
 
    /* Give the user the new context */
    *phXvd = (BXVD_Handle)pXvd;
-
-   BXVD_DBG_MSG(pXvd, ("BXVD_Open() - pXvd = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd));
 
    BDBG_LEAVE(BXVD_Open);
    return BERR_TRACE(BERR_SUCCESS);
@@ -983,6 +849,41 @@ BERR_Code BXVD_Close(BXVD_Handle hXvd)
 
 
 /**************************************************************************
+ Summary:
+    API determines the size of the decoder firmware.
+ Description:
+    Determine decoder firware size for the decoder instance specified.
+
+ Parameters:
+   BREG_Handle    hRegister,             register handle
+   uint32_t       uiDecoderInstance,     Decoder instance: 0, 1, 2
+   int32_t        *DecoderFirmwareSize   pointer to decoder firware size being determined.
+
+ Returns:
+        BERR_SUCCESS  Decoder Firmware size determined successfully.
+        BERR_INVALID_PARAMETER  Bad input parameter
+**************************************************************************/
+
+BERR_Code BXVD_GetDecoderFirmwareSize( BREG_Handle  hRegister,
+                                       uint32_t     uiDecoderInstance,
+                                       uint32_t     *uiDecoderFirmwareSize)
+
+{
+   BDBG_ENTER(BXVD_GetDecoderFirmwareSize);
+
+   BDBG_ASSERT(hRegister);
+   BSTD_UNUSED(hRegister);
+   BSTD_UNUSED(uiDecoderInstance);
+
+   *uiDecoderFirmwareSize = BXVD_P_FW_IMAGE_SIZE + BXVD_P_FW_IMAGE_SIGN_SIZE;
+
+   BDBG_MSG(("BXVD_GetDecoderFirmwareSize: 0x%08x", *uiDecoderFirmwareSize));
+
+   return (BERR_SUCCESS);
+}
+
+
+/**************************************************************************
  Summary: BXVD_GetHardwareCapabilties
     Returns the decoder HW video protocol capabilities
 
@@ -1011,9 +912,18 @@ BERR_Code BXVD_GetHardwareCapabilities(BXVD_Handle hXvd,
       return BERR_TRACE(BXVD_ERR_INVALID_HANDLE);
    }
 
+   /* Initialize compression standard capabilities array */
+
+   BKNI_Memset((void*)(pCap->stCodecCapabilities), 0x0, (sizeof(BXVD_VidComprStd_Capabilities) * BAVC_VideoCompressionStd_eMax));
+
    for (eVideoCmprStd = BAVC_VideoCompressionStd_eH264; eVideoCmprStd < BAVC_VideoCompressionStd_eMax; eVideoCmprStd++)
    {
       pCap->bCodecSupported[eVideoCmprStd] = BXVD_P_IsDecodeProtocolSupported(hXvd, eVideoCmprStd);
+
+      if (pCap->bCodecSupported[eVideoCmprStd] == true)
+      {
+         BXVD_P_GetVidCmprCapability(&(pCap->stCodecCapabilities[eVideoCmprStd]), eVideoCmprStd);
+      }
    }
 
    if (BXVD_P_STC_MAX < BXVD_STC_eMax)
@@ -1249,6 +1159,54 @@ BERR_Code BXVD_GetDecodeDefaultSettings
    return BERR_TRACE(BERR_SUCCESS);
 }
 
+/**************************************************************************
+ Summary:
+    API initializes video decoder firmware on secure systems
+ Description:
+    Firwamre init command sent to video decoder firmware.
+
+ Parameters:
+    BXVD_Handle  hXvd
+
+ Returns:
+    BERR_SUCCESS            Decoder Firmware initialized successfully.
+    BERR_INVALID_PARAMETER  Bad input parameter
+    BERR_TIMEOUT            Firmware startup or initialization timed-out
+**************************************************************************/
+
+BERR_Code BXVD_InitSecureFirmware(BXVD_Handle hXvd)
+{
+   BERR_Code rc;
+
+   BDBG_ENTER(BXVD_InitSecureFirmware);
+
+   BDBG_ASSERT(hXvd);
+
+   BXVD_DBG_MSG(hXvd, ("BXVD_InitSecureFirmware() - hXvd = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)hXvd));
+
+   /* Check handle type for correctness */
+   if (hXvd->eHandleType != BXVD_P_HandleType_XvdMain)
+   {
+      BDBG_ERR(("Invalid handle type passed to function"));
+      return BERR_TRACE(BERR_INVALID_PARAMETER);
+   }
+
+   rc = BXVD_P_InitDecoderFW(hXvd);
+   if (rc != BERR_SUCCESS)
+   {
+      BXVD_Close(hXvd);
+      return BERR_TRACE(rc);
+   }
+
+   rc = BXVD_P_OpenPartTwo(hXvd);
+   if (rc != BERR_SUCCESS)
+   {
+      return BERR_TRACE(rc);
+   }
+
+   return rc;
+}
+
 #if BXVD_P_POWER_MANAGEMENT
 
 BERR_Code BXVD_Standby(BXVD_Handle hXvd)
@@ -1335,7 +1293,87 @@ BERR_Code BXVD_Resume(BXVD_Handle hXvd)
 
    hXvd->bWatchdogPending = true;
 
+   hXvd->eAVDBootMode = BXVD_AVDBootMode_eWatchdog;
+
    rc = BXVD_ProcessWatchdog(hXvd);
+
+   if (hXvd->stSettings.pAVDBootCallback == NULL)
+   {
+      if (hXvd->PowerStateSaved != BXVD_P_PowerState_eOn)
+      {
+         BXVD_DBG_MSG(hXvd, ("Decoder:%d, Set saved_Power_State:%d", hXvd->uDecoderInstance, hXvd->PowerStateSaved));
+
+         BXVD_P_SET_POWER_STATE(hXvd, hXvd->PowerStateSaved);
+      }
+
+      /*
+       * Restart timer
+       */
+      if (NULL != hXvd->stSettings.hTimerDev)
+      {
+         BXVD_DBG_MSG(hXvd, ("creating timer in BXVD_Resume"));
+         hXvd->hTimer = NULL;
+         rc = BTMR_GetDefaultTimerSettings(&tmrSettings);
+
+         if (BERR_SUCCESS == rc)
+         {
+            tmrSettings.type = BTMR_Type_eSharedFreeRun;
+            tmrSettings.exclusive = false;
+
+            rc = BTMR_CreateTimer(hXvd->stSettings.hTimerDev,
+                                  &hXvd->hTimer,
+                                  &tmrSettings);
+
+            if (BERR_SUCCESS != rc)
+            {
+               hXvd->hTimer = NULL;
+               BXVD_DBG_WRN(hXvd, ("Error creating timer"));
+            }
+
+            if (NULL != hXvd->hTimer)
+            {
+               for (chanNum = 0; chanNum < BXVD_MAX_VIDEO_CHANNELS; chanNum++)
+               {
+                  hXvdCh = hXvd->ahChannel[chanNum];
+                  if (NULL != hXvdCh)
+                  {
+                     BXVD_DBG_MSG(hXvdCh, ("setting timer handle for %d", chanNum));
+                     rc = BXDM_PictureProvider_SetTimerHandle_isr(hXvdCh->hPictureProvider, hXvd->hTimer);
+                     if (rc != BERR_SUCCESS)
+                     {
+                        BXVD_DBG_WRN(hXvdCh, ("Error setting picture provider timer handle for channel %d", chanNum));
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   return rc;
+}
+
+BERR_Code BXVD_ResumeRestartDecoder(BXVD_Handle hXvd)
+{
+   BERR_Code           rc;
+   uint32_t            chanNum;
+   BTMR_Settings       tmrSettings;
+   BXVD_ChannelHandle  hXvdCh;
+
+   BXVD_DBG_MSG(hXvd, ("BXVD_ResumeRestartDecoder:%d", hXvd->uDecoderInstance));
+
+   rc = BXVD_P_InitDecoderFW(hXvd);
+   if (rc != BERR_SUCCESS)
+   {
+      BXVD_Close(hXvd);
+      return BERR_TRACE(rc);
+   }
+
+   rc = BXVD_P_RestartDecoder(hXvd);
+   if(rc != BERR_SUCCESS)
+   {
+      return BERR_TRACE(rc);
+   }
 
    if (hXvd->PowerStateSaved != BXVD_P_PowerState_eOn)
    {
@@ -1349,7 +1387,7 @@ BERR_Code BXVD_Resume(BXVD_Handle hXvd)
     */
    if (NULL != hXvd->stSettings.hTimerDev)
    {
-      BXVD_DBG_MSG(hXvd, ("creating timer in BXVD_Resume"));
+      BXVD_DBG_MSG(hXvd, ("creating timer in BXVD_ResumeResterDecoder"));
       hXvd->hTimer = NULL;
       rc = BTMR_GetDefaultTimerSettings(&tmrSettings);
 
@@ -1386,6 +1424,7 @@ BERR_Code BXVD_Resume(BXVD_Handle hXvd)
          }
       }
    }
+
    return rc;
 }
 
@@ -1395,20 +1434,16 @@ BERR_Code BXVD_ProcessWatchdog(BXVD_Handle hXvd)
 {
    BXVD_ChannelHandle  hXvdCh;
    uint32_t            chanNum;
-   uint32_t            i;
-   BAVC_XptContextMap  XptContextMap;
-   BAVC_XptContextMap  aXptContextMap_Extended[BXVD_NUM_EXT_RAVE_CONTEXT];
-   bool                bStillMode;
-
-#if BXVD_P_POWER_MANAGEMENT
-   BXVD_P_PowerState   eSavedPowerState = hXvd->PowerStateCurrent;
-#endif
 
    BERR_Code rc;
 
    BDBG_ASSERT(hXvd);
 
    BDBG_ENTER(BXVD_ProcessWatchdog);
+
+#if BXVD_P_POWER_MANAGEMENT
+   hXvd->eWatchdogSavedPowerState = hXvd->PowerStateCurrent;
+#endif
 
    /* Check handle type for correctness */
    if (hXvd->eHandleType != BXVD_P_HandleType_XvdMain)
@@ -1448,114 +1483,87 @@ BERR_Code BXVD_ProcessWatchdog(BXVD_Handle hXvd)
       }
    }
 
+   /* Only on HVD revision N and later cores */
+#if BXVD_P_CORE_REVISION_NUM >= 14
+   /* If FirmareBlock passed to BXVD_Open, then block must be locked again */
+   if ((hXvd->stSettings.uiFirmwareBlockSize != 0) && (hXvd->stSettings.hFirmwareBlock != 0 ))
+   {
+      hXvd->uiFWMemBaseVirtAddr = (unsigned long) BMMA_Lock(hXvd->hFWMemBlock) + hXvd->stSettings.uiFirmwareBlockOffset;
+      hXvd->FWMemBasePhyAddr = (BXVD_P_PHY_ADDR) BMMA_LockOffset(hXvd->hFWMemBlock) + hXvd->stSettings.uiFirmwareBlockOffset;
+   }
+#endif
+
    rc = BXVD_P_Boot(hXvd);
    if(rc != BERR_SUCCESS)
    {
       return BERR_TRACE(rc);
    }
 
+   /* Only on HVD revision N and later cores */
+#if BXVD_P_CORE_REVISION_NUM >= 14
+   /* If FirmareBlock passed to BXVD_Open, then block must be unlocked so secure processor can now own the memory */
+   if ((hXvd->stSettings.uiFirmwareBlockSize != 0) && (hXvd->stSettings.hFirmwareBlock != 0 ))
    {
-      BXVD_DisplayInterrupt eDisplayInterrupt;
-      for ( eDisplayInterrupt = 0; eDisplayInterrupt < BXVD_DisplayInterrupt_eMax; eDisplayInterrupt++ )
+      BMMA_Unlock(hXvd->hFWMemBlock, (void *)(hXvd->uiFWMemBaseVirtAddr - hXvd->stSettings.uiFirmwareBlockOffset));
+      BMMA_UnlockOffset(hXvd->hFWMemBlock, (hXvd->FWMemBasePhyAddr - hXvd->stSettings.uiFirmwareBlockOffset));
+
+      hXvd->uiFWMemBaseVirtAddr = 0;
+      hXvd->FWMemBasePhyAddr = 0;
+   }
+#endif
+
+   if (hXvd->stSettings.pAVDBootCallback == NULL)
+   {
+      rc = BXVD_P_RestartDecoder(hXvd);
+      if(rc != BERR_SUCCESS)
       {
-         if ( hXvd->hXvdDipCh[eDisplayInterrupt] )
-         {
-            rc = BXVD_DisplayInterruptProvider_P_ProcessWatchdog( hXvd->hXvdDipCh[eDisplayInterrupt] );
-            if(rc != BERR_SUCCESS)
-            {
-               return BERR_TRACE(rc);
-            }
-         }
+         return BERR_TRACE(rc);
       }
+
+#if BXVD_P_POWER_MANAGEMENT
+      if ( hXvd->eWatchdogSavedPowerState != BXVD_P_PowerState_eOn)
+      {
+         /* Restore saved power state */
+         BXVD_P_SET_POWER_STATE(hXvd, hXvd->eWatchdogSavedPowerState);
+      }
+#endif
+
+      hXvd->bWatchdogPending = false;
    }
 
-   if (hXvd->bFWDbgLoggingStarted == true)
+   BDBG_LEAVE(BXVD_ProcessWatchdog);
+
+   return BERR_TRACE(rc);
+}
+
+BERR_Code BXVD_ProcessWatchdogRestartDecoder(BXVD_Handle hXvd)
+{
+   BERR_Code rc;
+
+   rc = BXVD_P_InitDecoderFW(hXvd);
+   if (rc != BERR_SUCCESS)
    {
-      /* Re-enable debug logging */
-      BXVD_DBG_ControlDecoderDebugLog(hXvd, BXVD_DBG_DebugLogging_eStart);
+      BXVD_Close(hXvd);
+      return BERR_TRACE(rc);
    }
 
-   for (chanNum = 0; chanNum < BXVD_MAX_VIDEO_CHANNELS; chanNum++)
+   rc = BXVD_P_RestartDecoder(hXvd);
+   if(rc != BERR_SUCCESS)
    {
-      hXvdCh = hXvd->ahChannel[chanNum];
-
-      if (hXvdCh != NULL)
-      {
-         BXVD_DBG_MSG(hXvdCh, ("Reopen decoder channel:%d", chanNum));
-
-         if (hXvdCh->sChSettings.eChannelMode == BXVD_ChannelMode_eStill)
-         {
-            bStillMode = true;
-         }
-         else
-         {
-            bStillMode = false;
-         }
-         /* Channel handle exists, reopen decoder channel */
-         if (bStillMode && hXvd->bStillPictureCompatibilityMode)
-         {
-            /* Do not re-open the channel here.  It will be re-opened
-             * in the next call to BXVD_DecodeStillPicture() */
-            hXvdCh->bDecoderChannelOpened = false;
-         }
-         else
-         {
-            rc = BXVD_P_HostCmdSendDecChannelOpen((BXVD_Handle)hXvd,
-                                                  hXvdCh,
-                                                  bStillMode,
-                                                  hXvdCh->sChSettings.eDecodeResolution,
-                                                  &(hXvdCh->stDecodeFWMemSize),
-                                                  &(hXvdCh->stDecodeFWBaseAddrs));
-
-            if (rc != BERR_SUCCESS)
-            {
-               return BERR_TRACE(rc);
-            }
-
-            if (hXvdCh->eDecoderState == BXVD_P_DecoderState_eActive)
-            {
-               /* Decoder was running when watchdog timer expired, so now need to restart decoder.*/
-               BXVD_DBG_MSG(hXvdCh, ("Decoder was running, restart decoder"));
-               hXvdCh->eDecoderState = BXVD_P_DecoderState_eNotActive;
-
-               /* Decoder counters should not be cleared */
-               hXvdCh->bPreserveCounters = true;
-
-               /* PVR state should not be set to defaults */
-               hXvdCh->bPreserveState = true;
-
-               /* Reset XPT Rave CDB read register address */
-               XptContextMap.CDB_Read = hXvdCh->ulXptCDB_Read;
-
-               hXvdCh->sDecodeSettings.pContextMap = &XptContextMap;
-
-               for (i = 0; i < hXvdCh->sDecodeSettings.uiContextMapExtNum; i++)
-               {
-                  hXvdCh->sDecodeSettings.aContextMapExtended[i] = &aXptContextMap_Extended[i];
-                  aXptContextMap_Extended[i].CDB_Read = hXvdCh->aulXptCDB_Read_Extended[i];
-               }
-
-               rc = BERR_TRACE(BXVD_StartDecode(hXvdCh, &hXvdCh->sDecodeSettings));
-
-               hXvdCh->bPreserveState = false;
-            }
-         }
-      }
+      return BERR_TRACE(rc);
    }
 
 #if BXVD_P_POWER_MANAGEMENT
-  if (eSavedPowerState != BXVD_P_PowerState_eOn)
+   if (hXvd->eWatchdogSavedPowerState != BXVD_P_PowerState_eOn)
    {
       /* Restore saved power state */
-      BXVD_P_SET_POWER_STATE(hXvd, eSavedPowerState);
+      BXVD_P_SET_POWER_STATE(hXvd, hXvd->eWatchdogSavedPowerState);
    }
 #endif
 
    hXvd->bWatchdogPending = false;
 
-   BDBG_LEAVE(BXVD_ProcessWatchdog);
-
-   return BERR_TRACE(rc);
+   return rc;
 }
 
 #if !B_REFSW_MINIMAL /* SWSTB-461 */
@@ -1592,7 +1600,7 @@ static const char * const sFrameRateCodeNameLUT[BXVD_S_MAX_FRAMERATE] =
    "BAVC_FrameRateCode_e100",
    "BAVC_FrameRateCode_e119_88",
    "BAVC_FrameRateCode_e120",
-   "BAVC_FrameRateCode_e19_98"   /* SWSTB-378: Add support for 19.98fps */
+   "BAVC_FrameRateCode_e19_98", /* SWSTB-378: Add support for 19.98fps */
    "BAVC_FrameRateCode_e7_5", /* SWSTB-1401: */
    "BAVC_FrameRateCode_e12", /* SWSTB-1401: */
    "BAVC_FrameRateCode_e11_988", /* SWSTB-1401: */
@@ -2081,14 +2089,6 @@ BERR_Code BXVD_OpenChannel(BXVD_Handle                hXvd,
       if (rc == BERR_TIMEOUT)
       {
          hXvd->bWatchdogPending = true;
-
-         rc = BXVD_ProcessWatchdog(hXvd);
-      }
-
-      if (rc != BERR_SUCCESS)
-      {
-         BXVD_CloseChannel(pXvdCh);
-         return BERR_TRACE(rc);
       }
    }
 
@@ -2098,7 +2098,7 @@ BERR_Code BXVD_OpenChannel(BXVD_Handle                hXvd,
 
    BDBG_LEAVE(BXVD_OpenChannel);
 
-   return BERR_TRACE(BERR_SUCCESS);
+   return BERR_TRACE(rc);
 }
 
 /***************************************************************************
@@ -2110,6 +2110,8 @@ BERR_Code BXVD_CloseChannel(BXVD_ChannelHandle hXvdCh)
    BXVD_Handle hXvd = NULL;
 
    bool bWatchdogRequired = false;
+
+   struct BXVD_P_InterruptCallbackInfo *pCallback;
 
    BDBG_ENTER(BXVD_CloseChannel);
 
@@ -2210,7 +2212,22 @@ BERR_Code BXVD_CloseChannel(BXVD_ChannelHandle hXvdCh)
    {
       hXvd->bWatchdogPending = true;
 
-      BXVD_ProcessWatchdog(hXvd);
+      /* Notify application if watchdog callback is registered */
+      pCallback = &hXvd->stDeviceInterruptCallbackInfo[BXVD_DeviceInterrupt_eWatchdog];
+
+      if (pCallback->BXVD_P_pAppIntCallbackPtr)
+      {
+         BKNI_EnterCriticalSection();
+
+         pCallback->BXVD_P_pAppIntCallbackPtr(pCallback->pParm1,
+                                              pCallback->parm2,
+                                              0);
+         BKNI_LeaveCriticalSection();
+      }
+      else
+      {
+         rc = BXVD_ProcessWatchdog(hXvd);
+      }
    }
 
 #if BXVD_P_POWER_MANAGEMENT
@@ -2292,7 +2309,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
    uint32_t uiContextReg;
    uint32_t uiContextRegExtend[BXVD_NUM_EXT_RAVE_CONTEXT];
 
-#if  !BXVD_P_CORE_40BIT_ADDRESSABLE
+#if  !BXVD_P_RAVE_40BIT_ADDRESSABLE
    uint32_t CDBBase;
 #else
    uint64_t CDBBase;
@@ -2725,7 +2742,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
       }
    }
 #endif
-#if  !BXVD_P_CORE_40BIT_ADDRESSABLE
+#if  !BXVD_P_RAVE_40BIT_ADDRESSABLE
 #define BXVD_XPT_WR_PTR_OFFSET 4
 #else
 #define BXVD_XPT_WR_PTR_OFFSET 8
@@ -2734,7 +2751,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
    /* Read CDB Base register to verify that the CDB Base is 256 byte aligned. */
    uiContextReg = ((pXvdCh->sDecodeSettings.pContextMap->CDB_Read)+BXVD_XPT_WR_PTR_OFFSET);
 
-#if  !BXVD_P_CORE_40BIT_ADDRESSABLE
+#if  !BXVD_P_RAVE_40BIT_ADDRESSABLE
    CDBBase = BXVD_Reg_Read32( pXvdCh->pXvd, uiContextReg );
 
    if (CDBBase != (CDBBase & (~0xff)))
@@ -2780,6 +2797,10 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
    /* Calculate the register address for the appropriate context */
    uiContextReg = ((pXvdCh->sDecodeSettings.pContextMap->CDB_Read) - BXVD_XPT_WR_PTR_OFFSET);
 
+#if BXVD_P_FW_HW_BASE_NON_ZERO
+   uiContextReg -= BXVD_P_STB_REG_BASE;
+#endif
+
    BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - XPT Rave Context reg base = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)uiContextReg));
 
    pXvdCh->ulXptCDB_Read = pXvdCh->sDecodeSettings.pContextMap->CDB_Read;
@@ -2791,7 +2812,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
          /* Read CDB Base register to verify that the CDB Base is 256 byte aligned. */
          uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)+BXVD_XPT_WR_PTR_OFFSET);
 
-#if  !BXVD_P_CORE_40BIT_ADDRESSABLE
+#if  !BXVD_P_RAVE_40BIT_ADDRESSABLE
          CDBBase = BXVD_Reg_Read32( pXvdCh->pXvd, uiContextRegExtend[i]);
 
          if (CDBBase != (CDBBase & (~0xff)))
@@ -2809,6 +2830,9 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
          /* Calculate the register address for the appropriate context */
          uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)-BXVD_XPT_WR_PTR_OFFSET);
 
+#if BXVD_P_FW_HW_BASE_NON_ZERO
+         uiContextRegExtend[i] -= BXVD_P_STB_REG_BASE;
+#endif
          BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - XPT Rave Context Extended[%d] reg base = 0x%08x",
                                     i, uiContextRegExtend[i]));
 
@@ -2996,6 +3020,12 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
       uiChannelMode |= VDEC_CHANNEL_MODE_OUTPUT_ALL_10BIT_TO_8BIT;
    }
 
+   if ((pXvdCh->sDecodeSettings.eVideoCmprStd == BAVC_VideoCompressionStd_eVP8) &&
+       (pXvdCh->sChSettings.uiExtraPictureMemoryAtoms != 0))
+   {
+      uiChannelMode |= VDEC_CHANNEL_MODE_NON_LEGACY;
+   }
+
    /* SW7425-3177: map eVideoCmprStd to a BXVD_P_PPB_Protocol value. */
    rc = BXVD_P_MapToAVDProtocolEnum(
                   pXvd,
@@ -3023,12 +3053,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 
    if (rc == BERR_TIMEOUT)
    {
-      /* Set the decoder state to active */
-      pXvdCh->eDecoderState = BXVD_P_DecoderState_eActive;
-
       pXvd->bWatchdogPending = true;
-
-      rc = BXVD_ProcessWatchdog(pXvd);
 
       return (rc);
    }
@@ -3565,6 +3590,8 @@ BERR_Code BXVD_StopDecode(BXVD_ChannelHandle hXvdChannel)
    BXVD_ChannelChangeMode ChChangeMode;
    BXDM_DisplayInterruptHandler_Handle hXdmDihCurrent;
 
+   struct BXVD_P_InterruptCallbackInfo *pCallback;
+
    BERR_Code rc;
    BXDM_PictureProvider_Counters stCounters;
 
@@ -3694,7 +3721,28 @@ BERR_Code BXVD_StopDecode(BXVD_ChannelHandle hXvdChannel)
    {
       pXvd->bWatchdogPending = true;
 
-      BXVD_ProcessWatchdog(pXvd);
+      /* Notify application if watchdog callback is registered */
+      pCallback = &pXvd->stDeviceInterruptCallbackInfo[BXVD_DeviceInterrupt_eWatchdog];
+
+      if (pCallback->BXVD_P_pAppIntCallbackPtr)
+      {
+         BKNI_EnterCriticalSection();
+
+         pCallback->BXVD_P_pAppIntCallbackPtr(pCallback->pParm1,
+                                              pCallback->parm2,
+                                              0);
+         BKNI_LeaveCriticalSection();
+      }
+      else
+      {
+         rc = BXVD_ProcessWatchdog(pXvd);
+
+         if (rc != BERR_SUCCESS)
+         {
+            BXVD_CloseChannel(pXvdCh);
+            return BERR_TRACE(rc);
+         }
+      }
    }
 
    BERR_TRACE(BXVD_GetChannelChangeMode( pXvdCh, &ChChangeMode));
@@ -6519,7 +6567,6 @@ BERR_Code BXVD_GetLastCodedPTS_isr
 /***************************************************************************
   BXVD_GetNextPTS: API used to get the next PTS.
 ****************************************************************************/
-#if !B_REFSW_MINIMAL /* SWSTB-461 */
 BERR_Code BXVD_GetNextPTS
 (
    BXVD_ChannelHandle hXvdCh, /* [in] The XVD Channel handle */
@@ -6540,7 +6587,6 @@ BERR_Code BXVD_GetNextPTS
    BDBG_LEAVE(BXVD_GetNextPTS);
    return rc;
 }
-#endif
 
 BERR_Code BXVD_GetNextPTS_isr
 (

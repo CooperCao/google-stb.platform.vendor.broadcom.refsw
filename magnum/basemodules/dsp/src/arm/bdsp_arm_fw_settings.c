@@ -74,7 +74,8 @@ const BDSP_Arm_Audio_DDPEncConfigParams BDSP_ARM_sDefDDPEncConfigSettings =
     0,                  /* Enable Low Complexity Encoding */
     33,                 /* Intelligent loudness payloads only passed through by default */
     1,                  /* SPDIF Packing */
-    {0}                 /* Additional Bitstream Information String */
+    {0},                 /* Additional Bitstream Information String */
+	0                   /* Atmos lock flag */
 };
 
 const  BDSP_P_Audio_FrameSyncTsmConfigParams   BDSP_ARM_sDefaultFrameSyncTsmSettings =

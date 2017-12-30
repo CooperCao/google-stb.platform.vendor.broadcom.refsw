@@ -12,6 +12,7 @@ V3D_PLATFORM_DIR ?= $(shell cd ../../platform; pwd)
 CFLAGS += -I. -I$(V3D_DIR)/interface/khronos/include -I$(V3D_DIR)
 CFLAGS += -Os -fPIC -DPIC -DBCG_ABSTRACT_PLATFORM -std=c++0x
 CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
+CFLAGS += -I$(MAGNUM_TOP)/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) -DEMBEDDED_SETTOP_BOX=1
 
 LDFLAGS = -shared -Wl,--export-dynamic
 

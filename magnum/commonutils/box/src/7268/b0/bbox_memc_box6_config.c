@@ -50,7 +50,7 @@
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Wed Aug 16 00:10:38 2017 GMT
+ *   at: Wed Sep 20 21:34:48 2017 GMT
  *   by: gk901088
  *   for: Box UHD_DualAC4_3733
  *         MemC 0 (32-bit LPDDR4@1867MHz) w/486MHz clock
@@ -70,49 +70,49 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20170816001038_UHD_DualAC4_3733[] = {
-           0x3fffe01f,  /*   0: XPT_WR_RS 1000000ns */
-           0x8112502a,  /*   1: XPT_WR_XC RR 9579ns */
+static const uint32_t aulMemc0_20170920213448_UHD_DualAC4_3733[] = {
+           0x3fffe021,  /*   0: XPT_WR_RS 1000000ns */
+           0x8112502c,  /*   1: XPT_WR_XC RR 9579ns */
            0x813d1018,  /*   2: XPT_WR_CDB RR 10444ns */
-           0x83d36030,  /*   3: XPT_WR_ITB_MSG RR 34181ns */
-           0xbfffe01e,  /*   4: XPT_RD_RS RR 1000000ns */
-           0x964e601d,  /*   5: XPT_RD_XC_RMX_MSG RR 188000ns */
+           0x83d36032,  /*   3: XPT_WR_ITB_MSG RR 34181ns */
+           0xbfffe020,  /*   4: XPT_RD_RS RR 1000000ns */
+           0x964e601f,  /*   5: XPT_RD_XC_RMX_MSG RR 188000ns */
            0x813d1017,  /*   6: XPT_RD_XC_RAVE RR 10444ns */
-           0x80862026,  /*   7: XPT_RD_PB RR 4686ns */
-           0x80b22028,  /*   8: XPT_WR_MEMDMA RR 6222ns */
+           0x80862028,  /*   7: XPT_RD_PB RR 4686ns */
+           0x80b2202a,  /*   8: XPT_WR_MEMDMA RR 6222ns */
            0x3ffff0ff,  /*   9: UNASSIGNED off */
            0x82a5301b,  /*  10: GENET0_WR RR 22300ns */
-           0x85e00033,  /*  11: GENET0_RD RR 52490ns */
+           0x85e00035,  /*  11: GENET0_RD RR 52490ns */
            0x80570005,  /*  12: GENET1_WR RR 2870ns */
-           0x82d2f02f,  /*  13: GENET1_RD RR 25233ns */
+           0x82d2f031,  /*  13: GENET1_RD RR 25233ns */
            0x3ffff0ff,  /*  14: UNASSIGNED off */
            0x3ffff0ff,  /*  15: UNASSIGNED off */
            0x3ffff0ff,  /*  16: UNASSIGNED off */
-           0x814f202d,  /*  17: SATA RR 11700ns */
+           0x814f202f,  /*  17: SATA RR 11700ns */
            0x3ffff0ff,  /*  18: UNASSIGNED off */
            0x3ffff0ff,  /*  19: UNASSIGNED off */
            0x3ffff0ff,  /*  20: UNASSIGNED off */
            0x3ffff0ff,  /*  21: UNASSIGNED off */
-           0x85eea01c,  /*  22: BSP RR 50000ns */
-           0x80c34029,  /*  23: SAGE RR 6820ns */
-           0x870d2034,  /*  24: FLASH_DMA RR 63000ns */
+           0x85eea01e,  /*  22: BSP RR 50000ns */
+           0x80c3402b,  /*  23: SAGE RR 6820ns */
+           0x870d2036,  /*  24: FLASH_DMA RR 63000ns */
            0x3ffff0ff,  /*  25: UNASSIGNED off */
-           0x870d2036,  /*  26: SDIO_EMMC RR 63000ns */
-           0x870d2035,  /*  27: SDIO_CARD RR 63000ns */
+           0x870d2038,  /*  26: SDIO_EMMC RR 63000ns */
+           0x870d2037,  /*  27: SDIO_CARD RR 63000ns */
            0xbffff0ff,  /*  28: TPCAP RR */
            0x3ffff0ff,  /*  29: UNASSIGNED off */
            0x3ffff0ff,  /*  30: UNASSIGNED off */
-           0xbffff0ff,  /*  31: UART_DMA_RD RR */
-           0xbffff0ff,  /*  32: UART_DMA_WR RR */
-           0x812f702c,  /*  33: USB_HI_0 RR 10593ns */
+           0x859fa01c,  /*  31: UART_DMA_RD RR 47400ns */
+           0x859fa01d,  /*  32: UART_DMA_WR RR 47400ns */
+           0x812f702e,  /*  33: USB_HI_0 RR 10593ns */
            0xbffff0ff,  /*  34: USB_LO_0 RR */
-           0x849da032,  /*  35: USB_X_WRITE_0 RR 41240ns */
-           0x849da031,  /*  36: USB_X_READ_0 RR 41240ns */
-           0x824ec02e,  /*  37: USB_X_CTRL_0 RR 20620ns */
-           0x812f702b,  /*  38: USB_BDC RR 10593ns */
+           0x849da034,  /*  35: USB_X_WRITE_0 RR 41240ns */
+           0x849da033,  /*  36: USB_X_READ_0 RR 41240ns */
+           0x824ec030,  /*  37: USB_X_CTRL_0 RR 20620ns */
+           0x812f702d,  /*  38: USB_BDC RR 10593ns */
            0x3ffff0ff,  /*  39: UNASSIGNED off */
-           0x801c8020,  /*  40: RAAGA RR 1000ns */
-           0x8b317037,  /*  41: RAAGA_1 RR 100000ns */
+           0x801c8022,  /*  40: RAAGA RR 1000ns */
+           0x8b317039,  /*  41: RAAGA_1 RR 100000ns */
            0x3ffff0ff,  /*  42: UNASSIGNED off */
            0x3ffff0ff,  /*  43: UNASSIGNED off */
            0x00d2a014,  /*  44: AUD_AIO 6940ns */
@@ -144,13 +144,13 @@ static const uint32_t aulMemc0_20170816001038_UHD_DualAC4_3733[] = {
            0x3ffff0ff,  /*  70: UNASSIGNED off */
            0x3ffff0ff,  /*  71: UNASSIGNED off */
            0x3ffff0ff,  /*  72: UNASSIGNED off */
-           0x80096039,  /*  73: HVD0_DBLK_0 RR 0ns */
-           0x8009603a,  /*  74: HVD0_DBLK_1 RR 0ns */
-           0x804e3023,  /*  75: HVD0_ILCPU RR 2580ns */
-           0x8032c022,  /*  76: HVD0_OLCPU RR 1776ns */
+           0x8009603b,  /*  73: HVD0_DBLK_0 RR 0ns */
+           0x8009603c,  /*  74: HVD0_DBLK_1 RR 0ns */
+           0x804e3025,  /*  75: HVD0_ILCPU RR 2580ns */
+           0x8032c024,  /*  76: HVD0_OLCPU RR 1776ns */
            0x804bc004,  /*  77: HVD0_CAB RR 2498ns */
            0x007b000e,  /*  78: HVD0_ILSI 4055ns */
-           0x804e3024,  /*  79: HVD0_ILCPU_p2 RR 2580ns */
+           0x804e3026,  /*  79: HVD0_ILCPU_p2 RR 2580ns */
            0x007b000f,  /*  80: HVD0_ILSI_p2 4055ns */
            0x3ffff0ff,  /*  81: UNASSIGNED off */
            0x3ffff0ff,  /*  82: UNASSIGNED off */
@@ -222,12 +222,12 @@ static const uint32_t aulMemc0_20170816001038_UHD_DualAC4_3733[] = {
            0xbffff0ff,  /* 148: M2MC_1 RR */
            0xbffff0ff,  /* 149: M2MC_2 RR */
            0x3ffff0ff,  /* 150: UNASSIGNED off */
-           0x80a6a027,  /* 151: PCIe_0 RR 5820ns */
+           0x80a6a029,  /* 151: PCIe_0 RR 5820ns */
            0x3ffff0ff,  /* 152: UNASSIGNED off */
            0x3ffff0ff,  /* 153: UNASSIGNED off */
            0x3ffff0ff,  /* 154: UNASSIGNED off */
-           0x8009603b,  /* 155: HVD0_DBLK_p2_0 RR 0ns */
-           0x8009603c,  /* 156: HVD0_DBLK_p2_1 RR 0ns */
+           0x8009603d,  /* 155: HVD0_DBLK_p2_0 RR 0ns */
+           0x8009603e,  /* 156: HVD0_DBLK_p2_1 RR 0ns */
            0x3ffff0ff,  /* 157: UNASSIGNED off */
            0x3ffff0ff,  /* 158: UNASSIGNED off */
            0x3ffff0ff,  /* 159: UNASSIGNED off */
@@ -271,14 +271,14 @@ static const uint32_t aulMemc0_20170816001038_UHD_DualAC4_3733[] = {
            0x3ffff0ff,  /* 197: UNASSIGNED off */
            0x3ffff0ff,  /* 198: UNASSIGNED off */
            0x3ffff0ff,  /* 199: UNASSIGNED off */
-           0x802d0021,  /* 200: CPU_MCP_RD_HIGH RR 1575ns */
-           0x8000003e,  /* 201: CPU_MCP_RD_LOW RR 0ns */
-           0x80518025,  /* 202: CPU_MCP_WR_HIGH RR 2850ns */
-           0x8000003f,  /* 203: CPU_MCP_WR_LOW RR 0ns */
-           0x80000040,  /* 204: V3D_MCP_RD_HIGH RR 0ns */
-           0x80000042,  /* 205: V3D_MCP_RD_LOW RR 0ns */
-           0x80000041,  /* 206: V3D_MCP_WR_HIGH RR 0ns */
-           0x80000043,  /* 207: V3D_MCP_WR_LOW RR 0ns */
+           0x802d0023,  /* 200: CPU_MCP_RD_HIGH RR 1575ns */
+           0x80000040,  /* 201: CPU_MCP_RD_LOW RR 0ns */
+           0x80518027,  /* 202: CPU_MCP_WR_HIGH RR 2850ns */
+           0x80000041,  /* 203: CPU_MCP_WR_LOW RR 0ns */
+           0x80000042,  /* 204: V3D_MCP_RD_HIGH RR 0ns */
+           0x80000044,  /* 205: V3D_MCP_RD_LOW RR 0ns */
+           0x80000043,  /* 206: V3D_MCP_WR_HIGH RR 0ns */
+           0x80000045,  /* 207: V3D_MCP_WR_LOW RR 0ns */
            0x3ffff0ff,  /* 208: UNASSIGNED off */
            0x3ffff0ff,  /* 209: UNASSIGNED off */
            0x3ffff0ff,  /* 210: UNASSIGNED off */
@@ -287,7 +287,7 @@ static const uint32_t aulMemc0_20170816001038_UHD_DualAC4_3733[] = {
            0x3ffff0ff,  /* 213: UNASSIGNED off */
            0x3ffff0ff,  /* 214: UNASSIGNED off */
            0x3ffff0ff,  /* 215: UNASSIGNED off */
-           0x8000003d,  /* 216: HVD0_PFRI RR 0ns */
+           0x8000003f,  /* 216: HVD0_PFRI RR 0ns */
            0x3ffff0ff,  /* 217: UNASSIGNED off */
            0x3ffff0ff,  /* 218: UNASSIGNED off */
            0x3ffff0ff,  /* 219: UNASSIGNED off */
@@ -321,7 +321,7 @@ static const uint32_t aulMemc0_20170816001038_UHD_DualAC4_3733[] = {
            0x3ffff0ff,  /* 247: UNASSIGNED off */
            0xbffff0ff,  /* 248: MEMC_TRACELOG RR */
            0x3ffff0ff,  /* 249: UNASSIGNED off */
-           0xbfffe038,  /* 250: MEMC_ZQCS RR 1000000ns */
+           0xbfffe03a,  /* 250: MEMC_ZQCS RR 1000000ns */
            0xbffff0ff,  /* 251: MEMC_MSA RR */
            0xbffff0ff,  /* 252: MEMC_DIS0 RR */
            0xbffff0ff,  /* 253: MEMC_DIS1 RR */
@@ -330,25 +330,25 @@ static const uint32_t aulMemc0_20170816001038_UHD_DualAC4_3733[] = {
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20170816001038_UHD_DualAC4_3733[] = {
-  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80440f06}, /* HVD0_PFRI (gHVC) 188520.00 ns/40 */
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20170920213448_UHD_DualAC4_3733[] = {
+  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80460f06}, /* HVD0_PFRI (gHVC) 188520.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x4000023c}, /* d: 4; p: 572.625 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x00001740}, /* 5952 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x00000df3}  /* 60% * 5952 */
 };
 
-static const uint32_t* const paulMemc_box6[] = { &aulMemc0_20170816001038_UHD_DualAC4_3733[0]};
+static const uint32_t* const paulMemc_box6[] = { &aulMemc0_20170920213448_UHD_DualAC4_3733[0]};
 
 const BBOX_Rts stBoxRts_UHD_DualAC4_3733_box6 = {
-  "20170816001038_UHD_DualAC4_3733_box6",
+  "20170920213448_UHD_DualAC4_3733_box6",
   7268,
   6,
   1,
   256,
   (const uint32_t**)&paulMemc_box6[0],
   4,
-  stBoxRts_PfriClient_20170816001038_UHD_DualAC4_3733
+  stBoxRts_PfriClient_20170920213448_UHD_DualAC4_3733
 };
 
-/* Checksum 0: 0x2c33f92b */
+/* Checksum 0: 0xb6433a77 */
 /* Checksum 1: 0x0 */

@@ -1,16 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 1.1 server-side implementation functions.
-=============================================================================*/
-
-#ifndef GL11_INT_IMPL_H
-#define GL11_INT_IMPL_H
+#include <stdbool.h>
 
 //gl 1.1 specific functions
 extern void glAlphaFunc_impl_11(GLenum func, GLclampf ref);
@@ -97,5 +90,3 @@ extern void glVertexPointer_impl_11(void);
 extern void glintColor_impl_11(float red, float green, float blue, float alpha);
 extern void glQueryMatrixxOES_impl_11(GLfixed mantissa[16]);
 extern void glDrawTexfOES_impl_11(GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLfloat Hs, bool secure);
-
-#endif /* GL11_INT_IMPL_H */

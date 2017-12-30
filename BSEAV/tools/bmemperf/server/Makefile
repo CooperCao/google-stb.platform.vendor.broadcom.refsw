@@ -95,6 +95,9 @@ ifeq ($(ANDROID_BUILD),y)
 APP_CFLAGS += -DB_ANDROID_BUILD
 endif
 
+include $(NEXUS_TOP)/../$(B_THIS_DIR)/../../bsysperf/bsysperf.inc
+APP_CFLAGS += $(CFLAGS)
+
 # Added for aarch64-linux-gcc
 APP_CFLAGS += -D_LINUX_TYPES_H
 APP_CFLAGS += -I$(NEXUS_TOP)/../magnum/portinginterface/xpt/src/core28nm

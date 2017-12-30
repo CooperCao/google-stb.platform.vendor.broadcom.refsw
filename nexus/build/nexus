@@ -15,11 +15,11 @@ fi
 TEST=`lsmod|grep bcmdriver >/dev/null && echo 1`
 if [ ! -z $TEST ]; then
     rmmod bcmdriver || exit;
-fi    
+fi
 TEST=`lsmod|grep nexus >/dev/null && echo 1`
 if [ ! -z $TEST ]; then
     rmmod nexus || exit;
-fi    
+fi
 TEST=`lsmod|grep wakeup_drv >/dev/null && echo 1`
 if [ ! -z $TEST ]; then
     rmmod wakeup_drv || exit;
@@ -27,6 +27,10 @@ fi
 TEST=`lsmod|grep brcmv3d >/dev/null && echo 1`
 if [ ! -z $TEST ]; then
     rmmod brcmv3d || exit;
+fi
+TEST=`lsmod|grep spi_drv >/dev/null && echo 1`
+if [ ! -z $TEST ]; then
+    rmmod spi_drv || exit;
 fi
 
 insmod bcmdriver.ko || exit;
@@ -47,6 +51,10 @@ fi
 
 if [ -e bcm_astra.ko ]; then
 insmod bcm_astra.ko
+fi
+
+if [ -e spi_drv.ko ]; then
+insmod spi_drv.ko
 fi
 
 # Start whatever application is requested

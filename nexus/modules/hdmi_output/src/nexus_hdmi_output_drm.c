@@ -190,6 +190,48 @@ static void NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(BAVC_HDMI_DRMInfoFrame * ma
     }
 }
 
+#if NEXUS_DBV_SUPPORT
+static void NEXUS_HdmiOutput_P_DrmInfoFrameDisable(NEXUS_HdmiOutputHandle output)
+{
+    BAVC_HDMI_DRMInfoFrame stDRMInfoFrame ;
+    output->drm.outputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
+    BHDM_GetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
+    NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(&stDRMInfoFrame, &output->drm.outputInfoFrame);
+    BHDM_SetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
+    /* notify display that we've changed drminfoframe */
+    NEXUS_TaskCallback_Fire(output->notifyDisplay);  /* NEXUS_VideoOutput_P_SetHdmiSettings */
+}
+
+static void NEXUS_HdmiOutput_P_DrmInfoFrameDisableTimerExpiration(void * pContext)
+{
+    NEXUS_HdmiOutputHandle output = pContext;
+    if (!output->drm.offTimer) return; /* someone canceled early */
+    BDBG_LOG(("DRMIF disable timer expired; disabling DRMIF"));
+    output->drm.offTimer = NULL;
+    NEXUS_HdmiOutput_P_DrmInfoFrameDisable(output);
+}
+
+static const NEXUS_HdmiDynamicRangeMasteringInfoFrame DRM_ZERO =
+{
+    0,
+    {
+        0,
+        {
+            {
+                {
+                    { 0, 0 },
+                    { 0, 0 },
+                    { 0, 0 },
+                    { 0, 0 },
+                    { 0, 0 }
+                },
+                { 0, 0 }
+            }
+        }
+    }
+};
+#endif
+
 static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle output, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
 {
     BERR_Code rc = BERR_SUCCESS;
@@ -205,6 +247,37 @@ static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle out
              */
             output->drm.printDrmInfoFrameChanges = true;
         }
+
+#if NEXUS_DBV_SUPPORT
+        if (pDrmInfoFrame->eotf == NEXUS_VideoEotf_eInvalid && output->drm.outputInfoFrame.eotf != NEXUS_VideoEotf_eInvalid)
+        {
+            /*
+             * NOTE: The HDMI 2.1 spec requires that when we disable the DRMIF
+             * transmission, we must first send an all-zero DRMIF for 2 seconds
+             * and then we can disable the packet transmission altogether.
+             * However, there are currently TVs out there that can't handle this
+             * and instead expect the packet to transition immediately from
+             * DRMIF(HDR) to no DRMIF sent.  As such, for non-Dolby-Vision
+             * receivers, we will use the non-spec-compliant behavior of
+             * immediate transition with no 2-second, all-zero DRMIF.
+             * Since Dolby Vision compliance requires that we match the
+             * HDMI spec, we enable spec-compliant behavior for any Dolby Vision
+             * capable receiver.
+             */
+            if (output->dbv.supported)
+            {
+                BDBG_LOG(("Disabling DRMIF requires 2 seconds of transmittal with zeroes"));
+                output->drm.offTimer = NEXUS_ScheduleTimer(2000, NEXUS_HdmiOutput_P_DrmInfoFrameDisableTimerExpiration, output);
+                pDrmInfoFrame = &DRM_ZERO;
+            }
+        }
+        else if (pDrmInfoFrame->eotf != NEXUS_VideoEotf_eInvalid && output->drm.offTimer)
+        {
+            NEXUS_CancelTimer(output->drm.offTimer);
+            output->drm.offTimer = NULL;
+        }
+#endif
+
 #if !BDBG_NO_LOG
         if (output->drm.printDrmInfoFrameChanges)
         {

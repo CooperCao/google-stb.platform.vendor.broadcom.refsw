@@ -12,6 +12,8 @@
 #endif
 #endif
 
+#include <EGL/egl.h>
+
 #ifdef SINGLE_PROCESS
 
 #include "nexus_display.h"
@@ -121,6 +123,9 @@ NXPL_EXPORT bool NXPL_CreateCompatiblePixmapEXT(NXPL_PlatformHandle handle, void
 NXPL_EXPORT void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle);
 
 NXPL_EXPORT void NXPL_SetDisplayType(NXPL_PlatformHandle handle, NXPL_DisplayType type);
+
+NXPL_EXPORT void NXPL_SetStripedSurface(void *pixmapHandle, NEXUS_StripedSurfaceHandle striped,
+                                        BEGL_Colorimetry srcColorimetry);
 
 #ifndef SINGLE_PROCESS
 /* only valid for surface compositor */

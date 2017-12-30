@@ -1,22 +1,42 @@
 ############################################################################
-#     Copyright (c) 2003-2010, Broadcom Corporation
-#     All Rights Reserved
-#     Confidential Property of Broadcom Corporation
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+# This program is the proprietary software of Broadcom and/or its licensors,
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
+# Except as expressly set forth in the Authorized License,
+#
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# ANY LIMITED REMEDY.
 #
 # Module Description:
 #
-# Revision History:
-#
-# $brcm_Log: $
-# 
 ###########################################################################
 
 ifneq ($(VERBOSE),)
@@ -32,12 +52,10 @@ endif
 
 # We need ODIR_FLAG to serialize between directory creation and building object files into this directory
 # ODIR itself can't be used because it would change with every object file written into the directory
-ifneq ($(SYSTEM),vxworks)
 ifeq ($(ODIR),.)
 ODIR_FLAG=
 else
 ODIR_FLAG = ${ODIR}/flag
-endif
 endif
 
 # COPT_FLAGS is being set to allow objects in *_OPT_OBJS to be built with specialized flags.  As of the time 
@@ -53,11 +71,6 @@ endif
 $(ODIR)/%.o : %.c ${ODIR_FLAG}
 		@echo [Compile... $(notdir $<)]
 		${Q_}$(CC) ${CDEP_FLAG} ${CFLAGS_STATIC} $(CFLAGS) $(COPT_FLAGS) $(if $(findstring $@,$(ST_NOPROF_OBJS)),,${CFLAGS_BPROFILE}) -c $< -o $@
-ifeq ($(SYSTEM),vxworks)
-ifneq ($(vxWorksVersion),6)
-		-${Q_}$(MV) $(patsubst %.c,%.d,$(notdir $< )) ${ODIR}
-endif
-endif
 
 ifeq ($(SYSTEM),linux)
 ifeq ($(BCHP_CHIP),7038)
@@ -67,12 +80,6 @@ endif
 $(ODIR)/%.so : %.c ${ODIR_FLAG}
 		@echo [Compile... $(notdir $<)]
 		${Q_}$(CC) ${CDEP_FLAG} ${CFLAGS_SHARED} $(CFLAGS) $(COPT_FLAGS) $(if $(findstring $@,$(SH_NOPROF_OBJS)),,${CFLAGS_BPROFILE}) -c $< -o $@
-ifeq ($(SYSTEM),vxworks)
-ifneq ($(vxWorksVersion),6)
-		-${Q_}$(MV) $(patsubst %.c,%.d,$(notdir $< )) ${ODIR}
-endif
-endif
-
 
 # Implicit C++ Compile Rule
 $(ODIR)/%.o : %.cpp ${ODIR_FLAG}
@@ -91,24 +98,10 @@ else
 RMOPTS :=
 endif
 
-ifeq ($(SYSTEM),vxworks)
-#ifneq ($(vxWorksVersion),6)
-# For tests and utils we need a rule that doesn't include the ODIR (the objects build in the currect working directory).
-# This is mainly for VxWorks 5.5 compiler (defaults to putting the .o and the .d in the current working directory.
-# Implicit C Compile Rule
-%.o : %.c
-		@echo === Compiling $<
-		${Q_}$(CC) ${CDEP_FLAG} ${CFLAGS_STATIC} $(CFLAGS) -c $< -o $@
-#endif
-endif
-
 ifdef APP
 APP_OBJS = $(SRCS:%.c=${ODIR}/%.o)
 APP_OPT_OBJS = $(OPTIMIZE_SRCS:%.c=${ODIR}/%.o)
 
-ifeq ($(SYSTEM),vxworks)
-APP_IMAGE = ${ODIR}/${APP}.out
-else
 ifeq ($(SYSTEM),linuxkernel)
 ifeq ($(LINUX_VER_GE_2_6),y)
 #OBJS += umdrv.mod.o
@@ -120,7 +113,6 @@ endif
 APP_IMAGE = ${ODIR}/${APP}.${MOD_EXT}
 else
 APP_IMAGE = ${ODIR}/${APP}
-endif
 endif
 
 application: $(OTHER_MAKES) ${ODIR} ${APP_IMAGE}
@@ -192,11 +184,7 @@ target-clean:
 endif
 
 ifdef LIB
-ifeq (${SYSTEM},vxworks)
-SH_LIB = ${ODIR}/lib$(LIB).out
-else
 SH_LIB = ${ODIR}/lib$(LIB).so
-endif
 SH_MAP = ${ODIR}/lib$(LIB).map
 ST_LIB = ${ODIR}/lib$(LIB).a
 
@@ -241,13 +229,9 @@ ST_NOPROF_OBJS = $(NOPROFILE_SRCS:%.c=${ODIR}/%.o)
 
 ${SH_LIB}: ${SH_OBJS} $(LIBS)
 	@echo [Linking... $(notdir $@)]
-ifeq (${SYSTEM},vxworks)
-	${Q_}$(CC) ${LDFLAGS} -nostdlib -r -Wl,-Map,${SH_MAP} -Wl,-EB -Wl,-X -o $@ -Wl,-soname,lib${LIB}.so ${SH_OBJS} ${CRYPTO_LDFLAGS} ${DIVX_DRM_LIBS}
-else
 	${Q_}$(CC) ${LDFLAGS} -shared -Wl,-Map,${SH_MAP} -Wl,--cref -o $@ -Wl,-soname,lib${LIB}.so ${SH_OBJS} ${LIBS} ${CRYPTO_LDFLAGS} ${DIVX_DRM_LIBS}
 ifneq (${CMD_BUILD_DONE},)
 	${Q_}${CMD_BUILD_DONE} ${SH_LIB} ${SH_MAP}
-endif
 endif
 
 ${ST_LIB}: ${ST_OBJS} 
@@ -286,29 +270,22 @@ ifdef ST_OBJS
 	${Q_}$(RM) ${RMOPTS} $(ST_OBJS)
 	${Q_}$(RM) ${RMOPTS} $(ST_OBJS:%.o=%.d)
 endif
+ifneq ($(ODIR_FLAG),)
+	${Q_}$(RM) ${ODIR_FLAG}
+endif
 
 veryclean: clean
 ifdef ODIR
-ifeq ($(vxWorksVersion),6)
-# VxWorks 6 command shell can't handle long commands (sic) -- need to do this in steps.
-# By doing these deletes first, the wildcards below will have less files to delete and thus shorter command line.
-	-@$(RM) ${RMOPTS} $(ODIR)/*.o
-	-@$(RM) ${RMOPTS} $(ODIR)/*.d
-	-@$(RM) ${RMOPTS} $(ODIR)/*.so
-endif
 	-@$(RM) ${RMOPTS} $(ODIR)/*
 	-@$(RM) -r ${RMOPTS} $(ODIR)
 endif
 
-ifneq ($(SYSTEM),vxworks)
 ifneq ($(ODIR),.)
 ${ODIR_FLAG}: ${ODIR}
-endif
 endif
 
 $(ODIR):
 	${Q_}$(MKDIR) "$(ODIR)"
-ifneq ($(SYSTEM),vxworks)
+ifneq ($(ODIR_FLAG),)
 	${Q_}${TOUCH} "${ODIR_FLAG}"
 endif
-

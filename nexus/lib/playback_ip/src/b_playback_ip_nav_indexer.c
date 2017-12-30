@@ -1047,10 +1047,10 @@ int generateHlsPlaylist(
         playlistName = buildAdaptiveStreamingPlaylistName(playlistFileDirPath, hlsProfiles[i].playlistName, "");
         PBIP_CHECK_GOTO((playlistName), ( "buildAdaptiveStreamingPlaylistName Failed "), error, B_ERROR_UNKNOWN, rc );
         hlsProfiles[i].playlistFilePtr = fopen( playlistName, "w+");
+        BKNI_Free(playlistName);
         PBIP_CHECK_GOTO((hlsProfiles[i].playlistFilePtr), ( "fopen Failed: errno %d", errno ), error, B_ERROR_UNKNOWN, rc );
         rc = initHlsMediaPlaylist(hlsProfiles[i].playlistFilePtr, HLS_TARGET_DURATION);
         PBIP_CHECK_GOTO((rc==B_ERROR_SUCCESS), ( "initHlsMediaPlaylist Failed" ), error, B_ERROR_UNKNOWN, rc );
-        BKNI_Free(playlistName);
     }
 
     /* now trim the m3u8 extension from the relative playlist names as it is used part of the segment URI name */
@@ -1123,7 +1123,8 @@ int generateHlsPlaylistUsingBcmPlayer(
     rc = stat(hlsMasterPlaylistName, &st);
     if (rc == 0 /* success */ && st.st_size > 0) {
         BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", BSTD_FUNCTION, hlsMasterPlaylistName, st.st_size));
-        return B_ERROR_SUCCESS;
+        rc = B_ERROR_SUCCESS;
+        goto error;
     }
 
     /* build the relative playlist names */
@@ -1144,10 +1145,10 @@ int generateHlsPlaylistUsingBcmPlayer(
         playlistName = buildAdaptiveStreamingPlaylistName(playlistFileDirPath, hlsProfiles[i].playlistName, "");
         PBIP_CHECK_GOTO((playlistName), ( "buildAdaptiveStreamingPlaylistName Failed "), error, B_ERROR_UNKNOWN, rc );
         hlsProfiles[i].playlistFilePtr = fopen( playlistName, "w+");
+        BKNI_Free(playlistName);
         PBIP_CHECK_GOTO((hlsProfiles[i].playlistFilePtr), ( "fopen Failed: errno %d", errno ), error, B_ERROR_UNKNOWN, rc );
         rc = initHlsMediaPlaylist(hlsProfiles[i].playlistFilePtr, HLS_TARGET_DURATION);
         PBIP_CHECK_GOTO((rc==B_ERROR_SUCCESS), ( "initHlsMediaPlaylist Failed" ), error, B_ERROR_UNKNOWN, rc );
-        BKNI_Free(playlistName);
     }
 
     /* now trim the m3u8 extension from the relative playlist names as it is used part of the segment URI name */
@@ -1244,8 +1245,8 @@ error:
     }
     for (i=0; i < B_PlaybackIpHlsProfilesType_eMax; i++)
     {
-        if (hlsProfiles[i].playlistFilePtr) fclose(hlsProfiles[i].playlistFilePtr);
-        if (hlsProfiles[i].playlistName) BKNI_Free(hlsProfiles[i].playlistName);
+        if (hlsProfiles[i].playlistFilePtr) {fclose(hlsProfiles[i].playlistFilePtr); hlsProfiles[i].playlistFilePtr = NULL;}
+        if (hlsProfiles[i].playlistName) {BKNI_Free(hlsProfiles[i].playlistName); hlsProfiles[i].playlistName = NULL;}
     }
 
     if (hlsMasterPlaylistName) BKNI_Free(hlsMasterPlaylistName);

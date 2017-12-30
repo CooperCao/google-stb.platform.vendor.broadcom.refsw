@@ -400,7 +400,7 @@ CASE(glTexStorage3D, 0xfb754ddf);
 CASE(glGetInternalformativ, 0x02141446);
 
 // GL_ES_VERSION_3_1
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 CASE(glDispatchCompute, 0xf207af7f);
 CASE(glDispatchComputeIndirect, 0x680dd02b);
 CASE(glDrawArraysIndirect, 0x67328623);
@@ -469,7 +469,7 @@ CASE(glVertexAttribFormat, 0x87c2ae88);
 CASE(glVertexAttribIFormat, 0xaa2aa407);
 CASE(glVertexAttribBinding, 0x05d7ca25);
 CASE(glVertexBindingDivisor, 0xda824180);
-#endif /* KHRN_GLES31_DRIVER*/
+#endif /* V3D_VER_AT_LEAST(3,3,0,0)*/
 
 // GL_ES_VERSION_3_2
 #if KHRN_GLES32_DRIVER
@@ -550,6 +550,9 @@ CASE(eglDestroyImageKHR, 0x3fe4c7ee);
 // EGL_KHR_image_base
 
 // EGL_KHR_image_pixmap
+
+// EGL_KHR_partial_update
+CASE(eglSetDamageRegionKHR, 0xb192d3e8);
 
 // EGL_KHR_surfaceless_context
 
@@ -655,8 +658,8 @@ CASE(glFramebufferTextureOES, 0x333d4f37);
 #endif /* GLXX_HAS_TNG*/
 
 // GL_OES_gpu_shader5
-#if KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
-#endif /* KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
+#if V3D_VER_AT_LEAST(4,0,2,0)
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_OES_mapbuffer
 CASE(glMapBufferOES, 0x8c193d5f);
@@ -675,9 +678,9 @@ CASE(glWeightPointerOES, 0xec2f76f2);
 CASE(glPointSizePointerOES, 0xa8681224);
 
 // GL_OES_primitive_bounding_box
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 CASE(glPrimitiveBoundingBoxOES, 0xbd5865c0);
-#endif /* KHRN_GLES31_DRIVER*/
+#endif /* V3D_VER_AT_LEAST(3,3,0,0)*/
 
 // GL_OES_query_matrix
 CASE(glQueryMatrixxOES, 0x06ffa6b6);
@@ -690,8 +693,8 @@ CASE(glMinSampleShadingOES, 0x9326b44c);
 #endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_OES_sample_variables
-#if KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
-#endif /* KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_OES_shader_image_atomic
 
@@ -700,8 +703,8 @@ CASE(glMinSampleShadingOES, 0x9326b44c);
 #endif /* GLXX_HAS_TNG*/
 
 // GL_OES_shader_multisample_interpolation
-#if KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
-#endif /* KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
+#if KHRN_GLES32_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
+#endif /* KHRN_GLES32_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_OES_standard_derivatives
 
@@ -721,7 +724,7 @@ CASE(glPatchParameteriOES, 0x64c6a79c);
 #endif /* GLXX_HAS_TNG*/
 
 // GL_OES_texture_border_clamp
-#if KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,0,2,0)
 CASE(glTexParameterIivOES, 0x3705946b);
 CASE(glTexParameterIuivOES, 0xe04db8b0);
 CASE(glGetTexParameterIivOES, 0x662ec594);
@@ -730,17 +733,17 @@ CASE(glSamplerParameterIivOES, 0x8308d965);
 CASE(glSamplerParameterIuivOES, 0x4bf72a49);
 CASE(glGetSamplerParameterIivOES, 0x135d9de4);
 CASE(glGetSamplerParameterIuivOES, 0x053b4549);
-#endif /* KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_OES_texture_buffer
-#if V3D_VER_AT_LEAST(4,0,2,0) && KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0)
 CASE(glTexBufferOES, 0x0cf3f088);
 CASE(glTexBufferRangeOES, 0x1ce585c7);
-#endif /* V3D_VER_AT_LEAST(4,0,2,0) && KHRN_GLES31_DRIVER*/
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_OES_texture_cube_map_array
-#if KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
-#endif /* KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
+#if V3D_VER_AT_LEAST(4,0,2,0)
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_OES_texture_mirrored_repeat
 
@@ -749,9 +752,9 @@ CASE(glTexBufferRangeOES, 0x1ce585c7);
 // GL_OES_texture_stencil8
 
 // GL_OES_texture_storage_multisample_2d_array
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 CASE(glTexStorage3DMultisampleOES, 0x4370ab54);
-#endif /* KHRN_GLES31_DRIVER*/
+#endif /* V3D_VER_AT_LEAST(3,3,0,0)*/
 
 // GL_OES_vertex_array_object
 CASE(glBindVertexArrayOES, 0x5105f38f);
@@ -762,28 +765,24 @@ CASE(glIsVertexArrayOES, 0xe2304367);
 // GL_OES_vertex_half_float
 
 // EGL_BRCM_event_monitor
-#if EGL_BRCM_event_monitor
 CASE(eglGetEventConstantBRCM, 0xf5aadd26);
 CASE(eglGetEventTrackInfoBRCM, 0x3214c291);
 CASE(eglGetEventInfoBRCM, 0x2dc29354);
 CASE(eglGetEventDataFieldInfoBRCM, 0xe4be8c54);
 CASE(eglSetEventCollectionBRCM, 0xd9ea7590);
 CASE(eglGetEventDataBRCM, 0x9dbcd50e);
-#endif /* EGL_BRCM_event_monitor*/
 
 // EGL_BRCM_gl_framebuffer_image
-#if EGL_BRCM_gl_framebuffer_image
-#endif /* EGL_BRCM_gl_framebuffer_image*/
 
 // EGL_BRCM_performance_counters
-#if EGL_BRCM_performance_counters
 CASE(eglGetPerfCounterConstantBRCM, 0xb719d8fc);
 CASE(eglGetPerfCounterGroupInfoBRCM, 0xe4dc453c);
 CASE(eglGetPerfCounterInfoBRCM, 0xfc4402ab);
 CASE(eglSetPerfCountingBRCM, 0xc4bc4ed2);
 CASE(eglChoosePerfCountersBRCM, 0xca4c1037);
 CASE(eglGetPerfCounterDataBRCM, 0x6c3ee535);
-#endif /* EGL_BRCM_performance_counters*/
+
+// EGL_EXT_buffer_age
 
 // EGL_EXT_client_extensions
 
@@ -803,10 +802,14 @@ CASE(eglCreatePlatformPixmapSurfaceEXT, 0x470711cd);
 #endif /* SECURE_SUPPORT*/
 
 // GL_BRCM_image_formats
-#if V3D_HAS_GFXH1638_FIX
-#endif /* V3D_HAS_GFXH1638_FIX*/
+#if V3D_VER_AT_LEAST(4,2,13,0)
+#endif /* V3D_VER_AT_LEAST(4,2,13,0)*/
 
 // GL_BRCM_mirror_clamp_to_edge
+
+// GL_BRCM_no_perspective
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_BRCM_polygon_mode
 CASE(glPolygonModeBRCM, 0x67332781);
@@ -816,10 +819,24 @@ CASE(glPolygonModeBRCM, 0x67332781);
 CASE(glProvokingVertexBRCM, 0xe8a03b96);
 #endif /* V3D_VER_AT_LEAST(3,3,0,0)*/
 
+// GL_BRCM_sampler_fetch
+#if V3D_VER_AT_LEAST(4,0,2,0)
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
+
+// GL_BRCM_shader_framebuffer_fetch_depth_stencil
+#if V3D_VER_AT_LEAST(4,0,2,0)
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
+
 // GL_BRCM_texture_1D
+#if V3D_VER_AT_LEAST(4,0,2,0)
 CASE(glTexImage1DBRCM, 0xc6130655);
 CASE(glTexSubImage1DBRCM, 0x35efaee5);
 CASE(glTexStorage1DBRCM, 0x88036b85);
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
+
+// GL_BRCM_texture_gather_lod
+#if V3D_VER_AT_LEAST(3,3,0,0)
+#endif /* V3D_VER_AT_LEAST(3,3,0,0)*/
 
 // GL_BRCM_texture_norm16
 
@@ -875,28 +892,28 @@ CASE(glFramebufferTextureEXT, 0x2e63cbcd);
 #endif /* GLXX_HAS_TNG*/
 
 // GL_EXT_gpu_shader5
-#if KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
-#endif /* KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
+#if V3D_VER_AT_LEAST(4,0,2,0)
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_EXT_multi_draw_indirect
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 CASE(glMultiDrawArraysIndirectEXT, 0x8a6ebbef);
 CASE(glMultiDrawElementsIndirectEXT, 0x1bcb2e2f);
-#endif /* KHRN_GLES31_DRIVER*/
+#endif /* V3D_VER_AT_LEAST(3,3,0,0)*/
 
 // GL_EXT_multisampled_render_to_texture
 CASE(glRenderbufferStorageMultisampleEXT, 0xf519c947);
 CASE(glFramebufferTexture2DMultisampleEXT, 0x5488e88b);
 
 // GL_EXT_polygon_offset_clamp
-#if V3D_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
 CASE(glPolygonOffsetClampEXT, 0x8234cb9a);
-#endif /* V3D_HAS_POLY_OFFSET_CLAMP*/
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_EXT_primitive_bounding_box
-#if KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(3,3,0,0)
 CASE(glPrimitiveBoundingBoxEXT, 0xb87ffa43);
-#endif /* KHRN_GLES31_DRIVER*/
+#endif /* V3D_VER_AT_LEAST(3,3,0,0)*/
 
 // GL_EXT_protected_textures
 
@@ -924,7 +941,7 @@ CASE(glPatchParameteriEXT, 0x5fed7313);
 #endif /* GLXX_HAS_TNG*/
 
 // GL_EXT_texture_border_clamp
-#if KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,0,2,0)
 CASE(glTexParameterIivEXT, 0x322c3f3e);
 CASE(glTexParameterIuivEXT, 0xdb7319d2);
 CASE(glGetTexParameterIivEXT, 0x61556c0b);
@@ -933,17 +950,17 @@ CASE(glSamplerParameterIivEXT, 0x7e2eba3f);
 CASE(glSamplerParameterIuivEXT, 0x471d8c7f);
 CASE(glGetSamplerParameterIivEXT, 0x0e83f6de);
 CASE(glGetSamplerParameterIuivEXT, 0x0061aa77);
-#endif /* KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_EXT_texture_buffer
-#if V3D_VER_AT_LEAST(4,0,2,0) && KHRN_GLES31_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0)
 CASE(glTexBufferEXT, 0x081a6e05);
 CASE(glTexBufferRangeEXT, 0x180c1aca);
-#endif /* V3D_VER_AT_LEAST(4,0,2,0) && KHRN_GLES31_DRIVER*/
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_EXT_texture_cube_map_array
-#if KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)
-#endif /* KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)*/
+#if V3D_VER_AT_LEAST(4,0,2,0)
+#endif /* V3D_VER_AT_LEAST(4,0,2,0)*/
 
 // GL_EXT_texture_filter_anisotropic
 

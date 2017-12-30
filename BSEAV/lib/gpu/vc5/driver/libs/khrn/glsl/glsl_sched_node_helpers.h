@@ -37,10 +37,14 @@ static inline Backflow *tr_binop_cond(BackflowFlavour f, uint32_t cond_setf, Bac
    return create_node(f, UNPACK_NONE, cond_setf, flags, l, r, NULL);
 }
 
-static inline Backflow *tr_sig_io(uint32_t sigbits, Backflow *dep) {
+static inline Backflow *tr_sig_io_offset(uint32_t sigbits, Backflow *dep, int io_offset) {
    Backflow *res = create_sig(sigbits);
-   glsl_iodep(res, dep);
+   glsl_iodep_offset(res, dep, io_offset);
    return res;
+}
+
+static inline Backflow *tr_sig_io(uint32_t sigbits, Backflow *dep) {
+   return tr_sig_io_offset(sigbits, dep, 0);
 }
 
 static inline Backflow *tr_uop_io(BackflowFlavour flavour, Backflow *param, Backflow *prev) {
@@ -115,6 +119,9 @@ static inline Backflow *tr_sqrt(Backflow *operand) {
 /* Used by glsl_scheduler_4.c */
 static inline Backflow *glsl_backflow_thrsw(void) { return tr_nullary(BACKFLOW_THREADSWITCH); }
 static inline Backflow *glsl_backflow_tmuwt(void) { return tr_nullary(BACKFLOW_TMUWT); }
+#if V3D_VER_AT_LEAST(4,0,2,0)
+static inline Backflow *glsl_backflow_vpmwt(void) { return tr_nullary(BACKFLOW_VPMWT); }
+#endif
 static inline Backflow *glsl_backflow_dummy(void) { return tr_nullary(BACKFLOW_DUMMY); }
 
 

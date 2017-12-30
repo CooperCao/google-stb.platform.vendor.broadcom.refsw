@@ -42,7 +42,7 @@ private:
 
   #ifndef NDEBUG
    void set_list(list const* l) { assert(owner == NULL); owner = l; }            // assert that not already on a list
-   void clear_list(list const* l) { assert(owner == l); owner = NULL; }          // assert that on the list being removed from
+   void clear_list(list const* l) { assert(!l || owner == l); owner = NULL; }          // assert that on the list being removed from
    void check_list(list const* l) const { assert(owner == l); }                  // assert on the expected list.
   #else
    void set_list(list const*) {}
@@ -134,6 +134,9 @@ public:
    //! O(1). Erases the element at pos. Returns an iterator pointing to the next element.
    iterator erase(iterator pos);
 
+   //! O(1). Erases the element at pos from the list it is on.
+   static void static_erase(iterator pos);
+
    //! O(N). Erases all of the elements invoking the disposer on each pointer.
    template<typename D> void clear_and_dispose(D disposer);
 
@@ -145,6 +148,9 @@ public:
 
    //! O(1). Removes the element at pos and invokes the disposer on it.
    template<typename D> iterator erase_and_dispose(iterator pos, D disposer);
+
+   //! O(1). Removes the element at pos from the list it is on and invokes the disposer on it.
+   template<typename D> static void static_erase_and_dispose(iterator pos, D disposer);
 
    //! O(N). Validate the integrity of the list. (debugging only).
    void validate() const;

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2010 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,23 +35,15 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Effects
 *    Specific APIs related to Effects Post Processing
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
 #include "bape.h"
 #include "bape_priv.h"
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 
 BDBG_MODULE(bape_effects);
 
@@ -81,7 +73,7 @@ void BAPE_Effects_GetDefaultSettings(
 
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eFadeCtrl, (void *)&dspSettings, sizeof(dspSettings));
+    BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eFadeCtrl, (void *)&dspSettings, sizeof(dspSettings));
 
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->fade.type = dspSettings.ui32EasingFunctionType;

@@ -62,11 +62,8 @@ extern bool khrn_fence_reached_state(khrn_fence *fence,
 extern void khrn_fence_refinc(khrn_fence *fence);
 extern void khrn_fence_refdec(khrn_fence *fence);
 
-/* Creates a platform fence that will be signaled when fence reaches the
- * specified deps_state. force_create behaviour is the same as
- * v3d_scheduler_create_fence. */
-extern int khrn_fence_get_platform_fence(khrn_fence *fence,
-      v3d_sched_deps_state deps_state, bool force_create);
+/* Flush all the users of this fence and return the dependencies. */
+extern const v3d_scheduler_deps* khrn_fence_get_deps(khrn_fence *fence);
 
 /* when we wait for a deps_state for platform fence, we might one to set the
  * known state of the fence to the one we waited for */

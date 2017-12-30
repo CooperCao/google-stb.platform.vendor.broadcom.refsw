@@ -1,7 +1,9 @@
 /******************************************************************************
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#if KHRN_GLES31_DRIVER
+#include "libs/core/v3d/v3d_ver.h"
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
 
 #include "gl_public_api.h"
 #include "../common/khrn_render_state.h"

@@ -367,6 +367,7 @@ BERR_Code BAPE_SrcGroup_P_Create(
     BERR_Code errCode;
     BAPE_SrcGroupHandle handle=NULL;
     BAPE_SrcGroupCoefficients   *pCoefMemory[2]={NULL, NULL};
+    bool memoryAllocated = false;
 
     #if BAPE_CHIP_SRC_TYPE_IS_IIR       
         uint32_t    regAddr, regVal;
@@ -460,11 +461,13 @@ BERR_Code BAPE_SrcGroup_P_Create(
                     pCoefMemory[1] = BKNI_Malloc(sizeof(BAPE_SrcGroupCoefficients));
                     if ( NULL == pCoefMemory[1] )
                     {
+                        BKNI_Free(pCoefMemory[0]);
                         errCode = BERR_OUT_OF_SYSTEM_MEMORY;
                         return BERR_TRACE(errCode);
                     }
                     BKNI_Memset(pCoefMemory[1], 0, sizeof(BAPE_SrcGroupCoefficients));        
                 }
+                memoryAllocated = true;
             }    
 
             for ( i = 0; i < 2; i++ )
@@ -567,6 +570,12 @@ BERR_Code BAPE_SrcGroup_P_Create(
     return BERR_SUCCESS;
 
     err_alloc_src:
+        if (pCoefMemory[0] && memoryAllocated) {
+            BKNI_Free(pCoefMemory[0]);
+        }
+        if (pCoefMemory[1] && memoryAllocated) {
+            BKNI_Free(pCoefMemory[1]);
+        }
     return errCode;
 }
 

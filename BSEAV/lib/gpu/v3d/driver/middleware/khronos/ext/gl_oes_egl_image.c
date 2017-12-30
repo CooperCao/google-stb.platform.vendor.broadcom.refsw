@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Server-side implementation of the GL_OES_EGL_image extension for GLES 1.1/2.0.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/glxx/glxx_server.h"
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"
@@ -71,7 +64,7 @@ void glEGLImageTargetTexture2DOES_impl (GLenum target, GLeglImageOES image)
    EGL_SERVER_STATE_T *eglstate = EGL_GET_SERVER_STATE();
    MEM_HANDLE_T heglimage = khrn_map_lookup(&eglstate->eglimages, (uint32_t)image);
 
-   if (heglimage == MEM_INVALID_HANDLE)
+   if (heglimage == MEM_HANDLE_INVALID)
    {
       error = GL_INVALID_OPERATION;
       goto end;
@@ -97,10 +90,10 @@ void glEGLImageTargetTexture2DOES_impl (GLenum target, GLeglImageOES image)
 
       image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
 
-      vcos_assert(texture->target != GL_TEXTURE_CUBE_MAP);
+      assert(texture->target != GL_TEXTURE_CUBE_MAP);
       if (glxx_texture_is_valid_image(image))
       {
-         glxx_texture_bind_images(texture, 1, &himage, TEXTURE_STATE_BOUND_EGLIMAGE, MEM_INVALID_HANDLE, 0);
+         glxx_texture_bind_images(texture, 1, &himage, TEXTURE_STATE_BOUND_EGLIMAGE, MEM_HANDLE_INVALID, 0);
          /* The bind above removes all previous bindings, so assign the external image here */
          if (khrn_image_is_rso(image->format))
             MEM_ASSIGN(texture->external_image, heglimage);
@@ -178,9 +171,9 @@ void glEGLImageTargetRenderbufferStorageOES_impl_20 (GLenum target, GLeglImageOE
    EGL_SERVER_STATE_T *eglstate = EGL_GET_SERVER_STATE();
    MEM_HANDLE_T heglimage = khrn_map_lookup(&eglstate->eglimages, (uint32_t)image);
 
-   if (heglimage == MEM_INVALID_HANDLE)
+   if (heglimage == MEM_HANDLE_INVALID)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-   else if (state->mh_bound_renderbuffer == MEM_INVALID_HANDLE)
+   else if (state->mh_bound_renderbuffer == MEM_HANDLE_INVALID)
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
    else if (target != GL_RENDERBUFFER)
       glxx_server_state_set_error(state, GL_INVALID_ENUM);

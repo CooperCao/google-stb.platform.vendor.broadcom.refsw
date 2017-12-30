@@ -197,6 +197,16 @@ static void BVDC_P_Vfc_Init_isr
     /* Initialize state. */
     hVfc->bInitial = true;
 
+    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_US_422_TO_444_CONV_WITH_DERING) =  (
+        BCHP_FIELD_DATA(VFC_0_US_422_TO_444_CONV_WITH_DERING, RING_MODE, 0) |
+        BCHP_FIELD_ENUM(VFC_0_US_422_TO_444_CONV_WITH_DERING, DERING_EN, ENABLE) |
+        BCHP_FIELD_ENUM(VFC_0_US_422_TO_444_CONV_WITH_DERING, UNBIASED_ROUND_ENABLE, DISABLE) |
+        BCHP_FIELD_ENUM(VFC_0_US_422_TO_444_CONV_WITH_DERING, FILT_CTRL, TEN_TAPS_FILTERING));
+
+    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_DS_444_TO_422_CONV) =  (
+        BCHP_FIELD_ENUM(VFC_0_DS_444_TO_422_CONV, FILTER_TYPE, FILTER_TYPE_STANDARD) |
+        BCHP_FIELD_ENUM(VFC_0_DS_444_TO_422_CONV, RING_SUPPRESSION, ENABLE));
+
     /* init CFC */
     BVDC_P_Vfc_InitCfc_isrsafe(hVfc);
 
@@ -225,6 +235,11 @@ void BVDC_P_Vfc_BuildRul_SetEnable_isr
             hVfc, VFC_0_VIDEO_3D_MODE, pList->pulCurrent);
         BVDC_P_VFC_WRITE_TO_RUL(
             hVfc, VFC_0_PIC_SIZE, pList->pulCurrent);
+
+        BVDC_P_VFC_WRITE_TO_RUL(
+            hVfc, VFC_0_US_422_TO_444_CONV_WITH_DERING, pList->pulCurrent);
+        BVDC_P_VFC_WRITE_TO_RUL(
+            hVfc, VFC_0_DS_444_TO_422_CONV, pList->pulCurrent);
 
         BVDC_P_VFC_BLOCK_WRITE_TO_RUL(
             hVfc, VFC_0_BYPASS_DITHER_422_CTRL, VFC_0_BYPASS_DITHER_LFSR_CTRL,

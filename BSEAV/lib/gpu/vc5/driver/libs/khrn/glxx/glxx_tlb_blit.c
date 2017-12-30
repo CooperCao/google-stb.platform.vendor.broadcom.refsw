@@ -86,7 +86,7 @@ static bool try_init_blit(
             if (gfx_lfmt_present_channels(dst_api_fmt) & ~gfx_lfmt_present_channels(src_api_fmt))
                goto not_supported;
 
-#if !V3D_HAS_RT_CLAMP
+#if !V3D_VER_AT_LEAST(4,1,34,0)
             /* Do not support blits from UFLOAT to FLOAT. The TLB will actually
              * contain signed floats (there is no unsigned float internal
              * type). These should be clamped to 0 before the blit happens, but
@@ -99,7 +99,7 @@ static bool try_init_blit(
 
             GFX_LFMT_T dst_lfmt = khrn_image_plane_lfmt(&blit->dst_fb.color[b]);
             v3d_pixel_format_t dst_pixel_format;
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
             bool reverse, rb_swap;
             gfx_lfmt_translate_pixel_format(dst_lfmt, &dst_pixel_format, &reverse, &rb_swap);
 #else

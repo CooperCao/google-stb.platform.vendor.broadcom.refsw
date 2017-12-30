@@ -57,7 +57,7 @@ typedef struct
 #define BPXL_P_MAKE_PXL(PxlFmt)                                             \
 {                                                                           \
     (PxlFmt),                                                               \
-    (#PxlFmt)                                                               \
+    BDBG_STRING(#PxlFmt)                                                    \
 }
 
 static const BPXL_P_Format_Info s_aPxlFmtInfo[] =
@@ -172,22 +172,16 @@ static const BPXL_P_Format_Info s_aPxlFmtInfo[] =
 };
 
 /***************************************************************************/
-BERR_Code BPXL_ConvertComponent_isr(
+static unsigned int BPXL_ConvertComponent_static_isrsafe(
     BPXL_Format eDstFormat,
     BPXL_Format eSrcFormat,
     unsigned int uiSrcPixel,
-    unsigned int uiCompNum,
-    unsigned int *puiDstComp )
+    unsigned int uiCompNum
+    )
 {
     unsigned int uiDstComp = 0;
     unsigned int uiSrcSize;
     unsigned int uiDstSize;
-
-    /* Check parameter */
-    if( puiDstComp == NULL )
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
 
     /* Convert pixel components */
     uiSrcSize = BPXL_COMPONENT_SIZE(eSrcFormat, uiCompNum);
@@ -220,13 +214,25 @@ BERR_Code BPXL_ConvertComponent_isr(
         }
     }
 
-    *puiDstComp = uiDstComp;
+    return uiDstComp;
+}
 
-    return BERR_SUCCESS;
+void BPXL_ConvertComponent_isrsafe(
+    BPXL_Format eDstFormat,
+    BPXL_Format eSrcFormat,
+    unsigned int uiSrcPixel,
+    unsigned int uiCompNum,
+    unsigned int *puiDstComp
+    )
+{
+    /* Check parameter */
+    BDBG_ASSERT(puiDstComp);
+    *puiDstComp = BPXL_ConvertComponent_static_isrsafe(eDstFormat, eSrcFormat, uiSrcPixel, uiCompNum);
+    return;
 }
 
 /***************************************************************************/
-BERR_Code BPXL_ConvertPixel_isr(
+void BPXL_ConvertPixel_isrsafe(
     BPXL_Format eDstFormat,
     BPXL_Format eSrcFormat,
     unsigned int uiSrcPixel,
@@ -237,31 +243,28 @@ BERR_Code BPXL_ConvertPixel_isr(
     unsigned int ii;
 
     /* Check parameter */
-    if( puiDstPixel == NULL )
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
+    BDBG_ASSERT(puiDstPixel);
 
     /* Convert pixel components */
     if( BPXL_IS_YCbCr422_FORMAT(eSrcFormat) && (!BPXL_IS_YCbCr422_FORMAT(eDstFormat)) )
     {
         for( ii = 0; ii < 3; ++ ii )
         {
-            BPXL_ConvertComponent_isr(
-                eDstFormat, eSrcFormat, uiSrcPixel, ii, &uiDstComp );
+            uiDstComp = BPXL_ConvertComponent_static_isrsafe(
+                eDstFormat, eSrcFormat, uiSrcPixel, ii);
             uiDstPixel |= uiDstComp << BPXL_COMPONENT_POS(eDstFormat, ii);
         }
     }
     else if( (!BPXL_IS_YCbCr422_FORMAT(eSrcFormat)) && BPXL_IS_YCbCr422_FORMAT(eDstFormat) )
     {
-        BPXL_ConvertComponent_isr(
-            eDstFormat, eSrcFormat, uiSrcPixel, 0, &uiDstComp );
+        uiDstComp = BPXL_ConvertComponent_static_isrsafe(
+            eDstFormat, eSrcFormat, uiSrcPixel, 0);
         uiDstPixel |= uiDstComp << BPXL_COMPONENT_POS(eDstFormat, 0);
-        BPXL_ConvertComponent_isr(
-            eDstFormat, eSrcFormat, uiSrcPixel, 1, &uiDstComp );
+        uiDstComp = BPXL_ConvertComponent_static_isrsafe(
+            eDstFormat, eSrcFormat, uiSrcPixel, 1);
         uiDstPixel |= uiDstComp << BPXL_COMPONENT_POS(eDstFormat, 1);
-        BPXL_ConvertComponent_isr(
-            eDstFormat, eSrcFormat, uiSrcPixel, 2, &uiDstComp );
+        uiDstComp = BPXL_ConvertComponent_static_isrsafe(
+            eDstFormat, eSrcFormat, uiSrcPixel, 2);
         uiDstPixel |= uiDstComp << BPXL_COMPONENT_POS(eDstFormat, 2);
         uiDstPixel |= uiDstComp << BPXL_COMPONENT_POS(eDstFormat, 3);
     }
@@ -269,19 +272,19 @@ BERR_Code BPXL_ConvertPixel_isr(
     {
         for( ii = 0; ii < 4; ++ ii )
         {
-            BPXL_ConvertComponent_isr(
-                eDstFormat, eSrcFormat, uiSrcPixel, ii, &uiDstComp );
+            uiDstComp = BPXL_ConvertComponent_static_isrsafe(
+                eDstFormat, eSrcFormat, uiSrcPixel, ii);
             uiDstPixel |= uiDstComp << BPXL_COMPONENT_POS(eDstFormat, ii);
         }
     }
 
     *puiDstPixel = uiDstPixel;
 
-    return BERR_SUCCESS;
+    return;
 }
 
 /***************************************************************************/
-BERR_Code BPXL_ConvertPixel_RGBtoYCbCr_isr(
+void BPXL_ConvertPixel_RGBtoYCbCr_isrsafe(
     BPXL_Format eDstFormat,
     BPXL_Format eSrcFormat,
     unsigned int uiSrcPixel,
@@ -291,20 +294,17 @@ BERR_Code BPXL_ConvertPixel_RGBtoYCbCr_isr(
     unsigned int ulY, ulCr, ulCb;
 
     /* Check parameter */
-    if( puiDstPixel == NULL )
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
+    BDBG_ASSERT(puiDstPixel);
 
     /* Get ARGB components */
-    BPXL_ConvertComponent_isr(
-        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 0, &ulB );
-    BPXL_ConvertComponent_isr(
-        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 1, &ulG );
-    BPXL_ConvertComponent_isr(
-        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 2, &ulR );
-    BPXL_ConvertComponent_isr(
-        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 3, &ulA );
+    ulB = BPXL_ConvertComponent_static_isrsafe(
+        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 0);
+    ulG = BPXL_ConvertComponent_static_isrsafe(
+        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 1);
+    ulR = BPXL_ConvertComponent_static_isrsafe(
+        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 2);
+    ulA = BPXL_ConvertComponent_static_isrsafe(
+        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 3);
 
     /* Convert RGB components to YCbCr */
     /* Y  = R *  0.257 + G *  0.504 + B *  0.098 + 16  */
@@ -330,11 +330,11 @@ BERR_Code BPXL_ConvertPixel_RGBtoYCbCr_isr(
         *puiDstPixel = BPXL_MAKE_PIXEL(eDstFormat, BPXL_HAS_ALPHA(eDstFormat) ? ulA : ulY, ulY, ulCb, ulCr);
     }
 
-    return BERR_SUCCESS;
+    return ;
 }
 
 /***************************************************************************/
-BERR_Code BPXL_ConvertPixel_RGBtoHdYCbCr_isr(
+void BPXL_ConvertPixel_RGBtoHdYCbCr_isrsafe(
     BPXL_Format eDstFormat,
     BPXL_Format eSrcFormat,
     unsigned int uiSrcPixel,
@@ -344,20 +344,17 @@ BERR_Code BPXL_ConvertPixel_RGBtoHdYCbCr_isr(
     unsigned int ulY, ulCr, ulCb;
 
     /* Check parameter */
-    if( puiDstPixel == NULL )
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
+    BDBG_ASSERT(puiDstPixel);
 
     /* Get ARGB components */
-    BPXL_ConvertComponent_isr(
-        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 0, &ulB );
-    BPXL_ConvertComponent_isr(
-        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 1, &ulG );
-    BPXL_ConvertComponent_isr(
-        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 2, &ulR );
-    BPXL_ConvertComponent_isr(
-        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 3, &ulA );
+    ulB = BPXL_ConvertComponent_static_isrsafe(
+        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 0);
+    ulG = BPXL_ConvertComponent_static_isrsafe(
+        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 1);
+    ulR = BPXL_ConvertComponent_static_isrsafe(
+        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 2);
+    ulA = BPXL_ConvertComponent_static_isrsafe(
+        BPXL_eA8_R8_G8_B8, eSrcFormat, uiSrcPixel, 3);
 
     /* Convert RGB components to YCbCr */
     /* Y  = R *  0.183 + G *  0.614 + B *  0.062 + 16  */
@@ -383,11 +380,11 @@ BERR_Code BPXL_ConvertPixel_RGBtoHdYCbCr_isr(
         *puiDstPixel = BPXL_MAKE_PIXEL(eDstFormat, BPXL_HAS_ALPHA(eDstFormat) ? ulA : ulY, ulY, ulCb, ulCr);
     }
 
-    return BERR_SUCCESS;
+    return;
 }
 
 /***************************************************************************/
-BERR_Code BPXL_ConvertPixel_YCbCrtoRGB_isr(
+void BPXL_ConvertPixel_YCbCrtoRGB_isrsafe(
     BPXL_Format eDstFormat,
     BPXL_Format eSrcFormat,
     unsigned int uiSrcPixel,
@@ -399,10 +396,7 @@ BERR_Code BPXL_ConvertPixel_YCbCrtoRGB_isr(
     signed int lY, lY0, lY1, lCr, lCb;
 
     /* Check parameter */
-    if( puiDstPixel == NULL )
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
+    BDBG_ASSERT(puiDstPixel);
 
     /* Get YCbCr components */
     lCr = BPXL_GET_COMPONENT(eSrcFormat, uiSrcPixel, 0) - 128;
@@ -428,11 +422,11 @@ BERR_Code BPXL_ConvertPixel_YCbCrtoRGB_isr(
     /* Make destination pixel */
     *puiDstPixel = BPXL_MAKE_PIXEL(eDstFormat, lA, lR, lG, lB);
 
-    return BERR_SUCCESS;
+    return;
 }
 
 /***************************************************************************/
-BERR_Code BPXL_GetBytesPerNPixels_isr(
+void BPXL_GetBytesPerNPixels_isrsafe(
     BPXL_Format eFormat,
     unsigned int uiNPixels,
     unsigned int *puiBytes )
@@ -440,10 +434,7 @@ BERR_Code BPXL_GetBytesPerNPixels_isr(
     unsigned int uiBytes = 0;
 
     /* Check parameter */
-    if( puiBytes == NULL )
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
+    BDBG_ASSERT(puiBytes);
 
     /* check if format is YCbCr 422 10-bit non-packed format */
     if( BPXL_IS_YCbCr422_10BIT_FORMAT(eFormat) )
@@ -508,11 +499,11 @@ BERR_Code BPXL_GetBytesPerNPixels_isr(
     }
 
     *puiBytes = uiBytes;
-    return BERR_SUCCESS;
+    return;
 }
 
 /***************************************************************************/
-const char* BPXL_ConvertFmtToStr_isr(
+const char* BPXL_ConvertFmtToStr_isrsafe(
         BPXL_Format eFormat )
 {
     uint32_t i = 0;
@@ -526,6 +517,6 @@ const char* BPXL_ConvertFmtToStr_isr(
         i++;
     }
 
-    return "BPXL_INVALID";
+    return BDBG_STRING("BPXL_INVALID");
 }
 /* End of File */

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,13 +67,13 @@ BDBG_MODULE(BVBI);
 static void BVBI_P_ProgramNull_isr (
     BREG_Handle hReg, uint32_t coreOffset,
     uint32_t ulWritePointer, uint32_t value);
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex);
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex);
 #endif /** } BVBI_NUM_AMOLE **/
 #if (BVBI_NUM_AMOLE_656 >= 1)
 static void BVBI_P_ProgramNull_656_isr (
     BREG_Handle hReg, uint32_t coreOffset,
     uint32_t ulWritePointer, uint32_t value);
-static uint32_t P_GetCoreOffset_656_isr (uint8_t hwCoreIndex);
+static uint32_t P_GetCoreOffset_656_isrsafe (uint8_t hwCoreIndex);
 #endif /** } BVBI_NUM_AMOLE_656 **/
 
 
@@ -94,7 +94,7 @@ void BVBI_P_AMOL_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
 {
     BDBG_ENTER(BVBI_P_AMOL_Enc_Init);
 
-    BVBI_P_VIE_SoftReset_isr (hReg, false, hwCoreIndex, BVBI_P_SELECT_AMOL);
+    BVBI_P_VIE_SoftReset_isrsafe (hReg, false, hwCoreIndex, BVBI_P_SELECT_AMOL);
 
     BDBG_LEAVE(BVBI_P_AMOL_Enc_Init);
 
@@ -109,7 +109,9 @@ void BVBI_P_AMOL_Enc_656_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
 {
     BDBG_ENTER(BVBI_P_AMOL_Enc_656_Init);
 
-    BVBI_P_VIE_SoftReset_isr (hReg, true, hwCoreIndex, BVBI_P_SELECT_AMOL);
+    BKNI_EnterCriticalSection();
+    BVBI_P_VIE_SoftReset_isrsafe (hReg, true, hwCoreIndex, BVBI_P_SELECT_AMOL);
+    BKNI_LeaveCriticalSection();
 
     BDBG_LEAVE(BVBI_P_AMOL_Enc_656_Init);
 }
@@ -143,7 +145,7 @@ BERR_Code BVBI_P_AMOL_Enc_Program (
     BDBG_ENTER(BVBI_P_AMOL_Enc_Program);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This is difficult to do right. Just say bye. */
@@ -308,7 +310,7 @@ BERR_Code BVBI_P_AMOL_Enc_656_Program (
     BDBG_ENTER(BVBI_P_AMOL_Enc_656_Program);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This is difficult to do right. Just say bye. */
@@ -461,7 +463,7 @@ uint32_t BVBI_P_AMOL_Encode_Data_isr (
     }
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -689,7 +691,7 @@ uint32_t BVBI_P_AMOL_Encode_656_Data_isr (
     }
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -907,7 +909,7 @@ BERR_Code BVBI_P_AMOL_Encode_Enable_isr (
     BDBG_ENTER(BVBI_P_AMOL_Encode_Enable_isr);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -958,7 +960,7 @@ BERR_Code BVBI_P_AMOL_Encode_656_Enable_isr (
     BDBG_ENTER(BVBI_P_AMOL_Encode_656_Enable_isr);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_656_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_656_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -1044,7 +1046,7 @@ static void BVBI_P_ProgramNull_isr (
     BREG_Write32 (hReg, ulRegAddr, ulRegVal);
 }
 
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex)
 {
     uint32_t ulCoreOffset = 0xFFFFFFFF;
 
@@ -1128,7 +1130,7 @@ static void BVBI_P_ProgramNull_656_isr (
     BREG_Write32 (hReg, ulRegAddr, ulRegVal);
 }
 
-static uint32_t P_GetCoreOffset_656_isr (uint8_t hwCoreIndex)
+static uint32_t P_GetCoreOffset_656_isrsafe (uint8_t hwCoreIndex)
 {
     uint32_t ulCoreOffset = 0xFFFFFFFF;
 

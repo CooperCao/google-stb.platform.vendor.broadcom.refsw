@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Server-side implementation of the GL_OES_query_matrix extension for GLES 1.1.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/glxx/glxx_server.h"
 #include "middleware/khronos/glxx/glxx_server_internal.h"
@@ -72,7 +65,7 @@ void glQueryMatrixxOES_impl_11 ( GLfixed mantissa[16] )
 
    count = glxx_get_float_or_fixed_internal(state, pname, temp);
 
-   vcos_assert(count == 16);
+   assert(count == 16);
 
    for (i = 0; i < count; i++)
       mantissa[i] = float_to_fixed(temp[i]);

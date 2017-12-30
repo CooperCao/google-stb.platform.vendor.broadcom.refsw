@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,7 +57,7 @@ BDBG_MODULE(BVBI);
 /***************************************************************************
 * Forward declarations of static (private) functions
 ***************************************************************************/
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex);
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex);
 
 
 /***************************************************************************
@@ -79,7 +79,7 @@ void BVBI_P_VPS_Enc_Init (BREG_Handle hReg, uint8_t hwCoreIndex)
     /* No reset here.  There is a reset in BVBI_P_WSS_Enc_Init(),though. */
 
     /* Determine which core to access */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -217,7 +217,7 @@ uint32_t BVBI_P_VPS_Encode_Data_isr (
     }
 
     /* Get register offset */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
 
     /* Sanity check */
     if (is656 || (ulCoreOffset == 0xFFFFFFFF))
@@ -280,7 +280,7 @@ BERR_Code BVBI_P_VPS_Encode_Enable_isr (
     BDBG_ENTER(BVBI_P_VPS_Encode_Enable_isr);
 
     /* Figure out which encoder core to use */
-    ulCoreOffset = P_GetCoreOffset_isr (hwCoreIndex);
+    ulCoreOffset = P_GetCoreOffset_isrsafe (hwCoreIndex);
     if (ulCoreOffset == 0xFFFFFFFF)
     {
         /* This should never happen!  This parameter was checked by
@@ -334,7 +334,7 @@ BERR_Code BVBI_P_VPS_Encode_Enable_isr (
 /***************************************************************************
  *
  */
-static uint32_t P_GetCoreOffset_isr (uint8_t hwCoreIndex)
+static uint32_t P_GetCoreOffset_isrsafe (uint8_t hwCoreIndex)
 {
     uint32_t ulCoreOffset = 0xFFFFFFFF;
 

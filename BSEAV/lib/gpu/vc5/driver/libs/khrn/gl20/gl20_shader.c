@@ -64,7 +64,7 @@ void gl20_shader_term(void *v, size_t size)
 {
    GL20_SHADER_T *shader = v;
 
-   vcos_unused(size);
+   unused(size);
 
    gl20_shader_free_source(shader);
 
@@ -138,7 +138,7 @@ void gl20_shader_compile(GL20_SHADER_T *shader)
    bool record = false;
 #endif
 
-   uint32_t shared_mem_per_core = KHRN_GLES31_DRIVER ? v3d_scheduler_get_compute_shared_mem_size_per_core() : 0;
+   uint32_t shared_mem_per_core = V3D_VER_AT_LEAST(3,3,0,0) ? v3d_scheduler_get_compute_shared_mem_size_per_core() : 0;
    shader->binary = glsl_compile_shader(get_shader_flavour(shader->type), &source,
                                          (khrn_get_num_cores() > 1) && !record, record, shared_mem_per_core);
 

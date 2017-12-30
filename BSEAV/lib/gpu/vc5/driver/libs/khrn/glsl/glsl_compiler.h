@@ -37,7 +37,11 @@ void glsl_generate_compute_variables(const Symbol *s_l_idx, const Symbol *s_l_id
                                      BasicBlock *entry_block, const unsigned *wg_size, const Symbol *shared_block,
                                      bool multicore, bool clamp_shared_idx, uint32_t shared_mem_per_core);
 
-void glsl_ssa_shader_optimise(SSAShader *sh, bool mem_read_only);
+/* Optimise an SSA shader. Flattening is not supported for all shaders, but should be preferred
+ * to glsl_basic_block_flatten where it is supported. */
+bool glsl_ssa_flattening_supported(BasicBlock *entry);
+void glsl_ssa_shader_optimise(SSAShader *sh, bool mem_read_only, bool flatten);
+void glsl_ssa_shader_hoist_loads(SSAShader *sh);
 
 GLSL_PROGRAM_T *glsl_link_compute_program(CompiledShader *c);
 GLSL_PROGRAM_T *glsl_link_program(CompiledShader **stages, const GLSL_PROGRAM_SOURCE_T *source, bool separable);

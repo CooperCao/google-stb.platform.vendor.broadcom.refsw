@@ -51,8 +51,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitDriverMonitorBRCM(EGLDisplay dpy, EGLint hw
 
 void egl_driver_monitor_term(CLIENT_PROCESS_STATE_T *process)
 {
-   CLIENT_GET_THREAD_STATE();
-
    if (process->driver_monitor_inited)
    {
       eglTermDriverMonitorBRCM_impl();

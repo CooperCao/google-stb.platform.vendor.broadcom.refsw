@@ -1,5 +1,0 @@
-stream=Lifting_Off_SDR_UHD_HEVC.ts
-plm.vid=2
-plm.gfx=2
-image=Avatar.bmp
-bg=desktop_background.brcmLTD.png

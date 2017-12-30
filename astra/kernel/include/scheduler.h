@@ -45,8 +45,9 @@
 
 extern "C" void schedule();
 
-#define TIME_SLICE_DURATION_MS  20
-#define EDF_SLICE_PERCENT       25
+#define TIME_SLICE_DURATION_MS      20
+#define TIME_SLICE_STAGGER_PERCENT   1
+#define TIME_SLICE_EDF_PERCENT      25
 
 class TzTask;
 extern "C" TzTask *currentTask[MAX_NUM_CPUS];
@@ -81,20 +82,22 @@ public:
 
     static PerCPU<uint64_t> startWorldRunTime;
 #ifdef TASK_LOG // To print the CPU %
-    static tzutils::PriorityQueue<TzTask> idleQueue;
+    static PerCPU<tzutils::PriorityQueue<TzTask>> idleQueue;
+    static void updateTaskLog(uint64_t worldRunTime);
 #endif
 
 private:
-    static Class scheduleClass;
+    static PerCPU<Class> scheduleClass;
     static unsigned long TimeSliceDuration;
+    static unsigned long TimeSliceStagger;
+    static unsigned long TimeSliceEDF;
 
-    static unsigned int sumRunnablePriorities;
-    static tzutils::PriorityQueue<TzTask> runQueue;
+    static PerCPU<unsigned int> sumRunnablePriorities;
+    static PerCPU<tzutils::PriorityQueue<TzTask>> runQueue;
     static PerCPU<Timer> preemptionTimer;
     static SpinLock schedLock;
 
-    static tzutils::PriorityQueue<TzTask> edfQueue;
-    static unsigned long EDFTimeSlice;
+    static PerCPU<tzutils::PriorityQueue<TzTask>> edfQueue;
     static PerCPU<Timer> edfScheduleTimer;
     static PerCPU<Timer> edfPreemptionTimer;
 

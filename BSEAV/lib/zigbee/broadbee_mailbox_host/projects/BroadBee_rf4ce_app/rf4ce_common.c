@@ -38,7 +38,8 @@
 
 #include "rf4ce_common.h"
 
-# pragma GCC optimize "short-enums"     /* Implement short enums. */
+#pragma GCC optimize "short-enums"
+#pragma pack(4)
 
 typedef enum _TEST_enum_t
 {
@@ -1707,5 +1708,7 @@ void BroadBee_PHY_Select_Antenna(RF4CE_CTRL_ANTENNA selAnt)
     printf("Completed BroadBee_PHY_Select_Antenna(%d)\r\n", selAnt);
 }
 
+#pragma GCC optimize "no-short-enums"
+#pragma pack()
 
 /* eof rf4ce_common.c */

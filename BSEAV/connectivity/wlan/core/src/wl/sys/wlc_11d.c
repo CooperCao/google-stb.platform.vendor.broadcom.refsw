@@ -461,6 +461,13 @@ wlc_11d_compatible_country(wlc_11d_info_t *m11d, const char *country_abbrev)
 		/* check each 20MHz sub-channel in the first 80MHz channel */
 		ch = ch - CH_40MHZ_APART + CH_10MHZ_APART;
 
+		if (!CH_NUM_VALID_RANGE(ch)) {
+			WL_ERROR(("wl%d: %s: bad channel: %d\n",
+		          wlc->pub->unit, __FUNCTION__, ch));
+			ASSERT(0);
+			return FALSE;
+		}
+
 		for (i = 0; i < 4; i++, ch += CH_20MHZ_APART) {
 			if (!isset(channels.vec, ch)) {
 				compat = FALSE;
@@ -474,6 +481,13 @@ wlc_11d_compatible_country(wlc_11d_info_t *m11d, const char *country_abbrev)
 
 		/* check each 20MHz sub-channel in the 80MHz channel */
 		ch = ch - CH_40MHZ_APART + CH_10MHZ_APART;
+
+		if (!CH_NUM_VALID_RANGE(ch)) {
+			WL_ERROR(("wl%d: %s: bad channel: %d\n",
+		          wlc->pub->unit, __FUNCTION__, ch));
+			ASSERT(0);
+			return FALSE;
+		}
 
 		for (i = 0; i < 4; i++, ch += CH_20MHZ_APART) {
 			if (!isset(channels.vec, ch)) {

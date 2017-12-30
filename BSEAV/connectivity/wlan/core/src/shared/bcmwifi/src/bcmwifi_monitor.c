@@ -331,6 +331,9 @@ wlc_recv_mon_compute_rspec(wlc_d11rxhdr_t *wrxh, uint8 *plcp)
 		case PRXS0_STDN:
 			rspec = wlc_vht_get_rspec_from_plcp(plcp);
 			break;
+		/* Intentional. every switch needs defult and then default to a value */
+		/* coverity[dead_error_begin] */
+                /* coverity[dead_error_condition] */
 		default:
 			/* return a valid rspec if not a debug/assert build */
 			rspec = OFDM_RSPEC(6) | RSPEC_BW_20MHZ;
@@ -574,7 +577,10 @@ wl_d11rx_to_rxsts(monitor_info_t* info, monitor_pkt_info_t* pkt_info,
 		sts.vhtflags &= ~WL_RXS_VHTF_DYN_BW_NONHT;
 
 	switch (PRXS5_ACPHY_CHBWINNONHT(&wrxh->rxhdr)) {
-	default: case PRXS5_ACPHY_CHBWINNONHT_20MHZ:
+	/* every switch statement to have default. intentional */
+	/* coverity[dead_error_line] */
+	default:
+	case PRXS5_ACPHY_CHBWINNONHT_20MHZ:
 		sts.bw_nonht = WLC_20_MHZ;
 		break;
 	case PRXS5_ACPHY_CHBWINNONHT_40MHZ:

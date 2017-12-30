@@ -710,7 +710,7 @@ BMUXlib_Input_ProcessNewDescriptors(
          )
 {
    BERR_Code rc = BERR_SUCCESS;
-   size_t auiNumDescriptors[2];
+   size_t auiNumDescriptors[2] = {0,0};
    const BAVC_VideoBufferDescriptor *astVideo[2];
    const BAVC_AudioBufferDescriptor *astAudio[2];
    size_t uiPreviousWriteOffset = hInput->state.stDescriptorInfo.uiWriteOffset;

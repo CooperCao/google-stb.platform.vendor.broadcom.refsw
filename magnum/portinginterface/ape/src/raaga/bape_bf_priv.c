@@ -874,7 +874,7 @@ void BAPE_SfifoGroup_P_SetSampleRate_isr(
     }
 }
 
-void BAPE_SfifoGroup_P_GetOutputFciIds(
+void BAPE_SfifoGroup_P_GetOutputFciIds_isrsafe(
     BAPE_SfifoGroupHandle handle,
     BAPE_FciIdGroup *pFciGroup      /* [out] */
     )
@@ -3233,12 +3233,12 @@ BERR_Code BAPE_P_InitBfSw(
     }
     BDBG_MSG(("Allocating %u DFIFO Groups", BAPE_CHIP_MAX_DFIFO_GROUPS));
     handle->dfifoGroups[0] = BKNI_Malloc(BAPE_CHIP_MAX_DFIFO_GROUPS*sizeof(BAPE_DfifoGroup));
-    BKNI_Memset(handle->dfifoGroups[0], 0, BAPE_CHIP_MAX_DFIFO_GROUPS*sizeof(BAPE_DfifoGroup));
     if ( NULL == handle->dfifoGroups[0] )
     {
         BAPE_P_UninitBfSw(handle);
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
+    BKNI_Memset(handle->dfifoGroups[0], 0, BAPE_CHIP_MAX_DFIFO_GROUPS*sizeof(BAPE_DfifoGroup));
     for ( i = 1; i < BAPE_CHIP_MAX_DFIFO_GROUPS; i++ )
     {
         handle->dfifoGroups[i] = handle->dfifoGroups[0] + i;
@@ -3246,12 +3246,12 @@ BERR_Code BAPE_P_InitBfSw(
     BDBG_MSG(("Allocating %u FCI Splitter Groups", BAPE_CHIP_MAX_FCISPLITTER_GROUPS));
     #if BAPE_CHIP_MAX_FCISPLITTER_GROUPS > 0
     handle->fciSplitterGroups[0] = BKNI_Malloc(BAPE_CHIP_MAX_FCISPLITTER_GROUPS*sizeof(BAPE_FciSplitterGroup));
-    BKNI_Memset(handle->fciSplitterGroups[0], 0, BAPE_CHIP_MAX_FCISPLITTER_GROUPS*sizeof(BAPE_FciSplitterGroup));
     if ( NULL == handle->fciSplitterGroups[0] )
     {
         BAPE_P_UninitBfSw(handle);
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
+    BKNI_Memset(handle->fciSplitterGroups[0], 0, BAPE_CHIP_MAX_FCISPLITTER_GROUPS*sizeof(BAPE_FciSplitterGroup));
     for ( i = 1; i < BAPE_CHIP_MAX_FCISPLITTER_GROUPS; i++ )
     {
         handle->fciSplitterGroups[i] = handle->fciSplitterGroups[0] + i;
@@ -3260,12 +3260,12 @@ BERR_Code BAPE_P_InitBfSw(
     #if BAPE_CHIP_MAX_FCISPLITTER_OUTPUT_GROUPS > 0
     BDBG_MSG(("Allocating %u FCI Splitter Output Groups", BAPE_CHIP_MAX_FCISPLITTER_OUTPUT_GROUPS));
     handle->fciSplitterOutputGroups[0] = BKNI_Malloc(BAPE_CHIP_MAX_FCISPLITTER_OUTPUT_GROUPS*sizeof(BAPE_FciSplitterOutputGroup));
-    BKNI_Memset(handle->fciSplitterOutputGroups[0], 0, BAPE_CHIP_MAX_FCISPLITTER_OUTPUT_GROUPS*sizeof(BAPE_FciSplitterOutputGroup));
     if ( NULL == handle->fciSplitterOutputGroups[0] )
     {
         BAPE_P_UninitBfSw(handle);
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
+    BKNI_Memset(handle->fciSplitterOutputGroups[0], 0, BAPE_CHIP_MAX_FCISPLITTER_OUTPUT_GROUPS*sizeof(BAPE_FciSplitterOutputGroup));
     for ( i = 1; i < BAPE_CHIP_MAX_FCISPLITTER_OUTPUT_GROUPS; i++ )
     {
         handle->fciSplitterOutputGroups[i] = handle->fciSplitterOutputGroups[0] + i;

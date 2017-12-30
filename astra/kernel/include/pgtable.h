@@ -47,6 +47,9 @@
 #include "tzmemory.h"
 #include "arm/spinlock.h"
 
+#define USER_MAP_START_ADDR     0xA0000000
+#define USER_MAP_END_ADDR       0xBFFFFFFF
+
 class PageTable {
 public:
     enum SwAttribs {
@@ -111,6 +114,8 @@ public:
 
     void dump();
     void dumpInMem(void * mem);
+    TzMem::VirtAddr reserveAndMapAddrRange(const TzMem::PhysAddr paddrFirstPage, unsigned int rangeSize,
+        const int memAttr, const int memAccessPerms, const bool executeNever, const bool mapShared, const bool nonSecure);
 
 private:
     void* operator new(size_t sz, void* where);
@@ -119,6 +124,8 @@ private:
     void reserveRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::VirtAddr vaddrLastPage);
 
     void DumpPageTableInfo(void * mem);
+
+    TzMem::VirtAddr findFreeAddrRangeNoLock(const TzMem::VirtAddr addr, const unsigned int rangeSize);
 
 private:
     uint64_t *topLevelDir;
@@ -132,6 +139,8 @@ private:
     static int stackTop;
 
     static SpinLock allocLock;
+
+    TzMem::VirtAddr ulUserMapAddrTop = (TzMem::VirtAddr)USER_MAP_START_ADDR;
 
 private:
 

@@ -122,16 +122,16 @@ void gl20_link_result_term(void *v, uint32_t size)
 
    UNUSED(size);
 
-   MEM_ASSIGN(result->mh_blob, MEM_INVALID_HANDLE);
+   MEM_ASSIGN(result->mh_blob, MEM_HANDLE_INVALID);
 
    for (i = 0; i < GL20_LINK_RESULT_CACHE_SIZE; i++)
    {
-      MEM_ASSIGN(result->cache[i].data.mh_vcode, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(result->cache[i].data.mh_ccode, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(result->cache[i].data.mh_fcode, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(result->cache[i].data.mh_vuniform_map, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(result->cache[i].data.mh_cuniform_map, MEM_INVALID_HANDLE);
-      MEM_ASSIGN(result->cache[i].data.mh_funiform_map, MEM_INVALID_HANDLE);
+      MEM_ASSIGN(result->cache[i].data.mh_vcode, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(result->cache[i].data.mh_ccode, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(result->cache[i].data.mh_fcode, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(result->cache[i].data.mh_vuniform_map, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(result->cache[i].data.mh_cuniform_map, MEM_HANDLE_INVALID);
+      MEM_ASSIGN(result->cache[i].data.mh_funiform_map, MEM_HANDLE_INVALID);
    }
 }
 
@@ -310,7 +310,7 @@ bool gl20_link_result_get_shaders(
    key = &state->shader.common;
 
    //TODO: vertex hiding
-   //vcos_assert(0);
+   //assert(0);
    /*for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
    {
       if ((link_result->vattribs_live & 15<<(4*i)) && attrib[i].enabled)
@@ -409,14 +409,13 @@ bool gl20_link_result_get_shaders(
       /* store copy of handles in here, so can properly copy shader record */
       shader_out->fshader = (uint32_t)link_result->cache[i].data.mh_fcode;
       shader_out->vshader = (uint32_t)link_result->cache[i].data.mh_vcode;
-      /* */
 
       glxx_big_mem_insert(&shader_out->fshader, link_result->cache[i].data.mh_fcode, 0);
       glxx_big_mem_insert(&shader_out->vshader, link_result->cache[i].data.mh_vcode, 0);
 
       /* check big_mem_insert didn't change our handle copies */
-      vcos_assert(shader_out->fshader == (uint32_t)link_result->cache[i].data.mh_fcode);
-      vcos_assert(shader_out->vshader == (uint32_t)link_result->cache[i].data.mh_vcode);
+      assert(shader_out->fshader == (uint32_t)link_result->cache[i].data.mh_fcode);
+      assert(shader_out->vshader == (uint32_t)link_result->cache[i].data.mh_vcode);
 
       *vunifmap_out = link_result->cache[i].data.mh_vuniform_map;
       *funifmap_out = link_result->cache[i].data.mh_funiform_map;
@@ -427,7 +426,7 @@ bool gl20_link_result_get_shaders(
       glxx_big_mem_insert(&shader_out->cshader, link_result->cache[i].data.mh_ccode, 0);
 
       /* check big_mem_insert didn't change our handle copies */
-      vcos_assert(shader_out->cshader == (uint32_t)link_result->cache[i].data.mh_ccode);
+      assert(shader_out->cshader == (uint32_t)link_result->cache[i].data.mh_ccode);
 
       *cunifmap_out = link_result->cache[i].data.mh_cuniform_map;
    }

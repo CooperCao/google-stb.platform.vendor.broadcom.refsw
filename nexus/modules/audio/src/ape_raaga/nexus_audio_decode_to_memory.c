@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -306,8 +306,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetDecodedFrames(
             {
                 pMemoryBlocks[i] = pNode->block;
                 pFrameStatus[i].pts = decoder->pBufferDescriptors[i].ptsInfo.ui32CurrentPTS;
-                pFrameStatus[i].ptsType = decoder->pBufferDescriptors[i].ptsInfo.ePTSType == BAVC_PTSType_eCoded ? NEXUS_PtsType_eCoded :
-                    decoder->pBufferDescriptors[i].ptsInfo.ePTSType == BAVC_PTSType_eInterpolatedFromValidPTS ? NEXUS_PtsType_eInterpolatedFromValidPTS : NEXUS_PtsType_eInterpolatedFromInvalidPTS;
+                pFrameStatus[i].ptsType = (NEXUS_PtsType)decoder->pBufferDescriptors[i].ptsInfo.ePTSType;
                 pFrameStatus[i].filledBytes = decoder->pBufferDescriptors[i].filledBytes;
                 pFrameStatus[i].sampleRate = decoder->pBufferDescriptors[i].sampleRate;
                 pFrameStatus[i].bufferOffset = pNode->blockOffset;

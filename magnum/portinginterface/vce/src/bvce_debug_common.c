@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,8 +41,6 @@
 
 /* base modules */
 #include "bstd.h"           /* standard types */
-#include "berr.h"           /* error code */
-#include "bdbg.h"           /* debug interface */
 
 #include "bvce_debug_common.h"
 
@@ -102,6 +100,13 @@ const char* const BVCE_P_StatusLUT[] =
    BDBG_STRING_INLINE("ERR_VICE_IS_IN_CHANNEL_FLUSHING_MODE"),
    BDBG_STRING_INLINE("ERR_VICE_IS_IN_CABAC_FLUSHING_MODE"),
    BDBG_STRING_INLINE("ERR_VARIABLE_BITRATE_UNSUPPORTED"),
+   BDBG_STRING_INLINE("ERR_UNSUPPORTED_INTERLACED_TYPE_VP9"),
+   BDBG_STRING_INLINE("ERR_WRONG_MEMORY_SETTINGS"),
+   BDBG_STRING_INLINE("ERR_UNSUPPORTED_B_REF_IN_STANDARD"),
+   BDBG_STRING_INLINE("ERR_GOP_STRUCTURE_GREATER_THAN_MAX"),
+   BDBG_STRING_INLINE("ERR_GOP_STR_NOT_SUPPORTED_FOR_INTERLACE"),
+   BDBG_STRING_INLINE("ERR_MAXGOP_STR_NOT_SUPPORTED_FOR_INTERLACE"),
+
 };
 
 const char* const BVCE_P_ErrorLUT[32] =
@@ -128,6 +133,9 @@ const char* const BVCE_P_ErrorLUT[32] =
    BDBG_STRING_INLINE("ERR_UNSUPPORTED_DISPLAY_FMT_IN_3_CH_MODE"),
    BDBG_STRING_INLINE("ERR_UNSUPPORTED_DISPLAY_FMT_IN_2_CH_MODE"),
    BDBG_STRING_INLINE("ERR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL"),
+   BDBG_STRING_INLINE("ERR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED"),
+   BDBG_STRING_INLINE("ERR_UNSUPPORTED_FRAME_RATE_FOR_THIS_RESOLUTION_AND_GOP_STRUCTURE"),
+
 };
 
 const char* const BVCE_P_EventLUT[32] =
@@ -135,6 +143,29 @@ const char* const BVCE_P_EventLUT[32] =
    BDBG_STRING_INLINE("INPUT_CHANGE"),
    BDBG_STRING_INLINE("EOS"),
 };
+
+void
+BVCE_Debug_P_ValidateStructSizes(void)
+{
+   BDBG_CWARNING( sizeof( ViceCmdInit_t ) == 14*4 );
+   BDBG_CWARNING( sizeof( ViceCmdInitResponse_t ) == 11*4 );
+   BDBG_CWARNING( sizeof( ViceCmdOpenChannel_t ) == 9*4 );
+   BDBG_CWARNING( sizeof( ViceCmdOpenChannelResponse_t ) == 8*4 );
+   BDBG_CWARNING( sizeof( ViceCmdStartChannel_t ) == 2*4 );
+   BDBG_CWARNING( sizeof( ViceCmdStartChannelResponse_t ) == 2*4 );
+   BDBG_CWARNING( sizeof( ViceCmdStopChannel_t ) == 3*4 );
+   BDBG_CWARNING( sizeof( ViceCmdStopChannelResponse_t ) == 2*4 );
+   BDBG_CWARNING( sizeof( ViceCmdCloseChannel_t ) == 2*4 );
+   BDBG_CWARNING( sizeof( ViceCmdCloseChannelResponse_t ) == 2*4 );
+   BDBG_CWARNING( sizeof( ViceCmdConfigChannel_t ) == 33*4 );
+   BDBG_CWARNING( sizeof( ViceCmdConfigChannelResponse_t ) == 2*4 );
+   BDBG_CWARNING( sizeof( ViceCmdDebugChannel_t ) == (3*4 + COMMAND_BUFFER_SIZE_BYTES));
+   BDBG_CWARNING( sizeof( ViceCmdDebugChannelResponse_t ) == 2*4 );
+   BDBG_CWARNING( sizeof( ViceCmdGetChannelStatus_t ) == 2*4 );
+   BDBG_CWARNING( sizeof( ViceCmdGetChannelStatusResponse_t ) == (2*4 + 14*4 + 1*8) );
+   BDBG_CWARNING( sizeof( ViceCmdGetDeviceStatus_t ) == 1*4 );
+   BDBG_CWARNING( sizeof( ViceCmdGetDeviceStatusResponse_t ) == (2*4 + 2*4) );
+}
 
 const BVCE_P_CommandDebug BVCE_P_CommandLUT[] =
 {
@@ -154,6 +185,7 @@ const BVCE_P_CommandDebug BVCE_P_CommandLUT[] =
       BDBG_STRING_INLINE("Bank Type"),
       BDBG_STRING_INLINE("Page Size"),
       BDBG_STRING_INLINE("Grouping"),
+      BDBG_STRING_INLINE("New BVN Mailbox"),
     },
     {
       BDBG_STRING_INLINE("Response (Init)"),
@@ -180,7 +212,8 @@ const BVCE_P_CommandDebug BVCE_P_CommandLUT[] =
       BDBG_STRING_INLINE("Non-Secure Buffer Base (LSB)"),
       BDBG_STRING_INLINE("Non-Secure Buffer Base (MSB)"),
       BDBG_STRING_INLINE("Non-Secure Buffer Size"),
-      BDBG_STRING_INLINE("Secure Buffer Base"),
+      BDBG_STRING_INLINE("Secure Buffer Base (LSB)"),
+      BDBG_STRING_INLINE("Secure Buffer Base (MSB)"),
       BDBG_STRING_INLINE("Secure Buffer Size"),
       BDBG_STRING_INLINE("Max Number of Channels"),
     },
@@ -188,6 +221,11 @@ const BVCE_P_CommandDebug BVCE_P_CommandLUT[] =
       BDBG_STRING_INLINE("Response (Open)"),
       BDBG_STRING_INLINE("Status"),
       BDBG_STRING_INLINE("User Data Queue Info Base"),
+      BDBG_STRING_INLINE("Luma Buffer Release Queue"),
+      BDBG_STRING_INLINE("Chroma Buffer Release Queue"),
+      BDBG_STRING_INLINE("1V Luma Buffer Release Queue"),
+      BDBG_STRING_INLINE("2V Luma Buffer Release Queue"),
+      BDBG_STRING_INLINE("Shifted Chroma Buffer Release Queue"),
     },
     sizeof( ViceCmdOpenChannel_t )/sizeof( uint32_t ) ,
     sizeof( ViceCmdOpenChannelResponse_t )/sizeof( uint32_t )

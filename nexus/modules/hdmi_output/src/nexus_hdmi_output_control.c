@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,10 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "nexus_hdmi_output_module.h"
+
+BDBG_MODULE(nexus_hdmi_output_control) ;
 
 NEXUS_Error NEXUS_HdmiOutput_GetPreEmphasisConfiguration(
     NEXUS_HdmiOutputHandle handle,
@@ -58,6 +59,12 @@ NEXUS_Error NEXUS_HdmiOutput_GetPreEmphasisConfiguration(
 
     TmdsPreEmphasisRegisters =
         BKNI_Malloc(sizeof(BHDM_TmdsPreEmphasisRegisters) * BHDM_TMDS_RANGES) ;
+    if (TmdsPreEmphasisRegisters == NULL)
+    {
+        BDBG_ERR(("Unable to allocate memory for TMDS PreEmphasis Registers")) ;
+        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY) ;
+        goto done ;
+    }
 
     BHDM_TMDS_GetPreEmphasisRegisters(handle->hdmHandle, TmdsPreEmphasisRegisters) ;
 
@@ -80,6 +87,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetPreEmphasisConfiguration(
     }
     BKNI_Free(TmdsPreEmphasisRegisters) ;
 
+done:
     return rc ;
 }
 
@@ -100,6 +108,12 @@ NEXUS_Error NEXUS_HdmiOutput_SetPreEmphasisConfiguration(
 
     TmdsPreEmphasisRegisters =
         BKNI_Malloc(sizeof(BHDM_TmdsPreEmphasisRegisters) * BHDM_TMDS_RANGES) ;
+    if (TmdsPreEmphasisRegisters == NULL)
+    {
+        BDBG_ERR(("Unable to allocate memory for TMDS PreEmphasis Registers")) ;
+        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY) ;
+        goto done ;
+    }
 
     BHDM_TMDS_GetPreEmphasisRegisters(handle->hdmHandle, TmdsPreEmphasisRegisters);
 
@@ -124,6 +138,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetPreEmphasisConfiguration(
     BHDM_TMDS_SetPreEmphasisRegisters(handle->hdmHandle, TmdsPreEmphasisRegisters) ;
 
     BKNI_Free(TmdsPreEmphasisRegisters) ;
+
+done:
     return rc ;
 }
 

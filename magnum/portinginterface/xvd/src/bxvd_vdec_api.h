@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,7 +64,7 @@ This is the basic format of all command issued to the AVC
 typedef struct
 {
       uint32_t  cmd;
-      uint32_t  params[BXVD_P_MAX_HST_CMDQ_SIZE-2];
+      uint32_t  params[BXVD_P_MAX_HST_CMDQ_SIZE-1];
 } BXVD_Cmd, BXVD_Rsp;
 
 /* common response structure */
@@ -136,6 +136,19 @@ enum
    BXVD_ErrInvalidPortNum,
    BXVD_ErrChanInuse
 };
+
+/*
+ *    Boot parameters passed in HIM
+ */
+
+#define BXVD_P_VDEC_OL_CPU_CLOCK_OFFSET 0
+#define BXVD_P_VDEC_IL_CPU_CLOCK_OFFSET 1
+#define BXVD_P_VDEC_BL_CPU_CLOCK_OFFSET 2
+
+#define BXVD_P_VDEC_OL_CMD_BUFF_SIG_OFFSET  3
+#define BXVD_P_VDEC_OL_CMD_BUFF_ADDR_LO     4
+#define BXVD_P_VDEC_OL_CMD_BUFF_ADDR_HI     5
+
 
 /*------------------------------------------------------*
  *    Initialize                                        *

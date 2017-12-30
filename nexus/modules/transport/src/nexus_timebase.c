@@ -447,6 +447,19 @@ NEXUS_Error NEXUS_Timebase_P_GetIncAndCenterFreq(NEXUS_VideoFormat videoFormat, 
 }
 #endif
 
+static BXPT_PCR_RefTrackRange nexus_p_convert_timebase_track_range(NEXUS_TimebaseTrackRange trackRange)
+{
+    switch (trackRange) {
+    default: BERR_TRACE(NEXUS_INVALID_PARAMETER); /* fall through */
+    case NEXUS_TimebaseTrackRange_e8ppm:   return BXPT_PCR_TrackRange_PPM_8;
+    case NEXUS_TimebaseTrackRange_e15ppm:  return BXPT_PCR_TrackRange_PPM_15;
+    case NEXUS_TimebaseTrackRange_e30ppm:  return BXPT_PCR_TrackRange_PPM_30;
+    case NEXUS_TimebaseTrackRange_e61ppm:  return BXPT_PCR_TrackRange_PPM_61;
+    case NEXUS_TimebaseTrackRange_e122ppm: return BXPT_PCR_TrackRange_PPM_122;
+    case NEXUS_TimebaseTrackRange_e244ppm: return BXPT_PCR_TrackRange_PPM_244;
+    }
+}
+
 /* do acquire/release on any resource stored in handle->settings */
 static void NEXUS_Timebase_P_DoSettingsAccounting(NEXUS_TimebaseHandle handle, const NEXUS_TimebaseSettings *pSettings)
 {
@@ -636,8 +649,7 @@ NEXUS_Error NEXUS_Timebase_P_SetSettings(NEXUS_TimebaseHandle timebase, const NE
 
         /* Set the crystal tracking range */
         if (force || pSettings->sourceSettings.pcr.trackRange != timebase->settings.sourceSettings.pcr.trackRange) {
-            BDBG_CASSERT(NEXUS_TimebaseTrackRange_e244ppm == (NEXUS_TimebaseTrackRange)BXPT_PCR_TrackRange_PPM_244);
-            BXPT_PCR_SetTimeRefTrackRange(pcr, pSettings->sourceSettings.pcr.trackRange);
+            BXPT_PCR_SetTimeRefTrackRange(pcr, nexus_p_convert_timebase_track_range(pSettings->sourceSettings.pcr.trackRange));
         }
 
         BDBG_MSG(("%s: PCR Mode Timebase (%u) Settings: track range %d, max pcr error %d",
@@ -663,7 +675,7 @@ NEXUS_Error NEXUS_Timebase_P_SetSettings(NEXUS_TimebaseHandle timebase, const NE
         }
         /* Set the crystal tracking range */
         if (force || pSettings->sourceSettings.freeRun.trackRange != timebase->settings.sourceSettings.freeRun.trackRange) {
-            BXPT_PCR_SetTimeRefTrackRange(pcr, pSettings->sourceSettings.freeRun.trackRange);
+            BXPT_PCR_SetTimeRefTrackRange(pcr, nexus_p_convert_timebase_track_range(pSettings->sourceSettings.freeRun.trackRange));
         }
         break;
 
@@ -691,7 +703,7 @@ NEXUS_Error NEXUS_Timebase_P_SetSettings(NEXUS_TimebaseHandle timebase, const NE
 
         /* Set the crystal tracking range */
         if (force || pSettings->sourceSettings.ccir656.trackRange != timebase->settings.sourceSettings.ccir656.trackRange) {
-            BXPT_PCR_SetTimeRefTrackRange(pcr, pSettings->sourceSettings.ccir656.trackRange);
+            BXPT_PCR_SetTimeRefTrackRange(pcr, nexus_p_convert_timebase_track_range(pSettings->sourceSettings.ccir656.trackRange));
         }
         break;
 
@@ -729,7 +741,7 @@ NEXUS_Error NEXUS_Timebase_P_SetSettings(NEXUS_TimebaseHandle timebase, const NE
 
         /* Set the crystal tracking range */
         if (force || pSettings->sourceSettings.i2s.trackRange != timebase->settings.sourceSettings.i2s.trackRange) {
-            BXPT_PCR_SetTimeRefTrackRange(pcr, pSettings->sourceSettings.i2s.trackRange);
+            BXPT_PCR_SetTimeRefTrackRange(pcr, nexus_p_convert_timebase_track_range(pSettings->sourceSettings.i2s.trackRange));
         }
         break;
 #endif
@@ -795,7 +807,7 @@ NEXUS_Error NEXUS_Timebase_P_SetSettings(NEXUS_TimebaseHandle timebase, const NE
         /* Set the crystal tracking range */
         if (force || pSettings->sourceSettings.hdDvi.trackRange != timebase->settings.sourceSettings.hdDvi.trackRange)
         {
-            BXPT_PCR_SetTimeRefTrackRange(pcr, pSettings->sourceSettings.hdDvi.trackRange);
+            BXPT_PCR_SetTimeRefTrackRange(pcr, nexus_p_convert_timebase_track_range(pSettings->sourceSettings.hdDvi.trackRange));
         }
         break;
 #endif

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #ifndef LIVE_SOURCE_H__
 #define LIVE_SOURCE_H__
@@ -79,6 +74,7 @@ if no other frontend type is set, streamer is used.
 **/
 struct btune_settings {
     enum channel_source source;
+    int index; /* use if not -1 */
     unsigned freq; /* in Hz */
     unsigned mode;
     unsigned symbolRate;
@@ -91,6 +87,7 @@ struct btune_settings {
 };
 
 void get_default_tune_settings(struct btune_settings *psettings);
+NEXUS_FrontendHandle acquire_frontend(const struct btune_settings *psettings);
 int  tune(NEXUS_ParserBand parserBand, NEXUS_FrontendHandle frontend, const struct btune_settings *psettings,
     bool alreadyTuned /* don't retune frontend; just configure parser band. */
     );

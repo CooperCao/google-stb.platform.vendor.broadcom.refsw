@@ -277,9 +277,9 @@ static bool can_use_rgb_rso_convert(const struct v3d_imgconv_base_tgt *src,
 bool claim_conversion(const struct v3d_imgconv_base_tgt *dst,
       const struct v3d_imgconv_base_tgt *src,
       unsigned int width, unsigned int height, unsigned int depth,
-      const security_info_t *sec_info)
+      const conversion_info_t *info)
 {
-   if (!v3d_imgconv_valid_cpu_sec_info(sec_info))
+   if (!v3d_imgconv_valid_cpu_conv_info(info))
       return false;
 
    unsigned int src_bpp, dst_bpp; /* bits per pixel */

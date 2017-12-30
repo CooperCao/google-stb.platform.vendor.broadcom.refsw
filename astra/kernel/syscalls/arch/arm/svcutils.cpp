@@ -89,7 +89,8 @@ void SysCalls::init() {
     dispatchTable[SYS_mkdir] = doMkdir;
     dispatchTable[SYS_rmdir] = doRmdir;
     dispatchTable[SYS_dup] = doDup;
-    dispatchTable[SYS_pipe] = notImpl;
+    dispatchTable[SYS_pipe] = doPipe;
+    dispatchTable[SYS_pipe2] = doPipe2;
     dispatchTable[SYS_times] = notImpl;
     dispatchTable[SYS_brk] = doBrk;
     dispatchTable[SYS_setgid] = doSetGid;
@@ -100,7 +101,7 @@ void SysCalls::init() {
     dispatchTable[SYS_umount2] = doUmount;
     dispatchTable[SYS_ioctl] = doIoctl;
     dispatchTable[SYS_fcntl] = notImpl;
-    dispatchTable[SYS_setpgid] = notImpl;
+    dispatchTable[SYS_setpgid] = doSetPgid;
     dispatchTable[SYS_umask] = notImpl;
     dispatchTable[SYS_chroot] = notImpl;
     dispatchTable[SYS_ustat] = notImpl;
@@ -155,7 +156,7 @@ void SysCalls::init() {
     dispatchTable[SYS_init_module] = notImpl;
     dispatchTable[SYS_delete_module] = notImpl;
     dispatchTable[SYS_quotactl] = notImpl;
-    dispatchTable[SYS_getpgid] = notImpl;
+    dispatchTable[SYS_getpgid] = doGetPgid;
     dispatchTable[SYS_fchdir] = doFchdir;
     dispatchTable[SYS_bdflush] = notImpl;
     dispatchTable[SYS_sysfs] = notImpl;
@@ -311,6 +312,7 @@ void SysCalls::init() {
     dispatchTableExt[EXT_tracelog_start - EXT_SYS_CALL_BASE] = doTraceLogStart;
     dispatchTableExt[EXT_tracelog_stop - EXT_SYS_CALL_BASE] = doTraceLogStop;
     dispatchTableExt[EXT_tracelog_add - EXT_SYS_CALL_BASE] = doTraceLogAdd;
+    dispatchTableExt[EXT_sched_runtask - EXT_SYS_CALL_BASE] = doSchedRunTask;
 
     paramsPagePhys.cpuLocal() = TzMem::allocPage(KERNEL_PID);
     if (paramsPagePhys.cpuLocal() == nullptr) {
@@ -358,7 +360,7 @@ void SysCalls::dispatch() {
         return;
     }
 
-	unsigned int sysCallNum = currTask->userReg(ARCH_SPECIFIC_SYSCALL_NUM_REGISTER);
+    unsigned int sysCallNum = currTask->userReg(ARCH_SPECIFIC_SYSCALL_NUM_REGISTER);
 
     //printf("Task %d %p system call %d\n", currTask->id(), currTask, sysCallNum);
 

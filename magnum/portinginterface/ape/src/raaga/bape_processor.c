@@ -44,7 +44,7 @@
 #include "bape.h"
 #include "bape_priv.h"
 #if BAPE_CHIP_HAS_POST_PROCESSING
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_processor);
@@ -92,7 +92,7 @@ static void BAPE_Processor_P_GetDefaultSettings(
     case BAPE_PostProcessorType_eKaraokeVocal:
         {
             BDSP_Raaga_Audio_VocalPPConfigParams dspSettings;
-            BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eVocalPP, (void *)&dspSettings, sizeof(dspSettings));
+            BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eVocalPP, (void *)&dspSettings, sizeof(dspSettings));
             pSettings->settings.karaokeVocal.echo.enabled = false;
             pSettings->settings.karaokeVocal.echo.attenuation = (unsigned)((((int64_t)dspSettings.i32EchoAttn)*100) >> 31);
             pSettings->settings.karaokeVocal.echo.delay = dspSettings.i32EchoDelayInMs;
@@ -101,7 +101,7 @@ static void BAPE_Processor_P_GetDefaultSettings(
     case BAPE_PostProcessorType_eFade:
         {
             BDSP_Raaga_Audio_FadeCtrlConfigParams dspSettings;
-            BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eFadeCtrl, (void *)&dspSettings, sizeof(dspSettings));
+            BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eFadeCtrl, (void *)&dspSettings, sizeof(dspSettings));
             pSettings->settings.fade.type = dspSettings.ui32EasingFunctionType;
             pSettings->settings.fade.level = 100;
             pSettings->settings.fade.duration = 100;
@@ -110,14 +110,14 @@ static void BAPE_Processor_P_GetDefaultSettings(
     case BAPE_PostProcessorType_eAdvancedTsm:
         {
             BDSP_Raaga_Audio_TsmCorrectionConfigParams dspSettings;
-            BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eTsmCorrection, (void *)&dspSettings, sizeof(dspSettings));
+            BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eTsmCorrection, (void *)&dspSettings, sizeof(dspSettings));
             pSettings->settings.advTsm.mode = (BAPE_AdvancedTsmMode)dspSettings.ui32TsmCorrectionMode;
         }
         break;
     case BAPE_PostProcessorType_eAmbisonic:
         {
             BDSP_Raaga_Audio_AmbisonicsConfigParams dspSettings;
-            BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAmbisonics, (void *)&dspSettings, sizeof(dspSettings));
+            BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAmbisonics, (void *)&dspSettings, sizeof(dspSettings));
             pSettings->settings.ambisonic.ambisonicSource = dspSettings.ui32AmbisonicProcess;
             pSettings->settings.ambisonic.yaw = dspSettings.ui32Yaw;
             pSettings->settings.ambisonic.pitch = dspSettings.ui32Pitch;
@@ -377,7 +377,20 @@ static void BAPE_Processor_P_GetAdvancedTsmStatus(
         pStatus->status.advTsm.mode = handle->settings.settings.advTsm.mode;
         pStatus->status.advTsm.pts = status.ui32PTS;
         pStatus->status.advTsm.ptsValid = (status.ui32PTSValid==1) ? true : false;
-        pStatus->status.advTsm.ptsType = (BAPE_PtsType)status.ui32PTSType;
+        switch (status.ui32PTSType) {
+        case 0:
+            pStatus->status.advTsm.ptsType = BAVC_PTSType_eCoded;
+            break;
+        case 1:
+            pStatus->status.advTsm.ptsType = BAVC_PTSType_eInterpolatedFromValidPTS;
+            break;
+        case 2:
+            pStatus->status.advTsm.ptsType = BAVC_PTSType_eInterpolatedFromInvalidPTS;
+            break;
+        default:
+            pStatus->status.advTsm.ptsType = BAVC_PTSType_eMax;
+            break;
+        }
         pStatus->status.advTsm.correction = status.i32TimeInMsecAdjusted;
         BDBG_MSG(("%s: pts %u, valid %u, type %d, correction %d", BSTD_FUNCTION,
                   (unsigned)pStatus->status.advTsm.pts,

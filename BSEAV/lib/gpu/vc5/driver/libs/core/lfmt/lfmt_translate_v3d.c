@@ -91,14 +91,14 @@ GFX_LFMT_T gfx_lfmt_translate_from_tfu_oformat(
 
 static v3d_pixel_format_t maybe_translate_pixel_format_canonical(GFX_LFMT_T lfmt)
 {
-   switch (lfmt & GFX_LFMT_FORMAT_MASK & ~GFX_LFMT_PRE_MASK)
+   switch (lfmt & GFX_LFMT_FORMAT_MASK)
    {
    case GFX_LFMT_R8_G8_B8_A8_SRGB_SRGB_SRGB_UNORM: return V3D_PIXEL_FORMAT_SRGB8_ALPHA8;
    case GFX_LFMT_R8_G8_B8_SRGB:                    return V3D_PIXEL_FORMAT_SRGB8;
    case GFX_LFMT_R10G10B10A2_UINT:                 return V3D_PIXEL_FORMAT_RGB10_A2UI;
    case GFX_LFMT_R10G10B10A2_UNORM:                return V3D_PIXEL_FORMAT_RGB10_A2;
    case GFX_LFMT_A1B5G5R5_UNORM:                   return V3D_PIXEL_FORMAT_A1_BGR5; /* TODO a1_bgr5_am? */
-#if V3D_HAS_TLB_RGB5_A1
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GFX_LFMT_R5G5B5A1_UNORM:                   return V3D_PIXEL_FORMAT_RGB5_A1; /* TODO _am? */
 #endif
    case GFX_LFMT_A4B4G4R4_UNORM:                   return V3D_PIXEL_FORMAT_ABGR4;
@@ -132,7 +132,7 @@ static v3d_pixel_format_t maybe_translate_pixel_format_canonical(GFX_LFMT_T lfmt
    case GFX_LFMT_R8_G8_B8_A8_UINT:                 return V3D_PIXEL_FORMAT_RGBA8UI;
    case GFX_LFMT_R8_G8_UINT:                       return V3D_PIXEL_FORMAT_RG8UI;
    case GFX_LFMT_R8_UINT:                          return V3D_PIXEL_FORMAT_R8UI;
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GFX_LFMT_R8_G8_B8_X8_SRGB:                 return V3D_PIXEL_FORMAT_SRGB8_ALPHA8;
    case GFX_LFMT_R8_G8_B8_X8_UNORM:                return V3D_PIXEL_FORMAT_RGBA8;
 #else
@@ -162,7 +162,7 @@ static GFX_LFMT_T translate_canonical_from_pixel_format(v3d_pixel_format_t pixel
    case V3D_PIXEL_FORMAT_RGB10_A2:        return GFX_LFMT_R10G10B10A2_UNORM;
    case V3D_PIXEL_FORMAT_A1_BGR5:
    case V3D_PIXEL_FORMAT_A1_BGR5_AM:      return GFX_LFMT_A1B5G5R5_UNORM;
-#if V3D_HAS_TLB_RGB5_A1
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_RGB5_A1:         return GFX_LFMT_R5G5B5A1_UNORM;
 #endif
    case V3D_PIXEL_FORMAT_ABGR4:           return GFX_LFMT_A4B4G4R4_UNORM;
@@ -196,7 +196,7 @@ static GFX_LFMT_T translate_canonical_from_pixel_format(v3d_pixel_format_t pixel
    case V3D_PIXEL_FORMAT_RGBA8UI:         return GFX_LFMT_R8_G8_B8_A8_UINT;
    case V3D_PIXEL_FORMAT_RG8UI:           return GFX_LFMT_R8_G8_UINT;
    case V3D_PIXEL_FORMAT_R8UI:            return GFX_LFMT_R8_UINT;
-#if !V3D_HAS_TLB_SWIZZLE
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_SRGBX8:          return GFX_LFMT_R8_G8_B8_X8_SRGB;
    case V3D_PIXEL_FORMAT_RGBX8:           return GFX_LFMT_R8_G8_B8_X8_UNORM;
 #endif
@@ -212,7 +212,7 @@ static GFX_LFMT_T translate_canonical_from_pixel_format(v3d_pixel_format_t pixel
    }
 }
 
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
 GFX_LFMT_T swizzle_lfmt(GFX_LFMT_T lfmt, bool reverse, bool rb_swap) {
    if (reverse) lfmt = gfx_lfmt_reverse_channels(gfx_lfmt_reverse_type(lfmt));
    if (rb_swap) {
@@ -302,7 +302,7 @@ GFX_LFMT_T gfx_lfmt_translate_from_pixel_format(v3d_pixel_format_t fmt) {
 bool gfx_lfmt_maybe_translate_rt_format(V3D_RT_FORMAT_T *rt_format, GFX_LFMT_T lfmt)
 {
    bool ok;
-#if V3D_HAS_TLB_SWIZZLE
+#if V3D_VER_AT_LEAST(4,1,34,0)
    bool ignored1, ignored2;
    v3d_pixel_format_t pixel_format;
    ok = gfx_lfmt_maybe_translate_pixel_format(lfmt, &pixel_format, &ignored1, &ignored2);
@@ -314,7 +314,7 @@ bool gfx_lfmt_maybe_translate_rt_format(V3D_RT_FORMAT_T *rt_format, GFX_LFMT_T l
    {
       rt_format->type = V3D_RT_TYPE_INVALID;
       rt_format->bpp = V3D_RT_BPP_INVALID;
-#if V3D_HAS_RT_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
       rt_format->clamp = V3D_RT_CLAMP_INVALID;
 #endif
       return false;
@@ -467,7 +467,7 @@ static v3d_tmu_type_t try_get_tmu_type_and_out_fmt(
       *tmu_out_fmt = gfx_lfmt_reverse_channels(gfx_lfmt_reverse_type(*tmu_out_fmt));
       return V3D_TMU_TYPE_RGB5_A1;
 
-#if V3D_HAS_RGB5_A1_REV
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GFX_LFMT_C5C5C5C1_UNORM:
       return V3D_TMU_TYPE_RGB5_A1_REV;
 #endif
@@ -766,7 +766,6 @@ void gfx_lfmt_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
 #endif
       );
    assert(success);
-   vcos_unused_in_release(success);
 }
 
 GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb)
@@ -789,7 +788,7 @@ GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb)
    case V3D_TMU_TYPE_RGB565:                          lfmt = GFX_LFMT_B5G6R5_UNORM; break;
    case V3D_TMU_TYPE_RGBA4:                           lfmt = GFX_LFMT_A4B4G4R4_UNORM; break;
    case V3D_TMU_TYPE_RGB5_A1:                         lfmt = GFX_LFMT_A1B5G5R5_UNORM; break;
-#if V3D_HAS_RGB5_A1_REV
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_TMU_TYPE_RGB5_A1_REV:                     lfmt = GFX_LFMT_R5G5B5A1_UNORM; break;
 #endif
    case V3D_TMU_TYPE_RGB10_A2:                        lfmt = GFX_LFMT_R10G10B10A2_UNORM; break;

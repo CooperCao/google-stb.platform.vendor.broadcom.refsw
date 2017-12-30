@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_SECURITY_CLIENT_H__
 #define NEXUS_SECURITY_CLIENT_H__
@@ -183,16 +175,19 @@ NEXUS_Error NEXUS_KeySlot_GetExternalKeyData(
 
 /**
 Summary:
+All pid channels are associated with a keyslot, either by default or by the application.
 
-All pid channels must be associated with a keyslot. Pid channels handing encrtpted data will have a
-regular client managed keyslot assocaiated with it.
+To handle encrypted data, the application must call NEXUS_KeySlot_AddPidChannel to associate a client-managed keyslot.
 
-For pid channels handeling clear data the system will default to a Bypass keyslot for capable of
-transferring data from GLR to GLR.
+To move clear data from GLR to GLR (global region), or from GLR to CRR (compressed restricted region), the system defaults
+to a "bypass keyslot" called NEXUS_BypassKeySlot_eG2GR.
 
-If a pid channel is handling clear data and has a destination in CRR (with source CRR or GLR), this function
-must be called to associated it with the NEXUS_BypassKeySlot_eGR2R Bypass Keyslot.
+To move clear data from CRR to CRR, the application must call NEXUS_SetPidChannelBypassKeyslot with NEXUS_BypassKeySlot_eGR2R.
+Before closing the pid channel in this configuration, the app should call NEXUS_SetPidChannelBypassKeyslot to restore the pid channel
+back to NEXUS_BypassKeySlot_eG2GR. This cannot be done automatically by Nexus because of required synchronization.
+Instead, Nexus will detect it as a "leak" and print a warning to fix the application.
 
+Pid channels cannot move data from CRR to GLR.
 **/
 NEXUS_Error NEXUS_SetPidChannelBypassKeyslot(
     NEXUS_PidChannelHandle pidChannel,

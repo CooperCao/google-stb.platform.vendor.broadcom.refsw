@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2011 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #include "bstd.h"
 #include "nexus_map.h"
@@ -79,7 +70,7 @@ int nexus_p_init_map(const struct nexus_map_settings *p_settings)
     }
     g_fake.settings = *p_settings;
 
-    (void)BMEM_GetDefaultSettings(&mem_settings);
+    BMEM_GetDefaultSettings(&mem_settings);
     rc = BMEM_Open(&g_fake.mem, &mem_settings);
     if (rc) return BERR_TRACE(rc);
 

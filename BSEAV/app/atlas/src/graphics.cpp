@@ -893,8 +893,8 @@ bwin_framebuffer_t CGraphics::createBwinFramebuffer(
     CGraphicsData *             pGraphicsData   = NULL;
     NEXUS_SurfaceCreateSettings surfaceSettings;
     NEXUS_SurfaceMemory         surfaceMem;
-    int                     newWidth  = width;
-    int                     newHeight = height;
+    int newWidth  = width;
+    int newHeight = height;
 
     BDBG_ASSERT(NULL != surface);
     NEXUS_Surface_GetCreateSettings(surface, &surfaceSettings);
@@ -968,6 +968,7 @@ eRet CGraphics::destroyBwinFramebuffer(bwin_framebuffer_t framebuffer)
 
     return(ret);
 } /* destroyBwinFramebuffer */
+
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
 bool CGraphics::isPlmEnabled()
 {
@@ -979,8 +980,10 @@ bool CGraphics::isPlmEnabled()
 void CGraphics::setPlm(bool bEnable)
 {
     CPlatform * pPlatform = _pCfg->getPlatformConfig();
+
     pPlatform->setPlmLumaRangeAdjGraphics(bEnable);
 
     notifyObservers(eNotify_GraphicsPlmChanged, this);
 } /* setPlm */
-#endif
+
+#endif /* if HAS_GFX_NL_LUMA_RANGE_ADJ */

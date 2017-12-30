@@ -44,6 +44,7 @@
 #include "bxvd_reg.h"
 #include "bxvd_errors.h"
 #include "bxvd_intr.h"
+#include "bxvd_dbg.h"
 
 #ifdef BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
@@ -260,15 +261,6 @@ static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_MVC[1] =
    {522880, 1572864, 3276800, 10420224, 131072, BXVD_P_VideoAtomIndex_eF, 7} /* MVC 4.1 HD */
 };
 
-
-static const BXVD_P_FWMemConfig_SVC sChannelFWMemCfg_SVC[3] =
-{
-   /* Context, IL WL,  DirectMode,     Inter Video,          Inter MV,  Cabac bin,  Cabac WL,  Vid Blk (index),      Blk Cnt */
-   {522880,   3145728,  1638400,   BXVD_P_VideoAtomIndex_eI,  2219520,   9961472,    131072,   BXVD_P_VideoAtomIndex_eA, 7}, /* Interlaced */
-   {522880,   3145728,  1638400,   BXVD_P_VideoAtomIndex_eG,  2219520,   9961472,    131072,   BXVD_P_VideoAtomIndex_eA, 7}, /* Progressive */
-   {522880,   3145728,  1638400,   BXVD_P_VideoAtomIndex_eH,  2219520,   9961472,    131072,   BXVD_P_VideoAtomIndex_eA, 7}, /* 3D */
-};
-
 static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_HEVC[5] =
 {
    /* BXVD_VideoProtocol_eHEVC */
@@ -354,14 +346,6 @@ bool BXVD_P_IsDecodeProtocolSupported(BXVD_Handle               hXvd,
       }
    }
 
-   else if (eVideoCmprStd == BAVC_VideoCompressionStd_eSVC)
-   {
-      if (hXvd->bSVCCapable)
-      {
-         rc = true;
-      }
-   }
-
    else if (eVideoCmprStd >= BAVC_VideoCompressionStd_eMPEG4Part2)
    {
       if (BXVD_P_CREATE_PROTOCOLS_MASK(eVideoCmprStd) & hXvd->uiSupportedProtocolsMask)
@@ -389,6 +373,145 @@ bool BXVD_P_IsDecodeProtocolSupported(BXVD_Handle               hXvd,
 
    return rc;
 }
+
+void BXVD_P_GetVidCmprCapability( BXVD_VidComprStd_Capabilities *pCodecCapability,
+                                  BAVC_VideoCompressionStd      eVideoCmprStd )
+{
+   switch( eVideoCmprStd )
+   {
+      case BAVC_VideoCompressionStd_eH264:
+
+         pCodecCapability->eProfile =  BAVC_VideoCompressionProfile_eHigh;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+
+#if BXVD_P_CORE_REVISION_NUM >= 19   /* Core revision S or later */
+         pCodecCapability->eLevel =  BAVC_VideoCompressionLevel_e51;
+#else
+         pCodecCapability->eLevel =  BAVC_VideoCompressionLevel_e42;
+#endif
+         break;
+
+#if BXVD_P_HVD_PRESENT
+      case BAVC_VideoCompressionStd_eH265:
+#if BXVD_P_CORE_REVISION_NUM >= 17    /* Core revision Q or later */
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eMain10;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_e51;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e10Bit;
+#else
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eMain10;
+         pCodecCapability->eLevel =  BAVC_VideoCompressionLevel_e50;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+#endif
+         break;
+
+      case BAVC_VideoCompressionStd_eVP9:
+#if BXVD_P_CORE_REVISION_NUM >= 19    /* Core revision S or later */
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_e2;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e10Bit;
+#else
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_e0;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+#endif
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eUnknown;
+         break;
+#endif
+      case BAVC_VideoCompressionStd_eMPEG2:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eMain;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eHigh;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eH261:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eUnknown;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eUnknown;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eH263:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_e0;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eUnknown;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eVC1:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eAdvanced;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eL3;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eMPEG1:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eUnknown;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eUnknown;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eMPEG2DTV:
+         pCodecCapability->eProfile =  BAVC_VideoCompressionProfile_eMain;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eHigh;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eVC1SimpleMain:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eMain;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eUnknown;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eMPEG4Part2:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eAdvancedSimple;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_e50;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eAVS:
+#if BXVD_P_CORE_REVISION_NUM >= 21    /* Core revision U or later */
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eMain10;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_e80;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e10Bit;
+
+#elif BXVD_P_CORE_REVISION_NUM >= 18    /* Core revision R or later */
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eMain;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_e60;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+#else
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eJizhun;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_e60;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+#endif
+         break;
+
+      case BAVC_VideoCompressionStd_eMPEG2_DSS_PES:
+         pCodecCapability->eProfile =  BAVC_VideoCompressionProfile_eMain;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eHigh;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eMVC:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eStereoHighProfile;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_e42;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eVP6:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eAdvanced;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eUnknown;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      case BAVC_VideoCompressionStd_eRV9:
+      case BAVC_VideoCompressionStd_eVP8:
+      case BAVC_VideoCompressionStd_eSPARK:
+      case BAVC_VideoCompressionStd_eVP7:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eUnknown;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_eUnknown;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
+
+      default:
+         BDBG_ERR(("BXVD_P_GetVidCmprCapability:: unsupported video protocol: 0x%x", eVideoCmprStd));
+   }
+}
+
 
 BERR_Code BXVD_P_MapToAVDProtocolEnum( BXVD_Handle               hXvd,
                                        BAVC_VideoCompressionStd  eVideoCmprStd,
@@ -642,7 +765,6 @@ BERR_Code BXVD_P_GetDecodeFWMemSize(BXVD_Handle hXvd,
    BXVD_VideoProtocol eVideoProtocol_TableIndex;
 
    BXVD_P_FWMemConfig_V2 *pChannelFWMemCfg;
-   BXVD_P_FWMemConfig_SVC *pSVCChannelFWMemCfg;
 
    BDBG_ASSERT(hXvd->uiDecode_StripeWidth < BXVD_P_STRIPE_WIDTH_NUM);
    BDBG_ASSERT(hXvd->uiDecode_StripeMultiple < BXVD_P_STRIPE_MULTIPLE_NUM);
@@ -691,11 +813,6 @@ BERR_Code BXVD_P_GetDecodeFWMemSize(BXVD_Handle hXvd,
          case BAVC_VideoCompressionStd_eMVC:
             BXVD_DBG_MSG(hXvd, ("Video Protocol Memory Config: MVC"));
             eVideoProtocol_TableIndex = BXVD_VideoProtocol_eMVC;
-            break;
-
-         case BAVC_VideoCompressionStd_eSVC:
-            BXVD_DBG_MSG(hXvd, ("Video Protocol Memory Config: SVC"));
-            eVideoProtocol_TableIndex = BXVD_VideoProtocol_eSVC;
             break;
 
          case BAVC_VideoCompressionStd_eVP6:
@@ -747,10 +864,7 @@ BERR_Code BXVD_P_GetDecodeFWMemSize(BXVD_Handle hXvd,
             break;
       }
 
-      /* Default SVC memory configuration is entry [0]. */
-      pSVCChannelFWMemCfg = (BXVD_P_FWMemConfig_SVC *)&(sChannelFWMemCfg_SVC[0]);
-
-      /* Default non SVC memory configuration entry */
+      /* Default memory configuration entry */
       pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg[eVideoProtocol_TableIndex][eDecodeResolution]);
 
       if (eVideoProtocol_TableIndex != BXVD_VideoProtocol_eHEVC)
@@ -758,221 +872,143 @@ BERR_Code BXVD_P_GetDecodeFWMemSize(BXVD_Handle hXvd,
          bNonHevcProtocolPresent = true;
       }
 
-      /* SVC */
-      if ((eVideoProtocol_TableIndex == BXVD_VideoProtocol_eSVC) && (hXvd->bSVCCapable == true))
+      /* AVC 4.1 enabled */
+      if (pChSettings->bAVC41Enable &&
+          (eDecodeResolution == BXVD_DecodeResolution_eHD) &&
+          (eVideoProtocol_TableIndex== BXVD_VideoProtocol_eAVC))
       {
-         if (pChSettings->bSVC3DModeEnable)
-         {
-            pSVCChannelFWMemCfg = (BXVD_P_FWMemConfig_SVC *)&(sChannelFWMemCfg_SVC[2]);
-         }
-         else if (pChSettings->bSVCProgressiveOnly == true)
-         {
-            pSVCChannelFWMemCfg = (BXVD_P_FWMemConfig_SVC *)&(sChannelFWMemCfg_SVC[1]);
-         }
-
-         vidBlkIndex = pSVCChannelFWMemCfg->video_block_size_index;
-
-         BXVD_P_GET_BUFFER_ATOM_SIZE(hXvd, pChSettings, vidBlkIndex, &lumaVidBlkSizeLookedUp, &chromaVidBlkSizeLookedUp);
-
-         vidBlkCountLookedUp = pSVCChannelFWMemCfg->video_block_count;
-
-#if BXVD_P_ILS_BUFFERS_INTERNAL
-         pstDecodeFWMemSize->uiFWInterLayerPicSize = 0;
-         pstDecodeFWMemSize->uiFWInterLayerMVSize = 0;
-#else
-         vidBlkIndex = pSVCChannelFWMemCfg->inter_layer_video_size_index;
-
-         if (hXvd->stSettings.bInterLayerBandwidthOptimized)
-         {
-            BXVD_P_GET_BUFFER_ATOM_SIZE(hXvd, pChSettings, vidBlkIndex, &lumaVidBlkSizeLookedUp, &chromaVidBlkSizeLookedUp);
-            /* Multiply by 1.5 for Bandwidth optimization */
-            pstDecodeFWMemSize->uiFWInterLayerPicSize =   ((lumaVidBlkSizeLookedUp * 15) / 10);
-
-            pstDecodeFWMemSize->uiFWInterLayerMVSize = ((pSVCChannelFWMemCfg->inter_layer_mv_size * 15) / 10);
-         }
-         else
-         {
-            BXVD_P_GET_BUFFER_ATOM_SIZE(hXvd, pChSettings, vidBlkIndex, &lumaVidBlkSizeLookedUp, &chromaVidBlkSizeLookedUp);
-
-            pstDecodeFWMemSize->uiFWInterLayerPicSize = lumaVidBlkSizeLookedUp;
-            pstDecodeFWMemSize->uiFWInterLayerMVSize =  pSVCChannelFWMemCfg->inter_layer_mv_size;
-         }
-#endif
+         pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&sChannelFWMemCfg_AVC41;
+         vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
+         vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
       }
 
-      else
+      /* AVC 5.1 enabled */
+      else if (pChSettings->bAVC51Enable && (eDecodeResolution == BXVD_DecodeResolution_eHD) &&
+               (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC))
       {
-         /* AVC 4.1 enabled */
-         if (pChSettings->bAVC41Enable &&
-             (eDecodeResolution == BXVD_DecodeResolution_eHD) &&
-             (eVideoProtocol_TableIndex== BXVD_VideoProtocol_eAVC))
-         {
-            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&sChannelFWMemCfg_AVC41;
-            vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
-            vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
-         }
+         pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&sChannelFWMemCfg_AVC51;
+         vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
+         vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
+      }
 
-         /* AVC 5.1 enabled */
-         else if (pChSettings->bAVC51Enable && (eDecodeResolution == BXVD_DecodeResolution_eHD) &&
-                  (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC))
-         {
-            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&sChannelFWMemCfg_AVC51;
-            vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
-            vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
-         }
+      /* 1920x1200 HD enabled AVC */
+      else if (pChSettings->b1200HDEnable && (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC) &&
+               (eDecodeResolution == BXVD_DecodeResolution_eHD ))
+      {
+         pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&sChannelFWMemCfg_1200HD;
+         vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
+         vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
+      }
 
-         /* 1920x1200 HD enabled AVC */
-         else if (pChSettings->b1200HDEnable && (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC) &&
-                  (eDecodeResolution == BXVD_DecodeResolution_eHD ))
-         {
-            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&sChannelFWMemCfg_1200HD;
-            vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
-            vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
-         }
-
-         /* BluRay enabled AVC */
-         else if (pChSettings->bBluRayEnable && (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC) &&
+      /* BluRay enabled AVC */
+      else if (pChSettings->bBluRayEnable && (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC) &&
                ((eDecodeResolution == BXVD_DecodeResolution_eHD) ||
                 (eDecodeResolution == BXVD_DecodeResolution_eSD)))
-         {
-            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg_BluRay[eDecodeResolution]);
-            vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
-            vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
-         }
-
-         /* Excess direct memory mode enabled AVC */
-         else if (pChSettings->bExcessDirModeEnable && (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC) &&
-                  ((eDecodeResolution == BXVD_DecodeResolution_eHD) ||
-                   (eDecodeResolution == BXVD_DecodeResolution_eSD)))
-         {
-            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg_bExcessDir[eDecodeResolution]);
-            vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
-            vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
-         }
-
-         /* MVC */
-         else if (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eMVC)
-         {
-            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg_MVC);
-            vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
-            vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
-         }
-
-         /* HEVC */
-         else if (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eHEVC)
-         {
-            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg_HEVC[eDecodeResolution]);
-            vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
-            vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
-
-            if (aeVideoCmprStd[i] == BAVC_VideoCompressionStd_eVP9)
-               {
-                  if (eDecodeResolution == BXVD_DecodeResolution_e4K)
-                  {
-                     vidBlkCountLookedUp += 2; /* VP9 needs to more 4K buffers compared to HEVC */
-                  }
-                  else if (eDecodeResolution == BXVD_DecodeResolution_eHD)
-                  {
-                     vidBlkCountLookedUp += 1; /* VP9 needs to more HD buffers compared to HEVC */
-                  }
-               }
-         }
-         else if ((eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC) &&
-                  (eDecodeResolution == BXVD_DecodeResolution_e4K))
-         {
-            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&sChannelFWMemCfg_AVC4K;
-            vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
-            vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
-         }
-
-         /* Normal memory configuration */
-         else
-         {
-            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg[eVideoProtocol_TableIndex][eDecodeResolution]);
-            vidBlkIndex = sChannelFWMemCfg[eVideoProtocol_TableIndex][eDecodeResolution].video_block_size_index;
-            vidBlkCountLookedUp = sChannelFWMemCfg[eVideoProtocol_TableIndex][eDecodeResolution].video_block_count;
-         }
-
-         /* Select Atom size "AT" instead of size "A" if in 1920 Portrait mode for certain decode protocols. */
-         if ((pChSettings->b1920PortraitModeEnable == true) &&
-             (pChSettings->bBluRayEnable == false) &&
-             ((vidBlkIndex == BXVD_P_VideoAtomIndex_eA) || (vidBlkIndex == BXVD_P_VideoAtomIndex_eM)) &&
-             (eVideoProtocol_TableIndex != BXVD_VideoProtocol_eSVC))
-         {
-            vidBlkIndex = BXVD_P_VideoAtomIndex_eAT;
-            vidBlkCountLookedUp = sChannelFWMemCfg[eVideoProtocol_TableIndex][eDecodeResolution].video_block_count;
-         }
-
-         BXVD_P_GET_BUFFER_ATOM_SIZE(hXvd, pChSettings, vidBlkIndex, &lumaVidBlkSizeLookedUp, &chromaVidBlkSizeLookedUp);
+      {
+         pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg_BluRay[eDecodeResolution]);
+         vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
+         vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
       }
 
-      if((eVideoProtocol_TableIndex == BXVD_VideoProtocol_eSVC) && (hXvd->bSVCCapable == true))
+      /* Excess direct memory mode enabled AVC */
+      else if (pChSettings->bExcessDirModeEnable && (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC) &&
+               ((eDecodeResolution == BXVD_DecodeResolution_eHD) ||
+                (eDecodeResolution == BXVD_DecodeResolution_eSD)))
       {
-         /* Use SVC memory config entry */
-         if (pSVCChannelFWMemCfg->context_memory_size > genMemReq)
-         {
-            genMemReq = pSVCChannelFWMemCfg->context_memory_size;
-         }
-
-         if (pSVCChannelFWMemCfg->cabac_bin_size > cabacMemReq)
-         {
-            cabacMemReq = pSVCChannelFWMemCfg->cabac_bin_size;
-         }
-
-         if (pSVCChannelFWMemCfg->cabac_wl_size > cabacWorklistMemReq)
-         {
-            cabacWorklistMemReq = pSVCChannelFWMemCfg->cabac_wl_size;
-         }
-
-         if (pSVCChannelFWMemCfg->direct_mode_size > directModeMemReq)
-         {
-            directModeMemReq = pSVCChannelFWMemCfg->direct_mode_size;
-         }
-
-         if (pSVCChannelFWMemCfg->inner_loop_wl_size > innerLoopWorklistMemReq)
-         {
-            innerLoopWorklistMemReq = pSVCChannelFWMemCfg->inner_loop_wl_size;
-         }
+         pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg_bExcessDir[eDecodeResolution]);
+         vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
+         vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
       }
-      else
-      {
-         /* Use NON SVC memory config entry */
-         if (pChannelFWMemCfg->general_memory_size > genMemReq)
-         {
-            genMemReq = pChannelFWMemCfg->general_memory_size;
-         }
 
-         if (pChannelFWMemCfg->cabac_bin_size > cabacMemReq)
-         {
-            cabacMemReq = pChannelFWMemCfg->cabac_bin_size;
-         }
+      /* MVC */
+      else if (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eMVC)
+      {
+         pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg_MVC);
+         vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
+         vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
+      }
+
+      /* HEVC */
+      else if (eVideoProtocol_TableIndex == BXVD_VideoProtocol_eHEVC)
+      {
+         pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg_HEVC[eDecodeResolution]);
+         vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
+         vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
 
          if (aeVideoCmprStd[i] == BAVC_VideoCompressionStd_eVP9)
          {
-            pstDecodeFWMemSize->uiFWCabacSize = 10*1024*1024;
+            if (eDecodeResolution == BXVD_DecodeResolution_e4K)
+            {
+               vidBlkCountLookedUp += 2; /* VP9 needs to more 4K buffers compared to HEVC */
+            }
+            else if (eDecodeResolution == BXVD_DecodeResolution_eHD)
+            {
+               vidBlkCountLookedUp += 1; /* VP9 needs to more HD buffers compared to HEVC */
+            }
          }
-
-         if (pChannelFWMemCfg->cabac_wl_size > cabacWorklistMemReq)
-         {
-            cabacWorklistMemReq = pChannelFWMemCfg->cabac_wl_size;
-         }
-
-         if ((aeVideoCmprStd[i] == BAVC_VideoCompressionStd_eVP9) &&
-             ((pChannelFWMemCfg->direct_mode_size * 2) > directModeMemReq))
-         {
-            directModeMemReq = pChannelFWMemCfg->direct_mode_size * 2;
-         }
-         else if (pChannelFWMemCfg->direct_mode_size > directModeMemReq)
-         {
-            directModeMemReq = pChannelFWMemCfg->direct_mode_size;
-         }
-
-         if (pChannelFWMemCfg->inner_loop_wl_size > innerLoopWorklistMemReq)
-         {
-            innerLoopWorklistMemReq = pChannelFWMemCfg->inner_loop_wl_size;
-         }
-
       }
+      else if ((eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC) &&
+               (eDecodeResolution == BXVD_DecodeResolution_e4K))
+      {
+         pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&sChannelFWMemCfg_AVC4K;
+         vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
+         vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
+      }
+
+      /* Normal memory configuration */
+      else
+      {
+         pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&(sChannelFWMemCfg[eVideoProtocol_TableIndex][eDecodeResolution]);
+         vidBlkIndex = sChannelFWMemCfg[eVideoProtocol_TableIndex][eDecodeResolution].video_block_size_index;
+         vidBlkCountLookedUp = sChannelFWMemCfg[eVideoProtocol_TableIndex][eDecodeResolution].video_block_count;
+      }
+
+      /* Select Atom size "AT" instead of size "A" if in 1920 Portrait mode for certain decode protocols. */
+      if ((pChSettings->b1920PortraitModeEnable == true) &&
+          (pChSettings->bBluRayEnable == false) &&
+          ((vidBlkIndex == BXVD_P_VideoAtomIndex_eA) || (vidBlkIndex == BXVD_P_VideoAtomIndex_eM)))
+      {
+         vidBlkIndex = BXVD_P_VideoAtomIndex_eAT;
+         vidBlkCountLookedUp = sChannelFWMemCfg[eVideoProtocol_TableIndex][eDecodeResolution].video_block_count;
+      }
+
+      BXVD_P_GET_BUFFER_ATOM_SIZE(hXvd, pChSettings, vidBlkIndex, &lumaVidBlkSizeLookedUp, &chromaVidBlkSizeLookedUp);
+
+      if (pChannelFWMemCfg->general_memory_size > genMemReq)
+      {
+         genMemReq = pChannelFWMemCfg->general_memory_size;
+      }
+
+      if (pChannelFWMemCfg->cabac_bin_size > cabacMemReq)
+      {
+         cabacMemReq = pChannelFWMemCfg->cabac_bin_size;
+      }
+
+      if (aeVideoCmprStd[i] == BAVC_VideoCompressionStd_eVP9)
+      {
+         pstDecodeFWMemSize->uiFWCabacSize = 10*1024*1024;
+      }
+
+      if (pChannelFWMemCfg->cabac_wl_size > cabacWorklistMemReq)
+      {
+         cabacWorklistMemReq = pChannelFWMemCfg->cabac_wl_size;
+      }
+
+      if ((aeVideoCmprStd[i] == BAVC_VideoCompressionStd_eVP9) &&
+          ((pChannelFWMemCfg->direct_mode_size * 2) > directModeMemReq))
+      {
+         directModeMemReq = pChannelFWMemCfg->direct_mode_size * 2;
+      }
+      else if (pChannelFWMemCfg->direct_mode_size > directModeMemReq)
+      {
+         directModeMemReq = pChannelFWMemCfg->direct_mode_size;
+      }
+
+      if (pChannelFWMemCfg->inner_loop_wl_size > innerLoopWorklistMemReq)
+      {
+         innerLoopWorklistMemReq = pChannelFWMemCfg->inner_loop_wl_size;
+      }
+
       /* Check bounds of stripe multiple */
       if (hXvd->uiDecode_StripeMultiple >= BXVD_P_STRIPE_MULTIPLE_NUM)
       {
@@ -1973,14 +2009,16 @@ BERR_Code BXVD_P_ChipInit(BXVD_Handle hXvd, uint32_t uDecoderInstance)
    BXVD_DBG_MSG(hXvd, ("Shared memory start addr: " BDBG_UINT64_FMT, BDBG_UINT64_ARG((BMMA_DeviceOffset)hXvd->FWGenMemBasePhyAddr)));
 
 #if FW_INIT
-   rc = BXVD_P_HostCmdSendInit(hXvd,
-                               uDecoderInstance,
-                               hXvd->stSettings.eRaveEndianess
-                               );
-
-   if (rc != BERR_SUCCESS)
+   if (hXvd->stSettings.pAVDBootCallback == NULL)
    {
-      return BERR_TRACE(rc);
+      rc = BXVD_P_HostCmdSendInit(hXvd,
+                                  uDecoderInstance,
+                                  hXvd->stSettings.eRaveEndianess);
+
+      if (rc != BERR_SUCCESS)
+      {
+         return BERR_TRACE(rc);
+      }
    }
 #endif
 
@@ -2011,7 +2049,7 @@ BERR_Code BXVD_P_Boot(BXVD_Handle hXvd)
 
    /* Reset 740x */
    rc = BERR_TRACE(BXVD_P_Reset740x(hXvd, hXvd->uDecoderInstance));
-   if(rc != BERR_SUCCESS)
+   if (rc != BERR_SUCCESS)
    {
       return BERR_TRACE(rc);
    }
@@ -2025,7 +2063,7 @@ BERR_Code BXVD_P_Boot(BXVD_Handle hXvd)
 
    /* Initialize the inner and outer loop firmware. */
    rc = BXVD_P_ChipInit(hXvd, hXvd->uDecoderInstance);
-   if(rc != BERR_SUCCESS)
+   if (rc != BERR_SUCCESS)
    {
       return BERR_TRACE(rc);
    }
@@ -2045,6 +2083,367 @@ static const BAVC_VideoCompressionStd  StillCmprStdList[] =
 {
    BAVC_VideoCompressionStd_eMPEG2
 };
+
+BERR_Code BXVD_P_InitDecoderFW(BXVD_Handle hXvd)
+{
+   BERR_Code rc;
+
+#if BDBG_DEBUG_BUILD
+   volatile uint32_t uiFWBootStatus;
+#endif
+
+#if !BXVD_POLL_FW_MBX
+
+   rc = BERR_TRACE(BKNI_WaitForEvent(hXvd->stDecoderContext.hFWCmdDoneEvent, FW_CMD_TIMEOUT));
+
+#else
+   uint32_t uiVal, loopCount;
+
+   uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
+
+   loopCount = 0;
+   rc = BERR_TIMEOUT;
+
+   BKNI_Printf("Sleep 3 Secs, then start polling for AVD Boot completion\n");
+
+   BKNI_Sleep(3000);
+   while (loopCount < 1000)
+   {
+      if (uiVal != 0)
+      {
+         uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
+
+         BDBG_MSG(("ARC FW Boot Status = %d", uiFWBootStatus));
+
+         BDBG_MSG(("loopCount:%d, MBX:%d", loopCount, uiVal));
+
+         BDBG_ERR(("ARC FW Boot Status = %d", uiFWBootStatus));
+
+         BDBG_ERR(("loopCount:%d Calling BKNI_Sleep(1000), MBX:%d", loopCount, uiVal));
+
+         {
+            uint32_t ii;
+            /*  From verify watchdog */
+            BXVD_Reg_Write32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPUDebug, 1);
+
+#define BXVD_P_ARC_PC 0x18
+            for (ii = 0; ii < 8; ii++)
+            {
+               uint32_t uiOL_pc;
+
+               /* read the AVD OL PC */
+               uiOL_pc = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPUAux+BXVD_P_ARC_PC);
+
+               BXVD_DBG_ERR(hXvd, ("[%d] AVD_%d: OL PC=%08x", ii, hXvd->uDecoderInstance, uiOL_pc));
+            }
+         }
+
+         BKNI_Sleep(1000);
+
+         loopCount++;
+         uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
+      }
+      else
+      {
+         rc = BERR_SUCCESS;
+         break;
+      }
+   }
+#endif
+
+#if BDBG_DEBUG_BUILD
+
+   /* Read FW boot progress/status from CPU2HostStatus register that was written by FW */
+   uiFWBootStatus = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostStatus);
+
+#endif
+
+   if(BERR_TIMEOUT == rc)
+   {
+      BXVD_DBG_ERR(hXvd, ("ARC FW command response timed out, FW Boot Status = %d", uiFWBootStatus));
+
+      return BERR_TRACE(rc);
+   }
+   else
+   {
+      BXVD_DBG_MSG(hXvd, ("FW boot successful, FW Boot Status = %d", uiFWBootStatus));
+   }
+
+   BKNI_ResetEvent(hXvd->stDecoderContext.hFWCmdDoneEvent);
+
+   rc = BXVD_P_HostCmdSendInit(hXvd,
+                               hXvd->uDecoderInstance,
+                               hXvd->stSettings.eRaveEndianess);
+
+   if (rc != BERR_SUCCESS)
+   {
+      return BERR_TRACE(rc);
+   }
+
+   return rc;
+}
+
+BERR_Code BXVD_P_OpenPartTwo(BXVD_Handle hXvd)
+{
+   BERR_Code rc;
+
+   BXVD_DisplayInterruptProvider_P_ChannelSettings stXvdDipChSettings;
+
+   BDBG_ASSERT( BXVD_DisplayInterrupt_eMax == 3 );
+
+   /* Setup Display Interrupt #0 */
+   rc = BXVD_DisplayInterruptProvider_P_GetDefaultChannelSettings( &stXvdDipChSettings );
+   if (rc != BERR_SUCCESS)
+   {
+      BXVD_Close(hXvd);
+      return BERR_TRACE(rc);
+   }
+
+   stXvdDipChSettings.hXvd = hXvd;
+   stXvdDipChSettings.hInterrupt = hXvd->hInterrupt;
+   stXvdDipChSettings.hRegister = hXvd->hReg;
+   stXvdDipChSettings.interruptId = (BINT_Id) hXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy;
+   stXvdDipChSettings.uiInterruptMaskRegister = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdMaskClear;
+   stXvdDipChSettings.uiInterruptClearRegister = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdClear;
+   stXvdDipChSettings.eDisplayInterrupt = BXVD_DisplayInterrupt_eZero;
+
+#if BXVD_P_RUL_DONE_MASK_64_BITS
+   stXvdDipChSettings.uiInterruptMaskRegister_1 = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdMaskClear;
+   stXvdDipChSettings.uiInterruptClearRegister_1 = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdClear;
+#endif
+
+   BXVD_P_SAVE_DIP_CHANNEL_DISPLAY_INFO_0(stXvdDipChSettings, hXvd);
+
+   rc = BXVD_DisplayInterruptProvider_P_OpenChannel( &hXvd->hXvdDipCh[BXVD_DisplayInterrupt_eZero], &stXvdDipChSettings);
+   if (rc != BERR_SUCCESS)
+   {
+      BXVD_Close(hXvd);
+      return BERR_TRACE(rc);
+   }
+
+   rc = BXDM_DisplayInterruptHandler_Create( &hXvd->hXdmDih[BXVD_DisplayInterrupt_eZero] );
+   if (rc != BERR_SUCCESS)
+   {
+      BXVD_Close(hXvd);
+      return BERR_TRACE(rc);
+   }
+
+   /* Setup Display Interrupt #1 */
+   if ( 0 != hXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy1 )
+   {
+      rc = BXVD_DisplayInterruptProvider_P_GetDefaultChannelSettings( &stXvdDipChSettings );
+      if (rc != BERR_SUCCESS)
+      {
+         BXVD_Close(hXvd);
+         return BERR_TRACE(rc);
+      }
+
+      stXvdDipChSettings.hXvd = hXvd;
+      stXvdDipChSettings.hInterrupt = hXvd->hInterrupt;
+      stXvdDipChSettings.hRegister = hXvd->hReg;
+      stXvdDipChSettings.interruptId = hXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy1;
+      stXvdDipChSettings.uiInterruptMaskRegister = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdMaskClear;
+      stXvdDipChSettings.uiInterruptClearRegister = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdClear;
+
+#if BXVD_P_RUL_DONE_MASK_64_BITS
+      stXvdDipChSettings.uiInterruptMaskRegister_1 = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdMaskClear;
+      stXvdDipChSettings.uiInterruptClearRegister_1 = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdClear;
+#endif
+
+      stXvdDipChSettings.eDisplayInterrupt = BXVD_DisplayInterrupt_eOne;
+
+      BXVD_P_SAVE_DIP_CHANNEL_DISPLAY_INFO_1(stXvdDipChSettings, hXvd);
+
+      rc = BXVD_DisplayInterruptProvider_P_OpenChannel( &hXvd->hXvdDipCh[BXVD_DisplayInterrupt_eOne], &stXvdDipChSettings);
+      if (rc != BERR_SUCCESS)
+      {
+         BXVD_Close(hXvd);
+         return BERR_TRACE(rc);
+      }
+
+      rc = BXDM_DisplayInterruptHandler_Create( &hXvd->hXdmDih[BXVD_DisplayInterrupt_eOne] );
+      if (rc != BERR_SUCCESS)
+      {
+         BXVD_Close(hXvd);
+         return BERR_TRACE(rc);
+      }
+   }
+
+#if BXVD_P_PICTURE_DATA_RDY_2_SUPPORTTED
+   /* Setup Display Interrupt number 2 */
+   if ( 0 != hXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy2 )
+   {
+      rc = BXVD_DisplayInterruptProvider_P_GetDefaultChannelSettings( &stXvdDipChSettings );
+      if (rc != BERR_SUCCESS)
+      {
+         BXVD_Close(hXvd);
+         return BERR_TRACE(rc);
+      }
+
+      stXvdDipChSettings.hXvd = hXvd;
+      stXvdDipChSettings.hInterrupt = hXvd->hInterrupt;
+      stXvdDipChSettings.hRegister = hXvd->hReg;
+      stXvdDipChSettings.interruptId = hXvd->stPlatformInfo.stReg.uiInterrupt_PicDataRdy2;
+      stXvdDipChSettings.uiInterruptMaskRegister = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdMaskClear;
+      stXvdDipChSettings.uiInterruptClearRegister = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdClear;
+
+#if BXVD_P_RUL_DONE_MASK_64_BITS
+      stXvdDipChSettings.uiInterruptMaskRegister_1 = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdMaskClear;
+      stXvdDipChSettings.uiInterruptClearRegister_1 = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdClear;
+#endif
+
+      stXvdDipChSettings.eDisplayInterrupt = BXVD_DisplayInterrupt_eTwo;
+
+      BXVD_P_SAVE_DIP_CHANNEL_DISPLAY_INFO_2(stXvdDipChSettings, hXvd);
+
+      rc = BXVD_DisplayInterruptProvider_P_OpenChannel( &hXvd->hXvdDipCh[BXVD_DisplayInterrupt_eTwo], &stXvdDipChSettings);
+      if (rc != BERR_SUCCESS)
+      {
+         BXVD_Close(hXvd);
+         return BERR_TRACE(rc);
+      }
+
+      rc = BXDM_DisplayInterruptHandler_Create( &hXvd->hXdmDih[BXVD_DisplayInterrupt_eTwo] );
+      if (rc != BERR_SUCCESS)
+      {
+         BXVD_Close(hXvd);
+         return BERR_TRACE(rc);
+      }
+   }
+#endif
+
+   rc = BXVD_P_SetupStillPictureCompatibilityMode(hXvd);
+   if(rc != BERR_SUCCESS)
+   {
+      BXVD_Close(hXvd);
+      return BERR_TRACE(rc);
+   }
+
+#if BXVD_P_FW_DEBUG_DRAM_LOGGING
+   /* Enable debug logging, with PDR_isr routine reading and printing log */
+   BXVD_DBG_ControlDecoderDebugLog(hXvd, BXVD_DBG_DebugLogging_eStart);
+#endif
+
+#if BXVD_P_POWER_MANAGEMENT
+   /* If a channel is open for Still Picture Compatibility Mode, don't hibernate */
+   if ( !hXvd->bStillPictureCompatibilityMode )
+   {
+      /* Put decoder in hibernate state */
+      BXVD_P_SetHibernateState(hXvd, true);
+   }
+#endif
+   /* Get the firmware revision */
+   BXVD_GetRevision(hXvd, &(hXvd->sRevisionInfo));
+   BXVD_DBG_WRN(hXvd, ("BXVD_P_OpenPartTwo() - Hardware revision: %c, Firmware revision: %lx", BXVD_P_CORE_REVISION, hXvd->sRevisionInfo.ulDecoderFwRev));
+
+   BXVD_DBG_MSG(hXvd, ("BXVD_P_OpenPartTwo() - hXvd = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)hXvd));
+
+   return rc;
+}
+
+BERR_Code BXVD_P_RestartDecoder(BXVD_Handle hXvd)
+{
+   BXVD_ChannelHandle hXvdCh;
+
+   uint32_t            chanNum;
+   uint32_t            i;
+
+   BAVC_XptContextMap  XptContextMap;
+   BAVC_XptContextMap  aXptContextMap_Extended[BXVD_NUM_EXT_RAVE_CONTEXT];
+   bool                bStillMode;
+
+   BERR_Code rc = BERR_SUCCESS;
+
+   BXVD_DisplayInterrupt eDisplayInterrupt;
+
+   for ( eDisplayInterrupt = 0; eDisplayInterrupt < BXVD_DisplayInterrupt_eMax; eDisplayInterrupt++ )
+   {
+      if ( hXvd->hXvdDipCh[eDisplayInterrupt] )
+      {
+         rc = BXVD_DisplayInterruptProvider_P_ProcessWatchdog( hXvd->hXvdDipCh[eDisplayInterrupt] );
+         if(rc != BERR_SUCCESS)
+         {
+            return BERR_TRACE(rc);
+         }
+      }
+   }
+
+   if (hXvd->bFWDbgLoggingStarted == true)
+   {
+      /* Re-enable debug logging */
+      BXVD_DBG_ControlDecoderDebugLog(hXvd, BXVD_DBG_DebugLogging_eStart);
+   }
+
+   for (chanNum = 0; chanNum < BXVD_MAX_VIDEO_CHANNELS; chanNum++)
+   {
+      hXvdCh = hXvd->ahChannel[chanNum];
+
+      if (hXvdCh != NULL)
+      {
+         BXVD_DBG_MSG(hXvdCh, ("Reopen decoder channel:%d", chanNum));
+
+         if (hXvdCh->sChSettings.eChannelMode == BXVD_ChannelMode_eStill)
+         {
+            bStillMode = true;
+         }
+         else
+         {
+            bStillMode = false;
+         }
+         /* Channel handle exists, reopen decoder channel */
+         if (bStillMode && hXvd->bStillPictureCompatibilityMode)
+         {
+            /* Do not re-open the channel here.  It will be re-opened
+             * in the next call to BXVD_DecodeStillPicture() */
+            hXvdCh->bDecoderChannelOpened = false;
+         }
+         else
+         {
+            rc = BXVD_P_HostCmdSendDecChannelOpen((BXVD_Handle)hXvd,
+                                                  hXvdCh,
+                                                  bStillMode,
+                                                  hXvdCh->sChSettings.eDecodeResolution,
+                                                  &(hXvdCh->stDecodeFWMemSize),
+                                                  &(hXvdCh->stDecodeFWBaseAddrs));
+
+            if (rc != BERR_SUCCESS)
+            {
+               return BERR_TRACE(rc);
+            }
+
+            if (hXvdCh->eDecoderState == BXVD_P_DecoderState_eActive)
+            {
+               /* Decoder was running when watchdog timer expired, so now need to restart decoder.*/
+               BXVD_DBG_MSG(hXvdCh, ("Decoder was running, restart decoder"));
+               hXvdCh->eDecoderState = BXVD_P_DecoderState_eNotActive;
+
+               /* Decoder counters should not be cleared */
+               hXvdCh->bPreserveCounters = true;
+
+               /* PVR state should not be set to defaults */
+               hXvdCh->bPreserveState = true;
+
+               /* Reset XPT Rave CDB read register address */
+               XptContextMap.CDB_Read = hXvdCh->ulXptCDB_Read;
+
+               hXvdCh->sDecodeSettings.pContextMap = &XptContextMap;
+
+               for (i = 0; i < hXvdCh->sDecodeSettings.uiContextMapExtNum; i++)
+               {
+                  hXvdCh->sDecodeSettings.aContextMapExtended[i] = &aXptContextMap_Extended[i];
+                  aXptContextMap_Extended[i].CDB_Read = hXvdCh->aulXptCDB_Read_Extended[i];
+               }
+
+               rc = BERR_TRACE(BXVD_StartDecode(hXvdCh, &hXvdCh->sDecodeSettings));
+
+               hXvdCh->bPreserveState = false;
+            }
+         }
+      }
+   }
+
+   return rc;
+}
 
 /*
  * Description:

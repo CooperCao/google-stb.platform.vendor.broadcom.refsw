@@ -485,6 +485,7 @@ See Also:
 NEXUS_IsrCallback_Create
 **/
 #define NEXUS_IsrCallback_Set(callback, pDesc) NEXUS_Module_IsrCallback_Set((callback), (pDesc), BDBG_STRING(#callback))
+#define NEXUS_IsrCallback_Clear(callback) NEXUS_Module_IsrCallback_Clear((callback))
 
 /**
 Summary:
@@ -542,6 +543,9 @@ void NEXUS_Module_IsrCallback_Set(
         NEXUS_IsrCallbackHandle callback,
         const NEXUS_CallbackDesc *pDesc,
         const char *debug
+        );
+void NEXUS_Module_IsrCallback_Clear(
+        NEXUS_IsrCallbackHandle callback
         );
 
 /**
@@ -612,6 +616,7 @@ See Also:
 NEXUS_TaskCallback_Create
 **/
 #define NEXUS_TaskCallback_Set(callback, pDesc) NEXUS_Module_TaskCallback_Set((callback), (pDesc), BDBG_STRING(#callback))
+#define NEXUS_TaskCallback_Clear(callback) NEXUS_Module_TaskCallback_Clear((callback))
 
 /**
 Summary:
@@ -656,6 +661,9 @@ void NEXUS_Module_TaskCallback_Set(
         NEXUS_TaskCallbackHandle handle,
         const NEXUS_CallbackDesc *pDesc,
         const char *debug
+        );
+void NEXUS_Module_TaskCallback_Clear(
+        NEXUS_TaskCallbackHandle handle
         );
 
 /**
@@ -959,10 +967,12 @@ Summary:
 In both arguments are not NULL, then works the same as standard strcmp.
 Otherwise returns 0 if both str1 and str2 are NULL and returns not 0 if only one argument is NULL.
 **/
-int NEXUS_StrCmp(
+int NEXUS_StrCmp_isrsafe(
         const char *str1, 
         const char *str2
         );
+
+#define NEXUS_StrCmp NEXUS_StrCmp_isrsafe
 
 /**
 Summary:
@@ -1186,7 +1196,7 @@ void NEXUS_Module_ClearPendingCaller(NEXUS_ModuleHandle module, const char *func
 /* native ABI of nexus binary */
 #define NEXUS_P_NATIVE_ABI  (sizeof(void *)*8)
 void NEXUS_P_PrintEnv(const char *mode);
-void NEXUS_P_CheckEnv(const char *name);
+void NEXUS_P_CheckEnv_isrsafe(const char *name);
 void NEXUS_P_BaseCallback_Monitor(NEXUS_ModulePriority priority, unsigned timeout);
 
 void NEXUS_Module_RegisterProc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void));
@@ -1223,4 +1233,6 @@ NEXUS_Error NEXUS_Scheduler_SetState(
         NEXUS_Scheduler_State state /* state could only be NEXUS_Scheduler_State_eStopping (to stop scheduler) or  NEXUS_Scheduler_State_eStarting (to start scheduler) */
 );
 
+void NEXUS_Base_ExportEnvVariables(void);
+void NEXUS_Base_SetModuleDebugLevel(void);
 #endif /* !defined NEXUS_BASE_H */

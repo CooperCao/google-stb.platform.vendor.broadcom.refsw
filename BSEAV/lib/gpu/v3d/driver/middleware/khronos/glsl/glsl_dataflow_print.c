@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "middleware/khronos/glsl/glsl_common.h"
 
 #include "middleware/khronos/glsl/glsl_dataflow_visitor.h"
@@ -496,7 +489,7 @@ static void print_dataflow_from_map(FILE* f, Map* map)
    {
       int line_num;
 
-      vcos_assert(chain->first);
+      assert(chain->first);
       line_num = chain->first->dataflow->line_num;
 
       // Open cluster if we have a valid line number to group by.

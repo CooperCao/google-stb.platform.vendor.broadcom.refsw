@@ -339,7 +339,7 @@ void QPUResource_Unreference(QPUResource *self)
          printf("*** %s reference count decremented when zero in program %d\n", buff, xxx_shader);
       }
 
-      vcos_assert(self->m_refCount > 0);
+      assert(self->m_refCount > 0);
       if (self->m_refCount > 0)
          self->m_refCount--;
 

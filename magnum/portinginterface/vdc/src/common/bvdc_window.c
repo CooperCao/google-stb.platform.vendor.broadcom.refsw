@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -129,6 +129,7 @@ BERR_Code BVDC_Window_GetDefaultSettings
     return BERR_SUCCESS;
 }
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /***************************************************************************
  *
  */
@@ -605,7 +606,7 @@ done:
     BDBG_LEAVE(BVDC_Window_Destroy);
     return eRet;
 }
-
+#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
 /***************************************************************************
  *
@@ -1892,7 +1893,6 @@ BERR_Code BVDC_Window_GetBrightness
 }
 #endif
 
-#if (BVDC_P_SUPPORT_TNT_VER >= 6)            /* TNT-R HW base */
 #if !B_REFSW_MINIMAL
 BERR_Code BVDC_Window_SetSharpnessConfig
     ( BVDC_Window_Handle               hWindow,
@@ -1914,151 +1914,6 @@ BERR_Code BVDC_Window_GetSharpnessConfig
     BSTD_UNUSED(pSharpnessSettings);
     return BERR_TRACE(BVDC_ERR_TNT_WINDOW_NOT_SUPPORTED);
 }
-#endif
-#elif (BVDC_P_SUPPORT_TNT_VER == 5)            /* TNT2 HW base */
-#if !B_REFSW_MINIMAL
-BERR_Code BVDC_Window_SetSharpnessConfig
-    ( BVDC_Window_Handle               hWindow,
-      const BVDC_SharpnessSettings    *pSharpnessSettings )
-
-{
-    BERR_Code err = BERR_SUCCESS;
-
-    BDBG_ENTER(BVDC_Window_SetSharpnessConfig);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-
-    /* Only support main display's main window */
-    if((hWindow->eId != BVDC_P_WindowId_eComp0_V0) &&
-        (NULL !=pSharpnessSettings))
-    {
-        return BERR_TRACE(BVDC_ERR_TNT_WINDOW_NOT_SUPPORTED);
-    }
-
-    if(pSharpnessSettings != NULL)
-    {
-        err = BVDC_P_Tnt_ValidateSharpnessSettings(pSharpnessSettings);
-        if (err != BERR_SUCCESS)
-        {
-            return err;
-        }
-        else
-        {
-            /* set new value */
-            hWindow->stNewInfo.bUserSharpnessConfig = true;
-            hWindow->stNewInfo.stSharpnessConfig = *pSharpnessSettings;
-
-            BVDC_P_Tnt_StoreSharpnessSettings(hWindow, pSharpnessSettings);
-        }
-    }
-    else
-    {
-        hWindow->stNewInfo.bUserSharpnessConfig = false;
-    }
-
-    hWindow->stNewInfo.stDirty.stBits.bTntAdjust = BVDC_P_DIRTY;
-    hWindow->stNewInfo.sSharpness = 0;
-
-    BDBG_LEAVE(BVDC_Window_SetSharpnessConfig);
-    return err;
-
-}
-#endif
-
-
-#if !B_REFSW_MINIMAL
-BERR_Code BVDC_Window_GetSharpnessConfig
-    ( BVDC_Window_Handle               hWindow,
-      BVDC_SharpnessSettings          *pSharpnessSettings )
-{
-    BERR_Code err = BERR_SUCCESS;
-
-    BDBG_ENTER(BVDC_Window_GetSharpnessConfig);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    BDBG_ASSERT(pSharpnessSettings);
-
-    /* Only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_TNT_WINDOW_NOT_SUPPORTED);
-    }
-
-    if(pSharpnessSettings)
-    {
-        *pSharpnessSettings = hWindow->stCurInfo.stSharpnessConfig;
-    }
-
-    BDBG_LEAVE(BVDC_Window_GetSharpnessConfig);
-    return err;
-
-}
-#endif
-
-#else
-
-#if !B_REFSW_MINIMAL
-/***************************************************************************
- *
- */
-BERR_Code BVDC_Window_SetSharpnessConfig
-    ( BVDC_Window_Handle               hWindow,
-      const BVDC_SharpnessSettings    *pSharpnessSettings )
-{
-    BDBG_ENTER(BVDC_Window_SetSharpnessConfig);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-
-    /* Only support main display's main window */
-    if((hWindow->eId != BVDC_P_WindowId_eComp0_V0) &&
-        (NULL != pSharpnessSettings))
-    {
-        return BERR_TRACE(BVDC_ERR_TNT_WINDOW_NOT_SUPPORTED);
-    }
-
-    if(pSharpnessSettings != NULL)
-    {
-        /* set new value */
-        hWindow->stNewInfo.bUserSharpnessConfig = true;
-        hWindow->stNewInfo.stSharpnessConfig = *pSharpnessSettings;
-    }
-    else
-    {
-        hWindow->stNewInfo.bUserSharpnessConfig = false;
-    }
-
-    hWindow->stNewInfo.stDirty.stBits.bTntAdjust = BVDC_P_DIRTY;
-    hWindow->stNewInfo.sSharpness = 0;
-
-    BDBG_LEAVE(BVDC_Window_SetSharpnessConfig);
-    return BERR_SUCCESS;
-}
-#endif
-
-#if !B_REFSW_MINIMAL
-/***************************************************************************
- *
- */
- BERR_Code BVDC_Window_GetSharpnessConfig
-    ( BVDC_Window_Handle               hWindow,
-      BVDC_SharpnessSettings          *pSharpnessSettings )
-{
-    BDBG_ENTER(BVDC_Window_GetSharpnessConfig);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-
-    if(pSharpnessSettings)
-    {
-        *pSharpnessSettings = hWindow->stCurInfo.stSharpnessConfig;
-        if(!hWindow->stCurInfo.bUserSharpnessConfig)
-        {
-            BKNI_EnterCriticalSection();
-            pSharpnessSettings->ulLumaCtrlGain = hWindow->stCurResource.hPep->ulLumaChromaGain;
-            pSharpnessSettings->ulChromaCtrlGain = hWindow->stCurResource.hPep->ulLumaChromaGain;
-            BKNI_LeaveCriticalSection();
-        }
-    }
-
-    BDBG_LEAVE(BVDC_Window_GetSharpnessConfig);
-    return BERR_SUCCESS;
-}
-#endif
 #endif
 
 /***************************************************************************
@@ -2072,9 +1927,7 @@ BERR_Code BVDC_Window_SetSharpness
     BDBG_ENTER(BVDC_Window_SetSharpness);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* Only support main display's main window */
-    if((hWindow->eId != BVDC_P_WindowId_eComp0_V0) &&
-        ( true == bSharpnessEnable))
+    if(!hWindow->bTntAvail && bSharpnessEnable == true)
     {
         return BERR_TRACE(BVDC_ERR_TNT_WINDOW_NOT_SUPPORTED);
     }
@@ -2241,17 +2094,7 @@ BERR_Code BVDC_Window_SetAutoFlesh
     BDBG_ENTER(BVDC_Window_SetAutoFlesh);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-    if(ulFleshtone > BVDC_P_PEP_MAX_CAB_SETTING_GRANUALITY)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-    }
-
-    hWindow->stNewInfo.ulFleshtone = ulFleshtone;
+    BSTD_UNUSED(ulFleshtone);
 
     BDBG_LEAVE(BVDC_Window_SetAutoFlesh);
     return BERR_SUCCESS;
@@ -2288,17 +2131,7 @@ BERR_Code BVDC_Window_SetGreenBoost
     BDBG_ENTER(BVDC_Window_SetGreenBoost);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-    if(ulGreenBoost > BVDC_P_PEP_MAX_CAB_SETTING_GRANUALITY)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-    }
-
-    hWindow->stNewInfo.ulGreenBoost = ulGreenBoost;
+    BSTD_UNUSED(ulGreenBoost);
 
     BDBG_LEAVE(BVDC_Window_SetGreenBoost);
     return BERR_SUCCESS;
@@ -2335,17 +2168,7 @@ BERR_Code BVDC_Window_SetBlueBoost
     BDBG_ENTER(BVDC_Window_SetBlueBoost);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-    if(ulBlueBoost > BVDC_P_PEP_MAX_CAB_SETTING_GRANUALITY)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-    }
-
-    hWindow->stNewInfo.ulBlueBoost = ulBlueBoost;
+    BSTD_UNUSED(ulBlueBoost);
 
     BDBG_LEAVE(BVDC_Window_SetBlueBoost);
     return BERR_SUCCESS;
@@ -2383,30 +2206,8 @@ BERR_Code BVDC_Window_SetCmsControl
     BDBG_ENTER(BVDC_Window_SetCmsControl);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-    if(pSaturationGain &&
-       !BVDC_P_PEP_CMS_SAT_WITHIN_RANGE(pSaturationGain))
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-    }
-    if(pHueGain &&
-       !BVDC_P_PEP_CMS_HUE_WITHIN_RANGE(pHueGain))
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-    }
-
-    if(pSaturationGain)
-    {
-        hWindow->stNewInfo.stSatGain = *pSaturationGain;
-    }
-    if(pHueGain)
-    {
-        hWindow->stNewInfo.stHueGain = *pHueGain;
-    }
+    BSTD_UNUSED(pSaturationGain);
+    BSTD_UNUSED(pHueGain);
 
     BDBG_LEAVE(BVDC_Window_SetCmsControl);
     return BERR_SUCCESS;
@@ -2449,13 +2250,7 @@ BERR_Code BVDC_Window_EnableContrastStretch
     BDBG_ENTER(BVDC_Window_EnableContrastStretch);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-
-    hWindow->stNewInfo.bContrastStretch   = bEnable;
+    BSTD_UNUSED(bEnable);
 
     BDBG_LEAVE(BVDC_Window_SetContrastStretch);
     return BERR_SUCCESS;
@@ -2471,98 +2266,7 @@ BERR_Code BVDC_Window_SetContrastStretch
     BDBG_ENTER(BVDC_Window_SetContrastStretch);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-
-    /*
-    * Validating user data:
-    * - All values in the table should be 0-1023.
-    * - The first column should start at 64 or less, and finish at 940 or more,
-    *   and should always be increasing (avoids the zero problem we have found here).
-    * - The values along each row (excluding the first column) should always be increasing.
-    * - The values in the IRE table should always be increasing, with increments
-    *   of at least 16 between each entry.
-    */
-    if(pContrastStretch && pContrastStretch->aulDcTable1[0] != 0)
-    {
-        uint32_t i, j = 0;
-        for(i = 0; i < BVDC_DC_TABLE_ROWS * BVDC_DC_TABLE_COLS; i++)
-        {
-            if(pContrastStretch->aulDcTable1[i] > BVDC_P_PEP_MAX_LUMA_VALUE ||
-                (pContrastStretch->bInterpolateTables &&
-                pContrastStretch->aulDcTable2[i] > BVDC_P_PEP_MAX_LUMA_VALUE))
-            {
-                BDBG_MSG(("No value in the table should be greater than %d", BVDC_P_PEP_MAX_LUMA_VALUE));
-                BDBG_MSG(("aulDcTable1[%d] = %d, bInterpolateTables = %d, aulDcTable2[%d] = %d",
-                    i, pContrastStretch->aulDcTable1[i], pContrastStretch->bInterpolateTables,
-                    i, pContrastStretch->aulDcTable2[i]));
-                return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-            }
-
-            if(j == 1 &&
-                (pContrastStretch->aulDcTable1[i] > BVDC_P_PEP_BLACK_LUMA_VALUE ||
-                (pContrastStretch->bInterpolateTables &&
-                pContrastStretch->aulDcTable2[i] > BVDC_P_PEP_BLACK_LUMA_VALUE)))
-            {
-                BDBG_MSG(("The first point on each curve should be %d or less (black level)", BVDC_P_PEP_BLACK_LUMA_VALUE));
-                BDBG_MSG(("aulDcTable1[%d] = %d, bInterpolateTables = %d, aulDcTable2[%d] = %d",
-                    i, pContrastStretch->aulDcTable1[i], pContrastStretch->bInterpolateTables,
-                    i, pContrastStretch->aulDcTable2[i]));
-                return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-            }
-
-            if(j > 0 && j < (BVDC_DC_TABLE_COLS - 1) &&
-                (i < (BVDC_DC_TABLE_ROWS * BVDC_DC_TABLE_COLS - 1)) &&
-                (pContrastStretch->aulDcTable1[i] > pContrastStretch->aulDcTable1[i + 1] ||
-                (pContrastStretch->bInterpolateTables &&
-                pContrastStretch->aulDcTable2[i] > pContrastStretch->aulDcTable2[i + 1])))
-            {
-                BDBG_MSG(("Each point on a curve should be greater than or equal to the previous point on the curve (monotonically increasing along the curve)"));
-                BDBG_MSG(("aulDcTable1[%d] = %d, aulDcTable1[%d] = %d, bInterpolateTables = %d, aulDcTable2[%d] = %d, aulDcTable2[%d] = %d",
-                    i, pContrastStretch->aulDcTable1[i], i+1, pContrastStretch->aulDcTable1[i+1],
-                    pContrastStretch->bInterpolateTables,
-                    i, pContrastStretch->aulDcTable2[i], i+1, pContrastStretch->aulDcTable2[i + 1]));
-                return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-            }
-
-            j++;
-            if(j == BVDC_DC_TABLE_COLS)
-            {
-                if(pContrastStretch->aulDcTable1[i] < BVDC_P_PEP_WHITE_LUMA_VALUE ||
-                    (pContrastStretch->bInterpolateTables &&
-                    pContrastStretch->aulDcTable2[i] < BVDC_P_PEP_WHITE_LUMA_VALUE))
-                {
-                    BDBG_MSG(("The last point on each curve should be %d or more (white level)", BVDC_P_PEP_WHITE_LUMA_VALUE));
-                    BDBG_MSG(("aulDcTable1[%d] = %d, bInterpolateTables = %d, aulDcTable2[%d] = %d",
-                        i, pContrastStretch->aulDcTable1[i], pContrastStretch->bInterpolateTables,
-                        i, pContrastStretch->aulDcTable2[i]));
-                    return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-                }
-                j = 0;
-            }
-        }
-
-        for(i = 1; i < BVDC_DC_TABLE_COLS - 1; i++)
-        {
-            if((pContrastStretch->alIreTable[i] - pContrastStretch->alIreTable[i - 1]) < 16)
-            {
-                BDBG_MSG(("Steps between values in the IRE table must be at least 16"));
-                BDBG_MSG(("alIreTable[%d] = %d, alIreTable[%d] = %d",
-                    i, pContrastStretch->alIreTable[i], i - 1, pContrastStretch->alIreTable[i - 1]));
-                return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-            }
-        }
-    }
-
-    if(pContrastStretch)
-    {
-        hWindow->stNewInfo.stContrastStretch = *pContrastStretch;
-    }
-
-    hWindow->stNewInfo.stDirty.stBits.bLabAdjust = BVDC_P_DIRTY;
+    BSTD_UNUSED(pContrastStretch);
 
     BDBG_LEAVE(BVDC_Window_SetContrastStretch);
     return BERR_SUCCESS;
@@ -2597,13 +2301,6 @@ BERR_Code BVDC_Window_SetBlueStretch
     BDBG_ENTER(BVDC_Window_SetBlueStretch);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-
-    hWindow->stNewInfo.bBlueStretch = false;
     BSTD_UNUSED(pBlueStretch);
 
     BDBG_LEAVE(BVDC_Window_SetBlueStretch);
@@ -2654,13 +2351,18 @@ BERR_Code BVDC_Window_SetSplitScreenMode
     }
 
     if((pSplitScreen->eAutoFlesh       != BVDC_SplitScreenMode_eDisable ||
-        pSplitScreen->eSharpness       != BVDC_SplitScreenMode_eDisable ||
         pSplitScreen->eBlueBoost       != BVDC_SplitScreenMode_eDisable ||
         pSplitScreen->eGreenBoost      != BVDC_SplitScreenMode_eDisable ||
         pSplitScreen->eCms             != BVDC_SplitScreenMode_eDisable ||
         pSplitScreen->eContrastStretch != BVDC_SplitScreenMode_eDisable ||
         pSplitScreen->eBlueStretch     != BVDC_SplitScreenMode_eDisable) &&
        (hWindow->eId != BVDC_P_WindowId_eComp0_V0))
+    {
+        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
+    }
+
+    if(!hWindow->bTntAvail &&
+        pSplitScreen->eSharpness       != BVDC_SplitScreenMode_eDisable)
     {
         return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
     }
@@ -3296,8 +2998,15 @@ BERR_Code BVDC_Window_SetUserCaptureBufferCount
     ( BVDC_Window_Handle        hWindow,
       unsigned int              uiCaptureBufferCount )
 {
+    BERR_Code eRet = BERR_SUCCESS;
     BDBG_ENTER(BVDC_Window_SetUserCaptureBufferCount);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+
+#if BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM
+    BSTD_UNUSED(hWindow);
+    BSTD_UNUSED(uiCaptureBufferCount);
+    eRet = BERR_NOT_SUPPORTED;
+#else
 
     if (uiCaptureBufferCount > BVDC_P_MAX_USER_CAPTURE_BUFFER_COUNT)
     {
@@ -3309,8 +3018,9 @@ BERR_Code BVDC_Window_SetUserCaptureBufferCount
     /* set dirty bit */
     hWindow->stNewInfo.stDirty.stBits.bUserCaptureBuffer = BVDC_P_DIRTY;
 
+#endif
     BDBG_LEAVE(BVDC_Window_SetUserCaptureBufferCount);
-    return BERR_SUCCESS;
+    return eRet;
 }
 
 /***************************************************************************
@@ -3327,6 +3037,14 @@ BERR_Code BVDC_Window_GetBuffer
     BDBG_ASSERT(pCapturedImage);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
+#if BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM
+    BSTD_UNUSED(hWindow);
+    BSTD_UNUSED(stCaptPic);
+
+    pCapturedImage->captureBuffer.hPixels = NULL;
+    pCapturedImage->rCaptureBuffer.hPixels = NULL;
+    eRet = BERR_NOT_SUPPORTED;
+#else
     BKNI_EnterCriticalSection();
     eRet = BVDC_P_Window_CapturePicture_isr(hWindow, &stCaptPic);
     BKNI_LeaveCriticalSection();
@@ -3372,9 +3090,10 @@ BERR_Code BVDC_Window_GetBuffer
         pCapturedImage->captureBuffer.hPixels = NULL;
         pCapturedImage->rCaptureBuffer.hPixels = NULL;
     }
+#endif
 
     BDBG_LEAVE(BVDC_Window_GetBuffer);
-    return BERR_TRACE(eRet);
+    return eRet;
 }
 
 /***************************************************************************
@@ -3390,6 +3109,11 @@ BERR_Code BVDC_Window_ReturnBuffer
     BDBG_ASSERT(pCapturedImage);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
+#if BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM
+    BSTD_UNUSED(hWindow);
+    BSTD_UNUSED(pCapturedImage);
+    eRet = BERR_NOT_SUPPORTED;
+#else
     BKNI_EnterCriticalSection();
     eRet = BVDC_P_Window_ReleasePicture_isr(hWindow, &pCapturedImage->captureBuffer);
     BKNI_LeaveCriticalSection();
@@ -3418,9 +3142,10 @@ BERR_Code BVDC_Window_ReturnBuffer
             pCapturedImage->rCaptureBuffer.hPixels = NULL;
         }
     }
+#endif
 
     BDBG_LEAVE(BVDC_Window_ReturnBuffer);
-    return BERR_SUCCESS;
+    return eRet;
 }
 
 /***************************************************************************
@@ -3440,7 +3165,8 @@ BERR_Code BVDC_Window_SetColorKeyConfiguration
     {
 #if  defined(BCHP_CMP_0_V0_RECT_COLOR) && \
     !defined(BCHP_CMP_0_V0_RECT_TOP_CTRL_RECT_KEY_VALUE_MASK)
-        if(hWindow->stNewInfo.bMosaicMode)
+        if(hWindow->stNewInfo.bMosaicMode &&
+           (pColorKeySettings->bLumaKey || pColorKeySettings->bChromaRedKey || pColorKeySettings->bChromaBlueKey))
         {
             err = BERR_TRACE(BERR_NOT_SUPPORTED);
             BDBG_ERR(("Color key not supported for window[%d] in mosaic mode",
@@ -3463,7 +3189,6 @@ BERR_Code BVDC_Window_SetColorKeyConfiguration
     return err;
 }
 
-#if !B_REFSW_MINIMAL
 BERR_Code BVDC_Window_GetColorKeyConfiguration
     ( BVDC_Window_Handle               hWindow,
       BVDC_ColorKey_Settings          *pColorKeySettings )
@@ -3479,7 +3204,6 @@ BERR_Code BVDC_Window_GetColorKeyConfiguration
     BDBG_LEAVE(BVDC_Window_GetColorKeyConfiguration);
     return BERR_SUCCESS;
 }
-#endif
 
 /***************************************************************************
  *
@@ -3544,37 +3268,9 @@ BERR_Code BVDC_Window_LoadCabTable
     BDBG_ENTER(BVDC_Window_LoadCabTable);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-
-    /* Check for valid offset and size */
-    if((pulCabTable != NULL) && ((ulOffset + ulSize) > BVDC_P_CAB_TABLE_SIZE))
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-    }
-
-    if(pulCabTable != NULL)
-    {
-        uint32_t id;
-
-        /* set new value */
-        hWindow->stNewInfo.bUserCabEnable = true;
-
-        /* copy pulCabTable to internal table */
-        for(id = 0; id < ulSize; id++)
-        {
-            *(hWindow->stNewInfo.pulCabTable + (id + ulOffset)) =
-                *(pulCabTable + id);
-            BDBG_MSG(("User CabTable[%d]= 0x%x", id + ulOffset, *(hWindow->stNewInfo.pulCabTable + (id + ulOffset))));
-        }
-    }
-    else
-    {
-        hWindow->stNewInfo.bUserCabEnable = false;
-    }
+    BSTD_UNUSED(pulCabTable);
+    BSTD_UNUSED(ulOffset);
+    BSTD_UNUSED(ulSize);
 
     BDBG_LEAVE(BVDC_Window_LoadCabTable);
     return BERR_SUCCESS;
@@ -3591,55 +3287,14 @@ BERR_Code BVDC_Window_LoadLabTableCustomized
       uint32_t                         ulOffset,
       uint32_t                         ulSize )
 {
-    uint32_t id;
-
     BDBG_ENTER(BVDC_Window_LoadLabTableCustomized);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-
-    /* Check for valid offset and size */
-    if((pulLumaTable != NULL || pulCbTable != NULL || pulCrTable != NULL) &&
-       ((ulOffset + ulSize) > BVDC_P_LAB_TABLE_SIZE))
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-    }
-
-    /* Check if user provides both Cb and Cr tables or not */
-    if((pulCbTable != NULL && pulCrTable == NULL) ||
-       (pulCbTable == NULL && pulCrTable != NULL))
-    {
-        BDBG_ERR(("Need to provide both Cb and Cr tables"));
-        return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-    }
-
-    hWindow->stNewInfo.bUserLabLuma = (pulLumaTable != NULL) ? true : false;
-    hWindow->stNewInfo.bUserLabCbCr = (pulCbTable != NULL) ? true : false;
-
-    /* copy to internal tables */
-    for(id = 0; id < ulSize; id++)
-    {
-        if(pulLumaTable != NULL)
-        {
-            *(hWindow->stNewInfo.pulLabLumaTbl + (id + ulOffset)) =
-                *(pulLumaTable + id);
-            BDBG_MSG(("User LumTable[%d]= 0x%x", id + ulOffset, *(hWindow->stNewInfo.pulLabLumaTbl + (id + ulOffset))));
-        }
-        if(pulCbTable != NULL && pulCrTable != NULL)
-        {
-            *(hWindow->stNewInfo.pulLabCbTbl + (id + ulOffset)) =
-                *(pulCbTable + id);
-            *(hWindow->stNewInfo.pulLabCrTbl + (id + ulOffset)) =
-                *(pulCrTable + id);
-            BDBG_MSG(("User CbTable[%d]= 0x%x, CrTable[%d] = 0x%x",
-                id + ulOffset, *(hWindow->stNewInfo.pulLabCbTbl + (id + ulOffset)),
-                id + ulOffset, *(hWindow->stNewInfo.pulLabCrTbl + (id + ulOffset))));
-        }
-    }
+    BSTD_UNUSED(pulLumaTable);
+    BSTD_UNUSED(pulCbTable);
+    BSTD_UNUSED(pulCrTable);
+    BSTD_UNUSED(ulOffset);
+    BSTD_UNUSED(ulSize);
 
     BDBG_LEAVE(BVDC_Window_LoadLabTableCustomized);
     return BERR_SUCCESS;
@@ -3657,61 +3312,9 @@ BERR_Code BVDC_Window_LoadLabTable
     BDBG_ENTER(BVDC_Window_LoadLabTable);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-#if (BVDC_P_SUPPORT_PEP)
-    /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
-    }
-
-    /* Check for valid offset and size */
-    if((pulLabTable != NULL) && ((ulOffset + ulSize) > BVDC_P_LAB_TABLE_SIZE))
-    {
-        return BERR_TRACE(BVDC_ERR_PEP_INVALID_PARAMETER);
-    }
-
-    if(pulLabTable != NULL)
-    {
-        uint32_t id;
-        uint32_t *pulLumaTable;
-        uint32_t *pulCbTable;
-        uint32_t *pulCrTable;
-
-        pulLumaTable = (uint32_t *)(BKNI_Malloc(BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t)));
-        pulCbTable = (uint32_t *)(BKNI_Malloc(BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t)));
-        pulCrTable = (uint32_t *)(BKNI_Malloc(BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t)));
-
-        /* break out the data into luma, Cb and Cr tables */
-        for(id = 0; id < ulSize; id++)
-        {
-#if (BVDC_P_SUPPORT_PEP_VER_5>BVDC_P_SUPPORT_PEP_VER)
-            *(pulLumaTable + (id + ulOffset)) =
-                BCHP_GET_FIELD_DATA(*(pulLabTable + id), PEP_CMP_0_V0_LAB_LUT_DATA_i, LUMA_DATA);
-            *(pulCbTable + (id + ulOffset)) =
-                BCHP_GET_FIELD_DATA(*(pulLabTable + id), PEP_CMP_0_V0_LAB_LUT_DATA_i, CB_OFFSET);
-            *(pulCrTable + (id + ulOffset)) =
-                BCHP_GET_FIELD_DATA(*(pulLabTable + id), PEP_CMP_0_V0_LAB_LUT_DATA_i, CR_OFFSET);
-            BDBG_MSG(("User Luma[%d]= 0x%x, Cb = 0x%x, Cr = 0x%x",
-                id + ulOffset, pulLumaTable[id+ulOffset],
-                pulCbTable[id+ulOffset], pulCrTable[id+ulOffset]));
-#endif
-        }
-        /* Calling the new function to load Lab table */
-        BVDC_Window_LoadLabTableCustomized(hWindow, pulLumaTable, pulCbTable, pulCrTable, ulOffset, ulSize);
-
-        BKNI_Free((uint32_t *)pulLumaTable);
-        BKNI_Free((uint32_t *)pulCbTable);
-        BKNI_Free((uint32_t *)pulCrTable);
-    }
-    else
-    {
-        BVDC_Window_LoadLabTableCustomized(hWindow, NULL, NULL, NULL, ulOffset, ulSize);
-    }
-#else
     BSTD_UNUSED(pulLabTable);
     BSTD_UNUSED(ulOffset);
     BSTD_UNUSED(ulSize);
-#endif
 
     BDBG_LEAVE(BVDC_Window_LoadLabTable);
     return BERR_SUCCESS;
@@ -3829,7 +3432,7 @@ BERR_Code BVDC_Window_SetDitherConfiguration
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
     /* only support main display's main window */
-    if(hWindow->eId != BVDC_P_WindowId_eComp0_V0)
+    if(hWindow->bMaskAvail == false)
     {
         return BERR_TRACE(BVDC_ERR_PEP_WINDOW_NOT_SUPPORT);
     }
@@ -4152,6 +3755,7 @@ BERR_Code BVDC_Window_GetCapabilities
     return BERR_SUCCESS;
 }
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /***************************************************************************
  *
  */
@@ -4313,5 +3917,6 @@ void BVDC_Window_GetCores
 
     return;
 }
+#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
 /* End of File */

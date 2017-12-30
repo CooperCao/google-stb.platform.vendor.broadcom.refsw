@@ -610,6 +610,7 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(
     BHDR_HDCP_Status stHdcpStatus;
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
+
     errCode = BHDR_HDCP_GetStatus(hdmiInput->hdr, &stHdcpStatus) ;
     if (errCode != BERR_SUCCESS) {
         errCode = BERR_TRACE(errCode);
@@ -749,21 +750,24 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
     NEXUS_SageImageHolder holder = {"HDMIRX FC", SAGE_IMAGE_FirmwareID_eSage_HDMIRX_FC, NULL};
 
     BDBG_LOG(("%s: allocate %u bytes for HDCP_TA buffer", BSTD_FUNCTION, (unsigned)length));
-    /* use SAGE allocator */
-    LOCK_SAGE();
-    g_hdmiInputTABlock.buf = NEXUS_Sage_Malloc_priv(length);
-    UNLOCK_SAGE();
-    if (g_hdmiInputTABlock.buf == NULL) {
-        rc = BERR_OUT_OF_DEVICE_MEMORY;
-        BDBG_ERR(("%s - Error allocating %u bytes memory for HDCP22_TA buffer",
-                  BSTD_FUNCTION, (unsigned)length));
-        BERR_TRACE(rc);
-        goto done;
-    }
+    if(length != 0)
+    {
+        /* use SAGE allocator */
+        LOCK_SAGE();
+        g_hdmiInputTABlock.buf = NEXUS_Sage_Malloc_priv(length);
+        UNLOCK_SAGE();
+        if (g_hdmiInputTABlock.buf == NULL) {
+            rc = BERR_OUT_OF_DEVICE_MEMORY;
+            BDBG_ERR(("%s - Error allocating %u bytes memory for HDCP22_TA buffer",
+                      BSTD_FUNCTION, (unsigned)length));
+            BERR_TRACE(rc);
+            goto done;
+        }
 
-    /* copy the TA buffer and save for later use */
-    g_hdmiInputTABlock.len = length;
-    BKNI_Memcpy(g_hdmiInputTABlock.buf, buf, length);
+        /* copy the TA buffer and save for later use */
+        g_hdmiInputTABlock.len = length;
+        BKNI_Memcpy(g_hdmiInputTABlock.buf, buf, length);
+    }
 
     /* If there's an HDMI Input FC, load/store that for later use */
     holder.raw = &blk;

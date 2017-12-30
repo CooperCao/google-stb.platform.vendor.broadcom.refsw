@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 #include <algorithm>
-#include "vcos_types.h"
+#include "libs/util/common.h"
 
 #define template_T_Tag template<typename T, typename Tag>
 #define template_T_Tag_D template_T_Tag template<typename D>
@@ -269,6 +269,16 @@ template_T_Tag auto intrusive_list<T,Tag>::erase(iterator pos) -> iterator
    return iterator(pos.h->next);
 }
 
+template_T_Tag void intrusive_list<T,Tag>::static_erase(iterator pos)
+{
+   check_not_end(pos.h);
+   pos.h->clear_list(nullptr);
+   assert(pos.h->prev->next == pos.h);
+   assert(pos.h->next->prev == pos.h);
+   pos.h->prev->next = pos.h->next;
+   pos.h->next->prev = pos.h->prev;
+}
+
 template_T_Tag_D inline void intrusive_list<T,Tag>::clear_and_dispose(D disposer)
 {
    while (!empty())
@@ -293,6 +303,13 @@ template_T_Tag_D inline auto intrusive_list<T,Tag>::erase_and_dispose(iterator p
    iterator r = erase(pos);
    disposer(p);
    return r;
+}
+
+template_T_Tag_D inline void intrusive_list<T,Tag>::static_erase_and_dispose(iterator pos, D disposer)
+{
+   T* p = from_hook(pos.h);
+   static_erase(pos);
+   disposer(p);
 }
 
 template_T_Tag inline void intrusive_list<T,Tag>::validate() const

@@ -139,6 +139,9 @@ static void NEXUS_P_ClientCallbackThread(void *context)
                 BKNI_AcquireMutex(callback->callbackLock);
                 /* TEST: add BKNI_Sleep(rand()%50) here to test proper thread synchronization */
                 BDBG_MSG_TRACE(("%p calling: %p(%p,%d)", callback, data[i].callback.callback, data[i].callback.context, data[i].callback.param));
+                /* coverity[tainted_data] */
+                /* coverity[sleep] - any callback within nexus/magnum that sleeps will trigger coverity warning here */
+                /* coverity[tainted_string] - any callback within nexus that accesses an external string, like a filename, triggers a warning here */
                 (data[i].callback.callback)(data[i].callback.context, data[i].callback.param);
                 BKNI_ReleaseMutex(callback->callbackLock);
                 NEXUS_LockModule();

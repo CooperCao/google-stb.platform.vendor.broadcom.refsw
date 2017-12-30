@@ -1,42 +1,40 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 #include "bsrf.h"
 #include "bsrf_priv.h"
@@ -73,10 +71,15 @@ BERR_Code BSRF_g1_Ana_P_PowerUp(BSRF_ChannelHandle h)
 
    /* override default freq for adc pll */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER16_APLL, 0x0AC448C0);    /* pdiv=1, ndiv_int=72, refclk_sel=1 */
+#if (BCHP_CHIP==lonestar)
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER21_APLL, 0x20040000);    /* ch3_mdiv=32 for dco clk, ch2_mdiv=4 for agc clk */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER22_APLL, 0x00000020);    /* ch5_Mdiv=32 for ramp clk */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER20_APLL, 0x000008E3);    /* shut cal tone divider channel */
-
+#else
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER21_APLL, 0x20040020);    /* ch3_mdiv=32 for dco clk, ch2_mdiv=4 for agc clk */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER22_APLL, 0x00000010);    /* ch4_Mdiv=16 for 216MHz leap clk */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER20_APLL, 0x000008A2);    /* shut cal tone divider channel, clock ram generator */
+#endif
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER00_SYS, 0x00200000);     /* bypass filter for faster LDO startup */
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER09_MPLL, 0x08000000);    /* turn off filter for faster LDO startup*/
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER10_MPLL, 0x40000000);    /* turn off filter for faster LDO startup*/
@@ -194,8 +197,11 @@ BERR_Code BSRF_g1_Ana_P_PowerUpAntennaSense(BSRF_ChannelHandle h)
    hChn->bAntennaSenseEnabled = true;
 
    /* initialize antenna sense */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, 0x00013C98);
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, 0x40013C98);
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR01, 0x900583F8);
+#if (BCHP_CHIP==89730)
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR02, 0x00000001);
+#endif
 
    /* antenna power up */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, ~0x10000000);
@@ -215,6 +221,9 @@ BERR_Code BSRF_g1_Ana_P_PowerDownAntennaSense(BSRF_ChannelHandle h)
 
    /* antenna power down */
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, 0x10000000);
+#if (BCHP_CHIP==89730)
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR02, 0x00000000);
+#endif
    return retCode;
 }
 
@@ -229,8 +238,14 @@ BERR_Code BSRF_g1_Ana_P_CalibrateCaps(BSRF_ChannelHandle h)
    uint32_t val, Q_hi, Q_lo;
    uint8_t i, cap[5];
 
+   /* frc_n(ndx) = [4.46401e6,  4.26822e6,  4.20207e6, 4.17966e6, 4.01148e6] */
+#if (BCHP_CHIP==89730)
+   /* count nominal = M * frc_n(ndx) / fclk, where M=2^16-1, fclk=192e6 */
+   uint32_t countNominal[5] = {99857361, 95477008, 93997280, 93495985, 89733919};      /* scaled 16.16 */
+#else
    /* count nominal = M * frc_n(ndx) / fclk, where M=2^16-1, fclk=96e6 */
-   uint32_t countNominal[5] = {199713379, 190954017, 187994561, 186991970, 179467839};  /* scaled 16.16 */
+   uint32_t countNominal[5] = {199713379, 190954017, 187994561, 186991970, 179467839}; /* scaled 16.16 */
+#endif
 
    /* set timer to max count @ 96MHz */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_RC_CAL_TMR, 0x0000FFFF);

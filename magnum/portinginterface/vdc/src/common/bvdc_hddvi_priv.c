@@ -551,6 +551,13 @@ static const uint8_t s_aucDeskewClkLsw[BVDC_P_HDDVI_DESKEW_CLK_COUNT] =
      2                  /* DELAY_SELECTION_CLK_LSW */
 };
 
+/* List of unsupported formats */
+static const BFMT_VideoFmt s_aUnsuppotedFmt[] =
+{
+    BFMT_VideoFmt_e1080p_60Hz_3DLR
+};
+#define BVDC_P_HDDVI_NUM_UNSUPPORTED_FMT   \
+    (sizeof(s_aUnsuppotedFmt) / sizeof(BFMT_VideoFmt))
 
 /***************************************************************************
  * {private}
@@ -2762,7 +2769,7 @@ static void BVDC_P_HdDvi_UpdateAutoFormat_isr
       uint32_t                        *pulPixelDecimate,
       bool                            *pbVideoDetected )
 {
-    uint32_t ulStatusScanWidth, i;
+    uint32_t ulStatusScanWidth, i, j;
 #if (BVDC_P_HDDVI_TEST_NEW_FORMAT)
     uint32_t ulStatusScanHeight;
 #endif
@@ -2791,9 +2798,23 @@ static void BVDC_P_HdDvi_UpdateAutoFormat_isr
     /* FORMAT DETECTION: status */
     for(i = 0; i < BFMT_VideoFmt_eCustom0; i++)
     {
+        bool   bUnsupportedFmt = false;
+
         /* TODO: Refactor this portion of the code with videodetect */
         uint32_t ulTolWidth, ulTolHeight;
         pFmtInfo = BFMT_GetVideoFormatInfoPtr_isrsafe((BFMT_VideoFmt)i);
+
+        /* Check if the format is unsupported */
+        for(j = 0; j < BVDC_P_HDDVI_NUM_UNSUPPORTED_FMT; j++)
+        {
+            if(pFmtInfo->eVideoFmt == s_aUnsuppotedFmt[j])
+            {
+                bUnsupportedFmt = true;
+                break;
+            }
+        }
+        if(bUnsupportedFmt)
+            continue;
 
         ulDigitalHeight = pFmtInfo->ulDigitalHeight;
         if(pFmtInfo->eOrientation == BFMT_Orientation_e3D_OverUnder)
@@ -3481,6 +3502,30 @@ void BVDC_P_HdDvi_Bringup_isr
     return;
 }
 
+
+/***************************************************************************
+ *
+ */
+void BVDC_P_HdDvi_DisableTriggers_isr
+    ( BVDC_P_HdDvi_Handle              hHdDvi )
+{
+    BDBG_OBJECT_ASSERT(hHdDvi, BVDC_DVI);
+    BDBG_OBJECT_ASSERT(hHdDvi->hSource, BVDC_SRC);
+
+    BREG_Write32_isr(hHdDvi->hSource->hVdc->hRegister,
+        BCHP_HD_DVI_0_SW_INIT + hHdDvi->ulOffset,
+        BCHP_FIELD_DATA(HD_DVI_0_SW_INIT, BVB_BRIDGE,    0) |
+        BCHP_FIELD_DATA(HD_DVI_0_SW_INIT, FORMAT_DETECT, 0) |
+        BCHP_FIELD_DATA(HD_DVI_0_SW_INIT, CORE,          1));
+
+    BREG_Write32_isr(hHdDvi->hSource->hVdc->hRegister,
+        BCHP_HD_DVI_0_SW_INIT + hHdDvi->ulOffset,
+        BCHP_FIELD_DATA(HD_DVI_0_SW_INIT, BVB_BRIDGE,    0) |
+        BCHP_FIELD_DATA(HD_DVI_0_SW_INIT, FORMAT_DETECT, 0) |
+        BCHP_FIELD_DATA(HD_DVI_0_SW_INIT, CORE,          0));
+
+    return;
+}
 
 /***************************************************************************
  *

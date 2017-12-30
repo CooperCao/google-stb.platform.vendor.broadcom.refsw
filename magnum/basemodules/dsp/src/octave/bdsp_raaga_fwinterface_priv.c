@@ -40,59 +40,20 @@
 
 BDBG_MODULE(bdsp_raaga_fwinterface);
 
-BERR_Code BDSP_Raaga_P_CreateMsgQueue(
-    BDSP_Raaga_P_MsgQueueParams    *psMsgQueueParams,    /* [in]*/
-    BREG_Handle                     hRegister,           /* [in] */
-    uint32_t                        ui32DspOffset,       /* [in] */
-    BDSP_Raaga_P_MsgQueueHandle     *hMsgQueue
-    )
-{
-    BERR_Code errCode = BERR_SUCCESS;
-    BDSP_Raaga_P_MsgQueueHandle  hHandle = NULL;
-
-    BDBG_ENTER(BDSP_Raaga_P_CreateMsgQueue);
-    BDBG_ASSERT(hRegister);
-    BDBG_ASSERT(psMsgQueueParams);
-    BDBG_ASSERT(psMsgQueueParams->ui32FifoId != BDSP_RAAGA_FIFO_INVALID);
-
-    BDBG_MSG(("CREATING MSGQUEUE - Base Address %p, Size %u, FifoId %d",
-        psMsgQueueParams->Memory.pAddr,
-        psMsgQueueParams->ui32Size,
-        psMsgQueueParams->ui32FifoId));
-
-    hHandle = (BDSP_Raaga_P_MsgQueueHandle)BKNI_Malloc(sizeof(BDSP_Raaga_P_MsgQueue));
-    if(hHandle == NULL)
-    {
-        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BDSP_Raaga_P_CreateMsgQueue: Error is allocating Kernal Memory for Message Queue"));
-        goto end;
-    }
-    BKNI_Memset (hHandle, 0, sizeof(struct BDSP_Raaga_P_MsgQueue));
-    hHandle->Memory        = psMsgQueueParams->Memory;
-    hHandle->ui32FifoId    = psMsgQueueParams->ui32FifoId;
-    hHandle->ui32Size      = psMsgQueueParams->ui32Size;
-    hHandle->ui32DspOffset = ui32DspOffset;
-    hHandle->hRegister     = hRegister;
-
-    *hMsgQueue = hHandle;
-    /* Address will be initilaised and FIFO registers will be initialised in the BDSP_Raaga_P_InitMsgQueue */
-end:
-    BDBG_LEAVE(BDSP_Raaga_P_CreateMsgQueue);
-    return errCode;
-}
-
 BERR_Code BDSP_Raaga_P_InitMsgQueue(
-    BDSP_Raaga_P_MsgQueueHandle hMsgQueue)
+    BDSP_P_MsgQueueHandle hMsgQueue
+)
 {
     BERR_Code errCode = BERR_SUCCESS;
     dramaddr_t  BaseOffset=0, EndOffset=0;
     uint32_t    ui32RegOffset;
+    dramaddr_t  FifoRegisterStartAddr = 0;
 
     BDBG_ENTER(BDSP_Raaga_P_InitMsgQueue);
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT(hMsgQueue->hRegister);
     BDBG_ASSERT(hMsgQueue->ui32Size);
-    BDBG_ASSERT(hMsgQueue->ui32FifoId != BDSP_RAAGA_FIFO_INVALID);
+    BDBG_ASSERT(hMsgQueue->ui32FifoId != BDSP_FIFO_INVALID);
 
     /* Writing Zeros to the memory for which queue has be to be created */
     BKNI_Memset(hMsgQueue->Memory.pAddr, 0, hMsgQueue->ui32Size);
@@ -108,112 +69,54 @@ BERR_Code BDSP_Raaga_P_InitMsgQueue(
     ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
                     BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
 
-    BaseOffset = hMsgQueue->Memory.offset;
+    FifoRegisterStartAddr = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
+            (ui32RegOffset * hMsgQueue->ui32FifoId);
 
-    BDSP_WriteReg64( hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
-            (ui32RegOffset * hMsgQueue->ui32FifoId) +
-            BDSP_RAAGA_P_FIFO_BASE_OFFSET,
+    hMsgQueue->QueueAddress.BaseOffset =  FifoRegisterStartAddr + BDSP_RAAGA_P_FIFO_BASE_OFFSET;
+    hMsgQueue->QueueAddress.ReadOffset =  FifoRegisterStartAddr + BDSP_RAAGA_P_FIFO_READ_OFFSET;
+    hMsgQueue->QueueAddress.WriteOffset=  FifoRegisterStartAddr + BDSP_RAAGA_P_FIFO_WRITE_OFFSET;
+    hMsgQueue->QueueAddress.EndOffset  =  FifoRegisterStartAddr + BDSP_RAAGA_P_FIFO_END_OFFSET;
+
+    BaseOffset = hMsgQueue->Memory.offset;
+    BDSP_WriteFIFOReg( hMsgQueue->hRegister,
+        hMsgQueue->QueueAddress.BaseOffset,
         BaseOffset); /* base */
 
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
-            (ui32RegOffset * hMsgQueue->ui32FifoId) +
-            BDSP_RAAGA_P_FIFO_READ_OFFSET,
+    BDSP_WriteFIFOReg(hMsgQueue->hRegister,
+        hMsgQueue->QueueAddress.ReadOffset,
         BaseOffset); /* read */
 
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
-            (ui32RegOffset * hMsgQueue->ui32FifoId) +
-            BDSP_RAAGA_P_FIFO_WRITE_OFFSET,
+    BDSP_WriteFIFOReg(hMsgQueue->hRegister,
+        hMsgQueue->QueueAddress.WriteOffset,
         BaseOffset); /* write */
 
     EndOffset = BaseOffset + (hMsgQueue->ui32Size);
-
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
-            (ui32RegOffset * hMsgQueue->ui32FifoId) +
-            BDSP_RAAGA_P_FIFO_END_OFFSET,
+    BDSP_WriteFIFOReg(hMsgQueue->hRegister,
+        hMsgQueue->QueueAddress.EndOffset,
         EndOffset); /* end */
 
     BDBG_LEAVE(BDSP_Raaga_P_InitMsgQueue);
     return errCode;
 }
 
-BERR_Code BDSP_Raaga_P_DestroyMsgQueue(
-    BDSP_Raaga_P_MsgQueueHandle    hMsgQueue
-    )
-{
-    BERR_Code   err = BERR_SUCCESS;
-    uint32_t    ui32RegOffset = 0;
-
-    BDBG_ENTER(BDSP_Raaga_P_DestroyMsgQueue);
-
-    BDBG_ASSERT(hMsgQueue);
-    BDBG_MSG(("Destroying MSGQUEUE - FifoId %d",hMsgQueue->ui32FifoId));
-
-    /*Reseting the FIFO buffers to invalid dram address*/
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-                    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
-            (ui32RegOffset * hMsgQueue->ui32FifoId) +
-            BDSP_RAAGA_P_FIFO_BASE_OFFSET,
-        BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* base */
-
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
-            (ui32RegOffset * hMsgQueue->ui32FifoId) +
-            BDSP_RAAGA_P_FIFO_END_OFFSET,
-        BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* end */
-
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
-            (ui32RegOffset * hMsgQueue->ui32FifoId) +
-            BDSP_RAAGA_P_FIFO_READ_OFFSET,
-        BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* read */
-
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
-            (ui32RegOffset * hMsgQueue->ui32FifoId) +
-            BDSP_RAAGA_P_FIFO_WRITE_OFFSET,
-        BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* write */
-
-    BKNI_Free(hMsgQueue);
-    BDBG_LEAVE(BDSP_Raaga_P_DestroyMsgQueue);
-    return err;
-}
-
 static BERR_Code BDSP_Raaga_P_WriteMsg_isr(
-    BDSP_Raaga_P_MsgQueueHandle    hMsgQueue  /*[in]*/,
-    void                          *pMsg,      /*[in]*/
-    unsigned int                   uiMsgSize     /*[in]*/
-    )
+    BDSP_P_MsgQueueHandle    hMsgQueue  /*[in]*/,
+    void                    *pMsg,      /*[in]*/
+    unsigned int             uiMsgSize  /*[in]*/
+)
 {
     BERR_Code   errCode = BERR_SUCCESS;
     dramaddr_t  ReadOffset=0, WriteOffset=0;
     void *pSrc = NULL;
     unsigned int uiFreeSpace = 0, uiChunk1 = 0, uiChunk2 = 0;
     BDSP_MMA_Memory Memory;
-    uint32_t    ui32RegOffset;
 
     BDBG_ENTER(BDSP_Raaga_P_WriteMsg_isr);
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT(pMsg);
 
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-                    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    ReadOffset = BDSP_ReadReg64(hMsgQueue->hRegister,
-                   BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset+
-                   (ui32RegOffset * hMsgQueue->ui32FifoId)+
-                   BDSP_RAAGA_P_FIFO_READ_OFFSET);
-
-    WriteOffset = BDSP_ReadReg64(hMsgQueue->hRegister,
-                   BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset+
-                   (ui32RegOffset * hMsgQueue->ui32FifoId)+
-                   BDSP_RAAGA_P_FIFO_WRITE_OFFSET);
+    ReadOffset  = BDSP_ReadFIFOReg(hMsgQueue->hRegister,hMsgQueue->QueueAddress.ReadOffset);
+    WriteOffset = BDSP_ReadFIFOReg(hMsgQueue->hRegister,hMsgQueue->QueueAddress.WriteOffset);
 
     BDBG_MSG(("BDSP_Raaga_P_WriteMsg_isr, Before Write: Write Offset="BDSP_MSG_FMT",Read Offset="BDSP_MSG_FMT,
         BDSP_MSG_ARG(WriteOffset),BDSP_MSG_ARG(ReadOffset)));
@@ -337,10 +240,8 @@ static BERR_Code BDSP_Raaga_P_WriteMsg_isr(
         WriteOffset = WriteOffset+uiChunk2;
     }
 
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset+
-        (ui32RegOffset * hMsgQueue->ui32FifoId)+
-        BDSP_RAAGA_P_FIFO_WRITE_OFFSET,
+    BDSP_WriteFIFOReg(hMsgQueue->hRegister,
+        hMsgQueue->QueueAddress.WriteOffset,
         WriteOffset);
 
     hMsgQueue->Address.WriteOffset = WriteOffset;
@@ -353,9 +254,9 @@ static BERR_Code BDSP_Raaga_P_WriteMsg_isr(
 }
 
 BERR_Code BDSP_Raaga_P_ReadMsg_isr(
-    BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,  /*[in]*/
-    void                        *pMsg,       /*[out]*/
-    unsigned int                 uiMsgSize   /*[in]*/
+    BDSP_P_MsgQueueHandle  hMsgQueue,  /*[in]*/
+    void                  *pMsg,       /*[out]*/
+    unsigned int           uiMsgSize   /*[in]*/
 )
 {
     BERR_Code   errCode = BERR_SUCCESS;
@@ -363,24 +264,13 @@ BERR_Code BDSP_Raaga_P_ReadMsg_isr(
     void *pDest = NULL;
     unsigned int uiBytesToRead = 0, uiChunk1 = 0, uiChunk2 = 0;
     BDSP_MMA_Memory Memory;
-    uint32_t    ui32RegOffset;
 
     BDBG_ENTER(BDSP_Raaga_P_ReadMsg_isr);
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT(pMsg);
 
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-                    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    ReadOffset = BDSP_ReadReg64(hMsgQueue->hRegister,
-                   BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset+
-                   (ui32RegOffset * hMsgQueue->ui32FifoId)+
-                   BDSP_RAAGA_P_FIFO_READ_OFFSET);
-
-    WriteOffset = BDSP_ReadReg64(hMsgQueue->hRegister,
-                   BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset+
-                   (ui32RegOffset * hMsgQueue->ui32FifoId)+
-                   BDSP_RAAGA_P_FIFO_WRITE_OFFSET);
+    ReadOffset  = BDSP_ReadFIFOReg(hMsgQueue->hRegister, hMsgQueue->QueueAddress.ReadOffset);
+    WriteOffset = BDSP_ReadFIFOReg(hMsgQueue->hRegister, hMsgQueue->QueueAddress.WriteOffset);
 
     BDBG_MSG(("BDSP_Raaga_P_ReadMsg_isr: Before Read, Write Offset="BDSP_MSG_FMT",Read Offset="BDSP_MSG_FMT,
         BDSP_MSG_ARG(WriteOffset),BDSP_MSG_ARG(ReadOffset)));
@@ -504,10 +394,8 @@ BERR_Code BDSP_Raaga_P_ReadMsg_isr(
         ReadOffset = ReadOffset+uiChunk2;
     }
 
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset+
-        (ui32RegOffset * hMsgQueue->ui32FifoId)+
-        BDSP_RAAGA_P_FIFO_READ_OFFSET,
+    BDSP_WriteFIFOReg(hMsgQueue->hRegister,
+        hMsgQueue->QueueAddress.ReadOffset,
         ReadOffset);
 
     hMsgQueue->Address.ReadOffset = ReadOffset;
@@ -520,8 +408,8 @@ BERR_Code BDSP_Raaga_P_ReadMsg_isr(
 }
 
 BERR_Code BDSP_Raaga_P_SendCommand_isr(
-    BDSP_Raaga_P_MsgQueueHandle    hMsgQueue, /*[in]*/
-    const BDSP_Raaga_P_Command    *psCommand  /*[in]*/
+    BDSP_P_MsgQueueHandle          hMsgQueue, /*[in]*/
+    const BDSP_P_Command    *psCommand  /*[in]*/
 )
 {
     BERR_Code   errCode = BERR_SUCCESS;
@@ -530,14 +418,14 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
 
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT(psCommand);
-    uiCommandSize = sizeof(BDSP_Raaga_P_Command);
+    uiCommandSize = sizeof(BDSP_P_Command);
     BDBG_MSG(("psCommand->sCommandHeader.ui32CommandSizeInBytes > %d",
                 psCommand->sCommandHeader.ui32CommandSizeInBytes));
 
     errCode = BDSP_Raaga_P_WriteMsg_isr(hMsgQueue, (void *)psCommand, uiCommandSize);
     if(BERR_SUCCESS != errCode)
     {
-        BDBG_ERR(("BDSP_Raaga_P_WriteMsg_isr: Error in writing the Message into Queue"));
+        BDBG_ERR(("BDSP_Raaga_P_SendCommand_isr: Error in writing the Message into Queue"));
         goto end;
     }
 
@@ -547,8 +435,8 @@ end:
 }
 
 BERR_Code BDSP_Raaga_P_SendCommand(
-    BDSP_Raaga_P_MsgQueueHandle    hMsgQueue, /*[in]*/
-    const BDSP_Raaga_P_Command    *psCommand  /*[in]*/
+    BDSP_P_MsgQueueHandle          hMsgQueue, /*[in]*/
+    const BDSP_P_Command    *psCommand  /*[in]*/
     )
 {
     BERR_Code   errCode = BERR_SUCCESS;
@@ -562,9 +450,9 @@ BERR_Code BDSP_Raaga_P_SendCommand(
     return errCode;
 }
 BERR_Code BDSP_Raaga_P_GetResponse(
-    BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,  /*[in]*/
-    void                        *pMsgBuf,    /*[out]*/
-    unsigned int                 uiMsgSize   /*[in]*/
+    BDSP_P_MsgQueueHandle  hMsgQueue,  /*[in]*/
+    void                  *pMsgBuf,    /*[out]*/
+    unsigned int           uiMsgSize   /*[in]*/
     )
 {
     BERR_Code   errCode = BERR_SUCCESS;
@@ -579,7 +467,7 @@ BERR_Code BDSP_Raaga_P_GetResponse(
 }
 
 BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
-    BDSP_Raaga_P_MsgQueueHandle    hMsgQueue,  /*[in]*/
+    BDSP_P_MsgQueueHandle        hMsgQueue,  /*[in]*/
     void                        *pMsgBuf,   /*[in]*/
     unsigned int                *puiNumMsgs /*[out]*/
 )
@@ -589,24 +477,13 @@ BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
     void *pDest = NULL;
     unsigned uiBytesToRead = 0, uiChunk1 = 0, uiChunk2 = 0;
     BDSP_MMA_Memory Memory;
-    uint32_t    ui32RegOffset;
 
     BDBG_ENTER(BDSP_Raaga_P_GetAsyncMsg_isr);
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT(pMsgBuf);
 
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-                    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    ReadOffset = BDSP_ReadReg64(hMsgQueue->hRegister,
-                   BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset+
-                   (ui32RegOffset * hMsgQueue->ui32FifoId)+
-                   BDSP_RAAGA_P_FIFO_READ_OFFSET);
-
-    WriteOffset = BDSP_ReadReg64(hMsgQueue->hRegister,
-                   BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset+
-                   (ui32RegOffset * hMsgQueue->ui32FifoId)+
-                   BDSP_RAAGA_P_FIFO_WRITE_OFFSET);
+    ReadOffset  = BDSP_ReadFIFOReg(hMsgQueue->hRegister,hMsgQueue->QueueAddress.ReadOffset);
+    WriteOffset = BDSP_ReadFIFOReg(hMsgQueue->hRegister,hMsgQueue->QueueAddress.WriteOffset);
 
     BDBG_MSG(("BDSP_Raaga_P_GetAsyncMsg_isr: Before Read, Write Offset="BDSP_MSG_FMT",Read Offset="BDSP_MSG_FMT,
         BDSP_MSG_ARG(WriteOffset),BDSP_MSG_ARG(ReadOffset)));
@@ -655,9 +532,9 @@ BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
        */
     if(WriteOffset == ReadOffset)
     {
-		/* This Scenario was triggered because interrupt bit got set in firmware whose msg was read already*/
+        /* This Scenario was triggered because interrupt bit got set in firmware whose msg was read already*/
         BDBG_MSG(("BDSP_Raaga_P_GetAsyncMsg_isr: The Message Queue is empty. No message is present."));
-		return(BERR_SUCCESS);
+        return(BERR_SUCCESS);
     }
     else if(WriteOffset > ReadOffset)
     {
@@ -669,14 +546,14 @@ BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
                             (WriteOffset - hMsgQueue->Address.BaseOffset);
     }
 
-	if(uiBytesToRead < sizeof(BDSP_Raaga_P_AsynMsg))
-	{
-		BDBG_ERR(("BDSP_Raaga_P_GetAsyncMsg_isr: Bytes to read(%d) is less than size of the size of single Async message",uiBytesToRead));
-		BDBG_ASSERT(0);
-	}
-	BDBG_MSG(("BDSP_Raaga_P_GetAsyncMsg_isr: Payload size = %lu and bytes to read = %d",(unsigned long)(sizeof(BDSP_Raaga_P_AsynMsg)),uiBytesToRead));
+    if(uiBytesToRead < sizeof(BDSP_P_AsynMsg))
+    {
+        BDBG_ERR(("BDSP_Raaga_P_GetAsyncMsg_isr: Bytes to read(%d) is less than size of the size of single Async message",uiBytesToRead));
+        BDBG_ASSERT(0);
+    }
+    BDBG_MSG(("BDSP_Raaga_P_GetAsyncMsg_isr: Payload size = %lu and bytes to read = %d",(unsigned long)(sizeof(BDSP_P_AsynMsg)),uiBytesToRead));
     /* Revisit this if we make buffers a non-integral multiple of message size */
-    *puiNumMsgs = uiBytesToRead/sizeof(BDSP_Raaga_P_AsynMsg);
+    *puiNumMsgs = uiBytesToRead/sizeof(BDSP_P_AsynMsg);
 
     if(ReadOffset > WriteOffset)
     {
@@ -731,10 +608,8 @@ BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
         ReadOffset = ReadOffset+uiChunk2;
     }
 
-    BDSP_WriteReg64(hMsgQueue->hRegister,
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset+
-        (ui32RegOffset * hMsgQueue->ui32FifoId)+
-        BDSP_RAAGA_P_FIFO_READ_OFFSET,
+    BDSP_WriteFIFOReg(hMsgQueue->hRegister,
+        hMsgQueue->QueueAddress.ReadOffset,
         ReadOffset);
 
     hMsgQueue->Address.ReadOffset = ReadOffset;

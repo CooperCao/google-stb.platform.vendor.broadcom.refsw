@@ -3483,7 +3483,6 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 	bool UpdateGTK = FALSE;
 	eapol_sup_pk_state_t state = EAPOL_SUP_PK_UNKNOWN;
 	uint8 t_gtk[TKIP_TK_LEN];
-	uint8 t_anonce[NONCE_LEN];
 
 	/* get replay counter from recieved frame */
 	bcopy(body->replay, sta->suppl.replay, REPLAY_LEN);
@@ -3513,7 +3512,6 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 		sta->suppl.state = WPA_SUP_STAKEYSTARTP;
 		/* 4-way handshke message 1 - reset state to EAPOL_SUP_PK_MSG1 */
 		if (!(key_info & WPA_KEY_MIC)) {
-			nas_set_key(wpa->nas, &sta->ea, NULL, 0, 0, 0, 0, 0);
 			sta->suppl.pk_state = EAPOL_SUP_PK_MSG1;
 		}
 		/* 4-way handshake message 3 - validate current state.
@@ -3535,6 +3533,12 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 			dbg(wpa->nas, "!Failed");
 			/* bcopy(suppl->snonce, TSNonce, NONCE_LEN); */
 			if (key_info & WPA_KEY_INSTALL) {
+				/* Ignore M3 if anonce is different from that of M1 */
+				if (bcmp(body->nonce, sta->suppl.anonce, NONCE_LEN)) {
+					dbg(wpa->nas, "anonce in key message 3 doesn't"
+						" match anonce in key message 1, discard pkt");
+					return EAPOL_SUP_PK_ERROR;
+				}
 				if ((sta->mode & (WPA2 | WPA2_PSK))) {
 					bcm_tlv_t *rsnie;
 					int len = ntohs(body->data_len);
@@ -3574,23 +3578,41 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 					return EAPOL_SUP_PK_ERROR;
 				}
 			}
-			memset(t_anonce, 0, NONCE_LEN);
-			bcopy(sta->suppl.anonce, t_anonce, NONCE_LEN);
-			bcopy(body->nonce, sta->suppl.anonce, NONCE_LEN);
-			wpa_calc_ptk(wpa, sta);
+			/* If this is Message 1 */
+			if (!(key_info & WPA_KEY_MIC)) {
+				/* Calculate PTK only if anonce is different from previous one */
+				if (bcmp(body->nonce, sta->suppl.anonce, NONCE_LEN)) {
+					bcopy(body->nonce, sta->suppl.anonce, NONCE_LEN);
+					wpa_calc_ptk(wpa, sta);
+				}
+			}
 		}
 
 		if (state == EAPOL_SUP_PK_MICOK)  {
 			dbg(wpa->nas, "MICOK");
 			if (key_info & WPA_KEY_INSTALL) {
-				/* Install a PTK only if it is not retransmitted M3 */
-				if (bcmp(t_anonce, sta->suppl.anonce, NONCE_LEN) ||
-					(sta->suppl.pk_state != EAPOL_SUP_PK_DONE)) {
-					UpdatePTK = TRUE;
-				}
-				else {
+				if (sta->suppl.pk_state == EAPOL_SUP_PK_DONE) {
+					/* Don't install a PTK if it is retransmitted M3 */
+					dbg(wpa->nas, "Retransmitted M3!!!.Ignore installation.");
 					/* Change the state so that M4 is sent */
 					sta->suppl.pk_state = EAPOL_SUP_PK_MSG3;
+				}
+				else if (sta->suppl.pk_state == EAPOL_SUP_PK_MSG3) {
+					/* Install a PTK only if it is different from
+					 * current one
+					 */
+					if (memcmp(sta->suppl.eapol_temp_ptk,
+						sta->suppl.temp_encr_key,
+						sta->suppl.ptk_len)) {
+						UpdatePTK = TRUE;
+					}
+					else {
+						dbg(wpa->nas, "Same PTK!!!.Ignore installation.");
+					}
+				}
+				else {
+					dbg(wpa->nas, "Wrong State!!!");
+					return EAPOL_SUP_PK_ERROR;
 				}
 			}
 			else {
@@ -3655,6 +3677,9 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 			nas_deauthenticate(wpa->nas, &sta->ea, DOT11_RC_BUSY);
 		}
 		else {
+			memset(sta->suppl.eapol_temp_ptk, 0, sizeof(sta->suppl.eapol_temp_ptk));
+			memcpy(sta->suppl.eapol_temp_ptk, sta->suppl.temp_encr_key,
+				sta->suppl.ptk_len);
 			sta->suppl.pk_state = EAPOL_SUP_PK_DONE;
 		}
 	}

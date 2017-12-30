@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 1.1 and 2.0 server-side state structure declaration.
-=============================================================================*/
-
-#ifndef GLXX_SERVER_H
-#define GLXX_SERVER_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/egl/egl_server.h"
 
@@ -35,17 +26,17 @@ OpenGL ES 1.1 and 2.0 server-side state structure declaration.
 #include "middleware/khronos/glxx/glxx_tweaker.h"
 
 typedef struct {
-   GLint uniform;
-   GLint index;
+   int uniform;
+   int index;
    bool in_vshader; /* true if this is a sampler from the vertex shader */
 } GL20_SAMPLER_INFO_T;
 
 typedef struct {
-   GLint offset;
-   GLint size;
-   GLenum type;
+   int offset;
+   int size;
+   unsigned type;
    bool is_array;
-   MEM_HANDLE_T mh_name;
+   char *name;
 } GL20_UNIFORM_INFO_T;
 
 typedef struct {
@@ -422,7 +413,7 @@ typedef struct {
 
         Invariant:
 
-        mh_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
+        mh_array is either MEM_HANDLE_INVALID or a valid handle to a GLXX_BUFFER_T
       */
 
       MEM_HANDLE_T mh_array;
@@ -441,7 +432,7 @@ typedef struct {
 
         Invariant:
 
-        mh_element_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
+        mh_element_array is either MEM_HANDLE_INVALID or a valid handle to a GLXX_BUFFER_T
       */
       MEM_HANDLE_T mh_element_array;
 
@@ -463,7 +454,7 @@ typedef struct {
 
         Invariant:
 
-        mh_attrib_array is either MEM_INVALID_HANDLE or a valid handle to a GLXX_BUFFER_T
+        mh_attrib_array is either MEM_HANDLE_INVALID or a valid handle to a GLXX_BUFFER_T
       */
       MEM_HANDLE_T mh_attrib_array[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
 
@@ -490,12 +481,12 @@ typedef struct {
 
       Invariant:
 
-      mh_twod != MEM_INVALID_HANDLE
+      mh_twod != MEM_HANDLE_INVALID
       mh_twod is a handle to a valid GLXX_TEXTURE_T object
 
       Same for mh_external
 
-      mh_cube == MEM_INVALID_HANDLE
+      mh_cube == MEM_HANDLE_INVALID
       mh_cube is gl 2.0 only
    */
 
@@ -525,7 +516,7 @@ typedef struct {
 
       Invariants:
 
-      mh_default_texture_twod != MEM_INVALID_HANDLE
+      mh_default_texture_twod != MEM_HANDLE_INVALID
       mh_default_texture_twod is a handle to a valid GLXX_TEXTURE_T object
 
       Same goes for mh_default_texture_external
@@ -543,7 +534,7 @@ typedef struct {
 
       Invariants:
 
-      mh_default_texture_cube == MEM_INVALID_HANDLE
+      mh_default_texture_cube == MEM_HANDLE_INVALID
    */
    MEM_HANDLE_T mh_default_texture_cube;
 
@@ -579,7 +570,7 @@ typedef struct {
             DEPTH_16_TF
             DEPTH_32_TF
       else
-         mh_depth == MEM_INVALID_HANDLE
+         mh_depth == MEM_HANDLE_INVALID
 
       (GL11_SERVER_STATE_DEPTH_DIMS)
       If valid
@@ -605,7 +596,7 @@ typedef struct {
             RGBA_5551_TF
             RGBA_4444_TF
       else
-         mh_color_multi == MEM_INVALID_HANDLE
+         mh_color_multi == MEM_HANDLE_INVALID
 
       (GL11_SERVER_STATE_MULTI_DIMS_FMT)
       If valid must be twice the width and height of, and have the same format as the draw surface color buffer
@@ -613,7 +604,6 @@ typedef struct {
 
    MEM_HANDLE_T mh_color_multi;    /* floating KHRN_IMAGE_T */
    MEM_HANDLE_T mh_ds_multi;    /* floating KHRN_IMAGE_T */
-   MEM_HANDLE_T mh_preserve; /* floating KHRN_IMAGE_T used to preserve non-ms color buffer in preserve mode */
 
    uint32_t config_depth_bits;   /* Bit depth of depth buffer in chosen config (not the same as physical depth bits in buffer) */
    uint32_t config_stencil_bits; /* Bit depth of stencil buffer in chosen config (not the same as physical stencil bits in buffer) */
@@ -631,7 +621,6 @@ typedef struct {
    MEM_HANDLE_T mh_cache;
 
    uint32_t name;
-   uint64_t pid;
 
    /*
       Current clear color
@@ -993,10 +982,6 @@ typedef struct {
 
    GLfloat point_size;                                      // U
 
-   uint32_t frame_number; // Nominal frame counter - increments on eglSwapBuffers and glFinish.
-
-   uint32_t swapchainc;   // swapchain count on currently installed buffers
-
    TWEAK_STATE_T  tweak_state;
 
 } GLXX_SERVER_STATE_T;
@@ -1025,7 +1010,7 @@ static INLINE GLXX_SERVER_STATE_T *glxx_lock_server_state(void)
 
    state = (GLXX_SERVER_STATE_T *)egl_state->locked_glcontext;
 
-   vcos_assert(((IS_GL_11(state) && egl_state->glversion == EGL_SERVER_GL11) ||
+   assert(((IS_GL_11(state) && egl_state->glversion == EGL_SERVER_GL11) ||
          (IS_GL_20(state) && egl_state->glversion == EGL_SERVER_GL20)));
 
    return state;
@@ -1038,9 +1023,9 @@ static INLINE void glxx_unlock_server_state(void)
 
    GLXX_SERVER_STATE_T * state = (GLXX_SERVER_STATE_T *)egl_state->locked_glcontext;
 
-   vcos_assert(((IS_GL_11(state) && egl_state->glversion == EGL_SERVER_GL11) ||
+   assert(((IS_GL_11(state) && egl_state->glversion == EGL_SERVER_GL11) ||
          (IS_GL_20(state) && egl_state->glversion == EGL_SERVER_GL20)));
-   vcos_assert(egl_state->locked_glcontext);
+   assert(egl_state->locked_glcontext);
 #endif /* NDEBUG */
 }
 
@@ -1062,11 +1047,13 @@ static INLINE void glxx_force_unlock_server_state(void)
 #define GLXX_FORCE_UNLOCK_SERVER_STATE() glxx_force_unlock_server_state()
 
 extern GLXX_TEXTURE_T *glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state, GLenum target, GLboolean use_face, MEM_HANDLE_T *handle);
-extern void glxx_server_state_set_buffers(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hdraw, uint32_t swapchainc, MEM_HANDLE_T hread,
-                                          MEM_HANDLE_T hdepth, MEM_HANDLE_T hcolormulti, MEM_HANDLE_T hdsmulti, MEM_HANDLE_T hpreserve);
-extern bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, uint64_t pid, MEM_HANDLE_T shared);
+extern void glxx_server_state_set_buffers(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hdraw, MEM_HANDLE_T hread,
+   MEM_HANDLE_T hdepth, MEM_HANDLE_T hcolormulti, MEM_HANDLE_T hdsmulti,
+   uint32_t config_depth_bits, uint32_t config_stencil_bits);
+
+extern bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDLE_T shared);
 extern void glxx_server_state_term(MEM_HANDLE_T handle);
-extern void glxx_server_state_flush(GLXX_SERVER_STATE_T *state, bool wait);
+extern void glxx_server_state_flush(bool wait);
 
 #ifdef DISABLE_OPTION_PARSING
 extern void glxx_server_state_set_error(GLXX_SERVER_STATE_T *state, GLenum error);
@@ -1093,5 +1080,3 @@ static INLINE MEM_HANDLE_T glxx_image_create_ms(KHRN_IMAGE_FORMAT_T format,
    side functions.
 */
 #include "interface/khronos/glxx/glxx_int_impl.h"
-
-#endif

@@ -52,8 +52,9 @@
 #include <sys/mman.h>
 
 #include <pthread.h>
+#include "ata_helper.h"
 
-#define assert(cond) if (!(cond)) { printf("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (1) {} }
+#define assert(cond) if (!(cond)) { ATA_LogErr("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (1) {} }
 
 /*
  * A thread that goes to sleep for long durations
@@ -241,13 +242,13 @@ static void runSleeperTest() {
     printf("pid %d: spawn thread\n", getpid());
 
     if (pthread_create(&sleeper, NULL, periodicWaker, 0)) {
-        fprintf(stderr, "Error creating thread\n");
+        ATA_LogErr("Error creating thread: %s\n", strerror(errno));
         return;
     }
 
     void *rc;
     if (pthread_join(sleeper, &rc)) {
-        fprintf(stderr, "Error joining thread\n");
+        ATA_LogErr("Error joining thread: %s\n",strerror(errno));
         return;
     }
 
@@ -373,29 +374,29 @@ static void runPriorityTest()
 
     s = pthread_create(&cfs_thread_idle, NULL, &thread_idle, NULL);
     if (s != 0)
-        printf("Error pthread_create");
+        ATA_LogErr("Error pthread_create: %s", strerror(errno));
 
     sleep(5);
 
     s = pthread_create(&edf_thread_1, NULL, &thread_edf1, NULL);
     if (s != 0)
-        printf("Error pthread_create");
+        ATA_LogErr("Error pthread_create: %s", strerror(errno));
 
     s = pthread_create(&edf_thread_2, NULL, &thread_edf2, NULL);
     if (s != 0)
-        printf("Error pthread_create");
+        ATA_LogErr("Error pthread_create: %s", strerror(errno));
 
     s = pthread_join(edf_thread_2, NULL);
     if (s != 0)
-        printf("Error pthread_join");
+        ATA_LogErr("Error pthread_join: %s", strerror(errno));
 
     s = pthread_join(edf_thread_1, NULL);
     if (s != 0)
-        printf("Error pthread_join");
+        ATA_LogErr("Error pthread_join: %s", strerror(errno));
 
     s = pthread_join(cfs_thread_idle, NULL);
     if (s != 0)
-        printf("Error pthread_join");
+        ATA_LogErr("Error pthread_join: %s", strerror(errno));
 }
 
 int main(int argc, char **argv) {
@@ -407,6 +408,6 @@ int main(int argc, char **argv) {
     runProducerConsumerTest();
     runSleeperTest();
     runPriorityTest();
-    printf("All tests completed successfully.\n");
+    ATA_LogSuccess("All tests completed successfully.\n");
     return 0;
 }

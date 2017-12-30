@@ -8,8 +8,6 @@
 
 #if defined(_MSC_VER) && (_MSC_VER < 1900)
 
-#include "vcos_types.h" /* For inline */
-
 /* MSVC versions older than 2015 do not have snprintf
  * Implement using _vsnprintf_s
  * See http://stackoverflow.com/questions/2915672/snprintf-and-visual-studio-2010 */

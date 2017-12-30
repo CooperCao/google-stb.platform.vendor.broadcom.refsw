@@ -53,7 +53,7 @@
 #include "bape_priv.h"
 #include "bchp_aud_fmm_bf_ctrl.h"
 #if BAPE_CHIP_MAX_DECODERS
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_decoder);
@@ -67,7 +67,7 @@ BDBG_OBJECT_ID(BAPE_Decoder);
 
 #define BAPE_UNDERFLOW_TIMER_DURATION 1000000 /* 1 second in microseconds */
 
-static void BAPE_Decoder_P_SetupDefaults(BAPE_DecoderHandle handle);
+static void BAPE_Decoder_P_SetupTsmDefaults(BAPE_DecoderHandle handle);
 static void BAPE_Decoder_P_ConvertTsmStatus_isr(BAPE_DecoderTsmStatus *pStatus, const BDSP_AudioTaskTsmStatus *pDspStatus);
 static void BAPE_Decoder_P_FirstPts_isr(void *pParam1, int param2, const BDSP_AudioTaskTsmStatus *pTsmStatus);
 static void BAPE_Decoder_P_TsmFail_isr(void *pParam1, int param2, const BDSP_AudioTaskTsmStatus *pTsmStatus);
@@ -92,7 +92,7 @@ static void BAPE_Decoder_P_DialnormChange_isr(void *pParam1, int param2);
 static BERR_Code BAPE_Decoder_P_DeriveMultistreamLinkage(BAPE_DecoderHandle handle);
 static void BAPE_Decoder_P_EncoderOverflow_isr(void *pParam1, int param2);
 static bool BAPE_Decoder_P_OrphanConnector(BAPE_DecoderHandle handle, BAPE_ConnectorFormat format);
-static BERR_Code BAPE_Decoder_P_GetPathDelay_isrsafe(BAPE_DecoderHandle handle, unsigned *pDelay);
+static BERR_Code BAPE_Decoder_P_GetPathDelay_isr(BAPE_DecoderHandle handle, unsigned *pDelay);
 static void BAPE_Decoder_P_FreeDecodeToMemory(BAPE_DecoderHandle hDecoder);
 static bool BAPE_Decoder_P_HasConnectedOutput(BAPE_DecoderHandle handle, BAPE_ConnectorFormat format);
 
@@ -178,20 +178,36 @@ BERR_Code BAPE_Decoder_Open(
     )
 {
     BAPE_DecoderOpenSettings defaults;
-    BAPE_DecoderHandle handle;
+    BAPE_DecoderHandle handle = NULL;
     BDSP_TaskCreateSettings dspSettings;
     BAPE_FMT_Descriptor format;
     BAPE_FMT_Capabilities caps;
     BERR_Code errCode;
-    BDSP_StageCreateSettings stageCreateSettings, stageCreateSettingsPT;
+    BDSP_StageCreateSettings *stageCreateSettings = NULL, *stageCreateSettingsPT = NULL;
     bool srcEnabled=false, dsolaEnabled=false, decodeEnabled = false, karaokeEnabled=false;
     #if BAPE_DECODER_ENABLE_GENERIC_PT
     bool passthroughEnabled=false;
     #endif
     unsigned i;
-
+    unsigned dspIndex = 0;
+    BDSP_ContextHandle dspContext = NULL;
+    unsigned dspIndexBase = 0;
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
+
+    stageCreateSettings = BKNI_Malloc(sizeof(BDSP_StageCreateSettings));
+    if ( stageCreateSettings == NULL ) {
+        BDBG_ERR(("Unable to allocate memory for Stage Settings"));
+        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_stage_settings;
+    }
+
+    stageCreateSettingsPT = BKNI_Malloc(sizeof(BDSP_StageCreateSettings));
+    if ( stageCreateSettingsPT == NULL ) {
+        BDBG_ERR(("Unable to allocate memory for PT Stage Settings"));
+        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_stage_settings;
+    }
 
     if ( NULL == pSettings )
     {
@@ -202,35 +218,85 @@ BERR_Code BAPE_Decoder_Open(
     if ( index >= BAPE_CHIP_MAX_DECODERS )
     {
         BDBG_ERR(("This chip only supports %u decoders.  Cannot open decoder %u", BAPE_CHIP_MAX_DECODERS, index));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_stage_settings;
     }
 
     if ( deviceHandle->decoders[index] )
     {
         BDBG_ERR(("Decoder %d already open", index));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_stage_settings;
     }
 
-    if ( pSettings->dspIndex >= deviceHandle->numDsps )
+    if ( deviceHandle->dspHandle == NULL && deviceHandle->armHandle == NULL )
     {
-        BDBG_ERR(("DSP %u is not available.  This system has %u DSPs.", pSettings->dspIndex, deviceHandle->numDsps));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        BDBG_ERR(("No available dsp or arm device for audio"));
+    }
+
+    dspIndex = pSettings->dspIndex;
+
+    /* Shift the dsp index to the arm if dsp is not enabled, but arm audio is*/
+    if ( pSettings->dspIndex <= BAPE_DEVICE_DSP_LAST &&
+         deviceHandle->dspHandle == NULL && deviceHandle->armHandle != NULL )
+    {
+        dspIndex += BAPE_DEVICE_ARM_FIRST;
+    }
+
+    if ( dspIndex >= BAPE_DEVICE_ARM_FIRST &&
+         ( dspIndex >= (BAPE_DEVICE_ARM_FIRST + deviceHandle->numArms) ||
+           deviceHandle->armHandle == NULL ) )
+    {
+        BDBG_ERR(("ARM device index %u is not available.  This system has %u ARM Audio Processors, arm handle %p.", dspIndex, deviceHandle->numArms, (void*)deviceHandle->armHandle));
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_stage_settings;
+    }
+
+    if ( dspIndex <= BAPE_DEVICE_DSP_LAST && (dspIndex >= deviceHandle->numDsps || deviceHandle->dspHandle == NULL ) )
+    {
+        BDBG_ERR(("DSP %u is not available.  This system has %u DSPs, dsp handle %p.", dspIndex, deviceHandle->numDsps, (void*)deviceHandle->dspHandle));
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_stage_settings;
+    }
+
+    if ( dspIndex >= BAPE_DEVICE_ARM_FIRST )
+    {
+        dspContext = deviceHandle->armContext;
+        dspIndexBase = BAPE_DEVICE_ARM_FIRST;
+        BDBG_MSG(("Selected ARM device, absolute index %d, BDSP device index %d", dspIndex, BAPE_DSP_DEVICE_INDEX(dspIndex, dspIndexBase)));
+    }
+    else
+    {
+        dspContext = deviceHandle->dspContext;
+        dspIndexBase = BAPE_DEVICE_DSP_FIRST;
+        BDBG_MSG(("Selected DSP device, absolute index %d, BDSP device index %d", dspIndex, BAPE_DSP_DEVICE_INDEX(dspIndex, dspIndexBase)));
+    }
+
+    if ( dspContext == NULL )
+    {
+        BDBG_ERR(("No DSP or ARM device available."));
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_stage_settings;
     }
 
     handle = BKNI_Malloc(sizeof(BAPE_Decoder));
-    if ( NULL == handle )
-    {
-        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    if ( NULL == handle ) {
+        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_handle;
     }
+
     BKNI_Memset(handle, 0, sizeof(BAPE_Decoder));
     BDBG_OBJECT_SET(handle, BAPE_Decoder);
     handle->deviceHandle = deviceHandle;
     handle->index = index;
-    handle->dspIndex = pSettings->dspIndex;
+    handle->dspIndex = dspIndex;
+    handle->dspIndexBase = dspIndexBase;
+    handle->dspContext = dspContext;
     BKNI_Snprintf(handle->name, sizeof(handle->name), "Decoder %u", index);
     BAPE_P_InitPathNode(&handle->node, BAPE_PathNodeType_eDecoder, 0, BAPE_ConnectorFormat_eMax, deviceHandle, handle);
     BLST_S_INIT(&handle->muxOutputList);
-    handle->node.dspIndex = handle->dspIndex;
+    handle->node.deviceIndex = handle->dspIndex;
+    handle->node.deviceContext = (void*)handle->dspContext;
     handle->node.pName = handle->name;
     handle->node.connectors[BAPE_ConnectorFormat_eStereo].pName = "stereo";
     handle->node.connectors[BAPE_ConnectorFormat_eStereo].useBufferPool = true;
@@ -319,13 +385,17 @@ BERR_Code BAPE_Decoder_Open(
     handle->settings.loudnessEquivalenceEnabled = true;
     BAPE_Decoder_GetDefaultKaraokeSettings(&handle->settings.karaokeSettings);
     BAPE_Decoder_GetDefaultStartSettings(&handle->startSettings);
-    BAPE_Decoder_P_SetupDefaults(handle);
+    BAPE_Decoder_P_SetupTsmDefaults(handle);
+    BAPE_Decoder_P_GetDefaultCodecSettings(handle);
 
     if ( pSettings->ancillaryDataFifoSize > 0 )
     {
+        unsigned tempSize;
         BDSP_QueueCreateSettings queueSettings;
 
-        handle->ancDataDspBlock = BMMA_Alloc(deviceHandle->memHandle, pSettings->ancillaryDataFifoSize, 0, NULL);
+        tempSize = pSettings->ancillaryDataFifoSize;
+        BDSP_SIZE_ALIGN(tempSize);
+        handle->ancDataDspBlock = BMMA_Alloc(deviceHandle->memHandle, tempSize, BDSP_ADDRESS_ALIGN, NULL);
         if ( NULL == handle->ancDataDspBlock )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -344,7 +414,7 @@ BERR_Code BAPE_Decoder_Open(
             goto err_ancillary_buffer;
         }
 
-        BDSP_Queue_GetDefaultSettings(handle->deviceHandle->dspContext, &queueSettings);
+        BDSP_Queue_GetDefaultSettings(handle->dspContext, &queueSettings);
         queueSettings.dataType = BDSP_DataType_eRdbAnc;
         queueSettings.numBuffers = 1;
         queueSettings.bufferInfo[0].bufferSize = pSettings->ancillaryDataFifoSize;
@@ -352,13 +422,16 @@ BERR_Code BAPE_Decoder_Open(
         queueSettings.bufferInfo[0].buffer.offset = handle->ancDataDspOffset;
         queueSettings.bufferInfo[0].buffer.pAddr = handle->pAncDataDspBuffer;
 
-        errCode = BDSP_Queue_Create(deviceHandle->dspContext, pSettings->dspIndex, &queueSettings, &handle->hAncDataQueue);
+        errCode = BDSP_Queue_Create(handle->dspContext, BAPE_DSP_DEVICE_INDEX(handle->dspIndex, handle->dspIndexBase), &queueSettings, &handle->hAncDataQueue);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
             goto err_ancillary_buffer;
         }
-        handle->ancDataHostBlock = BMMA_Alloc(deviceHandle->memHandle, pSettings->ancillaryDataFifoSize, 0, NULL);
+
+        tempSize = pSettings->ancillaryDataFifoSize;
+        BDSP_SIZE_ALIGN(tempSize);
+        handle->ancDataHostBlock = BMMA_Alloc(deviceHandle->memHandle, tempSize, BDSP_ADDRESS_ALIGN, NULL);
         if ( NULL == handle->ancDataHostBlock )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -379,9 +452,9 @@ BERR_Code BAPE_Decoder_Open(
         handle->ancDataBufferSize = pSettings->ancillaryDataFifoSize;
     }
 
-    BDSP_Task_GetDefaultCreateSettings(deviceHandle->dspContext, &dspSettings);
+    BDSP_Task_GetDefaultCreateSettings(handle->dspContext, &dspSettings);
 
-    dspSettings.dspIndex = handle->dspIndex;
+    dspSettings.dspIndex = BAPE_DSP_DEVICE_INDEX(handle->dspIndex, dspIndexBase);
 
     /* Determine allocations and task type based on decoder type */
     handle->type = pSettings->type;
@@ -410,7 +483,7 @@ BERR_Code BAPE_Decoder_Open(
         break;
     }
 
-    errCode = BDSP_Task_Create(deviceHandle->dspContext, &dspSettings, &handle->hTask);
+    errCode = BDSP_Task_Create(handle->dspContext, &dspSettings, &handle->hTask);
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
@@ -419,7 +492,6 @@ BERR_Code BAPE_Decoder_Open(
 
     if ( handle->type == BAPE_DecoderType_eDecodeToMemory )
     {
-        BAPE_Capabilities apeCaps;
         errCode = BAPE_Decoder_SetDecodeToMemorySettings(handle, &g_defaultDecodeToMemSettings);
         if ( errCode )
         {
@@ -427,12 +499,10 @@ BERR_Code BAPE_Decoder_Open(
             goto err_stage;
         }
 
-        BAPE_GetCapabilities(deviceHandle, &apeCaps);
-
-        BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
-        BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
-        stageCreateSettings.algorithmSupported[BDSP_Algorithm_eOutputFormatter] = true;
-        errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hOutputFormatter);
+        BDSP_Stage_GetDefaultCreateSettings(handle->dspContext, BDSP_AlgorithmType_eAudioProcessing, stageCreateSettings);
+        BKNI_Memset(stageCreateSettings->algorithmSupported, 0, sizeof(stageCreateSettings->algorithmSupported));
+        stageCreateSettings->algorithmSupported[BDSP_Algorithm_eOutputFormatter] = true;
+        errCode = BDSP_Stage_Create(handle->dspContext, stageCreateSettings, &handle->hOutputFormatter);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
@@ -455,10 +525,10 @@ BERR_Code BAPE_Decoder_Open(
         #if BAPE_DECODER_ENABLE_GENERIC_PT
         if ( passthroughEnabled )
         {
-            BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioPassthrough, &stageCreateSettings);
-            BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
-            stageCreateSettings.algorithmSupported[BDSP_Algorithm_eGenericPassthrough] = true;
-            errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hPassthroughStage);
+            BDSP_Stage_GetDefaultCreateSettings(handle->dspContext, BDSP_AlgorithmType_eAudioPassthrough, stageCreateSettings);
+            BKNI_Memset(stageCreateSettings->algorithmSupported, 0, sizeof(stageCreateSettings->algorithmSupported));
+            stageCreateSettings->algorithmSupported[BDSP_Algorithm_eGenericPassthrough] = true;
+            errCode = BDSP_Stage_Create(handle->dspContext, stageCreateSettings, &handle->hPassthroughStage);
             if ( errCode )
             {
                 errCode = BERR_TRACE(errCode);
@@ -468,35 +538,35 @@ BERR_Code BAPE_Decoder_Open(
         #endif
     }
 
-    BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, decodeEnabled ? BDSP_AlgorithmType_eAudioDecode : BDSP_AlgorithmType_eAudioPassthrough, &stageCreateSettings);
+    BDSP_Stage_GetDefaultCreateSettings(handle->dspContext, decodeEnabled ? BDSP_AlgorithmType_eAudioDecode : BDSP_AlgorithmType_eAudioPassthrough, stageCreateSettings);
     /* filter based on application bavc algo list and ape codec table */
     /* CITTODO - Set a list of algos from NEXUS and verify */
     BAPE_P_PopulateSupportedBDSPAlgos( decodeEnabled ? BDSP_AlgorithmType_eAudioDecode : BDSP_AlgorithmType_eAudioPassthrough,
         (pSettings->pSupportedCodecs != NULL && pSettings->numSupportedCodecs > 0) ? pSettings->pSupportedCodecs : NULL,
         pSettings->numSupportedCodecs,
-        (const bool *)stageCreateSettings.algorithmSupported,
-        stageCreateSettings.algorithmSupported);
+        (const bool *)stageCreateSettings->algorithmSupported,
+        stageCreateSettings->algorithmSupported);
 
     if ( decodeEnabled )
     {
         /* also enable PT on the primary decode stage. */
-        BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioPassthrough, &stageCreateSettingsPT);
+        BDSP_Stage_GetDefaultCreateSettings(handle->dspContext, BDSP_AlgorithmType_eAudioPassthrough, stageCreateSettingsPT);
         /* filter based on application bavc algo list and ape codec table */
         BAPE_P_PopulateSupportedBDSPAlgos( BDSP_AlgorithmType_eAudioPassthrough,
             (pSettings->pSupportedCodecs != NULL && pSettings->numSupportedCodecs > 0) ? pSettings->pSupportedCodecs : NULL,
             pSettings->numSupportedCodecs,
-            (const bool *)stageCreateSettingsPT.algorithmSupported,
-            stageCreateSettingsPT.algorithmSupported);
+            (const bool *)stageCreateSettingsPT->algorithmSupported,
+            stageCreateSettingsPT->algorithmSupported);
         for ( i=0; i<BDSP_Algorithm_eMax; i++ )
         {
-            if ( stageCreateSettingsPT.algorithmSupported[i] )
+            if ( stageCreateSettingsPT->algorithmSupported[i] )
             {
-                stageCreateSettings.algorithmSupported[i] = stageCreateSettingsPT.algorithmSupported[i];
+                stageCreateSettings->algorithmSupported[i] = stageCreateSettingsPT->algorithmSupported[i];
             }
         }
     }
 
-    errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hPrimaryStage);
+    errCode = BDSP_Stage_Create(handle->dspContext, stageCreateSettings, &handle->hPrimaryStage);
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
@@ -505,16 +575,16 @@ BERR_Code BAPE_Decoder_Open(
 
     if ( dsolaEnabled )
     {
-        BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
-        BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
-        stageCreateSettings.algorithmSupported[BDSP_Algorithm_eDsola] = true;
-        errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hDsolaStageStereo);
+        BDSP_Stage_GetDefaultCreateSettings(handle->dspContext, BDSP_AlgorithmType_eAudioProcessing, stageCreateSettings);
+        BKNI_Memset(stageCreateSettings->algorithmSupported, 0, sizeof(stageCreateSettings->algorithmSupported));
+        stageCreateSettings->algorithmSupported[BDSP_Algorithm_eDsola] = true;
+        errCode = BDSP_Stage_Create(handle->dspContext, stageCreateSettings, &handle->hDsolaStageStereo);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
             goto err_stage;
         }
-        errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hDsolaStageMultichannel);
+        errCode = BDSP_Stage_Create(handle->dspContext, stageCreateSettings, &handle->hDsolaStageMultichannel);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
@@ -523,10 +593,10 @@ BERR_Code BAPE_Decoder_Open(
     }
     if ( karaokeEnabled )
     {
-        BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
-        BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
-        stageCreateSettings.algorithmSupported[BDSP_Algorithm_eKaraoke] = true;
-        errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hKaraokeStage);
+        BDSP_Stage_GetDefaultCreateSettings(handle->dspContext, BDSP_AlgorithmType_eAudioProcessing, stageCreateSettings);
+        BKNI_Memset(stageCreateSettings->algorithmSupported, 0, sizeof(stageCreateSettings->algorithmSupported));
+        stageCreateSettings->algorithmSupported[BDSP_Algorithm_eKaraoke] = true;
+        errCode = BDSP_Stage_Create(handle->dspContext, stageCreateSettings, &handle->hKaraokeStage);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
@@ -536,16 +606,16 @@ BERR_Code BAPE_Decoder_Open(
     }
     if ( srcEnabled )
     {
-        BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
-        BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
-        stageCreateSettings.algorithmSupported[BDSP_Algorithm_eSrc] = true;
-        errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hSrcStageStereo);
+        BDSP_Stage_GetDefaultCreateSettings(handle->dspContext, BDSP_AlgorithmType_eAudioProcessing, stageCreateSettings);
+        BKNI_Memset(stageCreateSettings->algorithmSupported, 0, sizeof(stageCreateSettings->algorithmSupported));
+        stageCreateSettings->algorithmSupported[BDSP_Algorithm_eSrc] = true;
+        errCode = BDSP_Stage_Create(handle->dspContext, stageCreateSettings, &handle->hSrcStageStereo);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
             goto err_stage;
         }
-        errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hSrcStageMultichannel);
+        errCode = BDSP_Stage_Create(handle->dspContext, stageCreateSettings, &handle->hSrcStageMultichannel);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
@@ -558,6 +628,9 @@ BERR_Code BAPE_Decoder_Open(
     /* Success */
     *pHandle = handle;
     deviceHandle->decoders[index] = handle;
+
+    BKNI_Free(stageCreateSettings);
+    BKNI_Free(stageCreateSettingsPT);
     return BERR_SUCCESS;
 
 err_stage:
@@ -566,8 +639,18 @@ err_ancillary_buffer:
 err_connector_format:
 err_caps:
 err_settings:
-    BAPE_Decoder_Close(handle);
-    return errCode;
+err_handle:
+    if (handle){
+        BAPE_Decoder_Close(handle);
+    }
+err_stage_settings:
+    if (stageCreateSettings) {
+        BKNI_Free(stageCreateSettings);
+    }
+    if (stageCreateSettingsPT) {
+        BKNI_Free(stageCreateSettingsPT);
+    }
+return errCode;
 }
 
 void BAPE_Decoder_Close(
@@ -901,6 +984,24 @@ static void BAPE_Decoder_P_ValidatePauseBursts(BAPE_DecoderHandle handle)
     return;
 }
 
+static BDSP_Handle BAPE_P_GetDspHandleFromContext(BAPE_Handle hApe, BDSP_ContextHandle dspContext)
+{
+    BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
+
+    if ( dspContext == NULL )
+    {
+        BDBG_ERR(("Invalid configuration. No DSP context"));
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return NULL;
+    }
+
+    if ( dspContext == hApe->armContext )
+    {
+        return hApe->armHandle;
+    }
+
+    return hApe->dspHandle;
+}
 
 static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
     BAPE_DecoderHandle handle,
@@ -939,7 +1040,7 @@ static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
     }
 
     /* Check for FW availability */
-    errCode = BDSP_GetAlgorithmInfo(handle->deviceHandle->dspHandle, BAPE_P_GetCodecAudioDecode(pSettings->codec), &algoInfo);
+    errCode = BDSP_GetAlgorithmInfo(BAPE_P_GetDspHandleFromContext(handle->deviceHandle, handle->dspContext), BAPE_P_GetCodecAudioDecode(pSettings->codec), &algoInfo);
     if ( errCode )
     {
         return BERR_TRACE(errCode);
@@ -976,7 +1077,7 @@ static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
     if ( handle->passthrough )
     {
         /* Check for DSP PT FW availability */
-        errCode = BDSP_GetAlgorithmInfo(handle->deviceHandle->dspHandle, BAPE_P_GetCodecAudioPassthrough(pSettings->codec), &algoInfo);
+        errCode = BDSP_GetAlgorithmInfo(BAPE_P_GetDspHandleFromContext(handle->deviceHandle, handle->dspContext), BAPE_P_GetCodecAudioPassthrough(pSettings->codec), &algoInfo);
 
         /* Determine if passthrough is allowed by both APE and FW */
         if ( !BAPE_P_CodecSupportsPassthrough(pSettings->codec) || !algoInfo.supported )
@@ -1098,7 +1199,7 @@ static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
     }
 
     /* Find any MuxOutput consumers - required for overflow handling */
-    BAPE_PathNode_P_FindConsumersByType(&handle->node, BAPE_PathNodeType_eMuxOutput, BAPE_MAX_NODES, &numFound, pNodes);
+    BAPE_PathNode_P_FindConsumersByType_isrsafe(&handle->node, BAPE_PathNodeType_eMuxOutput, BAPE_MAX_NODES, &numFound, pNodes);
     if ( numFound > BAPE_MAX_NODES )
     {
         BDBG_ERR(("increase BAPE_MAX_NODES"));
@@ -1281,7 +1382,7 @@ static BERR_Code BAPE_Decoder_P_Start(
     BERR_Code errCode;
     unsigned input, output;
     const BAPE_DecoderStartSettings *pSettings;
-    BDSP_TaskStartSettings taskStartSettings;
+    BDSP_TaskStartSettings *taskStartSettings = NULL;
     BAPE_FMT_Descriptor format;
     BDSP_StageHandle hStage;
     BTMR_TimerSettings timerSettings;
@@ -1301,23 +1402,30 @@ static BERR_Code BAPE_Decoder_P_Start(
     BDBG_MSG(("%s: %u compressed 16x consumers", handle->node.pName, handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eCompressed16x].directConnections));
     BDBG_MSG(("%s: %u mono consumers", handle->node.pName, handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMono].directConnections));
 
-    /* Setup Task Parameters */
-    BDSP_Task_GetDefaultStartSettings(handle->hTask, &taskStartSettings);
+    taskStartSettings = BKNI_Malloc(sizeof(BDSP_TaskStartSettings));
+    if ( NULL == taskStartSettings ) {
+        BDBG_ERR(("Unable to allocate memory for task start settings"));
+        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        goto err_alloc;
+    }
 
-    taskStartSettings.ppmCorrection = pSettings->ppmCorrection;
-    taskStartSettings.primaryStage = handle->hPrimaryStage;
+    /* Setup Task Parameters */
+    BDSP_Task_GetDefaultStartSettings(handle->hTask, taskStartSettings);
+
+    taskStartSettings->ppmCorrection = pSettings->ppmCorrection;
+    taskStartSettings->primaryStage = handle->hPrimaryStage;
     switch ( pSettings->streamType )
     {
     case BAVC_StreamType_eDssEs:
     case BAVC_StreamType_eDssPes:
-           taskStartSettings.timeBaseType = BDSP_AF_P_TimeBaseType_e27Mhz;
+           taskStartSettings->timeBaseType = BDSP_AF_P_TimeBaseType_e27Mhz;
            break;
     default:
-           taskStartSettings.timeBaseType = BDSP_AF_P_TimeBaseType_e45Khz;
+           taskStartSettings->timeBaseType = BDSP_AF_P_TimeBaseType_e45Khz;
            break;
     }
 
-    taskStartSettings.audioTaskDelayMode = BDSP_AudioTaskDelayMode_eDefault;
+    taskStartSettings->audioTaskDelayMode = BDSP_AudioTaskDelayMode_eDefault;
     if ( pSettings->delayMode == BAPE_DspDelayMode_eLowVariable )
     {
         switch ( pSettings->codec )
@@ -1326,7 +1434,7 @@ static BERR_Code BAPE_Decoder_P_Start(
             case BAVC_AudioCompressionStd_eAacLoas:
             case BAVC_AudioCompressionStd_eAc3:
             case BAVC_AudioCompressionStd_eLpcm1394:
-                taskStartSettings.audioTaskDelayMode = BDSP_AudioTaskDelayMode_WD_eLowest;
+                taskStartSettings->audioTaskDelayMode = BDSP_AudioTaskDelayMode_WD_eLowest;
                 break;
             default:
                 break;
@@ -1340,14 +1448,14 @@ static BERR_Code BAPE_Decoder_P_Start(
             case BAVC_AudioCompressionStd_eAacLoas:
             case BAVC_AudioCompressionStd_eAc3:
             case BAVC_AudioCompressionStd_eLpcm1394:
-                taskStartSettings.audioTaskDelayMode = BDSP_AudioTaskDelayMode_WD_eLow;
+                taskStartSettings->audioTaskDelayMode = BDSP_AudioTaskDelayMode_WD_eLow;
                 break;
             default:
                 break;
         }
     }
 
-    BDBG_MSG(("BDSP Path Delay Mode %d", taskStartSettings.audioTaskDelayMode));
+    BDBG_MSG(("BDSP Path Delay Mode %d", taskStartSettings->audioTaskDelayMode));
 
     if ( (handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eAlternateStereo].directConnections > 0 && !BAPE_Decoder_P_OrphanConnector(handle, BAPE_ConnectorFormat_eAlternateStereo)) &&
           pSettings->codec != BAVC_AudioCompressionStd_eAc4 )
@@ -1356,38 +1464,38 @@ static BERR_Code BAPE_Decoder_P_Start(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    if ( taskStartSettings.audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLow ||
-         taskStartSettings.audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLowest )
+    if ( taskStartSettings->audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLow ||
+         taskStartSettings->audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLowest )
     {
-        taskStartSettings.eZeroPhaseCorrEnable = false;
+        taskStartSettings->eZeroPhaseCorrEnable = false;
     }
     else
     {
-        taskStartSettings.eZeroPhaseCorrEnable = true;
+        taskStartSettings->eZeroPhaseCorrEnable = true;
     }
 
-    BDBG_MSG(("BDSP zero phase correction %d", taskStartSettings.eZeroPhaseCorrEnable));
+    BDBG_MSG(("BDSP zero phase correction %d", taskStartSettings->eZeroPhaseCorrEnable));
 
     if ( handle->type == BAPE_DecoderType_eDecodeToMemory )
     {
-        taskStartSettings.realtimeMode = BDSP_TaskRealtimeMode_eOnDemand;
+        taskStartSettings->realtimeMode = BDSP_TaskRealtimeMode_eOnDemand;
     }
     else
     {
-        taskStartSettings.realtimeMode = pSettings->nonRealTime ? BDSP_TaskRealtimeMode_eNonRealTime : BDSP_TaskRealtimeMode_eRealTime;
+        taskStartSettings->realtimeMode = pSettings->nonRealTime ? BDSP_TaskRealtimeMode_eNonRealTime : BDSP_TaskRealtimeMode_eRealTime;
     }
 
     BAPE_Decoder_P_ValidatePauseBursts(handle);
 
     if (handle->disablePauseBursts == false) {
-        taskStartSettings.eSpdifPauseWidth = BDSP_AF_P_SpdifPauseWidth_eHundredEightyEightWord;
-        taskStartSettings.eFMMPauseBurstType = BDSP_AF_P_BurstFill_ePauseBurst;
+        taskStartSettings->eSpdifPauseWidth = BDSP_AF_P_SpdifPauseWidth_eHundredEightyEightWord;
+        taskStartSettings->eFMMPauseBurstType = BDSP_AF_P_BurstFill_ePauseBurst;
     }
     else {
-        taskStartSettings.eFMMPauseBurstType = BDSP_AF_P_BurstFill_eZeroes;
+        taskStartSettings->eFMMPauseBurstType = BDSP_AF_P_BurstFill_eZeroes;
     }
 
-    errCode = BAPE_DSP_P_DeriveTaskStartSettings(&handle->node, &taskStartSettings);
+    errCode = BAPE_DSP_P_DeriveTaskStartSettings(&handle->node, taskStartSettings);
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
@@ -1426,9 +1534,9 @@ static BERR_Code BAPE_Decoder_P_Start(
     else /* DFIFO Input */
     {
         unsigned i;
-        BDSP_FmmBufferDescriptor fmmInputDesc;
+        BDSP_FmmBufferDescriptor *fmmInputDesc = NULL;
         BAPE_DfifoGroupCreateSettings dfifoCreateSettings;
-        BAPE_DfifoGroupSettings dfifoSettings;
+        BAPE_DfifoGroupSettings *dfifoSettings = NULL;
 
         /* Make sure the input is usable.  Don't reference InputPort fields until after this.  */
         errCode = BAPE_InputPort_P_AttachConsumer(pSettings->inputPort, &handle->node, &handle->inputPortFormat);
@@ -1475,32 +1583,39 @@ static BERR_Code BAPE_Decoder_P_Start(
             goto err_dfifo_alloc;
         }
 
-        BAPE_DfifoGroup_P_GetSettings(handle->inputDfifoGroup, &dfifoSettings);
+        dfifoSettings = BKNI_Malloc(sizeof(BDSP_FmmBufferDescriptor));
+        if ( NULL == dfifoSettings ) {
+            BDBG_ERR(("Unable to allocate memory for DFIFO Settings"));
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            goto err_set_dfifo_settings;
+        }
+
+        BAPE_DfifoGroup_P_GetSettings(handle->inputDfifoGroup, dfifoSettings);
         if ( handle->fciSpOutput )
         {
-            BAPE_FciSplitterOutputGroup_P_GetOutputFciIds(handle->fciSpOutput, &dfifoSettings.input);
+            BAPE_FciSplitterOutputGroup_P_GetOutputFciIds(handle->fciSpOutput, &dfifoSettings->input);
         }
         else
         {
-            BAPE_InputPort_P_GetFciIds(pSettings->inputPort, &dfifoSettings.input);
+            BAPE_InputPort_P_GetFciIds(pSettings->inputPort, &dfifoSettings->input);
         }
-        dfifoSettings.highPriority = (handle->inputPortFormat.sampleRate >= 96000) ? true : false;
+        dfifoSettings->highPriority = (handle->inputPortFormat.sampleRate >= 96000) ? true : false;
 
         if ( BAPE_FMT_P_IsLinearPcm_isrsafe(&handle->inputPortFormat) )
         {
-            dfifoSettings.interleaveData = false;
-            dfifoSettings.dataWidth = 32;
+            dfifoSettings->interleaveData = false;
+            dfifoSettings->dataWidth = 32;
         }
         else
         {
-            dfifoSettings.reverseEndian = true; /* data from input needs to be endian swapped for dsp */
-            dfifoSettings.interleaveData = true;
-            dfifoSettings.dataWidth = 16;
+            dfifoSettings->reverseEndian = true; /* data from input needs to be endian swapped for dsp */
+            dfifoSettings->interleaveData = true;
+            dfifoSettings->dataWidth = 16;
         }
 
         errCode = BAPE_P_AllocateBuffers(handle->deviceHandle, &handle->inputPortFormat, handle->pInputBuffers);
-        if ( errCode )
-        {
+        if ( errCode ) {
+            BKNI_Free(dfifoSettings);
             errCode = BERR_TRACE(errCode);
             goto err_input_buffers;
         }
@@ -1508,42 +1623,54 @@ static BERR_Code BAPE_Decoder_P_Start(
         for ( i = 0; i < dfifoCreateSettings.numChannelPairs; i++ )
         {
             /* Setup CIT to have correct ringbuffer ID for each DFIFO -- TODO: There should be a routine in dsp_utils_priv that takes a DFIFO Group handle instead */
-            dfifoSettings.bufferInfo[2*i].block = handle->pInputBuffers[i]->block;
-            dfifoSettings.bufferInfo[2*i].pBuffer = handle->pInputBuffers[i]->pMemory;
-            dfifoSettings.bufferInfo[2*i].base = handle->pInputBuffers[i]->offset;
-            if ( dfifoSettings.interleaveData )
+            dfifoSettings->bufferInfo[2*i].block = handle->pInputBuffers[i]->block;
+            dfifoSettings->bufferInfo[2*i].pBuffer = handle->pInputBuffers[i]->pMemory;
+            dfifoSettings->bufferInfo[2*i].base = handle->pInputBuffers[i]->offset;
+            if ( dfifoSettings->interleaveData )
             {
-                dfifoSettings.bufferInfo[2*i].length = handle->pInputBuffers[i]->bufferSize;
+                dfifoSettings->bufferInfo[2*i].length = handle->pInputBuffers[i]->bufferSize;
             }
             else
             {
                 unsigned length = handle->pInputBuffers[i]->bufferSize/2;
-                dfifoSettings.bufferInfo[2*i].length = dfifoSettings.bufferInfo[(2*i)+1].length = length;
-                dfifoSettings.bufferInfo[(2*i)+1].block = dfifoSettings.bufferInfo[2*i].block;
-                dfifoSettings.bufferInfo[(2*i)+1].pBuffer = (uint8_t*)handle->pInputBuffers[i]->pMemory + length;
-                dfifoSettings.bufferInfo[(2*i)+1].base = handle->pInputBuffers[i]->offset + length;
+                dfifoSettings->bufferInfo[2*i].length = dfifoSettings->bufferInfo[(2*i)+1].length = length;
+                dfifoSettings->bufferInfo[(2*i)+1].block = dfifoSettings->bufferInfo[2*i].block;
+                dfifoSettings->bufferInfo[(2*i)+1].pBuffer = (uint8_t*)handle->pInputBuffers[i]->pMemory + length;
+                dfifoSettings->bufferInfo[(2*i)+1].base = handle->pInputBuffers[i]->offset + length;
             }
         }
-        errCode = BAPE_DfifoGroup_P_SetSettings(handle->inputDfifoGroup, &dfifoSettings);
-        if ( errCode )
-        {
+        errCode = BAPE_DfifoGroup_P_SetSettings(handle->inputDfifoGroup, dfifoSettings);
+        if ( errCode ) {
+            BKNI_Free(dfifoSettings);
             (void)BERR_TRACE(errCode);
             goto err_set_dfifo_settings;
         }
 
-        errCode = BAPE_DSP_P_InitFmmInputDescriptor(handle->inputDfifoGroup, &fmmInputDesc);
-        if ( errCode )
-        {
-            errCode = BERR_TRACE(errCode);
+        BKNI_Free(dfifoSettings);
+
+        fmmInputDesc = BKNI_Malloc(sizeof(BDSP_FmmBufferDescriptor));
+        if ( NULL == fmmInputDesc ) {
+            BDBG_ERR(("Unable to allocate memory for FMM Buffer Descriptor"));
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             goto err_set_dfifo_settings;
         }
 
-        errCode = BDSP_Stage_AddFmmInput(handle->hPrimaryStage, BAPE_FMT_P_GetDspDataType_isrsafe(&handle->inputPortFormat), &fmmInputDesc, &input);
+        errCode = BAPE_DSP_P_InitFmmInputDescriptor(handle->inputDfifoGroup, fmmInputDesc);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
+            BKNI_Free(fmmInputDesc);
             goto err_set_dfifo_settings;
         }
+
+        errCode = BDSP_Stage_AddFmmInput(handle->hPrimaryStage, BAPE_FMT_P_GetDspDataType_isrsafe(&handle->inputPortFormat), fmmInputDesc, &input);
+        if ( errCode )
+        {
+            errCode = BERR_TRACE(errCode);
+            BKNI_Free(fmmInputDesc);
+            goto err_set_dfifo_settings;
+        }
+        BKNI_Free(fmmInputDesc);
     }
 
     /* Determine stage outputting data to stereo PCM path  */
@@ -1888,6 +2015,15 @@ static BERR_Code BAPE_Decoder_P_Start(
     /* Mono outputs will always start from branch/stage 0 - no SRC or DSOLA. */
     handle->node.connectors[BAPE_ConnectorFormat_eMono].hStage = handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage;
 
+    if (handle->ddre) {
+        BAPE_PathNode *pDDRENode;
+        unsigned numFound = 0;
+        BAPE_PathConnector_P_FindConsumersBySubtype_isrsafe(&handle->node.connectors[BAPE_ConnectorFormat_eStereo], BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 1, &numFound, &pDDRENode);
+        if (numFound && BAVC_CODEC_IS_DOLBY(handle->startSettings.codec)) {
+            BDBG_WRN(("There is a stereo Dolby decoder connected in a multistream implementation"));
+        }
+    }
+
     handle->state = BAPE_DecoderState_eStarting;
 
     errCode = BAPE_PathNode_P_AcquirePathResources(&handle->node);
@@ -1902,7 +2038,7 @@ static BERR_Code BAPE_Decoder_P_Start(
     handle->pcmOutputSampleRate = 0;
     handle->mode = (unsigned)-1;
     BKNI_Memset(&handle->bitRateInfo, 0, sizeof(handle->bitRateInfo));
-    taskStartSettings.maxIndependentDelay = handle->deviceHandle->settings.maxIndependentDelay;
+    taskStartSettings->maxIndependentDelay = handle->deviceHandle->settings.maxIndependentDelay;
     errCode = BAPE_Decoder_SetInterruptHandlers(handle, &handle->interrupts);
     if ( errCode )
     {
@@ -1935,7 +2071,7 @@ static BERR_Code BAPE_Decoder_P_Start(
     }
 
     /* Save Path Delay Mode */
-    handle->pathDelayMode = taskStartSettings.audioTaskDelayMode;
+    handle->pathDelayMode = taskStartSettings->audioTaskDelayMode;
 
     /* Apply TSM settings to Decoder */
     errCode = BAPE_Decoder_SetTsmSettings(handle, &handle->tsmSettings);
@@ -2089,14 +2225,14 @@ static BERR_Code BAPE_Decoder_P_Start(
                 BDBG_MSG(("Input SR %d Hz output at %d Hz", BAPE_P_BDSPSampleFrequencyToInt(i), handle->sampleRateMap.ui32OpSamplingFrequency[i]));
             }
         }
-        taskStartSettings.pSampleRateMap = &handle->sampleRateMap;
+        taskStartSettings->pSampleRateMap = &handle->sampleRateMap;
     }
 
 #if BAPE_DISABLE_DSP
     #warning Task Start is Disabled!
     BDBG_ERR(("NOT STARTING"));
 #else
-    errCode = BDSP_Task_Start(handle->hTask, &taskStartSettings);
+    errCode = BDSP_Task_Start(handle->hTask, taskStartSettings);
     if ( errCode )
     {
         (void)BERR_TRACE(errCode);
@@ -2141,9 +2277,11 @@ static BERR_Code BAPE_Decoder_P_Start(
        }
     }
 
-    handle->pathDelayMode = taskStartSettings.audioTaskDelayMode;
+    handle->pathDelayMode = taskStartSettings->audioTaskDelayMode;
     handle->state = BAPE_DecoderState_eStarted;
     handle->halted = false;
+
+    BKNI_Free(taskStartSettings);
     return BERR_SUCCESS;
 
 err_timer_start:
@@ -2189,7 +2327,11 @@ err_attach_input_port:
 err_stages:
     BAPE_Decoder_P_UnlinkStages(handle);
     handle->state = BAPE_DecoderState_eStopped;
-    return errCode;
+err_alloc:
+    if (taskStartSettings) {
+        BKNI_Free(taskStartSettings);
+    }
+return errCode;
 }
 
 BERR_Code BAPE_Decoder_Start(
@@ -2206,7 +2348,7 @@ BERR_Code BAPE_Decoder_Start(
 
     BDBG_MSG(("BAPE_Decoder_Start(%p) [index %u]", (void *)handle, handle->index));
 
-    if ( NULL == handle->deviceHandle->dspContext )
+    if ( NULL == handle->dspContext )
     {
         BDBG_ERR(("DSP Not avaliable"));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -2881,7 +3023,7 @@ BERR_Code BAPE_Decoder_SetTsmSettings_isr(
         }
         else
         {
-            BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32STCAddr, BDSP_RAAGA_REGSET_ADDR_FOR_DSP( BAPE_CHIP_GET_STC_ADDRESS(handle->startSettings.stcIndex))) ;
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32STCAddr, BDSP_REGSET_PHY_ADDR_FOR_DSP( BAPE_CHIP_GET_STC_ADDRESS(handle->startSettings.stcIndex))) ;
             BAPE_DSP_P_SET_VARIABLE(tsmSettings, eTsmEnable, pSettings->tsmEnabled?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
             BAPE_DSP_P_SET_VARIABLE(tsmSettings, eAstmEnable, pSettings->astmEnabled?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
             BAPE_DSP_P_SET_VARIABLE(tsmSettings, ePlayBackOn, pSettings->playback?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
@@ -2896,7 +3038,7 @@ BERR_Code BAPE_Decoder_SetTsmSettings_isr(
                 BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32SwSTCOffset, pSettings->stcOffset);
             }
         }
-        errCode = BAPE_Decoder_P_GetPathDelay_isrsafe(handle, &pathDelay);
+        errCode = BAPE_Decoder_P_GetPathDelay_isr(handle, &pathDelay);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -3475,21 +3617,32 @@ BERR_Code BAPE_Decoder_SetStcValid_isr(
     return BERR_SUCCESS;
 }
 
-static void BAPE_Decoder_P_SetupDefaults(BAPE_DecoderHandle handle)
+static void BAPE_Decoder_P_SetupTsmDefaults(BAPE_DecoderHandle handle)
 {
-    BDSP_AudioTaskTsmSettings tsmSettings;
+    BDSP_Handle hDsp = NULL;
 
-    BDSP_AudioTask_GetDefaultTsmSettings(&tsmSettings, sizeof(tsmSettings));
-    handle->tsmSettings.tsmEnabled = tsmSettings.eTsmEnable == BDSP_eTsmBool_True?true:false;
-    handle->tsmSettings.astmEnabled = tsmSettings.eAstmEnable == BDSP_eTsmBool_True?true:false;
-    handle->tsmSettings.playback = tsmSettings.ePlayBackOn == BDSP_eTsmBool_True?true:false;
-    handle->tsmSettings.ptsOffset = tsmSettings.ui32AVOffset/45;
-    handle->tsmSettings.thresholds.discard = tsmSettings.i32TSMDiscardThreshold/45;
-    handle->tsmSettings.thresholds.grossAdjustment = tsmSettings.i32TSMGrossThreshold/45;
-    handle->tsmSettings.thresholds.smoothTrack = tsmSettings.i32TSMSmoothThreshold/45;
-    handle->tsmSettings.thresholds.syncLimit = tsmSettings.i32TSMSyncLimitThreshold/45;
+    if ( handle->dspContext )
+    {
+        hDsp = (handle->dspContext == handle->deviceHandle->armContext)?handle->deviceHandle->armHandle:handle->deviceHandle->dspHandle;
+    }
 
-    BAPE_Decoder_P_GetDefaultCodecSettings(handle);
+    if ( hDsp )
+    {
+        BDSP_AudioTaskTsmSettings tsmSettings;
+        BDSP_AudioTask_GetDefaultTsmSettings(hDsp, &tsmSettings, sizeof(tsmSettings));
+        handle->tsmSettings.tsmEnabled = tsmSettings.eTsmEnable == BDSP_eTsmBool_True?true:false;
+        handle->tsmSettings.astmEnabled = tsmSettings.eAstmEnable == BDSP_eTsmBool_True?true:false;
+        handle->tsmSettings.playback = tsmSettings.ePlayBackOn == BDSP_eTsmBool_True?true:false;
+        handle->tsmSettings.ptsOffset = tsmSettings.ui32AVOffset/45;
+        handle->tsmSettings.thresholds.discard = tsmSettings.i32TSMDiscardThreshold/45;
+        handle->tsmSettings.thresholds.grossAdjustment = tsmSettings.i32TSMGrossThreshold/45;
+        handle->tsmSettings.thresholds.smoothTrack = tsmSettings.i32TSMSmoothThreshold/45;
+        handle->tsmSettings.thresholds.syncLimit = tsmSettings.i32TSMSyncLimitThreshold/45;
+    }
+    else
+    {
+        BDBG_ERR(("Unable to find a valid BDSP device to use for Tsm Defaults"));
+    }
 }
 
 static void BAPE_Decoder_P_ConvertTsmStatus_isr(BAPE_DecoderTsmStatus *pStatus, const BDSP_AudioTaskTsmStatus *pDspStatus)
@@ -4110,7 +4263,7 @@ void BAPE_P_CheckUnderflow_isr (void *pParam1, int param2)
 Summary:
 Get Decoder Path Delay
 ***************************************************************************/
-static BERR_Code BAPE_Decoder_P_GetPathDelay_isrsafe(
+static BERR_Code BAPE_Decoder_P_GetPathDelay_isr(
     BAPE_DecoderHandle handle,
     unsigned *pDelay    /* [out] in ms */
     )
@@ -4136,10 +4289,19 @@ static BERR_Code BAPE_Decoder_P_GetPathDelay_isrsafe(
         ctbInput.eAudioIpSourceType = datasyncSettings.eAudioIpSourceType;
     }
 
-    errCode = BDSP_Raaga_GetAudioDelay_isrsafe(&ctbInput, handle->hPrimaryStage, &bdspDelay);
-    if ( errCode )
+    if ( handle->dspContext == handle->deviceHandle->dspContext )
     {
-        return BERR_TRACE(errCode);
+        errCode = BDSP_GetAudioDelay_isrsafe(&ctbInput, handle->hPrimaryStage, &bdspDelay);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+    else
+    {
+        /*TBDARM*/
+        bdspDelay.ui32AudOffset = 128;
+        errCode = BERR_SUCCESS;
     }
 
     BDBG_MSG(("Decoder[%d] path delay ui32Threshold %d, ui32BlockTime %d, ui32AudOffset %d", handle->index, bdspDelay.ui32Threshold, bdspDelay.ui32BlockTime, bdspDelay.ui32AudOffset));
@@ -4158,7 +4320,7 @@ BERR_Code BAPE_Decoder_GetPathDelay_isr(
     unsigned *pDelay    /* [out] in ms */
     )
 {
-    return BAPE_Decoder_P_GetPathDelay_isrsafe(handle, pDelay);
+    return BAPE_Decoder_P_GetPathDelay_isr(handle, pDelay);
 }
 
 /***************************************************************************
@@ -4261,9 +4423,10 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
         BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
 
         queueSize = sizeof(uint32_t) * (pSettings->maxBuffers+1);  /* +1 to allow for the DSP's full/empty algo to work */
+        BDSP_SIZE_ALIGN(queueSize);
 
         /* Allocate backing memory for queues */
-        hDecoder->decodeToMem.arqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, 0, NULL);
+        hDecoder->decodeToMem.arqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, BDSP_ADDRESS_ALIGN, NULL);
         if ( NULL == hDecoder->decodeToMem.arqMemBlock )
         {
             BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
@@ -4282,7 +4445,7 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
 
-        hDecoder->decodeToMem.adqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, 0, NULL);
+        hDecoder->decodeToMem.adqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, BDSP_ADDRESS_ALIGN, NULL);
         if ( NULL == hDecoder->decodeToMem.adqMemBlock )
         {
             BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
@@ -4302,7 +4465,7 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
         }
 
         /* Allocate queues in RDB space for DSP */
-        BDSP_Queue_GetDefaultSettings(hDecoder->deviceHandle->dspContext, &queueSettings);
+        BDSP_Queue_GetDefaultSettings(hDecoder->dspContext, &queueSettings);
         queueSettings.dataType = BDSP_DataType_eRDBPool;
         queueSettings.numBuffers = 1;
         queueSettings.bufferInfo[0].bufferSize = queueSize;
@@ -4310,7 +4473,7 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
         queueSettings.bufferInfo[0].buffer.offset = hDecoder->decodeToMem.arqMemOffset;
         queueSettings.bufferInfo[0].buffer.pAddr = hDecoder->decodeToMem.pArqMem;
         queueSettings.input = true;
-        errCode = BDSP_Queue_Create(hDecoder->deviceHandle->dspContext, hDecoder->dspIndex, &queueSettings, &hDecoder->decodeToMem.hARQ);
+        errCode = BDSP_Queue_Create(hDecoder->dspContext, BAPE_DSP_DEVICE_INDEX(hDecoder->dspIndex, hDecoder->dspIndexBase), &queueSettings, &hDecoder->decodeToMem.hARQ);
         if ( errCode )
         {
             BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
@@ -4320,7 +4483,7 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
         queueSettings.bufferInfo[0].buffer.offset = hDecoder->decodeToMem.adqMemOffset;
         queueSettings.bufferInfo[0].buffer.pAddr = hDecoder->decodeToMem.pAdqMem;
         queueSettings.input = false;
-        errCode = BDSP_Queue_Create(hDecoder->deviceHandle->dspContext, hDecoder->dspIndex, &queueSettings, &hDecoder->decodeToMem.hADQ);
+        errCode = BDSP_Queue_Create(hDecoder->dspContext, BAPE_DSP_DEVICE_INDEX(hDecoder->dspIndex, hDecoder->dspIndexBase), &queueSettings, &hDecoder->decodeToMem.hADQ);
         if ( errCode )
         {
             BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
@@ -4338,8 +4501,13 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
         /* Add all nodes to free list */
         for ( i = 0; i < pSettings->maxBuffers; i++ )
         {
+            unsigned tempSize;
             BAPE_DecodeToMemoryNode *pNode = hDecoder->decodeToMem.pNodes+i;
-            pNode->metadataBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, sizeof(BDSP_OnDemand_MetaDataInfo), 0, NULL);
+
+            tempSize = sizeof(BDSP_OnDemand_MetaDataInfo);
+            BDSP_SIZE_ALIGN(tempSize);
+
+            pNode->metadataBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, tempSize, BDSP_ADDRESS_ALIGN, NULL);
             if ( NULL == pNode->metadataBlock )
             {
                 BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);

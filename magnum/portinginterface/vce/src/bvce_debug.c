@@ -41,8 +41,6 @@
 
 /* base modules */
 #include "bstd.h"           /* standard types */
-#include "berr.h"           /* error code */
-#include "bdbg.h"           /* debug interface */
 
 #include "bvce_debug.h"
 #include "bvce_debug_common.h"
@@ -281,7 +279,7 @@ BVCE_Debug_PrintLogMessageEntry(
             pstEntry->data.stConfig.stStartEncodeSettings.stMemoryBandwidthSaving.bRequiredPatchesOnly
          ));
 
-         BDBG_MODULE_MSG(BVCE_DBG_CFG, ("(%10u)[%u][%u] TIMING: stc=%u,rate_buffer_delay=%u,fr=%u,vfr=%u,br_max=%u,br_target=%u,A2PDelay=%u,num_parallel_encodes=%u,segment_rc=%u,segment_duration=%u,segment_upper_tolerance=%u,segment_upper_slope_factor=%u,segment_lower_tolerance=%u,segment_lower_slope_factor=%u,,disable_hrd_drop=%u",
+         BDBG_MODULE_MSG(BVCE_DBG_CFG, ("(%10u)[%u][%u] TIMING: stc=%u,rate_buffer_delay=%u,fr=%u,vfr=%u,sfr=%u,br_max=%u,br_target=%u,A2PDelay=%u,num_parallel_encodes=%u,segment_rc=%u,segment_duration=%u,segment_upper_tolerance=%u,segment_upper_slope_factor=%u,segment_lower_tolerance=%u,segment_lower_slope_factor=%u,,disable_hrd_drop=%u",
             pstEntry->stMetadata.uiTimestamp,
             pstEntry->stMetadata.uiInstance,
             pstEntry->stMetadata.uiChannel,
@@ -289,6 +287,7 @@ BVCE_Debug_PrintLogMessageEntry(
             pstEntry->data.stConfig.stStartEncodeSettings.uiRateBufferDelay,
             pstEntry->data.stConfig.stEncodeSettings.stFrameRate.eFrameRate,
             pstEntry->data.stConfig.stEncodeSettings.stFrameRate.bVariableFrameRateMode,
+            pstEntry->data.stConfig.stEncodeSettings.stFrameRate.bSparseFrameRateMode,
             pstEntry->data.stConfig.stEncodeSettings.stBitRate.uiMax,
             pstEntry->data.stConfig.stEncodeSettings.stBitRate.uiTarget,
             pstEntry->data.stConfig.stEncodeSettings.uiA2PDelay,
@@ -653,7 +652,7 @@ bool
 BVCE_Debug_FormatLogHeader(
    unsigned uiIndex,
    char *szMessage,
-   size_t uiSize
+   unsigned uiSize
    )
 {
    BDBG_ASSERT( szMessage );
@@ -716,7 +715,7 @@ BVCE_Debug_FormatLogHeader(
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
                iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-                  ",stc index,rate buffer delay,fr,vfr,br_max,br_target,A2PDelay,num parallel encodes,segment rc,segment duration,segment upper tolerance,segment upper slope factor,segment lower tolerance,segment lower slope factor,disable hrd drop"
+                  ",stc index,rate buffer delay,fr,vfr,sfr,br_max,br_target,A2PDelay,num parallel encodes,segment rc,segment duration,segment upper tolerance,segment upper slope factor,segment lower tolerance,segment lower slope factor,disable hrd drop"
                );
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
@@ -836,7 +835,7 @@ void
 BVCE_Debug_FormatLogMessage(
    const void *pstFifoEntry, /* Should point to an element of size BVCE_Debug_FifoInfo.uiElementSize */
    char *szMessage,
-   size_t uiSize
+   unsigned uiSize
    )
 {
    BDBG_ASSERT( szMessage );
@@ -881,11 +880,12 @@ BVCE_Debug_FormatLogMessage(
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
+               ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
                pstEntry->data.stConfig.stStartEncodeSettings.uiStcIndex,
                pstEntry->data.stConfig.stStartEncodeSettings.uiRateBufferDelay,
                pstEntry->data.stConfig.stEncodeSettings.stFrameRate.eFrameRate,
                pstEntry->data.stConfig.stEncodeSettings.stFrameRate.bVariableFrameRateMode,
+               pstEntry->data.stConfig.stEncodeSettings.stFrameRate.bSparseFrameRateMode,
                pstEntry->data.stConfig.stEncodeSettings.stBitRate.uiMax,
                pstEntry->data.stConfig.stEncodeSettings.stBitRate.uiTarget,
                pstEntry->data.stConfig.stEncodeSettings.uiA2PDelay,

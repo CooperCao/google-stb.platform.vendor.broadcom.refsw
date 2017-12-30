@@ -50,7 +50,7 @@
 #define RAAGA_DEBUG_LOG_CHANGES 1
 
 #if BAPE_DSP_SUPPORT
-#include "bdsp_raaga.h"
+#include "bdsp.h"
 #endif
 
 BDBG_MODULE(nexus_audio_decoder);
@@ -557,8 +557,10 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
         raveSettings.config.Cdb.Length = pSettings->fifoSize;
     }
 
-    raveSettings.config.Cdb.Alignment = BDSP_RAAGA_ADDRESS_ALIGN_CDB;
-    raveSettings.config.Itb.Alignment = BDSP_RAAGA_ADDRESS_ALIGN_ITB;
+    #if BAPE_DSP_SUPPORT
+    raveSettings.config.Cdb.Alignment = BDSP_ADDRESS_ALIGN_CDB;
+    raveSettings.config.Itb.Alignment = BDSP_ADDRESS_ALIGN_ITB;
+    #endif
 
     raveSettings.heap = pSettings->cdbHeap;
 
@@ -845,6 +847,21 @@ NEXUS_Error NEXUS_AudioDecoder_SetSettings(
     {
         return NEXUS_SUCCESS;
     }
+}
+
+void NEXUS_AudioDecoder_Clear_priv( NEXUS_AudioDecoderHandle handle )
+{
+    NEXUS_ASSERT_MODULE();
+    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioDecoder);
+    NEXUS_IsrCallback_Clear(handle->sourceChangeAppCallback);
+    NEXUS_IsrCallback_Clear(handle->lockCallback);
+    NEXUS_IsrCallback_Clear(handle->ptsErrorCallback);
+    NEXUS_IsrCallback_Clear(handle->firstPtsCallback);
+    NEXUS_IsrCallback_Clear(handle->fifoUnderflowCallback);
+    NEXUS_IsrCallback_Clear(handle->fifoOverflowCallback);
+    NEXUS_IsrCallback_Clear(handle->streamStatusCallback);
+    NEXUS_IsrCallback_Clear(handle->ancillaryDataCallback);
+    NEXUS_IsrCallback_Clear(handle->dialnormChangedCallback);
 }
 
 /***************************************************************************
@@ -1737,7 +1754,7 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
             codecSettings.codecSettings.ac4.drcMode = BAPE_DolbyDrcMode_eDisabled;
             break;
         default:
-            BDBG_ERR(("Invalid drcMode %lu specified, defaulting to eLine", (unsigned long)pSettings->codecSettings.ac4.drcModeDownmix));
+            BDBG_ERR(("Invalid drcMode %lu specified, defaulting to eLine", (unsigned long)pSettings->codecSettings.ac4.drcMode));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
             break;
         }
@@ -2028,8 +2045,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
         pStatus->valid = decoderStatus.valid;
         pStatus->sampleRate = decoderStatus.sampleRate;
         pStatus->pts = decoderStatus.tsmStatus.ptsInfo.ui32CurrentPTS;
-        pStatus->ptsType = decoderStatus.tsmStatus.ptsInfo.ePTSType == BAVC_PTSType_eCoded ? NEXUS_PtsType_eCoded :
-            decoderStatus.tsmStatus.ptsInfo.ePTSType == BAVC_PTSType_eInterpolatedFromValidPTS ? NEXUS_PtsType_eInterpolatedFromValidPTS : NEXUS_PtsType_eInterpolatedFromInvalidPTS;
+        pStatus->ptsType = (NEXUS_PtsType)decoderStatus.tsmStatus.ptsInfo.ePTSType;
         pStatus->ptsStcDifference = decoderStatus.tsmStatus.ptsStcDifference;
 
         pStatus->framesDecoded = decoderStatus.framesDecoded;
@@ -2968,21 +2984,38 @@ static void NEXUS_AudioDecoder_P_Watchdog(void *pParam)
     /* Check if core dump support is enabled.  If so, spin and wait for it to complete. */
     if ( g_NEXUS_audioModuleData.settings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eCoreDump].enabled )
     {
-        /* Poll for core dump to finish and inform application */
-        unsigned retries = 100;
-
-        while ( BDSP_Raaga_GetCoreDumpStatus(g_NEXUS_audioModuleData.dspHandle, 0) == BDSP_Raaga_FwStatus_eCoreDumpInProgress )
+        unsigned i;
+        for ( i = 0; i < BAPE_DEVICE_TYPE_MAX; i++ )
         {
-            BKNI_Sleep(1);
-            if ( 0 == --retries )
+            BDSP_Handle hDsp = NULL;
+            if ( i == BAPE_DEVICE_TYPE_DSP )
             {
-                break;
+                hDsp = g_NEXUS_audioModuleData.dspHandle;
             }
-        }
+            else if ( i == BAPE_DEVICE_TYPE_ARM )
+            {
+                hDsp = g_NEXUS_audioModuleData.armHandle;
+            }
 
-        if ( BDSP_Raaga_GetCoreDumpStatus(g_NEXUS_audioModuleData.dspHandle, 0) == BDSP_Raaga_FwStatus_eCoreDumpComplete )
-        {
-            corePending = true;
+            if ( hDsp )
+            {
+                /* Poll for core dump to finish and inform application */
+                unsigned retries = 100;
+
+                while ( BDSP_GetCoreDumpStatus(hDsp, 0) == BDSP_FwStatus_eCoreDumpInProgress )
+                {
+                    BKNI_Sleep(1);
+                    if ( 0 == --retries )
+                    {
+                        break;
+                    }
+                }
+
+                if ( BDSP_GetCoreDumpStatus(hDsp, 0) == BDSP_FwStatus_eCoreDumpComplete )
+                {
+                    corePending = true;
+                }
+            }
         }
     }
     #endif

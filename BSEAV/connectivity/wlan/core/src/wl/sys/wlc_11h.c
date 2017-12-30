@@ -1191,6 +1191,7 @@ wlc_print_measure_req_rep(wlc_info_t *wlc, struct dot11_management_header *hdr,
 		/* here if more than fixed length portion of request/report */
 
 		if (is_request && (req_ie->mode & DOT11_MEASURE_MODE_ENABLE)) {
+			/* coverity[callee_ptr_arith] */
 			prhex("Measurement Request variable data (should be null since mode Enable"
 				" is set)",
 				&req_ie->channel, req_ie->len - 3);
@@ -1201,6 +1202,7 @@ wlc_print_measure_req_rep(wlc_info_t *wlc, struct dot11_management_header *hdr,
 		    (req_ie->mode & (DOT11_MEASURE_MODE_LATE |
 			DOT11_MEASURE_MODE_INCAPABLE |
 			DOT11_MEASURE_MODE_REFUSED))) {
+			/* coverity[callee_ptr_arith] */
 			prhex("Measurement Report variable data (should be null since mode"
 				" Late|Incapable|Refused is set)",
 				&req_ie->channel, req_ie->len - DOT11_MNG_IE_MREP_FIXED_LEN);
@@ -1210,6 +1212,7 @@ wlc_print_measure_req_rep(wlc_info_t *wlc, struct dot11_management_header *hdr,
 		if (req_ie->type != DOT11_MEASURE_TYPE_BASIC &&
 		    req_ie->type != DOT11_MEASURE_TYPE_CCA &&
 		    req_ie->type != DOT11_MEASURE_TYPE_RPI) {
+			/* coverity[callee_ptr_arith] */
 			prhex("variable data", &req_ie->channel, req_ie->len -
 				DOT11_MNG_IE_MREP_FIXED_LEN);
 			goto next_ie;

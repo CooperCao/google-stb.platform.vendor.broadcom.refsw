@@ -711,7 +711,8 @@ void CTunerQam::doScan()
     }
 
 error:
-    if(numFreqToScan > 0) {
+    if (numFreqToScan > 0)
+    {
         notifyData.setPercent(100 * numFreqScanned / numFreqToScan);
     }
     scanDone(&notifyData);

@@ -162,7 +162,7 @@ void tzioc_mem_free(
 
 uintptr_t tzioc_offset2vaddr(
     tzioc_client_handle hClient,
-    uintptr_t ulOffset)
+    uint32_t ulOffset)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;
 
@@ -176,7 +176,7 @@ uintptr_t tzioc_offset2vaddr(
         ulOffset);
 }
 
-uintptr_t tzioc_vaddr2offset(
+uint32_t tzioc_vaddr2offset(
     tzioc_client_handle hClient,
     uintptr_t ulVaddr)
 {
@@ -199,6 +199,7 @@ void *tzioc_map_paddr(
     uint32_t ulFlags)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;
+    struct tzioc_mem_region region;
 
     if (!pClient || ulPaddr == 0 || ulSize == 0) {
         LOGE("Invalid args");
@@ -208,11 +209,17 @@ void *tzioc_map_paddr(
     /* user-space mapping always no-exec */
     ulFlags |= TZIOC_MEM_NO_EXEC;
 
-    return _tzioc_map_paddr(
-        pClient,
-        ulPaddr,
-        ulSize,
-        ulFlags);
+    /* use plural version of ioctl cmd */
+    region.ulPaddr = ulPaddr;
+    region.ulVaddr = 0;
+    region.ulSize  = ulSize;
+    region.ulFlags = ulFlags;
+
+    if (_tzioc_map_paddrs(pClient, 1, &region))
+        /* return NULL in case of error */
+        return NULL;
+
+    return (void *)region.ulVaddr;
 }
 
 void tzioc_unmap_paddr(
@@ -221,16 +228,42 @@ void tzioc_unmap_paddr(
     uint32_t ulSize)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;
+    struct tzioc_mem_region region;
 
     if (!pClient || ulPaddr == 0 || ulSize == 0) {
         LOGE("Invalid args");
         return;
     }
 
-    _tzioc_unmap_paddr(
-        pClient,
-        ulPaddr,
-        ulSize);
+    /* use plural version of ioctl cmd */
+    region.ulPaddr = ulPaddr;
+    region.ulVaddr = 0;
+    region.ulSize  = ulSize;
+    region.ulFlags = 0;
+
+    _tzioc_unmap_paddrs(pClient, 1, &region);
+}
+
+void tzioc_unmap_vaddr(
+    tzioc_client_handle hClient,
+    uintptr_t ulVaddr,
+    uint32_t ulSize)
+{
+    struct tzioc_client *pClient = (struct tzioc_client *)hClient;
+    struct tzioc_mem_region region;
+
+    if (!pClient || ulVaddr == 0 || ulSize == 0) {
+        LOGE("Invalid args");
+        return;
+    }
+
+    /* use plural version of ioctl cmd */
+    region.ulPaddr = 0;
+    region.ulVaddr = ulVaddr;
+    region.ulSize  = ulSize;
+    region.ulFlags = 0;
+
+    _tzioc_unmap_paddrs(pClient, 1, &region);
 }
 
 int tzioc_map_paddrs(
@@ -269,6 +302,7 @@ int tzioc_unmap_paddrs(
     tzioc_mem_region *pRegions)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;
+    int idx;
 
     if (!pClient || !pRegions ||
         ucCount == 0 || ucCount > TZIOC_MEM_REGION_MAX) {
@@ -276,10 +310,70 @@ int tzioc_unmap_paddrs(
         return -EINVAL;
     }
 
+    /* use paddrs, zero out vaddrs for backward compatibility */
+    for (idx = 0; idx < ucCount; idx++)
+        pRegions[idx].ulVaddr = 0;
+
     return _tzioc_unmap_paddrs(
         pClient,
         ucCount,
         pRegions);
+}
+
+int tzioc_unmap_vaddrs(
+    tzioc_client_handle hClient,
+    uint8_t ucCount,
+    tzioc_mem_region *pRegions)
+{
+    struct tzioc_client *pClient = (struct tzioc_client *)hClient;
+    int idx;
+
+    if (!pClient || !pRegions ||
+        ucCount == 0 || ucCount > TZIOC_MEM_REGION_MAX) {
+        LOGE("Invalid args");
+        return -EINVAL;
+    }
+
+    /* use vaddrs, zero out paddrs to be safe */
+    for (idx = 0; idx < ucCount; idx++)
+        pRegions[idx].ulPaddr = 0;
+
+    return _tzioc_unmap_paddrs(
+        pClient,
+        ucCount,
+        pRegions);
+}
+
+uintptr_t tzioc_paddr2vaddr(
+    tzioc_client_handle hClient,
+    uintptr_t ulPaddr)
+{
+    struct tzioc_client *pClient = (struct tzioc_client *)hClient;
+
+    if (!pClient) {
+        LOGE("Invalid args");
+        return -EINVAL;
+    }
+
+    return _tzioc_paddr2vaddr(
+        pClient,
+        ulPaddr);
+}
+
+uintptr_t tzioc_vaddr2paddr(
+    tzioc_client_handle hClient,
+    uintptr_t ulVaddr)
+{
+    struct tzioc_client *pClient = (struct tzioc_client *)hClient;
+
+    if (!pClient || !ulVaddr) {
+        LOGE("Invalid args");
+        return -EINVAL;
+    }
+
+    return _tzioc_vaddr2paddr(
+        pClient,
+        ulVaddr);
 }
 
 int tzioc_gen_irq(

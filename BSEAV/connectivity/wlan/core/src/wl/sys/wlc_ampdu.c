@@ -406,7 +406,11 @@ static const bcm_iovar_t ampdu_iovars[] = {
 						 */
 #define AMPDU_R_BAR_BLOCKED		4	/**< retry BAR due to blocked data fifo */
 
+#ifdef STB_SOC_WIFI
 #define AMPDU_DEF_TCP_ACK_RATIO		2	/**< default TCP ACK RATIO */
+#else
+#define AMPDU_DEF_TCP_ACK_RATIO		2	/**< default TCP ACK RATIO */
+#endif /* STB_SOC_WIFI */
 #define AMPDU_DEF_TCP_ACK_RATIO_DEPTH	0	/**< default TCP ACK RATIO DEPTH */
 
 #ifndef AMPDU_SCB_DRAIN_CNT
@@ -1675,8 +1679,7 @@ scb_ampdu_tx_deinit(void *context, struct scb *scb)
 #ifdef PKTQ_LOG
 	wlc_pktq_stats_free(ampdu_tx->wlc, &scb_ampdu->txq);
 #endif
-
-	pktq_deinit(&scb_ampdu->txq);
+	(void)pktq_deinit(&scb_ampdu->txq);
 
 	MFREE(ampdu_tx->wlc->osh, scb_ampdu, sizeof(scb_ampdu_tx_t) +
 		sizeof(ampdu_tx_scb_stats_t));
@@ -2273,11 +2276,7 @@ wlc_ampdu_watchdog(void *hdl)
 			ini = scb_ampdu->ini[tid];
 			if (!ini)
 				continue;
-			/* dont skip watchdog if delba cleaning is pending. */
-			if (TRUE &&
-				!(ini->ba_state == AMPDU_TID_STATE_BA_PENDING_OFF)) {
-				continue;
-			}
+
 			switch (ini->ba_state) {
 			case AMPDU_TID_STATE_BA_ON:
 				/* tickle the sm and release whatever pkts we can */
@@ -2329,6 +2328,9 @@ wlc_ampdu_watchdog(void *hdl)
 					ini->alive = FALSE;
 					ini->dead_cnt = 0;
 				} else {
+					uint16 interval = 1 + ((wlc_apps_get_listen_prd(wlc, scb) *
+						scb->bsscfg->current_bss->beacon_period)/1000);
+
 					if (ini->tx_in_transit)
 						ini->dead_cnt++;
 
@@ -2336,7 +2338,11 @@ wlc_ampdu_watchdog(void *hdl)
 					WLCNTINCR(wlc->pub->_cnt->ampdu_wds);
 					wlc_ampdu_dbg_stats(wlc, scb, ini);
 
-					if (ini->dead_cnt == AMPDU_INI_DEAD_TIMEOUT) {
+					/* using  maximum of listen interval+1 sec
+					 * or AMPDU_INI_DEAD_TIMEOUT
+					 * to avoid packet drop due dead count
+					 */
+					if (ini->dead_cnt == MAX(AMPDU_INI_DEAD_TIMEOUT, interval)) {
 #if defined(AP) && defined(BCMDBG)
 						if (SCB_PS(scb)) {
 							char* mode = "PS";
@@ -3833,8 +3839,7 @@ wlc_ampdu_agg(void *ctx, struct scb *scb, void *p, uint prec)
 
 	ASSERT(tid < AMPDU_MAX_SCB_TID);
 	if (tid >= AMPDU_MAX_SCB_TID) {
-		SCB_TX_NEXT(TXMOD_AMPDU, scb, p, prec);
-		WL_AMPDU(("%s: tid wrong -- returning\n", __FUNCTION__));
+		WL_AMPDU_ERR(("%s: tid wrong -- returning\n", __FUNCTION__));
 		return;
 	}
 
@@ -7129,6 +7134,8 @@ wlc_ampdu_cs_retry(wlc_info_t *wlc, tx_status_t *txs, void *p)
 		 * Packet was not acked.
 		 * Likely STA already has changed channel.
 		 */
+		 /* pktRetry not alwasy true if PROP_TXSTATUS defined */
+		 /* coverity[dead_error_line] */
 		return (pktRetry ? !txs->status.was_acked : pktRetry);
 	default:
 		return FALSE;
@@ -7291,6 +7298,8 @@ _wlc_sendampdu_aqm(ampdu_tx_info_t *ampdu_tx, wlc_txq_info_t *qi, void **pdu, in
 		} else if ((err = wlc_prep_sdu_fast(wlc, cfg, scb, p, &fifo,
 			&key, &key_info)) == BCME_UNSUPPORTED) {
 			/* prep_sdu converts an SDU into MPDU (802.11) format */
+
+			/* coverity[callee_ptr_arith] */
 			err = wlc_prep_sdu(wlc, scb, &p, (int*)&npkts, &fifo);
 			pkttag = WLPKTTAG(p);
 		}

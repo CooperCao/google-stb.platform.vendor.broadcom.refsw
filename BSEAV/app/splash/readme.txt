@@ -56,6 +56,9 @@ The below assumes that the required build variables are set.
 	- > make suffix=_composite_only
 	More on the suffix later.
 
+	- For chips that support box modes, default RTS settings, ie., box mode 0
+	RTS will be used unless BBOX_USE_BOX_MODE_0_RTS is set to n.
+
 2. Running Splashgen
 
     - Splashgen has available options. To see these, do splashgen -h.
@@ -96,6 +99,9 @@ The below assumes that the required build variables are set.
 	If you built splashgen with a suffix, then you should build splashgen in
 	exactly the same way. Continuing previous examples,
 		make suffix=_composite_only
+
+	- For chips that support box modes, default RTS settings, ie., box mode 0
+	RTS will be used unless BBOX_USE_BOX_MODE_0_RTS is set to n.
 
 4. Running Splashrun
 
@@ -139,11 +145,11 @@ Generally, PWM, PIN MUX, GPIO, LVDS, DVPO will be involved.
 		modified. By default, the file names are
 
         60Hz format:
-        - splash_vdc_reg_def.h
+        - splash_vdc_rul_def.c
         - splash_vdc_rul_def.h
 
         50Hz format:
-        - splash_vdc_reg_pal.h
+        - splash_vdc_rul_pal.c
         - splash_vdc_rul_pal.h
 
 		If you specified a suffix when you invoked make, these file names will
@@ -152,12 +158,18 @@ Generally, PWM, PIN MUX, GPIO, LVDS, DVPO will be involved.
 		then the file names will be as follows:
 
         60Hz format:
-        - splash_vdc_reg_composite_only_def.h
+        - splash_vdc_rul_composite_only_def.c
         - splash_vdc_rul_composite_only_def.h
 
         50Hz format:
-        - splash_vdc_reg_composite_only_pal.h
+        - splash_vdc_rul_composite_only_pal.c
         - splash_vdc_rul_composite_only_pal.h
+
+
+       Important for BOLT integration:
+            If the above will be integrated to BOLT, the suffix
+       needs to be removed for both the .h and .c files and the GetSplashData
+       function as BOLT expects these to be without the suffix.
 
        splash_vdc_setup.c - Key file that does all the loading of the REG and
                             RUL scripts.

@@ -87,7 +87,7 @@ struct probe_results
         NEXUS_VideoEotf eotf;
         NEXUS_ContentLightLevel contentLightLevel;
         NEXUS_MasteringDisplayColorVolume masteringDisplayColorVolume;
-    } videoColourMasteringMetadata;
+    } videoColorMasteringMetadata;
 };
 
 struct probe_request

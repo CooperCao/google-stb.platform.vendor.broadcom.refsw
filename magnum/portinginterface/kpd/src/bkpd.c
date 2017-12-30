@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,12 +41,13 @@
 #include "bstd.h"
 #include "bkpd.h"
 #include "bchp_ldk.h"
+#include "bchp_common.h"
 
 #if (BCHP_CHIP == 7125) || (BCHP_CHIP == 7325) || (BCHP_CHIP == 7335) || (BCHP_CHIP == 7340) || (BCHP_CHIP == 7342) || (BCHP_CHIP == 7400) || \
     (BCHP_CHIP == 7405) || (BCHP_CHIP == 7408) || (BCHP_CHIP == 7420) || (BCHP_CHIP == 7468) || (BCHP_CHIP == 7550)
     #include "bchp_irq0.h"
     #include "bchp_int_id_irq0.h"
-#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7278)
+#elif defined(BCHP_UPG_MAIN_AON_IRQ_REG_START)
     #include "bchp_int_id_upg_main_aon_irq.h"
 #else
     #include "bchp_int_id_irq0_aon.h"
@@ -301,7 +302,7 @@ BERR_Code BKPD_IsDataReady (
 }
 #endif
 
-BERR_Code BKPD_Read_isr(
+BERR_Code BKPD_Read_isrsafe(
     BKPD_Handle         hKpd,           /* Device handle */
     uint16_t            *pData          /* pointer to data read from keypad */
 )

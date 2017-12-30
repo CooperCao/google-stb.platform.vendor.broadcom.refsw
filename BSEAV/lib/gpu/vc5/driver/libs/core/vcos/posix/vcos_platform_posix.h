@@ -368,8 +368,11 @@ static inline void vcos_tls_delete(VCOS_TLS_KEY_T tls) {
 }
 
 static inline VCOS_STATUS_T vcos_tls_set(VCOS_TLS_KEY_T tls, void *v) {
-   pthread_setspecific(tls, v);
-   return VCOS_SUCCESS;
+   int st = pthread_setspecific(tls, v);
+   if (st == 0)
+      return VCOS_SUCCESS;
+   assert(st == ENOMEM);
+   return VCOS_ENOMEM;
 }
 
 static inline void *vcos_tls_get(VCOS_TLS_KEY_T tls) {

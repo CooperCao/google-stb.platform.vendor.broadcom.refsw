@@ -86,6 +86,7 @@ static void printUsage(
             "  -maxIpNetworkJitterInMs      #   Set max jitter for the IP network (if known), defaults to 300msec \n"
             "  -clockRecoveryMode           #   see BIP_PlayerClockRecoveryMode_eXXXX, default is selected by BIP Player. \n"
             "  -bufDepthInMsec          #   Informs PBIP to do the buffer depth calculations using PCR or TTS deltas. \n"
+            "  -sineTone                #   play/mix in a constant sine tone to the audio output \n"
           );
     printf(
             "  -audioDecoderLatencyMode     #   0=Normal, 1, 2, 3=Lowest/Variable  see NEXUS_AudioDecoderLatencyMode)\n"
@@ -223,6 +224,10 @@ BIP_Status parseOptions(
         else if ( !strcmp(argv[i], "-bufDepthInMsec") )
         {
             pAppCtx->bufDepthInMsec = true;
+        }
+        else if ( !strcmp(argv[i], "-sineTone") )
+        {
+            pAppCtx->sineTone = true;
         }
         else if(!strcmp(argv[i], "-audioDecoderLatencyMode"))
         {

@@ -108,6 +108,7 @@ static inline void gfx_buffer_raw_create_from_desc(
    gfx_lfmt_base_detail(&bd, desc->planes[0].lfmt);
 
    br->descs[0] = *desc;
+   br->descs[0].planes[0].region = 0;
    br->descs[0].planes[0].offset = 0;
    br->num_mip_levels = 1;
 

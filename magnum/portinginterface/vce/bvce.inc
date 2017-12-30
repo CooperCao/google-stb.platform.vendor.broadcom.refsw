@@ -149,6 +149,9 @@ endif
 ifeq ($(BVCE_PRERELEASE_TEST_MODE),y)
 BVCE_DEFINES += BVCE_P_PRERELEASE_TEST_MODE=1
 endif
+ifeq ($(BVCE_ASSERT_ON_WATCHDOG),y)
+BVCE_DEFINES += BVCE_P_ASSERT_ON_WATCHDOG=1
+endif
 
 # Remove duplicate sources to fix duplicate linker errors
 BVCE_SOURCES += $(sort $(BVCE_SOURCES_LOCAL))

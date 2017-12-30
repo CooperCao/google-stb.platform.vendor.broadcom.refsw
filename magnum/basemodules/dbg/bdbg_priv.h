@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,13 +55,15 @@ extern "C" {
 #define BDBG_P_NORETURN
 #endif
 
-void BDBG_P_PrintString(const char *fmt, ...) BDBG_P_PRINTF_FORMAT(1,2);
+void BDBG_P_PrintString_isrsafe(const char *fmt, ...) BDBG_P_PRINTF_FORMAT(1,2);
+#define BDBG_P_PrintString BDBG_P_PrintString_isrsafe
 void BDBG_P_Vprintf_Log_isrsafe(BDBG_ModulePrintKind kind, const char *fmt, va_list ap);
-BERR_Code BDBG_P_PrintError(const char *file, unsigned lineno, const char *error, BERR_Code error_no);
+BERR_Code BDBG_P_PrintError_isrsafe(const char *file, unsigned lineno, const char *error, BERR_Code error_no);
 BERR_Code BDBG_P_PrintError_small_isrsafe(const char *file, unsigned lineno, BERR_Code error_no);
 void BDBG_P_PrintErrorString_small_isrsafe(const char *file, unsigned lineno);
 void BDBG_P_Assert_isrsafe(bool expr, const char *file, unsigned line);
-void BDBG_P_AssertFailed(const char *expr, const char *file, unsigned line)
+#define BDBG_P_AssertFailed  BDBG_P_AssertFailed_isrsafe
+void BDBG_P_AssertFailed_isrsafe(const char *expr, const char *file, unsigned line)
 #if !defined B_REFSW_DEBUG_ASSERT_NO_FAIL
 BDBG_P_NORETURN
 #endif

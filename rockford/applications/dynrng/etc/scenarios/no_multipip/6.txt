@@ -1,5 +1,0 @@
-stream=BBC_UHD_HLG_HEVC.mp4
-plm.vid=1
-plm.gfx=2
-image=Avatar.bmp
-bg=desktop_background.brcmLTD.png
