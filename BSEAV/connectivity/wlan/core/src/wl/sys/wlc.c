@@ -9376,6 +9376,11 @@ BCMUNINITFN(wlc_down)(wlc_info_t *wlc)
 	/* wlc_bmac_down_finish has done wlc_coredisable(). so clk is off */
 	wlc->clk = FALSE;
 
+	FOREACH_BSS(wlc, i, bsscfg) {
+		/* BCMC SCBs needs to be de-allocated, if there is any */
+		wlc_bsscfg_bcmcscbfree(wlc, bsscfg);
+	}
+
 	/* Verify all packets are flushed from the driver */
 	if (PKTALLOCED(wlc->osh) > 0) {
 		WL_ERROR(("wl%d: %d packets not freed at wlc_down. MBSS=%d\n",

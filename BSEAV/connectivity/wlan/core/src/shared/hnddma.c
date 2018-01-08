@@ -2689,7 +2689,7 @@ dma64_txunframed(dma_info_t *di, void *buf, uint len, bool commit)
 	ASSERT(di->txp[txout] == NULL);
 
 #if defined(BULK_DESCR_FLUSH)
-	DMA_MAP(di->osh,  dma64_txd64(di, di->txout), DMA64_FLUSH_LEN(1),
+	DMA_FLUSH(di->osh,	dma64_txd64(di, di->txout), DMA64_FLUSH_LEN(1),
 		DMA_TX, NULL, NULL);
 #endif /* BULK_DESCR_FLUSH */
 
@@ -2755,7 +2755,7 @@ dma_rxfill_unframed(hnddma_t *dmah, void *buf, uint len, bool commit)
 #endif /* #if !defined(BCM_SECURE_DMA) */
 
 #if defined(BULK_DESCR_FLUSH)
-	DMA_MAP(di->osh, dma64_rxd64(di, di->rxout), DMA64_FLUSH_LEN(1),
+	DMA_FLUSH(di->osh, dma64_rxd64(di, di->rxout), DMA64_FLUSH_LEN(1),
 		DMA_TX, NULL, NULL);
 #endif /* BULK_DESCR_FLUSH */
 

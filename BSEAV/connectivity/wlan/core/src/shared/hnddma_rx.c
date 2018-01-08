@@ -405,7 +405,7 @@ _dma_rxfill(dma_info_t *di)
 
 
 #if defined(linux) && (defined(BCM47XX_CA9) || defined(STB) || defined(__mips__))
-		DMA_MAP(di->osh, PKTDATA(di->osh, p), sizeof(uint32), DMA_TX, NULL, NULL);
+		DMA_FLUSH(di->osh, PKTDATA(di->osh, p), sizeof(uint32), DMA_TX, NULL, NULL);
 #endif
 #if defined(SGLIST_RX_SUPPORT)
 		if (DMASGLIST_ENAB)
@@ -537,11 +537,11 @@ _dma_rxfill(dma_info_t *di)
 #if defined(BULK_DESCR_FLUSH)
 		uint32 flush_cnt = NRXDACTIVE(di->rxout, rxout);
 		if (rxout < di->rxout) {
-			DMA_MAP(di->osh, dma64_rxd64(di, 0), DMA64_FLUSH_LEN(rxout),
+			DMA_FLUSH(di->osh, dma64_rxd64(di, 0), DMA64_FLUSH_LEN(rxout),
 			        DMA_TX, NULL, NULL);
 			flush_cnt -= rxout;
 		}
-		DMA_MAP(di->osh, dma64_rxd64(di, di->rxout), DMA64_FLUSH_LEN(flush_cnt),
+		DMA_FLUSH(di->osh, dma64_rxd64(di, di->rxout), DMA64_FLUSH_LEN(flush_cnt),
 		        DMA_TX, NULL, NULL);
 #endif /* BULK_DESCR_FLUSH */
 		W_REG(di->osh, &di->d64rxregs->ptr, di->rcvptrbase + I2B(rxout, dma64dd_t));
@@ -1009,7 +1009,7 @@ dma_splitrxfill(dma_info_t *di)
 
 		*(uint16 *)(PKTDATA(di->osh, p)) = 0;
 #if defined(linux) && (defined(BCM47XX_CA9) || defined(__mips__) || defined(STB))
-		DMA_MAP(di->osh, PKTDATA(di->osh, p), sizeof(uint16), DMA_TX, NULL, NULL);
+		DMA_FLUSH(di->osh, PKTDATA(di->osh, p), sizeof(uint16), DMA_TX, NULL, NULL);
 #endif
 		if (DMASGLIST_ENAB)
 			bzero(&di->rxp_dmah[rxout1], sizeof(hnddma_seg_map_t));

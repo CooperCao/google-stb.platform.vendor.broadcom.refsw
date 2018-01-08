@@ -9895,8 +9895,8 @@ BCMINITFN(wlc_coreinit)(wlc_hw_info_t *wlc_hw)
 	* CRWLDOT11M-1824: SP2DPQ.EOF can get lost when backplane clk transits
 	*    to HT and this causes rxdma stuck
 	*/
-	if (D11REV_GE(wlc_hw->corerev, 24) &&
-		(!(D11REV_GE(wlc_hw->corerev, 64) || D11REV_IS(wlc_hw->corerev, 60) ||
+	if (D11REV_GE(wlc_hw->corerev, 24) && (D11REV_IS(wlc_hw->corerev,66) ||
+		!(D11REV_GE(wlc_hw->corerev, 64) || D11REV_IS(wlc_hw->corerev, 60) ||
 		D11REV_IS(wlc_hw->corerev, 61) || D11REV_IS(wlc_hw->corerev, 62)))) {
 		OR_REG(osh, &wlc_hw->regs->psm_corectlsts, PSM_CORE_CTL_REHE);
 	}
