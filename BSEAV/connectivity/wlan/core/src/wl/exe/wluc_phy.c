@@ -2374,9 +2374,10 @@ wl_rssi_cal_freq_grp_2g(void *wl, cmd_t *cmd, char **argv)
 
 		N = 14; /* 14 corresponds to number of channels in 2g */
 
-		for (i = 0; i < N-2; i++) {
+		i = 0;
+		while (i < N-2) {
 			printf("0x%x%x,", nvramValues[i], nvramValues[i+1]);
-			i++;
+			i+=2;
 		}
 		printf("0x%x%x\n", nvramValues[i], nvramValues[i+1]);
 	} else {

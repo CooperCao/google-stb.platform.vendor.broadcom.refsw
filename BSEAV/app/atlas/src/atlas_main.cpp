@@ -522,20 +522,24 @@ void CAtlas::uhfRemoteUninitialize()
 
 #endif /* if NEXUS_HAS_UHF_INPUT */
 
-CVideoWindow * CAtlas::videoWindowInitialize(
+eRet CAtlas::videoWindowInitialize(
         CDisplay *           pDisplay,
         CSimpleVideoDecode * pVideoDecode,
+        CVideoWindow **      ppVideoWindow,
         eWindowType          windowType
         )
 {
     eRet           ret          = eRet_Ok;
     CVideoWindow * pVideoWindow = NULL;
 
+    BDBG_ASSERT(NULL != ppVideoWindow);
+
     ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if ((NULL == pDisplay) || (NULL == pVideoDecode))
     {
-        return(pVideoWindow);
+        *ppVideoWindow = NULL;
+        return(eRet_NotAvailable);
     }
 
     /* connect decoder to display */
@@ -555,7 +559,11 @@ error:
     pVideoWindow = NULL;
 done:
     ATLAS_MEMLEAK_TRACE("END");
-    return(pVideoWindow);
+
+    /* save video window pointer in return parameter */
+    *ppVideoWindow = pVideoWindow;
+
+    return(ret);
 } /* videoWindowInitialize */
 
 void CAtlas::videoWindowUninitialize(
@@ -2497,11 +2505,14 @@ eRet CAtlas::initialize(CConfig * pConfig)
         pVideoDecodeMain = videoDecodeInitialize(pStcMain, eWindowType_Main);
         CHECK_PTR_MSG_GOTO("unable to initialize main video decode", pVideoDecodeMain, ret, eRet_NotAvailable, errorDecodeMain);
 
-        pVideoWindowHD = videoWindowInitialize(pDisplayHD, pVideoDecodeMain, eWindowType_Main);
-        CHECK_PTR_MSG("unable to initialize video window for HD display (main)", pVideoWindowHD, ret, eRet_Ok);
+        ret = videoWindowInitialize(pDisplayHD, pVideoDecodeMain, &pVideoWindowHD, eWindowType_Main);
+        CHECK_ERROR_GOTO("unable to initialize video window for HD display (main)", ret, errorDecodeMain);
 
-        pVideoWindowSD = videoWindowInitialize(pDisplaySD, pVideoDecodeMain, eWindowType_Main);
-        CHECK_PTR_MSG("unable to initialize video window for SD display (main)", pVideoWindowSD, ret, eRet_Ok);
+        {
+            eRet retVideoWindow = eRet_Ok;
+            retVideoWindow = videoWindowInitialize(pDisplaySD, pVideoDecodeMain, &pVideoWindowSD, eWindowType_Main);
+            CHECK_WARN("unable to initialize video window for SD display (main)", retVideoWindow);
+        }
 
         goto doneDecodeMain;
 errorDecodeMain: /* we can continue even if main decode cannot be initialized (headless) */
@@ -2540,11 +2551,14 @@ doneDecodeMain:
         pVideoDecodePip = videoDecodeInitialize(pStcPip, eWindowType_Pip);
         CHECK_PTR_MSG_GOTO("unable to initialize pip video decode", pVideoDecodePip, ret, eRet_NotAvailable, errorDecodePip);
 
-        pVideoWindowHD = videoWindowInitialize(pDisplayHD, pVideoDecodePip, eWindowType_Pip);
-        CHECK_PTR_MSG("unable to initialize video window for HD display (pip)", pVideoWindowHD, ret, eRet_Ok);
+        ret = videoWindowInitialize(pDisplayHD, pVideoDecodePip, &pVideoWindowHD, eWindowType_Pip);
+        CHECK_ERROR_GOTO("unable to initialize video window for HD display (pip)", ret, errorDecodePip);
 
-        pVideoWindowSD = videoWindowInitialize(pDisplaySD, pVideoDecodePip, eWindowType_Pip);
-        CHECK_PTR_MSG("unable to initialize video window for SD display (pip)", pVideoWindowSD, ret, eRet_Ok);
+        {
+            eRet retVideoWindow = eRet_Ok;
+            retVideoWindow = videoWindowInitialize(pDisplaySD, pVideoDecodePip, &pVideoWindowSD, eWindowType_Pip);
+            CHECK_WARN("unable to initialize video window for SD display (pip)", retVideoWindow);
+        }
 
         _model.setPipEnabled(true);
 

@@ -5196,8 +5196,6 @@ exit:
 		MFREE(osh, flshdev_buf, bufsize);
 	if (tmpbuf)
 		MFREE(osh, tmpbuf, linesize);
-	if (flshdev_fp)
-		osl_os_close_image(flshdev_fp);
 
 	return err;
 }

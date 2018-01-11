@@ -294,7 +294,7 @@ static const bcm_iovar_t stf_iovars[] = {
 	(0), 0, IOVT_UINT8, 0
 	},
 	{"rxchain", IOV_STF_RXCHAIN,
-	(0), 0, IOVT_UINT8, 0
+	(0), 0, IOVT_INT32, 0
 	},
 	{"txcore", IOV_STF_TXCORE,
 	(0), 0, IOVT_BUFFER,  sizeof(uint32)*2

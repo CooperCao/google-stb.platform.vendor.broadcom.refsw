@@ -61,7 +61,7 @@ typedef enum
 } Bsp_CmdKeyLadder_e;
 
 
-/*PARAMATERS for the Bsp_CmdKeyLadder_eRouteKey command  */
+/*PARAMETERS for the Bsp_CmdKeyLadder_eRouteKey command  */
 /*input*/
 typedef struct
 {
@@ -89,7 +89,7 @@ typedef struct
 }Bsp_KeyLadder_RouteKey_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeyLadder_eRootConfig command  */
+/*PARAMETERS for the Bsp_CmdKeyLadder_eRootConfig command  */
 /*input*/
 typedef struct
 {
@@ -123,7 +123,7 @@ typedef struct
 }Bsp_KeyLadder_RootConfig_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeyLadder_eLayerSet command  */
+/*PARAMETERS for the Bsp_CmdKeyLadder_eLayerSet command  */
 /*input*/
 typedef struct
 {
@@ -145,7 +145,7 @@ typedef struct
 }Bsp_KeyLadder_LayerSet_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeyLadder_eRouteIv command  */
+/*PARAMETERS for the Bsp_CmdKeyLadder_eRouteIv command  */
 /*input*/
 typedef struct
 {
@@ -167,7 +167,7 @@ typedef struct
 }Bsp_KeyLadder_RouteIv_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeyLadder_eFwklQuery command  */
+/*PARAMETERS for the Bsp_CmdKeyLadder_eFwklQuery command  */
 /*input*/
 typedef struct
 {
@@ -183,7 +183,7 @@ typedef struct
 }Bsp_KeyLadder_FwklQuery_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeyLadder_eFwklInvalidate command  */
+/*PARAMETERS for the Bsp_CmdKeyLadder_eFwklInvalidate command  */
 /*input*/
 typedef struct
 {
@@ -201,7 +201,7 @@ typedef struct
 }Bsp_KeyLadder_FwklInvalidate_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeyLadder_eKladChallenge command  */
+/*PARAMETERS for the Bsp_CmdKeyLadder_eKladChallenge command  */
 /*input*/
 typedef struct
 {
@@ -220,7 +220,7 @@ typedef struct
 }Bsp_KeyLadder_KladChallenge_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeyLadder_eKladResponse command  */
+/*PARAMETERS for the Bsp_CmdKeyLadder_eKladResponse command  */
 /*input*/
 typedef struct
 {

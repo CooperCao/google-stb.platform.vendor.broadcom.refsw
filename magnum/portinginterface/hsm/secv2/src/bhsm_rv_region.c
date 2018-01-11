@@ -230,37 +230,37 @@ BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
 
     switch( pRvRegion->regionId )
     {
-		case BHSM_RegionId_eCpu0:
-		case BHSM_RegionId_eCpu1:
-		case BHSM_RegionId_eCpu2:
-		case BHSM_RegionId_eCpu3:
-		case BHSM_RegionId_eCpu4:
-		case BHSM_RegionId_eCpu5:
-		case BHSM_RegionId_eCpu6:
-		case BHSM_RegionId_eCpu7:           { bspEnableRegion.in.cpuType = 0; /* HOST*/ break; 	}
-		case BHSM_RegionId_eRave0:          { bspEnableRegion.in.cpuType = 3;  /*Rave*/ break; }
-		case BHSM_RegionId_eAudio0:         { bspEnableRegion.in.cpuType = 1;  /* Audio */ break; }
-		case BHSM_RegionId_eVdec0_Il2a:
-		case BHSM_RegionId_eVdec0_Ila:
-		case BHSM_RegionId_eVdec0_Ola:
-		case BHSM_RegionId_eVdec1_Ila:
-		case BHSM_RegionId_eVdec1_Ola:      { bspEnableRegion.in.cpuType = 4;  /* VDEC */ break; }
-		case BHSM_RegionId_eVice0_Pic:
-		case BHSM_RegionId_eVice0_Mb:       { bspEnableRegion.in.cpuType = 5;  /* VICE */ break; }
-		case BHSM_RegionId_eRedacted_0x0A:
-		case BHSM_RegionId_eRedacted_0x0E:
-		case BHSM_RegionId_eRedacted_0x11:
-		case BHSM_RegionId_eRedacted_0x12:
-		case BHSM_RegionId_eRedacted_0x13:
-		case BHSM_RegionId_eRedacted_0x14:
-		case BHSM_RegionId_eRedacted_0x17:
-		case BHSM_RegionId_eRedacted_0x18:
-		case BHSM_RegionId_eRedacted_0x19:
-		case BHSM_RegionId_eRedacted_0x1A:
-		case BHSM_RegionId_eRedacted_0x1B:
-		case BHSM_RegionId_eRedacted_0x1C:
-		case BHSM_RegionId_eRedacted_0x1D:
-		case BHSM_RegionId_eRedacted_0x1E:  { bspEnableRegion.in.cpuType = 7; break; }
+        case BHSM_RegionId_eCpu0:
+        case BHSM_RegionId_eCpu1:
+        case BHSM_RegionId_eCpu2:
+        case BHSM_RegionId_eCpu3:
+        case BHSM_RegionId_eCpu4:
+        case BHSM_RegionId_eCpu5:
+        case BHSM_RegionId_eCpu6:
+        case BHSM_RegionId_eCpu7:           { bspEnableRegion.in.cpuType = 0; /* HOST*/ break;     }
+        case BHSM_RegionId_eRave0:          { bspEnableRegion.in.cpuType = 3;  /*Rave*/ break; }
+        case BHSM_RegionId_eAudio0:         { bspEnableRegion.in.cpuType = 1;  /* Audio */ break; }
+        case BHSM_RegionId_eVdec0_Il2a:
+        case BHSM_RegionId_eVdec0_Ila:
+        case BHSM_RegionId_eVdec0_Ola:
+        case BHSM_RegionId_eVdec1_Ila:
+        case BHSM_RegionId_eVdec1_Ola:      { bspEnableRegion.in.cpuType = 4;  /* VDEC */ break; }
+        case BHSM_RegionId_eVice0_Pic:
+        case BHSM_RegionId_eVice0_Mb:       { bspEnableRegion.in.cpuType = 5;  /* VICE */ break; }
+        case BHSM_RegionId_eRedacted_0x0A:
+        case BHSM_RegionId_eRedacted_0x0E:
+        case BHSM_RegionId_eRedacted_0x11:
+        case BHSM_RegionId_eRedacted_0x12:
+        case BHSM_RegionId_eRedacted_0x13:
+        case BHSM_RegionId_eRedacted_0x14:
+        case BHSM_RegionId_eRedacted_0x17:
+        case BHSM_RegionId_eRedacted_0x18:
+        case BHSM_RegionId_eRedacted_0x19:
+        case BHSM_RegionId_eRedacted_0x1A:
+        case BHSM_RegionId_eRedacted_0x1B:
+        case BHSM_RegionId_eRedacted_0x1C:
+        case BHSM_RegionId_eRedacted_0x1D:
+        case BHSM_RegionId_eRedacted_0x1E:  { bspEnableRegion.in.cpuType = 7; break; }
         default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
 
@@ -349,23 +349,21 @@ BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
         bspEnableRegion.in.rsaKeyId = rvRsaInfo.rsaKeyId;
     }
 
+    if( pRegion->settings.keyLadderHandle )
+    {
+        BHSM_KeyLadderInfo keyLadderInfo;
+        rc = BHSM_KeyLadder_GetInfo( pRegion->settings.keyLadderHandle, &keyLadderInfo );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+        bspEnableRegion.in.keyLayer = pRegion->settings.keyLadderLayer;
+        bspEnableRegion.in.vklId = keyLadderInfo.index;
+		bspEnableRegion.in.decryptionSel = Bsp_CmdRv_DecryptionMode_eKeyLadderKey;
+    }
     bspEnableRegion.in.bgCheck = pRegion->settings.backgroundCheck ? Bsp_CmdRv_BgCheck_eEnable
                                                                      : Bsp_CmdRv_BgCheck_eDisable;
     bspEnableRegion.in.allowRegionDisable = pRegion->settings.allowRegionDisable ? Bsp_CmdRv_RegionDisable_eAllow
                                                                                    : Bsp_CmdRv_RegionDisable_eDisallow;
     bspEnableRegion.in.enforceAuth = pRegion->settings.enforceAuth ? Bsp_CmdRv_EnforceAuth_eEnforce
                                                                      : Bsp_CmdRv_EnforceAuth_eNoEnforce;
-
-    if( pRegion->regionId == BHSM_RegionId_eRedacted_0x18)
-    {
-        BHSM_KeyLadderInfo ladderInfo;
-        ladderInfo.index = -1;
-        BHSM_KeyLadder_GetInfo(pRegion->settings.keyLadderHandle, &ladderInfo);
-        bspEnableRegion.in.keyLayer = pRegion->settings.keyLadderLayer;
-        bspEnableRegion.in.vklId = ladderInfo.index;
-        bspEnableRegion.in.decryptionSel = Bsp_CmdRv_DecryptionMode_eKeyLadderKey;
-    }
-
     rc = BHSM_P_Rv_EnableRegion( pRegion->hHsm, &bspEnableRegion );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
@@ -374,10 +372,43 @@ BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
 }
 #endif
 
+BERR_Code BHSM_RvRegion_QueryAll(BHSM_Handle hHsm, BHSM_RvRegionStatusAll *status)
+{
+    BERR_Code rc;
+    BHSM_P_RvQueryAllRegions regionsStatus; /* the status of all regions. */
+    uint32_t count = sizeof(regionsStatus)/sizeof(regionsStatus.out.regionStatus[0]);
+    uint32_t i;
+
+    BDBG_ENTER( BHSM_RvRegion_QueryAll );
+
+    BDBG_ASSERT(BHSM_RegionId_eMax >= count);
+
+    if( !status ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    BKNI_Memset( &regionsStatus, 0, sizeof(regionsStatus) );
+    BKNI_Memset( status, 0, sizeof(*status) );
+
+    rc = BHSM_P_Rv_QueryAllRegions( hHsm, &regionsStatus );
+    if( rc == BERR_SUCCESS){
+        for( i = 0; i < count; i++){
+            status->region[i].status = regionsStatus.out.regionStatus[i];
+            if( i < Bsp_CmdRv_RegionId_eRegionMax) {
+                status->region[i].configured = hHsm->modules.pRvRegions->instances[i].configured;
+            }
+            if( regionsStatus.out.regionStatus[i] & (0x01 << Bsp_CmdRv_QueryStatusBits_eEnabled) ){
+                status->region[i].verified = true;
+            }
+        }
+    }
+
+    BDBG_LEAVE( BHSM_RvRegion_QueryAll );
+    return rc;
+}
+
 BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStatus *pStatus )
 {
     BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)handle;
-    BHSM_P_RvQueryAllRegions regionsStatus; /* the status if all regions. */
+    BHSM_P_RvQueryAllRegions regionsStatus; /* the status of all regions. */
     uint8_t regionId;
     BERR_Code rc;
 

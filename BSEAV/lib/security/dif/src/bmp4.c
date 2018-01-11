@@ -125,6 +125,7 @@ void bmp4_FreeMp4Header(bmp4_mp4_headers *pMp4)
     int i;
     for (i = 0; i < pMp4->numOfDrmSchemes; i++){
         if(pMp4->pPsshData[i] != NULL) NEXUS_Memory_Free((void*) pMp4->pPsshData[i]);
+        if(pMp4->cpsSpecificData[i] != NULL) NEXUS_Memory_Free((void*) pMp4->cpsSpecificData[i]);
     }
 }
 
@@ -336,10 +337,6 @@ int bmp4_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
                     if(rc != 0) {
                         goto ErrorExit;
                     }
-                    else if (pTrack->scheme_box_valid == true) {
-                        /* No need to dig further once a valid TE box has been parsed */
-                        goto ErrorExit;
-                    }
                 } else if (box.type == BMP4_CENC_DVC1) {
                     LOGD(("%s - Got the DVC1 box, read the vc1_config data\n", BSTD_FUNCTION));
                     batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
@@ -348,8 +345,8 @@ int bmp4_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
                     LOGD(("%s - Got the AvcC box, read the avc_config data\n", BSTD_FUNCTION));
                     batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
                     pTrack->scheme.decConfig.size = box.size-box_hdr_size;
-rc = 0;
-pTrack->scheme_box_valid = true;
+                    rc = 0;
+                    pTrack->scheme_box_valid = true;
                 } else if(box.type == BMP4_CENC_WFEX) {
                     LOGD(("%s - Got the wmap box, read the wmapro_config data\n", BSTD_FUNCTION));
                     batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
@@ -812,7 +809,7 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
             case BMP4_CENC_SENC: /* senc */
             {
                 LOGD(("%s: BMP4_CENC_SENC", BSTD_FUNCTION));
-                cenc_parse_sample_encryption_box(cursor, frag_header);
+                rc = cenc_parse_sample_encryption_box(cursor, frag_header);
                 if (rc == 0)
                     frag_header->enc_info_parsed = true;
                 break;

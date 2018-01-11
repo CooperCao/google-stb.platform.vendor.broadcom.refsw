@@ -95,6 +95,10 @@ else
 BCHP_PWR_CTK_SUPPORT=n
 endif
 
+ifeq ($(NEXUS_SHARED_SPI),y)
+BINT_SPI_DISABLED=y
+endif
+
 ##################
 # Module Defines #
 ##################

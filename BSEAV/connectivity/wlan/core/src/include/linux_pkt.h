@@ -26,11 +26,11 @@
 
 #include <typedefs.h>
 
-#ifdef __ARM_ARCH_7A__
-#define PKT_HEADROOM_DEFAULT NET_SKB_PAD /**< NET_SKB_PAD is defined in a linux kernel header */
-#else
-#define PKT_HEADROOM_DEFAULT 16
-#endif /* __ARM_ARCH_7A__ */
+/* 
+ * NET_SKB_PAD is defined as L1 CACHE_LINE_SIZE which
+ * in turn is set based on target STB platform
+ */
+#define PKT_HEADROOM_DEFAULT NET_SKB_PAD 
 
 #ifdef BCMDRIVER
 /*

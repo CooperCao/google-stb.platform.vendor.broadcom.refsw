@@ -1582,6 +1582,7 @@ const BDSP_Raaga_Audio_DDPEncConfigParams		BDSP_sDefDdpencConfigSettings=
 	0,					/* SPDIF Packing */
 	0,					/* Encoder Variant MS12 or MS11 */
 	{0},				/* Additional Bitstream Information String */
+	0,					/* Atmos Lock */
 	0,
 	{0},				/* drc1 */
 	0,

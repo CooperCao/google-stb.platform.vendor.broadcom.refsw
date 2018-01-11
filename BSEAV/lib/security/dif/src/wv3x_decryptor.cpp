@@ -453,10 +453,12 @@ std::string Widevine3xDecryptor::GetKeyRequestResponse(std::string url)
 #endif // USE_CURL
         size_t body_head = s_wvBuffer.find("\r\n\r\n");
         if (body_head == std::string::npos) {
-            LOGE(("%s: no body found in response", BSTD_FUNCTION));
+            LOGW(("%s: no body found in response", BSTD_FUNCTION));
 #ifdef USE_CURL
             curl_easy_cleanup(curl);
 #endif
+            LOGW(("%s: return entire response", BSTD_FUNCTION));
+            drm_msg.assign(s_wvBuffer);
             return drm_msg;
         }
         drm_msg.clear();

@@ -496,7 +496,10 @@ static const BINT_P_IntMap bint_map[] =
     BINT_MAP(2, UPG_MAIN_AON, "", UPG_MAIN_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3f ),
 #endif
 
+#ifndef BINT_SPI_DISABLED
     BINT_MAP(2, UPG_SPI, "", UPG_SPI_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x1 ),
+#endif
+
 #ifdef BCHP_SCIRQ0_REG_START
     BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
 #endif

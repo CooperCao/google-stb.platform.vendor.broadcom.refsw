@@ -470,7 +470,8 @@ extern const uint8 prio2fifo[];
 #define	MAXTXFRAMEBURST		MAXTXFRAMEBURST_MAX
 #endif
 
-#define	MAXFRAMEBURST_TXOP	10000		/* Frameburst TXOP in usec */
+#define	MAXFRAMEBURST_TXOP	12000u		/* Frameburst TXOP in usec */
+#define	MAXFRAMEBURST_TXOP_EU	6000u		/* Frameburst TXOP in usec to use in EU (EU-RED) */
 
 #ifdef STA
 /* PM2 tick time in milliseconds and gptimer units */

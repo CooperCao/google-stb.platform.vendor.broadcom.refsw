@@ -48,7 +48,7 @@
 extern "C" {
 #endif
 
-typedef void* BHSM_HmacHandle;
+typedef struct BHSM_P_Hmac* BHSM_HmacHandle;
 
 #define BHSM_HMAC_MAX_LENGTH (32)
 #define BHSM_HMAC_LAST_DATA  (1)
@@ -108,7 +108,7 @@ typedef struct BHSM_HmacSubmitData_1char
     unsigned char data;
 
     /* OUT */
-    uint8_t hmac[BHSM_HMAC_MAX_LENGTH]; /* only populated when "last" is true. */
+    uint8_t hmac[BHSM_HMAC_MAX_LENGTH];
     unsigned hmacLength;
 
 }BHSM_HmacSubmitData_1char;

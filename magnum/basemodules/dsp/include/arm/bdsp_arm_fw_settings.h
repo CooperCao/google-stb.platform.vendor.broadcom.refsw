@@ -317,6 +317,9 @@ typedef struct BDSP_Arm_Audio_DDPEncConfigParams
                 */
     int32_t     i32AddBsi[64];
 
+	/* Enable / Disable Atmos lock [Default : 0 = disabled] */
+    uint32_t    ui32AtmosLockEnabled;
+
 } BDSP_Arm_Audio_DDPEncConfigParams;
 
 extern const BDSP_Arm_Audio_DDPEncConfigParams         BDSP_ARM_sDefDDPEncConfigSettings;

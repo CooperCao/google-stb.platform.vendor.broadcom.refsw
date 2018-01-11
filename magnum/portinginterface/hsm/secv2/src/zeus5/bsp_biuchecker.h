@@ -56,7 +56,7 @@ typedef enum
 } Bsp_CmdBiuChecker_e;
 
 
-/*PARAMATERS for the Bsp_CmdBiuChecker_eEn command  */
+/*PARAMETERS for the Bsp_CmdBiuChecker_eEn command  */
 /*input*/
 typedef struct
 {
@@ -75,7 +75,7 @@ typedef struct
 }Bsp_BiuChecker_En_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdBiuChecker_eQuery command  */
+/*PARAMETERS for the Bsp_CmdBiuChecker_eQuery command  */
 /*input*/
 typedef struct
 {
@@ -90,7 +90,7 @@ typedef struct
 }Bsp_BiuChecker_Query_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdBiuChecker_eDis command  */
+/*PARAMETERS for the Bsp_CmdBiuChecker_eDis command  */
 /*input*/
 typedef struct
 {

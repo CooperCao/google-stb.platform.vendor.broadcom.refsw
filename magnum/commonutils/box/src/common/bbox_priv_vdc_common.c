@@ -43,6 +43,7 @@
 #include "bbox_priv.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
+#include "bbox_rts_priv.h"
 #include "bbox_priv_modes.h"
 #include "bchp_common.h"
 #include "bchp_memc_arb_0.h"
@@ -639,7 +640,7 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
 
     if (hBox)
     {
-        uint32_t ulBoxId;
+        uint32_t ulBoxId = hBox->stBoxConfig.stBox.ulBoxId;
         BBOX_Vdc_Capabilities *pstVdcCap = NULL;
         BBOX_MemConfig *pstMemConfig = NULL;
 
@@ -659,19 +660,14 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
             goto BBOX_Validate_Done;
         }
 
-        for (ulBoxId=1; ulBoxId<=BBOX_MODES_SUPPORTED; ulBoxId++)
+        /* Set defaults. */
+        BBOX_P_Vdc_SetDefaultCapabilities(pstVdcCap);
+
+        /* Set default config settings  */
+        BBOX_P_SetDefaultMemConfig(pstMemConfig);
+
+        if (ulBoxId != 0)
         {
-            BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Validating box mode %d", ulBoxId));
-             /* VDC */
-            /* Set defaults. */
-            BBOX_P_Vdc_SetDefaultCapabilities(pstVdcCap);
-
-            eStatus = BBOX_P_ValidateId(ulBoxId);
-            if (eStatus == BBOX_ID_NOT_SUPPORTED)
-            {
-                continue;
-            }
-
             /* Set box specific limits */
             eStatus = BBOX_P_Vdc_SetCapabilities(ulBoxId, pstVdcCap);
             if (eStatus != BERR_SUCCESS)
@@ -684,14 +680,14 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
             {
                 goto BBOX_Validate_Done;
             }
+         }
 
-            /* Check memc assignment against BOX config */
-            eStatus = BBOX_P_Vdc_SelfCheck(pstMemConfig, pstVdcCap);
-            if (eStatus != BERR_SUCCESS)
-            {
-                eStatus = BERR_INVALID_PARAMETER;
-                goto BBOX_Validate_Done;
-            }
+        /* Check memc assignment against BOX config */
+        eStatus = BBOX_P_Vdc_SelfCheck(pstMemConfig, pstVdcCap);
+        if (eStatus != BERR_SUCCESS)
+        {
+            eStatus = BERR_INVALID_PARAMETER;
+            goto BBOX_Validate_Done;
         }
 
 BBOX_Validate_Done:

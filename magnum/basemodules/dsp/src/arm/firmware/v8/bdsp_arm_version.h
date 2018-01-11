@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,7 +37,7 @@
 ******************************************************************************/
 
 
-/* Commit ID of Astra : c5360050063542d0ded1f6a565ff5e5869e3cfb6 */
+/* Commit ID of Astra : 3ff1791f469ccad704abc9e4e58e44e30569fad8 */
 #define BDSP_ARM_MAJOR_VERSION       1
 #define BDSP_ARM_MINOR_VERSION       2
 #define BDSP_ARM_BUILD_VERSION       0

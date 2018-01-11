@@ -138,7 +138,6 @@ static int wlc_bsscfg_init_intf(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
 static void wlc_bsscfg_deinit_intf(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
 
 static int wlc_bsscfg_bcmcscballoc(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
-static void wlc_bsscfg_bcmcscbfree(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
 
 #ifdef AP
 static int wlc_bsscfg_ap_init(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
@@ -1330,8 +1329,11 @@ do_down:
 	}
 #endif /* AP */
 
-	/* Always BCMC SCBs are de-allocated as part of bsscfg-down */
-	wlc_bsscfg_bcmcscbfree(wlc, cfg);
+	/* Delay freeing BCMC SCBs if there are packets in the fifo */
+	if (!BCMC_PKTS_QUEUED(cfg)) {
+		/* BCMC SCBs are de-allocated */
+		wlc_bsscfg_bcmcscbfree(wlc, cfg);
+	}
 
 	return callbacks;
 }
@@ -2060,7 +2062,7 @@ wlc_bsscfg_reset(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, wlc_bsscfg_type_t *type,
 	return err;
 }
 
-static void
+void
 wlc_bsscfg_bcmcscbfree(struct wlc_info *wlc, wlc_bsscfg_t *bsscfg)
 {
 	if (!BSSCFG_HAS_BCMC_SCB(bsscfg))

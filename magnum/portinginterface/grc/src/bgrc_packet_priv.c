@@ -2356,7 +2356,7 @@ static void BGRC_PACKET_P_SetScaler( BGRC_PacketContext_Handle hContext,
                     ulMaxScalingUpFraction = BGRC_P_SCALE_UP_2BSTC_MAX_FRAC >>bYuv420;
                 }
                 /*BSTC Max factor applies only to horizontal scaling. Vertical scaling has not upscale limitation and will have same downscale limitation of 8 which applies to earlier formats.*/
-                if(scaler->hor_step && (scaler->hor_step <ulMaxScalingUpFraction))
+                if(h_step <ulMaxScalingUpFraction)
                 {
                     scaler->stripe_overlap = 0;
                     BDBG_WRN(("m2mc[%d] scaling up factor width (%d->%d) or height (%d->%d) exceeding limit %d",

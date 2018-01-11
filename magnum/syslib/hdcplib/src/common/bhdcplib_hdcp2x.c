@@ -1512,16 +1512,18 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 	BDBG_ENTER(BHDCPlib_P_Hdcp2x_StopAuthentication);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
+
+
 	/* Make sure system is ready for the request */
 	switch (hHDCPlib->currentHdcp2xState)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
 	case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
-	case BHDCPlib_Hdcp2xState_eUnauthenticated:
 	case BHDCPlib_Hdcp2xState_eAuthenticating:
 	case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 		break;
 
+	case BHDCPlib_Hdcp2xState_eUnauthenticated:
 	case BHDCPlib_Hdcp2xState_eUnauthenticating:
 		/* drop stopAuthentication attempt */
 		BDBG_WRN(("%s: Current State [%s], drop StopAuthentication request", BSTD_FUNCTION,
@@ -1882,16 +1884,6 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 
-				if (hHDCPlib->stReceiverIdListData.deviceCount != 0)
-				{
-					rc = BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(hHDCPlib, &hHDCPlib->stReceiverIdListData);
-					if (rc != BERR_SUCCESS)
-					{
-						rc = BERR_TRACE(rc);
-						goto done;
-					}
-				}
-
 				/* Stop authentication timer */
 				if (hHDCPlib->hAuthenticationTimer) {
 					BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
@@ -2117,7 +2109,7 @@ done:
 }
 
 
-void BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool enable)
+BERR_Code BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool enable)
 {
 	BERR_Code rc = BERR_SUCCESS;
 
@@ -2172,7 +2164,7 @@ void BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool
 done:
 
 	BDBG_LEAVE(BHDCPlib_Hdcp2x_EnableEncryption);
-	return;
+	return rc ;
 }
 
 
@@ -2881,11 +2873,16 @@ BERR_Code BHDCPlib_Hdcp2x_Rx_UploadReceiverIdList(
 	/* save ReceiverIdList for later use */
 	hHDCPlib->stReceiverIdListData = *stReceiverIdListData;
 
-	rc = BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(hHDCPlib, stReceiverIdListData);
-	if (rc != BERR_SUCCESS)
+	/* upload receiverId List only when part1 of authentication completed */
+	if ((hHDCPlib->currentHdcp2xState == BHDCPlib_Hdcp2xState_eAuthenticated)
+	|| (hHDCPlib->currentHdcp2xState == BHDCPlib_Hdcp2xState_eRepeaterAuthenticated))
 	{
-		rc = BERR_TRACE(rc);
-		goto done;
+		rc = BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(hHDCPlib, stReceiverIdListData);
+		if (rc != BERR_SUCCESS)
+		{
+			rc = BERR_TRACE(rc);
+			goto done;
+		}
 	}
 
 done:

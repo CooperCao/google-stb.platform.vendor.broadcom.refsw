@@ -183,4 +183,17 @@ extern bool khrn_image_is_one_elem_slice(const khrn_image *img);
  * the same slice and element in the blob, and have the same number of slices and elements */
 extern bool khrn_image_equal(const khrn_image *img1, const khrn_image *img2);
 
+static inline
+const GFX_BUFFER_DESC_PLANE_T *khrn_image_get_desc_plane(const khrn_image *img, unsigned plane)
+{
+   assert(plane < img->blob->desc[img->level].num_planes);
+   return &img->blob->desc[img->level].planes[plane];
+}
+
+static inline
+const GFX_BUFFER_DESC_T *khrn_image_get_desc(const khrn_image *img)
+{
+   return &img->blob->desc[img->level];
+}
+
 #endif

@@ -54,7 +54,20 @@ int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_
 NEXUS_OtpKeyType find_otp_select(void);
 NEXUS_Error read_otp_id(NEXUS_OtpIdType keyType, uint32_t *otpIdHi, uint32_t *otpIdLo);
 #else
-
+typedef enum BP3_Otp_KeyType
+{
+    BP3_OTPKeyTypeA,
+    BP3_OTPKeyTypeB,
+    BP3_OTPKeyTypeC,
+    BP3_OTPKeyTypeD,
+    BP3_OTPKeyTypeE,
+    BP3_OTPKeyTypeF,
+    BP3_OTPKeyTypeG,
+    BP3_OTPKeyTypeH,
+    BP3_OTPKeyMax
+} BP3_Otp_KeyType;
+BP3_Otp_KeyType find_otp_select(void);
+NEXUS_Error read_otp_id(unsigned keyIndex, uint32_t *otpIdHi, uint32_t *otpIdLo);
 #endif
 
 #define MAP_MEM_START \

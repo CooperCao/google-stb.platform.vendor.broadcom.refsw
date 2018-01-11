@@ -1191,6 +1191,27 @@ BVCE_S_Boot(
       }
    }
 
+#if BVCE_PLATFORM_P_DISABLE_FME_RR
+#include "bchp_memc_arb_0.h"
+#include "bchp_memc_arb_1.h"
+   {
+      uint32_t auiFMEMemcArbRegister[2] = {
+            BCHP_MEMC_ARB_0_CLIENT_INFO_47,
+            BCHP_MEMC_ARB_1_CLIENT_INFO_47
+      };
+      uint32_t uiValue;
+      unsigned i;
+
+      for ( i = 0; i < 2; i++ )
+      {
+         uiValue = BREG_Read32( hVce->handles.hReg, auiFMEMemcArbRegister[i] );
+         uiValue &= ~BCHP_MEMC_ARB_0_CLIENT_INFO_47_RR_EN_MASK;
+         uiValue |= ( BCHP_MEMC_ARB_0_CLIENT_INFO_47_RR_EN_DISABLED << BCHP_MEMC_ARB_0_CLIENT_INFO_47_RR_EN_SHIFT );
+         BREG_Write32( hVce->handles.hReg, auiFMEMemcArbRegister[i], uiValue );
+      }
+   }
+#endif
+
    if ( NULL != hVce->stOpenSettings.pARCBootCallback )
    {
       uint32_t i;

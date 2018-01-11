@@ -60,7 +60,7 @@ typedef enum
 } Bsp_CmdCrypto_e;
 
 
-/*PARAMATERS for the Bsp_CmdCrypto_eRng command  */
+/*PARAMETERS for the Bsp_CmdCrypto_eRng command  */
 /*input*/
 typedef struct
 {
@@ -76,7 +76,7 @@ typedef struct
 }Bsp_CmdCrypto_Rng_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdCrypto_eRsa command  */
+/*PARAMETERS for the Bsp_CmdCrypto_eRsa command  */
 /*input*/
 typedef struct
 {
@@ -95,7 +95,7 @@ typedef struct
 }Bsp_CmdCrypto_Rsa_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdCrypto_ePollRsa command  */
+/*PARAMETERS for the Bsp_CmdCrypto_ePollRsa command  */
 /*input*/
 typedef struct
 {
@@ -110,7 +110,7 @@ typedef struct
 }Bsp_CmdCrypto_PollRsa_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdCrypto_eHmac command  */
+/*PARAMETERS for the Bsp_CmdCrypto_eHmac command  */
 /*input*/
 typedef struct
 {
@@ -138,7 +138,7 @@ typedef struct
 }Bsp_CmdCrypto_Hmac_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdCrypto_eSha command  */
+/*PARAMETERS for the Bsp_CmdCrypto_eSha command  */
 /*input*/
 typedef struct
 {
@@ -165,7 +165,7 @@ typedef struct
 }Bsp_CmdCrypto_Sha_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdCrypto_eAes1Block command  */
+/*PARAMETERS for the Bsp_CmdCrypto_eAes1Block command  */
 /*input*/
 typedef struct
 {
@@ -184,7 +184,7 @@ typedef struct
 }Bsp_CmdCrypto_Aes1Block_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdCrypto_eDes1Block command  */
+/*PARAMETERS for the Bsp_CmdCrypto_eDes1Block command  */
 /*input*/
 typedef struct
 {

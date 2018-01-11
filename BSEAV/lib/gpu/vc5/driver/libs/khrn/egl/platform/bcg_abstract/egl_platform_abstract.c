@@ -256,7 +256,6 @@ static bool wait_native(EGLint engine)
    return true;
 }
 
-
 static EGL_PLATFORM_FNS_T fns =
 {
    get_display,

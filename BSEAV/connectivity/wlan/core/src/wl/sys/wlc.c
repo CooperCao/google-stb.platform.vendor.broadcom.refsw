@@ -2200,9 +2200,9 @@ void BCMINITFN(wlc_init)(wlc_info_t *wlc)
 	/* init probe response timeout */
 	wlc_write_shm(wlc, M_PRS_MAXTIME(wlc), wlc->prb_resp_timeout);
 
-	/* init max burst txop (framebursting) */
-	wlc_write_shm(wlc, M_MBURST_TXOP(wlc),
-	              (WLC_HT_GET_RIFS(wlc->hti) ? (EDCF_AC_VO_TXOP_AP << 5) : MAXFRAMEBURST_TXOP));
+	/* limit frameburst txop by country */
+	wlc_ht_frameburst_limit(wlc->hti);
+
 	/* in case rifs was set when not up, need to run war here */
 	phy_misc_tkip_rifs_war(pi, WLC_HT_GET_RIFS(wlc->hti));
 
@@ -9376,6 +9376,11 @@ BCMUNINITFN(wlc_down)(wlc_info_t *wlc)
 	/* wlc_bmac_down_finish has done wlc_coredisable(). so clk is off */
 	wlc->clk = FALSE;
 
+	FOREACH_BSS(wlc, i, bsscfg) {
+		/* BCMC SCBs needs to be de-allocated, if there is any */
+		wlc_bsscfg_bcmcscbfree(wlc, bsscfg);
+	}
+
 	/* Verify all packets are flushed from the driver */
 	if (PKTALLOCED(wlc->osh) > 0) {
 		WL_ERROR(("wl%d: %d packets not freed at wlc_down. MBSS=%d\n",
@@ -11001,25 +11006,27 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		if (bcmerror)
 			break;
 #ifdef BCMCCX
-	        if (CAC_ENAB(wlc->pub) && AP_ENAB(wlc->pub))
-	                wlc->pub->cmn->_cac = FALSE;
+		if (CAC_ENAB(wlc->pub) && AP_ENAB(wlc->pub))
+			wlc->pub->cmn->_cac = FALSE;
 #endif  /* BCMCCX */
 
-	        wlc_ap_upd(wlc, bsscfg);
+		wlc_ap_upd(wlc, bsscfg);
 
-	        /* always turn off WET when switching mode */
-	        wlc->wet = FALSE;
-	        /* always turn off MAC_SPOOF when switching mode */
-	        wlc->mac_spoof = FALSE;
+		if (!APSTA_ENAB(wlc->pub)) {
+			/* always turn off WET when switching mode */
+			wlc->wet = FALSE;
+			/* always turn off MAC_SPOOF when switching mode */
+			wlc->mac_spoof = FALSE;
+		}
 
-	        if (wasup) {
-	                WL_APSTA_UPDN(("wl%d: WLC_SET_AP -> wl_up()\n", wlc->pub->unit));
-	                bcmerror = wl_up(wlc->wl);
-	        }
+		if (wasup) {
+			WL_APSTA_UPDN(("wl%d: WLC_SET_AP -> wl_up()\n", wlc->pub->unit));
+			bcmerror = wl_up(wlc->wl);
+		}
 #ifdef STA
-	        wlc_radio_mpc_upd(wlc);
+        wlc_radio_mpc_upd(wlc);
 #endif /* STA */
-	        break;
+        break;
 	}
 
 	case WLC_GET_AP:

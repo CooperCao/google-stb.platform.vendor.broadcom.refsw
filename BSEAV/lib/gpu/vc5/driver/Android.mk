@@ -280,7 +280,7 @@ LOCAL_SRC_FILES := \
 	platform/android/default_android.c \
 	platform/android/display_android.c \
 	platform/android/memory_android.c \
-	platform/common/memory_drm.c \
+	platform/android/memory_drm.c \
 	platform/common/memory_convert.c \
 	platform/common/display_helpers.c \
 	driver/libs/khrn/egl/platform/bcg_abstract/egl_native_fence_sync_android.c \

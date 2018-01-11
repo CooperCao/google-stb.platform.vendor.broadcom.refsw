@@ -4,7 +4,7 @@
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
 <meta name=Generator content="Microsoft Word 14 (filtered)">
 <title>Broadcom 97439 B0 ONLY Phase 17.4 Set-Top Unified Reference Software
-Release November 17 Release Notes</title>
+Release December 19 Release Notes</title>
 <style>
 <!--
  /* Font Definitions */
@@ -125,7 +125,7 @@ Release</a></p>
 
 <p><strong>Release Date: </strong></p>
 
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; November 17, 2017</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; January 4, 2018</p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
@@ -152,9 +152,9 @@ Brutus as part of the Reference Software. </p>
 <p><strong>Quick Build Instructions to create your own Linux Images</strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar -xvjf rootfs-4.1-1.14.tar.bz2<br>
-     rootfs-4.1-1.14.tar.bz2 </li>
- <li class=MsoNormal># tar -xvjf stblinux-4.1-1.14.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf rootfs-4.1-1.15.tar.bz2<br>
+     rootfs-4.1-1.15.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.15.tar.bz2 </li>
  <li class=MsoNormal># cd rootfs </li>
  <li class=MsoNormal># make vmlinuz-initrd-arm </li>
  <li class=MsoNormal># cd ../linux </li>
@@ -170,8 +170,8 @@ Brutus as part of the Reference Software. </p>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal>use vmlinuz-initrd-arm images in this release.</li>
- <li class=MsoNormal># tar -xvjf stblinux-4.1-1.14.tar.bz2 </li>
- <li class=MsoNormal># cd stblinux-4.1-1.14</li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.15.tar.bz2 </li>
+ <li class=MsoNormal># cd stblinux-4.1-1.15</li>
  <li class=MsoNormal># export LINUX=`pwd`</li>
  <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-6.3-1.1.tar.bz2 </li>
  <li class=MsoNormal>PATH=/opt/toolchains/stbgcc-6.3-1.1/bin:$PATH </li>
@@ -375,7 +375,7 @@ feature can be exercised using nexus playback or atlas application. </p>
 it to decode and display HEVC 1080p24 stream </strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar xvfz refsw_release_unified_20171117_docsis3.src.tgz </li>
+ <li class=MsoNormal># tar xvfz refsw_release_unified_20180104_docsis3.src.tgz </li>
  <li class=MsoNormal>#cd nexus/utils </li>
  <li class=MsoNormal>#make install </li>
 </ul>
@@ -394,7 +394,7 @@ it to decode and display HEVC 1080p24 stream </strong></p>
 <p class=MsoNormal>&nbsp;</p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar xvfz refsw_release_unified_20171117_docsis3.src.tgz</li>
+ <li class=MsoNormal># tar xvfz refsw_release_unified_20180104_docsis3.src.tgz</li>
  <li class=MsoNormal>#cd BSEAV/app/atlas/build </li>
  <li class=MsoNormal>#make install </li>
 </ul>
@@ -411,14 +411,14 @@ it to decode and display HEVC 1080p24 stream </strong></p>
 <p><strong>Boot instructions</strong> </p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; boot &nbsp;<tftp-server-ipaddress>server:41-1.14/vmlinuz-initrd-arm:
+ <li class=MsoNormal>BOLT&gt; boot &nbsp;<tftp-server-ipaddress>server:41-1.15/vmlinuz-initrd-arm:
      </li>
 </ul>
 
 <p class=MsoNormal><strong>Set the kernel to autoboot</strong> </p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; flash -noheader <tftp-server-ipaddress>:4.1-1.14/vmlinuz-initrd-arm
+ <li class=MsoNormal>BOLT&gt; flash -noheader <tftp-server-ipaddress>:4.1-1.15/vmlinuz-initrd-arm
      flash1.rootfs0</li>
  <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot flash1.rootfs0&quot;
      </li>

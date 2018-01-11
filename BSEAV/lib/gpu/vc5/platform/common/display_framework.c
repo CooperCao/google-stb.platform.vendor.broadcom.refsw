@@ -163,7 +163,7 @@ void DisplayFramework_SetSize(DisplayFramework *df,
 }
 
 void *DisplayFramework_GetNextSurface(DisplayFramework *df,
-      BEGL_BufferFormat format, bool secure, int *fence)
+      BEGL_BufferFormat format, bool secure, int *fence, unsigned *age)
 {
    assert(df != NULL);
    assert(format != BEGL_BufferFormat_INVALID);
@@ -203,9 +203,29 @@ void *DisplayFramework_GetNextSurface(DisplayFramework *df,
 
       assert(surface->render_fence == df->fence_interface->invalid_fence);
       assert(surface->display_fence == df->fence_interface->invalid_fence);
+
+      *age = surface->age;
+
       return surface->native_surface;
    }
+   *age = 0;
    return NULL;
+}
+
+static void AgeSwapchain(Swapchain *swapchain, SwapchainSurface *cur_backbuffer)
+{
+   /* Old backbuffer gets age 1 */
+   cur_backbuffer->age = 1;
+
+   /* All other buffer ages are incremented if >0 */
+   size_t surface_size = sizeof(SwapchainSurface) + swapchain->surface_interface->sizeof_surface;
+   SwapchainSurface *p = swapchain->surfaces;
+   for (size_t i = 0; i < swapchain->num_surfaces; i++)
+   {
+      if (p != cur_backbuffer && p->age > 0)
+         p->age++;
+      p = (SwapchainSurface *)((uintptr_t)p + surface_size);
+   }
 }
 
 void DisplayFramework_DisplaySurface(DisplayFramework *df,
@@ -214,8 +234,9 @@ void DisplayFramework_DisplaySurface(DisplayFramework *df,
    assert(df != NULL);
    assert(surface != NULL);
 
-   SwapchainSurface *s = container_of(surface,
-         SwapchainSurface, native_surface);
+   SwapchainSurface *s = container_of(surface, SwapchainSurface, native_surface);
+
+   AgeSwapchain(&df->swapchain, s);
 
    assert(s->render_fence == df->fence_interface->invalid_fence);
    s->render_fence = fence;
@@ -230,11 +251,11 @@ void DisplayFramework_CancelSurface(DisplayFramework *df,
    assert(df != NULL);
    assert(surface != NULL);
 
-   SwapchainSurface *s = container_of(surface,
-         SwapchainSurface, native_surface);
+   SwapchainSurface *s = container_of(surface, SwapchainSurface, native_surface);
 
    assert(s->render_fence == df->fence_interface->invalid_fence);
    s->render_fence = fence;
+   s->age = 0;
 
    SwapchainEnqueueRenderSurface(&df->swapchain, s);
 }

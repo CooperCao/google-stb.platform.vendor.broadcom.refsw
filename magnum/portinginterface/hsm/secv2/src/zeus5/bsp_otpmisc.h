@@ -55,7 +55,7 @@ typedef enum
 } Bsp_CmdOtpMisc_e;
 
 
-/*PARAMATERS for the Bsp_CmdOtpMisc_eOtpStatusRead command  */
+/*PARAMETERS for the Bsp_CmdOtpMisc_eOtpStatusRead command  */
 /*input*/
 typedef struct
 {
@@ -70,7 +70,7 @@ typedef struct
 }Bsp_OtpMisc_OtpStatusRead_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdOtpMisc_eProgPatternSet command  */
+/*PARAMETERS for the Bsp_CmdOtpMisc_eProgPatternSet command  */
 /*input*/
 typedef struct
 {

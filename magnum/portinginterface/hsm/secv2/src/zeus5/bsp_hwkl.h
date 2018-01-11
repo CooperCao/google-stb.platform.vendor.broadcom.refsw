@@ -57,7 +57,7 @@ typedef enum
 } Bsp_CmdHwkl_e;
 
 
-/*PARAMATERS for the Bsp_CmdHwkl_eRouteKey command  */
+/*PARAMETERS for the Bsp_CmdHwkl_eRouteKey command  */
 /*input*/
 typedef struct
 {
@@ -83,7 +83,7 @@ typedef struct
 }Bsp_Hwkl_RouteKey_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdHwkl_eRootConfig command  */
+/*PARAMETERS for the Bsp_CmdHwkl_eRootConfig command  */
 /*input*/
 typedef struct
 {
@@ -115,7 +115,7 @@ typedef struct
 }Bsp_Hwkl_RootConfig_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdHwkl_eLayerSet command  */
+/*PARAMETERS for the Bsp_CmdHwkl_eLayerSet command  */
 /*input*/
 typedef struct
 {
@@ -133,7 +133,7 @@ typedef struct
 }Bsp_Hwkl_LayerSet_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdHwkl_eQuery command  */
+/*PARAMETERS for the Bsp_CmdHwkl_eQuery command  */
 /*input*/
 typedef struct
 {

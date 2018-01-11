@@ -62,28 +62,28 @@ typedef enum
 } Bsp_CmdKeySlot_e;
 
 
-/*PARAMATERS for the Bsp_CmdKeySlot_eInit command  */
+/*PARAMETERS for the Bsp_CmdKeySlot_eInit command  */
 /*input*/
 typedef struct
 {
-    uint8_t  keySlotNumberIvPerSlot128; /* enum type Bsp_KeySlotType_e */
-    uint8_t  keySlotNumberIvPerBlock128; /* enum type Bsp_KeySlotType_e */
-    uint8_t  keySlotNumberIvPerBlock256; /* enum type Bsp_KeySlotType_e */
-    uint8_t  keySlotNumberIvPerEntry256; /* enum type Bsp_KeySlotType_e */
+    uint8_t  keySlotNumberIvPerSlot128;
+    uint8_t  keySlotNumberIvPerBlock128;
+    uint8_t  keySlotNumberIvPerBlock256;
+    uint8_t  keySlotNumberIvPerEntry256;
 
 }Bsp_KeySlot_Init_InFields_t;
 /*output*/
 typedef struct
 {
-    uint8_t  keySlotNumberIvPerSlot128; /* enum type Bsp_KeySlotType_e */
-    uint8_t  keySlotNumberIvPerBlock128; /* enum type Bsp_KeySlotType_e */
-    uint8_t  keySlotNumberIvPerBlock256; /* enum type Bsp_KeySlotType_e */
-    uint8_t  keySlotNumberIvPerEntry256; /* enum type Bsp_KeySlotType_e */
+    uint8_t  keySlotNumberIvPerSlot128;
+    uint8_t  keySlotNumberIvPerBlock128;
+    uint8_t  keySlotNumberIvPerBlock256;
+    uint8_t  keySlotNumberIvPerEntry256;
 
 }Bsp_KeySlot_Init_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeySlot_eQuery command  */
+/*PARAMETERS for the Bsp_CmdKeySlot_eQuery command  */
 /*input*/
 typedef struct
 {
@@ -102,7 +102,7 @@ typedef struct
 }Bsp_KeySlot_Query_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeySlot_eSetOwnership command  */
+/*PARAMETERS for the Bsp_CmdKeySlot_eSetOwnership command  */
 /*input*/
 typedef struct
 {
@@ -120,7 +120,7 @@ typedef struct
 }Bsp_KeySlot_SetOwnership_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeySlot_eInvalidate command  */
+/*PARAMETERS for the Bsp_CmdKeySlot_eInvalidate command  */
 /*input*/
 typedef struct
 {
@@ -141,7 +141,7 @@ typedef struct
 }Bsp_KeySlot_Invalidate_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeySlot_ePidAdd command  */
+/*PARAMETERS for the Bsp_CmdKeySlot_ePidAdd command  */
 /*input*/
 typedef struct
 {
@@ -165,7 +165,7 @@ typedef struct
 }Bsp_KeySlot_PidAdd_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeySlot_ePidRemove command  */
+/*PARAMETERS for the Bsp_CmdKeySlot_ePidRemove command  */
 /*input*/
 typedef struct
 {
@@ -181,7 +181,7 @@ typedef struct
 }Bsp_KeySlot_PidRemove_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeySlot_eClearKeySet command  */
+/*PARAMETERS for the Bsp_CmdKeySlot_eClearKeySet command  */
 /*input*/
 typedef struct
 {
@@ -207,7 +207,7 @@ typedef struct
 }Bsp_KeySlot_ClearKeySet_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeySlot_eClearIvSet command  */
+/*PARAMETERS for the Bsp_CmdKeySlot_eClearIvSet command  */
 /*input*/
 typedef struct
 {
@@ -228,7 +228,7 @@ typedef struct
 }Bsp_KeySlot_ClearIvSet_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdKeySlot_eMulti2SysKeySet command  */
+/*PARAMETERS for the Bsp_CmdKeySlot_eMulti2SysKeySet command  */
 /*input*/
 typedef struct
 {

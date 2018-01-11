@@ -324,11 +324,11 @@ BSAGElib_P_Standby_S2(
 
         rc = BSAGElib_Rpc_SendCommand(hRemote, &command, NULL);
         if (rc != BERR_SUCCESS) {
-            BSAGElib_Rpc_RemoveRemote(hRemote);
             BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", BSTD_FUNCTION, rc));
             goto end;
         }
-
+        /* eat-up remote and remove it when leaving S2 inside the close client */
+        hRemote = NULL;
     }
     else {
         suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR);
@@ -400,7 +400,6 @@ BSAGElib_P_Standby_S3(
 
         rc = BSAGElib_Rpc_SendCommand(hRemote, &command, NULL);
         if (rc != BERR_SUCCESS) {
-            BSAGElib_Rpc_RemoveRemote(hRemote);
             BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", BSTD_FUNCTION, rc));
             goto end;
         }

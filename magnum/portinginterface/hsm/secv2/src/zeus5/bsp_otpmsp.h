@@ -56,7 +56,7 @@ typedef enum
 } Bsp_CmdOtpMsp_e;
 
 
-/*PARAMATERS for the Bsp_CmdOtpMsp_eRead command  */
+/*PARAMETERS for the Bsp_CmdOtpMsp_eRead command  */
 /*input*/
 typedef struct
 {
@@ -73,7 +73,7 @@ typedef struct
 }Bsp_OtpMsp_Read_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdOtpMsp_eMultiRead command  */
+/*PARAMETERS for the Bsp_CmdOtpMsp_eMultiRead command  */
 /*input*/
 typedef struct
 {
@@ -91,7 +91,7 @@ typedef struct
 }Bsp_OtpMsp_MultiRead_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdOtpMsp_eProg command  */
+/*PARAMETERS for the Bsp_CmdOtpMsp_eProg command  */
 /*input*/
 typedef struct
 {

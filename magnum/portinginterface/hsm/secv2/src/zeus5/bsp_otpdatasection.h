@@ -55,7 +55,7 @@ typedef enum
 } Bsp_CmdOtpDataSection_e;
 
 
-/*PARAMATERS for the Bsp_CmdOtpDataSection_eRead command  */
+/*PARAMETERS for the Bsp_CmdOtpDataSection_eRead command  */
 /*input*/
 typedef struct
 {
@@ -71,7 +71,7 @@ typedef struct
 }Bsp_OtpDataSection_Read_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdOtpDataSection_eProg command  */
+/*PARAMETERS for the Bsp_CmdOtpDataSection_eProg command  */
 /*input*/
 typedef struct
 {

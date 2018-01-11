@@ -446,13 +446,15 @@ ERROR_EXIT:
 }
 
 /* Not to be called from within SAGE module itself */
-NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
+NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList, NEXUS_SageUrrType type)
 {
 	uint32_t coreListSize;
     NEXUS_Error rc = NEXUS_SUCCESS;
 
     NEXUS_LockModule();
     coreListSize=sizeof(*pCoreList);
+
+    BSTD_UNUSED(type);
 
 #ifdef NEXUS_SAGE_SVP_TEST
     NEXUS_Sage_P_SecureCores_test(pCoreList, true);
@@ -513,13 +515,14 @@ EXIT:
 }
 
 /* Not to be called from within SAGE module itself */
-void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
+void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList, NEXUS_SageUrrType type)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     uint32_t coreListSize=sizeof(*pCoreList);
 
     NEXUS_LockModule();
 
+    BSTD_UNUSED(type);
 #ifdef NEXUS_SAGE_SVP_TEST
     NEXUS_Sage_P_SecureCores_test(pCoreList, false);
 #endif

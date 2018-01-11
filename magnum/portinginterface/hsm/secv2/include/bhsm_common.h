@@ -65,7 +65,7 @@ typedef enum BHSM_SecurityRegion
 {
     BHSM_SecurityRegion_eGlr,    /* Global region */
     BHSM_SecurityRegion_eCrr,    /* Compressed Data Restricted Region */
-    BHSM_SecurityRegion_eUrr,    /* User Restricted region */
+    /* BHSM_SecurityRegion_eUrr, User Restricted region (Comment out since it's not mapped */
     BHSM_SecurityRegion_eXrr,    /* eXport Restricted Region */
 
     BHSM_SecurityRegion_eMax

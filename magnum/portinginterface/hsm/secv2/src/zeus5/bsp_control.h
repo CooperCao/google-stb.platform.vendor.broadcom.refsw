@@ -59,7 +59,7 @@ typedef enum
 } Bsp_CmdControl_e;
 
 
-/*PARAMATERS for the Bsp_CmdControl_eExceptionCaptureRegRead command  */
+/*PARAMETERS for the Bsp_CmdControl_eExceptionCaptureRegRead command  */
 /*input*/
 typedef struct
 {
@@ -81,7 +81,7 @@ typedef struct
 }Bsp_Control_ExceptionCaptureRegRead_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdControl_eForceScBit command  */
+/*PARAMETERS for the Bsp_CmdControl_eForceScBit command  */
 /*input*/
 typedef struct
 {

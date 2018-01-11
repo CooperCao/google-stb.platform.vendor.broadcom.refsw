@@ -829,6 +829,7 @@ extern int wlc_bsscfg_reinit(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, wlc_bsscfg_t
 	uint flags);
 extern void wlc_bsscfg_deinit(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
 extern void wlc_bsscfg_free(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
+extern void wlc_bsscfg_bcmcscbfree(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
 extern int wlc_bsscfg_disable(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 extern int wlc_bsscfg_down(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 extern int wlc_bsscfg_up(wlc_info_t *wlc, wlc_bsscfg_t *cfg);

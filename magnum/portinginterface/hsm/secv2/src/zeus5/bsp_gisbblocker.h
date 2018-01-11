@@ -54,7 +54,7 @@ typedef enum
 } Bsp_CmdGisbBlocker_e;
 
 
-/*PARAMATERS for the Bsp_CmdGisbBlocker_eEn command  */
+/*PARAMETERS for the Bsp_CmdGisbBlocker_eEn command  */
 /*input*/
 typedef struct
 {

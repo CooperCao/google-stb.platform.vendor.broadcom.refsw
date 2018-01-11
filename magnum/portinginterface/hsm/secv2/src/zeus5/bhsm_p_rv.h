@@ -47,7 +47,7 @@ extern "C"
 #endif
 
 
-#include "bhsm.h"
+#include "../bhsm_auto_compat.h"
 
 typedef struct BHSM_P_RvRsaKeySet
 {
@@ -126,9 +126,9 @@ typedef struct BHSM_P_RvEnableRegion
         uint8_t    secondRangeAvailable;
         uint8_t    resetOnVerifyFailure;
         uint8_t    rsaKeyId;
+        uint8_t    decryptionSel;
         uint8_t    keyLayer;
         uint8_t    vklId;
-        uint8_t    decryptionSel;
         uint8_t    bgCheck;
         uint8_t    allowRegionDisable;
         uint8_t    enforceAuth;

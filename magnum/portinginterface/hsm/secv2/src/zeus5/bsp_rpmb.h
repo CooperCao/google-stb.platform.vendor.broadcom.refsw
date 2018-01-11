@@ -55,7 +55,7 @@ typedef enum
 } Bsp_CmdRpmb_e;
 
 
-/*PARAMATERS for the Bsp_CmdRpmb_eKeyGen command  */
+/*PARAMETERS for the Bsp_CmdRpmb_eKeyGen command  */
 /*input*/
 typedef struct
 {
@@ -72,7 +72,7 @@ typedef struct
 }Bsp_Rpmb_KeyGen_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdRpmb_eDisableHmac command  */
+/*PARAMETERS for the Bsp_CmdRpmb_eDisableHmac command  */
 /*input*/
 typedef struct
 {

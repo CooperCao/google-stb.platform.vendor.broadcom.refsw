@@ -40,17 +40,19 @@
 #define ARCH_ARM_INCLUDE_ARCH_CONFIG_H_
 
 /* Translations for 32bit systems are physical to virtual */
-#define ARCH_DEVICE_BASE  		0x00000000
-#define ARCH_KERNEL_BASE	0xC0000000
-#define ARCH_SHMEM_BASE		0xE0000000		/* Overridden in DT */
-#define ARCH_PAGE_SIZE  		4096
-#define ARCH_STACK_ALIGNMENT 	16
-#define KERNEL_HEAP_START   0xC8000000
-#define KERNEL_STACKS_START 0xDFFFF000
-#define KERNEL_LOW_MEMORY	KERNEL_HEAP_START
-
+#define ARCH_DEVICE_BASE        0x00000000
+#define ARCH_KERNEL_BASE        0xC0000000
+#define ARCH_SHMEM_BASE         0xE0000000      /* Overridden in DT */
+#define ARCH_PAGE_SIZE          4096
+#define ARCH_STACK_ALIGNMENT    16
+#define KERNEL_HEAP_START       0xC8000000
+#define KERNEL_STACKS_START     0xDFFFF000
+#define KERNEL_LOW_MEMORY       KERNEL_HEAP_START
+#define USER_STACK_ADDR         0x70000000
+#define USER_HEAP_ADDR          0x40000000
+#define LINKER_LOAD_ADDR        0x80000
 #define IS_ARCH_PAGE_ALIGNED(addr)  (((unsigned long)addr & 0xfff) == 0x0UL)
-#define ARCH_PAGE_START(addr)	((unsigned long)addr & ~0xfffUL)
+#define ARCH_PAGE_START(addr)   ((unsigned long)addr & ~0xfffUL)
 
 #define ARCH_HALT()  while (1) { asm volatile ("wfi":::); }
 

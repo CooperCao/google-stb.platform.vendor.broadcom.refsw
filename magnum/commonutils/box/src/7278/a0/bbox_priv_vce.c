@@ -47,10 +47,10 @@ BDBG_OBJECT_ID(BBOX_BOX_PRIV_VCE);
 
 const BBOX_Vce_Capabilities BBOX_P_Vce_CapabilitiesLUT[] =
 {
-   /* Box Mode: 1 (1080p30x2) */
+   /* Box Mode: 1 (No Transcode - VCE HW bug) */
    { 1,
       { /* Instance Array */
-         BBOX_VCE_CHANNEL_INFO_1080p30_V2( 0, 0x3, 1, 0 ),
+         BBOX_VCE_CHANNEL_INFO_NO_TRANSCODE( 0, 0x0, 0 ),
       },
    },
    /* Box Mode: 2 (No Transcode) */

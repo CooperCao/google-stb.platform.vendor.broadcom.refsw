@@ -82,6 +82,16 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
       return EGL_RES_BAD_NATIVE_WINDOW;
    }
 
+   /* Get age of dequeued buffer */
+   surf->base.buffer_age = 0;
+   if (platform->WindowGetInfo)
+   {
+      BEGL_WindowInfo info;
+      if (platform->WindowGetInfo(platform->context, surf->native_window_state,
+                                  BEGL_WindowInfoBackBufferAge, &info) == BEGL_Success)
+         surf->base.buffer_age = info.backBufferAge;
+   }
+
    if (fence == -1)
       return EGL_RES_SUCCESS;
 
@@ -114,9 +124,7 @@ static void dump_gmem_status(void)
    }
 }
 
-/* See eglSwapbuffers. If preserve, then the new back buffer should be
- * initialized with the contents of the previous back buffer. */
-static egl_result_t swap_buffers(EGL_SURFACE_T *surface, bool preserve)
+static egl_result_t swap_buffers(EGL_SURFACE_T *surface)
 {
    EGL_WINDOW_SURFACE_T          *surf = (EGL_WINDOW_SURFACE_T *) surface;
    BEGL_DisplayInterface         *platform = &g_bcgPlatformData.displayInterface;
@@ -137,7 +145,6 @@ static egl_result_t swap_buffers(EGL_SURFACE_T *surface, bool preserve)
    }
 
    return dequeue_buffer(surf);
-
 }
 
 static void get_dimensions(EGL_SURFACE_T *surface, unsigned *width, unsigned *height)

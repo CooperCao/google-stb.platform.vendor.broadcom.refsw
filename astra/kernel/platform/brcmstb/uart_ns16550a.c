@@ -48,6 +48,13 @@
 
 uintptr_t uart_base;
 
+typedef uint32_t SpinLock;
+void spinLockInit(SpinLock *lock);
+void spinLockAcquire(SpinLock *lock);
+void spinLockRelease(SpinLock *lock);
+SpinLock uartLock;
+
+
 /* Rx status register */
 #define RXRDA          0x01
 #define RXOVFERR       0x02
@@ -74,6 +81,7 @@ uintptr_t uart_base;
 
 void uart_init()
 {
+    spinLockInit(&uartLock);
     if (uart_base != 0) {
         volatile uint8_t *lcr = (uint8_t *)uart_base + UART_SDW_LCR;
         volatile uint8_t *dll = (uint8_t *)uart_base + UART_SDW_DLL;
@@ -100,6 +108,7 @@ void uart_init()
 
 void uart_puts(const char *str)
 {
+    spinLockAcquire(&uartLock);
     if (uart_base != 0) {
         while (*str) {
             uint8_t status = 0;
@@ -112,10 +121,12 @@ void uart_puts(const char *str)
             *txbuf = *str++;
         }
     }
+    spinLockRelease(&uartLock);
 }
 
 void uart_putc(const char c)
 {
+    spinLockAcquire(&uartLock);
     if (uart_base != 0) {
         uint8_t status = 0;
 
@@ -127,10 +138,12 @@ void uart_putc(const char c)
         volatile uint8_t *txbuf = (uint8_t *)(uart_base + UART_SDW_THR);
         *txbuf = c;
     }
+    spinLockRelease(&uartLock);
 }
 
 void uart_getc(char *c)
 {
+    spinLockAcquire(&uartLock);
     if (uart_base != 0) {
         volatile uint8_t *rx_status = (uint8_t *)(uart_base + UART_SDW_LSR);
         volatile uint8_t *rx_data = (uint8_t *)(uart_base + UART_SDW_RBR);
@@ -149,10 +162,12 @@ void uart_getc(char *c)
         }
         UNUSED(inval);
     }
+    spinLockRelease(&uartLock);
 }
 
 void uart_gets(char *str, const unsigned int slen)
 {
+    spinLockAcquire(&uartLock);
     if (uart_base != 0) {
         volatile uint8_t *rx_status = (uint8_t *)(uart_base + UART_SDW_LSR);
         volatile uint8_t *rx_data = (uint8_t *)(uart_base + UART_SDW_RBR);
@@ -184,4 +199,5 @@ void uart_gets(char *str, const unsigned int slen)
         UNUSED(inval);
         *str = 0;
     }
+    spinLockRelease(&uartLock);
 }

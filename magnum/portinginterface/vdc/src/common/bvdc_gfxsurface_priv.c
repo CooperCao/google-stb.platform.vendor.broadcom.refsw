@@ -38,7 +38,7 @@
 
 #include "bvdc_gfxsurface_priv.h"
 #include "bvdc_feeder_priv.h"
-#include "bchp_mfd_0.h"
+#include "bchp_gfd_0.h"
 
 BDBG_MODULE(BVDC_GFXSUR);
 BDBG_OBJECT_ID(BVDC_GFXSUR);
@@ -461,7 +461,7 @@ void BVDC_P_GfxSurface_SetShadowRegs_isr
     if (0 == ulVsyncCntr1)
     {
         /* we could see this once after 828.5 days of running */
-        BDBG_MSG(("We see Vsync cntr rapped back to 0"));
+        BDBG_MSG(("We see Vsync cntr wrapped back to 0"));
     }
 
     /* set surface addr to shadow registers
@@ -474,13 +474,18 @@ void BVDC_P_GfxSurface_SetShadowRegs_isr
     if (pGfxSurface->b3dSrc || !pSurInfo->stAvcPic.pSurface)
     {
         ullRSurAddr = pSurInfo->ullRAddress + pGfxSurface->ulMainByteOffset;
-        ullRegIdx = ~ pGfxSurface->ullRegIdx;
+        #if BRDC_64BIT_SUPPORT
+        ullRegIdx = ~ pGfxSurface->ullRegIdx;/* the ping-pong bitmask */
+        #else
+        /* 32-bit RDC scratch register write would validate the bit range of the value, so tighten the bitmask here; */
+        ullRegIdx = (uint32_t)(~ pGfxSurface->ullRegIdx);
+        #endif
         BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulSurAddrReg[ullRegIdx & 1], ullSurAddr);
         BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulRSurAddrReg[ullRegIdx & 1], ullRSurAddr);
 
-        /* MFD_0_PICTURE0_LINE_ADDR_0 address length is the accurate address length, 7268b0 GFD0 is not */
+        /* adapt the pin-pong bitmask according to hw address RDB */
         BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulRegIdxReg,
-            BCHP_GET_FIELD_DATA(ullRegIdx, MFD_0_PICTURE0_LINE_ADDR_0,  AVC_MPEG_LUMA_ADDR));
+            BCHP_GET_FIELD_DATA(ullRegIdx, GFD_0_SRC_START,  ADDR));
 
         pGfxSurface->ullRegIdx = ullRegIdx;
         BDBG_MSG(("%s [%d] "BDBG_UINT64_FMT" surface "BDBG_UINT64_FMT" "BDBG_UINT64_FMT,

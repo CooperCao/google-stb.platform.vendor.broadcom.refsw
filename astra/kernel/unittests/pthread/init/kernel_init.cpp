@@ -52,7 +52,7 @@
 
 extern "C" void tzKernelSecondary();
 
-#define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
+#define assert(cond) if (!(cond)) { ATA_LogErr("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
 TzTask *idler;
 TzTask *userT;
@@ -117,11 +117,11 @@ void tzKernelSecondary() {
 }
 
 void kernelHalt(const char *reason) {
-    err_msg("%s\n", reason);
+    ATA_LogErr("%s\n", reason);
     while (true) {}
 }
 
 extern "C" void __cxa_pure_virtual() {
-    err_msg("Pure virtual function called !\n");
+    ATA_LogErr("Pure virtual function called !\n");
     kernelHalt("Pure virtual function call");
 }

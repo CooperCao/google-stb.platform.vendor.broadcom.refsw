@@ -785,10 +785,8 @@ static s32 wl_notify_device_discovery(struct bcm_cfg80211 *cfg, bcm_struct_cfgde
 #endif
 
 #ifdef WLTDLS
-#ifdef BCMDONGLEHOST
 static s32 wl_cfg80211_tdls_config(struct bcm_cfg80211 *cfg,
 	enum wl_tdls_config state, bool tdls_mode);
-#endif /* BCMDONGLEHOST */
 static s32 wl_tdls_event_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 	const wl_event_msg_t *e, void *data);
 #endif /* WLTDLS */
@@ -882,6 +880,14 @@ s32 wl_cfg80211_channel_to_freq(u32 channel);
 static void wl_cfg80211_work_handler(struct work_struct *work);
 static void wl_cfg80211_scan_supp_timerfunc(ulong data);
 #endif /* DHCP_SCAN_SUPPRESS */
+
+#ifdef WLDFS
+static s32 wl_cfg80211_start_radar_detection(struct wiphy *wiphy, struct net_device *dev,
+	struct cfg80211_chan_def *chandef, u32 cac_time_ms);
+static void wl_cfg80211_dfs_cac_work_handler(struct work_struct *work);
+static s32 wl_radar_event_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
+	const wl_event_msg_t *e, void *data);
+#endif /* WLDFS */
 
 static void wl_cfg80211_work_handler(struct work_struct *work);
 static s32 wl_add_keyext(struct wiphy *wiphy, struct net_device *dev,
@@ -1075,6 +1081,10 @@ struct chan_info {
 extern int wl_net_attach(struct net_device *dev, int ifidx);
 extern struct net_device *wl_net_find(void *wl, const char* ifname);
 #endif
+
+#if defined(WOWL_DRV_NORELOAD)
+extern int wl_resume_normalmode(void);
+#endif /*WOWL_DRV_NORELOAD*/
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))
 #define CFG80211_PUT_BSS(wiphy, bss) cfg80211_put_bss(wiphy, bss);
@@ -1324,6 +1334,20 @@ static void wl_add_remove_pm_enable_work(struct bcm_cfg80211 *cfg,
 	}
 	mutex_unlock(&cfg->pm_sync);
 }
+
+#ifdef WLDFS
+static void wl_remove_dfs_cac_work(struct bcm_cfg80211 *cfg)
+{
+	if (cfg == NULL)
+		return;
+
+	mutex_lock(&cfg->dfs_cac_sync);
+	if (delayed_work_pending(&cfg->dfs_cac_work)) {
+		cancel_delayed_work_sync(&cfg->dfs_cac_work);
+	}
+	mutex_unlock(&cfg->dfs_cac_sync);
+}
+#endif /* WLDFS */
 
 /* Return a new chanspec given a legacy chanspec
  * Returns INVCHANSPEC on error
@@ -1976,11 +2000,7 @@ wl_cfg80211_iface_state_ops(struct wireless_dev *wdev,
 			wl_wlfc_enable(cfg, true);
 #ifdef WLTDLS
 			/* disable TDLS if number of connected interfaces is >= 1 */
-#ifdef BCMDONGLEHOST
 			wl_cfg80211_tdls_config(cfg, TDLS_STATE_IF_CREATE, false);
-#else
-			wldev_iovar_setint(bcmcfg_to_prmry_ndev(cfg), "tdls_enable", false);
-#endif /* BCMDONGLEHOST */
 #endif /* WLTDLS */
 			break;
 		case WL_IF_DELETE_REQ:
@@ -1995,7 +2015,10 @@ wl_cfg80211_iface_state_ops(struct wireless_dev *wdev,
 				dhd_set_cpucore(dhd, FALSE);
 			}
 #endif /* CUSTOM_SET_CPUCORE */
-			 wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+			wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+#ifdef WLDFS
+			wl_remove_dfs_cac_work(cfg);
+#endif /* WLDFS */
 			break;
 		case WL_IF_CREATE_DONE:
 			if (wl_mode != WL_MODE_BSS) {
@@ -2017,11 +2040,7 @@ wl_cfg80211_iface_state_ops(struct wireless_dev *wdev,
 		case WL_IF_DELETE_DONE:
 #ifdef WLTDLS
 			/* Enable back TDLS if connected interface is <= 1 */
-#ifdef BCMDONGLEHOST
 			wl_cfg80211_tdls_config(cfg, TDLS_STATE_IF_DELETE, false);
-#else
-			wldev_iovar_setint(bcmcfg_to_prmry_ndev(cfg), "tdls_enable", false);
-#endif /* BCMDONGLEHOST */
 #endif /* WLTDLS */
 			wl_wlfc_enable(cfg, false);
 			break;
@@ -2416,17 +2435,16 @@ wl_cfg80211_setup_vwdev(struct net_device *dev, s32 idx, s32 bssidx)
 		break;
 	case NL80211_IFTYPE_STATION:
 	case NL80211_IFTYPE_AP:
-#if !defined(BCMDONGLEHOST)
-		/* store for ifadd notification */
-		cfg->private_data = wl_net_attach;
-		cfg->bssidx = bssidx;
-#endif /* !defined(BCMDONGLEHOST) */
 		break;
 	default:
 		WL_DBG(("No cfg80211 setup needed"));
 		return 2;
 	}
-
+#if !defined(BCMDONGLEHOST)
+	/* store for ifadd notification */
+	cfg->private_data = wl_net_attach;
+	cfg->bssidx = bssidx;
+#endif /* !defined(BCMDONGLEHOST) */
 	vwdev = kzalloc(sizeof(*vwdev), GFP_KERNEL);
 	if (unlikely(!vwdev)) {
 		WL_DBG(("Could not allocate wireless device\n"));
@@ -2455,6 +2473,8 @@ wl_cfg80211_del_ibss(struct wiphy *wiphy, struct wireless_dev *wdev)
 	return bcm_cfg80211_del_ibss_if(wiphy, wdev);
 #else
 	/* Normal IBSS */
+	/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+	/* coverity[stack_use_overflow] */
 	return wl_cfg80211_del_iface(wiphy, wdev);
 #endif
 }
@@ -2748,6 +2768,10 @@ wl_cfg80211_change_virtual_iface(struct wiphy *wiphy, struct net_device *ndev,
 	case NL80211_IFTYPE_P2P_CLIENT:
 		infra = 1;
 		err = wl_cfg80211_change_p2prole(wiphy, ndev, type);
+		if (unlikely(err)) {
+			WL_ERR(("set p2p role failed!\n"));
+			goto fail;
+		}
 		break;
 	case NL80211_IFTYPE_MONITOR:
 	case NL80211_IFTYPE_WDS:
@@ -2790,12 +2814,12 @@ wl_cfg80211_query_if_name(struct net_device *dev, char *if_name)
 		WL_DBG(("wl->p2p is null. if_name is NULL\n"));
 		return -1;
 	}
-	if (cfg->p2p->vir_ifname && strlen(cfg->p2p->vir_ifname)) {
+	if (strlen(cfg->p2p->vir_ifname)) {
 		strcpy(if_name, cfg->p2p->vir_ifname);
 		WL_DBG(("if_name is (%s), len=%d \n",
 			cfg->p2p->vir_ifname, (int)(strlen(cfg->p2p->vir_ifname))));
 		return 0;
-	} else if (cfg->vir_ifname && strlen(cfg->vir_ifname)) {
+	} else if (strlen(cfg->vir_ifname)) {
 		strcpy(if_name, cfg->vir_ifname);
 		WL_DBG(("if_name is (%s), len=%d \n",
 			cfg->vir_ifname, (int)(strlen(cfg->vir_ifname))));
@@ -3860,6 +3884,8 @@ wl_cfg80211_scan(struct wiphy *wiphy, struct net_device *ndev,
 	}
 
 	mutex_lock(&cfg->usr_sync);
+	/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+	/* coverity[stack_use_overflow] */
 	err = __wl_cfg80211_scan(wiphy, ndev, request, NULL);
 	if (unlikely(err)) {
 		WL_ERR(("scan error (%d)\n", err));
@@ -4860,6 +4886,8 @@ wl_cfg80211_create_iface(struct wiphy *wiphy,
 			CFGP2P_ERR(("P2P scan stop failed, ret=%d\n", ret));
 		}
 
+		/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+		/* coverity[stack_use_overflow] */
 		wl_cfgp2p_disable_discovery(cfg);
 		wl_to_p2p_bss_bssidx(cfg, P2PAPI_BSSCFG_DEVICE) = 0;
 		p2p_on(cfg) = false;
@@ -5069,6 +5097,8 @@ wl_cfg80211_join_ibss(struct wiphy *wiphy, struct net_device *dev,
 			memcpy(ssid.ssid, params->ssid, params->ssid_len);
 			ssid.ssid_len = params->ssid_len;
 			do {
+				/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+				/* coverity[stack_use_overflow] */
 				if (unlikely
 					(__wl_cfg80211_scan(wiphy, dev, NULL, &ssid) ==
 					 -EBUSY)) {
@@ -6023,6 +6053,8 @@ wl_cfg80211_connect(struct wiphy *wiphy, struct net_device *dev,
 			OSL_SLEEP(WAIT_SCAN_ABORT_OSL_SLEEP_TIME);
 		}
 		if (wl_get_drv_status(cfg, SCANNING, dev)) {
+			/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+			/* coverity[stack_use_overflow] */
 			wl_notify_escan_complete(cfg, dev, true, true);
 		}
 	}
@@ -6368,11 +6400,7 @@ exit:
 
 #ifdef WLTDLS
 	/* disable TDLS if number of connected interfaces is >= 1 */
-#ifdef BCMDONGLEHOST
 	wl_cfg80211_tdls_config(cfg, TDLS_STATE_CONNECT, false);
-#else
-	wldev_iovar_setint(bcmcfg_to_prmry_ndev(cfg), "tdls_enable", false);
-#endif /* BCMDONGLEHOST */
 #endif /* WLTDLS */
 
 #ifdef DBG_PKT_MON
@@ -6397,6 +6425,38 @@ static void wl_cfg80211_wait_for_disconnection(struct bcm_cfg80211 *cfg, struct 
 
 	return;
 }
+
+#ifdef WLDFS
+static s32 wl_cfg80211_start_radar_detection(struct wiphy *wiphy, struct net_device *dev,
+	struct cfg80211_chan_def *chandef, u32 cac_time_ms)
+{
+	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
+	s32 err = 0;
+
+	WL_ERR(("Enter\n"));
+
+	WL_DBG(("chandef->chan.center_freq is %d\n", chandef->chan->center_freq));
+	WL_DBG(("chandef->width is %d\n", chandef->width));
+	WL_DBG(("chandef->center_freq1 is %d\n", chandef->center_freq1));
+	WL_DBG(("chandef->center_freq2 is %d\n", chandef->center_freq2));
+	WL_DBG(("cac_time_ms is %d\n", cac_time_ms));
+
+	RETURN_EIO_IF_NOT_UP(cfg);
+
+	/* DFS CAC is triggered within driver.  If start_radar_detection is received
+	 *  then just send NL80211_RADAR_CAC_FINISHED when cac_time_ms expires
+	 */
+	mutex_lock(&cfg->dfs_cac_sync);
+	if (schedule_delayed_work(&cfg->dfs_cac_work,
+		msecs_to_jiffies(cac_time_ms))) {
+	} else {
+		WL_ERR(("Can't schedule dfs cac work handler\n"));
+	}
+	mutex_unlock(&cfg->dfs_cac_sync);
+
+	return err;
+}
+#endif /* WLDFS */
 
 static s32
 wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
@@ -6716,9 +6776,20 @@ wl_cfg80211_interface_create(struct net_device *dev, char *name,
 {
 	struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
 	struct wireless_dev *wdev;
+	u8 vif_addr[ETH_ALEN];
+	/* Save cfg80211 iftype for wl_cfg80211_setup_vwdev */
+#if !defined(BCMDONGLEHOST)
+	s32 type;
+	type = wl_cfg80211_from_wl_iftype(iface_type);
+	cfg->iftype = type;
+#endif /* !BCMDONGLEHOST */
+
+	if (!mac_addr && wl_get_vif_macaddress(cfg, iface_type, vif_addr) != BCME_OK) {
+		return BCME_ERROR;
+	}
 
 	wdev = wl_cfg80211_create_iface(cfg->wdev->wiphy,
-		iface_type, mac_addr, name);
+		iface_type, mac_addr ? mac_addr : vif_addr, name);
 	if (!wdev) {
 		return BCME_ERROR;
 	}
@@ -6746,6 +6817,8 @@ wl_cfg80211_interface_delete(struct net_device *dev, char *name)
 	for_each_ndev(cfg, iter, next) {
 		if (iter->ndev) {
 			if (strcmp(iter->ndev->name, name) == 0) {
+				/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+				/* coverity[stack_use_overflow] */
 				err =  wl_cfg80211_del_iface(cfg->wdev->wiphy,
 					iter->ndev->ieee80211_ptr);
 				break;
@@ -7119,6 +7192,7 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 	u32 dhd_assoc_state = 0;
 #endif
 	void *buf;
+	struct ether_addr bssid;
 
 	RETURN_EIO_IF_NOT_UP(cfg);
 
@@ -7161,7 +7235,6 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 		u8 *curmacp;
 
 		if (cfg->roam_offload) {
-			struct ether_addr bssid;
 			memset(&bssid, 0, sizeof(bssid));
 			err = wldev_ioctl_get(dev, WLC_GET_BSSID, &bssid, ETHER_ADDR_LEN);
 			if (err) {
@@ -7227,6 +7300,12 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 		if (memcmp(mac, curmacp, ETHER_ADDR_LEN)) {
 			WL_ERR(("Wrong Mac address: "MACDBG" != "MACDBG"\n",
 				MAC2STRDBG(mac), MAC2STRDBG(curmacp)));
+		}
+
+		if (!capable(CAP_NET_ADMIN)) {
+			WL_DBG(("No permission\n"));
+			err = -EPERM;
+			return err;
 		}
 
 		/* Report the current tx rate */
@@ -7435,6 +7514,9 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	struct net_device *ndev = bcmcfg_to_prmry_ndev(cfg);
 	s32 err = BCME_OK;
+#if defined(WOWL_DRV_NORELOAD)
+	u32 val;
+#endif /* WOWL_DRV_NORELOAD */
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS)) && !defined(OEM_ANDROID)
 	int pkt_filter_id = WL_WOWLAN_PKT_FILTER_ID_FIRST;
@@ -7466,11 +7548,23 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 	}
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
 
+#if defined(WOWL_DRV_NORELOAD)
+#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
+	defined(WL_COMPAT_WIRELESS))
+		wl_resume_normalmode();
+#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
+
+	/* Set interface up */
+	val = 1;
+	err = wldev_ioctl(ndev, WLC_UP, (void *)&val, sizeof(val), true);
+	if (err < 0)
+		WL_ERR(("set interface up failed, error = %d\n", err));
+#endif  /*WOWL_DRV_NORELOAD*/
 	return err;
 }
 
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
-	defined(WL_COMPAT_WIRELESS)) && !defined(OEM_ANDROID)
+	defined(WL_COMPAT_WIRELESS))
 static s32 wl_wowlan_config(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
 {
 	s32 err = BCME_OK;
@@ -7681,8 +7775,11 @@ exit:
 				for (j = 0; j < pattern_size; j++)
 					dst[j] = (uint8)(wow->patterns[i].pattern[j]);
 
-				if (wl_pattern->patternsize == (uint)-1)
-					return BCME_USAGE_ERROR;
+				if (wl_pattern->patternsize == (uint)-1) {
+					WL_ERR((" USAGE_ERROR\n"));
+					err = BCME_USAGE_ERROR;
+					goto exit;
+				}
 
 				tot += sizeof(wl_wowl_pattern_t) + wl_pattern->patternsize
 					+ wl_pattern->masksize;
@@ -7740,7 +7837,7 @@ exit:
 
 	return err;
 }
-#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
+#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS)
@@ -7787,9 +7884,9 @@ static s32 wl_cfg80211_suspend(struct wiphy *wiphy)
 #endif /* DHD_CLEAR_ON_SUSPEND */
 
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
-	defined(WL_COMPAT_WIRELESS)) && !defined(OEM_ANDROID)
+	defined(WL_COMPAT_WIRELESS))
 	err = wl_wowlan_config(wiphy, wow);
-#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
+#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 
 	return err;
 }
@@ -8982,6 +9079,8 @@ wl_cfg80211_mgmt_tx(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev,
 
 	memcpy(action_frame->data, &buf[DOT11_MGMT_HDR_LEN], action_frame->len);
 
+	/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+	/* coverity[stack_use_overflow] */
 	ack = wl_cfg80211_send_action_frame(wiphy, dev, cfgdev, af_params,
 		action_frame, action_frame->len, bssidx);
 	cfg80211_mgmt_tx_status(cfgdev, *cookie, buf, len, ack, GFP_KERNEL);
@@ -10155,6 +10254,8 @@ wl_cfg80211_set_ap_role(
 				WL_ERR(("wl add_del_bss returned error:%d\n", err));
 				return err;
 			}
+		/* value of is_rsdb_supported could be 0 with BCMDONGLEHOST build*/
+		/* coverity[dead_error_line] */
 		} else if (is_rsdb_supported == 0) {
 			/* AP mode switch not supported. Try setting up AP explicitly */
 			err = wldev_iovar_getint(dev, "apsta", (s32 *)&apsta);
@@ -10976,11 +11077,7 @@ wl_cfg80211_start_ap(
 		/* Disable TDLS for primary Iface. For virtual interface,
 		 * tdls disable will happen from interface create context
 		 */
-#ifdef BCMDONGLEHOST
 		wl_cfg80211_tdls_config(cfg, TDLS_STATE_AP_CREATE, false);
-#else
-		wldev_iovar_setint(bcmcfg_to_prmry_ndev(cfg), "tdls_enable", false);
-#endif /* BCMDONGLEHOST */
 	}
 #endif /*  WLTDLS */
 
@@ -11020,6 +11117,8 @@ wl_cfg80211_start_ap(
 	}
 
 #if defined(WL_CFG80211) && !defined(BCMDONGLEHOST)
+	/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+	/* coverity[stack_use_overflow] */
 	if ((err = wl_cfg80211_bcn_bringup_ap(wiphy, dev, &ies,
 		dev_role, bssidx)) < 0) {
 #else
@@ -11091,11 +11190,7 @@ fail:
 #ifdef WLTDLS
 		if (bssidx == 0) {
 			/* Since AP creation failed, re-enable TDLS */
-#ifdef BCMDONGLEHOST
 			wl_cfg80211_tdls_config(cfg, TDLS_STATE_AP_DELETE, false);
-#else
-			wldev_iovar_setint(bcmcfg_to_prmry_ndev(cfg), "tdls_enable", true);
-#endif /* BCMDONGLEHOST */
 		}
 #endif /*  WLTDLS */
 
@@ -11177,6 +11272,8 @@ wl_cfg80211_stop_ap(
 
 		if (is_rsdb_supported == 0) {
 			/* For non-rsdb chips, we use stand alone AP. Do wl down on stop AP */
+			/* value of is_rsdb_supported could be 0 with BCMDONGLEHOST build*/
+			/* coverity[dead_error_begin] */
 			err = wldev_ioctl_set(dev, WLC_UP, &ap, sizeof(s32));
 			if (unlikely(err)) {
 				WL_ERR(("WLC_UP error (%d)\n", err));
@@ -11203,11 +11300,7 @@ exit:
 #ifdef WLTDLS
 	if (bssidx == 0) {
 		/* re-enable TDLS if the number of connected interfaces is less than 2 */
-#ifdef BCMDONGLEHOST
 		wl_cfg80211_tdls_config(cfg, TDLS_STATE_AP_DELETE, false);
-#else
-		wldev_iovar_setint(bcmcfg_to_prmry_ndev(cfg), "tdls_enable", true);
-#endif /* BCMDONGLEHOST */
 	}
 #endif /* WLTDLS */
 
@@ -11999,6 +12092,9 @@ static struct cfg80211_ops wl_cfg80211_ops = {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0))
 	.set_rekey_data = wl_cfg80211_set_rekey_data,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0) */
+#ifdef WLDFS
+	.start_radar_detection = wl_cfg80211_start_radar_detection,
+#endif /* WLDFS */
 };
 
 s32 wl_mode_to_nl80211_iftype(s32 mode)
@@ -12478,9 +12574,15 @@ static s32 wl_inform_single_bss(struct bcm_cfg80211 *cfg, struct wl_bss_info *bi
 		char *pbuf=NULL;
 		fp = (void*)osl_os_open_image("/proc/uptime");
 		if (fp != NULL) {
-			osl_os_get_image_block(buf, 20, fp);
+			int len = 0;
+			len = osl_os_get_image_block(buf, 20, fp);
+			if (len > 0) {
 			mgmt->u.probe_resp.timestamp = bcm_strtoull(buf, &pbuf, 0) * USEC_PER_SEC;
 			mgmt->u.probe_resp.timestamp += bcm_strtoul(pbuf+1, &pbuf, 0) * USEC_PER_10MSEC;
+			}
+			else {
+				WL_ERR(("Could not get uptime\n"));
+			}
 			osl_os_close_image(fp);
 		} else {
 			WL_ERR(("Could not open uptime\n"));
@@ -12694,6 +12796,8 @@ wl_notify_connect_status_ap(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 		if (!wl_get_drv_status(cfg, AP_CREATED, ndev)) {
 			/* AP/GO brought up successfull in firmware */
 			WL_DBG(("** AP/GO Link up event **\n"));
+			/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+			/* coverity[stack_use_overflow] */
 			wl_set_drv_status(cfg, AP_CREATED, ndev);
 			wake_up_interruptible(&cfg->netif_change_event);
 			return 0;
@@ -13580,11 +13684,7 @@ wl_notify_connect_status(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 			/* re-enable TDLS if the number of connected interfaces
 			 * is less than 2.
 			 */
-#ifdef BCMDONGLEHOST
 			wl_cfg80211_tdls_config(cfg, TDLS_STATE_DISCONNECT, false);
-#else
-			wldev_iovar_setint(bcmcfg_to_prmry_ndev(cfg), "tdls_enable", true);
-#endif /* BCMDONGLEHOST */
 #endif /* WLTDLS */
 		} else if (wl_is_nonetwork(cfg, e)) {
 			WL_ERR(("connect failed event=%d e->status %d e->reason %d \n",
@@ -15260,6 +15360,8 @@ _Pragma("GCC diagnostic pop")
 		if (act_frm) {
 #ifdef WL_CFG80211_GON_COLLISION
 			if (act_frm->subtype == P2P_PAF_GON_REQ) {
+				/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+				/* coverity[stack_use_overflow] */
 				wl_gon_req_collision(cfg,
 					&cfg->afx_hdl->pending_tx_act_frm->action_frame,
 					act_frm, ndev, e->addr, da);
@@ -15683,7 +15785,9 @@ static void wl_init_event_handler(struct bcm_cfg80211 *cfg)
 #ifdef ENABLE_TEMP_THROTTLING
 	cfg->evt_handler[WLC_E_TEMP_THROTTLE] = wl_check_rx_throttle_status;
 #endif /* ENABLE_TEMP_THROTTLING */
-
+#ifdef WLDFS
+	cfg->evt_handler[WLC_E_RADAR_DETECTED] = wl_radar_event_handler;
+#endif /* WLDFS */
 }
 
 #if defined(STATIC_WL_PRIV_STRUCT)
@@ -17028,6 +17132,11 @@ static s32 wl_notifier_change_state(struct bcm_cfg80211 *cfg, struct net_info *_
 			wl_cfg80211_update_power_mode(_net_info->ndev);
 		}
 		wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_SHORT);
+#if defined(WLTDLS)
+		if (wl_cfg80211_is_concurrent_mode(primary_dev)) {
+			err = wldev_iovar_setint(primary_dev, "tdls_enable", 0);
+		}
+#endif /* defined(WLTDLS) */
 
 #if defined(CUSTOMER_HW4) && defined(DISABLE_FRAMEBURST_VSDB)
 #ifdef USE_WFA_CERT_CONF
@@ -17068,6 +17177,11 @@ static s32 wl_notifier_change_state(struct bcm_cfg80211 *cfg, struct net_info *_
 				}
 		}
 		wl_cfg80211_concurrent_roam(cfg, 0);
+#if defined(WLTDLS)
+		if (wl_cfg80211_is_concurrent_mode(primary_dev)) {
+			err = wldev_iovar_setint(primary_dev, "tdls_enable", 1);
+		}
+#endif /* defined(WLTDLS) */
 
 #if defined(CUSTOMER_HW4) && defined(DISABLE_FRAMEBURST_VSDB)
 #ifdef USE_WFA_CERT_CONF
@@ -17424,6 +17538,13 @@ s32 wl_cfg80211_attach(struct net_device *ndev, void *context, void *wlinfo)
 	INIT_DELAYED_WORK(&cfg->pm_enable_work, wl_cfg80211_work_handler);
 	mutex_init(&cfg->pm_sync);
 
+#ifdef WLDFS
+	INIT_DELAYED_WORK(&cfg->dfs_cac_work,
+		wl_cfg80211_dfs_cac_work_handler);
+	mutex_init(&cfg->dfs_cac_sync);
+#endif /* WLDFS */
+
+
 	return err;
 
 cfg80211_attach_out:
@@ -17439,6 +17560,9 @@ void wl_cfg80211_detach(struct bcm_cfg80211 *cfg)
 		return;
 
 	wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+#ifdef WLDFS
+	wl_remove_dfs_cac_work(cfg);
+#endif /* WLDFS */
 
 #if defined(OEM_ANDROID) && defined(COEX_DHCP)
 	wl_cfg80211_btcoex_deinit();
@@ -18467,6 +18591,9 @@ static s32 __wl_cfg80211_down(struct bcm_cfg80211 *cfg)
 
 	/* Delete pm_enable_work */
 	wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+#ifdef WLDFS
+	wl_remove_dfs_cac_work(cfg);
+#endif /* WLDFS */
 
 #ifdef WL_NAN
 	/* TODO:Cleanup: delete ifaces */
@@ -18662,6 +18789,8 @@ _Pragma("GCC diagnostic pop")
 	if (cfg->p2p_supported) {
 		if (timer_pending(&cfg->p2p->listen_timer))
 			del_timer_sync(&cfg->p2p->listen_timer);
+		/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+		/* coverity[stack_use_overflow] */
 		wl_cfgp2p_down(cfg);
 	}
 
@@ -18842,6 +18971,9 @@ int wl_cfg80211_hang(struct net_device *dev, u16 reason)
 #endif /* BCMDONGLEHOST */
 
 	wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+#ifdef WLDFS
+	wl_remove_dfs_cac_work(cfg);
+#endif /* WLDFS */
 #ifdef BCMDONGLEHOST
 #ifdef SOFTAP_SEND_HANGEVT
 	if (dhd->op_mode & DHD_FLAG_HOSTAP_MODE) {
@@ -20243,17 +20375,16 @@ wl_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *dev,
 #ifdef BCMDONGLEHOST
 		if (dhdp->tdls_mode == true) {
 #else
-		if (TRUE) {
+		/* tdls_mode is for WFD */
+		if (FALSE) {
 #endif /* BCMDONGLEHOST */
 			info.mode = TDLS_MANUAL_EP_CREATE;
 			tdls_auto_mode = false;
-#ifdef BCMDONGLEHOST
 			/* Do tear down and create a fresh one */
 			ret = wl_cfg80211_tdls_config(cfg, TDLS_STATE_TEARDOWN, tdls_auto_mode);
 			if (ret < 0) {
 				return ret;
 			}
-#endif /* BCMDONGLEHOST */
 		} else {
 			tdls_auto_mode = true;
 		}
@@ -20266,14 +20397,7 @@ wl_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *dev,
 		goto out;
 	}
 	/* turn on TDLS */
-#ifdef BCMDONGLEHOST
 	wl_cfg80211_tdls_config(cfg, TDLS_STATE_SETUP, tdls_auto_mode);
-#else
-	wldev_iovar_setint(bcmcfg_to_prmry_ndev(cfg), "tdls_enable", true);
-#endif /* BCMDONGLEHOST */
-	if (ret < 0) {
-		return ret;
-	}
 	if (info.mode) {
 		ret = wldev_iovar_setbuf(dev, "tdls_endpoint", &info, sizeof(info),
 			cfg->ioctl_buf, WLC_IOCTL_MAXLEN, &cfg->ioctl_buf_sync);
@@ -21941,6 +22065,78 @@ _Pragma("GCC diagnostic pop")
 #endif /* DHCP_SCAN_SUPPRESS */
 }
 
+#ifdef WLDFS
+static void wl_cfg80211_dfs_cac_work_handler(struct work_struct * work)
+{
+	struct wiphy *wiphy;
+	chanspec_t chanspec = 0;
+	u32 freq;
+	struct cfg80211_chan_def chandef;
+	struct net_device *dev = bcmcfg_to_prmry_ndev(g_bcm_cfg);
+
+	wiphy = bcmcfg_to_wiphy(g_bcm_cfg);
+	if (!wiphy) {
+		WL_ERR(("wiphy is null\n"));
+		return;
+	}
+
+	if (wldev_iovar_getint(dev, "chanspec", (s32 *)&chanspec) == BCME_OK)
+		chanspec = wl_chspec_driver_to_host(chanspec);
+
+	if (wl_chspec_chandef(chanspec, &chandef, wiphy)) {
+		WL_ERR(("chspec_chandef failed\n"));
+		return;
+	}
+
+	freq = chandef.chan ? chandef.chan->center_freq : chandef.center_freq1;
+
+	WL_ERR(("CAC timer finished.  Send NL80211_RADAR_CAC_FINISHED\n"));
+	cfg80211_cac_event(dev, &chandef,
+		NL80211_RADAR_CAC_FINISHED,
+		GFP_ATOMIC);
+}
+
+static s32 wl_radar_event_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
+		const wl_event_msg_t *e, void *data)
+{
+	struct wiphy *wiphy;
+	struct net_device *ndev = NULL;
+	wl_event_radar_detect_data_t radar_data;
+	chanspec_t chanspec = 0;
+	struct cfg80211_chan_def chandef;
+
+	WL_DBG(("Enter\n"));
+
+	if (!data) {
+		return -EINVAL;
+	}
+
+	wiphy = bcmcfg_to_wiphy(cfg);
+
+	if (likely(cfgdev)) {
+		ndev = cfgdev_to_wlc_ndev(cfgdev, cfg);
+		radar_data = *((wl_event_radar_detect_data_t *)data);
+		chanspec = radar_data.current_chanspec;
+		if (wl_chspec_chandef(chanspec, &chandef, wiphy)) {
+			WL_ERR(("chspec_chandef failed\n"));
+			return BCME_ERROR;
+		}
+
+		wl_remove_dfs_cac_work(cfg);
+		/* TODO: Do we need to send NL80211_RADAR_DETECTED separately for
+		 *  AP and STA?
+		 */
+		WL_ERR(("cfg80211_cac_event with NL80211_RADAR_DETECTED\n"));
+		cfg80211_cac_event(ndev,
+			&chandef,
+			NL80211_RADAR_DETECTED,
+			GFP_ATOMIC);
+	}
+
+	return 0;
+}
+#endif /* WLDFS */
+
 u8
 wl_get_action_category(void *frame, u32 frame_len)
 {
@@ -22005,6 +22201,8 @@ wl_cfg80211_delayed_roam(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 	e.event_type = cpu_to_be32(WLC_E_ROAM);
 	memcpy(&e.addr, bssid, ETHER_ADDR_LEN);
 	/* trigger the roam event handler */
+	/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+	/* coverity[stack_use_overflow] */
 	err = wl_notify_roaming_status(cfg, ndev_to_cfgdev(ndev), &e, NULL);
 
 	return err;
@@ -23220,7 +23418,6 @@ wl_cfg80211_random_mac_disable(struct net_device *dev)
 #endif /* SUPPORT_RANDOM_MAC_SCAN */
 
 #ifdef WLTDLS
-#ifdef BCMDONGLEHOST
 static s32
 wl_cfg80211_tdls_config(struct bcm_cfg80211 *cfg, enum wl_tdls_config state, bool auto_mode)
 {
@@ -23229,8 +23426,10 @@ wl_cfg80211_tdls_config(struct bcm_cfg80211 *cfg, enum wl_tdls_config state, boo
 	struct net_info *iter, *next;
 	int update_reqd = 0;
 	int enable = 0;
+#ifdef BCMDONGLEHOST
 	dhd_pub_t *dhdp;
 	dhdp = (dhd_pub_t *)(cfg->pub);
+#endif
 
 	/*
 	 * TDLS need to be enabled only if we have a single STA/GC
@@ -23249,7 +23448,12 @@ wl_cfg80211_tdls_config(struct bcm_cfg80211 *cfg, enum wl_tdls_config state, boo
 
 	if ((state == TDLS_STATE_TEARDOWN)) {
 		/* Host initiated TDLS tear down */
+#ifdef BCMDONGLEHOST
 		err = dhd_tdls_enable(ndev, false, auto_mode, NULL);
+#else
+		err = wldev_iovar_setint(ndev, "tdls_enable", false);
+		err = wldev_iovar_setint(ndev, "tdls_auto_op", auto_mode);
+#endif
 		goto exit;
 	} else if (state == TDLS_STATE_AP_CREATE) {
 		/* We don't support tdls while AP/GO is operational */
@@ -23314,32 +23518,43 @@ wl_cfg80211_tdls_config(struct bcm_cfg80211 *cfg, enum wl_tdls_config state, boo
 	}
 
 	if (update_reqd == true) {
+#ifdef BCMDONGLEHOST
 		if (dhdp->tdls_enable == enable) {
 			WL_ERR(("No change in tdls state. Do nothing."
 				" tdls_enable:%d\n", enable));
 			goto exit;
 		}
+#endif
 		err = wldev_iovar_setint(ndev, "tdls_enable", enable);
 		if (unlikely(err)) {
 			WL_ERR(("tdls_enable setting failed. err:%d\n", err));
 			goto exit;
 		} else {
 			WL_DBG(("set tdls_enable: %d done\n", enable));
+#ifdef BCMDONGLEHOST
 			/* Update the dhd state variable to be in sync */
 			dhdp->tdls_enable = enable;
+#endif
 			if (state == TDLS_STATE_SETUP) {
 				/* For host initiated setup, apply TDLS params
 				 * Don't propagate errors up for param config
 				 * failures
 				 */
+#ifdef BCMDONGLEHOST
 				dhd_tdls_enable(ndev, true, auto_mode, NULL);
+#else
+				wldev_iovar_setint(ndev, "tdls_enable", true);
+				wldev_iovar_setint(ndev, "tdls_auto_op", auto_mode);
+#endif
 
 			}
 		}
 	} else {
+#ifdef BCMDONGLEHOST
 		WL_DBG(("Skip tdls config. state:%d update_reqd:%d "
 			"current_status:%d \n",
 			state, update_reqd, dhdp->tdls_enable));
+#endif
 	}
 
 exit:
@@ -23347,7 +23562,6 @@ exit:
 
 	return err;
 }
-#endif /* BCMDONGLEHOST */
 #endif /* WLTDLS */
 
 struct net_device* wl_get_ap_netdev(struct bcm_cfg80211 *cfg, char *ifname)

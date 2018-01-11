@@ -794,7 +794,8 @@ void BVDC_P_Cfc_BuildRulForRamLut_isr
  */
 void BVDC_P_Cfc_BuildRulForLutLoading_isr
     ( BVDC_P_CfcLutLoadListInfo *pLutList,
-      uint32_t                   ulStartReg, /* *_LUT_DESC_ADDR */
+      uint32_t                   ulAddrReg, /* *_LUT_DESC_ADDR */
+      uint32_t                   ulCfgReg, /* *_LUT_DESC_CFG */
       BVDC_P_ListInfo           *pList);
 
 #if BVDC_P_DBV_SUPPORT

@@ -2797,6 +2797,10 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
    /* Calculate the register address for the appropriate context */
    uiContextReg = ((pXvdCh->sDecodeSettings.pContextMap->CDB_Read) - BXVD_XPT_WR_PTR_OFFSET);
 
+#if BXVD_P_FW_HW_BASE_NON_ZERO
+   uiContextReg -= BXVD_P_STB_REG_BASE;
+#endif
+
    BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - XPT Rave Context reg base = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)uiContextReg));
 
    pXvdCh->ulXptCDB_Read = pXvdCh->sDecodeSettings.pContextMap->CDB_Read;
@@ -2826,6 +2830,9 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
          /* Calculate the register address for the appropriate context */
          uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)-BXVD_XPT_WR_PTR_OFFSET);
 
+#if BXVD_P_FW_HW_BASE_NON_ZERO
+         uiContextRegExtend[i] -= BXVD_P_STB_REG_BASE;
+#endif
          BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - XPT Rave Context Extended[%d] reg base = 0x%08x",
                                     i, uiContextRegExtend[i]));
 

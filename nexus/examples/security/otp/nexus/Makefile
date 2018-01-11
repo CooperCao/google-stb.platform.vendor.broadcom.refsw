@@ -42,7 +42,6 @@
 APPS = otpmspprog \
           otpmsptest \
           otpgetchipid \
-          otpgetchipid_APIv2 \
           otpprogkey
 
 include ../../../Makefile.inc

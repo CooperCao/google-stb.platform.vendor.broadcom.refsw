@@ -68,10 +68,10 @@
 
 #else
 
-#define STB_MEMC_TRACELOG_CONTROL           			0x4
-#define STB_MEMC_TRACELOG_COUNT_MATCHES_TOTAL  			0x30
-#define STB_MEMC_TRACELOG_BUFFER_PTR           			0x50
-#define STB_MEMC_TRACELOG_BUFFER_SIZE          			0x58
+#define STB_MEMC_TRACELOG_CONTROL                       0x4
+#define STB_MEMC_TRACELOG_COUNT_MATCHES_TOTAL           0x30
+#define STB_MEMC_TRACELOG_BUFFER_PTR                    0x50
+#define STB_MEMC_TRACELOG_BUFFER_SIZE                   0x58
 
 
 /* MEMC_TRACELOG :: CONTROL :: BUFFER_DRAM [01:01] */
@@ -188,7 +188,7 @@ static ssize_t tracelog_mdev_read(
 {
     off_t offset;
     int entries, entryStart, entryEnd;
-    int i;
+    int i,lenWritten=0;
 
     if (!file || !buf || !loff) {
         LOGE("Invalid argument in tracelog read call");
@@ -208,15 +208,15 @@ static ssize_t tracelog_mdev_read(
         (tldev->pTracelogRegs + TRACELOG_REG_OFFSET(COUNT_MATCHES_TOTAL));
 
     entryStart = (offset      ) / TRACE_ENTRY_ASC_SIZE;
-    entryEnd   = (offset + len) / TRACE_ENTRY_ASC_SIZE;
+    entryEnd   = ((offset + len) / TRACE_ENTRY_ASC_SIZE)-1;
 
     if (entryStart >= entries)
         return 0;
 
     if (entryEnd >= entries) {
         entryEnd = entries - 1;
-        len = entries * TRACE_ENTRY_ASC_SIZE - offset;
     }
+    len = (entryEnd - entryStart + 1)* TRACE_ENTRY_ASC_SIZE;
 
     for (i = entryStart; i <= entryEnd; i++) {
         uint32_t *data = (uint32_t *)(tldev->pTraceBuff + TRACE_ENTRY_BIN_SIZE * i);
@@ -247,13 +247,14 @@ static ssize_t tracelog_mdev_read(
 
         /* use new line to terminate each entry */
         dump[49] = '\n';
+        lenWritten+=TRACE_ENTRY_ASC_SIZE;
     }
-
-    if (copy_to_user(buf, tldev->pTraceDump + offset, len))
+    /*LOGE("len=%d lenWritten=%d\n", len, lenWritten);*/
+    if (copy_to_user(buf, tldev->pTraceDump + offset, lenWritten))
         return -EFAULT;
 
-    *loff = (loff_t)offset + len;
-    return len;
+    *loff = (loff_t)offset + lenWritten;
+    return lenWritten;
 }
 
 int tracelog_init(void)

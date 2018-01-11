@@ -150,28 +150,28 @@ typedef struct
     struct
     {
         BMMA_DeviceOffset address;        /* Valid if "size" is > 0. */
-        unsigned size;                    /* DEPRECATED  TODO ... delete. */
+        unsigned size;                    /* the size of the signature/parameters. */
     }signature;                           /* the signature.  */
 
     struct
     {
         BMMA_DeviceOffset address;
-    }parameters;                          /* DEPRECATED  TODO ... delete*/
+    }parameters;                          /* the paramters.  */
 
     BHSM_RvRsaHandle rvRsaHandle;         /* handle to RV RSA key slot. */
 
-    BHSM_KeyLadderHandle keyLadderHandle; /* sage only. */
-    unsigned keyLadderLayer;              /* sage only. KeyLadder layer to read key from. */
+    BHSM_KeyLadderHandle keyLadderHandle;
+    unsigned keyLadderLayer;
 
     unsigned intervalCheckBandwidth;      /* valid values 0x1 to 0x10*/
     bool     resetOnVerifyFailure;
-    bool     instrCheck;                  /* DEPRECATED  TODO ... delete. */
     bool     backgroundCheck;
     bool     allowRegionDisable;
     bool     enforceAuth;                 /* override MSP OTP for region to force authentication. */
 
     BHSM_RvSignatureType signatureType;     /* [Zeus4 only]. Describes the type of data that is signed. */
     unsigned             signatureVersion;  /* [Zeus4 only]. Signature Version */
+    bool                 instrCheck;        /* [Zeus4 only]. enable instruction checker for the region */
     bool                 codeRelocatable;   /* [Zeus4 only]. Whether this region should have non-relocatable code  */
     uint32_t             marketId;          /* [Zeus4 only]. */
     uint32_t             marketIdMask;      /* [Zeus4 only]. */
@@ -190,6 +190,11 @@ typedef struct
     bool verified; /* DEPRECATED. Use "status" and BHSM_RV_REGION_STATUS* */
 } BHSM_RvRegionStatus;
 
+/* represents the veriication status of all regions */
+typedef struct
+{
+    BHSM_RvRegionStatus region[BHSM_RegionId_eMax];
+} BHSM_RvRegionStatusAll;
 
 /* Allocate a RvRegion. NULL is returned if no resource is available.  */
 BHSM_RvRegionHandle BHSM_RvRegion_Allocate( BHSM_Handle hHsm,
@@ -217,6 +222,11 @@ BERR_Code BHSM_RvRegion_Disable( BHSM_RvRegionHandle handle );
 /* Return the status of a region.  */
 BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle,
                                    BHSM_RvRegionStatus *pStatus );
+
+/* Return the status of all regions.  */
+BERR_Code BHSM_RvRegion_QueryAll(BHSM_Handle hHsm,
+                                   BHSM_RvRegionStatusAll *status);
+
 
 /* Return RvRegion information.  */
 BERR_Code BHSM_GetRvRegionInfo( BHSM_RvRegionHandle handle,

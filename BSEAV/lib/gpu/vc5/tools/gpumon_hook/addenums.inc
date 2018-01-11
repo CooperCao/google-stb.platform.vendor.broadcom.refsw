@@ -1436,6 +1436,10 @@ AddEnum(EGL_IMAGE_PRESERVED_KHR);
 #if EGL_KHR_image_pixmap
 #endif /* EGL_KHR_image_pixmap*/
 
+#if EGL_KHR_partial_update
+AddEnum(EGL_BUFFER_AGE_KHR);
+#endif /* EGL_KHR_partial_update*/
+
 #if EGL_KHR_platform_android
 AddEnum(EGL_PLATFORM_ANDROID_KHR);
 #endif /* EGL_KHR_platform_android*/
@@ -1945,6 +1949,10 @@ AddEnum(EGL_MAX_COUNTER_STRING_LEN_BRCM);
 #if EGL_BRCM_platform_nexus
 AddEnum(EGL_PLATFORM_NEXUS_BRCM);
 #endif /* EGL_BRCM_platform_nexus*/
+
+#if EGL_EXT_buffer_age
+AddEnum(EGL_BUFFER_AGE_EXT);
+#endif /* EGL_EXT_buffer_age*/
 
 #if EGL_EXT_client_extensions
 #endif /* EGL_EXT_client_extensions*/

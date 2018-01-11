@@ -54,7 +54,7 @@ typedef enum
 } Bsp_CmdHdcp22_e;
 
 
-/*PARAMATERS for the Bsp_CmdHdcp22_eDecryptHdcp22Data command  */
+/*PARAMETERS for the Bsp_CmdHdcp22_eDecryptHdcp22Data command  */
 /*input*/
 typedef struct
 {

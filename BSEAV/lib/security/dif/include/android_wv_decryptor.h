@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -80,7 +80,7 @@ public:
         IBuffer *input, IBuffer *output,
         uint32_t sampleSize) OVERRIDE;
 
-    void SetKeyId(std::string keyId) { m_keyId.assign(keyId); }
+    virtual void SetKeyId(std::string keyId) { m_keyId.assign(keyId); }
 
     bool IsValid() { return m_valid; }
 

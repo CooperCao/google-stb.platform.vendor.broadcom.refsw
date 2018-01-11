@@ -5844,9 +5844,11 @@ wlc_hdr_proc(wlc_info_t *wlc, void *sdu, struct scb *scb)
 	if (SFD_ENAB(wlc->pub) && PKTISTXFRAG(wlc->osh, sdu))
 		goto skip_realloc;
 
+	/* use_phdr can vary depending on if DMATXRC defined */
+	/* coverity[dead_error_line] */
 	if ((uint)PKTHEADROOM(osh, sdu) < TXOFF || PKTSHARED(sdu) || (use_phdr && phdr)) {
 		/* use_phdr can vary depending on if DMATXRC defined */
-		/* coverity[dead_error_line} */
+		/* coverity[dead_error_line] */
 		if (use_phdr && phdr)
 			pkt = phdr;
 		else

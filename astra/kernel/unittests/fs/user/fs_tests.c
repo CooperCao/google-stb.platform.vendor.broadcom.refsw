@@ -48,7 +48,8 @@
 #include <errno.h>
 #include <sys/mman.h>
 
-#define assert(cond) if (!(cond)) { printf("%s:%d - Assertion failed\n", __PRETTY_FUNCTION__, __LINE__); while (true) { } }
+#include "ata_helper.h"
+#define assert(cond) if (!(cond)) { ATA_LogErr("%s:%d - Assertion failed\n", __PRETTY_FUNCTION__, __LINE__); while (true) { } }
 
 static const int NumTestFiles = 8;
 
@@ -89,7 +90,7 @@ static void fileCreationTests() {
 
         fds[i] = open(fname, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
         if (fds[i] <= 0) {
-            perror("file creation failure: ");
+            ATA_LogErr("file creation failure: %s", strerror(errno));
             continue;
         }
 
@@ -133,7 +134,7 @@ static void fileCreationTests() {
 
         fds[i] = open(fname, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
         if (fds[i] <= 0) {
-            perror("file creation failure: ");
+            ATA_LogErr("file creation failure: %s", strerror(errno));
             continue;
         }
 
@@ -617,6 +618,6 @@ int main(int argc, char **argv) {
     cwdTests();
     renameTests();
 
-    printf("All tests completed successfully.\n");
+    ATA_LogSuccess("All tests completed successfully.\n");
     return 0;
 }

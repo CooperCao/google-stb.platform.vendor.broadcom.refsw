@@ -208,7 +208,6 @@ static void NEXUS_SageModule_Print(void)
 /* .free : is compatible with existing NEXUS_Memory_Free */
 NEXUS_Error NEXUS_Sage_P_SAGElibUpdateHsm(bool set)
 {
-#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Error rc = NEXUS_SUCCESS;
     BHSM_Handle hHsm = NULL;
     BSAGElib_DynamicSettings settings;
@@ -237,11 +236,6 @@ NEXUS_Error NEXUS_Sage_P_SAGElibUpdateHsm(bool set)
 
 end:
     return rc;
-#else
-    BSTD_UNUSED( set );
-    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-#endif
 }
 
 void NEXUS_Sage_P_SAGELogUninit(void)
@@ -640,10 +634,10 @@ static NEXUS_Error NEXUS_Sage_P_CheckSecureRegions(int heapid, NEXUS_Addr offset
         BDBG_ERR(("%s: Unsupported secure region", BSTD_FUNCTION));
         goto end;
     }
-
-    size = end - start + 8;
-
     if (start || end) {
+        /* translate size and offset per Zeus architecture */
+        size = RESTRICTED_REGION_SIZE(start,end);
+        start = RESTRICTED_REGION_OFFSET(start);
         if ((offset != (NEXUS_Addr)start) || (len != size)) {
             rc = NEXUS_INVALID_PARAMETER;
             BDBG_ERR(("%s - Error, heap '%s' [ID=%d] can only be set once per power up.",

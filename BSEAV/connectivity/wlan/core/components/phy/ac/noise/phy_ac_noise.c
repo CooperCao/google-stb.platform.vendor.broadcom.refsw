@@ -3211,7 +3211,7 @@ wlc_phy_desense_aci_engine_acphy(phy_info_t *pi)
 		if (!jammer_present)
 			new_ofdm_desense = MIN(new_ofdm_desense, MAX(max_lesi_desense, desense->ofdm_desense - 1));
 	} else {
-		max_rssi = jammer_present ? 90 : 80;	/* more aggressive if jammer present (too many glitches) */
+		max_rssi = jammer_present ? 85 : 80;	/* more aggressive if jammer present (too many glitches) */
 		/* Always allow LESI to desense (upto lesi off), irrespective of RSSI	*/
 		new_ofdm_desense = MIN(new_ofdm_desense, max_lesi_desense + MAX(0, aci->weakest_rssi + max_rssi));
 	}
@@ -5052,7 +5052,12 @@ phy_ac_noise_preempt(phy_ac_noise_info_t *ni, bool enable_preempt, bool EnablePo
 				WRITE_PHYREG_ENTRY(pi, BphyAbortExitCtrl, 0x3840)
 				WRITE_PHYREG_ENTRY(pi, PktAbortCounterClr, 0x118)
 				WRITE_PHYREG_ENTRY(pi, BphyAbortExitCtrl, 0x3840)
-				WRITE_PHYREG_ENTRY(pi, PktAbortSupportedStates, 0x2bbf)
+				if (CHSPEC_IS2G(pi->radio_chanspec)) {
+					/* Disabling abort during chanest1/2 for JIRA SWWLAN-111232 */
+					WRITE_PHYREG(pi, PktAbortSupportedStates, 0x2a3f);
+				} else {
+					WRITE_PHYREG(pi, PktAbortSupportedStates, 0x2bbf);
+				}
 				/* fill register value for 4 cores	*/
 				if (CHSPEC_IS5G(pi->radio_chanspec)) {
 					/* 5G ofdm_nominal_clip_th & ofdm_low_power_mismatch_th */

@@ -42,6 +42,8 @@ typedef struct gmem_alloc_item
 
    void*                   cpu_ptr;
    v3d_addr_t              v3d_addr;
+   uint64_t                external_addr;
+
 } gmem_alloc_item;
 
 #ifdef __cplusplus
@@ -55,6 +57,8 @@ gmem_handle_t gmem_from_external_memory(GMEM_TERM_T external_term, void *externa
                                         uint64_t physOffset, void *cpu_ptr,
                                         size_t length, bool secure, bool contiguous,
                                         const char *desc);
+
+uint64_t gmem_get_external_addr(gmem_handle_t handle);
 
 /* Retrieve the external context if there is one. May return NULL. */
 void *gmem_get_external_context(gmem_handle_t handle);
