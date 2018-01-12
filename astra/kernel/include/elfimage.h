@@ -43,12 +43,9 @@
 #include "pgtable.h"
 #include "tzmemory.h"
 #include "utils/vector.h"
-
+#include "plat_config.h"
 #include "elf.h"
 
-#define DEFAULT_STACK_ADDR 0x70000000
-#define DEFAULT_HEAP_ADDR 0x40000000
-#define LINKER_LOAD_ADDR 0x80000
 #define MAX_PATH 4096
 #define MUSL_LINKER_NAME "/lib/libc.so"
 
@@ -74,7 +71,7 @@ public:
 	int numProgramHeaders() { return programHeaders.numElements(); }
 	void programHeader(int idx, Elf_Phdr *hdr);
 
-	TzMem::VirtAddr dataSegmentBrk() const { return (TzMem::VirtAddr)DEFAULT_HEAP_ADDR; }
+	TzMem::VirtAddr dataSegmentBrk() const { return (TzMem::VirtAddr)USER_HEAP_ADDR; }
 	int addMmapSection(TzMem::VirtAddr va, int numPages, int accessPerms, bool noExec, bool shared, uint16_t tid);
 	void removeMmapSection(TzMem::VirtAddr va);
 
@@ -95,6 +92,7 @@ public:
 	class ElfSection {
 	public:
 		TzMem::VirtAddr vaddr;
+		TzMem::VirtAddr kva;
 		int numPages;
 		uint32_t refCount;
 

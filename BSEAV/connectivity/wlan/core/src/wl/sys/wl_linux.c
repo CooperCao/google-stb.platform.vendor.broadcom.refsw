@@ -198,6 +198,8 @@ typedef const struct si_pub si_t;
 #include <wldev_common.h>
 #endif /* CFG80211 */
 
+#include <wl_linux_vendor.h>
+
 #ifdef DPSTA
 #include <dpsta.h>
 #if defined(STA) && defined(DWDS)
@@ -1471,6 +1473,8 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 	}
 #endif /* DEFAULT_EAPVER_AP */
 
+	wl_vendor_attach(dev, NULL, wl);
+
 	/* register module */
 	if (wlc_module_register(wl->pub, NULL, "linux", wl, NULL, wl_linux_watchdog, NULL, NULL)) {
 		WL_ERROR(("wl%d: %s wlc_module_register() failed\n",
@@ -2326,6 +2330,7 @@ wl_free(wl_info_t *wl)
 		  wl_cfg80211_detach(wl_get_cfg(NULL));
 #endif /* defined(USE_CFG80211) */
 
+	wl_vendor_detach(wl, NULL);
 	/* free timers */
 	for (t = wl->timers; t; t = next) {
 		next = t->next;
@@ -2462,6 +2467,9 @@ wl_open(struct net_device *dev)
 		return -1;
 	}
 #endif
+
+	wl_vendor_open(dev, NULL, wl);
+
 	return (error? -ENODEV : 0);
 } /* wl_open */
 
@@ -2477,6 +2485,7 @@ wl_close(struct net_device *dev)
 	wl_cfg80211_down(dev);
 #endif
 	wl = WL_INFO_GET(dev);
+	wl_vendor_close(dev, NULL, wl);
 
 	WL_TRACE(("wl%s: wl_close\n", dev->name));
 

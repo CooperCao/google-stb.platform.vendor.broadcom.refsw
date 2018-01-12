@@ -57,7 +57,7 @@ typedef enum
 } Bsp_CmdMemcArch_e;
 
 
-/*PARAMATERS for the Bsp_CmdMemcArch_eEnPcie command  */
+/*PARAMETERS for the Bsp_CmdMemcArch_eEnPcie command  */
 /*input*/
 typedef struct
 {
@@ -79,7 +79,7 @@ typedef struct
 }Bsp_MemcArch_EnPcie_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdMemcArch_eEnGeneric command  */
+/*PARAMETERS for the Bsp_CmdMemcArch_eEnGeneric command  */
 /*input*/
 typedef struct
 {
@@ -103,7 +103,7 @@ typedef struct
 }Bsp_MemcArch_EnGeneric_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdMemcArch_eQueryUserTag command  */
+/*PARAMETERS for the Bsp_CmdMemcArch_eQueryUserTag command  */
 /*input*/
 typedef struct
 {
@@ -120,7 +120,7 @@ typedef struct
 }Bsp_MemcArch_QueryUserTag_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdMemcArch_eSetMaxPcieWinSize command  */
+/*PARAMETERS for the Bsp_CmdMemcArch_eSetMaxPcieWinSize command  */
 /*input*/
 typedef struct
 {

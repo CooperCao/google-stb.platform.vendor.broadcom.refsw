@@ -58,6 +58,12 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
     if (!exeFile->isExecutable())
         return -ENOEXEC;
 
+    // destroy signal state before deleting image
+    if (!signalsCloned) {
+        terminateSignalState();
+    }
+    destroyUContext();
+
     // Destroy the current elf image
     if ((!vmCloned) && (image != nullptr)) {
         delete image;
@@ -139,5 +145,9 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
 
     // Change the working directory
     currWorkDir = exeDir;
+
+    // init signal state on new process
+    initSignalState();
+    createUContext();
     return 0;
 }

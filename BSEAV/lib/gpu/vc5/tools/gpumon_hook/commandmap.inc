@@ -526,7 +526,7 @@
    "eglQueryStreamu64KHR", "v", "", "unused",
    "eglQuerySurface64KHR", "v", "", "unused",
    "eglSetBlobCacheFuncsANDROID", "v", "", "unused",
-   "eglSetDamageRegionKHR", "v", "", "unused",
+   "eglSetDamageRegionKHR",                            "Y",  "duPW",            "EGLint *",
    "eglStreamAttribKHR", "v", "", "unused",
    "eglStreamConsumerAcquireKHR", "v", "", "unused",
    "eglStreamConsumerGLTextureExternalKHR", "v", "", "unused",

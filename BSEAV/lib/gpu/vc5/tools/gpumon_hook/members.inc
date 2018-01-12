@@ -571,6 +571,10 @@ EGLBoolean (*map_eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image);
 #if EGL_KHR_image_pixmap
 #endif /* EGL_KHR_image_pixmap*/
 
+#if EGL_KHR_partial_update
+EGLBoolean (*map_eglSetDamageRegionKHR)(EGLDisplay dpy, EGLSurface surface, EGLint *rects, EGLint n_rects);
+#endif /* EGL_KHR_partial_update*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
 
@@ -849,6 +853,9 @@ EGLBoolean (*map_eglGetPerfCounterDataBRCM)(EGLint dataBufferBytes, void *data, 
 
 #if EGL_BRCM_platform_nexus
 #endif /* EGL_BRCM_platform_nexus*/
+
+#if EGL_EXT_buffer_age
+#endif /* EGL_EXT_buffer_age*/
 
 #if EGL_EXT_client_extensions
 #endif /* EGL_EXT_client_extensions*/

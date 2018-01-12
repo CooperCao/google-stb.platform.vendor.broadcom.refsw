@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -82,6 +82,14 @@ int xvprintf(const char *templat, va_list marker);
 #define warn_msg(fmt, ...) xprintf(ANSI_YELLOW fmt ANSI_RESET "\n", ##__VA_ARGS__)
 #define info_msg(fmt, ...) xprintf(ANSI_BLUE fmt ANSI_RESET "\n", ##__VA_ARGS__)
 #define success_msg(fmt, ...) xprintf(ANSI_GREEN fmt ANSI_RESET "\n", ##__VA_ARGS__)
+
+
+#define ATA_LogErr(fmt, ...) xprintf(ANSI_RED "\nNIGHTCRAWLER ERROR : " fmt ANSI_RESET "\n", ##__VA_ARGS__)
+#define ATA_LogMsg(fmt, ...) xprintf("\nNIGHTCRAWLER MSG : " fmt "\n", ##__VA_ARGS__)
+#define ATA_LogWar(fmt, ...) xprintf(ANSI_YELLOW "\nNIGHTCRAWLER WARNING : " fmt ANSI_RESET "\n", ##__VA_ARGS__)
+#define ATA_LogSuccess(fmt, ...) xprintf(ANSI_GREEN "\nNIGHTCRAWLER SUCCESS : " fmt ANSI_RESET "\n", ##__VA_ARGS__)
+#define ATA_LogFail(fmt, ...) xprintf(ANSI_RED "\nNIGHTCRAWLER FAIL : " fmt ANSI_RESET "\n", ##__VA_ARGS__)
+
 
 /*
  * compatibility macros

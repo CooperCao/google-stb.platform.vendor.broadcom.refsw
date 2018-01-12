@@ -2530,7 +2530,11 @@ void BVDC_P_Cfc_UpdateCfg_isr
                         }
                     }
                   #elif (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) /* #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2) */
+                  #ifdef BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LR_LIMIT_SHIFT
+                    pCfc->stLRangeAdj.ulLRangeAdjCtrl = BVDC_P_LR_ADJ_LIMIT_ALWAYS_ON; /* controlled by NL_CONFIGi_SEL_LR_LIMIT */
+                  #else
                     pCfc->stLRangeAdj.ulLRangeAdjCtrl = BVDC_P_LR_ADJ_LIMIT_DISABLE;
+                  #endif
                     if (pCfc->stCapability.stBits.bRamLutScb && pCfc->pLutList->pulStart[pCfc->pLutList->ulIndex] &&
                         !BVDC_P_CFC_IN_DVI(pCfc->eId) && /* rm this after DVI ramLut is also handled */
                         !pCfc->stForceCfg.stBits.bDisableRamLuts)
@@ -3598,18 +3602,24 @@ void BVDC_P_Window_BuildCfcRul_isr
             ulSelLmr                                                                     |
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LRANGE_ADJ, DISABLE) |
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_MB_COEF,    DISABLE) |
+          #ifdef BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LR_LIMIT_SHIFT
+            BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LR_LIMIT,   DISABLE)  |
+          #endif
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_NL2L,       BYPASS)  |
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_CL_IN,      DEFAULT) |
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_XVYCC_NL2L, DEFAULT) /* 0xXX048050 */
             :
-#if (BVDC_P_CMP_CFC_VER != BVDC_P_CFC_VER_5)
+          #if (BVDC_P_CMP_CFC_VER != BVDC_P_CFC_VER_5)
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_NL2L_RAM_ADDR, (pCfc->pTfConvRamLuts->pRamLutNL2L)? ucCfcIdxForRect : 0) |
-#endif
+          #endif
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_MA_COEF,    ucCfcIdxForRect) |
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, DLBV_COMP_SEL,  DISABLE) | /* ucCfcIdxForRect if enabled */
             ulSelLmr                                                                     |
             ulSelLRangeAdj                                                               |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_MB_COEF,    ucCfcIdxForRect) |
+          #ifdef BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LR_LIMIT_SHIFT
+            BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LR_LIMIT,   DISABLE)  |
+          #endif
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_NL2L,       pColorSpaceIn->stCfg.stBits.SelTF)  |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_CL_IN,      pColorSpaceIn->stCfg.stBits.bSelCL) |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_XVYCC_NL2L, pColorSpaceIn->stCfg.stBits.bSelXvYcc);
@@ -3802,10 +3812,10 @@ void BVDC_P_Window_BuildCfcRul_isr
     }
     else
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
-  #ifdef BCHP_CMP_0_V0_NL_CSC_CTRL
     /* 7271 CMP1, or 7439 B0 */
     if (pCfc->stCapability.stBits.bBlackBoxNLConv)
     {
+    #ifdef BCHP_CMP_0_V0_NL_CSC_CTRL
         /* Programming NL_CSC_CTRL
          */
         uint32_t ulNumNLCtrlCnvBits, ulNewNLCtrl;
@@ -3838,11 +3848,11 @@ void BVDC_P_Window_BuildCfcRul_isr
             BDBG_MODULE_MSG(BVDC_CFC_3,("Cmp%d_V%d-Cfc%d MA:", hCompositor->eId, eWinInCmp, ucCfcIdxForRect));
             BVDC_P_Cfc_BuildRulForCscRx4_isr(
                 pCfc->pMa, NULL, BVDC_P_MAKE_CSC_CFG(BVDC_P_CscType_eMa3x4_16, eLeftShift), ulStartReg, pList);
-
         }
       #endif /* #if BCHP_CMP_0_V0_R0_MA_COEFF_C00 */
+    #endif /* #ifdef BCHP_CMP_0_V0_NL_CSC_CTRL */
     }
-  #endif /* #ifdef BCHP_CMP_0_V0_NL_CSC_CTRL */
+
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1) */
 
     if (bBuildCfcRul)
@@ -4107,7 +4117,8 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
         }
 
         /* start ram luts loading if they are used */
-        BVDC_P_Cfc_BuildRulForLutLoading_isr(&hGfxFeeder->stCfcLutList, BCHP_GFD_0_LUT_DESC_ADDR + hGfxFeeder->ulRegOffset, pList);
+        BVDC_P_Cfc_BuildRulForLutLoading_isr(&hGfxFeeder->stCfcLutList, BCHP_GFD_0_LUT_DESC_ADDR + hGfxFeeder->ulRegOffset,
+            BCHP_GFD_0_LUT_DESC_CFG + hGfxFeeder->ulRegOffset, pList);
 
         /* Programming HDR blend-in-matrix: 7271 A0 does not have blend-in-matrix, but has alpha-div
          */
@@ -4443,7 +4454,8 @@ void BVDC_P_Display_BuildCfcRul_isr
 
         /* start ram luts loading if they are used */
         ulTmpStartReg = ulStartReg + (BCHP_DVI_CFC_0_LUT_DESC_ADDR - BCHP_DVI_CFC_0_VEC_HDR_NL_CSC_CTRL);
-        BVDC_P_Cfc_BuildRulForLutLoading_isr(&hDisplay->stCfcLutList, ulTmpStartReg, pList);
+        BVDC_P_Cfc_BuildRulForLutLoading_isr(&hDisplay->stCfcLutList, ulTmpStartReg,
+            ulStartReg + (BCHP_DVI_CFC_0_LUT_DESC_CFG - BCHP_DVI_CFC_0_VEC_HDR_NL_CSC_CTRL), pList);
 
         /* Programming MA
          */
@@ -4595,19 +4607,20 @@ void BVDC_P_Display_BuildCfcRul_isr
 #define BVDC_P_CFC_LUT_DESC_LOADING_REG_NUM   (2)
 void BVDC_P_Cfc_BuildRulForLutLoading_isr
     ( BVDC_P_CfcLutLoadListInfo    *pLutList,
-      uint32_t                      ulStartReg, /* *_LUT_DESC_ADDR */
+      uint32_t                      ulAddrReg, /* *_LUT_DESC_ADDR */
+      uint32_t                      ulCfgReg, /* *_LUT_DESC_CFG */
       BVDC_P_ListInfo              *pList)
 {
     if (pLutList->pulCurrent > pLutList->pulStart[pLutList->ulIndex])
     {
         uint32_t ulNumWords = pLutList->pulCurrent - pLutList->pulStart[pLutList->ulIndex];
         BMMA_FlushCache_isr(pLutList->hMmaBlock[pLutList->ulIndex], pLutList->pulStart[pLutList->ulIndex], ulNumWords * sizeof(uint32_t));
-        BDBG_MODULE_MSG(BVDC_CFC_4,("Start LUT Loading: regAddr 0x%x, lutRul words %d, lut[%d]=%p", ulStartReg, ulNumWords,
+        BDBG_MODULE_MSG(BVDC_CFC_4,("Start LUT Loading: regAddr 0x%x, lutRul words %d, lut[%d]=%p", ulAddrReg, ulNumWords,
             pLutList->ulIndex, (void*)pLutList->pulStart[pLutList->ulIndex]));
 
-        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent, ulStartReg, pLutList->ullStartDeviceAddr[pLutList->ulIndex]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent, ulAddrReg, pLutList->ullStartDeviceAddr[pLutList->ulIndex]);
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(ulStartReg + 8); /* always follows *_LUT_DESC_ADDR */
+        *pList->pulCurrent++ = BRDC_REGISTER(ulCfgReg);
         *pList->pulCurrent++ =
             BCHP_FIELD_ENUM(HDR_CMP_0_LUT_DESC_CFG, ENABLE, ENABLE) |
             BCHP_FIELD_DATA(HDR_CMP_0_LUT_DESC_CFG, TABLE_RUL_LENGTH, ulNumWords);

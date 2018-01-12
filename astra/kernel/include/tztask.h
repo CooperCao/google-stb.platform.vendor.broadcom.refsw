@@ -63,6 +63,36 @@ typedef void (*SignalHandler)(int);
 typedef void (*SignalRestorer)();
 
 extern "C" void yieldCurrentTask(unsigned int, unsigned int);
+extern "C" void resumeCurrentTask();
+
+class ProcessGroup {
+private:
+    void *operator new (size_t sz);
+    void operator delete (void *pgrp);
+    ProcessGroup(int pgid);
+    ProcessGroup() = delete;
+    ~ProcessGroup();
+
+public:
+    int signalGroup(int sigNum);
+    int getIdxFromTid(unsigned int tid);
+    int getPgid() const { return pgid; };
+
+    static void init();
+    static ProcessGroup * create(int pgid);
+    static ProcessGroup * lookUp(int pgid);
+    static int addGroupMember(int pgid, TzTask *);
+    static int removeGroupMember(int pgid, TzTask *);
+    static int signalGroup(int pgid, int sigNum);
+
+private:
+    int pgid;
+    tzutils::Vector<TzTask *> taskList;
+
+private:
+    static tzutils::Vector<ProcessGroup *> pgList;
+    static ObjCacheAllocator<ProcessGroup> pgAllocator;
+};
 
 class TzTask {
 public:
@@ -80,8 +110,10 @@ public:
     };
 
     enum Type {
-        CFS_Task = SCHED_OTHER,
-        EDF_Task = SCHED_DEADLINE
+        CFS_Task = SCHED_OTHER,                 /* Completely Fair Scheduling Task */
+        EDF_Task = SCHED_DEADLINE,              /* Deadline Scheduling Task */
+        WORKHORSE_RR_TASK = SCHED_RR,           /* WorkHorse Task Preemptible - Round Robin */
+        WORKHORSE_FIFO_TASK = SCHED_FIFO,       /* WorkHorse Task Non-Preemptible - FIFO */
     };
 
     ARCH_SPECIFIC_USER_REG_LIST;
@@ -209,11 +241,15 @@ public:
     uint16_t group() const { return gid; }
     int changeGroup(uint16_t newGroup);
 
+    unsigned int processGroup() const { return pgid; }
+    int changeProcessGroup(unsigned int newPgid);
+
     IDirectory *currDir() { return currWorkDir; }
     int setCurrDir(const char *dirPath);
     int setCurrDir(int fd);
 
     friend void yieldCurrentTask(unsigned int, unsigned int);
+    friend void resumeCurrentTask();
     friend void printReg();
     void yield();
 
@@ -225,9 +261,10 @@ public:
     void operator delete (void *task);
 
     IDType id() { return tid; }
+    unsigned int getpriority() { return priority; }
 
     int execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp);
-    int wait4(IDType pid, int *status, int options);
+    int wait4(int pid, int *status, int options);
 
     int access(char *path, int mode);
     int open(char *filePath, int flags, int mode );
@@ -280,12 +317,17 @@ public:
 
     int pipeOpen(int *pfds, long flags);
 
+    int setPgId(unsigned int pid, unsigned int newPgid);
+    int getPgId(unsigned int pid);
+
     inline void enableSecCompStrict() { seccompStrict = true; }
     inline bool isSecCompStrict() { return seccompStrict; }
 
     inline bool dominates(TzTask *other) {
         if (other == nullptr)
             return true;
+        if(other->keepAtQueueHead)
+            return false;
         //return ((totalRunTime * other->priority )<= (other->totalRunTime * priority));
         if(slotTimeSlice == other->slotTimeSlice)
             return (totalRunTime <= other->totalRunTime);
@@ -294,8 +336,8 @@ public:
     }
 
     inline uint64_t slot() { return slotTimeSlice; }
-    inline uint64_t getRunValue() { return cumRunTime; }
-    inline void setRunValue(uint64_t runTime) { cumRunTime = runTime; }
+    inline uint64_t getRunValue() { return taskRunTime; }
+    inline void setRunValue(uint64_t runTime) { taskRunTime = runTime; }
 
     inline uint64_t pqValue() { return totalRunTime; }
 
@@ -348,12 +390,14 @@ public:
 private:
 
     int waitAnyChild(int *status, int options);
+    int waitAnyPgChild(int pgid, int *status, int options);
     int openDir(IDirectory *dir, int fd, bool closeOnExec);
 
     void initFileTable();
     void inheritFileTable(const TzTask& parent);
 
     void initSignalState();
+    void terminateSignalState();
     void inheritSignalState(const TzTask& parent);
     void sendSigChldToParent(bool exited, int exitCode, int origSignal);
 
@@ -434,6 +478,7 @@ private:
     uint64_t lastScheduledAt;
     uint64_t quantaRunTime;
     uint64_t slotTimeSlice;
+    uint64_t taskRunTime;
 
     WaitQueue::WQState wqState;
 
@@ -457,6 +502,7 @@ private:
 
     Signal *signals;
     SigReturn *sigParamsStack;
+    SigReturn *sigParamsStackUser;
     int sigParamsStackTop;
     int sigParamsStackMax;
     bool signalled;
@@ -472,12 +518,15 @@ private:
     uint16_t uid;
     uint16_t gid;
 
+    unsigned int pgid;
+
     TzMem::VirtAddr brkStart;
     TzMem::VirtAddr brkCurr;
     TzMem::VirtAddr brkMax;
     TzMem::VirtAddr mmapMaxVa;
 
     TzMem::VirtAddr ucontext;
+    TzMem::VirtAddr ucontextUserVa;
 
     TzMem::VirtAddr quickPages;
     bool quickPagesMapped;
@@ -486,6 +535,7 @@ private:
 
     SpinLock lock;
 
+    bool keepAtQueueHead = false;
 private:
     static SpinLock termLock;
     static tzutils::Vector<TzTask *>tasks;

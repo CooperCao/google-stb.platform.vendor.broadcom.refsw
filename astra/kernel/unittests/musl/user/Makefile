@@ -62,6 +62,7 @@ DEPENDFLAGS := -MD -MP
 INCLUDES    := $(addprefix -I,$(INC_DIRS))
 INCLUDES    += -I$(TZ_TOP)/kernel/api
 INCLUDES    += -I$(TZ_TOP)/kernel/api/arch/$(ARCH_DIR)
+INCLUDES    += -I$(TZ_TOP)/kernel/unittests/utils/
 
 BASEFLAGS   := -O2 -g
 

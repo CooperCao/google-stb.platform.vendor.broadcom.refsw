@@ -2019,6 +2019,7 @@ static void nxserver_check_hdcp(struct b_session *session)
     NEXUS_HdmiOutputHdcpStatus hdcpStatus;
     enum nxserver_hdcp_state curr_version_state = session->hdcp.version_state;
 
+
     if (!session->nxclient.displaySettings.hdmiPreferences.enabled) return;
     if (!session->hdmiOutput) return;
 
@@ -2039,6 +2040,7 @@ static void nxserver_check_hdcp(struct b_session *session)
     }
     session->hdcp.level = curr_hdcp_level;
 
+
     /* Skip, if no hdmi receiver available */
     rc = NEXUS_HdmiOutput_GetStatus(session->hdmiOutput, &hdmiStatus);
     if (rc) { BERR_TRACE(rc); goto done; }
@@ -2047,6 +2049,7 @@ static void nxserver_check_hdcp(struct b_session *session)
         if (repeaterClient) {
             repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
         }
+
         if (session->hdcp.version_state != nxserver_hdcp_not_pending) {
             session->callbackStatus.hdmiOutputHdcpChanged++;
             session->hdcp.version_state = nxserver_hdcp_not_pending;
@@ -2054,14 +2057,26 @@ static void nxserver_check_hdcp(struct b_session *session)
         goto done;
     }
 
+    rc = NEXUS_HdmiOutput_GetHdcpStatus(hdmiOutput, &hdcpStatus);
+    if (rc) {
+        BERR_TRACE(rc);
+        BKNI_Memset(&hdcpStatus, 0, sizeof(hdcpStatus));
+        hdcpStatus.hdcpState = NEXUS_HdmiOutputHdcpState_eUnauthenticated;
+        hdcpStatus.hdcpError = NEXUS_HdmiOutputHdcpError_eMax; /* unknown, but non-zero */
+    }
+
+
     /* Skip, if no hdcp authentication is desired */
     if (curr_hdcp_level == NxClient_HdcpLevel_eNone) {
         BDBG_MSG(("curr_hdcp_level == NxClient_HdcpLevel_eNone, disable hdcp authentication"));
-        rc = NEXUS_HdmiOutput_DisableHdcpAuthentication(hdmiOutput);
-        if (rc) BDBG_ERR(("NEXUS_HdmiOutput_DisableHdcpAuthentication failed: %d", rc));
-        if (session->hdcp.version_state != nxserver_hdcp_not_pending) {
-            session->callbackStatus.hdmiOutputHdcpChanged++;
-            session->hdcp.version_state = nxserver_hdcp_not_pending;
+        if (is_hdcp_start_complete(&hdcpStatus))
+        {
+            rc = NEXUS_HdmiOutput_DisableHdcpAuthentication(hdmiOutput);
+            if (rc) BDBG_ERR(("NEXUS_HdmiOutput_DisableHdcpAuthentication failed: %d", rc));
+            if (session->hdcp.version_state != nxserver_hdcp_not_pending) {
+                session->callbackStatus.hdmiOutputHdcpChanged++;
+                session->hdcp.version_state = nxserver_hdcp_not_pending;
+            }
         }
         goto done;
     }
@@ -2087,13 +2102,6 @@ static void nxserver_check_hdcp(struct b_session *session)
         session->hdcp.downstream_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
     }
 
-    rc = NEXUS_HdmiOutput_GetHdcpStatus(hdmiOutput, &hdcpStatus);
-    if (rc) {
-        BERR_TRACE(rc);
-        BKNI_Memset(&hdcpStatus, 0, sizeof(hdcpStatus));
-        hdcpStatus.hdcpState = NEXUS_HdmiOutputHdcpState_eUnauthenticated;
-        hdcpStatus.hdcpError = NEXUS_HdmiOutputHdcpError_eMax; /* unknown, but non-zero */
-    }
 
     if ((session->hdcp.version_state == nxserver_hdcp_success) && (!is_hdcp_start_complete(&hdcpStatus))) {
         session->hdcp.version_state = nxserver_hdcp_begin;
@@ -2178,17 +2186,10 @@ static void nxserver_check_hdcp(struct b_session *session)
     case nxserver_hdcp_pending_start:
     case nxserver_hdcp_pending_start_retry:
         if (!is_hdcp_start_complete(&hdcpStatus)) {
-            if (repeaterClient) {
-                BDBG_WRN(("nxserver_check_hdcp: authentication failed in repeater mode. no auto-restart."));
-                repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
-                session->hdcp.version_state = nxserver_hdcp_not_pending;
-            }
-            else {
-                initializeHdmiOutputHdcpSettings(session, curr_version_select);
-                rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
-                if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
-                session->hdcp.version_state = nxserver_hdcp_pending_start_retry;
-            }
+            initializeHdmiOutputHdcpSettings(session, curr_version_select);
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+            if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
+            session->hdcp.version_state = nxserver_hdcp_pending_start_retry;
             session->callbackStatus.hdmiOutputHdcpChanged++;
         }
         else {
@@ -2206,6 +2207,7 @@ static void nxserver_check_hdcp(struct b_session *session)
     }
 
 done:
+
     if (curr_version_state != session->hdcp.version_state) {
         BDBG_LOG(("nxserver_check_hdcp: *** (%s --> %s)", g_nxserver_hdcp_str[curr_version_state], g_nxserver_hdcp_str[session->hdcp.version_state]));
         if (session->hdcp.version_state == nxserver_hdcp_success) {
@@ -2236,6 +2238,14 @@ static void hotplug_callback_locked(void *pParam, int iParam)
     if (rc!=NEXUS_SUCCESS) {
         return;
     }
+
+    repeaterClient = session->hdmi.repeater.client;
+    if (repeaterClient)
+    {
+        repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
+        session->hdcp.version_state = nxserver_hdcp_not_pending;
+    }
+
     if(status.connected) {
         NEXUS_HdmiOutput_GetEdidData(session->hdmiOutput, &edid);
 
@@ -2265,12 +2275,8 @@ static void hotplug_callback_locked(void *pParam, int iParam)
         }
     }
 
-    repeaterClient = session->hdmi.repeater.client;
-    if (repeaterClient) {
-        repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
-    }
+	nxserver_check_hdcp(session);
 
-    nxserver_check_hdcp(session);
 }
 
 static void hotplug_callback(void *pParam, int iParam)
@@ -2342,7 +2348,6 @@ static void nxserver_hdcp_mute(struct b_session *session)
 static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 {
     struct b_session *session = pContext;
-    nxclient_t repeaterClient;
     nxserver_t server = session->server;
 
     BSTD_UNUSED(param);
@@ -2350,31 +2355,6 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     BKNI_AcquireMutex(server->settings.lock);
     if (!session->hdmiOutput) goto done;
     if (!session->hdcp.level) goto done;
-
-    repeaterClient = session->hdmi.repeater.client;
-    if (repeaterClient)
-    {
-#if NEXUS_HAS_HDMI_INPUT
-        /* check the authentication state and process accordingly */
-        NEXUS_HdmiInputHdcpStatus hdmiInputHdcpStatus;
-        NEXUS_HdmiInput_HdcpGetStatus(session->hdmiInput, &hdmiInputHdcpStatus) ;
-
-        BDBG_MSG(("%s: RxHDCP version[%d], state [%d]", BSTD_FUNCTION, hdmiInputHdcpStatus.version, hdmiInputHdcpStatus.hdcpState));
-
-        if ((hdmiInputHdcpStatus.hdcpState != NEXUS_HdmiInputHdcpState_eAuthenticated)
-        && (hdmiInputHdcpStatus.hdcpState != NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated))
-        {
-            /****
-            * In repeater mode:
-            *      Not yet authenticated with upstream
-            *      Do not start authentication with downstream if in repeater mode
-            *****/
-            BDBG_MSG(("%s: HDCP2.2 Authentication status with upstream transmitter: UNAUTHENTICATED. Wait for client app to start downstream authentication", BSTD_FUNCTION));
-            repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
-        }
-#endif
-    }
-
 
     nxserver_check_hdcp(session);
 done:
@@ -2572,6 +2552,7 @@ static NEXUS_Error nxserver_set_hdmi_input_repeater(nxclient_t client, NEXUS_Hdm
 {
     struct b_session *session = client->session;
     NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_HdmiOutputHdcpStatus hdcpStatus;
     if (!session->hdmiOutput) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
@@ -2583,9 +2564,24 @@ static NEXUS_Error nxserver_set_hdmi_input_repeater(nxclient_t client, NEXUS_Hdm
     BSTD_UNUSED(hdmiInput);
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 #endif
-    client->hdcp_level = NxClient_HdcpLevel_eMandatory;
-    session->hdcp.version_state = nxserver_hdcp_not_pending;
-    nxserver_check_hdcp(session);
+
+    /* Start downstream authentication if not yet authenticated */
+    if (client)
+    {
+        rc = NEXUS_HdmiOutput_GetHdcpStatus(session->hdmiOutput, &hdcpStatus);
+        if (rc) {
+            BERR_TRACE(rc);
+            BKNI_Memset(&hdcpStatus, 0, sizeof(hdcpStatus));
+            hdcpStatus.hdcpState = NEXUS_HdmiOutputHdcpState_eUnauthenticated;
+            hdcpStatus.hdcpError = NEXUS_HdmiOutputHdcpError_eMax; /* unknown, but non-zero */
+        }
+
+        if (!is_hdcp_start_complete(&hdcpStatus)) {
+            client->hdcp_level = NxClient_HdcpLevel_eMandatory;
+            session->hdcp.version_state = nxserver_hdcp_not_pending;
+            nxserver_check_hdcp(session);
+        }
+    }
     return rc;
 }
 
@@ -2616,10 +2612,6 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient
         BKNI_Memset(&hdmiOutputHdcpSettings.encryptedKeySet, 0, sizeof(hdmiOutputHdcpSettings.encryptedKeySet));
     }
 
-    hdmiOutputHdcpSettings.successCallback.callback = hdmiOutputHdcpStateChanged;
-    hdmiOutputHdcpSettings.successCallback.context = session;
-    hdmiOutputHdcpSettings.failureCallback.callback = hdmiOutputHdcpStateChanged;
-    hdmiOutputHdcpSettings.failureCallback.context = session;
     hdmiOutputHdcpSettings.stateChangedCallback.callback = hdmiOutputHdcpStateChanged;
     hdmiOutputHdcpSettings.stateChangedCallback.context = session;
     rc = NEXUS_HdmiOutput_SetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);
@@ -4750,8 +4742,6 @@ static void standby_thread(void *context)
                     if (rc) rc = BERR_TRACE(rc);
 
                     NEXUS_HdmiOutput_GetHdcpSettings(session->hdmiOutput,  &hdmiOutputHdcpSettings);
-                    hdmiOutputHdcpSettings.successCallback.callback = NULL;
-                    hdmiOutputHdcpSettings.failureCallback.callback = NULL;
                     hdmiOutputHdcpSettings.stateChangedCallback.callback = NULL;
                     rc = NEXUS_HdmiOutput_SetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);
                     if (rc) rc = BERR_TRACE(rc);
@@ -4858,10 +4848,6 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
                 NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
 
                 NEXUS_HdmiOutput_GetHdcpSettings(session->hdmiOutput,  &hdmiOutputHdcpSettings);
-                hdmiOutputHdcpSettings.successCallback.callback = hdmiOutputHdcpStateChanged;
-                hdmiOutputHdcpSettings.successCallback.context = session;
-                hdmiOutputHdcpSettings.failureCallback.callback = hdmiOutputHdcpStateChanged;
-                hdmiOutputHdcpSettings.failureCallback.context = session;
                 hdmiOutputHdcpSettings.stateChangedCallback.callback = hdmiOutputHdcpStateChanged;
                 hdmiOutputHdcpSettings.stateChangedCallback.context = session;
                 rc = NEXUS_HdmiOutput_SetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);

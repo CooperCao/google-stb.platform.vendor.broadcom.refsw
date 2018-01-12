@@ -80,7 +80,7 @@ MemPool::~MemPool() {
     while (curr < end) {
         TzMem::PhysAddr pa = kernPageTable->lookUp(curr);
         TzMem::freePage(pa);
-
+        kernPageTable->unmapPage(curr);
         curr += PAGE_SIZE_4K_BYTES;
     }
 }

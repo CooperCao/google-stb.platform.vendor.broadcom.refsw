@@ -56,29 +56,32 @@ extern "C" void smcService() {
 }
 
 void SmcCalls::init() {
-	uint32_t ret;
-	printf("SmcCalls::init called\n");
+    printf("SmcCalls::init called\n");
 
     // Fill the dispatch table with handlers.
     dispatchTable[SMC_NORMAL_SWITCH] = doNormalSwitch;
 
-	// Set the smc handler in the SM
-	asm volatile("mov	x1, %[xt]":: [xt] "r" (tz_secure_smc_handler):"x1");
-	asm volatile("mov	x0, #0x3c000000":::"x0");
-	asm volatile("orr	x0, x0, #1":::"x0");
-	asm volatile("smc #0": : :"x0");
-	asm volatile("mov %[xt], x0": [xt] "=r" (ret)::"x0");
-	if(ret) {
-		printf("Failed to set NS smc handler\n");
-	}
+#ifdef LEGACY_BL31
+    uint32_t ret;
+
+    // Set the smc handler in the SM
+    asm volatile("mov x1, %[xt]":: [xt] "r" (tz_secure_smc_handler):"x1");
+    asm volatile("mov x0, #0x3c000000":::"x0");
+    asm volatile("orr x0, x0, #1":::"x0");
+    asm volatile("smc #0":::);
+    asm volatile("mov %[xt], x0": [xt] "=r" (ret)::"x0");
+    if(ret) {
+        printf("Failed to set NS smc handler\n");
+    }
+#endif
 }
 
 unsigned long SmcCalls::readNSReg(NSRegs reg) {
-	return nsRegs[reg + (arm::smpCpuNum()*ARCH_SPECIFIC_NUM_CORE_REGS)];
+    return nsRegs[reg + (arm::smpCpuNum()*ARCH_SPECIFIC_NUM_CORE_REGS)];
 }
 
 void SmcCalls::writeNSReg(NSRegs reg, unsigned long value) {
-	nsRegs[reg + (arm::smpCpuNum()*ARCH_SPECIFIC_NUM_CORE_REGS)] = value;
+    nsRegs[reg + (arm::smpCpuNum()*ARCH_SPECIFIC_NUM_CORE_REGS)] = value;
 }
 
 void SmcCalls::dispatch() {
@@ -91,14 +94,14 @@ void SmcCalls::dispatch() {
         else {
             // Return -ENOSYS for unimplemented system call.
             printf("unhandled smc call %d\n", smcCallNum);
-			writeNSReg(r0, -ENOSYS);
+            writeNSReg(r0, -ENOSYS);
         }
     }
-	else {
-		// Return -ENOSYS for out of range system call.
-		printf("smc call %d out of range\n", smcCallNum);
-		writeNSReg(r0, -ENOSYS);
-	}
+    else {
+        // Return -ENOSYS for out of range system call.
+        printf("smc call %d out of range\n", smcCallNum);
+        writeNSReg(r0, -ENOSYS);
+    }
 }
 
 void SmcCalls::doNormalSwitch() {

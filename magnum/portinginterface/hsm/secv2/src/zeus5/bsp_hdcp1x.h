@@ -54,7 +54,7 @@ typedef enum
 } Bsp_CmdHdcp1x_e;
 
 
-/*PARAMATERS for the Bsp_CmdHdcp1x_eGenAndRouteHdcp1x command  */
+/*PARAMETERS for the Bsp_CmdHdcp1x_eGenAndRouteHdcp1x command  */
 /*input*/
 typedef struct
 {

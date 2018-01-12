@@ -1,61 +1,64 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ ******************************************************************************/
 
 /* Nexus example app: OTP/MSP Access */
 
 #include "nexus_platform.h"
-#include "nexus_display.h"
-#include "nexus_message.h"
 #include "nexus_memory.h"
 #include "bstd.h"
 #include "bkni.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#if NEXUS_SECURITY_API_VERSION == 2
+#include "nexus_otp_key.h"
+#else
+#include "nexus_display.h"
+#include "nexus_message.h"
 #include "nexus_otpmsp.h"
 #include "nexus_read_otp_id.h"
 #ifdef NEXUS_HAS_PROGRAM_OTP_DATASECTION
  #include "crc/bhsm_crc.h"
 #endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
+#endif
 
 BDBG_MODULE(OTPGETCHIPID);
 
@@ -70,7 +73,51 @@ BDBG_MODULE(OTPGETCHIPID);
 }
 
 
+#if NEXUS_SECURITY_API_VERSION == 2
 
+static NEXUS_Error
+_P_DumpOtpKeyInfo(
+    unsigned index)
+{
+    NEXUS_Error rc;
+    NEXUS_OtpKeyInfo keyInfo;
+    rc = NEXUS_OtpKey_GetInfo(index, &keyInfo);
+    if (rc == NEXUS_SUCCESS) {
+#define COM_STR "OTP ID for "
+        char str[sizeof(COM_STR) + 1] = COM_STR "A";
+        str[sizeof(COM_STR)-1] = 'A' + index;
+        str[sizeof(COM_STR)] = 0;
+        DEBUG_PRINT_ARRAY( str, sizeof(keyInfo.id), keyInfo.id );
+    }
+    else {
+        fprintf( stderr, "\nNEXUS_OtpKey_GetInfo() failed. Error code: %x\n", rc );
+    }
+    return rc;
+}
+
+int main(void)
+{
+    NEXUS_Error rc = BERR_SUCCESS;
+    NEXUS_PlatformConfiguration platformConfig;
+    NEXUS_PlatformSettings platformSettings;
+
+    NEXUS_Platform_GetDefaultSettings( &platformSettings );
+    platformSettings.openFrontend = false;
+    NEXUS_Platform_Init( &platformSettings );
+
+    NEXUS_Platform_GetConfiguration( &platformConfig );
+
+    rc = _P_DumpOtpKeyInfo(0); /* 0 is for OTP key A */
+    if( rc != NEXUS_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
+
+BHSM_P_DONE_LABEL:
+
+    NEXUS_Platform_Uninit();
+
+    return rc;
+}
+
+#else
 
 int main(void)
 {
@@ -151,3 +198,4 @@ int main(void)
 
     return rc;
 }
+#endif

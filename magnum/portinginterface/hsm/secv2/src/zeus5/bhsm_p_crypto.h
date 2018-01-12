@@ -47,7 +47,7 @@ extern "C"
 #endif
 
 
-#include "bhsm.h"
+#include "../bhsm_auto_compat.h"
 
 typedef struct BHSM_P_CryptoRng
 {

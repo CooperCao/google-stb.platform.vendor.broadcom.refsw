@@ -67,10 +67,10 @@ const uint32_t BDSP_IMG_system_rdbvars_array1[] = {
     0x01000000, /* Not used */
     0x00000018, /* Not used */
     0x08404008, /* Not used */
-    0x00000000, /* Not Used */
-    0x00000000, /* Not Used */
-    0x00000000, /* Not Used */
-    0x00000000, /* Not Used */
+    0x09000000, /* RAAGA_DSP_RAAGA_REG_REGION_BASE_ADDR */
+    0x00100000, /* RAAGA_DSP_RAAGA_REG_REGION_SIZE */
+    0xa200000, /* RAAGA_DSP_XPT_REG_REGION_BASE_ADDR */
+    0x100000, /* RAAGA_DSP_XPT_REG_REGION_SIZE */
     0x00000000, /* Not Used */
     0x00000000, /* Not Used */
     0x00000000, /* Not Used */

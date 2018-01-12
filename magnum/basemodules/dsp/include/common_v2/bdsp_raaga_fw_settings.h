@@ -3488,6 +3488,9 @@ typedef struct BDSP_Raaga_Audio_DDPEncConfigParams
 	*/
 	signed int		i32AddBsi[128 + 1];
 
+	/* Enable / Disable Atmos lock [Default : 0 = disabled] */
+    uint32_t    	ui32AtmosLockEnabled;
+
 	signed int		i32b_extdrce1;
 
 	signed int		i32extdrce1[7];

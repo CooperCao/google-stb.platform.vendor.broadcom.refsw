@@ -551,6 +551,9 @@ CASE(eglDestroyImageKHR, 0x3fe4c7ee);
 
 // EGL_KHR_image_pixmap
 
+// EGL_KHR_partial_update
+CASE(eglSetDamageRegionKHR, 0xb192d3e8);
+
 // EGL_KHR_surfaceless_context
 
 // EGL_KHR_wait_sync
@@ -778,6 +781,8 @@ CASE(eglGetPerfCounterInfoBRCM, 0xfc4402ab);
 CASE(eglSetPerfCountingBRCM, 0xc4bc4ed2);
 CASE(eglChoosePerfCountersBRCM, 0xca4c1037);
 CASE(eglGetPerfCounterDataBRCM, 0x6c3ee535);
+
+// EGL_EXT_buffer_age
 
 // EGL_EXT_client_extensions
 

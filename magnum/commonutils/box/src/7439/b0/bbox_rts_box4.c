@@ -52,15 +52,15 @@ BDBG_OBJECT_ID(BBOX_RTS_BOX4);
 void BBOX_P_SetBox4MemConfig
     ( BBOX_MemConfig                *pBoxMemConfig )
 {
-    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video0,  1,       1);
-    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display0,  Gfx0,    1         );
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video0,        1,       1);
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display0,  Gfx0,          1         );
 
-    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display1,  Video0,  1, Invalid);
-    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display1,  Gfx0,    1         );
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display1,  Video0,        1, Invalid);
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display1,  Gfx0,          1         );
 
-    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display2,  Video0,  1,       1);
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display2,  Video0,  Invalid,       1);
 
-    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display3,  Video0,  1,       1);
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display3,  Video0,  Invalid,       1);
 
     BBOX_P_SET_NUM_MEMC(pBoxMemConfig, stBoxRts_7252S_4K2t_large_xcode_box4.ulNumMemc);
 }

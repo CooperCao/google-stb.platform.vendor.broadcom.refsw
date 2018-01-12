@@ -386,7 +386,7 @@ static const uint32_t aulMemc1_20171107034842_7278B0_box1_box_mid_performance_sm
            0x3ffff022,  /*  44: AUD_AIO off */
            0x8064205d,  /*  45: VICE_CME0 RR 3500ns */
            0x8316c060,  /*  46: VICE_CME1 RR 27600ns */
-           0x0112b061,  /*  47: VICE_FME 9590ns */
+           0x8112b061,  /*  47: VICE_FME 9590ns */
            0x3ffff0ff,  /*  48: UNASSIGNED off */
            0x80d2705e,  /*  49: VICE_IMD0 RR 7350ns */
            0x80d2705f,  /*  50: VICE_IMD1 RR 7350ns */

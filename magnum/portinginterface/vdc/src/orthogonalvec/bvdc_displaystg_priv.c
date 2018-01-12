@@ -299,8 +299,6 @@ void BVDC_P_TearDownStgChan_isr
 
 #if (BVDC_P_SUPPORT_STG > 1)
     ulRegOffset = hDisplay->stStgChan.ulStg * sizeof(uint32_t);
-#else
-    BSTD_UNUSED(hDisplay);
 #endif
     /* Disable STG source */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -310,7 +308,7 @@ void BVDC_P_TearDownStgChan_isr
 
     /* disable STG timer trigger */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_CONTROL + ulRegOffset);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_CONTROL + hDisplay->ulStgRegOffset);
     *pList->pulCurrent++ = 0;
 
 #if BCHP_VEC_CFG_VIP_0_SOURCE

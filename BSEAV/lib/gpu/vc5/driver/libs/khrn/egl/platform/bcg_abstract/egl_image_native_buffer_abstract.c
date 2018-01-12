@@ -22,17 +22,15 @@ typedef struct native_egl_image
 static khrn_image *get_native_egl_image(EGL_IMAGE_T *p)
 {
    NATIVE_EGL_IMAGE_T *egl_image = (NATIVE_EGL_IMAGE_T *)p;
+
    unsigned num_mip_levels;
-   khrn_image *image = image_from_surface_abstract(egl_image->buffer, false, &num_mip_levels);
+   khrn_image *image = image_from_surface_abstract_with_existing(egl_image->buffer, false,
+         &num_mip_levels, egl_image->base.image);
    if (!image)
       return NULL;
 
-   /* check for resize/format change.  If the base offset has moved, then replace the image and
-      resources are invalid */
-   if (khrn_image_get_offset(egl_image->base.image, 0) != khrn_image_get_offset(image, 0))
-      KHRN_MEM_ASSIGN(egl_image->base.image, image);
-
-   KHRN_MEM_ASSIGN(image, NULL);
+   KHRN_MEM_ASSIGN(egl_image->base.image, NULL);
+   egl_image->base.image = image;
 
    return egl_image->base.image;
 }

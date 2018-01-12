@@ -55,6 +55,7 @@ DEPENDFLAGS := -MD -MP
 
 INCLUDES    := $(addprefix -I,$(INC_DIRS))
 INCLUDES    += -I$(TZ_KERNEL_DIR)/api
+INCLUDES    += -I$(TZ_KERNEL_DIR)/unittests/utils
 
 BASEFLAGS   := -O2 -g -fpic
 

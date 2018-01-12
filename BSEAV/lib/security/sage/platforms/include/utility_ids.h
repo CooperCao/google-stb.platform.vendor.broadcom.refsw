@@ -44,7 +44,8 @@
 typedef enum Utility_ModuleId_e{
     Utility_ModuleId_eHeartbeat = 0x01,
     Utility_ModuleId_eRsa       = 0x02,
-    Utility_ModuleId_eSecureRsa = 0x03
+    Utility_ModuleId_eSecureRsa = 0x03,
+    Utility_ModuleId_eSsce      = 0x04
 }Utility_ModuleId_e;
 
 enum {
@@ -82,7 +83,15 @@ enum {
     SecureRsa_CommandId_eKey3IkrDecryptIkr = 0x227,
     SecureRsa_CommandId_eKpkDecryptRsa     = 0x230,
     SecureRsa_CommandId_eKpkDecryptIkr     = 0x231,
-    SecureRsa_CommandId_eMax
+    SecureRsa_CommandId_eMax,
+
+    /* SSCE command IDs */
+    Ssce_CommandId_eCreateKey         = 0x300,
+    Ssce_CommandId_eLoadKey           = 0x301,
+    Ssce_CommandId_eUpdateCertificate = 0x302,
+    Ssce_CommandId_eRetrieve          = 0x303,
+    Ssce_CommandId_eSign              = 0x304,
+    Ssce_CommandId_eMax
 };
 
 

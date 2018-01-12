@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,6 +39,9 @@
 #define PRIORITYQUEUE_H_
 
 #include "vector.h"
+#include "tracelog.h"
+
+
 namespace tzutils {
 
 //#define TASK_LOG
@@ -123,20 +126,75 @@ public:
         return nullptr;
     }
 
-
-
 #ifdef TASK_LOG // To print the CPU %
+    typedef struct taskInfo{
+    int seq;                    /* Dump/msg sequence */
+    int module_id;              /* For Scheduler Dumps set this to 0x1*/
+    int cpu_id;                 /* CPU Core */
+    int task_id;                /* ID of the Task */
+    int task_priority;          /* Priority of the task (valid for CFS Tasks) */
+    int task_load;              /* Max load of the task (Valid for EDF Tasks) */
+    int cpu_percent;            /* CPU percent utilization for this task (in 7.4 format) */
+    bool isActive;              /* State of task */
+    }taskInfo;
+#define TASK_INFO_SEQUENCE_SHIFT            28
+#define TASK_INFO_MODULE_ID_SHIFT           24
+#define TASK_INFO_CPU_ID_SHIFT              20
+#define TASK_INFO_TASK_ID_SHIFT             10
+#define TASK_INFO_TASK_PRIORITY_SHIFT       0
+#define TASK_INFO_TASK_LOAD_SHIFT           12
+#define TASK_INFO_CPU_PERCENT_INT_SHIFT     5
+#define TASK_INFO_CPU_PERCENT_FRAC_SHIFT    1
+#define TASK_INFO_STATUS_SHIFT              0
 
-    void printRunValue(const char* queueName, uint64_t worldRunTime) {
+    void populateTaskInfo(uint64_t worldRunTime,int cpu) {
         int numElements = queue.numElements();
-        printf("-%s - %d tasks-: \t", queueName, numElements-1);
+        int policy, priority;
+        for (int i=0; i<numElements; i++) {
+            taskInfo ti;
+            if (queue[i] != nullptr) {
+                ti.module_id = 0x1; /* Make this define or enum */
+                ti.cpu_id = cpu;
+                ti.task_id = queue[i]->id();
+                queue[i]->getScheduler(&policy,&priority);
+                if(policy == 6){
+                    ti.task_load = priority;
+                    ti.task_priority = 0;
+                }
+                else{
+                    ti.task_priority = priority;
+                    ti.task_load = 0;
+                }
+                ti.isActive = ((queue[i]->status() == 1)?1:0);
+
+                uint64_t taskRunTime = queue[i]->getRunValue();
+
+                unsigned int global_percent  = (unsigned int)((taskRunTime *10000) / worldRunTime);
+                ti.cpu_percent = (((global_percent/100 )>100 ? 99:(global_percent/100 ))<< 4) | (global_percent%100 & 0xf);
+                queue[i]->setRunValue(0);
+
+                //printf("CPU %d Task %d : CPU_Percent = %d.%d Priority=%d\n",ti.cpu_id,ti.task_id,( ti.cpu_percent>>4) ,(ti.cpu_percent & 0xf),(ti.task_priority != 0)?ti.task_priority:ti.task_load);
+                uint32_t data = 0;
+                data = (0<<TASK_INFO_SEQUENCE_SHIFT)|(ti.module_id<<TASK_INFO_MODULE_ID_SHIFT)|
+                    (ti.cpu_id<<TASK_INFO_CPU_ID_SHIFT)|(ti.task_id<<TASK_INFO_TASK_ID_SHIFT)|(ti.task_priority);
+                TraceLog::add(data, 0);
+                data = (1<<TASK_INFO_SEQUENCE_SHIFT)|(ti.module_id<<TASK_INFO_MODULE_ID_SHIFT)|(ti.task_load<<TASK_INFO_TASK_LOAD_SHIFT)|
+                    (( ti.cpu_percent>>4)<<TASK_INFO_CPU_PERCENT_INT_SHIFT)|((ti.cpu_percent & 0xf)<<TASK_INFO_CPU_PERCENT_FRAC_SHIFT)|ti.isActive;
+                TraceLog::add(data, 0);
+            }
+        }
+    }
+
+    void printRunValue(const char* queueName, int cpu, uint64_t worldRunTime) {
+        int numElements = queue.numElements();
+        printf("-%s %d - %d tasks-: \t", queueName, cpu, numElements-1);
         for (int i=1; i<numElements; i++) {
             //printf("%p %d: %p ", &queue[i], i, queue[i]);
             if (queue[i] != nullptr) {
                 uint64_t handle = queue[i]->id();
-                uint64_t cumRunTime = queue[i]->getRunValue();
+                uint64_t taskRunTime = queue[i]->getRunValue();
 
-                unsigned int global_percent  = (unsigned int)((cumRunTime *10000) / worldRunTime);
+                unsigned int global_percent  = (unsigned int)((taskRunTime *10000) / worldRunTime);
                 printf(": Task %d %u.%u%%\t", (int)(handle & 0xffffffff), global_percent/100, global_percent%100);
 
             }
@@ -154,7 +212,6 @@ public:
             }
         }
     }
-
 
     void print() {
         int numElements = queue.numElements();
@@ -176,9 +233,9 @@ public:
         }
         printf("---\n");
     }
-
-
 #endif
+
+
 private:
     void bubbleUp() {
 

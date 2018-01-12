@@ -1,7 +1,9 @@
 /*
  * NVRAM variable manipulation (common)
  *
- * Copyright (C) 2014, Broadcom Corporation
+ * NVRAM emulation interface
+ *
+ * Copyright (C) 2017, Broadcom Corporation
  * All Rights Reserved.
  *
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,9 +11,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * NVRAM emulation interface
- *
- * $Id: nvram_shared.c $
+ * $Id$
  */
 
 #include <stdio.h>
@@ -43,7 +43,7 @@
 /*Macro Definitions*/
 #define _MALLOC_(x)         calloc(x, sizeof(char))
 #define _MFREE_(buf, size)  free(buf)
-#define VALID_BIT(bit) ((bit) >=0 && (bit) <= 31)
+#define VALID_BIT(bit)		((bit) >=0 && (bit) <= 31)
 #define CODE_BUFF	16
 #define HEX_BASE	16
 
@@ -373,7 +373,7 @@ static int nvramc_cmd(int resp_need)
     }
 
     if (resp_need) {
-	fd_set read_fds;
+        fd_set read_fds;
 
 			/* Process the response */
 			FD_ZERO(&read_fds);
@@ -455,8 +455,8 @@ char *nvram_get(const char *name)
         buf = NULL;
 
     if ((rcount == sizeof(unsigned long)) && memcmp(nvramc_info.cmd_buf, &zero, sizeof(zero)) == 0) {
-	DBG_GET("<==nvram_get\n");
-	return NULL;
+        DBG_GET("<==nvram_get\n");
+		return NULL;
     }
     else {
         i = hash(name) % ARRAYSIZE(nvram_hash);
@@ -480,7 +480,7 @@ char *nvram_get(const char *name)
         else { /* this is a new tuple */
             if (!(u = _nvram_alloc(t, name, nvramc_info.cmd_buf))) {
                 DBG_ERROR("no memory\n");
-		DBG_GET("<==nvram_get: no memory!\n");
+                DBG_GET("<==nvram_get: no memory!\n");
                 return NULL;
             }
 
@@ -547,13 +547,12 @@ int nvram_unset(const char *name)
 char *
 nvram_get_bitflag(const char *name, const int bit)
 {
-	char *ptr;
+	if (!VALID_BIT(bit))
+		return NULL;
+	char *ptr = nvram_get(name);
 	unsigned long nvramvalue = 0;
 	unsigned long bitflagvalue = 1;
 
-	if (!VALID_BIT(bit))
-		return NULL;
-	ptr = nvram_get(name);
 	if (ptr) {
 		bitflagvalue = bitflagvalue << bit;
 		nvramvalue = strtoul(ptr, NULL, HEX_BASE);
@@ -567,16 +566,15 @@ nvram_get_bitflag(const char *name, const int bit)
 int
 nvram_set_bitflag(const char *name, const int bit, const int value)
 {
+	if (!VALID_BIT(bit))
+		return 0;
 	char nvram_val[CODE_BUFF];
-	char *ptr;
+	char *ptr = nvram_get(name);
 	unsigned long nvramvalue = 0;
 	unsigned long bitflagvalue = 1;
 
-	if (!VALID_BIT(bit))
-		return 0;
 	memset(nvram_val, 0, sizeof(nvram_val));
 
-	ptr = nvram_get(name);
 	if (ptr) {
 		bitflagvalue = bitflagvalue << bit;
 		nvramvalue = strtoul(ptr, NULL, HEX_BASE);

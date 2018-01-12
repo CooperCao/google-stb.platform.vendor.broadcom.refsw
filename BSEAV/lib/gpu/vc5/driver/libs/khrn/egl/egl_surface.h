@@ -20,8 +20,7 @@ extern GFX_LFMT_T egl_surface_lfmt_to_srgb(GFX_LFMT_T lfmt);
  * pointer to dependencies to wait for the writes to complete. */
 extern const v3d_scheduler_deps* egl_surface_flush_back_buffer_writer(EGL_SURFACE_T *surface);
 
-extern bool egl_surface_get_attrib(const EGL_SURFACE_T *surface,
-      EGLint attrib, EGLint *value);
+extern EGLint egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value);
 
 /*
  * Destroy and free the surface if it isn't bound to a context or mapped to a

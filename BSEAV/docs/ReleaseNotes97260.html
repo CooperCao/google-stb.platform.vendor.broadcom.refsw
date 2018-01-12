@@ -26,7 +26,7 @@ Reference Software Release Notes</strong></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>November 17, 2017</p>
+<p>January 4, 2018</p>
 <p>Phase 17.4 Release </p>
 
 </blockquote>
@@ -61,8 +61,8 @@ Atlas as part of the Reference Software. </p>
 <p><strong>Quick Build Instructions</strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li ># tar -xvjf rootfs-4.9-1.1.tar.bz2 </li>
- <li ># tar -xvjf stblinux-4.9-1.1.tar.bz2 </li>
+ <li ># tar -xvjf rootfs-4.9-1.2.tar.bz2 </li>
+ <li ># tar -xvjf stblinux-4.9-1.2.tar.bz2 </li>
  <li ># cd rootfs </li>
  <li ># make vmlinuz-initrd-arm <i>(For 32-bit version of
      the kernel build)</i></li>
@@ -81,9 +81,9 @@ Atlas as part of the Reference Software. </p>
 <p><strong>Quick Boot instructions</strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li >BOLT&gt; boot &lt;network_location&gt;:49-1.1/vmlinuz-initrd-arm
+ <li >BOLT&gt; boot &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm
      </li>
- <li >BOLT&gt; boot &lt;network_location&gt;:49-1.1/vmlinuz-initrd-arm64&nbsp; - This command
+ <li >BOLT&gt; boot &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm64&nbsp; - This command
      will boot 64 bit kernel instead of 32 bit kernel. </li>
 </ul>
 
@@ -91,8 +91,8 @@ Atlas as part of the Reference Software. </p>
 
 <p ><strong>Set the kernel to autoboot</strong> </p>
 <ul style='margin-top:0in' type=disc>
- <li >BOLT&gt; flash &lt;network_location&gt;:49-1.1/vmlinuz-initrd-arm flash0.kernel </li>
- <li >Or BOLT&gt; flash &lt;network_location&gt;:49-1.1/vmlinuz-initrd-arm64 flash0.kernel - For 64-bit kernel</li>
+ <li >BOLT&gt; flash &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm flash0.kernel </li>
+ <li >Or BOLT&gt; flash &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm64 flash0.kernel - For 64-bit kernel</li>
  <li >BOLT&gt; setenv -p STARTUP &quot;boot flash0.kernel:&quot; </li>
  <li >BOLT&gt; reboot</li>
 </ul>
@@ -159,7 +159,7 @@ options required to build the software. </strong></p>
 it to decode and display HEVC 4Kx2k@60p 10bit stream </strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li ># tar xvfz refsw_release_97260_20171117.src.tgz </li>
+ <li ># tar xvfz refsw_release_97260_20180104.src.tgz </li>
  <li >#cd nexus/utils </li>
  <li >#make install </li>
 </ul>
@@ -175,7 +175,7 @@ it to decode and display HEVC 4Kx2k@60p 10bit stream </strong></p>
 stream </b></p>
 
 <ul style='margin-top:0in' type=disc>
- <li ># tar xvfz refsw_release_97260_20171117.src.tgz</li>
+ <li ># tar xvfz refsw_release_97260_20180104.src.tgz</li>
  <li >#cd BSEAV/app/atlas/build </li>
  <li >#make install </li>
 </ul>

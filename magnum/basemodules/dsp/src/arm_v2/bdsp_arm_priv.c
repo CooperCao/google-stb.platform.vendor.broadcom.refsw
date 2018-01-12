@@ -44,6 +44,8 @@ BDBG_OBJECT_ID(BDSP_ArmContext);
 BDBG_OBJECT_ID(BDSP_ArmTask);
 BDBG_OBJECT_ID(BDSP_ArmStage);
 BDBG_OBJECT_ID(BDSP_P_InterTaskBuffer);
+BDBG_OBJECT_ID(BDSP_ArmCapture);
+
 
 BERR_Code BDSP_Arm_P_ValidateVersion(
     BDSP_ArmSettings *pSettings
@@ -588,7 +590,7 @@ static BERR_Code BDSP_Arm_P_ProgramRDB(
     pAddr = (dramaddr_t *)pDevice->memInfo.sIOMemoryPool[dspIndex].Memory.pAddr;
 
     /* Program the size of the FMM Register access */
-    pAddr[BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_REGISTER_WIDTH] = BDSP_SIZE_OF_FMMREG;
+    pAddr[BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_RDB_VARS_ADDR] = pDevice->codeInfo.imgInfo[BDSP_ARM_SystemImgId_eRdbVars].Buffer.offset;
 
     /*Program the FIFO ID of Host2DSP command Queue Fifo ID */
     offset = pDevice->memInfo.CfgRegisters[dspIndex].Buffer.offset;
@@ -965,6 +967,8 @@ void BDSP_Arm_P_Close(
         }
 
         BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sRWMemoryPool[dspIndex].Memory));
+
+		BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sIOMemoryPool[dspIndex].Memory));
     }
 
     BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sROMemoryPool.Memory));
@@ -1054,7 +1058,7 @@ BERR_Code BDSP_Arm_P_CreateContext(
 	pArmContext->context.getInterruptHandlers = BDSP_Arm_P_GetContextInterruptHandlers;
 	pArmContext->context.setInterruptHandlers= BDSP_Arm_P_SetContextInterruptHandlers;
 	pArmContext->context.processWatchdogInterrupt= BDSP_Arm_P_ProcessContextWatchdogInterrupt;
-	pArmContext->context.createCapture = NULL;
+	pArmContext->context.createCapture = BDSP_Arm_P_AudioCaptureCreate;
 
 	BKNI_AcquireMutex(pDevice->deviceMutex);
 	BLST_S_INSERT_HEAD(&pDevice->contextList, pArmContext, node);
@@ -1223,7 +1227,7 @@ BERR_Code BDSP_Arm_P_CreateTask(
         BDBG_ASSERT(0);
     }
 #else
-    BDBG_ERR(("BDSP_Arm_P_CreateTask: Installation of Interrupt for Task, not completed"));
+    /* Interrupt Installation not required for ARM*/
 #endif
 
     BKNI_AcquireMutex(pDevice->deviceMutex);
@@ -1262,7 +1266,7 @@ void BDSP_Arm_P_DestroyTask(
         BDBG_ASSERT(0);
     }
 #else
-    BDBG_ERR(("BDSP_Arm_P_DestroyTask: Un-Installation of Interrupt for Task, not completed"));
+    /* Interrupt Installation not required for ARM*/
 #endif
     errCode = BDSP_P_DestroyMsgQueue(pArmTask->hSyncQueue);
     if (BERR_SUCCESS != errCode)

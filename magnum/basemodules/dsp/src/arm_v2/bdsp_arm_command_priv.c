@@ -107,11 +107,6 @@ BERR_Code BDSP_Arm_P_ProcessInitCommand(
     sCommand.uCommand.sArmInitCommand.sTimerInfo.ui32PeriodicTimerInUs = BDSP_PERIODIC_TIMER;
     sCommand.uCommand.sArmInitCommand.sTimerInfo.ui32WatchdogTimerinMs = BDSP_WATCHDOG_TIMER;
 
-    sCommand.uCommand.sArmInitCommand.ui64NumRegRegions = 2;
-    sCommand.uCommand.sArmInitCommand.RegisterRegions[0].ui64StartAddress = 0xF0C00000;
-    sCommand.uCommand.sArmInitCommand.RegisterRegions[0].ui64Size         = 0x00100000;
-    sCommand.uCommand.sArmInitCommand.RegisterRegions[1].ui64StartAddress = 0xF0A00000;
-    sCommand.uCommand.sArmInitCommand.RegisterRegions[1].ui64Size         = 0x00080000;
     errCode = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue[dspindex], &sCommand);
     if(errCode != BERR_SUCCESS)
     {

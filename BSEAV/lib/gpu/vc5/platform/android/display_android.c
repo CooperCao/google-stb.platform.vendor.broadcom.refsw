@@ -86,7 +86,8 @@ static int isAndroidNativeWindow(ANativeWindow * win)
    if (!res)
    {
       ALOGE("==========================================================================");
-      ALOGE("%s INVALID WINDOW =%p ", __FUNCTION__, win);
+      ALOGE("%s INVALID WINDOW win=%p, magic=%d, version=%d", __FUNCTION__,
+         win, win?win->common.magic:-1, win?win->common.version:-1);
       ALOGE("==========================================================================");
    }
    return res;
@@ -98,7 +99,8 @@ static int isAndroidNativeBuffer(ANativeWindowBuffer_t *buf)
    if (!res)
    {
       ALOGE("==========================================================================");
-      ALOGE("%s INVALID BUFFER buffer=%p", __FUNCTION__, buf);
+      ALOGE("%s INVALID BUFFER buffer=%p, magic=%d, version=%d", __FUNCTION__,
+         buf, buf?buf->common.magic:-1, buf?buf->common.version:-1);
       ALOGE("==========================================================================");
    }
    return res;
@@ -123,8 +125,10 @@ static BEGL_Error DispWindowGetInfo(void *context,
    if (anw == NULL || info == NULL)
       return BEGL_Fail;
 
-   if (!isAndroidNativeWindow(anw))
+   if (!isAndroidNativeWindow(anw)) {
+      ALOGE("%s anw=%p, not native window", __FUNCTION__, anw);
       return BEGL_Fail;
+   }
 
    if (flags & BEGL_WindowInfoWidth)
    {
@@ -142,6 +146,13 @@ static BEGL_Error DispWindowGetInfo(void *context,
    if (flags & BEGL_WindowInfoSwapChainCount)
    {
       info->swapchain_count = MAX_DEQUEUE_BUFFERS;
+   }
+
+   if (flags & BEGL_WindowInfoBackBufferAge)
+   {
+      int res = anw->query(anw, NATIVE_WINDOW_BUFFER_AGE, (int *)&info->backBufferAge);
+      if (res == -ENODEV)
+         assert(0);
    }
 
    return BEGL_Success;
@@ -183,6 +194,27 @@ static void GetBlockHandle(private_handle_t const *hnd, NEXUS_MemoryBlockHandle 
    }
 }
 
+static BEGL_Colorimetry NexusToBEGLColorPrimaries(NEXUS_MatrixCoefficients nmc)
+{
+   switch (nmc)
+   {
+   case NEXUS_MatrixCoefficients_eHdmi_RGB              : return BEGL_Colorimetry_RGB;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_709          : return BEGL_Colorimetry_BT_709;
+   case NEXUS_MatrixCoefficients_eUnknown               : return BEGL_Colorimetry_Unknown;
+   case NEXUS_MatrixCoefficients_eDvi_Full_Range_RGB    : return BEGL_Colorimetry_Dvi_Full_Range_RGB;
+   case NEXUS_MatrixCoefficients_eFCC                   : return BEGL_Colorimetry_FCC;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_470_2_BG     : return BEGL_Colorimetry_BT_470_2_BG;
+   case NEXUS_MatrixCoefficients_eSmpte_170M            : return BEGL_Colorimetry_Smpte_170M;
+   case NEXUS_MatrixCoefficients_eSmpte_240M            : return BEGL_Colorimetry_Smpte_240M;
+   case NEXUS_MatrixCoefficients_eXvYCC_709             : return BEGL_Colorimetry_XvYCC_709;
+   case NEXUS_MatrixCoefficients_eXvYCC_601             : return BEGL_Colorimetry_XvYCC_601;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_2020_NCL     : return BEGL_Colorimetry_BT_2020_NCL;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_2020_CL      : return BEGL_Colorimetry_BT_2020_CL;
+   case NEXUS_MatrixCoefficients_eHdmi_Full_Range_YCbCr : return BEGL_Colorimetry_Hdmi_Full_Range_YCbCr;
+   default                                              : return BEGL_Colorimetry_XvYCC_601;
+   }
+}
+
 static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_SurfaceInfo *info)
 {
    ANativeWindowBuffer_t  *buffer = (ANativeWindowBuffer_t*)nativeSurface;
@@ -192,12 +224,17 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
    NEXUS_MemoryBlockHandle sharedBlockHandle = NULL;
    void                   *pMemory;
 
-   if (!isAndroidNativeBuffer(buffer) || info == NULL)
+   if (!isAndroidNativeBuffer(buffer) || info == NULL) {
+      ALOGE("%s buf=%p hnd=%p info=%p, not native buffer",
+         __FUNCTION__, buffer, buffer?buffer->handle:NULL, info);
       return BEGL_Fail;
+   }
 
    hnd = (private_handle_t const*)buffer->handle;
 
    GetBlockHandle(hnd, &sharedBlockHandle);
+   if (sharedBlockHandle == NULL)
+      return BEGL_Fail;
    NEXUS_MemoryBlock_Lock(sharedBlockHandle, &pMemory);
    if (pMemory == NULL)
       return BEGL_Fail;
@@ -208,13 +245,7 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
    info->width     = buffer->width;
    info->height    = buffer->height;
    info->miplevels = 1;
-
-   // TODO Pierre : determine from the gralloc buffer (RGB, 601, 709, 2020)
-   if (info->format == BEGL_BufferFormat_eSAND8 || info->format == BEGL_BufferFormat_eSAND10 ||
-       info->format == BEGL_BufferFormat_eYV12  || info->format == BEGL_BufferFormat_eYUV422)
-      info->colorimetry = BEGL_Colorimetry_BT_709;
-   else
-      info->colorimetry = BEGL_Colorimetry_RGB;
+   info->colorimetry = BEGL_Colorimetry_RGB;
 
    if (info->format == BEGL_BufferFormat_eSAND8 || info->format == BEGL_BufferFormat_eSAND10)
    {
@@ -235,6 +266,7 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
       info->lumaStripedHeight   = pSharedData->container.vsLumaHeight;
       info->chromaStripedHeight = pSharedData->container.vsChromaHeight;
       info->lumaAndChromaInSameAllocation = pSharedData->container.vLumaBlock == pSharedData->container.vChromaBlock;
+      info->colorimetry    = NexusToBEGLColorPrimaries((NEXUS_MatrixCoefficients)pSharedData->container.vColorSpace);
       if (info->lumaAndChromaInSameAllocation)
       {
          // byteSize represents the combined luma/chroma buffer when lumaAndChromaInSameAllocation
@@ -243,7 +275,7 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
       else
          info->byteSize = byteWidth * pSharedData->container.vsLumaHeight;
 
-      DBGLOG("[sand2tex][NB]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit",
+      DBGLOG("[sand2tex][NB]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit::%d",
          hnd,
          pSharedData->container.vImageWidth,
          pSharedData->container.vImageHeight,
@@ -256,7 +288,8 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
          pSharedData->container.vsWidth,
          pSharedData->container.vsLumaHeight,
          pSharedData->container.vsChromaHeight,
-         pSharedData->container.vDepth);
+         pSharedData->container.vDepth,
+         pSharedData->container.vColorSpace);
 
       ok = true;
    }
@@ -278,8 +311,10 @@ static BEGL_Error DispSurfaceChangeRefCount(void *context, void *nativeBackBuffe
 {
    ANativeWindowBuffer_t *buffer = (ANativeWindowBuffer_t*)nativeBackBuffer;
 
-   if (!isAndroidNativeBuffer(buffer))
+   if (!isAndroidNativeBuffer(buffer)) {
+      ALOGE("%s buf=%p, not native buffer", __FUNCTION__, buffer);
       return BEGL_Fail;
+   }
 
    switch (incOrDec)
    {
@@ -321,8 +356,10 @@ static BEGL_Error DispGetNextSurface(
       return err;
    }
 
-   if (!isAndroidNativeWindow(anw))
+   if (!isAndroidNativeWindow(anw)) {
+      ALOGE("%s anw=%p, not native window", __FUNCTION__, anw);
       return err;
+   }
 
    do
    {
@@ -359,8 +396,10 @@ static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow,
       return err;
    }
 
-   if (!isAndroidNativeWindow(anw))
+   if (!isAndroidNativeWindow(anw)) {
+      ALOGE("%s anw=%p buffer=%p, not native window", __FUNCTION__, anw, buffer);
       return err;
+   }
 
    MaybeRemoveFence(&fence);
 
@@ -382,8 +421,10 @@ static BEGL_Error DispCancelSurface(void *context, void *nativeWindow, void *nat
       return err;
    }
 
-   if (!isAndroidNativeWindow(anw))
+   if (!isAndroidNativeWindow(anw)) {
+      ALOGE("%s anw=%p buffer=%p, not native window", __FUNCTION__, anw, buffer);
       return err;
+   }
 
    MaybeRemoveFence(&fence);
 
@@ -401,8 +442,10 @@ static void *DispWindowStateCreate(void *context, void *nativeWindow)
    if (!anw)
       NULL;
 
-   if (!isAndroidNativeWindow(anw))
+   if (!isAndroidNativeWindow(anw)) {
+      ALOGE("%s anw=%p, not native window", __FUNCTION__, anw);
       return NULL;
+   }
 
    if (anw->query(anw, NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS, (int *)&mub) != 0)
    {
@@ -435,8 +478,10 @@ static BEGL_Error DispWindowStateDestroy(void *context, void *nativeWindow)
    if (!anw)
       return BEGL_Success;
 
-   if (!isAndroidNativeWindow(anw))
+   if (!isAndroidNativeWindow(anw)) {
+      ALOGE("%s anw=%p, not native window", __FUNCTION__, anw);
       return BEGL_Fail;
+   }
 
    anw->common.decRef(&anw->common);
    return BEGL_Success;
@@ -504,12 +549,17 @@ bool DisplayAcquireNexusSurfaceHandles(NEXUS_StripedSurfaceHandle *stripedSurf, 
    *stripedSurf = NULL;
    *surf        = NULL; // We only need striped source support in Android right now, so this stays NULL
 
-   if (nativeSurface == NULL || !isAndroidNativeBuffer(srcBuf))
+   if (nativeSurface == NULL || !isAndroidNativeBuffer(srcBuf)) {
+      ALOGE("%s buf=%p hnd=%p, not native buffer",
+         __FUNCTION__, srcBuf, srcBuf?srcBuf->handle:NULL);
       goto error;
+   }
 
    srcHnd = (private_handle_t const*)srcBuf->handle;
 
    GetBlockHandle(srcHnd, &sharedBlockHandle);
+   if (sharedBlockHandle == NULL)
+      goto error;
    NEXUS_MemoryBlock_Lock(sharedBlockHandle, &pMemory);
    if (pMemory == NULL)
       goto error;
@@ -538,7 +588,7 @@ bool DisplayAcquireNexusSurfaceHandles(NEXUS_StripedSurfaceHandle *stripedSurf, 
    sscs.lumaBufferOffset    = pSharedData->container.vLumaOffset;
    sscs.chromaBufferOffset  = pSharedData->container.vChromaOffset;
 
-   DBGLOG("[sand2tex][SS]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit",
+   DBGLOG("[sand2tex][SS]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit::%d",
       srcHnd,
       pSharedData->container.vImageWidth,
       pSharedData->container.vImageHeight,
@@ -551,7 +601,8 @@ bool DisplayAcquireNexusSurfaceHandles(NEXUS_StripedSurfaceHandle *stripedSurf, 
       pSharedData->container.vsWidth,
       pSharedData->container.vsLumaHeight,
       pSharedData->container.vsChromaHeight,
-      pSharedData->container.vDepth);
+      pSharedData->container.vDepth,
+      pSharedData->container.vColorSpace);
 
    *stripedSurf = NEXUS_StripedSurface_Create(&sscs);
    if (*stripedSurf == NULL)

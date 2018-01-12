@@ -3892,6 +3892,8 @@ skip_conv:
 			}
 #endif /* BCMSPLITRX */
 			/* Call process EAP frames */
+			/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+			/* coverity[stack_use_overflow] */
 			if (wlc_process_eapol_frame(ami->wlc, scb->bsscfg, scb, f, sf[i])) {
 				/* We have consumed the pkt drop and continue; */
 				WL_AMSDU(("Processed First fetched msdu %p\n", (void *)sf[i]));

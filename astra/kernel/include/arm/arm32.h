@@ -378,22 +378,6 @@ static inline unsigned int read_mpidr(void)
 
 #define ARCH_SPECIFIC_TIMER_INTERRUPT CORTEX_A15_SECURE_TIMER_INTERRUPT
 
-#define ARCH_SPECIFIC_SECURE_TIMER_ENABLE(enable) asm volatile("mcr p15, 0, %[rt], c14, c2, 1" : : [rt] "r" (enable) :)
-
-#define ARCH_SPECIFIC_GET_SECURE_TIMER_CNTP_CTL(cntpctl) asm volatile("mrc p15, 0, %[rt], c14, c2, 1" : [rt] "=r" (cntpctl) : :)
-
-#define ARCH_SPECIFIC_GET_SECURE_TIMER_CNTP_CVAL(hwTimerFiresAt) { \
-			register uint32_t th, tl; \
-			asm volatile("MRRC p15, 2, %[low], %[high], c14" : [low] "=r" (tl), [high] "=r" (th) : : ); \
-			hwTimerFiresAt = ((uint64_t) th << 32) | tl; \
-}
-
-#define ARCH_SPECIFIC_SECURE_TIMER_FIRE_AT(headTime) { \
-			register uint32_t fireAtLow = (uint32_t)(headTime & 0xffffffff); \
-			register uint32_t fireAtHigh = (uint32_t)(headTime >> 32); \
-			asm volatile("MCRR p15, 2, %[low], %[high], c14" : :[low] "r" (fireAtLow), [high] "r" (fireAtHigh):); \
-}
-
 #define ARCH_SPECIFIC_GET_SECURE_TIMER_CURRENT_TIME(timeNow) { \
 			register uint32_t timeHigh, timeLow; \
 			asm volatile("MRRC p15, 0, %[low], %[high], c14" : [low] "=r" (timeLow), [high] "=r" (timeHigh) : : ); \

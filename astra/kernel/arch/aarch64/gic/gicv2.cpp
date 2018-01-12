@@ -77,35 +77,36 @@ static void gicDistributorInit(void *va) {
 	numInterruptLines = ((typer & 0x1f) + 1) << 5;
 	numCpuInterfaces = ((typer >> 5) & 0x7) + 1;
 
+#if 0
 	// Disable the distributor
 	regWrite32(distributor+GICD_CTLR, 0);
 
-/* set default configuration to all spi*/
-    /*
-         * Treat all SPIs as G1NS by default. The number of interrupts is
-         * calculated as 32 * (IT_LINES + 1). We do 32 at a time.
-         */
-        for (int i=32; i<numInterruptLines; i+=32)
+	/* set default configuration to all spi*/
+	/*
+	 * Treat all SPIs as G1NS by default. The number of interrupts is
+	 * calculated as 32 * (IT_LINES + 1). We do 32 at a time.
+	 */
+	for (int i=32; i<numInterruptLines; i+=32)
 		    regWrite32(distributor + GICD_IGROUPR + i/8, 0xffffffff);
 
-        /* Setup the default SPI priorities doing four at a time */
+	/* Setup the default SPI priorities doing four at a time */
 
-        // Set all SPIs to default priority
-       // for (int i=32; i<numInterruptLines; i+=4)
-         //   regWrite32(distributor+GICD_IPRIORITYR+i, 0xa0a0a0a0);
+	// Set all SPIs to default priority
+	// for (int i=32; i<numInterruptLines; i+=4)
+	//   regWrite32(distributor+GICD_IPRIORITYR+i, 0xa0a0a0a0);
 
 
-        // Set all SPIs to level sensitive.
-        for (int i=32; i<numInterruptLines; i+=16)
-            regWrite32(distributor+GICD_ICFGR+(i/4), 0);
+	// Set all SPIs to level sensitive.
+	for (int i=32; i<numInterruptLines; i+=16)
+	    regWrite32(distributor+GICD_ICFGR+(i/4), 0);
 
-        //Assign interrupts to groups:
-        //      Group 0: All secure interrupts meant for us (the TZ OS ).
-        //      Group 1: All normal world interrupts.
-        //
-        // The TZ OS is only interested in one PPI interrupts: Secure clock.
-        uint32_t ppiGroups = ~(( 1 << ARM_CORTEX_A53_SECURE_TIMER_IRQ) |(1 << TZ_SECURE_SGI_IRQ));
-        regWrite32(distributor + GICD_IGROUPR, ppiGroups);
+	//Assign interrupts to groups:
+	//      Group 0: All secure interrupts meant for us (the TZ OS ).
+	//      Group 1: All normal world interrupts.
+	//
+	// The TZ OS is only interested in one PPI interrupts: Secure clock.
+	uint32_t ppiGroups = ~(( 1 << ARM_CORTEX_A53_SECURE_TIMER_IRQ) |(1 << TZ_SECURE_SGI_IRQ));
+	regWrite32(distributor + GICD_IGROUPR, ppiGroups);
 
 	// Route all SPIs to the current CPU.
 	//uint32_t cpuMask =regRead32(distributor+GICD_ITARGETSR);
@@ -121,12 +122,13 @@ static void gicDistributorInit(void *va) {
 
 	// Enable the distributor
 	regWrite32(distributor+GICD_CTLR, 3);
-
+#endif
 }
 
 static void gicCpuInterfaceinit(void *va = nullptr) {
 	cpuInterface = (uint8_t *)va;
 
+#if 0
 	// Disable all PPIs
 	//regWrite32(distributor+GICD_ICENABLER, 0xffff);
 
@@ -147,6 +149,7 @@ static void gicCpuInterfaceinit(void *va = nullptr) {
 	uint32_t giccCtlr = regRead32(cpuInterface+GICC_CTLR);
 	giccCtlr = 0x1B;
 	regWrite32(cpuInterface+GICC_CTLR, giccCtlr);
+#endif
 }
 
 int gicV2Init(void *deviceTree) {

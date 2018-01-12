@@ -798,6 +798,7 @@ BERR_Code BDSP_Raaga_P_Open(BDSP_Raaga *pDevice)
 		BDBG_MSG(("BDSP_Raaga_P_Open: RO Memory Required = %d",MemoryRequired));
         pDevice->memInfo.sROMemoryPool.ui32Size     = MemoryRequired;
         pDevice->memInfo.sROMemoryPool.ui32UsedSize = 0;
+        BKNI_Memset(pDevice->memInfo.sROMemoryPool.Memory.pAddr, 0 , pDevice->memInfo.sROMemoryPool.ui32Size);
 
 		for(dspindex=0; dspindex<pDevice->numDsp; dspindex++)
 		{

@@ -254,6 +254,7 @@ PageTable::~PageTable() {
 
 		freePageTableBlock(l1Dir);
 	}
+	freePageTableBlock(topLevelDir);
 	topLevelDir = nullptr;
 }
 
@@ -391,6 +392,90 @@ void PageTable::releaseAddrRange(TzMem::VirtAddr vaddrFirstPage, unsigned int ra
 		// main memory by doing a DCCIMVAC on the entry.
 		ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
 
+		// Check if the l3Table can be freed.
+		bool canFree = true;
+		for (int i=0; i<L3_PAGE_NUM_ENTRIES; i++) {
+			if (l3Dir[i] != 0) {
+				// No there is at-least one valid entry in this dir.
+				canFree = false;
+				break;
+			}
+		}
+		if (!canFree)
+			goto VADDR_INCR;//continue;
+		// There are no valid entries in L3 table. Free it.
+		freePageTableBlock(l3Dir);
+		l2Dir[l2Idx] = INVALID_TABLE_DESCRIPTOR;
+		// We wrote the entry into cached memory. Force it to
+		// main memory by doing a DCCIMVAC on the entry.
+		ARCH_SPECIFIC_DCCIMVAC(&l2Dir[l2Idx]);
+		asm volatile("dsb ishst":::"memory");
+		asm volatile("tlbi VAE1IS, %[xt]"::[xt] "r" (vaddr));
+		asm volatile("dsb ish":::"memory");
+
+
+		// Now check if l2Dir can be freed.
+		canFree = true;
+		for (int i=0; i<L2_PAGE_NUM_ENTRIES; i++) {
+			if (l2Dir[i] != 0) {
+				// No there is at-least one valid entry in this dir.
+				canFree = false;
+				break;
+			}
+		}
+		if (!canFree)
+			goto VADDR_INCR;//continue;
+
+		// There are no valid entries in L3 table. Free it.
+		freePageTableBlock(l2Dir);
+		l1Dir[l1Idx] = INVALID_TABLE_DESCRIPTOR;
+		// We wrote the entry into cached memory. Force it to
+		// main memory by doing a DCCIMVAC on the entry.
+		ARCH_SPECIFIC_DCCIMVAC(&l1Dir[l1Idx]);
+		asm volatile("dsb ishst":::"memory");
+		asm volatile("tlbi VAE1IS, %[xt]"::[xt] "r" (vaddr));
+		asm volatile("dsb ish":::"memory");
+
+
+		// Now check if l1Table can be freed.
+		canFree = true;
+		for (int i=0; i<L1_PAGE_NUM_ENTRIES; i++) {
+			if (l1Dir[i] != 0) {
+				// No there is at-least one valid entry in this dir.
+				canFree = false;
+				break;
+			}
+		}
+		if (!canFree)
+			goto VADDR_INCR;//continue;
+
+		// There are no valid entries in L1 table. Free it.
+		freePageTableBlock(l1Dir);
+		topLevelDir[l0Idx] = INVALID_TABLE_DESCRIPTOR;
+		// We wrote the entry into cached memory. Force it to
+		// main memory by doing a DCCIMVAC on the entry.
+		ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[l0Idx]);
+		asm volatile("dsb ishst":::"memory");
+		asm volatile("tlbi VAE1IS, %[xt]"::[xt] "r" (vaddr));
+		asm volatile("dsb ish":::"memory");
+
+		// Now check if l0Table can be freed.
+		canFree = true;
+		for (int i=0; i<L0_PAGE_NUM_ENTRIES; i++) {
+			if (topLevelDir[i] != 0) {
+				// No there is at-least one valid entry in this dir.
+				canFree = false;
+				break;
+			}
+		}
+		if (!canFree)
+		goto VADDR_INCR;//			continue;
+
+		// There are no valid entries in L0 table. Free it.
+		freePageTableBlock(topLevelDir);
+		topLevelDir = nullptr;
+		break;
+VADDR_INCR:
 		vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
 	}
 
@@ -529,20 +614,17 @@ void PageTable::mapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::
 void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage,
 							   const TzMem::VirtAddr vaddrLastPage,
 							   const bool releaseVaddr) {
-
-	//printf("page table %p: unmap [%p, %p]\n", this, vaddrFirstPage, vaddrLastPage);
 	SpinLocker locker(&lock);
-
 	TzMem::VirtAddr vaddr = vaddrFirstPage;
 
 	uint64_t *l0Table = topLevelDir;
 
 	while (vaddr <= vaddrLastPage) {
 		const int l0Idx = L0_PAGE_TABLE_SLOT((uintptr_t) vaddr);
-		//printf("l0Table=%p l0Idx=%d\n",(void *)l0Table,l0Idx);
 		const uint64_t l0Desc = l0Table[l0Idx];
+        //printf("l0Table=%p l0Idx=%d l0Desc=0x%lx\n",(void *)l0Table,l0Idx,l0Desc);
 		if (!IS_VALID_TABLE_DESCRIPTOR(l0Desc)) {
-			err_msg("%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+			err_msg("1.%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
 			kernelHalt("Attempted unmap a page that wasn't mapped");
 		}
 
@@ -550,10 +632,10 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage,
 		l1Table = (uint64_t *)TzMem::physToVirt((void *)l1Table);
 
 		int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
-		//printf("l1Table=%p l1Idx=%d\n",(void *)l1Table,l1Idx);
 		const uint64_t l1Desc = l1Table[l1Idx];
+        //printf("l1Table=%p l1Idx=%d l1Desc=0x%lx\n",(void *)l1Table,l1Idx,l1Desc);
 		if (!IS_VALID_TABLE_DESCRIPTOR(l1Desc)) {
-			err_msg("%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+			err_msg("2.%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
 			kernelHalt("Attempted unmap a page that wasn't mapped");
 		}
 
@@ -578,21 +660,14 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage,
 
 			vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
 			continue;
-			err_msg("%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+			err_msg("3.%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
 			kernelHalt("Attempted unmap a page that wasn't mapped");
 
 		}
 
 		uint64_t *l3Table = (uint64_t *)TABLE_PHYS_ADDR(l2Desc);
 		l3Table = (uint64_t *)TzMem::physToVirt(l3Table);
-
 		int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
-		//printf("l3Table=%p l3Idx=%d addr=%p\n",(void *)l3Table,l3Idx,(void *)&l3Table[l3Idx]);
-		if (l3Table[l3Idx] == 0) {
-			err_msg("%s:\n\t  Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
-			kernelHalt("Attempted unmap a page that wasn't mapped");
-		}
-
 		// Unmap the page.
 		//printf("UnMapping vaddr %p: l3Idx %d\n", vaddr, l3Idx);
 		uint64_t l3Entry;
@@ -606,6 +681,12 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage,
 			l3Entry |=  (uint64_t)((uint32_t)0xFFFFFFFF & L3_PHYS_ADDR_MASK); //0xFFFFF000
 			SET_MEMORY_ACCESS_FLAG(l3Entry, ACCESS_FLAG_FAULT_GEN);
 		}
+        while((vaddr <= vaddrLastPage)&&(l3Idx < L3_PAGE_NUM_ENTRIES)) {
+            //printf("l3Table=%p l3Idx=%d addr=%p\n",(void *)l3Table,l3Idx,(void *)&l3Table[l3Idx]);
+            if (l3Table[l3Idx] == 0) {
+                err_msg("4.%s:\n\t  Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+                kernelHalt("Attempted unmap a page that wasn't mapped");
+            }
 		l3Table[l3Idx] = l3Entry;
 		// We wrote the entry into cached memory. Force it to
 		// main memory by doing a DCCIMVAC on the entry.
@@ -613,13 +694,16 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage,
 		asm volatile("dsb ishst":::"memory");
 		asm volatile("tlbi VAE1IS, %[xt]"::[xt] "r" (vaddr));
 		asm volatile("dsb ish":::"memory");
-
 		vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
+            l3Idx++;
+        }
+
+		bool canFree = true;
 
 		if (!releaseVaddr)
-			continue;
+			goto VADDR_INCR;//continue;
 		// Check if the l3Table can be freed.
-		bool canFree = true;
+
 		for (int i=0; i<L3_PAGE_NUM_ENTRIES; i++) {
 			if (l3Table[i] != 0) {
 				// No there is at-least one valid entry in this dir.
@@ -628,7 +712,7 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage,
 			}
 		}
 		if (!canFree)
-			continue;
+			goto VADDR_INCR;//continue;
 		// There are no valid entries in L3 table. Free it.
 		freePageTableBlock(l3Table);
 		l2Table[l2Idx] = INVALID_TABLE_DESCRIPTOR;
@@ -650,7 +734,7 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage,
 			}
 		}
 		if (!canFree)
-			continue;
+			goto VADDR_INCR;//continue;
 
 		// There are no valid entries in L3 table. Free it.
 		freePageTableBlock(l2Table);
@@ -673,10 +757,17 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage,
 			}
 		}
 		if (!canFree)
-			continue;
+			goto VADDR_INCR;//continue;
 
 		// There are no valid entries in L1 table. Free it.
 		freePageTableBlock(l1Table);
+		l0Table[l0Idx] = INVALID_TABLE_DESCRIPTOR;
+		// We wrote the entry into cached memory. Force it to
+		// main memory by doing a DCCIMVAC on the entry.
+		ARCH_SPECIFIC_DCCIMVAC(&l0Table[l0Idx]);
+		asm volatile("dsb ishst":::"memory");
+		asm volatile("tlbi VAE1IS, %[xt]"::[xt] "r" (vaddr));
+		asm volatile("dsb ish":::"memory");
 
 		// Now check if l0Table can be freed.
 		canFree = true;
@@ -688,12 +779,16 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage,
 			}
 		}
 		if (!canFree)
-			continue;
+			goto VADDR_INCR;//continue;
 
 		// There are no valid entries in L0 table. Free it.
 		freePageTableBlock(l0Table);
 		topLevelDir = nullptr;
 		break;
+
+VADDR_INCR:
+        vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
+
 	}
 
 	// Flush the TLB to remove any stale references to the now unmapped pages.
@@ -761,6 +856,89 @@ bool PageTable::isAddrMapped(const TzMem::VirtAddr addr) {
 		return false;
 	return true;
 
+}
+
+TzMem::VirtAddr PageTable::findFreeAddrRangeNoLock(const TzMem::VirtAddr addr, const unsigned int rangeSize) {
+    int numPages = rangeSize/PAGE_SIZE_4K_BYTES;
+	if (addr != PAGE_START_4K(addr))
+		numPages++;
+
+    //printf("findFreeAddrRangeNoLock: addr=%p rangeSize=%d numPages=%d\n",addr,rangeSize,numPages);
+	TzMem::VirtAddr vaddr = PAGE_START_4K(addr);
+	if (topLevelDir == nullptr)
+		return addr;
+
+    unsigned long currRangeSize = 0;
+    TzMem::VirtAddr rangeStartAddr = addr;
+
+    if(rangeSize==0) {
+        err_msg("%s:\n\t Attempt to reserve address range of zero size.\n", __PRETTY_FUNCTION__);
+        kernelHalt("Bad page table request");
+
+    }
+	while (currRangeSize < numPages){
+        const int l0Idx = L0_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        const uint64_t l0Entry = topLevelDir[l0Idx];
+        if (l0Entry == 0) {
+		    currRangeSize =numPages;
+            break;
+        }
+
+        uint32_t blockAddr = (uint32_t)(l0Entry & L1_BLOCK_ADDR_MASK);
+        const uint64_t *l1Dir = (uint64_t *)TzMem::physToVirt((uint64_t *)(uintptr_t)blockAddr);
+        const int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        const uint64_t l1Entry = l1Dir[l1Idx];
+        if (l1Entry == 0){
+            if((currRangeSize + (L1_PAGE_NUM_ENTRIES*L2_PAGE_NUM_ENTRIES*L3_PAGE_NUM_ENTRIES)) > numPages) {
+                currRangeSize =numPages;
+                break;
+            }
+            else {
+                currRangeSize += (L1_PAGE_NUM_ENTRIES*L2_PAGE_NUM_ENTRIES*L3_PAGE_NUM_ENTRIES);
+                vaddr =(uint8_t *)addr + (currRangeSize*PAGE_SIZE_4K_BYTES);
+                continue;
+            }
+        }
+
+        blockAddr = (uint32_t)(l1Entry & L2_BLOCK_ADDR_MASK);
+        const uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((uint64_t *)(uintptr_t)blockAddr);
+        const int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        const uint64_t l2Entry = l2Dir[l2Idx];
+        if (l2Entry == 0){
+            if((currRangeSize + (L2_PAGE_NUM_ENTRIES*L3_PAGE_NUM_ENTRIES)) > numPages) {
+                currRangeSize =numPages;
+                break;
+            }
+            else {
+                currRangeSize += (L2_PAGE_NUM_ENTRIES*L3_PAGE_NUM_ENTRIES);
+                vaddr = (uint8_t *)addr + (currRangeSize*PAGE_SIZE_4K_BYTES);
+                continue;
+            }
+        }
+
+        blockAddr = (uint32_t)(l2Entry & L3_BLOCK_ADDR_MASK);
+        const uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((uint64_t *)(uintptr_t)blockAddr);
+        int l3Idx = L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        while((currRangeSize < numPages)&&(l3Idx < L3_PAGE_NUM_ENTRIES)){
+            const uint64_t l3Entry = l3Dir[l3Idx];
+            if ((l3Entry & 0x3) != 0x3) {
+                currRangeSize++;
+                vaddr = (uint8_t *)vaddr + PAGE_SIZE_4K_BYTES;
+                l3Idx++;
+            }
+            else {
+                currRangeSize = 0;
+                vaddr = (uint8_t *)vaddr + PAGE_SIZE_4K_BYTES;
+                rangeStartAddr = vaddr;
+                break;
+            }
+        }
+    }
+
+    if(currRangeSize == numPages)
+        return rangeStartAddr;
+    else
+        return nullptr;
 }
 
 bool PageTable::isAddrRangeMapped(const TzMem::VirtAddr addr, const unsigned int rangeSize) {
@@ -1039,4 +1217,179 @@ void PageTable::changePageAccessPerms(TzMem::VirtAddr vaddr, int accessPerms, bo
 	// We wrote the entry into cached memory. Force it to
 	// main memory by doing a DCCIMVAC on the entry.
 	ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
+}
+
+TzMem::VirtAddr PageTable::reserveAndMapAddrRange(const TzMem::PhysAddr paddrFirstPage, unsigned int rangeSize,
+    const int memAttr, const int memAccessPerms, const bool executeNever, const bool mapShared, const bool nonSecure){
+    SpinLocker locker(&lock);
+    //printf("reserveAndMapAddrRange:paddrFirstPage=%p rangeSize=0x%x ulUserMapAddrTop %p\n",paddrFirstPage,rangeSize,ulUserMapAddrTop);
+    /* Start from top of User Map address range */
+    TzMem::VirtAddr nextAddr = ulUserMapAddrTop;
+    TzMem::VirtAddr rangeStart ;
+    /* Find Free Contigous Adress range */
+    if(rangeSize==0) {
+        err_msg("%s:\n\t Attempt to reserve address range of zero size.\n", __PRETTY_FUNCTION__);
+        kernelHalt("Bad page table request");
+    }
+
+    /* Check If wrap around is required for requested contiguous pages */
+    if((uintptr_t)nextAddr + rangeSize < USER_MAP_END_ADDR) {
+        /* search for addr range without wrap around */
+        rangeStart = findFreeAddrRangeNoLock(nextAddr,rangeSize);
+        if(rangeStart) {
+            /* If found, update the top of User Map address range */
+            ulUserMapAddrTop = PAGE_START_4K((uintptr_t)rangeStart + rangeSize);
+        }
+        else {
+            /* Start from the begining of User Map address range */
+            nextAddr = (TzMem::VirtAddr)USER_MAP_START_ADDR;
+            rangeStart = findFreeAddrRangeNoLock(nextAddr,rangeSize);
+            //printf("2. rangeStart=%p\n",rangeStart);
+            if(rangeStart == nullptr)
+                /* Can't find requested free range.. Out of memory */
+                return nullptr;
+        }
+    }
+    else {
+        /* Start from the begining of User Map address range */
+        nextAddr =(TzMem::VirtAddr) USER_MAP_START_ADDR;
+        rangeStart = findFreeAddrRangeNoLock(nextAddr,rangeSize);
+        if(rangeStart == nullptr)
+            /* Can't find requested free range.. Out of memory */
+            return nullptr;
+    }
+
+    /* Map the Range */
+	TzMem::VirtAddr vaddr = rangeStart;
+    TzMem::VirtAddr vaddrLastPage = (uint8_t *)rangeStart + rangeSize-1;
+	TzMem::PhysAddr paddr = paddrFirstPage;
+	if (topLevelDir == nullptr) {
+		topLevelDir = (uint64_t *)allocPageTableBlock();
+		for (int i=0; i<L0_PAGE_NUM_ENTRIES; i++) {
+			topLevelDir[i] = INVALID_TABLE_DESCRIPTOR;
+
+			// We wrote the entry into cached memory. Force it to
+			// main memory by doing a DCCIMVAC on the entry.
+			ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[i]);
+		}
+	}
+	uint64_t *l0Table = topLevelDir;
+
+	while (vaddr <= vaddrLastPage) {
+        //printf("Mapping vaddr=%p\n",vaddr);
+		// L0 table
+		const int l0Idx = L0_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+		const uint64_t l0Desc = l0Table[l0Idx];
+		//printf("1. l0Table=%p l0Idx=%d l0Desc=0x%lx\n",(void *)l0Table,l0Idx,l0Desc);
+		if (!IS_VALID_TABLE_DESCRIPTOR(l0Desc)) {
+			uint64_t *table = (uint64_t *)allocPageTableBlock();
+			for (int i=0; i<L1_PAGE_NUM_ENTRIES; i++)
+				table[i] = 0;
+
+			l0Table[l0Idx] = MAKE_TABLE_DESCRIPTOR(TzMem::virtToPhys(table));
+            //printf("2. l0Table=%p l0Idx=%d l0Desc=0x%lx\n",(void *)l0Table,l0Idx,l0Table[l0Idx]);
+
+			ARCH_SPECIFIC_DCCIMVAC(&l0Table[l0Idx]);
+			asm volatile("dsb ishst":::"memory");
+			asm volatile("tlbi VAE1IS, %[xt]"::[xt] "r" (vaddr));
+			asm volatile("dsb ish":::"memory");
+		}
+		uint64_t *l1Table = (uint64_t *)(TABLE_PHYS_ADDR(l0Table[l0Idx]));
+		l1Table = (uint64_t *)TzMem::physToVirt((void *)l1Table);
+
+		// L1 table
+		const int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+		const uint64_t l1Desc = l1Table[l1Idx];
+		//printf("1. l1Table=%p l1Idx=%d l1Desc=0x%lx\n",(void *)l1Table,l1Idx,l1Desc);
+		if (!IS_VALID_TABLE_DESCRIPTOR(l1Desc)) {
+			uint64_t *ptBlock = (uint64_t *)allocPageTableBlock();
+			for (int i=0; i<L2_PAGE_NUM_ENTRIES; i++)
+				ptBlock[i] = 0;
+
+		l1Table[l1Idx] = MAKE_TABLE_DESCRIPTOR(TzMem::virtToPhys(ptBlock));
+        //printf("2. l1Table=%p l1Idx=%d l1Desc=0x%lx\n",(void *)l1Table,l1Idx,l1Table[l1Idx]);
+
+			// We wrote the entry into cached memory. Force it to
+			// main memory by doing a DCCIMVAC on the entry.
+			ARCH_SPECIFIC_DCCIMVAC(&l1Table[l1Idx]);
+			asm volatile("dsb ishst":::"memory");
+			asm volatile("tlbi VAE1IS, %[xt]"::[xt] "r" (vaddr));
+			asm volatile("dsb ish":::"memory");
+		}
+		uint64_t *l2Table = (uint64_t *)(TABLE_PHYS_ADDR(l1Table[l1Idx]));
+		l2Table = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)l2Table);
+
+		// L2 Table
+		int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+		uint64_t l2Desc = l2Table[l2Idx];
+		//printf("1.l2Table=%p l2Idx=%d l2Desc=0x%lx\n",(void *)l2Table,l2Idx,l2Desc);
+		if (!IS_VALID_TABLE_DESCRIPTOR(l2Desc)) {
+
+			uint64_t *ptBlock = (uint64_t *)allocPageTableBlock();
+			for (int i=0; i<L3_PAGE_NUM_ENTRIES; i++)
+				ptBlock[i] = 0;
+
+			l2Desc = (uint64_t)((uintptr_t)TzMem::virtToPhys(ptBlock) & L3_BLOCK_ADDR_MASK);
+			l2Desc |= 0x3;
+
+			l2Table[l2Idx] = l2Desc;
+            //printf("2.l2Table=%p l2Idx=%d l2Desc=0x%lx\n",(void *)l2Table,l2Idx,l2Desc);
+
+			// We wrote the entry into cached memory. Force it to
+			// main memory by doing a DCCIMVAC on the entry.
+			ARCH_SPECIFIC_DCCIMVAC(&l2Table[l2Idx]);
+			asm volatile("dsb ishst":::"memory");
+			asm volatile("tlbi VAE1IS, %[xt]"::[xt] "r" (vaddr));
+			asm volatile("dsb ish":::"memory");
+		}
+
+		uint64_t *l3Table = (uint64_t *)(TABLE_PHYS_ADDR(l2Table[l2Idx] ));
+		l3Table = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)l3Table);
+        int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+
+
+        while((vaddr <= vaddrLastPage)&&(l3Idx < L3_PAGE_NUM_ENTRIES)) {
+            uint64_t currDesc = l3Table[l3Idx];
+            uint64_t l3Desc = 0x3;
+            l3Desc |=  (uint64_t)((uintptr_t)paddr & L3_PHYS_ADDR_MASK); //0xFFFFF000
+
+            //printf("2.l3Table=%p l3Idx=%d l3Desc=0x%lx\n",(void *)l3Table,l3Idx,l3Desc);
+
+            SET_MEMORY_ACCESS_FLAG(l3Desc, ACCESS_FLAG_NO_FAULT_GEN);
+            SET_MEMORY_ATTR(l3Desc, memAttr);
+            SET_MEMORY_SH_ATTR(l3Desc, INNER_SHAREABLE);
+            SET_MEMORY_ACCESS_PERMS(l3Desc, memAccessPerms);
+
+            if (executeNever)
+                SET_MEMORY_ACCESS_NO_EXEC(l3Desc);
+
+            if (nonSecure)
+                SET_MEMORY_NS_BIT(l3Desc, NS_BIT_NON_SECURE);
+
+            if (GET_MEMORY_ACCESS_SW_BITS(currDesc) == AllocOnWrite)
+                SET_MEMORY_ACCESS_SW_BITS(l3Desc, None);
+
+            if (mapShared)
+                SET_MEMORY_ACCESS_SW_BITS(l3Desc, SharedMem);
+
+            l3Table[l3Idx] = l3Desc;
+            // We wrote the entry into cached memory. Force it to
+            // main memory by doing a DCCIMVAC on the entry.
+            ARCH_SPECIFIC_DCCIMVAC(&l3Table[l3Idx]);
+            asm volatile("dsb ishst":::"memory");
+            asm volatile("tlbi VAE1IS, %[xt]"::[xt] "r" (vaddr));
+            asm volatile("dsb ish":::"memory");
+
+            vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
+            paddr = (TzMem::PhysAddr)((uint8_t *)paddr + PAGE_SIZE_4K_BYTES);
+            l3Idx++;
+        }
+	}
+
+	// Issue a memory barrier: Data accesses and instructions that follow this point should not get
+	// re-ordered to run before this point
+
+	ARCH_SPECIFIC_MEMORY_BARRIER;
+    //printf("reserveAndMapAddrRange: Mapped %p size %d\n",rangeStart,rangeSize);
+    return rangeStart;
 }

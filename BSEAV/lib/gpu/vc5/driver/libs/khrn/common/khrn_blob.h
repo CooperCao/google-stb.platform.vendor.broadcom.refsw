@@ -83,8 +83,9 @@ extern khrn_blob* khrn_blob_create_from_resource(khrn_resource *res,
       unsigned num_array_elems, unsigned array_pitch,
       gfx_buffer_usage_t blob_usage, bool secure);
 
-/* Equivalent to creating a new resource with khrn_resource_create_with_handles
- * then calling khrn_blob_create_from_resource */
+/* Similar to creating a new resource with khrn_resource_create_with_handles
+ * then calling khrn_blob_create_from_resource, but the resource will not be
+ * considered foreign (see foreign_resource) */
 extern khrn_blob* khrn_blob_create_from_handles(
       unsigned num_handles, const gmem_handle_t *handles,
       const GFX_BUFFER_DESC_T *descs, unsigned num_mip_levels,

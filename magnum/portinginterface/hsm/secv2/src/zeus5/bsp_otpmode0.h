@@ -57,7 +57,7 @@ typedef enum
 } Bsp_CmdOtpMode0_e;
 
 
-/*PARAMATERS for the Bsp_CmdOtpMode0_eMc0SRead command  */
+/*PARAMETERS for the Bsp_CmdOtpMode0_eMc0SRead command  */
 /*input*/
 typedef struct
 {
@@ -73,7 +73,7 @@ typedef struct
 }Bsp_OtpMode0_Mc0SRead_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdOtpMode0_eKeyMc0Read command  */
+/*PARAMETERS for the Bsp_CmdOtpMode0_eKeyMc0Read command  */
 /*input*/
 typedef struct
 {
@@ -90,7 +90,7 @@ typedef struct
 }Bsp_OtpMode0_KeyMc0Read_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdOtpMode0_eMiscRead command  */
+/*PARAMETERS for the Bsp_CmdOtpMode0_eMiscRead command  */
 /*input*/
 typedef struct
 {

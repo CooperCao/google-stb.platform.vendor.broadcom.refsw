@@ -44,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Jun 27 10:52:40 2017
- *                 Full Compile MD5 Checksum  de13a1e8011803b5a40ab14e4d71d071
+ * Date:           Generated on               Tue Nov 28 10:28:57 2017
+ *                 Full Compile MD5 Checksum  7930997ff30f92bc0a0f9b04259372ea
  *                     (minus title and desc)
- *                 MD5 Checksum               b694fcab41780597392ed5a8f558ad3e
+ *                 MD5 Checksum               529076ce3c73ca0cc2bb667e2bbfd3ae
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1570
+ *                 RDB.pm                     1777
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
+ *                 Script Source              home/pt902453/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pt902453/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -468,26 +468,6 @@ BCHP_CORE(0x206faa00, 0x206faa2c, RBUS5, HDCP2_TX_HAE_INTR2_0)
 BCHP_CORE(0x206faa80, 0x206faaac, RBUS5, HDMI_TX_HAE_INTR2_0)
 BCHP_CORE(0x206fac00, 0x206fadfc, RBUS7, HDMI_RAM)
 BCHP_CORE(0x206fb000, 0x206fb3fc, RBUS7, HDMI_METADATA_RAM)
-BCHP_CORE(0x20980100, 0x2098019c, RBUS5, SID)
-BCHP_CORE(0x20980300, 0x2098039c, RBUS5, SID_RLE)
-BCHP_CORE(0x20980400, 0x209804bc, RBUS5, SID_DQ)
-BCHP_CORE(0x20980800, 0x2098087c, RBUS5, SID_STRM)
-BCHP_CORE(0x20980c00, 0x20980c40, RBUS5, SID_OUTPUT)
-BCHP_CORE(0x20980f00, 0x20980f3c, RBUS5, SID_ARC)
-BCHP_CORE(0x20981800, 0x20981840, RBUS5, SID_ARCDMA)
-BCHP_CORE(0x20981a00, 0x20981bfc, RBUS5, SID_DMARAM)
-BCHP_CORE(0x20982b00, 0x20982b3c, RBUS5, SID_PEEK_BITS)
-BCHP_CORE(0x20982b40, 0x20982b7c, RBUS5, SID_EXTRACT_BITS)
-BCHP_CORE(0x20983000, 0x209837fc, RBUS5, SID_HUFF_SYMB)
-BCHP_CORE(0x20983900, 0x209839fc, RBUS5, SID_HUFF_CODE)
-BCHP_CORE(0x20983a00, 0x20983a10, RBUS5, SID_SYMB)
-BCHP_CORE(0x20983a80, 0x20983a8c, RBUS5, SID_SYMB_JPEG)
-BCHP_CORE(0x20988000, 0x2098fffc, RBUS5, SID_BIGRAM)
-BCHP_CORE(0x20991000, 0x20991010, RBUS5, SID_ARC_DBG)
-BCHP_CORE(0x20995000, 0x20995014, RBUS5, SID_ARC_CORE)
-BCHP_CORE(0x209a0000, 0x209a000c, RBUS5, SID_GR)
-BCHP_CORE(0x209a0100, 0x209a012c, RBUS5, SID_L2)
-BCHP_CORE(0x209a0200, 0x209a023c, RBUS5, SICH)
 BCHP_CORE(0x209b0000, 0x209b07fc, RBUS5, M2MC)
 BCHP_CORE(0x209b1000, 0x209b102c, RBUS5, M2MC_L2)
 BCHP_CORE(0x209b1800, 0x209b180c, RBUS5, M2MC_GR)

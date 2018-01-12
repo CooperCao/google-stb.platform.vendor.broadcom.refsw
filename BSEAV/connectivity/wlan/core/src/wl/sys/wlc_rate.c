@@ -880,6 +880,8 @@ wlc_recv_compute_rspec(d11_info_t *d11_info, wlc_d11rxhdr_t *wrxh, uint8 *plcp)
 		rspec = wlc_he_get_rspec_from_plcp(plcp);
 		break;
 #endif /* WL11AX */
+	/* We should alwasy have default case */
+	/* coverity[dead_error_begin] */
 	default:
 		ASSERT(0);
 		/* return a valid rspec if not a debug/assert build */

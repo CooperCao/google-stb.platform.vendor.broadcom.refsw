@@ -81,6 +81,65 @@ BDSP_IMG_SOURCES += \
 #		DECODER			 #
 ##########################################
 
+
+BDSP_MS12_SUPPORT ?= n
+
+ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
+#List of components required for MS12
+BDSP_UDC_SUPPORT = y
+BDSP_DOLBY_AACHE_SUPPORT = y
+BDSP_MIXERDAPV2_SUPPORT = y
+BDSP_DPCMR_SUPPORT = y
+BDSP_DDPENC_SUPPORT = y
+
+#Legacy codecs to be disabled when MS12 is enabled
+BDSP_AACSBR_SUPPORT = n
+BDSP_DDP_SUPPORT = n
+BDSP_AC3_SUPPORT = n
+
+#Legacy passthru enabled
+BDSP_DDP_PASSTHRU_SUPPORT = n
+BDSP_AC3_PASSTHRU_SUPPORT = n
+BDSP_AACSBR_PASSTHRU_SUPPORT ?= y
+
+ifeq ($(BDSP_MS12_SUPPORT),y)
+BDSP_MS12_SUPPORT = B
+endif
+
+ifeq ($(BDSP_MS12_SUPPORT),A)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=65
+else ifeq ($(BDSP_MS12_SUPPORT),a)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=65
+else ifeq ($(BDSP_MS12_SUPPORT),B)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),b)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),Y)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),y)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),C)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
+else ifeq ($(BDSP_MS12_SUPPORT),c)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
+else ifeq ($(BDSP_MS12_SUPPORT),D)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
+else ifeq ($(BDSP_MS12_SUPPORT),d)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
+else
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
+endif
+endif
+
+ifeq ($(BDSP_MS12_SUPPORT), n)
+#List of components disabled when MS12 is off
+BDSP_UDC_SUPPORT = n
+BDSP_DPCMR_SUPPORT = n
+BDSP_MIXERDAPV2_SUPPORT = n
+BDSP_DDPENC_SUPPORT = n
+BDSP_DOLBY_AACHE_SUPPORT = n
+endif
+
 #
 #MPEG DECODE
 #
@@ -128,7 +187,6 @@ endif
 #
 #UDC DECODE
 #
-BDSP_UDC_SUPPORT=n
 ifneq ($(BDSP_UDC_SUPPORT),n)
 BDSP_UDC_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_adec_udc.c
@@ -143,11 +201,37 @@ endif
 endif
 
 ifeq ($(BDSP_UDC_SUPPORT),y)
+# Enable passthru also unless explicitly disabled by user
+BDSP_UDC_PASSTHRU_SUPPORT ?= y
 BDSP_DEFINES += BDSP_UDC_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_UDC_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_UDC_IDS_SOURCES)
 endif
 
+#
+#UDC Passthrough
+#
+ifneq ($(BDSP_UDC_PASSTHRU_SUPPORT),n)
+BDSP_UDC_PASSTHRU_SOURCES := \
+		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_adec_passthru.c
+BDSP_UDC_PASSTHRU_IDS_SOURCES := \
+		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_aids_ddp.c
+
+ifneq ($(wildcard $(BDSP_UDC_PASSTHRU_SOURCES)),)
+ifneq ($(wildcard $(BDSP_UDC_PASSTHRU_IDS_SOURCES)),)
+BDSP_UDC_PASSTHRU_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_UDC_PASSTHRU_SUPPORT),y)
+# define internal to BDSP to enable passthru
+BDSP_PASSTHRU_SUPPORT = y
+BDSP_DEFINES += BDSP_UDC_PASSTHRU_SUPPORT
+BDSP_DEFINES += BDSP_PASSTHRU_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_UDC_PASSTHRU_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_UDC_PASSTHRU_IDS_SOURCES)
+endif
 #
 #DDP DECODE
 #
@@ -167,6 +251,8 @@ endif
 ifeq ($(BDSP_DDP_SUPPORT),y)
 # Enable passthru also unless explicitly disabled by user
 BDSP_DDP_PASSTHRU_SUPPORT ?= y
+# Disable AC3 support
+override BDSP_AC3_SUPPORT = n
 BDSP_DEFINES += BDSP_DDP_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DDP_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_DDP_IDS_SOURCES)
@@ -274,6 +360,32 @@ BDSP_IMG_SOURCES += $(BDSP_AACSBR_IDS_SOURCES)
 endif
 
 #
+#DOLBY AACHE DECODE
+#
+ifneq ($(BDSP_DOLBY_AACHE_SUPPORT),n)
+BDSP_DOLBY_AACHE_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_adec_dolby_aache.c
+BDSP_DOLBY_AACHE_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_aids_adts.c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_aids_loas.c \
+
+ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
+ifneq ($(wildcard $(BDSP_DOLBY_AACHE_IDS_SOURCES)),)
+BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_DOLBY_AACHE_SUPPORT),y)
+# Enable passthru also unless explicitly disabled by user
+BDSP_AACSBR_PASSTHRU_SUPPORT ?= y
+BDSP_DEFINES += BDSP_DOLBY_AACHE_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_DOLBY_AACHE_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_DOLBY_AACHE_IDS_SOURCES)
+endif
+
+
+#
 #AAC Passthrough
 #
 ifneq ($(BDSP_AACSBR_PASSTHRU_SUPPORT),n)
@@ -320,9 +432,78 @@ BDSP_DEFINES += BDSP_SRC_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_SRC_SOURCES)
 endif
 
+#
+#DPCMR PP
+#
+ifneq ($(BDSP_DPCMR_SUPPORT),n)
+BDSP_DPCMR_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_app_dpcmr.c
+
+ifneq ($(wildcard $(BDSP_DPCMR_SOURCES)),)
+BDSP_DPCMR_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+
+ifeq ($(BDSP_DPCMR_SUPPORT),y)
+BDSP_DEFINES += BDSP_DPCMR_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_DPCMR_SOURCES)
+endif
+
+#
+#DDPENC ENC
+#
+ifneq ($(BDSP_DDPENC_SUPPORT),n)
+BDSP_DDPENC_SOURCES := \
+		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_aenc_ddp.c
+
+ifneq ($(wildcard $(BDSP_DDPENC_SOURCES)),)
+BDSP_DDPENC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+
+ifeq ($(BDSP_DDPENC_SUPPORT),y)
+BDSP_DEFINES += BDSP_DDPENC_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_DDPENC_SOURCES)
+endif
+
 ifneq ($(BDSP_IMG_EXTERNAL),y)
 BDSP_DEFINES += BDSP_IMG_SUPPORT=1
 BDSP_SOURCES += $(BDSP_IMG_SOURCES)
 endif
+#MIXER_DAPV2 PP
+#
+ifneq ($(BDSP_MIXERDAPV2_SUPPORT),n)
+BDSP_MIXER_DAPV2_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_app_mixer_dapv2.c
 
+ifneq ($(wildcard $(BDSP_MIXER_DAPV2_SOURCES)),)
+BDSP_MIXERDAPV2_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+
+ifeq ($(BDSP_MIXERDAPV2_SUPPORT),y)
+BDSP_DEFINES += BDSP_MIXERDAPV2_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_MIXER_DAPV2_SOURCES)
+endif
+
+ifneq ($(BDSP_IMG_EXTERNAL),y)
+BDSP_DEFINES += BDSP_IMG_SUPPORT=1
+BDSP_SOURCES += $(BDSP_IMG_SOURCES)
+endif
+#
+#FWMIXER PP
+#
+ifneq ($(BDSP_FWMIXER_SUPPORT),n)
+BDSP_FWMIXER_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_app_fw_mixer.c
+
+ifneq ($(wildcard $(BDSP_FWMIXER_SOURCES)),)
+BDSP_FWMIXER_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+
+ifeq ($(BDSP_FWMIXER_SUPPORT),y)
+BDSP_DEFINES += BDSP_FWMIXER_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_FWMIXER_SOURCES)
+endif
 BDSP_SOURCES := $(shell echo $(BDSP_SOURCES) | tr ' ' '\n' | awk '!a[$$0]++')

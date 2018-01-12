@@ -71,6 +71,9 @@ static BEGL_Error DispWindowGetInfo(void *context,
       if (flags & BEGL_WindowInfoSwapChainCount)
          info->swapchain_count = nw->numSurfaces;
 
+      if (flags & BEGL_WindowInfoBackBufferAge)
+         info->backBufferAge = nw->ageOfLastDequeuedSurface;
+
       return BEGL_Success;
    }
 
@@ -203,19 +206,20 @@ static BEGL_Error DispGetNextSurface(
 {
    UNUSED(context);
 
-   PlatformState *state = (PlatformState *) nativeWindow;
+   PlatformState *state = (PlatformState *)nativeWindow;
 
    if (state == NULL || nativeSurface == NULL || actualFormat == NULL)
       return BEGL_Fail;
 
-   *nativeSurface = DisplayFramework_GetNextSurface(
-         &state->display_framework, format, secure, fence);
+   *nativeSurface = DisplayFramework_GetNextSurface(&state->display_framework, format, secure, fence,
+                                                    &state->native_window->ageOfLastDequeuedSurface);
 
    if (!*nativeSurface)
    {
       *actualFormat = BEGL_BufferFormat_INVALID;
       return BEGL_Fail;
    }
+
    return BEGL_Success;
 }
 

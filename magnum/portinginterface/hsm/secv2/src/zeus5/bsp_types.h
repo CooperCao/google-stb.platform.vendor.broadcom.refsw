@@ -301,7 +301,7 @@ typedef enum Bsp_Sc01ModeWordMapping_e
 } Bsp_Sc01ModeWordMapping_e;
 
 
-/* used by components[Crypto KeyLadder Rpmb] */
+/* used by components[Crypto KeyLadder Rpmb Rv] */
 typedef enum Bsp_VklId_e
 {
     Bsp_VklId_e0 = 0,
@@ -316,7 +316,7 @@ typedef enum Bsp_VklId_e
 } Bsp_VklId_e;
 
 
-/* used by components[Crypto KeyLadder] */
+/* used by components[Crypto KeyLadder Rv] */
 typedef enum Bsp_KeyLadderLayer_e
 {
     Bsp_KeyLadderLayer_eKey4 = 4,

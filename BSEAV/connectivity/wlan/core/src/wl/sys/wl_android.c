@@ -5816,6 +5816,8 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 	else if (strnicmp(command, CMD_SET_AP_WPS_P2P_IE,
 		strlen(CMD_SET_AP_WPS_P2P_IE)) == 0) {
 		int skip = strlen(CMD_SET_AP_WPS_P2P_IE) + 3;
+		/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+		/* coverity[stack_use_overflow] */
 		bytes_written = wl_cfg80211_set_wps_p2p_ie(net, command + skip,
 			priv_cmd.total_len - skip, *(command + skip - 2) - '0');
 	}
@@ -6008,7 +6010,6 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		int enable = *(command + strlen(CMD_ROAM_OFFLOAD) + 1) - '0';
 		bytes_written = wl_cfg80211_enable_roam_offload(net, enable);
 	}
-#if defined(DUAL_STA) || defined(AP_PLUS_STA)
 	else if (strnicmp(command, CMD_INTERFACE_CREATE, strlen(CMD_INTERFACE_CREATE)) == 0) {
 		char *name = (command + strlen(CMD_INTERFACE_CREATE) +1);
 		WL_INFORM(("Creating %s interface\n", name));
@@ -6020,7 +6021,6 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		WL_INFORM(("Deleteing %s interface\n", name));
 		bytes_written = wl_cfg80211_interface_delete(net, name);
 	}
-#endif /* defined(DUAL_STA) || defined(AP_PLUS_STA) */
 	else if (strnicmp(command, CMD_GET_LINK_STATUS, strlen(CMD_GET_LINK_STATUS)) == 0) {
 		bytes_written = wl_android_get_link_status(net, command, priv_cmd.total_len);
 	}

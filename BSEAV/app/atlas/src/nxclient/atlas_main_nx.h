@@ -65,7 +65,7 @@ public:
     virtual CControl *           controlCreate(void);
     virtual CDisplay *           displayCreate(void);
     virtual CGraphics *          graphicsCreate(void);
-    virtual CVideoWindow *       videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, eWindowType windowType);
+    virtual eRet                 videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow ** ppVideoWindow, eWindowType windowType);
     virtual void                 videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow);
     virtual eRet                 mosaicInitialize(void);
     virtual void                 mosaicUninitialize(void);

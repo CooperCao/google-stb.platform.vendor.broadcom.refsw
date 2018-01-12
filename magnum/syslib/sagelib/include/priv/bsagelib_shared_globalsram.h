@@ -72,29 +72,32 @@
 
 */
 
-/* Size: first Out of bound index */
-#define SAGE_GlobalSram_TotalSize             0x100
 
 #define GlobalSram_Pointers                   0x00    /*  */
 #define GlobalSram_FixedDataHeader            0x02    /* version |r|r| #words in Licensing / General fixed area */
 #define GlobalSram_RRegion_Info               0x03    /* Feature table entry 2 */
+#define SAGE_GlobalSram_TotalSize            (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_END+1) /* Size: first Out of bound index */
 
-#if BHSM_ZEUS_VER_MAJOR>=5
-/* 7278A0 GlobalSRAM[0] = 0x70E03402 (expected 8BFA3C02 per document THIS MAY NOT BE CORRECT) */
+#if BHSM_ZEUS_VER_MAJOR==5
+/* 7278A0,B0 GlobalSRAM[0] = 0x70E03402 (expected 8BFA3C02 per document THIS MAY NOT BE CORRECT) */
 #define GlobalSram_FixedData_size             0x32    /* #words in fixed area, RO to all but BSP, SAGE */
 #define GlobalSram_MaxVideoRes_Info           0x20    /* Feature table entry 6 */
 #define GlobalSram_IPLicensing_Info           0x22    /* Feature table entry 1 */
 #define GlobalSram_IPLicensing_Info_size      0x08    /* GlobalSram_IPLicensing_Info[7:0]/32 used, but more reserved*/
-#define GlobalSram_HostSage_Scratchpad        0x34    /* GlobalSram_Pointers [15:8]  THIS MAY NOT BE CORRECT */
-#define GlobalSram_HostSage_Scratchpad_size   0x30
-#define GlobalSram_Misc_Comm                  0x50    /* GlobalSram_Pointers [31:24] THIS MAY NOT BE CORRECT */
-#define GlobalSram_Misc_Comm_size             0x1D
-#define GlobalSram_SAGE_Scratchpad            0x70    /* GlobalSram_Pointers [31:24] THIS MAY NOT BE CORRECT */
-#define GlobalSram_SAGE_Scratchpad_size       0x70    /* Expect 6F THIS MAY NOT BE CORRECT */
-#define GlobalSram_BSP_AsyncData              0xFA    /* GlobalSram_Pointers [31:24] THIS MAY NOT BE CORRECT */
-#define GlobalSram_BSP_AsyncData_size         0x06
+#define GlobalSram_HostSage_Scratchpad        0x34    /* GlobalSram_Pointers [15:8] */
+#define GlobalSram_HostSage_Scratchpad_size   0x1C
+#define GlobalSram_Misc_Comm                  0x50    /* GlobalSram_Pointers[1] [7:0] */
+#define GlobalSram_Misc_Comm_size             0x20
+#define GlobalSram_SAGE_Scratchpad            0x70    /* GlobalSram_Pointers [31:24] */
+#define GlobalSram_SAGE_Scratchpad_size       0x70    /* 112 words */
+#define GlobalSram_BSP_AsyncData              0xE0    /* GlobalSram_Pointers [23:16] */
+#define GlobalSram_BSP_AsyncData_size         0x02    /* 0xE2-FF unused in Z5 */
 #define GlobalSram_RRegion_Extension          (GlobalSram_RRegion_Info+7*2) /* continuation of RRegion struct */
 #define GlobalSram_RRegion_Extension_size     (GlobalSram_RRegion_Info+7*2) /* continuation of RRegion struct */
+#if BHSM_ZEUS_VER_MINOR!=0
+#define GlobalSram_SAGE_Extended_Scratchpad         0x100   /* Extended SAGE Scratchpad (Zeus >= 5.1) */
+#define GlobalSram_SAGE_Extended_Scratchpad_size    0x100
+#endif
 
 #define RESTRICTED_REGION_OFFSET(RR_Start) ((RR_Start)<<12)
 #define RESTRICTED_REGION_SIZE(RR_Start,RR_End) ((RR_End)<<12)
@@ -158,7 +161,7 @@
 
 
 /************************************************************/
-/* From 0x20 to 0x4F: Host < -- > SAGE scratchdpad
+/* From 0x20 to 0x4F: Host < -- > SAGE scratchpad
  */
 #define BSAGElib_GlobalSram_eHostSageScratchpadFirst    (GlobalSram_HostSage_Scratchpad)
 

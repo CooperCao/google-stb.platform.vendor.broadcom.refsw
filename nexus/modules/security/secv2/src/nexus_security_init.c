@@ -335,7 +335,6 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv( bool enabled, const NEXUS_Standby
            #endif
         }
 
-       #if 0
         if( g_security.moduleSettings.callTransportPostInit )
         {
             NEXUS_Module_Lock(g_security.moduleSettings.transport);
@@ -343,7 +342,6 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv( bool enabled, const NEXUS_Standby
             NEXUS_Module_Unlock(g_security.moduleSettings.transport);
             if (rc) return BERR_TRACE(rc);
         }
-       #endif
     }
 
 #else

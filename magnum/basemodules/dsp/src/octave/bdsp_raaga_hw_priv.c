@@ -800,7 +800,9 @@ BERR_Code BDSP_Raaga_P_PowerResume(
 	if (pDevice->hardwareStatus.powerStandby)
 	{
 		BDSP_Raaga_P_EnableAllPwrResource(pDeviceHandle, true);
-
+        pDevice->hardwareStatus.deviceWatchdogFlag = true;
+        BDSP_Raaga_P_Reset(pDevice);
+        /*Raaga_Open enables Watchdog*/
 		BDSP_Raaga_P_Open(pDevice);
 		if(pDevice->deviceSettings.authenticationEnabled == false)
 		{
@@ -813,7 +815,20 @@ BERR_Code BDSP_Raaga_P_PowerResume(
 				goto end;
 			}
 		}
-		pDevice->hardwareStatus.powerStandby = false;
+        errCode = BDSP_Raaga_P_CheckDspAlive(pDevice);
+        if (errCode!=BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_PowerResume: DSP not alive"));
+            errCode= BERR_TRACE(errCode);
+            goto end;
+        }
+        else
+        {
+            BDBG_MSG(("BDSP_Raaga_P_PowerResume: DSP is alive"));
+        }
+
+        pDevice->hardwareStatus.deviceWatchdogFlag = false;
+        pDevice->hardwareStatus.powerStandby = false;
 	}
 	else
 	{

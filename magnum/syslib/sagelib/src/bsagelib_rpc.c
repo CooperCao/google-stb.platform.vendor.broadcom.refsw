@@ -175,8 +175,14 @@ BSAGElib_P_Rpc_HandleResponse_isr(
 
     remote = BSAGElib_P_Rpc_FindRemoteById_isr(hSAGElib, message->instanceId);
     if (!remote) {
-        BDBG_WRN(("%s: Cannot find remote bounded to id #%u",
-                  BSTD_FUNCTION, message->instanceId));
+        if (message->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT) {
+            BDBG_WRN(("%s: Cannot find remote bounded to id #%u",
+                      BSTD_FUNCTION, message->instanceId));
+        }
+        else {
+            BDBG_MSG(("%s: got reply from SYSTEM_CRIT on a module that no longer exists: id #%u",
+                      BSTD_FUNCTION, message->instanceId));
+        }
         return;
     }
 
@@ -602,8 +608,7 @@ BSAGElib_P_Rpc_RemoveRemote(
         /* When going to S3, BSAGElib_P_Rpc_RemoveRemote will be intentionally called without
         * closing the platform in order to free resources, but leave the platform running (as
         * it is needed for S3) */
-        if(remote->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT)
-        {
+        if(remote->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT) {
             BDBG_ERR(("%s hSAGElib=%p hSAGElibClient=%p remote=%p platformId=%u moduleId=%u instanceId=%u is open",
                       BSTD_FUNCTION, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote,
                       remote->platformId, remote->moduleId, remote->message->instanceId));
@@ -613,6 +618,12 @@ BSAGElib_P_Rpc_RemoveRemote(
             }
             else if (remote->platformId != 0) {
                 BSAGElib_Rai_Platform_Close(remote, NULL);
+            }
+        }
+        else {
+            /* in the case of SYSTEM_CRIT, handle uninit of modules (for S2) */
+            if (remote->moduleId != 0) {
+                BSAGElib_Rai_Module_Uninit(remote, NULL);
             }
         }
     }
@@ -902,9 +913,11 @@ BSAGElib_Rpc_SendCommand(
     }
 
     switch (command->systemCommandId) {
+    case BSAGElib_SystemCommandId_eModuleInit:
     case BSAGElib_SystemCommandId_ePlatformOpen:
         remote->open = true;
         break;
+    case BSAGElib_SystemCommandId_eModuleUninit:
     case BSAGElib_SystemCommandId_ePlatformClose:
         remote->open = false;
         break;

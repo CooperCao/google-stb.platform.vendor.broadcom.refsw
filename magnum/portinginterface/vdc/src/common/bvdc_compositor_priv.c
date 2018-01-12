@@ -1912,7 +1912,7 @@ bool BVDC_P_Compositor_BuildSyncSlipRul_isr
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
     if (BVDC_CompositorId_eCompositor0 == hCompositor->eId)
     {
-        BVDC_P_Cfc_BuildRulForLutLoading_isr(&hCompositor->stCfcLutList, BCHP_HDR_CMP_0_LUT_DESC_ADDR, pList);
+        BVDC_P_Cfc_BuildRulForLutLoading_isr(&hCompositor->stCfcLutList, BCHP_HDR_CMP_0_LUT_DESC_ADDR, BCHP_HDR_CMP_0_LUT_DESC_CFG, pList);
     }
 #endif
 

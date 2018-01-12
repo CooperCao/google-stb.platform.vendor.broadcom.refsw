@@ -743,14 +743,13 @@ void BHDCPlib_ProcessEvent(BHDCPlib_Handle hHDCPlib, BHDCPlib_Event *stHdmiEvent
         {
 #if BHDCPLIB_HAS_HDCP_2X_SUPPORT && defined(BHDCPLIB_HAS_SAGE)
             rc = BHDCPlib_P_Hdcp2x_StopAuthentication(hHDCPlib);
-            if (rc != BERR_SUCCESS)
-            {
+            if (rc != BERR_SUCCESS) {
                 BDBG_ERR(("Error disabling HDCP 2.x authentication"));
                 BERR_TRACE(rc);
             }
 
             /* Add delay to allow Simplay SL8800 to register/detect Disable Encryption
-                     prevent intermittent HDCP Tx compliance test failure */
+            prevent intermittent HDCP Tx compliance test failure */
             BKNI_Sleep(40);
 
             /* clear the stored ReceiverId List */

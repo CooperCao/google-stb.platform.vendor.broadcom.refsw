@@ -46,10 +46,10 @@
 #include "kernel.h"
 #include "tztask.h"
 #include "scheduler.h"
-
+#include "tracelog.h"
 #include "system.h"
 
-#define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
+#define assert(cond) if (!(cond)) { ATA_LogErr("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
 extern "C" unsigned long _binary_ramfs_cpio_start;
 extern "C" void tzKernelSecondary();
@@ -101,18 +101,21 @@ void tzKernelInit(const void *devTree) {
 
     Scheduler::addTask(uappdTask);
     printf("%s: added uappd task to scheduler\n", __FUNCTION__);
-
+#ifdef TASK_LOG
+	TraceLog::init();
+	TraceLog::inval();
+#endif
 	ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
 	schedule();
 }
 
 void kernelHalt(const char *reason) {
-	err_msg("%s\n", reason);
+	ATA_LogErr("%s\n", reason);
 	while (true) {}
 }
 
 extern "C" void __cxa_pure_virtual() {
-	err_msg("Pure virtual function called !\n");
+	ATA_LogErr("Pure virtual function called !\n");
 	kernelHalt("Pure virtual function call");
 }

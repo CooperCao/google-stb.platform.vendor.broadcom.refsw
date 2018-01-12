@@ -125,7 +125,7 @@ LDFLAGS += $(NEXUS_LD_LIBRARIES) -lm
 endif
 
 ifeq ($(B_REFSW_ANDROID),y)
-LDFLAGS += -L${ANDROID_OUT_DIR}/target/product/${ANDROID_PRODUCT_OUT}/system/lib -llog
+LDFLAGS += -L${ANDROID_OUT_DIR}/target/product/${LOCAL_PRODUCT_OUT}/system/lib -llog
 endif
 
 NXSERVER_SRC = \

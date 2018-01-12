@@ -125,6 +125,8 @@ static void wlc_ht_update_sgi_rx(wlc_ht_info_t *hti, int val);
 static void wlc_ht_update_ldpc(wlc_ht_info_t *hti, int8 val);
 static uint16 wlc_ht_phy_get_rate(wlc_ht_info_t *pub, uint8 htflags, uint8 mcs);
 static void wlc_frameburst_size(wlc_info_t *wlc);
+static void wlc_frameburst_txop_set(wlc_ht_info_t *pub, uint16 val);
+static uint16 wlc_frameburst_txop_get(wlc_ht_info_t *pub);
 static void *
 wlc_send_action_ht_mimops(wlc_ht_info_t *hti, wlc_bsscfg_t *bsscfg, uint8 mimops_mode);
 
@@ -312,6 +314,7 @@ enum {
 	IOV_HT_AMSDU_RXMAX = 44,
 	IOV_HTFEATURES = 45, /* Broadcom proprietary 11n rates. */
 	IOV_BSS_NMODE = 46,
+	IOV_FBTXOPTHRESH = 47,	/* maximum txop limit for frameburst in usec */
 	IOV_HTLAST
 };
 
@@ -404,6 +407,7 @@ static const bcm_iovar_t ht_iovars[] = {
 	{"ampdu_rts", IOV_AMPDU_RTS, (0), 0, IOVT_BOOL, 0},
 	{"ht_features", IOV_HTFEATURES, IOVF_SET_DOWN | IOVF_OPEN_ALLOW, 0, IOVT_UINT32, 0},
 	{"bssnmode", IOV_BSS_NMODE, (0), 0, IOVT_BOOL, 0},
+	{"frameburst_txop", IOV_FBTXOPTHRESH, (IOVF_SET_UP), 0, IOVT_UINT16, 0},
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -508,6 +512,8 @@ void BCMATTACHFN(wlc_ht_init_defaults)(wlc_ht_info_t *pub)
 	}
 #endif	/* WLAMSDU */
 
+	/* init max burst txop (framebursting) */
+	pub->max_fbtxop = MAXFRAMEBURST_TXOP;
 }
 
 static int
@@ -518,6 +524,10 @@ wlc_ht_up(void *ctx)
 
 	/* ensure LDPC config is in sync */
 	wlc_ht_update_ldpc(pub, hti->wlc->stf->ldpc);
+
+	/* ensure country specific frameburst txop limits are honored */
+	wlc_ht_frameburst_limit(pub);
+
 	return BCME_OK;
 }
 
@@ -1480,6 +1490,7 @@ wlc_ht_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 			FOREACH_WLC(wlc->cmn, idx, wlc_iter) {
 				wlc_iter->hti->frameburst = bool_val;
 				wlc_frameburst_size(wlc_iter);
+				wlc_ht_frameburst_limit(pub);
 			}
 		}
 			break;
@@ -1873,12 +1884,7 @@ wlc_ht_doiovar(void *context, uint32 actionid,
 			}
 			pub->_rifs = (uint8)int_val;
 			if (wlc->pub->up) {
-				if (pub->_rifs) {
-					wlc_write_shm(wlc, M_MBURST_TXOP(wlc),
-						(EDCF_AC_VO_TXOP_AP << 5));
-				} else {
-					wlc_write_shm(wlc, M_MBURST_TXOP(wlc), MAXFRAMEBURST_TXOP);
-				}
+				wlc_ht_frameburst_limit(pub);
 				/* pass _rifs flag down to wlc_hw_info structure */
 				/* and update PHY holdoff and delay registers */
 				phy_misc_tkip_rifs_war(WLC_PI(wlc), pub->_rifs);
@@ -2050,6 +2056,19 @@ wlc_ht_doiovar(void *context, uint32 actionid,
 					WLCWLUNIT(wlc), __FUNCTION__, actionid));
 			err = BCME_UNSUPPORTED;
 			break;
+	case IOV_GVAL(IOV_FBTXOPTHRESH):
+		*ret_int_ptr = (int32)wlc_frameburst_txop_get(pub);
+		break;
+	case IOV_SVAL(IOV_FBTXOPTHRESH):
+		if (int_val < 0 || int_val >= 0xFFFF) {
+			err = BCME_RANGE; /* bad value */
+			break;
+		}
+		if (!pub->_rifs) {
+			pub->max_fbtxop = (uint16)int_val;
+		}
+		wlc_frameburst_txop_set(pub, (uint16)int_val);
+		break;
 	}
 
 	return err;
@@ -3347,6 +3366,61 @@ wlc_frameburst_size(wlc_info_t *wlc)
 	/* frameburst size changed/set; invalidate tx cache if there */
 	if (WLC_TXC_ENAB(wlc) && wlc->txc) {
 		wlc_txc_inv_all(wlc->txc);
+	}
+}
+
+/* Configures frameburst txop threshold in usec */
+static void
+wlc_frameburst_txop_set(wlc_ht_info_t *pub, uint16 val)
+{
+	wlc_ht_priv_info_t *hti = WLC_HT_INFO_PRIV(pub);
+	wlc_info_t *wlc = hti->wlc;
+
+	if (!wlc->pub->up)
+		return;
+
+	if (pub->_rifs) {
+		wlc_write_shm(wlc, M_MBURST_TXOP(wlc),
+			(EDCF_AC_VO_TXOP_AP << 5));
+	} else {
+		wlc_write_shm(wlc, M_MBURST_TXOP(wlc), val);
+	}
+
+	/* frameburst txop threshold set; invalidate tx cache if there */
+	if (WLC_TXC_ENAB(wlc) && wlc->txc) {
+		wlc_txc_inv_all(wlc->txc);
+	}
+}
+
+/* Returns frameburst txop threshold in usec */
+static uint16
+wlc_frameburst_txop_get(wlc_ht_info_t *pub)
+{
+	uint16 val;
+
+	if (pub->_rifs) {
+		val = (EDCF_AC_VO_TXOP_AP << 5);
+	} else {
+		val = pub->max_fbtxop;
+	}
+
+	return val;
+}
+
+/* apply country specific frameburst txop limits and set on ucode if up */
+void
+wlc_ht_frameburst_limit(wlc_ht_info_t *pub)
+{
+	wlc_ht_priv_info_t *hti = WLC_HT_INFO_PRIV(pub);
+	wlc_info_t *wlc = hti->wlc;
+	uint16 limit = (uint16)(wlc_is_edcrs_eu(wlc) ? MAXFRAMEBURST_TXOP_EU : MAXFRAMEBURST_TXOP);
+
+	if (pub->max_fbtxop > limit) {
+		pub->max_fbtxop = limit;
+	}
+
+	if (wlc->pub->up) {
+		wlc_frameburst_txop_set(pub, pub->max_fbtxop);
 	}
 }
 

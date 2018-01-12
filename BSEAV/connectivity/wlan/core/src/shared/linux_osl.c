@@ -1318,9 +1318,11 @@ osl_dma_alloc_consistent(osl_t *osh, uint size, uint16 align_bits, uint *alloced
 #ifndef	BCM_SECURE_DMA
 #if (defined(__ARM_ARCH_7A__) && !defined(DHD_USE_COHERENT_MEM_FOR_RING)) || \
 	defined(STB_SOC_WIFI)
-	va = kmalloc(size, GFP_ATOMIC | __GFP_ZERO);
-	if (va)
-		*pap = (ulong)__virt_to_phys((ulong)va);
+	{
+		dma_addr_t pap_lin;
+		va = dma_alloc_coherent(osh->pdev, size, &pap_lin, GFP_ATOMIC | __GFP_ZERO);
+		*pap = (dmaaddr_t)pap_lin;
+	}
 #else
 	{
 		dma_addr_t pap_lin;
@@ -1357,7 +1359,7 @@ osl_dma_free_consistent(osl_t *osh, void *va, uint size, dmaaddr_t pa)
 #ifndef BCM_SECURE_DMA
 #if (defined(__ARM_ARCH_7A__) && !defined(DHD_USE_COHERENT_MEM_FOR_RING)) || \
 	defined(STB_SOC_WIFI)
-	kfree(va);
+	dma_free_coherent(osh->pdev, size, va, pa);
 #else
 #ifdef BCMDMA64OSL
 	PHYSADDRTOULONG(pa, paddr);
@@ -1382,6 +1384,12 @@ osl_virt_to_phys(void *va)
 void BCMFASTPATH
 osl_dma_flush(osl_t *osh, void *va, uint size, int direction, void *p, hnddma_seg_map_t *dmah)
 {
+	if (direction == DMA_TX) { /* to device */
+		osl_cache_flush(va, size);
+	}
+	else {
+		printf("No flushing in DMA_RX direction.\n");
+	}
 	return;
 }
 #endif /* LINUX_VERSION_CODE >= 2.6.36 */

@@ -55,6 +55,10 @@
 #ifdef BHSM_BUILD_HSM_FOR_SAGE
  #include "bchp_bsp_ipi_intr2.h"
 #endif
+#ifdef BHSM_DEBUG_BSP
+  #include "bhsm_bsp_debug.h"
+#endif
+
 
 BDBG_MODULE(BHSMa);
 
@@ -403,6 +407,10 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
         if( regValue ) commandLength = i;
     }
 
+   #ifdef BHSM_DEBUG_BSP
+    BHSM_BspDebug_PrintCommand( hHsm, (uint32_t*)hMsg->mailBox );
+   #endif
+
     for( i = 0; i <= commandLength; i++ )
     {
         BKNI_Memcpy( &regValue, &hMsg->mailBox[i*4], 4 );
@@ -443,6 +451,10 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
         BKNI_Memcpy( &hMsg->mailBox[i*4], &regValue, 4 );
         if( regValue ) { commandLength = i; }
     }
+
+   #ifdef BHSM_DEBUG_BSP
+    BHSM_BspDebug_PrintResponse( hHsm, (uint32_t*)hMsg->mailBox );
+   #endif
 
     pReceiveHeader = (Bsp_CmdHeader_OutFields_t*)&hMsg->mailBox[0];
 

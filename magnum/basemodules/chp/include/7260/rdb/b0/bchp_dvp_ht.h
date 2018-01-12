@@ -44,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Jun 27 10:52:40 2017
- *                 Full Compile MD5 Checksum  de13a1e8011803b5a40ab14e4d71d071
+ * Date:           Generated on               Tue Nov 28 10:28:56 2017
+ *                 Full Compile MD5 Checksum  7930997ff30f92bc0a0f9b04259372ea
  *                     (minus title and desc)
- *                 MD5 Checksum               b694fcab41780597392ed5a8f558ad3e
+ *                 MD5 Checksum               529076ce3c73ca0cc2bb667e2bbfd3ae
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1570
+ *                 RDB.pm                     1777
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
+ *                 Script Source              home/pt902453/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pt902453/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -1540,7 +1540,7 @@
 #define BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_FORMAT_444           0
 #define BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_FORMAT_420           1
 #define BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_FORMAT_422_Legacy    2
-#define BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_FORMAT_422_PackedPixel 3
+#define BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_reserved             3
 
 /* DVP_HT :: VEC_INTERFACE_CFG :: PIXEL_MAP [01:00] */
 #define BCHP_DVP_HT_VEC_INTERFACE_CFG_PIXEL_MAP_MASK               0x00000003

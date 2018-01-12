@@ -68,8 +68,12 @@ typedef struct BHSM_RsaExponentiateSettings
 {
     BHSM_RsaKeySize keySize;       /* the RSA key size */
     bool counterMeasure;           /* true to enable counter measures */
-    BSTD_DeviceOffset rsaData;     /* contains the modulus, exponent, and base in contigious memory.
-                                      TODO, explain layout. */
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
+    BSTD_DeviceOffset rsaData;     /* contains the modulus, exponent, and base in contigious memory.*/
+#else
+    uint8_t *rsaData; /* contains the modulus, exponent, and base in contigious memory.*/
+#endif
+                                     /*TODO, explain layout. */
 }BHSM_RsaExponentiateSettings;
 
 

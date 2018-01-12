@@ -38,6 +38,7 @@ typedef enum
    BEGL_WindowInfoHeight = 2,
    BEGL_WindowInfoFormat = 4,
    BEGL_WindowInfoSwapChainCount = 8,
+   BEGL_WindowInfoBackBufferAge = 16,
 } BEGL_WindowInfoFlags;
 
 typedef struct
@@ -45,6 +46,7 @@ typedef struct
    uint32_t            width;                 /* Visible width of window in pixels */
    uint32_t            height;                /* Visible height of window in pixels */
    uint32_t            swapchain_count;       /* Number of buffers in the swap chain, or 0 to take defaults from egl */
+   uint32_t            backBufferAge;         /* Age of last dequeued buffer */
 } BEGL_WindowInfo;
 
 typedef struct BEGL_PixmapInfo

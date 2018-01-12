@@ -148,6 +148,9 @@ private:
     static void doSetGid(TzTask *currTask);
     static void doGetGid(TzTask *currTask);
 
+    static void doSetPgid(TzTask *currTask);
+    static void doGetPgid(TzTask *currTask);
+
     static void doPtrace(TzTask *currTask);
 
     static void doPause(TzTask *currTask);
@@ -224,6 +227,7 @@ private:
     static void doTraceLogStart(TzTask *currTask);
     static void doTraceLogStop(TzTask *currTask);
     static void doTraceLogAdd(TzTask *currTask);
+    static void doSchedRunTask(TzTask *currTask);
 
     enum CacheOp {
         CacheInval,

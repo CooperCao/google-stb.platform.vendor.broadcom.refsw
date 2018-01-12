@@ -55,8 +55,12 @@ extern "C"
 {
 #endif
 
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
 #define BHSM_OTPMSP_MAX_READ_RANGE  (80)
-
+#else
+#define BHSM_MAX_MSP32_GROUP (71)
+#define BHSM_MAX_MSP32_RANGE (40)
+#endif
 
 /* parameters to BHSM_OtpMsp_ReadRange */
 typedef struct

@@ -36,10 +36,9 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-SOURCES_ASM-$(CFG_ARM32_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a32.S))
-SOURCES_ASM-$(CFG_ARM64_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a64.S))
-OBJS        := $(patsubst %.S,$(TZ_OBJ_DIR)/%.o,$(SOURCES_ASM-y))
-DEPS        := $(patsubst %.S,$(TZ_OBJ_DIR)/%.d,$(SOURCES_ASM-y))
+SOURCES_ASM := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.S))
+OBJS        := $(patsubst %.S,$(TZ_OBJ_DIR)/%.o,$(SOURCES_ASM))
+DEPS        := $(patsubst %.S,$(TZ_OBJ_DIR)/%.d,$(SOURCES_ASM))
 
 SOURCES_C   := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.c))
 OBJS        += $(patsubst %.c,$(TZ_OBJ_DIR)/%.o,$(SOURCES_C))

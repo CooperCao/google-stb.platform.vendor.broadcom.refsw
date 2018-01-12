@@ -146,6 +146,8 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_EventCallbackHandle avRateChangeEventCallback;
     NEXUS_TimerHandle powerTimer;
 
+    bool pendingDisableAuthentication_isr;
+    bool forceSendRxIdList;
     bool hdcpRequiredPostFormatChange;
     bool formatChangeMute;
     bool avMuteSetting;

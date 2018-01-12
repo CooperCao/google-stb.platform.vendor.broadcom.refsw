@@ -271,17 +271,19 @@ void CAtlasNx::audioCaptureUninitialize()
 
 #endif /* NETAPP_SUPPORT */
 
-CVideoWindow * CAtlasNx::videoWindowInitialize(
+eRet CAtlasNx::videoWindowInitialize(
         CDisplay *           pDisplay,
         CSimpleVideoDecode * pVideoDecode,
+        CVideoWindow **      ppVideoWindow,
         eWindowType          windowType
         )
 {
     BSTD_UNUSED(pDisplay);
     BSTD_UNUSED(pVideoDecode);
+    BSTD_UNUSED(ppVideoWindow);
     BSTD_UNUSED(windowType);
 
-    return(NULL);
+    return(eRet_Ok);
 }
 
 void CAtlasNx::videoWindowUninitialize(

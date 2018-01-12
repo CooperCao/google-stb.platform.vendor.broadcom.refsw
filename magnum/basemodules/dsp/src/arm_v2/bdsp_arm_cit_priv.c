@@ -816,6 +816,7 @@ static BERR_Code BDSP_Arm_P_PopulateIOConfiguration(
                             BDSP_ConnectionType_eFmmBuffer,
                             (void *)&pStageConnectionDetails->connectionHandle.fmm.fmmDescriptor,
                             &sPortDetails);
+					DistinctFMMOutputCount[sPortDetails.distinctOpType]++;
 					break;
                 case BDSP_ConnectionType_eRDBBuffer:
                     BDBG_MSG(("Connecting RDB at Output"));
@@ -988,13 +989,11 @@ static BERR_Code BDSP_Arm_P_FillPrimaryStageInfo(
     BERR_Code errCode = BERR_SUCCESS ;
 	BDSP_ArmStage *pArmPrimaryStage;
 	const BDSP_P_AlgorithmInfo *psAlgoInfo;
-	const BDSP_P_AlgorithmCodeInfo *psAlgoCodeInfo;
 	BDSP_Arm_P_CodeDownloadInfo *pCodeInfo;
 
 	BDBG_ENTER(BDSP_Arm_P_FillPrimaryStageInfo);
 	pArmPrimaryStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
 	psAlgoInfo = BDSP_P_LookupAlgorithmInfo(pArmPrimaryStage->eAlgorithm);
-    psAlgoCodeInfo = BDSP_Arm_P_LookupAlgorithmCodeInfo(pArmPrimaryStage->eAlgorithm);
 	pCodeInfo  = &pArmTask->pContext->pDevice->codeInfo;
 	switch(pArmPrimaryStage->eAlgorithm)
     {

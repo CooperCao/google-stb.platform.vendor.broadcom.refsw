@@ -2321,6 +2321,10 @@ static void NEXUS_HdmiOutput_P_HotPlug_isr(void *context, int param, void *data)
         hdmiOutput->lastHotplugState_isr = NEXUS_HdmiOutputState_eDisconnected ;
         hdmiOutput->forceDisconnect_isr = true ;
         hdmiOutput->edidProcDebugDisplayed = false ;
+
+        if (hdmiOutput->hdcpStarted) {
+            hdmiOutput->pendingDisableAuthentication_isr = true;
+        }
     }
 
     BKNI_SetEvent_isr(hdmiOutput->notifyHotplugEvent) ;
@@ -2482,7 +2486,6 @@ static void NEXUS_HdmiOutput_P_RxSenseTimerExpiration(void *pContext)
                 }
             }
 #endif
-
         }
     }
 

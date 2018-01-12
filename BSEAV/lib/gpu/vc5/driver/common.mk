@@ -258,6 +258,7 @@ GLES_SRC_FILES :=                                                          \
 	libs/khrn/egl/egl_image_framebuffer.c                                  \
 	libs/khrn/egl/egl_sync.c                                               \
 	libs/khrn/egl/egl_synckhr.c                                            \
+	libs/khrn/egl/egl_partial_update.c                                     \
 	libs/khrn/egl/egl_proc_address.c                                       \
 	libs/khrn/egl/egl_platform.c                                           \
 	libs/khrn/ext/egl_brcm_perf_counters.c                                 \

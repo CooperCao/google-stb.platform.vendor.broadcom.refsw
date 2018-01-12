@@ -245,6 +245,8 @@ endif
 ifeq ($(BDSP_DDP_SUPPORT),y)
 # Enable passthru also unless explicitly disabled by user
 BDSP_DDP_PASSTHRU_SUPPORT ?= y
+# Disbale AC3 support
+override BDSP_AC3_SUPPORT = n
 BDSP_DEFINES += BDSP_DDP_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DDP_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_DDP_IDS_SOURCES)

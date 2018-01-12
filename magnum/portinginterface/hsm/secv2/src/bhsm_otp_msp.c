@@ -38,6 +38,7 @@
 
 #include "bhsm.h"
 #include "bhsm_priv.h"
+#include "bsp_types.h"
 #include "bhsm_bsp_msg.h"
 #include "bhsm_otp_msp.h"
 #include "bhsm_p_otpmsp.h"
@@ -50,7 +51,11 @@ BERR_Code BHSM_OtpMsp_Write( BHSM_Handle hHsm, BHSM_OtpMspWrite *pParam )
     BHSM_P_OtpMspProg bspParam;
     BHSM_P_OtpMiscProgPatternSet bspPattern;
     unsigned i;
-    BERR_Code rc;
+    BERR_Code rc = BERR_UNKNOWN;
+
+    BDBG_ENTER( BHSM_OtpMsp_Write );
+
+    if( !pParam ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     BKNI_Memset( &bspPattern, 0, sizeof(bspPattern) );
     bspPattern.in.patternArray[0] = 0xBC32F4AC;
@@ -78,13 +83,18 @@ BERR_Code BHSM_OtpMsp_Write( BHSM_Handle hHsm, BHSM_OtpMspWrite *pParam )
     rc = BHSM_P_OtpMsp_Prog( hHsm, &bspParam );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
+    BDBG_LEAVE( BHSM_OtpMsp_Write );
     return BERR_SUCCESS;
 }
 
 BERR_Code BHSM_OtpMsp_Read( BHSM_Handle hHsm, BHSM_OtpMspRead *pParam )
 {
     BHSM_P_OtpMspRead bspParam;
-    BERR_Code rc;
+    BERR_Code rc = BERR_UNKNOWN;
+
+    BDBG_ENTER( BHSM_OtpMsp_Read );
+
+    if( !pParam ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     BKNI_Memset( &bspParam, 0, sizeof(bspParam) );
 
@@ -99,16 +109,38 @@ BERR_Code BHSM_OtpMsp_Read( BHSM_Handle hHsm, BHSM_OtpMspRead *pParam )
     pParam->data = bspParam.out.mspData;
     pParam->valid = bspParam.out.mspLock;
 
+    BDBG_LEAVE( BHSM_OtpMsp_Read );
     return BERR_SUCCESS;
 }
 
 
-
 BERR_Code BHSM_OtpMsp_ReadRange( BHSM_Handle hHsm, BHSM_OtpMspReadRange *pParam )
 {
-    BSTD_UNUSED( hHsm );
-    BSTD_UNUSED( pParam );
+    BHSM_P_OtpMspMultiRead bspConfig;
+    BERR_Code rc = BERR_UNKNOWN;
+    unsigned i = 0;
 
-   /*  BERR_Code BHSM_P_OtpMsp_MultiRead( BHSM_Handle hHsm, BHSM_P_OtpMspMultiRead *pParam )*/
-    return BERR_TRACE( BERR_NOT_SUPPORTED );
+    BDBG_ENTER( BHSM_OtpMsp_ReadRange );
+
+    if( !pParam ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( !pParam->pMem ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( pParam->memSize < pParam->numMsp ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( pParam->numMsp > BHSM_OTPMSP_MAX_READ_RANGE ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
+    BDBG_CASSERT( BHSM_OTPMSP_MAX_READ_RANGE == (sizeof(bspConfig.out.mspRegValue)/sizeof(bspConfig.out.mspRegValue[0]) ) );
+
+    BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
+    bspConfig.in.mspType = pParam->readLock ? Bsp_Otp_MspType_eLock : Bsp_Otp_MspType_eData;
+    bspConfig.in.startRegIndex = pParam->startIndex;
+    bspConfig.in.numRegs = pParam->numMsp;
+    rc = BHSM_P_OtpMsp_MultiRead( hHsm, &bspConfig );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+    for( i = 0; i < pParam->numMsp; i++ ) {
+        pParam->pMem[i] = bspConfig.out.mspRegValue[i];
+    }
+
+    BDBG_LEAVE( BHSM_OtpMsp_ReadRange );
+
+    return BERR_SUCCESS;
 }

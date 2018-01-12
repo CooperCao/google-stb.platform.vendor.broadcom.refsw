@@ -36,7 +36,6 @@
  *  ANY LIMITED REMEDY.
 
  ******************************************************************************/
-
 #include "nexus_video_decoder_module.h"
 #include "nexus_video_decoder_security.h"
 #if NEXUS_HAS_SECURITY
@@ -102,11 +101,31 @@ static NEXUS_Error startVideoDecoderUnSecure( unsigned deviceId );
 
 static NEXUS_Error secureFirmwareVideoDecoder(void *pPrivateData, BAFL_BootInfo *pstAVDBootInfo)
 {
+    unsigned int i = 0;
+    BAFL_FirmwareInfo *pFirmwareInfo;
     NEXUS_VideoDecoderSecureBootContext *pContext = (NEXUS_VideoDecoderSecureBootContext *)pPrivateData;
+
     pContext->set = true;
     pContext->avdBootInfo = *pstAVDBootInfo;
     pContext->avdBootInfo.pstArc = pContext->astFirmwareInfo;
-    BKNI_Memcpy(pContext->astFirmwareInfo, pstAVDBootInfo->pstArc, sizeof(pContext->astFirmwareInfo));
+
+    /* Fill the next pointer with the avaliable firmware information */
+    /* Expect decoder firmware information is updated in strict serial order */
+    for (pFirmwareInfo = pstAVDBootInfo->pstArc, i = 0; pFirmwareInfo != NULL; pFirmwareInfo = pFirmwareInfo->pNext, i++) {
+
+        BDBG_ASSERT(i < sizeof(pContext->astFirmwareInfo)/sizeof(BAFL_FirmwareInfo));
+
+        BKNI_Memcpy(&pContext->astFirmwareInfo[i], pFirmwareInfo, sizeof(BAFL_FirmwareInfo));
+
+        if (pFirmwareInfo->pNext) {
+            pContext->astFirmwareInfo[i].pNext = &pContext->astFirmwareInfo[i+1];
+        } else {
+            break; /* Not to increase value i. */
+        }
+    }
+
+    BDBG_ASSERT(!pContext->astFirmwareInfo[i].pNext);
+
     return NEXUS_SUCCESS;
 }
 
@@ -115,7 +134,7 @@ static NEXUS_Error secureFirmwareVideoDecoder_aux(NEXUS_VideoDecoderSecureBootCo
     NEXUS_Error rc;
 
     BDBG_ASSERT(pstAVDBootInfo);
-    BDBG_ENTER(secureFirmwareVideoDecoder);
+    BDBG_ENTER(secureFirmwareVideoDecoder_aux);
 
     switch( pstAVDBootInfo->eMode )
     {
@@ -136,7 +155,7 @@ static NEXUS_Error secureFirmwareVideoDecoder_aux(NEXUS_VideoDecoderSecureBootCo
     #endif
     if ( rc != NEXUS_SUCCESS ) { return BERR_TRACE(rc); }
 
-    BDBG_LEAVE(secureFirmwareVideoDecoder);
+    BDBG_LEAVE(secureFirmwareVideoDecoder_aux);
     return rc;
 }
 
@@ -239,6 +258,7 @@ void NEXUS_VideoDecoder_P_GetSecurityCallbacks( BXVD_Settings *pSettings, unsign
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
+
 
     gVideoDecoderSecurityContext[deviceId].deviceID = deviceId;
     pSettings->pAVDBootCallback = secureFirmwareVideoDecoder;

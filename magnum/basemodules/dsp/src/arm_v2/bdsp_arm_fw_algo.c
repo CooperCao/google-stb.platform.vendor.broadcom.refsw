@@ -65,6 +65,11 @@ static const BDSP_P_AlgorithmSupportInfo BDSP_sArmAlgorithmSupportInfo[] =
 	{BDSP_Algorithm_eAacAdtsDecode, "AAC ADTS Decode", true},
 	{BDSP_Algorithm_eAacLoasDecode, "AAC LOAS Decode", true},
 #endif
+#ifdef BDSP_DOLBY_AACHE_SUPPORT
+	{BDSP_Algorithm_eDolbyAacheAdtsDecode, "Dolby AACHE ADTS Decode", true},
+	{BDSP_Algorithm_eDolbyAacheLoasDecode, "Dolby AACHE LOAS Decode", true},
+#endif
+
 #ifdef BDSP_AACSBR_PASSTHRU_SUPPORT
 	{BDSP_Algorithm_eAacLoasPassthrough,  "AAC LOAS Passthru", true},
 	{BDSP_Algorithm_eAacAdtsPassthrough,  "AAC ADTS Passthru", true},
@@ -105,7 +110,6 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
         /* Code Lib name*/                /* IDS Code Lib name*/
         "/libadec_mpeg1.so",                   "/libaids_mpeg1.so"
 	},
-#if 0
 	{
 		/* Algorithm */
 		BDSP_Algorithm_eUdcDecode,
@@ -122,11 +126,11 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
         /* Algorithm */
         BDSP_Algorithm_eUdcPassthrough,
         /* Scratch buffer size */                /* rom table size */
-        BDSP_IMG_ADEC_PASSTHRU_SCRATCH_SIZE, BDSP_IMG_ADEC_PASSTHRU_TABLES_SIZE,
+        BDSP_ARM_IMG_ADEC_PASSTHRU_SCRATCH_SIZE, BDSP_ARM_IMG_ADEC_PASSTHRU_TABLES_SIZE,
         /* interframe size */                       /*Compressed interframe size */
-        BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE, BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE,
+        BDSP_ARM_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE, BDSP_ARM_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE,
         /* Algorithm codeSize*/            /* IDS codeSize*/
-        BDSP_IMG_ADEC_PASSTHRU_SIZE,     BDSP_IMG_AIDS_DDP_SIZE,
+        BDSP_ARM_IMG_ADEC_PASSTHRU_SIZE,     BDSP_ARM_IMG_AIDS_DDP_SIZE,
         /* Code Lib name*/                /* IDS Code Lib name*/
         "/libadec_passthru.so",           "/libaids_ddp.so"
     },
@@ -178,7 +182,6 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
         /* Code Lib name*/                 /* IDS Code Lib name*/
         "/libadec_passthru.so",               "/libaids_ddp.so"
 	},
-#endif
 	{
 		/* Algorithm */
 		BDSP_Algorithm_eAacAdtsDecode,
@@ -190,6 +193,18 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
 		BDSP_ARM_IMG_ADEC_AACHE_SIZE,        BDSP_ARM_IMG_AIDS_ADTS_SIZE,
         /* Code Lib name*/                /* IDS Code Lib name*/
         "/libadec_aache.so",                  "/libaids_adts.so"
+	},
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eDolbyAacheAdtsDecode,
+		/* Scratch buffer size */			  /* rom table size */
+		BDSP_ARM_IMG_ADEC_DOLBY_AACHE_SCRATCH_SIZE, BDSP_ARM_IMG_ADEC_DOLBY_AACHE_TABLES_SIZE,
+		/* interframe size */				      /*Compressed interframe size */
+		BDSP_ARM_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_SIZE, BDSP_ARM_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/			   /* IDS codeSize*/
+		BDSP_ARM_IMG_ADEC_DOLBY_AACHE_SIZE,        BDSP_ARM_IMG_AIDS_ADTS_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_dolby_aache.so",              "/libaids_adts.so"
 	},
 	{
 		/* Algorithm */
@@ -214,6 +229,18 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
 		BDSP_ARM_IMG_ADEC_AACHE_SIZE,        BDSP_ARM_IMG_AIDS_LOAS_SIZE,
         /* Code Lib name*/                /* IDS Code Lib name*/
         "/libadec_aache.so",                  "/libaids_loas.so"
+	},
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eDolbyAacheLoasDecode,
+		/* Scratch buffer size */			  /* rom table size */
+		BDSP_ARM_IMG_ADEC_DOLBY_AACHE_SCRATCH_SIZE, BDSP_ARM_IMG_ADEC_DOLBY_AACHE_TABLES_SIZE,
+		/* interframe size */				      /* Compressed interframe size */
+		BDSP_ARM_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_SIZE, BDSP_ARM_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/			   /* IDS codeSize*/
+		BDSP_ARM_IMG_ADEC_DOLBY_AACHE_SIZE,        BDSP_ARM_IMG_AIDS_LOAS_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_dolby_aache.so",              "/libaids_loas.so"
 	},
 	{
 		/* Algorithm */
@@ -250,6 +277,55 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
 		BDSP_ARM_IMG_APP_SRC_SIZE,		   0,
         /* Code Lib name*/                /* IDS Code Lib name*/
         "/libapp_src.so",                  "INVALID"
+	},
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eMixerDapv2,
+		/* Scratch buffer size */		   /* Rom table size */
+		BDSP_ARM_IMG_APP_MIXER_DAPV2_SCRATCH_SIZE, BDSP_ARM_IMG_APP_MIXER_DAPV2_TABLES_SIZE,
+		/* Interframe size */  			  /* Compressed Interframe size */
+		BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_SIZE, BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_ARM_IMG_APP_MIXER_DAPV2_SIZE,		 0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libapp_mixer_dapv2.so",           "INVALID"
+    },
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eMixer,
+		/* Scratch buffer size */		   /* Rom table size */
+		BDSP_ARM_IMG_APP_MIXER_DAPV2_SCRATCH_SIZE, BDSP_ARM_IMG_APP_MIXER_DAPV2_TABLES_SIZE,
+		/* Interframe size */  			  /* Compressed Interframe size */
+		BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_SIZE, BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_ARM_IMG_APP_MIXER_DAPV2_SIZE,		 0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+		"/libapp_fw_mixer.so",           "INVALID"
+
+    },
+    {
+		/* Algorithm */
+		BDSP_Algorithm_eDpcmr,
+		/* Scratch buffer size */		   /* Rom table size */
+		BDSP_ARM_IMG_APP_DPCMR_SCRATCH_SIZE, BDSP_ARM_IMG_APP_DPCMR_TABLES_SIZE,
+		/* Interframe size */  			  /* Compressed Interframe size */
+		BDSP_ARM_IMG_APP_DPCMR_INTER_FRAME_SIZE, BDSP_ARM_IMG_APP_DPCMR_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_ARM_IMG_APP_DPCMR_SIZE,		 0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libapp_dpcmr.so",               "INVALID"
+	},
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eDDPEncode,
+		/* Scratch buffer size */		  /* Rom table size */
+		BDSP_ARM_IMG_AENC_DDP_SCRATCH_SIZE, BDSP_ARM_IMG_AENC_DDP_TABLES_SIZE,
+		/* Interframe size */  		  /* Compressed Interframe size */
+		BDSP_ARM_IMG_AENC_DDP_INTER_FRAME_SIZE, BDSP_ARM_IMG_AENC_DDP_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_ARM_IMG_AENC_DDP_SIZE,		    0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libaenc_ddp.so",               "INVALID"
 	},
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{

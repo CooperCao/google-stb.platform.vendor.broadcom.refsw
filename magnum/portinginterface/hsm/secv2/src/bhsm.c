@@ -46,6 +46,9 @@
 #include "bhsm_otp_key.h"
 #include "bhsm_bsp_msg.h"
 #include "bhsm_rsa.h"
+#ifdef BHSM_DEBUG_BSP
+ #include "bhsm_bsp_debug.h"
+#endif
 
 BDBG_MODULE(BHSM);
 
@@ -69,6 +72,11 @@ BHSM_Handle BHSM_Open( const BHSM_ModuleSettings *pSettings )
     pHandle->chipHandle = pSettings->hChip;
     pHandle->interruptHandle = pSettings->hInterrupt;
     pHandle->mmaHeap = pSettings->mmaHeap;
+
+   #ifdef BHSM_DEBUG_BSP
+    rc = BHSM_BspDebug_Init( pHandle, NULL );
+    if( rc != BERR_SUCCESS ){ (void)BERR_TRACE( rc ); goto error; }
+   #endif
 
     BKNI_Memset( &bspMsgInit, 0, sizeof(bspMsgInit) );
     rc = BHSM_BspMsg_Init( pHandle, &bspMsgInit );
@@ -122,6 +130,9 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
     BHSM_KeyLadder_Uninit( hHsm );
     BHSM_Keyslot_Uninit( hHsm );
     BHSM_BspMsg_Uninit( hHsm );
+   #ifdef BHSM_DEBUG_BSP
+    BHSM_BspDebug_Uninit( hHsm );
+   #endif
 
     BKNI_Free( pHandle );
 

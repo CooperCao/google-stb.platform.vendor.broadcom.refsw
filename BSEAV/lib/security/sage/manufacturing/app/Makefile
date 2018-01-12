@@ -62,7 +62,7 @@ include ${NEXUS_TOP}/platforms/${NEXUS_PLATFORM}/build/platform_app.inc
 
 APP = brcm_manufacturing_tool
 
-ifeq (${USE_NXCLIENT},y)
+ifeq (${NXCLIENT_SUPPORT},y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 CFLAGS += -DUSE_NXCLIENT=1
 CFLAGS += $(addprefix -I,${NXCLIENT_INCLUDES})

@@ -212,8 +212,8 @@ void SysCalls::init() {
 	dispatchTable[SYS_setfsuid] = notImpl;
 	dispatchTable[SYS_setfsgid] = notImpl;
 	dispatchTable[SYS_times] = notImpl;
-	dispatchTable[SYS_setpgid] = notImpl;
-	dispatchTable[SYS_getpgid] = notImpl;
+	dispatchTable[SYS_setpgid] = doSetPgid;
+	dispatchTable[SYS_getpgid] = doGetPgid;
 	dispatchTable[SYS_getsid] = notImpl;
 	dispatchTable[SYS_setsid] = notImpl;
 	dispatchTable[SYS_getgroups] = notImpl;
@@ -342,6 +342,7 @@ void SysCalls::init() {
     dispatchTableExt[EXT_tracelog_start - EXT_SYS_CALL_BASE] = doTraceLogStart;
     dispatchTableExt[EXT_tracelog_stop - EXT_SYS_CALL_BASE] = doTraceLogStop;
     dispatchTableExt[EXT_tracelog_add - EXT_SYS_CALL_BASE] = doTraceLogAdd;
+    dispatchTableExt[EXT_sched_runtask - EXT_SYS_CALL_BASE] = doSchedRunTask;
 
     paramsPagePhys.cpuLocal() = TzMem::allocPage(KERNEL_PID);
     if (paramsPagePhys.cpuLocal() == nullptr) {

@@ -200,6 +200,7 @@ struct wlc_ht_info {
 	int8		txburst_limit_override; /* tx burst limit override */
 	bool		_rifs;			/* enable per-packet rifs */
 	bool		ampdu_rts;		/* use RTS for AMPDU */
+	uint16          max_fbtxop;		/* maximum txop limit for frameburst in usec */
 
 	/* above are READ ONLY */
 };
@@ -271,6 +272,7 @@ extern uint8 wlc_ht_get_mimops_ActionRetry(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 extern void wlc_ht_set_mimops_ActionRetry(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint8 action_retry);
 extern void wlc_ht_set_cfg_mimops_PM(wlc_ht_info_t *hti, wlc_bsscfg_t *cfg, uint8 v);
 extern uint8 wlc_ht_get_cfg_mimops_PM(wlc_ht_info_t *hti, wlc_bsscfg_t *cfg);
+extern void wlc_ht_frameburst_limit(wlc_ht_info_t *pub);
 
 #else
 /* empty macros to avoid having to use WL11N compile flags everywhere */
@@ -322,6 +324,7 @@ extern uint8 wlc_ht_get_cfg_mimops_PM(wlc_ht_info_t *hti, wlc_bsscfg_t *cfg);
 #define wlc_ht_calc_frame_time(a, b, c, d) ((RSPEC2RATE((b)) * (d))/8000)
 #define WLC_HT_GET_TXBURST_LIMIT_OVERRIDE(hti) (OFF)
 #define wlc_ht_set_add_ie_basic_mcs(a, b, c)(BCM_REFERENCE(a))
+#define wlc_ht_frameburst_limit(a) do {BCM_REFERENCE(a);} while (0)
 #endif /* WL11N */
 extern chanspec_t wlc_ht_chanspec(wlc_info_t *wlc, uint8 chan, uint8 extch, wlc_bsscfg_t *cfg);
 extern void wlc_ht_upd_txbf_cap(wlc_bsscfg_t *cfg, uint8 bfr, uint8 bfe, uint32 *cap);

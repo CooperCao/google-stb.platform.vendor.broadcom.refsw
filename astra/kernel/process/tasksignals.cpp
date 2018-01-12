@@ -50,6 +50,7 @@
 #include "eventqueue.h"
 #include "wait.h"
 #include "pgtable.h"
+#include "plat_config.h"
 
 #include "lib_printf.h"
 
@@ -59,13 +60,13 @@ void TzTask::initSignalState() {
 
     // Allocate the signals array on the heap
     int numPages = (sizeof(Signal) * NumSignals)/PAGE_SIZE_4K_BYTES + 1;
-    TzMem::VirtAddr va = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, numPages*PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
-    if (va == nullptr) {
+    TzMem::VirtAddr kva = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, numPages*PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (kva == nullptr) {
         err_msg("Ran out of user virtual address space\n");
         System::halt();
     }
 
-    signals = (Signal *)va;
+    signals = (Signal *)kva;
 
     for (int i=0; i<numPages; i++) {
         TzMem::PhysAddr pa = TzMem::allocPage(tid);
@@ -74,8 +75,8 @@ void TzTask::initSignalState() {
             System::halt();
         }
 
-        kernelPageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
-        va = (uint8_t *)va + PAGE_SIZE_4K_BYTES;
+        kernelPageTable->mapPage(kva, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+        kva = (uint8_t *)kva + PAGE_SIZE_4K_BYTES;
     }
     //printf("signals array at %p\n", signals);
 
@@ -107,21 +108,29 @@ void TzTask::initSignalState() {
     signals[SIGPWR].defaultAction = Terminate;
 
 
-    va = kernelPageTable->reserveAddrRange((void *)KERNEL_LOW_MEMORY, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
-    if (va == nullptr) {
+    kva = kernelPageTable->reserveAddrRange((void *)KERNEL_LOW_MEMORY, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (kva == nullptr) {
+        err_msg("Ran out of kernel virtual address space\n");
+        System::halt();
+    }
+
+    TzMem::VirtAddr uva = pageTable->reserveAddrRange((void *)USER_HEAP_ADDR, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (uva == nullptr) {
         err_msg("Ran out of user virtual address space\n");
         System::halt();
     }
+
     TzMem::PhysAddr pa = TzMem::allocPage(tid);
     if (pa == nullptr) {
         err_msg("Out of memory\n");
         System::halt();
     }
 
-    kernelPageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
-    pageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, true);
+    kernelPageTable->mapPage(kva, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+    pageTable->mapPage(uva, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, true);
 
-    sigParamsStack = (SigReturn *)va;
+    sigParamsStackUser = (SigReturn *)uva;
+    sigParamsStack = (SigReturn *)kva;
     sigParamsStackTop = -1;
     sigParamsStackMax = PAGE_SIZE_4K_BYTES/sizeof(SigReturn);
 
@@ -131,18 +140,43 @@ void TzTask::initSignalState() {
     //printf("signals ret stack at %p\n", sigParamsStack);
 }
 
+void TzTask::terminateSignalState() {
+
+    PageTable *kernelPageTable = PageTable::kernelPageTable();
+
+    // Free the signal return stack
+    TzMem::PhysAddr pa = kernelPageTable->lookUp(sigParamsStack);
+    kernelPageTable->unmapPage(sigParamsStack);
+    pageTable->unmapPage(sigParamsStackUser);
+
+    TzMem::freePage(pa);
+
+    // Free the signals array
+    int numPages = (sizeof(Signal) * NumSignals)/PAGE_SIZE_4K_BYTES + 1;
+    uint8_t *currVa = (uint8_t *)signals;
+    for (int i=0; i<numPages; i++) {
+        TzMem::PhysAddr pa = kernelPageTable->lookUp(currVa);
+        kernelPageTable->unmapPage(currVa);
+        if (pa != nullptr)
+            TzMem::freePage(pa);
+
+        //printf("unmapped signal array %p pa %p\n", currVa, pa);
+        currVa += PAGE_SIZE_4K_BYTES;
+    }
+}
+
 void TzTask::inheritSignalState(const TzTask& parent) {
     PageTable *kernelPageTable = PageTable::kernelPageTable();
 
     // Allocate the signals array on the heap
     int numPages = (sizeof(Signal) * NumSignals)/PAGE_SIZE_4K_BYTES + 1;
-    TzMem::VirtAddr va = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, numPages*PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
-    if (va == nullptr) {
+    TzMem::VirtAddr kva = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, numPages*PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (kva == nullptr) {
         err_msg("Ran out of user virtual address space\n");
         System::halt();
     }
 
-    signals = (Signal *)va;
+    signals = (Signal *)kva;
 
     for (int i=0; i<numPages; i++) {
         TzMem::PhysAddr pa = TzMem::allocPage(tid);
@@ -151,8 +185,8 @@ void TzTask::inheritSignalState(const TzTask& parent) {
             System::halt();
         }
 
-        kernelPageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
-        va = (uint8_t *)va + PAGE_SIZE_4K_BYTES;
+        kernelPageTable->mapPage(kva, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+        kva = (uint8_t *)kva + PAGE_SIZE_4K_BYTES;
     }
 
     for (int i=0; i<NumSignals; i++) {
@@ -163,21 +197,29 @@ void TzTask::inheritSignalState(const TzTask& parent) {
         signals[i].status = parent.signals[i].status;
     }
 
-    va = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
-    if (va == nullptr) {
+    kva = kernelPageTable->reserveAddrRange((void *)KERNEL_LOW_MEMORY, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (kva == nullptr) {
+        err_msg("Ran out of kernel virtual address space\n");
+        System::halt();
+    }
+
+    TzMem::VirtAddr uva = pageTable->reserveAddrRange((void *)USER_HEAP_ADDR, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (uva == nullptr) {
         err_msg("Ran out of user virtual address space\n");
         System::halt();
     }
+
     TzMem::PhysAddr pa = TzMem::allocPage(tid);
     if (pa == nullptr) {
         err_msg("Out of memory\n");
         System::halt();
     }
 
-    kernelPageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, false);
-    pageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, true);
+    kernelPageTable->mapPage(kva, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+    pageTable->mapPage(uva, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, true);
 
-    sigParamsStack = (SigReturn *)va;
+    sigParamsStackUser = (SigReturn *)uva;
+    sigParamsStack = (SigReturn *)kva;
     sigParamsStackTop = -1;
     sigParamsStackMax = PAGE_SIZE_4K_BYTES/sizeof(SigReturn);
 
@@ -267,6 +309,8 @@ int TzTask::sigprocmask(int how, const sigset_t *set, sigset_t *oldSet) {
 void TzTask::sendSigChldToParent(bool exited, int exitCode,int origSigNum) {
     if (parent == nullptr)
         return;
+
+    if (parent->state == Defunct) return;
 
     Signal *parentSigChld = &parent->signals[SIGCHLD];
 
@@ -443,7 +487,9 @@ bool TzTask::signalDispatch() {
         return true;
     }
 
+    SigReturn *userSr = &sigParamsStackUser[sigParamsStackTop];
     SigReturn *sr = &sigParamsStack[sigParamsStackTop];
+
     sr->r0 = base[SAVED_REG_R0];
     sr->r1 = base[SAVED_REG_R1];
     sr->r2 = base[SAVED_REG_R2];
@@ -461,7 +507,49 @@ bool TzTask::signalDispatch() {
 
     register int dfar;
     ARCH_SPECIFIC_GET_DFAR(dfar);
+#ifdef __aarch64__
+    uctx->uc_stack.ss_sp = (void *)base[SAVED_REG_SP_USR];
+    uctx->uc_stack.ss_size = USER_SPACE_STACK_SIZE;
+    uctx->uc_mcontext.regs[0] = base[SAVED_REG_R0];
+    uctx->uc_mcontext.regs[1] = base[SAVED_REG_R1];
+    uctx->uc_mcontext.regs[2] = base[SAVED_REG_R2];
+    uctx->uc_mcontext.regs[3] = base[SAVED_REG_R3];
+    uctx->uc_mcontext.regs[4] = base[SAVED_REG_R4];
+    uctx->uc_mcontext.regs[5] = base[SAVED_REG_R5];
+    uctx->uc_mcontext.regs[6] = base[SAVED_REG_R6];
+    uctx->uc_mcontext.regs[7] = base[SAVED_REG_R7];
+    uctx->uc_mcontext.regs[8] = base[SAVED_REG_R8];
+    uctx->uc_mcontext.regs[9] = base[SAVED_REG_R9];
+    uctx->uc_mcontext.regs[10] = base[SAVED_REG_R10];
+    uctx->uc_mcontext.regs[11] = base[SAVED_REG_R11];
+    uctx->uc_mcontext.regs[12] = base[SAVED_REG_R12];
+    uctx->uc_mcontext.regs[13] = base[SAVED_REG_R13];
+    uctx->uc_mcontext.regs[14] = base[SAVED_REG_R14];
+    uctx->uc_mcontext.regs[15] = base[SAVED_REG_R15];
+    uctx->uc_mcontext.regs[16] = base[SAVED_REG_R16];
+    uctx->uc_mcontext.regs[17] = base[SAVED_REG_R17];
+    uctx->uc_mcontext.regs[18] = base[SAVED_REG_R18];
+    uctx->uc_mcontext.regs[19] = base[SAVED_REG_R19];
+    uctx->uc_mcontext.regs[20] = base[SAVED_REG_R20];
+    uctx->uc_mcontext.regs[21] = base[SAVED_REG_R21];
+    uctx->uc_mcontext.regs[22] = base[SAVED_REG_R22];
+    uctx->uc_mcontext.regs[23] = base[SAVED_REG_R23];
+    uctx->uc_mcontext.regs[24] = base[SAVED_REG_R24];
+    uctx->uc_mcontext.regs[25] = base[SAVED_REG_R25];
+    uctx->uc_mcontext.regs[26] = base[SAVED_REG_R26];
+    uctx->uc_mcontext.regs[27] = base[SAVED_REG_R27];
+    uctx->uc_mcontext.regs[28] = base[SAVED_REG_R28];
+    uctx->uc_mcontext.regs[29] = base[SAVED_REG_R29];
+    uctx->uc_mcontext.regs[30] = base[SAVED_REG_R30];
 
+
+    uctx->uc_mcontext.sp = base[SAVED_REG_SP_USR];
+    uctx->uc_mcontext.pc = base[SAVED_REG_LR];
+    uctx->uc_mcontext.pstate = base[SAVED_REG_SPSR];
+    uctx->uc_mcontext.fault_address = dfar;
+    uctx->uc_sigmask = signals[sigNum].maskOnActive;
+
+#else
     uctx->uc_stack.ss_sp = (void *)base[SAVED_REG_SP_USR];
     uctx->uc_stack.ss_size = USER_SPACE_STACK_SIZE;
     uctx->uc_mcontext.arm_r0 = base[REG_R0];
@@ -483,20 +571,20 @@ bool TzTask::signalDispatch() {
     uctx->uc_mcontext.arm_cpsr = base[REG_CPSR];
     uctx->uc_mcontext.fault_address = dfar;
     uctx->uc_sigmask = signals[sigNum].maskOnActive;
-
+#endif
 
     base[SAVED_REG_R0] = sigNum;
 
     if ((signals[sigNum].flags & SA_SIGINFO) && (signals[sigNum].haveSigInfo)) {
-        base[SAVED_REG_R1] = (unsigned long)&(sr->sigInfo);
-        base[SAVED_REG_R2] = (unsigned long)&(sr->sigInfo.si_value);
+        base[SAVED_REG_R1] = (unsigned long)&(userSr->sigInfo);
+        base[SAVED_REG_R2] = (unsigned long)ucontextUserVa;
     }
     else {
         base[SAVED_REG_R1] = 0;
         base[SAVED_REG_R2] = 0;
     }
 
-    base[SAVED_REG_R3] = (unsigned long)ucontext;
+    base[SAVED_REG_R3] = (unsigned long)ucontextUserVa;
 
     //TODO: set SP_USR to alt stack if necessary
     // if (signals[i].flag & SA_ONALTSTACK)
@@ -591,32 +679,62 @@ void TzTask::sigReturn() {
 void TzTask::createUContext() {
     PageTable *kernPageTable = PageTable::kernelPageTable();
 
-    ucontext = kernPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
-    if (ucontext == nullptr) {
+    int numPages = (sizeof(ucontext_t) * 1)/PAGE_SIZE_4K_BYTES + 1;
+
+    TzMem::VirtAddr kva = kernPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, numPages * PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (kva == nullptr) {
         err_msg("[ucontext] kernel virtual address space exhausted !\n");
         pageTable->dump();
         return;
     }
-    TzMem::PhysAddr pa = TzMem::allocPage(KERNEL_PID);
-    if (pa == nullptr) {
-        err_msg("system memory exhausted !\n");
+
+    TzMem::VirtAddr uva = pageTable->reserveAddrRange((void *)USER_HEAP_ADDR, numPages * PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (uva == nullptr) {
+        err_msg("[ucontextUserVa] user virtual address space exhausted !\n");
+        pageTable->dump();
         return;
     }
 
-    kernPageTable->mapPage(ucontext, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
-    pageTable->mapPage(ucontext, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, true);
+    ucontextUserVa = uva;
+    ucontext = kva;
+
+    for (int i=0; i<numPages; i++) {
+        TzMem::PhysAddr pa = TzMem::allocPage(KERNEL_PID);
+        if (pa == nullptr) {
+            err_msg("Out of memory\n");
+            System::halt();
+        }
+
+        kernPageTable->mapPage(kva, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+        pageTable->mapPage(uva, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, true);
+
+        kva = (uint8_t *)kva + PAGE_SIZE_4K_BYTES;
+        uva = (uint8_t *)uva + PAGE_SIZE_4K_BYTES;
+    }
+
 }
 
 void TzTask::destroyUContext() {
     if (ucontext == nullptr)
         return;
 
-    TzMem::PhysAddr pa = pageTable->lookUp(ucontext);
-    if (pa == nullptr)
-        return;
+    PageTable *kernelPageTable = PageTable::kernelPageTable();
 
-    kernPageTable->unmapPage(ucontext);
-    pageTable->unmapPage(ucontext);
+    // Free the  ucontext
+    int numPages = (sizeof(ucontext_t) * 1)/PAGE_SIZE_4K_BYTES + 1;
 
-    TzMem::freePage(pa);
+    uint8_t *currkVa = (uint8_t *)ucontext;
+    uint8_t *curruVa = (uint8_t *)ucontextUserVa;
+
+    for (int i=0; i<numPages; i++) {
+        TzMem::PhysAddr pa = kernelPageTable->lookUp(currkVa);
+        kernelPageTable->unmapPage(currkVa);
+        pageTable->unmapPage(curruVa);
+        if (pa != nullptr)
+            TzMem::freePage(pa);
+
+        currkVa += PAGE_SIZE_4K_BYTES;
+        curruVa += PAGE_SIZE_4K_BYTES;
+    }
+
 }

@@ -5689,6 +5689,11 @@ BCMATTACHFN(_initvars_srom_pci)(uint8 sromrev, uint16 *srom, uint off, varbuf_t 
 				ASSERT(mask_valid(srv->mask));
 				val = (w & srv->mask) >> mask_shift(srv->mask);
 				width = mask_width(srv->mask);
+				if (width == 0) {
+					BS_ERROR(("%s: the mask of %s is 0!\n", __FUNCTION__, srv->name));
+					ASSERT(0);
+					return;
+				}
 
 				flags = srv->flags;
 

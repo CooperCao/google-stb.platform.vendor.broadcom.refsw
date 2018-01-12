@@ -456,7 +456,7 @@ BERR_Code _RvRegionConfigure( BHSM_RvRegionHandle hRegion, _RvRegionConfigure_t 
         case 256: scbBurstSize = BCMD_ScbBurstSize_e256; break;
         default: { rc = BERR_TRACE( BERR_INVALID_PARAMETER ); goto exit; }
     }
-    BHSM_BspMsg_Pack8 ( hMsg, BCMD_MemAuth_InCmdField_eScbBurstSize, (uint8_t)pConf->scbBurstSize );
+    BHSM_BspMsg_Pack8 ( hMsg, BCMD_MemAuth_InCmdField_eScbBurstSize, (uint8_t)scbBurstSize );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_MemAuth_InCmdField_eResetOnVerifyFailure, pConf->resetOnVerifyFailure ? BCMD_MemAuth_ResetOnVerifyFailure_eReset
                                                                                                   : BCMD_MemAuth_ResetOnVerifyFailure_eNoReset );

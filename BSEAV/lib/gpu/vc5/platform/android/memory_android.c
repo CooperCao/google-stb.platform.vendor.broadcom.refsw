@@ -21,6 +21,7 @@
 
 #include "nx_ashmem.h"
 #include <fcntl.h>
+#include <linux/brcmstb/proc_info_proxy.h>
 
 /* default block size */
 #define BLOCK_SIZE (16*1024*1024)
@@ -73,6 +74,7 @@ typedef struct
 {
    int fd;
    NEXUS_MemoryBlockHandle hdl;
+   uint32_t size;
 
 } ANPL_MemoryTracker;
 
@@ -87,6 +89,7 @@ typedef struct
    char                    alloc_name[PROPERTY_VALUE_MAX];
    bool                    allowsMovable;
    MemConvertCache         mem_convert_cache;
+   int                     tracker;
 
 } ANPL_MemoryContext;
 
@@ -267,6 +270,15 @@ alloc_default:
    }
 
    memTracker->hdl = block;
+   memTracker->size = numBytes;
+
+   if (data->tracker >= 0) {
+      struct proxy_info_memtrack memtrack;
+      memtrack.pid = getpid();
+      memtrack.size = numBytes;
+      memtrack.act = 1;
+      ioctl(data->tracker, PROC_INFO_IOCTL_PROXY_SET_MEMTRACK, &memtrack);
+   }
 
    /*PRINTF("Alloc block = %p\n", block);*/
    return (BEGL_MemHandle) memTracker;
@@ -275,8 +287,7 @@ alloc_default:
 static void MemFreeBlock(void *context, BEGL_MemHandle handle)
 {
    ANPL_MemoryTracker *memTracker = (ANPL_MemoryTracker*)handle;
-
-   UNUSED(context);
+   ANPL_MemoryContext *data = (ANPL_MemoryContext*)context;
 
 #ifdef LOG_MEMORY_PATTERN
    if (sLogFile)
@@ -291,6 +302,14 @@ static void MemFreeBlock(void *context, BEGL_MemHandle handle)
    else
    {
       NEXUS_MemoryBlock_Free(memTracker->hdl);
+   }
+
+   if (data->tracker >= 0) {
+      struct proxy_info_memtrack memtrack;
+      memtrack.pid = getpid();
+      memtrack.size = memTracker->size;
+      memtrack.act = -1;
+      ioctl(data->tracker, PROC_INFO_IOCTL_PROXY_SET_MEMTRACK, &memtrack);
    }
 
    free(memTracker);
@@ -502,6 +521,10 @@ BEGL_MemoryInterface *CreateAndroidMemoryInterface(void)
 
          memset(ctx, 0, sizeof(ANPL_MemoryContext));
 
+         ctx->tracker = open("/dev/bcmpip", O_RDWR);
+         if (ctx->tracker < 0)
+            ALOGE("failed to allocate tracker");
+
          ctx->useDynamicMMA = UseDynamicMMAHeap(&ctx->heapGrow);
          ctx->allowsMovable = UseMovableBlocks();
 
@@ -529,7 +552,6 @@ BEGL_MemoryInterface *CreateAndroidMemoryInterface(void)
             strcpy(ctx->alloc_name, "/dev/");
             strcat(ctx->alloc_name, device);
          }
-
          NEXUS_Heap_GetStatus(ctx->heaps[0].heap, &memStatus);
          ctx->heaps[0].heapStartCached = memStatus.addr;
          ctx->heaps[0].heapStartPhys = memStatus.offset;
@@ -563,6 +585,12 @@ void DestroyAndroidMemoryInterface(BEGL_MemoryInterface *mem)
          ANPL_MemoryContext *ctx = (ANPL_MemoryContext*)mem->context;
 
          MemoryConvertClearCache(&ctx->mem_convert_cache);
+
+         if (ctx->tracker >= 0) {
+            close(ctx->tracker);
+            ctx->tracker = -1;
+         }
+
          free(ctx);
       }
 

@@ -84,5 +84,5 @@ void BBOX_P_Vdc_SetBox3DeinterlacerCapabilities
 void BBOX_P_Vdc_SetBox3XcodeCapabilities
     ( BBOX_Vdc_Xcode_Capabilities *pXcodeCap )
 {
-    BBOX_P_VDC_SET_XCODE_LIMIT(pXcodeCap, 0, BBOX_VDC_DISREGARD);
+    BBOX_P_VDC_SET_XCODE_LIMIT(pXcodeCap, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD);
 }

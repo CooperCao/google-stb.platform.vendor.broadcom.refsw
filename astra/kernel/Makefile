@@ -54,6 +54,7 @@ SUBMOD_DIRS := \
 	memory \
 	memory/arch/$(ARCH_DIR) \
 	interrupts \
+	interrupts/arch/$(ARCH_DIR) \
 	process \
 	process/arch/$(ARCH_DIR) \
 	ramfs \
@@ -66,6 +67,7 @@ SUBMOD_DIRS := \
 	crypto \
 	platform/$(TZ_PLATFORM) \
 	tz_kernel_libc \
+	tz_kernel_libc/arch/$(ARCH_DIR) \
 	3rd_party/libfdt \
 	console \
 
@@ -133,14 +135,18 @@ WARNFLAGS   += -Werror
 
 OSFLAGS     := -D__TZOS__
 
-ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
+ifneq (n,$(BL31))
+KFLAGS      := -DLEGACY_BL31
+endif
+
+ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS) $(KFLAGS)
 ASFLAGS     += -g -D__ASSEMBLY__
 
-CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
+CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS) $(KFLAGS)
 CFLAGS      += $(BASEFLAGS) $(WARNFLAGS)
 CFLAGS      += -std=gnu99 -Wimplicit-function-declaration
 
-CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
+CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS) $(KFLAGS)
 CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS)
 CPPFLAGS    += -std=c++11 -D__EXCEPTIONS=0
 CPPFLAGS    += -fno-rtti -fno-exceptions -fno-use-cxa-atexit

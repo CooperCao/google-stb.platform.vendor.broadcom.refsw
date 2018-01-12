@@ -44,7 +44,7 @@
 #include <string.h>
 #include "cenc_util.h"
 BDBG_MODULE(cenc_parser);
-
+#include "dump_hex.h"
 
 void cenc_parse_auxiliary_info_sizes(batom_cursor *cursor,
     bmp4_mp4_frag_headers *frag_header)
@@ -152,6 +152,7 @@ void cenc_parse_mdat_head(mp4_parse_frag_info *frag_info,
 
         memset(smpl->iv, 0, 16);
         length = batom_cursor_copy(cursor, smpl->iv, ivlength);
+        dump_hex("mdat_head", (const char*)smpl->iv, ivlength, false);
         if (length != ivlength) {
             LOGE(("%s: could not read iv for %dth sample", BSTD_FUNCTION, i));
             return;
@@ -210,6 +211,7 @@ int cenc_parse_sample_encryption_box(
 
         memset(smpl->iv, 0, 16);
         length = batom_cursor_copy(cursor, smpl->iv, ivlength);
+        dump_hex("encryption_box", (const char*)smpl->iv, ivlength, false);
         if (length != ivlength) {
             LOGE(("%s: could not read iv for %dth sample", BSTD_FUNCTION, i));
             return -1;

@@ -79,5 +79,7 @@ BERR_Code BHSM_Keyslot_Init( BHSM_Handle hHsm, BHSM_KeyslotModuleSettings *pSett
 void BHSM_Keyslot_Uninit( BHSM_Handle hHsm );
 
 BERR_Code BHSM_P_Keyslot_GetDetails( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry entry, BHSM_KeyslotDetails *pDetails );
+uint8_t BHSM_P_Map2KeySlotCryptoAlg( BHSM_CryptographicAlgorithm  algorithm );
+uint8_t BHSM_P_ConvertSlotType( BHSM_KeyslotType type );
 
 #endif

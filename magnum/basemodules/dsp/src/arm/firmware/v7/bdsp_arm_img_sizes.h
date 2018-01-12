@@ -36,9 +36,9 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#define BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE                            ((uint32_t)607996)
-#define BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE                     ((uint32_t)216756)
+#define BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE                            ((uint32_t)608200)
+#define BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE                     ((uint32_t)216776)
 #define BDSP_ARM_IMG_DDP_ENCODE_TABLES_SIZE                          ((uint32_t)26752)
-#define BDSP_ARM_IMG_SYSTEM_CODE_SIZE                                ((uint32_t)44760)
-#define BDSP_ARM_IMG_LIBDMA_CODE_SIZE                                ((uint32_t)22848)
+#define BDSP_ARM_IMG_SYSTEM_CODE_SIZE                                ((uint32_t)43672)
+#define BDSP_ARM_IMG_LIBDMA_CODE_SIZE                                ((uint32_t)22016)
 #define BDSP_ARM_IMG_HBC_MONITOR_CODE_SIZE                           ((uint32_t)6268)

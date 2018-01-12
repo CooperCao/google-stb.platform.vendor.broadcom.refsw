@@ -44,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Sep 14 11:24:11 2017
- *                 Full Compile MD5 Checksum  70d290052b444707177827ab37808f44
+ * Date:           Generated on               Tue Nov 28 10:28:46 2017
+ *                 Full Compile MD5 Checksum  7930997ff30f92bc0a0f9b04259372ea
  *                     (minus title and desc)
- *                 MD5 Checksum               210ae062c7e19ef1f4277daa8616118b
+ *                 MD5 Checksum               529076ce3c73ca0cc2bb667e2bbfd3ae
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1749
+ *                 RDB.pm                     1777
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              home/tdo/public/tdo/views/refsw/git_baseline/rockford/refswsj/tools//combo_header.pl
- *                 DVTSWVER                   LOCAL home/tdo/public/tdo/views/refsw/git_baseline/rockford/refswsj/tools//combo_header.pl
+ *                 Script Source              home/pt902453/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pt902453/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -891,46 +891,6 @@
 #define BCHP_HDMI_RAM_REG_END                              0x206fadfc
 #define BCHP_HDMI_METADATA_RAM_REG_START                   0x206fb000
 #define BCHP_HDMI_METADATA_RAM_REG_END                     0x206fb3fc
-#define BCHP_SID_REG_START                                 0x20980100
-#define BCHP_SID_REG_END                                   0x2098019c
-#define BCHP_SID_RLE_REG_START                             0x20980300
-#define BCHP_SID_RLE_REG_END                               0x2098039c
-#define BCHP_SID_DQ_REG_START                              0x20980400
-#define BCHP_SID_DQ_REG_END                                0x209804bc
-#define BCHP_SID_STRM_REG_START                            0x20980800
-#define BCHP_SID_STRM_REG_END                              0x2098087c
-#define BCHP_SID_OUTPUT_REG_START                          0x20980c00
-#define BCHP_SID_OUTPUT_REG_END                            0x20980c40
-#define BCHP_SID_ARC_REG_START                             0x20980f00
-#define BCHP_SID_ARC_REG_END                               0x20980f3c
-#define BCHP_SID_ARCDMA_REG_START                          0x20981800
-#define BCHP_SID_ARCDMA_REG_END                            0x20981840
-#define BCHP_SID_DMARAM_REG_START                          0x20981a00
-#define BCHP_SID_DMARAM_REG_END                            0x20981bfc
-#define BCHP_SID_PEEK_BITS_REG_START                       0x20982b00
-#define BCHP_SID_PEEK_BITS_REG_END                         0x20982b3c
-#define BCHP_SID_EXTRACT_BITS_REG_START                    0x20982b40
-#define BCHP_SID_EXTRACT_BITS_REG_END                      0x20982b7c
-#define BCHP_SID_HUFF_SYMB_REG_START                       0x20983000
-#define BCHP_SID_HUFF_SYMB_REG_END                         0x209837fc
-#define BCHP_SID_HUFF_CODE_REG_START                       0x20983900
-#define BCHP_SID_HUFF_CODE_REG_END                         0x209839fc
-#define BCHP_SID_SYMB_REG_START                            0x20983a00
-#define BCHP_SID_SYMB_REG_END                              0x20983a10
-#define BCHP_SID_SYMB_JPEG_REG_START                       0x20983a80
-#define BCHP_SID_SYMB_JPEG_REG_END                         0x20983a8c
-#define BCHP_SID_BIGRAM_REG_START                          0x20988000
-#define BCHP_SID_BIGRAM_REG_END                            0x2098fffc
-#define BCHP_SID_ARC_DBG_REG_START                         0x20991000
-#define BCHP_SID_ARC_DBG_REG_END                           0x20991010
-#define BCHP_SID_ARC_CORE_REG_START                        0x20995000
-#define BCHP_SID_ARC_CORE_REG_END                          0x20995014
-#define BCHP_SID_GR_REG_START                              0x209a0000
-#define BCHP_SID_GR_REG_END                                0x209a000c
-#define BCHP_SID_L2_REG_START                              0x209a0100
-#define BCHP_SID_L2_REG_END                                0x209a012c
-#define BCHP_SICH_REG_START                                0x209a0200
-#define BCHP_SICH_REG_END                                  0x209a023c
 #define BCHP_M2MC_REG_START                                0x209b0000
 #define BCHP_M2MC_REG_END                                  0x209b07fc
 #define BCHP_M2MC_L2_REG_START                             0x209b1000
@@ -1707,7 +1667,7 @@
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W1_ENTRY_CNT_LMR_CNT        256
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W1_ENTRY_CNT_TP_LUT_CNT     65
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W1_ENTRY_CNT_DLBV_CVM_CNT   2048
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W1_ENTRY_CNT_DLBV_COMP_CNT  360
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W1_ENTRY_CNT_DLBV_COMP_CNT  356
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W1_ENTRY_CNT_GFD0_NL2L_CNT  513
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W1_ENTRY_CNT_GFD0_L2NL_CNT  72
 
@@ -1863,7 +1823,7 @@
 #define BCHP_GFD_TYPE_LUT_HEADER_W1_ENTRY_CNT_LMR_CNT              256
 #define BCHP_GFD_TYPE_LUT_HEADER_W1_ENTRY_CNT_TP_LUT_CNT           65
 #define BCHP_GFD_TYPE_LUT_HEADER_W1_ENTRY_CNT_DLBV_CVM_CNT         2048
-#define BCHP_GFD_TYPE_LUT_HEADER_W1_ENTRY_CNT_DLBV_COMP_CNT        360
+#define BCHP_GFD_TYPE_LUT_HEADER_W1_ENTRY_CNT_DLBV_COMP_CNT        356
 #define BCHP_GFD_TYPE_LUT_HEADER_W1_ENTRY_CNT_GFD0_NL2L_CNT        513
 #define BCHP_GFD_TYPE_LUT_HEADER_W1_ENTRY_CNT_GFD0_L2NL_CNT        72
 
@@ -1961,7 +1921,7 @@
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W1_ENTRY_CNT_LMR_CNT    256
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W1_ENTRY_CNT_TP_LUT_CNT 65
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W1_ENTRY_CNT_DLBV_CVM_CNT 2048
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W1_ENTRY_CNT_DLBV_COMP_CNT 360
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W1_ENTRY_CNT_DLBV_COMP_CNT 356
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W1_ENTRY_CNT_GFD0_NL2L_CNT 513
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W1_ENTRY_CNT_GFD0_L2NL_CNT 72
 

@@ -59,6 +59,7 @@ typedef struct
 
 }BHSM_P_KeyLadder;
 
+
 #define MAX_NUM_KEYLADDERS 8 /*TODO ... use BSP define. */
 #define HWKL_INDEX    MAX_NUM_KEYLADDERS
 
@@ -264,11 +265,10 @@ BERR_Code BHSM_KeyLadder_SetSettings( BHSM_KeyLadderHandle handle,
 
     BDBG_ENTER( BHSM_KeyLadder_SetSettings );
 
-    /* TODO, check validity/consistency of (some) setings. */
     if( !pSettings )  { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pkeyLadder ) { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
-    if ((pSettings->mode == BHSM_KeyLadderMode_eHwlk) && (pkeyLadder->index != BHSM_HWKL_ID))
+    if ((pSettings->mode == BHSM_KeyLadderMode_eHwlk) && (pkeyLadder->index != HWKL_INDEX))
     {
         return  BERR_TRACE( BERR_INVALID_PARAMETER );
     }
@@ -544,7 +544,11 @@ static BERR_Code  _GenerateRootKey( BHSM_KeyLadderHandle handle, const BHSM_KeyL
         default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
 
-    keyOffset = (8-(2*(bspConfig.in.keySize+1))); /* offset of key in bytes */
+    keyOffset = (8-(2*(bspConfig.in.keySize+1))); /* offset of key in word */
+    if( keyOffset*4 >= sizeof(bspConfig.in.procIn) ||
+        keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
+        return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
     BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, (pKey->ladderKeySize/8) );
 
     rc = BHSM_P_KeyLadder_RootConfig( pkeyLadder->hHsm, &bspConfig );
@@ -594,7 +598,12 @@ static BERR_Code  _GenerateLevelKey( BHSM_KeyLadderHandle handle, const BHSM_Key
         default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
 
-    keyOffset = (8-(2*(bspConfig.in.keySize+1))); /* offset of key in bytes */
+    keyOffset = (8-(2*(bspConfig.in.keySize+1))); /* offset of key in word */
+
+    if( keyOffset*4 >= sizeof(bspConfig.in.procIn) ||
+        keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
+        return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
     BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, (pKey->ladderKeySize/8) );
 
     rc = BHSM_P_KeyLadder_LayerSet( pKeySlot->hHsm, &bspConfig );
@@ -623,7 +632,7 @@ BERR_Code _RouteEntryKey ( BHSM_KeyLadderHandle handle, const BHSM_P_KeyslotRout
 
     bspConfig.in.blockType = keyslotDetails.blockType ;
     bspConfig.in.entryType = keyslotDetails.polarity;
-    bspConfig.in.keySlotType = keyslotDetails.slotType;
+    bspConfig.in.keySlotType = BHSM_P_ConvertSlotType(keyslotDetails.slotType);
     bspConfig.in.keySlotNumber = keyslotDetails.number;
     bspConfig.in.keyMode = Bsp_KeyMode_eRegular;
 
@@ -665,7 +674,7 @@ BERR_Code _RouteEntryIv( BHSM_KeyLadderHandle handle, const BHSM_P_KeyslotRouteI
 
     bspConfig.in.blockType = keyslotDetails.blockType ;
     bspConfig.in.entryType = keyslotDetails.polarity;
-    bspConfig.in.keySlotType = keyslotDetails.slotType;
+    bspConfig.in.keySlotType = BHSM_P_ConvertSlotType(keyslotDetails.slotType);
     bspConfig.in.keySlotNumber = keyslotDetails.number;
 
     bspConfig.in.vklId = pConf->keyLadderIndex;
@@ -732,7 +741,6 @@ bool BHSM_P_KeyLadder_CheckConfigured( BHSM_KeyLadderHandle handle )
 
     return pkeyLadder->configured;
 }
-
 
 
 #if 0

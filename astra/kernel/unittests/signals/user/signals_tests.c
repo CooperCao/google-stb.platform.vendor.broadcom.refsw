@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,9 +50,12 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <time.h>
+#include <errno.h>
+#include "string.h"
+#include "ata_helper.h"
 
 #define SIG SIGUSR1
-#define errExit(msg)    do { perror(msg); exit(EXIT_FAILURE); } while (0)
+#define errExit(msg)    do { ATA_LogErr("%s : " msg, strerror(errno)); exit(EXIT_FAILURE); } while (0)
 
 static void
 handler(int sig, siginfo_t *si, void *uc)
@@ -93,6 +96,6 @@ main(int argc, char *argv[])
     sigqueue(me, SIG, sval);
 
     printf("Returned from sigqueue and handler\n");
-
+    ATA_LogSuccess("Signals test completed successfully");
     exit(EXIT_SUCCESS);
 }

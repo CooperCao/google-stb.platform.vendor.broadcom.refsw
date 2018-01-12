@@ -115,6 +115,16 @@ static void *BDSP_ARM_IMG_P_GetArray(unsigned imgId)
         case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eSrc):                        return BDSP_ARM_IMG_app_src_tables;
         case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eSrc):                       return BDSP_ARM_IMG_app_src_inter_frame;
 #endif /* BDSP_SRC_SUPPORT */
+#ifdef BDSP_MIXERDAPV2_SUPPORT
+		case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eMixerDapv2):					return BDSP_ARM_IMG_app_mixer_dapv2;
+		case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eMixerDapv2):					return BDSP_ARM_IMG_app_mixer_dapv2_tables;
+		case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eMixerDapv2): 				return BDSP_ARM_IMG_app_mixer_dapv2_inter_frame;
+#endif /* BDSP_MIXERDAPV2_SUPPORT */
+#ifdef BDSP_FWMIXER_SUPPORT
+		case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eMixer):					    return BDSP_ARM_IMG_app_fw_mixer;
+		case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eMixer):					    return BDSP_ARM_IMG_app_fw_mixer_tables;
+		case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eMixer): 				    return BDSP_ARM_IMG_app_fw_mixer_inter_frame;
+#endif /* BDSP_FWMIXER_SUPPORT */
 #ifdef BDSP_AACSBR_SUPPORT
         case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eAacAdtsDecode):               return BDSP_ARM_IMG_adec_aache;
         case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eAacLoasDecode):               return BDSP_ARM_IMG_adec_aache;
@@ -125,6 +135,16 @@ static void *BDSP_ARM_IMG_P_GetArray(unsigned imgId)
         case BDSP_ARM_IMG_ID_IDS(BDSP_Algorithm_eAacAdtsDecode):                return BDSP_ARM_IMG_aids_adts;
         case BDSP_ARM_IMG_ID_IDS(BDSP_Algorithm_eAacLoasDecode):                return BDSP_ARM_IMG_aids_loas;
 #endif /* BDSP_AACSBR_SUPPORT */
+#ifdef BDSP_DOLBY_AACHE_SUPPORT
+    case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_ARM_IMG_adec_dolby_aache;
+    case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_ARM_IMG_adec_dolby_aache;
+    case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_ARM_IMG_adec_dolby_aache_tables;
+    case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_ARM_IMG_adec_dolby_aache_tables;
+    case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_ARM_IMG_adec_dolby_aache_inter_frame;
+    case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_ARM_IMG_adec_dolby_aache_inter_frame;
+    case BDSP_ARM_IMG_ID_IDS(BDSP_Algorithm_eDolbyAacheAdtsDecode):			return BDSP_ARM_IMG_aids_adts;
+    case BDSP_ARM_IMG_ID_IDS(BDSP_Algorithm_eDolbyAacheLoasDecode):			return BDSP_ARM_IMG_aids_loas;
+#endif /* BDSP_DOLBY_AACSBR_SUPPORT */
 #ifdef BDSP_AACSBR_PASSTHRU_SUPPORT
         case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eAacLoasPassthrough):          return BDSP_ARM_IMG_adec_passthru;
         case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eAacLoasPassthrough):         return BDSP_ARM_IMG_adec_passthru_tables;
@@ -135,6 +155,16 @@ static void *BDSP_ARM_IMG_P_GetArray(unsigned imgId)
         case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eAacAdtsPassthrough):        return BDSP_ARM_IMG_adec_passthru_inter_frame;
         case BDSP_ARM_IMG_ID_IDS(BDSP_Algorithm_eAacAdtsPassthrough):           return BDSP_ARM_IMG_aids_adts;
 #endif /*BDSP_AACSBR_PASSTHRU_SUPPORT*/
+#ifdef BDSP_DPCMR_SUPPORT
+	case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eDpcmr):						return BDSP_ARM_IMG_app_dpcmr;
+	case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eDpcmr):						return BDSP_ARM_IMG_app_dpcmr_tables;
+	case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eDpcmr): 					return BDSP_ARM_IMG_app_dpcmr_inter_frame;
+#endif /* BDSP_DPCMR_SUPPORT */
+#ifdef BDSP_DDPENC_SUPPORT
+	case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eDDPEncode):					return BDSP_ARM_IMG_aenc_ddp;
+	case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eDDPEncode):					return BDSP_ARM_IMG_aenc_ddp_tables;
+	case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eDDPEncode): 				return BDSP_ARM_IMG_aenc_ddp_inter_frame;
+#endif /* BDSP_DDPENC_SUPPORT */
         default:
             BDBG_WRN(("IMG %u not supported (algo %u)", imgId, BDSP_ARM_IMG_ID_TO_ALGO(imgId)));
             return NULL;

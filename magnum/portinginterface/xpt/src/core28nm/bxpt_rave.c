@@ -1153,14 +1153,23 @@ BERR_Code BXPT_Rave_EnableContext(
     }
 #endif
 
+    /* Needs to be done BEFORE enabling the context. The bitfield name changed from 7278A0 to B0. */
 #ifdef BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG2_PUSH_AND_RESET_WRMASK_MASK
-    /* Needs to be done BEFORE enabling the context. */
     Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET );
     Reg &= ~(
         BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG2, PUSH_AND_RESET_WRMASK )
     );
     Reg |= (
         BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG2, PUSH_AND_RESET_WRMASK, 1 )
+    );
+    BREG_Write32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET, Reg );
+#elif defined BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG2_RESET_BEFORE_START_MASK
+    Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET );
+    Reg &= ~(
+        BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG2, RESET_BEFORE_START )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG2, RESET_BEFORE_START, 1 )
     );
     BREG_Write32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET, Reg );
 #endif
@@ -1194,6 +1203,13 @@ BERR_Code BXPT_Rave_DisableContext(
 #ifdef BCHP_PWR_RESOURCE_XPT_RAVE
     Reg = BREG_Read32(Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET);
     wasEnabled = BCHP_GET_FIELD_DATA(Reg, XPT_RAVE_CX0_AV_MISC_CONFIG1, CONTEXT_ENABLE);
+#endif
+
+#ifdef BCHP_XPT_RAVE_WRMASK_STOP_VALID_PTR_UPDATE_CX_31_0_WRMASK_STOP_VALID_PTR_UPDATE_CX_31_0_MASK
+    if(Context->Index < 32)
+        BREG_Write32(Context->hReg, BCHP_XPT_RAVE_WRMASK_STOP_VALID_PTR_UPDATE_CX_31_0, 1 << Context->Index);
+    else
+        BREG_Write32(Context->hReg, BCHP_XPT_RAVE_WRMASK_STOP_VALID_PTR_UPDATE_CX_47_32, 1 << (Context->Index - 32));
 #endif
 
     Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET );

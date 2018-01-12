@@ -80,4 +80,5 @@
 #include "bdsp_arm_int_priv.h"
 #include "bdsp_arm_cit_priv.h"
 #include "bdsp_arm_cit_log.h"
+#include "bdsp_arm_capture_priv.h"
 #endif /*BDSP_ARM_PRIV_INCLUDE_H_*/

@@ -225,7 +225,6 @@ int TzIoc::TzIocMem::mapPaddrs(
     PageTable *pageTable = task->userPageTable();
     int idx;
     int err = 0;
-
     for (idx = 0; idx < ucCount; idx++) {
         uintptr_t ulPaddr = pRegions[idx].ulPaddr;
         uint32_t  ulSize  = pRegions[idx].ulSize;
@@ -241,20 +240,9 @@ int TzIoc::TzIocMem::mapPaddrs(
         int numPages    = endOffset / PAGE_SIZE_4K_BYTES + 1;
 
         void *paPageStart = PAGE_START_4K(ulPaddr);
-        void *vaPageStart = pageTable->reserveAddrRange(
-            (void *)PAGE_SIZE_4K_BYTES,
-            numPages * PAGE_SIZE_4K_BYTES,
-            PageTable::ScanForward);
-
-        if (!vaPageStart) {
-            err = -ENOMEM;
-            goto ERR_EXIT;
-        }
-
-        pageTable->mapPageRange(
-            vaPageStart,
-            (void *)((uintptr_t)vaPageStart + endOffset),
+        void *vaPageStart = pageTable->reserveAndMapAddrRange(
             paPageStart,
+            numPages * PAGE_SIZE_4K_BYTES,
             (ulFlags & TZIOC_MEM_DEVICE) ?
                 MAIR_DEVICE :               // device memory
                 MAIR_MEMORY,                // memory with caching
@@ -266,7 +254,10 @@ int TzIoc::TzIocMem::mapPaddrs(
                 false,                      // allow execute
             true,                           // shared memory
             true);                          // non-secure
-
+        if (!vaPageStart) {
+           err = -ENOMEM;
+           goto ERR_EXIT;
+        }
         uintptr_t ulVaddr =
             (uintptr_t)vaPageStart + startOffset;
 
@@ -299,7 +290,6 @@ int TzIoc::TzIocMem::unmapPaddrs(
     TzTask *task = (TzTask *)pClient->task;
     PageTable *pageTable = task->userPageTable();
     int idx;
-
     for (idx = 0; idx < ucCount; idx++) {
         uintptr_t ulPaddr = pRegions[idx].ulPaddr;
         uintptr_t ulVaddr = pRegions[idx].ulVaddr;
@@ -327,17 +317,10 @@ int TzIoc::TzIocMem::unmapPaddrs(
 
         int startOffset = paddrMap.ulPaddr & ~PAGE_MASK;
         int endOffset   = startOffset + paddrMap.ulSize - 1;
-        int numPages    = endOffset / PAGE_SIZE_4K_BYTES + 1;
-
         void *vaPageStart = (void *)(paddrMap.ulVaddr - startOffset);
-
         pageTable->unmapPageRange(
             vaPageStart,
             (void *)((uintptr_t)vaPageStart + endOffset));
-
-        pageTable->releaseAddrRange(
-            vaPageStart,
-            numPages * PAGE_SIZE_4K_BYTES);
     }
     return 0;
 }

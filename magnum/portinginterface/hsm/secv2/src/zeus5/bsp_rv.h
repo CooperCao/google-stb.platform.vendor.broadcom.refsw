@@ -60,7 +60,7 @@ typedef enum
 } Bsp_CmdRv_e;
 
 
-/*PARAMATERS for the Bsp_CmdRv_eRsaKeySet command  */
+/*PARAMETERS for the Bsp_CmdRv_eRsaKeySet command  */
 /*input*/
 typedef struct
 {
@@ -73,7 +73,7 @@ typedef struct
 
 }Bsp_CmdRv_RsaKeySet_InFields_t;
 
-/*PARAMATERS for the Bsp_CmdRv_eRsaKeyClear command  */
+/*PARAMETERS for the Bsp_CmdRv_eRsaKeyClear command  */
 /*input*/
 typedef struct
 {
@@ -82,7 +82,7 @@ typedef struct
 
 }Bsp_CmdRv_RsaKeyClear_InFields_t;
 
-/*PARAMATERS for the Bsp_CmdRv_eQueryRegion command  */
+/*PARAMETERS for the Bsp_CmdRv_eQueryRegion command  */
 /*input*/
 typedef struct
 {
@@ -114,7 +114,7 @@ typedef struct
 }Bsp_CmdRv_QueryRegion_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdRv_eQueryAllRegions command  */
+/*PARAMETERS for the Bsp_CmdRv_eQueryAllRegions command  */
 /*input*/
 typedef struct
 {
@@ -129,7 +129,7 @@ typedef struct
 }Bsp_CmdRv_QueryAllRegions_OutFields_t;
 
 
-/*PARAMATERS for the Bsp_CmdRv_eEnableRegion command  */
+/*PARAMETERS for the Bsp_CmdRv_eEnableRegion command  */
 /*input*/
 typedef struct
 {
@@ -153,8 +153,8 @@ typedef struct
     uint8_t  resetOnVerifyFailure; /* enum type Bsp_CmdRv_ResetOnVerifyFailure_e */
     uint8_t  rsaKeyId; /* enum type Bsp_CmdRv_RsaKeyId_e */
     uint8_t  decryptionSel; /* enum type Bsp_CmdRv_DecryptionMode_e */
-    uint8_t  keyLayer;
-    uint8_t  vklId;
+    uint8_t  keyLayer; /* enum type Bsp_KeyLadderLayer_e */
+    uint8_t  vklId; /* enum type Bsp_VklId_e */
     uint8_t  reserved6;
     uint8_t  bgCheck; /* enum type Bsp_CmdRv_BgCheck_e */
     uint8_t  allowRegionDisable; /* enum type Bsp_CmdRv_RegionDisable_e */
@@ -171,7 +171,7 @@ typedef struct
 
 }Bsp_CmdRv_EnableRegion_InFields_t;
 
-/*PARAMATERS for the Bsp_CmdRv_eDisableRegion command  */
+/*PARAMETERS for the Bsp_CmdRv_eDisableRegion command  */
 /*input*/
 typedef struct
 {
@@ -180,7 +180,7 @@ typedef struct
 
 }Bsp_CmdRv_DisableRegion_InFields_t;
 
-/*PARAMATERS for the Bsp_CmdRv_eHostItchDisable command  */
+/*PARAMETERS for the Bsp_CmdRv_eHostItchDisable command  */
 /*input*/
 typedef struct
 {

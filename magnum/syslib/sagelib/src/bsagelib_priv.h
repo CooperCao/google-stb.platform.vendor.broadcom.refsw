@@ -172,7 +172,9 @@ struct BSAGElib_P_Instance {
 
     uint8_t resetPending;
     uint8_t enablePinmux;
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     BSAGElib_RpcRemoteHandle hStandbyRemote; /* remote used to sent S2 request */
+#endif
     BSAGElib_RpcRemoteHandle securelog_module; /* for auto attach TAs to secure_log */
     BSAGElib_InOutContainer *securelogContainer;
     BKNI_EventHandle         securelog_response;

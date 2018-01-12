@@ -74,6 +74,8 @@
 #include <d11ucode.h>
 #include <pcie_core.h>
 #include <bcmdevs.h>
+#include <wlc_addrmatch.h>
+
 
 #include <wlc_tx.h>
 #ifdef BCMULP
@@ -2420,6 +2422,19 @@ wlc_wowl_enable_by_cfgid(wowl_info_t *wowl, uint16 id)
 	    wlc_wowl_enable_ucode(wowl, wowl_flags, scb) != BCME_OK) {
 	    WL_WOWL(("%s fail: con:%d, cfgid: %d\n", __FUNCTION__, wlc_bss_connected(cfg), id));
 	    goto fail;
+	}
+
+	if (D11REV_GE(wlc->pub->corerev, 40)) {
+		struct ether_addr bssid;
+		uint16 attr;
+		wlc_get_addrmatch(wlc, WLC_ADDRMATCH_IDX_BSSID, &bssid, &attr);
+		WL_ERROR(("wl%d: %s: amt attr to store for bssid: 0x%x\n",
+			wlc->pub->unit, __FUNCTION__, attr));
+		/* Remove attr A1 as there is no M_AMT_INFO_BLK in WOWL to distinguish BSSID match and RA match.
+		 * Invalidate the entry first to overwrite the attr.
+		 */
+		wlc_clear_addrmatch(wlc, WLC_ADDRMATCH_IDX_BSSID);
+		wlc_set_addrmatch(wlc, WLC_ADDRMATCH_IDX_BSSID, &bssid, (attr & ~AMT_ATTR_A1));
 	}
 
 	wowl->pci_wakeind = FALSE;

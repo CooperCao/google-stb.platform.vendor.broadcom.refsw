@@ -71,6 +71,9 @@ typedef struct BHSM_P_Handle{
         void* pHash;
         void* pRsa;
         struct BHSM_OtpKeyModule* pOtpKey;
+       #ifdef BHSM_DEBUG_BSP
+        struct BHSM_BspDebugModule *pBspDebug;
+       #endif
     }modules;
 
     BREG_Handle  regHandle;

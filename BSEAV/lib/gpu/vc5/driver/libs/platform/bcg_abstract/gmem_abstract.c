@@ -379,6 +379,8 @@ gmem_handle_t gmem_from_external_memory(GMEM_TERM_T external_term, void *externa
       item->memory_handle = 0;
    }
 
+   item->external_addr = physOffset;
+
    item->type = GMEM_ALLOC_EXTERNAL;
 
    /* Apply usage flags */
@@ -709,4 +711,13 @@ bool gmem_convert_surface(BEGL_SurfaceConversionInfo *info, bool validateOnly)
 
    return s_context.mem_iface.ConvertSurface(s_context.mem_iface.context,
                                              info, validateOnly) == BEGL_Success;
+}
+
+uint64_t gmem_get_external_addr(gmem_handle_t handle)
+{
+   if (handle == GMEM_HANDLE_INVALID)
+      return 0;
+
+   gmem_alloc_item *item = gmem_validate_handle(handle);
+   return item->external_addr;
 }

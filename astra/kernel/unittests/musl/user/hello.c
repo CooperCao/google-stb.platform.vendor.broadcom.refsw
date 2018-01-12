@@ -53,6 +53,8 @@
 #include <sys/mman.h>
 #include <pthread.h>
 
+#include "ata_helper.h"
+
 #define assert(cond) if (!(cond)) { printf("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (1) {} }
 
 #define NumProcs  4
@@ -103,11 +105,11 @@ void test_posix_spawn() {
         if (waitpid(pid, &status, 0) != -1) {
             printf("[test_posix_spawn] child process exited with return code %d\n", WEXITSTATUS(status));
         } else {
-            perror("ERROR: waitpid in posix_spawn");
+            ATA_LogErr("waitpid in posix_spawn: %s ", strerror(errno));
         }
 
     } else {
-        printf("ERROR: posix_spawn: %s\n", strerror(status));
+        ATA_LogErr("posix_spawn:  %s ", strerror(errno));
         return;
     }
 
@@ -185,7 +187,7 @@ void test_fork() {
     int status;
     pid_t pid = wait(&status);
     if (pid > 0) {
-        printf("ERROR: wait returned success on no children !\n");
+        ATA_LogErr("wait returned success on no children !");
     }
     else
         printf("SUCCESS: wait returned %d errno %d\n", pid, errno);
@@ -314,7 +316,7 @@ int main(int argc, char **argv) {
     resolution.tv_nsec = 0;
     rc = clock_getres(CLOCK_REALTIME, &resolution);
     if (rc < 0) {
-        perror("clock_getres failed: ");
+        ATA_LogErr("clock_getres failed: %s ", strerror(errno));
         return -1;
     }
     printf("CLOCK_REALTIME resolution: %d %d\n", (int)resolution.tv_sec, (int)resolution.tv_nsec);
@@ -334,6 +336,6 @@ int main(int argc, char **argv) {
 
     test_posix_spawn();
 
-    printf("All tests completed successfully.\n");
+    ATA_LogSuccess("All tests completed successfully.\n");
     return 0;
 }

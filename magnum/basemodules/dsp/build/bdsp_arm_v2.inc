@@ -74,6 +74,7 @@ BDSP_SOURCES += \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_fw_algo.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_int_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_io_priv.c \
+        $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_capture_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_cit_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_cit_log.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_cit_log_ext.c

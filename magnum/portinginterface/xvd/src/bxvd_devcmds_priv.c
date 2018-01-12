@@ -63,6 +63,12 @@
 #define FW_CMD_TIMEOUT_DEBUGCMD  1500
 #define B0_POLL_DELAY 6000
 
+#if BXVD_P_FW_HW_BASE_NON_ZERO
+#define BXVD_P_FW_ACCESS_BASE   BXVD_P_STB_REG_BASE
+#else
+#define BXVD_P_FW_ACCESS_BASE   0
+#endif
+
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
 #define BXVD_P_SWAP32(a) (((a&0xFF)<<24)|((a&0xFF00)<<8)|((a&0xFF0000)>>8)|((a&0xFF000000)>>24))
 
@@ -338,23 +344,30 @@ BERR_Code BXVD_P_HostCmdSendInit
    pInit->cdb_little_endian = eRaveEndianess;
    pInit->stripe_width = hXvd->uiDecode_StripeWidth;
    pInit->stripe_height = hXvd->uiDecode_StripeMultiple;
-   pInit->bvnf_intr_context_base = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdStatus;
+   pInit->bvnf_intr_context_base = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdStatus - BXVD_P_FW_ACCESS_BASE;
 #if !BXVD_P_FW_40BIT_API
-   pInit->host_L2_intr_set = hXvd->stPlatformInfo.stReg.uiAvd_CPUL2InterruptSet;
+   pInit->host_L2_intr_set = hXvd->stPlatformInfo.stReg.uiAvd_CPUL2InterruptSet - BXVD_P_FW_ACCESS_BASE;
 #else
    pInit->map8_mode_enabled = (hXvd->scbMapVer == BCHP_ScbMapVer_eMap8);
+
+#if BXVD_P_RAVE_40BIT_ADDRESSABLE
+   pInit->xpt_interface_32bits = 0;
+#else
+   pInit->xpt_interface_32bits = 1;
 #endif
-   pInit->chip_prod_revision = hXvd->uiChip_ProductRevision;
+
+#endif
+   pInit->chip_prod_revision = hXvd->uiChip_ProductRevision - BXVD_P_FW_ACCESS_BASE;
    pInit->rave_context_reg_size = BXVD_P_RAVE_CONTEXT_SIZE;
-   pInit->rave_cx_hold_clr_status = BXVD_P_RAVE_CX_HOLD_CLR_STATUS;
-   pInit->rave_packet_count = BXVD_P_RAVE_PACKET_COUNT;
+   pInit->rave_cx_hold_clr_status = BXVD_P_RAVE_CX_HOLD_CLR_STATUS - BXVD_P_FW_ACCESS_BASE;
+   pInit->rave_packet_count = BXVD_P_RAVE_PACKET_COUNT - BXVD_P_FW_ACCESS_BASE;
 
 #if BXVD_P_RUL_DONE_MASK_64_BITS
-   pInit->bvnf_intr_context_1_base = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdStatus;
+   pInit->bvnf_intr_context_1_base = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdStatus - BXVD_P_FW_ACCESS_BASE;
 #endif
 
 #if BXVD_P_MEMC_SENTINEL_0_REG_START
-   pInit->memc_sentinel_reg_start = BXVD_P_MEMC_SENTINEL_0_REG_START;
+   pInit->memc_sentinel_reg_start = BXVD_P_MEMC_SENTINEL_0_REG_START - BXVD_P_FW_ACCESS_BASE;
 #else
    pInit->memc_sentinel_reg_start = VDEC_INIT_SENTINEL_NOT_SUPPORTED;
 #endif
@@ -375,7 +388,8 @@ BERR_Code BXVD_P_HostCmdSendInit
    BXVD_DBG_MSG(hXvd, (" bvnf_intr_context_1 base: %08x", pInit->bvnf_intr_context_1_base));
    BXVD_DBG_MSG(hXvd, (" memc_sentinel_reg_start: %08x", pInit->memc_sentinel_reg_start));
 #if BXVD_P_FW_40BIT_API
-   BXVD_DBG_MSG(hXvd, (" map8_mode_enabled: %08x", pInit->map8_mode_enabled));
+   BXVD_DBG_MSG(hXvd, (" map8_mode_enabled: %d", pInit->map8_mode_enabled));
+   BXVD_DBG_MSG(hXvd, (" xpt_interface_32bits: %d", pInit->xpt_interface_32bits));
 #endif
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,

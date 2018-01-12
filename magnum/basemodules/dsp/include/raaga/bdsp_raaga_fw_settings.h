@@ -4947,6 +4947,9 @@ typedef struct BDSP_Raaga_Audio_DDPEncConfigParams
                 */
     int32_t     i32AddBsi[64];
 
+    /* Enable / Disable Atmos lock [Default : 0 = disabled] */
+    uint32_t    ui32AtmosLockEnabled;
+
 } BDSP_Raaga_Audio_DDPEncConfigParams;
 
 extern const BDSP_P_Audio_FrameSyncTsmConfigParams   BDSP_sDefaultFrameSyncTsmSettings;

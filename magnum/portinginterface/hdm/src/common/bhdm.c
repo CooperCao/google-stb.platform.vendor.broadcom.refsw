@@ -3626,6 +3626,14 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 #if BHDM_CONFIG_HAS_HDCP22
 		/* hard reset HDCP_I2C/HDCP SW_INIT first */
 		BHDM_P_ResetHDCPI2C_isr(hHDMI);
+
+#if defined(BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0_WM_DISABLE_MASK)
+		/* disable WR_FIFO to prevent SAGE program FIFO while device being detach - For compliance test issue */
+		Register = BREG_Read32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset) ;
+			Register &= ~BCHP_MASK(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, WM_DISABLE);
+			Register |= BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, WM_DISABLE, 1);
+		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset, Register) ;
+#endif
 #endif
 
 		BHDM_P_DisableDisplay_isr(hHDMI) ;
@@ -3660,6 +3668,22 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		hHDMI->RxDeviceAttached = 1;
 		hHDMI->hotplugInterruptFired = true;
 		hHDMI->edidStatus = BHDM_EDID_STATE_eInitialize;	/* Set Initialize EDID read flag */
+
+#if BHDM_CONFIG_HAS_HDCP22
+		/* reset WR_FIFO to prevent AKE_Init message to be sent out - For compliance test issue*/
+		Register = BREG_Read32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset) ;
+			Register &= ~BCHP_MASK(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, FIFO_RESET);
+			Register |= BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, FIFO_RESET, 1);
+		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset, Register) ;
+
+#if defined(BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0_WM_DISABLE_MASK)
+		/* enable WR FIFO again - For compliance test issue*/
+		Register = BREG_Read32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset) ;
+		Register &= ~BCHP_MASK(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, WM_DISABLE);
+		Register |= BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, WM_DISABLE, 0);
+		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset, Register) ;
+#endif
+#endif
 
 		BHDM_MONITOR_P_HpdChanges_isr(hHDMI) ;
 	}

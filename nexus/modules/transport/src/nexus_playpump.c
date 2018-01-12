@@ -1360,6 +1360,7 @@ NEXUS_Error NEXUS_Playpump_SubmitScatterGatherDescriptor(NEXUS_PlaypumpHandle p,
     return 0;
 }
 
+#if 0
 static void NEXUS_Playpump_P_AdjustFifoDepth(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatus *pStatus)
 {
     if(!p->state.running) {
@@ -1414,6 +1415,8 @@ static void NEXUS_Playpump_P_AdjustFifoDepth(NEXUS_PlaypumpHandle p, NEXUS_Playp
     }
     return;
 }
+#endif
+
 NEXUS_Error NEXUS_Playpump_GetStatus(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatus *pStatus)
 {
     BDBG_OBJECT_ASSERT(p, NEXUS_Playpump);
@@ -1449,8 +1452,6 @@ NEXUS_Error NEXUS_Playpump_GetStatus(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatu
         if (sum) {
             pStatus->fifoSize = sum;
         }
-    } else {
-        NEXUS_Playpump_P_AdjustFifoDepth(p, pStatus);
     }
 
 #if B_HAS_MEDIA

@@ -179,7 +179,6 @@ static void BBOX_P_PrintBoxConfig
                 BBOX_Vdc_Resource_Feeder eVfd;
                 BBOX_Vdc_Resource_Scaler eScl;
                 BBOX_Vdc_SclCapBias eSclCapBias;
-                bool bSrcSideDeinterlacer;
 
                 if (pBoxVdcCap->astDisplay[i].astWindow[j].bAvailable == true)
                 {
@@ -224,8 +223,8 @@ static void BBOX_P_PrintBoxConfig
                         }
                     }
 
-                    bSrcSideDeinterlacer = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.bSrcSideDeinterlacer;
-                    BDBG_MODULE_MSG(BBOX_CFG, ("                src side deinterlacer: %s", !bSrcSideDeinterlacer ? "false" : "true"));
+                    BDBG_MODULE_MSG(BBOX_CFG, ("                src side deinterlacer: %s",
+                        !pBoxVdcCap->astDisplay[i].astWindow[j].stResource.bSrcSideDeinterlacer ? "false" : "true"));
 
                     eCap = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eCap;
                     if (eCap == BBOX_Vdc_Resource_Capture_eUnknown)
@@ -372,6 +371,7 @@ BERR_Code BBOX_Open
     }
     else
     {
+        BDBG_ERR(("Box mode %d is not supported.", pBoxSettings->ulBoxId));
         goto BBOX_Open_Done;
     }
 

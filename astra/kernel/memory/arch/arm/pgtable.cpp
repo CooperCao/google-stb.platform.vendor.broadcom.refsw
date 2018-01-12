@@ -801,3 +801,26 @@ void PageTable::changePageAccessPerms(TzMem::VirtAddr vaddr, int accessPerms, bo
     // main memory by doing a DCCIMVAC on the entry.
 	ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
 }
+
+TzMem::VirtAddr PageTable::reserveAndMapAddrRange(const TzMem::PhysAddr paddrFirstPage, unsigned int rangeSize,
+    const int memAttr, const int memAccessPerms, const bool executeNever, const bool mapShared, const bool nonSecure){
+    void *vaPageStart = reserveAddrRange(
+            (void *)PAGE_SIZE_4K_BYTES,
+            rangeSize,
+            PageTable::ScanForward);
+
+    if (!vaPageStart) {
+        return nullptr;
+    }
+    mapPageRange(
+        vaPageStart,
+        (void *)((uintptr_t)vaPageStart + rangeSize-1),
+        paddrFirstPage,
+        memAttr,                // memory with caching
+        memAccessPerms,      // read write
+        executeNever,                      // allow execute
+        mapShared,                           // shared memory
+        nonSecure);                          // non-secure
+
+    return vaPageStart;
+}

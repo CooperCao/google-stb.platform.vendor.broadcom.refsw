@@ -771,6 +771,7 @@ endif
 #ifdef WLLX
 ifeq ($(WLLX),1)
         WLFILES_SRC += src/wl/sys/wl_linux.c
+        WLFILES_SRC += src/wl/sys/wl_linux_vendor.c
 endif
 #endif
 

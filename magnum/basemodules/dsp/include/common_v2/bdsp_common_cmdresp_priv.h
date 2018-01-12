@@ -251,11 +251,7 @@ typedef struct BDSP_P_Arm_InitCommand {
     BDSP_P_CustomMMInfo             sCustomMMInfo;         /* Custom MM info */
     BDSP_P_SchedulingInfo           sSchedulingInfo;    /* Scheduler info */
     BDSP_P_TimerInfo                sTimerInfo;         /* Timer info for scheduler */
-    uint64_t                        ui64NumRegRegions;  /* Number of register regions to Map */
-    BDSP_Arm_P_MemoryDescriptor     RegisterRegions[BDSP_ARM_MAX_REGISTER_REGIONS];  /* Details of the Register Regions */
 } BDSP_P_Arm_InitCommand;
-
-
 
 typedef struct BDSP_P_StartTaskCommand{
 	BDSP_P_SchedulingMode          eSchedulingMode;		   	/* Master/Slave*/

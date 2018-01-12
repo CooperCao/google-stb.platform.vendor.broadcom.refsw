@@ -521,6 +521,7 @@ int UserAppDmon::UserApp::start()
         return -1;
     }
     else if (pid == 0) {
+        setpgid(0,0);
         char *argv[] = {const_cast<char *>(exec.c_str()), NULL};
         execv(exec.c_str(), argv);
         exit(0);
@@ -530,7 +531,20 @@ int UserAppDmon::UserApp::start()
 
 int UserAppDmon::UserApp::stop()
 {
-    kill(pid, SIGTERM);
+    int status;
+    int error;
+    kill(-pid, SIGTERM);
+    do {
+        error = waitpid(-pid, &status, 0);
+        if (error == -1) {
+            if (errno == EINTR) {
+                printf("Info waitpid interrupted, continuing waitpid: %s\n", strerror(errno));
+                error = 0;
+                continue;
+            }
+        }
+    } while (error != -1);
+
     return 0;
 }
 

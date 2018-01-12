@@ -2200,8 +2200,8 @@ BERR_Code BKIR_Set_PM_AON_CONFIG(
             /* fall through */
         case BKIR_INPUT_IR_IN0:     field_value = BCHP_PM_AON_CONFIG_irr0_in_IR_IN0 ; break;
         }
-        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr1_in);
-        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr1_in, field_value);
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr0_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr0_in, field_value);
         break;
         break;
 #endif

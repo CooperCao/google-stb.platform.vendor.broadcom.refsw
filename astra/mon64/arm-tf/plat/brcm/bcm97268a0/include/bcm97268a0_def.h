@@ -125,4 +125,6 @@
 #define BCM_IRQ_SEC_SGI_6	14
 #define BCM_IRQ_SEC_SGI_7	15
 
+#define BCM_IRQ_SEC_TIMER       29
+
 #endif /* __BCM97268A0_DEF_H__ */

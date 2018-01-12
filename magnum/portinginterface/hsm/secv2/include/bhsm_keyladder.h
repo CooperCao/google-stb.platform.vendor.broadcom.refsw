@@ -74,7 +74,6 @@ extern "C"
 #define BHSM_KEYLADDER_LADDER_KEY_SIZE (16)
 #define BHSM_KEYLADDER_CHALLENGE_NONCE_MAX_LEN  (16)
 #define BHSM_KEYLADDER_CHALLENGE_RESPONSE_MAX_LEN  (16)
-
 #define BHSM_HWKL_ID (0xFEDCCDEF)
 
 typedef struct BHSM_P_KeyLadder* BHSM_KeyLadderHandle;
@@ -84,6 +83,7 @@ typedef struct BHSM_KeyLadderAllocateSettings
     BHSM_SecurityCpuContext owner; /* used to specify whether the keyladder is intended for HOST or SAGE usage. */
     unsigned index;                /* supports BHSM_ANY_ID to allow NEXUS manage KeyLadder instances.
                                       HWKL_ID is also support to indicate the intention of using the HW keyladder */
+
 } BHSM_KeyLadderAllocateSettings;
 
 
@@ -207,8 +207,11 @@ typedef struct
 
         /* valid if root.type is BHSM_KeyLadderRootType_eOtpAskm or BHSM_KeyLadderRootType_eGlobalKey */
         struct{
+            /* SAGE_ONLY_BEGIN */
+            unsigned                        sageModuleId;    /* requried only on SAGE */
+            unsigned                        caVendorIdExtension;      /* id unique to CA vendor. */
+            /* SAGE_ONLY_END */
             unsigned                        caVendorId;      /* id unique to CA vendor. */
-            unsigned caVendorIdExtension;                    /* id unique to CA vendor. */
             BHSM_KeyladderCaVendorIdScope  caVendorIdScope;
             BHSM_KeyLadderStbOwnerIdSelect stbOwnerSelect;  /* allow owner/boradcaster to add diffusion to key */
             bool swapKey;                                   /* swap key1's 8 top bytes with lower 8 (for 3DesAba ladder). */
@@ -225,6 +228,8 @@ typedef struct
             BHSM_SwizzelType type;
             unsigned swizzle1IndexSel;
             bool enableSwizzle0a;
+            unsigned cusKeySwizzle0aVariant;
+            unsigned cusKeySwizzle0aVersion;
             struct {
                 unsigned keyVar;
                 unsigned keyIndex;
@@ -238,6 +243,7 @@ typedef struct
         BHSM_CryptographicAlgorithm  algorithm;     /* algorithm of the hwkl*/
         uint8_t   moduleId;     /* moduleId to use */
     }hwkl;
+
 } BHSM_KeyLadderSettings;
 
 

@@ -60,7 +60,7 @@ static unsigned long tzImgSize = 0;
 
 extern unsigned long _start, _end;
 
-#define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
+#define assert(cond) if (!(cond)) { ATA_LogErr("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
 void setupPageAllocTests(void *devTree) {
 
@@ -154,7 +154,7 @@ void runPageAllocTests() {
     int nfPages = TzMem::numFreePages();
     //printf("numFreePages %d expected %d\n", nfPages, availMemSize/PAGE_SIZE_4K_BYTES);
     assert(nfPages*PAGE_SIZE_4K_BYTES == availMemSize);
-    success_msg("Mem size test passed\n");
+    ATA_LogMsg("Success: Mem size test passed\n");
 
     // Allocate all the available pages
     for (int i=0; i<nfPages; i++) {
@@ -164,16 +164,16 @@ void runPageAllocTests() {
         allocPages[i] = paddr;
     }
     if (hasDuplicates(allocPages, nfPages)) {
-        err_msg("Max alloc test failed: Duplicate page allocations detected\n");
+        ATA_LogErr("Max alloc test failed: Duplicate page allocations detected\n");
         return;
     }
-    success_msg("Max alloc test passed\n");
+    ATA_LogMsg("Success: Max alloc test passed\n");
 
     // Free all the allocated pages
     for (int i=0; i<nfPages; i++)
         TzMem::freePage(allocPages[i]);
     assert(TzMem::numFreePages() == nfPages);
-    success_msg("Linear free all test passed\n");
+    ATA_LogMsg("Success: Linear free all test passed\n");
 
     // Allocate all the available pages, free half of them and re-allocate them.
     for (int i=0; i<nfPages; i++) {
@@ -183,7 +183,7 @@ void runPageAllocTests() {
         allocPages[i] = paddr;
     }
     if (hasDuplicates(allocPages, nfPages)) {
-        err_msg("Free Plus Realloc test failed: Duplicate page allocations detected\n");
+        ATA_LogErr("Free Plus Realloc test failed: Duplicate page allocations detected\n");
         return;
     }
     for (int i=0; i<nfPages; i+=2) {
@@ -194,10 +194,10 @@ void runPageAllocTests() {
         assert(allocPages[i] != nullptr);
     }
     if (hasDuplicates(allocPages, nfPages)) {
-        err_msg("Free Plus Realloc test failed: Duplicate page allocations detected\n");
+        ATA_LogErr("Free Plus Realloc test failed: Duplicate page allocations detected\n");
         return;
     }
-    success_msg("Free plus realloc test passed\n");
+    ATA_LogMsg("Success: Free plus realloc test passed\n");
 
     for (int i=0; i<nfPages; i++)
         TzMem::freePage(allocPages[i]);
@@ -205,18 +205,18 @@ void runPageAllocTests() {
         allocPages[i] = TzMem::allocContiguousPages(16, 0);
         assert(allocPages[i] != nullptr);
     }
-    success_msg("Contiguous alloc test passed\n");
+    ATA_LogMsg("Success: Contiguous alloc test passed\n");
 
     for (int i=0; i<nfPages/2; i+=16) {
         TzMem::freeContiguousPages(allocPages[i], 16);
     }
-    success_msg("Contiguous free test passed\n");
+    ATA_LogMsg("Success: Contiguous free test passed\n");
 
     for (int i=0; i<100000; i++) {
         TzMem::PhysAddr page = TzMem::allocPage(i);
         TzMem::freePage(page);
     }
-    success_msg("Repeated alloc-free test passed\n");
+    ATA_LogMsg("Success: Repeated alloc-free test passed\n");
 }
 
 void runPageTableTests() {
@@ -250,7 +250,7 @@ void runPageTableTests() {
     for (int i=0; i<4; i++) {
         TzMem::PhysAddr addr = TzMem::allocPage(0);
         if (addr == nullptr) {
-            err_msg("%s: Could not allocate stack page\n", __FUNCTION__);
+            ATA_LogErr("%s: Could not allocate stack page\n", __FUNCTION__);
             return;
         }
 
@@ -267,7 +267,7 @@ void runPageTableTests() {
     curr = (uint32_t *)stackPageStart;
     while (curr != last) {
         if (*curr != 0xcafebabe) {
-            err_msg("%s: stack read back curr %p failed.", __FUNCTION__, curr);
+            ATA_LogErr("%s: stack read back curr %p failed.", __FUNCTION__, curr);
         }
         curr++;
     }
@@ -278,7 +278,7 @@ void runPageTableTests() {
     for (int i=0; i<16; i++) {
         TzMem::PhysAddr addr = TzMem::allocPage(0);
         if (addr == nullptr) {
-            err_msg("%s: Could not allocate heap page\n", __FUNCTION__);
+            ATA_LogErr("%s: Could not allocate heap page\n", __FUNCTION__);
             return;
         }
 
@@ -295,12 +295,12 @@ void runPageTableTests() {
     curr = (uint32_t *)heapPageStart;
     while (curr != last) {
         if (*curr != 0xcafebabe) {
-            err_msg("%s: heap read back curr %p failed.", __FUNCTION__, curr);
+            ATA_LogErr("%s: heap read back curr %p failed.", __FUNCTION__, curr);
         }
         curr++;
     }
 
-    success_msg("Heap test passed\n");
+    ATA_LogMsg("Success: Heap test passed\n");
 }
 
 void runMallocTests() {
@@ -326,7 +326,7 @@ void runMallocTests() {
         allocator.free(objects[i]);
     }
 
-    success_msg("Malloc alloc and free inorder tests passed\n");
+    ATA_LogMsg("Success: Malloc alloc and free inorder tests passed\n");
 
     for (int i=0; i<128; i++) {
         objects[i] = allocator.alloc();
@@ -361,7 +361,7 @@ void runMallocTests() {
         objects[i] = nullptr;
     }
 
-    success_msg("Malloc tests passed\n");
+    ATA_LogMsg("Success: Malloc tests passed\n");
 }
 
 void runMemPoolTests() {
@@ -400,7 +400,7 @@ void runMemPoolTests() {
     pool.free(largeAllocs[2]);
     pool.free(largeAllocs[1]);
 
-    success_msg("large allocs tests passed\n");
+    ATA_LogSuccess("large allocs tests passed\n");
 }
 
 void tzKernelInit(const void *devTree) {
@@ -424,7 +424,7 @@ void tzKernelInit(const void *devTree) {
 
     runMemPoolTests();
 
-    success_msg("Memory subsystem unit tests done\n");
+    ATA_LogSuccess("Memory subsystem unit tests done\n");
     while (1) {
         asm volatile("wfi":::);
     }
@@ -440,11 +440,11 @@ void tzKernelSecondary() {
 }
 
 void kernelHalt(const char *reason) {
-    err_msg("%s\n", reason);
+    ATA_LogErr("%s\n", reason);
     while (true) {}
 }
 
 extern "C" void __cxa_pure_virtual() {
-    err_msg("Pure virtual function called !\n");
+    ATA_LogErr("Pure virtual function called !\n");
     kernelHalt("Pure virtual function call");
 }

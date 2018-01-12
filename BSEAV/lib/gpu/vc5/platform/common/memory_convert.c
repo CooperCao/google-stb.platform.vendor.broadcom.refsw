@@ -7,6 +7,8 @@
 #include "memory_convert.h"
 #include "assert.h"
 
+#include <stdio.h>
+
 #define M2MC_HAS_UIF_SUPPORT (BCHP_M2MC_REVISION_MAJOR_DEFAULT >= 2)
 
 static NEXUS_Graphics2DColorMatrix s_colorMatrix601;
@@ -232,23 +234,20 @@ BEGL_Error MemoryConvertSurface(const BEGL_SurfaceConversionInfo *info,
       NEXUS_Graphics2D_GetDefaultDestripeBlitSettings(&settings);
       settings.source.stripedSurface   = srcStripedSurf;
       settings.output.surface          = dstSurface;
-      if (info->srcColorimetry == BEGL_Colorimetry_RGB)
-         settings.conversionMatrixEnabled = false;
-      else
+      settings.conversionMatrixEnabled = true;
+      switch (info->srcColorimetry)
       {
-         settings.conversionMatrixEnabled = true;
-         switch (info->srcColorimetry)
-         {
-         // Work is planned in Nexus/Magnum to allow us to query the actual VDC matrix given
-         // the colorimetry enum. For now, just handle what we can. When the matrix query is
-         // available, use that instead.
-         case BEGL_Colorimetry_XvYCC_601:    settings.conversionMatrix = s_colorMatrix601;  break;
-         case BEGL_Colorimetry_BT_2020_NCL:  settings.conversionMatrix = s_colorMatrix2020; break;
-         case BEGL_Colorimetry_BT_2020_CL:   settings.conversionMatrix = s_colorMatrix2020; break;
-         case BEGL_Colorimetry_XvYCC_709:
-         case BEGL_Colorimetry_BT_709:
-         default:                            settings.conversionMatrix = s_colorMatrix709;  break;
-         }
+      case BEGL_Colorimetry_BT_470_2_BG:
+      case BEGL_Colorimetry_Smpte_170M:
+      case BEGL_Colorimetry_FCC:
+      case BEGL_Colorimetry_XvYCC_601:    settings.conversionMatrix = s_colorMatrix601;  break;
+      case BEGL_Colorimetry_BT_2020_NCL:
+      case BEGL_Colorimetry_BT_2020_CL:   settings.conversionMatrix = s_colorMatrix2020; break;
+      case BEGL_Colorimetry_RGB:
+      case BEGL_Colorimetry_Unknown:
+      case BEGL_Colorimetry_XvYCC_709:
+      case BEGL_Colorimetry_BT_709:
+      default:                            settings.conversionMatrix = s_colorMatrix709;  break;
       }
       settings.horizontalFilter = NEXUS_Graphics2DFilterCoeffs_eAnisotropic;
       settings.verticalFilter   = NEXUS_Graphics2DFilterCoeffs_eAnisotropic;
