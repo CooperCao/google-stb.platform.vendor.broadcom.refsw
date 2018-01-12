@@ -3211,7 +3211,7 @@ wlc_phy_desense_aci_engine_acphy(phy_info_t *pi)
 		if (!jammer_present)
 			new_ofdm_desense = MIN(new_ofdm_desense, MAX(max_lesi_desense, desense->ofdm_desense - 1));
 	} else {
-		max_rssi = jammer_present ? 90 : 80;	/* more aggressive if jammer present (too many glitches) */
+		max_rssi = jammer_present ? 85 : 80;	/* more aggressive if jammer present (too many glitches) */
 		/* Always allow LESI to desense (upto lesi off), irrespective of RSSI	*/
 		new_ofdm_desense = MIN(new_ofdm_desense, max_lesi_desense + MAX(0, aci->weakest_rssi + max_rssi));
 	}

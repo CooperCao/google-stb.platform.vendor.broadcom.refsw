@@ -386,7 +386,7 @@ obj-$(CONFIG_USBAP) += bmac dongle
 obj-$(CONFIG_DHDAP) += dhd pciefd dhd_monitor
 
 # always build libbcmcrypto
-# obj-y += libbcmcrypto
+obj-y += libbcmcrypto
 
 #
 # Configuration
@@ -528,7 +528,7 @@ endif
 #endif /* __CONFIG_TREND_IQOS__ */
 
 # always build eap dispatcher
-# obj-y += eapd/linux
+obj-y += eapd/linux
 
 ifeq ($(CONFIG_VOIP),y)
 obj-y += voipd

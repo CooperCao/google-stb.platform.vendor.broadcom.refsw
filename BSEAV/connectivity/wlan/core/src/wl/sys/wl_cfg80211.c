@@ -881,6 +881,14 @@ static void wl_cfg80211_work_handler(struct work_struct *work);
 static void wl_cfg80211_scan_supp_timerfunc(ulong data);
 #endif /* DHCP_SCAN_SUPPRESS */
 
+#ifdef WLDFS
+static s32 wl_cfg80211_start_radar_detection(struct wiphy *wiphy, struct net_device *dev,
+	struct cfg80211_chan_def *chandef, u32 cac_time_ms);
+static void wl_cfg80211_dfs_cac_work_handler(struct work_struct *work);
+static s32 wl_radar_event_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
+	const wl_event_msg_t *e, void *data);
+#endif /* WLDFS */
+
 static void wl_cfg80211_work_handler(struct work_struct *work);
 static s32 wl_add_keyext(struct wiphy *wiphy, struct net_device *dev,
 	u8 key_idx, const u8 *mac_addr,
@@ -1073,6 +1081,10 @@ struct chan_info {
 extern int wl_net_attach(struct net_device *dev, int ifidx);
 extern struct net_device *wl_net_find(void *wl, const char* ifname);
 #endif
+
+#if defined(WOWL_DRV_NORELOAD)
+extern int wl_resume_normalmode(void);
+#endif /*WOWL_DRV_NORELOAD*/
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))
 #define CFG80211_PUT_BSS(wiphy, bss) cfg80211_put_bss(wiphy, bss);
@@ -1322,6 +1334,20 @@ static void wl_add_remove_pm_enable_work(struct bcm_cfg80211 *cfg,
 	}
 	mutex_unlock(&cfg->pm_sync);
 }
+
+#ifdef WLDFS
+static void wl_remove_dfs_cac_work(struct bcm_cfg80211 *cfg)
+{
+	if (cfg == NULL)
+		return;
+
+	mutex_lock(&cfg->dfs_cac_sync);
+	if (delayed_work_pending(&cfg->dfs_cac_work)) {
+		cancel_delayed_work_sync(&cfg->dfs_cac_work);
+	}
+	mutex_unlock(&cfg->dfs_cac_sync);
+}
+#endif /* WLDFS */
 
 /* Return a new chanspec given a legacy chanspec
  * Returns INVCHANSPEC on error
@@ -1989,7 +2015,10 @@ wl_cfg80211_iface_state_ops(struct wireless_dev *wdev,
 				dhd_set_cpucore(dhd, FALSE);
 			}
 #endif /* CUSTOM_SET_CPUCORE */
-			 wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+			wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+#ifdef WLDFS
+			wl_remove_dfs_cac_work(cfg);
+#endif /* WLDFS */
 			break;
 		case WL_IF_CREATE_DONE:
 			if (wl_mode != WL_MODE_BSS) {
@@ -2406,17 +2435,16 @@ wl_cfg80211_setup_vwdev(struct net_device *dev, s32 idx, s32 bssidx)
 		break;
 	case NL80211_IFTYPE_STATION:
 	case NL80211_IFTYPE_AP:
-#if !defined(BCMDONGLEHOST)
-		/* store for ifadd notification */
-		cfg->private_data = wl_net_attach;
-		cfg->bssidx = bssidx;
-#endif /* !defined(BCMDONGLEHOST) */
 		break;
 	default:
 		WL_DBG(("No cfg80211 setup needed"));
 		return 2;
 	}
-
+#if !defined(BCMDONGLEHOST)
+	/* store for ifadd notification */
+	cfg->private_data = wl_net_attach;
+	cfg->bssidx = bssidx;
+#endif /* !defined(BCMDONGLEHOST) */
 	vwdev = kzalloc(sizeof(*vwdev), GFP_KERNEL);
 	if (unlikely(!vwdev)) {
 		WL_DBG(("Could not allocate wireless device\n"));
@@ -6398,6 +6426,38 @@ static void wl_cfg80211_wait_for_disconnection(struct bcm_cfg80211 *cfg, struct 
 	return;
 }
 
+#ifdef WLDFS
+static s32 wl_cfg80211_start_radar_detection(struct wiphy *wiphy, struct net_device *dev,
+	struct cfg80211_chan_def *chandef, u32 cac_time_ms)
+{
+	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
+	s32 err = 0;
+
+	WL_ERR(("Enter\n"));
+
+	WL_DBG(("chandef->chan.center_freq is %d\n", chandef->chan->center_freq));
+	WL_DBG(("chandef->width is %d\n", chandef->width));
+	WL_DBG(("chandef->center_freq1 is %d\n", chandef->center_freq1));
+	WL_DBG(("chandef->center_freq2 is %d\n", chandef->center_freq2));
+	WL_DBG(("cac_time_ms is %d\n", cac_time_ms));
+
+	RETURN_EIO_IF_NOT_UP(cfg);
+
+	/* DFS CAC is triggered within driver.  If start_radar_detection is received
+	 *  then just send NL80211_RADAR_CAC_FINISHED when cac_time_ms expires
+	 */
+	mutex_lock(&cfg->dfs_cac_sync);
+	if (schedule_delayed_work(&cfg->dfs_cac_work,
+		msecs_to_jiffies(cac_time_ms))) {
+	} else {
+		WL_ERR(("Can't schedule dfs cac work handler\n"));
+	}
+	mutex_unlock(&cfg->dfs_cac_sync);
+
+	return err;
+}
+#endif /* WLDFS */
+
 static s32
 wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 	u16 reason_code)
@@ -7242,6 +7302,12 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 				MAC2STRDBG(mac), MAC2STRDBG(curmacp)));
 		}
 
+		if (!capable(CAP_NET_ADMIN)) {
+			WL_DBG(("No permission\n"));
+			err = -EPERM;
+			return err;
+		}
+
 		/* Report the current tx rate */
 		rate = 0;
 		err = wldev_ioctl_get(dev, WLC_GET_RATE, &rate, sizeof(rate));
@@ -7448,6 +7514,9 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	struct net_device *ndev = bcmcfg_to_prmry_ndev(cfg);
 	s32 err = BCME_OK;
+#if defined(WOWL_DRV_NORELOAD)
+	u32 val;
+#endif /* WOWL_DRV_NORELOAD */
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS)) && !defined(OEM_ANDROID)
 	int pkt_filter_id = WL_WOWLAN_PKT_FILTER_ID_FIRST;
@@ -7479,11 +7548,23 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 	}
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
 
+#if defined(WOWL_DRV_NORELOAD)
+#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
+	defined(WL_COMPAT_WIRELESS))
+		wl_resume_normalmode();
+#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
+
+	/* Set interface up */
+	val = 1;
+	err = wldev_ioctl(ndev, WLC_UP, (void *)&val, sizeof(val), true);
+	if (err < 0)
+		WL_ERR(("set interface up failed, error = %d\n", err));
+#endif  /*WOWL_DRV_NORELOAD*/
 	return err;
 }
 
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
-	defined(WL_COMPAT_WIRELESS)) && !defined(OEM_ANDROID)
+	defined(WL_COMPAT_WIRELESS))
 static s32 wl_wowlan_config(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
 {
 	s32 err = BCME_OK;
@@ -7756,7 +7837,7 @@ exit:
 
 	return err;
 }
-#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
+#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS)
@@ -7803,9 +7884,9 @@ static s32 wl_cfg80211_suspend(struct wiphy *wiphy)
 #endif /* DHD_CLEAR_ON_SUSPEND */
 
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
-	defined(WL_COMPAT_WIRELESS)) && !defined(OEM_ANDROID)
+	defined(WL_COMPAT_WIRELESS))
 	err = wl_wowlan_config(wiphy, wow);
-#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
+#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 
 	return err;
 }
@@ -12011,6 +12092,9 @@ static struct cfg80211_ops wl_cfg80211_ops = {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0))
 	.set_rekey_data = wl_cfg80211_set_rekey_data,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0) */
+#ifdef WLDFS
+	.start_radar_detection = wl_cfg80211_start_radar_detection,
+#endif /* WLDFS */
 };
 
 s32 wl_mode_to_nl80211_iftype(s32 mode)
@@ -15701,7 +15785,9 @@ static void wl_init_event_handler(struct bcm_cfg80211 *cfg)
 #ifdef ENABLE_TEMP_THROTTLING
 	cfg->evt_handler[WLC_E_TEMP_THROTTLE] = wl_check_rx_throttle_status;
 #endif /* ENABLE_TEMP_THROTTLING */
-
+#ifdef WLDFS
+	cfg->evt_handler[WLC_E_RADAR_DETECTED] = wl_radar_event_handler;
+#endif /* WLDFS */
 }
 
 #if defined(STATIC_WL_PRIV_STRUCT)
@@ -17452,6 +17538,13 @@ s32 wl_cfg80211_attach(struct net_device *ndev, void *context, void *wlinfo)
 	INIT_DELAYED_WORK(&cfg->pm_enable_work, wl_cfg80211_work_handler);
 	mutex_init(&cfg->pm_sync);
 
+#ifdef WLDFS
+	INIT_DELAYED_WORK(&cfg->dfs_cac_work,
+		wl_cfg80211_dfs_cac_work_handler);
+	mutex_init(&cfg->dfs_cac_sync);
+#endif /* WLDFS */
+
+
 	return err;
 
 cfg80211_attach_out:
@@ -17467,6 +17560,9 @@ void wl_cfg80211_detach(struct bcm_cfg80211 *cfg)
 		return;
 
 	wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+#ifdef WLDFS
+	wl_remove_dfs_cac_work(cfg);
+#endif /* WLDFS */
 
 #if defined(OEM_ANDROID) && defined(COEX_DHCP)
 	wl_cfg80211_btcoex_deinit();
@@ -18495,6 +18591,9 @@ static s32 __wl_cfg80211_down(struct bcm_cfg80211 *cfg)
 
 	/* Delete pm_enable_work */
 	wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+#ifdef WLDFS
+	wl_remove_dfs_cac_work(cfg);
+#endif /* WLDFS */
 
 #ifdef WL_NAN
 	/* TODO:Cleanup: delete ifaces */
@@ -18872,6 +18971,9 @@ int wl_cfg80211_hang(struct net_device *dev, u16 reason)
 #endif /* BCMDONGLEHOST */
 
 	wl_add_remove_pm_enable_work(cfg, WL_PM_WORKQ_DEL);
+#ifdef WLDFS
+	wl_remove_dfs_cac_work(cfg);
+#endif /* WLDFS */
 #ifdef BCMDONGLEHOST
 #ifdef SOFTAP_SEND_HANGEVT
 	if (dhd->op_mode & DHD_FLAG_HOSTAP_MODE) {
@@ -21962,6 +22064,78 @@ _Pragma("GCC diagnostic pop")
 	}
 #endif /* DHCP_SCAN_SUPPRESS */
 }
+
+#ifdef WLDFS
+static void wl_cfg80211_dfs_cac_work_handler(struct work_struct * work)
+{
+	struct wiphy *wiphy;
+	chanspec_t chanspec = 0;
+	u32 freq;
+	struct cfg80211_chan_def chandef;
+	struct net_device *dev = bcmcfg_to_prmry_ndev(g_bcm_cfg);
+
+	wiphy = bcmcfg_to_wiphy(g_bcm_cfg);
+	if (!wiphy) {
+		WL_ERR(("wiphy is null\n"));
+		return;
+	}
+
+	if (wldev_iovar_getint(dev, "chanspec", (s32 *)&chanspec) == BCME_OK)
+		chanspec = wl_chspec_driver_to_host(chanspec);
+
+	if (wl_chspec_chandef(chanspec, &chandef, wiphy)) {
+		WL_ERR(("chspec_chandef failed\n"));
+		return;
+	}
+
+	freq = chandef.chan ? chandef.chan->center_freq : chandef.center_freq1;
+
+	WL_ERR(("CAC timer finished.  Send NL80211_RADAR_CAC_FINISHED\n"));
+	cfg80211_cac_event(dev, &chandef,
+		NL80211_RADAR_CAC_FINISHED,
+		GFP_ATOMIC);
+}
+
+static s32 wl_radar_event_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
+		const wl_event_msg_t *e, void *data)
+{
+	struct wiphy *wiphy;
+	struct net_device *ndev = NULL;
+	wl_event_radar_detect_data_t radar_data;
+	chanspec_t chanspec = 0;
+	struct cfg80211_chan_def chandef;
+
+	WL_DBG(("Enter\n"));
+
+	if (!data) {
+		return -EINVAL;
+	}
+
+	wiphy = bcmcfg_to_wiphy(cfg);
+
+	if (likely(cfgdev)) {
+		ndev = cfgdev_to_wlc_ndev(cfgdev, cfg);
+		radar_data = *((wl_event_radar_detect_data_t *)data);
+		chanspec = radar_data.current_chanspec;
+		if (wl_chspec_chandef(chanspec, &chandef, wiphy)) {
+			WL_ERR(("chspec_chandef failed\n"));
+			return BCME_ERROR;
+		}
+
+		wl_remove_dfs_cac_work(cfg);
+		/* TODO: Do we need to send NL80211_RADAR_DETECTED separately for
+		 *  AP and STA?
+		 */
+		WL_ERR(("cfg80211_cac_event with NL80211_RADAR_DETECTED\n"));
+		cfg80211_cac_event(ndev,
+			&chandef,
+			NL80211_RADAR_DETECTED,
+			GFP_ATOMIC);
+	}
+
+	return 0;
+}
+#endif /* WLDFS */
 
 u8
 wl_get_action_category(void *frame, u32 frame_len)

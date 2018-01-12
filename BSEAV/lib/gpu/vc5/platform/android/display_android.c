@@ -194,6 +194,27 @@ static void GetBlockHandle(private_handle_t const *hnd, NEXUS_MemoryBlockHandle 
    }
 }
 
+static BEGL_Colorimetry NexusToBEGLColorPrimaries(NEXUS_MatrixCoefficients nmc)
+{
+   switch (nmc)
+   {
+   case NEXUS_MatrixCoefficients_eHdmi_RGB              : return BEGL_Colorimetry_RGB;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_709          : return BEGL_Colorimetry_BT_709;
+   case NEXUS_MatrixCoefficients_eUnknown               : return BEGL_Colorimetry_Unknown;
+   case NEXUS_MatrixCoefficients_eDvi_Full_Range_RGB    : return BEGL_Colorimetry_Dvi_Full_Range_RGB;
+   case NEXUS_MatrixCoefficients_eFCC                   : return BEGL_Colorimetry_FCC;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_470_2_BG     : return BEGL_Colorimetry_BT_470_2_BG;
+   case NEXUS_MatrixCoefficients_eSmpte_170M            : return BEGL_Colorimetry_Smpte_170M;
+   case NEXUS_MatrixCoefficients_eSmpte_240M            : return BEGL_Colorimetry_Smpte_240M;
+   case NEXUS_MatrixCoefficients_eXvYCC_709             : return BEGL_Colorimetry_XvYCC_709;
+   case NEXUS_MatrixCoefficients_eXvYCC_601             : return BEGL_Colorimetry_XvYCC_601;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_2020_NCL     : return BEGL_Colorimetry_BT_2020_NCL;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_2020_CL      : return BEGL_Colorimetry_BT_2020_CL;
+   case NEXUS_MatrixCoefficients_eHdmi_Full_Range_YCbCr : return BEGL_Colorimetry_Hdmi_Full_Range_YCbCr;
+   default                                              : return BEGL_Colorimetry_XvYCC_601;
+   }
+}
+
 static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_SurfaceInfo *info)
 {
    ANativeWindowBuffer_t  *buffer = (ANativeWindowBuffer_t*)nativeSurface;
@@ -224,13 +245,7 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
    info->width     = buffer->width;
    info->height    = buffer->height;
    info->miplevels = 1;
-
-   // TODO Pierre : determine from the gralloc buffer (RGB, 601, 709, 2020)
-   if (info->format == BEGL_BufferFormat_eSAND8 || info->format == BEGL_BufferFormat_eSAND10 ||
-       info->format == BEGL_BufferFormat_eYV12  || info->format == BEGL_BufferFormat_eYUV422)
-      info->colorimetry = BEGL_Colorimetry_BT_709;
-   else
-      info->colorimetry = BEGL_Colorimetry_RGB;
+   info->colorimetry = BEGL_Colorimetry_RGB;
 
    if (info->format == BEGL_BufferFormat_eSAND8 || info->format == BEGL_BufferFormat_eSAND10)
    {
@@ -251,6 +266,7 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
       info->lumaStripedHeight   = pSharedData->container.vsLumaHeight;
       info->chromaStripedHeight = pSharedData->container.vsChromaHeight;
       info->lumaAndChromaInSameAllocation = pSharedData->container.vLumaBlock == pSharedData->container.vChromaBlock;
+      info->colorimetry    = NexusToBEGLColorPrimaries((NEXUS_MatrixCoefficients)pSharedData->container.vColorSpace);
       if (info->lumaAndChromaInSameAllocation)
       {
          // byteSize represents the combined luma/chroma buffer when lumaAndChromaInSameAllocation
@@ -259,7 +275,7 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
       else
          info->byteSize = byteWidth * pSharedData->container.vsLumaHeight;
 
-      DBGLOG("[sand2tex][NB]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit",
+      DBGLOG("[sand2tex][NB]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit::%d",
          hnd,
          pSharedData->container.vImageWidth,
          pSharedData->container.vImageHeight,
@@ -272,7 +288,8 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
          pSharedData->container.vsWidth,
          pSharedData->container.vsLumaHeight,
          pSharedData->container.vsChromaHeight,
-         pSharedData->container.vDepth);
+         pSharedData->container.vDepth,
+         pSharedData->container.vColorSpace);
 
       ok = true;
    }
@@ -571,7 +588,7 @@ bool DisplayAcquireNexusSurfaceHandles(NEXUS_StripedSurfaceHandle *stripedSurf, 
    sscs.lumaBufferOffset    = pSharedData->container.vLumaOffset;
    sscs.chromaBufferOffset  = pSharedData->container.vChromaOffset;
 
-   DBGLOG("[sand2tex][SS]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit",
+   DBGLOG("[sand2tex][SS]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit::%d",
       srcHnd,
       pSharedData->container.vImageWidth,
       pSharedData->container.vImageHeight,
@@ -584,7 +601,8 @@ bool DisplayAcquireNexusSurfaceHandles(NEXUS_StripedSurfaceHandle *stripedSurf, 
       pSharedData->container.vsWidth,
       pSharedData->container.vsLumaHeight,
       pSharedData->container.vsChromaHeight,
-      pSharedData->container.vDepth);
+      pSharedData->container.vDepth,
+      pSharedData->container.vColorSpace);
 
    *stripedSurf = NEXUS_StripedSurface_Create(&sscs);
    if (*stripedSurf == NULL)

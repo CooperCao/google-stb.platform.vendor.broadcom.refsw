@@ -70,6 +70,81 @@
 #include "priv/bsagelib_shared_globalsram.h"
 #include "bp3_features.h"
 
+#define BP3_Error_(x) #x
+const char * const bp3_errors[] = {
+    BP3_Error_(None),
+    BP3_Error_(Unknown),
+    BP3_Error_(SessionTokenMismatch),
+    BP3_Error_(GetTimeAfterSessionToken),
+    BP3_Error_(InvalidSessionTokenTime),
+    BP3_Error_(MinTimeSessionTokenNotMet),
+    BP3_Error_(FailedToReadBondOption),
+    BP3_Error_(InternalDevBondOption),
+    BP3_Error_(MemoryAllocation),
+    BP3_Error_(InvalidIPOwner),
+    BP3_Error_(SageInternal1),
+    BP3_Error_(SageInternal2),
+    BP3_Error_(SageInternal3),
+    BP3_Error_(SageInternal4),
+    BP3_Error_(ReadAR),
+    BP3_Error_(SageInternal6),
+    BP3_Error_(SageInternal7),
+    BP3_Error_(SageInternal10),
+    BP3_Error_(SageInternal11),
+    BP3_Error_(SageInternal12),
+    BP3_Error_(LicenseContractDigest),
+    BP3_Error_(SageInternal14),
+    BP3_Error_(SageInternal15),
+    BP3_Error_(Invalid_CCF_File_Version),
+    BP3_Error_(EpochSmallerThanArEpoch),
+    BP3_Error_(CCFBlockNum),
+    BP3_Error_(ProvisionType),
+    BP3_Error_(ContractPayloadType),
+    BP3_Error_(ContractVersion),
+    BP3_Error_(ChipInfoPayload),
+    BP3_Error_(ChipInfoVersion),
+    BP3_Error_(ProductID),
+    BP3_Error_(SecurityCode),
+    BP3_Error_(OtpId),
+    BP3_Error_(DateCode),
+    BP3_Error_(IPOwner),
+    BP3_Error_(BP3TAVersionRead),
+    BP3_Error_(BP3_TA_Version_Smaller_Than_Min),
+    BP3_Error_(SecureVideoTAVersionRead),
+    BP3_Error_(SecureVideoTAVersionSmallerThanMin),
+    BP3_Error_(InvalidDrmType),
+    BP3_Error_(Already_Provisioned),
+    BP3_Error_(EncryptedBp3CcfIsNull),
+    BP3_Error_(EncryptedBp3CcfTooSmall),
+    BP3_Error_(Bp3BinBuffPtrIsNull),
+    BP3_Error_(Bp3LogBuffPtrIsNull),
+    BP3_Error_(Bp3LogBuffSizeInvalid),
+    BP3_Error_(SessionKeyAlloc),
+    BP3_Error_(SessionKeyDecrypt),
+    BP3_Error_(SessionIvAlloc),
+    BP3_Error_(SessionIvDecrypt),
+    BP3_Error_(ProvHmacAlloc),
+    BP3_Error_(ProvHmacVerify),
+    BP3_Error_(ProvBp3CcfAlloc),
+    BP3_Error_(ProvDecryptBp3Ccf),
+    BP3_Error_(ProvBondOption),
+    BP3_Error_(FirstBlockNotBrcm),
+    BP3_Error_(ProvProcCcfFileHeader),
+    BP3_Error_(ProcessSessionToken),
+    BP3_Error_(ProvProcBp3CcfFile),
+    BP3_Error_(ProvAllocLog),
+    BP3_Error_(ProvEncLogAlloc),
+    BP3_Error_(ProvEncryptLog),
+    BP3_Error_(ProvErrorInAllBlocks),
+    BP3_Error_(EncryptToDrmBin),
+    BP3_Error_(UpdateCcf),
+    BP3_Error_(ProvEncryptUpdatedBp3Bin),
+    BP3_Error_(ProvConvertToFormat5),
+    BP3_Error_(BP3_Error_GenSessionToken),
+    BP3_Error_(BP3_GetTimeAtSessionTokenGen),
+    BP3_Error_(ProvReadAR),
+};
+
 BDBG_MODULE(bp3_curl);
 
 extern char bp3_bin_file_name[];
@@ -98,11 +173,11 @@ static struct {
     {5, {Audio0, Reserved, ReservedLast, NotUsed} }
 };
 
-static int read_part_number(uint32_t *chipFamilyID, uint32_t *securityCode) {
+static int read_part_number(uint32_t *prodId, uint32_t *securityCode) {
   MAP_MEM_START
 
-  MAP_START(BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID, 1)
-  *chipFamilyID = *(volatile uint32_t*) (page + addr);
+  MAP_START(BCHP_SUN_TOP_CTRL_PRODUCT_ID, 1)
+  *prodId = *(volatile uint32_t*) (page + addr);
   MAP_END
 
   MAP_START(BCHP_JTAG_OTP_GENERAL_STATUS_8, 1)
@@ -289,15 +364,17 @@ static int _usage(const char *appName)
   printf("  Example: %s status\n\n", appName);
   printf("%s provision\n", appName);
   printf("  provisions the device using input file bp3.provision.config\n\n");
-  printf("%s provision -portal -user -password -license <comma delimited license IDs>\n", appName);
+  printf("%s provision -portal [-oem] -user -password -license <comma delimited license IDs>\n", appName);
   printf("  where:\n"
       "    -portal: bp3 portal site\n"
+      "    -oem: bp3 oem server. If oem server is in connected mode, -user and -password are required.\n"
       "    -user: username to bp3 portal\n"
       "    -password: password to bp3 portal\n"
       "    -license: license IDs to provision\n"
       "  Note: please escape characters such as ! using \\.\n"
       "        if -user or -password is not specifed, it will prompt you to enter username/password\n");
-  printf("  Example: %s provision -portal http://bbs-test-rack1.broadcom.com:1800 -user arris -password Arris\\!bp3 -license 3,4\n", appName);
+  printf("  Example: %s provision -portal http://bp3.broadcom.com -user arris -password Arris\\!bp3 -license 3,4\n", appName);
+  printf("  Or: %s provision -oem http://<oem server>:5000 -license 3,4\n", appName);
   return -1;
 }
 
@@ -343,6 +420,7 @@ static int provision(int argc, char *argv[])
   int rc = 0;
   curl_mime *multipart = NULL;
   curl_mimepart *part = NULL;
+  bool oem = false;
   reset(curl, &multipart);
   curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "/tmp/bp3_cookie.txt"); // set to an non existing file
 
@@ -351,14 +429,17 @@ static int provision(int argc, char *argv[])
   int long_index = 0;
   static struct option long_options[] = {
     {"portal",  required_argument, 0,  's' },
+    {"oem",  required_argument, 0,  'o' },
     {"user",    required_argument, 0,  'u' },
     {"password",required_argument, 0,  'p' },
     {"license", required_argument, 0,  'l' },
     {0, 0, 0, 0}
   };
-  while ((rc = getopt_long_only(argc, argv, "supl",
+  while ((rc = getopt_long_only(argc, argv, "soupl",
     long_options, &long_index )) != -1)
     switch (rc) {
+    case 'o':
+      oem = true;
     case 's':
       server = optarg;
       break;
@@ -397,34 +478,40 @@ static int provision(int argc, char *argv[])
     goto leave;
   }
 
-  if (username == NULL) {
+  if (username == NULL && !oem) {
     getinput(buf, "Please enter user name\n");
     if (buf[0] != '\0') {
         username = strdup(&buf[0]);
     }
   }
 
-  if (password == NULL) {
+  if (password == NULL && !oem) {
     getinput(buf, "Please enter password\n");
     if (buf[0] != '\0') {
         password = strdup(&buf[0]);
     }
   }
 
-  if ((username == NULL) || (password == NULL)) {
+  if (!oem && (username == NULL || password == NULL)) {
     rc = _usage(argv[0]);
     goto leave;
   }
 
   BDBG_LOG(("Server: %s", server));
 
-  snprintf(buf, sizeof(buf), "%s/api/account/login", server, username, password);
-  curl_easy_setopt(curl, CURLOPT_URL, buf);
-  snprintf(buf, sizeof(buf), "username=%s&password=%s", username, password);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buf);
-  rc = curl_easy_perform(curl);
-  CHECK_ERROR_RESP(rc, "Login to %s failed. %s\n", server, rc == CURLE_OK ? "" : curl_easy_strerror(rc))
-  reset(curl, &multipart);
+  if (username && password) {
+    snprintf(buf, sizeof(buf), "%s/api/account/login", server, username, password);
+    curl_easy_setopt(curl, CURLOPT_URL, buf);
+    char *u = curl_easy_escape(curl, username, strlen(username));
+    char *p = curl_easy_escape(curl, password, strlen(password));
+    snprintf(buf, sizeof(buf), "username=%s&password=%s", u, p);
+    curl_free(u);
+    curl_free(p);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buf);
+    rc = curl_easy_perform(curl);
+    CHECK_ERROR_RESP(rc, "Login to %s failed. %s\n", server, rc == CURLE_OK ? "" : curl_easy_strerror(rc))
+    reset(curl, &multipart);
+  }
 
   // read ids
 #if (NEXUS_SECURITY_API_VERSION == 1)
@@ -438,9 +525,9 @@ static int provision(int argc, char *argv[])
   CHECK_ERROR(rc, "Unable to read OTP ID A\n")
 #endif
 
-  uint32_t chipFamilyID, securityCode;
-  rc = read_part_number(&chipFamilyID, &securityCode);
-  CHECK_ERROR(rc, "Unable to read chip family id and security code\n")
+  uint32_t prodId, securityCode;
+  rc = read_part_number(&prodId, &securityCode);
+  CHECK_ERROR(rc, "Unable to read chip id and security code\n")
 
   uint8_t *session = NULL;
   uint32_t sessionSize = 0;
@@ -453,7 +540,7 @@ static int provision(int argc, char *argv[])
   multipart = curl_mime_init(curl);
   ADD_PART("otpId", "0x%x%08x", otpIdHi, otpIdLo)
   ADD_PART("otpSelect", "%zu", otpSelect)
-  ADD_PART("prodId", "0x%x", chipFamilyID)
+  ADD_PART("prodId", "0x%x", prodId)
   ADD_PART("secCode", "0x%x", securityCode & 0x03FFC000)
 
   char *token = strtok(license, ",");
@@ -525,7 +612,7 @@ static int provision(int argc, char *argv[])
     curl_mime_filedata(part, buf);
   }
   else
-    fprintf(stderr, "Provision failed with error %d\n", errCode);
+    fprintf(stderr, "Provision failed with error: %s\n", errCode < 0 ? "Unexpected" : errCode < sizeof(bp3_errors)/sizeof(bp3_errors[0]) ? bp3_errors[errCode] : "Other new error");
 
   curl_easy_setopt(curl, CURLOPT_MIMEPOST, multipart);
 
@@ -559,10 +646,8 @@ int main(int argc, char *argv[])
     rc = provision(argc, argv);
   else if (strcmp(argv[1], "status") == 0)
     rc = status(argc, argv);
-  else {
-    SAGE_app_leave_nexus();
-    return _usage(argv[0]);
-  }
+  else
+    _usage(argv[0]);
 
 leave:
   /* Leave Nexus: Finalize platform ... */

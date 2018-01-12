@@ -5663,10 +5663,18 @@ wlc_phy_crs_min_pwr_cal_acphy(phy_info_t *pi, uint8 crsmin_cal_mode)
 		}
 	} else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_4)) */
-	if (ACMAJORREV_37(pi->pubpi->phy_rev) || ACMAJORREV_40(pi->pubpi->phy_rev)) {
+	if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		thresh_sz = sizeof(thresh_20);
+		/* Increase crsmin by 3 dB to avoid false triggers */
+		for (i = 0; i < thresh_sz; i++) {  /* There is a difference in InitGain.  Offset 0 should be -38dBm instead of -36dBm */
+			thresh_20[i] += 8;
+			thresh_40[i] += 8;
+			thresh_80[i] += 8;
+		}
+	} else
+	if (ACMAJORREV_40(pi->pubpi->phy_rev)) {
 		thresh_sz = sizeof(thresh_20);
 	}
-
 
 	/* Initialize */
 	FOREACH_CORE(pi, i) {
@@ -6026,7 +6034,7 @@ wlc_phy_crs_min_pwr_cal_acphy(phy_info_t *pi, uint8 crsmin_cal_mode)
 
 
 	/* if noise desense is on, then the below variable will be used for comparison */
-	rxgcrsi->phy_crs_th_from_crs_cal = MAX(MAX(fp[0], fp[1]), fp[2]);
+	rxgcrsi->phy_crs_th_from_crs_cal = MAX(MAX(MAX(fp[0], fp[1]), fp[2]), fp[3]);
 
 	if (((!ACPHY_ENABLE_FCBS_HWACI(pi) || ACPHY_HWACI_WITH_DESENSE_ENG(pi)) &&
 		pi->phywatchdog_override) || ((pi->phywatchdog_override) &&
@@ -6220,7 +6228,10 @@ int8 offset_2, int8 offset_3)
 	if (ac_th == 0) {
 		mf_th = ACPHY_CRSMIN_DEFAULT;
 		ac_th = ACPHY_CRSMIN_DEFAULT;
-		pi->u.pi_acphy->rxgcrsi->phy_crs_th_from_crs_cal = ac_th;
+		/* SWSTB-7660: we should not reset to default since desense might have helped reduce glitch count */
+		if (!ACMAJORREV_37(pi->pubpi->phy_rev)) {
+			pi->u.pi_acphy->rxgcrsi->phy_crs_th_from_crs_cal = ac_th;
+		}
 	}
 #endif
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_2))

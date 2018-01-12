@@ -37,6 +37,6 @@
   *****************************************************************************/
 
 #define BDSP_RAAGA_MAJOR_VERSION       15
-#define BDSP_RAAGA_MINOR_VERSION       6
+#define BDSP_RAAGA_MINOR_VERSION       7
 #define BDSP_RAAGA_BRANCH_VERSION      0
 #define BDSP_RAAGA_BRANCH_SUBVERSION   0

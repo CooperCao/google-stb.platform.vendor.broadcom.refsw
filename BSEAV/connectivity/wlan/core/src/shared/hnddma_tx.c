@@ -526,11 +526,11 @@ dma64_txfast(dma_info_t *di, void *p0, bool commit)
 	{
 		uint32 flush_cnt = NTXDACTIVE(di->txout, txout);
 		if (txout < di->txout) {
-			DMA_MAP(di->osh, dma64_txd64(di, 0), DMA64_FLUSH_LEN(txout),
+			DMA_FLUSH(di->osh, dma64_txd64(di, 0), DMA64_FLUSH_LEN(txout),
 			        DMA_TX, NULL, NULL);
 			flush_cnt -= txout;
 		}
-		DMA_MAP(di->osh, dma64_txd64(di, di->txout), DMA64_FLUSH_LEN(flush_cnt),
+		DMA_FLUSH(di->osh, dma64_txd64(di, di->txout), DMA64_FLUSH_LEN(flush_cnt),
 		        DMA_TX, NULL, NULL);
 	}
 #endif  /* BULK_DESCR_FLUSH */

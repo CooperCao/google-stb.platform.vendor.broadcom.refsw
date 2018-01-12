@@ -808,6 +808,7 @@ static BERR_Code BDSP_Raaga_P_PopulateIOConfiguration(
                             BDSP_ConnectionType_eFmmBuffer,
                             (void *)&pStageConnectionDetails->connectionHandle.fmm.fmmDescriptor,
                             &sPortDetails);
+					DistinctFMMOutputCount[sPortDetails.distinctOpType]++;
 					break;
                 case BDSP_ConnectionType_eRDBBuffer:
                     BDBG_MSG(("Connecting RDB at Output"));
