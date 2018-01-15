@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -3231,8 +3231,8 @@ static int swap_persistent_audio_decoders(struct b_connect *destConnect, struct 
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
-    srcDecoder = b_audio_get_decoder(destConnect);
-    destDecoder = b_audio_get_decoder(srcConnect);
+    srcDecoder = b_audio_get_decoder(srcConnect);
+    destDecoder = b_audio_get_decoder(destConnect);
     audio_release_stc_index(srcConnect, srcDecoder);
     BDBG_MSG(("transfer audio %p: connect %p(%p) -> connect %p(%p)",
               (void*)r, (void*)srcConnect, (void*)srcDecoder,
