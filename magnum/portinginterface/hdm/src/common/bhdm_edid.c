@@ -650,7 +650,7 @@ BERR_Code BHDM_EDID_GetNthBlock(
 			if (rc == BERR_SUCCESS)
 			{
 				/* check for a valid checksum */
-				validChecksum = BHDM_EDID_P_EdidCheckSum(hHDMI->AttachedEDID.Block) ;
+				validChecksum = BHDM_EDID_P_EdidCheckSum(pBuffer) ;
 
 				/*
 				-- EDID with a valid checksum has been read
