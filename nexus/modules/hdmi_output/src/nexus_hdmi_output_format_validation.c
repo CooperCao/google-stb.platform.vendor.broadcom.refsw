@@ -635,11 +635,11 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     /* validate the requested colorspace if override not specified (overrideMatrixCoefficients) */
     if (!hdmiOutput->displaySettings.overrideMatrixCoefficients)
     {
-        if (!edid->hdmiVsdb.valid)  /* No VSDB... DVI support only */
+        if (!edid.hdmiVsdb.valid)  /* No VSDB... DVI support only */
         {
             preferred->colorSpace = NEXUS_ColorSpace_eRgb;
         }
-        else if ((!edid->hdmiVsdb.yCbCr422) && (!edid->hdmiVsdb.yCbCr444)
+        else if ((!edid.hdmiVsdb.yCbCr422) && (!edid.hdmiVsdb.yCbCr444)
         && ((requested->colorSpace == NEXUS_ColorSpace_eYCbCr444)
         ||  (requested->colorSpace == NEXUS_ColorSpace_eYCbCr422)
         ||  (requested->colorSpace == NEXUS_ColorSpace_eAuto)))
