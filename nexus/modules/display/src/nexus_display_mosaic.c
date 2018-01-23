@@ -221,8 +221,8 @@ NEXUS_Error NEXUS_VideoWindow_P_ApplyMosaic(NEXUS_VideoWindowHandle window)
         BVDC_MosaicConfiguration mosaic_config;
         unsigned i;
 
-        /* set the zorder of the parent to the min zorder of all mosaics */
-        rc = BVDC_Window_SetZOrder(windowVdc, minzorder);
+        /* set the zorder of the parent to 0 or 1 based on min zorder of all mosaics */
+        rc = BVDC_Window_SetZOrder(windowVdc, minzorder ? 1 : 0);
         if (rc) {return BERR_TRACE(rc);}
 
          /* VDC does not ignore invisible windows, so we must ensure ok values */

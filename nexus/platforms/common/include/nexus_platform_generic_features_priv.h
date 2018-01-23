@@ -125,7 +125,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #ifdef NEXUS_HAS_VIDEO_DECODER
 /* unused. only for backward compat. */
 #define NEXUS_NUM_XVD_DEVICES 1
-#define NEXUS_NUM_MOSAIC_DECODES 14
+#define NEXUS_NUM_MOSAIC_DECODES 12
 #else
 #define NEXUS_NUM_XVD_DEVICES 0
 #define NEXUS_NUM_MOSAIC_DECODES 0

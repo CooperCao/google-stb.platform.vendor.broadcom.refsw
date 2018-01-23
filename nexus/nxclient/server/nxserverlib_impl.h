@@ -307,6 +307,7 @@ struct b_session {
         unsigned global_index;
         bool created_by_encoder;
         NEXUS_VideoWindowHandle window[NEXUS_NUM_VIDEO_WINDOWS][NXCLIENT_MAX_IDS]; /* created on demand */
+        struct b_connect *mosaic_connect[NEXUS_NUM_VIDEO_WINDOWS][NXCLIENT_MAX_IDS];
         NEXUS_VideoWindowHandle parentWindow[NEXUS_NUM_VIDEO_WINDOWS];
         NEXUS_VideoFormatInfo formatInfo;
         nxclient_t crc_client;
