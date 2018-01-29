@@ -153,7 +153,7 @@ static KM_Tag_Item* km_tag_make_tag_item(km_tag_value_t *tagValuePair, uint32_t 
         allocSize += blobSize;
     }
 
-    BDBG_MSG(("%s: allocating %lu", BSTD_FUNCTION, allocSize));
+    BDBG_MSG(("%s: allocating %lu", BSTD_FUNCTION, (unsigned long int)allocSize));
     if (NEXUS_Memory_Allocate(allocSize, NULL, (void **)&tag_value) != NEXUS_SUCCESS) {
         BDBG_ERR(("%s: Failed to allocate tag value", BSTD_FUNCTION));
         goto err_done;
@@ -222,7 +222,7 @@ static KM_Tag_ContextHandle km_tag_dup_context(KM_Tag_ContextHandle handle)
     BDBG_ASSERT(handle);
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
 
-    BDBG_MSG(("%s: allocating %lu", BSTD_FUNCTION, sizeof(struct KM_Tag_Context)));
+    BDBG_MSG(("%s: allocating %lu", BSTD_FUNCTION, (unsigned long int)sizeof(struct KM_Tag_Context)));
     if (NEXUS_Memory_Allocate(sizeof(struct KM_Tag_Context), NULL, (void **)&new_handle) != NEXUS_SUCCESS) {
         err = BERR_OUT_OF_DEVICE_MEMORY;
         BDBG_ERR(("%s: Failed to allocate context", BSTD_FUNCTION));
@@ -329,7 +329,7 @@ BERR_Code KM_Tag_CreateContext(int32_t num_params, uint32_t len, uint8_t *data_b
         goto done;
     }
 
-    BDBG_MSG(("%s: allocating %lu", BSTD_FUNCTION, sizeof(struct KM_Tag_Context)));
+    BDBG_MSG(("%s: allocating %lu", BSTD_FUNCTION, (unsigned long int)sizeof(struct KM_Tag_Context)));
     if (NEXUS_Memory_Allocate(sizeof(struct KM_Tag_Context), NULL, (void **)&handle) != NEXUS_SUCCESS) {
         err = BERR_OUT_OF_DEVICE_MEMORY;
         BDBG_ERR(("%s: Failed to allocate context", BSTD_FUNCTION));
@@ -703,7 +703,7 @@ km_tag_value_t* KM_Tag_FindEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint3
     }
 
 done:
-    return tag_item ? (tag_item->tagValueData) : NULL;
+    return tag_item ? (km_tag_value_t*)(tag_item->tagValueData) : NULL;
 }
 
 bool KM_Tag_ContainsEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t enumerated)

@@ -171,6 +171,7 @@ BERR_Code km_test_new_params_with_ec_defaults(KM_Tag_ContextHandle *key_params, 
     }
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);

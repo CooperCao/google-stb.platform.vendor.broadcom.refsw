@@ -44,6 +44,10 @@
 #include "bstd.h"
 #include "keymaster_types.h"
 
+/* Find a tag, expecting success */
+#define TEST_FIND_TAG(tag, handle, tag_id)    tag = KM_Tag_FindFirst(handle, tag_id); \
+                                              if (!tag) { BDBG_ERR(("%s tag %x not found", BSTD_FUNCTION, tag_id)); err = BERR_UNKNOWN; goto done; }
+
 /* Allocate SRAI memory into a KeymasterTl_DataBlock structure */
 #define TEST_ALLOCATE_BLOCK(block, block_size)       (block).buffer = (uint8_t *)SRAI_Memory_Allocate(block_size, SRAI_MemoryType_Shared); \
                                                      if (!(block).buffer) { err = BERR_OUT_OF_SYSTEM_MEMORY; goto done; } \
@@ -55,18 +59,21 @@
 /* Test and free a tag context */
 #define TEST_DELETE_CONTEXT(ctx)                     if (ctx) { KM_Tag_DeleteContext(ctx); ctx = NULL; }
 
+/* Test and free the keyslot handle */
+#define TEST_FREE_KEYSLOT(hndl)               if (hndl) { NEXUS_Security_FreeKeySlot(hndl); hndl = NULL; }
+
 
 #define EXPECT_TRUE(op)                              if (!op) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; }
 
 #define EXPECT_FALSE(op)                             if (op) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; }
 
-#define EXPECT_SUCCESS(op)                           err = op; if (err != BERR_SUCCESS) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); goto done; }
+#define EXPECT_SUCCESS(op)                           err = op; if (err != BERR_SUCCESS) { BDBG_ERR(("%s:%d  %s failed (err %x)", BSTD_FUNCTION, __LINE__, #op, err)); goto done; }
 
-#define EXPECT_SUCCESS_SILENT(op)                    err = op; if (err != BERR_SUCCESS) { BDBG_MSG(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); goto done; }
+#define EXPECT_SUCCESS_SILENT(op)                    err = op; if (err != BERR_SUCCESS) { BDBG_MSG(("%s:%d  %s failed (err %x)", BSTD_FUNCTION, __LINE__, #op, err)); goto done; }
 
-#define EXPECT_FAILURE(op)                           err = op; if (err == BERR_SUCCESS) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; }  else { err = BERR_SUCCESS; }
+#define EXPECT_FAILURE(op)                           err = op; if (err == BERR_SUCCESS) { BDBG_ERR(("%s:%d  %s failed (err %x)", BSTD_FUNCTION, __LINE__, #op, err)); err = BERR_UNKNOWN; goto done; }  else { err = BERR_SUCCESS; }
 
-#define EXPECT_FAILURE_CODE(op, code)                err = op; if (err != code) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; } else { err = BERR_SUCCESS; }
+#define EXPECT_FAILURE_CODE(op, code)                err = op; if (err != code) { BDBG_ERR(("%s:%d  %s failed (err %x)", BSTD_FUNCTION, __LINE__, #op, err)); err = BERR_UNKNOWN; goto done; } else { err = BERR_SUCCESS; }
 
 
 

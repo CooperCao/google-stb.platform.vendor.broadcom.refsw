@@ -74,6 +74,12 @@ struct b_objdb_class {
 
 struct b_objdb;
 
+enum b_objdb_cancel_callbacks_action
+{
+    b_objdb_cancel_callbacks_action_clear,
+    b_objdb_cancel_callbacks_action_destroy
+};
+
 struct b_objdb_module {
     BDBG_OBJECT(b_objdb_module)
     BLST_S_ENTRY(b_objdb_module) link;
@@ -82,7 +88,7 @@ struct b_objdb_module {
     const struct b_objdb_class *class_list;
     const char *name; /* module name for debug */
     /* callback to cancel callbacks for a handle */
-    void (*cancel_callbacks_locked)(void *context, void *handle, const struct b_objdb_client *client); /* called with module lock already acquired */
+    void (*cancel_callbacks_locked)(void *context, void *handle, const struct b_objdb_client *client, enum b_objdb_cancel_callbacks_action action); /* called with module lock already acquired */
     void *cancel_callbacks_context;
     struct b_objdb *db; /* link back to database */
 };
@@ -190,6 +196,11 @@ void nexus_driver_shutdown_NEXUS_VideoOutput_Shutdown(void *object);
 void nexus_driver_shutdown_NEXUS_AudioInput_Shutdown(void *object);
 void nexus_driver_shutdown_NEXUS_AudioOutput_Shutdown(void *object);
 
-
+/**
+Cancel any callbacks in flight on the server side.
+It will not cancel callbacks which have already reached the client side. For those,
+use NEXUS_StopCallbacks/NEXUS_StartCallbacks.
+**/
+void b_objdb_cancel_callbacks(NEXUS_ModuleHandle module, void *object);
 
 #endif /* B_OBJDB_H__ */

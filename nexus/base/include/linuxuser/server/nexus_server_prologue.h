@@ -104,7 +104,7 @@ void nexus_driver_callback_to_driver_commit(struct nexus_driver_module_header *h
 void nexus_driver_callback_to_driver_cancel(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id);
 
 struct b_objdb_client;
-void nexus_driver_deactivate_callbacks(void *context, void *object,  const struct b_objdb_client *client);
+void nexus_driver_deactivate_callbacks(void *context, void *object,  const struct b_objdb_client *client, enum b_objdb_cancel_callbacks_action action);
 
 struct nexus_p_server_process_output {
     void *data;

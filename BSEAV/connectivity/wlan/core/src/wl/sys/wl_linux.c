@@ -657,7 +657,14 @@ static int wl_preinit_ioctls(struct net_device *ndev)
 	int ret = 0;
 	char eventmask[WL_EVENTING_MASK_LEN];
 	char iovbuf[WL_EVENTING_MASK_LEN + 12]; /*  Room for "event_msgs" + '\0' + bitvec  */
+	uint32 buf_key_b4_m4 = 1;
 
+	/* Enable buffering of PTK key till EAPOL 4/4 is sent out */
+	bcm_mkiovar("buf_key_b4_m4", (char *)&buf_key_b4_m4, 4, iovbuf, sizeof(iovbuf));
+	ret = wldev_ioctl(ndev, WLC_SET_VAR, iovbuf, sizeof(iovbuf), true);
+	if (unlikely(ret)) {
+		WL_ERROR(("Set buf_key_b4_m4 error (%d)\n", ret));
+	}
 
 	/* Read event_msgs mask */
 	bcm_mkiovar("event_msgs", NULL, 0, iovbuf, sizeof(iovbuf));

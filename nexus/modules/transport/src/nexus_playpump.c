@@ -1183,6 +1183,8 @@ void NEXUS_Playpump_Stop(NEXUS_PlaypumpHandle p)
         NEXUS_Profile_Stop("NEXUS_Playpump");
     }
 
+    NEXUS_CancelCallbacks(p);
+
     return;
 }
 
