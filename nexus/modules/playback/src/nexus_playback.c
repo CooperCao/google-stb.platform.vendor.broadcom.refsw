@@ -1886,7 +1886,6 @@ NEXUS_Playback_Start(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, c
     rc = b_play_start_media(playback, file, &playpump_status, pSettings);
     if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc); goto error_player;}
 
-    NEXUS_StartCallbacks(playback->params.playpump);
     /* assume that playback and decode will start in normal play */
     NEXUS_Playback_GetDefaultTrickModeSettings(&playback->state.trickmode_params);
 
@@ -2096,8 +2095,9 @@ NEXUS_Playback_Stop(NEXUS_PlaybackHandle playback)
 #endif
 
     BDBG_ASSERT(playback->params.playpump);
+    NEXUS_StopCallbacks(playback->params.playpump);
     NEXUS_Playpump_Stop(playback->params.playpump);
-
+    NEXUS_StartCallbacks(playback->params.playpump);
 
     b_play_stop_media(playback);
     b_play_trick_shutdown(playback);
@@ -2105,7 +2105,6 @@ NEXUS_Playback_Stop(NEXUS_PlaybackHandle playback)
     playback->state.accurateSeek.state = b_accurate_seek_state_idle;
     playback->state.state = eStopped;
 
-    NEXUS_StopCallbacks(playback->params.playpump);
     NEXUS_CallbackHandler_Stop(playback->dataCallbackHandler);
     NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPts);
     NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPtsPassed);

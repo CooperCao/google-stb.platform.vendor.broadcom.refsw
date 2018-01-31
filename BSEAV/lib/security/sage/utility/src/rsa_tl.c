@@ -284,10 +284,17 @@ RsaTl_EncryptDecrypt(RsaTl_Handle hRsaTl,
     }
 
     sage_rc = SRAI_Module_ProcessCommand(hRsaTl->moduleHandle, commandId, container);
-    if ((sage_rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
+    if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("\t Enc/Dec data ^^^^^^^^^^^^^^^^^^"));
+        BDBG_ERR(("%s - Error during processing command (0x%08x)", BSTD_FUNCTION, sage_rc));
         rc = sage_rc;
+        goto handle_error;
+    }
+
+    rc = container->basicOut[0];
+    if (rc != 0)
+    {
+        BDBG_ERR(("%s - %u operation failed (0x%08x)", BSTD_FUNCTION, commandId, rc));
         goto handle_error;
     }
 
@@ -402,13 +409,19 @@ RsaTl_SignVerify(RsaTl_Handle hRsaTl,
     container->basicIn[0] = rsaKeyIndex;/* index of private key to sign */
     container->basicIn[1] = shaVariant;
     sage_rc = SRAI_Module_ProcessCommand(hRsaTl->moduleHandle, commandId, container);
-    if ((sage_rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
+    if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("\t### Error Signing data ^^^^^^^^^^^^^^^^^^"));
+        BDBG_ERR(("%s - Error during processing command (0x%08x)", BSTD_FUNCTION, sage_rc));
         rc = sage_rc;
         goto handle_error;
     }
 
+    rc = container->basicOut[0];
+    if (rc != 0)
+    {
+        BDBG_ERR(("%s - %u operation failed (0x%08x)", BSTD_FUNCTION, commandId, rc));
+        goto handle_error;
+    }
     ptr = container->blocks[0].data.ptr;
     BDBG_MSG(("\tComputed/verified signature = %02x %02x %02x %02x ...", ptr[0], ptr[1], ptr[2], ptr[3]));
 
@@ -523,10 +536,17 @@ RsaTl_GetPublicKey(RsaTl_Handle hRsaTl,
 
     container->basicIn[0] = rsaKeyIndex;
     sage_rc = SRAI_Module_ProcessCommand(hRsaTl->moduleHandle, Rsa_CommandId_eGetPublicKey, container);
-    if ((sage_rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
+    if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error fetching public key info data fo rindex '%u'", BSTD_FUNCTION, rsaKeyIndex));
+        BDBG_ERR(("%s - Error during processing command (0x%08x)", BSTD_FUNCTION, sage_rc));
         rc = sage_rc;
+        goto handle_error;
+    }
+
+    rc = container->basicOut[0];
+    if (rc != 0)
+    {
+        BDBG_ERR(("%s - Error (0x%08x) fetching public key info data fo rindex '%u'", BSTD_FUNCTION, rc, rsaKeyIndex));
         goto handle_error;
     }
 

@@ -58,6 +58,7 @@
 
 #if NEXUS_SECURITY_IPLICENSING
  #include "bhsm_ip_licensing.h"
+ #include "bhsm_otpmsp.h"
 #endif
 #include "priv/nexus_security_standby_priv.h"
 
@@ -427,20 +428,31 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalS
       #if NEXUS_SECURITY_IPLICENSING
         BHSM_Handle     hHsm;
         BHSM_ipLicensingOp_t ipLicensingOp;
+        BHSM_ReadMspIO_t     msp;
 
         NEXUS_Security_GetHsm_priv ( &hHsm );
         if( !hHsm ) { BERR_TRACE(NEXUS_NOT_AVAILABLE); goto err_init; }
 
-        BKNI_Memset( &ipLicensingOp, 0, sizeof(ipLicensingOp) );
+        BKNI_Memset( &msp, 0, sizeof(msp) );
+        msp.readMspEnum = 70;
+        rc = BHSM_ReadMSP( hHsm, &msp );
+        if (rc) { BERR_TRACE(rc); goto err_init; }
 
-        ipLicensingOp.dataSize = NEXUS_SECURITY_IP_LICENCE_SIZE;
-
-        BKNI_Memcpy ( ipLicensingOp.inputBuf, pSettings->ipLicense.data, NEXUS_SECURITY_IP_LICENCE_SIZE );
-
-        if ( BHSM_SetIpLicense ( hHsm, &ipLicensingOp ) != BERR_SUCCESS )
+        /* If enabled by the OTP msp bit */
+        if(  (msp.aucLockMspData[3] & 0x01) && ( msp.aucMspData[3] & 0x01 ) )
         {
-            BERR_TRACE(NEXUS_NOT_SUPPORTED);
-            goto err_init;
+
+            BKNI_Memset(&ipLicensingOp, 0, sizeof(ipLicensingOp));
+
+            ipLicensingOp.dataSize = NEXUS_SECURITY_IP_LICENCE_SIZE;
+
+            BKNI_Memcpy(ipLicensingOp.inputBuf, pSettings->ipLicense.data, NEXUS_SECURITY_IP_LICENCE_SIZE);
+
+            if (BHSM_SetIpLicense(hHsm, &ipLicensingOp) != BERR_SUCCESS)
+            {
+                BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                goto err_init;
+            }
         }
       #else
        BDBG_WRN(("IP Licensing not enabled in build."));

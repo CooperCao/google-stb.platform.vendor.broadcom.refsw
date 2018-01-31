@@ -921,10 +921,13 @@ BERR_Code BXPT_Dma_P_OpenChannel(
 
     /* setup SP_PARSER_CTRL */
 #ifdef BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL
-    reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * dma->channelNum);
+{
+    uint32_t step = BCHP_XPT_MEMDMA_MCPB_CH1_PARSER_BAND_ID_CTRL - BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL;
+    reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL + step * dma->channelNum);
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_SEL, 1);
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID, dma->channelNum + BXPT_DMA_BAND_ID_OFFSET);
-    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * dma->channelNum, reg);
+    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL + step * dma->channelNum, reg);
+}
 #endif
 
     reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL + dma->mcpbRegOffset);
@@ -970,7 +973,15 @@ BERR_Code BXPT_Dma_P_OpenChannel(
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_RUN_VERSION_CONFIG + dma->wdmaRamOffset, 0);
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_OVERFLOW_REASONS + dma->wdmaRamOffset, 0);
 
-#if BXPT_DMA_WDMA_ENDIAN_SWAP_CBIT
+    /* should have been cleared via soft-reset */
+    reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset);
+    if (BCHP_GET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL, ENDIAN_CONTROL)) {
+        BDBG_WRN(("%u: Invalid endian control setting in MCPB", dma->channelNum));
+        BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL, ENDIAN_CONTROL, 0);
+        BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset, reg);
+    }
+    /* needs manual clearing */
+#ifdef BCHP_XPT_WDMA_CH0_DATA_CONTROL
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_DATA_CONTROL + dma->wdmaRamOffset, 0);
 #endif
 

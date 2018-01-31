@@ -1938,38 +1938,41 @@ bool BVDC_P_Window_AssignMosaicCfcToRect_isr(
 
     for (ii=0; ii<(int)ulMosaicCount; ii++)
     {
-        hWindow->aucMosaicCfcIdxForRect[ii] = BVDC_P_INVALID_CMP_MOSAIC_CFC_IDX;
-    }
-
-    /* firstly find out the previously assigned / configured CFCs that are still useful in this vsync
-     * note: if a TF-conv-capable cfe has been used for a non-TF_conv case, try not use it */
-    for (ii=0; ii<(int)ulMosaicCount; ii++)
-    {
         pPicColorSpace = &pPicture->astMosaicColorSpace[ii];
         if (BAVC_P_ColorFormat_eInvalid == pPicColorSpace->eColorFmt)
         {
             pPicColorSpace->eColorFmt = BAVC_P_ColorFormat_eYCbCr;
         }
-        bAllEarlierCfcsUsed = true;
-        for (jj=ulCmpNumCscs-1; jj>=0; jj--)
+        hWindow->aucMosaicCfcIdxForRect[ii] = BVDC_P_INVALID_CMP_MOSAIC_CFC_IDX;
+    }
+
+    /* firstly find out the previously assigned / configured CFCs that are still useful in this vsync
+     * note: if a TF-conv-capable cfe has been used for a non-TF_conv case, try not use it */
+    if (!bOutColorSpaceDirty)
+    {
+        for (ii=0; ii<(int)ulMosaicCount; ii++)
         {
-            pCfcColorSpace = &hWindow->astMosaicCfc[jj].stColorSpaceIn.stAvcColorSpace;
-            if ((!bOutColorSpaceDirty) &&
-                (!BAVC_P_COLOR_SPACE_DIFF(pPicColorSpace, pCfcColorSpace)) &&
-                ((BVDC_P_PREFER_TF_CONV(pCfcColorSpace->eColorTF,
-                                        hWindow->astMosaicCfc[jj].pColorSpaceOut->stAvcColorSpace.eColorTF) ==
-                  hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj) || (bNoTfConvCfc) ||
-                 (hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj && bAllEarlierCfcsUsed)))
+            pPicColorSpace = &pPicture->astMosaicColorSpace[ii];
+            bAllEarlierCfcsUsed = true;
+            for (jj=ulCmpNumCscs-1; jj>=0; jj--)
             {
-                /* this rect's ColorSpace matches this cfc's ColorSpaceIn */
+                pCfcColorSpace = &hWindow->astMosaicCfc[jj].stColorSpaceIn.stAvcColorSpace;
+                if ((!BAVC_P_COLOR_SPACE_DIFF(pPicColorSpace, pCfcColorSpace)) &&
+                    ((BVDC_P_PREFER_TF_CONV(pCfcColorSpace->eColorTF,
+                                            hWindow->astMosaicCfc[jj].pColorSpaceOut->stAvcColorSpace.eColorTF) ==
+                      hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj) || (bNoTfConvCfc) ||
+                     (hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj && bAllEarlierCfcsUsed)))
+                {
+                    /* this rect's ColorSpace matches this cfc's ColorSpaceIn */
 #if (BDBG_DEBUG_BUILD)
-                BDBG_MODULE_MSG(BVDC_CFC_4,("Cmp%d_V%d asign Rect%d -> Cfc%d, reuse 1st round", hWindow->hCompositor->eId, eWinInCmp, ii, jj));
+                    BDBG_MODULE_MSG(BVDC_CFC_4,("Cmp%d_V%d asign Rect%d -> Cfc%d, reuse 1st round", hWindow->hCompositor->eId, eWinInCmp, ii, jj));
 #endif
-                hWindow->aucMosaicCfcIdxForRect[ii] = jj;
-                bCfcUsed[jj] = true;
-                break;
+                    hWindow->aucMosaicCfcIdxForRect[ii] = jj;
+                    bCfcUsed[jj] = true;
+                    break;
+                }
+                bAllEarlierCfcsUsed &= bCfcUsed[jj];
             }
-            bAllEarlierCfcsUsed &= bCfcUsed[jj];
         }
     }
 
@@ -1978,7 +1981,7 @@ bool BVDC_P_Window_AssignMosaicCfcToRect_isr(
     {
         if (BVDC_P_INVALID_CMP_MOSAIC_CFC_IDX != hWindow->aucMosaicCfcIdxForRect[ii])
         {
-            continue;
+            continue; /* CFC already assigned for this mosaic rect */
         }
 
         /* if a cfc has already been assigned to a rect that has the same colorSpace as this rect */
@@ -1987,7 +1990,7 @@ bool BVDC_P_Window_AssignMosaicCfcToRect_isr(
         for (jj=ulCmpNumCscs-1; jj>=0; jj--)
         {
             pCfcColorSpace = &hWindow->astMosaicCfc[jj].stColorSpaceIn.stAvcColorSpace;
-            if ((!bOutColorSpaceDirty) &&
+            if ((!bOutColorSpaceDirty || bCfcUsed[jj] /* bCfcUsed[jj]==true means assigned with cur out colorSpace */) &&
                 (!BAVC_P_COLOR_SPACE_DIFF(pPicColorSpace, pCfcColorSpace)) &&
                 ((BVDC_P_PREFER_TF_CONV(pCfcColorSpace->eColorTF,
                                         hWindow->astMosaicCfc[jj].pColorSpaceOut->stAvcColorSpace.eColorTF) ==

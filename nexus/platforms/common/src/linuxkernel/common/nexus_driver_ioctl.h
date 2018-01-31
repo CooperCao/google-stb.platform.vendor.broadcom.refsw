@@ -143,5 +143,7 @@ typedef struct PROXY_NEXUS_CacheFlush {
 #define IOCTL_PROXY_NEXUS_CacheFlush      NEXUS_PROXY_IOCTL(21, PROXY_NEXUS_CacheFlush)
 #endif
 
+#define IOCTL_PROXY_NEXUS_WakeupScheduler    NEXUS_PROXY_IOCTL(22, int)
+
 #endif /* __NEXUS_DRIVER_IOCTL_H_ */
 

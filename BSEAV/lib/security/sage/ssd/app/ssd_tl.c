@@ -419,8 +419,16 @@ static BERR_Code SSDTl_Check_Standby_Status(void) {
     if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
         bool resumed = false;
 
-        SSDTl_Uninit();
+        /* NOTE: If we are entering S1 standby, then there is no need to
+           uninitialise the SSD Server TA and re-initialise it. */
+        if (standbyStatus.settings.mode != NEXUS_StandbyMode_eActive) {
+            SSDTl_Uninit();
+        }
         NxClient_AcknowledgeStandby(true);
+
+        if (standbyStatus.settings.mode == NEXUS_StandbyMode_eActive) {
+            goto errorExit;
+        }
 
         while(resumed == false) {
             BKNI_Sleep(SSD_TIMEOUT_MS);

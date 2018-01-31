@@ -546,7 +546,7 @@ BERR_Code BAPE_Encoder_SetCodecSettings(
         break;
     }
 
-    if ( codecsEqual )
+    if ( codecsEqual && handle->hStage )
     {
         errCode = BAPE_Encoder_P_ApplyDspSettings(handle);
         if ( errCode )

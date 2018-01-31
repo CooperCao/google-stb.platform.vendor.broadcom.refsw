@@ -85,9 +85,10 @@ BERR_Code nexus_driver_scheduler_init(void);
 void nexus_driver_scheduler_uninit(void);
 int nexus_driver_run_scheduler(NEXUS_ModulePriority priority, unsigned timeout, bool *p_has_callbacks, struct nexus_driver_slave_scheduler *slave);
 unsigned nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callback_desc *desc, unsigned nentries, struct nexus_driver_slave_scheduler *slave, bool compat);
-void nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client);
+void nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client, enum b_objdb_cancel_callbacks_action action);
 void nexus_driver_scheduler_lock(void *client, NEXUS_ModulePriority priority, bool lock);
 void nexus_driver_unlock_schedulers(void *client);
+void nexus_driver_wakeup_scheduler(struct nexus_driver_slave_scheduler *slave);
 
 /* nexus_driver_objects */
 struct nexus_driver_object_heap_entry *nexus_driver_module_object_get_newest(struct nexus_driver_module_header *header, unsigned class_no, void *client_id);

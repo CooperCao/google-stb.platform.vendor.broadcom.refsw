@@ -389,10 +389,12 @@ nexus_driver_callback_to_driver_commit(struct nexus_driver_module_header *header
 
 /* called from objdb callback with module lock already acquired */
 void
-nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client)
+nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client, enum b_objdb_cancel_callbacks_action action)
 {
     struct nexus_driver_module_header *header = context;
     struct nexus_driver_callback_map *map;
+
+    if (action == b_objdb_cancel_callbacks_action_clear) return;
 
     map = header->callback_map;
     if(map) {

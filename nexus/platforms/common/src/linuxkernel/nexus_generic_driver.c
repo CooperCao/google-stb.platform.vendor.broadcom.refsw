@@ -679,6 +679,11 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
             if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
             break;
         }}
+    case IOCTL_PROXY_NEXUS_WakeupScheduler:
+        {{
+            nexus_driver_wakeup_scheduler(state->slave_scheduler);
+            break;
+        }}
     case IOCTL_PROXY_NEXUS_Scheduler:
         {{
             PROXY_NEXUS_Scheduler data;

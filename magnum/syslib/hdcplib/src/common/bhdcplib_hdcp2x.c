@@ -455,6 +455,10 @@ done:
 	/* clean up SAGE container if error */
 	if (rc != BERR_SUCCESS) {
 		BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
+
+		/* reset internal states */
+		hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eUnauthenticated;
+		hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
 	}
 
 	return rc;
@@ -537,7 +541,7 @@ static void BHDCPlib_P_Hdcp2x_AutoI2cTimerExpiration_isr (BHDCPlib_Handle hHDCPl
 		goto done;
 	}
 
-	BDBG_MSG(("%s: AutoI2C HW Timer status: %s", BSTD_FUNCTION, available?"available":"unavailable"));
+	BDBG_LOG(("%s: AutoI2C HW Timer status: %s", BSTD_FUNCTION, available?"available":"unavailable"));
 
 	if (!available)
 	{
@@ -551,14 +555,16 @@ static void BHDCPlib_P_Hdcp2x_AutoI2cTimerExpiration_isr (BHDCPlib_Handle hHDCPl
 		}
 	}
 
-	/* reset state to unauthenticated */
-	hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eUnauthenticated;
+	/* reset state to unauthenticated if currently blocking */
+	if (hHDCPlib->currentHdcp2xState == BHDCPlib_Hdcp2xState_eAuthenticating) {
+		BDBG_LOG(("%s: Reset hdcplib state machine to prevent blocking authentication request", BSTD_FUNCTION));
+		hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eUnauthenticated;
 
-	/* Set event informing HDCP authentication result */
-	hHDCPlib->hdcp2xLinkAuthenticated = false;
-	hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
-	BKNI_SetEvent_isr(hHDCPlib->hdcp2xIndicationEvent);
-
+		/* Set event informing HDCP authentication result */
+		hHDCPlib->hdcp2xLinkAuthenticated = false;
+		hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
+		BKNI_SetEvent_isr(hHDCPlib->hdcp2xIndicationEvent);
+	}
 
 done:
 
@@ -582,6 +588,7 @@ static void BHDCPlib_P_Hdcp2x_AuthenticationTimerExpiration_isr(BHDCPlib_Handle 
 
 	/* update state to allow future authentication request*/
 	if (hHDCPlib->currentHdcp2xState == BHDCPlib_Hdcp2xState_eAuthenticating) {
+		BDBG_LOG(("%s: Reset hdcplib state machine to prevent blocking authentication request", BSTD_FUNCTION));
 		hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eUnauthenticated;
 
 		/* Set event informing HDCP authentication result */
@@ -1569,6 +1576,15 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 	/* Reset HDCP error - HDCP link status will be updated after UNAUTHENTICATE indication received */
 	hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
 
+	/* Stop timers */
+	if (hHDCPlib->hAuthenticationTimer) {
+		BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
+	}
+
+	if (hHDCPlib->hTimer) {
+		BTMR_StopTimer(hHDCPlib->hTimer);
+	}
+
 	/* Send request to stop authentication */
 	rc = BHDCPlib_P_Hdcp2x_ProcessRequest(hHDCPlib,
 					BHDCPlib_P_Hdcp2xRequest_eHost_StopAuthentication);
@@ -1783,6 +1799,15 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				nextState = BHDCPlib_Hdcp2xState_eSessionKeyLoaded;
 				hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eEncrypting;
 
+				/* Stop timers */
+				if (hHDCPlib->hAuthenticationTimer) {
+					BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
+				}
+
+				if (hHDCPlib->hTimer) {
+					BTMR_StopTimer(hHDCPlib->hTimer);
+				}
+
 				BDBG_LOG(("Indication Received [%s] - current state [%s] - next state [%s] ",
 					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
@@ -1855,11 +1880,6 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				BDBG_LOG(("Indication Received [%s] - current state [%s] - next state [%s] - ",
 					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
-
-				/* Stop authentication timer */
-				if (hHDCPlib->hAuthenticationTimer) {
-					BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
-				}
 
 				/* fire event informing HDCP authentication result */
 				BKNI_SetEvent(hHDCPlib->hdcp2xIndicationEvent);
@@ -2518,6 +2538,7 @@ BERR_Code BHDCPlib_Hdcp2x_GetAuthenticationStatus(
 #else
 				BDBG_ERR(("%s: Invalid hdcp2x State %d", BSTD_FUNCTION, hHDCPlib->currentHdcp2xState));
 #endif
+
 				break ;
 			}
 

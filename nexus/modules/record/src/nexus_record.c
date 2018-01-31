@@ -1031,7 +1031,6 @@ NEXUS_Record_StartAppend(NEXUS_RecordHandle record, NEXUS_FileRecordHandle file,
 
     BDBG_ASSERT(record->cfg.recpump);
     BDBG_MSG(("Starting recpump..."));
-    NEXUS_StartCallbacks(record->cfg.recpump);
     rc = NEXUS_Recpump_Start(record->cfg.recpump);
     if(rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc); goto err_start;}
     record->started = true;
@@ -1083,7 +1082,6 @@ NEXUS_Record_Stop(NEXUS_RecordHandle record)
         }
     }
 
-    NEXUS_StopCallbacks(record->cfg.recpump);
     NEXUS_CallbackHandler_Stop(record->data.dataReady);
     NEXUS_CallbackHandler_Stop(record->index.dataReady);
     NEXUS_CallbackHandler_Stop(record->data.overflow);
@@ -1106,7 +1104,9 @@ NEXUS_Record_Stop(NEXUS_RecordHandle record)
         NEXUS_LockModule();
     }
 
+    NEXUS_StopCallbacks(record->cfg.recpump);
     NEXUS_Recpump_Stop(record->cfg.recpump);
+    NEXUS_StartCallbacks(record->cfg.recpump);
 
     if (record->index.info.index.indexer) {
         BNAV_Indexer_Close(record->index.info.index.indexer);

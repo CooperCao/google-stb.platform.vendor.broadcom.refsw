@@ -1151,6 +1151,9 @@ NEXUS_Error NEXUS_P_Base_ExternalScheduler_Step(
     bool (*complete)(void *context),
     void *context
     );
+
+void NEXUS_P_Base_ExternalScheduler_Wakeup(void);
+
 #endif
 
 typedef struct NEXUS_Base_Scheduler_Config  {
@@ -1235,4 +1238,8 @@ NEXUS_Error NEXUS_Scheduler_SetState(
 
 void NEXUS_Base_ExportEnvVariables(void);
 void NEXUS_Base_SetModuleDebugLevel(void);
+
+#define NEXUS_CancelCallbacks(INTERFACE_HANDLE) NEXUS_Module_CancelCallbacks(NEXUS_MODULE_SELF, (INTERFACE_HANDLE))
+void NEXUS_Module_CancelCallbacks(NEXUS_ModuleHandle module, void *interfaceHandle);
+
 #endif /* !defined NEXUS_BASE_H */

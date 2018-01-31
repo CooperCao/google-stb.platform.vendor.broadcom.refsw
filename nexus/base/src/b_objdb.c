@@ -407,7 +407,7 @@ static int b_objdb_remove(struct b_objdb_module *db, const NEXUS_BaseClassDescri
 
     base_object = (void *)((uint8_t *)handle + p_class->offset);
     BDBG_OBJECT_ASSERT(base_object, NEXUS_BaseObject);
-    db->cancel_callbacks_locked(db->cancel_callbacks_context, handle, releasing?client:NULL);
+    db->cancel_callbacks_locked(db->cancel_callbacks_context, handle, releasing?client:NULL, b_objdb_cancel_callbacks_action_destroy);
     objdb_class = base_object->state.objdb_class;
     if(objdb_class) {
         if (releasing) {
@@ -616,7 +616,7 @@ static void b_objdb_module_uninit_entry_locked(struct b_objdb_module *db, NEXUS_
     if (base_object->state.acquired_client == client) {
         /* if it was acquired, it must have a release function registered */
         BDBG_MSG(("auto-release: [order %u] %s:%p client=%p", base_object->state.order, descriptor->type_name, (void *)handle, (void *)client));
-        db->cancel_callbacks_locked(db->cancel_callbacks_context, handle, client);
+        db->cancel_callbacks_locked(db->cancel_callbacks_context, handle, client, b_objdb_cancel_callbacks_action_destroy);
         if(objdb_class->release) {
             objdb_class->release(handle);
         }
@@ -633,7 +633,7 @@ static void b_objdb_module_uninit_entry_locked(struct b_objdb_module *db, NEXUS_
         BDBG_ASSERT(!base_object->state.inCleanup); /* it should be already cleared and removed by b_objdb_module_uninit_client_objects */
         BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
         base_object->state.objdb_class = NULL;
-        db->cancel_callbacks_locked(db->cancel_callbacks_context, handle, NULL);
+        db->cancel_callbacks_locked(db->cancel_callbacks_context, handle, NULL, b_objdb_cancel_callbacks_action_destroy);
         /* TODO: consider if only NEXUS_Object_P_RegisterUnregister_eAutoCreate is allowed to call destructor */
         if (base_object->state.insert_operation != NEXUS_Object_P_RegisterUnregister_eSyncThunkCreate) {
             objdb_class->destructor(handle);
@@ -684,7 +684,7 @@ void b_objdb_module_uninit_client_callbacks(struct b_objdb_module *db, const str
 {
     BDBG_OBJECT_ASSERT(db, b_objdb_module);
     NEXUS_Module_Lock(db->module);
-    (db->cancel_callbacks_locked)(db->cancel_callbacks_context, NULL, (void*)client);
+    (db->cancel_callbacks_locked)(db->cancel_callbacks_context, NULL, (void*)client, b_objdb_cancel_callbacks_action_destroy);
     NEXUS_Module_Unlock(db->module);
     return;
 }
@@ -751,6 +751,15 @@ NEXUS_Error NEXUS_BaseObject_P_RegisterUnregister(void *object, const NEXUS_Base
     }
     return rc;
 }
+
+void b_objdb_cancel_callbacks(NEXUS_ModuleHandle module, void *object)
+{
+    if(module->objdb) {
+        struct b_objdb_module *db = module->objdb;
+        db->cancel_callbacks_locked(db->cancel_callbacks_context, object, NULL, b_objdb_cancel_callbacks_action_clear);
+    }
+}
+
 
 NEXUS_BaseObject *b_objdb_find_object_and_acquire(const struct b_objdb_client *client, const char *type_name, void *object)
 {

@@ -67,6 +67,7 @@
 #include "keymaster_crypto_aes.h"
 #include "keymaster_crypto_rsa.h"
 #include "keymaster_crypto_hmac.h"
+#include "keymaster_crypto_ec.h"
 
 
 BDBG_MODULE(keymaster_test);
@@ -277,12 +278,17 @@ static BERR_Code km_generate_tests(KeymasterTl_Handle handle)
         {"HMAC 128",   km_test_new_params_with_hmac_defaults,     128,  {0},   BERR_SUCCESS},
         {"HMAC 140",   km_test_new_params_with_hmac_defaults,     140,  {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
         {"HMAC 528",   km_test_new_params_with_hmac_defaults,     528,  {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
+        {"HMAC 0",     km_test_new_params_with_hmac_defaults,     0,    {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
         {"HMAC 160 -key_size",   km_test_new_params_with_hmac_defaults, 160,
                 {km_test_remove_key_size, 0}, BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
         {"HMAC 128 +sha1",   km_test_new_params_with_hmac_defaults, 128,
                 {km_test_add_sha1_digest, 0}, BSAGE_ERR_KM_UNSUPPORTED_DIGEST},
         {"HMAC 128 digest none",   km_test_new_params_with_hmac_defaults, 128,
                 {km_test_remove_digest, km_test_add_none_digest, 0}, BSAGE_ERR_KM_UNSUPPORTED_DIGEST},
+        {"HMAC 128 no digest",   km_test_new_params_with_hmac_defaults, 128,
+                {km_test_remove_digest, 0}, BSAGE_ERR_KM_UNSUPPORTED_DIGEST},
+        {"HMAC 128 no min_mac_length",   km_test_new_params_with_hmac_defaults, 128,
+                {km_test_remove_min_mac_length, 0}, BSAGE_ERR_KM_MISSING_MIN_MAC_LENGTH},
         {"HMAC 128 min_mac_length 48",   km_test_new_params_with_hmac_defaults, 128,
                 {km_test_remove_min_mac_length, km_test_add_min_mac_length_48, 0}, BSAGE_ERR_KM_UNSUPPORTED_MIN_MAC_LENGTH},
         {"HMAC 128 min_mac_length 130",   km_test_new_params_with_hmac_defaults, 128,
@@ -376,8 +382,7 @@ static BERR_Code km_generate_tests(KeymasterTl_Handle handle)
         bool test_failed = true;
 
         EXPECT_SUCCESS(params[i].fn(&key_params, params[i].key_size));
-        if (params[i].name[0] == 'H')
-        {
+        if (params[i].name[0] == 'H') {
             TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
         }
 
@@ -475,8 +480,7 @@ static BERR_Code km_get_characteristics_tests(KeymasterTl_Handle handle)
 
     for (i = 0; i < sizeof(params) / sizeof(test_param_data); i++) {
         EXPECT_SUCCESS(params[i].fn(&key_params, params[i].key_size));
-        if (params[i].name[0] == 'H')
-        {
+        if (params[i].name[0] == 'H') {
             TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
         }
         for (mod = 0; mod < MAX_MODIFIERS && params[i].mod_fn[mod]; mod++) {
@@ -701,8 +705,7 @@ static BERR_Code km_export_tests(KeymasterTl_Handle handle)
         for (mod = 0; mod < MAX_MODIFIERS && params[i].mod_fn[mod]; mod++) {
             EXPECT_SUCCESS(params[i].mod_fn[mod](key_params));
         }
-        if (params[i].name[0] == 'H')
-        {
+        if (params[i].name[0] == 'H') {
             TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
         }
         EXPECT_SUCCESS(KeymasterTl_GenerateKey(handle, key_params, &in_key));
@@ -875,13 +878,25 @@ static BERR_Code km_import_tests(KeymasterTl_Handle handle)
         {"AES 272",   km_test_new_params_with_aes_defaults,  272,  KM_KEY_FORMAT_RAW, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
         {"AES wrong format 1",   km_test_new_params_with_aes_defaults,  256,  KM_KEY_FORMAT_PKCS8, {0}, BSAGE_ERR_KM_UNSUPPORTED_KEY_FORMAT},
         {"AES wrong format 2",   km_test_new_params_with_aes_defaults,  256,  KM_KEY_FORMAT_X509, {0},  BSAGE_ERR_KM_UNSUPPORTED_KEY_FORMAT},
-        {"HMAC 160",  km_test_new_params_with_hmac_defaults, 160,  KM_KEY_FORMAT_RAW, {0},   BERR_SUCCESS},
-        {"HMAC 224",  km_test_new_params_with_hmac_defaults, 224,  KM_KEY_FORMAT_RAW, {0},   BERR_SUCCESS},
-        {"HMAC 256",  km_test_new_params_with_hmac_defaults, 256,  KM_KEY_FORMAT_RAW, {0},   BERR_SUCCESS},
-        {"HMAC 512",  km_test_new_params_with_hmac_defaults, 512,  KM_KEY_FORMAT_RAW, {0},   BERR_SUCCESS},
-        {"HMAC 521",  km_test_new_params_with_hmac_defaults, 521,  KM_KEY_FORMAT_RAW, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
-        {"HMAC wrong format 1",  km_test_new_params_with_hmac_defaults, 160,  KM_KEY_FORMAT_PKCS8, {0}, BSAGE_ERR_KM_UNSUPPORTED_KEY_FORMAT},
-        {"HMAC wrong format 2",  km_test_new_params_with_hmac_defaults, 160,  KM_KEY_FORMAT_X509, {0},  BSAGE_ERR_KM_UNSUPPORTED_KEY_FORMAT},
+        {"HMAC 160",  km_test_new_params_with_hmac_defaults, 160,  KM_KEY_FORMAT_RAW, {km_test_add_sha1_digest, 0},   BERR_SUCCESS},
+        {"HMAC 224",  km_test_new_params_with_hmac_defaults, 224,  KM_KEY_FORMAT_RAW, {km_test_add_sha1_digest, 0},   BERR_SUCCESS},
+        {"HMAC 256",  km_test_new_params_with_hmac_defaults, 256,  KM_KEY_FORMAT_RAW, {km_test_add_sha1_digest, 0},   BERR_SUCCESS},
+        {"HMAC 512",  km_test_new_params_with_hmac_defaults, 512,  KM_KEY_FORMAT_RAW, {km_test_add_sha1_digest, 0},   BERR_SUCCESS},
+        {"HMAC 521",  km_test_new_params_with_hmac_defaults, 521,  KM_KEY_FORMAT_RAW, {km_test_add_sha1_digest, 0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
+        {"HMAC wrong format 1",  km_test_new_params_with_hmac_defaults, 160,  KM_KEY_FORMAT_PKCS8, {km_test_add_sha1_digest, 0}, BSAGE_ERR_KM_UNSUPPORTED_KEY_FORMAT},
+        {"HMAC wrong format 2",  km_test_new_params_with_hmac_defaults, 160,  KM_KEY_FORMAT_X509, {km_test_add_sha1_digest, 0},  BSAGE_ERR_KM_UNSUPPORTED_KEY_FORMAT},
+        {"HMAC 224, digest none",  km_test_new_params_with_hmac_defaults, 224,  KM_KEY_FORMAT_RAW,
+                {km_test_remove_digest, km_test_add_none_digest, 0}, BSAGE_ERR_KM_UNSUPPORTED_DIGEST},
+        {"HMAC 224, no digest",  km_test_new_params_with_hmac_defaults, 224,  KM_KEY_FORMAT_RAW,
+                {km_test_remove_digest, 0}, BSAGE_ERR_KM_UNSUPPORTED_DIGEST},
+        {"HMAC 128, no min_mac_length",  km_test_new_params_with_hmac_defaults, 128,  KM_KEY_FORMAT_RAW,
+                {km_test_remove_min_mac_length, km_test_add_sha1_digest, 0}, BSAGE_ERR_KM_MISSING_MIN_MAC_LENGTH},
+        {"HMAC 128, min_mac_length 48",  km_test_new_params_with_hmac_defaults, 128,  KM_KEY_FORMAT_RAW,
+                {km_test_remove_min_mac_length, km_test_add_min_mac_length_48, km_test_add_sha1_digest, 0}, BSAGE_ERR_KM_UNSUPPORTED_MIN_MAC_LENGTH},
+        {"HMAC 128, min_mac_length 130",  km_test_new_params_with_hmac_defaults, 128,  KM_KEY_FORMAT_RAW,
+                {km_test_remove_min_mac_length, km_test_add_min_mac_length_130, km_test_add_sha1_digest, 0}, BSAGE_ERR_KM_UNSUPPORTED_MIN_MAC_LENGTH},
+        {"HMAC 128, min_mac_length 384",  km_test_new_params_with_hmac_defaults, 128,  KM_KEY_FORMAT_RAW,
+                {km_test_remove_min_mac_length, km_test_add_min_mac_length_384, km_test_add_sha1_digest, 0}, BSAGE_ERR_KM_UNSUPPORTED_MIN_MAC_LENGTH},
         {"EC 224",    km_test_new_params_with_ec_defaults,   224,  KM_KEY_FORMAT_PKCS8, {0}, BERR_SUCCESS},
         {"EC 256",    km_test_new_params_with_ec_defaults,   256,  KM_KEY_FORMAT_PKCS8, {0}, BERR_SUCCESS},
         {"EC 384",    km_test_new_params_with_ec_defaults,   384,  KM_KEY_FORMAT_PKCS8, {0}, BERR_SUCCESS},
@@ -907,6 +922,10 @@ static BERR_Code km_import_tests(KeymasterTl_Handle handle)
         {"RSA 4096", km_test_new_params_with_rsa_defaults,  4096, KM_KEY_FORMAT_PKCS8, {0},   BERR_SUCCESS},
         {"RSA wrong format 1",  km_test_new_params_with_rsa_defaults,  768,  KM_KEY_FORMAT_RAW, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_FORMAT},
         {"RSA wrong format 2",  km_test_new_params_with_rsa_defaults,  768,  KM_KEY_FORMAT_X509, {0},  BSAGE_ERR_KM_UNSUPPORTED_KEY_FORMAT},
+        {"RSA keysize, no key size", km_test_new_params_with_rsa_defaults, 768, KM_KEY_FORMAT_PKCS8,
+                {km_test_remove_key_size, 0}, BERR_SUCCESS},
+        {"RSA keysize, no public exponent", km_test_new_params_with_rsa_defaults, 768, KM_KEY_FORMAT_PKCS8,
+                {km_test_remove_exponent, 0}, BERR_SUCCESS},
         {"RSA keysize mismatch", km_test_new_params_with_rsa_defaults, 768, KM_KEY_FORMAT_PKCS8,
                 {km_test_remove_key_size, km_test_add_key_size_1024, 0}, BSAGE_ERR_KM_IMPORT_PARAMETER_MISMATCH},
         {"RSA exponent mismatch", km_test_new_params_with_rsa_defaults, 768, KM_KEY_FORMAT_PKCS8,
@@ -917,7 +936,6 @@ static BERR_Code km_import_tests(KeymasterTl_Handle handle)
                 {km_test_remove_all_apps, km_test_add_app_id, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"RSA app_data",        km_test_new_params_with_rsa_defaults, 1024, KM_KEY_FORMAT_PKCS8,
                 {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_INVALID_PARAMETER},
-
     };
 
     BDBG_LOG(("----------------------- %s -----------------------", BSTD_FUNCTION));
@@ -978,7 +996,7 @@ static BERR_Code km_import_tests(KeymasterTl_Handle handle)
         TEST_FREE_BLOCK(in_key);
     }
 
-    for (i = 0; i < sizeof(params) / sizeof(test_param_data); i++) {
+    for (i = 0; i < sizeof(params) / sizeof(import_test_param_data); i++) {
         bool test_failed = true;
 
         KeymasterTl_GetDefaultImportKeySettings(&impSettings);
@@ -1343,6 +1361,146 @@ done:
     return err;
 }
 
+static BERR_Code km_invalid_tags(KeymasterTl_Handle handle)
+{
+    BERR_Code err;
+    KeymasterTl_ImportKeySettings impSettings = { 0 };
+    KM_Tag_ContextHandle key_params = NULL;
+    KeymasterTl_DataBlock in_key = { 0 };
+    KeymasterTl_DataBlock key = { 0 };
+    km_algorithm_t algorithm;
+    uint32_t key_size;
+    km_key_format_t format;
+    uint8_t dummy_data[] = "dummy";
+    char *alg_name;
+    int mode, alg, tag;
+    char name[128];
+    BERR_Code expected_err;
+
+    BDBG_LOG(("----------------------- %s -----------------------", BSTD_FUNCTION));
+
+    /* For generate key and import key */
+    for (mode = 0; mode < 2; mode++) {
+        /* For the 4 algorithms */
+        for (alg = 0; alg < 4; alg++) {
+            /* For the nominated list of invalid tags */
+            for (tag = 0; tag < 8; tag++) {
+                switch (alg) {
+                case 0:
+                    key_size = 128;
+                    EXPECT_SUCCESS(km_test_new_params_with_aes_defaults(&key_params, key_size));
+                    alg_name = "AES";
+                    algorithm = KM_ALGORITHM_AES;
+                    format = KM_KEY_FORMAT_RAW;
+                    break;
+                case 1:
+                    key_size = 128;
+                    EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, key_size));
+                    TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+                    alg_name = "HMAC";
+                    algorithm = KM_ALGORITHM_HMAC;
+                    format = KM_KEY_FORMAT_RAW;
+                    break;
+                case 2:
+                    key_size = 768;
+                    EXPECT_SUCCESS(km_test_new_params_with_rsa_defaults(&key_params, key_size));
+                    alg_name = "RSA";
+                    algorithm = KM_ALGORITHM_RSA;
+                    format = KM_KEY_FORMAT_PKCS8;
+                    break;
+                case 3:
+                    key_size = 256;
+                    EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, key_size));
+                    alg_name = "EC";
+                    algorithm = KM_ALGORITHM_EC;
+                    format = KM_KEY_FORMAT_PKCS8;
+                    break;
+                default:
+                    BDBG_ASSERT(0);
+                    break;
+                }
+
+                /* Add tags which are not allowed in the key_params */
+                switch (tag) {
+                case 0:
+                    TEST_TAG_ADD_BYTES(key_params, KM_TAG_AUTH_TOKEN, sizeof(dummy_data), dummy_data);
+                    expected_err = BERR_INVALID_PARAMETER;
+                    break;
+                case 1:
+                    TEST_TAG_ADD_BYTES(key_params, KM_TAG_APPLICATION_DATA, sizeof(dummy_data), dummy_data);
+                    expected_err = BERR_INVALID_PARAMETER;
+                    break;
+                case 2:
+                    TEST_TAG_ADD_BYTES(key_params, KM_TAG_ATTESTATION_CHALLENGE, sizeof(dummy_data), dummy_data);
+                    expected_err = BERR_INVALID_PARAMETER;
+                    break;
+                case 3:
+                    TEST_TAG_ADD_ENUM(key_params, KM_TAG_ORIGIN, KM_ORIGIN_IMPORTED);
+                    expected_err = BERR_INVALID_PARAMETER;
+                    break;
+                case 4:
+                    TEST_TAG_ADD_BYTES(key_params, KM_TAG_ROOT_OF_TRUST, sizeof(dummy_data), dummy_data);
+                    expected_err = BERR_INVALID_PARAMETER;
+                    break;
+                case 5:
+                    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_OS_VERSION, 5);
+                    expected_err = BERR_INVALID_PARAMETER;
+                    break;
+                case 6:
+                    TEST_TAG_ADD_INTEGER(key_params, KM_TAG_OS_PATCHLEVEL, 6);
+                    expected_err = BERR_INVALID_PARAMETER;
+                    break;
+                case 7:
+                    /* Last test is a positive test, just to be sure we're not failing on another parameter */
+                    expected_err = BERR_SUCCESS;
+                    break;
+                default:
+                    BDBG_ASSERT(0);
+                    break;
+                }
+
+                snprintf(name, sizeof(name), "%s Test: algorithm %s, tag %d", (!mode) ? "Generate" : "Import", alg_name, tag);
+                BDBG_LOG(("Running %s", name));
+
+                switch (mode) {
+                case 0:
+                    /* Test generate key */
+                    EXPECT_FAILURE_CODE(KeymasterTl_GenerateKey(handle, key_params, &key), expected_err);
+                    BDBG_LOG(("\tReturned blob size %d (%p)", key.size, key.buffer));
+                    TEST_FREE_BLOCK(key);
+                    break;
+                case 1:
+                    /* Test import key */
+                    EXPECT_SUCCESS(km_create_key_blob(algorithm, key_size, &in_key));
+
+                    KeymasterTl_GetDefaultImportKeySettings(&impSettings);
+                    impSettings.in_key_format = format;
+                    impSettings.in_key_blob = in_key;
+                    impSettings.in_key_params = key_params;
+                    EXPECT_FAILURE_CODE(KeymasterTl_ImportKey(handle, &impSettings), expected_err);
+                    BDBG_LOG(("\tReturned blob size %d (%p)", impSettings.out_key_blob.size, impSettings.out_key_blob.buffer));
+                    TEST_FREE_BLOCK(impSettings.out_key_blob);
+                    TEST_FREE_BLOCK(in_key);
+                    break;
+                default:
+                    BDBG_ASSERT(0);
+                    break;
+                }
+                BDBG_LOG(("%s success", name));
+
+                TEST_DELETE_CONTEXT(key_params);
+            }
+        }
+    }
+    err = BERR_SUCCESS;
+
+done:
+    TEST_FREE_BLOCK(in_key);
+    TEST_FREE_BLOCK(key);
+    TEST_DELETE_CONTEXT(key_params);
+    return err;
+}
+
 int main(int argc, char *argv[])
 {
     KeymasterTl_Handle handle = NULL;
@@ -1407,6 +1565,8 @@ int main(int argc, char *argv[])
     EXPECT_SUCCESS(km_crypto_aes_tests(handle));
     EXPECT_SUCCESS(km_crypto_rsa_tests(handle));
     EXPECT_SUCCESS(km_crypto_hmac_tests(handle));
+    EXPECT_SUCCESS(km_crypto_ec_tests(handle));
+    EXPECT_SUCCESS(km_invalid_tags(handle));
 
     BDBG_LOG(("%s: ***** ALL TESTS PASSED *****", BSTD_FUNCTION));
 
