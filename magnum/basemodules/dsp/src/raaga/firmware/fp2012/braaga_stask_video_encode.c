@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -289,7 +289,7 @@ const uint32_t BDSP_IMG_video_encode_task_code_array1[] = {
 	0xe7a10307,
 	0x51167e0f,
 	0x9000006b,
-	0x71c24008,
+	0x71e24008,
 	0x53c131d7,
 	0x50fbeb89,
 	0xc8227e07,
@@ -355,7 +355,7 @@ const uint32_t BDSP_IMG_video_encode_task_code_array1[] = {
 	0xc807880f,
 	0x0807100f,
 	0x3806000f,
-	0x72608341,
+	0x72508341,
 	0x08177e07,
 	0x980821cf,
 	0x0805b1cf,
@@ -432,7 +432,7 @@ const uint32_t BDSP_IMG_video_encode_task_code_array1[] = {
 	0x39288507,
 	0x0fb00407,
 	0xc93f8107,
-	0x71c08fc8,
+	0x71e08fc8,
 	0x080831cf,
 	0x381121cf,
 	0x081fa9cf,
@@ -527,7 +527,7 @@ const uint32_t BDSP_IMG_video_encode_task_code_array1[] = {
 	0x98007c17,
 	0x53e8b1d7,
 	0x50ffeb9b,
-	0x71e08049,
+	0x71c08049,
 	0x921d11cf,
 	0x98002907,
 	0x9c1005cf,
@@ -603,11 +603,11 @@ const uint32_t BDSP_IMG_video_encode_task_code_array1[] = {
 	0x881ff9cf,
 	0x09a414ef,
 	0x881ff1cf,
-	0x71c24248,
+	0x71e24248,
 	0x71823208,
-	0x726247c8,
+	0x725247c8,
 	0x71a26788,
-	0x71c26748,
+	0x71e26748,
 	0x72723fc8,
 	0x083f89cf,
 	0x383f91cf,

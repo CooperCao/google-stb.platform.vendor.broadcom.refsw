@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -482,7 +482,7 @@ const uint32_t BDSP_IMG_btscenc_code_array1[] = {
 	0x1e020a2f,
 	0x96a04b4f,
 	0xab0381f8,
-	0x71e411cf,
+	0x71c411cf,
 	0x0801a1cf,
 	0x3800a9cf,
 	0x1ea2dc2f,
@@ -495,7 +495,7 @@ const uint32_t BDSP_IMG_btscenc_code_array1[] = {
 	0xc8804e17,
 	0x8401336f,
 	0xabf9f1ff,
-	0x71e41044,
+	0x71c41044,
 	0xe7b8cf27,
 	0x0fb4d737,
 	0xc058f1cf,
@@ -2209,7 +2209,7 @@ const uint32_t BDSP_IMG_btscenc_code_array1[] = {
 	0xabb9b1ff,
 	0xc8002337,
 	0x996a0327,
-	0x71c1854c,
+	0x71e1854c,
 	0x0460b1cf,
 	0x1c6021cf,
 	0x269f0257,
@@ -2655,7 +2655,7 @@ const uint32_t BDSP_IMG_btscenc_code_array1[] = {
 	0x3a1261cf,
 	0x3c1c8917,
 	0xc8800117,
-	0x71e43002,
+	0x71c43002,
 	0x3d5f8787,
 	0xec1c8507,
 	0x230161f8,
@@ -2806,7 +2806,7 @@ const uint32_t BDSP_IMG_btscenc_code_array1[] = {
 	0x321261cf,
 	0x09618417,
 	0x3c1005cf,
-	0x726187c2,
+	0x725187c2,
 	0x9c1109cf,
 	0xc19c73cf,
 	0xf83d31ff,

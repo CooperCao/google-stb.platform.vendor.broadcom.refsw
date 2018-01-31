@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -230,7 +230,7 @@ const uint32_t BDSP_IMG_flac_ids_array1[] = {
 	0x73006140,
 	0x723070c0,
 	0x71a0a0c0,
-	0x72609040,
+	0x72509040,
 	0xf83d31ff,
 	0x62a43100,
 	0x90203007,

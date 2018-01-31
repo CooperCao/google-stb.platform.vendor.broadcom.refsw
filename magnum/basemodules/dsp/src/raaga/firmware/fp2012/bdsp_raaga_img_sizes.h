@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -297,8 +297,8 @@
 #define BDSP_IMG_VOCALS_CODE_SIZE                                    ((uint32_t)4640)
 #define BDSP_IMG_VOCALS_INTER_FRAME_SIZE                             ((uint32_t)400408)
 #define BDSP_IMG_VOCALS_TABLES_SIZE                                  ((uint32_t)4)
-#define BDSP_IMG_VORBIS_DECODE_INTER_FRAME_SIZE                      ((uint32_t)424044)
-#define BDSP_IMG_VORBIS_DECODE_SIZE                                  ((uint32_t)50084)
+#define BDSP_IMG_VORBIS_DECODE_INTER_FRAME_SIZE                      ((uint32_t)424048)
+#define BDSP_IMG_VORBIS_DECODE_SIZE                                  ((uint32_t)50188)
 #define BDSP_IMG_VORBIS_DECODE_TABLES_SIZE                           ((uint32_t)26772)
 #define BDSP_IMG_VORBIS_IDS_INTER_FRAME_SIZE                         ((uint32_t)16876)
 #define BDSP_IMG_VORBIS_IDS_SIZE                                     ((uint32_t)4176)

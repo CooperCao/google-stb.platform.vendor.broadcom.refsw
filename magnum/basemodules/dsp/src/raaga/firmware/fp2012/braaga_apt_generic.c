@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1953,7 +1953,7 @@ const uint32_t BDSP_IMG_cdb_passthru_code_array1[] = {
 	0xabfc71f8,
 	0xc180924f,
 	0xf5459287,
-	0x72528222,
+	0x72628222,
 	0xabf8d1f8,
 	0xf83d31ff,
 	0x6e559009,
